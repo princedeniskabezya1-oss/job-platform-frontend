@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Post Job | HireFlow</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Inter',sans-serif;background:#f4f6fb;padding:40px;}
+.box{max-width:600px;margin:auto;background:white;padding:30px;border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.05);}
+input,textarea{width:100%;padding:12px;margin-bottom:15px;border-radius:6px;border:1px solid #ddd;}
+button{padding:10px 16px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;}
+</style>
+</head>
+
+<body>
+<div class="box">
+<h2>Create Job Posting</h2>
+<input id="title" placeholder="Job Title">
+<input id="company" placeholder="Company Name">
+<input id="location" placeholder="Location">
+<input id="salary" placeholder="Salary">
+<textarea id="description" placeholder="Job Description"></textarea>
+<button onclick="submitJob()">Submit Job</button>
+</div>
+
+<script>
+const API="https://backend-1-9b6f.onrender.com";
+const token=localStorage.getItem("token");
+
+async function submitJob(){
+  await fetch(API+"/api/jobs",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+token
+    },
+    body:JSON.stringify({
+      title:title.value,
+      company:company.value,
+      location:location.value,
+      salary:salary.value,
+      description:description.value
+    })
+  });
+  alert("Job submitted for approval!");
+  window.location.href="employer.html";
+}
+</script>
+</body>
+</html>
