@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Employer Dashboard | HireFlow</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',sans-serif;background:#f4f6fb;display:flex;}
+.sidebar{width:240px;height:100vh;background:#111827;color:white;padding:25px;position:fixed;}
+.sidebar h2{margin-bottom:40px;}
+.sidebar a{display:block;color:#cbd5e1;text-decoration:none;margin-bottom:15px;font-size:14px;}
+.sidebar a:hover{color:white;}
+.main{margin-left:240px;padding:40px;width:100%;}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;}
+button{padding:8px 14px;border:none;border-radius:6px;cursor:pointer;}
+.post{background:#2563eb;color:white;}
+.logout{background:#ef4444;color:white;}
+.card{background:white;padding:20px;border-radius:10px;margin-bottom:25px;box-shadow:0 5px 15px rgba(0,0,0,0.05);}
+table{width:100%;border-collapse:collapse;}
+th,td{padding:12px;border-bottom:1px solid #eee;text-align:left;}
+.status{font-size:12px;padding:4px 8px;border-radius:20px;}
+.pending{background:#facc15;color:black;}
+.active{background:#16a34a;color:white;}
+.rejected{background:#dc2626;color:white;}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <h2>HireFlow</h2>
+  <a href="#">My Jobs</a>
+  <a href="#">Post Job</a>
+</div>
+
+<div class="main">
+<div class="top">
+  <h1>Employer Dashboard</h1>
+  <div>
+    <button class="post" onclick="openForm()">+ Post Job</button>
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>My Job Listings</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Location</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="jobsTable"></tbody>
+  </table>
+</div>
+
+</div>
+
+<script>
+const API="https://backend-1-9b6f.onrender.com";
+const token=localStorage.getItem("token");
+
+if(!token){window.location.href="login.html";}
+
+async function loadJobs(){
+  const res=await fetch(API+"/api/jobs/my",{
+    headers:{Authorization:"Bearer "+token}
+  });
+  const jobs=await res.json();
+
+  const table=document.getElementById("jobsTable");
+  table.innerHTML="";
+
+  jobs.forEach(job=>{
+    table.innerHTML+=`
+      <tr>
+        <td>${job.title}</td>
+        <td>${job.location}</td>
+        <td><span class="status ${job.status}">${job.status}</span></td>
+      </tr>
+    `;
+  });
+}
+
+function openForm(){
+  window.location.href="post-job.html";
+}
+
+function logout(){
+  localStorage.removeItem("token");
+  window.location.href="login.html";
+}
+
+loadJobs();
+</script>
+
+</body>
+</html>
