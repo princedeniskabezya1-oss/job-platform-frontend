@@ -2,48 +2,73 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Dashboard | HireFlow</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
+*{box-sizing:border-box;}
 body{
   margin:0;
   font-family:'Inter',sans-serif;
-  background:#f5f7fb;
+  background:linear-gradient(135deg,#f8fafc,#eef2ff);
   display:flex;
 }
 
-/* Sidebar */
+/* SIDEBAR */
 .sidebar{
-  width:250px;
-  height:100vh;
-  background:#111827;
+  width:260px;
+  background:linear-gradient(180deg,#111827,#1f2937);
   color:white;
-  padding:25px;
+  height:100vh;
+  padding:30px 20px;
   position:fixed;
+  transition:0.3s ease;
+  z-index:1000;
 }
 
-.sidebar h2{
-  margin-bottom:40px;
-  font-size:20px;
-}
+.sidebar h2{margin-bottom:40px;}
 
 .sidebar a{
   display:block;
+  padding:10px 15px;
+  margin-bottom:8px;
+  border-radius:8px;
+  cursor:pointer;
   color:#cbd5e1;
   text-decoration:none;
-  margin-bottom:18px;
-  font-size:14px;
+  transition:0.3s;
 }
 
 .sidebar a:hover{
+  background:#2563eb;
   color:white;
 }
 
-/* Main */
+.sidebar a.active{
+  background:#3b82f6;
+  color:white;
+}
+
+.sidebar.hidden{
+  transform:translateX(-100%);
+}
+
+.overlay{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,0.4);
+  display:none;
+  z-index:900;
+}
+
+.overlay.active{display:block;}
+
+/* MAIN */
 .main{
-  margin-left:250px;
-  padding:40px;
+  margin-left:260px;
+  padding:30px;
   width:100%;
 }
 
@@ -51,201 +76,232 @@ body{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:30px;
+  margin-bottom:25px;
+}
+
+.hamburger{
+  display:none;
+  font-size:24px;
+  cursor:pointer;
 }
 
 .topbar h1{
   font-size:22px;
+  background:linear-gradient(90deg,#2563eb,#7c3aed);
+  -webkit-background-clip:text;
+  color:transparent;
 }
 
+/* STATS */
 .stats{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-  gap:20px;
-  margin-bottom:40px;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:15px;
+  margin-bottom:25px;
 }
 
 .card{
   background:white;
-  padding:20px;
-  border-radius:10px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.05);
+  padding:18px;
+  border-radius:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.06);
+  transition:0.3s;
 }
 
-.card h3{
-  font-size:14px;
-  color:#6b7280;
-}
+.card:hover{transform:translateY(-4px);}
 
-.card p{
-  font-size:22px;
-  font-weight:700;
-  margin-top:10px;
-}
+.card h3{font-size:13px;color:#64748b;}
+.card p{font-size:20px;font-weight:700;margin-top:6px;}
 
-.table{
-  background:white;
-  padding:25px;
-  border-radius:10px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.05);
-}
+/* TABLE */
+.table-wrapper{overflow-x:auto;}
 
 table{
   width:100%;
   border-collapse:collapse;
+  min-width:600px;
 }
 
-th, td{
+th,td{
   padding:12px;
-  border-bottom:1px solid #eee;
-  text-align:left;
+  border-bottom:1px solid #f1f5f9;
 }
 
-th{
-  font-size:13px;
-  color:#6b7280;
+tr:hover{background:#f8fafc;}
+
+.status{
+  padding:4px 8px;
+  border-radius:20px;
+  font-size:11px;
 }
+
+.pending{background:#fde68a;}
+.active{background:#4ade80;color:white;}
+.rejected{background:#f87171;color:white;}
 
 button{
-  padding:6px 12px;
+  padding:6px 10px;
   border:none;
   border-radius:6px;
   cursor:pointer;
-  font-size:13px;
+  font-weight:600;
 }
 
-.approve{
-  background:#16a34a;
-  color:white;
-}
+.approve{background:#16a34a;color:white;}
+.reject{background:#dc2626;color:white;}
+.logout{background:#ef4444;color:white;}
 
-.reject{
-  background:#dc2626;
-  color:white;
-}
-
-.logout{
-  background:#ef4444;
-  color:white;
-  padding:8px 14px;
+/* RESPONSIVE */
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.active{transform:translateX(0);}
+  .main{margin-left:0;}
+  .hamburger{display:block;}
 }
 </style>
 </head>
 
 <body>
 
-<div class="sidebar">
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<div class="sidebar hidden" id="sidebar">
   <h2>HireFlow Admin</h2>
-  <a href="#">Dashboard</a>
-  <a href="#">Pending Jobs</a>
-  <a href="#">Users</a>
-  <a href="#">Payments</a>
-  <a href="#">Analytics</a>
+  <a onclick="showSection('dashboard')" class="active">Dashboard</a>
+  <a onclick="showSection('pending')">Pending Jobs</a>
+  <a onclick="showSection('jobs')">All Jobs</a>
+  <a onclick="showSection('applications')">Applications</a>
+  <a onclick="logout()">Logout</a>
 </div>
 
 <div class="main">
-
-<div class="topbar">
-  <h1>Admin Dashboard</h1>
-  <button class="logout" onclick="logout()">Logout</button>
-</div>
-
-<div class="stats">
-  <div class="card">
-    <h3>Total Jobs</h3>
-    <p id="totalJobs">0</p>
+  <div class="topbar">
+    <span class="hamburger" onclick="toggleSidebar()">☰</span>
+    <h1 id="pageTitle">Dashboard</h1>
+    <button class="logout" onclick="logout()">Logout</button>
   </div>
-  <div class="card">
-    <h3>Pending Jobs</h3>
-    <p id="pendingJobs">0</p>
-  </div>
-  <div class="card">
-    <h3>Total Users</h3>
-    <p>—</p>
-  </div>
-  <div class="card">
-    <h3>Revenue</h3>
-    <p>$0</p>
-  </div>
-</div>
-
-<div class="table">
-  <h2>Pending Job Approvals</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Title</th>
-        <th>Company</th>
-        <th>Location</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="jobTable"></tbody>
-  </table>
-</div>
-
+  <div id="content"></div>
 </div>
 
 <script>
-const API = "https://backend-1-9b6f.onrender.com";
-const token = localStorage.getItem("token");
+const API="https://backend-1-9b6f.onrender.com";
+const token=localStorage.getItem("token");
+if(!token){window.location.href="login.html";}
 
-// Protect page
-if(!token){
-  window.location.href="login.html";
+function toggleSidebar(){
+  document.getElementById("sidebar").classList.toggle("active");
+  document.getElementById("overlay").classList.toggle("active");
 }
 
-async function loadPendingJobs(){
-  const res = await fetch(API + "/api/jobs/pending",{
-    headers:{
-      "Authorization":"Bearer " + token
-    }
+function setActive(section){
+  document.querySelectorAll(".sidebar a").forEach(a=>{
+    a.classList.remove("active");
+    if(a.innerText.toLowerCase().includes(section))
+      a.classList.add("active");
   });
+}
 
-  const jobs = await res.json();
-  document.getElementById("pendingJobs").innerText = jobs.length;
-  document.getElementById("totalJobs").innerText = jobs.length;
+async function showSection(section){
+  setActive(section);
+  const content=document.getElementById("content");
+  const title=document.getElementById("pageTitle");
 
-  const table = document.getElementById("jobTable");
-  table.innerHTML = "";
+  if(section==="dashboard"){
+    title.innerText="Dashboard";
 
-  jobs.forEach(job=>{
-    table.innerHTML += `
-      <tr>
-        <td>${job.title}</td>
-        <td>${job.company}</td>
-        <td>${job.location}</td>
-        <td>
-          <button class="approve" onclick="approveJob('${job._id}')">Approve</button>
-          <button class="reject" onclick="rejectJob('${job._id}')">Reject</button>
-        </td>
-      </tr>
+    const pendingRes=await fetch(API+"/api/jobs/pending",{headers:{Authorization:"Bearer "+token}});
+    const pendingJobs=await pendingRes.json();
+
+    const appsRes=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer "+token}});
+    const apps=await appsRes.json();
+
+    content.innerHTML=`
+      <div class="stats">
+        <div class="card"><h3>Pending Jobs</h3><p>${pendingJobs.length}</p></div>
+        <div class="card"><h3>Total Applications</h3><p>${apps.length}</p></div>
+      </div>
     `;
-  });
+  }
+
+  if(section==="pending"){
+    title.innerText="Pending Jobs";
+
+    const res=await fetch(API+"/api/jobs/pending",{headers:{Authorization:"Bearer "+token}});
+    const jobs=await res.json();
+
+    let html=`<div class="card table-wrapper"><table>
+      <tr><th>Title</th><th>Company</th><th>Action</th></tr>`;
+
+    jobs.forEach(job=>{
+      html+=`
+        <tr>
+          <td>${job.title}</td>
+          <td>${job.company}</td>
+          <td>
+            <button class="approve" onclick="updateStatus('${job._id}','active')">Approve</button>
+            <button class="reject" onclick="updateStatus('${job._id}','rejected')">Reject</button>
+          </td>
+        </tr>`;
+    });
+
+    html+=`</table></div>`;
+    content.innerHTML=html;
+  }
+
+  if(section==="jobs"){
+    title.innerText="All Jobs";
+    const res=await fetch(API+"/api/jobs");
+    const jobs=await res.json();
+
+    let html=`<div class="card table-wrapper"><table>
+      <tr><th>Title</th><th>Status</th></tr>`;
+
+    jobs.forEach(job=>{
+      html+=`
+        <tr>
+          <td>${job.title}</td>
+          <td>${job.status}</td>
+        </tr>`;
+    });
+
+    html+=`</table></div>`;
+    content.innerHTML=html;
+  }
+
+  if(section==="applications"){
+    title.innerText="Applications";
+
+    const res=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer "+token}});
+    const apps=await res.json();
+
+    let html=`<div class="card table-wrapper"><table>
+      <tr><th>Name</th><th>Email</th><th>Job</th><th>Status</th></tr>`;
+
+    apps.forEach(app=>{
+      html+=`
+        <tr>
+          <td>${app.name}</td>
+          <td>${app.email}</td>
+          <td>${app.jobId?.title || ''}</td>
+          <td>${app.status}</td>
+        </tr>`;
+    });
+
+    html+=`</table></div>`;
+    content.innerHTML=html;
+  }
 }
 
-async function approveJob(id){
-  await fetch(API + "/api/jobs/" + id + "/status",{
+async function updateStatus(id,status){
+  await fetch(API+"/api/jobs/"+id+"/status",{
     method:"PATCH",
     headers:{
       "Content-Type":"application/json",
-      "Authorization":"Bearer " + token
+      "Authorization":"Bearer "+token
     },
-    body:JSON.stringify({status:"active"})
+    body:JSON.stringify({status})
   });
-  loadPendingJobs();
-}
-
-async function rejectJob(id){
-  await fetch(API + "/api/jobs/" + id + "/status",{
-    method:"PATCH",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer " + token
-    },
-    body:JSON.stringify({status:"rejected"})
-  });
-  loadPendingJobs();
+  showSection("pending");
 }
 
 function logout(){
@@ -253,7 +309,7 @@ function logout(){
   window.location.href="login.html";
 }
 
-loadPendingJobs();
+showSection("dashboard");
 </script>
 
 </body>
