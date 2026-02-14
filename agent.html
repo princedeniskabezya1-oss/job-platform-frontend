@@ -1,29 +1,241 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Agent Dashboard | HireFlow</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
 <style>
-body{font-family:'Inter',sans-serif;background:#f4f6fb;padding:40px;}
-.card{background:white;padding:20px;border-radius:10px;margin-bottom:20px;box-shadow:0 5px 15px rgba(0,0,0,0.05);}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  font-family:'Inter',sans-serif;
+  background:linear-gradient(135deg,#f8fafc,#eef2ff);
+  display:flex;
+}
+
+/* SIDEBAR */
+.sidebar{
+  width:260px;
+  background:linear-gradient(180deg,#0f172a,#1e293b);
+  color:white;
+  height:100vh;
+  padding:30px 20px;
+  position:fixed;
+  transition:0.3s ease;
+  z-index:1000;
+}
+
+.sidebar h2{margin-bottom:40px;}
+
+.sidebar a{
+  display:block;
+  padding:10px 15px;
+  margin-bottom:8px;
+  border-radius:8px;
+  cursor:pointer;
+  color:#cbd5e1;
+  text-decoration:none;
+  transition:0.3s;
+}
+
+.sidebar a:hover{background:#2563eb;color:white;}
+.sidebar a.active{background:#3b82f6;color:white;}
+.sidebar.hidden{transform:translateX(-100%);}
+
+.overlay{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,0.4);
+  display:none;
+  z-index:900;
+}
+
+.overlay.active{display:block;}
+
+/* MAIN */
+.main{
+  margin-left:260px;
+  padding:30px;
+  width:100%;
+}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:25px;
+}
+
+.hamburger{
+  display:none;
+  font-size:24px;
+  cursor:pointer;
+}
+
+.topbar h1{
+  font-size:22px;
+  background:linear-gradient(90deg,#2563eb,#7c3aed);
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+/* CARDS */
+.stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:15px;
+  margin-bottom:25px;
+}
+
+.card{
+  background:white;
+  padding:20px;
+  border-radius:14px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.06);
+  transition:0.3s;
+}
+
+.card:hover{transform:translateY(-4px);}
+
+.card h3{font-size:13px;color:#64748b;}
+.card p{font-size:20px;font-weight:700;margin-top:6px;}
+
+button{
+  padding:7px 12px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.logout{background:#ef4444;color:white;}
+
+.table-wrapper{overflow-x:auto;}
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:600px;
+}
+th,td{
+  padding:12px;
+  border-bottom:1px solid #f1f5f9;
+}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.active{transform:translateX(0);}
+  .main{margin-left:0;}
+  .hamburger{display:block;}
+}
 </style>
 </head>
 
 <body>
 
-<h1>Agent Referral Dashboard</h1>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
-<div class="card">
-  <h3>Total Referrals</h3>
-  <p>0</p>
+<div class="sidebar hidden" id="sidebar">
+  <h2>HireFlow Agent</h2>
+  <a onclick="showSection('dashboard')" class="active">Dashboard</a>
+  <a onclick="showSection('referrals')">My Referrals</a>
+  <a onclick="logout()">Logout</a>
 </div>
 
-<div class="card">
-  <h3>Commission Earned</h3>
-  <p>$0</p>
+<div class="main">
+  <div class="topbar">
+    <span class="hamburger" onclick="toggleSidebar()">☰</span>
+    <h1 id="pageTitle">Dashboard</h1>
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
+
+  <div id="content"></div>
 </div>
 
-<p>Referral tracking system coming next phase.</p>
+<script>
+const API="https://backend-1-9b6f.onrender.com";
+const token=localStorage.getItem("token");
+if(!token){window.location.href="login.html";}
+
+let agentData=null;
+
+function toggleSidebar(){
+  document.getElementById("sidebar").classList.toggle("active");
+  document.getElementById("overlay").classList.toggle("active");
+}
+
+function setActive(section){
+  document.querySelectorAll(".sidebar a").forEach(a=>{
+    a.classList.remove("active");
+    if(a.innerText.toLowerCase().includes(section))
+      a.classList.add("active");
+  });
+}
+
+async function showSection(section){
+  setActive(section);
+  const content=document.getElementById("content");
+  const title=document.getElementById("pageTitle");
+
+  if(section==="dashboard"){
+    title.innerText="Dashboard";
+
+    const res=await fetch(API+"/api/auth/me",{
+      headers:{Authorization:"Bearer "+token}
+    });
+
+    agentData=await res.json();
+
+    content.innerHTML=`
+      <div class="stats">
+        <div class="card">
+          <h3>Your Referral Code</h3>
+          <p>${agentData.referralCode || "N/A"}</p>
+        </div>
+        <div class="card">
+          <h3>Total Commission</h3>
+          <p>$${agentData.commissionEarned}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  if(section==="referrals"){
+    title.innerText="My Referrals";
+
+    const res=await fetch(API+"/api/users/referred",{
+      headers:{Authorization:"Bearer "+token}
+    });
+
+    const users=await res.json();
+
+    let html=`<div class="card table-wrapper"><table>
+      <tr><th>Name</th><th>Email</th><th>Role</th></tr>`;
+
+    users.forEach(user=>{
+      html+=`
+        <tr>
+          <td>${user.name}</td>
+          <td>${user.email}</td>
+          <td>${user.role}</td>
+        </tr>`;
+    });
+
+    html+=`</table></div>`;
+    content.innerHTML=html;
+  }
+}
+
+function logout(){
+  localStorage.removeItem("token");
+  window.location.href="login.html";
+}
+
+showSection("dashboard");
+</script>
 
 </body>
 </html>
