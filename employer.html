@@ -4,24 +4,164 @@
 <meta charset="UTF-8">
 <title>Employer Dashboard | HireFlow</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
 <style>
-body{margin:0;font-family:'Inter',sans-serif;background:#f4f6fb;display:flex;}
-.sidebar{width:240px;height:100vh;background:#111827;color:white;padding:25px;position:fixed;}
-.sidebar h2{margin-bottom:40px;}
-.sidebar a{display:block;color:#cbd5e1;text-decoration:none;margin-bottom:15px;font-size:14px;}
-.sidebar a:hover{color:white;}
-.main{margin-left:240px;padding:40px;width:100%;}
-.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;}
-button{padding:8px 14px;border:none;border-radius:6px;cursor:pointer;}
-.post{background:#2563eb;color:white;}
-.logout{background:#ef4444;color:white;}
-.card{background:white;padding:20px;border-radius:10px;margin-bottom:25px;box-shadow:0 5px 15px rgba(0,0,0,0.05);}
-table{width:100%;border-collapse:collapse;}
-th,td{padding:12px;border-bottom:1px solid #eee;text-align:left;}
-.status{font-size:12px;padding:4px 8px;border-radius:20px;}
-.pending{background:#facc15;color:black;}
-.active{background:#16a34a;color:white;}
-.rejected{background:#dc2626;color:white;}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  font-family:'Inter',sans-serif;
+  background:linear-gradient(135deg,#eef2ff,#f8fafc);
+  display:flex;
+  overflow-x:hidden;
+}
+
+/* Sidebar */
+.sidebar{
+  width:260px;
+  background:linear-gradient(180deg,#111827,#1f2937);
+  color:white;
+  height:100vh;
+  padding:30px 20px;
+  position:fixed;
+  transition:0.3s;
+}
+
+.sidebar h2{
+  margin-bottom:50px;
+  font-weight:700;
+  letter-spacing:1px;
+}
+
+.sidebar a{
+  display:block;
+  padding:10px 15px;
+  margin-bottom:10px;
+  border-radius:8px;
+  cursor:pointer;
+  color:#cbd5e1;
+  text-decoration:none;
+  transition:0.3s;
+}
+
+.sidebar a:hover{
+  background:#2563eb;
+  color:white;
+  transform:translateX(5px);
+}
+
+.sidebar a.active{
+  background:#3b82f6;
+  color:white;
+}
+
+/* Main */
+.main{
+  margin-left:260px;
+  padding:40px;
+  width:100%;
+  animation:fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn{
+  from{opacity:0;transform:translateY(10px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:30px;
+}
+
+.topbar h1{
+  font-size:26px;
+  background:linear-gradient(90deg,#2563eb,#7c3aed);
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+/* Cards */
+.card{
+  background:white;
+  padding:25px;
+  border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.06);
+  margin-bottom:25px;
+  transition:0.3s;
+}
+
+.card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 15px 35px rgba(0,0,0,0.08);
+}
+
+/* Buttons */
+button{
+  padding:10px 16px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+  transition:0.3s;
+}
+
+.primary{
+  background:linear-gradient(90deg,#2563eb,#7c3aed);
+  color:white;
+}
+
+.primary:hover{
+  transform:scale(1.05);
+}
+
+.danger{
+  background:#ef4444;
+  color:white;
+}
+
+/* Inputs */
+input,textarea{
+  width:100%;
+  padding:12px;
+  margin-bottom:15px;
+  border:1px solid #e5e7eb;
+  border-radius:8px;
+  transition:0.3s;
+}
+
+input:focus,textarea:focus{
+  outline:none;
+  border-color:#2563eb;
+  box-shadow:0 0 0 3px rgba(37,99,235,0.15);
+}
+
+/* Table */
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th,td{
+  padding:12px;
+  border-bottom:1px solid #f1f5f9;
+}
+
+tr:hover{
+  background:#f8fafc;
+  transition:0.3s;
+}
+
+.status{
+  padding:5px 10px;
+  border-radius:20px;
+  font-size:12px;
+}
+
+.pending{background:#fde68a;}
+.active{background:#4ade80;color:white;}
+.rejected{background:#f87171;color:white;}
+
 </style>
 </head>
 
@@ -29,40 +169,75 @@ th,td{padding:12px;border-bottom:1px solid #eee;text-align:left;}
 
 <div class="sidebar">
   <h2>HireFlow</h2>
-  <a href="#">My Jobs</a>
-  <a href="#">Post Job</a>
+  <a onclick="showSection('dashboard')" class="active">Dashboard</a>
+  <a onclick="showSection('jobs')">My Jobs</a>
+  <a onclick="showSection('post')">Post Job</a>
+  <a onclick="showSection('settings')">Settings</a>
+  <a onclick="logout()">Logout</a>
 </div>
 
 <div class="main">
-<div class="top">
-  <h1>Employer Dashboard</h1>
-  <div>
-    <button class="post" onclick="openForm()">+ Post Job</button>
-    <button class="logout" onclick="logout()">Logout</button>
+  <div class="topbar">
+    <h1 id="pageTitle">Dashboard</h1>
   </div>
-</div>
-
-<div class="card">
-  <h2>My Job Listings</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Title</th>
-        <th>Location</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody id="jobsTable"></tbody>
-  </table>
-</div>
-
+  <div id="content"></div>
 </div>
 
 <script>
 const API="https://backend-1-9b6f.onrender.com";
 const token=localStorage.getItem("token");
-
 if(!token){window.location.href="login.html";}
+
+function setActive(section){
+  document.querySelectorAll(".sidebar a").forEach(a=>{
+    a.classList.remove("active");
+    if(a.innerText.toLowerCase().includes(section)) a.classList.add("active");
+  });
+}
+
+function showSection(section){
+  setActive(section);
+  const content=document.getElementById("content");
+  const title=document.getElementById("pageTitle");
+
+  if(section==="dashboard"){
+    title.innerText="Dashboard";
+    content.innerHTML=`
+      <div class="card">
+        <h3>Welcome Back 👋</h3>
+        <p>Post jobs, manage listings and track performance.</p>
+      </div>
+    `;
+  }
+
+  if(section==="jobs"){
+    title.innerText="My Jobs";
+    loadJobs();
+  }
+
+  if(section==="post"){
+    title.innerText="Post Job";
+    content.innerHTML=`
+      <div class="card">
+        <input id="title" placeholder="Job Title">
+        <input id="company" placeholder="Company Name">
+        <input id="location" placeholder="Location">
+        <input id="salary" placeholder="Salary">
+        <textarea id="description" placeholder="Job Description"></textarea>
+        <button class="primary" onclick="submitJob()">Submit Job</button>
+      </div>
+    `;
+  }
+
+  if(section==="settings"){
+    title.innerText="Settings";
+    content.innerHTML=`
+      <div class="card">
+        <p>Profile settings coming soon.</p>
+      </div>
+    `;
+  }
+}
 
 async function loadJobs(){
   const res=await fetch(API+"/api/jobs/my",{
@@ -70,22 +245,39 @@ async function loadJobs(){
   });
   const jobs=await res.json();
 
-  const table=document.getElementById("jobsTable");
-  table.innerHTML="";
+  let html=`<div class="card"><table>
+    <tr><th>Title</th><th>Status</th></tr>`;
 
   jobs.forEach(job=>{
-    table.innerHTML+=`
+    html+=`
       <tr>
         <td>${job.title}</td>
-        <td>${job.location}</td>
         <td><span class="status ${job.status}">${job.status}</span></td>
       </tr>
     `;
   });
+
+  html+=`</table></div>`;
+  document.getElementById("content").innerHTML=html;
 }
 
-function openForm(){
-  window.location.href="post-job.html";
+async function submitJob(){
+  await fetch(API+"/api/jobs",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+token
+    },
+    body:JSON.stringify({
+      title:title.value,
+      company:company.value,
+      location:location.value,
+      salary:salary.value,
+      description:description.value
+    })
+  });
+  alert("Job submitted for approval");
+  showSection("jobs");
 }
 
 function logout(){
@@ -93,7 +285,7 @@ function logout(){
   window.location.href="login.html";
 }
 
-loadJobs();
+showSection("dashboard");
 </script>
 
 </body>
