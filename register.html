@@ -99,25 +99,35 @@ async function register(){
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
   const role = document.getElementById("role").value;
+  const messageBox = document.getElementById("message");
 
-  const res = await fetch(API + "/api/auth/register",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({name,email,password,role})
-  });
+  messageBox.innerText = "Creating account...";
 
-  const data = await res.json();
+  try{
+    const res = await fetch(API + "/api/auth/register",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name,email,password,role})
+    });
 
-  if(res.status === 201){
-    document.getElementById("message").style.color="green";
-    document.getElementById("message").innerText="Account created successfully! Redirecting...";
-    setTimeout(()=> window.location.href="login.html",2000);
-  }else{
-    document.getElementById("message").style.color="red";
-    document.getElementById("message").innerText=data.message;
+    const data = await res.json();
+
+    if(res.status === 201){
+      messageBox.style.color="green";
+      messageBox.innerText="Account created successfully! Redirecting...";
+      setTimeout(()=> window.location.href="login.html",2000);
+    }else{
+      messageBox.style.color="red";
+      messageBox.innerText=data.message || "Registration failed";
+    }
+
+  }catch(err){
+    messageBox.style.color="red";
+    messageBox.innerText="Server is waking up... please try again.";
   }
 }
 </script>
+
 
 </body>
 </html>
