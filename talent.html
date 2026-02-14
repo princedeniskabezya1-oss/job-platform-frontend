@@ -6,7 +6,29 @@
 <style>
 body{font-family:'Inter',sans-serif;background:#f4f6fb;padding:40px;}
 .card{background:white;padding:20px;margin-bottom:20px;border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.05);}
-button{padding:8px 14px;background:#2563eb;color:white;border:none;border-radius:6px;}
+button{padding:8px 14px;background:#2563eb;color:white;border:none;border-radius:6px;cursor:pointer;}
+.modal{
+  display:none;
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,0.5);
+  justify-content:center;
+  align-items:center;
+}
+.modal-content{
+  background:white;
+  padding:25px;
+  width:400px;
+  border-radius:10px;
+}
+textarea{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border:1px solid #ddd;
+  border-radius:6px;
+}
 </style>
 </head>
 
@@ -15,8 +37,21 @@ button{padding:8px 14px;background:#2563eb;color:white;border:none;border-radius
 <h1>Available Jobs</h1>
 <div id="jobs"></div>
 
+<div class="modal" id="applyModal">
+  <div class="modal-content">
+    <h3>Apply for Job</h3>
+    <textarea id="coverLetter" placeholder="Write your cover letter..."></textarea>
+    <br><br>
+    <button onclick="submitApplication()">Submit Application</button>
+  </div>
+</div>
+
 <script>
 const API="https://backend-1-9b6f.onrender.com";
+const token=localStorage.getItem("token");
+let selectedJobId=null;
+
+if(!token){window.location.href="login.html";}
 
 async function loadJobs(){
   const res=await fetch(API+"/api/jobs");
@@ -31,14 +66,40 @@ async function loadJobs(){
         <h3>${job.title}</h3>
         <p>${job.company} • ${job.location}</p>
         <p>${job.description}</p>
-        <button onclick="apply('${job._id}')">Apply</button>
+        <button onclick="openApply('${job._id}')">Apply</button>
       </div>
     `;
   });
 }
 
-function apply(id){
-  alert("Application feature coming next.");
+function openApply(jobId){
+  selectedJobId=jobId;
+  document.getElementById("applyModal").style.display="flex";
+}
+
+async function submitApplication(){
+  const coverLetter=document.getElementById("coverLetter").value;
+
+  const res=await fetch(API+"/api/applications",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+token
+    },
+    body:JSON.stringify({
+      jobId:selectedJobId,
+      coverLetter
+    })
+  });
+
+  const data=await res.json();
+
+  if(res.ok){
+    alert("Application submitted successfully!");
+    document.getElementById("applyModal").style.display="none";
+  }else{
+    alert(data.message);
+  }
 }
 
 loadJobs();
