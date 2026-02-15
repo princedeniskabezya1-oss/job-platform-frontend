@@ -262,13 +262,23 @@ if(section==="dashboard"){
     headers:{Authorization:"Bearer "+token}
   });
 
-  const stats = await statsRes.json() || {jobs:0, users:0, revenue:0};
+  let stats = {jobs:0, users:0, revenue:0};
+
+if(statsRes.ok){
+  stats = await statsRes.json();
+}
+
 
   const pendingRes=await fetch(API+"/api/jobs/pending",{
     headers:{Authorization:"Bearer "+token}
   });
 
-  const pending=await pendingRes.json();
+  let pending = [];
+
+if(pendingRes.ok){
+  pending = await pendingRes.json();
+}
+
 
   content.innerHTML=`
     <div class="stats">
@@ -300,7 +310,11 @@ if(section==="dashboard"){
     const res=await fetch(API+"/api/jobs/pending",{
       headers:{Authorization:"Bearer "+token}
     });
-    const jobs=await res.json();
+let jobs = [];
+
+if(res.ok){
+  jobs = await res.json();
+}
 
     let html=`<div class="table-wrapper"><table>
       <tr><th>Title</th><th>Company</th><th>Action</th></tr>`;
@@ -324,7 +338,12 @@ if(section==="dashboard"){
   if(section==="jobs"){
     title.innerText="All Jobs";
     const res=await fetch(API+"/api/jobs");
-    const jobs=await res.json();
+    let jobs = [];
+
+if(res.ok){
+  jobs = await res.json();
+}
+
 
     let html=`<div class="table-wrapper"><table>
       <tr><th>Title</th><th>Status</th></tr>`;
@@ -351,7 +370,12 @@ if(section==="dashboard"){
     const res=await fetch(API+"/api/applications",{
       headers:{Authorization:"Bearer "+token}
     });
-    const apps=await res.json();
+    let apps = [];
+
+if(res.ok){
+  apps = await res.json();
+}
+
 
     let html=`<div class="table-wrapper"><table>
       <tr><th>Name</th><th>Email</th><th>Job</th></tr>`;
