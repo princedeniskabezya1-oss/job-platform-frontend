@@ -207,7 +207,11 @@ td{
 <body>
 
 <div class="sidebar">
-  <h2>HireFlow Admin</h2>
+  <h2>HireFlow</h2>
+<p style="font-size:13px;color:#6f6f6f;margin-top:-25px;margin-bottom:30px;">
+  Admin Control Panel
+</p>
+
   <a onclick="showSection('dashboard')" class="active">Dashboard</a>
   <a onclick="showSection('pending')">Pending Jobs</a>
   <a onclick="showSection('jobs')">All Jobs</a>
@@ -217,10 +221,17 @@ td{
 </div>
 
 <div class="main">
-  <div class="topbar">
-    <h1 id="pageTitle">Dashboard</h1>
-    <button class="logout" onclick="logout()">Logout</button>
-  </div>
+<div class="topbar">
+  <h1 id="pageTitle">Dashboard</h1>
+
+  <input type="text"
+         id="searchInput"
+         placeholder="Search users..."
+         onkeyup="globalSearch()">
+
+  <button class="logout" onclick="logout()">Logout</button>
+</div>
+
 
   <div id="content"></div>
 </div>
@@ -233,8 +244,9 @@ if(!token){window.location.href="login.html";}
 function setActive(section){
   document.querySelectorAll(".sidebar a").forEach(a=>{
     a.classList.remove("active");
-    if(a.innerText.toLowerCase().includes(section))
+    if(a.getAttribute("onclick")?.includes(section)){
       a.classList.add("active");
+    }
   });
 }
 
@@ -243,36 +255,45 @@ async function showSection(section){
   const content=document.getElementById("content");
   const title=document.getElementById("pageTitle");
 
-  if(section==="dashboard"){
-    title.innerText="Dashboard";
+if(section==="dashboard"){
+  title.innerText="Dashboard";
 
-    const jobsRes=await fetch(API+"/api/jobs");
-    const jobs=await jobsRes.json();
+  const statsRes = await fetch(API+"/api/admin/stats",{
+    headers:{Authorization:"Bearer "+token}
+  });
 
-    const pendingRes=await fetch(API+"/api/jobs/pending",{
-      headers:{Authorization:"Bearer "+token}
-    });
-    const pending=await pendingRes.json();
+  const stats = await statsRes.json() || {jobs:0, users:0, revenue:0};
 
-    const appsRes=await fetch(API+"/api/applications",{
-      headers:{Authorization:"Bearer "+token}
-    });
-    const apps=await appsRes.json();
+  const pendingRes=await fetch(API+"/api/jobs/pending",{
+    headers:{Authorization:"Bearer "+token}
+  });
 
-    const usersRes=await fetch(API+"/api/users",{
-      headers:{Authorization:"Bearer "+token}
-    });
-    const users=await usersRes.json();
+  const pending=await pendingRes.json();
 
-    content.innerHTML=`
-      <div class="stats">
-        <div class="card"><h3>Total Jobs</h3><p>${jobs.length}</p></div>
-        <div class="card"><h3>Pending Jobs</h3><p>${pending.length}</p></div>
-        <div class="card"><h3>Total Applications</h3><p>${apps.length}</p></div>
-        <div class="card"><h3>Total Users</h3><p>${users.length}</p></div>
+  content.innerHTML=`
+    <div class="stats">
+      <div class="card">
+        <h3>Total Jobs</h3>
+        <p>${stats.jobs}</p>
       </div>
-    `;
-  }
+
+      <div class="card">
+        <h3>Total Users</h3>
+        <p>${stats.users}</p>
+      </div>
+
+      <div class="card">
+        <h3>Total Revenue</h3>
+        <p>$${stats.revenue}</p>
+      </div>
+
+      <div class="card">
+        <h3>Pending Approvals</h3>
+        <p>${pending.length}</p>
+      </div>
+    </div>
+  `;
+}
 
   if(section==="pending"){
     title.innerText="Pending Jobs";
@@ -312,7 +333,12 @@ async function showSection(section){
       html+=`
         <tr>
           <td>${job.title}</td>
-          <td>${job.status}</td>
+          <td>
+  <span class="status-badge status-${job.status}">
+    ${job.status}
+  </span>
+</td>
+
         </tr>`;
     });
 
@@ -351,7 +377,13 @@ async function showSection(section){
     const users=await res.json();
 
     let html=`<div class="table-wrapper"><table>
-      <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr>`;
+      <tr>
+  <th>Name</th>
+  <th>Email</th>
+  <th>Role</th>
+  <th>Status</th>
+  <th>Commission</th>
+</tr>`;
 
     users.forEach(user=>{
       html+=`
@@ -360,6 +392,8 @@ async function showSection(section){
           <td>${user.email}</td>
           <td>${user.role}</td>
           <td>${user.status}</td>
+<td>$${user.commissionEarned || 0}</td>
+
         </tr>`;
     });
 
@@ -383,6 +417,45 @@ async function updateStatus(id,status){
 function logout(){
   localStorage.removeItem("token");
   window.location.href="login.html";
+}
+async function globalSearch(){
+  const query=document.getElementById("searchInput").value.toLowerCase();
+
+  const res=await fetch(API+"/api/users",{
+    headers:{Authorization:"Bearer "+token}
+  });
+
+  const users=await res.json();
+
+  const filtered=users.filter(u =>
+    u.name.toLowerCase().includes(query) ||
+    u.email.toLowerCase().includes(query) ||
+    u.role.toLowerCase().includes(query)
+  );
+
+  let html=`<div class="table-wrapper"><table>
+    <tr>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Role</th>
+      <th>Status</th>
+      <th>Commission</th>
+    </tr>`;
+
+  filtered.forEach(user=>{
+    html+=`
+      <tr>
+        <td>${user.name}</td>
+        <td>${user.email}</td>
+        <td>${user.role}</td>
+        <td>${user.status}</td>
+        <td>$${user.commissionEarned || 0}</td>
+      </tr>`;
+  });
+
+  html+=`</table></div>`;
+
+  document.getElementById("content").innerHTML=html;
 }
 
 showSection("dashboard");
