@@ -2,18 +2,17 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>AIFT Employer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Employer Feed | AIFT</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
 :root{
-  --linkedin-blue:#0A66C2;
-  --linkedin-dark:#004182;
-  --bg:#F3F2EF;
-  --card:#FFFFFF;
-  --border:#E0E0E0;
-  --text:#000;
-  --muted:#666;
+  --linkedin-blue:#0a66c2;
+  --bg:#f3f2ef;
+  --card:#ffffff;
+  --text:#1c1c1c;
+  --muted:#6f6f6f;
 }
 
 *{
@@ -27,121 +26,107 @@ body{
   background:var(--bg);
 }
 
-/* HEADER */
 .header{
   background:white;
-  padding:12px 40px;
+  padding:15px 40px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
   display:flex;
-  align-items:center;
   justify-content:space-between;
-  border-bottom:1px solid var(--border);
-  position:sticky;
-  top:0;
-  z-index:100;
+  align-items:center;
 }
 
 .logo{
-  font-size:24px;
   font-weight:800;
+  font-size:24px;
+}
+
+.logo span{
   color:var(--linkedin-blue);
 }
 
-.header input{
-  width:400px;
-  padding:8px 12px;
-  border-radius:6px;
-  border:1px solid var(--border);
+.feed-container{
+  max-width:700px;
+  margin:40px auto;
 }
 
-/* LAYOUT */
-.container{
-  display:grid;
-  grid-template-columns: 250px 1fr 300px;
-  gap:20px;
-  padding:30px 80px;
-}
-
-/* PROFILE CARD */
-.profile-card{
+.card{
   background:var(--card);
-  border-radius:10px;
-  border:1px solid var(--border);
-  overflow:hidden;
-}
-
-.banner{
-  height:70px;
-  background:linear-gradient(135deg,#0A66C2,#004182);
-}
-
-.avatar{
-  width:70px;
-  height:70px;
-  border-radius:50%;
-  background:#ccc;
-  margin:-35px auto 10px auto;
-  border:3px solid white;
-}
-
-.profile-content{
-  text-align:center;
-  padding:10px;
-}
-
-.pro-badge{
-  background:gold;
-  padding:3px 8px;
-  border-radius:20px;
-  font-size:12px;
-  font-weight:600;
-}
-
-/* FEED */
-.feed-card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:10px;
-  padding:15px;
+  padding:20px;
+  border-radius:12px;
   margin-bottom:20px;
+  box-shadow:0 4px 15px rgba(0,0,0,0.05);
 }
 
 .post-box textarea{
   width:100%;
   border:none;
   resize:none;
+  font-size:15px;
   outline:none;
-  font-size:14px;
 }
 
 .post-actions{
   display:flex;
   justify-content:space-between;
-  margin-top:10px;
+  margin-top:15px;
 }
 
-.btn{
+button{
   background:var(--linkedin-blue);
   color:white;
   border:none;
   padding:8px 16px;
   border-radius:20px;
   cursor:pointer;
+  font-weight:600;
 }
 
-.btn:hover{
-  background:var(--linkedin-dark);
+button.secondary{
+  background:#e4e6eb;
+  color:#1c1c1c;
 }
 
-/* RIGHT SIDEBAR */
-.pro-box{
-  background:var(--card);
-  padding:15px;
-  border:1px solid var(--border);
-  border-radius:10px;
-}
-
-.pro-box h3{
+.post-header{
+  font-weight:600;
   margin-bottom:10px;
+}
+
+.post-media{
+  margin-top:15px;
+  border-radius:10px;
+  overflow:hidden;
+}
+
+.post-media img,
+.post-media video{
+  width:100%;
+}
+
+.post-footer{
+  margin-top:15px;
+  display:flex;
+  justify-content:space-between;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.comment-box{
+  margin-top:10px;
+  display:flex;
+  gap:10px;
+}
+
+.comment-box input{
+  flex:1;
+  padding:8px;
+  border-radius:20px;
+  border:1px solid #ddd;
+}
+
+.comment{
+  font-size:14px;
+  margin-top:8px;
+  color:#333;
 }
 </style>
 </head>
@@ -149,51 +134,26 @@ body{
 <body>
 
 <div class="header">
-  <div class="logo">AIFT</div>
-  <input placeholder="Search jobs, employers, talents">
-  <button class="btn">Logout</button>
+  <div class="logo"><span>AI</span>FT</div>
+  <button onclick="logout()">Logout</button>
 </div>
 
-<div class="container">
+<div class="feed-container">
 
-  <!-- LEFT -->
-  <div class="profile-card">
-    <div class="banner"></div>
-    <div class="avatar"></div>
-    <div class="profile-content">
-      <h4 id="profileName">Employer Name</h4>
-      <p style="color:var(--muted)">Company Name</p>
-      <br>
-      <span class="pro-badge">PRO</span>
-    </div>
-  </div>
+  <!-- CREATE POST -->
+  <div class="card post-box">
+    <textarea id="postContent" rows="3" placeholder="Start a post..."></textarea>
 
-  <!-- CENTER FEED -->
-  <div>
-
-    <!-- POST BOX -->
-    <div class="feed-card post-box">
-      <textarea id="postContent" rows="3" placeholder="Share something..."></textarea>
-      <div class="post-actions">
-        <div>
-          <input type="file" id="mediaInput">
-        </div>
-        <button class="btn" onclick="createPost()">Post</button>
+    <div class="post-actions">
+      <div>
+        <input type="file" id="mediaInput" accept="image/*,video/*">
       </div>
+      <button onclick="createPost()">Post</button>
     </div>
-
-    <!-- POSTS -->
-    <div id="feed"></div>
-
   </div>
 
-  <!-- RIGHT -->
-  <div class="pro-box">
-    <h3>Upgrade to Pro</h3>
-    <p>Post videos, images and get more visibility.</p>
-    <br>
-    <button class="btn" onclick="upgradePro()">Activate Pro</button>
-  </div>
+  <!-- POSTS WILL LOAD HERE -->
+  <div id="posts"></div>
 
 </div>
 
@@ -201,65 +161,113 @@ body{
 const API="https://backend-1-9b6f.onrender.com";
 const token=localStorage.getItem("token");
 
-async function loadFeed(){
-  const res=await fetch(API+"/api/posts");
-  const posts=await res.json();
+if(!token){
+  window.location.href="login.html";
+}
 
-  let html="";
-  posts.forEach(p=>{
-    html+=`
-    <div class="feed-card">
-      <strong>${p.author?.name || "User"}</strong>
-      <p>${p.content || ""}</p>
-      ${p.mediaUrl ? 
-        p.mediaType==="video" ?
-        `<video controls width="100%"><source src="${p.mediaUrl}"></video>` :
-        `<img src="${p.mediaUrl}" width="100%">`
-      : ""}
-      <br><br>
-      <button onclick="likePost('${p._id}')">Like (${p.likes.length})</button>
-    </div>
+async function loadPosts(){
+  const res = await fetch(API+"/api/posts");
+  const posts = await res.json();
+
+  const container = document.getElementById("posts");
+  container.innerHTML="";
+
+  posts.forEach(post=>{
+    container.innerHTML+=`
+      <div class="card">
+        <div class="post-header">${post.author?.name || "User"}</div>
+        <div>${post.content || ""}</div>
+
+        ${post.mediaUrl ? `
+          <div class="post-media">
+            ${post.mediaType==="video"
+              ? `<video controls src="${post.mediaUrl}"></video>`
+              : `<img src="${post.mediaUrl}" />`}
+          </div>
+        ` : ""}
+
+        <div class="post-footer">
+          <div>${post.likes.length} Likes</div>
+          <div>
+            <span onclick="likePost('${post._id}')">Like</span>
+          </div>
+        </div>
+
+        <div class="comment-box">
+          <input id="comment-${post._id}" placeholder="Write a comment...">
+          <button class="secondary" onclick="addComment('${post._id}')">Send</button>
+        </div>
+
+        <div id="comments-${post._id}">
+          ${(post.comments || []).map(c=>`
+            <div class="comment"><b>${c.user?.name || ""}</b> ${c.text}</div>
+          `).join("")}
+        </div>
+
+      </div>
     `;
   });
-
-  document.getElementById("feed").innerHTML=html;
 }
 
 async function createPost(){
-  const content=document.getElementById("postContent").value;
-  const file=document.getElementById("mediaInput").files[0];
+  const content = document.getElementById("postContent").value;
+  const file = document.getElementById("mediaInput").files[0];
 
-  const formData=new FormData();
-  formData.append("content",content);
-  if(file) formData.append("media",file);
+  const formData = new FormData();
+  formData.append("content", content);
+  if(file){
+    formData.append("media", file);
+  }
 
-  await fetch(API+"/api/posts",{
+  const res = await fetch(API+"/api/posts",{
     method:"POST",
-    headers:{Authorization:"Bearer "+token},
+    headers:{
+      Authorization:"Bearer "+token
+    },
     body:formData
   });
 
-  loadFeed();
+  const data = await res.json();
+
+  if(res.status===403){
+    alert("Upgrade to Pro to post media");
+    return;
+  }
+
+  document.getElementById("postContent").value="";
+  document.getElementById("mediaInput").value="";
+  loadPosts();
 }
 
 async function likePost(id){
   await fetch(API+"/api/posts/"+id+"/like",{
     method:"PATCH",
-    headers:{Authorization:"Bearer "+token}
+    headers:{ Authorization:"Bearer "+token }
   });
-
-  loadFeed();
+  loadPosts();
 }
 
-async function upgradePro(){
-  await fetch(API+"/api/users/upgrade-pro",{
-    method:"PATCH",
-    headers:{Authorization:"Bearer "+token}
+async function addComment(id){
+  const text = document.getElementById("comment-"+id).value;
+
+  await fetch(API+"/api/posts/"+id+"/comment",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({text})
   });
-  alert("Pro Activated");
+
+  loadPosts();
 }
 
-loadFeed();
+function logout(){
+  localStorage.removeItem("token");
+  window.location.href="login.html";
+}
+
+loadPosts();
 </script>
 
 </body>
