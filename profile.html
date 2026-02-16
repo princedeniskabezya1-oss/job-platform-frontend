@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edit Profile | AIFT</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+body{
+  background:#f3f2ef;
+  font-family:'Inter',sans-serif;
+}
+
+.container{
+  max-width:800px;
+  margin:40px auto;
+}
+
+.card{
+  background:white;
+  border-radius:12px;
+  padding:25px;
+  box-shadow:0 4px 15px rgba(0,0,0,0.05);
+}
+
+.banner-preview{
+  width:100%;
+  height:200px;
+  background:#ddd;
+  border-radius:10px;
+  margin-bottom:20px;
+  object-fit:cover;
+}
+
+.profile-preview{
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  object-fit:cover;
+  border:4px solid white;
+  margin-top:-60px;
+}
+
+input, textarea{
+  width:100%;
+  padding:10px;
+  margin-bottom:15px;
+  border-radius:8px;
+  border:1px solid #ddd;
+}
+
+button{
+  background:#0a66c2;
+  color:white;
+  border:none;
+  padding:10px 20px;
+  border-radius:20px;
+  font-weight:600;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="card">
+
+    <h2>Edit Profile</h2>
+
+    <img id="bannerPreview" class="banner-preview">
+    <input type="file" id="bannerInput" accept="image/*">
+
+    <img id="profilePreview" class="profile-preview">
+    <input type="file" id="profileInput" accept="image/*">
+
+    <input type="text" id="name" placeholder="Full Name">
+    <input type="text" id="headline" placeholder="Headline (e.g. CEO at AIFT)">
+    <textarea id="bio" rows="4" placeholder="About you..."></textarea>
+    <input type="text" id="location" placeholder="Location">
+    <input type="text" id="website" placeholder="Website">
+
+    <button onclick="saveProfile()">Save Changes</button>
+
+  </div>
+</div>
+
+<script>
+const API="https://backend-1-9b6f.onrender.com";
+const token=localStorage.getItem("token");
+
+if(!token){
+  window.location.href="login.html";
+}
+
+document.getElementById("bannerInput").addEventListener("change", e=>{
+  const file = e.target.files[0];
+  if(file){
+    document.getElementById("bannerPreview").src = URL.createObjectURL(file);
+  }
+});
+
+document.getElementById("profileInput").addEventListener("change", e=>{
+  const file = e.target.files[0];
+  if(file){
+    document.getElementById("profilePreview").src = URL.createObjectURL(file);
+  }
+});
+
+async function saveProfile(){
+
+  const formData = new FormData();
+
+  formData.append("name", document.getElementById("name").value);
+  formData.append("headline", document.getElementById("headline").value);
+  formData.append("bio", document.getElementById("bio").value);
+  formData.append("location", document.getElementById("location").value);
+  formData.append("website", document.getElementById("website").value);
+
+  const banner = document.getElementById("bannerInput").files[0];
+  const profile = document.getElementById("profileInput").files[0];
+
+  if(banner) formData.append("bannerImage", banner);
+  if(profile) formData.append("profileImage", profile);
+
+  const res = await fetch(API+"/api/users/profile",{
+    method:"PATCH",
+    headers:{
+      Authorization:"Bearer "+token
+    },
+    body:formData
+  });
+
+  if(res.ok){
+    alert("Profile updated successfully");
+  } else {
+    alert("Profile update failed");
+  }
+}
+</script>
+
+</body>
+</html>
