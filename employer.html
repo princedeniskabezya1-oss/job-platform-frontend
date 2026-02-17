@@ -192,16 +192,31 @@ async function loadProfile(){
 
 /* ================= POSTS ================= */
 async function loadPosts(){
-  const res = await fetch(API+"/api/posts");
-  const posts = await res.json();
 
+  const res = await fetch(API+"/api/posts",{
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const posts = await res.json();
   const container=document.getElementById("posts");
   container.innerHTML="";
 
   posts.forEach(post=>{
     container.innerHTML+=`
       <div class="card">
-        <b>${post.author?.name || ''}</b>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <img src="${post.author?.profileImage || 'https://via.placeholder.com/40'}"
+               style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+          <div>
+            <b>${post.author?.name || ''}</b>
+            <div style="font-size:12px;color:#6f6f6f;">
+              ${post.author?.headline || ''}
+              ${post.author?.isPro ? " · ⭐ Pro" : ""}
+            </div>
+          </div>
+        </div>
+
         <div>${post.content || ''}</div>
 
         ${post.mediaUrl ? `
@@ -214,12 +229,35 @@ async function loadPosts(){
 
         <div class="post-footer">
           <div>${post.likes.length} Likes</div>
-          <div onclick="likePost('${post._id}')">Like</div>
+          <div style="cursor:pointer" onclick="likePost('${post._id}')">
+            👍 Like
+          </div>
         </div>
+
+        <!-- COMMENT BOX -->
+        <div style="margin-top:10px;">
+          <input id="comment-${post._id}"
+                 placeholder="Write a comment..."
+                 style="width:100%;padding:8px;border-radius:20px;border:1px solid #ddd;">
+          <button style="margin-top:5px"
+                  onclick="addComment('${post._id}')">
+            Comment
+          </button>
+        </div>
+
+        <div style="margin-top:10px;">
+          ${(post.comments || []).map(c=>`
+            <div style="font-size:14px;margin-bottom:5px;">
+              <b>${c.user?.name || "User"}:</b> ${c.text}
+            </div>
+          `).join("")}
+        </div>
+
       </div>
     `;
   });
 }
+
 
 /* ================= CREATE POST ================= */
 async function createPost(){
