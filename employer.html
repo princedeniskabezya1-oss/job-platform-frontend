@@ -8,11 +8,12 @@
 
 <style>
 :root{
-  --linkedin-blue:#0a66c2;
+  --primary:#0a66c2;
   --bg:#f3f2ef;
   --card:#ffffff;
   --text:#1c1c1c;
   --muted:#6f6f6f;
+  --border:#e0e0e0;
 }
 
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
@@ -27,11 +28,18 @@ body{background:var(--bg);}
   align-items:center;
   box-shadow:0 2px 8px rgba(0,0,0,0.05);
 }
-.logo{font-weight:800;font-size:22px;}
-.logo span{color:var(--linkedin-blue);}
+.logo{
+  font-weight:800;
+  font-size:22px;
+}
+.logo span{color:var(--primary);}
+.header-buttons button{
+  margin-left:10px;
+}
 
+/* BUTTON */
 button{
-  background:var(--linkedin-blue);
+  background:var(--primary);
   color:white;
   border:none;
   padding:8px 16px;
@@ -43,13 +51,13 @@ button{
 /* LAYOUT */
 .container{
   display:grid;
-  grid-template-columns: 250px 1fr 300px;
+  grid-template-columns:260px 1fr 300px;
   gap:20px;
-  max-width:1200px;
+  max-width:1300px;
   margin:40px auto;
 }
 
-/* CARDS */
+/* CARD */
 .card{
   background:var(--card);
   padding:20px;
@@ -58,34 +66,41 @@ button{
   margin-bottom:20px;
 }
 
-/* PROFILE CARD */
-.profile-card img{
-  width:80px;
-  height:80px;
-  border-radius:50%;
+/* PROFILE */
+.profile-banner{
+  width:100%;
+  height:120px;
+  background:#ddd;
+  border-radius:10px;
   object-fit:cover;
-  margin-bottom:10px;
+}
+.profile-image{
+  width:90px;
+  height:90px;
+  border-radius:50%;
+  border:4px solid white;
+  margin-top:-45px;
+  object-fit:cover;
 }
 
-.profile-card h3{margin-bottom:5px;}
-.muted{color:var(--muted);font-size:14px;margin-bottom:5px;}
+/* TOOL LINKS */
+.tool-link{
+  padding:10px 0;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+  font-size:14px;
+}
+.tool-link:hover{color:var(--primary);}
 
-/* POST BOX */
+/* POSTS */
 .post-box textarea{
   width:100%;
   border:none;
   resize:none;
-  font-size:15px;
   outline:none;
+  font-size:15px;
 }
 
-.post-actions{
-  display:flex;
-  justify-content:space-between;
-  margin-top:15px;
-}
-
-/* POSTS */
 .post-media img,
 .post-media video{
   width:100%;
@@ -93,40 +108,41 @@ button{
   margin-top:10px;
 }
 
+.post-actions{
+  display:flex;
+  justify-content:space-between;
+  margin-top:10px;
+}
+
 .post-footer{
   display:flex;
-  justify-content:space-around;
-  margin-top:15px;
-  padding-top:10px;
-  border-top:1px solid #eee;
+  justify-content:space-between;
+  margin-top:10px;
   font-size:14px;
   color:var(--muted);
 }
 
-.action-btn{
+.icon-btn{
   cursor:pointer;
   display:flex;
   align-items:center;
   gap:6px;
-  transition:0.2s;
+}
+.icon-btn:hover{color:var(--primary);}
+.comment-box input{
+  width:100%;
+  padding:8px;
+  border-radius:20px;
+  border:1px solid var(--border);
+  margin-top:8px;
 }
 
-.action-btn:hover{
-  color:var(--linkedin-blue);
-}
-
-.liked{
-  color:#e0245e;
-  font-weight:600;
-}
-
-
-/* JOB LIST */
-.job-item{
-  border-bottom:1px solid #eee;
-  padding:10px 0;
+/* RIGHT STATS */
+.stat{
+  margin-bottom:8px;
   font-size:14px;
 }
+.stat b{color:var(--text);}
 </style>
 </head>
 
@@ -134,7 +150,7 @@ button{
 
 <div class="header">
   <div class="logo"><span>AI</span>FT Employer</div>
-  <div>
+  <div class="header-buttons">
     <button onclick="window.location.href='profile.html'">Profile</button>
     <button onclick="logout()">Logout</button>
   </div>
@@ -142,205 +158,106 @@ button{
 
 <div class="container">
 
-  <!-- LEFT COLUMN -->
-  <div>
-
-    <div class="card profile-card" id="profileCard"></div>
-
+<!-- LEFT COLUMN -->
 <div>
 
-  <div class="card profile-card" id="profileCard"></div>
+  <div class="card" id="profileCard"></div>
 
   <div class="card">
-    <h3>Employer Control</h3>
-
-    <div class="job-item" onclick="window.location.href='post-job.html'">
-      ➕ Post New Job
-    </div>
-
-    <div class="job-item" onclick="showMyJobs()">
-      📄 My Jobs (<span id="myJobsCount">0</span>)
-    </div>
-
-    <div class="job-item" onclick="showApplications()">
-      📩 Applications (<span id="applicationsCount">0</span>)
-    </div>
-
-    <div class="job-item" onclick="showAnalytics()">
-      📊 Analytics
-    </div>
-
+    <h3>Employer Tools</h3>
+    <div class="tool-link" onclick="window.location.href='post-job.html'">➕ Post New Job</div>
+    <div class="tool-link" onclick="showMyJobs()">📄 My Jobs (<span id="jobCount">0</span>)</div>
+    <div class="tool-link" onclick="showApplications()">📩 Applications (<span id="appCount">0</span>)</div>
   </div>
 
 </div>
 
+<!-- CENTER COLUMN -->
+<div>
 
-  <!-- CENTER COLUMN -->
-  <div>
-
-    <!-- CREATE POST -->
-    <div class="card post-box">
-      <textarea id="postContent" rows="3" placeholder="Share an update..."></textarea>
-      <div class="post-actions">
-        <input type="file" id="mediaInput" accept="image/*,video/*">
-        <button onclick="createPost()">Post</button>
-      </div>
+  <div class="card post-box">
+    <textarea id="postContent" rows="3" placeholder="Share company update..."></textarea>
+    <div class="post-actions">
+      <input type="file" id="mediaInput" accept="image/*,video/*">
+      <button onclick="createPost()">Post</button>
     </div>
-
-    <div id="posts"></div>
-
   </div>
 
-  <!-- RIGHT COLUMN -->
-  <div>
+  <div id="posts"></div>
 
-<div class="card">
-  <h3>Account Stats</h3>
-  <div class="muted">Followers: <b id="followersCount">0</b></div>
-  <div class="muted">Following: <b id="followingCount">0</b></div>
-  <div class="muted">Pro Status: <b id="proStatus">Free</b></div>
 </div>
 
-<div class="card">
-  <h3>Hiring Stats</h3>
-  <div class="muted">Total Jobs: <b id="totalJobs">0</b></div>
-  <div class="muted">Active Jobs: <b id="activeJobs">0</b></div>
-  <div class="muted">Applications: <b id="totalApplications">0</b></div>
-</div>
+<!-- RIGHT COLUMN -->
+<div>
 
-
+  <div class="card">
+    <h3>Company Stats</h3>
+    <div class="stat">Followers: <b id="followers">0</b></div>
+    <div class="stat">Following: <b id="following">0</b></div>
+    <div class="stat">Pro Status: <b id="proStatus">Free</b></div>
+    <hr style="margin:10px 0;">
+    <div class="stat">Total Jobs: <b id="totalJobs">0</b></div>
+    <div class="stat">Active Jobs: <b id="activeJobs">0</b></div>
+    <div class="stat">Applications: <b id="totalApplications">0</b></div>
   </div>
+
+</div>
 
 </div>
 
 <script>
 const API="https://backend-1-9b6f.onrender.com";
 const token=localStorage.getItem("token");
-if(!token){window.location.href="login.html";}
+if(!token) window.location.href="login.html";
 
-/* ================= PROFILE ================= */
+/* PROFILE */
 async function loadProfile(){
-  const res = await fetch(API+"/api/users/me",{
-    headers:{Authorization:"Bearer "+token}
-  });
-  const user = await res.json();
+  const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer "+token}});
+  const user=await res.json();
 
   document.getElementById("profileCard").innerHTML=`
-    <img src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
-     style="width:80px;height:80px;border-radius:50%;object-fit:cover;">
+    <img class="profile-banner" src="${user.bannerImage || ''}">
+    <img class="profile-image" src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
     <h3>${user.name}</h3>
-    <div class="muted">${user.headline || ''}</div>
-    <div class="muted">${user.companyName || ''}</div>
+    <div style="color:#6f6f6f;font-size:14px;">${user.headline || ''}</div>
   `;
 
-  document.getElementById("followersCount").innerText = user.followers?.length || 0;
-  document.getElementById("followingCount").innerText = user.following?.length || 0;
-  document.getElementById("proStatus").innerText = user.isPro ? "Pro" : "Free";
+  document.getElementById("followers").innerText=user.followers?.length||0;
+  document.getElementById("following").innerText=user.following?.length||0;
+  document.getElementById("proStatus").innerText=user.isPro?"Pro":"Free";
 }
 
-/* ================= POSTS ================= */
+/* POSTS */
 async function loadPosts(){
-
-  const res = await fetch(API+"/api/posts",{
-    headers:{ Authorization:"Bearer "+token }
-  });
-
-  if (!res.ok) {
-  console.error("API error:", res.status);
-  return;
-}
-
-const posts = await res.json();
-
+  const res=await fetch(API+"/api/posts");
+  const posts=await res.json();
   const container=document.getElementById("posts");
   container.innerHTML="";
 
- posts.forEach(post=>{
-
-  const isLiked = post.likes.includes(post.currentUserId);
-
-  container.innerHTML+=`
-    <div class="card">
-
-      <!-- HEADER -->
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
-             style="width:45px;height:45px;border-radius:50%;object-fit:cover;">
-        <div>
-          <b>${post.author?.name || ''}</b>
-          <div style="font-size:12px;color:#6f6f6f;">
-            ${post.author?.headline || ''}
-            ${post.author?.isPro ? " · ⭐ Pro" : ""}
-          </div>
+  posts.forEach(post=>{
+    container.innerHTML+=`
+      <div class="card">
+        <div><b>${post.author?.name||''}</b></div>
+        <div>${post.content||''}</div>
+        ${post.mediaUrl?`
+          <div class="post-media">
+            ${post.mediaType==="video"
+              ? `<video controls src="${post.mediaUrl}"></video>`
+              : `<img src="${post.mediaUrl}">`}
+          </div>`:''}
+        <div class="post-footer">
+          <div>${post.likes.length} likes</div>
+          <div class="icon-btn" onclick="likePost('${post._id}')">❤️ Like</div>
         </div>
       </div>
-
-      <!-- CONTENT -->
-      <div style="margin-bottom:10px;">
-        ${post.content || ''}
-      </div>
-
-      <!-- MEDIA -->
-      ${post.mediaUrl ? `
-        <div class="post-media">
-          ${post.mediaType==="video"
-            ? `<video controls style="width:100%;border-radius:10px;" src="${post.mediaUrl}"></video>`
-            : `<img style="width:100%;border-radius:10px;" src="${post.mediaUrl}">`}
-        </div>
-      ` : ''}
-
-      <!-- ACTIONS -->
-      <div class="post-footer">
-
-        <div class="action-btn ${post.likes.includes(post.author?._id) ? 'liked' : ''}"
-             onclick="likePost('${post._id}')">
-          ❤️ ${post.likes.length}
-        </div>
-
-        <div class="action-btn"
-             onclick="toggleCommentBox('${post._id}')">
-          💬 Comment
-        </div>
-
-        <div class="action-btn"
-             onclick="sharePost('${post._id}')">
-          🔄 Share
-        </div>
-
-      </div>
-
-      <!-- COMMENT BOX -->
-      <div id="commentBox-${post._id}" style="display:none;margin-top:10px;">
-        <input id="comment-${post._id}"
-               placeholder="Write a comment..."
-               style="width:100%;padding:8px;border-radius:20px;border:1px solid #ddd;">
-        <button style="margin-top:5px"
-                onclick="addComment('${post._id}')">
-          Post Comment
-        </button>
-      </div>
-
-      <!-- COMMENTS -->
-      <div style="margin-top:10px;">
-        ${(post.comments || []).map(c=>`
-          <div style="font-size:14px;margin-bottom:5px;">
-            <b>${c.user?.name || "User"}:</b> ${c.text}
-          </div>
-        `).join("")}
-      </div>
-
-    </div>
-  `;
-});
-
+    `;
+  });
 }
 
-
-/* ================= CREATE POST ================= */
+/* CREATE POST */
 async function createPost(){
   const content=document.getElementById("postContent").value;
   const file=document.getElementById("mediaInput").files[0];
-
   const formData=new FormData();
   formData.append("content",content);
   if(file) formData.append("media",file);
@@ -351,121 +268,36 @@ async function createPost(){
     body:formData
   });
 
-  if(res.status===403){
-    alert("Only Pro users can post media");
-    return;
-  }
-
-  document.getElementById("postContent").value="";
-  document.getElementById("mediaInput").value="";
+  if(res.status===403){alert("Upgrade to Pro to post media");return;}
   loadPosts();
 }
 
-/* ================= LIKE ================= */
+/* LIKE */
 async function likePost(id){
-
-  const res = await fetch(API+"/api/posts/"+id+"/like",{
+  await fetch(API+"/api/posts/"+id+"/like",{
     method:"PATCH",
     headers:{Authorization:"Bearer "+token}
   });
-
-  if(res.ok){
-    loadPosts();
-  }
-}
-function toggleCommentBox(id){
-  const box = document.getElementById("commentBox-"+id);
-  box.style.display = box.style.display === "none" ? "block" : "none";
-}
-  function sharePost(id){
-  const url = window.location.href + "?post=" + id;
-  navigator.clipboard.writeText(url);
-  alert("Post link copied!");
+  loadPosts();
 }
 
-/* ================= JOBS ================= */
-async function loadMyJobs(){
-  const res=await fetch(API+"/api/jobs/my",{
-    headers:{Authorization:"Bearer "+token}
-  });
-  const jobs=await res.json();
-  alert("You have "+jobs.length+" jobs posted.");
-}
-
-async function loadApplications(){
-  const res=await fetch(API+"/api/applications",{
-    headers:{Authorization:"Bearer "+token}
-  });
-  const apps=await res.json();
-  alert("Total Applications: "+apps.length);
-}
+/* JOB STATS */
 async function loadEmployerStats(){
-  const res = await fetch(API+"/api/jobs/employer/stats",{
-    headers:{Authorization:"Bearer "+token}
-  });
+  const jobsRes=await fetch(API+"/api/jobs/my",{headers:{Authorization:"Bearer "+token}});
+  const jobs=jobsRes.ok?await jobsRes.json():[];
+  document.getElementById("jobCount").innerText=jobs.length;
+  document.getElementById("totalJobs").innerText=jobs.length;
+  document.getElementById("activeJobs").innerText=jobs.filter(j=>j.status==="active").length;
 
-  if(!res.ok) return;
-
-  const data = await res.json();
-
-  document.getElementById("totalJobs").innerText = data.totalJobs;
-  document.getElementById("activeJobs").innerText = data.activeJobs;
-  document.getElementById("totalApplications").innerText = data.totalApplications;
-}
-async function loadEmployerStats(){
-
-  // LOAD MY JOBS
-  const jobsRes = await fetch(API+"/api/jobs/my",{
-    headers:{Authorization:"Bearer "+token}
-  });
-
-  const jobs = jobsRes.ok ? await jobsRes.json() : [];
-
-  document.getElementById("myJobsCount").innerText = jobs.length;
-  document.getElementById("totalJobs").innerText = jobs.length;
-
-  const active = jobs.filter(j=>j.status==="active");
-  document.getElementById("activeJobs").innerText = active.length;
-
-  // LOAD APPLICATIONS
-  const appsRes = await fetch(API+"/api/applications",{
-    headers:{Authorization:"Bearer "+token}
-  });
-
-  const apps = appsRes.ok ? await appsRes.json() : [];
-
-  document.getElementById("applicationsCount").innerText = apps.length;
-  document.getElementById("totalApplications").innerText = apps.length;
-
-}
-function showMyJobs(){
-  fetch(API+"/api/jobs/my",{
-    headers:{Authorization:"Bearer "+token}
-  })
-  .then(res=>res.json())
-  .then(jobs=>{
-    alert(
-      jobs.map(j=> j.title + " - " + j.status).join("\n")
-    );
-  });
-}
-function showApplications(){
-  fetch(API+"/api/applications",{
-    headers:{Authorization:"Bearer "+token}
-  })
-  .then(res=>res.json())
-  .then(apps=>{
-    alert(
-      apps.map(a=> a.name + " applied").join("\n")
-    );
-  });
+  const appsRes=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer "+token}});
+  const apps=appsRes.ok?await appsRes.json():[];
+  document.getElementById("appCount").innerText=apps.length;
+  document.getElementById("totalApplications").innerText=apps.length;
 }
 
-/* ================= LOGOUT ================= */
-function logout(){
-  localStorage.removeItem("token");
-  window.location.href="login.html";
-}
+function showMyJobs(){alert("Feature panel coming next step");}
+function showApplications(){alert("Feature panel coming next step");}
+function logout(){localStorage.removeItem("token");window.location.href="login.html";}
 
 loadProfile();
 loadPosts();
