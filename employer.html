@@ -147,12 +147,21 @@ button{
 
     <div class="card profile-card" id="profileCard"></div>
 
-    <div class="card">
-      <h3>Employer Tools</h3>
-      <div class="job-item"><a href="post-job.html">Post a Job</a></div>
-      <div class="job-item" onclick="loadMyJobs()">My Jobs</div>
-      <div class="job-item" onclick="loadApplications()">Applications</div>
-    </div>
+<div class="card">
+  <h3>Analytics</h3>
+
+  <div class="muted">Followers: <b id="followersCount">0</b></div>
+  <div class="muted">Following: <b id="followingCount">0</b></div>
+  <div class="muted">Pro Status: <b id="proStatus">Free</b></div>
+
+  <hr style="margin:10px 0">
+
+  <div class="muted">Total Jobs: <b id="totalJobs">0</b></div>
+  <div class="muted">Active Jobs: <b id="activeJobs">0</b></div>
+  <div class="muted">Applications: <b id="totalApplications">0</b></div>
+
+</div>
+
 
   </div>
 
@@ -228,62 +237,84 @@ const posts = await res.json();
   const container=document.getElementById("posts");
   container.innerHTML="";
 
-  posts.forEach(post=>{
-    container.innerHTML+=`
-      <div class="card">
+ posts.forEach(post=>{
 
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-<img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
-     style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+  const isLiked = post.likes.includes(post.currentUserId);
 
-          <div>
-            <b>${post.author?.name || ''}</b>
-            <div style="font-size:12px;color:#6f6f6f;">
-              ${post.author?.headline || ''}
-              ${post.author?.isPro ? " · ⭐ Pro" : ""}
-            </div>
+  container.innerHTML+=`
+    <div class="card">
+
+      <!-- HEADER -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+             style="width:45px;height:45px;border-radius:50%;object-fit:cover;">
+        <div>
+          <b>${post.author?.name || ''}</b>
+          <div style="font-size:12px;color:#6f6f6f;">
+            ${post.author?.headline || ''}
+            ${post.author?.isPro ? " · ⭐ Pro" : ""}
           </div>
         </div>
+      </div>
 
-        <div>${post.content || ''}</div>
+      <!-- CONTENT -->
+      <div style="margin-bottom:10px;">
+        ${post.content || ''}
+      </div>
 
-        ${post.mediaUrl ? `
-          <div class="post-media">
-            ${post.mediaType==="video"
-              ? `<video controls src="${post.mediaUrl}"></video>`
-              : `<img src="${post.mediaUrl}">`}
-          </div>
-        ` : ''}
+      <!-- MEDIA -->
+      ${post.mediaUrl ? `
+        <div class="post-media">
+          ${post.mediaType==="video"
+            ? `<video controls style="width:100%;border-radius:10px;" src="${post.mediaUrl}"></video>`
+            : `<img style="width:100%;border-radius:10px;" src="${post.mediaUrl}">`}
+        </div>
+      ` : ''}
 
-        <div class="post-footer">
-          <div>${post.likes.length} Likes</div>
-          <div style="cursor:pointer" onclick="likePost('${post._id}')">
-            👍 Like
-          </div>
+      <!-- ACTIONS -->
+      <div class="post-footer">
+
+        <div class="action-btn ${post.likes.includes(post.author?._id) ? 'liked' : ''}"
+             onclick="likePost('${post._id}')">
+          ❤️ ${post.likes.length}
         </div>
 
-        <!-- COMMENT BOX -->
-        <div style="margin-top:10px;">
-          <input id="comment-${post._id}"
-                 placeholder="Write a comment..."
-                 style="width:100%;padding:8px;border-radius:20px;border:1px solid #ddd;">
-          <button style="margin-top:5px"
-                  onclick="addComment('${post._id}')">
-            Comment
-          </button>
+        <div class="action-btn"
+             onclick="toggleCommentBox('${post._id}')">
+          💬 Comment
         </div>
 
-        <div style="margin-top:10px;">
-          ${(post.comments || []).map(c=>`
-            <div style="font-size:14px;margin-bottom:5px;">
-              <b>${c.user?.name || "User"}:</b> ${c.text}
-            </div>
-          `).join("")}
+        <div class="action-btn"
+             onclick="sharePost('${post._id}')">
+          🔄 Share
         </div>
 
       </div>
-    `;
-  });
+
+      <!-- COMMENT BOX -->
+      <div id="commentBox-${post._id}" style="display:none;margin-top:10px;">
+        <input id="comment-${post._id}"
+               placeholder="Write a comment..."
+               style="width:100%;padding:8px;border-radius:20px;border:1px solid #ddd;">
+        <button style="margin-top:5px"
+                onclick="addComment('${post._id}')">
+          Post Comment
+        </button>
+      </div>
+
+      <!-- COMMENTS -->
+      <div style="margin-top:10px;">
+        ${(post.comments || []).map(c=>`
+          <div style="font-size:14px;margin-bottom:5px;">
+            <b>${c.user?.name || "User"}:</b> ${c.text}
+          </div>
+        `).join("")}
+      </div>
+
+    </div>
+  `;
+});
+
 }
 
 
@@ -314,11 +345,24 @@ async function createPost(){
 
 /* ================= LIKE ================= */
 async function likePost(id){
-  await fetch(API+"/api/posts/"+id+"/like",{
+
+  const res = await fetch(API+"/api/posts/"+id+"/like",{
     method:"PATCH",
     headers:{Authorization:"Bearer "+token}
   });
-  loadPosts();
+
+  if(res.ok){
+    loadPosts();
+  }
+}
+function toggleCommentBox(id){
+  const box = document.getElementById("commentBox-"+id);
+  box.style.display = box.style.display === "none" ? "block" : "none";
+}
+  function sharePost(id){
+  const url = window.location.href + "?post=" + id;
+  navigator.clipboard.writeText(url);
+  alert("Post link copied!");
 }
 
 /* ================= JOBS ================= */
@@ -337,6 +381,19 @@ async function loadApplications(){
   const apps=await res.json();
   alert("Total Applications: "+apps.length);
 }
+async function loadEmployerStats(){
+  const res = await fetch(API+"/api/jobs/employer/stats",{
+    headers:{Authorization:"Bearer "+token}
+  });
+
+  if(!res.ok) return;
+
+  const data = await res.json();
+
+  document.getElementById("totalJobs").innerText = data.totalJobs;
+  document.getElementById("activeJobs").innerText = data.activeJobs;
+  document.getElementById("totalApplications").innerText = data.totalApplications;
+}
 
 /* ================= LOGOUT ================= */
 function logout(){
@@ -346,6 +403,7 @@ function logout(){
 
 loadProfile();
 loadPosts();
+loadEmployerStats();
 </script>
 
 </body>
