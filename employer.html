@@ -215,17 +215,29 @@ button{
 <!-- CENTER COLUMN -->
 <div>
 
-  <div class="card post-box">
-    <textarea id="postContent" rows="3" placeholder="Share company update..."></textarea>
-    <div class="post-actions">
-      <input type="file" id="mediaInput" accept="image/*,video/*">
-      <button onclick="createPost()">Post</button>
+<!-- CENTER COLUMN -->
+<div>
+
+  <!-- FEED PANEL -->
+  <div id="feedPanel">
+
+    <div class="card post-box">
+      <textarea id="postContent" rows="3" placeholder="Share company update..."></textarea>
+      <div class="post-actions">
+        <input type="file" id="mediaInput" accept="image/*,video/*">
+        <button onclick="createPost()">Post</button>
+      </div>
     </div>
+
+    <div id="posts"></div>
+
   </div>
 
-  <div id="posts"></div>
+  <!-- DYNAMIC TOOL PANEL -->
+  <div id="toolPanel" style="display:none;"></div>
 
 </div>
+
 
 <!-- RIGHT COLUMN -->
 <div>
@@ -265,6 +277,10 @@ async function loadProfile(){
   document.getElementById("followers").innerText=user.followers?.length||0;
   document.getElementById("following").innerText=user.following?.length||0;
   document.getElementById("proStatus").innerText=user.isPro?"Pro":"Free";
+  document.getElementById("topProfileImg").src =
+  user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+document.getElementById("topProfileName").innerText = user.name;
 }
 
 /* POSTS */
@@ -286,7 +302,7 @@ async function loadPosts(){
               : `<img src="${post.mediaUrl}">`}
           </div>`:''}
         <div class="post-footer">
-          <div>${post.likes.length} likes</div>
+          <div data-like="${post._id}">${post.likes.length} likes</div>
           <div class="icon-btn" onclick="likePost('${post._id}')">❤️ Like</div>
         </div>
       </div>
@@ -314,12 +330,20 @@ async function createPost(){
 
 /* LIKE */
 async function likePost(id){
-  await fetch(API+"/api/posts/"+id+"/like",{
+
+  const res=await fetch(API+"/api/posts/"+id+"/like",{
     method:"PATCH",
     headers:{Authorization:"Bearer "+token}
   });
-  loadPosts();
+
+  const data=await res.json();
+
+  const likeElement=document.querySelector(`[data-like="${id}"]`);
+  if(likeElement){
+    likeElement.innerText=data.likes+" likes";
+  }
 }
+
 
 /* JOB STATS */
 async function loadEmployerStats(){
@@ -335,8 +359,153 @@ async function loadEmployerStats(){
   document.getElementById("totalApplications").innerText=apps.length;
 }
 
-function showMyJobs(){alert("Feature panel coming next step");}
-function showApplications(){alert("Feature panel coming next step");}
+async function showMyJobs(){
+
+  document.getElementById("feedPanel").style.display="none";
+  document.getElementById("toolPanel").style.display="block";
+
+  const res=await fetch(API+"/api/jobs/my",{headers:{Authorization:"Bearer "+token}});
+  const jobs=res.ok?await res.json():[];
+
+  let html=`
+    <div class="card">
+      <h3>My Jobs</h3>
+  `;
+
+  jobs.forEach(job=>{
+    html+=`
+      <div style="border-bottom:1px solid #eee;padding:10px 0;">
+        <b>${job.title}</b>
+        <div style="font-size:13px;color:#6f6f6f;">
+          Status: ${job.status}
+        </div>
+
+        <div style="margin-top:6px;">
+          <button onclick="editJob('${job._id}','${job.title}')">Edit</button>
+          <button style="background:#e53935;" onclick="deleteJob('${job._id}')">Delete</button>
+        </div>
+      </div>
+    `;
+  });
+  html+=`
+  <div style="margin-top:20px;">
+    <button onclick="backToFeed()">⬅ Back to Feed</button>
+  </div>
+`;
+
+
+  html+=`</div>`;
+
+  document.getElementById("toolPanel").innerHTML=html;
+}
+  function openMessages(){
+  alert("Messaging system coming soon.");
+}
+
+function openNotifications(){
+  alert("Notifications system coming soon.");
+}
+
+async function editJob(id,currentTitle){
+
+  const newTitle=prompt("Edit Job Title:",currentTitle);
+  if(!newTitle) return;
+
+  await fetch(API+"/api/jobs/"+id,{
+    method:"PATCH",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({title:newTitle})
+  });
+
+  showMyJobs();
+}
+
+async function deleteJob(id){
+
+  if(!confirm("Delete this job?")) return;
+
+  await fetch(API+"/api/jobs/"+id,{
+    method:"DELETE",
+    headers:{Authorization:"Bearer "+token}
+  });
+
+  showMyJobs();
+}
+
+async function showApplications(){
+
+  document.getElementById("feedPanel").style.display="none";
+  document.getElementById("toolPanel").style.display="block";
+
+  const res=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer "+token}});
+  const apps=res.ok?await res.json():[];
+
+  let html=`
+    <div class="card">
+      <h3>Applications</h3>
+
+      <input type="text" id="filterInput"
+             placeholder="Filter candidates..."
+             style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;margin-bottom:15px;"
+             onkeyup="filterCandidates()">
+
+      <div id="appList">
+  `;
+
+  apps.forEach(app=>{
+    html+=`
+      <div class="candidate-row"
+           data-name="${app.name}"
+           style="border-bottom:1px solid #eee;padding:10px 0;">
+
+        <b>${app.name}</b>
+        <div style="font-size:13px;color:#6f6f6f;">
+          Applied for: ${app.jobId?.title || ''}
+        </div>
+
+        <div style="margin-top:5px;">
+          <button onclick="shortlist('${app._id}')">⭐ Shortlist</button>
+        </div>
+
+      </div>
+    `;
+  });
+html+=`
+  <div style="margin-top:20px;">
+    <button onclick="backToFeed()">⬅ Back to Feed</button>
+  </div>
+`;
+
+  html+=`</div></div>`;
+
+  document.getElementById("toolPanel").innerHTML=html;
+}
+function filterCandidates(){
+  const value=document.getElementById("filterInput").value.toLowerCase();
+
+  document.querySelectorAll(".candidate-row").forEach(row=>{
+    const name=row.getAttribute("data-name").toLowerCase();
+    row.style.display=name.includes(value)?"block":"none";
+  });
+}
+
+async function shortlist(id){
+
+  await fetch(API+"/api/applications/"+id+"/shortlist",{
+    method:"PATCH",
+    headers:{Authorization:"Bearer "+token}
+  });
+
+  alert("Candidate shortlisted");
+}
+function backToFeed(){
+  document.getElementById("toolPanel").style.display="none";
+  document.getElementById("feedPanel").style.display="block";
+}
+
 function logout(){localStorage.removeItem("token");window.location.href="login.html";}
 
 loadProfile();
