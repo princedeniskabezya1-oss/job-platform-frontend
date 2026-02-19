@@ -3,14 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Employer Dashboard | AIFT</title>
+<title>AIFT Employer Dashboard</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 :root{
   --primary:#0a66c2;
   --bg:#f3f2ef;
-  --card:#ffffff;
+  --card:#fff;
   --text:#1c1c1c;
   --muted:#6f6f6f;
   --border:#e0e0e0;
@@ -19,45 +21,75 @@
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
 body{background:var(--bg);}
 
-/* HEADER */
 .header{
-  background:white;
-  padding:15px 40px;
+  background:#fff;
+  padding:12px 40px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+  box-shadow:0 2px 10px rgba(0,0,0,0.05);
+  position:sticky;
+  top:0;
+  z-index:10;
 }
-.logo{
-  font-weight:800;
-  font-size:22px;
-}
+
+.logo{font-weight:800;font-size:20px;}
 .logo span{color:var(--primary);}
-.header-buttons button{
-  margin-left:10px;
-}
 
-/* BUTTON */
-button{
-  background:var(--primary);
-  color:white;
-  border:none;
-  padding:8px 16px;
+.header-left{display:flex;align-items:center;gap:25px;}
+.search{
+  position:relative;
+}
+.search input{
+  width:320px;
+  padding:8px 35px 8px 12px;
   border-radius:20px;
-  cursor:pointer;
-  font-weight:600;
+  border:1px solid var(--border);
+}
+.search span{
+  position:absolute;
+  right:10px;
+  top:6px;
 }
 
-/* LAYOUT */
+.header-right{
+  display:flex;
+  align-items:center;
+  gap:20px;
+}
+
+.icon{
+  cursor:pointer;
+  position:relative;
+  font-size:14px;
+}
+
+.badge{
+  position:absolute;
+  top:-5px;
+  right:-10px;
+  background:red;
+  color:white;
+  font-size:10px;
+  padding:2px 6px;
+  border-radius:50%;
+}
+
+.avatar{
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  cursor:pointer;
+}
+
 .container{
   display:grid;
   grid-template-columns:260px 1fr 300px;
   gap:20px;
   max-width:1300px;
-  margin:40px auto;
+  margin:30px auto;
 }
 
-/* CARD */
 .card{
   background:var(--card);
   padding:20px;
@@ -66,46 +98,24 @@ button{
   margin-bottom:20px;
 }
 
-/* PROFILE */
-.profile-banner{
-  width:100%;
-  height:120px;
-  background:#ddd;
-  border-radius:10px;
-  object-fit:cover;
-}
-.profile-image{
-  width:90px;
-  height:90px;
-  border-radius:50%;
-  border:4px solid white;
-  margin-top:-45px;
-  object-fit:cover;
-}
-
-/* TOOL LINKS */
-.tool-link{
-  padding:10px 0;
-  border-bottom:1px solid var(--border);
-  cursor:pointer;
-  font-size:14px;
-}
-.tool-link:hover{color:var(--primary);}
-
-/* POSTS */
-.post-box textarea{
-  width:100%;
+button{
+  background:var(--primary);
+  color:white;
   border:none;
-  resize:none;
-  outline:none;
-  font-size:15px;
+  padding:7px 14px;
+  border-radius:20px;
+  cursor:pointer;
+  font-weight:600;
 }
 
-.post-media img,
-.post-media video{
+button.danger{background:#e53935;}
+button.gray{background:#999;}
+
+input,textarea{
   width:100%;
-  border-radius:10px;
-  margin-top:10px;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid var(--border);
 }
 
 .post-actions{
@@ -114,145 +124,71 @@ button{
   margin-top:10px;
 }
 
-.post-footer{
-  display:flex;
-  justify-content:space-between;
-  margin-top:10px;
-  font-size:14px;
-  color:var(--muted);
-}
-
-.icon-btn{
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-.icon-btn:hover{color:var(--primary);}
-.comment-box input{
-  width:100%;
-  padding:8px;
-  border-radius:20px;
-  border:1px solid var(--border);
-  margin-top:8px;
-}
-
-/* RIGHT STATS */
-.stat{
-  margin-bottom:8px;
-  font-size:14px;
-}
+.stat{font-size:14px;margin-bottom:6px;}
 .stat b{color:var(--text);}
+
+.job-row,.candidate-row{
+  border-bottom:1px solid var(--border);
+  padding:10px 0;
+}
+
+.hidden{display:none;}
 </style>
 </head>
 
 <body>
 
 <div class="header">
-
-  <div style="display:flex;align-items:center;gap:30px;">
-
+  <div class="header-left">
     <div class="logo"><span>AI</span>FT Employer</div>
-
-    <!-- SEARCH BAR -->
-    <div style="position:relative;">
-      <input type="text" id="globalSearch"
-             placeholder="Search candidates, jobs..."
-             style="width:300px;padding:8px 35px 8px 12px;border-radius:20px;border:1px solid #ddd;">
-      <span style="position:absolute;right:10px;top:7px;font-size:14px;color:#6f6f6f;">🔍</span>
+    <div class="search">
+      <input type="text" placeholder="Search jobs, candidates...">
+      <span>🔍</span>
     </div>
-
   </div>
 
-  <!-- RIGHT SIDE ICONS -->
-  <div style="display:flex;align-items:center;gap:25px;">
-
-    <!-- Messages -->
-    <div style="cursor:pointer;" onclick="openMessages()">
-      💬 <span style="font-size:12px;">Messages</span>
+  <div class="header-right">
+    <div class="icon">💬 Messages</div>
+    <div class="icon">
+      🔔 Notifications
+      <div class="badge" id="notifCount">0</div>
     </div>
-
-    <!-- Notifications -->
-    <div style="cursor:pointer;position:relative;" onclick="openNotifications()">
-      🔔 <span style="font-size:12px;">Notifications</span>
-      <span id="notificationCount"
-            style="position:absolute;top:-5px;right:-10px;background:red;color:white;
-                   font-size:10px;padding:2px 6px;border-radius:50%;">
-        0
-      </span>
-    </div>
-
-    <!-- Profile Thumbnail -->
-    <div onclick="window.location.href='profile.html'"
-         style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-      <img id="topProfileImg"
-           src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-           style="width:32px;height:32px;border-radius:50%;">
-      <span id="topProfileName" style="font-size:14px;"></span>
-    </div>
-
+    <img id="avatar" class="avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
   </div>
-
 </div>
-
 
 <div class="container">
 
-<!-- LEFT COLUMN -->
+<!-- LEFT -->
 <div>
-
   <div class="card" id="profileCard"></div>
 
   <div class="card">
-    <h3>Employer Tools</h3>
-    <div class="tool-link" onclick="window.location.href='post-job.html'">➕ Post New Job</div>
-    <div class="tool-link" onclick="showMyJobs()">📄 My Jobs (<span id="jobCount">0</span>)</div>
-    <div class="tool-link" onclick="showApplications()">📩 Applications (<span id="appCount">0</span>)</div>
+    <button onclick="UI.showFeed()">Feed</button><br><br>
+    <button onclick="UI.showJobs()">My Jobs</button><br><br>
+    <button onclick="UI.showApplications()">Applications</button>
   </div>
-
 </div>
 
-<!-- CENTER COLUMN -->
+<!-- CENTER -->
 <div>
-
-<!-- CENTER COLUMN -->
-<div>
-
-  <!-- FEED PANEL -->
-  <div id="feedPanel">
-
-    <div class="card post-box">
-      <textarea id="postContent" rows="3" placeholder="Share company update..."></textarea>
-      <div class="post-actions">
-        <input type="file" id="mediaInput" accept="image/*,video/*">
-        <button onclick="createPost()">Post</button>
-      </div>
-    </div>
-
-    <div id="posts"></div>
-
-  </div>
-
-  <!-- DYNAMIC TOOL PANEL -->
-  <div id="toolPanel" style="display:none;"></div>
-
+  <div id="feedPanel"></div>
+  <div id="jobsPanel" class="hidden"></div>
+  <div id="applicationsPanel" class="hidden"></div>
 </div>
 
-
-<!-- RIGHT COLUMN -->
+<!-- RIGHT -->
 <div>
+  <div class="card">
+    <h3>Analytics</h3>
+    <canvas id="chart"></canvas>
+  </div>
 
   <div class="card">
-    <h3>Company Stats</h3>
-    <div class="stat">Followers: <b id="followers">0</b></div>
-    <div class="stat">Following: <b id="following">0</b></div>
-    <div class="stat">Pro Status: <b id="proStatus">Free</b></div>
-    <hr style="margin:10px 0;">
     <div class="stat">Total Jobs: <b id="totalJobs">0</b></div>
     <div class="stat">Active Jobs: <b id="activeJobs">0</b></div>
-    <div class="stat">Applications: <b id="totalApplications">0</b></div>
+    <div class="stat">Applications: <b id="totalApps">0</b></div>
   </div>
-
 </div>
 
 </div>
@@ -260,157 +196,113 @@ button{
 <script>
 const API="https://backend-1-9b6f.onrender.com";
 const token=localStorage.getItem("token");
-if(!token) window.location.href="login.html";
+
+const UI={
+  showFeed(){
+    feedPanel.classList.remove("hidden");
+    jobsPanel.classList.add("hidden");
+    applicationsPanel.classList.add("hidden");
+  },
+  showJobs(){
+    feedPanel.classList.add("hidden");
+    jobsPanel.classList.remove("hidden");
+    applicationsPanel.classList.add("hidden");
+    loadJobs();
+  },
+  showApplications(){
+    feedPanel.classList.add("hidden");
+    jobsPanel.classList.add("hidden");
+    applicationsPanel.classList.remove("hidden");
+    loadApplications();
+  }
+};
 
 /* PROFILE */
 async function loadProfile(){
   const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer "+token}});
   const user=await res.json();
-
-  document.getElementById("profileCard").innerHTML=`
-    <img class="profile-banner" src="${user.bannerImage || ''}">
-    <img class="profile-image" src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+  avatar.src=user.profileImage||avatar.src;
+  profileCard.innerHTML=`
     <h3>${user.name}</h3>
-    <div style="color:#6f6f6f;font-size:14px;">${user.headline || ''}</div>
+    <div>${user.headline||''}</div>
   `;
-
-  document.getElementById("followers").innerText=user.followers?.length||0;
-  document.getElementById("following").innerText=user.following?.length||0;
-  document.getElementById("proStatus").innerText=user.isPro?"Pro":"Free";
-  document.getElementById("topProfileImg").src =
-  user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
-document.getElementById("topProfileName").innerText = user.name;
 }
 
-/* POSTS */
+/* FEED */
+async function loadFeed(){
+  feedPanel.innerHTML=`
+    <div class="card">
+      <textarea id="postContent" placeholder="Share update..."></textarea>
+      <div class="post-actions">
+        <button onclick="createPost()">Post</button>
+      </div>
+    </div>
+    <div id="posts"></div>
+  `;
+  loadPosts();
+}
+
 async function loadPosts(){
   const res=await fetch(API+"/api/posts");
   const posts=await res.json();
   const container=document.getElementById("posts");
   container.innerHTML="";
-
   posts.forEach(post=>{
     container.innerHTML+=`
       <div class="card">
-        <div><b>${post.author?.name||''}</b></div>
+        <b>${post.author?.name||''}</b>
         <div>${post.content||''}</div>
-        ${post.mediaUrl?`
-          <div class="post-media">
-            ${post.mediaType==="video"
-              ? `<video controls src="${post.mediaUrl}"></video>`
-              : `<img src="${post.mediaUrl}">`}
-          </div>`:''}
-        <div class="post-footer">
-          <div data-like="${post._id}">${post.likes.length} likes</div>
-          <div class="icon-btn" onclick="likePost('${post._id}')">❤️ Like</div>
-        </div>
+        <div>${post.likes?.length||0} Likes</div>
+        <button onclick="likePost('${post._id}')">Like</button>
       </div>
     `;
   });
 }
 
-/* CREATE POST */
 async function createPost(){
   const content=document.getElementById("postContent").value;
-  const file=document.getElementById("mediaInput").files[0];
-  const formData=new FormData();
-  formData.append("content",content);
-  if(file) formData.append("media",file);
-
-  const res=await fetch(API+"/api/posts",{
+  await fetch(API+"/api/posts",{
     method:"POST",
     headers:{Authorization:"Bearer "+token},
-    body:formData
+    body:new URLSearchParams({content})
   });
-
-  if(res.status===403){alert("Upgrade to Pro to post media");return;}
   loadPosts();
 }
 
-/* LIKE */
 async function likePost(id){
-
-  const res=await fetch(API+"/api/posts/"+id+"/like",{
+  await fetch(API+"/api/posts/"+id+"/like",{
     method:"PATCH",
     headers:{Authorization:"Bearer "+token}
   });
-
-  const data=await res.json();
-
-  const likeElement=document.querySelector(`[data-like="${id}"]`);
-  if(likeElement){
-    likeElement.innerText=data.likes+" likes";
-  }
+  loadPosts();
 }
 
-
-/* JOB STATS */
-async function loadEmployerStats(){
-  const jobsRes=await fetch(API+"/api/jobs/my",{headers:{Authorization:"Bearer "+token}});
-  const jobs=jobsRes.ok?await jobsRes.json():[];
-  document.getElementById("jobCount").innerText=jobs.length;
-  document.getElementById("totalJobs").innerText=jobs.length;
-  document.getElementById("activeJobs").innerText=jobs.filter(j=>j.status==="active").length;
-
-  const appsRes=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer "+token}});
-  const apps=appsRes.ok?await appsRes.json():[];
-  document.getElementById("appCount").innerText=apps.length;
-  document.getElementById("totalApplications").innerText=apps.length;
-}
-
-async function showMyJobs(){
-
-  document.getElementById("feedPanel").style.display="none";
-  document.getElementById("toolPanel").style.display="block";
-
+/* JOBS */
+async function loadJobs(){
   const res=await fetch(API+"/api/jobs/my",{headers:{Authorization:"Bearer "+token}});
-  const jobs=res.ok?await res.json():[];
+  const jobs=await res.json();
+  totalJobs.innerText=jobs.length;
+  activeJobs.innerText=jobs.filter(j=>j.status==="active").length;
 
-  let html=`
-    <div class="card">
-      <h3>My Jobs</h3>
-  `;
-
+  let html=`<div class="card"><h3>My Jobs</h3>`;
   jobs.forEach(job=>{
     html+=`
-      <div style="border-bottom:1px solid #eee;padding:10px 0;">
+      <div class="job-row">
         <b>${job.title}</b>
-        <div style="font-size:13px;color:#6f6f6f;">
-          Status: ${job.status}
-        </div>
-
-        <div style="margin-top:6px;">
-          <button onclick="editJob('${job._id}','${job.title}')">Edit</button>
-          <button style="background:#e53935;" onclick="deleteJob('${job._id}')">Delete</button>
-        </div>
+        <div>Status: ${job.status}</div>
+        <button onclick="editJob('${job._id}','${job.title}')">Edit</button>
+        <button class="danger" onclick="deleteJob('${job._id}')">Delete</button>
       </div>
     `;
   });
-  html+=`
-  <div style="margin-top:20px;">
-    <button onclick="backToFeed()">⬅ Back to Feed</button>
-  </div>
-`;
-
-
   html+=`</div>`;
-
-  document.getElementById("toolPanel").innerHTML=html;
-}
-  function openMessages(){
-  alert("Messaging system coming soon.");
+  jobsPanel.innerHTML=html;
+  updateChart(jobs.length);
 }
 
-function openNotifications(){
-  alert("Notifications system coming soon.");
-}
-
-async function editJob(id,currentTitle){
-
-  const newTitle=prompt("Edit Job Title:",currentTitle);
-  if(!newTitle) return;
-
+async function editJob(id,title){
+  const newTitle=prompt("Edit Job Title",title);
+  if(!newTitle)return;
   await fetch(API+"/api/jobs/"+id,{
     method:"PATCH",
     headers:{
@@ -419,98 +311,78 @@ async function editJob(id,currentTitle){
     },
     body:JSON.stringify({title:newTitle})
   });
-
-  showMyJobs();
+  loadJobs();
 }
 
 async function deleteJob(id){
-
-  if(!confirm("Delete this job?")) return;
-
   await fetch(API+"/api/jobs/"+id,{
     method:"DELETE",
     headers:{Authorization:"Bearer "+token}
   });
-
-  showMyJobs();
+  loadJobs();
 }
 
-async function showApplications(){
-
-  document.getElementById("feedPanel").style.display="none";
-  document.getElementById("toolPanel").style.display="block";
-
+/* APPLICATIONS */
+async function loadApplications(){
   const res=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer "+token}});
-  const apps=res.ok?await res.json():[];
+  const apps=await res.json();
+  totalApps.innerText=apps.length;
 
   let html=`
     <div class="card">
       <h3>Applications</h3>
-
-      <input type="text" id="filterInput"
-             placeholder="Filter candidates..."
-             style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;margin-bottom:15px;"
-             onkeyup="filterCandidates()">
-
+      <input type="text" onkeyup="filterCandidates(this.value)" placeholder="Filter...">
       <div id="appList">
   `;
-
   apps.forEach(app=>{
     html+=`
-      <div class="candidate-row"
-           data-name="${app.name}"
-           style="border-bottom:1px solid #eee;padding:10px 0;">
-
+      <div class="candidate-row" data-name="${app.name}">
         <b>${app.name}</b>
-        <div style="font-size:13px;color:#6f6f6f;">
-          Applied for: ${app.jobId?.title || ''}
-        </div>
-
-        <div style="margin-top:5px;">
-          <button onclick="shortlist('${app._id}')">⭐ Shortlist</button>
-        </div>
-
+        <div>${app.jobId?.title||''}</div>
+        <button onclick="shortlist('${app._id}')">Shortlist</button>
       </div>
     `;
   });
-html+=`
-  <div style="margin-top:20px;">
-    <button onclick="backToFeed()">⬅ Back to Feed</button>
-  </div>
-`;
-
   html+=`</div></div>`;
-
-  document.getElementById("toolPanel").innerHTML=html;
+  applicationsPanel.innerHTML=html;
 }
-function filterCandidates(){
-  const value=document.getElementById("filterInput").value.toLowerCase();
 
+function filterCandidates(value){
+  value=value.toLowerCase();
   document.querySelectorAll(".candidate-row").forEach(row=>{
-    const name=row.getAttribute("data-name").toLowerCase();
+    const name=row.dataset.name.toLowerCase();
     row.style.display=name.includes(value)?"block":"none";
   });
 }
 
 async function shortlist(id){
-
   await fetch(API+"/api/applications/"+id+"/shortlist",{
     method:"PATCH",
     headers:{Authorization:"Bearer "+token}
   });
-
-  alert("Candidate shortlisted");
-}
-function backToFeed(){
-  document.getElementById("toolPanel").style.display="none";
-  document.getElementById("feedPanel").style.display="block";
+  alert("Shortlisted");
 }
 
-function logout(){localStorage.removeItem("token");window.location.href="login.html";}
+/* CHART */
+let chart;
+function updateChart(jobCount){
+  const ctx=document.getElementById("chart");
+  if(chart) chart.destroy();
+  chart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:['Jobs'],
+      datasets:[{
+        label:'Total Jobs',
+        data:[jobCount]
+      }]
+    }
+  });
+}
 
+/* INIT */
 loadProfile();
-loadPosts();
-loadEmployerStats();
+loadFeed();
 </script>
 
 </body>
