@@ -22,16 +22,17 @@
 body{background:var(--bg);}
 
 .header{
-  background:#fff;
-  padding:12px 40px;
+  background:#ffffff;
+  padding:10px 60px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  box-shadow:0 2px 10px rgba(0,0,0,0.05);
+  border-bottom:1px solid #e6e6e6;
   position:sticky;
   top:0;
-  z-index:10;
+  z-index:100;
 }
+
 
 .logo{font-weight:800;font-size:20px;}
 .logo span{color:var(--primary);}
@@ -41,10 +42,12 @@ body{background:var(--bg);}
   position:relative;
 }
 .search input{
-  width:320px;
-  padding:8px 35px 8px 12px;
-  border-radius:20px;
-  border:1px solid var(--border);
+  width:280px;
+  padding:8px 35px 8px 15px;
+  border-radius:4px;
+  border:none;
+  background:#eef3f8;
+  font-size:14px;
 }
 .search span{
   position:absolute;
@@ -84,19 +87,22 @@ body{background:var(--bg);}
 
 .container{
   display:grid;
-  grid-template-columns:260px 1fr 300px;
-  gap:20px;
-  max-width:1300px;
+  grid-template-columns:240px 1fr 280px;
+  gap:25px;
+  max-width:1128px;
   margin:30px auto;
 }
 
+
 .card{
-  background:var(--card);
+  background:#ffffff;
   padding:20px;
-  border-radius:12px;
-  box-shadow:0 4px 15px rgba(0,0,0,0.05);
+  border-radius:8px;
+  border:1px solid #e6e6e6;
+  box-shadow:none;
   margin-bottom:20px;
 }
+
 
 button{
   background:var(--primary);
@@ -131,6 +137,18 @@ input,textarea{
   border-bottom:1px solid var(--border);
   padding:10px 0;
 }
+  .sidebar-link{
+  padding:10px 5px;
+  font-size:14px;
+  cursor:pointer;
+  color:#444;
+}
+
+.sidebar-link:hover{
+  background:#eef3f8;
+  border-radius:6px;
+}
+
 
 .hidden{display:none;}
 </style>
@@ -189,11 +207,11 @@ input,textarea{
 </div>
 
 
-  <div class="card">
-    <button onclick="UI.showFeed()">Feed</button><br><br>
-    <button onclick="UI.showJobs()">My Jobs</button><br><br>
-    <button onclick="UI.showApplications()">Applications</button>
-  </div>
+<div class="card">
+  <div class="sidebar-link" onclick="UI.showFeed()">🏠 Feed</div>
+  <div class="sidebar-link" onclick="UI.showJobs()">📄 My Jobs</div>
+  <div class="sidebar-link" onclick="UI.showApplications()">📩 Applications</div>
+</div>
 </div>
 
 <!-- CENTER -->
@@ -206,7 +224,7 @@ input,textarea{
 <!-- RIGHT -->
 <div>
   <div class="card">
-    <h3>Analytics</h3>
+    <h3 style="font-size:16px;margin-bottom:15px;">Analytics Overview</h3>
     <canvas id="chart"></canvas>
   </div>
 
@@ -285,13 +303,31 @@ async function loadPosts(){
   const container=document.getElementById("posts");
   container.innerHTML="";
   posts.forEach(post=>{
-    container.innerHTML+=`
-      <div class="card">
-        <b>${post.author?.name||''}</b>
-        <div>${post.content||''}</div>
-        <div>${post.likes?.length||0} Likes</div>
-        <button onclick="likePost('${post._id}')">Like</button>
+container.innerHTML+=`
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <img src="${post.author?.profileImage||'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+           style="width:45px;height:45px;border-radius:50%;">
+      <div>
+        <div style="font-weight:600;">${post.author?.name||''}</div>
+        <div style="font-size:12px;color:#6f6f6f;">Employer</div>
       </div>
+    </div>
+
+    <div style="font-size:14px;margin-bottom:10px;">
+      ${post.content||''}
+    </div>
+
+    <div style="display:flex;justify-content:space-between;
+                font-size:13px;color:#6f6f6f;border-top:1px solid #eee;padding-top:8px;">
+      <div>${post.likes?.length||0} Likes</div>
+      <div style="cursor:pointer;" onclick="likePost('${post._id}')">
+        👍 Like
+      </div>
+    </div>
+  </div>
+`;
+
     `;
   });
 }
@@ -397,7 +433,15 @@ async function shortlist(id){
     method:"PATCH",
     headers:{Authorization:"Bearer "+token}
   });
-  alert("Shortlisted");
+  async function shortlist(id){
+  await fetch(API+"/api/applications/"+id+"/shortlist",{
+    method:"PATCH",
+    headers:{Authorization:"Bearer "+token}
+  });
+
+  loadApplications();
+}
+
 }
 
 /* CHART */
