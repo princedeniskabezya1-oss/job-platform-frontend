@@ -215,9 +215,6 @@ button{
 <!-- CENTER COLUMN -->
 <div>
 
-<!-- CENTER COLUMN -->
-<div>
-
   <!-- FEED PANEL -->
   <div id="feedPanel">
 
@@ -285,48 +282,106 @@ document.getElementById("topProfileName").innerText = user.name;
 
 /* POSTS */
 async function loadPosts(){
-  const res=await fetch(API+"/api/posts");
-  const posts=await res.json();
-  const container=document.getElementById("posts");
-  container.innerHTML="";
 
-  posts.forEach(post=>{
-    container.innerHTML+=`
-      <div class="card">
-        <div><b>${post.author?.name||''}</b></div>
-        <div>${post.content||''}</div>
-        ${post.mediaUrl?`
-          <div class="post-media">
-            ${post.mediaType==="video"
-              ? `<video controls src="${post.mediaUrl}"></video>`
-              : `<img src="${post.mediaUrl}">`}
-          </div>`:''}
-        <div class="post-footer">
-          <div data-like="${post._id}">${post.likes.length} likes</div>
-          <div class="icon-btn" onclick="likePost('${post._id}')">❤️ Like</div>
+  try{
+
+    const res=await fetch(API+"/api/posts",{
+      headers:{ Authorization:"Bearer "+token }
+    });
+
+    if(!res.ok){
+      console.error("Post load failed:",res.status);
+      return;
+    }
+
+    const posts=await res.json();
+    const container=document.getElementById("posts");
+    container.innerHTML="";
+
+    if(posts.length===0){
+      container.innerHTML=`
+        <div class="card">
+          <div style="color:#6f6f6f;">No posts yet.</div>
         </div>
-      </div>
-    `;
-  });
+      `;
+      return;
+    }
+
+    posts.forEach(post=>{
+      container.innerHTML+=`
+        <div class="card">
+
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+                 style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+            <div>
+              <b>${post.author?.name || 'User'}</b>
+              <div style="font-size:12px;color:#6f6f6f;">
+                ${post.author?.headline || ""}
+              </div>
+            </div>
+          </div>
+
+          <div>${post.content || ""}</div>
+
+          ${post.mediaUrl ? `
+            <div class="post-media">
+              ${post.mediaType==="video"
+                ? `<video controls src="${post.mediaUrl}"></video>`
+                : `<img src="${post.mediaUrl}">`}
+            </div>
+          ` : ""}
+
+          <div class="post-footer">
+            <div data-like="${post._id}">${post.likes.length} likes</div>
+            <div class="icon-btn" onclick="likePost('${post._id}')">❤️ Like</div>
+          </div>
+
+        </div>
+      `;
+    });
+
+  }catch(err){
+    console.error(err);
+  }
 }
+
 
 /* CREATE POST */
 async function createPost(){
+
   const content=document.getElementById("postContent").value;
   const file=document.getElementById("mediaInput").files[0];
+
   const formData=new FormData();
   formData.append("content",content);
-  if(file) formData.append("media",file);
+
+  if(file){
+    formData.append("media",file);
+  }
 
   const res=await fetch(API+"/api/posts",{
     method:"POST",
-    headers:{Authorization:"Bearer "+token},
+    headers:{ Authorization:"Bearer "+token },
     body:formData
   });
 
-  if(res.status===403){alert("Upgrade to Pro to post media");return;}
+  if(res.status===403){
+    alert("Upgrade to Pro to post media");
+    return;
+  }
+
+  if(!res.ok){
+    alert("Post failed");
+    return;
+  }
+
+  document.getElementById("postContent").value="";
+  document.getElementById("mediaInput").value="";
+
   loadPosts();
 }
+
 
 /* LIKE */
 async function likePost(id){
@@ -347,17 +402,34 @@ async function likePost(id){
 
 /* JOB STATS */
 async function loadEmployerStats(){
-  const jobsRes=await fetch(API+"/api/jobs/my",{headers:{Authorization:"Bearer "+token}});
-  const jobs=jobsRes.ok?await jobsRes.json():[];
-  document.getElementById("jobCount").innerText=jobs.length;
-  document.getElementById("totalJobs").innerText=jobs.length;
-  document.getElementById("activeJobs").innerText=jobs.filter(j=>j.status==="active").length;
 
-  const appsRes=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer "+token}});
-  const apps=appsRes.ok?await appsRes.json():[];
-  document.getElementById("appCount").innerText=apps.length;
-  document.getElementById("totalApplications").innerText=apps.length;
+  try{
+
+    const jobsRes=await fetch(API+"/api/jobs/my",{
+      headers:{Authorization:"Bearer "+token}
+    });
+
+    const jobs=jobsRes.ok?await jobsRes.json():[];
+
+    document.getElementById("jobCount").innerText=jobs.length;
+    document.getElementById("totalJobs").innerText=jobs.length;
+    document.getElementById("activeJobs").innerText=
+      jobs.filter(j=>j.status==="active").length;
+
+    const appsRes=await fetch(API+"/api/applications",{
+      headers:{Authorization:"Bearer "+token}
+    });
+
+    const apps=appsRes.ok?await appsRes.json():[];
+
+    document.getElementById("appCount").innerText=apps.length;
+    document.getElementById("totalApplications").innerText=apps.length;
+
+  }catch(err){
+    console.error("Stats error:",err);
+  }
 }
+
 
 async function showMyJobs(){
 
@@ -398,9 +470,22 @@ async function showMyJobs(){
 
   document.getElementById("toolPanel").innerHTML=html;
 }
-  function openMessages(){
-  alert("Messaging system coming soon.");
+function openMessages(){
+
+  document.getElementById("feedPanel").style.display="none";
+  document.getElementById("toolPanel").style.display="block";
+
+  document.getElementById("toolPanel").innerHTML=`
+    <div class="card">
+      <h3>Messages</h3>
+      <p style="color:#6f6f6f;font-size:14px;">
+        No messages yet.
+      </p>
+      <button onclick="backToFeed()">⬅ Back to Feed</button>
+    </div>
+  `;
 }
+
 
 function openNotifications(){
   alert("Notifications system coming soon.");
