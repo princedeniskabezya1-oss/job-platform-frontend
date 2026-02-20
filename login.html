@@ -127,7 +127,7 @@ async function login(){
   const errorBox = document.getElementById("error");
 
   errorBox.innerText = "Signing in...";
-  
+
   try{
     const res = await fetch(API + "/api/auth/login",{
       method:"POST",
@@ -137,27 +137,25 @@ async function login(){
 
     const data = await res.json();
 
-if(res.ok && data.token){
+    if(res.ok && data.token){
 
-  // Store authentication
-  localStorage.setItem("token", data.token);
+      // STORE AUTH DATA
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.user.role);
 
-  // Store user info
-  localStorage.setItem("role", data.user.role);
-  localStorage.setItem("userId", data.user.id);
-  localStorage.setItem("userName", data.user.name);
+      // IMPORTANT: STORE USER ID
+      localStorage.setItem("userId", data.user.id || data.user._id);
+      localStorage.setItem("userName", data.user.name);
 
-  // Redirect
-  if(data.user.role === "admin"){
-    window.location.href = "admin.html";
-  }else if(data.user.role === "employer"){
-    window.location.href = "employer.html";
-  }else if(data.user.role === "talent"){
-    window.location.href = "talent.html";
-  }else if(data.user.role === "agent"){
-    window.location.href = "agent.html";
-  }
-}
+      if(data.user.role === "admin"){
+        window.location.href = "admin.html";
+      }else if(data.user.role === "employer"){
+        window.location.href = "employer.html";
+      }else if(data.user.role === "talent"){
+        window.location.href = "talent.html";
+      }else if(data.user.role === "agent"){
+        window.location.href = "agent.html";
+      }
 
     }else{
       errorBox.innerText = data.message || "Invalid credentials";
