@@ -264,12 +264,18 @@ async function loadProfile(){
   const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer "+token}});
   const user=await res.json();
 
-  document.getElementById("profileCard").innerHTML=`
-    <img class="profile-banner" src="${user.bannerImage || ''}">
-    <img class="profile-image" src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
-    <h3>${user.name}</h3>
-    <div style="color:#6f6f6f;font-size:14px;">${user.headline || ''}</div>
-  `;
+document.getElementById("profileCard").innerHTML=`
+  <img class="profile-banner" src="${user.bannerImage || 'https://via.placeholder.com/600x120'}">
+
+  <input type="file" id="bannerUpload" onchange="updateProfile()" style="margin-top:5px;">
+
+  <img class="profile-image" src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+
+  <input type="file" id="profileUpload" onchange="updateProfile()" style="margin-top:5px;">
+
+  <h3>${user.name}</h3>
+  <div style="color:#6f6f6f;font-size:14px;">${user.headline || ''}</div>
+`;
 
   document.getElementById("followers").innerText=user.followers?.length||0;
   document.getElementById("following").innerText=user.following?.length||0;
@@ -279,7 +285,29 @@ async function loadProfile(){
 
 document.getElementById("topProfileName").innerText = user.name;
 }
+async function updateProfile(){
 
+  const formData = new FormData();
+
+  const profileFile = document.getElementById("profileUpload")?.files[0];
+  const bannerFile = document.getElementById("bannerUpload")?.files[0];
+
+  if(profileFile){
+    formData.append("profileImage", profileFile);
+  }
+
+  if(bannerFile){
+    formData.append("bannerImage", bannerFile);
+  }
+
+  await fetch(API+"/api/users/profile",{
+    method:"PATCH",
+    headers:{ Authorization:"Bearer "+token },
+    body:formData
+  });
+
+  loadProfile();
+}
 /* POSTS */
 async function loadPosts(){
 
@@ -332,10 +360,41 @@ async function loadPosts(){
             </div>
           ` : ""}
 
-          <div class="post-footer">
-            <div data-like="${post._id}">${post.likes.length} likes</div>
-            <div class="icon-btn" onclick="likePost('${post._id}')">❤️ Like</div>
-          </div>
+<div class="post-footer">
+  <div data-like="${post._id}">${post.likes.length} likes</div>
+
+  <div style="display:flex;gap:15px;">
+<div class="icon-btn" onclick="likePost('${post._id}')">
+  ${post.likes.includes("${localStorage.getItem('userId')}") ? "💙 Liked" : "❤️ Like"}
+</div>
+
+    <div class="icon-btn" onclick="toggleCommentBox('${post._id}')">
+      💬 Comment
+    </div>
+
+    <div class="icon-btn" onclick="sharePost('${post._id}')">
+      🔁 Share
+    </div>
+  </div>
+</div>
+
+<div id="comment-section-${post._id}" style="margin-top:10px;">
+  ${post.comments.map(c => `
+    <div style="margin-bottom:8px;">
+      <b>${c.user?.name || "User"}</b>
+      <div style="font-size:13px;">${c.text}</div>
+    </div>
+  `).join("")}
+</div>
+
+<div style="margin-top:8px;">
+  <input 
+    type="text"
+    placeholder="Write a comment..."
+    onkeydown="if(event.key==='Enter'){ addComment('${post._id}', this.value); this.value=''; }"
+    style="width:100%;padding:8px;border-radius:20px;border:1px solid #ddd;"
+  >
+</div>
 
         </div>
       `;
@@ -503,6 +562,64 @@ async function editJob(id,currentTitle){
 
   showMyJobs();
 }
+  async function addComment(postId, text){
+
+  if(!text.trim()) return;
+
+  await fetch(API+"/api/posts/"+postId+"/comment",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({ text })
+  });
+
+  loadPosts();
+}
+
+function toggleCommentBox(id){
+  // optional animation later
+}
+
+async function sharePost(id){
+
+  await fetch(API+"/api/posts/"+id+"/share",{
+    method:"POST",
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  loadPosts();
+}
+  /*
+=====================================================
+SHARE POST
+=====================================================
+*/
+router.post("/:id/share", auth, async (req, res) => {
+  try {
+
+    const original = await Post.findById(req.params.id);
+
+    if(!original){
+      return res.status(404).json({ message:"Post not found" });
+    }
+
+    const sharedPost = new Post({
+      author: req.user.id,
+      content: original.content,
+      mediaUrl: original.mediaUrl,
+      mediaType: original.mediaType
+    });
+
+    await sharedPost.save();
+
+    res.json({ message:"Post shared" });
+
+  } catch(err){
+    res.status(400).json({ message:"Share failed" });
+  }
+});
 
 async function deleteJob(id){
 
