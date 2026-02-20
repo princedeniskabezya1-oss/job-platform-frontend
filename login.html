@@ -137,19 +137,27 @@ async function login(){
 
     const data = await res.json();
 
-    if(res.ok && data.token){
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.user.role);
+if(res.ok && data.token){
 
-      if(data.user.role === "admin"){
-        window.location.href = "admin.html";
-      }else if(data.user.role === "employer"){
-        window.location.href = "employer.html";
-      }else if(data.user.role === "talent"){
-        window.location.href = "talent.html";
-      }else if(data.user.role === "agent"){
-        window.location.href = "agent.html";
-      }
+  // Store authentication
+  localStorage.setItem("token", data.token);
+
+  // Store user info
+  localStorage.setItem("role", data.user.role);
+  localStorage.setItem("userId", data.user.id);
+  localStorage.setItem("userName", data.user.name);
+
+  // Redirect
+  if(data.user.role === "admin"){
+    window.location.href = "admin.html";
+  }else if(data.user.role === "employer"){
+    window.location.href = "employer.html";
+  }else if(data.user.role === "talent"){
+    window.location.href = "talent.html";
+  }else if(data.user.role === "agent"){
+    window.location.href = "agent.html";
+  }
+}
 
     }else{
       errorBox.innerText = data.message || "Invalid credentials";
