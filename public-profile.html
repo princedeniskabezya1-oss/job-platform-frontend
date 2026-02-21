@@ -247,7 +247,20 @@ padding:20px;
 </div>
 <!-- CENTER PANEL -->
 <div>
-<div id="postsGrid" class="posts-grid"></div>
+
+  <!-- PROFILE INFO TOP CARD -->
+  <div class="panel" id="middleProfileCard" style="margin-bottom:20px;">
+    <h3 id="middleName"></h3>
+    <p id="middleHeadline" style="color:#666;margin-bottom:15px;"></p>
+
+    <div id="middleExperience" style="margin-bottom:15px;"></div>
+    <div id="middleEducation" style="margin-bottom:15px;"></div>
+    <div id="middleSkills"></div>
+  </div>
+
+  <!-- POSTS -->
+  <div id="postsGrid" class="posts-grid"></div>
+
 </div>
 
 <!-- RIGHT PANEL -->
@@ -323,6 +336,50 @@ async function loadProfile(){
 
   document.getElementById("headline").innerText =
     profileUser.headline || "";
+  /* =========================
+   MIDDLE PROFILE CARD
+   ========================= */
+
+document.getElementById("middleName").innerText =
+  profileUser.name;
+
+document.getElementById("middleHeadline").innerText =
+  profileUser.headline || "";
+
+/* CLEAR FIRST */
+const midExp = document.getElementById("middleExperience");
+midExp.innerHTML = "";
+
+const midEdu = document.getElementById("middleEducation");
+midEdu.innerHTML = "";
+
+const midSkills = document.getElementById("middleSkills");
+midSkills.innerHTML = "";
+
+/* EXPERIENCE */
+(profileUser.experience || []).forEach(e=>{
+  midExp.innerHTML += `
+    <div style="font-size:14px;margin-bottom:6px;">
+      <b>${e.title}</b> - ${e.company}
+    </div>
+  `;
+});
+
+/* EDUCATION */
+(profileUser.education || []).forEach(e=>{
+  midEdu.innerHTML += `
+    <div style="font-size:14px;margin-bottom:6px;">
+      <b>${e.school}</b> • ${e.degree}
+    </div>
+  `;
+});
+
+/* SKILLS */
+(profileUser.skills || []).forEach(s=>{
+  midSkills.innerHTML += `
+    <span class="skill">${s}</span>
+  `;
+});
 
   document.getElementById("followers").innerText =
     profileUser.followers?.length || 0;
@@ -704,13 +761,29 @@ async function saveSkill(){
 }
 
 function editHeadline(){
-const newHeadline=prompt("New headline:");
-if(!newHeadline)return;
-fetch(API+"/api/users/update-headline",{
-method:"PATCH",
-headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
-body:JSON.stringify({headline:newHeadline})
-}).then(()=>location.reload());
+  openEditModal(`
+    <h3>Edit Headline</h3>
+    <input id="headlineInput" placeholder="New headline"
+      style="width:100%;margin:10px 0;padding:8px;">
+    <button onclick="saveHeadline()" class="btn follow">Save</button>
+  `);
+}
+
+async function saveHeadline(){
+  const headline = document.getElementById("headlineInput").value;
+  if(!headline) return alert("Enter headline");
+
+  await fetch(API+"/api/users/update-headline",{
+    method:"PATCH",
+    headers:{
+      Authorization:"Bearer "+token,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({headline})
+  });
+
+  closeEditModal();
+  loadProfile();   // refresh UI without full reload
 }
   async function deletePost(postId){
 if(!confirm("Delete this post?"))return;
