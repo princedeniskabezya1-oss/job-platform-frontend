@@ -201,28 +201,67 @@ padding:20px;
 @media(max-width:1200px){
 .layout{grid-template-columns:1fr;}
 }
-  /* ===============================
-   PREMIUM MIDDLE PROFILE CARD
+/* ===============================
+   INTERACTIVE ENERGY CARD
 ================================ */
 
 #middleProfileCard{
   position:sticky;
   top:90px;
-  padding:30px;
-  border-radius:16px;
+  padding:35px;
+  border-radius:20px;
   background:linear-gradient(135deg,#0a66c2,#00c897);
   color:white;
-  box-shadow:0 15px 40px rgba(0,0,0,0.15);
+  box-shadow:0 20px 50px rgba(0,0,0,0.2);
   overflow:hidden;
-  margin-bottom:25px;
-  animation:floatCard 6s ease-in-out infinite;
+  margin-bottom:30px;
+  transition:transform .3s ease, box-shadow .3s ease;
+  cursor:pointer;
 }
 
-/* floating animation */
-@keyframes floatCard{
-  0%{transform:translateY(0px);}
-  50%{transform:translateY(-6px);}
-  100%{transform:translateY(0px);}
+/* hover depth */
+#middleProfileCard:hover{
+  transform:translateY(-5px);
+  box-shadow:0 30px 70px rgba(0,0,0,0.25);
+}
+
+/* ENERGY LIGHT FOLLOW */
+#middleProfileCard::before{
+  content:"";
+  position:absolute;
+  width:400px;
+  height:400px;
+  background:radial-gradient(circle,
+      rgba(255,255,255,0.35),
+      rgba(255,255,255,0.1) 40%,
+      transparent 70%);
+  top:var(--y, 50%);
+  left:var(--x, 50%);
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  transition:all .15s ease;
+  mix-blend-mode:overlay;
+}
+
+/* glow border */
+#middleProfileCard::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:20px;
+  padding:2px;
+  background:linear-gradient(135deg,#00e0ff,#00ff95);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  opacity:0;
+  transition:.3s;
+}
+
+#middleProfileCard:hover::after{
+  opacity:1;
 }
 
 /* soft light effect */
@@ -931,6 +970,25 @@ headers:{Authorization:"Bearer "+token}
 });
 loadPosts();
 }
+  /* ===============================
+   ENERGY MOUSE EFFECT
+================================ */
+
+const energyCard = document.getElementById("middleProfileCard");
+
+energyCard.addEventListener("mousemove", (e) => {
+  const rect = energyCard.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  energyCard.style.setProperty("--x", x + "px");
+  energyCard.style.setProperty("--y", y + "px");
+});
+
+energyCard.addEventListener("mouseleave", () => {
+  energyCard.style.setProperty("--x", "50%");
+  energyCard.style.setProperty("--y", "50%");
+});
 loadProfile();
 loadPosts();
 </script>
