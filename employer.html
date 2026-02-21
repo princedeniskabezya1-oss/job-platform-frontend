@@ -212,6 +212,7 @@ button{
     <div class="tool-link" onclick="window.location.href='post-job.html'">➕ Post New Job</div>
     <div class="tool-link" onclick="showMyJobs()">📄 My Jobs (<span id="jobCount">0</span>)</div>
     <div class="tool-link" onclick="showApplications()">📩 Applications (<span id="appCount">0</span>)</div>
+    <div class="tool-link" onclick="openNetwork()">👥 My Network</div>
   </div>
 
 </div>
@@ -517,6 +518,9 @@ async function openNetwork(){
   });
 
   const users = res.ok ? await res.json() : [];
+  if(users.length > 0){
+  loadConversation(users[0]._id, users[0].name);
+}
 
   let html = `
     <div class="card">
@@ -975,11 +979,116 @@ function backToFeed(){
 }
 
 function logout(){localStorage.removeItem("token");window.location.href="login.html";}
+/* =========================================
+   NETWORK SYSTEM
+========================================= */
 
+async function openNetwork(){
+
+  document.getElementById("feedPanel").style.display="none";
+  document.getElementById("toolPanel").style.display="block";
+
+  const followersRes = await fetch(API+"/api/users/me/followers",{
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const followingRes = await fetch(API+"/api/users/me/following",{
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const followers = followersRes.ok ? await followersRes.json() : [];
+  const following = followingRes.ok ? await followingRes.json() : [];
+
+  let html = `
+  <div class="card">
+    <h3>My Network</h3>
+
+    <div style="display:flex;gap:30px;margin-bottom:20px;">
+      <div style="cursor:pointer;" onclick="showFollowers()">
+        <b>${followers.length}</b> Followers
+      </div>
+      <div style="cursor:pointer;" onclick="showFollowing()">
+        <b>${following.length}</b> Following
+      </div>
+    </div>
+
+    <div id="networkList"></div>
+
+    <button onclick="backToFeed()">⬅ Back</button>
+  </div>
+  `;
+
+  document.getElementById("toolPanel").innerHTML = html;
+
+  window._followers = followers;
+  window._following = following;
+}
+
+function showFollowers(){
+  renderNetworkList(window._followers || []);
+}
+
+function showFollowing(){
+  renderNetworkList(window._following || []);
+}
+
+function renderNetworkList(users){
+
+  const container = document.getElementById("networkList");
+
+  if(users.length === 0){
+    container.innerHTML = "<p style='color:#6f6f6f;'>No users found</p>";
+    return;
+  }
+
+  let html = "";
+
+  users.forEach(user=>{
+    html += `
+      <div style="
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        padding:12px 0;
+        border-bottom:1px solid #eee;
+      ">
+
+        <div style="display:flex;align-items:center;gap:10px;">
+          <img src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+               style="width:45px;height:45px;border-radius:50%;">
+          <div>
+            <div style="font-weight:600;">${user.name}</div>
+            <div style="font-size:13px;color:#6f6f6f;">
+              ${user.headline || ""} • ${user.role}
+            </div>
+          </div>
+        </div>
+
+        <button onclick="visitProfile('${user._id}')">View</button>
+
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function visitProfile(id){
+  window.location.href = "public-profile.html?id=" + id;
+}
+  async function loadNotificationsCount(){
+  const res = await fetch(API+"/api/notifications/unread",{
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const data = res.ok ? await res.json() : {count:0};
+  document.getElementById("notificationCount").innerText = data.count;
+}
 document.addEventListener("DOMContentLoaded", function(){
   loadProfile();
   loadPosts();
   loadEmployerStats();
+  loadNotificationsCount();
 });
 </script>
 
