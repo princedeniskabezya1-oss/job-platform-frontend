@@ -2,80 +2,87 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Profile | AIFT</title>
+<title>AIFT Profile</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
 body{background:#f3f2ef;color:#111;}
-.container{max-width:1100px;margin:40px auto;padding:0 20px;}
-.card{background:white;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.05);margin-bottom:25px;overflow:hidden;transition:.3s;}
-.card:hover{transform:translateY(-2px);}
-
-/* HEADER */
-.banner{width:100%;height:260px;object-fit:cover;background:#ddd;}
-.profile-body{padding:30px;position:relative;}
-.avatar{
-width:160px;height:160px;border-radius:50%;
-border:5px solid white;
-position:absolute;top:-80px;left:40px;
-object-fit:cover;background:#fff;
-transition:.3s;
+.layout{
+display:grid;
+grid-template-columns:300px 1fr 350px;
+gap:25px;
+max-width:1400px;
+margin:40px auto;
+padding:0 20px;
 }
-.avatar:hover{transform:scale(1.05);}
-.profile-info{margin-left:220px;margin-top:90px;}
-.profile-info h2{font-size:26px;font-weight:600;display:flex;align-items:center;gap:8px;}
+
+/* PANELS */
+.panel{
+background:white;
+border-radius:12px;
+box-shadow:0 4px 15px rgba(0,0,0,0.05);
+padding:20px;
+height:fit-content;
+}
+
+/* LEFT PANEL */
+.avatar{
+width:120px;height:120px;
+border-radius:50%;
+object-fit:cover;
+margin-bottom:15px;
+}
+.name{
+font-size:20px;
+font-weight:600;
+display:flex;
+align-items:center;
+gap:8px;
+}
 .verified{
 background:#0a66c2;
 color:white;
-font-size:12px;
+font-size:11px;
 padding:3px 8px;
 border-radius:20px;
 }
-.profile-info p{color:#6f6f6f;margin:6px 0;}
-.role{color:#0a66c2;font-weight:600;}
+.stat{
+font-size:14px;
+margin-top:8px;
+}
+.btn{
+margin-top:15px;
+padding:8px 18px;
+border-radius:20px;
+border:none;
+font-weight:600;
+cursor:pointer;
+}
+.follow{background:#0a66c2;color:white;}
+.unfollow{background:#e4e6eb;}
+.message{background:white;border:1px solid #ccc;}
 
-.stats{display:flex;gap:30px;margin-top:10px;font-size:14px;}
-.stats span strong{font-weight:600;color:#000;}
-
-.action-buttons{margin-top:15px;display:flex;gap:10px;}
-.btn{padding:8px 20px;border-radius:20px;border:none;font-weight:600;cursor:pointer;font-size:14px;transition:.3s;}
-.follow-btn{background:#0a66c2;color:white;}
-.unfollow-btn{background:#e4e6eb;color:black;}
-.message-btn{background:white;border:1px solid #ccc;}
-.btn:hover{transform:scale(1.05);}
-
-/* TABS */
-.tabs{display:flex;gap:30px;margin-top:30px;border-bottom:1px solid #eee;}
-.tab{padding:10px 0;cursor:pointer;font-weight:600;color:#777;}
-.tab.active{color:#000;border-bottom:2px solid #000;}
-
-/* GRID */
+/* CENTER GRID */
 .posts-grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
 gap:8px;
-margin-top:20px;
 }
 .post-item{
 position:relative;
-width:100%;
 padding-top:100%;
 overflow:hidden;
 cursor:pointer;
 border-radius:8px;
 }
-.post-item img,
-.post-item video{
-position:absolute;
-top:0;left:0;
+.post-item img,.post-item video{
+position:absolute;top:0;left:0;
 width:100%;height:100%;
 object-fit:cover;
 transition:.3s;
 }
-.post-item:hover img,
-.post-item:hover video{transform:scale(1.05);}
-
+.post-item:hover img{transform:scale(1.05);}
 .overlay{
 position:absolute;
 top:0;left:0;
@@ -83,7 +90,6 @@ width:100%;height:100%;
 background:rgba(0,0,0,0.5);
 color:white;
 display:flex;
-flex-direction:column;
 align-items:center;
 justify-content:center;
 opacity:0;
@@ -92,19 +98,50 @@ font-weight:600;
 }
 .post-item:hover .overlay{opacity:1;}
 
-.no-posts{text-align:center;padding:40px;color:#777;}
+.like-heart{
+position:absolute;
+top:50%;left:50%;
+transform:translate(-50%,-50%);
+font-size:60px;
+color:white;
+opacity:0;
+transition:.3s;
+pointer-events:none;
+}
+
+/* RIGHT PANEL */
+.section{margin-bottom:25px;}
+.section h4{margin-bottom:10px;}
+.skill{
+background:#e4e6eb;
+padding:6px 12px;
+border-radius:20px;
+margin:5px 5px 0 0;
+display:inline-block;
+font-size:13px;
+}
+.tool-btn{
+display:block;
+margin-top:8px;
+padding:8px;
+background:#f3f2ef;
+border-radius:8px;
+font-size:14px;
+cursor:pointer;
+transition:.3s;
+}
+.tool-btn:hover{background:#e4e6eb;}
 
 /* MODAL */
 .modal{
 position:fixed;
 top:0;left:0;
 width:100%;height:100%;
-background:rgba(0,0,0,0.8);
+background:rgba(0,0,0,0.85);
 display:none;
 align-items:center;
 justify-content:center;
 z-index:999;
-animation:fadeIn .3s ease;
 }
 .modal-content{
 background:white;
@@ -112,84 +149,74 @@ max-width:800px;
 width:90%;
 border-radius:12px;
 padding:20px;
-animation:slideUp .3s ease;
 }
-.modal img,.modal video{
-width:100%;
-border-radius:10px;
-}
-.close-modal{
-text-align:right;
-cursor:pointer;
-font-weight:bold;
-margin-bottom:10px;
-}
+.modal img,.modal video{width:100%;border-radius:10px;}
+.close{cursor:pointer;text-align:right;font-weight:bold;margin-bottom:10px;}
 
-@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
-@keyframes slideUp{from{transform:translateY(40px);}to{transform:translateY(0);}}
-
-/* ACTIVITY */
-.activity-item{
-padding:15px 0;
-border-bottom:1px solid #eee;
-font-size:14px;
-}
-
-@media(max-width:768px){
-.profile-info{margin-left:0;margin-top:90px;}
-.avatar{left:20px;width:130px;height:130px;top:-65px;}
-.posts-grid{grid-template-columns:repeat(2,1fr);}
+@media(max-width:1200px){
+.layout{grid-template-columns:1fr;}
 }
 </style>
 </head>
+
 <body>
 
-<div class="container">
+<div class="layout">
 
-<div class="card">
-<img id="banner" class="banner">
-
-<div class="profile-body">
+<!-- LEFT PANEL -->
+<div class="panel">
 <img id="avatar" class="avatar">
-
-<div class="profile-info">
-<h2 id="name"></h2>
+<div class="name" id="name"></div>
 <p id="headline"></p>
-<p id="role" class="role"></p>
-<p id="bio"></p>
 
-<div class="stats">
-<span><strong id="followersCount">0</strong> Followers</span>
-<span><strong id="followingCount">0</strong> Following</span>
-<span><strong id="postsCount">0</strong> Posts</span>
-</div>
+<div class="stat"><strong id="followers">0</strong> Followers</div>
+<div class="stat"><strong id="following">0</strong> Following</div>
 
-<div class="action-buttons">
-<button id="followBtn" class="btn follow-btn" onclick="toggleFollow()">Follow</button>
-<button class="btn message-btn" onclick="messageUser()">Message</button>
+<button id="followBtn" class="btn follow" onclick="toggleFollow()">Follow</button>
+<button class="btn message" onclick="messageUser()">Message</button>
 </div>
 
-<div class="tabs">
-<div class="tab active" onclick="switchTab('posts')">Posts</div>
-<div class="tab" onclick="switchTab('activity')">Activity</div>
-</div>
-
-</div>
-</div>
-</div>
-
-<div id="postsSection">
+<!-- CENTER PANEL -->
+<div>
 <div id="postsGrid" class="posts-grid"></div>
 </div>
 
-<div id="activitySection" style="display:none;"></div>
+<!-- RIGHT PANEL -->
+<div class="panel">
+
+<div class="section">
+<h4>Activity</h4>
+<div id="activitySection"></div>
+</div>
+
+<div class="section">
+<h4>Experience</h4>
+<div id="experienceSection"></div>
+</div>
+
+<div class="section">
+<h4>Education</h4>
+<div id="educationSection"></div>
+</div>
+
+<div class="section">
+<h4>Skills</h4>
+<div id="skillsSection"></div>
+</div>
+
+<div class="section">
+<h4>Employer Tools</h4>
+<div id="toolsSection"></div>
+</div>
+
+</div>
 
 </div>
 
 <!-- MODAL -->
-<div id="postModal" class="modal">
+<div id="modal" class="modal">
 <div class="modal-content">
-<div class="close-modal" onclick="closeModal()">X</div>
+<div class="close" onclick="closeModal()">X</div>
 <div id="modalBody"></div>
 </div>
 </div>
@@ -200,65 +227,69 @@ const token=localStorage.getItem("token");
 const params=new URLSearchParams(window.location.search);
 const userId=params.get("id");
 
-let loggedUser=null;
 let profileUser=null;
+let loggedUser=null;
 
 /* LOAD PROFILE */
 async function loadProfile(){
 const res=await fetch(API+"/api/users/"+userId+"/public");
 profileUser=await res.json();
 
-document.getElementById("banner").src=profileUser.bannerImage||"https://via.placeholder.com/1000x250";
 document.getElementById("avatar").src=profileUser.profileImage||"https://cdn-icons-png.flaticon.com/512/149/149071.png";
 document.getElementById("name").innerHTML=
-profileUser.name+
-(profileUser.isPro?'<span class="verified">PRO</span>':"");
-
+profileUser.name+(profileUser.isPro?'<span class="verified">PRO</span>':"");
 document.getElementById("headline").innerText=profileUser.headline||"";
-document.getElementById("bio").innerText=profileUser.bio||"";
-document.getElementById("role").innerText=profileUser.role?.toUpperCase()||"";
-document.getElementById("followersCount").innerText=profileUser.followers?.length||0;
-document.getElementById("followingCount").innerText=profileUser.following?.length||0;
+document.getElementById("followers").innerText=profileUser.followers?.length||0;
+document.getElementById("following").innerText=profileUser.following?.length||0;
 
+/* EXPERIENCE */
+const exp=document.getElementById("experienceSection");
+(profileUser.experience||[]).forEach(e=>{
+exp.innerHTML+=`<div><b>${e.title}</b> - ${e.company}</div>`;
+});
+
+/* EDUCATION */
+const edu=document.getElementById("educationSection");
+(profileUser.education||[]).forEach(e=>{
+edu.innerHTML+=`<div><b>${e.school}</b> • ${e.degree}</div>`;
+});
+
+/* SKILLS */
+const skills=document.getElementById("skillsSection");
+(profileUser.skills||[]).forEach(s=>{
+skills.innerHTML+=`<span class="skill">${s}</span>`;
+});
+
+/* ACTIVITY */
+document.getElementById("activitySection").innerHTML=`
+<div>Joined AIFT</div>
+<div>${profileUser.followers?.length||0} followers</div>
+`;
+
+/* TOOLS */
 if(token){
 const meRes=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer "+token}});
 loggedUser=await meRes.json();
+
 if(loggedUser._id===userId){
 document.getElementById("followBtn").style.display="none";
-}else updateFollowButton();
+document.getElementById("toolsSection").innerHTML=`
+<div class="tool-btn">Edit Profile</div>
+<div class="tool-btn">Add Experience</div>
+<div class="tool-btn">Add Education</div>
+<div class="tool-btn">Upload Resume</div>
+<div class="tool-btn">Manage Job Posts</div>
+<div class="tool-btn">View Applicants</div>
+`;
 }
 }
-
-/* REAL TIME FOLLOW */
-function updateFollowButton(){
-const btn=document.getElementById("followBtn");
-const isFollowing=loggedUser.following?.includes(userId);
-btn.innerText=isFollowing?"Following":"Follow";
-btn.className="btn "+(isFollowing?"unfollow-btn":"follow-btn");
-}
-
-async function toggleFollow(){
-await fetch(API+"/api/users/"+userId+"/follow",{method:"PATCH",headers:{Authorization:"Bearer "+token}});
-if(loggedUser.following.includes(userId)){
-loggedUser.following=loggedUser.following.filter(id=>id!==userId);
-profileUser.followers--;
-}else{
-loggedUser.following.push(userId);
-profileUser.followers++;
-}
-document.getElementById("followersCount").innerText=profileUser.followers;
-updateFollowButton();
 }
 
-/* POSTS */
+/* LOAD POSTS IG STYLE */
 async function loadPosts(){
-const res=await fetch(API+"/api/posts/user/"+userId,{headers:{Authorization:"Bearer "+token}});
+const res=await fetch(API+"/api/posts/user/"+userId);
 const posts=await res.json();
-document.getElementById("postsCount").innerText=posts.length;
-
 const grid=document.getElementById("postsGrid");
-grid.innerHTML="";
-if(posts.length===0){grid.innerHTML='<div class="no-posts">No posts yet</div>';return;}
 
 posts.forEach(post=>{
 const div=document.createElement("div");
@@ -267,13 +298,26 @@ div.innerHTML=`
 ${post.mediaType==="video"
 ? `<video src="${post.mediaUrl}" muted></video>`
 : `<img src="${post.mediaUrl}">`}
-<div class="overlay">
-<div>❤ ${post.likes?.length||0}</div>
-<div>💬 ${post.comments?.length||0}</div>
-</div>`;
-div.onclick=()=>openModal(post);
+<div class="overlay">❤ ${post.likes?.length||0}</div>
+<div class="like-heart">❤</div>
+`;
+
+let lastTap=0;
+div.addEventListener("click",()=>openModal(post));
+div.addEventListener("dblclick",()=>{
+likePost(post._id,div);
+});
+
 grid.appendChild(div);
 });
+}
+
+/* DOUBLE TAP LIKE */
+async function likePost(postId,element){
+await fetch(API+"/api/posts/"+postId+"/like",{method:"PATCH",headers:{Authorization:"Bearer "+token}});
+const heart=element.querySelector(".like-heart");
+heart.style.opacity="1";
+setTimeout(()=>heart.style.opacity="0",600);
 }
 
 /* MODAL */
@@ -282,27 +326,13 @@ document.getElementById("modalBody").innerHTML=
 post.mediaType==="video"
 ? `<video controls src="${post.mediaUrl}"></video>`
 : `<img src="${post.mediaUrl}">`;
-document.getElementById("postModal").style.display="flex";
+document.getElementById("modal").style.display="flex";
 }
-function closeModal(){document.getElementById("postModal").style.display="none";}
+function closeModal(){document.getElementById("modal").style.display="none";}
 
-/* ACTIVITY TAB */
-function switchTab(tab){
-document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-event.target.classList.add("active");
-if(tab==="posts"){
-document.getElementById("postsSection").style.display="block";
-document.getElementById("activitySection").style.display="none";
-}else{
-document.getElementById("postsSection").style.display="none";
-const activity=document.getElementById("activitySection");
-activity.style.display="block";
-activity.innerHTML=`
-<div class="activity-item">Followed ${profileUser.following?.length||0} people</div>
-<div class="activity-item">Has ${profileUser.followers?.length||0} followers</div>
-<div class="activity-item">Account role: ${profileUser.role}</div>
-`;
-}
+function toggleFollow(){
+fetch(API+"/api/users/"+userId+"/follow",{method:"PATCH",headers:{Authorization:"Bearer "+token}})
+.then(()=>location.reload());
 }
 
 function messageUser(){
