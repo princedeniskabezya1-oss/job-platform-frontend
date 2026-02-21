@@ -139,37 +139,62 @@ body{
 
 <div class="container">
 
-  <!-- PROFILE CARD -->
-  <div class="card">
-    <img id="banner" class="banner">
+<!-- PROFILE CARD -->
+<div class="card">
+  <img id="banner" class="banner">
 
-    <div class="profile-body">
+  <div class="profile-body">
 
-      <img id="avatar" class="avatar">
+    <img id="avatar" class="avatar">
 
-      <div class="profile-info">
-        <h2 id="name"></h2>
-        <p id="headline"></p>
-        <p id="bio"></p>
+    <div class="profile-info">
+      <h2 id="name"></h2>
+      <p id="headline"></p>
+      <p id="role" style="font-weight:600;color:#0a66c2;"></p>
+      <p id="bio"></p>
 
-        <div class="stats">
-          <span id="followersCount"></span>
-          <span id="followingCount"></span>
-        </div>
-
-        <div class="action-buttons">
-          <button id="followBtn" class="btn follow-btn" onclick="toggleFollow()">
-            Follow
-          </button>
-
-          <button class="btn message-btn" onclick="messageUser()">
-            Message
-          </button>
-        </div>
+      <div class="stats">
+        <span id="followersCount"></span>
+        <span id="followingCount"></span>
       </div>
 
+      <div class="action-buttons">
+        <button id="followBtn" class="btn follow-btn" onclick="toggleFollow()">
+          Follow
+        </button>
+
+        <button class="btn message-btn" onclick="messageUser()">
+          Message
+        </button>
+      </div>
     </div>
+
   </div>
+</div>
+
+<!-- EXPERIENCE CARD -->
+<div class="card" style="padding:20px;">
+  <h3>Experience</h3>
+  <div id="experienceSection"></div>
+</div>
+
+<!-- EDUCATION CARD -->
+<div class="card" style="padding:20px;">
+  <h3>Education</h3>
+  <div id="educationSection"></div>
+</div>
+
+<!-- SKILLS CARD -->
+<div class="card" style="padding:20px;">
+  <h3>Skills</h3>
+  <div id="skillsSection"></div>
+</div>
+
+<!-- RESUME CARD -->
+<div class="card" style="padding:20px;">
+  <h3>Resume</h3>
+  <a id="cvLink" target="_blank"></a>
+</div>
 
   <!-- POSTS -->
   <div id="userPosts"></div>
@@ -209,8 +234,66 @@ async function loadProfile(){
 
   document.getElementById("followingCount").innerText =
     (user.following?.length || 0) + " Following";
+  document.getElementById("role").innerText =
+  user.role ? user.role.toUpperCase() : "";
 
   updateFollowButton();
+  // Hide follow button if visiting own profile
+if(token){
+  const myRes = await fetch(API+"/api/users/me",{
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const me = await myRes.json();
+
+  if(me._id === userId){
+    document.getElementById("followBtn").style.display = "none";
+  }
+}
+  // EXPERIENCE
+const expContainer = document.getElementById("experienceSection");
+expContainer.innerHTML = "";
+
+(user.experience || []).forEach(exp=>{
+  expContainer.innerHTML += `
+    <div style="margin-bottom:15px;">
+      <b>${exp.title}</b> - ${exp.company}<br>
+      <span style="font-size:13px;color:#6f6f6f;">
+        ${exp.startDate} - ${exp.endDate || "Present"}
+      </span>
+      <div style="margin-top:5px;">
+        ${exp.description || ""}
+      </div>
+    </div>
+  `;
+});
+
+// EDUCATION
+const eduContainer = document.getElementById("educationSection");
+eduContainer.innerHTML = "";
+
+(user.education || []).forEach(edu=>{
+  eduContainer.innerHTML += `
+    <div style="margin-bottom:10px;">
+      <b>${edu.school}</b><br>
+      ${edu.degree} • ${edu.year}
+    </div>
+  `;
+});
+
+// SKILLS
+document.getElementById("skillsSection").innerHTML =
+  (user.skills || []).map(skill =>
+    `<span style="background:#e4e6eb;padding:6px 10px;border-radius:20px;margin:5px;display:inline-block;">${skill}</span>`
+  ).join("");
+
+// CV
+if(user.cvUrl){
+  document.getElementById("cvLink").href = user.cvUrl;
+  document.getElementById("cvLink").innerText = "View Resume";
+}else{
+  document.getElementById("cvLink").innerText = "No resume uploaded";
+}
 }
 
 /* UPDATE FOLLOW BUTTON */
@@ -257,6 +340,13 @@ async function toggleFollow(){
     data.followers + " Followers";
 
   updateFollowButton();
+  const myRes = await fetch(API+"/api/users/me",{
+  headers:{ Authorization:"Bearer "+token }
+});
+const me = await myRes.json();
+
+if(me._id === userId){
+  document.getElementById("followBtn").style.display = "none";
 }
 
 /* LOAD POSTS */
