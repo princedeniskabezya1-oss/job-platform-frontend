@@ -658,35 +658,6 @@ async function sharePost(id){
 
   loadPosts();
 }
-  /*
-=====================================================
-SHARE POST
-=====================================================
-*/
-router.post("/:id/share", auth, async (req, res) => {
-  try {
-
-    const original = await Post.findById(req.params.id);
-
-    if(!original){
-      return res.status(404).json({ message:"Post not found" });
-    }
-
-    const sharedPost = new Post({
-      author: req.user.id,
-      content: original.content,
-      mediaUrl: original.mediaUrl,
-      mediaType: original.mediaType
-    });
-
-    await sharedPost.save();
-
-    res.json({ message:"Post shared" });
-
-  } catch(err){
-    res.status(400).json({ message:"Share failed" });
-  }
-});
 
 async function deleteJob(id){
 
