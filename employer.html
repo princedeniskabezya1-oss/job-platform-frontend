@@ -1095,6 +1095,24 @@ document.addEventListener("DOMContentLoaded", function(){
   loadPosts();
   loadEmployerStats();
   loadNotificationsCount();
+  const hash = window.location.hash;
+
+if(hash.startsWith("#message=")){
+  const userId = hash.replace("#message=","");
+
+  openMessages();
+
+setTimeout(async ()=>{
+
+  const res = await fetch(API+"/api/users/"+userId+"/public");
+  const user = res.ok ? await res.json() : null;
+
+  if(user){
+    loadConversation(userId, user.name);
+  }
+
+}, 500);
+}
 });
 </script>
 
