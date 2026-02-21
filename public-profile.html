@@ -16,6 +16,37 @@ max-width:1400px;
 margin:40px auto;
 padding:0 20px;
 }
+  /* TOPBAR */
+.topbar{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:60px;
+background:white;
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:0 30px;
+box-shadow:0 2px 10px rgba(0,0,0,0.05);
+z-index:1000;
+}
+.top-left{display:flex;align-items:center;gap:20px;}
+.logo{font-weight:700;font-size:20px;color:#0a66c2;}
+.search{
+padding:8px 15px;
+border-radius:20px;
+border:1px solid #ddd;
+width:250px;
+}
+.top-right{display:flex;align-items:center;gap:20px;}
+.nav-icon{cursor:pointer;font-size:18px;}
+.nav-avatar{
+width:35px;height:35px;
+border-radius:50%;
+object-fit:cover;
+}
+.layout{margin-top:100px;}
 
 /* PANELS */
 .panel{
@@ -71,10 +102,24 @@ gap:8px;
 }
 .post-item{
 position:relative;
-padding-top:100%;
 overflow:hidden;
 cursor:pointer;
 border-radius:8px;
+background:white;
+}
+
+/* SQUARE POSTS (IMAGE / VIDEO) */
+.post-item.square{
+padding-top:100%;
+}
+
+/* TEXT POSTS */
+.post-item.text-post{
+min-height:220px;
+display:flex;
+align-items:center;
+justify-content:center;
+padding:20px;
 }
 .post-item img,.post-item video{
 position:absolute;top:0;left:0;
@@ -161,6 +206,20 @@ padding:20px;
 
 <body>
 
+<!-- STATIC TOP NAVBAR -->
+<div class="topbar">
+  <div class="top-left">
+    <div class="logo">AIFT</div>
+    <input type="text" placeholder="Search..." class="search">
+  </div>
+
+  <div class="top-right">
+    <div class="nav-icon">💬</div>
+    <div class="nav-icon">🔔</div>
+    <img id="navAvatar" class="nav-avatar">
+  </div>
+</div>
+
 <div class="layout">
 
 <!-- LEFT PANEL -->
@@ -205,7 +264,7 @@ padding:20px;
 </div>
 
 <div class="section">
-<h4>Employer Tools</h4>
+<h4>Profile Tools</h4>
 <div id="toolsSection"></div>
 </div>
 
@@ -272,14 +331,15 @@ const meRes=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer "+to
 loggedUser=await meRes.json();
 
 if(loggedUser._id===userId){
+
 document.getElementById("followBtn").style.display="none";
+
 document.getElementById("toolsSection").innerHTML=`
-<div class="tool-btn">Edit Profile</div>
-<div class="tool-btn">Add Experience</div>
-<div class="tool-btn">Add Education</div>
-<div class="tool-btn">Upload Resume</div>
-<div class="tool-btn">Manage Job Posts</div>
-<div class="tool-btn">View Applicants</div>
+<div class="tool-btn" onclick="editPhoto()">Change Profile Photo</div>
+<div class="tool-btn" onclick="addExperience()">Add Experience</div>
+<div class="tool-btn" onclick="addEducation()">Add Education</div>
+<div class="tool-btn" onclick="addSkill()">Add Skill</div>
+<div class="tool-btn" onclick="editHeadline()">Edit Headline</div>
 `;
 }
 }
@@ -318,28 +378,56 @@ async function loadPosts(){
       return;
     }
 
-    posts.forEach(post => {
+ posts.forEach(post => {
 
-      const div = document.createElement("div");
-      div.classList.add("post-item");
+  const div = document.createElement("div");
+  div.classList.add("post-item");
 
-      /* HANDLE DIFFERENT BACKEND STRUCTURES */
-      const imageUrl = post.image || post.mediaUrl;
-      const videoUrl = post.video || (post.mediaType === "video" ? post.mediaUrl : null);
+  const hasMedia = post.mediaUrl || post.image;
 
-      div.innerHTML = `
-        ${videoUrl 
-          ? `<video src="${videoUrl}" muted></video>` 
-          : `<img src="${imageUrl}">`
-        }
-        <div class="overlay">
-          ❤ ${post.likes?.length || 0}
-        </div>
-        <div class="like-heart">❤</div>
-      `;
+  if(hasMedia){
+
+    div.classList.add("square");
+
+    const media = post.mediaType === "video"
+      ? `<video src="${post.mediaUrl}" muted></video>`
+      : `<img src="${post.mediaUrl || post.image}">`;
+
+    div.innerHTML = `
+      ${media}
+      <div class="overlay">
+        ❤ ${post.likes?.length || 0}
+      </div>
+      <div class="like-heart">❤</div>
+    `;
+
+  } else {
+
+    div.classList.add("text-post");
+
+    div.innerHTML = `
+      <div style="font-size:15px;text-align:center;">
+        ${post.content || ""}
+      </div>
+    `;
+  }
 
       /* CLICK = OPEN MODAL */
       div.addEventListener("click", () => openModal(post));
+
+if(loggedUser && loggedUser._id===userId){
+const del=document.createElement("div");
+del.innerHTML="🗑";
+del.style.position="absolute";
+del.style.top="10px";
+del.style.right="10px";
+del.style.cursor="pointer";
+del.onclick=(e)=>{
+e.stopPropagation();
+deletePost(post._id);
+};
+div.appendChild(del);
+}
 
       /* DOUBLE CLICK = LIKE */
       div.addEventListener("dblclick", () => likePost(post._id, div));
@@ -382,10 +470,25 @@ async function likePost(postId, element){
 
 /* MODAL */
 function openModal(post){
-document.getElementById("modalBody").innerHTML=
-post.mediaType==="video"
-? `<video controls src="${post.mediaUrl}"></video>`
-: `<img src="${post.mediaUrl}">`;
+
+let content = "";
+
+if(post.mediaUrl || post.image){
+
+  content = post.mediaType==="video"
+    ? `<video controls src="${post.mediaUrl}"></video>`
+    : `<img src="${post.mediaUrl || post.image}">`;
+
+} else {
+
+  content = `
+    <div style="padding:40px;font-size:18px;text-align:center;">
+      ${post.content || ""}
+    </div>
+  `;
+}
+
+document.getElementById("modalBody").innerHTML = content;
 document.getElementById("modal").style.display="flex";
 }
 function closeModal(){document.getElementById("modal").style.display="none";}
@@ -398,7 +501,45 @@ fetch(API+"/api/users/"+userId+"/follow",{method:"PATCH",headers:{Authorization:
 function messageUser(){
 window.location.href="employer.html#message="+userId;
 }
+function editPhoto(){
+alert("Connect to Cloudinary upload modal here");
+}
 
+function addExperience(){
+alert("Open modal form for adding experience");
+}
+
+function addEducation(){
+alert("Open modal form for education");
+}
+
+function addSkill(){
+const skill=prompt("Enter new skill:");
+if(!skill)return;
+fetch(API+"/api/users/add-skill",{
+method:"PATCH",
+headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
+body:JSON.stringify({skill})
+}).then(()=>location.reload());
+}
+
+function editHeadline(){
+const newHeadline=prompt("New headline:");
+if(!newHeadline)return;
+fetch(API+"/api/users/update-headline",{
+method:"PATCH",
+headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
+body:JSON.stringify({headline:newHeadline})
+}).then(()=>location.reload());
+}
+  async function deletePost(postId){
+if(!confirm("Delete this post?"))return;
+await fetch(API+"/api/posts/"+postId,{
+method:"DELETE",
+headers:{Authorization:"Bearer "+token}
+});
+loadPosts();
+}
 loadProfile();
 loadPosts();
 </script>
