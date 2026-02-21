@@ -234,7 +234,17 @@ padding:20px;
 <button id="followBtn" class="btn follow" onclick="toggleFollow()">Follow</button>
 <button class="btn message" onclick="messageUser()">Message</button>
 </div>
+<!-- CV PANEL -->
+<div class="panel" id="cvPanel" style="display:none;">
+  <h4 style="margin-bottom:15px;">Curriculum Vitae</h4>
 
+  <div style="text-align:center;margin-bottom:15px;">
+    <img id="cvPhoto" 
+         style="width:100px;height:100px;border-radius:50%;object-fit:cover;">
+  </div>
+
+  <div id="cvContent" style="font-size:14px;line-height:1.6;"></div>
+</div>
 <!-- CENTER PANEL -->
 <div>
 <div id="postsGrid" class="posts-grid"></div>
@@ -272,12 +282,20 @@ padding:20px;
 
 </div>
 
-<!-- MODAL -->
+<!-- POST MODAL -->
 <div id="modal" class="modal">
-<div class="modal-content">
-<div class="close" onclick="closeModal()">X</div>
-<div id="modalBody"></div>
+  <div class="modal-content">
+    <div class="close" onclick="closeModal()">X</div>
+    <div id="modalBody"></div>
+  </div>
 </div>
+
+<!-- EDIT MODAL -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <div class="close" onclick="closeEditModal()">X</div>
+    <div id="editModalBody"></div>
+  </div>
 </div>
 
 <script>
@@ -291,39 +309,147 @@ let loggedUser=null;
 
 /* LOAD PROFILE */
 async function loadProfile(){
-const res=await fetch(API+"/api/users/"+userId+"/public");
-profileUser=await res.json();
 
-document.getElementById("avatar").src=profileUser.profileImage||"https://cdn-icons-png.flaticon.com/512/149/149071.png";
-document.getElementById("name").innerHTML=
-profileUser.name+(profileUser.isPro?'<span class="verified">PRO</span>':"");
-document.getElementById("headline").innerText=profileUser.headline||"";
-document.getElementById("followers").innerText=profileUser.followers?.length||0;
-document.getElementById("following").innerText=profileUser.following?.length||0;
+  const res = await fetch(API + "/api/users/" + userId + "/public");
+  profileUser = await res.json();
 
-/* EXPERIENCE */
-const exp=document.getElementById("experienceSection");
-(profileUser.experience||[]).forEach(e=>{
-exp.innerHTML+=`<div><b>${e.title}</b> - ${e.company}</div>`;
-});
+  document.getElementById("avatar").src =
+    profileUser.profileImage ||
+    "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-/* EDUCATION */
-const edu=document.getElementById("educationSection");
-(profileUser.education||[]).forEach(e=>{
-edu.innerHTML+=`<div><b>${e.school}</b> • ${e.degree}</div>`;
-});
+  document.getElementById("name").innerHTML =
+    profileUser.name +
+    (profileUser.isPro ? '<span class="verified">PRO</span>' : "");
 
-/* SKILLS */
-const skills=document.getElementById("skillsSection");
-(profileUser.skills||[]).forEach(s=>{
-skills.innerHTML+=`<span class="skill">${s}</span>`;
-});
+  document.getElementById("headline").innerText =
+    profileUser.headline || "";
 
-/* ACTIVITY */
-document.getElementById("activitySection").innerHTML=`
-<div>Joined AIFT</div>
-<div>${profileUser.followers?.length||0} followers</div>
-`;
+  document.getElementById("followers").innerText =
+    profileUser.followers?.length || 0;
+
+  document.getElementById("following").innerText =
+    profileUser.following?.length || 0;
+
+
+  /* =========================
+     CLEAR BEFORE RE-RENDERING
+     ========================= */
+
+  const exp = document.getElementById("experienceSection");
+  exp.innerHTML = "";
+
+  const edu = document.getElementById("educationSection");
+  edu.innerHTML = "";
+
+  const skills = document.getElementById("skillsSection");
+  skills.innerHTML = "";
+
+
+  /* =========================
+     EXPERIENCE
+     ========================= */
+
+  (profileUser.experience || []).forEach(e=>{
+    exp.innerHTML += `
+      <div style="margin-bottom:10px;">
+        <b>${e.title}</b> - ${e.company}
+      </div>
+    `;
+  });
+
+
+  /* =========================
+     EDUCATION
+     ========================= */
+
+  (profileUser.education || []).forEach(e=>{
+    edu.innerHTML += `
+      <div style="margin-bottom:10px;">
+        <b>${e.school}</b> • ${e.degree}
+      </div>
+    `;
+  });
+
+
+  /* =========================
+     SKILLS
+     ========================= */
+
+  (profileUser.skills || []).forEach(s=>{
+    skills.innerHTML += `
+      <span class="skill">${s}</span>
+    `;
+  });
+
+
+  /* =========================
+     ACTIVITY
+     ========================= */
+
+  document.getElementById("activitySection").innerHTML = `
+    <div>Joined AIFT</div>
+    <div>${profileUser.followers?.length || 0} followers</div>
+  `;
+
+
+  /* =========================
+     CV PANEL
+     ========================= */
+
+  if(profileUser.cvUrl){
+
+    document.getElementById("cvPanel").style.display = "block";
+
+    document.getElementById("cvPhoto").src =
+      profileUser.profileImage ||
+      "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+    document.getElementById("cvContent").innerHTML = `
+      <strong>${profileUser.name}</strong><br>
+      ${profileUser.headline || ""}<br><br>
+
+      <strong>Location:</strong> ${profileUser.location || "Not specified"}<br>
+      <strong>Email:</strong> ${profileUser.email || ""}<br>
+      <strong>Website:</strong> ${profileUser.website || ""}<br><br>
+
+      <strong>Skills:</strong><br>
+      ${(profileUser.skills || []).join(", ")}<br><br>
+
+      <a href="${profileUser.cvUrl}" target="_blank"
+         style="color:#0a66c2;font-weight:600;">
+         Download Full CV
+      </a>
+    `;
+  }
+
+
+  /* =========================
+     OWNER TOOLS
+     ========================= */
+
+  if(token){
+
+    const meRes = await fetch(API + "/api/users/me", {
+      headers:{ Authorization:"Bearer " + token }
+    });
+
+    loggedUser = await meRes.json();
+
+    if(loggedUser._id === userId){
+
+      document.getElementById("followBtn").style.display = "none";
+
+      document.getElementById("toolsSection").innerHTML = `
+        <div class="tool-btn" onclick="editPhoto()">Change Profile Photo</div>
+        <div class="tool-btn" onclick="addExperience()">Add Experience</div>
+        <div class="tool-btn" onclick="addEducation()">Add Education</div>
+        <div class="tool-btn" onclick="addSkill()">Add Skill</div>
+        <div class="tool-btn" onclick="editHeadline()">Edit Headline</div>
+      `;
+    }
+  }
+
+}
 
 /* TOOLS */
 if(token){
@@ -505,22 +631,96 @@ function editPhoto(){
 alert("Connect to Cloudinary upload modal here");
 }
 
-function addExperience(){
-alert("Open modal form for adding experience");
+function openEditModal(content){
+  document.getElementById("editModalBody").innerHTML = content;
+  document.getElementById("editModal").style.display = "flex";
 }
 
+function closeEditModal(){
+  document.getElementById("editModal").style.display = "none";
+}
+
+/* ADD EXPERIENCE */
+function addExperience(){
+  openEditModal(`
+    <h3>Add Experience</h3>
+    <input id="expTitle" placeholder="Job Title" style="width:100%;margin:10px 0;padding:8px;">
+    <input id="expCompany" placeholder="Company" style="width:100%;margin:10px 0;padding:8px;">
+    <button onclick="saveExperience()" class="btn follow">Save</button>
+  `);
+}
+
+async function saveExperience(){
+  const title = document.getElementById("expTitle").value;
+  const company = document.getElementById("expCompany").value;
+
+  if(!title || !company) return alert("Fill all fields");
+
+  await fetch(API+"/api/users/add-experience",{
+    method:"PATCH",
+    headers:{
+      Authorization:"Bearer "+token,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({title,company})
+  });
+
+  closeEditModal();
+  loadProfile();
+}
+
+/* ADD EDUCATION */
 function addEducation(){
-alert("Open modal form for education");
+  openEditModal(`
+    <h3>Add Education</h3>
+    <input id="eduSchool" placeholder="School" style="width:100%;margin:10px 0;padding:8px;">
+    <input id="eduDegree" placeholder="Degree" style="width:100%;margin:10px 0;padding:8px;">
+    <button onclick="saveEducation()" class="btn follow">Save</button>
+  `);
+}
+
+async function saveEducation(){
+  const school = document.getElementById("eduSchool").value;
+  const degree = document.getElementById("eduDegree").value;
+
+  if(!school || !degree) return alert("Fill all fields");
+
+  await fetch(API+"/api/users/add-education",{
+    method:"PATCH",
+    headers:{
+      Authorization:"Bearer "+token,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({school,degree})
+  });
+
+  closeEditModal();
+  loadProfile();
 }
 
 function addSkill(){
-const skill=prompt("Enter new skill:");
-if(!skill)return;
-fetch(API+"/api/users/add-skill",{
-method:"PATCH",
-headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
-body:JSON.stringify({skill})
-}).then(()=>location.reload());
+  openEditModal(`
+    <h3>Add Skill</h3>
+    <input id="skillInput" placeholder="Skill" style="width:100%;margin:10px 0;padding:8px;">
+    <button onclick="saveSkill()" class="btn follow">Save</button>
+  `);
+}
+
+async function saveSkill(){
+  const skill = document.getElementById("skillInput").value;
+  if(!skill) return alert("Enter skill");
+
+  await fetch(API+"/api/users/add-skill",{
+    method:"PATCH",
+    headers:{
+      Authorization:"Bearer "+token,
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({skill})
+  });
+
+  closeEditModal();
+  loadProfile();
 }
 
 function editHeadline(){
