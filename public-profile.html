@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <title>Profile | AIFT</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
 body{
-  background:#f3f2ef;
+  margin:0;
   font-family:'Inter',sans-serif;
+  background:#f3f2ef;
 }
 
 .container{
@@ -20,88 +22,271 @@ body{
   border-radius:12px;
   box-shadow:0 4px 15px rgba(0,0,0,0.05);
   overflow:hidden;
+  margin-bottom:20px;
 }
 
 .banner{
   width:100%;
   height:220px;
   object-fit:cover;
+  background:#ddd;
 }
 
-.profile-section{
+.profile-body{
   padding:20px;
+  position:relative;
 }
 
 .avatar{
-  width:140px;
-  height:140px;
+  width:150px;
+  height:150px;
   border-radius:50%;
   border:4px solid white;
-  margin-top:-70px;
+  position:absolute;
+  top:-75px;
+  left:20px;
   object-fit:cover;
+  background:#fff;
+}
+
+.profile-info{
+  margin-top:90px;
+}
+
+.profile-info h2{
+  margin:0;
+  font-size:24px;
+}
+
+.profile-info p{
+  margin:6px 0;
+  color:#6f6f6f;
+}
+
+.stats{
+  margin-top:10px;
+  font-size:14px;
+  color:#444;
+}
+
+.stats span{
+  font-weight:600;
+  margin-right:10px;
+  cursor:pointer;
+}
+
+.action-buttons{
+  margin-top:15px;
+  display:flex;
+  gap:10px;
+}
+
+.btn{
+  padding:8px 18px;
+  border-radius:20px;
+  border:none;
+  font-weight:600;
+  cursor:pointer;
+  font-size:14px;
 }
 
 .follow-btn{
   background:#0a66c2;
   color:white;
-  border:none;
-  padding:8px 18px;
-  border-radius:20px;
-  font-weight:600;
-  cursor:pointer;
+}
+
+.unfollow-btn{
+  background:#e4e6eb;
+  color:black;
+}
+
+.message-btn{
+  background:white;
+  border:1px solid #ccc;
+}
+
+.post{
+  padding:20px;
+}
+
+.post img,
+.post video{
+  width:100%;
+  border-radius:10px;
+  margin-top:10px;
+}
+
+.no-posts{
+  text-align:center;
+  padding:30px;
+  color:#6f6f6f;
+}
+
+@media(max-width:768px){
+  .avatar{
+    width:120px;
+    height:120px;
+    top:-60px;
+  }
+  .profile-info{
+    margin-top:70px;
+  }
 }
 </style>
 </head>
+
 <body>
 
 <div class="container">
-  <div class="card">
 
+  <!-- PROFILE CARD -->
+  <div class="card">
     <img id="banner" class="banner">
 
-    <div class="profile-section">
+    <div class="profile-body">
 
       <img id="avatar" class="avatar">
 
-      <h2 id="name"></h2>
-      <p id="headline"></p>
-      <p id="bio"></p>
+      <div class="profile-info">
+        <h2 id="name"></h2>
+        <p id="headline"></p>
+        <p id="bio"></p>
 
-      <button class="follow-btn" onclick="followUser()">Follow</button>
+        <div class="stats">
+          <span id="followersCount"></span>
+          <span id="followingCount"></span>
+        </div>
+
+        <div class="action-buttons">
+          <button id="followBtn" class="btn follow-btn" onclick="toggleFollow()">
+            Follow
+          </button>
+
+          <button class="btn message-btn" onclick="messageUser()">
+            Message
+          </button>
+        </div>
+      </div>
 
     </div>
   </div>
+
+  <!-- POSTS -->
+  <div id="userPosts"></div>
+
 </div>
 
 <script>
 const API="https://backend-1-9b6f.onrender.com";
 const token=localStorage.getItem("token");
 
-const params = new URLSearchParams(window.location.search);
-const userId = params.get("id");
+const params=new URLSearchParams(window.location.search);
+const userId=params.get("id");
 
+if(!userId) window.location.href="employer.html";
+
+let currentUser=null;
+
+/* LOAD PROFILE */
 async function loadProfile(){
-  const res = await fetch(API+"/api/users/"+userId+"/public");
-  const user = await res.json();
 
-  document.getElementById("banner").src = user.bannerImage || "";
-  document.getElementById("avatar").src = user.profileImage || "";
-  document.getElementById("name").innerText = user.name;
-  document.getElementById("headline").innerText = user.headline || "";
-  document.getElementById("bio").innerText = user.bio || "";
+  const res=await fetch(API+"/api/users/"+userId+"/public");
+  const user=await res.json();
+  currentUser=user;
+
+  document.getElementById("banner").src =
+    user.bannerImage || "https://via.placeholder.com/900x220";
+
+  document.getElementById("avatar").src =
+    user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+  document.getElementById("name").innerText=user.name;
+  document.getElementById("headline").innerText=user.headline || "";
+  document.getElementById("bio").innerText=user.bio || "";
+
+  document.getElementById("followersCount").innerText =
+    (user.followers?.length || 0) + " Followers";
+
+  document.getElementById("followingCount").innerText =
+    (user.following?.length || 0) + " Following";
+
+  updateFollowButton();
 }
 
-async function followUser(){
-  await fetch(API+"/api/users/"+userId+"/follow",{
-    method:"POST",
-    headers:{
-      Authorization:"Bearer "+token
-    }
+/* UPDATE FOLLOW BUTTON */
+async function updateFollowButton(){
+
+  const myRes=await fetch(API+"/api/users/me",{
+    headers:{ Authorization:"Bearer "+token }
   });
-  alert("Followed!");
+
+  const me=await myRes.json();
+
+  const isFollowing = me.following?.includes(userId);
+
+  const btn=document.getElementById("followBtn");
+
+  if(isFollowing){
+    btn.innerText="Following";
+    btn.classList.remove("follow-btn");
+    btn.classList.add("unfollow-btn");
+  }else{
+    btn.innerText="Follow";
+    btn.classList.remove("unfollow-btn");
+    btn.classList.add("follow-btn");
+  }
+}
+
+/* TOGGLE FOLLOW */
+async function toggleFollow(){
+
+  await fetch(API+"/api/users/"+userId+"/follow",{
+    method:"PATCH",
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  loadProfile();
+}
+
+/* LOAD POSTS */
+async function loadPosts(){
+
+  const res=await fetch(API+"/api/posts/user/"+userId,{
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const posts=res.ok?await res.json():[];
+
+  const container=document.getElementById("userPosts");
+  container.innerHTML="";
+
+  if(posts.length===0){
+    container.innerHTML=`<div class="card no-posts">No posts yet</div>`;
+    return;
+  }
+
+  posts.forEach(post=>{
+    container.innerHTML+=`
+      <div class="card post">
+        <div>${post.content || ""}</div>
+
+        ${post.mediaUrl?`
+          ${post.mediaType==="video"
+            ? `<video controls src="${post.mediaUrl}"></video>`
+            : `<img src="${post.mediaUrl}">`}
+        `:""}
+      </div>
+    `;
+  });
+}
+
+/* MESSAGE USER */
+function messageUser(){
+  window.location.href="employer.html?message="+userId;
 }
 
 loadProfile();
+loadPosts();
 </script>
 
 </body>
