@@ -240,12 +240,23 @@ async function updateFollowButton(){
 /* TOGGLE FOLLOW */
 async function toggleFollow(){
 
-  await fetch(API+"/api/users/"+userId+"/follow",{
+  const res = await fetch(API+"/api/users/"+userId+"/follow",{
     method:"PATCH",
     headers:{ Authorization:"Bearer "+token }
   });
 
-  loadProfile();
+  if(!res.ok){
+    alert("Follow failed");
+    return;
+  }
+
+  const data = await res.json();
+
+  // Update followers count instantly
+  document.getElementById("followersCount").innerText =
+    data.followers + " Followers";
+
+  updateFollowButton();
 }
 
 /* LOAD POSTS */
