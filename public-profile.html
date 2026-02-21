@@ -287,37 +287,97 @@ document.getElementById("toolsSection").innerHTML=`
 
 /* LOAD POSTS IG STYLE */
 async function loadPosts(){
-const res=await fetch(API+"/api/posts/user/"+userId);
-const posts=await res.json();
-const grid=document.getElementById("postsGrid");
+  try{
 
-posts.forEach(post=>{
-const div=document.createElement("div");
-div.classList.add("post-item");
-div.innerHTML=`
-${post.mediaType==="video"
-? `<video src="${post.mediaUrl}" muted></video>`
-: `<img src="${post.mediaUrl}">`}
-<div class="overlay">❤ ${post.likes?.length||0}</div>
-<div class="like-heart">❤</div>
-`;
+    if(!userId){
+      console.error("No userId found in URL");
+      return;
+    }
 
-let lastTap=0;
-div.addEventListener("click",()=>openModal(post));
-div.addEventListener("dblclick",()=>{
-likePost(post._id,div);
-});
+    const res = await fetch(API + "/api/posts/user/" + userId, {
+      headers: token ? { Authorization: "Bearer " + token } : {}
+    });
 
-grid.appendChild(div);
-});
+    if(!res.ok){
+      console.error("Posts fetch failed:", res.status);
+      return;
+    }
+
+    const posts = await res.json();
+
+    if(!Array.isArray(posts)){
+      console.error("Posts is not an array:", posts);
+      return;
+    }
+
+    const grid = document.getElementById("postsGrid");
+    grid.innerHTML = "";
+
+    if(posts.length === 0){
+      grid.innerHTML = "<div style='grid-column:1/-1;text-align:center;padding:40px;'>No posts yet</div>";
+      return;
+    }
+
+    posts.forEach(post => {
+
+      const div = document.createElement("div");
+      div.classList.add("post-item");
+
+      /* HANDLE DIFFERENT BACKEND STRUCTURES */
+      const imageUrl = post.image || post.mediaUrl;
+      const videoUrl = post.video || (post.mediaType === "video" ? post.mediaUrl : null);
+
+      div.innerHTML = `
+        ${videoUrl 
+          ? `<video src="${videoUrl}" muted></video>` 
+          : `<img src="${imageUrl}">`
+        }
+        <div class="overlay">
+          ❤ ${post.likes?.length || 0}
+        </div>
+        <div class="like-heart">❤</div>
+      `;
+
+      /* CLICK = OPEN MODAL */
+      div.addEventListener("click", () => openModal(post));
+
+      /* DOUBLE CLICK = LIKE */
+      div.addEventListener("dblclick", () => likePost(post._id, div));
+
+      grid.appendChild(div);
+    });
+
+  }catch(error){
+    console.error("loadPosts error:", error);
+  }
 }
 
 /* DOUBLE TAP LIKE */
-async function likePost(postId,element){
-await fetch(API+"/api/posts/"+postId+"/like",{method:"PATCH",headers:{Authorization:"Bearer "+token}});
-const heart=element.querySelector(".like-heart");
-heart.style.opacity="1";
-setTimeout(()=>heart.style.opacity="0",600);
+async function likePost(postId, element){
+  try{
+    const res = await fetch(API + "/api/posts/" + postId + "/like", {
+      method: "PATCH",
+      headers: { Authorization: "Bearer " + token }
+    });
+
+    if(!res.ok){
+      console.error("Like failed");
+      return;
+    }
+
+    const heart = element.querySelector(".like-heart");
+
+    heart.style.opacity = "1";
+    heart.style.transform = "translate(-50%, -50%) scale(1.3)";
+
+    setTimeout(()=>{
+      heart.style.opacity = "0";
+      heart.style.transform = "translate(-50%, -50%) scale(1)";
+    },600);
+
+  }catch(err){
+    console.error("Like error:", err);
+  }
 }
 
 /* MODAL */
