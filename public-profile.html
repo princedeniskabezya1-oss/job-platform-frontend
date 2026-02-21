@@ -693,13 +693,20 @@ async function saveExperience(){
 
   if(!title || !company) return alert("Fill all fields");
 
-  await fetch(API+"/api/users/add-experience",{
+  const updatedExperience = [
+    ...(profileUser.experience || []),
+    { title, company }
+  ];
+
+  await fetch(API+"/api/users/profile",{
     method:"PATCH",
     headers:{
       Authorization:"Bearer "+token,
       "Content-Type":"application/json"
     },
-    body:JSON.stringify({title,company})
+    body:JSON.stringify({
+      experience: JSON.stringify(updatedExperience)
+    })
   });
 
   closeEditModal();
@@ -722,13 +729,20 @@ async function saveEducation(){
 
   if(!school || !degree) return alert("Fill all fields");
 
-  await fetch(API+"/api/users/add-education",{
+  const updatedEducation = [
+    ...(profileUser.education || []),
+    { school, degree }
+  ];
+
+  await fetch(API+"/api/users/profile",{
     method:"PATCH",
     headers:{
       Authorization:"Bearer "+token,
       "Content-Type":"application/json"
     },
-    body:JSON.stringify({school,degree})
+    body:JSON.stringify({
+      education: JSON.stringify(updatedEducation)
+    })
   });
 
   closeEditModal();
@@ -747,13 +761,20 @@ async function saveSkill(){
   const skill = document.getElementById("skillInput").value;
   if(!skill) return alert("Enter skill");
 
-  await fetch(API+"/api/users/add-skill",{
+  const updatedSkills = [
+    ...(profileUser.skills || []),
+    skill
+  ];
+
+  await fetch(API+"/api/users/profile",{
     method:"PATCH",
     headers:{
       Authorization:"Bearer "+token,
       "Content-Type":"application/json"
     },
-    body:JSON.stringify({skill})
+    body:JSON.stringify({
+      skills: JSON.stringify(updatedSkills)
+    })
   });
 
   closeEditModal();
