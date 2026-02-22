@@ -557,8 +557,8 @@ async function openNetwork(){
       <h3>People You May Know</h3>
   `;
 
-  users.forEach(user=>{
-    if(user._id !== localStorage.getItem("userId")){
+users.forEach(user=>{
+  if(user._id === localStorage.getItem("userId")) return;
       html += `
         <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #eee;padding:12px 0;">
 
@@ -721,9 +721,13 @@ async function openMessages(){
     html += `<div style="padding:15px;color:#6f6f6f;">No conversations yet</div>`;
   }
 
-  users.forEach(user=>{
-    html += `
-      <div onclick="loadConversation('${user._id}','${user.name}')"
+users.forEach(user=>{
+
+  // 🚫 Prevent showing yourself
+  if(user._id === localStorage.getItem("userId")) return;
+
+  html += `
+    <div onclick="loadConversation('${user._id}','${user.name}')"
            style="padding:15px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;gap:10px;align-items:center;">
         <img src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
              style="width:40px;height:40px;border-radius:50%;">
@@ -731,8 +735,8 @@ async function openMessages(){
           <div style="font-weight:600;">${user.name}</div>
         </div>
       </div>
-    `;
-  });
+  `;
+});
 
   html += `
     </div>
@@ -867,10 +871,16 @@ async function sendMessage(receiverId, name){
   const text = input.value.trim();
   if(!text) return;
 
-  if(!receiverId){
-    console.error("Receiver ID missing");
-    return;
-  }
+if(!receiverId){
+  console.error("Receiver ID missing");
+  return;
+}
+
+// 🚫 Prevent messaging yourself
+if(receiverId === localStorage.getItem("userId")){
+  alert("You cannot message yourself.");
+  return;
+}
 
   try{
 
@@ -1212,18 +1222,24 @@ document.addEventListener("DOMContentLoaded", function(){
 if(hash.startsWith("#message=")){
   const userId = hash.replace("#message=","");
 
-  openMessages();
-
-setTimeout(async ()=>{
-
-  const res = await fetch(API+"/api/users/"+userId+"/public");
-  const user = res.ok ? await res.json() : null;
-
-  if(user){
-    loadConversation(userId, user.name);
+  // 🚫 Prevent self conversation via URL
+  if(userId === localStorage.getItem("userId")){
+    console.log("Blocked self conversation");
+    return;
   }
 
-}, 500);
+  openMessages();
+
+  setTimeout(async ()=>{
+
+    const res = await fetch(API+"/api/users/"+userId+"/public");
+    const user = res.ok ? await res.json() : null;
+
+    if(user){
+      loadConversation(userId, user.name);
+    }
+
+  }, 500);
 }
 });
 </script>
