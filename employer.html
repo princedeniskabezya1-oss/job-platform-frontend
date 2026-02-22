@@ -1068,40 +1068,77 @@ async function openNetwork(){
   document.getElementById("feedPanel").style.display="none";
   document.getElementById("toolPanel").style.display="block";
 
-  const followersRes = await fetch(API+"/api/users/me/followers",{
+  // Get all users
+  const usersRes = await fetch(API+"/api/users",{
     headers:{ Authorization:"Bearer "+token }
   });
 
-  const followingRes = await fetch(API+"/api/users/me/following",{
-    headers:{ Authorization:"Bearer "+token }
-  });
-
-  const followers = followersRes.ok ? await followersRes.json() : [];
-  const following = followingRes.ok ? await followingRes.json() : [];
+  const users = usersRes.ok ? await usersRes.json() : [];
 
   let html = `
   <div class="card">
     <h3>My Network</h3>
 
-    <div style="display:flex;gap:30px;margin-bottom:20px;">
-      <div style="cursor:pointer;" onclick="showFollowers()">
-        <b>${followers.length}</b> Followers
-      </div>
-      <div style="cursor:pointer;" onclick="showFollowing()">
-        <b>${following.length}</b> Following
-      </div>
+    <div style="margin-bottom:15px;font-size:14px;color:#6f6f6f;">
+      Discover people and grow your network
     </div>
 
-    <div id="networkList"></div>
+    <div id="networkList">
+  `;
 
-    <button onclick="backToFeed()">⬅ Back</button>
+  users.forEach(user=>{
+
+    // 🚫 Skip yourself
+    if(user._id === localStorage.getItem("userId")) return;
+
+    html += `
+      <div style="
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        padding:15px 0;
+        border-bottom:1px solid #eee;
+      ">
+
+        <div style="display:flex;align-items:center;gap:12px;">
+          <img src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+               style="width:50px;height:50px;border-radius:50%;object-fit:cover;">
+
+          <div>
+            <div style="font-weight:600;">${user.name}</div>
+            <div style="font-size:13px;color:#6f6f6f;">
+              ${user.headline || ""} • ${user.role}
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;">
+          <button onclick="connectUser('${user._id}')"
+                  style="background:#0a66c2;">
+            Follow
+          </button>
+
+          <button onclick="startConversation('${user._id}','${user.name}')"
+                  style="background:#e4e6eb;color:black;">
+            Message
+          </button>
+        </div>
+
+      </div>
+    `;
+  });
+
+  html += `
+    </div>
+
+    <div style="margin-top:20px;">
+      <button onclick="backToFeed()">⬅ Back</button>
+    </div>
+
   </div>
   `;
 
   document.getElementById("toolPanel").innerHTML = html;
-
-  window._followers = followers;
-  window._following = following;
 }
 
 function showFollowers(){
