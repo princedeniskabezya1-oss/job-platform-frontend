@@ -859,24 +859,44 @@ async function loadConversation(userId, name){
   const chatBox = document.getElementById("chatMessages");
   chatBox.scrollTop = chatBox.scrollHeight;
 }
-  async function sendMessage(receiverId, name){
+async function sendMessage(receiverId, name){
 
   const input = document.getElementById("messageInput");
-  const text = input.value.trim();
+  if(!input) return;
 
+  const text = input.value.trim();
   if(!text) return;
 
-  await fetch(API + "/api/messages", {
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer "+token
-    },
-    body:JSON.stringify({ receiverId, text })
-  });
+  if(!receiverId){
+    console.error("Receiver ID missing");
+    return;
+  }
 
-  input.value = "";
-  loadConversation(receiverId, name);
+  try{
+
+    const res = await fetch(API + "/api/messages", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        Authorization:"Bearer " + token
+      },
+      body: JSON.stringify({ receiverId, text })
+    });
+
+    if(!res.ok){
+      const errorText = await res.text();
+      console.error("Message failed:", errorText);
+      alert("Message failed to send");
+      return;
+    }
+
+    input.value = "";
+
+    await loadConversation(receiverId, name);
+
+  }catch(err){
+    console.error("Send message error:", err);
+  }
 }
 async function openNewMessage(){
 
