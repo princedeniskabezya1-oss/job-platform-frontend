@@ -741,7 +741,7 @@ async function openMessages(){
 
   document.getElementById("toolPanel").innerHTML = html;
 }
-  async function loadConversation(userId, name){
+async function loadConversation(userId, name){
 
   const res = await fetch(API + "/api/messages/" + userId, {
     headers:{ Authorization:"Bearer "+token }
@@ -750,29 +750,66 @@ async function openMessages(){
   const messages = res.ok ? await res.json() : [];
 
   let chatHtml = `
-    <div style="padding:15px;border-bottom:1px solid #eee;font-weight:600;">
-      ${name}
+    <!-- HEADER -->
+    <div style="
+      padding:15px;
+      border-bottom:1px solid #eee;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      background:white;
+    ">
+      <img src="${messages[0]?.receiver?.profileImage || messages[0]?.sender?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+           style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+
+      <div>
+        <div style="font-weight:600;">${name}</div>
+        <div style="font-size:12px;color:#6f6f6f;">Active now</div>
+      </div>
     </div>
 
+    <!-- MESSAGES AREA -->
     <div id="chatMessages"
-         style="flex:1;padding:15px;overflow-y:auto;background:#fafafa;">
+         style="
+           flex:1;
+           padding:25px;
+           overflow-y:auto;
+           background:#f9fafb;
+           display:flex;
+           flex-direction:column;
+           gap:12px;
+         ">
   `;
 
   messages.forEach(msg=>{
     const isMe = msg.sender._id === localStorage.getItem("userId");
 
     chatHtml += `
-      <div style="text-align:${isMe ? "right":"left"};margin-bottom:12px;">
+      <div style="
+        display:flex;
+        justify-content:${isMe ? "flex-end" : "flex-start"};
+        align-items:flex-end;
+        gap:8px;
+      ">
+
+        ${!isMe ? `
+          <img src="${msg.sender.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+               style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+        ` : ""}
+
         <div style="
-          display:inline-block;
-          padding:8px 12px;
+          max-width:60%;
+          padding:10px 14px;
           border-radius:18px;
-          max-width:70%;
-          background:${isMe ? "#0a66c2":"#e4e6eb"};
-          color:${isMe ? "white":"black"};
+          font-size:14px;
+          line-height:1.4;
+          background:${isMe ? "#0a66c2" : "white"};
+          color:${isMe ? "white" : "#1c1c1c"};
+          box-shadow:0 2px 6px rgba(0,0,0,0.05);
         ">
           ${msg.text}
         </div>
+
       </div>
     `;
   });
@@ -780,12 +817,28 @@ async function openMessages(){
   chatHtml += `
     </div>
 
-    <div style="padding:10px;border-top:1px solid #eee;display:flex;gap:10px;">
+    <!-- INPUT AREA -->
+    <div style="
+      padding:15px;
+      border-top:1px solid #eee;
+      background:white;
+      display:flex;
+      gap:10px;
+    ">
       <input type="text"
              id="messageInput"
              placeholder="Write a message..."
-             style="flex:1;padding:10px;border-radius:20px;border:1px solid #ddd;">
-      <button onclick="sendMessage('${userId}','${name}')">Send</button>
+             style="
+               flex:1;
+               padding:10px 15px;
+               border-radius:25px;
+               border:1px solid #ddd;
+               font-size:14px;
+             ">
+      <button onclick="sendMessage('${userId}','${name}')"
+              style="border-radius:25px;padding:8px 18px;">
+        Send
+      </button>
     </div>
   `;
 
