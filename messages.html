@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIFT Messaging</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Inter, sans-serif;
+  background:#f3f2ef;
+}
+
+.wrapper{
+  display:flex;
+  height:100vh;
+}
+
+.sidebar{
+  width:32%;
+  background:white;
+  border-right:1px solid #ddd;
+  display:flex;
+  flex-direction:column;
+}
+
+.sidebar-header{
+  padding:15px;
+  border-bottom:1px solid #eee;
+}
+
+.search{
+  width:100%;
+  padding:8px;
+  border-radius:20px;
+  border:1px solid #ddd;
+  margin-top:10px;
+}
+
+.conversation{
+  padding:15px;
+  cursor:pointer;
+  border-bottom:1px solid #f0f0f0;
+  display:flex;
+  gap:10px;
+}
+
+.conversation:hover{
+  background:#f5f5f5;
+}
+
+.chat{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
+
+.chat-header{
+  padding:15px;
+  border-bottom:1px solid #eee;
+  background:white;
+  font-weight:600;
+}
+
+.messages{
+  flex:1;
+  padding:20px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  background:#f4f6f8;
+}
+
+.bubble{
+  max-width:65%;
+  padding:10px 15px;
+  border-radius:20px;
+  font-size:14px;
+}
+
+.me{
+  align-self:flex-end;
+  background:#0a66c2;
+  color:white;
+}
+
+.other{
+  align-self:flex-start;
+  background:white;
+}
+
+.input-area{
+  padding:15px;
+  border-top:1px solid #eee;
+  display:flex;
+  gap:10px;
+  background:white;
+}
+
+input{
+  flex:1;
+  padding:10px 15px;
+  border-radius:25px;
+  border:1px solid #ddd;
+}
+
+button{
+  background:#0a66c2;
+  color:white;
+  border:none;
+  padding:8px 18px;
+  border-radius:25px;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      Messaging
+      <input id="searchUser" class="search" placeholder="Search users...">
+    </div>
+    <div id="conversationList"></div>
+  </div>
+
+  <div class="chat">
+    <div id="chatHeader" class="chat-header">
+      Select a conversation
+    </div>
+    <div id="chatMessages" class="messages"></div>
+    <div class="input-area">
+      <input id="messageInput" placeholder="Write a message...">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API="https://backend-1-9b6f.onrender.com";
+const token=localStorage.getItem("token");
+const myId=localStorage.getItem("userId");
+
+if(!token) window.location.href="login.html";
+
+let activeUserId=null;
+let activeUserName=null;
+
+/* LOAD CONVERSATIONS */
+async function loadConversations(){
+
+  const res=await fetch(API+"/api/messages",{
+    headers:{Authorization:"Bearer "+token}
+  });
+
+  const conversations=res.ok?await res.json():[];
+
+  const list=document.getElementById("conversationList");
+  list.innerHTML="";
+
+  conversations.forEach(conv=>{
+    const user=conv.user;
+    if(!user || user._id===myId) return;
+
+    list.innerHTML+=`
+      <div class="conversation"
+           onclick="openConversation('${user._id}','${user.name}')">
+        <img src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+             width="45" height="45" style="border-radius:50%;">
+        <div>
+          <div style="font-weight:600;">${user.name}</div>
+          <div style="font-size:12px;color:#666;">${conv.lastMessage || ""}</div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+/* OPEN CONVERSATION */
+async function openConversation(userId,name){
+
+  activeUserId=userId;
+  activeUserName=name;
+
+  document.getElementById("chatHeader").innerText=name;
+
+  const res=await fetch(API+"/api/messages/"+userId,{
+    headers:{Authorization:"Bearer "+token}
+  });
+
+  const messages=res.ok?await res.json():[];
+
+  const box=document.getElementById("chatMessages");
+  box.innerHTML="";
+
+  messages.forEach(msg=>{
+    const div=document.createElement("div");
+    div.className="bubble "+(msg.sender._id===myId?"me":"other");
+    div.innerText=msg.text;
+    box.appendChild(div);
+  });
+
+  box.scrollTop=box.scrollHeight;
+}
+
+/* SEND MESSAGE */
+async function sendMessage(){
+
+  const input=document.getElementById("messageInput");
+  const text=input.value.trim();
+  if(!text || !activeUserId) return;
+
+  await fetch(API+"/api/messages",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({
+      receiverId:activeUserId,
+      text
+    })
+  });
+
+  input.value="";
+  await openConversation(activeUserId,activeUserName);
+  await loadConversations();
+}
+
+/* SEARCH USERS */
+document.getElementById("searchUser").addEventListener("keyup",async function(){
+
+  const value=this.value.toLowerCase();
+
+  const res=await fetch(API+"/api/users/network",{
+    headers:{Authorization:"Bearer "+token}
+  });
+
+  const users=res.ok?await res.json():[];
+
+  const list=document.getElementById("conversationList");
+  list.innerHTML="";
+
+  users
+    .filter(u=>u.name.toLowerCase().includes(value) && u._id!==myId)
+    .forEach(u=>{
+      list.innerHTML+=`
+        <div class="conversation"
+             onclick="openConversation('${u._id}','${u.name}')">
+          <img src="${u.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+               width="45" height="45" style="border-radius:50%;">
+          <div style="font-weight:600;">${u.name}</div>
+        </div>
+      `;
+    });
+});
+
+/* AUTO LOAD */
+document.addEventListener("DOMContentLoaded", async ()=>{
+  await loadConversations();
+
+  const params=new URLSearchParams(window.location.search);
+  const userParam=params.get("user");
+
+  if(userParam){
+    const res=await fetch(API+"/api/users/"+userParam+"/public");
+    const user=res.ok?await res.json():null;
+
+    if(user){
+      openConversation(userParam,user.name);
+    }
+  }
+});
+</script>
+
+</body>
+</html>
