@@ -640,68 +640,77 @@ async function showMyJobs(){
 async function openMessages(){
 
   document.body.classList.add("full-message-mode");
-
   document.getElementById("feedPanel").style.display="none";
   document.getElementById("toolPanel").style.display="block";
 
-  const res = await fetch(API + "/api/messages", {
+  const res = await fetch(API + "/api/messages",{
     headers:{ Authorization:"Bearer "+token }
   });
 
-  const users = res.ok ? await res.json() : [];
+  let conversations = res.ok ? await res.json() : [];
+
+  conversations.sort((a,b)=>{
+    return new Date(b.lastMessageDate) - new Date(a.lastMessageDate);
+  });
 
   let html = `
-  <div class="card" style="
-  padding:0;
-  display:flex;
-  height:75vh;
-  overflow:hidden;
-  width:100%;
-">
+  <div class="card" style="padding:0;display:flex;height:80vh;overflow:hidden;">
 
-    <!-- LEFT SIDEBAR -->
-    <div style="width:30%;border-right:1px solid #eee;overflow-y:auto;">
- <div style="padding:15px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
-  <span style="font-weight:600;">Messaging</span>
-  <button onclick="openNewMessage()" style="padding:6px 12px;border-radius:15px;font-size:12px;">
-    + New
-  </button>
-</div>
+    <div style="width:32%;border-right:1px solid #eee;display:flex;flex-direction:column;">
+
+      <div style="padding:15px;border-bottom:1px solid #eee;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong>Messaging</strong>
+          <button onclick="openNewMessage()" style="font-size:12px;padding:6px 12px;border-radius:20px;">+ New</button>
+        </div>
+
+        <input type="text" id="conversationSearch"
+          placeholder="Search messages..."
+          style="margin-top:10px;width:100%;padding:8px;border-radius:20px;border:1px solid #ddd;"
+          onkeyup="filterConversations()">
+      </div>
+
+      <div id="conversationList" style="flex:1;overflow-y:auto;">
   `;
 
-  if(users.length === 0){
+  if(conversations.length === 0){
     html += `<div style="padding:15px;color:#6f6f6f;">No conversations yet</div>`;
   }
 
-users.forEach(user=>{
+  conversations.forEach(conv=>{
 
-  // 🚫 Prevent showing yourself
-  if(user._id === localStorage.getItem("userId")) return;
+    const user = conv.user;
+    if(!user || user._id === localStorage.getItem("userId")) return;
 
-  html += `
-    <div onclick="loadConversation('${user._id}','${user.name}')"
+    html += `
+      <div class="conversation-item"
+           data-name="${user.name}"
+           onclick="loadConversation('${user._id}','${user.name}')"
            style="padding:15px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;gap:10px;align-items:center;">
+
         <img src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
-             style="width:40px;height:40px;border-radius:50%;">
-        <div>
+             style="width:45px;height:45px;border-radius:50%;object-fit:cover;">
+
+        <div style="flex:1;">
           <div style="font-weight:600;">${user.name}</div>
+          <div style="font-size:13px;color:#6f6f6f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${conv.lastMessage || ""}
+          </div>
+        </div>
+
+        <div style="font-size:11px;color:#999;">
+          ${formatTime(conv.lastMessageDate)}
         </div>
       </div>
-  `;
-});
+    `;
+  });
 
   html += `
+      </div>
     </div>
 
-    <!-- RIGHT CHAT AREA -->
-    <div id="chatArea" style="
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  background:white;
-  border-left:1px solid #eee;
-">
-      Select a conversation
+    <div id="chatArea" style="flex:1;display:flex;flex-direction:column;">
+      <div style="margin:auto;color:#6f6f6f;">Select a conversation</div>
     </div>
 
   </div>
@@ -711,106 +720,55 @@ users.forEach(user=>{
 }
 async function loadConversation(userId, name){
 
-  const res = await fetch(API + "/api/messages/" + userId, {
+  if(userId === localStorage.getItem("userId")) return;
+
+  const res = await fetch(API + "/api/messages/" + userId,{
     headers:{ Authorization:"Bearer "+token }
   });
 
   const messages = res.ok ? await res.json() : [];
 
-  let chatHtml = `
-    <!-- HEADER -->
-    <div style="
-      padding:15px;
-      border-bottom:1px solid #eee;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      background:white;
-    ">
-      <img src="${messages[0]?.receiver?.profileImage || messages[0]?.sender?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
-           style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
-
-      <div>
-        <div style="font-weight:600;">${name}</div>
-        <div style="font-size:12px;color:#6f6f6f;">Active now</div>
-      </div>
+  let html = `
+    <div style="padding:15px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:10px;">
+      <strong>${name}</strong>
     </div>
 
-    <!-- MESSAGES AREA -->
-    <div id="chatMessages"
-         style="
-           flex:1;
-           padding:25px;
-           overflow-y:auto;
-           background:#f9fafb;
-           display:flex;
-           flex-direction:column;
-           gap:12px;
-         ">
+    <div id="chatMessages" style="flex:1;padding:20px;overflow-y:auto;background:#f4f6f8;display:flex;flex-direction:column;gap:10px;">
   `;
 
   messages.forEach(msg=>{
     const isMe = msg.sender._id === localStorage.getItem("userId");
 
-    chatHtml += `
-      <div style="
-        display:flex;
-        justify-content:${isMe ? "flex-end" : "flex-start"};
-        align-items:flex-end;
-        gap:8px;
-      ">
-
-        ${!isMe ? `
-          <img src="${msg.sender.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
-               style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
-        ` : ""}
-
+    html += `
+      <div style="display:flex;justify-content:${isMe?"flex-end":"flex-start"};">
         <div style="
-          max-width:60%;
-          padding:10px 14px;
-          border-radius:18px;
+          max-width:65%;
+          padding:10px 15px;
+          border-radius:20px;
           font-size:14px;
-          line-height:1.4;
-          background:${isMe ? "#0a66c2" : "white"};
-          color:${isMe ? "white" : "#1c1c1c"};
+          background:${isMe?"#0a66c2":"white"};
+          color:${isMe?"white":"#1c1c1c"};
           box-shadow:0 2px 6px rgba(0,0,0,0.05);
         ">
           ${msg.text}
         </div>
-
       </div>
     `;
   });
 
-  chatHtml += `
+  html += `
     </div>
 
-    <!-- INPUT AREA -->
-    <div style="
-      padding:15px;
-      border-top:1px solid #eee;
-      background:white;
-      display:flex;
-      gap:10px;
-    ">
-      <input type="text"
-             id="messageInput"
-             placeholder="Write a message..."
-             style="
-               flex:1;
-               padding:10px 15px;
-               border-radius:25px;
-               border:1px solid #ddd;
-               font-size:14px;
-             ">
+    <div style="padding:15px;border-top:1px solid #eee;display:flex;gap:10px;">
+      <input id="messageInput"
+        placeholder="Write a message..."
+        style="flex:1;padding:10px 15px;border-radius:25px;border:1px solid #ddd;">
       <button onclick="sendMessage('${userId}','${name}')"
-              style="border-radius:25px;padding:8px 18px;">
-        Send
-      </button>
+        style="border-radius:25px;padding:8px 18px;">Send</button>
     </div>
   `;
 
-  document.getElementById("chatArea").innerHTML = chatHtml;
+  document.getElementById("chatArea").innerHTML = html;
 
   const chatBox = document.getElementById("chatMessages");
   chatBox.scrollTop = chatBox.scrollHeight;
@@ -818,51 +776,26 @@ async function loadConversation(userId, name){
 async function sendMessage(receiverId, name){
 
   const input = document.getElementById("messageInput");
-  if(!input) return;
-
   const text = input.value.trim();
   if(!text) return;
 
-if(!receiverId){
-  console.error("Receiver ID missing");
-  return;
-}
+  await fetch(API + "/api/messages",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({ receiverId, text })
+  });
 
-// 🚫 Prevent messaging yourself
-if(receiverId === localStorage.getItem("userId")){
-  alert("You cannot message yourself.");
-  return;
-}
+  input.value = "";
 
-  try{
-
-    const res = await fetch(API + "/api/messages", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        Authorization:"Bearer " + token
-      },
-      body: JSON.stringify({ receiverId, text })
-    });
-
-    if(!res.ok){
-      const errorText = await res.text();
-      console.error("Message failed:", errorText);
-      alert("Message failed to send");
-      return;
-    }
-
-    input.value = "";
-
-    await loadConversation(receiverId, name);
-
-  }catch(err){
-    console.error("Send message error:", err);
-  }
+  await loadConversation(receiverId, name);
+  await openMessages();
 }
 async function openNewMessage(){
 
-  const res = await fetch(API + "/api/users", {
+  const res = await fetch(API + "/api/users/network",{
     headers:{ Authorization:"Bearer "+token }
   });
 
@@ -870,35 +803,29 @@ async function openNewMessage(){
 
   let html = `
   <div class="card">
-    <h3>Start New Conversation</h3>
+    <h3>New Message</h3>
 
     <input type="text" id="userSearch"
-           placeholder="Search users..."
-           style="width:100%;padding:8px;border-radius:8px;border:1px solid #ddd;margin-bottom:15px;"
-           onkeyup="filterUsers()">
+      placeholder="Search connections..."
+      style="width:100%;padding:8px;border-radius:20px;border:1px solid #ddd;margin-bottom:15px;"
+      onkeyup="filterUsers()">
 
     <div id="userList">
   `;
 
   users.forEach(user=>{
-    if(user._id !== localStorage.getItem("userId")){
-      html += `
-        <div class="network-user"
-             data-name="${user.name}"
-             style="padding:10px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
+    if(user._id === localStorage.getItem("userId")) return;
 
-          <div style="display:flex;align-items:center;gap:10px;">
-            <img src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
-                 style="width:35px;height:35px;border-radius:50%;">
-            <span>${user.name}</span>
-          </div>
-
-          <button onclick="startConversation('${user._id}','${user.name}')">
-            Message
-          </button>
-        </div>
-      `;
-    }
+    html += `
+      <div class="network-user"
+           data-name="${user.name}"
+           onclick="startConversation('${user._id}','${user.name}')"
+           style="padding:12px;cursor:pointer;border-bottom:1px solid #eee;display:flex;gap:10px;align-items:center;">
+        <img src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+             style="width:40px;height:40px;border-radius:50%;">
+        <span>${user.name}</span>
+      </div>
+    `;
   });
 
   html += `
@@ -1229,6 +1156,19 @@ if(hash.startsWith("#message=")){
     }
 
   }, 500);
+}
+  function filterConversations(){
+  const value=document.getElementById("conversationSearch").value.toLowerCase();
+  document.querySelectorAll(".conversation-item").forEach(row=>{
+    const name=row.getAttribute("data-name").toLowerCase();
+    row.style.display=name.includes(value)?"flex":"none";
+  });
+}
+
+function formatTime(date){
+  if(!date) return "";
+  const d=new Date(date);
+  return d.toLocaleDateString();
 }
 });
 </script>
