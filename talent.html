@@ -225,20 +225,24 @@ async function loadProfile(){
 }
 
 /* LOAD POSTS */
-async function loadPosts(){
+async function loadPosts(page = 1){
 
-  const res = await fetch(API+"/api/posts",{
+  const res = await fetch(API+"/api/posts?page="+page,{
     headers:{ Authorization:"Bearer "+token }
   });
 
   const posts = res.ok ? await res.json() : [];
   const container = document.getElementById("posts");
-  container.innerHTML = "";
 
-  if(posts.length === 0){
+  if(page === 1) container.innerHTML = "";
+
+  if(posts.length === 0 && page === 1){
     container.innerHTML = `
       <div class="card">
-        <div style="color:#6f6f6f;">No posts yet.</div>
+        <h3>👋 Welcome to your Feed</h3>
+        <p style="color:#6f6f6f;">
+          Follow people to start seeing posts here.
+        </p>
       </div>
     `;
     return;
@@ -246,7 +250,7 @@ async function loadPosts(){
 
   posts.forEach(post=>{
     container.innerHTML += `
-      <div class="card">
+      <div class="card" id="post-${post._id}">
 
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
           <img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
@@ -259,29 +263,57 @@ async function loadPosts(){
           </div>
         </div>
 
-        ${post.content ? `
-          <div style="margin:10px 0;">${post.content}</div>
-        ` : ""}
+        ${post.content ? `<div style="margin:10px 0;">${post.content}</div>` : ""}
 
         ${post.mediaUrl ? `
-          <div style="margin-top:10px;">
-            ${post.mediaType === "video"
-              ? `<video controls style="width:100%;border-radius:10px;" src="${post.mediaUrl}"></video>`
-              : `<img style="width:100%;border-radius:10px;" src="${post.mediaUrl}">`}
-          </div>
+          ${post.mediaType==="video"
+            ? `<video controls style="width:100%;border-radius:10px;" src="${post.mediaUrl}"></video>`
+            : `<img style="width:100%;border-radius:10px;" src="${post.mediaUrl}">`}
         ` : ""}
 
+        <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:14px;">
+          <div>${post.likes.length} likes</div>
+          <div style="display:flex;gap:15px;cursor:pointer;">
+            <span onclick="likePost('${post._id}')">❤️ Like</span>
+            <span onclick="toggleCommentBox('${post._id}')">💬 Comment</span>
+          </div>
+        </div>
+
+        <div id="comments-${post._id}" style="margin-top:10px;">
+          ${post.comments.map(c=>`
+            <div style="margin-bottom:5px;">
+              <b>${c.user?.name}</b> ${c.text}
+            </div>
+          `).join("")}
+        </div>
+
+        <input id="comment-input-${post._id}"
+          placeholder="Write a comment..."
+          style="width:100%;margin-top:8px;padding:6px;border-radius:20px;border:1px solid #ddd;display:none;"
+          onkeydown="if(event.key==='Enter'){addComment('${post._id}', this.value); this.value='';}">
       </div>
     `;
   });
 }
+  window.addEventListener("scroll", () => {
+
+  if(loading || noMorePosts) return;
+
+  if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 200){
+
+    loading = true;
+    currentPage++;
+
+    loadPosts(currentPage).then(() => {
+      loading = false;
+    });
+  }
+
+});
 async function createPost(){
 
   const content = document.getElementById("postContent").value.trim();
-  if(!content){
-    alert("Write something first");
-    return;
-  }
+  if(!content) return;
 
   const res = await fetch(API+"/api/posts",{
     method:"POST",
@@ -289,15 +321,25 @@ async function createPost(){
       "Content-Type":"application/json",
       Authorization:"Bearer "+token
     },
-    body:JSON.stringify({ content })
+    body:JSON.stringify({content})
   });
 
-  if(res.ok){
-    document.getElementById("postContent").value="";
-    loadPosts();
-  } else {
-    alert("Failed to post");
-  }
+  const newPost = await res.json();
+
+  document.getElementById("postContent").value="";
+
+  prependPost(newPost);
+}
+
+function prependPost(post){
+  const container = document.getElementById("posts");
+
+  container.innerHTML = `
+    <div class="card">
+      <b>${post.author.name}</b>
+      <div>${post.content}</div>
+    </div>
+  ` + container.innerHTML;
 }
 /* APPLICATION COUNT */
 async function loadMyApplications(){
@@ -619,7 +661,33 @@ async function loadNotificationCount(){
     window.location.href = "employer.html";
   }
 }
+async function likePost(id){
+  await fetch(API+"/api/posts/"+id+"/like",{
+    method:"PATCH",
+    headers:{ Authorization:"Bearer "+token }
+  });
+  loadPosts();
+}
 
+function toggleCommentBox(id){
+  const input = document.getElementById("comment-input-"+id);
+  input.style.display = input.style.display === "none" ? "block" : "none";
+}
+
+async function addComment(id,text){
+  if(!text.trim()) return;
+
+  await fetch(API+"/api/posts/"+id+"/comment",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({text})
+  });
+
+  loadPosts();
+}
 document.addEventListener("DOMContentLoaded", async function(){
 
   await enforceTalentRole();   // 🔥 FIRST protect role
