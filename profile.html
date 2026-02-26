@@ -300,6 +300,37 @@ function logout(){
   localStorage.clear();
   window.location.href="login.html";
 }
+  /* LOAD PROFILE DATA */
+async function loadProfile(){
+
+  const res = await fetch(API+"/api/users/me",{
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  if(!res.ok){
+    console.log("Failed to load profile");
+    return;
+  }
+
+  const user = await res.json();
+
+  // Images
+  document.getElementById("bannerPreview").src =
+    user.bannerImage || "https://via.placeholder.com/900x220";
+
+  document.getElementById("profilePreview").src =
+    user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+  // Text fields
+  document.getElementById("name").value = user.name || "";
+  document.getElementById("headline").value = user.headline || "";
+  document.getElementById("bio").value = user.bio || "";
+  document.getElementById("location").value = user.location || "";
+  document.getElementById("website").value = user.website || "";
+}
+  document.addEventListener("DOMContentLoaded", function(){
+  loadProfile();
+});
 </script>
 
 </body>
