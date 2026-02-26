@@ -1,83 +1,161 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Notifications | AIFT</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
 <style>
 body{
-  font-family:Inter;
-  background:#f3f2ef;
   margin:0;
-  padding:40px;
+  font-family:'Inter',sans-serif;
+  background:#f3f2ef;
 }
+
+.header{
+  background:white;
+  padding:15px 40px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+}
+
+.logo{
+  font-weight:800;
+  font-size:20px;
+}
+
+.container{
+  max-width:800px;
+  margin:40px auto;
+}
+
 .card{
   background:white;
   padding:20px;
   border-radius:12px;
-  max-width:700px;
-  margin:auto;
+  box-shadow:0 4px 15px rgba(0,0,0,0.05);
 }
+
 .notification{
   padding:15px;
   border-bottom:1px solid #eee;
+  display:flex;
+  gap:15px;
+  align-items:flex-start;
   cursor:pointer;
 }
+
+.notification:hover{
+  background:#f7f7f7;
+}
+
 .notification.unread{
   background:#eef3f8;
 }
-.small{
-  font-size:13px;
+
+.notification img{
+  width:45px;
+  height:45px;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+.empty{
+  text-align:center;
+  padding:40px;
   color:#6f6f6f;
 }
 </style>
 </head>
+
 <body>
 
-<div class="card">
-  <h2>Notifications</h2>
-  <div id="notificationList"></div>
+<div class="header">
+  <div class="logo">🔔 AIFT Notifications</div>
+  <button onclick="window.location.href='employer.html'">⬅ Back</button>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h3>All Notifications</h3>
+    <div id="notificationList"></div>
+  </div>
 </div>
 
 <script>
 const API="https://backend-1-9b6f.onrender.com";
 const token=localStorage.getItem("token");
 
+if(!token){
+  window.location.href="login.html";
+}
+
+/* LOAD NOTIFICATIONS */
 async function loadNotifications(){
-  const res=await fetch(API+"/api/notifications",{
-    headers:{Authorization:"Bearer "+token}
+
+  const res = await fetch(API+"/api/notifications",{
+    headers:{ Authorization:"Bearer "+token }
   });
 
-  const data=await res.json();
-  const container=document.getElementById("notificationList");
+  const notifications = res.ok ? await res.json() : [];
+
+  const container = document.getElementById("notificationList");
   container.innerHTML="";
 
-  if(data.length===0){
-    container.innerHTML="<p>No notifications</p>";
+  if(notifications.length === 0){
+    container.innerHTML = `
+      <div class="empty">
+        No notifications yet.
+      </div>
+    `;
     return;
   }
 
-  data.forEach(n=>{
-    container.innerHTML+=`
-      <div class="notification ${n.read ? "" : "unread"}"
-           onclick="openNotification('${n._id}','${n.link}')">
+  notifications.forEach(n => {
 
-        <b>${n.sender?.name || "System"}</b>
-        <div>${n.text}</div>
-        <div class="small">${new Date(n.createdAt).toLocaleString()}</div>
+    container.innerHTML += `
+      <div class="notification ${n.read ? '' : 'unread'}"
+           onclick="handleNotification('${n._id}','${n.link || ''}')">
+
+        <img src="${n.sender?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+
+        <div>
+          <div style="font-weight:600;">
+            ${n.sender?.name || 'AIFT'}
+          </div>
+          <div style="font-size:14px;color:#555;">
+            ${n.message}
+          </div>
+          <div style="font-size:12px;color:#999;margin-top:4px;">
+            ${new Date(n.createdAt).toLocaleString()}
+          </div>
+        </div>
+
       </div>
     `;
   });
 }
 
-async function openNotification(id,link){
+/* MARK AS READ + REDIRECT */
+async function handleNotification(id, link){
+
   await fetch(API+"/api/notifications/"+id+"/read",{
     method:"PATCH",
-    headers:{Authorization:"Bearer "+token}
+    headers:{ Authorization:"Bearer "+token }
   });
 
-  if(link) window.location.href=link;
+  if(link){
+    window.location.href = link;
+  } else {
+    loadNotifications();
+  }
 }
 
-loadNotifications();
+document.addEventListener("DOMContentLoaded", loadNotifications);
 </script>
 
 </body>
