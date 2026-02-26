@@ -3,276 +3,210 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Talent Dashboard | HireFlow</title>
+<title>Employee Dashboard | AIFT</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
-*{box-sizing:border-box;}
-body{
-  margin:0;
-  font-family:'Inter',sans-serif;
-  background:linear-gradient(135deg,#f8fafc,#eef2ff);
-  display:flex;
+:root{
+  --primary:#0a66c2;
+  --bg:#f3f2ef;
+  --card:#ffffff;
+  --text:#1c1c1c;
+  --muted:#6f6f6f;
+  --border:#e0e0e0;
 }
 
-/* SIDEBAR */
-.sidebar{
-  width:260px;
-  background:linear-gradient(180deg,#0f172a,#1e293b);
-  color:white;
-  height:100vh;
-  padding:30px 20px;
-  position:fixed;
-  transition:0.3s ease;
-  z-index:1000;
-}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+body{background:var(--bg);}
 
-.sidebar h2{margin-bottom:40px;}
-
-.sidebar a{
-  display:block;
-  padding:10px 15px;
-  margin-bottom:8px;
-  border-radius:8px;
-  cursor:pointer;
-  color:#cbd5e1;
-  text-decoration:none;
-  transition:0.3s;
-}
-
-.sidebar a:hover{background:#2563eb;color:white;}
-.sidebar a.active{background:#3b82f6;color:white;}
-
-.sidebar.hidden{transform:translateX(-100%);}
-
-.overlay{
-  position:fixed;
-  top:0;left:0;
-  width:100%;height:100%;
-  background:rgba(0,0,0,0.4);
-  display:none;
-  z-index:900;
-}
-
-.overlay.active{display:block;}
-
-/* MAIN */
-.main{
-  margin-left:260px;
-  padding:30px;
-  width:100%;
-}
-
-.topbar{
+/* HEADER */
+.header{
+  background:white;
+  padding:15px 40px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:25px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
 }
 
-.hamburger{
-  display:none;
-  font-size:24px;
-  cursor:pointer;
-}
-
-.topbar h1{
+.logo{
+  font-weight:800;
   font-size:22px;
-  background:linear-gradient(90deg,#2563eb,#7c3aed);
-  -webkit-background-clip:text;
-  color:transparent;
 }
 
-/* JOB CARDS */
-.job-card{
-  background:white;
+.logo span{color:var(--primary);}
+
+/* LAYOUT */
+.container{
+  display:grid;
+  grid-template-columns:260px 1fr 300px;
+  gap:20px;
+  max-width:1300px;
+  margin:40px auto;
+}
+
+/* CARD */
+.card{
+  background:var(--card);
   padding:20px;
-  border-radius:14px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.06);
+  border-radius:12px;
+  box-shadow:0 4px 15px rgba(0,0,0,0.05);
   margin-bottom:20px;
-  transition:0.3s;
 }
 
-.job-card:hover{
-  transform:translateY(-4px);
-}
-
-.job-card h3{margin:0 0 5px 0;}
-.job-card p{margin:4px 0;color:#64748b;}
-
-button{
-  padding:7px 12px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:600;
-}
-
-.apply{background:#16a34a;color:white;}
-.save{background:#e2e8f0;}
-.logout{background:#ef4444;color:white;}
-
-.table-wrapper{overflow-x:auto;}
-table{
+.profile-banner{
   width:100%;
-  border-collapse:collapse;
-  min-width:600px;
-}
-th,td{
-  padding:12px;
-  border-bottom:1px solid #f1f5f9;
+  height:120px;
+  border-radius:10px;
+  object-fit:cover;
 }
 
-/* RESPONSIVE */
-@media(max-width:900px){
-  .sidebar{transform:translateX(-100%);}
-  .sidebar.active{transform:translateX(0);}
-  .main{margin-left:0;}
-  .hamburger{display:block;}
+.profile-image{
+  width:90px;
+  height:90px;
+  border-radius:50%;
+  border:4px solid white;
+  margin-top:-45px;
+  object-fit:cover;
+}
+
+.stat{
+  margin-bottom:8px;
+  font-size:14px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+<div class="header">
+  <div class="logo"><span>AI</span>FT Talent</div>
 
-<div class="sidebar hidden" id="sidebar">
-  <h2>HireFlow</h2>
-  <a onclick="showSection('browse')" class="active">Browse Jobs</a>
-  <a onclick="showSection('applications')">My Applications</a>
-  <a onclick="showSection('saved')">Saved Jobs</a>
-  <a onclick="logout()">Logout</a>
+  <div style="display:flex;gap:25px;align-items:center;">
+
+    <div style="cursor:pointer;" onclick="window.location.href='employee-network.html'">
+      👥 <span style="font-size:12px;">Network</span>
+    </div>
+
+    <div style="cursor:pointer;position:relative;" onclick="window.location.href='messages.html'">
+      💬 <span style="font-size:12px;">Messages</span>
+      <span id="messageCount" style="position:absolute;top:-5px;right:-10px;background:red;color:white;font-size:10px;padding:2px 6px;border-radius:50%;display:none;">0</span>
+    </div>
+
+    <div style="cursor:pointer;position:relative;" onclick="window.location.href='notifications.html'">
+      🔔 <span style="font-size:12px;">Notifications</span>
+      <span id="notificationCount" style="position:absolute;top:-5px;right:-10px;background:red;color:white;font-size:10px;padding:2px 6px;border-radius:50%;display:none;">0</span>
+    </div>
+
+    <div onclick="window.location.href='profile.html'" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+      <img id="topProfileImg" style="width:32px;height:32px;border-radius:50%;">
+      <span id="topProfileName" style="font-size:14px;"></span>
+    </div>
+
+  </div>
 </div>
 
-<div class="main">
-  <div class="topbar">
-    <span class="hamburger" onclick="toggleSidebar()">☰</span>
-    <h1 id="pageTitle">Browse Jobs</h1>
-    <button class="logout" onclick="logout()">Logout</button>
+
+<div class="container">
+
+<!-- LEFT COLUMN -->
+<div>
+
+  <div class="card" id="profileCard"></div>
+
+  <div class="card">
+    <h3>Career Tools</h3>
+    <div style="padding:10px 0;border-bottom:1px solid #eee;cursor:pointer;" onclick="loadMyApplications()">📩 My Applications</div>
+    <div style="padding:10px 0;border-bottom:1px solid #eee;cursor:pointer;" onclick="loadSavedJobs()">⭐ Saved Jobs</div>
+    <div style="padding:10px 0;cursor:pointer;" onclick="window.location.href='profile.html'">✏ Edit Profile</div>
   </div>
 
-  <div id="content"></div>
+</div>
+
+<!-- CENTER COLUMN -->
+<div>
+
+  <div class="card">
+    <textarea id="postContent" rows="3" placeholder="Share an update..." style="width:100%;border:none;resize:none;"></textarea>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+      <button onclick="createPost()" style="background:#0a66c2;color:white;border:none;padding:8px 20px;border-radius:20px;">Post</button>
+    </div>
+  </div>
+
+  <div id="posts"></div>
+
+</div>
+
+<!-- RIGHT COLUMN -->
+<div>
+
+  <div class="card">
+    <h3>Career Dashboard</h3>
+    <div class="stat">Applications Sent: <b id="appCount">0</b></div>
+    <div class="stat">Saved Jobs: <b id="savedCount">0</b></div>
+    <div class="stat">Pro Status: <b id="proStatus">Free</b></div>
+    <div class="stat">CV Uploaded: <b id="cvStatus">No</b></div>
+  </div>
+
+</div>
+
 </div>
 
 <script>
 const API="https://backend-1-9b6f.onrender.com";
 const token=localStorage.getItem("token");
-if(!token){window.location.href="login.html";}
+if(!token) window.location.href="login.html";
 
-let savedJobs=JSON.parse(localStorage.getItem("savedJobs")||"[]");
+/* LOAD PROFILE */
+async function loadProfile(){
+  const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer "+token}});
+  const user=await res.json();
 
-function toggleSidebar(){
-  document.getElementById("sidebar").classList.toggle("active");
-  document.getElementById("overlay").classList.toggle("active");
+  document.getElementById("profileCard").innerHTML=`
+    <img class="profile-banner" src="${user.bannerImage || 'https://via.placeholder.com/600x120'}">
+    <img class="profile-image" src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+    <h3>${user.name}</h3>
+    <div style="color:#6f6f6f;font-size:14px;">${user.headline || ''}</div>
+  `;
+
+  document.getElementById("topProfileImg").src =
+    user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+  document.getElementById("topProfileName").innerText = user.name;
+
+  document.getElementById("proStatus").innerText = user.isPro ? "Pro" : "Free";
+  document.getElementById("cvStatus").innerText = user.cvUrl ? "Yes" : "No";
 }
 
-function setActive(section){
-  document.querySelectorAll(".sidebar a").forEach(a=>{
-    a.classList.remove("active");
-    if(a.innerText.toLowerCase().includes(section))
-      a.classList.add("active");
+/* LOAD POSTS */
+async function loadPosts(){
+  const res=await fetch(API+"/api/posts",{headers:{Authorization:"Bearer "+token}});
+  const posts=res.ok?await res.json():[];
+  const container=document.getElementById("posts");
+  container.innerHTML="";
+
+  posts.forEach(post=>{
+    container.innerHTML+=`
+      <div class="card">
+        <b>${post.author?.name || 'User'}</b>
+        <div style="margin:10px 0;">${post.content}</div>
+      </div>
+    `;
   });
 }
 
-async function showSection(section){
-  setActive(section);
-  const content=document.getElementById("content");
-  const title=document.getElementById("pageTitle");
-
-  if(section==="browse"){
-    title.innerText="Browse Jobs";
-
-    const res=await fetch(API+"/api/jobs");
-    const jobs=await res.json();
-
-    let html="";
-    jobs.forEach(job=>{
-      html+=`
-        <div class="job-card">
-          <h3>${job.title}</h3>
-          <p>${job.company} • ${job.location}</p>
-          <p>${job.description}</p>
-          <button class="apply" onclick="applyJob('${job._id}')">Apply</button>
-          <button class="save" onclick="saveJob('${job._id}')">Save</button>
-        </div>`;
-    });
-
-    content.innerHTML=html;
-  }
-
-  if(section==="applications"){
-    title.innerText="My Applications";
-
-    const res=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer "+token}});
-    const apps=await res.json();
-
-    let html=`<div class="table-wrapper"><table>
-      <tr><th>Name</th><th>Email</th><th>Job</th><th>Status</th></tr>`;
-
-    apps.forEach(app=>{
-      html+=`
-        <tr>
-          <td>${app.name}</td>
-          <td>${app.email}</td>
-          <td>${app.jobId?.title || ''}</td>
-          <td>${app.status}</td>
-        </tr>`;
-    });
-
-    html+=`</table></div>`;
-    content.innerHTML=html;
-  }
-
-  if(section==="saved"){
-    title.innerText="Saved Jobs";
-
-    if(savedJobs.length===0){
-      content.innerHTML="<p>No saved jobs yet.</p>";
-      return;
-    }
-
-    let html="";
-    savedJobs.forEach(id=>{
-      html+=`<p>Saved Job ID: ${id}</p>`;
-    });
-
-    content.innerHTML=html;
-  }
+/* APPLICATION COUNT */
+async function loadMyApplications(){
+  const res=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer "+token}});
+  const apps=res.ok?await res.json():[];
+  document.getElementById("appCount").innerText = apps.length;
 }
 
-async function applyJob(jobId){
-  const name=prompt("Enter your name:");
-  const email=prompt("Enter your email:");
-
-  await fetch(API+"/api/applications",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      jobId,
-      name,
-      email,
-      cvUrl:""
-    })
-  });
-
-  alert("Application submitted!");
-}
-
-function saveJob(jobId){
-  if(!savedJobs.includes(jobId)){
-    savedJobs.push(jobId);
-    localStorage.setItem("savedJobs",JSON.stringify(savedJobs));
-    alert("Job saved!");
-  }
-}
-
-function logout(){
-  localStorage.removeItem("token");
-  window.location.href="login.html";
-}
-
-showSection("browse");
+/* INIT */
+document.addEventListener("DOMContentLoaded", function(){
+  loadProfile();
+  loadPosts();
+  loadMyApplications();
+});
 </script>
 
 </body>
