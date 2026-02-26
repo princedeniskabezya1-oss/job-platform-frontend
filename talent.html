@@ -134,6 +134,7 @@ body{background:var(--bg);}
   </div>
 
   <div id="posts"></div>
+  <div id="jobList"></div>
 
 </div>
 
@@ -200,12 +201,91 @@ async function loadMyApplications(){
   const apps=res.ok?await res.json():[];
   document.getElementById("appCount").innerText = apps.length;
 }
+  /* LOAD JOBS */
+async function loadJobs(){
 
-/* INIT */
+  const res = await fetch(API+"/api/jobs",{
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const jobs = res.ok ? await res.json() : [];
+
+  const container = document.getElementById("jobList");
+  container.innerHTML = "";
+
+  jobs.forEach(job=>{
+    container.innerHTML += `
+      <div class="card">
+        <h3>${job.title}</h3>
+        <div style="color:#6f6f6f;">${job.company} • ${job.location}</div>
+        <div style="margin:10px 0;">${job.description.substring(0,120)}...</div>
+
+        <div style="display:flex;gap:10px;">
+          <button onclick="saveJob('${job._id}')"
+            style="background:#f0f2f5;color:black;border:none;padding:6px 15px;border-radius:20px;cursor:pointer;">
+            ⭐ Save
+          </button>
+
+          <button onclick="quickApply('${job._id}')"
+            style="background:#0a66c2;color:white;border:none;padding:6px 15px;border-radius:20px;cursor:pointer;">
+            🚀 Apply
+          </button>
+        </div>
+      </div>
+    `;
+  });
+}
+  async function saveJob(id){
+
+  const res = await fetch(API+"/api/jobs/"+id+"/save",{
+    method:"PATCH",
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const data = await res.json();
+
+  if(data.saved){
+    alert("Job saved successfully ⭐");
+  } else {
+    alert("Job removed from saved list");
+  }
+
+  loadSavedJobsCount();
+}
+  async function loadSavedJobsCount(){
+
+  const res = await fetch(API+"/api/users/me",{
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const user = await res.json();
+
+  document.getElementById("savedCount").innerText =
+    user.savedJobs ? user.savedJobs.length : 0;
+}
+  async function quickApply(id){
+
+  const res = await fetch(API+"/api/jobs/"+id+"/quick-apply",{
+    method:"POST",
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const data = await res.json();
+
+  if(res.ok){
+    alert("Application sent 🚀");
+    loadMyApplications();
+  } else {
+    alert(data.message);
+  }
+}
+
 document.addEventListener("DOMContentLoaded", function(){
   loadProfile();
   loadPosts();
+  loadJobs();                // 👈 NEW
   loadMyApplications();
+  loadSavedJobsCount();      // 👈 NEW
 });
 </script>
 
