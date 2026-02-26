@@ -919,12 +919,27 @@ function visitProfile(id){
   if(!id) return;
   window.location.href = "public-profile.html?id=" + id;
 }
-document.addEventListener("DOMContentLoaded", function(){
+  async function enforceEmployerRole(){
+
+  const res = await fetch(API+"/api/users/me",{
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const user = await res.json();
+
+  if(user.role !== "employer"){
+    window.location.href = "talent.html";
+  }
+}
+document.addEventListener("DOMContentLoaded", async function(){
+
+  await enforceEmployerRole();   // 🔥 FIRST protect role
+
   loadProfile();
   loadPosts();
   loadEmployerStats();
   loadMessageCount();
-  loadNotificationCount();   // ← ADD THIS
+  loadNotificationCount();
 });
 </script>
 
