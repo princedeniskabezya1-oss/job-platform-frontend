@@ -203,6 +203,9 @@ body{background:var(--bg);}
 const API="https://backend-1-9b6f.onrender.com";
 const token=localStorage.getItem("token");
 if(!token) window.location.href="login.html";
+  let currentPage = 1;
+let loading = false;
+let noMorePosts = false;
 
 /* LOAD PROFILE */
 async function loadProfile(){
@@ -227,6 +230,8 @@ async function loadProfile(){
 /* LOAD POSTS */
 async function loadPosts(page = 1){
 
+  if(noMorePosts) return;
+
   const res = await fetch(API+"/api/posts?page="+page,{
     headers:{ Authorization:"Bearer "+token }
   });
@@ -234,18 +239,56 @@ async function loadPosts(page = 1){
   const posts = res.ok ? await res.json() : [];
   const container = document.getElementById("posts");
 
-  if(page === 1) container.innerHTML = "";
+  if(page === 1){
+    container.innerHTML = "";
+    noMorePosts = false;
+  }
 
+  // 🔥 EMPTY FEED DESIGN
   if(posts.length === 0 && page === 1){
+
+    const sugRes = await fetch(API + "/api/users/suggestions",{
+      headers:{ Authorization:"Bearer "+token }
+    });
+
+    const suggestions = sugRes.ok ? await sugRes.json() : [];
+
     container.innerHTML = `
-      <div class="card">
-        <h3>👋 Welcome to your Feed</h3>
-        <p style="color:#6f6f6f;">
-          Follow people to start seeing posts here.
+      <div class="card" style="text-align:center;padding:40px;">
+        <h2>👋 Your Feed Is Empty</h2>
+        <p style="color:#6f6f6f;margin-bottom:20px;">
+          Follow people to start seeing posts.
         </p>
       </div>
+
+      <div class="card">
+        <h3>⭐ People You May Know</h3>
+        ${suggestions.map(user=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eee;">
+            <div style="display:flex;gap:10px;align-items:center;">
+              <img src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+                   style="width:40px;height:40px;border-radius:50%;">
+              <div>
+                <b>${user.name}</b>
+                <div style="font-size:12px;color:#6f6f6f;">
+                  ${user.headline || ""}
+                </div>
+              </div>
+            </div>
+            <button onclick="connectUser('${user._id}')"
+              style="background:#0a66c2;color:white;border:none;padding:6px 15px;border-radius:20px;">
+              Follow
+            </button>
+          </div>
+        `).join("")}
+      </div>
     `;
+
     return;
+  }
+
+  if(posts.length < 5){
+    noMorePosts = true;
   }
 
   posts.forEach(post=>{
@@ -256,9 +299,9 @@ async function loadPosts(page = 1){
           <img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
                style="width:40px;height:40px;border-radius:50%;">
           <div>
-            <b>${post.author?.name || 'User'}</b>
+            <b>${post.author?.name}</b>
             <div style="font-size:12px;color:#6f6f6f;">
-              ${post.author?.headline || ''}
+              ${post.author?.headline || ""}
             </div>
           </div>
         </div>
@@ -295,7 +338,7 @@ async function loadPosts(page = 1){
     `;
   });
 }
-  window.addEventListener("scroll", () => {
+window.addEventListener("scroll", () => {
 
   if(loading || noMorePosts) return;
 
@@ -308,7 +351,6 @@ async function loadPosts(page = 1){
       loading = false;
     });
   }
-
 });
 async function createPost(){
 
