@@ -151,18 +151,29 @@ body{background:var(--bg);}
   <div id="feedPanel">
 
     <!-- Create Post -->
-    <div class="card">
-      <textarea id="postContent" rows="3"
-        placeholder="Share an update..."
-        style="width:100%;border:none;resize:none;"></textarea>
+<div class="card">
 
-      <div style="display:flex;justify-content:flex-end;margin-top:10px;">
-        <button onclick="createPost()"
-          style="background:#0a66c2;color:white;border:none;padding:8px 20px;border-radius:20px;">
-          Post
-        </button>
-      </div>
-    </div>
+  <textarea id="postContent" rows="3"
+    placeholder="Share an update..."
+    style="width:100%;border:none;resize:none;"></textarea>
+
+  <div id="filePreviewContainer" style="margin-top:10px;"></div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+
+    <label style="cursor:pointer;color:#0a66c2;font-weight:600;">
+      📎 Add Media
+      <input type="file" id="mediaInput" accept="image/*,video/*" style="display:none;">
+    </label>
+
+    <button onclick="createPost()"
+      style="background:#0a66c2;color:white;border:none;padding:8px 20px;border-radius:20px;">
+      Post
+    </button>
+
+  </div>
+
+</div>
 
     <!-- Posts Container -->
     <div id="posts"></div>
@@ -295,16 +306,20 @@ async function loadPosts(page = 1){
     container.innerHTML += `
       <div class="card" id="post-${post._id}">
 
-        <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
-          <img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
-               style="width:40px;height:40px;border-radius:50%;">
-          <div>
-            <b>${post.author?.name}</b>
-            <div style="font-size:12px;color:#6f6f6f;">
-              ${post.author?.headline || ""}
-            </div>
-          </div>
-        </div>
+<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;cursor:pointer;"
+     onclick="visitProfile('${post.author?._id}')">
+
+  <img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+       style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+
+  <div>
+    <b>${post.author?.name}</b>
+    <div style="font-size:12px;color:#6f6f6f;">
+      ${post.author?.headline || ""}
+    </div>
+  </div>
+
+</div>
 
         ${post.content ? `<div style="margin:10px 0;">${post.content}</div>` : ""}
 
@@ -352,34 +367,102 @@ window.addEventListener("scroll", () => {
     });
   }
 });
+  document.getElementById("mediaInput").addEventListener("change", function(){
+
+  const file = this.files[0];
+  const previewContainer = document.getElementById("filePreviewContainer");
+
+  previewContainer.innerHTML = "";
+
+  if(!file) return;
+
+  if(file.type.startsWith("image")){
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+    img.style.width = "100%";
+    img.style.borderRadius = "10px";
+    previewContainer.appendChild(img);
+
+  } else if(file.type.startsWith("video")){
+    const video = document.createElement("video");
+    video.src = URL.createObjectURL(file);
+    video.controls = true;
+    video.style.width = "100%";
+    video.style.borderRadius = "10px";
+    previewContainer.appendChild(video);
+  }
+
+});
 async function createPost(){
 
   const content = document.getElementById("postContent").value.trim();
-  if(!content) return;
+  const fileInput = document.getElementById("mediaInput");
+  const file = fileInput.files[0];
+
+  if(!content && !file){
+    alert("Please add text or media.");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("content", content);
+
+  if(file){
+    formData.append("media", file);
+  }
 
   const res = await fetch(API+"/api/posts",{
     method:"POST",
     headers:{
-      "Content-Type":"application/json",
       Authorization:"Bearer "+token
     },
-    body:JSON.stringify({content})
+    body:formData
   });
+
+  if(!res.ok){
+    alert("Post failed");
+    return;
+  }
 
   const newPost = await res.json();
 
   document.getElementById("postContent").value="";
+  fileInput.value="";
+  document.getElementById("filePreviewContainer").innerHTML="";
 
   prependPost(newPost);
 }
 
 function prependPost(post){
+
   const container = document.getElementById("posts");
 
   container.innerHTML = `
     <div class="card">
-      <b>${post.author.name}</b>
-      <div>${post.content}</div>
+
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;cursor:pointer;"
+           onclick="visitProfile('${post.author._id}')">
+
+        <img src="${post.author.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+             style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+
+        <div>
+          <b>${post.author.name}</b>
+          <div style="font-size:12px;color:#6f6f6f;">
+            ${post.author.headline || ""}
+          </div>
+        </div>
+
+      </div>
+
+      ${post.content ? `<div style="margin:10px 0;">${post.content}</div>` : ""}
+
+      ${post.mediaUrl ? `
+        ${post.mediaType==="video"
+          ? `<video controls style="width:100%;border-radius:10px;" src="${post.mediaUrl}"></video>`
+          : `<img style="width:100%;border-radius:10px;" src="${post.mediaUrl}">`}
+      ` : ""}
+
     </div>
   ` + container.innerHTML;
 }
@@ -729,6 +812,10 @@ async function addComment(id,text){
   });
 
   loadPosts();
+}
+  function visitProfile(id){
+  if(!id) return;
+  window.location.href = "public-profile.html?id=" + id;
 }
 document.addEventListener("DOMContentLoaded", async function(){
 
