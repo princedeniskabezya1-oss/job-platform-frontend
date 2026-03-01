@@ -827,9 +827,22 @@ async function loadPosts(page = 1){
   <div onclick="toggleDropdown('${post._id}')">•••</div>
 
   <div class="dropdown-menu" id="dropdown-${post._id}">
-    <div onclick="editPost('${post._id}')">Edit</div>
-    <div onclick="deletePost('${post._id}')">Delete</div>
-  </div>
+  ${
+    post.author?._id === localStorage.getItem("userId")
+    ? `
+      <div onclick="editPost('${post._id}')">Edit</div>
+      <div onclick="deletePost('${post._id}')">Delete</div>
+      <div onclick="savePost('${post._id}')">Save</div>
+    `
+    : `
+      <div onclick="savePost('${post._id}')">Save</div>
+      <div onclick="openShareModal('${post._id}')">Share</div>
+      <div onclick="markInterested('${post._id}')">Interested</div>
+      <div onclick="hidePost('${post._id}')">Hide</div>
+      <div onclick="reportPost('${post._id}')">Report</div>
+    `
+  }
+</div>
 </div>
         </div>
 
@@ -845,7 +858,10 @@ async function loadPosts(page = 1){
 
         <div class="post-stats">
   <div>${post.likes.length} reactions</div>
-  <div>${post.comments.length} comments</div>
+  <div style="cursor:pointer;"
+     onclick="toggleCommentBox('${post._id}')">
+  ${post.comments.length} comments
+</div>
 </div>
 
 <div class="post-actions">
@@ -943,9 +959,22 @@ async function loadPosts(page = 1){
   <div onclick="toggleDropdown('${post._id}')">•••</div>
 
   <div class="dropdown-menu" id="dropdown-${post._id}">
-    <div onclick="editPost('${post._id}')">Edit</div>
-    <div onclick="deletePost('${post._id}')">Delete</div>
-  </div>
+  ${
+    post.author?._id === localStorage.getItem("userId")
+    ? `
+      <div onclick="editPost('${post._id}')">Edit</div>
+      <div onclick="deletePost('${post._id}')">Delete</div>
+      <div onclick="savePost('${post._id}')">Save</div>
+    `
+    : `
+      <div onclick="savePost('${post._id}')">Save</div>
+      <div onclick="openShareModal('${post._id}')">Share</div>
+      <div onclick="markInterested('${post._id}')">Interested</div>
+      <div onclick="hidePost('${post._id}')">Hide</div>
+      <div onclick="reportPost('${post._id}')">Report</div>
+    `
+  }
+</div>
 </div>
       </div>
 
@@ -961,7 +990,10 @@ async function loadPosts(page = 1){
 
       <div class="post-stats">
         <div>${post.likes?.length || 0} reactions</div>
-        <div>0 comments</div>
+        <div style="cursor:pointer;"
+     onclick="toggleCommentBox('${post._id}')">
+  0 comments
+</div>
       </div>
 
      <div class="post-actions">
@@ -1018,11 +1050,10 @@ async function loadPosts(page = 1){
            id="comment-input-${post._id}"
            oninput="toggleSendBtn('${post._id}', this)">
 
-    <button id="send-btn-${post._id}"
-            style="display:none;"
-            onclick="submitComment('${post._id}')">
-      Send
-    </button>
+   <button id="send-btn-${post._id}"
+        onclick="submitComment('${post._id}')">
+  Send
+</button>
   </div>
 
 </div>
@@ -1090,10 +1121,7 @@ stat.innerText = (current + 1) + " comments";
   input.value="";
   document.getElementById("send-btn-"+postId).style.display="none";
 }
-  function toggleSendBtn(postId, input){
-  const btn = document.getElementById("send-btn-"+postId);
-  btn.style.display = input.value.trim() ? "block" : "none";
-}
+ 
   async function loadComments(postId){
 
   const res = await fetch(API+"/api/posts/"+postId,{
@@ -1252,6 +1280,21 @@ function formatTime(dateString){
   function toggleDropdown(id){
   const menu = document.getElementById("dropdown-"+id);
   menu.style.display = menu.style.display === "block" ? "none" : "block";
+}
+  function savePost(id){
+  alert("Post saved");
+}
+
+function markInterested(id){
+  alert("You marked this post as interested");
+}
+
+function hidePost(id){
+  document.getElementById("post-"+id)?.remove();
+}
+
+function reportPost(id){
+  alert("Post reported");
 }
 document.addEventListener("DOMContentLoaded", async function(){
 
