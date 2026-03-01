@@ -1071,14 +1071,7 @@ async function loadPosts(page = 1){
     </div>
   ` + container.innerHTML;
 }
- async function toggleLike(id, element){
-
-  const res = await fetch(API+"/api/posts/"+id+"/like",{
-    method:"PATCH",
-    headers:{ Authorization:"Bearer "+token }
-  });
-
-  const data = await res.json();
+async function toggleLike(id, element){
 
   const icon = element.querySelector("svg");
   const stat = document.querySelector("#post-"+id+" .post-stats div");
@@ -1087,7 +1080,20 @@ async function loadPosts(page = 1){
 
   icon.setAttribute("fill", liked ? "#0a66c2" : "none");
 
-  stat.innerText = data.likes + " reactions";
+  // Optimistic count update
+  let current = parseInt(stat.innerText.split(" ")[0]) || 0;
+  stat.innerText = (liked ? current + 1 : current - 1) + " reactions";
+
+  try {
+    await fetch(API+"/api/posts/"+id+"/like",{
+      method:"PATCH",
+      headers:{ Authorization:"Bearer "+token }
+    });
+  } catch(err){
+    // rollback if failed
+    element.classList.toggle("liked");
+    icon.setAttribute("fill", !liked ? "#0a66c2" : "none");
+  }
 }
 
 function toggleCommentBox(postId){
@@ -1108,26 +1114,38 @@ async function submitComment(postId){
   const text = input.value.trim();
   if(!text) return;
 
-  const res = await fetch(API+"/api/posts/"+postId+"/comment",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer "+token
-    },
-    body:JSON.stringify({text})
-  });
-
-  const newComment = await res.json();
-
   const container = document.getElementById("comments-"+postId);
 
-  renderComment(postId, newComment, container);
-  const stat = document.querySelector("#post-"+postId+" .post-stats div:nth-child(2)");
-const current = parseInt(stat.innerText.split(" ")[0]) || 0;
-stat.innerText = (current + 1) + " comments";
+  // Optimistic UI comment
+  const tempComment = {
+    _id: "temp-"+Date.now(),
+    text,
+    user: {
+      name: "You",
+      profileImage: localStorage.getItem("profileImage")
+    },
+    likes: []
+  };
+
+  renderComment(postId, tempComment, container);
 
   input.value="";
-  
+
+  try {
+    const res = await fetch(API+"/api/posts/"+postId+"/comment",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        Authorization:"Bearer "+token
+      },
+      body:JSON.stringify({text})
+    });
+
+    await res.json();
+
+  } catch(err){
+    alert("Failed to post comment");
+  }
 }
  
   async function loadComments(postId){
@@ -1204,12 +1222,64 @@ stat.innerText = (current + 1) + " comments";
 
   parentContainer.appendChild(div);
 }
-function likeComment(postId, commentId){
-  alert("Like comment feature coming next phase");
+async function likeComment(postId, commentId){
+
+  const commentMeta = document.querySelector(
+    `[onclick="likeComment('${postId}','${commentId}')"]`
+  );
+
+  let current = parseInt(commentMeta.innerText.match(/\d+/)) || 0;
+
+  commentMeta.innerText = "Like (" + (current + 1) + ")";
+
+  try{
+    const res = await fetch(
+      API+"/api/posts/"+postId+"/comment/"+commentId+"/like",
+      {
+        method:"PATCH",
+        headers:{ Authorization:"Bearer "+token }
+      }
+    );
+
+    const data = await res.json();
+    commentMeta.innerText = "Like (" + data.likes + ")";
+  }catch(err){
+    console.log(err);
+  }
 }
 
 function showReplyInput(postId, commentId){
-  alert("Reply feature coming next phase");
+
+  const container = document.getElementById("reply-input-"+commentId);
+
+  if(container.innerHTML !== ""){
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="margin-top:8px;display:flex;gap:8px;">
+      <input type="text" id="reply-${commentId}" placeholder="Write a reply..." style="flex:1;padding:6px;border-radius:15px;border:1px solid #ddd;">
+      <button onclick="submitReply('${postId}','${commentId}')">Send</button>
+    </div>
+  `;
+}
+  async function submitReply(postId, commentId){
+
+  const input = document.getElementById("reply-"+commentId);
+  const text = input.value.trim();
+  if(!text) return;
+
+  const replyContainer = document.getElementById("replies-"+commentId);
+
+  replyContainer.innerHTML += `
+    <div style="margin-top:6px;">
+      <strong>You</strong><br>
+      ${text}
+    </div>
+  `;
+
+  input.value="";
 }
 function openShareModal(id){
   document.getElementById("shareModal").style.display="flex";
@@ -1313,10 +1383,30 @@ function formatTime(dateString){
   if(!id) return;
   window.location.href = "public-profile.html?id=" + id;
 }
-  function toggleDropdown(id){
+  let activeDropdown = null;
+
+function toggleDropdown(id){
+
   const menu = document.getElementById("dropdown-"+id);
-  menu.style.display = menu.style.display === "block" ? "none" : "block";
+
+  // Close any other open dropdown
+  if(activeDropdown && activeDropdown !== menu){
+    activeDropdown.style.display = "none";
+  }
+
+  const isOpen = menu.style.display === "block";
+  menu.style.display = isOpen ? "none" : "block";
+
+  activeDropdown = isOpen ? null : menu;
 }
+
+// Close when clicking outside
+document.addEventListener("click", function(e){
+  if(activeDropdown && !activeDropdown.contains(e.target)){
+    activeDropdown.style.display = "none";
+    activeDropdown = null;
+  }
+});
   function savePost(id){
   alert("Post saved");
 }
