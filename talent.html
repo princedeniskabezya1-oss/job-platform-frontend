@@ -1228,10 +1228,6 @@ async function likeComment(postId, commentId){
     `[onclick="likeComment('${postId}','${commentId}')"]`
   );
 
-  let current = parseInt(commentMeta.innerText.match(/\d+/)) || 0;
-
-  commentMeta.innerText = "Like (" + (current + 1) + ")";
-
   try{
     const res = await fetch(
       API+"/api/posts/"+postId+"/comment/"+commentId+"/like",
@@ -1242,7 +1238,9 @@ async function likeComment(postId, commentId){
     );
 
     const data = await res.json();
+
     commentMeta.innerText = "Like (" + data.likes + ")";
+
   }catch(err){
     console.log(err);
   }
