@@ -234,7 +234,7 @@ body{background:var(--bg);}
   position:absolute;
   left:17px;
   top:40px;
-  bottom:-18px;
+  bottom:0;
   width:2px;
   background:#e6e6e6;
 }
@@ -1427,31 +1427,30 @@ function reportPost(id){
   /* =========================
      COMMENT LIKE
   ========================= */
-  if(e.target.closest(".comment-like-btn")){
+ if(e.target.closest(".comment-like-btn")){
 
   const btn = e.target.closest(".comment-like-btn");
   const postId = btn.dataset.post;
   const commentId = btn.dataset.comment;
   const countEl = btn.querySelector(".like-count");
 
+  // optimistic toggle
+  const liked = btn.classList.toggle("liked");
+  let current = parseInt(countEl.innerText) || 0;
+  countEl.innerText = liked ? current + 1 : current - 1;
+
   try{
-    const res = await fetch(
+    await fetch(
       API+"/api/posts/"+postId+"/comment/"+commentId+"/like",
       {
         method:"PATCH",
         headers:{ Authorization:"Bearer "+token }
       }
     );
-
-    const data = await res.json();
-
-    if(typeof data.likes === "number"){
-      countEl.innerText = data.likes;
-      btn.classList.toggle("liked");
-    }
-
   }catch(err){
-    console.log("Comment like error:", err);
+    // rollback if failed
+    btn.classList.toggle("liked");
+    countEl.innerText = liked ? current : current + 1;
   }
 }
 
@@ -1483,7 +1482,8 @@ function reportPost(id){
     </button>
   </div>
 `;
-  }
+
+container.querySelector(".reply-field").focus();
 /* =========================
    REPLY SEND FIX
 ========================= */
