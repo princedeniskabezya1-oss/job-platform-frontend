@@ -268,6 +268,30 @@ body{background:var(--bg);}
   border:1px solid #ddd;
   padding:8px 12px;
 }
+  .comment-meta{
+  display:flex;
+  gap:15px;
+  margin-top:6px;
+}
+
+.comment-meta button{
+  background:none;
+  border:none;
+  color:#6f6f6f;
+  font-size:13px;
+  cursor:pointer;
+  padding:0;
+}
+
+.comment-meta button:hover{
+  color:#0a66c2;
+  text-decoration:underline;
+}
+
+.comment-like-btn.liked{
+  color:#0a66c2;
+  font-weight:600;
+}
 .stat{
   margin-bottom:8px;
   font-size:14px;
@@ -1190,95 +1214,49 @@ async function submitComment(postId){
 
   renderBatch();
 }
-  function renderComment(postId, comment, parentContainer){
+ function renderComment(postId, comment, parentContainer){
 
   const div = document.createElement("div");
   div.className = "comment-item";
+  div.dataset.commentId = comment._id;
 
   div.innerHTML = `
     <img src="${comment.user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
          class="comment-avatar">
 
     <div class="comment-body">
+
       <div class="comment-bubble">
         <strong>${comment.user.name}</strong><br>
         ${comment.text}
       </div>
 
       <div class="comment-meta">
-        <span onclick="likeComment('${postId}','${comment._id}')">
-          Like (${comment.likes?.length || 0})
-        </span>
 
-        <span onclick="showReplyInput('${postId}','${comment._id}')">
+        <button class="comment-like-btn"
+                data-post="${postId}"
+                data-comment="${comment._id}">
+          👍 <span class="like-count">${comment.likes?.length || 0}</span>
+        </button>
+
+        <button class="comment-reply-btn"
+                data-post="${postId}"
+                data-comment="${comment._id}">
           Reply
-        </span>
+        </button>
+
       </div>
 
-      <div id="reply-input-${comment._id}"></div>
+      <div class="reply-input-area" id="reply-input-${comment._id}"></div>
       <div class="reply-line" id="replies-${comment._id}"></div>
+
     </div>
   `;
 
   parentContainer.appendChild(div);
 }
-async function likeComment(postId, commentId){
 
-  const commentMeta = document.querySelector(
-    `[onclick="likeComment('${postId}','${commentId}')"]`
-  );
 
-  try{
-    const res = await fetch(
-      API+"/api/posts/"+postId+"/comment/"+commentId+"/like",
-      {
-        method:"PATCH",
-        headers:{ Authorization:"Bearer "+token }
-      }
-    );
-
-    const data = await res.json();
-
-    commentMeta.innerText = "Like (" + data.likes + ")";
-
-  }catch(err){
-    console.log(err);
-  }
-}
-
-function showReplyInput(postId, commentId){
-
-  const container = document.getElementById("reply-input-"+commentId);
-
-  if(container.innerHTML !== ""){
-    container.innerHTML = "";
-    return;
-  }
-
-  container.innerHTML = `
-    <div style="margin-top:8px;display:flex;gap:8px;">
-      <input type="text" id="reply-${commentId}" placeholder="Write a reply..." style="flex:1;padding:6px;border-radius:15px;border:1px solid #ddd;">
-      <button onclick="submitReply('${postId}','${commentId}')">Send</button>
-    </div>
-  `;
-}
-  async function submitReply(postId, commentId){
-
-  const input = document.getElementById("reply-"+commentId);
-  const text = input.value.trim();
-  if(!text) return;
-
-  const replyContainer = document.getElementById("replies-"+commentId);
-
-  replyContainer.innerHTML += `
-    <div style="margin-top:6px;">
-      <strong>You</strong><br>
-      ${text}
-    </div>
-  `;
-
-  input.value="";
-}
 function openShareModal(id){
   document.getElementById("shareModal").style.display="flex";
   document.getElementById("copyLinkBtn").onclick = function(){
@@ -1422,6 +1400,68 @@ function hidePost(id){
 function reportPost(id){
   alert("Post reported");
 }
+  document.addEventListener("click", async function(e){
+
+  /* =========================
+     COMMENT LIKE
+  ========================= */
+  if(e.target.closest(".comment-like-btn")){
+
+    const btn = e.target.closest(".comment-like-btn");
+    const postId = btn.dataset.post;
+    const commentId = btn.dataset.comment;
+    const countEl = btn.querySelector(".like-count");
+
+    try{
+      const res = await fetch(
+        API+"/api/posts/"+postId+"/comment/"+commentId+"/like",
+        {
+          method:"PATCH",
+          headers:{ Authorization:"Bearer "+token }
+        }
+      );
+
+      const data = await res.json();
+
+      if(typeof data.likes === "number"){
+        countEl.innerText = data.likes;
+      }
+
+    }catch(err){
+      console.log("Comment like error:", err);
+    }
+  }
+
+  /* =========================
+     COMMENT REPLY BUTTON
+  ========================= */
+  if(e.target.closest(".comment-reply-btn")){
+
+    const btn = e.target.closest(".comment-reply-btn");
+    const commentId = btn.dataset.comment;
+
+    const container = document.getElementById("reply-input-"+commentId);
+
+    if(container.innerHTML !== ""){
+      container.innerHTML = "";
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="margin-top:8px;display:flex;gap:8px;">
+        <input type="text"
+               class="reply-field"
+               placeholder="Write a reply..."
+               style="flex:1;padding:8px;border-radius:18px;border:1px solid #ddd;">
+        <button class="reply-send-btn"
+                data-comment="${commentId}">
+          Send
+        </button>
+      </div>
+    `;
+  }
+
+});
 document.addEventListener("DOMContentLoaded", async function(){
 
   await enforceTalentRole();   // 🔥 FIRST protect role
