@@ -402,6 +402,7 @@ async function loadProfile(){
   const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer "+token}});
   const user=await res.json();
   localStorage.setItem("userId", user._id);
+  localStorage.setItem("profileImage", user.profileImage || "");
 
   document.getElementById("profileCard").innerHTML=`
     <img class="profile-banner" src="${user.bannerImage || 'https://via.placeholder.com/600x120'}">
@@ -808,7 +809,7 @@ async function loadPosts(page = 1){
 
   posts.forEach(post=>{
 
-    const liked = post.likes.includes(localStorage.getItem("userId"));
+    const liked = post.likes?.includes(localStorage.getItem("userId"));
 
     container.innerHTML += `
       <div class="card" id="post-${post._id}">
@@ -828,11 +829,13 @@ async function loadPosts(page = 1){
 
   <div class="dropdown-menu" id="dropdown-${post._id}">
   ${
-    post.author?._id === localStorage.getItem("userId")
+   post.author?._id === localStorage.getItem("userId")
     ? `
       <div onclick="editPost('${post._id}')">Edit</div>
       <div onclick="deletePost('${post._id}')">Delete</div>
       <div onclick="savePost('${post._id}')">Save</div>
+      <div onclick="hidePost('${post._id}')">Hide</div>
+      <div onclick="reportPost('${post._id}')">Report</div>
     `
     : `
       <div onclick="savePost('${post._id}')">Save</div>
@@ -910,23 +913,25 @@ async function loadPosts(page = 1){
 
 <div class="comments-wrapper" id="comments-wrapper-${post._id}" style="display:none;">
 
-  <div class="comments-container" id="comments-${post._id}"></div>
-
   <div class="comment-input-area">
-    <img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+    <img src="${localStorage.getItem("profileImage") || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
          class="comment-avatar">
 
     <input type="text"
            placeholder="Write a comment..."
-           id="comment-input-${post._id}"
-           
+           id="comment-input-${post._id}" />
 
     <button id="send-btn-${post._id}"
-            
             onclick="submitComment('${post._id}')">
       Send
     </button>
   </div>
+
+  <div class="comments-container" id="comments-${post._id}"></div>
+
+  <div id="load-more-${post._id}" style="text-align:center;margin-top:10px;"></div>
+
+</div>
 
 </div>
 
@@ -965,6 +970,8 @@ async function loadPosts(page = 1){
       <div onclick="editPost('${post._id}')">Edit</div>
       <div onclick="deletePost('${post._id}')">Delete</div>
       <div onclick="savePost('${post._id}')">Save</div>
+      <div onclick="hidePost('${post._id}')">Hide</div>
+      <div onclick="reportPost('${post._id}')">Report</div>
     `
     : `
       <div onclick="savePost('${post._id}')">Save</div>
@@ -1039,22 +1046,23 @@ async function loadPosts(page = 1){
 
 <div class="comments-wrapper" id="comments-wrapper-${post._id}" style="display:none;">
 
-  <div class="comments-container" id="comments-${post._id}"></div>
-
   <div class="comment-input-area">
-    <img src="${post.author.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+    <img src="${localStorage.getItem("profileImage") || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
          class="comment-avatar">
 
     <input type="text"
            placeholder="Write a comment..."
-           id="comment-input-${post._id}"
-           
+           id="comment-input-${post._id}" />
 
-   <button id="send-btn-${post._id}"
-        onclick="submitComment('${post._id}')">
-  Send
-</button>
+    <button id="send-btn-${post._id}"
+            onclick="submitComment('${post._id}')">
+      Send
+    </button>
   </div>
+
+  <div class="comments-container" id="comments-${post._id}"></div>
+
+  <div id="load-more-${post._id}" style="text-align:center;margin-top:10px;"></div>
 
 </div>
 
@@ -1130,11 +1138,39 @@ stat.innerText = (current + 1) + " comments";
 
   const post = await res.json();
   const container = document.getElementById("comments-"+postId);
-  container.innerHTML = "";
+  const loadMoreContainer = document.getElementById("load-more-"+postId);
 
-  post.comments.forEach(comment=>{
-    renderComment(postId, comment, container);
-  });
+  container.innerHTML = "";
+  loadMoreContainer.innerHTML = "";
+
+  let visibleCount = 10;
+
+  function renderBatch(){
+    container.innerHTML = "";
+
+    post.comments
+      .slice(0, visibleCount)
+      .forEach(comment=>{
+        renderComment(postId, comment, container);
+      });
+
+    if(post.comments.length > visibleCount){
+      loadMoreContainer.innerHTML = `
+        <button onclick="loadMoreComments('${postId}')">
+          Load more comments
+        </button>
+      `;
+    } else {
+      loadMoreContainer.innerHTML = "";
+    }
+  }
+
+  window.loadMoreComments = function(id){
+    visibleCount += 10;
+    renderBatch();
+  };
+
+  renderBatch();
 }
   function renderComment(postId, comment, parentContainer){
 
