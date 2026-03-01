@@ -825,7 +825,7 @@ async function loadPosts(page = 1){
             </div>
           </div>
           <div class="dropdown">
-  <div onclick="toggleDropdown('${post._id}')">•••</div>
+  <div onclick="toggleDropdown('${post._id}', event)" style="cursor:pointer;">•••</div>
 
   <div class="dropdown-menu" id="dropdown-${post._id}">
   ${
@@ -1385,11 +1385,13 @@ function formatTime(dateString){
 }
   let activeDropdown = null;
 
-function toggleDropdown(id){
+function toggleDropdown(id, event){
+
+  event.stopPropagation(); // 🚀 VERY IMPORTANT
 
   const menu = document.getElementById("dropdown-"+id);
 
-  // Close any other open dropdown
+  // Close other open dropdown
   if(activeDropdown && activeDropdown !== menu){
     activeDropdown.style.display = "none";
   }
@@ -1400,9 +1402,9 @@ function toggleDropdown(id){
   activeDropdown = isOpen ? null : menu;
 }
 
-// Close when clicking outside
-document.addEventListener("click", function(e){
-  if(activeDropdown && !activeDropdown.contains(e.target)){
+// Close dropdown when clicking anywhere outside
+document.addEventListener("click", function(){
+  if(activeDropdown){
     activeDropdown.style.display = "none";
     activeDropdown = null;
   }
