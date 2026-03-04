@@ -426,9 +426,10 @@ body{background:var(--bg);}
 </div>
 
 </div>
-
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
-const API="https://backend-1-9b6f.onrender.com";
+  const API="https://backend-1-9b6f.onrender.com";
+const socket = io(API);
 const token=localStorage.getItem("token");
 if(!token) window.location.href="login.html";
   let currentPage = 1;
@@ -1551,6 +1552,49 @@ stat.innerText = (count + 1) + " comments";
     console.error("Reply failed", err);
   }
 }
+});
+  socket.on("new_comment", data => {
+
+  const container = document.getElementById("comments-"+data.postId);
+
+  if(!container) return;
+
+  // prevent duplicate comment
+  if(container.querySelector(`[data-comment-id="${data.comment._id}"]`)) return;
+
+  renderComment(data.postId, data.comment, container);
+
+});
+  socket.on("new_reply", data => {
+
+  const replyContainer = document.getElementById("replies-"+data.commentId);
+
+  if(!replyContainer) return;
+
+  const reply = data.comment.replies[data.comment.replies.length - 1];
+
+  if(replyContainer.innerHTML.includes(reply._id)) return;
+
+  replyContainer.innerHTML += `
+    <div style="
+      margin-top:8px;
+      padding-left:12px;
+      border-left:2px solid #e6e6e6;
+    ">
+      <strong>${reply.user.name}</strong><br>
+      ${reply.text}
+    </div>
+  `;
+
+});
+  socket.on("post_like", data => {
+
+  const stat = document.querySelector("#post-"+data.postId+" .post-stats div");
+
+  if(!stat) return;
+
+  stat.innerText = data.likes + " reactions";
+
 });
 document.addEventListener("DOMContentLoaded", async function(){
 
