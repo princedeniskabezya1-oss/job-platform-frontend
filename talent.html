@@ -1270,7 +1270,22 @@ async function submitComment(postId){
       </div>
 
       <div class="reply-input-area" id="reply-input-${comment._id}"></div>
-      <div class="reply-line" id="replies-${comment._id}"></div>
+      <div class="reply-line" id="replies-${comment._id}">
+  ${
+    comment.replies && comment.replies.length > 0
+    ? comment.replies.map(reply => `
+      <div style="
+        margin-top:8px;
+        padding-left:12px;
+        border-left:2px solid #e6e6e6;
+      ">
+        <strong>${reply.user?.name || "User"}</strong><br>
+        ${reply.text}
+      </div>
+    `).join("")
+    : ""
+  }
+</div>
 
     </div>
   `;
@@ -1486,11 +1501,15 @@ function reportPost(id){
 container.querySelector(".reply-field").focus();
     }
 /* =========================
-   REPLY SEND FIX
+   REPLY SEND (SAVE TO DB)
 ========================= */
 if(e.target.classList.contains("reply-send-btn")){
 
   const commentId = e.target.dataset.comment;
+  const postId = e.target.closest(".comment-item")
+                       .querySelector(".comment-like-btn")
+                       .dataset.post;
+
   const input = e.target.parentElement.querySelector(".reply-field");
   const text = input.value.trim();
 
@@ -1498,6 +1517,7 @@ if(e.target.classList.contains("reply-send-btn")){
 
   const replyContainer = document.getElementById("replies-"+commentId);
 
+  // Optimistic UI
   replyContainer.innerHTML += `
     <div style="
       margin-top:8px;
@@ -1510,6 +1530,24 @@ if(e.target.classList.contains("reply-send-btn")){
   `;
 
   input.value="";
+
+  try{
+
+    await fetch(
+      API+"/api/posts/"+postId+"/comment/"+commentId+"/reply",
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          Authorization:"Bearer "+token
+        },
+        body:JSON.stringify({ text })
+      }
+    );
+
+  }catch(err){
+    console.error("Reply failed", err);
+  }
 }
 });
 document.addEventListener("DOMContentLoaded", async function(){
