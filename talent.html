@@ -1115,24 +1115,28 @@ async function toggleLike(id, element){
   const icon = element.querySelector("svg");
   const stat = document.querySelector("#post-"+id+" .post-stats div");
 
-  const liked = element.classList.toggle("liked");
-
-  icon.setAttribute("fill", liked ? "#0a66c2" : "none");
-
-  // Optimistic count update
-  let current = parseInt(stat.innerText.split(" ")[0]) || 0;
-  stat.innerText = (liked ? current + 1 : current - 1) + " reactions";
-
   try {
-    await fetch(API+"/api/posts/"+id+"/like",{
+
+    const res = await fetch(API+"/api/posts/"+id+"/like",{
       method:"PATCH",
       headers:{ Authorization:"Bearer "+token }
     });
+
+    const data = await res.json();
+
+    const liked = element.classList.toggle("liked");
+
+    icon.setAttribute("fill", liked ? "#0a66c2" : "none");
+
+    // 🔥 use real server value
+    stat.innerText = data.likes + " reactions";
+
   } catch(err){
-    // rollback if failed
-    element.classList.toggle("liked");
-    icon.setAttribute("fill", !liked ? "#0a66c2" : "none");
+
+    console.error("Like failed", err);
+
   }
+
 }
 
 function toggleCommentBox(postId){
