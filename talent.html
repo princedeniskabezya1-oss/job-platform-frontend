@@ -1128,17 +1128,19 @@ async function toggleLike(id, element){
 
     const data = await res.json();
 
-    const liked = element.classList.toggle("liked");
+    // 🔥 USE SERVER RESPONSE
+    if(data.liked){
+      element.classList.add("liked");
+      icon.setAttribute("fill","#0a66c2");
+    }else{
+      element.classList.remove("liked");
+      icon.setAttribute("fill","none");
+    }
 
-    icon.setAttribute("fill", liked ? "#0a66c2" : "none");
-
-    // 🔥 use real server value
     stat.innerText = data.likes + " reactions";
 
   } catch(err){
-
     console.error("Like failed", err);
-
   }
 
 }
