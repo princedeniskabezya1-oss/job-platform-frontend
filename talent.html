@@ -901,7 +901,7 @@ async function loadPosts(page = 1){
   <div>${post.likes.length} reactions</div>
   <div style="cursor:pointer;"
      onclick="toggleCommentBox('${post._id}')">
-  ${post.comments.length} comments
+  ${post.comments.reduce((total,c)=> total + 1 + (c.replies?.length || 0),0)} comments
 </div>
 </div>
 
@@ -1037,7 +1037,7 @@ async function loadPosts(page = 1){
         <div>${post.likes?.length || 0} reactions</div>
         <div style="cursor:pointer;"
      onclick="toggleCommentBox('${post._id}')">
-  0 comments
+  ${post.comments?.reduce((t,c)=> t + 1 + (c.replies?.length || 0),0) || 0} comments
 </div>
       </div>
 
@@ -1528,7 +1528,9 @@ if(e.target.classList.contains("reply-send-btn")){
       ${text}
     </div>
   `;
-
+const stat = document.querySelector("#post-"+postId+" .post-stats div:nth-child(2)");
+let count = parseInt(stat.innerText) || 0;
+stat.innerText = (count + 1) + " comments";
   input.value="";
 
   try{
