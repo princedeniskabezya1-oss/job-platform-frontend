@@ -1230,6 +1230,7 @@ async function submitComment(postId){
   const div = document.createElement("div");
   div.className = "comment-item";
   div.dataset.commentId = comment._id;
+div.setAttribute("data-comment-id", comment._id);
 
   div.innerHTML = `
     <img src="${comment.user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
@@ -1558,11 +1559,15 @@ stat.innerText = (count + 1) + " comments";
 });
   socket.on("new_comment", data => {
 
-  // ignore your own comment
   if(data.sender === localStorage.getItem("userId")) return;
 
   const container = document.getElementById("comments-"+data.postId);
   if(!container) return;
+
+  // 🔥 prevent duplicate comments
+  if(container.querySelector(`[data-comment-id="${data.comment._id}"]`)){
+    return;
+  }
 
   renderComment(data.postId, data.comment, container);
 
