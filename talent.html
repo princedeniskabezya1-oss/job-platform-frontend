@@ -1559,11 +1559,14 @@ stat.innerText = (count + 1) + " comments";
   socket.on("new_comment", data => {
 
   const container = document.getElementById("comments-"+data.postId);
-
   if(!container) return;
 
-  // prevent duplicate comment
-  if(container.querySelector(`[data-comment-id="${data.comment._id}"]`)) return;
+  // 🔥 safer duplicate protection
+  const exists = [...container.children].some(
+    el => el.dataset.commentId === data.comment._id
+  );
+
+  if(exists) return;
 
   renderComment(data.postId, data.comment, container);
 
