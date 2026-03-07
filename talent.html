@@ -1268,11 +1268,11 @@ div.setAttribute("data-comment-id", comment._id);
       </div>
 
       <div class="reply-input-area" id="reply-input-${comment._id}"></div>
-      <div class="reply-line" id="replies-${comment._id}">
-  ${
-    comment.replies && comment.replies.length > 0
-    ? comment.replies.map(reply => `
-      <div style="
+     <div class="reply-line" id="replies-${comment._id}">
+${
+  comment.replies && comment.replies.length > 0
+  ? comment.replies.map(reply => `
+      <div data-reply-id="${reply._id}" style="
         margin-top:8px;
         padding-left:12px;
         border-left:2px solid #e6e6e6;
@@ -1280,9 +1280,9 @@ div.setAttribute("data-comment-id", comment._id);
         <strong>${reply.user?.name || "User"}</strong><br>
         ${reply.text}
       </div>
-    `).join("")
-    : ""
-  }
+  `).join("")
+  : ""
+}
 </div>
 
     </div>
@@ -1524,15 +1524,15 @@ if(e.target.classList.contains("reply-send-btn")){
 
   // Optimistic UI
   replyContainer.innerHTML += `
-    <div style="
-      margin-top:8px;
-      padding-left:12px;
-      border-left:2px solid #e6e6e6;
-    ">
-      <strong>You</strong><br>
-      ${text}
-    </div>
-  `;
+  <div data-reply-id="temp-${Date.now()}" style="
+    margin-top:8px;
+    padding-left:12px;
+    border-left:2px solid #e6e6e6;
+  ">
+    <strong>You</strong><br>
+    ${text}
+  </div>
+`;
 const stat = document.querySelector("#post-"+postId+" .post-stats div:nth-child(2)");
 let count = parseInt(stat.innerText) || 0;
 stat.innerText = (count + 1) + " comments";
@@ -1557,22 +1557,24 @@ stat.innerText = (count + 1) + " comments";
   }
 }
 });
-  socket.on("new_comment", data => {
-
-  if(data.sender === localStorage.getItem("userId")) return;
+socket.on("new_comment", data => {
 
   const container = document.getElementById("comments-"+data.postId);
   if(!container) return;
 
-  // 🔥 prevent duplicate comments
   if(container.querySelector(`[data-comment-id="${data.comment._id}"]`)){
     return;
   }
 
   renderComment(data.postId, data.comment, container);
 
+  const stat = document.querySelector("#post-"+data.postId+" .post-stats div:nth-child(2)");
+  if(stat){
+    stat.innerText = data.totalComments + " comments";
+  }
+
 });
-  socket.on("new_reply", data => {
+ socket.on("new_reply", data => {
 
   const replyContainer = document.getElementById("replies-"+data.commentId);
 
@@ -1580,10 +1582,13 @@ stat.innerText = (count + 1) + " comments";
 
   const reply = data.comment.replies[data.comment.replies.length - 1];
 
-  if(replyContainer.innerHTML.includes(reply._id)) return;
+  // prevent duplicate replies
+  if(replyContainer.querySelector(`[data-reply-id="${reply._id}"]`)){
+    return;
+  }
 
   replyContainer.innerHTML += `
-    <div style="
+    <div data-reply-id="${reply._id}" style="
       margin-top:8px;
       padding-left:12px;
       border-left:2px solid #e6e6e6;
