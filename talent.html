@@ -337,7 +337,7 @@ body{background:var(--bg);}
 .post-header{
   display:flex;
   justify-content:space-between;
-  align-items:flex-start;
+  align-items:center;
   padding:16px;
 }
 
@@ -455,7 +455,22 @@ body{background:var(--bg);}
   top:100px;
   height:fit-content;
 }
- 
+ .follow-btn{
+  background:white;
+  border:1px solid #0a66c2;
+  color:#0a66c2;
+  padding:6px 14px;
+  border-radius:20px;
+  font-size:13px;
+  cursor:pointer;
+  font-weight:600;
+  transition:0.2s;
+}
+
+.follow-btn:hover{
+  background:#0a66c2;
+  color:white;
+}
 </style>
 </head>
 
@@ -1037,16 +1052,42 @@ async function loadPosts(page = 1){
     container.innerHTML += `
       <div class="card" id="post-${post._id}">
 
-        <div class="post-header">
-      <div class="post-author" onclick="visitProfile('${post.author?._id}')">
-  <img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
-  <div>
-    <div><b>${post.author?.name}</b></div>
-    <div class="post-meta">
-      ${post.author?.headline || ""} • ${formatTime(post.createdAt)}
-    </div>
+       <div class="post-header">
+
+<div class="post-author" onclick="visitProfile('${post.author?._id}')">
+
+<img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+
+<div>
+  <div style="font-weight:600;">${post.author?.name}</div>
+
+  <div class="post-meta">
+    ${post.author?.headline || ""}
+  </div>
+
+  <div style="font-size:12px;color:#6f6f6f;">
+    ${(post.author?.followers?.length || 0)} followers • ${formatTime(post.createdAt)}
   </div>
 </div>
+
+</div>
+
+<div style="display:flex;align-items:center;gap:10px;">
+
+${
+post.author?._id !== localStorage.getItem("userId")
+? `<button class="follow-btn"
+     onclick="followFromFeed('${post.author._id}', this)">
+     Follow
+   </button>`
+: ""
+}
+
+<div class="dropdown">
+
+<div onclick="toggleDropdown('${post._id}', event)" style="cursor:pointer;">•••</div>
+
+<div class="dropdown-menu" id="dropdown-${post._id}">
           <div class="dropdown">
   <div onclick="toggleDropdown('${post._id}', event)" style="cursor:pointer;">•••</div>
 
