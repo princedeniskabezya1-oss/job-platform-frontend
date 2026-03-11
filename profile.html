@@ -62,8 +62,11 @@ body{
 
 /* CONTAINER */
 .container{
-  max-width:900px;
-  margin:40px auto;
+  display:grid;
+  grid-template-columns:260px 1fr 300px;
+  gap:20px;
+  max-width:1200px;
+  margin:30px auto;
 }
 
 /* CARD */
@@ -72,6 +75,38 @@ body{
   border-radius:12px;
   box-shadow:0 4px 20px rgba(0,0,0,0.05);
   overflow:hidden;
+}
+  .profile-card{
+  text-align:center;
+  padding:25px 20px;
+}
+
+.profile-avatar{
+  width:90px;
+  height:90px;
+  border-radius:50%;
+  object-fit:cover;
+  margin-bottom:10px;
+}
+
+.profile-name{
+  font-weight:600;
+  font-size:18px;
+}
+
+.profile-stats{
+  margin-top:10px;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.profile-btn{
+  margin-top:15px;
+  padding:8px 16px;
+  border-radius:20px;
+  border:1px solid var(--border);
+  background:white;
+  cursor:pointer;
 }
 
 /* BANNER */
@@ -166,7 +201,42 @@ textarea{
   cursor:pointer;
   font-weight:600;
 }
+.profile-header{
+  position:relative;
+}
 
+.banner-preview{
+  width:100%;
+  height:220px;
+  object-fit:cover;
+}
+
+.profile-wrapper{
+  position:absolute;
+  bottom:-50px;
+  left:30px;
+}
+
+.profile-preview{
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  border:5px solid white;
+  object-fit:cover;
+}
+
+.profile-info{
+  padding:70px 30px 20px 30px;
+}
+
+.profile-info h2{
+  font-size:24px;
+}
+
+.profile-headline{
+  color:var(--muted);
+  margin-top:5px;
+}
 /* RESPONSIVE */
 @media(max-width:768px){
   .profile-wrapper{
@@ -194,7 +264,91 @@ textarea{
 
 <!-- PROFILE EDIT -->
 <div class="container">
-  <div class="card">
+
+<!-- LEFT SIDEBAR -->
+<div class="card profile-card">
+
+  <img id="profilePreview" class="profile-avatar">
+
+  <div class="profile-name" id="sideName">User</div>
+
+  <div class="profile-stats">
+    <div id="followersCount">0 Followers</div>
+    <div id="followingCount">0 Following</div>
+  </div>
+
+  <button class="profile-btn">Message</button>
+
+</div>
+
+<!-- CENTER PROFILE -->
+<div class="card">
+
+  <div class="profile-header">
+
+    <img id="bannerPreview" class="banner-preview">
+
+    <div class="profile-wrapper">
+      <img id="profilePreviewLarge" class="profile-preview">
+    </div>
+
+  </div>
+
+  <div class="profile-info">
+
+    <h2 id="name"></h2>
+
+    <div class="profile-headline" id="headline"></div>
+
+  </div>
+
+  <div class="content">
+
+    <div class="section">
+      <h3>About</h3>
+      <textarea id="bio"></textarea>
+    </div>
+
+    <div class="section">
+      <h3>Location</h3>
+      <input id="location">
+    </div>
+
+    <div class="section">
+      <h3>Website</h3>
+      <input id="website">
+    </div>
+
+    <div class="section">
+      <h3>Update Images</h3>
+      <input type="file" id="bannerInput">
+      <input type="file" id="profileInput">
+    </div>
+
+    <button class="save-btn" onclick="saveProfile()">Save Changes</button>
+
+  </div>
+
+</div>
+
+<!-- RIGHT SIDEBAR -->
+<div class="card" style="padding:20px">
+
+  <h3>Profile Tools</h3>
+
+  <div style="margin-top:15px">
+
+    <button class="profile-btn">Change Profile Photo</button><br><br>
+    <button class="profile-btn">Add Experience</button><br><br>
+    <button class="profile-btn">Add Education</button><br><br>
+    <button class="profile-btn">Add Skill</button><br><br>
+    <button class="profile-btn">Edit Headline</button>
+
+  </div>
+
+</div>
+
+</div>
 
     <!-- Banner -->
     <div class="banner-section">
@@ -318,8 +472,13 @@ async function loadProfile(){
   document.getElementById("bannerPreview").src =
     user.bannerImage || "https://via.placeholder.com/900x220";
 
-  document.getElementById("profilePreview").src =
-    user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+document.getElementById("profilePreview").src =
+  user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+document.getElementById("profilePreviewLarge").src =
+  user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+document.getElementById("sideName").innerText = user.name || "";
 
   // Text fields
   document.getElementById("name").value = user.name || "";
