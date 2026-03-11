@@ -1026,7 +1026,7 @@ async function loadPosts(page = 1){
 
   if(noMorePosts) return;
 
-  const res = await fetch(API+"/api/posts?page="+page,{
+  const res = await fetch(API+"/api/posts/feed?page="+page,{
     headers:{ Authorization:"Bearer "+token }
   });
 
@@ -1076,9 +1076,9 @@ async function loadPosts(page = 1){
 ${
 post.author?._id !== localStorage.getItem("userId")
 ? `<button class="follow-btn"
-     onclick="followFromFeed('${post.author._id}', this)">
-     Follow
-   </button>`
+onclick="followFromFeed('${post.author._id}', this)">
+Follow
+</button>`
 : ""
 }
 
@@ -1546,6 +1546,20 @@ async function connectUser(id){
   });
   loadSuggestions();
 }
+  async function followFromFeed(userId, button){
+
+  const res = await fetch(API+"/api/users/"+userId+"/follow",{
+    method:"PATCH",
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  if(res.ok){
+    button.innerText = "Following";
+    button.style.background = "#0a66c2";
+    button.style.color = "white";
+  }
+
+}
 async function loadMessageCount(){
   const res = await fetch(API + "/api/messages/unread/count",{
     headers:{ Authorization:"Bearer "+token }
@@ -1806,6 +1820,7 @@ if(e.target.classList.contains("reply-send-btn")){
   if(!text) return;
 
   const replyContainer = document.getElementById("replies-"+commentId);
+  replyContainer.style.display = "block";
 
   // Optimistic UI
 const tempId = "temp-" + Date.now();
