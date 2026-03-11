@@ -84,11 +84,16 @@ body{background:var(--bg);}
   white-space:pre-wrap;
 }
 
+.post-media{
+  padding:0 16px 10px 16px;
+}
+
 .post-media img,
 .post-media video{
   width:100%;
   max-height:500px;
   object-fit:cover;
+  border-radius:10px;
 }
 
 .post-stats{
@@ -338,6 +343,7 @@ body{background:var(--bg);}
   display:flex;
   justify-content:space-between;
   align-items:flex-start;
+  padding:14px 16px 10px 16px;
 }
 
 .post-content{
@@ -1043,7 +1049,9 @@ async function loadPosts(page = 1){
   }
 
   posts.forEach(post=>{
-
+const isFollowing = post.author?.followers?.some(
+  id => id.toString() === localStorage.getItem("userId")
+);
     const liked = post.likes?.some(
   id => id.toString() === localStorage.getItem("userId")
 );
@@ -1074,10 +1082,10 @@ async function loadPosts(page = 1){
 <div style="display:flex;align-items:center;gap:10px;">
 
 ${
-post.author?._id !== localStorage.getItem("userId")
+String(post.author?._id) !== String(localStorage.getItem("userId"))
 ? `<button class="follow-btn"
 onclick="followFromFeed('${post.author._id}', this)">
-Follow
+${isFollowing ? "Following" : "Follow"}
 </button>`
 : ""
 }
@@ -1546,17 +1554,29 @@ async function connectUser(id){
   });
   loadSuggestions();
 }
-  async function followFromFeed(userId, button){
+async function followFromFeed(userId, button){
 
   const res = await fetch(API+"/api/users/"+userId+"/follow",{
     method:"PATCH",
     headers:{ Authorization:"Bearer "+token }
   });
 
-  if(res.ok){
+  if(!res.ok) return;
+
+  const data = await res.json();
+
+  if(data.following){
+
     button.innerText = "Following";
     button.style.background = "#0a66c2";
     button.style.color = "white";
+
+  } else {
+
+    button.innerText = "Follow";
+    button.style.background = "white";
+    button.style.color = "#0a66c2";
+
   }
 
 }
