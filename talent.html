@@ -1048,8 +1048,8 @@ async function loadPosts(page = 1){
   }
 
   posts.forEach(post=>{
-const isFollowing = post.author?.followers?.some(
-  id => id.toString() === localStorage.getItem("userId")
+const isFollowing = (post.author?.followers || []).some(
+  id => String(id) === String(localStorage.getItem("userId"))
 );
     const liked = post.likes?.some(
   id => id.toString() === localStorage.getItem("userId")
@@ -1083,7 +1083,8 @@ const isFollowing = post.author?.followers?.some(
 ${
 String(post.author?._id) !== String(localStorage.getItem("userId"))
 ? `<button class="follow-btn"
-onclick="followFromFeed('${post.author._id}', this)">
+onclick="followFromFeed('${post.author._id}', this)"
+data-user="${post.author._id}">
 ${isFollowing ? "Following" : "Follow"}
 </button>`
 : ""
@@ -1564,19 +1565,27 @@ async function followFromFeed(userId, button){
 
   const data = await res.json();
 
-  if(data.following){
+  const buttons = document.querySelectorAll(
+    `button[onclick*="${userId}"]`
+  );
 
-    button.innerText = "Following";
-    button.style.background = "#0a66c2";
-    button.style.color = "white";
+  buttons.forEach(btn=>{
 
-  } else {
+    if(data.following){
 
-    button.innerText = "Follow";
-    button.style.background = "white";
-    button.style.color = "#0a66c2";
+      btn.innerText = "Following";
+      btn.style.background = "#0a66c2";
+      btn.style.color = "white";
 
-  }
+    }else{
+
+      btn.innerText = "Follow";
+      btn.style.background = "white";
+      btn.style.color = "#0a66c2";
+
+    }
+
+  });
 
 }
 async function loadMessageCount(){
@@ -1922,7 +1931,22 @@ socket.on("new_comment", data => {
       ${reply.text}
     </div>
   `;
+// update reply counter
+const commentElement = document.querySelector(
+  `[data-comment-id="${data.commentId}"]`
+);
 
+if(commentElement){
+
+  const toggle = commentElement.querySelector(
+    `[onclick="toggleReplies('${data.commentId}')"]`
+  );
+
+  if(toggle){
+    toggle.innerText = `View replies (${data.comment.replies.length})`;
+  }
+
+}
   // update comment counter
   const stat = document.querySelector("#post-"+data.postId+" .post-stats div:nth-child(2)");
   if(stat){
