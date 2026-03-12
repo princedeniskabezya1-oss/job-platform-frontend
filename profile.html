@@ -219,11 +219,91 @@ body{
   margin-bottom:15px;
   font-size:14px;
 }
+.timeline{
+  position:relative;
+  padding-left:30px;
+}
 
+.timeline::before{
+  content:"";
+  position:absolute;
+  left:10px;
+  top:0;
+  bottom:0;
+  width:2px;
+  background:#e0e0e0;
+}
+
+.timeline-item{
+  position:relative;
+  margin-bottom:20px;
+}
+
+.timeline-item::before{
+  content:"";
+  position:absolute;
+  left:-21px;
+  top:6px;
+  width:12px;
+  height:12px;
+  background:#0a66c2;
+  border-radius:50%;
+}
+
+.timeline-role{
+  font-weight:600;
+}
+
+.timeline-company{
+  font-size:13px;
+  color:#6f6f6f;
+}
+
+.timeline-date{
+  font-size:12px;
+  color:#999;
+}
 textarea{
   resize:none;
 }
+.education-card{
+  display:flex;
+  gap:12px;
+  padding:12px;
+  border:1px solid #e6e6e6;
+  border-radius:10px;
+  margin-bottom:10px;
+}
 
+.education-logo{
+  width:40px;
+  height:40px;
+  border-radius:6px;
+  background:#f3f6f9;
+}
+
+.education-info{
+  font-size:14px;
+}
+  .skill{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px;
+  border:1px solid #e6e6e6;
+  border-radius:20px;
+  margin-bottom:8px;
+}
+
+.skill button{
+  background:#0a66c2;
+  color:white;
+  border:none;
+  border-radius:20px;
+  padding:4px 10px;
+  font-size:12px;
+  cursor:pointer;
+}
 /* FILE INPUT */
 .file-input{
   margin-bottom:20px;
@@ -399,26 +479,68 @@ Logout
 
 <div class="section-card">
 <h3>Experience</h3>
-<div id="experienceList">No experience added</div>
-<button class="profile-btn">Add Experience</button>
+
+<div class="timeline" id="experienceList">
+
+<div class="timeline-item">
+<div class="timeline-role">Frontend Developer</div>
+<div class="timeline-company">AIFT Talent</div>
+<div class="timeline-date">2024 – Present</div>
 </div>
+
+</div>
+
+<button class="profile-btn">Add Experience</button>
 
 <div class="section-card">
 <h3>Education</h3>
-<div id="educationList">No education added</div>
+<div id="educationList">
+
+<div class="education-card">
+
+<div class="education-logo"></div>
+
+<div class="education-info">
+<b>University of Technology</b><br>
+Computer Science<br>
+2019 – 2023
+</div>
+
+</div>
+
+</div>
 <button class="profile-btn">Add Education</button>
 </div>
 
 <div class="section-card">
 <h3>Skills</h3>
-<div id="skillsList">No skills added</div>
+<div id="skillsList">
+
+<div class="skill">
+<span>JavaScript</span>
+<button onclick="endorseSkill(this)">+1</button>
+</div>
+
+<div class="skill">
+<span>Node.js</span>
+<button onclick="endorseSkill(this)">+1</button>
+</div>
+
+<div class="skill">
+<span>UI Design</span>
+<button onclick="endorseSkill(this)">+1</button>
+</div>
+
+</div>
 <button class="profile-btn">Add Skill</button>
   
 </div>
-  <div class="section-card">
+<div class="section-card">
+
 <h3>Recent Activity</h3>
-<div id="activityList">
-User posts and engagement will appear here
+
+<div id="activityList"></div>
+
 </div>
 </div>
 
@@ -524,7 +646,55 @@ async function saveProfile(){
     alert("Profile update failed");
   }
 }
+  async function loadActivity(){
 
+const userId = localStorage.getItem("userId");
+
+const res = await fetch(API+"/api/posts/user/"+userId,{
+headers:{Authorization:"Bearer "+token}
+});
+
+if(!res.ok) return;
+
+const posts = await res.json();
+
+const container = document.getElementById("activityList");
+
+container.innerHTML="";
+
+posts.slice(0,3).forEach(post=>{
+
+container.innerHTML += `
+<div style="
+border:1px solid #e6e6e6;
+border-radius:10px;
+padding:12px;
+margin-bottom:10px;
+">
+
+<div style="font-size:14px;">
+${post.content || "Shared a post"}
+</div>
+
+<div style="font-size:12px;color:#6f6f6f;margin-top:5px;">
+${post.likes.length} reactions • ${post.comments.length} comments
+</div>
+
+</div>
+`;
+
+});
+
+}
+function endorseSkill(btn){
+
+let count = parseInt(btn.dataset.count || 0);
+count++;
+
+btn.dataset.count = count;
+btn.innerText = "+ " + count;
+
+}
 /* LOGOUT */
 function logout(){
   localStorage.clear();
@@ -565,6 +735,7 @@ document.getElementById("sideName").innerText = user.name || "";
 }
   document.addEventListener("DOMContentLoaded", function(){
   loadProfile();
+loadActivity();
 });
 </script>
 
