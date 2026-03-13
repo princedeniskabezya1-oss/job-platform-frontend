@@ -144,8 +144,11 @@ cursor:pointer;
 <div class="logo">AIFT</div>
 
 <div>
-<a href="feed.html">Home</a>
-<a href="profile.html">Profile</a>
+
+<button onclick="goHome()">Home</button>
+
+<button onclick="openPublicProfile()">Public Profile</button>
+
 </div>
 
 </header>
@@ -199,6 +202,7 @@ cursor:pointer;
 <br><br>
 
 <button id="editBtn">Edit Profile</button>
+<button onclick="openPublicProfile()">View Public Profile</button>
 
 </div>
 
@@ -391,8 +395,20 @@ location.innerText=user.location||""
 
 bio.innerText=user.bio||""
 
-website.innerText=user.website||""
-website.href=user.website||"#"
+if(user.website){
+
+website.innerText=user.website
+
+website.href=user.website.startsWith("http")
+? user.website
+: "https://"+user.website
+
+}else{
+
+website.innerText=""
+website.href="#"
+
+}
 
 profileImage.src=user.profileImage||""
 bannerImage.src=user.bannerImage||""
@@ -568,7 +584,9 @@ skillsList.appendChild(span)
 
 async function loadActivity(id){
 
-const res=await fetch(API+"/api/posts/user/"+id)
+const res=await fetch(API+"/api/posts/user/"+id,{
+headers:{Authorization:"Bearer "+token}
+})
 
 const posts=await res.json()
 
@@ -625,6 +643,60 @@ bio:editBio.value
 
 }
 
+await fetch(API+"/api/users/profile",{
+
+method:"PATCH",
+
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+
+body:JSON.stringify(body)
+
+})
+
+editModal.style.display="none"
+
+loadProfile()
+
+}
+  function goHome(){
+
+fetch(API+"/api/users/me",{
+headers:{Authorization:"Bearer "+token}
+})
+.then(res=>res.json())
+.then(user=>{
+
+if(user.role==="employer"){
+
+window.location.href="employer.html"
+
+}else{
+
+window.location.href="talent.html"
+
+}
+
+})
+
+}
+
+function openPublicProfile(){
+
+if(!currentUser) return
+
+window.location.href="public-profile.html?id="+currentUser._id
+
+}
+  function openPublicProfile(){
+
+if(!currentUser) return
+
+window.location.href="public-profile.html?id="+currentUser._id
+
+}
 await fetch(API+"/api/users/profile",{
 
 method:"PATCH",
