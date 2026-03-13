@@ -548,7 +548,7 @@ const list=currentUser.experience||[]
 
 list.push(exp)
 
-await fetch(API+"/api/users/profile",{
+const res = await fetch(API+"/api/users/profile",{
 method:"PATCH",
 headers:{
 "Content-Type":"application/json",
@@ -556,6 +556,13 @@ Authorization:"Bearer "+token
 },
 body:JSON.stringify({experience:list})
 })
+
+const data = await res.json()
+
+currentUser.experience = list
+
+renderExperience(list)
+updateProfileStrength(currentUser)
 
 expModal.style.display="none"
 
@@ -597,7 +604,7 @@ const list=currentUser.education||[]
 
 list.push(edu)
 
-await fetch(API+"/api/users/profile",{
+const res = await fetch(API+"/api/users/profile",{
 method:"PATCH",
 headers:{
 "Content-Type":"application/json",
@@ -605,6 +612,13 @@ Authorization:"Bearer "+token
 },
 body:JSON.stringify({education:list})
 })
+
+const data = await res.json()
+
+currentUser.education = list
+
+renderEducation(list)
+updateProfileStrength(currentUser)
 
 eduModal.style.display="none"
 
@@ -637,7 +651,15 @@ activityList.appendChild(div)
 /* EDIT PROFILE */
 
 editBtn.onclick=()=>{
+
 editModal.style.display="flex"
+
+editName.value=currentUser.name||""
+editHeadline.value=currentUser.headline||""
+editLocation.value=currentUser.location||""
+editWebsite.value=currentUser.website||""
+editBio.value=currentUser.bio||""
+
 }
 
 /* SAVE PROFILE */
@@ -645,14 +667,16 @@ editModal.style.display="flex"
 async function saveProfile(){
 
 const body={
-name:editName.value,
-headline:editHeadline.value,
-location:editLocation.value,
-website:editWebsite.value,
-bio:editBio.value
+name:editName.value.trim(),
+headline:editHeadline.value.trim(),
+location:editLocation.value.trim(),
+website:editWebsite.value.trim(),
+bio:editBio.value.trim()
 }
 
-await fetch(API+"/api/users/profile",{
+try{
+
+const res = await fetch(API+"/api/users/profile",{
 method:"PATCH",
 headers:{
 "Content-Type":"application/json",
@@ -661,9 +685,22 @@ Authorization:"Bearer "+token
 body:JSON.stringify(body)
 })
 
+const updatedUser = await res.json()
+
+/* update UI immediately */
+
+currentUser = {...currentUser, ...body}
+
+renderProfile(currentUser)
+
 editModal.style.display="none"
 
-loadProfile()
+}catch(err){
+
+console.error(err)
+alert("Failed to update profile")
+
+}
 
 }
 window.onclick=function(e){
