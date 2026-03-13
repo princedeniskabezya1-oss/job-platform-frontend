@@ -133,7 +133,11 @@ height:100%;
 background:#0a66c2;
 border-radius:10px;
 }
-
+.quick-actions{
+display:flex;
+flex-direction:column;
+gap:10px;
+}
 /* MODAL */
 
 .modal{
@@ -309,13 +313,31 @@ Change Banner
 </div>
 
 <div class="card">
+
+<div class="section-header">
+
 <h2>Skills</h2>
+
+<button class="icon-btn" onclick="openSkillModal()">+</button>
+
+</div>
+
 <div id="skillsList"></div>
+
 </div>
 
 <div class="card">
-<h2>Recent Activity</h2>
+
+<div class="section-header">
+
+<h2>Activity</h2>
+
+<button class="icon-btn" onclick="createPost()">+</button>
+
+</div>
+
 <div id="activityList"></div>
+
 </div>
 
 </main>
@@ -338,8 +360,17 @@ Change Banner
 
 <h3>Quick Actions</h3>
 
-<button onclick="openExperience()">Add Experience</button>
-<button onclick="openEducation()">Add Education</button>
+<div class="quick-actions">
+
+<button onclick="openExperience()">+ Experience</button>
+
+<button onclick="openEducation()">+ Education</button>
+
+<button onclick="openSkillModal()">+ Skill</button>
+
+<button onclick="editBtn.click()">Edit Profile</button>
+
+</div>
 
 </div>
 
@@ -390,6 +421,8 @@ Change Banner
 
 <!-- EDUCATION MODAL -->
 
+<!-- EDUCATION MODAL -->
+
 <div id="eduModal" class="modal">
 
 <div class="modal-content">
@@ -405,6 +438,23 @@ Change Banner
 </div>
 
 </div>
+
+<!-- SKILL MODAL -->
+
+<div id="skillModal" class="modal">
+
+<div class="modal-content">
+
+<h2>Add Skill</h2>
+
+<input id="skillInput" placeholder="Skill name">
+
+<button onclick="saveSkill()">Save</button>
+
+</div>
+
+</div>
+  
 
 <script>
 
@@ -440,6 +490,7 @@ const editBtn=document.getElementById("editBtn")
 const editModal=document.getElementById("editModal")
 const expModal=document.getElementById("expModal")
 const eduModal=document.getElementById("eduModal")
+  const skillModal=document.getElementById("skillModal")
 
 /* LOAD PROFILE */
 
@@ -678,6 +729,9 @@ div.className="activity-card"
 
 div.innerHTML=`
 <p>${p.content || ""}</p>
+<div style="font-size:13px;color:#666;margin-top:6px;">
+👍 ${p.likes?.length || 0}   💬 ${p.comments?.length || 0}
+</div>
 `
 
 activityList.appendChild(div)
@@ -751,11 +805,9 @@ alert("Failed to update profile")
 }
 window.onclick=function(e){
 
-if(e.target===editModal) editModal.style.display="none"
-
-if(e.target===expModal) expModal.style.display="none"
-
-if(e.target===eduModal) eduModal.style.display="none"
+if(e.target.classList.contains("modal")){
+e.target.style.display="none"
+}
 
 }
 /* NAVIGATION */
@@ -767,7 +819,46 @@ window.location.href="talent.html"
 function openPublicProfile(){
 window.location.href="public-profile.html?id="+currentUser._id
 }
+function openSkillModal(){
+skillModal.style.display="flex"
+}
+  function closeEdit(){
+editModal.style.display="none"
+}
 
+async function saveSkill(){
+
+const skill=skillInput.value
+
+if(!skill) return
+
+const list=currentUser.skills || []
+
+list.push(skill)
+
+await fetch(API+"/api/users/profile",{
+method:"PATCH",
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+body:JSON.stringify({skills:list})
+})
+
+skillModal.style.display="none"
+
+currentUser.skills=list
+
+renderSkills(list)
+
+updateProfileStrength(currentUser)
+
+}
+  function createPost(){
+
+window.location.href="talent.html"
+
+}
 /* START */
 
 loadProfile()
