@@ -209,6 +209,11 @@ font-size:13px;
 .skill-tag:hover{
 background:#dce6f1;
 }
+  .activity-card{
+border-bottom:1px solid #eee;
+padding:12px 0;
+font-size:14px;
+}
 </style>
 
 </head>
@@ -309,7 +314,7 @@ Change Banner
 </div>
 
 <div class="card">
-<h2>Activity</h2>
+<h2>Recent Activity</h2>
 <div id="activityList"></div>
 </div>
 
@@ -405,6 +410,13 @@ Change Banner
 
 const API="https://backend-1-9b6f.onrender.com"
 const token=localStorage.getItem("token")
+  if(!token){
+
+console.warn("No token found, redirecting to login")
+
+window.location.href="login.html"
+
+}
 
 let currentUser=null
 
@@ -630,9 +642,31 @@ loadProfile()
 
 async function loadActivity(id){
 
-const res=await fetch(API+"/api/posts/user/"+id)
+try{
 
-const posts=await res.json()
+const res = await fetch(API+"/api/posts/user/"+id,{
+headers:{
+Authorization:"Bearer "+token
+}
+})
+
+if(!res.ok){
+
+console.error("Failed to load posts")
+activityList.innerHTML="<p>No activity yet</p>"
+return
+
+}
+
+const posts = await res.json()
+
+if(!Array.isArray(posts)){
+
+console.error("Posts response is not array:", posts)
+activityList.innerHTML="<p>No activity yet</p>"
+return
+
+}
 
 activityList.innerHTML=""
 
@@ -640,11 +674,23 @@ posts.forEach(p=>{
 
 const div=document.createElement("div")
 
-div.innerHTML=`<p>${p.content}</p>`
+div.className="activity-card"
+
+div.innerHTML=`
+<p>${p.content || ""}</p>
+`
 
 activityList.appendChild(div)
 
 })
+
+}catch(err){
+
+console.error("Activity load error:",err)
+
+activityList.innerHTML="<p>Unable to load activity</p>"
+
+}
 
 }
 
