@@ -164,7 +164,51 @@ padding:10px;
 border:1px solid #ccc;
 border-radius:6px;
 }
+.section-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+}
 
+.icon-btn{
+background:#0a66c2;
+color:white;
+border:none;
+border-radius:50%;
+width:32px;
+height:32px;
+font-size:18px;
+cursor:pointer;
+}
+
+.experience-card{
+border-left:3px solid #0a66c2;
+padding-left:15px;
+margin-bottom:15px;
+}
+
+.company{
+font-weight:600;
+}
+
+.date{
+font-size:13px;
+color:#666;
+}
+
+.skill-tag{
+display:inline-block;
+background:#eef3f8;
+padding:6px 12px;
+border-radius:20px;
+margin:4px;
+font-size:13px;
+}
+
+.skill-tag:hover{
+background:#dce6f1;
+}
 </style>
 
 </head>
@@ -236,15 +280,27 @@ Change Banner
 </div>
 
 <div class="card">
+<div class="section-header">
+
 <h2>Experience</h2>
+
+<button class="icon-btn" onclick="openExperience()">+</button>
+
+</div>
+
 <div id="experienceList"></div>
-<button onclick="openExperience()">Add Experience</button>
 </div>
 
 <div class="card">
+<div class="section-header">
+
 <h2>Education</h2>
+
+<button class="icon-btn" onclick="openEducation()">+</button>
+
+</div>
+
 <div id="educationList"></div>
-<button onclick="openEducation()">Add Education</button>
 </div>
 
 <div class="card">
@@ -268,7 +324,7 @@ Change Banner
 <h3>Profile Strength</h3>
 
 <div class="strength-bar">
-<div class="strength-fill" style="width:60%"></div>
+<div id="strengthBar" class="strength-fill"></div>
 </div>
 
 <p>Complete your profile to increase visibility.</p>
@@ -411,9 +467,23 @@ bannerImage.src=user.bannerImage || "https://via.placeholder.com/900x200"
 renderExperience(user.experience)
 renderEducation(user.education)
 renderSkills(user.skills)
+  updateProfileStrength(user)
 
 }
+function updateProfileStrength(user){
+  
 
+let score=0
+
+if(user.name) score+=20
+if(user.headline) score+=20
+if(user.bio) score+=20
+if(user.experience?.length) score+=20
+if(user.skills?.length) score+=20
+
+document.getElementById("strengthBar").style.width=score+"%"
+
+}
 /* EXPERIENCE */
 
 function renderExperience(list){
@@ -426,7 +496,17 @@ list.forEach(e=>{
 
 const div=document.createElement("div")
 
-div.innerHTML=`<h4>${e.title||""}</h4><p>${e.company||""}</p>`
+div.className="experience-card"
+
+div.innerHTML=`
+
+<h4>${e.title||""}</h4>
+
+<p class="company">${e.company||""}</p>
+
+<p class="date">${e.startDate||""} - ${e.endDate||"Present"}</p>
+
+`
 
 experienceList.appendChild(div)
 
@@ -455,7 +535,33 @@ educationList.appendChild(div)
 })
 
 }
+async function saveExperience(){
 
+const exp={
+title:expTitle.value,
+company:expCompany.value,
+startDate:expStart.value,
+endDate:expEnd.value
+}
+
+const list=currentUser.experience||[]
+
+list.push(exp)
+
+await fetch(API+"/api/users/profile",{
+method:"PATCH",
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+body:JSON.stringify({experience:list})
+})
+
+expModal.style.display="none"
+
+loadProfile()
+
+}
 function openEducation(){eduModal.style.display="flex"}
 
 /* SKILLS */
@@ -470,11 +576,39 @@ list.forEach(s=>{
 
 const span=document.createElement("span")
 
+span.className="skill-tag"
+
 span.innerText=s
 
 skillsList.appendChild(span)
 
 })
+
+}
+  async function saveEducation(){
+
+const edu={
+school:eduSchool.value,
+degree:eduDegree.value,
+field:eduField.value
+}
+
+const list=currentUser.education||[]
+
+list.push(edu)
+
+await fetch(API+"/api/users/profile",{
+method:"PATCH",
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+body:JSON.stringify({education:list})
+})
+
+eduModal.style.display="none"
+
+loadProfile()
 
 }
 
@@ -532,7 +666,15 @@ editModal.style.display="none"
 loadProfile()
 
 }
+window.onclick=function(e){
 
+if(e.target===editModal) editModal.style.display="none"
+
+if(e.target===expModal) expModal.style.display="none"
+
+if(e.target===eduModal) eduModal.style.display="none"
+
+}
 /* NAVIGATION */
 
 function goHome(){
