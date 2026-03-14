@@ -458,16 +458,12 @@ Change Banner
 
 <script>
 
-document.addEventListener("DOMContentLoaded", () => {
-
 const API="https://backend-1-9b6f.onrender.com"
 const token=localStorage.getItem("token")
-  if(!token){
 
+if(!token){
 console.warn("No token found, redirecting to login")
-
 window.location.href="login.html"
-
 }
 
 let currentUser=null
@@ -492,29 +488,29 @@ const editBtn=document.getElementById("editBtn")
 const editModal=document.getElementById("editModal")
 const expModal=document.getElementById("expModal")
 const eduModal=document.getElementById("eduModal")
-  const skillModal=document.getElementById("skillModal")
-const expTitle = document.getElementById("expTitle")
-const expCompany = document.getElementById("expCompany")
-const expStart = document.getElementById("expStart")
-const expEnd = document.getElementById("expEnd")
+const skillModal=document.getElementById("skillModal")
 
-const eduSchool = document.getElementById("eduSchool")
-const eduDegree = document.getElementById("eduDegree")
-const eduField = document.getElementById("eduField")
+const expTitle=document.getElementById("expTitle")
+const expCompany=document.getElementById("expCompany")
+const expStart=document.getElementById("expStart")
+const expEnd=document.getElementById("expEnd")
 
-const skillInput = document.getElementById("skillInput")
+const eduSchool=document.getElementById("eduSchool")
+const eduDegree=document.getElementById("eduDegree")
+const eduField=document.getElementById("eduField")
+
+const skillInput=document.getElementById("skillInput")
+
 /* LOAD PROFILE */
 
 async function loadProfile(){
 
 const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer "+token}})
-
 const user=await res.json()
 
 currentUser=user
 
 renderProfile(user)
-
 loadActivity(user._id)
 
 }
@@ -535,17 +531,19 @@ websiteEl.href=user.website.startsWith("http")?user.website:"https://"+user.webs
 }
 
 sidebarImage.src=user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-
 bannerImage.src=user.bannerImage || "https://via.placeholder.com/900x200"
 
 renderExperience(user.experience)
 renderEducation(user.education)
 renderSkills(user.skills)
-  updateProfileStrength(user)
+
+updateProfileStrength(user)
 
 }
+
+/* PROFILE STRENGTH */
+
 function updateProfileStrength(user){
-  
 
 let score=0
 
@@ -558,6 +556,7 @@ if(user.skills?.length) score+=20
 document.getElementById("strengthBar").style.width=score+"%"
 
 }
+
 /* EXPERIENCE */
 
 function renderExperience(list){
@@ -569,22 +568,16 @@ if(!list) return
 list.forEach((e,index)=>{
 
 const div=document.createElement("div")
-
 div.className="experience-card"
 
 div.innerHTML=`
-
 <h4>${e.title||""}</h4>
-
 <p class="company">${e.company||""}</p>
-
 <p class="date">${e.startDate||""} - ${e.endDate||"Present"}</p>
 
-<button onclick="deleteExperience(${index})"
-style="margin-top:6px;background:#e53935;">
+<button onclick="deleteExperience(${index})" style="margin-top:6px;background:#e53935;">
 Remove
 </button>
-
 `
 
 experienceList.appendChild(div)
@@ -593,8 +586,58 @@ experienceList.appendChild(div)
 
 }
 
-window.openExperience = function(){
+function openExperience(){
 expModal.style.display="flex"
+}
+
+async function saveExperience(){
+
+const exp={
+title:expTitle.value,
+company:expCompany.value,
+startDate:expStart.value,
+endDate:expEnd.value
+}
+
+const list=currentUser.experience||[]
+list.push(exp)
+
+await fetch(API+"/api/users/profile",{
+method:"PATCH",
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+body:JSON.stringify({experience:list})
+})
+
+expModal.style.display="none"
+
+expTitle.value=""
+expCompany.value=""
+expStart.value=""
+expEnd.value=""
+
+loadProfile()
+
+}
+
+async function deleteExperience(index){
+
+const list=currentUser.experience||[]
+list.splice(index,1)
+
+await fetch(API+"/api/users/profile",{
+method:"PATCH",
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+body:JSON.stringify({experience:list})
+})
+
+loadProfile()
+
 }
 
 /* EDUCATION */
@@ -610,15 +653,12 @@ list.forEach((e,index)=>{
 const div=document.createElement("div")
 
 div.innerHTML=`
-
 <h4>${e.school||""}</h4>
 <p>${e.degree||""}</p>
 
-<button onclick="deleteEducation(${index})"
-style="margin-top:6px;background:#e53935;">
+<button onclick="deleteEducation(${index})" style="margin-top:6px;background:#e53935;">
 Remove
 </button>
-
 `
 
 educationList.appendChild(div)
@@ -626,78 +666,57 @@ educationList.appendChild(div)
 })
 
 }
-async function saveExperience(){
 
-const exp={
-title:expTitle.value,
-company:expCompany.value,
-startDate:expStart.value,
-endDate:expEnd.value
+function openEducation(){
+eduModal.style.display="flex"
 }
 
-const list=currentUser.experience||[]
-list.push(exp)
+async function saveEducation(){
 
-const res = await fetch(API+"/api/users/profile",{
+const edu={
+school:eduSchool.value,
+degree:eduDegree.value,
+field:eduField.value
+}
+
+const list=currentUser.education||[]
+list.push(edu)
+
+await fetch(API+"/api/users/profile",{
 method:"PATCH",
 headers:{
 "Content-Type":"application/json",
 Authorization:"Bearer "+token
 },
-body:JSON.stringify({experience:list})
+body:JSON.stringify({education:list})
 })
 
-if(!res.ok){
-alert("Failed to save experience")
-return
-}
+eduModal.style.display="none"
 
-const updatedUser = await res.json()
-
-currentUser = updatedUser
-
-renderExperience(updatedUser.experience)
-
-updateProfileStrength(updatedUser)
-
-expModal.style.display="none"
+eduSchool.value=""
+eduDegree.value=""
+eduField.value=""
 
 loadProfile()
 
 }
-  async function deleteExperience(index){
 
-const list=currentUser.experience || []
+async function deleteEducation(index){
 
+const list=currentUser.education||[]
 list.splice(index,1)
 
-const res = await fetch(API+"/api/users/profile",{
+await fetch(API+"/api/users/profile",{
 method:"PATCH",
 headers:{
 "Content-Type":"application/json",
 Authorization:"Bearer "+token
 },
-body:JSON.stringify({experience:list})
+body:JSON.stringify({education:list})
 })
-
-if(!res.ok){
-alert("Failed to remove experience")
-return
-}
-
-const updatedUser = await res.json()
-
-currentUser = updatedUser
-
-renderExperience(updatedUser.experience)
-
-updateProfileStrength(updatedUser)
 
 loadProfile()
 
-}
-window.openEducation = function(){
-eduModal.style.display="flex"
 }
 
 /* SKILLS */
@@ -711,13 +730,11 @@ if(!list) return
 list.forEach((s,index)=>{
 
 const span=document.createElement("span")
-
 span.className="skill-tag"
 
-span.innerHTML = `
+span.innerHTML=`
 ${s}
-<span onclick="deleteSkill(${index})"
-style="margin-left:8px;color:red;cursor:pointer;">✕</span>
+<span onclick="deleteSkill(${index})" style="margin-left:8px;color:red;cursor:pointer;">✕</span>
 `
 
 skillsList.appendChild(span)
@@ -725,71 +742,48 @@ skillsList.appendChild(span)
 })
 
 }
-async function saveEducation(){
 
-const edu={
-school:eduSchool.value,
-degree:eduDegree.value,
-field:eduField.value
+function openSkillModal(){
+skillModal.style.display="flex"
 }
 
-const list=currentUser.education||[]
-list.push(edu)
+async function saveSkill(){
 
-const res = await fetch(API+"/api/users/profile",{
+const skill=skillInput.value.trim()
+if(!skill) return
+
+const list=currentUser.skills||[]
+list.push(skill)
+
+await fetch(API+"/api/users/profile",{
 method:"PATCH",
 headers:{
 "Content-Type":"application/json",
 Authorization:"Bearer "+token
 },
-body:JSON.stringify({education:list})
+body:JSON.stringify({skills:list})
 })
 
-if(!res.ok){
-alert("Failed to save education")
-return
-}
-
-const updatedUser = await res.json()
-
-currentUser = updatedUser
-
-renderEducation(updatedUser.education)
-
-updateProfileStrength(updatedUser)
-
-eduModal.style.display="none"
+skillModal.style.display="none"
+skillInput.value=""
 
 loadProfile()
 
 }
-  async function deleteEducation(index){
 
-const list=currentUser.education || []
+async function deleteSkill(index){
 
+const list=currentUser.skills||[]
 list.splice(index,1)
 
-const res = await fetch(API+"/api/users/profile",{
+await fetch(API+"/api/users/profile",{
 method:"PATCH",
 headers:{
 "Content-Type":"application/json",
 Authorization:"Bearer "+token
 },
-body:JSON.stringify({education:list})
+body:JSON.stringify({skills:list})
 })
-
-if(!res.ok){
-alert("Failed to remove education")
-return
-}
-
-const updatedUser = await res.json()
-
-currentUser = updatedUser
-
-renderEducation(updatedUser.education)
-
-updateProfileStrength(updatedUser)
 
 loadProfile()
 
@@ -799,30 +793,15 @@ loadProfile()
 
 async function loadActivity(id){
 
-try{
-
-const res = await fetch(API+"/api/posts/user/"+id,{
-headers:{
-Authorization:"Bearer "+token
-}
+const res=await fetch(API+"/api/posts/user/"+id,{
+headers:{Authorization:"Bearer "+token}
 })
 
-if(!res.ok){
-
-console.error("Failed to load posts")
-activityList.innerHTML="<p>No activity yet</p>"
-return
-
-}
-
-const posts = await res.json()
+const posts=await res.json()
 
 if(!Array.isArray(posts)){
-
-console.error("Posts response is not array:", posts)
 activityList.innerHTML="<p>No activity yet</p>"
 return
-
 }
 
 activityList.innerHTML=""
@@ -830,27 +809,18 @@ activityList.innerHTML=""
 posts.forEach(p=>{
 
 const div=document.createElement("div")
-
 div.className="activity-card"
 
 div.innerHTML=`
-<p>${p.content || ""}</p>
+<p>${p.content||""}</p>
 <div style="font-size:13px;color:#666;margin-top:6px;">
-👍 ${p.likes?.length || 0}   💬 ${p.comments?.length || 0}
+👍 ${p.likes?.length||0} 💬 ${p.comments?.length||0}
 </div>
 `
 
 activityList.appendChild(div)
 
 })
-
-}catch(err){
-
-console.error("Activity load error:",err)
-
-activityList.innerHTML="<p>Unable to load activity</p>"
-
-}
 
 }
 
@@ -880,7 +850,7 @@ website:editWebsite.value.trim(),
 bio:editBio.value.trim()
 }
 
-const res = await fetch(API+"/api/users/profile",{
+await fetch(API+"/api/users/profile",{
 method:"PATCH",
 headers:{
 "Content-Type":"application/json",
@@ -889,22 +859,15 @@ Authorization:"Bearer "+token
 body:JSON.stringify(body)
 })
 
-if(!res.ok){
-alert("Failed to update profile")
-return
-}
-
-const updatedUser = await res.json()
-
-currentUser = updatedUser
-
-renderProfile(updatedUser)
-
 editModal.style.display="none"
-
 loadProfile()
 
 }
+
+function closeEdit(){
+editModal.style.display="none"
+}
+
 /* NAVIGATION */
 
 function goHome(){
@@ -914,91 +877,14 @@ window.location.href="talent.html"
 function openPublicProfile(){
 window.location.href="public-profile.html?id="+currentUser._id
 }
-window.openSkillModal = function(){
-skillModal.style.display="flex"
-}
-  function closeEdit(){
-editModal.style.display="none"
-}
 
-async function saveSkill(){
-
-const skill = skillInput.value.trim()
-
-if(!skill) return
-
-const list = currentUser.skills || []
-
-list.push(skill)
-
-const res = await fetch(API+"/api/users/profile",{
-method:"PATCH",
-headers:{
-"Content-Type":"application/json",
-Authorization:"Bearer "+token
-},
-body:JSON.stringify({skills:list})
-})
-
-if(!res.ok){
-alert("Failed to save skill")
-return
-}
-
-const updatedUser = await res.json()
-
-currentUser = updatedUser
-
-renderSkills(updatedUser.skills)
-
-updateProfileStrength(updatedUser)
-
-skillModal.style.display="none"
-
-skillInput.value=""
-
-loadProfile()
-
-}
-  async function deleteSkill(index){
-
-const list=currentUser.skills || []
-
-list.splice(index,1)
-
-const res = await fetch(API+"/api/users/profile",{
-method:"PATCH",
-headers:{
-"Content-Type":"application/json",
-Authorization:"Bearer "+token
-},
-body:JSON.stringify({skills:list})
-})
-
-if(!res.ok){
-alert("Failed to remove skill")
-return
-}
-
-const updatedUser = await res.json()
-
-currentUser = updatedUser
-
-renderSkills(updatedUser.skills)
-
-updateProfileStrength(updatedUser)
-
-loadProfile()
-
-}
-window.createPost = function(){
+function createPost(){
 window.location.href="talent.html"
 }
+
 /* START */
 
 loadProfile()
-
-})
 
 </script>
 
