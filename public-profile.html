@@ -282,10 +282,11 @@ font-size:13px;
 }
 .profile-layout{
 display:grid;
-grid-template-columns:2fr 1fr;
-gap:40px;
-max-width:1200px;
-margin:auto;
+grid-template-columns:1fr 320px;
+gap:30px;
+max-width:1100px;
+margin:20px auto;
+align-items:start;
 }
 
 
@@ -391,6 +392,32 @@ position:sticky;
 top:100px;
 height:fit-content;
 }
+  .comment-input-area{
+display:flex;
+gap:10px;
+padding:12px 16px;
+border-top:1px solid #eee;
+}
+
+.comment-input-area input{
+flex:1;
+padding:8px 12px;
+border-radius:20px;
+border:1px solid #ddd;
+}
+
+.comment-input-area button{
+background:#0a66c2;
+color:white;
+border:none;
+border-radius:20px;
+padding:6px 14px;
+cursor:pointer;
+}
+
+.comments-wrapper{
+border-top:1px solid #eee;
+}
 </style>
 </head>
 
@@ -427,22 +454,14 @@ height:fit-content;
 
 <!-- MAIN LAYOUT -->
 
-<div class="main-container">
-
-<!-- LEFT SIDE -->
+<div class="profile-layout">
 
 <div class="main-left">
 
-
-
-<div class="profile-section">
-<h3>Posts</h3>
+<h3 style="margin-bottom:10px;">Posts</h3>
 <div id="posts"></div>
-</div>
 
 </div>
-
-<!-- RIGHT SIDE -->
 
 <div class="right-panel">
 
@@ -694,13 +713,40 @@ ${post.mediaUrl ? `
 <div class="post-action ${liked ? "liked" : ""}"
 onclick="likePost('${post._id}')">
 
-👍 Like
+<span>👍</span>
+<span>Like</span>
 
 </div>
 
-<div class="post-action">
-💬 Comment
+<div class="post-action"
+onclick="toggleCommentBox('${post._id}')">
+
+<span>💬</span>
+<span>Comment</span>
+
 </div>
+
+</div>
+
+<div class="comments-wrapper"
+id="comments-wrapper-${post._id}"
+style="display:none;">
+
+<div class="comment-input-area">
+
+<input
+type="text"
+placeholder="Write a comment..."
+id="comment-input-${post._id}"
+>
+
+<button onclick="submitComment('${post._id}')">
+Send
+</button>
+
+</div>
+
+<div id="comments-${post._id}"></div>
 
 </div>
 
