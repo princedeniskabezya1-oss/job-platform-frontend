@@ -608,7 +608,6 @@ endDate:expEnd.value
 }
 
 const list=currentUser.experience||[]
-
 list.push(exp)
 
 const res = await fetch(API+"/api/users/profile",{
@@ -620,12 +619,18 @@ Authorization:"Bearer "+token
 body:JSON.stringify({experience:list})
 })
 
-const data = await res.json()
+if(!res.ok){
+alert("Failed to save experience")
+return
+}
 
-currentUser.experience = list
+const updatedUser = await res.json()
 
-renderExperience(list)
-updateProfileStrength(currentUser)
+currentUser = updatedUser
+
+renderExperience(updatedUser.experience)
+
+updateProfileStrength(updatedUser)
 
 expModal.style.display="none"
 
@@ -655,7 +660,7 @@ skillsList.appendChild(span)
 })
 
 }
-  async function saveEducation(){
+async function saveEducation(){
 
 const edu={
 school:eduSchool.value,
@@ -664,7 +669,6 @@ field:eduField.value
 }
 
 const list=currentUser.education||[]
-
 list.push(edu)
 
 const res = await fetch(API+"/api/users/profile",{
@@ -676,12 +680,18 @@ Authorization:"Bearer "+token
 body:JSON.stringify({education:list})
 })
 
-const data = await res.json()
+if(!res.ok){
+alert("Failed to save education")
+return
+}
 
-currentUser.education = list
+const updatedUser = await res.json()
 
-renderEducation(list)
-updateProfileStrength(currentUser)
+currentUser = updatedUser
+
+renderEducation(updatedUser.education)
+
+updateProfileStrength(updatedUser)
 
 eduModal.style.display="none"
 
@@ -774,8 +784,6 @@ website:editWebsite.value.trim(),
 bio:editBio.value.trim()
 }
 
-try{
-
 const res = await fetch(API+"/api/users/profile",{
 method:"PATCH",
 headers:{
@@ -785,29 +793,20 @@ Authorization:"Bearer "+token
 body:JSON.stringify(body)
 })
 
+if(!res.ok){
+alert("Failed to update profile")
+return
+}
+
 const updatedUser = await res.json()
 
-/* update UI immediately */
+currentUser = updatedUser
 
-currentUser = {...currentUser, ...body}
-
-renderProfile(currentUser)
+renderProfile(updatedUser)
 
 editModal.style.display="none"
 
-}catch(err){
-
-console.error(err)
-alert("Failed to update profile")
-
-}
-
-}
-window.onclick=function(e){
-
-if(e.target.classList.contains("modal")){
-e.target.style.display="none"
-}
+loadProfile()
 
 }
 /* NAVIGATION */
@@ -828,15 +827,15 @@ editModal.style.display="none"
 
 async function saveSkill(){
 
-const skill=skillInput.value
+const skill = skillInput.value.trim()
 
 if(!skill) return
 
-const list=currentUser.skills || []
+const list = currentUser.skills || []
 
 list.push(skill)
 
-await fetch(API+"/api/users/profile",{
+const res = await fetch(API+"/api/users/profile",{
 method:"PATCH",
 headers:{
 "Content-Type":"application/json",
@@ -845,13 +844,24 @@ Authorization:"Bearer "+token
 body:JSON.stringify({skills:list})
 })
 
+if(!res.ok){
+alert("Failed to save skill")
+return
+}
+
+const updatedUser = await res.json()
+
+currentUser = updatedUser
+
+renderSkills(updatedUser.skills)
+
+updateProfileStrength(updatedUser)
+
 skillModal.style.display="none"
 
-currentUser.skills=list
+skillInput.value=""
 
-renderSkills(list)
-
-updateProfileStrength(currentUser)
+loadProfile()
 
 }
   function createPost(){
