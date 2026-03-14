@@ -200,7 +200,68 @@ border-radius:20px;
 margin:4px;
 font-size:13px;
 }
+.profile-layout{
+display:grid;
+grid-template-columns:2fr 1fr;
+gap:40px;
+max-width:1200px;
+margin:auto;
+}
 
+.right-panel{
+display:flex;
+flex-direction:column;
+gap:20px;
+}
+
+.info-card{
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 3px 10px rgba(0,0,0,0.05);
+}
+
+.info-card h3{
+margin-bottom:10px;
+font-size:16px;
+}
+
+.info-item{
+margin-bottom:10px;
+font-size:14px;
+}
+
+.info-item strong{
+display:block;
+color:#555;
+}
+
+.hire-btn{
+width:100%;
+padding:10px;
+border-radius:20px;
+border:none;
+background:#0a66c2;
+color:white;
+font-weight:600;
+cursor:pointer;
+margin-top:8px;
+}
+
+.hire-btn.outline{
+background:white;
+border:1px solid #ccc;
+color:#111;
+}
+
+#agentSkills .skill{
+display:inline-block;
+background:#eee;
+padding:6px 12px;
+border-radius:20px;
+margin:4px;
+font-size:13px;
+}
 </style>
 </head>
 
@@ -258,7 +319,80 @@ font-size:13px;
 
 <!-- POSTS -->
 
+<div class="profile-layout">
+
+<!-- LEFT MAIN CONTENT -->
+
+<div>
+
+<!-- POSTS -->
 <div id="postsGrid" class="posts-grid"></div>
+
+</div>
+
+<!-- RIGHT PANEL -->
+
+<div class="right-panel">
+
+<div class="info-card">
+
+<h3>Professional Info</h3>
+
+<div class="info-item">
+<strong>Location</strong>
+<p id="agentLocation"></p>
+</div>
+
+<div class="info-item">
+<strong>Website</strong>
+<a id="agentWebsite" target="_blank"></a>
+</div>
+
+</div>
+
+<div class="info-card">
+
+<h3>About</h3>
+<p id="agentBio"></p>
+
+</div>
+
+<div class="info-card">
+
+<h3>Top Skills</h3>
+<div id="agentSkills"></div>
+
+</div>
+
+<div class="info-card">
+
+<h3>Experience</h3>
+<div id="agentExperience"></div>
+
+</div>
+
+<div class="info-card">
+
+<h3>Education</h3>
+<div id="agentEducation"></div>
+
+</div>
+
+<div class="info-card">
+
+<h3>Hire Options</h3>
+
+<button class="hire-btn" onclick="messageUser()">Message</button>
+
+<button class="hire-btn outline" id="downloadCV">
+Download CV
+</button>
+
+</div>
+
+</div>
+
+</div>
 
 <!-- POST MODAL -->
 
@@ -300,6 +434,82 @@ profileUser.followers?.length||0
 
 document.getElementById("following").innerText=
 profileUser.following?.length||0
+  document.getElementById("followers").innerText =
+profileUser.followers?.length || 0;
+
+document.getElementById("following").innerText =
+profileUser.following?.length || 0;
+
+
+/* RIGHT PANEL DATA */
+
+document.getElementById("agentLocation").innerText =
+profileUser.location || "Not specified";
+
+const site=document.getElementById("agentWebsite");
+
+if(profileUser.website){
+site.innerText=profileUser.website;
+site.href=profileUser.website.startsWith("http")
+?profileUser.website
+:"https://"+profileUser.website;
+}else{
+site.innerText="Not provided";
+}
+
+/* BIO */
+
+document.getElementById("agentBio").innerText =
+profileUser.bio || "No bio added yet.";
+
+/* SKILLS */
+
+const skillBox=document.getElementById("agentSkills");
+skillBox.innerHTML="";
+
+(profileUser.skills||[]).forEach(s=>{
+skillBox.innerHTML+=`<span class="skill">${s}</span>`;
+});
+
+/* EXPERIENCE */
+
+const expBox=document.getElementById("agentExperience");
+expBox.innerHTML="";
+
+(profileUser.experience||[]).slice(0,3).forEach(e=>{
+expBox.innerHTML+=`
+<div style="margin-bottom:6px;">
+<b>${e.title}</b><br>
+<span style="font-size:13px;color:#666">${e.company}</span>
+</div>`;
+});
+
+/* EDUCATION */
+
+const eduBox=document.getElementById("agentEducation");
+eduBox.innerHTML="";
+
+(profileUser.education||[]).slice(0,3).forEach(e=>{
+eduBox.innerHTML+=`
+<div style="margin-bottom:6px;">
+<b>${e.school}</b><br>
+<span style="font-size:13px;color:#666">${e.degree}</span>
+</div>`;
+});
+
+/* CV */
+
+if(profileUser.cvUrl){
+
+document.getElementById("downloadCV").onclick=()=>{
+window.open(profileUser.cvUrl,"_blank");
+};
+
+}else{
+
+document.getElementById("downloadCV").style.display="none";
+
+}
 
 /* EXPERIENCE */
 
