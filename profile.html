@@ -555,7 +555,7 @@ experienceList.innerHTML=""
 
 if(!list) return
 
-list.forEach(e=>{
+list.forEach((e,index)=>{
 
 const div=document.createElement("div")
 
@@ -568,6 +568,11 @@ div.innerHTML=`
 <p class="company">${e.company||""}</p>
 
 <p class="date">${e.startDate||""} - ${e.endDate||"Present"}</p>
+
+<button onclick="deleteExperience(${index})"
+style="margin-top:6px;background:#e53935;">
+Remove
+</button>
 
 `
 
@@ -587,11 +592,21 @@ educationList.innerHTML=""
 
 if(!list) return
 
-list.forEach(e=>{
+list.forEach((e,index)=>{
 
 const div=document.createElement("div")
 
-div.innerHTML=`<h4>${e.school||""}</h4><p>${e.degree||""}</p>`
+div.innerHTML=`
+
+<h4>${e.school||""}</h4>
+<p>${e.degree||""}</p>
+
+<button onclick="deleteEducation(${index})"
+style="margin-top:6px;background:#e53935;">
+Remove
+</button>
+
+`
 
 educationList.appendChild(div)
 
@@ -637,6 +652,37 @@ expModal.style.display="none"
 loadProfile()
 
 }
+  async function deleteExperience(index){
+
+const list=currentUser.experience || []
+
+list.splice(index,1)
+
+const res = await fetch(API+"/api/users/profile",{
+method:"PATCH",
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+body:JSON.stringify({experience:list})
+})
+
+if(!res.ok){
+alert("Failed to remove experience")
+return
+}
+
+const updatedUser = await res.json()
+
+currentUser = updatedUser
+
+renderExperience(updatedUser.experience)
+
+updateProfileStrength(updatedUser)
+
+loadProfile()
+
+}
 function openEducation(){eduModal.style.display="flex"}
 
 /* SKILLS */
@@ -647,13 +693,17 @@ skillsList.innerHTML=""
 
 if(!list) return
 
-list.forEach(s=>{
+list.forEach((s,index)=>{
 
 const span=document.createElement("span")
 
 span.className="skill-tag"
 
-span.innerText=s
+span.innerHTML = `
+${s}
+<span onclick="deleteSkill(${index})"
+style="margin-left:8px;color:red;cursor:pointer;">✕</span>
+`
 
 skillsList.appendChild(span)
 
@@ -694,6 +744,37 @@ renderEducation(updatedUser.education)
 updateProfileStrength(updatedUser)
 
 eduModal.style.display="none"
+
+loadProfile()
+
+}
+  async function deleteEducation(index){
+
+const list=currentUser.education || []
+
+list.splice(index,1)
+
+const res = await fetch(API+"/api/users/profile",{
+method:"PATCH",
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+body:JSON.stringify({education:list})
+})
+
+if(!res.ok){
+alert("Failed to remove education")
+return
+}
+
+const updatedUser = await res.json()
+
+currentUser = updatedUser
+
+renderEducation(updatedUser.education)
+
+updateProfileStrength(updatedUser)
 
 loadProfile()
 
@@ -860,6 +941,37 @@ updateProfileStrength(updatedUser)
 skillModal.style.display="none"
 
 skillInput.value=""
+
+loadProfile()
+
+}
+  async function deleteSkill(index){
+
+const list=currentUser.skills || []
+
+list.splice(index,1)
+
+const res = await fetch(API+"/api/users/profile",{
+method:"PATCH",
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+body:JSON.stringify({skills:list})
+})
+
+if(!res.ok){
+alert("Failed to remove skill")
+return
+}
+
+const updatedUser = await res.json()
+
+currentUser = updatedUser
+
+renderSkills(updatedUser.skills)
+
+updateProfileStrength(updatedUser)
 
 loadProfile()
 
