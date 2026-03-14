@@ -297,6 +297,22 @@ border-radius:20px;
 margin:4px;
 font-size:13px;
 }
+  .main-container{
+display:grid;
+grid-template-columns:1fr 320px;
+gap:30px;
+max-width:1100px;
+margin:0 auto;
+}
+
+.right-panel{
+display:flex;
+flex-direction:column;
+gap:20px;
+position:sticky;
+top:100px;
+height:fit-content;
+}
 </style>
 </head>
 
@@ -343,7 +359,7 @@ font-size:13px;
 
 <div class="profile-section">
 <h3>Posts</h3>
-<div id="postsGrid" class="feed"></div>
+<div id="posts"></div>
 </div>
 
 </div>
@@ -522,16 +538,16 @@ document.getElementById("downloadCV").style.display="none";
 
 if(token){
 
-const meRes=await fetch(API+"/api/users/me",{
+const meRes = await fetch(API+"/api/users/me",{
 headers:{Authorization:"Bearer "+token}
 })
 
-loggedUser=await meRes.json()
+loggedUser = await meRes.json()
 
-if(loggedUser._id===userId){
-
-document.getElementById("followBtn").style.display="none"
-
+if(loggedUser._id === userId){
+document.getElementById("followBtn").style.display = "none"
+}else{
+document.getElementById("followBtn").style.display = "inline-block"
 }
 
 }
@@ -543,57 +559,75 @@ document.getElementById("followBtn").style.display="none"
 async function loadPosts(){
 
 const res = await fetch(API+"/api/posts/user/"+userId,{
-headers: token ? {Authorization:"Bearer "+token}:{}
+headers:{Authorization:"Bearer "+token}
 })
 
 const posts = await res.json()
 
-const feed = document.getElementById("postsGrid")
-feed.innerHTML=""
+const container = document.getElementById("posts")
+container.innerHTML=""
 
 posts.forEach(post=>{
 
-const div=document.createElement("div")
-div.className="post-card"
+const liked = post.likes?.some(
+id => id.toString() === localStorage.getItem("userId")
+)
 
-div.innerHTML=`
+container.innerHTML += `
+<div class="card" id="post-${post._id}">
 
 <div class="post-header">
 
-<img src="${profileUser.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="post-avatar">
+<div class="post-author">
+
+<img src="${profileUser.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
 
 <div>
-<strong>${profileUser.name}</strong>
-<div style="font-size:12px;color:#777;">
+<div style="font-weight:600;">${profileUser.name}</div>
+
+<div class="post-meta">
 ${profileUser.headline || ""}
 </div>
+
+<div style="font-size:12px;color:#6f6f6f;">
+${post.likes?.length || 0} reactions
+</div>
 </div>
 
 </div>
 
-<p>${post.content || ""}</p>
+</div>
 
-${post.mediaUrl || post.image ? `
-<img src="${post.mediaUrl || post.image}" class="post-image">
+${post.content ? `<div class="post-content">${post.content}</div>` : ""}
+
+${post.mediaUrl ? `
+<div class="post-media">
+<img src="${post.mediaUrl}">
+</div>
 ` : ""}
+
+<div class="post-stats">
+<div>${post.likes.length} reactions</div>
+<div>${post.comments?.length || 0} comments</div>
+</div>
 
 <div class="post-actions">
 
-<span onclick="likePost('${post._id}')">
-👍 ${post.likes?.length || 0}
-</span>
+<div class="post-action ${liked ? "liked" : ""}"
+onclick="likePost('${post._id}')">
 
-<span>
-💬 ${post.comments?.length || 0}
-</span>
+👍 Like
 
 </div>
 
+<div class="post-action">
+💬 Comment
+</div>
+
+</div>
+
+</div>
 `
-
-div.onclick = () => openModal(post)
-
-feed.appendChild(div)
 
 })
 
