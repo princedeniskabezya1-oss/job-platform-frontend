@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <meta charset="UTF-8">
@@ -27,8 +28,8 @@ border-bottom:1px solid #ddd;
 }
 
 .logo{
-font-size:22px;
 font-weight:bold;
+font-size:22px;
 color:#0a66c2;
 }
 
@@ -78,14 +79,13 @@ border:4px solid white;
 position:absolute;
 top:-60px;
 left:20px;
-background:white;
 object-fit:cover;
 }
 
 .avatar-upload{
 position:absolute;
-top:70px;
 left:20px;
+top:70px;
 }
 
 .profile-text{
@@ -120,13 +120,12 @@ background:#0a66c2;
 width:0%;
 }
 
-/* MAIN LAYOUT */
+/* CARD */
 
 .layout{
 max-width:1000px;
 margin:auto;
 display:grid;
-grid-template-columns:1fr;
 gap:20px;
 }
 
@@ -141,22 +140,13 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 display:flex;
 justify-content:space-between;
 align-items:center;
-margin-bottom:15px;
+margin-bottom:10px;
 }
 
 .experience{
 border-left:3px solid #0a66c2;
 padding-left:15px;
 margin-bottom:15px;
-}
-
-.company{
-font-weight:600;
-}
-
-.date{
-font-size:13px;
-color:#777;
 }
 
 .skill{
@@ -211,7 +201,9 @@ border-radius:6px;
 }
 
 </style>
+
 </head>
+
 <body>
 
 <div class="topbar">
@@ -221,12 +213,13 @@ border-radius:6px;
 <div class="nav-buttons">
 
 <button onclick="goFeed()">Feed</button>
-<button onclick="goNetwork()">Network</button>
-<button onclick="openPublicProfile()">Public Profile</button>
+
+<button onclick="openPublicProfile()">View Public Profile</button>
 
 </div>
 
 </div>
+
 <div class="profile-header">
 
 <div class="banner">
@@ -256,34 +249,38 @@ border-radius:6px;
 <div style="font-size:13px">Profile Strength</div>
 
 <div class="strength-bar">
+
 <div id="strengthBar" class="strength-fill"></div>
-</div>
 
 </div>
 
 </div>
 
 </div>
-
-</div>
-
-<div class="layout">
+  <div class="layout">
 
 <div class="card">
 
 <div class="section-header">
+
 <h3>About</h3>
+
 <button onclick="openEditProfile()">Edit</button>
+
 </div>
 
 <p id="bio"></p>
 
 </div>
+
 <div class="card">
 
 <div class="section-header">
+
 <h3>Experience</h3>
+
 <button onclick="openExp()">+</button>
+
 </div>
 
 <div id="experienceList"></div>
@@ -293,8 +290,11 @@ border-radius:6px;
 <div class="card">
 
 <div class="section-header">
+
 <h3>Education</h3>
+
 <button onclick="openEdu()">+</button>
+
 </div>
 
 <div id="educationList"></div>
@@ -304,26 +304,62 @@ border-radius:6px;
 <div class="card">
 
 <div class="section-header">
+
 <h3>Skills</h3>
+
 <button onclick="openSkill()">+</button>
+
 </div>
 
 <div id="skillsList"></div>
 
 </div>
 
-<div class="card">
+</div>
+  <div id="expModal" class="modal">
+<div class="modal-content">
 
-<h3>Featured</h3>
+<h3>Experience</h3>
 
-<p>Upload portfolio items or featured work.</p>
+<input id="expTitle" placeholder="Title">
 
-<button>Upload Portfolio</button>
+<input id="expCompany" placeholder="Company">
+
+<input id="expStart" placeholder="Start Date">
+
+<input id="expEnd" placeholder="End Date">
+
+<button onclick="saveExperience()">Save</button>
 
 </div>
+</div>
+
+<div id="eduModal" class="modal">
+<div class="modal-content">
+
+<h3>Education</h3>
+
+<input id="eduSchool" placeholder="School">
+
+<input id="eduDegree" placeholder="Degree">
+
+<button onclick="saveEducation()">Save</button>
 
 </div>
-<script>
+</div>
+
+<div id="skillModal" class="modal">
+<div class="modal-content">
+
+<h3>Add Skill</h3>
+
+<input id="skillInput">
+
+<button onclick="saveSkill()">Save</button>
+
+</div>
+</div>
+  <script>
 
 const API="https://backend-1-9b6f.onrender.com"
 const token=localStorage.getItem("token")
@@ -344,24 +380,27 @@ renderProfile()
 
 function renderProfile(){
 
-avatar.src=currentUser.profileImage||"https://cdn-icons-png.flaticon.com/512/149/149071.png"
+avatar.src=currentUser.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png"
 
-banner.src=currentUser.bannerImage||"https://via.placeholder.com/900x200"
+banner.src=currentUser.bannerImage || "https://via.placeholder.com/900x200"
 
 name.innerText=currentUser.name
-headline.innerText=currentUser.headline||""
-location.innerText=currentUser.location||""
-bio.innerText=currentUser.bio||""
+
+headline.innerText=currentUser.headline || ""
+
+location.innerText=currentUser.location || ""
+
+bio.innerText=currentUser.bio || ""
 
 strengthBar.style.width=(currentUser.completeness||0)+"%"
 
 renderExperience()
+
 renderEducation()
+
 renderSkills()
 
 }
-
-/* EXPERIENCE */
 
 function renderExperience(){
 
@@ -372,8 +411,8 @@ experienceList.innerHTML=""
 experienceList.innerHTML+=`
 <div class="experience">
 <b>${e.title}</b>
-<div class="company">${e.company}</div>
-<div class="date">${e.startDate} - ${e.endDate||"Present"}</div>
+<div>${e.company}</div>
+<div>${e.startDate} - ${e.endDate||"Present"}</div>
 <button onclick="editExperience(${i})">Edit</button>
 <button onclick="deleteExperience(${i})">Delete</button>
 </div>
@@ -382,8 +421,6 @@ experienceList.innerHTML+=`
 })
 
 }
-
-/* EDUCATION */
 
 function renderEducation(){
 
@@ -404,8 +441,6 @@ educationList.innerHTML+=`
 
 }
 
-/* SKILLS */
-
 function renderSkills(){
 
 skillsList.innerHTML=""
@@ -423,8 +458,6 @@ ${s}
 
 }
 
-/* UPDATE PROFILE */
-
 async function updateProfile(data){
 
 const formData=new FormData()
@@ -436,7 +469,9 @@ formData.append(key,JSON.stringify(data[key]))
 const res=await fetch(API+"/api/users/profile",{
 
 method:"PATCH",
+
 headers:{Authorization:"Bearer "+token},
+
 body:formData
 
 })
@@ -447,17 +482,18 @@ renderProfile()
 
 }
 
-/* PHOTO */
-
 photoUpload.onchange=async function(){
 
 const fd=new FormData()
+
 fd.append("profileImage",this.files[0])
 
 const res=await fetch(API+"/api/users/profile",{
 
 method:"PATCH",
+
 headers:{Authorization:"Bearer "+token},
+
 body:fd
 
 })
@@ -468,17 +504,18 @@ renderProfile()
 
 }
 
-/* BANNER */
-
 bannerUpload.onchange=async function(){
 
 const fd=new FormData()
+
 fd.append("bannerImage",this.files[0])
 
 const res=await fetch(API+"/api/users/profile",{
 
 method:"PATCH",
+
 headers:{Authorization:"Bearer "+token},
+
 body:fd
 
 })
@@ -489,21 +526,17 @@ renderProfile()
 
 }
 
-/* NAVIGATION */
-
 function openPublicProfile(){
+
 window.location.href="public-profile.html?id="+currentUser._id
+
 }
 
 function goFeed(){
+
 window.location.href="talent.html"
-}
 
-function goNetwork(){
-window.location.href="network.html"
 }
-
-/* CLOSE MODALS OUTSIDE */
 
 window.onclick=function(e){
 
@@ -517,5 +550,6 @@ loadProfile()
 
 </script>
 
-</body>
-</html>
+</div>
+
+</div>
