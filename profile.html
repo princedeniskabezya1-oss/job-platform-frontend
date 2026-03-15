@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <meta charset="UTF-8">
@@ -31,9 +32,9 @@ font-weight:bold;
 
 .layout{
 display:grid;
-grid-template-columns:260px 1fr 280px;
+grid-template-columns:260px 1fr;
 gap:30px;
-max-width:1200px;
+max-width:1100px;
 margin:auto;
 padding:30px;
 }
@@ -46,34 +47,11 @@ margin-bottom:25px;
 box-shadow:0 2px 8px rgba(0,0,0,0.05);
 }
 
-.profile-card{
-text-align:center;
-padding:0;
-overflow:hidden;
-}
-
-.sidebar-banner img{
-width:100%;
-height:120px;
-object-fit:cover;
-}
-
-.sidebar-avatar-wrapper{
-margin-top:-40px;
-}
-
 .sidebar-avatar{
-width:80px;
-height:80px;
+width:90px;
+height:90px;
 border-radius:50%;
 border:4px solid white;
-}
-
-.sidebar-actions{
-display:flex;
-flex-direction:column;
-gap:10px;
-padding:20px;
 }
 
 button{
@@ -83,11 +61,52 @@ border-radius:20px;
 background:#0a66c2;
 color:white;
 cursor:pointer;
-font-weight:600;
 }
 
 button:hover{
 background:#004182;
+}
+
+.section-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+}
+
+.icon-btn{
+background:#0a66c2;
+color:white;
+border:none;
+border-radius:50%;
+width:32px;
+height:32px;
+font-size:18px;
+cursor:pointer;
+}
+
+.experience-card{
+border-left:3px solid #0a66c2;
+padding-left:15px;
+margin-bottom:15px;
+}
+
+.company{
+font-weight:600;
+}
+
+.date{
+font-size:13px;
+color:#666;
+}
+
+.skill-tag{
+display:inline-block;
+background:#eef3f8;
+padding:6px 12px;
+border-radius:20px;
+margin:4px;
+font-size:13px;
 }
 
 .modal{
@@ -112,52 +131,23 @@ flex-direction:column;
 gap:10px;
 }
 
-.modal input,
-.modal textarea{
+.modal input{
 padding:10px;
 border:1px solid #ccc;
 border-radius:6px;
 }
 
-.skill-tag{
-display:inline-block;
-background:#eef3f8;
-padding:6px 12px;
-border-radius:20px;
-margin:4px;
-font-size:13px;
-}
-
-.activity-card{
-border-bottom:1px solid #eee;
-padding:12px 0;
-font-size:14px;
-}
-
-.strength-bar{
-width:100%;
-height:8px;
-background:#eee;
-border-radius:10px;
-margin:10px 0;
-}
-
-.strength-fill{
-height:100%;
-background:#0a66c2;
-border-radius:10px;
-}
-
 </style>
+
 </head>
 
 <body>
 
 <header class="topbar">
+
 <div class="logo">AIFT</div>
 
 <div>
-<button onclick="goHome()">Home</button>
 <button onclick="openPublicProfile()">Public Profile</button>
 </div>
 
@@ -165,34 +155,24 @@ border-radius:10px;
 
 <div class="layout">
 
+<!-- LEFT PROFILE -->
+
 <aside>
 
-<div class="card profile-card">
+<div class="card">
 
-<div class="sidebar-banner">
-<img id="bannerImage">
-</div>
+<img id="avatar" class="sidebar-avatar">
 
-<div class="sidebar-avatar-wrapper">
-<img id="sidebarImage" class="sidebar-avatar">
-</div>
-
-<h3 id="sidebarName"></h3>
-<p id="sidebarHeadline"></p>
+<h3 id="name"></h3>
+<p id="headline"></p>
 
 <p id="location"></p>
-<a id="website"></a>
-
-<div class="sidebar-actions">
-
-<button onclick="openEdit()">Edit Profile</button>
-<button onclick="openPublicProfile()">View Profile</button>
-
-</div>
 
 </div>
 
 </aside>
+
+<!-- CENTER -->
 
 <main>
 
@@ -203,8 +183,10 @@ border-radius:10px;
 
 <div class="card">
 
+<div class="section-header">
 <h2>Experience</h2>
-<button onclick="openExperience()">+ Add</button>
+<button class="icon-btn" onclick="openExp()">+</button>
+</div>
 
 <div id="experienceList"></div>
 
@@ -212,8 +194,10 @@ border-radius:10px;
 
 <div class="card">
 
+<div class="section-header">
 <h2>Education</h2>
-<button onclick="openEducation()">+ Add</button>
+<button class="icon-btn" onclick="openEdu()">+</button>
+</div>
 
 <div id="educationList"></div>
 
@@ -221,64 +205,25 @@ border-radius:10px;
 
 <div class="card">
 
+<div class="section-header">
 <h2>Skills</h2>
-<button onclick="openSkillModal()">+ Add</button>
+<button class="icon-btn" onclick="openSkill()">+</button>
+</div>
 
 <div id="skillsList"></div>
 
 </div>
 
-<div class="card">
-
-<h2>Activity</h2>
-
-<div id="activityList"></div>
-
-</div>
-
 </main>
 
-<aside>
-
-<div class="card">
-
-<h3>Profile Strength</h3>
-
-<div class="strength-bar">
-<div id="strengthBar" class="strength-fill"></div>
 </div>
 
-</div>
-
-</aside>
-
-</div>
-
-<!-- EDIT PROFILE -->
-
-<div id="editModal" class="modal">
-<div class="modal-content">
-
-<h2>Edit Profile</h2>
-
-<input id="editName" placeholder="Name">
-<input id="editHeadline" placeholder="Headline">
-<input id="editLocation" placeholder="Location">
-<input id="editWebsite" placeholder="Website">
-
-<textarea id="editBio"></textarea>
-
-<button onclick="saveProfile()">Save</button>
-
-</div>
-</div>
-
-<!-- EXPERIENCE -->
+<!-- EXPERIENCE MODAL -->
 
 <div id="expModal" class="modal">
 <div class="modal-content">
 
-<h2>Add Experience</h2>
+<h3>Add Experience</h3>
 
 <input id="expTitle" placeholder="Title">
 <input id="expCompany" placeholder="Company">
@@ -290,36 +235,34 @@ border-radius:10px;
 </div>
 </div>
 
-<!-- EDUCATION -->
+<!-- EDUCATION MODAL -->
 
 <div id="eduModal" class="modal">
 <div class="modal-content">
 
-<h2>Add Education</h2>
+<h3>Add Education</h3>
 
 <input id="eduSchool" placeholder="School">
 <input id="eduDegree" placeholder="Degree">
-<input id="eduField" placeholder="Field">
 
 <button onclick="saveEducation()">Save</button>
 
 </div>
 </div>
 
-<!-- SKILL -->
+<!-- SKILL MODAL -->
 
 <div id="skillModal" class="modal">
 <div class="modal-content">
 
-<h2>Add Skill</h2>
+<h3>Add Skill</h3>
 
-<input id="skillInput" placeholder="Skill">
+<input id="skillInput">
 
 <button onclick="saveSkill()">Save</button>
 
 </div>
 </div>
-
 <script>
 
 const API="https://backend-1-9b6f.onrender.com"
@@ -327,41 +270,55 @@ const token=localStorage.getItem("token")
 
 let currentUser=null
 
+const avatar=document.getElementById("avatar")
+const nameEl=document.getElementById("name")
+const headline=document.getElementById("headline")
+const locationEl=document.getElementById("location")
+const bio=document.getElementById("bio")
+
+const experienceList=document.getElementById("experienceList")
+const educationList=document.getElementById("educationList")
+const skillsList=document.getElementById("skillsList")
+
 async function loadProfile(){
 
-const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer "+token}})
-const user=await res.json()
+const res=await fetch(API+"/api/users/me",{
+headers:{Authorization:"Bearer "+token}
+})
 
-currentUser=user
+currentUser=await res.json()
 
-document.getElementById("sidebarName").innerText=user.name||""
-document.getElementById("sidebarHeadline").innerText=user.headline||""
-document.getElementById("bio").innerText=user.bio||""
-
-renderExperience(user.experience)
-renderEducation(user.education)
-renderSkills(user.skills)
-
-updateStrength()
-
-loadActivity()
+renderProfile()
 
 }
 
-function renderExperience(list){
+function renderProfile(){
 
-const box=document.getElementById("experienceList")
-box.innerHTML=""
+avatar.src=currentUser.profileImage||"https://cdn-icons-png.flaticon.com/512/149/149071.png"
 
-if(!list) return
+nameEl.innerText=currentUser.name
+headline.innerText=currentUser.headline||""
+locationEl.innerText=currentUser.location||""
+bio.innerText=currentUser.bio||""
 
-list.forEach((e,i)=>{
+renderExperience()
+renderEducation()
+renderSkills()
 
-box.innerHTML+=`
-<div>
+}
 
-<b>${e.title}</b>
-<p>${e.company}</p>
+function renderExperience(){
+
+experienceList.innerHTML=""
+
+(currentUser.experience||[]).forEach((e,i)=>{
+
+experienceList.innerHTML+=`
+<div class="experience-card">
+
+<h4>${e.title}</h4>
+<p class="company">${e.company}</p>
+<p class="date">${e.startDate} - ${e.endDate||"Present"}</p>
 
 <button onclick="deleteExperience(${i})">Delete</button>
 
@@ -370,6 +327,59 @@ box.innerHTML+=`
 
 })
 
+}
+
+function renderEducation(){
+
+educationList.innerHTML=""
+
+(currentUser.education||[]).forEach((e,i)=>{
+
+educationList.innerHTML+=`
+<div>
+
+<h4>${e.school}</h4>
+<p>${e.degree}</p>
+
+<button onclick="deleteEducation(${i})">Delete</button>
+
+</div>
+`
+
+})
+
+}
+
+function renderSkills(){
+
+skillsList.innerHTML=""
+
+(currentUser.skills||[]).forEach((s,i)=>{
+
+skillsList.innerHTML+=`
+<span class="skill-tag">
+
+${s}
+
+<span onclick="deleteSkill(${i})" style="cursor:pointer">✕</span>
+
+</span>
+`
+
+})
+
+}
+
+function openExp(){
+expModal.style.display="flex"
+}
+
+function openEdu(){
+eduModal.style.display="flex"
+}
+
+function openSkill(){
+skillModal.style.display="flex"
 }
 
 async function saveExperience(){
@@ -382,61 +392,22 @@ endDate:expEnd.value
 }
 
 const list=currentUser.experience||[]
+
 list.push(exp)
 
-await fetch(API+"/api/users/profile",{
-method:"PATCH",
-headers:{
-"Content-Type":"application/json",
-Authorization:"Bearer "+token
-},
-body:JSON.stringify({experience:list})
-})
+await updateProfile({experience:list})
 
-closeModal("expModal")
-loadProfile()
+expModal.style.display="none"
 
 }
 
-async function deleteExperience(i){
+async function deleteExperience(index){
 
 const list=currentUser.experience
-list.splice(i,1)
 
-await fetch(API+"/api/users/profile",{
-method:"PATCH",
-headers:{
-"Content-Type":"application/json",
-Authorization:"Bearer "+token
-},
-body:JSON.stringify({experience:list})
-})
+list.splice(index,1)
 
-loadProfile()
-
-}
-
-function renderEducation(list){
-
-const box=document.getElementById("educationList")
-box.innerHTML=""
-
-if(!list) return
-
-list.forEach((e,i)=>{
-
-box.innerHTML+=`
-<div>
-
-<b>${e.school}</b>
-<p>${e.degree}</p>
-
-<button onclick="deleteEducation(${i})">Delete</button>
-
-</div>
-`
-
-})
+await updateProfile({experience:list})
 
 }
 
@@ -444,64 +415,26 @@ async function saveEducation(){
 
 const edu={
 school:eduSchool.value,
-degree:eduDegree.value,
-field:eduField.value
+degree:eduDegree.value
 }
 
 const list=currentUser.education||[]
+
 list.push(edu)
 
-await fetch(API+"/api/users/profile",{
-method:"PATCH",
-headers:{
-"Content-Type":"application/json",
-Authorization:"Bearer "+token
-},
-body:JSON.stringify({education:list})
-})
+await updateProfile({education:list})
 
-closeModal("eduModal")
-loadProfile()
+eduModal.style.display="none"
 
 }
 
-async function deleteEducation(i){
+async function deleteEducation(index){
 
 const list=currentUser.education
-list.splice(i,1)
 
-await fetch(API+"/api/users/profile",{
-method:"PATCH",
-headers:{
-"Content-Type":"application/json",
-Authorization:"Bearer "+token
-},
-body:JSON.stringify({education:list})
-})
+list.splice(index,1)
 
-loadProfile()
-
-}
-
-function renderSkills(list){
-
-const box=document.getElementById("skillsList")
-box.innerHTML=""
-
-if(!list) return
-
-list.forEach((s,i)=>{
-
-box.innerHTML+=`
-<span class="skill-tag">
-
-${s}
-<span onclick="deleteSkill(${i})" style="cursor:pointer;color:red;">x</span>
-
-</span>
-`
-
-})
+await updateProfile({education:list})
 
 }
 
@@ -510,128 +443,52 @@ async function saveSkill(){
 const skill=skillInput.value
 
 const list=currentUser.skills||[]
+
 list.push(skill)
 
-await fetch(API+"/api/users/profile",{
-method:"PATCH",
-headers:{
-"Content-Type":"application/json",
-Authorization:"Bearer "+token
-},
-body:JSON.stringify({skills:list})
-})
+await updateProfile({skills:list})
 
-closeModal("skillModal")
-loadProfile()
+skillModal.style.display="none"
 
 }
 
-async function deleteSkill(i){
+async function deleteSkill(index){
 
 const list=currentUser.skills
-list.splice(i,1)
 
-await fetch(API+"/api/users/profile",{
+list.splice(index,1)
+
+await updateProfile({skills:list})
+
+}
+
+async function updateProfile(data){
+
+const res=await fetch(API+"/api/users/profile",{
+
 method:"PATCH",
+
 headers:{
 "Content-Type":"application/json",
 Authorization:"Bearer "+token
 },
-body:JSON.stringify({skills:list})
-})
 
-loadProfile()
-
-}
-
-function updateStrength(){
-
-let score=0
-
-if(currentUser.name)score+=20
-if(currentUser.headline)score+=20
-if(currentUser.bio)score+=20
-if(currentUser.skills?.length)score+=20
-if(currentUser.experience?.length)score+=20
-
-document.getElementById("strengthBar").style.width=score+"%"
-
-}
-
-async function loadActivity(){
-
-const res=await fetch(API+"/api/posts/user/"+currentUser._id,{
-headers:{Authorization:"Bearer "+token}
-})
-
-const posts=await res.json()
-
-const box=document.getElementById("activityList")
-box.innerHTML=""
-
-posts.forEach(p=>{
-
-box.innerHTML+=`
-<div class="activity-card">
-
-${p.content}
-
-<div>
-👍 ${p.likes?.length||0}
-💬 ${p.comments?.length||0}
-</div>
-
-</div>
-`
+body:JSON.stringify(data)
 
 })
 
-}
+currentUser=await res.json()
 
-function openEdit(){editModal.style.display="flex"}
-function openExperience(){expModal.style.display="flex"}
-function openEducation(){eduModal.style.display="flex"}
-function openSkillModal(){skillModal.style.display="flex"}
+renderProfile()
 
-function closeModal(id){
-document.getElementById(id).style.display="none"
-}
-
-async function saveProfile(){
-
-const body={
-name:editName.value,
-headline:editHeadline.value,
-location:editLocation.value,
-website:editWebsite.value,
-bio:editBio.value
-}
-
-await fetch(API+"/api/users/profile",{
-method:"PATCH",
-headers:{
-"Content-Type":"application/json",
-Authorization:"Bearer "+token
-},
-body:JSON.stringify(body)
-})
-
-closeModal("editModal")
-loadProfile()
-
-}
-
-function goHome(){
-window.location.href="talent.html"
 }
 
 function openPublicProfile(){
+
 window.location.href="public-profile.html?id="+currentUser._id
+
 }
 
 loadProfile()
 
 </script>
-
-</body>
-</html>
