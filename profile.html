@@ -162,6 +162,7 @@ border-radius:6px;
 <div class="card">
 
 <img id="avatar" class="sidebar-avatar">
+  <input type="file" id="photoUpload">
 
 <h3 id="name"></h3>
 <p id="headline"></p>
@@ -300,7 +301,7 @@ nameEl.innerText=currentUser.name
 headline.innerText=currentUser.headline||""
 locationEl.innerText=currentUser.location||""
 bio.innerText=currentUser.bio||""
-
+document.getElementById("strengthBar").style.width=currentUser.completeness+"%"
 renderExperience()
 renderEducation()
 renderSkills()
@@ -314,15 +315,21 @@ experienceList.innerHTML=""
 (currentUser.experience||[]).forEach((e,i)=>{
 
 experienceList.innerHTML+=`
+
 <div class="experience-card">
 
 <h4>${e.title}</h4>
+
 <p class="company">${e.company}</p>
+
 <p class="date">${e.startDate} - ${e.endDate||"Present"}</p>
+
+<button onclick="editExperience(${i})">Edit</button>
 
 <button onclick="deleteExperience(${i})">Delete</button>
 
 </div>
+
 `
 
 })
@@ -336,14 +343,19 @@ educationList.innerHTML=""
 (currentUser.education||[]).forEach((e,i)=>{
 
 educationList.innerHTML+=`
+
 <div>
 
 <h4>${e.school}</h4>
+
 <p>${e.degree}</p>
+
+<button onclick="editEducation(${i})">Edit</button>
 
 <button onclick="deleteEducation(${i})">Delete</button>
 
 </div>
+
 `
 
 })
@@ -373,11 +385,36 @@ ${s}
 function openExp(){
 expModal.style.display="flex"
 }
+  function editExperience(index){
+
+const exp=currentUser.experience[index]
+
+expTitle.value=exp.title
+expCompany.value=exp.company
+expStart.value=exp.startDate
+expEnd.value=exp.endDate
+
+expModal.dataset.edit=index
+
+expModal.style.display="flex"
+
+}
 
 function openEdu(){
 eduModal.style.display="flex"
 }
+function editEducation(index){
 
+const edu=currentUser.education[index]
+
+eduSchool.value=edu.school
+eduDegree.value=edu.degree
+
+eduModal.dataset.edit=index
+
+eduModal.style.display="flex"
+
+}
 function openSkill(){
 skillModal.style.display="flex"
 }
@@ -393,7 +430,17 @@ endDate:expEnd.value
 
 const list=currentUser.experience||[]
 
+if(expModal.dataset.edit){
+
+list[expModal.dataset.edit]=exp
+
+delete expModal.dataset.edit
+
+}else{
+
 list.push(exp)
+
+}
 
 await updateProfile({experience:list})
 
@@ -464,20 +511,35 @@ await updateProfile({skills:list})
 
 async function updateProfile(data){
 
-const res=await fetch(API+"/api/users/profile",{
+const formData = new FormData()
+
+Object.keys(data).forEach(key => {
+
+if(Array.isArray(data[key])){
+
+formData.append(key, JSON.stringify(data[key]))
+
+}else{
+
+formData.append(key, data[key])
+
+}
+
+})
+
+const res = await fetch(API+"/api/users/profile",{
 
 method:"PATCH",
 
 headers:{
-"Content-Type":"application/json",
 Authorization:"Bearer "+token
 },
 
-body:JSON.stringify(data)
+body:formData
 
 })
 
-currentUser=await res.json()
+currentUser = await res.json()
 
 renderProfile()
 
@@ -488,7 +550,29 @@ function openPublicProfile(){
 window.location.href="public-profile.html?id="+currentUser._id
 
 }
+document.getElementById("photoUpload").onchange = async function(){
 
+const file=this.files[0]
+
+const formData=new FormData()
+
+formData.append("profileImage",file)
+
+const res=await fetch(API+"/api/users/profile",{
+
+method:"PATCH",
+
+headers:{Authorization:"Bearer "+token},
+
+body:formData
+
+})
+
+currentUser=await res.json()
+
+renderProfile()
+
+}
 loadProfile()
 
 </script>
