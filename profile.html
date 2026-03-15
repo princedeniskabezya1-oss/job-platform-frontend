@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html>
-
 <head>
 
 <meta charset="UTF-8">
@@ -16,7 +15,7 @@ margin:0;
 background:#f3f2ef;
 }
 
-/* TOP BAR */
+/* TOPBAR */
 
 .topbar{
 display:flex;
@@ -28,8 +27,8 @@ border-bottom:1px solid #ddd;
 }
 
 .logo{
-font-weight:bold;
 font-size:22px;
+font-weight:bold;
 color:#0a66c2;
 }
 
@@ -40,9 +39,9 @@ margin-left:10px;
 /* PROFILE HEADER */
 
 .profile-header{
-background:white;
 max-width:1000px;
 margin:20px auto;
+background:white;
 border-radius:10px;
 overflow:hidden;
 box-shadow:0 2px 8px rgba(0,0,0,0.05);
@@ -85,8 +84,8 @@ object-fit:cover;
 
 .avatar-upload{
 position:absolute;
-left:20px;
 top:70px;
+left:20px;
 }
 
 .profile-text{
@@ -98,7 +97,7 @@ margin:0;
 }
 
 .profile-text p{
-margin:5px 0;
+margin:4px 0;
 color:#555;
 }
 
@@ -121,7 +120,7 @@ background:#0a66c2;
 width:0%;
 }
 
-/* LAYOUT */
+/* MAIN LAYOUT */
 
 .layout{
 max-width:1000px;
@@ -131,8 +130,6 @@ grid-template-columns:1fr;
 gap:20px;
 }
 
-/* CARD */
-
 .card{
 background:white;
 padding:20px;
@@ -140,16 +137,12 @@ border-radius:10px;
 box-shadow:0 2px 8px rgba(0,0,0,0.05);
 }
 
-/* SECTION HEADER */
-
 .section-header{
 display:flex;
 justify-content:space-between;
 align-items:center;
 margin-bottom:15px;
 }
-
-/* EXPERIENCE */
 
 .experience{
 border-left:3px solid #0a66c2;
@@ -166,8 +159,6 @@ font-size:13px;
 color:#777;
 }
 
-/* SKILLS */
-
 .skill{
 display:inline-block;
 background:#eef3f8;
@@ -175,8 +166,6 @@ padding:6px 12px;
 border-radius:20px;
 margin:4px;
 }
-
-/* BUTTON */
 
 button{
 padding:6px 14px;
@@ -222,12 +211,8 @@ border-radius:6px;
 }
 
 </style>
-
 </head>
-
 <body>
-
-<!-- TOPBAR -->
 
 <div class="topbar">
 
@@ -236,14 +221,12 @@ border-radius:6px;
 <div class="nav-buttons">
 
 <button onclick="goFeed()">Feed</button>
+<button onclick="goNetwork()">Network</button>
 <button onclick="openPublicProfile()">Public Profile</button>
 
 </div>
 
 </div>
-
-<!-- PROFILE HEADER -->
-
 <div class="profile-header">
 
 <div class="banner">
@@ -273,9 +256,7 @@ border-radius:6px;
 <div style="font-size:13px">Profile Strength</div>
 
 <div class="strength-bar">
-
 <div id="strengthBar" class="strength-fill"></div>
-
 </div>
 
 </div>
@@ -285,27 +266,24 @@ border-radius:6px;
 </div>
 
 </div>
-
-<!-- MAIN -->
 
 <div class="layout">
 
 <div class="card">
 
+<div class="section-header">
 <h3>About</h3>
+<button onclick="openEditProfile()">Edit</button>
+</div>
 
 <p id="bio"></p>
 
 </div>
-
 <div class="card">
 
 <div class="section-header">
-
 <h3>Experience</h3>
-
 <button onclick="openExp()">+</button>
-
 </div>
 
 <div id="experienceList"></div>
@@ -315,11 +293,8 @@ border-radius:6px;
 <div class="card">
 
 <div class="section-header">
-
 <h3>Education</h3>
-
 <button onclick="openEdu()">+</button>
-
 </div>
 
 <div id="educationList"></div>
@@ -329,75 +304,25 @@ border-radius:6px;
 <div class="card">
 
 <div class="section-header">
-
 <h3>Skills</h3>
-
 <button onclick="openSkill()">+</button>
-
 </div>
 
 <div id="skillsList"></div>
 
 </div>
 
-</div>
+<div class="card">
 
-<!-- EXPERIENCE MODAL -->
+<h3>Featured</h3>
 
-<div id="expModal" class="modal">
+<p>Upload portfolio items or featured work.</p>
 
-<div class="modal-content">
-
-<h3>Experience</h3>
-
-<input id="expTitle" placeholder="Title">
-
-<input id="expCompany" placeholder="Company">
-
-<input id="expStart" placeholder="Start">
-
-<input id="expEnd" placeholder="End">
-
-<button onclick="saveExperience()">Save</button>
+<button>Upload Portfolio</button>
 
 </div>
 
 </div>
-
-<!-- EDUCATION MODAL -->
-
-<div id="eduModal" class="modal">
-
-<div class="modal-content">
-
-<h3>Education</h3>
-
-<input id="eduSchool" placeholder="School">
-
-<input id="eduDegree" placeholder="Degree">
-
-<button onclick="saveEducation()">Save</button>
-
-</div>
-
-</div>
-
-<!-- SKILL MODAL -->
-
-<div id="skillModal" class="modal">
-
-<div class="modal-content">
-
-<h3>Skill</h3>
-
-<input id="skillInput">
-
-<button onclick="saveSkill()">Save</button>
-
-</div>
-
-</div>
-
 <script>
 
 const API="https://backend-1-9b6f.onrender.com"
@@ -407,7 +332,9 @@ let currentUser=null
 
 async function loadProfile(){
 
-const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer "+token}})
+const res=await fetch(API+"/api/users/me",{
+headers:{Authorization:"Bearer "+token}
+})
 
 currentUser=await res.json()
 
@@ -422,19 +349,14 @@ avatar.src=currentUser.profileImage||"https://cdn-icons-png.flaticon.com/512/149
 banner.src=currentUser.bannerImage||"https://via.placeholder.com/900x200"
 
 name.innerText=currentUser.name
-
 headline.innerText=currentUser.headline||""
-
 location.innerText=currentUser.location||""
-
 bio.innerText=currentUser.bio||""
 
 strengthBar.style.width=(currentUser.completeness||0)+"%"
 
 renderExperience()
-
 renderEducation()
-
 renderSkills()
 
 }
@@ -448,88 +370,16 @@ experienceList.innerHTML=""
 (currentUser.experience||[]).forEach((e,i)=>{
 
 experienceList.innerHTML+=`
-
 <div class="experience">
-
 <b>${e.title}</b>
-
 <div class="company">${e.company}</div>
-
 <div class="date">${e.startDate} - ${e.endDate||"Present"}</div>
-
 <button onclick="editExperience(${i})">Edit</button>
-
 <button onclick="deleteExperience(${i})">Delete</button>
-
 </div>
-
 `
 
 })
-
-}
-
-function openExp(){expModal.style.display="flex"}
-
-function editExperience(i){
-
-const e=currentUser.experience[i]
-
-expTitle.value=e.title
-
-expCompany.value=e.company
-
-expStart.value=e.startDate
-
-expEnd.value=e.endDate
-
-expModal.dataset.edit=i
-
-expModal.style.display="flex"
-
-}
-
-async function saveExperience(){
-
-const exp={
-
-title:expTitle.value,
-
-company:expCompany.value,
-
-startDate:expStart.value,
-
-endDate:expEnd.value
-
-}
-
-const list=currentUser.experience||[]
-
-if(expModal.dataset.edit){
-
-list[expModal.dataset.edit]=exp
-
-delete expModal.dataset.edit
-
-}else{
-
-list.push(exp)
-
-}
-
-await updateProfile({experience:list})
-
-expModal.style.display="none"
-
-}
-
-async function deleteExperience(i){
-
-const list=currentUser.experience
-
-list.splice(i,1)
-
-await updateProfile({experience:list})
 
 }
 
@@ -542,78 +392,15 @@ educationList.innerHTML=""
 (currentUser.education||[]).forEach((e,i)=>{
 
 educationList.innerHTML+=`
-
 <div>
-
 <b>${e.school}</b>
-
 <div>${e.degree}</div>
-
 <button onclick="editEducation(${i})">Edit</button>
-
 <button onclick="deleteEducation(${i})">Delete</button>
-
 </div>
-
 `
 
 })
-
-}
-
-function openEdu(){eduModal.style.display="flex"}
-
-function editEducation(i){
-
-const e=currentUser.education[i]
-
-eduSchool.value=e.school
-
-eduDegree.value=e.degree
-
-eduModal.dataset.edit=i
-
-eduModal.style.display="flex"
-
-}
-
-async function saveEducation(){
-
-const edu={
-
-school:eduSchool.value,
-
-degree:eduDegree.value
-
-}
-
-const list=currentUser.education||[]
-
-if(eduModal.dataset.edit){
-
-list[eduModal.dataset.edit]=edu
-
-delete eduModal.dataset.edit
-
-}else{
-
-list.push(edu)
-
-}
-
-await updateProfile({education:list})
-
-eduModal.style.display="none"
-
-}
-
-async function deleteEducation(i){
-
-const list=currentUser.education
-
-list.splice(i,1)
-
-await updateProfile({education:list})
 
 }
 
@@ -626,42 +413,13 @@ skillsList.innerHTML=""
 (currentUser.skills||[]).forEach((s,i)=>{
 
 skillsList.innerHTML+=`
-
 <span class="skill">
-
 ${s}
-
 <span onclick="deleteSkill(${i})" style="cursor:pointer">✕</span>
-
 </span>
-
 `
 
 })
-
-}
-
-function openSkill(){skillModal.style.display="flex"}
-
-async function saveSkill(){
-
-const list=currentUser.skills||[]
-
-list.push(skillInput.value)
-
-await updateProfile({skills:list})
-
-skillModal.style.display="none"
-
-}
-
-async function deleteSkill(i){
-
-const list=currentUser.skills
-
-list.splice(i,1)
-
-await updateProfile({skills:list})
 
 }
 
@@ -672,17 +430,13 @@ async function updateProfile(data){
 const formData=new FormData()
 
 Object.keys(data).forEach(key=>{
-
 formData.append(key,JSON.stringify(data[key]))
-
 })
 
 const res=await fetch(API+"/api/users/profile",{
 
 method:"PATCH",
-
 headers:{Authorization:"Bearer "+token},
-
 body:formData
 
 })
@@ -698,15 +452,12 @@ renderProfile()
 photoUpload.onchange=async function(){
 
 const fd=new FormData()
-
 fd.append("profileImage",this.files[0])
 
 const res=await fetch(API+"/api/users/profile",{
 
 method:"PATCH",
-
 headers:{Authorization:"Bearer "+token},
-
 body:fd
 
 })
@@ -722,15 +473,12 @@ renderProfile()
 bannerUpload.onchange=async function(){
 
 const fd=new FormData()
-
 fd.append("bannerImage",this.files[0])
 
 const res=await fetch(API+"/api/users/profile",{
 
 method:"PATCH",
-
 headers:{Authorization:"Bearer "+token},
-
 body:fd
 
 })
@@ -741,27 +489,27 @@ renderProfile()
 
 }
 
-/* MODAL CLOSE ON OUTSIDE CLICK */
+/* NAVIGATION */
+
+function openPublicProfile(){
+window.location.href="public-profile.html?id="+currentUser._id
+}
+
+function goFeed(){
+window.location.href="talent.html"
+}
+
+function goNetwork(){
+window.location.href="network.html"
+}
+
+/* CLOSE MODALS OUTSIDE */
 
 window.onclick=function(e){
 
 if(e.target.classList.contains("modal")){
-
 e.target.style.display="none"
-
 }
-
-}
-
-function openPublicProfile(){
-
-window.location.href="public-profile.html?id="+currentUser._id
-
-}
-
-function goFeed(){
-
-window.location.href="talent.html"
 
 }
 
