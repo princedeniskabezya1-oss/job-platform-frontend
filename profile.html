@@ -16,7 +16,7 @@ margin:0;
 background:#f3f2ef;
 }
 
-/* TOPBAR */
+/* TOP BAR */
 
 .topbar{
 display:flex;
@@ -40,9 +40,9 @@ margin-left:10px;
 /* PROFILE HEADER */
 
 .profile-header{
+background:white;
 max-width:1000px;
 margin:20px auto;
-background:white;
 border-radius:10px;
 overflow:hidden;
 box-shadow:0 2px 8px rgba(0,0,0,0.05);
@@ -79,6 +79,7 @@ border:4px solid white;
 position:absolute;
 top:-60px;
 left:20px;
+background:white;
 object-fit:cover;
 }
 
@@ -97,7 +98,7 @@ margin:0;
 }
 
 .profile-text p{
-margin:4px 0;
+margin:5px 0;
 color:#555;
 }
 
@@ -120,14 +121,17 @@ background:#0a66c2;
 width:0%;
 }
 
-/* CARD */
+/* LAYOUT */
 
 .layout{
 max-width:1000px;
 margin:auto;
 display:grid;
+grid-template-columns:1fr;
 gap:20px;
 }
+
+/* CARD */
 
 .card{
 background:white;
@@ -136,18 +140,33 @@ border-radius:10px;
 box-shadow:0 2px 8px rgba(0,0,0,0.05);
 }
 
+/* SECTION HEADER */
+
 .section-header{
 display:flex;
 justify-content:space-between;
 align-items:center;
-margin-bottom:10px;
+margin-bottom:15px;
 }
+
+/* EXPERIENCE */
 
 .experience{
 border-left:3px solid #0a66c2;
 padding-left:15px;
 margin-bottom:15px;
 }
+
+.company{
+font-weight:600;
+}
+
+.date{
+font-size:13px;
+color:#777;
+}
+
+/* SKILLS */
 
 .skill{
 display:inline-block;
@@ -156,6 +175,8 @@ padding:6px 12px;
 border-radius:20px;
 margin:4px;
 }
+
+/* BUTTON */
 
 button{
 padding:6px 14px;
@@ -206,6 +227,8 @@ border-radius:6px;
 
 <body>
 
+<!-- TOPBAR -->
+
 <div class="topbar">
 
 <div class="logo">AIFT</div>
@@ -213,12 +236,13 @@ border-radius:6px;
 <div class="nav-buttons">
 
 <button onclick="goFeed()">Feed</button>
+<button onclick="openPublicProfile()">Public Profile</button>
 
-<button onclick="openPublicProfile()">View Public Profile</button>
+</div>
 
 </div>
 
-</div>
+<!-- PROFILE HEADER -->
 
 <div class="profile-header">
 
@@ -257,17 +281,18 @@ border-radius:6px;
 </div>
 
 </div>
-  <div class="layout">
+
+</div>
+
+</div>
+
+<!-- MAIN -->
+
+<div class="layout">
 
 <div class="card">
 
-<div class="section-header">
-
 <h3>About</h3>
-
-<button onclick="openEditProfile()">Edit</button>
-
-</div>
 
 <p id="bio"></p>
 
@@ -316,7 +341,11 @@ border-radius:6px;
 </div>
 
 </div>
-  <div id="expModal" class="modal">
+
+<!-- EXPERIENCE MODAL -->
+
+<div id="expModal" class="modal">
+
 <div class="modal-content">
 
 <h3>Experience</h3>
@@ -325,16 +354,20 @@ border-radius:6px;
 
 <input id="expCompany" placeholder="Company">
 
-<input id="expStart" placeholder="Start Date">
+<input id="expStart" placeholder="Start">
 
-<input id="expEnd" placeholder="End Date">
+<input id="expEnd" placeholder="End">
 
 <button onclick="saveExperience()">Save</button>
 
 </div>
+
 </div>
 
+<!-- EDUCATION MODAL -->
+
 <div id="eduModal" class="modal">
+
 <div class="modal-content">
 
 <h3>Education</h3>
@@ -346,20 +379,26 @@ border-radius:6px;
 <button onclick="saveEducation()">Save</button>
 
 </div>
+
 </div>
 
+<!-- SKILL MODAL -->
+
 <div id="skillModal" class="modal">
+
 <div class="modal-content">
 
-<h3>Add Skill</h3>
+<h3>Skill</h3>
 
 <input id="skillInput">
 
 <button onclick="saveSkill()">Save</button>
 
 </div>
+
 </div>
-  <script>
+
+<script>
 
 const API="https://backend-1-9b6f.onrender.com"
 const token=localStorage.getItem("token")
@@ -368,9 +407,7 @@ let currentUser=null
 
 async function loadProfile(){
 
-const res=await fetch(API+"/api/users/me",{
-headers:{Authorization:"Bearer "+token}
-})
+const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer "+token}})
 
 currentUser=await res.json()
 
@@ -380,17 +417,17 @@ renderProfile()
 
 function renderProfile(){
 
-avatar.src=currentUser.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+avatar.src=currentUser.profileImage||"https://cdn-icons-png.flaticon.com/512/149/149071.png"
 
-banner.src=currentUser.bannerImage || "https://via.placeholder.com/900x200"
+banner.src=currentUser.bannerImage||"https://via.placeholder.com/900x200"
 
 name.innerText=currentUser.name
 
-headline.innerText=currentUser.headline || ""
+headline.innerText=currentUser.headline||""
 
-location.innerText=currentUser.location || ""
+location.innerText=currentUser.location||""
 
-bio.innerText=currentUser.bio || ""
+bio.innerText=currentUser.bio||""
 
 strengthBar.style.width=(currentUser.completeness||0)+"%"
 
@@ -402,6 +439,8 @@ renderSkills()
 
 }
 
+/* EXPERIENCE */
+
 function renderExperience(){
 
 experienceList.innerHTML=""
@@ -409,18 +448,92 @@ experienceList.innerHTML=""
 (currentUser.experience||[]).forEach((e,i)=>{
 
 experienceList.innerHTML+=`
+
 <div class="experience">
+
 <b>${e.title}</b>
-<div>${e.company}</div>
-<div>${e.startDate} - ${e.endDate||"Present"}</div>
+
+<div class="company">${e.company}</div>
+
+<div class="date">${e.startDate} - ${e.endDate||"Present"}</div>
+
 <button onclick="editExperience(${i})">Edit</button>
+
 <button onclick="deleteExperience(${i})">Delete</button>
+
 </div>
+
 `
 
 })
 
 }
+
+function openExp(){expModal.style.display="flex"}
+
+function editExperience(i){
+
+const e=currentUser.experience[i]
+
+expTitle.value=e.title
+
+expCompany.value=e.company
+
+expStart.value=e.startDate
+
+expEnd.value=e.endDate
+
+expModal.dataset.edit=i
+
+expModal.style.display="flex"
+
+}
+
+async function saveExperience(){
+
+const exp={
+
+title:expTitle.value,
+
+company:expCompany.value,
+
+startDate:expStart.value,
+
+endDate:expEnd.value
+
+}
+
+const list=currentUser.experience||[]
+
+if(expModal.dataset.edit){
+
+list[expModal.dataset.edit]=exp
+
+delete expModal.dataset.edit
+
+}else{
+
+list.push(exp)
+
+}
+
+await updateProfile({experience:list})
+
+expModal.style.display="none"
+
+}
+
+async function deleteExperience(i){
+
+const list=currentUser.experience
+
+list.splice(i,1)
+
+await updateProfile({experience:list})
+
+}
+
+/* EDUCATION */
 
 function renderEducation(){
 
@@ -429,17 +542,82 @@ educationList.innerHTML=""
 (currentUser.education||[]).forEach((e,i)=>{
 
 educationList.innerHTML+=`
+
 <div>
+
 <b>${e.school}</b>
+
 <div>${e.degree}</div>
+
 <button onclick="editEducation(${i})">Edit</button>
+
 <button onclick="deleteEducation(${i})">Delete</button>
+
 </div>
+
 `
 
 })
 
 }
+
+function openEdu(){eduModal.style.display="flex"}
+
+function editEducation(i){
+
+const e=currentUser.education[i]
+
+eduSchool.value=e.school
+
+eduDegree.value=e.degree
+
+eduModal.dataset.edit=i
+
+eduModal.style.display="flex"
+
+}
+
+async function saveEducation(){
+
+const edu={
+
+school:eduSchool.value,
+
+degree:eduDegree.value
+
+}
+
+const list=currentUser.education||[]
+
+if(eduModal.dataset.edit){
+
+list[eduModal.dataset.edit]=edu
+
+delete eduModal.dataset.edit
+
+}else{
+
+list.push(edu)
+
+}
+
+await updateProfile({education:list})
+
+eduModal.style.display="none"
+
+}
+
+async function deleteEducation(i){
+
+const list=currentUser.education
+
+list.splice(i,1)
+
+await updateProfile({education:list})
+
+}
+
+/* SKILLS */
 
 function renderSkills(){
 
@@ -448,22 +626,55 @@ skillsList.innerHTML=""
 (currentUser.skills||[]).forEach((s,i)=>{
 
 skillsList.innerHTML+=`
+
 <span class="skill">
+
 ${s}
+
 <span onclick="deleteSkill(${i})" style="cursor:pointer">✕</span>
+
 </span>
+
 `
 
 })
 
 }
 
+function openSkill(){skillModal.style.display="flex"}
+
+async function saveSkill(){
+
+const list=currentUser.skills||[]
+
+list.push(skillInput.value)
+
+await updateProfile({skills:list})
+
+skillModal.style.display="none"
+
+}
+
+async function deleteSkill(i){
+
+const list=currentUser.skills
+
+list.splice(i,1)
+
+await updateProfile({skills:list})
+
+}
+
+/* UPDATE PROFILE */
+
 async function updateProfile(data){
 
 const formData=new FormData()
 
 Object.keys(data).forEach(key=>{
+
 formData.append(key,JSON.stringify(data[key]))
+
 })
 
 const res=await fetch(API+"/api/users/profile",{
@@ -481,6 +692,8 @@ currentUser=await res.json()
 renderProfile()
 
 }
+
+/* PHOTO */
 
 photoUpload.onchange=async function(){
 
@@ -504,6 +717,8 @@ renderProfile()
 
 }
 
+/* BANNER */
+
 bannerUpload.onchange=async function(){
 
 const fd=new FormData()
@@ -526,6 +741,18 @@ renderProfile()
 
 }
 
+/* MODAL CLOSE ON OUTSIDE CLICK */
+
+window.onclick=function(e){
+
+if(e.target.classList.contains("modal")){
+
+e.target.style.display="none"
+
+}
+
+}
+
 function openPublicProfile(){
 
 window.location.href="public-profile.html?id="+currentUser._id
@@ -538,18 +765,9 @@ window.location.href="talent.html"
 
 }
 
-window.onclick=function(e){
-
-if(e.target.classList.contains("modal")){
-e.target.style.display="none"
-}
-
-}
-
 loadProfile()
 
 </script>
 
-</div>
-
-</div>
+</body>
+</html>
