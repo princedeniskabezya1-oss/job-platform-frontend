@@ -32,7 +32,7 @@ font-weight:bold;
 
 .layout{
 display:grid;
-grid-template-columns:260px 1fr;
+grid-template-columns:260px 1fr 320px;
 gap:30px;
 max-width:1100px;
 margin:auto;
@@ -137,7 +137,64 @@ padding:10px;
 border:1px solid #ccc;
 border-radius:6px;
 }
+  .banner-wrapper{
+position:relative;
+height:120px;
+overflow:hidden;
+border-radius:10px;
+margin-bottom:15px;
+}
 
+.banner-img{
+width:100%;
+height:120px;
+object-fit:cover;
+}
+
+.avatar-wrapper{
+text-align:center;
+margin-top:-40px;
+}
+
+.upload-btn{
+display:inline-block;
+background:#0a66c2;
+color:white;
+padding:6px 10px;
+border-radius:20px;
+font-size:12px;
+cursor:pointer;
+margin-top:6px;
+}
+
+.upload-btn input{
+display:none;
+}
+.post-card{
+border-bottom:1px solid #eee;
+padding:12px 0;
+}
+
+.post-actions{
+margin-top:8px;
+display:flex;
+gap:10px;
+}
+
+.post-actions button{
+background:#eee;
+color:#333;
+border-radius:6px;
+padding:4px 10px;
+}
+  .right-panel{
+display:flex;
+flex-direction:column;
+gap:20px;
+position:sticky;
+top:20px;
+height:fit-content;
+}
 </style>
 
 </head>
@@ -158,13 +215,29 @@ border-radius:6px;
 
 <aside>
 
-<div class="card">
+<div class="card profile-card">
+
+<div class="banner-wrapper">
+
+<img id="bannerPreview" class="banner-img">
+
+<label class="upload-btn">
+Change banner
+<input type="file" id="bannerUpload">
+</label>
+
+</div>
+
+<div class="avatar-wrapper">
 
 <img id="avatar" class="sidebar-avatar">
 
-<br><br>
-
+<label class="upload-btn">
+Change photo
 <input type="file" id="photoUpload">
+</label>
+
+</div>
 
 <h3 id="name"></h3>
 <p id="headline"></p>
@@ -177,12 +250,85 @@ border-radius:6px;
 <!-- CENTER -->
 
 <main>
+  <div class="card">
+
+<h2>Your Posts</h2>
+
+<div id="myPosts"></div>
+
+</div>
+
+
+</main>
+  <aside class="right-panel">
+
+<!-- ABOUT PANEL -->
 
 <div class="card">
 
-<h2>About</h2>
+<div class="section-header">
+<h3>About</h3>
+<button onclick="openAbout()">Edit</button>
+</div>
 
 <p id="bio"></p>
+
+</div>
+
+
+<!-- SKILLS PANEL -->
+
+<div class="card">
+
+<div class="section-header">
+<h3>Skills</h3>
+<button onclick="openSkill()">+</button>
+</div>
+
+<div id="skillsList"></div>
+
+</div>
+
+
+<!-- EXPERIENCE PANEL -->
+
+<div class="card">
+
+<div class="section-header">
+<h3>Experience</h3>
+<button onclick="openExp()">+</button>
+</div>
+
+<div id="experienceList"></div>
+
+</div>
+
+
+<!-- EDUCATION PANEL -->
+
+<div class="card">
+
+<div class="section-header">
+<h3>Education</h3>
+<button onclick="openEdu()">+</button>
+</div>
+
+<div id="educationList"></div>
+
+</div>
+
+
+<!-- STATISTICS PANEL -->
+
+<div class="card">
+
+<h3>Statistics</h3>
+
+<p>Followers: <span id="followersCount">0</span></p>
+
+<p>Following: <span id="followingCount">0</span></p>
+
+<p>Total Posts: <span id="postCount">0</span></p>
 
 <div style="margin-top:15px">
 
@@ -199,43 +345,6 @@ style="height:8px;background:#0a66c2;border-radius:10px;width:0%">
 </div>
 
 </div>
-
-</div>
-
-<div class="card">
-
-<div class="section-header">
-<h2>Experience</h2>
-<button class="icon-btn" onclick="openExp()">+</button>
-</div>
-
-<div id="experienceList"></div>
-
-</div>
-
-<div class="card">
-
-<div class="section-header">
-<h2>Education</h2>
-<button class="icon-btn" onclick="openEdu()">+</button>
-</div>
-
-<div id="educationList"></div>
-
-</div>
-
-<div class="card">
-
-<div class="section-header">
-<h2>Skills</h2>
-<button class="icon-btn" onclick="openSkill()">+</button>
-</div>
-
-<div id="skillsList"></div>
-
-</div>
-
-</main>
 
 </div>
 
@@ -317,6 +426,8 @@ renderProfile()
 function renderProfile(){
 
 avatar.src=currentUser.profileImage||"https://cdn-icons-png.flaticon.com/512/149/149071.png"
+  document.getElementById("bannerPreview").src =
+currentUser.bannerImage || "https://via.placeholder.com/600x200"
 
 nameEl.innerText=currentUser.name
 headline.innerText=currentUser.headline||""
@@ -327,11 +438,16 @@ const bar=document.getElementById("strengthBar")
 if(bar){
 bar.style.width=(currentUser.completeness||0)+"%"
 }
+  document.getElementById("followersCount").innerText =
+currentUser.followers?.length || 0
+
+document.getElementById("followingCount").innerText =
+currentUser.following?.length || 0
 
 renderExperience()
 renderEducation()
 renderSkills()
-
+loadMyPosts()
 }
 
 function renderExperience(){
@@ -389,17 +505,34 @@ skillsList.innerHTML=""
 
 (currentUser.skills||[]).forEach((s,i)=>{
 
-skillsList.innerHTML+=`
+const span=document.createElement("span")
 
-<span class="skill-tag">
+span.className="skill-tag"
+span.innerText=s
 
-${s}
+span.draggable=true
 
-<span onclick="deleteSkill(${i})" style="cursor:pointer">✕</span>
+span.ondragstart=(e)=>{
+e.dataTransfer.setData("index",i)
+}
 
-</span>
+span.ondrop=(e)=>{
 
-`
+const from=e.dataTransfer.getData("index")
+
+const list=currentUser.skills
+
+const item=list.splice(from,1)[0]
+
+list.splice(i,0,item)
+
+updateProfile({skills:list})
+
+}
+
+span.ondragover=(e)=>e.preventDefault()
+
+skillsList.appendChild(span)
 
 })
 
@@ -597,13 +730,113 @@ currentUser=await res.json()
 renderProfile()
 
 }
+document.getElementById("bannerUpload").onchange = async function(){
 
+const file=this.files[0]
+
+const formData=new FormData()
+
+formData.append("bannerImage",file)
+
+const res=await fetch(API+"/api/users/profile",{
+
+method:"PATCH",
+
+headers:{Authorization:"Bearer "+token},
+
+body:formData
+
+})
+
+currentUser=await res.json()
+
+renderProfile()
+
+}
 function openPublicProfile(){
 
 window.location.href="public-profile.html?id="+currentUser._id
 
 }
+  async function deletePost(postId){
 
+await fetch(API+"/api/posts/"+postId,{
+method:"DELETE",
+headers:{Authorization:"Bearer "+token}
+})
+
+loadMyPosts()
+
+}
+  function editPost(postId,content){
+
+const newText = prompt("Edit your post:", content)
+
+if(!newText) return
+
+updatePost(postId,newText)
+
+}
+
+async function updatePost(postId,text){
+
+await fetch(API+"/api/posts/"+postId,{
+method:"PATCH",
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+body:JSON.stringify({content:text})
+})
+
+loadMyPosts()
+
+}
+  window.onclick=function(e){
+
+if(e.target.classList.contains("modal")){
+
+e.target.style.display="none"
+
+}
+
+}
+async function loadMyPosts(){
+
+const res = await fetch(API+"/api/posts/user/"+currentUser._id,{
+headers:{Authorization:"Bearer "+token}
+})
+
+const posts = await res.json()
+
+const container = document.getElementById("myPosts")
+
+container.innerHTML=""
+  document.getElementById("postCount").innerText = posts.length
+
+posts.forEach(post=>{
+
+container.innerHTML+=`
+
+<div class="post-card">
+
+<p>${post.content || ""}</p>
+
+<div class="post-actions">
+
+<button onclick="editPost('${post._id}','${post.content || ""}')">Edit</button>
+
+<button onclick="deletePost('${post._id}')">Delete</button>
+
+</div>
+
+</div>
+
+`
+
+})
+
+}
 loadProfile()
 
 </script>
