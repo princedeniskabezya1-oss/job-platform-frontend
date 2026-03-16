@@ -857,9 +857,14 @@ modal.style.display="none"
 }
 async function loadMyPosts(){
 
-const res = await fetch(API+"/api/posts/user/"+currentUser._id,{
-headers:{Authorization:"Bearer "+token}
-})
+try{
+
+const res = await fetch(API+"/api/posts/user/"+currentUser._id)
+
+if(!res.ok){
+console.error("Posts failed to load")
+return
+}
 
 const posts = await res.json()
 
@@ -868,6 +873,13 @@ const container = document.getElementById("myPosts")
 container.innerHTML=""
 
 document.getElementById("postCount").innerText = posts.length
+
+if(!Array.isArray(posts) || posts.length===0){
+
+container.innerHTML="<p style='color:#666'>No posts yet</p>"
+return
+
+}
 
 posts.forEach(post=>{
 
@@ -892,10 +904,8 @@ ${currentUser.headline || ""}
 
 </div>
 
-<div style="margin-bottom:10px">
-
+<div style="padding:6px 0;font-size:15px;line-height:1.5">
 ${post.content || ""}
-
 </div>
 
 ${post.mediaUrl ? `
@@ -903,6 +913,10 @@ ${post.mediaUrl ? `
 <img src="${post.mediaUrl}" style="width:100%;border-radius:10px">
 </div>
 ` : ""}
+
+<div style="font-size:13px;color:#666;margin-top:8px">
+👍 ${post.likes?.length || 0} reactions
+</div>
 
 <div class="post-actions">
 
@@ -917,6 +931,12 @@ ${post.mediaUrl ? `
 `
 
 })
+
+}catch(err){
+
+console.error("Post loading error:",err)
+
+}
 
 }
 loadProfile()
