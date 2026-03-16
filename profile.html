@@ -859,10 +859,19 @@ async function loadMyPosts(){
 
 try{
 
-const res = await fetch(API+"/api/posts/user/"+currentUser._id)
+const res = await fetch(API+"/api/posts/user/"+currentUser._id,{
+headers:{
+Authorization:"Bearer "+token,
+"Content-Type":"application/json"
+}
+})
 
 if(!res.ok){
-console.error("Posts failed to load")
+
+const text = await res.text()
+
+console.error("Posts failed:", text)
+
 return
 }
 
