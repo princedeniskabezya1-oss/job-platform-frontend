@@ -859,23 +859,29 @@ async function loadMyPosts(){
 
 try{
 
+if(!currentUser || !currentUser._id){
+console.warn("User not ready yet")
+return
+}
+
 const res = await fetch(API+"/api/posts/user/"+currentUser._id,{
 headers:{
-Authorization:"Bearer "+token,
-"Content-Type":"application/json"
+Authorization:"Bearer "+token
 }
 })
 
 if(!res.ok){
 
-const text = await res.text()
-
-console.error("Posts failed:", text)
+const errorText = await res.text()
+console.error("Posts failed:", errorText)
 
 return
+
 }
 
 const posts = await res.json()
+
+console.log("Loaded posts:", posts)
 
 const container = document.getElementById("myPosts")
 
@@ -883,7 +889,7 @@ container.innerHTML=""
 
 document.getElementById("postCount").innerText = posts.length
 
-if(!Array.isArray(posts) || posts.length===0){
+if(posts.length === 0){
 
 container.innerHTML="<p style='color:#666'>No posts yet</p>"
 return
@@ -898,23 +904,25 @@ container.innerHTML+=`
 
 <div style="display:flex;gap:10px;margin-bottom:10px">
 
-<img src="${currentUser.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+<img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
 style="width:40px;height:40px;border-radius:50%">
 
 <div>
 
-<div style="font-weight:600">${currentUser.name}</div>
+<div style="font-weight:600">${post.author?.name || ""}</div>
 
 <div style="font-size:12px;color:#666">
-${currentUser.headline || ""}
+${post.author?.headline || ""}
 </div>
 
 </div>
 
 </div>
 
-<div style="padding:6px 0;font-size:15px;line-height:1.5">
+<div style="margin-bottom:10px;font-size:15px">
+
 ${post.content || ""}
+
 </div>
 
 ${post.mediaUrl ? `
@@ -924,7 +932,7 @@ ${post.mediaUrl ? `
 ` : ""}
 
 <div style="font-size:13px;color:#666;margin-top:8px">
-👍 ${post.likes?.length || 0} reactions
+👍 ${post.likes?.length ?? 0} reactions
 </div>
 
 <div class="post-actions">
