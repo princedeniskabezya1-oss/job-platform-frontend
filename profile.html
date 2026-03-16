@@ -454,15 +454,17 @@ function renderExperience(){
 
 experienceList.innerHTML=""
 
-(currentUser.experience||[]).forEach((e,i)=>{
+if(!Array.isArray(currentUser.experience)) return
+
+currentUser.experience.forEach((e,i)=>{
 
 experienceList.innerHTML+=`
 
 <div class="experience-card">
 
-<h4>${e.title}</h4>
-<p class="company">${e.company}</p>
-<p class="date">${e.startDate} - ${e.endDate||"Present"}</p>
+<h4>${e.title||""}</h4>
+<p class="company">${e.company||""}</p>
+<p class="date">${e.startDate||""} - ${e.endDate||"Present"}</p>
 
 <button onclick="editExperience(${i})">Edit</button>
 <button onclick="deleteExperience(${i})">Delete</button>
@@ -479,14 +481,16 @@ function renderEducation(){
 
 educationList.innerHTML=""
 
-(currentUser.education||[]).forEach((e,i)=>{
+if(!Array.isArray(currentUser.education)) return
+
+currentUser.education.forEach((e,i)=>{
 
 educationList.innerHTML+=`
 
 <div>
 
-<h4>${e.school}</h4>
-<p>${e.degree}</p>
+<h4>${e.school||""}</h4>
+<p>${e.degree||""}</p>
 
 <button onclick="editEducation(${i})">Edit</button>
 <button onclick="deleteEducation(${i})">Delete</button>
@@ -503,30 +507,18 @@ function renderSkills(){
 
 skillsList.innerHTML=""
 
-(currentUser.skills||[]).forEach((s,i)=>{
+if(!Array.isArray(currentUser.skills)) return
+
+currentUser.skills.forEach((s,i)=>{
 
 const span=document.createElement("span")
 
 span.className="skill-tag"
 span.innerText=s
 
-span.draggable=true
+skillsList.appendChild(span)
 
-span.ondragstart=(e)=>{
-e.dataTransfer.setData("index",i)
-}
-
-span.ondrop=(e)=>{
-
-const from=e.dataTransfer.getData("index")
-
-const list=currentUser.skills
-
-const item=list.splice(from,1)[0]
-
-list.splice(i,0,item)
-
-updateProfile({skills:list})
+})
 
 }
 
