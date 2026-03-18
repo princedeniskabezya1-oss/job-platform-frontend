@@ -397,6 +397,21 @@ border:none;
 border-radius:20px;
 padding:6px 14px;
 }
+  .comments-wrapper{
+border-top:1px solid #eee;
+background:white;
+}
+
+.comments-container{
+margin-top:10px;
+}
+
+.comments-container div{
+background:#f3f2ef;
+padding:8px 12px;
+border-radius:12px;
+margin-bottom:8px;
+}
 </style>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
@@ -419,10 +434,6 @@ outline:none;
 ">
 </div>
 
-<div style="display:flex;gap:10px">
-<button onclick="openPublicProfile()">Public Profile</button>
-<button onclick="goFeed()">Feed</button>
-</div>
 
 </header>
 
@@ -480,10 +491,27 @@ outline:none;
 
 <h3 style="margin-bottom:15px;padding-left:5px;">Your Posts</h3>
 
-<div id="myPosts"></div>
+<!-- CREATE POST -->
+<div class="card" style="padding:12px 16px;cursor:pointer;" onclick="goFeed()">
 
-</main>
-  <aside class="right-panel">
+<div style="display:flex;align-items:center;gap:12px;">
+<img src="" id="createPostAvatar"
+style="width:42px;height:42px;border-radius:50%;object-fit:cover;">
+
+<div style="
+flex:1;
+border:1px solid #ddd;
+border-radius:25px;
+padding:10px 16px;
+color:#666;">
+Start a post...
+</div>
+
+</div>
+
+</div>
+
+<div id="myPosts"></div>
 
 <!-- ABOUT PANEL -->
 
@@ -682,6 +710,8 @@ currentUser.followers?.length || 0
 
 document.getElementById("followingCount").innerText =
 currentUser.following?.length || 0
+  document.getElementById("createPostAvatar").src =
+currentUser.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png"
 
 renderExperience()
 renderEducation()
@@ -964,7 +994,7 @@ body:JSON.stringify({text})
 
 loadComments(postId)
 }
-  async function loadComments(postId){
+ async function loadComments(postId){
 
 const res=await fetch(API+"/api/posts/"+postId,{
 headers:{Authorization:"Bearer "+token}
@@ -976,13 +1006,58 @@ const container=document.getElementById("comments-"+postId)
 container.innerHTML=""
 
 post.comments.forEach(c=>{
+
 container.innerHTML+=`
 <div style="margin-top:10px">
+
 <strong>${c.user.name}</strong><br>
 ${c.text}
+
+<div style="margin-top:5px;">
+<button onclick="showReplyInput('${postId}','${c._id}')"
+style="background:none;border:none;color:#0a66c2;cursor:pointer;">
+Reply
+</button>
+</div>
+
+<div id="reply-${c._id}"></div>
+
 </div>
 `
+
 })
+
+}
+  function showReplyInput(postId, commentId){
+
+const container = document.getElementById("reply-"+commentId)
+
+container.innerHTML = `
+<div style="display:flex;gap:8px;margin-top:6px;">
+<input id="replyInput-${commentId}" placeholder="Write a reply..."
+style="flex:1;padding:6px 10px;border-radius:20px;border:1px solid #ddd;">
+<button onclick="submitReply('${postId}','${commentId}')">Send</button>
+</div>
+`
+
+}
+  async function submitReply(postId, commentId){
+
+const input = document.getElementById("replyInput-"+commentId)
+const text = input.value.trim()
+
+if(!text) return
+
+await fetch(API+"/api/posts/"+postId+"/comment/"+commentId+"/reply",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+token
+},
+body:JSON.stringify({text})
+})
+
+loadComments(postId)
 
 }
 async function toggleLike(id, element){
@@ -1229,14 +1304,36 @@ container.innerHTML += `
 
 <div>
 <div style="font-weight:600;">${post.author?.name}</div>
-
-<div class="post-meta">
-${post.author?.headline || ""}
+<div class="post-meta">${post.author?.headline || ""}</div>
 </div>
 
-<div style="font-size:12px;color:#6f6f6f;">
-${post.likes?.length || 0} followers • just now
 </div>
+
+<!-- ⋯ MENU -->
+<div style="cursor:pointer;font-size:20px;"
+onclick="togglePostMenu('${post._id}', event)">
+•••
+</div>
+
+<div id="menu-${post._id}" style="
+display:none;
+position:absolute;
+right:20px;
+background:white;
+border:1px solid #ddd;
+border-radius:8px;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
+z-index:100;
+">
+
+<div style="padding:8px;cursor:pointer;"
+onclick="editPost('${post._id}','${post.content}')">Edit</div>
+
+<div style="padding:8px;cursor:pointer;"
+onclick="deletePost('${post._id}')">Delete</div>
+
+</div>
+
 </div>
 
 </div>
@@ -1297,7 +1394,7 @@ onclick="openShareModal('${post._id}')">
 
 </div>
 
-<div class="comments-wrapper" id="comments-wrapper-${post._id}" style="display:none;">
+<div class="comments-wrapper" id="comments-wrapper-${post._id}" style="display:none; padding:0 16px 16px;">
 
 <div class="comment-input-area">
 
@@ -1376,6 +1473,30 @@ if(stat){
 stat.innerText = data.totalComments + " comments"
 }
 
+})
+  let activeMenu = null
+
+function togglePostMenu(id, event){
+
+event.stopPropagation()
+
+const menu = document.getElementById("menu-"+id)
+
+if(activeMenu && activeMenu !== menu){
+activeMenu.style.display = "none"
+}
+
+const open = menu.style.display === "block"
+menu.style.display = open ? "none" : "block"
+
+activeMenu = open ? null : menu
+}
+
+document.addEventListener("click", ()=>{
+if(activeMenu){
+activeMenu.style.display = "none"
+activeMenu = null
+}
 })
   function prependPost(post){
 
