@@ -53,6 +53,7 @@ border-radius:12px;
 margin-bottom:20px;
 box-shadow:0 1px 4px rgba(0,0,0,0.08);
 overflow:hidden;
+padding:18px;
 }
 .sidebar-avatar{
 width:90px;
@@ -297,6 +298,21 @@ margin:2px 0;
 font-size:13px;
 color:#666;
 }
+  .edit-svg{
+width:16px;
+height:16px;
+stroke:#555;
+fill:none;
+stroke-width:2;
+}
+  .post-card-clean{
+padding:0 !important;
+overflow:hidden;
+}
+
+.post-card-clean:hover{
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
 </style>
 
 </head>
@@ -338,8 +354,14 @@ color:#666;
 <img id="avatar" class="sidebar-avatar">
 
 <label class="edit-icon avatar-edit">
-✏️
+
+<svg viewBox="0 0 24 24" class="edit-svg">
+<path d="M3 17.25V21h3.75L19.81 7.94l-3.75-3.75L3 17.25z"/>
+<path d="M14.06 4.19l3.75 3.75"/>
+</svg>
+
 <input type="file" id="photoUpload">
+
 </label>
 </div>
 
@@ -361,7 +383,7 @@ color:#666;
 <main style="min-width:0;">
   <div class="card">
 
-<h3 style="padding:15px;border-bottom:1px solid #eee">Your Posts</h3>
+<h3 style="margin-bottom:10px">Your Posts</h3>
 
 <div id="myPosts"></div>
 
@@ -994,7 +1016,7 @@ posts.forEach(post=>{
 
 container.innerHTML+=`
 
-<div class="card" style="padding:0">
+<div class="card post-card-clean">
 
 <div style="display:flex;gap:10px;padding:15px">
 
@@ -1025,14 +1047,24 @@ ${post.mediaUrl ? `
 </div>
 ` : ""}
 
-<div style="font-size:13px;color:#666;padding:8px 15px">
+<div style="display:flex;justify-content:space-between;padding:8px 15px;font-size:13px;color:#666;border-top:1px solid #eee">
+
+<div>
 👍 ${post.likes?.length ?? 0} reactions
 </div>
 
-<div class="post-actions" style="padding:10px 15px;border-top:1px solid #eee">
+<div>
+💬 ${post.comments?.length ?? 0} comments
+</div>
+
+</div>
+
+<div style="display:flex;gap:10px;padding:10px 15px;border-top:1px solid #eee">
+
+<button onclick="likePost('${post._id}')">Like</button>
+<button onclick="commentPost('${post._id}')">Comment</button>
 
 <button onclick="editPost('${post._id}',\`${post.content || ""}\`)">Edit</button>
-
 <button onclick="deletePost('${post._id}')">Delete</button>
 
 </div>
