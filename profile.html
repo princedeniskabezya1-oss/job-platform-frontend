@@ -39,9 +39,10 @@ font-weight:bold;
 
 .layout{
 display:grid;
-grid-template-columns:260px 1fr 300px;
+grid-template-columns:260px minmax(0,700px) 300px;
+justify-content:center;
 gap:25px;
-max-width:1200px;
+max-width:1300px;
 margin:auto;
 padding:20px;
 align-items:start;
@@ -308,6 +309,8 @@ stroke-width:2;
   .post-card-clean{
 padding:0 !important;
 overflow:hidden;
+    margin-bottom:16px;
+border:1px solid #e6e6e6;
 }
 .post-header{
 display:flex;
@@ -366,8 +369,36 @@ color:#6f6f6f;
 .post-card-clean:hover{
 box-shadow:0 2px 8px rgba(0,0,0,0.1);
 }
-</style>
+  .comment-input-area{
+display:flex;
+gap:10px;
+padding:10px 16px;
+border-top:1px solid #eee;
+}
 
+.comment-avatar{
+width:36px;
+height:36px;
+border-radius:50%;
+object-fit:cover;
+}
+
+.comment-input-area input{
+flex:1;
+border-radius:20px;
+border:1px solid #ddd;
+padding:8px 12px;
+}
+
+.comment-input-area button{
+background:#0a66c2;
+color:white;
+border:none;
+border-radius:20px;
+padding:6px 14px;
+}
+</style>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 
 <body>
@@ -375,6 +406,18 @@ box-shadow:0 2px 8px rgba(0,0,0,0.1);
 <header class="topbar">
 
 <div class="logo">AIFT</div>
+
+<!-- 🔍 CENTER SEARCH -->
+<div style="flex:1;display:flex;justify-content:center;">
+<input type="text" placeholder="Search..."
+style="
+width:420px;
+padding:10px 16px;
+border-radius:25px;
+border:1px solid #ddd;
+outline:none;
+">
+</div>
 
 <div style="display:flex;gap:10px">
 <button onclick="openPublicProfile()">Public Profile</button>
@@ -591,6 +634,7 @@ style="height:8px;background:#0a66c2;border-radius:10px;width:0%">
 
 const API="https://backend-1-9b6f.onrender.com"
 const token=localStorage.getItem("token")
+  const socket = io(API);
 
 let currentUser=null
 
@@ -889,7 +933,12 @@ const wrapper = document.getElementById("comments-wrapper-"+postId)
 
 if(wrapper.style.display==="none"){
 wrapper.style.display="block"
+
+const input = document.getElementById("comment-input-"+postId)
+if(input) input.focus()
+
 loadComments(postId)
+
 }else{
 wrapper.style.display="none"
 }
@@ -936,9 +985,14 @@ ${c.text}
 })
 
 }
-  async function toggleLike(id, element){
+async function toggleLike(id, element){
 
 const icon = element.querySelector("svg")
+
+// 👉 target the reactions text
+const stat = document.querySelector("#post-"+id+" .post-stats div")
+
+try{
 
 const res = await fetch(API+"/api/posts/"+id+"/like",{
 method:"PATCH",
@@ -947,6 +1001,7 @@ headers:{Authorization:"Bearer "+token}
 
 const data = await res.json()
 
+// ✅ update button UI
 if(data.liked){
 element.classList.add("liked")
 icon.setAttribute("fill","#0a66c2")
@@ -955,7 +1010,15 @@ element.classList.remove("liked")
 icon.setAttribute("fill","none")
 }
 
-loadMyPosts()
+// ✅ update count instantly (NO reload)
+if(stat){
+stat.innerText = data.likes + " reactions"
+}
+
+}catch(err){
+console.error("Like failed:", err)
+}
+
 }
   function openShareModal(id){
 
@@ -1266,6 +1329,82 @@ console.error("Post loading error:",err)
 
 }
 loadProfile()
+  // 🔥 REALTIME POST UPDATE
+socket.on("new_post", post => {
+
+if(post.author?._id !== currentUser._id) return
+
+prependPost(post)
+
+})
+
+// 🔥 REALTIME DELETE
+socket.on("post_deleted", data => {
+
+const post = document.getElementById("post-"+data.postId)
+
+if(post) post.remove()
+
+})
+
+// 🔥 REALTIME LIKE
+socket.on("post_like", data => {
+
+const stat = document.querySelector("#post-"+data.postId+" .post-stats div")
+
+if(stat){
+stat.innerText = data.likes + " reactions"
+}
+
+})
+  // 🔥 REALTIME COMMENT
+socket.on("new_comment", data => {
+
+const container = document.getElementById("comments-"+data.postId)
+if(!container) return
+
+container.innerHTML += `
+<div style="margin-top:10px">
+<strong>${data.comment.user.name}</strong><br>
+${data.comment.text}
+</div>
+`
+
+// update count
+const stat = document.querySelector("#post-"+data.postId+" .post-stats div:nth-child(2)")
+if(stat){
+stat.innerText = data.totalComments + " comments"
+}
+
+})
+  function prependPost(post){
+
+const container = document.getElementById("myPosts")
+
+container.innerHTML = `
+<div class="card post-card-clean" id="post-${post._id}">
+  <div class="post-header">
+    <div class="post-author">
+      <img src="${post.author?.profileImage}">
+      <div>
+        <div style="font-weight:600;">${post.author?.name}</div>
+        <div class="post-meta">${post.author?.headline || ""}</div>
+      </div>
+    </div>
+  </div>
+
+  ${post.content ? `<div class="post-content">${post.content}</div>` : ""}
+
+  ${post.mediaUrl ? `<div class="post-media"><img src="${post.mediaUrl}"></div>` : ""}
+
+  <div class="post-stats">
+    <div>${post.likes?.length || 0} reactions</div>
+    <div>${post.comments?.length || 0} comments</div>
+  </div>
+</div>
+` + container.innerHTML
+
+}
 
 </script>
 
