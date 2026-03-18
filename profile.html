@@ -309,7 +309,60 @@ stroke-width:2;
 padding:0 !important;
 overflow:hidden;
 }
+.post-header{
+display:flex;
+justify-content:space-between;
+align-items:flex-start;
+padding:14px 16px 10px 16px;
+}
 
+.post-author{
+display:flex;
+gap:10px;
+}
+
+.post-author img{
+width:48px;
+height:48px;
+border-radius:50%;
+object-fit:cover;
+}
+
+.post-content{
+padding:0 16px 16px 16px;
+font-size:15px;
+line-height:1.6;
+}
+
+.post-media img{
+width:100%;
+max-height:500px;
+object-fit:cover;
+}
+
+.post-stats{
+display:flex;
+justify-content:space-between;
+padding:12px 16px;
+font-size:13px;
+color:#6f6f6f;
+border-top:1px solid #eee;
+}
+
+.post-actions{
+display:flex;
+justify-content:space-between;
+padding:10px 16px;
+border-top:1px solid #eee;
+}
+
+.post-action{
+display:flex;
+align-items:center;
+gap:6px;
+cursor:pointer;
+color:#6f6f6f;
+}
 .post-card-clean:hover{
 box-shadow:0 2px 8px rgba(0,0,0,0.1);
 }
@@ -381,13 +434,10 @@ box-shadow:0 2px 8px rgba(0,0,0,0.1);
 
 
 <main style="min-width:0;">
-  <div class="card">
 
-<h3 style="margin-bottom:10px">Your Posts</h3>
+<h3 style="margin-bottom:15px;padding-left:5px;">Your Posts</h3>
 
 <div id="myPosts"></div>
-
-</div> <!-- CLOSE CARD -->
 
 </main>
   <aside class="right-panel">
@@ -1106,19 +1156,24 @@ id => id.toString() === currentUser._id
 );
 
 container.innerHTML += `
-
-<div class="card" id="post-${post._id}">
+<div class="card post-card-clean" id="post-${post._id}">
 
 <div class="post-header">
 
-<div style="display:flex;gap:10px">
+<div class="post-author">
 
-<img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
-style="width:48px;height:48px;border-radius:50%">
+<img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
 
 <div>
-<div style="font-weight:600">${post.author?.name}</div>
-<div style="font-size:12px;color:#666">${post.author?.headline || ""}</div>
+<div style="font-weight:600;">${post.author?.name}</div>
+
+<div class="post-meta">
+${post.author?.headline || ""}
+</div>
+
+<div style="font-size:12px;color:#6f6f6f;">
+${post.likes?.length || 0} followers • just now
+</div>
 </div>
 
 </div>
@@ -1199,7 +1254,6 @@ id="comment-input-${post._id}" />
 </div>
 
 </div>
-
 `
 
 })
