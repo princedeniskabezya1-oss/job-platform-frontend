@@ -527,20 +527,6 @@ style="width:350px;padding:10px 16px;border-radius:25px;border:1px solid #ddd;">
 
 </label>
 </div>
-  <div class="card" style="padding:12px; margin-top:10px;">
-
-<div style="font-weight:600;margin-bottom:10px;">Share your profile</div>
-
-<button style="width:100%;margin-bottom:8px;"
-onclick="navigator.clipboard.writeText(window.location.href)">
-Copy Profile Link
-</button>
-
-<button style="width:100%;" onclick="openCreatePost()">
-Share to Feed
-</button>
-
-</div>
 
 <div class="avatar-wrapper">
 <img id="avatar" class="sidebar-avatar">
@@ -562,6 +548,20 @@ Share to Feed
 <p id="headline"></p>
 <p id="location"></p>
 </div>
+
+</div>
+  <div class="card" style="padding:12px; margin-top:10px;">
+
+<div style="font-weight:600;margin-bottom:10px;">Share your profile</div>
+
+<button style="width:100%;margin-bottom:8px;"
+onclick="navigator.clipboard.writeText(window.location.href)">
+Copy Profile Link
+</button>
+
+<button style="width:100%;" onclick="openCreatePost()">
+Share to Feed
+</button>
 
 </div>
 
@@ -1510,23 +1510,47 @@ stat.innerText = data.likes + " reactions"
 }
 
 })
-  // 🔥 REALTIME COMMENT
+// 🔥 REALTIME COMMENT (FIXED LIKE TALENT)
 socket.on("new_comment", data => {
 
 const container = document.getElementById("comments-"+data.postId)
 if(!container) return
 
+const c = data.comment
+
 container.innerHTML += `
 <div class="comment-item">
 
-<img src="${data.comment.user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+<img src="${c.user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
 class="comment-avatar">
 
 <div class="comment-body">
 
 <div class="comment-bubble">
-<strong>${data.comment.user.name}</strong><br>
-${data.comment.text}
+<strong>${c.user.name}</strong><br>
+${c.text}
+</div>
+
+<div class="comment-meta">
+
+<button class="comment-like-btn"
+data-post="${data.postId}"
+data-comment="${c._id}">
+Like
+</button>
+
+<button onclick="showReplyInput('${data.postId}','${c._id}')">
+Reply
+</button>
+
+</div>
+
+<div id="reply-input-${c._id}"></div>
+
+<div class="reply-line"
+id="replies-${c._id}"
+data-loaded="false"
+style="display:none;">
 </div>
 
 </div>
@@ -1693,9 +1717,18 @@ container.innerHTML = comment.replies.map(r=>`
 margin-top:8px;
 padding-left:12px;
 border-left:2px solid #e6e6e6;
+display:flex;
+gap:8px;
 ">
+
+<img src="${r.user?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+style="width:28px;height:28px;border-radius:50%;">
+
+<div>
 <strong>${r.user?.name || "User"}</strong><br>
 ${r.text}
+</div>
+
 </div>
 `).join("")
 
@@ -1705,21 +1738,32 @@ container.style.display = "block"
 })
 
 }
-  socket.on("new_reply", data => {
+socket.on("new_reply", data => {
 
 const container = document.getElementById("replies-"+data.commentId)
 if(!container) return
 
 const reply = data.comment.replies.slice(-1)[0]
 
+container.style.display = "block"
+
 container.innerHTML += `
 <div style="
 margin-top:8px;
 padding-left:12px;
 border-left:2px solid #e6e6e6;
+display:flex;
+gap:8px;
 ">
+
+<img src="${reply.user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+style="width:28px;height:28px;border-radius:50%;">
+
+<div>
 <strong>${reply.user.name}</strong><br>
 ${reply.text}
+</div>
+
 </div>
 `
 
