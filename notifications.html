@@ -35,26 +35,76 @@ body{
 
 .card{
   background:white;
-  padding:20px;
   border-radius:12px;
-  box-shadow:0 4px 15px rgba(0,0,0,0.05);
+  box-shadow:0 1px 4px rgba(0,0,0,0.08);
+  overflow:hidden;
+  padding:0;
+}
+  .header button{
+  background:#0a66c2;
+  color:white;
+  border:none;
+  border-radius:20px;
+  padding:6px 14px;
+  cursor:pointer;
+  font-size:13px;
+  transition:0.2s;
+}
+
+.header button:hover{
+  background:#004182;
 }
 
 .notification{
-  padding:15px;
+  padding:14px;
   border-bottom:1px solid #eee;
   display:flex;
-  gap:15px;
+  gap:12px;
   align-items:flex-start;
   cursor:pointer;
+  transition:0.2s;
+  border-radius:10px;
+  margin-bottom:6px;
 }
 
 .notification:hover{
-  background:#f7f7f7;
+  background:#f3f6f8;
+  transform:scale(1.01);
 }
 
 .notification.unread{
-  background:#eef3f8;
+  background:#e8f0fe;
+  border-left:4px solid #0a66c2;
+}
+
+
+.notification-content{
+  flex:1;
+}
+
+.notification-name{
+  font-weight:600;
+  font-size:14px;
+}
+
+.notification-message{
+  font-size:13px;
+  color:#555;
+  margin-top:2px;
+}
+
+.notification-time{
+  font-size:11px;
+  color:#888;
+  margin-top:4px;
+}
+
+.notification-dot{
+  width:8px;
+  height:8px;
+  background:#0a66c2;
+  border-radius:50%;
+  margin-top:6px;
 }
 
 .notification img{
@@ -69,19 +119,48 @@ body{
   padding:40px;
   color:#6f6f6f;
 }
+  .notification{
+  animation:fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn{
+  from{
+    opacity:0;
+    transform:translateY(10px) scale(0.98);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+}
 </style>
 </head>
 
 <body>
 
 <div class="header">
-  <div class="logo">🔔 AIFT Notifications</div>
-  <button onclick="window.location.href='employer.html'">⬅ Back</button>
+
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="font-size:20px;">🔔</div>
+    <div class="logo">Notifications</div>
+  </div>
+
+  <div style="display:flex;gap:10px;">
+    <button onclick="markAllRead()">Mark all as read</button>
+    <button onclick="window.location.href='talent.html'">⬅ Back</button>
+  </div>
+
 </div>
 
 <div class="container">
   <div class="card">
-    <h3>All Notifications</h3>
+    <div style="
+padding:16px;
+font-weight:600;
+border-bottom:1px solid #eee;
+">
+All Notifications
+</div>
     <div id="notificationList"></div>
   </div>
 </div>
@@ -108,36 +187,46 @@ async function loadNotifications(){
 
   if(notifications.length === 0){
     container.innerHTML = `
-      <div class="empty">
-        No notifications yet.
-      </div>
-    `;
+  <div class="empty">
+    <div style="font-size:40px;">🔔</div>
+    <div style="margin-top:10px;">You're all caught up</div>
+    <div style="font-size:13px;margin-top:5px;">
+      No new notifications right now
+    </div>
+  </div>
+`;
     return;
   }
 
-  notifications.forEach(n => {
+notifications.forEach(n => {
 
-    container.innerHTML += `
-      <div class="notification ${n.read ? '' : 'unread'}"
-           onclick="handleNotification('${n._id}','${n.link || ''}')">
+  container.innerHTML += `
+    <div class="notification ${n.read ? '' : 'unread'}"
+         onclick="handleNotification('${n._id}','${n.link || ''}')">
 
-        <img src="${n.sender?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+      <img src="${n.sender?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
 
-        <div>
-          <div style="font-weight:600;">
-            ${n.sender?.name || 'AIFT'}
-          </div>
-          <div style="font-size:14px;color:#555;">
-            ${n.message}
-          </div>
-          <div style="font-size:12px;color:#999;margin-top:4px;">
-            ${new Date(n.createdAt).toLocaleString()}
-          </div>
+      <div class="notification-content">
+
+        <div class="notification-name">
+          ${n.sender?.name || 'AIFT'}
+        </div>
+
+        <div class="notification-message">
+          ${n.message}
+        </div>
+
+        <div class="notification-time">
+          ${formatTime(n.createdAt)}
         </div>
 
       </div>
-    `;
-  });
+
+      ${!n.read ? `<div class="notification-dot"></div>` : ""}
+
+    </div>
+  `;
+});
 }
 
 /* MARK AS READ + REDIRECT */
@@ -153,6 +242,27 @@ async function handleNotification(id, link){
   } else {
     loadNotifications();
   }
+}
+  function formatTime(date){
+
+  const diff = Math.floor((Date.now() - new Date(date)) / 1000);
+
+  if(diff < 60) return "Just now";
+  if(diff < 3600) return Math.floor(diff/60) + "m ago";
+  if(diff < 86400) return Math.floor(diff/3600) + "h ago";
+  if(diff < 604800) return Math.floor(diff/86400) + "d ago";
+
+  return new Date(date).toLocaleDateString();
+}
+  async function markAllRead(){
+
+  await fetch(API+"/api/notifications/read-all",{
+    method:"PATCH",
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  loadNotifications();
+
 }
 
 document.addEventListener("DOMContentLoaded", loadNotifications);
