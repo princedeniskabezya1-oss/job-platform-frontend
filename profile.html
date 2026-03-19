@@ -593,10 +593,28 @@ style="width:350px;padding:10px 16px;border-radius:25px;border:1px solid #ddd;">
 </label>
 </div>
 
-<div class="profile-text">
+<div class="profile-text" style="position:relative;">
+
 <h3 id="name"></h3>
 <p id="headline"></p>
-<p id="location" style="margin-top:6px;"></p>
+<p id="location"></p>
+
+<!-- EDIT BUTTON -->
+<div style="
+position:absolute;
+top:0;
+right:0;
+cursor:pointer;
+"
+onclick="openBasicInfo()">
+
+<svg viewBox="0 0 24 24" class="edit-svg">
+<path d="M3 17.25V21h3.75L19.81 7.94l-3.75-3.75L3 17.25z"/>
+<path d="M14.06 4.19l3.75 3.75"/>
+</svg>
+
+</div>
+
 </div>
 
 </div>
@@ -726,7 +744,19 @@ Start a post...
 
 </div>
 </div>
+  
+<div id="basicModal" class="modal">
+<div class="modal-content">
 
+<h3>Edit Profile</h3>
+
+<input id="editName" placeholder="Full Name">
+<input id="editLocation" placeholder="Location">
+
+<button onclick="saveBasicInfo()">Save</button>
+
+</div>
+</div>
 <!-- SKILL MODAL -->
 
 <div id="skillModal" class="modal">
@@ -1039,7 +1069,28 @@ list.splice(index,1)
 await updateProfile({education:list})
 
 }
+function openBasicInfo(){
 
+document.getElementById("editName").value = currentUser.name || ""
+document.getElementById("editLocation").value = currentUser.location || ""
+
+document.getElementById("basicModal").style.display = "flex"
+
+}
+
+async function saveBasicInfo(){
+
+const name = document.getElementById("editName").value
+const location = document.getElementById("editLocation").value
+
+await updateProfile({
+name,
+location
+})
+
+document.getElementById("basicModal").style.display = "none"
+
+}
 async function saveSkill(){
 
 const skill=skillInput.value
