@@ -318,6 +318,9 @@ justify-content:space-between;
 align-items:flex-start;
 padding:14px 16px 10px 16px;
 }
+  .post-header{
+position:relative;
+}
 
 .post-author{
 display:flex;
@@ -397,9 +400,10 @@ border:none;
 border-radius:20px;
 padding:6px 14px;
 }
-  .comments-wrapper{
+.comments-wrapper{
 border-top:1px solid #eee;
 background:white;
+padding:10px 16px;
 }
 
 .comments-container{
@@ -429,16 +433,16 @@ max-width:80%;
 
 <div class="logo">AIFT</div>
 
-<!-- 🔍 CENTER SEARCH -->
+<!-- CENTER SEARCH -->
 <div style="flex:1;display:flex;justify-content:center;">
 <input type="text" placeholder="Search..."
-style="
-width:420px;
-padding:10px 16px;
-border-radius:25px;
-border:1px solid #ddd;
-outline:none;
-">
+style="width:420px;padding:10px 16px;border-radius:25px;border:1px solid #ddd;">
+</div>
+
+<!-- RIGHT ACTIONS -->
+<div style="display:flex;gap:10px;">
+<button onclick="openPublicProfile()">Preview Profile</button>
+<button onclick="goFeed()">Home</button>
 </div>
 
 
@@ -486,7 +490,19 @@ outline:none;
 </div>
 
 </div>
+<div class="card" style="padding:12px;">
 
+<div style="font-weight:600;margin-bottom:10px;">Share your profile</div>
+
+<button style="width:100%;margin-bottom:8px;" onclick="navigator.clipboard.writeText(window.location.href)">
+Copy Profile Link
+</button>
+
+<button style="width:100%;" onclick="alert('Coming soon')">
+Share to Feed
+</button>
+
+</div>
 </aside>
 
 
@@ -496,7 +512,17 @@ outline:none;
 
 <main style="min-width:0;">
 
-<h3 style="margin-bottom:15px;padding-left:5px;">Your Posts</h3>
+<div style="
+position:sticky;
+top:70px;
+background:#f3f2ef;
+z-index:5;
+padding-bottom:10px;
+">
+
+<h3 style="margin-bottom:10px;">Your Posts</h3>
+
+</div>
 
 <!-- CREATE POST -->
 <div class="card" style="padding:12px 16px;cursor:pointer;" onclick="goFeed()">
@@ -523,10 +549,6 @@ Start a post...
 </main>
   <aside class="right-panel">
 
-<div style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:10px;">
-<button onclick="openPublicProfile()">Preview Profile</button>
-<button onclick="goFeed()">Home</button>
-</div>
 
 <div class="card">
 <div class="section-header">
@@ -980,7 +1002,12 @@ container.innerHTML=""
 post.comments.forEach(c=>{
 
 container.innerHTML+=`
-<div style="margin-top:10px">
+<div style="display:flex;gap:10px;margin-top:10px;">
+
+<img src="${c.user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+style="width:32px;height:32px;border-radius:50%;">
+
+<div style="flex:1;">
 
 <div class="comment-bubble">
 <strong>${c.user.name}</strong><br>
@@ -995,6 +1022,8 @@ Reply
 </div>
 
 <div id="reply-${c._id}"></div>
+
+</div>
 
 </div>
 `
@@ -1287,7 +1316,8 @@ onclick="togglePostMenu('${post._id}', event)">•••</div>
 <div id="menu-${post._id}" style="
 display:none;
 position:absolute;
-right:20px;
+top:40px;
+right:10px;
 background:white;
 border:1px solid #ddd;
 border-radius:8px;
@@ -1468,7 +1498,27 @@ container.innerHTML = `
 ` + container.innerHTML
 
 }
+function openCreatePost(){
+document.getElementById("createPostModal").style.display="flex"
+}
+  async function submitPost(){
 
+const text = document.getElementById("postContent").value
+const file = document.getElementById("postMedia").files[0]
+
+const formData = new FormData()
+formData.append("content", text)
+if(file) formData.append("media", file)
+
+await fetch(API+"/api/posts",{
+method:"POST",
+headers:{Authorization:"Bearer "+token},
+body:formData
+})
+
+document.getElementById("createPostModal").style.display="none"
+loadMyPosts()
+}
 </script>
 
 <!-- SHARE MODAL -->
@@ -1486,6 +1536,19 @@ container.innerHTML = `
     </button>
   </div>
 </div>
+<div id="createPostModal" class="modal">
+<div class="modal-content">
 
+<h3>Create Post</h3>
+
+<textarea id="postContent"
+style="padding:10px;height:100px;border:1px solid #ccc;border-radius:6px;"></textarea>
+
+<input type="file" id="postMedia">
+
+<button onclick="submitPost()">Post</button>
+
+</div>
+</div>
 </body>
 </html>
