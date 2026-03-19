@@ -407,10 +407,17 @@ margin-top:10px;
 }
 
 .comments-container div{
+display:flex;
+gap:10px;
+align-items:flex-start;
+margin-bottom:10px;
+}
+
+.comment-bubble{
 background:#f3f2ef;
 padding:8px 12px;
 border-radius:12px;
-margin-bottom:8px;
+max-width:80%;
 }
 </style>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -513,91 +520,56 @@ Start a post...
 
 <div id="myPosts"></div>
 
-<!-- ABOUT PANEL -->
+</main>
+  <aside class="right-panel">
+
+<div style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:10px;">
+<button onclick="openPublicProfile()">Preview Profile</button>
+<button onclick="goFeed()">Home</button>
+</div>
 
 <div class="card">
-
 <div class="section-header">
 <h3>About</h3>
 <button onclick="openAbout()">Edit</button>
 </div>
-
 <p id="bio"></p>
-
 </div>
 
-
-<!-- SKILLS PANEL -->
-
 <div class="card">
-
 <div class="section-header">
 <h3>Skills</h3>
 <button onclick="openSkill()">+</button>
 </div>
-
 <div id="skillsList"></div>
-
 </div>
 
-
-<!-- EXPERIENCE PANEL -->
-
 <div class="card">
-
 <div class="section-header">
 <h3>Experience</h3>
 <button onclick="openExp()">+</button>
 </div>
-
 <div id="experienceList"></div>
-
 </div>
 
-
-<!-- EDUCATION PANEL -->
-
 <div class="card">
-
 <div class="section-header">
 <h3>Education</h3>
 <button onclick="openEdu()">+</button>
 </div>
-
 <div id="educationList"></div>
-
 </div>
-
-
-<!-- STATISTICS PANEL -->
 
 <div class="card">
-
 <h3>Statistics</h3>
-
 <p>Followers: <span id="followersCount">0</span></p>
-
 <p>Following: <span id="followingCount">0</span></p>
-
 <p>Total Posts: <span id="postCount">0</span></p>
-
-<div style="margin-top:15px">
-
-<div style="font-size:13px;margin-bottom:5px">
-Profile Strength
 </div>
 
-<div style="background:#eee;height:8px;border-radius:10px">
+</aside>
 
-<div id="strengthBar"
-style="height:8px;background:#0a66c2;border-radius:10px;width:0%">
-</div>
 
-</div>
-
-</div>
-
-</div>
 
 <!-- EXPERIENCE MODAL -->
 
@@ -1010,8 +982,10 @@ post.comments.forEach(c=>{
 container.innerHTML+=`
 <div style="margin-top:10px">
 
+<div class="comment-bubble">
 <strong>${c.user.name}</strong><br>
 ${c.text}
+</div>
 
 <div style="margin-top:5px;">
 <button onclick="showReplyInput('${postId}','${c._id}')"
@@ -1299,21 +1273,16 @@ container.innerHTML += `
 <div class="post-header">
 
 <div class="post-author">
-
 <img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
 
 <div>
 <div style="font-weight:600;">${post.author?.name}</div>
 <div class="post-meta">${post.author?.headline || ""}</div>
 </div>
-
 </div>
 
-<!-- ⋯ MENU -->
 <div style="cursor:pointer;font-size:20px;"
-onclick="togglePostMenu('${post._id}', event)">
-•••
-</div>
+onclick="togglePostMenu('${post._id}', event)">•••</div>
 
 <div id="menu-${post._id}" style="
 display:none;
@@ -1322,7 +1291,6 @@ right:20px;
 background:white;
 border:1px solid #ddd;
 border-radius:8px;
-box-shadow:0 4px 12px rgba(0,0,0,0.1);
 z-index:100;
 ">
 
@@ -1331,10 +1299,6 @@ onclick="editPost('${post._id}','${post.content}')">Edit</div>
 
 <div style="padding:8px;cursor:pointer;"
 onclick="deletePost('${post._id}')">Delete</div>
-
-</div>
-
-</div>
 
 </div>
 
@@ -1359,45 +1323,24 @@ ${post.comments?.length || 0} comments
 
 <div class="post-action ${liked ? "liked":""}"
 onclick="toggleLike('${post._id}', this)">
-
-<svg viewBox="0 0 24 24" fill="${liked ? '#0a66c2':'none'}" stroke="currentColor" stroke-width="2">
-<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
-2 6 4 4 6.5 4 8.24 4 9.91 5 10.54 6.36h.92C12.09
-5 13.76 4 15.5 4 18 4 20 6 20 8.5c0
-3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-</svg>
-
-<span>Like</span>
+Like
 </div>
 
 <div class="post-action"
 onclick="toggleCommentBox('${post._id}')">
-
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-<path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
-</svg>
-
-<span>Comment</span>
+Comment
 </div>
 
 <div class="post-action"
 onclick="openShareModal('${post._id}')">
-
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-<circle cx="18" cy="5" r="3"/>
-<circle cx="6" cy="12" r="3"/>
-<circle cx="18" cy="19" r="3"/>
-</svg>
-
-<span>Share</span>
+Share
 </div>
 
 </div>
 
-<div class="comments-wrapper" id="comments-wrapper-${post._id}" style="display:none; padding:0 16px 16px;">
+<div class="comments-wrapper" id="comments-wrapper-${post._id}" style="display:none;">
 
 <div class="comment-input-area">
-
 <img src="${currentUser.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
 class="comment-avatar">
 
@@ -1406,7 +1349,6 @@ placeholder="Write a comment..."
 id="comment-input-${post._id}" />
 
 <button onclick="submitComment('${post._id}')">Send</button>
-
 </div>
 
 <div class="comments-container" id="comments-${post._id}"></div>
