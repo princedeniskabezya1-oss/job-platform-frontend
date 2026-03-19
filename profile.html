@@ -191,12 +191,6 @@ border-bottom:1px solid #eee;
 padding:12px 0;
 }
 
-.post-actions{
-margin-top:8px;
-display:flex;
-gap:10px;
-}
-
 .post-actions button{
 background:#eee;
 color:#333;
@@ -524,8 +518,14 @@ padding-bottom:10px;
 
 </div>
 
-<!-- CREATE POST -->
-<div class="card" style="padding:12px 16px;cursor:pointer;" onclick="goFeed()">
+<!-- CREATE POST (STICKY LIKE LINKEDIN) -->
+<div style="
+position:sticky;
+top:120px;
+z-index:4;
+">
+
+<div class="card" style="padding:12px 16px;cursor:pointer;" onclick="openCreatePost()">
 
 <div style="display:flex;align-items:center;gap:12px;">
 <img src="" id="createPostAvatar"
@@ -538,6 +538,8 @@ border-radius:25px;
 padding:10px 16px;
 color:#666;">
 Start a post...
+</div>
+
 </div>
 
 </div>
@@ -1031,18 +1033,23 @@ Reply
 })
 
 }
-  function showReplyInput(postId, commentId){
+function showReplyInput(postId, commentId){
 
 const container = document.getElementById("reply-"+commentId)
 
 container.innerHTML = `
-<div style="display:flex;gap:8px;margin-top:6px;">
+<div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
+
+<img src="${currentUser.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+style="width:28px;height:28px;border-radius:50%;">
+
 <input id="replyInput-${commentId}" placeholder="Write a reply..."
 style="flex:1;padding:6px 10px;border-radius:20px;border:1px solid #ddd;">
+
 <button onclick="submitReply('${postId}','${commentId}')">Send</button>
+
 </div>
 `
-
 }
   async function submitReply(postId, commentId){
 
@@ -1216,13 +1223,12 @@ headers:{Authorization:"Bearer "+token}
 loadMyPosts()
 
 }
-  function editPost(postId,content){
+function editPost(postId, content){
 
-const newText = prompt("Edit your post:", content)
+document.getElementById("postContent").value = content
+document.getElementById("createPostModal").style.display = "flex"
 
-if(!newText) return
-
-updatePost(postId,newText)
+document.getElementById("createPostModal").dataset.edit = postId
 
 }
 
@@ -1317,10 +1323,11 @@ onclick="togglePostMenu('${post._id}', event)">•••</div>
 display:none;
 position:absolute;
 top:40px;
-right:10px;
+right:0;
 background:white;
 border:1px solid #ddd;
 border-radius:8px;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
 z-index:100;
 ">
 
@@ -1433,9 +1440,16 @@ const container = document.getElementById("comments-"+data.postId)
 if(!container) return
 
 container.innerHTML += `
-<div style="margin-top:10px">
+<div style="display:flex;gap:10px;margin-top:10px;">
+
+<img src="${data.comment.user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+style="width:32px;height:32px;border-radius:50%;">
+
+<div class="comment-bubble">
 <strong>${data.comment.user.name}</strong><br>
 ${data.comment.text}
+</div>
+
 </div>
 `
 
@@ -1501,7 +1515,7 @@ container.innerHTML = `
 function openCreatePost(){
 document.getElementById("createPostModal").style.display="flex"
 }
-  async function submitPost(){
+async function submitPost(){
 
 const text = document.getElementById("postContent").value
 const file = document.getElementById("postMedia").files[0]
@@ -1510,13 +1524,30 @@ const formData = new FormData()
 formData.append("content", text)
 if(file) formData.append("media", file)
 
+const modal = document.getElementById("createPostModal")
+const editId = modal.dataset.edit
+
+if(editId){
+
+await fetch(API+"/api/posts/"+editId,{
+method:"PATCH",
+headers:{Authorization:"Bearer "+token},
+body:formData
+})
+
+delete modal.dataset.edit
+
+}else{
+
 await fetch(API+"/api/posts",{
 method:"POST",
 headers:{Authorization:"Bearer "+token},
 body:formData
 })
 
-document.getElementById("createPostModal").style.display="none"
+}
+
+modal.style.display="none"
 loadMyPosts()
 }
 </script>
