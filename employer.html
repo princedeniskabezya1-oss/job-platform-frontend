@@ -51,7 +51,7 @@ button{
 /* LAYOUT */
 .container{
   display:grid;
-  grid-template-columns:260px 1fr 300px;
+  grid-template-columns:260px minmax(0,700px) 300px;
   gap:20px;
   max-width:1300px;
   margin:40px auto;
@@ -60,10 +60,11 @@ button{
 /* CARD */
 .card{
   background:var(--card);
-  padding:20px;
   border-radius:12px;
-  box-shadow:0 4px 15px rgba(0,0,0,0.05);
-  margin-bottom:20px;
+  border:1px solid #e6e6e6;
+  margin-bottom:16px;
+  overflow:hidden;
+  padding:0;
 }
 
 /* PROFILE */
@@ -496,7 +497,10 @@ ${post.mediaUrl ? `
 
 <div class="post-stats">
   <div>${post.likes.length} reactions</div>
-  <div>${post.comments.length} comments</div>
+  <div style="cursor:pointer;"
+     onclick="toggleCommentBox('${post._id}')">
+  ${post.comments.length} comments
+</div>
 </div>
 
 <div class="post-actions">
@@ -545,12 +549,23 @@ ${post.mediaUrl ? `
 
 <div class="comments-wrapper" id="comments-wrapper-${post._id}" style="display:none;">
 
+  <!-- COMMENT INPUT -->
   <div class="comment-input-area">
+
+    <img src="${localStorage.getItem("profileImage") || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+         style="width:32px;height:32px;border-radius:50%;">
+
     <input type="text"
            placeholder="Write a comment..."
-           onkeydown="if(event.key==='Enter'){ addComment('${post._id}', this.value); this.value=''; }">
+           id="comment-input-${post._id}" />
+
+    <button onclick="submitComment('${post._id}')">
+      Send
+    </button>
+
   </div>
 
+  <!-- COMMENTS LIST -->
   <div id="comments-${post._id}" style="margin-top:10px;"></div>
 
 </div>
@@ -794,8 +809,118 @@ async function editJob(id,currentTitle){
   loadPosts();
 }
 
-function toggleCommentBox(id){
-  // optional animation later
+function toggleCommentBox(postId){
+
+  const wrapper = document.getElementById("comments-wrapper-"+postId);
+
+  if(wrapper.style.display === "none"){
+    wrapper.style.display = "block";
+    loadComments(postId);
+  }else{
+    wrapper.style.display = "none";
+  }
+}
+  async function submitComment(postId){
+
+  const input = document.getElementById("comment-input-"+postId);
+  const text = input.value.trim();
+
+  if(!text) return;
+
+  input.value="";
+
+  await fetch(API+"/api/posts/"+postId+"/comment",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({text})
+  });
+
+  loadComments(postId);
+}
+  async function loadComments(postId){
+
+  const res = await fetch(API+"/api/posts/"+postId,{
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const post = await res.json();
+  const container = document.getElementById("comments-"+postId);
+
+  container.innerHTML="";
+
+  post.comments.forEach(c=>{
+
+    container.innerHTML += `
+      <div style="display:flex;gap:10px;margin-top:12px;">
+
+        <img src="${c.user?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+             style="width:32px;height:32px;border-radius:50%;">
+
+        <div style="flex:1;">
+
+          <div style="background:#f3f2ef;padding:8px 12px;border-radius:12px;">
+            <strong>${c.user?.name}</strong><br>
+            ${c.text}
+          </div>
+
+          <div style="font-size:12px;margin-top:4px;color:#0a66c2;cursor:pointer;"
+               onclick="showReplyInput('${postId}','${c._id}')">
+            Reply
+          </div>
+
+          <div id="reply-input-${c._id}"></div>
+          <div id="replies-${c._id}" style="margin-left:20px;"></div>
+
+        </div>
+
+      </div>
+    `;
+
+  });
+
+}
+  function showReplyInput(postId, commentId){
+
+  const container = document.getElementById("reply-input-"+commentId);
+
+  if(container.innerHTML !== ""){
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="margin-top:8px;display:flex;gap:8px;">
+      <input type="text"
+             id="replyInput-${commentId}"
+             placeholder="Write a reply..."
+             style="flex:1;padding:6px 10px;border-radius:20px;border:1px solid #ddd;">
+      <button onclick="submitReply('${postId}','${commentId}')">
+        Reply
+      </button>
+    </div>
+  `;
+}
+
+async function submitReply(postId, commentId){
+
+  const input = document.getElementById("replyInput-"+commentId);
+  const text = input.value.trim();
+
+  if(!text) return;
+
+  await fetch(API+"/api/posts/"+postId+"/comment/"+commentId+"/reply",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({text})
+  });
+
+  loadComments(postId);
 }
 
 async function sharePost(id){
