@@ -3,6 +3,7 @@
 ================================ */
 const API = "https://backend-1-9b6f.onrender.com";
 const token = localStorage.getItem("token");
+let noMorePosts = false;
 async function loadFeed(page = 1){
 
   if(noMorePosts) return;
@@ -167,7 +168,7 @@ ${post.content ? `<div class="post-content">${post.content}</div>` : ""}
            id="comment-input-${post._id}" />
 
     <button id="send-btn-${post._id}"
-            onclick="submitComment('${post._id}')">
+            onclick="submitCommentFeed('${post._id}')">
       Send
     </button>
   </div>
@@ -323,7 +324,7 @@ post.author?._id !== localStorage.getItem("userId")
            id="comment-input-${post._id}" />
 
     <button id="send-btn-${post._id}"
-            onclick="submitComment('${post._id}')">
+            onclick="submitCommentFeed('${post._id}')">
       Send
     </button>
   </div>
@@ -379,7 +380,7 @@ function toggleCommentBox(postId){
 
   if(wrapper.style.display === "none"){
     wrapper.style.display = "block";
-    loadComments(postId);
+    loadCommentsFeed(postId);
   } else {
     wrapper.style.display = "none";
   }
