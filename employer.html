@@ -631,8 +631,11 @@ body{background:var(--bg);}
 </div>
 <script src="feed.js"></script>
 <script>
-const token=localStorage.getItem("token");
-if(!token) window.location.href="login.html";
+const token = localStorage.getItem("employerToken");
+
+if(!token){
+  window.location.href = "login.html";
+}
 
 
   function formatTime(dateString){
@@ -648,7 +651,7 @@ if(!token) window.location.href="login.html";
   
 /* PROFILE */
 async function loadProfile(){
-  const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer "+token}});
+  const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}});
   const user=await res.json();
   localStorage.setItem("userId", user._id);
 
@@ -690,7 +693,7 @@ async function updateProfile(){
 
   await fetch(API+"/api/users/profile",{
     method:"PATCH",
-    headers:{ Authorization:"Bearer "+token },
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") },
     body:formData
   });
 
@@ -762,7 +765,7 @@ async function createPost(){
 
   await fetch(API + "/api/users/" + id + "/follow", {
     method:"PATCH",
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
   });
 
   loadSuggestions();
@@ -775,7 +778,7 @@ async function loadEmployerStats(){
   try{
 
     const jobsRes=await fetch(API+"/api/jobs/my",{
-      headers:{Authorization:"Bearer "+token}
+      headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}
     });
 
     const jobs=jobsRes.ok?await jobsRes.json():[];
@@ -786,7 +789,7 @@ async function loadEmployerStats(){
       jobs.filter(j=>j.status==="active").length;
 
     const appsRes=await fetch(API+"/api/applications",{
-      headers:{Authorization:"Bearer "+token}
+      headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}
     });
 
     const apps=appsRes.ok?await appsRes.json():[];
@@ -805,7 +808,7 @@ async function showMyJobs(){
   document.getElementById("feedPanel").style.display="none";
   document.getElementById("toolPanel").style.display="block";
 
-  const res=await fetch(API+"/api/jobs/my",{headers:{Authorization:"Bearer "+token}});
+  const res=await fetch(API+"/api/jobs/my",{headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}});
   const jobs=res.ok?await res.json():[];
 
   let html=`
@@ -849,7 +852,7 @@ async function editJob(id,currentTitle){
     method:"PATCH",
     headers:{
       "Content-Type":"application/json",
-      Authorization:"Bearer "+token
+      Authorization:"Bearer " + localStorage.getItem("employerToken")
     },
     body:JSON.stringify({title:newTitle})
   });
@@ -862,7 +865,7 @@ async function sharePost(id){
 
   await fetch(API+"/api/posts/"+id+"/share",{
     method:"POST",
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
   });
 
   loadPosts();
@@ -874,7 +877,7 @@ async function deleteJob(id){
 
   await fetch(API+"/api/jobs/"+id,{
     method:"DELETE",
-    headers:{Authorization:"Bearer "+token}
+    headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}
   });
 
   showMyJobs();
@@ -885,7 +888,7 @@ async function showApplications(){
   document.getElementById("feedPanel").style.display="none";
   document.getElementById("toolPanel").style.display="block";
 
-  const res=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer "+token}});
+  const res=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}});
   const apps=res.ok?await res.json():[];
 
   let html=`
@@ -941,7 +944,7 @@ async function shortlist(id){
 
   await fetch(API+"/api/applications/"+id+"/shortlist",{
     method:"PATCH",
-    headers:{Authorization:"Bearer "+token}
+    headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}
   });
 
   alert("Candidate shortlisted");
@@ -952,7 +955,16 @@ function backToFeed(){
   document.getElementById("feedPanel").style.display="block";
 }
 
-function logout(){localStorage.removeItem("token");window.location.href="login.html";}
+function logout(){
+  localStorage.removeItem("employerToken");
+  localStorage.removeItem("talentToken");
+  localStorage.removeItem("adminToken");
+  localStorage.removeItem("agentToken");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("role");
+
+  window.location.href="login.html";
+}
 /* =========================================
    NETWORK SYSTEM
 ========================================= */
@@ -985,7 +997,7 @@ async function openNetwork(){
   async function loadFollowers(){
 
   const res = await fetch(API+"/api/users/me/followers",{
-    headers:{Authorization:"Bearer "+token}
+    headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}
   });
 
   const users = res.ok ? await res.json() : [];
@@ -994,7 +1006,7 @@ async function openNetwork(){
   async function loadFollowing(){
 
   const res = await fetch(API+"/api/users/me/following",{
-    headers:{Authorization:"Bearer "+token}
+    headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}
   });
 
   const users = res.ok ? await res.json() : [];
@@ -1003,7 +1015,7 @@ async function openNetwork(){
   async function loadSuggestions(){
 
   const res = await fetch(API+"/api/users/network",{
-    headers:{Authorization:"Bearer "+token}
+    headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}
   });
 
   const users = res.ok ? await res.json() : [];
@@ -1063,7 +1075,7 @@ async function openNetwork(){
 async function loadMessageCount(){
 
   const res = await fetch(API + "/api/messages/unread/count",{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
   });
 
   const data = res.ok ? await res.json() : {count:0};
@@ -1080,7 +1092,7 @@ async function loadMessageCount(){
   async function loadNotificationCount(){
 
   const res = await fetch(API + "/api/notifications/unread",{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
   });
 
   const data = res.ok ? await res.json() : {count:0};
@@ -1102,11 +1114,11 @@ async function enforceEmployerRole(){
 
   try{
     const res = await fetch(API+"/api/users/me",{
-      headers:{ Authorization:"Bearer "+token }
+      headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
     });
 
     if(!res.ok){
-      localStorage.removeItem("token");
+      localStorage.removeItem("employerToken");
       window.location.href = "login.html";
       return false;
     }
