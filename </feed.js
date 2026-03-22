@@ -44,12 +44,7 @@ if(!res.ok){
 }
 
 const posts = await res.json();
-const container = document.getElementById("posts");
 
-if(!container){
-  console.error("Posts container not found");
-  return;
-}
 
   if(page === 1){
     container.innerHTML = "";
