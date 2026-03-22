@@ -1,7 +1,7 @@
 /* ================================
    GLOBAL FEED SYSTEM (AIFT)
 ================================ */
-
+const token = localStorage.getItem("token");
 async function loadFeed(token, containerId){
 
   const container = document.getElementById(containerId);
