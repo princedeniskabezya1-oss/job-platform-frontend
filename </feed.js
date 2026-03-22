@@ -1,6 +1,7 @@
 /* ================================
    GLOBAL FEED SYSTEM (AIFT)
 ================================ */
+const API = "https://backend-1-9b6f.onrender.com";
 const token = localStorage.getItem("token");
 async function loadFeed(page = 1){
 
