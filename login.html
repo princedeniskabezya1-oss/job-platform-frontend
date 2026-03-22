@@ -126,6 +126,12 @@ async function login(){
   const password = document.getElementById("password").value;
   const errorBox = document.getElementById("error");
 
+  // 🔥 INPUT VALIDATION (PASTE HERE)
+  if(!email || !password){
+    errorBox.innerText = "Please enter email and password";
+    return;
+  }
+
   errorBox.innerText = "Signing in...";
   
   try{
@@ -135,27 +141,52 @@ async function login(){
       body:JSON.stringify({email,password})
     });
 
-    const data = await res.json();
+    let data;
+
+try{
+  data = await res.json();
+}catch{
+  errorBox.innerText = "Server error. Please try again.";
+  return;
+}
 
 if(res.ok && data.token){
+   // 🔥 CLEAR ALL OLD TOKENS (PASTE HERE)
+  localStorage.removeItem("token");
+  localStorage.removeItem("employerToken");
+  localStorage.removeItem("talentToken");
+  localStorage.removeItem("adminToken");
+  localStorage.removeItem("agentToken");
 
-  localStorage.setItem("token", data.token);
-  localStorage.setItem("role", data.user.role);
-  localStorage.setItem("userId", data.user.id || data.user._id);
+  const role = data.user.role;
+  const userId = data.user.id || data.user._id;
 
-  if(data.user.role === "admin"){
-        window.location.href = "admin.html";
-      }else if(data.user.role === "employer"){
-        window.location.href = "employer.html";
-      }else if(data.user.role === "talent"){
-        window.location.href = "talent.html";
-      }else if(data.user.role === "agent"){
-        window.location.href = "agent.html";
-      }
+  // always store userId
+  localStorage.setItem("userId", userId);
+  localStorage.setItem("role", role);
 
-    }else{
-      errorBox.innerText = data.message || "Invalid credentials";
-    }
+  // save token based on role
+  if(role === "employer"){
+    localStorage.setItem("employerToken", data.token);
+    
+
+  } else if(role === "talent"){
+    localStorage.setItem("talentToken", data.token);
+    localStorage.removeItem("employerToken");
+    window.location.href = "talent.html";
+
+  } else if(role === "admin"){
+    localStorage.setItem("adminToken", data.token);
+    window.location.href = "admin.html";
+
+  } else if(role === "agent"){
+    localStorage.setItem("agentToken", data.token);
+    window.location.href = "agent.html";
+  }
+
+} else {
+  errorBox.innerText = data.message || "Invalid credentials";
+}
 
   }catch(err){
     errorBox.innerText = "Server is waking up... please try again in 20 seconds.";
