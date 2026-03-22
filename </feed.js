@@ -4,6 +4,11 @@
 const API = "https://backend-1-9b6f.onrender.com";
 const token = localStorage.getItem("token");
 let noMorePosts = false;
+
+if(!token){
+  window.location.href = "login.html";
+}
+
 async function loadFeed(page = 1){
 
   if(noMorePosts) return;
@@ -12,8 +17,13 @@ async function loadFeed(page = 1){
     headers:{ Authorization:"Bearer "+token }
   });
 
-  const posts = res.ok ? await res.json() : [];
-  const container = document.getElementById("posts");
+const posts = res.ok ? await res.json() : [];
+const container = document.getElementById("posts");
+
+if(!container){
+  console.error("Posts container not found");
+  return;
+}
 
   if(page === 1){
     container.innerHTML = "";
@@ -116,7 +126,7 @@ ${post.content ? `<div class="post-content">${post.content}</div>` : ""}
 <div class="post-actions">
 
   <div class="post-action ${liked ? "liked" : ""}"
-       onclick="toggleLike('${post._id}', this)">
+       onclick="likePostFeed('${post._id}', this)">
 
     <svg viewBox="0 0 24 24" fill="${liked ? '#0a66c2' : 'none'}"
          stroke="currentColor" stroke-width="2">
@@ -275,7 +285,7 @@ post.author?._id !== localStorage.getItem("userId")
      <div class="post-actions">
 
   <div class="post-action ${liked ? "liked" : ""}"
-       onclick="toggleLike('${post._id}', this)">
+       onclick="likePostFeed('${post._id}', this)">
 
     <svg viewBox="0 0 24 24" fill="${liked ? '#0a66c2' : 'none'}" stroke="currentColor" stroke-width="2">
       <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
