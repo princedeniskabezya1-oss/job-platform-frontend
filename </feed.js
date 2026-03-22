@@ -36,20 +36,21 @@ if(!res.ok){
   console.error("❌ FEED ERROR:", res.status);
 
   if(res.status === 401){
-    localStorage.removeItem("token");
+    alert("Session expired. Please login again.");
+    localStorage.clear();
     window.location.href = "login.html";
   }
 
-  return; // ⛔ STOP HERE
+  return; // ⛔ STOP EVERYTHING
 }
 
 const posts = await res.json();
 
 
-  if(page === 1){
-    container.innerHTML = "";
-    noMorePosts = false;
-  }
+ if(page === 1 && container){
+  container.innerHTML = "";
+  noMorePosts = false;
+}
 
   if(posts.length < 5){
     noMorePosts = true;
