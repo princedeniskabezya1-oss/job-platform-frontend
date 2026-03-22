@@ -515,3 +515,49 @@ div.setAttribute("data-comment-id", comment._id);
 
   parentContainer.appendChild(div);
 }
+function toggleReplies(commentId){
+
+  const container = document.getElementById("replies-"+commentId);
+
+  if(container.style.display === "block"){
+    container.style.display = "none";
+    return;
+  }
+
+  if(container.dataset.loaded === "true"){
+    container.style.display = "block";
+    return;
+  }
+
+  const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+  if(!commentElement) return;
+
+  const postId = commentElement.querySelector(".comment-like-btn").dataset.post;
+
+  fetch(API+"/api/posts/"+postId,{
+    headers:{ Authorization:"Bearer "+token }
+  })
+  .then(res=>res.json())
+  .then(post=>{
+
+    const comment = post.comments.find(c=>c._id === commentId);
+
+    if(!comment) return;
+
+    container.innerHTML = comment.replies.map(reply=>`
+      <div data-reply-id="${reply._id}" style="
+        margin-top:8px;
+        padding-left:12px;
+        border-left:2px solid #e6e6e6;
+      ">
+        <strong>${reply.user?.name || "User"}</strong><br>
+        ${reply.text}
+      </div>
+    `).join("");
+
+    container.dataset.loaded = "true";
+    container.style.display = "block";
+
+  });
+
+}
