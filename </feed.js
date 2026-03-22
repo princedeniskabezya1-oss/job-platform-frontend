@@ -2,10 +2,13 @@
    GLOBAL FEED SYSTEM (AIFT)
 ================================ */
 const API = "https://backend-1-9b6f.onrender.com";
-const token = localStorage.getItem("token");
+const token =
+  localStorage.getItem("employerToken") ||
+  localStorage.getItem("talentToken");
 let noMorePosts = false;
 
 if(!token){
+  console.error("❌ NO TOKEN FOUND");
   window.location.href = "login.html";
 }
 
@@ -20,7 +23,6 @@ async function loadFeed(page = 1){
     return;
   }
 
-  const token = localStorage.getItem("token");
 
   if(!token){
     console.error("❌ NO TOKEN");
@@ -29,17 +31,22 @@ async function loadFeed(page = 1){
   }
 
   const res = await fetch(API+"/api/posts?page="+page,{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{
+  Authorization:"Bearer " + (
+    localStorage.getItem("employerToken") ||
+    localStorage.getItem("talentToken")
+  )
+}
   });
 
 if(!res.ok){
   console.error("❌ FEED ERROR:", res.status);
 
-  if(res.status === 401){
-    alert("Session expired. Please login again.");
-    localStorage.clear();
-    window.location.href = "login.html";
-  }
+ if(res.status === 401){
+  alert("Session expired. Please login again.");
+  localStorage.clear();
+  window.location.href = "login.html"; // ✅ ADD THIS
+}
 
   return; // ⛔ STOP EVERYTHING
 }
@@ -390,7 +397,12 @@ async function likePostFeed(id, element){
 
     const res = await fetch(API+"/api/posts/"+id+"/like",{
       method:"PATCH",
-      headers:{ Authorization:"Bearer "+token }
+      headers:{
+  Authorization:"Bearer " + (
+    localStorage.getItem("employerToken") ||
+    localStorage.getItem("talentToken")
+  )
+}
     });
 
     const data = await res.json();
@@ -434,13 +446,16 @@ async function submitCommentFeed(postId){
 
   try {
     const res = await fetch(API+"/api/posts/"+postId+"/comment",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        Authorization:"Bearer "+token
-      },
-      body:JSON.stringify({text})
-    });
+  method:"POST",
+  headers:{
+    "Content-Type":"application/json",
+    Authorization:"Bearer " + (
+      localStorage.getItem("employerToken") ||
+      localStorage.getItem("talentToken")
+    )
+  },
+  body:JSON.stringify({text})
+});
 
     await res.json();
 
@@ -452,7 +467,12 @@ async function submitCommentFeed(postId){
   async function loadCommentsFeed(postId){
 
   const res = await fetch(API+"/api/posts/"+postId,{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{
+  Authorization:"Bearer " + (
+    localStorage.getItem("employerToken") ||
+    localStorage.getItem("talentToken")
+  )
+}
   });
 
   const post = await res.json();
@@ -574,7 +594,12 @@ function toggleReplies(commentId){
   const postId = commentElement.querySelector(".comment-like-btn").dataset.post;
 
   fetch(API+"/api/posts/"+postId,{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{
+  Authorization:"Bearer " + (
+    localStorage.getItem("employerToken") ||
+    localStorage.getItem("talentToken")
+  )
+}
   })
   .then(res=>res.json())
   .then(post=>{
