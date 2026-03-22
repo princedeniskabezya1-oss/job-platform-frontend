@@ -342,26 +342,36 @@ post.author?._id !== localStorage.getItem("userId")
    LIKE SYSTEM
 ================================ */
 
-async function likePostFeed(postId, element){
+async function likePostFeed(id, element){
 
-  const res = await fetch(API+"/api/posts/"+postId+"/like",{
-    method:"PATCH",
-    headers:{ Authorization:"Bearer "+token }
-  });
+  const icon = element.querySelector("svg");
+  const stat = document.querySelector("#post-"+id+" .post-stats div");
 
-  const data = await res.json();
+  try {
 
-  const likeText = document.getElementById("likes-"+postId);
+    const res = await fetch(API+"/api/posts/"+id+"/like",{
+      method:"PATCH",
+      headers:{ Authorization:"Bearer "+token }
+    });
 
-  if(likeText){
-    likeText.innerText = data.likes + " reactions";
+    const data = await res.json();
+
+    // 🔥 USE SERVER RESPONSE
+    if(data.liked){
+      element.classList.add("liked");
+      icon.setAttribute("fill","#0a66c2");
+    }else{
+      element.classList.remove("liked");
+      icon.setAttribute("fill","none");
+    }
+
+    stat.innerText = data.likes + " reactions";
+
+  } catch(err){
+    console.error("Like failed", err);
   }
 
-  if(element){
-    element.classList.toggle("liked", data.liked);
-  }
 }
-
 /* ================================
    COMMENT TOGGLE
 ================================ */
