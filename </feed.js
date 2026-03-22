@@ -372,27 +372,45 @@ async function likePostFeed(id, element){
   }
 
 }
-/* ================================
-   COMMENT TOGGLE
-================================ */
-
-function toggleComments(postId){
+function toggleCommentBox(postId){
 
   const wrapper = document.getElementById("comments-wrapper-"+postId);
 
   if(wrapper.style.display === "none"){
     wrapper.style.display = "block";
-    loadCommentsFeed(postId);
-  }else{
+    loadComments(postId);
+  } else {
     wrapper.style.display = "none";
   }
 }
 
-/* ================================
-   LOAD COMMENTS
-================================ */
+async function submitCommentFeed(postId){
 
-async function loadCommentsFeed(postId){
+  const input = document.getElementById("comment-input-"+postId);
+  const text = input.value.trim();
+  if(!text) return;
+
+
+  input.value="";
+
+  try {
+    const res = await fetch(API+"/api/posts/"+postId+"/comment",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        Authorization:"Bearer "+token
+      },
+      body:JSON.stringify({text})
+    });
+
+    await res.json();
+
+  } catch(err){
+    alert("Failed to post comment");
+  }
+}
+ 
+  async function loadCommentsFeed(postId){
 
   const res = await fetch(API+"/api/posts/"+postId,{
     headers:{ Authorization:"Bearer "+token }
@@ -400,122 +418,100 @@ async function loadCommentsFeed(postId){
 
   const post = await res.json();
   const container = document.getElementById("comments-"+postId);
+  const loadMoreContainer = document.getElementById("load-more-"+postId);
 
   container.innerHTML = "";
+  loadMoreContainer.innerHTML = "";
 
-  post.comments.forEach(c=>{
+  let visibleCount = 10;
 
-    container.innerHTML += `
-      <div style="display:flex;gap:10px;margin-top:12px;">
+  function renderBatch(){
+    container.innerHTML = "";
 
-        <img src="${c.user?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
-             style="width:32px;height:32px;border-radius:50%;">
-
-        <div style="flex:1;">
-
-          <div style="background:#f3f2ef;padding:8px 12px;border-radius:12px;">
-            <strong>${c.user?.name}</strong><br>
-            ${c.text}
-          </div>
-
-          <div style="font-size:12px;margin-top:4px;color:#0a66c2;cursor:pointer;"
-               onclick="showReplyInput('${postId}','${c._id}')">
-            Reply
-          </div>
-
-          <div id="reply-input-${c._id}"></div>
-          <div id="replies-${c._id}" style="margin-left:20px;"></div>
-
-        </div>
-
-      </div>
-    `;
-
-    // LOAD REPLIES
-    if(c.replies && c.replies.length > 0){
-
-      const repliesContainer = document.getElementById("replies-"+c._id);
-
-      c.replies.forEach(r=>{
-        repliesContainer.innerHTML += `
-          <div style="display:flex;gap:8px;margin-top:6px;">
-            <img src="${r.user?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
-                 style="width:28px;height:28px;border-radius:50%;">
-            <div style="background:#f3f2ef;padding:6px 10px;border-radius:10px;">
-              <strong>${r.user?.name}</strong><br>
-              ${r.text}
-            </div>
-          </div>
-        `;
+    post.comments
+      .slice(0, visibleCount)
+      .forEach(comment=>{
+        renderComment(postId, comment, container);
       });
 
+    if(post.comments.length > visibleCount){
+      loadMoreContainer.innerHTML = `
+        <button onclick="loadMoreComments('${postId}')">
+          Load more comments
+        </button>
+      `;
+    } else {
+      loadMoreContainer.innerHTML = "";
     }
-
-  });
-
-}
-
-/* ================================
-   ADD COMMENT
-================================ */
-
-async function submitCommentFeed(postId, text){
-
-  if(!text.trim()) return;
-
-  await fetch(API+"/api/posts/"+postId+"/comment",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer "+token
-    },
-    body:JSON.stringify({ text })
-  });
-
-  loadCommentsFeed(postId);
-}
-
-/* ================================
-   REPLY SYSTEM
-================================ */
-
-function showReplyInput(postId, commentId){
-
-  const container = document.getElementById("reply-input-"+commentId);
-
-  if(container.innerHTML !== ""){
-    container.innerHTML = "";
-    return;
   }
 
-  container.innerHTML = `
-    <div style="margin-top:8px;display:flex;gap:8px;">
-      <input type="text"
-             id="replyInput-${commentId}"
-             placeholder="Write a reply..."
-             style="flex:1;padding:6px 10px;border-radius:20px;border:1px solid #ddd;">
-      <button onclick="submitReplyFeed('${postId}','${commentId}')">
-        Reply
-      </button>
-    </div>
-  `;
+  window.loadMoreComments = function(id){
+    visibleCount += 10;
+    renderBatch();
+  };
+
+  renderBatch();
+}
+ function renderComment(postId, comment, parentContainer){
+
+  const div = document.createElement("div");
+  div.className = "comment-item";
+  div.dataset.commentId = comment._id;
+div.setAttribute("data-comment-id", comment._id);
+
+  div.innerHTML = `
+    <img src="${comment.user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+         class="comment-avatar">
+
+    <div class="comment-body">
+
+      <div class="comment-bubble">
+        <strong>${comment.user.name}</strong><br>
+        ${comment.text}
+      </div>
+
+      <div class="comment-meta">
+
+        <button class="comment-like-btn post-style-btn"
+        data-post="${postId}"
+        data-comment="${comment._id}">
+  <svg viewBox="0 0 24 24" fill="none"
+       stroke="currentColor" stroke-width="2"
+       style="width:16px;height:16px;">
+    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
+    2 6 4 4 6.5 4 8.24 4 9.91 5 10.54 6.36h.92C12.09
+    5 13.76 4 15.5 4 18 4 20 6 20 8.5c0
+    3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+  </svg>
+  <span class="like-count">${comment.likes?.length || 0}</span>
+</button>
+
+        <button class="comment-reply-btn"
+                data-post="${postId}"
+                data-comment="${comment._id}">
+          Reply
+        </button>
+
+      </div>
+
+      <div class="reply-input-area" id="reply-input-${comment._id}"></div>
+    ${
+  comment.replies && comment.replies.length > 0
+  ? `<div style="margin-top:6px;font-size:13px;color:#0a66c2;cursor:pointer;"
+        onclick="toggleReplies('${comment._id}')">
+        View replies (${comment.replies.length})
+     </div>`
+  : ""
 }
 
-async function submitReplyFeed(postId, commentId){
+<div class="reply-line"
+     id="replies-${comment._id}"
+     data-loaded="false"
+     style="display:none;">
+</div>
 
-  const input = document.getElementById("replyInput-"+commentId);
-  const text = input.value.trim();
+    </div>
+  `;
 
-  if(!text) return;
-
-  await fetch(API+"/api/posts/"+postId+"/comment/"+commentId+"/reply",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer "+token
-    },
-    body:JSON.stringify({ text })
-  });
-
-  loadCommentsFeed(postId);
+  parentContainer.appendChild(div);
 }
