@@ -2,15 +2,11 @@
    GLOBAL FEED SYSTEM (AIFT)
 ================================ */
 const API = "https://backend-1-9b6f.onrender.com";
-const token =
-  localStorage.getItem("employerToken") ||
-  localStorage.getItem("talentToken");
 let noMorePosts = false;
 
-if(!token){
-  console.error("❌ NO TOKEN FOUND");
-  window.location.href = "login.html";
-}
+console.log("TOKEN NOW:", 
+  localStorage.getItem("employerToken")
+);
 
 async function loadFeed(page = 1){
 
@@ -24,11 +20,6 @@ async function loadFeed(page = 1){
   }
 
 
-  if(!token){
-    console.error("❌ NO TOKEN");
-    window.location.href = "login.html";
-    return;
-  }
 
   const res = await fetch(API+"/api/posts?page="+page,{
     headers:{
