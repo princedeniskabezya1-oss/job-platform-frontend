@@ -202,6 +202,11 @@ ${post.content ? `<div class="post-content">${post.content}</div>` : ""}
 
   const container = document.getElementById("posts");
 
+if(!container){
+  console.error("Posts container not found");
+  return;
+}
+
   const liked = post.likes?.some(
   id => id.toString() === localStorage.getItem("userId")
 );
