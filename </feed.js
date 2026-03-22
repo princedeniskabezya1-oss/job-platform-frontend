@@ -13,11 +13,37 @@ async function loadFeed(page = 1){
 
   if(noMorePosts) return;
 
+  const container = document.getElementById("posts");
+
+  if(!container){
+    console.error("❌ POSTS DIV NOT FOUND");
+    return;
+  }
+
+  const token = localStorage.getItem("token");
+
+  if(!token){
+    console.error("❌ NO TOKEN");
+    window.location.href = "login.html";
+    return;
+  }
+
   const res = await fetch(API+"/api/posts?page="+page,{
     headers:{ Authorization:"Bearer "+token }
   });
 
-const posts = res.ok ? await res.json() : [];
+if(!res.ok){
+  console.error("❌ FEED ERROR:", res.status);
+
+  if(res.status === 401){
+    localStorage.removeItem("token");
+    window.location.href = "login.html";
+  }
+
+  return; // ⛔ STOP HERE
+}
+
+const posts = await res.json();
 const container = document.getElementById("posts");
 
 if(!container){
