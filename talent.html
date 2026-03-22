@@ -680,15 +680,18 @@ body{background:var(--bg);}
 <script>
   const API="https://backend-1-9b6f.onrender.com";
 const socket = io(API);
-const token=localStorage.getItem("token");
-if(!token) window.location.href="login.html";
+const token = localStorage.getItem("talentToken");
+
+if(!token){
+  window.location.href = "login.html";
+}
   let currentPage = 1;
 let loading = false;
 let noMorePosts = false;
 
 /* LOAD PROFILE */
 async function loadProfile(){
-  const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer "+token}});
+  const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer " + localStorage.getItem("talentToken")}});
   const user=await res.json();
   localStorage.setItem("userId", user._id);
   localStorage.setItem("profileImage", user.profileImage || "");
@@ -749,7 +752,7 @@ async function createPost(){
   const res = await fetch(API+"/api/posts",{
     method:"POST",
     headers:{
-      Authorization:"Bearer "+token
+      Authorization:"Bearer " + localStorage.getItem("talentToken")
     },
     body:formData
   });
@@ -809,7 +812,7 @@ document.addEventListener("change", function(e){
 
 /* APPLICATION COUNT */
 async function loadMyApplications(){
-  const res=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer "+token}});
+  const res=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer " + localStorage.getItem("talentToken")}});
   const apps=res.ok?await res.json():[];
   document.getElementById("appCount").innerText = apps.length;
 }
@@ -817,7 +820,7 @@ async function loadMyApplications(){
 async function loadJobs(){
 
   const res = await fetch(API+"/api/jobs/recommended",{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
 
   const jobs = res.ok ? await res.json() : [];
@@ -866,7 +869,7 @@ async function loadJobs(){
 
   const res = await fetch(API+"/api/jobs/"+id+"/save",{
     method:"PATCH",
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
 
   const data = await res.json();
@@ -882,7 +885,7 @@ async function loadJobs(){
   async function loadSavedJobsCount(){
 
   const res = await fetch(API+"/api/users/me",{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
 
   const user = await res.json();
@@ -894,7 +897,7 @@ async function loadJobs(){
 
   const res = await fetch(API+"/api/jobs/"+id+"/quick-apply",{
     method:"POST",
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
 
   const data = await res.json();
@@ -909,7 +912,7 @@ async function loadJobs(){
   async function loadSavedJobs(){
 
   const res = await fetch(API+"/api/users/me",{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
 
   const user = await res.json();
@@ -926,7 +929,7 @@ async function loadJobs(){
   }
 
   const jobsRes = await fetch(API+"/api/jobs",{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
 
   const allJobs = jobsRes.ok ? await jobsRes.json() : [];
@@ -1015,7 +1018,7 @@ document.getElementById("toolPanel").style.display="block";
 
 async function loadFollowers(){
   const res = await fetch(API+"/api/users/me/followers",{
-    headers:{Authorization:"Bearer "+token}
+    headers:{Authorization:"Bearer " + localStorage.getItem("talentToken")}
   });
   const users = res.ok ? await res.json() : [];
   renderNetworkUsers(users);
@@ -1023,7 +1026,7 @@ async function loadFollowers(){
 
 async function loadFollowing(){
   const res = await fetch(API+"/api/users/me/following",{
-    headers:{Authorization:"Bearer "+token}
+    headers:{Authorization:"Bearer " + localStorage.getItem("talentToken")}
   });
   const users = res.ok ? await res.json() : [];
   renderNetworkUsers(users);
@@ -1031,7 +1034,7 @@ async function loadFollowing(){
 
 async function loadSuggestions(){
   const res = await fetch(API+"/api/users/network",{
-    headers:{Authorization:"Bearer "+token}
+    headers:{Authorization:"Bearer " + localStorage.getItem("talentToken")}
   });
   const users = res.ok ? await res.json() : [];
   renderNetworkUsers(users);
@@ -1084,7 +1087,7 @@ async function loadPosts(page = 1){
   if(noMorePosts) return;
 
   const res = await fetch(API+"/api/posts?page="+page,{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
 
   const posts = res.ok ? await res.json() : [];
@@ -1424,7 +1427,7 @@ async function toggleLike(id, element){
 
     const res = await fetch(API+"/api/posts/"+id+"/like",{
       method:"PATCH",
-      headers:{ Authorization:"Bearer "+token }
+      headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
     });
 
     const data = await res.json();
@@ -1472,7 +1475,7 @@ async function submitComment(postId){
       method:"POST",
       headers:{
         "Content-Type":"application/json",
-        Authorization:"Bearer "+token
+        Authorization:"Bearer " + localStorage.getItem("talentToken")
       },
       body:JSON.stringify({text})
     });
@@ -1487,7 +1490,7 @@ async function submitComment(postId){
   async function loadComments(postId){
 
   const res = await fetch(API+"/api/posts/"+postId,{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
 
   const post = await res.json();
@@ -1602,7 +1605,7 @@ function openShareModal(id){
 async function connectUser(id){
   await fetch(API + "/api/users/" + id + "/follow", {
     method:"PATCH",
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
   loadSuggestions();
 }
@@ -1610,7 +1613,7 @@ async function followFromFeed(userId, button){
 
   const res = await fetch(API+"/api/users/"+userId+"/follow",{
     method:"PATCH",
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
 
   if(!res.ok) return;
@@ -1642,7 +1645,7 @@ async function followFromFeed(userId, button){
 }
 async function loadMessageCount(){
   const res = await fetch(API + "/api/messages/unread/count",{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
   const data = res.ok ? await res.json() : {count:0};
 
@@ -1657,7 +1660,7 @@ async function loadMessageCount(){
 
 async function loadNotificationCount(){
   const res = await fetch(API + "/api/notifications/unread",{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
   const data = res.ok ? await res.json() : {count:0};
 
@@ -1671,7 +1674,7 @@ async function loadNotificationCount(){
 }
   async function enforceTalentRole(){
   const res = await fetch(API+"/api/users/me",{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
 
   const user = await res.json();
@@ -1690,7 +1693,7 @@ async function loadNotificationCount(){
     method:"PATCH",
     headers:{
       "Content-Type":"application/json",
-      Authorization:"Bearer "+token
+      Authorization:"Bearer " + localStorage.getItem("talentToken")
     },
     body:JSON.stringify({content:newText})
   });
@@ -1704,7 +1707,7 @@ async function deletePost(id){
 
   await fetch(API+"/api/posts/"+id,{
     method:"DELETE",
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
 
   document.getElementById("post-"+id)?.remove();
@@ -1788,7 +1791,7 @@ function reportPost(id){
   const postId = commentElement.querySelector(".comment-like-btn").dataset.post;
 
   fetch(API+"/api/posts/"+postId,{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   })
   .then(res=>res.json())
   .then(post=>{
@@ -1832,7 +1835,7 @@ if(e.target.closest(".comment-like-btn")){
       API+"/api/posts/"+postId+"/comment/"+commentId+"/like",
       {
         method:"PATCH",
-        headers:{ Authorization:"Bearer "+token }
+        headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
       }
     );
 
@@ -1925,7 +1928,7 @@ replyContainer.innerHTML += `
         method:"POST",
         headers:{
           "Content-Type":"application/json",
-          Authorization:"Bearer "+token
+          Authorization:"Bearer " + localStorage.getItem("talentToken")
         },
         body:JSON.stringify({ text })
       }
