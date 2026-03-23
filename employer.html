@@ -682,151 +682,1220 @@ body{background:var(--bg);}
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <script>
-const API = "https://backend-1-9b6f.onrender.com";
+  const API="https://backend-1-9b6f.onrender.com";
+const socket = io(API);
+const token = localStorage.getItem("employerToken");
 
-/* =============================
-   🔒 PROTECT PAGE
-============================= */
-if(!localStorage.getItem("employerToken")){
+if(!token){
   window.location.href = "login.html";
 }
+  let currentPage = 1;
+let loading = false;
+let noMorePosts = false;
 
-/* =============================
-   🚪 LOGOUT
-============================= */
-function logout(){
-  localStorage.clear();
-  window.location.href = "login.html";
+/* LOAD PROFILE */
+async function loadProfile(){
+  const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}});
+  const user=await res.json();
+  localStorage.setItem("userId", user._id);
+  localStorage.setItem("profileImage", user.profileImage || "");
+
+  document.getElementById("profileCard").innerHTML=`
+    <img class="profile-banner" src="${user.bannerImage || 'https://via.placeholder.com/600x120'}">
+    <img class="profile-image" src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+    <h3>${user.name}</h3>
+    <div style="color:#6f6f6f;font-size:14px;">${user.headline || ''}</div>
+  `;
+
+  document.getElementById("topProfileImg").src =
+    user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+  document.getElementById("topProfileName").innerText = user.name;
+
+  document.getElementById("proStatus").innerText = user.isPro ? "Pro" : "Free";
+  document.getElementById("cvStatus").innerText = user.cvUrl ? "Yes" : "No";
+
+  const avatar = document.getElementById("createPostAvatar");
+if(avatar) avatar.src = user.profileImage || avatar.src;
 }
 
-/* =============================
-   📝 CREATE POST
-============================= */
+/* LOAD POSTS */
+
+window.addEventListener("scroll", () => {
+
+  if(loading || noMorePosts) return;
+
+  if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 200){
+
+    loading = true;
+    currentPage++;
+
+    loadPosts(currentPage).then(() => {
+      loading = false;
+    });
+  }
+});
+
 async function createPost(){
 
-  const content = document.getElementById("postContent").value;
+  const content = document.getElementById("postContent").value.trim();
+  const fileInput = document.getElementById("mediaInput");
+  const file = fileInput.files[0];
 
-  if(!content) return alert("Write something");
-
-  await fetch(API+"/api/posts",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer " + localStorage.getItem("employerToken")
-    },
-    body:JSON.stringify({content})
-  });
-
-  document.getElementById("postContent").value = "";
-
-  loadFeed();
-}
-
-/* =============================
-   📰 LOAD FEED (SAME AS TALENT)
-============================= */
-async function loadFeed(){
-
-  const container = document.getElementById("posts");
-
-  if(!container) return;
-
-  const res = await fetch(API+"/api/posts",{
-    headers:{
-      Authorization:"Bearer " + localStorage.getItem("employerToken")
-    }
-  });
-
-  if(res.status === 401){
-    alert("Session expired");
-    localStorage.clear();
-    window.location.href="login.html";
+  if(!content && !file){
+    alert("Please add text or media.");
     return;
   }
 
-  const posts = await res.json();
+  const formData = new FormData();
+  formData.append("content", content);
 
-  container.innerHTML = "";
+  if(file){
+    formData.append("media", file);
+  }
 
-  posts.forEach(post=>{
-    container.innerHTML += `
-      <div class="card">
+  const res = await fetch(API+"/api/posts",{
+    method:"POST",
+    headers:{
+      Authorization:"Bearer " + localStorage.getItem("employerToken")
+    },
+    body:formData
+  });
 
-        <div class="post-header">
-          <div class="post-author">
-            <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
-            <div>
-              <strong>${post.author?.name}</strong><br>
-              <small>${new Date(post.createdAt).toLocaleString()}</small>
+  if(!res.ok){
+    alert("Post failed");
+    return;
+  }
+
+  const newPost = await res.json();
+
+  document.getElementById("postContent").value="";
+  fileInput.value="";
+  document.getElementById("filePreviewContainer").innerHTML="";
+
+  closePostModal();
+  prependPost(newPost);
+}
+  function openPostModal(){
+  document.getElementById("postModal").style.display = "flex";
+}
+
+function closePostModal(){
+  document.getElementById("postModal").style.display = "none";
+}
+
+document.addEventListener("change", function(e){
+
+  if(e.target.id === "mediaInput"){
+
+    const file = e.target.files[0];
+    const previewContainer = document.getElementById("filePreviewContainer");
+
+    previewContainer.innerHTML = "";
+
+    if(!file) return;
+
+    if(file.type.startsWith("image")){
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(file);
+      img.style.width = "100%";
+      img.style.borderRadius = "10px";
+      previewContainer.appendChild(img);
+
+    } else if(file.type.startsWith("video")){
+      const video = document.createElement("video");
+      video.src = URL.createObjectURL(file);
+      video.controls = true;
+      video.style.width = "100%";
+      video.style.borderRadius = "10px";
+      previewContainer.appendChild(video);
+    }
+
+  }
+
+});
+
+/* =========================================
+   PANEL SWITCHING (FIXED)
+========================================= */
+
+function showFeed(){
+  document.getElementById("feedPanel").style.display = "block";
+  document.getElementById("jobsPanel").style.display = "none";
+  document.getElementById("savedPanel").style.display = "none";
+  document.getElementById("toolPanel").style.display = "none";
+}
+
+function showJobs(){
+  document.getElementById("feedPanel").style.display = "none";
+  document.getElementById("jobsPanel").style.display = "block";
+  document.getElementById("savedPanel").style.display = "none";
+  document.getElementById("toolPanel").style.display = "none";
+  loadJobs();
+}
+
+function showSavedJobs(){
+  document.getElementById("feedPanel").style.display = "none";
+  document.getElementById("jobsPanel").style.display = "none";
+  document.getElementById("savedPanel").style.display = "block";
+  document.getElementById("toolPanel").style.display = "none";
+  loadSavedJobs();
+}
+
+function backToFeed(){
+  showFeed();
+}
+/* =========================================
+   NETWORK SYSTEM (Talent)
+========================================= */
+
+async function openNetwork(){
+
+document.getElementById("feedPanel").style.display="none";
+document.getElementById("jobsPanel").style.display="none";
+document.getElementById("savedPanel").style.display="none";
+document.getElementById("toolPanel").style.display="block";
+
+  document.getElementById("toolPanel").innerHTML=`
+    <div class="card">
+
+      <div style="display:flex;gap:20px;margin-bottom:20px;">
+        <div class="network-tab" onclick="loadFollowers()">Followers</div>
+        <div class="network-tab" onclick="loadFollowing()">Following</div>
+        <div class="network-tab" onclick="loadSuggestions()">Suggestions</div>
+      </div>
+
+      <div id="networkList"></div>
+
+      <div style="margin-top:20px;">
+        <button onclick="backToFeed()">⬅ Back</button>
+      </div>
+
+    </div>
+  `;
+
+  loadSuggestions();
+}
+
+async function loadFollowers(){
+  const res = await fetch(API+"/api/users/me/followers",{
+    headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}
+  });
+  const users = res.ok ? await res.json() : [];
+  renderNetworkUsers(users);
+}
+
+async function loadFollowing(){
+  const res = await fetch(API+"/api/users/me/following",{
+    headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}
+  });
+  const users = res.ok ? await res.json() : [];
+  renderNetworkUsers(users);
+}
+
+async function loadSuggestions(){
+  const res = await fetch(API+"/api/users/network",{
+    headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}
+  });
+  const users = res.ok ? await res.json() : [];
+  renderNetworkUsers(users);
+}
+
+function renderNetworkUsers(users){
+
+  const container = document.getElementById("networkList");
+  container.innerHTML="";
+
+  if(users.length===0){
+    container.innerHTML="<p style='color:#6f6f6f;'>No users found</p>";
+    return;
+  }
+
+  users.forEach(user=>{
+    container.innerHTML+=`
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        padding:15px 0;
+        border-bottom:1px solid #eee;
+      ">
+
+        <div style="display:flex;gap:12px;align-items:center;">
+          <img src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+               style="width:55px;height:55px;border-radius:50%;object-fit:cover;">
+
+          <div>
+            <div style="font-weight:600;">${user.name}</div>
+            <div style="font-size:13px;color:#6f6f6f;">
+              ${user.headline || ""} • ${user.role}
             </div>
           </div>
         </div>
 
-        <div class="post-content">${post.content || ""}</div>
-
-${
-post.mediaUrl ? `
-  <div style="margin-top:10px;">
-    ${
-      post.mediaType === "video"
-      ? `<video controls style="width:100%;border-radius:8px;" src="${post.mediaUrl}"></video>`
-      : `<img src="${post.mediaUrl}" style="width:100%;border-radius:8px;">`
-    }
-  </div>
-` : ""
-}
-
-        <div class="post-actions">
-          <div onclick="likePost('${post._id}')">Like (${post.likes.length})</div>
-          <div onclick="commentPost('${post._id}')">Comment</div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="connectUser('${user._id}')">
+            Follow
+          </button>
         </div>
 
       </div>
     `;
   });
 }
+async function loadPosts(page = 1){
 
-/* =============================
-   ❤️ LIKE
-============================= */
-async function likePost(id){
+  if(noMorePosts) return;
 
-  await fetch(API+"/api/posts/"+id+"/like",{
-    method:"PATCH",
-    headers:{
-      Authorization:"Bearer " + localStorage.getItem("employerToken")
-    }
+  const res = await fetch(API+"/api/posts?page="+page,{
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
   });
 
-  loadFeed();
+  const posts = res.ok ? await res.json() : [];
+  const container = document.getElementById("posts");
+
+  if(page === 1){
+    container.innerHTML = "";
+    noMorePosts = false;
+  }
+
+  if(posts.length < 5){
+    noMorePosts = true;
+  }
+
+  posts.forEach(post=>{
+const isFollowing = (post.author?.followers || []).some(
+  id => String(id) === String(localStorage.getItem("userId"))
+);
+    const liked = post.likes?.some(
+  id => id.toString() === localStorage.getItem("userId")
+);
+
+    container.innerHTML += `
+      <div class="card" id="post-${post._id}">
+
+       <div class="post-header">
+
+<div class="post-author" onclick="visitProfile('${post.author?._id}')">
+
+<img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+
+<div>
+  <div style="font-weight:600;">${post.author?.name}</div>
+
+  <div class="post-meta">
+    ${post.author?.headline || ""}
+  </div>
+
+  <div style="font-size:12px;color:#6f6f6f;">
+    ${(post.author?.followers?.length || 0)} followers • ${formatTime(post.createdAt)}
+  </div>
+</div>
+
+</div>
+
+<div style="display:flex;align-items:center;gap:10px;">
+
+${
+String(post.author?._id) !== String(localStorage.getItem("userId"))
+? `<button class="follow-btn"
+onclick="followFromFeed('${post.author._id}', this)"
+data-user="${post.author._id}">
+${isFollowing ? "Following" : "Follow"}
+</button>`
+: ""
 }
 
-/* =============================
-   💬 COMMENT
-============================= */
-async function commentPost(id){
+<div class="dropdown">
 
-  const text = prompt("Write comment");
+<div onclick="toggleDropdown('${post._id}', event)" style="cursor:pointer;">•••</div>
+
+<div class="dropdown-menu" id="dropdown-${post._id}">
+${
+post.author?._id === localStorage.getItem("userId")
+? `
+<div onclick="editPost('${post._id}')">Edit</div>
+<div onclick="deletePost('${post._id}')">Delete</div>
+<div onclick="savePost('${post._id}')">Save</div>
+<div onclick="hidePost('${post._id}')">Hide</div>
+<div onclick="reportPost('${post._id}')">Report</div>
+`
+: `
+<div onclick="savePost('${post._id}')">Save</div>
+<div onclick="openShareModal('${post._id}')">Share</div>
+<div onclick="markInterested('${post._id}')">Interested</div>
+<div onclick="hidePost('${post._id}')">Hide</div>
+<div onclick="reportPost('${post._id}')">Report</div>
+`
+}
+</div>
+</div>
+
+</div>
+</div>  <!-- CLOSE post-header -->
+
+${post.content ? `<div class="post-content">${post.content}</div>` : ""}
+
+        ${post.mediaUrl ? `
+          <div class="post-media">
+            ${post.mediaType==="video"
+              ? `<video controls src="${post.mediaUrl}"></video>`
+              : `<img src="${post.mediaUrl}">`}
+          </div>
+        ` : ""}
+
+        <div class="post-stats">
+  <div>${post.likes.length} reactions</div>
+  <div style="cursor:pointer;"
+     onclick="toggleCommentBox('${post._id}')">
+  ${post.comments.reduce((total,c)=> total + 1 + (c.replies?.length || 0),0)} comments
+</div>
+</div>
+
+<div class="post-actions">
+
+  <div class="post-action ${liked ? "liked" : ""}"
+       onclick="toggleLike('${post._id}', this)">
+
+    <svg viewBox="0 0 24 24" fill="${liked ? '#0a66c2' : 'none'}"
+         stroke="currentColor" stroke-width="2">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
+      2 6 4 4 6.5 4 8.24 4 9.91 5 10.54 6.36h.92C12.09
+      5 13.76 4 15.5 4 18 4 20 6 20 8.5c0
+      3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+    </svg>
+
+    <span>Like</span>
+  </div>
+
+  <div class="post-action"
+       onclick="toggleCommentBox('${post._id}')">
+
+    <svg viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2">
+      <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
+    </svg>
+
+    <span>Comment</span>
+  </div>
+
+  <div class="post-action"
+       onclick="openShareModal('${post._id}')">
+
+    <svg viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2">
+      <circle cx="18" cy="5" r="3"/>
+      <circle cx="6" cy="12" r="3"/>
+      <circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+    </svg>
+
+    <span>Share</span>
+  </div>
+
+</div>
+
+<div class="comments-wrapper" id="comments-wrapper-${post._id}" style="display:none;">
+
+  <div class="comment-input-area">
+    <img src="${localStorage.getItem("profileImage") || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+         class="comment-avatar">
+
+    <input type="text"
+           placeholder="Write a comment..."
+           id="comment-input-${post._id}" />
+
+    <button id="send-btn-${post._id}"
+            onclick="submitComment('${post._id}')">
+      Send
+    </button>
+  </div>
+
+  <div class="comments-container" id="comments-${post._id}"></div>
+
+  <div id="load-more-${post._id}" style="text-align:center;margin-top:10px;"></div>
+
+</div>
+
+</div>
+
+        
+
+      </div>
+    `;
+  });
+}
+
+  function prependPost(post){
+
+  const container = document.getElementById("posts");
+
+  const liked = post.likes?.some(
+  id => id.toString() === localStorage.getItem("userId")
+);
+
+  container.innerHTML = `
+    <div class="card" id="post-${post._id}">
+      <div class="post-header">
+        <div class="post-author">
+
+  <img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+
+  <div onclick="visitProfile('${post.author?._id}')">
+
+    <div style="font-weight:600;">
+      ${post.author?.name}
+    </div>
+
+    <div class="post-meta">
+      ${post.author?.headline || ""}
+    </div>
+
+    <div style="font-size:12px;color:#6f6f6f;">
+      ${(post.author?.followers?.length || 0)} followers • Just now
+    </div>
+
+  </div>
+
+</div>
+
+${
+post.author?._id !== localStorage.getItem("userId")
+? `<button class="follow-btn"
+     onclick="followFromFeed('${post.author._id}', this)">
+     Follow
+   </button>`
+: ""
+}
+        <div class="dropdown">
+  <div onclick="toggleDropdown('${post._id}', event)">•••</div>
+
+  <div class="dropdown-menu" id="dropdown-${post._id}">
+  ${
+    post.author?._id === localStorage.getItem("userId")
+    ? `
+      <div onclick="editPost('${post._id}')">Edit</div>
+      <div onclick="deletePost('${post._id}')">Delete</div>
+      <div onclick="savePost('${post._id}')">Save</div>
+      <div onclick="hidePost('${post._id}')">Hide</div>
+      <div onclick="reportPost('${post._id}')">Report</div>
+    `
+    : `
+      <div onclick="savePost('${post._id}')">Save</div>
+      <div onclick="openShareModal('${post._id}')">Share</div>
+      <div onclick="markInterested('${post._id}')">Interested</div>
+      <div onclick="hidePost('${post._id}')">Hide</div>
+      <div onclick="reportPost('${post._id}')">Report</div>
+    `
+  }
+</div>
+</div>
+      </div>
+
+      ${post.content ? `<div class="post-content">${post.content}</div>` : ""}
+
+      ${post.mediaUrl ? `
+        <div class="post-media">
+          ${post.mediaType==="video"
+            ? `<video controls src="${post.mediaUrl}"></video>`
+            : `<img src="${post.mediaUrl}">`}
+        </div>
+      ` : ""}
+
+      <div class="post-stats">
+        <div>${post.likes?.length || 0} reactions</div>
+        <div style="cursor:pointer;"
+     onclick="toggleCommentBox('${post._id}')">
+  ${post.comments?.reduce((t,c)=> t + 1 + (c.replies?.length || 0),0) || 0} comments
+</div>
+      </div>
+
+     <div class="post-actions">
+
+  <div class="post-action ${liked ? "liked" : ""}"
+       onclick="toggleLike('${post._id}', this)">
+
+    <svg viewBox="0 0 24 24" fill="${liked ? '#0a66c2' : 'none'}" stroke="currentColor" stroke-width="2">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
+      2 6 4 4 6.5 4 8.24 4 9.91 5 10.54 6.36h.92C12.09
+      5 13.76 4 15.5 4 18 4 20 6 20 8.5c0
+      3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+    </svg>
+
+    <span>Like</span>
+  </div>
+
+  <div class="post-action"
+       onclick="toggleCommentBox('${post._id}')">
+
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
+    </svg>
+
+    <span>Comment</span>
+  </div>
+
+  <div class="post-action"
+       onclick="openShareModal('${post._id}')">
+
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="18" cy="5" r="3"/>
+      <circle cx="6" cy="12" r="3"/>
+      <circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+    </svg>
+
+    <span>Share</span>
+  </div>
+
+</div>
+
+<div class="comments-wrapper" id="comments-wrapper-${post._id}" style="display:none;">
+
+  <div class="comment-input-area">
+    <img src="${localStorage.getItem("profileImage") || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+         class="comment-avatar">
+
+    <input type="text"
+           placeholder="Write a comment..."
+           id="comment-input-${post._id}" />
+
+    <button id="send-btn-${post._id}"
+            onclick="submitComment('${post._id}')">
+      Send
+    </button>
+  </div>
+
+  <div class="comments-container" id="comments-${post._id}"></div>
+
+  <div id="load-more-${post._id}" style="text-align:center;margin-top:10px;"></div>
+
+</div>
+
+      
+
+    </div>
+  ` + container.innerHTML;
+}
+async function toggleLike(id, element){
+
+  const icon = element.querySelector("svg");
+  const stat = document.querySelector("#post-"+id+" .post-stats div");
+
+  try {
+
+    const res = await fetch(API+"/api/posts/"+id+"/like",{
+      method:"PATCH",
+      headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
+    });
+
+    const data = await res.json();
+
+    // 🔥 USE SERVER RESPONSE
+    if(data.liked){
+      element.classList.add("liked");
+      icon.setAttribute("fill","#0a66c2");
+    }else{
+      element.classList.remove("liked");
+      icon.setAttribute("fill","none");
+    }
+
+    stat.innerText = data.likes + " reactions";
+
+  } catch(err){
+    console.error("Like failed", err);
+  }
+
+}
+
+function toggleCommentBox(postId){
+
+  const wrapper = document.getElementById("comments-wrapper-"+postId);
+
+  if(wrapper.style.display === "none"){
+    wrapper.style.display = "block";
+    loadComments(postId);
+  } else {
+    wrapper.style.display = "none";
+  }
+}
+
+async function submitComment(postId){
+
+  const input = document.getElementById("comment-input-"+postId);
+  const text = input.value.trim();
   if(!text) return;
 
-  await fetch(API+"/api/posts/"+id+"/comment",{
-    method:"POST",
+
+  input.value="";
+
+  try {
+    const res = await fetch(API+"/api/posts/"+postId+"/comment",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        Authorization:"Bearer " + localStorage.getItem("employerToken")
+      },
+      body:JSON.stringify({text})
+    });
+
+    await res.json();
+
+  } catch(err){
+    alert("Failed to post comment");
+  }
+}
+ 
+  async function loadComments(postId){
+
+  const res = await fetch(API+"/api/posts/"+postId,{
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
+  });
+
+  const post = await res.json();
+  const container = document.getElementById("comments-"+postId);
+  const loadMoreContainer = document.getElementById("load-more-"+postId);
+
+  container.innerHTML = "";
+  loadMoreContainer.innerHTML = "";
+
+  let visibleCount = 10;
+
+  function renderBatch(){
+    container.innerHTML = "";
+
+    post.comments
+      .slice(0, visibleCount)
+      .forEach(comment=>{
+        renderComment(postId, comment, container);
+      });
+
+    if(post.comments.length > visibleCount){
+      loadMoreContainer.innerHTML = `
+        <button onclick="loadMoreComments('${postId}')">
+          Load more comments
+        </button>
+      `;
+    } else {
+      loadMoreContainer.innerHTML = "";
+    }
+  }
+
+  window.loadMoreComments = function(id){
+    visibleCount += 10;
+    renderBatch();
+  };
+
+  renderBatch();
+}
+ function renderComment(postId, comment, parentContainer){
+
+  const div = document.createElement("div");
+  div.className = "comment-item";
+  div.dataset.commentId = comment._id;
+div.setAttribute("data-comment-id", comment._id);
+
+  div.innerHTML = `
+    <img src="${comment.user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+         class="comment-avatar">
+
+    <div class="comment-body">
+
+      <div class="comment-bubble">
+        <strong>${comment.user.name}</strong><br>
+        ${comment.text}
+      </div>
+
+      <div class="comment-meta">
+
+        <button class="comment-like-btn post-style-btn"
+        data-post="${postId}"
+        data-comment="${comment._id}">
+  <svg viewBox="0 0 24 24" fill="none"
+       stroke="currentColor" stroke-width="2"
+       style="width:16px;height:16px;">
+    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
+    2 6 4 4 6.5 4 8.24 4 9.91 5 10.54 6.36h.92C12.09
+    5 13.76 4 15.5 4 18 4 20 6 20 8.5c0
+    3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+  </svg>
+  <span class="like-count">${comment.likes?.length || 0}</span>
+</button>
+
+        <button class="comment-reply-btn"
+                data-post="${postId}"
+                data-comment="${comment._id}">
+          Reply
+        </button>
+
+      </div>
+
+      <div class="reply-input-area" id="reply-input-${comment._id}"></div>
+    ${
+  comment.replies && comment.replies.length > 0
+  ? `<div style="margin-top:6px;font-size:13px;color:#0a66c2;cursor:pointer;"
+        onclick="toggleReplies('${comment._id}')">
+        View replies (${comment.replies.length})
+     </div>`
+  : ""
+}
+
+<div class="reply-line"
+     id="replies-${comment._id}"
+     data-loaded="false"
+     style="display:none;">
+</div>
+
+    </div>
+  `;
+
+  parentContainer.appendChild(div);
+}
+
+
+function openShareModal(id){
+  document.getElementById("shareModal").style.display="flex";
+  document.getElementById("copyLinkBtn").onclick = function(){
+    const link = window.location.origin + "/employee.html#post-"+id;
+    navigator.clipboard.writeText(link);
+    alert("Link copied");
+  };
+}
+async function connectUser(id){
+  await fetch(API + "/api/users/" + id + "/follow", {
+    method:"PATCH",
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
+  });
+  loadSuggestions();
+}
+async function followFromFeed(userId, button){
+
+  const res = await fetch(API+"/api/users/"+userId+"/follow",{
+    method:"PATCH",
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
+  });
+
+  if(!res.ok) return;
+
+  const data = await res.json();
+
+  const buttons = document.querySelectorAll(
+    `button[onclick*="${userId}"]`
+  );
+
+  buttons.forEach(btn=>{
+
+    if(data.following){
+
+      btn.innerText = "Following";
+      btn.style.background = "#0a66c2";
+      btn.style.color = "white";
+
+    }else{
+
+      btn.innerText = "Follow";
+      btn.style.background = "white";
+      btn.style.color = "#0a66c2";
+
+    }
+
+  });
+
+}
+async function loadMessageCount(){
+  const res = await fetch(API + "/api/messages/unread/count",{
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
+  });
+  const data = res.ok ? await res.json() : {count:0};
+
+  const badge = document.getElementById("messageCount");
+  if(data.count > 0){
+    badge.innerText = data.count;
+    badge.style.display = "block";
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+async function loadNotificationCount(){
+  const res = await fetch(API + "/api/notifications/unread",{
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
+  });
+  const data = res.ok ? await res.json() : {count:0};
+
+  const badge = document.getElementById("notificationCount");
+  if(data.count > 0){
+    badge.innerText = data.count;
+    badge.style.display = "block";
+  } else {
+    badge.style.display = "none";
+  }
+}
+async function enforceEmployerRole(){
+  const res = await fetch(API+"/api/users/me",{
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
+  });
+
+  const user = await res.json();
+
+  if(user.role !== "employer"){
+    window.location.href = "talent.html";
+  }
+}
+
+  async function editPost(id){
+
+  const newText = prompt("Edit your post:");
+  if(!newText) return;
+
+  await fetch(API+"/api/posts/"+id,{
+    method:"PATCH",
     headers:{
       "Content-Type":"application/json",
       Authorization:"Bearer " + localStorage.getItem("employerToken")
     },
-    body:JSON.stringify({text})
+    body:JSON.stringify({content:newText})
   });
 
-  loadFeed();
+  loadPosts();
 }
 
-/* =============================
-   🚀 INIT
-============================= */
-window.onload = () => {
-  loadFeed();
-};
+async function deletePost(id){
+
+  if(!confirm("Delete this post?")) return;
+
+  await fetch(API+"/api/posts/"+id,{
+    method:"DELETE",
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
+  });
+
+  document.getElementById("post-"+id)?.remove();
+}
+
+
+function formatTime(dateString){
+
+  const now = new Date();
+  const postDate = new Date(dateString);
+  const diff = Math.floor((now - postDate)/1000);
+
+  if(diff < 60) return "Just now";
+  if(diff < 3600) return Math.floor(diff/60)+"m ago";
+  if(diff < 86400) return Math.floor(diff/3600)+"h ago";
+  return Math.floor(diff/86400)+"d ago";
+}
+
+  function visitProfile(id){
+  if(!id) return;
+  window.location.href = "public-profile.html?id=" + id;
+}
+  let activeDropdown = null;
+
+function toggleDropdown(id, event){
+
+  event.stopPropagation(); // 🚀 VERY IMPORTANT
+
+  const menu = document.getElementById("dropdown-"+id);
+
+  // Close other open dropdown
+  if(activeDropdown && activeDropdown !== menu){
+    activeDropdown.style.display = "none";
+  }
+
+  const isOpen = menu.style.display === "block";
+  menu.style.display = isOpen ? "none" : "block";
+
+  activeDropdown = isOpen ? null : menu;
+}
+
+// Close dropdown when clicking anywhere outside
+document.addEventListener("click", function(){
+  if(activeDropdown){
+    activeDropdown.style.display = "none";
+    activeDropdown = null;
+  }
+});
+  function savePost(id){
+  alert("Post saved");
+}
+
+function markInterested(id){
+  alert("You marked this post as interested");
+}
+
+function hidePost(id){
+  document.getElementById("post-"+id)?.remove();
+}
+
+function reportPost(id){
+  alert("Post reported");
+}
+  function toggleReplies(commentId){
+
+  const container = document.getElementById("replies-"+commentId);
+
+  if(container.style.display === "block"){
+    container.style.display = "none";
+    return;
+  }
+
+  if(container.dataset.loaded === "true"){
+    container.style.display = "block";
+    return;
+  }
+
+  const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+  if(!commentElement) return;
+
+  const postId = commentElement.querySelector(".comment-like-btn").dataset.post;
+
+  fetch(API+"/api/posts/"+postId,{
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
+  })
+  .then(res=>res.json())
+  .then(post=>{
+
+    const comment = post.comments.find(c=>c._id === commentId);
+
+    if(!comment) return;
+
+    container.innerHTML = comment.replies.map(reply=>`
+      <div data-reply-id="${reply._id}" style="
+        margin-top:8px;
+        padding-left:12px;
+        border-left:2px solid #e6e6e6;
+      ">
+        <strong>${reply.user?.name || "User"}</strong><br>
+        ${reply.text}
+      </div>
+    `).join("");
+
+    container.dataset.loaded = "true";
+    container.style.display = "block";
+
+  });
+
+}
+  document.addEventListener("click", async function(e){
+
+  /* =========================
+     COMMENT LIKE
+  ========================= */
+if(e.target.closest(".comment-like-btn")){
+
+  const btn = e.target.closest(".comment-like-btn");
+  const postId = btn.dataset.post;
+  const commentId = btn.dataset.comment;
+  const countEl = btn.querySelector(".like-count");
+
+  try{
+
+    const res = await fetch(
+      API+"/api/posts/"+postId+"/comment/"+commentId+"/like",
+      {
+        method:"PATCH",
+        headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
+      }
+    );
+
+    const data = await res.json();
+
+    // 🔥 USE SERVER RESPONSE
+    countEl.innerText = data.likes;
+
+    if(data.liked){
+      btn.classList.add("liked");
+    }else{
+      btn.classList.remove("liked");
+    }
+
+  }catch(err){
+    console.error("Comment like failed", err);
+  }
+
+}
+
+  /* =========================
+     COMMENT REPLY BUTTON
+  ========================= */
+  if(e.target.closest(".comment-reply-btn")){
+
+    const btn = e.target.closest(".comment-reply-btn");
+    const commentId = btn.dataset.comment;
+
+    const container = document.getElementById("reply-input-"+commentId);
+
+    if(container.innerHTML !== ""){
+      container.innerHTML = "";
+      return;
+    }
+
+    container.innerHTML = `
+  <div style="margin-top:10px;display:flex;gap:8px;">
+    <input type="text"
+           class="reply-field"
+           placeholder="Write a reply..."
+           style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid #ddd;">
+    <button class="reply-send-btn"
+            data-comment="${commentId}"
+            style="background:#0a66c2;color:white;border:none;padding:6px 16px;border-radius:20px;cursor:pointer;">
+      Reply
+    </button>
+  </div>
+`;
+
+container.querySelector(".reply-field").focus();
+    }
+/* =========================
+   REPLY SEND (SAVE TO DB)
+========================= */
+if(e.target.classList.contains("reply-send-btn")){
+
+  const commentId = e.target.dataset.comment;
+  const postId = e.target.closest(".comment-item")
+                       .querySelector(".comment-like-btn")
+                       .dataset.post;
+
+  const input = e.target.parentElement.querySelector(".reply-field");
+  const text = input.value.trim();
+
+  if(!text) return;
+
+  const replyContainer = document.getElementById("replies-"+commentId);
+  replyContainer.style.display = "block";
+
+  // Optimistic UI
+const tempId = "temp-" + Date.now();
+
+replyContainer.innerHTML += `
+  <div data-temp-id="${tempId}" style="
+    margin-top:8px;
+    padding-left:12px;
+    border-left:2px solid #e6e6e6;
+  ">
+    <strong>You</strong><br>
+    ${text}
+  </div>
+`;
+  input.value="";
+
+  try{
+
+    await fetch(
+      API+"/api/posts/"+postId+"/comment/"+commentId+"/reply",
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          Authorization:"Bearer " + localStorage.getItem("employerToken")
+        },
+        body:JSON.stringify({ text })
+      }
+    );
+
+  }catch(err){
+    console.error("Reply failed", err);
+  }
+}
+});
+socket.on("new_comment", data => {
+
+  const container = document.getElementById("comments-"+data.postId);
+  if(!container) return;
+
+  if(container.querySelector(`[data-comment-id="${data.comment._id}"]`)){
+    return;
+  }
+
+  renderComment(data.postId, data.comment, container);
+
+  const stat = document.querySelector("#post-"+data.postId+" .post-stats div:nth-child(2)");
+  if(stat){
+    stat.innerText = data.totalComments + " comments";
+  }
+
+});
+ socket.on("new_reply", data => {
+
+  const replyContainer = document.getElementById("replies-"+data.commentId);
+  if(!replyContainer) return;
+
+  const replies = data.comment.replies || [];
+  const reply = replies[replies.length - 1];
+  if(!reply) return;
+
+  // 🔥 remove temporary optimistic reply
+  const tempReply = replyContainer.querySelector("[data-temp-id]");
+  if(tempReply){
+    tempReply.remove();
+  }
+
+  // prevent duplicates
+  if(replyContainer.querySelector(`[data-reply-id="${reply._id}"]`)){
+    return;
+  }
+
+  replyContainer.innerHTML += `
+    <div data-reply-id="${reply._id}" style="
+      margin-top:8px;
+      padding-left:12px;
+      border-left:2px solid #e6e6e6;
+    ">
+      <strong>${reply.user.name}</strong><br>
+      ${reply.text}
+    </div>
+  `;
+// update reply counter
+const commentElement = document.querySelector(
+  `[data-comment-id="${data.commentId}"]`
+);
+
+if(commentElement){
+
+  const toggle = commentElement.querySelector(
+    `[onclick="toggleReplies('${data.commentId}')"]`
+  );
+
+  if(toggle){
+    toggle.innerText = `View replies (${data.comment.replies.length})`;
+  }
+
+}
+  // update comment counter
+  const stat = document.querySelector("#post-"+data.postId+" .post-stats div:nth-child(2)");
+  if(stat){
+    stat.innerText = data.totalComments + " comments";
+  }
+
+});
+  socket.on("post_like", data => {
+
+  const stat = document.querySelector("#post-"+data.postId+" .post-stats div");
+
+  if(!stat) return;
+
+  stat.innerText = data.likes + " reactions";
+
+});
+  socket.on("post_deleted", data => {
+
+  const post = document.getElementById("post-"+data.postId);
+
+  if(post){
+    post.remove();
+  }
+
+});
+document.addEventListener("DOMContentLoaded", async function(){
+
+  await enforceEmployerRole();   // 🔥 FIRST protect role
+
+  loadProfile();
+  loadPosts();
+  loadMessageCount();
+  loadNotificationCount();
+});
 </script>
 
 </body>
