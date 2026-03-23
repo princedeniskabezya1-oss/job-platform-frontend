@@ -698,7 +698,12 @@ async function loadProfile(){
   const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}});
   const user=await res.json();
   localStorage.setItem("userId", user._id);
-  localStorage.setItem("profileImage", user.profileImage || "");
+  localStorage.setItem(
+  "profileImage",
+  user.profileImage && user.profileImage.trim() !== ""
+    ? user.profileImage
+    : "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+);
 
   document.getElementById("profileCard").innerHTML=`
     <img class="profile-banner" src="${user.bannerImage || 'https://via.placeholder.com/600x120'}">
