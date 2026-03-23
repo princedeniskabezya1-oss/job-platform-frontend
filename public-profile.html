@@ -523,7 +523,12 @@ Download CV
 <script>
 
 const API="https://backend-1-9b6f.onrender.com"
-const token=localStorage.getItem("token")
+function getToken(){
+  return localStorage.getItem("employerToken") ||
+         localStorage.getItem("talentToken");
+}
+
+const token = getToken();
 
 const params=new URLSearchParams(window.location.search)
 const userId=params.get("id")
@@ -636,7 +641,7 @@ document.getElementById("downloadCV").style.display="none";
 if(token){
 
 const meRes = await fetch(API+"/api/users/me",{
-headers:{Authorization:"Bearer "+token}
+headers: token ? { Authorization:"Bearer "+token } : {}
 })
 
 loggedUser = await meRes.json()
@@ -656,7 +661,7 @@ document.getElementById("followBtn").style.display = "inline-block"
 async function loadPosts(){
 
 const res = await fetch(API+"/api/posts/user/"+userId,{
-headers:{Authorization:"Bearer "+token}
+headers: token ? { Authorization:"Bearer "+token } : {}
 })
 
 const posts = await res.json()
@@ -763,13 +768,50 @@ async function likePost(postId){
 
 await fetch(API+"/api/posts/"+postId+"/like",{
 method:"PATCH",
-headers:{Authorization:"Bearer "+token}
+headers: token ? { Authorization:"Bearer "+token } : {}
 })
 
 loadPosts()
 
 }
+async function likePost(postId){
 
+  if(!token){
+    alert("Please login first");
+    window.location.href="login.html";
+    return;
+  }
+
+  await fetch(API+"/api/posts/"+postId+"/like",{
+    method:"PATCH",
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  loadPosts();
+}
+  async function toggleFollow(){
+
+  if(!token){
+    alert("Please login to follow users");
+    window.location.href="login.html";
+    return;
+  }
+
+  const res = await fetch(API+"/api/users/"+userId+"/follow",{
+    method:"PATCH",
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const data = await res.json();
+
+  const btn = document.getElementById("followBtn");
+
+  if(data.following){
+    btn.innerText = "Following";
+  }else{
+    btn.innerText = "Follow";
+  }
+}
 /* MODAL */
 
 function openModal(post){
@@ -801,7 +843,7 @@ async function toggleFollow(){
 
 const res = await fetch(API+"/api/users/"+userId+"/follow",{
 method:"PATCH",
-headers:{Authorization:"Bearer "+token}
+headers: token ? { Authorization:"Bearer "+token } : {}
 })
 
 const data = await res.json()
