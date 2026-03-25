@@ -924,36 +924,7 @@ post.author?._id !== localStorage.getItem("userId")
 }
 /* LIKE */
 
-  async function toggleLike(id, element){
-
-  const icon = element.querySelector("svg");
-  const stat = document.querySelector("#post-"+id+" .post-stats div");
-
-  try {
-
-    const res = await fetch(API+"/api/posts/"+id+"/like",{
-      method:"PATCH",
-      headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
-    });
-
-    const data = await res.json();
-
-    // 🔥 USE SERVER RESPONSE
-    if(data.liked){
-      element.classList.add("liked");
-      icon.setAttribute("fill","#0a66c2");
-    }else{
-      element.classList.remove("liked");
-      icon.setAttribute("fill","none");
-    }
-
-    stat.innerText = data.likes + " reactions";
-
-  } catch(err){
-    console.error("Like failed", err);
-  }
-
-}
+async function likePost(postId){
 
 function toggleCommentBox(postId){
 
@@ -981,7 +952,7 @@ async function submitComment(postId){
       method:"POST",
       headers:{
         "Content-Type":"application/json",
-        Authorization:"Bearer " + localStorage.getItem("talentToken")
+        Authorization:"Bearer " + token
       },
       body:JSON.stringify({text})
     });
@@ -996,7 +967,7 @@ async function submitComment(postId){
   async function loadComments(postId){
 
   const res = await fetch(API+"/api/posts/"+postId,{
-    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+    headers:{ Authorization:"Bearer " + token }
   });
 
   const post = await res.json();
@@ -1098,39 +1069,7 @@ div.setAttribute("data-comment-id", comment._id);
 
   parentContainer.appendChild(div);
 }
-  async function toggleFollow(){
 
-  if(!token){
-    alert("Please login to follow users");
-    window.location.href="login.html";
-    return;
-  }
-
-  const res = await fetch(API+"/api/users/"+userId+"/follow",{
-    method:"PATCH",
-    headers:{ Authorization:"Bearer "+token }
-  });
-
-  const data = await res.json();
-
-  const btn = document.getElementById("followBtn");
-
-  if(data.following){
-    btn.innerText = "Following";
-  }else{
-    btn.innerText = "Follow";
-  }
-}
-  function formatTime(dateString){
-  const now = new Date();
-  const postDate = new Date(dateString);
-  const diff = Math.floor((now - postDate)/1000);
-
-  if(diff < 60) return "Just now";
-  if(diff < 3600) return Math.floor(diff/60)+"m ago";
-  if(diff < 86400) return Math.floor(diff/3600)+"h ago";
-  return Math.floor(diff/86400)+"d ago";
-}
 /* MODAL */
 
 function openModal(post){
@@ -1207,7 +1146,7 @@ if(e.target.closest(".comment-like-btn")){
       API+"/api/posts/"+postId+"/comment/"+commentId+"/like",
       {
         method:"PATCH",
-        headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+        headers:{ Authorization:"Bearer " + token }
       }
     );
 
@@ -1300,7 +1239,7 @@ replyContainer.innerHTML += `
         method:"POST",
         headers:{
           "Content-Type":"application/json",
-          Authorization:"Bearer " + localStorage.getItem("talentToken")
+          Authorization:"Bearer " + token
         },
         body:JSON.stringify({ text })
       }
