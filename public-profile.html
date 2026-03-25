@@ -1204,11 +1204,224 @@ function messageUser(){
 window.location.href="employer.html#message="+userId
 
 }
+  document.addEventListener("click", async function(e){
 
-/* START */
+  /* =========================
+     COMMENT LIKE
+  ========================= */
+if(e.target.closest(".comment-like-btn")){
 
-loadProfile()
-loadPosts()
+  const btn = e.target.closest(".comment-like-btn");
+  const postId = btn.dataset.post;
+  const commentId = btn.dataset.comment;
+  const countEl = btn.querySelector(".like-count");
+
+  try{
+
+    const res = await fetch(
+      API+"/api/posts/"+postId+"/comment/"+commentId+"/like",
+      {
+        method:"PATCH",
+        headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+      }
+    );
+
+    const data = await res.json();
+
+    // 🔥 USE SERVER RESPONSE
+    countEl.innerText = data.likes;
+
+    if(data.liked){
+      btn.classList.add("liked");
+    }else{
+      btn.classList.remove("liked");
+    }
+
+  }catch(err){
+    console.error("Comment like failed", err);
+  }
+
+}
+
+  /* =========================
+     COMMENT REPLY BUTTON
+  ========================= */
+  if(e.target.closest(".comment-reply-btn")){
+
+    const btn = e.target.closest(".comment-reply-btn");
+    const commentId = btn.dataset.comment;
+
+    const container = document.getElementById("reply-input-"+commentId);
+
+    if(container.innerHTML !== ""){
+      container.innerHTML = "";
+      return;
+    }
+
+    container.innerHTML = `
+  <div style="margin-top:10px;display:flex;gap:8px;">
+    <input type="text"
+           class="reply-field"
+           placeholder="Write a reply..."
+           style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid #ddd;">
+    <button class="reply-send-btn"
+            data-comment="${commentId}"
+            style="background:#0a66c2;color:white;border:none;padding:6px 16px;border-radius:20px;cursor:pointer;">
+      Reply
+    </button>
+  </div>
+`;
+
+container.querySelector(".reply-field").focus();
+    }
+/* =========================
+   REPLY SEND (SAVE TO DB)
+========================= */
+if(e.target.classList.contains("reply-send-btn")){
+
+  const commentId = e.target.dataset.comment;
+  const postId = e.target.closest(".comment-item")
+                       .querySelector(".comment-like-btn")
+                       .dataset.post;
+
+  const input = e.target.parentElement.querySelector(".reply-field");
+  const text = input.value.trim();
+
+  if(!text) return;
+
+  const replyContainer = document.getElementById("replies-"+commentId);
+  replyContainer.style.display = "block";
+
+  // Optimistic UI
+const tempId = "temp-" + Date.now();
+
+replyContainer.innerHTML += `
+  <div data-temp-id="${tempId}" style="
+    margin-top:8px;
+    padding-left:12px;
+    border-left:2px solid #e6e6e6;
+  ">
+    <strong>You</strong><br>
+    ${text}
+  </div>
+`;
+  input.value="";
+
+  try{
+
+    await fetch(
+      API+"/api/posts/"+postId+"/comment/"+commentId+"/reply",
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          Authorization:"Bearer " + localStorage.getItem("talentToken")
+        },
+        body:JSON.stringify({ text })
+      }
+    );
+
+  }catch(err){
+    console.error("Reply failed", err);
+  }
+}
+});
+socket.on("new_comment", data => {
+
+  const container = document.getElementById("comments-"+data.postId);
+  if(!container) return;
+
+  if(container.querySelector(`[data-comment-id="${data.comment._id}"]`)){
+    return;
+  }
+
+  renderComment(data.postId, data.comment, container);
+
+  const stat = document.querySelector("#post-"+data.postId+" .post-stats div:nth-child(2)");
+  if(stat){
+    stat.innerText = data.totalComments + " comments";
+  }
+
+});
+ socket.on("new_reply", data => {
+
+  const replyContainer = document.getElementById("replies-"+data.commentId);
+  if(!replyContainer) return;
+
+  const replies = data.comment.replies || [];
+  const reply = replies[replies.length - 1];
+  if(!reply) return;
+
+  // 🔥 remove temporary optimistic reply
+  const tempReply = replyContainer.querySelector("[data-temp-id]");
+  if(tempReply){
+    tempReply.remove();
+  }
+
+  // prevent duplicates
+  if(replyContainer.querySelector(`[data-reply-id="${reply._id}"]`)){
+    return;
+  }
+
+  replyContainer.innerHTML += `
+    <div data-reply-id="${reply._id}" style="
+      margin-top:8px;
+      padding-left:12px;
+      border-left:2px solid #e6e6e6;
+    ">
+      <strong>${reply.user.name}</strong><br>
+      ${reply.text}
+    </div>
+  `;
+// update reply counter
+const commentElement = document.querySelector(
+  `[data-comment-id="${data.commentId}"]`
+);
+
+if(commentElement){
+
+  const toggle = commentElement.querySelector(
+    `[onclick="toggleReplies('${data.commentId}')"]`
+  );
+
+  if(toggle){
+    toggle.innerText = `View replies (${data.comment.replies.length})`;
+  }
+
+}
+  // update comment counter
+  const stat = document.querySelector("#post-"+data.postId+" .post-stats div:nth-child(2)");
+  if(stat){
+    stat.innerText = data.totalComments + " comments";
+  }
+
+});
+  socket.on("post_like", data => {
+
+  const stat = document.querySelector("#post-"+data.postId+" .post-stats div");
+
+  if(!stat) return;
+
+  stat.innerText = data.likes + " reactions";
+
+});
+  socket.on("post_deleted", data => {
+
+  const post = document.getElementById("post-"+data.postId);
+
+  if(post){
+    post.remove();
+  }
+
+});
+document.addEventListener("DOMContentLoaded", async function(){
+
+  await enforceTalentRole();   // 🔥 FIRST protect role
+
+  loadProfile();
+  loadPosts();
+  loadMessageCount();
+  loadNotificationCount();
 
 </script>
 
