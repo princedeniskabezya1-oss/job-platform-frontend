@@ -1905,12 +1905,27 @@ if(commentElement){
 });
 document.addEventListener("DOMContentLoaded", async function(){
 
-  await enforceEmployerRole();   // 🔥 FIRST protect role
+  await enforceEmployerRole();
 
-  loadProfile();
-  loadPosts();
+  await loadProfile();
+  await loadPosts();
   loadMessageCount();
   loadNotificationCount();
+
+  // 🔥 FORCE AVATAR FIX (THIS IS THE KEY)
+  setTimeout(() => {
+
+    const avatar = document.getElementById("createPostAvatar");
+    const img = localStorage.getItem("profileImage");
+
+    if(avatar){
+      avatar.src = img && img.trim() !== ""
+        ? img
+        : "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+    }
+
+  }, 300);
+
 });
 </script>
 <!-- POST MODAL (EMPLOYER) -->
