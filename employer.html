@@ -1878,7 +1878,7 @@ if(commentElement){
   }
 
 }
-  // update comment counter
+   // update comment counter
   const stat = document.querySelector("#post-"+data.postId+" .post-stats div:nth-child(2)");
   if(stat){
     stat.innerText = data.totalComments + " comments";
@@ -1905,30 +1905,17 @@ if(commentElement){
 });
 document.addEventListener("DOMContentLoaded", async function(){
 
-  await enforceEmployerRole();
+  await enforceTalentRole();   // 🔥 FIRST protect role
 
-  await loadProfile();
-  await loadPosts();
+  loadProfile();
+  loadPosts();
+  loadMyApplications();
+  loadSavedJobsCount();
   loadMessageCount();
   loadNotificationCount();
-
-  // 🔥 FORCE AVATAR FIX (THIS IS THE KEY)
-  setTimeout(() => {
-
-    const avatar = document.getElementById("createPostAvatar");
-    const img = localStorage.getItem("profileImage");
-
-    if(avatar){
-      avatar.src = img && img.trim() !== ""
-        ? img
-        : "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-    }
-
-  }, 300);
-
 });
 </script>
-<!-- POST MODAL (EMPLOYER) -->
+<!-- POST MODAL -->
 <div id="postModal" style="
   display:none;
   position:fixed;
@@ -1944,43 +1931,47 @@ document.addEventListener("DOMContentLoaded", async function(){
 
   <div style="
     background:white;
-    width:520px;
+    width:500px;
     padding:20px;
     border-radius:12px;
   ">
 
-    <h3>Share Company Update</h3>
+    <h3>Create Post</h3>
 
     <textarea id="postContent"
       rows="4"
-      placeholder="Share hiring updates, job openings, or company news..."
+      placeholder="Share something..."
       style="width:100%;border:1px solid #ddd;padding:10px;border-radius:8px;"></textarea>
 
-    <!-- MEDIA PREVIEW -->
     <div id="filePreviewContainer" style="margin-top:10px;"></div>
 
-    <!-- ACTIONS -->
     <div style="display:flex;justify-content:space-between;margin-top:15px;align-items:center;">
 
       <label style="cursor:pointer;color:#0a66c2;font-weight:600;">
-        📎 Add Image or Video
+        📎 Add Media
         <input type="file" id="mediaInput" accept="image/*,video/*" style="display:none;">
       </label>
 
       <div>
         <button onclick="closePostModal()" 
-          style="margin-right:10px;">
-          Cancel
-        </button>
+          style="margin-right:10px;">Cancel</button>
 
         <button onclick="createPost()"
           style="background:#0a66c2;color:white;border:none;padding:8px 20px;border-radius:20px;">
-          Publish
+          Post
         </button>
       </div>
 
     </div>
 
+  </div>
+</div>
+  <div class="share-modal" id="shareModal">
+  <div class="share-content">
+    <h4>Share Post</h4>
+    <button id="copyLinkBtn" style="margin-top:10px;width:100%;">Copy Link</button>
+    <button onclick="document.getElementById('shareModal').style.display='none'"
+            style="margin-top:10px;width:100%;">Cancel</button>
   </div>
 </div>
 </body>
