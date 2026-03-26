@@ -1077,18 +1077,17 @@ function renderComment(postId, comment, parentContainer){
 
   parentContainer.appendChild(div);
 }
-  function toggleReplies(commentId){
+function toggleReplies(commentId){
 
   const container = document.getElementById("replies-"+commentId);
   const toggle = document.querySelector(`.reply-toggle[data-comment="${commentId}"]`);
 
   if(!container) return;
 
-  // Toggle visibility
   if(container.style.display === "none"){
+
     container.style.display = "block";
 
-    // Load only once
     if(container.dataset.loaded === "false"){
 
       const commentEl = document.querySelector(`[data-comment-id="${commentId}"]`);
@@ -1101,11 +1100,12 @@ function renderComment(postId, comment, parentContainer){
     toggle.innerText = "Hide replies";
 
   } else {
+
     container.style.display = "none";
-    toggle.innerText = "View replies";
+    toggle.innerText = `View replies`;
   }
 }
-  async function loadReplies(postId, commentId){
+async function loadReplies(postId, commentId){
 
   const res = await fetch(API+"/api/posts/"+postId,{
     headers:{ Authorization:"Bearer "+token }
@@ -1230,22 +1230,17 @@ if(e.target.closest(".comment-like-btn")){
 
 }
 
-  /* =========================
-     COMMENT REPLY BUTTON
-  ========================= */
-  if(e.target.closest(".comment-reply-btn")){
+const btn = e.target.closest(".comment-reply-btn");
+const commentId = btn.dataset.comment;
 
-    const btn = e.target.closest(".comment-reply-btn");
-    const commentId = btn.dataset.comment;
+const container = document.getElementById("reply-input-"+commentId);
 
-    const container = document.getElementById("reply-input-"+commentId);
+if(container.innerHTML !== ""){
+  container.innerHTML = "";
+  return;
+}
 
-    if(container.innerHTML !== ""){
-      container.innerHTML = "";
-      return;
-    }
-
-    container.innerHTML = `
+container.innerHTML = `
   <div style="margin-top:10px;display:flex;gap:8px;">
     <input type="text"
            class="reply-field"
@@ -1253,14 +1248,11 @@ if(e.target.closest(".comment-like-btn")){
            style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid #ddd;">
     <button class="reply-send-btn"
             data-comment="${commentId}"
-            style="background:#0a66c2;color:white;border:none;padding:6px 16px;border-radius:20px;cursor:pointer;">
+            style="background:#0a66c2;color:white;border:none;padding:6px 16px;border-radius:20px;">
       Reply
     </button>
   </div>
 `;
-
-container.querySelector(".reply-field").focus();
-    }
 /* =========================
    REPLY SEND (SAVE TO DB)
 ========================= */
@@ -1307,7 +1299,7 @@ replyContainer.innerHTML += `
         body:JSON.stringify({ text })
       }
     );
-
+loadReplies(postId, commentId);
   }catch(err){
     console.error("Reply failed", err);
   }
