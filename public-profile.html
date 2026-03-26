@@ -488,37 +488,147 @@ border-top:1px solid #eee;
   border:1px solid #ddd;
   font-size:13px;
 }
+  .header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 30px;
+  background:white;
+  border-bottom:1px solid #ddd;
+}
+
+.logo{
+  font-size:20px;
+  font-weight:700;
+}
+
+.logo span{
+  color:#0a66c2;
+}
+
+.nav{
+  display:flex;
+  gap:25px;
+  align-items:center;
+}
+
+.nav-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  font-size:12px;
+  cursor:pointer;
+  position:relative;
+  color:#555;
+}
+
+.nav-item:hover{
+  color:#0a66c2;
+}
+
+.nav-profile{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer;
+}
+
+.nav-profile img{
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+.badge{
+  position:absolute;
+  top:-5px;
+  right:-10px;
+  background:#e11d48;
+  color:white;
+  font-size:10px;
+  padding:2px 6px;
+  border-radius:50%;
+  display:none;
+}
+
+.icon-wrapper{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.bell-icon{
+  width:20px;
+  height:20px;
+  stroke:#555;
+  fill:none;
+  stroke-width:2;
+}
 </style>
-</head>
+<div class="header">
 
-<body>
+  <!-- LOGO -->
+  <div class="logo" onclick="window.location.href='talent.html'" style="cursor:pointer;">
+    <span>AI</span>FT
+  </div>
 
-<div class="topbar">
-<div class="logo">AIFT</div>
-</div>
+  <!-- NAVIGATION -->
+  <div class="nav">
 
-<!-- PROFILE HEADER -->
+    <!-- HOME -->
+    <div class="nav-item" onclick="goHome()">
+      🏠
+      <span>Home</span>
+    </div>
 
-<div class="profile-header">
+    <!-- NETWORK -->
+    <div class="nav-item" onclick="openNetwork()">
+      👥
+      <span>Network</span>
+    </div>
 
-<img id="avatar" class="avatar">
+    <!-- MESSAGES -->
+    <div class="nav-item" onclick="window.location.href='messages.html'">
 
-<div class="profile-info">
+      💬
+      <span>Messages</span>
 
-<h2 id="name"></h2>
-<p id="headline"></p>
+      <span id="messageCount" class="badge">0</span>
 
-<div class="profile-stats">
-<div><span id="followers">0</span> followers</div>
-<div><span id="following">0</span> following</div>
-</div>
+    </div>
 
-<div class="profile-actions">
-<button id="followBtn" class="btn follow" onclick="toggleFollow()">Follow</button>
-<button class="btn message" onclick="messageUser()">Message</button>
-</div>
+    <!-- NOTIFICATIONS -->
+    <div class="nav-item" id="notifBtn"
+         onclick="window.location.href='notifications.html'">
 
-</div>
+      <div class="icon-wrapper">
+
+        <svg viewBox="0 0 24 24" class="bell-icon">
+          <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 01-3.46 0"/>
+        </svg>
+
+        <span id="notificationCount" class="badge">0</span>
+
+      </div>
+
+      <span>Notifications</span>
+
+    </div>
+
+    <!-- PROFILE -->
+    <div class="nav-profile" onclick="window.location.href='profile.html'">
+
+      <img id="topProfileImg"
+           src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+
+      <span id="topProfileName"></span>
+
+    </div>
+
+  </div>
 
 </div>
 
@@ -1062,6 +1172,32 @@ async function submitComment(postId){
     console.error("Comment failed", err);
   }
 }
+  function goHome(){
+  const role = localStorage.getItem("role");
+
+  if(role === "employer"){
+    window.location.href = "employer.html";
+  }else{
+    window.location.href = "talent.html";
+  }
+}
+
+// LOAD PROFILE INFO IN HEADER
+function loadTopProfile(){
+
+  const name = localStorage.getItem("name");
+  const img = localStorage.getItem("profileImage");
+
+  if(name){
+    document.getElementById("topProfileName").innerText = name;
+  }
+
+  if(img){
+    document.getElementById("topProfileImg").src = img;
+  }
+}
+
+loadTopProfile();
   async function loadComments(postId){
 
   const res = await fetch(API+"/api/posts/"+postId,{
