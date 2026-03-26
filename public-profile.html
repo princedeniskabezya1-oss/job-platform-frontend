@@ -961,7 +961,132 @@ function toggleCommentBox(postId){
   }
 }
 
+function renderComment(postId, comment, parentContainer){
 
+  const div = document.createElement("div");
+  div.className = "comment-item";
+  div.dataset.commentId = comment._id;
+  div.setAttribute("data-comment-id", comment._id);
+
+  const hasReplies = comment.replies && comment.replies.length > 0;
+
+  div.innerHTML = `
+    <img src="${comment.user?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+         class="comment-avatar">
+
+    <div class="comment-body">
+
+      <div class="comment-bubble">
+        <strong>${comment.user?.name || "User"}</strong><br>
+        ${comment.text}
+      </div>
+
+      <div class="comment-meta">
+
+        <!-- LIKE BUTTON (Talent style) -->
+        <button class="comment-like-btn post-style-btn"
+                data-post="${postId}"
+                data-comment="${comment._id}">
+          <svg viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2"
+               style="width:16px;height:16px;">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
+            2 6 4 4 6.5 4 8.24 4 9.91 5 10.54 6.36h.92C12.09
+            5 13.76 4 15.5 4 18 4 20 6 20 8.5c0
+            3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+          <span class="like-count">${comment.likes?.length || 0}</span>
+        </button>
+
+        <!-- REPLY BUTTON -->
+        <button class="comment-reply-btn"
+                data-post="${postId}"
+                data-comment="${comment._id}">
+          Reply
+        </button>
+
+      </div>
+
+      <!-- REPLY INPUT -->
+      <div class="reply-input-area" id="reply-input-${comment._id}"></div>
+
+      <!-- VIEW REPLIES TOGGLE -->
+      ${hasReplies ? `
+        <div class="reply-toggle"
+             data-comment="${comment._id}"
+             style="margin-top:6px;font-size:13px;color:#0a66c2;cursor:pointer;">
+          View replies (${comment.replies.length})
+        </div>
+      ` : ""}
+
+      <!-- REPLIES CONTAINER -->
+      <div class="reply-line"
+           id="replies-${comment._id}"
+           data-loaded="false"
+           style="display:none;">
+      </div>
+
+    </div>
+  `;
+
+  parentContainer.appendChild(div);
+}
+  function toggleReplies(commentId){
+
+  const container = document.getElementById("replies-"+commentId);
+  const toggle = document.querySelector(`.reply-toggle[data-comment="${commentId}"]`);
+
+  if(!container) return;
+
+  // Toggle visibility
+  if(container.style.display === "none"){
+    container.style.display = "block";
+
+    // Load only once
+    if(container.dataset.loaded === "false"){
+
+      const commentEl = document.querySelector(`[data-comment-id="${commentId}"]`);
+      const postId = commentEl.querySelector(".comment-like-btn").dataset.post;
+
+      loadReplies(postId, commentId);
+      container.dataset.loaded = "true";
+    }
+
+    toggle.innerText = "Hide replies";
+
+  } else {
+    container.style.display = "none";
+    toggle.innerText = "View replies";
+  }
+}
+  async function loadReplies(postId, commentId){
+
+  const res = await fetch(API+"/api/posts/"+postId,{
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  const post = await res.json();
+
+  const comment = post.comments.find(c => c._id === commentId);
+  const container = document.getElementById("replies-"+commentId);
+
+  container.innerHTML = "";
+
+  if(!comment || !comment.replies) return;
+
+  comment.replies.forEach(reply=>{
+    container.innerHTML += `
+      <div class="reply-item" style="
+        margin-top:8px;
+        padding-left:12px;
+        border-left:2px solid #e6e6e6;
+      ">
+        <strong>${reply.user?.name || "User"}</strong><br>
+        ${reply.text}
+      </div>
+    `;
+  });
+}
 /* MODAL */
 
 function openModal(post){
