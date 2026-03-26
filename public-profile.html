@@ -1268,6 +1268,17 @@ function messageUser(){
 window.location.href="employer.html#message="+userId
 
 }
+  // =========================
+// VIEW / HIDE REPLIES
+// =========================
+if(e.target.classList.contains("reply-toggle")){
+
+  const commentId = e.target.dataset.comment;
+
+  toggleReplies(commentId);
+
+  return; // 🔥 STOP HERE (important)
+}
   document.addEventListener("click", async function(e){
 
   /* =========================
@@ -1307,29 +1318,32 @@ if(e.target.closest(".comment-like-btn")){
 
 }
 
-const btn = e.target.closest(".comment-reply-btn");
-const commentId = btn.dataset.comment;
+if(e.target.closest(".comment-reply-btn")){
 
-const container = document.getElementById("reply-input-"+commentId);
+  const btn = e.target.closest(".comment-reply-btn");
+  const commentId = btn.dataset.comment;
 
-if(container.innerHTML !== ""){
-  container.innerHTML = "";
-  return;
+  const container = document.getElementById("reply-input-"+commentId);
+
+  if(container.innerHTML !== ""){
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="margin-top:10px;display:flex;gap:8px;">
+      <input type="text"
+             class="reply-field"
+             placeholder="Write a reply..."
+             style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid #ddd;">
+      <button class="reply-send-btn"
+              data-comment="${commentId}"
+              style="background:#0a66c2;color:white;border:none;padding:6px 16px;border-radius:20px;">
+        Reply
+      </button>
+    </div>
+  `;
 }
-
-container.innerHTML = `
-  <div style="margin-top:10px;display:flex;gap:8px;">
-    <input type="text"
-           class="reply-field"
-           placeholder="Write a reply..."
-           style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid #ddd;">
-    <button class="reply-send-btn"
-            data-comment="${commentId}"
-            style="background:#0a66c2;color:white;border:none;padding:6px 16px;border-radius:20px;">
-      Reply
-    </button>
-  </div>
-`;
 /* =========================
    REPLY SEND (SAVE TO DB)
 ========================= */
