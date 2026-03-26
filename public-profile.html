@@ -487,7 +487,9 @@ body{background:var(--bg);}
 <body>
 
 <div class="header">
-  <div class="logo"><span>AI</span>FT Talent</div>
+  <div class="logo" onclick="goHome()" style="cursor:pointer;">
+  <span>AI</span>FT
+</div>
 
   <div style="display:flex;gap:25px;align-items:center;">
 
@@ -562,6 +564,31 @@ body{background:var(--bg);}
 <div class="profile-layout">
 
 <div class="main-left">
+
+<!-- ✅ PROFILE CARD (THIS WAS MISSING) -->
+<div class="card" style="padding:20px;text-align:center;">
+
+  <img id="avatar"
+       class="profile-image"
+       src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+
+  <h2 id="name" style="margin-top:10px;"></h2>
+
+  <p id="headline" style="color:#666;"></p>
+
+  <div style="margin-top:10px;">
+    <span><b id="followers">0</b> followers</span> •
+    <span><b id="following">0</b> following</span>
+  </div>
+
+  <button id="followBtn"
+          onclick="toggleFollow()"
+          class="follow-btn"
+          style="margin-top:10px;">
+    Follow
+  </button>
+
+</div>
 
 <h3 style="margin-bottom:10px;">Posts</h3>
 <div id="posts"></div>
@@ -752,13 +779,14 @@ headers: token ? { Authorization:"Bearer "+token } : {}
 loggedUser = await meRes.json()
 
 if(loggedUser._id === userId){
-document.getElementById("followBtn").style.display = "none"
-}else{
-document.getElementById("followBtn").style.display = "inline-block"
-}
+const followBtn = document.getElementById("followBtn");
 
-}
-
+if(followBtn){
+  if(loggedUser._id === userId){
+    followBtn.style.display = "none";
+  }else{
+    followBtn.style.display = "inline-block";
+  }
 }
 function formatTime(dateString){
   const now = new Date();
