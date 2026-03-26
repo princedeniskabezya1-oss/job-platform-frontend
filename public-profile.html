@@ -488,13 +488,18 @@ border-top:1px solid #eee;
   border:1px solid #ddd;
   font-size:13px;
 }
-  .header{
+.header{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
   display:flex;
   justify-content:space-between;
   align-items:center;
   padding:10px 30px;
   background:white;
   border-bottom:1px solid #ddd;
+  z-index:1000;
 }
 
 .logo{
@@ -570,7 +575,7 @@ border-top:1px solid #eee;
 <div class="header">
 
   <!-- LOGO -->
-  <div class="logo" onclick="window.location.href='talent.html'" style="cursor:pointer;">
+  <div class="logo" onclick="goHome()" style="cursor:pointer;">
     <span>AI</span>FT
   </div>
 
@@ -1183,17 +1188,24 @@ async function submitComment(postId){
 }
 
 // LOAD PROFILE INFO IN HEADER
-function loadTopProfile(){
+async function loadTopProfile(){
 
-  const name = localStorage.getItem("name");
-  const img = localStorage.getItem("profileImage");
+  if(!token) return;
 
-  if(name){
-    document.getElementById("topProfileName").innerText = name;
-  }
+  try{
+    const res = await fetch(API+"/api/users/me",{
+      headers:{ Authorization:"Bearer "+token }
+    });
 
-  if(img){
-    document.getElementById("topProfileImg").src = img;
+    const user = await res.json();
+
+    document.getElementById("topProfileName").innerText = user.name || "";
+
+    document.getElementById("topProfileImg").src =
+      user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+  }catch(err){
+    console.error("Header profile failed", err);
   }
 }
 
