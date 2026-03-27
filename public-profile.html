@@ -647,10 +647,6 @@ function getToken(){
   return localStorage.getItem("employerToken") ||
          localStorage.getItem("talentToken");
 }
-  return localStorage.getItem("employerToken") ||
-         localStorage.getItem("talentToken");
-}
-}
 
 const token = getToken();
 
@@ -770,26 +766,7 @@ headers: token ? { Authorization:"Bearer "+token } : {}
 
 loggedUser = await meRes.json()
 
-if(loggedUser._id === userId){
-const followBtn = document.getElementById("followBtn");
 
-if(followBtn){
-  if(loggedUser._id === userId){
-    followBtn.style.display = "none";
-  }else{
-    followBtn.style.display = "inline-block";
-  }
-}
-function formatTime(dateString){
-  const now = new Date();
-  const postDate = new Date(dateString);
-  const diff = Math.floor((now - postDate)/1000);
-
-  if(diff < 60) return "Just now";
-  if(diff < 3600) return Math.floor(diff/60)+"m ago";
-  if(diff < 86400) return Math.floor(diff/3600)+"h ago";
-  return Math.floor(diff/86400)+"d ago";
-}
 /* POSTS */
 
 async function loadPosts(){
@@ -1487,8 +1464,26 @@ loadReplies(postId, commentId);
 }
 });
 
+if(loggedUser._id === userId){
+const followBtn = document.getElementById("followBtn");
 
+if(followBtn){
+  if(loggedUser._id === userId){
+    followBtn.style.display = "none";
+  }else{
+    followBtn.style.display = "inline-block";
+  }
+}
+function formatTime(dateString){
+  const now = new Date();
+  const postDate = new Date(dateString);
+  const diff = Math.floor((now - postDate)/1000);
 
+  if(diff < 60) return "Just now";
+  if(diff < 3600) return Math.floor(diff/60)+"m ago";
+  if(diff < 86400) return Math.floor(diff/3600)+"h ago";
+  return Math.floor(diff/86400)+"d ago";
+}
 
 document.addEventListener("DOMContentLoaded", async function(){
 
