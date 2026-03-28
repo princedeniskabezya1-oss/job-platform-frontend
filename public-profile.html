@@ -591,7 +591,36 @@ body{background:var(--bg);}
   <div id="posts"></div>
 
 </div>
+<!-- RIGHT COLUMN -->
+<div>
 
+  <div class="card">
+    <div style="font-weight:600;margin-bottom:10px;">About</div>
+    <p id="publicBio"></p>
+  </div>
+
+  <div class="card">
+    <div style="font-weight:600;margin-bottom:10px;">Skills</div>
+    <div id="publicSkills"></div>
+  </div>
+
+  <div class="card">
+    <div style="font-weight:600;margin-bottom:10px;">Experience</div>
+    <div id="publicExperience"></div>
+  </div>
+
+  <div class="card">
+    <div style="font-weight:600;margin-bottom:10px;">Education</div>
+    <div id="publicEducation"></div>
+  </div>
+
+  <div class="card">
+    <div style="font-weight:600;margin-bottom:10px;">Stats</div>
+    <p>Followers: <span id="publicFollowers">0</span></p>
+    <p>Following: <span id="publicFollowing">0</span></p>
+  </div>
+
+</div>
 
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -614,11 +643,22 @@ let noMorePosts = false;
 
 /* LOAD PROFILE */
 async function loadProfile(){
-  const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer " + token}});
-  const user=await res.json();
-  localStorage.setItem("userId", user._id);
-  localStorage.setItem("profileImage", user.profileImage || "");
 
+  const params = new URLSearchParams(window.location.search);
+  const profileUserId = params.get("id");
+
+  const res = await fetch(
+    profileUserId
+      ? API + "/api/users/" + profileUserId
+      : API + "/api/users/me",
+    {
+      headers:{ Authorization:"Bearer " + token }
+    }
+  );
+
+  const user = await res.json();
+
+  // LEFT PROFILE
   document.getElementById("profileCard").innerHTML=`
     <img class="profile-banner" src="${user.bannerImage || 'https://via.placeholder.com/600x120'}">
     <img class="profile-image" src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
@@ -628,16 +668,72 @@ async function loadProfile(){
 
   document.getElementById("topProfileImg").src =
     user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
   document.getElementById("topProfileName").innerText = user.name;
 
-const pro = document.getElementById("proStatus");
-if(pro) pro.innerText = user.isPro ? "Pro" : "Free";
+  // 🔥 RIGHT PANEL DATA
+  renderPublicRightPanel(user);
+}
+  function renderPublicRightPanel(user){
 
-const cv = document.getElementById("cvStatus");
-if(cv) cv.innerText = user.cvUrl ? "Yes" : "No";
+  // ABOUT
+  document.getElementById("publicBio").innerText =
+    user.bio || "No bio yet";
 
-  const avatar = document.getElementById("createPostAvatar");
-if(avatar) avatar.src = user.profileImage || avatar.src;
+  // SKILLS
+  const skillsContainer = document.getElementById("publicSkills");
+  skillsContainer.innerHTML = "";
+
+  (user.skills || []).forEach(skill=>{
+    skillsContainer.innerHTML += `
+      <span style="
+        display:inline-block;
+        background:#eef3f8;
+        padding:6px 12px;
+        border-radius:20px;
+        margin:4px;
+        font-size:13px;
+      ">
+        ${skill}
+      </span>
+    `;
+  });
+
+  // EXPERIENCE
+  const expContainer = document.getElementById("publicExperience");
+  expContainer.innerHTML = "";
+
+  (user.experience || []).forEach(exp=>{
+    expContainer.innerHTML += `
+      <div style="margin-bottom:10px;">
+        <strong>${exp.title || ""}</strong><br>
+        <span style="color:#666;">${exp.company || ""}</span><br>
+        <span style="font-size:12px;color:#999;">
+          ${exp.startDate || ""} - ${exp.endDate || "Present"}
+        </span>
+      </div>
+    `;
+  });
+
+  // EDUCATION
+  const eduContainer = document.getElementById("publicEducation");
+  eduContainer.innerHTML = "";
+
+  (user.education || []).forEach(edu=>{
+    eduContainer.innerHTML += `
+      <div style="margin-bottom:10px;">
+        <strong>${edu.school || ""}</strong><br>
+        <span style="color:#666;">${edu.degree || ""}</span>
+      </div>
+    `;
+  });
+
+  // STATS
+  document.getElementById("publicFollowers").innerText =
+    user.followers?.length || 0;
+
+  document.getElementById("publicFollowing").innerText =
+    user.following?.length || 0;
 }
 
 /* LOAD POSTS */
