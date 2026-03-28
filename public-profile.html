@@ -638,32 +638,41 @@ async function loadProfile(){
   const params = new URLSearchParams(window.location.search);
   const profileUserId = params.get("id");
 
-  const res = await fetch(
-    profileUserId
-      ? API + "/api/users/" + profileUserId
-      : API + "/api/users/me",
-    {
-      headers:{ Authorization:"Bearer " + token }
+  try{
+
+    const res = await fetch(
+      profileUserId
+        ? API + "/api/users/" + profileUserId
+        : API + "/api/users/me",
+      {
+        headers:{ Authorization:"Bearer " + token }
+      }
+    );
+
+    if(!res.ok){
+      console.error("User fetch failed:", res.status);
+      return;
     }
-  );
 
-  const user = await res.json();
+    const user = await res.json();
 
-  // LEFT PROFILE
-  document.getElementById("profileCard").innerHTML=`
-    <img class="profile-banner" src="${user.bannerImage || 'https://via.placeholder.com/600x120'}">
-    <img class="profile-image" src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
-    <h3>${user.name}</h3>
-    <div style="color:#6f6f6f;font-size:14px;">${user.headline || ''}</div>
-  `;
+    document.getElementById("profileCard").innerHTML=`
+      <img class="profile-banner" src="${user.bannerImage || 'https://via.placeholder.com/600x120'}">
+      <img class="profile-image" src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+      <h3>${user.name}</h3>
+      <div style="color:#6f6f6f;font-size:14px;">${user.headline || ''}</div>
+    `;
 
-  document.getElementById("topProfileImg").src =
-    user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+    document.getElementById("topProfileImg").src =
+      user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-  document.getElementById("topProfileName").innerText = user.name;
+    document.getElementById("topProfileName").innerText = user.name;
 
-  // 🔥 RIGHT PANEL DATA
-  renderPublicRightPanel(user);
+    renderPublicRightPanel(user);
+
+  }catch(err){
+    console.error("Profile crash:", err);
+  }
 }
   function renderPublicRightPanel(user){
 
