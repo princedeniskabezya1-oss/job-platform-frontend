@@ -1197,13 +1197,36 @@ div.setAttribute("data-comment-id", comment._id);
 
 
 function openShareModal(id){
-  document.getElementById("shareModal").style.display="flex";
+
+  const modal = document.getElementById("shareModal");
+  modal.style.display = "flex";
+
   document.getElementById("copyLinkBtn").onclick = function(){
-    const link = window.location.origin + "/employee.html#post-"+id;
+
+    const link = window.location.origin + "/public-profile.html#post-" + id;
+
     navigator.clipboard.writeText(link);
-    alert("Link copied");
+
+    alert("Link copied!");
+    modal.style.display = "none"; // auto close
   };
+
 }
+  window.addEventListener("click", function(e){
+
+  const modal = document.getElementById("postModal");
+
+  if(e.target === modal){
+    modal.style.display = "none";
+  }
+
+  const shareModal = document.getElementById("shareModal");
+
+  if(e.target === shareModal){
+    shareModal.style.display = "none";
+  }
+
+});
 async function connectUser(id){
   await fetch(API + "/api/users/" + id + "/follow", {
     method:"PATCH",
@@ -1680,6 +1703,9 @@ function closePostModal(){
 
   alert("Link copied!");
 }
+  function closeShareModal(){
+  document.getElementById("shareModal").style.display = "none";
+}
 </script>
 <!-- POST MODAL -->
 <div id="postModal" style="
@@ -1729,6 +1755,21 @@ function closePostModal(){
 
     </div>
 
+  </div>
+</div>
+  <div class="share-modal" id="shareModal">
+  <div class="share-content">
+    <h4>Share Post</h4>
+
+    <button id="copyLinkBtn"
+      style="margin-top:10px;width:100%;">
+      Copy Link
+    </button>
+
+    <button onclick="closeShareModal()"
+      style="margin-top:10px;width:100%;">
+      Cancel
+    </button>
   </div>
 </div>
 </body>
