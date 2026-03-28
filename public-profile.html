@@ -484,12 +484,12 @@ body{background:var(--bg);}
   stroke:#0a66c2;
 }
 </style>
+</head>
+
 <body>
 
 <div class="header">
-  <div class="logo" onclick="goHome()" style="cursor:pointer;">
-  <span>AI</span>FT
-</div>
+  <div class="logo"><span>AI</span>FT Talent</div>
 
   <div style="display:flex;gap:25px;align-items:center;">
 
@@ -559,169 +559,220 @@ body{background:var(--bg);}
   </div>
 </div>
 
-<!-- MAIN LAYOUT -->
 
 <div class="container">
 
-  <!-- LEFT COLUMN -->
-  <div>
+<!-- LEFT COLUMN -->
+<div>
 
-    <div class="card" style="padding:20px;text-align:center;">
+  <div class="card" id="profileCard"></div>
 
-      <img id="avatar"
-           class="profile-image"
-           src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
 
-      <h2 id="name" style="margin-top:10px;"></h2>
-
-      <p id="headline" style="color:#666;"></p>
-
-      <div style="margin-top:10px;">
-        <span><b id="followers">0</b> followers</span> •
-        <span><b id="following">0</b> following</span>
-      </div>
-
-      <button id="followBtn"
-              onclick="toggleFollow()"
-              class="follow-btn"
-              style="margin-top:10px;">
-        Follow
-      </button>
-
-    </div>
-
-  </div>
 
 <!-- CENTER COLUMN -->
 <div>
 
-  <div id="posts"></div>
+  <!-- FEED PANEL (DEFAULT) -->
+  <div id="feedPanel">
 
-</div>
 
-<!-- RIGHT COLUMN -->
-<div>
 
-  <div class="card" style="padding:15px;">
-    <h3>About</h3>
-    <p id="agentBio"></p>
-  </div>
-
-  <div class="card" style="padding:15px;">
-    <h3>Top Skills</h3>
-    <div id="agentSkills"></div>
-  </div>
-
-  <div class="card" style="padding:15px;">
-    <h3>Experience</h3>
-    <div id="agentExperience"></div>
-  </div>
-
-  <div class="card" style="padding:15px;">
-    <h3>Education</h3>
-    <div id="agentEducation"></div>
-  </div>
-
-  <div class="card" style="padding:15px;">
-    <h3>Hire Options</h3>
-
-    <button class="follow-btn" onclick="messageUser()">Message</button>
-
-    <button class="follow-btn" id="downloadCV" style="margin-top:8px;">
-      Download CV
-    </button>
+    <!-- Posts Container -->
+    <div id="posts"></div>
 
   </div>
 
-</div>
 
-<div id="modal" class="modal">
-<div class="close" onclick="closeModal()">✕</div>
-<div class="modal-content" id="modalBody"></div>
-</div>
+
 
 <script>
+  const API="https://backend-1-9b6f.onrender.com";
+const socket = io(API);
+const token = localStorage.getItem("talentToken");
 
-const API="https://backend-1-9b6f.onrender.com"
-function getToken(){
-  return localStorage.getItem("employerToken") ||
-         localStorage.getItem("talentToken");
+if(!token){
+  window.location.href = "login.html";
+}
+  let currentPage = 1;
+let loading = false;
+let noMorePosts = false;
+
+/* LOAD PROFILE */
+async function loadProfile(){
+  const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer " + localStorage.getItem("talentToken")}});
+  const user=await res.json();
+  localStorage.setItem("userId", user._id);
+  localStorage.setItem("profileImage", user.profileImage || "");
+
+  document.getElementById("profileCard").innerHTML=`
+    <img class="profile-banner" src="${user.bannerImage || 'https://via.placeholder.com/600x120'}">
+    <img class="profile-image" src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+    <h3>${user.name}</h3>
+    <div style="color:#6f6f6f;font-size:14px;">${user.headline || ''}</div>
+  `;
+
+  document.getElementById("topProfileImg").src =
+    user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+  document.getElementById("topProfileName").innerText = user.name;
+
+  document.getElementById("proStatus").innerText = user.isPro ? "Pro" : "Free";
+  document.getElementById("cvStatus").innerText = user.cvUrl ? "Yes" : "No";
+
+  const avatar = document.getElementById("createPostAvatar");
+if(avatar) avatar.src = user.profileImage || avatar.src;
 }
 
-const token = getToken();
-  function formatTime(dateString){
-  const now = new Date();
-  const postDate = new Date(dateString);
-  const diff = Math.floor((now - postDate)/1000);
+/* LOAD POSTS */
 
-  if(diff < 60) return "Just now";
-  if(diff < 3600) return Math.floor(diff/60)+"m ago";
-  if(diff < 86400) return Math.floor(diff/3600)+"h ago";
-  return Math.floor(diff/86400)+"d ago";
+window.addEventListener("scroll", () => {
+
+  if(loading || noMorePosts) return;
+
+  if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 200){
+
+    loading = true;
+    currentPage++;
+
+    loadPosts(currentPage).then(() => {
+      loading = false;
+    });
+  }
+});
+
+
+/* APPLICATION COUNT */
+async function loadMyApplications(){
+  const res=await fetch(API+"/api/applications",{headers:{Authorization:"Bearer " + localStorage.getItem("talentToken")}});
+  const apps=res.ok?await res.json():[];
+  document.getElementById("appCount").innerText = apps.length;
 }
-  /* POSTS */
 
-async function loadPosts(){
+  async function loadSavedJobsCount(){
 
-const res = await fetch(API+"/api/posts/user/"+userId,{
-headers: token ? { Authorization:"Bearer "+token } : {}
-})
+  const res = await fetch(API+"/api/users/me",{
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+  });
 
-const posts = await res.json()
+  const user = await res.json();
 
-const container = document.getElementById("posts")
-container.innerHTML=""
+  document.getElementById("savedCount").innerText =
+    user.savedJobs ? user.savedJobs.length : 0;
+}
 
-posts.forEach(post=>{
 
-const liked = post.likes?.some(
+async function loadPosts(page = 1){
+
+  if(noMorePosts) return;
+
+  const res = await fetch(API+"/api/posts?page="+page,{
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+  });
+
+  const posts = res.ok ? await res.json() : [];
+  const container = document.getElementById("posts");
+
+  if(page === 1){
+    container.innerHTML = "";
+    noMorePosts = false;
+  }
+
+  if(posts.length < 5){
+    noMorePosts = true;
+  }
+
+  posts.forEach(post=>{
+const isFollowing = (post.author?.followers || []).some(
+  id => String(id) === String(localStorage.getItem("userId"))
+);
+    const liked = post.likes?.some(
   id => id.toString() === localStorage.getItem("userId")
 );
 
-container.innerHTML += `
-<div class="card" id="post-${post._id}">
+    container.innerHTML += `
+      <div class="card" id="post-${post._id}">
 
-<div class="post-header">
+       <div class="post-header">
 
-  <div class="post-author">
+<div class="post-author" onclick="visitProfile('${post.author?._id}')">
 
-    <img src="${profileUser.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+<img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
 
-    <div>
-      <div style="font-weight:600;">${profileUser.name}</div>
+<div>
+  <div style="font-weight:600;">${post.author?.name}</div>
 
-      <div class="post-meta">
-        ${profileUser.headline || ""}
-      </div>
-
-      <div style="font-size:12px;color:#6f6f6f;">
-        ${formatTime(post.createdAt)}
-      </div>
-    </div>
-
+  <div class="post-meta">
+    ${post.author?.headline || ""}
   </div>
+
+  <div style="font-size:12px;color:#6f6f6f;">
+    ${(post.author?.followers?.length || 0)} followers • ${formatTime(post.createdAt)}
+  </div>
+</div>
 
 </div>
 
+<div style="display:flex;align-items:center;gap:10px;">
+
+${
+String(post.author?._id) !== String(localStorage.getItem("userId"))
+? `<button class="follow-btn"
+onclick="followFromFeed('${post.author._id}', this)"
+data-user="${post.author._id}">
+${isFollowing ? "Following" : "Follow"}
+</button>`
+: ""
+}
+
+<div class="dropdown">
+
+<div onclick="toggleDropdown('${post._id}', event)" style="cursor:pointer;">•••</div>
+
+<div class="dropdown-menu" id="dropdown-${post._id}">
+${
+post.author?._id === localStorage.getItem("userId")
+? `
+<div onclick="editPost('${post._id}')">Edit</div>
+<div onclick="deletePost('${post._id}')">Delete</div>
+<div onclick="savePost('${post._id}')">Save</div>
+<div onclick="hidePost('${post._id}')">Hide</div>
+<div onclick="reportPost('${post._id}')">Report</div>
+`
+: `
+<div onclick="savePost('${post._id}')">Save</div>
+<div onclick="openShareModal('${post._id}')">Share</div>
+<div onclick="markInterested('${post._id}')">Interested</div>
+<div onclick="hidePost('${post._id}')">Hide</div>
+<div onclick="reportPost('${post._id}')">Report</div>
+`
+}
+</div>
+</div>
+
+</div>
+</div>  <!-- CLOSE post-header -->
+
 ${post.content ? `<div class="post-content">${post.content}</div>` : ""}
 
-${post.mediaUrl ? `
-  <div class="post-media">
-    ${post.mediaType === "video"
-      ? `<video controls src="${post.mediaUrl}"></video>`
-      : `<img src="${post.mediaUrl}">`}
-  </div>
-` : ""}
+        ${post.mediaUrl ? `
+          <div class="post-media">
+            ${post.mediaType==="video"
+              ? `<video controls src="${post.mediaUrl}"></video>`
+              : `<img src="${post.mediaUrl}">`}
+          </div>
+        ` : ""}
 
-<div class="post-stats">
-  <div>${post.likes?.length || 0} reactions</div>
-  <div>${post.comments?.length || 0} comments</div>
+        <div class="post-stats">
+  <div>${post.likes.length} reactions</div>
+  <div style="cursor:pointer;"
+     onclick="toggleCommentBox('${post._id}')">
+  ${post.comments.reduce((total,c)=> total + 1 + (c.replies?.length || 0),0)} comments
+</div>
 </div>
 
 <div class="post-actions">
 
   <div class="post-action ${liked ? "liked" : ""}"
-       onclick="likePost('${post._id}')">
+       onclick="toggleLike('${post._id}', this)">
 
     <svg viewBox="0 0 24 24" fill="${liked ? '#0a66c2' : 'none'}"
          stroke="currentColor" stroke-width="2">
@@ -745,155 +796,55 @@ ${post.mediaUrl ? `
     <span>Comment</span>
   </div>
 
-</div>
+  <div class="post-action"
+       onclick="openShareModal('${post._id}')">
 
-<div class="comments-wrapper"
-     id="comments-wrapper-${post._id}"
-     style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2">
+      <circle cx="18" cy="5" r="3"/>
+      <circle cx="6" cy="12" r="3"/>
+      <circle cx="18" cy="19" r="3"/>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+    </svg>
 
-  <div class="comment-input-area">
-
-    <input
-      type="text"
-      placeholder="Write a comment..."
-      id="comment-input-${post._id}"
-    >
-
-    <button onclick="submitComment('${post._id}')">
-      Send
-    </button>
-
+    <span>Share</span>
   </div>
 
-  <div id="comments-${post._id}"></div>
+</div>
+
+<div class="comments-wrapper" id="comments-wrapper-${post._id}" style="display:none;">
+
+  <div class="comment-input-area">
+    <img src="${localStorage.getItem("profileImage") || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+         class="comment-avatar">
+
+    <input type="text"
+           placeholder="Write a comment..."
+           id="comment-input-${post._id}" />
+
+    <button id="send-btn-${post._id}"
+            onclick="submitComment('${post._id}')">
+      Send
+    </button>
+  </div>
+
+  <div class="comments-container" id="comments-${post._id}"></div>
+
+  <div id="load-more-${post._id}" style="text-align:center;margin-top:10px;"></div>
 
 </div>
 
 </div>
-`;
-});
-}
 
-const params=new URLSearchParams(window.location.search)
-const userId=params.get("id")
+        
 
-let profileUser=null
-let loggedUser=null
-
-/* LOAD PROFILE */
-
-async function loadProfile(){
-
-const res=await fetch(API+"/api/users/"+userId+"/public")
-
-profileUser=await res.json()
-
-document.getElementById("avatar").src=
-profileUser.profileImage||
-"https://cdn-icons-png.flaticon.com/512/149/149071.png"
-
-document.getElementById("name").innerText=profileUser.name
-
-document.getElementById("headline").innerText=
-profileUser.headline||""
-
-document.getElementById("followers").innerText=
-profileUser.followers?.length||0
-
-document.getElementById("following").innerText=
-profileUser.following?.length||0
-  document.getElementById("followers").innerText =
-profileUser.followers?.length || 0;
-
-document.getElementById("following").innerText =
-profileUser.following?.length || 0;
-
-
-/* RIGHT PANEL DATA */
-
-document.getElementById("agentLocation").innerText =
-profileUser.location || "Not specified";
-
-const site=document.getElementById("agentWebsite");
-
-if(profileUser.website){
-site.innerText=profileUser.website;
-site.href=profileUser.website.startsWith("http")
-?profileUser.website
-:"https://"+profileUser.website;
-}else{
-site.innerText="Not provided";
-}
-
-/* BIO */
-
-document.getElementById("agentBio").innerText =
-profileUser.bio || "No bio added yet.";
-
-/* SKILLS */
-
-const skillBox=document.getElementById("agentSkills");
-skillBox.innerHTML="";
-
-(profileUser.skills||[]).forEach(s=>{
-skillBox.innerHTML+=`<span class="skill">${s}</span>`;
-});
-
-/* EXPERIENCE */
-
-const expBox=document.getElementById("agentExperience");
-expBox.innerHTML="";
-
-(profileUser.experience||[]).slice(0,3).forEach(e=>{
-expBox.innerHTML+=`
-<div style="margin-bottom:6px;">
-<b>${e.title}</b><br>
-<span style="font-size:13px;color:#666">${e.company}</span>
-</div>`;
-});
-
-/* EDUCATION */
-
-const eduBox=document.getElementById("agentEducation");
-eduBox.innerHTML="";
-
-(profileUser.education||[]).slice(0,3).forEach(e=>{
-eduBox.innerHTML+=`
-<div style="margin-bottom:6px;">
-<b>${e.school}</b><br>
-<span style="font-size:13px;color:#666">${e.degree}</span>
-</div>`;
-});
-
-/* CV */
-
-if(profileUser.cvUrl){
-
-document.getElementById("downloadCV").onclick=()=>{
-window.open(profileUser.cvUrl,"_blank");
-};
-
-}else{
-
-document.getElementById("downloadCV").style.display="none";
-
-}
-
-
-/* OWNER CHECK */
-
-if(token){
-
-  const meRes = await fetch(API+"/api/users/me",{
-    headers:{ Authorization:"Bearer "+token }
+      </div>
+    `;
   });
+}
 
-  loggedUser = await meRes.json();
-
-} // ✅ THIS LINE FIXES YOUR ERROR
-
-
-function prependPost(post){
+  function prependPost(post){
 
   const container = document.getElementById("posts");
 
@@ -1045,22 +996,35 @@ post.author?._id !== localStorage.getItem("userId")
     </div>
   ` + container.innerHTML;
 }
-/* LIKE */
+async function toggleLike(id, element){
 
-async function likePost(postId){
+  const icon = element.querySelector("svg");
+  const stat = document.querySelector("#post-"+id+" .post-stats div");
 
-  if(!token){
-    alert("Please login first");
-    window.location.href="login.html";
-    return;
+  try {
+
+    const res = await fetch(API+"/api/posts/"+id+"/like",{
+      method:"PATCH",
+      headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+    });
+
+    const data = await res.json();
+
+    // 🔥 USE SERVER RESPONSE
+    if(data.liked){
+      element.classList.add("liked");
+      icon.setAttribute("fill","#0a66c2");
+    }else{
+      element.classList.remove("liked");
+      icon.setAttribute("fill","none");
+    }
+
+    stat.innerText = data.likes + " reactions";
+
+  } catch(err){
+    console.error("Like failed", err);
   }
 
-  await fetch(API+"/api/posts/"+postId+"/like",{
-    method:"PATCH",
-    headers:{ Authorization:"Bearer "+token }
-  });
-
-  loadPosts();
 }
 
 function toggleCommentBox(postId){
@@ -1074,124 +1038,109 @@ function toggleCommentBox(postId){
     wrapper.style.display = "none";
   }
 }
-async function submitComment(postId){
 
-  if(!token){
-    alert("Please login first");
-    window.location.href="login.html";
-    return;
-  }
+async function submitComment(postId){
 
   const input = document.getElementById("comment-input-"+postId);
   const text = input.value.trim();
-
   if(!text) return;
 
-  input.value = "";
 
-  try{
-    await fetch(API+"/api/posts/"+postId+"/comment",{
+  input.value="";
+
+  try {
+    const res = await fetch(API+"/api/posts/"+postId+"/comment",{
       method:"POST",
       headers:{
         "Content-Type":"application/json",
-        Authorization:"Bearer "+token
+        Authorization:"Bearer " + localStorage.getItem("talentToken")
       },
-      body:JSON.stringify({ text })
+      body:JSON.stringify({text})
     });
 
-    // 🔥 reload comments like talent
-    loadComments(postId);
+    await res.json();
 
-  }catch(err){
-    console.error("Comment failed", err);
+  } catch(err){
+    alert("Failed to post comment");
   }
 }
-  function goHome(){
-  const role = localStorage.getItem("role");
-
-  if(role === "employer"){
-    window.location.href = "employer.html";
-  }else{
-    window.location.href = "talent.html";
-  }
-}
-
-// LOAD PROFILE INFO IN HEADER
-async function loadTopProfile(){
-
-  if(!token) return;
-
-  try{
-    const res = await fetch(API+"/api/users/me",{
-      headers:{ Authorization:"Bearer "+token }
-    });
-
-    const user = await res.json();
-
-    document.getElementById("topProfileName").innerText = user.name || "";
-
-    document.getElementById("topProfileImg").src =
-      user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
-  }catch(err){
-    console.error("Header profile failed", err);
-  }
-}
-
-loadTopProfile();
+ 
   async function loadComments(postId){
 
   const res = await fetch(API+"/api/posts/"+postId,{
-    headers:{ Authorization:"Bearer "+token }
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
 
   const post = await res.json();
   const container = document.getElementById("comments-"+postId);
+  const loadMoreContainer = document.getElementById("load-more-"+postId);
 
   container.innerHTML = "";
+  loadMoreContainer.innerHTML = "";
 
-  post.comments.forEach(comment=>{
-    renderComment(postId, comment, container);
-  });
+  let visibleCount = 10;
+
+  function renderBatch(){
+    container.innerHTML = "";
+
+    post.comments
+      .slice(0, visibleCount)
+      .forEach(comment=>{
+        renderComment(postId, comment, container);
+      });
+
+    if(post.comments.length > visibleCount){
+      loadMoreContainer.innerHTML = `
+        <button onclick="loadMoreComments('${postId}')">
+          Load more comments
+        </button>
+      `;
+    } else {
+      loadMoreContainer.innerHTML = "";
+    }
+  }
+
+  window.loadMoreComments = function(id){
+    visibleCount += 10;
+    renderBatch();
+  };
+
+  renderBatch();
 }
-function renderComment(postId, comment, parentContainer){
+ function renderComment(postId, comment, parentContainer){
 
   const div = document.createElement("div");
   div.className = "comment-item";
   div.dataset.commentId = comment._id;
-  div.setAttribute("data-comment-id", comment._id);
-
-  const hasReplies = comment.replies && comment.replies.length > 0;
+div.setAttribute("data-comment-id", comment._id);
 
   div.innerHTML = `
-    <img src="${comment.user?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
+    <img src="${comment.user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
          class="comment-avatar">
 
     <div class="comment-body">
 
       <div class="comment-bubble">
-        <strong>${comment.user?.name || "User"}</strong><br>
+        <strong>${comment.user.name}</strong><br>
         ${comment.text}
       </div>
 
       <div class="comment-meta">
 
-        <!-- LIKE BUTTON (Talent style) -->
         <button class="comment-like-btn post-style-btn"
-                data-post="${postId}"
-                data-comment="${comment._id}">
-          <svg viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2"
-               style="width:16px;height:16px;">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
-            2 6 4 4 6.5 4 8.24 4 9.91 5 10.54 6.36h.92C12.09
-            5 13.76 4 15.5 4 18 4 20 6 20 8.5c0
-            3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-          </svg>
-          <span class="like-count">${comment.likes?.length || 0}</span>
-        </button>
+        data-post="${postId}"
+        data-comment="${comment._id}">
+  <svg viewBox="0 0 24 24" fill="none"
+       stroke="currentColor" stroke-width="2"
+       style="width:16px;height:16px;">
+    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5
+    2 6 4 4 6.5 4 8.24 4 9.91 5 10.54 6.36h.92C12.09
+    5 13.76 4 15.5 4 18 4 20 6 20 8.5c0
+    3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+  </svg>
+  <span class="like-count">${comment.likes?.length || 0}</span>
+</button>
 
-        <!-- REPLY BUTTON -->
         <button class="comment-reply-btn"
                 data-post="${postId}"
                 data-comment="${comment._id}">
@@ -1200,165 +1149,242 @@ function renderComment(postId, comment, parentContainer){
 
       </div>
 
-      <!-- REPLY INPUT -->
       <div class="reply-input-area" id="reply-input-${comment._id}"></div>
+    ${
+  comment.replies && comment.replies.length > 0
+  ? `<div style="margin-top:6px;font-size:13px;color:#0a66c2;cursor:pointer;"
+        onclick="toggleReplies('${comment._id}')">
+        View replies (${comment.replies.length})
+     </div>`
+  : ""
+}
 
-      <!-- VIEW REPLIES TOGGLE -->
-      ${hasReplies ? `
-        <div class="reply-toggle"
-             data-comment="${comment._id}"
-             style="margin-top:6px;font-size:13px;color:#0a66c2;cursor:pointer;">
-          View replies (${comment.replies.length})
-        </div>
-      ` : ""}
-
-      <!-- REPLIES CONTAINER -->
-      <div class="reply-line"
-           id="replies-${comment._id}"
-           data-loaded="false"
-           style="display:none;">
-      </div>
+<div class="reply-line"
+     id="replies-${comment._id}"
+     data-loaded="false"
+     style="display:none;">
+</div>
 
     </div>
   `;
 
   parentContainer.appendChild(div);
 }
-function toggleReplies(commentId){
 
-  const container = document.getElementById("replies-"+commentId);
-  const toggle = document.querySelector(`.reply-toggle[data-comment="${commentId}"]`);
 
-  if(!container) return;
-
-  if(container.style.display === "none"){
-
-    container.style.display = "block";
-
-    if(container.dataset.loaded === "false"){
-
-      const commentEl = document.querySelector(`[data-comment-id="${commentId}"]`);
-      const postId = commentEl.querySelector(".comment-like-btn").dataset.post;
-
-      loadReplies(postId, commentId);
-      container.dataset.loaded = "true";
-    }
-
-    toggle.innerText = "Hide replies";
-
-  } else {
-
-    container.style.display = "none";
-    const count = container.children.length;
-toggle.innerText = `View replies (${count})`;
-  }
+function openShareModal(id){
+  document.getElementById("shareModal").style.display="flex";
+  document.getElementById("copyLinkBtn").onclick = function(){
+    const link = window.location.origin + "/employee.html#post-"+id;
+    navigator.clipboard.writeText(link);
+    alert("Link copied");
+  };
 }
-async function loadReplies(postId, commentId){
+async function connectUser(id){
+  await fetch(API + "/api/users/" + id + "/follow", {
+    method:"PATCH",
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+  });
+  loadSuggestions();
+}
+async function followFromFeed(userId, button){
 
-  const res = await fetch(API+"/api/posts/"+postId,{
-    headers:{ Authorization:"Bearer "+token }
+  const res = await fetch(API+"/api/users/"+userId+"/follow",{
+    method:"PATCH",
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
   });
 
-  const post = await res.json();
+  if(!res.ok) return;
 
-  const comment = post.comments.find(c => c._id === commentId);
+  const data = await res.json();
+
+  const buttons = document.querySelectorAll(
+    `button[onclick*="${userId}"]`
+  );
+
+  buttons.forEach(btn=>{
+
+    if(data.following){
+
+      btn.innerText = "Following";
+      btn.style.background = "#0a66c2";
+      btn.style.color = "white";
+
+    }else{
+
+      btn.innerText = "Follow";
+      btn.style.background = "white";
+      btn.style.color = "#0a66c2";
+
+    }
+
+  });
+
+}
+async function loadMessageCount(){
+  const res = await fetch(API + "/api/messages/unread/count",{
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+  });
+  const data = res.ok ? await res.json() : {count:0};
+
+  const badge = document.getElementById("messageCount");
+  if(data.count > 0){
+    badge.innerText = data.count;
+    badge.style.display = "block";
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+async function loadNotificationCount(){
+  const res = await fetch(API + "/api/notifications/unread",{
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+  });
+  const data = res.ok ? await res.json() : {count:0};
+
+  const badge = document.getElementById("notificationCount");
+  if(data.count > 0){
+    badge.innerText = data.count;
+    badge.style.display = "block";
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+  async function editPost(id){
+
+  const newText = prompt("Edit your post:");
+  if(!newText) return;
+
+  await fetch(API+"/api/posts/"+id,{
+    method:"PATCH",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer " + localStorage.getItem("talentToken")
+    },
+    body:JSON.stringify({content:newText})
+  });
+
+  loadPosts();
+}
+
+async function deletePost(id){
+
+  if(!confirm("Delete this post?")) return;
+
+  await fetch(API+"/api/posts/"+id,{
+    method:"DELETE",
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+  });
+
+  document.getElementById("post-"+id)?.remove();
+}
+
+
+function formatTime(dateString){
+
+  const now = new Date();
+  const postDate = new Date(dateString);
+  const diff = Math.floor((now - postDate)/1000);
+
+  if(diff < 60) return "Just now";
+  if(diff < 3600) return Math.floor(diff/60)+"m ago";
+  if(diff < 86400) return Math.floor(diff/3600)+"h ago";
+  return Math.floor(diff/86400)+"d ago";
+}
+
+  function visitProfile(id){
+  if(!id) return;
+  window.location.href = "public-profile.html?id=" + id;
+}
+  let activeDropdown = null;
+
+function toggleDropdown(id, event){
+
+  event.stopPropagation(); // 🚀 VERY IMPORTANT
+
+  const menu = document.getElementById("dropdown-"+id);
+
+  // Close other open dropdown
+  if(activeDropdown && activeDropdown !== menu){
+    activeDropdown.style.display = "none";
+  }
+
+  const isOpen = menu.style.display === "block";
+  menu.style.display = isOpen ? "none" : "block";
+
+  activeDropdown = isOpen ? null : menu;
+}
+
+// Close dropdown when clicking anywhere outside
+document.addEventListener("click", function(){
+  if(activeDropdown){
+    activeDropdown.style.display = "none";
+    activeDropdown = null;
+  }
+});
+  function savePost(id){
+  alert("Post saved");
+}
+
+function markInterested(id){
+  alert("You marked this post as interested");
+}
+
+function hidePost(id){
+  document.getElementById("post-"+id)?.remove();
+}
+
+function reportPost(id){
+  alert("Post reported");
+}
+  function toggleReplies(commentId){
+
   const container = document.getElementById("replies-"+commentId);
 
-  container.innerHTML = "";
+  if(container.style.display === "block"){
+    container.style.display = "none";
+    return;
+  }
 
-  if(!comment || !comment.replies) return;
+  if(container.dataset.loaded === "true"){
+    container.style.display = "block";
+    return;
+  }
 
-  comment.replies.forEach(reply=>{
-    container.innerHTML += `
-  <div class="reply-item">
+  const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+  if(!commentElement) return;
 
-    <img src="${reply.user?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
-         class="comment-avatar">
+  const postId = commentElement.querySelector(".comment-like-btn").dataset.post;
 
-    <div class="comment-body">
+  fetch(API+"/api/posts/"+postId,{
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+  })
+  .then(res=>res.json())
+  .then(post=>{
 
-      <div class="comment-bubble">
+    const comment = post.comments.find(c=>c._id === commentId);
+
+    if(!comment) return;
+
+    container.innerHTML = comment.replies.map(reply=>`
+      <div data-reply-id="${reply._id}" style="
+        margin-top:8px;
+        padding-left:12px;
+        border-left:2px solid #e6e6e6;
+      ">
         <strong>${reply.user?.name || "User"}</strong><br>
         ${reply.text}
       </div>
+    `).join("");
 
-    </div>
+    container.dataset.loaded = "true";
+    container.style.display = "block";
 
-  </div>
-`;
   });
-}
-/* MODAL */
-
-function openModal(post){
-
-let content=""
-
-if(post.mediaUrl||post.image){
-
-content=`<img src="${post.mediaUrl||post.image}">`
-
-}else{
-
-content=`<div style="padding:40px;color:white;font-size:20px;">${post.content}</div>`
 
 }
-
-document.getElementById("modalBody").innerHTML=content
-document.getElementById("modal").style.display="flex"
-
-}
-
-function closeModal(){
-document.getElementById("modal").style.display="none"
-}
-
-/* FOLLOW */
-
-async function toggleFollow(){
-
-const res = await fetch(API+"/api/users/"+userId+"/follow",{
-method:"PATCH",
-headers: token ? { Authorization:"Bearer "+token } : {}
-})
-
-const data = await res.json()
-
-const btn = document.getElementById("followBtn")
-
-if(data.following){
-btn.innerText = "Following"
-btn.style.background = "white"
-btn.style.color = "#0a66c2"
-btn.style.border = "1px solid #0a66c2"
-}else{
-btn.innerText = "Follow"
-btn.style.background = "#0a66c2"
-btn.style.color = "white"
-}
-
-}
-
-/* MESSAGE */
-
-function messageUser(){
-
-window.location.href="employer.html#message="+userId
-
-}
-
   document.addEventListener("click", async function(e){
-    // =========================
-// VIEW / HIDE REPLIES
-// =========================
-if(e.target.classList.contains("reply-toggle")){
-
-  const commentId = e.target.dataset.comment;
-
-  toggleReplies(commentId);
-
-  return; // stop other handlers
-}
 
   /* =========================
      COMMENT LIKE
@@ -1376,7 +1402,7 @@ if(e.target.closest(".comment-like-btn")){
       API+"/api/posts/"+postId+"/comment/"+commentId+"/like",
       {
         method:"PATCH",
-        headers:{ Authorization:"Bearer " + token }
+        headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
       }
     );
 
@@ -1397,32 +1423,37 @@ if(e.target.closest(".comment-like-btn")){
 
 }
 
-if(e.target.closest(".comment-reply-btn")){
+  /* =========================
+     COMMENT REPLY BUTTON
+  ========================= */
+  if(e.target.closest(".comment-reply-btn")){
 
-  const btn = e.target.closest(".comment-reply-btn");
-  const commentId = btn.dataset.comment;
+    const btn = e.target.closest(".comment-reply-btn");
+    const commentId = btn.dataset.comment;
 
-  const container = document.getElementById("reply-input-"+commentId);
+    const container = document.getElementById("reply-input-"+commentId);
 
-  if(container.innerHTML !== ""){
-    container.innerHTML = "";
-    return;
-  }
+    if(container.innerHTML !== ""){
+      container.innerHTML = "";
+      return;
+    }
 
-  container.innerHTML = `
-    <div style="margin-top:10px;display:flex;gap:8px;">
-      <input type="text"
-             class="reply-field"
-             placeholder="Write a reply..."
-             style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid #ddd;">
-      <button class="reply-send-btn"
-              data-comment="${commentId}"
-              style="background:#0a66c2;color:white;border:none;padding:6px 16px;border-radius:20px;">
-        Reply
-      </button>
-    </div>
-  `;
-}
+    container.innerHTML = `
+  <div style="margin-top:10px;display:flex;gap:8px;">
+    <input type="text"
+           class="reply-field"
+           placeholder="Write a reply..."
+           style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid #ddd;">
+    <button class="reply-send-btn"
+            data-comment="${commentId}"
+            style="background:#0a66c2;color:white;border:none;padding:6px 16px;border-radius:20px;cursor:pointer;">
+      Reply
+    </button>
+  </div>
+`;
+
+container.querySelector(".reply-field").focus();
+    }
 /* =========================
    REPLY SEND (SAVE TO DB)
 ========================= */
@@ -1464,27 +1495,114 @@ replyContainer.innerHTML += `
         method:"POST",
         headers:{
           "Content-Type":"application/json",
-          Authorization:"Bearer " + token
+          Authorization:"Bearer " + localStorage.getItem("talentToken")
         },
         body:JSON.stringify({ text })
       }
     );
-loadReplies(postId, commentId);
+
   }catch(err){
     console.error("Reply failed", err);
   }
 }
 });
+socket.on("new_comment", data => {
 
-  
+  const container = document.getElementById("comments-"+data.postId);
+  if(!container) return;
 
+  if(container.querySelector(`[data-comment-id="${data.comment._id}"]`)){
+    return;
+  }
+
+  renderComment(data.postId, data.comment, container);
+
+  const stat = document.querySelector("#post-"+data.postId+" .post-stats div:nth-child(2)");
+  if(stat){
+    stat.innerText = data.totalComments + " comments";
+  }
+
+});
+ socket.on("new_reply", data => {
+
+  const replyContainer = document.getElementById("replies-"+data.commentId);
+  if(!replyContainer) return;
+
+  const replies = data.comment.replies || [];
+  const reply = replies[replies.length - 1];
+  if(!reply) return;
+
+  // 🔥 remove temporary optimistic reply
+  const tempReply = replyContainer.querySelector("[data-temp-id]");
+  if(tempReply){
+    tempReply.remove();
+  }
+
+  // prevent duplicates
+  if(replyContainer.querySelector(`[data-reply-id="${reply._id}"]`)){
+    return;
+  }
+
+  replyContainer.innerHTML += `
+    <div data-reply-id="${reply._id}" style="
+      margin-top:8px;
+      padding-left:12px;
+      border-left:2px solid #e6e6e6;
+    ">
+      <strong>${reply.user.name}</strong><br>
+      ${reply.text}
+    </div>
+  `;
+// update reply counter
+const commentElement = document.querySelector(
+  `[data-comment-id="${data.commentId}"]`
+);
+
+if(commentElement){
+
+  const toggle = commentElement.querySelector(
+    `[onclick="toggleReplies('${data.commentId}')"]`
+  );
+
+  if(toggle){
+    toggle.innerText = `View replies (${data.comment.replies.length})`;
+  }
+
+}
+  // update comment counter
+  const stat = document.querySelector("#post-"+data.postId+" .post-stats div:nth-child(2)");
+  if(stat){
+    stat.innerText = data.totalComments + " comments";
+  }
+
+});
+  socket.on("post_like", data => {
+
+  const stat = document.querySelector("#post-"+data.postId+" .post-stats div");
+
+  if(!stat) return;
+
+  stat.innerText = data.likes + " reactions";
+
+});
+  socket.on("post_deleted", data => {
+
+  const post = document.getElementById("post-"+data.postId);
+
+  if(post){
+    post.remove();
+  }
+
+});
 document.addEventListener("DOMContentLoaded", async function(){
 
   loadProfile();
   loadPosts();
+  loadMessageCount();
+  loadNotificationCount();
 
 });
-
 </script>
+
 </body>
 </html>
