@@ -483,6 +483,19 @@ body{background:var(--bg);}
 #notifBtn:hover svg{
   stroke:#0a66c2;
 }
+  .skill-tag{
+  display:inline-block;
+  background:#eef3f8;
+  padding:6px 12px;
+  border-radius:20px;
+  font-size:13px;
+  margin:4px;
+  transition:0.2s;
+}
+
+.skill-tag:hover{
+  background:#dde7f1;
+}
 </style>
 </head>
 
@@ -583,33 +596,74 @@ body{background:var(--bg);}
 
   </div> <!-- ✅ CLOSE CENTER COLUMN -->
 
-  <!-- RIGHT COLUMN -->
+<!-- RIGHT COLUMN -->
 <div>
 
-  <div class="card">
-    <div style="font-weight:600;margin-bottom:10px;">About</div>
-    <p id="publicBio"></p>
+  <!-- PROFILE INSIGHTS -->
+  <div class="card dashboard-card">
+
+    <div class="dashboard-title">
+      Profile Insights
+    </div>
+
+    <div class="dashboard-item">
+      <span>Followers</span>
+      <b id="publicFollowers">0</b>
+    </div>
+
+    <div class="dashboard-item">
+      <span>Following</span>
+      <b id="publicFollowing">0</b>
+    </div>
+
   </div>
 
-  <div class="card">
-    <div style="font-weight:600;margin-bottom:10px;">Skills</div>
-    <div id="publicSkills"></div>
+  <!-- ABOUT -->
+  <div class="card dashboard-card">
+
+    <div class="dashboard-title">
+      About
+    </div>
+
+    <div class="dashboard-item" style="display:block;">
+      <div style="color:var(--muted);line-height:1.6;">
+        <span id="publicBio"></span>
+      </div>
+    </div>
+
   </div>
 
-  <div class="card">
-    <div style="font-weight:600;margin-bottom:10px;">Experience</div>
+  <!-- SKILLS -->
+  <div class="card dashboard-card">
+
+    <div class="dashboard-title">
+      Skills
+    </div>
+
+    <div id="publicSkills" style="padding:12px 16px;"></div>
+
+  </div>
+
+  <!-- EXPERIENCE -->
+  <div class="card dashboard-card">
+
+    <div class="dashboard-title">
+      Experience
+    </div>
+
     <div id="publicExperience"></div>
+
   </div>
 
-  <div class="card">
-    <div style="font-weight:600;margin-bottom:10px;">Education</div>
+  <!-- EDUCATION -->
+  <div class="card dashboard-card">
+
+    <div class="dashboard-title">
+      Education
+    </div>
+
     <div id="publicEducation"></div>
-  </div>
 
-  <div class="card">
-    <div style="font-weight:600;margin-bottom:10px;">Stats</div>
-    <p>Followers: <span id="publicFollowers">0</span></p>
-    <p>Following: <span id="publicFollowing">0</span></p>
   </div>
 
 </div>
@@ -687,8 +741,9 @@ async function loadProfile(){
   skillsContainer.innerHTML = "";
 
   (user.skills || []).forEach(skill=>{
-    skillsContainer.innerHTML += `
-      <span style="
+skillsContainer.innerHTML += `
+  <span class="skill-tag">${skill}</span>
+`;
         display:inline-block;
         background:#eef3f8;
         padding:6px 12px;
@@ -706,11 +761,13 @@ async function loadProfile(){
 
   (user.experience || []).forEach(exp=>{
     expContainer.innerHTML += `
-      <div style="margin-bottom:10px;">
-        <strong>${exp.title || ""}</strong><br>
-        <span style="color:#666;">${exp.company || ""}</span>
-      </div>
-    `;
+  <div class="dashboard-item" style="flex-direction:column;align-items:flex-start;">
+    <strong>${exp.title || ""}</strong>
+    <span style="color:var(--muted);font-size:13px;">
+      ${exp.company || ""}
+    </span>
+  </div>
+`;
   });
 
   const eduContainer = document.getElementById("publicEducation");
@@ -718,11 +775,13 @@ async function loadProfile(){
 
   (user.education || []).forEach(edu=>{
     eduContainer.innerHTML += `
-      <div style="margin-bottom:10px;">
-        <strong>${edu.school || ""}</strong><br>
-        <span style="color:#666;">${edu.degree || ""}</span>
-      </div>
-    `;
+  <div class="dashboard-item" style="flex-direction:column;align-items:flex-start;">
+    <strong>${edu.school || ""}</strong>
+    <span style="color:var(--muted);font-size:13px;">
+      ${edu.degree || ""}
+    </span>
+  </div>
+`;
   });
 
   document.getElementById("publicFollowers").innerText =
