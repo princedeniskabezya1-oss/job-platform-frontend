@@ -199,7 +199,12 @@ body{
 
 <script>
 const API="https://backend-1-9b6f.onrender.com";
-const token=localStorage.getItem("token");
+function getToken(){
+  return localStorage.getItem("employerToken") ||
+         localStorage.getItem("talentToken");
+}
+
+const token = getToken();
 const myId=localStorage.getItem("userId");
 
 if(!token) window.location.href="login.html";
@@ -238,33 +243,6 @@ async function loadConversations(){
   </div>
 `;
   });
-}
-
-/* OPEN CONVERSATION */
-async function openConversation(userId,name){
-
-  activeUserId=userId;
-  activeUserName=name;
-
-  document.getElementById("chatHeader").innerText=name;
-
-  const res=await fetch(API+"/api/messages/"+userId,{
-    headers:{Authorization:"Bearer "+token}
-  });
-
-  const messages=res.ok?await res.json():[];
-
-  const box=document.getElementById("chatMessages");
-  box.innerHTML="";
-
-  messages.forEach(msg=>{
-    const div=document.createElement("div");
-    div.className="bubble "+(msg.sender._id===myId?"me":"other");
-    div.innerText=msg.text;
-    box.appendChild(div);
-  });
-
-  box.scrollTop=box.scrollHeight;
 }
 
 /* SEND MESSAGE */
@@ -322,7 +300,7 @@ document.getElementById("searchUser").addEventListener("keyup",async function(){
     .forEach(u=>{
       list.innerHTML+=`
         <div class="conversation"
-             onclick="openConversation('${u._id}','${u.name}')">
+             onclick="openConversation('${u._id}','${u.name}','${u.profileImage}')">
           <img src="${u.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
                width="45" height="45" style="border-radius:50%;">
           <div style="font-weight:600;">${u.name}</div>
