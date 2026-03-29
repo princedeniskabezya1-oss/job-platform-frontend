@@ -175,6 +175,18 @@ body{
     <div class="sidebar-header">
       Messaging
       <input id="searchUser" class="search" placeholder="Search users...">
+      <div id="searchResults" style="
+  position:absolute;
+  background:white;
+  width:280px;
+  margin-top:5px;
+  border-radius:10px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+  display:none;
+  max-height:250px;
+  overflow:auto;
+  z-index:1000;
+"></div>
     </div>
     <div id="conversationList"></div>
   </div>
@@ -282,31 +294,82 @@ async function openConversation(userId,name,profileImage){
 }
 
 /* SEARCH USERS */
-document.getElementById("searchUser").addEventListener("keyup",async function(){
+const searchInput = document.getElementById("searchUser");
+const resultsBox = document.getElementById("searchResults");
 
-  const value=this.value.toLowerCase();
+// 🔥 SHOW SUGGESTIONS WHEN CLICK
+searchInput.addEventListener("focus", loadSuggestions);
 
-  const res=await fetch(API+"/api/users",{
-  headers:{Authorization:"Bearer "+token}
+// 🔥 SEARCH WHILE TYPING
+searchInput.addEventListener("keyup", async function(){
+
+  const value = this.value.toLowerCase();
+
+  const res = await fetch(API+"/api/users/network",{
+    headers:{Authorization:"Bearer "+token}
+  });
+
+  const users = res.ok ? await res.json() : [];
+
+  const filtered = users.filter(u =>
+    u.name.toLowerCase().includes(value) && u._id !== myId
+  );
+
+  renderSuggestions(filtered);
 });
 
-  const users=res.ok?await res.json():[];
+// 🔥 LOAD FOLLOWED USERS
+async function loadSuggestions(){
 
-  const list=document.getElementById("conversationList");
-  list.innerHTML="";
+  const res = await fetch(API+"/api/users/network",{
+    headers:{Authorization:"Bearer "+token}
+  });
 
-  users
-    .filter(u=>u.name.toLowerCase().includes(value) && u._id!==myId)
-    .forEach(u=>{
-      list.innerHTML+=`
-        <div class="conversation"
-             onclick="openConversation('${u._id}','${u.name}','${u.profileImage}')">
-          <img src="${u.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}"
-               width="45" height="45" style="border-radius:50%;">
-          <div style="font-weight:600;">${u.name}</div>
-        </div>
-      `;
-    });
+  const users = res.ok ? await res.json() : [];
+
+  renderSuggestions(users);
+}
+
+// 🔥 RENDER DROPDOWN
+function renderSuggestions(users){
+
+  resultsBox.innerHTML = "";
+
+  if(!users.length){
+    resultsBox.style.display = "none";
+    return;
+  }
+
+  resultsBox.style.display = "block";
+
+  users.forEach(u=>{
+    resultsBox.innerHTML += `
+      <div class="conversation"
+           onclick="selectUser('${u._id}','${u.name}','${u.profileImage}')">
+
+        <img src="${u.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+
+        <div class="conv-name">${u.name}</div>
+
+      </div>
+    `;
+  });
+}
+
+// 🔥 CLICK USER
+function selectUser(id,name,img){
+  resultsBox.style.display = "none";
+  searchInput.value = "";
+  openConversation(id,name,img);
+}
+
+// 🔥 CLOSE WHEN CLICK OUTSIDE
+window.addEventListener("click", function(e){
+
+  if(!searchInput.contains(e.target) && !resultsBox.contains(e.target)){
+    resultsBox.style.display = "none";
+  }
+
 });
 
 /* AUTO LOAD */
@@ -321,8 +384,8 @@ document.addEventListener("DOMContentLoaded", async ()=>{
     const user=res.ok?await res.json():null;
 
     if(user){
-      openConversation(userParam,user.name);
-    }
+  openConversation(userParam,user.name,user.profileImage);
+}
   }
 });
 </script>
