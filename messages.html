@@ -164,6 +164,16 @@ body{
   border-radius:20px;
   cursor:pointer;
 }
+  .attach-option{
+  padding:8px 10px;
+  cursor:pointer;
+  border-radius:6px;
+  font-size:14px;
+}
+
+.attach-option:hover{
+  background:#f3f6f8;
+}
 </style>
 </head>
 
@@ -202,9 +212,52 @@ body{
 </div>
     <div id="chatMessages" class="messages"></div>
     <div class="input-area">
-      <input id="messageInput" placeholder="Write a message...">
-      <button onclick="sendMessage()">Send</button>
+
+  <!-- ATTACH BUTTON -->
+  <div style="position:relative;">
+
+    <button onclick="toggleAttachMenu()" style="
+      background:none;
+      border:none;
+      cursor:pointer;
+      padding:6px;
+    ">
+      <!-- 📎 SVG ICON -->
+      <svg width="20" height="20" viewBox="0 0 24 24" stroke="#555" fill="none" stroke-width="2">
+        <path d="M21.44 11.05l-9.19 9.19a5.5 5.5 0 01-7.78-7.78l9.19-9.19a3.5 3.5 0 114.95 4.95l-9.19 9.19a1.5 1.5 0 01-2.12-2.12l8.49-8.48"/>
+      </svg>
+    </button>
+
+    <!-- POPUP MENU -->
+    <div id="attachMenu" style="
+      position:absolute;
+      bottom:40px;
+      left:0;
+      background:white;
+      border-radius:10px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.15);
+      padding:10px;
+      display:none;
+      width:180px;
+    ">
+
+      <div class="attach-option" onclick="triggerFile('image')">Images</div>
+      <div class="attach-option" onclick="triggerFile('video')">Videos</div>
+      <div class="attach-option" onclick="triggerFile('document')">Documents</div>
+      <div class="attach-option" onclick="triggerFile('audio')">Audio</div>
+
     </div>
+
+  </div>
+
+  <!-- HIDDEN INPUT -->
+  <input type="file" id="fileInput" style="display:none;">
+
+  <input id="messageInput" placeholder="Write a message...">
+
+  <button onclick="sendMessage()">Send</button>
+
+</div>
   </div>
 
 </div>
@@ -388,6 +441,75 @@ document.addEventListener("DOMContentLoaded", async ()=>{
 }
   }
 });
+  function toggleAttachMenu(){
+  const menu = document.getElementById("attachMenu");
+  menu.style.display = menu.style.display === "block" ? "none" : "block";
+}
+
+function triggerFile(type){
+
+  const input = document.getElementById("fileInput");
+
+  if(type === "image") input.accept = "image/*";
+  if(type === "video") input.accept = "video/*";
+  if(type === "audio") input.accept = "audio/*";
+  if(type === "document") input.accept = ".pdf,.doc,.docx,.xls";
+
+  input.click();
+}
+  async function sendMessage(){
+
+  const input = document.getElementById("messageInput");
+  const fileInput = document.getElementById("fileInput");
+
+  const text = input.value.trim();
+  const file = fileInput.files[0];
+
+  if(!text && !file) return;
+  if(!activeUserId) return;
+
+  const box = document.getElementById("chatMessages");
+
+  const div = document.createElement("div");
+  div.className = "bubble me";
+
+  if(text){
+    div.innerHTML = text;
+  }
+
+  if(file){
+    if(file.type.startsWith("image")){
+      div.innerHTML += `<br><img src="${URL.createObjectURL(file)}" style="max-width:200px;border-radius:10px;">`;
+    }else if(file.type.startsWith("video")){
+      div.innerHTML += `<br><video src="${URL.createObjectURL(file)}" controls style="max-width:200px;"></video>`;
+    }else if(file.type.startsWith("audio")){
+      div.innerHTML += `<br><audio controls src="${URL.createObjectURL(file)}"></audio>`;
+    }else{
+      div.innerHTML += `<br><span>${file.name}</span>`;
+    }
+  }
+
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+
+  input.value = "";
+  fileInput.value = "";
+
+  const formData = new FormData();
+  formData.append("receiverId", activeUserId);
+  if(text) formData.append("text", text);
+  if(file) formData.append("file", file);
+
+  await fetch(API+"/api/messages",{
+    method:"POST",
+    headers:{
+      Authorization:"Bearer "+token
+    },
+    body:formData
+  });
+
+  await loadConversations();
+}
 </script>
 
 </body>
