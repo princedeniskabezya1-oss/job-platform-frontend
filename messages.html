@@ -303,6 +303,9 @@ body{
 
 <script>
 const API="https://backend-1-9b6f.onrender.com";
+  const socket = io(API);
+
+socket.emit("join", myId);
 function getToken(){
   return localStorage.getItem("employerToken") ||
          localStorage.getItem("talentToken");
@@ -315,6 +318,54 @@ if(!token) window.location.href="login.html";
 
 let activeUserId=null;
 let activeUserName=null;
+  socket.on("newMessage", msg => {
+
+  // Only show if current chat is open
+  if(msg.sender === activeUserId){
+
+    const box = document.getElementById("chatMessages");
+
+    const div = document.createElement("div");
+
+    let typeClass = msg.fileUrl ? "media" : "text";
+
+    div.className = "bubble other " + typeClass;
+
+    div.innerHTML = msg.text || "";
+
+    if(msg.fileUrl){
+
+      if(msg.fileType && msg.fileType.includes("image")){
+        div.innerHTML += `<br><img src="${msg.fileUrl}" style="max-width:220px;border-radius:12px;">`;
+      }
+
+      else if(msg.fileType && msg.fileType.includes("video")){
+        div.innerHTML += `<br><video src="${msg.fileUrl}" controls style="max-width:220px;"></video>`;
+      }
+
+      else if(msg.fileType && msg.fileType.includes("audio")){
+        div.innerHTML += `<br><audio controls src="${msg.fileUrl}"></audio>`;
+      }
+
+      else{
+        div.innerHTML += `<br><a href="${msg.fileUrl}" target="_blank">Download file</a>`;
+      }
+
+    }
+
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+});
+
+  socket.on("typing", () => {
+  document.getElementById("chatStatus").innerText = "Typing...";
+});
+
+socket.on("stopTyping", () => {
+  document.getElementById("chatStatus").innerText = "Online";
+});
 
 /* LOAD CONVERSATIONS */
 async function loadConversations(){
@@ -562,6 +613,21 @@ function triggerFile(type){
     document.getElementById("previewArea").style.display = "none";
 document.getElementById("previewArea").innerHTML = "";
   }
+    let typingTimeout;
+
+document.getElementById("messageInput").addEventListener("input", () => {
+
+  if(!activeUserId) return;
+
+  socket.emit("typing", { to: activeUserId });
+
+  clearTimeout(typingTimeout);
+
+  typingTimeout = setTimeout(() => {
+    socket.emit("stopTyping", { to: activeUserId });
+  }, 1000);
+
+});
 
   if(file){
     if(file.type.startsWith("image")){
@@ -604,6 +670,7 @@ document.getElementById("previewArea").innerHTML = "";
   }
 });
 </script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
 </body>
 </html>
