@@ -337,11 +337,33 @@ async function openConversation(userId,name,profileImage){
   box.innerHTML="";
 
   messages.forEach(msg=>{
-    const div=document.createElement("div");
-    div.className="bubble "+(msg.sender._id===myId?"me":"other");
-    div.innerText=msg.text;
-    box.appendChild(div);
-  });
+  const div=document.createElement("div");
+  div.className="bubble "+(msg.sender._id===myId?"me":"other");
+
+  div.innerHTML = msg.text || "";
+
+  if(msg.fileUrl){
+
+    if(msg.fileType === "image"){
+      div.innerHTML += `<br><img src="${msg.fileUrl}" style="max-width:220px;border-radius:10px;">`;
+    }
+
+    else if(msg.fileType === "video"){
+      div.innerHTML += `<br><video src="${msg.fileUrl}" controls style="max-width:220px;"></video>`;
+    }
+
+    else if(msg.fileType === "audio"){
+      div.innerHTML += `<br><audio controls src="${msg.fileUrl}"></audio>`;
+    }
+
+    else{
+      div.innerHTML += `<br><a href="${msg.fileUrl}" target="_blank">Download file</a>`;
+    }
+
+  }
+
+  box.appendChild(div);
+});
 
   box.scrollTop=box.scrollHeight;
 }
