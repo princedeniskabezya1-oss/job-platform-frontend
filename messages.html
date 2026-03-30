@@ -240,7 +240,7 @@ body{
 
   <div>
     <div id="chatUserName" class="chat-name">Select a conversation</div>
-    <div class="chat-status">Online</div>
+    <div class="chat-status" id="chatStatus">Online</div>
   </div>
 </div>
     <div id="chatMessages" class="messages"></div>
@@ -300,24 +300,41 @@ body{
   </div>
 
 </div>
-
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
 const API="https://backend-1-9b6f.onrender.com";
-  const socket = io(API);
 
-socket.emit("join", myId);
 function getToken(){
   return localStorage.getItem("employerToken") ||
          localStorage.getItem("talentToken");
 }
 
 const token = getToken();
-const myId=localStorage.getItem("userId");
+const myId = localStorage.getItem("userId");
+
+const socket = io(API);
+
+socket.emit("join", myId);
 
 if(!token) window.location.href="login.html";
 
 let activeUserId=null;
 let activeUserName=null;
+      let typingTimeout;
+
+document.getElementById("messageInput").addEventListener("input", () => {
+
+  if(!activeUserId) return;
+
+  socket.emit("typing", { to: activeUserId });
+
+  clearTimeout(typingTimeout);
+
+  typingTimeout = setTimeout(() => {
+    socket.emit("stopTyping", { to: activeUserId });
+  }, 1000);
+
+});
   socket.on("newMessage", msg => {
 
   // Only show if current chat is open
@@ -613,21 +630,7 @@ function triggerFile(type){
     document.getElementById("previewArea").style.display = "none";
 document.getElementById("previewArea").innerHTML = "";
   }
-    let typingTimeout;
 
-document.getElementById("messageInput").addEventListener("input", () => {
-
-  if(!activeUserId) return;
-
-  socket.emit("typing", { to: activeUserId });
-
-  clearTimeout(typingTimeout);
-
-  typingTimeout = setTimeout(() => {
-    socket.emit("stopTyping", { to: activeUserId });
-  }, 1000);
-
-});
 
   if(file){
     if(file.type.startsWith("image")){
@@ -670,7 +673,6 @@ document.getElementById("messageInput").addEventListener("input", () => {
   }
 });
 </script>
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
 </body>
 </html>
