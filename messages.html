@@ -130,8 +130,15 @@ body{
 
 .me{
   align-self:flex-end;
+}
+
+.me.text{
   background:#0a66c2;
   color:white;
+}
+
+.me.media{
+  background:transparent;
 }
 
 .other{
@@ -252,6 +259,12 @@ body{
 
   <!-- HIDDEN INPUT -->
   <input type="file" id="fileInput" style="display:none;">
+      <div id="previewArea" style="
+  display:none;
+  padding:10px;
+  border-top:1px solid #eee;
+  background:white;
+"></div>
 
   <input id="messageInput" placeholder="Write a message...">
 
@@ -338,7 +351,8 @@ async function openConversation(userId,name,profileImage){
 
   messages.forEach(msg=>{
   const div=document.createElement("div");
-  div.className="bubble "+(msg.sender._id===myId?"me":"other");
+  let typeClass = msg.fileUrl ? "media" : "text";
+div.className = "bubble " + (msg.sender._id===myId ? "me " : "other ") + typeClass;
 
   div.innerHTML = msg.text || "";
 
@@ -478,6 +492,28 @@ function triggerFile(type){
   if(type === "document") input.accept = ".pdf,.doc,.docx,.xls";
 
   input.click();
+
+  input.onchange = () => {
+    const file = input.files[0];
+    const preview = document.getElementById("previewArea");
+
+    if(!file) return;
+
+    preview.style.display = "block";
+
+    if(file.type.startsWith("image")){
+      preview.innerHTML = `<img src="${URL.createObjectURL(file)}" style="max-width:150px;border-radius:10px;">`;
+    }
+    else if(file.type.startsWith("video")){
+      preview.innerHTML = `<video src="${URL.createObjectURL(file)}" controls style="max-width:150px;"></video>`;
+    }
+    else if(file.type.startsWith("audio")){
+      preview.innerHTML = `<audio controls src="${URL.createObjectURL(file)}"></audio>`;
+    }
+    else{
+      preview.innerHTML = `<span>${file.name}</span>`;
+    }
+  };
 }
   async function sendMessage(){
 
@@ -497,6 +533,8 @@ function triggerFile(type){
 
   if(text){
     div.innerHTML = text;
+    document.getElementById("previewArea").style.display = "none";
+document.getElementById("previewArea").innerHTML = "";
   }
 
   if(file){
