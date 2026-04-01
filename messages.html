@@ -345,20 +345,7 @@ document.getElementById("messageInput").addEventListener("input", () => {
 
 });
   socket.on("newMessage", msg => {
-    window.addEventListener("click", (e)=>{
-  const picker = document.getElementById("emojiPicker");
-
-  if(!picker.contains(e.target)){
-    picker.style.display = "none";
-  }
-});
-    socket.on("reactionUpdate", msg => {
-
-  if(msg.sender === activeUserId || msg.receiver === activeUserId){
-    openConversation(activeUserId, activeUserName);
-  }
-
-});
+  
 
   // Only show if current chat is open
   if(msg.sender === activeUserId){
@@ -393,7 +380,17 @@ document.getElementById("messageInput").addEventListener("input", () => {
       }
 
     }
+// SHOW REACTIONS (LIVE)
+if(msg.reactions && msg.reactions.length){
 
+  const reactionsDiv = document.createElement("div");
+  reactionsDiv.style.fontSize = "14px";
+  reactionsDiv.style.marginTop = "4px";
+
+  reactionsDiv.innerHTML = msg.reactions.map(r => r.emoji).join(" ");
+
+  div.appendChild(reactionsDiv);
+}
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
   }
@@ -440,16 +437,7 @@ async function loadConversations(){
 `;
   });
 }
-  if(msg.reactions && msg.reactions.length){
 
-  const reactionsDiv = document.createElement("div");
-  reactionsDiv.style.fontSize = "14px";
-  reactionsDiv.style.marginTop = "4px";
-
-  reactionsDiv.innerHTML = msg.reactions.map(r => r.emoji).join(" ");
-
-  div.appendChild(reactionsDiv);
-}
 
 /* SEND MESSAGE */
 async function openConversation(userId,name,profileImage){
@@ -479,6 +467,7 @@ async function openConversation(userId,name,profileImage){
 
   messages.forEach(msg=>{
   const div=document.createElement("div");
+    
     div.onclick = () => openReactionPicker(msg._id);
   let typeClass = msg.fileUrl ? "media" : "text";
 div.className = "bubble " + (msg.sender._id===myId ? "me " : "other ") + typeClass;
@@ -504,7 +493,17 @@ if(msg.fileUrl){
   }
 
 }
+// SHOW REACTIONS
+if(msg.reactions && msg.reactions.length){
 
+  const reactionsDiv = document.createElement("div");
+  reactionsDiv.style.fontSize = "14px";
+  reactionsDiv.style.marginTop = "4px";
+
+  reactionsDiv.innerHTML = msg.reactions.map(r => r.emoji).join(" ");
+
+  div.appendChild(reactionsDiv);
+}
   box.appendChild(div);
 });
 
@@ -583,6 +582,22 @@ function selectUser(id,name,img){
 
 // 🔥 CLOSE WHEN CLICK OUTSIDE
 window.addEventListener("click", function(e){
+  // CLOSE EMOJI PICKER
+window.addEventListener("click", (e)=>{
+  const picker = document.getElementById("emojiPicker");
+
+  if(!picker.contains(e.target)){
+    picker.style.display = "none";
+  }
+});
+  // REAL-TIME REACTION UPDATE
+socket.on("reactionUpdate", msg => {
+
+  if(msg.sender === activeUserId || msg.receiver === activeUserId){
+    openConversation(activeUserId, activeUserName);
+  }
+
+});
 
   if(!searchInput.contains(e.target) && !resultsBox.contains(e.target)){
     resultsBox.style.display = "none";
