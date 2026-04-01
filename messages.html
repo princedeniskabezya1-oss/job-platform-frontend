@@ -308,6 +308,7 @@ body{
 
 </div>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
 <script>
 const API="https://backend-1-9b6f.onrender.com";
 
@@ -344,19 +345,19 @@ document.getElementById("messageInput").addEventListener("input", () => {
 
 });
   socket.on("newMessage", msg => {
-    socket.on("reactionUpdate", msg => {
-
-  if(msg.sender === activeUserId || msg.receiver === activeUserId){
-    openConversation(activeUserId, activeUserName);
-  }
-
-});
     window.addEventListener("click", (e)=>{
   const picker = document.getElementById("emojiPicker");
 
   if(!picker.contains(e.target)){
     picker.style.display = "none";
   }
+});
+    socket.on("reactionUpdate", msg => {
+
+  if(msg.sender === activeUserId || msg.receiver === activeUserId){
+    openConversation(activeUserId, activeUserName);
+  }
+
 });
 
   // Only show if current chat is open
@@ -365,6 +366,7 @@ document.getElementById("messageInput").addEventListener("input", () => {
     const box = document.getElementById("chatMessages");
 
     const div = document.createElement("div");
+    div.onclick = () => openReactionPicker(msg._id);
 
     let typeClass = msg.fileUrl ? "media" : "text";
 
@@ -696,16 +698,6 @@ if(file){
       div.innerHTML += `<br><span>${file.name}</span>`;
     }
   }
-if(msg.reactions && msg.reactions.length){
-
-  const reactionsDiv = document.createElement("div");
-  reactionsDiv.style.fontSize = "14px";
-  reactionsDiv.style.marginTop = "4px";
-
-  reactionsDiv.innerHTML = msg.reactions.map(r => r.emoji).join(" ");
-
-  div.appendChild(reactionsDiv);
-}
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
 
@@ -735,6 +727,5 @@ if(msg.reactions && msg.reactions.length){
   }
 });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
 </body>
 </html>
