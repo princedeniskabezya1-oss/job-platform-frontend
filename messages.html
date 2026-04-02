@@ -327,6 +327,7 @@ socket.emit("join", myId);
 if(!token) window.location.href="login.html";
 
 let activeUserId=null;
+  let replyToMessageId = null;
   let selectedMessageId = null;
 let activeUserName=null;
       let typingTimeout;
@@ -353,6 +354,7 @@ document.getElementById("messageInput").addEventListener("input", () => {
     const box = document.getElementById("chatMessages");
 
     const div = document.createElement("div");
+    div.dataset.id = msg._id;
     div.onclick = () => openReactionPicker(msg._id);
 
     let typeClass = msg.fileUrl ? "media" : "text";
@@ -572,6 +574,30 @@ function renderSuggestions(users){
     `;
   });
 }
+  socket.on("reactionUpdate", msg => {
+
+  const messages = document.querySelectorAll(".bubble");
+
+  messages.forEach(bubble => {
+
+    if (bubble.dataset.id === msg._id) {
+
+      let reactionsDiv = bubble.querySelector(".reactions");
+
+      if (!reactionsDiv) {
+        reactionsDiv = document.createElement("div");
+        reactionsDiv.className = "reactions";
+        reactionsDiv.style.fontSize = "14px";
+        reactionsDiv.style.marginTop = "4px";
+        bubble.appendChild(reactionsDiv);
+      }
+
+      reactionsDiv.innerHTML = msg.reactions.map(r => r.emoji).join(" ");
+    }
+
+  });
+
+});
 
 // 🔥 CLICK USER
 function selectUser(id,name,img){
@@ -579,31 +605,6 @@ function selectUser(id,name,img){
   searchInput.value = "";
   openConversation(id,name,img);
 }
-
-// 🔥 CLOSE WHEN CLICK OUTSIDE
-window.addEventListener("click", function(e){
-  // CLOSE EMOJI PICKER
-window.addEventListener("click", (e)=>{
-  const picker = document.getElementById("emojiPicker");
-
-  if(!picker.contains(e.target)){
-    picker.style.display = "none";
-  }
-});
-  // REAL-TIME REACTION UPDATE
-socket.on("reactionUpdate", msg => {
-
-  if(msg.sender === activeUserId || msg.receiver === activeUserId){
-    openConversation(activeUserId, activeUserName);
-  }
-
-});
-
-  if(!searchInput.contains(e.target) && !resultsBox.contains(e.target)){
-    resultsBox.style.display = "none";
-  }
-
-});
 
 /* AUTO LOAD */
 document.addEventListener("DOMContentLoaded", async ()=>{
@@ -627,6 +628,9 @@ document.addEventListener("DOMContentLoaded", async ()=>{
 }
   function openReactionPicker(messageId){
   selectedMessageId = messageId;
+
+  // 🔥 THIS IS THE REPLY TARGET
+  replyToMessageId = messageId;
 
   const picker = document.getElementById("emojiPicker");
   picker.style.display = "block";
@@ -699,6 +703,7 @@ function triggerFile(type){
   const box = document.getElementById("chatMessages");
 
   const div = document.createElement("div");
+    div.dataset.id = msg._id;
   let typeClass = file ? "media" : "text";
 div.className = "bubble me " + typeClass;
 
@@ -728,8 +733,12 @@ if(file){
 
   input.value = "";
   fileInput.value = "";
+    replyToMessageId = null;
 
   const formData = new FormData();
+    if(replyToMessageId){
+  formData.append("replyTo", replyToMessageId);
+}
   formData.append("receiverId", activeUserId);
   if(text) formData.append("text", text);
   if(file) formData.append("file", file);
