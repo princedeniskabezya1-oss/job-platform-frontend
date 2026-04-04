@@ -576,7 +576,8 @@ async function loadConversations(){
 /* SEND MESSAGE */
 async function openConversation(userId,name,profileImage){
 
-  activeUserId=userId;
+activeUserId=userId;
+activeUserName=name;
 clearMessageSelection();
 clearReply();
 
@@ -917,6 +918,13 @@ const box = document.getElementById("chatMessages");
 const currentReplyTo = replyToMessageId;
 
 const div = document.createElement("div");
+div.dataset.id = "temp-" + Date.now();
+div.onclick = () => showMessageTools(
+  div.dataset.id,
+  text || "",
+  "You",
+  div
+);
 let typeClass = file ? "media" : "text";
 div.className = "bubble me " + typeClass;
 
@@ -929,7 +937,8 @@ if(currentReplyTo){
   div.innerHTML += `
     <div style="
       font-size:12px;
-      background:rgba(255,255,255,0.22);
+      background:rgba(255,255,255,0.18);
+border-left:3px solid rgba(255,255,255,0.7);
       padding:6px;
       border-radius:8px;
       margin-bottom:5px;
@@ -994,9 +1003,12 @@ clearReply();
   const tools = document.getElementById("messageTools");
   const picker = document.getElementById("emojiPicker");
 
-  if(!menu.contains(e.target) && !e.target.closest("button")){
-    menu.style.display = "none";
-  }
+  if(
+  !menu.contains(e.target) &&
+  !e.target.closest('[onclick="toggleAttachMenu()"]')
+){
+  menu.style.display = "none";
+}
 
   if(
     tools &&
