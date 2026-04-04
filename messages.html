@@ -715,6 +715,183 @@ body{
 
 <div id="toast" class="toast"></div>
 
+<div id="incomingCallModal" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.45);
+  z-index:4000;
+  align-items:center;
+  justify-content:center;
+">
+  <div style="
+    width:min(360px, 92%);
+    background:white;
+    border-radius:24px;
+    padding:24px;
+    text-align:center;
+    box-shadow:0 20px 50px rgba(0,0,0,0.2);
+  ">
+    <div style="font-size:18px;font-weight:800;margin-bottom:8px;">Incoming Call</div>
+    <div id="incomingCallText" style="font-size:14px;color:#6f6f6f;margin-bottom:18px;">Someone is calling...</div>
+
+    <div style="display:flex;justify-content:center;gap:12px;">
+      <button onclick="declineIncomingCall()" style="
+        border:none;
+        background:#ef4444;
+        color:white;
+        padding:12px 18px;
+        border-radius:14px;
+        font-weight:700;
+        cursor:pointer;
+      ">Decline</button>
+
+      <button onclick="acceptIncomingCall()" style="
+        border:none;
+        background:#10b981;
+        color:white;
+        padding:12px 18px;
+        border-radius:14px;
+        font-weight:700;
+        cursor:pointer;
+      ">Accept</button>
+    </div>
+  </div>
+</div>
+
+<div id="callModal" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:#0f172a;
+  z-index:3500;
+  color:white;
+  flex-direction:column;
+">
+  <div style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:16px 20px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+  ">
+    <div>
+      <div id="callTitle" style="font-size:18px;font-weight:800;">Call</div>
+      <div id="callStatus" style="font-size:13px;color:#cbd5e1;">Connecting...</div>
+    </div>
+
+    <button onclick="endCurrentCall()" style="
+      border:none;
+      background:#ef4444;
+      color:white;
+      padding:10px 14px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:700;
+    ">End</button>
+  </div>
+
+  <div style="
+    flex:1;
+    display:grid;
+    grid-template-columns:1fr 320px;
+    gap:14px;
+    padding:14px;
+  ">
+    <div style="
+      background:#111827;
+      border-radius:20px;
+      overflow:hidden;
+      position:relative;
+      min-height:320px;
+    ">
+      <video id="remoteVideo" autoplay playsinline style="width:100%;height:100%;object-fit:cover;background:#0b1220;"></video>
+      <div id="audioCallPlaceholder" style="
+        position:absolute;
+        inset:0;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:22px;
+        font-weight:800;
+        background:linear-gradient(135deg,#0f172a,#1e293b);
+      ">Audio Call</div>
+    </div>
+
+    <div style="
+      background:#111827;
+      border-radius:20px;
+      overflow:hidden;
+      position:relative;
+      min-height:220px;
+    ">
+      <video id="localVideo" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;background:#0b1220;"></video>
+    </div>
+  </div>
+
+  <div style="
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    padding:0 0 18px 0;
+  ">
+    <button onclick="toggleMute()" style="
+      border:none;
+      background:#1f2937;
+      color:white;
+      padding:12px 18px;
+      border-radius:14px;
+      cursor:pointer;
+    ">Mute</button>
+
+    <button onclick="toggleCamera()" style="
+      border:none;
+      background:#1f2937;
+      color:white;
+      padding:12px 18px;
+      border-radius:14px;
+      cursor:pointer;
+    ">Camera</button>
+  </div>
+</div>
+
+<div id="chatInfoModal" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.35);
+  z-index:3200;
+  align-items:center;
+  justify-content:center;
+">
+  <div style="
+    width:min(420px, 92%);
+    background:white;
+    border-radius:24px;
+    padding:22px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.2);
+  ">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:18px;font-weight:800;">Chat Info</div>
+      <button onclick="closeChatInfo()" style="border:none;background:none;font-size:20px;cursor:pointer;">×</button>
+    </div>
+
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
+      <img id="chatInfoImg" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:58px;height:58px;border-radius:50%;object-fit:cover;">
+      <div>
+        <div id="chatInfoName" style="font-weight:700;"></div>
+        <div id="chatInfoStatus" style="font-size:13px;color:#6f6f6f;">Conversation details</div>
+      </div>
+    </div>
+
+    <div style="display:grid;gap:10px;">
+      <button class="message-tool-btn" onclick="showToast('Pin chat can be added next')">📌 Pin chat</button>
+      <button class="message-tool-btn" onclick="showToast('Star messages can be added next')">⭐ Star messages</button>
+      <button class="message-tool-btn" onclick="showToast('Report flow can be added next')">🚩 Report</button>
+    </div>
+  </div>
+</div>
+
 <div class="wrapper">
 
   <div id="sidebar" class="sidebar">
@@ -856,6 +1033,21 @@ let selectedMessageId = null;
 let selectedMessageText = "";
 let selectedMessageSenderName = "";
 let typingTimeout = null;
+
+let currentCallUserId = null;
+let incomingCallFrom = null;
+let currentCallType = null;
+let localStream = null;
+let remoteStream = null;
+let peerConnection = null;
+let isMuted = false;
+let isCameraOff = false;
+
+const rtcConfig = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" }
+  ]
+};
 
 function showToast(text){
   const toast = document.getElementById("toast");
@@ -1040,7 +1232,70 @@ socket.on("reactionUpdate", msg => {
     }
   });
 });
+socket.on("incomingCall", ({ from, callerName, callType }) => {
+  incomingCallFrom = from;
+  currentCallType = callType;
+  document.getElementById("incomingCallText").innerText =
+    `${callerName || "Someone"} is calling you (${callType})`;
+  document.getElementById("incomingCallModal").style.display = "flex";
+});
 
+socket.on("callAccepted", async () => {
+  if(!peerConnection) return;
+
+  const offer = await peerConnection.createOffer();
+  await peerConnection.setLocalDescription(offer);
+
+  socket.emit("webrtcOffer", {
+    to: currentCallUserId,
+    offer
+  });
+
+  document.getElementById("callStatus").innerText = "Connecting media...";
+});
+
+socket.on("callDeclined", () => {
+  cleanupCall();
+  showToast("Call declined");
+});
+
+socket.on("callEnded", () => {
+  cleanupCall();
+  showToast("Call ended");
+});
+
+socket.on("webrtcOffer", async ({ offer }) => {
+  if(!peerConnection){
+    await createPeerConnection(incomingCallFrom);
+  }
+
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+  const answer = await peerConnection.createAnswer();
+  await peerConnection.setLocalDescription(answer);
+
+  socket.emit("webrtcAnswer", {
+    to: incomingCallFrom,
+    answer
+  });
+
+  document.getElementById("callStatus").innerText = "Connected";
+});
+
+socket.on("webrtcAnswer", async ({ answer }) => {
+  if(!peerConnection) return;
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+  document.getElementById("callStatus").innerText = "Connected";
+});
+
+socket.on("webrtcIceCandidate", async ({ candidate }) => {
+  if(peerConnection && candidate){
+    try{
+      await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    }catch(err){
+      console.error("ICE candidate error", err);
+    }
+  }
+});
 async function loadConversations(){
   const res = await fetch(API + "/api/messages", {
     headers:{ Authorization:"Bearer " + token }
@@ -1353,19 +1608,186 @@ bubble.dataset.temp = "true";
   await loadConversations();
 }
 
-function startAudioCall(){
-  if(!activeUserId) return showToast("Select a conversation first");
-  showToast("Audio call UI ready. WebRTC connection is next.");
+async function createPeerConnection(targetUserId){
+  currentCallUserId = targetUserId;
+
+  peerConnection = new RTCPeerConnection(rtcConfig);
+
+  remoteStream = new MediaStream();
+  document.getElementById("remoteVideo").srcObject = remoteStream;
+
+  peerConnection.ontrack = (event) => {
+    event.streams[0].getTracks().forEach(track => {
+      remoteStream.addTrack(track);
+    });
+  };
+
+  peerConnection.onicecandidate = (event) => {
+    if(event.candidate){
+      socket.emit("webrtcIceCandidate", {
+        to: currentCallUserId,
+        candidate: event.candidate
+      });
+    }
+  };
+
+  if(localStream){
+    localStream.getTracks().forEach(track => {
+      peerConnection.addTrack(track, localStream);
+    });
+  }
 }
 
-function startVideoCall(){
+async function openCallModal(callType, title){
+  currentCallType = callType;
+  document.getElementById("callModal").style.display = "flex";
+  document.getElementById("callTitle").innerText = title;
+  document.getElementById("callStatus").innerText = "Connecting...";
+
+  const audioPlaceholder = document.getElementById("audioCallPlaceholder");
+  if(callType === "audio"){
+    audioPlaceholder.style.display = "flex";
+    document.getElementById("localVideo").style.display = "none";
+    document.getElementById("remoteVideo").style.display = "none";
+  }else{
+    audioPlaceholder.style.display = "none";
+    document.getElementById("localVideo").style.display = "block";
+    document.getElementById("remoteVideo").style.display = "block";
+  }
+}
+
+async function getLocalMedia(callType){
+  const constraints = {
+    audio: true,
+    video: callType === "video"
+  };
+
+  localStream = await navigator.mediaDevices.getUserMedia(constraints);
+  document.getElementById("localVideo").srcObject = localStream;
+}
+
+async function startAudioCall(){
   if(!activeUserId) return showToast("Select a conversation first");
-  showToast("Video call UI ready. WebRTC connection is next.");
+
+  currentCallUserId = activeUserId;
+  await openCallModal("audio", "Audio call with " + activeUserName);
+  await getLocalMedia("audio");
+  await createPeerConnection(activeUserId);
+
+  socket.emit("callUser", {
+    to: activeUserId,
+    from: myId,
+    callerName: "You",
+    callType: "audio"
+  });
+
+  document.getElementById("callStatus").innerText = "Ringing...";
+}
+
+async function startVideoCall(){
+  if(!activeUserId) return showToast("Select a conversation first");
+
+  currentCallUserId = activeUserId;
+  await openCallModal("video", "Video call with " + activeUserName);
+  await getLocalMedia("video");
+  await createPeerConnection(activeUserId);
+
+  socket.emit("callUser", {
+    to: activeUserId,
+    from: myId,
+    callerName: "You",
+    callType: "video"
+  });
+
+  document.getElementById("callStatus").innerText = "Ringing...";
 }
 
 function showChatInfo(){
   if(!activeUserId) return showToast("Select a conversation first");
-  showToast("Chat info panel can be added next");
+
+  document.getElementById("chatInfoName").innerText = activeUserName || "User";
+  document.getElementById("chatInfoImg").src = document.getElementById("chatUserImg").src;
+  document.getElementById("chatInfoModal").style.display = "flex";
+}
+
+function closeChatInfo(){
+  document.getElementById("chatInfoModal").style.display = "none";
+}
+
+function cleanupCall(){
+  if(peerConnection){
+    peerConnection.close();
+    peerConnection = null;
+  }
+
+  if(localStream){
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+
+  if(remoteStream){
+    remoteStream.getTracks().forEach(track => track.stop());
+    remoteStream = null;
+  }
+
+  document.getElementById("localVideo").srcObject = null;
+  document.getElementById("remoteVideo").srcObject = null;
+  document.getElementById("callModal").style.display = "none";
+
+  incomingCallFrom = null;
+  currentCallUserId = null;
+  currentCallType = null;
+  isMuted = false;
+  isCameraOff = false;
+}
+
+function endCurrentCall(){
+  if(currentCallUserId){
+    socket.emit("endCall", { to: currentCallUserId });
+  }
+  cleanupCall();
+  showToast("Call ended");
+}
+
+function toggleMute(){
+  if(!localStream) return;
+  isMuted = !isMuted;
+  localStream.getAudioTracks().forEach(track => {
+    track.enabled = !isMuted;
+  });
+  showToast(isMuted ? "Microphone off" : "Microphone on");
+}
+
+function toggleCamera(){
+  if(!localStream) return;
+  isCameraOff = !isCameraOff;
+  localStream.getVideoTracks().forEach(track => {
+    track.enabled = !isCameraOff;
+  });
+  showToast(isCameraOff ? "Camera off" : "Camera on");
+}
+
+function declineIncomingCall(){
+  document.getElementById("incomingCallModal").style.display = "none";
+  if(incomingCallFrom){
+    socket.emit("declineCall", { to: incomingCallFrom });
+  }
+  incomingCallFrom = null;
+}
+
+async function acceptIncomingCall(){
+  document.getElementById("incomingCallModal").style.display = "none";
+  if(!incomingCallFrom || !currentCallType) return;
+
+  await openCallModal(
+    currentCallType,
+    (currentCallType === "video" ? "Video call" : "Audio call") + " with " + (activeUserName || "User")
+  );
+  await getLocalMedia(currentCallType);
+  await createPeerConnection(incomingCallFrom);
+
+  socket.emit("acceptCall", { to: incomingCallFrom });
+  document.getElementById("callStatus").innerText = "Connected";
 }
 
 window.addEventListener("click", function(e){
@@ -1396,11 +1818,27 @@ window.addEventListener("click", function(e){
     pickerEl.style.display = "none";
   }
 
-  if(
+    if(
     !searchInput.contains(e.target) &&
     !resultsBox.contains(e.target)
   ){
     resultsBox.style.display = "none";
+  }
+
+  const infoModal = document.getElementById("chatInfoModal");
+  if(
+    infoModal.style.display === "flex" &&
+    e.target === infoModal
+  ){
+    closeChatInfo();
+  }
+
+  const incomingModal = document.getElementById("incomingCallModal");
+  if(
+    incomingModal.style.display === "flex" &&
+    e.target === incomingModal
+  ){
+    declineIncomingCall();
   }
 });
 
