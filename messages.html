@@ -739,8 +739,9 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:14px;
+  padding:10px;
   overflow:hidden;
+  height:calc(100vh - 140px);
 }
 
 .call-remote-wrap{
@@ -778,6 +779,13 @@ body{
   border-radius:50%;
   object-fit:cover;
   border:3px solid rgba(255,255,255,0.16);
+  animation: pulseRing 1.6s infinite;
+}
+
+@keyframes pulseRing{
+  0%{ transform:scale(1); opacity:1; }
+  50%{ transform:scale(1.08); opacity:.8; }
+  100%{ transform:scale(1); opacity:1; }
 }
 
 .call-local-wrap{
@@ -877,6 +885,9 @@ body{
   .call-remote-wrap{
     border-radius:16px;
   }
+  .call-control-btn:active{
+  transform:scale(0.92);
+}
 
   .call-local-wrap{
     width:96px;
@@ -1172,6 +1183,8 @@ let remoteStream = null;
 let peerConnection = null;
 let isMuted = false;
 let isCameraOff = false;
+let callStartTime = null;
+let callTimerInterval = null;
 
 const rtcConfig = {
   iceServers: [
@@ -1408,13 +1421,14 @@ socket.on("webrtcOffer", async ({ offer }) => {
     answer
   });
 
-  document.getElementById("callStatus").innerText = "Connected";
+  document.getElementById("callStatus").innerText = "Establishing connection...";
 });
 
 socket.on("webrtcAnswer", async ({ answer }) => {
   if(!peerConnection) return;
   await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
   document.getElementById("callStatus").innerText = "Connected";
+startCallTimer();
 });
 
 socket.on("webrtcIceCandidate", async ({ candidate }) => {
@@ -1455,7 +1469,18 @@ async function loadConversations(){
     `;
   });
 }
+function startCallTimer(){
+  callStartTime = Date.now();
 
+  clearInterval(callTimerInterval);
+  callTimerInterval = setInterval(() => {
+    const diff = Math.floor((Date.now() - callStartTime) / 1000);
+    const min = String(Math.floor(diff / 60)).padStart(2, '0');
+    const sec = String(diff % 60).padStart(2, '0');
+
+    document.getElementById("callStatus").innerText = `Connected • ${min}:${sec}`;
+  }, 1000);
+}
 async function openConversation(userId, name, profileImage){
   activeUserId = userId;
   activeUserName = name;
@@ -1889,6 +1914,7 @@ document.getElementById("cameraBtn").classList.remove("active");
   currentCallType = null;
   isMuted = false;
   isCameraOff = false;
+  clearInterval(callTimerInterval);
 }
 
 function endCurrentCall(){
@@ -1943,7 +1969,7 @@ async function acceptIncomingCall(){
   await createPeerConnection(incomingCallFrom);
 
   socket.emit("acceptCall", { to: incomingCallFrom });
-  document.getElementById("callStatus").innerText = "Connected";
+  document.getElementById("callStatus").innerText = "Connecting...";
 }
 
 window.addEventListener("click", function(e){
