@@ -994,6 +994,24 @@ socket.on("newMessage", msg => {
   ){
     hideEmptyState();
     const box = document.getElementById("chatMessages");
+
+    const isMine = msg.sender && msg.sender._id === myId;
+
+    if(isMine){
+      const tempMine = Array.from(box.querySelectorAll('.bubble[data-temp="true"]')).find(el => {
+        return (el.innerText || "").includes(msg.text || "");
+      });
+
+      if(tempMine){
+        tempMine.replaceWith(renderMessageBubble(msg));
+        box.scrollTop = box.scrollHeight;
+        return;
+      }
+    }
+
+    const alreadyExists = box.querySelector(`.bubble[data-id="${msg._id}"]`);
+    if(alreadyExists) return;
+
     box.appendChild(renderMessageBubble(msg));
     box.scrollTop = box.scrollHeight;
   }
@@ -1284,8 +1302,10 @@ async function sendMessage(){
   const box = document.getElementById("chatMessages");
   const currentReplyTo = replyToMessageId;
 
-  const optimistic = {
-    _id: "temp-" + Date.now(),
+  const tempId = "temp-" + Date.now();
+
+const optimistic = {
+  _id: tempId,
     sender: { _id: myId, name: "You" },
     text,
     fileUrl: null,
@@ -1304,6 +1324,7 @@ async function sendMessage(){
   }
 
   const bubble = renderMessageBubble(optimistic);
+bubble.dataset.temp = "true";
   box.appendChild(bubble);
   box.scrollTop = box.scrollHeight;
 
