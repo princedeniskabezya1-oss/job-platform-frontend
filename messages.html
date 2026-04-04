@@ -702,6 +702,200 @@ body{
   background:#f5f8fb;
   cursor:pointer;
 }
+
+/* CALL UI */
+.call-modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:#0f172a;
+  z-index:3500;
+  color:white;
+  flex-direction:column;
+}
+
+.call-topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:16px 18px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.call-title{
+  font-size:18px;
+  font-weight:800;
+}
+
+.call-subtitle{
+  font-size:13px;
+  color:#cbd5e1;
+  margin-top:4px;
+}
+
+.call-body{
+  flex:1;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px;
+  overflow:hidden;
+}
+
+.call-remote-wrap{
+  width:100%;
+  height:100%;
+  background:#111827;
+  border-radius:22px;
+  overflow:hidden;
+  position:relative;
+}
+
+.call-remote-video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  background:#0b1220;
+}
+
+.call-audio-placeholder{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  font-size:22px;
+  font-weight:800;
+  background:linear-gradient(135deg,#0f172a,#1e293b);
+}
+
+.call-avatar{
+  width:86px;
+  height:86px;
+  border-radius:50%;
+  object-fit:cover;
+  border:3px solid rgba(255,255,255,0.16);
+}
+
+.call-local-wrap{
+  position:absolute;
+  right:22px;
+  bottom:22px;
+  width:180px;
+  height:240px;
+  background:#111827;
+  border-radius:18px;
+  overflow:hidden;
+  box-shadow:0 14px 30px rgba(0,0,0,0.28);
+  border:1px solid rgba(255,255,255,0.08);
+}
+
+.call-local-video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  background:#0b1220;
+}
+
+.call-controls{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  padding:0 0 20px 0;
+}
+
+.call-control-btn{
+  border:none;
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  background:#1f2937;
+  color:white;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+}
+
+.call-control-btn.danger{
+  background:#ef4444;
+}
+
+.call-control-btn.active{
+  background:#334155;
+}
+
+@media (max-width: 900px){
+  .call-local-wrap{
+    width:118px;
+    height:162px;
+    right:14px;
+    bottom:90px;
+    border-radius:16px;
+  }
+
+  .call-title{
+    font-size:16px;
+  }
+
+  .call-audio-placeholder{
+    font-size:18px;
+    padding:20px;
+    text-align:center;
+  }
+
+  .call-avatar{
+    width:74px;
+    height:74px;
+  }
+
+  .call-controls{
+    padding:0 0 16px 0;
+    gap:10px;
+  }
+
+  .call-control-btn{
+    width:48px;
+    height:48px;
+    font-size:13px;
+  }
+}
+
+@media (max-width: 560px){
+  .call-topbar{
+    padding:14px;
+  }
+
+  .call-body{
+    padding:10px;
+  }
+
+  .call-remote-wrap{
+    border-radius:16px;
+  }
+
+  .call-local-wrap{
+    width:96px;
+    height:132px;
+    right:12px;
+    bottom:84px;
+  }
+
+  .call-controls{
+    gap:8px;
+    padding:0 10px 14px 10px;
+  }
+
+  .call-control-btn{
+    width:44px;
+    height:44px;
+    font-size:12px;
+  }
+}
 </style>
 </head>
 
@@ -759,99 +953,35 @@ body{
   </div>
 </div>
 
-<div id="callModal" style="
-  display:none;
-  position:fixed;
-  inset:0;
-  background:#0f172a;
-  z-index:3500;
-  color:white;
-  flex-direction:column;
-">
-  <div style="
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:16px 20px;
-    border-bottom:1px solid rgba(255,255,255,0.08);
-  ">
+<div id="callModal" class="call-modal">
+  <div class="call-topbar">
     <div>
-      <div id="callTitle" style="font-size:18px;font-weight:800;">Call</div>
-      <div id="callStatus" style="font-size:13px;color:#cbd5e1;">Connecting...</div>
+      <div id="callTitle" class="call-title">Call</div>
+      <div id="callStatus" class="call-subtitle">Connecting...</div>
     </div>
 
-    <button onclick="endCurrentCall()" style="
-      border:none;
-      background:#ef4444;
-      color:white;
-      padding:10px 14px;
-      border-radius:12px;
-      cursor:pointer;
-      font-weight:700;
-    ">End</button>
+    <button onclick="endCurrentCall()" class="call-control-btn danger" title="End call">✕</button>
   </div>
 
-  <div style="
-    flex:1;
-    display:grid;
-    grid-template-columns:1fr 320px;
-    gap:14px;
-    padding:14px;
-  ">
-    <div style="
-      background:#111827;
-      border-radius:20px;
-      overflow:hidden;
-      position:relative;
-      min-height:320px;
-    ">
-      <video id="remoteVideo" autoplay playsinline style="width:100%;height:100%;object-fit:cover;background:#0b1220;"></video>
-      <div id="audioCallPlaceholder" style="
-        position:absolute;
-        inset:0;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-size:22px;
-        font-weight:800;
-        background:linear-gradient(135deg,#0f172a,#1e293b);
-      ">Audio Call</div>
+  <div class="call-body">
+    <div class="call-remote-wrap">
+      <video id="remoteVideo" autoplay playsinline class="call-remote-video"></video>
+
+      <div id="audioCallPlaceholder" class="call-audio-placeholder">
+        <img id="callAvatar" class="call-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+        <div id="audioCallName">Audio Call</div>
+      </div>
     </div>
 
-    <div style="
-      background:#111827;
-      border-radius:20px;
-      overflow:hidden;
-      position:relative;
-      min-height:220px;
-    ">
-      <video id="localVideo" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;background:#0b1220;"></video>
+    <div id="localWrap" class="call-local-wrap">
+      <video id="localVideo" autoplay muted playsinline class="call-local-video"></video>
     </div>
   </div>
 
-  <div style="
-    display:flex;
-    justify-content:center;
-    gap:12px;
-    padding:0 0 18px 0;
-  ">
-    <button onclick="toggleMute()" style="
-      border:none;
-      background:#1f2937;
-      color:white;
-      padding:12px 18px;
-      border-radius:14px;
-      cursor:pointer;
-    ">Mute</button>
-
-    <button onclick="toggleCamera()" style="
-      border:none;
-      background:#1f2937;
-      color:white;
-      padding:12px 18px;
-      border-radius:14px;
-      cursor:pointer;
-    ">Camera</button>
+  <div class="call-controls">
+    <button id="muteBtn" onclick="toggleMute()" class="call-control-btn" title="Mute">🎤</button>
+    <button id="cameraBtn" onclick="toggleCamera()" class="call-control-btn" title="Camera">📷</button>
+    <button onclick="endCurrentCall()" class="call-control-btn danger" title="End call">📞</button>
   </div>
 </div>
 
@@ -1645,15 +1775,31 @@ async function openCallModal(callType, title){
   document.getElementById("callStatus").innerText = "Connecting...";
 
   const audioPlaceholder = document.getElementById("audioCallPlaceholder");
+  const localWrap = document.getElementById("localWrap");
+  const remoteVideo = document.getElementById("remoteVideo");
+  const localVideo = document.getElementById("localVideo");
+  const callAvatar = document.getElementById("callAvatar");
+  const audioCallName = document.getElementById("audioCallName");
+
+  callAvatar.src = document.getElementById("chatUserImg").src;
+  audioCallName.innerText = activeUserName || "Audio Call";
+
   if(callType === "audio"){
     audioPlaceholder.style.display = "flex";
-    document.getElementById("localVideo").style.display = "none";
-    document.getElementById("remoteVideo").style.display = "none";
+    localWrap.style.display = "none";
+    remoteVideo.style.display = "none";
+    localVideo.style.display = "none";
+    document.getElementById("cameraBtn").style.display = "none";
   }else{
     audioPlaceholder.style.display = "none";
-    document.getElementById("localVideo").style.display = "block";
-    document.getElementById("remoteVideo").style.display = "block";
+    localWrap.style.display = "block";
+    remoteVideo.style.display = "block";
+    localVideo.style.display = "block";
+    document.getElementById("cameraBtn").style.display = "flex";
   }
+
+  document.getElementById("muteBtn").classList.remove("active");
+  document.getElementById("cameraBtn").classList.remove("active");
 }
 
 async function getLocalMedia(callType){
@@ -1730,9 +1876,13 @@ function cleanupCall(){
     remoteStream = null;
   }
 
-  document.getElementById("localVideo").srcObject = null;
-  document.getElementById("remoteVideo").srcObject = null;
-  document.getElementById("callModal").style.display = "none";
+document.getElementById("localVideo").srcObject = null;
+document.getElementById("remoteVideo").srcObject = null;
+document.getElementById("callModal").style.display = "none";
+document.getElementById("localWrap").style.display = "block";
+document.getElementById("cameraBtn").style.display = "flex";
+document.getElementById("muteBtn").classList.remove("active");
+document.getElementById("cameraBtn").classList.remove("active");
 
   incomingCallFrom = null;
   currentCallUserId = null;
@@ -1752,18 +1902,24 @@ function endCurrentCall(){
 function toggleMute(){
   if(!localStream) return;
   isMuted = !isMuted;
+
   localStream.getAudioTracks().forEach(track => {
     track.enabled = !isMuted;
   });
+
+  document.getElementById("muteBtn").classList.toggle("active", isMuted);
   showToast(isMuted ? "Microphone off" : "Microphone on");
 }
 
 function toggleCamera(){
   if(!localStream) return;
   isCameraOff = !isCameraOff;
+
   localStream.getVideoTracks().forEach(track => {
     track.enabled = !isCameraOff;
   });
+
+  document.getElementById("cameraBtn").classList.toggle("active", isCameraOff);
   showToast(isCameraOff ? "Camera off" : "Camera on");
 }
 
