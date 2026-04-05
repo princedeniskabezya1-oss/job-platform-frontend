@@ -372,6 +372,9 @@ body{
   display:inline-block;
   box-shadow:0 2px 8px rgba(0,0,0,0.05);
   position:relative;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  word-break:break-word;
 }
 
 .bubble.selected{
@@ -708,7 +711,7 @@ body{
   display:none;
   position:fixed;
   inset:0;
-  background:#0f172a;
+  background:linear-gradient(180deg,#0b1220 0%, #111827 100%);
   z-index:3500;
   color:white;
   flex-direction:column;
@@ -747,10 +750,11 @@ body{
 .call-remote-wrap{
   width:100%;
   height:100%;
-  background:#111827;
-  border-radius:22px;
+  background:#0b1220;
+  border-radius:28px;
   overflow:hidden;
   position:relative;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.05);
 }
 
 .call-remote-video{
@@ -792,13 +796,14 @@ body{
   position:absolute;
   right:22px;
   bottom:22px;
-  width:180px;
-  height:240px;
-  background:#111827;
-  border-radius:18px;
+  width:170px;
+  height:228px;
+  background:#0b1220;
+  border-radius:24px;
   overflow:hidden;
-  box-shadow:0 14px 30px rgba(0,0,0,0.28);
-  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:0 18px 40px rgba(0,0,0,0.34);
+  border:1px solid rgba(255,255,255,0.12);
+  backdrop-filter:blur(8px);
 }
 
 .call-local-video{
@@ -811,22 +816,24 @@ body{
 .call-controls{
   display:flex;
   justify-content:center;
-  gap:12px;
-  padding:0 0 20px 0;
+  gap:14px;
+  padding:0 0 24px 0;
 }
 
 .call-control-btn{
   border:none;
-  width:52px;
-  height:52px;
+  width:56px;
+  height:56px;
   border-radius:50%;
-  background:#1f2937;
+  background:rgba(255,255,255,0.10);
   color:white;
   cursor:pointer;
   display:flex;
   align-items:center;
   justify-content:center;
   font-size:14px;
+  backdrop-filter:blur(8px);
+  box-shadow:0 8px 20px rgba(0,0,0,0.2);
 }
 
 .call-control-btn.danger{
@@ -915,6 +922,7 @@ body{
   <button class="message-tool-btn" onclick="reactToSelected()">😀 React</button>
   <button class="message-tool-btn" onclick="replyToSelected()">↩ Reply</button>
   <button class="message-tool-btn" onclick="copySelectedMessage()">⧉ Copy</button>
+  <button class="message-tool-btn" onclick="deleteSelectedMessage()">🗑 Delete</button>
   <button class="message-tool-btn" onclick="clearMessageSelection()">✕ Cancel</button>
 </div>
 
@@ -995,7 +1003,51 @@ body{
     <button onclick="endCurrentCall()" class="call-control-btn danger" title="End call">📞</button>
   </div>
 </div>
+<div id="meetingModal" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.35);
+  z-index:3300;
+  align-items:center;
+  justify-content:center;
+">
+  <div style="
+    width:min(460px, 92%);
+    background:white;
+    border-radius:24px;
+    padding:22px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.2);
+  ">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:18px;font-weight:800;">Start Meeting</div>
+      <button onclick="closeMeetingModal()" style="border:none;background:none;font-size:20px;cursor:pointer;">×</button>
+    </div>
 
+    <div style="font-size:14px;color:#6f6f6f;line-height:1.6;margin-bottom:16px;">
+      Create a meeting room for up to 50 participants. Share the link with your team, candidates, or clients.
+    </div>
+
+    <input id="meetingTitle" type="text" placeholder="Meeting title"
+      style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid #d8dbe1;margin-bottom:12px;">
+
+    <div id="meetingLinkBox" style="
+      display:none;
+      background:#f8fafc;
+      border:1px solid #d8dbe1;
+      padding:12px;
+      border-radius:12px;
+      font-size:13px;
+      word-break:break-all;
+      margin-bottom:12px;
+    "></div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="createMeetingLink()" class="message-tool-btn">Create link</button>
+      <button onclick="copyMeetingLink()" class="message-tool-btn">Copy link</button>
+    </div>
+  </div>
+</div>
 <div id="chatInfoModal" style="
   display:none;
   position:fixed;
@@ -1026,10 +1078,12 @@ body{
     </div>
 
     <div style="display:grid;gap:10px;">
-      <button class="message-tool-btn" onclick="showToast('Pin chat can be added next')">📌 Pin chat</button>
-      <button class="message-tool-btn" onclick="showToast('Star messages can be added next')">⭐ Star messages</button>
-      <button class="message-tool-btn" onclick="showToast('Report flow can be added next')">🚩 Report</button>
-    </div>
+  <button class="message-tool-btn" onclick="showToast('Pin chat coming next')">📌 Pin chat</button>
+  <button class="message-tool-btn" onclick="showToast('Mute chat coming next')">🔕 Mute chat</button>
+  <button class="message-tool-btn" onclick="showToast('Clear chat coming next')">🧹 Clear chat</button>
+  <button class="message-tool-btn" onclick="showToast('Block user coming next')">⛔ Block user</button>
+  <button class="message-tool-btn" onclick="showToast('Report flow can be added next')">🚩 Report</button>
+</div>
   </div>
 </div>
 
@@ -1064,7 +1118,7 @@ body{
       </div>
 
       <div class="chat-header-actions">
-        <button class="header-icon-btn" onclick="startAudioCall()" title="Audio call">
+  <button class="header-icon-btn" onclick="startAudioCall()" title="Audio call">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07A19.5 19.5 0 0 1 5.15 12.8 19.8 19.8 0 0 1 2.08 4.09 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.63 2.62a2 2 0 0 1-.45 2.11L8 9.94a16 16 0 0 0 6.06 6.06l1.49-1.24a2 2 0 0 1 2.11-.45c.84.3 1.72.51 2.62.63A2 2 0 0 1 22 16.92z"/>
           </svg>
@@ -1077,7 +1131,14 @@ body{
           </svg>
         </button>
 
-        <button class="header-icon-btn" onclick="showChatInfo()" title="More">
+        <button class="header-icon-btn" onclick="startMeeting()" title="Meeting">
+  <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+    <path d="M17 10.5V6a2 2 0 0 0-2-2H5A2 2 0 0 0 3 6v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1.5"/>
+    <path d="M17 8l4-2v12l-4-2"/>
+  </svg>
+</button>
+
+<button class="header-icon-btn" onclick="showChatInfo()" title="More">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
             <circle cx="12" cy="12" r="1"></circle>
             <circle cx="19" cy="12" r="1"></circle>
@@ -1884,7 +1945,32 @@ function showChatInfo(){
 function closeChatInfo(){
   document.getElementById("chatInfoModal").style.display = "none";
 }
+function startMeeting(){
+  if(!activeUserId) return showToast("Select a conversation first");
+  document.getElementById("meetingModal").style.display = "flex";
+}
 
+function closeMeetingModal(){
+  document.getElementById("meetingModal").style.display = "none";
+}
+
+function createMeetingLink(){
+  const title = document.getElementById("meetingTitle").value.trim() || "AIFT Meeting";
+  const roomId = "meet-" + Date.now();
+  const link = window.location.origin + "/meeting.html?room=" + roomId + "&title=" + encodeURIComponent(title);
+
+  const box = document.getElementById("meetingLinkBox");
+  box.style.display = "block";
+  box.innerText = link;
+}
+
+async function copyMeetingLink(){
+  const box = document.getElementById("meetingLinkBox");
+  if(!box.innerText.trim()) return showToast("Create a meeting link first");
+
+  await navigator.clipboard.writeText(box.innerText);
+  showToast("Meeting link copied");
+}
 function cleanupCall(){
   if(peerConnection){
     peerConnection.close();
@@ -2016,12 +2102,20 @@ window.addEventListener("click", function(e){
   }
 
   const incomingModal = document.getElementById("incomingCallModal");
-  if(
-    incomingModal.style.display === "flex" &&
-    e.target === incomingModal
-  ){
-    declineIncomingCall();
-  }
+if(
+  incomingModal.style.display === "flex" &&
+  e.target === incomingModal
+){
+  declineIncomingCall();
+}
+
+const meetingModal = document.getElementById("meetingModal");
+if(
+  meetingModal.style.display === "flex" &&
+  e.target === meetingModal
+){
+  closeMeetingModal();
+}
 });
 
 document.addEventListener("DOMContentLoaded", async ()=>{
