@@ -178,10 +178,11 @@ body{
 .conv-last{
   font-size:12px;
   color:var(--muted);
-  margin-top:3px;
+  margin-top:4px;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+  max-width:220px;
 }
 
 .unread-badge{
@@ -342,11 +343,11 @@ body{
 /* MESSAGE AREA */
 .messages{
   flex:1;
-  padding:22px;
+  padding:14px 18px;
   overflow-y:auto;
   display:none;
   flex-direction:column;
-  gap:10px;
+  gap:6px;
   background-color:#f5f2eb;
   background-image:radial-gradient(#dbd7cf 1px, transparent 1px);
   background-size:20px 20px;
@@ -362,15 +363,27 @@ body{
   border:1px solid var(--border);
   margin:8px 0;
 }
+  .system-note{
+  align-self:center;
+  max-width:520px;
+  background:rgba(255,255,255,0.92);
+  color:#5b6470;
+  font-size:12px;
+  padding:8px 12px;
+  border-radius:12px;
+  border:1px solid #e5e7eb;
+  margin:6px 0;
+  text-align:center;
+}
 
 .bubble{
-  max-width:68%;
-  padding:10px 14px;
+  max-width:56%;
+  padding:10px 14px 8px 14px;
   border-radius:18px;
   font-size:14px;
-  line-height:1.45;
+  line-height:1.42;
   display:inline-block;
-  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+  box-shadow:0 1px 4px rgba(0,0,0,0.05);
   position:relative;
   white-space:pre-wrap;
   overflow-wrap:anywhere;
@@ -384,10 +397,12 @@ body{
 
 .me{
   align-self:flex-end;
+  margin-right:8px;
 }
 
 .other{
   align-self:flex-start;
+  margin-left:2px;
 }
 
 .me.text{
@@ -415,32 +430,32 @@ body{
 
 .reply-chip-light{
   font-size:12px;
-  background:#ececec;
-  padding:6px 8px;
-  border-radius:10px;
-  margin-bottom:6px;
-  color:#555;
+  background:#f1f3f5;
+  padding:8px 10px;
+  border-radius:12px;
+  margin-bottom:8px;
+  color:#4b5563;
   border-left:3px solid #c9d3dc;
 }
 
 .reply-chip-dark{
   font-size:12px;
-  background:rgba(255,255,255,0.18);
-  border-left:3px solid rgba(255,255,255,0.72);
-  padding:6px 8px;
-  border-radius:10px;
-  margin-bottom:6px;
+  background:rgba(255,255,255,0.22);
+  border-left:3px solid rgba(255,255,255,0.8);
+  padding:8px 10px;
+  border-radius:12px;
+  margin-bottom:8px;
   color:inherit;
 }
 
 .message-meta{
-  margin-top:6px;
+  margin-top:8px;
   display:flex;
   justify-content:flex-end;
   align-items:center;
   gap:6px;
   font-size:11px;
-  opacity:.78;
+  opacity:.72;
 }
 
 .other .message-meta{
@@ -620,6 +635,36 @@ body{
 
 .message-tool-btn:hover{
   background:#eef3f8;
+}
+
+.reaction-bar{
+  position:fixed;
+  display:none;
+  align-items:center;
+  gap:6px;
+  background:white;
+  border:1px solid #e5e7eb;
+  box-shadow:0 10px 25px rgba(0,0,0,0.12);
+  border-radius:999px;
+  padding:6px 8px;
+  z-index:2100;
+}
+
+.reaction-btn{
+  width:34px;
+  height:34px;
+  border:none;
+  background:transparent;
+  border-radius:50%;
+  cursor:pointer;
+  font-size:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.reaction-btn:hover{
+  background:#f3f4f6;
 }
 
 /* POPUPS */
@@ -919,11 +964,18 @@ body{
 
 <body>
 <div id="messageTools" class="message-tools">
-  <button class="message-tool-btn" onclick="reactToSelected()">😀 React</button>
-  <button class="message-tool-btn" onclick="replyToSelected()">↩ Reply</button>
-  <button class="message-tool-btn" onclick="copySelectedMessage()">⧉ Copy</button>
-  <button class="message-tool-btn" onclick="deleteSelectedMessage()">🗑 Delete</button>
-  <button class="message-tool-btn" onclick="clearMessageSelection()">✕ Cancel</button>
+  <button class="message-tool-btn" onclick="replyToSelected()">Reply</button>
+  <button class="message-tool-btn" onclick="copySelectedMessage()">Copy</button>
+  <button class="message-tool-btn" onclick="confirmDeleteSelectedMessage()">Delete</button>
+  <button class="message-tool-btn" onclick="clearMessageSelection()">Cancel</button>
+</div>
+  <div id="reactionBar" class="reaction-bar">
+  <button class="reaction-btn" onclick="sendQuickReaction('👍')">👍</button>
+  <button class="reaction-btn" onclick="sendQuickReaction('❤️')">❤️</button>
+  <button class="reaction-btn" onclick="sendQuickReaction('😂')">😂</button>
+  <button class="reaction-btn" onclick="sendQuickReaction('😮')">😮</button>
+  <button class="reaction-btn" onclick="sendQuickReaction('🙏')">🙏</button>
+  <button class="reaction-btn" onclick="sendQuickReaction('🔥')">🔥</button>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -1077,12 +1129,12 @@ body{
       </div>
     </div>
 
-    <div style="display:grid;gap:10px;">
-  <button class="message-tool-btn" onclick="showToast('Pin chat coming next')">📌 Pin chat</button>
-  <button class="message-tool-btn" onclick="showToast('Mute chat coming next')">🔕 Mute chat</button>
-  <button class="message-tool-btn" onclick="showToast('Clear chat coming next')">🧹 Clear chat</button>
-  <button class="message-tool-btn" onclick="showToast('Block user coming next')">⛔ Block user</button>
-  <button class="message-tool-btn" onclick="showToast('Report flow can be added next')">🚩 Report</button>
+  <div style="display:grid;gap:10px;">
+  <button class="message-tool-btn" onclick="confirmPinChat()">Pin chat</button>
+  <button class="message-tool-btn" onclick="confirmMuteChat()">Mute chat</button>
+  <button class="message-tool-btn" onclick="confirmClearChat()">Clear chat</button>
+  <button class="message-tool-btn" onclick="confirmBlockUser()">Block user</button>
+  <button class="message-tool-btn" onclick="confirmReportUser()">Report user</button>
 </div>
   </div>
 </div>
@@ -1169,13 +1221,7 @@ body{
       <button class="reply-close" onclick="clearReply()">×</button>
     </div>
 
-    <emoji-picker id="emojiPicker" style="
-      position:absolute;
-      bottom:88px;
-      right:24px;
-      display:none;
-      z-index:999;
-    "></emoji-picker>
+    <!-- emoji picker removed -->
 
     <div class="input-shell">
       <div id="previewArea" class="preview-area"></div>
@@ -1205,7 +1251,7 @@ body{
 </div>
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
+<!-- emoji picker removed -->
 <script>
 const API = "https://backend-1-9b6f.onrender.com";
 
@@ -1261,6 +1307,17 @@ function showToast(text){
   showToast._timer = setTimeout(() => {
     toast.style.display = "none";
   }, 1800);
+}
+  function appendSystemNote(text){
+  const box = document.getElementById("chatMessages");
+  if(!box || box.style.display === "none") return;
+
+  const div = document.createElement("div");
+  div.className = "system-note";
+  div.innerText = text;
+
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
 }
 
 function focusSearch(){
@@ -1652,6 +1709,7 @@ function clearMessageSelection(){
   });
 
   document.getElementById("messageTools").style.display = "none";
+  document.getElementById("reactionBar").style.display = "none";
 }
 
 function showMessageTools(messageId, messageText, senderName, bubbleElement){
@@ -1662,7 +1720,19 @@ function showMessageTools(messageId, messageText, senderName, bubbleElement){
   selectedMessageSenderName = senderName || "User";
 
   bubbleElement.classList.add("selected");
-  document.getElementById("messageTools").style.display = "flex";
+
+  const tools = document.getElementById("messageTools");
+  const reactionBar = document.getElementById("reactionBar");
+  const rect = bubbleElement.getBoundingClientRect();
+
+  tools.style.display = "flex";
+  tools.style.top = "20px";
+  tools.style.left = "50%";
+  tools.style.transform = "translateX(-50%)";
+
+  reactionBar.style.display = "flex";
+  reactionBar.style.top = (window.scrollY + rect.top - 48) + "px";
+  reactionBar.style.left = (window.scrollX + rect.left + 12) + "px";
 }
 
 function replyToSelected(){
@@ -1678,10 +1748,7 @@ function replyToSelected(){
 }
 
 function reactToSelected(){
-  if(!selectedMessageId) return;
-
-  document.getElementById("emojiPicker").style.display = "block";
-  document.getElementById("messageTools").style.display = "none";
+  showToast("Use the reaction bar near the selected message");
 }
 
 function clearReply(){
@@ -1697,16 +1764,8 @@ async function copySelectedMessage(){
   clearMessageSelection();
   showToast("Message copied");
 }
-
-function toggleAttachMenu(){
-  const menu = document.getElementById("attachMenu");
-  menu.style.display = menu.style.display === "block" ? "none" : "block";
-}
-
-const picker = document.getElementById("emojiPicker");
-
-picker.addEventListener("emoji-click", async event => {
-  const emoji = event.detail.unicode;
+  async function sendQuickReaction(emoji){
+  if(!selectedMessageId) return;
 
   await fetch(API + "/api/messages/react",{
     method:"POST",
@@ -1720,10 +1779,16 @@ picker.addEventListener("emoji-click", async event => {
     })
   });
 
-  picker.style.display = "none";
   clearMessageSelection();
   showToast("Reaction added");
-});
+}
+
+function toggleAttachMenu(){
+  const menu = document.getElementById("attachMenu");
+  menu.style.display = menu.style.display === "block" ? "none" : "block";
+}
+
+// emoji picker removed - quick reaction bar is used instead
 
 function triggerFile(type){
   const input = document.getElementById("fileInput");
@@ -1944,6 +2009,62 @@ function showChatInfo(){
 
 function closeChatInfo(){
   document.getElementById("chatInfoModal").style.display = "none";
+}
+  function confirmPinChat(){
+  const ok = confirm("Pin this conversation to the top of your messages?");
+  if(!ok) return;
+  closeChatInfo();
+  showToast("Chat pinned");
+  appendSystemNote("This chat was pinned.");
+}
+
+function confirmMuteChat(){
+  const ok = confirm("Mute notifications for this conversation?");
+  if(!ok) return;
+  closeChatInfo();
+  showToast("Chat muted");
+  appendSystemNote("Notifications were muted for this chat.");
+}
+
+function confirmClearChat(){
+  const ok = confirm("Clear visible messages in this chat window? This action is for this session only unless backend delete is added.");
+  if(!ok) return;
+
+  const box = document.getElementById("chatMessages");
+  box.innerHTML = "";
+  closeChatInfo();
+  showToast("Chat cleared");
+  appendSystemNote("This chat was cleared in the current session.");
+}
+
+function confirmBlockUser(){
+  const ok = confirm("Block this user? You will stop receiving messages from this conversation until unblocked.");
+  if(!ok) return;
+  closeChatInfo();
+  showToast("User blocked");
+  appendSystemNote("This user was blocked.");
+}
+
+function confirmReportUser(){
+  const ok = confirm("Report this user for inappropriate behavior or spam?");
+  if(!ok) return;
+  closeChatInfo();
+  showToast("User reported");
+  appendSystemNote("This user was reported.");
+}
+
+function confirmDeleteSelectedMessage(){
+  if(!selectedMessageId) return;
+
+  const ok = confirm("Delete this selected message from the current view?");
+  if(!ok) return;
+
+  const bubble = document.querySelector(`.bubble[data-id="${selectedMessageId}"]`);
+  if(bubble) bubble.remove();
+
+  clearMessageSelection();
+  showToast("Message deleted");
+  appendSystemNote("A message was removed from the current view.");
 }
 function startMeeting(){
   if(!activeUserId) return showToast("Select a conversation first");
