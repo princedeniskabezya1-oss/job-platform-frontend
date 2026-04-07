@@ -343,14 +343,12 @@ body{
 /* MESSAGE AREA */
 .messages{
   flex:1;
-  padding:8px 12px;
+  padding:10px 12px 6px 12px;
   overflow-y:auto;
   display:none;
   flex-direction:column;
-  gap:2px;
-  background-color:#f5f2eb;
-  background-image:radial-gradient(#dbd7cf 1px, transparent 1px);
-  background-size:32px 32px;
+  gap:1px;
+  background:#efeae2;
 }
 
 .day-divider{
@@ -377,85 +375,106 @@ body{
 }
 
 .bubble{
-  max-width:68%;
-  padding:10px 14px 8px 14px;
-  border-radius:18px;
+  max-width:72%;
+  min-width:88px;
+  width:fit-content;
+  padding:8px 10px 6px 10px;
+  border-radius:12px;
   font-size:14px;
-  line-height:1.42;
-  display:inline-block;
-  box-shadow:0 1px 4px rgba(0,0,0,0.05);
+  line-height:1.4;
+  display:block;
+  box-shadow:none;
   position:relative;
   white-space:pre-wrap;
   overflow-wrap:anywhere;
   word-break:break-word;
+  margin-top:2px;
 }
 
 .bubble.selected{
   outline:2px solid rgba(10,102,194,0.35);
-  box-shadow:0 0 0 4px rgba(10,102,194,0.08), 0 8px 24px rgba(0,0,0,0.08);
+  box-shadow:0 0 0 4px rgba(10,102,194,0.08);
+}
+
+.bubble.group-next.me{
+  border-top-right-radius:6px;
+  margin-top:1px;
+}
+
+.bubble.group-prev.me{
+  border-bottom-right-radius:6px;
+}
+
+.bubble.group-next.other{
+  border-top-left-radius:6px;
+  margin-top:1px;
+}
+
+.bubble.group-prev.other{
+  border-bottom-left-radius:6px;
 }
 
 .me{
   align-self:flex-end;
-  margin-right:4px;
+  margin-right:2px;
 }
 
 .other{
   align-self:flex-start;
-  margin-left:4px;
+  margin-left:2px;
 }
 
 .me.text{
-  background:var(--primary);
-  color:white;
-  border-radius:18px 18px 6px 18px;
+  background:#d9fdd3;
+  color:#111b21;
+  border-radius:12px 12px 4px 12px;
 }
 
 .me.media{
-  background:linear-gradient(135deg,#e7f0fa,#dbe9f9);
-  border-radius:18px 18px 6px 18px;
+  background:#d9fdd3;
+  border-radius:12px 12px 4px 12px;
 }
 
 .other.text{
   background:white;
-  border:1px solid #e6e6e6;
-  border-radius:18px 18px 18px 6px;
+  border:none;
+  border-radius:12px 12px 12px 4px;
 }
 
 .other.media{
-  background:#f5f7fa;
-  border:1px solid #e0e6ed;
-  border-radius:18px 18px 18px 6px;
+  background:white;
+  border:none;
+  border-radius:12px 12px 12px 4px;
 }
 
 .reply-chip-light{
   font-size:12px;
-  background:#f1f3f5;
-  padding:8px 10px;
-  border-radius:12px;
-  margin-bottom:8px;
+  background:#f0f2f5;
+  padding:7px 9px;
+  border-radius:8px;
+  margin-bottom:6px;
   color:#4b5563;
-  border-left:3px solid #c9d3dc;
+  border-left:3px solid #7c8b96;
 }
 
 .reply-chip-dark{
   font-size:12px;
-  background:rgba(255,255,255,0.22);
-  border-left:3px solid rgba(255,255,255,0.8);
-  padding:8px 10px;
-  border-radius:12px;
-  margin-bottom:8px;
-  color:inherit;
+  background:rgba(0,0,0,0.05);
+  border-left:3px solid #7c8b96;
+  padding:7px 9px;
+  border-radius:8px;
+  margin-bottom:6px;
+  color:#111b21;
 }
 
 .message-meta{
-  margin-top:8px;
+  margin-top:4px;
   display:flex;
   justify-content:flex-end;
   align-items:center;
-  gap:6px;
+  gap:4px;
   font-size:11px;
-  opacity:.72;
+  opacity:.7;
 }
 
 .other .message-meta{
@@ -1399,13 +1418,30 @@ function buildReactionsHtml(msg){
   if(!(msg.reactions && msg.reactions.length)) return "";
   return `<div class="reactions">${msg.reactions.map(r => r.emoji).join(" ")}</div>`;
 }
+function refreshBubbleGrouping(box){
+  const bubbles = Array.from(box.querySelectorAll(".bubble"));
 
+  bubbles.forEach(bubble => {
+    bubble.classList.remove("group-prev", "group-next");
+  });
+
+  for(let i = 1; i < bubbles.length; i++){
+    const prev = bubbles[i - 1];
+    const current = bubbles[i];
+
+    if(prev.dataset.owner === current.dataset.owner){
+      prev.classList.add("group-prev");
+      current.classList.add("group-next");
+    }
+  }
+}
 function renderMessageBubble(msg){
   const isMine = msg.sender && msg.sender._id === myId;
   const div = document.createElement("div");
 
   div.dataset.id = msg._id || ("temp-" + Date.now());
-  div.className = "bubble " + (isMine ? "me " : "other ") + (msg.fileUrl ? "media" : "text");
+div.dataset.owner = isMine ? "me" : "other";
+div.className = "bubble " + (isMine ? "me " : "other ") + (msg.fileUrl ? "media" : "text");
 
   div.onclick = () => showMessageTools(
     div.dataset.id,
@@ -1456,17 +1492,19 @@ socket.on("newMessage", msg => {
       });
 
       if(tempMine){
-        tempMine.replaceWith(renderMessageBubble(msg));
-        box.scrollTop = box.scrollHeight;
-        return;
-      }
+  tempMine.replaceWith(renderMessageBubble(msg));
+  refreshBubbleGrouping(box);
+  box.scrollTop = box.scrollHeight;
+  return;
+}
     }
 
     const alreadyExists = box.querySelector(`.bubble[data-id="${msg._id}"]`);
     if(alreadyExists) return;
 
     box.appendChild(renderMessageBubble(msg));
-    box.scrollTop = box.scrollHeight;
+refreshBubbleGrouping(box);
+box.scrollTop = box.scrollHeight;
   }
 });
 
@@ -1625,11 +1663,12 @@ async function openConversation(userId, name, profileImage){
   const box = document.getElementById("chatMessages");
   box.innerHTML = "";
 
-  messages.forEach(msg => {
-    box.appendChild(renderMessageBubble(msg));
-  });
+ messages.forEach(msg => {
+  box.appendChild(renderMessageBubble(msg));
+});
 
-  box.scrollTop = box.scrollHeight;
+refreshBubbleGrouping(box);
+box.scrollTop = box.scrollHeight;
 
   await fetch(API + "/api/messages/seen/" + userId, {
     method:"PATCH",
@@ -1861,8 +1900,9 @@ const optimistic = {
 
   const bubble = renderMessageBubble(optimistic);
 bubble.dataset.temp = "true";
-  box.appendChild(bubble);
-  box.scrollTop = box.scrollHeight;
+box.appendChild(bubble);
+refreshBubbleGrouping(box);
+box.scrollTop = box.scrollHeight;
 
   const formData = new FormData();
   if(currentReplyTo) formData.append("replyTo", currentReplyTo);
@@ -2182,7 +2222,7 @@ async function acceptIncomingCall(){
 window.addEventListener("click", function(e){
   const menu = document.getElementById("attachMenu");
   const tools = document.getElementById("messageTools");
-  const pickerEl = document.getElementById("emojiPicker");
+  const pickerEl = null;
 
   if(
     !menu.contains(e.target) &&
