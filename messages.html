@@ -381,9 +381,20 @@ body{
   border-radius:12px;
   font-size:14px;
   line-height:1.4;
-
-  display:inline-flex;           /* 🔥 IMPORTANT */
-  flex-direction:column;         /* 🔥 STACK content */
+  display:inline-flex;
+  flex-direction:column;
+  position:relative;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  overflow:hidden; /* important */
+  margin-top:2px;
+}
+  .bubble-text{
+  max-width:100%;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  word-break:break-word;
 }
 
 .bubble.selected{
@@ -466,14 +477,15 @@ body{
   margin-top:4px;
   font-size:11px;
   opacity:.7;
-
-  align-self:flex-end;   /* 🔥 THIS is the key fix */
   display:flex;
   gap:4px;
+  align-self:flex-end;
+  max-width:100%;
+  flex-wrap:wrap;
 }
 
 .other .message-meta{
-  justify-content:flex-start;
+  align-self:flex-start;
   color:#6c727a;
 }
 
@@ -488,9 +500,18 @@ body{
 }
 
 .media-preview{
-  max-width:220px;
-  border-radius:12px;
   display:block;
+  max-width:100%;
+  width:220px;
+  height:auto;
+  border-radius:12px;
+  object-fit:cover;
+  margin-top:6px;
+}
+  video.media-preview{
+  max-width:100%;
+  width:220px;
+  height:auto;
 }
 
 .file-link{
@@ -1445,16 +1466,16 @@ div.className = "bubble " + (isMine ? "me " : "other ") + (msg.fileUrl ? "media"
     div
   );
 
-  div.innerHTML = `
-    ${buildReplyHtml(msg, isMine)}
-    ${msg.text || ""}
-    ${buildFileHtml(msg)}
-    ${buildReactionsHtml(msg)}
-    <div class="message-meta">
-      <span>${formatMessageMetaTime(msg.createdAt)}</span>
-      ${isMine ? buildStatusHtml(msg) : ""}
-    </div>
-  `;
+div.innerHTML = `
+  ${buildReplyHtml(msg, isMine)}
+  ${msg.text ? `<div class="bubble-text">${msg.text}</div>` : ""}
+  ${buildFileHtml(msg)}
+  ${buildReactionsHtml(msg)}
+  <div class="message-meta">
+    <span>${formatMessageMetaTime(msg.createdAt)}</span>
+    ${isMine ? buildStatusHtml(msg) : ""}
+  </div>
+`;
 
   return div;
 }
