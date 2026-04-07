@@ -1,311 +1,1105 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Notifications | AIFT</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notifications | AIFT</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
-<style>
-body{
-  margin:0;
-  font-family:'Inter',sans-serif;
-  background:#f3f2ef;
-}
+  <style>
+    :root{
+      --bg:#f3f2ef;
+      --card:#ffffff;
+      --text:#1d2226;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --primary:#0a66c2;
+      --primary-dark:#004182;
+      --soft-blue:#eef5fc;
+      --soft:#f8fafc;
+      --success:#0f766e;
+      --warning:#b45309;
+      --purple:#6d28d9;
+      --danger:#b91c1c;
+      --shadow:0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.05);
+      --radius:16px;
+    }
 
-.header{
-  background:white;
-  padding:15px 40px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  box-shadow:0 2px 8px rgba(0,0,0,0.05);
-}
+    *{
+      box-sizing:border-box;
+    }
 
-.logo{
-  font-weight:800;
-  font-size:20px;
-}
+    html,body{
+      margin:0;
+      padding:0;
+      font-family:'Inter',sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
 
-.container{
-  max-width:800px;
-  margin:40px auto;
-}
+    button,input{
+      font-family:inherit;
+    }
 
-.card{
-  background:white;
-  border-radius:12px;
-  box-shadow:0 1px 4px rgba(0,0,0,0.08);
-  overflow:hidden;
-  padding:0;
-}
-  .header button{
-  background:#0a66c2;
-  color:white;
-  border:none;
-  border-radius:20px;
-  padding:6px 14px;
-  cursor:pointer;
-  font-size:13px;
-  transition:0.2s;
-}
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:50;
+      background:#fff;
+      border-bottom:1px solid var(--line);
+      backdrop-filter:blur(10px);
+    }
 
-.header button:hover{
-  background:#004182;
-}
+    .topbar-inner{
+      max-width:1120px;
+      margin:0 auto;
+      padding:14px 20px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      flex-wrap:wrap;
+    }
 
-.notification{
-  padding:14px;
-  border-bottom:1px solid #eee;
-  display:flex;
-  gap:12px;
-  align-items:flex-start;
-  cursor:pointer;
-  transition:0.2s;
-  border-radius:10px;
-  margin-bottom:6px;
-}
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
 
-.notification:hover{
-  background:#f3f6f8;
-  transform:scale(1.01);
-}
+    .brand-badge{
+      width:42px;
+      height:42px;
+      border-radius:12px;
+      background:linear-gradient(135deg,#0a66c2,#2d8cff);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      font-size:16px;
+      flex-shrink:0;
+      box-shadow:0 8px 18px rgba(10,102,194,.22);
+    }
 
-.notification.unread{
-  background:#e8f0fe;
-  border-left:4px solid #0a66c2;
-}
+    .brand-text{
+      min-width:0;
+    }
 
+    .page-title{
+      font-size:22px;
+      font-weight:800;
+      line-height:1.2;
+    }
 
-.notification-content{
-  flex:1;
-}
+    .page-subtitle{
+      font-size:13px;
+      color:var(--muted);
+      margin-top:2px;
+      line-height:1.4;
+    }
 
-.notification-name{
-  font-weight:600;
-  font-size:14px;
-}
+    .top-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
 
-.notification-message{
-  font-size:13px;
-  color:#555;
-  margin-top:2px;
-}
+    .btn{
+      border:none;
+      border-radius:999px;
+      padding:10px 16px;
+      font-size:14px;
+      font-weight:700;
+      cursor:pointer;
+      transition:.18s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      white-space:nowrap;
+    }
 
-.notification-time{
-  font-size:11px;
-  color:#888;
-  margin-top:4px;
-}
+    .btn:hover{
+      transform:translateY(-1px);
+    }
 
-.notification-dot{
-  width:8px;
-  height:8px;
-  background:#0a66c2;
-  border-radius:50%;
-  margin-top:6px;
-}
+    .btn svg{
+      width:16px;
+      height:16px;
+      stroke:currentColor;
+      fill:none;
+      stroke-width:2;
+    }
 
-.notification img{
-  width:45px;
-  height:45px;
-  border-radius:50%;
-  object-fit:cover;
-}
+    .btn-primary{
+      background:var(--primary);
+      color:#fff;
+    }
 
-.empty{
-  text-align:center;
-  padding:40px;
-  color:#6f6f6f;
-}
-  .notification{
-  animation:fadeIn 0.4s ease;
-}
+    .btn-primary:hover{
+      background:var(--primary-dark);
+    }
 
-@keyframes fadeIn{
-  from{
-    opacity:0;
-    transform:translateY(10px) scale(0.98);
-  }
-  to{
-    opacity:1;
-    transform:translateY(0) scale(1);
-  }
-}
-  .header svg{
-  transition:0.2s;
-}
+    .btn-secondary{
+      background:#fff;
+      color:var(--primary);
+      border:1px solid #c6d7e8;
+    }
 
-.header svg:hover{
-  stroke:#0a66c2;
-  transform:scale(1.1);
-}
-</style>
+    .btn-secondary:hover{
+      background:#f8fbff;
+    }
+
+    .page{
+      max-width:1120px;
+      margin:24px auto;
+      padding:0 20px;
+      display:grid;
+      grid-template-columns:280px minmax(0,1fr);
+      gap:24px;
+      align-items:start;
+    }
+
+    .sidebar,
+    .content{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+
+    .sidebar{
+      padding:18px;
+      position:sticky;
+      top:84px;
+    }
+
+    .sidebar h3{
+      margin:0 0 14px;
+      font-size:16px;
+      font-weight:800;
+    }
+
+    .stat{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:12px 0;
+      border-bottom:1px solid var(--line);
+      font-size:14px;
+    }
+
+    .stat:last-child{
+      border-bottom:none;
+    }
+
+    .stat-label{
+      color:var(--muted);
+    }
+
+    .stat-value{
+      font-weight:800;
+    }
+
+    .filters{
+      margin-top:16px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .filter-btn{
+      width:100%;
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:12px;
+      padding:12px 14px;
+      text-align:left;
+      font-size:14px;
+      font-weight:700;
+      cursor:pointer;
+      transition:.18s ease;
+      color:var(--text);
+    }
+
+    .filter-btn:hover{
+      background:#f8fafc;
+    }
+
+    .filter-btn.active{
+      background:var(--soft-blue);
+      color:var(--primary);
+      border-color:#cfe1f4;
+    }
+
+    .status-line{
+      margin-top:14px;
+      padding:10px 12px;
+      border-radius:12px;
+      background:var(--soft);
+      font-size:13px;
+      color:var(--muted);
+      border:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .status-indicator{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:#94a3b8;
+      flex-shrink:0;
+    }
+
+    .status-indicator.live{
+      background:var(--success);
+      box-shadow:0 0 0 4px rgba(15,118,110,.12);
+    }
+
+    .content-header{
+      padding:18px 20px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .content-header-left h2{
+      margin:0;
+      font-size:20px;
+      font-weight:800;
+    }
+
+    .content-header-left p{
+      margin:4px 0 0;
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .search-wrap{
+      position:relative;
+      width:100%;
+      max-width:320px;
+    }
+
+    .search{
+      width:100%;
+      height:42px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:0 14px 0 40px;
+      outline:none;
+      font-size:14px;
+      background:#fff;
+      transition:.18s ease;
+    }
+
+    .search:focus{
+      border-color:#a8c9ea;
+      box-shadow:0 0 0 4px rgba(10,102,194,.08);
+    }
+
+    .search-icon{
+      position:absolute;
+      left:14px;
+      top:50%;
+      transform:translateY(-50%);
+      width:16px;
+      height:16px;
+      stroke:#64748b;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .notification-list{
+      padding:10px;
+    }
+
+    .notification-item{
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+      padding:14px;
+      border-radius:14px;
+      cursor:pointer;
+      transition:.18s ease;
+      border:1px solid transparent;
+      background:#fff;
+      margin-bottom:8px;
+      position:relative;
+    }
+
+    .notification-item:hover{
+      background:#fafbfd;
+      border-color:#edf1f5;
+    }
+
+    .notification-item.unread{
+      background:var(--soft-blue);
+      border-color:#d7e7f6;
+    }
+
+    .avatar-wrap{
+      position:relative;
+      flex-shrink:0;
+    }
+
+    .avatar{
+      width:52px;
+      height:52px;
+      border-radius:50%;
+      object-fit:cover;
+      background:#f2f4f7;
+      border:1px solid #e5e7eb;
+    }
+
+    .type-mini{
+      position:absolute;
+      right:-2px;
+      bottom:-2px;
+      width:20px;
+      height:20px;
+      border-radius:50%;
+      background:#fff;
+      border:1px solid #dbe1e8;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .type-mini svg{
+      width:11px;
+      height:11px;
+      stroke:#475569;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .notification-body{
+      flex:1;
+      min-width:0;
+    }
+
+    .notification-text{
+      font-size:14px;
+      line-height:1.52;
+      color:#334155;
+      word-wrap:break-word;
+      white-space:normal;
+    }
+
+    .notification-text strong{
+      color:var(--text);
+      font-weight:800;
+    }
+
+    .notification-meta{
+      margin-top:8px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .notification-time{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:600;
+    }
+
+    .notification-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      padding:5px 10px;
+      font-size:11px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.02em;
+    }
+
+    .badge-message{ background:#e8f1fb; color:#0a66c2; }
+    .badge-follow{ background:#f3e8ff; color:var(--purple); }
+    .badge-like{ background:#fff4e8; color:var(--warning); }
+    .badge-comment{ background:#eaf8ef; color:#15803d; }
+    .badge-system{ background:#f1f5f9; color:#475569; }
+
+    .notification-actions{
+      display:flex;
+      align-items:flex-start;
+      gap:8px;
+      flex-shrink:0;
+    }
+
+    .icon-btn{
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      border:1px solid #e5e7eb;
+      background:#fff;
+      cursor:pointer;
+      transition:.18s ease;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .icon-btn:hover{
+      background:#f8fafc;
+    }
+
+    .icon-btn svg{
+      width:15px;
+      height:15px;
+      stroke:#475569;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .unread-dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:var(--primary);
+      margin-top:10px;
+      box-shadow:0 0 0 4px rgba(10,102,194,.12);
+    }
+
+    .state{
+      text-align:center;
+      padding:54px 20px;
+      color:var(--muted);
+    }
+
+    .state-icon{
+      width:64px;
+      height:64px;
+      margin:0 auto 12px;
+      border-radius:50%;
+      background:#f8fafc;
+      border:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .state-icon svg{
+      width:28px;
+      height:28px;
+      stroke:#64748b;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .state h3{
+      margin:12px 0 6px;
+      color:var(--text);
+      font-size:18px;
+      font-weight:800;
+    }
+
+    .loading{
+      text-align:center;
+      padding:30px 20px;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .toast{
+      position:fixed;
+      right:20px;
+      bottom:20px;
+      z-index:100;
+      background:#111827;
+      color:#fff;
+      padding:14px 16px;
+      border-radius:12px;
+      box-shadow:0 10px 30px rgba(0,0,0,.2);
+      opacity:0;
+      transform:translateY(12px);
+      pointer-events:none;
+      transition:.22s ease;
+      max-width:320px;
+      font-size:14px;
+    }
+
+    .toast.show{
+      opacity:1;
+      transform:translateY(0);
+    }
+
+    @media (max-width: 980px){
+      .page{
+        grid-template-columns:1fr;
+      }
+
+      .sidebar{
+        position:static;
+      }
+    }
+
+    @media (max-width: 640px){
+      .topbar-inner{
+        padding:12px;
+      }
+
+      .page{
+        margin:14px auto;
+        padding:0 12px;
+      }
+
+      .content-header{
+        padding:16px;
+      }
+
+      .avatar{
+        width:46px;
+        height:46px;
+      }
+
+      .page-title{
+        font-size:20px;
+      }
+    }
+  </style>
 </head>
-
 <body>
 
-<div class="header">
-
-  <div style="display:flex;align-items:center;gap:10px;">
-<div style="
-position:relative;
-width:22px;
-height:22px;
-display:flex;
-align-items:center;
-justify-content:center;
-">
-
-<svg viewBox="0 0 24 24" style="
-width:20px;
-height:20px;
-stroke:#555;
-fill:none;
-stroke-width:2;
-">
-  <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
-  <path d="M13.73 21a2 2 0 01-3.46 0"/>
-</svg>
-
-<!-- 🔴 NOTIFICATION DOT -->
-<span style="
-position:absolute;
-top:-2px;
-right:-2px;
-width:8px;
-height:8px;
-background:#e11d48;
-border-radius:50%;
-"></span>
-
-</div>
-    <div class="logo">Notifications</div>
-  </div>
-
-  <div style="display:flex;gap:10px;">
-    <button onclick="markAllRead()">Mark all as read</button>
-    <button onclick="window.location.href='talent.html'">⬅ Back</button>
-  </div>
-
-</div>
-
-<div class="container">
-  <div class="card">
-    <div style="
-padding:16px;
-font-weight:600;
-border-bottom:1px solid #eee;
-">
-All Notifications
-</div>
-    <div id="notificationList"></div>
-  </div>
-</div>
-
-<script>
-const API="https://backend-1-9b6f.onrender.com";
-const token=localStorage.getItem("token");
-
-if(!token){
-  window.location.href="login.html";
-}
-
-/* LOAD NOTIFICATIONS */
-async function loadNotifications(){
-
-  const res = await fetch(API+"/api/notifications",{
-    headers:{ Authorization:"Bearer "+token }
-  });
-
-  const notifications = res.ok ? await res.json() : [];
-
-  const container = document.getElementById("notificationList");
-  container.innerHTML="";
-
-  if(notifications.length === 0){
-    container.innerHTML = `
-  <div class="empty">
-    <div style="font-size:40px;">🔔</div>
-    <div style="margin-top:10px;">You're all caught up</div>
-    <div style="font-size:13px;margin-top:5px;">
-      No new notifications right now
-    </div>
-  </div>
-`;
-    return;
-  }
-
-notifications.forEach(n => {
-
-  container.innerHTML += `
-    <div class="notification ${n.read ? '' : 'unread'}"
-         onclick="handleNotification('${n._id}','${n.link || ''}')">
-
-      <img src="${n.sender?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
-
-      <div class="notification-content">
-
-        <div class="notification-name">
-          ${n.sender?.name || 'AIFT'}
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-badge">AI</div>
+        <div class="brand-text">
+          <div class="page-title">Notifications</div>
+          <div class="page-subtitle">Messages, follows, likes, and comments in one place</div>
         </div>
-
-        <div class="notification-message">
-          ${n.message}
-        </div>
-
-        <div class="notification-time">
-          ${formatTime(n.createdAt)}
-        </div>
-
       </div>
 
-      ${!n.read ? `<div class="notification-dot"></div>` : ""}
+      <div class="top-actions">
+        <button class="btn btn-secondary" id="backBtn" type="button">
+          <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+          <span>Back</span>
+        </button>
 
+        <button class="btn btn-secondary" id="refreshBtn" type="button">
+          <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+          <span>Refresh</span>
+        </button>
+
+        <button class="btn btn-primary" id="markAllBtn" type="button">
+          <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+          <span>Mark all as read</span>
+        </button>
+      </div>
     </div>
-  `;
-});
-}
+  </header>
 
-/* MARK AS READ + REDIRECT */
-async function handleNotification(id, link){
+  <main class="page">
+    <aside class="sidebar">
+      <h3>Manage</h3>
 
-  await fetch(API+"/api/notifications/"+id+"/read",{
-    method:"PATCH",
-    headers:{ Authorization:"Bearer "+token }
-  });
+      <div class="stat">
+        <span class="stat-label">Total notifications</span>
+        <span class="stat-value" id="totalCount">0</span>
+      </div>
 
-  if(link){
-    window.location.href = link;
-  } else {
-    loadNotifications();
-  }
-}
-  function formatTime(date){
+      <div class="stat">
+        <span class="stat-label">Unread</span>
+        <span class="stat-value" id="unreadCount">0</span>
+      </div>
 
-  const diff = Math.floor((Date.now() - new Date(date)) / 1000);
+      <div class="stat">
+        <span class="stat-label">Read</span>
+        <span class="stat-value" id="readCount">0</span>
+      </div>
 
-  if(diff < 60) return "Just now";
-  if(diff < 3600) return Math.floor(diff/60) + "m ago";
-  if(diff < 86400) return Math.floor(diff/3600) + "h ago";
-  if(diff < 604800) return Math.floor(diff/86400) + "d ago";
+      <div class="filters">
+        <button class="filter-btn active" id="allBtn" type="button">All notifications</button>
+        <button class="filter-btn" id="unreadBtn" type="button">Unread only</button>
+      </div>
 
-  return new Date(date).toLocaleDateString();
-}
-  async function markAllRead(){
+      <div class="status-line" id="socketStatus">
+        <span class="status-indicator" id="socketIndicator"></span>
+        <span id="socketText">Live updates: connecting...</span>
+      </div>
+    </aside>
 
-  await fetch(API+"/api/notifications/read-all",{
-    method:"PATCH",
-    headers:{ Authorization:"Bearer "+token }
-  });
+    <section class="content">
+      <div class="content-header">
+        <div class="content-header-left">
+          <h2>Your notifications</h2>
+          <p id="resultText">View the latest activity from your account</p>
+        </div>
 
-  loadNotifications();
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20l-3.5-3.5"></path>
+          </svg>
+          <input
+            id="searchInput"
+            class="search"
+            type="text"
+            placeholder="Search notifications"
+            autocomplete="off"
+          />
+        </div>
+      </div>
 
-}
+      <div id="notificationList" class="notification-list">
+        <div class="loading">Loading notifications...</div>
+      </div>
+    </section>
+  </main>
 
-document.addEventListener("DOMContentLoaded", loadNotifications);
-</script>
+  <div id="toast" class="toast">Updated</div>
 
+  <script>
+    const API = "https://backend-1-9b6f.onrender.com";
+    const token = localStorage.getItem("token");
+    let notifications = [];
+    let currentFilter = "all";
+    let socket = null;
+
+    if (!token) {
+      window.location.replace("login.html");
+    }
+
+    function authHeaders() {
+      return {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      };
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2200);
+    }
+
+    function escapeHtml(str = "") {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function getCurrentUserId() {
+      const storedUserId = localStorage.getItem("userId");
+      if (storedUserId) return storedUserId;
+
+      try {
+        const parts = token.split(".");
+        if (parts.length !== 3) return null;
+        const payload = JSON.parse(atob(parts[1]));
+        return payload.id || payload._id || payload.userId || null;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function goBack() {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+      window.location.href = "talent.html";
+    }
+
+    function formatTime(date) {
+      const timestamp = new Date(date).getTime();
+      if (Number.isNaN(timestamp)) return "Unknown time";
+
+      const diff = Math.floor((Date.now() - timestamp) / 1000);
+
+      if (diff < 60) return "Just now";
+      if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+      if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+      if (diff < 604800) return Math.floor(diff / 86400) + "d ago";
+
+      return new Date(date).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: new Date(date).getFullYear() !== new Date().getFullYear() ? "numeric" : undefined
+      });
+    }
+
+    function getTypeLabel(type) {
+      const labels = {
+        message: "Message",
+        follow: "Follow",
+        like: "Like",
+        comment: "Comment",
+        system: "Update"
+      };
+      return labels[type] || "Update";
+    }
+
+    function getTypeMiniIcon(type) {
+      const icons = {
+        message: `<svg viewBox="0 0 24 24"><path d="M4 5h16v10H7l-3 3V5z"/></svg>`,
+        follow: `<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>`,
+        like: `<svg viewBox="0 0 24 24"><path d="M7 11V21"/><path d="M14 5.88L13 11h7.24a2 2 0 0 1 1.97 2.34l-1.03 6A2 2 0 0 1 19.21 21H7a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3.76a2 2 0 0 0 1.95-1.57L14 2a2 2 0 0 1 2 2.38z"/></svg>`,
+        comment: `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+        system: `<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`
+      };
+      return icons[type] || icons.system;
+    }
+
+    function getStateIcon(kind) {
+      const icons = {
+        empty: `<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
+        search: `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`,
+        success: `<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>`,
+        error: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>`
+      };
+      return icons[kind] || icons.empty;
+    }
+
+    function getBadgeClass(type) {
+      const classes = {
+        message: "badge-message",
+        follow: "badge-follow",
+        like: "badge-like",
+        comment: "badge-comment",
+        system: "badge-system"
+      };
+      return classes[type] || "badge-system";
+    }
+
+    function safeRedirect(link) {
+      if (!link || link === "undefined" || link === "null") {
+        showToast("Notification opened");
+        return;
+      }
+
+      const cleaned = String(link).trim();
+      if (!cleaned) {
+        showToast("Notification opened");
+        return;
+      }
+
+      if (cleaned.startsWith("http://") || cleaned.startsWith("https://")) {
+        try {
+          const url = new URL(cleaned);
+          if (url.origin !== window.location.origin) {
+            console.warn("Blocked external redirect:", cleaned);
+            showToast("Blocked unsafe redirect");
+            return;
+          }
+          window.location.href = url.pathname + url.search + url.hash;
+          return;
+        } catch (err) {
+          console.error("Invalid link:", cleaned);
+          showToast("Invalid notification link");
+          return;
+        }
+      }
+
+      window.location.href = cleaned;
+    }
+
+    function updateStats() {
+      const total = notifications.length;
+      const unread = notifications.filter(n => !n.read).length;
+      const read = total - unread;
+
+      document.getElementById("totalCount").textContent = total;
+      document.getElementById("unreadCount").textContent = unread;
+      document.getElementById("readCount").textContent = read;
+    }
+
+    function renderState(title, text, kind = "empty") {
+      document.getElementById("notificationList").innerHTML = `
+        <div class="state">
+          <div class="state-icon">${getStateIcon(kind)}</div>
+          <h3>${title}</h3>
+          <div>${text}</div>
+        </div>
+      `;
+    }
+
+    function buildItem(n) {
+      const senderName = escapeHtml(n.sender?.name || "AIFT");
+      const senderImage = n.sender?.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+      const message = escapeHtml(n.message || n.text || "You have a new notification");
+      const type = n.type || "system";
+      const safeLink = JSON.stringify(n.link || "");
+
+      return `
+        <div class="notification-item ${n.read ? "" : "unread"}"
+             onclick="openNotification('${n._id}', ${safeLink})">
+
+          <div class="avatar-wrap">
+            <img class="avatar" src="${senderImage}" alt="${senderName}">
+            <div class="type-mini">${getTypeMiniIcon(type)}</div>
+          </div>
+
+          <div class="notification-body">
+            <div class="notification-text">
+              <strong>${senderName}</strong> ${message}
+            </div>
+
+            <div class="notification-meta">
+              <span class="notification-time">${formatTime(n.createdAt)}</span>
+              <span class="notification-badge ${getBadgeClass(type)}">${getTypeLabel(type)}</span>
+            </div>
+          </div>
+
+          <div class="notification-actions" onclick="event.stopPropagation()">
+            ${!n.read ? `
+              <button class="icon-btn" type="button" title="Mark as read" onclick="markOneRead('${n._id}')">
+                <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+              </button>
+            ` : ""}
+            ${!n.read ? `<div class="unread-dot"></div>` : ""}
+          </div>
+        </div>
+      `;
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.getElementById("allBtn").classList.toggle("active", filter === "all");
+      document.getElementById("unreadBtn").classList.toggle("active", filter === "unread");
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      let filtered = [...notifications];
+
+      if (currentFilter === "unread") {
+        filtered = filtered.filter(n => !n.read);
+      }
+
+      if (query) {
+        filtered = filtered.filter(n => {
+          const sender = (n.sender?.name || "").toLowerCase();
+          const message = (n.message || n.text || "").toLowerCase();
+          const type = (n.type || "").toLowerCase();
+          return sender.includes(query) || message.includes(query) || type.includes(query);
+        });
+      }
+
+      document.getElementById("resultText").textContent =
+        filtered.length === 1 ? "Showing 1 notification" : `Showing ${filtered.length} notifications`;
+
+      if (!filtered.length) {
+        if (query) {
+          renderState("No matching notifications", "Try another search keyword.", "search");
+        } else if (currentFilter === "unread") {
+          renderState("No unread notifications", "You’re all caught up.", "success");
+        } else {
+          renderState("You're all caught up", "No notifications to show right now.", "empty");
+        }
+        return;
+      }
+
+      document.getElementById("notificationList").innerHTML = filtered.map(buildItem).join("");
+    }
+
+    async function loadNotifications(showMessage = false) {
+      try {
+        const res = await fetch(API + "/api/notifications", {
+          headers: authHeaders()
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem("token");
+          window.location.replace("login.html");
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error("Failed to load notifications");
+        }
+
+        notifications = await res.json();
+        updateStats();
+        applyFilters();
+
+        if (showMessage) {
+          showToast("Notifications refreshed");
+        }
+      } catch (err) {
+        console.error(err);
+        renderState("Couldn’t load notifications", "Please try refreshing the page.", "error");
+      }
+    }
+
+    async function loadUnreadCount() {
+      try {
+        const res = await fetch(API + "/api/notifications/unread", {
+          headers: authHeaders()
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (typeof data.count === "number") {
+          document.getElementById("unreadCount").textContent = data.count;
+          document.getElementById("readCount").textContent = Math.max(0, notifications.length - data.count);
+        }
+      } catch (err) {
+        console.error("Unread count error:", err);
+      }
+    }
+
+    async function openNotification(id, link) {
+      try {
+        const res = await fetch(API + "/api/notifications/" + id + "/read", {
+          method: "PATCH",
+          headers: authHeaders()
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem("token");
+          window.location.replace("login.html");
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error("Failed to mark notification as read");
+        }
+
+        const item = notifications.find(n => n._id === id);
+        if (item) item.read = true;
+
+        updateStats();
+        applyFilters();
+        await loadUnreadCount();
+        safeRedirect(link);
+      } catch (err) {
+        console.error(err);
+        showToast("Could not open notification");
+      }
+    }
+
+    async function markOneRead(id) {
+      try {
+        const res = await fetch(API + "/api/notifications/" + id + "/read", {
+          method: "PATCH",
+          headers: authHeaders()
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem("token");
+          window.location.replace("login.html");
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error("Failed to mark notification");
+        }
+
+        const item = notifications.find(n => n._id === id);
+        if (item) item.read = true;
+
+        updateStats();
+        applyFilters();
+        await loadUnreadCount();
+        showToast("Marked as read");
+      } catch (err) {
+        console.error(err);
+        showToast("Failed to mark notification");
+      }
+    }
+
+    async function markAllRead() {
+      try {
+        const unreadItems = notifications.filter(n => !n.read);
+
+        if (!unreadItems.length) {
+          showToast("No unread notifications");
+          return;
+        }
+
+        await Promise.all(
+          unreadItems.map(n =>
+            fetch(API + "/api/notifications/" + n._id + "/read", {
+              method: "PATCH",
+              headers: authHeaders()
+            })
+          )
+        );
+
+        notifications = notifications.map(n => ({ ...n, read: true }));
+        updateStats();
+        applyFilters();
+        await loadUnreadCount();
+        showToast("All notifications marked as read");
+      } catch (err) {
+        console.error(err);
+        showToast("Failed to mark all as read");
+      }
+    }
+
+    function setSocketStatus(text, live = false) {
+      document.getElementById("socketText").textContent = text;
+      document.getElementById("socketIndicator").classList.toggle("live", live);
+    }
+
+    function initRealtime() {
+      const userId = getCurrentUserId();
+      if (!userId) {
+        setSocketStatus("Live updates unavailable", false);
+        return;
+      }
+
+      socket = io(API, {
+        transports: ["websocket", "polling"]
+      });
+
+      socket.on("connect", () => {
+        socket.emit("join", userId);
+        setSocketStatus("Live updates connected", true);
+      });
+
+      socket.on("disconnect", () => {
+        setSocketStatus("Live updates disconnected", false);
+      });
+
+      socket.on("newMessage", async () => {
+        await loadNotifications(false);
+        await loadUnreadCount();
+      });
+
+      socket.on("newNotification", async () => {
+        await loadNotifications(false);
+        await loadUnreadCount();
+      });
+    }
+
+    document.getElementById("backBtn").addEventListener("click", goBack);
+    document.getElementById("refreshBtn").addEventListener("click", () => loadNotifications(true));
+    document.getElementById("markAllBtn").addEventListener("click", markAllRead);
+    document.getElementById("allBtn").addEventListener("click", () => setFilter("all"));
+    document.getElementById("unreadBtn").addEventListener("click", () => setFilter("unread"));
+    document.getElementById("searchInput").addEventListener("input", applyFilters);
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      await loadNotifications(false);
+      await loadUnreadCount();
+      initRealtime();
+    });
+  </script>
 </body>
 </html>
