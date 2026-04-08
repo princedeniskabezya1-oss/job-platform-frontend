@@ -1662,7 +1662,36 @@ document.addEventListener("change", function(e){
 /* =========================================
    PANEL SWITCHING (FIXED)
 ========================================= */
+function showPanelLoading(title = "Loading") {
+  document.getElementById("feedPanel").style.display = "none";
+  document.getElementById("jobsPanel").style.display = "none";
+  document.getElementById("savedPanel").style.display = "none";
+  document.getElementById("toolPanel").style.display = "block";
 
+  document.getElementById("toolPanel").innerHTML = `
+    <div class="panel-shell">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h2>${title}</h2>
+          <p>Please wait while we load your data.</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="panel-loading">Loading...</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderEmptyPanel(title, subtitle) {
+  return `
+    <div class="panel-empty">
+      <h3>${title}</h3>
+      <div>${subtitle}</div>
+    </div>
+  `;
+}
+  
 function showFeed(){
   document.getElementById("feedPanel").style.display = "block";
   document.getElementById("jobsPanel").style.display = "none";
@@ -2079,7 +2108,185 @@ ${post.content ? `<div class="post-content">${post.content}</div>` : ""}
     `;
   });
 }
+async function showMyJobs(){
+  showPanelLoading("My Jobs");
 
+  const res = await fetch(API + "/api/jobs", {
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
+  });
+
+  const jobs = res.ok ? await res.json() : [];
+
+  document.getElementById("toolPanel").innerHTML = `
+    <div class="panel-shell">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h2>My Jobs</h2>
+          <p>Manage current listings and monitor hiring activity.</p>
+        </div>
+
+        <div class="panel-actions">
+          <button class="panel-btn panel-btn-primary" onclick="openCreateJob()">Post a Job</button>
+          <button class="panel-btn panel-btn-secondary" onclick="backToFeed()">Back</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="panel-grid">
+          ${
+            jobs.length
+              ? jobs.map(job => `
+                <div class="panel-card">
+                  <div class="panel-card-title">${job.title}</div>
+                  <div class="panel-card-sub">${job.company || "Company"} • ${job.location || "Location not set"}</div>
+                  <div class="panel-card-meta">${job.description ? job.description.substring(0, 180) + "..." : "No description yet."}</div>
+
+                  <div class="panel-card-actions">
+                    <button class="panel-btn panel-btn-secondary">View</button>
+                    <button class="panel-btn panel-btn-secondary">Edit</button>
+                  </div>
+                </div>
+              `).join("")
+              : renderEmptyPanel("No jobs yet", "Create your first job post to start receiving applicants.")
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function showApplications(){
+  showPanelLoading("Applicants");
+
+  const res = await fetch(API + "/api/applications", {
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
+  });
+
+  const applications = res.ok ? await res.json() : [];
+
+  document.getElementById("toolPanel").innerHTML = `
+    <div class="panel-shell">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h2>Applicants</h2>
+          <p>Review and track incoming applications from candidates.</p>
+        </div>
+
+        <div class="panel-actions">
+          <button class="panel-btn panel-btn-secondary" onclick="backToFeed()">Back</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="panel-grid">
+          ${
+            applications.length
+              ? applications.map(app => `
+                <div class="panel-card">
+                  <div class="panel-card-title">${app.user?.name || "Applicant"}</div>
+                  <div class="panel-card-sub">${app.job?.title || "Job not available"}</div>
+                  <div class="panel-card-meta">${app.status || "Pending review"}</div>
+
+                  <div class="panel-card-actions">
+                    <button class="panel-btn panel-btn-secondary">View application</button>
+                  </div>
+                </div>
+              `).join("")
+              : renderEmptyPanel("No applicants yet", "Applications will appear here when people apply to your jobs.")
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+  
+function openCreateJob(){
+  document.getElementById("feedPanel").style.display = "none";
+  document.getElementById("jobsPanel").style.display = "none";
+  document.getElementById("savedPanel").style.display = "none";
+  document.getElementById("toolPanel").style.display = "block";
+
+  document.getElementById("toolPanel").innerHTML = `
+    <div class="panel-shell">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h2>Create Job Posting</h2>
+          <p>Publish a professional listing and reach relevant candidates faster.</p>
+        </div>
+
+        <div class="panel-actions">
+          <button class="panel-btn panel-btn-secondary" onclick="backToFeed()">Back</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <form class="panel-form" onsubmit="submitEmployerJob(event)">
+          <div class="panel-form two">
+            <div class="panel-field">
+              <label>Job Title</label>
+              <input class="panel-input" id="jobTitle" placeholder="Senior Sales Manager" />
+            </div>
+
+            <div class="panel-field">
+              <label>Company</label>
+              <input class="panel-input" id="jobCompany" placeholder="AIFT" />
+            </div>
+          </div>
+
+          <div class="panel-form two">
+            <div class="panel-field">
+              <label>Location</label>
+              <input class="panel-input" id="jobLocation" placeholder="Manila, Philippines" />
+            </div>
+
+            <div class="panel-field">
+              <label>Salary</label>
+              <input class="panel-input" id="jobSalary" placeholder="₱50,000 - ₱80,000" />
+            </div>
+          </div>
+
+          <div class="panel-field">
+            <label>Description</label>
+            <textarea class="panel-textarea" id="jobDescription" placeholder="Describe responsibilities, qualifications, and expectations."></textarea>
+          </div>
+
+          <div class="panel-actions">
+            <button type="submit" class="panel-btn panel-btn-primary">Publish job</button>
+            <button type="button" class="panel-btn panel-btn-secondary" onclick="backToFeed()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+async function submitEmployerJob(event){
+  event.preventDefault();
+
+  const payload = {
+    title: document.getElementById("jobTitle").value.trim(),
+    company: document.getElementById("jobCompany").value.trim(),
+    location: document.getElementById("jobLocation").value.trim(),
+    salary: document.getElementById("jobSalary").value.trim(),
+    description: document.getElementById("jobDescription").value.trim()
+  };
+
+  const res = await fetch(API + "/api/jobs", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + localStorage.getItem("employerToken")
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if(res.ok){
+    alert("Job submitted successfully.");
+    backToFeed();
+  } else {
+    alert("Failed to submit job.");
+  }
+}
   function prependPost(post){
 
   const container = document.getElementById("posts");
