@@ -27,9 +27,7 @@
       --radius:16px;
     }
 
-    *{
-      box-sizing:border-box;
-    }
+    *{ box-sizing:border-box; }
 
     html,body{
       margin:0;
@@ -628,7 +626,7 @@
         <button class="filter-btn" id="unreadBtn" type="button">Unread only</button>
       </div>
 
-      <div class="status-line" id="socketStatus">
+      <div class="status-line">
         <span class="status-indicator" id="socketIndicator"></span>
         <span id="socketText">Live updates: connecting...</span>
       </div>
@@ -666,19 +664,56 @@
 
   <script>
     const API = "https://backend-1-9b6f.onrender.com";
-    const token = localStorage.getItem("token");
     let notifications = [];
     let currentFilter = "all";
     let socket = null;
 
-    if (!token) {
+    function getSession() {
+      const talentToken = localStorage.getItem("talentToken");
+      const employerToken = localStorage.getItem("employerToken");
+      const adminToken = localStorage.getItem("adminToken");
+      const agentToken = localStorage.getItem("agentToken");
+      const plainToken = localStorage.getItem("token");
+
+      if (talentToken) {
+        return { token: talentToken, role: "talent", rolePage: "talent.html" };
+      }
+
+      if (employerToken) {
+        return { token: employerToken, role: "employer", rolePage: "employer.html" };
+      }
+
+      if (adminToken) {
+        return { token: adminToken, role: "admin", rolePage: "admin.html" };
+      }
+
+      if (agentToken) {
+        return { token: agentToken, role: "agent", rolePage: "agent.html" };
+      }
+
+      if (plainToken) {
+        return {
+          token: plainToken,
+          role: localStorage.getItem("role") || "unknown",
+          rolePage: localStorage.getItem("lastRolePage") || "talent.html"
+        };
+      }
+
+      return null;
+    }
+
+    const session = getSession();
+
+    if (!session || !session.token) {
       window.location.replace("login.html");
     }
 
     function authHeaders() {
+      const currentSession = getSession();
+
       return {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + token
+        "Authorization": "Bearer " + currentSession.token
       };
     }
 
@@ -686,6 +721,7 @@
       const toast = document.getElementById("toast");
       toast.textContent = message;
       toast.classList.add("show");
+
       clearTimeout(window.__toastTimer);
       window.__toastTimer = setTimeout(() => {
         toast.classList.remove("show");
@@ -701,12 +737,9 @@
         .replace(/'/g, "&#39;");
     }
 
-    function getCurrentUserId() {
-      const storedUserId = localStorage.getItem("userId");
-      if (storedUserId) return storedUserId;
-
+    function decodeTokenUserId(jwtToken) {
       try {
-        const parts = token.split(".");
+        const parts = jwtToken.split(".");
         if (parts.length !== 3) return null;
         const payload = JSON.parse(atob(parts[1]));
         return payload.id || payload._id || payload.userId || null;
@@ -715,12 +748,14 @@
       }
     }
 
+    function getCurrentUserId() {
+      return localStorage.getItem("userId") || decodeTokenUserId(getSession().token);
+    }
+
     function goBack() {
-      if (window.history.length > 1) {
-        window.history.back();
-        return;
-      }
-      window.location.href = "talent.html";
+      const currentSession = getSession();
+      const rolePage = localStorage.getItem("lastRolePage") || currentSession.rolePage || "talent.html";
+      window.location.href = rolePage;
     }
 
     function formatTime(date) {
@@ -790,29 +825,29 @@
         return;
       }
 
-      const cleaned = String(link).trim();
+      let cleaned = String(link).trim();
+
       if (!cleaned) {
         showToast("Notification opened");
         return;
       }
 
-      if (cleaned.startsWith("http://") || cleaned.startsWith("https://")) {
+      if (/^https?:\/\//i.test(cleaned)) {
         try {
           const url = new URL(cleaned);
           if (url.origin !== window.location.origin) {
-            console.warn("Blocked external redirect:", cleaned);
             showToast("Blocked unsafe redirect");
             return;
           }
           window.location.href = url.pathname + url.search + url.hash;
           return;
         } catch (err) {
-          console.error("Invalid link:", cleaned);
           showToast("Invalid notification link");
           return;
         }
       }
 
+      cleaned = cleaned.replace(/^\/+/, "");
       window.location.href = cleaned;
     }
 
@@ -923,7 +958,6 @@
         });
 
         if (res.status === 401 || res.status === 403) {
-          localStorage.removeItem("token");
           window.location.replace("login.html");
           return;
         }
@@ -971,7 +1005,6 @@
         });
 
         if (res.status === 401 || res.status === 403) {
-          localStorage.removeItem("token");
           window.location.replace("login.html");
           return;
         }
@@ -1001,7 +1034,6 @@
         });
 
         if (res.status === 401 || res.status === 403) {
-          localStorage.removeItem("token");
           window.location.replace("login.html");
           return;
         }
