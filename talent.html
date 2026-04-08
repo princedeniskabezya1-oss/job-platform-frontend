@@ -1547,7 +1547,189 @@ window.addEventListener("scroll", () => {
     });
   }
 });
+async function showJobs(){
+  showPanelLoading("Jobs");
 
+  const res = await fetch(API + "/api/jobs/recommended", {
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+  });
+
+  const jobs = res.ok ? await res.json() : [];
+
+  document.getElementById("feedPanel").style.display = "none";
+  document.getElementById("jobsPanel").style.display = "none";
+  document.getElementById("savedPanel").style.display = "none";
+  document.getElementById("toolPanel").style.display = "block";
+
+  document.getElementById("toolPanel").innerHTML = `
+    <div class="panel-shell">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h2>Recommended Jobs</h2>
+          <p>Discover opportunities matched to your background and interests.</p>
+        </div>
+
+        <div class="panel-actions">
+          <button class="panel-btn panel-btn-secondary" onclick="backToFeed()">Back</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="panel-grid">
+          ${
+            jobs.length
+              ? jobs.map(job => `
+                <div class="panel-card">
+                  <div class="panel-card-title">${job.title}</div>
+                  <div class="panel-card-sub">${job.company} • ${job.location}</div>
+                  <div class="panel-card-meta">${job.description ? job.description.substring(0, 180) + "..." : "No description available."}</div>
+
+                  <div class="panel-card-actions">
+                    <button class="panel-btn panel-btn-secondary" onclick="saveJob('${job._id}')">Save</button>
+                    <button class="panel-btn panel-btn-primary" onclick="quickApply('${job._id}')">Apply</button>
+                  </div>
+                </div>
+              `).join("")
+              : renderEmptyPanel("No jobs found", "We could not find recommended jobs right now.")
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadMyApplications(){
+  showPanelLoading("My Applications");
+
+  const res = await fetch(API + "/api/applications", {
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+  });
+
+  const apps = res.ok ? await res.json() : [];
+  document.getElementById("appCount").innerText = apps.length;
+
+  document.getElementById("feedPanel").style.display = "none";
+  document.getElementById("jobsPanel").style.display = "none";
+  document.getElementById("savedPanel").style.display = "none";
+  document.getElementById("toolPanel").style.display = "block";
+
+  document.getElementById("toolPanel").innerHTML = `
+    <div class="panel-shell">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h2>My Applications</h2>
+          <p>Track the status of the opportunities you have applied for.</p>
+        </div>
+
+        <div class="panel-actions">
+          <button class="panel-btn panel-btn-secondary" onclick="backToFeed()">Back</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="panel-grid">
+          ${
+            apps.length
+              ? apps.map(app => `
+                <div class="panel-card">
+                  <div class="panel-card-title">${app.job?.title || "Job title unavailable"}</div>
+                  <div class="panel-card-sub">${app.job?.company || "Company unavailable"}</div>
+                  <div class="panel-card-meta">Status: ${app.status || "Pending"}</div>
+                </div>
+              `).join("")
+              : renderEmptyPanel("No applications yet", "Applications you send will appear here.")
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function showSavedJobs(){
+  showPanelLoading("Saved Jobs");
+
+  const userRes = await fetch(API + "/api/users/me", {
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+  });
+
+  const user = userRes.ok ? await userRes.json() : {};
+  const jobsRes = await fetch(API + "/api/jobs", {
+    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+  });
+
+  const allJobs = jobsRes.ok ? await jobsRes.json() : [];
+  const savedJobs = allJobs.filter(job => (user.savedJobs || []).includes(job._id));
+
+  document.getElementById("feedPanel").style.display = "none";
+  document.getElementById("jobsPanel").style.display = "none";
+  document.getElementById("savedPanel").style.display = "none";
+  document.getElementById("toolPanel").style.display = "block";
+
+  document.getElementById("toolPanel").innerHTML = `
+    <div class="panel-shell">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h2>Saved Jobs</h2>
+          <p>Quick access to opportunities you want to revisit later.</p>
+        </div>
+
+        <div class="panel-actions">
+          <button class="panel-btn panel-btn-secondary" onclick="backToFeed()">Back</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="panel-grid">
+          ${
+            savedJobs.length
+              ? savedJobs.map(job => `
+                <div class="panel-card">
+                  <div class="panel-card-title">${job.title}</div>
+                  <div class="panel-card-sub">${job.company} • ${job.location}</div>
+                  <div class="panel-card-actions">
+                    <button class="panel-btn panel-btn-secondary" onclick="saveJob('${job._id}')">Remove</button>
+                    <button class="panel-btn panel-btn-primary" onclick="quickApply('${job._id}')">Apply</button>
+                  </div>
+                </div>
+              `).join("")
+              : renderEmptyPanel("No saved jobs yet", "Save interesting jobs and they will appear here.")
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+  function startDashboardLiveRefresh(){
+  setInterval(async () => {
+    try{
+      await loadProfile();
+    }catch(e){}
+
+    try{
+      await loadMessageCount();
+    }catch(e){}
+
+    try{
+      await loadNotificationCount();
+    }catch(e){}
+  }, 30000);
+
+  socket.on("newMessage", () => {
+    loadMessageCount();
+  });
+
+  socket.on("newNotification", () => {
+    loadNotificationCount();
+  });
+
+  socket.on("post_deleted", () => {
+    if(typeof loadProfile === "function") loadProfile();
+  });
+
+  socket.on("post_like", () => {
+    if(typeof loadProfile === "function") loadProfile();
+  });
+}
 async function createPost(){
 
   const content = document.getElementById("postContent").value.trim();
