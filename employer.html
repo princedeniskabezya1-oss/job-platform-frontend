@@ -1506,21 +1506,41 @@ let noMorePosts = false;
 
 /* LOAD PROFILE */
 async function loadProfile(){
-  const res=await fetch(API+"/api/users/me",{headers:{Authorization:"Bearer " + localStorage.getItem("employerToken")}});
-  const user=await res.json();
+  const res = await fetch(API + "/api/users/me", {
+    headers:{ Authorization:"Bearer " + localStorage.getItem("employerToken") }
+  });
+
+  const user = await res.json();
+
   localStorage.setItem("userId", user._id);
   localStorage.setItem(
-  "profileImage",
-  user.profileImage && user.profileImage.trim() !== ""
-    ? user.profileImage
-    : "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-);
+    "profileImage",
+    user.profileImage && user.profileImage.trim() !== ""
+      ? user.profileImage
+      : "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+  );
 
-  document.getElementById("profileCard").innerHTML=`
-    <img class="profile-banner" src="${user.bannerImage || 'https://via.placeholder.com/600x120'}">
-    <img class="profile-image" src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
-    <h3>${user.name}</h3>
-    <div style="color:#6f6f6f;font-size:14px;">${user.headline || ''}</div>
+  document.getElementById("profileCard").innerHTML = `
+    <div class="profile-card-shell">
+      <div class="profile-card-cover"></div>
+      <div class="profile-card-body">
+        <img class="profile-card-avatar" src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+        <div class="profile-card-name">${user.name}</div>
+        <div class="profile-card-headline">${user.headline || "Build your employer presence and attract top talent."}</div>
+
+        <div class="profile-card-mini-stats">
+          <div class="profile-mini-box">
+            <div class="profile-mini-label">Role</div>
+            <div class="profile-mini-value">Employer</div>
+          </div>
+
+          <div class="profile-mini-box">
+            <div class="profile-mini-label">Status</div>
+            <div class="profile-mini-value">Active</div>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 
   document.getElementById("topProfileImg").src =
