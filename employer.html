@@ -1579,7 +1579,37 @@ window.addEventListener("scroll", () => {
     });
   }
 });
+function startDashboardLiveRefresh(){
+  setInterval(async () => {
+    try{
+      await loadProfile();
+    }catch(e){}
 
+    try{
+      await loadMessageCount();
+    }catch(e){}
+
+    try{
+      await loadNotificationCount();
+    }catch(e){}
+  }, 30000);
+
+  socket.on("newMessage", () => {
+    loadMessageCount();
+  });
+
+  socket.on("newNotification", () => {
+    loadNotificationCount();
+  });
+
+  socket.on("post_deleted", () => {
+    if(typeof loadProfile === "function") loadProfile();
+  });
+
+  socket.on("post_like", () => {
+    if(typeof loadProfile === "function") loadProfile();
+  });
+}
 async function createPost(){
 
   const content = document.getElementById("postContent").value.trim();
@@ -3099,6 +3129,7 @@ document.addEventListener("DOMContentLoaded", async function(){
 
   await loadProfile();
 updateCreatePostAvatar();
+    startDashboardLiveRefresh();
   loadPosts();
 
   // ❌ REMOVE THESE (NOT FOR EMPLOYER)
