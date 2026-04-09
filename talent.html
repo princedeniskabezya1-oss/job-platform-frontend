@@ -1641,47 +1641,106 @@ let noMorePosts = false;
 
 /* LOAD PROFILE */
 async function loadProfile(){
-  const res = await fetch(API + "/api/users/me", {
-    headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
-  });
+  try{
+    const res = await fetch(API + "/api/users/me", {
+      headers:{ Authorization:"Bearer " + localStorage.getItem("talentToken") }
+    });
 
-  const user = await res.json();
+    if(!res.ok) throw new Error("Failed to load profile");
 
-  localStorage.setItem("userId", user._id);
-  localStorage.setItem("profileImage", user.profileImage || "");
+    const user = await res.json();
 
-  document.getElementById("profileCard").innerHTML = `
-    <div class="profile-card-shell">
-      <div class="profile-card-cover"></div>
-      <div class="profile-card-body">
-        <img class="profile-card-avatar" src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
-        <div class="profile-card-name">${user.name}</div>
-        <div class="profile-card-headline">${user.headline || "Complete your profile to attract better opportunities."}</div>
+    localStorage.setItem("userId", user._id);
+    localStorage.setItem("profileImage", user.profileImage || "");
+    localStorage.setItem("profileName", user.name || "");
 
-        <div class="profile-card-mini-stats">
-          <div class="profile-mini-box">
-            <div class="profile-mini-label">Role</div>
-            <div class="profile-mini-value">Talent</div>
+    const profileImg = user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+    const coverImg = user.bannerImage || user.coverImage || "";
+    const headline = user.headline || "Complete your profile to attract better opportunities.";
+    const location = [user.city, user.country].filter(Boolean).join(", ") || user.location || "Location not added";
+    const savedJobsCount = Array.isArray(user.savedJobs) ? user.savedJobs.length : 0;
+    const followingCount = Array.isArray(user.following) ? user.following.length : 0;
+    const planLabel = user.isPro ? "Pro" : "Free";
+
+    document.getElementById("profileCard").innerHTML = `
+      <div class="profile-card-shell">
+        <div class="profile-card-cover">
+          ${
+            coverImg
+              ? `<img src="${coverImg}" alt="Profile banner">`
+              : ``
+          }
+        </div>
+
+        <div class="profile-card-body">
+          <div class="profile-card-avatar-row">
+            <img class="profile-card-avatar" src="${profileImg}" alt="${user.name}">
+            <div class="profile-card-badge">Talent View</div>
           </div>
 
-          <div class="profile-mini-box">
-            <div class="profile-mini-label">Plan</div>
-            <div class="profile-mini-value">${user.isPro ? "Pro" : "Free"}</div>
+          <div class="profile-card-name">${user.name || "Talent User"}</div>
+          <div class="profile-card-location">${location}</div>
+          <div class="profile-card-headline">${headline}</div>
+
+          <div class="profile-card-actions">
+            <button class="profile-card-btn profile-card-btn-primary" onclick="window.location.href='profile.html'">
+              Edit Profile
+            </button>
+            <button class="profile-card-btn profile-card-btn-secondary" onclick="window.location.href='public-profile.html?id=${user._id}'">
+              View Public Profile
+            </button>
+          </div>
+
+          <div class="profile-card-mini-stats">
+            <div class="profile-mini-box">
+              <div class="profile-mini-label">Role</div>
+              <div class="profile-mini-value">Talent</div>
+            </div>
+
+            <div class="profile-mini-box">
+              <div class="profile-mini-label">Plan</div>
+              <div class="profile-mini-value">${planLabel}</div>
+            </div>
+
+            <div class="profile-mini-box">
+              <div class="profile-mini-label">Saved</div>
+              <div class="profile-mini-value">${savedJobsCount}</div>
+            </div>
+          </div>
+
+          <div class="profile-card-footer">
+            <div class="profile-card-footer-text">
+              Build a strong profile so employers can discover you faster.
+            </div>
+            <div class="profile-card-footer-text">
+              Following: <strong>${followingCount}</strong>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  `;
+    `;
 
-  document.getElementById("topProfileImg").src =
-    user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-  document.getElementById("topProfileName").innerText = user.name;
+    document.getElementById("topProfileImg").src = profileImg;
+    document.getElementById("topProfileName").innerText = user.name || "Profile";
+    document.getElementById("proStatus").innerText = planLabel;
+    document.getElementById("cvStatus").innerText = user.cvUrl ? "Yes" : "No";
 
-  document.getElementById("proStatus").innerText = user.isPro ? "Pro" : "Free";
-  document.getElementById("cvStatus").innerText = user.cvUrl ? "Yes" : "No";
+    const avatar = document.getElementById("createPostAvatar");
+    if(avatar) avatar.src = profileImg;
 
-  const avatar = document.getElementById("createPostAvatar");
-if(avatar) avatar.src = user.profileImage || avatar.src;
+  }catch(err){
+    console.error("Profile load failed", err);
+
+    document.getElementById("profileCard").innerHTML = `
+      <div class="profile-card-shell">
+        <div class="profile-card-cover"></div>
+        <div class="profile-card-body">
+          <div class="profile-card-name">Unable to load profile</div>
+          <div class="profile-card-headline">Please refresh the page and try again.</div>
+        </div>
+      </div>
+    `;
+  }
 }
 
 /* LOAD POSTS */
