@@ -40,13 +40,21 @@ body{background:var(--bg);}
 
 .logo span{color:var(--primary);}
 
+.header-actions{
+  display:flex;
+  gap:25px;
+  align-items:center;
+}
+
 /* LAYOUT */
 .container{
   display:grid;
-  grid-template-columns:260px 1fr 300px;
+  grid-template-columns:280px minmax(0,1fr) 300px;
   gap:20px;
   max-width:1300px;
   margin:20px auto;
+  padding:0 16px;
+  align-items:start;
 }
 
 /* CARD */
@@ -426,28 +434,17 @@ body{background:var(--bg);}
   display:inline-flex;
   align-items:center;
   gap:6px;
-  padding:7px 12px;
+  padding:6px 10px;
   border-radius:999px;
   background:#eff6ff;
   color:#0a66c2;
-  font-size:12px;
+  font-size:11px;
   font-weight:700;
   border:1px solid #dbeafe;
-  margin-top:12px;
+  margin-top:14px;
   align-self:flex-start;
-}
-
-.profile-card-badge{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:7px 12px;
-  border-radius:999px;
-  background:#eff6ff;
-  color:#0a66c2;
-  font-size:12px;
-  font-weight:700;
-  border:1px solid #dbeafe;
+  max-width:100%;
+  white-space:nowrap;
 }
 
 .profile-card-name{
@@ -518,20 +515,27 @@ body{background:var(--bg);}
   border:1px solid #edf2f7;
   background:#f8fafc;
   border-radius:12px;
-  padding:12px;
+  padding:10px;
+  min-width:0;
+  overflow:hidden;
 }
 
 .profile-mini-label{
   font-size:11px;
   color:#6f6f6f;
   margin-bottom:5px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .profile-mini-value{
-  font-size:18px;
+  font-size:15px;
   font-weight:800;
   color:#1c1c1c;
-  line-height:1.1;
+  line-height:1.15;
+  word-break:break-word;
+  overflow-wrap:anywhere;
 }
 
 .profile-card-footer{
@@ -550,9 +554,153 @@ body{background:var(--bg);}
   color:#64748b;
 }
 
-@media(max-width:900px){
+@media (max-width: 1200px){
+  .container{
+    grid-template-columns:260px minmax(0,1fr);
+  }
+
+  .container > div:last-child{
+    display:none;
+  }
+}
+
+@media (max-width: 900px){
+  .header{
+    padding:12px 16px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+
+  .header > div:last-child{
+    width:100%;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .container{
+    grid-template-columns:1fr;
+    padding:0 12px;
+    gap:16px;
+    margin:16px auto;
+  }
+
+  .container > div:first-child,
+  .container > div:last-child{
+    position:static;
+    top:auto;
+  }
+
+  #profileCard{
+    max-width:100%;
+  }
+
+  .profile-card-mini-stats{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+
+  .profile-card-actions{
+    flex-direction:column;
+  }
+
+  .profile-card-btn{
+    width:100%;
+    text-align:center;
+  }
+
+  .top-nav-item{
+    padding:8px 10px;
+  }
+
+  .top-nav-label{
+    font-size:11px;
+  }
+
+  .dashboard-card{
+    display:none;
+  }
+}
+
+@media (max-width: 640px){
+  .logo{
+    font-size:20px;
+  }
+
+  .header{
+    padding:10px 12px;
+  }
+
+  .header > div:last-child{
+    gap:8px;
+  }
+
+  .top-nav-item{
+    flex:1 1 auto;
+    justify-content:center;
+    min-width:90px;
+  }
+
+  .top-nav-label{
+    font-size:10px;
+  }
+
+  .profile-card-cover{
+    height:100px;
+  }
+
+  .profile-card-avatar{
+    width:82px;
+    height:82px;
+    margin-top:-42px;
+  }
+
+  .profile-card-name{
+    font-size:18px;
+  }
+
+  .profile-card-location,
+  .profile-card-headline{
+    font-size:13px;
+  }
+
   .profile-card-mini-stats{
     grid-template-columns:1fr;
+  }
+
+  .profile-mini-value{
+    font-size:14px;
+  }
+
+  .post-header{
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .post-actions{
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:space-between;
+  }
+
+  .post-action{
+    flex:1 1 30%;
+    justify-content:center;
+  }
+
+  .comment-input-area{
+    flex-wrap:wrap;
+  }
+
+  .comment-input-area input{
+    min-width:0;
+  }
+
+  .share-content{
+    width:min(92vw,320px);
+  }
+
+  #postModal > div{
+    width:min(92vw,500px) !important;
   }
 }
   .create-post{
@@ -713,7 +861,7 @@ body{background:var(--bg);}
 <div class="header">
   <div class="logo"><span>AI</span>FT Talent</div>
 
-  <div style="display:flex;gap:25px;align-items:center;">
+  <div class="header-actions" style="display:flex;gap:25px;align-items:center;">
 
 <div class="top-nav-item" onclick="window.location.href = role === 'employer' ? 'employer.html' : 'talent.html'">
   <svg viewBox="0 0 24 24">
@@ -948,7 +1096,9 @@ async function loadProfile(){
   const location = [user.city, user.country].filter(Boolean).join(", ") || user.location || "Location not added";
   const followersCount = Array.isArray(user.followers) ? user.followers.length : 0;
   const followingCount = Array.isArray(user.following) ? user.following.length : 0;
-  const publicRole = user.role === "employer" ? "Employer View" : "Talent View";
+  const publicRole = window.innerWidth <= 640
+  ? (user.role === "employer" ? "Employer" : "Talent")
+  : (user.role === "employer" ? "Employer View" : "Talent View");
 
   document.getElementById("profileCard").innerHTML = `
     <div class="profile-card-shell">
@@ -979,9 +1129,9 @@ async function loadProfile(){
 
         <div class="profile-card-mini-stats">
           <div class="profile-mini-box">
-            <div class="profile-mini-label">Role</div>
-            <div class="profile-mini-value">${user.role === "employer" ? "Employer" : "Talent"}</div>
-          </div>
+  <div class="profile-mini-label">Role</div>
+  <div class="profile-mini-value">${user.role === "employer" ? "Employer" : "Talent"}</div>
+</div>
 
           <div class="profile-mini-box">
             <div class="profile-mini-label">Followers</div>
@@ -1009,10 +1159,17 @@ async function loadProfile(){
   document.getElementById("topProfileImg").src = profileImg;
   document.getElementById("topProfileName").innerText = user.name || "Profile";
 
-  const avatar = document.getElementById("createPostAvatar");
-  if(avatar){
-    avatar.src = profileImg;
-  }
+  const isOwnProfile = String(user._id) === String(localStorage.getItem("userId"));
+const createPostCard = document.querySelector(".create-post");
+
+if(createPostCard){
+  createPostCard.style.display = isOwnProfile ? "flex" : "none";
+}
+
+const avatar = document.getElementById("createPostAvatar");
+if(avatar){
+  avatar.src = profileImg;
+}
 
   renderPublicRightPanel(user);
 }
