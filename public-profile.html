@@ -1719,13 +1719,12 @@ async function loadNotificationCount(){
   if(!newText) return;
 
   await fetch(API+"/api/posts/"+id,{
-    method:"PATCH",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer " + token
-    },
-    body:JSON.stringify({content:newText})
-  });
+  method:"PATCH",
+  headers: authHeaders({
+    "Content-Type":"application/json"
+  }),
+  body:JSON.stringify({content:newText})
+});
 
   loadPosts();
 }
@@ -1861,12 +1860,12 @@ if(e.target.closest(".comment-like-btn")){
   try{
 
     const res = await fetch(
-      API+"/api/posts/"+postId+"/comment/"+commentId+"/like",
-      {
-        method:"PATCH",
-        headers:{ Authorization:"Bearer " + token }
-      }
-    );
+  API+"/api/posts/"+postId+"/comment/"+commentId+"/like",
+  {
+    method:"PATCH",
+    headers: authHeaders()
+  }
+);
 
     const data = await res.json();
 
@@ -1952,16 +1951,15 @@ replyContainer.innerHTML += `
   try{
 
     await fetch(
-      API+"/api/posts/"+postId+"/comment/"+commentId+"/reply",
-      {
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          Authorization:"Bearer " + token
-        },
-        body:JSON.stringify({ text })
-      }
-    );
+  API+"/api/posts/"+postId+"/comment/"+commentId+"/reply",
+  {
+    method:"POST",
+    headers: authHeaders({
+      "Content-Type":"application/json"
+    }),
+    body:JSON.stringify({ text })
+  }
+);
 
   }catch(err){
     console.error("Reply failed", err);
@@ -2091,12 +2089,10 @@ function closePostModal(){
   try{
 
     const res = await fetch(API+"/api/posts",{
-      method:"POST",
-      headers:{
-        Authorization:"Bearer " + token
-      },
-      body:formData
-    });
+  method:"POST",
+  headers: authHeaders(),
+  body:formData
+});
 
     const newPost = await res.json();
 
