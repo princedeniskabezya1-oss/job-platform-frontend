@@ -20,6 +20,8 @@
       --success:#16a34a;
       --shadow:0 10px 28px rgba(15,23,42,.06);
       --radius:18px;
+      --mobile-topbar-h:64px;
+      --mobile-bottomnav-h:74px;
     }
 
     *{
@@ -27,11 +29,13 @@
       margin:0;
       padding:0;
       font-family:'Inter',sans-serif;
+      -webkit-tap-highlight-color:transparent;
     }
 
     html,body{
       width:100%;
       overflow-x:hidden;
+      scroll-behavior:smooth;
     }
 
     body{
@@ -53,6 +57,11 @@
       text-decoration:none;
     }
 
+    .hidden{
+      display:none !important;
+    }
+
+    /* DESKTOP / TABLET HEADER */
     .header{
       position:sticky;
       top:0;
@@ -74,7 +83,9 @@
       letter-spacing:-.02em;
     }
 
-    .logo span{ color:var(--primary); }
+    .logo span{
+      color:var(--primary);
+    }
 
     .header-actions{
       display:flex;
@@ -156,6 +167,7 @@
       justify-content:center;
       padding:0 4px;
       line-height:1;
+      font-weight:700;
     }
 
     .top-profile-pill{
@@ -195,6 +207,124 @@
       color:var(--muted);
     }
 
+    /* MOBILE HEADER */
+    .mobile-topbar{
+      display:none;
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      z-index:1100;
+      height:var(--mobile-topbar-h);
+      background:#fff;
+      border-bottom:1px solid #e8edf3;
+      padding:10px 12px;
+      transform:translateY(0);
+      transition:transform .25s ease;
+    }
+
+    .mobile-topbar.hide{
+      transform:translateY(calc(-1 * var(--mobile-topbar-h)));
+    }
+
+    .mobile-topbar-inner{
+      height:100%;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .mobile-profile-btn{
+      width:40px;
+      height:40px;
+      border-radius:50%;
+      border:1px solid #dce4ee;
+      overflow:hidden;
+      flex-shrink:0;
+      background:#f8fafc;
+      cursor:pointer;
+    }
+
+    .mobile-profile-btn img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    .mobile-search-wrap{
+      flex:1;
+      min-width:0;
+      position:relative;
+    }
+
+    .mobile-search-wrap input{
+      width:100%;
+      height:40px;
+      border:none;
+      background:#eef3f8;
+      border-radius:999px;
+      padding:0 14px 0 40px;
+      font-size:14px;
+      outline:none;
+      color:#0f172a;
+    }
+
+    .mobile-search-wrap svg{
+      position:absolute;
+      left:14px;
+      top:50%;
+      transform:translateY(-50%);
+      width:18px;
+      height:18px;
+      stroke:#64748b;
+      fill:none;
+      stroke-width:2;
+      pointer-events:none;
+    }
+
+    .mobile-msg-btn{
+      width:40px;
+      height:40px;
+      border:none;
+      border-radius:50%;
+      background:#fff;
+      border:1px solid #dce4ee;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      flex-shrink:0;
+      cursor:pointer;
+    }
+
+    .mobile-msg-btn svg{
+      width:20px;
+      height:20px;
+      stroke:#334155;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .mobile-msg-badge,
+    .mobile-nav-badge{
+      position:absolute;
+      top:1px;
+      right:1px;
+      min-width:16px;
+      height:16px;
+      padding:0 4px;
+      background:var(--danger);
+      color:#fff;
+      border-radius:999px;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      font-size:10px;
+      font-weight:700;
+      line-height:1;
+    }
+
+    /* LAYOUT */
     .container{
       max-width:1400px;
       margin:20px auto;
@@ -221,7 +351,7 @@
       margin-bottom:16px;
     }
 
-    /* PROFILE SUMMARY */
+    /* PROFILE */
     #profileCard{
       overflow:visible;
     }
@@ -318,7 +448,8 @@
     .profile-card-btn,
     .panel-btn,
     .follow-btn,
-    .modal-btn{
+    .modal-btn,
+    .network-btn{
       border:none;
       border-radius:999px;
       padding:10px 16px;
@@ -330,21 +461,24 @@
 
     .profile-card-btn-primary,
     .panel-btn-primary,
-    .modal-btn-primary{
+    .modal-btn-primary,
+    .network-btn-primary{
       background:var(--primary);
       color:#fff;
     }
 
     .profile-card-btn-primary:hover,
     .panel-btn-primary:hover,
-    .modal-btn-primary:hover{
+    .modal-btn-primary:hover,
+    .network-btn-primary:hover{
       background:var(--primary-dark);
     }
 
     .profile-card-btn-secondary,
     .panel-btn-secondary,
     .follow-btn,
-    .modal-btn-secondary{
+    .modal-btn-secondary,
+    .network-btn-secondary{
       background:#fff;
       color:var(--primary);
       border:1px solid #cfe1f4;
@@ -353,8 +487,19 @@
     .profile-card-btn-secondary:hover,
     .panel-btn-secondary:hover,
     .follow-btn:hover,
-    .modal-btn-secondary:hover{
+    .modal-btn-secondary:hover,
+    .network-btn-secondary:hover{
       background:#eef4fb;
+    }
+
+    .network-btn-muted{
+      background:#fff;
+      color:#334155;
+      border:1px solid #d8dee6;
+    }
+
+    .network-btn-muted:hover{
+      background:#f8fafc;
     }
 
     .profile-card-mini-stats{
@@ -370,16 +515,12 @@
       border-radius:12px;
       padding:10px;
       min-width:0;
-      overflow:hidden;
     }
 
     .profile-mini-label{
       font-size:11px;
       color:var(--muted);
       margin-bottom:5px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
     }
 
     .profile-mini-value{
@@ -387,7 +528,6 @@
       font-weight:800;
       line-height:1.15;
       word-break:break-word;
-      overflow-wrap:anywhere;
     }
 
     .profile-extra-section{
@@ -442,7 +582,7 @@
       color:#64748b;
     }
 
-    /* TOOLS */
+    /* LEFT TOOLS */
     .tools-card{
       padding:10px 0;
     }
@@ -512,7 +652,7 @@
       line-height:1.35;
     }
 
-    /* DASHBOARD RIGHT */
+    /* RIGHT DASHBOARD */
     .dashboard-card{
       overflow:hidden;
     }
@@ -591,8 +731,9 @@
       color:#94a3b8;
     }
 
-    /* CENTER PANELS */
-    .panel-shell{
+    /* PANEL SHELL */
+    .panel-shell,
+    .network-shell{
       background:#fff;
       border:1px solid #e6e6e6;
       border-radius:18px;
@@ -600,7 +741,8 @@
       box-shadow:var(--shadow);
     }
 
-    .panel-header{
+    .panel-header,
+    .network-header{
       padding:18px 20px;
       border-bottom:1px solid #eee;
       display:flex;
@@ -611,24 +753,28 @@
       background:#fff;
     }
 
-    .panel-title-wrap h2{
+    .panel-title-wrap h2,
+    .network-title-wrap h2{
       margin:0;
       font-size:24px;
       font-weight:800;
       color:#1c1c1c;
     }
 
-    .panel-title-wrap p{
+    .panel-title-wrap p,
+    .network-title-wrap p{
       margin:5px 0 0;
       font-size:13px;
       color:#6f6f6f;
       line-height:1.5;
     }
 
-    .panel-actions{
+    .panel-actions,
+    .network-header-actions{
       display:flex;
       gap:10px;
       flex-wrap:wrap;
+      align-items:center;
     }
 
     .panel-body{
@@ -638,10 +784,6 @@
     .panel-grid{
       display:grid;
       gap:14px;
-    }
-
-    .panel-grid.two{
-      grid-template-columns:repeat(2, minmax(0,1fr));
     }
 
     .panel-card{
@@ -676,6 +818,8 @@
       color:#6f6f6f;
       margin-bottom:12px;
       line-height:1.5;
+      white-space:pre-wrap;
+      word-break:break-word;
     }
 
     .panel-card-actions{
@@ -684,13 +828,15 @@
       flex-wrap:wrap;
     }
 
-    .panel-empty{
+    .panel-empty,
+    .network-empty{
       text-align:center;
       padding:56px 20px;
       color:#64748b;
     }
 
-    .panel-empty h3{
+    .panel-empty h3,
+    .network-empty h3{
       margin:10px 0 6px;
       font-size:20px;
       color:#1c1c1c;
@@ -701,76 +847,6 @@
       padding:40px 20px;
       color:#64748b;
       font-size:14px;
-    }
-
-    .panel-inline-stats{
-      display:grid;
-      grid-template-columns:repeat(4, minmax(0,1fr));
-      gap:12px;
-      margin-bottom:18px;
-    }
-
-    .panel-inline-stat{
-      border:1px solid #edf2f7;
-      background:#f8fafc;
-      border-radius:12px;
-      padding:14px;
-    }
-
-    .panel-inline-stat-label{
-      font-size:12px;
-      color:#6f6f6f;
-      margin-bottom:4px;
-    }
-
-    .panel-inline-stat-value{
-      font-size:22px;
-      font-weight:800;
-      color:#1c1c1c;
-    }
-
-    .panel-form{
-      display:grid;
-      gap:14px;
-      max-width:760px;
-    }
-
-    .panel-form.two{
-      grid-template-columns:repeat(2, minmax(0,1fr));
-    }
-
-    .panel-field{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
-
-    .panel-field label{
-      font-size:13px;
-      font-weight:700;
-      color:#334155;
-    }
-
-    .panel-input,
-    .panel-textarea{
-      width:100%;
-      border:1px solid #dbe1e8;
-      border-radius:12px;
-      padding:12px 14px;
-      font-size:14px;
-      outline:none;
-      background:#fff;
-    }
-
-    .panel-input:focus,
-    .panel-textarea:focus{
-      border-color:#0a66c2;
-      box-shadow:0 0 0 4px rgba(10,102,194,.08);
-    }
-
-    .panel-textarea{
-      min-height:140px;
-      resize:vertical;
     }
 
     /* FEED */
@@ -802,6 +878,16 @@
       color:#6f6f6f;
       font-size:14px;
       min-width:0;
+      background:#fff;
+    }
+
+    .post-card{
+      background:#fff;
+      border:1px solid #e6e6e6;
+      border-radius:18px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      margin-bottom:16px;
     }
 
     .post-header{
@@ -827,6 +913,7 @@
       border-radius:50%;
       object-fit:cover;
       flex-shrink:0;
+      border:1px solid #e5e7eb;
     }
 
     .post-author-main{
@@ -872,6 +959,9 @@
       border-radius:10px;
       user-select:none;
       line-height:1;
+      border:none;
+      background:transparent;
+      color:#334155;
     }
 
     .post-kebab:hover{
@@ -893,15 +983,20 @@
       display:none;
       min-width:150px;
       z-index:100;
+      overflow:hidden;
     }
 
-    .dropdown-menu div{
+    .dropdown-menu button{
+      width:100%;
+      border:none;
+      background:#fff;
       padding:10px 12px;
       cursor:pointer;
       font-size:14px;
+      text-align:left;
     }
 
-    .dropdown-menu div:hover{
+    .dropdown-menu button:hover{
       background:#f8fafc;
     }
 
@@ -954,11 +1049,16 @@
       min-width:110px;
       padding:8px 10px;
       border-radius:10px;
+      border:none;
+      background:transparent;
     }
 
     .post-action svg{
       width:20px;
       height:20px;
+      stroke:currentColor;
+      fill:none;
+      stroke-width:2;
     }
 
     .post-action:hover{
@@ -974,6 +1074,7 @@
       padding:18px 15px;
       border-top:1px solid #eee;
       display:none;
+      background:#fff;
     }
 
     .comment-input-area{
@@ -990,6 +1091,7 @@
       border-radius:999px;
       border:1px solid #ddd;
       padding:10px 12px;
+      outline:none;
     }
 
     .comment-send{
@@ -1027,10 +1129,23 @@
     }
 
     .comment-bubble{
-      background:#f2f2f2;
+      background:#f2f4f7;
       padding:10px 14px;
       border-radius:18px;
       word-break:break-word;
+    }
+
+    .comment-name{
+      font-weight:700;
+      font-size:13px;
+      margin-bottom:4px;
+    }
+
+    .comment-text{
+      font-size:13px;
+      color:#334155;
+      line-height:1.45;
+      white-space:pre-wrap;
     }
 
     .comment-meta{
@@ -1038,70 +1153,11 @@
       gap:18px;
       flex-wrap:wrap;
       margin-top:6px;
-    }
-
-    .comment-meta button{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      background:none;
-      border:none;
-      color:#6f6f6f;
-      font-size:13px;
-      cursor:pointer;
-      padding:0;
-    }
-
-    .comment-meta button:hover,
-    .comment-like-btn.liked{
-      color:var(--primary);
-    }
-
-    .reply-line{
-      margin-left:20px;
-      padding-left:15px;
-      margin-top:8px;
+      font-size:12px;
+      color:#64748b;
     }
 
     /* NETWORK */
-    .network-shell{
-      background:white;
-      border:1px solid #e6e6e6;
-      border-radius:18px;
-      overflow:hidden;
-      box-shadow:var(--shadow);
-    }
-
-    .network-header{
-      padding:18px 20px;
-      border-bottom:1px solid #eee;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-
-    .network-title-wrap h2{
-      font-size:22px;
-      font-weight:800;
-      margin:0;
-      color:#1c1c1c;
-    }
-
-    .network-title-wrap p{
-      margin:4px 0 0;
-      color:#6f6f6f;
-      font-size:13px;
-    }
-
-    .network-header-actions{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-
     .network-search{
       width:260px;
       max-width:100%;
@@ -1148,7 +1204,7 @@
 
     .network-summary{
       display:grid;
-      grid-template-columns:repeat(3, minmax(0, 1fr));
+      grid-template-columns:repeat(3, minmax(0,1fr));
       gap:14px;
       padding:18px 20px;
       border-bottom:1px solid #eee;
@@ -1175,18 +1231,6 @@
 
     .network-list{
       padding:10px 20px 20px;
-    }
-
-    .network-empty{
-      padding:50px 20px;
-      text-align:center;
-      color:#6f6f6f;
-    }
-
-    .network-empty h3{
-      margin:12px 0 6px;
-      color:#1c1c1c;
-      font-size:18px;
     }
 
     .network-card{
@@ -1252,45 +1296,6 @@
       flex-wrap:wrap;
     }
 
-    .network-btn{
-      border:none;
-      border-radius:999px;
-      padding:10px 16px;
-      font-size:13px;
-      font-weight:700;
-      cursor:pointer;
-      transition:.2s ease;
-    }
-
-    .network-btn-primary{
-      background:#0a66c2;
-      color:white;
-    }
-
-    .network-btn-primary:hover{
-      background:#004182;
-    }
-
-    .network-btn-secondary{
-      background:white;
-      color:#0a66c2;
-      border:1px solid #0a66c2;
-    }
-
-    .network-btn-secondary:hover{
-      background:#eef4fb;
-    }
-
-    .network-btn-muted{
-      background:white;
-      color:#334155;
-      border:1px solid #d8dee6;
-    }
-
-    .network-btn-muted:hover{
-      background:#f8fafc;
-    }
-
     .network-back{
       margin:18px 20px 20px;
       border:none;
@@ -1305,6 +1310,58 @@
 
     .network-back:hover{
       background:#eef4fb;
+    }
+
+    /* MOBILE CAREER TOOLS PANEL */
+    .mobile-career-tools{
+      display:none;
+      padding:10px 0 0;
+    }
+
+    .mobile-career-title{
+      font-size:12px;
+      font-weight:800;
+      color:#64748b;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      padding:0 14px 10px;
+    }
+
+    .mobile-career-grid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:10px;
+      padding:0 14px 10px;
+    }
+
+    .mobile-career-card{
+      background:#fff;
+      border:1px solid #e6ebf2;
+      border-radius:16px;
+      padding:14px;
+      box-shadow:0 6px 18px rgba(15,23,42,.04);
+    }
+
+    .mobile-career-card svg{
+      width:20px;
+      height:20px;
+      stroke:#0a66c2;
+      fill:none;
+      stroke-width:2;
+      margin-bottom:10px;
+    }
+
+    .mobile-career-card-title{
+      font-size:14px;
+      font-weight:800;
+      color:#111827;
+    }
+
+    .mobile-career-card-sub{
+      margin-top:4px;
+      font-size:12px;
+      color:#64748b;
+      line-height:1.4;
     }
 
     /* MODALS */
@@ -1341,6 +1398,7 @@
       border-radius:10px;
       resize:vertical;
       min-height:120px;
+      outline:none;
     }
 
     .modal-actions{
@@ -1352,6 +1410,97 @@
       flex-wrap:wrap;
     }
 
+    #filePreviewContainer img,
+    #filePreviewContainer video{
+      width:100%;
+      max-height:260px;
+      object-fit:cover;
+      border-radius:12px;
+      margin-top:10px;
+      border:1px solid #e5e7eb;
+    }
+
+    /* MOBILE BOTTOM NAV */
+    .mobile-bottom-nav{
+      display:none;
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      height:var(--mobile-bottomnav-h);
+      background:#fff;
+      border-top:1px solid #e5e7eb;
+      z-index:1150;
+      padding-bottom:env(safe-area-inset-bottom, 0);
+      box-shadow:0 -8px 24px rgba(15,23,42,.06);
+    }
+
+    .mobile-bottom-nav-inner{
+      height:100%;
+      display:grid;
+      grid-template-columns:1fr 1fr 76px 1fr 1fr;
+      align-items:center;
+      gap:2px;
+      padding:0 4px;
+    }
+
+    .mobile-nav-btn{
+      position:relative;
+      border:none;
+      background:transparent;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:5px;
+      color:#64748b;
+      cursor:pointer;
+      border-radius:14px;
+    }
+
+    .mobile-nav-btn.active{
+      color:var(--primary);
+    }
+
+    .mobile-nav-btn svg{
+      width:22px;
+      height:22px;
+      stroke:currentColor;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .mobile-nav-label{
+      font-size:11px;
+      font-weight:700;
+      line-height:1;
+    }
+
+    .mobile-nav-post{
+      width:56px;
+      height:56px;
+      border:none;
+      border-radius:50%;
+      background:linear-gradient(180deg,#0a66c2,#004182);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin:0 auto;
+      box-shadow:0 14px 30px rgba(10,102,194,.28);
+      cursor:pointer;
+    }
+
+    .mobile-nav-post svg{
+      width:24px;
+      height:24px;
+      stroke:#fff;
+      fill:none;
+      stroke-width:2.5;
+    }
+
+    /* RESPONSIVE */
     @media (max-width: 1200px){
       .container{
         grid-template-columns:300px minmax(0,1fr);
@@ -1394,9 +1543,6 @@
         display:none;
       }
 
-      .panel-grid.two,
-      .panel-form.two,
-      .panel-inline-stats,
       .network-summary{
         grid-template-columns:1fr;
       }
@@ -1422,64 +1568,38 @@
         width:100%;
         text-align:center;
       }
-
-      .profile-card-mini-stats{
-        grid-template-columns:repeat(3,minmax(0,1fr));
-      }
-
-      .top-nav-item{
-        padding:8px 10px;
-      }
-
-      .top-nav-label{
-        font-size:11px;
-      }
     }
 
     @media (max-width: 640px){
       body{
         background:#f3f2ef;
+        padding-top:var(--mobile-topbar-h);
+        padding-bottom:calc(var(--mobile-bottomnav-h) + 6px);
       }
 
       .header{
-        padding:10px 12px;
-        gap:10px;
-      }
-
-      .logo{
-        font-size:18px;
-      }
-
-      .header-actions{
-        width:100%;
-        display:grid;
-        grid-template-columns:repeat(5,minmax(0,1fr));
-        gap:8px;
-        align-items:center;
-      }
-
-      .top-nav-item,
-      #notifBtn,
-      .top-profile-pill{
-        width:100%;
-        min-width:0;
-        justify-content:center;
-        padding:10px 8px;
-        border:1px solid var(--border);
-        background:#fff;
-        border-radius:14px;
-      }
-
-      .top-nav-label,
-      #notifBtn > span:last-child,
-      .top-profile-meta{
         display:none;
       }
 
+      .mobile-topbar{
+        display:block;
+      }
+
+      .mobile-bottom-nav{
+        display:block;
+      }
+
       .container{
-        padding:0 0 18px;
-        gap:10px;
-        margin:10px auto 0;
+        margin:0;
+        padding:0;
+        gap:0;
+        display:block;
+        max-width:none;
+      }
+
+      .left-col,
+      .right-col{
+        display:none;
       }
 
       .center-col{
@@ -1488,9 +1608,10 @@
 
       .card,
       .panel-shell,
-      .network-shell{
+      .network-shell,
+      .post-card{
         border-radius:0;
-        margin-bottom:10px;
+        margin-bottom:8px;
         border-left:none;
         border-right:none;
         border-top:1px solid #e8e8e8;
@@ -1498,68 +1619,13 @@
         box-shadow:none;
       }
 
+      .mobile-career-tools{
+        display:block;
+      }
+
       .panel-shell,
       .network-shell{
         overflow:hidden;
-      }
-
-      .profile-card-cover{
-        height:118px;
-      }
-
-      .profile-card-body{
-        padding:0 14px 14px;
-      }
-
-      .profile-card-avatar{
-        width:84px;
-        height:84px;
-        margin-top:-40px;
-      }
-
-      .profile-card-name{
-        font-size:18px;
-        margin-top:10px;
-      }
-
-      .profile-card-location{
-        font-size:12px;
-      }
-
-      .profile-card-headline{
-        font-size:13px;
-      }
-
-      .profile-card-mini-stats{
-        grid-template-columns:repeat(3,minmax(0,1fr));
-        gap:8px;
-      }
-
-      .profile-card-footer{
-        display:none;
-      }
-
-      .profile-extra-section{
-        margin-top:12px;
-        padding-top:12px;
-        gap:8px;
-      }
-
-      .profile-extra-card{
-        padding:10px;
-      }
-
-      .profile-extra-title{
-        font-size:11px;
-      }
-
-      .profile-extra-text{
-        font-size:12px;
-      }
-
-      .profile-extra-pill{
-        font-size:11px;
-        padding:5px 8px;
       }
 
       .create-post{
@@ -1713,10 +1779,15 @@
       .network-back{
         margin:12px;
       }
+
+      #toolPanel{
+        margin-top:0;
+      }
     }
   </style>
 </head>
 <body>
+  <!-- DESKTOP / TABLET HEADER -->
   <div class="header">
     <div class="logo"><span>AI</span>FT Talent</div>
 
@@ -1736,7 +1807,7 @@
         <span class="top-nav-label">Network</span>
       </div>
 
-      <div class="top-nav-item" onclick="window.location.href='messages.html'">
+      <div class="top-nav-item" onclick="goToMessages()">
         <svg viewBox="0 0 24 24">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
         </svg>
@@ -1744,7 +1815,7 @@
         <span id="messageCount" class="count-badge">0</span>
       </div>
 
-      <div id="notifBtn" class="notif-btn" onclick="window.location.href='notifications.html'">
+      <div id="notifBtn" class="notif-btn" onclick="goToNotifications()">
         <div style="position:relative;width:20px;height:20px;display:flex;align-items:center;justify-content:center;">
           <svg viewBox="0 0 24 24">
             <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
@@ -1765,7 +1836,32 @@
     </div>
   </div>
 
+  <!-- MOBILE HEADER -->
+  <div class="mobile-topbar" id="mobileTopbar">
+    <div class="mobile-topbar-inner">
+      <button class="mobile-profile-btn" onclick="window.location.href='profile.html'">
+        <img id="mobileTopProfileImg" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Profile">
+      </button>
+
+      <div class="mobile-search-wrap">
+        <svg viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+        <input id="mobileSearchInput" type="text" placeholder="Search people, jobs, posts" oninput="handleGlobalSearch(this.value)">
+      </div>
+
+      <button class="mobile-msg-btn" onclick="goToMessages()">
+        <svg viewBox="0 0 24 24">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span id="mobileMessageCount" class="mobile-msg-badge">0</span>
+      </button>
+    </div>
+  </div>
+
   <div class="container">
+    <!-- LEFT -->
     <div class="left-col">
       <div class="card" id="profileCard"></div>
 
@@ -1848,11 +1944,53 @@
       </div>
     </div>
 
+    <!-- CENTER -->
     <div class="center-col">
       <div id="feedPanel">
         <div class="card create-post" onclick="openPostModal()">
           <img id="createPostAvatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Avatar">
           <div class="create-post-input">Start a post...</div>
+        </div>
+
+        <!-- MOBILE ONLY -->
+        <div class="mobile-career-tools" id="mobileCareerTools">
+          <div class="mobile-career-title">Career Tools</div>
+          <div class="mobile-career-grid">
+            <div class="mobile-career-card" onclick="showJobs()">
+              <svg viewBox="0 0 24 24">
+                <rect x="3" y="7" width="18" height="13" rx="2"></rect>
+                <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <div class="mobile-career-card-title">Jobs</div>
+              <div class="mobile-career-card-sub">Discover recommended roles</div>
+            </div>
+
+            <div class="mobile-career-card" onclick="showSavedJobs()">
+              <svg viewBox="0 0 24 24">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <div class="mobile-career-card-title">Saved Jobs</div>
+              <div class="mobile-career-card-sub">Return to bookmarked jobs</div>
+            </div>
+
+            <div class="mobile-career-card" onclick="loadMyApplications()">
+              <svg viewBox="0 0 24 24">
+                <path d="M4 4h16v16H4z"></path>
+                <path d="M4 8l8 5 8-5"></path>
+              </svg>
+              <div class="mobile-career-card-title">Applications</div>
+              <div class="mobile-career-card-sub">Track your job applications</div>
+            </div>
+
+            <div class="mobile-career-card" onclick="window.location.href='profile.html'">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+              </svg>
+              <div class="mobile-career-card-title">Edit Profile</div>
+              <div class="mobile-career-card-sub">Improve your visibility</div>
+            </div>
+          </div>
         </div>
 
         <div id="posts"></div>
@@ -1861,6 +1999,7 @@
       <div id="toolPanel" style="display:none;"></div>
     </div>
 
+    <!-- RIGHT -->
     <div class="right-col">
       <div class="card dashboard-card">
         <div class="dashboard-title">Career Dashboard</div>
@@ -1924,11 +2063,12 @@
     </div>
   </div>
 
+  <!-- POST MODAL -->
   <div id="postModal" class="post-modal">
     <div class="post-modal-card">
       <h3>Create Post</h3>
       <textarea id="postContent" placeholder="Share something..."></textarea>
-      <div id="filePreviewContainer" style="margin-top:10px;"></div>
+      <div id="filePreviewContainer"></div>
       <div class="modal-actions">
         <label style="cursor:pointer;color:#0a66c2;font-weight:600;">
           Add Media
@@ -1942,6 +2082,7 @@
     </div>
   </div>
 
+  <!-- SHARE MODAL -->
   <div class="share-modal" id="shareModal">
     <div class="share-content">
       <h4>Share Post</h4>
@@ -1950,13 +2091,64 @@
     </div>
   </div>
 
+  <!-- MOBILE BOTTOM NAV -->
+  <div class="mobile-bottom-nav">
+    <div class="mobile-bottom-nav-inner">
+      <button class="mobile-nav-btn active" id="mobileNavHome" onclick="showFeed()">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 11l9-8 9 8"></path>
+          <path d="M5 10v10h14V10"></path>
+        </svg>
+        <span class="mobile-nav-label">Home</span>
+      </button>
+
+      <button class="mobile-nav-btn" id="mobileNavNetwork" onclick="openNetwork()">
+        <svg viewBox="0 0 24 24">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M20 8v6"></path>
+          <path d="M23 11h-6"></path>
+        </svg>
+        <span class="mobile-nav-label">Network</span>
+      </button>
+
+      <button class="mobile-nav-post" onclick="openPostModal()">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+      </button>
+
+      <button class="mobile-nav-btn" id="mobileNavNotifications" onclick="goToNotifications()">
+        <span id="mobileNotificationCount" class="mobile-nav-badge">0</span>
+        <svg viewBox="0 0 24 24">
+          <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 01-3.46 0"></path>
+        </svg>
+        <span class="mobile-nav-label">Alerts</span>
+      </button>
+
+      <button class="mobile-nav-btn" id="mobileNavJobs" onclick="showJobs()">
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="7" width="18" height="13" rx="2"></rect>
+          <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span class="mobile-nav-label">Jobs</span>
+      </button>
+    </div>
+  </div>
+
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script>
     const API = "https://backend-1-9b6f.onrender.com";
-    const socket = io(API);
+    const socket = typeof io !== "undefined" ? io(API, { transports:["websocket","polling"] }) : null;
 
     const role = localStorage.getItem("role");
-    const token = localStorage.getItem("talentToken");
+    const token =
+      localStorage.getItem("talentToken") ||
+      localStorage.getItem("employerToken") ||
+      localStorage.getItem("adminToken") ||
+      localStorage.getItem("agentToken");
 
     if(!token || role !== "talent"){
       window.location.href = "login.html";
@@ -1980,6 +2172,45 @@
     let allJobsCache = [];
     let savedJobsCache = [];
     let applicationsCache = [];
+    let currentSharePostId = null;
+    let selectedPostMediaFile = null;
+    let allLoadedPosts = [];
+    let lastScrollY = window.scrollY;
+    let searchDebounce = null;
+
+    const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+    }
+
+    function formatDateTime(value){
+      if(!value) return "Recently";
+      const d = new Date(value);
+      if(isNaN(d.getTime())) return "Recently";
+      return d.toLocaleString([], {
+        month:"short",
+        day:"numeric",
+        hour:"numeric",
+        minute:"2-digit"
+      });
+    }
+
+    function pluralize(count, one, many){
+      return `${count} ${count === 1 ? one : many}`;
+    }
+
+    function updateBadge(el, count){
+      if(!el) return;
+      const n = Number(count) || 0;
+      el.textContent = n > 99 ? "99+" : String(n);
+      el.style.display = n > 0 ? "flex" : "none";
+    }
 
     function setActiveTool(toolId){
       document.querySelectorAll(".tool-item").forEach(item => item.classList.remove("active"));
@@ -1987,11 +2218,20 @@
       if(active) active.classList.add("active");
     }
 
+    function setActiveMobileNav(tab){
+      ["mobileNavHome","mobileNavNetwork","mobileNavNotifications","mobileNavJobs"].forEach(id => {
+        document.getElementById(id)?.classList.remove("active");
+      });
+      if(tab){
+        document.getElementById(tab)?.classList.add("active");
+      }
+    }
+
     function renderEmptyPanel(title, subtitle){
       return `
         <div class="panel-empty">
-          <h3>${title}</h3>
-          <div>${subtitle}</div>
+          <h3>${escapeHtml(title)}</h3>
+          <div>${escapeHtml(subtitle)}</div>
         </div>
       `;
     }
@@ -1999,12 +2239,11 @@
     function showPanelLoading(title = "Loading"){
       document.getElementById("feedPanel").style.display = "none";
       document.getElementById("toolPanel").style.display = "block";
-
       document.getElementById("toolPanel").innerHTML = `
         <div class="panel-shell">
           <div class="panel-header">
             <div class="panel-title-wrap">
-              <h2>${title}</h2>
+              <h2>${escapeHtml(title)}</h2>
               <p>Please wait while we load your data.</p>
             </div>
           </div>
@@ -2013,6 +2252,28 @@
           </div>
         </div>
       `;
+    }
+
+    function goToMessages(){
+      window.location.href = "messages.html";
+    }
+
+    function goToNotifications(){
+      window.location.href = "notifications.html";
+    }
+
+    function openOwnPublicProfile(){
+      const id = localStorage.getItem("userId");
+      if(!id){
+        alert("Profile is still loading.");
+        return;
+      }
+      window.location.href = `public-profile.html?id=${id}`;
+    }
+
+    function visitProfile(id){
+      if(!id) return;
+      window.location.href = `public-profile.html?id=${id}`;
     }
 
     function buildProfileExtraSection(user){
@@ -2037,26 +2298,26 @@
         <div class="profile-extra-section">
           <div class="profile-extra-card">
             <div class="profile-extra-title">About</div>
-            <div class="profile-extra-text">${user.bio || "No about section added yet."}</div>
+            <div class="profile-extra-text">${escapeHtml(user.bio || "No about section added yet.")}</div>
           </div>
 
           <div class="profile-extra-card">
             <div class="profile-extra-title">Skills</div>
             ${
               skills.length
-                ? `<div class="profile-extra-list">${skills.map(skill => `<span class="profile-extra-pill">${skill}</span>`).join("")}</div>`
+                ? `<div class="profile-extra-list">${skills.map(skill => `<span class="profile-extra-pill">${escapeHtml(skill)}</span>`).join("")}</div>`
                 : `<div class="profile-extra-empty">No skills added yet</div>`
             }
           </div>
 
           <div class="profile-extra-card">
             <div class="profile-extra-title">Experience</div>
-            <div class="profile-extra-text">${latestExperience || '<span class="profile-extra-empty">No experience added yet</span>'}</div>
+            <div class="profile-extra-text">${latestExperience ? escapeHtml(latestExperience) : '<span class="profile-extra-empty">No experience added yet</span>'}</div>
           </div>
 
           <div class="profile-extra-card">
             <div class="profile-extra-title">Education</div>
-            <div class="profile-extra-text">${latestEducation || '<span class="profile-extra-empty">No education added yet</span>'}</div>
+            <div class="profile-extra-text">${latestEducation ? escapeHtml(latestEducation) : '<span class="profile-extra-empty">No education added yet</span>'}</div>
           </div>
 
           <div class="profile-extra-card">
@@ -2077,16 +2338,15 @@
 
         const user = await res.json();
 
-        localStorage.setItem("userId", user._id);
+        localStorage.setItem("userId", user._id || "");
         localStorage.setItem("profileImage", user.profileImage || "");
         localStorage.setItem("profileName", user.name || "");
 
-        const profileImg = user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+        const profileImg = user.profileImage || FALLBACK_AVATAR;
         const coverImg = user.bannerImage || user.coverImage || "";
         const headline = user.headline || "Complete your profile to attract better opportunities.";
         const location = [user.city, user.country].filter(Boolean).join(", ") || user.location || "Location not added";
         const savedJobsCount = Array.isArray(user.savedJobs) ? user.savedJobs.length : 0;
-        const followingCount = Array.isArray(user.following) ? user.following.length : 0;
         const planLabel = user.isPro ? "Pro" : "Free";
 
         document.getElementById("profileCard").innerHTML = `
@@ -2097,13 +2357,13 @@
 
             <div class="profile-card-body">
               <div class="profile-card-avatar-row">
-                <img class="profile-card-avatar" src="${profileImg}" alt="${user.name}">
+                <img class="profile-card-avatar" src="${profileImg}" alt="${escapeHtml(user.name || "Talent")}">
                 <div class="profile-card-badge">Talent View</div>
               </div>
 
-              <div class="profile-card-name">${user.name || "Talent User"}</div>
-              <div class="profile-card-location">${location}</div>
-              <div class="profile-card-headline">${headline}</div>
+              <div class="profile-card-name">${escapeHtml(user.name || "Talent User")}</div>
+              <div class="profile-card-location">${escapeHtml(location)}</div>
+              <div class="profile-card-headline">${escapeHtml(headline)}</div>
 
               <div class="profile-card-actions">
                 <button class="profile-card-btn profile-card-btn-primary" onclick="window.location.href='profile.html'">Edit Profile</button>
@@ -2115,12 +2375,10 @@
                   <div class="profile-mini-label">Role</div>
                   <div class="profile-mini-value">Talent</div>
                 </div>
-
                 <div class="profile-mini-box">
                   <div class="profile-mini-label">Plan</div>
-                  <div class="profile-mini-value">${planLabel}</div>
+                  <div class="profile-mini-value">${escapeHtml(planLabel)}</div>
                 </div>
-
                 <div class="profile-mini-box">
                   <div class="profile-mini-label">Saved</div>
                   <div class="profile-mini-value">${savedJobsCount}</div>
@@ -2133,6 +2391,7 @@
         `;
 
         document.getElementById("topProfileImg").src = profileImg;
+        document.getElementById("mobileTopProfileImg").src = profileImg;
         document.getElementById("topProfileName").innerText = user.name || "Profile";
         document.getElementById("proStatus").innerText = planLabel;
         document.getElementById("cvStatus").innerText = user.cvUrl ? "Yes" : "No";
@@ -2155,23 +2414,238 @@
       }
     }
 
-    function openOwnPublicProfile(){
-      const id = localStorage.getItem("userId");
-      if(!id){
-        alert("Profile is still loading.");
+    function renderPosts(posts, append = false){
+      const postsContainer = document.getElementById("posts");
+      if(!append) postsContainer.innerHTML = "";
+
+      if(!append && (!posts || !posts.length)){
+        postsContainer.innerHTML = `
+          <div class="panel-shell">
+            <div class="panel-body">
+              ${renderEmptyPanel("No posts yet", "Posts from your network will appear here.")}
+            </div>
+          </div>
+        `;
         return;
       }
-      window.location.href = `public-profile.html?id=${id}`;
+
+      posts.forEach(post => {
+        const postId = post._id || Math.random().toString(36).slice(2);
+        const author = post.user || post.author || post.createdBy || {};
+        const authorName = author.name || "AIFT User";
+        const authorHeadline = author.headline || author.role || "AIFT member";
+        const authorImage = author.profileImage || FALLBACK_AVATAR;
+        const postText = post.text || post.content || "";
+        const postMedia = post.mediaUrl || post.image || post.video || "";
+        const mediaType = String(post.mediaType || "").toLowerCase();
+        const likes = Array.isArray(post.likes) ? post.likes.length : Number(post.likesCount || 0);
+        const comments = Array.isArray(post.comments) ? post.comments.length : Number(post.commentsCount || 0);
+        const shares = Number(post.sharesCount || 0);
+        const meId = localStorage.getItem("userId");
+        const liked = Array.isArray(post.likes) ? post.likes.some(l => String(l) === String(meId) || String(l?._id) === String(meId)) : false;
+
+        const mediaHtml = postMedia
+          ? `<div class="post-media">${
+              mediaType.includes("video")
+                ? `<video src="${postMedia}" controls playsinline></video>`
+                : `<img src="${postMedia}" alt="Post media" loading="lazy">`
+            }</div>`
+          : "";
+
+        const postEl = document.createElement("div");
+        postEl.className = "post-card";
+        postEl.dataset.postId = postId;
+
+        postEl.innerHTML = `
+          <div class="post-header">
+            <div class="post-author" onclick="visitProfile('${author._id || ""}')">
+              <img src="${authorImage}" alt="${escapeHtml(authorName)}">
+              <div class="post-author-main">
+                <div class="post-author-name">${escapeHtml(authorName)}</div>
+                <div class="post-meta">${escapeHtml(authorHeadline)}</div>
+                <div class="post-meta">${escapeHtml(formatDateTime(post.createdAt || post.updatedAt))}</div>
+              </div>
+            </div>
+
+            <div class="post-head-actions">
+              <button class="follow-btn" onclick="event.stopPropagation(); followUser('${author._id || ""}')">Follow</button>
+              <div class="dropdown">
+                <button class="post-kebab" onclick="togglePostDropdown(event, '${postId}')">•••</button>
+                <div id="dropdown-${postId}" class="dropdown-menu">
+                  <button onclick="openShareModal('${postId}')">Share</button>
+                  <button onclick="copyPostLink('${postId}')">Copy link</button>
+                  <button onclick="reportPost('${postId}')">Report</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          ${postText ? `<div class="post-content">${escapeHtml(postText)}</div>` : ""}
+          ${mediaHtml}
+
+          <div class="post-stats">
+            <span>${pluralize(likes, "like", "likes")}</span>
+            <span>${pluralize(comments, "comment", "comments")} • ${pluralize(shares, "share", "shares")}</span>
+          </div>
+
+          <div class="post-actions">
+            <button class="post-action ${liked ? "liked" : ""}" onclick="toggleLikePost('${postId}')">
+              <svg viewBox="0 0 24 24">
+                <path d="M7 11v10"></path>
+                <path d="M15 5.88l-1 5.12h5.5a2 2 0 0 1 1.94 2.49l-1.34 6A2 2 0 0 1 18.15 21H7a2 2 0 0 1-2-2V11a2 2 0 0 1 2-2h3.76a2 2 0 0 0 1.96-1.61L13.6 3.5A1.5 1.5 0 0 1 15.08 2 1.92 1.92 0 0 1 17 3.92V5a2 2 0 0 1-2 2h0"></path>
+              </svg>
+              <span>Like</span>
+            </button>
+
+            <button class="post-action" onclick="toggleComments('${postId}')">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span>Comment</span>
+            </button>
+
+            <button class="post-action" onclick="openShareModal('${postId}')">
+              <svg viewBox="0 0 24 24">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <path d="M8.59 13.51l6.83 3.98"></path>
+                <path d="M15.41 6.51L8.59 10.49"></path>
+              </svg>
+              <span>Share</span>
+            </button>
+          </div>
+
+          <div id="comments-${postId}" class="comments-wrapper">
+            <div class="comment-input-area">
+              <input id="comment-input-${postId}" type="text" placeholder="Write a comment...">
+              <button class="comment-send" onclick="submitComment('${postId}')">Send</button>
+            </div>
+            <div id="comments-list-${postId}" class="comments-container"></div>
+          </div>
+        `;
+
+        postsContainer.appendChild(postEl);
+      });
+    }
+
+    async function loadPosts(reset = false){
+      if(loading || noMorePosts) return;
+      loading = true;
+
+      if(reset){
+        currentPage = 1;
+        noMorePosts = false;
+        allLoadedPosts = [];
+        document.getElementById("posts").innerHTML = "";
+      }
+
+      try{
+        const endpoints = [
+          `${API}/api/posts?page=${currentPage}&limit=10`,
+          `${API}/api/posts/feed?page=${currentPage}&limit=10`,
+          `${API}/api/posts`
+        ];
+
+        let posts = [];
+        for(const url of endpoints){
+          try{
+            const res = await fetch(url, { headers: authHeaders() });
+            if(!res.ok) continue;
+            const data = await res.json();
+            posts = Array.isArray(data) ? data : (Array.isArray(data.posts) ? data.posts : []);
+            if(posts.length || url.endsWith("/api/posts")) break;
+          }catch(e){}
+        }
+
+        if(!posts.length && currentPage === 1){
+          renderPosts([], false);
+          noMorePosts = true;
+        }else{
+          if(posts.length < 10) noMorePosts = true;
+          allLoadedPosts = currentPage === 1 ? posts.slice() : allLoadedPosts.concat(posts);
+          renderPosts(posts, currentPage !== 1);
+          currentPage++;
+        }
+      }catch(err){
+        console.error("Failed to load posts", err);
+        if(currentPage === 1){
+          document.getElementById("posts").innerHTML = `
+            <div class="panel-shell">
+              <div class="panel-body">
+                ${renderEmptyPanel("Unable to load feed", "Please refresh the page and try again.")}
+              </div>
+            </div>
+          `;
+        }
+      }finally{
+        loading = false;
+      }
+    }
+
+    function filterPostsLocally(term){
+      const q = String(term || "").trim().toLowerCase();
+      if(!q){
+        renderPosts(allLoadedPosts, false);
+        return;
+      }
+
+      const filtered = allLoadedPosts.filter(post => {
+        const author = post.user || post.author || post.createdBy || {};
+        return [
+          post.text || post.content || "",
+          author.name || "",
+          author.headline || "",
+          author.role || ""
+        ].join(" ").toLowerCase().includes(q);
+      });
+
+      renderPosts(filtered, false);
+    }
+
+    function handleGlobalSearch(value){
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        if(document.getElementById("feedPanel").style.display !== "none"){
+          filterPostsLocally(value);
+        }else if(currentNetworkTab){
+          filterNetworkUsers();
+        }
+      }, 150);
     }
 
     function showFeed(){
       setActiveTool("tool-feed");
+      setActiveMobileNav("mobileNavHome");
       document.getElementById("feedPanel").style.display = "block";
       document.getElementById("toolPanel").style.display = "none";
+      closeAllDropdowns();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function fetchRecommendedJobs(){
+      const endpoints = [
+        API + "/api/jobs/recommended",
+        API + "/api/jobs"
+      ];
+
+      for(const url of endpoints){
+        try{
+          const res = await fetch(url, { headers: authHeaders() });
+          if(!res.ok) continue;
+          const data = await res.json();
+          allJobsCache = Array.isArray(data) ? data : (Array.isArray(data.jobs) ? data.jobs : []);
+          if(allJobsCache.length || url.endsWith("/api/jobs")) return allJobsCache;
+        }catch(e){}
+      }
+
+      allJobsCache = [];
+      return [];
     }
 
     async function showJobs(){
       setActiveTool("tool-jobs");
+      setActiveMobileNav("mobileNavJobs");
       showPanelLoading("Jobs");
 
       const jobs = await fetchRecommendedJobs();
@@ -2183,12 +2657,13 @@
         <div class="panel-shell">
           <div class="panel-header">
             <div class="panel-title-wrap">
-              <h2>Recommended Jobs</h2>
-              <p>Discover opportunities matched to your background and interests.</p>
+              <h2>Career Tools & Jobs</h2>
+              <p>This section loads only your job tools and recommended opportunities.</p>
             </div>
-
             <div class="panel-actions">
-              <button class="panel-btn panel-btn-secondary" onclick="showFeed()">Back</button>
+              <button class="panel-btn panel-btn-secondary" onclick="showSavedJobs()">Saved</button>
+              <button class="panel-btn panel-btn-secondary" onclick="loadMyApplications()">Applications</button>
+              <button class="panel-btn panel-btn-primary" onclick="showFeed()">Back to Feed</button>
             </div>
           </div>
 
@@ -2200,8 +2675,7 @@
                     <div class="panel-card">
                       <div class="panel-card-title">${escapeHtml(job.title || "Untitled Job")}</div>
                       <div class="panel-card-sub">${escapeHtml(job.company || "Company")} • ${escapeHtml(job.location || "Location")}</div>
-                      <div class="panel-card-meta">${escapeHtml((job.description || "No description available.").slice(0, 180))}${job.description && job.description.length > 180 ? "..." : ""}</div>
-
+                      <div class="panel-card-meta">${escapeHtml((job.description || "No description available.").slice(0, 220))}${job.description && job.description.length > 220 ? "..." : ""}</div>
                       <div class="panel-card-actions">
                         <button class="panel-btn panel-btn-secondary" onclick="saveJob('${job._id}')">Save</button>
                         <button class="panel-btn panel-btn-primary" onclick="quickApply('${job._id}')">Apply</button>
@@ -2216,8 +2690,37 @@
       `;
     }
 
+    async function fetchSavedJobs(){
+      try{
+        const [userRes, jobsRes] = await Promise.all([
+          fetch(API + "/api/users/me", { headers: authHeaders() }),
+          fetch(API + "/api/jobs", { headers: authHeaders() })
+        ]);
+
+        const user = userRes.ok ? await userRes.json() : {};
+        const jobs = jobsRes.ok ? await jobsRes.json() : [];
+        const allJobs = Array.isArray(jobs) ? jobs : (Array.isArray(jobs.jobs) ? jobs.jobs : []);
+        const savedIds = Array.isArray(user.savedJobs) ? user.savedJobs.map(j => String(j._id || j)) : [];
+
+        savedJobsCache = allJobs.filter(job => savedIds.includes(String(job._id)));
+      }catch(err){
+        console.error("Failed to fetch saved jobs", err);
+        savedJobsCache = [];
+      }
+    }
+
+    async function loadSavedJobsCount(){
+      try{
+        await fetchSavedJobs();
+        document.getElementById("savedCount").innerText = savedJobsCache.length;
+      }catch(err){
+        console.error(err);
+      }
+    }
+
     async function showSavedJobs(){
       setActiveTool("tool-saved");
+      setActiveMobileNav("mobileNavJobs");
       showPanelLoading("Saved Jobs");
 
       await fetchSavedJobs();
@@ -2232,9 +2735,9 @@
               <h2>Saved Jobs</h2>
               <p>Quick access to opportunities you want to revisit later.</p>
             </div>
-
             <div class="panel-actions">
-              <button class="panel-btn panel-btn-secondary" onclick="showFeed()">Back</button>
+              <button class="panel-btn panel-btn-secondary" onclick="showJobs()">Jobs</button>
+              <button class="panel-btn panel-btn-primary" onclick="showFeed()">Back to Feed</button>
             </div>
           </div>
 
@@ -2246,6 +2749,7 @@
                     <div class="panel-card">
                       <div class="panel-card-title">${escapeHtml(job.title || "Untitled Job")}</div>
                       <div class="panel-card-sub">${escapeHtml(job.company || "Company")} • ${escapeHtml(job.location || "Location")}</div>
+                      <div class="panel-card-meta">${escapeHtml((job.description || "No description available.").slice(0, 180))}${job.description && job.description.length > 180 ? "..." : ""}</div>
                       <div class="panel-card-actions">
                         <button class="panel-btn panel-btn-secondary" onclick="saveJob('${job._id}')">Remove</button>
                         <button class="panel-btn panel-btn-primary" onclick="quickApply('${job._id}')">Apply</button>
@@ -2262,13 +2766,20 @@
 
     async function loadMyApplications(){
       setActiveTool("tool-apps");
+      setActiveMobileNav("mobileNavJobs");
       showPanelLoading("My Applications");
 
-      const res = await fetch(API + "/api/applications", {
-        headers: authHeaders()
-      });
+      try{
+        const res = await fetch(API + "/api/applications", {
+          headers: authHeaders()
+        });
 
-      applicationsCache = res.ok ? await res.json() : [];
+        const data = res.ok ? await res.json() : [];
+        applicationsCache = Array.isArray(data) ? data : (Array.isArray(data.applications) ? data.applications : []);
+      }catch(err){
+        applicationsCache = [];
+      }
+
       document.getElementById("appCount").innerText = applicationsCache.length;
 
       document.getElementById("feedPanel").style.display = "none";
@@ -2283,7 +2794,8 @@
             </div>
 
             <div class="panel-actions">
-              <button class="panel-btn panel-btn-secondary" onclick="showFeed()">Back</button>
+              <button class="panel-btn panel-btn-secondary" onclick="showJobs()">Jobs</button>
+              <button class="panel-btn panel-btn-primary" onclick="showFeed()">Back to Feed</button>
             </div>
           </div>
 
@@ -2308,6 +2820,7 @@
 
     async function openNetwork(){
       setActiveTool("tool-network");
+      setActiveMobileNav("mobileNavNetwork");
 
       document.getElementById("feedPanel").style.display = "none";
       document.getElementById("toolPanel").style.display = "block";
@@ -2385,9 +2898,9 @@
         const following = followingRes.ok ? await followingRes.json() : [];
         const suggestions = suggestionsRes.ok ? await suggestionsRes.json() : [];
 
-        document.getElementById("networkFollowersCount").innerText = followers.length;
-        document.getElementById("networkFollowingCount").innerText = following.length;
-        document.getElementById("networkSuggestionsCount").innerText = suggestions.length;
+        document.getElementById("networkFollowersCount").innerText = Array.isArray(followers) ? followers.length : 0;
+        document.getElementById("networkFollowingCount").innerText = Array.isArray(following) ? following.length : 0;
+        document.getElementById("networkSuggestionsCount").innerText = Array.isArray(suggestions) ? suggestions.length : 0;
       }catch(err){
         console.error("Network summary failed", err);
       }
@@ -2395,22 +2908,34 @@
 
     async function loadFollowers(){
       setActiveNetworkTab("followers");
-      const res = await fetch(API + "/api/users/me/followers", { headers: authHeaders() });
-      fullNetworkUsers = res.ok ? await res.json() : [];
+      try{
+        const res = await fetch(API + "/api/users/me/followers", { headers: authHeaders() });
+        fullNetworkUsers = res.ok ? await res.json() : [];
+      }catch(err){
+        fullNetworkUsers = [];
+      }
       renderNetworkUsers(fullNetworkUsers, "followers");
     }
 
     async function loadFollowing(){
       setActiveNetworkTab("following");
-      const res = await fetch(API + "/api/users/me/following", { headers: authHeaders() });
-      fullNetworkUsers = res.ok ? await res.json() : [];
+      try{
+        const res = await fetch(API + "/api/users/me/following", { headers: authHeaders() });
+        fullNetworkUsers = res.ok ? await res.json() : [];
+      }catch(err){
+        fullNetworkUsers = [];
+      }
       renderNetworkUsers(fullNetworkUsers, "following");
     }
 
     async function loadSuggestions(){
       setActiveNetworkTab("suggestions");
-      const res = await fetch(API + "/api/users/network", { headers: authHeaders() });
-      fullNetworkUsers = res.ok ? await res.json() : [];
+      try{
+        const res = await fetch(API + "/api/users/network", { headers: authHeaders() });
+        fullNetworkUsers = res.ok ? await res.json() : [];
+      }catch(err){
+        fullNetworkUsers = [];
+      }
       renderNetworkUsers(fullNetworkUsers, "suggestions");
     }
 
@@ -2440,9 +2965,9 @@
       }
 
       users.forEach(user => {
-        const profileImage = user.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+        const profileImage = user.profileImage || FALLBACK_AVATAR;
         const headline = user.headline || "No headline added";
-        const role = user.role || "member";
+        const userRole = user.role || "member";
 
         let actionButtons = "";
 
@@ -2476,7 +3001,7 @@
               <div class="network-user-meta">
                 <div class="network-user-name">${escapeHtml(user.name || "User")}</div>
                 <div class="network-user-headline">${escapeHtml(headline)}</div>
-                <div class="network-user-sub">${escapeHtml(role)}</div>
+                <div class="network-user-sub">${escapeHtml(userRole)}</div>
               </div>
             </div>
 
@@ -2508,304 +3033,297 @@
     }
 
     async function connectUser(id){
-      const res = await fetch(API + "/api/users/" + id + "/follow", {
-        method:"PATCH",
-        headers: authHeaders()
-      });
+      if(!id) return;
+      try{
+        const res = await fetch(API + "/api/users/" + id + "/follow", {
+          method:"PATCH",
+          headers: authHeaders()
+        });
 
-      if(!res.ok){
+        if(!res.ok){
+          alert("Failed to update connection");
+          return;
+        }
+
+        await loadNetworkSummary();
+
+        if(currentNetworkTab === "followers"){
+          loadFollowers();
+        } else if(currentNetworkTab === "following"){
+          loadFollowing();
+        } else {
+          loadSuggestions();
+        }
+      }catch(err){
         alert("Failed to update connection");
+      }
+    }
+
+    async function followUser(id){
+      if(!id) return;
+      try{
+        const res = await fetch(API + "/api/users/" + id + "/follow", {
+          method:"PATCH",
+          headers: authHeaders()
+        });
+        if(!res.ok) throw new Error();
+      }catch(err){
+        console.error("Follow failed");
+      }
+    }
+
+    async function quickApply(jobId){
+      if(!jobId) return;
+      try{
+        const res = await fetch(API + "/api/applications", {
+          method:"POST",
+          headers: authHeaders({ "Content-Type":"application/json" }),
+          body: JSON.stringify({ jobId })
+        });
+
+        if(!res.ok){
+          alert("Unable to apply right now.");
+          return;
+        }
+
+        alert("Application submitted.");
+        loadMyApplications();
+      }catch(err){
+        alert("Unable to apply right now.");
+      }
+    }
+
+    async function saveJob(jobId){
+      if(!jobId) return;
+      const endpoints = [
+        API + "/api/jobs/" + jobId + "/save",
+        API + "/api/users/jobs/" + jobId + "/save"
+      ];
+
+      let done = false;
+
+      for(const url of endpoints){
+        try{
+          const res = await fetch(url, {
+            method:"PATCH",
+            headers: authHeaders()
+          });
+          if(res.ok){
+            done = true;
+            break;
+          }
+        }catch(e){}
+      }
+
+      if(!done){
+        alert("Unable to update saved job right now.");
         return;
-      }
-
-      await loadNetworkSummary();
-
-      if(currentNetworkTab === "followers"){
-        loadFollowers();
-      } else if(currentNetworkTab === "following"){
-        loadFollowing();
-      } else {
-        loadSuggestions();
-      }
-    }
-
-    async function fetchRecommendedJobs(){
-      const res = await fetch(API + "/api/jobs/recommended", {
-        headers: authHeaders()
-      });
-      allJobsCache = res.ok ? await res.json() : [];
-      return allJobsCache;
-    }
-
-    async function fetchSavedJobs(){
-      const [userRes, jobsRes] = await Promise.all([
-        fetch(API + "/api/users/me", { headers: authHeaders() }),
-        fetch(API + "/api/jobs", { headers: authHeaders() })
-      ]);
-
-      const user = userRes.ok ? await userRes.json() : {};
-      const allJobs = jobsRes.ok ? await jobsRes.json() : [];
-      savedJobsCache = allJobs.filter(job => (user.savedJobs || []).includes(job._id));
-      document.getElementById("savedCount").innerText = savedJobsCache.length;
-      return savedJobsCache;
-    }
-
-    async function loadSavedJobsCount(){
-      const res = await fetch(API + "/api/users/me", {
-        headers: authHeaders()
-      });
-
-      const user = res.ok ? await res.json() : {};
-      document.getElementById("savedCount").innerText = user.savedJobs ? user.savedJobs.length : 0;
-    }
-
-    async function quickApply(id){
-      const res = await fetch(API + "/api/jobs/" + id + "/quick-apply", {
-        method:"POST",
-        headers: authHeaders()
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if(res.ok){
-        alert("Application sent");
-        await refreshApplicationCount();
-      } else {
-        alert(data.message || "Unable to apply");
-      }
-    }
-
-    async function saveJob(id){
-      const res = await fetch(API + "/api/jobs/" + id + "/save", {
-        method:"PATCH",
-        headers: authHeaders()
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if(data.saved){
-        alert("Job saved successfully");
-      } else {
-        alert("Job removed from saved list");
       }
 
       await loadSavedJobsCount();
 
-      if(document.getElementById("toolPanel").style.display === "block" && document.getElementById("tool-saved").classList.contains("active")){
-        showSavedJobs();
+      if(document.getElementById("toolPanel").style.display !== "none"){
+        if(document.getElementById("tool-jobs")?.classList.contains("active")) showJobs();
+        if(document.getElementById("tool-saved")?.classList.contains("active")) showSavedJobs();
       }
     }
 
-    async function refreshApplicationCount(){
-      const res = await fetch(API + "/api/applications", {
-        headers: authHeaders()
-      });
+    async function fetchCounters(){
+      try{
+        let messageCount = 0;
+        let notificationCount = 0;
 
-      applicationsCache = res.ok ? await res.json() : [];
-      document.getElementById("appCount").innerText = applicationsCache.length;
-      return applicationsCache.length;
-    }
-
-    function escapeHtml(value){
-      return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    window.addEventListener("scroll", () => {
-      if(loading || noMorePosts || document.getElementById("feedPanel").style.display === "none") return;
-
-      if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 200){
-        loading = true;
-        currentPage++;
-        loadPosts(currentPage).then(() => {
-          loading = false;
-        });
-      }
-    });
-
-    async function loadPosts(page = 1){
-      if(noMorePosts) return;
-
-      const res = await fetch(API + "/api/posts?page=" + page, {
-        headers: authHeaders()
-      });
-
-      const posts = res.ok ? await res.json() : [];
-      const container = document.getElementById("posts");
-
-      if(page === 1){
-        container.innerHTML = "";
-        noMorePosts = false;
-      }
-
-      if(posts.length < 5){
-        noMorePosts = true;
-      }
-
-      posts.forEach(post => appendPost(post, container, false));
-    }
-
-    function appendPost(post, container, prepend){
-      if(document.getElementById("post-" + post._id)) return;
-
-      const isFollowing = (post.author?.followers || []).some(
-        id => String(id) === String(localStorage.getItem("userId"))
-      );
-
-      const liked = post.likes?.some(
-        id => String(id) === String(localStorage.getItem("userId"))
-      );
-
-      const html = `
-        <div class="card" id="post-${post._id}">
-          <div class="post-header">
-            <div class="post-author" onclick="visitProfile('${post.author?._id}')">
-              <img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" alt="${escapeHtml(post.author?.name || 'User')}">
-              <div class="post-author-main">
-                <div class="post-author-name">${escapeHtml(post.author?.name || "User")}</div>
-                <div class="post-meta">${escapeHtml(post.author?.headline || "")}</div>
-                <div class="post-meta">${(post.author?.followers?.length || 0)} followers • ${prepend ? "Just now" : formatTime(post.createdAt)}</div>
-              </div>
-            </div>
-
-            <div class="post-head-actions">
-              ${
-                String(post.author?._id) !== String(localStorage.getItem("userId"))
-                  ? `<button class="follow-btn" onclick="followFromFeed('${post.author._id}', this)" data-user="${post.author._id}">${isFollowing ? "Following" : "Follow"}</button>`
-                  : ``
-              }
-
-              <div class="dropdown">
-                <div class="post-kebab" onclick="event.stopPropagation(); toggleDropdown('${post._id}', event)">•••</div>
-                <div class="dropdown-menu" id="dropdown-${post._id}">
-                  ${
-                    post.author?._id === localStorage.getItem("userId")
-                      ? `
-                        <div onclick="editPost('${post._id}')">Edit</div>
-                        <div onclick="deletePost('${post._id}')">Delete</div>
-                        <div onclick="savePost('${post._id}')">Save</div>
-                        <div onclick="hidePost('${post._id}')">Hide</div>
-                        <div onclick="reportPost('${post._id}')">Report</div>
-                      `
-                      : `
-                        <div onclick="savePost('${post._id}')">Save</div>
-                        <div onclick="openShareModal('${post._id}')">Share</div>
-                        <div onclick="markInterested('${post._id}')">Interested</div>
-                        <div onclick="hidePost('${post._id}')">Hide</div>
-                        <div onclick="reportPost('${post._id}')">Report</div>
-                      `
-                  }
-                </div>
-              </div>
-            </div>
-          </div>
-
-          ${post.content ? `<div class="post-content">${escapeHtml(post.content)}</div>` : ""}
-
-          ${
-            post.mediaUrl
-              ? `<div class="post-media">${
-                  post.mediaType === "video"
-                    ? `<video controls src="${post.mediaUrl}"></video>`
-                    : `<img src="${post.mediaUrl}" alt="Post media">`
-                }</div>`
-              : ""
+        try{
+          const msgRes = await fetch(API + "/api/messages/unread-count", { headers: authHeaders() });
+          if(msgRes.ok){
+            const msgData = await msgRes.json();
+            messageCount = Number(msgData.count || msgData.unread || 0);
           }
+        }catch(e){}
 
-          <div class="post-stats">
-            <div>${post.likes?.length || 0} reactions</div>
-            <div style="cursor:pointer;" onclick="toggleCommentBox('${post._id}')">
-              ${post.comments?.reduce((total, c) => total + 1 + (c.replies?.length || 0), 0) || 0} comments
-            </div>
-          </div>
+        try{
+          const notifRes = await fetch(API + "/api/notifications/unread-count", { headers: authHeaders() });
+          if(notifRes.ok){
+            const notifData = await notifRes.json();
+            notificationCount = Number(notifData.count || notifData.unread || 0);
+          }
+        }catch(e){}
 
-          <div class="post-actions">
-            <div class="post-action ${liked ? "liked" : ""}" onclick="toggleLike('${post._id}', this)">
-              <svg viewBox="0 0 24 24" fill="${liked ? '#0a66c2' : 'none'}" stroke="currentColor" stroke-width="2">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4 8.24 4 9.91 5 10.54 6.36h.92C12.09 5 13.76 4 15.5 4 18 4 20 6 20 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
-              </svg>
-              <span>Like</span>
-            </div>
-
-            <div class="post-action" onclick="toggleCommentBox('${post._id}')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
-              </svg>
-              <span>Comment</span>
-            </div>
-
-            <div class="post-action" onclick="openShareModal('${post._id}')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="18" cy="5" r="3"></circle>
-                <circle cx="6" cy="12" r="3"></circle>
-                <circle cx="18" cy="19" r="3"></circle>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-              </svg>
-              <span>Share</span>
-            </div>
-          </div>
-
-          <div class="comments-wrapper" id="comments-wrapper-${post._id}">
-            <div class="comment-input-area">
-              <img src="${localStorage.getItem("profileImage") || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="comment-avatar" alt="Avatar">
-              <input type="text" placeholder="Write a comment..." id="comment-input-${post._id}">
-              <button class="comment-send" id="send-btn-${post._id}" onclick="submitComment('${post._id}')">Send</button>
-            </div>
-            <div class="comments-container" id="comments-${post._id}"></div>
-            <div id="load-more-${post._id}" style="text-align:center;margin-top:10px;"></div>
-          </div>
-        </div>
-      `;
-
-      if(prepend){
-        container.insertAdjacentHTML("afterbegin", html);
-      }else{
-        container.insertAdjacentHTML("beforeend", html);
+        updateBadge(document.getElementById("messageCount"), messageCount);
+        updateBadge(document.getElementById("notificationCount"), notificationCount);
+        updateBadge(document.getElementById("mobileMessageCount"), messageCount);
+        updateBadge(document.getElementById("mobileNotificationCount"), notificationCount);
+      }catch(err){
+        console.error("Counter load failed", err);
       }
     }
 
-    function prependPost(post){
-      appendPost(post, document.getElementById("posts"), true);
-    }
-
-    async function createPost(){
-      const content = document.getElementById("postContent").value.trim();
-      const fileInput = document.getElementById("mediaInput");
-      const file = fileInput.files[0];
-
-      if(!content && !file){
-        alert("Please add text or media.");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("content", content);
-      if(file) formData.append("media", file);
-
-      const res = await fetch(API + "/api/posts", {
-        method:"POST",
-        headers: authHeaders(),
-        body: formData
+    function closeAllDropdowns(){
+      document.querySelectorAll(".dropdown-menu").forEach(menu => {
+        menu.style.display = "none";
       });
+      activeDropdown = null;
+    }
 
-      if(!res.ok){
-        alert("Post failed");
+    function togglePostDropdown(event, postId){
+      event.stopPropagation();
+      const menu = document.getElementById(`dropdown-${postId}`);
+      if(!menu) return;
+
+      if(activeDropdown && activeDropdown !== menu){
+        activeDropdown.style.display = "none";
+      }
+
+      const open = menu.style.display === "block";
+      menu.style.display = open ? "none" : "block";
+      activeDropdown = open ? null : menu;
+    }
+
+    function openShareModal(postId){
+      currentSharePostId = postId;
+      document.getElementById("shareModal").style.display = "flex";
+      const btn = document.getElementById("copyLinkBtn");
+      btn.onclick = () => copyPostLink(postId);
+      closeAllDropdowns();
+    }
+
+    function closeShareModal(){
+      document.getElementById("shareModal").style.display = "none";
+      currentSharePostId = null;
+    }
+
+    function copyPostLink(postId){
+      const url = `${window.location.origin}${window.location.pathname}#post-${postId}`;
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          alert("Post link copied.");
+          closeShareModal();
+        })
+        .catch(() => alert("Could not copy link."));
+    }
+
+    function reportPost(postId){
+      closeAllDropdowns();
+      alert("Post reported.");
+    }
+
+    function toggleComments(postId){
+      const wrapper = document.getElementById(`comments-${postId}`);
+      if(!wrapper) return;
+      const show = wrapper.style.display === "block";
+      wrapper.style.display = show ? "none" : "block";
+      if(!show) loadComments(postId);
+    }
+
+    async function loadComments(postId){
+      const container = document.getElementById(`comments-list-${postId}`);
+      if(!container) return;
+      container.innerHTML = `<div style="font-size:13px;color:#64748b;">Loading comments...</div>`;
+
+      const endpoints = [
+        `${API}/api/posts/${postId}/comments`,
+        `${API}/api/comments/post/${postId}`
+      ];
+
+      let comments = [];
+
+      for(const url of endpoints){
+        try{
+          const res = await fetch(url, { headers: authHeaders() });
+          if(!res.ok) continue;
+          const data = await res.json();
+          comments = Array.isArray(data) ? data : (Array.isArray(data.comments) ? data.comments : []);
+          break;
+        }catch(e){}
+      }
+
+      if(!comments.length){
+        container.innerHTML = `<div style="font-size:13px;color:#64748b;">No comments yet.</div>`;
         return;
       }
 
-      const newPost = await res.json();
+      container.innerHTML = comments.map(comment => {
+        const user = comment.user || comment.author || {};
+        return `
+          <div class="comment-item">
+            <img class="comment-avatar" src="${user.profileImage || FALLBACK_AVATAR}" alt="${escapeHtml(user.name || "User")}">
+            <div class="comment-body">
+              <div class="comment-bubble">
+                <div class="comment-name">${escapeHtml(user.name || "User")}</div>
+                <div class="comment-text">${escapeHtml(comment.text || comment.content || "")}</div>
+              </div>
+              <div class="comment-meta">
+                <span>${escapeHtml(formatDateTime(comment.createdAt))}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
 
-      document.getElementById("postContent").value = "";
-      fileInput.value = "";
-      document.getElementById("filePreviewContainer").innerHTML = "";
+    async function submitComment(postId){
+      const input = document.getElementById(`comment-input-${postId}`);
+      if(!input) return;
+      const text = input.value.trim();
+      if(!text) return;
 
-      closePostModal();
-      prependPost(newPost);
+      const endpoints = [
+        `${API}/api/posts/${postId}/comments`,
+        `${API}/api/comments`
+      ];
+
+      let success = false;
+
+      for(const url of endpoints){
+        try{
+          const res = await fetch(url, {
+            method:"POST",
+            headers: authHeaders({ "Content-Type":"application/json" }),
+            body: JSON.stringify(url.includes("/comments") && url.includes(`/posts/${postId}`)
+              ? { text }
+              : { postId, text })
+          });
+
+          if(res.ok){
+            success = true;
+            break;
+          }
+        }catch(e){}
+      }
+
+      if(!success){
+        alert("Unable to add comment right now.");
+        return;
+      }
+
+      input.value = "";
+      loadComments(postId);
+      loadPosts(true);
+    }
+
+    async function toggleLikePost(postId){
+      const endpoints = [
+        `${API}/api/posts/${postId}/like`,
+        `${API}/api/posts/${postId}/likes`
+      ];
+
+      let success = false;
+      for(const url of endpoints){
+        try{
+          const res = await fetch(url, {
+            method:"PATCH",
+            headers: authHeaders()
+          });
+          if(res.ok){
+            success = true;
+            break;
+          }
+        }catch(e){}
+      }
+
+      if(success){
+        loadPosts(true);
+      }
     }
 
     function openPostModal(){
@@ -2814,521 +3332,156 @@
 
     function closePostModal(){
       document.getElementById("postModal").style.display = "none";
+      document.getElementById("postContent").value = "";
+      document.getElementById("mediaInput").value = "";
+      document.getElementById("filePreviewContainer").innerHTML = "";
+      selectedPostMediaFile = null;
     }
 
-    document.addEventListener("change", function(e){
-      if(e.target.id === "mediaInput"){
-        const file = e.target.files[0];
-        const previewContainer = document.getElementById("filePreviewContainer");
-        previewContainer.innerHTML = "";
+    document.getElementById("mediaInput").addEventListener("change", function(){
+      const file = this.files[0];
+      selectedPostMediaFile = file || null;
+      const preview = document.getElementById("filePreviewContainer");
+      preview.innerHTML = "";
 
-        if(!file) return;
+      if(!file) return;
 
-        if(file.type.startsWith("image")){
-          const img = document.createElement("img");
-          img.src = URL.createObjectURL(file);
-          img.style.width = "100%";
-          img.style.borderRadius = "10px";
-          previewContainer.appendChild(img);
-        } else if(file.type.startsWith("video")){
-          const video = document.createElement("video");
-          video.src = URL.createObjectURL(file);
-          video.controls = true;
-          video.style.width = "100%";
-          video.style.borderRadius = "10px";
-          previewContainer.appendChild(video);
-        }
+      const url = URL.createObjectURL(file);
+
+      if(file.type.startsWith("video/")){
+        preview.innerHTML = `<video src="${url}" controls playsinline></video>`;
+      }else if(file.type.startsWith("image/")){
+        preview.innerHTML = `<img src="${url}" alt="Preview">`;
       }
     });
 
-    async function toggleLike(id, element){
-      const icon = element.querySelector("svg");
-      const stat = document.querySelector("#post-" + id + " .post-stats div");
-
-      try{
-        const res = await fetch(API + "/api/posts/" + id + "/like", {
-          method:"PATCH",
-          headers: authHeaders()
-        });
-
-        const data = await res.json();
-
-        if(data.liked){
-          element.classList.add("liked");
-          icon.setAttribute("fill", "#0a66c2");
-        }else{
-          element.classList.remove("liked");
-          icon.setAttribute("fill", "none");
-        }
-
-        if(stat) stat.innerText = data.likes + " reactions";
-      }catch(err){
-        console.error("Like failed", err);
-      }
-    }
-
-    function toggleCommentBox(postId){
-      const wrapper = document.getElementById("comments-wrapper-" + postId);
-      if(!wrapper) return;
-
-      if(wrapper.style.display === "block"){
-        wrapper.style.display = "none";
-      }else{
-        wrapper.style.display = "block";
-        loadComments(postId);
-      }
-    }
-
-    async function submitComment(postId){
-      const input = document.getElementById("comment-input-" + postId);
-      const text = input.value.trim();
-      if(!text) return;
-
-      input.value = "";
-
-      try{
-        await fetch(API + "/api/posts/" + postId + "/comment", {
-          method:"POST",
-          headers: authHeaders({ "Content-Type":"application/json" }),
-          body: JSON.stringify({ text })
-        });
-      }catch(err){
-        alert("Failed to post comment");
-      }
-    }
-
-    async function loadComments(postId){
-      const res = await fetch(API + "/api/posts/" + postId, {
-        headers: authHeaders()
-      });
-
-      const post = await res.json();
-      const container = document.getElementById("comments-" + postId);
-      const loadMoreContainer = document.getElementById("load-more-" + postId);
-
-      container.innerHTML = "";
-      loadMoreContainer.innerHTML = "";
-
-      let visibleCount = 10;
-
-      function renderBatch(){
-        container.innerHTML = "";
-
-        post.comments.slice(0, visibleCount).forEach(comment => {
-          renderComment(postId, comment, container);
-        });
-
-        if(post.comments.length > visibleCount){
-          loadMoreContainer.innerHTML = `<button class="modal-btn modal-btn-secondary" onclick="loadMoreComments('${postId}')">Load more comments</button>`;
-        }else{
-          loadMoreContainer.innerHTML = "";
-        }
-      }
-
-      window.loadMoreComments = function(){
-        visibleCount += 10;
-        renderBatch();
-      };
-
-      renderBatch();
-    }
-
-    function renderComment(postId, comment, parentContainer){
-      const div = document.createElement("div");
-      div.className = "comment-item";
-      div.dataset.commentId = comment._id;
-      div.setAttribute("data-comment-id", comment._id);
-
-      div.innerHTML = `
-        <img src="${comment.user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="comment-avatar" alt="${escapeHtml(comment.user.name || "User")}">
-        <div class="comment-body">
-          <div class="comment-bubble">
-            <strong>${escapeHtml(comment.user.name || "User")}</strong><br>
-            ${escapeHtml(comment.text || "")}
-          </div>
-
-          <div class="comment-meta">
-            <button class="comment-like-btn" data-post="${postId}" data-comment="${comment._id}">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4 8.24 4 9.91 5 10.54 6.36h.92C12.09 5 13.76 4 15.5 4 18 4 20 6 20 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
-              </svg>
-              <span class="like-count">${comment.likes?.length || 0}</span>
-            </button>
-
-            <button class="comment-reply-btn" data-post="${postId}" data-comment="${comment._id}">Reply</button>
-          </div>
-
-          <div class="reply-input-area" id="reply-input-${comment._id}"></div>
-
-          ${
-            comment.replies && comment.replies.length > 0
-              ? `<div style="margin-top:6px;font-size:13px;color:#0a66c2;cursor:pointer;" onclick="toggleReplies('${comment._id}')">View replies (${comment.replies.length})</div>`
-              : ``
-          }
-
-          <div class="reply-line" id="replies-${comment._id}" data-loaded="false" style="display:none;"></div>
-        </div>
-      `;
-
-      parentContainer.appendChild(div);
-    }
-
-    function openShareModal(id){
-      const modal = document.getElementById("shareModal");
-      modal.style.display = "flex";
-
-      document.getElementById("copyLinkBtn").onclick = function(){
-        const link = window.location.origin + "/public-profile.html?id=" + (localStorage.getItem("userId") || "") + "#post-" + id;
-        navigator.clipboard.writeText(link);
-        alert("Link copied!");
-        modal.style.display = "none";
-      };
-    }
-
-    function closeShareModal(){
-      document.getElementById("shareModal").style.display = "none";
-    }
-
-    async function followFromFeed(userId){
-      const res = await fetch(API + "/api/users/" + userId + "/follow", {
-        method:"PATCH",
-        headers: authHeaders()
-      });
-
-      if(!res.ok) return;
-
-      const data = await res.json();
-      const buttons = document.querySelectorAll(`button[onclick*="${userId}"]`);
-
-      buttons.forEach(btn => {
-        if(data.following){
-          btn.innerText = "Following";
-          btn.style.background = "#0a66c2";
-          btn.style.color = "white";
-          btn.style.borderColor = "#0a66c2";
-        }else{
-          btn.innerText = "Follow";
-          btn.style.background = "white";
-          btn.style.color = "#0a66c2";
-          btn.style.borderColor = "#cfe1f4";
-        }
-      });
-    }
-
-    async function loadMessageCount(){
-      const res = await fetch(API + "/api/messages/unread/count", {
-        headers: authHeaders()
-      });
-      const data = res.ok ? await res.json() : { count:0 };
-
-      const badge = document.getElementById("messageCount");
-      if(data.count > 0){
-        badge.innerText = data.count;
-        badge.style.display = "flex";
-      } else {
-        badge.style.display = "none";
-      }
-    }
-
-    async function loadNotificationCount(){
-      const res = await fetch(API + "/api/notifications/unread", {
-        headers: authHeaders()
-      });
-      const data = res.ok ? await res.json() : { count:0 };
-
-      const badge = document.getElementById("notificationCount");
-      if(data.count > 0){
-        badge.innerText = data.count;
-        badge.style.display = "flex";
-      } else {
-        badge.style.display = "none";
-      }
-    }
-
-    function startDashboardLiveRefresh(){
-      setInterval(async () => {
-        try{ await loadProfile(); }catch(e){}
-        try{ await refreshApplicationCount(); }catch(e){}
-        try{ await loadSavedJobsCount(); }catch(e){}
-        try{ await loadMessageCount(); }catch(e){}
-        try{ await loadNotificationCount(); }catch(e){}
-      }, 30000);
-
-      socket.on("newMessage", () => { loadMessageCount(); });
-      socket.on("newNotification", () => { loadNotificationCount(); });
-      socket.on("application_created", () => { refreshApplicationCount(); });
-      socket.on("job_saved", () => { loadSavedJobsCount(); });
-      socket.on("job_unsaved", () => { loadSavedJobsCount(); });
-      socket.on("profile_updated", () => { loadProfile(); });
-      socket.on("post_deleted", data => {
-        document.getElementById("post-" + data.postId)?.remove();
-        loadProfile();
-      });
-      socket.on("post_like", data => {
-        const stat = document.querySelector("#post-" + data.postId + " .post-stats div");
-        if(stat) stat.innerText = data.likes + " reactions";
-      });
-    }
-
-    function visitProfile(id){
-      if(!id) return;
-      window.location.href = "public-profile.html?id=" + id;
-    }
-
-    function formatTime(dateString){
-      const now = new Date();
-      const postDate = new Date(dateString);
-      const diff = Math.floor((now - postDate) / 1000);
-
-      if(diff < 60) return "Just now";
-      if(diff < 3600) return Math.floor(diff / 60) + "m ago";
-      if(diff < 86400) return Math.floor(diff / 3600) + "h ago";
-      return Math.floor(diff / 86400) + "d ago";
-    }
-
-    function toggleDropdown(id, event){
-      event.stopPropagation();
-      const menu = document.getElementById("dropdown-" + id);
-
-      if(activeDropdown && activeDropdown !== menu){
-        activeDropdown.style.display = "none";
-      }
-
-      const isOpen = menu.style.display === "block";
-      menu.style.display = isOpen ? "none" : "block";
-      activeDropdown = isOpen ? null : menu;
-    }
-
-    document.addEventListener("click", function(e){
-      const postModal = document.getElementById("postModal");
-      if(postModal && e.target === postModal){
-        postModal.style.display = "none";
-      }
-
-      const shareModal = document.getElementById("shareModal");
-      if(shareModal && e.target === shareModal){
-        shareModal.style.display = "none";
-      }
-
-      if(activeDropdown){
-        activeDropdown.style.display = "none";
-        activeDropdown = null;
-      }
-    });
-
-    function savePost(){
-      alert("Post saved");
-    }
-
-    function markInterested(){
-      alert("You marked this post as interested");
-    }
-
-    function hidePost(id){
-      document.getElementById("post-" + id)?.remove();
-    }
-
-    function reportPost(){
-      alert("Post reported");
-    }
-
-    function toggleReplies(commentId){
-      const container = document.getElementById("replies-" + commentId);
-
-      if(container.style.display === "block"){
-        container.style.display = "none";
+    async function createPost(){
+      const text = document.getElementById("postContent").value.trim();
+      if(!text && !selectedPostMediaFile){
+        alert("Please write something or add media.");
         return;
       }
 
-      if(container.dataset.loaded === "true"){
-        container.style.display = "block";
-        return;
-      }
-
-      const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
-      if(!commentElement) return;
-
-      const postId = commentElement.querySelector(".comment-like-btn").dataset.post;
-
-      fetch(API + "/api/posts/" + postId, {
-        headers: authHeaders()
-      })
-      .then(res => res.json())
-      .then(post => {
-        const comment = post.comments.find(c => c._id === commentId);
-        if(!comment) return;
-
-        container.innerHTML = comment.replies.map(reply => `
-          <div data-reply-id="${reply._id}" style="margin-top:8px;padding-left:12px;border-left:2px solid #e6e6e6;">
-            <strong>${escapeHtml(reply.user?.name || "User")}</strong><br>
-            ${escapeHtml(reply.text || "")}
-          </div>
-        `).join("");
-
-        container.dataset.loaded = "true";
-        container.style.display = "block";
-      });
-    }
-
-    document.addEventListener("click", async function(e){
-      if(e.target.closest(".comment-like-btn")){
-        const btn = e.target.closest(".comment-like-btn");
-        const postId = btn.dataset.post;
-        const commentId = btn.dataset.comment;
-        const countEl = btn.querySelector(".like-count");
-
-        try{
-          const res = await fetch(API + "/api/posts/" + postId + "/comment/" + commentId + "/like", {
-            method:"PATCH",
-            headers: authHeaders()
-          });
-
-          const data = await res.json();
-          countEl.innerText = data.likes;
-
-          if(data.liked){
-            btn.classList.add("liked");
-          }else{
-            btn.classList.remove("liked");
-          }
-        }catch(err){
-          console.error("Comment like failed", err);
+      try{
+        const formData = new FormData();
+        formData.append("text", text);
+        if(selectedPostMediaFile){
+          formData.append("media", selectedPostMediaFile);
         }
-      }
 
-      if(e.target.closest(".comment-reply-btn")){
-        const btn = e.target.closest(".comment-reply-btn");
-        const commentId = btn.dataset.comment;
-        const container = document.getElementById("reply-input-" + commentId);
+        const endpoints = [
+          API + "/api/posts",
+          API + "/api/posts/create"
+        ];
 
-        if(container.innerHTML !== ""){
-          container.innerHTML = "";
+        let success = false;
+
+        for(const url of endpoints){
+          try{
+            const res = await fetch(url, {
+              method:"POST",
+              headers: {
+                Authorization: "Bearer " + token
+              },
+              body: formData
+            });
+            if(res.ok){
+              success = true;
+              break;
+            }
+          }catch(e){}
+        }
+
+        if(!success){
+          alert("Unable to create post right now.");
           return;
         }
 
-        container.innerHTML = `
-          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-            <input type="text" class="reply-field" placeholder="Write a reply..." style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid #ddd;min-width:0;">
-            <button class="reply-send-btn modal-btn modal-btn-primary" data-comment="${commentId}">Reply</button>
-          </div>
-        `;
-
-        container.querySelector(".reply-field").focus();
+        closePostModal();
+        showFeed();
+        loadPosts(true);
+      }catch(err){
+        alert("Unable to create post right now.");
       }
-
-      if(e.target.classList.contains("reply-send-btn")){
-        const commentId = e.target.dataset.comment;
-        const postId = e.target.closest(".comment-item").querySelector(".comment-like-btn").dataset.post;
-        const input = e.target.parentElement.querySelector(".reply-field");
-        const text = input.value.trim();
-
-        if(!text) return;
-
-        const replyContainer = document.getElementById("replies-" + commentId);
-        replyContainer.style.display = "block";
-
-        const tempId = "temp-" + Date.now();
-        replyContainer.innerHTML += `
-          <div data-temp-id="${tempId}" style="margin-top:8px;padding-left:12px;border-left:2px solid #e6e6e6;">
-            <strong>You</strong><br>
-            ${escapeHtml(text)}
-          </div>
-        `;
-
-        input.value = "";
-
-        try{
-          await fetch(API + "/api/posts/" + postId + "/comment/" + commentId + "/reply", {
-            method:"POST",
-            headers: authHeaders({ "Content-Type":"application/json" }),
-            body: JSON.stringify({ text })
-          });
-        }catch(err){
-          console.error("Reply failed", err);
-        }
-      }
-    });
-
-    socket.on("new_comment", data => {
-      const container = document.getElementById("comments-" + data.postId);
-      if(!container) return;
-
-      if(container.querySelector(`[data-comment-id="${data.comment._id}"]`)) return;
-
-      renderComment(data.postId, data.comment, container);
-
-      const stat = document.querySelector("#post-" + data.postId + " .post-stats div:nth-child(2)");
-      if(stat) stat.innerText = data.totalComments + " comments";
-    });
-
-    socket.on("new_reply", data => {
-      const replyContainer = document.getElementById("replies-" + data.commentId);
-      if(!replyContainer) return;
-
-      const replies = data.comment.replies || [];
-      const reply = replies[replies.length - 1];
-      if(!reply) return;
-
-      const tempReply = replyContainer.querySelector("[data-temp-id]");
-      if(tempReply) tempReply.remove();
-
-      if(replyContainer.querySelector(`[data-reply-id="${reply._id}"]`)) return;
-
-      replyContainer.innerHTML += `
-        <div data-reply-id="${reply._id}" style="margin-top:8px;padding-left:12px;border-left:2px solid #e6e6e6;">
-          <strong>${escapeHtml(reply.user.name)}</strong><br>
-          ${escapeHtml(reply.text)}
-        </div>
-      `;
-
-      const commentElement = document.querySelector(`[data-comment-id="${data.commentId}"]`);
-      if(commentElement){
-        const toggle = commentElement.querySelector(`[onclick="toggleReplies('${data.commentId}')"]`);
-        if(toggle){
-          toggle.innerText = `View replies (${data.comment.replies.length})`;
-        }
-      }
-
-      const stat = document.querySelector("#post-" + data.postId + " .post-stats div:nth-child(2)");
-      if(stat) stat.innerText = data.totalComments + " comments";
-    });
-
-    async function editPost(id){
-      const newText = prompt("Edit your post:");
-      if(!newText) return;
-
-      await fetch(API + "/api/posts/" + id, {
-        method:"PATCH",
-        headers: authHeaders({ "Content-Type":"application/json" }),
-        body: JSON.stringify({ content:newText })
-      });
-
-      currentPage = 1;
-      noMorePosts = false;
-      loadPosts(1);
     }
 
-    async function deletePost(id){
-      if(!confirm("Delete this post?")) return;
+    function handleMobileHeaderScroll(){
+      const topbar = document.getElementById("mobileTopbar");
+      if(window.innerWidth > 640 || !topbar) return;
 
-      await fetch(API + "/api/posts/" + id, {
-        method:"DELETE",
-        headers: authHeaders()
-      });
+      const currentY = window.scrollY;
+      const diff = currentY - lastScrollY;
 
-      document.getElementById("post-" + id)?.remove();
+      if(currentY < 20){
+        topbar.classList.remove("hide");
+      } else if(diff > 6){
+        topbar.classList.add("hide");
+      } else if(diff < -6){
+        topbar.classList.remove("hide");
+      }
+
+      lastScrollY = currentY;
     }
 
-    document.addEventListener("DOMContentLoaded", async function(){
+    function setupSocket(){
+      if(!socket) return;
+
+      socket.on("connect", () => {
+        const userId = localStorage.getItem("userId");
+        if(userId){
+          socket.emit("join", userId);
+        }
+      });
+
+      socket.on("newNotification", () => {
+        fetchCounters();
+      });
+
+      socket.on("newMessage", () => {
+        fetchCounters();
+      });
+
+      socket.on("postUpdated", () => {
+        if(document.getElementById("feedPanel").style.display !== "none"){
+          loadPosts(true);
+        }
+      });
+    }
+
+    function setupInfiniteScroll(){
+      window.addEventListener("scroll", async () => {
+        handleMobileHeaderScroll();
+
+        if(document.getElementById("feedPanel").style.display === "none") return;
+
+        const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 900;
+        if(nearBottom && !loading && !noMorePosts){
+          await loadPosts();
+        }
+      }, { passive:true });
+    }
+
+    document.addEventListener("click", (e) => {
+      if(!e.target.closest(".dropdown")){
+        closeAllDropdowns();
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      if(window.innerWidth > 640){
+        document.getElementById("mobileTopbar")?.classList.remove("hide");
+      }
+    });
+
+    async function init(){
       await loadProfile();
-      await refreshApplicationCount();
-      await loadSavedJobsCount();
-      await loadMessageCount();
-      await loadNotificationCount();
-      await loadPosts(1);
-      startDashboardLiveRefresh();
-      showFeed();
-    });
+      await fetchCounters();
+      await loadPosts(true);
+      setupSocket();
+      setupInfiniteScroll();
+    }
+
+    init();
   </script>
 </body>
 </html>
