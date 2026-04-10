@@ -1,312 +1,3807 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIFT Employer Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AIFT Employer Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --primary:#0a66c2;
+      --primary-dark:#004182;
+      --bg:#f3f2ef;
+      --card:#ffffff;
+      --text:#111827;
+      --muted:#64748b;
+      --border:#e5e7eb;
+      --soft:#f8fafc;
+      --danger:#e11d48;
+      --success:#16a34a;
+      --warning:#f59e0b;
+      --purple:#7c3aed;
+      --shadow:0 14px 36px rgba(15,23,42,.08);
+      --shadow-soft:0 8px 22px rgba(15,23,42,.05);
+      --radius:22px;
+      --topbar-h:72px;
+      --mobile-bottom-h:72px;
+    }
 
-<style>
-:root{
-  --primary:#0a66c2;
-  --bg:#f3f2ef;
-  --card:#fff;
-  --text:#111827;
-  --muted:#6b7280;
-  --border:#e5e7eb;
-}
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+      font-family:'Inter',sans-serif;
+      -webkit-tap-highlight-color:transparent;
+    }
 
-*{box-sizing:border-box;margin:0;padding:0;font-family:Inter;}
+    html,body{
+      width:100%;
+      overflow-x:hidden;
+      scroll-behavior:smooth;
+    }
 
-body{
-  background:var(--bg);
-  color:var(--text);
-}
+    body{
+      background:
+        radial-gradient(circle at top left, rgba(10,102,194,.06), transparent 28%),
+        radial-gradient(circle at top right, rgba(124,58,237,.05), transparent 26%),
+        var(--bg);
+      color:var(--text);
+      padding-top:var(--topbar-h);
+    }
 
-/* TOP BAR */
-.topbar{
-  position:fixed;
-  top:0;
-  width:100%;
-  background:white;
-  border-bottom:1px solid var(--border);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:10px 16px;
-  z-index:1000;
-}
+    img{
+      max-width:100%;
+      display:block;
+    }
 
-.top-left{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
+    button,input,textarea,select{
+      font:inherit;
+    }
 
-.avatar{
-  width:36px;
-  height:36px;
-  border-radius:50%;
-}
+    a{
+      color:inherit;
+      text-decoration:none;
+    }
 
-.search{
-  flex:1;
-  margin:0 10px;
-}
+    .hidden{
+      display:none !important;
+    }
 
-.search input{
-  width:100%;
-  padding:8px 12px;
-  border-radius:20px;
-  border:1px solid #ddd;
-}
+    .topbar{
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      height:var(--topbar-h);
+      background:rgba(255,255,255,.92);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      border-bottom:1px solid rgba(229,231,235,.9);
+      z-index:1200;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:12px 18px;
+      box-shadow:0 2px 10px rgba(15,23,42,.04);
+    }
 
-.icon{
-  font-size:20px;
-  cursor:pointer;
-}
+    .topbar-left{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
 
-/* LAYOUT */
-.layout{
-  display:flex;
-  margin-top:60px;
-}
+    .brand{
+      font-size:26px;
+      font-weight:800;
+      letter-spacing:-.03em;
+      white-space:nowrap;
+    }
 
-/* SIDEBAR */
-.sidebar{
-  width:250px;
-  background:white;
-  border-right:1px solid var(--border);
-  padding:15px;
-  transition:.3s;
-}
+    .brand span{
+      color:var(--primary);
+    }
 
-.sidebar.collapsed{
-  width:70px;
-}
+    .employer-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:7px 12px;
+      border-radius:999px;
+      background:#eff6ff;
+      border:1px solid #dbeafe;
+      color:#0a66c2;
+      font-size:12px;
+      font-weight:800;
+      white-space:nowrap;
+    }
 
-.sidebar button{
-  width:100%;
-  padding:10px;
-  margin-bottom:8px;
-  border:none;
-  background:#f3f4f6;
-  cursor:pointer;
-  border-radius:8px;
-}
+    .topbar-center{
+      flex:1;
+      display:flex;
+      justify-content:center;
+      min-width:0;
+    }
 
-.sidebar button:hover{
-  background:#e5e7eb;
-}
+    .search-shell{
+      width:min(520px,100%);
+      position:relative;
+    }
 
-/* MAIN */
-.main{
-  flex:1;
-  padding:15px;
-}
+    .search-shell input{
+      width:100%;
+      height:44px;
+      border-radius:999px;
+      border:1px solid #dbe1e8;
+      background:#f8fafc;
+      outline:none;
+      padding:0 16px 0 44px;
+      font-size:14px;
+      color:#0f172a;
+    }
 
-.card{
-  background:white;
-  border-radius:12px;
-  padding:15px;
-  margin-bottom:15px;
-}
+    .search-shell input:focus{
+      border-color:var(--primary);
+      box-shadow:0 0 0 4px rgba(10,102,194,.08);
+      background:#fff;
+    }
 
-/* RIGHT PANEL */
-.right{
-  width:300px;
-  border-left:1px solid var(--border);
-  padding:15px;
-  background:white;
-  transition:.3s;
-}
+    .search-shell svg{
+      position:absolute;
+      left:14px;
+      top:50%;
+      transform:translateY(-50%);
+      width:18px;
+      height:18px;
+      stroke:#64748b;
+      fill:none;
+      stroke-width:2;
+    }
 
-.right.collapsed{
-  width:70px;
-}
+    .topbar-right{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      min-width:0;
+    }
 
-/* FEED SECTION */
-.feed{
-  display:none;
-}
+    .top-icon-btn{
+      position:relative;
+      height:42px;
+      min-width:42px;
+      padding:0 12px;
+      border:none;
+      border-radius:999px;
+      background:#fff;
+      border:1px solid #e5e7eb;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      color:#334155;
+      cursor:pointer;
+      transition:.2s ease;
+      box-shadow:var(--shadow-soft);
+    }
 
-.feed.active{
-  display:block;
-}
+    .top-icon-btn:hover{
+      background:#f8fafc;
+      border-color:#dbeafe;
+      color:var(--primary);
+      transform:translateY(-1px);
+    }
 
-/* MOBILE */
-@media(max-width:768px){
-  .sidebar,.right{
-    display:none;
-  }
-}
-</style>
+    .top-icon-btn svg{
+      width:19px;
+      height:19px;
+      stroke:currentColor;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .top-icon-label{
+      font-size:12px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .count-badge{
+      position:absolute;
+      top:-4px;
+      right:-4px;
+      min-width:18px;
+      height:18px;
+      border-radius:999px;
+      background:var(--danger);
+      color:#fff;
+      font-size:10px;
+      font-weight:800;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:0 4px;
+      line-height:1;
+    }
+
+    .top-profile{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+      padding:5px 10px 5px 6px;
+      border-radius:999px;
+      border:1px solid #e5e7eb;
+      background:#fff;
+      box-shadow:var(--shadow-soft);
+      cursor:pointer;
+      transition:.2s ease;
+    }
+
+    .top-profile:hover{
+      border-color:#dbeafe;
+      background:#f8fafc;
+    }
+
+    .top-profile img{
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      object-fit:cover;
+      border:1px solid #e5e7eb;
+      flex-shrink:0;
+    }
+
+    .top-profile-meta{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      line-height:1.15;
+    }
+
+    .top-profile-meta strong{
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:150px;
+    }
+
+    .top-profile-meta span{
+      font-size:11px;
+      color:var(--muted);
+    }
+
+    .page-shell{
+      max-width:1560px;
+      margin:0 auto;
+      padding:18px;
+    }
+
+    .dashboard-layout{
+      display:grid;
+      grid-template-columns:320px minmax(0,1fr) 340px;
+      gap:18px;
+      align-items:start;
+    }
+
+    .left-col,
+    .right-col{
+      position:sticky;
+      top:calc(var(--topbar-h) + 14px);
+      height:fit-content;
+      transition:.28s ease;
+    }
+
+    .left-col.collapsed{
+      width:74px;
+      min-width:74px;
+    }
+
+    .right-col.collapsed{
+      width:74px;
+      min-width:74px;
+    }
+
+    .left-col.collapsed .collapse-hide,
+    .right-col.collapsed .collapse-hide{
+      display:none !important;
+    }
+
+    .left-col.collapsed .sidebar-card,
+    .right-col.collapsed .right-card{
+      padding:12px;
+      border-radius:18px;
+    }
+
+    .left-col.collapsed .profile-card{
+      padding:12px;
+    }
+
+    .left-col.collapsed .profile-card > *:not(.collapse-toggle-wrap){
+      display:none !important;
+    }
+
+    .left-col.collapsed .collapsed-avatar-only{
+      display:flex !important;
+      justify-content:center;
+      align-items:center;
+      padding:6px 0 2px;
+    }
+
+    .right-col.collapsed .collapsed-right-only{
+      display:flex !important;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      gap:10px;
+      padding-top:6px;
+    }
+
+    .collapsed-avatar-only,
+    .collapsed-right-only{
+      display:none;
+    }
+
+    .card{
+      background:linear-gradient(180deg,#ffffff 0%, #fbfdff 100%);
+      border:1px solid rgba(229,231,235,.95);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      margin-bottom:16px;
+    }
+
+    .sidebar-card,
+    .right-card{
+      padding:16px;
+    }
+
+    .collapse-toggle-wrap{
+      display:flex;
+      justify-content:flex-end;
+      padding:12px 12px 0;
+    }
+
+    .collapse-btn{
+      width:38px;
+      height:38px;
+      min-width:38px;
+      border-radius:50%;
+      border:1px solid #e5e7eb;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      color:#334155;
+      transition:.2s ease;
+      box-shadow:var(--shadow-soft);
+    }
+
+    .collapse-btn:hover{
+      background:#f8fafc;
+      color:var(--primary);
+      border-color:#dbeafe;
+    }
+
+    .collapse-btn svg{
+      width:18px;
+      height:18px;
+      stroke:currentColor;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .profile-card{
+      padding:0;
+      overflow:visible;
+      background:#fff;
+    }
+
+    .profile-cover{
+      height:132px;
+      background:linear-gradient(135deg,#0a66c2,#60a5fa 58%, #7c3aed);
+      position:relative;
+      overflow:hidden;
+    }
+
+    .profile-cover::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(180deg,transparent,rgba(255,255,255,.02));
+    }
+
+    .profile-cover img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    .profile-body{
+      padding:0 18px 18px;
+      position:relative;
+    }
+
+    .profile-avatar-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      position:relative;
+      z-index:2;
+    }
+
+    .profile-avatar{
+      width:100px;
+      height:100px;
+      border-radius:50%;
+      object-fit:cover;
+      border:4px solid #fff;
+      background:#f3f4f6;
+      box-shadow:0 12px 26px rgba(15,23,42,.14);
+      margin-top:-50px;
+      flex-shrink:0;
+    }
+
+    .profile-role-badge{
+      margin-top:14px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#eff6ff;
+      color:#0a66c2;
+      border:1px solid #dbeafe;
+      font-size:11px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .profile-name{
+      margin-top:12px;
+      font-size:24px;
+      font-weight:800;
+      line-height:1.1;
+      color:#111827;
+      word-break:break-word;
+    }
+
+    .profile-sub{
+      margin-top:6px;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.45;
+    }
+
+    .profile-headline{
+      margin-top:8px;
+      font-size:14px;
+      color:#475569;
+      line-height:1.55;
+      word-break:break-word;
+    }
+
+    .profile-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:16px;
+    }
+
+    .btn{
+      border:none;
+      border-radius:999px;
+      padding:10px 16px;
+      font-size:13px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.2s ease;
+    }
+
+    .btn-primary{
+      background:var(--primary);
+      color:#fff;
+    }
+
+    .btn-primary:hover{
+      background:var(--primary-dark);
+    }
+
+    .btn-secondary{
+      background:#fff;
+      color:var(--primary);
+      border:1px solid #cfe1f4;
+    }
+
+    .btn-secondary:hover{
+      background:#eef4fb;
+    }
+
+    .profile-metrics{
+      margin-top:16px;
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:10px;
+    }
+
+    .metric-box{
+      background:#f8fafc;
+      border:1px solid #edf2f7;
+      border-radius:14px;
+      padding:12px;
+      min-width:0;
+    }
+
+    .metric-label{
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:4px;
+    }
+
+    .metric-value{
+      font-size:18px;
+      font-weight:800;
+      color:#111827;
+      line-height:1.1;
+      word-break:break-word;
+    }
+
+    .section-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+
+    .section-title h3{
+      font-size:16px;
+      font-weight:800;
+      color:#111827;
+    }
+
+    .section-title small{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:600;
+    }
+
+    .side-actions{
+      display:grid;
+      gap:10px;
+    }
+
+    .side-action{
+      width:100%;
+      border:none;
+      border-radius:16px;
+      padding:14px;
+      background:#f8fafc;
+      border:1px solid #e7edf5;
+      color:#0f172a;
+      text-align:left;
+      cursor:pointer;
+      transition:.2s ease;
+      font-weight:800;
+    }
+
+    .side-action:hover{
+      background:#eef4fb;
+      border-color:#dbeafe;
+      transform:translateY(-1px);
+    }
+
+    .sidebar-nav{
+      padding:8px 0 4px;
+      display:grid;
+      gap:8px;
+    }
+
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:13px 14px;
+      border-radius:16px;
+      cursor:pointer;
+      transition:.2s ease;
+      border:1px solid transparent;
+      color:#111827;
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .nav-item:hover{
+      background:#f8fafc;
+      border-color:#edf2f7;
+    }
+
+    .nav-item.active{
+      background:linear-gradient(180deg,#eef6ff,#f8fbff);
+      border-color:#dbeafe;
+      color:var(--primary);
+      box-shadow:inset 0 0 0 1px rgba(219,234,254,.65);
+    }
+
+    .nav-item svg{
+      width:20px;
+      height:20px;
+      stroke:currentColor;
+      fill:none;
+      stroke-width:2;
+      flex-shrink:0;
+    }
+
+    .nav-item-text{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+
+    .nav-item-label{
+      font-size:14px;
+      font-weight:800;
+      line-height:1.15;
+    }
+
+    .nav-item-sub{
+      font-size:11px;
+      font-weight:600;
+      color:var(--muted);
+      line-height:1.35;
+    }
+
+    .workspace-card{
+      min-height:720px;
+    }
+
+    .workspace-header{
+      padding:22px 22px 18px;
+      border-bottom:1px solid #eef2f7;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:14px;
+      flex-wrap:wrap;
+      background:
+        radial-gradient(circle at top right, rgba(10,102,194,.08), transparent 28%),
+        linear-gradient(180deg,#ffffff,#fbfdff);
+    }
+
+    .workspace-title h1{
+      font-size:28px;
+      font-weight:800;
+      letter-spacing:-.03em;
+      color:#111827;
+    }
+
+    .workspace-title p{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.6;
+      max-width:760px;
+    }
+
+    .workspace-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .workspace-body{
+      padding:18px 22px 22px;
+    }
+
+    .stats-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:14px;
+    }
+
+    .stat-card{
+      background:linear-gradient(180deg,#ffffff,#fafcff);
+      border:1px solid #e9eef5;
+      border-radius:18px;
+      padding:16px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      box-shadow:var(--shadow-soft);
+      min-width:0;
+    }
+
+    .stat-icon{
+      width:48px;
+      height:48px;
+      border-radius:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-shrink:0;
+      background:#eef4fb;
+      color:var(--primary);
+    }
+
+    .stat-icon svg{
+      width:22px;
+      height:22px;
+      stroke:currentColor;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .stat-meta{
+      min-width:0;
+      flex:1;
+    }
+
+    .stat-meta label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:4px;
+      font-weight:700;
+    }
+
+    .stat-meta strong{
+      display:block;
+      font-size:25px;
+      line-height:1;
+      font-weight:800;
+      color:#111827;
+    }
+
+    .stat-meta span{
+      display:block;
+      font-size:12px;
+      color:#94a3b8;
+      margin-top:6px;
+      line-height:1.4;
+    }
+
+    .grid-two{
+      display:grid;
+      grid-template-columns:1.7fr 1fr;
+      gap:16px;
+      margin-top:16px;
+    }
+
+    .grid-three{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:14px;
+      margin-top:16px;
+    }
+
+    .panel{
+      background:linear-gradient(180deg,#ffffff,#fbfdff);
+      border:1px solid #e9eef5;
+      border-radius:20px;
+      padding:18px;
+      box-shadow:var(--shadow-soft);
+    }
+
+    .panel h2{
+      font-size:18px;
+      font-weight:800;
+      color:#111827;
+    }
+
+    .panel p.sub{
+      margin-top:5px;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.55;
+    }
+
+    .quick-actions-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+      margin-top:16px;
+    }
+
+    .quick-action{
+      border:1px solid #e8edf5;
+      background:#f8fafc;
+      border-radius:18px;
+      padding:16px;
+      cursor:pointer;
+      transition:.2s ease;
+    }
+
+    .quick-action:hover{
+      background:#eef6ff;
+      border-color:#dbeafe;
+      transform:translateY(-1px);
+    }
+
+    .quick-action svg{
+      width:22px;
+      height:22px;
+      stroke:#0a66c2;
+      fill:none;
+      stroke-width:2;
+      margin-bottom:12px;
+    }
+
+    .quick-action strong{
+      display:block;
+      font-size:14px;
+      font-weight:800;
+      color:#111827;
+    }
+
+    .quick-action span{
+      display:block;
+      margin-top:4px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .activity-list,
+    .insight-list{
+      display:grid;
+      gap:10px;
+      margin-top:16px;
+    }
+
+    .activity-item,
+    .insight-item{
+      border:1px solid #edf2f7;
+      background:#fff;
+      border-radius:16px;
+      padding:14px;
+    }
+
+    .activity-item strong,
+    .insight-item strong{
+      display:block;
+      font-size:14px;
+      font-weight:800;
+      color:#111827;
+      margin-bottom:4px;
+    }
+
+    .activity-item span,
+    .insight-item span{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .toolbar{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:16px;
+    }
+
+    .toolbar .search-inline{
+      width:280px;
+      max-width:100%;
+      height:42px;
+      border-radius:999px;
+      border:1px solid #dbe1e8;
+      outline:none;
+      background:#fff;
+      padding:0 14px;
+      font-size:14px;
+    }
+
+    .toolbar .search-inline:focus{
+      border-color:var(--primary);
+      box-shadow:0 0 0 4px rgba(10,102,194,.08);
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:9px 13px;
+      border-radius:999px;
+      border:1px solid #dbe3ec;
+      background:#fff;
+      color:#334155;
+      font-size:12px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.2s ease;
+      white-space:nowrap;
+    }
+
+    .chip:hover{
+      background:#f8fafc;
+    }
+
+    .chip.active{
+      background:#eef6ff;
+      color:var(--primary);
+      border-color:#bfdcff;
+    }
+
+    .cards-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+    }
+
+    .mini-card{
+      border:1px solid #edf2f7;
+      background:#fff;
+      border-radius:18px;
+      padding:16px;
+      box-shadow:var(--shadow-soft);
+    }
+
+    .mini-card-title{
+      font-size:17px;
+      font-weight:800;
+      color:#111827;
+      margin-bottom:6px;
+      line-height:1.3;
+    }
+
+    .mini-card-sub{
+      font-size:13px;
+      color:#64748b;
+      margin-bottom:12px;
+      line-height:1.55;
+    }
+
+    .mini-card-meta{
+      font-size:13px;
+      color:#6b7280;
+      margin-bottom:14px;
+      line-height:1.55;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .mini-card-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .pill-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-bottom:12px;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#eef4fb;
+      border:1px solid #dbeafe;
+      color:#0f172a;
+      font-size:11px;
+      font-weight:800;
+    }
+
+    .empty-state{
+      text-align:center;
+      padding:58px 20px;
+      color:var(--muted);
+    }
+
+    .empty-state h3{
+      font-size:20px;
+      font-weight:800;
+      color:#111827;
+      margin-bottom:6px;
+    }
+
+    .pipeline-shell{
+      overflow-x:auto;
+      padding-bottom:4px;
+    }
+
+    .pipeline-board{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(280px,1fr));
+      gap:14px;
+      min-width:1460px;
+    }
+
+    .pipeline-col{
+      background:linear-gradient(180deg,#f8fbff,#f8fafc);
+      border:1px solid #e5edf6;
+      border-radius:20px;
+      padding:12px;
+      min-height:560px;
+    }
+
+    .pipeline-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      padding-bottom:12px;
+      margin-bottom:12px;
+      border-bottom:1px solid #e6edf5;
+    }
+
+    .pipeline-head strong{
+      font-size:14px;
+      font-weight:800;
+      color:#111827;
+    }
+
+    .pipeline-count{
+      min-width:24px;
+      height:24px;
+      border-radius:999px;
+      background:#e2e8f0;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+      font-weight:800;
+      color:#334155;
+      padding:0 8px;
+    }
+
+    .candidate-card{
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:18px;
+      padding:14px;
+      box-shadow:var(--shadow-soft);
+      margin-bottom:12px;
+    }
+
+    .candidate-top{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .candidate-top img{
+      width:46px;
+      height:46px;
+      border-radius:50%;
+      object-fit:cover;
+      border:1px solid #e5e7eb;
+      flex-shrink:0;
+    }
+
+    .candidate-meta{
+      min-width:0;
+      flex:1;
+    }
+
+    .candidate-meta strong{
+      display:block;
+      font-size:14px;
+      font-weight:800;
+      color:#111827;
+      line-height:1.2;
+    }
+
+    .candidate-meta span{
+      display:block;
+      margin-top:4px;
+      font-size:12px;
+      color:#64748b;
+      line-height:1.4;
+    }
+
+    .candidate-status{
+      width:100%;
+      height:40px;
+      border-radius:12px;
+      border:1px solid #dbe1e8;
+      background:#fff;
+      padding:0 12px;
+      outline:none;
+      font-size:13px;
+      margin-top:10px;
+    }
+
+    .candidate-status:focus{
+      border-color:var(--primary);
+      box-shadow:0 0 0 4px rgba(10,102,194,.08);
+    }
+
+    .candidate-actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:12px;
+    }
+
+    .directory-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:14px;
+    }
+
+    .person-card{
+      border:1px solid #edf2f7;
+      background:#fff;
+      border-radius:20px;
+      padding:16px;
+      box-shadow:var(--shadow-soft);
+    }
+
+    .person-card img{
+      width:70px;
+      height:70px;
+      border-radius:50%;
+      object-fit:cover;
+      border:1px solid #e5e7eb;
+      margin-bottom:12px;
+    }
+
+    .person-card strong{
+      display:block;
+      font-size:16px;
+      font-weight:800;
+      color:#111827;
+      line-height:1.25;
+    }
+
+    .person-card span{
+      display:block;
+      margin-top:4px;
+      font-size:13px;
+      color:#64748b;
+      line-height:1.5;
+    }
+
+    .person-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:14px;
+    }
+
+    .analytics-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+    }
+
+    .analytics-card{
+      border:1px solid #edf2f7;
+      background:#fff;
+      border-radius:20px;
+      padding:18px;
+      box-shadow:var(--shadow-soft);
+    }
+
+    .analytics-card h3{
+      font-size:17px;
+      font-weight:800;
+      color:#111827;
+      margin-bottom:8px;
+    }
+
+    .analytics-card p{
+      font-size:13px;
+      color:#64748b;
+      line-height:1.6;
+    }
+
+    .metric-line{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      padding:12px 0;
+      border-bottom:1px solid #edf2f7;
+      font-size:14px;
+    }
+
+    .metric-line:last-child{
+      border-bottom:none;
+    }
+
+    .metric-line b{
+      font-size:14px;
+      color:#111827;
+      font-weight:800;
+    }
+
+    .feed-create{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:14px 16px;
+      cursor:pointer;
+      border:1px solid #e8edf5;
+      border-radius:20px;
+      background:#fff;
+      box-shadow:var(--shadow-soft);
+      margin-bottom:16px;
+    }
+
+    .feed-create:hover{
+      background:#fafcff;
+    }
+
+    .feed-create img{
+      width:44px;
+      height:44px;
+      border-radius:50%;
+      object-fit:cover;
+      border:1px solid #e5e7eb;
+      flex-shrink:0;
+    }
+
+    .feed-create-input{
+      flex:1;
+      border:1px solid #dbe1e8;
+      border-radius:999px;
+      padding:12px 16px;
+      background:#fff;
+      color:#6f6f6f;
+      font-size:14px;
+    }
+
+    .feed-post{
+      background:#fff;
+      border:1px solid #e6e6e6;
+      border-radius:20px;
+      overflow:hidden;
+      box-shadow:var(--shadow-soft);
+      margin-bottom:16px;
+    }
+
+    .post-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      padding:14px 16px 10px;
+    }
+
+    .post-author{
+      display:flex;
+      gap:10px;
+      min-width:0;
+      flex:1;
+      align-items:flex-start;
+      cursor:pointer;
+    }
+
+    .post-author img{
+      width:48px;
+      height:48px;
+      border-radius:50%;
+      object-fit:cover;
+      border:1px solid #e5e7eb;
+      flex-shrink:0;
+    }
+
+    .post-author-main{
+      min-width:0;
+      flex:1;
+    }
+
+    .post-author-name{
+      font-size:15px;
+      font-weight:800;
+      color:#111827;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .post-author-sub{
+      margin-top:2px;
+      font-size:12px;
+      color:#64748b;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .post-menu-trigger{
+      width:36px;
+      height:36px;
+      border:none;
+      background:transparent;
+      border-radius:12px;
+      color:#334155;
+      cursor:pointer;
+      font-size:18px;
+    }
+
+    .post-menu-trigger:hover{
+      background:#f3f4f6;
+    }
+
+    .dropdown{
+      position:relative;
+    }
+
+    .dropdown-menu{
+      position:absolute;
+      right:0;
+      top:38px;
+      min-width:160px;
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:14px;
+      overflow:hidden;
+      box-shadow:0 14px 28px rgba(15,23,42,.14);
+      display:none;
+      z-index:50;
+    }
+
+    .dropdown-menu button{
+      width:100%;
+      border:none;
+      background:#fff;
+      padding:11px 12px;
+      text-align:left;
+      cursor:pointer;
+      font-size:14px;
+      color:#111827;
+    }
+
+    .dropdown-menu button:hover{
+      background:#f8fafc;
+    }
+
+    .post-content{
+      padding:0 16px 16px;
+      font-size:15px;
+      line-height:1.65;
+      color:#111827;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .post-media img,
+    .post-media video{
+      width:100%;
+      max-height:540px;
+      object-fit:cover;
+      background:#000;
+    }
+
+    .post-stats{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      padding:12px 16px;
+      font-size:13px;
+      color:#64748b;
+      border-top:1px solid #edf2f7;
+    }
+
+    .post-actions{
+      display:flex;
+      gap:8px;
+      padding:10px 12px 12px;
+      border-top:1px solid #edf2f7;
+    }
+
+    .post-action{
+      flex:1;
+      border:none;
+      background:transparent;
+      border-radius:12px;
+      padding:10px 8px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      cursor:pointer;
+      color:#64748b;
+      font-size:14px;
+      font-weight:700;
+      transition:.2s ease;
+    }
+
+    .post-action:hover{
+      background:#f8fafc;
+      color:var(--primary);
+    }
+
+    .post-action.liked{
+      color:var(--primary);
+    }
+
+    .post-action svg{
+      width:18px;
+      height:18px;
+      stroke:currentColor;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .comments-wrap{
+      display:none;
+      border-top:1px solid #edf2f7;
+      padding:14px 16px 16px;
+      background:#fff;
+    }
+
+    .comment-input-row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .comment-input-row input{
+      flex:1;
+      min-width:0;
+      height:42px;
+      border-radius:999px;
+      border:1px solid #dbe1e8;
+      outline:none;
+      padding:0 14px;
+      font-size:14px;
+    }
+
+    .comment-input-row input:focus{
+      border-color:var(--primary);
+      box-shadow:0 0 0 4px rgba(10,102,194,.08);
+    }
+
+    .comment-list{
+      display:grid;
+      gap:12px;
+      margin-top:16px;
+    }
+
+    .comment-item{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+
+    .comment-item img{
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      object-fit:cover;
+      border:1px solid #e5e7eb;
+      flex-shrink:0;
+    }
+
+    .comment-bubble{
+      flex:1;
+      background:#f8fafc;
+      border:1px solid #edf2f7;
+      border-radius:16px;
+      padding:10px 12px;
+    }
+
+    .comment-bubble strong{
+      display:block;
+      font-size:13px;
+      font-weight:800;
+      color:#111827;
+      margin-bottom:4px;
+    }
+
+    .comment-bubble span{
+      font-size:13px;
+      color:#334155;
+      line-height:1.5;
+    }
+
+    .right-stat-grid{
+      display:grid;
+      gap:12px;
+    }
+
+    .right-mini-stat{
+      padding:14px;
+      border:1px solid #edf2f7;
+      background:#f8fafc;
+      border-radius:16px;
+    }
+
+    .right-mini-stat label{
+      display:block;
+      font-size:12px;
+      color:#64748b;
+      margin-bottom:4px;
+      font-weight:700;
+    }
+
+    .right-mini-stat strong{
+      display:block;
+      font-size:24px;
+      font-weight:800;
+      color:#111827;
+      line-height:1;
+    }
+
+    .modal{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.45);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:1300;
+      padding:16px;
+    }
+
+    .modal-card{
+      width:min(96vw,560px);
+      background:#fff;
+      border-radius:22px;
+      box-shadow:0 24px 60px rgba(0,0,0,.24);
+      overflow:hidden;
+    }
+
+    .modal-head{
+      padding:20px 20px 14px;
+      border-bottom:1px solid #edf2f7;
+      background:linear-gradient(180deg,#ffffff,#fbfdff);
+    }
+
+    .modal-head h3{
+      font-size:22px;
+      font-weight:800;
+      color:#111827;
+    }
+
+    .modal-head p{
+      margin-top:6px;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.55;
+    }
+
+    .modal-body{
+      padding:18px 20px 20px;
+      display:grid;
+      gap:14px;
+    }
+
+    .field-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+
+    .input,
+    .textarea{
+      width:100%;
+      border:1px solid #dbe1e8;
+      background:#fff;
+      border-radius:14px;
+      outline:none;
+      padding:12px 14px;
+      font-size:14px;
+      color:#111827;
+    }
+
+    .input:focus,
+    .textarea:focus{
+      border-color:var(--primary);
+      box-shadow:0 0 0 4px rgba(10,102,194,.08);
+    }
+
+    .textarea{
+      min-height:130px;
+      resize:vertical;
+    }
+
+    .modal-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .file-label{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:11px 14px;
+      border-radius:14px;
+      border:1px dashed #bfdcff;
+      background:#f8fbff;
+      color:var(--primary);
+      font-size:13px;
+      font-weight:800;
+      cursor:pointer;
+    }
+
+    .file-label input{
+      display:none;
+    }
+
+    .preview-box img,
+    .preview-box video{
+      width:100%;
+      max-height:260px;
+      object-fit:cover;
+      border-radius:14px;
+      border:1px solid #e5e7eb;
+    }
+
+    .mobile-bottom{
+      display:none;
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      height:var(--mobile-bottom-h);
+      background:rgba(255,255,255,.96);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      border-top:1px solid #e5e7eb;
+      z-index:1200;
+      box-shadow:0 -8px 24px rgba(15,23,42,.08);
+      transform:translateY(0);
+      transition:transform .25s ease;
+    }
+
+    .mobile-bottom.hide{
+      transform:translateY(100%);
+    }
+
+    .mobile-bottom-inner{
+      height:100%;
+      display:grid;
+      grid-template-columns:1fr 1fr 78px 1fr 1fr;
+      align-items:center;
+      gap:2px;
+      padding:0 4px;
+    }
+
+    .mobile-nav{
+      position:relative;
+      border:none;
+      background:transparent;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:5px;
+      color:#64748b;
+      cursor:pointer;
+      border-radius:14px;
+    }
+
+    .mobile-nav.active{
+      color:var(--primary);
+    }
+
+    .mobile-nav svg{
+      width:22px;
+      height:22px;
+      stroke:currentColor;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .mobile-nav span{
+      font-size:11px;
+      font-weight:800;
+      line-height:1;
+    }
+
+    .mobile-post-btn{
+      width:56px;
+      height:56px;
+      border:none;
+      border-radius:50%;
+      background:linear-gradient(180deg,#0a66c2,#004182);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin:0 auto;
+      box-shadow:0 16px 28px rgba(10,102,194,.28);
+      cursor:pointer;
+    }
+
+    .mobile-post-btn svg{
+      width:24px;
+      height:24px;
+      stroke:#fff;
+      fill:none;
+      stroke-width:2.5;
+    }
+
+    .mobile-topbar{
+      display:none;
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      z-index:1250;
+      height:var(--topbar-h);
+      background:rgba(255,255,255,.96);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      border-bottom:1px solid #e5e7eb;
+      padding:10px 12px;
+      transform:translateY(0);
+      transition:transform .25s ease;
+    }
+
+    .mobile-topbar.hide{
+      transform:translateY(calc(-1 * var(--topbar-h)));
+    }
+
+    .mobile-topbar-inner{
+      height:100%;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .mobile-topbar img{
+      width:40px;
+      height:40px;
+      border-radius:50%;
+      object-fit:cover;
+      border:1px solid #e5e7eb;
+      flex-shrink:0;
+    }
+
+    .mobile-search{
+      flex:1;
+      min-width:0;
+      position:relative;
+    }
+
+    .mobile-search input{
+      width:100%;
+      height:40px;
+      border:none;
+      background:#eef3f8;
+      border-radius:999px;
+      padding:0 14px 0 40px;
+      font-size:14px;
+      outline:none;
+    }
+
+    .mobile-search svg{
+      position:absolute;
+      left:14px;
+      top:50%;
+      transform:translateY(-50%);
+      width:18px;
+      height:18px;
+      stroke:#64748b;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .mobile-msg{
+      width:40px;
+      height:40px;
+      border-radius:50%;
+      border:1px solid #e5e7eb;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      flex-shrink:0;
+    }
+
+    .mobile-msg svg{
+      width:20px;
+      height:20px;
+      stroke:#334155;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .mobile-badge{
+      position:absolute;
+      top:1px;
+      right:1px;
+      min-width:16px;
+      height:16px;
+      border-radius:999px;
+      background:var(--danger);
+      color:#fff;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      font-size:10px;
+      font-weight:800;
+      padding:0 4px;
+      line-height:1;
+    }
+
+    @media (max-width: 1360px){
+      .dashboard-layout{
+        grid-template-columns:300px minmax(0,1fr);
+      }
+
+      .right-col{
+        display:none;
+      }
+
+      .stats-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+
+      .grid-two{
+        grid-template-columns:1fr;
+      }
+
+      .directory-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+    }
+
+    @media (max-width: 960px){
+      .topbar{
+        padding:12px 14px;
+        gap:10px;
+        flex-wrap:wrap;
+      }
+
+      .topbar-center{
+        order:3;
+        width:100%;
+      }
+
+      .page-shell{
+        padding:12px;
+      }
+
+      .dashboard-layout{
+        grid-template-columns:1fr;
+      }
+
+      .left-col,
+      .right-col{
+        position:static;
+        top:auto;
+      }
+
+      .stats-grid,
+      .cards-grid,
+      .analytics-grid,
+      .grid-three,
+      .directory-grid,
+      .quick-actions-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width: 700px){
+      body{
+        padding-top:var(--topbar-h);
+        padding-bottom:calc(var(--mobile-bottom-h) + 8px);
+      }
+
+      .topbar{
+        display:none;
+      }
+
+      .mobile-topbar{
+        display:block;
+      }
+
+      .mobile-bottom{
+        display:block;
+      }
+
+      .page-shell{
+        padding:0;
+      }
+
+      .dashboard-layout{
+        display:block;
+      }
+
+      .left-col,
+      .right-col{
+        display:none;
+      }
+
+      .workspace-card,
+      .panel,
+      .feed-create,
+      .feed-post{
+        border-radius:0;
+        margin-bottom:8px;
+        border-left:none;
+        border-right:none;
+        box-shadow:none;
+      }
+
+      .workspace-header,
+      .workspace-body{
+        padding-left:12px;
+        padding-right:12px;
+      }
+
+      .workspace-title h1{
+        font-size:24px;
+      }
+
+      .field-grid{
+        grid-template-columns:1fr;
+      }
+
+      .post-actions{
+        gap:4px;
+      }
+
+      .post-action{
+        font-size:12px;
+        padding:10px 4px;
+      }
+
+      .comment-input-row{
+        flex-direction:column;
+        align-items:stretch;
+      }
+
+      .comment-input-row .btn{
+        width:100%;
+      }
+    }
+  </style>
 </head>
-
 <body>
-
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="top-left">
-    <img id="avatar" class="avatar" src="">
-    <span><b>AIFT</b></span>
-  </div>
-
-  <div class="search">
-    <input type="text" placeholder="Search...">
-  </div>
-
-  <div class="icon" onclick="window.location='messages.html'">💬</div>
-</div>
-
-<div class="layout">
-
-  <!-- LEFT PANEL -->
-  <div class="sidebar" id="leftPanel">
-
-    <button onclick="toggleLeft()">☰</button>
-
-    <button onclick="loadView('dashboard')">Dashboard</button>
-    <button onclick="loadView('agents')">Agents</button>
-    <button onclick="loadView('jobs')">Jobs</button>
-    <button onclick="loadView('analytics')">Analytics</button>
-    <button onclick="loadView('feed')">Company Feed</button>
-
-  </div>
-
-  <!-- MAIN CONTENT -->
-  <div class="main">
-
-    <!-- DASHBOARD -->
-    <div id="dashboard" class="card feed active">
-      <h3>Overview</h3>
-      <p>Welcome to your employer dashboard.</p>
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="brand"><span>AI</span>FT</div>
+      <div class="employer-badge">Employer Workspace</div>
     </div>
 
-    <!-- AGENTS -->
-    <div id="agents" class="card feed">
-      <h3>Agents Management</h3>
-      <p>Manage your agents here.</p>
-    </div>
-
-    <!-- JOBS -->
-    <div id="jobs" class="card feed">
-      <h3>Career Tools & Jobs</h3>
-      <p>Post and manage jobs.</p>
-    </div>
-
-    <!-- ANALYTICS -->
-    <div id="analytics" class="card feed">
-      <h3>Analytics</h3>
-      <p>Track performance.</p>
-    </div>
-
-    <!-- FEED -->
-    <div id="feed" class="card feed">
-      <h3>Company Feed</h3>
-
-      <textarea id="postText" placeholder="Share something..." style="width:100%;padding:10px;border-radius:10px;border:1px solid #ddd;"></textarea>
-      <button onclick="postFeed()" style="margin-top:10px;">Post</button>
-
-      <div id="posts"></div>
-    </div>
-
-  </div>
-
-  <!-- RIGHT PANEL -->
-  <div class="right" id="rightPanel">
-
-    <button onclick="toggleRight()">☰</button>
-
-    <div class="card">
-      <h4>Quick Stats</h4>
-      <p>Jobs: 0</p>
-      <p>Applicants: 0</p>
-    </div>
-
-  </div>
-
-</div>
-
-<script>
-
-const API = "https://backend-1-9b6f.onrender.com";
-
-const role = localStorage.getItem("role");
-const token = localStorage.getItem("employerToken");
-
-if(!token || role !== "employer"){
-  window.location="login.html";
-}
-
-function loadView(view){
-  document.querySelectorAll(".feed").forEach(el=>el.classList.remove("active"));
-  document.getElementById(view).classList.add("active");
-}
-
-function toggleLeft(){
-  document.getElementById("leftPanel").classList.toggle("collapsed");
-}
-
-function toggleRight(){
-  document.getElementById("rightPanel").classList.toggle("collapsed");
-}
-
-/* PROFILE */
-async function loadProfile(){
-  const res = await fetch(API+"/api/users/me",{
-    headers:{Authorization:"Bearer "+token}
-  });
-
-  const data = await res.json();
-  document.getElementById("avatar").src = data.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-}
-
-loadProfile();
-
-/* FEED */
-async function postFeed(){
-
-  const text = document.getElementById("postText").value;
-
-  await fetch(API+"/api/posts",{
-    method:"POST",
-    headers:{
-      Authorization:"Bearer "+token,
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({content:text})
-  });
-
-  loadPosts();
-}
-
-async function loadPosts(){
-
-  const res = await fetch(API+"/api/posts",{
-    headers:{Authorization:"Bearer "+token}
-  });
-
-  const posts = await res.json();
-
-  const container = document.getElementById("posts");
-  container.innerHTML="";
-
-  posts.forEach(p=>{
-    container.innerHTML += `
-      <div class="card">
-        <b>${p.author?.name || "Company"}</b>
-        <p>${p.content}</p>
+    <div class="topbar-center">
+      <div class="search-shell">
+        <svg viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+        <input id="desktopSearch" type="text" placeholder="Search jobs, applicants, agents, talents, posts">
       </div>
-    `;
-  });
+    </div>
 
-}
+    <div class="topbar-right">
+      <button class="top-icon-btn" onclick="goToMessages()">
+        <svg viewBox="0 0 24 24">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span class="top-icon-label">Messages</span>
+        <span id="messageCount" class="count-badge">0</span>
+      </button>
 
-loadPosts();
+      <button class="top-icon-btn" onclick="goToNotifications()">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 01-3.46 0"></path>
+        </svg>
+        <span class="top-icon-label">Alerts</span>
+        <span id="notificationCount" class="count-badge">0</span>
+      </button>
 
-</script>
+      <div class="top-profile" onclick="window.location.href='profile.html'">
+        <img id="topProfileImg" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Profile">
+        <div class="top-profile-meta">
+          <strong id="topProfileName">Employer</strong>
+          <span>Company Profile</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
+  <div class="mobile-topbar" id="mobileTopbar">
+    <div class="mobile-topbar-inner">
+      <img id="mobileTopProfileImg" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Profile" onclick="window.location.href='profile.html'">
+
+      <div class="mobile-search">
+        <svg viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+        <input id="mobileSearch" type="text" placeholder="Search workspace">
+      </div>
+
+      <button class="mobile-msg" onclick="goToMessages()">
+        <svg viewBox="0 0 24 24">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span id="mobileMessageCount" class="mobile-badge">0</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="page-shell">
+    <div class="dashboard-layout">
+      <aside class="left-col" id="leftCol">
+        <div class="card profile-card">
+          <div class="collapse-toggle-wrap">
+            <button class="collapse-btn" onclick="toggleSide('left')" title="Collapse left panel">
+              <svg viewBox="0 0 24 24">
+                <path d="M15 18l-6-6 6-6"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="collapsed-avatar-only">
+            <img id="collapsedLeftAvatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:42px;height:42px;border-radius:50%;border:1px solid #e5e7eb;">
+          </div>
+
+          <div class="collapse-hide">
+            <div class="profile-cover" id="profileCover"></div>
+
+            <div class="profile-body">
+              <div class="profile-avatar-row">
+                <img id="sidebarProfileImg" class="profile-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Company">
+                <div class="profile-role-badge">Employer View</div>
+              </div>
+
+              <div class="profile-name" id="sidebarProfileName">Company Name</div>
+              <div class="profile-sub" id="sidebarProfileLocation">Location not added</div>
+              <div class="profile-headline" id="sidebarProfileHeadline">Build your employer presence and manage hiring with AIFT.</div>
+
+              <div class="profile-actions">
+                <button class="btn btn-primary" onclick="openCreateJobModal()">Post Job</button>
+                <button class="btn btn-secondary" onclick="window.location.href='profile.html'">Edit Profile</button>
+              </div>
+
+              <div class="profile-metrics">
+                <div class="metric-box">
+                  <div class="metric-label">Followers</div>
+                  <div class="metric-value" id="metricFollowers">0</div>
+                </div>
+                <div class="metric-box">
+                  <div class="metric-label">Jobs</div>
+                  <div class="metric-value" id="metricJobs">0</div>
+                </div>
+                <div class="metric-box">
+                  <div class="metric-label">Posts</div>
+                  <div class="metric-value" id="metricPosts">0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card sidebar-card">
+          <div class="collapse-hide">
+            <div class="section-title">
+              <h3>Employer Workspace</h3>
+              <small>Premium control panel</small>
+            </div>
+
+            <div class="sidebar-nav">
+              <div class="nav-item active" data-view="command" onclick="renderView('command')">
+                <svg viewBox="0 0 24 24">
+                  <path d="M3 13h8V3H3z"></path>
+                  <path d="M13 21h8v-6h-8z"></path>
+                  <path d="M13 10h8V3h-8z"></path>
+                  <path d="M3 21h8v-6H3z"></path>
+                </svg>
+                <div class="nav-item-text">
+                  <div class="nav-item-label">Command Center</div>
+                  <div class="nav-item-sub">Main overview</div>
+                </div>
+              </div>
+
+              <div class="nav-item" data-view="jobs" onclick="renderView('jobs')">
+                <svg viewBox="0 0 24 24">
+                  <rect x="3" y="7" width="18" height="13" rx="2"></rect>
+                  <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <div class="nav-item-text">
+                  <div class="nav-item-label">Jobs</div>
+                  <div class="nav-item-sub">Career tools & jobs</div>
+                </div>
+              </div>
+
+              <div class="nav-item" data-view="pipeline" onclick="renderView('pipeline')">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 6h5"></path>
+                  <path d="M4 12h8"></path>
+                  <path d="M4 18h6"></path>
+                  <circle cx="17" cy="12" r="3"></circle>
+                </svg>
+                <div class="nav-item-text">
+                  <div class="nav-item-label">Applicants Pipeline</div>
+                  <div class="nav-item-sub">Board workflow</div>
+                </div>
+              </div>
+
+              <div class="nav-item" data-view="agents" onclick="renderView('agents')">
+                <svg viewBox="0 0 24 24">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M20 8v6"></path>
+                  <path d="M23 11h-6"></path>
+                </svg>
+                <div class="nav-item-text">
+                  <div class="nav-item-label">Agents</div>
+                  <div class="nav-item-sub">Recruiting partners</div>
+                </div>
+              </div>
+
+              <div class="nav-item" data-view="talents" onclick="renderView('talents')">
+                <svg viewBox="0 0 24 24">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <div class="nav-item-text">
+                  <div class="nav-item-label">Talents</div>
+                  <div class="nav-item-sub">Candidate discovery</div>
+                </div>
+              </div>
+
+              <div class="nav-item" data-view="assignments" onclick="renderView('assignments')">
+                <svg viewBox="0 0 24 24">
+                  <path d="M9 11l3 3L22 4"></path>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+                <div class="nav-item-text">
+                  <div class="nav-item-label">Assignments</div>
+                  <div class="nav-item-sub">Ownership & follow-up</div>
+                </div>
+              </div>
+
+              <div class="nav-item" data-view="analytics" onclick="renderView('analytics')">
+                <svg viewBox="0 0 24 24">
+                  <path d="M3 3v18h18"></path>
+                  <path d="M18 17V9"></path>
+                  <path d="M13 17V5"></path>
+                  <path d="M8 17v-3"></path>
+                </svg>
+                <div class="nav-item-text">
+                  <div class="nav-item-label">Analytics</div>
+                  <div class="nav-item-sub">Performance insights</div>
+                </div>
+              </div>
+
+              <div class="nav-item" data-view="feed" onclick="renderView('feed')">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 6h16"></path>
+                  <path d="M4 12h16"></path>
+                  <path d="M4 18h10"></path>
+                </svg>
+                <div class="nav-item-text">
+                  <div class="nav-item-label">Company Feed</div>
+                  <div class="nav-item-sub">Promotions & updates</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card sidebar-card collapse-hide">
+          <div class="section-title">
+            <h3>Quick Actions</h3>
+            <small>Fast access</small>
+          </div>
+
+          <div class="side-actions">
+            <button class="side-action" onclick="openCreateJobModal()">Post a new job</button>
+            <button class="side-action" onclick="renderView('pipeline')">Open applicants pipeline</button>
+            <button class="side-action" onclick="renderView('feed')">Create company update</button>
+            <button class="side-action" onclick="window.location.href='profile.html'">Edit company profile</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="center-col">
+        <div class="card workspace-card" id="workspace"></div>
+      </main>
+
+      <aside class="right-col" id="rightCol">
+        <div class="card right-card">
+          <div class="collapse-toggle-wrap" style="padding:0 0 10px;">
+            <button class="collapse-btn" onclick="toggleSide('right')" title="Collapse right panel">
+              <svg viewBox="0 0 24 24">
+                <path d="M9 6l6 6-6 6"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="collapsed-right-only">
+            <button class="collapse-btn" onclick="renderView('command')" title="Dashboard">
+              <svg viewBox="0 0 24 24">
+                <path d="M3 13h8V3H3z"></path>
+                <path d="M13 21h8v-6h-8z"></path>
+                <path d="M13 10h8V3h-8z"></path>
+                <path d="M3 21h8v-6H3z"></path>
+              </svg>
+            </button>
+            <button class="collapse-btn" onclick="goToMessages()" title="Messages">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="collapse-hide">
+            <div class="section-title">
+              <h3>Live Hiring Insights</h3>
+              <small>Realtime view</small>
+            </div>
+
+            <div class="right-stat-grid">
+              <div class="right-mini-stat">
+                <label>Active Jobs</label>
+                <strong id="rightActiveJobs">0</strong>
+              </div>
+
+              <div class="right-mini-stat">
+                <label>Applicants</label>
+                <strong id="rightApplicants">0</strong>
+              </div>
+
+              <div class="right-mini-stat">
+                <label>Interviews</label>
+                <strong id="rightInterviewStage">0</strong>
+              </div>
+
+              <div class="right-mini-stat">
+                <label>Hires</label>
+                <strong id="rightHires">0</strong>
+              </div>
+            </div>
+
+            <div class="insight-list" id="insightList">
+              <div class="insight-item">
+                <strong>Loading insights</strong>
+                <span>Preparing your employer dashboard.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card right-card collapse-hide">
+          <div class="section-title">
+            <h3>Priority Actions</h3>
+            <small>Recommended</small>
+          </div>
+
+          <div class="side-actions">
+            <button class="side-action" onclick="renderView('jobs')">Review open jobs</button>
+            <button class="side-action" onclick="renderView('pipeline')">Move applicants faster</button>
+            <button class="side-action" onclick="renderView('agents')">Contact agents</button>
+            <button class="side-action" onclick="renderView('analytics')">View analytics</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="mobile-bottom" id="mobileBottom">
+    <div class="mobile-bottom-inner">
+      <button class="mobile-nav active" data-mobile-view="command" onclick="renderView('command')">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 13h8V3H3z"></path>
+          <path d="M13 21h8v-6h-8z"></path>
+          <path d="M13 10h8V3h-8z"></path>
+          <path d="M3 21h8v-6H3z"></path>
+        </svg>
+        <span>Home</span>
+      </button>
+
+      <button class="mobile-nav" data-mobile-view="jobs" onclick="renderView('jobs')">
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="7" width="18" height="13" rx="2"></rect>
+          <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>Jobs</span>
+      </button>
+
+      <button class="mobile-post-btn" onclick="openPostModal()">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 5v14"></path>
+          <path d="M5 12h14"></path>
+        </svg>
+      </button>
+
+      <button class="mobile-nav" data-mobile-view="alerts" onclick="goToNotifications()">
+        <span id="mobileNotificationCount" class="mobile-badge">0</span>
+        <svg viewBox="0 0 24 24">
+          <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 01-3.46 0"></path>
+        </svg>
+        <span>Alerts</span>
+      </button>
+
+      <button class="mobile-nav" data-mobile-view="feed" onclick="renderView('feed')">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 6h16"></path>
+          <path d="M4 12h16"></path>
+          <path d="M4 18h10"></path>
+        </svg>
+        <span>Feed</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="modal" id="postModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Create Company Update</h3>
+        <p>Use this section to promote your company, hiring campaign, culture, and business wins.</p>
+      </div>
+      <div class="modal-body">
+        <textarea id="postContent" class="textarea" placeholder="Share something about your company..."></textarea>
+
+        <div class="preview-box" id="postPreview"></div>
+
+        <label class="file-label">
+          Add image or video
+          <input type="file" id="postMedia" accept="image/*,video/*">
+        </label>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="closePostModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="submitCompanyPost()">Post Update</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="jobModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Create Job Posting</h3>
+        <p>Publish a professional job post and make it visible inside your hiring system.</p>
+      </div>
+      <div class="modal-body">
+        <div class="field-grid">
+          <input id="jobTitle" class="input" placeholder="Job Title">
+          <input id="jobCompany" class="input" placeholder="Company">
+          <input id="jobLocation" class="input" placeholder="Location">
+          <input id="jobSalary" class="input" placeholder="Salary">
+        </div>
+
+        <textarea id="jobDescription" class="textarea" placeholder="Describe responsibilities, expectations, requirements, and role context."></textarea>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="closeCreateJobModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="submitEmployerJob()">Publish Job</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    const API = "https://backend-1-9b6f.onrender.com";
+    const socket = typeof io !== "undefined" ? io(API, { transports:["websocket","polling"] }) : null;
+
+    const role = localStorage.getItem("role");
+    const token = localStorage.getItem("employerToken");
+
+    if(!token || role !== "employer"){
+      window.location.href = "login.html";
+    }
+
+    localStorage.setItem("lastRolePage", "employer.html");
+
+    function authHeaders(extra = {}){
+      return {
+        Authorization: "Bearer " + token,
+        ...extra
+      };
+    }
+
+    const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+    const state = {
+      me: null,
+      jobs: [],
+      applications: [],
+      network: [],
+      posts: [],
+      activeView: "command",
+      search: "",
+      activeDropdown: null,
+      postMediaFile: null,
+      lastScrollY: window.scrollY,
+      jobFilter: "all"
+    };
+
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+    }
+
+    function formatDateTime(value){
+      if(!value) return "Recently";
+      const d = new Date(value);
+      if(isNaN(d.getTime())) return "Recently";
+      return d.toLocaleString([], {
+        month:"short",
+        day:"numeric",
+        hour:"numeric",
+        minute:"2-digit"
+      });
+    }
+
+    function pluralize(count, singular, plural){
+      return `${count} ${count === 1 ? singular : plural}`;
+    }
+
+    function normalizeStatus(status){
+      const s = String(status || "").toLowerCase().trim();
+      if(["new","pending","applied","submitted"].includes(s)) return "new";
+      if(["shortlisted","shortlist","screening","review"].includes(s)) return "shortlisted";
+      if(["interview","interviewing","scheduled"].includes(s)) return "interview";
+      if(["offer","offered"].includes(s)) return "offer";
+      if(["hired","accepted","onboarded"].includes(s)) return "hired";
+      return "new";
+    }
+
+    function statusLabel(status){
+      return {
+        new:"New",
+        shortlisted:"Shortlisted",
+        interview:"Interview",
+        offer:"Offer",
+        hired:"Hired"
+      }[status] || "New";
+    }
+
+    function updateBadge(el, count){
+      if(!el) return;
+      const n = Number(count) || 0;
+      el.textContent = n > 99 ? "99+" : String(n);
+      el.style.display = n > 0 ? "flex" : "none";
+    }
+
+    function setActiveNav(view){
+      document.querySelectorAll(".nav-item").forEach(item => {
+        item.classList.toggle("active", item.dataset.view === view);
+      });
+
+      document.querySelectorAll(".mobile-nav").forEach(item => {
+        item.classList.toggle("active", item.dataset.mobileView === view);
+      });
+    }
+
+    function toggleSide(side){
+      if(side === "left"){
+        document.getElementById("leftCol").classList.toggle("collapsed");
+      } else {
+        document.getElementById("rightCol").classList.toggle("collapsed");
+      }
+    }
+
+    function goToMessages(){
+      window.location.href = "messages.html";
+    }
+
+    function goToNotifications(){
+      window.location.href = "notifications.html";
+    }
+
+    async function safeFetch(url, options = {}){
+      try{
+        const res = await fetch(url, options);
+        if(!res.ok) return null;
+        return await res.json();
+      }catch(err){
+        return null;
+      }
+    }
+
+    async function loadProfile(){
+      const user = await safeFetch(API + "/api/users/me", { headers: authHeaders() });
+      if(!user) throw new Error("Failed to load employer profile");
+
+      state.me = user;
+      localStorage.setItem("userId", user._id || "");
+      localStorage.setItem("profileImage", user.profileImage || "");
+      localStorage.setItem("profileName", user.name || "");
+
+      const profileImg = user.profileImage || user.companyLogo || FALLBACK_AVATAR;
+      document.getElementById("topProfileImg").src = profileImg;
+      document.getElementById("mobileTopProfileImg").src = profileImg;
+      document.getElementById("collapsedLeftAvatar").src = profileImg;
+      document.getElementById("sidebarProfileImg").src = profileImg;
+      document.getElementById("topProfileName").innerText = user.name || "Employer";
+      document.getElementById("sidebarProfileName").innerText = user.name || "Employer";
+      document.getElementById("sidebarProfileLocation").innerText = user.location || user.city || "Location not added";
+      document.getElementById("sidebarProfileHeadline").innerText = user.headline || "Build your employer presence and attract top talent.";
+      document.getElementById("profileCover").innerHTML = user.bannerImage || user.coverImage
+        ? `<img src="${user.bannerImage || user.coverImage}" alt="Company cover">`
+        : "";
+    }
+
+    async function loadJobs(){
+      const data = await safeFetch(API + "/api/jobs", { headers: authHeaders() });
+      state.jobs = Array.isArray(data) ? data : (Array.isArray(data?.jobs) ? data.jobs : []);
+    }
+
+    async function loadApplications(){
+      const data = await safeFetch(API + "/api/applications", { headers: authHeaders() });
+      state.applications = Array.isArray(data) ? data : (Array.isArray(data?.applications) ? data.applications : []);
+    }
+
+    async function loadNetwork(){
+      const data = await safeFetch(API + "/api/users/network", { headers: authHeaders() });
+      state.network = Array.isArray(data) ? data : [];
+    }
+
+    async function loadPosts(){
+      const data = await safeFetch(API + "/api/posts", { headers: authHeaders() });
+      state.posts = Array.isArray(data) ? data : (Array.isArray(data?.posts) ? data.posts : []);
+    }
+
+    function stats(){
+      const followers = Array.isArray(state.me?.followers) ? state.me.followers.length : 0;
+      const jobsPosted = state.jobs.length;
+      const activeJobs = state.jobs.filter(job => !["closed","archived"].includes(String(job.status || "").toLowerCase())).length;
+      const myId = String(state.me?._id || "");
+
+      const postsCount = state.posts.filter(post => {
+        const authorId = String(post.author?._id || post.user?._id || post.author || post.user || "");
+        return authorId === myId;
+      }).length;
+
+      const grouped = { new:0, shortlisted:0, interview:0, offer:0, hired:0 };
+
+      state.applications.forEach(app => {
+        grouped[normalizeStatus(app.status)]++;
+      });
+
+      return {
+        followers,
+        jobsPosted,
+        activeJobs,
+        postsCount,
+        applications: state.applications.length,
+        grouped
+      };
+    }
+
+    function refreshSidebarStats(){
+      const s = stats();
+      document.getElementById("metricFollowers").innerText = s.followers;
+      document.getElementById("metricJobs").innerText = s.activeJobs;
+      document.getElementById("metricPosts").innerText = s.postsCount;
+
+      document.getElementById("rightActiveJobs").innerText = s.activeJobs;
+      document.getElementById("rightApplicants").innerText = s.applications;
+      document.getElementById("rightInterviewStage").innerText = s.grouped.interview;
+      document.getElementById("rightHires").innerText = s.grouped.hired;
+
+      const insightList = document.getElementById("insightList");
+      const pendingAttention = s.grouped.new + s.grouped.shortlisted;
+      insightList.innerHTML = `
+        <div class="insight-item">
+          <strong>${pendingAttention} candidates need attention</strong>
+          <span>New and shortlisted applicants are waiting for movement.</span>
+        </div>
+        <div class="insight-item">
+          <strong>${s.grouped.interview} interview-stage candidates</strong>
+          <span>Move these forward quickly to reduce delays.</span>
+        </div>
+        <div class="insight-item">
+          <strong>${s.activeJobs} active jobs live</strong>
+          <span>Your currently open positions in the system.</span>
+        </div>
+        <div class="insight-item">
+          <strong>${s.postsCount} company posts created</strong>
+          <span>Use the Company Feed to promote your brand and hiring.</span>
+        </div>
+      `;
+    }
+
+    function renderEmpty(title, subtitle){
+      return `
+        <div class="empty-state">
+          <h3>${escapeHtml(title)}</h3>
+          <div>${escapeHtml(subtitle)}</div>
+        </div>
+      `;
+    }
+
+    function renderView(view){
+      state.activeView = view;
+      setActiveNav(view);
+      refreshSidebarStats();
+
+      const workspace = document.getElementById("workspace");
+
+      if(view === "command"){
+        const s = stats();
+        workspace.innerHTML = `
+          <div class="workspace-header">
+            <div class="workspace-title">
+              <h1>Employer Command Center</h1>
+              <p>This is your default workspace. The feed is now only one section, while the center area focuses on managing jobs, applicants, assignments, and business growth.</p>
+            </div>
+
+            <div class="workspace-actions">
+              <button class="btn btn-primary" onclick="openCreateJobModal()">Post a Job</button>
+              <button class="btn btn-secondary" onclick="renderView('feed')">Open Company Feed</button>
+            </div>
+          </div>
+
+          <div class="workspace-body">
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <svg viewBox="0 0 24 24">
+                    <rect x="3" y="7" width="18" height="13" rx="2"></rect>
+                    <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </div>
+                <div class="stat-meta">
+                  <label>Jobs Posted</label>
+                  <strong>${s.jobsPosted}</strong>
+                  <span>All listings created</span>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 4h16v16H4z"></path>
+                    <path d="M4 8l8 5 8-5"></path>
+                  </svg>
+                </div>
+                <div class="stat-meta">
+                  <label>Applications</label>
+                  <strong>${s.applications}</strong>
+                  <span>Total candidates in flow</span>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </div>
+                <div class="stat-meta">
+                  <label>Followers</label>
+                  <strong>${s.followers}</strong>
+                  <span>Employer brand reach</span>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 6h16"></path>
+                    <path d="M4 12h16"></path>
+                    <path d="M4 18h10"></path>
+                  </svg>
+                </div>
+                <div class="stat-meta">
+                  <label>Company Posts</label>
+                  <strong>${s.postsCount}</strong>
+                  <span>Feed updates shared</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-two">
+              <div class="panel">
+                <h2>Quick Actions</h2>
+                <p class="sub">Use your employer page as a real hiring operating system, not just a social feed.</p>
+
+                <div class="quick-actions-grid">
+                  <div class="quick-action" onclick="openCreateJobModal()">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M12 5v14"></path>
+                      <path d="M5 12h14"></path>
+                    </svg>
+                    <strong>Create Job Post</strong>
+                    <span>Publish a new opening and make it live in your system.</span>
+                  </div>
+
+                  <div class="quick-action" onclick="renderView('pipeline')">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M4 6h5"></path>
+                      <path d="M4 12h8"></path>
+                      <path d="M4 18h6"></path>
+                      <circle cx="17" cy="12" r="3"></circle>
+                    </svg>
+                    <strong>Open Pipeline</strong>
+                    <span>Move applicants through your hiring stages faster.</span>
+                  </div>
+
+                  <div class="quick-action" onclick="renderView('agents')">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                    </svg>
+                    <strong>Find Agents</strong>
+                    <span>Browse agents who can help with sourcing and outreach.</span>
+                  </div>
+
+                  <div class="quick-action" onclick="renderView('feed')">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M4 6h16"></path>
+                      <path d="M4 12h16"></path>
+                      <path d="M4 18h10"></path>
+                    </svg>
+                    <strong>Company Feed</strong>
+                    <span>Promote your company, culture, and hiring campaigns.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <h2>Hiring Snapshot</h2>
+                <p class="sub">What needs your attention now.</p>
+
+                <div class="activity-list">
+                  <div class="activity-item">
+                    <strong>${s.grouped.new} new applicants</strong>
+                    <span>Applications waiting for first review.</span>
+                  </div>
+                  <div class="activity-item">
+                    <strong>${s.grouped.shortlisted} shortlisted</strong>
+                    <span>Candidates ready for deeper review or interview.</span>
+                  </div>
+                  <div class="activity-item">
+                    <strong>${s.grouped.interview} interviews active</strong>
+                    <span>Applicants currently in the interview stage.</span>
+                  </div>
+                  <div class="activity-item">
+                    <strong>${s.grouped.hired} hires recorded</strong>
+                    <span>Successful conversions from your pipeline.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-three">
+              <div class="panel">
+                <h2>Recent Activity</h2>
+                <p class="sub">Operational summary of your current workspace.</p>
+                <div class="activity-list">
+                  <div class="activity-item">
+                    <strong>${s.activeJobs} active jobs</strong>
+                    <span>Roles currently visible to candidates.</span>
+                  </div>
+                  <div class="activity-item">
+                    <strong>${state.network.filter(p => String(p.role || "").toLowerCase() === "agent").length} agents available</strong>
+                    <span>People you can contact for recruiting support.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <h2>Talent Discovery</h2>
+                <p class="sub">Candidates and people visible in your network.</p>
+                <div class="activity-list">
+                  <div class="activity-item">
+                    <strong>${state.network.filter(p => String(p.role || "").toLowerCase() === "talent").length} discoverable talents</strong>
+                    <span>Potential prospects outside direct applicants.</span>
+                  </div>
+                  <div class="activity-item">
+                    <strong>Company Feed active</strong>
+                    <span>Use your feed as a promotion section, not the main home.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <h2>Suggested Next Step</h2>
+                <p class="sub">Best action based on your current data.</p>
+                <div class="activity-list">
+                  <div class="activity-item">
+                    <strong>${(s.grouped.new + s.grouped.shortlisted) > 0 ? "Review pending applicants" : "Post a new company update"}</strong>
+                    <span>${(s.grouped.new + s.grouped.shortlisted) > 0 ? "Move candidates from new or shortlisted stages." : "Promote your company and keep your brand visible."}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if(view === "jobs"){
+        const q = state.search.trim().toLowerCase();
+        const jobs = state.jobs.filter(job => {
+          const status = String(job.status || "active").toLowerCase();
+          const matchesFilter = state.jobFilter === "all" || status === state.jobFilter;
+          const matchesSearch = !q || [
+            job.title || "",
+            job.company || "",
+            job.location || "",
+            job.description || ""
+          ].join(" ").toLowerCase().includes(q);
+          return matchesFilter && matchesSearch;
+        });
+
+        workspace.innerHTML = `
+          <div class="workspace-header">
+            <div class="workspace-title">
+              <h1>Career Tools & Jobs</h1>
+              <p>This section is only for jobs and job management, just like you wanted.</p>
+            </div>
+
+            <div class="workspace-actions">
+              <button class="btn btn-primary" onclick="openCreateJobModal()">Post a Job</button>
+            </div>
+          </div>
+
+          <div class="workspace-body">
+            <div class="toolbar">
+              <input class="search-inline" placeholder="Search jobs" value="${escapeHtml(state.search)}" oninput="updateSearch(this.value)">
+              <button class="chip ${state.jobFilter === "all" ? "active" : ""}" onclick="setJobFilter('all')">All</button>
+              <button class="chip ${state.jobFilter === "active" ? "active" : ""}" onclick="setJobFilter('active')">Active</button>
+              <button class="chip ${state.jobFilter === "paused" ? "active" : ""}" onclick="setJobFilter('paused')">Paused</button>
+              <button class="chip ${state.jobFilter === "closed" ? "active" : ""}" onclick="setJobFilter('closed')">Closed</button>
+            </div>
+
+            <div class="cards-grid">
+              ${
+                jobs.length
+                  ? jobs.map(job => {
+                      const appCount = state.applications.filter(app => String(app.job?._id || app.job || "") === String(job._id)).length;
+                      const status = String(job.status || "active").toLowerCase();
+                      return `
+                        <div class="mini-card">
+                          <div class="mini-card-title">${escapeHtml(job.title || "Untitled Job")}</div>
+                          <div class="mini-card-sub">${escapeHtml(job.company || state.me?.name || "Company")} • ${escapeHtml(job.location || "Location not added")}</div>
+
+                          <div class="pill-row">
+                            <span class="pill">${escapeHtml(status.toUpperCase())}</span>
+                            <span class="pill">${appCount} applicants</span>
+                          </div>
+
+                          <div class="mini-card-meta">${escapeHtml((job.description || "No description added yet.").slice(0,220))}${job.description && job.description.length > 220 ? "..." : ""}</div>
+
+                          <div class="mini-card-actions">
+                            <button class="btn btn-secondary" onclick="renderView('pipeline')">View Applicants</button>
+                            <button class="btn btn-primary" onclick="toggleJobStatus('${job._id}', '${status === "active" ? "paused" : "active"}')">${status === "active" ? "Pause" : "Activate"}</button>
+                          </div>
+                        </div>
+                      `;
+                    }).join("")
+                  : renderEmpty("No jobs found", "Create a job or adjust your filters.")
+              }
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if(view === "pipeline"){
+        const q = state.search.trim().toLowerCase();
+        const groups = { new:[], shortlisted:[], interview:[], offer:[], hired:[] };
+
+        state.applications
+          .filter(app => {
+            if(!q) return true;
+            return [
+              app.user?.name || "",
+              app.user?.headline || "",
+              app.job?.title || "",
+              app.status || ""
+            ].join(" ").toLowerCase().includes(q);
+          })
+          .forEach(app => {
+            groups[normalizeStatus(app.status)].push(app);
+          });
+
+        workspace.innerHTML = `
+          <div class="workspace-header">
+            <div class="workspace-title">
+              <h1>Applicants Pipeline</h1>
+              <p>This is the board-style employer pipeline you chose. It is the strongest view for managing candidates at scale.</p>
+            </div>
+
+            <div class="workspace-actions">
+              <input class="search-inline" placeholder="Search applicants" value="${escapeHtml(state.search)}" oninput="updateSearch(this.value)">
+            </div>
+          </div>
+
+          <div class="workspace-body">
+            <div class="pipeline-shell">
+              <div class="pipeline-board">
+                ${["new","shortlisted","interview","offer","hired"].map(status => `
+                  <div class="pipeline-col">
+                    <div class="pipeline-head">
+                      <strong>${statusLabel(status)}</strong>
+                      <span class="pipeline-count">${groups[status].length}</span>
+                    </div>
+
+                    ${
+                      groups[status].length
+                        ? groups[status].map(app => `
+                          <div class="candidate-card">
+                            <div class="candidate-top">
+                              <img src="${app.user?.profileImage || FALLBACK_AVATAR}" alt="${escapeHtml(app.user?.name || "Applicant")}">
+                              <div class="candidate-meta">
+                                <strong>${escapeHtml(app.user?.name || "Applicant")}</strong>
+                                <span>${escapeHtml(app.user?.headline || app.user?.role || "Candidate")}</span>
+                                <span>${escapeHtml(app.job?.title || "Job not available")}</span>
+                              </div>
+                            </div>
+
+                            <div class="pill-row">
+                              ${
+                                Array.isArray(app.user?.skills) && app.user.skills.length
+                                  ? app.user.skills.slice(0,3).map(skill => `<span class="pill">${escapeHtml(skill)}</span>`).join("")
+                                  : `<span class="pill">${escapeHtml(statusLabel(status))}</span>`
+                              }
+                            </div>
+
+                            <select class="candidate-status" onchange="moveApplicationStatus('${app._id}', this.value)">
+                              <option value="new" ${normalizeStatus(app.status) === "new" ? "selected" : ""}>New</option>
+                              <option value="shortlisted" ${normalizeStatus(app.status) === "shortlisted" ? "selected" : ""}>Shortlisted</option>
+                              <option value="interview" ${normalizeStatus(app.status) === "interview" ? "selected" : ""}>Interview</option>
+                              <option value="offer" ${normalizeStatus(app.status) === "offer" ? "selected" : ""}>Offer</option>
+                              <option value="hired" ${normalizeStatus(app.status) === "hired" ? "selected" : ""}>Hired</option>
+                            </select>
+
+                            <div class="candidate-actions">
+                              <button class="btn btn-secondary" onclick="openPublicProfile('${app.user?._id || ""}')">Profile</button>
+                              <button class="btn btn-primary" onclick="goToMessages()">Message</button>
+                            </div>
+                          </div>
+                        `).join("")
+                        : `<div class="mini-card"><div class="mini-card-sub">No candidates in this stage.</div></div>`
+                    }
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if(view === "agents" || view === "talents"){
+        const roleTarget = view === "agents" ? "agent" : "talent";
+        const q = state.search.trim().toLowerCase();
+
+        const people = state.network.filter(person => {
+          const matchesRole = String(person.role || "").toLowerCase() === roleTarget;
+          const matchesSearch = !q || [
+            person.name || "",
+            person.headline || "",
+            Array.isArray(person.skills) ? person.skills.join(" ") : "",
+            person.location || ""
+          ].join(" ").toLowerCase().includes(q);
+          return matchesRole && matchesSearch;
+        });
+
+        workspace.innerHTML = `
+          <div class="workspace-header">
+            <div class="workspace-title">
+              <h1>${view === "agents" ? "Agents Directory" : "Talents Directory"}</h1>
+              <p>${view === "agents" ? "Discover agents and recruiting partners." : "Browse talents outside the direct application pipeline."}</p>
+            </div>
+
+            <div class="workspace-actions">
+              <input class="search-inline" placeholder="Search ${view}" value="${escapeHtml(state.search)}" oninput="updateSearch(this.value)">
+            </div>
+          </div>
+
+          <div class="workspace-body">
+            <div class="directory-grid">
+              ${
+                people.length
+                  ? people.map(person => `
+                    <div class="person-card">
+                      <img src="${person.profileImage || FALLBACK_AVATAR}" alt="${escapeHtml(person.name || "User")}">
+                      <strong>${escapeHtml(person.name || "User")}</strong>
+                      <span>${escapeHtml(person.headline || person.role || roleTarget)}</span>
+
+                      <div class="pill-row" style="margin-top:12px;">
+                        ${
+                          Array.isArray(person.skills) && person.skills.length
+                            ? person.skills.slice(0,3).map(skill => `<span class="pill">${escapeHtml(skill)}</span>`).join("")
+                            : `<span class="pill">${escapeHtml(roleTarget.toUpperCase())}</span>`
+                        }
+                      </div>
+
+                      <div class="person-actions">
+                        <button class="btn btn-secondary" onclick="openPublicProfile('${person._id || ""}')">Profile</button>
+                        <button class="btn btn-primary" onclick="goToMessages()">Message</button>
+                      </div>
+                    </div>
+                  `).join("")
+                  : renderEmpty(`No ${view} found`, "Try another search or come back later.")
+              }
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if(view === "assignments"){
+        const list = state.applications.slice(0, 12);
+
+        workspace.innerHTML = `
+          <div class="workspace-header">
+            <div class="workspace-title">
+              <h1>Assignments</h1>
+              <p>Operational view for ownership, next steps, and follow-up across your current applicants.</p>
+            </div>
+          </div>
+
+          <div class="workspace-body">
+            <div class="cards-grid">
+              ${
+                list.length
+                  ? list.map(app => `
+                    <div class="mini-card">
+                      <div class="mini-card-title">${escapeHtml(app.user?.name || "Applicant")}</div>
+                      <div class="mini-card-sub">${escapeHtml(app.job?.title || "Job not available")}</div>
+
+                      <div class="pill-row">
+                        <span class="pill">${escapeHtml(statusLabel(normalizeStatus(app.status)))}</span>
+                        <span class="pill">Owner: Employer</span>
+                      </div>
+
+                      <div class="mini-card-meta">
+                        ${
+                          normalizeStatus(app.status) === "new"
+                            ? "Suggested next step: Review CV and shortlist if aligned."
+                            : normalizeStatus(app.status) === "shortlisted"
+                            ? "Suggested next step: Move to interview or contact candidate."
+                            : normalizeStatus(app.status) === "interview"
+                            ? "Suggested next step: Collect feedback and finalize direction."
+                            : "Suggested next step: Monitor progress and maintain communication."
+                        }
+                      </div>
+
+                      <div class="mini-card-actions">
+                        <button class="btn btn-secondary" onclick="openPublicProfile('${app.user?._id || ""}')">Profile</button>
+                        <button class="btn btn-primary" onclick="goToMessages()">Message</button>
+                      </div>
+                    </div>
+                  `).join("")
+                  : renderEmpty("No assignments yet", "As applicants move through your workflow, this section will become more useful.")
+              }
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if(view === "analytics"){
+        const s = stats();
+
+        workspace.innerHTML = `
+          <div class="workspace-header">
+            <div class="workspace-title">
+              <h1>Hiring Analytics</h1>
+              <p>High-level business view of your employer performance and candidate movement.</p>
+            </div>
+          </div>
+
+          <div class="workspace-body">
+            <div class="analytics-grid">
+              <div class="analytics-card">
+                <h3>Pipeline Breakdown</h3>
+                <div class="metric-line"><span>New</span><b>${s.grouped.new}</b></div>
+                <div class="metric-line"><span>Shortlisted</span><b>${s.grouped.shortlisted}</b></div>
+                <div class="metric-line"><span>Interview</span><b>${s.grouped.interview}</b></div>
+                <div class="metric-line"><span>Offer</span><b>${s.grouped.offer}</b></div>
+                <div class="metric-line"><span>Hired</span><b>${s.grouped.hired}</b></div>
+              </div>
+
+              <div class="analytics-card">
+                <h3>Visibility Metrics</h3>
+                <div class="metric-line"><span>Followers</span><b>${s.followers}</b></div>
+                <div class="metric-line"><span>Company Posts</span><b>${s.postsCount}</b></div>
+                <div class="metric-line"><span>Active Jobs</span><b>${s.activeJobs}</b></div>
+                <div class="metric-line"><span>Total Jobs</span><b>${s.jobsPosted}</b></div>
+              </div>
+
+              <div class="analytics-card">
+                <h3>Performance Insight</h3>
+                <p>${s.grouped.new > s.grouped.interview
+                  ? "You currently have more new applicants than interview-stage candidates. Your strongest next move is to review and advance qualified people faster."
+                  : "Your applicant flow is moving better through the pipeline. Focus on conversion from interview to final hire."}
+                </p>
+              </div>
+
+              <div class="analytics-card">
+                <h3>Brand Growth Insight</h3>
+                <p>${s.postsCount === 0
+                  ? "Your company feed is still empty. Posting employer updates can strengthen visibility and support hiring."
+                  : "You are already using the company feed. Keep publishing consistent updates to improve employer presence and candidate trust."}
+                </p>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if(view === "feed"){
+        const myId = String(state.me?._id || "");
+        const q = state.search.trim().toLowerCase();
+
+        const posts = state.posts.filter(post => {
+          const authorId = String(post.author?._id || post.user?._id || post.author || post.user || "");
+          const isMine = authorId === myId;
+          const matchesSearch = !q || [
+            post.content || post.text || "",
+            post.author?.name || post.user?.name || ""
+          ].join(" ").toLowerCase().includes(q);
+          return isMine && matchesSearch;
+        });
+
+        workspace.innerHTML = `
+          <div class="workspace-header">
+            <div class="workspace-title">
+              <h1>Company Feed</h1>
+              <p>This is your promotion section. Employers can still post about their company here, but the system no longer opens in feed mode by default.</p>
+            </div>
+
+            <div class="workspace-actions">
+              <input class="search-inline" placeholder="Search company posts" value="${escapeHtml(state.search)}" oninput="updateSearch(this.value)">
+              <button class="btn btn-primary" onclick="openPostModal()">Create Post</button>
+            </div>
+          </div>
+
+          <div class="workspace-body">
+            <div class="feed-create" onclick="openPostModal()">
+              <img src="${state.me?.profileImage || state.me?.companyLogo || FALLBACK_AVATAR}" alt="Company">
+              <div class="feed-create-input">Share a company update...</div>
+            </div>
+
+            <div id="companyFeedList">
+              ${
+                posts.length
+                  ? posts.map(post => renderFeedPost(post)).join("")
+                  : renderEmpty("No company posts yet", "Start using this section for promotion, culture posts, and hiring updates.")
+              }
+            </div>
+          </div>
+        `;
+        return;
+      }
+    }
+
+    function renderFeedPost(post){
+      const postId = post._id || Math.random().toString(36).slice(2);
+      const author = post.author || post.user || state.me || {};
+      const authorName = author.name || "Company";
+      const authorHeadline = author.headline || "Employer";
+      const authorImage = author.profileImage || author.companyLogo || FALLBACK_AVATAR;
+      const content = post.content || post.text || "";
+      const mediaUrl = post.mediaUrl || "";
+      const mediaType = String(post.mediaType || "").toLowerCase();
+      const likes = Array.isArray(post.likes) ? post.likes.length : 0;
+      const comments = Array.isArray(post.comments) ? post.comments.length : 0;
+      const liked = Array.isArray(post.likes)
+        ? post.likes.some(l => String(l?._id || l) === String(localStorage.getItem("userId") || ""))
+        : false;
+
+      return `
+        <div class="feed-post" id="post-${postId}">
+          <div class="post-head">
+            <div class="post-author" onclick="openPublicProfile('${author._id || ""}')">
+              <img src="${authorImage}" alt="${escapeHtml(authorName)}">
+              <div class="post-author-main">
+                <div class="post-author-name">${escapeHtml(authorName)}</div>
+                <div class="post-author-sub">${escapeHtml(authorHeadline)}</div>
+                <div class="post-author-sub">${escapeHtml(formatDateTime(post.createdAt || post.updatedAt))}</div>
+              </div>
+            </div>
+
+            <div class="dropdown">
+              <button class="post-menu-trigger" onclick="togglePostDropdown(event, '${postId}')">•••</button>
+              <div class="dropdown-menu" id="dropdown-${postId}">
+                <button onclick="copyPostLink('${postId}')">Copy Link</button>
+                <button onclick="deleteCompanyPost('${postId}')">Delete</button>
+              </div>
+            </div>
+          </div>
+
+          ${content ? `<div class="post-content">${escapeHtml(content)}</div>` : ""}
+
+          ${mediaUrl ? `
+            <div class="post-media">
+              ${mediaType.includes("video")
+                ? `<video src="${mediaUrl}" controls playsinline></video>`
+                : `<img src="${mediaUrl}" alt="Post media">`
+              }
+            </div>
+          ` : ""}
+
+          <div class="post-stats">
+            <span>${pluralize(likes, "like", "likes")}</span>
+            <span>${pluralize(comments, "comment", "comments")}</span>
+          </div>
+
+          <div class="post-actions">
+            <button class="post-action ${liked ? "liked" : ""}" onclick="toggleCompanyLike('${postId}')">
+              <svg viewBox="0 0 24 24">
+                <path d="M7 11v10"></path>
+                <path d="M15 5.88l-1 5.12h5.5a2 2 0 0 1 1.94 2.49l-1.34 6A2 2 0 0 1 18.15 21H7a2 2 0 0 1-2-2V11a2 2 0 0 1 2-2h3.76a2 2 0 0 0 1.96-1.61L13.6 3.5A1.5 1.5 0 0 1 15.08 2 1.92 1.92 0 0 1 17 3.92V5a2 2 0 0 1-2 2h0"></path>
+              </svg>
+              <span>Like</span>
+            </button>
+
+            <button class="post-action" onclick="toggleCompanyComments('${postId}')">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span>Comment</span>
+            </button>
+
+            <button class="post-action" onclick="copyPostLink('${postId}')">
+              <svg viewBox="0 0 24 24">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <path d="M8.59 13.51l6.83 3.98"></path>
+                <path d="M15.41 6.51L8.59 10.49"></path>
+              </svg>
+              <span>Share</span>
+            </button>
+          </div>
+
+          <div class="comments-wrap" id="comments-${postId}">
+            <div class="comment-input-row">
+              <input id="comment-input-${postId}" type="text" placeholder="Write a comment...">
+              <button class="btn btn-primary" onclick="submitCompanyComment('${postId}')">Send</button>
+            </div>
+
+            <div class="comment-list" id="comments-list-${postId}"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateSearch(value){
+      state.search = value || "";
+      renderView(state.activeView);
+    }
+
+    function setJobFilter(filter){
+      state.jobFilter = filter;
+      renderView("jobs");
+    }
+
+    async function toggleJobStatus(jobId, newStatus){
+      let updated = false;
+      try{
+        const res = await fetch(`${API}/api/jobs/${jobId}`, {
+          method:"PATCH",
+          headers: authHeaders({ "Content-Type":"application/json" }),
+          body: JSON.stringify({ status:newStatus })
+        });
+        if(res.ok) updated = true;
+      }catch(err){}
+
+      const local = state.jobs.find(j => String(j._id) === String(jobId));
+      if(local) local.status = newStatus;
+
+      renderView("jobs");
+      refreshSidebarStats();
+
+      if(!updated){
+        console.warn("Job status endpoint not available; local state updated only.");
+      }
+    }
+
+    async function moveApplicationStatus(appId, nextStatus){
+      let updated = false;
+      const endpoints = [
+        `${API}/api/applications/${appId}`,
+        `${API}/api/applications/${appId}/status`
+      ];
+
+      for(const url of endpoints){
+        try{
+          const res = await fetch(url, {
+            method:"PATCH",
+            headers: authHeaders({ "Content-Type":"application/json" }),
+            body: JSON.stringify({ status:nextStatus, applicationStatus:nextStatus })
+          });
+          if(res.ok){
+            updated = true;
+            break;
+          }
+        }catch(err){}
+      }
+
+      const app = state.applications.find(a => String(a._id) === String(appId));
+      if(app) app.status = nextStatus;
+
+      renderView("pipeline");
+      refreshSidebarStats();
+
+      if(!updated){
+        console.warn("Application status endpoint not available; local state updated only.");
+      }
+    }
+
+    function openPostModal(){
+      document.getElementById("postModal").style.display = "flex";
+    }
+
+    function closePostModal(){
+      document.getElementById("postModal").style.display = "none";
+      document.getElementById("postContent").value = "";
+      document.getElementById("postMedia").value = "";
+      document.getElementById("postPreview").innerHTML = "";
+      state.postMediaFile = null;
+    }
+
+    function openCreateJobModal(){
+      document.getElementById("jobModal").style.display = "flex";
+      document.getElementById("jobCompany").value = state.me?.name || "";
+    }
+
+    function closeCreateJobModal(){
+      document.getElementById("jobModal").style.display = "none";
+      ["jobTitle","jobCompany","jobLocation","jobSalary","jobDescription"].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.value = "";
+      });
+    }
+
+    document.getElementById("postMedia").addEventListener("change", function(){
+      const file = this.files[0];
+      state.postMediaFile = file || null;
+      const preview = document.getElementById("postPreview");
+      preview.innerHTML = "";
+
+      if(!file) return;
+
+      const url = URL.createObjectURL(file);
+
+      if(file.type.startsWith("video/")){
+        preview.innerHTML = `<video src="${url}" controls playsinline></video>`;
+      }else if(file.type.startsWith("image/")){
+        preview.innerHTML = `<img src="${url}" alt="Preview">`;
+      }
+    });
+
+    async function submitCompanyPost(){
+      const content = document.getElementById("postContent").value.trim();
+      const file = state.postMediaFile;
+
+      if(!content && !file){
+        alert("Please write something or add media.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("content", content);
+      if(file) formData.append("media", file);
+
+      try{
+        const res = await fetch(API + "/api/posts", {
+          method:"POST",
+          headers: authHeaders(),
+          body: formData
+        });
+
+        if(!res.ok){
+          alert("Failed to create post.");
+          return;
+        }
+
+        const newPost = await res.json();
+        state.posts.unshift(newPost);
+        closePostModal();
+
+        if(state.activeView === "feed"){
+          renderView("feed");
+        }
+        refreshSidebarStats();
+      }catch(err){
+        alert("Failed to create post.");
+      }
+    }
+
+    async function submitEmployerJob(){
+      const payload = {
+        title: document.getElementById("jobTitle").value.trim(),
+        company: document.getElementById("jobCompany").value.trim() || state.me?.name || "",
+        location: document.getElementById("jobLocation").value.trim(),
+        salary: document.getElementById("jobSalary").value.trim(),
+        description: document.getElementById("jobDescription").value.trim()
+      };
+
+      if(!payload.title || !payload.description){
+        alert("Please complete the job title and description.");
+        return;
+      }
+
+      try{
+        const res = await fetch(API + "/api/jobs", {
+          method:"POST",
+          headers: authHeaders({ "Content-Type":"application/json" }),
+          body: JSON.stringify(payload)
+        });
+
+        if(!res.ok){
+          alert("Failed to publish job.");
+          return;
+        }
+
+        const job = await res.json();
+        state.jobs.unshift(job);
+        closeCreateJobModal();
+
+        renderView("jobs");
+        refreshSidebarStats();
+      }catch(err){
+        alert("Failed to publish job.");
+      }
+    }
+
+    function togglePostDropdown(event, postId){
+      event.stopPropagation();
+      const menu = document.getElementById(`dropdown-${postId}`);
+      if(!menu) return;
+
+      if(state.activeDropdown && state.activeDropdown !== menu){
+        state.activeDropdown.style.display = "none";
+      }
+
+      const open = menu.style.display === "block";
+      menu.style.display = open ? "none" : "block";
+      state.activeDropdown = open ? null : menu;
+    }
+
+    document.addEventListener("click", (e) => {
+      if(!e.target.closest(".dropdown")){
+        document.querySelectorAll(".dropdown-menu").forEach(menu => menu.style.display = "none");
+        state.activeDropdown = null;
+      }
+    });
+
+    function copyPostLink(postId){
+      const url = `${window.location.origin}${window.location.pathname}#post-${postId}`;
+      navigator.clipboard.writeText(url)
+        .then(() => alert("Post link copied."))
+        .catch(() => alert("Could not copy link."));
+    }
+
+    async function deleteCompanyPost(postId){
+      document.querySelectorAll(".dropdown-menu").forEach(menu => menu.style.display = "none");
+
+      let removed = false;
+      try{
+        const res = await fetch(`${API}/api/posts/${postId}`, {
+          method:"DELETE",
+          headers: authHeaders()
+        });
+        if(res.ok) removed = true;
+      }catch(err){}
+
+      state.posts = state.posts.filter(post => String(post._id) !== String(postId));
+
+      if(state.activeView === "feed"){
+        renderView("feed");
+      }
+      refreshSidebarStats();
+
+      if(!removed){
+        console.warn("Delete post endpoint not available; local state updated only.");
+      }
+    }
+
+    async function toggleCompanyLike(postId){
+      const endpoints = [
+        `${API}/api/posts/${postId}/like`,
+        `${API}/api/posts/${postId}/likes`
+      ];
+
+      let data = null;
+      for(const url of endpoints){
+        try{
+          const res = await fetch(url, {
+            method:"PATCH",
+            headers: authHeaders()
+          });
+          if(res.ok){
+            data = await res.json();
+            break;
+          }
+        }catch(err){}
+      }
+
+      const post = state.posts.find(p => String(p._id) === String(postId));
+      if(post){
+        if(!Array.isArray(post.likes)) post.likes = [];
+        const myId = String(localStorage.getItem("userId") || "");
+        const exists = post.likes.some(l => String(l?._id || l) === myId);
+
+        if(data && typeof data.liked !== "undefined"){
+          if(data.liked && !exists) post.likes.push(myId);
+          if(!data.liked) post.likes = post.likes.filter(l => String(l?._id || l) !== myId);
+        }else{
+          if(exists){
+            post.likes = post.likes.filter(l => String(l?._id || l) !== myId);
+          }else{
+            post.likes.push(myId);
+          }
+        }
+      }
+
+      if(state.activeView === "feed"){
+        renderView("feed");
+      }
+    }
+
+    function toggleCompanyComments(postId){
+      const box = document.getElementById(`comments-${postId}`);
+      if(!box) return;
+      const show = box.style.display === "block";
+      box.style.display = show ? "none" : "block";
+      if(!show) loadCompanyComments(postId);
+    }
+
+    async function loadCompanyComments(postId){
+      const container = document.getElementById(`comments-list-${postId}`);
+      if(!container) return;
+      container.innerHTML = `<div class="mini-card-sub">Loading comments...</div>`;
+
+      let comments = [];
+      const endpoints = [
+        `${API}/api/posts/${postId}/comments`,
+        `${API}/api/comments/post/${postId}`,
+        `${API}/api/posts/${postId}`
+      ];
+
+      for(const url of endpoints){
+        try{
+          const res = await fetch(url, { headers: authHeaders() });
+          if(!res.ok) continue;
+          const data = await res.json();
+
+          if(Array.isArray(data)){
+            comments = data;
+          }else if(Array.isArray(data.comments)){
+            comments = data.comments;
+          }
+          if(comments.length || url.endsWith(`/${postId}`)){
+            break;
+          }
+        }catch(err){}
+      }
+
+      if(!comments.length){
+        container.innerHTML = `<div class="mini-card-sub">No comments yet.</div>`;
+        return;
+      }
+
+      container.innerHTML = comments.map(comment => {
+        const user = comment.user || comment.author || {};
+        return `
+          <div class="comment-item">
+            <img src="${user.profileImage || FALLBACK_AVATAR}" alt="${escapeHtml(user.name || "User")}">
+            <div class="comment-bubble">
+              <strong>${escapeHtml(user.name || "User")}</strong>
+              <span>${escapeHtml(comment.text || comment.content || "")}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function submitCompanyComment(postId){
+      const input = document.getElementById(`comment-input-${postId}`);
+      if(!input) return;
+
+      const text = input.value.trim();
+      if(!text) return;
+
+      let success = false;
+      const endpoints = [
+        `${API}/api/posts/${postId}/comments`,
+        `${API}/api/posts/${postId}/comment`,
+        `${API}/api/comments`
+      ];
+
+      for(const url of endpoints){
+        try{
+          const res = await fetch(url, {
+            method:"POST",
+            headers: authHeaders({ "Content-Type":"application/json" }),
+            body: JSON.stringify(
+              url.includes("/api/comments")
+                ? { postId, text }
+                : { text }
+            )
+          });
+          if(res.ok){
+            success = true;
+            break;
+          }
+        }catch(err){}
+      }
+
+      if(!success){
+        alert("Unable to add comment right now.");
+        return;
+      }
+
+      input.value = "";
+
+      const localPost = state.posts.find(p => String(p._id) === String(postId));
+      if(localPost){
+        if(!Array.isArray(localPost.comments)) localPost.comments = [];
+        localPost.comments.push({ text, user: state.me });
+      }
+
+      loadCompanyComments(postId);
+      renderView("feed");
+    }
+
+    async function loadCounters(){
+      let messageCount = 0;
+      let notificationCount = 0;
+
+      try{
+        const msg = await safeFetch(API + "/api/messages/unread-count", { headers: authHeaders() });
+        messageCount = Number(msg?.count || msg?.unread || 0);
+      }catch(err){}
+
+      try{
+        const notif = await safeFetch(API + "/api/notifications/unread-count", { headers: authHeaders() });
+        notificationCount = Number(notif?.count || notif?.unread || 0);
+      }catch(err){}
+
+      updateBadge(document.getElementById("messageCount"), messageCount);
+      updateBadge(document.getElementById("notificationCount"), notificationCount);
+      updateBadge(document.getElementById("mobileMessageCount"), messageCount);
+      updateBadge(document.getElementById("mobileNotificationCount"), notificationCount);
+    }
+
+    function openPublicProfile(id){
+      if(!id) return;
+      window.location.href = `public-profile.html?id=${id}`;
+    }
+
+    function wireSearchInputs(){
+      const desktop = document.getElementById("desktopSearch");
+      const mobile = document.getElementById("mobileSearch");
+
+      desktop.addEventListener("input", (e) => {
+        state.search = e.target.value || "";
+        if(mobile.value !== state.search) mobile.value = state.search;
+        if(["jobs","pipeline","agents","talents","feed"].includes(state.activeView)){
+          renderView(state.activeView);
+        }
+      });
+
+      mobile.addEventListener("input", (e) => {
+        state.search = e.target.value || "";
+        if(desktop.value !== state.search) desktop.value = state.search;
+        if(["jobs","pipeline","agents","talents","feed"].includes(state.activeView)){
+          renderView(state.activeView);
+        }
+      });
+    }
+
+    function setupRealtime(){
+      if(!socket) return;
+
+      socket.on("connect", () => {
+        const userId = localStorage.getItem("userId");
+        if(userId){
+          socket.emit("join", userId);
+        }
+      });
+
+      socket.on("newMessage", () => {
+        loadCounters();
+      });
+
+      socket.on("newNotification", () => {
+        loadCounters();
+      });
+
+      socket.on("postUpdated", async () => {
+        await loadPosts();
+        if(state.activeView === "feed"){
+          renderView("feed");
+        }
+        refreshSidebarStats();
+      });
+    }
+
+    function setupMobileBars(){
+      window.addEventListener("scroll", () => {
+        if(window.innerWidth > 700) return;
+
+        const top = document.getElementById("mobileTopbar");
+        const bottom = document.getElementById("mobileBottom");
+        const currentY = window.scrollY;
+        const diff = currentY - state.lastScrollY;
+
+        if(currentY < 20){
+          top.classList.remove("hide");
+          bottom.classList.remove("hide");
+        }else if(diff > 6){
+          top.classList.add("hide");
+          bottom.classList.add("hide");
+        }else if(diff < -6){
+          top.classList.remove("hide");
+          bottom.classList.remove("hide");
+        }
+
+        state.lastScrollY = currentY;
+      }, { passive:true });
+    }
+
+    window.addEventListener("resize", () => {
+      if(window.innerWidth > 700){
+        document.getElementById("mobileTopbar")?.classList.remove("hide");
+        document.getElementById("mobileBottom")?.classList.remove("hide");
+      }
+    });
+
+    window.addEventListener("click", (e) => {
+      if(e.target.classList.contains("modal")){
+        e.target.style.display = "none";
+      }
+    });
+
+    async function init(){
+      try{
+        await Promise.all([
+          loadProfile(),
+          loadJobs(),
+          loadApplications(),
+          loadNetwork(),
+          loadPosts(),
+          loadCounters()
+        ]);
+
+        wireSearchInputs();
+        setupRealtime();
+        setupMobileBars();
+        refreshSidebarStats();
+        renderView("command");
+      }catch(err){
+        document.getElementById("workspace").innerHTML = `
+          <div class="workspace-header">
+            <div class="workspace-title">
+              <h1>Unable to load employer dashboard</h1>
+              <p>Please refresh the page and try again.</p>
+            </div>
+          </div>
+          <div class="workspace-body">
+            ${renderEmpty("Dashboard failed to load", "Your employer workspace could not be prepared right now.")}
+          </div>
+        `;
+      }
+    }
+
+    init();
+  </script>
 </body>
 </html>
