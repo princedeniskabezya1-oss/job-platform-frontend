@@ -1,196 +1,689 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login | HireFlow</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login | AIFT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-<style>
-body{
-  margin:0;
-  font-family:'Inter',sans-serif;
-  background:linear-gradient(135deg,#2557a7,#1e3c72);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
+  <style>
+    :root{
+      --primary:#0a66c2;
+      --primary-dark:#004182;
+      --bg:#f3f6fb;
+      --card:#ffffff;
+      --text:#111827;
+      --muted:#64748b;
+      --border:#dbe3ee;
+      --soft:#f8fafc;
+      --success:#16a34a;
+      --danger:#dc2626;
+      --shadow:0 24px 60px rgba(15,23,42,.12);
+      --radius:24px;
+    }
 
-.container{
-  display:flex;
-  width:900px;
-  background:white;
-  border-radius:14px;
-  overflow:hidden;
-  box-shadow:0 20px 50px rgba(0,0,0,0.25);
-}
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+      font-family:'Inter',sans-serif;
+      -webkit-tap-highlight-color:transparent;
+    }
 
-.left{
-  flex:1;
-  padding:60px;
-  background:#f4f6fb;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-}
+    html,body{
+      width:100%;
+      min-height:100%;
+    }
 
-.left h1{
-  font-size:28px;
-  margin-bottom:10px;
-}
+    body{
+      background:
+        radial-gradient(circle at top left, rgba(10,102,194,.12), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(37,87,167,.08), transparent 26%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:24px;
+    }
 
-.left p{
-  color:#555;
-  margin-bottom:30px;
-}
+    .page{
+      width:100%;
+      max-width:1120px;
+      display:grid;
+      grid-template-columns:1.02fr .98fr;
+      background:rgba(255,255,255,.82);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+      border:1px solid rgba(219,227,238,.85);
+      border-radius:32px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+    }
 
-input{
-  width:100%;
-  padding:14px;
-  margin-bottom:18px;
-  border-radius:8px;
-  border:1px solid #ddd;
-  font-size:14px;
-}
+    .left-panel{
+      position:relative;
+      padding:48px 42px;
+      background:
+        linear-gradient(160deg, rgba(10,102,194,.96), rgba(0,65,130,.98));
+      color:#fff;
+      overflow:hidden;
+    }
 
-button{
-  width:100%;
-  padding:14px;
-  background:#2557a7;
-  color:white;
-  border:none;
-  border-radius:8px;
-  font-weight:600;
-  cursor:pointer;
-}
+    .left-panel::before{
+      content:"";
+      position:absolute;
+      width:260px;
+      height:260px;
+      border-radius:50%;
+      background:rgba(255,255,255,.08);
+      top:-80px;
+      right:-80px;
+    }
 
-button:hover{
-  background:#1e3c72;
-}
+    .left-panel::after{
+      content:"";
+      position:absolute;
+      width:220px;
+      height:220px;
+      border-radius:50%;
+      background:rgba(255,255,255,.06);
+      bottom:-90px;
+      left:-60px;
+    }
 
-.right{
-  flex:1;
-  background:url('https://images.unsplash.com/photo-1551434678-e076c223a692?q=80&w=1600') center/cover;
-}
+    .brand{
+      position:relative;
+      z-index:1;
+      font-size:30px;
+      font-weight:800;
+      letter-spacing:-.03em;
+    }
 
-.footer{
-  margin-top:20px;
-  font-size:14px;
-}
+    .brand span{
+      color:#dbeafe;
+    }
 
-.footer a{
-  color:#2557a7;
-  text-decoration:none;
-}
+    .hero{
+      position:relative;
+      z-index:1;
+      margin-top:44px;
+      max-width:470px;
+    }
 
-.error{
-  color:red;
-  margin-top:10px;
-}
+    .hero h1{
+      font-size:40px;
+      line-height:1.05;
+      letter-spacing:-.04em;
+      margin-bottom:16px;
+      font-weight:800;
+    }
 
-@media(max-width:900px){
-  .container{flex-direction:column;width:95%;}
-  .right{height:200px;}
-}
-</style>
+    .hero p{
+      color:rgba(255,255,255,.84);
+      line-height:1.7;
+      font-size:15px;
+      margin-bottom:26px;
+    }
+
+    .feature-list{
+      display:grid;
+      gap:12px;
+    }
+
+    .feature-item{
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      padding:14px 16px;
+      border-radius:18px;
+      background:rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.12);
+    }
+
+    .feature-dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:#bfdbfe;
+      margin-top:7px;
+      flex-shrink:0;
+    }
+
+    .feature-item strong{
+      display:block;
+      font-size:14px;
+      margin-bottom:4px;
+    }
+
+    .feature-item span{
+      display:block;
+      font-size:13px;
+      color:rgba(255,255,255,.82);
+      line-height:1.5;
+    }
+
+    .right-panel{
+      background:linear-gradient(180deg,#ffffff,#fbfdff);
+      padding:42px 38px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .form-shell{
+      width:100%;
+      max-width:420px;
+    }
+
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:#eff6ff;
+      color:var(--primary);
+      font-size:12px;
+      font-weight:800;
+      border:1px solid #dbeafe;
+      margin-bottom:16px;
+    }
+
+    .form-shell h2{
+      font-size:34px;
+      line-height:1.05;
+      letter-spacing:-.03em;
+      margin-bottom:10px;
+      font-weight:800;
+      color:#111827;
+    }
+
+    .subtitle{
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.65;
+      margin-bottom:26px;
+    }
+
+    .field-group{
+      margin-bottom:16px;
+    }
+
+    .field-label{
+      display:block;
+      font-size:13px;
+      font-weight:700;
+      color:#334155;
+      margin-bottom:8px;
+    }
+
+    .input{
+      width:100%;
+      height:50px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:0 14px;
+      font-size:14px;
+      color:#111827;
+      background:#fff;
+      outline:none;
+      transition:.2s ease;
+    }
+
+    .input:focus{
+      border-color:var(--primary);
+      box-shadow:0 0 0 4px rgba(10,102,194,.08);
+    }
+
+    .password-wrap{
+      position:relative;
+    }
+
+    .password-wrap .input{
+      padding-right:48px;
+    }
+
+    .toggle-password{
+      position:absolute;
+      top:50%;
+      right:12px;
+      transform:translateY(-50%);
+      width:32px;
+      height:32px;
+      border:none;
+      border-radius:10px;
+      background:transparent;
+      color:#64748b;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .toggle-password:hover{
+      background:#f1f5f9;
+      color:#0f172a;
+    }
+
+    .toggle-password svg{
+      width:18px;
+      height:18px;
+      stroke:currentColor;
+      fill:none;
+      stroke-width:2;
+    }
+
+    .helper-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin:4px 0 18px;
+      flex-wrap:wrap;
+    }
+
+    .helper-text{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .helper-link{
+      font-size:13px;
+      color:var(--primary);
+      font-weight:700;
+      text-decoration:none;
+    }
+
+    .helper-link:hover{
+      text-decoration:underline;
+    }
+
+    .submit-btn{
+      width:100%;
+      height:52px;
+      border:none;
+      border-radius:14px;
+      background:linear-gradient(180deg,var(--primary),var(--primary-dark));
+      color:#fff;
+      font-size:15px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.2s ease;
+      box-shadow:0 14px 28px rgba(10,102,194,.20);
+      margin-top:4px;
+    }
+
+    .submit-btn:hover{
+      transform:translateY(-1px);
+      box-shadow:0 18px 34px rgba(10,102,194,.24);
+    }
+
+    .submit-btn:disabled{
+      opacity:.72;
+      cursor:not-allowed;
+      transform:none;
+      box-shadow:none;
+    }
+
+    .message{
+      margin-top:14px;
+      padding:12px 14px;
+      border-radius:14px;
+      font-size:13px;
+      line-height:1.55;
+      display:none;
+      border:1px solid transparent;
+    }
+
+    .message.success{
+      display:block;
+      background:#f0fdf4;
+      color:#166534;
+      border-color:#bbf7d0;
+    }
+
+    .message.error{
+      display:block;
+      background:#fef2f2;
+      color:#991b1b;
+      border-color:#fecaca;
+    }
+
+    .message.info{
+      display:block;
+      background:#eff6ff;
+      color:#1d4ed8;
+      border-color:#bfdbfe;
+    }
+
+    .footer{
+      margin-top:18px;
+      text-align:center;
+      font-size:14px;
+      color:var(--muted);
+    }
+
+    .footer a{
+      color:var(--primary);
+      font-weight:700;
+      text-decoration:none;
+    }
+
+    .footer a:hover{
+      text-decoration:underline;
+    }
+
+    .mini-note{
+      margin-top:18px;
+      font-size:12px;
+      color:#94a3b8;
+      line-height:1.6;
+      text-align:center;
+    }
+
+    @media (max-width: 960px){
+      .page{
+        grid-template-columns:1fr;
+        max-width:560px;
+      }
+
+      .left-panel{
+        padding:34px 28px 28px;
+      }
+
+      .hero{
+        margin-top:24px;
+      }
+
+      .hero h1{
+        font-size:30px;
+      }
+
+      .right-panel{
+        padding:30px 24px 34px;
+      }
+    }
+
+    @media (max-width: 560px){
+      body{
+        padding:12px;
+      }
+
+      .page{
+        border-radius:24px;
+      }
+
+      .left-panel{
+        padding:28px 20px 24px;
+      }
+
+      .right-panel{
+        padding:24px 18px 28px;
+      }
+
+      .form-shell h2{
+        font-size:28px;
+      }
+
+      .hero h1{
+        font-size:26px;
+      }
+    }
+  </style>
 </head>
 <body>
 
-<div class="container">
+  <div class="page">
+    <section class="left-panel">
+      <div class="brand"><span>AI</span>FT</div>
 
-<div class="left">
-  <h1>Welcome Back 👋</h1>
-  <p>Login to manage jobs, applications and referrals.</p>
+      <div class="hero">
+        <h1>Welcome back to your professional workspace.</h1>
+        <p>
+          Sign in to manage opportunities, build relationships, and continue your work across talent,
+          employer, agent, or school experiences.
+        </p>
 
-  <input type="email" id="email" placeholder="Email address">
-  <input type="password" id="password" placeholder="Password">
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            <div>
+              <strong>Continue where you left off</strong>
+              <span>Pick up your hiring, networking, school, or career workflow instantly.</span>
+            </div>
+          </div>
 
-  <button onclick="login()">Sign In</button>
-  <p class="error" id="error"></p>
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            <div>
+              <strong>One platform, multiple roles</strong>
+              <span>Talent, employers, agents, and schools all work in one connected ecosystem.</span>
+            </div>
+          </div>
 
-  <div class="footer">
-    Don’t have an account? <a href="register.html">Create one</a>
+          <div class="feature-item">
+            <div class="feature-dot"></div>
+            <div>
+              <strong>Built for long-term growth</strong>
+              <span>Use AIFT not just to connect, but to build real future opportunities.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="right-panel">
+      <div class="form-shell">
+        <div class="eyebrow">Access your AIFT account</div>
+        <h2>Sign in</h2>
+        <p class="subtitle">
+          Enter your email and password to continue to your personalized dashboard.
+        </p>
+
+        <form id="loginForm" novalidate>
+          <div class="field-group">
+            <label class="field-label" for="email">Email address</label>
+            <input class="input" type="email" id="email" placeholder="Enter your email" autocomplete="email" maxlength="150">
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="password">Password</label>
+            <div class="password-wrap">
+              <input class="input" type="password" id="password" placeholder="Enter your password" autocomplete="current-password" maxlength="100">
+              <button class="toggle-password" type="button" id="togglePassword" aria-label="Show password">
+                <svg viewBox="0 0 24 24">
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="helper-row">
+            <div class="helper-text">Use the same email you registered with.</div>
+            <a class="helper-link" href="register.html">Create account</a>
+          </div>
+
+          <button type="submit" class="submit-btn" id="submitBtn">Sign In</button>
+        </form>
+
+        <div class="message" id="message"></div>
+
+        <div class="footer">
+          Don’t have an account? <a href="register.html">Create one</a>
+        </div>
+
+        <div class="mini-note">
+          Your dashboard destination depends on your account role after successful login.
+        </div>
+      </div>
+    </section>
   </div>
-</div>
 
-<div class="right"></div>
+  <script>
+    const API = "https://backend-1-9b6f.onrender.com";
 
-</div>
+    const form = document.getElementById("loginForm");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const submitBtn = document.getElementById("submitBtn");
+    const messageBox = document.getElementById("message");
+    const togglePasswordBtn = document.getElementById("togglePassword");
 
-<script>
-const API = "https://backend-1-9b6f.onrender.com";
+    function setMessage(type, text){
+      messageBox.className = "message";
+      if(!text){
+        messageBox.style.display = "none";
+        messageBox.textContent = "";
+        return;
+      }
+      messageBox.classList.add(type);
+      messageBox.textContent = text;
+      messageBox.style.display = "block";
+    }
 
-async function login(){
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  const errorBox = document.getElementById("error");
+    function validateEmail(email){
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
 
-  // 🔥 INPUT VALIDATION (PASTE HERE)
-  if(!email || !password){
-    errorBox.innerText = "Please enter email and password";
-    return;
-  }
+    function clearStoredTokens(){
+      localStorage.removeItem("token");
+      localStorage.removeItem("employerToken");
+      localStorage.removeItem("talentToken");
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("agentToken");
+      localStorage.removeItem("schoolToken");
+    }
 
-  errorBox.innerText = "Signing in...";
-  
-  try{
-    const res = await fetch(API + "/api/auth/login",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({email,password})
+    function redirectByRole(role){
+      if(role === "employer"){
+        window.location.href = "employer.html";
+        return;
+      }
+
+      if(role === "talent"){
+        window.location.href = "talent.html";
+        return;
+      }
+
+      if(role === "admin"){
+        window.location.href = "admin.html";
+        return;
+      }
+
+      if(role === "agent"){
+        window.location.href = "agent.html";
+        return;
+      }
+
+      if(role === "school"){
+        window.location.href = "school.html";
+        return;
+      }
+
+      window.location.href = "login.html";
+    }
+
+    togglePasswordBtn.addEventListener("click", () => {
+      const isPassword = passwordInput.type === "password";
+      passwordInput.type = isPassword ? "text" : "password";
+      togglePasswordBtn.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
     });
 
-    let data;
+    async function login(){
+      const email = emailInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
 
-try{
-  data = await res.json();
-}catch{
-  errorBox.innerText = "Server error. Please try again.";
-  return;
-}
+      if(!email){
+        setMessage("error", "Please enter your email address.");
+        emailInput.focus();
+        return;
+      }
 
-if(res.ok && data.token){
+      if(!validateEmail(email)){
+        setMessage("error", "Please enter a valid email address.");
+        emailInput.focus();
+        return;
+      }
 
-  // 🔥 CLEAR TOKENS
-  localStorage.removeItem("token");
-  localStorage.removeItem("employerToken");
-  localStorage.removeItem("talentToken");
-  localStorage.removeItem("adminToken");
-  localStorage.removeItem("agentToken");
+      if(!password){
+        setMessage("error", "Please enter your password.");
+        passwordInput.focus();
+        return;
+      }
 
-  const role = data.user.role;
-  const userId = data.user.id || data.user._id;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Signing in...";
+      setMessage("info", "Signing you in...");
 
-  localStorage.setItem("userId", userId);
-  localStorage.setItem("role", role);
+      try{
+        const res = await fetch(API + "/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type":"application/json"
+          },
+          body: JSON.stringify({ email, password })
+        });
 
-  // ✅ ALL ROLE HANDLING INSIDE SAME BLOCK
-  if(role === "employer"){
-    localStorage.setItem("employerToken", data.token);
-    window.location.href = "employer.html";
+        let data = {};
+        try{
+          data = await res.json();
+        }catch{
+          setMessage("error", "Server error. Please try again.");
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Sign In";
+          return;
+        }
 
-  } else if(role === "talent"){
-    localStorage.setItem("talentToken", data.token);
-    window.location.href = "talent.html";
+        if(res.ok && data.token && data.user){
+          clearStoredTokens();
 
-  } else if(role === "admin"){
-    localStorage.setItem("adminToken", data.token);
-    window.location.href = "admin.html";
+          const role = data.user.role;
+          const userId = data.user.id || data.user._id || "";
 
-  } else if(role === "agent"){
-    localStorage.setItem("agentToken", data.token);
-    window.location.href = "agent.html";
-  }
+          localStorage.setItem("userId", userId);
+          localStorage.setItem("role", role);
 
-} else {
-  errorBox.innerText = data.message || "Invalid credentials";
-}
-      }catch(err){
-    errorBox.innerText = "Server is waking up... please try again in 20 seconds.";
-  }
-}
-</script>
+          if(data.user.name){
+            localStorage.setItem("profileName", data.user.name);
+          }
 
+          if(data.user.profileImage){
+            localStorage.setItem("profileImage", data.user.profileImage);
+          }
+
+          if(role === "employer"){
+            localStorage.setItem("employerToken", data.token);
+          } else if(role === "talent"){
+            localStorage.setItem("talentToken", data.token);
+          } else if(role === "admin"){
+            localStorage.setItem("adminToken", data.token);
+          } else if(role === "agent"){
+            localStorage.setItem("agentToken", data.token);
+          } else if(role === "school"){
+            localStorage.setItem("schoolToken", data.token);
+          }
+
+          setMessage("success", "Login successful. Redirecting...");
+          setTimeout(() => redirectByRole(role), 900);
+          return;
+        }
+
+        setMessage("error", data.message || "Invalid credentials.");
+      }catch(error){
+        setMessage("error", "We couldn't reach the server right now. Please try again in a moment.");
+      }finally{
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign In";
+      }
+    }
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      login();
+    });
+  </script>
 </body>
 </html>
