@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AIFT | School</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --primary:#2557a7;
+      --primary-dark:#163d7a;
+      --primary-soft:#eef4ff;
+      --accent:#0f172a;
+      --bg:#f4f7fb;
+      --card:#ffffff;
+      --text:#111827;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --success:#16a34a;
+      --warning:#f59e0b;
+      --danger:#dc2626;
+      --shadow:0 10px 30px rgba(15, 23, 42, 0.08);
+      --radius:20px;
+      --radius-sm:14px;
+      --max:1400px;
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:'Inter',sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    a{text-decoration:none;color:inherit}
+    button,input,select,textarea{font:inherit}
+    img{max-width:100%;display:block}
+
+    .hidden{display:none !important}
+    .container{
+      width:min(var(--max), calc(100% - 24px));
+      margin:0 auto;
+    }
+
+    /* Topbar */
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:1000;
+      background:rgba(255,255,255,.92);
+      backdrop-filter:blur(14px);
+      border-bottom:1px solid rgba(229,231,235,.95);
+    }
+    .topbar-inner{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      min-height:72px;
+    }
+    .brand-wrap{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      min-width:0;
+    }
+    .brand{
+      width:44px;
+      height:44px;
+      border-radius:14px;
+      background:linear-gradient(135deg,var(--primary),#4f8df9);
+      display:grid;
+      place-items:center;
+      color:#fff;
+      font-weight:800;
+      letter-spacing:.5px;
+      box-shadow:0 8px 18px rgba(37,87,167,.25);
+      flex-shrink:0;
+    }
+    .brand-text{
+      min-width:0;
+    }
+    .brand-title{
+      font-size:1.05rem;
+      font-weight:800;
+      line-height:1.1;
+    }
+    .brand-sub{
+      color:var(--muted);
+      font-size:.86rem;
+      margin-top:2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex:1;
+      justify-content:flex-end;
+      min-width:0;
+    }
+
+    .search{
+      position:relative;
+      width:min(430px,100%);
+      flex:1;
+      max-width:430px;
+    }
+    .search input{
+      width:100%;
+      height:46px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fff;
+      padding:0 16px 0 44px;
+      outline:none;
+      transition:.2s ease;
+    }
+    .search input:focus{
+      border-color:#bfd3ff;
+      box-shadow:0 0 0 4px rgba(37,87,167,.08);
+    }
+    .search svg{
+      position:absolute;
+      left:14px;
+      top:50%;
+      transform:translateY(-50%);
+      width:18px;
+      height:18px;
+      color:var(--muted);
+    }
+
+    .icon-btn,.pill-btn,.primary-btn,.ghost-btn{
+      border:none;
+      cursor:pointer;
+      transition:.2s ease;
+    }
+    .icon-btn{
+      width:44px;
+      height:44px;
+      border-radius:14px;
+      display:grid;
+      place-items:center;
+      background:#fff;
+      border:1px solid var(--border);
+      color:var(--accent);
+      box-shadow:0 2px 8px rgba(15,23,42,.03);
+      position:relative;
+    }
+    .icon-btn:hover{transform:translateY(-1px); background:#f8fafc}
+    .badge{
+      position:absolute;
+      top:7px;
+      right:7px;
+      min-width:18px;
+      height:18px;
+      padding:0 5px;
+      border-radius:999px;
+      background:var(--danger);
+      color:#fff;
+      font-size:.7rem;
+      font-weight:700;
+      display:grid;
+      place-items:center;
+      border:2px solid #fff;
+    }
+
+    .avatar{
+      width:44px;
+      height:44px;
+      border-radius:14px;
+      object-fit:cover;
+      border:1px solid var(--border);
+      background:#dbeafe;
+    }
+
+    .pill-btn{
+      padding:12px 18px;
+      border-radius:999px;
+      background:#fff;
+      border:1px solid var(--border);
+      color:var(--accent);
+      font-weight:700;
+    }
+    .primary-btn{
+      padding:12px 18px;
+      border-radius:999px;
+      background:linear-gradient(135deg,var(--primary),#3474de);
+      color:#fff;
+      font-weight:700;
+      box-shadow:0 8px 18px rgba(37,87,167,.2);
+    }
+    .primary-btn:hover{transform:translateY(-1px)}
+    .ghost-btn{
+      padding:11px 16px;
+      border-radius:12px;
+      background:#fff;
+      border:1px solid var(--border);
+      color:var(--text);
+      font-weight:600;
+    }
+
+    /* Hero */
+    .hero-wrap{
+      padding:20px 0 0;
+    }
+    .hero{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:28px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+    }
+    .cover{
+      min-height:240px;
+      background:
+        linear-gradient(135deg, rgba(37,87,167,.92), rgba(22,61,122,.88)),
+        url("https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1600&q=80") center/cover no-repeat;
+      position:relative;
+    }
+    .cover-overlay{
+      position:absolute;
+      inset:0;
+      background:linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.22));
+    }
+
+    .hero-main{
+      position:relative;
+      padding:0 28px 28px;
+      margin-top:-64px;
+    }
+    .hero-top{
+      display:flex;
+      gap:22px;
+      align-items:flex-end;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .school-meta{
+      display:flex;
+      gap:18px;
+      align-items:flex-end;
+      min-width:0;
+    }
+    .school-logo{
+      width:128px;
+      height:128px;
+      border-radius:28px;
+      background:#fff;
+      border:6px solid #fff;
+      box-shadow:0 14px 30px rgba(15,23,42,.14);
+      overflow:hidden;
+      flex-shrink:0;
+    }
+    .school-logo img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+    .school-info{
+      min-width:0;
+      padding-bottom:8px;
+    }
+    .school-name{
+      font-size:2rem;
+      font-weight:800;
+      line-height:1.1;
+      margin:0 0 8px;
+    }
+    .school-line{
+      display:flex;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:10px 14px;
+      color:var(--muted);
+      font-size:.95rem;
+      margin-bottom:10px;
+    }
+    .tag-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:10px;
+    }
+    .tag{
+      padding:8px 12px;
+      border-radius:999px;
+      background:var(--primary-soft);
+      color:var(--primary-dark);
+      font-size:.86rem;
+      font-weight:700;
+    }
+    .verified{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      color:var(--success);
+      font-weight:700;
+    }
+
+    .hero-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      padding-bottom:8px;
+    }
+
+    .stat-grid{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:14px;
+      margin-top:24px;
+    }
+    .stat-card{
+      background:#f8fbff;
+      border:1px solid #e6eefc;
+      border-radius:18px;
+      padding:18px;
+    }
+    .stat-label{
+      font-size:.86rem;
+      color:var(--muted);
+      margin-bottom:8px;
+    }
+    .stat-value{
+      font-size:1.55rem;
+      font-weight:800;
+      line-height:1;
+    }
+
+    /* Tabs */
+    .tabs{
+      margin-top:18px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .tab-btn{
+      border:none;
+      background:#fff;
+      border:1px solid var(--border);
+      color:var(--text);
+      padding:11px 16px;
+      border-radius:999px;
+      cursor:pointer;
+      font-weight:700;
+      transition:.2s ease;
+    }
+    .tab-btn.active{
+      background:var(--primary);
+      color:#fff;
+      border-color:var(--primary);
+      box-shadow:0 10px 20px rgba(37,87,167,.18);
+    }
+
+    /* Layout */
+    .page{
+      padding:20px 0 32px;
+    }
+    .main-grid{
+      display:grid;
+      grid-template-columns:300px minmax(0, 1fr) 320px;
+      gap:18px;
+      align-items:start;
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card-pad{padding:22px}
+    .card-title{
+      font-size:1.05rem;
+      font-weight:800;
+      margin:0 0 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .small-link{
+      color:var(--primary);
+      font-weight:700;
+      font-size:.9rem;
+    }
+
+    /* Left */
+    .quick-list{
+      display:grid;
+      gap:12px;
+    }
+    .quick-item{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      padding:14px;
+      border:1px solid var(--border);
+      border-radius:18px;
+      background:#fff;
+    }
+    .quick-icon{
+      width:42px;
+      height:42px;
+      border-radius:14px;
+      background:var(--primary-soft);
+      color:var(--primary);
+      display:grid;
+      place-items:center;
+      flex-shrink:0;
+    }
+    .quick-item h4{
+      margin:0 0 4px;
+      font-size:.95rem;
+    }
+    .quick-item p{
+      margin:0;
+      color:var(--muted);
+      font-size:.88rem;
+      line-height:1.45;
+    }
+
+    .side-list{
+      display:grid;
+      gap:12px;
+    }
+    .mini-person{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:10px 0;
+    }
+    .mini-person img{
+      width:48px;
+      height:48px;
+      border-radius:16px;
+      object-fit:cover;
+      border:1px solid var(--border);
+    }
+    .mini-person h4{
+      margin:0 0 3px;
+      font-size:.95rem;
+    }
+    .mini-person p{
+      margin:0;
+      color:var(--muted);
+      font-size:.85rem;
+    }
+
+    /* Center */
+    .section{
+      display:none;
+    }
+    .section.active{
+      display:block;
+    }
+
+    .announce{
+      display:grid;
+      gap:14px;
+    }
+    .announce-item{
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:18px;
+      background:linear-gradient(180deg,#fff,#fbfdff);
+    }
+    .announce-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+    }
+    .announce-title{
+      font-weight:800;
+      font-size:1rem;
+    }
+    .announce-meta{
+      color:var(--muted);
+      font-size:.84rem;
+    }
+    .announce-text{
+      color:#374151;
+      font-size:.95rem;
+      line-height:1.65;
+      margin:10px 0 14px;
+    }
+    .announce-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .program-grid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:16px;
+    }
+    .program-card{
+      border:1px solid var(--border);
+      border-radius:22px;
+      padding:18px;
+      background:#fff;
+      transition:.2s ease;
+    }
+    .program-card:hover{
+      transform:translateY(-2px);
+      box-shadow:0 12px 25px rgba(15,23,42,.06);
+    }
+    .program-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .program-badge{
+      padding:7px 10px;
+      border-radius:999px;
+      background:#eef8f1;
+      color:#166534;
+      font-size:.78rem;
+      font-weight:800;
+      white-space:nowrap;
+    }
+    .program-card h3{
+      margin:0 0 8px;
+      font-size:1.02rem;
+    }
+    .program-card p{
+      margin:0 0 14px;
+      color:var(--muted);
+      font-size:.92rem;
+      line-height:1.55;
+    }
+    .program-meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:14px;
+    }
+    .chip{
+      padding:7px 10px;
+      border-radius:999px;
+      background:#f3f4f6;
+      color:#374151;
+      font-size:.8rem;
+      font-weight:700;
+    }
+
+    .job-list{
+      display:grid;
+      gap:14px;
+    }
+    .job-item{
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:18px;
+      background:#fff;
+    }
+    .job-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+    }
+    .job-item h3{
+      margin:0 0 6px;
+      font-size:1rem;
+    }
+    .job-item p{
+      margin:0;
+      color:var(--muted);
+      font-size:.9rem;
+      line-height:1.55;
+    }
+    .job-footer{
+      margin-top:14px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .student-grid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:16px;
+    }
+    .student-card{
+      padding:18px;
+      border:1px solid var(--border);
+      border-radius:22px;
+      background:#fff;
+    }
+    .student-head{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-bottom:14px;
+    }
+    .student-head img{
+      width:58px;
+      height:58px;
+      border-radius:18px;
+      object-fit:cover;
+      border:1px solid var(--border);
+    }
+    .student-card h3{
+      margin:0 0 4px;
+      font-size:.98rem;
+    }
+    .student-card p{
+      margin:0;
+      color:var(--muted);
+      font-size:.88rem;
+    }
+    .student-about{
+      color:#374151;
+      font-size:.92rem;
+      line-height:1.6;
+      margin:10px 0 14px;
+    }
+
+    .event-list{
+      display:grid;
+      gap:14px;
+    }
+    .event-item{
+      display:grid;
+      grid-template-columns:72px 1fr;
+      gap:16px;
+      align-items:start;
+      padding:18px;
+      border:1px solid var(--border);
+      border-radius:22px;
+      background:#fff;
+    }
+    .event-date{
+      background:var(--primary-soft);
+      color:var(--primary-dark);
+      border-radius:18px;
+      text-align:center;
+      padding:12px 8px;
+    }
+    .event-date .month{
+      font-size:.8rem;
+      font-weight:800;
+      letter-spacing:.8px;
+      text-transform:uppercase;
+    }
+    .event-date .day{
+      font-size:1.5rem;
+      font-weight:800;
+      line-height:1.1;
+      margin-top:4px;
+    }
+    .event-item h3{
+      margin:0 0 8px;
+      font-size:1rem;
+    }
+    .event-item p{
+      margin:0 0 12px;
+      color:var(--muted);
+      font-size:.92rem;
+      line-height:1.55;
+    }
+
+    /* Right */
+    .info-list{
+      display:grid;
+      gap:14px;
+    }
+    .info-row{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px 0;
+      border-bottom:1px solid #f1f5f9;
+    }
+    .info-row:last-child{border-bottom:none}
+    .info-label{
+      color:var(--muted);
+      font-size:.9rem;
+    }
+    .info-value{
+      text-align:right;
+      font-weight:700;
+      font-size:.92rem;
+      color:#1f2937;
+    }
+
+    .progress-wrap{
+      display:grid;
+      gap:14px;
+    }
+    .progress-item{
+      display:grid;
+      gap:8px;
+    }
+    .progress-head{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      font-size:.9rem;
+      color:#374151;
+      font-weight:700;
+    }
+    .progress-bar{
+      width:100%;
+      height:10px;
+      border-radius:999px;
+      background:#edf2f7;
+      overflow:hidden;
+    }
+    .progress-fill{
+      height:100%;
+      border-radius:999px;
+      background:linear-gradient(90deg,var(--primary),#5a94f7);
+    }
+
+    .cta-box{
+      padding:18px;
+      border-radius:22px;
+      background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+      color:#fff;
+    }
+    .cta-box h3{
+      margin:0 0 8px;
+      font-size:1.08rem;
+    }
+    .cta-box p{
+      margin:0 0 16px;
+      color:rgba(255,255,255,.88);
+      line-height:1.55;
+      font-size:.92rem;
+    }
+    .cta-box .primary-btn{
+      background:#fff;
+      color:var(--primary-dark);
+      box-shadow:none;
+    }
+
+    /* Footer */
+    .footer{
+      padding:8px 0 28px;
+      color:var(--muted);
+      font-size:.9rem;
+      text-align:center;
+    }
+
+    /* Mobile nav */
+    .mobile-nav{
+      display:none;
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      z-index:1200;
+      background:rgba(255,255,255,.96);
+      backdrop-filter:blur(12px);
+      border-top:1px solid var(--border);
+      padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    }
+    .mobile-nav-inner{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+    }
+    .mobile-nav a{
+      display:grid;
+      place-items:center;
+      gap:6px;
+      font-size:.75rem;
+      color:var(--muted);
+      padding:8px 4px;
+      border-radius:14px;
+      font-weight:700;
+    }
+    .mobile-nav a.active{
+      background:var(--primary-soft);
+      color:var(--primary-dark);
+    }
+    .mobile-nav svg{
+      width:20px;
+      height:20px;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px){
+      .main-grid{
+        grid-template-columns:280px minmax(0,1fr);
+      }
+      .right-col{
+        display:none;
+      }
+    }
+
+    @media (max-width: 920px){
+      .topbar-inner{
+        min-height:auto;
+        padding:12px 0;
+        flex-wrap:wrap;
+      }
+      .top-actions{
+        width:100%;
+        justify-content:space-between;
+      }
+      .search{
+        max-width:none;
+        order:2;
+        flex-basis:100%;
+      }
+      .hero-main{
+        padding:0 18px 20px;
+        margin-top:-48px;
+      }
+      .school-logo{
+        width:104px;
+        height:104px;
+        border-radius:24px;
+      }
+      .school-name{
+        font-size:1.55rem;
+      }
+      .stat-grid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+      .main-grid{
+        grid-template-columns:1fr;
+      }
+      .left-col,.right-col{
+        display:block;
+      }
+      .program-grid,
+      .student-grid{
+        grid-template-columns:1fr;
+      }
+      .left-col{
+        order:2;
+      }
+      .center-col{
+        order:1;
+      }
+    }
+
+    @media (max-width: 640px){
+      body{
+        padding-bottom:84px;
+      }
+      .container{
+        width:min(100%, calc(100% - 14px));
+      }
+      .brand-sub{
+        display:none;
+      }
+      .pill-btn{
+        display:none;
+      }
+      .icon-btn{
+        width:42px;
+        height:42px;
+        border-radius:13px;
+      }
+      .cover{
+        min-height:180px;
+      }
+      .hero-top{
+        align-items:flex-start;
+      }
+      .school-meta{
+        flex-direction:column;
+        align-items:flex-start;
+        gap:14px;
+      }
+      .school-info{
+        padding-bottom:0;
+      }
+      .hero-actions{
+        width:100%;
+      }
+      .hero-actions .primary-btn,
+      .hero-actions .ghost-btn{
+        flex:1 1 calc(50% - 6px);
+        text-align:center;
+      }
+      .stat-grid{
+        grid-template-columns:1fr 1fr;
+      }
+      .tabs{
+        overflow:auto;
+        flex-wrap:nowrap;
+        padding-bottom:4px;
+      }
+      .tabs::-webkit-scrollbar{display:none}
+      .card-pad{
+        padding:18px;
+      }
+      .event-item{
+        grid-template-columns:60px 1fr;
+        gap:12px;
+        padding:16px;
+      }
+      .mobile-nav{
+        display:block;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand-wrap">
+        <div class="brand">A</div>
+        <div class="brand-text">
+          <div class="brand-title">AIFT Schools</div>
+          <div class="brand-sub">Academic partnerships, talent pipeline, career growth</div>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20l-3.5-3.5"></path>
+          </svg>
+          <input type="text" id="globalSearch" placeholder="Search programs, events, students, jobs..." />
+        </div>
+
+        <button class="icon-btn" title="Notifications">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
+            <path d="M10 21a2 2 0 0 0 4 0"></path>
+          </svg>
+          <span class="badge">4</span>
+        </button>
+
+        <button class="pill-btn" id="shareSchoolBtn">Share</button>
+        <button class="primary-btn" id="contactSchoolBtn">Contact School</button>
+
+        <img
+          class="avatar"
+          src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80"
+          alt="User avatar"
+        />
+      </div>
+    </div>
+  </header>
+
+  <div class="hero-wrap">
+    <div class="container">
+      <section class="hero">
+        <div class="cover">
+          <div class="cover-overlay"></div>
+        </div>
+
+        <div class="hero-main">
+          <div class="hero-top">
+            <div class="school-meta">
+              <div class="school-logo">
+                <img
+                  src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=500&q=80"
+                  alt="School Logo"
+                />
+              </div>
+
+              <div class="school-info">
+                <h1 class="school-name">AIFT International School of Technology</h1>
+
+                <div class="school-line">
+                  <span>Quezon City, Philippines</span>
+                  <span>•</span>
+                  <span>Private Institution</span>
+                  <span>•</span>
+                  <span>Founded 2011</span>
+                  <span>•</span>
+                  <span class="verified">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor">
+                      <path d="M12 2l2.4 2.1 3.1-.3.9 3 2.8 1.5-1.5 2.8.3 3-3 .9L14.9 18 12 20l-2.9-2-3 .9-.3-3L3 13.9 3.9 11 2.4 8.2 5.2 6.7l.9-3 3.1.3L12 2zm-1.1 12.8l6-6-1.4-1.4-4.6 4.6-2.3-2.3-1.4 1.4 3.7 3.7z"/>
+                    </svg>
+                    Verified School
+                  </span>
+                </div>
+
+                <p style="margin:0;color:#374151;max-width:760px;line-height:1.65;">
+                  Building future-ready graduates through innovation, practical learning, industry partnerships,
+                  and global career pathways across technology, business, design, and digital communication.
+                </p>
+
+                <div class="tag-row">
+                  <span class="tag">Tech & Innovation</span>
+                  <span class="tag">Industry-Ready Programs</span>
+                  <span class="tag">Career Placement Support</span>
+                  <span class="tag">Scholarship Opportunities</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="hero-actions">
+              <button class="primary-btn" id="applyNowBtn">Apply Now</button>
+              <button class="ghost-btn" id="visitWebsiteBtn">Visit Website</button>
+              <button class="ghost-btn" id="saveSchoolBtn">Save School</button>
+            </div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-label">Students</div>
+              <div class="stat-value">12,450</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Programs</div>
+              <div class="stat-value">36</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Partner Companies</div>
+              <div class="stat-value">185</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Graduate Employment</div>
+              <div class="stat-value">91%</div>
+            </div>
+          </div>
+
+          <div class="tabs" id="tabs">
+            <button class="tab-btn active" data-tab="overview">Overview</button>
+            <button class="tab-btn" data-tab="programs">Programs</button>
+            <button class="tab-btn" data-tab="jobs">Jobs</button>
+            <button class="tab-btn" data-tab="students">Students</button>
+            <button class="tab-btn" data-tab="events">Events</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <main class="page">
+    <div class="container">
+      <div class="main-grid">
+
+        <!-- LEFT -->
+        <aside class="left-col">
+          <section class="card card-pad">
+            <h2 class="card-title">Quick Information</h2>
+            <div class="quick-list">
+              <div class="quick-item">
+                <div class="quick-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 21h18"></path>
+                    <path d="M5 21V7l8-4 8 4v14"></path>
+                    <path d="M9 9h.01"></path>
+                    <path d="M9 13h.01"></path>
+                    <path d="M9 17h.01"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h4>Campus Type</h4>
+                  <p>Main urban campus with satellite learning hubs and hybrid classrooms.</p>
+                </div>
+              </div>
+
+              <div class="quick-item">
+                <div class="quick-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20v-6"></path>
+                    <path d="M6 20V10"></path>
+                    <path d="M18 20V4"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h4>Learning Model</h4>
+                  <p>Blended learning with industry projects, internships, and capstone support.</p>
+                </div>
+              </div>
+
+              <div class="quick-item">
+                <div class="quick-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1v22"></path>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14.5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h4>Tuition Support</h4>
+                  <p>Flexible installment plans, scholarship grants, and employer-sponsored pathways.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card card-pad" style="margin-top:18px;">
+            <h2 class="card-title">
+              Top Faculty
+              <a href="#" class="small-link">View all</a>
+            </h2>
+
+            <div class="side-list">
+              <div class="mini-person">
+                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80" alt="">
+                <div>
+                  <h4>Dr. Michael Reyes</h4>
+                  <p>Dean, School of Computing</p>
+                </div>
+              </div>
+
+              <div class="mini-person">
+                <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=300&q=80" alt="">
+                <div>
+                  <h4>Prof. Lara Santos</h4>
+                  <p>Head, Digital Design</p>
+                </div>
+              </div>
+
+              <div class="mini-person">
+                <img src="https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=300&q=80" alt="">
+                <div>
+                  <h4>Engr. Brian Cruz</h4>
+                  <p>Career & Internship Director</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        <!-- CENTER -->
+        <section class="center-col">
+
+          <div class="section active" id="section-overview">
+            <section class="card card-pad">
+              <h2 class="card-title">
+                School Announcements
+                <a href="#" class="small-link">All updates</a>
+              </h2>
+
+              <div class="announce">
+                <article class="announce-item">
+                  <div class="announce-head">
+                    <div>
+                      <div class="announce-title">2026 Scholarship Intake is Now Open</div>
+                      <div class="announce-meta">Posted 2 days ago • Admissions Office</div>
+                    </div>
+                    <span class="chip">Featured</span>
+                  </div>
+                  <div class="announce-text">
+                    Applications are now open for merit-based and needs-based scholarships for incoming
+                    students in technology, business, and design tracks. Early applications receive
+                    priority evaluation and interview scheduling.
+                  </div>
+                  <div class="announce-actions">
+                    <button class="primary-btn">Apply Scholarship</button>
+                    <button class="ghost-btn">Read Details</button>
+                  </div>
+                </article>
+
+                <article class="announce-item">
+                  <div class="announce-head">
+                    <div>
+                      <div class="announce-title">Industry Career Fair with 80+ Hiring Partners</div>
+                      <div class="announce-meta">Next month • Career Services</div>
+                    </div>
+                    <span class="chip">Event</span>
+                  </div>
+                  <div class="announce-text">
+                    Meet top companies, submit your portfolio, and schedule initial interviews directly
+                    with employers hiring interns, trainees, and fresh graduates across multiple fields.
+                  </div>
+                  <div class="announce-actions">
+                    <button class="ghost-btn">Reserve Slot</button>
+                    <button class="ghost-btn">See Partner List</button>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="card card-pad" style="margin-top:18px;">
+              <h2 class="card-title">
+                Why Students Choose This School
+              </h2>
+
+              <div class="program-grid">
+                <div class="program-card">
+                  <div class="program-top">
+                    <div>
+                      <h3>Career-Ready Curriculum</h3>
+                    </div>
+                    <span class="program-badge">High Demand</span>
+                  </div>
+                  <p>
+                    Courses are aligned with employer expectations, portfolio development, and
+                    real-world simulations to help students graduate with confidence.
+                  </p>
+                  <div class="program-meta">
+                    <span class="chip">Hands-on Labs</span>
+                    <span class="chip">Capstone Projects</span>
+                    <span class="chip">Mock Interviews</span>
+                  </div>
+                  <button class="ghost-btn">Learn More</button>
+                </div>
+
+                <div class="program-card">
+                  <div class="program-top">
+                    <div>
+                      <h3>Strong Employer Network</h3>
+                    </div>
+                    <span class="program-badge">Trusted</span>
+                  </div>
+                  <p>
+                    The school works with leading companies to provide internship placements,
+                    job matching, mentorship, and recruitment events throughout the year.
+                  </p>
+                  <div class="program-meta">
+                    <span class="chip">Internships</span>
+                    <span class="chip">Hiring Partners</span>
+                    <span class="chip">Career Coaches</span>
+                  </div>
+                  <button class="ghost-btn">View Partners</button>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="section" id="section-programs">
+            <section class="card card-pad">
+              <h2 class="card-title">
+                Academic Programs
+                <a href="#" class="small-link">Browse all</a>
+              </h2>
+
+              <div class="program-grid">
+                <article class="program-card">
+                  <div class="program-top">
+                    <div>
+                      <h3>BS Information Technology</h3>
+                    </div>
+                    <span class="program-badge">Open</span>
+                  </div>
+                  <p>
+                    Full-stack development, cloud systems, cybersecurity basics, and real-world application building.
+                  </p>
+                  <div class="program-meta">
+                    <span class="chip">4 Years</span>
+                    <span class="chip">On-campus</span>
+                    <span class="chip">Internship Included</span>
+                  </div>
+                  <button class="primary-btn">View Program</button>
+                </article>
+
+                <article class="program-card">
+                  <div class="program-top">
+                    <div>
+                      <h3>BS Computer Science</h3>
+                    </div>
+                    <span class="program-badge">Open</span>
+                  </div>
+                  <p>
+                    Advanced programming, algorithms, data structures, AI foundations, and software engineering.
+                  </p>
+                  <div class="program-meta">
+                    <span class="chip">4 Years</span>
+                    <span class="chip">Research Track</span>
+                    <span class="chip">Scholarships</span>
+                  </div>
+                  <button class="primary-btn">View Program</button>
+                </article>
+
+                <article class="program-card">
+                  <div class="program-top">
+                    <div>
+                      <h3>BS Digital Marketing</h3>
+                    </div>
+                    <span class="program-badge">Open</span>
+                  </div>
+                  <p>
+                    Brand strategy, paid media, social content, analytics, campaign planning, and client communication.
+                  </p>
+                  <div class="program-meta">
+                    <span class="chip">3-4 Years</span>
+                    <span class="chip">Hybrid</span>
+                    <span class="chip">Portfolio-Based</span>
+                  </div>
+                  <button class="primary-btn">View Program</button>
+                </article>
+
+                <article class="program-card">
+                  <div class="program-top">
+                    <div>
+                      <h3>BS UI/UX & Product Design</h3>
+                    </div>
+                    <span class="program-badge">Limited Slots</span>
+                  </div>
+                  <p>
+                    User research, prototyping, interaction design, usability testing, and product thinking.
+                  </p>
+                  <div class="program-meta">
+                    <span class="chip">Project-Based</span>
+                    <span class="chip">Studio Classes</span>
+                    <span class="chip">Industry Reviews</span>
+                  </div>
+                  <button class="primary-btn">View Program</button>
+                </article>
+              </div>
+            </section>
+          </div>
+
+          <div class="section" id="section-jobs">
+            <section class="card card-pad">
+              <h2 class="card-title">
+                Jobs & Internships
+                <a href="#" class="small-link">See more</a>
+              </h2>
+
+              <div class="job-list">
+                <article class="job-item">
+                  <div class="job-head">
+                    <div>
+                      <h3>Frontend Developer Intern</h3>
+                      <p>Partner Company: Nova Digital Labs • Quezon City / Hybrid</p>
+                    </div>
+                    <span class="chip">Internship</span>
+                  </div>
+                  <p>
+                    Ideal for students with HTML, CSS, JavaScript, and responsive UI experience. Mentored by senior developers.
+                  </p>
+                  <div class="job-footer">
+                    <div class="program-meta" style="margin:0;">
+                      <span class="chip">Paid</span>
+                      <span class="chip">3 Months</span>
+                      <span class="chip">Immediate Start</span>
+                    </div>
+                    <button class="primary-btn">Apply</button>
+                  </div>
+                </article>
+
+                <article class="job-item">
+                  <div class="job-head">
+                    <div>
+                      <h3>Marketing Assistant Trainee</h3>
+                      <p>Partner Company: BrightReach Media • Remote / Hybrid</p>
+                    </div>
+                    <span class="chip">Trainee</span>
+                  </div>
+                  <p>
+                    Great for students in marketing and communications who want campaign, analytics, and social media exposure.
+                  </p>
+                  <div class="job-footer">
+                    <div class="program-meta" style="margin:0;">
+                      <span class="chip">Flexible Hours</span>
+                      <span class="chip">Portfolio Growth</span>
+                    </div>
+                    <button class="primary-btn">Apply</button>
+                  </div>
+                </article>
+
+                <article class="job-item">
+                  <div class="job-head">
+                    <div>
+                      <h3>Junior UI Designer</h3>
+                      <p>Partner Company: PixelForge Studio • Makati / Onsite</p>
+                    </div>
+                    <span class="chip">Fresh Graduate</span>
+                  </div>
+                  <p>
+                    Entry-level role for graduates with Figma, design systems, layout principles, and prototype experience.
+                  </p>
+                  <div class="job-footer">
+                    <div class="program-meta" style="margin:0;">
+                      <span class="chip">Full-Time</span>
+                      <span class="chip">Career Growth</span>
+                    </div>
+                    <button class="primary-btn">Apply</button>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </div>
+
+          <div class="section" id="section-students">
+            <section class="card card-pad">
+              <h2 class="card-title">
+                Featured Students
+                <a href="#" class="small-link">Meet more</a>
+              </h2>
+
+              <div class="student-grid">
+                <article class="student-card">
+                  <div class="student-head">
+                    <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80" alt="">
+                    <div>
+                      <h3>Angela Dela Cruz</h3>
+                      <p>BS Information Technology • 4th Year</p>
+                    </div>
+                  </div>
+                  <div class="student-about">
+                    Full-stack student developer with experience in responsive web apps, UI implementation, and backend integration.
+                  </div>
+                  <div class="program-meta">
+                    <span class="chip">HTML</span>
+                    <span class="chip">JavaScript</span>
+                    <span class="chip">Node.js</span>
+                  </div>
+                  <button class="ghost-btn">View Profile</button>
+                </article>
+
+                <article class="student-card">
+                  <div class="student-head">
+                    <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=300&q=80" alt="">
+                    <div>
+                      <h3>Kevin Ramos</h3>
+                      <p>BS Digital Marketing • 3rd Year</p>
+                    </div>
+                  </div>
+                  <div class="student-about">
+                    Focused on campaign strategy, content planning, social engagement, analytics, and employer branding.
+                  </div>
+                  <div class="program-meta">
+                    <span class="chip">Meta Ads</span>
+                    <span class="chip">Content</span>
+                    <span class="chip">Analytics</span>
+                  </div>
+                  <button class="ghost-btn">View Profile</button>
+                </article>
+
+                <article class="student-card">
+                  <div class="student-head">
+                    <img src="https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=300&q=80" alt="">
+                    <div>
+                      <h3>Trisha Mendoza</h3>
+                      <p>BS UI/UX & Product Design • 4th Year</p>
+                    </div>
+                  </div>
+                  <div class="student-about">
+                    Passionate about user flows, interfaces, accessibility, and turning ideas into polished digital experiences.
+                  </div>
+                  <div class="program-meta">
+                    <span class="chip">Figma</span>
+                    <span class="chip">Research</span>
+                    <span class="chip">Prototype</span>
+                  </div>
+                  <button class="ghost-btn">View Profile</button>
+                </article>
+
+                <article class="student-card">
+                  <div class="student-head">
+                    <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80" alt="">
+                    <div>
+                      <h3>Marco Bautista</h3>
+                      <p>BS Computer Science • 4th Year</p>
+                    </div>
+                  </div>
+                  <div class="student-about">
+                    Interested in software systems, problem solving, algorithmic thinking, and scalable application logic.
+                  </div>
+                  <div class="program-meta">
+                    <span class="chip">Python</span>
+                    <span class="chip">Data Structures</span>
+                    <span class="chip">Backend</span>
+                  </div>
+                  <button class="ghost-btn">View Profile</button>
+                </article>
+              </div>
+            </section>
+          </div>
+
+          <div class="section" id="section-events">
+            <section class="card card-pad">
+              <h2 class="card-title">
+                Upcoming Events
+                <a href="#" class="small-link">Calendar</a>
+              </h2>
+
+              <div class="event-list">
+                <article class="event-item">
+                  <div class="event-date">
+                    <div class="month">May</div>
+                    <div class="day">14</div>
+                  </div>
+                  <div>
+                    <h3>Open Campus Tour & Admissions Day</h3>
+                    <p>
+                      Explore facilities, meet faculty, and get one-on-one guidance about enrollment, scholarship options, and program fit.
+                    </p>
+                    <div class="program-meta">
+                      <span class="chip">9:00 AM</span>
+                      <span class="chip">Main Campus</span>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="event-item">
+                  <div class="event-date">
+                    <div class="month">Jun</div>
+                    <div class="day">02</div>
+                  </div>
+                  <div>
+                    <h3>Industry Career Fair 2026</h3>
+                    <p>
+                      Connect with hiring managers, submit resumes, showcase portfolios, and find internships and full-time opportunities.
+                    </p>
+                    <div class="program-meta">
+                      <span class="chip">10:00 AM</span>
+                      <span class="chip">Innovation Hall</span>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="event-item">
+                  <div class="event-date">
+                    <div class="month">Jun</div>
+                    <div class="day">18</div>
+                  </div>
+                  <div>
+                    <h3>Student Demo Day & Startup Pitch Night</h3>
+                    <p>
+                      Final-year students present projects, prototypes, and startup concepts to mentors, investors, and employers.
+                    </p>
+                    <div class="program-meta">
+                      <span class="chip">5:30 PM</span>
+                      <span class="chip">Auditorium</span>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </div>
+
+        </section>
+
+        <!-- RIGHT -->
+        <aside class="right-col">
+          <section class="card card-pad">
+            <h2 class="card-title">School Insights</h2>
+            <div class="info-list">
+              <div class="info-row">
+                <div class="info-label">Application Deadline</div>
+                <div class="info-value">June 30, 2026</div>
+              </div>
+              <div class="info-row">
+                <div class="info-label">Acceptance Rate</div>
+                <div class="info-value">64%</div>
+              </div>
+              <div class="info-row">
+                <div class="info-label">Internship Access</div>
+                <div class="info-value">Guaranteed for qualified students</div>
+              </div>
+              <div class="info-row">
+                <div class="info-label">Scholarships</div>
+                <div class="info-value">Available</div>
+              </div>
+              <div class="info-row">
+                <div class="info-label">Support Services</div>
+                <div class="info-value">Career, academic, and wellness</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card card-pad" style="margin-top:18px;">
+            <h2 class="card-title">Performance Snapshot</h2>
+            <div class="progress-wrap">
+              <div class="progress-item">
+                <div class="progress-head">
+                  <span>Graduate Employment</span>
+                  <span>91%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:91%"></div></div>
+              </div>
+
+              <div class="progress-item">
+                <div class="progress-head">
+                  <span>Student Satisfaction</span>
+                  <span>94%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:94%"></div></div>
+              </div>
+
+              <div class="progress-item">
+                <div class="progress-head">
+                  <span>Industry Placement Rate</span>
+                  <span>88%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:88%"></div></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card card-pad" style="margin-top:18px;">
+            <div class="cta-box">
+              <h3>Looking for top student talent?</h3>
+              <p>
+                Partner with AIFT Schools to access trained graduates, internship-ready students,
+                and future professionals across multiple disciplines.
+              </p>
+              <button class="primary-btn" id="partnerBtn">Become a Partner</button>
+            </div>
+          </section>
+        </aside>
+
+      </div>
+    </div>
+  </main>
+
+  <div class="footer">
+    © 2026 AIFT Schools. All rights reserved.
+  </div>
+
+  <nav class="mobile-nav">
+    <div class="mobile-nav-inner">
+      <a href="#" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 10.5 12 3l9 7.5"></path>
+          <path d="M5 9.5V21h14V9.5"></path>
+        </svg>
+        <span>Home</span>
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="7" r="4"></circle>
+          <path d="M5.5 21a6.5 6.5 0 0 1 13 0"></path>
+        </svg>
+        <span>Students</span>
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span>Messages</span>
+      </a>
+      <a href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 .6 1.65 1.65 0 0 1-2 0 1.65 1.65 0 0 0-1-.6 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-.6-1 1.65 1.65 0 0 1 0-2 1.65 1.65 0 0 0 .6-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-.6 1.65 1.65 0 0 1 2 0 1.65 1.65 0 0 0 1 .6 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.24.32.44.67.6 1a1.65 1.65 0 0 1 0 2c-.16.33-.36.68-.6 1z"></path>
+        </svg>
+        <span>Settings</span>
+      </a>
+    </div>
+  </nav>
+
+  <script>
+    // Tabs
+    const tabButtons = document.querySelectorAll(".tab-btn");
+    const sections = document.querySelectorAll(".section");
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.tab;
+
+        tabButtons.forEach(b => b.classList.remove("active"));
+        sections.forEach(s => s.classList.remove("active"));
+
+        btn.classList.add("active");
+        const activeSection = document.getElementById(`section-${tab}`);
+        if (activeSection) activeSection.classList.add("active");
+      });
+    });
+
+    // Search filter
+    const globalSearch = document.getElementById("globalSearch");
+    globalSearch.addEventListener("input", function () {
+      const term = this.value.toLowerCase().trim();
+      const searchable = document.querySelectorAll(".announce-item, .program-card, .job-item, .student-card, .event-item");
+
+      searchable.forEach(item => {
+        const text = item.innerText.toLowerCase();
+        item.style.display = text.includes(term) ? "" : "none";
+      });
+    });
+
+    // Buttons demo actions
+    function toast(message){
+      const el = document.createElement("div");
+      el.textContent = message;
+      el.style.position = "fixed";
+      el.style.left = "50%";
+      el.style.bottom = "100px";
+      el.style.transform = "translateX(-50%)";
+      el.style.background = "#111827";
+      el.style.color = "#fff";
+      el.style.padding = "12px 16px";
+      el.style.borderRadius = "999px";
+      el.style.fontWeight = "700";
+      el.style.fontSize = ".9rem";
+      el.style.zIndex = "3000";
+      el.style.boxShadow = "0 12px 30px rgba(0,0,0,.18)";
+      document.body.appendChild(el);
+      setTimeout(() => {
+        el.style.transition = ".25s ease";
+        el.style.opacity = "0";
+        el.style.transform = "translateX(-50%) translateY(6px)";
+      }, 1800);
+      setTimeout(() => el.remove(), 2200);
+    }
+
+    document.getElementById("applyNowBtn")?.addEventListener("click", () => toast("Application page opening soon."));
+    document.getElementById("visitWebsiteBtn")?.addEventListener("click", () => toast("School website link will open here."));
+    document.getElementById("saveSchoolBtn")?.addEventListener("click", () => toast("School saved successfully."));
+    document.getElementById("contactSchoolBtn")?.addEventListener("click", () => toast("Contact school form opening soon."));
+    document.getElementById("shareSchoolBtn")?.addEventListener("click", () => toast("School profile link copied."));
+    document.getElementById("partnerBtn")?.addEventListener("click", () => toast("Partnership request form opening soon."));
+  </script>
+</body>
+</html>
