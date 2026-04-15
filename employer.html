@@ -379,7 +379,7 @@
             </div>
           </section>
           <section class="card card-pad" style="margin-top:18px;">
-            <h2 class="card-title">Hiring Team <button class="small-link" type="button" onclick="openTab('team')">Manage</button></h2>
+            <h2 class="card-title">Hiring Team <button class="small-link" type="button" onclick="openTeamTab()">Manage</button></h2>
             <div class="side-list" id="teamList"><div class="loading">Loading hiring team...</div></div>
           </section>
         </aside>
@@ -800,8 +800,20 @@
 
     function buildTeamTable(){
       const tbody = document.getElementById("teamTableBody");
-      const list = filteredItems(state.teamMembers, member => [member.name, member.email, member.teamRole, member.department].join(" "));
-      if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty">No team members yet. Create your first internal hiring user.</div></td></tr>`; return; }
+      const rawList = state.teamMembers || [];
+const list = filteredItems(
+  rawList,
+  member => [member.name, member.email, member.teamRole, member.department].join(" ")
+);
+      if (!rawList.length) {
+  tbody.innerHTML = `<tr><td colspan="6"><div class="empty">No team members yet. Create your first internal hiring user.</div></td></tr>`;
+  return;
+}
+
+if (!list.length) {
+  tbody.innerHTML = `<tr><td colspan="6"><div class="empty">No matching team members for your current search.</div></td></tr>`;
+  return;
+}
       tbody.innerHTML = list.map(member => {
         const blocked = member.isBlockedByEmployer === true;
         const roleLabel = String(member.teamRole || "viewer").replaceAll("_", " ");
@@ -1072,7 +1084,18 @@
       socket.on("newMessage", () => loadCounters());
       socket.on("postUpdated", async () => { await loadPosts(); refreshAllUI(); });
     }
+function openTeamTab() {
+  state.searchTerm = "";
 
+  const desktopSearch = document.getElementById("globalSearch");
+  const mobileSearch = document.getElementById("mobileSearch");
+
+  if (desktopSearch) desktopSearch.value = "";
+  if (mobileSearch) mobileSearch.value = "";
+
+  openTab("team");
+  buildTeamTable();
+}
     function refreshAllUI(){
       populateHero();
       buildTeamSidebar();
