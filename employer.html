@@ -1117,24 +1117,50 @@ if (!list.length) {
       document.getElementById("hireBar").style.width = `${hireRate}%`;
     }
 
-    function buildFeed(){
+let employerFeedMode = "all"; // all | mine
+
+function buildFeed(){
   const wrap = document.getElementById("feedList");
+
+  const sourcePosts =
+    employerFeedMode === "mine"
+      ? getCompanyPosts()
+      : (state.posts || []);
+
   const posts = filteredItems(
-    getCompanyPosts(),
-    post => [
-      post.text || "",
-      post.content || "",
-      post.author?.name || "",
-      post.user?.name || ""
-    ].join(" ")
+    sourcePosts,
+    post => {
+      const author = post.user || post.author || post.createdBy || {};
+      return [
+        post.text || "",
+        post.content || "",
+        author.name || "",
+        author.headline || "",
+        author.role || ""
+      ].join(" ");
+    }
   );
 
   if(!posts.length){
-    wrap.innerHTML = `<div class="empty">No company posts yet. Share your first update.</div>`;
+    wrap.innerHTML = `<div class="empty">${
+      employerFeedMode === "mine"
+        ? "No company posts yet. Share your first update."
+        : "No posts found in the shared feed."
+    }</div>`;
     return;
   }
 
-  wrap.innerHTML = posts.map(post => renderEmployerFeedPost(post)).join("");
+  wrap.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+      <button class="${employerFeedMode === "all" ? "primary-btn" : "ghost-btn"}" type="button" onclick="setEmployerFeedMode('all')">All Feed</button>
+      <button class="${employerFeedMode === "mine" ? "primary-btn" : "ghost-btn"}" type="button" onclick="setEmployerFeedMode('mine')">My Company Posts</button>
+    </div>
+  ` + posts.map(post => renderEmployerFeedPost(post)).join("");
+}
+
+function setEmployerFeedMode(mode){
+  employerFeedMode = mode;
+  buildFeed();
 }
     function renderEmployerFeedPost(post){
   const postId = post._id || Math.random().toString(36).slice(2);
