@@ -905,13 +905,7 @@
     function niceStatus(status){ return ({ new:"New", shortlisted:"Shortlisted", interview:"Interview", offer:"Offer", hired:"Hired" })[status] || "New"; }
     async function safeJson(res){ try { return await res.json(); } catch { return null; } }
 
-    function getCompanyPosts(){
-      const myId = String(state.me?._id || "");
-      return state.posts.filter(post => {
-        const authorId = String(post.author?._id || post.user?._id || post.author || post.user || "");
-        return authorId === myId;
-      });
-    }
+ 
 
     function getStats(){
       const jobs = state.jobs || [];
@@ -1117,10 +1111,17 @@ if (!list.length) {
       document.getElementById("hireBar").style.width = `${hireRate}%`;
     }
 
-let employerFeedMode = "all"; // all | mine
+let employerFeedMode = "all";
+let activeEmployerDropdown = null;
+
+function setEmployerFeedMode(mode){
+  employerFeedMode = mode;
+  buildFeed();
+}
 
 function buildFeed(){
   const wrap = document.getElementById("feedList");
+  if(!wrap) return;
 
   const sourcePosts =
     employerFeedMode === "mine"
@@ -1141,28 +1142,31 @@ function buildFeed(){
     }
   );
 
+  const allBtn = document.getElementById("feedModeAllBtn");
+  const mineBtn = document.getElementById("feedModeMineBtn");
+
+  if(allBtn){
+    allBtn.className = employerFeedMode === "all" ? "primary-btn" : "ghost-btn";
+  }
+  if(mineBtn){
+    mineBtn.className = employerFeedMode === "mine" ? "primary-btn" : "ghost-btn";
+  }
+
   if(!posts.length){
-    wrap.innerHTML = `<div class="empty">${
-      employerFeedMode === "mine"
-        ? "No company posts yet. Share your first update."
-        : "No posts found in the shared feed."
-    }</div>`;
+    wrap.innerHTML = `
+      <div class="empty">${
+        employerFeedMode === "mine"
+          ? "No company posts yet. Share your first update."
+          : "No posts found in the shared feed."
+      }</div>
+    `;
     return;
   }
 
-  wrap.innerHTML = `
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-      <button class="${employerFeedMode === "all" ? "primary-btn" : "ghost-btn"}" type="button" onclick="setEmployerFeedMode('all')">All Feed</button>
-      <button class="${employerFeedMode === "mine" ? "primary-btn" : "ghost-btn"}" type="button" onclick="setEmployerFeedMode('mine')">My Company Posts</button>
-    </div>
-  ` + posts.map(post => renderEmployerFeedPost(post)).join("");
+  wrap.innerHTML = posts.map(post => renderEmployerFeedPost(post)).join("");
 }
 
-function setEmployerFeedMode(mode){
-  employerFeedMode = mode;
-  buildFeed();
-}
-    function renderEmployerFeedPost(post){
+function renderEmployerFeedPost(post){
   const postId = post._id || Math.random().toString(36).slice(2);
   const author = post.user || post.author || post.createdBy || state.me || {};
   const authorName = author.name || state.me?.companyName || "Company";
@@ -1177,18 +1181,10 @@ function setEmployerFeedMode(mode){
   const comments = Array.isArray(post.comments) ? post.comments.length : Number(post.commentsCount || 0);
   const shares = Number(post.sharesCount || 0);
 
-  const meId = localStorage.getItem("userId");
+  const myId = localStorage.getItem("userId");
   const liked = Array.isArray(post.likes)
-    ? post.likes.some(l => String(l) === String(meId) || String(l?._id) === String(meId))
+    ? post.likes.some(l => String(l) === String(myId) || String(l?._id) === String(myId))
     : false;
-
-  const mediaHtml = postMedia
-    ? `<div class="post-media">${
-        mediaType.includes("video")
-          ? `<video src="${postMedia}" controls playsinline></video>`
-          : `<img src="${postMedia}" alt="Post media" loading="lazy">`
-      }</div>`
-    : "";
 
   return `
     <div class="post-card" id="post-${postId}">
@@ -1209,14 +1205,27 @@ function setEmployerFeedMode(mode){
               <button onclick="openShareModal('${postId}')">Share</button>
               <button onclick="copyEmployerPostLink('${postId}')">Copy link</button>
               <button onclick="reportEmployerPost('${postId}')">Report</button>
-              <button onclick="deletePost('${postId}')">Delete</button>
+              ${
+                String(author._id || "") === String(myId)
+                  ? `<button onclick="deletePost('${postId}')">Delete</button>`
+                  : ``
+              }
             </div>
           </div>
         </div>
       </div>
 
       ${postText ? `<div class="post-content">${escapeHtml(postText)}</div>` : ""}
-      ${mediaHtml}
+
+      ${
+        postMedia
+          ? `<div class="post-media">${
+              mediaType.includes("video")
+                ? `<video src="${postMedia}" controls playsinline></video>`
+                : `<img src="${postMedia}" alt="Post media" loading="lazy">`
+            }</div>`
+          : ""
+      }
 
       <div class="post-stats">
         <span>${likes} reactions</span>
@@ -1261,6 +1270,181 @@ function setEmployerFeedMode(mode){
     </div>
   `;
 }
+
+function closeEmployerDropdowns(){
+  document.querySelectorAll(".dropdown-menu").forEach(menu => {
+    menu.style.display = "none";
+  });
+  activeEmployerDropdown = null;
+}
+
+document.addEventListener("click", (e) => {
+  if(!e.target.closest(".dropdown")){
+    closeEmployerDropdowns();
+  }
+});
+
+function toggleEmployerPostDropdown(event, postId){
+  event.stopPropagation();
+  const menu = document.getElementById(`dropdown-${postId}`);
+  if(!menu) return;
+
+  if(activeEmployerDropdown && activeEmployerDropdown !== menu){
+    activeEmployerDropdown.style.display = "none";
+  }
+
+  const open = menu.style.display === "block";
+  menu.style.display = open ? "none" : "block";
+  activeEmployerDropdown = open ? null : menu;
+}
+
+function copyEmployerPostLink(postId){
+  const url = `${window.location.origin}${window.location.pathname}#post-${postId}`;
+  navigator.clipboard.writeText(url)
+    .then(() => alert("Post link copied."))
+    .catch(() => alert("Could not copy link."));
+  closeEmployerDropdowns();
+}
+
+function reportEmployerPost(postId){
+  closeEmployerDropdowns();
+  alert("Post reported.");
+}
+
+async function toggleEmployerLikePost(postId){
+  const endpoints = [
+    `${API}/api/posts/${postId}/like`,
+    `${API}/api/posts/${postId}/likes`
+  ];
+
+  let success = false;
+
+  for(const url of endpoints){
+    try{
+      const res = await fetch(url, {
+        method:"PATCH",
+        headers:authHeaders()
+      });
+      if(res.ok){
+        success = true;
+        break;
+      }
+    }catch(e){}
+  }
+
+  if(success){
+    await loadPosts();
+    buildFeed();
+  }else{
+    alert("Unable to like this post right now.");
+  }
+}
+
+function toggleEmployerComments(postId){
+  const wrapper = document.getElementById(`comments-${postId}`);
+  if(!wrapper) return;
+
+  const isOpen = wrapper.style.display === "block";
+  wrapper.style.display = isOpen ? "none" : "block";
+
+  if(!isOpen){
+    loadEmployerComments(postId);
+  }
+}
+
+async function loadEmployerComments(postId){
+  const container = document.getElementById(`comments-list-${postId}`);
+  if(!container) return;
+
+  container.innerHTML = `<div style="font-size:13px;color:#64748b;">Loading comments...</div>`;
+
+  const endpoints = [
+    `${API}/api/posts/${postId}`,
+    `${API}/api/posts/${postId}/comments`
+  ];
+
+  let comments = [];
+
+  for(const url of endpoints){
+    try{
+      const res = await fetch(url, { headers:authHeaders() });
+      if(!res.ok) continue;
+      const data = await res.json();
+
+      if(Array.isArray(data)){
+        comments = data;
+        break;
+      }
+
+      if(Array.isArray(data.comments)){
+        comments = data.comments;
+        break;
+      }
+    }catch(e){}
+  }
+
+  if(!comments.length){
+    container.innerHTML = `<div style="font-size:13px;color:#64748b;">No comments yet.</div>`;
+    return;
+  }
+
+  container.innerHTML = comments.map(comment => {
+    const user = comment.user || comment.author || {};
+    return `
+      <div class="comment-item">
+        <img class="comment-avatar" src="${user.profileImage || FALLBACK_AVATAR}" alt="${escapeHtml(user.name || "User")}">
+        <div class="comment-body">
+          <div class="comment-bubble">
+            <div class="comment-name">${escapeHtml(user.name || "User")}</div>
+            <div class="comment-text">${escapeHtml(comment.text || comment.content || "")}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function submitEmployerComment(postId){
+  const input = document.getElementById(`comment-input-${postId}`);
+  if(!input) return;
+
+  const text = input.value.trim();
+  if(!text) return;
+
+  const endpoints = [
+    `${API}/api/posts/${postId}/comment`,
+    `${API}/api/posts/${postId}/comments`
+  ];
+
+  let success = false;
+
+  for(const url of endpoints){
+    try{
+      const res = await fetch(url, {
+        method:"POST",
+        headers:authHeaders({ "Content-Type":"application/json" }),
+        body:JSON.stringify({ text })
+      });
+
+      if(res.ok){
+        success = true;
+        break;
+      }
+    }catch(e){}
+  }
+
+  if(!success){
+    alert("Unable to add comment right now.");
+    return;
+  }
+
+  input.value = "";
+  await loadEmployerComments(postId);
+  await loadPosts();
+  buildFeed();
+}
+
+
 
     function buildProfileSection(){
       const me = state.me || {};
@@ -1452,12 +1636,28 @@ function setEmployerFeedMode(mode){
     function openPublicProfile(id){ if (!id) return; window.location.href = `public-profile.html?id=${id}`; }
 
     function wireSearch(){
-      const desktop = document.getElementById("globalSearch");
-      const mobile = document.getElementById("mobileSearch");
-      function apply(value){ state.searchTerm = value || ""; buildJobs(); buildPipeline(); buildNetwork(); buildFeed(); buildTeamTable(); }
-      desktop.addEventListener("input", e => { apply(e.target.value); if (mobile.value !== e.target.value) mobile.value = e.target.value; });
-      mobile.addEventListener("input", e => { apply(e.target.value); if (desktop.value !== e.target.value) desktop.value = e.target.value; });
-    }
+  const desktop = document.getElementById("globalSearch");
+  const mobile = document.getElementById("mobileSearch");
+
+  function apply(value){
+    state.searchTerm = value || "";
+    buildJobs();
+    buildPipeline();
+    buildNetwork();
+    buildFeed();
+    buildTeamTable();
+  }
+
+  desktop.addEventListener("input", e => {
+    apply(e.target.value);
+    if (mobile.value !== e.target.value) mobile.value = e.target.value;
+  });
+
+  mobile.addEventListener("input", e => {
+    apply(e.target.value);
+    if (desktop.value !== e.target.value) desktop.value = e.target.value;
+  });
+}
 
     function wireButtons(){
       document.getElementById("openJobsBtn").onclick = () => openModal("jobModal");
@@ -1552,145 +1752,8 @@ function reportEmployerPost(postId){
   alert("Post reported.");
 }
 
-async function toggleEmployerLikePost(postId){
-  const endpoints = [
-    `${API}/api/posts/${postId}/like`,
-    `${API}/api/posts/${postId}/likes`
-  ];
 
-  let success = false;
 
-  for(const url of endpoints){
-    try{
-      const res = await fetch(url, {
-        method:"PATCH",
-        headers: authHeaders()
-      });
-      if(res.ok){
-        success = true;
-        break;
-      }
-    }catch(e){}
-  }
-
-  if(success){
-    await loadPosts();
-    buildFeed();
-  }
-}
-
-function toggleEmployerComments(postId){
-  const wrapper = document.getElementById(`comments-${postId}`);
-  if(!wrapper) return;
-
-  const show = wrapper.style.display === "block";
-  wrapper.style.display = show ? "none" : "block";
-
-  if(!show) loadEmployerComments(postId);
-}
-
-async function loadEmployerComments(postId){
-  const container = document.getElementById(`comments-list-${postId}`);
-  if(!container) return;
-
-  container.innerHTML = `<div style="font-size:13px;color:#64748b;">Loading comments...</div>`;
-
-  const endpoints = [
-    `${API}/api/posts/${postId}/comments`,
-    `${API}/api/comments/post/${postId}`,
-    `${API}/api/posts/${postId}`
-  ];
-
-  let comments = [];
-
-  for(const url of endpoints){
-    try{
-      const res = await fetch(url, { headers: authHeaders() });
-      if(!res.ok) continue;
-
-      const data = await res.json();
-
-      if(Array.isArray(data)){
-        comments = data;
-        break;
-      }
-
-      if(Array.isArray(data.comments)){
-        comments = data.comments;
-        break;
-      }
-    }catch(e){}
-  }
-
-  if(!comments.length){
-    container.innerHTML = `<div style="font-size:13px;color:#64748b;">No comments yet.</div>`;
-    return;
-  }
-
-  container.innerHTML = comments.map(comment => {
-    const user = comment.user || comment.author || {};
-    return `
-      <div class="comment-item">
-        <img class="comment-avatar" src="${user.profileImage || FALLBACK_AVATAR}" alt="${escapeHtml(user.name || "User")}">
-        <div class="comment-body">
-          <div class="comment-bubble">
-            <div class="comment-name">${escapeHtml(user.name || "User")}</div>
-            <div class="comment-text">${escapeHtml(comment.text || comment.content || "")}</div>
-          </div>
-          <div class="comment-meta">
-            <span>${escapeHtml(formatDate(comment.createdAt))}</span>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-async function submitEmployerComment(postId){
-  const input = document.getElementById(`comment-input-${postId}`);
-  if(!input) return;
-
-  const text = input.value.trim();
-  if(!text) return;
-
-  const endpoints = [
-    `${API}/api/posts/${postId}/comment`,
-    `${API}/api/posts/${postId}/comments`,
-    `${API}/api/comments`
-  ];
-
-  let success = false;
-
-  for(const url of endpoints){
-    try{
-      const body =
-        url.endsWith("/comment") || (url.includes(`/posts/${postId}/comments`) && !url.endsWith("/api/comments"))
-          ? { text }
-          : { postId, text };
-
-      const res = await fetch(url, {
-        method:"POST",
-        headers: authHeaders({ "Content-Type":"application/json" }),
-        body: JSON.stringify(body)
-      });
-
-      if(res.ok){
-        success = true;
-        break;
-      }
-    }catch(e){}
-  }
-
-  if(!success){
-    alert("Unable to add comment right now.");
-    return;
-  }
-
-  input.value = "";
-  await loadEmployerComments(postId);
-  await loadPosts();
-  buildFeed();
-}
     function refreshAllUI(){
       populateHero();
       buildTeamSidebar();
