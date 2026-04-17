@@ -807,8 +807,35 @@ function showToast(title, msg, type = "success"){
     function getPeopleByRole(roleName){return state.people.filter(person=>safeStatus(person.role)===roleName);}
     function getCompanyPosts(){const myId=String(state.me?._id||"");return(state.posts||[]).filter(post=>{const authorId=String(post.author?._id||post.user?._id||post.author||post.user||"");return authorId===myId;});}
 
-    function getStats(){const jobs=state.jobs||[];const apps=state.applications||[];const followers=Array.isArray(state.me?.followers)?state.me.followers.length:0;const grouped={new:0,shortlisted:0,interview:0,offer:0,hired:0};apps.forEach(app=>grouped[normalizeStatus(app.status)]++);return{jobsPosted:jobs.length,activeJobs:jobs.filter(job=>!["closed","archived"].includes(safeStatus(job.status))).length,applications:apps.length,followers,posts:getCompanyPosts().length,team:state.teamMembers.length,grouped};}
+    function getStats(){
+  const jobs = Array.isArray(state.jobs) ? state.jobs : [];
+  const apps = Array.isArray(state.applications) ? state.applications : [];
+  const followers = Array.isArray(state.me?.followers) ? state.me.followers.length : 0;
+  const team = Array.isArray(state.teamMembers) ? state.teamMembers.length : 0;
 
+  const grouped = {
+    new: 0,
+    shortlisted: 0,
+    interview: 0,
+    offer: 0,
+    hired: 0
+  };
+
+  apps.forEach(app => {
+    const key = normalizeStatus(app.status);
+    if (grouped[key] !== undefined) grouped[key]++;
+  });
+
+  return {
+    jobsPosted: jobs.length,
+    activeJobs: jobs.filter(job => !["closed", "archived"].includes(safeStatus(job.status))).length,
+    applications: apps.length,
+    followers,
+    posts: getCompanyPosts().length,
+    team,
+    grouped
+  };
+}
     function applyRolePreset(roleValue){const allowed=ROLE_PRESETS[roleValue]||[];document.querySelectorAll('#permissionsGrid input[type="checkbox"]').forEach(cb=>{cb.checked=allowed.includes(cb.value);});}
     function getSelectedPermissions(){return Array.from(document.querySelectorAll('#permissionsGrid input[type="checkbox"]:checked')).map(cb=>cb.value);}
     function applyEditRolePreset(roleValue){const allowed=ROLE_PRESETS[roleValue]||[];document.querySelectorAll('#editPermissionsGrid input[type="checkbox"]').forEach(cb=>{cb.checked=allowed.includes(cb.value);});}
@@ -828,9 +855,23 @@ async function loadProfile() {
   localStorage.setItem("profileName", state.me.name || "");
 }
 
-async function loadJobs() {
-  const data = await fetchJSON(API + "/api/jobs/my", { headers: authHeaders() });
-  state.jobs = Array.isArray(data) ? data : (Array.isArray(data?.jobs) ? data.jobs : []);
+async function loadJobs(){
+  try {
+    const jobs = await fetchJSON(API + "/api/jobs/my", {
+      headers: authHeaders()
+    });
+
+state.jobs = Array.isArray(jobs)
+  ? jobs
+  : Array.isArray(jobs?.jobs)
+    ? jobs.jobs
+    : [];
+
+console.log("AIFT jobs loaded:", state.jobs);
+  } catch (err) {
+    console.error("LOAD JOBS ERROR:", err);
+    state.jobs = [];
+  }
 }
 
 async function loadApplications() {
@@ -960,10 +1001,47 @@ async function loadCounters() {
   updateBadge(document.getElementById("mobileMessageBadge"), messageCount);
   updateBadge(document.getElementById("mobileNotificationBadge"), notificationCount);
 }
-    function populateHero(){const me=state.me||{};const logo=me.profileImage||me.companyLogo||FALLBACK_AVATAR;const cover=me.bannerImage||me.coverImage||"";const stats=getStats();const tags=Array.isArray(me.companyTags)?me.companyTags:[];document.getElementById("topAvatar").src=logo;document.getElementById("mobileTopAvatar").src=logo;document.getElementById("companyLogo").src=logo;document.getElementById("companyName").innerText=me.companyName||me.name||"Employer Company";document.getElementById("companyLocation").innerText=me.location||me.city||"Location not added";document.getElementById("companyIndustry").innerText=me.industry||"Employer";document.getElementById("companyEmail").innerText=me.contactEmail||me.email||"No contact email";document.getElementById("companyBio").innerText=me.bio||me.headline||"Build your employer brand, publish jobs, and hire faster.";document.getElementById("statJobs").innerText = String(
-  Number(stats.jobsPosted || 0) || (Array.isArray(state.jobs) ? state.jobs.length : 0)
-);document.getElementById("statApplications").innerText=String(stats.applications);document.getElementById("statFollowers").innerText=String(stats.followers);document.getElementById("statTeam").innerText=String(stats.team);document.getElementById("statPosts").innerText=String(stats.posts);if(cover)document.getElementById("heroCover").style.background=`linear-gradient(135deg, rgba(37,87,167,.92), rgba(22,61,122,.88)), url(\"${cover}\") center/cover no-repeat`;const tagsWrap=document.getElementById("companyTags");const finalTags=tags.length?tags:["Hiring","Employer Brand","Talent Acquisition"];tagsWrap.innerHTML=finalTags.slice(0,6).map(tag=>`<span class="tag">${escapeHtml(tag)}</span>`).join("");document.getElementById("infoCompanyName").value=me.companyName||me.name||"";document.getElementById("infoWebsite").value=me.website||"";document.getElementById("infoLocation").value=me.location||me.city||"";document.getElementById("infoIndustry").value=me.industry||"";document.getElementById("infoEmail").value=me.contactEmail||me.email||"";document.getElementById("infoTags").value=finalTags.join(", ");document.getElementById("infoBio").value=me.bio||me.headline||"";}
-function buildTeamSidebar(){
+    function populateHero(){
+  const me = state.me || {};
+  const logo = me.profileImage || me.companyLogo || FALLBACK_AVATAR;
+  const cover = me.bannerImage || me.coverImage || "";
+  const stats = getStats();
+  const tags = Array.isArray(me.companyTags) ? me.companyTags : [];
+
+  document.getElementById("topAvatar").src = logo;
+  document.getElementById("mobileTopAvatar").src = logo;
+  document.getElementById("companyLogo").src = logo;
+
+  document.getElementById("companyName").innerText = me.companyName || me.name || "Employer Company";
+  document.getElementById("companyLocation").innerText = me.location || me.city || "Location not added";
+  document.getElementById("companyIndustry").innerText = me.industry || "Employer";
+  document.getElementById("companyEmail").innerText = me.contactEmail || me.email || "No contact email";
+  document.getElementById("companyBio").innerText = me.bio || me.headline || "Build your employer brand, publish jobs, and hire faster.";
+
+  document.getElementById("statJobs").innerText = String(Array.isArray(state.jobs) ? state.jobs.length : 0);
+  document.getElementById("statApplications").innerText = String(stats.applications || 0);
+  document.getElementById("statFollowers").innerText = String(stats.followers || 0);
+  document.getElementById("statTeam").innerText = String(stats.team || 0);
+  document.getElementById("statPosts").innerText = String(stats.posts || 0);
+
+  if (cover) {
+    document.getElementById("heroCover").style.background =
+      `linear-gradient(135deg, rgba(37,87,167,.92), rgba(22,61,122,.88)), url("${cover}") center/cover no-repeat`;
+  }
+
+  const tagsWrap = document.getElementById("companyTags");
+  const finalTags = tags.length ? tags : ["Hiring", "Employer Brand", "Talent Acquisition"];
+  tagsWrap.innerHTML = finalTags.slice(0, 6).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join("");
+
+  document.getElementById("infoCompanyName").value = me.companyName || me.name || "";
+  document.getElementById("infoWebsite").value = me.website || "";
+  document.getElementById("infoLocation").value = me.location || me.city || "";
+  document.getElementById("infoIndustry").value = me.industry || "";
+  document.getElementById("infoEmail").value = me.contactEmail || me.email || "";
+  document.getElementById("infoTags").value = finalTags.join(", ");
+  document.getElementById("infoBio").value = me.bio || me.headline || "";
+}
+    function buildTeamSidebar(){
   const wrap = document.getElementById("teamList");
   const list = state.teamMembers.slice(0, 5);
 
@@ -1040,11 +1118,19 @@ function prepareTaskModal(){
     `${(state.tasks || []).length} Tasks`
   ].map(text => `<span class="chip">${escapeHtml(text)}</span>`).join("");
 }
-    async function buildJobs(){
+function buildJobs(){
   const wrap = document.getElementById("jobsList");
+  if (!wrap) return;
+
   const jobs = filteredItems(
-    state.jobs || [],
-    job => [job.title, job.company, job.location, job.description, (job.skills || []).join(" ")].join(" ")
+    Array.isArray(state.jobs) ? state.jobs : [],
+    job => [
+      job?.title || "",
+      job?.company || "",
+      job?.location || "",
+      job?.description || "",
+      Array.isArray(job?.skills) ? job.skills.join(" ") : ""
+    ].join(" ")
   );
 
   if (!jobs.length) {
@@ -1648,10 +1734,11 @@ function openEmployerPublicProfile(){
     document.getElementById("jobSalary").value = "";
     document.getElementById("jobDescription").value = "";
 
-    closeModal("jobModal");
+closeModal("jobModal");
     await loadJobs();
     await loadEmployerStats();
     refreshAllUI();
+    openTab("jobs");
     showToast("Job created", "Your job posting is now live.");
   } catch (err) {
     showToast("Job creation failed", err.message, "error");
