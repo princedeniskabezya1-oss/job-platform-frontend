@@ -490,7 +490,27 @@
 
    <nav class="mobile-bottom-nav" id="mobileBottomNav"><div class="mobile-bottom-nav-inner"><button class="mobile-nav-btn active" id="mobileNavOverview" onclick="openTab('overview')"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path></svg><span class="mobile-nav-label">Home</span></button><button class="mobile-nav-btn" id="mobileNavJobs" onclick="openTab('jobs')"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg><span class="mobile-nav-label">Jobs</span></button><button class="mobile-nav-post" onclick="openModal('postModal')"><svg viewBox="0 0 24 24"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button><button class="mobile-nav-btn" id="mobileNavAlerts" onclick="goNotifications()"><span id="mobileNotificationBadge" class="mobile-nav-badge">0</span><svg viewBox="0 0 24 24"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path><path d="M10 21a2 2 0 0 0 4 0"></path></svg><span class="mobile-nav-label">Alerts</span></button><button class="mobile-nav-btn" id="mobileNavFeed" onclick="openTab('feed')"><svg viewBox="0 0 24 24"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h10"></path></svg><span class="mobile-nav-label">Feed</span></button></div></nav>
 
-  <div id="toastWrap" class="toast-wrap"></div>
+<div id="toastWrap" class="toast-wrap"></div>
+
+<div class="modal" id="shareProfileModal">
+  <div class="modal-box" style="max-width:620px;">
+    <div class="modal-head">
+      <div class="modal-title">Share Company Profile</div>
+      <button class="ghost-btn" type="button" onclick="closeModal('shareProfileModal')">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Public profile link</label>
+        <input id="shareProfileLinkInput" type="text" readonly>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="primary-btn" type="button" onclick="copyShareProfileLink()">Copy Link</button>
+        <button class="ghost-btn" type="button" onclick="nativeShareProfile()">Share</button>
+        <button class="light-btn" type="button" onclick="openEmployerPublicProfile()">Open Public Page</button>
+      </div>
+    </div>
+  </div>
+</div>
 
   <div class="modal" id="jobModal"><div class="modal-box"><div class="modal-head"><div class="modal-title">Create Job Posting</div><button class="ghost-btn" type="button" onclick="closeModal('jobModal')">Close</button></div><div class="modal-body"><div class="input-grid"><div class="field"><label>Job Title</label><input id="jobTitle" type="text" placeholder="e.g. Frontend Developer"></div><div class="field"><label>Company</label><input id="jobCompany" type="text" placeholder="Company name"></div><div class="field"><label>Location</label><input id="jobLocation" type="text" placeholder="e.g. Makati / Remote"></div><div class="field"><label>Salary</label><input id="jobSalary" type="text" placeholder="e.g. ₱40,000 - ₱60,000"></div></div><div class="field"><label>Description</label><textarea id="jobDescription" placeholder="Describe responsibilities, qualifications, and expectations."></textarea></div></div><div class="modal-actions"><button class="ghost-btn" type="button" onclick="closeModal('jobModal')">Cancel</button><button class="primary-btn" type="button" onclick="submitJob()">Publish Job</button></div></div></div>
   <div class="modal" id="postModal"><div class="modal-box"><div class="modal-head"><div class="modal-title">Create Company Update</div><button class="ghost-btn" type="button" onclick="closeModal('postModal')">Close</button></div><div class="modal-body"><div class="field"><label>Post Content</label><textarea id="postContent" placeholder="Share something about your company..."></textarea></div><div class="field"><label>Optional Media</label><input id="postMedia" type="file" accept="image/*,video/*"></div></div><div class="modal-actions"><button class="ghost-btn" type="button" onclick="closeModal('postModal')">Cancel</button><button class="primary-btn" type="button" onclick="submitPost()">Post Update</button></div></div></div>
@@ -940,7 +960,9 @@ async function loadCounters() {
   updateBadge(document.getElementById("mobileMessageBadge"), messageCount);
   updateBadge(document.getElementById("mobileNotificationBadge"), notificationCount);
 }
-    function populateHero(){const me=state.me||{};const logo=me.profileImage||me.companyLogo||FALLBACK_AVATAR;const cover=me.bannerImage||me.coverImage||"";const stats=getStats();const tags=Array.isArray(me.companyTags)?me.companyTags:[];document.getElementById("topAvatar").src=logo;document.getElementById("mobileTopAvatar").src=logo;document.getElementById("companyLogo").src=logo;document.getElementById("companyName").innerText=me.companyName||me.name||"Employer Company";document.getElementById("companyLocation").innerText=me.location||me.city||"Location not added";document.getElementById("companyIndustry").innerText=me.industry||"Employer";document.getElementById("companyEmail").innerText=me.contactEmail||me.email||"No contact email";document.getElementById("companyBio").innerText=me.bio||me.headline||"Build your employer brand, publish jobs, and hire faster.";document.getElementById("statJobs").innerText=String(stats.jobsPosted);document.getElementById("statApplications").innerText=String(stats.applications);document.getElementById("statFollowers").innerText=String(stats.followers);document.getElementById("statTeam").innerText=String(stats.team);document.getElementById("statPosts").innerText=String(stats.posts);if(cover)document.getElementById("heroCover").style.background=`linear-gradient(135deg, rgba(37,87,167,.92), rgba(22,61,122,.88)), url(\"${cover}\") center/cover no-repeat`;const tagsWrap=document.getElementById("companyTags");const finalTags=tags.length?tags:["Hiring","Employer Brand","Talent Acquisition"];tagsWrap.innerHTML=finalTags.slice(0,6).map(tag=>`<span class="tag">${escapeHtml(tag)}</span>`).join("");document.getElementById("infoCompanyName").value=me.companyName||me.name||"";document.getElementById("infoWebsite").value=me.website||"";document.getElementById("infoLocation").value=me.location||me.city||"";document.getElementById("infoIndustry").value=me.industry||"";document.getElementById("infoEmail").value=me.contactEmail||me.email||"";document.getElementById("infoTags").value=finalTags.join(", ");document.getElementById("infoBio").value=me.bio||me.headline||"";}
+    function populateHero(){const me=state.me||{};const logo=me.profileImage||me.companyLogo||FALLBACK_AVATAR;const cover=me.bannerImage||me.coverImage||"";const stats=getStats();const tags=Array.isArray(me.companyTags)?me.companyTags:[];document.getElementById("topAvatar").src=logo;document.getElementById("mobileTopAvatar").src=logo;document.getElementById("companyLogo").src=logo;document.getElementById("companyName").innerText=me.companyName||me.name||"Employer Company";document.getElementById("companyLocation").innerText=me.location||me.city||"Location not added";document.getElementById("companyIndustry").innerText=me.industry||"Employer";document.getElementById("companyEmail").innerText=me.contactEmail||me.email||"No contact email";document.getElementById("companyBio").innerText=me.bio||me.headline||"Build your employer brand, publish jobs, and hire faster.";document.getElementById("statJobs").innerText = String(
+  Number(stats.jobsPosted || 0) || (Array.isArray(state.jobs) ? state.jobs.length : 0)
+);document.getElementById("statApplications").innerText=String(stats.applications);document.getElementById("statFollowers").innerText=String(stats.followers);document.getElementById("statTeam").innerText=String(stats.team);document.getElementById("statPosts").innerText=String(stats.posts);if(cover)document.getElementById("heroCover").style.background=`linear-gradient(135deg, rgba(37,87,167,.92), rgba(22,61,122,.88)), url(\"${cover}\") center/cover no-repeat`;const tagsWrap=document.getElementById("companyTags");const finalTags=tags.length?tags:["Hiring","Employer Brand","Talent Acquisition"];tagsWrap.innerHTML=finalTags.slice(0,6).map(tag=>`<span class="tag">${escapeHtml(tag)}</span>`).join("");document.getElementById("infoCompanyName").value=me.companyName||me.name||"";document.getElementById("infoWebsite").value=me.website||"";document.getElementById("infoLocation").value=me.location||me.city||"";document.getElementById("infoIndustry").value=me.industry||"";document.getElementById("infoEmail").value=me.contactEmail||me.email||"";document.getElementById("infoTags").value=finalTags.join(", ");document.getElementById("infoBio").value=me.bio||me.headline||"";}
 function buildTeamSidebar(){
   const wrap = document.getElementById("teamList");
   const list = state.teamMembers.slice(0, 5);
@@ -1757,6 +1779,8 @@ function openShareModal(postId){
     });
 
     closeModal("profileModal");
+    populateHero();
+    buildProfileSection();
     refreshAllUI();
     showToast("Profile updated", "Company information saved successfully.");
   } catch (err) {
@@ -1960,53 +1984,279 @@ function wireButtons(){
   document.getElementById("heroPostJobBtn").onclick = () => openModal("jobModal");
   document.getElementById("openFeedBtn").onclick = () => openTab("feed");
 
-  document.getElementById("shareCompanyBtn").onclick = async () => {
-    const employerId = state.me?._id || state.me?.id;
-    if (!employerId) {
-      showToast("Share unavailable", "Employer id is missing.", "error");
-      return;
-    }
+  const shareBtn = document.getElementById("shareCompanyBtn");
+  if (shareBtn) {
+    shareBtn.onclick = () => openShareProfileModal();
+  }
 
-    const profileLink = `${window.location.origin}${window.location.pathname.replace("employer.html", "employer-public-profile.html")}?id=${employerId}`;
-
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: state.me?.companyName || state.me?.name || "AIFT Employer",
-          text: "View this employer profile on AIFT",
-          url: profileLink
-        });
-      } else {
-        await navigator.clipboard.writeText(profileLink);
-        showToast("Profile link copied", "Public employer link copied successfully.");
+  const visitBtn = document.getElementById("visitWebsiteBtn");
+  if (visitBtn) {
+    visitBtn.onclick = () => {
+      const finalUrl = normalizeWebsiteUrl(state.me?.website || "");
+      if (!finalUrl) {
+        showToast("No website", "Please add your company website first in Edit Profile.", "error");
+        openModal("profileModal");
+        return;
       }
-    } catch (err) {
-      showToast("Share failed", "Could not share or copy the profile link.", "error");
-    }
-  };
-
-  document.getElementById("visitWebsiteBtn").onclick = () => {
-    let website = (state.me?.website || "").trim();
-
-    if (!website) {
-      showToast("No website", "No website added yet.", "error");
-      return;
-    }
-
-    if (!/^https?:\/\//i.test(website)) {
-      website = "https://" + website;
-    }
-
-    window.open(website, "_blank", "noopener,noreferrer");
-  };
+      window.open(finalUrl, "_blank", "noopener,noreferrer");
+    };
+  }
 
   const publicBtn = document.getElementById("openPublicEmployerBtn");
   if (publicBtn) {
     publicBtn.onclick = () => openEmployerPublicProfile();
   }
 }
-    function handleMobileBarsScroll(){const topbar=document.getElementById("mobileTopbar");const bottomNav=document.getElementById("mobileBottomNav");if(window.innerWidth>640||!topbar||!bottomNav)return;const currentY=window.scrollY;const diff=currentY-state.lastScrollY;if(currentY<20){topbar.classList.remove("hide");bottomNav.classList.remove("hide");}else if(diff>6){topbar.classList.add("hide");bottomNav.classList.add("hide");}else if(diff<-6){topbar.classList.remove("hide");bottomNav.classList.remove("hide");}state.lastScrollY=currentY;}
-function setupSocket(){
+
+  const shareBtn = document.getElementById("shareCompanyBtn");
+  if (shareBtn) {
+    shareBtn.onclick = () => openShareProfileModal();
+  }
+}
+
+function getEmployerPublicProfileUrl() {
+  const me = state.me || {};
+  const employerId = me._id || localStorage.getItem("userId") || "";
+  if (!employerId) return "";
+  const url = new URL("employer-public-profile.html", window.location.href);
+  url.searchParams.set("id", employerId);
+  return url.toString();
+}
+
+function normalizeWebsiteUrl(url) {
+  const clean = String(url || "").trim();
+  if (!clean) return "";
+  if (/^https?:\/\//i.test(clean)) return clean;
+  return `https://${clean}`;
+}
+
+function openShareProfileModal() {
+  const link = getEmployerPublicProfileUrl();
+  if (!link) {
+    showToast("Unable to share", "Employer profile link could not be generated.", "error");
+    return;
+  }
+
+  const input = document.getElementById("shareProfileLinkInput");
+  if (input) input.value = link;
+
+  openModal("shareProfileModal");
+}
+
+async function copyShareProfileLink() {
+  const input = document.getElementById("shareProfileLinkInput");
+  const value = input?.value?.trim();
+  if (!value) {
+    showToast("No link", "Profile link is not available.", "error");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(value);
+    showToast("Copied", "Public profile link copied successfully.");
+  } catch {
+    if (input) {
+      input.focus();
+      input.select();
+      document.execCommand("copy");
+    }
+    showToast("Copied", "Public profile link copied successfully.");
+  }
+}
+
+async function nativeShareProfile() {
+  const link = getEmployerPublicProfileUrl();
+  const me = state.me || {};
+  const title = me.companyName || me.name || "AIFT Employer Profile";
+  const text = `Check out ${title} on AIFT`;
+
+  if (!link) {
+    showToast("No link", "Profile link is not available.", "error");
+    return;
+  }
+
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text, url: link });
+      return;
+    }
+    await navigator.clipboard.writeText(link);
+    showToast("Copied", "Share is not available here, so the link was copied.");
+  } catch (err) {
+    if (err?.name !== "AbortError") {
+      showToast("Share failed", "Could not share the profile right now.", "error");
+    }
+  }
+}
+
+function openEmployerPublicProfile() {
+  const link = getEmployerPublicProfileUrl();
+  if (!link) {
+    showToast("Unavailable", "Public profile link could not be generated.", "error");
+    return;
+  }
+  window.open(link, "_blank", "noopener,noreferrer");
+}
+
+   function getEmployerPublicProfileUrl() {
+  const employerId = state.me?._id || state.me?.id || localStorage.getItem("userId") || "";
+  if (!employerId) return "";
+  const url = new URL(window.location.href);
+  const currentFile = url.pathname.split("/").pop() || "employer.html";
+  url.pathname = url.pathname.replace(currentFile, "employer-public-profile.html");
+  url.search = "";
+  url.searchParams.set("id", employerId);
+  return url.toString();
+}
+
+function normalizeWebsiteUrl(url) {
+  const clean = String(url || "").trim();
+  if (!clean) return "";
+  return /^https?:\/\//i.test(clean) ? clean : `https://${clean}`;
+}
+
+function openShareProfileModal() {
+  const link = getEmployerPublicProfileUrl();
+  if (!link) {
+    showToast("Share unavailable", "Employer id is missing.", "error");
+    return;
+  }
+
+  const input = document.getElementById("shareProfileLinkInput");
+  if (input) input.value = link;
+  openModal("shareProfileModal");
+}
+
+async function copyShareProfileLink() {
+  const value = document.getElementById("shareProfileLinkInput")?.value?.trim();
+  if (!value) {
+    showToast("No link", "No public profile link available.", "error");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(value);
+    showToast("Profile link copied", "Public employer link copied successfully.");
+  } catch (err) {
+    showToast("Copy failed", "Could not copy the profile link.", "error");
+  }
+}
+
+async function nativeShareProfile() {
+  const link = getEmployerPublicProfileUrl();
+  if (!link) {
+    showToast("Share unavailable", "No public profile link available.", "error");
+    return;
+  }
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: state.me?.companyName || state.me?.name || "AIFT Employer",
+        text: "View this employer profile on AIFT",
+        url: link
+      });
+    } else {
+      await navigator.clipboard.writeText(link);
+      showToast("Profile link copied", "Public employer link copied successfully.");
+    }
+  } catch (err) {
+    if (err?.name !== "AbortError") {
+      showToast("Share failed", "Could not share or copy the profile link.", "error");
+    }
+  }
+}
+
+function openEmployerPublicProfile() {
+  const link = getEmployerPublicProfileUrl();
+  if (!link) {
+    showToast("Public profile unavailable", "Employer id is missing.", "error");
+    return;
+  }
+  window.open(link, "_blank", "noopener,noreferrer");
+}
+    function getEmployerPublicProfileUrl() {
+  const employerId = state.me?._id || state.me?.id || localStorage.getItem("userId") || "";
+  if (!employerId) return "";
+  const url = new URL(window.location.href);
+  const currentFile = url.pathname.split("/").pop() || "employer.html";
+  url.pathname = url.pathname.replace(currentFile, "employer-public-profile.html");
+  url.search = "";
+  url.searchParams.set("id", employerId);
+  return url.toString();
+}
+
+function normalizeWebsiteUrl(url) {
+  const clean = String(url || "").trim();
+  if (!clean) return "";
+  return /^https?:\/\//i.test(clean) ? clean : `https://${clean}`;
+}
+
+function openShareProfileModal() {
+  const link = getEmployerPublicProfileUrl();
+  if (!link) {
+    showToast("Share unavailable", "Employer id is missing.", "error");
+    return;
+  }
+
+  const input = document.getElementById("shareProfileLinkInput");
+  if (input) input.value = link;
+  openModal("shareProfileModal");
+}
+
+async function copyShareProfileLink() {
+  const value = document.getElementById("shareProfileLinkInput")?.value?.trim();
+  if (!value) {
+    showToast("No link", "No public profile link available.", "error");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(value);
+    showToast("Profile link copied", "Public employer link copied successfully.");
+  } catch (err) {
+    showToast("Copy failed", "Could not copy the profile link.", "error");
+  }
+}
+
+async function nativeShareProfile() {
+  const link = getEmployerPublicProfileUrl();
+  if (!link) {
+    showToast("Share unavailable", "No public profile link available.", "error");
+    return;
+  }
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: state.me?.companyName || state.me?.name || "AIFT Employer",
+        text: "View this employer profile on AIFT",
+        url: link
+      });
+    } else {
+      await navigator.clipboard.writeText(link);
+      showToast("Profile link copied", "Public employer link copied successfully.");
+    }
+  } catch (err) {
+    if (err?.name !== "AbortError") {
+      showToast("Share failed", "Could not share or copy the profile link.", "error");
+    }
+  }
+}
+
+function openEmployerPublicProfile() {
+  const link = getEmployerPublicProfileUrl();
+  if (!link) {
+    showToast("Public profile unavailable", "Employer id is missing.", "error");
+    return;
+  }
+  window.open(link, "_blank", "noopener,noreferrer");
+}
+
+function handleMobileBarsScroll(){const topbar=document.getElementById("mobileTopbar");const bottomNav=document.getElementById("mobileBottomNav");if(window.innerWidth>640||!topbar||!bottomNav)return;const currentY=window.scrollY;const diff=currentY-state.lastScrollY;if(currentY<20){topbar.classList.remove("hide");bottomNav.classList.remove("hide");}else if(diff>6){topbar.classList.add("hide");bottomNav.classList.add("hide");}else if(diff<-6){topbar.classList.remove("hide");bottomNav.classList.remove("hide");}state.lastScrollY=currentY;}
+
+
+  function setupSocket(){
   if (!socket) return;
 
   socket.off("connect");
