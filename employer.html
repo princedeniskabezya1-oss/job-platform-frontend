@@ -928,7 +928,7 @@ async function loadCounters() {
   } catch {}
 
   try {
-    const notifRes = await fetch(API + "/api/notifications/unread-count", { headers: authHeaders() });
+    const notifRes = await fetch(API + "/api/notifications/unread", { headers: authHeaders() });
     if (notifRes.ok) {
       const notifData = await notifRes.json();
       notificationCount = Number(notifData.count || notifData.unread || 0);
@@ -1275,26 +1275,29 @@ function buildTeamTable(){
     `).join("")
     : '<div class="empty">No schedules assigned yet.</div>';
 
-  taskWrap.innerHTML = tasks.length
-    ? tasks.map(t => `
-      <div class="candidate-card">
-        <div class="candidate-top">
-          <img src="${t.assigneeId?.profileImage || FALLBACK_AVATAR}" alt="">
-          <div>
-            <div class="candidate-name">${escapeHtml(t.title || "Untitled Task")}</div>
-            <div class="candidate-sub">${escapeHtml(t.assigneeId?.name || "Unknown Assignee")} • ${escapeHtml(t.category || "General")} • Due ${escapeHtml(t.dueDate || "Not set")}</div>
-          </div>
+taskWrap.innerHTML = tasks.length
+  ? tasks.map(t => `
+    <div class="candidate-card">
+      <div class="candidate-top">
+        <img src="${t.assigneeId?.profileImage || FALLBACK_AVATAR}" alt="">
+        <div>
+          <div class="candidate-name">${escapeHtml(t.title || "Untitled Task")}</div>
+          <div class="candidate-sub">${escapeHtml(t.assigneeId?.name || "Unknown Assignee")} • ${escapeHtml(t.category || "General")} • Due ${escapeHtml(t.dueDate || "Not set")}</div>
         </div>
-        <div class="meta-line">
-          <span class="meta-pill">${escapeHtml(t.priority || "medium")}</span>
-          <span class="meta-pill">${escapeHtml((t.status || "todo").replaceAll("_"," "))}</span>
-        </div>
-        <select class="candidate-status" onchange='updateTaskStatus("${t._id}", this.value)'>
-          ${["todo","in_progress","done","cancelled"].map(s => `<option value="${s}" ${t.status===s?'selected':''}>${escapeHtml(s.replaceAll("_"," "))}</option>`).join("")}
-        </select>
       </div>
-    `).join("")
-    : '<div class="empty">No tasks assigned yet.</div>';
+      <div class="meta-line">
+        <span class="meta-pill">${escapeHtml(t.priority || "medium")}</span>
+        <span class="meta-pill">${escapeHtml((t.status || "todo").replaceAll("_"," "))}</span>
+      </div>
+      <select class="candidate-status" onchange='updateTaskStatus("${t._id}", this.value)'>
+        ${["todo","in_progress","done","cancelled"].map(s => `<option value="${s}" ${t.status===s?'selected':''}>${escapeHtml(s.replaceAll("_"," "))}</option>`).join("")}
+      </select>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+        <button class="danger-btn" onclick='deleteTask("${t._id}")'>Delete</button>
+      </div>
+    </div>
+  `).join("")
+  : '<div class="empty">No tasks assigned yet.</div>';
 }
   function buildAnalytics(){
   const stats = getStats();
@@ -1450,6 +1453,20 @@ async function submitTask(){
   }
 }
 
+async function deleteTask(id){
+  try {
+    await fetchJSON(`${API}/api/tasks/${id}`, {
+      method: "DELETE",
+      headers: authHeaders()
+    });
+    await loadTasks();
+    refreshAllUI();
+    showToast("Task removed", "Task deleted successfully.");
+  } catch (err) {
+    showToast("Delete failed", err.message, "error");
+  }
+}
+
 async function updateTaskStatus(id, status){
   try {
     await fetchJSON(`${API}/api/tasks/${id}`, {
@@ -1462,6 +1479,20 @@ async function updateTaskStatus(id, status){
     showToast("Task updated", "Task status changed successfully.");
   } catch (err) {
     showToast("Update failed", err.message, "error");
+  }
+}
+
+async function deleteTask(id){
+  try {
+    await fetchJSON(`${API}/api/tasks/${id}`, {
+      method: "DELETE",
+      headers: authHeaders()
+    });
+    await loadTasks();
+    refreshAllUI();
+    showToast("Task removed", "Task deleted successfully.");
+  } catch (err) {
+    showToast("Delete failed", err.message, "error");
   }
 }
 
@@ -1975,8 +2006,29 @@ function wireButtons(){
   }
 }
     function handleMobileBarsScroll(){const topbar=document.getElementById("mobileTopbar");const bottomNav=document.getElementById("mobileBottomNav");if(window.innerWidth>640||!topbar||!bottomNav)return;const currentY=window.scrollY;const diff=currentY-state.lastScrollY;if(currentY<20){topbar.classList.remove("hide");bottomNav.classList.remove("hide");}else if(diff>6){topbar.classList.add("hide");bottomNav.classList.add("hide");}else if(diff<-6){topbar.classList.remove("hide");bottomNav.classList.remove("hide");}state.lastScrollY=currentY;}
-    function setupSocket(){
+function setupSocket(){
   if (!socket) return;
+
+  socket.off("connect");
+  socket.off("newNotification");
+  socket.off("newMessage");
+  socket.off("postUpdated");
+
+  socket.off("schedule_created");
+  socket.off("schedule_updated");
+  socket.off("schedule_deleted");
+  socket.off("company_schedule_created");
+  socket.off("company_schedule_updated");
+  socket.off("company_schedule_deleted");
+
+  socket.off("task_created");
+  socket.off("task_updated");
+  socket.off("task_deleted");
+  socket.off("company_task_created");
+  socket.off("company_task_updated");
+  socket.off("company_task_deleted");
+
+  socket.off("job_invite_created");
 
   socket.on("connect", () => {
     const userId = localStorage.getItem("userId");
@@ -1992,25 +2044,29 @@ function wireButtons(){
     refreshAllUI();
   });
 
-  socket.on("schedule_created", async () => {
+  const refreshSchedules = async () => {
     await loadSchedules();
     refreshAllUI();
-  });
+  };
 
-  socket.on("schedule_updated", async () => {
-    await loadSchedules();
-    refreshAllUI();
-  });
-
-  socket.on("task_created", async () => {
+  const refreshTasks = async () => {
     await loadTasks();
     refreshAllUI();
-  });
+  };
 
-  socket.on("task_updated", async () => {
-    await loadTasks();
-    refreshAllUI();
-  });
+  socket.on("schedule_created", refreshSchedules);
+  socket.on("schedule_updated", refreshSchedules);
+  socket.on("schedule_deleted", refreshSchedules);
+  socket.on("company_schedule_created", refreshSchedules);
+  socket.on("company_schedule_updated", refreshSchedules);
+  socket.on("company_schedule_deleted", refreshSchedules);
+
+  socket.on("task_created", refreshTasks);
+  socket.on("task_updated", refreshTasks);
+  socket.on("task_deleted", refreshTasks);
+  socket.on("company_task_created", refreshTasks);
+  socket.on("company_task_updated", refreshTasks);
+  socket.on("company_task_deleted", refreshTasks);
 
   socket.on("job_invite_created", async () => {
     await loadInvites();
