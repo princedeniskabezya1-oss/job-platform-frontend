@@ -414,8 +414,8 @@
     <h2 class="card-title">
       Schedules & Tasks
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="small-link" type="button" onclick="openModal('scheduleModal')">Add Schedule</button>
-        <button class="small-link" type="button" onclick="openModal('taskModal')">Add Task</button>
+<button class="small-link" type="button" onclick="prepareScheduleModal()">Add Schedule</button>
+<button class="small-link" type="button" onclick="prepareTaskModal()">Add Task</button>
       </div>
     </h2>
     <div class="panel-grid">
@@ -913,7 +913,69 @@ async function loadCounters() {
   updateBadge(document.getElementById("mobileNotificationBadge"), notificationCount);
 }
     function populateHero(){const me=state.me||{};const logo=me.profileImage||me.companyLogo||FALLBACK_AVATAR;const cover=me.bannerImage||me.coverImage||"";const stats=getStats();const tags=Array.isArray(me.companyTags)?me.companyTags:[];document.getElementById("topAvatar").src=logo;document.getElementById("mobileTopAvatar").src=logo;document.getElementById("companyLogo").src=logo;document.getElementById("companyName").innerText=me.companyName||me.name||"Employer Company";document.getElementById("companyLocation").innerText=me.location||me.city||"Location not added";document.getElementById("companyIndustry").innerText=me.industry||"Employer";document.getElementById("companyEmail").innerText=me.contactEmail||me.email||"No contact email";document.getElementById("companyBio").innerText=me.bio||me.headline||"Build your employer brand, publish jobs, and hire faster.";document.getElementById("statJobs").innerText=String(stats.jobsPosted);document.getElementById("statApplications").innerText=String(stats.applications);document.getElementById("statFollowers").innerText=String(stats.followers);document.getElementById("statTeam").innerText=String(stats.team);document.getElementById("statPosts").innerText=String(stats.posts);if(cover)document.getElementById("heroCover").style.background=`linear-gradient(135deg, rgba(37,87,167,.92), rgba(22,61,122,.88)), url(\"${cover}\") center/cover no-repeat`;const tagsWrap=document.getElementById("companyTags");const finalTags=tags.length?tags:["Hiring","Employer Brand","Talent Acquisition"];tagsWrap.innerHTML=finalTags.slice(0,6).map(tag=>`<span class="tag">${escapeHtml(tag)}</span>`).join("");document.getElementById("infoCompanyName").value=me.companyName||me.name||"";document.getElementById("infoWebsite").value=me.website||"";document.getElementById("infoLocation").value=me.location||me.city||"";document.getElementById("infoIndustry").value=me.industry||"";document.getElementById("infoEmail").value=me.contactEmail||me.email||"";document.getElementById("infoTags").value=finalTags.join(", ");document.getElementById("infoBio").value=me.bio||me.headline||"";}
-    function buildTeamSidebar(){const wrap=document.getElementById("teamList");const list=state.teamMembers.slice(0,5);if(!list.length){wrap.innerHTML=`<div class="empty">No hiring team members yet.</div>`;return;}wrap.innerHTML=list.map(member=>`<div class="mini-person"><img src="${member.profileImage||FALLBACK_AVATAR}" alt=""><div><h4>${escapeHtml(member.name||"Team Member")}</h4><p>${escapeHtml(member.teamRole||member.department||"Team Member")}</p></div></div>`).join("");}
+function buildTeamSidebar(){
+  const wrap = document.getElementById("teamList");
+  const list = state.teamMembers.slice(0, 5);
+
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty">No hiring team members yet.</div>`;
+    fillAgentSelects();
+    return;
+  }
+
+  wrap.innerHTML = list.map(member => `
+    <div class="mini-person">
+      <img src="${member.profileImage || FALLBACK_AVATAR}" alt="">
+      <div>
+        <h4>${escapeHtml(member.name || "Team Member")}</h4>
+        <p>${escapeHtml(member.teamRole || member.department || "Team Member")}</p>
+      </div>
+    </div>
+  `).join("");
+
+  fillAgentSelects();
+}
+
+function fillAgentSelects(){
+  const team = state.teamMembers || [];
+  const agents = team.filter(member =>
+    ["agent", "employer"].includes(String(member.role || "").toLowerCase())
+  );
+
+  const scheduleSelect = document.getElementById("scheduleAgent");
+  const taskSelect = document.getElementById("taskAssignee");
+  const inviteSelect = document.getElementById("inviteJobSelect");
+
+  const options = agents.map(member => {
+    return `<option value="${member._id}">${escapeHtml(member.name)} — ${escapeHtml(member.teamRole || member.role || "member")}</option>`;
+  }).join("");
+
+  if (scheduleSelect) {
+    scheduleSelect.innerHTML = options || `<option value="">No available agents yet</option>`;
+    scheduleSelect.disabled = !agents.length;
+  }
+
+  if (taskSelect) {
+    taskSelect.innerHTML = options || `<option value="">No available agents yet</option>`;
+    taskSelect.disabled = !agents.length;
+  }
+
+  if (inviteSelect) {
+    inviteSelect.innerHTML =
+      (state.jobs || []).map(job => {
+        return `<option value="${job._id}">${escapeHtml(job.title)} — ${escapeHtml(job.company || "Company")}</option>`;
+      }).join("") || `<option value="">No jobs available</option>`;
+  }
+}
+    function prepareScheduleModal(){
+  fillAgentSelects();
+  openModal("scheduleModal");
+}
+
+function prepareTaskModal(){
+  fillAgentSelects();
+  openModal("taskModal");
+}
     function buildOverview(){
   const stats = getStats();
 
