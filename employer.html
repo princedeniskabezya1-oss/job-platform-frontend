@@ -356,6 +356,24 @@
     body.compact-workspace #section-analytics .analytics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     @media(max-width:920px){body.compact-workspace #section-jobs .panel-grid,body.compact-workspace #section-network .directory-grid,body.compact-workspace #section-jobseekers .directory-grid{grid-template-columns:1fr}.stat-graph{width:58px;opacity:.7}}
 
+  
+/* === REAL-TIME GROWTH + AGENT ACTIVITY UPGRADE === */
+.trend-card{position:relative;overflow:hidden;border:1px solid #d8d8d8;border-radius:10px;background:#fff;padding:18px;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
+.trend-card:hover{transform:translateY(-4px);box-shadow:0 16px 34px rgba(0,0,0,.11);border-color:#b9d7f8}
+.trend-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.trend-title{font-size:15px;font-weight:800;color:#111827;margin:0}.trend-sub{font-size:12px;color:#64748b;margin:3px 0 0}
+.trend-value{font-size:30px;font-weight:900;letter-spacing:-.04em;color:#111827}.trend-delta{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:900}
+.trend-delta.up{background:#dcfce7;color:#166534}.trend-delta.down{background:#fee2e2;color:#991b1b}.trend-delta.flat{background:#eef3f8;color:#475569}
+.trend-chart{width:100%;height:92px;margin-top:8px}.trend-chart svg{width:100%;height:100%;overflow:visible}.trend-axis{stroke:#e5e7eb;stroke-width:1}
+.trend-area.up{fill:rgba(22,163,74,.12)}.trend-line.up{stroke:#16a34a}.trend-area.down{fill:rgba(220,38,38,.10)}.trend-line.down{stroke:#dc2626}.trend-area.flat{fill:rgba(10,102,194,.10)}.trend-line.flat{stroke:#0a66c2}
+.trend-line{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 5px 8px rgba(10,102,194,.12))}.trend-dot{fill:#fff;stroke-width:3}
+.agent-live-card{margin-top:14px;border:1px solid #d8d8d8;border-radius:10px;background:#fff;overflow:hidden;box-shadow:var(--shadow)}
+.agent-live-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid #e5e7eb}.agent-live-head h3{margin:0;font-size:17px;font-weight:800}.agent-live-head p{margin:4px 0 0;font-size:12px;color:#64748b}
+.agent-live-table-wrap{overflow:auto}.agent-live-table{width:100%;min-width:940px;border-collapse:collapse}.agent-live-table th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#64748b;background:#f8fafc}.agent-live-table td,.agent-live-table th{padding:13px 14px;border-bottom:1px solid #eef2f7;text-align:left}.agent-live-row:hover{background:#f8fbff}
+.agent-status-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;background:#94a3b8}.agent-status-dot.online{background:#16a34a;box-shadow:0 0 0 4px rgba(22,163,74,.10)}.agent-status-dot.offline{background:#64748b}.agent-status-dot.away{background:#f59e0b}
+.agent-perf-bar{height:8px;border-radius:999px;background:#e5e7eb;overflow:hidden;min-width:110px}.agent-perf-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#0a66c2,#22c55e);transition:width .5s ease}
+.ops-grid-expanded{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:920px){.ops-grid-expanded{grid-template-columns:1fr}.trend-value{font-size:24px}.trend-chart{height:78px}}
+
   </style>
 </head>
 <body>
@@ -521,7 +539,7 @@
 <button class="small-link" type="button" onclick="prepareTaskModal()">Add Task</button>
       </div>
     </h2>
-    <div class="panel-grid">
+    <div class="ops-grid-expanded">
       <div class="panel-card">
         <div class="panel-top">
           <div><h3>Schedules</h3></div>
@@ -536,6 +554,11 @@
         </div>
         <div id="taskList"><div class="loading">Loading tasks...</div></div>
       </div>
+    </div>
+
+    <div class="agent-live-card">
+      <div class="agent-live-head"><div><h3>Agent Login / Logout Activity</h3><p>Live rows from schedules, tasks, and available attendance logs. No demo rows are generated.</p></div><button class="small-link" type="button" onclick="reloadOperationsLive()">Refresh</button></div>
+      <div class="agent-live-table-wrap"><table class="agent-live-table"><thead><tr><th>Agent</th><th>Schedule</th><th>Login</th><th>Logout</th><th>Duration</th><th>Status</th><th>Performance</th></tr></thead><tbody id="agentActivityBody"><tr><td colspan="7" class="loading">Loading agent activity...</td></tr></tbody></table></div>
     </div>
   </section>
 </div>
@@ -861,6 +884,7 @@
   jobSeekers:[],
   employerStats:null,
   postAnalytics:null,
+  agentLogs:[],
   activeTab:"overview",
   searchTerm:"",
   lastScrollY:window.scrollY,
@@ -1498,6 +1522,23 @@ function buildTeamTable(){
 }
 
 
+
+function toDateValue(item){ const raw=item?.createdAt||item?.updatedAt||item?.date||item?.startDate||item?.submittedAt||item?.appliedAt; const d=raw?new Date(raw):null; return d&&!isNaN(d.getTime())?d:null; }
+function buildDailySeries(items, days=7){ const now=new Date(); const today=new Date(now); today.setHours(0,0,0,0); const counts=Array(days).fill(0); (items||[]).forEach(item=>{ const d=toDateValue(item); if(!d)return; const day=new Date(d); day.setHours(0,0,0,0); const index=days-1+Math.round((day-today)/86400000); if(index>=0&&index<days)counts[index]++; }); return {counts}; }
+function trendMeta(counts){ const mid=Math.max(1,Math.floor(counts.length/2)); const previous=counts.slice(0,mid).reduce((a,b)=>a+b,0); const current=counts.slice(mid).reduce((a,b)=>a+b,0); const diff=current-previous; const pct=previous?Math.round((diff/previous)*100):(current?100:0); return {previous,current,diff,pct,dir:diff>0?'up':diff<0?'down':'flat'}; }
+function renderSparkline(counts){ const w=320,h=86,pad=8,max=Math.max(1,...counts),step=counts.length>1?(w-pad*2)/(counts.length-1):0; const pts=counts.map((v,i)=>[pad+step*i,h-pad-(v/max)*(h-pad*2)]); const line=pts.map((p,i)=>`${i?'L':'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' '); const area=`${line} L${w-pad},${h-pad} L${pad},${h-pad} Z`; const meta=trendMeta(counts); const color=meta.dir==='up'?'#16a34a':meta.dir==='down'?'#dc2626':'#0a66c2'; return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path class="trend-axis" d="M${pad},${h-pad} L${w-pad},${h-pad}"></path><path class="trend-area ${meta.dir}" d="${area}"></path><path class="trend-line ${meta.dir}" d="${line}"></path>${pts.map((p,i)=>`<circle class="trend-dot" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i===pts.length-1?4:3}" style="stroke:${color}"></circle>`).join('')}</svg>`; }
+function growthCard(title,total,items,subtitle){ const series=buildDailySeries(items,7); const meta=trendMeta(series.counts); const arrow=meta.dir==='up'?'↗':meta.dir==='down'?'↘':'→'; const label=meta.dir==='flat'?'No change':`${arrow} ${Math.abs(meta.pct)}%`; return `<article class="trend-card"><div class="trend-head"><div><h3 class="trend-title">${escapeHtml(title)}</h3><p class="trend-sub">${escapeHtml(subtitle||'Last 7 days')}</p></div><span class="trend-delta ${meta.dir}">${label}</span></div><div class="trend-value">${Number(total||0).toLocaleString()}</div><div class="trend-chart">${renderSparkline(series.counts)}</div></article>`; }
+function formatDateTime(value){ if(!value)return '-'; const d=new Date(value); if(isNaN(d.getTime()))return escapeHtml(value); return d.toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function durationBetween(start,end){ const a=start?new Date(start):null,b=end?new Date(end):null; if(!a||!b||isNaN(a)||isNaN(b)||b<a)return '-'; const mins=Math.round((b-a)/60000),h=Math.floor(mins/60),m=mins%60; return h?`${h}h ${m}m`:`${m}m`; }
+function getAgentIdFrom(value){ return String(value?._id||value?.id||value||''); }
+function getLoginValue(row){return row?.loginAt||row?.loginTime||row?.clockIn||row?.clockInAt||row?.logIn||row?.startTimeActual||row?.startedAt||null;}
+function getLogoutValue(row){return row?.logoutAt||row?.logoutTime||row?.clockOut||row?.clockOutAt||row?.logOut||row?.endTimeActual||row?.endedAt||null;}
+function agentPerformancePercent(agentId){ if(!agentId)return 0; const tasks=(state.tasks||[]).filter(t=>getAgentIdFrom(t.assigneeId||t.agentId||t.user)===agentId); if(!tasks.length)return 0; const done=tasks.filter(t=>['done','completed','complete'].includes(safeStatus(t.status))).length; return Math.round((done/tasks.length)*100); }
+function buildAgentActivityRows(){ const rows=[]; (state.agentLogs||[]).forEach(log=>{ const agent=log.agentId||log.agent||log.user||log.userId||{}; const login=getLoginValue(log),logout=getLogoutValue(log); rows.push({agentId:getAgentIdFrom(agent),agentName:agent.name||log.agentName||log.name||'Agent',schedule:log.scheduleTitle||log.title||log.shiftType||'Attendance log',login,logout,status:logout?'offline':login?'online':(log.status||'offline')}); }); (state.schedules||[]).forEach(s=>{ const agent=s.agentId||s.agent||s.user||{}; const login=s.loginAt||s.clockIn||s.actualStart||s.startTimeActual||null, logout=s.logoutAt||s.clockOut||s.actualEnd||s.endTimeActual||null; if(!login&&!logout&&!s.status)return; rows.push({agentId:getAgentIdFrom(agent),agentName:agent.name||s.agentName||'Unknown Agent',schedule:s.title||s.shiftType||'Assigned schedule',login,logout,status:logout?'offline':login?'online':(s.status||'scheduled')}); }); if(!rows.length){ const agents=new Map(); [...(state.schedules||[]),...(state.tasks||[])].forEach(item=>{ const agent=item.agentId||item.assigneeId||item.agent||item.user||{}; const id=getAgentIdFrom(agent); if(!id)return; if(!agents.has(id))agents.set(id,{agentId:id,agentName:agent.name||item.agentName||item.assigneeName||'Agent',schedule:item.title||item.shiftType||'Assigned work',login:null,logout:null,status:item.status||'scheduled'}); }); rows.push(...agents.values()); } return rows.slice(0,30); }
+function buildAgentActivityPanel(){ const tbody=document.getElementById('agentActivityBody'); if(!tbody)return; const rows=buildAgentActivityRows(); if(!rows.length){ tbody.innerHTML=`<tr><td colspan="7"><div class="empty">No live agent login/logout data found yet. When your backend returns clock-in/clock-out fields, they will appear here automatically.</div></td></tr>`; return; } tbody.innerHTML=rows.map(row=>{ const perf=agentPerformancePercent(row.agentId); const st=safeStatus(row.status).includes('online')||safeStatus(row.status).includes('active')?'online':safeStatus(row.status).includes('away')||safeStatus(row.status).includes('scheduled')?'away':'offline'; return `<tr class="agent-live-row"><td><b>${escapeHtml(row.agentName)}</b></td><td>${escapeHtml(row.schedule||'-')}</td><td>${formatDateTime(row.login)}</td><td>${formatDateTime(row.logout)}</td><td>${durationBetween(row.login,row.logout)}</td><td><span class="agent-status-dot ${st}"></span>${escapeHtml(st)}</td><td><div style="display:flex;align-items:center;gap:10px;"><div class="agent-perf-bar"><div class="agent-perf-fill" style="width:${perf}%"></div></div><b>${perf}%</b></div></td></tr>`; }).join(''); }
+async function loadAgentLogs(){ const endpoints=['/api/agent-logs','/api/attendance','/api/agent-attendance','/api/schedules/attendance','/api/time-logs']; for(const ep of endpoints){ try{ const data=await fetchJSON(API+ep,{headers:authHeaders()}); const rows=Array.isArray(data)?data:(Array.isArray(data?.logs)?data.logs:Array.isArray(data?.items)?data.items:Array.isArray(data?.attendance)?data.attendance:[]); if(rows.length){state.agentLogs=rows;return;} }catch(e){} } state.agentLogs=[]; }
+async function reloadOperationsLive(){ try{ await Promise.all([loadSchedules(),loadTasks(),loadAgentLogs()]); buildOps(); buildAnalytics(); showToast('Operations updated','Live schedules, tasks, and available agent logs refreshed.'); }catch(err){ showToast('Refresh failed',err.message||'Could not refresh operations.','error'); } }
+
     function buildOps(){
   const scheduleWrap = document.getElementById("scheduleList");
   const taskWrap = document.getElementById("taskList");
@@ -1552,280 +1593,28 @@ taskWrap.innerHTML = tasks.length
     </div>
   `).join("")
   : '<div class="empty">No tasks assigned yet.</div>';
+  buildAgentActivityPanel();
 }
   function buildAnalytics(){
-  const stats = getStats();
-  const eStats = state.employerStats || {};
-  const pAnalytics = state.postAnalytics?.summary || {};
-
-  const shortlistRate = stats.applications ? Math.round((stats.grouped.shortlisted / stats.applications) * 100) : 0;
-  const hireRate = stats.applications ? Math.round((stats.grouped.hired / stats.applications) * 100) : 0;
-  const activeJobsPercent = stats.jobsPosted ? Math.round((stats.activeJobs / stats.jobsPosted) * 100) : 0;
-  const postEngagement = Math.min(
-    100,
-    Math.round(((pAnalytics.totalLikes || 0) + (pAnalytics.totalComments || 0) + (pAnalytics.totalViews || 0)) / Math.max(1, (pAnalytics.totalPosts || 1) * 10))
-  );
-
-  const grid = document.getElementById("analyticsGrid");
-  grid.innerHTML = `
-    <article class="analytics-card">
-      <h3>Hiring Funnel</h3>
-      <p>Track where candidates are moving inside your employer pipeline.</p>
-      <div class="metric-line"><span>New Applicants</span><b>${stats.grouped.new}</b></div>
-      <div class="metric-line"><span>Shortlisted</span><b class="metric-good">${stats.grouped.shortlisted}</b></div>
-      <div class="metric-line"><span>Interview</span><b>${stats.grouped.interview}</b></div>
-      <div class="metric-line"><span>Offers</span><b>${stats.grouped.offer}</b></div>
-      <div class="metric-line"><span>Hired</span><b class="metric-good">${stats.grouped.hired}</b></div>
-      <div class="metric-line"><span>Rejected</span><b class="metric-bad">${stats.grouped.rejected || 0}</b></div>
-    </article>
-
-    <article class="analytics-card">
-      <h3>Employer Performance</h3>
-      <p>Use live data to improve posting quality, response time, and hiring speed.</p>
-      <div class="metric-line"><span>Total Job Views</span><b>${eStats.totalViews || 0}</b></div>
-      <div class="metric-line"><span>Total Saves</span><b>${eStats.totalSaves || 0}</b></div>
-      <div class="metric-line"><span>Total Invites</span><b>${eStats.totalInvites || 0}</b></div>
-      <div class="metric-line"><span>Shortlist Rate</span><b class="${shortlistRate >= 30 ? 'metric-good' : 'metric-bad'}">${shortlistRate}%</b></div>
-      <div class="metric-line"><span>Hire Rate</span><b class="${hireRate >= 10 ? 'metric-good' : 'metric-bad'}">${hireRate}%</b></div>
-    </article>
-
-    <article class="analytics-card">
-      <h3>Company Feed Performance</h3>
-      <p>Measure employer brand content and engagement.</p>
-      <div class="metric-line"><span>Total Posts</span><b>${pAnalytics.totalPosts || 0}</b></div>
-      <div class="metric-line"><span>Total Views</span><b>${pAnalytics.totalViews || 0}</b></div>
-      <div class="metric-line"><span>Total Likes</span><b>${pAnalytics.totalLikes || 0}</b></div>
-      <div class="metric-line"><span>Total Comments</span><b>${pAnalytics.totalComments || 0}</b></div>
-      <div class="metric-line"><span>Total Shares</span><b>${pAnalytics.totalShares || 0}</b></div>
-    </article>
-
-    <article class="analytics-card">
-      <h3>Operations</h3>
-      <p>Track schedules and task execution in one place.</p>
-      <div class="metric-line"><span>Schedules Assigned</span><b>${(state.schedules || []).length}</b></div>
-      <div class="metric-line"><span>Tasks Created</span><b>${(state.tasks || []).length}</b></div>
-      <div class="metric-line"><span>Tasks Done</span><b class="metric-good">${(state.tasks || []).filter(t => t.status === 'done').length}</b></div>
-      <div class="metric-line"><span>Tasks In Progress</span><b>${(state.tasks || []).filter(t => t.status === 'in_progress').length}</b></div>
-      <div class="metric-line"><span>Open Workload</span><b>${(state.tasks || []).filter(t => ['todo', 'in_progress'].includes(t.status)).length}</b></div>
-    </article>
-  `;
-
-  document.getElementById("activeJobsPercent").innerText = `${activeJobsPercent}%`;
-  document.getElementById("activeJobsBar").style.width = `${activeJobsPercent}%`;
-
-  document.getElementById("shortlistPercent").innerText = `${shortlistRate}%`;
-  document.getElementById("shortlistBar").style.width = `${shortlistRate}%`;
-
-  document.getElementById("hirePercent").innerText = `${hireRate}%`;
-  document.getElementById("hireBar").style.width = `${hireRate}%`;
-
-  const engagementEl = document.getElementById("engagementPercent");
-  const engagementBar = document.getElementById("engagementBar");
-  if (engagementEl && engagementBar) {
-    engagementEl.innerText = `${postEngagement}%`;
-    engagementBar.style.width = `${postEngagement}%`;
-  }
+  const stats=getStats(); const eStats=state.employerStats||{}; const pAnalytics=state.postAnalytics?.summary||{};
+  const apps=Array.isArray(state.applications)?state.applications:[], jobs=Array.isArray(state.jobs)?state.jobs:[], tasks=Array.isArray(state.tasks)?state.tasks:[], schedules=Array.isArray(state.schedules)?state.schedules:[], companyPosts=getCompanyPosts();
+  const shortlistRate=stats.applications?Math.round((stats.grouped.shortlisted/stats.applications)*100):0;
+  const hireRate=stats.applications?Math.round((stats.grouped.hired/stats.applications)*100):0;
+  const completedTasks=tasks.filter(t=>['done','completed','complete'].includes(safeStatus(t.status))).length;
+  const taskCompletion=tasks.length?Math.round((completedTasks/tasks.length)*100):0;
+  const totalEngagement=(pAnalytics.totalLikes||0)+(pAnalytics.totalComments||0)+(pAnalytics.totalShares||0);
+  const grid=document.getElementById('analyticsGrid');
+  grid.innerHTML=`
+    ${growthCard('Applications Growth',stats.applications,apps,'Real application records over the last 7 days')}
+    ${growthCard('Jobs Growth',stats.jobsPosted,jobs,'Real job records over the last 7 days')}
+    ${growthCard('Company Post Growth',companyPosts.length,companyPosts,'Real company post records over the last 7 days')}
+    ${growthCard('Operations Activity',schedules.length+tasks.length,[...schedules,...tasks],'Real schedule and task records over the last 7 days')}
+    <article class="analytics-card"><h3>Hiring Funnel</h3><p>Live candidate movement from your backend application records.</p><div class="metric-line"><span>New Applicants</span><b>${stats.grouped.new}</b></div><div class="metric-line"><span>Shortlisted</span><b class="metric-good">${stats.grouped.shortlisted}</b></div><div class="metric-line"><span>Interview</span><b>${stats.grouped.interview}</b></div><div class="metric-line"><span>Offers</span><b>${stats.grouped.offer}</b></div><div class="metric-line"><span>Hired</span><b class="metric-good">${stats.grouped.hired}</b></div><div class="metric-line"><span>Rejected</span><b class="metric-bad">${stats.grouped.rejected||0}</b></div></article>
+    <article class="analytics-card"><h3>Employer Performance</h3><p>Rates are calculated from real applications and job statistics only.</p><div class="metric-line"><span>Total Job Views</span><b>${eStats.totalViews||0}</b></div><div class="metric-line"><span>Total Saves</span><b>${eStats.totalSaves||0}</b></div><div class="metric-line"><span>Total Invites</span><b>${eStats.totalInvites||0}</b></div><div class="metric-line"><span>Shortlist Rate</span><b class="${shortlistRate>=30?'metric-good':'metric-bad'}">${shortlistRate}%</b></div><div class="metric-line"><span>Hire Rate</span><b class="${hireRate>=10?'metric-good':'metric-bad'}">${hireRate}%</b></div></article>
+    <article class="analytics-card"><h3>Company Feed Performance</h3><p>Engagement comes from your post analytics endpoint when available.</p><div class="metric-line"><span>Total Posts</span><b>${pAnalytics.totalPosts||companyPosts.length}</b></div><div class="metric-line"><span>Total Views</span><b>${pAnalytics.totalViews||0}</b></div><div class="metric-line"><span>Total Likes</span><b>${pAnalytics.totalLikes||0}</b></div><div class="metric-line"><span>Total Comments</span><b>${pAnalytics.totalComments||0}</b></div><div class="metric-line"><span>Total Shares</span><b>${pAnalytics.totalShares||0}</b></div><div class="metric-line"><span>Total Engagement</span><b>${totalEngagement}</b></div></article>
+    <article class="analytics-card"><h3>Agent Performance</h3><p>Based on assigned schedules and task completion. Login/logout rows appear below Schedules & Tasks.</p><div class="metric-line"><span>Schedules Assigned</span><b>${schedules.length}</b></div><div class="metric-line"><span>Tasks Created</span><b>${tasks.length}</b></div><div class="metric-line"><span>Tasks Done</span><b class="metric-good">${completedTasks}</b></div><div class="metric-line"><span>Tasks In Progress</span><b>${tasks.filter(t=>safeStatus(t.status)==='in_progress').length}</b></div><div class="metric-line"><span>Task Completion</span><b class="${taskCompletion>=70?'metric-good':'metric-bad'}">${taskCompletion}%</b></div></article>`;
 }
-    async function submitSchedule(){
-  const payload = {
-    title: document.getElementById("scheduleTitle").value.trim(),
-    agentId: document.getElementById("scheduleAgent").value,
-    shiftType: document.getElementById("scheduleShiftType").value,
-    locationType: document.getElementById("scheduleLocationType").value,
-    startDate: document.getElementById("scheduleStartDate").value,
-    endDate: document.getElementById("scheduleEndDate").value,
-    startTime: document.getElementById("scheduleStartTime").value,
-    endTime: document.getElementById("scheduleEndTime").value,
-    recurrence: document.getElementById("scheduleRecurrence").value,
-    timezone: document.getElementById("scheduleTimezone").value,
-    notes: document.getElementById("scheduleNotes").value.trim()
-  };
-
-  if (!payload.title || !payload.agentId || !payload.startDate || !payload.endDate || !payload.startTime || !payload.endTime) {
-    showToast("Missing schedule info", "Please complete all required schedule fields.", "error");
-    return;
-  }
-
-  try {
-    await fetchJSON(API + "/api/schedules", {
-      method: "POST",
-      headers: authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(payload)
-    });
-
-    closeModal("scheduleModal");
-    await loadSchedules();
-    refreshAllUI();
-    showToast("Schedule created", "Agent schedule assigned successfully.");
-  } catch (err) {
-    showToast("Schedule failed", err.message, "error");
-  }
-}
-
-async function deleteSchedule(id){
-  try {
-    await fetchJSON(`${API}/api/schedules/${id}`, {
-      method: "DELETE",
-      headers: authHeaders()
-    });
-    await loadSchedules();
-    refreshAllUI();
-    showToast("Schedule removed", "Schedule deleted successfully.");
-  } catch (err) {
-    showToast("Delete failed", err.message, "error");
-  }
-}
-
-async function submitTask(){
-  const payload = {
-    title: document.getElementById("taskTitle").value.trim(),
-    assigneeId: document.getElementById("taskAssignee").value,
-    priority: document.getElementById("taskPriority").value,
-    category: document.getElementById("taskCategory").value.trim(),
-    dueDate: document.getElementById("taskDueDate").value,
-    description: document.getElementById("taskDescription").value.trim()
-  };
-
-  if (!payload.title || !payload.assigneeId) {
-    showToast("Missing task info", "Task title and assignee are required.", "error");
-    return;
-  }
-
-  try {
-    await fetchJSON(API + "/api/tasks", {
-      method: "POST",
-      headers: authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(payload)
-    });
-
-    closeModal("taskModal");
-    await loadTasks();
-    refreshAllUI();
-    showToast("Task created", "Task assigned successfully.");
-  } catch (err) {
-    showToast("Task failed", err.message, "error");
-  }
-}
-
-async function deleteTask(id){
-  try {
-    await fetchJSON(`${API}/api/tasks/${id}`, {
-      method: "DELETE",
-      headers: authHeaders()
-    });
-    await loadTasks();
-    refreshAllUI();
-    showToast("Task removed", "Task deleted successfully.");
-  } catch (err) {
-    showToast("Delete failed", err.message, "error");
-  }
-}
-
-async function updateTaskStatus(id, status){
-  try {
-    await fetchJSON(`${API}/api/tasks/${id}`, {
-      method: "PATCH",
-      headers: authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ status })
-    });
-    await loadTasks();
-    refreshAllUI();
-    showToast("Task updated", "Task status changed successfully.");
-  } catch (err) {
-    showToast("Update failed", err.message, "error");
-  }
-}
-
-async function deleteTask(id){
-  try {
-    await fetchJSON(`${API}/api/tasks/${id}`, {
-      method: "DELETE",
-      headers: authHeaders()
-    });
-    await loadTasks();
-    refreshAllUI();
-    showToast("Task removed", "Task deleted successfully.");
-  } catch (err) {
-    showToast("Delete failed", err.message, "error");
-  }
-}
-
-function openInviteModal(candidateId){
-  document.getElementById("inviteCandidateId").value = candidateId;
-  const select = document.getElementById("inviteJobSelect");
-  select.innerHTML = (state.jobs || []).map(job => `<option value="${job._id}">${escapeHtml(job.title)} — ${escapeHtml(job.company || "Company")}</option>`).join("");
-  openModal("inviteModal");
-}
-
-async function submitInvite(){
-  const payload = {
-    candidateId: document.getElementById("inviteCandidateId").value,
-    jobId: document.getElementById("inviteJobSelect").value,
-    message: document.getElementById("inviteMessage").value.trim()
-  };
-
-  if (!payload.candidateId || !payload.jobId) {
-    showToast("Missing invite info", "Please select a job and candidate.", "error");
-    return;
-  }
-
-  try {
-    await fetchJSON(API + "/api/invites", {
-      method: "POST",
-      headers: authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(payload)
-    });
-
-    closeModal("inviteModal");
-    document.getElementById("inviteMessage").value = "";
-    await loadInvites();
-    await loadEmployerStats();
-    refreshAllUI();
-    showToast("Invite sent", "Candidate invitation was sent successfully.");
-  } catch (err) {
-    showToast("Invite failed", err.message, "error");
-  }
-}
-
-async function toggleFollow(userId){
-  try {
-    await fetchJSON(`${API}/api/users/${userId}/follow`, {
-      method: "PATCH",
-      headers: authHeaders()
-    });
-
-    await loadProfile();
-    await loadPeople();
-    refreshAllUI();
-    showToast("Network updated", "Follow status changed.");
-  } catch (err) {
-    showToast("Follow failed", err.message, "error");
-  }
-}
-
-function openEmployerPublicProfile(){
-  const employerId = state.me?._id || state.me?.id;
-  if (!employerId) {
-    showToast("Profile unavailable", "Employer profile id not found.", "error");
-    return;
-  }
-  window.location.href = `employer-public-profile.html?id=${employerId}`;
-}
-
-    function setEmployerFeedMode(mode){employerFeedMode=mode;buildFeed();}
-    function buildFeed(){const wrap=document.getElementById("feedList");if(!wrap)return;const sourcePosts=employerFeedMode==="mine"?getCompanyPosts():(state.posts||[]);const posts=filteredItems(sourcePosts,post=>{const author=post.user||post.author||post.createdBy||{};return [post.text||"",post.content||"",author.name||"",author.headline||"",author.role||""].join(" ");});const allBtn=document.getElementById("feedModeAllBtn");const mineBtn=document.getElementById("feedModeMineBtn");if(allBtn)allBtn.className=employerFeedMode==="all"?"primary-btn":"ghost-btn";if(mineBtn)mineBtn.className=employerFeedMode==="mine"?"primary-btn":"ghost-btn";if(!posts.length){wrap.innerHTML=`<div class="empty">${employerFeedMode==="mine"?"No company posts yet. Share your first update.":"No posts found in the shared feed."}</div>`;return;}wrap.innerHTML=posts.map(post=>renderEmployerFeedPost(post)).join("");}
-    function renderEmployerFeedPost(post){const postId=post._id||Math.random().toString(36).slice(2);const author=post.user||post.author||post.createdBy||state.me||{};const authorName=author.name||state.me?.companyName||"Company";const authorHeadline=author.headline||author.role||state.me?.headline||"Employer";const authorImage=author.profileImage||FALLBACK_AVATAR;const postText=post.text||post.content||"";const postMedia=post.mediaUrl||post.image||post.video||"";const mediaType=String(post.mediaType||"").toLowerCase();const likes=Array.isArray(post.likes)?post.likes.length:Number(post.likesCount||0);const comments=Array.isArray(post.comments)?post.comments.length:Number(post.commentsCount||0);const shares=Number(post.sharesCount||0);const myId=localStorage.getItem("userId");const liked=Array.isArray(post.likes)?post.likes.some(l=>String(l)===String(myId)||String(l?._id)===String(myId)):false;return `<div class="post-card" id="post-${postId}"><div class="post-header"><div class="post-author" onclick="openPublicProfile('${author._id||""}')"><img src="${authorImage}" alt="${escapeHtml(authorName)}"><div class="post-author-main"><div class="post-author-name">${escapeHtml(authorName)}</div><div class="post-meta">${escapeHtml(authorHeadline)}</div><div class="post-meta">${escapeHtml(formatDate(post.createdAt||post.updatedAt))}</div></div></div><div class="post-head-actions"><div class="dropdown"><button class="post-kebab" onclick="toggleEmployerPostDropdown(event, '${postId}')">•••</button><div id="dropdown-${postId}" class="dropdown-menu"><button onclick="openShareModal('${postId}')">Share</button><button onclick="copyEmployerPostLink('${postId}')">Copy link</button><button onclick="reportEmployerPost('${postId}')">Report</button>${String(author._id||"")===String(myId)?`<button onclick="deletePost('${postId}')">Delete</button>`:``}</div></div></div></div>${postText?`<div class="post-content">${escapeHtml(postText)}</div>`:""}${postMedia?`<div class="post-media">${mediaType.includes("video")?`<video src="${postMedia}" controls playsinline></video>`:`<img src="${postMedia}" alt="Post media" loading="lazy">`}</div>`:""}<div class="post-stats"><span>${likes} reactions</span><span>${comments} comments • ${shares} shares</span></div><div class="post-actions"><button class="post-action ${liked?"liked":""}" onclick="toggleEmployerLikePost('${postId}')"><svg viewBox="0 0 24 24"><path d="M7 11v10"></path><path d="M15 5.88l-1 5.12h5.5a2 2 0 0 1 1.94 2.49l-1.34 6A2 2 0 0 1 18.15 21H7a2 2 0 0 1-2-2V11a2 2 0 0 1 2-2h3.76a2 2 0 0 0 1.96-1.61L13.6 3.5A1.5 1.5 0 0 1 15.08 2 1.92 1.92 0 0 1 17 3.92V5a2 2 0 0 1-2 2h0"></path></svg><span>Like</span></button><button class="post-action" onclick="toggleEmployerComments('${postId}')"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><span>Comment</span></button><button class="post-action" onclick="openShareModal('${postId}')"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.59 13.51l6.83 3.98"></path><path d="M15.41 6.51L8.59 10.49"></path></svg><span>Share</span></button></div><div id="comments-${postId}" class="comments-wrapper"><div class="comment-input-area"><input id="comment-input-${postId}" type="text" placeholder="Write a comment..."><button class="comment-send" onclick="submitEmployerComment('${postId}')">Send</button></div><div id="comments-list-${postId}" class="comments-container"></div></div></div>`;}
-    function closeEmployerDropdowns(){document.querySelectorAll(".dropdown-menu").forEach(menu=>{menu.style.display="none";});activeEmployerDropdown=null;}
-    document.addEventListener("click",e=>{if(!e.target.closest(".dropdown"))closeEmployerDropdowns();});
-    function toggleEmployerPostDropdown(event,postId){event.stopPropagation();const menu=document.getElementById(`dropdown-${postId}`);if(!menu)return;if(activeEmployerDropdown&&activeEmployerDropdown!==menu)activeEmployerDropdown.style.display="none";const open=menu.style.display==="block";menu.style.display=open?"none":"block";activeEmployerDropdown=open?null:menu;}
-    function copyEmployerPostLink(postId){const url=`${window.location.origin}${window.location.pathname}#post-${postId}`;navigator.clipboard.writeText(url).then(()=>alert("Post link copied.")).catch(()=>alert("Could not copy link."));closeEmployerDropdowns();}
-    function reportEmployerPost(postId){closeEmployerDropdowns();alert("Post reported.");}
-    async function toggleEmployerLikePost(postId){const endpoints=[`${API}/api/posts/${postId}/like`,`${API}/api/posts/${postId}/likes`];let success=false;for(const url of endpoints){try{const res=await fetch(url,{method:"PATCH",headers:authHeaders()});if(res.ok){success=true;break;}}catch(e){}}if(success){await loadPosts();buildFeed();}else alert("Unable to like this post right now.");}
-    function toggleEmployerComments(postId){const wrapper=document.getElementById(`comments-${postId}`);if(!wrapper)return;const isOpen=wrapper.style.display==="block";wrapper.style.display=isOpen?"none":"block";if(!isOpen)loadEmployerComments(postId);}
-    async function loadEmployerComments(postId){const container=document.getElementById(`comments-list-${postId}`);if(!container)return;container.innerHTML=`<div style="font-size:13px;color:#64748b;">Loading comments...</div>`;const endpoints=[`${API}/api/posts/${postId}`,`${API}/api/posts/${postId}/comments`];let comments=[];for(const url of endpoints){try{const res=await fetch(url,{headers:authHeaders()});if(!res.ok)continue;const data=await res.json();if(Array.isArray(data)){comments=data;break;}if(Array.isArray(data.comments)){comments=data.comments;break;}}catch(e){}}if(!comments.length){container.innerHTML=`<div style="font-size:13px;color:#64748b;">No comments yet.</div>`;return;}container.innerHTML=comments.map(comment=>{const user=comment.user||comment.author||{};return `<div class="comment-item"><img class="comment-avatar" src="${user.profileImage||FALLBACK_AVATAR}" alt="${escapeHtml(user.name||"User")}"><div class="comment-body"><div class="comment-bubble"><div class="comment-name">${escapeHtml(user.name||"User")}</div><div class="comment-text">${escapeHtml(comment.text||comment.content||"")}</div></div></div></div>`;}).join("");}
-    async function submitEmployerComment(postId){const input=document.getElementById(`comment-input-${postId}`);if(!input)return;const text=input.value.trim();if(!text)return;const endpoints=[`${API}/api/posts/${postId}/comment`,`${API}/api/posts/${postId}/comments`];let success=false;for(const url of endpoints){try{const res=await fetch(url,{method:"POST",headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify({text})});if(res.ok){success=true;break;}}catch(e){}}if(!success){alert("Unable to add comment right now.");return;}input.value="";await loadEmployerComments(postId);await loadPosts();buildFeed();}
-
-    function buildProfileSection(){
+  function buildProfileSection(){
   const me = state.me || {};
   const tags = Array.isArray(me.companyTags) ? me.companyTags : [];
 
@@ -2593,6 +2382,7 @@ function openTab(tab){
       loadTeamMembers(),
       loadSchedules(),
       loadTasks(),
+      loadAgentLogs(),
       loadInvites(),
       loadEmployerStats(),
       loadPostAnalytics(),
