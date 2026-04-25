@@ -1,48 +1,74 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agent Dashboard | HireFlow</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<title>Agent Dashboard | AIFT</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
 *{box-sizing:border-box;}
+:root{
+  --primary:#0a66c2;
+  --primary-dark:#004182;
+  --green:#16a34a;
+  --red:#ef4444;
+  --yellow:#f59e0b;
+  --bg:#f3f2ef;
+  --card:#ffffff;
+  --text:#191919;
+  --muted:#64748b;
+  --border:#d8d8d8;
+  --shadow:0 1px 2px rgba(0,0,0,.08),0 6px 18px rgba(0,0,0,.05);
+}
 body{
   margin:0;
   font-family:'Inter',sans-serif;
-  background:linear-gradient(135deg,#f8fafc,#eef2ff);
+  background:var(--bg);
+  color:var(--text);
   display:flex;
+  min-height:100vh;
 }
 
 /* SIDEBAR */
 .sidebar{
   width:260px;
-  background:linear-gradient(180deg,#0f172a,#1e293b);
+  background:#111827;
   color:white;
   height:100vh;
-  padding:30px 20px;
+  padding:22px 16px;
   position:fixed;
   transition:0.3s ease;
   z-index:1000;
 }
-
-.sidebar h2{margin-bottom:40px;}
-
+.sidebar h2{
+  margin:0 0 24px;
+  font-size:18px;
+  letter-spacing:-.02em;
+}
+.sidebar .agent-small{
+  color:#cbd5e1;
+  font-size:12px;
+  line-height:1.45;
+  margin-bottom:18px;
+}
 .sidebar a{
-  display:block;
-  padding:10px 15px;
-  margin-bottom:8px;
-  border-radius:8px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:11px 13px;
+  margin-bottom:6px;
+  border-radius:10px;
   cursor:pointer;
   color:#cbd5e1;
   text-decoration:none;
-  transition:0.3s;
+  transition:0.2s;
+  font-weight:700;
+  font-size:14px;
 }
-
-.sidebar a:hover{background:#2563eb;color:white;}
-.sidebar a.active{background:#3b82f6;color:white;}
-.sidebar.hidden{transform:translateX(-100%);}
+.sidebar a:hover{background:#1f2937;color:white;}
+.sidebar a.active{background:var(--primary);color:white;}
+.sidebar.hidden{transform:translateX(0);}
 
 .overlay{
   position:fixed;
@@ -52,84 +78,240 @@ body{
   display:none;
   z-index:900;
 }
-
 .overlay.active{display:block;}
 
 /* MAIN */
 .main{
   margin-left:260px;
-  padding:30px;
+  padding:20px;
   width:100%;
 }
-
 .topbar{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:25px;
+  gap:12px;
+  margin-bottom:16px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:12px 14px;
+  box-shadow:var(--shadow);
 }
-
 .hamburger{
   display:none;
   font-size:24px;
   cursor:pointer;
 }
-
 .topbar h1{
-  font-size:22px;
-  background:linear-gradient(90deg,#2563eb,#7c3aed);
-  -webkit-background-clip:text;
-  color:transparent;
+  font-size:20px;
+  margin:0;
+  font-weight:800;
+  letter-spacing:-.02em;
 }
+.topbar-right{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.agent-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 10px;
+  border-radius:999px;
+  background:#eef3f8;
+  color:#334155;
+  font-size:12px;
+  font-weight:800;
+}
+.status-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#94a3b8;
+}
+.status-dot.online{
+  background:var(--green);
+  box-shadow:0 0 0 4px rgba(22,163,74,.12);
+}
+.status-dot.offline{background:#94a3b8;}
+
+button{
+  padding:8px 13px;
+  border:none;
+  border-radius:999px;
+  cursor:pointer;
+  font-weight:800;
+  font-size:13px;
+  transition:.2s ease;
+}
+button:hover{transform:translateY(-1px);}
+.primary{background:var(--primary);color:white;}
+.primary:hover{background:var(--primary-dark);}
+.success{background:var(--green);color:white;}
+.logout{background:#fee2e2;color:#991b1b;}
+.soft{background:#fff;color:var(--primary);border:1px solid var(--primary);}
+.gray{background:#eef3f8;color:#334155;}
 
 /* CARDS */
 .stats{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:15px;
-  margin-bottom:25px;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:12px;
+  margin-bottom:14px;
 }
-
 .card{
   background:white;
-  padding:20px;
-  border-radius:14px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.06);
-  transition:0.3s;
+  padding:18px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  box-shadow:var(--shadow);
+  transition:0.25s ease;
 }
+.card:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(0,0,0,.09);}
+.card h3{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:0 0 8px;}
+.card p{font-size:22px;font-weight:800;margin:0;}
+.card small{display:block;margin-top:6px;color:var(--muted);line-height:1.45;}
 
-.card:hover{transform:translateY(-4px);}
-
-.card h3{font-size:13px;color:#64748b;}
-.card p{font-size:20px;font-weight:700;margin-top:6px;}
-
-button{
-  padding:7px 12px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:600;
+.grid{
+  display:grid;
+  grid-template-columns:1.2fr .8fr;
+  gap:14px;
 }
-
-.logout{background:#ef4444;color:white;}
-
+.section-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
+}
+.section-head h2{
+  margin:0;
+  font-size:17px;
+}
+.section-head p{
+  margin:4px 0 0;
+  font-size:12px;
+  color:var(--muted);
+}
 .table-wrapper{overflow-x:auto;}
 table{
   width:100%;
   border-collapse:collapse;
-  min-width:600px;
+  min-width:680px;
 }
 th,td{
   padding:12px;
-  border-bottom:1px solid #f1f5f9;
+  border-bottom:1px solid #eef2f7;
+  text-align:left;
+  font-size:13px;
+}
+th{
+  background:#f8fafc;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:#64748b;
+}
+tr:hover td{background:#f8fbff;}
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border-radius:999px;
+  padding:5px 9px;
+  font-size:11px;
+  font-weight:900;
+}
+.badge.green{background:#dcfce7;color:#166534;}
+.badge.red{background:#fee2e2;color:#991b1b;}
+.badge.blue{background:#e0f2fe;color:#075985;}
+.badge.yellow{background:#fef3c7;color:#92400e;}
+
+.task-card,.schedule-card{
+  border:1px solid #eef2f7;
+  border-radius:12px;
+  padding:13px;
+  margin-bottom:10px;
+  background:#fff;
+}
+.task-card h4,.schedule-card h4{
+  margin:0 0 6px;
+  font-size:14px;
+}
+.task-card p,.schedule-card p{
+  margin:0;
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.5;
+}
+.actions-row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+.notice{
+  padding:12px 14px;
+  border-radius:12px;
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+  font-size:13px;
+  line-height:1.55;
+  margin-bottom:14px;
+}
+.empty{
+  padding:18px;
+  text-align:center;
+  color:var(--muted);
+  border:1px dashed var(--border);
+  border-radius:12px;
+  background:#fff;
+}
+.timer{
+  font-size:34px;
+  font-weight:900;
+  letter-spacing:-.04em;
+  margin:8px 0;
+}
+.timeline{
+  display:grid;
+  gap:10px;
+}
+.timeline-item{
+  border-left:3px solid var(--primary);
+  padding:8px 0 8px 12px;
+}
+.timeline-item b{
+  display:block;
+  font-size:13px;
+}
+.timeline-item span{
+  display:block;
+  color:var(--muted);
+  font-size:12px;
+  margin-top:3px;
 }
 
 /* RESPONSIVE */
 @media(max-width:900px){
   .sidebar{transform:translateX(-100%);}
   .sidebar.active{transform:translateX(0);}
-  .main{margin-left:0;}
+  .sidebar.hidden{transform:translateX(-100%);}
+  .main{margin-left:0;padding:12px;}
   .hamburger{display:block;}
+  .grid{grid-template-columns:1fr;}
+  .topbar{align-items:flex-start;}
+}
+@media(max-width:640px){
+  .topbar{flex-direction:column;align-items:stretch;}
+  .topbar-right{width:100%;}
+  .topbar-right button{flex:1;}
+  .stats{grid-template-columns:1fr 1fr;}
+  .timer{font-size:28px;}
 }
 </style>
 </head>
@@ -139,17 +321,33 @@ th,td{
 <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
 
 <div class="sidebar hidden" id="sidebar">
-  <h2>HireFlow Agent</h2>
+  <h2>AIFT Agent</h2>
+  <div class="agent-small" id="sidebarAgent">Loading agent...</div>
+
   <a onclick="showSection('dashboard')" class="active">Dashboard</a>
+  <a onclick="showSection('schedule')">My Schedule</a>
+  <a onclick="showSection('tasks')">My Tasks</a>
+  <a onclick="showSection('activity')">Login / Logout</a>
   <a onclick="showSection('referrals')">My Referrals</a>
   <a onclick="logout()">Logout</a>
 </div>
 
 <div class="main">
   <div class="topbar">
-    <span class="hamburger" onclick="toggleSidebar()">☰</span>
-    <h1 id="pageTitle">Dashboard</h1>
-    <button class="logout" onclick="logout()">Logout</button>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="hamburger" onclick="toggleSidebar()">☰</span>
+      <div>
+        <h1 id="pageTitle">Dashboard</h1>
+        <div style="font-size:12px;color:#64748b;margin-top:3px;">Agent workspace connected to schedules, tasks, and activity tracking.</div>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <span class="agent-pill"><span class="status-dot" id="liveDot"></span><span id="liveStatusText">Offline</span></span>
+      <button class="success" onclick="clockIn()">Clock In</button>
+      <button class="logout" onclick="clockOut()">Clock Out</button>
+      <button class="gray" onclick="logout()">Logout</button>
+    </div>
   </div>
 
   <div id="content"></div>
@@ -157,10 +355,37 @@ th,td{
 
 <script>
 const API="https://backend-1-9b6f.onrender.com";
-const token=localStorage.getItem("token");
-if(!token){window.location.href="login.html";}
+
+/*
+  IMPORTANT:
+  Your old page used localStorage.getItem("token").
+  Your AIFT role-based login uses agentToken.
+  This supports BOTH so it will not break your old login while you update login.html.
+*/
+function getAgentToken(){
+  return localStorage.getItem("agentToken") || localStorage.getItem("token");
+}
+
+let token=getAgentToken();
+
+if(!token){
+  window.location.href="login.html";
+}
+
+function authHeaders(extra={}){
+  token=getAgentToken();
+  return {
+    ...(token ? { Authorization:"Bearer "+token } : {}),
+    ...extra
+  };
+}
 
 let agentData=null;
+let schedules=[];
+let tasks=[];
+let activity=[];
+let activeSession=null;
+let timerInterval=null;
 
 function toggleSidebar(){
   document.getElementById("sidebar").classList.toggle("active");
@@ -175,66 +400,555 @@ function setActive(section){
   });
 }
 
+function safeText(value,fallback="N/A"){
+  return value === undefined || value === null || value === "" ? fallback : value;
+}
+
+function formatDateTime(value){
+  if(!value) return "—";
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString([],{
+    year:"numeric",
+    month:"short",
+    day:"numeric",
+    hour:"2-digit",
+    minute:"2-digit"
+  });
+}
+
+function formatTime(value){
+  if(!value) return "—";
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleTimeString([],{
+    hour:"2-digit",
+    minute:"2-digit"
+  });
+}
+
+function durationBetween(start,end){
+  if(!start) return "—";
+  const s=new Date(start).getTime();
+  const e=end ? new Date(end).getTime() : Date.now();
+  if(Number.isNaN(s) || Number.isNaN(e)) return "—";
+  const mins=Math.max(0,Math.floor((e-s)/60000));
+  const h=Math.floor(mins/60);
+  const m=mins%60;
+  return `${h}h ${m}m`;
+}
+
+function setLiveStatus(isOnline){
+  document.getElementById("liveDot").className="status-dot "+(isOnline?"online":"offline");
+  document.getElementById("liveStatusText").textContent=isOnline ? "Online" : "Offline";
+}
+
+async function fetchJSON(url,options={}){
+  const res=await fetch(url,{
+    ...options,
+    headers:{
+      ...authHeaders(),
+      ...(options.headers || {})
+    }
+  });
+
+  const text=await res.text();
+  let data=null;
+  try{ data=text ? JSON.parse(text) : null; }catch(e){ data=text; }
+
+  if(!res.ok){
+    throw new Error((data && (data.message || data.msg || data.error)) || `Request failed: ${res.status}`);
+  }
+  return data;
+}
+
+async function loadMe(){
+  try{
+    agentData=await fetchJSON(API+"/api/auth/me");
+  }catch(err){
+    console.error("Agent profile failed:",err);
+    agentData={};
+  }
+
+  document.getElementById("sidebarAgent").innerHTML=`
+    <b>${safeText(agentData.name,"Agent")}</b><br>
+    ${safeText(agentData.email,"No email")}<br>
+    Role: ${safeText(agentData.role,"agent")}
+  `;
+}
+
+async function loadSchedules(){
+  try{
+    schedules=await fetchJSON(API+"/api/schedules");
+    if(!Array.isArray(schedules)) schedules=[];
+  }catch(err){
+    console.warn("Schedules not available yet:",err.message);
+    schedules=[];
+  }
+}
+
+async function loadTasks(){
+  try{
+    tasks=await fetchJSON(API+"/api/tasks");
+    if(!Array.isArray(tasks)) tasks=[];
+  }catch(err){
+    console.warn("Tasks not available yet:",err.message);
+    tasks=[];
+  }
+}
+
+/*
+  This supports multiple possible backend names:
+  1. /api/agent-sessions/me
+  2. /api/agent-activity/me
+  3. /api/agent-activity
+
+  If your backend does not have these yet, the page will still work,
+  but real login/logout records will not save until backend routes exist.
+*/
+async function loadActivity(){
+  const possibleRoutes=[
+    API+"/api/agent-sessions/me",
+    API+"/api/agent-activity/me",
+    API+"/api/agent-activity"
+  ];
+
+  for(const url of possibleRoutes){
+    try{
+      const data=await fetchJSON(url);
+      activity=Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []);
+      activeSession=activity.find(item=>!item.logoutTime && !item.clockOut && !item.logoutAt) || null;
+      setLiveStatus(!!activeSession);
+      return;
+    }catch(err){
+      console.warn("Activity route failed:",url,err.message);
+    }
+  }
+
+  activity=[];
+  activeSession=null;
+  setLiveStatus(false);
+}
+
+function todaySchedules(){
+  const today=new Date().toDateString();
+  return schedules.filter(s=>{
+    const value=s.startDate || s.date || s.scheduleDate || s.createdAt;
+    if(!value) return true;
+    return new Date(value).toDateString()===today;
+  });
+}
+
+function myTasks(){
+  return tasks.filter(t=>{
+    const assigned=t.agentId?._id || t.agentId || t.assignedTo?._id || t.assignedTo;
+    const me=agentData?._id || agentData?.id;
+    if(!me) return true;
+    return !assigned || String(assigned)===String(me);
+  });
+}
+
+function currentSchedule(){
+  const list=todaySchedules();
+  return list[0] || schedules[0] || null;
+}
+
+async function clockIn(){
+  const schedule=currentSchedule();
+
+  const payload={
+    scheduleId:schedule?._id || schedule?.id || null,
+    agentId:agentData?._id || agentData?.id || null
+  };
+
+  const possibleRoutes=[
+    API+"/api/agent-sessions/clock-in",
+    API+"/api/agent-activity/clock-in",
+    API+"/api/agent-activity/login"
+  ];
+
+  for(const url of possibleRoutes){
+    try{
+      await fetchJSON(url,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload)
+      });
+      await refreshAll();
+      showSection("activity");
+      return;
+    }catch(err){
+      console.warn("Clock in route failed:",url,err.message);
+    }
+  }
+
+  alert("Clock-in backend route is not available yet. Add /api/agent-sessions/clock-in or /api/agent-activity/clock-in to save real login time.");
+}
+
+async function clockOut(){
+  const possibleRoutes=[
+    API+"/api/agent-sessions/clock-out",
+    API+"/api/agent-activity/clock-out",
+    API+"/api/auth/logout"
+  ];
+
+  for(const url of possibleRoutes){
+    try{
+      await fetchJSON(url,{ method:"POST" });
+      await refreshAll();
+      showSection("activity");
+      return;
+    }catch(err){
+      console.warn("Clock out route failed:",url,err.message);
+    }
+  }
+
+  alert("Clock-out backend route is not available yet. Add /api/agent-sessions/clock-out or /api/agent-activity/clock-out to save real logout time.");
+}
+
+function renderTimer(){
+  if(timerInterval) clearInterval(timerInterval);
+
+  const el=document.getElementById("liveTimer");
+  if(!el) return;
+
+  function update(){
+    const start=activeSession?.loginTime || activeSession?.clockIn || activeSession?.loginAt;
+    el.textContent=start ? durationBetween(start,null) : "0h 0m";
+  }
+
+  update();
+  timerInterval=setInterval(update,30000);
+}
+
 async function showSection(section){
   setActive(section);
   const content=document.getElementById("content");
   const title=document.getElementById("pageTitle");
 
+  if(window.innerWidth <= 900){
+    document.getElementById("sidebar").classList.remove("active");
+    document.getElementById("overlay").classList.remove("active");
+  }
+
   if(section==="dashboard"){
     title.innerText="Dashboard";
 
-    const res=await fetch(API+"/api/auth/me",{
-      headers:{Authorization:"Bearer "+token}
-    });
-
-    agentData=await res.json();
+    const taskList=myTasks();
+    const pendingTasks=taskList.filter(t=>!["done","completed","complete"].includes(String(t.status || "").toLowerCase())).length;
+    const todaySched=todaySchedules();
+    const online=!!activeSession;
 
     content.innerHTML=`
+      <div class="notice">
+        This page uses your real backend data. If clock-in/clock-out does not save yet, you need backend routes for agent sessions.
+      </div>
+
       <div class="stats">
         <div class="card">
+          <h3>Status</h3>
+          <p>${online ? "Online" : "Offline"}</p>
+          <small>${online ? "Current active session is running." : "Clock in to start tracking work time."}</small>
+        </div>
+        <div class="card">
+          <h3>Today Schedule</h3>
+          <p>${todaySched.length}</p>
+          <small>Schedules assigned for today.</small>
+        </div>
+        <div class="card">
+          <h3>Pending Tasks</h3>
+          <p>${pendingTasks}</p>
+          <small>Tasks not marked completed.</small>
+        </div>
+        <div class="card">
           <h3>Your Referral Code</h3>
-          <p>${agentData.referralCode || "N/A"}</p>
+          <p>${safeText(agentData?.referralCode,"N/A")}</p>
+          <small>Used for your referral tracking.</small>
         </div>
         <div class="card">
           <h3>Total Commission</h3>
-          <p>$${agentData.commissionEarned}</p>
+          <p>$${safeText(agentData?.commissionEarned,0)}</p>
+          <small>Based on your backend account data.</small>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <h2>Work Timer</h2>
+              <p>Connected to your live login/logout session.</p>
+            </div>
+          </div>
+          <div class="timer" id="liveTimer">0h 0m</div>
+          <div class="actions-row">
+            <button class="success" onclick="clockIn()">Clock In</button>
+            <button class="logout" onclick="clockOut()">Clock Out</button>
+            <button class="soft" onclick="showSection('activity')">View Activity</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <h2>Today</h2>
+              <p>Your first schedule and task snapshot.</p>
+            </div>
+          </div>
+          ${renderTodayMini()}
         </div>
       </div>
     `;
+    renderTimer();
+  }
+
+  if(section==="schedule"){
+    title.innerText="My Schedule";
+    content.innerHTML=`
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h2>Assigned Schedules</h2>
+            <p>These are loaded from your schedules backend.</p>
+          </div>
+          <button class="soft" onclick="refreshAll().then(()=>showSection('schedule'))">Refresh</button>
+        </div>
+        ${renderSchedules()}
+      </div>
+    `;
+  }
+
+  if(section==="tasks"){
+    title.innerText="My Tasks";
+    content.innerHTML=`
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <h2>Assigned Tasks</h2>
+            <p>Tasks connected to your agent account.</p>
+          </div>
+          <button class="soft" onclick="refreshAll().then(()=>showSection('tasks'))">Refresh</button>
+        </div>
+        ${renderTasks()}
+      </div>
+    `;
+  }
+
+  if(section==="activity"){
+    title.innerText="Login / Logout";
+    content.innerHTML=`
+      <div class="grid">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <h2>Live Session</h2>
+              <p>Clock-in and clock-out tracking.</p>
+            </div>
+          </div>
+          <div class="timer" id="liveTimer">0h 0m</div>
+          <div class="actions-row">
+            <button class="success" onclick="clockIn()">Clock In</button>
+            <button class="logout" onclick="clockOut()">Clock Out</button>
+            <button class="soft" onclick="refreshAll().then(()=>showSection('activity'))">Refresh</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <h2>Linked Schedule</h2>
+              <p>The active session will attach to the current schedule when backend supports scheduleId.</p>
+            </div>
+          </div>
+          ${renderCurrentSchedule()}
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px;">
+        <div class="section-head">
+          <div>
+            <h2>Activity History</h2>
+            <p>Real records from agent session/activity backend.</p>
+          </div>
+        </div>
+        ${renderActivityTable()}
+      </div>
+    `;
+    renderTimer();
   }
 
   if(section==="referrals"){
     title.innerText="My Referrals";
 
-    const res=await fetch(API+"/api/users/referred",{
-      headers:{Authorization:"Bearer "+token}
-    });
+    let users=[];
+    try{
+      users=await fetchJSON(API+"/api/users/referred");
+      if(!Array.isArray(users)) users=[];
+    }catch(err){
+      console.error("Referrals failed:",err);
+      users=[];
+    }
 
-    const users=await res.json();
-
-    let html=`<div class="card table-wrapper"><table>
+    let html=`<div class="card table-wrapper">
+      <div class="section-head">
+        <div>
+          <h2>My Referrals</h2>
+          <p>People connected to your referral code.</p>
+        </div>
+      </div>
+      <table>
       <tr><th>Name</th><th>Email</th><th>Role</th></tr>`;
 
-    users.forEach(user=>{
-      html+=`
-        <tr>
-          <td>${user.name}</td>
-          <td>${user.email}</td>
-          <td>${user.role}</td>
-        </tr>`;
-    });
+    if(users.length){
+      users.forEach(user=>{
+        html+=`
+          <tr>
+            <td>${safeText(user.name)}</td>
+            <td>${safeText(user.email)}</td>
+            <td>${safeText(user.role)}</td>
+          </tr>`;
+      });
+    }else{
+      html+=`<tr><td colspan="3">No referrals found.</td></tr>`;
+    }
 
     html+=`</table></div>`;
     content.innerHTML=html;
   }
 }
 
+function renderTodayMini(){
+  const schedule=currentSchedule();
+  const task=myTasks()[0];
+
+  return `
+    <div class="timeline">
+      <div class="timeline-item">
+        <b>${schedule ? safeText(schedule.title || schedule.name || "Assigned schedule") : "No schedule found"}</b>
+        <span>${schedule ? `${safeText(schedule.startTime || schedule.time || "")} ${safeText(schedule.endTime ? " - "+schedule.endTime : "")}` : "No schedule loaded from backend."}</span>
+      </div>
+      <div class="timeline-item">
+        <b>${task ? safeText(task.title || task.name || "Assigned task") : "No task found"}</b>
+        <span>${task ? safeText(task.status,"Pending") : "No task loaded from backend."}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderSchedules(){
+  if(!schedules.length) return `<div class="empty">No schedules found from your backend.</div>`;
+
+  return schedules.map(s=>`
+    <div class="schedule-card">
+      <h4>${safeText(s.title || s.name || "Assigned Schedule")}</h4>
+      <p>
+        Date: ${safeText(s.startDate || s.date || s.scheduleDate,"—")}<br>
+        Time: ${safeText(s.startTime || s.time,"—")} ${s.endTime ? " - "+s.endTime : ""}<br>
+        Notes: ${safeText(s.notes || s.description,"No notes")}
+      </p>
+    </div>
+  `).join("");
+}
+
+function renderCurrentSchedule(){
+  const s=currentSchedule();
+  if(!s) return `<div class="empty">No active schedule found.</div>`;
+
+  return `
+    <div class="schedule-card">
+      <h4>${safeText(s.title || s.name || "Current Schedule")}</h4>
+      <p>
+        Date: ${safeText(s.startDate || s.date || s.scheduleDate,"—")}<br>
+        Time: ${safeText(s.startTime || s.time,"—")} ${s.endTime ? " - "+s.endTime : ""}<br>
+        Schedule ID: ${safeText(s._id || s.id,"—")}
+      </p>
+    </div>
+  `;
+}
+
+function renderTasks(){
+  const list=myTasks();
+  if(!list.length) return `<div class="empty">No tasks found from your backend.</div>`;
+
+  return list.map(t=>{
+    const status=String(t.status || "Pending").toLowerCase();
+    const badge=status.includes("done") || status.includes("complete") ? "green" : status.includes("progress") ? "blue" : "yellow";
+
+    return `
+      <div class="task-card">
+        <h4>${safeText(t.title || t.name || "Assigned Task")}</h4>
+        <p>
+          Status: <span class="badge ${badge}">${safeText(t.status,"Pending")}</span><br>
+          Due: ${safeText(t.dueDate || t.deadline,"—")}<br>
+          Details: ${safeText(t.description || t.notes,"No details")}
+        </p>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderActivityTable(){
+  if(!activity.length) return `<div class="empty">No login/logout records found yet.</div>`;
+
+  return `
+    <div class="table-wrapper">
+      <table>
+        <tr>
+          <th>Status</th>
+          <th>Login</th>
+          <th>Logout</th>
+          <th>Duration</th>
+          <th>Schedule</th>
+        </tr>
+        ${activity.map(item=>{
+          const login=item.loginTime || item.clockIn || item.loginAt || item.createdAt;
+          const logout=item.logoutTime || item.clockOut || item.logoutAt;
+          const isOnline=!logout;
+          const schedule=item.scheduleId?.title || item.scheduleId?.name || item.scheduleTitle || item.scheduleId || "—";
+
+          return `
+            <tr>
+              <td><span class="badge ${isOnline ? "green" : "red"}">${isOnline ? "Online" : "Logged out"}</span></td>
+              <td>${formatDateTime(login)}</td>
+              <td>${logout ? formatDateTime(logout) : "Active"}</td>
+              <td>${durationBetween(login,logout)}</td>
+              <td>${safeText(schedule)}</td>
+            </tr>
+          `;
+        }).join("")}
+      </table>
+    </div>
+  `;
+}
+
+async function refreshAll(){
+  await loadMe();
+  await Promise.all([
+    loadSchedules(),
+    loadTasks(),
+    loadActivity()
+  ]);
+}
+
 function logout(){
+  localStorage.removeItem("agentToken");
   localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  localStorage.removeItem("userId");
   window.location.href="login.html";
 }
 
-showSection("dashboard");
+(async function init(){
+  await refreshAll();
+  showSection("dashboard");
+
+  // Live refresh every 30 seconds
+  setInterval(async()=>{
+    await Promise.all([loadSchedules(),loadTasks(),loadActivity()]);
+    const currentTitle=document.getElementById("pageTitle").innerText.toLowerCase();
+    if(currentTitle.includes("dashboard")) showSection("dashboard");
+    if(currentTitle.includes("login")) showSection("activity");
+  },30000);
+})();
 </script>
 
 </body>
