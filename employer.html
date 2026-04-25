@@ -374,6 +374,38 @@
 .agent-perf-bar{height:8px;border-radius:999px;background:#e5e7eb;overflow:hidden;min-width:110px}.agent-perf-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#0a66c2,#22c55e);transition:width .5s ease}
 .ops-grid-expanded{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:920px){.ops-grid-expanded{grid-template-columns:1fr}.trend-value{font-size:24px}.trend-chart{height:78px}}
 
+  
+
+/* =========================================================
+   FINAL LIVE FEED + MOBILE GRAPH + AGENT PORTAL LINK PATCH
+   Added only as overrides. No existing features removed.
+========================================================= */
+.feed-list-live{display:grid;gap:0;background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
+.feed-list-live .post-card{border-bottom:1px solid #e5e7eb;background:#fff}
+.feed-list-live .post-card:last-child{border-bottom:none}
+.post-action[disabled]{opacity:.6;cursor:not-allowed}
+.post-action.liked svg{fill:currentColor}
+.comment-mini-row{display:flex;gap:10px;margin:10px 0;align-items:flex-start}
+.comment-mini-row img{width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid #e5e7eb}
+.comment-mini-bubble{background:#f2f4f7;border-radius:14px;padding:8px 11px;min-width:0;flex:1}
+.comment-mini-name{font-size:12px;font-weight:800;color:#111827;margin-bottom:2px}
+.comment-mini-text{font-size:13px;color:#334155;white-space:pre-wrap;word-break:break-word;line-height:1.4}
+.agent-portal-link{display:inline-flex;align-items:center;gap:6px;border:1px solid #0a66c2;color:#0a66c2;background:#fff;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800;text-decoration:none}
+.agent-portal-link:hover{background:#eef6ff}
+.agent-live-row.is-online{background:linear-gradient(90deg,rgba(22,163,74,.06),transparent)}
+.agent-live-row.is-away{background:linear-gradient(90deg,rgba(245,158,11,.06),transparent)}
+.agent-live-row.is-offline{background:linear-gradient(90deg,rgba(100,116,139,.04),transparent)}
+@media(max-width:640px){
+  .trend-card{display:flex;flex-direction:column;gap:8px}
+  .trend-card .trend-head{order:2;margin-bottom:0;text-align:left}
+  .trend-card .trend-chart{order:1;height:96px;margin-top:0}
+  .trend-card .trend-title{font-size:13px;text-align:left;color:#334155}
+  .trend-card .trend-sub{font-size:11px}
+  .trend-card .trend-value{font-size:22px}
+  .agent-live-head{align-items:flex-start;flex-direction:column}
+  .feed-list-live{border-left:none;border-right:none;border-radius:0}
+}
+
   </style>
 </head>
 <body>
@@ -537,6 +569,7 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
 <button class="small-link" type="button" onclick="prepareScheduleModal()">Add Schedule</button>
 <button class="small-link" type="button" onclick="prepareTaskModal()">Add Task</button>
+<a class="agent-portal-link" href="agent.html" target="_blank" rel="noopener">Agent Portal</a>
       </div>
     </h2>
     <div class="ops-grid-expanded">
@@ -2409,6 +2442,290 @@ function openTab(tab){
     showToast("Unable to load employer page", err.message || "Please try again.", "error");
   }
 }
+
+
+/* =========================================================
+   FINAL LIVE FEED + AGENT LOGIN/LOGOUT SYSTEM PATCH
+   Keeps existing code. Overrides only missing/fragile parts.
+========================================================= */
+function normalizeArrayPayload(data){
+  if(Array.isArray(data)) return data;
+  if(Array.isArray(data?.posts)) return data.posts;
+  if(Array.isArray(data?.items)) return data.items;
+  if(Array.isArray(data?.data)) return data.data;
+  if(Array.isArray(data?.results)) return data.results;
+  if(Array.isArray(data?.feed)) return data.feed;
+  return [];
+}
+
+async function tryFetchJSONEndpoints(endpoints, options = {}){
+  let lastError = null;
+  for(const endpoint of endpoints){
+    try{
+      const url = endpoint.startsWith('http') ? endpoint : API + endpoint;
+      return await fetchJSON(url, options);
+    }catch(err){
+      lastError = err;
+    }
+  }
+  if(lastError) throw lastError;
+  return null;
+}
+
+async function loadPosts(){
+  try{
+    const data = await tryFetchJSONEndpoints([
+      '/api/posts',
+      '/api/posts/feed',
+      '/api/feed/posts',
+      '/api/company/posts'
+    ], { headers: authHeaders() });
+    state.posts = normalizeArrayPayload(data);
+  }catch(err){
+    console.error('LOAD POSTS ERROR:', err);
+    state.posts = [];
+    const feed = document.getElementById('feedList');
+    if(feed){
+      feed.innerHTML = '<div class="empty">Company feed could not load from the backend. Check the browser console for the exact backend response.</div>';
+    }
+  }
+}
+
+function getPostId(post){ return String(post?._id || post?.id || post?.postId || ''); }
+function getPostAuthor(post){ return post?.author || post?.user || post?.createdBy || post?.owner || {}; }
+function getPostAuthorId(post){ const a=getPostAuthor(post); return String(a?._id || a?.id || post?.author || post?.user || ''); }
+function getPostText(post){ return post?.text || post?.content || post?.body || post?.caption || post?.description || ''; }
+function getPostMedia(post){ return post?.mediaUrl || post?.media || post?.image || post?.imageUrl || post?.photo || post?.video || post?.videoUrl || ''; }
+function getPostComments(post){ return Array.isArray(post?.comments) ? post.comments : Array.isArray(post?.commentList) ? post.commentList : []; }
+function getPostLikes(post){ return Array.isArray(post?.likes) ? post.likes : Array.isArray(post?.likedBy) ? post.likedBy : []; }
+function isPostLikedByMe(post){ const myId=String(state.me?._id || localStorage.getItem('userId') || ''); return getPostLikes(post).some(v=>String(v?._id || v?.id || v)===myId) || post?.liked===true || post?.isLiked===true; }
+function postLikeCount(post){ return Number(post?.likesCount ?? post?.likeCount ?? post?.totalLikes ?? getPostLikes(post).length ?? 0); }
+function postCommentCount(post){ return Number(post?.commentsCount ?? post?.commentCount ?? post?.totalComments ?? getPostComments(post).length ?? 0); }
+function postShareCount(post){ return Number(post?.sharesCount ?? post?.shareCount ?? post?.totalShares ?? 0); }
+function mediaHtml(url){
+  if(!url) return '';
+  const clean = escapeHtml(url);
+  if(/\.(mp4|webm|ogg)(\?|$)/i.test(url)) return '<div class="post-media"><video src="'+clean+'" controls playsinline></video></div>';
+  return '<div class="post-media"><img src="'+clean+'" alt="Post media"></div>';
+}
+
+function renderOnePost(post){
+  const id = getPostId(post);
+  const author = getPostAuthor(post);
+  const authorName = author?.companyName || author?.name || state.me?.companyName || state.me?.name || 'AIFT Employer';
+  const authorImg = author?.profileImage || author?.companyLogo || state.me?.profileImage || FALLBACK_AVATAR;
+  const created = post?.createdAt || post?.updatedAt || post?.date;
+  const comments = getPostComments(post).slice(-3);
+  const liked = isPostLikedByMe(post);
+  const isMine = getPostAuthorId(post) === String(state.me?._id || '');
+  return '<article class="post-card" data-post-id="'+escapeHtml(id)+'" ondblclick="likeEmployerPost(\''+escapeHtml(id)+'\')">'
+    + '<div class="post-header">'
+    + '<div class="post-author" onclick="'+(author?._id ? 'openPublicProfile(\''+escapeHtml(author._id)+'\')' : '')+'">'
+    + '<img src="'+escapeHtml(authorImg)+'" alt="">'
+    + '<div class="post-author-main"><div class="post-author-name">'+escapeHtml(authorName)+'</div><div class="post-meta">Company update'+(created ? ' • '+escapeHtml(formatDate(created)) : '')+'</div></div>'
+    + '</div>'
+    + '<div class="post-head-actions">'+(isMine && id ? '<button class="post-kebab" type="button" onclick="deletePost(\''+escapeHtml(id)+'\')">•••</button>' : '')+'</div>'
+    + '</div>'
+    + (getPostText(post) ? '<div class="post-content">'+escapeHtml(getPostText(post))+'</div>' : '')
+    + mediaHtml(getPostMedia(post))
+    + '<div class="post-stats"><span>'+postLikeCount(post)+' likes</span><span>'+postCommentCount(post)+' comments • '+postShareCount(post)+' shares</span></div>'
+    + '<div class="post-actions">'
+    + '<button class="post-action '+(liked?'liked':'')+'" type="button" onclick="likeEmployerPost(\''+escapeHtml(id)+'\')"><svg viewBox="0 0 24 24"><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path><path d="M7 11l4-8a3 3 0 0 1 3 3v5h5a2 2 0 0 1 2 2l-1 7a2 2 0 0 1-2 2H7z"></path></svg>Like</button>'
+    + '<button class="post-action" type="button" onclick="toggleEmployerComments(\''+escapeHtml(id)+'\')"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg>Comment</button>'
+    + '<button class="post-action" type="button" onclick="shareEmployerPost(\''+escapeHtml(id)+'\')"><svg viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path><path d="M16 6l-4-4-4 4"></path><path d="M12 2v14"></path></svg>Share</button>'
+    + '</div>'
+    + '<div class="comments-wrapper" id="comments-'+escapeHtml(id)+'">'
+    + '<div class="comments-container">'+comments.map(c=>{const u=c.user||c.author||{};return '<div class="comment-mini-row"><img src="'+escapeHtml(u.profileImage||FALLBACK_AVATAR)+'" alt=""><div class="comment-mini-bubble"><div class="comment-mini-name">'+escapeHtml(u.name||c.name||'Member')+'</div><div class="comment-mini-text">'+escapeHtml(c.text||c.comment||c.content||'')+'</div></div></div>';}).join('')+'</div>'
+    + '<div class="comment-input-area"><input id="comment-input-'+escapeHtml(id)+'" type="text" placeholder="Write a comment..."><button class="comment-send" type="button" onclick="submitEmployerComment(\''+escapeHtml(id)+'\')">Send</button></div>'
+    + '</div>'
+    + '</article>';
+}
+
+function buildFeed(){
+  const wrap = document.getElementById('feedList');
+  if(!wrap) return;
+  let list = Array.isArray(state.posts) ? [...state.posts] : [];
+  if(employerFeedMode === 'mine'){
+    const myId = String(state.me?._id || localStorage.getItem('userId') || '');
+    list = list.filter(p => getPostAuthorId(p) === myId);
+  }
+  list = filteredItems(list, post => [getPostText(post), getPostAuthor(post)?.name, getPostAuthor(post)?.companyName].join(' '));
+  const allBtn = document.getElementById('feedModeAllBtn');
+  const mineBtn = document.getElementById('feedModeMineBtn');
+  if(allBtn) allBtn.className = employerFeedMode === 'all' ? 'primary-btn' : 'ghost-btn';
+  if(mineBtn) mineBtn.className = employerFeedMode === 'mine' ? 'primary-btn' : 'ghost-btn';
+  if(!list.length){
+    wrap.innerHTML = '<div class="empty">No company posts found yet. Create a post or check that /api/posts returns posts for this account.</div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="feed-list-live">'+list.map(renderOnePost).join('')+'</div>';
+}
+
+function setEmployerFeedMode(mode){
+  employerFeedMode = mode === 'mine' ? 'mine' : 'all';
+  buildFeed();
+}
+
+function toggleEmployerComments(postId){
+  const el = document.getElementById('comments-'+postId);
+  if(!el) return;
+  el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+
+async function likeEmployerPost(postId){
+  if(!postId) return;
+  try{
+    await tryFetchJSONEndpoints([
+      '/api/posts/'+postId+'/like',
+      '/api/posts/'+postId+'/likes',
+      '/api/posts/like/'+postId,
+      '/api/posts/react'
+    ], {
+      method:'POST',
+      headers: authHeaders({'Content-Type':'application/json'}),
+      body: JSON.stringify({ postId, reaction:'like' })
+    });
+    await loadPosts();
+    await loadPostAnalytics();
+    buildFeed();
+  }catch(err){
+    showToast('Like failed', err.message || 'Your backend did not accept the like request.', 'error');
+  }
+}
+
+async function submitEmployerComment(postId){
+  const input = document.getElementById('comment-input-'+postId);
+  const text = input?.value?.trim();
+  if(!text) return;
+  try{
+    await tryFetchJSONEndpoints([
+      '/api/posts/'+postId+'/comments',
+      '/api/posts/'+postId+'/comment',
+      '/api/comments',
+      '/api/posts/comment'
+    ], {
+      method:'POST',
+      headers: authHeaders({'Content-Type':'application/json'}),
+      body: JSON.stringify({ postId, text, comment:text, content:text })
+    });
+    input.value='';
+    await loadPosts();
+    await loadPostAnalytics();
+    buildFeed();
+    const box = document.getElementById('comments-'+postId); if(box) box.style.display='block';
+  }catch(err){
+    showToast('Comment failed', err.message || 'Your backend did not accept the comment request.', 'error');
+  }
+}
+
+async function shareEmployerPost(postId){
+  const url = new URL('employer-public-profile.html', window.location.href);
+  if(state.me?._id) url.searchParams.set('id', state.me._id);
+  if(postId) url.hash = 'post-'+postId;
+  try{
+    if(navigator.share){ await navigator.share({ title:'AIFT company post', url:url.toString() }); }
+    else { await navigator.clipboard.writeText(url.toString()); showToast('Link copied','Post link copied.'); }
+    try{
+      await tryFetchJSONEndpoints(['/api/posts/'+postId+'/share','/api/posts/'+postId+'/shares','/api/posts/share'], { method:'POST', headers:authHeaders({'Content-Type':'application/json'}), body:JSON.stringify({postId}) });
+      await loadPostAnalytics();
+    }catch(e){}
+  }catch(err){
+    showToast('Share cancelled','No share was completed.','error');
+  }
+}
+
+function getLoginValue(log){ return log?.loginTime || log?.loginAt || log?.clockIn || log?.clockInAt || log?.startTime || log?.startedAt || log?.in || null; }
+function getLogoutValue(log){ return log?.logoutTime || log?.logoutAt || log?.clockOut || log?.clockOutAt || log?.endTime || log?.endedAt || log?.out || null; }
+function formatDateTime(value){ if(!value) return '-'; const d=new Date(value); if(!isNaN(d.getTime())) return d.toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); return escapeHtml(value); }
+function durationBetween(start,end){ if(!start) return '-'; const a=new Date(start); const b=end?new Date(end):new Date(); if(isNaN(a.getTime())||isNaN(b.getTime())) return '-'; const mins=Math.max(0,Math.floor((b-a)/60000)); const h=Math.floor(mins/60); const m=mins%60; return h ? h+'h '+m+'m' : m+'m'; }
+
+async function loadAgentLogs(){
+  const endpoints=['/api/agent-logs','/api/attendance','/api/agent-attendance','/api/schedules/attendance','/api/time-logs','/api/agent-sessions','/api/sessions/agents'];
+  for(const ep of endpoints){
+    try{
+      const data=await fetchJSON(API+ep,{headers:authHeaders()});
+      const rows=Array.isArray(data)?data:(Array.isArray(data?.logs)?data.logs:Array.isArray(data?.items)?data.items:Array.isArray(data?.attendance)?data.attendance:Array.isArray(data?.sessions)?data.sessions:[]);
+      if(rows.length){state.agentLogs=rows;return;}
+    }catch(e){}
+  }
+  state.agentLogs=[];
+}
+
+function buildAgentActivityRows(){
+  const rows=[];
+  const scheduleByAgent=new Map();
+  (state.schedules||[]).forEach(s=>{
+    const agent=s.agentId||s.agent||s.user||{};
+    const id=getAgentIdFrom(agent);
+    if(id && !scheduleByAgent.has(id)) scheduleByAgent.set(id,s);
+  });
+  (state.agentLogs||[]).forEach(log=>{
+    const agent=log.agentId||log.agent||log.user||log.userId||{};
+    const id=getAgentIdFrom(agent);
+    const linkedSchedule=log.schedule||log.scheduleId||scheduleByAgent.get(id)||{};
+    const login=getLoginValue(log), logout=getLogoutValue(log);
+    rows.push({agentId:id,agentName:agent.name||log.agentName||log.name||'Agent',schedule:linkedSchedule.title||log.scheduleTitle||log.title||linkedSchedule.shiftType||log.shiftType||'Attendance log',login,logout,status:logout?'offline':login?'online':(log.status||'offline')});
+  });
+  (state.schedules||[]).forEach(s=>{
+    const agent=s.agentId||s.agent||s.user||{};
+    const id=getAgentIdFrom(agent);
+    const login=s.loginAt||s.clockIn||s.clockInAt||s.actualStart||s.startTimeActual||null;
+    const logout=s.logoutAt||s.clockOut||s.clockOutAt||s.actualEnd||s.endTimeActual||null;
+    if(!login&&!logout&&!s.status) return;
+    if(rows.some(r=>r.agentId===id && String(r.login||'')===String(login||''))) return;
+    rows.push({agentId:id,agentName:agent.name||s.agentName||'Unknown Agent',schedule:s.title||s.shiftType||'Assigned schedule',login,logout,status:logout?'offline':login?'online':(s.status||'scheduled')});
+  });
+  if(!rows.length){
+    const agents=new Map();
+    [...(state.schedules||[]),...(state.tasks||[])].forEach(item=>{
+      const agent=item.agentId||item.assigneeId||item.agent||item.user||{};
+      const id=getAgentIdFrom(agent); if(!id)return;
+      if(!agents.has(id)) agents.set(id,{agentId:id,agentName:agent.name||item.agentName||item.assigneeName||'Agent',schedule:item.title||item.shiftType||'Assigned work',login:null,logout:null,status:item.status||'scheduled'});
+    });
+    rows.push(...agents.values());
+  }
+  return rows.slice(0,50);
+}
+
+function buildAgentActivityPanel(){
+  const tbody=document.getElementById('agentActivityBody'); if(!tbody)return;
+  const rows=buildAgentActivityRows();
+  if(!rows.length){ tbody.innerHTML='<tr><td colspan="7"><div class="empty">No live agent login/logout data found yet. When your backend returns clock-in/clock-out fields, they will appear here automatically.</div></td></tr>'; return; }
+  tbody.innerHTML=rows.map(row=>{
+    const perf=agentPerformancePercent(row.agentId);
+    const raw=safeStatus(row.status);
+    const st=raw.includes('online')||raw.includes('active')?'online':raw.includes('away')||raw.includes('scheduled')?'away':'offline';
+    return '<tr class="agent-live-row is-'+st+'"><td><b>'+escapeHtml(row.agentName)+'</b></td><td>'+escapeHtml(row.schedule||'-')+'</td><td>'+formatDateTime(row.login)+'</td><td>'+formatDateTime(row.logout)+'</td><td>'+durationBetween(row.login,row.logout)+'</td><td><span class="agent-status-dot '+st+'"></span>'+escapeHtml(st)+'</td><td><div style="display:flex;align-items:center;gap:10px;"><div class="agent-perf-bar"><div class="agent-perf-fill" style="width:'+perf+'%"></div></div><b>'+perf+'%</b></div></td></tr>';
+  }).join('');
+}
+
+async function reloadOperationsLive(){
+  try{
+    await Promise.allSettled([loadSchedules(),loadTasks(),loadAgentLogs()]);
+    buildOps();
+    buildAnalytics();
+    showToast('Operations updated','Live schedules, tasks, and available agent logs refreshed.');
+  }catch(err){ showToast('Refresh failed',err.message||'Could not refresh operations.','error'); }
+}
+
+async function init() {
+  try {
+    const loaders = [loadProfile(),loadJobs(),loadApplications(),loadPeople(),loadPosts(),loadTeamMembers(),loadSchedules(),loadTasks(),loadAgentLogs(),loadInvites(),loadEmployerStats(),loadPostAnalytics(),loadJobSeekers(),loadCounters()];
+    const results = await Promise.allSettled(loaders);
+    results.forEach((r,i)=>{ if(r.status==='rejected') console.warn('AIFT loader failed', i, r.reason); });
+    wireSearch();
+    wireButtons();
+    setupSocket();
+    applyRolePreset('viewer');
+    document.getElementById('editTeamPhoto')?.addEventListener('change', function(){ const file=this.files?.[0]; if(!file)return; document.getElementById('editTeamPreview').src=URL.createObjectURL(file); });
+    refreshAllUI();
+    openTab('overview');
+  } catch (err) {
+    console.error(err);
+    showToast('Unable to load employer page', err.message || 'Please try again.', 'error');
+  }
+}
+
 init();
   </script>
 </body>
