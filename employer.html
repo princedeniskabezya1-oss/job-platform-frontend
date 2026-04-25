@@ -319,6 +319,43 @@
     @media(max-width:920px){.main-grid{grid-template-columns:1fr}.jobseeker-toolbar{grid-template-columns:1fr 1fr}.jobseeker-toolbar .primary-btn,.jobseeker-toolbar .ghost-btn{width:100%}.hero-main{margin-top:-38px}.company-logo{width:82px;height:82px}.company-name{font-size:22px}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:640px){.container{width:min(100%,calc(100% - 12px))}.cover{min-height:112px}.hero-main{padding:0 14px 14px;margin-top:-34px}.company-logo{width:72px;height:72px}.company-name{font-size:20px}.hero-actions .primary-btn,.hero-actions .ghost-btn,.hero-actions .light-btn{flex:1 1 auto}.jobseeker-toolbar{grid-template-columns:1fr}.talent-table{min-width:700px}.card-pad{padding:14px}.main-grid{display:block}.left-col,.right-col{display:none}.tabs{padding-left:4px}}
 
+
+
+    /* Compact workspace mode: only Overview keeps the full left/right panels */
+    body.compact-workspace .main-grid{grid-template-columns:minmax(0,1fr)!important;max-width:1250px;margin:0 auto;transition:grid-template-columns .25s ease}
+    body.compact-workspace .left-col,
+    body.compact-workspace .right-col{display:none!important}
+    body.compact-workspace .center-col{width:100%;animation:workspaceSlide .28s ease both}
+    body.compact-workspace .section.active > .card{box-shadow:0 8px 22px rgba(15,23,42,.08)}
+    @keyframes workspaceSlide{from{opacity:.65;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+    /* LinkedIn/Rocket-inspired mini graphs inside employer statistics */
+    .stat-card{min-height:104px}
+    .stat-trend{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11px;font-weight:700;color:#057642}
+    .stat-trend.warn{color:#b45309}.stat-trend.danger{color:#b91c1c}
+    .stat-graph{position:absolute;right:12px;bottom:12px;width:76px;height:34px;display:flex;align-items:flex-end;justify-content:flex-end;gap:4px;opacity:.9;pointer-events:none}
+    .stat-graph span{display:block;width:8px;border-radius:999px 999px 3px 3px;background:linear-gradient(180deg,#0a66c2,#8ec5ff);transform-origin:bottom;animation:barRise .75s cubic-bezier(.2,.8,.2,1) both}
+    .stat-graph span:nth-child(2){animation-delay:.06s}.stat-graph span:nth-child(3){animation-delay:.12s}.stat-graph span:nth-child(4){animation-delay:.18s}.stat-graph span:nth-child(5){animation-delay:.24s}
+    .stat-card:nth-child(1) .stat-graph span{background:linear-gradient(180deg,#f59e0b,#fde68a)}
+    .stat-card:nth-child(2) .stat-graph span{background:linear-gradient(180deg,#0a66c2,#93c5fd)}
+    .stat-card:nth-child(3) .stat-graph span{background:linear-gradient(180deg,#7c3aed,#c4b5fd)}
+    .stat-card:nth-child(4) .stat-graph span{background:linear-gradient(180deg,#16a34a,#86efac)}
+    .stat-card:nth-child(5) .stat-graph span{background:linear-gradient(180deg,#ef4444,#fecaca)}
+    .stat-card:hover .stat-graph span{animation:barPulse .9s ease both}
+    @keyframes barRise{from{transform:scaleY(.15);opacity:.35}to{transform:scaleY(1);opacity:1}}
+    @keyframes barPulse{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.16)}}
+    .stat-card:nth-child(1){background:linear-gradient(135deg,#fff,#fffbeb);border-color:#fde68a}
+    .stat-card:nth-child(2){background:linear-gradient(135deg,#fff,#eff6ff);border-color:#dbeafe}
+    .stat-card:nth-child(3){background:linear-gradient(135deg,#fff,#f5f3ff);border-color:#ddd6fe}
+    .stat-card:nth-child(4){background:linear-gradient(135deg,#fff,#ecfdf5);border-color:#bbf7d0}
+    .stat-card:nth-child(5){background:linear-gradient(135deg,#fff,#fef2f2);border-color:#fecaca}
+
+    body.compact-workspace #section-jobs .panel-grid,
+    body.compact-workspace #section-network .directory-grid,
+    body.compact-workspace #section-jobseekers .directory-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+    body.compact-workspace #section-analytics .analytics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    @media(max-width:920px){body.compact-workspace #section-jobs .panel-grid,body.compact-workspace #section-network .directory-grid,body.compact-workspace #section-jobseekers .directory-grid{grid-template-columns:1fr}.stat-graph{width:58px;opacity:.7}}
+
   </style>
 </head>
 <body>
@@ -349,7 +386,7 @@
   <button class="ghost-btn" id="visitWebsiteBtn" type="button">Visit Website</button>
   <button class="light-btn" id="openFeedBtn" type="button">Company Feed</button>
   <button class="ghost-btn" id="openPublicEmployerBtn" type="button">Public View</button>
-</div></div><div class="stat-grid"><div class="stat-card"><div class="stat-label">Jobs Posted</div><div class="stat-value" id="statJobs">0</div></div><div class="stat-card"><div class="stat-label">Applications</div><div class="stat-value" id="statApplications">0</div></div><div class="stat-card"><div class="stat-label">Followers</div><div class="stat-value" id="statFollowers">0</div></div><div class="stat-card"><div class="stat-label">Team Members</div><div class="stat-value" id="statTeam">0</div></div><div class="stat-card"><div class="stat-label">Company Posts</div><div class="stat-value" id="statPosts">0</div></div></div><div class="tabs" id="tabs">
+</div></div><div class="stat-grid"><div class="stat-card"><div class="stat-label">Jobs Posted</div><div class="stat-value" id="statJobs">0</div><div class="stat-trend warn">↗ roles and openings</div><div class="stat-graph"><span style="height:42%"></span><span style="height:62%"></span><span style="height:48%"></span><span style="height:78%"></span><span style="height:56%"></span></div></div><div class="stat-card"><div class="stat-label">Applications</div><div class="stat-value" id="statApplications">0</div><div class="stat-trend">↗ candidate demand</div><div class="stat-graph"><span style="height:34%"></span><span style="height:52%"></span><span style="height:70%"></span><span style="height:58%"></span><span style="height:86%"></span></div></div><div class="stat-card"><div class="stat-label">Followers</div><div class="stat-value" id="statFollowers">0</div><div class="stat-trend">↗ employer reach</div><div class="stat-graph"><span style="height:28%"></span><span style="height:46%"></span><span style="height:38%"></span><span style="height:62%"></span><span style="height:74%"></span></div></div><div class="stat-card"><div class="stat-label">Team Members</div><div class="stat-value" id="statTeam">0</div><div class="stat-trend">↗ workforce active</div><div class="stat-graph"><span style="height:50%"></span><span style="height:64%"></span><span style="height:58%"></span><span style="height:76%"></span><span style="height:68%"></span></div></div><div class="stat-card"><div class="stat-label">Company Posts</div><div class="stat-value" id="statPosts">0</div><div class="stat-trend danger">↗ brand activity</div><div class="stat-graph"><span style="height:30%"></span><span style="height:36%"></span><span style="height:56%"></span><span style="height:44%"></span><span style="height:72%"></span></div></div></div><div class="tabs" id="tabs">
   <button class="tab-btn active" data-tab="overview">Overview</button>
   <button class="tab-btn" data-tab="jobs">Jobs</button>
   <button class="tab-btn" data-tab="pipeline">Pipeline</button>
@@ -2530,6 +2567,8 @@ document.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click
 
 function openTab(tab){
   state.activeTab = tab;
+  const compactMode = tab !== "overview";
+  document.body.classList.toggle("compact-workspace", compactMode);
   document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tab));
   document.querySelectorAll(".section").forEach(section => section.classList.toggle("active", section.id === `section-${tab}`));
 
@@ -2538,6 +2577,9 @@ function openTab(tab){
   if (tab === "ops") buildOps();
   if (tab === "feed") buildFeed();
   if (tab === "profile") buildProfileSection();
+
+  const mainPage = document.querySelector(".page");
+  if (mainPage) mainPage.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
     async function init() {
