@@ -2864,29 +2864,55 @@ async function createTask(){
   }
 }
 
-async function updateTask(id,status){
-  await fetch(`${API}/api/work-tasks/${id}`,{
-    method:"PATCH",
-    headers: authHeaders({"Content-Type":"application/json"}),
-    body: JSON.stringify({status})
-  });
+async function createTask(){
+  try{
+    const res = await fetch(`${API}/api/work-tasks`,{
+      method:"POST",
+      headers: authHeaders({"Content-Type":"application/json"}),
+      body: JSON.stringify({
+        title: "New Task",
+        category: "general",
+        assigneeId: localStorage.getItem("userId")
+      })
+    });
 
-  loadOpsData();
+    if(!res.ok){
+      throw new Error(await res.text());
+    }
+
+    showToast("Success","Task created");
+
+    if(typeof loadOpsData === "function"){
+      loadOpsData();
+    }
+
+  }catch(err){
+    console.error("Task Error:", err);
+    showToast("Error", err.message);
+  }
 }
+
 async function createSchedule(){
   try{
-    await fetch(`${API}/api/schedules`,{
+    const res = await fetch(`${API}/api/schedules`,{
       method:"POST",
       headers: authHeaders({"Content-Type":"application/json"}),
       body: JSON.stringify({
         agentId: localStorage.getItem("userId"),
-        startDate: new Date(),
+        startDate: new Date().toISOString(),
         startTime: "09:00"
       })
     });
 
-  }catch(e){
-    console.error(e);
+    if(!res.ok){
+      throw new Error(await res.text());
+    }
+
+    showToast("Success","Schedule created");
+
+  }catch(err){
+    console.error("Schedule Error:", err);
+    showToast("Error", err.message);
   }
 }
 /* ===============================
