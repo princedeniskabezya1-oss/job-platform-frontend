@@ -1840,21 +1840,56 @@ function openShareModal(postId){
     showToast("Profile update failed", err.message, "error");
   }
 }
-async function submitTeamMember(){
-  const platformRole = document.getElementById("teamPlatformRole").value || "agent";
+    async function submitSchedule(){
+  const payload = {
+    title: document.getElementById("scheduleTitle")?.value.trim(),
+    agentId: document.getElementById("scheduleAgent")?.value,
+    shiftType: document.getElementById("scheduleShiftType")?.value || "custom",
+    locationType: document.getElementById("scheduleLocationType")?.value || "onsite",
+    startDate: document.getElementById("scheduleStartDate")?.value,
+    endDate: document.getElementById("scheduleEndDate")?.value,
+    startTime: document.getElementById("scheduleStartTime")?.value,
+    endTime: document.getElementById("scheduleEndTime")?.value,
+    notes: document.getElementById("scheduleNotes")?.value.trim() || "",
+    status: "scheduled"
+  };
 
+  if (!payload.title || !payload.agentId || !payload.startDate || !payload.endDate || !payload.startTime || !payload.endTime) {
+    showToast("Missing schedule details", "Title, agent, date, and time are required.", "error");
+    return;
+  }
+
+  try {
+    await fetchJSON(`${API}/api/schedules`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload)
+    });
+
+    closeModal("scheduleModal");
+
+    await loadSchedules();
+    await loadAgentLogs();
+
+    if (typeof buildOpsSection === "function") buildOpsSection();
+    refreshAllUI();
+
+    showToast("Schedule created", "The schedule was assigned to the selected agent.");
+  } catch (err) {
+    showToast("Schedule failed", err.message, "error");
+  }
+}
+async function submitTeamMember(){
   const payload = {
     name: document.getElementById("teamName").value.trim(),
     email: document.getElementById("teamEmail").value.trim().toLowerCase(),
     password: document.getElementById("teamPassword").value.trim(),
-    role: platformRole,
+    role: document.getElementById("teamPlatformRole").value || "agent",
     teamRole: document.getElementById("teamRole").value || "viewer",
     department: document.getElementById("teamDepartment").value.trim(),
     permissions: getSelectedPermissions(),
-
-    // IMPORTANT: these help your backend/frontend keep employer-agent ownership clear
-    companyId: state.me?._id || localStorage.getItem("userId") || null,
-    employerId: state.me?._id || localStorage.getItem("userId") || null,
+    companyId: state.me?._id || localStorage.getItem("userId"),
+    employerId: state.me?._id || localStorage.getItem("userId"),
     isBlockedByEmployer: false
   };
 
@@ -1863,13 +1898,8 @@ async function submitTeamMember(){
     return;
   }
 
-  if (payload.password.length < 6) {
-    showToast("Weak password", "Password must be at least 6 characters.", "error");
-    return;
-  }
-
   try {
-    const created = await fetchJSON(API + "/api/employer-team/create", {
+    await fetchJSON(API + "/api/employer-team/create", {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload)
@@ -1881,17 +1911,11 @@ async function submitTeamMember(){
     document.getElementById("teamDepartment").value = "";
 
     closeModal("teamModal");
-
     await loadTeamMembers();
     fillAgentSelects();
     refreshAllUI();
 
-    showToast(
-      platformRole === "agent" ? "Agent created" : "Team member created",
-      "The account was created and linked to this employer."
-    );
-
-    console.log("Created team member:", created);
+    showToast("Agent created", "The agent was created and linked to this employer.");
   } catch (err) {
     showToast("Create failed", err.message, "error");
   }
