@@ -1064,13 +1064,15 @@ async function loadSchedules() {
 
 async function loadTasks() {
   try {
-    const data = await fetchJSON(API + "/api/tasks", { headers: authHeaders() });
+    const data = await fetchJSON(API + "/api/work-tasks", {
+      headers: authHeaders()
+    });
     state.tasks = Array.isArray(data) ? data : [];
-  } catch {
+  } catch (err) {
+    console.error("LOAD WORK TASKS ERROR:", err);
     state.tasks = [];
   }
 }
-
 async function loadInvites() {
   try {
     const data = await fetchJSON(API + "/api/invites", { headers: authHeaders() });
@@ -1879,15 +1881,15 @@ function openShareModal(postId){
     showToast("Schedule failed", err.message, "error");
   }
 }
-    async function submitTask(){
+async function submitTask(){
   const payload = {
     title: document.getElementById("taskTitle")?.value.trim(),
     assigneeId: document.getElementById("taskAssignee")?.value,
     priority: document.getElementById("taskPriority")?.value || "medium",
-    category: document.getElementById("taskCategory")?.value.trim() || "general",
+    category: "custom",
+    workflow: "bpo_operations",
     dueDate: document.getElementById("taskDueDate")?.value || null,
     description: document.getElementById("taskDescription")?.value.trim() || "",
-    workflow: "operations",
     status: "todo"
   };
 
@@ -1906,14 +1908,12 @@ function openShareModal(postId){
     closeModal("taskModal");
 
     document.getElementById("taskTitle").value = "";
-    document.getElementById("taskCategory").value = "";
     document.getElementById("taskDueDate").value = "";
     document.getElementById("taskDescription").value = "";
 
     await loadTasks();
-
-    if (typeof buildOps === "function") buildOps();
-    if (typeof buildAnalytics === "function") buildAnalytics();
+    buildOps();
+    buildAnalytics();
     refreshAllUI();
 
     showToast("Task created", "The task was assigned successfully.");
@@ -1966,6 +1966,24 @@ async function deleteTask(taskId){
     showToast("Task deleted", "The task was removed.");
   } catch (err) {
     showToast("Delete failed", err.message, "error");
+  }
+}
+    async function updateTaskStatus(taskId, status){
+  try {
+    await fetchJSON(`${API}/api/work-tasks/${taskId}`, {
+      method: "PATCH",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ status })
+    });
+
+    await loadTasks();
+    buildOps();
+    buildAnalytics();
+    refreshAllUI();
+
+    showToast("Task updated", "Task status changed.");
+  } catch (err) {
+    showToast("Task update failed", err.message, "error");
   }
 }
 async function submitTeamMember(){
@@ -2858,207 +2876,6 @@ async function init() {
 }
 
 init();
-    /* =========================================
-   🚀 AIFT NEXT LEVEL OPS SYSTEM
-========================================= */
-
-async function loadOpsData(){
-  try{
-    const [tasks, templates, sessions] = await Promise.all([
-      fetch(`${API}/api/work-tasks`, { headers: authHeaders() }).then(r=>r.json()),
-      fetch(`${API}/api/task-templates`, { headers: authHeaders() }).then(r=>r.json()),
-      fetch(`${API}/api/agent-sessions/company`, { headers: authHeaders() }).then(r=>r.json())
-    ]);
-
-    renderOps(tasks, templates, sessions);
-
-  }catch(err){
-    console.error("OPS ERROR:", err);
-  }
-}
-
-/* ===============================
-   RENDER SYSTEM
-================================ */
-
-function renderOps(tasks, templates, sessions){
-
-  const el = document.getElementById("opsContainer");
-  if(!el) return;
-
-  const statuses = ["todo","in_progress","done","blocked"];
-
-  el.innerHTML = `
-  <div style="display:flex;flex-direction:column;gap:16px">
-
-    <!-- STATS -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-      ${card("Tasks", tasks.length)}
-      ${card("Done", tasks.filter(t=>t.status==="done").length)}
-      ${card("Blocked", tasks.filter(t=>t.status==="blocked").length)}
-      ${card("Online", sessions.filter(s=>!s.logoutTime).length)}
-    </div>
-
-    <!-- SEARCH -->
-    <input id="opsSearch" placeholder="Search tasks..." style="padding:10px;border-radius:10px;border:1px solid #ddd">
-
-    <!-- BOARD -->
-    <div style="display:flex;gap:10px;overflow:auto">
-
-      ${statuses.map(status=>`
-        <div style="min-width:260px;background:#f8fafc;padding:10px;border-radius:10px">
-
-          <h4>${status}</h4>
-
-          ${tasks.filter(t=>t.status===status).map(t=>`
-            <div style="background:#fff;padding:10px;border-radius:8px;margin-bottom:8px">
-
-              <b>${t.title}</b>
-              <p>${t.category}</p>
-
-              <button onclick="updateTask('${t._id}','in_progress')">▶</button>
-              <button onclick="updateTask('${t._id}','done')">✔</button>
-
-            </div>
-          `).join("")}
-
-        </div>
-      `).join("")}
-
-    </div>
-
-    <!-- TEMPLATES -->
-    <div>
-      <h3>Quick Tasks</h3>
-
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-
-        ${templates.map(t=>`
-          <div style="padding:12px;border:1px solid #ddd;border-radius:10px;cursor:pointer"
-               onclick='createTask(${JSON.stringify(t)})'>
-
-            <b>${t.name}</b>
-
-          </div>
-        `).join("")}
-
-      </div>
-    </div>
-
-    <!-- AGENTS -->
-    <div>
-      <h3>Agent Activity</h3>
-
-      <table style="width:100%">
-        <tr><th>Name</th><th>Login</th><th>Status</th></tr>
-
-        ${sessions.map(s=>`
-          <tr>
-            <td>${s.agentId?.name || "Agent"}</td>
-            <td>${new Date(s.loginTime).toLocaleString()}</td>
-            <td>${s.logoutTime ? "Offline" : "Online"}</td>
-          </tr>
-        `).join("")}
-
-      </table>
-    </div>
-
-  </div>
-  `;
-}
-
-function card(title,value){
-  return `<div class="stat-card"><div>${title}</div><h3>${value}</h3></div>`;
-}
-
-/* ===============================
-   ACTIONS
-================================ */
-
-async function createTask(){
-  try{
-    await fetch(`${API}/api/work-tasks`,{
-      method:"POST",
-      headers: authHeaders({"Content-Type":"application/json"}),
-      body: JSON.stringify({
-        title: "New Task",
-        category: "general",
-        assigneeId: localStorage.getItem("userId")
-      })
-    });
-
-    loadOpsData();
-
-  }catch(e){
-    console.error(e);
-  }
-}
-
-async function createTask(){
-  try{
-    const res = await fetch(`${API}/api/work-tasks`,{
-      method:"POST",
-      headers: authHeaders({"Content-Type":"application/json"}),
-      body: JSON.stringify({
-        title: "New Task",
-        category: "general",
-        assigneeId: localStorage.getItem("userId")
-      })
-    });
-
-    if(!res.ok){
-      throw new Error(await res.text());
-    }
-
-    showToast("Success","Task created");
-
-    if(typeof loadOpsData === "function"){
-      loadOpsData();
-    }
-
-  }catch(err){
-    console.error("Task Error:", err);
-    showToast("Error", err.message);
-  }
-}
-
-async function createSchedule(){
-  try{
-    const res = await fetch(`${API}/api/schedules`,{
-      method:"POST",
-      headers: authHeaders({"Content-Type":"application/json"}),
-      body: JSON.stringify({
-        agentId: localStorage.getItem("userId"),
-        startDate: new Date().toISOString(),
-        startTime: "09:00"
-      })
-    });
-
-    if(!res.ok){
-      throw new Error(await res.text());
-    }
-
-    showToast("Success","Schedule created");
-
-  }catch(err){
-    console.error("Schedule Error:", err);
-    showToast("Error", err.message);
-  }
-}
-/* ===============================
-   AUTO LOAD WHEN CLICK TAB
-================================ */
-
-const oldOpenTab = window.openTab;
-
-window.openTab = function(tab){
-
-  oldOpenTab(tab);
-
-  if(tab==="ops"){
-    setTimeout(loadOpsData,500);
-  }
-};
   </script>
 </body>
 </html>
