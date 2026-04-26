@@ -879,6 +879,7 @@
   align-items:center;
 }
   </style>
+  <link rel="stylesheet" href="feed.css">
 </head>
 <body>
   <div class="topbar">
@@ -1080,16 +1081,8 @@
 
 <div class="section" id="section-feed">
   <section class="card card-pad">
-    <h2 class="card-title">
-      Company Feed
-      <button class="small-link" type="button" onclick="openModal('postModal')">Create Post</button>
-    </h2>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
-      <button class="primary-btn" type="button" onclick="openModal('postModal')">Share Company Update</button>
-      <button id="feedModeAllBtn" class="ghost-btn" type="button" onclick="setEmployerFeedMode('all')">All Feed</button>
-      <button id="feedModeMineBtn" class="ghost-btn" type="button" onclick="setEmployerFeedMode('mine')">My Company Posts</button>
-    </div>
-    <div id="feedList"><div class="loading">Loading feed...</div></div>
+    <h2 class="card-title">Company Feed</h2>
+    <div id="aiftEmployerFeed"><div class="loading">Loading feed...</div></div>
   </section>
 </div>
 
@@ -1374,6 +1367,8 @@
     </div>
   </div>
 </div>
+  <link rel="stylesheet" href="feed.css">
+<script src="feed.js"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script>
     const API = "https://backend-1-9b6f.onrender.com";
@@ -3294,30 +3289,15 @@ function renderOnePost(post){
 }
 
 function buildFeed(){
-  const wrap = document.getElementById("feedList");
-  if(!wrap) return;
+  const feed = document.getElementById("aiftEmployerFeed");
+  if (!feed) return;
 
-  let list = Array.isArray(state.posts) ? [...state.posts] : [];
-
-  if(employerFeedMode === "mine"){
-    const myId = String(state.me?._id || localStorage.getItem("userId") || "");
-    list = list.filter(p => getPostAuthorId(p) === myId);
-  }
-
-  list = filteredItems(list, post => [getPostText(post), getPostAuthor(post)?.name, getPostAuthor(post)?.companyName].join(" "));
-
-  const allBtn = document.getElementById("feedModeAllBtn");
-  const mineBtn = document.getElementById("feedModeMineBtn");
-
-  if(allBtn) allBtn.className = employerFeedMode === "all" ? "primary-btn" : "ghost-btn";
-  if(mineBtn) mineBtn.className = employerFeedMode === "mine" ? "primary-btn" : "ghost-btn";
-
-  if(!list.length){
-    wrap.innerHTML = `<div class="aift-feed-shell"><div class="empty">No company posts found yet.</div></div>`;
+  if (typeof AIFTFeed === "undefined") {
+    feed.innerHTML = `<div class="empty">feed.js is not loaded. Make sure feed.js is in the same folder as employer.html.</div>`;
     return;
   }
 
-  wrap.innerHTML = `<div class="aift-feed-shell"><div class="feed-list-live">${list.map(renderOnePost).join("")}</div></div>`;
+  AIFTFeed.mount("aiftEmployerFeed");
 }
 
 function setEmployerFeedMode(mode){
