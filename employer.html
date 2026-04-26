@@ -815,8 +815,6 @@
       <div class="modal-title">Assign Schedule</div>
       <button class="ghost-btn" type="button" onclick="closeModal('scheduleModal')">Close</button>
     </div>
-      <button class="ghost-btn" type="button" onclick="closeModal('scheduleModal')">Close</button>
-    </div>
     <div class="modal-body">
       <div class="input-grid">
         <div class="field"><label>Title</label><input id="scheduleTitle" type="text" placeholder="Morning Support Shift"></div>
@@ -1570,7 +1568,6 @@ function getLogoutValue(row){return row?.logoutAt||row?.logoutTime||row?.clockOu
 function agentPerformancePercent(agentId){ if(!agentId)return 0; const tasks=(state.tasks||[]).filter(t=>getAgentIdFrom(t.assigneeId||t.agentId||t.user)===agentId); if(!tasks.length)return 0; const done=tasks.filter(t=>['done','completed','complete'].includes(safeStatus(t.status))).length; return Math.round((done/tasks.length)*100); }
 function buildAgentActivityRows(){ const rows=[]; (state.agentLogs||[]).forEach(log=>{ const agent=log.agentId||log.agent||log.user||log.userId||{}; const login=getLoginValue(log),logout=getLogoutValue(log); rows.push({agentId:getAgentIdFrom(agent),agentName:agent.name||log.agentName||log.name||'Agent',schedule:log.scheduleTitle||log.title||log.shiftType||'Attendance log',login,logout,status:logout?'offline':login?'online':(log.status||'offline')}); }); (state.schedules||[]).forEach(s=>{ const agent=s.agentId||s.agent||s.user||{}; const login=s.loginAt||s.clockIn||s.actualStart||s.startTimeActual||null, logout=s.logoutAt||s.clockOut||s.actualEnd||s.endTimeActual||null; if(!login&&!logout&&!s.status)return; rows.push({agentId:getAgentIdFrom(agent),agentName:agent.name||s.agentName||'Unknown Agent',schedule:s.title||s.shiftType||'Assigned schedule',login,logout,status:logout?'offline':login?'online':(s.status||'scheduled')}); }); if(!rows.length){ const agents=new Map(); [...(state.schedules||[]),...(state.tasks||[])].forEach(item=>{ const agent=item.agentId||item.assigneeId||item.agent||item.user||{}; const id=getAgentIdFrom(agent); if(!id)return; if(!agents.has(id))agents.set(id,{agentId:id,agentName:agent.name||item.agentName||item.assigneeName||'Agent',schedule:item.title||item.shiftType||'Assigned work',login:null,logout:null,status:item.status||'scheduled'}); }); rows.push(...agents.values()); } return rows.slice(0,30); }
 function buildAgentActivityPanel(){ const tbody=document.getElementById('agentActivityBody'); if(!tbody)return; const rows=buildAgentActivityRows(); if(!rows.length){ tbody.innerHTML=`<tr><td colspan="7"><div class="empty">No live agent login/logout data found yet. When your backend returns clock-in/clock-out fields, they will appear here automatically.</div></td></tr>`; return; } tbody.innerHTML=rows.map(row=>{ const perf=agentPerformancePercent(row.agentId); const st=safeStatus(row.status).includes('online')||safeStatus(row.status).includes('active')?'online':safeStatus(row.status).includes('away')||safeStatus(row.status).includes('scheduled')?'away':'offline'; return `<tr class="agent-live-row"><td><b>${escapeHtml(row.agentName)}</b></td><td>${escapeHtml(row.schedule||'-')}</td><td>${formatDateTime(row.login)}</td><td>${formatDateTime(row.logout)}</td><td>${durationBetween(row.login,row.logout)}</td><td><span class="agent-status-dot ${st}"></span>${escapeHtml(st)}</td><td><div style="display:flex;align-items:center;gap:10px;"><div class="agent-perf-bar"><div class="agent-perf-fill" style="width:${perf}%"></div></div><b>${perf}%</b></div></td></tr>`; }).join(''); }
-async function loadAgentLogs(){ const endpoints=['/api/agent-logs','/api/attendance','/api/agent-attendance','/api/schedules/attendance','/api/time-logs']; for(const ep of endpoints){ try{ const data=await fetchJSON(API+ep,{headers:authHeaders()}); const rows=Array.isArray(data)?data:(Array.isArray(data?.logs)?data.logs:Array.isArray(data?.items)?data.items:Array.isArray(data?.attendance)?data.attendance:[]); if(rows.length){state.agentLogs=rows;return;} }catch(e){} } state.agentLogs=[]; }
 async function reloadOperationsLive(){ try{ await Promise.all([loadSchedules(),loadTasks(),loadAgentLogs()]); buildOps(); buildAnalytics(); showToast('Operations updated','Live schedules, tasks, and available agent logs refreshed.'); }catch(err){ showToast('Refresh failed',err.message||'Could not refresh operations.','error'); } }
 
     function buildOps(){
@@ -1844,14 +1841,21 @@ function openShareModal(postId){
   }
 }
 async function submitTeamMember(){
+  const platformRole = document.getElementById("teamPlatformRole").value || "agent";
+
   const payload = {
     name: document.getElementById("teamName").value.trim(),
-    email: document.getElementById("teamEmail").value.trim(),
+    email: document.getElementById("teamEmail").value.trim().toLowerCase(),
     password: document.getElementById("teamPassword").value.trim(),
-    role: document.getElementById("teamPlatformRole").value,
-    teamRole: document.getElementById("teamRole").value,
+    role: platformRole,
+    teamRole: document.getElementById("teamRole").value || "viewer",
     department: document.getElementById("teamDepartment").value.trim(),
-    permissions: getSelectedPermissions()
+    permissions: getSelectedPermissions(),
+
+    // IMPORTANT: these help your backend/frontend keep employer-agent ownership clear
+    companyId: state.me?._id || localStorage.getItem("userId") || null,
+    employerId: state.me?._id || localStorage.getItem("userId") || null,
+    isBlockedByEmployer: false
   };
 
   if (!payload.name || !payload.email || !payload.password) {
@@ -1859,8 +1863,13 @@ async function submitTeamMember(){
     return;
   }
 
+  if (payload.password.length < 6) {
+    showToast("Weak password", "Password must be at least 6 characters.", "error");
+    return;
+  }
+
   try {
-    await fetchJSON(API + "/api/employer-team/create", {
+    const created = await fetchJSON(API + "/api/employer-team/create", {
       method: "POST",
       headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload)
@@ -1872,10 +1881,17 @@ async function submitTeamMember(){
     document.getElementById("teamDepartment").value = "";
 
     closeModal("teamModal");
+
     await loadTeamMembers();
     fillAgentSelects();
     refreshAllUI();
-    showToast("Team member created", "Internal hiring user added successfully.");
+
+    showToast(
+      platformRole === "agent" ? "Agent created" : "Team member created",
+      "The account was created and linked to this employer."
+    );
+
+    console.log("Created team member:", created);
   } catch (err) {
     showToast("Create failed", err.message, "error");
   }
@@ -2641,15 +2657,16 @@ function formatDateTime(value){ if(!value) return '-'; const d=new Date(value); 
 function durationBetween(start,end){ if(!start) return '-'; const a=new Date(start); const b=end?new Date(end):new Date(); if(isNaN(a.getTime())||isNaN(b.getTime())) return '-'; const mins=Math.max(0,Math.floor((b-a)/60000)); const h=Math.floor(mins/60); const m=mins%60; return h ? h+'h '+m+'m' : m+'m'; }
 
 async function loadAgentLogs(){
-  const endpoints=['/api/agent-logs','/api/attendance','/api/agent-attendance','/api/schedules/attendance','/api/time-logs','/api/agent-sessions','/api/sessions/agents'];
-  for(const ep of endpoints){
-    try{
-      const data=await fetchJSON(API+ep,{headers:authHeaders()});
-      const rows=Array.isArray(data)?data:(Array.isArray(data?.logs)?data.logs:Array.isArray(data?.items)?data.items:Array.isArray(data?.attendance)?data.attendance:Array.isArray(data?.sessions)?data.sessions:[]);
-      if(rows.length){state.agentLogs=rows;return;}
-    }catch(e){}
+  try {
+    const data = await fetchJSON(`${API}/api/agent-sessions/company`, {
+      headers: authHeaders()
+    });
+
+    state.agentLogs = Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.error("LOAD AGENT SESSIONS ERROR:", err);
+    state.agentLogs = [];
   }
-  state.agentLogs=[];
 }
 
 function buildAgentActivityRows(){
