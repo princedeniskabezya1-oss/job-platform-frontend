@@ -1879,6 +1879,95 @@ function openShareModal(postId){
     showToast("Schedule failed", err.message, "error");
   }
 }
+    async function submitTask(){
+  const payload = {
+    title: document.getElementById("taskTitle")?.value.trim(),
+    assigneeId: document.getElementById("taskAssignee")?.value,
+    priority: document.getElementById("taskPriority")?.value || "medium",
+    category: document.getElementById("taskCategory")?.value.trim() || "general",
+    dueDate: document.getElementById("taskDueDate")?.value || null,
+    description: document.getElementById("taskDescription")?.value.trim() || "",
+    workflow: "operations",
+    status: "todo"
+  };
+
+  if (!payload.title || !payload.assigneeId) {
+    showToast("Missing task details", "Task title and assignee are required.", "error");
+    return;
+  }
+
+  try {
+    await fetchJSON(`${API}/api/work-tasks`, {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload)
+    });
+
+    closeModal("taskModal");
+
+    document.getElementById("taskTitle").value = "";
+    document.getElementById("taskCategory").value = "";
+    document.getElementById("taskDueDate").value = "";
+    document.getElementById("taskDescription").value = "";
+
+    await loadTasks();
+
+    if (typeof buildOps === "function") buildOps();
+    if (typeof buildAnalytics === "function") buildAnalytics();
+    refreshAllUI();
+
+    showToast("Task created", "The task was assigned successfully.");
+  } catch (err) {
+    showToast("Task failed", err.message, "error");
+  }
+}
+
+async function deleteSchedule(scheduleId){
+  if (!scheduleId) return;
+
+  if (!confirm("Delete this schedule?")) return;
+
+  try {
+    await fetchJSON(`${API}/api/schedules/${scheduleId}`, {
+      method: "DELETE",
+      headers: authHeaders()
+    });
+
+    await loadSchedules();
+    await loadAgentLogs();
+
+    if (typeof buildOps === "function") buildOps();
+    if (typeof buildAnalytics === "function") buildAnalytics();
+    refreshAllUI();
+
+    showToast("Schedule deleted", "The schedule was removed.");
+  } catch (err) {
+    showToast("Delete failed", err.message, "error");
+  }
+}
+
+async function deleteTask(taskId){
+  if (!taskId) return;
+
+  if (!confirm("Delete this task?")) return;
+
+  try {
+    await fetchJSON(`${API}/api/work-tasks/${taskId}`, {
+      method: "DELETE",
+      headers: authHeaders()
+    });
+
+    await loadTasks();
+
+    if (typeof buildOps === "function") buildOps();
+    if (typeof buildAnalytics === "function") buildAnalytics();
+    refreshAllUI();
+
+    showToast("Task deleted", "The task was removed.");
+  } catch (err) {
+    showToast("Delete failed", err.message, "error");
+  }
+}
 async function submitTeamMember(){
   const payload = {
     name: document.getElementById("teamName").value.trim(),
