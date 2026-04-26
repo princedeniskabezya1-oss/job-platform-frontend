@@ -2845,18 +2845,23 @@ function card(title,value){
    ACTIONS
 ================================ */
 
-async function createTask(template){
-  await fetch(`${API}/api/work-tasks`,{
-    method:"POST",
-    headers: authHeaders({"Content-Type":"application/json"}),
-    body: JSON.stringify({
-      title: template.name,
-      category: template.category,
-      assigneeId: localStorage.getItem("userId")
-    })
-  });
+async function createTask(){
+  try{
+    await fetch(`${API}/api/work-tasks`,{
+      method:"POST",
+      headers: authHeaders({"Content-Type":"application/json"}),
+      body: JSON.stringify({
+        title: "New Task",
+        category: "general",
+        assigneeId: localStorage.getItem("userId")
+      })
+    });
 
-  loadOpsData();
+    loadOpsData();
+
+  }catch(e){
+    console.error(e);
+  }
 }
 
 async function updateTask(id,status){
@@ -2868,7 +2873,22 @@ async function updateTask(id,status){
 
   loadOpsData();
 }
+async function createSchedule(){
+  try{
+    await fetch(`${API}/api/schedules`,{
+      method:"POST",
+      headers: authHeaders({"Content-Type":"application/json"}),
+      body: JSON.stringify({
+        agentId: localStorage.getItem("userId"),
+        startDate: new Date(),
+        startTime: "09:00"
+      })
+    });
 
+  }catch(e){
+    console.error(e);
+  }
+}
 /* ===============================
    AUTO LOAD WHEN CLICK TAB
 ================================ */
