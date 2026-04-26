@@ -916,14 +916,18 @@ async function doubleLike(postId) {
     window.location.href = `public-profile.html?id=${encodeURIComponent(userId)}`;
   }
 
-  async function refreshOnePost(postId) {
-    /*
-      Your backend does not currently show GET /api/posts/:id.
-      So this reloads the feed safely. In PART 3 I’ll give you the exact endpoint
-      to make this lighter and more production-level.
-    */
+async function refreshOnePost(postId) {
+  try {
+    const post = await api(`${API}/api/posts/${postId}`, {
+      headers: headers()
+    });
+
+    upsertPost(post);
+  } catch (err) {
+    console.warn("Single post refresh failed:", err.message);
     await loadFeed({ reset: true });
   }
+}
 
   function getPost(postId) {
     return state.posts.find(p => String(p._id) === String(postId));
