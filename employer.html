@@ -593,6 +593,7 @@
       <div class="agent-live-head"><div><h3>Agent Login / Logout Activity</h3><p>Live rows from schedules, tasks, and available attendance logs. No demo rows are generated.</p></div><button class="small-link" type="button" onclick="reloadOperationsLive()">Refresh</button></div>
       <div class="agent-live-table-wrap"><table class="agent-live-table"><thead><tr><th>Agent</th><th>Schedule</th><th>Login</th><th>Logout</th><th>Duration</th><th>Status</th><th>Performance</th></tr></thead><tbody id="agentActivityBody"><tr><td colspan="7" class="loading">Loading agent activity...</td></tr></tbody></table></div>
     </div>
+    <div id="advancedOpsContainer" style="margin-top:16px;"></div>
   </section>
 </div>
 
@@ -2727,6 +2728,161 @@ async function init() {
 }
 
 init();
+    /* =========================================
+   🚀 AIFT NEXT LEVEL OPS SYSTEM
+========================================= */
+
+async function loadOpsData(){
+  try{
+    const [tasks, templates, sessions] = await Promise.all([
+      fetch(`${API}/api/work-tasks`, { headers: authHeaders() }).then(r=>r.json()),
+      fetch(`${API}/api/task-templates`, { headers: authHeaders() }).then(r=>r.json()),
+      fetch(`${API}/api/agent-sessions/company`, { headers: authHeaders() }).then(r=>r.json())
+    ]);
+
+    renderOps(tasks, templates, sessions);
+
+  }catch(err){
+    console.error("OPS ERROR:", err);
+  }
+}
+
+/* ===============================
+   RENDER SYSTEM
+================================ */
+
+function renderOps(tasks, templates, sessions){
+
+  const el = document.getElementById("opsContainer");
+  if(!el) return;
+
+  const statuses = ["todo","in_progress","done","blocked"];
+
+  el.innerHTML = `
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <!-- STATS -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+      ${card("Tasks", tasks.length)}
+      ${card("Done", tasks.filter(t=>t.status==="done").length)}
+      ${card("Blocked", tasks.filter(t=>t.status==="blocked").length)}
+      ${card("Online", sessions.filter(s=>!s.logoutTime).length)}
+    </div>
+
+    <!-- SEARCH -->
+    <input id="opsSearch" placeholder="Search tasks..." style="padding:10px;border-radius:10px;border:1px solid #ddd">
+
+    <!-- BOARD -->
+    <div style="display:flex;gap:10px;overflow:auto">
+
+      ${statuses.map(status=>`
+        <div style="min-width:260px;background:#f8fafc;padding:10px;border-radius:10px">
+
+          <h4>${status}</h4>
+
+          ${tasks.filter(t=>t.status===status).map(t=>`
+            <div style="background:#fff;padding:10px;border-radius:8px;margin-bottom:8px">
+
+              <b>${t.title}</b>
+              <p>${t.category}</p>
+
+              <button onclick="updateTask('${t._id}','in_progress')">▶</button>
+              <button onclick="updateTask('${t._id}','done')">✔</button>
+
+            </div>
+          `).join("")}
+
+        </div>
+      `).join("")}
+
+    </div>
+
+    <!-- TEMPLATES -->
+    <div>
+      <h3>Quick Tasks</h3>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+
+        ${templates.map(t=>`
+          <div style="padding:12px;border:1px solid #ddd;border-radius:10px;cursor:pointer"
+               onclick='createTask(${JSON.stringify(t)})'>
+
+            <b>${t.name}</b>
+
+          </div>
+        `).join("")}
+
+      </div>
+    </div>
+
+    <!-- AGENTS -->
+    <div>
+      <h3>Agent Activity</h3>
+
+      <table style="width:100%">
+        <tr><th>Name</th><th>Login</th><th>Status</th></tr>
+
+        ${sessions.map(s=>`
+          <tr>
+            <td>${s.agentId?.name || "Agent"}</td>
+            <td>${new Date(s.loginTime).toLocaleString()}</td>
+            <td>${s.logoutTime ? "Offline" : "Online"}</td>
+          </tr>
+        `).join("")}
+
+      </table>
+    </div>
+
+  </div>
+  `;
+}
+
+function card(title,value){
+  return `<div class="stat-card"><div>${title}</div><h3>${value}</h3></div>`;
+}
+
+/* ===============================
+   ACTIONS
+================================ */
+
+async function createTask(template){
+  await fetch(`${API}/api/work-tasks`,{
+    method:"POST",
+    headers: authHeaders({"Content-Type":"application/json"}),
+    body: JSON.stringify({
+      title: template.name,
+      category: template.category,
+      assigneeId: localStorage.getItem("userId")
+    })
+  });
+
+  loadOpsData();
+}
+
+async function updateTask(id,status){
+  await fetch(`${API}/api/work-tasks/${id}`,{
+    method:"PATCH",
+    headers: authHeaders({"Content-Type":"application/json"}),
+    body: JSON.stringify({status})
+  });
+
+  loadOpsData();
+}
+
+/* ===============================
+   AUTO LOAD WHEN CLICK TAB
+================================ */
+
+const oldOpenTab = window.openTab;
+
+window.openTab = function(tab){
+
+  oldOpenTab(tab);
+
+  if(tab==="ops"){
+    setTimeout(loadOpsData,500);
+  }
+};
   </script>
 </body>
 </html>
