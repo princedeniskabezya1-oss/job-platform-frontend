@@ -97,7 +97,21 @@ const AIFTFeed = (() => {
   function root() {
     return document.getElementById(state.rootId);
   }
-
+function moveSheetsToBody() {
+  [
+    "aiftSheetBackdrop",
+    "aiftCommentsSheet",
+    "aiftLikesSheet",
+    "aiftShareSheet",
+    "aiftMenuSheet",
+    "aiftRepostSheet"
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.parentElement !== document.body) {
+      document.body.appendChild(el);
+    }
+  });
+}
   function svg(name) {
     const icons = {
       heart: `
@@ -175,9 +189,10 @@ const AIFTFeed = (() => {
       return;
     }
 
-    renderShell();
-    connectSocket();
-    loadFeed({ reset: true });
+renderShell();
+moveSheetsToBody();
+connectSocket();
+loadFeed({ reset: true });
   }
 
   function renderShell() {
@@ -502,16 +517,10 @@ const AIFTFeed = (() => {
     lastTap = now;
   }
 
-  async function doubleLike(postId) {
-    showHeart(postId);
-
-    const post = getPost(postId);
-    const alreadyLiked = post?.likes?.some(u => String(u?._id || u) === String(state.meId));
-
-    if (!alreadyLiked) {
-      await likePost(postId, true);
-    }
-  }
+async function doubleLike(postId) {
+  showHeart(postId);
+  await likePost(postId, true);
+}
 
   function showHeart(postId) {
     const heart = document.getElementById(`aift-heart-${safeId(postId)}`);
@@ -950,34 +959,48 @@ const AIFTFeed = (() => {
     observePosts();
   }
 
-  function openSheet(id) {
-    closeSheets(false);
+function openSheet(id) {
+  moveSheetsToBody();
+  closeSheets(false);
 
-    document.getElementById("aiftSheetBackdrop")?.classList.add("open");
-    const sheet = document.getElementById(id);
-    if (sheet) {
-      sheet.classList.add("open");
-      sheet.setAttribute("aria-hidden", "false");
-    }
+  const backdrop = document.getElementById("aiftSheetBackdrop");
+  const sheet = document.getElementById(id);
 
-    document.body.classList.add("aift-sheet-open");
+  if (backdrop) {
+    backdrop.classList.add("open");
+    backdrop.style.display = "block";
   }
 
-  function closeSheets(clear = true) {
-    document.getElementById("aiftSheetBackdrop")?.classList.remove("open");
-
-    document.querySelectorAll(".aift-bottom-sheet").forEach(sheet => {
-      sheet.classList.remove("open");
-      sheet.setAttribute("aria-hidden", "true");
-    });
-
-    document.body.classList.remove("aift-sheet-open");
-
-    if (clear) {
-      state.replyTarget = null;
-      hideReplyBanner();
-    }
+  if (sheet) {
+    sheet.classList.add("open");
+    sheet.setAttribute("aria-hidden", "false");
+    sheet.style.display = "flex";
   }
+
+  document.body.classList.add("aift-sheet-open");
+}
+
+function closeSheets(clear = true) {
+  const backdrop = document.getElementById("aiftSheetBackdrop");
+
+  if (backdrop) {
+    backdrop.classList.remove("open");
+    backdrop.style.display = "";
+  }
+
+  document.querySelectorAll(".aift-bottom-sheet").forEach(sheet => {
+    sheet.classList.remove("open");
+    sheet.setAttribute("aria-hidden", "true");
+    sheet.style.display = "";
+  });
+
+  document.body.classList.remove("aift-sheet-open");
+
+  if (clear) {
+    state.replyTarget = null;
+    hideReplyBanner();
+  }
+}
 
   function observePosts() {
     if (!("IntersectionObserver" in window)) return;
@@ -1101,3 +1124,4 @@ const AIFTFeed = (() => {
     closeSheets
   };
 })();
+
