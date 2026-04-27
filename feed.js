@@ -925,10 +925,13 @@ async function submitInlineReply(postId, commentId, inputEl) {
     }
   }
 
-  async function deleteComment(postId, commentId) {
-    if (!confirm("Delete this comment?")) return;
-
-    try {
+async function deleteComment(postId, commentId) {
+  openConfirmModal({
+    title: "Delete comment?",
+    message: "This comment will be removed from the post. This action cannot be undone.",
+    confirmText: "Delete",
+    danger: true,
+    onConfirm: async () => {
       await api(`${API}/api/posts/${postId}/comments/${commentId}`, {
         method: "DELETE",
         headers: headers()
@@ -938,15 +941,17 @@ async function submitInlineReply(postId, commentId, inputEl) {
       rerenderActiveComments(postId);
       updateCommentCount(postId);
       toast("Comment deleted.");
-    } catch (err) {
-      toast(err.message, "error");
     }
-  }
+  });
+}
 
-  async function deleteReply(postId, commentId, replyId) {
-    if (!confirm("Delete this reply?")) return;
-
-    try {
+async function deleteReply(postId, commentId, replyId) {
+  openConfirmModal({
+    title: "Delete reply?",
+    message: "This reply will be removed from the comment thread.",
+    confirmText: "Delete",
+    danger: true,
+    onConfirm: async () => {
       await api(`${API}/api/posts/${postId}/comments/${commentId}/replies/${replyId}`, {
         method: "DELETE",
         headers: headers()
@@ -956,10 +961,9 @@ async function submitInlineReply(postId, commentId, inputEl) {
       rerenderActiveComments(postId);
       updateCommentCount(postId);
       toast("Reply deleted.");
-    } catch (err) {
-      toast(err.message, "error");
     }
-  }
+  });
+}
 
   function rerenderActiveComments(postId) {
     const post = getPost(postId);
@@ -1550,7 +1554,59 @@ function showMoreComments(postId) {
       timer = setTimeout(() => fn(...args), delay);
     };
   }
+function openConfirmModal({ title, message, confirmText = "Confirm", danger = false, onConfirm }) {
+  let modal = document.getElementById("aiftConfirmModal");
 
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "aiftConfirmModal";
+    modal.className = "aift-confirm-backdrop";
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div class="aift-confirm-card" role="dialog" aria-modal="true">
+      <div class="aift-confirm-icon ${danger ? "danger" : ""}">
+        ${svg("trash")}
+      </div>
+
+      <div class="aift-confirm-content">
+        <h3>${esc(title)}</h3>
+        <p>${esc(message)}</p>
+      </div>
+
+      <div class="aift-confirm-actions">
+        <button class="aift-confirm-cancel" type="button">Cancel</button>
+        <button class="aift-confirm-ok ${danger ? "danger" : ""}" type="button">${esc(confirmText)}</button>
+      </div>
+    </div>
+  `;
+
+  modal.classList.add("show");
+
+  modal.querySelector(".aift-confirm-cancel").onclick = () => {
+    modal.classList.remove("show");
+  };
+
+  modal.onclick = e => {
+    if (e.target === modal) modal.classList.remove("show");
+  };
+
+  modal.querySelector(".aift-confirm-ok").onclick = async () => {
+    const btn = modal.querySelector(".aift-confirm-ok");
+    btn.disabled = true;
+    btn.textContent = "Deleting...";
+
+    try {
+      await onConfirm();
+      modal.classList.remove("show");
+    } catch (err) {
+      toast(err.message, "error");
+      btn.disabled = false;
+      btn.textContent = confirmText;
+    }
+  };
+}
   function toast(message, type = "success") {
     let el = document.getElementById("aiftFeedToast");
 
