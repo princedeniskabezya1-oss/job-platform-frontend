@@ -5,6 +5,7 @@ const AIFTFeed = (() => {
   const state = {
     rootId: "",
     posts: [],
+    me: null,
     meId: localStorage.getItem("userId"),
     replyTarget: null,
     activePostId: null,
@@ -15,7 +16,12 @@ const AIFTFeed = (() => {
     loading: false,
     skip: 0,
     limit: 20,
-    hasMore: true
+    hasMore: true,
+    followingUsers: [],
+    selectedShareUsers: new Set(),
+    isMobile: window.innerWidth <= 768,
+    lastTapAt: 0,
+    viewedPosts: new Set()
   };
 
   function getToken() {
@@ -48,6 +54,10 @@ const AIFTFeed = (() => {
     return String(value || "").replace(/[^a-zA-Z0-9_-]/g, "");
   }
 
+  function root() {
+    return document.getElementById(state.rootId);
+  }
+
   function isMine(userId) {
     return String(userId || "") === String(state.meId || localStorage.getItem("userId"));
   }
@@ -60,6 +70,10 @@ const AIFTFeed = (() => {
     return user.headline || user.role || "AIFT Member";
   }
 
+  function userAvatar(user = {}) {
+    return user.profileImage || DEFAULT_AVATAR;
+  }
+
   function isVerified(user = {}) {
     return Boolean(
       user.isVerified ||
@@ -69,11 +83,36 @@ const AIFTFeed = (() => {
     );
   }
 
+  function isAdmin() {
+    return state.me?.role === "admin" || localStorage.getItem("role") === "admin";
+  }
+
+  function formatTime(dateValue) {
+    if (!dateValue) return "";
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return "";
+
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 60) return "Just now";
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
+
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric"
+    });
+  }
+
   function isFollowing(author = {}) {
     const myId = String(state.meId || localStorage.getItem("userId") || "");
     if (!author || !author._id || String(author._id) === myId) return true;
 
     if (typeof author.isFollowing === "boolean") return author.isFollowing;
+
+    if (state.me?.following?.length) {
+      return state.me.following.some(id => String(id?._id || id) === String(author._id));
+    }
 
     const following = JSON.parse(localStorage.getItem("followingIds") || "[]");
     return following.some(id => String(id) === String(author._id));
@@ -94,93 +133,36 @@ const AIFTFeed = (() => {
     return data;
   }
 
-  function root() {
-    return document.getElementById(state.rootId);
-  }
-function moveSheetsToBody() {
-  [
-    "aiftSheetBackdrop",
-    "aiftCommentsSheet",
-    "aiftLikesSheet",
-    "aiftShareSheet",
-    "aiftMenuSheet",
-    "aiftRepostSheet"
-  ].forEach(id => {
-    const el = document.getElementById(id);
-    if (el && el.parentElement !== document.body) {
-      document.body.appendChild(el);
-    }
-  });
-}
   function svg(name) {
     const icons = {
-      heart: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"></path>
-        </svg>`,
-      comment: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"></path>
-        </svg>`,
-      repost: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M17 1l4 4-4 4"></path>
-          <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
-          <path d="M7 23l-4-4 4-4"></path>
-          <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
-        </svg>`,
-      share: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M22 2 11 13"></path>
-          <path d="m22 2-7 20-4-9-9-4 20-7Z"></path>
-        </svg>`,
-      save: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"></path>
-        </svg>`,
-      more: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="5" cy="12" r="1.8"></circle>
-          <circle cx="12" cy="12" r="1.8"></circle>
-          <circle cx="19" cy="12" r="1.8"></circle>
-        </svg>`,
-      close: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M18 6 6 18"></path>
-          <path d="m6 6 12 12"></path>
-        </svg>`,
-      check: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M20 6 9 17l-5-5"></path>
-        </svg>`,
-      copy: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-        </svg>`,
-      flag: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 22V4"></path>
-          <path d="M4 4h13l-1 5 1 5H4"></path>
-        </svg>`,
-      info: `
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M12 16v-4"></path>
-          <path d="M12 8h.01"></path>
-        </svg>`
+      heart: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z"></path></svg>`,
+      comment: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"></path></svg>`,
+      repost: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 1l4 4-4 4"></path><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><path d="M7 23l-4-4 4-4"></path><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>`,
+      share: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"></path><path d="m22 2-7 20-4-9-9-4 20-7Z"></path></svg>`,
+      save: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"></path></svg>`,
+      more: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>`,
+      close: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>`,
+      check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>`,
+      copy: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
+      flag: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 22V4"></path><path d="M4 4h13l-1 5 1 5H4"></path></svg>`,
+      info: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>`,
+      send: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"></path><path d="M22 2 15 22 11 13 2 9 22 2Z"></path></svg>`,
+      search: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>`,
+      trash: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path></svg>`,
+      edit: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"></path></svg>`
     };
 
     return icons[name] || "";
   }
 
-  function mount(rootId, options = {}) {
+  async function mount(rootId, options = {}) {
     state.rootId = rootId;
     state.limit = Number(options.limit || 20);
     state.skip = 0;
     state.hasMore = true;
     state.posts = [];
     state.meId = localStorage.getItem("userId");
+    state.isMobile = window.innerWidth <= 768;
 
     if (!root()) return;
 
@@ -189,10 +171,29 @@ function moveSheetsToBody() {
       return;
     }
 
-renderShell();
-moveSheetsToBody();
-connectSocket();
-loadFeed({ reset: true });
+    renderShell();
+    moveOverlaysToBody();
+
+    await loadMe();
+    connectSocket();
+    await loadFeed({ reset: true });
+
+    window.addEventListener("resize", debounce(() => {
+      state.isMobile = window.innerWidth <= 768;
+    }, 200));
+  }
+
+  async function loadMe() {
+    try {
+      state.me = await api(`${API}/api/users/me`, {
+        headers: headers()
+      });
+
+      state.meId = state.me?._id || localStorage.getItem("userId");
+      if (state.meId) localStorage.setItem("userId", state.meId);
+    } catch (err) {
+      console.warn("Failed to load current user:", err.message);
+    }
   }
 
   function renderShell() {
@@ -200,6 +201,7 @@ loadFeed({ reset: true });
       <div class="aift-feed-shell">
         <section class="aift-composer">
           <div class="aift-composer-row">
+            <img class="aift-composer-avatar" src="${esc(userAvatar(state.me || {}))}" alt="" />
             <textarea id="aiftPostText" placeholder="Share something with the AIFT community..."></textarea>
           </div>
 
@@ -213,45 +215,45 @@ loadFeed({ reset: true });
         </section>
 
         <section id="aiftFeedList" class="aift-feed-list"></section>
-
         <button id="aiftLoadMore" class="aift-load-more" onclick="AIFTFeed.loadMore()">Load more</button>
       </div>
 
-      <div id="aiftSheetBackdrop" class="aift-sheet-backdrop" onclick="AIFTFeed.closeSheets()"></div>
+      <div id="aiftSheetBackdrop" class="aift-sheet-backdrop" onclick="AIFTFeed.closeOverlays()"></div>
 
-      <section id="aiftCommentsSheet" class="aift-bottom-sheet" aria-hidden="true">
+      <section id="aiftCommentsSheet" class="aift-bottom-sheet comments-sheet" aria-hidden="true">
         <div class="aift-sheet-handle"></div>
         <header class="aift-sheet-head">
           <strong>Comments</strong>
-          <button class="aift-icon-btn" onclick="AIFTFeed.closeSheets()">${svg("close")}</button>
+          <button class="aift-icon-btn" onclick="AIFTFeed.closeOverlays()">${svg("close")}</button>
         </header>
-        <div id="aiftCommentsBody" class="aift-sheet-body"></div>
+        <div id="aiftCommentsBody" class="aift-sheet-body aift-comments-body"></div>
         <footer class="aift-comment-footer">
           <div id="aiftReplyBanner" class="aift-reply-banner">
             <span id="aiftReplyText"></span>
             <button onclick="AIFTFeed.cancelReply()">Cancel</button>
           </div>
           <div class="aift-comment-input-row">
-            <input id="aiftCommentInput" placeholder="Join the conversation..." />
+            <img class="aift-input-avatar" src="${esc(userAvatar(state.me || {}))}" alt="" />
+            <input id="aiftCommentInput" placeholder="Write a comment..." onkeydown="AIFTFeed.handleCommentKey(event)" />
             <button onclick="AIFTFeed.submitComment()">Post</button>
           </div>
         </footer>
       </section>
 
-      <section id="aiftLikesSheet" class="aift-bottom-sheet" aria-hidden="true">
+      <section id="aiftLikesSheet" class="aift-bottom-sheet compact" aria-hidden="true">
         <div class="aift-sheet-handle"></div>
         <header class="aift-sheet-head">
           <strong>Liked by</strong>
-          <button class="aift-icon-btn" onclick="AIFTFeed.closeSheets()">${svg("close")}</button>
+          <button class="aift-icon-btn" onclick="AIFTFeed.closeOverlays()">${svg("close")}</button>
         </header>
         <div id="aiftLikesBody" class="aift-sheet-body"></div>
       </section>
 
-      <section id="aiftShareSheet" class="aift-bottom-sheet compact" aria-hidden="true">
+      <section id="aiftShareSheet" class="aift-bottom-sheet share-sheet" aria-hidden="true">
         <div class="aift-sheet-handle"></div>
         <header class="aift-sheet-head">
           <strong>Share</strong>
-          <button class="aift-icon-btn" onclick="AIFTFeed.closeSheets()">${svg("close")}</button>
+          <button class="aift-icon-btn" onclick="AIFTFeed.closeOverlays()">${svg("close")}</button>
         </header>
         <div id="aiftShareBody" class="aift-sheet-body"></div>
       </section>
@@ -265,7 +267,7 @@ loadFeed({ reset: true });
         <div class="aift-sheet-handle"></div>
         <header class="aift-sheet-head">
           <strong>Repost</strong>
-          <button class="aift-icon-btn" onclick="AIFTFeed.closeSheets()">${svg("close")}</button>
+          <button class="aift-icon-btn" onclick="AIFTFeed.closeOverlays()">${svg("close")}</button>
         </header>
         <div class="aift-sheet-body">
           <textarea id="aiftRepostText" class="aift-repost-textarea" placeholder="Add your thoughts..."></textarea>
@@ -273,6 +275,22 @@ loadFeed({ reset: true });
         </div>
       </section>
     `;
+  }
+
+  function moveOverlaysToBody() {
+    [
+      "aiftSheetBackdrop",
+      "aiftCommentsSheet",
+      "aiftLikesSheet",
+      "aiftShareSheet",
+      "aiftMenuSheet",
+      "aiftRepostSheet"
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.parentElement !== document.body) {
+        document.body.appendChild(el);
+      }
+    });
   }
 
   async function loadFeed({ reset = false } = {}) {
@@ -296,25 +314,13 @@ loadFeed({ reset: true });
 
       const incoming = Array.isArray(posts) ? posts : [];
 
-      if (reset) {
-        state.posts = incoming;
-      } else {
-        state.posts = [...state.posts, ...incoming];
-      }
-
+      state.posts = reset ? incoming : mergePosts([...state.posts, ...incoming]);
       state.skip += incoming.length;
       state.hasMore = incoming.length === state.limit;
 
-      if (!state.posts.length) {
-        list.innerHTML = `<div class="aift-feed-empty">No posts yet.</div>`;
-      } else {
-        list.innerHTML = state.posts.map(renderPost).join("");
-        observePosts();
-      }
+      renderFeedOnly();
 
-      if (loadMore) {
-        loadMore.style.display = state.hasMore ? "block" : "none";
-      }
+      if (loadMore) loadMore.style.display = state.hasMore ? "block" : "none";
     } catch (err) {
       console.error(err);
       list.innerHTML = `<div class="aift-feed-empty">${esc(err.message)}</div>`;
@@ -327,24 +333,47 @@ loadFeed({ reset: true });
     if (state.hasMore) loadFeed();
   }
 
+  function mergePosts(posts) {
+    const map = new Map();
+    posts.forEach(post => {
+      if (post?._id) map.set(String(post._id), post);
+    });
+    return Array.from(map.values());
+  }
+
+  function renderFeedOnly() {
+    const list = document.getElementById("aiftFeedList");
+    if (!list) return;
+
+    const hidden = JSON.parse(localStorage.getItem("aiftHiddenPosts") || "[]");
+    const visiblePosts = state.posts.filter(p => !hidden.includes(String(p._id)));
+
+    list.innerHTML = visiblePosts.length
+      ? visiblePosts.map(renderPost).join("")
+      : `<div class="aift-feed-empty">No posts yet.</div>`;
+
+    observePosts();
+  }
+
   function renderPost(post) {
     const author = post.author || {};
     const liked = (post.likes || []).some(u => String(u?._id || u) === String(state.meId));
     const commentsCount = countComments(post);
     const followed = isFollowing(author);
     const verified = isVerified(author);
+    const canManage = isMine(author._id) || isAdmin();
 
     return `
       <article class="aift-post-card" id="aift-post-${safeId(post._id)}" data-post-id="${esc(post._id)}">
         <header class="aift-post-header">
           <div class="aift-author" onclick="AIFTFeed.visitProfile('${esc(author._id)}')">
-            <img class="aift-avatar" src="${esc(author.profileImage || DEFAULT_AVATAR)}" alt="" />
+            <img class="aift-avatar" src="${esc(userAvatar(author))}" alt="" />
             <div class="aift-author-text">
               <div class="aift-author-name">
                 <strong>${esc(userName(author))}</strong>
                 ${verified ? `<span class="aift-verified" title="Verified by AIFT admin">${svg("check")}</span>` : ""}
               </div>
-              <span>${esc(userSub(author))}</span>
+              <span>${esc(userSub(author))}${post.createdAt ? ` · ${formatTime(post.createdAt)}` : ""}</span>
             </div>
           </div>
 
@@ -358,7 +387,7 @@ loadFeed({ reset: true });
           </div>
         </header>
 
-        ${post.text ? `<div class="aift-post-text">${esc(post.text)}</div>` : ""}
+        ${post.text?.trim() ? `<div class="aift-post-text">${esc(post.text)}</div>` : ""}
 
         ${
           post.mediaUrl
@@ -377,23 +406,13 @@ loadFeed({ reset: true });
 
         <section class="aift-post-actions">
           <div class="aift-left-actions">
-            <button class="aift-action-btn ${liked ? "is-liked" : ""}" onclick="AIFTFeed.likePost('${esc(post._id)}')" aria-label="Like">
-              ${svg("heart")}
-            </button>
-            <button class="aift-action-btn" onclick="AIFTFeed.openComments('${esc(post._id)}')" aria-label="Comment">
-              ${svg("comment")}
-            </button>
-            <button class="aift-action-btn" onclick="AIFTFeed.openRepost('${esc(post._id)}')" aria-label="Repost">
-              ${svg("repost")}
-            </button>
-            <button class="aift-action-btn" onclick="AIFTFeed.openShare('${esc(post._id)}')" aria-label="Share">
-              ${svg("share")}
-            </button>
+            <button class="aift-action-btn ${liked ? "is-liked" : ""}" onclick="AIFTFeed.likePost('${esc(post._id)}')" aria-label="Like">${svg("heart")}</button>
+            <button class="aift-action-btn" onclick="AIFTFeed.openComments('${esc(post._id)}')" aria-label="Comment">${svg("comment")}</button>
+            <button class="aift-action-btn" onclick="AIFTFeed.openRepost('${esc(post._id)}')" aria-label="Repost">${svg("repost")}</button>
+            <button class="aift-action-btn" onclick="AIFTFeed.openShare('${esc(post._id)}')" aria-label="Share">${svg("share")}</button>
           </div>
 
-          <button class="aift-action-btn" onclick="AIFTFeed.savePost('${esc(post._id)}')" aria-label="Save">
-            ${svg("save")}
-          </button>
+          <button class="aift-action-btn" onclick="AIFTFeed.savePost('${esc(post._id)}')" aria-label="Save">${svg("save")}</button>
         </section>
 
         <section class="aift-post-stats">
@@ -403,12 +422,12 @@ loadFeed({ reset: true });
           <button onclick="AIFTFeed.openComments('${esc(post._id)}')">
             View <strong id="aift-comments-count-${safeId(post._id)}">${commentsCount}</strong> comments
           </button>
-          ${
-            post.sharesCount
-              ? `<span><strong id="aift-shares-count-${safeId(post._id)}">${post.sharesCount}</strong> shares</span>`
-              : `<span id="aift-shares-count-${safeId(post._id)}" style="display:none;">0</span>`
-          }
+          <span class="${post.sharesCount ? "" : "aift-hidden"}" id="aift-shares-wrap-${safeId(post._id)}">
+            <strong id="aift-shares-count-${safeId(post._id)}">${post.sharesCount || 0}</strong> shares
+          </span>
         </section>
+
+        <section id="aift-comments-inline-${safeId(post._id)}" class="aift-comments-inline-container"></section>
       </article>
     `;
   }
@@ -425,7 +444,7 @@ loadFeed({ reset: true });
     const media = mediaEl.files[0];
 
     if (!text && !media) {
-      alert("Please write something or add media first.");
+      toast("Please write something or add media first.");
       return;
     }
 
@@ -442,14 +461,13 @@ loadFeed({ reset: true });
 
       textEl.value = "";
       mediaEl.value = "";
-
       upsertPost(post, { prepend: true });
+      toast("Post created.");
     } catch (err) {
-      alert(err.message);
+      toast(err.message, "error");
     }
   }
-
-  async function likePost(postId, silent = false) {
+    async function likePost(postId, silent = false) {
     const post = getPost(postId);
     const beforeLiked = post?.likes?.some(u => String(u?._id || u) === String(state.meId));
 
@@ -464,7 +482,7 @@ loadFeed({ reset: true });
       applyPostLike(postId, data);
     } catch (err) {
       optimisticPostLike(postId, beforeLiked);
-      if (!silent) alert(err.message);
+      if (!silent) toast(err.message, "error");
     }
   }
 
@@ -472,13 +490,15 @@ loadFeed({ reset: true });
     const post = getPost(postId);
     if (!post) return;
 
-    const me = state.meId || localStorage.getItem("userId");
+    const me = state.me || { _id: state.meId };
     post.likes = post.likes || [];
 
-    const has = post.likes.some(u => String(u?._id || u) === String(me));
+    const has = post.likes.some(u => String(u?._id || u) === String(state.meId));
 
     if (liked && !has) post.likes.push(me);
-    if (!liked && has) post.likes = post.likes.filter(u => String(u?._id || u) !== String(me));
+    if (!liked && has) {
+      post.likes = post.likes.filter(u => String(u?._id || u) !== String(state.meId));
+    }
 
     updatePostActions(postId);
   }
@@ -506,21 +526,21 @@ loadFeed({ reset: true });
     if (count) count.textContent = String((post.likes || []).length);
   }
 
-  let lastTap = 0;
-
   function handleTapLike(event, postId) {
     const now = Date.now();
-    if (now - lastTap < 320) {
+
+    if (now - state.lastTapAt < 320) {
       event.preventDefault();
       doubleLike(postId);
     }
-    lastTap = now;
+
+    state.lastTapAt = now;
   }
 
-async function doubleLike(postId) {
-  showHeart(postId);
-  await likePost(postId, true);
-}
+  async function doubleLike(postId) {
+    showHeart(postId);
+    await likePost(postId, true);
+  }
 
   function showHeart(postId) {
     const heart = document.getElementById(`aift-heart-${safeId(postId)}`);
@@ -532,157 +552,299 @@ async function doubleLike(postId) {
     setTimeout(() => heart.classList.remove("show"), 900);
   }
 
-function openComments(postId) {
-  const post = getPost(postId);
-  if (!post) return;
+  function openComments(postId) {
+    const post = getPost(postId);
+    if (!post) return;
 
-  state.activePostId = postId;
-  state.replyTarget = null;
+    state.activePostId = postId;
+    state.replyTarget = null;
 
-  const body = document.getElementById("aiftCommentsBody");
-  const input = document.getElementById("aiftCommentInput");
+    if (!state.isMobile) {
+      renderInlineComments(postId);
+      return;
+    }
 
-  body.innerHTML = `
-    <div class="aift-comments-preview">
-      ${renderComments(post, 3)}
-    </div>
-  `;
+    const body = document.getElementById("aiftCommentsBody");
+    const input = document.getElementById("aiftCommentInput");
 
-  input.value = "";
-  hideReplyBanner();
+    body.innerHTML = `
+      <div class="aift-comments-topbar">
+        <button class="aift-comments-filter">Most relevant</button>
+      </div>
+      <div class="aift-comments-preview">
+        ${renderComments(post, 3)}
+      </div>
+    `;
 
-  openSheet("aiftCommentsSheet");
-}
-
-function renderComments(post, limit = null) {
-  const comments = post.comments || [];
-  const visibleComments = limit ? comments.slice(-limit) : comments;
-
-  if (!comments.length) {
-    return `<div class="aift-feed-empty">No comments yet. Be the first to comment.</div>`;
+    if (input) input.value = "";
+    hideReplyBanner();
+    openOverlay("aiftCommentsSheet");
   }
 
-  return `
-    ${visibleComments.map(comment => renderComment(post._id, comment)).join("")}
+  function renderInlineComments(postId) {
+    const post = getPost(postId);
+    if (!post) return;
 
-    ${
-      limit && comments.length > limit
-        ? `<button class="aift-view-more-comments" onclick="AIFTFeed.showAllComments('${post._id}')">
-            View all ${comments.length} comments
-          </button>`
-        : ""
+    const container = document.getElementById(`aift-comments-inline-${safeId(postId)}`);
+    if (!container) return;
+
+    const isOpen = container.dataset.open === "true";
+
+    if (isOpen) {
+      container.innerHTML = "";
+      container.dataset.open = "false";
+      return;
     }
-  `;
-}
-  function showAllComments(postId) {
-  const post = getPost(postId);
-  if (!post) return;
 
-  document.getElementById("aiftCommentsBody").innerHTML = renderComments(post);
-}
-
-function renderComment(postId, comment) {
-  const user = comment.user || {};
-  const liked = (comment.likes || []).some(u => String(u?._id || u) === String(state.meId));
-  const replies = comment.replies || [];
-
-  return `
-    <div class="aift-fb-comment" id="aift-comment-${safeId(comment._id)}">
-      <img class="aift-fb-avatar" src="${esc(user.profileImage || DEFAULT_AVATAR)}" alt="" />
-
-      <div class="aift-fb-comment-content">
-        <div class="aift-fb-bubble">
-          <div class="aift-fb-name">${esc(userName(user))}</div>
-          <div class="aift-fb-text">${esc(comment.text)}</div>
+    container.dataset.open = "true";
+    container.innerHTML = `
+      <div class="aift-inline-comments">
+        <div class="aift-comments-topbar">
+          <button class="aift-comments-filter">Most relevant</button>
         </div>
 
-        <div class="aift-fb-actions">
-          <button class="${liked ? "active" : ""}" onclick="AIFTFeed.likeComment('${esc(postId)}','${esc(comment._id)}')">
-            Like
-          </button>
-          <button onclick="AIFTFeed.replyTo('${esc(postId)}','${esc(comment._id)}','${esc(userName(user))}')">
-            Reply
-          </button>
-          <span>${(comment.likes || []).length} likes</span>
+        <div class="aift-inline-comments-list">
+          ${renderComments(post, 3)}
         </div>
 
-        ${
-          replies.length
-            ? `<div class="aift-fb-replies">
-                ${replies.map(reply => renderReply(postId, comment._id, reply, user)).join("")}
-              </div>`
-            : ""
-        }
+        ${renderInlineCommentInput(postId)}
       </div>
-    </div>
-  `;
-}
+    `;
+  }
+
+  function renderInlineCommentInput(postId) {
+    return `
+      <div class="aift-inline-input">
+        <img class="aift-input-avatar" src="${esc(userAvatar(state.me || {}))}" alt="" />
+        <input
+          type="text"
+          placeholder="Write a comment..."
+          onkeydown="AIFTFeed.handleInlineCommentKey(event, '${esc(postId)}', this)"
+        />
+        <button onclick="AIFTFeed.submitInlineComment('${esc(postId)}', this.previousElementSibling)">Post</button>
+      </div>
+    `;
+  }
+
+  function renderComments(post, limit = null) {
+    const comments = post.comments || [];
+    const visibleComments = limit ? comments.slice(-limit) : comments;
+
+    if (!comments.length) {
+      return `<div class="aift-feed-empty flat">No comments yet. Be the first to comment.</div>`;
+    }
+
+    return `
+      ${visibleComments.map(comment => renderComment(post._id, comment)).join("")}
+      ${
+        limit && comments.length > limit
+          ? `<button class="aift-view-more-comments" onclick="AIFTFeed.showAllComments('${esc(post._id)}')">
+              View all ${comments.length} comments
+            </button>`
+          : ""
+      }
+    `;
+  }
+
+  function showAllComments(postId) {
+    const post = getPost(postId);
+    if (!post) return;
+
+    if (state.isMobile) {
+      document.getElementById("aiftCommentsBody").innerHTML = `
+        <div class="aift-comments-topbar">
+          <button class="aift-comments-filter">Most relevant</button>
+        </div>
+        ${renderComments(post)}
+      `;
+      return;
+    }
+
+    const container = document.getElementById(`aift-comments-inline-${safeId(postId)}`);
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="aift-inline-comments">
+        <div class="aift-comments-topbar">
+          <button class="aift-comments-filter">Most relevant</button>
+        </div>
+        <div class="aift-inline-comments-list">${renderComments(post)}</div>
+        ${renderInlineCommentInput(postId)}
+      </div>
+    `;
+    container.dataset.open = "true";
+  }
+
+  function renderComment(postId, comment) {
+    const user = comment.user || {};
+    const liked = (comment.likes || []).some(u => String(u?._id || u) === String(state.meId));
+    const replies = comment.replies || [];
+    const canDelete = isMine(user._id) || isMine(getPost(postId)?.author?._id) || isAdmin();
+
+    return `
+      <div class="aift-fb-comment" id="aift-comment-${safeId(comment._id)}">
+        <img class="aift-fb-avatar" src="${esc(userAvatar(user))}" alt="" />
+
+        <div class="aift-fb-comment-content">
+          <div class="aift-fb-line">
+            <div class="aift-fb-bubble">
+              <div class="aift-fb-name-row">
+                <span class="aift-fb-name">${esc(userName(user))}</span>
+                ${isVerified(user) ? `<span class="aift-mini-verified">${svg("check")}</span>` : ""}
+              </div>
+              <div class="aift-fb-sub">${esc(userSub(user))}</div>
+              <div class="aift-fb-text">${esc(comment.text)}</div>
+            </div>
+
+            ${
+              canDelete
+                ? `<button class="aift-comment-more" onclick="AIFTFeed.deleteComment('${esc(postId)}','${esc(comment._id)}')" title="Delete comment">${svg("trash")}</button>`
+                : `<button class="aift-comment-more" title="More">${svg("more")}</button>`
+            }
+          </div>
+
+          <div class="aift-fb-actions">
+            <button class="${liked ? "active" : ""}" onclick="AIFTFeed.likeComment('${esc(postId)}','${esc(comment._id)}')">Like</button>
+            <button onclick="AIFTFeed.replyTo('${esc(postId)}','${esc(comment._id)}','${esc(userName(user))}')">Reply</button>
+            <span>${(comment.likes || []).length} likes</span>
+            <span>${formatTime(comment.createdAt)}</span>
+          </div>
+
+          ${
+            replies.length
+              ? `<div class="aift-fb-replies">
+                  ${replies.map(reply => renderReply(postId, comment._id, reply, user)).join("")}
+                </div>`
+              : ""
+          }
+        </div>
+      </div>
+    `;
+  }
 
   function renderReply(postId, commentId, reply, parentUser = {}) {
     const user = reply.user || {};
     const liked = (reply.likes || []).some(u => String(u?._id || u) === String(state.meId));
+    const canDelete = isMine(user._id) || isMine(getPost(postId)?.author?._id) || isAdmin();
 
     return `
-      <div class="aift-reply" id="aift-reply-${safeId(reply._id)}">
-        <span class="aift-reply-line"></span>
-        <img class="aift-avatar tiny" src="${esc(user.profileImage || DEFAULT_AVATAR)}" alt="" />
+      <div class="aift-fb-comment aift-fb-reply" id="aift-reply-${safeId(reply._id)}">
+        <span class="aift-reply-connector"></span>
+        <img class="aift-fb-avatar small" src="${esc(userAvatar(user))}" alt="" />
 
-        <div class="aift-comment-main">
-          <div class="aift-comment-bubble reply">
-            <strong>${esc(userName(user))}</strong>
-            <p><span class="aift-reply-to">@${esc(userName(parentUser))}</span> ${esc(reply.text)}</p>
+        <div class="aift-fb-comment-content">
+          <div class="aift-fb-line">
+            <div class="aift-fb-bubble reply">
+              <div class="aift-fb-name-row">
+                <span class="aift-fb-name">${esc(userName(user))}</span>
+                ${isVerified(user) ? `<span class="aift-mini-verified">${svg("check")}</span>` : ""}
+              </div>
+              <div class="aift-fb-text"><span class="aift-reply-to">@${esc(userName(parentUser))}</span> ${esc(reply.text)}</div>
+            </div>
+
+            ${
+              canDelete
+                ? `<button class="aift-comment-more" onclick="AIFTFeed.deleteReply('${esc(postId)}','${esc(commentId)}','${esc(reply._id)}')" title="Delete reply">${svg("trash")}</button>`
+                : ""
+            }
           </div>
 
-          <div class="aift-comment-actions">
+          <div class="aift-fb-actions">
             <button class="${liked ? "active" : ""}" onclick="AIFTFeed.likeReply('${esc(postId)}','${esc(commentId)}','${esc(reply._id)}')">Like</button>
             <span>${(reply.likes || []).length} likes</span>
+            <span>${formatTime(reply.createdAt)}</span>
           </div>
         </div>
       </div>
     `;
   }
 
-async function submitComment() {
-  const input = document.getElementById("aiftCommentInput");
-  const text = input.value.trim();
-  const postId = state.activePostId;
+  function handleCommentKey(event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      submitComment();
+    }
+  }
 
-  if (!text || !postId) return;
+  function handleInlineCommentKey(event, postId, inputEl) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      submitInlineComment(postId, inputEl);
+    }
+  }
 
-  input.disabled = true;
+  async function submitComment() {
+    const input = document.getElementById("aiftCommentInput");
+    const text = input?.value.trim();
+    const postId = state.activePostId;
 
-  try {
-    if (state.replyTarget?.commentId) {
-      await api(`${API}/api/posts/${postId}/comments/${state.replyTarget.commentId}/reply`, {
-        method: "POST",
-        headers: headers({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ text })
-      });
-    } else {
+    if (!text || !postId) return;
+
+    input.disabled = true;
+
+    try {
+      if (state.replyTarget?.commentId) {
+        await api(`${API}/api/posts/${postId}/comments/${state.replyTarget.commentId}/reply`, {
+          method: "POST",
+          headers: headers({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ text })
+        });
+      } else {
+        await api(`${API}/api/posts/${postId}/comment`, {
+          method: "POST",
+          headers: headers({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ text })
+        });
+      }
+
+      input.value = "";
+      state.replyTarget = null;
+      hideReplyBanner();
+
+      await refreshOnePost(postId);
+      const post = getPost(postId);
+
+      if (post) {
+        document.getElementById("aiftCommentsBody").innerHTML = `
+          <div class="aift-comments-topbar">
+            <button class="aift-comments-filter">Most relevant</button>
+          </div>
+          <div class="aift-comments-preview">${renderComments(post, 3)}</div>
+        `;
+        updateCommentCount(postId);
+      }
+    } catch (err) {
+      toast(err.message, "error");
+    } finally {
+      input.disabled = false;
+      input.focus();
+    }
+  }
+
+  async function submitInlineComment(postId, inputEl) {
+    const text = inputEl?.value.trim();
+    if (!text) return;
+
+    inputEl.disabled = true;
+
+    try {
       await api(`${API}/api/posts/${postId}/comment`, {
         method: "POST",
         headers: headers({ "Content-Type": "application/json" }),
         body: JSON.stringify({ text })
       });
+
+      inputEl.value = "";
+      await refreshOnePost(postId);
+      showAllComments(postId);
+      updateCommentCount(postId);
+    } catch (err) {
+      toast(err.message, "error");
+    } finally {
+      inputEl.disabled = false;
+      inputEl.focus();
     }
-
-    input.value = "";
-    state.replyTarget = null;
-    hideReplyBanner();
-
-    await refreshOnePost(postId);
-
-    const post = getPost(postId);
-    if (post) {
-      document.getElementById("aiftCommentsBody").innerHTML = renderComments(post, 3);
-    }
-  } catch (err) {
-    alert(err.message);
-  } finally {
-    input.disabled = false;
-    input.focus();
   }
-}
 
   async function likeComment(postId, commentId) {
     try {
@@ -692,9 +854,9 @@ async function submitComment() {
       });
 
       await refreshOnePost(postId);
-      openComments(postId);
+      rerenderActiveComments(postId);
     } catch (err) {
-      alert(err.message);
+      toast(err.message, "error");
     }
   }
 
@@ -706,15 +868,83 @@ async function submitComment() {
       });
 
       await refreshOnePost(postId);
-      openComments(postId);
+      rerenderActiveComments(postId);
     } catch (err) {
-      alert(err.message);
+      toast(err.message, "error");
+    }
+  }
+
+  async function deleteComment(postId, commentId) {
+    if (!confirm("Delete this comment?")) return;
+
+    try {
+      await api(`${API}/api/posts/${postId}/comments/${commentId}`, {
+        method: "DELETE",
+        headers: headers()
+      });
+
+      await refreshOnePost(postId);
+      rerenderActiveComments(postId);
+      updateCommentCount(postId);
+      toast("Comment deleted.");
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+
+  async function deleteReply(postId, commentId, replyId) {
+    if (!confirm("Delete this reply?")) return;
+
+    try {
+      await api(`${API}/api/posts/${postId}/comments/${commentId}/replies/${replyId}`, {
+        method: "DELETE",
+        headers: headers()
+      });
+
+      await refreshOnePost(postId);
+      rerenderActiveComments(postId);
+      updateCommentCount(postId);
+      toast("Reply deleted.");
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+
+  function rerenderActiveComments(postId) {
+    const post = getPost(postId);
+    if (!post) return;
+
+    if (state.isMobile && state.activePostId === postId) {
+      const body = document.getElementById("aiftCommentsBody");
+      if (body) {
+        body.innerHTML = `
+          <div class="aift-comments-topbar">
+            <button class="aift-comments-filter">Most relevant</button>
+          </div>
+          <div class="aift-comments-preview">${renderComments(post, 3)}</div>
+        `;
+      }
+      return;
+    }
+
+    const container = document.getElementById(`aift-comments-inline-${safeId(postId)}`);
+    if (container?.dataset.open === "true") {
+      showAllComments(postId);
     }
   }
 
   function replyTo(postId, commentId, name) {
     state.activePostId = postId;
     state.replyTarget = { commentId, name };
+
+    if (!state.isMobile) {
+      const inlineInput = document.querySelector(`#aift-comments-inline-${safeId(postId)} input`);
+      if (inlineInput) {
+        inlineInput.placeholder = `Replying to ${name}...`;
+        inlineInput.focus();
+      }
+      return;
+    }
 
     const banner = document.getElementById("aiftReplyBanner");
     const text = document.getElementById("aiftReplyText");
@@ -739,8 +969,8 @@ async function submitComment() {
 
   async function openLikes(postId) {
     const body = document.getElementById("aiftLikesBody");
-    body.innerHTML = `<div class="aift-feed-empty">Loading likes...</div>`;
-    openSheet("aiftLikesSheet");
+    body.innerHTML = `<div class="aift-feed-empty flat">Loading likes...</div>`;
+    openOverlay("aiftLikesSheet");
 
     try {
       const people = await api(`${API}/api/posts/${postId}/likes`, {
@@ -749,16 +979,16 @@ async function submitComment() {
 
       body.innerHTML = people.length
         ? people.map(renderPersonRow).join("")
-        : `<div class="aift-feed-empty">No likes yet.</div>`;
+        : `<div class="aift-feed-empty flat">No likes yet.</div>`;
     } catch (err) {
-      body.innerHTML = `<div class="aift-feed-empty">${esc(err.message)}</div>`;
+      body.innerHTML = `<div class="aift-feed-empty flat">${esc(err.message)}</div>`;
     }
   }
 
   function renderPersonRow(user) {
     return `
       <div class="aift-person-row" onclick="AIFTFeed.visitProfile('${esc(user._id)}')">
-        <img src="${esc(user.profileImage || DEFAULT_AVATAR)}" alt="" />
+        <img src="${esc(userAvatar(user))}" alt="" />
         <div>
           <strong>${esc(userName(user))}</strong>
           <span>${esc(userSub(user))}</span>
@@ -767,40 +997,120 @@ async function submitComment() {
     `;
   }
 
-  function openShare(postId) {
+  async function openShare(postId) {
     state.activePostId = postId;
+    state.selectedShareUsers = new Set();
+
+    if (!state.followingUsers.length) {
+      try {
+        state.followingUsers = await api(`${API}/api/users/me/following`, {
+          headers: headers()
+        });
+      } catch (err) {
+        state.followingUsers = [];
+      }
+    }
+
+    renderShareUI(postId);
+    openOverlay("aiftShareSheet");
+  }
+
+  function renderShareUI(postId, keyword = "") {
+    const body = document.getElementById("aiftShareBody");
     const link = getPostLink(postId);
+    const users = state.followingUsers.filter(user => {
+      const term = `${userName(user)} ${userSub(user)}`.toLowerCase();
+      return term.includes(keyword.toLowerCase());
+    });
 
-    document.getElementById("aiftShareBody").innerHTML = `
-      <button class="aift-sheet-option" onclick="AIFTFeed.copyPostLink('${esc(postId)}')">
-        ${svg("copy")}
-        <span>Copy link</span>
-      </button>
+    body.innerHTML = `
+      <div class="aift-share-search">
+        ${svg("search")}
+        <input placeholder="Search people you follow" value="${esc(keyword)}" oninput="AIFTFeed.filterShareUsers('${esc(postId)}', this.value)" />
+      </div>
 
-      <button class="aift-sheet-option" onclick="AIFTFeed.openRepost('${esc(postId)}')">
-        ${svg("repost")}
-        <span>Repost to AIFT</span>
-      </button>
+      <div class="aift-share-grid">
+        ${
+          users.length
+            ? users.map(user => renderShareUser(postId, user)).join("")
+            : `<div class="aift-feed-empty flat">You are not following anyone yet.</div>`
+        }
+      </div>
 
-      <button class="aift-sheet-option" onclick="AIFTFeed.nativeShare('${esc(postId)}')">
-        ${svg("share")}
-        <span>Send / Native share</span>
+      <div class="aift-share-actions">
+        <button onclick="AIFTFeed.copyPostLink('${esc(postId)}')">${svg("copy")} Copy link</button>
+        <button onclick="AIFTFeed.openRepost('${esc(postId)}')">${svg("repost")} Repost</button>
+        <button onclick="AIFTFeed.nativeShare('${esc(postId)}')">${svg("share")} More</button>
+      </div>
+
+      <button id="aiftSendSelectedBtn" class="aift-primary-btn wide" disabled onclick="AIFTFeed.sendSelectedPost('${esc(postId)}')">
+        Send
       </button>
 
       <div class="aift-copy-link">${esc(link)}</div>
     `;
+  }
 
-    openSheet("aiftShareSheet");
+  function renderShareUser(postId, user) {
+    const selected = state.selectedShareUsers.has(String(user._id));
+
+    return `
+      <button class="aift-share-user ${selected ? "selected" : ""}" onclick="AIFTFeed.toggleShareUser('${esc(postId)}','${esc(user._id)}')">
+        <span class="aift-share-avatar-wrap">
+          <img src="${esc(userAvatar(user))}" alt="" />
+          ${selected ? `<span class="aift-share-check">${svg("check")}</span>` : ""}
+        </span>
+        <span>${esc(userName(user))}</span>
+      </button>
+    `;
+  }
+
+  function filterShareUsers(postId, keyword) {
+    renderShareUI(postId, keyword);
+  }
+
+  function toggleShareUser(postId, userId) {
+    if (state.selectedShareUsers.has(String(userId))) {
+      state.selectedShareUsers.delete(String(userId));
+    } else {
+      state.selectedShareUsers.add(String(userId));
+    }
+
+    renderShareUI(postId);
+    const btn = document.getElementById("aiftSendSelectedBtn");
+    if (btn) btn.disabled = state.selectedShareUsers.size === 0;
+  }
+
+  async function sendSelectedPost(postId) {
+    const userIds = Array.from(state.selectedShareUsers);
+
+    if (!userIds.length) return;
+
+    try {
+      const data = await api(`${API}/api/posts/${postId}/send`, {
+        method: "POST",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ userIds })
+      });
+
+      const post = getPost(postId);
+      if (post) post.sharesCount = data.sharesCount;
+
+      updateShareCount(postId, data.sharesCount);
+      closeOverlays();
+      toast(`Sent to ${data.sentTo} user${data.sentTo > 1 ? "s" : ""}.`);
+    } catch (err) {
+      toast(err.message, "error");
+    }
   }
 
   async function copyPostLink(postId) {
     await trackShare(postId);
-
     const link = getPostLink(postId);
 
     try {
       await navigator.clipboard.writeText(link);
-      alert("Post link copied.");
+      toast("Post link copied.");
     } catch {
       alert(link);
     }
@@ -833,14 +1143,24 @@ async function submitComment() {
       const post = getPost(postId);
       if (post) post.sharesCount = data.sharesCount;
 
-      const count = document.getElementById(`aift-shares-count-${safeId(postId)}`);
-      if (count) {
-        count.textContent = String(data.sharesCount || 0);
-        count.style.display = "inline";
-      }
+      updateShareCount(postId, data.sharesCount);
     } catch (err) {
       console.warn("Share tracking failed:", err.message);
     }
+  }
+
+  function updateShareCount(postId, sharesCount) {
+    const count = document.getElementById(`aift-shares-count-${safeId(postId)}`);
+    const wrap = document.getElementById(`aift-shares-wrap-${safeId(postId)}`);
+
+    if (count) count.textContent = String(sharesCount || 0);
+    if (wrap) wrap.classList.toggle("aift-hidden", !sharesCount);
+  }
+
+  function updateCommentCount(postId) {
+    const post = getPost(postId);
+    const count = document.getElementById(`aift-comments-count-${safeId(postId)}`);
+    if (post && count) count.textContent = String(countComments(post));
   }
 
   function getPostLink(postId) {
@@ -851,7 +1171,7 @@ async function submitComment() {
     state.repostPostId = postId;
     const textarea = document.getElementById("aiftRepostText");
     if (textarea) textarea.value = "";
-    openSheet("aiftRepostSheet");
+    openOverlay("aiftRepostSheet");
   }
 
   async function submitRepost() {
@@ -864,10 +1184,11 @@ async function submitComment() {
         body: JSON.stringify({ text })
       });
 
-      closeSheets();
+      closeOverlays();
       upsertPost(post, { prepend: true });
+      toast("Reposted.");
     } catch (err) {
-      alert(err.message);
+      toast(err.message, "error");
     }
   }
 
@@ -875,37 +1196,27 @@ async function submitComment() {
     state.activeMenuPostId = postId;
     const post = getPost(postId);
     const author = post?.author || {};
+    const canManage = isMine(author._id) || isAdmin();
 
     document.getElementById("aiftMenuBody").innerHTML = `
-      <button class="aift-sheet-option" onclick="AIFTFeed.savePost('${esc(postId)}')">
-        ${svg("save")}
-        <span>Save post</span>
-      </button>
-
-      <button class="aift-sheet-option" onclick="AIFTFeed.notInterested('${esc(postId)}')">
-        ${svg("close")}
-        <span>Not interested</span>
-      </button>
-
-      <button class="aift-sheet-option" onclick="AIFTFeed.visitProfile('${esc(author._id)}')">
-        ${svg("info")}
-        <span>About this account</span>
-      </button>
-
-      <button class="aift-sheet-option danger" onclick="AIFTFeed.reportPost('${esc(postId)}')">
-        ${svg("flag")}
-        <span>Report</span>
-      </button>
+      <button class="aift-sheet-option" onclick="AIFTFeed.savePost('${esc(postId)}')">${svg("save")}<span>Save post</span></button>
+      <button class="aift-sheet-option" onclick="AIFTFeed.notInterested('${esc(postId)}')">${svg("close")}<span>Not interested</span></button>
+      <button class="aift-sheet-option" onclick="AIFTFeed.visitProfile('${esc(author._id)}')">${svg("info")}<span>About this account</span></button>
+      ${
+        canManage
+          ? `<button class="aift-sheet-option danger" onclick="AIFTFeed.deletePost('${esc(postId)}')">${svg("trash")}<span>Delete post</span></button>`
+          : `<button class="aift-sheet-option danger" onclick="AIFTFeed.reportPost('${esc(postId)}')">${svg("flag")}<span>Report</span></button>`
+      }
     `;
 
-    openSheet("aiftMenuSheet");
+    openOverlay("aiftMenuSheet");
   }
 
   function savePost(postId) {
     const saved = JSON.parse(localStorage.getItem("aiftSavedPosts") || "[]");
     if (!saved.includes(postId)) saved.push(postId);
     localStorage.setItem("aiftSavedPosts", JSON.stringify(saved));
-    alert("Post saved.");
+    toast("Post saved.");
   }
 
   function notInterested(postId) {
@@ -915,12 +1226,40 @@ async function submitComment() {
 
     state.posts = state.posts.filter(p => String(p._id) !== String(postId));
     document.getElementById(`aift-post-${safeId(postId)}`)?.remove();
-    closeSheets();
+    closeOverlays();
   }
 
-  function reportPost(postId) {
-    alert("Report saved locally. Backend report endpoint is needed for production moderation.");
-    console.warn("Missing backend endpoint recommended: POST /api/posts/:id/report", { postId });
+  async function reportPost(postId) {
+    try {
+      await api(`${API}/api/posts/${postId}/report`, {
+        method: "POST",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ reason: "Reported from feed menu" })
+      });
+
+      closeOverlays();
+      toast("Thanks. This post has been reported.");
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+
+  async function deletePost(postId) {
+    if (!confirm("Delete this post?")) return;
+
+    try {
+      await api(`${API}/api/posts/${postId}`, {
+        method: "DELETE",
+        headers: headers()
+      });
+
+      state.posts = state.posts.filter(post => String(post._id) !== String(postId));
+      document.getElementById(`aift-post-${safeId(postId)}`)?.remove();
+      closeOverlays();
+      toast("Post deleted.");
+    } catch (err) {
+      toast(err.message, "error");
+    }
   }
 
   async function toggleFollow(userId) {
@@ -945,9 +1284,10 @@ async function submitComment() {
         }
       });
 
+      state.followingUsers = [];
       renderFeedOnly();
     } catch (err) {
-      alert(err.message);
+      toast(err.message, "error");
     }
   }
 
@@ -956,24 +1296,24 @@ async function submitComment() {
     window.location.href = `public-profile.html?id=${encodeURIComponent(userId)}`;
   }
 
-async function refreshOnePost(postId) {
-  try {
-    const post = await api(`${API}/api/posts/${postId}`, {
-      headers: headers()
-    });
+  async function refreshOnePost(postId) {
+    try {
+      const post = await api(`${API}/api/posts/${postId}`, {
+        headers: headers()
+      });
 
-    upsertPost(post);
-  } catch (err) {
-    console.warn("Single post refresh failed:", err.message);
-    await loadFeed({ reset: true });
+      upsertPost(post, { rerender: false });
+    } catch (err) {
+      console.warn("Single post refresh failed:", err.message);
+      await loadFeed({ reset: true });
+    }
   }
-}
 
   function getPost(postId) {
     return state.posts.find(p => String(p._id) === String(postId));
   }
 
-  function upsertPost(post, { prepend = false } = {}) {
+  function upsertPost(post, { prepend = false, rerender = true } = {}) {
     if (!post?._id) return;
 
     const index = state.posts.findIndex(p => String(p._id) === String(post._id));
@@ -986,65 +1326,51 @@ async function refreshOnePost(postId) {
       state.posts.push(post);
     }
 
-    renderFeedOnly();
+    if (rerender) renderFeedOnly();
   }
 
-  function renderFeedOnly() {
-    const list = document.getElementById("aiftFeedList");
-    if (!list) return;
+  function openOverlay(id) {
+    moveOverlaysToBody();
+    closeOverlays(false);
 
-    const hidden = JSON.parse(localStorage.getItem("aiftHiddenPosts") || "[]");
-    const visiblePosts = state.posts.filter(p => !hidden.includes(String(p._id)));
+    const backdrop = document.getElementById("aiftSheetBackdrop");
+    const sheet = document.getElementById(id);
 
-    list.innerHTML = visiblePosts.length
-      ? visiblePosts.map(renderPost).join("")
-      : `<div class="aift-feed-empty">No posts yet.</div>`;
+    if (backdrop) {
+      backdrop.classList.add("open");
+      backdrop.style.display = "block";
+    }
 
-    observePosts();
+    if (sheet) {
+      sheet.classList.add("open");
+      sheet.setAttribute("aria-hidden", "false");
+      sheet.style.display = "flex";
+    }
+
+    document.body.classList.add("aift-sheet-open");
   }
 
-function openSheet(id) {
-  moveSheetsToBody();
-  closeSheets(false);
+  function closeOverlays(clear = true) {
+    const backdrop = document.getElementById("aiftSheetBackdrop");
 
-  const backdrop = document.getElementById("aiftSheetBackdrop");
-  const sheet = document.getElementById(id);
+    if (backdrop) {
+      backdrop.classList.remove("open");
+      backdrop.style.display = "";
+    }
 
-  if (backdrop) {
-    backdrop.classList.add("open");
-    backdrop.style.display = "block";
+    document.querySelectorAll(".aift-bottom-sheet").forEach(sheet => {
+      sheet.classList.remove("open");
+      sheet.setAttribute("aria-hidden", "true");
+      sheet.style.display = "";
+    });
+
+    document.body.classList.remove("aift-sheet-open");
+
+    if (clear) {
+      state.replyTarget = null;
+      hideReplyBanner();
+    }
   }
-
-  if (sheet) {
-    sheet.classList.add("open");
-    sheet.setAttribute("aria-hidden", "false");
-    sheet.style.display = "flex";
-  }
-
-  document.body.classList.add("aift-sheet-open");
-}
-
-function closeSheets(clear = true) {
-  const backdrop = document.getElementById("aiftSheetBackdrop");
-
-  if (backdrop) {
-    backdrop.classList.remove("open");
-    backdrop.style.display = "";
-  }
-
-  document.querySelectorAll(".aift-bottom-sheet").forEach(sheet => {
-    sheet.classList.remove("open");
-    sheet.setAttribute("aria-hidden", "true");
-    sheet.style.display = "";
-  });
-
-  document.body.classList.remove("aift-sheet-open");
-
-  if (clear) {
-    state.replyTarget = null;
-    hideReplyBanner();
-  }
-}
 
   function observePosts() {
     if (!("IntersectionObserver" in window)) return;
@@ -1067,6 +1393,10 @@ function closeSheets(clear = true) {
   }
 
   async function trackView(postId) {
+    if (state.viewedPosts.has(String(postId))) return;
+
+    state.viewedPosts.add(String(postId));
+
     try {
       await api(`${API}/api/posts/${postId}/view`, {
         method: "PATCH",
@@ -1088,6 +1418,13 @@ function closeSheets(clear = true) {
 
       state.socket.on("post_created", post => upsertPost(post, { prepend: true }));
 
+      state.socket.on("post_updated", post => upsertPost(post));
+
+      state.socket.on("post_deleted", payload => {
+        state.posts = state.posts.filter(post => String(post._id) !== String(payload.postId));
+        document.getElementById(`aift-post-${safeId(payload.postId)}`)?.remove();
+      });
+
       state.socket.on("post_like", payload => {
         const post = getPost(payload.postId);
         if (!post) return;
@@ -1095,27 +1432,16 @@ function closeSheets(clear = true) {
         updatePostActions(payload.postId);
       });
 
-      state.socket.on("new_comment", payload => {
-        refreshSocketPost(payload.postId);
-      });
-
-      state.socket.on("new_reply", payload => {
-        refreshSocketPost(payload.postId);
-      });
-
-      state.socket.on("comment_like", payload => {
-        refreshSocketPost(payload.postId);
+      ["new_comment", "new_reply", "comment_like", "reply_like", "comment_deleted", "reply_deleted"].forEach(eventName => {
+        state.socket.on(eventName, payload => {
+          refreshSocketPost(payload.postId);
+        });
       });
 
       state.socket.on("post_shared", payload => {
         const post = getPost(payload.postId);
         if (post) post.sharesCount = payload.sharesCount;
-
-        const count = document.getElementById(`aift-shares-count-${safeId(payload.postId)}`);
-        if (count) {
-          count.textContent = String(payload.sharesCount || 0);
-          count.style.display = "inline";
-        }
+        updateShareCount(payload.postId, payload.sharesCount);
       });
 
       state.socket.on("user_follow_updated", payload => {
@@ -1133,11 +1459,34 @@ function closeSheets(clear = true) {
 
   async function refreshSocketPost(postId) {
     await refreshOnePost(postId);
+    rerenderActiveComments(postId);
+    updateCommentCount(postId);
+  }
 
-    if (state.activePostId && String(state.activePostId) === String(postId)) {
-      const post = getPost(postId);
-      if (post) document.getElementById("aiftCommentsBody").innerHTML = renderComments(post);
+  function debounce(fn, delay = 250) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), delay);
+    };
+  }
+
+  function toast(message, type = "success") {
+    let el = document.getElementById("aiftFeedToast");
+
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "aiftFeedToast";
+      el.className = "aift-feed-toast";
+      document.body.appendChild(el);
     }
+
+    el.textContent = message;
+    el.className = `aift-feed-toast show ${type}`;
+
+    setTimeout(() => {
+      el.className = "aift-feed-toast";
+    }, 2600);
   }
 
   return {
@@ -1148,13 +1497,22 @@ function closeSheets(clear = true) {
     doubleLike,
     handleTapLike,
     openComments,
+    showAllComments,
     submitComment,
+    submitInlineComment,
+    handleCommentKey,
+    handleInlineCommentKey,
     likeComment,
     likeReply,
+    deleteComment,
+    deleteReply,
     replyTo,
     cancelReply,
     openLikes,
     openShare,
+    filterShareUsers,
+    toggleShareUser,
+    sendSelectedPost,
     copyPostLink,
     nativeShare,
     openRepost,
@@ -1163,10 +1521,9 @@ function closeSheets(clear = true) {
     savePost,
     notInterested,
     reportPost,
+    deletePost,
     toggleFollow,
     visitProfile,
-    closeSheets,
-    showAllComments,
+    closeOverlays
   };
 })();
-
