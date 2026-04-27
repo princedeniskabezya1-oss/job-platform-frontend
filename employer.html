@@ -2165,10 +2165,25 @@ function buildNetwork(){
     const experienceCount = Array.isArray(person.experience) ? person.experience.length : 0;
     const educationCount = Array.isArray(person.education) ? person.education.length : 0;
 
-    const role = escapeHtml(person.role || "member");
-    const headline = escapeHtml(person.headline || person.department || person.course || "AIFT professional");
-    const bio = escapeHtml((person.bio || "No professional summary added yet.").slice(0, 118));
-    const location = escapeHtml(person.location || "Remote / Not specified");
+const isCompany = person.role === "employer";
+const isSchool = person.role === "school";
+
+const displayTitle = isCompany
+  ? (person.industry || "Company profile")
+  : isSchool
+    ? "Training provider"
+    : (person.profession || person.headline || person.course || "Professional profile");
+
+const verificationLabel = person.aiftCertified
+  ? "AIFT Certified"
+  : person.aiftVerified
+    ? "AIFT Verified"
+    : "";
+
+const headline = escapeHtml(displayTitle);
+const bio = escapeHtml((person.bio || person.schoolDescription || "No professional summary added yet.").slice(0, 118));
+const languages = Array.isArray(person.languages) ? person.languages.filter(Boolean) : [];
+const certifications = Array.isArray(person.certifications) ? person.certifications.filter(c => c?.title) : [];
     const match = Math.min(98, Math.max(61, 72 + skills.length * 3 + experienceCount * 4 + educationCount * 2 + (index % 7)));
 
     return `
@@ -2179,10 +2194,10 @@ function buildNetwork(){
             <div class="upwork-identity">
               <div class="upwork-name-row">
                 <h3>${escapeHtml(person.name || "AIFT User")}</h3>
-                <span class="upwork-role-pill">${role}</span>
+                ${verificationLabel ? `<span class="upwork-role-pill verified">${escapeHtml(verificationLabel)}</span>` : ""}
               </div>
               <p>${headline}</p>
-              <span class="upwork-location">📍 ${location}</span>
+              <span class="upwork-location">${escapeHtml(person.availability || person.workPreference || "")}</span>
             </div>
           </div>
 
@@ -2196,16 +2211,16 @@ function buildNetwork(){
 
         <div class="upwork-stats-row">
           <div>
-            <strong>${skills.length}</strong>
-            <span>Skills</span>
+            <strong>${person.yearsOfExperience || experienceCount}</strong>
+<span>Experience</span>
           </div>
           <div>
-            <strong>${experienceCount}</strong>
-            <span>Experience</span>
+            <strong>${languages.length}</strong>
+<span>Languages</span>
           </div>
           <div>
-            <strong>${educationCount}</strong>
-            <span>Education</span>
+            <strong>${certifications.length || educationCount}</strong>
+<span>Courses</span>
           </div>
         </div>
 
@@ -2213,7 +2228,9 @@ function buildNetwork(){
           ${
             skills.length
               ? skills.slice(0, 5).map(s => `<span>${escapeHtml(s)}</span>`).join("")
-              : `<span>Customer Support</span><span>Communication</span><span>Remote Work</span>`
+              : languages.length
+  ? languages.slice(0, 5).map(s => `<span>${escapeHtml(s)}</span>`).join("")
+  : `<span>Profile not completed</span>`
           }
         </div>
 
