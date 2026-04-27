@@ -532,60 +532,91 @@ async function doubleLike(postId) {
     setTimeout(() => heart.classList.remove("show"), 900);
   }
 
-  function openComments(postId) {
-    const post = getPost(postId);
-    if (!post) return;
+function openComments(postId) {
+  const post = getPost(postId);
+  if (!post) return;
 
-    state.activePostId = postId;
-    state.replyTarget = null;
+  state.activePostId = postId;
+  state.replyTarget = null;
 
-    document.getElementById("aiftCommentsBody").innerHTML = renderComments(post);
-    document.getElementById("aiftCommentInput").value = "";
-    hideReplyBanner();
+  const body = document.getElementById("aiftCommentsBody");
+  const input = document.getElementById("aiftCommentInput");
 
-    openSheet("aiftCommentsSheet");
+  body.innerHTML = `
+    <div class="aift-comments-preview">
+      ${renderComments(post, 3)}
+    </div>
+  `;
+
+  input.value = "";
+  hideReplyBanner();
+
+  openSheet("aiftCommentsSheet");
+}
+
+function renderComments(post, limit = null) {
+  const comments = post.comments || [];
+  const visibleComments = limit ? comments.slice(-limit) : comments;
+
+  if (!comments.length) {
+    return `<div class="aift-feed-empty">No comments yet. Be the first to comment.</div>`;
   }
 
-  function renderComments(post) {
-    const comments = post.comments || [];
+  return `
+    ${visibleComments.map(comment => renderComment(post._id, comment)).join("")}
 
-    if (!comments.length) {
-      return `<div class="aift-feed-empty">No comments yet. Start the conversation.</div>`;
+    ${
+      limit && comments.length > limit
+        ? `<button class="aift-view-more-comments" onclick="AIFTFeed.showAllComments('${post._id}')">
+            View all ${comments.length} comments
+          </button>`
+        : ""
     }
+  `;
+}
+  function showAllComments(postId) {
+  const post = getPost(postId);
+  if (!post) return;
 
-    return comments.map(comment => renderComment(post._id, comment)).join("");
-  }
+  document.getElementById("aiftCommentsBody").innerHTML = renderComments(post);
+}
 
-  function renderComment(postId, comment) {
-    const user = comment.user || {};
-    const liked = (comment.likes || []).some(u => String(u?._id || u) === String(state.meId));
-    const replies = comment.replies || [];
+function renderComment(postId, comment) {
+  const user = comment.user || {};
+  const liked = (comment.likes || []).some(u => String(u?._id || u) === String(state.meId));
+  const replies = comment.replies || [];
 
-    return `
-      <div class="aift-comment" id="aift-comment-${safeId(comment._id)}">
-        <img class="aift-avatar small" src="${esc(user.profileImage || DEFAULT_AVATAR)}" alt="" />
+  return `
+    <div class="aift-fb-comment" id="aift-comment-${safeId(comment._id)}">
+      <img class="aift-fb-avatar" src="${esc(user.profileImage || DEFAULT_AVATAR)}" alt="" />
 
-        <div class="aift-comment-main">
-          <div class="aift-comment-bubble">
-            <strong>${esc(userName(user))}</strong>
-            <p>${esc(comment.text)}</p>
-          </div>
-
-          <div class="aift-comment-actions">
-            <button class="${liked ? "active" : ""}" onclick="AIFTFeed.likeComment('${esc(postId)}','${esc(comment._id)}')">Like</button>
-            <button onclick="AIFTFeed.replyTo('${esc(postId)}','${esc(comment._id)}','${esc(userName(user))}')">Reply</button>
-            <span>${(comment.likes || []).length} likes</span>
-          </div>
-
-          ${
-            replies.length
-              ? `<div class="aift-replies">${replies.map(reply => renderReply(postId, comment._id, reply, user)).join("")}</div>`
-              : ""
-          }
+      <div class="aift-fb-comment-content">
+        <div class="aift-fb-bubble">
+          <div class="aift-fb-name">${esc(userName(user))}</div>
+          <div class="aift-fb-text">${esc(comment.text)}</div>
         </div>
+
+        <div class="aift-fb-actions">
+          <button class="${liked ? "active" : ""}" onclick="AIFTFeed.likeComment('${esc(postId)}','${esc(comment._id)}')">
+            Like
+          </button>
+          <button onclick="AIFTFeed.replyTo('${esc(postId)}','${esc(comment._id)}','${esc(userName(user))}')">
+            Reply
+          </button>
+          <span>${(comment.likes || []).length} likes</span>
+        </div>
+
+        ${
+          replies.length
+            ? `<div class="aift-fb-replies">
+                ${replies.map(reply => renderReply(postId, comment._id, reply, user)).join("")}
+              </div>`
+            : ""
+        }
       </div>
-    `;
-  }
+    </div>
+  `;
+}
 
   function renderReply(postId, commentId, reply, parentUser = {}) {
     const user = reply.user || {};
@@ -611,38 +642,47 @@ async function doubleLike(postId) {
     `;
   }
 
-  async function submitComment() {
-    const input = document.getElementById("aiftCommentInput");
-    const text = input.value.trim();
-    const postId = state.activePostId;
+async function submitComment() {
+  const input = document.getElementById("aiftCommentInput");
+  const text = input.value.trim();
+  const postId = state.activePostId;
 
-    if (!text || !postId) return;
+  if (!text || !postId) return;
 
-    try {
-      if (state.replyTarget?.commentId) {
-        await api(`${API}/api/posts/${postId}/comments/${state.replyTarget.commentId}/reply`, {
-          method: "POST",
-          headers: headers({ "Content-Type": "application/json" }),
-          body: JSON.stringify({ text })
-        });
-      } else {
-        await api(`${API}/api/posts/${postId}/comment`, {
-          method: "POST",
-          headers: headers({ "Content-Type": "application/json" }),
-          body: JSON.stringify({ text })
-        });
-      }
+  input.disabled = true;
 
-      input.value = "";
-      state.replyTarget = null;
-      hideReplyBanner();
-
-      await refreshOnePost(postId);
-      openComments(postId);
-    } catch (err) {
-      alert(err.message);
+  try {
+    if (state.replyTarget?.commentId) {
+      await api(`${API}/api/posts/${postId}/comments/${state.replyTarget.commentId}/reply`, {
+        method: "POST",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ text })
+      });
+    } else {
+      await api(`${API}/api/posts/${postId}/comment`, {
+        method: "POST",
+        headers: headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ text })
+      });
     }
+
+    input.value = "";
+    state.replyTarget = null;
+    hideReplyBanner();
+
+    await refreshOnePost(postId);
+
+    const post = getPost(postId);
+    if (post) {
+      document.getElementById("aiftCommentsBody").innerHTML = renderComments(post, 3);
+    }
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    input.disabled = false;
+    input.focus();
   }
+}
 
   async function likeComment(postId, commentId) {
     try {
@@ -1125,7 +1165,8 @@ function closeSheets(clear = true) {
     reportPost,
     toggleFollow,
     visitProfile,
-    closeSheets
+    closeSheets,
+    showAllComments,
   };
 })();
 
