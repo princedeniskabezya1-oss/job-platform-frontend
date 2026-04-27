@@ -792,7 +792,38 @@ function renderReply(postId, commentId, reply, parentUser = {}) {
       submitInlineComment(postId, inputEl);
     }
   }
+function handleInlineReplyKey(event, postId, commentId, inputEl) {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    submitInlineReply(postId, commentId, inputEl);
+  }
+}
 
+async function submitInlineReply(postId, commentId, inputEl) {
+  const text = inputEl?.value.trim();
+  if (!text) return;
+
+  inputEl.disabled = true;
+
+  try {
+    await api(`${API}/api/posts/${postId}/comments/${commentId}/reply`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ text })
+    });
+
+    state.openReplies[commentId] = true;
+    state.replyTarget = null;
+
+    await refreshOnePost(postId);
+    rerenderActiveComments(postId);
+    updateCommentCount(postId);
+  } catch (err) {
+    toast(err.message, "error");
+  } finally {
+    inputEl.disabled = false;
+  }
+}
   async function submitComment() {
     const input = document.getElementById("aiftCommentInput");
     const text = input?.value.trim();
@@ -953,35 +984,58 @@ function renderReply(postId, commentId, reply, parentUser = {}) {
     }
   }
 
-  function replyTo(postId, commentId, name) {
-    state.activePostId = postId;
-    state.replyTarget = { commentId, name };
+ function replyTo(postId, commentId, name) {
+  state.activePostId = postId;
+  state.replyTarget = { commentId, name };
 
-    if (!state.isMobile) {
-      const inlineInput = document.querySelector(`#aift-comments-inline-${safeId(postId)} input`);
-      if (inlineInput) {
-        inlineInput.placeholder = `Replying to ${name}...`;
-        inlineInput.focus();
-      }
-      return;
-    }
+  if (!state.isMobile) {
+    const oldBoxes = document.querySelectorAll(".aift-inline-reply-box");
+    oldBoxes.forEach(box => box.remove());
 
-    const banner = document.getElementById("aiftReplyBanner");
-    const text = document.getElementById("aiftReplyText");
-    const input = document.getElementById("aiftCommentInput");
+    const commentEl = document.getElementById(`aift-comment-${safeId(commentId)}`);
+    if (!commentEl) return;
 
-    if (banner && text) {
-      text.textContent = `Replying to ${name}`;
-      banner.classList.add("show");
-    }
+    const replyBox = document.createElement("div");
+    replyBox.className = "aift-inline-reply-box";
+    replyBox.innerHTML = `
+      <div class="aift-reply-banner show">
+        <span>Replying to ${esc(name)}</span>
+        <button onclick="AIFTFeed.cancelReply()">Cancel</button>
+      </div>
 
-    input?.focus();
+      <div class="aift-inline-input">
+        <img class="aift-input-avatar" src="${esc(userAvatar(state.me || {}))}" alt="" />
+        <input
+          type="text"
+          placeholder="Write a reply..."
+          onkeydown="AIFTFeed.handleInlineReplyKey(event, '${esc(postId)}', '${esc(commentId)}', this)"
+        />
+        <button onclick="AIFTFeed.submitInlineReply('${esc(postId)}', '${esc(commentId)}', this.previousElementSibling)">Post</button>
+      </div>
+    `;
+
+    commentEl.querySelector(".aift-fb-comment-content")?.appendChild(replyBox);
+    replyBox.querySelector("input")?.focus();
+    return;
   }
+
+  const banner = document.getElementById("aiftReplyBanner");
+  const text = document.getElementById("aiftReplyText");
+  const input = document.getElementById("aiftCommentInput");
+
+  if (banner && text) {
+    text.textContent = `Replying to ${name}`;
+    banner.classList.add("show");
+  }
+
+  input?.focus();
+}
 
   function cancelReply() {
-    state.replyTarget = null;
-    hideReplyBanner();
-  }
+  state.replyTarget = null;
+  document.querySelectorAll(".aift-inline-reply-box").forEach(box => box.remove());
+  if (typeof hideReplyBanner === "function") hideReplyBanner();
+}
 
   function toggleReplies(commentId) {
   state.openReplies[commentId] = !state.openReplies[commentId];
@@ -1393,9 +1447,9 @@ function showMoreComments(postId) {
     document.body.classList.remove("aift-sheet-open");
 
     if (clear) {
-      state.replyTarget = null;
-      hideReplyBanner();
-    }
+  state.replyTarget = null;
+  if (typeof hideReplyBanner === "function") hideReplyBanner();
+}
   }
 
   function observePosts() {
@@ -1530,6 +1584,8 @@ toggleReplies,
     submitInlineComment,
     handleCommentKey,
     handleInlineCommentKey,
+handleInlineReplyKey,
+submitInlineReply,
     likeComment,
     likeReply,
     deleteComment,
