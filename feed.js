@@ -19,7 +19,9 @@ const AIFTFeed = (() => {
     hasMore: true,
     followingUsers: [],
     selectedShareUsers: new Set(),
-    isMobile: window.innerWidth <= 768,
+openReplies: {},
+visibleComments: {},
+isMobile: window.innerWidth <= 768,
     lastTapAt: 0,
     viewedPosts: new Set()
   };
@@ -626,25 +628,27 @@ const AIFTFeed = (() => {
     `;
   }
 
-  function renderComments(post, limit = null) {
-    const comments = post.comments || [];
-    const visibleComments = limit ? comments.slice(-limit) : comments;
+function renderComments(post, limit = 3) {
+  const comments = post.comments || [];
+  const visibleLimit = state.visibleComments[post._id] || limit;
+  const visibleComments = comments.slice(-visibleLimit);
 
-    if (!comments.length) {
-      return `<div class="aift-feed-empty flat">No comments yet. Be the first to comment.</div>`;
-    }
-
-    return `
-      ${visibleComments.map(comment => renderComment(post._id, comment)).join("")}
-      ${
-        limit && comments.length > limit
-          ? `<button class="aift-view-more-comments" onclick="AIFTFeed.showAllComments('${esc(post._id)}')">
-              View all ${comments.length} comments
-            </button>`
-          : ""
-      }
-    `;
+  if (!comments.length) {
+    return `<div class="aift-feed-empty flat">No comments yet. Be the first to comment.</div>`;
   }
+
+  return `
+    ${visibleComments.map(comment => renderComment(post._id, comment)).join("")}
+
+    ${
+      comments.length > visibleComments.length
+        ? `<button class="aift-view-more-comments" onclick="AIFTFeed.showMoreComments('${esc(post._id)}')">
+            View more comments
+          </button>`
+        : ""
+    }
+  `;
+}
 
   function showAllComments(postId) {
     const post = getPost(postId);
@@ -675,89 +679,105 @@ const AIFTFeed = (() => {
     container.dataset.open = "true";
   }
 
-  function renderComment(postId, comment) {
-    const user = comment.user || {};
-    const liked = (comment.likes || []).some(u => String(u?._id || u) === String(state.meId));
-    const replies = comment.replies || [];
-    const canDelete = isMine(user._id) || isMine(getPost(postId)?.author?._id) || isAdmin();
+function renderComment(postId, comment) {
+  const user = comment.user || {};
+  const liked = (comment.likes || []).some(u => String(u?._id || u) === String(state.meId));
+  const replies = comment.replies || [];
+  const repliesOpen = Boolean(state.openReplies[comment._id]);
+  const canDelete = isMine(user._id) || isMine(getPost(postId)?.author?._id) || isAdmin();
 
-    return `
-      <div class="aift-fb-comment" id="aift-comment-${safeId(comment._id)}">
-        <img class="aift-fb-avatar" src="${esc(userAvatar(user))}" alt="" />
+  return `
+    <div class="aift-fb-comment" id="aift-comment-${safeId(comment._id)}">
+      <img class="aift-fb-avatar" src="${esc(userAvatar(user))}" alt="" />
 
-        <div class="aift-fb-comment-content">
-          <div class="aift-fb-line">
-            <div class="aift-fb-bubble">
-              <div class="aift-fb-name-row">
-                <span class="aift-fb-name">${esc(userName(user))}</span>
-                ${isVerified(user) ? `<span class="aift-mini-verified">${svg("check")}</span>` : ""}
-              </div>
-              <div class="aift-fb-sub">${esc(userSub(user))}</div>
-              <div class="aift-fb-text">${esc(comment.text)}</div>
+      <div class="aift-fb-comment-content">
+        <div class="aift-fb-line">
+          <div class="aift-fb-bubble">
+            <div class="aift-fb-name-row">
+              <span class="aift-fb-name">${esc(userName(user))}</span>
+              ${isVerified(user) ? `<span class="aift-mini-verified">${svg("check")}</span>` : ""}
             </div>
-
-            ${
-              canDelete
-                ? `<button class="aift-comment-more" onclick="AIFTFeed.deleteComment('${esc(postId)}','${esc(comment._id)}')" title="Delete comment">${svg("trash")}</button>`
-                : `<button class="aift-comment-more" title="More">${svg("more")}</button>`
-            }
-          </div>
-
-          <div class="aift-fb-actions">
-            <button class="${liked ? "active" : ""}" onclick="AIFTFeed.likeComment('${esc(postId)}','${esc(comment._id)}')">Like</button>
-            <button onclick="AIFTFeed.replyTo('${esc(postId)}','${esc(comment._id)}','${esc(userName(user))}')">Reply</button>
-            <span>${(comment.likes || []).length} likes</span>
-            <span>${formatTime(comment.createdAt)}</span>
+            <div class="aift-fb-sub">${esc(userSub(user))}</div>
+            <div class="aift-fb-text">${esc(comment.text)}</div>
           </div>
 
           ${
-            replies.length
-              ? `<div class="aift-fb-replies">
-                  ${replies.map(reply => renderReply(postId, comment._id, reply, user)).join("")}
-                </div>`
+            canDelete
+              ? `<button class="aift-comment-more" onclick="AIFTFeed.deleteComment('${esc(postId)}','${esc(comment._id)}')" title="Delete comment">${svg("trash")}</button>`
+              : `<button class="aift-comment-more" title="More">${svg("more")}</button>`
+          }
+        </div>
+
+        <div class="aift-fb-actions">
+          <button class="aift-heart-mini ${liked ? "active" : ""}" onclick="AIFTFeed.likeComment('${esc(postId)}','${esc(comment._id)}')">
+            ${svg("heart")}
+            <span>${(comment.likes || []).length || ""}</span>
+          </button>
+
+          <button onclick="AIFTFeed.replyTo('${esc(postId)}','${esc(comment._id)}','${esc(userName(user))}')">Reply</button>
+          <span>${formatTime(comment.createdAt)}</span>
+        </div>
+
+        ${
+          replies.length && !repliesOpen
+            ? `<button class="aift-view-replies" onclick="AIFTFeed.toggleReplies('${esc(comment._id)}')">
+                View ${replies.length} ${replies.length === 1 ? "reply" : "replies"}
+              </button>`
+            : ""
+        }
+
+        ${
+          replies.length && repliesOpen
+            ? `<div class="aift-fb-replies">
+                ${replies.map(reply => renderReply(postId, comment._id, reply, user)).join("")}
+                <button class="aift-view-replies less" onclick="AIFTFeed.toggleReplies('${esc(comment._id)}')">Hide replies</button>
+              </div>`
+            : ""
+        }
+      </div>
+    </div>
+  `;
+}
+
+function renderReply(postId, commentId, reply, parentUser = {}) {
+  const user = reply.user || {};
+  const liked = (reply.likes || []).some(u => String(u?._id || u) === String(state.meId));
+  const canDelete = isMine(user._id) || isMine(getPost(postId)?.author?._id) || isAdmin();
+
+  return `
+    <div class="aift-fb-comment aift-fb-reply" id="aift-reply-${safeId(reply._id)}">
+      <span class="aift-reply-connector"></span>
+      <img class="aift-fb-avatar small" src="${esc(userAvatar(user))}" alt="" />
+
+      <div class="aift-fb-comment-content">
+        <div class="aift-fb-line">
+          <div class="aift-fb-bubble reply">
+            <div class="aift-fb-name-row">
+              <span class="aift-fb-name">${esc(userName(user))}</span>
+              ${isVerified(user) ? `<span class="aift-mini-verified">${svg("check")}</span>` : ""}
+            </div>
+            <div class="aift-fb-text"><span class="aift-reply-to">@${esc(userName(parentUser))}</span> ${esc(reply.text)}</div>
+          </div>
+
+          ${
+            canDelete
+              ? `<button class="aift-comment-more" onclick="AIFTFeed.deleteReply('${esc(postId)}','${esc(commentId)}','${esc(reply._id)}')" title="Delete reply">${svg("trash")}</button>`
               : ""
           }
         </div>
-      </div>
-    `;
-  }
 
-  function renderReply(postId, commentId, reply, parentUser = {}) {
-    const user = reply.user || {};
-    const liked = (reply.likes || []).some(u => String(u?._id || u) === String(state.meId));
-    const canDelete = isMine(user._id) || isMine(getPost(postId)?.author?._id) || isAdmin();
+        <div class="aift-fb-actions">
+          <button class="aift-heart-mini ${liked ? "active" : ""}" onclick="AIFTFeed.likeReply('${esc(postId)}','${esc(commentId)}','${esc(reply._id)}')">
+            ${svg("heart")}
+            <span>${(reply.likes || []).length || ""}</span>
+          </button>
 
-    return `
-      <div class="aift-fb-comment aift-fb-reply" id="aift-reply-${safeId(reply._id)}">
-        <span class="aift-reply-connector"></span>
-        <img class="aift-fb-avatar small" src="${esc(userAvatar(user))}" alt="" />
-
-        <div class="aift-fb-comment-content">
-          <div class="aift-fb-line">
-            <div class="aift-fb-bubble reply">
-              <div class="aift-fb-name-row">
-                <span class="aift-fb-name">${esc(userName(user))}</span>
-                ${isVerified(user) ? `<span class="aift-mini-verified">${svg("check")}</span>` : ""}
-              </div>
-              <div class="aift-fb-text"><span class="aift-reply-to">@${esc(userName(parentUser))}</span> ${esc(reply.text)}</div>
-            </div>
-
-            ${
-              canDelete
-                ? `<button class="aift-comment-more" onclick="AIFTFeed.deleteReply('${esc(postId)}','${esc(commentId)}','${esc(reply._id)}')" title="Delete reply">${svg("trash")}</button>`
-                : ""
-            }
-          </div>
-
-          <div class="aift-fb-actions">
-            <button class="${liked ? "active" : ""}" onclick="AIFTFeed.likeReply('${esc(postId)}','${esc(commentId)}','${esc(reply._id)}')">Like</button>
-            <span>${(reply.likes || []).length} likes</span>
-            <span>${formatTime(reply.createdAt)}</span>
-          </div>
+          <span>${formatTime(reply.createdAt)}</span>
         </div>
       </div>
-    `;
-  }
+    </div>
+  `;
+}
 
   function handleCommentKey(event) {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -963,9 +983,15 @@ const AIFTFeed = (() => {
     hideReplyBanner();
   }
 
-  function hideReplyBanner() {
-    document.getElementById("aiftReplyBanner")?.classList.remove("show");
-  }
+  function toggleReplies(commentId) {
+  state.openReplies[commentId] = !state.openReplies[commentId];
+  rerenderActiveComments(state.activePostId);
+}
+
+function showMoreComments(postId) {
+  state.visibleComments[postId] = (state.visibleComments[postId] || 3) + 5;
+  rerenderActiveComments(postId);
+}
 
   async function openLikes(postId) {
     const body = document.getElementById("aiftLikesBody");
@@ -1498,6 +1524,8 @@ const AIFTFeed = (() => {
     handleTapLike,
     openComments,
     showAllComments,
+showMoreComments,
+toggleReplies,
     submitComment,
     submitInlineComment,
     handleCommentKey,
