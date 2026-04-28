@@ -879,7 +879,7 @@
   align-items:center;
 }
     /* === AIFT Upwork-style Employer Network Cards === */
-#section-network .card {
+#section-jobseekers .card {
   background: #f8fafc;
 }
 
@@ -891,7 +891,7 @@
   margin-bottom: 14px;
 }
 
-#networkList.directory-grid {
+#jobseekersList.jobseeker-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
@@ -1124,7 +1124,7 @@
 }
 
 @media (max-width: 1200px) {
-  #networkList.directory-grid {
+  
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1134,7 +1134,7 @@
     padding: 12px;
   }
 
-  #networkList.directory-grid {
+  #jobseekersList.jobseeker-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1145,6 +1145,122 @@
 
   .upwork-card-actions {
     grid-template-columns: 1fr;
+  }
+}
+    /* === LINKEDIN NETWORK CARDS === */
+
+#networkList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.linkedin-card {
+  background: #fff;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: .2s ease;
+}
+
+.linkedin-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0,0,0,.08);
+}
+
+.linkedin-top {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.linkedin-top img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.linkedin-top h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.linkedin-top p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.linkedin-badge {
+  background: #ecfdf5;
+  color: #047857;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  width: fit-content;
+}
+
+.linkedin-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.linkedin-actions button {
+  flex: 1;
+  padding: 8px;
+  border-radius: 999px;
+  border: 1px solid #0a66c2;
+  background: #fff;
+  color: #0a66c2;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.linkedin-actions button.active {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #bbf7d0;
+}
+    .jobseeker-grid {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.jobseeker-match-reasons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.jobseeker-match-reasons span {
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  color: #047857;
+  border-radius: 999px;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+@media(max-width: 1200px){
+  .jobseeker-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media(max-width: 760px){
+  .jobseeker-grid {
+    grid-template-columns: 1fr;
+    padding: 12px;
   }
 }
   </style>
@@ -1242,33 +1358,19 @@
     </div>
 
     <div class="jobseeker-dashboard">
-      <div class="card talent-table-card">
-        <div class="talent-table-head">
-          <div class="talent-table-title">
-            <h3>Available Job Seekers</h3>
-            <p id="jobseekerTableSub">Live candidates from your AIFT network</p>
-          </div>
-          <button class="primary-btn" type="button" onclick="openModal('jobModal')">+ Post New Job</button>
-        </div>
-        <div class="table-wrap" style="border:none;border-radius:0;">
-          <table class="talent-table">
-            <thead>
-              <tr>
-                <th>Candidate</th>
-                <th>Skills</th>
-                <th>Experience</th>
-                <th>Education</th>
-                <th>Expected Salary</th>
-                <th>Match</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="jobseekersList">
-              <tr><td colspan="7" class="loading">Loading job seekers...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+<div class="card talent-grid-card">
+  <div class="talent-table-head">
+    <div class="talent-table-title">
+      <h3>Available Job Seekers</h3>
+      <p id="jobseekerTableSub">Live candidates from your AIFT network</p>
+    </div>
+    <button class="primary-btn" type="button" onclick="openModal('jobModal')">+ Post New Job</button>
+  </div>
+
+  <div id="jobseekersList" class="jobseeker-grid">
+    <div class="loading">Loading job seekers.</div>
+  </div>
+</div>
 
       <aside class="card card-pad top-talent-card">
         <h2 class="card-title">Top Candidates <button class="small-link" type="button" onclick="loadJobSeekers(true)">View all</button></h2>
@@ -2132,72 +2234,257 @@ function buildNetwork(){
   const wrap = document.getElementById("networkList");
   if (!wrap) return;
 
-  let list = [...(state.people || [])];
+  const list = state.networkUsers || [];
 
-  if (state.networkFilter !== "all") {
-    list = list.filter(person => safeStatus(person.role) === state.networkFilter);
-  }
-
-  list = filteredItems(
-    list,
-    person => [
-      person.name,
-      person.headline,
-      person.bio,
-      person.department,
-      person.course,
-      person.location,
-      person.companyName,
-      (person.skills || []).join(" ")
-    ].join(" ")
-  );
-
-  if (!list.length) {
-    wrap.innerHTML = `<div class="empty">No matching people found in your network.</div>`;
+  if (!list.length){
+    wrap.innerHTML = `<div class="empty">No users found.</div>`;
     return;
   }
 
-  wrap.innerHTML = list.map((person, index) => {
+  wrap.innerHTML = list.map(user => {
+
     const isFollowing = Array.isArray(state.me?.following) &&
-      state.me.following.some(id => String(id) === String(person._id));
+      state.me.following.some(id => String(id) === String(user._id));
 
-    const skills = Array.isArray(person.skills) ? person.skills.filter(Boolean) : [];
-    const experienceCount = Array.isArray(person.experience) ? person.experience.length : 0;
-    const educationCount = Array.isArray(person.education) ? person.education.length : 0;
+    const name = escapeHtml(user.name || "User");
+    const headline = escapeHtml(
+      user.profession ||
+      user.headline ||
+      user.industry ||
+      user.schoolName ||
+      "AIFT member"
+    );
 
-const isCompany = person.role === "employer";
-const isSchool = person.role === "school";
+    const badge = user.aiftCertified
+      ? "AIFT Certified"
+      : user.aiftVerified
+        ? "AIFT Verified"
+        : "";
 
-const displayTitle = isCompany
-  ? (person.industry || "Company profile")
-  : isSchool
-    ? "Training provider"
-    : (person.profession || person.headline || person.course || "Professional profile");
+    return `
+      <div class="linkedin-card">
+        <div class="linkedin-top">
+          <img src="${user.profileImage || FALLBACK_AVATAR}">
+          <div>
+            <h3>${name}</h3>
+            <p>${headline}</p>
+          </div>
+        </div>
 
-const verificationLabel = person.aiftCertified
-  ? "AIFT Certified"
-  : person.aiftVerified
-    ? "AIFT Verified"
-    : "";
+        ${badge ? `<span class="linkedin-badge">${badge}</span>` : ""}
 
-const headline = escapeHtml(displayTitle);
-const bio = escapeHtml((person.bio || person.schoolDescription || "No professional summary added yet.").slice(0, 118));
-const languages = Array.isArray(person.languages) ? person.languages.filter(Boolean) : [];
-const certifications = Array.isArray(person.certifications) ? person.certifications.filter(c => c?.title) : [];
-    const match = Math.min(98, Math.max(61, 72 + skills.length * 3 + experienceCount * 4 + educationCount * 2 + (index % 7)));
+        <div class="linkedin-actions">
+          <button onclick="toggleFollow('${user._id}')"
+            class="${isFollowing ? 'active' : ''}">
+            ${isFollowing ? "Following" : "Follow"}
+          </button>
+
+          <button onclick="openPublicProfile('${user._id}')">
+            View
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+    function normalizeText(value){
+  return String(value || "").toLowerCase().trim();
+}
+
+function splitTerms(value){
+  return normalizeText(value)
+    .split(/[\s,;|/]+/)
+    .map(v => v.trim())
+    .filter(Boolean);
+}
+
+function getCandidateSearchText(person){
+  return normalizeText([
+    person.name,
+    person.profession,
+    person.headline,
+    person.bio,
+    person.department,
+    person.course,
+    person.expectedSalary,
+    person.availability,
+    person.workPreference,
+    ...(person.skills || []),
+    ...(person.languages || []),
+    ...(person.certifications || []).map(c => c?.title || ""),
+    ...(person.experience || []).map(e => `${e.title || ""} ${e.company || ""} ${e.description || ""}`)
+  ].join(" "));
+}
+
+function getHiringKeywords(){
+  const keywordInput = document.getElementById("jobseekerKeyword")?.value || "";
+  const skillInput = document.getElementById("jobseekerSkill")?.value || "";
+  const departmentInput = document.getElementById("jobseekerDepartment")?.value || "";
+
+  const activeJobs = (state.jobs || []).filter(job => {
+    const status = normalizeText(job.status || "");
+    return !status || status === "active" || status === "open";
+  });
+
+  const jobWords = activeJobs.flatMap(job => splitTerms([
+    job.title,
+    job.category,
+    job.department,
+    job.skills,
+    job.description
+  ].join(" ")));
+
+  const manualWords = [
+    ...splitTerms(keywordInput),
+    ...splitTerms(skillInput),
+    ...splitTerms(departmentInput)
+  ];
+
+  return Array.from(new Set([...manualWords, ...jobWords]))
+    .filter(word => word.length > 2)
+    .slice(0, 40);
+}
+
+function calculateCandidateMatch(person){
+  const candidateText = getCandidateSearchText(person);
+  const wanted = getHiringKeywords();
+
+  let score = 0;
+  let reasons = [];
+
+  const skills = Array.isArray(person.skills) ? person.skills.filter(Boolean) : [];
+  const languages = Array.isArray(person.languages) ? person.languages.filter(Boolean) : [];
+  const certs = Array.isArray(person.certifications) ? person.certifications.filter(c => c?.title) : [];
+  const experienceYears = Number(person.yearsOfExperience || 0);
+  const experienceItems = Array.isArray(person.experience) ? person.experience.length : 0;
+
+  const matchedTerms = wanted.filter(term => candidateText.includes(term));
+
+  if (matchedTerms.length) {
+    const termScore = Math.min(35, matchedTerms.length * 7);
+    score += termScore;
+    reasons.push(`${matchedTerms.slice(0, 3).join(", ")} match`);
+  }
+
+  if (skills.length) {
+    score += Math.min(20, skills.length * 4);
+    reasons.push(`${skills.length} skills`);
+  }
+
+  if (languages.length) {
+    score += Math.min(15, languages.length * 5);
+    reasons.push(`${languages.length} languages`);
+  }
+
+  if (experienceYears > 0) {
+    score += Math.min(15, experienceYears * 3);
+    reasons.push(`${experienceYears}+ yrs exp`);
+  } else if (experienceItems > 0) {
+    score += Math.min(10, experienceItems * 4);
+    reasons.push(`${experienceItems} roles`);
+  }
+
+  if (certs.length) {
+    score += Math.min(10, certs.length * 5);
+    reasons.push(`${certs.length} certificates`);
+  }
+
+  if (person.aiftCertified) {
+    score += 8;
+    reasons.push("AIFT Certified");
+  } else if (person.aiftVerified) {
+    score += 5;
+    reasons.push("AIFT Verified");
+  }
+
+  if (person.availability && person.availability !== "not-specified") score += 4;
+  if (person.workPreference && person.workPreference !== "not-specified") score += 3;
+  if (person.bio) score += 3;
+  if (person.profileImage) score += 2;
+
+  const finalScore = Math.max(35, Math.min(98, score));
+
+  return {
+    score: finalScore,
+    reasons: reasons.length ? reasons.slice(0, 3) : ["Profile needs more details"]
+  };
+}
+function candidateInitials(user){
+  return String(user?.name || "JS").split(" ").filter(Boolean).slice(0,2).map(v => v[0]).join("").toUpperCase() || "JS";
+}
+
+function candidateMatchScore(user){
+  return calculateCandidateMatch(user).score;
+}
+
+function buildJobSeekers(){
+  const wrap = document.getElementById("jobseekersList");
+  const topWrap = document.getElementById("topCandidatesList");
+  const sub = document.getElementById("jobseekerTableSub");
+
+  if (!wrap) return;
+
+  let list = filteredItems(
+    state.jobSeekers || [],
+    u => [
+      u.name,
+      u.profession,
+      u.headline,
+      u.bio,
+      (u.skills || []).join(" "),
+      (u.languages || []).join(" "),
+      u.department,
+      u.expectedSalary
+    ].join(" ")
+  );
+
+  list = list
+    .map(user => ({
+      ...user,
+      matchData: calculateCandidateMatch(user)
+    }))
+    .sort((a, b) => b.matchData.score - a.matchData.score);
+
+  if (sub) {
+    sub.innerText = `${list.length} candidate${list.length === 1 ? "" : "s"} ranked by real match`;
+  }
+
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty">No job seekers found with the current filters.</div>`;
+    if (topWrap) topWrap.innerHTML = `<div class="empty">No top candidates yet.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = list.map(user => {
+    const skills = Array.isArray(user.skills) ? user.skills.filter(Boolean) : [];
+    const languages = Array.isArray(user.languages) ? user.languages.filter(Boolean) : [];
+    const certs = Array.isArray(user.certifications) ? user.certifications.filter(c => c?.title) : [];
+
+    const expCount = Number(user.yearsOfExperience || 0) ||
+      (Array.isArray(user.experience) ? user.experience.length : 0);
+
+    const title = user.profession || user.headline || user.course || "Professional candidate";
+    const salary = user.expectedSalary || user.salaryExpectation || "Open";
+    const match = user.matchData.score;
 
     return `
       <article class="upwork-network-card">
         <div class="upwork-card-top">
           <div class="upwork-profile-main">
-            <img class="upwork-avatar" src="${person.profileImage || FALLBACK_AVATAR}" alt="">
+            <img class="upwork-avatar" src="${user.profileImage || FALLBACK_AVATAR}" alt="">
             <div class="upwork-identity">
               <div class="upwork-name-row">
-                <h3>${escapeHtml(person.name || "AIFT User")}</h3>
-                ${verificationLabel ? `<span class="upwork-role-pill verified">${escapeHtml(verificationLabel)}</span>` : ""}
+                <h3>${escapeHtml(user.name || "Candidate")}</h3>
+                ${
+                  user.aiftCertified
+                    ? `<span class="upwork-role-pill verified">AIFT Certified</span>`
+                    : user.aiftVerified
+                      ? `<span class="upwork-role-pill verified">AIFT Verified</span>`
+                      : ""
+                }
               </div>
-              <p>${headline}</p>
-              <span class="upwork-location">${escapeHtml(person.availability || person.workPreference || "")}</span>
+              <p>${escapeHtml(title)}</p>
+              <span class="upwork-location">${escapeHtml(salary)}</span>
             </div>
           </div>
 
@@ -2207,20 +2494,24 @@ const certifications = Array.isArray(person.certifications) ? person.certificati
           </div>
         </div>
 
-        <p class="upwork-bio">${bio}</p>
+        <div class="jobseeker-match-reasons">
+          ${user.matchData.reasons.map(r => `<span>${escapeHtml(r)}</span>`).join("")}
+        </div>
+
+        <p class="upwork-bio">${escapeHtml((user.bio || "No candidate summary added yet.").slice(0, 130))}</p>
 
         <div class="upwork-stats-row">
           <div>
-            <strong>${person.yearsOfExperience || experienceCount}</strong>
-<span>Experience</span>
+            <strong>${expCount}</strong>
+            <span>Experience</span>
           </div>
           <div>
             <strong>${languages.length}</strong>
-<span>Languages</span>
+            <span>Languages</span>
           </div>
           <div>
-            <strong>${certifications.length || educationCount}</strong>
-<span>Courses</span>
+            <strong>${certs.length}</strong>
+            <span>Courses</span>
           </div>
         </div>
 
@@ -2228,100 +2519,32 @@ const certifications = Array.isArray(person.certifications) ? person.certificati
           ${
             skills.length
               ? skills.slice(0, 5).map(s => `<span>${escapeHtml(s)}</span>`).join("")
-              : languages.length
-  ? languages.slice(0, 5).map(s => `<span>${escapeHtml(s)}</span>`).join("")
-  : `<span>Profile not completed</span>`
+              : `<span>Skills not added</span>`
           }
         </div>
 
         <div class="upwork-card-actions">
-          <button class="${isFollowing ? 'upwork-btn-soft active' : 'upwork-btn-soft'}" type="button" onclick="toggleFollow('${person._id}')">
-            ${isFollowing ? 'Following' : 'Follow'}
-          </button>
-          <button class="upwork-btn-outline" type="button" onclick="openInviteModal('${person._id}')">Invite</button>
-          <button class="upwork-btn-primary" type="button" onclick="openPublicProfile('${person._id || ''}')">View Profile</button>
+          <button class="upwork-btn-soft" type="button" onclick="toggleFollow('${user._id}')">Follow</button>
+          <button class="upwork-btn-outline" type="button" onclick="openInviteModal('${user._id}')">Invite</button>
+          <button class="upwork-btn-primary" type="button" onclick="openPublicProfile('${user._id}')">View Profile</button>
         </div>
       </article>
     `;
   }).join("");
-}
-function candidateInitials(user){
-  return String(user?.name || "JS").split(" ").filter(Boolean).slice(0,2).map(v => v[0]).join("").toUpperCase() || "JS";
-}
-
-function candidateMatchScore(user, index){
-  const skills = Array.isArray(user?.skills) ? user.skills.length : 0;
-  const exp = Array.isArray(user?.experience) ? user.experience.length : 0;
-  const edu = Array.isArray(user?.education) ? user.education.length : 0;
-  return Math.min(98, Math.max(62, 78 + skills * 2 + exp * 3 + edu + (index % 5)));
-}
-
-function buildJobSeekers(){
-  const wrap = document.getElementById("jobseekersList");
-  const topWrap = document.getElementById("topCandidatesList");
-  const sub = document.getElementById("jobseekerTableSub");
-  let list = filteredItems(
-    state.jobSeekers || [],
-    u => [u.name, u.headline, u.bio, (u.skills || []).join(" "), u.department, u.expectedSalary].join(" ")
-  );
-
-  if (sub) sub.innerText = `${list.length} candidate${list.length === 1 ? "" : "s"} matching your current filters`;
-
-  if (!list.length) {
-    wrap.innerHTML = '<tr><td colspan="7"><div class="empty">No job seekers found with the current filters.</div></td></tr>';
-    if (topWrap) topWrap.innerHTML = '<div class="empty">No top candidates yet.</div>';
-    return;
-  }
-
-  wrap.innerHTML = list.map((user, index) => {
-    const skills = Array.isArray(user.skills) ? user.skills.slice(0,3) : [];
-    const exp = user.experience?.[0]?.title || user.experience?.[0]?.company || user.headline || "Not added";
-    const edu = user.education?.[0]?.degree || user.education?.[0]?.school || "Not added";
-    const salary = user.expectedSalary || user.salaryExpectation || "Open";
-    const match = candidateMatchScore(user, index);
-    return `
-      <tr class="talent-row">
-        <td>
-          <div class="talent-person">
-            <img class="talent-avatar" src="${user.profileImage || FALLBACK_AVATAR}" alt="">
-            <div>
-              <div class="talent-name">${escapeHtml(user.name || "Candidate")}</div>
-              <div class="talent-sub">${escapeHtml(user.headline || user.role || "Job seeker")}</div>
-            </div>
-          </div>
-        </td>
-        <td>${skills.length ? skills.map(s => `<span class="talent-badge">${escapeHtml(s)}</span>`).join(" ") : '<span class="talent-badge">General</span>'}</td>
-        <td><span class="talent-badge green">${escapeHtml(exp)}</span></td>
-        <td>${escapeHtml(edu)}</td>
-        <td>${escapeHtml(salary)}</td>
-        <td><span class="match-score">★ ${match}%</span></td>
-        <td>
-          <div class="talent-actions">
-            <button class="ghost-btn" onclick='toggleFollow("${user._id}")'>Follow</button>
-            <button class="soft-btn" onclick='openInviteModal("${user._id}")'>Invite</button>
-            <button class="primary-btn" onclick='openPublicProfile("${user._id}")'>View</button>
-          </div>
-        </td>
-      </tr>
-    `;
-  }).join("");
 
   if (topWrap) {
-    topWrap.innerHTML = list.slice(0,5).map((user, index) => {
-      const match = candidateMatchScore(user, index);
-      return `
-        <div class="top-candidate">
-          <div class="candidate-left">
-            <div class="candidate-initial">${escapeHtml(candidateInitials(user))}</div>
-            <div class="candidate-meta">
-              <b>${escapeHtml(user.name || "Candidate")}</b>
-              <span>${escapeHtml(user.headline || user.role || "Job seeker")}</span>
-            </div>
+    topWrap.innerHTML = list.slice(0,5).map(user => `
+      <div class="top-candidate">
+        <div class="candidate-left">
+          <div class="candidate-initial">${candidateInitials(user)}</div>
+          <div class="candidate-meta">
+            <b>${escapeHtml(user.name || "Candidate")}</b>
+            <span>${escapeHtml(user.profession || user.headline || "Candidate")}</span>
           </div>
-          <span class="match-score">★ ${match}%</span>
         </div>
-      `;
-    }).join("") + `<button class="ghost-btn" style="width:100%;margin-top:12px;" type="button" onclick="document.getElementById('jobseekerKeyword')?.focus()">Browse Talent Directory →</button>`;
+        <div class="match-score">★ ${user.matchData.score}%</div>
+      </div>
+    `).join("");
   }
 }
     
