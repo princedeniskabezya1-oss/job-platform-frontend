@@ -1330,6 +1330,34 @@
     padding: 12px;
   }
 }
+    .network-view-more-wrap {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 0 4px;
+}
+
+.network-view-more-btn {
+  border: 1px solid #0a66c2;
+  background: #fff;
+  color: #0a66c2;
+  border-radius: 999px;
+  padding: 10px 24px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.network-view-more-btn:hover {
+  background: #eef6ff;
+}
+
+.network-view-more-wrap span {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
+}
   </style>
   <link rel="stylesheet" href="feed.css">
 </head>
@@ -1844,6 +1872,7 @@
   searchTerm:"",
   lastScrollY:window.scrollY,
   networkFilter:"all",
+      networkVisibleCount: 9,
   selectedJobAnalytics:{}
 };
 let employerFeedMode = "all";
@@ -2291,17 +2320,63 @@ async function buildJobs(){
   }).join("") + `</div>`;
 }
     function buildPipeline(){const stages=["new","shortlisted","interview","offer","hired"];const grouped={new:[],shortlisted:[],interview:[],offer:[],hired:[]};filteredItems(state.applications,app=>[app.user?.name,app.applicant?.name,app.job?.title,app.status].join(" ")).forEach(app=>grouped[normalizeStatus(app.status)].push(app));const board=document.getElementById("pipelineBoard");board.innerHTML=stages.map(stage=>`<div class="board-col"><div class="board-col-head"><div class="board-col-title">${niceStatus(stage)}</div><div class="board-col-count">${grouped[stage].length}</div></div>${grouped[stage].length?grouped[stage].map(app=>{const person=app.user||app.applicant||{};return `<div class="candidate-card"><div class="candidate-top"><img src="${person.profileImage||FALLBACK_AVATAR}" alt=""><div><div class="candidate-name">${escapeHtml(person.name||"Applicant")}</div><div class="candidate-sub">${escapeHtml(app.job?.title||"Job applicant")}</div></div></div><div class="panel-meta" style="margin-bottom:10px;">${person.headline?`<span class="chip">${escapeHtml(person.headline)}</span>`:""}</div><select class="candidate-status" onchange="updateApplicationStatus('${app._id}', this.value)"><option value="new" ${stage==='new'?'selected':''}>New</option><option value="shortlisted" ${stage==='shortlisted'?'selected':''}>Shortlisted</option><option value="interview" ${stage==='interview'?'selected':''}>Interview</option><option value="offer" ${stage==='offer'?'selected':''}>Offer</option><option value="hired" ${stage==='hired'?'selected':''}>Hired</option></select><div class="candidate-actions"><button class="ghost-btn" type="button" onclick="openPublicProfile('${person._id||''}')">Profile</button><button class="primary-btn" type="button" onclick="goMessages()">Message</button></div></div>`;}).join(""):`<div class="empty">No candidates here.</div>`}</div>`).join("");}
-    function renderNetworkFilter(filter){
+function renderNetworkFilter(filter){
   state.networkFilter = filter;
+  state.networkVisibleCount = 9;
   openTab("network");
   buildNetwork();
 }
+function getConnectedNetworkUsers(){
+  const me = state.me || {};
+  const myId = String(me._id || "");
 
+  const myFollowing = new Set(
+    (me.following || []).map(id => String(id?._id || id))
+  );
+
+  const myFollowers = new Set(
+    (me.followers || []).map(id => String(id?._id || id))
+  );
+
+  return (state.people || [])
+    .filter(user => {
+      const userId = String(user._id || "");
+      if (!userId || userId === myId) return false;
+
+      const userFollowers = new Set(
+        (user.followers || []).map(id => String(id?._id || id))
+      );
+
+      const userFollowing = new Set(
+        (user.following || []).map(id => String(id?._id || id))
+      );
+
+      const iFollowThem = myFollowing.has(userId);
+      const theyFollowMe = myFollowers.has(userId) || userFollowers.has(myId);
+      const mutualFollow = iFollowThem && (theyFollowMe || userFollowing.has(myId));
+
+      return iFollowThem || theyFollowMe || mutualFollow;
+    })
+    .sort((a, b) => {
+      const aId = String(a._id || "");
+      const bId = String(b._id || "");
+
+      const aMutual = myFollowing.has(aId) && myFollowers.has(aId);
+      const bMutual = myFollowing.has(bId) && myFollowers.has(bId);
+
+      if (aMutual !== bMutual) return aMutual ? -1 : 1;
+
+      const aName = (a.companyName || a.schoolName || a.name || "").toLowerCase();
+      const bName = (b.companyName || b.schoolName || b.name || "").toLowerCase();
+
+      return aName.localeCompare(bName);
+    });
+}
 function buildNetwork(){
   const wrap = document.getElementById("networkList");
   if (!wrap) return;
 
-  let list = [...(state.people || [])];
+  let list = getConnectedNetworkUsers();
 
   if (state.networkFilter && state.networkFilter !== "all") {
     list = list.filter(user => safeStatus(user.role) === state.networkFilter);
@@ -2322,11 +2397,18 @@ function buildNetwork(){
   );
 
   if (!list.length){
-    wrap.innerHTML = `<div class="empty">No users found in your network.</div>`;
+    wrap.innerHTML = `
+      <div class="empty">
+        No connected profiles yet. Follow people, schools, or companies first, then they will appear here.
+      </div>
+    `;
     return;
   }
 
-  wrap.innerHTML = list.map(user => {
+  const totalNetworkItems = list.length;
+  const visibleList = list.slice(0, state.networkVisibleCount || 9);
+
+  wrap.innerHTML = visibleList.map(user => {
     const isFollowing = Array.isArray(state.me?.following) &&
       state.me.following.some(id => String(id) === String(user._id));
 
@@ -2353,25 +2435,25 @@ function buildNetwork(){
       user.schoolLogo ||
       FALLBACK_AVATAR;
 
-const badge = user.aiftCertified
-  ? "AIFT Certified"
-  : user.aiftVerified
-    ? "AIFT Verified"
-    : "";
+    const badge = user.aiftCertified
+      ? "AIFT Certified"
+      : user.aiftVerified
+        ? "AIFT Verified"
+        : "";
 
-const followerIds = Array.isArray(user.followers)
-  ? user.followers.map(id => String(id?._id || id))
-  : [];
+    const followerIds = Array.isArray(user.followers)
+      ? user.followers.map(id => String(id?._id || id))
+      : [];
 
-const alsoFollowing = (state.people || [])
-  .filter(person => followerIds.includes(String(person._id)) && String(person._id) !== String(state.me?._id))
-  .slice(0, 3)
-  .map(person => person.name || person.companyName || person.schoolName)
-  .filter(Boolean);
+    const alsoFollowing = (state.people || [])
+      .filter(person => followerIds.includes(String(person._id)) && String(person._id) !== String(state.me?._id))
+      .slice(0, 3)
+      .map(person => person.name || person.companyName || person.schoolName)
+      .filter(Boolean);
 
-const alsoText = alsoFollowing.length
-  ? `${alsoFollowing.slice(0, 2).join(", ")}${alsoFollowing.length > 2 ? " and others" : ""} also follow this profile`
-  : "";
+    const alsoText = alsoFollowing.length
+      ? `${alsoFollowing.slice(0, 2).join(", ")}${alsoFollowing.length > 2 ? " and others" : ""} also follow this profile`
+      : "";
 
     return `
       <article class="linkedin-profile-card">
@@ -2387,15 +2469,15 @@ const alsoText = alsoFollowing.length
 
           <p class="linkedin-profile-headline">${escapeHtml(headline)}</p>
 
-${
-  badge
-    ? `<span class="linkedin-profile-badge">${escapeHtml(badge)}</span>`
-    : `<span class="linkedin-profile-muted">Profile not verified yet</span>`
-}
+          ${
+            badge
+              ? `<span class="linkedin-profile-badge">${escapeHtml(badge)}</span>`
+              : `<span class="linkedin-profile-muted">Profile not verified yet</span>`
+          }
 
-${alsoText ? `<p class="linkedin-profile-mutual">${escapeHtml(alsoText)}</p>` : `<p class="linkedin-profile-mutual empty">No shared followers yet</p>`}
+          ${alsoText ? `<p class="linkedin-profile-mutual">${escapeHtml(alsoText)}</p>` : `<p class="linkedin-profile-mutual empty">No shared followers yet</p>`}
 
-<div class="linkedin-profile-actions">
+          <div class="linkedin-profile-actions">
             <button type="button" onclick="toggleFollow('${user._id}')" class="${isFollowing ? "active" : ""}">
               ${isFollowing ? "Following" : "Follow"}
             </button>
@@ -2407,7 +2489,22 @@ ${alsoText ? `<p class="linkedin-profile-mutual">${escapeHtml(alsoText)}</p>` : 
         </div>
       </article>
     `;
-  }).join("");
+  }).join("") + (
+    totalNetworkItems > visibleList.length
+      ? `
+        <div class="network-view-more-wrap">
+          <button type="button" class="network-view-more-btn" onclick="loadMoreNetwork()">
+            View more profiles
+          </button>
+          <span>${visibleList.length} of ${totalNetworkItems}</span>
+        </div>
+      `
+      : ""
+  );
+}
+    function loadMoreNetwork(){
+  state.networkVisibleCount = (state.networkVisibleCount || 9) + 9;
+  buildNetwork();
 }
     function normalizeText(value){
   return String(value || "").toLowerCase().trim();
