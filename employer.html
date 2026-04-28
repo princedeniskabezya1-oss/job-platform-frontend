@@ -1358,6 +1358,64 @@
   color: #64748b;
   font-weight: 700;
 }
+    .jobseeker-dashboard.jobseeker-dashboard-stacked {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 14px;
+}
+
+.jobseeker-dashboard-stacked .top-talent-card {
+  position: static !important;
+  top: auto !important;
+}
+
+.top-talent-card-horizontal #topCandidatesList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.top-talent-card-horizontal .top-candidate {
+  border: 1px solid #edf2f7;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+}
+
+.jobseeker-view-more-wrap {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 0 4px;
+}
+
+.jobseeker-view-more-btn {
+  border: 1px solid #0a66c2;
+  background: #fff;
+  color: #0a66c2;
+  border-radius: 999px;
+  padding: 10px 24px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.jobseeker-view-more-btn:hover {
+  background: #eef6ff;
+}
+
+.jobseeker-view-more-wrap span {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+@media(max-width: 760px) {
+  .top-talent-card-horizontal #topCandidatesList {
+    grid-template-columns: 1fr;
+  }
+}
   </style>
   <link rel="stylesheet" href="feed.css">
 </head>
@@ -1452,7 +1510,7 @@
       <button class="ghost-btn" type="button" onclick="resetJobseekerFilters()">Reset</button>
     </div>
 
-    <div class="jobseeker-dashboard">
+    <div class="jobseeker-dashboard jobseeker-dashboard-stacked">
 <div class="card talent-grid-card">
   <div class="talent-table-head">
     <div class="talent-table-title">
@@ -1467,7 +1525,7 @@
   </div>
 </div>
 
-      <aside class="card card-pad top-talent-card">
+      <aside class="card card-pad top-talent-card top-talent-card-horizontal">
         <h2 class="card-title">Top Candidates <button class="small-link" type="button" onclick="loadJobSeekers(true)">View all</button></h2>
         <div id="topCandidatesList"><div class="loading">Loading top candidates...</div></div>
       </aside>
@@ -1865,6 +1923,7 @@
   tasks:[],
   invites:[],
   jobSeekers:[],
+      jobSeekersVisibleCount: 9,
   employerStats:null,
   postAnalytics:null,
   agentLogs:[],
@@ -2051,6 +2110,7 @@ async function loadPostAnalytics() {
 }
 
 async function loadJobSeekers(applyFilters = false) {
+  state.jobSeekersVisibleCount = 9;
   const qp = new URLSearchParams();
   const keyword = document.getElementById("jobseekerKeyword")?.value?.trim();
   const skill = document.getElementById("jobseekerSkill")?.value?.trim();
@@ -2674,7 +2734,10 @@ function buildJobSeekers(){
     return;
   }
 
-  wrap.innerHTML = list.map(user => {
+  const totalJobSeekers = list.length;
+const visibleJobSeekers = list.slice(0, state.jobSeekersVisibleCount || 9);
+
+wrap.innerHTML = visibleJobSeekers.map(user => {
     const skills = Array.isArray(user.skills) ? user.skills.filter(Boolean) : [];
     const languages = Array.isArray(user.languages) ? user.languages.filter(Boolean) : [];
     const certs = Array.isArray(user.certifications) ? user.certifications.filter(c => c?.title) : [];
@@ -2749,7 +2812,18 @@ function buildJobSeekers(){
         </div>
       </article>
     `;
-  }).join("");
+    }).join("") + (
+    totalJobSeekers > visibleJobSeekers.length
+      ? `
+        <div class="jobseeker-view-more-wrap">
+          <button type="button" class="jobseeker-view-more-btn" onclick="loadMoreJobSeekers()">
+            View more candidates
+          </button>
+          <span>${visibleJobSeekers.length} of ${totalJobSeekers}</span>
+        </div>
+      `
+      : ""
+  );
 
   if (topWrap) {
     topWrap.innerHTML = list.slice(0,5).map(user => `
@@ -2766,7 +2840,10 @@ function buildJobSeekers(){
     `).join("");
   }
 }
-    
+    function loadMoreJobSeekers(){
+  state.jobSeekersVisibleCount = (state.jobSeekersVisibleCount || 9) + 9;
+  buildJobSeekers();
+}
     function openTeamTab(){
   state.searchTerm = "";
   const desktopSearch = document.getElementById("globalSearch");
