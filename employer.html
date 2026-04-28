@@ -1416,6 +1416,82 @@
     grid-template-columns: 1fr;
   }
 }
+    /* === FIX JOBS MANAGER CARD COLLAPSE === */
+#section-jobs #jobsList {
+  width: 100%;
+}
+
+#section-jobs .jobs-grid-fixed {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(360px, 1fr)) !important;
+  gap: 16px !important;
+  align-items: stretch;
+}
+
+#section-jobs .job-card-fixed {
+  background: #fff;
+  border: 1px solid #d8d8d8;
+  border-radius: 14px;
+  padding: 18px;
+  min-width: 0;
+  width: 100%;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+}
+
+#section-jobs .job-card-fixed .job-analytics-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-top: 14px;
+}
+
+#section-jobs .job-card-fixed .mini-stat {
+  min-width: 0 !important;
+  padding: 12px !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+#section-jobs .job-card-fixed .mini-stat .k,
+#section-jobs .job-card-fixed .mini-stat .s {
+  white-space: normal !important;
+  word-break: normal !important;
+}
+
+#section-jobs .job-card-fixed .mini-stat .v {
+  font-size: 20px !important;
+  line-height: 1.1 !important;
+}
+
+#section-jobs .job-card-fixed .panel-top {
+  align-items: flex-start;
+}
+
+#section-jobs .job-card-fixed h3 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+@media(max-width: 1100px) {
+  #section-jobs .jobs-grid-fixed {
+    grid-template-columns: 1fr !important;
+  }
+
+  #section-jobs .job-card-fixed .job-analytics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media(max-width: 640px) {
+  #section-jobs .job-card-fixed {
+    padding: 14px;
+  }
+
+  #section-jobs .job-card-fixed .job-analytics-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
   </style>
   <link rel="stylesheet" href="feed.css">
 </head>
@@ -2339,10 +2415,10 @@ async function buildJobs(){
     state.selectedJobAnalytics[a.jobId] = a;
   });
 
-  wrap.innerHTML = `<div class="panel-grid">` + jobs.map(job => {
+  wrap.innerHTML = `<div class="jobs-grid-fixed">` + jobs.map(job => {
     const a = state.selectedJobAnalytics[job._id] || {};
     return `
-      <article class="panel-card">
+      <article class="job-card-fixed">
         <div class="panel-top">
           <div>
             <h3>${escapeHtml(job.title || "Untitled Job")}</h3>
