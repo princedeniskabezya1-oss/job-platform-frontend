@@ -1,182 +1,42 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="AIFT public employer profile with company overview, jobs, team, posts, hiring information, and employer brand details." />
-  <title>AIFT | Employer Public Profile</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <style>
-    :root{
-      --primary:#2557a7;--primary-dark:#163d7a;--primary-soft:#eef4ff;--indeed:#2557a7;--linkedin:#0a66c2;--upwork:#14a800;
-      --bg:#f4f7fb;--card:#fff;--text:#111827;--muted:#64748b;--soft:#f8fafc;--border:#e5e7eb;--success:#16a34a;--warning:#f59e0b;--danger:#dc2626;
-      --shadow:0 14px 36px rgba(15,23,42,.08);--max:1440px;
-    }
-    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}a{text-decoration:none;color:inherit}button,input{font:inherit}img{display:block;max-width:100%}.container{width:min(var(--max),calc(100% - 24px));margin:0 auto}.hidden{display:none!important}
-    .topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(14px);border-bottom:1px solid rgba(229,231,235,.94)}.top-inner{min-height:70px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{display:flex;align-items:center;gap:12px;min-width:0}.brand-logo{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,var(--primary),#4f8df9);color:#fff;font-weight:900;box-shadow:0 10px 22px rgba(37,87,167,.24)}.brand-title{font-weight:900;line-height:1}.brand-sub{font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}.nav-link{padding:10px 12px;border-radius:999px;color:#334155;font-weight:800;font-size:14px}.nav-link:hover{background:#f1f5f9;color:var(--primary)}
-    .btn{border:none;cursor:pointer;border-radius:999px;padding:12px 17px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.2s ease}.btn:hover{transform:translateY(-1px)}.btn-primary{background:linear-gradient(135deg,var(--primary),#3474de);color:#fff;box-shadow:0 10px 22px rgba(37,87,167,.22)}.btn-ghost{background:#fff;border:1px solid var(--border);color:#111827}.btn-soft{background:var(--primary-soft);border:1px solid #dbeafe;color:var(--primary-dark)}.btn-green{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff}.icon-btn{width:44px;height:44px;border-radius:14px;border:1px solid var(--border);background:#fff;display:grid;place-items:center;cursor:pointer;color:#334155}.icon-btn:hover{background:#f8fafc;color:var(--primary)}
-    .hero-wrap{padding:22px 0 0}.hero{background:var(--card);border:1px solid var(--border);border-radius:30px;overflow:hidden;box-shadow:var(--shadow)}.cover{height:270px;background:linear-gradient(135deg,rgba(37,87,167,.93),rgba(20,168,0,.55)),url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1800&q=80') center/cover no-repeat;position:relative}.cover:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.04),rgba(0,0,0,.28))}.hero-main{position:relative;margin-top:-72px;padding:0 30px 30px}.hero-row{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;flex-wrap:wrap}.company-block{display:flex;align-items:flex-end;gap:18px;min-width:0}.logo{width:138px;height:138px;border-radius:30px;background:#fff;border:6px solid #fff;box-shadow:0 18px 40px rgba(15,23,42,.16);overflow:hidden;flex-shrink:0}.logo img{width:100%;height:100%;object-fit:cover}.company-copy{padding-bottom:8px;min-width:0}.eyebrow{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border-radius:999px;background:#ecfdf5;color:#166534;font-size:12px;font-weight:900;border:1px solid #bbf7d0;margin-bottom:10px}.company-name{font-size:36px;line-height:1.05;margin:0 0 10px;font-weight:900;letter-spacing:-.03em}.company-line{display:flex;align-items:center;gap:9px 12px;flex-wrap:wrap;color:var(--muted);font-size:14px;font-weight:600}.company-bio{max-width:850px;margin:12px 0 0;color:#374151;font-size:15px;line-height:1.7}.tag-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.tag{padding:8px 11px;border-radius:999px;background:#f8fafc;border:1px solid #edf2f7;color:#334155;font-size:12px;font-weight:900}.hero-actions{display:flex;gap:10px;flex-wrap:wrap;padding-bottom:8px}.stat-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-top:24px}.stat{padding:18px;border-radius:20px;border:1px solid #e6eefc;background:#f8fbff}.stat-label{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.04em}.stat-value{font-size:28px;font-weight:900;margin-top:8px;letter-spacing:-.02em}
-    .tabs{display:flex;gap:10px;overflow:auto;padding:18px 0 2px}.tabs::-webkit-scrollbar{display:none}.tab{white-space:nowrap;border:none;background:#fff;border:1px solid var(--border);padding:11px 16px;border-radius:999px;font-weight:900;cursor:pointer;color:#334155}.tab.active{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 12px 24px rgba(37,87,167,.18)}
-    .page{padding:20px 0 36px}.grid{display:grid;grid-template-columns:310px minmax(0,1fr) 330px;gap:18px;align-items:start}.card{background:#fff;border:1px solid var(--border);border-radius:24px;box-shadow:var(--shadow);overflow:hidden}.pad{padding:22px}.title{margin:0 0 16px;font-size:17px;font-weight:900;display:flex;align-items:center;justify-content:space-between;gap:12px}.section{display:none}.section.active{display:block}.muted{color:var(--muted)}.small{font-size:13px}.loading,.empty{padding:22px;border-radius:18px;background:#fff;color:var(--muted);text-align:center;border:1px dashed var(--border)}
-    .about-list{display:grid;gap:13px}.about-row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #f1f5f9}.about-row:last-child{border-bottom:none}.about-label{color:var(--muted);font-size:13px;font-weight:800}.about-value{text-align:right;font-size:14px;font-weight:800;color:#1f2937}.score-card{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:22px;padding:20px}.score-card p{color:rgba(255,255,255,.84);line-height:1.55;margin:8px 0 16px}.score-num{font-size:36px;font-weight:900}.quick-list{display:grid;gap:12px}.quick{display:flex;gap:12px;padding:14px;border:1px solid var(--border);border-radius:18px;background:#fff}.quick-ico{width:42px;height:42px;border-radius:14px;background:var(--primary-soft);display:grid;place-items:center;color:var(--primary);flex-shrink:0}.quick h4{margin:0 0 4px;font-size:14px}.quick p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}
-    .panel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.panel{border:1px solid var(--border);border-radius:22px;padding:18px;background:#fff;transition:.2s ease}.panel:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(15,23,42,.07)}.panel h3{margin:0 0 8px;font-size:17px}.panel p{margin:0;color:var(--muted);font-size:14px;line-height:1.6}.badge{display:inline-flex;align-items:center;padding:7px 10px;border-radius:999px;background:#eef8f1;color:#166534;font-weight:900;font-size:12px}.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.chip{padding:7px 10px;border-radius:999px;background:#f3f4f6;color:#334155;font-size:12px;font-weight:800}.job-list{display:grid;gap:14px}.job{padding:18px;border:1px solid var(--border);border-radius:22px;background:linear-gradient(180deg,#fff,#fbfdff)}.job-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.job h3{margin:0 0 8px;font-size:18px}.job p{color:#475569;line-height:1.6;margin:10px 0 14px}.job-meta{display:flex;gap:8px;flex-wrap:wrap}.job-meta span{padding:7px 10px;border-radius:999px;background:#f8fafc;border:1px solid #edf2f7;font-size:12px;font-weight:800;color:#334155}.post-card{background:#fff;border:1px solid var(--border);border-radius:22px;overflow:hidden;margin-bottom:14px}.post-head{display:flex;gap:12px;align-items:flex-start;padding:16px}.post-head img{width:50px;height:50px;border-radius:16px;object-fit:cover;border:1px solid var(--border)}.post-name{font-weight:900}.post-meta{font-size:12px;color:var(--muted);margin-top:3px}.post-body{padding:0 18px 16px;white-space:pre-wrap;line-height:1.68;color:#334155}.post-media img,.post-media video{width:100%;max-height:520px;object-fit:cover;background:#000}.post-stats{display:flex;justify-content:space-between;gap:10px;border-top:1px solid #edf2f7;padding:12px 18px;color:var(--muted);font-size:13px;font-weight:700}.people-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.person{padding:16px;border:1px solid var(--border);border-radius:20px;background:#fff}.person-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}.person-head img{width:56px;height:56px;border-radius:18px;object-fit:cover;border:1px solid var(--border)}.person h3{margin:0 0 4px;font-size:15px}.person p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}.filterbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}.filterbar input{flex:1;min-width:180px;border:1px solid var(--border);border-radius:999px;padding:12px 16px;outline:none}.filterbar input:focus{border-color:#bfd3ff;box-shadow:0 0 0 4px rgba(37,87,167,.08)}
-    .toast-wrap{position:fixed;right:18px;bottom:18px;z-index:100;display:grid;gap:10px}.toast{min-width:260px;max-width:360px;background:#111827;color:#fff;border-radius:16px;padding:14px 16px;box-shadow:0 18px 45px rgba(15,23,42,.25)}.toast b{display:block;margin-bottom:4px}.footer{padding:8px 0 30px;text-align:center;color:var(--muted);font-size:13px}
-    @media(max-width:1200px){.grid{grid-template-columns:300px minmax(0,1fr)}.right-col{display:none}.stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.people-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:860px){.top-inner{min-height:auto;padding:12px 0;align-items:flex-start}.top-actions .nav-link{display:none}.hero-main{padding:0 18px 22px;margin-top:-56px}.company-block{align-items:flex-start;flex-direction:column}.logo{width:112px;height:112px;border-radius:24px}.company-name{font-size:27px}.hero-actions{width:100%}.hero-actions .btn{flex:1 1 calc(50% - 6px)}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:1fr}.left-col,.right-col{display:none}.panel-grid,.people-grid{grid-template-columns:1fr}.cover{height:210px}.container{width:min(100%,calc(100% - 14px))}.hero{border-radius:24px}.card{border-radius:20px}.pad{padding:18px}}
-    @media(max-width:520px){.brand-sub{display:none}.top-actions{gap:6px}.btn{padding:11px 13px}.hero-actions .btn{flex:1 1 100%}.stat-grid{gap:10px}.stat{padding:14px}.stat-value{font-size:23px}.company-line{font-size:13px}.company-bio{font-size:14px}.job-top{display:block}.post-stats{display:block}.post-stats span{display:block;margin-top:4px}}
-  </style>
-</head>
-<body>
-  <header class="topbar">
-    <div class="container top-inner">
-      <a href="index.html" class="brand" aria-label="AIFT home"><div class="brand-logo">A</div><div><div class="brand-title">AIFT</div><div class="brand-sub">Public employer profile</div></div></a>
-      <nav class="top-actions" aria-label="Profile navigation">
-        <a href="#overview" class="nav-link" onclick="openTab('overview')">Overview</a>
-        <a href="#jobs" class="nav-link" onclick="openTab('jobs')">Jobs</a>
-        <a href="#posts" class="nav-link" onclick="openTab('posts')">Posts</a>
-        <a href="#team" class="nav-link" onclick="openTab('team')">Team</a>
-        <button class="btn btn-soft" onclick="copyProfileLink()">Copy Link</button>
-        <button class="btn btn-primary" onclick="goLogin()">Sign in</button>
-      </nav>
-    </div>
-  </header>
+  <div class="main-content">
+    <section id="section-overview" class="section active">
+      <article class="card overview-card">
+        <div class="overview-inner"><h2 class="title">Overview</h2><div id="companyStory" class="overview-line">Loading company details...</div></div>
+        <div class="show-details"><button type="button" onclick="toggleOverviewDetails()">Show all details →</button></div>
+        <div class="details" id="overviewDetails"></div>
+      </article>
 
-  <section class="hero-wrap">
-    <div class="container">
-      <article class="hero">
-        <div class="cover" id="cover"></div>
-        <div class="hero-main">
-          <div class="hero-row">
-            <div class="company-block">
-              <div class="logo"><img id="logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Company logo"></div>
-              <div class="company-copy">
-                <div class="eyebrow">✓ Verified Employer</div>
-                <h1 class="company-name" id="companyName">Employer Profile</h1>
-                <div class="company-line"><span id="companyIndustry">Employer</span><span>•</span><span id="companyLocation">Location not added</span><span>•</span><span id="companyEmail">Contact hidden</span></div>
-                <p class="company-bio" id="companyBio">Loading employer information...</p>
-                <div class="tag-row" id="tags"></div>
-              </div>
-            </div>
-            <div class="hero-actions">
-              <button class="btn btn-primary" onclick="openTab('jobs')">View Open Jobs</button>
-              <button class="btn btn-ghost" onclick="visitWebsite()">Visit Website</button>
-              <button class="btn btn-green" onclick="goLogin()">Apply / Connect</button>
-            </div>
-          </div>
-          <div class="stat-grid">
-            <div class="stat"><div class="stat-label">Open jobs</div><div class="stat-value" id="statJobs">0</div></div>
-            <div class="stat"><div class="stat-label">Company posts</div><div class="stat-value" id="statPosts">0</div></div>
-            <div class="stat"><div class="stat-label">Followers</div><div class="stat-value" id="statFollowers">0</div></div>
-            <div class="stat"><div class="stat-label">Team</div><div class="stat-value" id="statTeam">0</div></div>
-            <div class="stat"><div class="stat-label">Hiring score</div><div class="stat-value" id="statScore">--</div></div>
-          </div>
-          <div class="tabs">
-            <button class="tab active" data-tab="overview" onclick="openTab('overview')">Overview</button>
-            <button class="tab" data-tab="jobs" onclick="openTab('jobs')">Jobs</button>
-            <button class="tab" data-tab="posts" onclick="openTab('posts')">Company Posts</button>
-            <button class="tab" data-tab="team" onclick="openTab('team')">People</button>
-            <button class="tab" data-tab="about" onclick="openTab('about')">About</button>
-          </div>
+      <article class="card overview-card home-preview-card">
+        <div class="overview-inner">
+          <div class="home-preview-head"><h2 class="title">About</h2><button type="button" onclick="openTab('about')">View more →</button></div>
+          <div id="homeAboutText" class="overview-line">Loading company about...</div>
+        </div>
+        <div class="details show home-details" id="homeAboutDetails"></div>
+      </article>
+
+      <article class="card overview-card home-preview-card">
+        <div class="overview-inner">
+          <div class="home-preview-head"><h2 class="title">Page posts</h2><button type="button" onclick="openTab('posts')">View all →</button></div>
+          <div id="homePostsList" class="home-post-grid"><div class="loading">Loading posts...</div></div>
         </div>
       </article>
-    </div>
-  </section>
 
-  <main class="page">
-    <div class="container grid">
-      <aside class="left-col">
-        <section class="card pad"><h2 class="title">Company Snapshot</h2><div class="about-list" id="snapshot"></div></section>
-        <section class="card pad" style="margin-top:18px"><h2 class="title">Why candidates follow</h2><div class="quick-list"><div class="quick"><div class="quick-ico">💼</div><div><h4>Real opportunities</h4><p>Public jobs and company updates in one trusted profile.</p></div></div><div class="quick"><div class="quick-ico">🤝</div><div><h4>Employer transparency</h4><p>Team, culture, industry, and hiring activity are shown clearly.</p></div></div><div class="quick"><div class="quick-ico">🚀</div><div><h4>Fast action</h4><p>Candidates can sign in, view jobs, and connect from the same page.</p></div></div></div></section>
-      </aside>
-      <section class="center-col">
-        <div class="section active" id="section-overview"><section class="card pad"><h2 class="title">Overview</h2><div class="panel-grid" id="overviewPanels"><div class="loading">Loading overview...</div></div></section></div>
-        <div class="section" id="section-jobs"><section class="card pad"><h2 class="title">Open Jobs <span class="small muted" id="jobsCountLabel"></span></h2><div class="filterbar"><input id="jobSearch" type="search" placeholder="Search jobs by title, location, salary, or description" oninput="renderJobs()"><button class="btn btn-soft" onclick="clearJobSearch()">Reset</button></div><div class="job-list" id="jobsList"><div class="loading">Loading jobs...</div></div></section></div>
-        <div class="section" id="section-posts"><section class="card pad"><h2 class="title">Company Posts</h2><div id="postsList"><div class="loading">Loading posts...</div></div></section></div>
-        <div class="section" id="section-team"><section class="card pad"><h2 class="title">People attached to this company</h2><div class="people-grid" id="teamList"><div class="loading">Loading people...</div></div></section></div>
-        <div class="section" id="section-about"><section class="card pad"><h2 class="title">About this employer</h2><div id="aboutDetails"><div class="loading">Loading details...</div></div></section></div>
-      </section>
-      <aside class="right-col">
-        <section class="score-card"><div class="score-num" id="scoreBig">--</div><h3 style="margin:4px 0 0">Hiring Activity Score</h3><p>This score estimates how active the employer profile looks from jobs, posts, team visibility, and follower activity.</p><button class="btn btn-primary" style="background:#fff;color:var(--primary-dark);box-shadow:none" onclick="openTab('jobs')">Explore jobs</button></section>
-        <section class="card pad" style="margin-top:18px"><h2 class="title">Public Actions</h2><div class="quick-list"><button class="btn btn-primary" onclick="goLogin()">Apply or message</button><button class="btn btn-ghost" onclick="copyProfileLink()">Copy profile link</button><button class="btn btn-soft" onclick="visitWebsite()">Open website</button></div></section>
-      </aside>
-    </div>
-  </main>
-  <div class="footer">© 2026 AIFT. Employer profiles are powered by AIFT.</div><div id="toastWrap" class="toast-wrap"></div>
+      <article class="card overview-card home-preview-card">
+        <div class="overview-inner">
+          <div class="home-preview-head"><h2 class="title" id="homePeopleTitle">People</h2><button type="button" onclick="openTab('people')">View all →</button></div>
+          <div id="homePeopleList" class="home-people-grid"><div class="loading">Loading people...</div></div>
+        </div>
+      </article>
+    </section>
 
-<script>
-const API="https://backend-1-9b6f.onrender.com";
-const FALLBACK_LOGO="https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
-const FALLBACK_AVATAR="https://cdn-icons-png.flaticon.com/512/149/149071.png";
-const token=localStorage.getItem("employerToken")||localStorage.getItem("talentToken")||localStorage.getItem("adminToken")||localStorage.getItem("agentToken")||"";
-const params=new URLSearchParams(location.search);
-const employerId=params.get("id")||params.get("employerId")||localStorage.getItem("userId")||"";
-const socket=typeof io!=="undefined"?io(API,{transports:["websocket","polling"],auth:token?{token}:undefined}):null;
-const state={company:null,jobs:[],posts:[],people:[],team:[],activeTab:"overview",website:""};
-function authHeaders(extra={}){return token?{Authorization:"Bearer "+token,...extra}:{...extra};}
-function escapeHtml(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");}
-function safeUrl(v){const clean=String(v||"").trim();if(!clean)return"";return /^https?:\/\//i.test(clean)?clean:"https://"+clean;}
-function showToast(title,msg="",type="success"){const wrap=document.getElementById("toastWrap");if(!wrap)return;const el=document.createElement("div");el.className="toast";el.innerHTML=`<b>${escapeHtml(title)}</b><span>${escapeHtml(msg)}</span>`;wrap.appendChild(el);setTimeout(()=>el.remove(),3600);}
-async function safeJson(res){try{return await res.json();}catch{return null;}}
-async function fetchMaybe(url,options={}){const res=await fetch(url,options);const data=await safeJson(res);if(!res.ok)throw new Error(data?.message||"Request failed");return data;}
-function pickArray(data,key){if(Array.isArray(data))return data;if(Array.isArray(data?.[key]))return data[key];if(Array.isArray(data?.items))return data.items;if(Array.isArray(data?.data))return data.data;return[];}
-function sameId(a,b){return String(a||"")===String(b||"");}
-function getUserId(u){return u?._id||u?.id||u?.userId||"";}
-function companyName(){const c=state.company||{};return c.companyName||c.name||c.businessName||"AIFT Employer";}
-function companyLogo(){const c=state.company||{};return c.profileImage||c.logo||c.companyLogo||c.avatar||FALLBACK_LOGO;}
-function companyCover(){const c=state.company||{};return c.bannerImage||c.coverImage||c.companyBanner||c.cover||"";}
-function companyTags(){const c=state.company||{};const raw=c.tags||c.skills||c.services||c.specialties||[];if(Array.isArray(raw))return raw.filter(Boolean).slice(0,8);return String(raw||"").split(",").map(x=>x.trim()).filter(Boolean).slice(0,8);}
-async function loadCompany(){
-  const tries=[];
-  if(employerId)tries.push(`${API}/api/users/${encodeURIComponent(employerId)}/public`,`${API}/api/users/${encodeURIComponent(employerId)}`);
-  if(token)tries.push(`${API}/api/users/me`);
-  for(const url of tries){try{const data=await fetchMaybe(url,{headers:authHeaders()});state.company=data?.user||data?.profile||data;return;}catch(e){}}
-  state.company={name:"Employer Profile",bio:"This public employer profile is not available yet.",role:"employer"};
-}
-async function loadJobs(){
-  const urls=[];
-  if(employerId)urls.push(`${API}/api/jobs?employer=${encodeURIComponent(employerId)}`,`${API}/api/jobs/company/${encodeURIComponent(employerId)}`,`${API}/api/jobs/employer/${encodeURIComponent(employerId)}`);
-  urls.push(`${API}/api/jobs`); if(token)urls.push(`${API}/api/jobs/my`);
-  for(const url of urls){try{const data=await fetchMaybe(url,{headers:authHeaders()});let jobs=pickArray(data,"jobs");if(jobs.length){state.jobs=filterCompanyJobs(jobs);if(state.jobs.length||url.includes("/my")){return;}}}catch(e){}}
-  state.jobs=[];
-}
-function filterCompanyJobs(jobs){if(!employerId)return jobs;return jobs.filter(j=>{const emp=j.employer||j.company||j.createdBy||j.user||{};return sameId(j.employerId,employerId)||sameId(j.companyId,employerId)||sameId(getUserId(emp),employerId)||sameId(j.createdBy,employerId)||sameId(j.user,employerId)||String(j.company||"").toLowerCase()===companyName().toLowerCase();});}
-async function loadPosts(){
-  const urls=[]; if(employerId)urls.push(`${API}/api/posts?user=${encodeURIComponent(employerId)}`,`${API}/api/posts/user/${encodeURIComponent(employerId)}`); urls.push(`${API}/api/posts`);
-  for(const url of urls){try{const data=await fetchMaybe(url,{headers:authHeaders()});let posts=pickArray(data,"posts");if(posts.length){state.posts=filterCompanyPosts(posts);return;}}catch(e){}}
-  state.posts=[];
-}
-function filterCompanyPosts(posts){if(!employerId)return posts;return posts.filter(p=>{const a=p.user||p.author||p.createdBy||{};return sameId(getUserId(a),employerId)||sameId(p.user,employerId)||sameId(p.author,employerId)||sameId(p.createdBy,employerId)||String(a.name||"").toLowerCase()===companyName().toLowerCase();});}
-async function loadPeople(){
-  if(!token){state.people=[];state.team=[];return;}
-  try{const data=await fetchMaybe(`${API}/api/users/network`,{headers:authHeaders()});state.people=pickArray(data,"users");}catch(e){state.people=[];}
-  try{const data=await fetchMaybe(`${API}/api/employer-team`,{headers:authHeaders()});state.team=pickArray(data,"team");}catch(e){state.team=[];}
-}
-function setText(id,value){const el=document.getElementById(id);if(el)el.textContent=value;}
-function setImage(id,src){const el=document.getElementById(id);if(el)el.src=src||FALLBACK_LOGO;}
-function renderHeader(){const c=state.company||{};document.title=`${companyName()} | AIFT Employer Profile`;setText("companyName",companyName());setText("companyIndustry",c.industry||c.companyIndustry||c.headline||"Employer");setText("companyLocation",c.location||c.address||"Location not added");setText("companyEmail",c.email||c.contactEmail||"Contact hidden");setText("companyBio",c.bio||c.about||c.description||"This employer uses AIFT to share jobs, company updates, and hiring information.");setImage("logo",companyLogo());const cover=companyCover();if(cover)document.getElementById("cover").style.backgroundImage=`linear-gradient(135deg,rgba(37,87,167,.86),rgba(20,168,0,.35)),url('${cover}')`;state.website=safeUrl(c.website||c.companyWebsite||c.url||"");document.getElementById("tags").innerHTML=(companyTags().length?companyTags():["Hiring","Verified Employer","AIFT Network"]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("");}
-function getFollowersCount(){const c=state.company||{};return Array.isArray(c.followers)?c.followers.length:Number(c.followersCount||c.followCount||0)||0;}
-function activeJobs(){return state.jobs.filter(j=>String(j.status||"active").toLowerCase()!=="closed");}
-function score(){let s=35;s+=Math.min(activeJobs().length*8,25);s+=Math.min(state.posts.length*4,20);s+=Math.min((state.team.length||state.people.length)*3,10);s+=Math.min(Math.floor(getFollowersCount()/10),10);return Math.min(s,100);}
-function renderStats(){setText("statJobs",activeJobs().length);setText("statPosts",state.posts.length);setText("statFollowers",getFollowersCount());setText("statTeam",state.team.length||state.people.filter(p=>["agent","employer"].includes(String(p.role||"").toLowerCase())).length);setText("statScore",score()+"%");setText("scoreBig",score()+"%");}
-function renderSnapshot(){const c=state.company||{};document.getElementById("snapshot").innerHTML=[['Industry',c.industry||c.companyIndustry||'Not added'],['Location',c.location||c.address||'Not added'],['Website',state.website?'Available':'Not added'],['Email',c.email||c.contactEmail||'Hidden'],['Open jobs',activeJobs().length],['Posts',state.posts.length]].map(([a,b])=>`<div class="about-row"><div class="about-label">${a}</div><div class="about-value">${escapeHtml(b)}</div></div>`).join("");}
-function renderOverview(){const c=state.company||{};document.getElementById("overviewPanels").innerHTML=`<div class="panel"><span class="badge">LinkedIn-style brand</span><h3>Company Story</h3><p>${escapeHtml(c.bio||c.about||c.description||'This employer has not added a full company story yet.')}</p><div class="chips">${(companyTags().length?companyTags():['Employer Brand','Hiring']).map(t=>`<span class="chip">${escapeHtml(t)}</span>`).join('')}</div></div><div class="panel"><span class="badge">Indeed-style jobs</span><h3>Open Opportunities</h3><p>${activeJobs().length} active job${activeJobs().length===1?'':'s'} available. Candidates can review roles and continue to sign in or apply.</p><div class="chips"><span class="chip">${activeJobs().length} Open jobs</span><span class="chip">${state.jobs.length} Total roles</span></div></div><div class="panel"><span class="badge">Upwork-style trust</span><h3>Hiring Activity</h3><p>Profile activity score is ${score()}%, based on jobs, posts, team visibility, and public engagement signals.</p><div class="chips"><span class="chip">${state.posts.length} Posts</span><span class="chip">${getFollowersCount()} Followers</span></div></div><div class="panel"><span class="badge">Public profile</span><h3>Contact & Visibility</h3><p>${escapeHtml(c.email||c.contactEmail||'Candidates can sign in to AIFT to connect with this employer.')}</p><div class="chips"><span class="chip">${escapeHtml(c.location||'Location not added')}</span><span class="chip">${escapeHtml(c.industry||'Employer')}</span></div></div>`;}
-function renderJobs(){const q=String(document.getElementById("jobSearch")?.value||"").toLowerCase();const jobs=activeJobs().filter(j=>[j.title,j.company,j.location,j.salary,j.description].join(' ').toLowerCase().includes(q));setText("jobsCountLabel",`${jobs.length} role${jobs.length===1?'':'s'}`);document.getElementById("jobsList").innerHTML=jobs.length?jobs.map(j=>`<article class="job"><div class="job-top"><div><h3>${escapeHtml(j.title||'Untitled role')}</h3><div class="job-meta"><span>${escapeHtml(j.location||'Location not added')}</span><span>${escapeHtml(j.salary||j.salaryRange||'Salary not added')}</span><span>${escapeHtml(j.type||j.jobType||'Role')}</span></div></div><span class="badge">${escapeHtml(j.status||'Active')}</span></div><p>${escapeHtml(j.description||'No description added yet.').slice(0,420)}${String(j.description||'').length>420?'...':''}</p><button class="btn btn-primary" onclick="goLogin()">Apply / View Details</button></article>`).join(''):`<div class="empty">No open jobs found for this employer yet.</div>`;}
-function clearJobSearch(){const el=document.getElementById("jobSearch");if(el)el.value="";renderJobs();}
-function renderPosts(){document.getElementById("postsList").innerHTML=state.posts.length?state.posts.map(p=>{const a=p.user||p.author||p.createdBy||state.company||{};const txt=p.text||p.content||p.body||'';const media=p.mediaUrl||p.image||p.video||'';const mt=String(p.mediaType||'').toLowerCase();const likes=Array.isArray(p.likes)?p.likes.length:Number(p.likesCount||0);const comments=Array.isArray(p.comments)?p.comments.length:Number(p.commentsCount||0);return `<article class="post-card"><div class="post-head"><img src="${escapeHtml(a.profileImage||companyLogo())}" alt=""><div><div class="post-name">${escapeHtml(a.name||companyName())}</div><div class="post-meta">${escapeHtml(a.headline||a.role||'Employer')} · ${formatDate(p.createdAt||p.date)}</div></div></div><div class="post-body">${escapeHtml(txt)}</div>${media?`<div class="post-media">${mt.includes('video')||/\.mp4|\.webm|\.ogg/i.test(media)?`<video src="${escapeHtml(media)}" controls></video>`:`<img src="${escapeHtml(media)}" alt="Post media">`}</div>`:''}<div class="post-stats"><span>${likes} likes</span><span>${comments} comments</span></div></article>`}).join(''):`<div class="empty">No company posts are public yet.</div>`;}
-function renderTeam(){const members=[...state.team];if(!members.length&&state.people.length){members.push(...state.people.filter(p=>["agent","employer"].includes(String(p.role||"").toLowerCase())).slice(0,9));}document.getElementById("teamList").innerHTML=members.length?members.map(m=>`<article class="person"><div class="person-head"><img src="${escapeHtml(m.profileImage||FALLBACK_AVATAR)}" alt=""><div><h3>${escapeHtml(m.name||'Team Member')}</h3><p>${escapeHtml(m.teamRole||m.role||m.headline||'Company member')}</p></div></div><p>${escapeHtml(m.department||m.location||'Attached to this employer profile')}</p></article>`).join(''):`<div class="empty">Team members are not public yet.</div>`;}
-function renderAbout(){const c=state.company||{};document.getElementById("aboutDetails").innerHTML=`<div class="about-list"><div class="about-row"><div class="about-label">Company</div><div class="about-value">${escapeHtml(companyName())}</div></div><div class="about-row"><div class="about-label">Industry</div><div class="about-value">${escapeHtml(c.industry||c.companyIndustry||'Not added')}</div></div><div class="about-row"><div class="about-label">Location</div><div class="about-value">${escapeHtml(c.location||c.address||'Not added')}</div></div><div class="about-row"><div class="about-label">Website</div><div class="about-value">${state.website?`<a style="color:var(--primary)" href="${escapeHtml(state.website)}" target="_blank" rel="noopener">Open website</a>`:'Not added'}</div></div><div class="about-row"><div class="about-label">Contact</div><div class="about-value">${escapeHtml(c.email||c.contactEmail||'Hidden')}</div></div></div><div style="margin-top:18px;line-height:1.75;color:#334155">${escapeHtml(c.bio||c.about||c.description||'No full about section has been added yet.')}</div>`;}
-function renderAll(){renderHeader();renderStats();renderSnapshot();renderOverview();renderJobs();renderPosts();renderTeam();renderAbout();}
-function openTab(tab){state.activeTab=tab;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById('section-'+tab)?.classList.add('active');history.replaceState(null,'','#'+tab);}
-function formatDate(v){if(!v)return'Public update';try{return new Date(v).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});}catch{return'Public update';}}
-function visitWebsite(){if(state.website)window.open(state.website,'_blank','noopener,noreferrer');else showToast('Website not added','This employer has not added a website yet.');}
-async function copyProfileLink(){try{await navigator.clipboard.writeText(location.href);showToast('Copied','Public employer profile link copied.');}catch(e){showToast('Copy failed','Please copy the URL from your browser.');}}
-function goLogin(){window.location.href='login.html';}
-async function init(){try{await loadCompany();renderHeader();await Promise.allSettled([loadJobs(),loadPosts(),loadPeople()]);renderAll();const hash=(location.hash||'').replace('#','');if(['overview','jobs','posts','team','about'].includes(hash))openTab(hash);}catch(e){showToast('Profile error',e.message||'Could not load profile','error');renderAll();}}
-if(socket){socket.on('connect',()=>{});socket.on('postCreated',async()=>{await loadPosts();renderPosts();renderStats();});socket.on('jobCreated',async()=>{await loadJobs();renderJobs();renderStats();});}
-init();
-</script>
-</body>
-</html>
+    <section id="section-about" class="section"><article class="card"><h2 class="title">Company details</h2><div class="details show" id="aboutDetails"></div></article></section>
+    <section id="section-posts" class="section"><div class="post-stream" id="postsList"><div class="loading">Loading posts...</div></div></section>
+    <section id="section-jobs" class="section"><article class="card"><h2 class="title">Open jobs</h2><div class="filter"><input id="jobSearch" type="search" oninput="renderJobs()" placeholder="Search open roles"></div><div class="job-list" id="jobsList"><div class="loading">Loading jobs...</div></div></article></section>
+    <section id="section-people" class="section"><article class="card"><h2 class="title" id="peopleCountTitle">Associated people</h2><div class="filter"><input id="peopleSearch" type="search" oninput="renderPeople()" placeholder="Search employees by title, keyword, or school"></div><div class="people-grid" id="peopleList"><div class="loading">Loading people...</div></div></article></section>
+  </div>
+</section>
+
+<aside class="right-col">
+  <section class="side-card"><h3 class="side-title">People also follow</h3><div id="alsoFollowList"><div class="loading">Loading suggestions...</div></div></section>
+  <section class="side-card"><h3 class="side-title">Company information</h3><div id="sideInfo"></div></section>
+</aside>
