@@ -1147,7 +1147,7 @@
     grid-template-columns: 1fr;
   }
 }
-    /* === LINKEDIN NETWORK CARDS === */
+/* === LINKEDIN-STYLE NETWORK PROFILE CARDS === */
 
 #networkList {
   display: grid;
@@ -1155,78 +1155,128 @@
   gap: 14px;
 }
 
-.linkedin-card {
+.linkedin-profile-card {
   background: #fff;
   border: 1px solid #d8d8d8;
   border-radius: 10px;
-  padding: 16px;
+  overflow: hidden;
+  min-height: 265px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.linkedin-profile-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 26px rgba(0,0,0,.10);
+}
+
+.linkedin-profile-cover {
+  height: 68px;
+  background-size: cover;
+  background-position: center;
+  background-color: #b8cdd0;
+}
+
+.linkedin-profile-cover.empty {
+  background:
+    linear-gradient(135deg, rgba(10,102,194,.22), rgba(22,163,74,.18)),
+    #b8cdd0;
+}
+
+.linkedin-profile-body {
+  padding: 0 14px 14px;
+  text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  transition: .2s ease;
-}
-
-.linkedin-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 25px rgba(0,0,0,.08);
-}
-
-.linkedin-top {
-  display: flex;
-  gap: 10px;
   align-items: center;
 }
 
-.linkedin-top img {
-  width: 48px;
-  height: 48px;
+.linkedin-profile-avatar {
+  width: 82px;
+  height: 82px;
   border-radius: 50%;
   object-fit: cover;
+  border: 4px solid #fff;
+  margin-top: -41px;
+  background: #fff;
 }
 
-.linkedin-top h3 {
+.linkedin-profile-body h3 {
+  margin: 8px 0 3px;
+  font-size: 16px;
+  font-weight: 900;
+  color: #111827;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.linkedin-profile-headline {
   margin: 0;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.linkedin-top p {
-  margin: 3px 0 0;
-  font-size: 12px;
+  min-height: 38px;
   color: #666;
+  font-size: 13px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.linkedin-badge {
+.linkedin-profile-badge {
+  margin-top: 10px;
   background: #ecfdf5;
+  border: 1px solid #bbf7d0;
   color: #047857;
-  padding: 4px 8px;
   border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.linkedin-profile-muted {
+  margin-top: 10px;
+  color: #94a3b8;
   font-size: 11px;
   font-weight: 800;
-  width: fit-content;
 }
 
-.linkedin-actions {
-  display: flex;
+.linkedin-profile-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-top: auto;
+  width: 100%;
+  margin-top: 14px;
 }
 
-.linkedin-actions button {
-  flex: 1;
-  padding: 8px;
+.linkedin-profile-actions button {
   border-radius: 999px;
+  padding: 8px 10px;
   border: 1px solid #0a66c2;
   background: #fff;
   color: #0a66c2;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 900;
   cursor: pointer;
 }
 
-.linkedin-actions button.active {
+.linkedin-profile-actions button.active {
   background: #ecfdf5;
   color: #047857;
   border-color: #bbf7d0;
+}
+
+@media(max-width: 1200px) {
+  #networkList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media(max-width: 720px) {
+  #networkList {
+    grid-template-columns: 1fr;
+  }
 }
     .jobseeker-grid {
   padding: 16px;
@@ -2276,6 +2326,16 @@ function buildNetwork(){
       user.schoolDescription ||
       "AIFT member";
 
+    const banner =
+      user.bannerImage ||
+      user.schoolBanner ||
+      null;
+
+    const avatar =
+      user.profileImage ||
+      user.schoolLogo ||
+      FALLBACK_AVATAR;
+
     const badge = user.aiftCertified
       ? "AIFT Certified"
       : user.aiftVerified
@@ -2283,27 +2343,36 @@ function buildNetwork(){
         : "";
 
     return `
-      <div class="linkedin-card">
-        <div class="linkedin-top">
-          <img src="${user.profileImage || user.schoolLogo || FALLBACK_AVATAR}" alt="">
-          <div>
-            <h3>${escapeHtml(displayName)}</h3>
-            <p>${escapeHtml(headline)}</p>
+      <article class="linkedin-profile-card">
+        <div
+          class="linkedin-profile-cover ${banner ? "" : "empty"}"
+          ${banner ? `style="background-image:url('${escapeHtml(banner)}')"` : ""}
+        ></div>
+
+        <div class="linkedin-profile-body">
+          <img class="linkedin-profile-avatar" src="${avatar}" alt="">
+
+          <h3>${escapeHtml(displayName)}</h3>
+
+          <p class="linkedin-profile-headline">${escapeHtml(headline)}</p>
+
+          ${
+            badge
+              ? `<span class="linkedin-profile-badge">${escapeHtml(badge)}</span>`
+              : `<span class="linkedin-profile-muted">Profile not verified yet</span>`
+          }
+
+          <div class="linkedin-profile-actions">
+            <button type="button" onclick="toggleFollow('${user._id}')" class="${isFollowing ? "active" : ""}">
+              ${isFollowing ? "Following" : "Follow"}
+            </button>
+
+            <button type="button" onclick="openPublicProfile('${user._id}')">
+              View Profile
+            </button>
           </div>
         </div>
-
-        ${badge ? `<span class="linkedin-badge">${escapeHtml(badge)}</span>` : ""}
-
-        <div class="linkedin-actions">
-          <button type="button" onclick="toggleFollow('${user._id}')" class="${isFollowing ? "active" : ""}">
-            ${isFollowing ? "Following" : "Follow"}
-          </button>
-
-          <button type="button" onclick="openPublicProfile('${user._id}')">
-            View
-          </button>
-        </div>
-      </div>
+      </article>
     `;
   }).join("");
 }
