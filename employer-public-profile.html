@@ -241,6 +241,36 @@
     background:#000;
   }
 }
+    /* === FIX PUBLIC EMPLOYER LEFT PANEL SIZE === */
+@media(min-width:981px){
+  .profile-card{
+    width:260px !important;
+    max-width:260px !important;
+    overflow:hidden !important;
+  }
+
+  .profile-card .tabs{
+    overflow-x:auto !important;
+    max-width:100% !important;
+    scrollbar-width:thin;
+  }
+
+  .profile-card .tab{
+    flex:0 0 auto !important;
+    padding:12px 15px !important;
+    font-size:13px !important;
+  }
+
+  .profile-card .actions{
+    display:flex !important;
+    flex-wrap:wrap !important;
+  }
+
+  .profile-card .btn{
+    padding:7px 13px !important;
+    font-size:13px !important;
+  }
+}
   </style>
 </head>
 <body>
@@ -388,8 +418,38 @@ function renderHeader(){const c=state.company;document.title=`${nameOf()} | AIFT
 const mobileLogo = document.getElementById("mobileCompanyLogo");
 if (mobileLogo) mobileLogo.src = logoOf();companyName.textContent=nameOf();headline.textContent=c.headline||c.tagline||c.industry||"Company profile";industryLine.textContent=c.industry||c.companyIndustry||"Company";followersLine.textContent=`${countFollowers().toLocaleString()} followers`;const cover=coverOf();cover && cover.length>5 ? (document.getElementById("cover").classList.add("has-cover"),document.getElementById("cover").style.backgroundImage=`url('${esc(cover)}')`) : (document.getElementById("cover").classList.remove("has-cover"),document.getElementById("cover").style.backgroundImage="none");state.website=safeUrl(c.website||c.companyWebsite||c.url||"");const isFollowing=Array.isArray(c.followers)&&currentUserId()&&c.followers.map(x=>String(x._id||x)).includes(currentUserId());state.following=!!isFollowing;followBtn.textContent=state.following?"✓ Following":"+ Follow";followBtn.classList.toggle("primary",!state.following);followBtn.classList.toggle("gray",state.following)}
 function detailRows(items){return items.map(([k,v,html])=>`<div class="detail"><div class="k">${esc(k)}</div><div class="v">${html?v:esc(v)}</div></div>`).join("")}
-function renderOverview(){companyStory.textContent=storyOf();const c=state.company;overviewDetails.innerHTML=detailRows([["Services",c.services||c.specialties||"Not added"],["Industry",c.industry||c.companyIndustry||"Not added"],["Company size",c.companySize||c.size||"Not added"],["Location",c.location||c.address||"Not added"],["Website",state.website?`<a style="color:#0a66c2" href="${esc(state.website)}" target="_blank" rel="noopener">Open website</a>`:"Not added",true],["Open jobs",activeJobs().length]]);sideInfo.innerHTML=detailRows([["Website",state.website?`<a style="color:#0a66c2" href="${esc(state.website)}" target="_blank" rel="noopener">Open website</a>`:"Not added",true],["Open jobs",activeJobs().length],["Posts",state.posts.length],["People",state.people.length],["Followers",countFollowers().toLocaleString()]])}
-function toggleOverviewDetails(){overviewDetails.classList.toggle("show")}
+function renderOverview(){
+  const c = state.company;
+
+  const side = document.getElementById("sideInfo");
+  if (side) {
+    side.innerHTML = detailRows([
+      ["Website", state.website ? `<a style="color:#0a66c2" href="${esc(state.website)}" target="_blank" rel="noopener">Open website</a>` : "Not added", true],
+      ["Open jobs", activeJobs().length],
+      ["Posts", state.posts.length],
+      ["People", state.people.length],
+      ["Followers", countFollowers().toLocaleString()]
+    ]);
+  }
+
+  const about = document.getElementById("homeAboutText");
+  if (about) {
+    about.textContent = c.about || c.bio || c.companyBio || c.description || c.services || c.specialties || storyOf();
+  }
+
+  const aboutDetails = document.getElementById("homeAboutDetails");
+  if (aboutDetails) {
+    aboutDetails.innerHTML = detailRows([
+      ["Services", c.services || c.specialties || "Not added"],
+      ["Industry", c.industry || c.companyIndustry || "Not added"],
+      ["Company size", c.companySize || c.size || "Not added"],
+      ["Location", c.location || c.address || "Not added"]
+    ]);
+  }
+}
+function toggleOverviewDetails(){
+  document.getElementById("homeAboutDetails")?.classList.toggle("show");
+}
 function renderAbout(){const c=state.company;aboutDetails.innerHTML=detailRows([["Company",nameOf()],["Industry",c.industry||c.companyIndustry||"Not added"],["Location",c.location||c.address||"Not added"],["Company size",c.companySize||c.size||"Not added"],["Website",state.website?`<a style="color:#0a66c2" href="${esc(state.website)}" target="_blank" rel="noopener">${esc(state.website)}</a>`:"Not added",true],["Contact",c.email||c.contactEmail||"Hidden"],["Services",c.services||c.specialties||"Not added"]])}
 function renderJobs(){const q=(jobSearch?.value||"").toLowerCase().trim();const jobs=activeJobs().filter(j=>[j.title,j.description,j.location,j.salary,j.salaryRange].join(" ").toLowerCase().includes(q));jobsList.innerHTML=jobs.length?jobs.map(j=>`<article class="job"><h3>${esc(j.title||"Untitled role")}</h3><div class="jmeta">${esc(j.location||"Location not added")} ${j.salary||j.salaryRange?"• "+esc(j.salary||j.salaryRange):""}</div><p>${esc(j.description||"No description added yet.").slice(0,520)}${String(j.description||"").length>520?"...":""}</p><button class="btn primary" onclick="goLogin()">View / Apply</button></article>`).join(""):`<div class="empty">No open jobs found yet.</div>`}
 function renderPeople(){const q=(peopleSearch?.value||"").toLowerCase().trim();let people=state.people;if(q)people=people.filter(u=>[u.name,u.fullName,u.headline,u.role,u.teamRole,u.department,u.skills,u.education,u.location].join(" ").toLowerCase().includes(q));peopleCountTitle.textContent=`${people.length||state.people.length} associated people`;peopleList.innerHTML=people.length?people.map(u=>`<article class="person"><div class="person-cover"></div><img src="${esc(u.profileImage||FALLBACK_USER)}" alt="${esc(u.name||u.fullName||"Member")}"><div class="person-body"><h3>${esc(u.name||u.fullName||"Member")} <span style="font-weight:500;color:#777;font-size:12px">· 2nd</span></h3><p>${esc(u.headline||u.role||u.teamRole||u.department||"Associated member")}</p><div class="person-mutual">${esc(u.location||u.company||nameOf())}</div><button class="connect-btn" onclick="messagePerson('${esc(u._id||u.id||"")}')">Connect</button></div></article>`).join(""):`<div class="empty">No associated people are public yet.</div>`}
