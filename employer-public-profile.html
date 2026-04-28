@@ -301,6 +301,19 @@
     margin: 0;
   }
 }
+    /* Keep left profile clean until View Profile */
+.profile-card > .tabs.hidden,
+#publicProfileTabs.hidden {
+  display: none !important;
+}
+
+.public-employer-feed .aift-feed-shell {
+  max-width: 100% !important;
+}
+
+.public-employer-feed .aift-composer {
+  display: none !important;
+}
   </style>
 </head>
 <body>
@@ -358,8 +371,7 @@
   <button class="btn gray" onclick="showCompanyProfile()">View Profile</button>
 </div>
         </div>
-        <div class="tabs">
-          <div class="tabs public-profile-tabs hidden" id="publicProfileTabs">
+ <div class="tabs public-profile-tabs hidden" id="publicProfileTabs">
   <button class="tab active" data-tab="overview" onclick="openTab('overview')">Home</button>
   <button class="tab" data-tab="about" onclick="openTab('about')">About</button>
   <button class="tab" data-tab="posts" onclick="openTab('posts')">Posts</button>
@@ -552,6 +564,8 @@ function renderHomePosts(){
     : `<div class="empty">No company posts yet.</div>`;
 }
 function renderHomePeople(){if(typeof homePeopleList==="undefined")return;if(typeof homePeopleTitle!=="undefined")homePeopleTitle.textContent=`${state.people.length||0} associated people`;homePeopleList.innerHTML=state.people.length?state.people.slice(0,6).map(u=>`<article class="person"><div class="person-cover"></div><img src="${esc(u.profileImage||FALLBACK_USER)}" alt="${esc(u.name||u.fullName||"Member")}"><div class="person-body"><h3>${esc(u.name||u.fullName||"Member")} <span style="font-weight:500;color:#777;font-size:12px">· 2nd</span></h3><p>${esc(u.headline||u.role||u.teamRole||u.department||"Associated member")}</p><div class="person-mutual">${esc(u.location||u.company||nameOf())}</div><button class="connect-btn" onclick="messagePerson('${esc(u._id||u.id||"")}')">Connect</button></div></article>`).join(""):`<div class="empty">No associated people are public yet.</div>`}
+let publicFeedMounted = false;
+
 function renderAll(){
   renderHeader();
   renderOverview();
@@ -560,7 +574,10 @@ function renderAll(){
   renderPeople();
   renderSuggestions();
 
-  if (window.AIFTFeed && document.getElementById("publicEmployerFeed")) {
+  const feedBox = document.getElementById("publicEmployerFeed");
+
+  if (!publicFeedMounted && feedBox && typeof AIFTFeed !== "undefined") {
+    publicFeedMounted = true;
     AIFTFeed.mount("publicEmployerFeed");
   }
 }
@@ -609,7 +626,14 @@ function goLogin(){window.location.href="login.html"}
 function openOtherProfile(id){if(id)location.href=`public-profile.html?id=${encodeURIComponent(id)}`}
 function date(v){try{return v?new Date(v).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}):"Public"}catch{return"Public"}}
 function setupSearch(){globalSearch.addEventListener("input",()=>{const q=globalSearch.value.toLowerCase().trim();if(!q){renderAll();return}const oldPosts=state._posts||state.posts, oldJobs=state._jobs||state.jobs;state._posts=oldPosts;state._jobs=oldJobs;state.posts=oldPosts.filter(p=>[p.content,p.text,p.body].join(" ").toLowerCase().includes(q));state.jobs=oldJobs.filter(j=>[j.title,j.description,j.location].join(" ").toLowerCase().includes(q));renderPosts();renderJobs()})}
-async function init(){setupSearch();await initViewer();await loadCompany();await Promise.allSettled([loadJobs(),loadPosts(),loadPeople()]);renderAll();const hash=(location.hash||"").replace("#","");if(["overview","about","posts","jobs","people"].includes(hash))openTab(hash)}
+async function init(){
+  setupSearch();
+  await initViewer();
+  await loadCompany();
+  await Promise.allSettled([loadJobs(), loadPosts(), loadPeople()]);
+  renderAll();
+  openTab("overview");
+}
 try{const socket=io(API,{transports:["websocket","polling"],withCredentials:false});socket.on("postCreated",async()=>{await loadPosts();renderPosts()});socket.on("postUpdated",async()=>{await loadPosts();renderPosts()});socket.on("notification",loadUnread)}catch{}
 init();
 </script>
