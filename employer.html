@@ -2234,26 +2234,47 @@ function buildNetwork(){
   const wrap = document.getElementById("networkList");
   if (!wrap) return;
 
-  const list = state.networkUsers || [];
+  let list = [...(state.people || [])];
+
+  if (state.networkFilter && state.networkFilter !== "all") {
+    list = list.filter(user => safeStatus(user.role) === state.networkFilter);
+  }
+
+  list = filteredItems(
+    list,
+    user => [
+      user.name,
+      user.companyName,
+      user.schoolName,
+      user.profession,
+      user.headline,
+      user.industry,
+      user.bio,
+      user.schoolDescription
+    ].join(" ")
+  );
 
   if (!list.length){
-    wrap.innerHTML = `<div class="empty">No users found.</div>`;
+    wrap.innerHTML = `<div class="empty">No users found in your network.</div>`;
     return;
   }
 
   wrap.innerHTML = list.map(user => {
-
     const isFollowing = Array.isArray(state.me?.following) &&
       state.me.following.some(id => String(id) === String(user._id));
 
-    const name = escapeHtml(user.name || "User");
-    const headline = escapeHtml(
+    const displayName =
+      user.companyName ||
+      user.schoolName ||
+      user.name ||
+      "AIFT Member";
+
+    const headline =
       user.profession ||
       user.headline ||
       user.industry ||
-      user.schoolName ||
-      "AIFT member"
-    );
+      user.schoolDescription ||
+      "AIFT member";
 
     const badge = user.aiftCertified
       ? "AIFT Certified"
@@ -2264,22 +2285,21 @@ function buildNetwork(){
     return `
       <div class="linkedin-card">
         <div class="linkedin-top">
-          <img src="${user.profileImage || FALLBACK_AVATAR}">
+          <img src="${user.profileImage || user.schoolLogo || FALLBACK_AVATAR}" alt="">
           <div>
-            <h3>${name}</h3>
-            <p>${headline}</p>
+            <h3>${escapeHtml(displayName)}</h3>
+            <p>${escapeHtml(headline)}</p>
           </div>
         </div>
 
-        ${badge ? `<span class="linkedin-badge">${badge}</span>` : ""}
+        ${badge ? `<span class="linkedin-badge">${escapeHtml(badge)}</span>` : ""}
 
         <div class="linkedin-actions">
-          <button onclick="toggleFollow('${user._id}')"
-            class="${isFollowing ? 'active' : ''}">
+          <button type="button" onclick="toggleFollow('${user._id}')" class="${isFollowing ? "active" : ""}">
             ${isFollowing ? "Following" : "Follow"}
           </button>
 
-          <button onclick="openPublicProfile('${user._id}')">
+          <button type="button" onclick="openPublicProfile('${user._id}')">
             View
           </button>
         </div>
@@ -3599,7 +3619,8 @@ function openTab(tab){
   document.querySelectorAll(".section").forEach(section => section.classList.toggle("active", section.id === `section-${tab}`));
 
   if (tab === "analytics") buildAnalytics();
-  if (tab === "jobseekers") buildJobSeekers();
+  if (tab === "network") buildNetwork();
+if (tab === "jobseekers") buildJobSeekers();
   if (tab === "ops") buildOps();
   if (tab === "feed" && !window.AIFTFeedMountedOnEmployer) buildFeed();
   if (tab === "profile") buildProfileSection();
