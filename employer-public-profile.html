@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <link rel="stylesheet" href="feed.css" />
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <style>
     :root{--blue:#0a66c2;--aift:#2557a7;--green:#057642;--bg:#f3f2ef;--card:#fff;--text:#191919;--muted:#666;--line:#d6d6d6;--soft:#eef3f8;--danger:#b91c1c;--max:1128px;--shadow:0 1px 2px rgba(0,0,0,.08)}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(--text);font-size:14px;line-height:1.45}a{text-decoration:none;color:inherit}button,input{font:inherit}img{display:block;max-width:100%}.hidden{display:none!important}.container{width:min(var(--max),calc(100% - 24px));margin:auto}
@@ -271,6 +272,35 @@
     font-size:13px !important;
   }
 }
+    /* === PUBLIC HOME FEED USING SHARED AIFT FEED === */
+.public-employer-feed {
+  width: 100%;
+}
+
+.public-employer-feed .aift-feed-shell {
+  max-width: 100%;
+}
+
+.public-employer-feed .aift-composer {
+  display: none !important;
+}
+
+@media(min-width:981px){
+  .profile-card .tabs.hidden {
+    display: none !important;
+  }
+
+  .profile-card {
+    max-height: calc(100vh - 86px);
+  }
+}
+
+@media(max-width:640px){
+  .public-employer-feed .aift-feed-shell {
+    max-width: none;
+    margin: 0;
+  }
+}
   </style>
 </head>
 <body>
@@ -321,15 +351,21 @@
           <div class="name-row"><h1 id="companyName" class="name">Company</h1><span class="verified"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 2.1 3.1-.3.9 3 2.8 1.5-1.5 2.8.3 3-3 .9L14.9 18 12 20l-2.9-2-3 .9-.3-3L3 13.9 3.9 11 2.4 8.2 5.2 6.7l.9-3 3.1.3L12 2zm-1.1 12.8l6-6-1.4-1.4-4.6 4.6-2.3-2.3-1.4 1.4 3.7 3.7z"/></svg>Verified</span></div>
           <p id="headline" class="headline"></p>
           <div class="meta"><span id="industryLine"></span><span id="followersLine"></span></div>
-          <div class="actions"><button id="followBtn" class="btn primary" onclick="followCompany()">+ Follow</button><button class="btn gray" onclick="messageCompany()">Message</button><button class="btn gray" onclick="visitWebsite()">Visit website</button></div>
+          <div class="actions">
+  <button id="followBtn" class="btn primary" onclick="followCompany()">+ Follow</button>
+  <button class="btn gray" onclick="messageCompany()">Message</button>
+  <button class="btn gray" onclick="visitWebsite()">Visit website</button>
+  <button class="btn gray" onclick="showCompanyProfile()">View Profile</button>
+</div>
         </div>
         <div class="tabs">
-          <button class="tab active" data-tab="overview" onclick="openTab('overview')">Home</button>
-          <button class="tab" data-tab="about" onclick="openTab('about')">About</button>
-          <button class="tab" data-tab="posts" onclick="openTab('posts')">Posts</button>
-          <button class="tab" data-tab="jobs" onclick="openTab('jobs')">Jobs</button>
-          <button class="tab" data-tab="people" onclick="openTab('people')">People</button>
-        </div>
+          <div class="tabs public-profile-tabs hidden" id="publicProfileTabs">
+  <button class="tab active" data-tab="overview" onclick="openTab('overview')">Home</button>
+  <button class="tab" data-tab="about" onclick="openTab('about')">About</button>
+  <button class="tab" data-tab="posts" onclick="openTab('posts')">Posts</button>
+  <button class="tab" data-tab="jobs" onclick="openTab('jobs')">Jobs</button>
+  <button class="tab" data-tab="people" onclick="openTab('people')">People</button>
+</div>
       </article>
 
       <div class="main-content">
@@ -340,9 +376,9 @@
         <h2 class="title">Company Feed</h2>
         <button type="button" onclick="openTab('posts')">View all posts →</button>
       </div>
-      <div id="homePostsList" class="post-stream">
-        <div class="loading">Loading company feed...</div>
-      </div>
+      <div id="publicEmployerFeed" class="public-employer-feed">
+  <div class="loading">Loading AIFT feed...</div>
+</div>
     </div>
   </article>
 
@@ -385,7 +421,7 @@
 </main>
 
 <div class="toast-wrap" id="toastWrap"></div>
-
+<script src="feed.js"></script>
 <script>
 const API="https://backend-1-9b6f.onrender.com";
 const FALLBACK_COMPANY="https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
@@ -516,7 +552,18 @@ function renderHomePosts(){
     : `<div class="empty">No company posts yet.</div>`;
 }
 function renderHomePeople(){if(typeof homePeopleList==="undefined")return;if(typeof homePeopleTitle!=="undefined")homePeopleTitle.textContent=`${state.people.length||0} associated people`;homePeopleList.innerHTML=state.people.length?state.people.slice(0,6).map(u=>`<article class="person"><div class="person-cover"></div><img src="${esc(u.profileImage||FALLBACK_USER)}" alt="${esc(u.name||u.fullName||"Member")}"><div class="person-body"><h3>${esc(u.name||u.fullName||"Member")} <span style="font-weight:500;color:#777;font-size:12px">· 2nd</span></h3><p>${esc(u.headline||u.role||u.teamRole||u.department||"Associated member")}</p><div class="person-mutual">${esc(u.location||u.company||nameOf())}</div><button class="connect-btn" onclick="messagePerson('${esc(u._id||u.id||"")}')">Connect</button></div></article>`).join(""):`<div class="empty">No associated people are public yet.</div>`}
-function renderAll(){renderHeader();renderOverview();renderAbout();renderJobs();renderPeople();renderSuggestions();renderPosts();renderHomeAbout();renderHomePosts();renderHomePeople()}
+function renderAll(){
+  renderHeader();
+  renderOverview();
+  renderAbout();
+  renderJobs();
+  renderPeople();
+  renderSuggestions();
+
+  if (window.AIFTFeed && document.getElementById("publicEmployerFeed")) {
+    AIFTFeed.mount("publicEmployerFeed");
+  }
+}
 function openTab(tab){
   document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
@@ -538,7 +585,11 @@ function messageCompany(){if(!token())return goLogin();window.location.href=`mes
 function messagePerson(id){if(!token())return goLogin();if(id)window.location.href=`messages.html?user=${encodeURIComponent(id)}`}
 function visitWebsite(){if(state.website)window.open(state.website,"_blank","noopener");else toast("Website not added","This company has not added a website yet.")}
 async function copyProfileLink(){try{await navigator.clipboard.writeText(location.href);toast("Copied","Profile link copied.","success")}catch{toast("Copy failed","Please copy the browser URL.","error")}}
-function goDashboard(){
+function showCompanyProfile(){
+  document.getElementById("publicProfileTabs")?.classList.remove("hidden");
+  openTab("about");
+}
+  function goDashboard(){
   const myId = currentUserId();
   const companyId = String(state.companyId || "");
 
