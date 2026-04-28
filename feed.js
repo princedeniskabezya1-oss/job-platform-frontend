@@ -59,6 +59,9 @@ isMobile: window.innerWidth <= 768,
   function root() {
     return document.getElementById(state.rootId);
   }
+  function isMobileNow() {
+  return window.matchMedia("(max-width: 768px)").matches;
+}
 
   function isMine(userId) {
     return String(userId || "") === String(state.meId || localStorage.getItem("userId"));
@@ -554,34 +557,51 @@ isMobile: window.innerWidth <= 768,
     setTimeout(() => heart.classList.remove("show"), 900);
   }
 
-  function openComments(postId) {
-    const post = getPost(postId);
-    if (!post) return;
+function openComments(postId) {
+  const post = getPost(postId);
+  if (!post) return;
 
-    state.activePostId = postId;
-    state.replyTarget = null;
+  state.activePostId = postId;
+  state.replyTarget = null;
+  state.isMobile = isMobileNow();
 
-    if (!state.isMobile) {
-      renderInlineComments(postId);
-      return;
-    }
-
-    const body = document.getElementById("aiftCommentsBody");
-    const input = document.getElementById("aiftCommentInput");
-
-    body.innerHTML = `
-      <div class="aift-comments-topbar">
-        <button class="aift-comments-filter">Most relevant</button>
-      </div>
-      <div class="aift-comments-preview">
-        ${renderComments(post, 3)}
-      </div>
-    `;
-
-    if (input) input.value = "";
-    hideReplyBanner();
-    openOverlay("aiftCommentsSheet");
+  if (!state.isMobile) {
+    renderInlineComments(postId);
+    return;
   }
+
+  const body = document.getElementById("aiftCommentsBody");
+  const input = document.getElementById("aiftCommentInput");
+
+  if (!body) return;
+
+  body.innerHTML = `
+    <div class="aift-comments-topbar">
+      <button class="aift-comments-filter">Most relevant</button>
+    </div>
+    <div class="aift-comments-preview">
+      ${renderComments(post, 3)}
+    </div>
+  `;
+
+  if (input) input.value = "";
+
+  if (typeof hideReplyBanner === "function") {
+    hideReplyBanner();
+  }
+
+  openOverlay("aiftCommentsSheet");
+
+  setTimeout(() => {
+    const sheet = document.getElementById("aiftCommentsSheet");
+    if (sheet) {
+      sheet.classList.add("open");
+      sheet.style.display = "flex";
+      sheet.style.visibility = "visible";
+      sheet.style.pointerEvents = "auto";
+    }
+  }, 30);
+}
 
   function renderInlineComments(postId) {
     const post = getPost(postId);
@@ -1034,7 +1054,9 @@ async function deleteReply(postId, commentId, replyId) {
 
   input?.focus();
 }
-
+function hideReplyBanner() {
+  document.getElementById("aiftReplyBanner")?.classList.remove("show");
+}
   function cancelReply() {
   state.replyTarget = null;
   document.querySelectorAll(".aift-inline-reply-box").forEach(box => box.remove());
