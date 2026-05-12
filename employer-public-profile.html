@@ -1204,6 +1204,68 @@
         width:100%;
       }
     }
+    /* === PROFILE MODE: full LinkedIn-style company page === */
+@media(min-width:981px){
+  body.profile-mode .layout{
+    grid-template-columns:minmax(0, 1fr) 320px;
+    max-width:1128px;
+  }
+
+  body.profile-mode .left-col{
+    display:block;
+  }
+
+  body.profile-mode .mini-company-card{
+    display:none !important;
+  }
+
+  body.profile-mode .main-content{
+    grid-column:1;
+    width:100%;
+  }
+
+  body.profile-mode .right-col{
+    grid-column:2;
+    display:block;
+  }
+
+  body.profile-mode #section-about{
+    display:block;
+  }
+
+  body.profile-mode #section-overview,
+  body.profile-mode #section-posts,
+  body.profile-mode #section-jobs,
+  body.profile-mode #section-people{
+    display:none;
+  }
+}
+
+/* make right panel more useful in profile mode */
+body.profile-mode .right-col .side-card:first-child .side-title{
+  font-size:18px;
+}
+
+body.profile-mode .right-col .side-card:nth-child(2){
+  border-top:3px solid #0a66c2;
+}
+
+@media(max-width:640px){
+  body.profile-mode .mini-company-card{
+    display:none !important;
+  }
+
+  body.profile-mode #section-about{
+    display:block;
+  }
+
+  body.profile-mode #section-overview,
+  body.profile-mode #section-posts,
+  body.profile-mode #section-jobs,
+  body.profile-mode #section-people{
+    display:none;
+  }
+}
   </style>
 </head>
 
@@ -1356,6 +1418,7 @@
                   <button id="heroFollowBtn" class="pill-btn primary" onclick="followCompany()">+ Follow</button>
                   <button class="pill-btn" onclick="messageCompany()">Message</button>
                   <button class="round-more" onclick="copyProfileLink()">•••</button>
+<button class="pill-btn" onclick="backToFeed()">Back to feed</button>
                 </div>
               </div>
 
@@ -2017,12 +2080,18 @@
       history.replaceState(null,"","#" + tab);
     }
 
-    function showCompanyProfile(){
-      document.getElementById("miniTabs")?.classList.add("show");
-      openTab("about");
-      window.scrollTo({top:0,behavior:"smooth"});
-    }
-
+function showCompanyProfile(){
+  document.body.classList.add("profile-mode");
+  document.getElementById("miniTabs")?.classList.add("show");
+  openTab("about");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+    
+function backToFeed(){
+  document.body.classList.remove("profile-mode");
+  openTab("overview");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
     function scrollCompanySection(id){
       document.getElementById(id)?.scrollIntoView({behavior:"smooth",block:"start"});
     }
