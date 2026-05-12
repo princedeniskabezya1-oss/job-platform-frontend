@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+
+<title>AIFT | Home</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="feed.css">
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<style>
+
+:root{
+  --blue:#0a66c2;
+  --green:#057642;
+  --bg:#f3f2ef;
+  --card:#fff;
+  --line:#d8d8d8;
+  --text:#191919;
+  --muted:#666;
+  --shadow:0 1px 2px rgba(0,0,0,.08);
+  --radius:12px;
+  --max:1128px;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,sans-serif;
+}
+
+button,input{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+img{
+  display:block;
+  max-width:100%;
+}
+
+a{
+  color:inherit;
+  text-decoration:none;
+}
+
+.hidden{
+  display:none!important;
+}
+
+.container{
+  width:min(var(--max),calc(100% - 24px));
+  margin:auto;
+}
+
+/* TOPBAR */
+
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:500;
+  background:#fff;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.top-inner{
+  height:58px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.brand{
+  width:34px;
+  height:34px;
+  border-radius:8px;
+  background:#0a66c2;
+  color:#fff;
+  display:grid;
+  place-items:center;
+  font-weight:900;
+  font-size:18px;
+  flex-shrink:0;
+}
+
+.search{
+  position:relative;
+  width:280px;
+  max-width:38vw;
+}
+
+.search input{
+  width:100%;
+  height:34px;
+  border:1px solid #cfd8e3;
+  background:#eef3f8;
+  border-radius:6px;
+  padding:0 12px 0 36px;
+  outline:none;
+}
+
+.search svg{
+  position:absolute;
+  left:11px;
+  top:50%;
+  transform:translateY(-50%);
+  width:16px;
+  height:16px;
+  stroke:#64748b;
+  fill:none;
+  stroke-width:2;
+}
+
+.top-nav{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.top-link{
+  border:0;
+  background:#fff;
+  color:#555;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  min-width:72px;
+  height:56px;
+  font-size:11px;
+  border-bottom:2px solid transparent;
+}
+
+.top-link.active{
+  color:#111;
+  border-bottom-color:#111;
+}
+
+.top-link svg{
+  width:21px;
+  height:21px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+}
+
+.top-avatar{
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  object-fit:cover;
+  border:1px solid #ddd;
+}
+
+/* PAGE */
+
+.page{
+  padding:14px 0 50px;
+}
+
+.layout{
+  display:grid;
+  grid-template-columns:225px minmax(0,1fr) 300px;
+  gap:16px;
+  align-items:start;
+}
+
+.left-col,
+.right-col{
+  position:sticky;
+  top:72px;
+}
+
+.card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+
+/* PROFILE */
+
+.profile-card{
+  overflow:hidden;
+}
+
+.profile-cover{
+  height:64px;
+  background:linear-gradient(135deg,#7c3aed,#22c55e);
+}
+
+.profile-body{
+  padding:0 16px 16px;
+}
+
+.profile-avatar{
+  width:74px;
+  height:74px;
+  border-radius:50%;
+  border:3px solid #fff;
+  object-fit:cover;
+  margin-top:-38px;
+  background:#fff;
+}
+
+.profile-name{
+  margin:10px 0 4px;
+  font-size:21px;
+  font-weight:800;
+}
+
+.profile-headline{
+  color:#555;
+  line-height:1.45;
+  font-size:14px;
+}
+
+.profile-location{
+  margin-top:8px;
+  color:#777;
+  font-size:13px;
+}
+
+.profile-company{
+  margin-top:12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:14px;
+  font-weight:700;
+}
+
+.profile-company img{
+  width:22px;
+  height:22px;
+  object-fit:contain;
+}
+
+/* STATS */
+
+.mini-stats{
+  margin-top:12px;
+}
+
+.mini-stat{
+  display:flex;
+  justify-content:space-between;
+  padding:11px 16px;
+  border-top:1px solid #eee;
+  font-size:13px;
+}
+
+.mini-stat strong{
+  color:#0a66c2;
+}
+
+/* MENU */
+
+.left-menu{
+  margin-top:12px;
+  overflow:hidden;
+}
+
+.left-menu button{
+  width:100%;
+  border:0;
+  background:#fff;
+  text-align:left;
+  padding:13px 16px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:700;
+  color:#444;
+}
+
+.left-menu button:hover{
+  background:#f3f2ef;
+}
+
+/* CREATE */
+
+.create-post{
+  padding:14px;
+  margin-bottom:12px;
+}
+
+.create-top{
+  display:flex;
+  gap:10px;
+}
+
+.create-top img{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+.create-trigger{
+  flex:1;
+  height:48px;
+  border-radius:999px;
+  border:1px solid #999;
+  background:#fff;
+  text-align:left;
+  padding:0 18px;
+  color:#666;
+  font-weight:700;
+}
+
+.create-actions{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:4px;
+  margin-top:10px;
+}
+
+.create-actions button{
+  border:0;
+  background:#fff;
+  padding:12px;
+  border-radius:8px;
+  font-weight:700;
+  color:#555;
+}
+
+.create-actions button:hover{
+  background:#f3f2ef;
+}
+
+/* RIGHT */
+
+.side-card{
+  padding:16px;
+  margin-bottom:12px;
+}
+
+.side-card h3{
+  margin:0 0 14px;
+  font-size:20px;
+  font-weight:800;
+}
+
+.side-user{
+  display:flex;
+  gap:10px;
+  padding:12px 0;
+  border-bottom:1px solid #eee;
+}
+
+.side-user:last-child{
+  border-bottom:0;
+}
+
+.side-user img{
+  width:48px;
+  height:48px;
+  border-radius:8px;
+  object-fit:cover;
+}
+
+.side-user h4{
+  margin:0 0 4px;
+  font-size:15px;
+}
+
+.side-user p{
+  margin:0;
+  color:#666;
+  font-size:13px;
+  line-height:1.4;
+}
+
+.follow-btn{
+  margin-top:8px;
+  border:1px solid #777;
+  border-radius:999px;
+  background:#fff;
+  padding:7px 14px;
+  font-weight:800;
+}
+
+/* FEED */
+
+.feed-wrap{
+  min-width:0;
+}
+
+/* MOBILE */
+
+.mobile-nav{
+  display:none;
+}
+
+@media(max-width:1024px){
+
+  .layout{
+    grid-template-columns:minmax(0,1fr);
+  }
+
+  .left-col,
+  .right-col{
+    display:none;
+  }
+}
+
+@media(max-width:640px){
+
+  body{
+    padding-bottom:76px;
+  }
+
+  .container{
+    width:100%;
+  }
+
+  .page{
+    padding:0;
+  }
+
+  .top-link span{
+    display:none;
+  }
+
+  .top-link{
+    min-width:42px;
+  }
+
+  .search{
+    flex:1;
+    width:auto;
+    max-width:none;
+  }
+
+  .create-post,
+  #feedMount > *,
+  .card{
+    border-radius:0!important;
+    border-left:0!important;
+    border-right:0!important;
+  }
+
+  .mobile-nav{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:999;
+    height:72px;
+    background:rgba(255,255,255,.98);
+    border-top:1px solid #e5e7eb;
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    align-items:center;
+  }
+
+  .mobile-nav button{
+    border:0;
+    background:transparent;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    color:#64748b;
+    font-size:11px;
+    font-weight:800;
+  }
+
+  .mobile-nav button.active{
+    color:#0a66c2;
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+  <div class="container top-inner">
+
+    <a class="brand" href="home.html">A</a>
+
+    <div class="search">
+
+      <svg viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="M20 20l-3.5-3.5"></path>
+      </svg>
+
+      <input type="search" placeholder="Search">
+
+    </div>
+
+    <nav class="top-nav">
+
+      <button class="top-link active">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 10.5 12 3l9 7.5"></path>
+          <path d="M5 9.5V21h14V9.5"></path>
+        </svg>
+        <span>Home</span>
+      </button>
+
+      <button class="top-link" onclick="goNetwork()">
+        <svg viewBox="0 0 24 24">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="8.5" cy="7" r="4"></circle>
+          <path d="M20 8v6"></path>
+          <path d="M23 11h-6"></path>
+        </svg>
+        <span>Network</span>
+      </button>
+
+      <button class="top-link" onclick="goJobs()">
+        <svg viewBox="0 0 24 24">
+          <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2H10a2 2 0 0 0-2 2v16"></path>
+        </svg>
+        <span>Jobs</span>
+      </button>
+
+      <button class="top-link" onclick="goMessages()">
+        <svg viewBox="0 0 24 24">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span>Messaging</span>
+      </button>
+
+      <button class="top-link" onclick="goNotifications()">
+        <svg viewBox="0 0 24 24">
+          <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
+          <path d="M10 21a2 2 0 0 0 4 0"></path>
+        </svg>
+        <span>Notifications</span>
+      </button>
+
+      <button class="top-link" onclick="openProfile()">
+        <img id="topAvatar" class="top-avatar">
+        <span>Me</span>
+      </button>
+
+    </nav>
+
+  </div>
+</header>
+
+<main class="page">
+<div class="container layout">
+
+<aside class="left-col">
+
+  <section class="profile-card card">
+
+    <div id="profileCover" class="profile-cover"></div>
+
+    <div class="profile-body">
+
+      <img id="profileAvatar" class="profile-avatar">
+
+      <h2 id="profileName" class="profile-name">
+        Loading...
+      </h2>
+
+      <div id="profileHeadline" class="profile-headline">
+        Profile headline
+      </div>
+
+      <div id="profileLocation" class="profile-location">
+        Location
+      </div>
+
+      <div class="profile-company">
+        <img src="https://cdn-icons-png.flaticon.com/512/5968/5968705.png">
+        <span id="profileCompany">
+          AIFT
+        </span>
+      </div>
+
+    </div>
+
+    <div class="mini-stats">
+
+      <div class="mini-stat">
+        <span>Profile viewers</span>
+        <strong id="viewerCount">0</strong>
+      </div>
+
+      <div class="mini-stat">
+        <span>Post impressions</span>
+        <strong id="impressionCount">0</strong>
+      </div>
+
+    </div>
+
+  </section>
+
+  <section class="left-menu card">
+
+    <button onclick="openSaved()">
+      Saved items
+    </button>
+
+    <button onclick="openGroups()">
+      Groups
+    </button>
+
+    <button onclick="openEvents()">
+      Events
+    </button>
+
+    <button onclick="openProfile()">
+      View profile
+    </button>
+
+    <button id="dashboardMenuBtn" class="hidden" onclick="openDashboard()">
+      Dashboard
+    </button>
+
+  </section>
+
+</aside>
+
+<section class="feed-wrap">
+
+  <section class="create-post card">
+
+    <div class="create-top">
+
+      <img id="createAvatar">
+
+      <button class="create-trigger" onclick="openCreatePost()">
+        Start a post
+      </button>
+
+    </div>
+
+    <div class="create-actions">
+
+      <button onclick="openCreatePost('video')">
+        🎥 Video
+      </button>
+
+      <button onclick="openCreatePost('photo')">
+        🖼️ Photo
+      </button>
+
+      <button onclick="openCreatePost('article')">
+        ✍️ Article
+      </button>
+
+    </div>
+
+  </section>
+
+  <div id="feedMount"></div>
+
+</section>
+
+<aside class="right-col">
+
+  <section class="side-card card">
+
+    <h3>Add to your feed</h3>
+
+    <div id="suggestionsMount"></div>
+
+  </section>
+
+</aside>
+
+</div>
+</main>
+<nav class="mobile-nav">
+
+  <button class="active" onclick="goHome()">
+    Home
+  </button>
+
+  <button onclick="goNetwork()">
+    Network
+  </button>
+
+  <button onclick="goJobs()">
+    Jobs
+  </button>
+
+  <button onclick="goMessages()">
+    Messages
+  </button>
+
+  <button onclick="goNotifications()">
+    Alerts
+  </button>
+
+</nav>
+
+<script src="feed.js"></script>
+
+<script>
+const API = "https://backend-1-9b6f.onrender.com";
+
+const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+const state = {
+  me: null,
+  suggestions: []
+};
+
+function token(){
+  return (
+    localStorage.getItem("employerToken") ||
+    localStorage.getItem("talentToken") ||
+    localStorage.getItem("adminToken") ||
+    localStorage.getItem("agentToken") ||
+    localStorage.getItem("token")
+  );
+}
+
+function role(){
+  return localStorage.getItem("role") || "";
+}
+
+function headers(extra = {}){
+  const t = token();
+  return {
+    ...(t ? { Authorization: `Bearer ${t}` } : {}),
+    ...extra
+  };
+}
+
+async function api(path, options = {}){
+  const res = await fetch(API + path, {
+    ...options,
+    headers: {
+      ...(options.headers || {})
+    }
+  });
+
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {}
+
+  if(!res.ok){
+    throw new Error(data?.message || "Request failed");
+  }
+
+  return data;
+}
+
+function escapeHtml(value = ""){
+  return String(value)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+
+function profileName(){
+  return state.me?.companyName || state.me?.name || "AIFT User";
+}
+
+function profileHeadline(){
+  return state.me?.headline || state.me?.profession || state.me?.role || "AIFT member";
+}
+
+function profileImage(){
+  return state.me?.profileImage || FALLBACK_AVATAR;
+}
+
+function publicProfileUrl(){
+  if(!state.me?._id) return "profile.html";
+
+  if(state.me.role === "employer" || state.me.role === "school"){
+    return `employer-public-profile.html?id=${state.me._id}`;
+  }
+
+  return `public-profile.html?id=${state.me._id}`;
+}
+
+async function loadMe(){
+  if(!token()){
+    location.href = "login.html";
+    return;
+  }
+
+  const data = await api("/api/users/me", {
+    headers: headers()
+  });
+
+  state.me = data.user || data;
+
+  localStorage.setItem("userId", state.me._id || state.me.id || "");
+  localStorage.setItem("role", state.me.role || "");
+  if(state.me.profileImage){
+    localStorage.setItem("profileImage", state.me.profileImage);
+  }
+
+  renderMe();
+}
+
+function renderMe(){
+  document.getElementById("profileAvatar").src = profileImage();
+  document.getElementById("topAvatar").src = profileImage();
+  document.getElementById("createAvatar").src = profileImage();
+
+  document.getElementById("profileName").textContent = profileName();
+  document.getElementById("profileHeadline").textContent = profileHeadline();
+  document.getElementById("profileLocation").textContent = state.me.location || "Location not added";
+
+  document.getElementById("profileCompany").textContent =
+    state.me.companyName || state.me.schoolName || "AIFT";
+
+  document.getElementById("viewerCount").textContent =
+    state.me.profileViews || state.me.followers?.length || 0;
+
+  document.getElementById("impressionCount").textContent =
+    state.me.postImpressions || 0;
+
+  const dashboardBtn = document.getElementById("dashboardMenuBtn");
+  const canDashboard = ["employer","admin","agent","school"].includes(state.me.role);
+
+  dashboardBtn.classList.toggle("hidden", !canDashboard);
+}
+
+async function loadSuggestions(){
+  try{
+    const data = await api("/api/users/suggestions", {
+      headers: headers()
+    });
+
+    state.suggestions = Array.isArray(data) ? data : [];
+    renderSuggestions();
+  }catch(e){
+    document.getElementById("suggestionsMount").innerHTML = `
+      <div style="color:#666;font-size:13px;">No suggestions yet.</div>
+    `;
+  }
+}
+
+function renderSuggestions(){
+  const mount = document.getElementById("suggestionsMount");
+
+  if(!state.suggestions.length){
+    mount.innerHTML = `
+      <div style="color:#666;font-size:13px;">No suggestions yet.</div>
+    `;
+    return;
+  }
+
+  mount.innerHTML = state.suggestions.map(user => `
+    <div class="side-user">
+      <img src="${escapeHtml(user.profileImage || FALLBACK_AVATAR)}">
+
+      <div>
+        <h4>${escapeHtml(user.companyName || user.name || "AIFT user")}</h4>
+        <p>${escapeHtml(user.headline || user.role || "Professional")}</p>
+        <button class="follow-btn" onclick="followUser('${escapeHtml(user._id)}')">+ Follow</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function followUser(id){
+  try{
+    await api(`/api/users/${id}/follow`, {
+      method: "PATCH",
+      headers: headers()
+    });
+
+    await loadSuggestions();
+  }catch(e){
+    alert(e.message);
+  }
+}
+  function mountFeed(){
+
+  if(window.AIFTFeed && typeof window.AIFTFeed.mount === "function"){
+
+    window.AIFTFeed.mount("feedMount",{
+      apiBase: API,
+      token: token(),
+      mode: "home",
+      infiniteScroll: true,
+      realtime: true
+    });
+
+    return;
+  }
+
+  document.getElementById("feedMount").innerHTML = `
+    <div class="card" style="padding:20px;text-align:center;">
+      Feed system not found.<br><br>
+      Make sure feed.js is loaded correctly.
+    </div>
+  `;
+}
+
+/* =========================
+   NAVIGATION
+========================= */
+
+function goHome(){
+  location.href = "home.html";
+}
+
+function goNetwork(){
+  location.href = "network.html";
+}
+
+function goJobs(){
+  location.href = "jobs.html";
+}
+
+function goMessages(){
+  location.href = "messages.html";
+}
+
+function goNotifications(){
+  location.href = "notifications.html";
+}
+
+function openGroups(){
+  location.href = "groups.html";
+}
+
+function openEvents(){
+  location.href = "events.html";
+}
+
+function openSaved(){
+  location.href = "saved.html";
+}
+
+function openDashboard(){
+
+  const userRole = role();
+
+  if(
+    userRole === "employer" ||
+    userRole === "school" ||
+    userRole === "agent" ||
+    userRole === "admin"
+  ){
+    location.href = "employer.html";
+    return;
+  }
+
+  location.href = "profile.html";
+}
+
+function openProfile(){
+  location.href = publicProfileUrl();
+}
+
+/* =========================
+   CREATE POST
+========================= */
+
+function openCreatePost(type = "post"){
+
+  if(window.AIFTFeed?.openComposer){
+    window.AIFTFeed.openComposer(type);
+    return;
+  }
+
+  alert("Composer not connected yet.");
+}
+
+/* =========================
+   SOCKET
+========================= */
+
+const socket = io(API,{
+  transports:["websocket","polling"]
+});
+
+socket.on("connect",()=>{
+  console.log("Socket connected");
+});
+
+/* =========================
+   LIVE REFRESH
+========================= */
+
+socket.on("postCreated",()=>{
+  if(window.AIFTFeed?.refresh){
+    window.AIFTFeed.refresh();
+  }
+});
+
+socket.on("postDeleted",()=>{
+  if(window.AIFTFeed?.refresh){
+    window.AIFTFeed.refresh();
+  }
+});
+
+/* =========================
+   INITIALIZE
+========================= */
+
+async function init(){
+
+  try{
+
+    await loadMe();
+
+    await Promise.allSettled([
+      loadSuggestions()
+    ]);
+
+    mountFeed();
+
+  }catch(err){
+
+    console.error(err);
+
+    document.getElementById("feedMount").innerHTML = `
+      <div class="card" style="padding:24px;text-align:center;">
+        <h2>Unable to load home page</h2>
+        <p>${escapeHtml(err.message)}</p>
+      </div>
+    `;
+  }
+}
+
+init();
+
+</script>
+
+</body>
+</html>
