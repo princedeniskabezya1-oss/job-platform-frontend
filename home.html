@@ -860,7 +860,7 @@ a{
 }
 
 #feedMount .aift-composer{
-  display:none!important;
+  display:none;
 }
 
 /* MOBILE NAV */
@@ -1408,13 +1408,20 @@ AIFTFeed.mount("feedMount", {
 ========================= */
 
 function openCreatePost(type="post"){
+  const composer = document.querySelector("#feedMount .aift-composer");
 
-  if(
-    window.AIFTFeed &&
-    typeof window.AIFTFeed.openComposer === "function"
-  ){
+  if(composer){
+    composer.style.display = "block";
+    composer.scrollIntoView({ behavior:"smooth", block:"center" });
 
-    window.AIFTFeed.openComposer(type);
+    const textBox = document.getElementById("aiftPostText");
+    const mediaInput = document.getElementById("aiftPostMedia");
+
+    if(type === "photo" || type === "video"){
+      mediaInput?.click();
+    }else{
+      textBox?.focus();
+    }
 
     return;
   }
