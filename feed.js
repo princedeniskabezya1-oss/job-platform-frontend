@@ -162,7 +162,12 @@ isMobile: window.innerWidth <= 768,
 
   async function mount(rootId, options = {}) {
     state.rootId = rootId;
-    state.limit = Number(options.limit || 20);
+    state.mode = options.mode || "home";
+state.authorId = options.authorId || null;
+state.showComposer = options.showComposer !== false;
+state.infiniteScroll = options.infiniteScroll !== false;
+state.realtime = options.realtime !== false;
+state.limit = Number(options.limit || 20);
     state.skip = 0;
     state.hasMore = true;
     state.posts = [];
@@ -204,7 +209,7 @@ isMobile: window.innerWidth <= 768,
   function renderShell() {
     root().innerHTML = `
       <div class="aift-feed-shell">
-        <section class="aift-composer">
+        ${state.showComposer ? `<section class="aift-composer">` : `<section class="aift-composer" style="display:none">`}
           <div class="aift-composer-row">
             <img class="aift-composer-avatar" src="${esc(userAvatar(state.me || {}))}" alt="" />
             <textarea id="aiftPostText" placeholder="Share something with the AIFT community..."></textarea>
@@ -313,7 +318,13 @@ isMobile: window.innerWidth <= 768,
     }
 
     try {
-      const posts = await api(`${API}/api/posts?skip=${state.skip}&limit=${state.limit}`, {
+      let feedUrl = `${API}/api/posts?skip=${state.skip}&limit=${state.limit}`;
+
+if (state.mode === "profile" && state.authorId) {
+  feedUrl += `&author=${encodeURIComponent(state.authorId)}`;
+}
+
+const posts = await api(feedUrl, {
         headers: headers()
       });
 
@@ -1368,34 +1379,37 @@ function showMoreComments(postId) {
     }
   }
 
-  async function toggleFollow(userId) {
-    if (!userId || isMine(userId)) return;
+async function toggleFollow(userId) {
+  if (!userId || isMine(userId)) return;
 
-    try {
-      const data = await api(`${API}/api/posts/users/${userId}/follow`, {
-        method: "PATCH",
-        headers: headers()
-      });
+  try {
+    const data = await api(`${API}/api/users/${userId}/follow`, {
+      method: "PATCH",
+      headers: headers()
+    });
 
-      const following = JSON.parse(localStorage.getItem("followingIds") || "[]");
-      const next = data.following
-        ? Array.from(new Set([...following, userId]))
-        : following.filter(id => String(id) !== String(userId));
+    const following = JSON.parse(localStorage.getItem("followingIds") || "[]");
 
-      localStorage.setItem("followingIds", JSON.stringify(next));
+    const next = data.following
+      ? Array.from(new Set([...following, userId]))
+      : following.filter(id => String(id) !== String(userId));
 
-      state.posts.forEach(post => {
-        if (String(post.author?._id) === String(userId)) {
-          post.author.isFollowing = data.following;
-        }
-      });
+    localStorage.setItem("followingIds", JSON.stringify(next));
 
-      state.followingUsers = [];
-      renderFeedOnly();
-    } catch (err) {
-      toast(err.message, "error");
-    }
+    state.posts.forEach(post => {
+      if (String(post.author?._id) === String(userId)) {
+        post.author.isFollowing = data.following;
+      }
+    });
+
+    state.followingUsers = [];
+    renderFeedOnly();
+
+    toast(data.following ? "Following user." : "Unfollowed user.");
+  } catch (err) {
+    toast(err.message, "error");
   }
+}
 
   function visitProfile(userId) {
     if (!userId) return;
