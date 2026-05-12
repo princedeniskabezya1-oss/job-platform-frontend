@@ -1022,9 +1022,6 @@ const state = {
   suggestions:[]
 };
 
-const socket = io(API,{
-  transports:["websocket","polling"]
-});
 
 /* =========================
    AUTH
@@ -1394,16 +1391,12 @@ function mountFeed(){
     typeof window.AIFTFeed.mount === "function"
   ){
 
-    window.AIFTFeed.mount(
-      "feedMount",
-      {
-        apiBase:API,
-        token:token(),
-        mode:"home",
-        realtime:true,
-        infiniteScroll:true
-      }
-    );
+window.AIFTFeed.mount("feedMount", {
+  mode: "home",
+  showComposer: false,
+  infiniteScroll: true,
+  realtime: true
+});
 
     return;
   }
@@ -1440,41 +1433,6 @@ function openCreatePost(type="post"){
   console.warn("Composer unavailable");
 }
 
-/* =========================
-   SOCKET EVENTS
-========================= */
-
-socket.on("connect",()=>{
-  console.log("Socket connected");
-});
-
-socket.on("postCreated",()=>{
-
-  if(
-    window.AIFTFeed &&
-    typeof window.AIFTFeed.refresh === "function"
-  ){
-    window.AIFTFeed.refresh();
-  }
-
-});
-
-socket.on("postDeleted",()=>{
-
-  if(
-    window.AIFTFeed &&
-    typeof window.AIFTFeed.refresh === "function"
-  ){
-    window.AIFTFeed.refresh();
-  }
-
-});
-
-socket.on("newNotification",()=>{
-
-  pulseNotifications();
-
-});
 
 /* =========================
    UI EFFECTS
@@ -1675,55 +1633,61 @@ init();
   display:none!important;
 }
 
-#feedMount .post-card,
-#feedMount .feed-post,
-#feedMount .feed-item{
+#feedMount .aift-post-card{
   border-radius:12px!important;
-  overflow:hidden!important;
   border:1px solid #d8d8d8!important;
   box-shadow:0 1px 2px rgba(0,0,0,.08)!important;
   margin-bottom:12px!important;
+  overflow:hidden!important;
 }
 
-#feedMount .post-header{
-  padding:14px 14px 10px!important;
+#feedMount .aift-post-header{
+  padding:12px 14px 8px!important;
 }
 
-#feedMount .post-author-name{
+#feedMount .aift-author-name strong{
   font-size:14px!important;
   font-weight:800!important;
-  color:#111!important;
+  color:#191919!important;
 }
 
-#feedMount .post-meta{
+#feedMount .aift-author-text span{
   font-size:12px!important;
   color:#666!important;
 }
 
-#feedMount .post-text{
-  padding:0 14px 14px!important;
+#feedMount .aift-post-text{
+  padding:2px 14px 12px!important;
   font-size:14px!important;
-  line-height:1.6!important;
+  line-height:1.58!important;
   color:#222!important;
 }
 
-#feedMount video,
-#feedMount img{
-  max-height:700px!important;
+#feedMount .aift-post-media{
+  max-height:720px!important;
   object-fit:cover!important;
 }
 
-#feedMount .post-actions{
+#feedMount .aift-post-actions{
+  padding:4px 8px!important;
   border-top:1px solid #eee!important;
 }
 
-#feedMount .post-actions button{
-  font-weight:700!important;
-  color:#555!important;
+#feedMount .aift-action-btn:hover{
+  background:#f3f2ef!important;
 }
 
-#feedMount .post-actions button:hover{
-  background:#f3f2ef!important;
+@media(max-width:760px){
+  #feedMount .aift-post-card{
+    border-radius:0!important;
+    border-left:0!important;
+    border-right:0!important;
+    margin-bottom:8px!important;
+  }
+
+  #feedMount .aift-post-media{
+    max-height:520px!important;
+  }
 }
 
 /* =========================
@@ -1899,39 +1863,6 @@ window.addEventListener(
   }
 );
 
-/* =========================
-   PLACEHOLDER SKELETONS
-========================= */
-
-(function preloadSkeletons(){
-
-  const mount =
-    document.getElementById("feedMount");
-
-  if(!mount) return;
-
-  let html = "";
-
-  for(let i=0;i<3;i++){
-
-    html += `
-      <div class="feed-skeleton">
-
-        <div class="feed-skeleton-line large"></div>
-
-        <div class="feed-skeleton-line medium"></div>
-
-        <div class="feed-skeleton-line small"></div>
-
-        <div class="feed-skeleton-media"></div>
-
-      </div>
-    `;
-  }
-
-  mount.innerHTML = html;
-
-})();
 
 /* =========================
    FEED READY WATCHER
