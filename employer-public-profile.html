@@ -1,1516 +1,561 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
 
-  <title>AIFT | Employer Public Profile</title>
-  <meta name="description" content="AIFT public employer profile with company overview, jobs, posts, people, and hiring details." />
+<title>AIFT | Employer Public Profile</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="feed.css" />
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <style>
-    :root{
-      --blue:#0a66c2;
-      --blue-dark:#004182;
-      --green:#057642;
-      --bg:#f3f2ef;
-      --card:#fff;
-      --text:#191919;
-      --muted:#666;
-      --line:#d6d6d6;
-      --soft:#eef3f8;
-      --shadow:0 1px 2px rgba(0,0,0,.08);
-      --max:1128px;
-    }
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-    *{box-sizing:border-box}
-    html{scroll-behavior:smooth}
-    body{
-      margin:0;
-      background:var(--bg);
-      color:var(--text);
-      font-family:Inter,Arial,sans-serif;
-      font-size:14px;
-      line-height:1.45;
-    }
+<link rel="stylesheet" href="feed.css">
 
-    a{text-decoration:none;color:inherit}
-    button,input{font:inherit}
-    button{cursor:pointer}
-    img{display:block;max-width:100%}
-    .hidden{display:none!important}
-    .container{width:min(var(--max),calc(100% - 24px));margin:auto}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
-    /* TOP BAR */
-    .topbar{
-      position:sticky;
-      top:0;
-      z-index:60;
-      background:#fff;
-      border-bottom:1px solid #ddd;
-    }
+<style>
 
-    .top-inner{
-      height:58px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-
-    .brand-logo{
-      width:34px;
-      height:34px;
-      border-radius:7px;
-      background:#0a66c2;
-      color:#fff;
-      display:grid;
-      place-items:center;
-      font-weight:900;
-      flex-shrink:0;
-    }
-
-    .search{
-      position:relative;
-      width:280px;
-      max-width:38vw;
-    }
-
-    .search input{
-      width:100%;
-      height:34px;
-      border:1px solid #c9d3df;
-      background:var(--soft);
-      border-radius:6px;
-      padding:0 10px 0 34px;
-      outline:none;
-    }
-
-    .search svg{
-      position:absolute;
-      left:10px;
-      top:50%;
-      transform:translateY(-50%);
-      width:16px;
-      height:16px;
-      stroke:#555;
-      fill:none;
-      stroke-width:2;
-    }
-
-    .top-actions{
-      margin-left:auto;
-      display:flex;
-      align-items:center;
-      gap:3px;
-    }
-
-    .top-link{
-      min-width:68px;
-      height:52px;
-      border:0;
-      background:#fff;
-      color:#555;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap:2px;
-      font-size:11px;
-      border-radius:6px;
-      position:relative;
-    }
-
-    .top-link svg{
-      width:21px;
-      height:21px;
-      stroke:currentColor;
-      fill:none;
-      stroke-width:2;
-    }
-
-    .top-link:hover{background:#f3f6f8;color:#111}
-
-    .top-avatar{
-      width:28px;
-      height:28px;
-      border-radius:50%;
-      object-fit:cover;
-      border:1px solid #ddd;
-    }
-
-    .badge{
-      position:absolute;
-      top:5px;
-      right:15px;
-      min-width:16px;
-      height:16px;
-      border-radius:99px;
-      padding:0 4px;
-      background:#cc1016;
-      color:#fff;
-      font-size:10px;
-      font-weight:900;
-      display:none;
-      align-items:center;
-      justify-content:center;
-    }
-
-    .pill-btn{
-      border:1px solid var(--blue);
-      background:#fff;
-      color:var(--blue);
-      border-radius:999px;
-      padding:8px 13px;
-      font-weight:800;
-    }
-
-    .pill-btn.primary{
-      background:var(--blue);
-      color:#fff;
-    }
-
-    .pill-btn:hover{background:#eef6ff}
-    .pill-btn.primary:hover{background:var(--blue-dark)}
-
-    /* MAIN LAYOUT */
-    .page{padding:14px 0 40px}
-
-    .layout{
-      display:grid;
-      grid-template-columns:260px minmax(0,1fr) 300px;
-      gap:16px;
-      align-items:start;
-    }
-
-    .left-col{display:contents}
-
-    .card,
-    .side-card,
-    .mini-company-card,
-    .company-page-card{
-      background:#fff;
-      border:1px solid var(--line);
-      border-radius:8px;
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-
-    .mini-company-card{
-      grid-column:1;
-      position:sticky;
-      top:72px;
-      width:260px;
-      max-width:260px;
-    }
-
-    .main-content{
-      grid-column:2;
-      min-width:0;
-    }
-
-    .right-col{
-      grid-column:3;
-      position:sticky;
-      top:72px;
-    }
-
-    /* LEFT MINI CARD */
-    .mini-cover{
-      height:74px;
-      background:linear-gradient(135deg,rgba(10,102,194,.2),rgba(34,197,94,.2)),#dbeafe;
-      background-size:cover;
-      background-position:center;
-    }
-
-    .mini-body{
-      padding:0 14px 14px;
-    }
-
-    .mini-logo{
-      width:72px;
-      height:72px;
-      border-radius:10px;
-      border:4px solid #fff;
-      background:#fff;
-      object-fit:cover;
-      box-shadow:0 1px 3px rgba(0,0,0,.18);
-      margin-top:-36px;
-    }
-
-    .mini-name-row{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      min-width:0;
-      margin-top:8px;
-    }
-
-    .mini-name{
-      margin:0;
-      font-size:18px;
-      line-height:1.2;
-      font-weight:900;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .verified{
-      display:inline-flex;
-      align-items:center;
-      gap:4px;
-      color:var(--green);
-      font-size:11px;
-      font-weight:900;
-      flex-shrink:0;
-    }
-
-    .verified svg{width:13px;height:13px;fill:currentColor}
-
-    .mini-headline{
-      margin:5px 0 0;
-      color:#333;
-      font-size:13px;
-      line-height:1.35;
-    }
-
-    .mini-meta{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      margin-top:5px;
-      color:#666;
-      font-size:12px;
-    }
-
-    .mini-actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-top:13px;
-    }
-
-    .mini-tabs{
-      display:none;
-      border-top:1px solid #eee;
-      overflow:auto;
-      scrollbar-width:thin;
-    }
-
-    .mini-tabs.show{display:flex}
-
-    .tab{
-      border:0;
-      background:#fff;
-      padding:12px 14px;
-      color:#666;
-      font-weight:800;
-      border-bottom:3px solid transparent;
-      white-space:nowrap;
-      flex:0 0 auto;
-      font-size:13px;
-    }
-
-    .tab.active{
-      color:var(--green);
-      border-bottom-color:var(--green);
-    }
-
-    /* HOME FEED */
-    .section{display:none}
-    .section.active{display:block}
-
-    .feed-holder{
-      background:transparent!important;
-      border:0!important;
-      box-shadow:none!important;
-      padding:0!important;
-      margin:0!important;
-      overflow:visible!important;
-    }
-
-    .feed-holder-inner{padding:0!important}
-
-    #publicEmployerFeed{width:100%}
-
-    #publicEmployerFeed .aift-feed-shell{max-width:100%!important}
-
-    #publicEmployerFeed .aift-composer{display:none!important}
-        /* LINKEDIN-LIKE COMPANY PAGE VIEW */
-    .company-page-card{
-      padding:0;
-      margin-bottom:12px;
-    }
-
-    .company-hero-cover{
-      height:192px;
-      background:linear-gradient(135deg,rgba(10,102,194,.18),rgba(34,197,94,.18)),#dbeafe;
-      background-size:cover;
-      background-position:center;
-      border-bottom:1px solid #e5e7eb;
-    }
-
-    .company-hero-body{
-      position:relative;
-      padding:0 24px 20px;
-    }
-
-    .company-main-logo{
-      width:128px;
-      height:128px;
-      border:4px solid #fff;
-      background:#fff;
-      border-radius:4px;
-      object-fit:cover;
-      box-shadow:0 1px 3px rgba(0,0,0,.18);
-      margin-top:-64px;
-    }
-
-    .company-title-row{
-      margin-top:16px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      min-width:0;
-    }
-
-    .company-title-row h1{
-      margin:0;
-      font-size:26px;
-      line-height:1.2;
-      letter-spacing:-.02em;
-      font-weight:900;
-    }
-
-    .company-verified-icon{
-      width:20px;
-      height:20px;
-      color:#666;
-      flex-shrink:0;
-    }
-
-    .company-tagline{
-      margin:5px 0 0;
-      color:#222;
-      font-size:15px;
-      line-height:1.4;
-    }
-
-    .company-meta-line{
-      margin-top:5px;
-      color:#666;
-      font-size:14px;
-      display:flex;
-      flex-wrap:wrap;
-      gap:5px;
-    }
-
-    .company-mutual{
-      margin-top:12px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-      color:#222;
-      font-weight:700;
-      font-size:13px;
-    }
-
-    .mutual-stack{
-      display:flex;
-      align-items:center;
-    }
-
-    .mutual-stack img{
-      width:24px;
-      height:24px;
-      border-radius:50%;
-      border:2px solid #fff;
-      object-fit:cover;
-      margin-left:-8px;
-      background:#fff;
-    }
-
-    .mutual-stack img:first-child{margin-left:0}
-
-    .company-actions{
-      display:flex;
-      align-items:center;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-top:16px;
-    }
-
-    .round-more{
-      width:36px;
-      height:36px;
-      border-radius:50%;
-      border:1px solid #777;
-      background:#fff;
-      color:#333;
-      font-weight:900;
-      display:grid;
-      place-items:center;
-    }
-
-    .company-page-tabs{
-      display:flex;
-      border-top:1px solid #eee;
-      overflow:auto;
-      scrollbar-width:thin;
-    }
-
-    .company-page-tab{
-      border:0;
-      background:#fff;
-      padding:14px 18px;
-      color:#555;
-      font-weight:900;
-      border-bottom:3px solid transparent;
-      white-space:nowrap;
-    }
-
-    .company-page-tab.active{
-      color:var(--green);
-      border-bottom-color:var(--green);
-    }
-
-    .content-card{
-      background:#fff;
-      border:1px solid var(--line);
-      border-radius:8px;
-      box-shadow:var(--shadow);
-      padding:20px;
-      margin-bottom:12px;
-    }
-
-    .content-card h2{
-      margin:0 0 12px;
-      font-size:20px;
-      font-weight:900;
-      letter-spacing:-.01em;
-    }
-
-    .content-card p{
-      margin:0;
-      color:#222;
-      line-height:1.65;
-    }
-
-    .sales-card{
-      background:#fff;
-      border:1px solid var(--line);
-      border-radius:8px;
-      box-shadow:var(--shadow);
-      margin-bottom:12px;
-      overflow:hidden;
-    }
-
-    .sales-head{
-      padding:16px 20px 6px;
-    }
-
-    .sales-head small{
-      display:flex;
-      align-items:center;
-      gap:5px;
-      color:#111827;
-      font-weight:700;
-      margin-bottom:8px;
-    }
-
-    .sales-head h2{
-      margin:0;
-      font-size:20px;
-      font-weight:900;
-    }
-
-    .sales-grid{
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:14px;
-      padding:12px 20px 20px;
-    }
-
-    .sales-item h3{
-      margin:0 0 8px;
-      font-size:15px;
-      font-weight:900;
-    }
-
-    .sales-visual{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      min-height:48px;
-      color:#666;
-    }
-
-    .sales-bar{
-      width:32px;
-      height:44px;
-      border-radius:4px;
-      background:linear-gradient(180deg,#e2e8f0,#cbd5e1);
-    }
-
-    .sales-badge{
-      width:42px;
-      height:42px;
-      border-radius:50%;
-      border:1px solid #cbd5e1;
-      display:grid;
-      place-items:center;
-      font-size:11px;
-      font-weight:900;
-      color:#0a66c2;
-      background:#fff;
-    }
-
-    .sales-item p{
-      margin:6px 0 0;
-      color:#666;
-      font-size:13px;
-      line-height:1.35;
-    }
-
-    .sales-foot{
-      border-top:1px solid #eee;
-      padding:14px 20px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      color:#666;
-      font-size:13px;
-    }
-
-    .gold-btn{
-      border:0;
-      background:#f8c45a;
-      color:#111;
-      border-radius:999px;
-      padding:8px 16px;
-      font-weight:900;
-    }
-
-    /* JOBS */
-    .job-list{display:grid;gap:10px}
-
-    .job{
-      border:1px solid #ddd;
-      border-radius:8px;
-      background:#fff;
-      padding:14px;
-    }
-
-    .job h3{
-      margin:0 0 5px;
-      font-size:16px;
-      font-weight:900;
-    }
-
-    .job .jmeta{
-      font-size:13px;
-      color:#666;
-      margin-bottom:9px;
-    }
-
-    .job p{
-      font-size:14px;
-      color:#333;
-      margin:0 0 12px;
-      line-height:1.55;
-    }
-
-    .filter{
-      display:flex;
-      gap:10px;
-      margin-bottom:12px;
-      flex-wrap:wrap;
-    }
-
-    .filter input{
-      height:36px;
-      border:1px solid #777;
-      border-radius:6px;
-      padding:0 10px;
-      min-width:260px;
-      max-width:100%;
-    }
-
-    /* PEOPLE */
-    .people-grid{
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:12px;
-    }
-
-    .person{
-      border:1px solid #ddd;
-      border-radius:8px;
-      overflow:hidden;
-      background:#fff;
-      text-align:center;
-      display:flex;
-      flex-direction:column;
-      min-height:252px;
-    }
-
-    .person-cover{
-      height:56px;
-      background:#bfd0d2;
-    }
-
-    .person img{
-      width:86px;
-      height:86px;
-      border-radius:50%;
-      object-fit:cover;
-      border:3px solid #fff;
-      margin:-43px auto 8px;
-      background:#fff;
-    }
-
-    .person-body{
-      padding:0 12px 12px;
-      display:flex;
-      flex-direction:column;
-      flex:1;
-    }
-
-    .person h3{
-      margin:0 0 3px;
-      font-size:15px;
-      font-weight:800;
-      line-height:1.25;
-    }
-
-    .person p{
-      margin:0;
-      font-size:12px;
-      color:#666;
-      line-height:1.35;
-    }
-
-    .person-mutual{
-      font-size:12px;
-      color:#777;
-      margin:12px 0 10px;
-      min-height:32px;
-    }
-
-    .connect-btn{
-      margin-top:auto;
-      border:1px solid var(--blue);
-      background:#fff;
-      color:var(--blue);
-      border-radius:20px;
-      padding:7px 14px;
-      font-weight:800;
-    }
-
-    /* POST FALLBACK */
-    .post-stream{
-      background:transparent;
-      border:0;
-      box-shadow:none;
-      border-radius:0;
-      overflow:visible;
-      padding:0;
-    }
-
-    .post{
-      background:#fff;
-      border:1px solid var(--line);
-      border-radius:8px;
-      margin-bottom:10px;
-      overflow:hidden;
-      box-shadow:var(--shadow);
-    }
-
-    .post-head{
-      display:flex;
-      gap:10px;
-      padding:13px 15px 8px;
-    }
-
-    .post-head img{
-      width:46px;
-      height:46px;
-      border-radius:50%;
-      object-fit:cover;
-      border:1px solid #ddd;
-    }
-
-    .post-author{font-size:14px;font-weight:800}
-    .post-meta{font-size:12px;color:#666}
-
-    .post-body{
-      padding:3px 15px 12px;
-      white-space:pre-wrap;
-      color:#222;
-      line-height:1.55;
-    }
-
-    .post-media img,
-    .post-media video{
-      width:100%;
-      max-height:620px;
-      object-fit:cover;
-      background:#000;
-    }
-
-    .post-stats{
-      display:flex;
-      justify-content:space-between;
-      padding:9px 15px;
-      color:#666;
-      font-size:12px;
-      border-bottom:1px solid #eee;
-    }
-
-    .post-actions{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      padding:4px 8px;
-    }
-
-    .post-action{
-      border:0;
-      background:#fff;
-      border-radius:5px;
-      color:#555;
-      font-weight:800;
-      padding:10px 6px;
-    }
-
-    .post-action:hover{background:#f3f2ef}
-    .post-action.liked{color:var(--blue)}
-
-    .comments{
-      display:none;
-      border-top:1px solid #eee;
-      padding:12px 15px;
-    }
-
-    .comments.show{display:block}
-
-    .comment-row{
-      display:flex;
-      gap:8px;
-      margin-bottom:10px;
-    }
-
-    .comment-row img{
-      width:32px;
-      height:32px;
-      border-radius:50%;
-      object-fit:cover;
-    }
-
-    .bubble{
-      background:#f2f2f2;
-      border-radius:14px;
-      padding:8px 11px;
-      flex:1;
-    }
-
-    .comment-name{
-      font-weight:800;
-      font-size:12px;
-    }
-
-    .comment-text{
-      font-size:13px;
-      white-space:pre-wrap;
-    }
-
-    .comment-box{
-      display:flex;
-      gap:8px;
-      margin-top:10px;
-    }
-
-    .comment-box input{
-      flex:1;
-      border:1px solid #ddd;
-      border-radius:20px;
-      padding:9px 12px;
-      outline:none;
-    }
-
-    .comment-box button{
-      border:0;
-      background:var(--blue);
-      color:#fff;
-      border-radius:18px;
-      padding:8px 13px;
-      font-weight:800;
-    }
-        /* RIGHT SIDE */
-    .side-card{
-      padding:14px;
-      margin-bottom:12px;
-    }
-
-    .side-title{
-      font-size:18px;
-      font-weight:900;
-      margin:0 0 10px;
-      letter-spacing:-.01em;
-    }
-
-    .follow-item{
-      display:flex;
-      gap:10px;
-      padding:13px 0;
-      border-bottom:1px solid #eee;
-    }
-
-    .follow-item:last-child{border-bottom:0}
-
-    .follow-item img{
-      width:42px;
-      height:42px;
-      border-radius:4px;
-      object-fit:cover;
-      border:1px solid #ddd;
-      flex-shrink:0;
-    }
-
-    .follow-item h4{
-      margin:0 0 2px;
-      font-size:14px;
-      font-weight:900;
-    }
-
-    .follow-item p{
-      margin:0;
-      color:#666;
-      font-size:12px;
-      line-height:1.35;
-    }
-
-    .small-btn{
-      margin-top:8px;
-      border:1px solid #777;
-      border-radius:999px;
-      background:#fff;
-      padding:6px 13px;
-      font-weight:900;
-    }
-
-    .info-row{
-      display:grid;
-      grid-template-columns:1fr auto;
-      gap:10px;
-      padding:9px 0;
-      border-bottom:1px solid #eee;
-    }
-
-    .info-row:last-child{border-bottom:0}
-
-    .info-row span{
-      color:#666;
-      font-size:13px;
-      font-weight:700;
-    }
-
-    .info-row strong{
-      color:#111;
-      font-size:13px;
-      text-align:right;
-    }
-
-    .empty,.loading{
-      padding:18px;
-      text-align:center;
-      color:#666;
-      border:1px dashed #ddd;
-      border-radius:8px;
-      background:#fff;
-    }
-
-    .toast-wrap{
-      position:fixed;
-      right:18px;
-      bottom:18px;
-      z-index:2000;
-      display:grid;
-      gap:10px;
-    }
-
-    .toast{
-      background:#111;
-      color:#fff;
-      padding:12px 14px;
-      border-radius:10px;
-      min-width:240px;
-      box-shadow:0 8px 24px rgba(0,0,0,.25);
-    }
-
-    .toast b{display:block;margin-bottom:3px}
-    .toast.error{background:#7f1d1d}
-    .toast.success{background:#14532d}
-
-    /* MOBILE */
-    .mobile-public-topbar,
-    .mobile-public-bottom{display:none}
-
-    @media(max-width:980px){
-      .layout{
-        grid-template-columns:1fr;
-      }
-
-      .left-col{display:block}
-
-      .mini-company-card{
-        position:static;
-        width:100%;
-        max-width:100%;
-      }
-
-      .main-content{
-        grid-column:auto;
-      }
-
-      .right-col{
-        display:none;
-      }
-
-      .top-link span{display:none}
-      .top-link{min-width:40px;height:42px}
-      .search{width:auto;flex:1;max-width:none}
-
-      .people-grid{
-        grid-template-columns:repeat(2,minmax(0,1fr));
-      }
-
-      .sales-grid{
-        grid-template-columns:1fr;
-      }
-    }
-
-    @media(max-width:640px){
-      body{
-        padding-top:64px;
-        padding-bottom:78px;
-      }
-
-      .topbar{display:none}
-
-      .mobile-public-topbar{
-        position:fixed;
-        top:0;
-        left:0;
-        right:0;
-        height:64px;
-        z-index:999;
-        background:#fff;
-        border-bottom:1px solid #e5e7eb;
-        display:flex;
-        align-items:center;
-        gap:10px;
-        padding:10px 12px;
-      }
-
-      .mobile-profile-logo{
-        width:42px;
-        height:42px;
-        border:0;
-        border-radius:50%;
-        padding:0;
-        background:#fff;
-        overflow:hidden;
-        flex-shrink:0;
-      }
-
-      .mobile-profile-logo img{
-        width:100%;
-        height:100%;
-        object-fit:cover;
-      }
-
-      .mobile-public-search{
-        flex:1;
-        height:42px;
-        border-radius:999px;
-        background:#eef3f8;
-        display:flex;
-        align-items:center;
-        gap:8px;
-        padding:0 13px;
-        min-width:0;
-      }
-
-      .mobile-public-search svg{
-        width:18px;
-        height:18px;
-        stroke:#64748b;
-        fill:none;
-        stroke-width:2;
-        flex-shrink:0;
-      }
-
-      .mobile-public-search input{
-        border:0;
-        outline:0;
-        background:transparent;
-        width:100%;
-        font-size:14px;
-      }
-
-      .mobile-message-btn{
-        width:42px;
-        height:42px;
-        border-radius:50%;
-        border:1px solid #dbe1e8;
-        background:#fff;
-        display:grid;
-        place-items:center;
-        flex-shrink:0;
-      }
-
-      .mobile-message-btn svg{
-        width:22px;
-        height:22px;
-        stroke:#334155;
-        fill:none;
-        stroke-width:2;
-      }
-
-      .mobile-public-bottom{
-        position:fixed;
-        left:0;
-        right:0;
-        bottom:0;
-        height:74px;
-        z-index:999;
-        background:rgba(255,255,255,.97);
-        border-top:1px solid #e5e7eb;
-        display:grid;
-        grid-template-columns:1fr 1fr 76px 1fr 1fr;
-        align-items:center;
-        padding:0 6px;
-      }
-
-      .mobile-public-bottom button{
-        border:0;
-        background:transparent;
-        color:#64748b;
-        font-weight:900;
-        font-size:12px;
-        height:100%;
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        justify-content:center;
-        gap:4px;
-      }
-
-      .mobile-public-bottom button.active{color:#0a66c2}
-
-      .mobile-public-bottom button svg{
-        width:24px;
-        height:24px;
-        stroke:currentColor;
-        fill:none;
-        stroke-width:2;
-      }
-
-      .mobile-post-plus{
-        width:58px!important;
-        height:58px!important;
-        border-radius:50%!important;
-        background:linear-gradient(180deg,#2557a7,#163d7a)!important;
-        color:#fff!important;
-        font-size:30px!important;
-        display:grid!important;
-        place-items:center!important;
-        margin:auto;
-        box-shadow:0 12px 26px rgba(37,87,167,.26);
-      }
-
-      .container{width:100%}
-      .page{padding:0}
-      .layout{display:block}
-
-      .mini-company-card{
-        display:none;
-      }
-
-      .main-content{margin-top:0}
-
-      .card,
-      .post,
-      .company-page-card,
-      .content-card,
-      .sales-card{
-        border-radius:0;
-        border-left:0;
-        border-right:0;
-      }
-
-      .feed-holder{margin-top:0}
-
-      #publicEmployerFeed .aift-feed-shell{
-        max-width:none!important;
-        margin:0!important;
-      }
-
-      .company-hero-cover{
-        height:132px;
-      }
-
-      .company-hero-body{
-        padding:0 16px 18px;
-      }
-
-      .company-main-logo{
-        width:92px;
-        height:92px;
-        margin-top:-46px;
-      }
-
-      .company-title-row h1{
-        font-size:22px;
-      }
-
-      .company-meta-line{
-        font-size:13px;
-      }
-
-      .company-actions .pill-btn{
-        flex:1;
-      }
-
-      .company-page-tab{
-        padding:13px 16px;
-      }
-
-      .sales-grid{
-        grid-template-columns:1fr;
-      }
-
-      .people-grid{
-        grid-template-columns:1fr;
-      }
-
-      .filter input{
-        min-width:100%;
-        width:100%;
-      }
-    }
-    /* === PROFILE MODE: full LinkedIn-style company page === */
-@media(min-width:981px){
-  body.profile-mode .layout{
-    grid-template-columns:minmax(0, 1fr) 320px;
-    max-width:1128px;
-  }
-
-  body.profile-mode .left-col{
-    display:block;
-  }
-
-  body.profile-mode .mini-company-card{
-    display:none !important;
-  }
-
-  body.profile-mode .main-content{
-    grid-column:1;
-    width:100%;
-  }
-
-  body.profile-mode .right-col{
-    grid-column:2;
-    display:block;
-  }
-
-  body.profile-mode #section-about{
-    display:block;
-  }
-
-  body.profile-mode #section-overview,
-  body.profile-mode #section-posts,
-  body.profile-mode #section-jobs,
-  body.profile-mode #section-people{
-    display:none;
-  }
+:root{
+  --blue:#0a66c2;
+  --blue-dark:#004182;
+  --green:#057642;
+  --bg:#f3f2ef;
+  --card:#fff;
+  --text:#191919;
+  --muted:#666;
+  --line:#d8d8d8;
+  --shadow:0 1px 2px rgba(0,0,0,.08);
+  --radius:12px;
+  --max:1128px;
 }
 
-/* make right panel more useful in profile mode */
-body.profile-mode .right-col .side-card:first-child .side-title{
-  font-size:18px;
+*{
+  box-sizing:border-box;
 }
 
-body.profile-mode .right-col .side-card:nth-child(2){
-  border-top:3px solid #0a66c2;
+html{
+  scroll-behavior:smooth;
 }
 
-@media(max-width:640px){
-  body.profile-mode .mini-company-card{
-    display:none !important;
-  }
-
-  body.profile-mode #section-about{
-    display:block;
-  }
-
-  body.profile-mode #section-overview,
-  body.profile-mode #section-posts,
-  body.profile-mode #section-jobs,
-  body.profile-mode #section-people{
-    display:none;
-  }
-}
-    /* === PRODUCTION PUBLIC COMPANY PROFILE MODE === */
-
-@media(min-width:981px){
-  body.profile-mode .layout{
-    grid-template-columns:minmax(0, 1fr) 320px !important;
-    max-width:1128px;
-    margin:0 auto;
-  }
-
-  body.profile-mode .mini-company-card{
-    display:none !important;
-  }
-
-  body.profile-mode .main-content{
-    grid-column:1 !important;
-    width:100%;
-  }
-
-  body.profile-mode .right-col{
-    grid-column:2 !important;
-    display:block !important;
-  }
+body{
+  margin:0;
+  font-family:Inter,sans-serif;
+  background:var(--bg);
+  color:var(--text);
 }
 
-body.profile-mode #section-about{
-  display:block !important;
+button,input{
+  font:inherit;
 }
 
-body.profile-mode #section-overview{
-  display:none !important;
+button{
+  cursor:pointer;
 }
 
-/* cleaner LinkedIn-like typography */
-.company-title-row h1{
-  font-size:24px !important;
-  font-weight:700 !important;
-  letter-spacing:-.02em !important;
-  color:#191919 !important;
+img{
+  display:block;
+  max-width:100%;
 }
 
-.company-tagline{
-  font-size:15px !important;
-  color:#333 !important;
-  font-weight:400 !important;
+a{
+  color:inherit;
+  text-decoration:none;
 }
 
-.company-meta-line{
-  color:#666 !important;
-  font-size:14px !important;
+.hidden{
+  display:none!important;
 }
 
-.company-hero-cover{
-  height:176px !important;
+.container{
+  width:min(var(--max),calc(100% - 24px));
+  margin:auto;
 }
 
-.company-main-logo{
-  width:112px !important;
-  height:112px !important;
-  margin-top:-56px !important;
-  border-radius:4px !important;
-}
+/* TOPBAR */
 
-.company-page-card,
-.content-card,
-.sales-card,
-.side-card{
-  border-radius:8px !important;
-  box-shadow:0 1px 2px rgba(0,0,0,.08) !important;
-}
-
-.full-profile-badge,
-.company-verified-icon{
-  color:#666 !important;
-}
-
-/* remove demo-looking sales styling */
-.sales-card{
-  display:none !important;
-}
-
-/* real people LinkedIn-style cards */
-.people-grid{
-  display:grid !important;
-  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
-  gap:12px !important;
-}
-
-.linkedin-person-card{
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:200;
   background:#fff;
-  border:1px solid #d8d8d8;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.top-inner{
+  height:58px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.brand-logo{
+  width:34px;
+  height:34px;
   border-radius:8px;
-  overflow:hidden;
-  text-align:center;
-  min-height:255px;
+  background:var(--blue);
+  color:#fff;
+  display:grid;
+  place-items:center;
+  font-weight:900;
+  flex-shrink:0;
+}
+
+.search{
+  position:relative;
+  width:280px;
+  max-width:40vw;
+}
+
+.search input{
+  width:100%;
+  height:34px;
+  border:1px solid #cfd8e3;
+  background:#eef3f8;
+  border-radius:6px;
+  padding:0 12px 0 36px;
+  outline:none;
+}
+
+.search svg{
+  position:absolute;
+  left:11px;
+  top:50%;
+  transform:translateY(-50%);
+  width:16px;
+  height:16px;
+  stroke:#64748b;
+  fill:none;
+  stroke-width:2;
+}
+
+.top-actions{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.top-link{
+  border:0;
+  background:#fff;
+  color:#555;
   display:flex;
   flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  min-width:68px;
+  height:52px;
+  font-size:11px;
+  border-radius:6px;
 }
 
-.linkedin-person-cover{
-  height:56px;
-  background:#c7d7d9;
+.top-link svg{
+  width:21px;
+  height:21px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
 }
 
-.linkedin-person-avatar{
-  width:88px;
-  height:88px;
+.top-link:hover{
+  background:#f3f6f8;
+  color:#111;
+}
+
+.top-avatar{
+  width:30px;
+  height:30px;
   border-radius:50%;
   object-fit:cover;
-  border:4px solid #fff;
-  margin:-44px auto 8px;
+  border:1px solid #ddd;
+}
+
+.pill-btn{
+  border:1px solid var(--blue);
   background:#fff;
-}
-
-.linkedin-person-body{
-  padding:0 14px 14px;
-  display:flex;
-  flex-direction:column;
-  flex:1;
-}
-
-.linkedin-person-body h3{
-  margin:0 0 4px;
-  font-size:16px;
-  font-weight:700;
-  color:#191919;
-  line-height:1.25;
-}
-
-.linkedin-person-body p{
-  margin:0;
-  font-size:13px;
-  color:#555;
-  line-height:1.35;
-  min-height:36px;
-}
-
-.linkedin-person-body span{
-  display:block;
-  margin:10px 0 14px;
-  font-size:12px;
-  color:#777;
-}
-
-.linkedin-person-body .connect-btn{
-  margin-top:auto;
-  border:1px solid #0a66c2;
-  color:#0a66c2;
-  background:#fff;
+  color:var(--blue);
   border-radius:999px;
   padding:8px 14px;
-  font-weight:700;
+  font-weight:800;
 }
 
-/* real jobs LinkedIn-style cards */
-.job-list{
-  display:grid !important;
-  gap:10px !important;
+.pill-btn.primary{
+  background:var(--blue);
+  color:#fff;
 }
 
-.linkedin-job-card{
+.pill-btn:hover{
+  background:#eef6ff;
+}
+
+.pill-btn.primary:hover{
+  background:var(--blue-dark);
+}
+
+/* PAGE */
+
+.page{
+  padding:14px 0 40px;
+}
+
+.layout{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 320px;
+  gap:16px;
+  align-items:start;
+}
+
+.main-content{
+  min-width:0;
+}
+
+.right-col{
+  position:sticky;
+  top:72px;
+}
+
+.card{
   background:#fff;
-  border:1px solid #d8d8d8;
-  border-radius:8px;
-  padding:16px;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+  <div class="container top-inner">
+
+    <a class="brand-logo" href="employer.html">A</a>
+
+    <div class="search">
+      <svg viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="M20 20l-3.5-3.5"></path>
+      </svg>
+
+      <input type="search" placeholder="Search">
+    </div>
+
+    <nav class="top-actions">
+
+      <button class="top-link" onclick="openTab('about')">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 10.5 12 3l9 7.5"></path>
+          <path d="M5 9.5V21h14V9.5"></path>
+        </svg>
+        <span>Home</span>
+      </button>
+
+      <button class="top-link" onclick="goMessages()">
+        <svg viewBox="0 0 24 24">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span>Messaging</span>
+      </button>
+
+      <button class="top-link" onclick="goNotifications()">
+        <svg viewBox="0 0 24 24">
+          <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
+          <path d="M10 21a2 2 0 0 0 4 0"></path>
+        </svg>
+        <span>Notifications</span>
+      </button>
+
+      <button class="pill-btn" onclick="copyProfileLink()">
+        Copy Link
+      </button>
+
+      <button id="dashboardBtn" class="pill-btn hidden" onclick="goDashboard()">
+        Dashboard
+      </button>
+
+      <button id="signinBtn" class="pill-btn primary" onclick="goLogin()">
+        Sign in
+      </button>
+
+      <img id="viewerAvatar" class="top-avatar hidden">
+
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+<div class="container layout">
+
+<div class="main-content">
+  <section class="company-card card">
+  <div id="companyCover" class="company-cover"></div>
+
+  <div class="company-body">
+    <img id="companyLogo" class="company-logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Company logo">
+
+    <div class="company-main">
+      <div class="company-title-row">
+        <h1 id="companyName">Company</h1>
+        <span id="verifiedBadge" class="verified-badge">✓</span>
+      </div>
+
+      <p id="companyHeadline" class="company-headline">Company profile</p>
+
+      <div id="companyMeta" class="company-meta">
+        <span>Company</span>
+        <span>•</span>
+        <span>0 followers</span>
+      </div>
+
+      <div id="companyAssociated" class="associated-line"></div>
+
+      <div class="company-actions">
+        <button id="followBtn" class="pill-btn primary" onclick="followCompany()">+ Follow</button>
+        <button class="pill-btn" onclick="messageCompany()">Message</button>
+        <button class="pill-btn" onclick="backToFeed()">Back to feed</button>
+
+        <div class="more-wrap">
+          <button class="more-btn" onclick="toggleCompanyMenu(event)">•••</button>
+
+          <div id="companyMoreMenu" class="more-menu">
+            <button onclick="visitWebsite()">Visit website</button>
+            <button onclick="copyProfileLink()">Copy profile link</button>
+            <button onclick="messageCompany()">Send message</button>
+            <button onclick="reportCompany()">Report page</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="company-tabs">
+    <button class="company-tab active" data-tab="about" onclick="openTab('about')">Home</button>
+    <button class="company-tab" data-tab="posts" onclick="openTab('posts')">Posts</button>
+    <button class="company-tab" data-tab="jobs" onclick="openTab('jobs')">Jobs</button>
+    <button class="company-tab" data-tab="people" onclick="openTab('people')">People</button>
+    <button class="company-tab" data-tab="details" onclick="openTab('details')">About</button>
+  </nav>
+</section>
+
+<section id="tab-about" class="tab-section active">
+  <article class="content-card card">
+    <h2>Overview</h2>
+    <p id="overviewText">Loading company overview...</p>
+  </article>
+
+  <article class="content-card card">
+    <h2>Company details</h2>
+    <div id="companyDetails"></div>
+  </article>
+</section>
+
+<section id="tab-posts" class="tab-section">
+  <article class="posts-layout">
+    <aside class="posts-left card">
+      <img id="postsCompanyLogo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="">
+      <h3 id="postsCompanyName">Company</h3>
+      <p id="postsCompanyMeta">Company updates</p>
+    </aside>
+
+    <div>
+      <div class="post-filters">
+        <button class="active">Recent</button>
+        <button>Popular</button>
+      </div>
+
+      <div id="postsList">
+        <div class="loading">Loading posts...</div>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section id="tab-jobs" class="tab-section">
+  <article class="content-card card">
+    <h2>Open jobs</h2>
+
+    <div class="filter-row">
+      <input id="jobSearch" type="search" placeholder="Search open roles" oninput="renderJobs()">
+    </div>
+
+    <div id="jobsList" class="jobs-list">
+      <div class="loading">Loading jobs...</div>
+    </div>
+  </article>
+</section>
+
+<section id="tab-people" class="tab-section">
+  <article class="content-card card">
+    <h2 id="peopleTitle">Associated people</h2>
+
+    <div class="filter-row">
+      <input id="peopleSearch" type="search" placeholder="Search people" oninput="renderPeople()">
+    </div>
+
+    <div id="peopleList" class="people-grid">
+      <div class="loading">Loading people...</div>
+    </div>
+  </article>
+</section>
+
+<section id="tab-details" class="tab-section">
+  <article class="content-card card">
+    <h2>About this company</h2>
+    <p id="aboutFullText">Loading...</p>
+  </article>
+</section>
+
+</div>
+
+<aside class="right-col">
+  <section class="side-card card">
+    <h3>Pages people also viewed</h3>
+    <div id="suggestionsList">
+      <div class="loading">Loading suggestions...</div>
+    </div>
+  </section>
+
+  <section class="side-card card">
+    <h3>Company information</h3>
+    <div id="sideInfo"></div>
+  </section>
+</aside>
+<style>
+.company-card{
+  overflow:hidden;
+  margin-bottom:12px;
+}
+
+.company-cover{
+  height:176px;
+  background:linear-gradient(135deg,rgba(10,102,194,.18),rgba(34,197,94,.18)),#dbeafe;
+  background-size:cover;
+  background-position:center;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.company-body{
+  padding:0 24px 20px;
   display:flex;
-  justify-content:space-between;
   gap:18px;
-  align-items:flex-start;
+  align-items:flex-end;
 }
 
-.linkedin-job-card h3{
-  margin:0 0 4px;
-  font-size:17px;
-  font-weight:700;
-  color:#0a66c2;
+.company-logo{
+  width:112px;
+  height:112px;
+  margin-top:-56px;
+  border:4px solid #fff;
+  background:#fff;
+  object-fit:cover;
+  border-radius:6px;
+  box-shadow:0 1px 4px rgba(0,0,0,.18);
+  flex-shrink:0;
 }
 
-.linkedin-job-company{
-  margin:0 0 4px;
-  font-size:14px;
-  color:#191919;
+.company-main{
+  flex:1;
+  min-width:0;
+  padding-top:14px;
 }
 
-.linkedin-job-meta{
-  margin:0 0 8px;
-  font-size:13px;
-  color:#666;
+.company-title-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
 }
 
-.linkedin-job-desc{
+.company-title-row h1{
   margin:0;
-  font-size:14px;
+  font-size:24px;
+  line-height:1.2;
+  font-weight:800;
+  letter-spacing:-.02em;
+}
+
+.verified-badge{
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:#e8f5ed;
+  color:#057642;
+  display:grid;
+  place-items:center;
+  font-size:13px;
+  font-weight:900;
+}
+
+.company-headline{
+  margin:5px 0 0;
   color:#333;
-  line-height:1.5;
+  font-size:15px;
 }
 
-/* right panel: useful profile info */
-.side-title{
-  font-size:16px !important;
-  font-weight:700 !important;
+.company-meta{
+  margin-top:5px;
+  color:#666;
+  font-size:14px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
 }
 
-.info-row span,
-.info-row strong{
-  font-size:13px !important;
+.associated-line{
+  margin-top:12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#333;
+  font-size:13px;
+  font-weight:700;
 }
 
-@media(max-width:760px){
-  body.profile-mode .mini-company-card{
-    display:none !important;
-  }
-
-  .people-grid{
-    grid-template-columns:1fr !important;
-  }
-
-  .linkedin-job-card{
-    flex-direction:column;
-  }
-
-  .linkedin-job-card .pill-btn{
-    width:100%;
-  }
-
-  .company-hero-cover{
-    height:132px !important;
-  }
-
-  .company-main-logo{
-    width:88px !important;
-    height:88px !important;
-    margin-top:-44px !important;
-  }
-
-  .company-title-row h1{
-    font-size:22px !important;
-  }
+.avatar-stack{
+  display:flex;
 }
-    /* === PUBLIC COMPANY JOBS / POSTS / PEOPLE PRODUCTION UI === */
 
-.company-more-wrap{
+.avatar-stack img{
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  object-fit:cover;
+  border:2px solid #fff;
+  margin-left:-8px;
+  background:#fff;
+}
+
+.avatar-stack img:first-child{
+  margin-left:0;
+}
+
+.company-actions{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:16px;
+}
+
+.more-wrap{
   position:relative;
 }
 
-.company-more-menu{
+.more-btn{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  border:1px solid #777;
+  background:#fff;
+  color:#333;
+  font-weight:900;
+  display:grid;
+  place-items:center;
+}
+
+.more-menu{
   display:none;
   position:absolute;
   top:44px;
@@ -1524,11 +569,11 @@ body.profile-mode #section-overview{
   overflow:hidden;
 }
 
-.company-more-menu.show{
+.more-menu.show{
   display:block;
 }
 
-.company-more-menu button{
+.more-menu button{
   width:100%;
   border:0;
   background:#fff;
@@ -1538,272 +583,176 @@ body.profile-mode #section-overview{
   font-weight:600;
 }
 
-.company-more-menu button:hover{
+.more-menu button:hover{
   background:#f3f2ef;
 }
 
-/* jobs */
-.public-job-search-card{
-  background:#fff;
-  border:1px solid #d8d8d8;
-  border-radius:8px;
-  padding:22px;
-  margin-bottom:12px;
-  text-align:center;
-}
-
-.public-job-search-card h2{
-  margin:0 0 16px;
-  font-size:18px;
-  font-weight:500;
-  color:#222;
-}
-
-.public-job-search-row{
+.company-tabs{
   display:flex;
-  gap:10px;
-  justify-content:center;
+  border-top:1px solid #eee;
+  overflow:auto;
 }
 
-.public-job-search-row input{
-  width:min(520px,100%);
-  height:42px;
-  border:1px solid #777;
-  padding:0 14px;
-  border-radius:3px;
-}
-
-.public-job-search-row button{
+.company-tab{
   border:0;
-  background:#0a66c2;
-  color:#fff;
-  border-radius:999px;
-  padding:0 22px;
-  font-weight:700;
-}
-
-.public-job-list-title{
   background:#fff;
-  border:1px solid #d8d8d8;
-  border-radius:8px 8px 0 0;
-  padding:16px 18px;
-  font-size:17px;
-  font-weight:500;
+  padding:14px 18px;
+  color:#555;
+  font-weight:900;
+  border-bottom:3px solid transparent;
+  white-space:nowrap;
 }
 
-.public-job-card{
-  background:#fff;
-  border:1px solid #d8d8d8;
-  border-top:0;
-  padding:18px;
-  display:grid;
-  grid-template-columns:54px minmax(0,1fr) 40px;
-  gap:14px;
+.company-tab.active{
+  color:var(--green);
+  border-bottom-color:var(--green);
 }
 
-.public-job-logo{
-  width:48px;
-  height:48px;
-  object-fit:cover;
-  border-radius:4px;
+.tab-section{
+  display:none;
 }
 
-.public-job-main h3{
-  margin:0 0 4px;
-  color:#191919;
-  font-size:16px;
-  font-weight:700;
-  line-height:1.35;
-}
-
-.public-job-main p,
-.public-job-main span,
-.public-job-main small{
+.tab-section.active{
   display:block;
-  color:#666;
-  font-size:13px;
-  margin-bottom:4px;
 }
 
-.public-job-status{
-  margin:14px 0 10px;
-  color:#057642;
-  font-size:13px;
-  font-weight:600;
-}
-
-.public-save-btn{
-  border:0;
-  background:#fff;
-  font-size:22px;
-  color:#333;
-}
-
-/* people */
-.people-insights-card,
-.people-you-may-know{
-  background:#fff;
-  border:1px solid #d8d8d8;
-  border-radius:8px;
+.content-card{
   padding:20px;
   margin-bottom:12px;
 }
 
-.people-insights-card h2,
-.people-you-may-know h2{
-  margin:0 0 14px;
-  font-size:22px;
-  font-weight:700;
+.content-card h2{
+  margin:0 0 12px;
+  font-size:20px;
+  font-weight:800;
 }
 
-.people-search-input{
-  width:min(420px,100%);
-  height:36px;
-  border:1px solid #777;
-  border-radius:3px;
-  padding:0 12px;
-  margin-bottom:18px;
+.content-card p{
+  margin:0;
+  line-height:1.65;
+  color:#222;
 }
 
-.people-insights-grid{
+.info-row{
   display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:16px;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  padding:10px 0;
+  border-bottom:1px solid #eee;
 }
 
-.people-insight-box{
-  border:1px solid #d8d8d8;
-  border-radius:8px;
-  padding:16px;
+.info-row:last-child{
+  border-bottom:0;
 }
 
-.people-insight-box h3{
-  margin:0 0 14px;
-  font-size:16px;
-  font-weight:700;
-}
-
-.people-bar-row{
-  margin-bottom:14px;
+.info-row span{
   color:#666;
   font-size:13px;
-}
-
-.people-bar-row span{
-  display:block;
-  height:12px;
-  background:#f3f2ef;
-  margin-top:7px;
-}
-
-.people-bar-row b{
-  display:block;
-  height:100%;
-  background:#5f7552;
-}
-
-.linkedin-people-grid{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:12px;
-}
-
-.linkedin-person-card{
-  border:1px solid #d8d8d8;
-  border-radius:8px;
-  overflow:hidden;
-  text-align:center;
-  background:#fff;
-}
-
-.linkedin-person-cover{
-  height:58px;
-  background:#c7d7d9;
-}
-
-.linkedin-person-avatar{
-  width:88px;
-  height:88px;
-  border-radius:50%;
-  object-fit:cover;
-  border:4px solid #fff;
-  margin:-44px auto 8px;
-}
-
-.linkedin-person-body{
-  padding:0 14px 14px;
-}
-
-.linkedin-person-body h3{
-  margin:0 0 4px;
-  font-size:16px;
   font-weight:700;
 }
 
-.linkedin-person-body p{
-  margin:0;
-  color:#555;
+.info-row strong{
   font-size:13px;
-  min-height:36px;
+  text-align:right;
 }
 
-.linkedin-person-body span{
-  display:block;
-  margin:10px 0 14px;
-  color:#777;
+.side-card{
+  padding:16px;
+  margin-bottom:12px;
+}
+
+.side-card h3{
+  margin:0 0 12px;
+  font-size:16px;
+  font-weight:800;
+}
+
+.suggestion{
+  display:flex;
+  gap:10px;
+  padding:12px 0;
+  border-bottom:1px solid #eee;
+}
+
+.suggestion:last-child{
+  border-bottom:0;
+}
+
+.suggestion img{
+  width:42px;
+  height:42px;
+  border-radius:6px;
+  object-fit:cover;
+  border:1px solid #ddd;
+}
+
+.suggestion h4{
+  margin:0 0 3px;
+  font-size:14px;
+}
+
+.suggestion p{
+  margin:0;
+  color:#666;
   font-size:12px;
+  line-height:1.35;
 }
 
-/* posts */
-.public-posts-layout{
+.small-btn{
+  margin-top:8px;
+  border:1px solid #777;
+  border-radius:999px;
+  background:#fff;
+  padding:6px 13px;
+  font-weight:800;
+}
+
+.posts-layout{
   display:grid;
   grid-template-columns:220px minmax(0,1fr);
   gap:12px;
 }
 
-.public-posts-left{
-  background:#fff;
-  border:1px solid #d8d8d8;
-  border-radius:8px;
+.posts-left{
   padding:18px;
   text-align:center;
   height:max-content;
 }
 
-.public-posts-left img{
+.posts-left img{
   width:76px;
   height:76px;
   object-fit:cover;
-  border-radius:4px;
+  border-radius:6px;
   margin:0 auto 12px;
 }
 
-.public-posts-left h3{
+.posts-left h3{
   margin:0 0 5px;
   font-size:16px;
 }
 
-.public-posts-left p{
+.posts-left p{
   margin:0;
   color:#666;
   font-size:13px;
 }
 
-.public-post-filters{
+.post-filters{
   display:flex;
   gap:8px;
   margin-bottom:12px;
 }
 
-.public-post-filters button{
+.post-filters button{
   border:1px solid #999;
   background:#fff;
   border-radius:999px;
   padding:7px 14px;
-  font-weight:700;
+  font-weight:800;
 }
 
-.public-post-filters button.active{
+.post-filters button.active{
   background:#057642;
   color:#fff;
   border-color:#057642;
@@ -1815,6 +764,7 @@ body.profile-mode #section-overview{
   border-radius:8px;
   margin-bottom:12px;
   overflow:hidden;
+  box-shadow:var(--shadow);
 }
 
 .public-post-head{
@@ -1828,13 +778,13 @@ body.profile-mode #section-overview{
   width:46px;
   height:46px;
   object-fit:cover;
-  border-radius:4px;
+  border-radius:6px;
 }
 
 .public-post-head h3{
   margin:0;
   font-size:14px;
-  font-weight:700;
+  font-weight:800;
 }
 
 .public-post-head p{
@@ -1843,18 +793,10 @@ body.profile-mode #section-overview{
   font-size:12px;
 }
 
-.public-post-head button{
-  margin-left:auto;
-  border:0;
-  background:#fff;
-  font-weight:900;
-}
-
 .public-post-text{
   padding:0 14px 14px;
   font-size:14px;
-  line-height:1.5;
-  color:#222;
+  line-height:1.55;
   white-space:pre-wrap;
 }
 
@@ -1886,1317 +828,1207 @@ body.profile-mode #section-overview{
   background:#fff;
   padding:12px;
   color:#555;
-  font-weight:700;
+  font-weight:800;
 }
 
 .public-post-actions button:hover{
   background:#f3f2ef;
 }
 
-@media(max-width:760px){
-  .public-posts-layout{
+.filter-row{
+  margin-bottom:12px;
+}
+
+.filter-row input{
+  width:min(420px,100%);
+  height:38px;
+  border:1px solid #777;
+  border-radius:6px;
+  padding:0 12px;
+}
+
+.jobs-list{
+  display:grid;
+  gap:10px;
+}
+
+.job-card{
+  background:#fff;
+  border:1px solid #d8d8d8;
+  border-radius:8px;
+  padding:16px;
+  display:flex;
+  justify-content:space-between;
+  gap:18px;
+  align-items:flex-start;
+}
+
+.job-card h3{
+  margin:0 0 4px;
+  font-size:17px;
+  font-weight:800;
+  color:#0a66c2;
+}
+
+.job-card p{
+  margin:0 0 8px;
+  color:#333;
+}
+
+.job-meta{
+  color:#666;
+  font-size:13px;
+  margin-bottom:8px;
+}
+
+.people-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+
+.person-card{
+  background:#fff;
+  border:1px solid #d8d8d8;
+  border-radius:8px;
+  overflow:hidden;
+  text-align:center;
+  min-height:255px;
+  display:flex;
+  flex-direction:column;
+}
+
+.person-cover{
+  height:58px;
+  background:#c7d7d9;
+}
+
+.person-avatar{
+  width:88px;
+  height:88px;
+  border-radius:50%;
+  object-fit:cover;
+  border:4px solid #fff;
+  margin:-44px auto 8px;
+  background:#fff;
+}
+
+.person-body{
+  padding:0 14px 14px;
+  display:flex;
+  flex-direction:column;
+  flex:1;
+}
+
+.person-body h3{
+  margin:0 0 4px;
+  font-size:16px;
+  font-weight:800;
+}
+
+.person-body p{
+  margin:0;
+  color:#555;
+  font-size:13px;
+  line-height:1.35;
+  min-height:36px;
+}
+
+.person-body span{
+  display:block;
+  margin:10px 0 14px;
+  color:#777;
+  font-size:12px;
+}
+
+.person-body .pill-btn{
+  margin-top:auto;
+}
+
+.loading,
+.empty{
+  padding:20px;
+  color:#666;
+  text-align:center;
+  border:1px dashed #ddd;
+  border-radius:8px;
+  background:#fff;
+}
+
+.toast-wrap{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:3000;
+  display:grid;
+  gap:10px;
+}
+
+.toast{
+  background:#111;
+  color:#fff;
+  padding:12px 14px;
+  border-radius:10px;
+  min-width:240px;
+  box-shadow:0 8px 24px rgba(0,0,0,.25);
+}
+
+.toast b{
+  display:block;
+  margin-bottom:3px;
+}
+
+.toast.success{
+  background:#14532d;
+}
+
+.toast.error{
+  background:#7f1d1d;
+}
+
+/* MOBILE */
+
+.mobile-public-bottom{
+  display:none;
+}
+
+@media(max-width:980px){
+  .layout{
     grid-template-columns:1fr;
   }
 
-  .public-posts-left{
+  .right-col{
     display:none;
   }
 
-  .people-insights-grid,
-  .linkedin-people-grid{
+  .top-link span{
+    display:none;
+  }
+
+  .top-link{
+    min-width:42px;
+  }
+
+  .search{
+    flex:1;
+    width:auto;
+    max-width:none;
+  }
+
+  .people-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:640px){
+  body{
+    padding-bottom:76px;
+  }
+
+  .container{
+    width:100%;
+  }
+
+  .page{
+    padding:0;
+  }
+
+  .company-card,
+  .content-card,
+  .side-card,
+  .public-post-card{
+    border-radius:0;
+    border-left:0;
+    border-right:0;
+  }
+
+  .company-cover{
+    height:132px;
+  }
+
+  .company-body{
+    padding:0 16px 18px;
+    display:block;
+  }
+
+  .company-logo{
+    width:88px;
+    height:88px;
+    margin-top:-44px;
+  }
+
+  .company-title-row h1{
+    font-size:22px;
+  }
+
+  .company-actions .pill-btn{
+    flex:1;
+  }
+
+  .company-tabs{
+    scrollbar-width:none;
+  }
+
+  .posts-layout{
     grid-template-columns:1fr;
   }
 
-  .public-job-search-row{
+  .posts-left{
+    display:none;
+  }
+
+  .people-grid{
+    grid-template-columns:1fr;
+  }
+
+  .job-card{
     flex-direction:column;
   }
 
-  .public-job-card{
-    grid-template-columns:48px minmax(0,1fr);
+  .job-card .pill-btn{
+    width:100%;
   }
 
-  .public-save-btn{
-    display:none;
+  .mobile-public-bottom{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    height:74px;
+    z-index:999;
+    background:rgba(255,255,255,.97);
+    border-top:1px solid #e5e7eb;
+    display:grid;
+    grid-template-columns:1fr 1fr 76px 1fr 1fr;
+    align-items:center;
+    padding:0 6px;
+  }
+
+  .mobile-public-bottom button{
+    border:0;
+    background:transparent;
+    color:#64748b;
+    font-weight:900;
+    font-size:12px;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+  }
+
+  .mobile-public-bottom button.active{
+    color:#0a66c2;
   }
 }
-  </style>
-</head>
+</style>
+<script>
 
-<body>
-  <header class="topbar">
-    <div class="container top-inner">
-      <a class="brand-logo" href="employer.html" aria-label="AIFT">A</a>
+const API = "https://backend-1-9b6f.onrender.com";
 
-      <div class="search">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-        <input id="globalSearch" type="search" placeholder="Search" />
-      </div>
+const qs = new URLSearchParams(location.search);
 
-      <nav class="top-actions">
-        <button class="top-link" onclick="openTab('overview')">
-          <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path></svg>
-          <span>Home</span>
-        </button>
+const state = {
+  companyId: qs.get("id") || "",
+  company: {},
+  jobs: [],
+  posts: [],
+  people: [],
+  suggestions: [],
+  publicStats: {},
+  following: false
+};
 
-        <button class="top-link" onclick="goMessages()">
-          <span class="badge" id="msgBadge">0</span>
-          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-          <span>Messaging</span>
-        </button>
-
-        <button class="top-link" onclick="goNotifications()">
-          <span class="badge" id="notifBadge">0</span>
-          <svg viewBox="0 0 24 24"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path><path d="M10 21a2 2 0 0 0 4 0"></path></svg>
-          <span>Notifications</span>
-        </button>
-
-        <button class="pill-btn" onclick="copyProfileLink()">Copy Link</button>
-        <button class="pill-btn" id="dashboardBtn" onclick="goDashboard()">Dashboard</button>
-        <button class="pill-btn primary" id="signinBtn" onclick="goLogin()">Sign in</button>
-        <img class="top-avatar hidden" id="viewerAvatar" alt="Me" />
-      </nav>
-    </div>
-  </header>
-
-  <header class="mobile-public-topbar">
-    <button class="mobile-profile-logo" onclick="showCompanyProfile()">
-      <img id="mobileCompanyLogo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="">
-    </button>
-
-    <div class="mobile-public-search">
-      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-      <input type="search" placeholder="Search company" oninput="syncMobileSearch(this.value)">
-    </div>
-
-    <button class="mobile-message-btn" onclick="messageCompany()">
-      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-    </button>
-  </header>
-
-  <nav class="mobile-public-bottom">
-    <button onclick="openTab('overview')" data-mobile-tab="overview" class="active">
-      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path></svg>
-      <span>Home</span>
-    </button>
-
-    <button onclick="openTab('jobs')" data-mobile-tab="jobs">
-      <svg viewBox="0 0 24 24"><path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"></path><rect x="3" y="6" width="18" height="14" rx="2"></rect><path d="M3 12h18"></path></svg>
-      <span>Jobs</span>
-    </button>
-
-    <button class="mobile-post-plus" onclick="openTab('posts')">+</button>
-
-    <button onclick="goNotifications()">
-      <svg viewBox="0 0 24 24"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path><path d="M10 21a2 2 0 0 0 4 0"></path></svg>
-      <span>Alerts</span>
-    </button>
-
-    <button onclick="openTab('people')" data-mobile-tab="people">
-      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-      <span>Network</span>
-    </button>
-  </nav>
-    <main class="page">
-    <div class="container layout">
-      <section class="left-col">
-        <article class="mini-company-card">
-          <div id="miniCover" class="mini-cover"></div>
-
-          <div class="mini-body">
-            <img id="miniLogo" class="mini-logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Company logo">
-
-            <div class="mini-name-row">
-              <h1 id="miniName" class="mini-name">Company</h1>
-              <span class="verified">
-                <svg viewBox="0 0 24 24"><path d="M12 2l2.4 2.1 3.1-.3.9 3 2.8 1.5-1.5 2.8.3 3-3 .9L14.9 18 12 20l-2.9-2-3 .9-.3-3L3 13.9 3.9 11 2.4 8.2 5.2 6.7l.9-3 3.1.3L12 2zm-1.1 12.8l6-6-1.4-1.4-4.6 4.6-2.3-2.3-1.4 1.4 3.7 3.7z"/></svg>
-                Verified
-              </span>
-            </div>
-
-            <p id="miniHeadline" class="mini-headline"></p>
-
-            <div class="mini-meta">
-              <span id="miniIndustry">Company</span>
-              <span id="miniFollowers">0 followers</span>
-            </div>
-
-            <div class="mini-actions">
-              <button id="followBtn" class="pill-btn primary" onclick="followCompany()">+ Follow</button>
-              <button class="pill-btn" onclick="messageCompany()">Message</button>
-              <button class="pill-btn" onclick="showCompanyProfile()">View Profile</button>
-            </div>
-          </div>
-
-          <!-- Mini tabs removed. View Profile opens the full company page. -->
-        </article>
-
-        <div class="main-content">
-          <section id="section-overview" class="section active">
-            <article class="feed-holder">
-              <div class="feed-holder-inner">
-                <div id="publicEmployerFeed">
-                  <div class="loading">Loading AIFT feed...</div>
-                </div>
-              </div>
-            </article>
-          </section>
-
-          <section id="section-about" class="section">
-            <article class="company-page-card">
-              <div id="companyHeroCover" class="company-hero-cover"></div>
-
-              <div class="company-hero-body">
-                <img id="companyHeroLogo" class="company-main-logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Company logo">
-
-                <div class="company-title-row">
-                  <h1 id="companyHeroName">Company</h1>
-                  <svg class="company-verified-icon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2l2.4 2.1 3.1-.3.9 3 2.8 1.5-1.5 2.8.3 3-3 .9L14.9 18 12 20l-2.9-2-3 .9-.3-3L3 13.9 3.9 11 2.4 8.2 5.2 6.7l.9-3 3.1.3L12 2zm-1.1 12.8l6-6-1.4-1.4-4.6 4.6-2.3-2.3-1.4 1.4 3.7 3.7z"/>
-                  </svg>
-                </div>
-
-                <p id="companyHeroTagline" class="company-tagline">Company profile</p>
-
-                <div id="companyHeroMeta" class="company-meta-line"></div>
-
-                <div id="companyHeroMutual" class="company-mutual"></div>
-
-                <div class="company-actions">
-                  <button id="heroFollowBtn" class="pill-btn primary" onclick="followCompany()">+ Follow</button>
-                  <button class="pill-btn" onclick="messageCompany()">Message</button>
-                  <div class="company-more-wrap">
-  <button class="round-more" onclick="toggleCompanyMenu(event)">•••</button>
-                    <button class="pill-btn" onclick="backToFeed()">Back to feed</button>
-
-  <div class="company-more-menu" id="companyMoreMenu">
-    <button onclick="visitWebsite()">↗ Visit website</button>
-    <button onclick="messageCompany()">✉ Send message</button>
-    <button onclick="copyProfileLink()">🔗 Copy profile link</button>
-    <button onclick="reportCompany()">⚑ Report page</button>
-  </div>
-</div>
-
-               
-
-              <div class="company-page-tabs">
-                <button class="company-page-tab active" onclick="openTab('about')" data-tab="about">Home</button>
-                <button class="company-page-tab" onclick="scrollCompanySection('companyOverviewBlock')">About</button>
-                <button class="company-page-tab" onclick="openTab('posts')" data-tab="posts">Posts</button>
-                <button class="company-page-tab" onclick="openTab('jobs')" data-tab="jobs">Jobs</button>
-                <button class="company-page-tab" onclick="openTab('people')" data-tab="people">People</button>
-              </div>
-            </article>
-
-            <article class="sales-card">
-              <div class="sales-head">
-                <small>● AIFT Sales Insights</small>
-                <h2>Hiring insights</h2>
-              </div>
-
-              <div class="sales-grid">
-                <div class="sales-item">
-                  <h3>Competitive landscape</h3>
-                  <div class="sales-visual">
-                    <span class="sales-bar"></span>
-                    <span class="sales-badge">AIFT</span>
-                    <span class="sales-badge">BPO</span>
-                  </div>
-                  <p id="competitiveText">Hiring activity and company reach on AIFT.</p>
-                </div>
-
-                <div class="sales-item">
-                  <h3>Strategic priorities</h3>
-                  <div class="sales-visual">
-                    <strong id="strategicPriority">Talent growth</strong>
-                  </div>
-                  <p>Based on jobs, posts, and public company activity.</p>
-                </div>
-
-                <div class="sales-item">
-                  <h3>Decision makers</h3>
-                  <div id="decisionMakers" class="sales-visual"></div>
-                  <p id="decisionText">Associated people from this company.</p>
-                </div>
-              </div>
-
-              <div class="sales-foot">
-                <button class="gold-btn" onclick="openTab('jobs')">View open roles</button>
-                <span>Real company data from this AIFT public page.</span>
-              </div>
-            </article>
-
-            <article id="companyOverviewBlock" class="content-card">
-              <h2>Overview</h2>
-              <p id="companyOverviewText">Loading company overview...</p>
-            </article>
-
-            <article class="content-card">
-              <h2>Company details</h2>
-              <div id="companyDetailsGrid"></div>
-            </article>
-          </section>
-
-          <section id="section-posts" class="section">
-            <div class="post-stream" id="postsList">
-              <div class="loading">Loading posts...</div>
-            </div>
-          </section>
-
-          <section id="section-jobs" class="section">
-            <article class="content-card">
-              <h2>Open jobs</h2>
-              <div class="filter">
-                <input id="jobSearch" type="search" oninput="renderJobs()" placeholder="Search open roles">
-              </div>
-              <div class="job-list" id="jobsList">
-                <div class="loading">Loading jobs...</div>
-              </div>
-            </article>
-          </section>
-
-          <section id="section-people" class="section">
-            <article class="content-card">
-              <h2 id="peopleCountTitle">Associated people</h2>
-              <div class="filter">
-                <input id="peopleSearch" type="search" oninput="renderPeople()" placeholder="Search employees by title, keyword, or school">
-              </div>
-              <div class="people-grid" id="peopleList">
-                <div class="loading">Loading people...</div>
-              </div>
-            </article>
-          </section>
-        </div>
-      </section>
-
-      <aside class="right-col">
-        <section class="side-card">
-          <h3 class="side-title">Pages people also viewed</h3>
-          <div id="alsoFollowList">
-            <div class="loading">Loading suggestions...</div>
-          </div>
-        </section>
-
-        <section class="side-card">
-          <h3 class="side-title">Company information</h3>
-          <div id="sideInfo"></div>
-        </section>
-      </aside>
-    </div>
-  </main>
-
-  <div class="toast-wrap" id="toastWrap"></div>
-
-  <script src="feed.js"></script>
-
-  <script>
-    const API = "https://backend-1-9b6f.onrender.com";
-    const FALLBACK_COMPANY = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
-    const FALLBACK_USER = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
-    const state = {
-      viewer:null,
-      company:{},
-      jobs:[],
-      posts:[],
-      people:[],
-      suggestions:[],
-      companyId:new URLSearchParams(location.search).get("id") || localStorage.getItem("userId") || "",
-      website:"",
-      following:false,
-      publicFeedMounted:false
-    };
-
-    function token(){
-      return localStorage.getItem("employerToken") ||
-        localStorage.getItem("talentToken") ||
-        localStorage.getItem("adminToken") ||
-        localStorage.getItem("agentToken") ||
-        localStorage.getItem("token") ||
-        "";
-    }
-    function toggleCompanyMenu(event){
-  event?.stopPropagation();
-  document.getElementById("companyMoreMenu")?.classList.toggle("show");
-}
-
-function reportCompany(){
-  document.getElementById("companyMoreMenu")?.classList.remove("show");
-  toast("Report received","Thank you. Our team will review this company page.","success");
-}
-
-document.addEventListener("click", () => {
-  document.getElementById("companyMoreMenu")?.classList.remove("show");
+const socket = io(API,{
+  transports:["websocket","polling"]
 });
 
-    function clearBadSession(){
-      ["talentToken","employerToken","adminToken","agentToken","token","userId","role"].forEach(k=>localStorage.removeItem(k));
-    }
-
-    function headers(extra={}){
-      const t = token();
-      return t ? { Authorization:`Bearer ${t}`, ...extra } : { ...extra };
-    }
-
-    async function api(path, opts={}){
-      const res = await fetch(`${API}${path}`, opts);
-      let data = null;
-      try{ data = await res.json(); }catch{}
-
-      if(res.status === 401){
-        const msg = data?.message || data?.error || "";
-        if(/invalid token|token expired|jwt/i.test(msg)){
-          clearBadSession();
-        }
-      }
-
-      if(!res.ok){
-        throw new Error(data?.message || data?.error || `Request failed ${res.status}`);
-      }
-
-      return data;
-    }
-
-    function arr(x){
-      return Array.isArray(x) ? x :
-        Array.isArray(x?.data) ? x.data :
-        Array.isArray(x?.users) ? x.users :
-        Array.isArray(x?.items) ? x.items :
-        Array.isArray(x?.posts) ? x.posts :
-        Array.isArray(x?.jobs) ? x.jobs :
-        Array.isArray(x?.team) ? x.team : [];
-    }
-
-    function esc(v){
-      return String(v ?? "").replace(/[&<>'"]/g,m=>({
-        "&":"&amp;",
-        "<":"&lt;",
-        ">":"&gt;",
-        "'":"&#39;",
-        '"':"&quot;"
-      }[m]));
-    }
-
-    function toast(t,m,type=""){
-      const wrap = document.getElementById("toastWrap");
-      if(!wrap) return;
-      const el = document.createElement("div");
-      el.className = `toast ${type}`;
-      el.innerHTML = `<b>${esc(t)}</b><span>${esc(m || "")}</span>`;
-      wrap.appendChild(el);
-      setTimeout(()=>el.remove(),3500);
-    }
-
-    function nameOf(u=state.company){
-      return u.companyName || u.name || u.fullName || u.businessName || "Company";
-    }
-
-    function logoOf(u=state.company){
-      return u.profileImage || u.logo || u.companyLogo || u.avatar || FALLBACK_COMPANY;
-    }
-
-    function coverOf(u=state.company){
-      return u.coverImage || u.bannerImage || u.companyBanner || u.banner || "";
-    }
-
-    function storyOf(){
-      const c = state.company;
-      return c.companyStory || c.services || c.specialties || c.bio || c.about || c.description || "This company has not added a full overview yet.";
-    }
-
-    function safeUrl(u){
-      if(!u) return "";
-      u = String(u).trim();
-      return /^https?:\/\//i.test(u) ? u : `https://${u}`;
-    }
-
-    function activeJobs(){
-      return state.jobs.filter(j => String(j.status || "active").toLowerCase() !== "closed");
-    }
-
-    function countFollowers(){
-      const c = state.company;
-      return Array.isArray(c.followers) ? c.followers.length : Number(c.followersCount || c.followCount || 0) || 0;
-    }
-
-    function currentUserId(){
-      return String(state.viewer?._id || state.viewer?.id || localStorage.getItem("userId") || "");
-    }
-        async function initViewer(){
-      const signed = !!token();
-
-      document.getElementById("signinBtn")?.classList.toggle("hidden", signed);
-      document.getElementById("viewerAvatar")?.classList.toggle("hidden", !signed);
-
-      if(!signed) return;
-
-      try{
-        const me = await api("/api/users/me",{headers:headers()});
-        state.viewer = me?.user || me;
-
-        const avatar = document.getElementById("viewerAvatar");
-        if(avatar) avatar.src = state.viewer.profileImage || FALLBACK_USER;
-
-        loadUnread();
-      }catch(e){
-        console.warn("Viewer not loaded:", e.message);
-      }
-    }
-
-    async function loadUnread(){
-      try{
-        const n = await api("/api/notifications/unread",{headers:headers()});
-        const count = Number(n.count || n.unread || arr(n).length || 0);
-        const badge = document.getElementById("notifBadge");
-
-        if(count && badge){
-          badge.style.display = "flex";
-          badge.textContent = count > 99 ? "99+" : count;
-        }
-      }catch{}
-    }
-
-    async function loadCompany(){
-      let data = null;
-
-      if(state.companyId){
-        try{
-          data = await api(`/api/users/${state.companyId}/public`,{headers:headers()});
-        }catch{}
-      }
-
-      if(!data && token()){
-        try{
-          data = await api("/api/users/me",{headers:headers()});
-        }catch{}
-      }
-
-      state.company = data?.user || data?.company || data || {};
-      state.companyId = state.company._id || state.company.id || state.companyId;
-      state.website = safeUrl(state.company.website || state.company.companyWebsite || state.company.url || "");
-    }
-
-async function loadJobs(){
-  const companyId = String(state.companyId || "");
-  const companyName = nameOf().toLowerCase();
-  const collected = [];
-
-  async function tryLoad(path){
-    try{
-      const data = await api(path,{headers:headers()});
-      collected.push(...arr(data));
-    }catch(e){
-      console.warn("Jobs endpoint failed:", path, e.message);
-    }
-  }
-
-  await tryLoad(`/api/jobs?employer=${encodeURIComponent(companyId)}`);
-  await tryLoad(`/api/jobs?companyId=${encodeURIComponent(companyId)}`);
-  await tryLoad(`/api/jobs`);
-
-  const seen = new Set();
-
-  state.jobs = collected.filter(job => {
-    const id = String(job._id || job.id || "");
-    if(!id || seen.has(id)) return false;
-    seen.add(id);
-
-    const jobEmployerId = String(
-      job.employerId?._id ||
-      job.employerId ||
-      job.employer?._id ||
-      job.employer ||
-      job.companyId?._id ||
-      job.companyId ||
-      job.userId ||
-      ""
-    );
-
-    const jobCompany = String(job.company || job.companyName || job.employerName || "").toLowerCase();
-
-    return (
-      jobEmployerId === companyId ||
-      jobCompany === companyName
-    );
-  });
-}
-
-    async function loadPosts(){
-      try{
-        const data = await api("/api/posts",{headers:headers()});
-        state.posts = arr(data).filter(p=>{
-          const a = p.user || p.author || p.createdBy || {};
-          const aid = a._id || a.id || p.userId || p.authorId || p.employerId;
-
-          return !state.companyId ||
-            String(aid) === String(state.companyId) ||
-            String(a.name || "").toLowerCase() === nameOf().toLowerCase();
-        });
-      }catch{
-        state.posts = [];
-      }
-    }
-
-async function loadPeople(){
-  const companyId = String(state.companyId || "");
-  const companyName = nameOf().toLowerCase();
-  const collected = [];
-
-  async function tryLoad(path){
-    try{
-      const data = await api(path,{headers:headers()});
-      collected.push(...arr(data));
-    }catch(e){
-      console.warn("People endpoint failed:", path, e.message);
-    }
-  }
-
-  await tryLoad(`/api/users/network`);
-  await tryLoad(`/api/users?companyId=${encodeURIComponent(companyId)}`);
-  await tryLoad(`/api/employer-team`);
-  await tryLoad(`/api/employer-team?companyId=${encodeURIComponent(companyId)}`);
-
-  const seen = new Set();
-
-  state.people = collected.filter(user => {
-    const id = String(user._id || user.id || "");
-    if(!id || seen.has(id)) return false;
-    seen.add(id);
-
-    const userCompanyId = String(
-      user.companyId?._id ||
-      user.companyId ||
-      user.employerId?._id ||
-      user.employerId ||
-      user.company?._id ||
-      ""
-    );
-
-    const userCompanyName = String(user.company || user.companyName || "").toLowerCase();
-
-    return (
-      userCompanyId === companyId ||
-      userCompanyName === companyName
-    );
-  });
-
-  state.suggestions = collected
-    .filter(user => String(user._id || user.id) !== companyId)
-    .slice(0,8);
-}
-
-    function detailRows(items){
-      return items.map(([k,v,html])=>`
-        <div class="info-row">
-          <span>${esc(k)}</span>
-          <strong>${html ? v : esc(v)}</strong>
-        </div>
-      `).join("");
-    }
-
-    function renderHeader(){
-      const c = state.company;
-      const coverUrl = coverOf();
-      const followerText = `${countFollowers().toLocaleString()} followers`;
-
-      document.title = `${nameOf()} | AIFT`;
-
-      const miniCover = document.getElementById("miniCover");
-      const miniLogo = document.getElementById("miniLogo");
-      const miniName = document.getElementById("miniName");
-      const miniHeadline = document.getElementById("miniHeadline");
-      const miniIndustry = document.getElementById("miniIndustry");
-      const miniFollowers = document.getElementById("miniFollowers");
-      const mobileLogo = document.getElementById("mobileCompanyLogo");
-
-      if(miniCover) miniCover.style.backgroundImage = coverUrl ? `url('${esc(coverUrl)}')` : "";
-      if(miniLogo) miniLogo.src = logoOf();
-      if(mobileLogo) mobileLogo.src = logoOf();
-      if(miniName) miniName.textContent = nameOf();
-      if(miniHeadline) miniHeadline.textContent = c.headline || c.tagline || c.industry || "Company profile";
-      if(miniIndustry) miniIndustry.textContent = c.industry || c.companyIndustry || "Company";
-      if(miniFollowers) miniFollowers.textContent = followerText;
-
-      const isFollowing = Array.isArray(c.followers) &&
-        currentUserId() &&
-        c.followers.map(x=>String(x._id || x)).includes(currentUserId());
-
-      state.following = !!isFollowing;
-
-      ["followBtn","heroFollowBtn"].forEach(id=>{
-        const btn = document.getElementById(id);
-        if(!btn) return;
-
-        btn.textContent = state.following ? "✓ Following" : "+ Follow";
-        btn.classList.toggle("primary", !state.following);
-      });
-
-      renderCompanyPage();
-    }
-
-    function renderCompanyPage(){
-      const c = state.company;
-      const coverUrl = coverOf();
-
-      const heroCover = document.getElementById("companyHeroCover");
-      const heroLogo = document.getElementById("companyHeroLogo");
-      const heroName = document.getElementById("companyHeroName");
-      const heroTagline = document.getElementById("companyHeroTagline");
-      const heroMeta = document.getElementById("companyHeroMeta");
-      const heroMutual = document.getElementById("companyHeroMutual");
-      const overview = document.getElementById("companyOverviewText");
-      const details = document.getElementById("companyDetailsGrid");
-      const competitive = document.getElementById("competitiveText");
-      const strategic = document.getElementById("strategicPriority");
-      const decision = document.getElementById("decisionMakers");
-      const decisionText = document.getElementById("decisionText");
-
-      if(heroCover) heroCover.style.backgroundImage = coverUrl ? `url('${esc(coverUrl)}')` : "";
-      if(heroLogo) heroLogo.src = logoOf();
-      if(heroName) heroName.textContent = nameOf();
-      if(heroTagline) heroTagline.textContent = c.headline || c.tagline || c.industry || "Company profile";
-
-      if(heroMeta){
-        const parts = [
-          c.industry || c.companyIndustry || "Company",
-          c.location || c.address || "Location not added",
-          `${countFollowers().toLocaleString()} followers`,
-          c.companySize || c.size || ""
-        ].filter(Boolean);
-
-        heroMeta.innerHTML = parts.map(p=>`<span>${esc(p)}</span>`).join("<span>•</span>");
-      }
-
-      if(heroMutual){
-        const people = state.people.slice(0,3);
-        heroMutual.innerHTML = people.length ? `
-          <div class="mutual-stack">
-            ${people.map(p=>`<img src="${esc(p.profileImage || FALLBACK_USER)}" alt="">`).join("")}
-          </div>
-          <span>${esc(people[0]?.name || "AIFT members")} ${people.length > 1 ? `and ${people.length - 1} other associated people` : "is associated with this page"}</span>
-        ` : `<span>${countFollowers().toLocaleString()} people follow this page</span>`;
-      }
-
-      if(overview) overview.textContent = storyOf();
-
-      if(details){
-        details.innerHTML = detailRows([
-          ["Website", state.website ? `<a style="color:#0a66c2" href="${esc(state.website)}" target="_blank" rel="noopener">Open website</a>` : "Not added", true],
-          ["Industry", c.industry || c.companyIndustry || "Not added"],
-          ["Location", c.location || c.address || "Not added"],
-          ["Company size", c.companySize || c.size || "Not added"],
-          ["Open jobs", activeJobs().length],
-          ["Company posts", state.posts.length],
-          ["Associated people", state.people.length],
-          ["Followers", countFollowers().toLocaleString()]
-        ]);
-      }
-
-      if(competitive){
-        competitive.textContent = `${activeJobs().length} open role${activeJobs().length === 1 ? "" : "s"} and ${state.posts.length} public update${state.posts.length === 1 ? "" : "s"}.`;
-      }
-
-      if(strategic){
-        strategic.textContent = activeJobs().length ? "Hiring and workforce growth" : "Brand visibility and community growth";
-      }
-
-      if(decision){
-        const people = state.people.slice(0,3);
-        decision.innerHTML = people.length
-          ? people.map(p=>`<img style="width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #fff;margin-left:-8px;background:#fff" src="${esc(p.profileImage || FALLBACK_USER)}" alt="">`).join("")
-          : `<span class="sales-badge">AIFT</span>`;
-      }
-
-      if(decisionText){
-        decisionText.textContent = state.people.length
-          ? `${state.people[0]?.name || "Team member"} and ${Math.max(0,state.people.length - 1)} others`
-          : "No associated public team members yet.";
-      }
-
-      const sideInfo = document.getElementById("sideInfo");
-      if(sideInfo){
-        sideInfo.innerHTML = detailRows([
-          ["Website", state.website ? `<a style="color:#0a66c2" href="${esc(state.website)}" target="_blank" rel="noopener">Open</a>` : "Not added", true],
-          ["Open jobs", activeJobs().length],
-          ["Posts", state.posts.length],
-          ["People", state.people.length],
-          ["Followers", countFollowers().toLocaleString()]
-        ]);
-      }
-    }
-
-function renderJobs(){
-  const input = document.getElementById("jobSearch");
-  const wrap = document.getElementById("jobsList");
-  if(!wrap) return;
-
-  const q = (input?.value || "").toLowerCase().trim();
-
-  const jobs = activeJobs().filter(job =>
-    [
-      job.title,
-      job.description,
-      job.location,
-      job.salary,
-      job.salaryRange,
-      job.type,
-      job.department
-    ].join(" ").toLowerCase().includes(q)
+/* =========================
+   AUTH
+========================= */
+
+function token(){
+  return (
+    localStorage.getItem("employerToken") ||
+    localStorage.getItem("talentToken") ||
+    localStorage.getItem("adminToken") ||
+    localStorage.getItem("agentToken") ||
+    localStorage.getItem("token")
   );
+}
 
-  wrap.innerHTML = `
-    <div class="public-job-search-card">
-      <h2>${esc(nameOf())} has ${jobs.length} job opening${jobs.length === 1 ? "" : "s"}</h2>
-      <div class="public-job-search-row">
-        <input id="jobSearchClone" type="search" placeholder="Job title or keyword" value="${esc(input?.value || "")}">
-        <button type="button" onclick="syncJobSearch()">Search</button>
-      </div>
+function currentUserId(){
+  return localStorage.getItem("userId");
+}
+
+function headers(extra={}){
+  const t = token();
+
+  return {
+    ...(t ? { Authorization:`Bearer ${t}` } : {}),
+    ...extra
+  };
+}
+
+/* =========================
+   HELPERS
+========================= */
+
+function escapeHtml(v=""){
+  return String(v)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+
+function safeUrl(url=""){
+  if(!url) return "";
+
+  try{
+    const u = new URL(url.startsWith("http") ? url : `https://${url}`);
+    return u.href;
+  }catch{
+    return "";
+  }
+}
+
+function timeAgo(date){
+  const seconds = Math.floor((Date.now() - new Date(date)) / 1000);
+
+  const intervals = [
+    ["year",31536000],
+    ["month",2592000],
+    ["week",604800],
+    ["day",86400],
+    ["hour",3600],
+    ["minute",60]
+  ];
+
+  for(const [label,secs] of intervals){
+    const count = Math.floor(seconds / secs);
+    if(count >= 1){
+      return `${count} ${label}${count > 1 ? "s" : ""} ago`;
+    }
+  }
+
+  return "Just now";
+}
+
+async function api(path,options={}){
+  const res = await fetch(API + path,{
+    ...options,
+    headers:{
+      ...(options.headers || {})
+    }
+  });
+
+  const text = await res.text();
+
+  let data = {};
+
+  try{
+    data = text ? JSON.parse(text) : {};
+  }catch{
+    data = { message:text };
+  }
+
+  if(!res.ok){
+    throw new Error(data.message || "Request failed");
+  }
+
+  return data;
+}
+
+/* =========================
+   TOAST
+========================= */
+
+function toast(title,message,type=""){
+  let wrap = document.querySelector(".toast-wrap");
+
+  if(!wrap){
+    wrap = document.createElement("div");
+    wrap.className = "toast-wrap";
+    document.body.appendChild(wrap);
+  }
+
+  const el = document.createElement("div");
+  el.className = `toast ${type}`;
+
+  el.innerHTML = `
+    <b>${escapeHtml(title)}</b>
+    <div>${escapeHtml(message)}</div>
+  `;
+
+  wrap.appendChild(el);
+
+  setTimeout(()=>{
+    el.remove();
+  },3500);
+}
+
+/* =========================
+   LOAD DATA
+========================= */
+
+async function loadCompany(){
+
+  if(!state.companyId){
+    throw new Error("Missing employer ID");
+  }
+
+  const data = await api(`/api/users/employer/${encodeURIComponent(state.companyId)}/public`);
+
+  state.company = data.employer || {};
+  state.jobs = Array.isArray(data.jobs) ? data.jobs : [];
+  state.posts = Array.isArray(data.posts) ? data.posts : [];
+  state.people = Array.isArray(data.team) ? data.team : [];
+  state.publicStats = data.stats || {};
+
+  state.following =
+    Array.isArray(state.company.followers) &&
+    state.company.followers.some(
+      u => String(u._id || u) === String(currentUserId())
+    );
+
+  state.suggestions = [
+    ...(Array.isArray(state.company.following) ? state.company.following : []),
+    ...state.people
+  ]
+  .filter(Boolean)
+  .slice(0,8);
+
+  renderAll();
+}
+
+/* =========================
+   RENDER
+========================= */
+
+function renderAll(){
+  renderHeader();
+  renderAbout();
+  renderJobs();
+  renderPeople();
+  renderPosts();
+  renderSuggestions();
+  renderSideInfo();
+  updateOwnerUI();
+}
+
+function renderHeader(){
+
+  const company = state.company || {};
+
+  document.getElementById("companyName").textContent =
+    company.companyName || company.name || "Company";
+
+  document.getElementById("companyHeadline").textContent =
+    company.headline || "Company profile";
+
+  document.getElementById("overviewText").textContent =
+    company.bio || "No overview added yet.";
+
+  document.getElementById("aboutFullText").textContent =
+    company.bio || "No information available.";
+
+  document.getElementById("companyLogo").src =
+    company.profileImage ||
+    "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+
+  document.getElementById("postsCompanyLogo").src =
+    company.profileImage ||
+    "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+
+  document.getElementById("postsCompanyName").textContent =
+    company.companyName || company.name || "Company";
+
+  document.getElementById("postsCompanyMeta").textContent =
+    company.headline || "";
+
+  const cover = document.getElementById("companyCover");
+
+  if(company.bannerImage){
+    cover.style.backgroundImage =
+      `linear-gradient(135deg,rgba(10,102,194,.15),rgba(34,197,94,.15)),url('${company.bannerImage}')`;
+  }
+
+  document.getElementById("companyMeta").innerHTML = `
+    <span>${escapeHtml(company.industry || "Company")}</span>
+    <span>•</span>
+    <span>${state.publicStats.followers || 0} followers</span>
+    <span>•</span>
+    <span>${state.publicStats.teamMembers || 0} employees</span>
+  `;
+
+  document.getElementById("verifiedBadge").style.display =
+    company.aiftVerified ? "grid" : "none";
+
+  document.getElementById("followBtn").textContent =
+    state.following ? "Following" : "+ Follow";
+
+  renderAssociatedPeople();
+}
+
+function renderAssociatedPeople(){
+
+  const el = document.getElementById("companyAssociated");
+
+  if(!state.people.length){
+    el.innerHTML = "";
+    return;
+  }
+
+  const topPeople = state.people.slice(0,3);
+
+  el.innerHTML = `
+    <div class="avatar-stack">
+      ${topPeople.map(person=>`
+        <img src="${person.profileImage || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}">
+      `).join("")}
     </div>
 
-    <div class="public-job-list-title">Recently posted jobs</div>
-
-    ${
-      jobs.length
-        ? jobs.map(job => `
-          <article class="public-job-card">
-            <img src="${esc(logoOf())}" alt="" class="public-job-logo">
-
-            <div class="public-job-main">
-              <h3>${esc(job.title || "Untitled role")}</h3>
-              <p>${esc(nameOf())}</p>
-              <span>
-                ${esc(job.location || "Location not added")}
-                ${job.type ? " · " + esc(job.type) : ""}
-                ${job.salary || job.salaryRange ? " · " + esc(job.salary || job.salaryRange) : ""}
-              </span>
-
-              <div class="public-job-status">✓ Actively reviewing applicants</div>
-
-              <small>${date(job.createdAt || job.updatedAt)}</small>
-            </div>
-
-            <button class="public-save-btn" onclick="goLogin()">♡</button>
-          </article>
-        `).join("")
-        : `<div class="empty">No open jobs are currently posted by this company.</div>`
-    }
+    <span>
+      ${state.people.length} people associated with this company
+    </span>
   `;
 }
-    function syncJobSearch(){
-  const clone = document.getElementById("jobSearchClone");
-  const real = document.getElementById("jobSearch");
-  if(real && clone) real.value = clone.value;
-  renderJobs();
+
+function renderAbout(){
+
+  const company = state.company || {};
+
+  document.getElementById("companyDetails").innerHTML = `
+    <div class="info-row">
+      <span>Industry</span>
+      <strong>${escapeHtml(company.industry || "Not specified")}</strong>
+    </div>
+
+    <div class="info-row">
+      <span>Location</span>
+      <strong>${escapeHtml(company.location || "Not specified")}</strong>
+    </div>
+
+    <div class="info-row">
+      <span>Website</span>
+      <strong>
+        ${
+          safeUrl(company.website)
+          ? `<a href="${safeUrl(company.website)}" target="_blank">Visit website</a>`
+          : "Not added"
+        }
+      </strong>
+    </div>
+
+    <div class="info-row">
+      <span>Company size</span>
+      <strong>${state.publicStats.teamMembers || 0} employees</strong>
+    </div>
+  `;
 }
+</script>
+<script>
 
-function renderPeople(){
-  const input = document.getElementById("peopleSearch");
-  const wrap = document.getElementById("peopleList");
-  const title = document.getElementById("peopleCountTitle");
-  if(!wrap) return;
+/* =========================
+   POSTS
+========================= */
 
-  const q = (input?.value || "").toLowerCase().trim();
+function renderPosts(){
 
-  let people = state.people || [];
+  const list = document.getElementById("postsList");
 
-  if(q){
-    people = people.filter(user =>
-      [
-        user.name,
-        user.fullName,
-        user.headline,
-        user.profession,
-        user.teamRole,
-        user.department,
-        user.skills,
-        user.languages,
-        user.location,
-        user.education
-      ].join(" ").toLowerCase().includes(q)
-    );
+  if(!state.posts.length){
+    list.innerHTML = `
+      <div class="empty">
+        No posts available yet.
+      </div>
+    `;
+    return;
   }
 
-  if(title) title.textContent = `${people.length} associated member${people.length === 1 ? "" : "s"}`;
+  list.innerHTML = state.posts.map(post=>{
 
-  const locations = buildPeopleInsight(people, "location");
-  const roles = buildPeopleInsight(people, "profession", "headline", "teamRole", "department");
+    const author = post.author || {};
 
-  wrap.innerHTML = `
-    <section class="people-insights-card">
-      <h2>${people.length} associated member${people.length === 1 ? "" : "s"}</h2>
+    return `
+      <article class="public-post-card">
 
-      <input
-        id="peopleSearchClone"
-        class="people-search-input"
-        type="search"
-        placeholder="Search employees by title, keyword or school"
-        value="${esc(input?.value || "")}"
-        oninput="syncPeopleSearch()"
-      >
+        <div class="public-post-head">
 
-      <div class="people-insights-grid">
-        <div class="people-insight-box">
-          <h3>Where they live</h3>
-          ${renderInsightBars(locations)}
+          <img
+            src="${author.profileImage || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}"
+          >
+
+          <div>
+            <h3>
+              ${escapeHtml(author.companyName || author.name || "Company")}
+            </h3>
+
+            <p>
+              ${escapeHtml(author.headline || "")}
+              •
+              ${timeAgo(post.createdAt)}
+            </p>
+          </div>
+
         </div>
 
-        <div class="people-insight-box">
-          <h3>What they do</h3>
-          ${renderInsightBars(roles)}
+        <div class="public-post-text">
+          ${escapeHtml(post.text || "")}
         </div>
-      </div>
-    </section>
 
-    <section class="people-you-may-know">
-      <h2>People from ${esc(nameOf())}</h2>
-
-      <div class="linkedin-people-grid">
         ${
-          people.length
-            ? people.map(user => {
-              const displayName = user.name || user.fullName || "AIFT Member";
-              const headline = user.headline || user.profession || user.teamRole || user.department || "Company member";
-              const avatar = user.profileImage || FALLBACK_USER;
-
-              return `
-                <article class="linkedin-person-card">
-                  <div class="linkedin-person-cover"></div>
-                  <img class="linkedin-person-avatar" src="${esc(avatar)}" alt="${esc(displayName)}">
-
-                  <div class="linkedin-person-body">
-                    <h3>${esc(displayName)}</h3>
-                    <p>${esc(headline)}</p>
-                    <span>${esc(nameOf())}</span>
-
-                    <button class="connect-btn" onclick="messagePerson('${esc(user._id || user.id || "")}')">
-                      Message
-                    </button>
-                  </div>
-                </article>
-              `;
-            }).join("")
-            : `<div class="empty">No public team members are attached to this company yet.</div>`
+          post.mediaUrl
+          ? `
+            <div class="public-post-media">
+              ${
+                post.mediaType === "video"
+                ? `
+                  <video controls playsinline>
+                    <source src="${post.mediaUrl}">
+                  </video>
+                `
+                : `
+                  <img src="${post.mediaUrl}">
+                `
+              }
+            </div>
+          `
+          : ""
         }
-      </div>
-    </section>
-  `;
+
+        <div class="public-post-stats">
+          <span>${post.likes?.length || 0} reactions</span>
+          <span>${post.comments?.length || 0} comments</span>
+        </div>
+
+        <div class="public-post-actions">
+          <button onclick="likePost('${post._id}')">Like</button>
+          <button onclick="openComments('${post._id}')">Comment</button>
+          <button onclick="sharePost('${post._id}')">Share</button>
+        </div>
+
+      </article>
+    `;
+
+  }).join("");
 }
-    function syncPeopleSearch(){
-  const clone = document.getElementById("peopleSearchClone");
-  const real = document.getElementById("peopleSearch");
-  if(real && clone) real.value = clone.value;
-  renderPeople();
-}
 
-function buildPeopleInsight(list, ...keys){
-  const map = new Map();
+/* =========================
+   JOBS
+========================= */
 
-  list.forEach(user => {
-    let value = "";
+function renderJobs(){
 
-    for(const key of keys){
-      if(user[key]){
-        value = Array.isArray(user[key]) ? user[key][0] : user[key];
-        break;
-      }
-    }
+  const list = document.getElementById("jobsList");
 
-    value = String(value || "Not added").trim();
-    map.set(value, (map.get(value) || 0) + 1);
+  const q = (
+    document.getElementById("jobSearch")?.value || ""
+  ).toLowerCase();
+
+  const jobs = state.jobs.filter(job=>{
+
+    const haystack = `
+      ${job.title || ""}
+      ${job.location || ""}
+      ${job.type || ""}
+    `.toLowerCase();
+
+    return haystack.includes(q);
+
   });
 
-  return [...map.entries()]
-    .sort((a,b) => b[1] - a[1])
-    .slice(0,5)
-    .map(([label,count]) => ({label,count}));
+  if(!jobs.length){
+    list.innerHTML = `
+      <div class="empty">
+        No jobs found.
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = jobs.map(job=>`
+    <article class="job-card">
+
+      <div>
+
+        <h3>${escapeHtml(job.title || "Untitled role")}</h3>
+
+        <div class="job-meta">
+          ${escapeHtml(job.location || "Remote")}
+          •
+          ${escapeHtml(job.type || "Full-time")}
+        </div>
+
+        <p>
+          ${escapeHtml((job.description || "").slice(0,180))}
+        </p>
+
+      </div>
+
+      <div>
+        <button class="pill-btn primary" onclick="applyJob('${job._id}')">
+          Apply
+        </button>
+      </div>
+
+    </article>
+  `).join("");
 }
 
-function renderInsightBars(items){
-  const max = Math.max(...items.map(i => i.count), 1);
+/* =========================
+   PEOPLE
+========================= */
 
-  return items.map(item => `
-    <div class="people-bar-row">
-      <div>${item.count} | ${esc(item.label)}</div>
-      <span><b style="width:${Math.max(8, (item.count / max) * 100)}%"></b></span>
+function renderPeople(){
+
+  const list = document.getElementById("peopleList");
+
+  const q = (
+    document.getElementById("peopleSearch")?.value || ""
+  ).toLowerCase();
+
+  const people = state.people.filter(person=>{
+
+    const haystack = `
+      ${person.name || ""}
+      ${person.headline || ""}
+      ${person.profession || ""}
+      ${person.department || ""}
+    `.toLowerCase();
+
+    return haystack.includes(q);
+
+  });
+
+  document.getElementById("peopleTitle").textContent =
+    `${people.length} associated people`;
+
+  if(!people.length){
+    list.innerHTML = `
+      <div class="empty">
+        No people found.
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = people.map(person=>`
+    <article class="person-card">
+
+      <div class="person-cover"></div>
+
+      <img
+        class="person-avatar"
+        src="${person.profileImage || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}"
+      >
+
+      <div class="person-body">
+
+        <h3>${escapeHtml(person.name || "User")}</h3>
+
+        <p>
+          ${escapeHtml(
+            person.headline ||
+            person.profession ||
+            "Professional"
+          )}
+        </p>
+
+        <span>
+          ${escapeHtml(person.location || "")}
+        </span>
+
+        <button class="pill-btn" onclick="visitPerson('${person._id}')">
+          View profile
+        </button>
+
+      </div>
+
+    </article>
+  `).join("");
+}
+
+/* =========================
+   SIDE PANELS
+========================= */
+
+function renderSuggestions(){
+
+  const wrap = document.getElementById("suggestionsList");
+
+  if(!state.suggestions.length){
+    wrap.innerHTML = `
+      <div class="empty">
+        No suggestions available.
+      </div>
+    `;
+    return;
+  }
+
+  wrap.innerHTML = state.suggestions.map(user=>`
+    <div class="suggestion">
+
+      <img
+        src="${user.profileImage || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}"
+      >
+
+      <div>
+
+        <h4>
+          ${escapeHtml(user.companyName || user.name || "User")}
+        </h4>
+
+        <p>
+          ${escapeHtml(user.headline || "Professional")}
+        </p>
+
+        <button class="small-btn">
+          View
+        </button>
+
+      </div>
+
     </div>
   `).join("");
 }
 
-    function renderSuggestions(){
-      const wrap = document.getElementById("alsoFollowList");
-      if(!wrap) return;
+function renderSideInfo(){
 
-      wrap.innerHTML = state.suggestions.length ? state.suggestions.map(u=>`
-        <div class="follow-item">
-          <img src="${esc(u.profileImage || u.logo || FALLBACK_COMPANY)}" alt="">
-          <div>
-            <h4>${esc(u.companyName || u.name || "Profile")}</h4>
-            <p>${esc(u.industry || u.headline || u.role || "AIFT profile")}</p>
-            <button class="small-btn" onclick="openOtherProfile('${esc(u._id || u.id || "")}')">+ Follow</button>
-          </div>
-        </div>
-      `).join("") : `<div class="empty">No suggestions yet.</div>`;
-    }
+  const company = state.company || {};
 
-    function renderComments(p){
-      const list = Array.isArray(p.comments) ? p.comments : [];
+  document.getElementById("sideInfo").innerHTML = `
+    <div class="info-row">
+      <span>Active jobs</span>
+      <strong>${state.publicStats.activeJobs || 0}</strong>
+    </div>
 
-      return list.slice(-6).map(c=>{
-        const u = c.user || c.author || {};
-        return `
-          <div class="comment-row">
-            <img src="${esc(u.profileImage || FALLBACK_USER)}" alt="">
-            <div class="bubble">
-              <div class="comment-name">${esc(u.name || "Member")}</div>
-              <div class="comment-text">${esc(c.text || c.content || "")}</div>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
+    <div class="info-row">
+      <span>Posts</span>
+      <strong>${state.publicStats.posts || 0}</strong>
+    </div>
 
-function renderPosts(){
-  const wrap = document.getElementById("postsList");
-  if(!wrap) return;
+    <div class="info-row">
+      <span>Followers</span>
+      <strong>${state.publicStats.followers || 0}</strong>
+    </div>
 
-  wrap.innerHTML = `
-    <div class="public-posts-layout">
-      <aside class="public-posts-left">
-        <img src="${esc(logoOf())}" alt="">
-        <h3>${esc(nameOf())}</h3>
-        <p>${countFollowers().toLocaleString()} followers</p>
-      </aside>
-
-      <div class="public-posts-main">
-        <div class="public-post-filters">
-          <button class="active">All</button>
-          <button>Images</button>
-          <button>Videos</button>
-          <button>Documents</button>
-        </div>
-
-        ${
-          state.posts.length
-            ? state.posts.map(post => renderPublicPostCard(post)).join("")
-            : `<div class="empty">No company posts yet.</div>`
-        }
-      </div>
+    <div class="info-row">
+      <span>Location</span>
+      <strong>${escapeHtml(company.location || "-")}</strong>
     </div>
   `;
 }
 
-function renderPublicPostCard(post){
-  const author = post.user || post.author || post.createdBy || state.company;
-  const postId = post._id || post.id;
-  const media = post.mediaUrl || post.image || post.video || "";
-  const isVideo = /video|\.mp4|\.webm|\.ogg/i.test(String(post.mediaType || media));
-  const likes = Array.isArray(post.likes) ? post.likes.length : Number(post.likesCount || 0) || 0;
-  const comments = Array.isArray(post.comments) ? post.comments.length : Number(post.commentsCount || 0) || 0;
+/* =========================
+   FOLLOW
+========================= */
 
-  return `
-    <article class="public-post-card">
-      <div class="public-post-head">
-        <img src="${esc(author.profileImage || logoOf())}" alt="">
+async function followCompany(){
 
-        <div>
-          <h3>${esc(author.name || nameOf())}</h3>
-          <p>${countFollowers().toLocaleString()} followers · ${date(post.createdAt || post.date)}</p>
-        </div>
+  if(!token()){
+    return goLogin();
+  }
 
-        <button onclick="toggleCompanyMenu(event)">•••</button>
-      </div>
+  try{
 
-      <div class="public-post-text">
-        ${esc(post.content || post.text || post.body || "")}
-      </div>
-
-      ${
-        media
-          ? `<div class="public-post-media">
-              ${isVideo ? `<video src="${esc(media)}" controls playsinline></video>` : `<img src="${esc(media)}" alt="">`}
-            </div>`
-          : ""
+    const res = await api(
+      `/api/users/${state.companyId}/follow`,
+      {
+        method:"PATCH",
+        headers:headers()
       }
+    );
 
-      <div class="public-post-stats">
-        <span>${likes} likes</span>
-        <span>${comments} comments</span>
-      </div>
+    state.following = !!res.following;
 
-      <div class="public-post-actions">
-        <button onclick="likePost('${esc(postId)}')">Like</button>
-        <button onclick="toggleComments('${esc(postId)}')">Comment</button>
-        <button onclick="sharePost('${esc(postId)}')">Share</button>
-      </div>
+    renderHeader();
 
-      <div class="comments" id="comments-${esc(postId)}">
-        <div>${renderComments(post)}</div>
-        <div class="comment-box">
-          <input id="commentInput-${esc(postId)}" placeholder="Add a comment...">
-          <button onclick="addComment('${esc(postId)}')">Post</button>
-        </div>
-      </div>
-    </article>
-  `;
+    toast(
+      "Updated",
+      state.following
+        ? "You are now following this company."
+        : "You unfollowed this company.",
+      "success"
+    );
+
+  }catch(err){
+
+    toast(
+      "Follow failed",
+      err.message,
+      "error"
+    );
+
+  }
 }
 
-    function mountPublicFeed(){
-      const feedBox = document.getElementById("publicEmployerFeed");
-      if(!feedBox || state.publicFeedMounted) return;
+/* =========================
+   TABS
+========================= */
 
-      if(typeof AIFTFeed === "undefined"){
-        feedBox.innerHTML = `<div class="empty">Feed script did not load. Please check feed.js path.</div>`;
-        return;
-      }
+function openTab(tab){
 
-      state.publicFeedMounted = true;
-      AIFTFeed.mount("publicEmployerFeed");
-    }
+  document.querySelectorAll(".tab-section")
+    .forEach(el=>el.classList.remove("active"));
 
-    function renderAll(){
-      renderHeader();
-      renderCompanyPage();
-      renderJobs();
-      renderPeople();
-      renderSuggestions();
-      renderPosts();
-      mountPublicFeed();
-    }
+  document.querySelectorAll(".company-tab")
+    .forEach(el=>el.classList.remove("active"));
 
-    function openTab(tab){
-      document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab === tab));
-      document.querySelectorAll(".company-page-tab").forEach(b=>b.classList.toggle("active",b.dataset.tab === tab));
-      document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-      document.getElementById("section-" + tab)?.classList.add("active");
+  document.getElementById(`tab-${tab}`)
+    ?.classList.add("active");
 
-      document.querySelectorAll("[data-mobile-tab]").forEach(b=>{
-        b.classList.toggle("active",b.dataset.mobileTab === tab);
-      });
+  document.querySelector(`[data-tab="${tab}"]`)
+    ?.classList.add("active");
 
-      history.replaceState(null,"","#" + tab);
-    }
+  document.querySelectorAll(".mobile-public-bottom button")
+    .forEach(el=>el.classList.remove("active"));
 
-function showCompanyProfile(){
-  document.body.classList.add("profile-mode");
-  openTab("about");
-  window.scrollTo({top:0,behavior:"smooth"});
+  document.querySelector(`.mobile-public-bottom [data-mobile="${tab}"]`)
+    ?.classList.add("active");
+
+  window.scrollTo({
+    top:0,
+    behavior:"smooth"
+  });
 }
-    
+
+/* =========================
+   OWNER UI
+========================= */
+
+function updateOwnerUI(){
+
+  const isOwner =
+    token() &&
+    currentUserId() &&
+    String(currentUserId()) === String(state.companyId);
+
+  document.getElementById("dashboardBtn")
+    ?.classList.toggle("hidden",!isOwner);
+
+  document.getElementById("signinBtn")
+    ?.classList.toggle("hidden",!!token());
+
+  const avatar = document.getElementById("viewerAvatar");
+
+  if(token()){
+
+    avatar.classList.remove("hidden");
+
+    avatar.src =
+      localStorage.getItem("profileImage") ||
+      "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+
+  }else{
+
+    avatar.classList.add("hidden");
+
+  }
+}
+
+/* =========================
+   MENUS
+========================= */
+
+function toggleCompanyMenu(e){
+
+  e.stopPropagation();
+
+  document.getElementById("companyMoreMenu")
+    ?.classList.toggle("show");
+}
+
+document.addEventListener("click",()=>{
+  document.getElementById("companyMoreMenu")
+    ?.classList.remove("show");
+});
+
+/* =========================
+   ACTIONS
+========================= */
+
+function goDashboard(){
+  location.href = "employer.html";
+}
+
+function goLogin(){
+  location.href = "login.html";
+}
+
 function backToFeed(){
-  document.body.classList.remove("profile-mode");
-  openTab("overview");
-  window.scrollTo({top:0,behavior:"smooth"});
+  location.href = "feed.html";
 }
-    function scrollCompanySection(id){
-      document.getElementById(id)?.scrollIntoView({behavior:"smooth",block:"start"});
-    }
 
-    async function tryEndpoints(endpoints,body){
-      let last = "";
+function goMessages(){
+  location.href = "messages.html";
+}
 
-      for(const [url,method] of endpoints){
-        try{
-          await api(url,{
-            method,
-            headers:headers({"Content-Type":"application/json"}),
-            body:body ? JSON.stringify(body) : undefined
-          });
-          return true;
-        }catch(e){
-          last = e.message;
-        }
-      }
+function goNotifications(){
+  location.href = "notifications.html";
+}
 
-      throw new Error(last || "Backend route was not accepted");
-    }
+function visitWebsite(){
 
-    async function followCompany(){
-      if(!token()) return goLogin();
+  const url = safeUrl(state.company.website);
 
-      try{
-        await tryEndpoints([
-          [`/api/posts/users/${state.companyId}/follow`,"PATCH"],
-          [`/api/users/${state.companyId}/follow`,"POST"],
-          [`/api/users/${state.companyId}/follow`,"PATCH"],
-          [`/api/users/follow/${state.companyId}`,"POST"],
-          [`/api/users/follow/${state.companyId}`,"PATCH"]
-        ]);
+  if(url){
+    window.open(url,"_blank");
+  }
+}
 
-        state.following = !state.following;
-        renderHeader();
-        toast("Updated","Follow status updated.","success");
-      }catch(e){
-        toast("Follow failed",e.message,"error");
-      }
-    }
+function copyProfileLink(){
 
-    async function likePost(id){
-      if(!token()) return goLogin();
+  navigator.clipboard.writeText(location.href);
 
-      try{
-        await tryEndpoints([
-          [`/api/posts/${id}/like`,"PATCH"],
-          [`/api/posts/${id}/like`,"POST"]
-        ],{type:"like",reaction:"like"});
+  toast(
+    "Copied",
+    "Profile link copied.",
+    "success"
+  );
+}
 
-        await loadPosts();
-        renderPosts();
-      }catch(e){
-        toast("Like failed",e.message,"error");
-      }
-    }
+function reportCompany(){
 
-    function toggleComments(id){
-      document.getElementById("comments-" + id)?.classList.toggle("show");
-    }
+  toast(
+    "Reported",
+    "Thank you for your feedback.",
+    "success"
+  );
+}
 
-    async function addComment(id){
-      if(!token()) return goLogin();
+function messageCompany(){
 
-      const input = document.getElementById("commentInput-" + id);
-      const text = input?.value.trim();
-      if(!text) return;
+  if(!token()){
+    return goLogin();
+  }
 
-      try{
-        await tryEndpoints([
-          [`/api/posts/${id}/comment`,"POST"],
-          [`/api/posts/${id}/comments`,"POST"]
-        ],{text,content:text});
+  location.href =
+    `messages.html?user=${state.companyId}`;
+}
 
-        input.value = "";
-        await loadPosts();
-        renderPosts();
-        document.getElementById("comments-" + id)?.classList.add("show");
-      }catch(e){
-        toast("Comment failed",e.message,"error");
-      }
-    }
+function visitPerson(id){
+  location.href =
+    `public-profile.html?id=${id}`;
+}
 
-    async function sharePost(){
-      const url = `${location.origin}${location.pathname}?id=${encodeURIComponent(state.companyId)}#posts`;
-      try{
-        if(navigator.share) await navigator.share({title:nameOf(),url});
-        else await navigator.clipboard.writeText(url);
-        toast("Shared","Link copied or shared.","success");
-      }catch{}
-    }
+function applyJob(id){
 
-    function messageCompany(){
-      if(!token()) return goLogin();
-      window.location.href = `messages.html?user=${encodeURIComponent(state.companyId)}`;
-    }
+  if(!token()){
+    return goLogin();
+  }
 
-    function messagePerson(id){
-      if(!token()) return goLogin();
-      if(id) window.location.href = `messages.html?user=${encodeURIComponent(id)}`;
-    }
+  location.href =
+    `job.html?id=${id}`;
+}
 
-    function visitWebsite(){
-      if(state.website) window.open(state.website,"_blank","noopener");
-      else toast("Website not added","This company has not added a website yet.");
-    }
+function likePost(id){
 
-    async function copyProfileLink(){
-      try{
-        await navigator.clipboard.writeText(location.href);
-        toast("Copied","Profile link copied.","success");
-      }catch{
-        toast("Copy failed","Please copy the browser URL.","error");
-      }
-    }
+  toast(
+    "Feature ready",
+    "Post interactions will connect live.",
+    "success"
+  );
+}
 
-    function goDashboard(){
-      const myId = currentUserId();
-      const companyId = String(state.companyId || "");
+function openComments(id){
 
-      if(!token()) return goLogin();
+  toast(
+    "Comments",
+    "Comment modal coming next.",
+    "success"
+  );
+}
 
-      if(myId && companyId && myId === companyId){
-        window.location.href = "employer.html";
-        return;
-      }
+function sharePost(id){
 
-      toast("Owner only","Only the company owner can open this dashboard.","error");
-    }
+  navigator.clipboard.writeText(
+    `${location.origin}/post.html?id=${id}`
+  );
 
-    function goMessages(){
-      if(!token()) return goLogin();
-      window.location.href = "messages.html";
-    }
+  toast(
+    "Copied",
+    "Post link copied.",
+    "success"
+  );
+}
 
-    function goNotifications(){
-      if(!token()) return goLogin();
-      window.location.href = "notifications.html";
-    }
+/* =========================
+   SOCKET
+========================= */
 
-    function goLogin(){
-      window.location.href = "login.html";
-    }
+socket.on("connect",()=>{
+  console.log("Socket connected");
+});
 
-    function openOtherProfile(id){
-      if(id) location.href = `public-profile.html?id=${encodeURIComponent(id)}`;
-    }
+/* =========================
+   INIT
+========================= */
 
-    function date(v){
-      try{
-        return v ? new Date(v).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}) : "Public";
-      }catch{
-        return "Public";
-      }
-    }
+async function init(){
 
-    function syncMobileSearch(value){
-      const input = document.getElementById("globalSearch");
-      if(!input) return;
-      input.value = value;
-      input.dispatchEvent(new Event("input"));
-    }
+  try{
 
-    function setupSearch(){
-      const input = document.getElementById("globalSearch");
-      if(!input) return;
+    await loadCompany();
 
-      input.addEventListener("input",()=>{
-        renderJobs();
-        renderPosts();
-      });
-    }
+  }catch(err){
 
-    async function init(){
-      setupSearch();
+    console.error(err);
 
-      await initViewer();
-      await loadCompany();
+    document.querySelector(".main-content").innerHTML = `
+      <div class="card content-card">
+        <h2>Unable to load employer profile</h2>
+        <p>${escapeHtml(err.message)}</p>
+      </div>
+    `;
+  }
+}
 
-      await Promise.allSettled([
-        loadJobs(),
-        loadPosts(),
-        loadPeople()
-      ]);
+init();
 
-      renderAll();
+</script>
 
-      const hash = (location.hash || "").replace("#","");
-      if(["about","posts","jobs","people"].includes(hash)) openTab(hash);
-      else openTab("overview");
-    }
+<nav class="mobile-public-bottom">
 
-    try{
-      const socket = io(API,{transports:["websocket","polling"],withCredentials:false});
+  <button
+    class="active"
+    data-mobile="about"
+    onclick="openTab('about')"
+  >
+    Home
+  </button>
 
-      socket.on("postCreated",async()=>{
-        await loadPosts();
-        renderPosts();
-      });
+  <button
+    data-mobile="posts"
+    onclick="openTab('posts')"
+  >
+    Posts
+  </button>
 
-      socket.on("postUpdated",async()=>{
-        await loadPosts();
-        renderPosts();
-      });
+  <button
+    data-mobile="jobs"
+    onclick="openTab('jobs')"
+  >
+    Jobs
+  </button>
 
-      socket.on("notification",loadUnread);
-    }catch{}
+  <button
+    data-mobile="people"
+    onclick="openTab('people')"
+  >
+    People
+  </button>
 
-    init();
-  </script>
+  <button
+    data-mobile="details"
+    onclick="openTab('details')"
+  >
+    About
+  </button>
+
+</nav>
+
 </body>
 </html>
