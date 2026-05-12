@@ -1703,3 +1703,5 @@ submitInlineReply,
     closeOverlays
   };
 })();
+
+window.AIFTFeed = AIFTFeed;
