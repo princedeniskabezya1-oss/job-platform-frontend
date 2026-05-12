@@ -19,12 +19,13 @@
 
 :root{
   --blue:#0a66c2;
+  --blue-dark:#004182;
   --green:#057642;
   --bg:#f3f2ef;
-  --card:#fff;
-  --line:#d8d8d8;
+  --card:#ffffff;
   --text:#191919;
-  --muted:#666;
+  --muted:#666666;
+  --line:#d8d8d8;
   --shadow:0 1px 2px rgba(0,0,0,.08);
   --radius:12px;
   --max:1128px;
@@ -32,6 +33,10 @@
 
 *{
   box-sizing:border-box;
+}
+
+html{
+  scroll-behavior:smooth;
 }
 
 body{
@@ -55,8 +60,8 @@ img{
 }
 
 a{
-  color:inherit;
   text-decoration:none;
+  color:inherit;
 }
 
 .hidden{
@@ -73,7 +78,7 @@ a{
 .topbar{
   position:sticky;
   top:0;
-  z-index:500;
+  z-index:1000;
   background:#fff;
   border-bottom:1px solid #e5e7eb;
 }
@@ -89,19 +94,19 @@ a{
   width:34px;
   height:34px;
   border-radius:8px;
-  background:#0a66c2;
+  background:var(--blue);
   color:#fff;
   display:grid;
   place-items:center;
-  font-weight:900;
   font-size:18px;
+  font-weight:900;
   flex-shrink:0;
 }
 
 .search{
   position:relative;
   width:280px;
-  max-width:38vw;
+  max-width:40vw;
 }
 
 .search input{
@@ -112,6 +117,12 @@ a{
   border-radius:6px;
   padding:0 12px 0 36px;
   outline:none;
+  transition:.2s ease;
+}
+
+.search input:focus{
+  border-color:#9cc3ea;
+  background:#fff;
 }
 
 .search svg{
@@ -130,20 +141,21 @@ a{
   margin-left:auto;
   display:flex;
   align-items:center;
-  gap:6px;
+  gap:2px;
 }
 
 .top-link{
+  position:relative;
   border:0;
   background:#fff;
-  color:#555;
+  color:#666;
+  width:78px;
+  height:58px;
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  gap:2px;
-  min-width:72px;
-  height:56px;
+  gap:3px;
   font-size:11px;
   border-bottom:2px solid transparent;
 }
@@ -161,9 +173,13 @@ a{
   stroke-width:2;
 }
 
+.top-link:hover{
+  color:#111;
+}
+
 .top-avatar{
-  width:26px;
-  height:26px;
+  width:24px;
+  height:24px;
   border-radius:50%;
   object-fit:cover;
   border:1px solid #ddd;
@@ -172,7 +188,7 @@ a{
 /* PAGE */
 
 .page{
-  padding:14px 0 50px;
+  padding:16px 0 40px;
 }
 
 .layout{
@@ -185,7 +201,11 @@ a{
 .left-col,
 .right-col{
   position:sticky;
-  top:72px;
+  top:74px;
+}
+
+.feed-col{
+  min-width:0;
 }
 
 .card{
@@ -195,7 +215,7 @@ a{
   box-shadow:var(--shadow);
 }
 
-/* PROFILE */
+/* PROFILE CARD */
 
 .profile-card{
   overflow:hidden;
@@ -203,7 +223,13 @@ a{
 
 .profile-cover{
   height:64px;
-  background:linear-gradient(135deg,#7c3aed,#22c55e);
+  background:
+    linear-gradient(135deg,
+      rgba(10,102,194,.28),
+      rgba(34,197,94,.18)),
+    #c7d2fe;
+  background-size:cover;
+  background-position:center;
 }
 
 .profile-body{
@@ -214,64 +240,77 @@ a{
   width:74px;
   height:74px;
   border-radius:50%;
-  border:3px solid #fff;
   object-fit:cover;
-  margin-top:-38px;
+  border:3px solid #fff;
   background:#fff;
+  margin-top:-38px;
 }
 
 .profile-name{
-  margin:10px 0 4px;
-  font-size:21px;
+  margin:12px 0 4px;
+  font-size:20px;
   font-weight:800;
+  letter-spacing:-.02em;
 }
 
 .profile-headline{
-  color:#555;
+  color:#444;
+  font-size:13px;
   line-height:1.45;
-  font-size:14px;
 }
 
 .profile-location{
   margin-top:8px;
   color:#777;
-  font-size:13px;
+  font-size:12px;
 }
 
 .profile-company{
-  margin-top:12px;
+  margin-top:14px;
   display:flex;
   align-items:center;
   gap:8px;
-  font-size:14px;
+  color:#333;
+  font-size:13px;
   font-weight:700;
 }
 
 .profile-company img{
-  width:22px;
-  height:22px;
+  width:18px;
+  height:18px;
   object-fit:contain;
 }
 
-/* STATS */
-
-.mini-stats{
-  margin-top:12px;
+.profile-stats{
+  margin-top:16px;
+  border-top:1px solid #eee;
 }
 
-.mini-stat{
+.profile-stat{
   display:flex;
   justify-content:space-between;
-  padding:11px 16px;
+  padding:10px 0;
+  font-size:12px;
+}
+
+.profile-stat strong{
+  color:var(--blue);
+}
+
+.profile-premium{
+  margin-top:10px;
   border-top:1px solid #eee;
-  font-size:13px;
+  padding-top:12px;
+  font-size:12px;
+  color:#555;
+  line-height:1.5;
 }
 
-.mini-stat strong{
-  color:#0a66c2;
+.profile-premium strong{
+  display:block;
+  color:#111;
+  margin-bottom:4px;
 }
-
-/* MENU */
 
 .left-menu{
   margin-top:12px;
@@ -282,20 +321,28 @@ a{
   width:100%;
   border:0;
   background:#fff;
-  text-align:left;
   padding:13px 16px;
+  text-align:left;
+  color:#444;
+  font-weight:700;
   display:flex;
   align-items:center;
   gap:10px;
-  font-weight:700;
-  color:#444;
 }
 
 .left-menu button:hover{
   background:#f3f2ef;
 }
 
-/* CREATE */
+.left-menu svg{
+  width:18px;
+  height:18px;
+  stroke:#64748b;
+  fill:none;
+  stroke-width:2;
+}
+
+/* FEED CREATE */
 
 .create-post{
   padding:14px;
@@ -307,7 +354,7 @@ a{
   gap:10px;
 }
 
-.create-top img{
+.create-avatar{
   width:48px;
   height:48px;
   border-radius:50%;
@@ -326,6 +373,10 @@ a{
   font-weight:700;
 }
 
+.create-trigger:hover{
+  background:#f3f2ef;
+}
+
 .create-actions{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -338,156 +389,12 @@ a{
   background:#fff;
   padding:12px;
   border-radius:8px;
-  font-weight:700;
   color:#555;
+  font-weight:700;
 }
 
 .create-actions button:hover{
   background:#f3f2ef;
-}
-
-/* RIGHT */
-
-.side-card{
-  padding:16px;
-  margin-bottom:12px;
-}
-
-.side-card h3{
-  margin:0 0 14px;
-  font-size:20px;
-  font-weight:800;
-}
-
-.side-user{
-  display:flex;
-  gap:10px;
-  padding:12px 0;
-  border-bottom:1px solid #eee;
-}
-
-.side-user:last-child{
-  border-bottom:0;
-}
-
-.side-user img{
-  width:48px;
-  height:48px;
-  border-radius:8px;
-  object-fit:cover;
-}
-
-.side-user h4{
-  margin:0 0 4px;
-  font-size:15px;
-}
-
-.side-user p{
-  margin:0;
-  color:#666;
-  font-size:13px;
-  line-height:1.4;
-}
-
-.follow-btn{
-  margin-top:8px;
-  border:1px solid #777;
-  border-radius:999px;
-  background:#fff;
-  padding:7px 14px;
-  font-weight:800;
-}
-
-/* FEED */
-
-.feed-wrap{
-  min-width:0;
-}
-
-/* MOBILE */
-
-.mobile-nav{
-  display:none;
-}
-
-@media(max-width:1024px){
-
-  .layout{
-    grid-template-columns:minmax(0,1fr);
-  }
-
-  .left-col,
-  .right-col{
-    display:none;
-  }
-}
-
-@media(max-width:640px){
-
-  body{
-    padding-bottom:76px;
-  }
-
-  .container{
-    width:100%;
-  }
-
-  .page{
-    padding:0;
-  }
-
-  .top-link span{
-    display:none;
-  }
-
-  .top-link{
-    min-width:42px;
-  }
-
-  .search{
-    flex:1;
-    width:auto;
-    max-width:none;
-  }
-
-  .create-post,
-  #feedMount > *,
-  .card{
-    border-radius:0!important;
-    border-left:0!important;
-    border-right:0!important;
-  }
-
-  .mobile-nav{
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:0;
-    z-index:999;
-    height:72px;
-    background:rgba(255,255,255,.98);
-    border-top:1px solid #e5e7eb;
-    display:grid;
-    grid-template-columns:repeat(5,1fr);
-    align-items:center;
-  }
-
-  .mobile-nav button{
-    border:0;
-    background:transparent;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:4px;
-    color:#64748b;
-    font-size:11px;
-    font-weight:800;
-  }
-
-  .mobile-nav button.active{
-    color:#0a66c2;
-  }
 }
 
 </style>
@@ -496,6 +403,7 @@ a{
 <body>
 
 <header class="topbar">
+
   <div class="container top-inner">
 
     <a class="brand" href="home.html">A</a>
@@ -551,20 +459,25 @@ a{
           <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
           <path d="M10 21a2 2 0 0 0 4 0"></path>
         </svg>
-        <span>Notifications</span>
+        <span>Alerts</span>
       </button>
 
       <button class="top-link" onclick="openProfile()">
+
         <img id="topAvatar" class="top-avatar">
+
         <span>Me</span>
+
       </button>
 
     </nav>
 
   </div>
+
 </header>
 
 <main class="page">
+
 <div class="container layout">
 
 <aside class="left-col">
@@ -581,33 +494,37 @@ a{
         Loading...
       </h2>
 
-      <div id="profileHeadline" class="profile-headline">
-        Profile headline
-      </div>
+      <div id="profileHeadline" class="profile-headline"></div>
 
-      <div id="profileLocation" class="profile-location">
-        Location
-      </div>
+      <div id="profileLocation" class="profile-location"></div>
 
       <div class="profile-company">
+
         <img src="https://cdn-icons-png.flaticon.com/512/5968/5968705.png">
+
         <span id="profileCompany">
           AIFT
         </span>
+
       </div>
 
-    </div>
+      <div class="profile-stats">
 
-    <div class="mini-stats">
+        <div class="profile-stat">
+          <span>Profile viewers</span>
+          <strong id="viewerCount">0</strong>
+        </div>
 
-      <div class="mini-stat">
-        <span>Profile viewers</span>
-        <strong id="viewerCount">0</strong>
+        <div class="profile-stat">
+          <span>Post impressions</span>
+          <strong id="impressionCount">0</strong>
+        </div>
+
       </div>
 
-      <div class="mini-stat">
-        <span>Post impressions</span>
-        <strong id="impressionCount">0</strong>
+      <div class="profile-premium">
+        <strong>Grow faster with AIFT</strong>
+        Connect with employers, schools, recruiters, and professionals worldwide.
       </div>
 
     </div>
@@ -617,36 +534,73 @@ a{
   <section class="left-menu card">
 
     <button onclick="openSaved()">
+
+      <svg viewBox="0 0 24 24">
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+      </svg>
+
       Saved items
+
     </button>
 
     <button onclick="openGroups()">
+
+      <svg viewBox="0 0 24 24">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+      </svg>
+
       Groups
+
     </button>
 
     <button onclick="openEvents()">
+
+      <svg viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+        <path d="M16 2v4"></path>
+        <path d="M8 2v4"></path>
+      </svg>
+
       Events
+
     </button>
 
     <button onclick="openProfile()">
+
+      <svg viewBox="0 0 24 24">
+        <path d="M20 21a8 8 0 1 0-16 0"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+
       View profile
+
     </button>
 
     <button id="dashboardMenuBtn" class="hidden" onclick="openDashboard()">
+
+      <svg viewBox="0 0 24 24">
+        <path d="M3 13h8V3H3z"></path>
+        <path d="M13 21h8v-6h-8z"></path>
+        <path d="M13 11h8V3h-8z"></path>
+        <path d="M3 21h8v-6H3z"></path>
+      </svg>
+
       Dashboard
+
     </button>
 
   </section>
 
 </aside>
 
-<section class="feed-wrap">
+<section class="feed-col">
 
   <section class="create-post card">
 
     <div class="create-top">
 
-      <img id="createAvatar">
+      <img id="createAvatar" class="create-avatar">
 
       <button class="create-trigger" onclick="openCreatePost()">
         Start a post
@@ -656,16 +610,16 @@ a{
 
     <div class="create-actions">
 
-      <button onclick="openCreatePost('video')">
-        🎥 Video
+      <button onclick="openCreatePost('photo')">
+        Photo
       </button>
 
-      <button onclick="openCreatePost('photo')">
-        🖼️ Photo
+      <button onclick="openCreatePost('video')">
+        Video
       </button>
 
       <button onclick="openCreatePost('article')">
-        ✍️ Article
+        Write article
       </button>
 
     </div>
@@ -675,56 +629,406 @@ a{
   <div id="feedMount"></div>
 
 </section>
-
 <aside class="right-col">
 
   <section class="side-card card">
+    <div class="side-head">
+      <h3>Add to your feed</h3>
+      <button onclick="loadSuggestions()">Refresh</button>
+    </div>
 
-    <h3>Add to your feed</h3>
+    <div id="suggestionsMount">
+      <div class="side-loading">Loading suggestions...</div>
+    </div>
+  </section>
 
-    <div id="suggestionsMount"></div>
+  <section class="side-card card">
+    <div class="side-head">
+      <h3>AIFT Today</h3>
+    </div>
 
+    <div class="news-list">
+      <button onclick="goJobs()">
+        <strong>Hiring activity</strong>
+        <span id="todayJobs">Open roles from employers on AIFT</span>
+      </button>
+
+      <button onclick="openDashboard()">
+        <strong>Your workspace</strong>
+        <span>Open your dashboard, profile, or tools</span>
+      </button>
+
+      <button onclick="openProfile()">
+        <strong>Profile visibility</strong>
+        <span>Keep your public profile updated</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="side-card card">
+    <h3>Quick access</h3>
+
+    <div class="quick-grid">
+      <button onclick="openProfile()">Public profile</button>
+      <button id="rightDashboardBtn" class="hidden" onclick="openDashboard()">Dashboard</button>
+      <button onclick="goMessages()">Messages</button>
+      <button onclick="goNotifications()">Notifications</button>
+    </div>
   </section>
 
 </aside>
 
 </div>
 </main>
+
 <nav class="mobile-nav">
 
   <button class="active" onclick="goHome()">
-    Home
+    <svg viewBox="0 0 24 24">
+      <path d="M3 10.5 12 3l9 7.5"></path>
+      <path d="M5 9.5V21h14V9.5"></path>
+    </svg>
+    <span>Home</span>
   </button>
 
   <button onclick="goNetwork()">
-    Network
+    <svg viewBox="0 0 24 24">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+      <circle cx="8.5" cy="7" r="4"></circle>
+      <path d="M20 8v6"></path>
+      <path d="M23 11h-6"></path>
+    </svg>
+    <span>Network</span>
+  </button>
+
+  <button class="mobile-create" onclick="openCreatePost()">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 5v14"></path>
+      <path d="M5 12h14"></path>
+    </svg>
   </button>
 
   <button onclick="goJobs()">
-    Jobs
+    <svg viewBox="0 0 24 24">
+      <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+    </svg>
+    <span>Jobs</span>
   </button>
 
   <button onclick="goMessages()">
-    Messages
-  </button>
-
-  <button onclick="goNotifications()">
-    Alerts
+    <svg viewBox="0 0 24 24">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+    <span>Messages</span>
   </button>
 
 </nav>
 
-<script src="feed.js"></script>
+<style>
+/* RIGHT SIDEBAR */
 
-<script>
+.side-card{
+  padding:16px;
+  margin-bottom:12px;
+}
+
+.side-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.side-head h3,
+.side-card h3{
+  margin:0;
+  font-size:16px;
+  font-weight:800;
+  letter-spacing:-.01em;
+}
+
+.side-head button{
+  border:0;
+  background:transparent;
+  color:var(--blue);
+  font-size:12px;
+  font-weight:800;
+}
+
+.side-loading{
+  color:#666;
+  font-size:13px;
+  padding:10px 0;
+}
+
+.side-user{
+  display:flex;
+  gap:10px;
+  padding:13px 0;
+  border-bottom:1px solid #eee;
+}
+
+.side-user:last-child{
+  border-bottom:0;
+}
+
+.side-user img{
+  width:48px;
+  height:48px;
+  border-radius:8px;
+  object-fit:cover;
+  border:1px solid #ddd;
+  flex-shrink:0;
+}
+
+.side-user h4{
+  margin:0 0 3px;
+  font-size:14px;
+  font-weight:800;
+  line-height:1.25;
+}
+
+.side-user p{
+  margin:0;
+  color:#666;
+  font-size:12px;
+  line-height:1.35;
+}
+
+.follow-btn{
+  margin-top:8px;
+  border:1px solid #777;
+  border-radius:999px;
+  background:#fff;
+  padding:6px 14px;
+  font-size:13px;
+  font-weight:800;
+}
+
+.follow-btn:hover{
+  background:#f3f2ef;
+}
+
+.news-list{
+  display:grid;
+  gap:2px;
+}
+
+.news-list button{
+  border:0;
+  background:#fff;
+  padding:10px 0;
+  text-align:left;
+}
+
+.news-list button:hover strong{
+  color:var(--blue);
+}
+
+.news-list strong{
+  display:block;
+  font-size:13px;
+  margin-bottom:3px;
+}
+
+.news-list span{
+  display:block;
+  color:#666;
+  font-size:12px;
+  line-height:1.35;
+}
+
+.quick-grid{
+  display:grid;
+  gap:8px;
+  margin-top:12px;
+}
+
+.quick-grid button{
+  border:1px solid #d8d8d8;
+  background:#fff;
+  border-radius:999px;
+  padding:9px 14px;
+  font-weight:800;
+  color:#333;
+}
+
+.quick-grid button:hover{
+  background:#f3f2ef;
+}
+
+/* FEED CSS SAFETY */
+
+#feedMount{
+  min-height:300px;
+}
+
+#feedMount .aift-feed-shell{
+  max-width:100%!important;
+  margin:0!important;
+}
+
+#feedMount .aift-composer{
+  display:none!important;
+}
+
+/* MOBILE NAV */
+
+.mobile-nav{
+  display:none;
+}
+
+@media(max-width:1024px){
+  .layout{
+    grid-template-columns:minmax(0,1fr);
+  }
+
+  .left-col,
+  .right-col{
+    display:none;
+  }
+}
+
+@media(max-width:760px){
+  body{
+    padding-bottom:78px;
+  }
+
+  .container{
+    width:100%;
+  }
+
+  .page{
+    padding:0;
+  }
+
+  .topbar{
+    border-bottom:1px solid #e5e7eb;
+  }
+
+  .top-inner{
+    padding:0 10px;
+  }
+
+  .brand{
+    width:32px;
+    height:32px;
+  }
+
+  .search{
+    flex:1;
+    width:auto;
+    max-width:none;
+  }
+
+  .top-link span{
+    display:none;
+  }
+
+  .top-link{
+    width:42px;
+    min-width:42px;
+  }
+
+  .top-link:nth-child(2),
+  .top-link:nth-child(3),
+  .top-link:nth-child(4),
+  .top-link:nth-child(5){
+    display:none;
+  }
+
+  .create-post,
+  .card{
+    border-radius:0!important;
+    border-left:0!important;
+    border-right:0!important;
+  }
+
+  .create-actions button{
+    font-size:13px;
+  }
+
+  .mobile-nav{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    height:74px;
+    z-index:1100;
+    background:rgba(255,255,255,.98);
+    border-top:1px solid #e5e7eb;
+    display:grid;
+    grid-template-columns:1fr 1fr 76px 1fr 1fr;
+    align-items:center;
+    padding:0 6px;
+  }
+
+  .mobile-nav button{
+    border:0;
+    background:transparent;
+    color:#64748b;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    height:100%;
+    font-size:11px;
+    font-weight:800;
+  }
+
+  .mobile-nav button.active{
+    color:var(--blue);
+  }
+
+  .mobile-nav svg{
+    width:23px;
+    height:23px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:2;
+  }
+
+  .mobile-create{
+    width:58px!important;
+    height:58px!important;
+    border-radius:50%!important;
+    background:linear-gradient(180deg,var(--blue),var(--blue-dark))!important;
+    color:#fff!important;
+    margin:auto;
+    box-shadow:0 12px 26px rgba(10,102,194,.26);
+  }
+
+  .mobile-create svg{
+    width:26px;
+    height:26px;
+    stroke:#fff;
+    stroke-width:2.5;
+  }
+}
+</style>
+
+  <script>
+
 const API = "https://backend-1-9b6f.onrender.com";
 
-const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+const FALLBACK_AVATAR =
+  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 const state = {
-  me: null,
-  suggestions: []
+  me:null,
+  suggestions:[]
 };
+
+const socket = io(API,{
+  transports:["websocket","polling"]
+});
+
+/* =========================
+   AUTH
+========================= */
 
 function token(){
   return (
@@ -732,6 +1036,7 @@ function token(){
     localStorage.getItem("talentToken") ||
     localStorage.getItem("adminToken") ||
     localStorage.getItem("agentToken") ||
+    localStorage.getItem("schoolToken") ||
     localStorage.getItem("token")
   );
 }
@@ -740,180 +1045,262 @@ function role(){
   return localStorage.getItem("role") || "";
 }
 
+function currentUserId(){
+  return localStorage.getItem("userId");
+}
+
 function headers(extra = {}){
   const t = token();
+
   return {
-    ...(t ? { Authorization: `Bearer ${t}` } : {}),
+    ...(t ? { Authorization:`Bearer ${t}` } : {}),
     ...extra
   };
 }
 
-async function api(path, options = {}){
-  const res = await fetch(API + path, {
-    ...options,
-    headers: {
-      ...(options.headers || {})
-    }
-  });
+/* =========================
+   HELPERS
+========================= */
 
-  let data = null;
-  try {
-    data = await res.json();
-  } catch {}
-
-  if(!res.ok){
-    throw new Error(data?.message || "Request failed");
-  }
-
-  return data;
-}
-
-function escapeHtml(value = ""){
-  return String(value)
+function escapeHtml(v=""){
+  return String(v)
     .replace(/&/g,"&amp;")
     .replace(/</g,"&lt;")
     .replace(/>/g,"&gt;")
     .replace(/"/g,"&quot;");
 }
 
-function profileName(){
-  return state.me?.companyName || state.me?.name || "AIFT User";
-}
+async function api(path,options={}){
 
-function profileHeadline(){
-  return state.me?.headline || state.me?.profession || state.me?.role || "AIFT member";
-}
+  const res = await fetch(API + path,{
+    ...options,
+    headers:{
+      ...(options.headers || {})
+    }
+  });
 
-function profileImage(){
-  return state.me?.profileImage || FALLBACK_AVATAR;
-}
+  const text = await res.text();
 
-function publicProfileUrl(){
-  if(!state.me?._id) return "profile.html";
+  let data = {};
 
-  if(state.me.role === "employer" || state.me.role === "school"){
-    return `employer-public-profile.html?id=${state.me._id}`;
+  try{
+    data = text ? JSON.parse(text) : {};
+  }catch{
+    data = { message:text };
   }
 
-  return `public-profile.html?id=${state.me._id}`;
+  if(!res.ok){
+    throw new Error(data.message || "Request failed");
+  }
+
+  return data;
 }
 
+/* =========================
+   USER
+========================= */
+
 async function loadMe(){
+
   if(!token()){
     location.href = "login.html";
     return;
   }
 
-  const data = await api("/api/users/me", {
-    headers: headers()
+  const data = await api("/api/users/me",{
+    headers:headers()
   });
 
   state.me = data.user || data;
-
-  localStorage.setItem("userId", state.me._id || state.me.id || "");
-  localStorage.setItem("role", state.me.role || "");
-  if(state.me.profileImage){
-    localStorage.setItem("profileImage", state.me.profileImage);
-  }
 
   renderMe();
 }
 
 function renderMe(){
-  document.getElementById("profileAvatar").src = profileImage();
-  document.getElementById("topAvatar").src = profileImage();
-  document.getElementById("createAvatar").src = profileImage();
 
-  document.getElementById("profileName").textContent = profileName();
-  document.getElementById("profileHeadline").textContent = profileHeadline();
-  document.getElementById("profileLocation").textContent = state.me.location || "Location not added";
+  const me = state.me || {};
+
+  const avatar =
+    me.profileImage ||
+    FALLBACK_AVATAR;
+
+  document.getElementById("profileAvatar").src = avatar;
+  document.getElementById("topAvatar").src = avatar;
+  document.getElementById("createAvatar").src = avatar;
+
+  document.getElementById("profileName").textContent =
+    me.companyName ||
+    me.schoolName ||
+    me.name ||
+    "AIFT User";
+
+  document.getElementById("profileHeadline").textContent =
+    me.headline ||
+    me.profession ||
+    me.role ||
+    "AIFT member";
+
+  document.getElementById("profileLocation").textContent =
+    me.location ||
+    "Location not added";
 
   document.getElementById("profileCompany").textContent =
-    state.me.companyName || state.me.schoolName || "AIFT";
+    me.companyName ||
+    me.schoolName ||
+    "AIFT";
 
   document.getElementById("viewerCount").textContent =
-    state.me.profileViews || state.me.followers?.length || 0;
+    me.profileViews ||
+    me.followers?.length ||
+    0;
 
   document.getElementById("impressionCount").textContent =
-    state.me.postImpressions || 0;
+    me.postImpressions ||
+    0;
 
-  const dashboardBtn = document.getElementById("dashboardMenuBtn");
-  const canDashboard = ["employer","admin","agent","school"].includes(state.me.role);
+  if(me.bannerImage){
 
-  dashboardBtn.classList.toggle("hidden", !canDashboard);
+    document.getElementById("profileCover").style.backgroundImage =
+      `linear-gradient(
+        135deg,
+        rgba(10,102,194,.24),
+        rgba(34,197,94,.16)
+      ),
+      url('${me.bannerImage}')`;
+
+  }
+
+  updateDashboardButtons();
 }
 
-async function loadSuggestions(){
-  try{
-    const data = await api("/api/users/suggestions", {
-      headers: headers()
-    });
+function updateDashboardButtons(){
 
-    state.suggestions = Array.isArray(data) ? data : [];
-    renderSuggestions();
-  }catch(e){
-    document.getElementById("suggestionsMount").innerHTML = `
-      <div style="color:#666;font-size:13px;">No suggestions yet.</div>
-    `;
+  const allowed =
+    ["employer","school","admin","agent"]
+      .includes(role());
+
+  document.getElementById("dashboardMenuBtn")
+    ?.classList.toggle("hidden",!allowed);
+
+  document.getElementById("rightDashboardBtn")
+    ?.classList.toggle("hidden",!allowed);
+}
+
+/* =========================
+   SUGGESTIONS
+========================= */
+
+async function loadSuggestions(){
+
+  try{
+
+    const data = await api(
+      "/api/users/suggestions",
+      {
+        headers:headers()
+      }
+    );
+
+    state.suggestions =
+      Array.isArray(data)
+        ? data
+        : [];
+
+  }catch(err){
+
+    console.warn("Suggestions failed");
+
+    state.suggestions = [];
+
   }
+
+  renderSuggestions();
 }
 
 function renderSuggestions(){
-  const mount = document.getElementById("suggestionsMount");
+
+  const mount =
+    document.getElementById("suggestionsMount");
 
   if(!state.suggestions.length){
+
     mount.innerHTML = `
-      <div style="color:#666;font-size:13px;">No suggestions yet.</div>
+      <div class="side-loading">
+        No suggestions available yet.
+      </div>
     `;
+
     return;
   }
 
-  mount.innerHTML = state.suggestions.map(user => `
-    <div class="side-user">
-      <img src="${escapeHtml(user.profileImage || FALLBACK_AVATAR)}">
+  mount.innerHTML =
+    state.suggestions.map(user => `
 
-      <div>
-        <h4>${escapeHtml(user.companyName || user.name || "AIFT user")}</h4>
-        <p>${escapeHtml(user.headline || user.role || "Professional")}</p>
-        <button class="follow-btn" onclick="followUser('${escapeHtml(user._id)}')">+ Follow</button>
+      <div class="side-user">
+
+        <img
+          src="${
+            user.profileImage ||
+            FALLBACK_AVATAR
+          }"
+        >
+
+        <div>
+
+          <h4>
+            ${
+              escapeHtml(
+                user.companyName ||
+                user.name ||
+                "User"
+              )
+            }
+          </h4>
+
+          <p>
+            ${
+              escapeHtml(
+                user.headline ||
+                user.profession ||
+                user.role ||
+                "Professional"
+              )
+            }
+          </p>
+
+          <button
+            class="follow-btn"
+            onclick="followUser('${user._id}')"
+          >
+            Follow
+          </button>
+
+        </div>
+
       </div>
-    </div>
-  `).join("");
+
+    `).join("");
 }
 
 async function followUser(id){
+
   try{
-    await api(`/api/users/${id}/follow`, {
-      method: "PATCH",
-      headers: headers()
-    });
+
+    await api(
+      `/api/users/${id}/follow`,
+      {
+        method:"PATCH",
+        headers:headers()
+      }
+    );
 
     await loadSuggestions();
-  }catch(e){
-    alert(e.message);
+
+  }catch(err){
+
+    console.error(err);
+
   }
-}
-  function mountFeed(){
-
-  if(window.AIFTFeed && typeof window.AIFTFeed.mount === "function"){
-
-    window.AIFTFeed.mount("feedMount",{
-      apiBase: API,
-      token: token(),
-      mode: "home",
-      infiniteScroll: true,
-      realtime: true
-    });
-
-    return;
-  }
-
-  document.getElementById("feedMount").innerHTML = `
-    <div class="card" style="padding:20px;text-align:center;">
-      Feed system not found.<br><br>
-      Make sure feed.js is loaded correctly.
-    </div>
-  `;
 }
 
 /* =========================
@@ -940,6 +1327,10 @@ function goNotifications(){
   location.href = "notifications.html";
 }
 
+function openSaved(){
+  location.href = "saved.html";
+}
+
 function openGroups(){
   location.href = "groups.html";
 }
@@ -948,75 +1339,267 @@ function openEvents(){
   location.href = "events.html";
 }
 
-function openSaved(){
-  location.href = "saved.html";
-}
-
 function openDashboard(){
 
-  const userRole = role();
-
   if(
-    userRole === "employer" ||
-    userRole === "school" ||
-    userRole === "agent" ||
-    userRole === "admin"
+    role() === "employer" ||
+    role() === "school" ||
+    role() === "agent" ||
+    role() === "admin"
   ){
     location.href = "employer.html";
     return;
   }
 
-  location.href = "profile.html";
+  openProfile();
 }
 
 function openProfile(){
-  location.href = publicProfileUrl();
+
+  if(!state.me?._id){
+    return;
+  }
+
+  if(
+    state.me.role === "employer" ||
+    state.me.role === "school"
+  ){
+
+    location.href =
+      `employer-public-profile.html?id=${state.me._id}`;
+
+    return;
+  }
+
+  location.href =
+    `public-profile.html?id=${state.me._id}`;
+}
+
+</script>
+<script src="feed.js"></script>
+
+<script>
+
+/* =========================
+   FEED
+========================= */
+
+function mountFeed(){
+
+  const mount =
+    document.getElementById("feedMount");
+
+  if(
+    window.AIFTFeed &&
+    typeof window.AIFTFeed.mount === "function"
+  ){
+
+    window.AIFTFeed.mount(
+      "feedMount",
+      {
+        apiBase:API,
+        token:token(),
+        mode:"home",
+        realtime:true,
+        infiniteScroll:true
+      }
+    );
+
+    return;
+  }
+
+  mount.innerHTML = `
+    <div class="card" style="
+      padding:24px;
+      text-align:center;
+      color:#666;
+      font-size:14px;
+    ">
+      Feed system not detected.<br><br>
+      Make sure feed.js is connected correctly.
+    </div>
+  `;
 }
 
 /* =========================
    CREATE POST
 ========================= */
 
-function openCreatePost(type = "post"){
+function openCreatePost(type="post"){
 
-  if(window.AIFTFeed?.openComposer){
+  if(
+    window.AIFTFeed &&
+    typeof window.AIFTFeed.openComposer === "function"
+  ){
+
     window.AIFTFeed.openComposer(type);
+
     return;
   }
 
-  alert("Composer not connected yet.");
+  console.warn("Composer unavailable");
 }
 
 /* =========================
-   SOCKET
+   SOCKET EVENTS
 ========================= */
-
-const socket = io(API,{
-  transports:["websocket","polling"]
-});
 
 socket.on("connect",()=>{
   console.log("Socket connected");
 });
 
-/* =========================
-   LIVE REFRESH
-========================= */
-
 socket.on("postCreated",()=>{
-  if(window.AIFTFeed?.refresh){
+
+  if(
+    window.AIFTFeed &&
+    typeof window.AIFTFeed.refresh === "function"
+  ){
     window.AIFTFeed.refresh();
   }
+
 });
 
 socket.on("postDeleted",()=>{
-  if(window.AIFTFeed?.refresh){
+
+  if(
+    window.AIFTFeed &&
+    typeof window.AIFTFeed.refresh === "function"
+  ){
     window.AIFTFeed.refresh();
   }
+
+});
+
+socket.on("newNotification",()=>{
+
+  pulseNotifications();
+
 });
 
 /* =========================
-   INITIALIZE
+   UI EFFECTS
+========================= */
+
+function pulseNotifications(){
+
+  const alertsBtn =
+    document.querySelectorAll(".top-link")[4];
+
+  if(!alertsBtn) return;
+
+  alertsBtn.animate(
+    [
+      { transform:"scale(1)" },
+      { transform:"scale(1.08)" },
+      { transform:"scale(1)" }
+    ],
+    {
+      duration:600
+    }
+  );
+}
+
+/* =========================
+   FEED POLISH
+========================= */
+
+function enhanceFeedAfterRender(){
+
+  const posts =
+    document.querySelectorAll(
+      "#feedMount .post-card"
+    );
+
+  posts.forEach(post=>{
+
+    post.style.borderRadius = "12px";
+    post.style.overflow = "hidden";
+
+  });
+}
+
+/* =========================
+   OBSERVER
+========================= */
+
+const observer =
+  new MutationObserver(()=>{
+
+    enhanceFeedAfterRender();
+
+  });
+
+observer.observe(
+  document.body,
+  {
+    childList:true,
+    subtree:true
+  }
+);
+
+/* =========================
+   SCROLL
+========================= */
+
+let lastScroll = 0;
+
+window.addEventListener("scroll",()=>{
+
+  if(window.innerWidth > 760){
+    return;
+  }
+
+  const nav =
+    document.querySelector(".mobile-nav");
+
+  const current =
+    window.scrollY;
+
+  if(current > lastScroll && current > 80){
+
+    nav.style.transform =
+      "translateY(100%)";
+
+  }else{
+
+    nav.style.transform =
+      "translateY(0)";
+
+  }
+
+  lastScroll = current;
+});
+
+/* =========================
+   ERROR SAFE
+========================= */
+
+window.addEventListener(
+  "unhandledrejection",
+  event => {
+
+    console.error(
+      "Unhandled promise rejection:",
+      event.reason
+    );
+
+  }
+);
+
+window.addEventListener(
+  "error",
+  event => {
+
+    console.error(
+      "Global error:",
+      event.error
+    );
+
+  }
+);
+
+/* =========================
+   INIT
 ========================= */
 
 async function init(){
@@ -1031,20 +1614,346 @@ async function init(){
 
     mountFeed();
 
+    enhanceFeedAfterRender();
+
   }catch(err){
 
     console.error(err);
 
-    document.getElementById("feedMount").innerHTML = `
-      <div class="card" style="padding:24px;text-align:center;">
-        <h2>Unable to load home page</h2>
-        <p>${escapeHtml(err.message)}</p>
+    document.getElementById(
+      "feedMount"
+    ).innerHTML = `
+      <div class="card" style="
+        padding:26px;
+        text-align:center;
+      ">
+
+        <h2 style="
+          margin:0 0 10px;
+          font-size:22px;
+        ">
+          Unable to load home
+        </h2>
+
+        <p style="
+          margin:0;
+          color:#666;
+        ">
+          ${
+            escapeHtml(
+              err.message ||
+              "Something went wrong."
+            )
+          }
+        </p>
+
       </div>
     `;
   }
 }
 
 init();
+
+</script>
+<style>
+
+/* =========================
+   FEED OVERRIDES
+========================= */
+
+#feedMount{
+  min-height:300px;
+}
+
+#feedMount .aift-feed-shell{
+  width:100%!important;
+  max-width:100%!important;
+  margin:0!important;
+}
+
+#feedMount .aift-composer{
+  display:none!important;
+}
+
+#feedMount .post-card,
+#feedMount .feed-post,
+#feedMount .feed-item{
+  border-radius:12px!important;
+  overflow:hidden!important;
+  border:1px solid #d8d8d8!important;
+  box-shadow:0 1px 2px rgba(0,0,0,.08)!important;
+  margin-bottom:12px!important;
+}
+
+#feedMount .post-header{
+  padding:14px 14px 10px!important;
+}
+
+#feedMount .post-author-name{
+  font-size:14px!important;
+  font-weight:800!important;
+  color:#111!important;
+}
+
+#feedMount .post-meta{
+  font-size:12px!important;
+  color:#666!important;
+}
+
+#feedMount .post-text{
+  padding:0 14px 14px!important;
+  font-size:14px!important;
+  line-height:1.6!important;
+  color:#222!important;
+}
+
+#feedMount video,
+#feedMount img{
+  max-height:700px!important;
+  object-fit:cover!important;
+}
+
+#feedMount .post-actions{
+  border-top:1px solid #eee!important;
+}
+
+#feedMount .post-actions button{
+  font-weight:700!important;
+  color:#555!important;
+}
+
+#feedMount .post-actions button:hover{
+  background:#f3f2ef!important;
+}
+
+/* =========================
+   LOADING
+========================= */
+
+.feed-skeleton{
+  background:#fff;
+  border:1px solid #d8d8d8;
+  border-radius:12px;
+  padding:16px;
+  margin-bottom:12px;
+  animation:pulse 1.4s infinite;
+}
+
+.feed-skeleton-line{
+  height:12px;
+  border-radius:999px;
+  background:#ececec;
+  margin-bottom:10px;
+}
+
+.feed-skeleton-line.large{
+  height:18px;
+  width:50%;
+}
+
+.feed-skeleton-line.medium{
+  width:80%;
+}
+
+.feed-skeleton-line.small{
+  width:35%;
+}
+
+.feed-skeleton-media{
+  height:260px;
+  border-radius:12px;
+  background:#ececec;
+  margin-top:12px;
+}
+
+@keyframes pulse{
+  0%{
+    opacity:.55;
+  }
+  50%{
+    opacity:1;
+  }
+  100%{
+    opacity:.55;
+  }
+}
+
+/* =========================
+   SCROLLBAR
+========================= */
+
+::-webkit-scrollbar{
+  width:10px;
+}
+
+::-webkit-scrollbar-thumb{
+  background:#c7ccd3;
+  border-radius:999px;
+}
+
+::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+/* =========================
+   TRANSITIONS
+========================= */
+
+.card,
+button,
+input{
+  transition:.2s ease;
+}
+
+/* =========================
+   DESKTOP POLISH
+========================= */
+
+@media(min-width:761px){
+
+  .feed-col{
+    min-width:0;
+  }
+
+  .create-post:hover{
+    box-shadow:
+      0 2px 6px rgba(0,0,0,.08),
+      0 8px 24px rgba(10,102,194,.05);
+  }
+
+  .profile-card:hover,
+  .side-card:hover{
+    box-shadow:
+      0 2px 6px rgba(0,0,0,.08),
+      0 10px 24px rgba(0,0,0,.05);
+  }
+
+}
+
+/* =========================
+   MOBILE FEED
+========================= */
+
+@media(max-width:760px){
+
+  #feedMount .post-card,
+  #feedMount .feed-post,
+  #feedMount .feed-item{
+    border-radius:0!important;
+    border-left:0!important;
+    border-right:0!important;
+    margin-bottom:8px!important;
+  }
+
+  #feedMount video,
+  #feedMount img{
+    max-height:520px!important;
+  }
+
+  .mobile-nav{
+    transition:transform .28s ease;
+  }
+
+}
+
+/* =========================
+   SAFE AREA
+========================= */
+
+@supports(padding:max(0px)){
+
+  .mobile-nav{
+    padding-bottom:
+      max(0px,env(safe-area-inset-bottom));
+  }
+
+}
+
+/* =========================
+   FINAL
+========================= */
+
+body.loaded{
+  opacity:1;
+}
+
+body{
+  opacity:0;
+  transition:opacity .25s ease;
+}
+
+</style>
+
+<script>
+
+/* =========================
+   FINAL PAGE READY
+========================= */
+
+window.addEventListener(
+  "load",
+  ()=>{
+
+    document.body.classList.add("loaded");
+
+  }
+);
+
+/* =========================
+   PLACEHOLDER SKELETONS
+========================= */
+
+(function preloadSkeletons(){
+
+  const mount =
+    document.getElementById("feedMount");
+
+  if(!mount) return;
+
+  let html = "";
+
+  for(let i=0;i<3;i++){
+
+    html += `
+      <div class="feed-skeleton">
+
+        <div class="feed-skeleton-line large"></div>
+
+        <div class="feed-skeleton-line medium"></div>
+
+        <div class="feed-skeleton-line small"></div>
+
+        <div class="feed-skeleton-media"></div>
+
+      </div>
+    `;
+  }
+
+  mount.innerHTML = html;
+
+})();
+
+/* =========================
+   FEED READY WATCHER
+========================= */
+
+const feedWatcher =
+  setInterval(()=>{
+
+    const hasPosts =
+      document.querySelector(
+        "#feedMount .post-card, #feedMount .feed-post"
+      );
+
+    if(hasPosts){
+
+      clearInterval(feedWatcher);
+
+      enhanceFeedAfterRender();
+
+    }
+
+  },600);
 
 </script>
 
