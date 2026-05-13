@@ -2244,8 +2244,8 @@ async function fetchSchoolProfile(){
 
   try{
 
-    const res = await fetch(
-      `${API}/api/users/${schoolId}`,
+const res = await fetch(
+  `${API}/api/users/${schoolId}/public`,
       {
         headers:authHeaders()
       }
@@ -2260,7 +2260,7 @@ async function fetchSchoolProfile(){
 
     const data = await safeJson(res);
 
-    state.school = data;
+    state.school = data.user || data.school || data;
 
   }catch(err){
 
@@ -2726,22 +2726,12 @@ function buildSidebar(){
 ========================= */
 
 function setupOwnerButtons(){
+  const viewerId = String(state.viewer?._id || "");
+  const pageSchoolId = String(state.school?._id || schoolId || "");
+  const isOwner = viewerId && pageSchoolId && viewerId === pageSchoolId;
 
-  const viewer =
-    state.viewer;
-
-  if(!viewer) return;
-
-  if(
-    String(viewer._id) === String(schoolId)
-  ){
-
-    document.getElementById("dashboardTopBtn")
-      .classList.remove("hidden");
-
-    document.getElementById("dashboardHeroBtn")
-      .classList.remove("hidden");
-  }
+  document.getElementById("dashboardTopBtn")?.classList.toggle("hidden", !isOwner);
+  document.getElementById("dashboardHeroBtn")?.classList.toggle("hidden", !isOwner);
 }
 
 </script>
@@ -2754,7 +2744,7 @@ function setupOwnerButtons(){
 function renderPrograms(){
 
   const mount =
-    document.getElementById("programsGrid");
+    document.getElementById("programsList");
 
   const programs =
     Array.isArray(state.school?.programs)
@@ -2859,7 +2849,7 @@ function renderPrograms(){
 function renderPartners(){
 
   const mount =
-    document.getElementById("partnersGrid");
+    document.getElementById("partnersList");
 
   if(!state.partners.length){
 
@@ -2975,7 +2965,7 @@ function renderPartners(){
 function renderStudents(){
 
   const mount =
-    document.getElementById("studentsGrid");
+    document.getElementById("studentsList");
 
   if(!state.students.length){
 
