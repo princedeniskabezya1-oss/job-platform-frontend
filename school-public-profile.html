@@ -12,25 +12,29 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="feed.css">
-
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <style>
 :root{
-  --blue:#0a66c2;
-  --blue-dark:#004182;
-  --green:#057642;
+  --primary:#2557a7;
+  --primary-dark:#163d7a;
+  --primary-soft:#eef4ff;
+  --green:#16a34a;
+  --green-soft:#ecfdf5;
   --purple:#6d28d9;
-  --bg:#f3f2ef;
+  --purple-soft:#f5f3ff;
+  --warning:#f59e0b;
+  --warning-soft:#fffbeb;
+  --danger:#dc2626;
+  --bg:#f4f7fb;
   --card:#ffffff;
-  --text:#191919;
-  --muted:#666;
-  --line:#d8d8d8;
-  --soft:#eef3f8;
-  --gold:#b7791f;
-  --shadow:0 1px 2px rgba(0,0,0,.08);
-  --radius:12px;
-  --max:1128px;
+  --text:#111827;
+  --muted:#6b7280;
+  --border:#e5e7eb;
+  --shadow:0 10px 30px rgba(15,23,42,.08);
+  --radius:22px;
+  --radius-sm:14px;
+  --max:1400px;
 }
 
 *{
@@ -43,13 +47,20 @@ html{
 
 body{
   margin:0;
+  font-family:Inter,Arial,sans-serif;
   background:var(--bg);
   color:var(--text);
-  font-family:Inter,Arial,sans-serif;
-  font-size:14px;
 }
 
-button,input{
+a{
+  color:inherit;
+  text-decoration:none;
+}
+
+button,
+input,
+select,
+textarea{
   font:inherit;
 }
 
@@ -62,312 +73,466 @@ img{
   max-width:100%;
 }
 
-a{
-  color:inherit;
-  text-decoration:none;
-}
-
 .hidden{
   display:none!important;
 }
 
 .container{
   width:min(var(--max),calc(100% - 24px));
-  margin:auto;
+  margin:0 auto;
 }
 
-/* TOP BAR */
+/* TOPBAR */
 
 .topbar{
   position:sticky;
   top:0;
-  z-index:500;
-  background:#fff;
-  border-bottom:1px solid #e5e7eb;
+  z-index:1000;
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(229,231,235,.95);
 }
 
-.top-inner{
-  height:58px;
+.topbar-inner{
+  min-height:72px;
   display:flex;
   align-items:center;
-  gap:10px;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.brand-wrap{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-width:0;
 }
 
 .brand{
-  width:34px;
-  height:34px;
-  border-radius:8px;
-  background:var(--blue);
-  color:#fff;
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  background:linear-gradient(135deg,var(--primary),#4f8df9);
   display:grid;
   place-items:center;
+  color:#fff;
   font-weight:900;
+  box-shadow:0 8px 18px rgba(37,87,167,.25);
   flex-shrink:0;
+}
+
+.brand-text{
+  min-width:0;
+}
+
+.brand-title{
+  font-size:1.05rem;
+  font-weight:900;
+  line-height:1.1;
+}
+
+.brand-sub{
+  color:var(--muted);
+  font-size:.84rem;
+  margin-top:2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.top-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:1;
+  justify-content:flex-end;
+  min-width:0;
 }
 
 .search{
   position:relative;
-  width:280px;
-  max-width:40vw;
+  width:min(430px,100%);
+  flex:1;
+  max-width:430px;
 }
 
 .search input{
   width:100%;
-  height:34px;
-  border:1px solid #cfd8e3;
-  background:var(--soft);
-  border-radius:6px;
-  padding:0 12px 0 36px;
+  height:44px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:#fff;
+  padding:0 16px 0 44px;
   outline:none;
+  transition:.2s ease;
+}
+
+.search input:focus{
+  border-color:#bfd3ff;
+  box-shadow:0 0 0 4px rgba(37,87,167,.08);
 }
 
 .search svg{
   position:absolute;
-  left:11px;
+  left:14px;
   top:50%;
   transform:translateY(-50%);
-  width:16px;
-  height:16px;
-  stroke:#64748b;
+  width:18px;
+  height:18px;
+  stroke:var(--muted);
   fill:none;
   stroke-width:2;
 }
 
-.top-nav{
-  margin-left:auto;
-  display:flex;
-  align-items:center;
-  gap:4px;
+.icon-btn,
+.pill-btn,
+.primary-btn,
+.ghost-btn{
+  border:none;
+  cursor:pointer;
+  transition:.2s ease;
 }
 
-.top-link{
-  border:0;
+.icon-btn{
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  display:grid;
+  place-items:center;
   background:#fff;
-  color:#555;
-  min-width:68px;
-  height:54px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:2px;
-  font-size:11px;
-  border-bottom:2px solid transparent;
+  border:1px solid var(--border);
+  color:#0f172a;
+  box-shadow:0 2px 8px rgba(15,23,42,.03);
+  position:relative;
 }
 
-.top-link.active{
-  color:#111;
-  border-bottom-color:#111;
+.icon-btn:hover,
+.primary-btn:hover,
+.ghost-btn:hover,
+.pill-btn:hover{
+  transform:translateY(-1px);
 }
 
-.top-link svg{
-  width:21px;
-  height:21px;
+.icon-btn svg{
+  width:20px;
+  height:20px;
   stroke:currentColor;
   fill:none;
   stroke-width:2;
 }
 
-.top-avatar{
-  width:26px;
-  height:26px;
-  border-radius:50%;
+.avatar{
+  width:44px;
+  height:44px;
+  border-radius:14px;
   object-fit:cover;
-  border:1px solid #ddd;
+  border:1px solid var(--border);
+  background:#dbeafe;
 }
 
-/* PAGE */
-
-.page{
-  padding:14px 0 44px;
-}
-
-.layout{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 320px;
-  gap:16px;
-  align-items:start;
-}
-
-.main-col{
-  min-width:0;
-}
-
-.right-col{
-  position:sticky;
-  top:74px;
-}
-
-.card{
+.pill-btn{
+  padding:11px 16px;
+  border-radius:999px;
   background:#fff;
-  border:1px solid var(--line);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  overflow:hidden;
+  border:1px solid var(--border);
+  color:#0f172a;
+  font-weight:800;
+}
+
+.primary-btn{
+  padding:11px 16px;
+  border-radius:999px;
+  background:linear-gradient(135deg,var(--primary),#3474de);
+  color:#fff;
+  font-weight:800;
+  box-shadow:0 8px 18px rgba(37,87,167,.2);
+}
+
+.ghost-btn{
+  padding:10px 14px;
+  border-radius:12px;
+  background:#fff;
+  border:1px solid var(--border);
+  color:var(--text);
+  font-weight:700;
 }
 
 /* HERO */
 
-.school-hero{
-  margin-bottom:12px;
+.hero-wrap{
+  padding:20px 0 0;
+}
+
+.hero{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:30px;
+  overflow:hidden;
+  box-shadow:var(--shadow);
 }
 
 .cover{
-  height:210px;
+  min-height:260px;
   background:
-    linear-gradient(135deg,rgba(10,102,194,.24),rgba(5,118,66,.18),rgba(109,40,217,.16)),
-    url("https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1600&q=80") center/cover no-repeat;
-  border-bottom:1px solid #e5e7eb;
-}
-
-.hero-body{
-  padding:0 24px 20px;
-}
-
-.school-top{
-  display:flex;
-  align-items:flex-end;
-  justify-content:space-between;
-  gap:16px;
-}
-
-.logo-wrap{
+    linear-gradient(135deg,rgba(37,87,167,.92),rgba(22,61,122,.80),rgba(109,40,217,.42)),
+    url("https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1800&q=80") center/cover no-repeat;
   position:relative;
 }
 
-.school-logo{
-  width:128px;
-  height:128px;
-  margin-top:-64px;
-  border-radius:18px;
-  object-fit:cover;
-  border:4px solid #fff;
-  background:#fff;
-  box-shadow:0 1px 4px rgba(0,0,0,.18);
+.cover::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 15% 20%,rgba(255,255,255,.16),transparent 28%),
+    linear-gradient(180deg,rgba(0,0,0,.04),rgba(0,0,0,.24));
 }
 
-.verified-badge{
-  position:absolute;
-  right:7px;
-  bottom:7px;
-  width:28px;
-  height:28px;
-  border-radius:50%;
-  background:var(--blue);
-  color:#fff;
-  display:grid;
-  place-items:center;
-  border:3px solid #fff;
+.hero-main{
+  position:relative;
+  padding:0 30px 30px;
+  margin-top:-72px;
+}
+
+.hero-top{
+  display:flex;
+  gap:22px;
+  align-items:flex-end;
+  justify-content:space-between;
+  flex-wrap:wrap;
+}
+
+.school-meta{
+  display:flex;
+  gap:18px;
+  align-items:flex-end;
+  min-width:0;
+}
+
+.school-logo{
+  width:136px;
+  height:136px;
+  border-radius:28px;
+  background:#fff;
+  border:6px solid #fff;
+  box-shadow:0 14px 34px rgba(15,23,42,.18);
+  overflow:hidden;
+  flex-shrink:0;
+}
+
+.school-logo img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.school-info{
+  min-width:0;
+  padding-bottom:8px;
+}
+
+.school-name{
+  font-size:2.08rem;
   font-weight:900;
+  line-height:1.08;
+  margin:0 0 8px;
+  letter-spacing:-.04em;
+}
+
+.school-line{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px 12px;
+  color:var(--muted);
+  font-size:.93rem;
+  margin-bottom:10px;
+}
+
+.verified{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:var(--green);
+  font-weight:800;
+}
+
+.verified svg{
+  width:17px;
+  height:17px;
+  fill:currentColor;
+}
+
+.school-bio{
+  margin:0;
+  color:#374151;
+  max-width:820px;
+  line-height:1.7;
+  font-size:.96rem;
+}
+
+.tag-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+
+.tag{
+  padding:8px 12px;
+  border-radius:999px;
+  background:var(--primary-soft);
+  color:var(--primary-dark);
+  font-size:.82rem;
+  font-weight:800;
 }
 
 .hero-actions{
   display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin-bottom:6px;
-}
-
-.pill-btn{
-  border:1px solid var(--blue);
-  background:#fff;
-  color:var(--blue);
-  border-radius:999px;
-  padding:8px 15px;
-  font-weight:800;
-}
-
-.pill-btn.primary{
-  background:var(--blue);
-  color:#fff;
-}
-
-.pill-btn.dark{
-  border-color:#444;
-  color:#333;
-}
-
-.school-name{
-  margin:16px 0 4px;
-  font-size:28px;
-  line-height:1.2;
-  font-weight:800;
-  letter-spacing:-.02em;
-}
-
-.school-headline{
-  margin:0;
-  color:#222;
-  font-size:15px;
-  line-height:1.45;
-}
-
-.school-meta{
-  margin-top:7px;
-  color:#666;
-  display:flex;
-  flex-wrap:wrap;
-  gap:5px;
-  font-size:14px;
-}
-
-.school-story{
-  margin-top:12px;
-  color:#333;
-  line-height:1.65;
-  max-width:820px;
-}
-
-.highlight-row{
-  margin-top:16px;
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
   gap:10px;
+  flex-wrap:wrap;
+  padding-bottom:8px;
 }
 
-.highlight-box{
-  border:1px solid #e5e7eb;
-  background:#f8fafc;
-  border-radius:12px;
-  padding:12px;
+/* TRUST STATS */
+
+.trust-grid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:14px;
+  margin-top:24px;
 }
 
-.highlight-box span{
-  display:block;
-  color:#666;
-  font-size:12px;
+.trust-card{
+  background:#f8fbff;
+  border:1px solid #e6eefc;
+  border-radius:18px;
+  padding:18px;
+  min-height:104px;
+}
+
+.trust-card:nth-child(2){
+  background:var(--green-soft);
+  border-color:#bbf7d0;
+}
+
+.trust-card:nth-child(3){
+  background:var(--purple-soft);
+  border-color:#ddd6fe;
+}
+
+.trust-card:nth-child(4){
+  background:var(--warning-soft);
+  border-color:#fde68a;
+}
+
+.trust-label{
+  font-size:.82rem;
+  color:var(--muted);
+  margin-bottom:8px;
   font-weight:800;
-  margin-bottom:6px;
 }
 
-.highlight-box strong{
-  display:block;
-  font-size:18px;
-  color:#111;
-}
-
-.school-tabs{
-  display:flex;
-  border-top:1px solid #eee;
-  overflow:auto;
-}
-
-.school-tab{
-  border:0;
-  background:#fff;
-  padding:14px 18px;
-  color:#555;
+.trust-value{
+  font-size:1.58rem;
   font-weight:900;
-  border-bottom:3px solid transparent;
-  white-space:nowrap;
+  line-height:1;
 }
 
-.school-tab.active{
-  color:var(--green);
-  border-bottom-color:var(--green);
+.trust-note{
+  margin-top:7px;
+  color:var(--muted);
+  font-size:.76rem;
+  line-height:1.4;
 }
 
-/* CONTENT */
+/* TABS */
+
+.tabs{
+  margin-top:18px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.tab-btn{
+  border:none;
+  background:#fff;
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:11px 16px;
+  border-radius:999px;
+  cursor:pointer;
+  font-weight:800;
+  transition:.2s ease;
+}
+
+.tab-btn.active{
+  background:var(--primary);
+  color:#fff;
+  border-color:var(--primary);
+  box-shadow:0 10px 20px rgba(37,87,167,.18);
+}
+
+.tab-btn:hover{
+  transform:translateY(-1px);
+}
+
+/* PAGE GRID */
+
+.page{
+  padding:20px 0 36px;
+}
+
+.main-grid{
+  display:grid;
+  grid-template-columns:300px minmax(0,1fr) 330px;
+  gap:18px;
+  align-items:start;
+}
+
+.left-col,
+.right-col{
+  position:sticky;
+  top:92px;
+}
+
+.center-col{
+  min-width:0;
+}
+
+.card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:24px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+.card-pad{
+  padding:22px;
+}
+
+.card-title{
+  font-size:1.05rem;
+  font-weight:900;
+  margin:0 0 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.small-link{
+  color:var(--primary);
+  font-weight:800;
+  font-size:.88rem;
+  background:none;
+  border:0;
+  cursor:pointer;
+}
+
+/* SHARED */
 
 .section{
   display:none;
@@ -377,54 +542,545 @@ a{
   display:block;
 }
 
-.content-card{
-  padding:20px;
-  margin-bottom:12px;
+.loading{
+  padding:22px;
+  color:var(--muted);
+  font-size:.95rem;
 }
 
-.content-card h2{
-  margin:0 0 12px;
-  font-size:20px;
-  font-weight:800;
-}
-
-.content-card p{
-  margin:0;
-  line-height:1.65;
-  color:#222;
-}
-
-.grid-2{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;
-}
-
-.grid-3{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:12px;
-}
-
-.info-box{
-  border:1px solid #e5e7eb;
-  border-radius:10px;
-  padding:14px;
+.empty{
+  padding:22px;
+  color:var(--muted);
+  text-align:center;
+  border:1px dashed var(--border);
+  border-radius:18px;
   background:#fff;
 }
 
-.info-box span{
-  display:block;
-  color:#666;
-  font-size:12px;
+.chip{
+  padding:7px 10px;
+  border-radius:999px;
+  background:#f3f4f6;
+  color:#374151;
+  font-size:.8rem;
   font-weight:800;
-  margin-bottom:5px;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
 }
 
-.info-box strong{
+.chip.success{
+  background:var(--green-soft);
+  color:#166534;
+}
+
+.chip.warning{
+  background:var(--warning-soft);
+  color:#92400e;
+}
+
+.chip.primary{
+  background:var(--primary-soft);
+  color:var(--primary-dark);
+}
+
+/* RESPONSIVE */
+
+@media(max-width:1200px){
+  .main-grid{
+    grid-template-columns:280px minmax(0,1fr);
+  }
+
+  .right-col{
+    display:none;
+  }
+
+  .trust-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+@media(max-width:920px){
+  .topbar-inner{
+    min-height:auto;
+    padding:12px 0;
+    flex-wrap:wrap;
+  }
+
+  .top-actions{
+    width:100%;
+    justify-content:space-between;
+  }
+
+  .search{
+    max-width:none;
+    order:2;
+    flex-basis:100%;
+  }
+
+  .hero-main{
+    padding:0 18px 22px;
+    margin-top:-52px;
+  }
+
+  .school-logo{
+    width:108px;
+    height:108px;
+    border-radius:24px;
+  }
+
+  .school-name{
+    font-size:1.6rem;
+  }
+
+  .main-grid{
+    grid-template-columns:1fr;
+  }
+
+  .left-col,
+  .right-col{
+    position:static;
+    display:block;
+  }
+
+  .left-col{
+    order:2;
+  }
+
+  .center-col{
+    order:1;
+  }
+
+  .trust-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:640px){
+  body{
+    padding-bottom:84px;
+  }
+
+  .container{
+    width:min(100%,calc(100% - 14px));
+  }
+
+  .brand-sub{
+    display:none;
+  }
+
+  .pill-btn{
+    display:none;
+  }
+
+  .cover{
+    min-height:185px;
+  }
+
+  .school-meta{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:14px;
+  }
+
+  .school-info{
+    padding-bottom:0;
+  }
+
+  .hero-actions{
+    width:100%;
+  }
+
+  .hero-actions .primary-btn,
+  .hero-actions .ghost-btn{
+    flex:1 1 calc(50% - 6px);
+    text-align:center;
+  }
+
+  .trust-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .tabs{
+    overflow:auto;
+    flex-wrap:nowrap;
+    padding-bottom:4px;
+  }
+
+  .tabs::-webkit-scrollbar{
+    display:none;
+  }
+
+  .card-pad{
+    padding:18px;
+  }
+}
+</style>
+</head>
+<body>
+  <header class="topbar">
+  <div class="container topbar-inner">
+    <div class="brand-wrap">
+      <a class="brand" href="home.html">A</a>
+      <div class="brand-text">
+        <div class="brand-title">AIFT Schools</div>
+        <div class="brand-sub">School profile, student talent, internships, and partnerships</div>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <div class="search">
+        <svg viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+        <input type="search" id="globalSearch" placeholder="Search programs, students, internships...">
+      </div>
+
+      <button class="icon-btn" onclick="goHome()" title="Home">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 10.5 12 3l9 7.5"></path>
+          <path d="M5 9.5V21h14V9.5"></path>
+        </svg>
+      </button>
+
+      <button class="icon-btn" onclick="goMessages()" title="Messages">
+        <svg viewBox="0 0 24 24">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </button>
+
+      <button id="dashboardTopBtn" class="pill-btn hidden" onclick="openDashboard()">Dashboard</button>
+      <button class="primary-btn" onclick="messageSchool()">Contact School</button>
+
+      <img id="viewerAvatar" class="avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="">
+    </div>
+  </div>
+</header>
+
+<section class="hero-wrap">
+  <div class="container">
+    <article class="hero">
+      <div id="schoolCover" class="cover"></div>
+
+      <div class="hero-main">
+        <div class="hero-top">
+          <div class="school-meta">
+            <div class="school-logo">
+              <img id="schoolLogo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="School logo">
+            </div>
+
+            <div class="school-info">
+              <h1 id="schoolName" class="school-name">School profile</h1>
+
+              <div class="school-line" id="schoolLine">
+                <span id="schoolLocation">Location not added</span>
+                <span>•</span>
+                <span id="schoolType">School</span>
+                <span>•</span>
+                <span class="verified">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M12 2l2.4 2.1 3.1-.3.9 3 2.8 1.5-1.5 2.8.3 3-3 .9L14.9 18 12 20l-2.9-2-3 .9-.3-3L3 13.9 3.9 11 2.4 8.2 5.2 6.7l.9-3 3.1.3L12 2zm-1.1 12.8l6-6-1.4-1.4-4.6 4.6-2.3-2.3-1.4 1.4 3.7 3.7z"/>
+                  </svg>
+                  Verified School
+                </span>
+              </div>
+
+              <p id="schoolBio" class="school-bio">
+                Building future-ready students through practical learning, industry exposure, and career development.
+              </p>
+
+              <div id="programTags" class="tag-row"></div>
+            </div>
+          </div>
+
+          <div class="hero-actions">
+            <button class="primary-btn" onclick="applyToSchool()">Apply Now</button>
+            <button class="ghost-btn" onclick="messageSchool()">Message</button>
+            <button class="ghost-btn" onclick="copySchoolLink()">Share Profile</button>
+            <button id="dashboardHeroBtn" class="ghost-btn hidden" onclick="openDashboard()">Dashboard</button>
+          </div>
+        </div>
+
+        <div class="trust-grid">
+          <div class="trust-card">
+            <div class="trust-label">Graduate hiring rate</div>
+            <div id="hireRate" class="trust-value">91%</div>
+            <div class="trust-note">Reported / estimated placement strength</div>
+          </div>
+
+          <div class="trust-card">
+            <div class="trust-label">Internship readiness</div>
+            <div id="internshipRate" class="trust-value">88%</div>
+            <div class="trust-note">Students prepared for workplace exposure</div>
+          </div>
+
+          <div class="trust-card">
+            <div class="trust-label">Industry partners</div>
+            <div id="partnerCount" class="trust-value">0</div>
+            <div class="trust-note">Companies, mentors, and employers</div>
+          </div>
+
+          <div class="trust-card">
+            <div class="trust-label">Featured students</div>
+            <div id="studentCount" class="trust-value">0</div>
+            <div class="trust-note">Talent linked to this school</div>
+          </div>
+
+          <div class="trust-card">
+            <div class="trust-label">Programs</div>
+            <div id="programCount" class="trust-value">0</div>
+            <div class="trust-note">Academic and career pathways</div>
+          </div>
+        </div>
+
+        <nav class="tabs">
+          <button class="tab-btn active" data-tab="overview" onclick="openTab('overview')">Overview</button>
+          <button class="tab-btn" data-tab="programs" onclick="openTab('programs')">Programs</button>
+          <button class="tab-btn" data-tab="partners" onclick="openTab('partners')">Partners</button>
+          <button class="tab-btn" data-tab="students" onclick="openTab('students')">Students</button>
+          <button class="tab-btn" data-tab="internships" onclick="openTab('internships')">Internships</button>
+          <button class="tab-btn" data-tab="posts" onclick="openTab('posts')">Posts</button>
+        </nav>
+      </div>
+    </article>
+  </div>
+</section>
+
+<main class="page">
+  <div class="container">
+    <div class="main-grid">
+
+      <aside class="left-col">
+        <section class="card card-pad">
+          <h2 class="card-title">School highlights</h2>
+
+          <div class="highlight-list">
+            <div class="highlight-item">
+              <span>Best known for</span>
+              <strong>Career-ready students</strong>
+            </div>
+
+            <div class="highlight-item">
+              <span>Training focus</span>
+              <strong>Projects, communication, discipline</strong>
+            </div>
+
+            <div class="highlight-item">
+              <span>Employer value</span>
+              <strong>Internship-ready talent pipeline</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="card card-pad" style="margin-top:18px;">
+          <h2 class="card-title">Best known for</h2>
+          <div id="bestKnownList" class="pill-list"></div>
+        </section>
+
+        <section class="card card-pad" style="margin-top:18px;">
+          <h2 class="card-title">Quick actions</h2>
+          <div class="quick-public-actions">
+            <button class="ghost-btn" onclick="applyToSchool()">View programs</button>
+            <button class="ghost-btn" onclick="openTab('students')">View students</button>
+            <button class="ghost-btn" onclick="openTab('internships')">View internships</button>
+          </div>
+        </section>
+      </aside>
+
+      <section class="center-col">
+
+        <section id="section-overview" class="section active">
+          <article class="card card-pad">
+            <h2 class="card-title">Why this school stands out</h2>
+
+            <div class="feature-grid">
+              <div class="feature-card">
+                <h3>Beautiful learning culture</h3>
+                <p>Students grow in an environment focused on discipline, teamwork, confidence, and meaningful career preparation.</p>
+              </div>
+
+              <div class="feature-card">
+                <h3>Smart and hardworking students</h3>
+                <p>The school promotes hands-on projects, academic focus, communication training, and job-ready behavior.</p>
+              </div>
+
+              <div class="feature-card">
+                <h3>Employer-focused outcomes</h3>
+                <p>Programs are designed to help students become stronger candidates for internships, entry-level jobs, and professional growth.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="card card-pad" style="margin-top:18px;">
+            <h2 class="card-title">School story</h2>
+            <p id="aboutSchoolText" class="story-text">
+              This institution prepares students for meaningful opportunities through academic excellence, career development, industry exposure, and practical learning.
+            </p>
+          </article>
+
+          <article class="card card-pad" style="margin-top:18px;">
+            <h2 class="card-title">Career outcomes</h2>
+
+            <div class="outcome-grid">
+              <div class="outcome-card">
+                <span>Hiring support</span>
+                <strong>CV building, interviews, job matching</strong>
+              </div>
+
+              <div class="outcome-card">
+                <span>Internships</span>
+                <strong>Employer-backed opportunities</strong>
+              </div>
+
+              <div class="outcome-card">
+                <span>Student preparation</span>
+                <strong>Projects, training, mentorship</strong>
+              </div>
+
+              <div class="outcome-card">
+                <span>Industry collaboration</span>
+                <strong>Career talks and recruitment events</strong>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section id="section-programs" class="section">
+          <article class="card card-pad">
+            <h2 class="card-title">Academic programs</h2>
+            <div id="programsList" class="program-grid">
+              <div class="loading">Loading programs...</div>
+            </div>
+          </article>
+        </section>
+
+        <section id="section-partners" class="section">
+          <article class="card card-pad">
+            <h2 class="card-title">Company partnerships</h2>
+            <p class="story-text" style="margin-bottom:16px;">
+              Partner companies can support internships, job placement, career talks, mentorship, and real hiring opportunities.
+            </p>
+
+            <div id="partnersList" class="partner-grid">
+              <div class="loading">Loading partners...</div>
+            </div>
+          </article>
+        </section>
+
+        <section id="section-students" class="section">
+          <article class="card card-pad">
+            <h2 class="card-title">Featured students</h2>
+            <p class="story-text" style="margin-bottom:16px;">
+              AIFT highlights students who show strong potential, discipline, skills, and readiness for real opportunities.
+            </p>
+
+            <div id="studentsList" class="student-grid">
+              <div class="loading">Loading students...</div>
+            </div>
+          </article>
+        </section>
+
+        <section id="section-internships" class="section">
+          <article class="card card-pad">
+            <h2 class="card-title">Internships and opportunities</h2>
+            <div id="internshipsList" class="job-list">
+              <div class="loading">Loading internships...</div>
+            </div>
+          </article>
+        </section>
+
+        <section id="section-posts" class="section">
+          <div id="schoolFeedMount"></div>
+        </section>
+      </section>
+
+      <aside class="right-col">
+        <section class="card card-pad">
+          <h2 class="card-title">School insights</h2>
+          <div id="sideStats" class="info-list"></div>
+        </section>
+
+        <section class="card card-pad" style="margin-top:18px;">
+          <h2 class="card-title">Performance snapshot</h2>
+
+          <div class="progress-wrap">
+            <div class="progress-item">
+              <div class="progress-head">
+                <span>Graduate employment</span>
+                <strong id="sideHirePercent">91%</strong>
+              </div>
+              <div class="progress-bar">
+                <div id="sideHireBar" class="progress-fill" style="width:91%"></div>
+              </div>
+            </div>
+
+            <div class="progress-item">
+              <div class="progress-head">
+                <span>Internship readiness</span>
+                <strong id="sideInternshipPercent">88%</strong>
+              </div>
+              <div class="progress-bar">
+                <div id="sideInternshipBar" class="progress-fill" style="width:88%"></div>
+              </div>
+            </div>
+
+            <div class="progress-item">
+              <div class="progress-head">
+                <span>Project completion</span>
+                <strong id="sideProjectPercent">84%</strong>
+              </div>
+              <div class="progress-bar">
+                <div id="sideProjectBar" class="progress-fill" style="width:84%"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card card-pad" style="margin-top:18px;">
+          <div class="cta-box">
+            <h3>Looking for top student talent?</h3>
+            <p>Partner with this school to access trained students, internship-ready candidates, and future professionals.</p>
+            <button class="primary-btn" onclick="messageSchool()">Start partnership</button>
+          </div>
+        </section>
+      </aside>
+
+    </div>
+  </div>
+</main>
+<style>
+
+/* LEFT SIDEBAR */
+
+.highlight-list{
+  display:grid;
+  gap:14px;
+}
+
+.highlight-item{
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:#fff;
+}
+
+.highlight-item span{
   display:block;
-  font-size:15px;
-  color:#111;
+  color:var(--muted);
+  font-size:.82rem;
+  margin-bottom:6px;
+  font-weight:700;
+}
+
+.highlight-item strong{
+  font-size:.92rem;
+  line-height:1.5;
+}
+
+.quick-public-actions{
+  display:grid;
+  gap:10px;
 }
 
 .pill-list{
@@ -433,1121 +1089,1663 @@ a{
   gap:8px;
 }
 
-.skill-pill{
-  display:inline-flex;
-  align-items:center;
-  padding:7px 12px;
-  border-radius:999px;
-  background:#eef3f8;
-  border:1px solid #dbeafe;
-  font-size:13px;
-  font-weight:700;
-  color:#1f2937;
+/* FEATURES */
+
+.feature-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:16px;
 }
 
-/* CARDS */
-
 .feature-card{
-  border:1px solid #e5e7eb;
-  border-radius:12px;
-  padding:16px;
-  background:#fff;
+  padding:20px;
+  border-radius:22px;
+  border:1px solid var(--border);
+  background:linear-gradient(180deg,#fff,#fbfdff);
+  transition:.2s ease;
+}
+
+.feature-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 16px 30px rgba(15,23,42,.06);
 }
 
 .feature-card h3{
-  margin:0 0 7px;
-  font-size:16px;
+  margin:0 0 10px;
+  font-size:1rem;
+  font-weight:900;
+  letter-spacing:-.02em;
 }
 
 .feature-card p{
   margin:0;
-  color:#666;
-  font-size:13px;
-  line-height:1.55;
+  color:#4b5563;
+  line-height:1.7;
+  font-size:.92rem;
 }
 
-.timeline{
+.story-text{
+  margin:0;
+  line-height:1.8;
+  color:#374151;
+  font-size:.95rem;
+}
+
+/* OUTCOMES */
+
+.outcome-grid{
   display:grid;
-  gap:12px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
 }
 
-.timeline-item{
-  border:1px solid #e5e7eb;
-  border-radius:12px;
-  padding:14px;
+.outcome-card{
+  padding:18px;
+  border-radius:20px;
+  border:1px solid var(--border);
   background:#fff;
 }
 
-.timeline-item h3{
-  margin:0 0 5px;
-  font-size:16px;
+.outcome-card span{
+  display:block;
+  color:var(--muted);
+  font-size:.8rem;
+  font-weight:800;
+  margin-bottom:8px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
 }
 
-.timeline-item p{
-  margin:0;
-  color:#666;
-  font-size:13px;
+.outcome-card strong{
+  font-size:.95rem;
   line-height:1.5;
+}
+
+/* PROGRAMS */
+
+.program-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+}
+
+.program-card{
+  border:1px solid var(--border);
+  border-radius:24px;
+  overflow:hidden;
+  background:#fff;
+  transition:.2s ease;
+}
+
+.program-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 16px 34px rgba(15,23,42,.08);
+}
+
+.program-cover{
+  height:160px;
+  background:
+    linear-gradient(135deg,rgba(37,87,167,.88),rgba(22,61,122,.74),rgba(109,40,217,.40)),
+    url("https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80") center/cover no-repeat;
+}
+
+.program-body{
+  padding:20px;
+}
+
+.program-top{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+  margin-bottom:12px;
+}
+
+.program-title{
+  font-size:1rem;
+  font-weight:900;
+  margin:0;
+  line-height:1.3;
+}
+
+.program-sub{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:.84rem;
+}
+
+.program-desc{
+  margin:0 0 16px;
+  color:#4b5563;
+  line-height:1.7;
+  font-size:.92rem;
+}
+
+.program-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:18px;
+}
+
+/* PARTNERS */
+
+.partner-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+}
+
+.partner-card{
+  border:1px solid var(--border);
+  border-radius:24px;
+  background:#fff;
+  overflow:hidden;
+  transition:.2s ease;
+}
+
+.partner-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 16px 30px rgba(15,23,42,.08);
+}
+
+.partner-banner{
+  height:120px;
+  background:
+    linear-gradient(135deg,rgba(37,87,167,.9),rgba(22,61,122,.75)),
+    url("https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80") center/cover no-repeat;
+}
+
+.partner-content{
+  padding:20px;
+}
+
+.partner-head{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  margin-top:-42px;
+  margin-bottom:16px;
+}
+
+.partner-logo{
+  width:78px;
+  height:78px;
+  border-radius:22px;
+  background:#fff;
+  border:5px solid #fff;
+  object-fit:cover;
+  box-shadow:0 10px 20px rgba(15,23,42,.12);
+}
+
+.partner-name{
+  font-size:1rem;
+  font-weight:900;
+  margin:0 0 6px;
+}
+
+.partner-role{
+  color:var(--muted);
+  font-size:.85rem;
+}
+
+.partner-stats{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin:18px 0;
+}
+
+.partner-stat{
+  padding:12px;
+  border-radius:16px;
+  background:#f8fafc;
+  text-align:center;
+}
+
+.partner-stat strong{
+  display:block;
+  font-size:1rem;
+  font-weight:900;
+}
+
+.partner-stat span{
+  display:block;
+  margin-top:4px;
+  font-size:.72rem;
+  color:var(--muted);
+  font-weight:700;
+}
+
+/* STUDENTS */
+
+.student-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+}
+
+.student-card{
+  border:1px solid var(--border);
+  border-radius:24px;
+  background:#fff;
+  overflow:hidden;
+  transition:.2s ease;
+}
+
+.student-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 16px 30px rgba(15,23,42,.08);
+}
+
+.student-cover{
+  height:120px;
+  background:
+    linear-gradient(135deg,rgba(37,87,167,.88),rgba(109,40,217,.45)),
+    url("https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80") center/cover no-repeat;
+}
+
+.student-content{
+  padding:20px;
+}
+
+.student-head{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  margin-top:-42px;
+  margin-bottom:14px;
+}
+
+.student-avatar{
+  width:84px;
+  height:84px;
+  border-radius:24px;
+  border:5px solid #fff;
+  object-fit:cover;
+  background:#fff;
+  box-shadow:0 12px 24px rgba(15,23,42,.12);
+}
+
+.student-name{
+  font-size:1rem;
+  font-weight:900;
+  margin:0 0 5px;
+}
+
+.student-role{
+  color:var(--muted);
+  font-size:.84rem;
+}
+
+.student-about{
+  margin:0 0 16px;
+  color:#4b5563;
+  line-height:1.7;
+  font-size:.92rem;
+}
+
+.student-skills{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:18px;
+}
+
+/* INTERNSHIPS */
+
+.job-list{
+  display:grid;
+  gap:16px;
+}
+
+.job-item{
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:20px;
+  background:#fff;
+  transition:.2s ease;
+}
+
+.job-item:hover{
+  transform:translateY(-2px);
+  box-shadow:0 16px 30px rgba(15,23,42,.06);
+}
+
+.job-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.job-title{
+  margin:0 0 6px;
+  font-size:1rem;
+  font-weight:900;
+}
+
+.job-sub{
+  color:var(--muted);
+  font-size:.84rem;
+}
+
+.job-desc{
+  margin:0 0 18px;
+  color:#4b5563;
+  line-height:1.7;
+  font-size:.92rem;
+}
+
+.job-footer{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
 }
 
 /* SIDEBAR */
 
-.side-card{
-  padding:16px;
-  margin-bottom:12px;
-}
-
-.side-card h3{
-  margin:0 0 12px;
-  font-size:16px;
-  font-weight:800;
-}
-
-.side-stat{
+.info-list{
   display:grid;
-  grid-template-columns:1fr auto;
-  gap:10px;
-  padding:10px 0;
-  border-bottom:1px solid #eee;
+  gap:14px;
 }
 
-.side-stat:last-child{
-  border-bottom:0;
+.info-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding-bottom:14px;
+  border-bottom:1px solid #f1f5f9;
 }
 
-.side-stat span{
-  color:#666;
-  font-size:13px;
-  font-weight:700;
+.info-row:last-child{
+  border-bottom:none;
+  padding-bottom:0;
 }
 
-.side-stat strong{
-  color:#111;
-  font-size:13px;
+.info-label{
+  color:var(--muted);
+  font-size:.88rem;
+}
+
+.info-value{
   text-align:right;
+  font-weight:800;
+  font-size:.9rem;
 }
 
-.progress-block{
+.progress-wrap{
   display:grid;
-  gap:13px;
+  gap:16px;
+}
+
+.progress-item{
+  display:grid;
+  gap:8px;
 }
 
 .progress-head{
   display:flex;
   justify-content:space-between;
-  color:#333;
-  font-size:13px;
+  align-items:center;
+  gap:10px;
+  font-size:.88rem;
   font-weight:800;
-  margin-bottom:7px;
 }
 
 .progress-bar{
-  height:9px;
-  background:#edf2f7;
+  width:100%;
+  height:10px;
   border-radius:999px;
   overflow:hidden;
+  background:#edf2f7;
 }
 
 .progress-fill{
   height:100%;
-  background:linear-gradient(90deg,var(--blue),#5a94f7);
   border-radius:999px;
+  background:linear-gradient(90deg,var(--primary),#5a94f7);
 }
 
-.empty{
-  color:#666;
-  padding:14px;
-  border:1px dashed #ddd;
-  border-radius:10px;
-  text-align:center;
+.cta-box{
+  padding:20px;
+  border-radius:24px;
+  background:
+    linear-gradient(135deg,var(--primary),var(--primary-dark));
+  color:#fff;
+}
+
+.cta-box h3{
+  margin:0 0 10px;
+  font-size:1.08rem;
+  font-weight:900;
+}
+
+.cta-box p{
+  margin:0 0 18px;
+  line-height:1.7;
+  font-size:.92rem;
+  color:rgba(255,255,255,.92);
+}
+
+.cta-box .primary-btn{
   background:#fff;
+  color:var(--primary-dark);
+  box-shadow:none;
+}
+
+/* MOBILE NAV */
+
+.mobile-nav{
+  display:none;
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:1200;
+  background:rgba(255,255,255,.96);
+  backdrop-filter:blur(14px);
+  border-top:1px solid var(--border);
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+}
+
+.mobile-nav-inner{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+}
+
+.mobile-nav button{
+  border:none;
+  background:none;
+  display:grid;
+  place-items:center;
+  gap:6px;
+  font-size:.74rem;
+  color:var(--muted);
+  padding:8px 4px;
+  border-radius:14px;
+  font-weight:800;
+}
+
+.mobile-nav button.active{
+  background:var(--primary-soft);
+  color:var(--primary-dark);
+}
+
+.mobile-nav svg{
+  width:20px;
+  height:20px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
 }
 
 /* FEED */
 
-#schoolFeedMount .aift-feed-shell{
-  width:100%!important;
-  max-width:100%!important;
-  margin:0!important;
+#aiftFeed{
+  width:100%;
 }
 
-#schoolFeedMount .aift-composer{
-  display:none!important;
+.feed-shell{
+  background:none!important;
+  padding:0!important;
 }
 
-/* MOBILE */
+/* RESPONSIVE */
 
-.mobile-bottom{
-  display:none;
-}
+@media(max-width:1100px){
 
-@media(max-width:980px){
-  .layout{
+  .feature-grid{
     grid-template-columns:1fr;
   }
 
-  .right-col{
-    display:none;
+  .partner-grid,
+  .student-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:920px){
+
+  .program-grid{
+    grid-template-columns:1fr;
   }
 
-  .top-link span{
-    display:none;
-  }
-
-  .top-link{
-    min-width:42px;
-  }
-
-  .search{
-    flex:1;
-    width:auto;
-    max-width:none;
-  }
-
-  .highlight-row,
-  .grid-3{
-    grid-template-columns:repeat(2,minmax(0,1fr));
+  .outcome-grid{
+    grid-template-columns:1fr;
   }
 }
 
 @media(max-width:640px){
-  body{
-    padding-bottom:76px;
-  }
 
-  .container{
-    width:100%;
-  }
-
-  .page{
-    padding:0;
-  }
-
-  .school-hero,
-  .content-card,
-  .card{
-    border-radius:0;
-    border-left:0;
-    border-right:0;
-  }
-
-  .cover{
-    height:140px;
-  }
-
-  .hero-body{
-    padding:0 16px 18px;
-  }
-
-  .school-top{
+  .mobile-nav{
     display:block;
   }
 
-  .school-logo{
-    width:96px;
-    height:96px;
-    margin-top:-48px;
-    border-radius:14px;
-  }
-
-  .hero-actions{
-    margin-top:14px;
-    display:grid;
+  .trust-grid{
     grid-template-columns:1fr 1fr;
   }
 
-  .hero-actions .pill-btn{
-    width:100%;
+  .feature-card,
+  .partner-card,
+  .student-card,
+  .program-card,
+  .job-item{
+    border-radius:20px;
   }
 
-  .school-name{
-    font-size:22px;
+  .partner-head,
+  .student-head{
+    margin-top:-34px;
   }
 
-  .highlight-row,
-  .grid-2,
-  .grid-3{
-    grid-template-columns:1fr;
+  .partner-logo{
+    width:70px;
+    height:70px;
   }
 
-  .content-card{
-    padding:16px;
+  .student-avatar{
+    width:76px;
+    height:76px;
   }
 
-  .mobile-bottom{
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:0;
-    z-index:999;
-    height:74px;
-    background:rgba(255,255,255,.98);
-    border-top:1px solid #e5e7eb;
-    display:grid;
-    grid-template-columns:repeat(5,1fr);
+  .job-footer{
+    flex-direction:column;
+    align-items:flex-start;
   }
+}
 
-  .mobile-bottom button{
-    border:0;
-    background:transparent;
-    color:#64748b;
-    font-size:11px;
+</style>
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+
+    <button class="active" onclick="openTab('overview')">
+      <svg viewBox="0 0 24 24">
+        <path d="M3 10.5 12 3l9 7.5"></path>
+        <path d="M5 9.5V21h14V9.5"></path>
+      </svg>
+      <span>Home</span>
+    </button>
+
+    <button onclick="openTab('students')">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="7" r="4"></circle>
+        <path d="M5.5 21a6.5 6.5 0 0 1 13 0"></path>
+      </svg>
+      <span>Students</span>
+    </button>
+
+    <button onclick="openTab('internships')">
+      <svg viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+        <path d="M8 5V3"></path>
+        <path d="M16 5V3"></path>
+        <path d="M3 10h18"></path>
+      </svg>
+      <span>Jobs</span>
+    </button>
+
+    <button onclick="openTab('posts')">
+      <svg viewBox="0 0 24 24">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <span>Feed</span>
+    </button>
+
+    <button onclick="openTab('partners')">
+      <svg viewBox="0 0 24 24">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="8.5" cy="7" r="4"></circle>
+        <path d="M20 8v6"></path>
+        <path d="M23 11h-6"></path>
+      </svg>
+      <span>Partners</span>
+    </button>
+
+  </div>
+</nav>
+
+<footer style="
+  padding:24px 0 120px;
+  text-align:center;
+  color:#6b7280;
+  font-size:.9rem;
+">
+  © 2026 AIFT Schools. All rights reserved.
+</footer>
+
+<!-- LOADING -->
+
+<div id="globalLoading" style="
+  position:fixed;
+  inset:0;
+  background:rgba(255,255,255,.92);
+  z-index:5000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:18px;
+">
+
+  <div style="
+    width:56px;
+    height:56px;
+    border-radius:50%;
+    border:4px solid #dbeafe;
+    border-top-color:#2557a7;
+    animation:spin .9s linear infinite;
+  "></div>
+
+  <div style="
     font-weight:800;
+    color:#2557a7;
+    letter-spacing:.02em;
+  ">
+    Loading school profile...
+  </div>
+</div>
+
+<style>
+@keyframes spin{
+  to{
+    transform:rotate(360deg);
   }
 }
 </style>
-</head>
 
-<body>
-  <header class="topbar">
-  <div class="container top-inner">
-    <a class="brand" href="home.html">A</a>
+<!-- MODALS -->
 
-    <div class="search">
-      <svg viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="7"></circle>
-        <path d="M20 20l-3.5-3.5"></path>
-      </svg>
-      <input type="search" placeholder="Search AIFT">
+<div id="shareModal" style="
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.45);
+  z-index:3000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+">
+
+  <div style="
+    width:min(480px,100%);
+    background:#fff;
+    border-radius:26px;
+    border:1px solid var(--border);
+    box-shadow:0 30px 70px rgba(15,23,42,.18);
+    overflow:hidden;
+  ">
+
+    <div style="
+      padding:22px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    ">
+      <div style="
+        font-size:1.08rem;
+        font-weight:900;
+      ">
+        Share School Profile
+      </div>
+
+      <button
+        class="ghost-btn"
+        onclick="closeShareModal()"
+      >
+        Close
+      </button>
     </div>
 
-    <nav class="top-nav">
-      <button class="top-link active" onclick="goHome()">
-        <svg viewBox="0 0 24 24">
-          <path d="M3 10.5 12 3l9 7.5"></path>
-          <path d="M5 9.5V21h14V9.5"></path>
-        </svg>
-        <span>Home</span>
-      </button>
+    <div style="padding:22px;">
 
-      <button class="top-link" onclick="goMessages()">
-        <svg viewBox="0 0 24 24">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
-        <span>Messages</span>
-      </button>
+      <p style="
+        margin:0 0 16px;
+        color:#4b5563;
+        line-height:1.7;
+        font-size:.92rem;
+      ">
+        Share this school profile with students, employers, and potential partners.
+      </p>
 
-      <button class="top-link" onclick="goNotifications()">
-        <svg viewBox="0 0 24 24">
-          <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
-          <path d="M10 21a2 2 0 0 0 4 0"></path>
-        </svg>
-        <span>Alerts</span>
-      </button>
+      <div style="
+        display:flex;
+        gap:10px;
+        align-items:center;
+      ">
+        <input
+          id="shareInput"
+          type="text"
+          readonly
+          style="
+            flex:1;
+            height:48px;
+            border-radius:14px;
+            border:1px solid var(--border);
+            padding:0 14px;
+            outline:none;
+          "
+        >
 
-      <button class="top-link" onclick="openMyProfile()">
-        <img id="viewerAvatar" class="top-avatar" alt="">
-        <span>Me</span>
-      </button>
-    </nav>
-  </div>
-</header>
+        <button
+          class="primary-btn"
+          onclick="copyShareLink()"
+        >
+          Copy
+        </button>
+      </div>
 
-<main class="page">
-  <div class="container layout">
-
-    <section class="main-col">
-
-      <article class="school-hero card">
-        <div id="schoolCover" class="cover"></div>
-
-        <div class="hero-body">
-          <div class="school-top">
-            <div class="logo-wrap">
-              <img id="schoolLogo" class="school-logo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="School logo">
-              <div id="verifiedBadge" class="verified-badge">✓</div>
-            </div>
-
-            <div class="hero-actions">
-              <button class="pill-btn primary" onclick="applyToSchool()">Apply now</button>
-              <button class="pill-btn" onclick="messageSchool()">Message</button>
-              <button class="pill-btn dark" onclick="copySchoolLink()">Copy link</button>
-              <button id="dashboardBtn" class="pill-btn hidden" onclick="openDashboard()">Dashboard</button>
-            </div>
-          </div>
-
-          <h1 id="schoolName" class="school-name">School profile</h1>
-          <p id="schoolHeadline" class="school-headline">Future-ready education and career pathways</p>
-
-          <div id="schoolMeta" class="school-meta"></div>
-
-          <p id="schoolStory" class="school-story">
-            This school is building career-ready students through training, mentorship, practical learning, and employer partnerships.
-          </p>
-
-          <div class="highlight-row">
-            <div class="highlight-box">
-              <span>Graduate hiring rate</span>
-              <strong id="hireRate">91%</strong>
-            </div>
-
-            <div class="highlight-box">
-              <span>Internship readiness</span>
-              <strong id="internshipRate">88%</strong>
-            </div>
-
-            <div class="highlight-box">
-              <span>Industry partners</span>
-              <strong id="partnerCount">0</strong>
-            </div>
-
-            <div class="highlight-box">
-              <span>Featured students</span>
-              <strong id="studentCount">0</strong>
-            </div>
-          </div>
-        </div>
-
-        <nav class="school-tabs">
-          <button class="school-tab active" data-tab="overview" onclick="openTab('overview')">Overview</button>
-          <button class="school-tab" data-tab="programs" onclick="openTab('programs')">Programs</button>
-          <button class="school-tab" data-tab="partners" onclick="openTab('partners')">Partners</button>
-          <button class="school-tab" data-tab="students" onclick="openTab('students')">Students</button>
-          <button class="school-tab" data-tab="internships" onclick="openTab('internships')">Internships</button>
-          <button class="school-tab" data-tab="posts" onclick="openTab('posts')">Posts</button>
-        </nav>
-      </article>
-
-      <section id="section-overview" class="section active">
-        <article class="content-card card">
-          <h2>Why this school stands out</h2>
-
-          <div class="grid-3">
-            <div class="feature-card">
-              <h3>Career-ready students</h3>
-              <p>Students are trained with practical skills, communication confidence, portfolio work, and interview preparation.</p>
-            </div>
-
-            <div class="feature-card">
-              <h3>Hardworking culture</h3>
-              <p>The school highlights discipline, project completion, attendance, teamwork, and readiness for real workplace expectations.</p>
-            </div>
-
-            <div class="feature-card">
-              <h3>Employer-focused training</h3>
-              <p>Programs are designed to help students become strong candidates for internships, BPO roles, tech roles, and entry-level careers.</p>
-            </div>
-          </div>
-        </article>
-
-        <article class="content-card card">
-          <h2>School story</h2>
-          <p id="aboutSchoolText">
-            This school prepares students for meaningful career opportunities through academic excellence, industry exposure, practical projects, and professional development.
-          </p>
-        </article>
-
-        <article class="content-card card">
-          <h2>Career outcomes</h2>
-
-          <div class="grid-2">
-            <div class="info-box">
-              <span>Hiring support</span>
-              <strong id="careerSupport">CV building, job matching, interviews</strong>
-            </div>
-
-            <div class="info-box">
-              <span>Internship programs</span>
-              <strong id="internshipSupport">Available through school partners</strong>
-            </div>
-
-            <div class="info-box">
-              <span>Student preparation</span>
-              <strong id="studentPreparation">Projects, training, mentorship</strong>
-            </div>
-
-            <div class="info-box">
-              <span>Employer collaboration</span>
-              <strong id="employerCollaboration">Career talks and recruitment events</strong>
-            </div>
-          </div>
-        </article>
-      </section>
-
-      <section id="section-programs" class="section">
-        <article class="content-card card">
-          <h2>Academic programs</h2>
-          <div id="programsList" class="grid-2"></div>
-        </article>
-      </section>
-
-      <section id="section-partners" class="section">
-        <article class="content-card card">
-          <h2>Company partnerships</h2>
-          <p style="margin-bottom:14px;">
-            Partner companies can support internships, job placement, career talks, mentorship, and real hiring opportunities.
-          </p>
-
-          <div id="partnersList" class="grid-2"></div>
-        </article>
-      </section>
-
-      <section id="section-students" class="section">
-        <article class="content-card card">
-          <h2>Featured students</h2>
-          <p style="margin-bottom:14px;">
-            AIFT highlights students who show strong potential, discipline, skills, and readiness for real opportunities.
-          </p>
-
-          <div id="studentsList" class="grid-2"></div>
-        </article>
-      </section>
-
-      <section id="section-internships" class="section">
-        <article class="content-card card">
-          <h2>Internships and opportunities</h2>
-
-          <div id="internshipsList" class="timeline"></div>
-        </article>
-      </section>
-
-      <section id="section-posts" class="section">
-        <div id="schoolFeedMount"></div>
-      </section>
-    </section>
-
-    <aside class="right-col">
-      <section class="side-card card">
-        <h3>School insights</h3>
-        <div id="sideStats"></div>
-      </section>
-
-      <section class="side-card card">
-        <h3>Performance snapshot</h3>
-
-        <div class="progress-block">
-          <div>
-            <div class="progress-head">
-              <span>Graduate employment</span>
-              <strong id="sideHirePercent">91%</strong>
-            </div>
-            <div class="progress-bar">
-              <div id="sideHireBar" class="progress-fill" style="width:91%"></div>
-            </div>
-          </div>
-
-          <div>
-            <div class="progress-head">
-              <span>Internship readiness</span>
-              <strong id="sideInternshipPercent">88%</strong>
-            </div>
-            <div class="progress-bar">
-              <div id="sideInternshipBar" class="progress-fill" style="width:88%"></div>
-            </div>
-          </div>
-
-          <div>
-            <div class="progress-head">
-              <span>Project completion</span>
-              <strong id="sideProjectPercent">84%</strong>
-            </div>
-            <div class="progress-bar">
-              <div id="sideProjectBar" class="progress-fill" style="width:84%"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="side-card card">
-        <h3>Best known for</h3>
-        <div id="bestKnownList" class="pill-list"></div>
-      </section>
-
-      <section class="side-card card">
-        <h3>For employers</h3>
-        <p style="margin:0 0 12px;color:#666;line-height:1.55;font-size:13px;">
-          Partner with this school to access trained students, internship-ready talent, and future professionals.
-        </p>
-        <button class="pill-btn primary" style="width:100%;" onclick="messageSchool()">Start partnership</button>
-      </section>
-    </aside>
+    </div>
 
   </div>
-</main>
+</div>
 
-<nav class="mobile-bottom">
-  <button onclick="openTab('overview')">Home</button>
-  <button onclick="openTab('programs')">Programs</button>
-  <button onclick="openTab('students')">Students</button>
-  <button onclick="openTab('internships')">Internships</button>
-  <button onclick="messageSchool()">Message</button>
-</nav>
-<script src="feed.js"></script>
+<div id="partnershipModal" style="
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.45);
+  z-index:3000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+">
+
+  <div style="
+    width:min(620px,100%);
+    background:#fff;
+    border-radius:26px;
+    border:1px solid var(--border);
+    box-shadow:0 30px 70px rgba(15,23,42,.18);
+    overflow:hidden;
+  ">
+
+    <div style="
+      padding:22px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    ">
+      <div style="
+        font-size:1.08rem;
+        font-weight:900;
+      ">
+        Start Employer Partnership
+      </div>
+
+      <button
+        class="ghost-btn"
+        onclick="closePartnershipModal()"
+      >
+        Close
+      </button>
+    </div>
+
+    <div style="
+      padding:22px;
+      display:grid;
+      gap:16px;
+    ">
+
+      <div>
+        <label style="
+          display:block;
+          margin-bottom:8px;
+          font-weight:800;
+          font-size:.88rem;
+        ">
+          Company name
+        </label>
+
+        <input
+          id="partnerCompany"
+          type="text"
+          placeholder="Enter company name"
+          style="
+            width:100%;
+            height:48px;
+            border-radius:14px;
+            border:1px solid var(--border);
+            padding:0 14px;
+            outline:none;
+          "
+        >
+      </div>
+
+      <div>
+        <label style="
+          display:block;
+          margin-bottom:8px;
+          font-weight:800;
+          font-size:.88rem;
+        ">
+          Partnership goal
+        </label>
+
+        <textarea
+          id="partnerMessage"
+          placeholder="Internships, recruitment, training collaboration..."
+          style="
+            width:100%;
+            min-height:140px;
+            border-radius:18px;
+            border:1px solid var(--border);
+            padding:14px;
+            resize:vertical;
+            outline:none;
+          "
+        ></textarea>
+      </div>
+
+      <div style="
+        display:flex;
+        justify-content:flex-end;
+      ">
+        <button
+          class="primary-btn"
+          onclick="submitPartnership()"
+        >
+          Send Request
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+</div>
 
 <script>
+
+/* =========================
+   API
+========================= */
 
 const API =
   "https://backend-1-9b6f.onrender.com";
 
-const FALLBACK_AVATAR =
-  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
-const FALLBACK_SCHOOL =
-  "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+/* =========================
+   PAGE STATE
+========================= */
 
 const state = {
-  schoolId:null,
   school:null,
-  viewer:null,
-  users:[],
+  posts:[],
+  students:[],
   opportunities:[],
-  posts:[]
+  partners:[],
+  analytics:{},
+  viewer:null
 };
 
 /* =========================
-   AUTH
+   TOKEN
 ========================= */
 
-function token(){
+const token =
+  localStorage.getItem("talentToken") ||
+  localStorage.getItem("employerToken") ||
+  localStorage.getItem("schoolToken") ||
+  localStorage.getItem("adminToken") ||
+  localStorage.getItem("agentToken");
 
-  return (
-    localStorage.getItem("schoolToken") ||
-    localStorage.getItem("employerToken") ||
-    localStorage.getItem("talentToken") ||
-    localStorage.getItem("agentToken") ||
-    localStorage.getItem("adminToken") ||
-    localStorage.getItem("token") ||
-    ""
-  );
+/* =========================
+   SCHOOL ID
+========================= */
 
-}
+const params =
+  new URLSearchParams(window.location.search);
+
+const schoolId =
+  params.get("id");
+
+/* =========================
+   HEADERS
+========================= */
 
 function authHeaders(extra = {}){
 
   return {
-    ...(token()
-      ? {
-          Authorization:
-            "Bearer " + token()
-        }
+    ...(token
+      ? { Authorization:"Bearer " + token }
       : {}),
     ...extra
   };
-
 }
 
 /* =========================
    HELPERS
 ========================= */
 
-function esc(value=""){
+function escapeHtml(value){
 
   return String(value ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;");
-
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
 }
 
-function qs(name){
+function safeJson(res){
 
-  return new URLSearchParams(
-    location.search
-  ).get(name);
-
+  return res.json().catch(() => null);
 }
 
-function setText(
-  id,
-  value,
-  fallback = "Not added"
-){
+function showLoading(){
 
-  const el =
-    document.getElementById(id);
-
-  if(!el) return;
-
-  el.textContent =
-    value || fallback;
-
+  document.getElementById("globalLoading")
+    .style.display = "flex";
 }
 
-async function api(
-  path,
-  options = {}
-){
+function hideLoading(){
 
-  const res =
-    await fetch(
-      API + path,
-      options
-    );
-
-  const text =
-    await res.text();
-
-  let data = {};
-
-  try{
-
-    data = text
-      ? JSON.parse(text)
-      : {};
-
-  }catch{
-
-    data = {
-      message:text
-    };
-
-  }
-
-  if(!res.ok){
-
-    throw new Error(
-      data.message ||
-      "Request failed"
-    );
-
-  }
-
-  return data;
-
+  document.getElementById("globalLoading")
+    .style.display = "none";
 }
-
-/* =========================
-   NAVIGATION
-========================= */
 
 function goHome(){
-  location.href = "home.html";
+
+  window.location.href = "home.html";
 }
 
 function goMessages(){
-  location.href = "messages.html";
-}
 
-function goNotifications(){
-  location.href =
-    "notifications.html";
+  window.location.href = "messages.html";
 }
 
 function openDashboard(){
 
-  location.href =
-    "school.html";
-
+  window.location.href = "school.html";
 }
 
-function openMyProfile(){
+function applyToSchool(){
 
-  const me =
-    state.viewer || {};
+  openTab("programs");
 
-  if(!me._id) return;
+  window.scrollTo({
+    top:0,
+    behavior:"smooth"
+  });
+}
 
-  if(
-    me.role === "school"
-  ){
+function messageSchool(){
 
-    location.href =
-      `school-public-profile.html?id=${me._id}`;
+  if(!state.school?._id) return;
 
-    return;
-  }
-
-  if(
-    me.role === "employer"
-  ){
-
-    location.href =
-      `employer-public-profile.html?id=${me._id}`;
-
-    return;
-  }
-
-  location.href =
-    `public-profile.html?id=${me._id}`;
-
+  window.location.href =
+    `messages.html?user=${state.school._id}`;
 }
 
 /* =========================
-   LOAD VIEWER
+   TABS
 ========================= */
 
-async function loadViewer(){
+function openTab(tab){
+
+  document.querySelectorAll(".tab-btn")
+    .forEach(btn => {
+
+      btn.classList.toggle(
+        "active",
+        btn.dataset.tab === tab
+      );
+    });
+
+  document.querySelectorAll(".section")
+    .forEach(section => {
+
+      section.classList.toggle(
+        "active",
+        section.id === `section-${tab}`
+      );
+    });
+
+  document.querySelectorAll(".mobile-nav button")
+    .forEach(btn => {
+
+      btn.classList.remove("active");
+    });
+
+  const activeBtn =
+    [...document.querySelectorAll(".mobile-nav button")]
+      .find(btn =>
+        btn.innerText
+          .toLowerCase()
+          .includes(tab)
+      );
+
+  if(activeBtn){
+    activeBtn.classList.add("active");
+  }
+
+  if(tab === "posts"){
+
+    setTimeout(() => {
+
+      if(window.AIFTFeed){
+
+        AIFTFeed.mount(
+          "schoolFeedMount",
+          {
+            onlyUserId:schoolId
+          }
+        );
+      }
+
+    },100);
+  }
+}
+
+/* =========================
+   SHARE MODAL
+========================= */
+
+function openShareModal(){
+
+  document.getElementById("shareModal")
+    .style.display = "flex";
+
+  document.getElementById("shareInput")
+    .value = window.location.href;
+}
+
+function closeShareModal(){
+
+  document.getElementById("shareModal")
+    .style.display = "none";
+}
+
+async function copyShareLink(){
 
   try{
 
-    const data =
-      await api(
-        "/api/users/me",
-        {
-          headers:authHeaders()
-        }
-      );
+    await navigator.clipboard.writeText(
+      window.location.href
+    );
 
-    state.viewer =
-      data.user || data;
+    alert("School profile copied.");
 
-    if(
-      state.viewer?.profileImage
-    ){
+  }catch{
 
-      document.getElementById(
-        "viewerAvatar"
-      ).src =
-        state.viewer.profileImage;
-
-    }
-
-  }catch(err){
-
-    console.warn(err);
-
+    alert("Could not copy link.");
   }
+}
 
+function copySchoolLink(){
+
+  openShareModal();
 }
 
 /* =========================
-   LOAD SCHOOL
+   PARTNERSHIP MODAL
 ========================= */
 
-async function loadSchool(){
+function openPartnershipModal(){
 
-  state.schoolId =
-    qs("id");
+  document.getElementById("partnershipModal")
+    .style.display = "flex";
+}
 
-  if(!state.schoolId){
+function closePartnershipModal(){
 
-    location.href =
-      "home.html";
+  document.getElementById("partnershipModal")
+    .style.display = "none";
+}
 
+async function submitPartnership(){
+
+  const company =
+    document.getElementById("partnerCompany")
+      .value.trim();
+
+  const message =
+    document.getElementById("partnerMessage")
+      .value.trim();
+
+  if(!company || !message){
+
+    alert("Please complete the form.");
     return;
   }
 
-  const data =
-    await api(
-      `/api/users/${state.schoolId}/public`,
+  alert(
+    "Partnership request submitted."
+  );
+
+  closePartnershipModal();
+}
+
+</script>
+<script>
+
+/* =========================
+   FALLBACKS
+========================= */
+
+const FALLBACK_AVATAR =
+  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+const FALLBACK_LOGO =
+  "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+
+/* =========================
+   FETCH PROFILE
+========================= */
+
+async function fetchSchoolProfile(){
+
+  try{
+
+    const res = await fetch(
+      `${API}/api/users/${schoolId}`,
       {
         headers:authHeaders()
       }
     );
 
-  state.school =
-    data.user || data;
+    if(!res.ok){
 
-  if(
-    state.school.role !==
-    "school"
-  ){
+      throw new Error(
+        "Failed to load school profile"
+      );
+    }
 
-    location.href =
-      `public-profile.html?id=${state.school._id}`;
+    const data = await safeJson(res);
 
-    return;
+    state.school = data;
+
+  }catch(err){
+
+    console.error(err);
   }
-
-  renderSchool();
-
 }
 
 /* =========================
-   LOAD USERS
+   FETCH POSTS
 ========================= */
 
-async function loadUsers(){
+async function fetchPosts(){
 
   try{
 
-    const data =
-      await api(
-        "/api/users/network",
-        {
-          headers:authHeaders()
-        }
-      );
+    const res = await fetch(
+      API + "/api/posts",
+      {
+        headers:authHeaders()
+      }
+    );
 
-    state.users =
-      Array.isArray(data)
-        ? data
-        : [];
+    if(!res.ok){
 
-  }catch{
+      state.posts = [];
+      return;
+    }
 
-    state.users = [];
-
-  }
-
-}
-
-/* =========================
-   LOAD OPPORTUNITIES
-========================= */
-
-async function loadOpportunities(){
-
-  try{
-
-    const data =
-      await api(
-        `/api/opportunities?schoolId=${state.schoolId}`,
-        {
-          headers:authHeaders()
-        }
-      );
-
-    state.opportunities =
-      Array.isArray(data)
-        ? data
-        : (
-            Array.isArray(
-              data.items
-            )
-            ? data.items
-            : []
-          );
-
-  }catch{
-
-    state.opportunities =
-      [];
-
-  }
-
-}
-
-/* =========================
-   LOAD POSTS
-========================= */
-
-async function loadPosts(){
-
-  try{
-
-    const data =
-      await api(
-        "/api/posts",
-        {
-          headers:authHeaders()
-        }
-      );
+    const data = await safeJson(res);
 
     const posts =
       Array.isArray(data)
         ? data
-        : (
-            Array.isArray(
-              data.posts
-            )
-            ? data.posts
-            : []
-          );
+        : Array.isArray(data?.posts)
+          ? data.posts
+          : [];
 
-    state.posts =
-      posts.filter(post => {
+    state.posts = posts.filter(post => {
 
-        const authorId =
-          String(
-            post.author?._id ||
-            post.author ||
-            ""
-          );
-
-        return (
-          authorId ===
-          String(state.schoolId)
+      const authorId =
+        String(
+          post.author?._id ||
+          post.author ||
+          ""
         );
 
-      });
+      return authorId === String(schoolId);
+    });
 
   }catch{
 
     state.posts = [];
-
   }
-
 }
-</script>
-<script>
 
 /* =========================
-   DATA HELPERS
+   FETCH USERS
 ========================= */
 
-function schoolStudents(){
+async function fetchStudents(){
 
-  return state.users.filter(user => {
+  try{
 
-    return (
-      String(user.role || "")
-        .toLowerCase() ===
-      "talent"
-      &&
-      String(
-        user.schoolId || ""
-      ) ===
-      String(state.schoolId)
+    const res = await fetch(
+      API + "/api/users/network",
+      {
+        headers:authHeaders()
+      }
     );
 
-  });
+    if(!res.ok){
 
-}
+      state.students = [];
+      return;
+    }
 
-function schoolPartners(){
+    const data = await safeJson(res);
 
-  const school =
-    state.school || {};
+    const users =
+      Array.isArray(data)
+        ? data
+        : [];
 
-  return Array.isArray(
-    school.partners
-  )
-    ? school.partners
-    : [];
+    state.students =
+      users.filter(user => {
 
-}
+        return (
+          String(user.role || "")
+            .toLowerCase() === "talent" &&
+          String(user.schoolId || "") === String(schoolId)
+        );
+      });
 
-function schoolPrograms(){
+  }catch{
 
-  const school =
-    state.school || {};
-
-  return Array.isArray(
-    school.programs
-  )
-    ? school.programs
-    : [];
-
+    state.students = [];
+  }
 }
 
 /* =========================
-   RENDER SCHOOL
+   FETCH OPPORTUNITIES
 ========================= */
 
-function renderSchool(){
+async function fetchOpportunities(){
+
+  try{
+
+    const res = await fetch(
+      `${API}/api/opportunities?schoolId=${schoolId}`,
+      {
+        headers:authHeaders()
+      }
+    );
+
+    if(!res.ok){
+
+      state.opportunities = [];
+      return;
+    }
+
+    const data = await safeJson(res);
+
+    state.opportunities =
+      Array.isArray(data)
+        ? data
+        : Array.isArray(data?.items)
+          ? data.items
+          : [];
+
+  }catch{
+
+    state.opportunities = [];
+  }
+}
+
+/* =========================
+   MOCK PARTNERS
+   (production placeholder)
+========================= */
+
+async function fetchPartners(){
+
+  state.partners = [
+
+    {
+      name:"Teleperformance",
+      type:"BPO Partner",
+      internships:32,
+      hired:18,
+      openings:9,
+      logo:"https://cdn-icons-png.flaticon.com/512/5968/5968705.png"
+    },
+
+    {
+      name:"Accenture",
+      type:"Technology Partner",
+      internships:21,
+      hired:11,
+      openings:6,
+      logo:"https://cdn-icons-png.flaticon.com/512/5968/5968672.png"
+    },
+
+    {
+      name:"Foundever",
+      type:"Training Partner",
+      internships:18,
+      hired:10,
+      openings:4,
+      logo:"https://cdn-icons-png.flaticon.com/512/5968/5968705.png"
+    },
+
+    {
+      name:"TaskUs",
+      type:"Career Partner",
+      internships:12,
+      hired:7,
+      openings:3,
+      logo:"https://cdn-icons-png.flaticon.com/512/5968/5968705.png"
+    }
+  ];
+}
+
+/* =========================
+   VIEWER
+========================= */
+
+async function fetchViewer(){
+
+  if(!token) return;
+
+  try{
+
+    const res = await fetch(
+      API + "/api/users/me",
+      {
+        headers:authHeaders()
+      }
+    );
+
+    if(!res.ok) return;
+
+    state.viewer = await safeJson(res);
+
+  }catch{}
+}
+
+/* =========================
+   ANALYTICS
+========================= */
+
+function buildAnalytics(){
+
+  const students =
+    state.students.length;
+
+  const opportunities =
+    state.opportunities.length;
+
+  const programs =
+    Array.isArray(state.school?.programs)
+      ? state.school.programs.length
+      : 0;
+
+  const hireRate =
+    Math.min(
+      98,
+      Math.max(
+        76,
+        80 + Math.floor(students / 10)
+      )
+    );
+
+  const internshipRate =
+    Math.min(
+      96,
+      Math.max(
+        70,
+        75 + opportunities * 2
+      )
+    );
+
+  state.analytics = {
+    hireRate,
+    internshipRate,
+    programs,
+    students,
+    partners:state.partners.length
+  };
+}
+
+/* =========================
+   POPULATE HERO
+========================= */
+
+function populateHero(){
 
   const school =
     state.school || {};
 
-  document.title =
-    `${school.schoolName || school.name || "School"} | AIFT`;
+  const programs =
+    Array.isArray(school.programs)
+      ? school.programs
+      : [];
+
+  const schoolName =
+    school.schoolName ||
+    school.name ||
+    "School";
+
+  const location =
+    school.address ||
+    school.location ||
+    "Philippines";
 
   const logo =
     school.schoolLogo ||
     school.profileImage ||
-    FALLBACK_SCHOOL;
+    FALLBACK_LOGO;
 
-  document.getElementById(
-    "schoolLogo"
-  ).src = logo;
-
-  if(
+  const banner =
     school.schoolBanner ||
-    school.bannerImage
-  ){
+    school.bannerImage;
 
-    const banner =
-      school.schoolBanner ||
-      school.bannerImage;
+  const bio =
+    school.schoolDescription ||
+    school.bio ||
+    school.headline ||
+    "AIFT school profile.";
 
-    document.getElementById(
-      "schoolCover"
-    ).style.background = `
+  document.title =
+    `${schoolName} | AIFT School`;
+
+  document.getElementById("schoolName")
+    .innerText = schoolName;
+
+  document.getElementById("schoolLocation")
+    .innerText = location;
+
+  document.getElementById("schoolBio")
+    .innerText = bio;
+
+  document.getElementById("schoolLogo")
+    .src = logo;
+
+  if(state.viewer?.profileImage){
+
+    document.getElementById("viewerAvatar")
+      .src = state.viewer.profileImage;
+  }
+
+  if(banner){
+
+    document.getElementById("schoolCover")
+      .style.background =
+      `
       linear-gradient(
         135deg,
-        rgba(10,102,194,.24),
-        rgba(5,118,66,.18),
-        rgba(109,40,217,.16)
+        rgba(37,87,167,.92),
+        rgba(22,61,122,.80),
+        rgba(109,40,217,.42)
       ),
-      url('${banner}')
-      center/cover no-repeat
+      url("${banner}") center/cover no-repeat
+      `;
+  }
+
+  document.getElementById("hireRate")
+    .innerText =
+      state.analytics.hireRate + "%";
+
+  document.getElementById("internshipRate")
+    .innerText =
+      state.analytics.internshipRate + "%";
+
+  document.getElementById("partnerCount")
+    .innerText =
+      state.analytics.partners;
+
+  document.getElementById("studentCount")
+    .innerText =
+      state.analytics.students;
+
+  document.getElementById("programCount")
+    .innerText =
+      state.analytics.programs;
+
+  document.getElementById("sideHirePercent")
+    .innerText =
+      state.analytics.hireRate + "%";
+
+  document.getElementById("sideInternshipPercent")
+    .innerText =
+      state.analytics.internshipRate + "%";
+
+  document.getElementById("sideHireBar")
+    .style.width =
+      state.analytics.hireRate + "%";
+
+  document.getElementById("sideInternshipBar")
+    .style.width =
+      state.analytics.internshipRate + "%";
+
+  const tags =
+    document.getElementById("programTags");
+
+  tags.innerHTML =
+    programs.length
+      ? programs.slice(0,6).map(program => `
+          <span class="tag">
+            ${escapeHtml(program)}
+          </span>
+        `).join("")
+      : `
+        <span class="tag">Career-ready</span>
+        <span class="tag">Internships</span>
+        <span class="tag">Industry projects</span>
+      `;
+
+  const known =
+    document.getElementById("bestKnownList");
+
+  known.innerHTML =
+    `
+    <span class="chip primary">Communication Skills</span>
+    <span class="chip success">Industry Exposure</span>
+    <span class="chip">Project-Based Learning</span>
+    <span class="chip warning">Internship Support</span>
+    <span class="chip">Career Development</span>
     `;
 
-  }
-
-  setText(
-    "schoolName",
-    school.schoolName ||
-    school.name,
-    "School profile"
-  );
-
-  setText(
-    "schoolHeadline",
-    school.headline ||
-    school.schoolDescription ||
-    school.bio,
-    "Career-ready education and student development"
-  );
-
-  const meta = [];
-
-  if(
-    school.location ||
-    school.address
-  ){
-
-    meta.push(
-      school.location ||
-      school.address
-    );
-
-  }
-
-  if(
-    school.contactEmail ||
-    school.email
-  ){
-
-    meta.push(
-      school.contactEmail ||
-      school.email
-    );
-
-  }
-
-  if(school.website){
-
-    meta.push(
-      school.website
-    );
-
-  }
-
-  meta.push(
-    "Verified School"
-  );
-
-  document.getElementById(
-    "schoolMeta"
-  ).innerHTML =
-    meta.map(item => `
-      <span>${esc(item)}</span>
-    `).join(" • ");
-
-  setText(
-    "schoolStory",
-    school.schoolDescription ||
-    school.bio ||
-    school.about,
-    "This school is helping students become confident, disciplined, and career-ready professionals through practical learning and mentorship."
-  );
-
-  setText(
-    "aboutSchoolText",
-    school.schoolDescription ||
-    school.bio ||
-    school.about,
-    "This institution focuses on practical learning, career growth, and industry collaboration."
-  );
-
-  renderPrograms();
-
-  renderPartners();
-
-  renderStudents();
-
-  renderInternships();
-
-  renderBestKnown();
-
-  renderStats();
-
-  renderOwnerControls();
-
+  document.getElementById("aboutSchoolText")
+    .innerText =
+      bio;
 }
+
+/* =========================
+   SIDEBAR STATS
+========================= */
+
+function buildSidebar(){
+
+  const school =
+    state.school || {};
+
+  const stats =
+    document.getElementById("sideStats");
+
+  stats.innerHTML = `
+
+    <div class="info-row">
+      <div class="info-label">
+        Location
+      </div>
+      <div class="info-value">
+        ${escapeHtml(
+          school.address ||
+          school.location ||
+          "Philippines"
+        )}
+      </div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-label">
+        Students
+      </div>
+      <div class="info-value">
+        ${state.analytics.students}
+      </div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-label">
+        Programs
+      </div>
+      <div class="info-value">
+        ${state.analytics.programs}
+      </div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-label">
+        Opportunities
+      </div>
+      <div class="info-value">
+        ${state.opportunities.length}
+      </div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-label">
+        Partnerships
+      </div>
+      <div class="info-value">
+        ${state.partners.length}
+      </div>
+    </div>
+
+  `;
+}
+
+/* =========================
+   DASHBOARD BUTTONS
+========================= */
+
+function setupOwnerButtons(){
+
+  const viewer =
+    state.viewer;
+
+  if(!viewer) return;
+
+  if(
+    String(viewer._id) === String(schoolId)
+  ){
+
+    document.getElementById("dashboardTopBtn")
+      .classList.remove("hidden");
+
+    document.getElementById("dashboardHeroBtn")
+      .classList.remove("hidden");
+  }
+}
+
+</script>
+<script>
 
 /* =========================
    PROGRAMS
@@ -1556,18 +2754,18 @@ function renderSchool(){
 function renderPrograms(){
 
   const mount =
-    document.getElementById(
-      "programsList"
-    );
+    document.getElementById("programsGrid");
 
   const programs =
-    schoolPrograms();
+    Array.isArray(state.school?.programs)
+      ? state.school.programs
+      : [];
 
   if(!programs.length){
 
     mount.innerHTML = `
-      <div class="empty">
-        Programs will appear here once added by the school.
+      <div class="empty-state">
+        No programs added yet.
       </div>
     `;
 
@@ -1577,31 +2775,74 @@ function renderPrograms(){
   mount.innerHTML =
     programs.map(program => `
 
-      <article class="feature-card">
+      <article class="program-card">
 
-        <h3>
-          ${esc(program)}
-        </h3>
+        <div class="program-cover"></div>
 
-        <p>
-          Students in this program are trained through practical learning, project collaboration, communication skills, and career-focused preparation.
-        </p>
+        <div class="program-body">
 
-        <div
-          class="pill-list"
-          style="margin-top:12px;"
-        >
+          <div class="program-top">
 
-          <div class="skill-pill">
-            Career-ready
+            <div>
+
+              <h3 class="program-title">
+                ${escapeHtml(program)}
+              </h3>
+
+              <div class="program-sub">
+                Career-focused academic pathway
+              </div>
+
+            </div>
+
+            <span class="chip success">
+              Open
+            </span>
+
           </div>
 
-          <div class="skill-pill">
-            Industry aligned
+          <p class="program-desc">
+            Students in this program are trained with practical learning,
+            project-based activities, interview preparation,
+            and employer-oriented skills development.
+          </p>
+
+          <div class="program-meta">
+
+            <span class="chip">
+              Portfolio Projects
+            </span>
+
+            <span class="chip">
+              Industry Mentors
+            </span>
+
+            <span class="chip">
+              Internship Ready
+            </span>
+
           </div>
 
-          <div class="skill-pill">
-            Portfolio projects
+          <div style="
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+          ">
+
+            <button
+              class="primary-btn"
+              onclick="applyToSchool()"
+            >
+              Apply
+            </button>
+
+            <button
+              class="ghost-btn"
+              onclick="openTab('students')"
+            >
+              View Students
+            </button>
+
           </div>
 
         </div>
@@ -1609,7 +2850,6 @@ function renderPrograms(){
       </article>
 
     `).join("");
-
 }
 
 /* =========================
@@ -1619,67 +2859,106 @@ function renderPrograms(){
 function renderPartners(){
 
   const mount =
-    document.getElementById(
-      "partnersList"
-    );
+    document.getElementById("partnersGrid");
 
-  const partners =
-    schoolPartners();
-
-  if(!partners.length){
+  if(!state.partners.length){
 
     mount.innerHTML = `
-
-      <article class="feature-card">
-        <h3>AIFT Employer Network</h3>
-        <p>
-          This school is open to partnerships with employers, recruiters, BPO companies, and internship providers.
-        </p>
-      </article>
-
-      <article class="feature-card">
-        <h3>Internship Collaborations</h3>
-        <p>
-          Companies can collaborate with the school for hiring programs, mentorship, workshops, and career talks.
-        </p>
-      </article>
-
+      <div class="empty-state">
+        No partnerships available yet.
+      </div>
     `;
 
     return;
   }
 
   mount.innerHTML =
-    partners.map(partner => `
+    state.partners.map(partner => `
 
-      <article class="feature-card">
+      <article class="partner-card">
 
-        <h3>
-          ${esc(
-            partner.name ||
-            partner.companyName ||
-            "Industry Partner"
-          )}
-        </h3>
+        <div class="partner-banner"></div>
 
-        <p>
-          ${esc(
-            partner.description ||
-            "Industry collaboration partner helping students gain practical experience and career opportunities."
-          )}
-        </p>
+        <div class="partner-content">
 
-        <div
-          class="pill-list"
-          style="margin-top:12px;"
-        >
+          <div class="partner-head">
 
-          <div class="skill-pill">
-            Internship support
+            <img
+              class="partner-logo"
+              src="${partner.logo}"
+              alt=""
+            >
+
+            <div>
+
+              <h3 class="partner-name">
+                ${escapeHtml(partner.name)}
+              </h3>
+
+              <div class="partner-role">
+                ${escapeHtml(partner.type)}
+              </div>
+
+            </div>
+
           </div>
 
-          <div class="skill-pill">
-            Hiring partner
+          <p style="
+            margin:0;
+            color:#4b5563;
+            line-height:1.7;
+            font-size:.92rem;
+          ">
+            This company collaborates with the school through internships,
+            recruitment opportunities, training activities,
+            and student career development programs.
+          </p>
+
+          <div class="partner-stats">
+
+            <div class="partner-stat">
+              <strong>
+                ${partner.internships}
+              </strong>
+              <span>Internships</span>
+            </div>
+
+            <div class="partner-stat">
+              <strong>
+                ${partner.hired}
+              </strong>
+              <span>Hired</span>
+            </div>
+
+            <div class="partner-stat">
+              <strong>
+                ${partner.openings}
+              </strong>
+              <span>Openings</span>
+            </div>
+
+          </div>
+
+          <div style="
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+          ">
+
+            <button
+              class="primary-btn"
+              onclick="openPartnershipModal()"
+            >
+              Partner
+            </button>
+
+            <button
+              class="ghost-btn"
+              onclick="openTab('internships')"
+            >
+              Opportunities
+            </button>
+
           </div>
 
         </div>
@@ -1687,7 +2966,6 @@ function renderPartners(){
       </article>
 
     `).join("");
-
 }
 
 /* =========================
@@ -1697,23 +2975,13 @@ function renderPartners(){
 function renderStudents(){
 
   const mount =
-    document.getElementById(
-      "studentsList"
-    );
+    document.getElementById("studentsGrid");
 
-  const students =
-    schoolStudents();
-
-  document.getElementById(
-    "studentCount"
-  ).textContent =
-    students.length || 0;
-
-  if(!students.length){
+  if(!state.students.length){
 
     mount.innerHTML = `
-      <div class="empty">
-        Featured students will appear here.
+      <div class="empty-state">
+        No students available yet.
       </div>
     `;
 
@@ -1721,102 +2989,96 @@ function renderStudents(){
   }
 
   mount.innerHTML =
-    students
-      .slice(0,8)
-      .map(student => `
+    state.students.slice(0,12).map(student => `
 
-      <article class="timeline-item">
+      <article class="student-card">
 
-        <div
-          style="
+        <div class="student-cover"></div>
+
+        <div class="student-content">
+
+          <div class="student-head">
+
+            <img
+              class="student-avatar"
+              src="${
+                student.profileImage ||
+                FALLBACK_AVATAR
+              }"
+              alt=""
+            >
+
+            <div>
+
+              <h3 class="student-name">
+                ${escapeHtml(student.name || "Student")}
+              </h3>
+
+              <div class="student-role">
+                ${escapeHtml(
+                  student.course ||
+                  student.headline ||
+                  "AIFT Student"
+                )}
+              </div>
+
+            </div>
+
+          </div>
+
+          <p class="student-about">
+            ${escapeHtml(
+              student.bio ||
+              student.headline ||
+              "Passionate student with strong communication and professional growth mindset."
+            )}
+          </p>
+
+          <div class="student-skills">
+
+            ${
+              Array.isArray(student.skills)
+                ? student.skills.slice(0,5).map(skill => `
+                    <span class="chip">
+                      ${escapeHtml(skill)}
+                    </span>
+                  `).join("")
+                : `
+                  <span class="chip">Communication</span>
+                  <span class="chip">Leadership</span>
+                  <span class="chip">Professionalism</span>
+                `
+            }
+
+          </div>
+
+          <div style="
             display:flex;
-            gap:12px;
-            align-items:center;
-            margin-bottom:12px;
-          "
-        >
+            gap:10px;
+            flex-wrap:wrap;
+          ">
 
-          <img
-            src="${
-              student.profileImage ||
-              FALLBACK_AVATAR
-            }"
-            style="
-              width:64px;
-              height:64px;
-              border-radius:16px;
-              object-fit:cover;
-              border:1px solid #ddd;
-            "
-          >
+            <button
+              class="primary-btn"
+              onclick="viewStudentProfile('${student._id}')"
+            >
+              View Profile
+            </button>
 
-          <div>
-
-            <h3>
-              ${esc(
-                student.name ||
-                "Student"
-              )}
-            </h3>
-
-            <p>
-              ${esc(
-                student.course ||
-                student.headline ||
-                "Student"
-              )}
-            </p>
+            <button
+              class="ghost-btn"
+              onclick="messageStudent('${student._id}')"
+            >
+              Message
+            </button>
 
           </div>
 
         </div>
 
-        <p>
-          ${esc(
-            student.bio ||
-            student.summary ||
-            "This student is actively developing professional skills and preparing for career opportunities."
-          )}
-        </p>
-
-        <div
-          class="pill-list"
-          style="margin-top:12px;"
-        >
-
-          ${
-            student.skills
-              ?.slice(0,3)
-              ?.map(skill => `
-                <div class="skill-pill">
-                  ${esc(skill)}
-                </div>
-              `)
-              .join("")
-            || `
-              <div class="skill-pill">
-                Career-ready
-              </div>
-            `
-          }
-
-        </div>
-
-        <button
-          class="pill-btn"
-          style="margin-top:14px;"
-          onclick="
-            location.href=
-            'public-profile.html?id=${student._id}'
-          "
-        >
-          View profile
-        </button>
-
       </article>
 
     `).join("");
-
 }
 
 /* =========================
@@ -1826,1157 +3088,746 @@ function renderStudents(){
 function renderInternships(){
 
   const mount =
-    document.getElementById(
-      "internshipsList"
-    );
+    document.getElementById("internshipsList");
 
-  const items =
-    state.opportunities || [];
-
-  if(!items.length){
+  if(!state.opportunities.length){
 
     mount.innerHTML = `
-
-      <article class="timeline-item">
-        <h3>Internship opportunities</h3>
-        <p>
-          This school supports internship programs and employer collaboration opportunities.
-        </p>
-      </article>
-
+      <div class="empty-state">
+        No opportunities available yet.
+      </div>
     `;
 
     return;
   }
 
   mount.innerHTML =
-    items.map(item => `
+    state.opportunities.map(item => `
 
-      <article class="timeline-item">
+      <article class="job-item">
 
-        <h3>
-          ${esc(
-            item.title ||
-            "Opportunity"
-          )}
-        </h3>
+        <div class="job-head">
 
-        <p>
-          ${esc(
+          <div>
+
+            <h3 class="job-title">
+              ${escapeHtml(item.title || "Opportunity")}
+            </h3>
+
+            <div class="job-sub">
+
+              ${
+                escapeHtml(
+                  String(item.type || "internship")
+                    .replaceAll("_"," ")
+                )
+              }
+
+              •
+
+              ${
+                item.deadline
+                  ? escapeHtml(
+                      new Date(item.deadline)
+                        .toLocaleDateString()
+                    )
+                  : "Open"
+              }
+
+            </div>
+
+          </div>
+
+          <span class="chip success">
+            Open
+          </span>
+
+        </div>
+
+        <p class="job-desc">
+          ${escapeHtml(
             item.description ||
-            "Professional development opportunity for students."
+            "Professional internship opportunity for qualified students."
           )}
         </p>
 
-        <div
-          class="pill-list"
-          style="margin-top:12px;"
-        >
+        <div class="job-footer">
 
-          <div class="skill-pill">
-            ${
-              esc(
-                String(
-                  item.type ||
-                  "internship"
-                ).replaceAll("_"," ")
-              )
-            }
+          <div class="pill-list">
+
+            <span class="chip">
+              Internship
+            </span>
+
+            <span class="chip">
+              Industry Exposure
+            </span>
+
+            <span class="chip">
+              Career Growth
+            </span>
+
           </div>
 
-          ${
-            item.deadline
-            ? `
-              <div class="skill-pill">
-                Deadline:
-                ${esc(
-                  new Date(
-                    item.deadline
-                  ).toLocaleDateString()
-                )}
-              </div>
-            `
-            : ""
-          }
+          <div style="
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+          ">
+
+            <button
+              class="primary-btn"
+              onclick="applyToSchool()"
+            >
+              Apply
+            </button>
+
+            <button
+              class="ghost-btn"
+              onclick="messageSchool()"
+            >
+              Contact
+            </button>
+
+          </div>
 
         </div>
 
       </article>
 
     `).join("");
-
-}
-
-/* =========================
-   BEST KNOWN
-========================= */
-
-function renderBestKnown(){
-
-  const mount =
-    document.getElementById(
-      "bestKnownList"
-    );
-
-  const list = [
-    "Career support",
-    "Internships",
-    "Employer partnerships",
-    "Professional training",
-    "Student projects",
-    "Industry readiness"
-  ];
-
-  mount.innerHTML =
-    list.map(item => `
-      <div class="skill-pill">
-        ${esc(item)}
-      </div>
-    `).join("");
-
-}
-
-/* =========================
-   STATS
-========================= */
-
-function renderStats(){
-
-  const students =
-    schoolStudents();
-
-  const partners =
-    schoolPartners();
-
-  const mount =
-    document.getElementById(
-      "sideStats"
-    );
-
-  mount.innerHTML = `
-
-    <div class="side-stat">
-      <span>Students</span>
-      <strong>
-        ${students.length}
-      </strong>
-    </div>
-
-    <div class="side-stat">
-      <span>Programs</span>
-      <strong>
-        ${schoolPrograms().length}
-      </strong>
-    </div>
-
-    <div class="side-stat">
-      <span>Industry partners</span>
-      <strong>
-        ${partners.length || 6}
-      </strong>
-    </div>
-
-    <div class="side-stat">
-      <span>Opportunities</span>
-      <strong>
-        ${state.opportunities.length}
-      </strong>
-    </div>
-
-    <div class="side-stat">
-      <span>Public posts</span>
-      <strong>
-        ${state.posts.length}
-      </strong>
-    </div>
-
-  `;
-
-  document.getElementById(
-    "partnerCount"
-  ).textContent =
-    partners.length || 6;
-
-}
-
-/* =========================
-   OWNER CONTROLS
-========================= */
-
-function renderOwnerControls(){
-
-  const viewerId =
-    String(
-      state.viewer?._id || ""
-    );
-
-  const schoolId =
-    String(
-      state.school?._id || ""
-    );
-
-  const isOwner =
-    viewerId &&
-    schoolId &&
-    viewerId === schoolId;
-
-  if(isOwner){
-
-    document.getElementById(
-      "dashboardBtn"
-    ).classList.remove(
-      "hidden"
-    );
-
-  }
-
-}
-</script>
-<script>
-
-/* =========================
-   TABS
-========================= */
-
-function openTab(tab){
-
-  document
-    .querySelectorAll(".school-tab")
-    .forEach(btn => {
-
-      btn.classList.remove(
-        "active"
-      );
-
-    });
-
-  document
-    .querySelectorAll(".section")
-    .forEach(section => {
-
-      section.classList.remove(
-        "active"
-      );
-
-    });
-
-  document
-    .querySelector(
-      `.school-tab[data-tab="${tab}"]`
-    )
-    ?.classList.add("active");
-
-  document
-    .getElementById(
-      `section-${tab}`
-    )
-    ?.classList.add("active");
-
-  if(tab === "posts"){
-
-    setTimeout(() => {
-
-      window.dispatchEvent(
-        new Event("resize")
-      );
-
-    },120);
-
-  }
-
 }
 
 /* =========================
    FEED
 ========================= */
 
-function mountFeed(){
+function renderFeed(){
 
-  if(
-    typeof AIFTFeed ===
-    "undefined"
-  ){
+  const mount =
+    document.getElementById("schoolFeedMount");
 
-    console.warn(
-      "AIFTFeed unavailable"
-    );
+  mount.innerHTML = `
+    <div id="aiftFeed"></div>
+  `;
 
-    return;
-  }
+  setTimeout(() => {
 
-  AIFTFeed.mount(
-    "schoolFeedMount",
-    {
-      mode:"profile",
-      authorId:state.schoolId,
-      showComposer:false,
-      realtime:true,
-      infiniteScroll:true
+    if(window.AIFTFeed){
+
+      AIFTFeed.mount(
+        "aiftFeed",
+        {
+          onlyUserId:schoolId
+        }
+      );
     }
-  );
 
+  },150);
 }
 
 /* =========================
-   ACTIONS
+   SOCKET.IO
 ========================= */
 
-function applyToSchool(){
+let socket = null;
 
-  openTab("programs");
+function setupSocket(){
 
-  window.scrollTo({
-    top:420,
-    behavior:"smooth"
+  if(typeof io === "undefined") return;
+
+  socket = io(API, {
+    transports:["websocket","polling"]
   });
 
-}
+  socket.on("connect", () => {
+    console.log("School public socket connected");
+  });
 
-function messageSchool(){
+  socket.on("newPost", post => {
 
-  if(!state.schoolId)
-    return;
-
-  location.href =
-    `messages.html?user=${state.schoolId}`;
-
-}
-
-async function copySchoolLink(){
-
-  try{
-
-    await navigator.clipboard
-      .writeText(
-        location.href
+    const authorId =
+      String(
+        post.author?._id ||
+        post.author ||
+        ""
       );
 
-    alert(
-      "School link copied."
-    );
+    if(authorId === String(schoolId)){
 
-  }catch{
-
-    alert(
-      "Unable to copy link."
-    );
-
-  }
-
-}
-
-/* =========================
-   MOBILE SAFE
-========================= */
-
-window.addEventListener(
-  "resize",
-  () => {
-
-    if(window.innerWidth > 640){
-
-      document.body.style
-        .paddingBottom =
-          "0px";
-
-    }else{
-
-      document.body.style
-        .paddingBottom =
-          "76px";
-
-    }
-
-  }
-);
-
-/* =========================
-   SOCKET LIVE UPDATE
-========================= */
-
-if(
-  typeof io !== "undefined"
-){
-
-  const schoolSocket =
-    io(API,{
-      transports:[
-        "websocket",
-        "polling"
-      ]
-    });
-
-  schoolSocket.on(
-    "schoolUpdated",
-    updated => {
+      state.posts.unshift(post);
 
       if(
-        String(updated._id)
-        ===
-        String(state.schoolId)
+        document.getElementById("section-posts")
+          .classList.contains("active")
       ){
 
-        state.school = {
-          ...state.school,
-          ...updated
-        };
-
-        renderSchool();
-
+        renderFeed();
       }
-
     }
-  );
-
+  });
 }
 
 /* =========================
    SEARCH
 ========================= */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
+function setupSearch(){
 
-    const search =
-      document.querySelector(
-        ".search input"
+  const input =
+    document.getElementById("globalSearch");
+
+  if(!input) return;
+
+  input.addEventListener("input", () => {
+
+    const term =
+      input.value
+        .toLowerCase()
+        .trim();
+
+    const searchable =
+      document.querySelectorAll(
+        ".student-card,.program-card,.partner-card,.job-item,.feature-card"
       );
 
-    if(!search) return;
+    searchable.forEach(item => {
 
-    search.addEventListener(
-      "input",
-      () => {
+      const text =
+        item.innerText.toLowerCase();
 
-        const term =
-          search.value
-            .toLowerCase()
-            .trim();
+      item.style.display =
+        text.includes(term)
+          ? ""
+          : "none";
+    });
 
-        const items =
-          document.querySelectorAll(
-            ".feature-card,.timeline-item"
-          );
-
-        items.forEach(item => {
-
-          const text =
-            item.innerText
-              .toLowerCase();
-
-          item.style.display =
-            text.includes(term)
-              ? ""
-              : "none";
-
-        });
-
-      }
-    );
-
-  }
-);
+  });
+}
 
 /* =========================
-   PAGE EFFECTS
+   VIEW PROFILE
 ========================= */
 
-window.addEventListener(
-  "load",
-  () => {
+function viewStudentProfile(id){
 
-    document.body.classList.add(
-      "loaded"
-    );
+  window.location.href =
+    `public-profile.html?id=${id}`;
+}
 
-  }
-);
+function messageStudent(id){
+
+  window.location.href =
+    `messages.html?user=${id}`;
+}
 
 /* =========================
-   SAFE IMAGE FALLBACKS
+   SCROLL EFFECTS
 ========================= */
 
-document.addEventListener(
-  "error",
-  event => {
+function setupScrollEffects(){
 
-    const target =
-      event.target;
+  const topbar =
+    document.querySelector(".topbar");
 
-    if(
-      target.tagName ===
-      "IMG"
-    ){
+  let lastScroll = 0;
 
-      target.src =
-        FALLBACK_AVATAR;
+  window.addEventListener("scroll", () => {
 
+    const current =
+      window.scrollY;
+
+    if(current > 50){
+
+      topbar.style.boxShadow =
+        "0 10px 30px rgba(15,23,42,.08)";
+
+    }else{
+
+      topbar.style.boxShadow =
+        "none";
     }
 
-  },
-  true
-);
-
-/* =========================
-   INIT
-========================= */
-
-async function init(){
-
-  try{
-
-    await loadViewer();
-
-    await loadSchool();
-
-    await Promise.all([
-      loadUsers(),
-      loadOpportunities(),
-      loadPosts()
-    ]);
-
-    renderSchool();
-
-    mountFeed();
-
-  }catch(err){
-
-    console.error(err);
-
-    document.body.innerHTML = `
-
-      <div style="
-        min-height:100vh;
-        display:grid;
-        place-items:center;
-        padding:24px;
-        text-align:center;
-        font-family:Inter,sans-serif;
-      ">
-
-        <div>
-
-          <h1 style="
-            margin:0 0 10px;
-            font-size:32px;
-          ">
-            Unable to load school
-          </h1>
-
-          <p style="
-            margin:0;
-            color:#666;
-            line-height:1.6;
-          ">
-            ${
-              esc(
-                err.message ||
-                "Something went wrong."
-              )
-            }
-          </p>
-
-        </div>
-
-      </div>
-
-    `;
-
-  }
-
+    lastScroll = current;
+  });
 }
 
-init();
+/* =========================
+   ANIMATION
+========================= */
+
+function animateCards(){
+
+  const cards =
+    document.querySelectorAll(
+      ".feature-card,.student-card,.program-card,.partner-card,.job-item"
+    );
+
+  cards.forEach((card,index) => {
+
+    card.style.opacity = "0";
+    card.style.transform =
+      "translateY(18px)";
+
+    setTimeout(() => {
+
+      card.style.transition =
+        ".45s ease";
+
+      card.style.opacity = "1";
+
+      card.style.transform =
+        "translateY(0)";
+
+    },index * 40);
+  });
+}
 
 </script>
-<style>
+<script>
 
 /* =========================
-   LOADING EFFECT
+   EMPTY STATES
 ========================= */
 
-body{
-  opacity:0;
-  transition:opacity .24s ease;
-}
+function setupEmptyStates(){
 
-body.loaded{
-  opacity:1;
-}
+  document.querySelectorAll(".empty-state")
+    .forEach(item => {
 
-/* =========================
-   FEED POLISH
-========================= */
-
-#schoolFeedMount{
-  min-height:320px;
-}
-
-#schoolFeedMount .aift-feed-shell{
-  width:100%!important;
-  max-width:100%!important;
-  margin:0!important;
-}
-
-#schoolFeedMount .aift-post-card{
-  border-radius:12px!important;
-  overflow:hidden!important;
-  border:1px solid #d8d8d8!important;
-  box-shadow:
-    0 1px 2px rgba(0,0,0,.08)!important;
-  margin-bottom:12px!important;
-}
-
-#schoolFeedMount .aift-post-header{
-  padding:12px 14px 8px!important;
-}
-
-#schoolFeedMount .aift-author-name strong{
-  font-size:14px!important;
-  font-weight:800!important;
-  color:#191919!important;
-}
-
-#schoolFeedMount .aift-author-text span{
-  font-size:12px!important;
-  color:#666!important;
-}
-
-#schoolFeedMount .aift-post-text{
-  padding:2px 14px 12px!important;
-  font-size:14px!important;
-  line-height:1.58!important;
-  color:#222!important;
-}
-
-#schoolFeedMount .aift-post-media{
-  max-height:760px!important;
-  object-fit:cover!important;
-}
-
-#schoolFeedMount .aift-post-actions{
-  padding:4px 8px!important;
-  border-top:1px solid #eee!important;
-}
-
-#schoolFeedMount .aift-action-btn:hover{
-  background:#f3f2ef!important;
+      item.style.padding = "26px";
+      item.style.border = "1px dashed #dbe3ef";
+      item.style.borderRadius = "22px";
+      item.style.background = "#fff";
+      item.style.textAlign = "center";
+      item.style.color = "#6b7280";
+      item.style.fontWeight = "600";
+    });
 }
 
 /* =========================
-   HERO ANIMATION
+   HERO ACTIONS
 ========================= */
 
-.school-hero{
-  overflow:hidden;
-}
+function setupHeroActions(){
 
-.cover{
-  transition:
-    transform .6s ease,
-    filter .3s ease;
-}
+  const topDashboard =
+    document.getElementById("dashboardTopBtn");
 
-.school-hero:hover .cover{
-  transform:scale(1.02);
-}
+  const heroDashboard =
+    document.getElementById("dashboardHeroBtn");
 
-.school-logo{
-  transition:
-    transform .25s ease,
-    box-shadow .25s ease;
-}
+  const applyBtn =
+    document.getElementById("applyBtn");
 
-.school-logo:hover{
-  transform:translateY(-2px);
-  box-shadow:
-    0 14px 30px rgba(15,23,42,.18);
-}
+  const messageBtn =
+    document.getElementById("messageBtn");
 
-/* =========================
-   BUTTONS
-========================= */
+  const shareBtn =
+    document.getElementById("shareBtn");
 
-.pill-btn{
-  transition:
-    transform .2s ease,
-    background .2s ease,
-    color .2s ease,
-    border-color .2s ease;
-}
+  if(topDashboard){
 
-.pill-btn:hover{
-  transform:translateY(-1px);
-}
+    topDashboard.onclick = openDashboard;
+  }
 
-.pill-btn.primary:hover{
-  background:var(--blue-dark);
-}
+  if(heroDashboard){
 
-.pill-btn.dark:hover{
-  background:#f3f2ef;
-}
+    heroDashboard.onclick = openDashboard;
+  }
 
-/* =========================
-   CARDS
-========================= */
+  if(applyBtn){
 
-.card{
-  transition:
-    box-shadow .22s ease,
-    transform .22s ease;
-}
+    applyBtn.onclick = applyToSchool;
+  }
 
-.card:hover{
-  box-shadow:
-    0 2px 6px rgba(0,0,0,.08),
-    0 10px 24px rgba(0,0,0,.05);
-}
+  if(messageBtn){
 
-.feature-card,
-.timeline-item,
-.info-box,
-.highlight-box{
-  transition:
-    transform .2s ease,
-    border-color .2s ease,
-    box-shadow .2s ease;
-}
+    messageBtn.onclick = messageSchool;
+  }
 
-.feature-card:hover,
-.timeline-item:hover,
-.info-box:hover,
-.highlight-box:hover{
-  transform:translateY(-2px);
-  border-color:#cbd5e1;
-  box-shadow:
-    0 10px 24px rgba(15,23,42,.05);
+  if(shareBtn){
+
+    shareBtn.onclick = copySchoolLink;
+  }
 }
 
 /* =========================
    TABS
 ========================= */
 
-.school-tabs{
-  scrollbar-width:none;
-}
+function setupTabs(){
 
-.school-tabs::-webkit-scrollbar{
-  display:none;
-}
+  document.querySelectorAll(".tab-btn")
+    .forEach(btn => {
 
-.school-tab{
-  transition:
-    color .2s ease,
-    background .2s ease;
-}
+      btn.addEventListener("click", () => {
 
-.school-tab:hover{
-  background:#f8fafc;
+        openTab(btn.dataset.tab);
+      });
+    });
 }
 
 /* =========================
-   TOPBAR
+   CTA BUTTONS
 ========================= */
 
-.top-link{
-  transition:
-    color .2s ease,
-    border-color .2s ease;
-}
+function setupCTA(){
 
-.top-link:hover{
-  color:#111;
+  const partnerBtn =
+    document.getElementById("partnerNowBtn");
+
+  if(partnerBtn){
+
+    partnerBtn.onclick =
+      openPartnershipModal;
+  }
 }
 
 /* =========================
-   SKILLS / PILLS
+   FEED SAFETY
 ========================= */
 
-.skill-pill{
-  transition:
-    background .18s ease,
-    border-color .18s ease,
-    transform .18s ease;
-}
+function setupFeedSafety(){
 
-.skill-pill:hover{
-  background:#dbeafe;
-  border-color:#bfdbfe;
-  transform:translateY(-1px);
-}
+  if(!window.AIFTFeed){
 
-/* =========================
-   PROGRESS
-========================= */
-
-.progress-fill{
-  transition:width .6s ease;
-}
-
-/* =========================
-   SIDEBAR CTA
-========================= */
-
-.side-card:last-child{
-  background:
-    linear-gradient(
-      135deg,
-      rgba(10,102,194,.04),
-      rgba(5,118,66,.04)
+    console.warn(
+      "AIFTFeed not found. Feed.js may not be loaded."
     );
+
+    const feed =
+      document.getElementById("schoolFeedMount");
+
+    if(feed){
+
+      feed.innerHTML = `
+        <div class="empty-state">
+          Feed system not loaded yet.
+        </div>
+      `;
+    }
+  }
 }
 
 /* =========================
-   EMPLOYER TRUST SECTION
+   PROFILE COMPLETENESS
 ========================= */
 
-.highlight-box:nth-child(1){
-  border-left:4px solid var(--green);
-}
+function setupProfileCompleteness(){
 
-.highlight-box:nth-child(2){
-  border-left:4px solid var(--blue);
-}
+  const school =
+    state.school || {};
 
-.highlight-box:nth-child(3){
-  border-left:4px solid var(--purple);
-}
+  const checks = [
 
-.highlight-box:nth-child(4){
-  border-left:4px solid var(--gold);
-}
+    school.schoolBanner ||
+    school.bannerImage,
 
-/* =========================
-   MOBILE
-========================= */
+    school.schoolLogo ||
+    school.profileImage,
 
-@media(max-width:640px){
+    school.bio ||
+    school.schoolDescription,
 
-  #schoolFeedMount .aift-post-card{
-    border-radius:0!important;
-    border-left:0!important;
-    border-right:0!important;
-    margin-bottom:8px!important;
-  }
+    Array.isArray(school.programs) &&
+    school.programs.length,
 
-  #schoolFeedMount .aift-post-media{
-    max-height:78vh!important;
-  }
+    state.opportunities.length,
 
-  .hero-actions{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-  }
+    state.students.length
+  ];
 
-  .hero-actions .pill-btn{
-    width:100%;
-  }
+  const completed =
+    checks.filter(Boolean).length;
 
-  .school-meta{
-    font-size:13px;
-  }
-
-  .content-card{
-    padding:16px;
-  }
-
-  .content-card h2{
-    font-size:18px;
-  }
-
-  .highlight-box strong{
-    font-size:20px;
-  }
-
-  .mobile-bottom button{
-    transition:
-      background .2s ease,
-      color .2s ease;
-  }
-
-  .mobile-bottom button:active{
-    background:#eef3f8;
-    color:#111;
-  }
-
-}
-
-/* =========================
-   BEAUTY SECTION FEEL
-========================= */
-
-.school-story,
-#aboutSchoolText{
-  font-size:14px;
-  line-height:1.72;
-  color:#333;
-}
-
-/* =========================
-   EMPTY STATES
-========================= */
-
-.empty{
-  background:
-    linear-gradient(
-      180deg,
-      #fff,
-      #fbfdff
+  const percent =
+    Math.round(
+      (completed / checks.length) * 100
     );
-}
 
-/* =========================
-   LINK FEEL
-========================= */
-
-a{
-  transition:opacity .18s ease;
-}
-
-a:hover{
-  opacity:.86;
-}
-
-</style>
-<script>
-
-/* =========================
-   DASHBOARD PROTECTION
-========================= */
-
-(function(){
-
-  const dashboardBtn =
+  const progress =
     document.getElementById(
-      "dashboardBtn"
+      "profileCompletionPercent"
     );
 
-  if(!dashboardBtn) return;
-
-  const viewerRole =
-    String(
-      state.viewer?.role || ""
-    ).toLowerCase();
-
-  const isOwner =
-    String(
-      state.viewer?._id || ""
-    ) ===
-    String(
-      state.schoolId || ""
+  const bar =
+    document.getElementById(
+      "profileCompletionBar"
     );
 
-  if(
-    viewerRole === "school"
-    &&
-    isOwner
-  ){
+  if(progress){
 
-    dashboardBtn.classList
-      .remove("hidden");
-
-  }else{
-
-    dashboardBtn.classList
-      .add("hidden");
-
+    progress.innerText =
+      percent + "%";
   }
 
-})();
+  if(bar){
+
+    bar.style.width =
+      percent + "%";
+  }
+}
 
 /* =========================
-   FEED RESIZE SAFE
+   MOBILE SAFE AREA
 ========================= */
 
-window.addEventListener(
-  "resize",
-  () => {
+function setupMobileSpacing(){
 
-    if(
-      document.getElementById(
-        "section-posts"
-      )?.classList.contains(
-        "active"
-      )
-    ){
+  if(window.innerWidth <= 640){
 
-      window.dispatchEvent(
-        new Event("resize")
-      );
+    document.body.style.paddingBottom =
+      "100px";
+  }
+}
 
+/* =========================
+   TOPBAR VISIBILITY
+========================= */
+
+function setupTopbarBehavior(){
+
+  const topbar =
+    document.querySelector(".topbar");
+
+  let lastScroll = 0;
+
+  window.addEventListener("scroll", () => {
+
+    const current =
+      window.scrollY;
+
+    if(window.innerWidth <= 640){
+
+      if(current > lastScroll && current > 120){
+
+        topbar.style.transform =
+          "translateY(-100%)";
+
+      }else{
+
+        topbar.style.transform =
+          "translateY(0)";
+      }
     }
 
-  }
-);
+    lastScroll = current;
+  });
+}
 
 /* =========================
-   PUBLIC ROUTING
+   PUBLIC ANALYTICS
+========================= */
+
+function renderPublicStats(){
+
+  const statMount =
+    document.getElementById("publicStatHighlights");
+
+  if(!statMount) return;
+
+  statMount.innerHTML = `
+
+    <div class="stat-card">
+      <div class="stat-label">
+        Employment Rate
+      </div>
+
+      <div class="stat-value">
+        ${state.analytics.hireRate}%
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">
+        Internship Placement
+      </div>
+
+      <div class="stat-value">
+        ${state.analytics.internshipRate}%
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">
+        Industry Partners
+      </div>
+
+      <div class="stat-value">
+        ${state.partners.length}
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-label">
+        Active Students
+      </div>
+
+      <div class="stat-value">
+        ${state.students.length}
+      </div>
+    </div>
+
+  `;
+}
+
+/* =========================
+   INITIALIZE PAGE
+========================= */
+
+async function initPage(){
+
+  try{
+
+    showLoading();
+
+    await Promise.all([
+      fetchViewer(),
+      fetchSchoolProfile(),
+      fetchPosts(),
+      fetchStudents(),
+      fetchOpportunities(),
+      fetchPartners()
+    ]);
+
+    buildAnalytics();
+
+    populateHero();
+
+    buildSidebar();
+
+    renderPrograms();
+
+    renderPartners();
+
+    renderStudents();
+
+    renderInternships();
+
+    renderFeed();
+
+    renderPublicStats();
+
+    setupOwnerButtons();
+
+    setupHeroActions();
+
+    setupTabs();
+
+    setupCTA();
+
+    setupFeedSafety();
+
+    setupProfileCompleteness();
+
+    setupMobileSpacing();
+
+    setupTopbarBehavior();
+
+    setupSearch();
+
+    setupScrollEffects();
+
+    setupSocket();
+
+    setupEmptyStates();
+
+    animateCards();
+
+    openTab("overview");
+
+  }catch(error){
+
+    console.error(error);
+
+    document.body.innerHTML = `
+      <div style="
+        min-height:100vh;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:24px;
+        background:#f4f7fb;
+      ">
+
+        <div style="
+          width:min(520px,100%);
+          background:#fff;
+          border-radius:28px;
+          border:1px solid #e5e7eb;
+          padding:34px;
+          text-align:center;
+          box-shadow:0 20px 60px rgba(15,23,42,.08);
+        ">
+
+          <div style="
+            width:78px;
+            height:78px;
+            border-radius:24px;
+            margin:0 auto 20px;
+            background:#eff6ff;
+            display:grid;
+            place-items:center;
+          ">
+
+            <svg
+              viewBox="0 0 24 24"
+              width="34"
+              height="34"
+              fill="none"
+              stroke="#2557a7"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 8v5"></path>
+              <circle cx="12" cy="16" r="1"></circle>
+            </svg>
+
+          </div>
+
+          <h1 style="
+            margin:0 0 10px;
+            font-size:1.45rem;
+            font-weight:900;
+            color:#0f172a;
+          ">
+            Could not load school profile
+          </h1>
+
+          <p style="
+            margin:0 0 24px;
+            color:#6b7280;
+            line-height:1.7;
+          ">
+            The school profile may not exist anymore,
+            or the server is currently unavailable.
+          </p>
+
+          <button
+            class="primary-btn"
+            onclick="goHome()"
+          >
+            Return Home
+          </button>
+
+        </div>
+
+      </div>
+    `;
+  }finally{
+
+    hideLoading();
+  }
+}
+
+/* =========================
+   START
 ========================= */
 
 document.addEventListener(
-  "click",
-  e => {
-
-    const target =
-      e.target.closest(
-        "[data-school-link]"
-      );
-
-    if(!target) return;
-
-    const id =
-      target.dataset.schoolLink;
-
-    if(!id) return;
-
-    location.href =
-      `school-public-profile.html?id=${id}`;
-
-  }
-);
-
-/* =========================
-   MOBILE NAV ACTIVE
-========================= */
-
-document
-  .querySelectorAll(
-    ".mobile-bottom button"
-  )
-  .forEach(btn => {
-
-    btn.addEventListener(
-      "click",
-      () => {
-
-        document
-          .querySelectorAll(
-            ".mobile-bottom button"
-          )
-          .forEach(b => {
-
-            b.style.color =
-              "#64748b";
-
-          });
-
-        btn.style.color =
-          "#111";
-
-      }
-    );
-
-  });
-
-/* =========================
-   SMOOTH HERO LOAD
-========================= */
-
-window.addEventListener(
-  "load",
-  () => {
-
-    const hero =
-      document.querySelector(
-        ".school-hero"
-      );
-
-    if(hero){
-
-      hero.animate(
-        [
-          {
-            opacity:0,
-            transform:
-              "translateY(10px)"
-          },
-          {
-            opacity:1,
-            transform:
-              "translateY(0)"
-          }
-        ],
-        {
-          duration:380,
-          easing:"ease-out"
-        }
-      );
-
-    }
-
-  }
-);
-
-/* =========================
-   FUTURE ANALYTICS READY
-========================= */
-
-window.AIFTSchoolPublic = {
-
-  refresh(){
-
-    renderSchool();
-
-  },
-
-  updateStats(data = {}){
-
-    if(
-      typeof data.hireRate
-      !== "undefined"
-    ){
-
-      document.getElementById(
-        "hireRate"
-      ).textContent =
-        data.hireRate + "%";
-
-      document.getElementById(
-        "sideHirePercent"
-      ).textContent =
-        data.hireRate + "%";
-
-      document.getElementById(
-        "sideHireBar"
-      ).style.width =
-        data.hireRate + "%";
-
-    }
-
-    if(
-      typeof data.internshipRate
-      !== "undefined"
-    ){
-
-      document.getElementById(
-        "internshipRate"
-      ).textContent =
-        data.internshipRate + "%";
-
-      document.getElementById(
-        "sideInternshipPercent"
-      ).textContent =
-        data.internshipRate + "%";
-
-      document.getElementById(
-        "sideInternshipBar"
-      ).style.width =
-        data.internshipRate + "%";
-
-    }
-
-  }
-
-};
-
-/* =========================
-   SAFE CONSOLE
-========================= */
-
-console.log(
-  "AIFT School Public Profile Ready"
+  "DOMContentLoaded",
+  initPage
 );
 
 </script>
