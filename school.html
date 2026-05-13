@@ -1736,13 +1736,13 @@ button{
   box-shadow:0 12px 30px rgba(15,23,42,.08);
 }
 
-body.loaded{
+body{
   opacity:1;
+  transition:opacity .24s ease;
 }
 
-body{
-  opacity:0;
-  transition:opacity .24s ease;
+body.loading{
+  opacity:.35;
 }
 
 .footer{
@@ -3566,6 +3566,7 @@ try {
 async function init() {
 
   try {
+    document.body.classList.remove("loading");
 
     await fetchProfile();
 
@@ -3595,11 +3596,13 @@ async function init() {
 
   } catch (err) {
 
-    console.error(err);
+    console.error("School dashboard failed:", err);
+
+    document.body.classList.remove("loading");
 
     showAlert(
       "error",
-      "Could not load school dashboard."
+      err.message || "Could not load school dashboard."
     );
   }
 }
@@ -3621,8 +3624,6 @@ document.addEventListener("keydown", (e) => {
   }
 });
 </script>
-
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 </body>
 </html>
