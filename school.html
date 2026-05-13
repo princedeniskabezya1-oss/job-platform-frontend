@@ -2325,12 +2325,14 @@ function goMessages() {
 }
 
 function openPublicPage() {
-  if (!state.me?._id) return;
+  const id = state.me?._id || localStorage.getItem("userId");
 
-  window.open(
-    `school-public-profile.html?id=${state.me._id}`,
-    "_blank"
-  );
+  if (!id) {
+    showAlert("error", "School profile ID not found.");
+    return;
+  }
+
+  window.open(`school-public-profile.html?id=${id}`, "_blank");
 }
 
 /* =========================
