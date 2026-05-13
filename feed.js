@@ -545,9 +545,13 @@ const AIFTFeed = (() => {
           <button onclick="AIFTFeed.openComments('${esc(post._id)}')">
             View <strong id="aift-comments-count-${safeId(post._id)}">${commentsCount}</strong> comments
           </button>
-          <span id="aift-views-wrap-${safeId(post._id)}">
-            <strong id="aift-views-count-${safeId(post._id)}">${post.viewsCount || 0}</strong> views
-          </span>
+         ${
+  !post.repostOf
+    ? `<span id="aift-views-wrap-${safeId(post._id)}">
+        <strong id="aift-views-count-${safeId(post._id)}">${post.viewsCount || 0}</strong> views
+      </span>`
+    : ""
+}
           <span class="${post.sharesCount ? "" : "aift-hidden"}" id="aift-shares-wrap-${safeId(post._id)}">
             <strong id="aift-shares-count-${safeId(post._id)}">${post.sharesCount || 0}</strong> shares
           </span>
@@ -600,43 +604,67 @@ const AIFTFeed = (() => {
       : "";
   }
 
-  async function createPost() {
-    const textEl = document.getElementById("aiftPostText");
-    const mediaEl = document.getElementById("aiftPostMedia");
-    const preview = document.getElementById("aiftComposerPreview");
+async function createPost() {
+  const textEl = document.getElementById("aiftPostText");
+  const mediaEl = document.getElementById("aiftPostMedia");
+  const preview = document.getElementById("aiftComposerPreview");
+  const postBtn = document.querySelector(".aift-composer .aift-primary-btn");
 
-    const text = textEl?.value.trim() || "";
-    const files = Array.from(mediaEl?.files || []);
+  const text = textEl?.value.trim() || "";
+  const files = Array.from(mediaEl?.files || []);
 
-    if (!text && !files.length) {
-      toast("Please write something or add media first.");
-      return;
-    }
+  if (!text && !files.length) {
+    toast("Please write something or add media first.");
+    return;
+  }
 
-    const form = new FormData();
-    form.append("text", text || " ");
+  if (postBtn?.disabled) return;
 
-    files.forEach(file => {
-      form.append("media", file);
+  if (postBtn) {
+    postBtn.disabled = true;
+    postBtn.textContent = "Posting...";
+  }
+
+  const form = new FormData();
+  form.append("text", text);
+
+  files.forEach(file => {
+    form.append("media", file);
+  });
+
+  try {
+    const post = await api(`${API}/api/posts`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + getToken()
+      },
+      body: form
     });
 
-    try {
-      const post = await api(`${API}/api/posts`, {
-        method: "POST",
-        headers: { Authorization: "Bearer " + getToken() },
-        body: form
-      });
+    if (textEl) textEl.value = "";
 
-      if (textEl) textEl.value = "";
-      if (mediaEl) mediaEl.value = "";
-      if (preview) preview.innerHTML = "";
+    if (mediaEl) {
+      mediaEl.value = "";
 
-      upsertPost(post, { prepend: true });
-      toast("Post created.");
-    } catch (err) {
-      toast(err.message, "error");
+      const freshInput = mediaEl.cloneNode(true);
+      mediaEl.parentNode.replaceChild(freshInput, mediaEl);
+    }
+
+    if (preview) preview.innerHTML = "";
+
+    upsertPost(post, { prepend: true });
+    toast("Post created.");
+  } catch (err) {
+    toast(err.message, "error");
+  } finally {
+    const freshBtn = document.querySelector(".aift-composer .aift-primary-btn");
+
+    if (freshBtn) {
+      freshBtn.disabled = false;
+      freshBtn.textContent = "Post";
     }
   }
+}
     async function likePost(postId, silent = false) {
     const post = getPost(postId);
     const beforeLiked = post?.likes?.some(u => String(u?._id || u) === String(state.meId));
