@@ -468,12 +468,11 @@ const AIFTFeed = (() => {
 
         ${renderMediaCarousel(original)}
 
-        <div class="aift-repost-stats">
-          <span>${(original.likes || []).length} likes</span>
-          <span>${original.viewsCount || 0} views</span>
-          <span>${original.sharesCount || 0} shares</span>
-          <span>${commentsCount} comments</span>
-        </div>
+<div class="aift-repost-stats">
+  <span>${(original.likes || []).length} likes</span>
+  <span>${original.sharesCount || 0} shares</span>
+  <span>${commentsCount} comments</span>
+</div>
       </div>
     `;
   }
