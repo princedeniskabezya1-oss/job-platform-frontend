@@ -596,35 +596,7 @@ a{
 
 <section class="feed-col">
 
-  <section class="create-post card">
 
-    <div class="create-top">
-
-      <img id="createAvatar" class="create-avatar">
-
-      <button class="create-trigger" onclick="openCreatePost()">
-        Start a post
-      </button>
-
-    </div>
-
-    <div class="create-actions">
-
-      <button onclick="openCreatePost('photo')">
-        Photo
-      </button>
-
-      <button onclick="openCreatePost('video')">
-        Video
-      </button>
-
-      <button onclick="openCreatePost('article')">
-        Write article
-      </button>
-
-    </div>
-
-  </section>
 
   <div id="feedMount"></div>
 
@@ -860,7 +832,7 @@ a{
 }
 
 #feedMount .aift-composer{
-  display:none;
+  display:block!important;
 }
 
 /* MOBILE NAV */
@@ -1413,32 +1385,6 @@ AIFTFeed.mount("feedMount", {
   `;
 }
 
-/* =========================
-   CREATE POST
-========================= */
-
-function openCreatePost(type="post"){
-  const composer = document.querySelector("#feedMount .aift-composer");
-
-  if(composer){
-    composer.style.setProperty("display", "block", "important");
-    composer.scrollIntoView({ behavior:"smooth", block:"center" });
-
-    const textBox = document.getElementById("aiftPostText");
-    const mediaInput = document.getElementById("aiftPostMedia");
-
-    if(type === "photo" || type === "video"){
-      mediaInput?.click();
-    }else{
-      textBox?.focus();
-    }
-
-    return;
-  }
-
-  console.warn("Composer unavailable");
-}
-
 
 /* =========================
    UI EFFECTS
@@ -1636,7 +1582,7 @@ init();
 }
 
 #feedMount .aift-composer{
-  display:none!important;
+  display:block!important;
 }
 
 #feedMount .aift-post-card{
@@ -1893,6 +1839,55 @@ const feedWatcher =
   },600);
 
 </script>
+<script>
+document.addEventListener("change", function(e){
+  const input = e.target;
 
+  if(!input || input.type !== "file") return;
+
+  const file = input.files && input.files[0];
+  if(!file) return;
+
+  const composer =
+    input.closest(".aift-composer") ||
+    document.querySelector("#feedMount .aift-composer");
+
+  if(!composer) return;
+
+  let preview = composer.querySelector(".aift-media-preview");
+
+  if(!preview){
+    preview = document.createElement("div");
+    preview.className = "aift-media-preview";
+    composer.appendChild(preview);
+  }
+
+  const url = URL.createObjectURL(file);
+
+  if(file.type.startsWith("video/")){
+    preview.innerHTML = `
+      <video controls style="
+        width:100%;
+        max-height:420px;
+        border-radius:12px;
+        margin-top:12px;
+        background:#000;
+      ">
+        <source src="${url}" type="${file.type}">
+      </video>
+    `;
+  }else{
+    preview.innerHTML = `
+      <img src="${url}" style="
+        width:100%;
+        max-height:420px;
+        object-fit:cover;
+        border-radius:12px;
+        margin-top:12px;
+      ">
+    `;
+  }
+});
+</script>
 </body>
 </html>
