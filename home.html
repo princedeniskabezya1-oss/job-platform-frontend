@@ -1326,14 +1326,25 @@ function openEvents(){
 }
 
 function openDashboard(){
+  const r = String(role() || state.me?.role || "").toLowerCase();
 
-  if(
-    role() === "employer" ||
-    role() === "school" ||
-    role() === "agent" ||
-    role() === "admin"
-  ){
+  if(r === "school"){
+    location.href = "school.html";
+    return;
+  }
+
+  if(r === "employer"){
     location.href = "employer.html";
+    return;
+  }
+
+  if(r === "agent"){
+    location.href = "agent.html";
+    return;
+  }
+
+  if(r === "admin"){
+    location.href = "admin/index.html";
     return;
   }
 
@@ -1341,24 +1352,21 @@ function openDashboard(){
 }
 
 function openProfile(){
+  if(!state.me?._id) return;
 
-  if(!state.me?._id){
+  const r = String(state.me.role || role()).toLowerCase();
+
+  if(r === "school"){
+    location.href = `school-public-profile.html?id=${state.me._id}`;
     return;
   }
 
-  if(
-    state.me.role === "employer" ||
-    state.me.role === "school"
-  ){
-
-    location.href =
-      `employer-public-profile.html?id=${state.me._id}`;
-
+  if(r === "employer"){
+    location.href = `employer-public-profile.html?id=${state.me._id}`;
     return;
   }
 
-  location.href =
-    `public-profile.html?id=${state.me._id}`;
+  location.href = `public-profile.html?id=${state.me._id}`;
 }
 
 </script>
