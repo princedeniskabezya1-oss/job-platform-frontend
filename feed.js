@@ -541,9 +541,9 @@ const AIFTFeed = (() => {
           <button onclick="AIFTFeed.openLikes('${esc(post._id)}')">
             <strong id="aift-likes-count-${safeId(post._id)}">${(post.likes || []).length}</strong> likes
           </button>
-          <button onclick="AIFTFeed.openComments('${esc(post._id)}')">
-            View <strong id="aift-comments-count-${safeId(post._id)}">${commentsCount}</strong> comments
-          </button>
+         <button onclick="AIFTFeed.openComments('${esc(post._id)}')">
+  <strong id="aift-comments-count-${safeId(post._id)}">${commentsCount}</strong> comments
+</button>
          ${
   !post.repostOf
     ? `<span id="aift-views-wrap-${safeId(post._id)}">
