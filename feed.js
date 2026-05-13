@@ -370,7 +370,62 @@ const posts = await api(feedUrl, {
 
     observePosts();
   }
+function getMediaItems(post = {}) {
+  if (Array.isArray(post.media) && post.media.length) {
+    return post.media;
+  }
 
+  if (post.mediaUrl) {
+    return [{
+      url: post.mediaUrl,
+      type: post.mediaType || "image"
+    }];
+  }
+
+  return [];
+}
+
+function renderMediaGrid(post) {
+  const items = getMediaItems(post);
+
+  if (!items.length) return "";
+
+  return `
+    <div class="aift-media-grid count-${items.length}">
+      ${items.map(item => `
+        <div class="aift-media-wrap">
+          ${
+            item.type === "video"
+              ? `<video class="aift-post-media" src="${esc(item.url)}" controls playsinline preload="metadata"></video>`
+              : `<img class="aift-post-media" src="${esc(item.url)}" alt="Post media" loading="lazy" />`
+          }
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderOriginalPostCard(original) {
+  if (!original) return "";
+
+  const author = original.author || {};
+
+  return `
+    <div class="aift-repost-card">
+      <div class="aift-repost-author" onclick="AIFTFeed.visitProfile('${esc(author._id)}')">
+        <img src="${esc(userAvatar(author))}" alt="" />
+        <div>
+          <strong>${esc(userName(author))}</strong>
+          <span>${esc(userSub(author))}${original.createdAt ? ` · ${formatTime(original.createdAt)}` : ""}</span>
+        </div>
+      </div>
+
+      ${original.text?.trim() ? `<div class="aift-repost-text">${esc(original.text)}</div>` : ""}
+
+      ${renderMediaGrid(original)}
+    </div>
+  `;
+}
   function renderPost(post) {
     const author = post.author || {};
     const liked = (post.likes || []).some(u => String(u?._id || u) === String(state.meId));
@@ -405,20 +460,8 @@ const posts = await api(feedUrl, {
 
         ${post.text?.trim() ? `<div class="aift-post-text">${esc(post.text)}</div>` : ""}
 
-        ${
-          post.mediaUrl
-            ? `
-              <div class="aift-media-wrap" ondblclick="AIFTFeed.doubleLike('${esc(post._id)}')" ontouchend="AIFTFeed.handleTapLike(event, '${esc(post._id)}')">
-                ${
-                  post.mediaType === "video"
-                    ? `<video class="aift-post-media" src="${esc(post.mediaUrl)}" controls playsinline preload="metadata"></video>`
-                    : `<img class="aift-post-media" src="${esc(post.mediaUrl)}" alt="Post media" loading="lazy" />`
-                }
-                <div class="aift-heart-overlay" id="aift-heart-${safeId(post._id)}">${svg("heart")}</div>
-              </div>
-            `
-            : ""
-        }
+${post.repostOf ? renderOriginalPostCard(post.repostOf) : renderMediaGrid(post)}
+<div class="aift-heart-overlay" id="aift-heart-${safeId(post._id)}">${svg("heart")}</div>
 
         <section class="aift-post-actions">
           <div class="aift-left-actions">
