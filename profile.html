@@ -1,45 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIFT Profile</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+
+<title>AIFT | Edit Profile</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <style>
 :root{
-  --primary:#0a66c2;
-  --primary-dark:#004182;
+  --blue:#0a66c2;
+  --blue-dark:#004182;
+  --green:#057642;
+  --purple:#6d28d9;
   --bg:#f3f2ef;
-  --card:#ffffff;
-  --text:#111827;
-  --muted:#64748b;
-  --border:#e5e7eb;
-  --soft:#f8fafc;
-  --danger:#e11d48;
+  --card:#fff;
+  --text:#191919;
+  --muted:#666;
+  --line:#d8d8d8;
+  --soft:#eef3f8;
+  --danger:#dc2626;
   --success:#16a34a;
-  --shadow:0 12px 30px rgba(15,23,42,.06);
-  --radius:20px;
-  --topbar-h:74px;
+  --shadow:0 1px 2px rgba(0,0,0,.08);
+  --radius:12px;
+  --max:1128px;
 }
 
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-  font-family:'Inter', Arial, sans-serif;
-  -webkit-tap-highlight-color:transparent;
-}
+*{box-sizing:border-box}
 
-html,body{
-  width:100%;
-  overflow-x:hidden;
-}
+html{scroll-behavior:smooth}
 
 body{
+  margin:0;
   background:var(--bg);
   color:var(--text);
-  padding-top:var(--topbar-h);
+  font-family:Inter,Arial,sans-serif;
+  font-size:14px;
+}
+
+button,input,textarea,select{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
 }
 
 img{
@@ -47,2039 +57,2584 @@ img{
   max-width:100%;
 }
 
-button,
-input,
-textarea,
-select{
-  font:inherit;
-}
-
-button{
-  border:none;
-  border-radius:999px;
-  background:var(--primary);
-  color:white;
-  cursor:pointer;
-  font-weight:700;
-  font-size:13px;
-  transition:.2s ease;
-}
-
-button:hover{
-  background:var(--primary-dark);
-}
-
 a{
   color:inherit;
   text-decoration:none;
 }
 
+.hidden{
+  display:none!important;
+}
+
+.container{
+  width:min(var(--max),calc(100% - 24px));
+  margin:auto;
+}
+
+/* TOPBAR */
+
 .topbar{
-  position:fixed;
+  position:sticky;
   top:0;
-  left:0;
-  width:100%;
   z-index:1000;
+  background:#fff;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.top-inner{
+  min-height:64px;
   display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:18px;
-  padding:12px 26px;
-  background:white;
-  border-bottom:1px solid var(--border);
-  box-shadow:0 2px 12px rgba(15,23,42,.04);
-  min-height:var(--topbar-h);
-}
-
-.logo{
-  font-size:28px;
-  font-weight:800;
-  letter-spacing:-0.02em;
-  white-space:nowrap;
-}
-
-.logo span{
-  color:var(--primary);
-}
-
-.topbar-center{
-  flex:1;
-  display:flex;
-  justify-content:center;
   align-items:center;
   gap:12px;
-  flex-wrap:wrap;
+}
+
+.brand{
+  width:36px;
+  height:36px;
+  border-radius:9px;
+  background:var(--blue);
+  color:#fff;
+  display:grid;
+  place-items:center;
+  font-weight:900;
+  font-size:18px;
+  flex-shrink:0;
+}
+
+.top-title{
   min-width:0;
 }
 
-.topbar-search{
-  width:360px;
-  max-width:100%;
-  padding:11px 16px;
-  border-radius:999px;
-  border:1px solid #d6dde6;
-  background:#f8fafc;
-  outline:none;
+.top-title h1{
+  margin:0;
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:-.02em;
 }
 
-.topbar-search:focus{
-  border-color:var(--primary);
-  box-shadow:0 0 0 4px rgba(10,102,194,.08);
+.top-title p{
+  margin:2px 0 0;
+  font-size:12px;
+  color:#666;
 }
 
-.topbar-actions{
+.top-actions{
+  margin-left:auto;
   display:flex;
-  gap:10px;
+  align-items:center;
+  gap:8px;
   flex-wrap:wrap;
-  justify-content:flex-end;
 }
 
-.btn-secondary{
-  background:white;
-  color:var(--primary);
-  border:1px solid #cfe1f4;
+.btn{
+  border:1px solid var(--line);
+  background:#fff;
+  color:#333;
+  border-radius:999px;
+  padding:9px 15px;
+  font-weight:800;
+  transition:.2s ease;
 }
 
-.btn-secondary:hover{
-  background:#eef4fb;
+.btn:hover{
+  background:#f3f2ef;
+}
+
+.btn.primary{
+  background:var(--blue);
+  border-color:var(--blue);
+  color:#fff;
+}
+
+.btn.primary:hover{
+  background:var(--blue-dark);
+}
+
+.btn.danger{
+  border-color:#fecaca;
+  background:#fff5f5;
+  color:#991b1b;
+}
+
+.status-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:7px 11px;
+  border-radius:999px;
+  background:#ecfdf5;
+  color:#166534;
+  font-weight:800;
+  font-size:12px;
+}
+
+/* PAGE */
+
+.page{
+  padding:16px 0 42px;
 }
 
 .layout{
   display:grid;
-  grid-template-columns:320px minmax(0,1fr) 330px;
-  gap:22px;
-  max-width:1500px;
-  margin:auto;
-  padding:24px 18px 40px;
+  grid-template-columns:280px minmax(0,1fr);
+  gap:16px;
   align-items:start;
 }
 
-.left-panel,
-.right-panel{
+/* LEFT PANEL */
+
+.left-col{
   position:sticky;
-  top:92px;
-  height:fit-content;
-  transition:.25s ease;
-}
-
-.left-panel.collapsed,
-.right-panel.collapsed{
-  width:72px;
-  min-width:72px;
-}
-
-.left-panel.collapsed .panel-content,
-.right-panel.collapsed .panel-content{
-  display:none;
-}
-
-.left-panel.collapsed .card,
-.right-panel.collapsed .card{
-  padding:12px;
-  overflow:visible;
-}
-
-.collapse-shell{
-  display:flex;
-  justify-content:flex-end;
-  margin-bottom:10px;
-}
-
-.panel-toggle{
-  width:38px;
-  height:38px;
-  min-width:38px;
-  border-radius:50%;
-  background:white;
-  border:1px solid var(--border);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:#334155;
-  box-shadow:var(--shadow);
-  cursor:pointer;
-}
-
-.panel-toggle:hover{
-  background:#f8fafc;
-}
-
-.panel-toggle svg{
-  width:18px;
-  height:18px;
-  stroke:currentColor;
-  fill:none;
-  stroke-width:2;
+  top:80px;
 }
 
 .card{
-  background:white;
-  border-radius:20px;
-  margin-bottom:18px;
-  border:1px solid var(--border);
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
   box-shadow:var(--shadow);
   overflow:hidden;
-  padding:20px;
 }
 
 .profile-card{
-  padding:0;
+  margin-bottom:12px;
 }
 
-.banner-wrapper{
-  height:160px;
-  overflow:hidden;
+.cover{
+  height:96px;
+  background:
+    linear-gradient(135deg,rgba(10,102,194,.22),rgba(34,197,94,.16)),
+    #dbeafe;
+  background-size:cover;
+  background-position:center;
   position:relative;
-  background:linear-gradient(135deg,#0a66c2,#60a5fa);
 }
 
-.banner-img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:block;
-}
-
-.avatar-wrapper{
-  margin-top:-54px;
-  position:relative;
-  display:flex;
-  justify-content:flex-start;
-  padding-left:22px;
-}
-
-.sidebar-avatar{
-  width:112px;
-  height:112px;
-  border-radius:50%;
-  border:5px solid white;
-  object-fit:cover;
-  box-shadow:0 10px 24px rgba(0,0,0,0.18);
-  background:white;
-  position:relative;
-  z-index:1;
-}
-
-.edit-icon{
+.upload-btn{
   position:absolute;
-  background:white;
+  right:10px;
+  bottom:10px;
+  border:0;
+  background:rgba(255,255,255,.94);
+  color:#111;
+  border-radius:999px;
+  padding:7px 11px;
+  font-weight:900;
+  font-size:12px;
+}
+
+.avatar-wrap{
+  padding:0 18px;
+  margin-top:-42px;
+  position:relative;
+}
+
+.avatar{
+  width:92px;
+  height:92px;
   border-radius:50%;
+  object-fit:cover;
+  border:4px solid #fff;
+  background:#fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.18);
+}
+
+.avatar-upload{
+  position:absolute;
+  left:82px;
+  bottom:3px;
   width:34px;
   height:34px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  box-shadow:0 2px 8px rgba(0,0,0,0.16);
-  transition:.2s;
+  border-radius:50%;
+  border:1px solid #ddd;
+  background:#fff;
+  display:grid;
+  place-items:center;
+  font-weight:900;
+  color:#333;
 }
 
-.edit-icon:hover{
-  background:#f8fafc;
+.profile-card-body{
+  padding:12px 18px 18px;
 }
 
-.edit-icon input{
-  display:none;
+.profile-card-body h2{
+  margin:0 0 4px;
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:-.02em;
 }
 
-.banner-edit{
-  top:12px;
-  right:12px;
-}
-
-.avatar-edit{
-  bottom:0;
-  left:104px;
-}
-
-.edit-svg{
-  width:15px;
-  height:15px;
-  stroke:#555;
-  fill:none;
-  stroke-width:2;
-}
-
-.profile-text{
-  position:relative;
-  padding:14px 22px 22px;
+.profile-card-body p{
+  margin:0;
+  color:#666;
+  line-height:1.45;
+  font-size:13px;
 }
 
 .role-badge{
+  margin-top:10px;
   display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:6px 12px;
+  padding:6px 10px;
   border-radius:999px;
-  background:#eff6ff;
-  color:#0a66c2;
+  background:#eef3f8;
+  color:var(--blue);
   font-size:12px;
-  font-weight:700;
-  border:1px solid #dbeafe;
-  margin-bottom:10px;
+  font-weight:900;
+  text-transform:capitalize;
 }
 
-.profile-text h3{
-  margin:6px 0 4px;
-  font-size:28px;
-  font-weight:800;
-  line-height:1.1;
-  color:#111827;
-}
-
-.profile-text p{
-  margin:6px 0;
-  font-size:14px;
-  color:#64748b;
-  line-height:1.5;
-}
-
-.profile-action-row{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
+.completion{
   margin-top:14px;
 }
 
-.quick-edit-btn{
-  position:absolute;
-  top:18px;
-  right:18px;
-  width:34px;
-  height:34px;
-  border-radius:50%;
-  background:white;
-  border:1px solid var(--border);
+.completion-head{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:#555;
+  font-weight:800;
+  margin-bottom:6px;
+}
+
+.progress{
+  height:8px;
+  background:#edf2f7;
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.progress-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--blue),var(--green));
+  border-radius:999px;
+  width:0%;
+}
+
+/* MENU */
+
+.menu-card{
+  padding:8px;
+}
+
+.menu-btn{
+  width:100%;
+  border:0;
+  background:#fff;
+  color:#444;
+  border-radius:9px;
+  padding:12px 13px;
+  text-align:left;
+  font-weight:800;
   display:flex;
   align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  box-shadow:0 2px 8px rgba(0,0,0,0.12);
+  justify-content:space-between;
+  gap:10px;
 }
 
-.quick-edit-btn:hover{
-  background:#f8fafc;
+.menu-btn:hover{
+  background:#f3f2ef;
 }
 
-.center-stack{
+.menu-btn.active{
+  background:#eef3f8;
+  color:var(--blue);
+}
+
+.menu-btn span{
+  font-size:12px;
+  color:#777;
+}
+
+/* MAIN */
+
+.main-col{
   min-width:0;
 }
 
-.create-post{
+.section{
+  display:none;
+}
+
+.section.active{
+  display:block;
+}
+
+.editor-card{
+  padding:20px;
+  margin-bottom:12px;
+}
+
+.section-head{
   display:flex;
-  align-items:center;
-  gap:12px;
-  padding:14px 16px;
-  cursor:pointer;
-}
-
-.create-post:hover{
-  background:#fafafa;
-}
-
-#createPostAvatar{
-  width:44px;
-  height:44px;
-  border-radius:50%;
-  object-fit:cover;
-  border:1px solid var(--border);
-}
-
-.create-post-input{
-  flex:1;
-  border:1px solid #ddd;
-  border-radius:999px;
-  padding:11px 16px;
-  color:#6f6f6f;
-  font-size:14px;
-}
-
-.section-header{
-  display:flex;
+  align-items:flex-start;
   justify-content:space-between;
-  align-items:center;
   gap:12px;
   margin-bottom:16px;
 }
 
-.section-header h3{
-  font-size:18px;
-  font-weight:800;
-  color:#111827;
+.section-head h2{
+  margin:0;
+  font-size:21px;
+  font-weight:900;
+  letter-spacing:-.02em;
 }
 
-.icon-btn{
-  background:#0a66c2;
-  color:white;
-  border:none;
-  border-radius:50%;
-  width:34px;
-  height:34px;
-  font-size:18px;
-  cursor:pointer;
-}
-
-.clean-text{
-  color:#475569;
-  line-height:1.7;
-  font-size:14px;
-}
-
-.skill-grid{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-}
-
-.skill-tag{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  background:#eef3f8;
-  padding:8px 12px;
-  border-radius:999px;
+.section-head p{
+  margin:4px 0 0;
+  color:#666;
   font-size:13px;
-  font-weight:600;
-  color:#0f172a;
-  border:1px solid #dce8f5;
+  line-height:1.45;
 }
 
-.skill-remove{
-  cursor:pointer;
-  color:#64748b;
-  font-weight:800;
-}
-
-.list-stack{
+.form-grid{
   display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
   gap:14px;
 }
 
-.info-card{
-  border:1px solid #edf2f7;
-  background:#f8fafc;
-  border-radius:16px;
-  padding:16px;
+.field{
+  display:grid;
+  gap:7px;
 }
 
-.info-title{
+.field.full{
+  grid-column:1 / -1;
+}
+
+.field label{
+  font-size:12px;
+  font-weight:900;
+  color:#374151;
+}
+
+.field input,
+.field textarea,
+.field select{
+  width:100%;
+  border:1px solid #d8dee6;
+  border-radius:11px;
+  padding:12px 13px;
+  background:#fff;
+  color:#111;
+  outline:none;
+}
+
+.field textarea{
+  min-height:120px;
+  resize:vertical;
+  line-height:1.6;
+}
+
+.field input:focus,
+.field textarea:focus,
+.field select:focus{
+  border-color:#9cc3ea;
+  box-shadow:0 0 0 4px rgba(10,102,194,.08);
+}
+
+.help{
+  color:#777;
+  font-size:12px;
+  line-height:1.45;
+}
+
+/* LIST EDITORS */
+
+.list-editor{
+  display:grid;
+  gap:12px;
+}
+
+.item-card{
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:14px;
+  background:#fff;
+}
+
+.item-card-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.item-card h3{
+  margin:0;
   font-size:16px;
-  font-weight:800;
-  margin-bottom:6px;
-  color:#111827;
 }
 
-.info-sub{
-  font-size:14px;
-  font-weight:600;
-  color:#334155;
-  margin-bottom:4px;
-}
-
-.info-date{
+.item-card p{
+  margin:4px 0 0;
+  color:#666;
   font-size:13px;
-  color:#64748b;
-  margin-bottom:12px;
+  line-height:1.5;
 }
 
-.info-actions{
+.item-actions{
   display:flex;
   gap:8px;
   flex-wrap:wrap;
 }
 
 .small-btn{
-  padding:8px 12px;
-  font-size:12px;
-}
-
-.stats-grid{
-  display:grid;
-  gap:12px;
-}
-
-.stat-card{
-  padding:14px;
-  border:1px solid #edf2f7;
-  background:#f8fafc;
-  border-radius:14px;
-}
-
-.stat-label{
-  font-size:12px;
-  color:#64748b;
-  margin-bottom:4px;
-}
-
-.stat-value{
-  font-size:24px;
+  border:1px solid var(--line);
+  background:#fff;
+  color:#333;
+  border-radius:999px;
+  padding:7px 11px;
   font-weight:800;
-  color:#111827;
-}
-
-.post-card-clean{
-  padding:0 !important;
-  overflow:hidden;
-  margin-bottom:16px;
-  border:1px solid #e6e6e6;
-}
-
-.post-card-clean:hover{
-  box-shadow:0 6px 18px rgba(0,0,0,0.08);
-}
-
-.post-header{
-  position:relative;
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  padding:14px 16px 10px 16px;
-  gap:12px;
-}
-
-.post-author{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  min-width:0;
-}
-
-.post-author img{
-  width:48px;
-  height:48px;
-  border-radius:50%;
-  object-fit:cover;
-  flex-shrink:0;
-  border:2px solid #fff;
-  box-shadow:0 1px 3px rgba(0,0,0,0.15);
-}
-
-.post-author-text{
-  min-width:0;
-}
-
-.post-author-name{
-  font-weight:700;
-  font-size:15px;
-  color:#111827;
-}
-
-.post-meta{
   font-size:12px;
-  color:#6f6f6f;
-  line-height:1.45;
 }
 
-.post-menu-trigger{
-  cursor:pointer;
-  font-size:20px;
-  padding:4px 8px;
-  border-radius:10px;
-}
-
-.post-menu-trigger:hover{
-  background:#f3f4f6;
-}
-
-.post-menu{
-  display:none;
-  position:absolute;
-  top:46px;
-  right:16px;
-  background:white;
-  border:1px solid #ddd;
-  border-radius:12px;
-  box-shadow:0 12px 26px rgba(15,23,42,.12);
-  z-index:100;
-  overflow:hidden;
-  min-width:140px;
-}
-
-.post-menu div{
-  padding:10px 12px;
-  cursor:pointer;
-  font-size:14px;
-}
-
-.post-menu div:hover{
-  background:#f8fafc;
-}
-
-.post-content{
-  padding:0 16px 16px 16px;
-  font-size:15px;
-  line-height:1.6;
-  white-space:pre-wrap;
-  color:#111827;
-}
-
-.post-media img{
-  width:100%;
-  max-height:500px;
-  object-fit:cover;
-}
-
-.post-stats{
-  display:flex;
-  justify-content:space-between;
-  padding:12px 16px;
-  font-size:13px;
-  color:#6f6f6f;
-  border-top:1px solid #eee;
-}
-
-.post-actions{
-  display:flex;
-  justify-content:space-between;
-  padding:10px 16px;
-  border-top:1px solid #eee;
-  gap:8px;
-}
-
-.post-action{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-  cursor:pointer;
-  color:#6f6f6f;
-  flex:1;
-  border-radius:10px;
-  padding:8px 10px;
-  font-size:14px;
-  transition:.2s;
-}
-
-.post-action:hover{
-  background:#f8fafc;
-  color:#0a66c2;
-}
-
-.post-action.liked{
-  color:#0a66c2;
-}
-
-.comments-wrapper{
-  border-top:1px solid #eee;
-  background:white;
-  padding:12px 16px;
-}
-
-.comment-input-area{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  background:#fafafa;
-  padding:10px 0 4px;
-}
-
-.comment-avatar{
-  width:36px;
-  height:36px;
-  border-radius:50%;
-  object-fit:cover;
-  flex-shrink:0;
-}
-
-.comment-input-area input{
-  flex:1;
-  border-radius:20px;
-  border:1px solid #ddd;
-  padding:10px 12px;
-}
-
-.comments-container{
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-  margin-top:12px;
-}
-
-.comment-item{
-  display:flex;
-  align-items:flex-start;
-  gap:10px;
-  position:relative;
-}
-
-.comment-body{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-}
-
-.comment-bubble{
+.small-btn:hover{
   background:#f3f2ef;
-  padding:10px 12px;
-  border-radius:14px;
-  max-width:100%;
-  line-height:1.5;
 }
 
-.comment-meta{
-  margin-top:6px;
+.small-btn.danger{
+  color:#991b1b;
+  border-color:#fecaca;
+  background:#fff5f5;
+}
+
+/* PILLS */
+
+.pill-editor{
   display:flex;
-  gap:10px;
+  gap:8px;
   flex-wrap:wrap;
 }
 
-.comment-meta button,
-.comment-like-btn{
-  background:none;
-  border:none;
-  color:#0a66c2;
-  cursor:pointer;
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:7px 11px;
+  border-radius:999px;
+  background:#eef3f8;
+  border:1px solid #dbeafe;
+  color:#1f2937;
+  font-weight:800;
   font-size:13px;
-  padding:0;
 }
 
-.reply-line{
-  margin-left:46px;
-  margin-top:8px;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-
-.empty-state{
+.pill button{
+  border:0;
+  background:transparent;
   color:#64748b;
-  font-size:14px;
+  padding:0;
+  font-weight:900;
 }
 
-.modal,
-.share-modal{
+/* MODALS */
+
+.modal{
   display:none;
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,0.45);
+  z-index:2000;
+  background:rgba(15,23,42,.45);
   align-items:center;
   justify-content:center;
-  z-index:9999;
-  padding:16px;
+  padding:18px;
 }
 
-.modal-content,
-.share-content{
-  background:white;
-  padding:24px;
-  border-radius:18px;
-  width:min(96vw,460px);
+.modal.show{
   display:flex;
-  flex-direction:column;
+}
+
+.modal-box{
+  width:min(640px,100%);
+  background:#fff;
+  border-radius:18px;
+  border:1px solid #e5e7eb;
+  box-shadow:0 30px 80px rgba(0,0,0,.2);
+  overflow:hidden;
+}
+
+.modal-head{
+  padding:18px 20px;
+  border-bottom:1px solid #eee;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
   gap:12px;
-  box-shadow:0 20px 50px rgba(0,0,0,0.18);
 }
 
-.modal-content h3,
-.share-content h4{
-  font-size:20px;
-  font-weight:800;
-  color:#111827;
+.modal-head h3{
+  margin:0;
+  font-size:18px;
+  font-weight:900;
 }
 
-.modal-content input,
-.modal-content textarea,
-.modal-content select{
-  padding:12px 14px;
-  border:1px solid #d8dee6;
-  border-radius:12px;
-  outline:none;
-  background:white;
-}
-
-.modal-content input:focus,
-.modal-content textarea:focus,
-.modal-content select:focus{
-  border-color:#0a66c2;
-  box-shadow:0 0 0 4px rgba(10,102,194,.08);
-}
-
-.modal-content textarea{
-  min-height:120px;
-  resize:vertical;
+.modal-body{
+  padding:20px;
+  display:grid;
+  gap:14px;
 }
 
 .modal-actions{
+  padding:0 20px 20px;
   display:flex;
+  justify-content:flex-end;
   gap:10px;
   flex-wrap:wrap;
 }
 
-.modal-actions button{
-  flex:1;
+/* TOAST */
+
+.toast-wrap{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  display:grid;
+  gap:10px;
+  z-index:3000;
 }
 
-.hidden-file{
-  display:none;
+.toast{
+  background:#111827;
+  color:#fff;
+  border-radius:12px;
+  padding:12px 14px;
+  min-width:260px;
+  box-shadow:0 16px 40px rgba(0,0,0,.2);
 }
 
-.mobile-profile-actions{
-  display:none;
-}
+.toast.success{background:#14532d}
+.toast.error{background:#7f1d1d}
 
-@media (max-width: 1200px){
-  .layout{
-    grid-template-columns:280px minmax(0,1fr);
-  }
+/* MOBILE */
 
-  .right-panel{
-    display:none;
-  }
-}
-
-@media (max-width: 900px){
-  .topbar{
-    padding:12px 16px;
-    flex-wrap:wrap;
-  }
-
-  .topbar-center{
-    width:100%;
-    justify-content:space-between;
-  }
-
+@media(max-width:900px){
   .layout{
     grid-template-columns:1fr;
-    padding:16px 12px 30px;
-    gap:0;
   }
 
-  .left-panel,
-  .right-panel{
+  .left-col{
     position:static;
-    top:auto;
   }
 
-  .collapse-shell{
+  .menu-card{
+    display:flex;
+    gap:8px;
+    overflow:auto;
+  }
+
+  .menu-btn{
+    white-space:nowrap;
+    width:auto;
+  }
+
+  .menu-btn span{
     display:none;
-  }
-
-  .left-panel,
-  .right-panel{
-    width:100% !important;
   }
 }
 
-@media (max-width: 640px){
-  body{
-    padding-top:88px;
-  }
-
-  .topbar{
-    padding:10px 12px;
-    gap:10px;
-  }
-
-  .logo{
-    font-size:22px;
-  }
-
-  .topbar-center{
-    flex-direction:column;
-    align-items:stretch;
-  }
-
-  .topbar-search{
+@media(max-width:640px){
+  .container{
     width:100%;
   }
 
-  .topbar-actions{
-    width:100%;
-    display:grid;
-    grid-template-columns:1fr 1fr;
+  .page{
+    padding:0 0 32px;
   }
 
-  .layout{
-    padding:12px 8px 24px;
-  }
-
-  .card{
-    border-radius:16px;
-    padding:16px;
-    margin-bottom:12px;
-  }
-
-  .profile-card{
-    padding:0;
-  }
-
-  .banner-wrapper{
-    height:130px;
-  }
-
-  .avatar-wrapper{
-    margin-top:-46px;
-    padding-left:16px;
-  }
-
-  .sidebar-avatar{
-    width:92px;
-    height:92px;
-    border-width:4px;
-  }
-
-  .avatar-edit{
-    left:82px;
-  }
-
-  .profile-text{
-    padding:12px 16px 18px;
-  }
-
-  .profile-text h3{
-    font-size:24px;
-  }
-
-  .profile-action-row{
-    flex-direction:column;
-  }
-
-  .post-actions{
-    flex-wrap:nowrap;
-    gap:4px;
-  }
-
-  .post-action{
-    font-size:12px;
-    padding:8px 4px;
-  }
-
-  .comment-input-area{
+  .top-inner{
+    padding:10px;
     flex-wrap:wrap;
   }
 
-  .comment-input-area button{
+  .top-actions{
     width:100%;
+    margin-left:0;
+  }
+
+  .top-actions .btn,
+  .top-actions .status-pill{
+    flex:1;
+    justify-content:center;
+    text-align:center;
+  }
+
+  .profile-card,
+  .editor-card,
+  .card{
+    border-radius:0;
+    border-left:0;
+    border-right:0;
+  }
+
+  .form-grid{
+    grid-template-columns:1fr;
+  }
+
+  .section-head{
+    display:block;
+  }
+
+  .section-head .btn{
+    margin-top:12px;
   }
 }
 </style>
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
+
 <body>
+  <header class="topbar">
+  <div class="container top-inner">
 
-<header class="topbar">
-  <div class="logo"><span>AI</span>FT Profile</div>
-
-  <div class="topbar-center">
-    <input
-      type="text"
-      placeholder="Search profile sections..."
-      class="topbar-search"
-    >
-
-    <div class="topbar-actions">
-      <button onclick="openPublicProfile()">Preview Public Profile</button>
-      <button type="button" class="btn-secondary" onclick="goFeed()">Back to Dashboard</button>
+    <div class="brand">
+      A
     </div>
+
+    <div class="top-title">
+      <h1>Edit Profile</h1>
+      <p>
+        Manage your public identity, career information, and profile visibility.
+      </p>
+    </div>
+
+    <div class="top-actions">
+
+      <div class="status-pill" id="saveStatus">
+        Ready
+      </div>
+
+      <button
+        class="btn"
+        id="previewProfileBtn"
+      >
+        View Public Profile
+      </button>
+
+      <button
+        class="btn primary"
+        id="saveProfileBtn"
+      >
+        Save Changes
+      </button>
+
+    </div>
+
   </div>
 </header>
 
-<div class="layout">
-  <aside class="left-panel" id="leftPanel">
-    <div class="collapse-shell">
-      <button class="panel-toggle" onclick="toggleSidePanel('leftPanel')" title="Collapse left panel">
-        <svg viewBox="0 0 24 24">
-          <path d="M15 18l-6-6 6-6"></path>
-        </svg>
+<main class="page">
+
+  <div class="container">
+
+    <div class="layout">
+
+      <!-- LEFT -->
+
+      <aside class="left-col">
+
+        <section class="card profile-card">
+
+          <div
+            class="cover"
+            id="coverPreview"
+          >
+
+            <button
+              class="upload-btn"
+              id="changeBannerBtn"
+              type="button"
+            >
+              Change Banner
+            </button>
+
+          </div>
+
+          <div class="avatar-wrap">
+
+            <img
+              id="avatarPreview"
+              class="avatar"
+              src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+              alt=""
+            >
+
+            <button
+              class="avatar-upload"
+              id="changeAvatarBtn"
+              type="button"
+            >
+              +
+            </button>
+
+          </div>
+
+          <div class="profile-card-body">
+
+            <h2 id="profileNamePreview">
+              Loading...
+            </h2>
+
+            <p id="profileHeadlinePreview">
+              Professional headline
+            </p>
+
+            <div
+              class="role-badge"
+              id="roleBadge"
+            >
+              talent
+            </div>
+
+            <div class="completion">
+
+              <div class="completion-head">
+                <span>
+                  Profile completion
+                </span>
+
+                <span id="completionText">
+                  0%
+                </span>
+              </div>
+
+              <div class="progress">
+                <div
+                  class="progress-fill"
+                  id="completionBar"
+                ></div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+        <section class="card menu-card">
+
+          <button
+            class="menu-btn active"
+            data-section="basic"
+          >
+            Basic Information
+            <span>
+              Name, bio & role
+            </span>
+          </button>
+
+          <button
+            class="menu-btn"
+            data-section="career"
+          >
+            Career
+            <span>
+              Work & availability
+            </span>
+          </button>
+
+          <button
+            class="menu-btn"
+            data-section="skills"
+          >
+            Skills & Languages
+            <span>
+              Showcase expertise
+            </span>
+          </button>
+
+          <button
+            class="menu-btn"
+            data-section="experience"
+          >
+            Experience
+            <span>
+              Professional history
+            </span>
+          </button>
+
+          <button
+            class="menu-btn"
+            data-section="education"
+          >
+            Education
+            <span>
+              Academic background
+            </span>
+          </button>
+
+          <button
+            class="menu-btn"
+            data-section="portfolio"
+          >
+            Portfolio
+            <span>
+              Projects & links
+            </span>
+          </button>
+
+          <button
+            class="menu-btn"
+            data-section="media"
+          >
+            Media
+            <span>
+              Images & resume
+            </span>
+          </button>
+
+          <button
+            class="menu-btn"
+            data-section="privacy"
+          >
+            Privacy
+            <span>
+              Public visibility
+            </span>
+          </button>
+
+        </section>
+
+      </aside>
+
+      <!-- RIGHT -->
+
+      <section class="main-col">
+
+        <!-- BASIC -->
+
+        <section
+          class="section active"
+          id="section-basic"
+        >
+
+          <article class="card editor-card">
+
+            <div class="section-head">
+
+              <div>
+                <h2>
+                  Basic Information
+                </h2>
+
+                <p>
+                  This information appears across your public profile, feed posts,
+                  messages, search results, and employer discovery.
+                </p>
+              </div>
+
+            </div>
+
+            <div class="form-grid">
+
+              <div class="field">
+                <label>
+                  Full Name
+                </label>
+
+                <input
+                  type="text"
+                  id="nameInput"
+                  placeholder="Your full name"
+                >
+              </div>
+
+              <div class="field">
+                <label>
+                  Professional Headline
+                </label>
+
+                <input
+                  type="text"
+                  id="headlineInput"
+                  placeholder="Customer Support Specialist"
+                >
+              </div>
+
+              <div class="field">
+                <label>
+                  Role
+                </label>
+
+                <input
+                  type="text"
+                  id="roleInput"
+                  disabled
+                >
+              </div>
+
+              <div class="field">
+                <label>
+                  Location
+                </label>
+
+                <input
+                  type="text"
+                  id="locationInput"
+                  placeholder="Quezon City, Philippines"
+                >
+              </div>
+
+              <div class="field full">
+                <label>
+                  About / Bio
+                </label>
+
+                <textarea
+                  id="bioInput"
+                  placeholder="Tell employers and recruiters about your experience, strengths, achievements, and career goals."
+                ></textarea>
+
+                <div class="help">
+                  Strong profiles usually include experience, specialization,
+                  achievements, personality, and career objectives.
+                </div>
+              </div>
+
+            </div>
+
+          </article>
+
+        </section>
+
+        <!-- CAREER -->
+
+        <section
+          class="section"
+          id="section-career"
+        >
+
+          <article class="card editor-card">
+
+            <div class="section-head">
+
+              <div>
+                <h2>
+                  Career Information
+                </h2>
+
+                <p>
+                  Help employers understand your work setup,
+                  preferred role, availability, and career expectations.
+                </p>
+              </div>
+
+            </div>
+
+            <div class="form-grid">
+
+              <div class="field">
+                <label>
+                  Preferred Role
+                </label>
+
+                <input
+                  type="text"
+                  id="preferredRoleInput"
+                  placeholder="Technical Support Specialist"
+                >
+              </div>
+
+              <div class="field">
+                <label>
+                  Availability
+                </label>
+
+                <select id="availabilityInput">
+                  <option value="">
+                    Select availability
+                  </option>
+
+                  <option value="available">
+                    Available immediately
+                  </option>
+
+                  <option value="actively-looking">
+                    Actively looking
+                  </option>
+
+                  <option value="open">
+                    Open to opportunities
+                  </option>
+
+                  <option value="not-looking">
+                    Not looking
+                  </option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>
+                  Employment Type
+                </label>
+
+                <select id="employmentTypeInput">
+
+                  <option value="">
+                    Select employment type
+                  </option>
+
+                  <option value="full-time">
+                    Full-time
+                  </option>
+
+                  <option value="part-time">
+                    Part-time
+                  </option>
+
+                  <option value="contract">
+                    Contract
+                  </option>
+
+                  <option value="freelance">
+                    Freelance
+                  </option>
+
+                  <option value="internship">
+                    Internship
+                  </option>
+
+                </select>
+              </div>
+
+              <div class="field">
+                <label>
+                  Work Setup
+                </label>
+
+                <select id="workSetupInput">
+
+                  <option value="">
+                    Select setup
+                  </option>
+
+                  <option value="remote">
+                    Remote
+                  </option>
+
+                  <option value="hybrid">
+                    Hybrid
+                  </option>
+
+                  <option value="onsite">
+                    On-site
+                  </option>
+
+                </select>
+              </div>
+
+              <div class="field">
+                <label>
+                  Preferred Shift
+                </label>
+
+                <select id="preferredShiftInput">
+
+                  <option value="">
+                    Select preferred shift
+                  </option>
+
+                  <option value="day">
+                    Day shift
+                  </option>
+
+                  <option value="night">
+                    Night shift
+                  </option>
+
+                  <option value="flexible">
+                    Flexible
+                  </option>
+
+                </select>
+              </div>
+
+              <div class="field">
+                <label>
+                  Salary Expectation
+                </label>
+
+                <input
+                  type="text"
+                  id="salaryExpectationInput"
+                  placeholder="₱40,000 - ₱60,000"
+                >
+              </div>
+
+              <div class="field">
+                <label>
+                  Notice Period
+                </label>
+
+                <input
+                  type="text"
+                  id="noticePeriodInput"
+                  placeholder="2 weeks"
+                >
+              </div>
+
+              <div class="field">
+                <label>
+                  Years of Experience
+                </label>
+
+                <input
+                  type="number"
+                  id="experienceYearsInput"
+                  min="0"
+                  placeholder="3"
+                >
+              </div>
+
+            </div>
+
+          </article>
+
+        </section>
+                <!-- SKILLS -->
+
+        <section
+          class="section"
+          id="section-skills"
+        >
+
+          <article class="card editor-card">
+
+            <div class="section-head">
+
+              <div>
+                <h2>
+                  Skills & Languages
+                </h2>
+
+                <p>
+                  Add relevant skills and languages to improve search visibility,
+                  recruiter discovery, and employer matching.
+                </p>
+              </div>
+
+            </div>
+
+            <div class="form-grid">
+
+              <div class="field full">
+
+                <label>
+                  Skills
+                </label>
+
+                <div
+                  class="pill-editor"
+                  id="skillsContainer"
+                ></div>
+
+                <div style="display:flex;gap:10px;margin-top:12px;">
+
+                  <input
+                    type="text"
+                    id="skillInput"
+                    placeholder="Add a skill"
+                  >
+
+                  <button
+                    class="btn"
+                    type="button"
+                    id="addSkillBtn"
+                  >
+                    Add
+                  </button>
+
+                </div>
+
+              </div>
+
+              <div class="field full">
+
+                <label>
+                  Languages
+                </label>
+
+                <div
+                  class="pill-editor"
+                  id="languagesContainer"
+                ></div>
+
+                <div style="display:flex;gap:10px;margin-top:12px;">
+
+                  <input
+                    type="text"
+                    id="languageInput"
+                    placeholder="Add a language"
+                  >
+
+                  <button
+                    class="btn"
+                    type="button"
+                    id="addLanguageBtn"
+                  >
+                    Add
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </article>
+
+        </section>
+
+        <!-- EXPERIENCE -->
+
+        <section
+          class="section"
+          id="section-experience"
+        >
+
+          <article class="card editor-card">
+
+            <div class="section-head">
+
+              <div>
+                <h2>
+                  Experience
+                </h2>
+
+                <p>
+                  Add your work history, achievements, responsibilities,
+                  and industry experience.
+                </p>
+              </div>
+
+              <button
+                class="btn primary"
+                type="button"
+                id="openExperienceModalBtn"
+              >
+                Add Experience
+              </button>
+
+            </div>
+
+            <div
+              class="list-editor"
+              id="experienceContainer"
+            ></div>
+
+          </article>
+
+        </section>
+
+        <!-- EDUCATION -->
+
+        <section
+          class="section"
+          id="section-education"
+        >
+
+          <article class="card editor-card">
+
+            <div class="section-head">
+
+              <div>
+                <h2>
+                  Education
+                </h2>
+
+                <p>
+                  Add schools, degrees, certifications, and educational achievements.
+                </p>
+              </div>
+
+              <button
+                class="btn primary"
+                type="button"
+                id="openEducationModalBtn"
+              >
+                Add Education
+              </button>
+
+            </div>
+
+            <div
+              class="list-editor"
+              id="educationContainer"
+            ></div>
+
+          </article>
+
+        </section>
+
+        <!-- PORTFOLIO -->
+
+        <section
+          class="section"
+          id="section-portfolio"
+        >
+
+          <article class="card editor-card">
+
+            <div class="section-head">
+
+              <div>
+                <h2>
+                  Portfolio & Links
+                </h2>
+
+                <p>
+                  Showcase projects, websites, portfolios, GitHub links,
+                  LinkedIn, Behance, or work samples.
+                </p>
+              </div>
+
+              <button
+                class="btn primary"
+                type="button"
+                id="openPortfolioModalBtn"
+              >
+                Add Portfolio Item
+              </button>
+
+            </div>
+
+            <div
+              class="list-editor"
+              id="portfolioContainer"
+            ></div>
+
+          </article>
+
+        </section>
+
+        <!-- MEDIA -->
+
+        <section
+          class="section"
+          id="section-media"
+        >
+
+          <article class="card editor-card">
+
+            <div class="section-head">
+
+              <div>
+                <h2>
+                  Media & Resume
+                </h2>
+
+                <p>
+                  Upload your profile image, banner image, and CV/resume.
+                </p>
+              </div>
+
+            </div>
+
+            <div class="form-grid">
+
+              <div class="field">
+
+                <label>
+                  Profile Picture
+                </label>
+
+                <input
+                  type="file"
+                  id="avatarInput"
+                  accept="image/*"
+                >
+
+              </div>
+
+              <div class="field">
+
+                <label>
+                  Banner Image
+                </label>
+
+                <input
+                  type="file"
+                  id="bannerInput"
+                  accept="image/*"
+                >
+
+              </div>
+
+              <div class="field full">
+
+                <label>
+                  Resume / CV
+                </label>
+
+                <input
+                  type="file"
+                  id="resumeInput"
+                  accept=".pdf,.doc,.docx"
+                >
+
+                <div class="help">
+                  Recommended formats:
+                  PDF, DOC, DOCX.
+                </div>
+
+              </div>
+
+            </div>
+
+          </article>
+
+        </section>
+
+        <!-- PRIVACY -->
+
+        <section
+          class="section"
+          id="section-privacy"
+        >
+
+          <article class="card editor-card">
+
+            <div class="section-head">
+
+              <div>
+                <h2>
+                  Privacy & Visibility
+                </h2>
+
+                <p>
+                  Control who can see your public profile and how recruiters
+                  discover your account.
+                </p>
+              </div>
+
+            </div>
+
+            <div class="form-grid">
+
+              <div class="field">
+
+                <label>
+                  Public Profile
+                </label>
+
+                <select id="isPublicInput">
+
+                  <option value="true">
+                    Public
+                  </option>
+
+                  <option value="false">
+                    Private
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+          </article>
+
+        </section>
+
+      </section>
+
+    </div>
+
+  </div>
+
+</main>
+
+<!-- EXPERIENCE MODAL -->
+
+<div
+  class="modal"
+  id="experienceModal"
+>
+
+  <div class="modal-box">
+
+    <div class="modal-head">
+
+      <h3>
+        Add Experience
+      </h3>
+
+      <button
+        class="btn"
+        type="button"
+        onclick="closeModal('experienceModal')"
+      >
+        Close
+      </button>
+
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Job Title</label>
+
+          <input
+            type="text"
+            id="expTitle"
+            placeholder="Customer Support Specialist"
+          >
+        </div>
+
+        <div class="field">
+          <label>Company</label>
+
+          <input
+            type="text"
+            id="expCompany"
+            placeholder="AIFT"
+          >
+        </div>
+
+        <div class="field">
+          <label>Start Date</label>
+
+          <input
+            type="text"
+            id="expStart"
+            placeholder="2023"
+          >
+        </div>
+
+        <div class="field">
+          <label>End Date</label>
+
+          <input
+            type="text"
+            id="expEnd"
+            placeholder="Present"
+          >
+        </div>
+
+        <div class="field full">
+          <label>Description</label>
+
+          <textarea
+            id="expDescription"
+            placeholder="Describe your responsibilities, achievements, and technologies used."
+          ></textarea>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="modal-actions">
+
+      <button
+        class="btn"
+        type="button"
+        onclick="closeModal('experienceModal')"
+      >
+        Cancel
+      </button>
+
+      <button
+        class="btn primary"
+        type="button"
+        id="saveExperienceBtn"
+      >
+        Save Experience
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+<!-- EDUCATION MODAL -->
+
+<div class="modal" id="educationModal">
+  <div class="modal-box">
+
+    <div class="modal-head">
+      <h3>Add Education</h3>
+
+      <button class="btn" type="button" onclick="closeModal('educationModal')">
+        Close
       </button>
     </div>
 
-    <div class="panel-content">
-      <div class="card profile-card">
-        <div class="banner-wrapper">
-          <img id="bannerPreview" class="banner-img" alt="Banner">
+    <div class="modal-body">
+      <div class="form-grid">
 
-          <label class="edit-icon banner-edit">
-            <svg viewBox="0 0 24 24" class="edit-svg">
-              <path d="M3 17.25V21h3.75L19.81 7.94l-3.75-3.75L3 17.25z"></path>
-              <path d="M14.06 4.19l3.75 3.75"></path>
-            </svg>
-            <input type="file" id="bannerUpload" class="hidden-file">
-          </label>
+        <div class="field">
+          <label>School</label>
+          <input type="text" id="eduSchool" placeholder="School name">
         </div>
 
-        <div class="avatar-wrapper">
-          <img id="avatar" class="sidebar-avatar" alt="Avatar">
-
-          <label class="edit-icon avatar-edit">
-            <svg viewBox="0 0 24 24" class="edit-svg">
-              <path d="M3 17.25V21h3.75L19.81 7.94l-3.75-3.75L3 17.25z"></path>
-              <path d="M14.06 4.19l3.75 3.75"></path>
-            </svg>
-            <input type="file" id="photoUpload" class="hidden-file">
-          </label>
+        <div class="field">
+          <label>Degree / Course</label>
+          <input type="text" id="eduDegree" placeholder="Bachelor of Science">
         </div>
 
-        <div class="profile-text">
-          <div id="profileRoleBadge" class="role-badge">Profile View</div>
-
-          <h3 id="name"></h3>
-          <p id="headline"></p>
-          <p id="location"></p>
-
-          <div class="profile-action-row">
-            <button onclick="openPublicProfile()">View Public Profile</button>
-            <button type="button" class="btn-secondary" onclick="goFeed()">Back to Dashboard</button>
-          </div>
-
-          <div class="quick-edit-btn" onclick="openBasicInfo()">
-            <svg viewBox="0 0 24 24" class="edit-svg">
-              <path d="M3 17.25V21h3.75L19.81 7.94l-3.75-3.75L3 17.25z"></path>
-              <path d="M14.06 4.19l3.75 3.75"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="section-header">
-          <h3>Share your profile</h3>
+        <div class="field">
+          <label>Start Date</label>
+          <input type="text" id="eduStart" placeholder="2021">
         </div>
 
-        <div style="display:grid;gap:10px;">
-          <button onclick="copyCurrentProfileLink()">Copy Profile Link</button>
-          <button class="btn-secondary" onclick="openCreatePost()">Share to Feed</button>
+        <div class="field">
+          <label>End Date</label>
+          <input type="text" id="eduEnd" placeholder="2025">
         </div>
+
+        <div class="field full">
+          <label>Description</label>
+          <textarea id="eduDescription" placeholder="Achievements, training, certifications, or academic highlights."></textarea>
+        </div>
+
       </div>
     </div>
-  </aside>
 
-  <main class="center-stack">
-    <div class="card create-post" onclick="openCreatePost()">
-      <img id="createPostAvatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Avatar">
-      <div class="create-post-input">Start a post...</div>
-    </div>
+    <div class="modal-actions">
+      <button class="btn" type="button" onclick="closeModal('educationModal')">
+        Cancel
+      </button>
 
-    <div id="myPosts"></div>
-  </main>
-
-  <aside class="right-panel" id="rightPanel">
-    <div class="collapse-shell">
-      <button class="panel-toggle" onclick="toggleSidePanel('rightPanel')" title="Collapse right panel">
-        <svg viewBox="0 0 24 24">
-          <path d="M9 6l6 6-6 6"></path>
-        </svg>
+      <button class="btn primary" type="button" id="saveEducationBtn">
+        Save Education
       </button>
     </div>
 
-    <div class="panel-content">
-      <div class="card">
-        <div class="section-header">
-          <h3>About</h3>
-          <button class="small-btn" onclick="openAbout()">Edit</button>
-        </div>
-        <p id="bio" class="clean-text"></p>
-      </div>
+  </div>
+</div>
 
-      <div class="card">
-        <div class="section-header">
-          <h3>Skills</h3>
-          <button class="icon-btn" onclick="openSkill()">+</button>
-        </div>
-        <div id="skillsList" class="skill-grid"></div>
-      </div>
+<!-- PORTFOLIO MODAL -->
 
-      <div class="card">
-        <div class="section-header">
-          <h3>Experience</h3>
-          <button class="icon-btn" onclick="openExp()">+</button>
-        </div>
-        <div id="experienceList" class="list-stack"></div>
-      </div>
+<div class="modal" id="portfolioModal">
+  <div class="modal-box">
 
-      <div class="card">
-        <div class="section-header">
-          <h3>Education</h3>
-          <button class="icon-btn" onclick="openEdu()">+</button>
-        </div>
-        <div id="educationList" class="list-stack"></div>
-      </div>
+    <div class="modal-head">
+      <h3>Add Portfolio Item</h3>
 
-      <div class="card">
-        <div class="section-header">
-          <h3>Profile Statistics</h3>
+      <button class="btn" type="button" onclick="closeModal('portfolioModal')">
+        Close
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Title</label>
+          <input type="text" id="portfolioTitle" placeholder="My project / portfolio">
         </div>
 
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Followers</div>
-            <div id="followersCount" class="stat-value">0</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-label">Following</div>
-            <div id="followingCount" class="stat-value">0</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-label">Total Posts</div>
-            <div id="postCount" class="stat-value">0</div>
-          </div>
+        <div class="field">
+          <label>URL</label>
+          <input type="text" id="portfolioUrl" placeholder="https://...">
         </div>
+
+        <div class="field full">
+          <label>Description</label>
+          <textarea id="portfolioDescription" placeholder="Describe the project, result, or sample work."></textarea>
+        </div>
+
       </div>
     </div>
-  </aside>
-</div>
 
-<div id="expModal" class="modal">
-  <div class="modal-content">
-    <h3>Add Experience</h3>
-    <input id="expTitle" placeholder="Title">
-    <input id="expCompany" placeholder="Company">
-    <input id="expStart" placeholder="Start Date">
-    <input id="expEnd" placeholder="End Date">
     <div class="modal-actions">
-      <button type="button" class="btn-secondary" onclick="closeModal('expModal')">Cancel</button>
-      <button onclick="saveExperience()">Save</button>
+      <button class="btn" type="button" onclick="closeModal('portfolioModal')">
+        Cancel
+      </button>
+
+      <button class="btn primary" type="button" id="savePortfolioBtn">
+        Save Portfolio
+      </button>
     </div>
+
   </div>
 </div>
 
-<div id="eduModal" class="modal">
-  <div class="modal-content">
-    <h3>Add Education</h3>
-    <input id="eduSchool" placeholder="School">
-    <input id="eduDegree" placeholder="Degree">
-    <div class="modal-actions">
-      <button type="button" class="btn-secondary" onclick="closeModal('eduModal')">Cancel</button>
-      <button onclick="saveEducation()">Save</button>
-    </div>
-  </div>
-</div>
-
-<div id="basicModal" class="modal">
-  <div class="modal-content">
-    <h3>Edit Profile</h3>
-    <input id="editName" placeholder="Full Name / Company Name">
-    <input id="editHeadline" placeholder="Professional headline">
-    <input id="editLocation" placeholder="Location">
-    <div class="modal-actions">
-      <button type="button" class="btn-secondary" onclick="closeModal('basicModal')">Cancel</button>
-      <button onclick="saveBasicInfo()">Save</button>
-    </div>
-  </div>
-</div>
-
-<div id="skillModal" class="modal">
-  <div class="modal-content">
-    <h3>Add Skill</h3>
-    <input id="skillInput" placeholder="Skill">
-    <div class="modal-actions">
-      <button type="button" class="btn-secondary" onclick="closeModal('skillModal')">Cancel</button>
-      <button onclick="saveSkill()">Save</button>
-    </div>
-  </div>
-</div>
-
-<div id="aboutModal" class="modal">
-  <div class="modal-content">
-    <h3>Edit About</h3>
-    <textarea id="aboutInput" placeholder="Write about yourself or your company"></textarea>
-    <div class="modal-actions">
-      <button type="button" class="btn-secondary" onclick="closeModal('aboutModal')">Cancel</button>
-      <button onclick="saveAbout()">Save</button>
-    </div>
-  </div>
-</div>
-
-<div class="share-modal" id="shareModal">
-  <div class="share-content">
-    <h4>Share Post</h4>
-    <button id="copyLinkBtn" style="margin-top:10px;width:100%;">Copy Link</button>
-    <button onclick="closeModal('shareModal')" class="btn-secondary" style="margin-top:10px;width:100%;">Cancel</button>
-  </div>
-</div>
-
-<div id="createPostModal" class="modal">
-  <div class="modal-content">
-    <h3>Create Post</h3>
-    <textarea id="postContent" placeholder="Write something..."></textarea>
-    <input type="file" id="postMedia">
-    <div class="modal-actions">
-      <button type="button" class="btn-secondary" onclick="closeModal('createPostModal')">Cancel</button>
-      <button onclick="submitPost()">Post</button>
-    </div>
-  </div>
-</div>
+<div class="toast-wrap" id="toastWrap"></div>
 
 <script>
 const API = "https://backend-1-9b6f.onrender.com";
 
-const role = localStorage.getItem("role");
-const token =
-  role === "employer" ? localStorage.getItem("employerToken") :
-  role === "talent" ? localStorage.getItem("talentToken") :
-  role === "admin" ? localStorage.getItem("adminToken") :
-  role === "agent" ? localStorage.getItem("agentToken") :
-  null;
+const FALLBACK_AVATAR =
+  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-if(!token || !role){
-  window.location.href = "login.html";
+const state = {
+  me:null,
+  skills:[],
+  languages:[],
+  experience:[],
+  education:[],
+  portfolio:[],
+  editExperienceIndex:null,
+  editEducationIndex:null,
+  editPortfolioIndex:null,
+  avatarFile:null,
+  bannerFile:null,
+  resumeFile:null
+};
+
+function getToken(){
+  return (
+    localStorage.getItem("employerToken") ||
+    localStorage.getItem("talentToken") ||
+    localStorage.getItem("adminToken") ||
+    localStorage.getItem("agentToken") ||
+    localStorage.getItem("schoolToken") ||
+    localStorage.getItem("token") ||
+    ""
+  );
 }
 
 function authHeaders(extra = {}){
   return {
-    Authorization: "Bearer " + token,
+    Authorization:"Bearer " + getToken(),
     ...extra
   };
 }
 
-const socket = io(API);
-let currentUser = null;
-let activeMenu = null;
-
-const avatar = document.getElementById("avatar");
-const nameEl = document.getElementById("name");
-const headline = document.getElementById("headline");
-const locationEl = document.getElementById("location");
-const bio = document.getElementById("bio");
-
-const experienceList = document.getElementById("experienceList");
-const educationList = document.getElementById("educationList");
-const skillsList = document.getElementById("skillsList");
-
-function closeModal(id){
-  document.getElementById(id).style.display = "none";
+function esc(value = ""){
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;");
 }
 
-function toggleSidePanel(panelId){
-  const panel = document.getElementById(panelId);
-  if(!panel) return;
-  panel.classList.toggle("collapsed");
+function setStatus(text,type=""){
+  const el = document.getElementById("saveStatus");
+  el.textContent = text;
+  el.style.background = type === "error" ? "#fef2f2" : type === "success" ? "#ecfdf5" : "#eef3f8";
+  el.style.color = type === "error" ? "#991b1b" : type === "success" ? "#166534" : "#334155";
 }
 
-function safeText(value, fallback = ""){
-  return value || fallback;
+function toast(title,msg="",type="success"){
+  const wrap = document.getElementById("toastWrap");
+  const div = document.createElement("div");
+  div.className = "toast " + type;
+  div.innerHTML = `<b>${esc(title)}</b><div style="font-size:12px;margin-top:4px;opacity:.9;">${esc(msg)}</div>`;
+  wrap.appendChild(div);
+  setTimeout(()=>div.remove(),3500);
 }
 
-async function loadProfile(){
-  const res = await fetch(API + "/api/users/me", {
-    headers: authHeaders()
-  });
+async function fetchJSON(path,options={}){
+  const res = await fetch(API + path,options);
+  const text = await res.text();
+
+  let data = {};
+  try{ data = text ? JSON.parse(text) : {}; }
+  catch{ data = { message:text }; }
 
   if(!res.ok){
-    window.location.href = "login.html";
+    throw new Error(data.message || "Request failed");
+  }
+
+  return data;
+}
+
+function role(){
+  return String(state.me?.role || localStorage.getItem("role") || "talent").toLowerCase();
+}
+
+function publicProfileUrl(){
+  const id = state.me?._id || localStorage.getItem("userId");
+
+  if(role() === "employer"){
+    return `employer-public-profile.html?id=${id}`;
+  }
+
+  if(role() === "school"){
+    return `school-public-profile.html?id=${id}`;
+  }
+
+  if(role() === "agent"){
+    return `agent-public-profile.html?id=${id}`;
+  }
+
+  return `public-profile.html?id=${id}`;
+}
+
+function dashboardUrl(){
+  if(role() === "employer") return "employer.html";
+  if(role() === "school") return "school.html";
+  if(role() === "agent") return "agent.html";
+  if(role() === "admin") return "admin/index.html";
+  return "home.html";
+}
+
+function openModal(id){
+  document.getElementById(id).classList.add("show");
+}
+
+function closeModal(id){
+  document.getElementById(id).classList.remove("show");
+}
+
+document.querySelectorAll(".modal").forEach(modal=>{
+  modal.addEventListener("click",e=>{
+    if(e.target === modal) modal.classList.remove("show");
+  });
+});
+
+function showSection(section){
+  document.querySelectorAll(".menu-btn").forEach(btn=>{
+    btn.classList.toggle("active",btn.dataset.section === section);
+  });
+
+  document.querySelectorAll(".section").forEach(el=>{
+    el.classList.toggle("active",el.id === `section-${section}`);
+  });
+}
+
+document.querySelectorAll(".menu-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>showSection(btn.dataset.section));
+});
+
+async function loadProfile(){
+  if(!getToken()){
+    location.href = "login.html";
     return;
   }
 
-  currentUser = await res.json();
+  setStatus("Loading...");
 
-  if(currentUser?._id) localStorage.setItem("userId", currentUser._id);
-  if(currentUser?.name) localStorage.setItem("profileName", currentUser.name);
-  if(currentUser?.profileImage) localStorage.setItem("profileImage", currentUser.profileImage);
-  if(currentUser?.role) localStorage.setItem("role", currentUser.role);
+  const data = await fetchJSON("/api/users/me",{
+    headers:authHeaders()
+  });
 
-  renderProfile();
+  state.me = data.user || data;
+
+  if(state.me?._id) localStorage.setItem("userId",state.me._id);
+  if(state.me?.role) localStorage.setItem("role",state.me.role);
+
+  state.skills = Array.isArray(state.me.skills) ? [...state.me.skills] : [];
+  state.languages = Array.isArray(state.me.languages) ? [...state.me.languages] : [];
+  state.experience = Array.isArray(state.me.experience) ? [...state.me.experience] : [];
+  state.education = Array.isArray(state.me.education) ? [...state.me.education] : [];
+  state.portfolio = Array.isArray(state.me.portfolio) ? [...state.me.portfolio] : [];
+
+  fillForm();
+  renderAll();
+  setStatus("Ready","success");
 }
 
-function getRoleViewLabel(){
-  if(role === "employer") return "Employer Profile";
-  if(role === "talent") return "Talent Profile";
-  if(role === "agent") return "Agent Profile";
-  if(role === "admin") return "Admin Profile";
-  return "Profile View";
+function fillForm(){
+  const me = state.me || {};
+
+  document.getElementById("nameInput").value = me.name || "";
+  document.getElementById("headlineInput").value = me.headline || "";
+  document.getElementById("roleInput").value = me.role || "";
+  document.getElementById("locationInput").value = me.location || me.address || "";
+  document.getElementById("bioInput").value = me.bio || me.schoolDescription || "";
+
+  document.getElementById("preferredRoleInput").value = me.preferredRole || me.profession || "";
+  document.getElementById("availabilityInput").value = normalizeAvailability(me.availability);
+  document.getElementById("employmentTypeInput").value = me.employmentType || "";
+  document.getElementById("workSetupInput").value = me.workSetup || me.workPreference || "";
+  document.getElementById("preferredShiftInput").value = me.preferredShift || "";
+  document.getElementById("salaryExpectationInput").value = me.salaryExpectation || me.expectedSalary || "";
+  document.getElementById("noticePeriodInput").value = me.noticePeriod || "";
+  document.getElementById("experienceYearsInput").value = me.yearsOfExperience || me.experienceYears || 0;
+  document.getElementById("isPublicInput").value = String(me.isPublic !== false);
 }
 
-function getRoleHeadlineFallback(){
-  if(role === "employer"){
-    return "Add a company headline to strengthen your employer presence.";
+function normalizeAvailability(value){
+  if(!value || value === "not-specified") return "";
+  if(value === "full-time" || value === "part-time" || value === "freelance" || value === "internship") return "open";
+  return value;
+}
+
+function renderAll(){
+  const me = state.me || {};
+  const avatar = me.profileImage || FALLBACK_AVATAR;
+  const banner = me.bannerImage || me.schoolBanner || "";
+
+  document.getElementById("avatarPreview").src = avatar;
+  document.getElementById("profileNamePreview").textContent =
+    me.companyName || me.schoolName || me.name || "AIFT Profile";
+
+  document.getElementById("profileHeadlinePreview").textContent =
+    me.headline || me.profession || "Add a professional headline";
+
+  document.getElementById("roleBadge").textContent = role();
+
+  if(banner){
+    document.getElementById("coverPreview").style.backgroundImage =
+      `linear-gradient(135deg,rgba(10,102,194,.22),rgba(34,197,94,.16)),url('${banner}')`;
   }
-  return "Add a professional headline so people understand your value.";
-}
 
-function renderProfile(){
-  const profileImg = currentUser.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-  const bannerImg = currentUser.bannerImage || "https://via.placeholder.com/1200x300?text=AIFT+Profile";
-
-  avatar.src = profileImg;
-  document.getElementById("bannerPreview").src = bannerImg;
-  document.getElementById("createPostAvatar").src = profileImg;
-
-  nameEl.innerText = safeText(currentUser.name, role === "employer" ? "Employer Profile" : "Profile");
-  headline.innerText = safeText(currentUser.headline, getRoleHeadlineFallback());
-  locationEl.innerText = safeText(currentUser.location, "Location not added");
-  bio.innerText = safeText(currentUser.bio, role === "employer"
-    ? "Add an about section to present your company better."
-    : "Add an about section to complete your profile.");
-
-  document.getElementById("profileRoleBadge").innerText = getRoleViewLabel();
-
-  document.getElementById("followersCount").innerText = currentUser.followers?.length || 0;
-  document.getElementById("followingCount").innerText = currentUser.following?.length || 0;
-
+  renderPills("skillsContainer",state.skills,"skills");
+  renderPills("languagesContainer",state.languages,"languages");
   renderExperience();
   renderEducation();
-  renderSkills();
-  loadMyPosts();
+  renderPortfolio();
+  renderCompletion();
 }
 
-function goFeed(){
-  if(role === "employer"){
-    window.location.href = "employer.html";
-    return;
-  }
-  if(role === "talent"){
-    window.location.href = "talent.html";
-    return;
-  }
-  if(role === "agent"){
-    window.location.href = "talent.html";
-    return;
-  }
-  window.location.href = "login.html";
+function renderCompletion(){
+  const me = state.me || {};
+  let score = 0;
+
+  if(me.profileImage || state.avatarFile) score += 15;
+  if(me.bannerImage || state.bannerFile) score += 10;
+  if(document.getElementById("headlineInput").value.trim()) score += 15;
+  if(document.getElementById("bioInput").value.trim()) score += 20;
+  if(state.skills.length) score += 15;
+  if(state.experience.length) score += 15;
+  if(state.languages.length) score += 10;
+
+  score = Math.min(score,100);
+
+  document.getElementById("completionText").textContent = score + "%";
+  document.getElementById("completionBar").style.width = score + "%";
 }
+</script>
+<script>
+function renderPills(containerId,list,type){
+  const container = document.getElementById(containerId);
 
-function openPublicProfile(){
-  if(!currentUser || !currentUser._id){
-    alert("Profile is still loading. Please try again.");
-    return;
-  }
-  window.location.href = "public-profile.html?id=" + currentUser._id;
-}
-
-function copyCurrentProfileLink(){
-  if(!currentUser || !currentUser._id){
-    alert("Profile is still loading.");
-    return;
-  }
-  const link = window.location.origin + "/public-profile.html?id=" + currentUser._id;
-  navigator.clipboard.writeText(link);
-  alert("Profile link copied.");
-}
-
-function renderExperience(){
-  experienceList.innerHTML = "";
-
-  if(!Array.isArray(currentUser.experience) || currentUser.experience.length === 0){
-    experienceList.innerHTML = `<div class="empty-state">No experience added yet.</div>`;
-    return;
-  }
-
-  currentUser.experience.forEach((e, i) => {
-    experienceList.innerHTML += `
-      <div class="info-card">
-        <div class="info-title">${safeText(e.title, "Untitled Role")}</div>
-        <div class="info-sub">${safeText(e.company, "Company not added")}</div>
-        <div class="info-date">${safeText(e.startDate, "Start")} - ${safeText(e.endDate, "Present")}</div>
-        <div class="info-actions">
-          <button class="small-btn" onclick="editExperience(${i})">Edit</button>
-          <button class="small-btn btn-secondary" onclick="deleteExperience(${i})">Delete</button>
-        </div>
+  if(!list.length){
+    container.innerHTML = `
+      <div style="
+        color:#777;
+        font-size:13px;
+      ">
+        No ${type} added yet.
       </div>
     `;
-  });
+    return;
+  }
+
+  container.innerHTML = list.map((item,index)=>`
+    <div class="pill">
+      ${esc(item)}
+
+      <button
+        type="button"
+        onclick="removePill('${type}',${index})"
+      >
+        ×
+      </button>
+    </div>
+  `).join("");
+}
+
+function removePill(type,index){
+  if(type === "skills"){
+    state.skills.splice(index,1);
+  }
+
+  if(type === "languages"){
+    state.languages.splice(index,1);
+  }
+
+  renderAll();
+}
+
+document.getElementById("addSkillBtn").addEventListener("click",()=>{
+  const input = document.getElementById("skillInput");
+  const value = input.value.trim();
+
+  if(!value) return;
+
+  if(!state.skills.includes(value)){
+    state.skills.push(value);
+  }
+
+  input.value = "";
+  renderAll();
+});
+
+document.getElementById("addLanguageBtn").addEventListener("click",()=>{
+  const input = document.getElementById("languageInput");
+  const value = input.value.trim();
+
+  if(!value) return;
+
+  if(!state.languages.includes(value)){
+    state.languages.push(value);
+  }
+
+  input.value = "";
+  renderAll();
+});
+
+function renderExperience(){
+
+  const container =
+    document.getElementById(
+      "experienceContainer"
+    );
+
+  if(!state.experience.length){
+
+    container.innerHTML = `
+      <div class="item-card">
+        <p style="margin:0;color:#777;">
+          No experience added yet.
+        </p>
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    state.experience.map((exp,index)=>`
+
+      <article class="item-card">
+
+        <div class="item-card-head">
+
+          <div>
+
+            <h3>
+              ${esc(exp.title || "Untitled")}
+            </h3>
+
+            <p>
+              ${esc(exp.company || "")}
+              •
+              ${esc(exp.startDate || "")}
+              -
+              ${esc(exp.endDate || "Present")}
+            </p>
+
+          </div>
+
+          <div class="item-actions">
+
+            <button
+              class="small-btn danger"
+              type="button"
+              onclick="deleteExperience(${index})"
+            >
+              Delete
+            </button>
+
+          </div>
+
+        </div>
+
+        <p>
+          ${esc(exp.description || "")}
+        </p>
+
+      </article>
+
+    `).join("");
 }
 
 function renderEducation(){
-  educationList.innerHTML = "";
 
-  if(!Array.isArray(currentUser.education) || currentUser.education.length === 0){
-    educationList.innerHTML = `<div class="empty-state">No education added yet.</div>`;
-    return;
-  }
+  const container =
+    document.getElementById(
+      "educationContainer"
+    );
 
-  currentUser.education.forEach((e, i) => {
-    educationList.innerHTML += `
-      <div class="info-card">
-        <div class="info-title">${safeText(e.school, "School not added")}</div>
-        <div class="info-sub">${safeText(e.degree, "Degree not added")}</div>
-        <div class="info-actions" style="margin-top:12px;">
-          <button class="small-btn" onclick="editEducation(${i})">Edit</button>
-          <button class="small-btn btn-secondary" onclick="deleteEducation(${i})">Delete</button>
-        </div>
+  if(!state.education.length){
+
+    container.innerHTML = `
+      <div class="item-card">
+        <p style="margin:0;color:#777;">
+          No education added yet.
+        </p>
       </div>
     `;
-  });
-}
 
-function renderSkills(){
-  skillsList.innerHTML = "";
-
-  if(!Array.isArray(currentUser.skills) || currentUser.skills.length === 0){
-    skillsList.innerHTML = `<div class="empty-state">No skills added yet.</div>`;
     return;
   }
 
-  currentUser.skills.forEach((s, i) => {
-    const span = document.createElement("span");
-    span.className = "skill-tag";
-    span.innerHTML = `
-      <span>${s}</span>
-      <span class="skill-remove" onclick="deleteSkill(${i})">✕</span>
-    `;
-    span.draggable = true;
+  container.innerHTML =
+    state.education.map((edu,index)=>`
 
-    span.ondragstart = (e) => {
-      e.dataTransfer.setData("index", i);
-    };
+      <article class="item-card">
 
-    span.ondrop = (e) => {
-      const from = Number(e.dataTransfer.getData("index"));
-      const list = [...currentUser.skills];
-      const item = list.splice(from, 1)[0];
-      list.splice(i, 0, item);
-      updateProfile({ skills: list });
-    };
+        <div class="item-card-head">
 
-    span.ondragover = (e) => e.preventDefault();
-
-    skillsList.appendChild(span);
-  });
-}
-
-function openAbout(){
-  document.getElementById("aboutInput").value = currentUser.bio || "";
-  document.getElementById("aboutModal").style.display = "flex";
-}
-
-async function saveAbout(){
-  await updateProfile({
-    bio: document.getElementById("aboutInput").value
-  });
-  closeModal("aboutModal");
-}
-
-function openExp(){
-  document.getElementById("expTitle").value = "";
-  document.getElementById("expCompany").value = "";
-  document.getElementById("expStart").value = "";
-  document.getElementById("expEnd").value = "";
-  delete document.getElementById("expModal").dataset.edit;
-  document.getElementById("expModal").style.display = "flex";
-}
-
-function editExperience(index){
-  const exp = currentUser.experience[index];
-  document.getElementById("expTitle").value = exp.title || "";
-  document.getElementById("expCompany").value = exp.company || "";
-  document.getElementById("expStart").value = exp.startDate || "";
-  document.getElementById("expEnd").value = exp.endDate || "";
-  document.getElementById("expModal").dataset.edit = index;
-  document.getElementById("expModal").style.display = "flex";
-}
-
-async function saveExperience(){
-  const exp = {
-    title: document.getElementById("expTitle").value,
-    company: document.getElementById("expCompany").value,
-    startDate: document.getElementById("expStart").value,
-    endDate: document.getElementById("expEnd").value
-  };
-
-  const list = Array.isArray(currentUser.experience) ? [...currentUser.experience] : [];
-  const modal = document.getElementById("expModal");
-
-  if(modal.dataset.edit !== undefined && modal.dataset.edit !== ""){
-    list[Number(modal.dataset.edit)] = exp;
-    delete modal.dataset.edit;
-  } else {
-    list.push(exp);
-  }
-
-  await updateProfile({ experience: list });
-  closeModal("expModal");
-}
-
-async function deleteExperience(index){
-  const list = Array.isArray(currentUser.experience) ? [...currentUser.experience] : [];
-  list.splice(index, 1);
-  await updateProfile({ experience: list });
-}
-
-function openEdu(){
-  document.getElementById("eduSchool").value = "";
-  document.getElementById("eduDegree").value = "";
-  delete document.getElementById("eduModal").dataset.edit;
-  document.getElementById("eduModal").style.display = "flex";
-}
-
-function editEducation(index){
-  const edu = currentUser.education[index];
-  document.getElementById("eduSchool").value = edu.school || "";
-  document.getElementById("eduDegree").value = edu.degree || "";
-  document.getElementById("eduModal").dataset.edit = index;
-  document.getElementById("eduModal").style.display = "flex";
-}
-
-async function saveEducation(){
-  const edu = {
-    school: document.getElementById("eduSchool").value,
-    degree: document.getElementById("eduDegree").value
-  };
-
-  const list = Array.isArray(currentUser.education) ? [...currentUser.education] : [];
-  const modal = document.getElementById("eduModal");
-
-  if(modal.dataset.edit !== undefined && modal.dataset.edit !== ""){
-    list[Number(modal.dataset.edit)] = edu;
-    delete modal.dataset.edit;
-  } else {
-    list.push(edu);
-  }
-
-  await updateProfile({ education: list });
-  closeModal("eduModal");
-}
-
-async function deleteEducation(index){
-  const list = Array.isArray(currentUser.education) ? [...currentUser.education] : [];
-  list.splice(index, 1);
-  await updateProfile({ education: list });
-}
-
-function openSkill(){
-  document.getElementById("skillInput").value = "";
-  document.getElementById("skillModal").style.display = "flex";
-}
-
-async function saveSkill(){
-  const skill = document.getElementById("skillInput").value.trim();
-  if(!skill) return;
-
-  const list = Array.isArray(currentUser.skills) ? [...currentUser.skills] : [];
-  list.push(skill);
-  await updateProfile({ skills: list });
-  closeModal("skillModal");
-}
-
-async function deleteSkill(index){
-  const list = Array.isArray(currentUser.skills) ? [...currentUser.skills] : [];
-  list.splice(index, 1);
-  await updateProfile({ skills: list });
-}
-
-function openBasicInfo(){
-  document.getElementById("editName").value = currentUser.name || "";
-  document.getElementById("editHeadline").value = currentUser.headline || "";
-  document.getElementById("editLocation").value = currentUser.location || "";
-  document.getElementById("basicModal").style.display = "flex";
-}
-
-async function saveBasicInfo(){
-  const name = document.getElementById("editName").value.trim();
-  const headlineValue = document.getElementById("editHeadline").value.trim();
-  const location = document.getElementById("editLocation").value.trim();
-
-  await updateProfile({
-    name,
-    headline: headlineValue,
-    location
-  });
-
-  closeModal("basicModal");
-}
-
-async function updateProfile(data){
-  const formData = new FormData();
-
-  Object.keys(data).forEach(key => {
-    if(Array.isArray(data[key])){
-      formData.append(key, JSON.stringify(data[key]));
-    } else {
-      formData.append(key, data[key]);
-    }
-  });
-
-  const res = await fetch(API + "/api/users/profile", {
-    method: "PATCH",
-    headers: { Authorization: "Bearer " + token },
-    body: formData
-  });
-
-  if(!res.ok){
-    alert("Profile update failed.");
-    return;
-  }
-
-  currentUser = await res.json();
-
-  if(currentUser?.name) localStorage.setItem("profileName", currentUser.name);
-  if(currentUser?.profileImage) localStorage.setItem("profileImage", currentUser.profileImage);
-
-  renderProfile();
-}
-
-document.getElementById("photoUpload").onchange = async function(){
-  const file = this.files[0];
-  if(!file) return;
-
-  const formData = new FormData();
-  formData.append("profileImage", file);
-
-  const res = await fetch(API + "/api/users/profile", {
-    method: "PATCH",
-    headers: { Authorization: "Bearer " + token },
-    body: formData
-  });
-
-  if(!res.ok){
-    alert("Profile photo update failed.");
-    return;
-  }
-
-  currentUser = await res.json();
-  renderProfile();
-};
-
-document.getElementById("bannerUpload").onchange = async function(){
-  const file = this.files[0];
-  if(!file) return;
-
-  const formData = new FormData();
-  formData.append("bannerImage", file);
-
-  const res = await fetch(API + "/api/users/profile", {
-    method: "PATCH",
-    headers: { Authorization: "Bearer " + token },
-    body: formData
-  });
-
-  if(!res.ok){
-    alert("Banner update failed.");
-    return;
-  }
-
-  currentUser = await res.json();
-  renderProfile();
-};
-
-function openCreatePost(){
-  document.getElementById("postContent").value = "";
-  document.getElementById("postMedia").value = "";
-  delete document.getElementById("createPostModal").dataset.edit;
-  document.getElementById("createPostModal").style.display = "flex";
-}
-
-async function submitPost(){
-  const text = document.getElementById("postContent").value;
-  const file = document.getElementById("postMedia").files[0];
-
-  const formData = new FormData();
-  formData.append("content", text);
-  if(file) formData.append("media", file);
-
-  const modal = document.getElementById("createPostModal");
-  const editId = modal.dataset.edit;
-
-  let url = API + "/api/posts";
-  let method = "POST";
-
-  if(editId){
-    url = API + "/api/posts/" + editId;
-    method = "PATCH";
-  }
-
-  const res = await fetch(url, {
-    method,
-    headers: { Authorization: "Bearer " + token },
-    body: formData
-  });
-
-  if(!res.ok){
-    alert("Post action failed.");
-    return;
-  }
-
-  if(editId){
-    delete modal.dataset.edit;
-  }
-
-  closeModal("createPostModal");
-  loadMyPosts();
-}
-
-async function loadMyPosts(){
-  try{
-    if(!currentUser || !currentUser._id) return;
-
-    const res = await fetch(API + "/api/posts/user/" + currentUser._id, {
-      headers: { Authorization: "Bearer " + token }
-    });
-
-    if(!res.ok){
-      document.getElementById("myPosts").innerHTML = "<div class='card'><div class='empty-state'>Failed to load posts.</div></div>";
-      return;
-    }
-
-    const posts = await res.json();
-    const container = document.getElementById("myPosts");
-
-    container.innerHTML = "";
-    document.getElementById("postCount").innerText = posts.length;
-
-    if(posts.length === 0){
-      container.innerHTML = "<div class='card'><div class='empty-state'>No posts yet.</div></div>";
-      return;
-    }
-
-    posts.forEach(post => {
-      const liked = post.likes?.some(id => String(id) === String(currentUser._id));
-
-      container.innerHTML += `
-        <div class="card post-card-clean" id="post-${post._id}">
-          <div class="post-header">
-            <div class="post-author">
-              <img src="${post.author?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
-              <div class="post-author-text">
-                <div class="post-author-name">${post.author?.name || "User"}</div>
-                <div class="post-meta">${post.author?.headline || ""}</div>
-              </div>
-            </div>
-
-            <div class="post-menu-trigger" onclick="togglePostMenu('${post._id}', event)">•••</div>
-
-            <div id="menu-${post._id}" class="post-menu">
-              <div onclick="editPost('${post._id}', ${JSON.stringify(post.content || "")})">Edit</div>
-              <div onclick="deletePost('${post._id}')">Delete</div>
-            </div>
-          </div>
-
-          ${post.content ? `<div class="post-content">${post.content}</div>` : ""}
-
-          ${post.mediaUrl ? `
-            <div class="post-media">
-              <img src="${post.mediaUrl}">
-            </div>
-          ` : ""}
-
-          <div class="post-stats">
-            <div>${post.likes?.length || 0} reactions</div>
-            <div onclick="toggleCommentBox('${post._id}')" style="cursor:pointer;">
-              ${post.comments?.length || 0} comments
-            </div>
-          </div>
-
-          <div class="post-actions">
-            <div class="post-action ${liked ? "liked" : ""}" onclick="toggleLike('${post._id}', this)">
-              Like
-            </div>
-
-            <div class="post-action" onclick="toggleCommentBox('${post._id}')">
-              Comment
-            </div>
-
-            <div class="post-action" onclick="openShareModal('${post._id}')">
-              Share
-            </div>
-          </div>
-
-          <div class="comments-wrapper" id="comments-wrapper-${post._id}" style="display:none;">
-            <div class="comment-input-area">
-              <img src="${currentUser.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="comment-avatar">
-              <input type="text" placeholder="Write a comment..." id="comment-input-${post._id}">
-              <button onclick="submitComment('${post._id}')">Send</button>
-            </div>
-
-            <div class="comments-container" id="comments-${post._id}"></div>
-          </div>
-        </div>
-      `;
-    });
-  }catch(err){
-    console.error("Post loading error:", err);
-  }
-}
-
-function togglePostMenu(id, event){
-  event.stopPropagation();
-  const menu = document.getElementById("menu-" + id);
-
-  if(activeMenu && activeMenu !== menu){
-    activeMenu.style.display = "none";
-  }
-
-  const open = menu.style.display === "block";
-  menu.style.display = open ? "none" : "block";
-  activeMenu = open ? null : menu;
-}
-
-document.addEventListener("click", () => {
-  if(activeMenu){
-    activeMenu.style.display = "none";
-    activeMenu = null;
-  }
-});
-
-function editPost(postId, content){
-  document.getElementById("postContent").value = content || "";
-  document.getElementById("createPostModal").style.display = "flex";
-  document.getElementById("createPostModal").dataset.edit = postId;
-}
-
-async function deletePost(postId){
-  const res = await fetch(API + "/api/posts/" + postId, {
-    method: "DELETE",
-    headers: { Authorization: "Bearer " + token }
-  });
-
-  if(!res.ok){
-    alert("Delete failed.");
-    return;
-  }
-
-  loadMyPosts();
-}
-
-function toggleCommentBox(postId){
-  const wrapper = document.getElementById("comments-wrapper-" + postId);
-
-  if(wrapper.style.display === "none"){
-    wrapper.style.display = "block";
-    const input = document.getElementById("comment-input-" + postId);
-    if(input) input.focus();
-    loadComments(postId);
-  } else {
-    wrapper.style.display = "none";
-  }
-}
-
-async function submitComment(postId){
-  const input = document.getElementById("comment-input-" + postId);
-  const text = input.value.trim();
-  if(!text) return;
-
-  input.value = "";
-
-  await fetch(API + "/api/posts/" + postId + "/comment", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + token
-    },
-    body: JSON.stringify({ text })
-  });
-
-  loadComments(postId);
-}
-
-async function loadComments(postId){
-  const res = await fetch(API + "/api/posts/" + postId, {
-    headers: { Authorization: "Bearer " + token }
-  });
-
-  const post = await res.json();
-  const container = document.getElementById("comments-" + postId);
-  container.innerHTML = "";
-
-  (post.comments || []).forEach(c => {
-    container.innerHTML += `
-      <div class="comment-item">
-        <img src="${c.user?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="comment-avatar">
-
-        <div class="comment-body">
-          <div class="comment-bubble">
-            <strong>${c.user?.name || "User"}</strong><br>
-            ${c.text}
-          </div>
-
-          <div class="comment-meta">
-            <button class="comment-like-btn" data-post="${postId}" data-comment="${c._id}">
-              Like (${c.likes?.length || 0})
-            </button>
-
-            <button onclick="showReplyInput('${postId}','${c._id}')">
-              Reply
-            </button>
-          </div>
-
-          <div id="reply-input-${c._id}" style="margin-top:8px;"></div>
-
-          ${c.replies?.length ? `
-            <div style="margin-top:6px;font-size:13px;color:#0a66c2;cursor:pointer;" onclick="toggleReplies('${postId}','${c._id}')">
-              View replies (${c.replies.length})
-            </div>
-          ` : ""}
-
-          <div class="reply-line" id="replies-${c._id}" data-loaded="false" style="display:none;"></div>
-        </div>
-      </div>
-    `;
-  });
-}
-
-function showReplyInput(postId, commentId){
-  const container = document.getElementById("reply-input-" + commentId);
-
-  if(container.innerHTML !== ""){
-    container.innerHTML = "";
-    return;
-  }
-
-  container.innerHTML = `
-    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
-      <img src="${currentUser.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" style="width:28px;height:28px;border-radius:50%;">
-      <input
-        type="text"
-        id="replyInput-${commentId}"
-        placeholder="Write a reply..."
-        style="flex:1;padding:8px 12px;border-radius:20px;border:1px solid #ddd;background:white;"
-      >
-      <button onclick="submitReply('${postId}','${commentId}')">Reply</button>
-    </div>
-  `;
-}
-
-async function submitReply(postId, commentId){
-  const input = document.getElementById("replyInput-" + commentId);
-  const text = input.value.trim();
-  if(!text) return;
-
-  await fetch(API + "/api/posts/" + postId + "/comment/" + commentId + "/reply", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + token
-    },
-    body: JSON.stringify({ text })
-  });
-
-  loadComments(postId);
-}
-
-async function toggleLike(id, element){
-  const stat = document.querySelector("#post-" + id + " .post-stats div");
-
-  try{
-    const res = await fetch(API + "/api/posts/" + id + "/like", {
-      method: "PATCH",
-      headers: { Authorization: "Bearer " + token }
-    });
-
-    const data = await res.json();
-
-    if(data.liked){
-      element.classList.add("liked");
-    } else {
-      element.classList.remove("liked");
-    }
-
-    if(stat){
-      stat.innerText = data.likes + " reactions";
-    }
-  }catch(err){
-    console.error("Like failed:", err);
-  }
-}
-
-function openShareModal(id){
-  document.getElementById("shareModal").style.display = "flex";
-
-  document.getElementById("copyLinkBtn").onclick = function(){
-    const link = window.location.origin + "/profile.html#post-" + id;
-    navigator.clipboard.writeText(link);
-    alert("Link copied");
-  };
-}
-
-document.addEventListener("click", async function(e){
-  if(e.target.classList.contains("comment-like-btn")){
-    const btn = e.target;
-    const postId = btn.dataset.post;
-    const commentId = btn.dataset.comment;
-
-    try{
-      const res = await fetch(API + "/api/posts/" + postId + "/comment/" + commentId + "/like", {
-        method: "PATCH",
-        headers: { Authorization: "Bearer " + token }
-      });
-
-      const data = await res.json();
-
-      btn.innerText = "Like (" + data.likes + ")";
-      btn.style.color = data.liked ? "#0a66c2" : "#6f6f6f";
-    }catch(err){
-      console.error("Comment like failed", err);
-    }
-  }
-});
-
-function toggleReplies(postId, commentId){
-  const container = document.getElementById("replies-" + commentId);
-
-  if(container.style.display === "block"){
-    container.style.display = "none";
-    return;
-  }
-
-  if(container.dataset.loaded === "true"){
-    container.style.display = "block";
-    return;
-  }
-
-  fetch(API + "/api/posts/" + postId, {
-    headers: { Authorization: "Bearer " + token }
-  })
-    .then(res => res.json())
-    .then(post => {
-      const comment = (post.comments || []).find(c => c._id === commentId);
-      if(!comment) return;
-
-      container.innerHTML = (comment.replies || []).map(r => `
-        <div style="margin-top:8px;padding-left:12px;display:flex;gap:8px;">
-          <img src="${r.user?.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" style="width:28px;height:28px;border-radius:50%;">
           <div>
-            <strong>${r.user?.name || "User"}</strong><br>
-            ${r.text}
-          </div>
-        </div>
-      `).join("");
 
-      container.dataset.loaded = "true";
-      container.style.display = "block";
-    });
+            <h3>
+              ${esc(edu.school || "School")}
+            </h3>
+
+            <p>
+              ${esc(edu.degree || "")}
+              •
+              ${esc(edu.startDate || "")}
+              -
+              ${esc(edu.endDate || "")}
+            </p>
+
+          </div>
+
+          <div class="item-actions">
+
+            <button
+              class="small-btn danger"
+              type="button"
+              onclick="deleteEducation(${index})"
+            >
+              Delete
+            </button>
+
+          </div>
+
+        </div>
+
+        <p>
+          ${esc(edu.description || "")}
+        </p>
+
+      </article>
+
+    `).join("");
 }
 
-window.onclick = function(e){
-  document.querySelectorAll(".modal, .share-modal").forEach(modal => {
-    if(e.target === modal){
-      modal.style.display = "none";
-    }
-  });
-};
+function renderPortfolio(){
 
-socket.on("new_post", post => {
-  if(!currentUser || post.author?._id !== currentUser._id) return;
-  loadMyPosts();
-});
+  const container =
+    document.getElementById(
+      "portfolioContainer"
+    );
 
-socket.on("post_deleted", data => {
-  const post = document.getElementById("post-" + data.postId);
-  if(post) post.remove();
-});
+  if(!state.portfolio.length){
 
-socket.on("post_like", data => {
-  const stat = document.querySelector("#post-" + data.postId + " .post-stats div");
-  if(stat){
-    stat.innerText = data.likes + " reactions";
-  }
-});
-
-socket.on("new_comment", data => {
-  const stat = document.querySelector("#post-" + data.postId + " .post-stats div:nth-child(2)");
-  if(stat){
-    stat.innerText = data.totalComments + " comments";
-  }
-});
-
-socket.on("new_reply", data => {
-  const container = document.getElementById("replies-" + data.commentId);
-  if(!container) return;
-
-  const reply = data.comment.replies.slice(-1)[0];
-  container.style.display = "block";
-
-  container.innerHTML += `
-    <div style="margin-top:8px;padding-left:12px;display:flex;gap:8px;">
-      <img src="${reply.user.profileImage || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" style="width:28px;height:28px;border-radius:50%;">
-      <div>
-        <strong>${reply.user.name}</strong><br>
-        ${reply.text}
+    container.innerHTML = `
+      <div class="item-card">
+        <p style="margin:0;color:#777;">
+          No portfolio items added yet.
+        </p>
       </div>
-    </div>
-  `;
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    state.portfolio.map((item,index)=>`
+
+      <article class="item-card">
+
+        <div class="item-card-head">
+
+          <div>
+
+            <h3>
+              ${esc(item.title || "Portfolio")}
+            </h3>
+
+            <p>
+              ${esc(item.url || "")}
+            </p>
+
+          </div>
+
+          <div class="item-actions">
+
+            <button
+              class="small-btn danger"
+              type="button"
+              onclick="deletePortfolio(${index})"
+            >
+              Delete
+            </button>
+
+          </div>
+
+        </div>
+
+        <p>
+          ${esc(item.description || "")}
+        </p>
+
+      </article>
+
+    `).join("");
+}
+
+function deleteExperience(index){
+  state.experience.splice(index,1);
+  renderExperience();
+  renderCompletion();
+}
+
+function deleteEducation(index){
+  state.education.splice(index,1);
+  renderEducation();
+}
+
+function deletePortfolio(index){
+  state.portfolio.splice(index,1);
+  renderPortfolio();
+}
+
+document.getElementById("openExperienceModalBtn")
+.addEventListener("click",()=>{
+  openModal("experienceModal");
 });
+
+document.getElementById("openEducationModalBtn")
+.addEventListener("click",()=>{
+  openModal("educationModal");
+});
+
+document.getElementById("openPortfolioModalBtn")
+.addEventListener("click",()=>{
+  openModal("portfolioModal");
+});
+
+document.getElementById("saveExperienceBtn")
+.addEventListener("click",()=>{
+
+  const item = {
+    title:
+      document.getElementById("expTitle").value.trim(),
+
+    company:
+      document.getElementById("expCompany").value.trim(),
+
+    startDate:
+      document.getElementById("expStart").value.trim(),
+
+    endDate:
+      document.getElementById("expEnd").value.trim(),
+
+    description:
+      document.getElementById("expDescription").value.trim()
+  };
+
+  if(!item.title){
+    toast(
+      "Missing title",
+      "Please add a job title.",
+      "error"
+    );
+    return;
+  }
+
+  state.experience.push(item);
+
+  closeModal("experienceModal");
+
+  renderExperience();
+  renderCompletion();
+
+  toast(
+    "Experience added"
+  );
+});
+
+document.getElementById("saveEducationBtn")
+.addEventListener("click",()=>{
+
+  const item = {
+    school:
+      document.getElementById("eduSchool").value.trim(),
+
+    degree:
+      document.getElementById("eduDegree").value.trim(),
+
+    startDate:
+      document.getElementById("eduStart").value.trim(),
+
+    endDate:
+      document.getElementById("eduEnd").value.trim(),
+
+    description:
+      document.getElementById("eduDescription").value.trim()
+  };
+
+  if(!item.school){
+    toast(
+      "Missing school",
+      "Please add a school name.",
+      "error"
+    );
+    return;
+  }
+
+  state.education.push(item);
+
+  closeModal("educationModal");
+
+  renderEducation();
+
+  toast(
+    "Education added"
+  );
+});
+
+document.getElementById("savePortfolioBtn")
+.addEventListener("click",()=>{
+
+  const item = {
+    title:
+      document.getElementById("portfolioTitle").value.trim(),
+
+    url:
+      document.getElementById("portfolioUrl").value.trim(),
+
+    description:
+      document.getElementById("portfolioDescription").value.trim()
+  };
+
+  if(!item.title){
+    toast(
+      "Missing title",
+      "Please add a title.",
+      "error"
+    );
+    return;
+  }
+
+  state.portfolio.push(item);
+
+  closeModal("portfolioModal");
+
+  renderPortfolio();
+
+  toast(
+    "Portfolio item added"
+  );
+});
+
+document.getElementById("changeAvatarBtn")
+.addEventListener("click",()=>{
+  document.getElementById("avatarInput").click();
+});
+
+document.getElementById("changeBannerBtn")
+.addEventListener("click",()=>{
+  document.getElementById("bannerInput").click();
+});
+
+document.getElementById("avatarInput")
+.addEventListener("change",e=>{
+
+  const file = e.target.files[0];
+
+  if(!file) return;
+
+  state.avatarFile = file;
+
+  document.getElementById(
+    "avatarPreview"
+  ).src = URL.createObjectURL(file);
+
+  renderCompletion();
+});
+
+document.getElementById("bannerInput")
+.addEventListener("change",e=>{
+
+  const file = e.target.files[0];
+
+  if(!file) return;
+
+  state.bannerFile = file;
+
+  document.getElementById(
+    "coverPreview"
+  ).style.backgroundImage =
+    `linear-gradient(135deg,rgba(10,102,194,.22),rgba(34,197,94,.16)),url('${URL.createObjectURL(file)}')`;
+
+  renderCompletion();
+});
+
+document.getElementById("resumeInput")
+.addEventListener("change",e=>{
+  state.resumeFile = e.target.files[0] || null;
+});
+
+document.getElementById("previewProfileBtn")
+.addEventListener("click",()=>{
+  location.href = publicProfileUrl();
+});
+
+document.getElementById("saveProfileBtn")
+.addEventListener("click",saveProfile);
+
+async function saveProfile(){
+
+  try{
+
+    setStatus("Saving...");
+
+    const form = new FormData();
+
+    form.append(
+      "name",
+      document.getElementById("nameInput").value.trim()
+    );
+
+    form.append(
+      "headline",
+      document.getElementById("headlineInput").value.trim()
+    );
+
+    form.append(
+      "bio",
+      document.getElementById("bioInput").value.trim()
+    );
+
+    form.append(
+      "location",
+      document.getElementById("locationInput").value.trim()
+    );
+
+    form.append(
+      "preferredRole",
+      document.getElementById("preferredRoleInput").value.trim()
+    );
+
+    form.append(
+      "availability",
+      document.getElementById("availabilityInput").value
+    );
+
+    form.append(
+      "employmentType",
+      document.getElementById("employmentTypeInput").value
+    );
+
+    form.append(
+      "workSetup",
+      document.getElementById("workSetupInput").value
+    );
+
+    form.append(
+      "preferredShift",
+      document.getElementById("preferredShiftInput").value
+    );
+
+    form.append(
+      "salaryExpectation",
+      document.getElementById("salaryExpectationInput").value.trim()
+    );
+
+    form.append(
+      "noticePeriod",
+      document.getElementById("noticePeriodInput").value.trim()
+    );
+
+    form.append(
+      "experienceYears",
+      document.getElementById("experienceYearsInput").value
+    );
+
+    form.append(
+      "isPublic",
+      document.getElementById("isPublicInput").value
+    );
+
+    form.append(
+      "skills",
+      JSON.stringify(state.skills)
+    );
+
+    form.append(
+      "languages",
+      JSON.stringify(state.languages)
+    );
+
+    form.append(
+      "experience",
+      JSON.stringify(state.experience)
+    );
+
+    form.append(
+      "education",
+      JSON.stringify(state.education)
+    );
+
+    form.append(
+      "portfolio",
+      JSON.stringify(state.portfolio)
+    );
+
+    if(state.avatarFile){
+      form.append(
+        "profileImage",
+        state.avatarFile
+      );
+    }
+
+    if(state.bannerFile){
+      form.append(
+        "bannerImage",
+        state.bannerFile
+      );
+    }
+
+    if(state.resumeFile){
+      form.append(
+        "resume",
+        state.resumeFile
+      );
+    }
+
+    const data =
+      await fetchJSON(
+        "/api/users/profile",
+        {
+          method:"PATCH",
+          headers:authHeaders(),
+          body:form
+        }
+      );
+
+    state.me =
+      data.user || data;
+
+    toast(
+      "Profile updated",
+      "Your profile has been saved successfully."
+    );
+
+    setStatus(
+      "Saved",
+      "success"
+    );
+
+    renderAll();
+
+  }catch(err){
+
+    console.error(err);
+
+    toast(
+      "Save failed",
+      err.message,
+      "error"
+    );
+
+    setStatus(
+      "Error",
+      "error"
+    );
+
+  }
+}
+
+window.addEventListener(
+  "beforeunload",
+  e=>{
+    if(
+      document.getElementById("saveStatus")
+      .textContent === "Saving..."
+    ){
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  }
+);
 
 loadProfile();
+
 </script>
+
 </body>
 </html>
