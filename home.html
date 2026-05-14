@@ -1069,9 +1069,17 @@ async function loadMe(){
     headers:headers()
   });
 
-  state.me = data.user || data;
+state.me = data.user || data;
 
-  renderMe();
+if(state.me?._id){
+  localStorage.setItem("userId", state.me._id);
+}
+
+if(state.me?.role){
+  localStorage.setItem("role", state.me.role);
+}
+
+renderMe();
 }
 
 function renderMe(){
@@ -1337,6 +1345,11 @@ function openProfile(){
 
   if(r === "employer"){
     location.href = `employer-public-profile.html?id=${state.me._id}`;
+    return;
+  }
+
+  if(r === "agent"){
+    location.href = `agent-public-profile.html?id=${state.me._id}`;
     return;
   }
 
