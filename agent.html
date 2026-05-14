@@ -202,9 +202,10 @@ th{background:#f8fafc;font-size:11px;text-transform:uppercase;letter-spacing:.08
 
     <div class="topbar-right">
       <span class="agent-pill"><span class="status-dot" id="liveDot"></span><span id="liveStatusText">Offline</span></span>
-      <button class="success" id="clockInBtn" onclick="clockIn()">Clock In</button>
-      <button class="logout" id="clockOutBtn" onclick="clockOut()">Clock Out</button>
-      <button class="gray" onclick="logout()">Logout</button>
+     <button class="soft" onclick="openPublicPage()">View Profile</button>
+<button class="success" id="clockInBtn" onclick="clockIn()">Clock In</button>
+<button class="logout" id="clockOutBtn" onclick="clockOut()">Clock Out</button>
+<button class="gray" onclick="logout()">Logout</button>
     </div>
   </div>
 
@@ -311,6 +312,13 @@ function closeSidebarMobile(){
 
 async function loadMe(){
   agentData = await fetchJSON(`${API}/api/auth/me`, { headers: authHeaders() });
+  if(agentData?._id){
+  localStorage.setItem("userId", agentData._id);
+}
+
+if(agentData?.role){
+  localStorage.setItem("role", agentData.role);
+}
 
   document.getElementById("sidebarAgent").innerHTML = `
     <b>${escapeHTML(agentData.name || "User")}</b><br>
@@ -643,7 +651,14 @@ function startTimer(){
     }
   }, 30000);
 }
+function openPublicPage(){
+  if(!agentData?._id){
+    showToast("Profile unavailable", "Agent profile is still loading.", "error");
+    return;
+  }
 
+  window.location.href = `agent-public-profile.html?id=${agentData._id}`;
+}
 function logout(){
   localStorage.removeItem("agentToken");
   localStorage.removeItem("employerToken");
