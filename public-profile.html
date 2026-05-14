@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
 
-<title>AIFT | Talent Public Profile</title>
+<title>AIFT | Public Profile</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,7 +12,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="feed.css">
-
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <style>
@@ -21,18 +20,17 @@
   --blue-dark:#004182;
   --green:#057642;
   --bg:#f3f2ef;
-  --card:#ffffff;
+  --card:#fff;
   --text:#191919;
   --muted:#666;
   --line:#d8d8d8;
   --soft:#eef3f8;
   --shadow:0 1px 2px rgba(0,0,0,.08);
-  --radius:10px;
+  --radius:12px;
   --max:1128px;
 }
 
 *{box-sizing:border-box}
-
 html{scroll-behavior:smooth}
 
 body{
@@ -43,34 +41,18 @@ body{
   font-size:14px;
 }
 
-button,input{
-  font:inherit;
-}
-
-button{
-  cursor:pointer;
-}
-
-img{
-  display:block;
-  max-width:100%;
-}
-
-a{
-  text-decoration:none;
-  color:inherit;
-}
-
-.hidden{
-  display:none!important;
-}
+button,input{font:inherit}
+button{cursor:pointer}
+img{display:block;max-width:100%}
+a{text-decoration:none;color:inherit}
+.hidden{display:none!important}
 
 .container{
   width:min(var(--max),calc(100% - 24px));
   margin:auto;
 }
 
-/* TOP BAR */
+/* TOPBAR */
 
 .topbar{
   position:sticky;
@@ -149,6 +131,7 @@ a{
   border-bottom:2px solid transparent;
 }
 
+.top-link:hover,
 .top-link.active{
   color:#111;
   border-bottom-color:#111;
@@ -334,8 +317,7 @@ a{
   color:var(--green);
   border-bottom-color:var(--green);
 }
-
-/* CONTENT */
+  /* CONTENT */
 
 .section{
   display:none;
@@ -428,9 +410,10 @@ a{
   margin:0;
   color:#666;
   font-size:13px;
+  line-height:1.55;
 }
 
-/* RIGHT SIDE */
+/* SIDEBAR */
 
 .side-card{
   padding:16px;
@@ -490,7 +473,7 @@ a{
   background:#fff;
 }
 
-/* FEED MOUNT */
+/* FEED */
 
 #profileFeedMount .aift-feed-shell{
   width:100%!important;
@@ -612,7 +595,8 @@ a{
 </head>
 
 <body>
-  <header class="topbar">
+
+<header class="topbar">
   <div class="container top-inner">
     <a class="brand" href="home.html">A</a>
 
@@ -655,197 +639,477 @@ a{
     </nav>
   </div>
 </header>
-
 <main class="page">
-  <div class="container layout">
-    <section class="main-col">
 
-      <article class="profile-hero card">
-        <div id="profileCover" class="cover"></div>
+  <div class="container">
 
-        <div class="hero-body">
-          <div class="avatar-row">
-            <div class="avatar-wrap">
-              <img id="profileAvatar" class="profile-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Profile">
-              <div id="verifiedBadge" class="verified-badge hidden">✓</div>
+    <div class="layout">
+
+      <!-- MAIN -->
+
+      <section class="main-col">
+
+        <!-- HERO -->
+
+        <section class="card profile-hero">
+
+          <div class="cover" id="coverImage"></div>
+
+          <div class="hero-body">
+
+            <div class="avatar-row">
+
+              <div class="avatar-wrap">
+
+                <img
+                  id="profileAvatar"
+                  class="profile-avatar"
+                  src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                  alt=""
+                >
+
+                <div
+                  class="verified-badge hidden"
+                  id="verifiedBadge"
+                >
+                  ✓
+                </div>
+
+              </div>
+
+              <div class="hero-actions">
+
+                <button
+                  class="pill-btn primary"
+                  id="connectBtn"
+                >
+                  Connect
+                </button>
+
+                <button
+                  class="pill-btn"
+                  id="messageBtn"
+                >
+                  Message
+                </button>
+
+                <button
+                  class="pill-btn dark"
+                  id="shareBtn"
+                >
+                  Share Profile
+                </button>
+
+              </div>
+
             </div>
 
-            <div class="hero-actions">
-              <button id="followBtn" class="pill-btn primary" onclick="followTalent()">Follow</button>
-              <button class="pill-btn" onclick="messageTalent()">Message</button>
-              <button id="cvHeroBtn" class="pill-btn dark hidden" onclick="openCV()">View CV</button>
-              <button id="ownerEditBtn" class="pill-btn hidden" onclick="editProfile()">Edit profile</button>
+            <h1
+              class="hero-name"
+              id="profileName"
+            >
+              Loading...
+            </h1>
+
+            <p
+              class="hero-headline"
+              id="profileHeadline"
+            >
+              Professional profile
+            </p>
+
+            <div
+              class="hero-meta"
+              id="profileMeta"
+            ></div>
+
+            <div
+              class="hero-summary"
+              id="profileBio"
+            >
+              Loading profile...
             </div>
+
           </div>
 
-          <h1 id="profileName" class="hero-name">Talent profile</h1>
-          <p id="profileHeadline" class="hero-headline">Professional headline</p>
+          <!-- TABS -->
 
-          <div id="profileMeta" class="hero-meta"></div>
+          <div class="profile-tabs">
 
-          <p id="profileSummary" class="hero-summary"></p>
-        </div>
+            <button
+              class="profile-tab active"
+              data-tab="about"
+            >
+              About
+            </button>
 
-        <nav class="profile-tabs">
-          <button class="profile-tab active" data-tab="overview" onclick="openTab('overview')">Home</button>
-          <button class="profile-tab" data-tab="posts" onclick="openTab('posts')">Posts</button>
-          <button class="profile-tab" data-tab="experience" onclick="openTab('experience')">Experience</button>
-          <button class="profile-tab" data-tab="skills" onclick="openTab('skills')">Skills</button>
-          <button class="profile-tab" data-tab="about" onclick="openTab('about')">About</button>
-        </nav>
-      </article>
+            <button
+              class="profile-tab"
+              data-tab="experience"
+            >
+              Experience
+            </button>
 
-      <section id="section-overview" class="section active">
-        <article class="content-card card">
-          <h2>Professional snapshot</h2>
-          <div class="grid-2">
-            <div class="info-box">
-              <span>Current role</span>
-              <strong id="snapshotRole">Not added</strong>
-            </div>
+            <button
+              class="profile-tab"
+              data-tab="education"
+            >
+              Education
+            </button>
 
-            <div class="info-box">
-              <span>Availability</span>
-              <strong id="snapshotAvailability">Not added</strong>
-            </div>
+            <button
+              class="profile-tab"
+              data-tab="portfolio"
+            >
+              Portfolio
+            </button>
 
-            <div class="info-box">
-              <span>Expected setup</span>
-              <strong id="snapshotSetup">Not added</strong>
-            </div>
+            <button
+              class="profile-tab"
+              data-tab="feed"
+            >
+              Feed
+            </button>
 
-            <div class="info-box">
-              <span>Languages</span>
-              <strong id="snapshotLanguages">Not added</strong>
-            </div>
           </div>
-        </article>
 
-        <article class="content-card card">
-          <h2>About</h2>
-          <p id="aboutText">No about section added yet.</p>
-        </article>
+        </section>
 
-        <article class="content-card card">
-          <h2>Top skills</h2>
-          <div id="topSkills" class="pill-list"></div>
-        </article>
-      </section>
+        <!-- ABOUT -->
 
-      <section id="section-posts" class="section">
-        <div id="profileFeedMount"></div>
-      </section>
+        <section
+          class="section active"
+          id="section-about"
+        >
 
-      <section id="section-experience" class="section">
-        <article class="content-card card">
-          <h2>Experience</h2>
-          <div id="experienceList" class="timeline"></div>
-        </article>
+          <article class="card content-card">
 
-        <article class="content-card card">
-          <h2>Education & Training</h2>
-          <div id="educationList" class="timeline"></div>
-        </article>
-      </section>
+            <h2>About</h2>
 
-      <section id="section-skills" class="section">
-        <article class="content-card card">
-          <h2>Skills</h2>
-          <div id="skillsList" class="pill-list"></div>
-        </article>
+            <p id="aboutText">
+              No bio added yet.
+            </p>
 
-        <article class="content-card card">
-          <h2>Languages</h2>
-          <div id="languagesList" class="pill-list"></div>
-        </article>
-      </section>
+          </article>
 
-      <section id="section-about" class="section">
-        <article class="content-card card">
-          <h2>Employer hiring notes</h2>
-          <div class="grid-2">
-            <div class="info-box">
-              <span>Preferred role</span>
-              <strong id="preferredRole">Not added</strong>
+          <article class="card content-card">
+
+            <h2>Professional Information</h2>
+
+            <div class="grid-2">
+
+              <div class="info-box">
+                <span>Preferred Role</span>
+                <strong id="preferredRole">
+                  Not specified
+                </strong>
+              </div>
+
+              <div class="info-box">
+                <span>Availability</span>
+                <strong id="availability">
+                  Not specified
+                </strong>
+              </div>
+
+              <div class="info-box">
+                <span>Work Setup</span>
+                <strong id="workSetup">
+                  Not specified
+                </strong>
+              </div>
+
+              <div class="info-box">
+                <span>Employment Type</span>
+                <strong id="employmentType">
+                  Not specified
+                </strong>
+              </div>
+
+              <div class="info-box">
+                <span>Years of Experience</span>
+                <strong id="experienceYears">
+                  0 years
+                </strong>
+              </div>
+
+              <div class="info-box">
+                <span>Preferred Shift</span>
+                <strong id="preferredShift">
+                  Not specified
+                </strong>
+              </div>
+
             </div>
 
-            <div class="info-box">
-              <span>Preferred shift</span>
-              <strong id="preferredShift">Not added</strong>
+          </article>
+
+          <article class="card content-card">
+
+            <h2>Skills</h2>
+
+            <div
+              class="pill-list"
+              id="skillsList"
+            >
+              <div class="empty">
+                No skills added yet.
+              </div>
             </div>
 
-            <div class="info-box">
-              <span>Salary expectation</span>
-              <strong id="salaryExpectation">Not added</strong>
+          </article>
+
+          <article class="card content-card">
+
+            <h2>Languages</h2>
+
+            <div
+              class="pill-list"
+              id="languagesList"
+            >
+              <div class="empty">
+                No languages added yet.
+              </div>
             </div>
 
-            <div class="info-box">
-              <span>Notice period</span>
-              <strong id="noticePeriod">Not added</strong>
+          </article>
+
+        </section>
+
+        <!-- EXPERIENCE -->
+
+        <section
+          class="section"
+          id="section-experience"
+        >
+
+          <article class="card content-card">
+
+            <h2>Experience</h2>
+
+            <div
+              class="timeline"
+              id="experienceList"
+            >
+              <div class="empty">
+                No experience added yet.
+              </div>
             </div>
+
+          </article>
+
+        </section>
+
+        <!-- EDUCATION -->
+
+        <section
+          class="section"
+          id="section-education"
+        >
+
+          <article class="card content-card">
+
+            <h2>Education</h2>
+
+            <div
+              class="timeline"
+              id="educationList"
+            >
+              <div class="empty">
+                No education added yet.
+              </div>
+            </div>
+
+          </article>
+
+        </section>
+
+        <!-- PORTFOLIO -->
+
+        <section
+          class="section"
+          id="section-portfolio"
+        >
+
+          <article class="card content-card">
+
+            <h2>Portfolio</h2>
+
+            <div
+              class="timeline"
+              id="portfolioList"
+            >
+              <div class="empty">
+                No portfolio added yet.
+              </div>
+            </div>
+
+          </article>
+
+        </section>
+
+        <!-- FEED -->
+
+        <section
+          class="section"
+          id="section-feed"
+        >
+
+          <div id="profileFeedMount"></div>
+
+        </section>
+
+      </section>
+
+      <!-- RIGHT -->
+
+      <aside class="right-col">
+
+        <article class="card side-card">
+
+          <h3>Profile Insights</h3>
+
+          <div class="side-stat">
+            <span>Profile Strength</span>
+            <strong id="profileStrength">
+              Beginner
+            </strong>
           </div>
+
+          <div class="side-stat">
+            <span>Skills Added</span>
+            <strong id="skillsCount">
+              0
+            </strong>
+          </div>
+
+          <div class="side-stat">
+            <span>Experience Entries</span>
+            <strong id="experienceCount">
+              0
+            </strong>
+          </div>
+
+          <div class="side-stat">
+            <span>Education Entries</span>
+            <strong id="educationCount">
+              0
+            </strong>
+          </div>
+
+          <div class="side-stat">
+            <span>Portfolio Projects</span>
+            <strong id="portfolioCount">
+              0
+            </strong>
+          </div>
+
         </article>
 
-        <article class="content-card card">
-          <h2>Portfolio / Links</h2>
-          <div id="portfolioList" class="timeline"></div>
+        <article class="card side-card">
+
+          <h3>Resume / CV</h3>
+
+          <div class="cv-box">
+
+            <p>
+              Employers can review this professional resume directly from the profile.
+            </p>
+
+            <button
+              class="pill-btn primary hidden"
+              id="resumeBtn"
+            >
+              Download CV
+            </button>
+
+          </div>
+
         </article>
-      </section>
-    </section>
 
-    <aside class="right-col">
-      <section class="side-card card">
-        <h3>Talent insights</h3>
-        <div id="sideStats"></div>
-      </section>
+        <article class="card side-card">
 
-      <section class="side-card card">
-        <h3>CV / Resume</h3>
-        <div class="cv-box">
-          <p id="cvText">No CV uploaded yet.</p>
-          <button id="cvSideBtn" class="pill-btn primary hidden" onclick="openCV()">Open CV</button>
-        </div>
-      </section>
+          <h3>Career Highlights</h3>
 
-      <section class="side-card card">
-        <h3>Best fit for</h3>
-        <div id="bestFitList" class="pill-list"></div>
-      </section>
-    </aside>
+          <div class="side-stat">
+            <span>Open to opportunities</span>
+            <strong id="openStatus">
+              Yes
+            </strong>
+          </div>
+
+          <div class="side-stat">
+            <span>Remote Ready</span>
+            <strong id="remoteReady">
+              Yes
+            </strong>
+          </div>
+
+          <div class="side-stat">
+            <span>Interview Ready</span>
+            <strong>
+              Verified
+            </strong>
+          </div>
+
+        </article>
+
+      </aside>
+
+    </div>
+
   </div>
+
 </main>
 
-<nav class="mobile-bottom">
-  <button onclick="goHome()">Home</button>
-  <button onclick="openTab('posts')">Posts</button>
-  <button onclick="messageTalent()">Message</button>
-  <button onclick="openCV()">CV</button>
-  <button onclick="openTab('about')">About</button>
-</nav>
-<script src="feed.js"></script>
+<!-- MOBILE NAV -->
 
+<nav class="mobile-bottom">
+
+  <button onclick="goHome()">
+    Home
+  </button>
+
+  <button onclick="goMessages()">
+    Messages
+  </button>
+
+  <button onclick="goNotifications()">
+    Alerts
+  </button>
+
+  <button onclick="openMyProfile()">
+    Profile
+  </button>
+
+  <button onclick="scrollToTopPage()">
+    Top
+  </button>
+
+</nav>
 <script>
 
 const API =
   "https://backend-1-9b6f.onrender.com";
 
+const params =
+  new URLSearchParams(location.search);
+
+const profileId =
+  params.get("id");
+
 const FALLBACK_AVATAR =
   "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 const state = {
-  profileId:null,
   profile:null,
   viewer:null
 };
 
-/* =========================
-   AUTH
-========================= */
-
-function token(){
+function getToken(){
   return (
-    localStorage.getItem("employerToken") ||
     localStorage.getItem("talentToken") ||
+    localStorage.getItem("employerToken") ||
     localStorage.getItem("adminToken") ||
     localStorage.getItem("agentToken") ||
     localStorage.getItem("schoolToken") ||
@@ -854,674 +1118,67 @@ function token(){
   );
 }
 
-function headers(extra = {}){
+function authHeaders(extra = {}){
   return {
-    ...(token()
-      ? { Authorization:"Bearer " + token() }
-      : {}),
+    Authorization:"Bearer " + getToken(),
     ...extra
   };
 }
 
-/* =========================
-   HELPERS
-========================= */
-
-function esc(v=""){
-  return String(v ?? "")
+function esc(value = ""){
+  return String(value ?? "")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
     .replaceAll(">","&gt;")
     .replaceAll('"',"&quot;");
 }
 
-function qs(name){
-  return new URLSearchParams(location.search)
-    .get(name);
-}
-
-function setText(id,value,fallback="Not added"){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.textContent = value || fallback;
-}
-
-function renderPills(mountId,items=[]){
-
-  const mount =
-    document.getElementById(mountId);
-
-  if(!mount) return;
-
-  if(!items.length){
-
-    mount.innerHTML = `
-      <div class="empty">
-        No information added yet.
-      </div>
-    `;
-
-    return;
+async function safeJSON(res){
+  try{
+    return await res.json();
+  }catch{
+    return null;
   }
-
-  mount.innerHTML =
-    items.map(item => `
-      <div class="skill-pill">
-        ${esc(item)}
-      </div>
-    `).join("");
 }
 
-function renderTimeline(mountId,items=[]){
-
-  const mount =
-    document.getElementById(mountId);
-
-  if(!mount) return;
-
-  if(!items.length){
-
-    mount.innerHTML = `
-      <div class="empty">
-        No information added yet.
-      </div>
-    `;
-
-    return;
-  }
-
-  mount.innerHTML =
-    items.map(item => `
-
-      <article class="timeline-item">
-
-        <h3>
-          ${esc(
-            item.title ||
-            item.position ||
-            item.school ||
-            item.name ||
-            "Information"
-          )}
-        </h3>
-
-        <p>
-          ${esc(
-            item.company ||
-            item.subtitle ||
-            item.description ||
-            ""
-          )}
-        </p>
-
-      </article>
-
-    `).join("");
-}
-
-async function api(path,options={}){
+async function fetchJSON(path,options = {}){
 
   const res =
     await fetch(API + path,options);
 
-  const text =
-    await res.text();
-
-  let data = {};
-
-  try{
-    data = text
-      ? JSON.parse(text)
-      : {};
-  }catch{
-    data = { message:text };
-  }
+  const data =
+    await safeJSON(res);
 
   if(!res.ok){
-
     throw new Error(
-      data.message ||
+      data?.message ||
       "Request failed"
     );
-
   }
 
   return data;
 }
 
-/* =========================
-   LOAD VIEWER
-========================= */
-
-async function loadViewer(){
-
-  try{
-
-    const data =
-      await api("/api/users/me",{
-        headers:headers()
-      });
-
-    state.viewer =
-      data.user || data;
-
-    if(state.viewer?.profileImage){
-
-      document.getElementById(
-        "viewerAvatar"
-      ).src =
-        state.viewer.profileImage;
-
-    }
-
-  }catch(err){
-
-    console.warn(err);
-
-  }
-}
-
-/* =========================
-   LOAD PROFILE
-========================= */
-
-async function loadProfile(){
-
-  state.profileId = qs("id");
-
-  if(!state.profileId){
-
-    location.href = "home.html";
-    return;
-  }
-
-const data =
-  await api(
-    `/api/users/${state.profileId}/public`,
-    {
-      headers:headers()
-    }
-  );
-
-  state.profile =
-    data.user || data;
-
-  renderProfile();
-
-  mountFeed();
-}
-
-/* =========================
-   RENDER
-========================= */
-
-function renderProfile(){
-
-  const p =
-    state.profile || {};
-  if(p.role === "employer" || p.role === "school"){
-  location.href = `employer-public-profile.html?id=${p._id}`;
-  return;
-}
-
-  document.title =
-    `${p.name || "Talent"} | AIFT`;
-
-  const avatar =
-    p.profileImage ||
-    FALLBACK_AVATAR;
-
-  document.getElementById(
-    "profileAvatar"
-  ).src = avatar;
-
-  if(p.bannerImage){
-
-    document.getElementById(
-      "profileCover"
-    ).style.backgroundImage =
-      `
-      linear-gradient(
-        135deg,
-        rgba(10,102,194,.18),
-        rgba(34,197,94,.16)
-      ),
-      url('${p.bannerImage}')
-      `;
-
-  }
-
-  setText(
-    "profileName",
-    p.name || p.companyName,
-    "AIFT Talent"
-  );
-
-  setText(
-    "profileHeadline",
-    p.headline ||
-    p.profession ||
-    p.role,
-    "Professional"
-  );
-
-  const meta = [];
-
-  if(p.location)
-    meta.push(p.location);
-
-  if(p.companyName)
-    meta.push(p.companyName);
-
-  if(p.email)
-    meta.push(p.email);
-
-  document.getElementById(
-    "profileMeta"
-  ).innerHTML =
-    meta.map(m => `
-      <span>${esc(m)}</span>
-    `).join(" • ");
-
-  setText(
-    "profileSummary",
-    p.bio ||
-    p.summary ||
-    p.about,
-    "This talent has not added a summary yet."
-  );
-
-  setText(
-    "aboutText",
-    p.bio ||
-    p.summary ||
-    p.about,
-    "No about section added yet."
-  );
-
-  setText(
-    "snapshotRole",
-    p.profession ||
-    p.role ||
-    p.headline
-  );
-
-  setText(
-    "snapshotAvailability",
-    p.availability ||
-    p.status
-  );
-
-  setText(
-    "snapshotSetup",
-    p.workSetup ||
-    p.preferredSetup
-  );
-
-  setText(
-    "snapshotLanguages",
-    Array.isArray(p.languages)
-      ? p.languages.join(", ")
-      : p.languages
-  );
-
-  setText(
-    "preferredRole",
-    p.preferredRole
-  );
-
-  setText(
-    "preferredShift",
-    p.preferredShift
-  );
-
-  setText(
-    "salaryExpectation",
-    p.salaryExpectation
-  );
-
-  setText(
-    "noticePeriod",
-    p.noticePeriod
-  );
-
-  renderPills(
-    "topSkills",
-    p.skills || []
-  );
-
-  renderPills(
-    "skillsList",
-    p.skills || []
-  );
-
-  renderPills(
-    "languagesList",
-    p.languages || []
-  );
-
-  renderPills(
-    "bestFitList",
-    p.bestFit ||
-    p.categories ||
-    []
-  );
-
-  renderTimeline(
-    "experienceList",
-    p.experience || []
-  );
-
-  renderTimeline(
-    "educationList",
-    p.education || []
-  );
-
-  renderTimeline(
-    "portfolioList",
-    p.portfolio || []
-  );
-
-  renderStats();
-
-  renderCV();
-
-  ownerControls();
-
-  if(
-    p.aiftVerified ||
-    p.aiftCertified ||
-    p.verified ||
-    p.adminVerified
-  ){
-
-    document.getElementById(
-      "verifiedBadge"
-    ).classList.remove("hidden");
-
-  }
-}
-
-/* =========================
-   STATS
-========================= */
-
-function renderStats(){
-
-  const p =
-    state.profile || {};
-
-  const mount =
-    document.getElementById(
-      "sideStats"
-    );
-
-  mount.innerHTML = `
-
-    <div class="side-stat">
-      <span>Followers</span>
-      <strong>
-        ${p.followers?.length || 0}
-      </strong>
-    </div>
-
-    <div class="side-stat">
-      <span>Connections</span>
-      <strong>
-        ${p.connections?.length || 0}
-      </strong>
-    </div>
-
-    <div class="side-stat">
-      <span>Experience</span>
-      <strong>
-        ${p.experience?.length || 0}
-      </strong>
-    </div>
-
-    <div class="side-stat">
-      <span>Skills</span>
-      <strong>
-        ${p.skills?.length || 0}
-      </strong>
-    </div>
-
-    <div class="side-stat">
-      <span>Languages</span>
-      <strong>
-        ${p.languages?.length || 0}
-      </strong>
-    </div>
-
-  `;
-}
-
-/* =========================
-   CV
-========================= */
-
-function renderCV(){
-
-  const p =
-    state.profile || {};
-
-  if(!p.cvUrl && !p.resumeUrl){
-    return;
-  }
-
-  document.getElementById(
-    "cvText"
-  ).textContent =
-    "Resume available for employers.";
-
-  document.getElementById(
-    "cvSideBtn"
-  ).classList.remove("hidden");
-
-  document.getElementById(
-    "cvHeroBtn"
-  ).classList.remove("hidden");
-}
-
-function openCV(){
-
-  const p =
-    state.profile || {};
-
-  const url =
-    p.cvUrl ||
-    p.resumeUrl;
-
-  if(!url){
-    return;
-  }
-
-  window.open(url,"_blank");
-}
-</script>
-<script>
-
-/* =========================
-   FOLLOW
-========================= */
-
-async function followTalent(){
-
-  if(!state.profileId){
-    return;
-  }
-
-  try{
-
-    const data =
-      await api(
-        `/api/users/${state.profileId}/follow`,
-        {
-          method:"PATCH",
-          headers:headers()
-        }
-      );
-
-    const btn =
-      document.getElementById(
-        "followBtn"
-      );
-
-    if(data.following){
-
-      btn.textContent = "Following";
-      btn.classList.remove("primary");
-
-    }else{
-
-      btn.textContent = "Follow";
-      btn.classList.add("primary");
-
-    }
-
-  }catch(err){
-
-    console.error(err);
-
-    alert(err.message);
-
-  }
-}
-
-/* =========================
-   MESSAGE
-========================= */
-
-function messageTalent(){
-
-  if(!state.profileId){
-    return;
-  }
-
-  location.href =
-    `messages.html?user=${state.profileId}`;
-}
-
-/* =========================
-   OWNER CONTROLS
-========================= */
-
-function ownerControls(){
-
-  const viewerId =
-    String(
-      state.viewer?._id || ""
-    );
-
-  const profileId =
-    String(
-      state.profile?._id || ""
-    );
-
-  const isOwner =
-    viewerId &&
-    profileId &&
-    viewerId === profileId;
-
-  if(isOwner){
-
-    document.getElementById(
-      "ownerEditBtn"
-    ).classList.remove("hidden");
-
-    document.getElementById(
-      "followBtn"
-    ).classList.add("hidden");
-
-  }
-}
-
-function editProfile(){
-
-  location.href =
-    "profile.html";
-}
-
-/* =========================
-   TABS
-========================= */
-
-function openTab(tab){
-
-  document
-    .querySelectorAll(".profile-tab")
-    .forEach(btn => {
-
-      btn.classList.remove("active");
-
-    });
-
-  document
-    .querySelectorAll(".section")
-    .forEach(section => {
-
-      section.classList.remove("active");
-
-    });
-
-  document
-    .querySelector(
-      `.profile-tab[data-tab="${tab}"]`
-    )
-    ?.classList.add("active");
-
-  document
-    .getElementById(
-      `section-${tab}`
-    )
-    ?.classList.add("active");
-
-  if(tab === "posts"){
-
-    setTimeout(() => {
-
-      window.dispatchEvent(
-        new Event("resize")
-      );
-
-    },100);
-
-  }
-}
-
-/* =========================
-   SHARED FEED
-========================= */
-
-function mountFeed(){
-
-  if(
-    typeof AIFTFeed === "undefined"
-  ){
-    console.warn(
-      "AIFTFeed unavailable"
-    );
-
-    return;
-  }
-
-  AIFTFeed.mount(
-    "profileFeedMount",
-    {
-      mode:"profile",
-      authorId:state.profileId,
-      showComposer:false,
-      realtime:true,
-      infiniteScroll:true
-    }
-  );
-}
-
-/* =========================
-   NAVIGATION
-========================= */
-
 function goHome(){
+
+  const role =
+    localStorage.getItem("role");
+
+  if(role === "employer"){
+    location.href = "employer.html";
+    return;
+  }
+
+  if(role === "agent"){
+    location.href = "agent.html";
+    return;
+  }
+
+  if(role === "school"){
+    location.href = "school.html";
+    return;
+  }
+
   location.href = "home.html";
 }
 
@@ -1530,440 +1187,728 @@ function goMessages(){
 }
 
 function goNotifications(){
-  location.href =
-    "notifications.html";
+  location.href = "notifications.html";
 }
 
 function openMyProfile(){
 
-  const me =
-    state.viewer || {};
+  const id =
+    localStorage.getItem("userId");
 
-  if(!me._id){
+  const role =
+    localStorage.getItem("role");
+
+  if(role === "employer"){
+    location.href =
+      `employer-public-profile.html?id=${id}`;
     return;
   }
 
-  if(
-    me.role === "employer" ||
-    me.role === "school"
-  ){
-
+  if(role === "agent"){
     location.href =
-      `employer-public-profile.html?id=${me._id}`;
+      `agent-public-profile.html?id=${id}`;
+    return;
+  }
 
+  if(role === "school"){
+    location.href =
+      `school-public-profile.html?id=${id}`;
     return;
   }
 
   location.href =
-    `public-profile.html?id=${me._id}`;
+    `public-profile.html?id=${id}`;
 }
 
-/* =========================
-   MOBILE SAFE
-========================= */
+function scrollToTopPage(){
+  window.scrollTo({
+    top:0,
+    behavior:"smooth"
+  });
+}
 
-window.addEventListener(
-  "resize",
-  () => {
-
-    if(window.innerWidth > 640){
-
-      document.body.style.paddingBottom =
-        "0px";
-
-    }else{
-
-      document.body.style.paddingBottom =
-        "76px";
-
-    }
-
-  }
-);
-
-/* =========================
-   INIT
-========================= */
-
-async function init(){
+async function loadViewer(){
 
   try{
 
-    await loadViewer();
+    const data =
+      await fetchJSON(
+        "/api/users/me",
+        {
+          headers:authHeaders()
+        }
+      );
 
-    await loadProfile();
+    state.viewer =
+      data.user || data;
+
+    document.getElementById(
+      "viewerAvatar"
+    ).src =
+      state.viewer?.profileImage ||
+      FALLBACK_AVATAR;
+
+  }catch{}
+}
+
+async function loadProfile(){
+
+  if(!profileId){
+    document.body.innerHTML = `
+      <div style="
+        padding:40px;
+        text-align:center;
+        font-family:Inter,sans-serif;
+      ">
+        Profile unavailable.
+      </div>
+    `;
+    return;
+  }
+
+  try{
+
+    let data;
+
+    try{
+
+      data =
+        await fetchJSON(
+          `/api/users/${profileId}/public`,
+          {
+            headers:getToken()
+              ? authHeaders()
+              : {}
+          }
+        );
+
+    }catch{
+
+      data =
+        await fetchJSON(
+          `/api/users/${profileId}`,
+          {
+            headers:getToken()
+              ? authHeaders()
+              : {}
+          }
+        );
+
+    }
+
+    state.profile =
+      data.user || data;
+
+    renderProfile();
+
+    mountFeed();
 
   }catch(err){
 
     console.error(err);
 
     document.body.innerHTML = `
-
       <div style="
-        min-height:100vh;
-        display:grid;
-        place-items:center;
-        padding:24px;
+        padding:40px;
         text-align:center;
         font-family:Inter,sans-serif;
       ">
-
-        <div>
-
-          <h1 style="
-            margin:0 0 10px;
-            font-size:30px;
-          ">
-            Unable to load profile
-          </h1>
-
-          <p style="
-            margin:0;
-            color:#666;
-            line-height:1.6;
-          ">
-            ${
-              esc(
-                err.message ||
-                "Something went wrong."
-              )
-            }
-          </p>
-
-        </div>
-
+        Profile unavailable.
       </div>
-
     `;
 
   }
 }
 
-init();
+function renderProfile(){
 
-</script>
-<style>
+  const user =
+    state.profile || {};
 
-/* =========================
-   FEED POLISH
-========================= */
+  document.title =
+    `${user.name || "Profile"} | AIFT`;
 
-#profileFeedMount{
-  min-height:300px;
-}
+  document.getElementById(
+    "profileAvatar"
+  ).src =
+    user.profileImage ||
+    FALLBACK_AVATAR;
 
-#profileFeedMount .aift-feed-shell{
-  width:100%!important;
-  max-width:100%!important;
-  margin:0!important;
-}
+  document.getElementById(
+    "profileName"
+  ).textContent =
+    user.name ||
+    "AIFT User";
 
-#profileFeedMount .aift-post-card{
-  border-radius:12px!important;
-  overflow:hidden!important;
-  border:1px solid #d8d8d8!important;
-  box-shadow:0 1px 2px rgba(0,0,0,.08)!important;
-  margin-bottom:12px!important;
-}
+  document.getElementById(
+    "profileHeadline"
+  ).textContent =
+    user.headline ||
+    user.profession ||
+    "Professional profile";
 
-#profileFeedMount .aift-post-header{
-  padding:12px 14px 8px!important;
-}
+  document.getElementById(
+    "profileBio"
+  ).textContent =
+    user.bio ||
+    "No biography added yet.";
 
-#profileFeedMount .aift-author-name strong{
-  font-size:14px!important;
-  font-weight:800!important;
-  color:#191919!important;
-}
+  document.getElementById(
+    "aboutText"
+  ).textContent =
+    user.bio ||
+    "No biography added yet.";
 
-#profileFeedMount .aift-author-text span{
-  font-size:12px!important;
-  color:#666!important;
-}
+  if(user.bannerImage){
 
-#profileFeedMount .aift-post-text{
-  padding:2px 14px 12px!important;
-  font-size:14px!important;
-  line-height:1.58!important;
-  color:#222!important;
-}
+    document.getElementById(
+      "coverImage"
+    ).style.backgroundImage =
+      `linear-gradient(135deg,rgba(10,102,194,.18),rgba(34,197,94,.16)),url('${user.bannerImage}')`;
 
-#profileFeedMount .aift-post-media{
-  max-height:720px!important;
-  object-fit:cover!important;
-}
-
-#profileFeedMount .aift-post-actions{
-  padding:4px 8px!important;
-  border-top:1px solid #eee!important;
-}
-
-#profileFeedMount .aift-action-btn:hover{
-  background:#f3f2ef!important;
-}
-
-/* =========================
-   BUTTON POLISH
-========================= */
-
-.pill-btn{
-  transition:.2s ease;
-}
-
-.pill-btn:hover{
-  transform:translateY(-1px);
-}
-
-.pill-btn.primary:hover{
-  background:var(--blue-dark);
-}
-
-.pill-btn.dark:hover{
-  background:#f3f2ef;
-}
-
-/* =========================
-   HERO EFFECTS
-========================= */
-
-.profile-hero{
-  overflow:hidden;
-}
-
-.cover{
-  transition:transform .5s ease;
-}
-
-.profile-hero:hover .cover{
-  transform:scale(1.02);
-}
-
-.profile-avatar{
-  transition:.2s ease;
-}
-
-.profile-avatar:hover{
-  transform:scale(1.03);
-}
-
-/* =========================
-   CARDS
-========================= */
-
-.card{
-  transition:
-    box-shadow .22s ease,
-    transform .22s ease;
-}
-
-.card:hover{
-  box-shadow:
-    0 2px 6px rgba(0,0,0,.08),
-    0 10px 24px rgba(0,0,0,.05);
-}
-
-/* =========================
-   TIMELINE
-========================= */
-
-.timeline-item{
-  transition:.2s ease;
-}
-
-.timeline-item:hover{
-  border-color:#cbd5e1;
-  transform:translateY(-1px);
-}
-
-/* =========================
-   SKILLS
-========================= */
-
-.skill-pill{
-  transition:.18s ease;
-}
-
-.skill-pill:hover{
-  background:#dbeafe;
-  border-color:#bfdbfe;
-}
-
-/* =========================
-   TABS
-========================= */
-
-.profile-tabs{
-  scrollbar-width:none;
-}
-
-.profile-tabs::-webkit-scrollbar{
-  display:none;
-}
-
-.profile-tab{
-  transition:
-    color .2s ease,
-    background .2s ease;
-}
-
-.profile-tab:hover{
-  background:#f8fafc;
-}
-
-/* =========================
-   TOPBAR
-========================= */
-
-.top-link{
-  transition:
-    color .2s ease,
-    border-color .2s ease;
-}
-
-.top-link:hover{
-  color:#111;
-}
-
-/* =========================
-   MOBILE
-========================= */
-
-@media(max-width:640px){
-
-  #profileFeedMount .aift-post-card{
-    border-radius:0!important;
-    border-left:0!important;
-    border-right:0!important;
-    margin-bottom:8px!important;
   }
 
-  #profileFeedMount .aift-post-media{
-    max-height:78vh!important;
+  if(user.verified === true){
+
+    document.getElementById(
+      "verifiedBadge"
+    ).classList.remove("hidden");
+
   }
 
-  .hero-actions{
-    display:grid;
-    grid-template-columns:1fr 1fr;
+  buildMeta(user);
+
+  renderSkills(
+    user.skills || []
+  );
+
+  renderLanguages(
+    user.languages || []
+  );
+
+  renderExperience(
+    user.experience || []
+  );
+
+  renderEducation(
+    user.education || []
+  );
+
+  renderPortfolio(
+    user.portfolio || []
+  );
+
+  renderInsights(user);
+
+  setupButtons(user);
+}
+  <script>
+
+function buildMeta(user){
+
+  const meta = [];
+
+  if(user.location){
+    meta.push(
+      esc(user.location)
+    );
   }
 
-  .hero-actions .pill-btn{
-    width:100%;
+  if(user.role){
+    meta.push(
+      esc(
+        String(user.role)
+        .charAt(0)
+        .toUpperCase() +
+        String(user.role)
+        .slice(1)
+      )
+    );
   }
 
-  .hero-meta{
-    font-size:13px;
+  if(user.companyName){
+    meta.push(
+      esc(user.companyName)
+    );
   }
 
-  .content-card{
-    padding:16px;
+  if(user.schoolName){
+    meta.push(
+      esc(user.schoolName)
+    );
   }
 
-  .content-card h2{
-    font-size:18px;
-  }
-
+  document.getElementById(
+    "profileMeta"
+  ).innerHTML =
+    meta.join(" • ");
 }
 
-/* =========================
-   LOADING FADE
-========================= */
+function renderSkills(skills){
 
-body{
-  opacity:0;
-  transition:opacity .25s ease;
-}
-
-body.loaded{
-  opacity:1;
-}
-
-</style>
-
-<script>
-
-/* =========================
-   PAGE READY
-========================= */
-
-window.addEventListener(
-  "load",
-  () => {
-
-    document.body.classList.add(
-      "loaded"
+  const container =
+    document.getElementById(
+      "skillsList"
     );
 
+  document.getElementById(
+    "skillsCount"
+  ).textContent =
+    skills.length;
+
+  if(!skills.length){
+
+    container.innerHTML = `
+      <div class="empty">
+        No skills added yet.
+      </div>
+    `;
+
+    return;
   }
-);
 
-/* =========================
-   SAFE IMAGE FALLBACKS
-========================= */
+  container.innerHTML =
+    skills.map(skill=>`
+      <div class="skill-pill">
+        ${esc(skill)}
+      </div>
+    `).join("");
+}
 
-document.addEventListener(
-  "error",
-  event => {
+function renderLanguages(languages){
 
-    const target = event.target;
+  const container =
+    document.getElementById(
+      "languagesList"
+    );
 
-    if(
-      target.tagName === "IMG"
-    ){
+  if(!languages.length){
 
-      target.src =
-        "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+    container.innerHTML = `
+      <div class="empty">
+        No languages added yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    languages.map(language=>`
+      <div class="skill-pill">
+        ${esc(language)}
+      </div>
+    `).join("");
+}
+
+function renderExperience(experience){
+
+  const container =
+    document.getElementById(
+      "experienceList"
+    );
+
+  document.getElementById(
+    "experienceCount"
+  ).textContent =
+    experience.length;
+
+  if(!experience.length){
+
+    container.innerHTML = `
+      <div class="empty">
+        No experience added yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    experience.map(item=>`
+
+      <article class="timeline-item">
+
+        <h3>
+          ${esc(item.title || "Untitled")}
+        </h3>
+
+        <p>
+          ${esc(item.company || "")}
+          •
+          ${esc(item.startDate || "")}
+          -
+          ${esc(item.endDate || "Present")}
+        </p>
+
+        <div style="
+          margin-top:10px;
+          line-height:1.65;
+          color:#222;
+        ">
+          ${esc(item.description || "")}
+        </div>
+
+      </article>
+
+    `).join("");
+}
+
+function renderEducation(education){
+
+  const container =
+    document.getElementById(
+      "educationList"
+    );
+
+  document.getElementById(
+    "educationCount"
+  ).textContent =
+    education.length;
+
+  if(!education.length){
+
+    container.innerHTML = `
+      <div class="empty">
+        No education added yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    education.map(item=>`
+
+      <article class="timeline-item">
+
+        <h3>
+          ${esc(item.school || "School")}
+        </h3>
+
+        <p>
+          ${esc(item.degree || "")}
+          •
+          ${esc(item.startDate || "")}
+          -
+          ${esc(item.endDate || "")}
+        </p>
+
+        <div style="
+          margin-top:10px;
+          line-height:1.65;
+          color:#222;
+        ">
+          ${esc(item.description || "")}
+        </div>
+
+      </article>
+
+    `).join("");
+}
+
+function renderPortfolio(portfolio){
+
+  const container =
+    document.getElementById(
+      "portfolioList"
+    );
+
+  document.getElementById(
+    "portfolioCount"
+  ).textContent =
+    portfolio.length;
+
+  if(!portfolio.length){
+
+    container.innerHTML = `
+      <div class="empty">
+        No portfolio projects added yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    portfolio.map(item=>`
+
+      <article class="timeline-item">
+
+        <h3>
+          ${esc(item.title || "Portfolio")}
+        </h3>
+
+        ${
+          item.url
+            ? `
+              <a
+                href="${item.url}"
+                target="_blank"
+                style="
+                  color:#0a66c2;
+                  font-weight:700;
+                  font-size:13px;
+                "
+              >
+                ${esc(item.url)}
+              </a>
+            `
+            : ""
+        }
+
+        <div style="
+          margin-top:10px;
+          line-height:1.65;
+          color:#222;
+        ">
+          ${esc(item.description || "")}
+        </div>
+
+      </article>
+
+    `).join("");
+}
+
+function renderInsights(user){
+
+  let strength = "Beginner";
+
+  const score =
+    (user.skills?.length || 0) +
+    (user.experience?.length || 0) +
+    (user.education?.length || 0) +
+    (user.portfolio?.length || 0);
+
+  if(score >= 10){
+    strength = "Expert";
+  }else if(score >= 6){
+    strength = "Advanced";
+  }else if(score >= 3){
+    strength = "Intermediate";
+  }
+
+  document.getElementById(
+    "profileStrength"
+  ).textContent =
+    strength;
+
+  document.getElementById(
+    "preferredRole"
+  ).textContent =
+    user.preferredRole ||
+    user.profession ||
+    "Not specified";
+
+  document.getElementById(
+    "availability"
+  ).textContent =
+    user.availability ||
+    "Not specified";
+
+  document.getElementById(
+    "workSetup"
+  ).textContent =
+    user.workSetup ||
+    user.workPreference ||
+    "Not specified";
+
+  document.getElementById(
+    "employmentType"
+  ).textContent =
+    user.employmentType ||
+    "Not specified";
+
+  document.getElementById(
+    "experienceYears"
+  ).textContent =
+    `${user.experienceYears || user.yearsOfExperience || 0} years`;
+
+  document.getElementById(
+    "preferredShift"
+  ).textContent =
+    user.preferredShift ||
+    "Not specified";
+
+  document.getElementById(
+    "openStatus"
+  ).textContent =
+    user.availability
+      ? "Yes"
+      : "Open";
+
+  document.getElementById(
+    "remoteReady"
+  ).textContent =
+    user.workSetup === "remote"
+      ? "Yes"
+      : "Available";
+
+  if(user.resume){
+
+    const btn =
+      document.getElementById(
+        "resumeBtn"
+      );
+
+    btn.classList.remove("hidden");
+
+    btn.onclick = ()=>{
+      window.open(
+        user.resume,
+        "_blank"
+      );
+    };
+
+  }
+}
+
+function setupButtons(user){
+
+  document.getElementById(
+    "messageBtn"
+  ).onclick = ()=>{
+
+    location.href =
+      `messages.html?user=${user._id}`;
+
+  };
+
+  document.getElementById(
+    "shareBtn"
+  ).onclick = async ()=>{
+
+    try{
+
+      await navigator.clipboard.writeText(
+        location.href
+      );
+
+      alert(
+        "Profile link copied."
+      );
+
+    }catch{
+
+      alert(
+        "Could not copy profile link."
+      );
 
     }
 
-  },
-  true
-);
+  };
 
-/* =========================
-   SCROLL RESTORE
-========================= */
+  document.getElementById(
+    "connectBtn"
+  ).onclick = async ()=>{
 
-window.history.scrollRestoration =
-  "manual";
+    try{
 
-/* =========================
-   SOCKET PROFILE LIVE UPDATE
-========================= */
+      await fetchJSON(
+        `/api/users/${user._id}/follow`,
+        {
+          method:"POST",
+          headers:authHeaders()
+        }
+      );
 
-if(typeof io !== "undefined"){
+      alert(
+        "Connection request sent."
+      );
 
-  const profileSocket =
-    io(API,{
-      transports:[
-        "websocket",
-        "polling"
-      ]
-    });
+    }catch(err){
 
-  profileSocket.on(
-    "profileUpdated",
-    updated => {
+      alert(
+        err.message ||
+        "Could not connect."
+      );
 
-      if(
-        String(updated._id)
-        ===
-        String(state.profileId)
-      ){
+    }
 
-        state.profile = {
-          ...state.profile,
-          ...updated
-        };
+  };
+}
 
-        renderProfile();
+function mountFeed(){
 
-      }
+  if(
+    typeof AIFTFeed === "undefined"
+  ){
+    return;
+  }
 
+  AIFTFeed.mount(
+    "profileFeedMount",
+    {
+      profileId:
+        profileId,
+      hideComposer:true
     }
   );
 }
 
+document.querySelectorAll(
+  ".profile-tab"
+).forEach(btn=>{
+
+  btn.addEventListener(
+    "click",
+    ()=>{
+
+      document
+      .querySelectorAll(
+        ".profile-tab"
+      )
+      .forEach(tab=>{
+
+        tab.classList.remove(
+          "active"
+        );
+
+      });
+
+      btn.classList.add(
+        "active"
+      );
+
+      const selected =
+        btn.dataset.tab;
+
+      document
+      .querySelectorAll(
+        ".section"
+      )
+      .forEach(section=>{
+
+        section.classList.remove(
+          "active"
+        );
+
+      });
+
+      document
+      .getElementById(
+        `section-${selected}`
+      )
+      .classList.add(
+        "active"
+      );
+
+      window.scrollTo({
+        top:0,
+        behavior:"smooth"
+      });
+
+    }
+  );
+
+});
+
+loadViewer();
+loadProfile();
+
 </script>
+
+<script src="feed.js"></script>
 
 </body>
 </html>
