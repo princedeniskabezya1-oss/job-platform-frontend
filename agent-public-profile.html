@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
 
-<title>AIFT | Agent Profile</title>
+<title>AIFT | Agent Public Profile</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,13 +13,13 @@
 
 <link rel="stylesheet" href="feed.css">
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-
+<script src="feed.js"></script>
 <style>
-
 :root{
   --blue:#0a66c2;
   --blue-dark:#004182;
   --green:#057642;
+  --purple:#6d28d9;
   --bg:#f3f2ef;
   --card:#fff;
   --text:#191919;
@@ -28,17 +28,11 @@
   --soft:#eef3f8;
   --shadow:0 1px 2px rgba(0,0,0,.08);
   --radius:12px;
-  --max:1180px;
+  --max:1128px;
 }
 
-*{
-  box-sizing:border-box;
-}
-
-html{
-  scroll-behavior:smooth;
-}
-
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
 body{
   margin:0;
   background:var(--bg);
@@ -46,36 +40,14 @@ body{
   font-family:Inter,Arial,sans-serif;
   font-size:14px;
 }
-
-button,input{
-  font:inherit;
-}
-
-button{
-  cursor:pointer;
-}
-
-img{
-  display:block;
-  max-width:100%;
-}
-
-a{
-  text-decoration:none;
-  color:inherit;
-}
-
-.hidden{
-  display:none!important;
-}
-
-.container{
-  width:min(var(--max),calc(100% - 24px));
-  margin:auto;
-}
+button,input{font:inherit}
+button{cursor:pointer}
+img{display:block;max-width:100%}
+a{text-decoration:none;color:inherit}
+.hidden{display:none!important}
+.container{width:min(var(--max),calc(100% - 24px));margin:auto}
 
 /* TOPBAR */
-
 .topbar{
   position:sticky;
   top:0;
@@ -83,32 +55,28 @@ a{
   background:#fff;
   border-bottom:1px solid #e5e7eb;
 }
-
 .top-inner{
   height:58px;
   display:flex;
   align-items:center;
   gap:10px;
 }
-
 .brand{
   width:34px;
   height:34px;
   border-radius:8px;
-  background:linear-gradient(135deg,#0a66c2,#2563eb);
+  background:var(--blue);
   color:#fff;
   display:grid;
   place-items:center;
   font-weight:900;
   flex-shrink:0;
 }
-
 .search{
   position:relative;
   width:280px;
   max-width:40vw;
 }
-
 .search input{
   width:100%;
   height:34px;
@@ -118,7 +86,6 @@ a{
   padding:0 12px 0 36px;
   outline:none;
 }
-
 .search svg{
   position:absolute;
   left:11px;
@@ -130,20 +97,18 @@ a{
   fill:none;
   stroke-width:2;
 }
-
 .top-nav{
   margin-left:auto;
   display:flex;
   align-items:center;
   gap:4px;
 }
-
 .top-link{
   border:0;
   background:#fff;
   color:#555;
-  min-width:70px;
-  height:56px;
+  min-width:68px;
+  height:54px;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -152,50 +117,35 @@ a{
   font-size:11px;
   border-bottom:2px solid transparent;
 }
-
-.top-link.active,
-.top-link:hover{
+.top-link.active{
   color:#111;
   border-bottom-color:#111;
 }
-
 .top-link svg{
-  width:20px;
-  height:20px;
+  width:21px;
+  height:21px;
   stroke:currentColor;
   fill:none;
   stroke-width:2;
 }
-
 .top-avatar{
   width:26px;
   height:26px;
   border-radius:50%;
   object-fit:cover;
+  border:1px solid #ddd;
 }
 
-/* LAYOUT */
-
-.page{
-  padding:14px 0 40px;
-}
-
+/* PAGE */
+.page{padding:14px 0 44px}
 .layout{
   display:grid;
   grid-template-columns:minmax(0,1fr) 320px;
   gap:16px;
   align-items:start;
 }
-
-.main-col{
-  min-width:0;
-}
-
-.right-col{
-  position:sticky;
-  top:74px;
-}
-
+.main-col{min-width:0}
+.right-col{position:sticky;top:74px}
 .card{
   background:#fff;
   border:1px solid var(--line);
@@ -205,116 +155,119 @@ a{
 }
 
 /* HERO */
-
-.profile-hero{
-  margin-bottom:12px;
-}
-
+.agent-hero{margin-bottom:12px}
 .cover{
-  height:220px;
+  height:205px;
   background:
-    linear-gradient(135deg,rgba(10,102,194,.18),rgba(34,197,94,.16)),
-    #dbeafe;
-  background-size:cover;
-  background-position:center;
+    linear-gradient(135deg,rgba(10,102,194,.24),rgba(5,118,66,.18),rgba(109,40,217,.16)),
+    url("https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1600&q=80") center/cover no-repeat;
+  border-bottom:1px solid #e5e7eb;
 }
-
-.hero-body{
-  padding:0 24px 22px;
-}
-
-.avatar-row{
+.hero-body{padding:0 24px 20px}
+.agent-top{
   display:flex;
   align-items:flex-end;
   justify-content:space-between;
   gap:16px;
 }
-
-.profile-avatar{
-  width:132px;
-  height:132px;
-  margin-top:-66px;
+.avatar-wrap{position:relative}
+.agent-avatar{
+  width:128px;
+  height:128px;
+  margin-top:-64px;
   border-radius:50%;
   object-fit:cover;
   border:4px solid #fff;
   background:#fff;
   box-shadow:0 1px 4px rgba(0,0,0,.18);
 }
-
-.agent-badge{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:8px 12px;
-  border-radius:999px;
-  background:#eef6ff;
-  color:#0a66c2;
-  font-weight:800;
-  margin-top:14px;
+.verified-badge{
+  position:absolute;
+  right:8px;
+  bottom:8px;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:var(--blue);
+  color:#fff;
+  display:grid;
+  place-items:center;
+  border:3px solid #fff;
+  font-weight:900;
 }
-
 .hero-actions{
   display:flex;
   flex-wrap:wrap;
   gap:8px;
+  margin-bottom:6px;
 }
-
 .pill-btn{
-  border:1px solid #0a66c2;
+  border:1px solid var(--blue);
   background:#fff;
-  color:#0a66c2;
+  color:var(--blue);
   border-radius:999px;
-  padding:8px 16px;
+  padding:8px 15px;
   font-weight:800;
 }
-
-.pill-btn.primary{
-  background:#0a66c2;
-  color:#fff;
-}
-
-.pill-btn.dark{
-  border-color:#444;
-  color:#333;
-}
-
-.hero-name{
-  margin:14px 0 4px;
+.pill-btn.primary{background:var(--blue);color:#fff}
+.pill-btn.dark{border-color:#444;color:#333}
+.agent-name{
+  margin:16px 0 4px;
   font-size:28px;
-  line-height:1.15;
-  font-weight:900;
+  line-height:1.2;
+  font-weight:800;
+  letter-spacing:-.02em;
 }
-
-.hero-headline{
+.agent-headline{
   margin:0;
   color:#222;
-  line-height:1.55;
   font-size:15px;
+  line-height:1.45;
 }
-
-.hero-meta{
-  margin-top:8px;
+.agent-meta{
+  margin-top:7px;
   color:#666;
   display:flex;
   flex-wrap:wrap;
   gap:5px;
   font-size:14px;
 }
-
-.hero-summary{
-  margin-top:14px;
-  line-height:1.7;
-  color:#222;
-  max-width:780px;
+.agent-story{
+  margin-top:12px;
+  color:#333;
+  line-height:1.65;
+  max-width:820px;
 }
-
-.profile-tabs{
+.highlight-row{
+  margin-top:16px;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+.highlight-box{
+  border:1px solid #e5e7eb;
+  background:#f8fafc;
+  border-radius:12px;
+  padding:12px;
+}
+.highlight-box span{
+  display:block;
+  color:#666;
+  font-size:12px;
+  font-weight:800;
+  margin-bottom:6px;
+}
+.highlight-box strong{
+  display:block;
+  font-size:18px;
+  color:#111;
+}
+.agent-tabs{
   display:flex;
-  overflow:auto;
   border-top:1px solid #eee;
+  overflow:auto;
 }
-
-.profile-tab{
+.agent-tab{
   border:0;
   background:#fff;
   padding:14px 18px;
@@ -323,77 +276,71 @@ a{
   border-bottom:3px solid transparent;
   white-space:nowrap;
 }
-
-.profile-tab.active{
-  color:#0a66c2;
-  border-bottom-color:#0a66c2;
-}
-  /* CONTENT */
-
-.section{
-  display:none;
+.agent-tab.active{
+  color:var(--green);
+  border-bottom-color:var(--green);
 }
 
-.section.active{
-  display:block;
-}
-
+/* CONTENT */
+.section{display:none}
+.section.active{display:block}
 .content-card{
   padding:20px;
   margin-bottom:12px;
 }
-
 .content-card h2{
   margin:0 0 12px;
   font-size:20px;
-  font-weight:900;
+  font-weight:800;
 }
-
 .content-card p{
   margin:0;
-  color:#222;
   line-height:1.65;
+  color:#222;
 }
-
 .grid-2{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:12px;
 }
-
 .grid-3{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
   gap:12px;
 }
-
-.info-box{
+.feature-card,.info-box,.timeline-item{
   border:1px solid #e5e7eb;
   border-radius:12px;
   padding:14px;
   background:#fff;
 }
-
+.feature-card h3,.timeline-item h3{
+  margin:0 0 7px;
+  font-size:16px;
+}
+.feature-card p,.timeline-item p{
+  margin:0;
+  color:#666;
+  font-size:13px;
+  line-height:1.55;
+}
 .info-box span{
   display:block;
   color:#666;
   font-size:12px;
-  font-weight:900;
-  margin-bottom:6px;
+  font-weight:800;
+  margin-bottom:5px;
 }
-
 .info-box strong{
   display:block;
-  color:#111;
   font-size:15px;
+  color:#111;
 }
-
 .pill-list{
   display:flex;
   flex-wrap:wrap;
   gap:8px;
 }
-
 .skill-pill{
   display:inline-flex;
   align-items:center;
@@ -401,49 +348,22 @@ a{
   border-radius:999px;
   background:#eef3f8;
   border:1px solid #dbeafe;
+  font-size:13px;
+  font-weight:700;
   color:#1f2937;
-  font-size:13px;
-  font-weight:800;
 }
-
-.timeline{
-  display:grid;
-  gap:12px;
-}
-
-.timeline-item{
-  border:1px solid #e5e7eb;
-  border-radius:12px;
-  padding:14px;
-  background:#fff;
-}
-
-.timeline-item h3{
-  margin:0 0 4px;
-  font-size:16px;
-  font-weight:900;
-}
-
-.timeline-item p{
-  margin:0;
-  color:#666;
-  font-size:13px;
-  line-height:1.55;
-}
+.timeline{display:grid;gap:12px}
 
 /* SIDEBAR */
-
 .side-card{
   padding:16px;
   margin-bottom:12px;
 }
-
 .side-card h3{
   margin:0 0 12px;
   font-size:16px;
-  font-weight:900;
+  font-weight:800;
 }
-
 .side-stat{
   display:grid;
   grid-template-columns:1fr auto;
@@ -451,132 +371,73 @@ a{
   padding:10px 0;
   border-bottom:1px solid #eee;
 }
-
-.side-stat:last-child{
-  border-bottom:0;
-}
-
+.side-stat:last-child{border-bottom:0}
 .side-stat span{
   color:#666;
   font-size:13px;
-  font-weight:800;
+  font-weight:700;
 }
-
 .side-stat strong{
   color:#111;
   font-size:13px;
   text-align:right;
 }
-
 .empty{
   color:#666;
   padding:14px;
   border:1px dashed #ddd;
   border-radius:10px;
-  background:#fff;
   text-align:center;
+  background:#fff;
 }
 
 /* FEED */
-
 #agentFeedMount .aift-feed-shell{
   width:100%!important;
   max-width:100%!important;
   margin:0!important;
 }
-
 #agentFeedMount .aift-composer{
   display:none!important;
 }
 
 /* MOBILE */
-
-.mobile-bottom{
-  display:none;
-}
+.mobile-bottom{display:none}
 
 @media(max-width:980px){
-  .layout{
-    grid-template-columns:1fr;
-  }
-
-  .right-col{
-    display:none;
-  }
-
-  .top-link span{
-    display:none;
-  }
-
-  .top-link{
-    min-width:42px;
-  }
-
-  .search{
-    flex:1;
-    width:auto;
-    max-width:none;
-  }
-
-  .grid-3{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
+  .layout{grid-template-columns:1fr}
+  .right-col{display:none}
+  .top-link span{display:none}
+  .top-link{min-width:42px}
+  .search{flex:1;width:auto;max-width:none}
+  .highlight-row,.grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
 @media(max-width:640px){
-  body{
-    padding-bottom:76px;
-  }
-
-  .container{
-    width:100%;
-  }
-
-  .page{
-    padding:0;
-  }
-
-  .profile-hero,
-  .content-card,
-  .card{
+  body{padding-bottom:76px}
+  .container{width:100%}
+  .page{padding:0}
+  .agent-hero,.content-card,.card{
     border-radius:0;
     border-left:0;
     border-right:0;
   }
-
-  .cover{
-    height:145px;
-  }
-
-  .hero-body{
-    padding:0 16px 18px;
-  }
-
-  .avatar-row{
-    display:block;
-  }
-
-  .profile-avatar{
+  .cover{height:140px}
+  .hero-body{padding:0 16px 18px}
+  .agent-top{display:block}
+  .agent-avatar{
     width:96px;
     height:96px;
     margin-top:-48px;
   }
-
   .hero-actions{
     margin-top:14px;
     display:grid;
     grid-template-columns:1fr 1fr;
   }
-
-  .hero-name{
-    font-size:22px;
-  }
-
-  .grid-2,
-  .grid-3{
-    grid-template-columns:1fr;
-  }
-
+  .agent-name{font-size:22px}
+  .highlight-row,.grid-2,.grid-3{grid-template-columns:1fr}
+  .content-card{padding:16px}
   .mobile-bottom{
     position:fixed;
     left:0;
@@ -589,7 +450,6 @@ a{
     display:grid;
     grid-template-columns:repeat(5,1fr);
   }
-
   .mobile-bottom button{
     border:0;
     background:transparent;
@@ -605,7 +465,6 @@ a{
 
 <header class="topbar">
   <div class="container top-inner">
-
     <a class="brand" href="home.html">A</a>
 
     <div class="search">
@@ -617,7 +476,6 @@ a{
     </div>
 
     <nav class="top-nav">
-
       <button class="top-link active" onclick="goHome()">
         <svg viewBox="0 0 24 24">
           <path d="M3 10.5 12 3l9 7.5"></path>
@@ -645,152 +503,158 @@ a{
         <img id="viewerAvatar" class="top-avatar" alt="">
         <span>Me</span>
       </button>
-
     </nav>
-
   </div>
 </header>
 <main class="page">
-
   <div class="container">
 
     <div class="layout">
 
       <!-- MAIN -->
-
-      <section class="main-col">
+      <div class="main-col">
 
         <!-- HERO -->
+        <section class="card agent-hero">
 
-        <section class="card profile-hero">
-
-          <div
-            class="cover"
-            id="coverImage"
-          ></div>
+          <div class="cover" id="agentCover"></div>
 
           <div class="hero-body">
 
-            <div class="avatar-row">
+            <div class="agent-top">
 
-              <div>
+              <div class="avatar-wrap">
 
                 <img
-                  id="profileAvatar"
-                  class="profile-avatar"
+                  id="agentAvatar"
+                  class="agent-avatar"
                   src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                  alt=""
+                  alt="Agent Avatar"
                 >
 
-                <div class="agent-badge">
-
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                  >
-                    <path d="M12 2 3 7v6c0 5 3.8 9.7 9 11 5.2-1.3 9-6 9-11V7l-9-5z"></path>
-                  </svg>
-
-                  Verified Agent
-
-                </div>
+                <div class="verified-badge hidden" id="verifiedBadge">✓</div>
 
               </div>
 
               <div class="hero-actions">
 
-                <button
-                  class="pill-btn primary"
-                  id="connectBtn"
-                >
-                  Connect
-                </button>
-
-                <button
-                  class="pill-btn"
-                  id="messageBtn"
-                >
+                <button class="pill-btn primary" id="messageAgentBtn">
                   Message
                 </button>
 
-                <button
-                  class="pill-btn dark"
-                  id="shareBtn"
-                >
+                <button class="pill-btn" id="followAgentBtn">
+                  Follow
+                </button>
+
+                <button class="pill-btn dark" id="shareAgentBtn">
                   Share Profile
                 </button>
+
+<button class="pill-btn hidden" id="editProfileBtn">
+  Edit Profile
+</button>
+
+<button class="pill-btn hidden" id="dashboardBtn">
+  Dashboard
+</button>
 
               </div>
 
             </div>
 
-            <h1
-              class="hero-name"
-              id="profileName"
-            >
+            <h1 class="agent-name" id="agentName">
               Loading...
             </h1>
 
-            <p
-              class="hero-headline"
-              id="profileHeadline"
-            >
-              Professional agent profile
+            <p class="agent-headline" id="agentHeadline">
+              Bilingual support specialist
             </p>
 
-            <div
-              class="hero-meta"
-              id="profileMeta"
-            ></div>
+            <div class="agent-meta">
 
-            <div
-              class="hero-summary"
-              id="profileBio"
-            >
-              Loading profile...
+              <span id="agentLocation">
+                Philippines
+              </span>
+
+              <span>•</span>
+
+              <span id="agentCompany">
+                AIFT
+              </span>
+
+              <span>•</span>
+
+              <span id="agentAvailability">
+                Available for work
+              </span>
+
+            </div>
+
+            <div class="agent-story" id="agentStory">
+              Professional customer support and operations specialist with experience handling international clients, multilingual communication, CRM systems, appointment scheduling, sales support, and remote teamwork.
+            </div>
+
+            <div class="highlight-row">
+
+              <div class="highlight-box">
+                <span>Completed Tasks</span>
+                <strong id="statTasks">0</strong>
+              </div>
+
+              <div class="highlight-box">
+                <span>Performance</span>
+                <strong id="statPerformance">0%</strong>
+              </div>
+
+              <div class="highlight-box">
+                <span>Experience</span>
+                <strong id="statExperience">0 yrs</strong>
+              </div>
+
+              <div class="highlight-box">
+                <span>Languages</span>
+                <strong id="statLanguages">1</strong>
+              </div>
+
             </div>
 
           </div>
 
-          <!-- TABS -->
-
-          <div class="profile-tabs">
+          <div class="agent-tabs">
 
             <button
-              class="profile-tab active"
+              class="agent-tab active"
               data-tab="overview"
             >
               Overview
             </button>
 
             <button
-              class="profile-tab"
+              class="agent-tab"
               data-tab="experience"
             >
               Experience
             </button>
 
             <button
-              class="profile-tab"
+              class="agent-tab"
               data-tab="skills"
             >
               Skills
             </button>
 
             <button
-              class="profile-tab"
+              class="agent-tab"
               data-tab="performance"
             >
               Performance
             </button>
 
             <button
-              class="profile-tab"
+              class="agent-tab"
               data-tab="feed"
             >
-              Feed
+              Posts
             </button>
 
           </div>
@@ -798,351 +662,479 @@ a{
         </section>
 
         <!-- OVERVIEW -->
-
         <section
           class="section active"
           id="section-overview"
         >
 
-          <article class="card content-card">
+          <div class="card content-card">
 
-            <h2>About Agent</h2>
+            <h2>About</h2>
 
-            <p id="aboutText">
-              No biography added yet.
+            <p id="overviewAbout">
+              Loading...
             </p>
 
-          </article>
+          </div>
 
-          <article class="card content-card">
+          <div class="grid-2">
 
-            <h2>Agent Information</h2>
+            <div class="card content-card">
 
-            <div class="grid-2">
+              <h2>Services</h2>
 
-              <div class="info-box">
-                <span>Current Company</span>
-                <strong id="companyName">
-                  Not specified
-                </strong>
-              </div>
+              <div class="grid-2">
 
-              <div class="info-box">
-                <span>Department</span>
-                <strong id="department">
-                  Not specified
-                </strong>
-              </div>
+                <div class="feature-card">
+                  <h3>Customer Support</h3>
+                  <p>
+                    Email, chat, inbound and outbound support with professional communication standards.
+                  </p>
+                </div>
 
-              <div class="info-box">
-                <span>Shift</span>
-                <strong id="shift">
-                  Not specified
-                </strong>
-              </div>
+                <div class="feature-card">
+                  <h3>Appointment Setting</h3>
+                  <p>
+                    Lead generation, outreach, scheduling, and CRM follow-ups.
+                  </p>
+                </div>
 
-              <div class="info-box">
-                <span>Employment Type</span>
-                <strong id="employmentType">
-                  Full Time
-                </strong>
-              </div>
+                <div class="feature-card">
+                  <h3>Sales Assistance</h3>
+                  <p>
+                    Sales support, upselling assistance, and customer retention handling.
+                  </p>
+                </div>
 
-              <div class="info-box">
-                <span>Experience</span>
-                <strong id="experienceYears">
-                  0 years
-                </strong>
-              </div>
+                <div class="feature-card">
+                  <h3>Remote Operations</h3>
+                  <p>
+                    Team collaboration, reports, workflow tracking, and admin operations.
+                  </p>
+                </div>
 
-              <div class="info-box">
-                <span>Location</span>
-                <strong id="locationText">
-                  Not specified
-                </strong>
               </div>
 
             </div>
 
-          </article>
+            <div class="card content-card">
 
-          <article class="card content-card">
+              <h2>Work Information</h2>
 
-            <h2>Specializations</h2>
+              <div class="grid-2">
 
-            <div
-              class="pill-list"
-              id="skillsList"
-            >
-              <div class="empty">
-                No skills added yet.
+                <div class="info-box">
+                  <span>Current Company</span>
+                  <strong id="infoCompany">
+                    AIFT
+                  </strong>
+                </div>
+
+                <div class="info-box">
+                  <span>Role</span>
+                  <strong id="infoRole">
+                    Agent
+                  </strong>
+                </div>
+
+                <div class="info-box">
+                  <span>Employment Type</span>
+                  <strong id="infoEmployment">
+                    Full-time
+                  </strong>
+                </div>
+
+                <div class="info-box">
+                  <span>Availability</span>
+                  <strong id="infoAvailability">
+                    Available
+                  </strong>
+                </div>
+
+                <div class="info-box">
+                  <span>Shift</span>
+                  <strong id="infoShift">
+                    Flexible
+                  </strong>
+                </div>
+
+                <div class="info-box">
+                  <span>Work Setup</span>
+                  <strong id="infoSetup">
+                    Remote / Hybrid
+                  </strong>
+                </div>
+
               </div>
+
             </div>
 
-          </article>
+          </div>
 
         </section>
 
         <!-- EXPERIENCE -->
-
         <section
           class="section"
           id="section-experience"
         >
 
-          <article class="card content-card">
+          <div class="card content-card">
 
-            <h2>Work Experience</h2>
+            <h2>Professional Experience</h2>
 
-            <div
-              class="timeline"
-              id="experienceList"
-            >
-              <div class="empty">
-                No experience added yet.
+            <div class="timeline" id="experienceTimeline">
+
+              <div class="timeline-item">
+                <h3>Bilingual Support Specialist</h3>
+                <p>
+                  Assisted international customers through multiple communication channels while maintaining strong client satisfaction and issue resolution performance.
+                </p>
               </div>
+
+              <div class="timeline-item">
+                <h3>Virtual Assistant</h3>
+                <p>
+                  Managed scheduling, CRM updates, reporting, and administrative support for remote operations.
+                </p>
+              </div>
+
+              <div class="timeline-item">
+                <h3>Sales & Retention Support</h3>
+                <p>
+                  Helped improve client retention, handled sales follow-ups, and assisted in customer engagement campaigns.
+                </p>
+              </div>
+
             </div>
 
-          </article>
+          </div>
 
         </section>
 
         <!-- SKILLS -->
-
         <section
           class="section"
           id="section-skills"
         >
 
-          <article class="card content-card">
+          <div class="card content-card">
 
-            <h2>Professional Skills</h2>
-
-            <div
-              class="pill-list"
-              id="skillsSectionList"
-            >
-              <div class="empty">
-                No skills added yet.
-              </div>
-            </div>
-
-          </article>
-
-          <article class="card content-card">
-
-            <h2>Languages</h2>
+            <h2>Skills & Expertise</h2>
 
             <div
               class="pill-list"
-              id="languagesList"
+              id="skillsWrap"
             >
-              <div class="empty">
-                No languages added yet.
-              </div>
+
+              <span class="skill-pill">Customer Service</span>
+              <span class="skill-pill">CRM</span>
+              <span class="skill-pill">Sales</span>
+              <span class="skill-pill">Appointment Setting</span>
+              <span class="skill-pill">Cold Calling</span>
+              <span class="skill-pill">Remote Work</span>
+              <span class="skill-pill">Team Collaboration</span>
+              <span class="skill-pill">English Communication</span>
+
             </div>
 
-          </article>
+          </div>
+
+          <div class="grid-3">
+
+            <div class="card content-card">
+
+              <h2>Languages</h2>
+
+              <div class="pill-list" id="languagesWrap">
+
+                <span class="skill-pill">English</span>
+
+              </div>
+
+            </div>
+
+            <div class="card content-card">
+
+              <h2>Tools</h2>
+
+              <div class="pill-list">
+
+                <span class="skill-pill">Slack</span>
+                <span class="skill-pill">Google Workspace</span>
+                <span class="skill-pill">HubSpot</span>
+                <span class="skill-pill">Zendesk</span>
+
+              </div>
+
+            </div>
+
+            <div class="card content-card">
+
+              <h2>Industries</h2>
+
+              <div class="pill-list">
+
+                <span class="skill-pill">BPO</span>
+                <span class="skill-pill">Tech</span>
+                <span class="skill-pill">Customer Support</span>
+                <span class="skill-pill">Recruitment</span>
+
+              </div>
+
+            </div>
+
+          </div>
 
         </section>
 
         <!-- PERFORMANCE -->
-
         <section
           class="section"
           id="section-performance"
         >
 
-          <article class="card content-card">
+          <div class="grid-2">
 
-            <h2>Performance Highlights</h2>
+            <div class="card content-card">
 
-            <div class="grid-3">
+              <h2>Performance Metrics</h2>
 
-              <div class="info-box">
-                <span>Attendance</span>
-                <strong id="attendanceRate">
-                  98%
-                </strong>
-              </div>
+              <div class="grid-2">
 
-              <div class="info-box">
-                <span>Task Completion</span>
-                <strong id="taskCompletion">
-                  94%
-                </strong>
-              </div>
+                <div class="info-box">
+                  <span>Task Completion</span>
+                  <strong id="metricCompletion">
+                    95%
+                  </strong>
+                </div>
 
-              <div class="info-box">
-                <span>Client Satisfaction</span>
-                <strong id="clientSatisfaction">
-                  Excellent
-                </strong>
-              </div>
+                <div class="info-box">
+                  <span>Attendance</span>
+                  <strong id="metricAttendance">
+                    98%
+                  </strong>
+                </div>
 
-              <div class="info-box">
-                <span>Response Time</span>
-                <strong id="responseTime">
-                  Fast
-                </strong>
-              </div>
+                <div class="info-box">
+                  <span>Customer Satisfaction</span>
+                  <strong id="metricCSAT">
+                    4.9/5
+                  </strong>
+                </div>
 
-              <div class="info-box">
-                <span>Team Collaboration</span>
-                <strong id="teamwork">
-                  Strong
-                </strong>
-              </div>
+                <div class="info-box">
+                  <span>Average Response Time</span>
+                  <strong id="metricResponse">
+                    Fast
+                  </strong>
+                </div>
 
-              <div class="info-box">
-                <span>Leadership</span>
-                <strong id="leadership">
-                  Professional
-                </strong>
               </div>
 
             </div>
 
-          </article>
+            <div class="card content-card">
+
+              <h2>Achievements</h2>
+
+              <div class="timeline">
+
+                <div class="timeline-item">
+                  <h3>Top Performing Agent</h3>
+                  <p>
+                    Recognized for strong productivity and client support performance.
+                  </p>
+                </div>
+
+                <div class="timeline-item">
+                  <h3>Excellent Attendance</h3>
+                  <p>
+                    Maintained strong reliability and punctuality in work schedules.
+                  </p>
+                </div>
+
+                <div class="timeline-item">
+                  <h3>Client Satisfaction</h3>
+                  <p>
+                    Maintained positive customer feedback and communication standards.
+                  </p>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
 
         </section>
 
         <!-- FEED -->
-
         <section
           class="section"
           id="section-feed"
         >
 
-          <div id="agentFeedMount"></div>
+          <div
+            class="card content-card"
+            style="padding:0;"
+          >
+
+            <div style="padding:18px 18px 0;">
+              <h2 style="margin-bottom:6px;">Recent Posts</h2>
+
+              <p style="color:#666;">
+                Public activity, updates, and professional posts from this agent.
+              </p>
+            </div>
+
+            <div id="agentFeedMount"></div>
+
+          </div>
 
         </section>
 
-      </section>
+      </div>
 
-      <!-- RIGHT -->
-
+      <!-- SIDEBAR -->
       <aside class="right-col">
 
-        <article class="card side-card">
+        <div class="card side-card">
 
-          <h3>Agent Insights</h3>
-
-          <div class="side-stat">
-            <span>Profile Strength</span>
-            <strong id="profileStrength">
-              Professional
-            </strong>
-          </div>
+          <h3>Professional Summary</h3>
 
           <div class="side-stat">
-            <span>Skills Added</span>
-            <strong id="skillsCount">
-              0
-            </strong>
-          </div>
-
-          <div class="side-stat">
-            <span>Experience Entries</span>
-            <strong id="experienceCount">
-              0
-            </strong>
-          </div>
-
-          <div class="side-stat">
-            <span>Languages</span>
-            <strong id="languageCount">
-              0
-            </strong>
-          </div>
-
-        </article>
-
-        <article class="card side-card">
-
-          <h3>Agent Status</h3>
-
-          <div class="side-stat">
-            <span>Availability</span>
-            <strong id="availability">
+            <span>Current Status</span>
+            <strong id="sideStatus">
               Available
             </strong>
           </div>
 
           <div class="side-stat">
-            <span>Remote Ready</span>
-            <strong>
-              Yes
+            <span>Location</span>
+            <strong id="sideLocation">
+              Philippines
             </strong>
           </div>
 
           <div class="side-stat">
-            <span>Active Profile</span>
-            <strong>
-              Verified
+            <span>Company</span>
+            <strong id="sideCompany">
+              AIFT
             </strong>
           </div>
 
-        </article>
+          <div class="side-stat">
+            <span>Experience</span>
+            <strong id="sideExperience">
+              0 yrs
+            </strong>
+          </div>
 
-        <article class="card side-card">
+          <div class="side-stat">
+            <span>Languages</span>
+            <strong id="sideLanguages">
+              English
+            </strong>
+          </div>
 
-          <h3>Resume / CV</h3>
+        </div>
 
-          <div class="empty">
+        <div class="card side-card">
 
-            <button
-              class="pill-btn primary hidden"
-              id="resumeBtn"
-            >
-              Download CV
-            </button>
+          <h3>Why Employers Like This Agent</h3>
 
-            <div id="resumeEmptyText">
-              No resume uploaded yet.
+          <div class="timeline">
+
+            <div class="timeline-item">
+              <h3>Professional Communication</h3>
+              <p>
+                Strong written and verbal communication with clients and teams.
+              </p>
+            </div>
+
+            <div class="timeline-item">
+              <h3>Reliable Attendance</h3>
+              <p>
+                Consistent schedule management and accountability.
+              </p>
+            </div>
+
+            <div class="timeline-item">
+              <h3>Adaptability</h3>
+              <p>
+                Comfortable handling different tools, workflows, and industries.
+              </p>
             </div>
 
           </div>
 
-        </article>
+        </div>
+
+        <div class="card side-card">
+
+          <h3>Open to</h3>
+
+          <div class="pill-list">
+
+            <span class="skill-pill">
+              Customer Support
+            </span>
+
+            <span class="skill-pill">
+              Virtual Assistant
+            </span>
+
+            <span class="skill-pill">
+              Sales Support
+            </span>
+
+            <span class="skill-pill">
+              Remote Work
+            </span>
+
+          </div>
+
+        </div>
 
       </aside>
 
     </div>
 
   </div>
-
 </main>
 
-<!-- MOBILE -->
-
-<nav class="mobile-bottom">
+<!-- MOBILE NAV -->
+<div class="mobile-bottom">
 
   <button onclick="goHome()">
     Home
   </button>
 
-  <button onclick="goMessages()">
-    Messages
+  <button onclick="activateTab('overview')">
+    About
   </button>
 
-  <button onclick="goNotifications()">
-    Alerts
+  <button onclick="activateTab('feed')">
+    Posts
+  </button>
+
+  <button onclick="goMessages()">
+    Chat
   </button>
 
   <button onclick="openMyProfile()">
-    Profile
+    Me
   </button>
 
-  <button onclick="scrollTopPage()">
-    Top
-  </button>
-
-</nav>
+</div>
 <script>
 
 const API =
   "https://backend-1-9b6f.onrender.com";
+
+const FALLBACK_AVATAR =
+  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 const params =
   new URLSearchParams(location.search);
@@ -1150,715 +1142,920 @@ const params =
 const profileId =
   params.get("id");
 
-const FALLBACK_AVATAR =
-  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+const token =
+  localStorage.getItem("agentToken") ||
+  localStorage.getItem("employerToken") ||
+  localStorage.getItem("talentToken") ||
+  localStorage.getItem("schoolToken") ||
+  localStorage.getItem("adminToken") ||
+  localStorage.getItem("token");
 
 const state = {
+  viewer:null,
   profile:null,
-  viewer:null
+  posts:[]
 };
 
-function getToken(){
+/* =========================
+   AUTH HEADERS
+========================= */
 
-  return (
-    localStorage.getItem("agentToken") ||
-    localStorage.getItem("employerToken") ||
-    localStorage.getItem("talentToken") ||
-    localStorage.getItem("schoolToken") ||
-    localStorage.getItem("adminToken") ||
-    localStorage.getItem("token") ||
-    ""
-  );
-
-}
-
-function authHeaders(extra = {}){
+function authHeaders(extra={}){
 
   return {
-    Authorization:"Bearer " + getToken(),
+    Authorization:`Bearer ${token}`,
     ...extra
   };
 
 }
 
-function esc(value = ""){
+/* =========================
+   ESCAPE HTML
+========================= */
 
-  return String(value ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;");
+function escapeHtml(value){
 
-}
-
-async function safeJSON(res){
-
-  try{
-    return await res.json();
-  }catch{
-    return null;
-  }
+  return String(value || "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
 
 }
 
-async function fetchJSON(path,options = {}){
-
-  const res =
-    await fetch(API + path,options);
-
-  const data =
-    await safeJSON(res);
-
-  if(!res.ok){
-
-    throw new Error(
-      data?.message ||
-      "Request failed"
-    );
-
-  }
-
-  return data;
-
-}
+/* =========================
+   NAVIGATION
+========================= */
 
 function goHome(){
 
-  const role =
-    localStorage.getItem("role");
-
-  if(role === "agent"){
-    location.href = "agent.html";
-    return;
-  }
-
-  if(role === "employer"){
-    location.href = "employer.html";
-    return;
-  }
-
-  if(role === "school"){
-    location.href = "school.html";
-    return;
-  }
-
-  location.href = "home.html";
+  location.href =
+    "home.html";
 
 }
 
 function goMessages(){
-  location.href = "messages.html";
+
+  location.href =
+    "messages.html";
+
 }
 
 function goNotifications(){
-  location.href = "notifications.html";
+
+  location.href =
+    "notifications.html";
+
 }
 
 function openMyProfile(){
 
-  const id =
-    localStorage.getItem("userId");
+  const me = state.viewer;
+
+  if(!me?._id){
+    return;
+  }
 
   const role =
-    localStorage.getItem("role");
+    String(
+      me.role || ""
+    ).toLowerCase();
 
   if(role === "agent"){
+
     location.href =
-      `agent-public-profile.html?id=${id}`;
+      `agent-public-profile.html?id=${me._id}`;
+
     return;
   }
 
   if(role === "employer"){
+
     location.href =
-      `employer-public-profile.html?id=${id}`;
+      `employer-public-profile.html?id=${me._id}`;
+
     return;
   }
 
   if(role === "school"){
+
     location.href =
-      `school-public-profile.html?id=${id}`;
+      `school-public-profile.html?id=${me._id}`;
+
     return;
   }
 
   location.href =
-    `public-profile.html?id=${id}`;
+    `public-profile.html?id=${me._id}`;
 
 }
 
-function scrollTopPage(){
+/* =========================
+   TABS
+========================= */
 
-  window.scrollTo({
-    top:0,
-    behavior:"smooth"
+function activateTab(tab){
+
+  document
+    .querySelectorAll(".agent-tab")
+    .forEach(btn => {
+
+      btn.classList.toggle(
+        "active",
+        btn.dataset.tab === tab
+      );
+
+    });
+
+  document
+    .querySelectorAll(".section")
+    .forEach(section => {
+
+      section.classList.toggle(
+        "active",
+        section.id === `section-${tab}`
+      );
+
+    });
+
+}
+
+document
+  .querySelectorAll(".agent-tab")
+  .forEach(btn => {
+
+    btn.addEventListener(
+      "click",
+      () => {
+
+        activateTab(
+          btn.dataset.tab
+        );
+
+      }
+    );
+
   });
 
-}
+/* =========================
+   FETCH VIEWER
+========================= */
 
-async function loadViewer(){
+async function fetchViewer(){
+
+  if(!token){
+    return;
+  }
 
   try{
 
-    const data =
-      await fetchJSON(
-        "/api/users/me",
+    const res =
+      await fetch(
+        API + "/api/auth/me",
         {
           headers:authHeaders()
         }
       );
 
-    state.viewer =
-      data.user || data;
-
-    document.getElementById(
-      "viewerAvatar"
-    ).src =
-      state.viewer?.profileImage ||
-      FALLBACK_AVATAR;
-
-  }catch{}
-
-}
-
-async function loadProfile(){
-
-  if(!profileId){
-
-    document.body.innerHTML = `
-      <div style="
-        padding:40px;
-        text-align:center;
-        font-family:Inter,sans-serif;
-      ">
-        Agent profile unavailable.
-      </div>
-    `;
-
-    return;
-
-  }
-
-  try{
-
-    let data;
-
-    try{
-
-      data =
-        await fetchJSON(
-          `/api/users/${profileId}/public`,
-          {
-            headers:getToken()
-              ? authHeaders()
-              : {}
-          }
-        );
-
-    }catch{
-
-      data =
-        await fetchJSON(
-          `/api/users/${profileId}`,
-          {
-            headers:getToken()
-              ? authHeaders()
-              : {}
-          }
-        );
-
+    if(!res.ok){
+      return;
     }
 
-    state.profile =
-      data.user || data;
-
-    renderProfile();
-
-    mountFeed();
+    state.viewer =
+      await res.json();
 
   }catch(err){
 
-    console.error(err);
-
-    document.body.innerHTML = `
-      <div style="
-        padding:40px;
-        text-align:center;
-        font-family:Inter,sans-serif;
-      ">
-        Agent profile unavailable.
-      </div>
-    `;
+    console.error(
+      "Viewer load failed:",
+      err
+    );
 
   }
 
 }
+
+/* =========================
+   FETCH AGENT PROFILE
+========================= */
+
+async function fetchProfile(){
+
+  if(!profileId){
+
+    throw new Error(
+      "Missing profile id"
+    );
+
+  }
+
+  const res =
+    await fetch(
+      `${API}/api/users/${profileId}/public`,
+      {
+        headers: token
+          ? authHeaders()
+          : {}
+      }
+    );
+
+  if(!res.ok){
+
+    throw new Error(
+      "Could not load agent profile"
+    );
+
+  }
+
+  state.profile =
+    await res.json();
+
+}
+
+/* =========================
+   RENDER PROFILE
+========================= */
 
 function renderProfile(){
 
   const user =
     state.profile || {};
 
-  document.title =
-    `${user.name || "Agent"} | AIFT`;
+  const viewer =
+    state.viewer || {};
 
-  document.getElementById(
-    "profileAvatar"
-  ).src =
+  const avatar =
     user.profileImage ||
     FALLBACK_AVATAR;
 
-  document.getElementById(
-    "profileName"
-  ).textContent =
+  const cover =
+    user.bannerImage ||
+    user.coverImage ||
+    "";
+
+  const name =
     user.name ||
-    "AIFT Agent";
+    "Agent";
 
-  document.getElementById(
-    "profileHeadline"
-  ).textContent =
-    user.headline ||
-    "Professional Agent";
+const headline =
+  user.headline ||
+  "No professional headline added yet";
 
-  document.getElementById(
-    "profileBio"
-  ).textContent =
-    user.bio ||
-    "No biography added yet.";
-
-  document.getElementById(
-    "aboutText"
-  ).textContent =
-    user.bio ||
-    "No biography added yet.";
-
-  if(user.bannerImage){
-
-    document.getElementById(
-      "coverImage"
-    ).style.backgroundImage =
-      `linear-gradient(135deg,rgba(10,102,194,.18),rgba(34,197,94,.16)),url('${user.bannerImage}')`;
-
-  }
-
-  buildMeta(user);
-
-  renderSkills(
-    user.skills || []
-  );
-
-  renderLanguages(
-    user.languages || []
-  );
-
-  renderExperience(
-    user.experience || []
-  );
-
-  renderSidebar(user);
-
-  setupButtons(user);
-
-}
-</script>
-<script>
-
-function buildMeta(user){
-
-  const meta = [];
-
-  if(user.location){
-    meta.push(
-      esc(user.location)
-    );
-  }
-
-  if(user.companyName){
-    meta.push(
-      esc(user.companyName)
-    );
-  }
-
-  if(user.department){
-    meta.push(
-      esc(user.department)
-    );
-  }
-
-  meta.push("Agent");
-
-  document.getElementById(
-    "profileMeta"
-  ).innerHTML =
-    meta.join(" • ");
-
-}
-
-function renderSkills(skills){
-
-  document.getElementById(
-    "skillsCount"
-  ).textContent =
-    skills.length;
-
-  const sections = [
-    document.getElementById(
-      "skillsList"
-    ),
-    document.getElementById(
-      "skillsSectionList"
-    )
-  ];
-
-  sections.forEach(container=>{
-
-    if(!skills.length){
-
-      container.innerHTML = `
-        <div class="empty">
-          No skills added yet.
-        </div>
-      `;
-
-      return;
-    }
-
-    container.innerHTML =
-      skills.map(skill=>`
-        <div class="skill-pill">
-          ${esc(skill)}
-        </div>
-      `).join("");
-
-  });
-
-}
-
-function renderLanguages(languages){
-
-  document.getElementById(
-    "languageCount"
-  ).textContent =
-    languages.length;
-
-  const container =
-    document.getElementById(
-      "languagesList"
-    );
-
-  if(!languages.length){
-
-    container.innerHTML = `
-      <div class="empty">
-        No languages added yet.
-      </div>
-    `;
-
-    return;
-
-  }
-
-  container.innerHTML =
-    languages.map(language=>`
-      <div class="skill-pill">
-        ${esc(language)}
-      </div>
-    `).join("");
-
-}
-
-function renderExperience(experience){
-
-  document.getElementById(
-    "experienceCount"
-  ).textContent =
-    experience.length;
-
-  const container =
-    document.getElementById(
-      "experienceList"
-    );
-
-  if(!experience.length){
-
-    container.innerHTML = `
-      <div class="empty">
-        No experience added yet.
-      </div>
-    `;
-
-    return;
-
-  }
-
-  container.innerHTML =
-    experience.map(item=>`
-
-      <article class="timeline-item">
-
-        <h3>
-          ${esc(item.title || "Experience")}
-        </h3>
-
-        <p>
-          ${esc(item.company || "")}
-          •
-          ${esc(item.startDate || "")}
-          -
-          ${esc(item.endDate || "Present")}
-        </p>
-
-        <div style="
-          margin-top:10px;
-          line-height:1.65;
-          color:#222;
-        ">
-          ${esc(item.description || "")}
-        </div>
-
-      </article>
-
-    `).join("");
-
-}
-
-function renderSidebar(user){
-
-  document.getElementById(
-    "companyName"
-  ).textContent =
+  const company =
     user.companyName ||
-    "Not specified";
+    user.company ||
+    "AIFT";
 
-  document.getElementById(
-    "department"
-  ).textContent =
-    user.department ||
-    "Not specified";
-
-  document.getElementById(
-    "shift"
-  ).textContent =
-    user.preferredShift ||
-    "Flexible";
-
-  document.getElementById(
-    "employmentType"
-  ).textContent =
-    user.employmentType ||
-    "Full Time";
-
-  document.getElementById(
-    "experienceYears"
-  ).textContent =
-    `${user.experienceYears || user.yearsOfExperience || 0} years`;
-
-  document.getElementById(
-    "locationText"
-  ).textContent =
+  const location =
     user.location ||
-    "Not specified";
+    user.address ||
+    "Philippines";
 
-  document.getElementById(
-    "availability"
-  ).textContent =
+  const availability =
     user.availability ||
     "Available";
 
-  let strength = "Professional";
+const story =
+  user.about ||
+  user.story ||
+  user.bio ||
+  "This agent has not added an about section yet.";
 
-  const score =
-    (user.skills?.length || 0) +
-    (user.experience?.length || 0);
-
-  if(score >= 10){
-    strength = "Elite";
-  }else if(score >= 6){
-    strength = "Advanced";
-  }else if(score >= 3){
-    strength = "Professional";
-  }else{
-    strength = "Growing";
-  }
+  document.title =
+    `${name} | AIFT`;
 
   document.getElementById(
-    "profileStrength"
+    "agentAvatar"
+  ).src = avatar;
+
+  document.getElementById(
+    "viewerAvatar"
+  ).src =
+    viewer.profileImage ||
+    FALLBACK_AVATAR;
+
+  document.getElementById(
+    "agentName"
   ).textContent =
-    strength;
+    name;
 
-  if(user.resume){
+  document.getElementById(
+    "agentHeadline"
+  ).textContent =
+    headline;
 
-    const btn =
-      document.getElementById(
-        "resumeBtn"
+  document.getElementById(
+    "agentCompany"
+  ).textContent =
+    company;
+
+  document.getElementById(
+    "agentLocation"
+  ).textContent =
+    location;
+
+  document.getElementById(
+    "agentAvailability"
+  ).textContent =
+    availability;
+
+  document.getElementById(
+    "agentStory"
+  ).textContent =
+    story;
+
+  document.getElementById(
+    "overviewAbout"
+  ).textContent =
+    story;
+
+  document.getElementById(
+    "infoCompany"
+  ).textContent =
+    company;
+
+  document.getElementById(
+    "sideCompany"
+  ).textContent =
+    company;
+
+  document.getElementById(
+    "sideLocation"
+  ).textContent =
+    location;
+
+  document.getElementById(
+    "sideStatus"
+  ).textContent =
+    availability;
+
+  /* VERIFIED */
+
+  if(
+    user.isVerified ||
+    user.verified
+  ){
+
+    document
+      .getElementById(
+        "verifiedBadge"
+      )
+      .classList.remove(
+        "hidden"
       );
 
-    btn.classList.remove(
-      "hidden"
+  }
+
+  /* COVER */
+
+  if(cover){
+
+    document
+      .getElementById(
+        "agentCover"
+      )
+      .style.background = `
+        linear-gradient(
+          135deg,
+          rgba(10,102,194,.24),
+          rgba(5,118,66,.18),
+          rgba(109,40,217,.16)
+        ),
+        url("${cover}")
+        center/cover no-repeat
+      `;
+
+  }
+
+  /* OWNER BUTTON */
+
+  if(
+    viewer &&
+    String(viewer._id) ===
+    String(user._id)
+  ){
+
+document.getElementById("dashboardBtn").classList.remove("hidden");
+document.getElementById("editProfileBtn").classList.remove("hidden");
+
+  }
+
+  /* STATS */
+
+  const completed =
+    Number(
+      user.completedTasks || 0
     );
 
+  const performance =
+    Number(
+      user.performanceScore || 95
+    );
+
+  const experience =
+    Number(
+      user.experienceYears || 1
+    );
+
+  const languages =
+    Array.isArray(user.languages)
+      ? user.languages.length
+      : 1;
+
+  document.getElementById(
+    "statTasks"
+  ).textContent =
+    completed;
+
+  document.getElementById(
+    "statPerformance"
+  ).textContent =
+    performance + "%";
+
+  document.getElementById(
+    "statExperience"
+  ).textContent =
+    experience + " yrs";
+
+  document.getElementById(
+    "statLanguages"
+  ).textContent =
+    languages;
+
+  document.getElementById(
+    "sideExperience"
+  ).textContent =
+    experience + " yrs";
+
+  /* SKILLS */
+
+  if(
+    Array.isArray(user.skills)
+    &&
+    user.skills.length
+  ){
+
     document.getElementById(
-      "resumeEmptyText"
-    ).style.display = "none";
+      "skillsWrap"
+    ).innerHTML =
+      user.skills.map(skill => `
+        <span class="skill-pill">
+          ${escapeHtml(skill)}
+        </span>
+      `).join("");
 
-    btn.onclick = ()=>{
+  }
 
-      window.open(
-        user.resume,
-        "_blank"
-      );
+  /* LANGUAGES */
 
-    };
+  if(
+    Array.isArray(user.languages)
+    &&
+    user.languages.length
+  ){
+
+    document.getElementById(
+      "languagesWrap"
+    ).innerHTML =
+      user.languages.map(lang => `
+        <span class="skill-pill">
+          ${escapeHtml(lang)}
+        </span>
+      `).join("");
+
+    document.getElementById(
+      "sideLanguages"
+    ).textContent =
+      user.languages.join(", ");
 
   }
 
 }
 
-function setupButtons(user){
+/* =========================
+   DASHBOARD BUTTON
+========================= */
+document.getElementById("editProfileBtn").addEventListener("click", () => {
+  location.href = "profile.html";
+});
+document
+  .getElementById(
+    "dashboardBtn"
+  )
+  .addEventListener(
+    "click",
+    () => {
 
-  document.getElementById(
-    "messageBtn"
-  ).onclick = ()=>{
-
-    location.href =
-      `messages.html?user=${user._id}`;
-
-  };
-
-  document.getElementById(
-    "shareBtn"
-  ).onclick = async ()=>{
-
-    try{
-
-      await navigator.clipboard.writeText(
-        location.href
-      );
-
-      alert(
-        "Profile link copied."
-      );
-
-    }catch{
-
-      alert(
-        "Could not copy profile link."
-      );
+      location.href =
+        "agent.html";
 
     }
+  );
 
-  };
+/* =========================
+   MESSAGE BUTTON
+========================= */
 
-  document.getElementById(
-    "connectBtn"
-  ).onclick = async ()=>{
+document
+  .getElementById(
+    "messageAgentBtn"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      if(!profileId){
+        return;
+      }
+
+      location.href =
+        `messages.html?user=${profileId}`;
+
+    }
+  );
+
+/* =========================
+   SHARE BUTTON
+========================= */
+
+document
+  .getElementById(
+    "shareAgentBtn"
+  )
+  .addEventListener(
+    "click",
+    async () => {
+
+      try{
+
+        await navigator
+          .clipboard
+          .writeText(
+            location.href
+          );
+
+        alert(
+          "Profile link copied"
+        );
+
+      }catch(err){
+
+        console.error(err);
+
+      }
+
+    }
+  );
+
+/* =========================
+   FOLLOW AGENT
+========================= */
+
+document
+  .getElementById("followAgentBtn")
+  .addEventListener("click", async () => {
+
+    if(!profileId || !token){
+      location.href = "login.html";
+      return;
+    }
 
     try{
-
-      await fetchJSON(
-        `/api/users/${user._id}/follow`,
+      const res = await fetch(
+        `${API}/api/users/${profileId}/follow`,
         {
-          method:"POST",
+          method:"PATCH",
           headers:authHeaders()
         }
       );
 
-      alert(
-        "Connection request sent."
-      );
+      const data = await res.json();
+
+      if(!res.ok){
+        throw new Error(data.message || "Follow failed");
+      }
+
+      document.getElementById("followAgentBtn").textContent =
+        data.following ? "Following" : "Follow";
 
     }catch(err){
-
-      alert(
-        err.message ||
-        "Could not connect."
-      );
-
+      alert(err.message);
     }
+  });
 
-  };
+/* =========================
+   FEED
+========================= */
 
-}
+function mountAgentFeed(){
 
-function mountFeed(){
-
-  if(
-    typeof AIFTFeed === "undefined"
-  ){
+  if(typeof AIFTFeed === "undefined"){
+    console.warn("AIFTFeed not available");
     return;
   }
 
-  AIFTFeed.mount(
-    "agentFeedMount",
-    {
-      profileId:profileId,
-      hideComposer:true
+  AIFTFeed.mount("agentFeedMount", {
+    mode:"profile",
+    authorId:profileId,
+    showComposer:false,
+    infiniteScroll:true,
+    realtime:true
+  });
+}
+
+/* =========================
+   LOAD OPTIONAL PERFORMANCE
+========================= */
+
+async function loadPerformance(){
+
+  if(!token || !profileId){
+    return;
+  }
+
+  try{
+    const [tasksRes, sessionsRes] = await Promise.allSettled([
+      fetch(`${API}/api/work-tasks`, { headers:authHeaders() }),
+      fetch(`${API}/api/agent-sessions/me`, { headers:authHeaders() })
+    ]);
+
+    let tasks = [];
+    let sessions = [];
+
+    if(tasksRes.status === "fulfilled" && tasksRes.value.ok){
+      tasks = await tasksRes.value.json();
     }
+
+    if(sessionsRes.status === "fulfilled" && sessionsRes.value.ok){
+      sessions = await sessionsRes.value.json();
+    }
+
+    if(Array.isArray(tasks)){
+      const total = tasks.length;
+      const done = tasks.filter(t => t.status === "done").length;
+      const completion = total ? Math.round((done / total) * 100) : 0;
+
+      document.getElementById("statTasks").textContent = done;
+      document.getElementById("metricCompletion").textContent = completion + "%";
+      document.getElementById("statPerformance").textContent = completion ? completion + "%" : "95%";
+    }
+
+    if(Array.isArray(sessions)){
+      document.getElementById("metricAttendance").textContent =
+        sessions.length ? "Tracked" : "New";
+    }
+
+  }catch(err){
+    console.warn("Performance metrics not available:", err.message);
+  }
+}
+
+/* =========================
+   REDIRECT IF WRONG ROLE
+========================= */
+
+function protectAgentProfile(){
+
+  const role = String(state.profile?.role || "").toLowerCase();
+
+  if(role && role !== "agent"){
+    if(role === "employer"){
+      location.href = `employer-public-profile.html?id=${state.profile._id}`;
+      return;
+    }
+
+    if(role === "school"){
+      location.href = `school-public-profile.html?id=${state.profile._id}`;
+      return;
+    }
+
+    location.href = `public-profile.html?id=${state.profile._id}`;
+  }
+}
+
+/* =========================
+   INIT
+========================= */
+
+async function init(){
+
+  try{
+    if(!profileId){
+      throw new Error("Missing agent profile id.");
+    }
+
+    await fetchViewer();
+    await fetchProfile();
+
+    protectAgentProfile();
+    renderProfile();
+
+    await loadPerformance();
+    mountAgentFeed();
+
+    document.body.classList.add("loaded");
+
+  }catch(err){
+    console.error(err);
+
+    document.body.innerHTML = `
+      <div style="
+        min-height:100vh;
+        display:grid;
+        place-items:center;
+        padding:24px;
+        text-align:center;
+        font-family:Inter,sans-serif;
+      ">
+        <div>
+          <h1 style="margin:0 0 10px;font-size:30px;">
+            Unable to load agent profile
+          </h1>
+          <p style="margin:0;color:#666;line-height:1.6;">
+            ${escapeHtml(err.message || "Something went wrong.")}
+          </p>
+          <div style="margin-top:18px;">
+            <button
+              onclick="location.href='home.html'"
+              style="
+                border:0;
+                border-radius:999px;
+                padding:10px 18px;
+                background:#0a66c2;
+                color:#fff;
+                font-weight:800;
+                cursor:pointer;
+              "
+            >
+              Go Home
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+init();
+
+</script>
+<script>
+
+/* =========================
+   SOCKET.IO
+========================= */
+
+try{
+
+  const socket =
+    io(API, {
+      transports:[
+        "websocket",
+        "polling"
+      ]
+    });
+
+  socket.on(
+    "connect",
+    () => {
+
+      console.log(
+        "Agent public socket connected"
+      );
+
+    }
+  );
+
+}catch(err){
+
+  console.warn(
+    "Socket connection failed:",
+    err
   );
 
 }
 
-document.querySelectorAll(
-  ".profile-tab"
-).forEach(btn=>{
+/* =========================
+   MOBILE ACTIVE STATES
+========================= */
 
-  btn.addEventListener(
-    "click",
-    ()=>{
+document
+  .querySelectorAll(
+    ".mobile-bottom button"
+  )
+  .forEach(btn => {
 
-      document
-      .querySelectorAll(
-        ".profile-tab"
-      )
-      .forEach(tab=>{
+    btn.addEventListener(
+      "click",
+      () => {
 
-        tab.classList.remove(
-          "active"
-        );
+        document
+          .querySelectorAll(
+            ".mobile-bottom button"
+          )
+          .forEach(b => {
 
-      });
+            b.style.color =
+              "#64748b";
 
-      btn.classList.add(
-        "active"
-      );
+          });
 
-      const selected =
-        btn.dataset.tab;
+        btn.style.color =
+          "#111";
 
-      document
-      .querySelectorAll(
-        ".section"
-      )
-      .forEach(section=>{
+      }
+    );
 
-        section.classList.remove(
-          "active"
-        );
+  });
 
-      });
+/* =========================
+   SAFE IMAGE FALLBACKS
+========================= */
 
-      document
-      .getElementById(
-        `section-${selected}`
-      )
-      .classList.add(
-        "active"
-      );
+document.addEventListener(
+  "error",
+  e => {
 
-      window.scrollTo({
-        top:0,
-        behavior:"smooth"
-      });
+    const target = e.target;
+
+    if(
+      target.tagName === "IMG"
+    ){
+
+      target.src =
+        FALLBACK_AVATAR;
 
     }
-  );
 
-});
+  },
+  true
+);
 
-loadViewer();
-loadProfile();
+/* =========================
+   PAGE ANIMATION
+========================= */
+
+window.addEventListener(
+  "load",
+  () => {
+
+    const hero =
+      document.querySelector(
+        ".agent-hero"
+      );
+
+    if(hero){
+
+      hero.animate(
+        [
+          {
+            opacity:0,
+            transform:
+              "translateY(8px)"
+          },
+          {
+            opacity:1,
+            transform:
+              "translateY(0)"
+          }
+        ],
+        {
+          duration:320,
+          easing:"ease-out"
+        }
+      );
+
+    }
+
+  }
+);
+
+/* =========================
+   EXPOSE GLOBAL API
+========================= */
+
+window.AIFTAgentPublic = {
+
+  refresh(){
+
+    init();
+
+  },
+
+  activateTab(tab){
+
+    activateTab(tab);
+
+  }
+
+};
+
+console.log(
+  "AIFT Agent Public Ready"
+);
 
 </script>
-
-<script src="feed.js"></script>
 
 </body>
 </html>
