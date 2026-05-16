@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AIFT Jobs</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --blue:#2563eb;
+      --green:#10b981;
+      --purple:#7c3aed;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
+      --soft:#f8fafc;
+      --card:#fff;
+      --shadow:0 14px 34px rgba(15,23,42,.08);
+      --radius:22px;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:#f3f6fb;
+      color:var(--ink);
+      font-size:14px;
+    }
+
+    a{text-decoration:none;color:inherit}
+    button,input,select{font-family:inherit}
+
+    .app{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns:250px minmax(0,1fr);
+    }
+
+    .sidebar{
+      height:100vh;
+      position:sticky;
+      top:0;
+      background:#fff;
+      border-right:1px solid var(--line);
+      padding:18px 14px;
+      z-index:20;
+    }
+
+    .brand{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      padding:8px 10px 18px;
+      border-bottom:1px solid var(--line);
+      margin-bottom:14px;
+    }
+
+    .brand-mark{
+      width:38px;
+      height:38px;
+      border-radius:14px;
+      display:grid;
+      place-items:center;
+      color:#fff;
+      font-weight:800;
+      background:linear-gradient(135deg,var(--blue),var(--green),var(--purple));
+    }
+
+    .brand-title{
+      font-weight:800;
+      font-size:16px;
+      letter-spacing:-.03em;
+    }
+
+    .brand-sub{
+      color:var(--muted);
+      font-size:11px;
+      margin-top:2px;
+    }
+
+    .nav{
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+    }
+
+    .nav a,.nav button{
+      width:100%;
+      border:0;
+      background:transparent;
+      display:flex;
+      align-items:center;
+      gap:11px;
+      padding:11px 12px;
+      border-radius:14px;
+      color:#334155;
+      font-weight:700;
+      font-size:13px;
+      cursor:pointer;
+      text-align:left;
+    }
+
+    .nav a:hover,.nav button:hover{
+      background:#f1f5f9;
+      color:var(--blue);
+    }
+
+    .nav .active{
+      color:var(--blue);
+      background:linear-gradient(135deg,rgba(37,99,235,.1),rgba(16,185,129,.1));
+    }
+
+    .nav svg{
+      width:19px;
+      height:19px;
+      stroke-width:2.1;
+    }
+
+    .main{
+      min-width:0;
+      padding:18px;
+    }
+
+    .topbar{
+      position:sticky;
+      top:14px;
+      z-index:15;
+      background:rgba(255,255,255,.9);
+      backdrop-filter:blur(18px);
+      border:1px solid var(--line);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      padding:14px;
+    }
+
+    .search-grid{
+      display:grid;
+      grid-template-columns:1.4fr .9fr .7fr .7fr auto;
+      gap:10px;
+      align-items:center;
+    }
+
+    .field{
+      height:44px;
+      border:1px solid var(--line);
+      background:#f8fafc;
+      border-radius:999px;
+      padding:0 14px;
+      display:flex;
+      align-items:center;
+      gap:9px;
+      min-width:0;
+    }
+
+    .field svg{
+      width:17px;
+      height:17px;
+      color:#64748b;
+      flex:none;
+    }
+
+    .field input,.field select{
+      border:0;
+      outline:0;
+      background:transparent;
+      width:100%;
+      color:#0f172a;
+      font-size:13px;
+      min-width:0;
+    }
+
+    .field:focus-within{
+      background:#fff;
+      border-color:rgba(37,99,235,.55);
+      box-shadow:0 0 0 4px rgba(37,99,235,.08);
+    }
+
+    .search-btn{
+      height:44px;
+      border:0;
+      border-radius:999px;
+      color:#fff;
+      background:linear-gradient(135deg,var(--blue),var(--purple));
+      font-weight:800;
+      padding:0 18px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      white-space:nowrap;
+    }
+
+    .search-btn svg{
+      width:17px;
+      height:17px;
+    }
+
+    .hero{
+      margin-top:18px;
+      border-radius:26px;
+      border:1px solid rgba(37,99,235,.15);
+      background:linear-gradient(135deg,rgba(37,99,235,.12),rgba(16,185,129,.1),rgba(124,58,237,.1));
+      padding:22px;
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      align-items:center;
+    }
+
+    .hero h1{
+      margin:0;
+      font-size:25px;
+      line-height:1.15;
+      letter-spacing:-.05em;
+    }
+
+    .hero p{
+      margin:8px 0 0;
+      color:#475569;
+      font-size:13px;
+      line-height:1.55;
+      max-width:720px;
+    }
+
+    .hero-stats{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+      min-width:280px;
+    }
+
+    .stat{
+      background:rgba(255,255,255,.76);
+      border:1px solid rgba(255,255,255,.86);
+      border-radius:18px;
+      padding:13px;
+      text-align:center;
+    }
+
+    .stat strong{
+      display:block;
+      font-size:20px;
+      letter-spacing:-.04em;
+    }
+
+    .stat span{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:800;
+    }
+
+    .jobs-layout{
+      margin-top:18px;
+      display:grid;
+      grid-template-columns:430px minmax(0,1fr);
+      gap:18px;
+      align-items:start;
+    }
+
+    .job-list-panel,
+    .detail-panel{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .list-head{
+      padding:16px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .list-head h2{
+      margin:0;
+      font-size:15px;
+      letter-spacing:-.02em;
+    }
+
+    .list-head span{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+    }
+
+    .job-list{
+      max-height:calc(100vh - 285px);
+      overflow:auto;
+      padding:10px;
+    }
+
+    .job-card{
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:14px;
+      background:#fff;
+      cursor:pointer;
+      margin-bottom:10px;
+      transition:.16s ease;
+    }
+
+    .job-card:hover{
+      border-color:#bfdbfe;
+      background:#fbfdff;
+      transform:translateY(-1px);
+    }
+
+    .job-card.active{
+      border-color:rgba(37,99,235,.55);
+      box-shadow:0 0 0 4px rgba(37,99,235,.08);
+    }
+
+    .job-title{
+      margin:0;
+      font-size:15px;
+      font-weight:800;
+      letter-spacing:-.03em;
+      line-height:1.3;
+    }
+
+    .company{
+      margin-top:5px;
+      color:#334155;
+      font-size:13px;
+      font-weight:700;
+    }
+
+    .meta{
+      margin-top:8px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:7px;
+      color:#64748b;
+      font-size:12px;
+      font-weight:600;
+    }
+
+    .meta span{
+      display:flex;
+      align-items:center;
+      gap:5px;
+    }
+
+    .meta svg{
+      width:14px;
+      height:14px;
+    }
+
+    .tags{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:11px;
+    }
+
+    .tag{
+      padding:6px 8px;
+      border-radius:999px;
+      background:#f1f5f9;
+      border:1px solid #e2e8f0;
+      color:#334155;
+      font-size:11px;
+      font-weight:800;
+      max-width:130px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .job-snippet{
+      margin:10px 0 0;
+      color:#64748b;
+      font-size:12px;
+      line-height:1.5;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+
+    .detail-panel{
+      position:sticky;
+      top:100px;
+      min-height:calc(100vh - 118px);
+    }
+
+    .detail-cover{
+      height:112px;
+      background:linear-gradient(135deg,#dbeafe,#dcfce7,#ede9fe);
+      position:relative;
+    }
+
+    .company-logo{
+      width:76px;
+      height:76px;
+      border-radius:24px;
+      border:4px solid #fff;
+      object-fit:cover;
+      background:#fff;
+      position:absolute;
+      left:22px;
+      bottom:-36px;
+      box-shadow:0 10px 24px rgba(15,23,42,.14);
+    }
+
+    .detail-body{
+      padding:48px 22px 22px;
+    }
+
+    .detail-top{
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      align-items:flex-start;
+    }
+
+    .detail-title{
+      margin:0;
+      font-size:24px;
+      line-height:1.2;
+      letter-spacing:-.05em;
+    }
+
+    .detail-company{
+      margin-top:7px;
+      color:#334155;
+      font-size:14px;
+      font-weight:800;
+    }
+
+    .detail-sub{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:10px;
+      color:#64748b;
+      font-size:12px;
+      font-weight:700;
+    }
+
+    .detail-sub span{
+      display:flex;
+      align-items:center;
+      gap:5px;
+    }
+
+    .detail-sub svg{
+      width:15px;
+      height:15px;
+    }
+
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:9px;
+      margin-top:18px;
+    }
+
+    .btn{
+      border:1px solid var(--line);
+      background:#fff;
+      color:#334155;
+      height:42px;
+      padding:0 15px;
+      border-radius:14px;
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+    }
+
+    .btn svg{
+      width:16px;
+      height:16px;
+    }
+
+    .btn.primary{
+      color:#fff;
+      border:0;
+      background:linear-gradient(135deg,var(--blue),var(--green));
+    }
+
+    .btn.saved{
+      background:#eef2ff;
+      color:#4338ca;
+      border-color:#c7d2fe;
+    }
+
+    .section{
+      border-top:1px solid var(--line);
+      padding-top:18px;
+      margin-top:18px;
+    }
+
+    .section h3{
+      margin:0 0 10px;
+      font-size:15px;
+      letter-spacing:-.02em;
+    }
+
+    .description{
+      color:#334155;
+      font-size:13px;
+      line-height:1.7;
+      white-space:pre-wrap;
+    }
+
+    .detail-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:10px;
+      margin-top:18px;
+    }
+
+    .info-box{
+      background:#f8fafc;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+    }
+
+    .info-box span{
+      display:block;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+    }
+
+    .info-box strong{
+      display:block;
+      margin-top:5px;
+      font-size:13px;
+      color:#0f172a;
+    }
+
+    .empty,.error,.loading{
+      padding:32px;
+      text-align:center;
+      color:#64748b;
+    }
+
+    .empty svg,.error svg,.loading svg{
+      width:38px;
+      height:38px;
+      margin-bottom:12px;
+      color:#64748b;
+    }
+
+    .empty h3,.error h3,.loading h3{
+      margin:0;
+      color:#0f172a;
+      font-size:16px;
+    }
+
+    .empty p,.error p,.loading p{
+      margin:8px auto 0;
+      max-width:440px;
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .mobile-nav{
+      display:none;
+      position:fixed;
+      left:10px;
+      right:10px;
+      bottom:10px;
+      z-index:50;
+      background:rgba(255,255,255,.96);
+      backdrop-filter:blur(18px);
+      border:1px solid var(--line);
+      border-radius:24px;
+      box-shadow:0 18px 50px rgba(15,23,42,.18);
+      padding:8px;
+      grid-template-columns:repeat(5,1fr);
+      gap:4px;
+    }
+
+    .mobile-nav a{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      min-height:48px;
+      border-radius:17px;
+      color:#64748b;
+      font-size:10px;
+      font-weight:800;
+    }
+
+    .mobile-nav a.active{
+      background:#eff6ff;
+      color:var(--blue);
+    }
+
+    .mobile-nav svg{
+      width:19px;
+      height:19px;
+    }
+
+    .toast{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      z-index:80;
+      background:#0f172a;
+      color:#fff;
+      padding:12px 14px;
+      border-radius:16px;
+      box-shadow:0 18px 40px rgba(15,23,42,.25);
+      font-size:13px;
+      font-weight:800;
+      transform:translateY(18px);
+      opacity:0;
+      pointer-events:none;
+      transition:.2s ease;
+      max-width:330px;
+    }
+
+    .toast.show{
+      transform:translateY(0);
+      opacity:1;
+    }
+
+    @media(max-width:1150px){
+      .search-grid{
+        grid-template-columns:1fr 1fr;
+      }
+
+      .search-btn{
+        grid-column:1 / -1;
+      }
+
+      .jobs-layout{
+        grid-template-columns:380px minmax(0,1fr);
+      }
+
+      .detail-grid{
+        grid-template-columns:repeat(2,1fr);
+      }
+    }
+
+    @media(max-width:900px){
+      .app{display:block}
+      .sidebar{display:none}
+      .main{padding:12px 12px 88px}
+      .topbar{top:8px;border-radius:21px}
+      .search-grid{grid-template-columns:1fr}
+      .hero{display:block;padding:18px;border-radius:22px}
+      .hero h1{font-size:22px}
+      .hero-stats{min-width:0;margin-top:14px}
+      .jobs-layout{display:block}
+      .job-list{max-height:none}
+      .detail-panel{
+        position:static;
+        min-height:0;
+        margin-top:14px;
+      }
+      .mobile-nav{display:grid}
+      .toast{
+        left:14px;
+        right:14px;
+        bottom:82px;
+      }
+    }
+
+    @media(max-width:520px){
+      .hero-stats{grid-template-columns:1fr}
+      .detail-top{display:block}
+      .detail-title{font-size:21px}
+      .detail-grid{grid-template-columns:1fr}
+      .actions .btn{flex:1}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">A</div>
+        <div>
+          <div class="brand-title">AIFT</div>
+          <div class="brand-sub">Jobs Board</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="home.html">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10.5Z"/></svg>
+          Home
+        </a>
+        <a href="network.html">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/><path d="M3 21a9 9 0 0 1 18 0"/></svg>
+          Network
+        </a>
+        <a class="active" href="jobs.html">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"/><path d="M4 7h16v13H4z"/><path d="M4 12h16"/></svg>
+          Jobs
+        </a>
+        <a href="messages.html">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/></svg>
+          Messages
+        </a>
+        <a href="notifications.html">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+          Alerts
+        </a>
+        <button type="button" id="meBtn">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><path d="M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg>
+          Me
+        </button>
+        <button type="button" id="dashboardBtn">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Z"/><path d="M14 20h6V4h-6v16Z"/><path d="M4 20h6v-3H4v3Z"/></svg>
+          Dashboard
+        </button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="search-grid">
+          <label class="field">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="7"/></svg>
+            <input id="keywordInput" type="search" placeholder="Job title, company, skill, keyword">
+          </label>
+
+          <label class="field">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+            <input id="locationInput" type="search" placeholder="Location">
+          </label>
+
+          <label class="field">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M7 12h10"/><path d="M10 17h4"/></svg>
+            <select id="typeFilter">
+              <option value="">Any type</option>
+              <option value="full">Full-time</option>
+              <option value="part">Part-time</option>
+              <option value="contract">Contract</option>
+              <option value="intern">Internship</option>
+              <option value="freelance">Freelance</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
+            <select id="workSetupFilter">
+              <option value="">Any setup</option>
+              <option value="remote">Remote</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="onsite">On-site</option>
+            </select>
+          </label>
+
+          <button class="search-btn" id="searchBtn" type="button">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="7"/></svg>
+            Search jobs
+          </button>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div>
+          <h1>Find real opportunities on AIFT</h1>
+          <p>Browse live jobs from your backend. Search by title, company, location, job type, skills, and work setup. Click a job to preview it like Indeed.</p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat"><strong id="statTotal">0</strong><span>Total jobs</span></div>
+          <div class="stat"><strong id="statShown">0</strong><span>Shown</span></div>
+          <div class="stat"><strong id="statSaved">0</strong><span>Saved</span></div>
+        </div>
+      </section>
+
+      <section class="jobs-layout">
+        <aside class="job-list-panel">
+          <div class="list-head">
+            <div>
+              <h2>Job results</h2>
+              <span id="resultsMeta">Loading jobs...</span>
+            </div>
+            <button class="btn" id="clearBtn" type="button">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/></svg>
+              Clear
+            </button>
+          </div>
+
+          <div class="job-list" id="jobList"></div>
+          <div id="listState"></div>
+        </aside>
+
+        <article class="detail-panel" id="detailPanel">
+          <div class="empty">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"/><path d="M4 7h16v13H4z"/><path d="M4 12h16"/></svg>
+            <h3>Select a job</h3>
+            <p>Choose a job from the left list to preview details, save it, or apply.</p>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <nav class="mobile-nav">
+    <a href="home.html">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10.5Z"/></svg>
+      Home
+    </a>
+    <a href="network.html">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/><path d="M3 21a9 9 0 0 1 18 0"/></svg>
+      Network
+    </a>
+    <a class="active" href="jobs.html">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"/><path d="M4 7h16v13H4z"/><path d="M4 12h16"/></svg>
+      Jobs
+    </a>
+    <a href="notifications.html">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+      Alerts
+    </a>
+    <a href="#" id="mobileMeBtn">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><path d="M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg>
+      Me
+    </a>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = "https://backend-1-9b6f.onrender.com";
+
+    const state = {
+      me: null,
+      jobs: [],
+      filtered: [],
+      selectedJobId: null,
+      savedIds: new Set(),
+      viewedIds: new Set()
+    };
+
+    const els = {
+      keywordInput: document.getElementById("keywordInput"),
+      locationInput: document.getElementById("locationInput"),
+      typeFilter: document.getElementById("typeFilter"),
+      workSetupFilter: document.getElementById("workSetupFilter"),
+      searchBtn: document.getElementById("searchBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      jobList: document.getElementById("jobList"),
+      listState: document.getElementById("listState"),
+      detailPanel: document.getElementById("detailPanel"),
+      resultsMeta: document.getElementById("resultsMeta"),
+      statTotal: document.getElementById("statTotal"),
+      statShown: document.getElementById("statShown"),
+      statSaved: document.getElementById("statSaved"),
+      toast: document.getElementById("toast")
+    };
+
+    function getRole(){
+      return localStorage.getItem("role") || "";
+    }
+
+    function getToken(){
+      const role = getRole();
+      return (
+        localStorage.getItem(role + "Token") ||
+        localStorage.getItem("talentToken") ||
+        localStorage.getItem("employerToken") ||
+        localStorage.getItem("adminToken") ||
+        localStorage.getItem("agentToken") ||
+        localStorage.getItem("schoolToken") ||
+        localStorage.getItem("token") ||
+        ""
+      );
+    }
+
+    function authHeaders(extra = {}){
+      const token = getToken();
+      return {
+        ...extra,
+        ...(token ? { Authorization:"Bearer " + token } : {})
+      };
+    }
+
+    function requireAuth(){
+      if(!getToken()){
+        location.href = "login.html";
+        return false;
+      }
+      return true;
+    }
+
+    function escapeHTML(value){
+      return String(value ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function safeArray(value){
+      if(Array.isArray(value)) return value.filter(Boolean);
+      if(typeof value === "string" && value.trim()){
+        return value.split(",").map(v => v.trim()).filter(Boolean);
+      }
+      return [];
+    }
+
+    function normalize(value){
+      return String(value || "").toLowerCase().trim();
+    }
+
+    function includes(value, term){
+      return normalize(value).includes(term);
+    }
+
+    function companyName(job){
+      return job?.company || job?.employerId?.companyName || job?.employerId?.name || "Company";
+    }
+
+    function logoOf(job){
+      const name = companyName(job);
+      return job?.employerId?.profileImage || "https://ui-avatars.com/api/?name=" + encodeURIComponent(name) + "&background=e0f2fe&color=0f172a";
+    }
+
+    function formatDate(value){
+      if(!value) return "Recently posted";
+      const date = new Date(value);
+      const diff = Date.now() - date.getTime();
+      const days = Math.floor(diff / 86400000);
+      if(days <= 0) return "Today";
+      if(days === 1) return "1 day ago";
+      if(days < 30) return days + " days ago";
+      return date.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+    }
+
+    function dashboardUrl(){
+      const role = getRole();
+      if(role === "employer") return "employer.html";
+      if(role === "talent") return "talent.html";
+      if(role === "agent") return "agent.html";
+      if(role === "school") return "school.html";
+      if(role === "admin") return "admin.html";
+      return "home.html";
+    }
+
+    function profileUrl(){
+      const id = localStorage.getItem("userId") || state.me?._id;
+      if(!id) return "login.html";
+      if(getRole() === "employer" || getRole() === "school"){
+        return "employer-public-profile.html?id=" + encodeURIComponent(id);
+      }
+      return "public-profile.html?id=" + encodeURIComponent(id);
+    }
+
+    function employerProfileUrl(job){
+      const id = job?.employerId?._id || job?.employerId || "";
+      if(!id) return "#";
+      return "employer-public-profile.html?id=" + encodeURIComponent(id);
+    }
+
+    function showToast(message){
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => els.toast.classList.remove("show"), 2600);
+    }
+
+    function setListState(type, title, message){
+      if(!type){
+        els.listState.innerHTML = "";
+        return;
+      }
+
+      const icons = {
+        loading:'<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-9 9"/><path d="M3 12a9 9 0 0 1 9-9"/></svg>',
+        empty:'<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"/><path d="M4 7h16v13H4z"/><path d="M4 12h16"/></svg>',
+        error:'<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>'
+      };
+
+      els.listState.innerHTML = `
+        <div class="${type}">
+          ${icons[type] || icons.empty}
+          <h3>${escapeHTML(title)}</h3>
+          <p>${escapeHTML(message)}</p>
+        </div>
+      `;
+    }
+
+    async function fetchJSON(url, options = {}){
+      const res = await fetch(url, options);
+      let data = null;
+      try{ data = await res.json(); }catch{}
+      if(!res.ok){
+        throw new Error(data?.message || "Request failed");
+      }
+      return data;
+    }
+
+    async function loadMe(){
+      try{
+        state.me = await fetchJSON(`${API}/api/users/me`, {
+          headers: authHeaders()
+        });
+
+        if(state.me?._id) localStorage.setItem("userId", state.me._id);
+        if(state.me?.role) localStorage.setItem("role", state.me.role);
+
+        safeArray(state.me?.savedJobs).forEach(id => state.savedIds.add(String(id)));
+        els.statSaved.textContent = state.savedIds.size;
+      }catch(err){
+        console.warn("ME LOAD FAILED:", err.message);
+      }
+    }
+
+    async function loadJobs(){
+      setListState("loading", "Loading jobs", "AIFT is loading live jobs from your backend.");
+      els.jobList.innerHTML = "";
+      els.resultsMeta.textContent = "Loading jobs...";
+
+      try{
+        const jobs = await fetchJSON(`${API}/api/jobs`, {
+          headers: authHeaders()
+        });
+
+        state.jobs = safeArray(jobs).filter(job => job && job._id);
+        applyFilters();
+
+        if(state.filtered.length){
+          selectJob(state.filtered[0]._id, false);
+        }
+      }catch(err){
+        els.jobList.innerHTML = "";
+        setListState("error", "Jobs could not load", err.message || "Please check your backend or login again.");
+        els.resultsMeta.textContent = "Failed to load jobs";
+      }
+    }
+
+    function jobMatches(job, term){
+      if(!term) return true;
+      const skills = safeArray(job.skills).join(" ");
+      return [
+        job.title,
+        job.company,
+        job.description,
+        job.location,
+        job.type,
+        job.salary,
+        job.experienceLevel,
+        skills,
+        job.employerId?.companyName,
+        job.employerId?.name
+      ].some(value => includes(value, term));
+    }
+
+    function applyFilters(){
+      const keyword = normalize(els.keywordInput.value);
+      const location = normalize(els.locationInput.value);
+      const type = normalize(els.typeFilter.value);
+      const setup = normalize(els.workSetupFilter.value);
+
+      let list = [...state.jobs];
+
+      if(keyword){
+        list = list.filter(job => jobMatches(job, keyword));
+      }
+
+      if(location){
+        list = list.filter(job => includes(job.location, location));
+      }
+
+      if(type){
+        list = list.filter(job => includes(job.type, type));
+      }
+
+      if(setup){
+        list = list.filter(job => {
+          const text = `${job.location || ""} ${job.type || ""} ${job.description || ""}`.toLowerCase();
+          return text.includes(setup);
+        });
+      }
+
+      list.sort((a,b) => {
+        const proA = a.employerId?.isPro ? 1 : 0;
+        const proB = b.employerId?.isPro ? 1 : 0;
+        if(proA !== proB) return proB - proA;
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      });
+
+      state.filtered = list;
+      renderList();
+      renderStats();
+
+      if(state.selectedJobId && !state.filtered.some(j => String(j._id) === String(state.selectedJobId))){
+        state.selectedJobId = null;
+        renderEmptyDetail();
+      }
+    }
+
+    function renderStats(){
+      els.statTotal.textContent = state.jobs.length;
+      els.statShown.textContent = state.filtered.length;
+      els.statSaved.textContent = state.savedIds.size;
+      els.resultsMeta.textContent = `${state.filtered.length} job${state.filtered.length === 1 ? "" : "s"} found`;
+    }
+
+    function renderList(){
+      els.jobList.innerHTML = "";
+
+      if(!state.filtered.length){
+        setListState("empty", "No jobs found", "Try changing your keyword, location, job type, or work setup filter.");
+        return;
+      }
+
+      setListState(null);
+
+      els.jobList.innerHTML = state.filtered.map(job => {
+        const active = String(job._id) === String(state.selectedJobId);
+        const skills = safeArray(job.skills).slice(0,3);
+
+        return `
+          <article class="job-card ${active ? "active" : ""}" onclick="selectJob('${escapeHTML(job._id)}', true)">
+            <h3 class="job-title">${escapeHTML(job.title || "Untitled job")}</h3>
+            <div class="company">${escapeHTML(companyName(job))}</div>
+
+            <div class="meta">
+              <span>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                ${escapeHTML(job.location || "Location not added")}
+              </span>
+              <span>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 7h16v13H4z"/><path d="M4 12h16"/></svg>
+                ${escapeHTML(job.type || "Full-time")}
+              </span>
+              <span>
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                ${escapeHTML(formatDate(job.createdAt))}
+              </span>
+            </div>
+
+            <div class="tags">
+              ${job.salary ? `<span class="tag">${escapeHTML(job.salary)}</span>` : ""}
+              ${job.experienceLevel ? `<span class="tag">${escapeHTML(job.experienceLevel)}</span>` : ""}
+              ${skills.map(skill => `<span class="tag">${escapeHTML(skill)}</span>`).join("")}
+            </div>
+
+            <p class="job-snippet">${escapeHTML(job.description || "No description added yet.")}</p>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderEmptyDetail(){
+      els.detailPanel.innerHTML = `
+        <div class="empty">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"/><path d="M4 7h16v13H4z"/><path d="M4 12h16"/></svg>
+          <h3>Select a job</h3>
+          <p>Choose a job from the list to preview details, save it, or apply.</p>
+        </div>
+      `;
+    }
+
+    async function selectJob(jobId, shouldTrack = true){
+      state.selectedJobId = jobId;
+      const job = state.jobs.find(j => String(j._id) === String(jobId));
+      if(!job) return;
+
+      renderList();
+      renderDetail(job);
+
+      if(shouldTrack && !state.viewedIds.has(String(jobId))){
+        state.viewedIds.add(String(jobId));
+        try{
+          const data = await fetchJSON(`${API}/api/jobs/${jobId}/view`, {
+            method:"PATCH",
+            headers:authHeaders({ "Content-Type":"application/json" })
+          });
+          job.viewsCount = data.viewsCount;
+          renderDetail(job);
+        }catch(err){
+          console.warn("JOB VIEW TRACK FAILED:", err.message);
+        }
+      }
+    }
+
+    function renderDetail(job){
+      const skills = safeArray(job.skills);
+      const saved = state.savedIds.has(String(job._id));
+      const canSave = ["talent","agent"].includes(getRole());
+
+      els.detailPanel.innerHTML = `
+        <div class="detail-cover">
+          <img class="company-logo" src="${escapeHTML(logoOf(job))}" alt="${escapeHTML(companyName(job))}">
+        </div>
+
+        <div class="detail-body">
+          <div class="detail-top">
+            <div>
+              <h2 class="detail-title">${escapeHTML(job.title || "Untitled job")}</h2>
+              <div class="detail-company">${escapeHTML(companyName(job))}</div>
+              <div class="detail-sub">
+                <span>
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                  ${escapeHTML(job.location || "Location not added")}
+                </span>
+                <span>
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 7h16v13H4z"/><path d="M4 12h16"/></svg>
+                  ${escapeHTML(job.type || "Full-time")}
+                </span>
+                <span>
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                  ${escapeHTML(formatDate(job.createdAt))}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" onclick="applyToJob('${escapeHTML(job._id)}')">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+              Apply now
+            </button>
+
+            <button class="btn ${saved ? "saved" : ""}" onclick="saveJob('${escapeHTML(job._id)}')" ${canSave ? "" : "title='Only talents or agents can save jobs'"}>
+              <svg fill="${saved ? "currentColor" : "none"}" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 21 12 17 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"/></svg>
+              ${saved ? "Saved" : "Save job"}
+            </button>
+
+            <button class="btn" onclick="openEmployer('${escapeHTML(job._id)}')">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-3"/><path d="M9 9h.01"/><path d="M9 13h.01"/><path d="M9 17h.01"/></svg>
+              View company
+            </button>
+          </div>
+
+          <div class="detail-grid">
+            <div class="info-box"><span>Salary</span><strong>${escapeHTML(job.salary || "Not specified")}</strong></div>
+            <div class="info-box"><span>Level</span><strong>${escapeHTML(job.experienceLevel || "Not specified")}</strong></div>
+            <div class="info-box"><span>Views</span><strong>${escapeHTML(job.viewsCount || 0)}</strong></div>
+            <div class="info-box"><span>Saves</span><strong>${escapeHTML(job.saveCount || 0)}</strong></div>
+          </div>
+
+          <div class="section">
+            <h3>Job description</h3>
+            <div class="description">${escapeHTML(job.description || "No description added yet.")}</div>
+          </div>
+
+          <div class="section">
+            <h3>Skills</h3>
+            <div class="tags">
+              ${skills.length ? skills.map(skill => `<span class="tag">${escapeHTML(skill)}</span>`).join("") : `<span class="tag">No skills listed</span>`}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function saveJob(jobId){
+      if(!["talent","agent"].includes(getRole())){
+        showToast("Only talents or agents can save jobs.");
+        return;
+      }
+
+      try{
+        const res = await fetchJSON(`${API}/api/jobs/${jobId}/save`, {
+          method:"PATCH",
+          headers:authHeaders({ "Content-Type":"application/json" })
+        });
+
+        const job = state.jobs.find(j => String(j._id) === String(jobId));
+
+        if(res.saved){
+          state.savedIds.add(String(jobId));
+          showToast("Job saved.");
+        }else{
+          state.savedIds.delete(String(jobId));
+          showToast("Job removed from saved jobs.");
+        }
+
+        if(job){
+          job.saveCount = res.saveCount ?? job.saveCount;
+          renderDetail(job);
+        }
+
+        renderStats();
+      }catch(err){
+        showToast(err.message || "Could not save job.");
+      }
+    }
+
+    async function applyToJob(jobId){
+      const job = state.jobs.find(j => String(j._id) === String(jobId));
+
+      try{
+        await fetchJSON(`${API}/api/jobs/${jobId}/click-apply`, {
+          method:"PATCH",
+          headers:authHeaders({ "Content-Type":"application/json" })
+        });
+      }catch(err){
+        console.warn("APPLY CLICK TRACK FAILED:", err.message);
+      }
+
+      const role = getRole();
+
+      if(role === "talent" || role === "agent"){
+        location.href = `job-apply.html?jobId=${encodeURIComponent(jobId)}`;
+        return;
+      }
+
+      showToast("Login as talent or agent to apply.");
+    }
+
+    function openEmployer(jobId){
+      const job = state.jobs.find(j => String(j._id) === String(jobId));
+      if(!job) return;
+      const url = employerProfileUrl(job);
+      if(url === "#"){
+        showToast("Employer profile is not available.");
+        return;
+      }
+      location.href = url;
+    }
+
+    window.selectJob = selectJob;
+    window.saveJob = saveJob;
+    window.applyToJob = applyToJob;
+    window.openEmployer = openEmployer;
+
+    function bindEvents(){
+      ["input","change"].forEach(evt => {
+        els.keywordInput.addEventListener(evt, applyFilters);
+        els.locationInput.addEventListener(evt, applyFilters);
+        els.typeFilter.addEventListener(evt, applyFilters);
+        els.workSetupFilter.addEventListener(evt, applyFilters);
+      });
+
+      els.searchBtn.addEventListener("click", applyFilters);
+
+      els.clearBtn.addEventListener("click", () => {
+        els.keywordInput.value = "";
+        els.locationInput.value = "";
+        els.typeFilter.value = "";
+        els.workSetupFilter.value = "";
+        applyFilters();
+
+        if(state.filtered.length){
+          selectJob(state.filtered[0]._id, false);
+        }
+      });
+
+      document.getElementById("dashboardBtn").addEventListener("click", () => {
+        location.href = dashboardUrl();
+      });
+
+      document.getElementById("meBtn").addEventListener("click", () => {
+        location.href = profileUrl();
+      });
+
+      document.getElementById("mobileMeBtn").addEventListener("click", e => {
+        e.preventDefault();
+        location.href = profileUrl();
+      });
+    }
+
+    async function init(){
+      if(!requireAuth()) return;
+      bindEvents();
+      await loadMe();
+      await loadJobs();
+    }
+
+    init();
+  </script>
+</body>
+</html>
