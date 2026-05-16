@@ -426,11 +426,18 @@ a{
   line-height:1.6;
 }
 
-.field input:focus,
-.field textarea:focus,
-.field select:focus{
-  border-color:#9cc3ea;
-  box-shadow:0 0 0 4px rgba(10,102,194,.08);
+.field.has-error input,
+.field.has-error textarea,
+.field.has-error select{
+  border-color:#dc2626!important;
+  background:#fff7f7;
+  box-shadow:0 0 0 4px rgba(220,38,38,.08)!important;
+}
+
+.field-error{
+  color:#dc2626;
+  font-size:12px;
+  font-weight:700;
 }
 
 .help{
@@ -1812,13 +1819,132 @@ function setStatus(text,type=""){
   el.style.color = type === "error" ? "#991b1b" : type === "success" ? "#166534" : "#334155";
 }
 
-function toast(title,msg="",type="success"){
-  const wrap = document.getElementById("toastWrap");
-  const div = document.createElement("div");
-  div.className = "toast " + type;
-  div.innerHTML = `<b>${esc(title)}</b><div style="font-size:12px;margin-top:4px;opacity:.9;">${esc(msg)}</div>`;
-  wrap.appendChild(div);
-  setTimeout(()=>div.remove(),3500);
+function clearFieldErrors(){
+  document.querySelectorAll(".field.has-error").forEach(field=>{
+    field.classList.remove("has-error");
+  });
+
+  document.querySelectorAll(".field-error").forEach(error=>{
+    error.remove();
+  });
+}
+
+function markFieldError(inputId,message){
+  const input = document.getElementById(inputId);
+  if(!input) return;
+
+  const field = input.closest(".field");
+  if(!field) return;
+
+  field.classList.add("has-error");
+
+  const error = document.createElement("div");
+  error.className = "field-error";
+  error.textContent = message;
+
+  field.appendChild(error);
+}
+
+function validateProfileBeforeSave(){
+  clearFieldErrors();
+
+  const errors = [];
+
+  const requiredFields = [
+    {
+      id:"nameInput",
+      label:"Full Name",
+      section:"basic"
+    },
+    {
+      id:"headlineInput",
+      label:"Professional Headline",
+      section:"basic"
+    },
+    {
+      id:"locationInput",
+      label:"Location",
+      section:"basic"
+    },
+    {
+      id:"bioInput",
+      label:"About / Bio",
+      section:"basic"
+    },
+    {
+      id:"preferredRoleInput",
+      label:"Preferred Role",
+      section:"career"
+    },
+    {
+      id:"availabilityInput",
+      label:"Availability",
+      section:"career",
+      invalidValue:"not-specified"
+    },
+    {
+      id:"employmentTypeInput",
+      label:"Employment Type",
+      section:"career"
+    },
+    {
+      id:"workSetupInput",
+      label:"Work Setup",
+      section:"career"
+    }
+  ];
+
+  requiredFields.forEach(field=>{
+    const input = document.getElementById(field.id);
+    const value = input ? input.value.trim() : "";
+
+    if(!value || value === field.invalidValue){
+      errors.push(field);
+      markFieldError(field.id, `${field.label} is required.`);
+    }
+  });
+
+  if(state.skills.length < 3){
+    errors.push({
+      label:"Skills",
+      section:"skills"
+    });
+  }
+
+  if(state.languages.length < 1){
+    errors.push({
+      label:"Languages",
+      section:"skills"
+    });
+  }
+
+  if(!errors.length){
+    return true;
+  }
+
+  showSection(errors[0].section);
+
+  toast(
+    "Profile needs more information",
+    `Please complete: ${errors.slice(0,5).map(e=>e.label).join(", ")}.`,
+    "error"
+  );
+
+  const firstInput =
+    document.getElementById(errors[0].id);
+
+  if(firstInput){
+    setTimeout(()=>{
+      firstInput.scrollIntoView({
+        behavior:"smooth",
+        block:"center"
+      });
+
+      firstInput.focus();
+    },150);
+  }
+
+  return false;
 }
 
 async function fetchJSON(path,options={}){
@@ -2500,7 +2626,12 @@ document.getElementById("saveProfileBtn")
 
 async function saveProfile(){
 
-  try{
+try{
+
+    if(!validateProfileBeforeSave()){
+      setStatus("Needs attention","error");
+      return;
+    }
 
     setStatus("Saving...");
 
