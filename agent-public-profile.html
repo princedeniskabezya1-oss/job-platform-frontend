@@ -1500,10 +1500,15 @@ function renderPerformance(metrics){
 
 function renderCVSection(user){
 
-  const card = document.getElementById("cvCard");
-  const wrap = document.getElementById("cvPreviewWrap");
+  const card =
+    document.getElementById("cvCard");
 
-  if(!card || !wrap) return;
+  const wrap =
+    document.getElementById("cvPreviewWrap");
+
+  if(!card || !wrap){
+    return;
+  }
 
   if(!user.cvUrl || user.showCV === false){
     card.classList.add("hidden");
@@ -1512,10 +1517,163 @@ function renderCVSection(user){
 
   card.classList.remove("hidden");
 
-  const cvUrl = String(user.cvUrl);
-  const previewUrl =
-    "https://docs.google.com/gview?embedded=true&url=" +
-    encodeURIComponent(cvUrl);
+  const originalUrl =
+    String(user.cvUrl);
+
+  const cleanUrl =
+    originalUrl.split("#")[0];
+
+  const lowerUrl =
+    cleanUrl.toLowerCase();
+
+  const isPdf =
+    lowerUrl.includes(".pdf") ||
+    lowerUrl.includes("application/pdf");
+
+  const isImage =
+    lowerUrl.includes(".jpg") ||
+    lowerUrl.includes(".jpeg") ||
+    lowerUrl.includes(".png") ||
+    lowerUrl.includes(".webp");
+
+  const isDoc =
+    lowerUrl.includes(".doc") ||
+    lowerUrl.includes(".docx");
+
+  let previewUrl =
+    cleanUrl;
+
+  /*
+    Cloudinary sometimes sends PDFs as attachment/download.
+    This helps the browser display the actual uploaded file inline.
+  */
+  if(
+    cleanUrl.includes("res.cloudinary.com") &&
+    isPdf
+  ){
+    previewUrl =
+      cleanUrl.replace(
+        "/upload/",
+        "/upload/fl_attachment:false/"
+      );
+  }
+
+  if(isImage){
+
+    wrap.innerHTML = `
+      <div
+        style="
+          border:1px solid #e5e7eb;
+          border-radius:14px;
+          overflow:hidden;
+          background:#fff;
+        "
+      >
+
+        <div
+          style="
+            height:150px;
+            background:#f8fafc;
+            overflow:hidden;
+          "
+        >
+          <img
+            src="${previewUrl}"
+            alt="CV Preview"
+            style="
+              width:100%;
+              height:100%;
+              object-fit:cover;
+              display:block;
+            "
+          >
+        </div>
+
+        <div
+          style="
+            padding:10px;
+            border-top:1px solid #f1f5f9;
+            display:flex;
+            justify-content:center;
+            background:#fff;
+          "
+        >
+          <a
+            href="${originalUrl}"
+            target="_blank"
+            rel="noopener"
+            class="pill-btn primary"
+            style="
+              min-width:120px;
+              text-align:center;
+            "
+          >
+            View CV
+          </a>
+        </div>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  if(isDoc){
+
+    const officePreview =
+      "https://view.officeapps.live.com/op/embed.aspx?src=" +
+      encodeURIComponent(originalUrl);
+
+    wrap.innerHTML = `
+      <div
+        style="
+          border:1px solid #e5e7eb;
+          border-radius:14px;
+          overflow:hidden;
+          background:#fff;
+        "
+      >
+
+        <iframe
+          src="${officePreview}"
+          title="CV Preview"
+          style="
+            width:100%;
+            height:150px;
+            border:0;
+            display:block;
+            background:#fff;
+          "
+        ></iframe>
+
+        <div
+          style="
+            padding:10px;
+            border-top:1px solid #f1f5f9;
+            display:flex;
+            justify-content:center;
+            background:#fff;
+          "
+        >
+          <a
+            href="${originalUrl}"
+            target="_blank"
+            rel="noopener"
+            class="pill-btn primary"
+            style="
+              min-width:120px;
+              text-align:center;
+            "
+          >
+            View CV
+          </a>
+        </div>
+
+      </div>
+    `;
+
+    return;
+  }
 
   wrap.innerHTML = `
     <div
@@ -1527,8 +1685,9 @@ function renderCVSection(user){
       "
     >
 
-      <iframe
-        src="${previewUrl}"
+      <object
+        data="${previewUrl}"
+        type="application/pdf"
         style="
           width:100%;
           height:150px;
@@ -1536,7 +1695,21 @@ function renderCVSection(user){
           display:block;
           background:#fff;
         "
-      ></iframe>
+      >
+
+        <iframe
+          src="${previewUrl}"
+          title="CV Preview"
+          style="
+            width:100%;
+            height:150px;
+            border:0;
+            display:block;
+            background:#fff;
+          "
+        ></iframe>
+
+      </object>
 
       <div
         style="
@@ -1547,9 +1720,8 @@ function renderCVSection(user){
           background:#fff;
         "
       >
-
         <a
-          href="${cvUrl}"
+          href="${originalUrl}"
           target="_blank"
           rel="noopener"
           class="pill-btn primary"
@@ -1560,7 +1732,6 @@ function renderCVSection(user){
         >
           View CV
         </a>
-
       </div>
 
     </div>
