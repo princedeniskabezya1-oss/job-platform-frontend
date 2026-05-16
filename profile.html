@@ -1617,12 +1617,29 @@ a{
         Choose CV / document
       </button>
 
-      <input
-        class="hidden"
-        type="file"
-        id="resumeInput"
-        accept=".pdf,.doc,.docx"
-      >
+<input
+  class="hidden"
+  type="file"
+  id="resumeInput"
+  accept=".pdf,.doc,.docx"
+>
+
+<div
+  id="resumeFileName"
+  class="help"
+  style="margin-top:8px;"
+>
+  No file selected
+</div>
+
+<button
+  type="button"
+  class="btn danger hidden"
+  id="removeResumeBtn"
+  style="width:max-content;margin-top:8px;"
+>
+  Remove CV
+</button>
     </div>
 
   </div>
@@ -2029,7 +2046,8 @@ const state = {
   editPortfolioIndex:null,
   avatarFile:null,
   bannerFile:null,
-  resumeFile:null
+  resumeFile:null,
+removeCV:false
 };
 
 function getToken(){
@@ -2331,6 +2349,18 @@ document.getElementById("allowMessagesInput").value =
 document.getElementById("allowProfileIndexingInput").value =
   String(me.allowProfileIndexing !== false);
 }
+  const resumeName =
+  me.cvUrl
+    ? me.cvUrl.split("/").pop().split("?")[0]
+    : "No file selected";
+
+document.getElementById("resumeFileName").textContent =
+  resumeName;
+
+document.getElementById("removeResumeBtn").classList.toggle(
+  "hidden",
+  !me.cvUrl
+);
 
 function normalizeAvailability(value){
   return value || "not-specified";
@@ -2899,7 +2929,46 @@ document.getElementById("bannerInput")
 
 document.getElementById("resumeInput")
 .addEventListener("change",e=>{
-  state.resumeFile = e.target.files[0] || null;
+
+  const file =
+    e.target.files[0] || null;
+
+  state.resumeFile = file;
+  state.removeCV = false;
+
+  document.getElementById("resumeFileName").textContent =
+    file ? file.name : "No file selected";
+
+  document.getElementById("removeResumeBtn").classList.toggle(
+    "hidden",
+    !file && !state.me?.cvUrl
+  );
+
+  renderCompletion();
+});
+  document.getElementById("removeResumeBtn")
+.addEventListener("click",()=>{
+
+  state.resumeFile = null;
+  state.removeCV = true;
+
+  document.getElementById("resumeInput").value = "";
+
+  document.getElementById("resumeFileName").textContent =
+    "CV will be removed after saving.";
+
+  document.getElementById("removeResumeBtn").classList.add("hidden");
+
+  if(state.me){
+    state.me.cvUrl = "";
+  }
+
+  renderCompletion();
+
+  toast(
+    "CV marked for removal",
+    "Click Save Changes to remove it from your profile."
+  );
 });
 
 document.getElementById("previewProfileBtn")
@@ -3063,6 +3132,13 @@ if(state.resumeFile){
   );
 }
 
+if(state.removeCV){
+  form.append(
+    "removeCV",
+    "true"
+  );
+}
+
     const data =
       await fetchJSON(
         "/api/users/profile",
@@ -3088,20 +3164,20 @@ if(state.me){
 state.avatarFile = null;
 state.bannerFile = null;
 state.resumeFile = null;
+state.removeCV = false;
 
+fillForm();
 renderAll();
 
-    toast(
-      "Profile updated",
-      "Your profile has been saved successfully."
-    );
+toast(
+  "Profile updated",
+  "Your profile has been saved successfully."
+);
 
-    setStatus(
-      "Saved",
-      "success"
-    );
-
-    renderAll();
+setStatus(
+  "Ready",
+  "success"
+);
 
   }catch(err){
 
