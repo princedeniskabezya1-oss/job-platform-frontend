@@ -1385,6 +1385,55 @@ a{
         <div class="help">
           These services will appear on the agent public profile if the user is an agent.
         </div>
+        <hr style="border:0;border-top:1px solid #eee;margin:18px 0;">
+
+<label>Tools</label>
+
+<div
+  class="pill-editor"
+  id="toolsContainer"
+></div>
+
+<div style="display:flex;gap:10px;margin-top:12px;">
+  <input
+    type="text"
+    id="toolInput"
+    placeholder="Zendesk, Slack, HubSpot, Google Workspace..."
+  >
+
+  <button
+    class="btn"
+    type="button"
+    id="addToolBtn"
+  >
+    Add
+  </button>
+</div>
+
+<hr style="border:0;border-top:1px solid #eee;margin:18px 0;">
+
+<label>Industries</label>
+
+<div
+  class="pill-editor"
+  id="industriesContainer"
+></div>
+
+<div style="display:flex;gap:10px;margin-top:12px;">
+  <input
+    type="text"
+    id="industryInput"
+    placeholder="BPO, Ecommerce, Healthcare, SaaS..."
+  >
+
+  <button
+    class="btn"
+    type="button"
+    id="addIndustryBtn"
+  >
+    Add
+  </button>
+</div>
 
       </div>
 
@@ -2041,6 +2090,8 @@ const state = {
   education:[],
   portfolio:[],
   services:[],
+tools:[],
+industries:[],
   editExperienceIndex:null,
   editEducationIndex:null,
   editPortfolioIndex:null,
@@ -2336,6 +2387,8 @@ async function loadProfile(){
   state.education = Array.isArray(state.me.education) ? [...state.me.education] : [];
   state.portfolio = Array.isArray(state.me.portfolio) ? [...state.me.portfolio] : [];
   state.services = Array.isArray(state.me.services) ? [...state.me.services] : [];
+  state.tools = Array.isArray(state.me.tools) ? [...state.me.tools] : [];
+state.industries = Array.isArray(state.me.industries) ? [...state.me.industries] : [];
 
   fillForm();
   renderAll();
@@ -2417,6 +2470,8 @@ function renderAll(){
   renderPills("skillsContainer",state.skills,"skills");
   renderPills("languagesContainer",state.languages,"languages");
   renderPills("servicesContainer",state.services,"services");
+  renderPills("toolsContainer",state.tools,"tools");
+renderPills("industriesContainer",state.industries,"industries");
   renderExperience();
   renderEducation();
   renderPortfolio();
@@ -2523,7 +2578,13 @@ function removePill(type,index){
   if(type === "services"){
   state.services.splice(index,1);
 }
+if(type === "tools"){
+  state.tools.splice(index,1);
+}
 
+if(type === "industries"){
+  state.industries.splice(index,1);
+}
   renderAll();
 }
 
@@ -2562,6 +2623,33 @@ document.getElementById("addLanguageBtn").addEventListener("click",()=>{
 
   if(!state.services.includes(value)){
     state.services.push(value);
+  }
+
+  input.value = "";
+  renderAll();
+});
+  document.getElementById("addToolBtn").addEventListener("click",()=>{
+  const input = document.getElementById("toolInput");
+  const value = input.value.trim();
+
+  if(!value) return;
+
+  if(!state.tools.includes(value)){
+    state.tools.push(value);
+  }
+
+  input.value = "";
+  renderAll();
+});
+
+document.getElementById("addIndustryBtn").addEventListener("click",()=>{
+  const input = document.getElementById("industryInput");
+  const value = input.value.trim();
+
+  if(!value) return;
+
+  if(!state.industries.includes(value)){
+    state.industries.push(value);
   }
 
   input.value = "";
@@ -3139,7 +3227,15 @@ form.append(
   "services",
   JSON.stringify(state.services)
 );
+form.append(
+  "tools",
+  JSON.stringify(state.tools)
+);
 
+form.append(
+  "industries",
+  JSON.stringify(state.industries)
+);
     if(state.avatarFile){
       form.append(
         "profileImage",
@@ -3185,6 +3281,8 @@ if(state.me){
   state.skills = Array.isArray(state.me.skills) ? [...state.me.skills] : state.skills;
   state.languages = Array.isArray(state.me.languages) ? [...state.me.languages] : state.languages;
   state.services = Array.isArray(state.me.services) ? [...state.me.services] : state.services;
+  state.tools = Array.isArray(state.me.tools) ? [...state.me.tools] : state.tools;
+state.industries = Array.isArray(state.me.industries) ? [...state.me.industries] : state.industries;
   state.experience = Array.isArray(state.me.experience) ? [...state.me.experience] : state.experience;
   state.education = Array.isArray(state.me.education) ? [...state.me.education] : state.education;
   state.portfolio = Array.isArray(state.me.portfolio) ? [...state.me.portfolio] : state.portfolio;
