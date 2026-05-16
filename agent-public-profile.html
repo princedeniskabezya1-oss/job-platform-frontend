@@ -681,39 +681,13 @@ a{text-decoration:none;color:inherit}
 
             <div class="card content-card">
 
-              <h2>Services</h2>
+<h2>Services</h2>
 
-              <div class="grid-2">
-
-                <div class="feature-card">
-                  <h3>Customer Support</h3>
-                  <p>
-                    Email, chat, inbound and outbound support with professional communication standards.
-                  </p>
-                </div>
-
-                <div class="feature-card">
-                  <h3>Appointment Setting</h3>
-                  <p>
-                    Lead generation, outreach, scheduling, and CRM follow-ups.
-                  </p>
-                </div>
-
-                <div class="feature-card">
-                  <h3>Sales Assistance</h3>
-                  <p>
-                    Sales support, upselling assistance, and customer retention handling.
-                  </p>
-                </div>
-
-                <div class="feature-card">
-                  <h3>Remote Operations</h3>
-                  <p>
-                    Team collaboration, reports, workflow tracking, and admin operations.
-                  </p>
-                </div>
-
-              </div>
+<div class="grid-2" id="servicesWrap">
+  <div class="empty">
+    No services added yet.
+  </div>
+</div>
 
             </div>
 
@@ -783,30 +757,11 @@ a{text-decoration:none;color:inherit}
 
             <h2>Professional Experience</h2>
 
-            <div class="timeline" id="experienceTimeline">
-
-              <div class="timeline-item">
-                <h3>Bilingual Support Specialist</h3>
-                <p>
-                  Assisted international customers through multiple communication channels while maintaining strong client satisfaction and issue resolution performance.
-                </p>
-              </div>
-
-              <div class="timeline-item">
-                <h3>Virtual Assistant</h3>
-                <p>
-                  Managed scheduling, CRM updates, reporting, and administrative support for remote operations.
-                </p>
-              </div>
-
-              <div class="timeline-item">
-                <h3>Sales & Retention Support</h3>
-                <p>
-                  Helped improve client retention, handled sales follow-ups, and assisted in customer engagement campaigns.
-                </p>
-              </div>
-
-            </div>
+<div class="timeline" id="experienceTimeline">
+  <div class="empty">
+    No experience added yet.
+  </div>
+</div>
 
           </div>
 
@@ -858,14 +813,11 @@ a{text-decoration:none;color:inherit}
 
               <h2>Tools</h2>
 
-              <div class="pill-list">
-
-                <span class="skill-pill">Slack</span>
-                <span class="skill-pill">Google Workspace</span>
-                <span class="skill-pill">HubSpot</span>
-                <span class="skill-pill">Zendesk</span>
-
-              </div>
+<div class="pill-list" id="toolsWrap">
+  <div class="empty">
+    No tools added yet.
+  </div>
+</div>
 
             </div>
 
@@ -873,14 +825,11 @@ a{text-decoration:none;color:inherit}
 
               <h2>Industries</h2>
 
-              <div class="pill-list">
-
-                <span class="skill-pill">BPO</span>
-                <span class="skill-pill">Tech</span>
-                <span class="skill-pill">Customer Support</span>
-                <span class="skill-pill">Recruitment</span>
-
-              </div>
+<div class="pill-list" id="industriesWrap">
+  <div class="empty">
+    No industries added yet.
+  </div>
+</div>
 
             </div>
 
@@ -1042,32 +991,16 @@ a{text-decoration:none;color:inherit}
 
         <div class="card side-card">
 
-          <h3>Why Employers Like This Agent</h3>
+<h3>Why Employers Like This Agent</h3>
 
-          <div class="timeline">
-
-            <div class="timeline-item">
-              <h3>Professional Communication</h3>
-              <p>
-                Strong written and verbal communication with clients and teams.
-              </p>
-            </div>
-
-            <div class="timeline-item">
-              <h3>Reliable Attendance</h3>
-              <p>
-                Consistent schedule management and accountability.
-              </p>
-            </div>
-
-            <div class="timeline-item">
-              <h3>Adaptability</h3>
-              <p>
-                Comfortable handling different tools, workflows, and industries.
-              </p>
-            </div>
-
-          </div>
+<div
+  class="timeline"
+  id="employerPraiseWrap"
+>
+  <div class="empty">
+    No employer feedback yet.
+  </div>
+</div>
 
         </div>
 
@@ -1420,7 +1353,7 @@ const story =
   user.about ||
   user.story ||
   user.bio ||
-  "This agent has not added an about section yet.";
+  "";
 
   document.title =
     `${name} | AIFT`;
@@ -1460,15 +1393,11 @@ const story =
   ).textContent =
     availability;
 
-  document.getElementById(
-    "agentStory"
-  ).textContent =
-    story;
+document.getElementById("agentStory").textContent = story || "";
 
-  document.getElementById(
-    "overviewAbout"
-  ).textContent =
-    story;
+document.getElementById("overviewAbout").innerHTML = story
+  ? escapeHtml(story)
+  : `<span style="color:#777;">No about section added yet.</span>`;
 
   document.getElementById(
     "infoCompany"
@@ -1530,16 +1459,19 @@ const story =
 
   /* OWNER BUTTON */
 
-  if(
-    viewer &&
-    String(viewer._id) ===
-    String(user._id)
-  ){
+const isOwner =
+  viewer &&
+  String(viewer._id) === String(user._id);
 
-document.getElementById("dashboardBtn").classList.remove("hidden");
-document.getElementById("editProfileBtn").classList.remove("hidden");
+if(isOwner){
 
-  }
+  document.getElementById("dashboardBtn").classList.remove("hidden");
+  document.getElementById("editProfileBtn").classList.remove("hidden");
+
+  document.getElementById("followAgentBtn").classList.add("hidden");
+  document.getElementById("messageAgentBtn").classList.add("hidden");
+
+}
 
   /* STATS */
 
@@ -1548,20 +1480,22 @@ document.getElementById("editProfileBtn").classList.remove("hidden");
       user.completedTasks || 0
     );
 
-  const performance =
-    Number(
-      user.performanceScore || 95
-    );
+const performance =
+  Number(
+    user.performanceScore || 0
+  );
 
-  const experience =
-    Number(
-      user.experienceYears || 1
-    );
+const experience =
+  Number(
+    user.yearsOfExperience ||
+    user.experienceYears ||
+    0
+  );
 
-  const languages =
-    Array.isArray(user.languages)
-      ? user.languages.length
-      : 1;
+const languages =
+  Array.isArray(user.languages)
+    ? user.languages.length
+    : 0;
 
   document.getElementById(
     "statTasks"
@@ -1587,7 +1521,15 @@ document.getElementById("editProfileBtn").classList.remove("hidden");
     "sideExperience"
   ).textContent =
     experience + " yrs";
-
+renderServices(user.services || []);
+renderAgentExperience(user.experience || []);
+renderPillList("toolsWrap", user.tools || []);
+renderPillList("industriesWrap", user.industries || user.companyTags || []);
+  renderEmployerPraise(
+  user.employerPraise ||
+  user.positiveFeedback ||
+  []
+);
   /* SKILLS */
 
   if(
@@ -1632,7 +1574,162 @@ document.getElementById("editProfileBtn").classList.remove("hidden");
   }
 
 }
+function renderServices(services){
 
+  const wrap = document.getElementById("servicesWrap");
+
+  if(!wrap) return;
+
+  if(!Array.isArray(services) || !services.length){
+
+    wrap.innerHTML = `
+      <div class="empty">
+        No services added yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  wrap.innerHTML = services.map(service => {
+
+    if(typeof service === "string"){
+      return `
+        <div class="feature-card">
+          <h3>${escapeHtml(service)}</h3>
+          <p>Service added by this agent.</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="feature-card">
+        <h3>${escapeHtml(service.title || service.name || "Service")}</h3>
+        <p>${escapeHtml(service.description || "")}</p>
+      </div>
+    `;
+
+  }).join("");
+}
+  function renderAgentExperience(experience){
+
+  const wrap = document.getElementById("experienceTimeline");
+
+  if(!wrap) return;
+
+  if(!Array.isArray(experience) || !experience.length){
+
+    wrap.innerHTML = `
+      <div class="empty">
+        No experience added yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  wrap.innerHTML = experience.map(item => `
+    <div class="timeline-item">
+      <h3>${escapeHtml(item.title || "Experience")}</h3>
+      <p>
+        ${escapeHtml(item.company || "")}
+        ${item.startDate || item.endDate ? " • " : ""}
+        ${escapeHtml(item.startDate || "")}
+        ${item.endDate ? " - " + escapeHtml(item.endDate) : ""}
+      </p>
+      ${
+        item.description
+          ? `<p style="margin-top:8px;">${escapeHtml(item.description)}</p>`
+          : ""
+      }
+    </div>
+  `).join("");
+}
+  function renderPillList(containerId,items){
+
+  const wrap = document.getElementById(containerId);
+
+  if(!wrap) return;
+
+  if(!Array.isArray(items) || !items.length){
+
+    wrap.innerHTML = `
+      <div class="empty">
+        Nothing added yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  wrap.innerHTML = items.map(item => `
+    <span class="skill-pill">
+      ${escapeHtml(item)}
+    </span>
+  `).join("");
+}
+  function renderEmployerPraise(items){
+
+  const wrap =
+    document.getElementById(
+      "employerPraiseWrap"
+    );
+
+  if(!wrap) return;
+
+  if(
+    !Array.isArray(items) ||
+    !items.length
+  ){
+
+    wrap.innerHTML = `
+      <div class="empty">
+        No employer feedback yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  wrap.innerHTML =
+    items.map(item => {
+
+      if(typeof item === "string"){
+
+        return `
+          <div class="timeline-item">
+            <h3>Employer Feedback</h3>
+            <p>${escapeHtml(item)}</p>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="timeline-item">
+
+          <h3>
+            ${escapeHtml(
+              item.title ||
+              item.category ||
+              "Employer Feedback"
+            )}
+          </h3>
+
+          <p>
+            ${escapeHtml(
+              item.message ||
+              item.feedback ||
+              item.description ||
+              ""
+            )}
+          </p>
+
+        </div>
+      `;
+
+    }).join("");
+
+}
 /* =========================
    DASHBOARD BUTTON
 ========================= */
