@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AIFT Network</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --blue:#2563eb;
+      --green:#10b981;
+      --purple:#7c3aed;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --soft:#f8fafc;
+      --line:#e2e8f0;
+      --card:#ffffff;
+      --danger:#ef4444;
+      --shadow:0 12px 35px rgba(15,23,42,.08);
+      --radius:22px;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:#f3f6fb;
+      color:var(--ink);
+      font-size:14px;
+    }
+
+    a{text-decoration:none;color:inherit}
+    button,input,select{font-family:inherit}
+
+    .app-shell{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns:260px minmax(0,1fr);
+    }
+
+    .sidebar{
+      position:sticky;
+      top:0;
+      height:100vh;
+      background:#fff;
+      border-right:1px solid var(--line);
+      padding:18px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      z-index:20;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:8px 10px 18px;
+      border-bottom:1px solid var(--line);
+    }
+
+    .brand-mark{
+      width:38px;
+      height:38px;
+      border-radius:14px;
+      background:linear-gradient(135deg,var(--blue),var(--green),var(--purple));
+      display:grid;
+      place-items:center;
+      color:#fff;
+      font-weight:800;
+      letter-spacing:-.04em;
+    }
+
+    .brand-title{
+      font-weight:800;
+      font-size:16px;
+      letter-spacing:-.03em;
+    }
+
+    .brand-sub{
+      font-size:11px;
+      color:var(--muted);
+      margin-top:2px;
+    }
+
+    .nav{
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+    }
+
+    .nav a,
+    .nav button{
+      border:0;
+      background:transparent;
+      width:100%;
+      display:flex;
+      align-items:center;
+      gap:11px;
+      padding:11px 12px;
+      border-radius:14px;
+      color:#334155;
+      font-weight:600;
+      cursor:pointer;
+      font-size:13px;
+      text-align:left;
+    }
+
+    .nav a:hover,
+    .nav button:hover{
+      background:#f1f5f9;
+      color:var(--blue);
+    }
+
+    .nav a.active{
+      background:linear-gradient(135deg,rgba(37,99,235,.1),rgba(16,185,129,.1));
+      color:var(--blue);
+    }
+
+    .nav svg{
+      width:19px;
+      height:19px;
+      stroke-width:2.1;
+      flex:none;
+    }
+
+    .main{
+      min-width:0;
+      padding:18px;
+    }
+
+    .topbar{
+      background:rgba(255,255,255,.88);
+      backdrop-filter:blur(18px);
+      border:1px solid var(--line);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      padding:14px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      position:sticky;
+      top:14px;
+      z-index:15;
+    }
+
+    .search-wrap{
+      flex:1;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      background:#f8fafc;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:0 14px;
+      height:44px;
+    }
+
+    .search-wrap svg{
+      width:18px;
+      color:#64748b;
+      flex:none;
+    }
+
+    .search-wrap input{
+      border:0;
+      outline:0;
+      background:transparent;
+      width:100%;
+      font-size:14px;
+      color:var(--ink);
+    }
+
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .pill-btn{
+      border:1px solid var(--line);
+      background:#fff;
+      color:#334155;
+      border-radius:999px;
+      padding:10px 14px;
+      font-weight:700;
+      font-size:12px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      white-space:nowrap;
+    }
+
+    .pill-btn.primary{
+      border:0;
+      color:#fff;
+      background:linear-gradient(135deg,var(--blue),var(--purple));
+    }
+
+    .pill-btn:hover{transform:translateY(-1px)}
+    .pill-btn svg{width:16px;height:16px}
+
+    .layout{
+      display:grid;
+      grid-template-columns:280px minmax(0,1fr) 300px;
+      gap:18px;
+      margin-top:18px;
+      align-items:start;
+    }
+
+    .panel{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .panel-pad{padding:16px}
+
+    .panel-title{
+      font-size:14px;
+      font-weight:800;
+      letter-spacing:-.02em;
+      margin:0 0 4px;
+    }
+
+    .panel-sub{
+      margin:0;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .filter-group{
+      margin-top:16px;
+      display:flex;
+      flex-direction:column;
+      gap:9px;
+    }
+
+    .filter-label{
+      font-size:11px;
+      font-weight:800;
+      color:#475569;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+    }
+
+    .field,
+    .select{
+      width:100%;
+      border:1px solid var(--line);
+      background:#f8fafc;
+      border-radius:14px;
+      height:42px;
+      padding:0 12px;
+      outline:0;
+      color:#0f172a;
+      font-size:13px;
+    }
+
+    .field:focus,
+    .select:focus{
+      border-color:rgba(37,99,235,.55);
+      box-shadow:0 0 0 4px rgba(37,99,235,.08);
+      background:#fff;
+    }
+
+    .role-chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .chip{
+      border:1px solid var(--line);
+      background:#fff;
+      color:#334155;
+      border-radius:999px;
+      padding:8px 11px;
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .chip.active{
+      color:#fff;
+      border-color:transparent;
+      background:linear-gradient(135deg,var(--blue),var(--green));
+    }
+
+    .hero{
+      background:linear-gradient(135deg,rgba(37,99,235,.12),rgba(16,185,129,.11),rgba(124,58,237,.11));
+      border:1px solid rgba(37,99,235,.15);
+      border-radius:26px;
+      padding:22px;
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      align-items:center;
+      margin-bottom:18px;
+    }
+
+    .hero h1{
+      margin:0;
+      font-size:25px;
+      line-height:1.15;
+      letter-spacing:-.05em;
+    }
+
+    .hero p{
+      margin:8px 0 0;
+      color:#475569;
+      max-width:650px;
+      line-height:1.55;
+      font-size:13px;
+    }
+
+    .hero-stats{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+      min-width:260px;
+    }
+
+    .stat{
+      background:rgba(255,255,255,.78);
+      border:1px solid rgba(255,255,255,.85);
+      border-radius:18px;
+      padding:13px;
+      text-align:center;
+    }
+
+    .stat strong{
+      display:block;
+      font-size:20px;
+      letter-spacing:-.04em;
+    }
+
+    .stat span{
+      font-size:11px;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    .results-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:14px;
+      margin-bottom:12px;
+    }
+
+    .results-head h2{
+      font-size:15px;
+      margin:0;
+      letter-spacing:-.02em;
+    }
+
+    .results-meta{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:600;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:14px;
+    }
+
+    .profile-card{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:22px;
+      overflow:hidden;
+      box-shadow:0 8px 24px rgba(15,23,42,.06);
+      min-width:0;
+      transition:.18s ease;
+    }
+
+    .profile-card:hover{
+      transform:translateY(-2px);
+      box-shadow:0 16px 34px rgba(15,23,42,.11);
+    }
+
+    .cover{
+      height:72px;
+      background:linear-gradient(135deg,#dbeafe,#dcfce7,#ede9fe);
+      position:relative;
+    }
+
+    .avatar{
+      width:72px;
+      height:72px;
+      border-radius:24px;
+      border:4px solid #fff;
+      object-fit:cover;
+      background:#fff;
+      position:absolute;
+      left:16px;
+      bottom:-34px;
+      box-shadow:0 8px 20px rgba(15,23,42,.12);
+    }
+
+    .role-badge{
+      position:absolute;
+      top:12px;
+      right:12px;
+      background:rgba(255,255,255,.9);
+      border:1px solid rgba(226,232,240,.9);
+      color:#334155;
+      border-radius:999px;
+      padding:6px 9px;
+      font-size:11px;
+      font-weight:800;
+      text-transform:capitalize;
+    }
+
+    .card-body{
+      padding:42px 16px 16px;
+    }
+
+    .name-row{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      min-width:0;
+    }
+
+    .name{
+      margin:0;
+      font-size:15px;
+      font-weight:800;
+      letter-spacing:-.03em;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .verified{
+      width:16px;
+      height:16px;
+      color:var(--blue);
+      flex:none;
+    }
+
+    .headline{
+      margin:5px 0 0;
+      color:#475569;
+      font-size:12px;
+      line-height:1.45;
+      min-height:34px;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+
+    .location{
+      margin-top:9px;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      color:#64748b;
+      font-size:12px;
+      font-weight:600;
+      min-height:18px;
+    }
+
+    .location svg{
+      width:14px;
+      height:14px;
+      flex:none;
+    }
+
+    .skills{
+      margin-top:12px;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      min-height:28px;
+    }
+
+    .skill{
+      background:#f1f5f9;
+      color:#334155;
+      border:1px solid #e2e8f0;
+      border-radius:999px;
+      padding:6px 8px;
+      font-size:11px;
+      font-weight:700;
+      max-width:120px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .card-stats{
+      margin-top:13px;
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:8px;
+    }
+
+    .mini-stat{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:9px;
+      background:#fbfdff;
+    }
+
+    .mini-stat strong{
+      display:block;
+      font-size:13px;
+    }
+
+    .mini-stat span{
+      font-size:10px;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    .card-actions{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .card-btn{
+      height:38px;
+      border-radius:13px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:#334155;
+      font-weight:800;
+      cursor:pointer;
+      font-size:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+    }
+
+    .card-btn.primary{
+      border:0;
+      color:#fff;
+      background:linear-gradient(135deg,var(--blue),var(--green));
+    }
+
+    .card-btn.following{
+      background:#eef2ff;
+      color:#4338ca;
+      border-color:#c7d2fe;
+    }
+
+    .card-btn svg{
+      width:15px;
+      height:15px;
+    }
+
+    .side-profile{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      padding:16px;
+      border-bottom:1px solid var(--line);
+    }
+
+    .side-profile img{
+      width:48px;
+      height:48px;
+      border-radius:17px;
+      object-fit:cover;
+      background:#f1f5f9;
+    }
+
+    .side-profile strong{
+      display:block;
+      font-size:13px;
+      letter-spacing:-.02em;
+    }
+
+    .side-profile span{
+      display:block;
+      font-size:11px;
+      color:var(--muted);
+      margin-top:2px;
+    }
+
+    .quick-list{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:12px;
+    }
+
+    .quick-item{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px;
+      background:#f8fafc;
+      border:1px solid var(--line);
+      border-radius:16px;
+      font-size:12px;
+      font-weight:700;
+      color:#334155;
+    }
+
+    .quick-item span{
+      color:var(--muted);
+      font-weight:800;
+    }
+
+    .empty,
+    .error,
+    .loading{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:22px;
+      padding:26px;
+      text-align:center;
+      box-shadow:var(--shadow);
+    }
+
+    .empty svg,
+    .error svg,
+    .loading svg{
+      width:36px;
+      height:36px;
+      color:#64748b;
+      margin-bottom:12px;
+    }
+
+    .empty h3,
+    .error h3,
+    .loading h3{
+      margin:0;
+      font-size:16px;
+    }
+
+    .empty p,
+    .error p,
+    .loading p{
+      margin:7px auto 0;
+      color:var(--muted);
+      font-size:13px;
+      max-width:420px;
+      line-height:1.5;
+    }
+
+    .mobile-nav{
+      display:none;
+      position:fixed;
+      left:10px;
+      right:10px;
+      bottom:10px;
+      z-index:50;
+      background:rgba(255,255,255,.96);
+      backdrop-filter:blur(18px);
+      border:1px solid var(--line);
+      border-radius:24px;
+      box-shadow:0 18px 50px rgba(15,23,42,.18);
+      padding:8px;
+      grid-template-columns:repeat(5,1fr);
+      gap:4px;
+    }
+
+    .mobile-nav a{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      min-height:48px;
+      border-radius:17px;
+      color:#64748b;
+      font-size:10px;
+      font-weight:800;
+    }
+
+    .mobile-nav a.active{
+      background:#eff6ff;
+      color:var(--blue);
+    }
+
+    .mobile-nav svg{
+      width:19px;
+      height:19px;
+    }
+
+    .toast{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      z-index:80;
+      background:#0f172a;
+      color:#fff;
+      padding:12px 14px;
+      border-radius:16px;
+      box-shadow:0 18px 40px rgba(15,23,42,.25);
+      font-size:13px;
+      font-weight:700;
+      transform:translateY(18px);
+      opacity:0;
+      pointer-events:none;
+      transition:.2s ease;
+      max-width:330px;
+    }
+
+    .toast.show{
+      transform:translateY(0);
+      opacity:1;
+    }
+
+    @media(max-width:1180px){
+      .layout{grid-template-columns:260px minmax(0,1fr)}
+      .right-panel{display:none}
+      .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+
+    @media(max-width:860px){
+      .app-shell{display:block}
+      .sidebar{display:none}
+      .main{padding:12px 12px 88px}
+      .topbar{
+        top:8px;
+        border-radius:21px;
+        padding:10px;
+      }
+      .layout{display:block}
+      .left-panel{display:none}
+      .hero{
+        display:block;
+        border-radius:22px;
+        padding:18px;
+      }
+      .hero h1{font-size:22px}
+      .hero-stats{
+        min-width:0;
+        margin-top:14px;
+      }
+      .grid{grid-template-columns:1fr}
+      .top-actions .pill-btn:not(.primary){display:none}
+      .mobile-nav{display:grid}
+      .toast{
+        left:14px;
+        right:14px;
+        bottom:82px;
+      }
+    }
+
+    @media(max-width:520px){
+      .hero-stats{grid-template-columns:1fr}
+      .results-head{align-items:flex-start;flex-direction:column}
+      .search-wrap{height:42px}
+      .pill-btn.primary span{display:none}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">A</div>
+        <div>
+          <div class="brand-title">AIFT</div>
+          <div class="brand-sub">Professional Network</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="home.html">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10.5Z"/></svg>
+          Home
+        </a>
+        <a class="active" href="network.html">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/><path d="M3 21a9 9 0 0 1 18 0"/></svg>
+          Network
+        </a>
+        <a href="jobs.html">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"/><path d="M4 7h16v13H4z"/><path d="M4 12h16"/></svg>
+          Jobs
+        </a>
+        <a href="messages.html">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/></svg>
+          Messages
+        </a>
+        <a href="notifications.html">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+          Alerts
+        </a>
+        <button type="button" id="meBtn">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><path d="M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg>
+          Me
+        </button>
+        <button type="button" id="dashboardBtn">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Z"/><path d="M14 20h6V4h-6v16Z"/><path d="M4 20h6v-3H4v3Z"/></svg>
+          Dashboard
+        </button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="search-wrap">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="7"/></svg>
+          <input id="searchInput" type="search" placeholder="Search people, skills, language, location..." autocomplete="off">
+        </div>
+
+        <div class="top-actions">
+          <button class="pill-btn" id="clearBtn" type="button">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/></svg>
+            Clear
+          </button>
+          <button class="pill-btn primary" id="refreshBtn" type="button">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.5 6.2"/><path d="M3 12A9 9 0 0 1 18.5 5.8"/><path d="M18.5 2v3.8H15"/><path d="M5.5 22v-3.8H9"/></svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="layout">
+        <aside class="panel left-panel">
+          <div class="panel-pad">
+            <h2 class="panel-title">Filters</h2>
+            <p class="panel-sub">Discover real AIFT members from your backend.</p>
+
+            <div class="filter-group">
+              <div class="filter-label">Role</div>
+              <div class="role-chips" id="roleChips">
+                <button class="chip active" data-role="all">All</button>
+                <button class="chip" data-role="talent">Talents</button>
+                <button class="chip" data-role="agent">Agents</button>
+                <button class="chip" data-role="employer">Employers</button>
+                <button class="chip" data-role="school">Schools</button>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label" for="locationFilter">Location</label>
+              <input class="field" id="locationFilter" placeholder="Example: Manila">
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label" for="languageFilter">Language</label>
+              <input class="field" id="languageFilter" placeholder="Example: English">
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label" for="skillFilter">Skill</label>
+              <input class="field" id="skillFilter" placeholder="Example: Customer service">
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label" for="sortFilter">Sort</label>
+              <select class="select" id="sortFilter">
+                <option value="relevant">Most relevant</option>
+                <option value="followers">Most followers</option>
+                <option value="name">Name A-Z</option>
+                <option value="role">Role</option>
+              </select>
+            </div>
+          </div>
+        </aside>
+
+        <section class="content">
+          <div class="hero">
+            <div>
+              <h1>Build your AIFT professional network</h1>
+              <p>Find talents, agents, employers, and schools. Follow profiles, view public pages, and connect your hiring, training, and BPO ecosystem in one clean network.</p>
+            </div>
+            <div class="hero-stats">
+              <div class="stat"><strong id="statTotal">0</strong><span>Members</span></div>
+              <div class="stat"><strong id="statShown">0</strong><span>Shown</span></div>
+              <div class="stat"><strong id="statFollowing">0</strong><span>Following</span></div>
+            </div>
+          </div>
+
+          <div class="results-head">
+            <h2>People and organizations</h2>
+            <div class="results-meta" id="resultsMeta">Loading network...</div>
+          </div>
+
+          <div id="networkGrid" class="grid"></div>
+          <div id="stateBox"></div>
+        </section>
+
+        <aside class="panel right-panel">
+          <div class="side-profile">
+            <img id="currentAvatar" src="" alt="">
+            <div>
+              <strong id="currentName">My profile</strong>
+              <span id="currentRole">AIFT member</span>
+            </div>
+          </div>
+
+          <div class="panel-pad">
+            <h2 class="panel-title">Network insights</h2>
+            <p class="panel-sub">Live counts based on loaded backend users.</p>
+
+            <div class="quick-list">
+              <div class="quick-item">Talents <span id="countTalent">0</span></div>
+              <div class="quick-item">Agents <span id="countAgent">0</span></div>
+              <div class="quick-item">Employers <span id="countEmployer">0</span></div>
+              <div class="quick-item">Schools <span id="countSchool">0</span></div>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <nav class="mobile-nav">
+    <a href="home.html">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10.5Z"/></svg>
+      Home
+    </a>
+    <a class="active" href="network.html">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/><path d="M3 21a9 9 0 0 1 18 0"/></svg>
+      Network
+    </a>
+    <a href="jobs.html">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"/><path d="M4 7h16v13H4z"/><path d="M4 12h16"/></svg>
+      Jobs
+    </a>
+    <a href="notifications.html">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+      Alerts
+    </a>
+    <a href="#" id="mobileMeBtn">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><path d="M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg>
+      Me
+    </a>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = "https://backend-1-9b6f.onrender.com";
+
+    const state = {
+      me: null,
+      users: [],
+      filtered: [],
+      role: "all",
+      loading: false
+    };
+
+    const els = {
+      searchInput: document.getElementById("searchInput"),
+      locationFilter: document.getElementById("locationFilter"),
+      languageFilter: document.getElementById("languageFilter"),
+      skillFilter: document.getElementById("skillFilter"),
+      sortFilter: document.getElementById("sortFilter"),
+      grid: document.getElementById("networkGrid"),
+      stateBox: document.getElementById("stateBox"),
+      resultsMeta: document.getElementById("resultsMeta"),
+      statTotal: document.getElementById("statTotal"),
+      statShown: document.getElementById("statShown"),
+      statFollowing: document.getElementById("statFollowing"),
+      countTalent: document.getElementById("countTalent"),
+      countAgent: document.getElementById("countAgent"),
+      countEmployer: document.getElementById("countEmployer"),
+      countSchool: document.getElementById("countSchool"),
+      currentAvatar: document.getElementById("currentAvatar"),
+      currentName: document.getElementById("currentName"),
+      currentRole: document.getElementById("currentRole"),
+      toast: document.getElementById("toast")
+    };
+
+    function getRole(){
+      return localStorage.getItem("role") || "";
+    }
+
+    function getToken(){
+      const role = getRole();
+      return (
+        localStorage.getItem(role + "Token") ||
+        localStorage.getItem("talentToken") ||
+        localStorage.getItem("employerToken") ||
+        localStorage.getItem("adminToken") ||
+        localStorage.getItem("agentToken") ||
+        localStorage.getItem("schoolToken") ||
+        localStorage.getItem("token") ||
+        ""
+      );
+    }
+
+    function authHeaders(extra = {}){
+      const token = getToken();
+      return {
+        ...extra,
+        ...(token ? { Authorization: "Bearer " + token } : {})
+      };
+    }
+
+    function requireAuth(){
+      if(!getToken()){
+        location.href = "login.html";
+        return false;
+      }
+      return true;
+    }
+
+    function escapeHTML(value){
+      return String(value ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function safeArray(value){
+      if(Array.isArray(value)) return value.filter(Boolean);
+      if(typeof value === "string" && value.trim()){
+        return value.split(",").map(v => v.trim()).filter(Boolean);
+      }
+      return [];
+    }
+
+    function avatarOf(user){
+      return user?.profileImage || "https://ui-avatars.com/api/?name=" + encodeURIComponent(user?.name || user?.companyName || "AIFT") + "&background=e0f2fe&color=0f172a";
+    }
+
+    function displayName(user){
+      if(user?.role === "employer") return user.companyName || user.name || "Employer";
+      if(user?.role === "school") return user.schoolName || user.companyName || user.name || "School";
+      return user?.name || "AIFT Member";
+    }
+
+    function headlineOf(user){
+      return user?.headline || user?.profession || user?.industry || user?.bio || "AIFT professional member";
+    }
+
+    function roleLabel(role){
+      const map = {
+        talent:"Talent",
+        agent:"Agent",
+        employer:"Employer",
+        school:"School",
+        admin:"Admin"
+      };
+      return map[role] || "Member";
+    }
+
+    function profileUrl(user){
+      if(user.role === "employer" || user.role === "school"){
+        return "employer-public-profile.html?id=" + encodeURIComponent(user._id);
+      }
+      return "public-profile.html?id=" + encodeURIComponent(user._id);
+    }
+
+    function dashboardUrl(){
+      const role = getRole();
+      if(role === "employer") return "employer.html";
+      if(role === "talent") return "talent.html";
+      if(role === "agent") return "agent.html";
+      if(role === "school") return "school.html";
+      if(role === "admin") return "admin.html";
+      return "home.html";
+    }
+
+    function goMe(){
+      const id = localStorage.getItem("userId") || state.me?._id;
+      if(!id) return location.href = "login.html";
+      if(getRole() === "employer" || getRole() === "school"){
+        location.href = "employer-public-profile.html?id=" + encodeURIComponent(id);
+      }else{
+        location.href = "public-profile.html?id=" + encodeURIComponent(id);
+      }
+    }
+
+    function showToast(message){
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => els.toast.classList.remove("show"), 2600);
+    }
+
+    function setState(type, title, message){
+      if(!type){
+        els.stateBox.innerHTML = "";
+        return;
+      }
+
+      const icons = {
+        loading:'<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-9 9"/><path d="M3 12a9 9 0 0 1 9-9"/></svg>',
+        empty:'<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"/><path d="M3 21a9 9 0 0 1 18 0"/></svg>',
+        error:'<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>'
+      };
+
+      els.stateBox.innerHTML = `
+        <div class="${type}">
+          ${icons[type] || icons.empty}
+          <h3>${escapeHTML(title)}</h3>
+          <p>${escapeHTML(message)}</p>
+        </div>
+      `;
+    }
+
+    async function fetchJSON(url, options = {}){
+      const res = await fetch(url, options);
+      let data = null;
+      try{ data = await res.json(); }catch{}
+      if(!res.ok){
+        throw new Error(data?.message || "Request failed");
+      }
+      return data;
+    }
+
+    async function loadMe(){
+      try{
+        state.me = await fetchJSON(`${API}/api/users/me`, {
+          headers: authHeaders()
+        });
+
+        localStorage.setItem("userId", state.me._id);
+        if(state.me.role) localStorage.setItem("role", state.me.role);
+
+        els.currentAvatar.src = avatarOf(state.me);
+        els.currentName.textContent = displayName(state.me);
+        els.currentRole.textContent = roleLabel(state.me.role) + (state.me.headline ? " · " + state.me.headline : "");
+        els.statFollowing.textContent = safeArray(state.me.following).length;
+      }catch(err){
+        console.warn("ME LOAD FAILED:", err.message);
+      }
+    }
+
+    async function loadNetwork(){
+      state.loading = true;
+      els.grid.innerHTML = "";
+      setState("loading", "Loading network", "Please wait while AIFT loads members from your backend.");
+      els.resultsMeta.textContent = "Loading network...";
+
+      try{
+        const users = await fetchJSON(`${API}/api/users/network`, {
+          headers: authHeaders()
+        });
+
+        const currentRole = getRole();
+
+        state.users = safeArray(users).filter(user => {
+          if(!user || !user._id) return false;
+          if(user.role === "admin" && currentRole !== "admin") return false;
+          if(user.isBlockedByEmployer === true) return false;
+          return true;
+        });
+
+        state.loading = false;
+        applyFilters();
+      }catch(err){
+        state.loading = false;
+        els.grid.innerHTML = "";
+        setState("error", "Network could not load", err.message || "Please login again or check your backend.");
+        els.resultsMeta.textContent = "Failed to load network";
+      }
+    }
+
+    function includesText(value, term){
+      return String(value || "").toLowerCase().includes(term);
+    }
+
+    function userMatches(user, term){
+      if(!term) return true;
+      const skills = safeArray(user.skills).join(" ");
+      const languages = safeArray(user.languages).join(" ");
+      const education = safeArray(user.education).map(x => typeof x === "string" ? x : Object.values(x || {}).join(" ")).join(" ");
+      const experience = safeArray(user.experience).map(x => typeof x === "string" ? x : Object.values(x || {}).join(" ")).join(" ");
+
+      return [
+        user.name,
+        user.companyName,
+        user.schoolName,
+        user.headline,
+        user.bio,
+        user.profession,
+        user.location,
+        user.industry,
+        user.role,
+        skills,
+        languages,
+        education,
+        experience
+      ].some(v => includesText(v, term));
+    }
+
+    function applyFilters(){
+      const term = els.searchInput.value.trim().toLowerCase();
+      const loc = els.locationFilter.value.trim().toLowerCase();
+      const lang = els.languageFilter.value.trim().toLowerCase();
+      const skill = els.skillFilter.value.trim().toLowerCase();
+
+      let list = [...state.users];
+
+      if(state.role !== "all"){
+        list = list.filter(user => user.role === state.role);
+      }
+
+      if(term){
+        list = list.filter(user => userMatches(user, term));
+      }
+
+      if(loc){
+        list = list.filter(user => includesText(user.location, loc));
+      }
+
+      if(lang){
+        list = list.filter(user => safeArray(user.languages).join(" ").toLowerCase().includes(lang));
+      }
+
+      if(skill){
+        list = list.filter(user => safeArray(user.skills).join(" ").toLowerCase().includes(skill));
+      }
+
+      const sort = els.sortFilter.value;
+
+      if(sort === "followers"){
+        list.sort((a,b) => safeArray(b.followers).length - safeArray(a.followers).length);
+      }else if(sort === "name"){
+        list.sort((a,b) => displayName(a).localeCompare(displayName(b)));
+      }else if(sort === "role"){
+        list.sort((a,b) => String(a.role || "").localeCompare(String(b.role || "")));
+      }else{
+        list.sort((a,b) => {
+          const aVerified = a.aiftVerified || a.aiftCertified ? 1 : 0;
+          const bVerified = b.aiftVerified || b.aiftCertified ? 1 : 0;
+          return bVerified - aVerified;
+        });
+      }
+
+      state.filtered = list;
+      render();
+    }
+
+    function isFollowing(user){
+      const following = safeArray(state.me?.following).map(String);
+      return following.includes(String(user._id));
+    }
+
+    function renderStats(){
+      els.statTotal.textContent = state.users.length;
+      els.statShown.textContent = state.filtered.length;
+
+      els.countTalent.textContent = state.users.filter(u => u.role === "talent").length;
+      els.countAgent.textContent = state.users.filter(u => u.role === "agent").length;
+      els.countEmployer.textContent = state.users.filter(u => u.role === "employer").length;
+      els.countSchool.textContent = state.users.filter(u => u.role === "school").length;
+
+      els.resultsMeta.textContent = `${state.filtered.length} result${state.filtered.length === 1 ? "" : "s"} found`;
+    }
+
+    function render(){
+      renderStats();
+      els.grid.innerHTML = "";
+
+      if(!state.filtered.length){
+        setState("empty", "No matching profiles", "Try a different keyword, role, skill, language, or location filter.");
+        return;
+      }
+
+      setState(null);
+
+      els.grid.innerHTML = state.filtered.map(user => {
+        const skills = safeArray(user.skills).slice(0,3);
+        const languages = safeArray(user.languages).slice(0,2);
+        const followers = safeArray(user.followers).length;
+        const following = isFollowing(user);
+        const verified = user.aiftVerified || user.aiftCertified;
+
+        return `
+          <article class="profile-card">
+            <div class="cover">
+              <img class="avatar" src="${escapeHTML(avatarOf(user))}" alt="${escapeHTML(displayName(user))}">
+              <div class="role-badge">${escapeHTML(roleLabel(user.role))}</div>
+            </div>
+
+            <div class="card-body">
+              <div class="name-row">
+                <h3 class="name">${escapeHTML(displayName(user))}</h3>
+                ${verified ? `<svg class="verified" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2 14.4 5.5 18.6 4.9 19.1 9.1 22 12 19.1 14.9 18.6 19.1 14.4 18.5 12 22 9.6 18.5 5.4 19.1 4.9 14.9 2 12 4.9 9.1 5.4 4.9 9.6 5.5 12 2Zm-1.1 13.4 5.7-5.7-1.4-1.4-4.3 4.3-2.1-2.1-1.4 1.4 3.5 3.5Z"/></svg>` : ""}
+              </div>
+
+              <p class="headline">${escapeHTML(headlineOf(user))}</p>
+
+              <div class="location">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                <span>${escapeHTML(user.location || "Location not added")}</span>
+              </div>
+
+              <div class="skills">
+                ${skills.map(skill => `<span class="skill">${escapeHTML(skill)}</span>`).join("")}
+                ${!skills.length && languages.length ? languages.map(lang => `<span class="skill">${escapeHTML(lang)}</span>`).join("") : ""}
+                ${!skills.length && !languages.length ? `<span class="skill">AIFT Member</span>` : ""}
+              </div>
+
+              <div class="card-stats">
+                <div class="mini-stat">
+                  <strong>${followers}</strong>
+                  <span>Followers</span>
+                </div>
+                <div class="mini-stat">
+                  <strong>${escapeHTML(user.yearsOfExperience || 0)}</strong>
+                  <span>Years exp.</span>
+                </div>
+              </div>
+
+              <div class="card-actions">
+                <button class="card-btn ${following ? "following" : "primary"}" onclick="toggleFollow('${escapeHTML(user._id)}')">
+                  ${following ? `
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="m20 6-11 11-5-5"/></svg>
+                    Following
+                  ` : `
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                    Follow
+                  `}
+                </button>
+
+                <button class="card-btn" onclick="location.href='${escapeHTML(profileUrl(user))}'">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  View
+                </button>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    async function toggleFollow(userId){
+      try{
+        const res = await fetchJSON(`${API}/api/users/${userId}/follow`, {
+          method: "PATCH",
+          headers: authHeaders({ "Content-Type": "application/json" })
+        });
+
+        const target = state.users.find(u => String(u._id) === String(userId));
+        if(target){
+          const currentId = state.me?._id || localStorage.getItem("userId");
+          target.followers = safeArray(target.followers);
+
+          if(res.following){
+            if(!target.followers.map(String).includes(String(currentId))){
+              target.followers.push(currentId);
+            }
+            state.me.following = safeArray(state.me.following);
+            if(!state.me.following.map(String).includes(String(userId))){
+              state.me.following.push(userId);
+            }
+            showToast("You are now following " + displayName(target));
+          }else{
+            target.followers = target.followers.filter(id => String(id) !== String(currentId));
+            state.me.following = safeArray(state.me.following).filter(id => String(id) !== String(userId));
+            showToast("You unfollowed " + displayName(target));
+          }
+
+          els.statFollowing.textContent = safeArray(state.me.following).length;
+        }
+
+        applyFilters();
+      }catch(err){
+        showToast(err.message || "Follow failed");
+      }
+    }
+
+    window.toggleFollow = toggleFollow;
+
+    function bindEvents(){
+      ["input","change"].forEach(evt => {
+        els.searchInput.addEventListener(evt, applyFilters);
+        els.locationFilter.addEventListener(evt, applyFilters);
+        els.languageFilter.addEventListener(evt, applyFilters);
+        els.skillFilter.addEventListener(evt, applyFilters);
+        els.sortFilter.addEventListener(evt, applyFilters);
+      });
+
+      document.querySelectorAll("#roleChips .chip").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll("#roleChips .chip").forEach(x => x.classList.remove("active"));
+          btn.classList.add("active");
+          state.role = btn.dataset.role || "all";
+          applyFilters();
+        });
+      });
+
+      document.getElementById("clearBtn").addEventListener("click", () => {
+        els.searchInput.value = "";
+        els.locationFilter.value = "";
+        els.languageFilter.value = "";
+        els.skillFilter.value = "";
+        els.sortFilter.value = "relevant";
+        state.role = "all";
+        document.querySelectorAll("#roleChips .chip").forEach(x => x.classList.toggle("active", x.dataset.role === "all"));
+        applyFilters();
+      });
+
+      document.getElementById("refreshBtn").addEventListener("click", loadNetwork);
+      document.getElementById("meBtn").addEventListener("click", goMe);
+      document.getElementById("mobileMeBtn").addEventListener("click", e => {
+        e.preventDefault();
+        goMe();
+      });
+      document.getElementById("dashboardBtn").addEventListener("click", () => {
+        location.href = dashboardUrl();
+      });
+    }
+
+    async function init(){
+      if(!requireAuth()) return;
+      bindEvents();
+      await loadMe();
+      await loadNetwork();
+    }
+
+    init();
+  </script>
+</body>
+</html>
