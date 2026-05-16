@@ -1039,27 +1039,29 @@ a{
                   Availability
                 </label>
 
-                <select id="availabilityInput">
-                  <option value="">
-                    Select availability
-                  </option>
+<select id="availabilityInput">
 
-                  <option value="available">
-                    Available immediately
-                  </option>
+  <option value="not-specified">
+    Select availability
+  </option>
 
-                  <option value="actively-looking">
-                    Actively looking
-                  </option>
+  <option value="full-time">
+    Available for full-time
+  </option>
 
-                  <option value="open">
-                    Open to opportunities
-                  </option>
+  <option value="part-time">
+    Available for part-time
+  </option>
 
-                  <option value="not-looking">
-                    Not looking
-                  </option>
-                </select>
+  <option value="freelance">
+    Available for freelance
+  </option>
+
+  <option value="internship">
+    Available for internship
+  </option>
+
+</select>
               </div>
 
               <div class="field">
@@ -1941,9 +1943,7 @@ function fillForm(){
 }
 
 function normalizeAvailability(value){
-  if(!value || value === "not-specified") return "";
-  if(value === "full-time" || value === "part-time" || value === "freelance" || value === "internship") return "open";
-  return value;
+  return value || "not-specified";
 }
 
 function renderAll(){
@@ -1974,21 +1974,62 @@ function renderAll(){
 }
 
 function renderCompletion(){
-  const me = state.me || {};
-  let score = 0;
 
-  if(me.profileImage || state.avatarFile) score += 15;
-  if(me.bannerImage || state.bannerFile) score += 10;
-  if(document.getElementById("headlineInput").value.trim()) score += 15;
-  if(document.getElementById("bioInput").value.trim()) score += 20;
-  if(state.skills.length) score += 15;
-  if(state.experience.length) score += 15;
-  if(state.languages.length) score += 10;
+  const checks = [
 
-  score = Math.min(score,100);
+    document.getElementById("nameInput").value.trim(),
 
-  document.getElementById("completionText").textContent = score + "%";
-  document.getElementById("completionBar").style.width = score + "%";
+    document.getElementById("headlineInput").value.trim(),
+
+    document.getElementById("locationInput").value.trim(),
+
+    document.getElementById("bioInput").value.trim(),
+
+    document.getElementById("preferredRoleInput").value.trim(),
+
+    document.getElementById("availabilityInput").value !== "not-specified",
+
+    document.getElementById("employmentTypeInput").value,
+
+    document.getElementById("workSetupInput").value,
+
+    document.getElementById("preferredShiftInput").value,
+
+    document.getElementById("experienceYearsInput").value,
+
+    state.skills.length >= 3,
+
+    state.languages.length >= 1,
+
+    state.experience.length >= 1,
+
+    state.education.length >= 1,
+
+    state.portfolio.length >= 1,
+
+    state.me?.profileImage || state.avatarFile,
+
+    state.me?.bannerImage || state.bannerFile,
+
+    state.me?.cvUrl || state.resumeFile
+
+  ];
+
+  const completed =
+    checks.filter(Boolean).length;
+
+  const score =
+    Math.round(
+      (completed / checks.length) * 100
+    );
+
+  document.getElementById(
+    "completionText"
+  ).textContent = score + "%";
+
+  document.getElementById(
+    "completionBar"
+  ).style.width = score + "%";
 }
 </script>
 <script>
