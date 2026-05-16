@@ -1511,8 +1511,16 @@ function renderPerformance(metrics){
 }
 
 function renderCVSection(user){
-  const card = document.getElementById("cvCard");
-  const wrap = document.getElementById("cvPreviewWrap");
+
+  const card =
+    document.getElementById("cvCard");
+
+  const wrap =
+    document.getElementById("cvPreviewWrap");
+
+  if(!card || !wrap){
+    return;
+  }
 
   if(!user.cvUrl || user.showCV === false){
     card.classList.add("hidden");
@@ -1521,23 +1529,79 @@ function renderCVSection(user){
 
   card.classList.remove("hidden");
 
-  const fileName =
-    user.cvUrl.split("/").pop().split("?")[0];
+  const cvUrl =
+    String(user.cvUrl);
+
+  const isPdf =
+    cvUrl.toLowerCase().includes(".pdf");
+
+  if(isPdf){
+
+    wrap.innerHTML = `
+      <div class="timeline-item">
+
+        <h3>
+          Resume / CV Preview
+        </h3>
+
+        <iframe
+          src="${cvUrl}"
+          style="
+            width:100%;
+            height:520px;
+            border:1px solid #e5e7eb;
+            border-radius:12px;
+            background:#fff;
+          "
+        ></iframe>
+
+        <div style="margin-top:12px;">
+          <a
+            href="${cvUrl}"
+            target="_blank"
+            class="pill-btn primary"
+            style="
+              display:inline-flex;
+              align-items:center;
+              justify-content:center;
+            "
+          >
+            Open Full CV
+          </a>
+        </div>
+
+      </div>
+    `;
+
+    return;
+  }
 
   wrap.innerHTML = `
     <div class="timeline-item">
-      <h3>${escapeHtml(fileName)}</h3>
-      <p>Resume uploaded by this agent.</p>
+
+      <h3>
+        Resume / Document
+      </h3>
+
+      <p>
+        This CV/document cannot be previewed directly in the browser, but it is available to open.
+      </p>
+
       <div style="margin-top:12px;">
         <a
-          href="${user.cvUrl}"
+          href="${cvUrl}"
           target="_blank"
           class="pill-btn primary"
-          style="display:inline-flex;align-items:center;justify-content:center;"
+          style="
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+          "
         >
-          View CV
+          Open Document
         </a>
       </div>
+
     </div>
   `;
 }
