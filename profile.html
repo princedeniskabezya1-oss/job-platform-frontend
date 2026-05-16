@@ -875,15 +875,15 @@ a{
             </span>
           </button>
 
-          <button
-            class="menu-btn"
-            data-section="skills"
-          >
-            Skills & Languages
-            <span>
-              Showcase expertise
-            </span>
-          </button>
+<button
+  class="menu-btn"
+  data-section="services"
+>
+  Services
+  <span>
+    What you offer
+  </span>
+</button>
 
           <button
             class="menu-btn"
@@ -1328,7 +1328,71 @@ a{
           </article>
 
         </section>
+<!-- SERVICES -->
 
+<section
+  class="section"
+  id="section-services"
+>
+
+  <article class="card editor-card">
+
+    <div class="section-head">
+
+      <div>
+        <h2>
+          Services
+        </h2>
+
+        <p>
+          Add the services you can provide to employers, clients, schools, or business partners.
+        </p>
+      </div>
+
+    </div>
+
+    <div class="form-grid">
+
+      <div class="field full">
+
+        <label>
+          Services
+        </label>
+
+        <div
+          class="pill-editor"
+          id="servicesContainer"
+        ></div>
+
+        <div style="display:flex;gap:10px;margin-top:12px;">
+
+          <input
+            type="text"
+            id="serviceInput"
+            placeholder="Customer Support, Virtual Assistant, Sales Support..."
+          >
+
+          <button
+            class="btn"
+            type="button"
+            id="addServiceBtn"
+          >
+            Add
+          </button>
+
+        </div>
+
+        <div class="help">
+          These services will appear on the agent public profile if the user is an agent.
+        </div>
+
+      </div>
+
+    </div>
+
+  </article>
+
+</section>
         <!-- EXPERIENCE -->
 
         <section
@@ -1959,6 +2023,7 @@ const state = {
   experience:[],
   education:[],
   portfolio:[],
+  services:[],
   editExperienceIndex:null,
   editEducationIndex:null,
   editPortfolioIndex:null,
@@ -2224,6 +2289,7 @@ async function loadProfile(){
   state.experience = Array.isArray(state.me.experience) ? [...state.me.experience] : [];
   state.education = Array.isArray(state.me.education) ? [...state.me.education] : [];
   state.portfolio = Array.isArray(state.me.portfolio) ? [...state.me.portfolio] : [];
+  state.services = Array.isArray(state.me.services) ? [...state.me.services] : [];
 
   fillForm();
   renderAll();
@@ -2291,6 +2357,7 @@ function renderAll(){
 
   renderPills("skillsContainer",state.skills,"skills");
   renderPills("languagesContainer",state.languages,"languages");
+  renderPills("servicesContainer",state.services,"services");
   renderExperience();
   renderEducation();
   renderPortfolio();
@@ -2394,6 +2461,9 @@ function removePill(type,index){
   if(type === "languages"){
     state.languages.splice(index,1);
   }
+  if(type === "services"){
+  state.services.splice(index,1);
+}
 
   renderAll();
 }
@@ -2420,6 +2490,19 @@ document.getElementById("addLanguageBtn").addEventListener("click",()=>{
 
   if(!state.languages.includes(value)){
     state.languages.push(value);
+  }
+
+  input.value = "";
+  renderAll();
+});
+  document.getElementById("addServiceBtn").addEventListener("click",()=>{
+  const input = document.getElementById("serviceInput");
+  const value = input.value.trim();
+
+  if(!value) return;
+
+  if(!state.services.includes(value)){
+    state.services.push(value);
   }
 
   input.value = "";
@@ -2954,6 +3037,10 @@ form.append(
       "portfolio",
       JSON.stringify(state.portfolio)
     );
+  form.append(
+  "services",
+  JSON.stringify(state.services)
+);
 
     if(state.avatarFile){
       form.append(
@@ -2986,8 +3073,23 @@ if(state.resumeFile){
         }
       );
 
-    state.me =
-      data.user || data;
+state.me =
+  data.user || data;
+
+if(state.me){
+  state.skills = Array.isArray(state.me.skills) ? [...state.me.skills] : state.skills;
+  state.languages = Array.isArray(state.me.languages) ? [...state.me.languages] : state.languages;
+  state.services = Array.isArray(state.me.services) ? [...state.me.services] : state.services;
+  state.experience = Array.isArray(state.me.experience) ? [...state.me.experience] : state.experience;
+  state.education = Array.isArray(state.me.education) ? [...state.me.education] : state.education;
+  state.portfolio = Array.isArray(state.me.portfolio) ? [...state.me.portfolio] : state.portfolio;
+}
+
+state.avatarFile = null;
+state.bannerFile = null;
+state.resumeFile = null;
+
+renderAll();
 
     toast(
       "Profile updated",
