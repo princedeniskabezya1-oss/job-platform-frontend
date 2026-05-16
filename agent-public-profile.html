@@ -1005,31 +1005,17 @@ a{text-decoration:none;color:inherit}
   </div>
 
 </div>
-        <div class="card side-card">
+<div class="card side-card">
 
-          <h3>Open to</h3>
+  <h3>Open to</h3>
 
-          <div class="pill-list">
+  <div class="pill-list" id="openToWrap">
+    <div class="empty">
+      No work preferences added yet.
+    </div>
+  </div>
 
-            <span class="skill-pill">
-              Customer Support
-            </span>
-
-            <span class="skill-pill">
-              Virtual Assistant
-            </span>
-
-            <span class="skill-pill">
-              Sales Support
-            </span>
-
-            <span class="skill-pill">
-              Remote Work
-            </span>
-
-          </div>
-
-        </div>
+</div>
 
       </aside>
 
@@ -1534,6 +1520,7 @@ renderPillList("industriesWrap", user.industries || user.companyTags || []);
   renderAchievements(user.achievements || []);
 renderPerformance(user.performance || user.performanceMetrics || {});
   renderCVSection(user);
+  renderOpenTo(user);
   /* SKILLS */
 
   if(
@@ -1859,6 +1846,38 @@ function renderPerformance(metrics){
     </div>
   `;
 
+}
+  function renderOpenTo(user){
+
+  const wrap =
+    document.getElementById("openToWrap");
+
+  if(!wrap) return;
+
+  const items = [
+    user.preferredRole,
+    user.employmentType,
+    user.workSetup || user.workPreference,
+    user.preferredShift
+  ].filter(Boolean);
+
+  if(!items.length){
+
+    wrap.innerHTML = `
+      <div class="empty">
+        No work preferences added yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  wrap.innerHTML =
+    items.map(item => `
+      <span class="skill-pill">
+        ${escapeHtml(item)}
+      </span>
+    `).join("");
 }
 /* =========================
    DASHBOARD BUTTON
