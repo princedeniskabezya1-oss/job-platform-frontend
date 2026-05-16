@@ -19,19 +19,26 @@
   --blue:#0a66c2;
   --blue-dark:#004182;
   --green:#057642;
+  --purple:#6d28d9;
   --bg:#f3f2ef;
-  --card:#fff;
+  --card:#ffffff;
   --text:#191919;
-  --muted:#666;
+  --muted:#666666;
   --line:#d8d8d8;
   --soft:#eef3f8;
+  --danger:#dc2626;
   --shadow:0 1px 2px rgba(0,0,0,.08);
   --radius:12px;
   --max:1128px;
 }
 
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
+*{
+  box-sizing:border-box;
+}
+
+html{
+  scroll-behavior:smooth;
+}
 
 body{
   margin:0;
@@ -41,11 +48,28 @@ body{
   font-size:14px;
 }
 
-button,input{font:inherit}
-button{cursor:pointer}
-img{display:block;max-width:100%}
-a{text-decoration:none;color:inherit}
-.hidden{display:none!important}
+button,
+input{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+img{
+  display:block;
+  max-width:100%;
+}
+
+a{
+  color:inherit;
+  text-decoration:none;
+}
+
+.hidden{
+  display:none!important;
+}
 
 .container{
   width:min(var(--max),calc(100% - 24px));
@@ -254,11 +278,20 @@ a{text-decoration:none;color:inherit}
   border-radius:999px;
   padding:8px 15px;
   font-weight:800;
+  transition:.18s ease;
+}
+
+.pill-btn:hover{
+  background:#eef6ff;
 }
 
 .pill-btn.primary{
   background:var(--blue);
   color:#fff;
+}
+
+.pill-btn.primary:hover{
+  background:var(--blue-dark);
 }
 
 .pill-btn.dark{
@@ -317,7 +350,8 @@ a{text-decoration:none;color:inherit}
   color:var(--green);
   border-bottom-color:var(--green);
 }
-  /* CONTENT */
+
+/* CONTENT */
 
 .section{
   display:none;
@@ -485,6 +519,37 @@ a{text-decoration:none;color:inherit}
   display:none!important;
 }
 
+/* PRIVATE / ERROR */
+
+.state-screen{
+  min-height:70vh;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  text-align:center;
+  font-family:Inter,Arial,sans-serif;
+}
+
+.state-card{
+  width:min(520px,100%);
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:28px;
+  box-shadow:0 20px 60px rgba(0,0,0,.08);
+}
+
+.state-card h1{
+  margin:0 0 8px;
+  font-size:28px;
+}
+
+.state-card p{
+  margin:0;
+  color:#666;
+  line-height:1.6;
+}
+
 /* MOBILE */
 
 .mobile-bottom{
@@ -556,10 +621,8 @@ a{text-decoration:none;color:inherit}
 
   .hero-actions{
     margin-top:14px;
-  }
-
-  .hero-actions .pill-btn{
-    flex:1;
+    display:grid;
+    grid-template-columns:1fr 1fr;
   }
 
   .hero-name{
@@ -598,17 +661,25 @@ a{text-decoration:none;color:inherit}
 
 <header class="topbar">
   <div class="container top-inner">
-    <a class="brand" href="home.html">A</a>
+
+    <a class="brand" href="home.html">
+      A
+    </a>
 
     <div class="search">
       <svg viewBox="0 0 24 24">
         <circle cx="11" cy="11" r="7"></circle>
         <path d="M20 20l-3.5-3.5"></path>
       </svg>
-      <input type="search" placeholder="Search AIFT">
+
+      <input
+        type="search"
+        placeholder="Search AIFT"
+      >
     </div>
 
     <nav class="top-nav">
+
       <button class="top-link" onclick="goHome()">
         <svg viewBox="0 0 24 24">
           <path d="M3 10.5 12 3l9 7.5"></path>
@@ -633,23 +704,27 @@ a{text-decoration:none;color:inherit}
       </button>
 
       <button class="top-link" onclick="openMyProfile()">
-        <img id="viewerAvatar" class="top-avatar" alt="">
+        <img
+          id="viewerAvatar"
+          class="top-avatar"
+          alt=""
+          src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+        >
         <span>Me</span>
       </button>
+
     </nav>
+
   </div>
 </header>
+
 <main class="page">
 
   <div class="container">
 
     <div class="layout">
 
-      <!-- MAIN -->
-
       <section class="main-col">
-
-        <!-- HERO -->
 
         <section class="card profile-hero">
 
@@ -686,18 +761,25 @@ a{text-decoration:none;color:inherit}
                   Connect
                 </button>
 
-<button
-  class="pill-btn"
-  id="messageBtn"
->
-  Message
-</button>
+                <button
+                  class="pill-btn"
+                  id="messageBtn"
+                >
+                  Message
+                </button>
 
                 <button
                   class="pill-btn dark"
                   id="shareBtn"
                 >
                   Share Profile
+                </button>
+
+                <button
+                  class="pill-btn hidden"
+                  id="editProfileBtn"
+                >
+                  Edit Profile
                 </button>
 
               </div>
@@ -732,8 +814,6 @@ a{text-decoration:none;color:inherit}
 
           </div>
 
-          <!-- TABS -->
-
           <div class="profile-tabs">
 
             <button
@@ -749,8 +829,7 @@ a{text-decoration:none;color:inherit}
             >
               Experience
             </button>
-
-            <button
+                        <button
               class="profile-tab"
               data-tab="education"
             >
@@ -775,283 +854,165 @@ a{text-decoration:none;color:inherit}
 
         </section>
 
-        <!-- ABOUT -->
-
-        <section
-          class="section active"
-          id="section-about"
-        >
+        <section class="section active" id="section-about">
 
           <article class="card content-card">
-
             <h2>About</h2>
-
-            <p id="aboutText">
-              No bio added yet.
-            </p>
-
+            <p id="aboutText">No bio added yet.</p>
           </article>
 
           <article class="card content-card">
-
             <h2>Professional Information</h2>
 
             <div class="grid-2">
 
               <div class="info-box">
                 <span>Preferred Role</span>
-                <strong id="preferredRole">
-                  Not specified
-                </strong>
+                <strong id="preferredRole">Not specified</strong>
               </div>
 
               <div class="info-box">
                 <span>Availability</span>
-                <strong id="availability">
-                  Not specified
-                </strong>
+                <strong id="availability">Not specified</strong>
               </div>
 
               <div class="info-box">
                 <span>Work Setup</span>
-                <strong id="workSetup">
-                  Not specified
-                </strong>
+                <strong id="workSetup">Not specified</strong>
               </div>
 
               <div class="info-box">
                 <span>Employment Type</span>
-                <strong id="employmentType">
-                  Not specified
-                </strong>
+                <strong id="employmentType">Not specified</strong>
               </div>
 
               <div class="info-box">
                 <span>Years of Experience</span>
-                <strong id="experienceYears">
-                  0 years
-                </strong>
+                <strong id="experienceYears">0 years</strong>
               </div>
 
               <div class="info-box">
                 <span>Preferred Shift</span>
-                <strong id="preferredShift">
-                  Not specified
-                </strong>
+                <strong id="preferredShift">Not specified</strong>
               </div>
 
             </div>
-
           </article>
 
           <article class="card content-card">
-
             <h2>Skills</h2>
-
-            <div
-              class="pill-list"
-              id="skillsList"
-            >
-              <div class="empty">
-                No skills added yet.
-              </div>
+            <div class="pill-list" id="skillsList">
+              <div class="empty">No skills added yet.</div>
             </div>
-
           </article>
 
           <article class="card content-card">
-
             <h2>Languages</h2>
-
-            <div
-              class="pill-list"
-              id="languagesList"
-            >
-              <div class="empty">
-                No languages added yet.
-              </div>
+            <div class="pill-list" id="languagesList">
+              <div class="empty">No languages added yet.</div>
             </div>
-
           </article>
 
         </section>
 
-        <!-- EXPERIENCE -->
-
-        <section
-          class="section"
-          id="section-experience"
-        >
-
+        <section class="section" id="section-experience">
           <article class="card content-card">
-
             <h2>Experience</h2>
-
-            <div
-              class="timeline"
-              id="experienceList"
-            >
-              <div class="empty">
-                No experience added yet.
-              </div>
+            <div class="timeline" id="experienceList">
+              <div class="empty">No experience added yet.</div>
             </div>
-
           </article>
-
         </section>
 
-        <!-- EDUCATION -->
-
-        <section
-          class="section"
-          id="section-education"
-        >
-
+        <section class="section" id="section-education">
           <article class="card content-card">
-
             <h2>Education</h2>
-
-            <div
-              class="timeline"
-              id="educationList"
-            >
-              <div class="empty">
-                No education added yet.
-              </div>
+            <div class="timeline" id="educationList">
+              <div class="empty">No education added yet.</div>
             </div>
-
           </article>
-
         </section>
 
-        <!-- PORTFOLIO -->
-
-        <section
-          class="section"
-          id="section-portfolio"
-        >
-
+        <section class="section" id="section-portfolio">
           <article class="card content-card">
-
             <h2>Portfolio</h2>
-
-            <div
-              class="timeline"
-              id="portfolioList"
-            >
-              <div class="empty">
-                No portfolio added yet.
-              </div>
+            <div class="timeline" id="portfolioList">
+              <div class="empty">No portfolio added yet.</div>
             </div>
-
           </article>
-
         </section>
 
-        <!-- FEED -->
-
-        <section
-          class="section"
-          id="section-feed"
-        >
-
+        <section class="section" id="section-feed">
           <div id="profileFeedMount"></div>
-
         </section>
 
       </section>
 
-      <!-- RIGHT -->
-
       <aside class="right-col">
 
         <article class="card side-card">
-
           <h3>Profile Insights</h3>
 
           <div class="side-stat">
             <span>Profile Strength</span>
-            <strong id="profileStrength">
-              Beginner
-            </strong>
+            <strong id="profileStrength">Beginner</strong>
           </div>
 
           <div class="side-stat">
             <span>Skills Added</span>
-            <strong id="skillsCount">
-              0
-            </strong>
+            <strong id="skillsCount">0</strong>
           </div>
 
           <div class="side-stat">
             <span>Experience Entries</span>
-            <strong id="experienceCount">
-              0
-            </strong>
+            <strong id="experienceCount">0</strong>
           </div>
 
           <div class="side-stat">
             <span>Education Entries</span>
-            <strong id="educationCount">
-              0
-            </strong>
+            <strong id="educationCount">0</strong>
           </div>
 
           <div class="side-stat">
             <span>Portfolio Projects</span>
-            <strong id="portfolioCount">
-              0
-            </strong>
+            <strong id="portfolioCount">0</strong>
           </div>
-
         </article>
 
-        <article class="card side-card">
-
+        <article class="card side-card" id="cvCard">
           <h3>Resume / CV</h3>
 
           <div class="cv-box">
-
-            <p>
-              Employers can review this professional resume directly from the profile.
+            <p id="cvText">
+              No CV available.
             </p>
 
             <button
               class="pill-btn primary hidden"
               id="resumeBtn"
             >
-              Download CV
+              View CV
             </button>
-
           </div>
-
         </article>
 
         <article class="card side-card">
-
           <h3>Career Highlights</h3>
 
           <div class="side-stat">
             <span>Open to opportunities</span>
-            <strong id="openStatus">
-              Yes
-            </strong>
+            <strong id="openStatus">Not specified</strong>
           </div>
 
           <div class="side-stat">
             <span>Remote Ready</span>
-            <strong id="remoteReady">
-              Yes
-            </strong>
+            <strong id="remoteReady">Not specified</strong>
           </div>
 
           <div class="side-stat">
             <span>Interview Ready</span>
-            <strong>
-              Verified
-            </strong>
+            <strong id="interviewReady">Not verified</strong>
           </div>
-
         </article>
 
       </aside>
@@ -1062,44 +1023,20 @@ a{text-decoration:none;color:inherit}
 
 </main>
 
-<!-- MOBILE NAV -->
-
 <nav class="mobile-bottom">
-
-  <button onclick="goHome()">
-    Home
-  </button>
-
-  <button onclick="goMessages()">
-    Messages
-  </button>
-
-  <button onclick="goNotifications()">
-    Alerts
-  </button>
-
-  <button onclick="openMyProfile()">
-    Profile
-  </button>
-
-  <button onclick="scrollToTopPage()">
-    Top
-  </button>
-
+  <button onclick="goHome()">Home</button>
+  <button onclick="goMessages()">Messages</button>
+  <button onclick="goNotifications()">Alerts</button>
+  <button onclick="openMyProfile()">Profile</button>
+  <button onclick="scrollToTopPage()">Top</button>
 </nav>
+
 <script>
+const API = "https://backend-1-9b6f.onrender.com";
+const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-const API =
-  "https://backend-1-9b6f.onrender.com";
-
-const params =
-  new URLSearchParams(location.search);
-
-const profileId =
-  params.get("id");
-
-const FALLBACK_AVATAR =
-  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+const params = new URLSearchParams(location.search);
+const profileId = params.get("id");
 
 const state = {
   profile:null,
@@ -1133,36 +1070,46 @@ function esc(value = ""){
     .replaceAll('"',"&quot;");
 }
 
-async function safeJSON(res){
-  try{
-    return await res.json();
-  }catch{
-    return null;
-  }
-}
-
 async function fetchJSON(path,options = {}){
+  const res = await fetch(API + path,options);
+  const text = await res.text();
 
-  const res =
-    await fetch(API + path,options);
-
-  const data =
-    await safeJSON(res);
+  let data = {};
+  try{
+    data = text ? JSON.parse(text) : {};
+  }catch{
+    data = { message:text };
+  }
 
   if(!res.ok){
-    throw new Error(
-      data?.message ||
-      "Request failed"
-    );
+    throw new Error(data.message || "Request failed");
   }
 
   return data;
 }
 
-function goHome(){
+function normalizeUserResponse(data){
+  return data?.user || data;
+}
 
-  const role =
-    localStorage.getItem("role");
+function showState(title,message){
+  document.body.innerHTML = `
+    <div class="state-screen">
+      <div class="state-card">
+        <h1>${esc(title)}</h1>
+        <p>${esc(message)}</p>
+        <div style="margin-top:18px;">
+          <button class="pill-btn primary" onclick="location.href='home.html'">
+            Go Home
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function goHome(){
+  const role = localStorage.getItem("role");
 
   if(role === "employer"){
     location.href = "employer.html";
@@ -1191,33 +1138,30 @@ function goNotifications(){
 }
 
 function openMyProfile(){
+  const id = localStorage.getItem("userId");
+  const role = localStorage.getItem("role");
 
-  const id =
-    localStorage.getItem("userId");
-
-  const role =
-    localStorage.getItem("role");
+  if(!id){
+    location.href = "login.html";
+    return;
+  }
 
   if(role === "employer"){
-    location.href =
-      `employer-public-profile.html?id=${id}`;
+    location.href = `employer-public-profile.html?id=${id}`;
     return;
   }
 
   if(role === "agent"){
-    location.href =
-      `agent-public-profile.html?id=${id}`;
+    location.href = `agent-public-profile.html?id=${id}`;
     return;
   }
 
   if(role === "school"){
-    location.href =
-      `school-public-profile.html?id=${id}`;
+    location.href = `school-public-profile.html?id=${id}`;
     return;
   }
 
-  location.href =
-    `public-profile.html?id=${id}`;
+  location.href = `public-profile.html?id=${id}`;
 }
 
 function scrollToTopPage(){
@@ -1228,709 +1172,400 @@ function scrollToTopPage(){
 }
 
 async function loadViewer(){
+  if(!getToken()) return;
 
   try{
+    const data = await fetchJSON("/api/users/me", {
+      headers:authHeaders()
+    });
 
-    const data =
-      await fetchJSON(
-        "/api/users/me",
-        {
-          headers:authHeaders()
-        }
-      );
+    state.viewer = normalizeUserResponse(data);
 
-    state.viewer =
-      data.user || data;
+    if(state.viewer?._id){
+      localStorage.setItem("userId",state.viewer._id);
+    }
 
-    document.getElementById(
-      "viewerAvatar"
-    ).src =
-      state.viewer?.profileImage ||
-      FALLBACK_AVATAR;
+    if(state.viewer?.role){
+      localStorage.setItem("role",state.viewer.role);
+    }
 
-  }catch{}
+    document.getElementById("viewerAvatar").src =
+      state.viewer?.profileImage || FALLBACK_AVATAR;
+
+  }catch(err){
+    console.warn("Viewer unavailable:",err.message);
+  }
 }
 
 async function loadProfile(){
-
   if(!profileId){
-    document.body.innerHTML = `
-      <div style="
-        padding:40px;
-        text-align:center;
-        font-family:Inter,sans-serif;
-      ">
-        Profile unavailable.
-      </div>
-    `;
+    showState("Profile unavailable","Missing profile ID.");
     return;
   }
 
   try{
-
     let data;
 
     try{
-
-      data =
-        await fetchJSON(
-          `/api/users/${profileId}/public`,
-          {
-            headers:getToken()
-              ? authHeaders()
-              : {}
-          }
-        );
-
-    }catch{
-
-      data =
-        await fetchJSON(
-          `/api/users/${profileId}`,
-          {
-            headers:getToken()
-              ? authHeaders()
-              : {}
-          }
-        );
-
+      data = await fetchJSON(`/api/users/${profileId}/public`, {
+        headers:getToken() ? authHeaders() : {}
+      });
+    }catch(firstError){
+      data = await fetchJSON(`/api/users/${profileId}`, {
+        headers:getToken() ? authHeaders() : {}
+      });
     }
 
-    state.profile =
-      data.user || data;
+    state.profile = normalizeUserResponse(data);
+
+    if(state.profile?.isPublic === false){
+      const viewerId = state.viewer?._id || localStorage.getItem("userId");
+      const profileUserId = state.profile?._id;
+
+      if(String(viewerId) !== String(profileUserId)){
+        showState("This profile is private","The owner has limited public visibility.");
+        return;
+      }
+    }
 
     renderProfile();
-
     mountFeed();
 
   }catch(err){
-
     console.error(err);
-
-    document.body.innerHTML = `
-      <div style="
-        padding:40px;
-        text-align:center;
-        font-family:Inter,sans-serif;
-      ">
-        Profile unavailable.
-      </div>
-    `;
-
+    showState("Profile unavailable",err.message || "Unable to load this profile.");
   }
 }
 
 function renderProfile(){
+  const user = state.profile || {};
 
-  const user =
-    state.profile || {};
+  document.title = `${user.name || "Profile"} | AIFT`;
 
-  document.title =
-    `${user.name || "Profile"} | AIFT`;
+  document.getElementById("profileAvatar").src =
+    user.profileImage || FALLBACK_AVATAR;
 
-  document.getElementById(
-    "profileAvatar"
-  ).src =
-    user.profileImage ||
-    FALLBACK_AVATAR;
+  document.getElementById("profileName").textContent =
+    user.name || "AIFT User";
 
-  document.getElementById(
-    "profileName"
-  ).textContent =
-    user.name ||
-    "AIFT User";
+  document.getElementById("profileHeadline").textContent =
+    user.headline || user.profession || "Professional profile";
 
-  document.getElementById(
-    "profileHeadline"
-  ).textContent =
-    user.headline ||
-    user.profession ||
-    "Professional profile";
+  const bio = user.bio || user.about || "";
 
-  document.getElementById(
-    "profileBio"
-  ).textContent =
-    user.bio ||
-    "No biography added yet.";
+  document.getElementById("profileBio").textContent =
+    bio || "No biography added yet.";
 
-  document.getElementById(
-    "aboutText"
-  ).textContent =
-    user.bio ||
-    "No biography added yet.";
+  document.getElementById("aboutText").textContent =
+    bio || "No biography added yet.";
 
   if(user.bannerImage){
-
-    document.getElementById(
-      "coverImage"
-    ).style.backgroundImage =
+    document.getElementById("coverImage").style.backgroundImage =
       `linear-gradient(135deg,rgba(10,102,194,.18),rgba(34,197,94,.16)),url('${user.bannerImage}')`;
-
   }
 
-  if(user.verified === true){
-
-    document.getElementById(
-      "verifiedBadge"
-    ).classList.remove("hidden");
-
-  }
+  document.getElementById("verifiedBadge").classList.toggle(
+    "hidden",
+    !(user.verified === true || user.isVerified === true)
+  );
 
   buildMeta(user);
-
-  renderSkills(
-    user.skills || []
-  );
-
-  renderLanguages(
-    user.languages || []
-  );
-
-  renderExperience(
-    user.experience || []
-  );
-
-  renderEducation(
-    user.education || []
-  );
-
-  renderPortfolio(
-    user.portfolio || []
-  );
-
+  renderSkills(user.skills || []);
+  renderLanguages(user.languages || []);
+  renderExperience(user.experience || []);
+  renderEducation(user.education || []);
+  renderPortfolio(user.portfolio || []);
   renderInsights(user);
   applyPrivacyVisibility(user);
-
+  setupOwnerControls(user);
   setupButtons(user);
 }
-  function applyPrivacyVisibility(user){
-  const messageBtn = document.getElementById("messageBtn");
-  const resumeBtn = document.getElementById("resumeBtn");
-
-  if(messageBtn){
-    messageBtn.classList.toggle(
-      "hidden",
-      user.allowMessages === false
-    );
-  }
-
-  if(resumeBtn){
-    resumeBtn.classList.toggle(
-      "hidden",
-      !user.cvUrl || user.showCV === false
-    );
-
-    if(user.cvUrl && user.showCV !== false){
-      resumeBtn.onclick = () => {
-        window.open(user.cvUrl, "_blank");
-      };
-    }
-  }
-}
-  <script>
 
 function buildMeta(user){
-
   const meta = [];
 
-  if(user.location){
-    meta.push(
-      esc(user.location)
-    );
-  }
+  if(user.location) meta.push(esc(user.location));
+  if(user.role) meta.push(esc(String(user.role).charAt(0).toUpperCase() + String(user.role).slice(1)));
+  if(user.companyName) meta.push(esc(user.companyName));
+  if(user.schoolName) meta.push(esc(user.schoolName));
 
-  if(user.role){
-    meta.push(
-      esc(
-        String(user.role)
-        .charAt(0)
-        .toUpperCase() +
-        String(user.role)
-        .slice(1)
-      )
-    );
-  }
-
-  if(user.companyName){
-    meta.push(
-      esc(user.companyName)
-    );
-  }
-
-  if(user.schoolName){
-    meta.push(
-      esc(user.schoolName)
-    );
-  }
-
-  document.getElementById(
-    "profileMeta"
-  ).innerHTML =
-    meta.join(" • ");
+  document.getElementById("profileMeta").innerHTML =
+    meta.length ? meta.join(" • ") : "AIFT profile";
 }
 
 function renderSkills(skills){
-
-  const container =
-    document.getElementById(
-      "skillsList"
-    );
-
-  document.getElementById(
-    "skillsCount"
-  ).textContent =
-    skills.length;
+  const container = document.getElementById("skillsList");
+  document.getElementById("skillsCount").textContent = skills.length;
 
   if(!skills.length){
-
-    container.innerHTML = `
-      <div class="empty">
-        No skills added yet.
-      </div>
-    `;
-
+    container.innerHTML = `<div class="empty">No skills added yet.</div>`;
     return;
   }
 
-  container.innerHTML =
-    skills.map(skill=>`
-      <div class="skill-pill">
-        ${esc(skill)}
-      </div>
-    `).join("");
+  container.innerHTML = skills.map(skill => `
+    <div class="skill-pill">${esc(skill)}</div>
+  `).join("");
 }
 
 function renderLanguages(languages){
-
-  const container =
-    document.getElementById(
-      "languagesList"
-    );
+  const container = document.getElementById("languagesList");
 
   if(!languages.length){
-
-    container.innerHTML = `
-      <div class="empty">
-        No languages added yet.
-      </div>
-    `;
-
+    container.innerHTML = `<div class="empty">No languages added yet.</div>`;
     return;
   }
 
-  container.innerHTML =
-    languages.map(language=>`
-      <div class="skill-pill">
-        ${esc(language)}
-      </div>
-    `).join("");
+  container.innerHTML = languages.map(language => `
+    <div class="skill-pill">${esc(language)}</div>
+  `).join("");
 }
 
 function renderExperience(experience){
-
-  const container =
-    document.getElementById(
-      "experienceList"
-    );
-
-  document.getElementById(
-    "experienceCount"
-  ).textContent =
-    experience.length;
+  const container = document.getElementById("experienceList");
+  document.getElementById("experienceCount").textContent = experience.length;
 
   if(!experience.length){
-
-    container.innerHTML = `
-      <div class="empty">
-        No experience added yet.
-      </div>
-    `;
-
+    container.innerHTML = `<div class="empty">No experience added yet.</div>`;
     return;
   }
 
-  container.innerHTML =
-    experience.map(item=>`
-
-      <article class="timeline-item">
-
-        <h3>
-          ${esc(item.title || "Untitled")}
-        </h3>
-
-        <p>
-          ${esc(item.company || "")}
-          •
-          ${esc(item.startDate || "")}
-          -
-          ${esc(item.endDate || "Present")}
-        </p>
-
-        <div style="
-          margin-top:10px;
-          line-height:1.65;
-          color:#222;
-        ">
-          ${esc(item.description || "")}
-        </div>
-
-      </article>
-
-    `).join("");
+  container.innerHTML = experience.map(item => `
+    <article class="timeline-item">
+      <h3>${esc(item.title || "Experience")}</h3>
+      <p>
+        ${esc(item.company || "")}
+        ${item.startDate || item.endDate ? " • " : ""}
+        ${esc(item.startDate || "")}
+        ${item.endDate ? " - " + esc(item.endDate) : ""}
+      </p>
+      ${item.description ? `<div style="margin-top:10px;line-height:1.65;color:#222;">${esc(item.description)}</div>` : ""}
+    </article>
+  `).join("");
 }
 
 function renderEducation(education){
-
-  const container =
-    document.getElementById(
-      "educationList"
-    );
-
-  document.getElementById(
-    "educationCount"
-  ).textContent =
-    education.length;
+  const container = document.getElementById("educationList");
+  document.getElementById("educationCount").textContent = education.length;
 
   if(!education.length){
-
-    container.innerHTML = `
-      <div class="empty">
-        No education added yet.
-      </div>
-    `;
-
+    container.innerHTML = `<div class="empty">No education added yet.</div>`;
     return;
   }
 
-  container.innerHTML =
-    education.map(item=>`
-
-      <article class="timeline-item">
-
-        <h3>
-          ${esc(item.school || "School")}
-        </h3>
-
-        <p>
-          ${esc(item.degree || "")}
-          •
-          ${esc(item.startDate || "")}
-          -
-          ${esc(item.endDate || "")}
-        </p>
-
-        <div style="
-          margin-top:10px;
-          line-height:1.65;
-          color:#222;
-        ">
-          ${esc(item.description || "")}
-        </div>
-
-      </article>
-
-    `).join("");
+  container.innerHTML = education.map(item => `
+    <article class="timeline-item">
+      <h3>${esc(item.school || "School")}</h3>
+      <p>
+        ${esc(item.degree || "")}
+        ${item.startDate || item.endDate ? " • " : ""}
+        ${esc(item.startDate || "")}
+        ${item.endDate ? " - " + esc(item.endDate) : ""}
+      </p>
+      ${item.description ? `<div style="margin-top:10px;line-height:1.65;color:#222;">${esc(item.description)}</div>` : ""}
+    </article>
+  `).join("");
 }
 
 function renderPortfolio(portfolio){
-
-  const container =
-    document.getElementById(
-      "portfolioList"
-    );
-
-  document.getElementById(
-    "portfolioCount"
-  ).textContent =
-    portfolio.length;
+  const container = document.getElementById("portfolioList");
+  document.getElementById("portfolioCount").textContent = portfolio.length;
 
   if(!portfolio.length){
-
-    container.innerHTML = `
-      <div class="empty">
-        No portfolio projects added yet.
-      </div>
-    `;
-
+    container.innerHTML = `<div class="empty">No portfolio added yet.</div>`;
     return;
   }
 
-  container.innerHTML =
-    portfolio.map(item=>`
-
-      <article class="timeline-item">
-
-        <h3>
-          ${esc(item.title || "Portfolio")}
-        </h3>
-
-        ${
-          item.url
-            ? `
-              <a
-                href="${item.url}"
-                target="_blank"
-                style="
-                  color:#0a66c2;
-                  font-weight:700;
-                  font-size:13px;
-                "
-              >
-                ${esc(item.url)}
-              </a>
-            `
-            : ""
-        }
-
-        <div style="
-          margin-top:10px;
-          line-height:1.65;
-          color:#222;
-        ">
-          ${esc(item.description || "")}
-        </div>
-
-      </article>
-
-    `).join("");
+  container.innerHTML = portfolio.map(item => `
+    <article class="timeline-item">
+      <h3>${esc(item.title || "Portfolio")}</h3>
+      ${
+        item.url
+          ? `<a href="${esc(item.url)}" target="_blank" style="color:#0a66c2;font-weight:800;font-size:13px;">${esc(item.url)}</a>`
+          : ""
+      }
+      ${item.description ? `<div style="margin-top:10px;line-height:1.65;color:#222;">${esc(item.description)}</div>` : ""}
+    </article>
+  `).join("");
 }
 
 function renderInsights(user){
-
-  let strength = "Beginner";
-
   const score =
     (user.skills?.length || 0) +
     (user.experience?.length || 0) +
     (user.education?.length || 0) +
     (user.portfolio?.length || 0);
 
-  if(score >= 10){
-    strength = "Expert";
-  }else if(score >= 6){
-    strength = "Advanced";
-  }else if(score >= 3){
-    strength = "Intermediate";
-  }
+  let strength = "Beginner";
+  if(score >= 10) strength = "Expert";
+  else if(score >= 6) strength = "Advanced";
+  else if(score >= 3) strength = "Intermediate";
 
-  document.getElementById(
-    "profileStrength"
-  ).textContent =
-    strength;
+  document.getElementById("profileStrength").textContent = strength;
 
-  document.getElementById(
-    "preferredRole"
-  ).textContent =
-    user.preferredRole ||
-    user.profession ||
-    "Not specified";
+  document.getElementById("preferredRole").textContent =
+    user.preferredRole || user.profession || "Not specified";
 
-  document.getElementById(
-    "availability"
-  ).textContent =
-    user.availability ||
-    "Not specified";
+  document.getElementById("availability").textContent =
+    user.availability || "Not specified";
 
-  document.getElementById(
-    "workSetup"
-  ).textContent =
-    user.workSetup ||
-    user.workPreference ||
-    "Not specified";
+  document.getElementById("workSetup").textContent =
+    user.workSetup || user.workPreference || "Not specified";
 
-  document.getElementById(
-    "employmentType"
-  ).textContent =
-    user.employmentType ||
-    "Not specified";
+  document.getElementById("employmentType").textContent =
+    user.employmentType || "Not specified";
 
-  document.getElementById(
-    "experienceYears"
-  ).textContent =
-    `${user.experienceYears || user.yearsOfExperience || 0} years`;
+  const years =
+    user.yearsOfExperience ?? user.experienceYears ?? 0;
 
-  document.getElementById(
-    "preferredShift"
-  ).textContent =
-    user.preferredShift ||
-    "Not specified";
+  document.getElementById("experienceYears").textContent =
+    years + " years";
 
-  document.getElementById(
-    "openStatus"
-  ).textContent =
-    user.availability
+  document.getElementById("preferredShift").textContent =
+    user.preferredShift || "Not specified";
+
+  document.getElementById("openStatus").textContent =
+    user.availability && user.availability !== "not-specified" ? "Yes" : "Not specified";
+
+  document.getElementById("remoteReady").textContent =
+    String(user.workSetup || user.workPreference || "").toLowerCase().includes("remote")
       ? "Yes"
-      : "Open";
+      : "Not specified";
 
-  document.getElementById(
-    "remoteReady"
-  ).textContent =
-    user.workSetup === "remote"
-      ? "Yes"
-      : "Available";
-
-  if(user.resume){
-
-    const btn =
-      document.getElementById(
-        "resumeBtn"
-      );
-
-    btn.classList.remove("hidden");
-
-    btn.onclick = ()=>{
-      window.open(
-        user.resume,
-        "_blank"
-      );
-    };
-
-  }
+  document.getElementById("interviewReady").textContent =
+    user.verified || user.isVerified ? "Verified" : "Not verified";
 }
 
-function setupButtons(user){
+function applyPrivacyVisibility(user){
+  const messageBtn = document.getElementById("messageBtn");
+  const resumeBtn = document.getElementById("resumeBtn");
+  const cvText = document.getElementById("cvText");
+  const cvCard = document.getElementById("cvCard");
 
-  document.getElementById(
-    "messageBtn"
-  ).onclick = ()=>{
+  if(messageBtn){
+    messageBtn.classList.toggle("hidden", user.allowMessages === false);
+  }
 
-    location.href =
-      `messages.html?user=${user._id}`;
-
-  };
-
-  document.getElementById(
-    "shareBtn"
-  ).onclick = async ()=>{
-
-    try{
-
-      await navigator.clipboard.writeText(
-        location.href
-      );
-
-      alert(
-        "Profile link copied."
-      );
-
-    }catch{
-
-      alert(
-        "Could not copy profile link."
-      );
-
-    }
-
-  };
-
-  document.getElementById(
-    "connectBtn"
-  ).onclick = async ()=>{
-
-    try{
-
-      await fetchJSON(
-        `/api/users/${user._id}/follow`,
-        {
-          method:"POST",
-          headers:authHeaders()
-        }
-      );
-
-      alert(
-        "Connection request sent."
-      );
-
-    }catch(err){
-
-      alert(
-        err.message ||
-        "Could not connect."
-      );
-
-    }
-
-  };
-}
-
-function mountFeed(){
-
-  if(
-    typeof AIFTFeed === "undefined"
-  ){
+  if(!user.cvUrl || user.showCV === false){
+    resumeBtn.classList.add("hidden");
+    cvText.textContent = "No CV available.";
+    cvCard.classList.toggle("hidden", user.showCV === false);
     return;
   }
 
-  AIFTFeed.mount(
-    "profileFeedMount",
-    {
-      profileId:
-        profileId,
-      hideComposer:true
-    }
-  );
+  cvCard.classList.remove("hidden");
+  resumeBtn.classList.remove("hidden");
+  cvText.textContent = "This profile has a CV available for review.";
+
+  resumeBtn.onclick = () => {
+    window.open(user.cvUrl,"_blank");
+  };
 }
 
-document.querySelectorAll(
-  ".profile-tab"
-).forEach(btn=>{
+function setupOwnerControls(user){
+  const viewerId =
+    state.viewer?._id ||
+    state.viewer?.id ||
+    localStorage.getItem("userId");
 
-  btn.addEventListener(
-    "click",
-    ()=>{
+  const profileUserId =
+    user._id ||
+    user.id;
 
-      document
-      .querySelectorAll(
-        ".profile-tab"
-      )
-      .forEach(tab=>{
+  const isOwner =
+    viewerId &&
+    profileUserId &&
+    String(viewerId) === String(profileUserId);
 
-        tab.classList.remove(
-          "active"
-        );
+  if(!isOwner) return;
 
-      });
+  document.getElementById("editProfileBtn").classList.remove("hidden");
+  document.getElementById("connectBtn").classList.add("hidden");
+  document.getElementById("messageBtn").classList.add("hidden");
 
-      btn.classList.add(
-        "active"
-      );
+  document.getElementById("editProfileBtn").onclick = () => {
+    location.href = "profile.html";
+  };
+}
 
-      const selected =
-        btn.dataset.tab;
-
-      document
-      .querySelectorAll(
-        ".section"
-      )
-      .forEach(section=>{
-
-        section.classList.remove(
-          "active"
-        );
-
-      });
-
-      document
-      .getElementById(
-        `section-${selected}`
-      )
-      .classList.add(
-        "active"
-      );
-
-      window.scrollTo({
-        top:0,
-        behavior:"smooth"
-      });
-
+function setupButtons(user){
+  document.getElementById("shareBtn").onclick = async () => {
+    try{
+      await navigator.clipboard.writeText(location.href);
+      alert("Profile link copied");
+    }catch{
+      alert("Copy this profile link from your browser.");
     }
-  );
+  };
 
+  document.getElementById("messageBtn").onclick = () => {
+    if(!getToken()){
+      location.href = "login.html";
+      return;
+    }
+
+    location.href = `messages.html?user=${user._id || profileId}`;
+  };
+
+  document.getElementById("connectBtn").onclick = async () => {
+    if(!getToken()){
+      location.href = "login.html";
+      return;
+    }
+
+    try{
+      const res = await fetch(`${API}/api/users/${user._id || profileId}/follow`, {
+        method:"PATCH",
+        headers:authHeaders()
+      });
+
+      const data = await res.json();
+
+      if(!res.ok){
+        throw new Error(data.message || "Connection failed");
+      }
+
+      document.getElementById("connectBtn").textContent =
+        data.following ? "Connected" : "Connect";
+
+    }catch(err){
+      alert(err.message);
+    }
+  };
+}
+
+document.querySelectorAll(".profile-tab").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".profile-tab").forEach(tab=>{
+      tab.classList.toggle("active",tab === btn);
+    });
+
+    document.querySelectorAll(".section").forEach(section=>{
+      section.classList.toggle(
+        "active",
+        section.id === `section-${btn.dataset.tab}`
+      );
+    });
+  });
 });
 
-loadViewer();
-loadProfile();
+function mountFeed(){
+  if(typeof AIFTFeed === "undefined") return;
 
+  AIFTFeed.mount("profileFeedMount", {
+    mode:"profile",
+    authorId:profileId,
+    showComposer:false,
+    infiniteScroll:true,
+    realtime:true
+  });
+}
+
+async function init(){
+  await loadViewer();
+  await loadProfile();
+}
+
+init();
 </script>
 
 <script src="feed.js"></script>
