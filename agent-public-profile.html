@@ -1513,40 +1513,55 @@ function renderCVSection(user){
   card.classList.remove("hidden");
 
   const cvUrl = String(user.cvUrl);
-  const fileName = cvUrl.split("/").pop().split("?")[0];
+  const previewUrl =
+    "https://docs.google.com/gview?embedded=true&url=" +
+    encodeURIComponent(cvUrl);
 
   wrap.innerHTML = `
     <div
       style="
         border:1px solid #e5e7eb;
         border-radius:14px;
+        overflow:hidden;
         background:#fff;
-        padding:14px;
       "
     >
 
-      <div style="font-weight:900;margin-bottom:6px;">
-        Resume / CV
-      </div>
-
-      <div style="color:#64748b;font-size:12px;margin-bottom:14px;word-break:break-word;">
-        ${escapeHtml(fileName || "Uploaded document")}
-      </div>
-
-      <a
-        href="${cvUrl}"
-        target="_blank"
-        rel="noopener"
-        class="pill-btn primary"
+      <iframe
+        src="${previewUrl}"
         style="
+          width:100%;
+          height:150px;
+          border:0;
+          display:block;
+          background:#fff;
+        "
+      ></iframe>
+
+      <div
+        style="
+          padding:10px;
+          border-top:1px solid #f1f5f9;
           display:flex;
           justify-content:center;
-          align-items:center;
-          width:100%;
+          background:#fff;
         "
       >
-        View CV
-      </a>
+
+        <a
+          href="${cvUrl}"
+          target="_blank"
+          rel="noopener"
+          class="pill-btn primary"
+          style="
+            min-width:120px;
+            text-align:center;
+          "
+        >
+          View CV
+        </a>
+
+      </div>
 
     </div>
   `;
