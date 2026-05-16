@@ -686,12 +686,12 @@ a{text-decoration:none;color:inherit}
                   Connect
                 </button>
 
-                <button
-                  class="pill-btn"
-                  id="messageBtn"
-                >
-                  Message
-                </button>
+<button
+  class="pill-btn"
+  id="messageBtn"
+>
+  Message
+</button>
 
                 <button
                   class="pill-btn dark"
@@ -1399,8 +1399,33 @@ function renderProfile(){
   );
 
   renderInsights(user);
+  applyPrivacyVisibility(user);
 
   setupButtons(user);
+}
+  function applyPrivacyVisibility(user){
+  const messageBtn = document.getElementById("messageBtn");
+  const resumeBtn = document.getElementById("resumeBtn");
+
+  if(messageBtn){
+    messageBtn.classList.toggle(
+      "hidden",
+      user.allowMessages === false
+    );
+  }
+
+  if(resumeBtn){
+    resumeBtn.classList.toggle(
+      "hidden",
+      !user.cvUrl || user.showCV === false
+    );
+
+    if(user.cvUrl && user.showCV !== false){
+      resumeBtn.onclick = () => {
+        window.open(user.cvUrl, "_blank");
+      };
+    }
+  }
 }
   <script>
 
