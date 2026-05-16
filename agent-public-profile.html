@@ -853,30 +853,30 @@ a{text-decoration:none;color:inherit}
 
                 <div class="info-box">
                   <span>Task Completion</span>
-                  <strong id="metricCompletion">
-                    95%
-                  </strong>
+<strong id="metricCompletion">
+  0%
+</strong>
                 </div>
 
                 <div class="info-box">
                   <span>Attendance</span>
-                  <strong id="metricAttendance">
-                    98%
-                  </strong>
+<strong id="metricAttendance">
+  Not tracked
+</strong>
                 </div>
 
                 <div class="info-box">
                   <span>Customer Satisfaction</span>
-                  <strong id="metricCSAT">
-                    4.9/5
-                  </strong>
+<strong id="metricCSAT">
+  Not rated
+</strong>
                 </div>
 
                 <div class="info-box">
                   <span>Average Response Time</span>
-                  <strong id="metricResponse">
-                    Fast
-                  </strong>
+<strong id="metricResponse">
+  Not tracked
+</strong>
                 </div>
 
               </div>
@@ -887,30 +887,11 @@ a{text-decoration:none;color:inherit}
 
               <h2>Achievements</h2>
 
-              <div class="timeline">
-
-                <div class="timeline-item">
-                  <h3>Top Performing Agent</h3>
-                  <p>
-                    Recognized for strong productivity and client support performance.
-                  </p>
-                </div>
-
-                <div class="timeline-item">
-                  <h3>Excellent Attendance</h3>
-                  <p>
-                    Maintained strong reliability and punctuality in work schedules.
-                  </p>
-                </div>
-
-                <div class="timeline-item">
-                  <h3>Client Satisfaction</h3>
-                  <p>
-                    Maintained positive customer feedback and communication standards.
-                  </p>
-                </div>
-
-              </div>
+<div class="timeline" id="achievementsWrap">
+  <div class="empty">
+    No achievements added yet.
+  </div>
+</div>
 
             </div>
 
@@ -1003,7 +984,27 @@ a{text-decoration:none;color:inherit}
 </div>
 
         </div>
+<div
+  class="card side-card hidden"
+  id="cvCard"
+>
 
+  <h3>
+    Resume / CV
+  </h3>
+
+  <div
+    id="cvPreviewWrap"
+    class="timeline"
+  >
+
+    <div class="empty">
+      No CV uploaded yet.
+    </div>
+
+  </div>
+
+</div>
         <div class="card side-card">
 
           <h3>Open to</h3>
@@ -1530,6 +1531,9 @@ renderPillList("industriesWrap", user.industries || user.companyTags || []);
   user.positiveFeedback ||
   []
 );
+  renderAchievements(user.achievements || []);
+renderPerformance(user.performance || user.performanceMetrics || {});
+  renderCVSection(user);
   /* SKILLS */
 
   if(
@@ -1728,6 +1732,132 @@ function renderServices(services){
       `;
 
     }).join("");
+
+}
+  function renderAchievements(items){
+
+  const wrap =
+    document.getElementById("achievementsWrap");
+
+  if(!wrap) return;
+
+  if(!Array.isArray(items) || !items.length){
+
+    wrap.innerHTML = `
+      <div class="empty">
+        No achievements added yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  wrap.innerHTML = items.map(item => {
+
+    if(typeof item === "string"){
+      return `
+        <div class="timeline-item">
+          <h3>${escapeHtml(item)}</h3>
+          <p>Achievement added to this profile.</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="timeline-item">
+        <h3>${escapeHtml(item.title || "Achievement")}</h3>
+        <p>${escapeHtml(item.description || item.note || "")}</p>
+      </div>
+    `;
+
+  }).join("");
+}
+
+function renderPerformance(metrics){
+
+  document.getElementById("metricCompletion").textContent =
+    metrics.taskCompletion !== undefined
+      ? metrics.taskCompletion + "%"
+      : "0%";
+
+  document.getElementById("metricAttendance").textContent =
+    metrics.attendance !== undefined
+      ? metrics.attendance + "%"
+      : "Not tracked";
+
+  document.getElementById("metricCSAT").textContent =
+    metrics.csat !== undefined
+      ? metrics.csat + "/5"
+      : "Not rated";
+
+  document.getElementById("metricResponse").textContent =
+    metrics.responseTime || "Not tracked";
+
+}
+  function renderCVSection(user){
+
+  const card =
+    document.getElementById(
+      "cvCard"
+    );
+
+  const wrap =
+    document.getElementById(
+      "cvPreviewWrap"
+    );
+
+  if(!card || !wrap){
+    return;
+  }
+
+  if(
+    !user.cvUrl ||
+    user.showCV === false
+  ){
+
+    card.classList.add("hidden");
+    return;
+
+  }
+
+  card.classList.remove("hidden");
+
+  const fileName =
+    user.cvUrl
+      .split("/")
+      .pop()
+      .split("?")[0];
+
+  wrap.innerHTML = `
+    <div class="timeline-item">
+
+      <h3>
+        ${escapeHtml(fileName)}
+      </h3>
+
+      <p>
+        Resume uploaded by this agent.
+      </p>
+
+      <div style="margin-top:12px;">
+
+        <a
+          href="${user.cvUrl}"
+          target="_blank"
+          class="pill-btn primary"
+          style="
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+          "
+        >
+          View CV
+        </a>
+
+      </div>
+
+    </div>
+  `;
 
 }
 /* =========================
