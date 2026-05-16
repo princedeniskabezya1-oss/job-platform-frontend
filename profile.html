@@ -2076,6 +2076,34 @@ function esc(value = ""){
     .replaceAll(">","&gt;")
     .replaceAll('"',"&quot;");
 }
+  function toast(title,message="",type="success"){
+  const wrap = document.getElementById("toastWrap");
+
+  if(!wrap){
+    alert(title + (message ? ": " + message : ""));
+    return;
+  }
+
+  const item = document.createElement("div");
+  item.className = "toast " + (type === "error" ? "error" : "success");
+
+  item.innerHTML = `
+    <strong style="display:block;margin-bottom:4px;">
+      ${esc(title)}
+    </strong>
+    ${
+      message
+        ? `<span style="font-size:13px;">${esc(message)}</span>`
+        : ""
+    }
+  `;
+
+  wrap.appendChild(item);
+
+  setTimeout(()=>{
+    item.remove();
+  },3500);
+}
 
 function setStatus(text,type=""){
   const el = document.getElementById("saveStatus");
@@ -3185,11 +3213,13 @@ setStatus(
    console.error("SAVE PROFILE ERROR:", err);
 alert("Save failed: " + err.message);
 
-    toast(
-      "Save failed",
-      err.message,
-      "error"
-    );
+toast(
+  "Save failed",
+  err.message || "Something went wrong while saving.",
+  "error"
+);
+
+alert("Save failed: " + (err.message || "Unknown error"));
 
     setStatus(
       "Error",
