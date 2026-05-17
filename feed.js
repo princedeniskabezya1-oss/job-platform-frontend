@@ -77,9 +77,15 @@ const AIFTFeed = (() => {
     return user.headline || user.profession || user.role || "AIFT Member";
   }
 
-  function userAvatar(user = {}) {
-    return user.profileImage || DEFAULT_AVATAR;
-  }
+function userAvatar(user = {}) {
+  return (
+    user.profileImage ||
+    user.avatar ||
+    user.photoURL ||
+    user.profilePicture ||
+    DEFAULT_AVATAR
+  );
+}
 
   function isVerified(user = {}) {
     return Boolean(
@@ -183,10 +189,10 @@ const AIFTFeed = (() => {
       return;
     }
 
-    renderShell();
-    moveOverlaysToBody();
+await loadMe();
 
-    await loadMe();
+renderShell();
+moveOverlaysToBody();
 
     const singlePostId = new URLSearchParams(location.search).get("post");
     if (singlePostId) {
