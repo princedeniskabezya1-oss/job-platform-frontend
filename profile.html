@@ -2312,17 +2312,22 @@ function role(){
 
 function publicProfileUrl(){
   const id = state.me?._id || localStorage.getItem("userId");
+  const r = role();
 
-  if(role() === "employer"){
+  if(!id){
+    return "login.html";
+  }
+
+  if(r === "agent" || r === "talent"){
+    return `agent-public-profile.html?id=${id}`;
+  }
+
+  if(r === "employer"){
     return `employer-public-profile.html?id=${id}`;
   }
 
-  if(role() === "school"){
+  if(r === "school"){
     return `school-public-profile.html?id=${id}`;
-  }
-
-  if(role() === "agent"){
-    return `agent-public-profile.html?id=${id}`;
   }
 
   return `public-profile.html?id=${id}`;
