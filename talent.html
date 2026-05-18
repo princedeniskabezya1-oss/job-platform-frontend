@@ -1,3326 +1,2329 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AIFT Talent Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <style>
-    :root{
-      --primary:#0a66c2;
-      --primary-dark:#004182;
-      --bg:#f3f2ef;
-      --card:#ffffff;
-      --text:#1f2937;
-      --muted:#64748b;
-      --border:#e5e7eb;
-      --soft:#f8fafc;
-      --danger:#e11d48;
-      --success:#16a34a;
-      --shadow:0 10px 28px rgba(15,23,42,.06);
-      --radius:18px;
-      --mobile-topbar-h:64px;
-      --mobile-bottomnav-h:68px;
-    }
-
-    *{
-      box-sizing:border-box;
-      margin:0;
-      padding:0;
-      font-family:'Inter',sans-serif;
-      -webkit-tap-highlight-color:transparent;
-    }
-
-    html,body{
-      width:100%;
-      overflow-x:hidden;
-      scroll-behavior:smooth;
-    }
-
-    body{
-      background:var(--bg);
-      color:var(--text);
-    }
-
-    img{
-      max-width:100%;
-      display:block;
-    }
-
-    button,input,textarea,select{
-      font:inherit;
-    }
-
-    a{
-      color:inherit;
-      text-decoration:none;
-    }
-
-    .hidden{
-      display:none !important;
-    }
-
-    .header{
-      position:sticky;
-      top:0;
-      z-index:1000;
-      background:#fff;
-      border-bottom:1px solid var(--border);
-      box-shadow:0 2px 10px rgba(15,23,42,.04);
-      padding:12px 22px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:16px;
-    }
-
-    .logo{
-      font-size:24px;
-      font-weight:800;
-      white-space:nowrap;
-      letter-spacing:-.02em;
-    }
-
-    .logo span{
-      color:var(--primary);
-    }
-
-    .header-actions{
-      display:flex;
-      align-items:center;
-      justify-content:flex-end;
-      gap:10px;
-      flex-wrap:wrap;
-      min-width:0;
-      width:100%;
-    }
-
-    .top-nav-item,
-    .notif-btn,
-    .top-profile-pill{
-      cursor:pointer;
-      border-radius:999px;
-      transition:.2s ease;
-    }
-
-    .top-nav-item{
-      position:relative;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:6px;
-      padding:8px 12px;
-      color:#334155;
-      min-width:0;
-      white-space:nowrap;
-    }
-
-    .top-nav-item:hover,
-    .notif-btn:hover,
-    .top-profile-pill:hover{
-      background:#eef3f8;
-    }
-
-    .top-nav-item svg,
-    .notif-btn svg{
-      width:20px;
-      height:20px;
-      stroke:#555;
-      fill:none;
-      stroke-width:2;
-      transition:.2s ease;
-    }
-
-    .top-nav-item:hover svg,
-    .notif-btn:hover svg{
-      stroke:var(--primary);
-    }
-
-    .top-nav-label{
-      font-size:12px;
-      font-weight:600;
-    }
-
-    .notif-btn{
-      position:relative;
-      display:flex;
-      align-items:center;
-      gap:6px;
-      padding:8px 12px;
-      color:#334155;
-    }
-
-    .count-badge{
-      position:absolute;
-      top:-5px;
-      right:-8px;
-      min-width:16px;
-      height:16px;
-      border-radius:999px;
-      background:var(--danger);
-      color:#fff;
-      font-size:10px;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding:0 4px;
-      line-height:1;
-      font-weight:700;
-    }
-
-    .top-profile-pill{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:6px 10px;
-      min-width:0;
-    }
-
-    .top-profile-pill img{
-      width:34px;
-      height:34px;
-      border-radius:50%;
-      object-fit:cover;
-      border:1px solid var(--border);
-      background:#f8fafc;
-      flex-shrink:0;
-    }
-
-    .top-profile-meta{
-      display:flex;
-      flex-direction:column;
-      min-width:0;
-      line-height:1.1;
-    }
-
-    .top-profile-meta strong{
-      font-size:13px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .top-profile-meta span{
-      font-size:11px;
-      color:var(--muted);
-    }
-
-    .mobile-topbar{
-      display:none;
-      position:fixed;
-      top:0;
-      left:0;
-      right:0;
-      z-index:1100;
-      height:var(--mobile-topbar-h);
-      background:#fff;
-      border-bottom:1px solid #e8edf3;
-      padding:10px 12px;
-      transform:translateY(0);
-      transition:transform .25s ease;
-    }
-
-    .mobile-topbar.hide{
-      transform:translateY(calc(-1 * var(--mobile-topbar-h)));
-    }
-
-    .mobile-topbar-inner{
-      height:100%;
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-
-    .mobile-profile-btn{
-      width:40px;
-      height:40px;
-      border-radius:50%;
-      border:1px solid #dce4ee;
-      overflow:hidden;
-      flex-shrink:0;
-      background:#f8fafc;
-      cursor:pointer;
-    }
-
-    .mobile-profile-btn img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-    }
-
-    .mobile-search-wrap{
-      flex:1;
-      min-width:0;
-      position:relative;
-    }
-
-    .mobile-search-wrap input{
-      width:100%;
-      height:40px;
-      border:none;
-      background:#eef3f8;
-      border-radius:999px;
-      padding:0 14px 0 40px;
-      font-size:14px;
-      outline:none;
-      color:#0f172a;
-    }
-
-    .mobile-search-wrap svg{
-      position:absolute;
-      left:14px;
-      top:50%;
-      transform:translateY(-50%);
-      width:18px;
-      height:18px;
-      stroke:#64748b;
-      fill:none;
-      stroke-width:2;
-      pointer-events:none;
-    }
-
-    .mobile-msg-btn{
-      width:40px;
-      height:40px;
-      border:none;
-      border-radius:50%;
-      background:#fff;
-      border:1px solid #dce4ee;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      position:relative;
-      flex-shrink:0;
-      cursor:pointer;
-    }
-
-    .mobile-msg-btn svg{
-      width:20px;
-      height:20px;
-      stroke:#334155;
-      fill:none;
-      stroke-width:2;
-    }
-
-    .mobile-msg-badge,
-    .mobile-nav-badge{
-      position:absolute;
-      top:1px;
-      right:1px;
-      min-width:16px;
-      height:16px;
-      padding:0 4px;
-      background:var(--danger);
-      color:#fff;
-      border-radius:999px;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      font-size:10px;
-      font-weight:700;
-      line-height:1;
-    }
-
-    .container{
-      max-width:1400px;
-      margin:20px auto;
-      padding:0 16px 28px;
-      display:grid;
-      grid-template-columns:300px minmax(0,1fr) 320px;
-      gap:20px;
-      align-items:start;
-    }
-
-    .left-col,
-    .right-col{
-      position:sticky;
-      top:86px;
-      height:fit-content;
-    }
-
-    .card{
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:18px;
-      box-shadow:var(--shadow);
-      overflow:hidden;
-      margin-bottom:16px;
-    }
-
-    #profileCard{
-      overflow:visible;
-    }
-
-    .profile-card-shell{
-      position:relative;
-      overflow:visible;
-      background:#fff;
-    }
-
-    .profile-card-cover{
-      height:132px;
-      background:linear-gradient(135deg,#0a66c2,#2d8cff);
-      overflow:hidden;
-      position:relative;
-    }
-
-    .profile-card-cover img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-    }
-
-    .profile-card-body{
-      padding:0 18px 18px;
-      position:relative;
-    }
-
-    .profile-card-avatar-row{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:12px;
-      position:relative;
-      z-index:2;
-    }
-
-    .profile-card-avatar{
-      width:96px;
-      height:96px;
-      border-radius:50%;
-      object-fit:cover;
-      border:4px solid #fff;
-      background:#f3f4f6;
-      box-shadow:0 8px 20px rgba(15,23,42,.12);
-      margin-top:-48px;
-      flex-shrink:0;
-    }
-
-    .profile-card-badge{
-      margin-top:14px;
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:6px 10px;
-      border-radius:999px;
-      background:#eff6ff;
-      color:var(--primary);
-      border:1px solid #dbeafe;
-      font-size:11px;
-      font-weight:700;
-      white-space:nowrap;
-    }
-
-    .profile-card-name{
-      margin-top:12px;
-      font-size:24px;
-      font-weight:800;
-      line-height:1.12;
-      word-break:break-word;
-    }
-
-    .profile-card-location{
-      margin-top:6px;
-      font-size:13px;
-      color:var(--muted);
-    }
-
-    .profile-card-headline{
-      margin-top:8px;
-      font-size:14px;
-      color:#475569;
-      line-height:1.55;
-      word-break:break-word;
-    }
-
-    .profile-card-actions{
-      margin-top:16px;
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-
-    .profile-card-btn,
-    .panel-btn,
-    .follow-btn,
-    .modal-btn,
-    .network-btn{
-      border:none;
-      border-radius:999px;
-      padding:10px 16px;
-      font-size:13px;
-      font-weight:700;
-      cursor:pointer;
-      transition:.2s ease;
-    }
-
-    .profile-card-btn-primary,
-    .panel-btn-primary,
-    .modal-btn-primary,
-    .network-btn-primary{
-      background:var(--primary);
-      color:#fff;
-    }
-
-    .profile-card-btn-primary:hover,
-    .panel-btn-primary:hover,
-    .modal-btn-primary:hover,
-    .network-btn-primary:hover{
-      background:var(--primary-dark);
-    }
-
-    .profile-card-btn-secondary,
-    .panel-btn-secondary,
-    .follow-btn,
-    .modal-btn-secondary,
-    .network-btn-secondary{
-      background:#fff;
-      color:var(--primary);
-      border:1px solid #cfe1f4;
-    }
-
-    .profile-card-btn-secondary:hover,
-    .panel-btn-secondary:hover,
-    .follow-btn:hover,
-    .modal-btn-secondary:hover,
-    .network-btn-secondary:hover{
-      background:#eef4fb;
-    }
-
-    .network-btn-muted{
-      background:#fff;
-      color:#334155;
-      border:1px solid #d8dee6;
-    }
-
-    .network-btn-muted:hover{
-      background:#f8fafc;
-    }
-
-    .profile-card-mini-stats{
-      margin-top:16px;
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:10px;
-    }
-
-    .profile-mini-box{
-      border:1px solid #edf2f7;
-      background:#f8fafc;
-      border-radius:12px;
-      padding:10px;
-      min-width:0;
-    }
-
-    .profile-mini-label{
-      font-size:11px;
-      color:var(--muted);
-      margin-bottom:5px;
-    }
-
-    .profile-mini-value{
-      font-size:15px;
-      font-weight:800;
-      line-height:1.15;
-      word-break:break-word;
-    }
-
-    .profile-extra-section{
-      margin-top:14px;
-      padding-top:14px;
-      border-top:1px solid #eef2f7;
-      display:grid;
-      gap:10px;
-    }
-
-    .profile-extra-card{
-      background:#f8fafc;
-      border:1px solid #e8edf3;
-      border-radius:14px;
-      padding:12px;
-    }
-
-    .profile-extra-title{
-      font-size:12px;
-      font-weight:700;
-      color:#475569;
-      margin-bottom:6px;
-    }
-
-    .profile-extra-text{
-      font-size:13px;
-      color:#1f2937;
-      line-height:1.45;
-      word-break:break-word;
-    }
-
-    .profile-extra-list{
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-    }
-
-    .profile-extra-pill{
-      display:inline-flex;
-      align-items:center;
-      padding:6px 10px;
-      border-radius:999px;
-      background:#eef4fb;
-      border:1px solid #dbeafe;
-      color:#0f172a;
-      font-size:12px;
-      font-weight:600;
-    }
-
-    .profile-extra-empty{
-      font-size:12px;
-      color:#64748b;
-    }
-
-    .tools-card{
-      padding:10px 0;
-    }
-
-    .tools-title{
-      font-weight:700;
-      font-size:15px;
-      padding:14px 16px;
-      border-bottom:1px solid #eee;
-      background:#fff;
-    }
-
-    .tool-item{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:14px 16px;
-      cursor:pointer;
-      font-size:14px;
-      color:#1c1c1c;
-      transition:.2s;
-      border-left:3px solid transparent;
-    }
-
-    .tool-item:hover,
-    .tool-item.active{
-      background:#f8fafc;
-      border-left-color:#0a66c2;
-    }
-
-    .tool-icon{
-      width:38px;
-      height:38px;
-      border-radius:12px;
-      background:#eef4fb;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      flex-shrink:0;
-    }
-
-    .tool-icon svg{
-      width:18px;
-      height:18px;
-      stroke:#0a66c2;
-      fill:none;
-      stroke-width:2;
-    }
-
-    .tool-item-text{
-      display:flex;
-      flex-direction:column;
-      min-width:0;
-    }
-
-    .tool-item-label{
-      font-size:14px;
-      font-weight:700;
-      color:#1c1c1c;
-      line-height:1.2;
-    }
-
-    .tool-item-sub{
-      font-size:12px;
-      color:#6f6f6f;
-      margin-top:3px;
-      line-height:1.35;
-    }
-
-    .dashboard-card{
-      overflow:hidden;
-    }
-
-    .dashboard-title{
-      font-weight:700;
-      font-size:16px;
-      padding:16px 18px;
-      border-bottom:1px solid #eee;
-      background:#fff;
-    }
-
-    .dashboard-grid{
-      padding:10px 12px 14px;
-      display:grid;
-      grid-template-columns:1fr;
-      gap:12px;
-    }
-
-    .dashboard-stat-card{
-      border:1px solid #eceff3;
-      background:#fbfcfd;
-      border-radius:14px;
-      padding:14px;
-      display:flex;
-      align-items:center;
-      gap:12px;
-      transition:.2s;
-    }
-
-    .dashboard-stat-card:hover{
-      background:#f6faff;
-      border-color:#d9e7f5;
-    }
-
-    .dashboard-stat-icon{
-      width:42px;
-      height:42px;
-      border-radius:12px;
-      background:#eef4fb;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      flex-shrink:0;
-    }
-
-    .dashboard-stat-icon svg{
-      width:20px;
-      height:20px;
-      stroke:#0a66c2;
-      fill:none;
-      stroke-width:2;
-    }
-
-    .dashboard-stat-body{
-      min-width:0;
-      flex:1;
-    }
-
-    .dashboard-stat-label{
-      font-size:13px;
-      color:#6f6f6f;
-      margin-bottom:4px;
-    }
-
-    .dashboard-stat-value{
-      font-size:22px;
-      font-weight:800;
-      color:#1c1c1c;
-      line-height:1;
-    }
-
-    .dashboard-stat-sub{
-      margin-top:6px;
-      font-size:12px;
-      color:#94a3b8;
-    }
-
-    .panel-shell,
-    .network-shell{
-      background:#fff;
-      border:1px solid #e6e6e6;
-      border-radius:18px;
-      overflow:hidden;
-      box-shadow:var(--shadow);
-    }
-
-    .panel-header,
-    .network-header{
-      padding:18px 20px;
-      border-bottom:1px solid #eee;
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:14px;
-      flex-wrap:wrap;
-      background:#fff;
-    }
-
-    .panel-title-wrap h2,
-    .network-title-wrap h2{
-      margin:0;
-      font-size:24px;
-      font-weight:800;
-      color:#1c1c1c;
-    }
-
-    .panel-title-wrap p,
-    .network-title-wrap p{
-      margin:5px 0 0;
-      font-size:13px;
-      color:#6f6f6f;
-      line-height:1.5;
-    }
-
-    .panel-actions,
-    .network-header-actions{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-
-    .panel-body{
-      padding:18px 20px 20px;
-    }
-
-    .panel-grid{
-      display:grid;
-      gap:14px;
-    }
-
-    .panel-card{
-      border:1px solid #edf2f7;
-      background:#fff;
-      border-radius:14px;
-      padding:16px;
-      transition:.2s ease;
-    }
-
-    .panel-card:hover{
-      border-color:#dbe8f6;
-      box-shadow:0 8px 24px rgba(0,0,0,.04);
-    }
-
-    .panel-card-title{
-      font-size:17px;
-      font-weight:800;
-      color:#1c1c1c;
-      margin-bottom:6px;
-    }
-
-    .panel-card-sub{
-      font-size:13px;
-      color:#64748b;
-      margin-bottom:12px;
-      line-height:1.5;
-    }
-
-    .panel-card-meta{
-      font-size:13px;
-      color:#6f6f6f;
-      margin-bottom:12px;
-      line-height:1.5;
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
-
-    .panel-card-actions{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-
-    .panel-empty,
-    .network-empty{
-      text-align:center;
-      padding:56px 20px;
-      color:#64748b;
-    }
-
-    .panel-empty h3,
-    .network-empty h3{
-      margin:10px 0 6px;
-      font-size:20px;
-      color:#1c1c1c;
-    }
-
-    .panel-loading{
-      text-align:center;
-      padding:40px 20px;
-      color:#64748b;
-      font-size:14px;
-    }
-
-    .post-card{
-      background:#fff;
-      border:1px solid #e6e6e6;
-      border-radius:18px;
-      overflow:hidden;
-      box-shadow:var(--shadow);
-      margin-bottom:16px;
-    }
-
-    .post-header{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:12px;
-      padding:14px 16px 10px;
-    }
-
-    .post-author{
-      display:flex;
-      gap:10px;
-      cursor:pointer;
-      min-width:0;
-      flex:1;
-      align-items:flex-start;
-    }
-
-    .post-author img{
-      width:48px;
-      height:48px;
-      border-radius:50%;
-      object-fit:cover;
-      flex-shrink:0;
-      border:1px solid #e5e7eb;
-    }
-
-    .post-author-main{
-      min-width:0;
-      flex:1;
-    }
-
-    .post-author-name{
-      font-weight:700;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      font-size:15px;
-    }
-
-    .post-meta{
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.35;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    }
-
-    .post-head-actions{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      justify-content:flex-end;
-      flex-shrink:0;
-      margin-left:8px;
-    }
-
-    .follow-btn{
-      white-space:nowrap;
-    }
-
-    .post-kebab{
-      cursor:pointer;
-      font-weight:700;
-      letter-spacing:.08em;
-      padding:8px 10px;
-      border-radius:10px;
-      user-select:none;
-      line-height:1;
-      border:none;
-      background:transparent;
-      color:#334155;
-    }
-
-    .post-kebab:hover{
-      background:#f3f4f6;
-    }
-
-    .dropdown{
-      position:relative;
-    }
-
-    .dropdown-menu{
-      position:absolute;
-      right:0;
-      top:34px;
-      background:#fff;
-      border:1px solid var(--border);
-      border-radius:12px;
-      box-shadow:0 12px 26px rgba(15,23,42,.1);
-      display:none;
-      min-width:150px;
-      z-index:100;
-      overflow:hidden;
-    }
-
-    .dropdown-menu button{
-      width:100%;
-      border:none;
-      background:#fff;
-      padding:10px 12px;
-      cursor:pointer;
-      font-size:14px;
-      text-align:left;
-    }
-
-    .dropdown-menu button:hover{
-      background:#f8fafc;
-    }
-
-    .post-content{
-      padding:0 16px 16px;
-      font-size:15px;
-      line-height:1.6;
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
-
-    .post-media img,
-    .post-media video{
-      width:100%;
-      max-height:520px;
-      object-fit:cover;
-      background:#000;
-    }
-
-    .post-stats{
-      display:flex;
-      justify-content:space-between;
-      gap:8px;
-      padding:12px 16px;
-      font-size:13px;
-      color:var(--muted);
-      border-top:1px solid #eee;
-    }
-
-    .post-actions{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:8px;
-      padding:10px 16px;
-      border-top:1px solid #eee;
-      flex-wrap:wrap;
-    }
-
-    .post-action{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:6px;
-      cursor:pointer;
-      color:#6f6f6f;
-      font-size:14px;
-      transition:.2s ease;
-      flex:1 1 0;
-      min-width:110px;
-      padding:8px 10px;
-      border-radius:10px;
-      border:none;
-      background:transparent;
-    }
-
-    .post-action svg{
-      width:20px;
-      height:20px;
-      stroke:currentColor;
-      fill:none;
-      stroke-width:2;
-    }
-
-    .post-action:hover{
-      background:#f8fafc;
-      color:var(--primary);
-    }
-
-    .post-action.liked{
-      color:var(--primary);
-    }
-
-    .comments-wrapper{
-      padding:18px 15px;
-      border-top:1px solid #eee;
-      display:none;
-      background:#fff;
-    }
-
-    .comment-input-area{
-      display:flex;
-      gap:10px;
-      margin-top:10px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-
-    .comment-input-area input{
-      flex:1;
-      min-width:0;
-      border-radius:999px;
-      border:1px solid #ddd;
-      padding:10px 12px;
-      outline:none;
-    }
-
-    .comment-send{
-      background:var(--primary);
-      color:#fff;
-      border:none;
-      border-radius:999px;
-      padding:10px 14px;
-      cursor:pointer;
-      font-weight:700;
-    }
-
-    .comments-container{
-      margin-top:18px;
-    }
-
-    .comment-item{
-      display:flex;
-      gap:12px;
-      margin-bottom:16px;
-      position:relative;
-    }
-
-    .comment-avatar{
-      width:36px;
-      height:36px;
-      border-radius:50%;
-      object-fit:cover;
-      flex-shrink:0;
-    }
-
-    .comment-body{
-      flex:1;
-      min-width:0;
-    }
-
-    .comment-bubble{
-      background:#f2f4f7;
-      padding:10px 14px;
-      border-radius:18px;
-      word-break:break-word;
-    }
-
-    .comment-name{
-      font-weight:700;
-      font-size:13px;
-      margin-bottom:4px;
-    }
-
-    .comment-text{
-      font-size:13px;
-      color:#334155;
-      line-height:1.45;
-      white-space:pre-wrap;
-    }
-
-    .comment-meta{
-      display:flex;
-      gap:18px;
-      flex-wrap:wrap;
-      margin-top:6px;
-      font-size:12px;
-      color:#64748b;
-    }
-
-    .network-search{
-      width:260px;
-      max-width:100%;
-      border:1px solid #ddd;
-      border-radius:999px;
-      padding:10px 14px;
-      font-size:14px;
-      outline:none;
-    }
-
-    .network-search:focus{
-      border-color:#0a66c2;
-      box-shadow:0 0 0 4px rgba(10,102,194,.08);
-    }
-
-    .network-tabs{
-      display:flex;
-      gap:10px;
-      padding:14px 20px 0;
-      flex-wrap:wrap;
-    }
-
-    .network-tab{
-      border:1px solid #dbe3ec;
-      background:white;
-      color:#334155;
-      padding:10px 16px;
-      border-radius:999px;
-      font-size:14px;
-      font-weight:700;
-      cursor:pointer;
-      transition:.2s ease;
-    }
-
-    .network-tab:hover{
-      background:#f8fafc;
-    }
-
-    .network-tab.active{
-      background:#eef4fb;
-      color:#0a66c2;
-      border-color:#bcd5ee;
-    }
-
-    .network-summary{
-      display:grid;
-      grid-template-columns:repeat(3, minmax(0,1fr));
-      gap:14px;
-      padding:18px 20px;
-      border-bottom:1px solid #eee;
-    }
-
-    .network-stat{
-      background:#f8fafc;
-      border:1px solid #edf2f7;
-      border-radius:12px;
-      padding:14px;
-    }
-
-    .network-stat-label{
-      font-size:12px;
-      color:#6f6f6f;
-      margin-bottom:6px;
-    }
-
-    .network-stat-value{
-      font-size:22px;
-      font-weight:800;
-      color:#1c1c1c;
-    }
-
-    .network-list{
-      padding:10px 20px 20px;
-    }
-
-    .network-card{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:16px;
-      padding:16px 0;
-      border-bottom:1px solid #eee;
-    }
-
-    .network-card:last-child{
-      border-bottom:none;
-    }
-
-    .network-user{
-      display:flex;
-      align-items:center;
-      gap:14px;
-      min-width:0;
-      flex:1;
-    }
-
-    .network-user img{
-      width:60px;
-      height:60px;
-      border-radius:50%;
-      object-fit:cover;
-      border:1px solid #e5e7eb;
-      background:#f2f2f2;
-      flex-shrink:0;
-    }
-
-    .network-user-meta{
-      min-width:0;
-    }
-
-    .network-user-name{
-      font-size:15px;
-      font-weight:700;
-      color:#1c1c1c;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    .network-user-headline{
-      font-size:13px;
-      color:#475569;
-      margin-top:3px;
-    }
-
-    .network-user-sub{
-      font-size:12px;
-      color:#6f6f6f;
-      margin-top:5px;
-    }
-
-    .network-actions{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-
-    .network-back{
-      margin:18px 20px 20px;
-      border:none;
-      background:white;
-      color:#0a66c2;
-      border:1px solid #cfe1f4;
-      padding:10px 16px;
-      border-radius:999px;
-      font-weight:700;
-      cursor:pointer;
-    }
-
-    .network-back:hover{
-      background:#eef4fb;
-    }
-
-    .share-modal,
-    .post-modal{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.45);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:1200;
-      padding:16px;
-    }
-
-    .share-content,
-    .post-modal-card{
-      background:#fff;
-      border-radius:16px;
-      width:min(92vw,500px);
-      padding:20px;
-      box-shadow:0 20px 50px rgba(0,0,0,.18);
-    }
-
-    .share-content h4,
-    .post-modal-card h3{
-      margin-bottom:12px;
-    }
-
-    .post-modal-card textarea{
-      width:100%;
-      border:1px solid #ddd;
-      padding:10px;
-      border-radius:10px;
-      resize:vertical;
-      min-height:120px;
-      outline:none;
-    }
-
-    .modal-actions{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      margin-top:15px;
-      flex-wrap:wrap;
-    }
-
-    #filePreviewContainer img,
-    #filePreviewContainer video{
-      width:100%;
-      max-height:260px;
-      object-fit:cover;
-      border-radius:12px;
-      margin-top:10px;
-      border:1px solid #e5e7eb;
-    }
-
-    .mobile-bottom-nav{
-      display:none;
-      position:fixed;
-      left:0;
-      right:0;
-      bottom:0;
-      height:var(--mobile-bottomnav-h);
-      background:#fff;
-      border-top:1px solid #e5e7eb;
-      z-index:1150;
-      padding-bottom:env(safe-area-inset-bottom, 0);
-      box-shadow:0 -8px 24px rgba(15,23,42,.06);
-      transform:translateY(0);
-      transition:transform .25s ease;
-    }
-
-    .mobile-bottom-nav.hide{
-      transform:translateY(100%);
-    }
-
-    .mobile-bottom-nav-inner{
-      height:100%;
-      display:grid;
-      grid-template-columns:1fr 1fr 76px 1fr 1fr;
-      align-items:center;
-      gap:2px;
-      padding:0 4px;
-    }
-
-    .mobile-nav-btn{
-      position:relative;
-      border:none;
-      background:transparent;
-      height:100%;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap:0;
-      color:#64748b;
-      cursor:pointer;
-      border-radius:14px;
-    }
-
-    .mobile-nav-btn.active{
-      color:var(--primary);
-    }
-
-    .mobile-nav-btn svg{
-      width:22px;
-      height:22px;
-      stroke:currentColor;
-      fill:none;
-      stroke-width:2;
-    }
-
-    .mobile-nav-label{
-      display:none;
-    }
-
-    .mobile-nav-post{
-      width:56px;
-      height:56px;
-      border:none;
-      border-radius:50%;
-      background:linear-gradient(180deg,#0a66c2,#004182);
-      color:#fff;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      margin:0 auto;
-      box-shadow:0 14px 30px rgba(10,102,194,.28);
-      cursor:pointer;
-    }
-
-    .mobile-nav-post svg{
-      width:24px;
-      height:24px;
-      stroke:#fff;
-      fill:none;
-      stroke-width:2.5;
-    }
-
-    @media (max-width: 1200px){
-      .container{
-        grid-template-columns:300px minmax(0,1fr);
-      }
-
-      .right-col{
-        display:none;
-      }
-    }
-
-    @media (max-width: 900px){
-      .header{
-        padding:12px 16px;
-        flex-wrap:wrap;
-        gap:12px;
-      }
-
-      .header-actions{
-        width:100%;
-        justify-content:space-between;
-        gap:10px;
-        flex-wrap:wrap;
-      }
-
-      .container{
-        grid-template-columns:1fr;
-        padding:0 12px 22px;
-        gap:14px;
-        margin:14px auto;
-      }
-
-      .left-col,
-      .right-col{
-        position:static;
-        top:auto;
-        height:auto;
-      }
-
-      .dashboard-card{
-        display:none;
-      }
-
-      .network-summary{
-        grid-template-columns:1fr;
-      }
-
-      .network-card{
-        flex-direction:column;
-        align-items:flex-start;
-      }
-
-      .network-actions{
-        width:100%;
-      }
-
-      .network-search{
-        width:100%;
-      }
-
-      .profile-card-actions{
-        flex-direction:column;
-      }
-
-      .profile-card-btn{
-        width:100%;
-        text-align:center;
-      }
-    }
-
-    @media (max-width: 640px){
-      body{
-        background:#f3f2ef;
-        padding-top:var(--mobile-topbar-h);
-        padding-bottom:12px;
-      }
-
-      .header{
-        display:none;
-      }
-
-      .mobile-topbar{
-        display:block;
-      }
-
-      .mobile-bottom-nav{
-        display:block;
-      }
-
-      .container{
-        margin:0;
-        padding:0;
-        gap:0;
-        display:block;
-        max-width:none;
-      }
-
-      .left-col,
-      .right-col{
-        display:none;
-      }
-
-      .center-col{
-        width:100%;
-      }
-
-      .card,
-      .panel-shell,
-      .network-shell,
-      .post-card{
-        border-radius:0;
-        margin-bottom:8px;
-        border-left:none;
-        border-right:none;
-        border-top:1px solid #e8e8e8;
-        border-bottom:1px solid #e8e8e8;
-        box-shadow:none;
-      }
-
-      /* remove second bar on mobile */
-      .create-post{
-        display:none !important;
-      }
-
-      .post-header{
-        padding:12px 12px 8px;
-        gap:8px;
-        align-items:flex-start;
-      }
-
-      .post-author img{
-        width:42px;
-        height:42px;
-      }
-
-      .post-author-name{
-        font-size:15px;
-      }
-
-      .post-meta{
-        font-size:11px;
-      }
-
-      .post-head-actions{
-        gap:6px;
-        margin-left:6px;
-      }
-
-      .follow-btn{
-        padding:6px 10px;
-        font-size:12px;
-      }
-
-      .post-kebab{
-        padding:6px 8px;
-        font-size:18px;
-      }
-
-      .post-content{
-        padding:0 12px 12px;
-        font-size:14px;
-        line-height:1.5;
-      }
-
-      .post-media img,
-      .post-media video{
-        max-height:none;
-      }
-
-      .post-stats{
-        padding:10px 12px;
-        font-size:12px;
-      }
-
-      .post-actions{
-        padding:8px 8px 10px;
-        gap:4px;
-        flex-wrap:nowrap;
-      }
-
-      .post-action{
-        min-width:0;
-        flex:1 1 0;
-        padding:8px 4px;
-        font-size:12px;
-      }
-
-      .post-action svg{
-        width:19px;
-        height:19px;
-      }
-
-      .post-action span{
-        white-space:nowrap;
-      }
-
-      .comments-wrapper{
-        padding:14px 12px;
-      }
-
-      .comment-input-area input{
-        width:100%;
-        font-size:13px;
-      }
-
-      .comment-send{
-        width:100%;
-      }
-
-      .comment-avatar{
-        width:32px;
-        height:32px;
-      }
-
-      .comment-bubble{
-        font-size:13px;
-      }
-
-      .dropdown-menu{
-        min-width:138px;
-        top:32px;
-      }
-
-      .share-content,
-      .post-modal-card{
-        width:min(96vw,500px);
-        padding:16px;
-        border-radius:16px;
-      }
-
-      .modal-actions{
-        flex-direction:column;
-        align-items:stretch;
-      }
-
-      .modal-actions > div{
-        width:100%;
-        display:flex;
-        gap:8px;
-      }
-
-      .modal-actions > div button{
-        flex:1;
-      }
-
-      .panel-header,
-      .panel-body,
-      .network-header,
-      .network-list{
-        padding-left:12px;
-        padding-right:12px;
-      }
-
-      .network-tabs{
-        padding:12px 12px 0;
-      }
-
-      .network-back{
-        margin:12px;
-      }
-
-      #toolPanel{
-        margin-top:0;
-      }
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>AIFT | Talent Dashboard</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --blue:#0a66c2;
+  --blue-dark:#004182;
+  --green:#057642;
+  --purple:#6d28d9;
+  --orange:#f59e0b;
+  --red:#dc2626;
+  --bg:#f3f2ef;
+  --card:#ffffff;
+  --text:#191919;
+  --muted:#64748b;
+  --line:#d8d8d8;
+  --soft:#eef3f8;
+  --shadow:0 1px 2px rgba(0,0,0,.08);
+  --radius:14px;
+  --max:1180px;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,Arial,sans-serif;
+  font-size:14px;
+}
+
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+a{text-decoration:none;color:inherit}
+img{display:block;max-width:100%}
+.hidden{display:none!important}
+
+.container{
+  width:min(var(--max),calc(100% - 24px));
+  margin:auto;
+}
+
+/* TOPBAR */
+
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:1000;
+  background:#fff;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.top-inner{
+  min-height:64px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brand{
+  width:38px;
+  height:38px;
+  border-radius:10px;
+  background:linear-gradient(135deg,var(--blue),var(--green),var(--purple));
+  color:#fff;
+  display:grid;
+  place-items:center;
+  font-weight:900;
+  font-size:18px;
+  flex-shrink:0;
+}
+
+.top-title h1{
+  margin:0;
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:-.03em;
+}
+
+.top-title p{
+  margin:2px 0 0;
+  color:#666;
+  font-size:12px;
+}
+
+.top-actions{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.btn{
+  border:1px solid var(--line);
+  background:#fff;
+  color:#334155;
+  border-radius:999px;
+  padding:9px 14px;
+  font-size:12px;
+  font-weight:900;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+}
+
+.btn:hover{background:#f3f2ef}
+
+.btn.primary{
+  border-color:var(--blue);
+  background:var(--blue);
+  color:#fff;
+}
+
+.btn.primary:hover{background:var(--blue-dark)}
+
+.btn.green{
+  border-color:#bbf7d0;
+  background:#ecfdf5;
+  color:#047857;
+}
+
+.btn.red{
+  border-color:#fecaca;
+  background:#fef2f2;
+  color:#b91c1c;
+}
+
+.avatar-top{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  object-fit:cover;
+  border:1px solid #ddd;
+}
+
+/* LAYOUT */
+
+.page{
+  padding:18px 0 60px;
+}
+
+.layout{
+  display:grid;
+  grid-template-columns:260px minmax(0,1fr) 310px;
+  gap:16px;
+  align-items:start;
+}
+
+.left-col,
+.right-col{
+  position:sticky;
+  top:82px;
+}
+
+.card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+.profile-card{
+  margin-bottom:12px;
+}
+
+.profile-cover{
+  height:82px;
+  background:
+    linear-gradient(135deg,rgba(10,102,194,.25),rgba(5,118,66,.18),rgba(109,40,217,.16)),
+    #dbeafe;
+  background-size:cover;
+  background-position:center;
+}
+
+.profile-body{
+  padding:0 16px 16px;
+}
+
+.profile-avatar{
+  width:76px;
+  height:76px;
+  border-radius:50%;
+  border:3px solid #fff;
+  object-fit:cover;
+  margin-top:-38px;
+  background:#fff;
+}
+
+.profile-name{
+  margin:12px 0 4px;
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:-.03em;
+}
+
+.profile-headline{
+  color:#475569;
+  font-size:13px;
+  line-height:1.45;
+}
+
+.profile-meta{
+  margin-top:7px;
+  color:#64748b;
+  font-size:12px;
+}
+
+.profile-completion{
+  margin-top:14px;
+  border-top:1px solid #eee;
+  padding-top:12px;
+}
+
+.completion-head{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  font-weight:900;
+  color:#334155;
+  margin-bottom:7px;
+}
+
+.progress{
+  height:8px;
+  border-radius:999px;
+  background:#e2e8f0;
+  overflow:hidden;
+}
+
+.progress-fill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,var(--blue),var(--green));
+  border-radius:999px;
+}
+
+.side-menu{
+  padding:8px;
+}
+
+.menu-btn{
+  width:100%;
+  border:0;
+  background:#fff;
+  color:#334155;
+  border-radius:10px;
+  padding:12px;
+  font-weight:900;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.menu-btn:hover,
+.menu-btn.active{
+  background:#eef3f8;
+  color:var(--blue);
+}
+
+.menu-btn small{
+  color:#64748b;
+  font-weight:800;
+}
+
+.main-col{
+  min-width:0;
+}
+
+.section{
+  display:none;
+}
+
+.section.active{
+  display:block;
+}
+
+.hero{
+  padding:20px;
+  margin-bottom:12px;
+  background:
+    linear-gradient(135deg,rgba(10,102,194,.12),rgba(5,118,66,.10),rgba(109,40,217,.08)),
+    #fff;
+}
+
+.hero h2{
+  margin:0;
+  font-size:25px;
+  line-height:1.2;
+  letter-spacing:-.045em;
+  font-weight:900;
+}
+
+.hero p{
+  margin:7px 0 0;
+  color:#64748b;
+  line-height:1.55;
+  max-width:720px;
+  font-size:13px;
+}
+
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.stat-card{
+  padding:15px;
+}
+
+.stat-card span{
+  display:block;
+  color:#64748b;
+  font-size:12px;
+  font-weight:900;
+  margin-bottom:8px;
+}
+
+.stat-card strong{
+  display:block;
+  font-size:24px;
+  color:#111827;
+  letter-spacing:-.04em;
+}
+
+.toolbar{
+  display:grid;
+  grid-template-columns:1fr 170px 170px;
+  gap:10px;
+  padding:12px;
+  margin-bottom:12px;
+}
+
+.field{
+  height:42px;
+  border:1px solid #d8dee6;
+  border-radius:12px;
+  padding:0 12px;
+  background:#fff;
+  outline:none;
+  color:#111827;
+}
+
+.field:focus{
+  border-color:#93c5fd;
+  box-shadow:0 0 0 4px rgba(10,102,194,.08);
+}
+  .item-list{
+  display:grid;
+  gap:12px;
+}
+
+.app-card,
+.job-card,
+.offer-card{
+  padding:16px;
+}
+
+.item-top{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  align-items:flex-start;
+}
+
+.item-title{
+  margin:0;
+  font-size:17px;
+  font-weight:900;
+  letter-spacing:-.03em;
+  color:#111827;
+  line-height:1.3;
+}
+
+.item-company{
+  margin-top:5px;
+  color:#334155;
+  font-size:13px;
+  font-weight:800;
+}
+
+.item-meta{
+  margin-top:9px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 9px;
+  border-radius:999px;
+  border:1px solid #e2e8f0;
+  background:#f8fafc;
+  color:#475569;
+  font-size:11px;
+  font-weight:900;
+  text-transform:capitalize;
+}
+
+.pill.blue{background:#eff6ff;color:#2563eb;border-color:#bfdbfe}
+.pill.green{background:#ecfdf5;color:#047857;border-color:#bbf7d0}
+.pill.purple{background:#faf5ff;color:#7c3aed;border-color:#e9d5ff}
+.pill.orange{background:#fffbeb;color:#b45309;border-color:#fde68a}
+.pill.red{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+
+.cover-message{
+  margin-top:12px;
+  border-left:3px solid #bfdbfe;
+  background:#f8fafc;
+  border-radius:12px;
+  padding:12px;
+  color:#475569;
+  font-size:13px;
+  line-height:1.6;
+  white-space:pre-wrap;
+}
+
+.item-actions{
+  margin-top:14px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.panel{
+  padding:16px;
+  margin-bottom:12px;
+}
+
+.panel h3{
+  margin:0 0 10px;
+  font-size:16px;
+  font-weight:900;
+  letter-spacing:-.02em;
+}
+
+.panel p{
+  margin:0;
+  color:#64748b;
+  line-height:1.55;
+  font-size:13px;
+}
+
+.tip-list{
+  display:grid;
+  gap:10px;
+  margin-top:12px;
+}
+
+.tip{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  font-size:13px;
+  line-height:1.45;
+  color:#334155;
+  font-weight:700;
+}
+
+.tip-dot{
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#dcfce7;
+  color:#057642;
+  font-weight:900;
+  flex-shrink:0;
+}
+
+.recommended-card{
+  padding:14px;
+  border-bottom:1px solid #eee;
+}
+
+.recommended-card:last-child{
+  border-bottom:0;
+}
+
+.recommended-card h4{
+  margin:0;
+  font-size:14px;
+  font-weight:900;
+  line-height:1.3;
+}
+
+.recommended-card p{
+  margin:5px 0 0;
+  color:#64748b;
+  font-size:12px;
+  line-height:1.4;
+}
+
+.recommended-card .btn{
+  margin-top:10px;
+}
+
+.empty{
+  padding:28px;
+  text-align:center;
+  color:#64748b;
+}
+
+.empty h3{
+  margin:0;
+  font-size:18px;
+  color:#111827;
+  letter-spacing:-.03em;
+}
+
+.empty p{
+  margin:8px auto 0;
+  max-width:440px;
+  line-height:1.6;
+  font-size:13px;
+}
+
+.loading{
+  padding:26px;
+  text-align:center;
+  color:#64748b;
+}
+
+.timeline{
+  display:grid;
+  gap:10px;
+}
+
+.timeline-item{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  padding:12px;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  background:#fff;
+}
+
+.timeline-icon{
+  width:34px;
+  height:34px;
+  border-radius:12px;
+  display:grid;
+  place-items:center;
+  background:#eff6ff;
+  color:#2563eb;
+  font-weight:900;
+  flex-shrink:0;
+}
+
+.timeline-item strong{
+  display:block;
+  font-size:13px;
+  color:#111827;
+}
+
+.timeline-item span{
+  display:block;
+  margin-top:3px;
+  color:#64748b;
+  font-size:12px;
+  line-height:1.4;
+}
+
+.modal{
+  position:fixed;
+  inset:0;
+  z-index:3000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  background:rgba(15,23,42,.45);
+}
+
+.modal.show{
+  display:flex;
+}
+
+.modal-box{
+  width:min(580px,100%);
+  background:#fff;
+  border-radius:20px;
+  border:1px solid #e5e7eb;
+  box-shadow:0 28px 80px rgba(15,23,42,.3);
+  overflow:hidden;
+}
+
+.modal-head{
+  padding:18px;
+  border-bottom:1px solid #eee;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+}
+
+.modal-head h3{
+  margin:0;
+  font-size:18px;
+  font-weight:900;
+}
+
+.modal-body{
+  padding:18px;
+}
+
+.modal textarea{
+  width:100%;
+  min-height:150px;
+  resize:vertical;
+  border:1px solid #d8dee6;
+  border-radius:14px;
+  padding:13px;
+  outline:none;
+  line-height:1.6;
+}
+
+.modal-actions{
+  padding:0 18px 18px;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.toast{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:4000;
+  background:#111827;
+  color:#fff;
+  padding:12px 14px;
+  border-radius:14px;
+  box-shadow:0 16px 44px rgba(15,23,42,.25);
+  font-weight:800;
+  font-size:13px;
+  opacity:0;
+  transform:translateY(12px);
+  pointer-events:none;
+  transition:.2s ease;
+  max-width:calc(100% - 36px);
+}
+
+.toast.show{
+  opacity:1;
+  transform:translateY(0);
+}
+
+.mobile-nav{
+  display:none;
+}
+
+@media(max-width:1050px){
+  .layout{
+    grid-template-columns:230px minmax(0,1fr);
+  }
+
+  .right-col{
+    display:none;
+  }
+
+  .stat-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:760px){
+  body{
+    padding-bottom:76px;
+  }
+
+  .container{
+    width:100%;
+  }
+
+  .top-inner{
+    padding:10px;
+    flex-wrap:wrap;
+  }
+
+  .top-title{
+    flex:1;
+  }
+
+  .top-actions{
+    width:100%;
+    margin-left:0;
+  }
+
+  .top-actions .btn{
+    flex:1;
+  }
+
+  .page{
+    padding:0;
+  }
+
+  .layout{
+    grid-template-columns:1fr;
+  }
+
+  .left-col{
+    position:static;
+  }
+
+  .profile-card{
+    border-radius:0;
+    border-left:0;
+    border-right:0;
+  }
+
+  .side-menu{
+    display:flex;
+    overflow:auto;
+    border-radius:0;
+    border-left:0;
+    border-right:0;
+  }
+
+  .menu-btn{
+    width:auto;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+
+  .menu-btn small{
+    display:none;
+  }
+
+  .hero,
+  .card{
+    border-radius:0;
+    border-left:0;
+    border-right:0;
+  }
+
+  .toolbar{
+    grid-template-columns:1fr;
+  }
+
+  .item-top{
+    display:block;
+  }
+
+  .item-actions .btn{
+    flex:1;
+  }
+
+  .mobile-nav{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    height:74px;
+    z-index:2000;
+    background:rgba(255,255,255,.98);
+    border-top:1px solid #e5e7eb;
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+  }
+
+  .mobile-nav button{
+    border:0;
+    background:transparent;
+    color:#64748b;
+    font-size:11px;
+    font-weight:900;
+  }
+
+  .mobile-nav button.active{
+    color:var(--blue);
+  }
+}
+</style>
 </head>
+
 <body>
-  <div class="header">
-    <div class="logo"><span>AI</span>FT Talent</div>
 
-    <div class="header-actions">
-      <div class="top-nav-item" onclick="showFeed()">
-        <svg viewBox="0 0 24 24"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h10"></path></svg>
-        <span class="top-nav-label">Home</span>
-      </div>
+<header class="topbar">
+  <div class="container top-inner">
+    <a class="brand" href="home.html">A</a>
 
-      <div class="top-nav-item" onclick="openNetwork()">
-        <svg viewBox="0 0 24 24">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-          <path d="M20 8v6"></path>
-          <path d="M23 11h-6"></path>
-        </svg>
-        <span class="top-nav-label">Network</span>
-      </div>
+    <div class="top-title">
+      <h1>Talent Dashboard</h1>
+      <p>Track jobs, applications, interviews, offers, and your professional growth.</p>
+    </div>
 
-      <div class="top-nav-item" onclick="goToMessages()">
-        <svg viewBox="0 0 24 24">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
-        <span class="top-nav-label">Messages</span>
-        <span id="messageCount" class="count-badge">0</span>
-      </div>
-
-      <div id="notifBtn" class="notif-btn" onclick="goToNotifications()">
-        <div style="position:relative;width:20px;height:20px;display:flex;align-items:center;justify-content:center;">
-          <svg viewBox="0 0 24 24">
-            <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
-            <path d="M13.73 21a2 2 0 01-3.46 0"></path>
-          </svg>
-          <span id="notificationCount" class="count-badge">0</span>
-        </div>
-        <span class="top-nav-label">Notifications</span>
-      </div>
-
-      <div class="top-profile-pill" onclick="window.location.href='profile.html'">
-        <img id="topProfileImg" src="" alt="Profile">
-        <div class="top-profile-meta">
-          <strong id="topProfileName"></strong>
-          <span>Talent Profile</span>
-        </div>
-      </div>
+    <div class="top-actions">
+      <button class="btn" onclick="location.href='home.html'">Home</button>
+      <button class="btn" onclick="location.href='jobs.html'">Find Jobs</button>
+      <button class="btn primary" onclick="openProfile()">View Profile</button>
+      <img id="topAvatar" class="avatar-top" alt="">
     </div>
   </div>
+</header>
 
-  <div class="mobile-topbar" id="mobileTopbar">
-    <div class="mobile-topbar-inner">
-      <button class="mobile-profile-btn" onclick="window.location.href='profile.html'">
-        <img id="mobileTopProfileImg" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Profile">
+<main class="page">
+  <div class="container layout">
+
+    <aside class="left-col">
+      <section class="card profile-card">
+        <div class="profile-cover" id="profileCover"></div>
+
+        <div class="profile-body">
+          <img id="profileAvatar" class="profile-avatar" alt="">
+
+          <h2 id="profileName" class="profile-name">Loading...</h2>
+          <div id="profileHeadline" class="profile-headline">Loading profile...</div>
+          <div id="profileMeta" class="profile-meta">AIFT Talent</div>
+
+          <div class="profile-completion">
+            <div class="completion-head">
+              <span>Profile strength</span>
+              <span id="profileScoreText">0%</span>
+            </div>
+            <div class="progress">
+              <div class="progress-fill" id="profileScoreBar"></div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px;display:grid;gap:8px;">
+            <button class="btn primary" onclick="location.href='profile.html'">Edit Profile</button>
+            <button class="btn" onclick="location.href='my-applications.html'">My Applications</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card side-menu">
+        <button class="menu-btn active" data-section="overview">
+          Overview <small id="menuOverviewCount">Live</small>
+        </button>
+        <button class="menu-btn" data-section="applications">
+          Applications <small id="menuAppsCount">0</small>
+        </button>
+        <button class="menu-btn" data-section="offers">
+          Offers <small id="menuOffersCount">0</small>
+        </button>
+        <button class="menu-btn" data-section="interviews">
+          Interviews <small id="menuInterviewsCount">0</small>
+        </button>
+        <button class="menu-btn" data-section="recommended">
+          Recommended Jobs <small id="menuJobsCount">0</small>
+        </button>
+        <button class="menu-btn" data-section="internships">
+          Internships <small id="menuInternshipsCount">0</small>
+        </button>
+        <button class="menu-btn" data-section="activity">
+          Activity <small>Timeline</small>
+        </button>
+      </section>
+    </aside>
+    <section class="main-col">
+
+  <!-- OVERVIEW -->
+
+  <section class="section active" id="section-overview">
+
+    <article class="card hero">
+      <h2>
+        Welcome back to your professional workspace
+      </h2>
+
+      <p>
+        Manage applications, interviews, internships, offers, follow-ups,
+        and career opportunities from one clean dashboard built for real hiring.
+      </p>
+    </article>
+
+    <section class="stat-grid">
+
+      <article class="card stat-card">
+        <span>Total Applications</span>
+        <strong id="totalApplicationsCount">0</strong>
+      </article>
+
+      <article class="card stat-card">
+        <span>Interviews</span>
+        <strong id="interviewsCount">0</strong>
+      </article>
+
+      <article class="card stat-card">
+        <span>Offers</span>
+        <strong id="offersCount">0</strong>
+      </article>
+
+      <article class="card stat-card">
+        <span>Rejected</span>
+        <strong id="rejectedCount">0</strong>
+      </article>
+
+    </section>
+
+    <section class="card panel">
+
+      <h3>
+        Career Insights
+      </h3>
+
+      <p>
+        Strong profiles receive more recruiter views, interview invitations,
+        and faster employer responses.
+      </p>
+
+      <div class="tip-list">
+
+        <div class="tip">
+          <div class="tip-dot">✓</div>
+
+          <div>
+            Complete your profile with skills, experience, languages, and portfolio links.
+          </div>
+        </div>
+
+        <div class="tip">
+          <div class="tip-dot">✓</div>
+
+          <div>
+            Send follow-ups after 24 hours to improve employer response rates.
+          </div>
+        </div>
+
+        <div class="tip">
+          <div class="tip-dot">✓</div>
+
+          <div>
+            Apply to internships and full-time opportunities to improve visibility.
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <section class="card panel">
+
+      <h3>
+        Recent Activity
+      </h3>
+
+      <div class="timeline" id="overviewTimeline">
+        <div class="loading">
+          Loading activity...
+        </div>
+      </div>
+
+    </section>
+
+  </section>
+
+  <!-- APPLICATIONS -->
+
+  <section class="section" id="section-applications">
+
+    <article class="card hero">
+      <h2>
+        My Applications
+      </h2>
+
+      <p>
+        Track all applications, follow-ups, interviews, rejections,
+        and employer updates in real time.
+      </p>
+    </article>
+
+    <section class="card toolbar">
+
+      <input
+        type="text"
+        class="field"
+        id="applicationSearch"
+        placeholder="Search applications..."
+      >
+
+      <select class="field" id="applicationStatusFilter">
+        <option value="">All statuses</option>
+        <option value="new">New</option>
+        <option value="shortlisted">Shortlisted</option>
+        <option value="interview">Interview</option>
+        <option value="offer">Offer</option>
+        <option value="hired">Hired</option>
+        <option value="rejected">Rejected</option>
+      </select>
+
+      <select class="field" id="applicationTypeFilter">
+        <option value="">All types</option>
+        <option value="job">Jobs</option>
+        <option value="internship">Internships</option>
+      </select>
+
+    </section>
+
+    <section class="item-list" id="applicationsList">
+
+      <div class="loading">
+        Loading applications...
+      </div>
+
+    </section>
+
+  </section>
+
+  <!-- OFFERS -->
+
+  <section class="section" id="section-offers">
+
+    <article class="card hero">
+      <h2>
+        Offers & Hiring Progress
+      </h2>
+
+      <p>
+        Manage offers, interviews, shortlisted applications,
+        and hiring progress from employers.
+      </p>
+    </article>
+
+    <section class="item-list" id="offersList">
+
+      <div class="loading">
+        Loading offers...
+      </div>
+
+    </section>
+
+  </section>
+
+  <!-- INTERVIEWS -->
+
+  <section class="section" id="section-interviews">
+
+    <article class="card hero">
+      <h2>
+        Interview Pipeline
+      </h2>
+
+      <p>
+        Keep track of interview invitations,
+        employer updates, and active hiring stages.
+      </p>
+    </article>
+
+    <section class="item-list" id="interviewsList">
+
+      <div class="loading">
+        Loading interviews...
+      </div>
+
+    </section>
+
+  </section>
+
+  <!-- RECOMMENDED -->
+
+  <section class="section" id="section-recommended">
+
+    <article class="card hero">
+      <h2>
+        Recommended Jobs
+      </h2>
+
+      <p>
+        Real opportunities from employers across AIFT,
+        matched to your profile, skills, and experience.
+      </p>
+    </article>
+
+    <section class="card toolbar">
+
+      <input
+        type="text"
+        class="field"
+        id="jobSearchInput"
+        placeholder="Search jobs..."
+      >
+
+      <select class="field" id="jobTypeFilter">
+        <option value="">All job types</option>
+        <option value="Full-time">Full-time</option>
+        <option value="Part-time">Part-time</option>
+        <option value="Contract">Contract</option>
+        <option value="Internship">Internship</option>
+      </select>
+
+      <select class="field" id="jobWorkFilter">
+        <option value="">All work setups</option>
+        <option value="remote">Remote</option>
+        <option value="hybrid">Hybrid</option>
+        <option value="onsite">On-site</option>
+      </select>
+
+    </section>
+
+    <section class="item-list" id="recommendedJobsList">
+
+      <div class="loading">
+        Loading jobs...
+      </div>
+
+    </section>
+
+  </section>
+
+  <!-- INTERNSHIPS -->
+
+  <section class="section" id="section-internships">
+
+    <article class="card hero">
+      <h2>
+        Internship Opportunities
+      </h2>
+
+      <p>
+        Explore internship programs, training partnerships,
+        and real-world work experience opportunities.
+      </p>
+    </article>
+
+    <section class="item-list" id="internshipsList">
+
+      <div class="loading">
+        Loading internships...
+      </div>
+
+    </section>
+
+  </section>
+
+  <!-- ACTIVITY -->
+
+  <section class="section" id="section-activity">
+
+    <article class="card hero">
+      <h2>
+        Activity Timeline
+      </h2>
+
+      <p>
+        View application history, follow-ups,
+        interview stages, and employer interactions.
+      </p>
+    </article>
+
+    <section class="card panel">
+
+      <div class="timeline" id="activityTimeline">
+
+        <div class="loading">
+          Loading timeline...
+        </div>
+
+      </div>
+
+    </section>
+
+  </section>
+
+</section>
+
+<!-- RIGHT SIDE -->
+
+<aside class="right-col">
+
+  <section class="card panel">
+
+    <h3>
+      Recommended for You
+    </h3>
+
+    <div id="recommendedMini">
+
+      <div class="recommended-card">
+        <h4>
+          Loading recommendations...
+        </h4>
+      </div>
+
+    </div>
+
+  </section>
+
+  <section class="card panel">
+
+    <h3>
+      Quick Actions
+    </h3>
+
+    <div style="display:grid;gap:8px;margin-top:12px;">
+
+      <button class="btn primary" onclick="location.href='jobs.html'">
+        Find Jobs
       </button>
 
-      <div class="mobile-search-wrap">
-        <svg viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="M20 20l-3.5-3.5"></path>
-        </svg>
-        <input id="mobileSearchInput" type="text" placeholder="Search people, jobs, posts" oninput="handleGlobalSearch(this.value)">
-      </div>
-
-      <button class="mobile-msg-btn" onclick="goToMessages()">
-        <svg viewBox="0 0 24 24">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
-        <span id="mobileMessageCount" class="mobile-msg-badge">0</span>
+      <button class="btn" onclick="location.href='network.html'">
+        Explore Network
       </button>
-    </div>
-  </div>
 
-  <div class="container">
-    <div class="left-col">
-      <div class="card" id="profileCard"></div>
+      <button class="btn" onclick="location.href='messages.html'">
+        Open Messages
+      </button>
 
-      <div class="card tools-card">
-        <div class="tools-title">Career Tools</div>
+      <button class="btn" onclick="location.href='notifications.html'">
+        Notifications
+      </button>
 
-        <div class="tool-item active" id="tool-feed" onclick="showFeed()">
-          <span class="tool-icon">
-            <svg viewBox="0 0 24 24"><path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h10"></path></svg>
-          </span>
-          <span class="tool-item-text">
-            <span class="tool-item-label">Feed</span>
-            <span class="tool-item-sub">See updates, posts, and discussions</span>
-          </span>
-        </div>
+      <button class="btn green" onclick="location.href='profile.html'">
+        Improve Profile
+      </button>
 
-        <div class="tool-item" id="tool-jobs" onclick="showJobs()">
-          <span class="tool-icon">
-            <svg viewBox="0 0 24 24">
-              <rect x="3" y="7" width="18" height="13" rx="2"></rect>
-              <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </span>
-          <span class="tool-item-text">
-            <span class="tool-item-label">Jobs</span>
-            <span class="tool-item-sub">Explore roles matched to your profile</span>
-          </span>
-        </div>
-
-        <div class="tool-item" id="tool-saved" onclick="showSavedJobs()">
-          <span class="tool-icon">
-            <svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-          </span>
-          <span class="tool-item-text">
-            <span class="tool-item-label">Saved Jobs</span>
-            <span class="tool-item-sub">Return to opportunities you bookmarked</span>
-          </span>
-        </div>
-
-        <div class="tool-item" id="tool-apps" onclick="loadMyApplications()">
-          <span class="tool-icon">
-            <svg viewBox="0 0 24 24">
-              <path d="M4 4h16v16H4z"></path>
-              <path d="M4 8l8 5 8-5"></path>
-            </svg>
-          </span>
-          <span class="tool-item-text">
-            <span class="tool-item-label">My Applications</span>
-            <span class="tool-item-sub">Track the jobs you have applied for</span>
-          </span>
-        </div>
-
-        <div class="tool-item" id="tool-network" onclick="openNetwork()">
-          <span class="tool-icon">
-            <svg viewBox="0 0 24 24">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M20 8v6"></path>
-              <path d="M23 11h-6"></path>
-            </svg>
-          </span>
-          <span class="tool-item-text">
-            <span class="tool-item-label">Network</span>
-            <span class="tool-item-sub">Build your connections and visibility</span>
-          </span>
-        </div>
-
-        <div class="tool-item" id="tool-profile" onclick="window.location.href='profile.html'">
-          <span class="tool-icon">
-            <svg viewBox="0 0 24 24">
-              <path d="M12 20h9"></path>
-              <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
-            </svg>
-          </span>
-          <span class="tool-item-text">
-            <span class="tool-item-label">Edit Profile</span>
-            <span class="tool-item-sub">Update skills, CV, and personal details</span>
-          </span>
-        </div>
-      </div>
     </div>
 
-    <div class="center-col">
-      <div id="feedPanel">
-        <div id="posts"></div>
-      </div>
+  </section>
 
-      <div id="toolPanel" style="display:none;"></div>
-    </div>
+  <section class="card panel">
 
-    <div class="right-col">
-      <div class="card dashboard-card">
-        <div class="dashboard-title">Career Dashboard</div>
+    <h3>
+      Hiring Tips
+    </h3>
 
-        <div class="dashboard-grid">
-          <div class="dashboard-stat-card">
-            <div class="dashboard-stat-icon">
-              <svg viewBox="0 0 24 24">
-                <path d="M4 4h16v16H4z"></path>
-                <path d="M4 8l8 5 8-5"></path>
-              </svg>
-            </div>
-            <div class="dashboard-stat-body">
-              <div class="dashboard-stat-label">Applications Sent</div>
-              <div class="dashboard-stat-value" id="appCount">0</div>
-              <div class="dashboard-stat-sub">Jobs you applied for</div>
-            </div>
-          </div>
+    <div class="tip-list">
 
-          <div class="dashboard-stat-card">
-            <div class="dashboard-stat-icon">
-              <svg viewBox="0 0 24 24">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </div>
-            <div class="dashboard-stat-body">
-              <div class="dashboard-stat-label">Saved Jobs</div>
-              <div class="dashboard-stat-value" id="savedCount">0</div>
-              <div class="dashboard-stat-sub">Jobs saved for later</div>
-            </div>
-          </div>
+      <div class="tip">
+        <div class="tip-dot">✓</div>
 
-          <div class="dashboard-stat-card">
-            <div class="dashboard-stat-icon">
-              <svg viewBox="0 0 24 24">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z"></path>
-              </svg>
-            </div>
-            <div class="dashboard-stat-body">
-              <div class="dashboard-stat-label">Pro Status</div>
-              <div class="dashboard-stat-value" id="proStatus">Free</div>
-              <div class="dashboard-stat-sub">Current membership tier</div>
-            </div>
-          </div>
-
-          <div class="dashboard-stat-card">
-            <div class="dashboard-stat-icon">
-              <svg viewBox="0 0 24 24">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <path d="M14 2v6h6"></path>
-              </svg>
-            </div>
-            <div class="dashboard-stat-body">
-              <div class="dashboard-stat-label">CV Uploaded</div>
-              <div class="dashboard-stat-value" id="cvStatus">No</div>
-              <div class="dashboard-stat-sub">Resume availability</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="postModal" class="post-modal">
-    <div class="post-modal-card">
-      <h3>Create Post</h3>
-      <textarea id="postContent" placeholder="Share something..."></textarea>
-      <div id="filePreviewContainer"></div>
-      <div class="modal-actions">
-        <label style="cursor:pointer;color:#0a66c2;font-weight:600;">
-          Add Media
-          <input type="file" id="mediaInput" accept="image/*,video/*" style="display:none;">
-        </label>
         <div>
-          <button class="modal-btn modal-btn-secondary" onclick="closePostModal()">Cancel</button>
-          <button class="modal-btn modal-btn-primary" onclick="createPost()">Post</button>
+          Employers are more likely to respond to complete profiles.
         </div>
       </div>
+
+      <div class="tip">
+        <div class="tip-dot">✓</div>
+
+        <div>
+          Tailored cover letters improve interview chances significantly.
+        </div>
+      </div>
+
+      <div class="tip">
+        <div class="tip-dot">✓</div>
+
+        <div>
+          Active talents appear more often in recruiter searches.
+        </div>
+      </div>
+
     </div>
+
+  </section>
+
+</aside>
+
+</div>
+</main>
+<!-- FOLLOW UP MODAL -->
+
+<div class="modal" id="followUpModal">
+
+  <div class="modal-box">
+
+    <div class="modal-head">
+
+      <h3>
+        Send Follow-Up
+      </h3>
+
+      <button class="btn" onclick="closeModal('followUpModal')">
+        Close
+      </button>
+
+    </div>
+
+    <div class="modal-body">
+
+      <textarea
+        id="followUpMessage"
+        placeholder="Hello, I wanted to respectfully follow up regarding my application. I remain very interested in this opportunity and would appreciate any updates regarding the hiring process."
+      ></textarea>
+
+    </div>
+
+    <div class="modal-actions">
+
+      <button
+        class="btn"
+        onclick="closeModal('followUpModal')"
+      >
+        Cancel
+      </button>
+
+      <button
+        class="btn primary"
+        id="sendFollowUpBtn"
+      >
+        Send Follow-Up
+      </button>
+
+    </div>
+
   </div>
 
-  <div class="share-modal" id="shareModal">
-    <div class="share-content">
-      <h4>Share Post</h4>
-      <button id="copyLinkBtn" class="modal-btn modal-btn-primary" style="margin-top:10px;width:100%;">Copy Link</button>
-      <button onclick="closeShareModal()" class="modal-btn modal-btn-secondary" style="margin-top:10px;width:100%;">Cancel</button>
-    </div>
-  </div>
+</div>
 
-  <div class="mobile-bottom-nav" id="mobileBottomNav">
-    <div class="mobile-bottom-nav-inner">
-      <button class="mobile-nav-btn active" id="mobileNavHome" onclick="showFeed()">
-        <svg viewBox="0 0 24 24">
-          <path d="M3 11l9-8 9 8"></path>
-          <path d="M5 10v10h14V10"></path>
-        </svg>
-        <span class="mobile-nav-label">Home</span>
-      </button>
+<div class="toast" id="toast"></div>
 
-      <button class="mobile-nav-btn" id="mobileNavNetwork" onclick="openNetwork()">
-        <svg viewBox="0 0 24 24">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-          <path d="M20 8v6"></path>
-          <path d="M23 11h-6"></path>
-        </svg>
-        <span class="mobile-nav-label">Network</span>
-      </button>
+<nav class="mobile-nav">
 
-      <button class="mobile-nav-post" onclick="openPostModal()">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 5v14"></path>
-          <path d="M5 12h14"></path>
-        </svg>
-      </button>
+  <button class="active" onclick="showSection('overview')">
+    Home
+  </button>
 
-      <button class="mobile-nav-btn" id="mobileNavNotifications" onclick="goToNotifications()">
-        <span id="mobileNotificationCount" class="mobile-nav-badge">0</span>
-        <svg viewBox="0 0 24 24">
-          <path d="M18 8a6 6 0 10-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
-          <path d="M13.73 21a2 2 0 01-3.46 0"></path>
-        </svg>
-        <span class="mobile-nav-label">Alerts</span>
-      </button>
+  <button onclick="showSection('applications')">
+    Applications
+  </button>
 
-      <button class="mobile-nav-btn" id="mobileNavJobs" onclick="showJobs()">
-        <svg viewBox="0 0 24 24">
-          <rect x="3" y="7" width="18" height="13" rx="2"></rect>
-          <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        </svg>
-        <span class="mobile-nav-label">Jobs</span>
-      </button>
-    </div>
-  </div>
+  <button onclick="location.href='jobs.html'">
+    Jobs
+  </button>
 
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <button onclick="location.href='messages.html'">
+    Messages
+  </button>
+
+  <button onclick="openProfile()">
+    Me
+  </button>
+
+</nav>
+
+<script>
+const API =
+  "https://backend-1-9b6f.onrender.com";
+
+const FALLBACK_AVATAR =
+  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+const state = {
+  me:null,
+  applications:[],
+  jobs:[],
+  activeFollowUp:null
+};
+
+function token(){
+  return (
+    localStorage.getItem("talentToken") ||
+    localStorage.getItem("agentToken") ||
+    localStorage.getItem("token") ||
+    ""
+  );
+}
+
+function authHeaders(extra = {}){
+  return {
+    Authorization:"Bearer " + token(),
+    ...extra
+  };
+}
+
+function esc(value=""){
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;");
+}
+
+function toast(message){
+
+  const el =
+    document.getElementById("toast");
+
+  el.textContent = message;
+
+  el.classList.add("show");
+
+  setTimeout(()=>{
+    el.classList.remove("show");
+  },3000);
+}
+
+function openModal(id){
+  document.getElementById(id)
+    .classList.add("show");
+}
+
+function closeModal(id){
+  document.getElementById(id)
+    .classList.remove("show");
+}
+
+document.querySelectorAll(".modal")
+.forEach(modal=>{
+  modal.addEventListener("click",e=>{
+    if(e.target === modal){
+      modal.classList.remove("show");
+    }
+  });
+});
+
+async function fetchJSON(path,options={}){
+
+  const res =
+    await fetch(API + path,options);
+
+  const text =
+    await res.text();
+
+  let data = {};
+
+  try{
+    data = text ? JSON.parse(text) : {};
+  }catch{
+    data = { message:text };
+  }
+
+  if(!res.ok){
+    throw new Error(
+      data.message || "Request failed"
+    );
+  }
+
+  return data;
+}
+
+function role(){
+  return String(
+    state.me?.role ||
+    localStorage.getItem("role") ||
+    "talent"
+  ).toLowerCase();
+}
+
+function openProfile(){
+
+  const id =
+    state.me?._id ||
+    localStorage.getItem("userId");
+
+  if(!id){
+    return;
+  }
+
+  if(
+    role() === "talent" ||
+    role() === "agent"
+  ){
+    location.href =
+      `agent-public-profile.html?id=${id}`;
+    return;
+  }
+
+  location.href =
+    `public-profile.html?id=${id}`;
+}
+
+function dashboardUrl(){
+
+  if(role() === "agent"){
+    return "agent.html";
+  }
+
+  return "home.html";
+}
+
+function showSection(section){
+
+  document.querySelectorAll(".section")
+  .forEach(el=>{
+    el.classList.toggle(
+      "active",
+      el.id === `section-${section}`
+    );
+  });
+
+  document.querySelectorAll(".menu-btn")
+  .forEach(btn=>{
+    btn.classList.toggle(
+      "active",
+      btn.dataset.section === section
+    );
+  });
+}
+
+document.querySelectorAll(".menu-btn")
+.forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    showSection(btn.dataset.section);
+  });
+});
+
+function statusPill(status=""){
+
+  status = String(status).toLowerCase();
+
+  let cls = "blue";
+
+  if(status === "interview"){
+    cls = "orange";
+  }
+
+  if(status === "offer"){
+    cls = "green";
+  }
+
+  if(status === "rejected"){
+    cls = "red";
+  }
+
+  if(status === "hired"){
+    cls = "purple";
+  }
+
+  return `
+    <span class="pill ${cls}">
+      ${esc(status)}
+    </span>
+  `;
+}
+
+function profileStrength(){
+
+  const me = state.me || {};
+
+  const checks = [
+
+    me.name,
+    me.headline,
+    me.bio,
+    me.location,
+
+    Array.isArray(me.skills)
+      && me.skills.length >= 3,
+
+    Array.isArray(me.languages)
+      && me.languages.length >= 1,
+
+    Array.isArray(me.experience)
+      && me.experience.length >= 1,
+
+    Array.isArray(me.education)
+      && me.education.length >= 1,
+
+    me.profileImage,
+    me.cvUrl
+  ];
+
+  const completed =
+    checks.filter(Boolean).length;
+
+  return Math.round(
+    (completed / checks.length) * 100
+  );
+}
+
+function renderProfile(){
+
+  const me = state.me || {};
+
+  const avatar =
+    me.profileImage ||
+    FALLBACK_AVATAR;
+
+  const banner =
+    me.bannerImage || "";
+
+  document.getElementById("topAvatar").src =
+    avatar;
+
+  document.getElementById("profileAvatar").src =
+    avatar;
+
+  document.getElementById("profileName")
+  .textContent =
+    me.name || "AIFT Talent";
+
+  document.getElementById("profileHeadline")
+  .textContent =
+    me.headline ||
+    me.profession ||
+    "Professional member";
+
+  document.getElementById("profileMeta")
+  .textContent =
+    me.location ||
+    "Philippines";
+
+  if(banner){
+    document.getElementById(
+      "profileCover"
+    ).style.backgroundImage =
+      `linear-gradient(135deg,rgba(10,102,194,.25),rgba(5,118,66,.18),rgba(109,40,217,.16)),url('${banner}')`;
+  }
+
+  const score =
+    profileStrength();
+
+  document.getElementById(
+    "profileScoreText"
+  ).textContent =
+    score + "%";
+
+  document.getElementById(
+    "profileScoreBar"
+  ).style.width =
+    score + "%";
+}
+
+function appSearchValue(){
+  return String(
+    document.getElementById("applicationSearch")
+    ?.value || ""
+  ).toLowerCase();
+}
+
+function appStatusFilter(){
+  return document.getElementById(
+    "applicationStatusFilter"
+  )?.value || "";
+}
+
+function appTypeFilter(){
+  return document.getElementById(
+    "applicationTypeFilter"
+  )?.value || "";
+}
+
+function filteredApplications(){
+
+  return state.applications.filter(app=>{
+
+    const q =
+      appSearchValue();
+
+    const matchesSearch =
+      !q ||
+      String(app.jobId?.title || "")
+      .toLowerCase()
+      .includes(q) ||
+
+      String(app.employerId?.companyName || "")
+      .toLowerCase()
+      .includes(q);
+
+    const matchesStatus =
+      !appStatusFilter() ||
+      app.status === appStatusFilter();
+
+    const matchesType =
+      !appTypeFilter() ||
+      app.applicationType === appTypeFilter();
+
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesType
+    );
+  });
+}
   <script>
-    const API = "https://backend-1-9b6f.onrender.com";
-    const socket = typeof io !== "undefined" ? io(API, { transports:["websocket","polling"] }) : null;
+function jobTitle(app){
+  return app.jobId?.title || "Job no longer available";
+}
 
-    const role = localStorage.getItem("role");
-    const token =
-      localStorage.getItem("talentToken") ||
-      localStorage.getItem("employerToken") ||
-      localStorage.getItem("adminToken") ||
-      localStorage.getItem("agentToken");
+function companyName(app){
+  return (
+    app.employerId?.companyName ||
+    app.employerId?.name ||
+    app.jobId?.company ||
+    "Company"
+  );
+}
 
-    if(!token || role !== "talent"){
-      window.location.href = "login.html";
-    }
+function formatDate(value){
+  if(!value) return "Unknown";
 
-    localStorage.setItem("lastRolePage", "talent.html");
+  return new Date(value).toLocaleDateString(undefined,{
+    month:"short",
+    day:"numeric",
+    year:"numeric"
+  });
+}
 
-    function authHeaders(extra = {}){
-      return {
-        Authorization: "Bearer " + token,
-        ...extra
-      };
-    }
+function canFollowUp(app){
+  if(app.followUp?.sentAt) return false;
 
-    let currentPage = 1;
-    let loading = false;
-    let noMorePosts = false;
-    let activeDropdown = null;
-    let currentNetworkTab = "suggestions";
-    let fullNetworkUsers = [];
-    let allJobsCache = [];
-    let savedJobsCache = [];
-    let applicationsCache = [];
-    let currentSharePostId = null;
-    let selectedPostMediaFile = null;
-    let allLoadedPosts = [];
-    let lastScrollY = window.scrollY;
-    let searchDebounce = null;
+  const created =
+    new Date(app.createdAt).getTime();
 
-    const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+  const hours =
+    (Date.now() - created) / (1000 * 60 * 60);
 
-    function escapeHtml(str){
-      return String(str ?? "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#039;");
-    }
+  return hours >= 24;
+}
 
-    function formatDateTime(value){
-      if(!value) return "Recently";
-      const d = new Date(value);
-      if(isNaN(d.getTime())) return "Recently";
-      return d.toLocaleString([], {
-        month:"short",
-        day:"numeric",
-        hour:"numeric",
-        minute:"2-digit"
-      });
-    }
+function followLabel(app){
+  if(app.followUp?.sentAt){
+    return "Follow-up sent";
+  }
 
-    function pluralize(count, one, many){
-      return `${count} ${count === 1 ? one : many}`;
-    }
+  if(canFollowUp(app)){
+    return "Send follow-up";
+  }
 
-    function updateBadge(el, count){
-      if(!el) return;
-      const n = Number(count) || 0;
-      el.textContent = n > 99 ? "99+" : String(n);
-      el.style.display = n > 0 ? "flex" : "none";
-    }
+  return "Follow-up after 24h";
+}
 
-    function setActiveTool(toolId){
-      document.querySelectorAll(".tool-item").forEach(item => item.classList.remove("active"));
-      const active = document.getElementById(toolId);
-      if(active) active.classList.add("active");
-    }
+function renderApplicationCard(app){
 
-    function setActiveMobileNav(tab){
-      ["mobileNavHome","mobileNavNetwork","mobileNavNotifications","mobileNavJobs"].forEach(id => {
-        document.getElementById(id)?.classList.remove("active");
-      });
-      if(tab){
-        document.getElementById(tab)?.classList.add("active");
-      }
-    }
+  return `
+    <article class="card app-card">
 
-    function renderEmptyPanel(title, subtitle){
-      return `
-        <div class="panel-empty">
-          <h3>${escapeHtml(title)}</h3>
-          <div>${escapeHtml(subtitle)}</div>
+      <div class="item-top">
+
+        <div>
+
+          <h3 class="item-title">
+            ${esc(jobTitle(app))}
+          </h3>
+
+          <div class="item-company">
+            ${esc(companyName(app))}
+          </div>
+
         </div>
-      `;
-    }
 
-    function showPanelLoading(title = "Loading"){
-      document.getElementById("feedPanel").style.display = "none";
-      document.getElementById("toolPanel").style.display = "block";
-      document.getElementById("toolPanel").innerHTML = `
-        <div class="panel-shell">
-          <div class="panel-header">
-            <div class="panel-title-wrap">
-              <h2>${escapeHtml(title)}</h2>
-              <p>Please wait while we load your data.</p>
-            </div>
-          </div>
-          <div class="panel-body">
-            <div class="panel-loading">Loading...</div>
-          </div>
-        </div>
-      `;
-    }
+        ${statusPill(app.status || "new")}
 
-    function goToMessages(){
-      window.location.href = "messages.html";
-    }
+      </div>
 
-    function goToNotifications(){
-      window.location.href = "notifications.html";
-    }
+      <div class="item-meta">
 
-    function openOwnPublicProfile(){
-      const id = localStorage.getItem("userId");
-      if(!id){
-        alert("Profile is still loading.");
-        return;
-      }
-      window.location.href = `public-profile.html?id=${id}`;
-    }
+        <span class="pill">
+          ${esc(app.applicationType || "job")}
+        </span>
 
-    function visitProfile(id){
-      if(!id) return;
-      window.location.href = `public-profile.html?id=${id}`;
-    }
+        <span class="pill">
+          Applied ${esc(formatDate(app.createdAt))}
+        </span>
 
-    function buildProfileExtraSection(user){
-      const skills = Array.isArray(user.skills) ? user.skills.slice(0, 8) : [];
-      const experience = Array.isArray(user.experience) ? user.experience : [];
-      const education = Array.isArray(user.education) ? user.education : [];
+        <span class="pill">
+          CV: ${esc(app.cvSource || (app.cvUrl ? "profile" : "none"))}
+        </span>
 
-      const latestExperience = experience.length
-        ? `${experience[0].title || "Role"}${experience[0].company ? " • " + experience[0].company : ""}`
-        : "";
+      </div>
 
-      const latestEducation = education.length
-        ? `${education[0].school || "Education"}${education[0].degree ? " • " + education[0].degree : ""}`
-        : "";
-
-      const cvValue =
-        user.cvUrl
-          ? `<a href="${user.cvUrl}" target="_blank" style="color:#0a66c2;font-weight:700;text-decoration:none;">View CV</a>`
-          : `<span class="profile-extra-empty">No CV uploaded</span>`;
-
-      return `
-        <div class="profile-extra-section">
-          <div class="profile-extra-card">
-            <div class="profile-extra-title">About</div>
-            <div class="profile-extra-text">${escapeHtml(user.bio || "No about section added yet.")}</div>
-          </div>
-
-          <div class="profile-extra-card">
-            <div class="profile-extra-title">Skills</div>
-            ${
-              skills.length
-                ? `<div class="profile-extra-list">${skills.map(skill => `<span class="profile-extra-pill">${escapeHtml(skill)}</span>`).join("")}</div>`
-                : `<div class="profile-extra-empty">No skills added yet</div>`
-            }
-          </div>
-
-          <div class="profile-extra-card">
-            <div class="profile-extra-title">Experience</div>
-            <div class="profile-extra-text">${latestExperience ? escapeHtml(latestExperience) : '<span class="profile-extra-empty">No experience added yet</span>'}</div>
-          </div>
-
-          <div class="profile-extra-card">
-            <div class="profile-extra-title">Education</div>
-            <div class="profile-extra-text">${latestEducation ? escapeHtml(latestEducation) : '<span class="profile-extra-empty">No education added yet</span>'}</div>
-          </div>
-
-          <div class="profile-extra-card">
-            <div class="profile-extra-title">CV / Resume</div>
-            <div class="profile-extra-text">${cvValue}</div>
-          </div>
-        </div>
-      `;
-    }
-
-    async function loadProfile(){
-      try{
-        const res = await fetch(API + "/api/users/me", {
-          headers: authHeaders()
-        });
-
-        if(!res.ok) throw new Error("Failed to load profile");
-
-        const user = await res.json();
-
-        localStorage.setItem("userId", user._id || "");
-        localStorage.setItem("profileImage", user.profileImage || "");
-        localStorage.setItem("profileName", user.name || "");
-
-        const profileImg = user.profileImage || FALLBACK_AVATAR;
-        const coverImg = user.bannerImage || user.coverImage || "";
-        const headline = user.headline || "Complete your profile to attract better opportunities.";
-        const location = [user.city, user.country].filter(Boolean).join(", ") || user.location || "Location not added";
-        const savedJobsCount = Array.isArray(user.savedJobs) ? user.savedJobs.length : 0;
-        const planLabel = user.isPro ? "Pro" : "Free";
-
-        document.getElementById("profileCard").innerHTML = `
-          <div class="profile-card-shell">
-            <div class="profile-card-cover">
-              ${coverImg ? `<img src="${coverImg}" alt="Profile banner">` : ``}
-            </div>
-
-            <div class="profile-card-body">
-              <div class="profile-card-avatar-row">
-                <img class="profile-card-avatar" src="${profileImg}" alt="${escapeHtml(user.name || "Talent")}">
-                <div class="profile-card-badge">Talent View</div>
-              </div>
-
-              <div class="profile-card-name">${escapeHtml(user.name || "Talent User")}</div>
-              <div class="profile-card-location">${escapeHtml(location)}</div>
-              <div class="profile-card-headline">${escapeHtml(headline)}</div>
-
-              <div class="profile-card-actions">
-                <button class="profile-card-btn profile-card-btn-primary" onclick="window.location.href='profile.html'">Edit Profile</button>
-                <button class="profile-card-btn profile-card-btn-secondary" onclick="openOwnPublicProfile()">View Public Profile</button>
-              </div>
-
-              <div class="profile-card-mini-stats">
-                <div class="profile-mini-box">
-                  <div class="profile-mini-label">Role</div>
-                  <div class="profile-mini-value">Talent</div>
-                </div>
-                <div class="profile-mini-box">
-                  <div class="profile-mini-label">Plan</div>
-                  <div class="profile-mini-value">${escapeHtml(planLabel)}</div>
-                </div>
-                <div class="profile-mini-box">
-                  <div class="profile-mini-label">Saved</div>
-                  <div class="profile-mini-value">${savedJobsCount}</div>
-                </div>
-              </div>
-
-              ${buildProfileExtraSection(user)}
-            </div>
-          </div>
-        `;
-
-        document.getElementById("topProfileImg").src = profileImg;
-        document.getElementById("mobileTopProfileImg").src = profileImg;
-        document.getElementById("topProfileName").innerText = user.name || "Profile";
-        document.getElementById("proStatus").innerText = planLabel;
-        document.getElementById("cvStatus").innerText = user.cvUrl ? "Yes" : "No";
-
-        await loadSavedJobsCount();
-      }catch(err){
-        console.error("Profile load failed", err);
-        document.getElementById("profileCard").innerHTML = `
-          <div class="profile-card-shell">
-            <div class="profile-card-cover"></div>
-            <div class="profile-card-body">
-              <div class="profile-card-name">Unable to load profile</div>
-              <div class="profile-card-headline">Please refresh the page and try again.</div>
-            </div>
-          </div>
-        `;
-      }
-    }
-
-    function renderPosts(posts, append = false){
-      const postsContainer = document.getElementById("posts");
-      if(!append) postsContainer.innerHTML = "";
-
-      if(!append && (!posts || !posts.length)){
-        postsContainer.innerHTML = `
-          <div class="panel-shell">
-            <div class="panel-body">
-              ${renderEmptyPanel("No posts yet", "Posts from your network will appear here.")}
-            </div>
-          </div>
-        `;
-        return;
+      ${
+        app.coverLetter
+          ? `<div class="cover-message">${esc(app.coverLetter)}</div>`
+          : `<div class="cover-message">No cover message added.</div>`
       }
 
-      posts.forEach(post => {
-        const postId = post._id || Math.random().toString(36).slice(2);
-        const author = post.user || post.author || post.createdBy || {};
-        const authorName = author.name || "AIFT User";
-        const authorHeadline = author.headline || author.role || "AIFT member";
-        const authorImage = author.profileImage || FALLBACK_AVATAR;
-        const postText = post.text || post.content || "";
-        const postMedia = post.mediaUrl || post.image || post.video || "";
-        const mediaType = String(post.mediaType || "").toLowerCase();
-        const likes = Array.isArray(post.likes) ? post.likes.length : Number(post.likesCount || 0);
-        const comments = Array.isArray(post.comments) ? post.comments.length : Number(post.commentsCount || 0);
-        const shares = Number(post.sharesCount || 0);
-        const meId = localStorage.getItem("userId");
-        const liked = Array.isArray(post.likes) ? post.likes.some(l => String(l) === String(meId) || String(l?._id) === String(meId)) : false;
-
-        const mediaHtml = postMedia
-          ? `<div class="post-media">${
-              mediaType.includes("video")
-                ? `<video src="${postMedia}" controls playsinline></video>`
-                : `<img src="${postMedia}" alt="Post media" loading="lazy">`
-            }</div>`
-          : "";
-
-        const postEl = document.createElement("div");
-        postEl.className = "post-card";
-        postEl.dataset.postId = postId;
-        postEl.id = "post-" + postId;
-
-        postEl.innerHTML = `
-          <div class="post-header">
-            <div class="post-author" onclick="visitProfile('${author._id || ""}')">
-              <img src="${authorImage}" alt="${escapeHtml(authorName)}">
-              <div class="post-author-main">
-                <div class="post-author-name">${escapeHtml(authorName)}</div>
-                <div class="post-meta">${escapeHtml(authorHeadline)}</div>
-                <div class="post-meta">${escapeHtml(formatDateTime(post.createdAt || post.updatedAt))}</div>
-              </div>
+      ${
+        app.followUp?.sentAt
+          ? `
+            <div class="cover-message">
+              <strong>Follow-up sent ${esc(formatDate(app.followUp.sentAt))}</strong><br>
+              ${esc(app.followUp.message)}
             </div>
-
-            <div class="post-head-actions">
-              <button class="follow-btn" onclick="event.stopPropagation(); followUser('${author._id || ""}')">Follow</button>
-              <div class="dropdown">
-                <button class="post-kebab" onclick="togglePostDropdown(event, '${postId}')">•••</button>
-                <div id="dropdown-${postId}" class="dropdown-menu">
-                  <button onclick="openShareModal('${postId}')">Share</button>
-                  <button onclick="copyPostLink('${postId}')">Copy link</button>
-                  <button onclick="reportPost('${postId}')">Report</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          ${postText ? `<div class="post-content">${escapeHtml(postText)}</div>` : ""}
-          ${mediaHtml}
-
-          <div class="post-stats">
-            <span>${pluralize(likes, "like", "likes")}</span>
-            <span>${pluralize(comments, "comment", "comments")} • ${pluralize(shares, "share", "shares")}</span>
-          </div>
-
-          <div class="post-actions">
-            <button class="post-action ${liked ? "liked" : ""}" onclick="toggleLikePost('${postId}')">
-              <svg viewBox="0 0 24 24">
-                <path d="M7 11v10"></path>
-                <path d="M15 5.88l-1 5.12h5.5a2 2 0 0 1 1.94 2.49l-1.34 6A2 2 0 0 1 18.15 21H7a2 2 0 0 1-2-2V11a2 2 0 0 1 2-2h3.76a2 2 0 0 0 1.96-1.61L13.6 3.5A1.5 1.5 0 0 1 15.08 2 1.92 1.92 0 0 1 17 3.92V5a2 2 0 0 1-2 2h0"></path>
-              </svg>
-              <span>Like</span>
-            </button>
-
-            <button class="post-action" onclick="toggleComments('${postId}')">
-              <svg viewBox="0 0 24 24">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-              <span>Comment</span>
-            </button>
-
-            <button class="post-action" onclick="openShareModal('${postId}')">
-              <svg viewBox="0 0 24 24">
-                <circle cx="18" cy="5" r="3"></circle>
-                <circle cx="6" cy="12" r="3"></circle>
-                <circle cx="18" cy="19" r="3"></circle>
-                <path d="M8.59 13.51l6.83 3.98"></path>
-                <path d="M15.41 6.51L8.59 10.49"></path>
-              </svg>
-              <span>Share</span>
-            </button>
-          </div>
-
-          <div id="comments-${postId}" class="comments-wrapper">
-            <div class="comment-input-area">
-              <input id="comment-input-${postId}" type="text" placeholder="Write a comment...">
-              <button class="comment-send" onclick="submitComment('${postId}')">Send</button>
-            </div>
-            <div id="comments-list-${postId}" class="comments-container"></div>
-          </div>
-        `;
-
-        postsContainer.appendChild(postEl);
-      });
-    }
-
-    async function loadPosts(reset = false){
-      if(loading || noMorePosts) return;
-      loading = true;
-
-      if(reset){
-        currentPage = 1;
-        noMorePosts = false;
-        allLoadedPosts = [];
-        document.getElementById("posts").innerHTML = "";
+          `
+          : ""
       }
 
-      try{
-        const endpoints = [
-          `${API}/api/posts?page=${currentPage}&limit=10`,
-          `${API}/api/posts/feed?page=${currentPage}&limit=10`,
-          `${API}/api/posts`
-        ];
+      <div class="item-actions">
 
-        let posts = [];
-        for(const url of endpoints){
-          try{
-            const res = await fetch(url, { headers: authHeaders() });
-            if(!res.ok) continue;
-            const data = await res.json();
-            posts = Array.isArray(data) ? data : (Array.isArray(data.posts) ? data.posts : []);
-            if(posts.length || url.endsWith("/api/posts")) break;
-          }catch(e){}
+        ${
+          app.cvUrl
+            ? `<button class="btn" onclick="window.open('${esc(app.cvUrl)}','_blank')">View CV</button>`
+            : `<button class="btn" disabled>No CV</button>`
         }
 
-        if(!posts.length && currentPage === 1){
-          renderPosts([], false);
-          noMorePosts = true;
-        }else{
-          if(posts.length < 10) noMorePosts = true;
-          allLoadedPosts = currentPage === 1 ? posts.slice() : allLoadedPosts.concat(posts);
-          renderPosts(posts, currentPage !== 1);
-          currentPage++;
-        }
-      }catch(err){
-        console.error("Failed to load posts", err);
-        if(currentPage === 1){
-          document.getElementById("posts").innerHTML = `
-            <div class="panel-shell">
-              <div class="panel-body">
-                ${renderEmptyPanel("Unable to load feed", "Please refresh the page and try again.")}
-              </div>
-            </div>
-          `;
-        }
-      }finally{
-        loading = false;
-      }
-    }
+        <button
+          class="btn primary"
+          ${canFollowUp(app) ? "" : "disabled"}
+          onclick="openFollowUp('${esc(app._id)}')"
+        >
+          ${esc(followLabel(app))}
+        </button>
 
-    function filterPostsLocally(term){
-      const q = String(term || "").trim().toLowerCase();
-      if(!q){
-        renderPosts(allLoadedPosts, false);
-        return;
-      }
+      </div>
 
-      const filtered = allLoadedPosts.filter(post => {
-        const author = post.user || post.author || post.createdBy || {};
-        return [
-          post.text || post.content || "",
-          author.name || "",
-          author.headline || "",
-          author.role || ""
-        ].join(" ").toLowerCase().includes(q);
-      });
+    </article>
+  `;
+}
 
-      renderPosts(filtered, false);
-    }
+function renderApplications(){
 
-    function handleGlobalSearch(value){
-      clearTimeout(searchDebounce);
-      searchDebounce = setTimeout(() => {
-        if(document.getElementById("feedPanel").style.display !== "none"){
-          filterPostsLocally(value);
-        }else if(currentNetworkTab){
-          filterNetworkUsers();
-        }
-      }, 150);
-    }
+  const list =
+    document.getElementById("applicationsList");
 
-    function showFeed(){
-      setActiveTool("tool-feed");
-      setActiveMobileNav("mobileNavHome");
-      document.getElementById("feedPanel").style.display = "block";
-      document.getElementById("toolPanel").style.display = "none";
-      closeAllDropdowns();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+  const apps =
+    filteredApplications();
 
-    async function fetchRecommendedJobs(){
-      const endpoints = [
-        API + "/api/jobs/recommended",
-        API + "/api/jobs"
-      ];
+  if(!apps.length){
+    list.innerHTML = `
+      <div class="card empty">
+        <h3>No applications found</h3>
+        <p>Your submitted applications will appear here once you apply to jobs or internships.</p>
+      </div>
+    `;
+    return;
+  }
 
-      for(const url of endpoints){
-        try{
-          const res = await fetch(url, { headers: authHeaders() });
-          if(!res.ok) continue;
-          const data = await res.json();
-          allJobsCache = Array.isArray(data) ? data : (Array.isArray(data.jobs) ? data.jobs : []);
-          if(allJobsCache.length || url.endsWith("/api/jobs")) return allJobsCache;
-        }catch(e){}
-      }
+  list.innerHTML =
+    apps.map(renderApplicationCard).join("");
+}
 
-      allJobsCache = [];
-      return [];
-    }
+function renderOffers(){
 
-    async function showJobs(){
-      setActiveTool("tool-jobs");
-      setActiveMobileNav("mobileNavJobs");
-      showPanelLoading("Jobs");
+  const offers =
+    state.applications.filter(app =>
+      ["offer","hired","shortlisted"].includes(app.status)
+    );
 
-      const jobs = await fetchRecommendedJobs();
+  const list =
+    document.getElementById("offersList");
 
-      document.getElementById("feedPanel").style.display = "none";
-      document.getElementById("toolPanel").style.display = "block";
+  if(!offers.length){
+    list.innerHTML = `
+      <div class="card empty">
+        <h3>No offers yet</h3>
+        <p>When employers shortlist you, send offers, or move you forward, they will appear here.</p>
+      </div>
+    `;
+    return;
+  }
 
-      document.getElementById("toolPanel").innerHTML = `
-        <div class="panel-shell">
-          <div class="panel-header">
-            <div class="panel-title-wrap">
-              <h2>Career Tools & Jobs</h2>
-              <p>This section loads only your job tools and recommended opportunities.</p>
-            </div>
-            <div class="panel-actions">
-              <button class="panel-btn panel-btn-secondary" onclick="showSavedJobs()">Saved</button>
-              <button class="panel-btn panel-btn-secondary" onclick="loadMyApplications()">Applications</button>
-              <button class="panel-btn panel-btn-primary" onclick="showFeed()">Back to Feed</button>
-            </div>
+  list.innerHTML =
+    offers.map(renderApplicationCard).join("");
+}
+
+function renderInterviews(){
+
+  const interviews =
+    state.applications.filter(app =>
+      app.status === "interview"
+    );
+
+  const list =
+    document.getElementById("interviewsList");
+
+  if(!interviews.length){
+    list.innerHTML = `
+      <div class="card empty">
+        <h3>No interviews yet</h3>
+        <p>Interview updates from employers will appear here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML =
+    interviews.map(renderApplicationCard).join("");
+}
+
+function renderInternships(){
+
+  const internships =
+    state.applications.filter(app =>
+      app.applicationType === "internship"
+    );
+
+  const list =
+    document.getElementById("internshipsList");
+
+  if(!internships.length){
+    list.innerHTML = `
+      <div class="card empty">
+        <h3>No internship applications yet</h3>
+        <p>Apply to internship opportunities and track them here.</p>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML =
+    internships.map(renderApplicationCard).join("");
+}
+
+function jobMatchesSearch(job){
+
+  const q =
+    String(
+      document.getElementById("jobSearchInput")
+      ?.value || ""
+    ).toLowerCase();
+
+  const type =
+    document.getElementById("jobTypeFilter")
+    ?.value || "";
+
+  const work =
+    document.getElementById("jobWorkFilter")
+    ?.value || "";
+
+  const haystack =
+    [
+      job.title,
+      job.company,
+      job.location,
+      job.type,
+      job.description,
+      ...(job.skills || [])
+    ].join(" ").toLowerCase();
+
+  const setup =
+    String(
+      job.workSetup ||
+      job.remote ||
+      job.setup ||
+      ""
+    ).toLowerCase();
+
+  return (
+    (!q || haystack.includes(q)) &&
+    (!type || job.type === type) &&
+    (!work || setup.includes(work))
+  );
+}
+
+function renderJobCard(job){
+
+  return `
+    <article class="card job-card">
+
+      <div class="item-top">
+
+        <div>
+
+          <h3 class="item-title">
+            ${esc(job.title || "Untitled job")}
+          </h3>
+
+          <div class="item-company">
+            ${esc(job.company || job.employerId?.companyName || "Company")}
           </div>
 
-          <div class="panel-body">
-            <div class="panel-grid">
-              ${
-                jobs.length
-                  ? jobs.map(job => `
-                    <div class="panel-card">
-                      <div class="panel-card-title">${escapeHtml(job.title || "Untitled Job")}</div>
-                      <div class="panel-card-sub">${escapeHtml(job.company || "Company")} • ${escapeHtml(job.location || "Location")}</div>
-                      <div class="panel-card-meta">${escapeHtml((job.description || "No description available.").slice(0, 220))}${job.description && job.description.length > 220 ? "..." : ""}</div>
-                      <div class="panel-card-actions">
-                        <button class="panel-btn panel-btn-secondary" onclick="saveJob('${job._id}')">Save</button>
-                        <button class="panel-btn panel-btn-primary" onclick="quickApply('${job._id}')">Apply</button>
-                      </div>
-                    </div>
-                  `).join("")
-                  : renderEmptyPanel("No jobs found", "We could not find recommended jobs right now.")
-              }
-            </div>
+        </div>
+
+        <span class="pill green">
+          ${esc(job.status || "active")}
+        </span>
+
+      </div>
+
+      <div class="item-meta">
+
+        <span class="pill">
+          ${esc(job.location || "Location not added")}
+        </span>
+
+        <span class="pill">
+          ${esc(job.type || "Full-time")}
+        </span>
+
+        ${
+          job.salary
+            ? `<span class="pill">${esc(job.salary)}</span>`
+            : ""
+        }
+
+      </div>
+
+      <div class="cover-message">
+        ${esc((job.description || "").slice(0,220))}
+        ${(job.description || "").length > 220 ? "..." : ""}
+      </div>
+
+      <div class="item-actions">
+
+        <button
+          class="btn primary"
+          onclick="applyToJob('${esc(job._id)}')"
+        >
+          Apply
+        </button>
+
+        <button
+          class="btn"
+          onclick="location.href='jobs.html?job=${encodeURIComponent(job._id)}'"
+        >
+          View details
+        </button>
+
+      </div>
+
+    </article>
+  `;
+}
+
+function renderJobs(){
+
+  const list =
+    document.getElementById("recommendedJobsList");
+
+  const jobs =
+    state.jobs.filter(jobMatchesSearch).slice(0,20);
+
+  if(!jobs.length){
+    list.innerHTML = `
+      <div class="card empty">
+        <h3>No matching jobs</h3>
+        <p>Try adjusting your filters or visit the full jobs page.</p>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML =
+    jobs.map(renderJobCard).join("");
+}
+
+function renderRecommendedMini(){
+
+  const mount =
+    document.getElementById("recommendedMini");
+
+  const jobs =
+    state.jobs.slice(0,4);
+
+  if(!jobs.length){
+    mount.innerHTML = `
+      <div class="recommended-card">
+        <h4>No jobs loaded yet</h4>
+        <p>Visit jobs to explore opportunities.</p>
+      </div>
+    `;
+    return;
+  }
+
+  mount.innerHTML =
+    jobs.map(job=>`
+      <div class="recommended-card">
+        <h4>${esc(job.title || "Untitled job")}</h4>
+        <p>${esc(job.company || job.location || "AIFT employer")}</p>
+        <button class="btn" onclick="applyToJob('${esc(job._id)}')">Apply</button>
+      </div>
+    `).join("");
+}
+
+function renderTimeline(){
+
+  const items =
+    state.applications
+      .slice()
+      .sort((a,b)=>new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0,8);
+
+  const html =
+    items.length
+      ? items.map(app=>`
+        <div class="timeline-item">
+          <div class="timeline-icon">A</div>
+          <div>
+            <strong>${esc(jobTitle(app))}</strong>
+            <span>
+              ${esc(companyName(app))} • ${esc(app.status || "new")} • ${esc(formatDate(app.createdAt))}
+            </span>
           </div>
         </div>
-      `;
-    }
-
-    async function fetchSavedJobs(){
-      try{
-        const [userRes, jobsRes] = await Promise.all([
-          fetch(API + "/api/users/me", { headers: authHeaders() }),
-          fetch(API + "/api/jobs", { headers: authHeaders() })
-        ]);
-
-        const user = userRes.ok ? await userRes.json() : {};
-        const jobs = jobsRes.ok ? await jobsRes.json() : [];
-        const allJobs = Array.isArray(jobs) ? jobs : (Array.isArray(jobs.jobs) ? jobs.jobs : []);
-        const savedIds = Array.isArray(user.savedJobs) ? user.savedJobs.map(j => String(j._id || j)) : [];
-
-        savedJobsCache = allJobs.filter(job => savedIds.includes(String(job._id)));
-      }catch(err){
-        console.error("Failed to fetch saved jobs", err);
-        savedJobsCache = [];
-      }
-    }
-
-    async function loadSavedJobsCount(){
-      try{
-        await fetchSavedJobs();
-        document.getElementById("savedCount").innerText = savedJobsCache.length;
-      }catch(err){
-        console.error(err);
-      }
-    }
-
-    async function showSavedJobs(){
-      setActiveTool("tool-saved");
-      setActiveMobileNav("mobileNavJobs");
-      showPanelLoading("Saved Jobs");
-
-      await fetchSavedJobs();
-
-      document.getElementById("feedPanel").style.display = "none";
-      document.getElementById("toolPanel").style.display = "block";
-
-      document.getElementById("toolPanel").innerHTML = `
-        <div class="panel-shell">
-          <div class="panel-header">
-            <div class="panel-title-wrap">
-              <h2>Saved Jobs</h2>
-              <p>Quick access to opportunities you want to revisit later.</p>
-            </div>
-            <div class="panel-actions">
-              <button class="panel-btn panel-btn-secondary" onclick="showJobs()">Jobs</button>
-              <button class="panel-btn panel-btn-primary" onclick="showFeed()">Back to Feed</button>
-            </div>
-          </div>
-
-          <div class="panel-body">
-            <div class="panel-grid">
-              ${
-                savedJobsCache.length
-                  ? savedJobsCache.map(job => `
-                    <div class="panel-card">
-                      <div class="panel-card-title">${escapeHtml(job.title || "Untitled Job")}</div>
-                      <div class="panel-card-sub">${escapeHtml(job.company || "Company")} • ${escapeHtml(job.location || "Location")}</div>
-                      <div class="panel-card-meta">${escapeHtml((job.description || "No description available.").slice(0, 180))}${job.description && job.description.length > 180 ? "..." : ""}</div>
-                      <div class="panel-card-actions">
-                        <button class="panel-btn panel-btn-secondary" onclick="saveJob('${job._id}')">Remove</button>
-                        <button class="panel-btn panel-btn-primary" onclick="quickApply('${job._id}')">Apply</button>
-                      </div>
-                    </div>
-                  `).join("")
-                  : renderEmptyPanel("No saved jobs yet", "Save interesting jobs and they will appear here.")
-              }
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    async function loadMyApplications(){
-      setActiveTool("tool-apps");
-      setActiveMobileNav("mobileNavJobs");
-      showPanelLoading("My Applications");
-
-      try{
-        const res = await fetch(API + "/api/applications", {
-          headers: authHeaders()
-        });
-
-        const data = res.ok ? await res.json() : [];
-        applicationsCache = Array.isArray(data) ? data : (Array.isArray(data.applications) ? data.applications : []);
-      }catch(err){
-        applicationsCache = [];
-      }
-
-      document.getElementById("appCount").innerText = applicationsCache.length;
-
-      document.getElementById("feedPanel").style.display = "none";
-      document.getElementById("toolPanel").style.display = "block";
-
-      document.getElementById("toolPanel").innerHTML = `
-        <div class="panel-shell">
-          <div class="panel-header">
-            <div class="panel-title-wrap">
-              <h2>My Applications</h2>
-              <p>Track the status of the opportunities you have applied for.</p>
-            </div>
-
-            <div class="panel-actions">
-              <button class="panel-btn panel-btn-secondary" onclick="showJobs()">Jobs</button>
-              <button class="panel-btn panel-btn-primary" onclick="showFeed()">Back to Feed</button>
-            </div>
-          </div>
-
-          <div class="panel-body">
-            <div class="panel-grid">
-              ${
-                applicationsCache.length
-                  ? applicationsCache.map(app => `
-                    <div class="panel-card">
-                      <div class="panel-card-title">${escapeHtml(app.job?.title || "Job title unavailable")}</div>
-                      <div class="panel-card-sub">${escapeHtml(app.job?.company || "Company unavailable")}</div>
-                      <div class="panel-card-meta">Status: ${escapeHtml(app.status || "Pending")}</div>
-                    </div>
-                  `).join("")
-                  : renderEmptyPanel("No applications yet", "Applications you send will appear here.")
-              }
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    async function openNetwork(){
-      setActiveTool("tool-network");
-      setActiveMobileNav("mobileNavNetwork");
-
-      document.getElementById("feedPanel").style.display = "none";
-      document.getElementById("toolPanel").style.display = "block";
-
-      document.getElementById("toolPanel").innerHTML = `
-        <div class="network-shell">
-          <div class="network-header">
-            <div class="network-title-wrap">
-              <h2>My Network</h2>
-              <p>Grow your connections and discover relevant people</p>
-            </div>
-
-            <div class="network-header-actions">
-              <input
-                id="networkSearch"
-                class="network-search"
-                type="text"
-                placeholder="Search people"
-                oninput="filterNetworkUsers()"
-              />
-            </div>
-          </div>
-
-          <div class="network-tabs">
-            <button id="tab-suggestions" class="network-tab active" onclick="loadSuggestions()">Suggestions</button>
-            <button id="tab-followers" class="network-tab" onclick="loadFollowers()">Followers</button>
-            <button id="tab-following" class="network-tab" onclick="loadFollowing()">Following</button>
-          </div>
-
-          <div class="network-summary">
-            <div class="network-stat">
-              <div class="network-stat-label">Suggestions</div>
-              <div class="network-stat-value" id="networkSuggestionsCount">0</div>
-            </div>
-
-            <div class="network-stat">
-              <div class="network-stat-label">Followers</div>
-              <div class="network-stat-value" id="networkFollowersCount">0</div>
-            </div>
-
-            <div class="network-stat">
-              <div class="network-stat-label">Following</div>
-              <div class="network-stat-value" id="networkFollowingCount">0</div>
-            </div>
-          </div>
-
-          <div id="networkList" class="network-list"></div>
-
-          <button class="network-back" onclick="showFeed()">Back to feed</button>
+      `).join("")
+      : `
+        <div class="empty">
+          <h3>No activity yet</h3>
+          <p>Apply to jobs or internships to start your activity timeline.</p>
         </div>
       `;
 
-      await loadNetworkSummary();
-      await loadSuggestions();
-    }
+  document.getElementById("overviewTimeline").innerHTML = html;
+  document.getElementById("activityTimeline").innerHTML = html;
+}
 
-    function setActiveNetworkTab(tab){
-      currentNetworkTab = tab;
-      ["suggestions","followers","following"].forEach(name => {
-        document.getElementById("tab-" + name)?.classList.toggle("active", name === tab);
-      });
-      const search = document.getElementById("networkSearch");
-      if(search) search.value = "";
-    }
+function renderStats(){
 
-    async function loadNetworkSummary(){
-      try{
-        const [followersRes, followingRes, suggestionsRes] = await Promise.all([
-          fetch(API + "/api/users/me/followers", { headers: authHeaders() }),
-          fetch(API + "/api/users/me/following", { headers: authHeaders() }),
-          fetch(API + "/api/users/network", { headers: authHeaders() })
-        ]);
+  const total =
+    state.applications.length;
 
-        const followers = followersRes.ok ? await followersRes.json() : [];
-        const following = followingRes.ok ? await followingRes.json() : [];
-        const suggestions = suggestionsRes.ok ? await suggestionsRes.json() : [];
+  const interviews =
+    state.applications.filter(app => app.status === "interview").length;
 
-        document.getElementById("networkFollowersCount").innerText = Array.isArray(followers) ? followers.length : 0;
-        document.getElementById("networkFollowingCount").innerText = Array.isArray(following) ? following.length : 0;
-        document.getElementById("networkSuggestionsCount").innerText = Array.isArray(suggestions) ? suggestions.length : 0;
-      }catch(err){
-        console.error("Network summary failed", err);
-      }
-    }
+  const offers =
+    state.applications.filter(app => ["offer","hired"].includes(app.status)).length;
 
-    async function loadFollowers(){
-      setActiveNetworkTab("followers");
-      try{
-        const res = await fetch(API + "/api/users/me/followers", { headers: authHeaders() });
-        fullNetworkUsers = res.ok ? await res.json() : [];
-      }catch(err){
-        fullNetworkUsers = [];
-      }
-      renderNetworkUsers(fullNetworkUsers, "followers");
-    }
+  const rejected =
+    state.applications.filter(app => app.status === "rejected").length;
 
-    async function loadFollowing(){
-      setActiveNetworkTab("following");
-      try{
-        const res = await fetch(API + "/api/users/me/following", { headers: authHeaders() });
-        fullNetworkUsers = res.ok ? await res.json() : [];
-      }catch(err){
-        fullNetworkUsers = [];
-      }
-      renderNetworkUsers(fullNetworkUsers, "following");
-    }
+  const internships =
+    state.applications.filter(app => app.applicationType === "internship").length;
 
-    async function loadSuggestions(){
-      setActiveNetworkTab("suggestions");
-      try{
-        const res = await fetch(API + "/api/users/network", { headers: authHeaders() });
-        fullNetworkUsers = res.ok ? await res.json() : [];
-      }catch(err){
-        fullNetworkUsers = [];
-      }
-      renderNetworkUsers(fullNetworkUsers, "suggestions");
-    }
+  document.getElementById("totalApplicationsCount").textContent = total;
+  document.getElementById("interviewsCount").textContent = interviews;
+  document.getElementById("offersCount").textContent = offers;
+  document.getElementById("rejectedCount").textContent = rejected;
 
-    function renderNetworkUsers(users, mode = currentNetworkTab){
-      const container = document.getElementById("networkList");
-      if(!container) return;
-      container.innerHTML = "";
+  document.getElementById("menuAppsCount").textContent = total;
+  document.getElementById("menuOffersCount").textContent = offers;
+  document.getElementById("menuInterviewsCount").textContent = interviews;
+  document.getElementById("menuInternshipsCount").textContent = internships;
+  document.getElementById("menuJobsCount").textContent = state.jobs.length;
+}
 
-      if(!users || users.length === 0){
-        const emptyTitle =
-          mode === "followers" ? "No followers yet" :
-          mode === "following" ? "Not following anyone yet" :
-          "No suggestions available";
+function renderAll(){
+  renderProfile();
+  renderStats();
+  renderApplications();
+  renderOffers();
+  renderInterviews();
+  renderInternships();
+  renderJobs();
+  renderRecommendedMini();
+  renderTimeline();
+}
 
-        const emptyText =
-          mode === "followers" ? "When people follow you, they will appear here." :
-          mode === "following" ? "People you follow will appear here." :
-          "Try again later as your network grows.";
+function openFollowUp(applicationId){
 
-        container.innerHTML = `
-          <div class="network-empty">
-            <h3>${emptyTitle}</h3>
-            <div>${emptyText}</div>
-          </div>
-        `;
-        return;
-      }
+  const app =
+    state.applications.find(item =>
+      String(item._id) === String(applicationId)
+    );
 
-      users.forEach(user => {
-        const profileImage = user.profileImage || FALLBACK_AVATAR;
-        const headline = user.headline || "No headline added";
-        const userRole = user.role || "member";
+  if(!app){
+    toast("Application not found.");
+    return;
+  }
 
-        let actionButtons = "";
+  if(!canFollowUp(app)){
+    toast(followLabel(app));
+    return;
+  }
 
-        if(mode === "followers"){
-          actionButtons = `
-            <div class="network-actions">
-              <button class="network-btn network-btn-secondary" onclick="connectUser('${user._id}')">Follow back</button>
-              <button class="network-btn network-btn-muted" onclick="visitProfile('${user._id}')">View profile</button>
-            </div>
-          `;
-        } else if(mode === "following"){
-          actionButtons = `
-            <div class="network-actions">
-              <button class="network-btn network-btn-muted" onclick="connectUser('${user._id}')">Following</button>
-              <button class="network-btn network-btn-secondary" onclick="visitProfile('${user._id}')">View profile</button>
-            </div>
-          `;
-        } else {
-          actionButtons = `
-            <div class="network-actions">
-              <button class="network-btn network-btn-primary" onclick="connectUser('${user._id}')">Follow</button>
-              <button class="network-btn network-btn-secondary" onclick="visitProfile('${user._id}')">View profile</button>
-            </div>
-          `;
-        }
+  state.activeFollowUp = applicationId;
 
-        container.innerHTML += `
-          <div class="network-card">
-            <div class="network-user">
-              <img src="${profileImage}" alt="${escapeHtml(user.name || "User")}">
-              <div class="network-user-meta">
-                <div class="network-user-name">${escapeHtml(user.name || "User")}</div>
-                <div class="network-user-headline">${escapeHtml(headline)}</div>
-                <div class="network-user-sub">${escapeHtml(userRole)}</div>
-              </div>
-            </div>
+  document.getElementById("followUpMessage").value =
+    `Hello, I wanted to respectfully follow up regarding my application for ${jobTitle(app)}. I remain very interested in this opportunity and would appreciate any updates regarding the hiring process.`;
 
-            ${actionButtons}
-          </div>
-        `;
-      });
-    }
+  openModal("followUpModal");
+}
 
-    function filterNetworkUsers(){
-      const input = document.getElementById("networkSearch");
-      if(!input) return;
+async function sendFollowUp(){
 
-      const term = input.value.trim().toLowerCase();
-      if(!term){
-        renderNetworkUsers(fullNetworkUsers, currentNetworkTab);
-        return;
-      }
+  const message =
+    document.getElementById("followUpMessage")
+    .value.trim();
 
-      const filtered = fullNetworkUsers.filter(user => {
-        return [
-          user.name || "",
-          user.headline || "",
-          user.role || ""
-        ].join(" ").toLowerCase().includes(term);
-      });
+  if(!message){
+    toast("Please write a follow-up message.");
+    return;
+  }
 
-      renderNetworkUsers(filtered, currentNetworkTab);
-    }
+  const btn =
+    document.getElementById("sendFollowUpBtn");
 
-    async function connectUser(id){
-      if(!id) return;
-      try{
-        const res = await fetch(API + "/api/users/" + id + "/follow", {
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+
+  try{
+
+    const updated =
+      await fetchJSON(
+        `/api/applications/${state.activeFollowUp}/follow-up`,
+        {
           method:"PATCH",
-          headers: authHeaders()
-        });
-
-        if(!res.ok){
-          alert("Failed to update connection");
-          return;
+          headers:authHeaders({
+            "Content-Type":"application/json"
+          }),
+          body:JSON.stringify({ message })
         }
+      );
 
-        await loadNetworkSummary();
+    const index =
+      state.applications.findIndex(app =>
+        String(app._id) === String(updated._id)
+      );
 
-        if(currentNetworkTab === "followers"){
-          loadFollowers();
-        } else if(currentNetworkTab === "following"){
-          loadFollowing();
-        } else {
-          loadSuggestions();
-        }
-      }catch(err){
-        alert("Failed to update connection");
-      }
+    if(index !== -1){
+      state.applications[index] = updated;
     }
 
-    async function followUser(id){
-      if(!id) return;
-      try{
-        const res = await fetch(API + "/api/users/" + id + "/follow", {
-          method:"PATCH",
-          headers: authHeaders()
-        });
-        if(!res.ok) throw new Error();
-      }catch(err){
-        console.error("Follow failed");
-      }
-    }
+    closeModal("followUpModal");
+    renderAll();
+    toast("Follow-up sent.");
 
-    async function quickApply(jobId){
-      if(!jobId) return;
-      try{
-        const res = await fetch(API + "/api/applications", {
-          method:"POST",
-          headers: authHeaders({ "Content-Type":"application/json" }),
-          body: JSON.stringify({ jobId })
-        });
+  }catch(err){
+    toast(err.message || "Failed to send follow-up.");
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "Send Follow-Up";
+  }
+}
 
-        if(!res.ok){
-          alert("Unable to apply right now.");
-          return;
+function applyToJob(jobId){
+
+  if(!jobId){
+    toast("Job not found.");
+    return;
+  }
+
+  localStorage.setItem("selectedJobId",jobId);
+
+  location.href =
+    `job-apply.html?jobId=${encodeURIComponent(jobId)}`;
+}
+
+function bindEvents(){
+
+  document.getElementById("sendFollowUpBtn")
+    .addEventListener("click",sendFollowUp);
+
+  [
+    "applicationSearch",
+    "applicationStatusFilter",
+    "applicationTypeFilter"
+  ].forEach(id=>{
+    document.getElementById(id)
+      ?.addEventListener("input",renderApplications);
+
+    document.getElementById(id)
+      ?.addEventListener("change",renderApplications);
+  });
+
+  [
+    "jobSearchInput",
+    "jobTypeFilter",
+    "jobWorkFilter"
+  ].forEach(id=>{
+    document.getElementById(id)
+      ?.addEventListener("input",renderJobs);
+
+    document.getElementById(id)
+      ?.addEventListener("change",renderJobs);
+  });
+}
+
+async function loadData(){
+
+  if(!token()){
+    location.href = "login.html";
+    return;
+  }
+
+  try{
+
+    const meData =
+      await fetchJSON(
+        "/api/users/me",
+        {
+          headers:authHeaders()
         }
+      );
 
-        alert("Application submitted.");
-        loadMyApplications();
-      }catch(err){
-        alert("Unable to apply right now.");
-      }
+    state.me =
+      meData.user || meData;
+
+    if(state.me?._id){
+      localStorage.setItem("userId",state.me._id);
     }
 
-    async function saveJob(jobId){
-      if(!jobId) return;
-      const endpoints = [
-        API + "/api/jobs/" + jobId + "/save",
-        API + "/api/users/jobs/" + jobId + "/save"
-      ];
+    if(state.me?.role){
+      localStorage.setItem("role",state.me.role);
+    }
 
-      let done = false;
+    const [applications,jobs] =
+      await Promise.allSettled([
 
-      for(const url of endpoints){
-        try{
-          const res = await fetch(url, {
-            method:"PATCH",
-            headers: authHeaders()
-          });
-          if(res.ok){
-            done = true;
-            break;
+        fetchJSON(
+          "/api/applications",
+          {
+            headers:authHeaders()
           }
-        }catch(e){}
-      }
+        ),
 
-      if(!done){
-        alert("Unable to update saved job right now.");
-        return;
-      }
-
-      await loadSavedJobsCount();
-
-      if(document.getElementById("toolPanel").style.display !== "none"){
-        if(document.getElementById("tool-jobs")?.classList.contains("active")) showJobs();
-        if(document.getElementById("tool-saved")?.classList.contains("active")) showSavedJobs();
-      }
-    }
-
-    async function fetchCounters(){
-      try{
-        let messageCount = 0;
-        let notificationCount = 0;
-
-        try{
-          const msgRes = await fetch(API + "/api/messages/unread-count", { headers: authHeaders() });
-          if(msgRes.ok){
-            const msgData = await msgRes.json();
-            messageCount = Number(msgData.count || msgData.unread || 0);
+        fetchJSON(
+          "/api/jobs",
+          {
+            headers:authHeaders()
           }
-        }catch(e){}
+        )
 
-        try{
-          const notifRes = await fetch(API + "/api/notifications/unread-count", { headers: authHeaders() });
-          if(notifRes.ok){
-            const notifData = await notifRes.json();
-            notificationCount = Number(notifData.count || notifData.unread || 0);
-          }
-        }catch(e){}
+      ]);
 
-        updateBadge(document.getElementById("messageCount"), messageCount);
-        updateBadge(document.getElementById("notificationCount"), notificationCount);
-        updateBadge(document.getElementById("mobileMessageCount"), messageCount);
-        updateBadge(document.getElementById("mobileNotificationCount"), notificationCount);
-      }catch(err){
-        console.error("Counter load failed", err);
-      }
-    }
+    state.applications =
+      applications.status === "fulfilled" && Array.isArray(applications.value)
+        ? applications.value
+        : [];
 
-    function closeAllDropdowns(){
-      document.querySelectorAll(".dropdown-menu").forEach(menu => {
-        menu.style.display = "none";
-      });
-      activeDropdown = null;
-    }
+    state.jobs =
+      jobs.status === "fulfilled" && Array.isArray(jobs.value)
+        ? jobs.value.filter(job => String(job.status || "").toLowerCase() === "active")
+        : [];
 
-    function togglePostDropdown(event, postId){
-      event.stopPropagation();
-      const menu = document.getElementById(`dropdown-${postId}`);
-      if(!menu) return;
+    renderAll();
 
-      if(activeDropdown && activeDropdown !== menu){
-        activeDropdown.style.display = "none";
-      }
+  }catch(err){
 
-      const open = menu.style.display === "block";
-      menu.style.display = open ? "none" : "block";
-      activeDropdown = open ? null : menu;
-    }
+    console.error(err);
 
-    function openShareModal(postId){
-      currentSharePostId = postId;
-      document.getElementById("shareModal").style.display = "flex";
-      const btn = document.getElementById("copyLinkBtn");
-      btn.onclick = () => copyPostLink(postId);
-      closeAllDropdowns();
-    }
+    document.querySelector(".main-col").innerHTML = `
+      <div class="card empty">
+        <h3>Unable to load dashboard</h3>
+        <p>${esc(err.message || "Something went wrong.")}</p>
+      </div>
+    `;
+  }
+}
 
-    function closeShareModal(){
-      document.getElementById("shareModal").style.display = "none";
-      currentSharePostId = null;
-    }
+bindEvents();
+loadData();
+</script>
 
-    function copyPostLink(postId){
-      const url = `${window.location.origin}${window.location.pathname}#post-${postId}`;
-      navigator.clipboard.writeText(url)
-        .then(() => {
-          alert("Post link copied.");
-          closeShareModal();
-        })
-        .catch(() => alert("Could not copy link."));
-    }
-
-    function reportPost(postId){
-      closeAllDropdowns();
-      alert("Post reported.");
-    }
-
-    function toggleComments(postId){
-      const wrapper = document.getElementById(`comments-${postId}`);
-      if(!wrapper) return;
-      const show = wrapper.style.display === "block";
-      wrapper.style.display = show ? "none" : "block";
-      if(!show) loadComments(postId);
-    }
-
-    async function loadComments(postId){
-      const container = document.getElementById(`comments-list-${postId}`);
-      if(!container) return;
-      container.innerHTML = `<div style="font-size:13px;color:#64748b;">Loading comments...</div>`;
-
-      const endpoints = [
-        `${API}/api/posts/${postId}/comments`,
-        `${API}/api/comments/post/${postId}`
-      ];
-
-      let comments = [];
-
-      for(const url of endpoints){
-        try{
-          const res = await fetch(url, { headers: authHeaders() });
-          if(!res.ok) continue;
-          const data = await res.json();
-          comments = Array.isArray(data) ? data : (Array.isArray(data.comments) ? data.comments : []);
-          break;
-        }catch(e){}
-      }
-
-      if(!comments.length){
-        container.innerHTML = `<div style="font-size:13px;color:#64748b;">No comments yet.</div>`;
-        return;
-      }
-
-      container.innerHTML = comments.map(comment => {
-        const user = comment.user || comment.author || {};
-        return `
-          <div class="comment-item">
-            <img class="comment-avatar" src="${user.profileImage || FALLBACK_AVATAR}" alt="${escapeHtml(user.name || "User")}">
-            <div class="comment-body">
-              <div class="comment-bubble">
-                <div class="comment-name">${escapeHtml(user.name || "User")}</div>
-                <div class="comment-text">${escapeHtml(comment.text || comment.content || "")}</div>
-              </div>
-              <div class="comment-meta">
-                <span>${escapeHtml(formatDateTime(comment.createdAt))}</span>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    async function submitComment(postId){
-      const input = document.getElementById(`comment-input-${postId}`);
-      if(!input) return;
-      const text = input.value.trim();
-      if(!text) return;
-
-      const endpoints = [
-        `${API}/api/posts/${postId}/comments`,
-        `${API}/api/comments`
-      ];
-
-      let success = false;
-
-      for(const url of endpoints){
-        try{
-          const res = await fetch(url, {
-            method:"POST",
-            headers: authHeaders({ "Content-Type":"application/json" }),
-            body: JSON.stringify(url.includes("/comments") && url.includes(`/posts/${postId}`)
-              ? { text }
-              : { postId, text })
-          });
-
-          if(res.ok){
-            success = true;
-            break;
-          }
-        }catch(e){}
-      }
-
-      if(!success){
-        alert("Unable to add comment right now.");
-        return;
-      }
-
-      input.value = "";
-      loadComments(postId);
-      loadPosts(true);
-    }
-
-    async function toggleLikePost(postId){
-      const endpoints = [
-        `${API}/api/posts/${postId}/like`,
-        `${API}/api/posts/${postId}/likes`
-      ];
-
-      let success = false;
-      for(const url of endpoints){
-        try{
-          const res = await fetch(url, {
-            method:"PATCH",
-            headers: authHeaders()
-          });
-          if(res.ok){
-            success = true;
-            break;
-          }
-        }catch(e){}
-      }
-
-      if(success){
-        loadPosts(true);
-      }
-    }
-
-    function openPostModal(){
-      document.getElementById("postModal").style.display = "flex";
-    }
-
-    function closePostModal(){
-      document.getElementById("postModal").style.display = "none";
-      document.getElementById("postContent").value = "";
-      document.getElementById("mediaInput").value = "";
-      document.getElementById("filePreviewContainer").innerHTML = "";
-      selectedPostMediaFile = null;
-    }
-
-    document.getElementById("mediaInput").addEventListener("change", function(){
-      const file = this.files[0];
-      selectedPostMediaFile = file || null;
-      const preview = document.getElementById("filePreviewContainer");
-      preview.innerHTML = "";
-
-      if(!file) return;
-
-      const url = URL.createObjectURL(file);
-
-      if(file.type.startsWith("video/")){
-        preview.innerHTML = `<video src="${url}" controls playsinline></video>`;
-      }else if(file.type.startsWith("image/")){
-        preview.innerHTML = `<img src="${url}" alt="Preview">`;
-      }
-    });
-
-    async function createPost(){
-      const text = document.getElementById("postContent").value.trim();
-      if(!text && !selectedPostMediaFile){
-        alert("Please write something or add media.");
-        return;
-      }
-
-      try{
-        const formData = new FormData();
-        formData.append("text", text);
-        if(selectedPostMediaFile){
-          formData.append("media", selectedPostMediaFile);
-        }
-
-        const endpoints = [
-          API + "/api/posts",
-          API + "/api/posts/create"
-        ];
-
-        let success = false;
-
-        for(const url of endpoints){
-          try{
-            const res = await fetch(url, {
-              method:"POST",
-              headers: {
-                Authorization: "Bearer " + token
-              },
-              body: formData
-            });
-            if(res.ok){
-              success = true;
-              break;
-            }
-          }catch(e){}
-        }
-
-        if(!success){
-          alert("Unable to create post right now.");
-          return;
-        }
-
-        closePostModal();
-        showFeed();
-        loadPosts(true);
-      }catch(err){
-        alert("Unable to create post right now.");
-      }
-    }
-
-    function handleMobileBarsScroll(){
-      const topbar = document.getElementById("mobileTopbar");
-      const bottomNav = document.getElementById("mobileBottomNav");
-      if(window.innerWidth > 640 || !topbar || !bottomNav) return;
-
-      const currentY = window.scrollY;
-      const diff = currentY - lastScrollY;
-
-      if(currentY < 20){
-        topbar.classList.remove("hide");
-        bottomNav.classList.remove("hide");
-      } else if(diff > 6){
-        topbar.classList.add("hide");
-        bottomNav.classList.add("hide");
-      } else if(diff < -6){
-        topbar.classList.remove("hide");
-        bottomNav.classList.remove("hide");
-      }
-
-      lastScrollY = currentY;
-    }
-
-    function setupSocket(){
-      if(!socket) return;
-
-      socket.on("connect", () => {
-        const userId = localStorage.getItem("userId");
-        if(userId){
-          socket.emit("join", userId);
-        }
-      });
-
-      socket.on("newNotification", () => {
-        fetchCounters();
-      });
-
-      socket.on("newMessage", () => {
-        fetchCounters();
-      });
-
-      socket.on("postUpdated", () => {
-        if(document.getElementById("feedPanel").style.display !== "none"){
-          loadPosts(true);
-        }
-      });
-    }
-
-    function setupInfiniteScroll(){
-      window.addEventListener("scroll", async () => {
-        handleMobileBarsScroll();
-
-        if(document.getElementById("feedPanel").style.display === "none") return;
-
-        const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 900;
-        if(nearBottom && !loading && !noMorePosts){
-          await loadPosts();
-        }
-      }, { passive:true });
-    }
-
-    document.addEventListener("click", (e) => {
-      if(!e.target.closest(".dropdown")){
-        closeAllDropdowns();
-      }
-    });
-
-    window.addEventListener("resize", () => {
-      if(window.innerWidth > 640){
-        document.getElementById("mobileTopbar")?.classList.remove("hide");
-        document.getElementById("mobileBottomNav")?.classList.remove("hide");
-      }
-    });
-
-    async function init(){
-      await loadProfile();
-      await fetchCounters();
-      await loadPosts(true);
-      setupSocket();
-      setupInfiniteScroll();
-    }
-
-    init();
-  </script>
 </body>
 </html>
