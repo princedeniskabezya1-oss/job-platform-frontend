@@ -1324,7 +1324,7 @@ function setupOwnerControls(user,viewer){
 
 document.getElementById("editProfileBtn").classList.remove("hidden");
 
-if(String(user.role || "").toLowerCase() === "agent"){
+if(["agent","talent"].includes(String(user.role || "").toLowerCase())){
   document.getElementById("dashboardBtn").classList.remove("hidden");
 }else{
   document.getElementById("dashboardBtn").classList.add("hidden");
@@ -1337,9 +1337,21 @@ if(String(user.role || "").toLowerCase() === "agent"){
     location.href = "profile.html";
   };
 
-  document.getElementById("dashboardBtn").onclick = () => {
+document.getElementById("dashboardBtn").onclick = () => {
+  const r = String(user.role || "").toLowerCase();
+
+  if(r === "talent"){
+    location.href = "talent.html";
+    return;
+  }
+
+  if(r === "agent"){
     location.href = "agent.html";
-  };
+    return;
+  }
+
+  location.href = "home.html";
+};
 }
 
 function renderStats(user,stats){
