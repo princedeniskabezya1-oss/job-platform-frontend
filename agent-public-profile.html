@@ -922,7 +922,7 @@ a{text-decoration:none;color:inherit}
               </h2>
 
               <p style="color:#666;">
-                Public activity, updates, and professional posts from this agent.
+                Public activity, updates, and professional posts.
               </p>
             </div>
 
@@ -966,7 +966,7 @@ a{text-decoration:none;color:inherit}
         </div>
 
         <div class="card side-card">
-          <h3>Why Employers Like This Agent</h3>
+          <h3>Why Employers Like This Profile</h3>
 
           <div class="timeline" id="employerPraiseWrap">
             <div class="empty">
@@ -1053,6 +1053,22 @@ function normalizeUserResponse(data){
 
 function normalizeStatsResponse(data){
   return data?.stats || {};
+}
+  function publicRoleLabel(role){
+  switch(String(role || "").toLowerCase()){
+    case "talent":
+      return "Professional";
+    case "agent":
+      return "Recruiter";
+    case "employer":
+      return "Company";
+    case "school":
+      return "School";
+    case "admin":
+      return "Admin";
+    default:
+      return "Member";
+  }
 }
 
 function showState(title,message){
@@ -1179,7 +1195,7 @@ async function fetchProfile(){
 function protectAgentProfile(){
   const role = String(state.profile?.role || "").toLowerCase();
 
-  if(role && role !== "agent"){
+  if(role && role !== "agent" && role !== "talent"){
     if(role === "employer"){
       location.href = `employer-public-profile.html?id=${state.profile._id}`;
       return;
@@ -1201,7 +1217,7 @@ function renderProfile(){
 
   const avatar = user.profileImage || FALLBACK_AVATAR;
   const cover = user.bannerImage || user.coverImage || "";
-  const name = user.name || "Agent";
+  const name = user.name || publicRoleLabel(user.role);
   const headline = user.headline || user.profession || "No professional headline added yet";
 
   const company =
@@ -1249,8 +1265,8 @@ if(agentStoryEl){
   document.getElementById("sideLocation").textContent = location;
   document.getElementById("sideStatus").textContent = availability;
 
-  document.getElementById("infoRole").textContent =
-    user.preferredRole || user.role || "Not added";
+document.getElementById("infoRole").textContent =
+  user.preferredRole || publicRoleLabel(user.role) || "Not added";
 
   document.getElementById("infoEmployment").textContent =
     user.employmentType || "Not added";
