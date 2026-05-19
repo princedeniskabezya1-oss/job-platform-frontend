@@ -2176,6 +2176,7 @@ body.loading{
 <script>
 /* =========================
    AIFT SCHOOL DASHBOARD
+   Production JS Replacement
 ========================= */
 
 const API = "https://backend-1-9b6f.onrender.com";
@@ -2184,13 +2185,14 @@ const role = String(localStorage.getItem("role") || "").toLowerCase();
 
 const token =
   localStorage.getItem("schoolToken") ||
+  localStorage.getItem("adminToken") ||
   localStorage.getItem("token");
 
 if (!token) {
   window.location.href = "login.html";
 }
 
-if (role && role !== "school") {
+if (role && !["school", "admin"].includes(role)) {
   window.location.href = "home.html";
 }
 
@@ -2199,6 +2201,9 @@ const FALLBACK_AVATAR =
 
 const FALLBACK_LOGO =
   "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+
+const FALLBACK_COVER =
+  "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1600&q=80";
 
 const state = {
   me: null,
@@ -2210,12 +2215,17 @@ const state = {
   submissions: [],
   opportunities: [],
   notifications: 0,
-  events: []
+  events: [],
+  loading: false
 };
 
 /* =========================
    HELPERS
 ========================= */
+
+function $(id) {
+  return document.getElementById(id);
+}
 
 function authHeaders(extra = {}) {
   return {
@@ -2233,33 +2243,33 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
-function showAlert(type, message) {
-  const box = document.getElementById("pageAlert");
-
-  box.className = "alert " + type;
-  box.textContent = message;
-  box.style.display = "block";
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
-
-  setTimeout(() => {
-    box.style.display = "none";
-  }, 3000);
+async function safeJson(res) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
-function safeJson(res) {
-  return res.json().catch(() => null);
+function asArray(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.items)) return value.items;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.users)) return value.users;
+  if (Array.isArray(value?.posts)) return value.posts;
+  if (Array.isArray(value?.classes)) return value.classes;
+  if (Array.isArray(value?.projects)) return value.projects;
+  if (Array.isArray(value?.assignments)) return value.assignments;
+  if (Array.isArray(value?.submissions)) return value.submissions;
+  if (Array.isArray(value?.opportunities)) return value.opportunities;
+  return [];
 }
 
 function formatDate(value) {
   if (!value) return "No date";
 
   const date = new Date(value);
-
-  if (isNaN(date.getTime())) return "No date";
+  if (Number.isNaN(date.getTime())) return "No date";
 
   return date.toLocaleDateString([], {
     month: "short",
@@ -2268,29 +2278,212 @@ function formatDate(value) {
   });
 }
 
+function formatDateTime(value) {
+  if (!value) return "No date";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "No date";
+
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function normalizeId(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (value._id) return String(value._id);
+  return String(value);
+}
+
+function sameId(a, b) {
+  return normalizeId(a) === normalizeId(b);
+}
+
+function setText(id, value) {
+  const el = $(id);
+  if (el) el.innerText = value;
+}
+
+function setValue(id, value) {
+  const el = $(id);
+  if (el) el.value = value ?? "";
+}
+
+function showAlert(type, message) {
+  const box = $("pageAlert");
+  if (!box) {
+    alert(message);
+    return;
+  }
+
+  box.className = "alert " + type;
+  box.textContent = message;
+  box.style.display = "block";
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+
+  setTimeout(() => {
+    box.style.display = "none";
+  }, 3500);
+}
+
+function showEmpty(id, message) {
+  const el = $(id);
+  if (!el) return;
+
+  el.innerHTML = `
+    <div class="empty">
+      ${escapeHtml(message)}
+    </div>
+  `;
+}
+
+function setButtonLoading(button, loadingText = "Saving...") {
+  if (!button) return () => {};
+
+  const originalText = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = loadingText;
+
+  return () => {
+    button.disabled = false;
+    button.innerHTML = originalText;
+  };
+}
+
+function getPrograms() {
+  const me = state.me || {};
+  const raw = me.programs || me.schoolPrograms || me.courses || [];
+
+  if (Array.isArray(raw)) {
+    return raw
+      .map(item => typeof item === "string" ? item : item?.name || item?.title)
+      .filter(Boolean);
+  }
+
+  if (typeof raw === "string") {
+    return raw
+      .split(",")
+      .map(item => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function getSchoolName() {
+  const me = state.me || {};
+  return (
+    me.schoolName ||
+    me.companyName ||
+    me.name ||
+    "AIFT School"
+  );
+}
+
+function getSchoolId() {
+  return (
+    state.me?._id ||
+    localStorage.getItem("userId") ||
+    ""
+  );
+}
+
+function getSchoolDescription() {
+  const me = state.me || {};
+  return (
+    me.schoolDescription ||
+    me.description ||
+    me.bio ||
+    me.about ||
+    "Add your school description to help students, employers, and partners understand your programs."
+  );
+}
+
+function getSchoolStudents() {
+  const schoolId = getSchoolId();
+
+  return state.users.filter(user => {
+    const userRole = String(user.role || "").toLowerCase();
+
+    return (
+      ["student", "talent"].includes(userRole) &&
+      (
+        sameId(user.schoolId, schoolId) ||
+        sameId(user.school, schoolId) ||
+        sameId(user.schoolOwnerId, schoolId) ||
+        sameId(user.linkedSchoolId, schoolId)
+      )
+    );
+  });
+}
+
+function getSchoolPosts() {
+  const schoolId = getSchoolId();
+
+  return state.posts.filter(post => {
+    const authorId =
+      normalizeId(post.author?._id) ||
+      normalizeId(post.author) ||
+      normalizeId(post.userId) ||
+      normalizeId(post.schoolId);
+
+    return sameId(authorId, schoolId) || sameId(post.schoolId, schoolId);
+  });
+}
+
+function getNextDeadline() {
+  const dates = [
+    ...state.assignments.map(item => item.dueDate || item.deadline),
+    ...state.projects.map(item => item.deadline),
+    ...state.opportunities.map(item => item.deadline)
+  ]
+    .filter(Boolean)
+    .map(value => new Date(value))
+    .filter(date => !Number.isNaN(date.getTime()))
+    .filter(date => date.getTime() >= Date.now())
+    .sort((a, b) => a - b);
+
+  return dates[0] ? formatDate(dates[0]) : "No date";
+}
+
+/* =========================
+   MODALS / NAVIGATION
+========================= */
+
 function openModal(id) {
-  document.getElementById(id).classList.add("show");
+  const modal = $(id);
+  if (modal) modal.classList.add("show");
 }
 
 function closeModal(id) {
-  document.getElementById(id).classList.remove("show");
+  const modal = $(id);
+  if (modal) modal.classList.remove("show");
 }
 
 document.querySelectorAll(".modal").forEach(modal => {
-  modal.addEventListener("click", (e) => {
+  modal.addEventListener("click", e => {
     if (e.target === modal) {
       modal.classList.remove("show");
     }
   });
 });
 
-function openTab(tab) {
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".modal").forEach(modal => {
+      modal.classList.remove("show");
+    });
+  }
+});
 
+function openTab(tab) {
   document.querySelectorAll(".tab-btn").forEach(btn => {
-    btn.classList.toggle(
-      "active",
-      btn.dataset.tab === tab
-    );
+    btn.classList.toggle("active", btn.dataset.tab === tab);
   });
 
   document.querySelectorAll(".section").forEach(section => {
@@ -2304,17 +2497,12 @@ function openTab(tab) {
     btn.classList.remove("active");
   });
 
-  const activeMobileBtn = [...document.querySelectorAll(".mobile-nav button")]
+  const mobileBtn = [...document.querySelectorAll(".mobile-nav button")]
     .find(btn => btn.textContent.toLowerCase().includes(tab));
 
-  if (activeMobileBtn) {
-    activeMobileBtn.classList.add("active");
-  }
+  if (mobileBtn) mobileBtn.classList.add("active");
 
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function goNotifications() {
@@ -2325,1303 +2513,1408 @@ function goMessages() {
   window.location.href = "messages.html";
 }
 
+function goHome() {
+  window.location.href = "home.html";
+}
+
 function openPublicPage() {
-  const id = state.me?._id || localStorage.getItem("userId");
+  const id = getSchoolId();
 
   if (!id) {
     showAlert("error", "School profile ID not found.");
     return;
   }
 
-  window.open(`school-public-profile.html?id=${id}`, "_blank");
+  window.location.href = `school-public-profile.html?id=${encodeURIComponent(id)}`;
+}
+  /* =========================
+   API
+========================= */
+
+async function apiGet(path, fallback = null) {
+  try {
+    const res = await fetch(API + path, {
+      headers: authHeaders()
+    });
+
+    if (res.status === 401) {
+      localStorage.removeItem("schoolToken");
+      localStorage.removeItem("token");
+      window.location.href = "login.html";
+      return fallback;
+    }
+
+    if (!res.ok) {
+      console.warn("GET failed:", path, res.status);
+      return fallback;
+    }
+
+    return await safeJson(res);
+  } catch (err) {
+    console.warn("Network GET failed:", path, err);
+    return fallback;
+  }
+}
+
+async function apiSend(path, method, body, isForm = false) {
+  const options = {
+    method,
+    headers: isForm
+      ? authHeaders()
+      : authHeaders({ "Content-Type": "application/json" }),
+    body: isForm ? body : JSON.stringify(body || {})
+  };
+
+  const res = await fetch(API + path, options);
+  const data = await safeJson(res);
+
+  if (!res.ok) {
+    throw new Error(
+      data?.message ||
+      data?.error ||
+      `Request failed with status ${res.status}`
+    );
+  }
+
+  return data;
 }
 
 /* =========================
-   FETCHES
+   LOAD DATA
 ========================= */
 
-async function fetchProfile() {
-
-  const res = await fetch(
-    API + "/api/users/me",
-    {
-      headers: authHeaders()
-    }
-  );
-
-  if (!res.ok) {
-    throw new Error("Could not load school profile");
-  }
-
-  state.me = await safeJson(res);
-}
-
-async function fetchPosts() {
-
-  const res = await fetch(
-    API + "/api/posts",
-    {
-      headers: authHeaders()
-    }
-  );
-
-  if (!res.ok) {
-    state.posts = [];
-    return;
-  }
-
-  const data = await safeJson(res);
-
-  state.posts = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.posts)
-      ? data.posts
-      : [];
-}
-
-async function fetchUsers() {
+async function loadAll() {
+  state.loading = true;
 
   try {
+    const me = await apiGet("/api/users/me", null);
 
-    const res = await fetch(
-      API + "/api/users/network",
-      {
-        headers: authHeaders()
-      }
-    );
-
-    if (!res.ok) {
-      state.users = [];
+    if (!me) {
+      showAlert("error", "Unable to load school profile. Please login again.");
       return;
     }
 
-    const data = await safeJson(res);
+    state.me = me?.user || me;
 
-    state.users = Array.isArray(data)
-      ? data
-      : [];
+    const schoolId = getSchoolId();
 
-  } catch {
-    state.users = [];
+    const [
+      posts,
+      network,
+      classes,
+      projects,
+      assignments,
+      submissions,
+      opportunities,
+      unread
+    ] = await Promise.all([
+      apiGet("/api/posts", []),
+      apiGet("/api/users/network", []),
+      apiGet(`/api/classes?schoolId=${encodeURIComponent(schoolId)}`, []),
+      apiGet(`/api/projects?schoolId=${encodeURIComponent(schoolId)}`, []),
+      apiGet(`/api/assignments?schoolId=${encodeURIComponent(schoolId)}`, []),
+      apiGet(`/api/submissions?schoolId=${encodeURIComponent(schoolId)}`, []),
+      apiGet(`/api/opportunities?schoolId=${encodeURIComponent(schoolId)}`, []),
+      apiGet("/api/notifications/unread-count", { count: 0 })
+    ]);
+
+    state.posts = asArray(posts);
+    state.users = asArray(network);
+    state.classes = asArray(classes);
+    state.projects = asArray(projects);
+    state.assignments = asArray(assignments);
+    state.submissions = asArray(submissions);
+    state.opportunities = asArray(opportunities);
+    state.notifications = Number(unread?.count || unread?.unread || 0);
+
+    renderAll();
+  } catch (err) {
+    console.error(err);
+    showAlert("error", err.message || "Something went wrong loading the dashboard.");
+  } finally {
+    state.loading = false;
   }
 }
 
-async function fetchClasses() {
-
-  if (!state.me?._id) return;
-
-  const res = await fetch(
-    `${API}/api/classes?schoolId=${state.me._id}`,
-    {
-      headers: authHeaders()
-    }
-  );
-
-  if (!res.ok) {
-    state.classes = [];
-    return;
-  }
-
-  const data = await safeJson(res);
-
-  state.classes = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.items)
-      ? data.items
-      : [];
-}
-
-async function fetchProjects() {
-
-  if (!state.me?._id) return;
-
-  const res = await fetch(
-    `${API}/api/projects?schoolId=${state.me._id}`,
-    {
-      headers: authHeaders()
-    }
-  );
-
-  if (!res.ok) {
-    state.projects = [];
-    return;
-  }
-
-  const data = await safeJson(res);
-
-  state.projects = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.items)
-      ? data.items
-      : [];
-}
-
-async function fetchAssignments() {
-
-  if (!state.me?._id) return;
-
-  const res = await fetch(
-    `${API}/api/assignments?schoolId=${state.me._id}`,
-    {
-      headers: authHeaders()
-    }
-  );
-
-  if (!res.ok) {
-    state.assignments = [];
-    return;
-  }
-
-  const data = await safeJson(res);
-
-  state.assignments = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.items)
-      ? data.items
-      : [];
-}
-
-async function fetchSubmissions() {
-
-  if (!state.me?._id) return;
-
-  const res = await fetch(
-    `${API}/api/submissions?schoolId=${state.me._id}`,
-    {
-      headers: authHeaders()
-    }
-  );
-
-  if (!res.ok) {
-    state.submissions = [];
-    return;
-  }
-
-  const data = await safeJson(res);
-
-  state.submissions = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.items)
-      ? data.items
-      : [];
-}
-
-async function fetchOpportunities() {
-
-  if (!state.me?._id) return;
-
-  const res = await fetch(
-    `${API}/api/opportunities?schoolId=${state.me._id}`,
-    {
-      headers: authHeaders()
-    }
-  );
-
-  if (!res.ok) {
-    state.opportunities = [];
-    return;
-  }
-
-  const data = await safeJson(res);
-
-  state.opportunities = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.items)
-      ? data.items
-      : [];
-}
-
-async function fetchNotifications() {
-
-  try {
-
-    const res = await fetch(
-      API + "/api/notifications/unread-count",
-      {
-        headers: authHeaders()
-      }
-    );
-
-    if (!res.ok) return;
-
-    const data = await safeJson(res);
-
-    state.notifications =
-      Number(data?.count || data?.unread || 0);
-
-    const badge =
-      document.getElementById("notificationBadge");
-
-    badge.textContent =
-      state.notifications > 99
-        ? "99+"
-        : String(state.notifications);
-
-    badge.style.display =
-      state.notifications > 0
-        ? "grid"
-        : "none";
-
-  } catch {}
+function renderAll() {
+  renderProfile();
+  renderStats();
+  renderNotifications();
+  renderUpdates();
+  renderClasses();
+  renderProjects();
+  renderAssignments();
+  renderOpportunities();
+  renderStudents();
+  renderFaculty();
+  renderAnalytics();
+  renderSettings();
+  renderSearch();
 }
 
 /* =========================
-   FILTER HELPERS
+   PROFILE RENDER
 ========================= */
 
-function getSchoolPosts() {
-
-  const myId = String(state.me?._id || "");
-
-  return state.posts.filter(post => {
-
-    const authorId = String(
-      post.author?._id ||
-      post.author ||
-      post.user?._id ||
-      post.user ||
-      ""
-    );
-
-    return authorId === myId;
-  });
-}
-
-function getSchoolStudents() {
-
-  const schoolId = String(state.me?._id || "");
-
-  return state.users.filter(user => {
-
-    return (
-      String(user.role || "").toLowerCase() === "talent" &&
-      String(user.schoolId || "") === schoolId
-    );
-  });
-}
-
-function getSchoolFaculty() {
-
-  const schoolId = String(state.me?._id || "");
-
-  return state.users.filter(user => {
-
-    const roleValue =
-      String(user.role || "").toLowerCase();
-
-    return (
-      String(user.schoolId || "") === schoolId &&
-      (
-        roleValue === "teacher" ||
-        roleValue === "school" ||
-        !!user.department
-      )
-    );
-  });
-}
-
-/* =========================
-   PROFILE POPULATION
-========================= */
-
-function populateProfile() {
-
+function renderProfile() {
   const me = state.me || {};
-
-  const displayName =
-    me.schoolName ||
-    me.name ||
-    "School";
-
-  const location =
-    me.address ||
-    me.location ||
-    "Location not added";
-
-  const description =
-    me.schoolDescription ||
-    me.bio ||
-    me.headline ||
-    "No school description added yet.";
+  const programs = getPrograms();
 
   const logo =
+    me.logo ||
     me.schoolLogo ||
     me.profileImage ||
+    me.avatar ||
     FALLBACK_LOGO;
 
   const cover =
-    me.schoolBanner ||
+    me.coverImage ||
     me.bannerImage ||
-    "";
+    me.schoolCover ||
+    me.cover ||
+    FALLBACK_COVER;
 
-  const programs =
-    Array.isArray(me.programs)
-      ? me.programs
-      : [];
+  const name = getSchoolName();
 
-  document.title =
-    `${displayName} | AIFT Schools`;
+  setText("schoolName", name);
+  setText("schoolLocation", me.location || me.address || "Location not added");
+  setText("schoolType", me.schoolType || me.type || "School");
+  setText("schoolEmail", me.email || me.contactEmail || "No contact email");
+  setText("schoolBio", getSchoolDescription());
 
-  document.getElementById("schoolName").innerText =
-    displayName;
+  const logoEl = $("schoolLogo");
+  if (logoEl) logoEl.src = logo;
 
-  document.getElementById("schoolLocation").innerText =
-    location;
+  const avatarEl = $("topAvatar");
+  if (avatarEl) avatarEl.src = logo;
 
-  document.getElementById("schoolEmail").innerText =
-    me.contactEmail ||
-    me.email ||
-    "No email";
-
-  document.getElementById("schoolBio").innerText =
-    description;
-
-  document.getElementById("topAvatar").src = logo;
-  document.getElementById("schoolLogo").src = logo;
-
-  if (cover) {
-    document.getElementById("heroCover").style.background =
-      `
-      linear-gradient(
-        135deg,
-        rgba(37,87,167,.92),
-        rgba(22,61,122,.88)
-      ),
-      url("${cover}") center/cover no-repeat
-      `;
+  const coverEl = $("heroCover");
+  if (coverEl) {
+    coverEl.style.backgroundImage = `
+      linear-gradient(135deg,rgba(37,87,167,.88),rgba(22,61,122,.82)),
+      url("${cover}")
+    `;
   }
 
-  document.getElementById("statStudents").innerText =
-    getSchoolStudents().length;
+  const tags = $("programTags");
+  if (tags) {
+    tags.innerHTML = programs.length
+      ? programs.slice(0, 8).map(item => `
+          <span class="tag">${escapeHtml(item)}</span>
+        `).join("")
+      : `<span class="tag">Programs not added</span>`;
+  }
 
-  document.getElementById("statClasses").innerText =
-    state.classes.length;
+  setText("schoolTypeValue", me.schoolType || me.type || "School");
+  setText("programCountValue", programs.length);
+  setText("programCountValue", programs.length);
+  setText("opportunityCountValue", state.opportunities.length);
+  setText("deadlineValue", getNextDeadline());
 
-  document.getElementById("statProjects").innerText =
-    state.projects.length;
-
-  document.getElementById("statOpportunities").innerText =
-    state.opportunities.length;
-
-  document.getElementById("programCountValue").innerText =
-    programs.length;
-
-  document.getElementById("opportunityCountValue").innerText =
-    state.opportunities.length;
-
-  document.getElementById("settingsName").innerText =
-    displayName;
-
-  document.getElementById("settingsWebsite").innerText =
-    me.website || "Not added";
-
-  document.getElementById("settingsAddress").innerText =
-    location;
-
-  document.getElementById("settingsPrograms").innerText =
-    programs.length;
-
-  document.getElementById("activeStudentsValue").innerText =
-    getSchoolStudents().length;
-
-  document.getElementById("assignmentCountValue").innerText =
-    state.assignments.length;
-
-  document.getElementById("submissionCountValue").innerText =
-    state.submissions.length;
-
-  document.getElementById("industryCountValue").innerText =
-    state.opportunities.length;
-
-  const tags =
-    document.getElementById("programTags");
-
-  tags.innerHTML = programs.length
-    ? programs.slice(0, 6).map(program => `
-      <span class="tag">
-        ${escapeHtml(program)}
-      </span>
-    `).join("")
-    : `
-      <span class="tag">Career Growth</span>
-      <span class="tag">Internships</span>
-      <span class="tag">Industry Ready</span>
-    `;
-
-  /* PRE-FILL MODAL */
-
-  document.getElementById("infoSchoolName").value =
-    me.schoolName || me.name || "";
-
-  document.getElementById("infoWebsite").value =
-    me.website || "";
-
-  document.getElementById("infoAddress").value =
-    me.address || "";
-
-  document.getElementById("infoContactEmail").value =
-    me.contactEmail || me.email || "";
-
-  document.getElementById("infoContactPhone").value =
-    me.contactPhone || "";
-
-  document.getElementById("infoPrograms").value =
-    programs.join(", ");
-
-  document.getElementById("infoDescription").value =
-    description;
+  hydrateProfileForm();
 }
-  <script>
+
+function hydrateProfileForm() {
+  const me = state.me || {};
+  const programs = getPrograms();
+
+  const fields = {
+    schoolNameInput: getSchoolName(),
+    schoolTypeInput: me.schoolType || me.type || "",
+    schoolLocationInput: me.location || me.address || "",
+    schoolWebsiteInput: me.website || "",
+    schoolEmailInput: me.contactEmail || me.email || "",
+    schoolPhoneInput: me.phone || "",
+    schoolBioInput: getSchoolDescription(),
+    schoolProgramsInput: programs.join(", "),
+    schoolLogoInput: me.logo || me.schoolLogo || me.profileImage || "",
+    schoolCoverInput: me.coverImage || me.bannerImage || me.schoolCover || ""
+  };
+
+  Object.entries(fields).forEach(([id, value]) => setValue(id, value));
+}
+
 /* =========================
-   RENDER LISTS
+   STATS
 ========================= */
 
-function buildUpdates() {
-  const list = document.getElementById("updatesList");
-  const posts = getSchoolPosts();
+function renderStats() {
+  const students = getSchoolStudents();
+
+  setText("statStudents", students.length);
+  setText("statClasses", state.classes.length);
+  setText("statOpportunities", state.opportunities.length);
+  setText("statProjects", state.projects.length);
+
+  setText("activeStudentsValue", students.length);
+  setText("assignmentCountValue", state.assignments.length);
+  setText("submissionCountValue", state.submissions.length);
+  setText("industryCountValue", state.opportunities.length);
+}
+
+function renderNotifications() {
+  const badge = $("notificationBadge");
+  if (!badge) return;
+
+  if (state.notifications > 0) {
+    badge.textContent = state.notifications > 99 ? "99+" : state.notifications;
+    badge.style.display = "grid";
+  } else {
+    badge.style.display = "none";
+  }
+}
+  /* =========================
+   OVERVIEW POSTS
+========================= */
+
+function renderUpdates() {
+  const container = $("updatesList");
+  if (!container) return;
+
+  const posts = getSchoolPosts()
+    .sort((a, b) => {
+      return new Date(b.createdAt || b.date || 0)
+        - new Date(a.createdAt || a.date || 0);
+    })
+    .slice(0, 10);
 
   if (!posts.length) {
-    list.innerHTML = `
-      <div class="empty">
-        No school updates yet. Post announcements, achievements, events, or internship news.
-      </div>
-    `;
+    showEmpty(
+      "updatesList",
+      "No school updates yet. Create your first update."
+    );
     return;
   }
 
-  list.innerHTML = posts.slice(0, 8).map(post => {
-    const text = post.content || post.text || "School update";
-    const created = formatDate(post.createdAt || post.updatedAt);
-    const likes = Array.isArray(post.likes) ? post.likes.length : 0;
-    const comments = Array.isArray(post.comments) ? post.comments.length : 0;
+  container.innerHTML = posts.map(post => {
+    const author =
+      post.author?.name ||
+      post.authorName ||
+      getSchoolName();
+
+    const text =
+      post.text ||
+      post.content ||
+      post.description ||
+      "";
+
+    const media =
+      post.mediaUrl ||
+      post.image ||
+      post.video ||
+      "";
+
+    const likes = Array.isArray(post.likes)
+      ? post.likes.length
+      : Number(post.likesCount || 0);
+
+    const comments = Array.isArray(post.comments)
+      ? post.comments.length
+      : Number(post.commentsCount || 0);
 
     return `
-      <article class="announce-item searchable-item">
+      <article class="announce-item">
+
         <div class="announce-head">
           <div>
             <div class="announce-title">
-              ${escapeHtml(text.slice(0, 90))}${text.length > 90 ? "..." : ""}
+              ${escapeHtml(author)}
             </div>
+
             <div class="announce-meta">
-              Posted ${escapeHtml(created)} • School update
+              ${formatDateTime(post.createdAt)}
             </div>
           </div>
-          <span class="chip primary">${likes} likes</span>
-        </div>
 
-        <div class="announce-text">${escapeHtml(text)}</div>
-
-        <div class="announce-actions">
-          <button class="ghost-btn">${comments} comments</button>
-          <button class="danger-btn" onclick="deletePost('${post._id}')">Delete</button>
-        </div>
-      </article>
-    `;
-  }).join("");
-}
-
-function buildClasses() {
-  const list = document.getElementById("classesList");
-
-  if (!state.classes.length) {
-    list.innerHTML = `
-      <div class="empty">
-        No classes yet. Create your first class workspace.
-      </div>
-    `;
-    return;
-  }
-
-  list.innerHTML = state.classes.map(item => `
-    <article class="program-card searchable-item">
-      <div class="program-top">
-        <div>
-          <h3>${escapeHtml(item.title || item.name || "Untitled Class")}</h3>
-          <p>${escapeHtml(item.subject || item.classCode || "School class")}</p>
-        </div>
-        <span class="program-badge">Active</span>
-      </div>
-
-      <div class="program-meta">
-        ${item.schedule ? `<span class="chip primary">${escapeHtml(item.schedule)}</span>` : ""}
-        ${item.classCode ? `<span class="chip">${escapeHtml(item.classCode)}</span>` : ""}
-        ${item.meetingLink ? `<span class="chip success">Meeting link</span>` : ""}
-      </div>
-
-      <p>${escapeHtml(item.description || "No description added.")}</p>
-
-      <div class="announce-actions">
-        ${item.meetingLink ? `<button class="ghost-btn" onclick="window.open('${item.meetingLink}','_blank')">Open meeting</button>` : ""}
-      </div>
-    </article>
-  `).join("");
-}
-
-function buildProjects() {
-  const list = document.getElementById("projectsList");
-
-  if (!state.projects.length) {
-    list.innerHTML = `
-      <div class="empty">
-        No projects yet. Create projects for students to build portfolios.
-      </div>
-    `;
-    return;
-  }
-
-  list.innerHTML = state.projects.map(project => `
-    <article class="program-card searchable-item">
-      <div class="program-top">
-        <div>
-          <h3>${escapeHtml(project.title || "Untitled Project")}</h3>
-          <p>${escapeHtml(project.description || "Student project")}</p>
-        </div>
-        <span class="program-badge">${escapeHtml(project.status || "Open")}</span>
-      </div>
-
-      <div class="program-meta">
-        ${project.deadline ? `<span class="chip warning">Due ${escapeHtml(formatDate(project.deadline))}</span>` : ""}
-        ${project.classId ? `<span class="chip">Class linked</span>` : ""}
-      </div>
-    </article>
-  `).join("");
-}
-
-function buildAssignments() {
-  const list = document.getElementById("assignmentsList");
-
-  if (!state.assignments.length) {
-    list.innerHTML = `
-      <div class="empty">
-        No assignments yet. Create tasks and collect submissions.
-      </div>
-    `;
-    return;
-  }
-
-  list.innerHTML = state.assignments.map(item => `
-    <article class="job-item searchable-item">
-      <div class="job-head">
-        <div>
-          <h3>${escapeHtml(item.title || "Assignment")}</h3>
-          <p>${escapeHtml(item.instructions || "No instructions added.")}</p>
-        </div>
-        <span class="chip warning">
-          ${item.dueDate ? escapeHtml(formatDate(item.dueDate)) : "No due date"}
-        </span>
-      </div>
-
-      <div class="job-footer">
-        <div class="program-meta">
-          ${item.classId ? `<span class="chip">Class linked</span>` : ""}
-          <span class="chip primary">Assignment</span>
-        </div>
-      </div>
-    </article>
-  `).join("");
-}
-
-function buildJobs() {
-  const list = document.getElementById("jobsList");
-  const items = state.opportunities;
-
-  if (!items.length) {
-    list.innerHTML = `
-      <div class="empty">
-        No opportunities yet. Add internships, career talks, job shadowing, or industry projects.
-      </div>
-    `;
-    return;
-  }
-
-  list.innerHTML = items.map(item => {
-    const status = String(item.status || "open").toLowerCase();
-    const nextStatus = status === "open" ? "closed" : "open";
-
-    return `
-      <article class="job-item searchable-item">
-        <div class="job-head">
-          <div>
-            <h3>${escapeHtml(item.title || "Untitled Opportunity")}</h3>
-            <p>
-              ${escapeHtml(String(item.type || "internship").replaceAll("_", " "))}
-              ${item.deadline ? " • Deadline: " + escapeHtml(formatDate(item.deadline)) : ""}
-            </p>
-          </div>
-
-          <span class="chip ${status === "open" ? "success" : ""}">
-            ${escapeHtml(status.toUpperCase())}
+          <span class="chip primary">
+            School Update
           </span>
         </div>
 
-        <p>${escapeHtml(item.description || "No description added.")}</p>
+        ${
+          text
+            ? `
+              <div class="announce-text">
+                ${escapeHtml(text)}
+              </div>
+            `
+            : ""
+        }
 
-        <div class="job-footer">
-          <div class="program-meta">
-            ${item.employerId?.name ? `<span class="chip">${escapeHtml(item.employerId.name)}</span>` : `<span class="chip">School opportunity</span>`}
+        ${
+          media
+            ? `
+              <div style="margin-bottom:14px;">
+                <img
+                  src="${media}"
+                  alt="Post media"
+                  style="
+                    width:100%;
+                    max-height:420px;
+                    object-fit:cover;
+                    border-radius:18px;
+                    border:1px solid var(--border);
+                  "
+                >
+              </div>
+            `
+            : ""
+        }
+
+        <div class="announce-actions">
+          <span class="chip">
+            ${likes} Likes
+          </span>
+
+          <span class="chip">
+            ${comments} Comments
+          </span>
+
+          <span class="chip success">
+            Live
+          </span>
+        </div>
+
+      </article>
+    `;
+  }).join("");
+}
+
+/* =========================
+   CLASSES
+========================= */
+
+function renderClasses() {
+  const container = $("classesList");
+  if (!container) return;
+
+  if (!state.classes.length) {
+    showEmpty(
+      "classesList",
+      "No classes created yet."
+    );
+    return;
+  }
+
+  container.innerHTML = state.classes.map(item => {
+    return `
+      <article class="program-card">
+
+        <div class="program-cover"></div>
+
+        <div class="program-body">
+
+          <div class="program-top">
+            <div>
+              <h3 class="program-title">
+                ${escapeHtml(item.title || item.name || "Untitled Class")}
+              </h3>
+
+              <div class="program-sub">
+                ${escapeHtml(item.teacher || item.instructor || "No instructor")}
+              </div>
+            </div>
+
+            <span class="chip primary">
+              Class
+            </span>
           </div>
 
-          <button class="primary-btn" onclick="toggleOpportunityStatus('${item._id}', '${nextStatus}')">
-            ${status === "open" ? "Close" : "Reopen"}
-          </button>
+          <p class="program-desc">
+            ${escapeHtml(
+              item.description ||
+              item.summary ||
+              "No class description added."
+            )}
+          </p>
+
+          <div class="program-meta">
+            ${
+              item.schedule
+                ? `<span class="chip">${escapeHtml(item.schedule)}</span>`
+                : ""
+            }
+
+            ${
+              item.meetingLink
+                ? `<span class="chip success">Meeting Link</span>`
+                : ""
+            }
+
+            ${
+              item.studentsCount
+                ? `<span class="chip">${item.studentsCount} Students</span>`
+                : ""
+            }
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            ${
+              item.meetingLink
+                ? `
+                  <a
+                    href="${item.meetingLink}"
+                    target="_blank"
+                    class="ghost-btn"
+                  >
+                    Open Meeting
+                  </a>
+                `
+                : ""
+            }
+
+            <button
+              class="ghost-btn"
+              onclick="viewClass('${item._id}')"
+            >
+              View Class
+            </button>
+          </div>
+
         </div>
       </article>
     `;
   }).join("");
 }
 
-function buildStudents() {
-  const list = document.getElementById("studentsList");
+/* =========================
+   PROJECTS
+========================= */
+
+function renderProjects() {
+  const container = $("projectsList");
+  if (!container) return;
+
+  if (!state.projects.length) {
+    showEmpty(
+      "projectsList",
+      "No projects created yet."
+    );
+    return;
+  }
+
+  container.innerHTML = state.projects.map(item => {
+    return `
+      <article class="program-card">
+
+        <div class="program-body">
+
+          <div class="program-top">
+            <div>
+              <h3 class="program-title">
+                ${escapeHtml(item.title || "Untitled Project")}
+              </h3>
+
+              <div class="program-sub">
+                ${formatDate(item.createdAt)}
+              </div>
+            </div>
+
+            <span class="chip success">
+              Project
+            </span>
+          </div>
+
+          <p class="program-desc">
+            ${escapeHtml(
+              item.description ||
+              "No project description added."
+            )}
+          </p>
+
+          <div class="program-meta">
+            ${
+              item.deadline
+                ? `
+                  <span class="chip warning">
+                    Deadline: ${formatDate(item.deadline)}
+                  </span>
+                `
+                : ""
+            }
+
+            ${
+              item.category
+                ? `
+                  <span class="chip">
+                    ${escapeHtml(item.category)}
+                  </span>
+                `
+                : ""
+            }
+          </div>
+
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+/* =========================
+   ASSIGNMENTS
+========================= */
+
+function renderAssignments() {
+  const container = $("assignmentsList");
+  if (!container) return;
+
+  if (!state.assignments.length) {
+    showEmpty(
+      "assignmentsList",
+      "No assignments available."
+    );
+    return;
+  }
+
+  container.innerHTML = state.assignments.map(item => {
+    const submissionCount = state.submissions.filter(sub => {
+      return sameId(
+        sub.assignmentId,
+        item._id
+      );
+    }).length;
+
+    return `
+      <article class="job-card">
+
+        <div class="job-head">
+          <div>
+            <h3 class="job-title">
+              ${escapeHtml(item.title || "Untitled Assignment")}
+            </h3>
+
+            <div class="job-company">
+              ${formatDate(item.createdAt)}
+            </div>
+          </div>
+
+          <span class="chip primary">
+            Assignment
+          </span>
+        </div>
+
+        <p class="job-desc">
+          ${escapeHtml(
+            item.description ||
+            "No assignment description added."
+          )}
+        </p>
+
+        <div class="job-meta">
+          ${
+            item.deadline || item.dueDate
+              ? `
+                <span class="chip warning">
+                  Due ${formatDate(item.deadline || item.dueDate)}
+                </span>
+              `
+              : ""
+          }
+
+          <span class="chip success">
+            ${submissionCount} Submissions
+          </span>
+        </div>
+
+      </article>
+    `;
+  }).join("");
+}
+  /* =========================
+   OPPORTUNITIES
+========================= */
+
+function renderOpportunities() {
+  const container = $("jobsList");
+  if (!container) return;
+
+  if (!state.opportunities.length) {
+    showEmpty(
+      "jobsList",
+      "No opportunities created yet."
+    );
+    return;
+  }
+
+  container.innerHTML = state.opportunities.map(item => {
+    const title =
+      item.title ||
+      item.role ||
+      item.position ||
+      "Untitled Opportunity";
+
+    const company =
+      item.companyName ||
+      item.company ||
+      item.partnerName ||
+      "School opportunity";
+
+    return `
+      <article class="job-card">
+
+        <div class="job-head">
+          <div>
+            <h3 class="job-title">
+              ${escapeHtml(title)}
+            </h3>
+
+            <div class="job-company">
+              ${escapeHtml(company)}
+            </div>
+          </div>
+
+          <span class="chip success">
+            ${escapeHtml(item.type || item.category || "Opportunity")}
+          </span>
+        </div>
+
+        <p class="job-desc">
+          ${escapeHtml(
+            item.description ||
+            item.summary ||
+            "No opportunity description added."
+          )}
+        </p>
+
+        <div class="job-meta">
+          ${
+            item.location
+              ? `<span class="chip">${escapeHtml(item.location)}</span>`
+              : ""
+          }
+
+          ${
+            item.deadline
+              ? `
+                <span class="chip warning">
+                  Deadline ${formatDate(item.deadline)}
+                </span>
+              `
+              : ""
+          }
+
+          ${
+            item.status
+              ? `<span class="chip primary">${escapeHtml(item.status)}</span>`
+              : `<span class="chip primary">Open</span>`
+          }
+        </div>
+
+        ${
+          item.applyLink || item.url
+            ? `
+              <div style="margin-top:14px;">
+                <a
+                  class="ghost-btn"
+                  href="${item.applyLink || item.url}"
+                  target="_blank"
+                >
+                  Open Link
+                </a>
+              </div>
+            `
+            : ""
+        }
+
+      </article>
+    `;
+  }).join("");
+}
+
+/* =========================
+   STUDENTS
+========================= */
+
+function renderStudents() {
+  const container = $("studentsList");
+  if (!container) return;
+
   const students = getSchoolStudents();
 
   if (!students.length) {
-    list.innerHTML = `
+    showEmpty(
+      "studentsList",
+      "No students are linked to this school yet."
+    );
+    return;
+  }
+
+  container.innerHTML = students.map(user => {
+    const avatar =
+      user.profileImage ||
+      user.avatar ||
+      FALLBACK_AVATAR;
+
+    const name =
+      user.name ||
+      user.fullName ||
+      "Unnamed student";
+
+    const title =
+      user.jobTitle ||
+      user.profession ||
+      user.headline ||
+      user.course ||
+      "Student";
+
+    const skills = Array.isArray(user.skills)
+      ? user.skills.slice(0, 3)
+      : [];
+
+    return `
+      <article class="student-card">
+
+        <img
+          src="${avatar}"
+          alt="${escapeHtml(name)}"
+          class="student-avatar"
+        >
+
+        <div class="student-body">
+          <h3>${escapeHtml(name)}</h3>
+
+          <p>${escapeHtml(title)}</p>
+
+          <div class="student-tags">
+            ${
+              skills.length
+                ? skills.map(skill => `
+                    <span class="chip">
+                      ${escapeHtml(skill)}
+                    </span>
+                  `).join("")
+                : `<span class="chip">Profile not completed</span>`
+            }
+          </div>
+
+          <button
+            class="ghost-btn"
+            onclick="viewStudent('${user._id}')"
+          >
+            View Profile
+          </button>
+        </div>
+
+      </article>
+    `;
+  }).join("");
+}
+
+/* =========================
+   FACULTY / TEAM
+========================= */
+
+function renderFaculty() {
+  const container = $("facultyList");
+  if (!container) return;
+
+  const schoolId = getSchoolId();
+
+  const team = state.users.filter(user => {
+    const userRole = String(user.role || "").toLowerCase();
+
+    return (
+      ["teacher", "instructor", "faculty", "school_admin", "admin"].includes(userRole) &&
+      (
+        sameId(user.schoolId, schoolId) ||
+        sameId(user.companyId, schoolId) ||
+        sameId(user.school, schoolId)
+      )
+    );
+  });
+
+  if (!team.length) {
+    container.innerHTML = `
       <div class="empty">
-        No students linked to this school yet.
+        No faculty or school team members found from backend yet.
       </div>
     `;
     return;
   }
 
-  list.innerHTML = students.slice(0, 12).map(student => `
-    <article class="student-card searchable-item">
-      <div class="student-head">
-        <img src="${student.profileImage || FALLBACK_AVATAR}" alt="">
+  container.innerHTML = team.slice(0, 8).map(user => {
+    const avatar =
+      user.profileImage ||
+      user.avatar ||
+      FALLBACK_AVATAR;
+
+    return `
+      <div class="side-user">
+        <img src="${avatar}" alt="">
+
         <div>
-          <h3>${escapeHtml(student.name || "Student")}</h3>
-          <p>
-            ${escapeHtml(student.course || student.headline || "Student")}
-            ${student.yearLevel ? " • " + escapeHtml(student.yearLevel) : ""}
-          </p>
+          <strong>
+            ${escapeHtml(user.name || "Team member")}
+          </strong>
+
+          <span>
+            ${escapeHtml(user.jobTitle || user.role || "Faculty")}
+          </span>
         </div>
       </div>
-
-      <div class="student-about">
-        ${escapeHtml(student.bio || student.summary || "Student profile available on AIFT.")}
-      </div>
-
-      <div class="program-meta">
-        ${student.skills?.slice(0, 3).map(skill => `<span class="chip primary">${escapeHtml(skill)}</span>`).join("") || ""}
-        ${student.internshipReady ? `<span class="chip success">Internship Ready</span>` : ""}
-      </div>
-
-      <button class="ghost-btn" onclick="location.href='public-profile.html?id=${student._id}'">
-        View Profile
-      </button>
-    </article>
-  `).join("");
-}
-
-function buildFaculty() {
-  const list = document.getElementById("facultyList");
-  const faculty = getSchoolFaculty();
-
-  if (!faculty.length) {
-    list.innerHTML = `
-      <div class="empty">
-        No faculty profiles linked yet.
-      </div>
     `;
-    return;
-  }
-
-  list.innerHTML = faculty.slice(0, 6).map(user => `
-    <div class="mini-person searchable-item">
-      <img src="${user.profileImage || FALLBACK_AVATAR}" alt="">
-      <div>
-        <h4>${escapeHtml(user.name || "Faculty")}</h4>
-        <p>${escapeHtml(user.department || user.headline || "Faculty Member")}</p>
-      </div>
-    </div>
-  `).join("");
+  }).join("");
 }
 
 /* =========================
-   ANALYTICS
+   ANALYTICS - REAL DATA ONLY
 ========================= */
 
-function buildInsights() {
-  const students = getSchoolStudents().length;
-  const assignments = state.assignments.length;
-  const submissions = state.submissions.length;
-  const projects = state.projects.length;
-  const opportunities = state.opportunities.length;
-
-  const engagement = assignments
-    ? Math.min(100, Math.round((submissions / assignments) * 100))
-    : 88;
-
-  const projectRate = projects
-    ? Math.min(100, 60 + Math.min(projects * 5, 35))
-    : 84;
-
-  const pipeline = Math.min(100, Math.max(20, opportunities * 10));
-
-  setProgress("employment", 91);
-  setProgress("rightEmployment", 91);
-  setProgress("engagement", engagement);
-  setProgress("rightEngagement", engagement);
-  setProgress("project", projectRate);
-  setProgress("rightProject", projectRate);
-
-  document.getElementById("opportunityPipeline").innerText = opportunities;
-  document.getElementById("opportunityBar").style.width = pipeline + "%";
-
-  document.getElementById("activeStudentsValue").innerText = students;
-  document.getElementById("assignmentCountValue").innerText = assignments;
-  document.getElementById("submissionCountValue").innerText = submissions;
-  document.getElementById("industryCountValue").innerText = opportunities;
-
-  const nearest = state.opportunities
-    .filter(item => item.deadline)
-    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))[0];
-
-  document.getElementById("deadlineValue").innerText =
-    nearest ? formatDate(nearest.deadline) : "No date";
+function percent(value, total) {
+  if (!total) return 0;
+  return Math.max(
+    0,
+    Math.min(100, Math.round((value / total) * 100))
+  );
 }
 
-function setProgress(prefix, value) {
-  const percent = document.getElementById(prefix + "Percent");
-  const bar = document.getElementById(prefix + "Bar");
+function setProgress(textId, barId, value) {
+  const safe = Math.max(0, Math.min(100, Number(value) || 0));
 
-  if (percent) percent.innerText = value + "%";
-  if (bar) bar.style.width = value + "%";
+  const text = $(textId);
+  const bar = $(barId);
+
+  if (text) text.textContent = safe + "%";
+  if (bar) bar.style.width = safe + "%";
+}
+
+function renderAnalytics() {
+  const students = getSchoolStudents();
+
+  const assignmentsTotal = state.assignments.length;
+  const submissionsTotal = state.submissions.length;
+  const projectsTotal = state.projects.length;
+  const opportunitiesTotal = state.opportunities.length;
+
+  const assignmentCompletion = assignmentsTotal
+    ? percent(submissionsTotal, assignmentsTotal)
+    : 0;
+
+  const engagementTotal =
+    students.length +
+    state.posts.length +
+    assignmentsTotal +
+    projectsTotal +
+    opportunitiesTotal;
+
+  const engagementScore = engagementTotal
+    ? percent(
+        state.posts.length +
+        submissionsTotal +
+        projectsTotal +
+        opportunitiesTotal,
+        engagementTotal
+      )
+    : 0;
+
+  const projectScore = projectsTotal
+    ? percent(
+        state.projects.filter(project => {
+          const status = String(project.status || "").toLowerCase();
+          return ["done", "completed", "submitted", "approved"].includes(status);
+        }).length,
+        projectsTotal
+      )
+    : 0;
+
+  const opportunityScore = opportunitiesTotal
+    ? Math.min(100, opportunitiesTotal * 10)
+    : 0;
+
+  setProgress("employmentPercent", "employmentBar", assignmentCompletion);
+  setProgress("engagementPercent", "engagementBar", engagementScore);
+  setProgress("projectPercent", "projectBar", projectScore);
+
+  setText("opportunityPipeline", opportunitiesTotal);
+
+  const opportunityBar = $("opportunityBar");
+  if (opportunityBar) opportunityBar.style.width = opportunityScore + "%";
+
+  setProgress("rightEmploymentPercent", "rightEmploymentBar", assignmentCompletion);
+  setProgress("rightEngagementPercent", "rightEngagementBar", engagementScore);
+  setProgress("rightProjectPercent", "rightProjectBar", projectScore);
 }
 
 /* =========================
-   POST / CREATE ACTIONS
+   SETTINGS CARD
 ========================= */
 
-async function submitClass() {
-  const payload = {
-    schoolId: state.me?._id,
-    title: document.getElementById("classTitle").value.trim(),
-    subject: document.getElementById("classSubject").value.trim(),
-    classCode: document.getElementById("classCode").value.trim(),
-    schedule: document.getElementById("classSchedule").value.trim(),
-    teacherId: document.getElementById("classTeacherId").value.trim() || null,
-    meetingLink: document.getElementById("classMeetingLink").value.trim(),
-    description: document.getElementById("classDescription").value.trim()
-  };
-
-  if (!payload.title) {
-    showAlert("error", "Class title is required.");
-    return;
-  }
-
-  const res = await fetch(API + "/api/classes", {
-    method: "POST",
-    headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(payload)
-  });
-
-  const data = await safeJson(res);
-
-  if (!res.ok) {
-    showAlert("error", data?.message || "Failed to create class.");
-    return;
-  }
-
-  closeModal("classModal");
-  showAlert("success", "Class created successfully.");
-
-  await fetchClasses();
-  populateProfile();
-  buildClasses();
-  buildInsights();
-}
-
-async function submitProject() {
-  const payload = {
-    schoolId: state.me?._id,
-    title: document.getElementById("projectTitle").value.trim(),
-    classId: document.getElementById("projectClassId").value.trim() || null,
-    teacherId: document.getElementById("projectTeacherId").value.trim() || null,
-    deadline: document.getElementById("projectDeadline").value || null,
-    description: document.getElementById("projectDescription").value.trim()
-  };
-
-  if (!payload.title) {
-    showAlert("error", "Project title is required.");
-    return;
-  }
-
-  const res = await fetch(API + "/api/projects", {
-    method: "POST",
-    headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(payload)
-  });
-
-  const data = await safeJson(res);
-
-  if (!res.ok) {
-    showAlert("error", data?.message || "Failed to create project.");
-    return;
-  }
-
-  closeModal("projectModal");
-  showAlert("success", "Project created successfully.");
-
-  await fetchProjects();
-  populateProfile();
-  buildProjects();
-  buildInsights();
-}
-
-async function submitAssignment() {
-  const payload = {
-    schoolId: state.me?._id,
-    classId: document.getElementById("assignmentClassId").value.trim(),
-    title: document.getElementById("assignmentTitle").value.trim(),
-    dueDate: document.getElementById("assignmentDueDate").value || null,
-    instructions: document.getElementById("assignmentInstructions").value.trim(),
-    createdBy: state.me?._id
-  };
-
-  if (!payload.title || !payload.classId) {
-    showAlert("error", "Assignment title and class ID are required.");
-    return;
-  }
-
-  const res = await fetch(API + "/api/assignments", {
-    method: "POST",
-    headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(payload)
-  });
-
-  const data = await safeJson(res);
-
-  if (!res.ok) {
-    showAlert("error", data?.message || "Failed to create assignment.");
-    return;
-  }
-
-  closeModal("assignmentModal");
-  showAlert("success", "Assignment created successfully.");
-
-  await fetchAssignments();
-  buildAssignments();
-  buildInsights();
-}
-
-async function submitOpportunity() {
-  const payload = {
-    schoolId: state.me?._id,
-    employerId: document.getElementById("opportunityEmployerId").value.trim() || null,
-    title: document.getElementById("opportunityTitle").value.trim(),
-    type: document.getElementById("opportunityType").value,
-    deadline: document.getElementById("opportunityDeadline").value || null,
-    description: document.getElementById("opportunityDescription").value.trim()
-  };
-
-  if (!payload.title) {
-    showAlert("error", "Opportunity title is required.");
-    return;
-  }
-
-  const res = await fetch(API + "/api/opportunities", {
-    method: "POST",
-    headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(payload)
-  });
-
-  const data = await safeJson(res);
-
-  if (!res.ok) {
-    showAlert("error", data?.message || "Failed to create opportunity.");
-    return;
-  }
-
-  closeModal("opportunityModal");
-  showAlert("success", "Opportunity created successfully.");
-
-  await fetchOpportunities();
-  populateProfile();
-  buildJobs();
-  buildInsights();
-}
-</script>
-<script>
-/* =========================
-   POSTS / EVENTS / PROFILE
-========================= */
-
-async function submitPost() {
-
-  const content =
-    document.getElementById("postContent").value.trim();
-
-  const file =
-    document.getElementById("postMedia").files[0];
-
-  if (!content && !file) {
-    showAlert(
-      "error",
-      "Please write something or attach media."
-    );
-    return;
-  }
-
-  const formData = new FormData();
-
-  formData.append("text", content);
-
-  if (file) {
-    formData.append("media", file);
-  }
-
-  const res = await fetch(
-    API + "/api/posts",
-    {
-      method: "POST",
-      headers: authHeaders(),
-      body: formData
-    }
-  );
-
-  const data = await safeJson(res);
-
-  if (!res.ok) {
-    showAlert(
-      "error",
-      data?.message || "Failed to publish school update."
-    );
-    return;
-  }
-
-  document.getElementById("postContent").value = "";
-  document.getElementById("postMedia").value = "";
-
-  closeModal("postModal");
-
-  showAlert(
-    "success",
-    "School update published successfully."
-  );
-
-  await fetchPosts();
-  buildUpdates();
-}
-
-async function deletePost(postId) {
-
-  const res = await fetch(
-    `${API}/api/posts/${postId}`,
-    {
-      method: "DELETE",
-      headers: authHeaders()
-    }
-  );
-
-  const data = await safeJson(res);
-
-  if (!res.ok) {
-    showAlert(
-      "error",
-      data?.message || "Failed to delete post."
-    );
-    return;
-  }
-
-  showAlert(
-    "success",
-    "Post deleted successfully."
-  );
-
-  await fetchPosts();
-  buildUpdates();
-}
-
-async function toggleOpportunityStatus(id, status) {
-
-  const res = await fetch(
-    `${API}/api/opportunities/${id}`,
-    {
-      method: "PATCH",
-      headers: authHeaders({
-        "Content-Type": "application/json"
-      }),
-      body: JSON.stringify({ status })
-    }
-  );
-
-  const data = await safeJson(res);
-
-  if (!res.ok) {
-    showAlert(
-      "error",
-      data?.message || "Failed to update opportunity."
-    );
-    return;
-  }
-
-  showAlert(
-    "success",
-    "Opportunity updated successfully."
-  );
-
-  await fetchOpportunities();
-  buildJobs();
-  buildInsights();
-}
-
-async function submitEvent() {
-
-  const title =
-    document.getElementById("eventTitle").value.trim();
-
-  const date =
-    document.getElementById("eventDate").value;
-
-  const location =
-    document.getElementById("eventLocation").value.trim();
-
-  const description =
-    document.getElementById("eventDescription").value.trim();
-
-  if (!title || !date) {
-    showAlert(
-      "error",
-      "Event title and date are required."
-    );
-    return;
-  }
-
-  state.events.unshift({
-    title,
-    date,
-    location,
-    description
-  });
-
-  closeModal("eventModal");
-
-  showAlert(
-    "success",
-    "Event created successfully."
-  );
-}
-
-async function saveSchoolInfo() {
-
-  const schoolName =
-    document.getElementById("infoSchoolName").value.trim();
-
-  const website =
-    document.getElementById("infoWebsite").value.trim();
-
-  const address =
-    document.getElementById("infoAddress").value.trim();
-
-  const contactEmail =
-    document.getElementById("infoContactEmail").value.trim();
-
-  const contactPhone =
-    document.getElementById("infoContactPhone").value.trim();
-
-  const schoolDescription =
-    document.getElementById("infoDescription").value.trim();
-
-  const programs =
-    document.getElementById("infoPrograms")
-      .value
-      .split(",")
-      .map(v => v.trim())
-      .filter(Boolean);
-
-  const logo =
-    document.getElementById("infoLogo").files[0];
-
-  const banner =
-    document.getElementById("infoBanner").files[0];
-
-  const formData = new FormData();
-
-  formData.append("schoolName", schoolName);
-  formData.append("website", website);
-  formData.append("address", address);
-  formData.append("contactEmail", contactEmail);
-  formData.append("contactPhone", contactPhone);
-  formData.append("schoolDescription", schoolDescription);
-  formData.append("programs", JSON.stringify(programs));
-
-  if (logo) {
-    formData.append("schoolLogo", logo);
-  }
-
-  if (banner) {
-    formData.append("schoolBanner", banner);
-  }
-
-  const res = await fetch(
-    API + "/api/users/profile",
-    {
-      method: "PATCH",
-      headers: authHeaders(),
-      body: formData
-    }
-  );
-
-  const data = await safeJson(res);
-
-  if (!res.ok) {
-    showAlert(
-      "error",
-      data?.message || "Failed to update school profile."
-    );
-    return;
-  }
-
-  state.me = data;
-
-  closeModal("profileInfoModal");
-
-  showAlert(
-    "success",
-    "School profile updated successfully."
-  );
-
-  populateProfile();
+function renderSettings() {
+  const me = state.me || {};
+  const programs = getPrograms();
+
+  setText("settingsName", getSchoolName());
+  setText("settingsWebsite", me.website || "Not added");
+  setText("settingsAddress", me.address || me.location || "Not added");
+  setText("settingsPrograms", programs.length);
 }
 
 /* =========================
    SEARCH
 ========================= */
 
-document.getElementById("globalSearch")
-  .addEventListener("input", function () {
+function renderSearch() {
+  const input = $("globalSearch");
+  if (!input) return;
 
-    const term =
-      this.value.toLowerCase().trim();
+  input.addEventListener("input", () => {
+    const q = input.value.trim().toLowerCase();
 
-    document.querySelectorAll(".searchable-item")
-      .forEach(item => {
+    if (!q) {
+      renderUpdates();
+      renderClasses();
+      renderProjects();
+      renderAssignments();
+      renderOpportunities();
+      renderStudents();
+      return;
+    }
 
-        const text =
-          item.innerText.toLowerCase();
-
-        item.style.display =
-          text.includes(term)
-            ? ""
-            : "none";
-      });
+    filterDashboard(q);
   });
+}
+
+function filterDashboard(q) {
+  const match = value =>
+    JSON.stringify(value || {})
+      .toLowerCase()
+      .includes(q);
+
+  const old = {
+    posts: state.posts,
+    classes: state.classes,
+    projects: state.projects,
+    assignments: state.assignments,
+    opportunities: state.opportunities,
+    users: state.users
+  };
+
+  state.posts = old.posts.filter(match);
+  state.classes = old.classes.filter(match);
+  state.projects = old.projects.filter(match);
+  state.assignments = old.assignments.filter(match);
+  state.opportunities = old.opportunities.filter(match);
+  state.users = old.users.filter(match);
+
+  renderUpdates();
+  renderClasses();
+  renderProjects();
+  renderAssignments();
+  renderOpportunities();
+  renderStudents();
+
+  state.posts = old.posts;
+  state.classes = old.classes;
+  state.projects = old.projects;
+  state.assignments = old.assignments;
+  state.opportunities = old.opportunities;
+  state.users = old.users;
+}
 
 /* =========================
-   MOBILE TAB AUTO ACTIVE
+   PROFILE LINKS
 ========================= */
 
-document.querySelectorAll(".mobile-nav button")
-  .forEach(button => {
+function viewStudent(id) {
+  if (!id) return;
+  window.location.href = `public-profile.html?id=${encodeURIComponent(id)}`;
+}
 
-    button.addEventListener("click", () => {
+function viewClass(id) {
+  if (!id) return;
+  openTab("classes");
+}
+  /* =========================
+   FORM SUBMIT HELPERS
+========================= */
 
-      document.querySelectorAll(".mobile-nav button")
-        .forEach(btn => btn.classList.remove("active"));
+function getFormData(form) {
+  const data = {};
+  const formData = new FormData(form);
 
-      button.classList.add("active");
-    });
+  for (const [key, value] of formData.entries()) {
+    if (value !== "") data[key] = value;
+  }
+
+  return data;
+}
+
+function findFormInside(modalId) {
+  const modal = $(modalId);
+  if (!modal) return null;
+  return modal.querySelector("form");
+}
+
+function attachSubmit(modalId, endpoint, afterSuccess) {
+  const form = findFormInside(modalId);
+  if (!form) return;
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+
+    const submitBtn = form.querySelector("button[type='submit']");
+    const stopLoading = setButtonLoading(submitBtn);
+
+    try {
+      const body = {
+        ...getFormData(form),
+        schoolId: getSchoolId()
+      };
+
+      await apiSend(endpoint, "POST", body);
+
+      form.reset();
+      closeModal(modalId);
+
+      showAlert("success", "Saved successfully.");
+
+      await loadAll();
+
+      if (typeof afterSuccess === "function") {
+        afterSuccess();
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert("error", err.message || "Unable to save. Please try again.");
+    } finally {
+      stopLoading();
+    }
   });
+}
+
+/* =========================
+   PROFILE UPDATE
+========================= */
+
+function attachProfileSubmit() {
+  const form = findFormInside("profileInfoModal");
+  if (!form) return;
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+
+    const submitBtn = form.querySelector("button[type='submit']");
+    const stopLoading = setButtonLoading(submitBtn, "Updating...");
+
+    try {
+      const raw = getFormData(form);
+
+      const payload = {
+        schoolName:
+          raw.schoolName ||
+          raw.name ||
+          raw.companyName ||
+          $("schoolNameInput")?.value ||
+          getSchoolName(),
+
+        name:
+          raw.schoolName ||
+          raw.name ||
+          raw.companyName ||
+          $("schoolNameInput")?.value ||
+          getSchoolName(),
+
+        schoolType:
+          raw.schoolType ||
+          raw.type ||
+          $("schoolTypeInput")?.value ||
+          "School",
+
+        location:
+          raw.location ||
+          raw.address ||
+          raw.schoolLocation ||
+          $("schoolLocationInput")?.value ||
+          "",
+
+        address:
+          raw.address ||
+          raw.location ||
+          raw.schoolLocation ||
+          $("schoolLocationInput")?.value ||
+          "",
+
+        website:
+          raw.website ||
+          raw.schoolWebsite ||
+          $("schoolWebsiteInput")?.value ||
+          "",
+
+        contactEmail:
+          raw.contactEmail ||
+          raw.email ||
+          raw.schoolEmail ||
+          $("schoolEmailInput")?.value ||
+          "",
+
+        phone:
+          raw.phone ||
+          raw.schoolPhone ||
+          $("schoolPhoneInput")?.value ||
+          "",
+
+        bio:
+          raw.bio ||
+          raw.description ||
+          raw.schoolBio ||
+          $("schoolBioInput")?.value ||
+          "",
+
+        description:
+          raw.description ||
+          raw.bio ||
+          raw.schoolBio ||
+          $("schoolBioInput")?.value ||
+          "",
+
+        programs:
+          (
+            raw.programs ||
+            raw.schoolPrograms ||
+            $("schoolProgramsInput")?.value ||
+            ""
+          )
+            .split(",")
+            .map(item => item.trim())
+            .filter(Boolean),
+
+        logo:
+          raw.logo ||
+          raw.schoolLogo ||
+          raw.profileImage ||
+          $("schoolLogoInput")?.value ||
+          "",
+
+        schoolLogo:
+          raw.logo ||
+          raw.schoolLogo ||
+          raw.profileImage ||
+          $("schoolLogoInput")?.value ||
+          "",
+
+        coverImage:
+          raw.coverImage ||
+          raw.schoolCover ||
+          raw.bannerImage ||
+          $("schoolCoverInput")?.value ||
+          "",
+
+        schoolCover:
+          raw.coverImage ||
+          raw.schoolCover ||
+          raw.bannerImage ||
+          $("schoolCoverInput")?.value ||
+          ""
+      };
+
+      const updated = await apiSend("/api/users/profile", "PATCH", payload);
+
+      state.me = updated?.user || updated || {
+        ...state.me,
+        ...payload
+      };
+
+      closeModal("profileInfoModal");
+      showAlert("success", "School profile updated.");
+
+      renderAll();
+    } catch (err) {
+      console.error(err);
+      showAlert("error", err.message || "Unable to update profile.");
+    } finally {
+      stopLoading();
+    }
+  });
+}
+
+/* =========================
+   POST UPDATE
+========================= */
+
+function attachPostSubmit() {
+  const form = findFormInside("postModal");
+  if (!form) return;
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+
+    const submitBtn = form.querySelector("button[type='submit']");
+    const stopLoading = setButtonLoading(submitBtn, "Posting...");
+
+    try {
+      const data = getFormData(form);
+
+      const text =
+        data.text ||
+        data.content ||
+        data.postText ||
+        $("postText")?.value ||
+        "";
+
+      const mediaUrl =
+        data.mediaUrl ||
+        data.image ||
+        data.video ||
+        $("postMediaUrl")?.value ||
+        "";
+
+      if (!text.trim() && !mediaUrl.trim()) {
+        throw new Error("Write an update or add media before posting.");
+      }
+
+      await apiSend("/api/posts", "POST", {
+        text,
+        content: text,
+        mediaUrl,
+        schoolId: getSchoolId()
+      });
+
+      form.reset();
+      closeModal("postModal");
+
+      showAlert("success", "School update posted.");
+
+      await loadAll();
+    } catch (err) {
+      console.error(err);
+      showAlert("error", err.message || "Unable to post update.");
+    } finally {
+      stopLoading();
+    }
+  });
+}
+
+/* =========================
+   INIT FORMS
+========================= */
+
+function initForms() {
+  attachSubmit("classModal", "/api/classes", () => openTab("classes"));
+  attachSubmit("projectModal", "/api/projects", () => openTab("classes"));
+  attachSubmit("assignmentModal", "/api/assignments", () => openTab("classes"));
+  attachSubmit("opportunityModal", "/api/opportunities", () => openTab("opportunities"));
+
+  attachProfileSubmit();
+  attachPostSubmit();
+}
 
 /* =========================
    SOCKET.IO LIVE UPDATES
 ========================= */
 
-let socket = null;
-
-try {
-
-  socket = io(API, {
-    transports: ["websocket", "polling"]
-  });
-
-  socket.on("connect", () => {
-    console.log("School dashboard socket connected");
-  });
-
-  socket.on("newPost", async () => {
-    await fetchPosts();
-    buildUpdates();
-  });
-
-  socket.on("postDeleted", async () => {
-    await fetchPosts();
-    buildUpdates();
-  });
-
-  socket.on("newOpportunity", async () => {
-    await fetchOpportunities();
-    buildJobs();
-    buildInsights();
-  });
-
-} catch (err) {
-  console.log("Socket unavailable");
-}
-
-/* =========================
-   INIT
-========================= */
-
-async function init() {
+function initSocket() {
+  if (typeof io === "undefined") return;
 
   try {
-    document.body.classList.remove("loading");
+    const socket = io(API, {
+      transports: ["websocket", "polling"],
+      auth: { token }
+    });
 
-    await fetchProfile();
+    socket.on("connect", () => {
+      socket.emit("join", {
+        userId: getSchoolId(),
+        role: "school"
+      });
+    });
 
-    await Promise.all([
-      fetchPosts(),
-      fetchUsers(),
-      fetchClasses(),
-      fetchProjects(),
-      fetchAssignments(),
-      fetchSubmissions(),
-      fetchOpportunities(),
-      fetchNotifications()
-    ]);
-
-    populateProfile();
-
-    buildUpdates();
-    buildClasses();
-    buildProjects();
-    buildAssignments();
-    buildJobs();
-    buildStudents();
-    buildFaculty();
-    buildInsights();
-
-    document.body.classList.add("loaded");
-
+    socket.on("post:new", loadAll);
+    socket.on("notification:new", loadAll);
+    socket.on("class:new", loadAll);
+    socket.on("project:new", loadAll);
+    socket.on("assignment:new", loadAll);
+    socket.on("opportunity:new", loadAll);
   } catch (err) {
-
-    console.error("School dashboard failed:", err);
-
-    document.body.classList.remove("loading");
-
-    showAlert(
-      "error",
-      err.message || "Could not load school dashboard."
-    );
+    console.warn("Socket unavailable:", err);
   }
 }
 
-init();
-
 /* =========================
-   ESC CLOSE MODALS
+   SMALL PROFESSIONAL TYPOGRAPHY PATCH
 ========================= */
 
-document.addEventListener("keydown", (e) => {
+function injectProfessionalTextStyle() {
+  const style = document.createElement("style");
 
-  if (e.key === "Escape") {
+  style.textContent = `
+    body{
+      font-size:14px;
+      line-height:1.45;
+    }
 
-    document.querySelectorAll(".modal")
-      .forEach(modal => {
-        modal.classList.remove("show");
-      });
-  }
+    .school-name{
+      font-size:1.72rem !important;
+      letter-spacing:-.025em;
+    }
+
+    .brand-title,
+    .card-title,
+    .program-title,
+    .job-title,
+    .student-card h3{
+      letter-spacing:-.015em;
+    }
+
+    .school-bio,
+    .program-desc,
+    .job-desc,
+    .announce-text,
+    .quick-item p{
+      font-size:.9rem !important;
+      color:#374151;
+    }
+
+    .stat-value{
+      font-size:1.36rem !important;
+    }
+
+    .stat-card,
+    .analytics-card,
+    .program-card,
+    .job-card,
+    .student-card{
+      box-shadow:0 8px 22px rgba(15,23,42,.055);
+    }
+
+    .tag,
+    .chip{
+      font-size:.76rem !important;
+      font-weight:700;
+    }
+
+    .primary-btn,
+    .ghost-btn,
+    .pill-btn,
+    .tab-btn{
+      font-size:.86rem;
+      font-weight:700;
+    }
+
+    .tab-btn.active{
+      background:#2557a7;
+      box-shadow:none;
+    }
+
+    .program-card,
+    .job-card,
+    .student-card,
+    .announce-item{
+      border-color:#e5e7eb;
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+/* =========================
+   START
+========================= */
+
+document.addEventListener("DOMContentLoaded", async () => {
+  injectProfessionalTextStyle();
+  initForms();
+  initSocket();
+  await loadAll();
 });
 </script>
 
