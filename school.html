@@ -3178,6 +3178,12 @@ function openModal(id){
 
 function closeModal(id){
   $(id)?.classList.remove("show");
+
+  if (id === "classModal") window.editingClassId = null;
+  if (id === "assignmentModal") window.editingAssignmentId = null;
+  if (id === "scheduleModal") window.editingScheduleId = null;
+  if (id === "teacherModal") window.editingTeacherId = null;
+  if (id === "studentModal") window.editingStudentId = null;
 }
 
 function goNotifications(){
@@ -3702,6 +3708,12 @@ function personCard(user,label){
   const avatar = user.profileImage || user.avatar || FALLBACK_AVATAR;
   const name = user.name || user.fullName || "Unnamed";
   const sub = user.email || user.subject || user.course || label;
+  const role = String(user.role || "").toLowerCase();
+
+  const canEdit =
+    role === "teacher" ||
+    role === "student" ||
+    role === "talent";
 
   return `
     <article class="student-card">
@@ -3716,6 +3728,17 @@ function personCard(user,label){
           ${user.course ? `<span class="chip">${escapeHtml(user.course)}</span>` : ""}
           ${user.subject ? `<span class="chip">${escapeHtml(user.subject)}</span>` : ""}
         </div>
+
+        ${
+          canEdit
+            ? `
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+                <button class="ghost-btn" onclick="editSchoolUser('${user._id}')">Edit</button>
+                <button class="danger-btn" onclick="deleteSchoolUser('${user._id}')">Remove</button>
+              </div>
+            `
+            : ""
+        }
       </div>
     </article>
   `;
@@ -3830,6 +3853,70 @@ async function deleteSchedule(id){
     showAlert("error", err.message || "Failed to remove schedule.");
   }
 }
+  function editSchoolUser(id){
+  const user = state.users.find(x => String(x._id) === String(id));
+
+  if (!user) {
+    return showAlert("error","User not found.");
+  }
+
+  const role = String(user.role || "").toLowerCase();
+
+  if (role === "teacher") {
+    $("teacherName").value = user.name || "";
+    $("teacherEmail").value = user.email || "";
+    $("teacherSubject").value = user.subject || user.department || "";
+    $("teacherPassword").value = "";
+    $("teacherBio").value = user.bio || user.teacherBio || "";
+
+    window.editingTeacherId = id;
+    openModal("teacherModal");
+    return;
+  }
+
+  if (role === "student" || role === "talent") {
+    $("studentName").value = user.name || "";
+    $("studentEmail").value = user.email || "";
+    $("studentCourse").value = user.course || "";
+    $("studentPassword").value = "";
+    $("studentBio").value = user.bio || user.studentBio || "";
+
+    window.editingStudentId = id;
+    openModal("studentModal");
+    return;
+  }
+
+  showAlert("error","This user type cannot be edited here.");
+}
+
+async function deleteSchoolUser(id){
+  const user = state.users.find(x => String(x._id) === String(id));
+
+  if (!user) {
+    return showAlert("error","User not found.");
+  }
+
+  if (!confirm(`Remove ${user.name || "this user"} from this school?`)) return;
+
+  try{
+    const res = await fetch(API + "/api/users/" + id, {
+      method:"DELETE",
+      headers:authHeaders()
+    });
+
+    const data = await safeJson(res);
+
+    if (!res.ok) {
+      throw new Error(data?.message || "Failed to remove user.");
+    }
+
+    showAlert("success","User removed.");
+    await loadAll();
+  }catch(err){
+    showAlert("error",err.message || "Failed to remove user.");
+  }
+}
+  
 
 function percent(value,total){
   if (!total) return 0;
@@ -3949,12 +4036,27 @@ async function submitTeacher(){
       name:$("teacherName").value.trim(),
       email:$("teacherEmail").value.trim(),
       subject:$("teacherSubject").value.trim(),
+      department:$("teacherSubject").value.trim(),
       password:$("teacherPassword").value,
-      bio:$("teacherBio").value.trim()
+      bio:$("teacherBio").value.trim(),
+      teacherBio:$("teacherBio").value.trim()
     };
 
-    if (!payload.name || !payload.email || !payload.password){
-      throw new Error("Teacher name, email, and temporary password are required.");
+    if (!payload.name || !payload.email){
+      throw new Error("Teacher name and email are required.");
+    }
+
+    if (window.editingTeacherId){
+      await apiSend(`/api/users/${window.editingTeacherId}`,"PATCH",payload);
+      window.editingTeacherId = null;
+      closeModal("teacherModal");
+      showAlert("success","Teacher updated.");
+      await loadAll();
+      return;
+    }
+
+    if (!payload.password){
+      throw new Error("Temporary password is required for new teachers.");
     }
 
     await createSchoolUser(payload);
@@ -3964,7 +4066,7 @@ async function submitTeacher(){
     await loadAll();
   }catch(err){
     console.error(err);
-    showAlert("error",err.message || "Teacher creation failed.");
+    showAlert("error",err.message || "Teacher save failed.");
   }
 }
 
@@ -3979,11 +4081,25 @@ async function submitStudent(){
       email:$("studentEmail").value.trim(),
       course:$("studentCourse").value.trim(),
       password:$("studentPassword").value,
-      bio:$("studentBio").value.trim()
+      bio:$("studentBio").value.trim(),
+      studentBio:$("studentBio").value.trim()
     };
 
-    if (!payload.name || !payload.email || !payload.password){
-      throw new Error("Student name, email, and temporary password are required.");
+    if (!payload.name || !payload.email){
+      throw new Error("Student name and email are required.");
+    }
+
+    if (window.editingStudentId){
+      await apiSend(`/api/users/${window.editingStudentId}`,"PATCH",payload);
+      window.editingStudentId = null;
+      closeModal("studentModal");
+      showAlert("success","Student updated.");
+      await loadAll();
+      return;
+    }
+
+    if (!payload.password){
+      throw new Error("Temporary password is required for new students.");
     }
 
     await createSchoolUser(payload);
@@ -3993,7 +4109,7 @@ async function submitStudent(){
     await loadAll();
   }catch(err){
     console.error(err);
-    showAlert("error",err.message || "Student creation failed.");
+    showAlert("error",err.message || "Student save failed.");
   }
 }
 
