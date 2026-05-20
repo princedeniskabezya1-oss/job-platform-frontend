@@ -328,16 +328,12 @@ img{
 
 .cover{
   min-height:178px;
-  background:
-    linear-gradient(135deg,rgba(37,87,167,.92),rgba(22,67,127,.82)),
-    url("https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1600&q=80") center/cover no-repeat;
+  background:url("https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1600&q=80") center/cover no-repeat;
   position:relative;
 }
 
 .cover-overlay{
-  position:absolute;
-  inset:0;
-  background:linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.12));
+  display:none;
 }
 
 .hero-main{
@@ -805,9 +801,8 @@ img{
   height:118px;
   border-radius:16px;
   margin-bottom:14px;
-  background:
-    linear-gradient(135deg,rgba(37,87,167,.88),rgba(22,67,127,.74)),
-    url("https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80") center/cover no-repeat;
+  background:url("https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80") center/cover no-repeat;
+  border:1px solid var(--border);
 }
 
 .program-body{
@@ -3454,8 +3449,7 @@ function renderProfile(){
   if ($("bannerPreview")) $("bannerPreview").src = cover;
 
   if ($("heroCover")){
-    $("heroCover").style.backgroundImage =
-      `linear-gradient(135deg,rgba(37,87,167,.92),rgba(22,67,127,.82)),url("${cover}")`;
+$("heroCover").style.backgroundImage = `url("${cover}")`;
   }
 
   setText("schoolName", getSchoolName());
@@ -3557,7 +3551,11 @@ function renderClasses(){
   }
 
   $("classesList").innerHTML = state.classes.map(item => {
-    const teacher = item.teacherName || item.teacher?.name || "No teacher assigned";
+    const teacher =
+  item.teacherName ||
+  item.teacher?.name ||
+  item.teacherId?.name ||
+  "No teacher assigned";
 
     return `
       <article class="program-card">
@@ -3577,13 +3575,89 @@ function renderClasses(){
 
           <div class="program-meta">
             <span class="chip">${escapeHtml(teacher)}</span>
-            ${item.code ? `<span class="chip">${escapeHtml(item.code)}</span>` : ""}
+            ${item.classCode || item.code ? `<span class="chip">${escapeHtml(item.classCode || item.code)}</span>` : ""}
             ${item.meetingLink ? `<a class="chip success" href="${item.meetingLink}" target="_blank">Meeting Link</a>` : ""}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+  <button class="ghost-btn" onclick="editClass('${item._id}')">Edit</button>
+  <button class="danger-btn" onclick="deleteClass('${item._id}')">Remove</button>
+</div>
           </div>
         </div>
       </article>
     `;
   }).join("");
+}
+  function editClass(id){
+  const item = state.classes.find(x => String(x._id) === String(id));
+  if (!item) return showAlert("error","Class not found.");
+
+  $("classTitle").value = item.title || item.name || "";
+  $("classSubject").value = item.subject || "";
+  $("classCode").value = item.classCode || item.code || "";
+  $("classTeacherId").value = item.teacherId?._id || item.teacherId || "";
+  $("classSchedule").value = item.schedule || "";
+  $("classMeetingLink").value = item.meetingLink || "";
+  $("classDescription").value = item.description || "";
+
+  window.editingClassId = id;
+  openModal("classModal");
+}
+
+async function deleteClass(id){
+  if (!confirm("Remove this class?")) return;
+
+  try{
+    const res = await fetch(API + "/api/classes/" + id, {
+      method:"DELETE",
+      headers:authHeaders()
+    });
+
+    const data = await safeJson(res);
+
+    if (!res.ok) {
+      throw new Error(data?.message || "Failed to remove class.");
+    }
+
+    showAlert("success","Class removed.");
+    await loadAll();
+  }catch(err){
+    showAlert("error", err.message || "Failed to remove class.");
+  }
+}
+  function editAssignment(id){
+  const item = state.assignments.find(x => String(x._id) === String(id));
+  if (!item) return showAlert("error","Assignment not found.");
+
+  $("assignmentTitle").value = item.title || "";
+  $("assignmentClassId").value = item.classId?._id || item.classId || "";
+  $("assignmentDueDate").value = item.dueDate ? String(item.dueDate).slice(0,10) : "";
+  $("assignmentInstructions").value = item.instructions || item.description || "";
+  $("assignmentAttachmentUrl").value = item.attachmentUrl || "";
+
+  window.editingAssignmentId = id;
+  openModal("assignmentModal");
+}
+
+async function deleteAssignment(id){
+  if (!confirm("Remove this assignment?")) return;
+
+  try{
+    const res = await fetch(API + "/api/assignments/" + id, {
+      method:"DELETE",
+      headers:authHeaders()
+    });
+
+    const data = await safeJson(res);
+
+    if (!res.ok) {
+      throw new Error(data?.message || "Failed to remove assignment.");
+    }
+
+    showAlert("success","Assignment removed.");
+    await loadAll();
+  }catch(err){
+    showAlert("error", err.message || "Failed to remove assignment.");
+  }
 }
 
 function renderAssignments(){
@@ -3593,7 +3667,9 @@ function renderAssignments(){
   }
 
   $("assignmentsList").innerHTML = state.assignments.map(item => {
-    const submissionCount = state.submissions.filter(sub => sameId(sub.assignmentId,item._id)).length;
+    const submissionCount = state.submissions.filter(sub =>
+      sameId(sub.assignmentId?._id || sub.assignmentId, item._id)
+    ).length;
 
     return `
       <article class="job-card">
@@ -3611,6 +3687,11 @@ function renderAssignments(){
         <div class="program-meta">
           <span class="chip success">${submissionCount} Submissions</span>
           ${item.attachmentUrl ? `<a class="chip primary" href="${item.attachmentUrl}" target="_blank">Attachment</a>` : ""}
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+          <button class="ghost-btn" onclick="editAssignment('${item._id}')">Edit</button>
+          <button class="danger-btn" onclick="deleteAssignment('${item._id}')">Remove</button>
         </div>
       </article>
     `;
@@ -3680,7 +3761,7 @@ function renderTeachers(){
 }
 
 function renderSchedule(){
-  const items = state.schedules.length ? state.schedules : state.classes;
+  const items = state.schedules.length ? state.schedules : [];
 
   if (!items.length){
     showEmpty("scheduleList","No schedules yet.");
@@ -3691,8 +3772,8 @@ function renderSchedule(){
     <article class="schedule-card">
       <div class="schedule-head">
         <div>
-          <h3 class="schedule-title">${escapeHtml(item.title || item.name || "Class Schedule")}</h3>
-          <div class="schedule-sub">${escapeHtml(item.schedule || item.time || item.startTime || "No time added")}</div>
+          <h3 class="schedule-title">${escapeHtml(item.title || item.classId?.title || "Class Schedule")}</h3>
+          <div class="schedule-sub">${escapeHtml(item.time || item.startTime || "No time added")}</div>
         </div>
 
         <span class="chip primary">${formatDate(item.date || item.startDate)}</span>
@@ -3702,10 +3783,52 @@ function renderSchedule(){
 
       <div class="program-meta">
         ${item.meetingLink ? `<a class="chip success" href="${item.meetingLink}" target="_blank">Meeting Link</a>` : ""}
-        ${item.teacherName ? `<span class="chip">${escapeHtml(item.teacherName)}</span>` : ""}
+        ${item.teacherId?.name ? `<span class="chip">${escapeHtml(item.teacherId.name)}</span>` : ""}
+        ${item.classId?.title ? `<span class="chip">${escapeHtml(item.classId.title)}</span>` : ""}
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+        <button class="ghost-btn" onclick="editSchedule('${item._id}')">Edit</button>
+        <button class="danger-btn" onclick="deleteSchedule('${item._id}')">Remove</button>
       </div>
     </article>
   `).join("");
+}
+  function editSchedule(id){
+  const item = state.schedules.find(x => String(x._id) === String(id));
+  if (!item) return showAlert("error","Schedule not found.");
+
+  $("scheduleClassId").value = item.classId?._id || item.classId || "";
+  $("scheduleTeacherId").value = item.teacherId?._id || item.teacherId || "";
+  $("scheduleDate").value = item.date ? String(item.date).slice(0,10) : "";
+  $("scheduleTime").value = item.time || item.startTime || "";
+  $("scheduleMeetingLink").value = item.meetingLink || "";
+  $("scheduleNotes").value = item.notes || "";
+
+  window.editingScheduleId = id;
+  openModal("scheduleModal");
+}
+
+async function deleteSchedule(id){
+  if (!confirm("Remove this schedule?")) return;
+
+  try{
+    const res = await fetch(API + "/api/schedules/" + id, {
+      method:"DELETE",
+      headers:authHeaders()
+    });
+
+    const data = await safeJson(res);
+
+    if (!res.ok) {
+      throw new Error(data?.message || "Failed to remove schedule.");
+    }
+
+    showAlert("success","Schedule removed.");
+    await loadAll();
+  }catch(err){
+    showAlert("error", err.message || "Failed to remove schedule.");
+  }
 }
 
 function percent(value,total){
@@ -3875,31 +3998,62 @@ async function submitStudent(){
 }
 
 async function submitClass(){
-  await runAction("classModal","/api/classes",{
+  const payload = {
     schoolId:getSchoolId(),
     title:$("classTitle").value.trim(),
     subject:$("classSubject").value.trim(),
     code:$("classCode").value.trim(),
+    classCode:$("classCode").value.trim(),
     teacherId:$("classTeacherId").value,
     schedule:$("classSchedule").value.trim(),
     meetingLink:$("classMeetingLink").value.trim(),
     description:$("classDescription").value.trim()
-  },"Class created.");
+  };
+
+  try{
+    if (window.editingClassId){
+      await apiSend(`/api/classes/${window.editingClassId}`,"PATCH",payload);
+      window.editingClassId = null;
+      closeModal("classModal");
+      showAlert("success","Class updated.");
+      await loadAll();
+      return;
+    }
+
+    await runAction("classModal","/api/classes",payload,"Class created.");
+  }catch(err){
+    showAlert("error",err.message || "Class save failed.");
+  }
 }
 
 async function submitAssignment(){
-  await runAction("assignmentModal","/api/assignments",{
+  const payload = {
     schoolId:getSchoolId(),
     title:$("assignmentTitle").value.trim(),
     classId:$("assignmentClassId").value,
     dueDate:$("assignmentDueDate").value,
     instructions:$("assignmentInstructions").value.trim(),
     attachmentUrl:$("assignmentAttachmentUrl").value.trim()
-  },"Assignment created.");
+  };
+
+  try{
+    if (window.editingAssignmentId){
+      await apiSend(`/api/assignments/${window.editingAssignmentId}`,"PATCH",payload);
+      window.editingAssignmentId = null;
+      closeModal("assignmentModal");
+      showAlert("success","Assignment updated.");
+      await loadAll();
+      return;
+    }
+
+    await runAction("assignmentModal","/api/assignments",payload,"Assignment created.");
+  }catch(err){
+    showAlert("error",err.message || "Assignment save failed.");
+  }
 }
 
 async function submitSchedule(){
-  await runAction("scheduleModal","/api/schedules",{
+  const payload = {
     schoolId:getSchoolId(),
     classId:$("scheduleClassId").value,
     teacherId:$("scheduleTeacherId").value,
@@ -3907,7 +4061,22 @@ async function submitSchedule(){
     time:$("scheduleTime").value,
     meetingLink:$("scheduleMeetingLink").value.trim(),
     notes:$("scheduleNotes").value.trim()
-  },"Schedule created.");
+  };
+
+  try{
+    if (window.editingScheduleId){
+      await apiSend(`/api/schedules/${window.editingScheduleId}`,"PATCH",payload);
+      window.editingScheduleId = null;
+      closeModal("scheduleModal");
+      showAlert("success","Schedule updated.");
+      await loadAll();
+      return;
+    }
+
+    await runAction("scheduleModal","/api/schedules",payload,"Schedule created.");
+  }catch(err){
+    showAlert("error",err.message || "Schedule save failed.");
+  }
 }
 
 async function submitPost(){
