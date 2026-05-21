@@ -2754,6 +2754,10 @@ img{
           <label>Meeting Link</label>
           <input id="classMeetingLink" type="url" placeholder="https://meet.google.com/...">
         </div>
+        <div class="field">
+  <label>Class Banner</label>
+  <input id="classCoverFile" type="file" accept="image/*">
+</div>
       </div>
 
       <div class="field">
@@ -3565,7 +3569,10 @@ function renderClasses(){
 
     return `
       <article class="program-card">
-        <div class="program-cover"></div>
+        <div
+  class="program-cover"
+  style="background-image:url('${item.coverImage || "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80"}')"
+></div>
 
         <div class="program-body">
           <div class="program-top">
@@ -3604,6 +3611,9 @@ function renderClasses(){
   $("classSchedule").value = item.schedule || "";
   $("classMeetingLink").value = item.meetingLink || "";
   $("classDescription").value = item.description || "";
+    if ($("classCoverFile")) {
+  $("classCoverFile").value = "";
+}
 
   window.editingClassId = id;
   openModal("classModal");
@@ -4114,31 +4124,54 @@ async function submitStudent(){
 }
 
 async function submitClass(){
-  const payload = {
-    schoolId:getSchoolId(),
-    title:$("classTitle").value.trim(),
-    subject:$("classSubject").value.trim(),
-    code:$("classCode").value.trim(),
-    classCode:$("classCode").value.trim(),
-    teacherId:$("classTeacherId").value,
-    schedule:$("classSchedule").value.trim(),
-    meetingLink:$("classMeetingLink").value.trim(),
-    description:$("classDescription").value.trim()
-  };
+  const formData = new FormData();
+
+  formData.append("schoolId", getSchoolId());
+  formData.append("title", $("classTitle").value.trim());
+  formData.append("subject", $("classSubject").value.trim());
+  formData.append("code", $("classCode").value.trim());
+  formData.append("classCode", $("classCode").value.trim());
+  formData.append("teacherId", $("classTeacherId").value);
+  formData.append("schedule", $("classSchedule").value.trim());
+  formData.append("meetingLink", $("classMeetingLink").value.trim());
+  formData.append("description", $("classDescription").value.trim());
+
+  const coverFile = $("classCoverFile")?.files?.[0];
+
+  if (coverFile) {
+    formData.append("coverImage", coverFile);
+  }
 
   try{
-    if (window.editingClassId){
-      await apiSend(`/api/classes/${window.editingClassId}`,"PATCH",payload);
-      window.editingClassId = null;
-      closeModal("classModal");
-      showAlert("success","Class updated.");
-      await loadAll();
-      return;
+    const endpoint = window.editingClassId
+      ? `/api/classes/${window.editingClassId}`
+      : "/api/classes";
+
+    const method = window.editingClassId ? "PATCH" : "POST";
+
+    const res = await fetch(API + endpoint, {
+      method,
+      headers: {
+        Authorization: "Bearer " + token
+      },
+      body: formData
+    });
+
+    const data = await safeJson(res);
+
+    if (!res.ok) {
+      throw new Error(data?.message || "Class save failed.");
     }
 
-    await runAction("classModal","/api/classes",payload,"Class created.");
+    window.editingClassId = null;
+    $("classCoverFile").value = "";
+
+    closeModal("classModal");
+    showAlert("success", method === "PATCH" ? "Class updated." : "Class created.");
+    await loadAll();
+
   }catch(err){
-    showAlert("error",err.message || "Class save failed.");
+    showAlert("error", err.message || "Class save failed.");
   }
 }
 
