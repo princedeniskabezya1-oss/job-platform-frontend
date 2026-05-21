@@ -1,0 +1,2529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+
+<title>AIFT | Teacher Portal</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<style>
+:root{
+  --primary:#2557a7;
+  --primary-dark:#16437f;
+  --primary-soft:#eef4ff;
+  --green:#15803d;
+  --green-soft:#ecfdf5;
+  --warning:#d97706;
+  --warning-soft:#fffbeb;
+  --danger:#dc2626;
+  --danger-soft:#fef2f2;
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --text:#111827;
+  --muted:#667085;
+  --border:#e5e7eb;
+  --shadow:0 10px 28px rgba(15,23,42,.07);
+  --shadow-soft:0 6px 18px rgba(15,23,42,.045);
+  --max:1380px;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Inter,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:14px;
+  line-height:1.45;
+}
+
+a{
+  color:inherit;
+  text-decoration:none;
+}
+
+button,
+input,
+select,
+textarea{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+img{
+  max-width:100%;
+  display:block;
+}
+
+.hidden{
+  display:none!important;
+}
+
+.container{
+  width:min(var(--max),calc(100% - 24px));
+  margin:0 auto;
+}
+
+/* TOPBAR */
+
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:1000;
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(229,231,235,.9);
+}
+
+.topbar-inner{
+  min-height:70px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.brand-wrap{
+  display:flex;
+  align-items:center;
+  gap:13px;
+  min-width:0;
+}
+
+.brand{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  background:linear-gradient(135deg,var(--primary),#4d83d8);
+  display:grid;
+  place-items:center;
+  color:#fff;
+  font-weight:800;
+  box-shadow:0 8px 18px rgba(37,87,167,.22);
+  flex-shrink:0;
+}
+
+.brand-title{
+  font-size:1rem;
+  font-weight:800;
+  line-height:1.1;
+  letter-spacing:-.02em;
+}
+
+.brand-sub{
+  color:var(--muted);
+  font-size:.8rem;
+  margin-top:3px;
+}
+
+.top-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:1;
+  justify-content:flex-end;
+}
+
+.search{
+  position:relative;
+  width:min(420px,100%);
+  flex:1;
+  max-width:420px;
+}
+
+.search input{
+  width:100%;
+  height:42px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:#fff;
+  padding:0 15px 0 42px;
+  outline:none;
+}
+
+.search svg{
+  position:absolute;
+  left:14px;
+  top:50%;
+  transform:translateY(-50%);
+  width:17px;
+  height:17px;
+  stroke:var(--muted);
+  fill:none;
+  stroke-width:2;
+}
+
+.icon-btn,
+.primary-btn,
+.ghost-btn,
+.danger-btn,
+.success-btn{
+  border:none;
+  cursor:pointer;
+  transition:.18s ease;
+  white-space:nowrap;
+}
+
+.icon-btn{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  display:grid;
+  place-items:center;
+  background:#fff;
+  border:1px solid var(--border);
+  color:#111827;
+  position:relative;
+}
+
+.icon-btn svg{
+  width:19px;
+  height:19px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+}
+
+.primary-btn{
+  padding:10px 15px;
+  border-radius:999px;
+  background:var(--primary);
+  color:#fff;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+.ghost-btn{
+  padding:10px 14px;
+  border-radius:12px;
+  background:#fff;
+  border:1px solid var(--border);
+  color:#111827;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+.success-btn{
+  padding:10px 14px;
+  border-radius:12px;
+  background:var(--green-soft);
+  border:1px solid #bbf7d0;
+  color:#166534;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+.danger-btn{
+  padding:10px 14px;
+  border-radius:12px;
+  background:var(--danger-soft);
+  border:1px solid #fecaca;
+  color:#b91c1c;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+.avatar{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  object-fit:cover;
+  border:1px solid var(--border);
+}
+
+.badge{
+  position:absolute;
+  top:5px;
+  right:5px;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:999px;
+  background:var(--danger);
+  color:#fff;
+  font-size:.65rem;
+  font-weight:800;
+  display:none;
+  place-items:center;
+  border:2px solid #fff;
+}
+  /* LAYOUT */
+
+.page{
+  padding:22px 0 34px;
+}
+
+.teacher-shell{
+  display:grid;
+  grid-template-columns:300px minmax(0,1fr) 320px;
+  gap:18px;
+  align-items:start;
+}
+
+.left-col,
+.right-col{
+  position:sticky;
+  top:90px;
+}
+
+.center-col{
+  min-width:0;
+}
+
+.card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:22px;
+  box-shadow:var(--shadow-soft);
+  overflow:hidden;
+}
+
+.card-pad{
+  padding:20px;
+}
+
+.card-title{
+  font-size:1rem;
+  font-weight:800;
+  letter-spacing:-.02em;
+  margin:0 0 15px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.small-link{
+  color:var(--primary);
+  font-weight:700;
+  font-size:.84rem;
+  background:none;
+  border:0;
+}
+
+/* HERO */
+
+.teacher-hero{
+  margin-top:20px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:24px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+.teacher-cover{
+  min-height:160px;
+  background:url("https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1600&q=80") center/cover no-repeat;
+}
+
+.teacher-main{
+  padding:0 26px 24px;
+}
+
+.teacher-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:18px;
+  flex-wrap:wrap;
+}
+
+.teacher-meta{
+  display:flex;
+  align-items:flex-end;
+  gap:16px;
+  margin-top:-52px;
+}
+
+.teacher-avatar{
+  width:108px;
+  height:108px;
+  border-radius:26px;
+  border:5px solid #fff;
+  object-fit:cover;
+  background:#fff;
+  box-shadow:0 12px 28px rgba(15,23,42,.16);
+}
+
+.teacher-name{
+  margin:0;
+  font-size:1.55rem;
+  line-height:1.15;
+  letter-spacing:-.03em;
+  font-weight:800;
+}
+
+.teacher-sub{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:.88rem;
+}
+
+.teacher-actions{
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+  padding-bottom:8px;
+}
+
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;
+  margin-top:22px;
+}
+
+.stat-card{
+  background:#f8fbff;
+  border:1px solid #e7eefb;
+  border-radius:18px;
+  padding:16px;
+}
+
+.stat-label{
+  font-size:.8rem;
+  color:var(--muted);
+  margin-bottom:7px;
+  font-weight:700;
+}
+
+.stat-value{
+  font-size:1.35rem;
+  font-weight:800;
+  line-height:1;
+}
+
+.stat-note{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:.76rem;
+}
+
+/* TABS */
+
+.tabs{
+  margin-top:18px;
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+}
+
+.tab-btn{
+  border:1px solid var(--border);
+  background:#fff;
+  color:#111827;
+  padding:10px 14px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+.tab-btn.active{
+  background:var(--primary);
+  color:#fff;
+  border-color:var(--primary);
+}
+
+/* COMMON */
+
+.section{
+  display:none;
+}
+
+.section.active{
+  display:block;
+}
+
+.loading{
+  padding:22px;
+  color:var(--muted);
+  font-size:.9rem;
+}
+
+.empty{
+  padding:22px;
+  color:var(--muted);
+  text-align:center;
+  border:1px dashed var(--border);
+  border-radius:18px;
+  background:#fff;
+  font-size:.9rem;
+}
+
+.chip{
+  padding:7px 10px;
+  border-radius:999px;
+  background:#f3f4f6;
+  color:#374151;
+  font-size:.76rem;
+  font-weight:700;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+
+.chip.primary{
+  background:var(--primary-soft);
+  color:var(--primary-dark);
+}
+
+.chip.success{
+  background:var(--green-soft);
+  color:#166534;
+}
+
+.chip.warning{
+  background:var(--warning-soft);
+  color:#92400e;
+}
+
+.chip.danger{
+  background:var(--danger-soft);
+  color:#991b1b;
+}
+
+/* ACTIONS */
+
+.quick-list{
+  display:grid;
+  gap:12px;
+}
+
+.quick-item{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:#fff;
+  transition:.18s ease;
+  text-align:left;
+  width:100%;
+}
+
+.quick-item:hover{
+  transform:translateY(-1px);
+  border-color:#bfd3ff;
+  box-shadow:0 10px 22px rgba(15,23,42,.045);
+}
+
+.quick-icon{
+  width:40px;
+  height:40px;
+  border-radius:14px;
+  background:var(--primary-soft);
+  color:var(--primary);
+  display:grid;
+  place-items:center;
+  flex-shrink:0;
+}
+
+.quick-icon svg{
+  width:19px;
+  height:19px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+}
+
+.quick-item h4{
+  margin:0 0 4px;
+  font-size:.9rem;
+  font-weight:800;
+}
+
+.quick-item p{
+  margin:0;
+  color:var(--muted);
+  font-size:.82rem;
+  line-height:1.45;
+}
+
+/* CONTENT CARDS */
+
+.grid-2{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:15px;
+}
+
+.list{
+  display:grid;
+  gap:14px;
+}
+
+.class-card,
+.assignment-card,
+.student-card,
+.submission-card,
+.lesson-card,
+.metric-card{
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:17px;
+  background:#fff;
+  transition:.18s ease;
+}
+
+.class-card:hover,
+.assignment-card:hover,
+.student-card:hover,
+.submission-card:hover,
+.lesson-card:hover,
+.metric-card:hover{
+  transform:translateY(-1px);
+  box-shadow:0 12px 24px rgba(15,23,42,.055);
+}
+
+.class-cover{
+  height:130px;
+  border-radius:16px;
+  margin-bottom:14px;
+  border:1px solid var(--border);
+  background:url("https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80") center/cover no-repeat;
+}
+
+.item-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.item-title{
+  font-size:.98rem;
+  font-weight:800;
+  margin:0;
+  line-height:1.35;
+  letter-spacing:-.015em;
+}
+
+.item-sub{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:.82rem;
+}
+
+.item-desc{
+  margin:0 0 14px;
+  color:#4b5563;
+  line-height:1.58;
+  font-size:.88rem;
+}
+
+.meta-row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.card-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+
+/* STUDENT */
+
+.student-card{
+  display:flex;
+  gap:14px;
+  align-items:flex-start;
+}
+
+.student-avatar{
+  width:58px;
+  height:58px;
+  border-radius:18px;
+  object-fit:cover;
+  border:1px solid var(--border);
+}
+
+.student-body{
+  min-width:0;
+  flex:1;
+}
+
+.student-body h3{
+  margin:0 0 4px;
+  font-size:.95rem;
+  font-weight:800;
+}
+
+.student-body p{
+  margin:0 0 10px;
+  color:var(--muted);
+  font-size:.84rem;
+}
+
+/* PROGRESS */
+
+.progress-wrap{
+  display:grid;
+  gap:14px;
+}
+
+.progress-item{
+  display:grid;
+  gap:8px;
+}
+
+.progress-head{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-size:.86rem;
+  color:#374151;
+  font-weight:700;
+}
+
+.progress-bar{
+  width:100%;
+  height:9px;
+  border-radius:999px;
+  background:#edf2f7;
+  overflow:hidden;
+  margin-top:8px;
+}
+
+.progress-fill{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,var(--primary),#5a94f7);
+  transition:width .6s ease;
+}
+
+/* MODAL */
+
+.modal{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(15,23,42,.45);
+  z-index:2000;
+  padding:18px;
+}
+
+.modal.show{
+  display:flex;
+}
+
+.modal-box{
+  width:min(780px,100%);
+  max-height:92vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:24px;
+  border:1px solid var(--border);
+  box-shadow:0 30px 70px rgba(15,23,42,.18);
+}
+
+.modal-head{
+  padding:20px 22px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  position:sticky;
+  top:0;
+  background:#fff;
+  z-index:2;
+}
+
+.modal-title{
+  font-size:1.05rem;
+  font-weight:800;
+}
+
+.modal-body{
+  padding:22px;
+  display:grid;
+  gap:14px;
+}
+
+.input-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.field{
+  display:grid;
+  gap:8px;
+}
+
+.field label{
+  font-size:.84rem;
+  color:#374151;
+  font-weight:700;
+}
+
+.field input,
+.field select,
+.field textarea{
+  width:100%;
+  padding:12px 13px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:#fff;
+  outline:none;
+  font-size:.9rem;
+}
+
+.field textarea{
+  min-height:110px;
+  resize:vertical;
+}
+
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+  padding:0 22px 22px;
+}
+
+.alert{
+  display:none;
+  margin-bottom:16px;
+  padding:14px 16px;
+  border-radius:16px;
+  font-weight:700;
+  font-size:.9rem;
+}
+
+.alert.success{
+  display:block;
+  background:#ecfdf5;
+  color:#166534;
+  border:1px solid #bbf7d0;
+}
+
+.alert.error{
+  display:block;
+  background:#fef2f2;
+  color:#991b1b;
+  border:1px solid #fecaca;
+}
+
+.alert.info{
+  display:block;
+  background:#eff6ff;
+  color:#1d4ed8;
+  border:1px solid #bfdbfe;
+}
+  /* RESPONSIVE */
+
+@media(max-width:1200px){
+  .teacher-shell{
+    grid-template-columns:280px minmax(0,1fr);
+  }
+
+  .right-col{
+    display:none;
+  }
+}
+
+@media(max-width:920px){
+  .topbar-inner{
+    min-height:auto;
+    padding:12px 0;
+    flex-wrap:wrap;
+  }
+
+  .top-actions{
+    width:100%;
+  }
+
+  .search{
+    order:2;
+    flex-basis:100%;
+    max-width:none;
+  }
+
+  .teacher-shell{
+    grid-template-columns:1fr;
+  }
+
+  .left-col,
+  .right-col{
+    position:static;
+    display:block;
+  }
+
+  .teacher-main{
+    padding:0 18px 20px;
+  }
+
+  .teacher-avatar{
+    width:92px;
+    height:92px;
+    border-radius:22px;
+  }
+
+  .teacher-name{
+    font-size:1.35rem;
+  }
+
+  .stat-grid,
+  .grid-2{
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+@media(max-width:640px){
+  .container{
+    width:min(100%,calc(100% - 14px));
+  }
+
+  .brand-sub{
+    display:none;
+  }
+
+  .teacher-actions{
+    width:100%;
+  }
+
+  .teacher-actions button{
+    flex:1 1 100%;
+  }
+
+  .stat-grid,
+  .grid-2{
+    grid-template-columns:1fr;
+  }
+
+  .tabs{
+    overflow:auto;
+    flex-wrap:nowrap;
+    padding-bottom:4px;
+  }
+
+  .tabs::-webkit-scrollbar{
+    display:none;
+  }
+
+  .input-grid{
+    grid-template-columns:1fr;
+  }
+
+  .modal{
+    padding:10px;
+  }
+
+  .modal-actions{
+    flex-direction:column;
+  }
+
+  .modal-actions button{
+    width:100%;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+  <div class="container topbar-inner">
+
+    <div class="brand-wrap">
+      <a class="brand" href="home.html">A</a>
+
+      <div>
+        <div class="brand-title">AIFT Teacher Portal</div>
+        <div class="brand-sub">Classes, assignments, submissions, attendance, and student progress</div>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <div class="search">
+        <svg viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+
+        <input
+          id="globalSearch"
+          type="search"
+          placeholder="Search classes, students, assignments..."
+        >
+      </div>
+
+      <button class="icon-btn" onclick="goNotifications()" title="Notifications">
+        <svg viewBox="0 0 24 24">
+          <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
+          <path d="M10 21a2 2 0 0 0 4 0"></path>
+        </svg>
+
+        <span class="badge" id="notificationBadge">0</span>
+      </button>
+
+      <button class="primary-btn" onclick="openModal('assignmentModal')">
+        Create Assignment
+      </button>
+
+      <img
+        id="topAvatar"
+        class="avatar"
+        src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+        alt="Teacher"
+      >
+    </div>
+
+  </div>
+</header>
+
+<section class="container teacher-hero">
+
+  <div class="teacher-cover" id="teacherCover"></div>
+
+  <div class="teacher-main">
+
+    <div class="teacher-row">
+
+      <div class="teacher-meta">
+
+        <img
+          id="teacherAvatar"
+          class="teacher-avatar"
+          src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+          alt="Teacher"
+        >
+
+        <div>
+          <h1 id="teacherName" class="teacher-name">Loading teacher...</h1>
+
+          <div id="teacherSub" class="teacher-sub">
+            Teacher workspace
+          </div>
+        </div>
+
+      </div>
+
+      <div class="teacher-actions">
+        <button class="primary-btn" onclick="openModal('assignmentModal')">
+          New Assignment
+        </button>
+
+        <button class="ghost-btn" onclick="openModal('announcementModal')">
+          Announcement
+        </button>
+
+        <button class="ghost-btn" onclick="openTab('gradebook')">
+          Gradebook
+        </button>
+      </div>
+
+    </div>
+
+    <div class="stat-grid">
+
+      <article class="stat-card">
+        <div class="stat-label">Classes</div>
+        <div class="stat-value" id="statClasses">0</div>
+        <div class="stat-note">Assigned classes</div>
+      </article>
+
+      <article class="stat-card">
+        <div class="stat-label">Students</div>
+        <div class="stat-value" id="statStudents">0</div>
+        <div class="stat-note">Learners in your classes</div>
+      </article>
+
+      <article class="stat-card">
+        <div class="stat-label">Assignments</div>
+        <div class="stat-value" id="statAssignments">0</div>
+        <div class="stat-note">Published tasks</div>
+      </article>
+
+      <article class="stat-card">
+        <div class="stat-label">Submissions</div>
+        <div class="stat-value" id="statSubmissions">0</div>
+        <div class="stat-note">Student work received</div>
+      </article>
+
+    </div>
+
+  </div>
+
+</section>
+
+<div class="container">
+  <div class="tabs">
+
+    <button class="tab-btn active" data-tab="overview" onclick="openTab('overview')">
+      Overview
+    </button>
+
+    <button class="tab-btn" data-tab="classes" onclick="openTab('classes')">
+      My Classes
+    </button>
+
+    <button class="tab-btn" data-tab="assignments" onclick="openTab('assignments')">
+      Assignments
+    </button>
+
+    <button class="tab-btn" data-tab="submissions" onclick="openTab('submissions')">
+      Submissions
+    </button>
+
+    <button class="tab-btn" data-tab="students" onclick="openTab('students')">
+      Students
+    </button>
+
+    <button class="tab-btn" data-tab="attendance" onclick="openTab('attendance')">
+      Attendance
+    </button>
+
+    <button class="tab-btn" data-tab="gradebook" onclick="openTab('gradebook')">
+      Gradebook
+    </button>
+
+  </div>
+</div>
+
+<main class="page">
+  <div class="container teacher-shell">
+
+    <!-- LEFT SIDEBAR -->
+
+    <aside class="left-col">
+
+      <article class="card card-pad">
+        <h2 class="card-title">Teacher Actions</h2>
+
+        <div class="quick-list">
+
+          <button class="quick-item" onclick="openModal('assignmentModal')">
+            <div class="quick-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M9 11l3 3L22 4"></path>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+            </div>
+
+            <div>
+              <h4>Create Assignment</h4>
+              <p>Publish work for your students and track submissions.</p>
+            </div>
+          </button>
+
+          <button class="quick-item" onclick="openModal('announcementModal')">
+            <div class="quick-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M3 11l18-5v12L3 13v-2z"></path>
+                <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path>
+              </svg>
+            </div>
+
+            <div>
+              <h4>Class Announcement</h4>
+              <p>Send a class update or reminder.</p>
+            </div>
+          </button>
+
+          <button class="quick-item" onclick="openTab('submissions')">
+            <div class="quick-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <path d="M7 10l5 5 5-5"></path>
+                <path d="M12 15V3"></path>
+              </svg>
+            </div>
+
+            <div>
+              <h4>Review Submissions</h4>
+              <p>Grade student work and give feedback.</p>
+            </div>
+          </button>
+
+          <button class="quick-item" onclick="openTab('attendance')">
+            <div class="quick-icon">
+              <svg viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M16 2v4"></path>
+                <path d="M8 2v4"></path>
+                <path d="M3 10h18"></path>
+              </svg>
+            </div>
+
+            <div>
+              <h4>Attendance</h4>
+              <p>Prepare attendance tracking for live classes.</p>
+            </div>
+          </button>
+
+        </div>
+      </article>
+
+      <article class="card card-pad" style="margin-top:18px;">
+        <h2 class="card-title">Today</h2>
+
+        <div class="info-list">
+          <div class="info-row">
+            <div class="info-label">Upcoming classes</div>
+            <div class="info-value" id="todayClasses">0</div>
+          </div>
+
+          <div class="info-row">
+            <div class="info-label">Due assignments</div>
+            <div class="info-value" id="todayDue">0</div>
+          </div>
+
+          <div class="info-row">
+            <div class="info-label">Pending reviews</div>
+            <div class="info-value" id="pendingReviews">0</div>
+          </div>
+        </div>
+      </article>
+
+    </aside>
+        <!-- CENTER -->
+
+    <section class="center-col">
+
+      <!-- OVERVIEW -->
+
+      <section id="section-overview" class="section active">
+
+        <article class="card card-pad">
+
+          <h2 class="card-title">
+            Teacher Feed
+
+            <button class="small-link" onclick="openModal('announcementModal')">
+              New announcement
+            </button>
+          </h2>
+
+          <div class="list" id="teacherFeed">
+
+            <div class="loading">
+              Loading updates...
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+      <!-- CLASSES -->
+
+      <section id="section-classes" class="section">
+
+        <article class="card card-pad">
+
+          <h2 class="card-title">
+            My Classes
+          </h2>
+
+          <div class="grid-2" id="classesList">
+
+            <div class="loading">
+              Loading classes...
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+      <!-- ASSIGNMENTS -->
+
+      <section id="section-assignments" class="section">
+
+        <article class="card card-pad">
+
+          <h2 class="card-title">
+
+            Assignments
+
+            <button class="small-link" onclick="openModal('assignmentModal')">
+              Create assignment
+            </button>
+
+          </h2>
+
+          <div class="list" id="assignmentsList">
+
+            <div class="loading">
+              Loading assignments...
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+      <!-- SUBMISSIONS -->
+
+      <section id="section-submissions" class="section">
+
+        <article class="card card-pad">
+
+          <h2 class="card-title">
+            Student Submissions
+          </h2>
+
+          <div class="list" id="submissionsList">
+
+            <div class="loading">
+              Loading submissions...
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+      <!-- STUDENTS -->
+
+      <section id="section-students" class="section">
+
+        <article class="card card-pad">
+
+          <h2 class="card-title">
+            Students
+          </h2>
+
+          <div class="grid-2" id="studentsList">
+
+            <div class="loading">
+              Loading students...
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+      <!-- ATTENDANCE -->
+
+      <section id="section-attendance" class="section">
+
+        <article class="card card-pad">
+
+          <h2 class="card-title">
+            Attendance Workspace
+          </h2>
+
+          <div class="grid-2">
+
+            <div class="metric-card">
+
+              <div class="item-head">
+
+                <div>
+                  <h3 class="item-title">
+                    Live attendance
+                  </h3>
+
+                  <div class="item-sub">
+                    Teacher attendance tools
+                  </div>
+                </div>
+
+                <span class="chip primary">
+                  Live
+                </span>
+
+              </div>
+
+              <p class="item-desc">
+                Teachers will be able to mark attendance,
+                late students, absences, and participation.
+              </p>
+
+            </div>
+
+            <div class="metric-card">
+
+              <div class="item-head">
+
+                <div>
+                  <h3 class="item-title">
+                    Student participation
+                  </h3>
+
+                  <div class="item-sub">
+                    Activity tracking
+                  </div>
+                </div>
+
+                <span class="chip success">
+                  Progress
+                </span>
+
+              </div>
+
+              <p class="item-desc">
+                Future analytics will monitor attendance,
+                assignment completion, and classroom engagement.
+              </p>
+
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+      <!-- GRADEBOOK -->
+
+      <section id="section-gradebook" class="section">
+
+        <article class="card card-pad">
+
+          <h2 class="card-title">
+            Gradebook
+          </h2>
+
+          <div class="grid-2">
+
+            <div class="metric-card">
+
+              <div class="item-head">
+
+                <div>
+                  <h3 class="item-title">
+                    Automatic scoring
+                  </h3>
+
+                  <div class="item-sub">
+                    AI-ready grading system
+                  </div>
+                </div>
+
+                <span class="chip warning">
+                  Beta
+                </span>
+
+              </div>
+
+              <p class="item-desc">
+                Student performance will eventually generate
+                automatic progress insights and scoring.
+              </p>
+
+            </div>
+
+            <div class="metric-card">
+
+              <div class="item-head">
+
+                <div>
+                  <h3 class="item-title">
+                    Teacher feedback
+                  </h3>
+
+                  <div class="item-sub">
+                    Personalized learning
+                  </div>
+                </div>
+
+                <span class="chip primary">
+                  Feedback
+                </span>
+
+              </div>
+
+              <p class="item-desc">
+                Teachers can review student performance
+                and provide detailed learning feedback.
+              </p>
+
+            </div>
+
+          </div>
+
+        </article>
+
+      </section>
+
+    </section>
+
+    <!-- RIGHT SIDEBAR -->
+
+    <aside class="right-col">
+
+      <article class="card card-pad">
+
+        <h2 class="card-title">
+          Teacher Performance
+        </h2>
+
+        <div class="progress-wrap">
+
+          <div class="progress-item">
+
+            <div class="progress-head">
+              <span>Assignment Completion</span>
+              <span id="completionPercent">0%</span>
+            </div>
+
+            <div class="progress-bar">
+              <div class="progress-fill" id="completionBar"></div>
+            </div>
+
+          </div>
+
+          <div class="progress-item">
+
+            <div class="progress-head">
+              <span>Student Engagement</span>
+              <span id="engagementPercent">0%</span>
+            </div>
+
+            <div class="progress-bar">
+              <div class="progress-fill" id="engagementBar"></div>
+            </div>
+
+          </div>
+
+          <div class="progress-item">
+
+            <div class="progress-head">
+              <span>Submission Rate</span>
+              <span id="submissionPercent">0%</span>
+            </div>
+
+            <div class="progress-bar">
+              <div class="progress-fill" id="submissionBar"></div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </article>
+
+      <article class="card card-pad" style="margin-top:18px;">
+
+        <h2 class="card-title">
+          Teaching Workspace
+        </h2>
+
+        <div class="list">
+
+          <div class="lesson-card">
+
+            <div class="item-head">
+
+              <div>
+                <h3 class="item-title">
+                  Classroom management
+                </h3>
+
+                <div class="item-sub">
+                  Production-ready teacher tools
+                </div>
+              </div>
+
+              <span class="chip primary">
+                Teacher
+              </span>
+
+            </div>
+
+            <p class="item-desc">
+              Manage students, assignments, schedules,
+              attendance, grading, and announcements.
+            </p>
+
+          </div>
+
+          <div class="lesson-card">
+
+            <div class="item-head">
+
+              <div>
+                <h3 class="item-title">
+                  Student analytics
+                </h3>
+
+                <div class="item-sub">
+                  Real learning data
+                </div>
+              </div>
+
+              <span class="chip success">
+                Analytics
+              </span>
+
+            </div>
+
+            <p class="item-desc">
+              Track participation, assignment completion,
+              engagement, and learning progress.
+            </p>
+
+          </div>
+
+        </div>
+
+      </article>
+
+    </aside>
+
+  </div>
+</main>
+<!-- ASSIGNMENT MODAL -->
+<div class="modal" id="assignmentModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">Create Assignment</div>
+      <button class="ghost-btn" onclick="closeModal('assignmentModal')">Close</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="input-grid">
+        <div class="field">
+          <label>Assignment Title</label>
+          <input id="assignmentTitle" type="text" placeholder="Assignment title">
+        </div>
+
+        <div class="field">
+          <label>Class</label>
+          <select id="assignmentClassId">
+            <option value="">Select class</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Due Date</label>
+          <input id="assignmentDueDate" type="date">
+        </div>
+
+        <div class="field">
+          <label>Attachment URL</label>
+          <input id="assignmentAttachmentUrl" type="url" placeholder="Optional file or resource link">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Instructions</label>
+        <textarea id="assignmentInstructions" placeholder="Write instructions for students"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="ghost-btn" onclick="closeModal('assignmentModal')">Cancel</button>
+      <button class="primary-btn" onclick="submitAssignment()">Publish Assignment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ANNOUNCEMENT MODAL -->
+<div class="modal" id="announcementModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">Class Announcement</div>
+      <button class="ghost-btn" onclick="closeModal('announcementModal')">Close</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="field">
+        <label>Announcement</label>
+        <textarea id="announcementText" placeholder="Share class update, reminder, or instruction"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Media URL</label>
+        <input id="announcementMediaUrl" type="url" placeholder="Optional media/resource URL">
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="ghost-btn" onclick="closeModal('announcementModal')">Cancel</button>
+      <button class="primary-btn" onclick="submitAnnouncement()">Publish</button>
+    </div>
+  </div>
+</div>
+
+<!-- REVIEW SUBMISSION MODAL -->
+<div class="modal" id="reviewModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">Review Submission</div>
+      <button class="ghost-btn" onclick="closeModal('reviewModal')">Close</button>
+    </div>
+
+    <div class="modal-body">
+      <input id="reviewSubmissionId" type="hidden">
+
+      <div class="input-grid">
+        <div class="field">
+          <label>Grade</label>
+          <input id="reviewGrade" type="text" placeholder="A, 95, Passed...">
+        </div>
+
+        <div class="field">
+          <label>Status</label>
+          <select id="reviewStatus">
+            <option value="reviewed">Reviewed</option>
+            <option value="returned">Returned for revision</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Feedback</label>
+        <textarea id="reviewFeedback" placeholder="Write teacher feedback"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="ghost-btn" onclick="closeModal('reviewModal')">Cancel</button>
+      <button class="primary-btn" onclick="submitReview()">Save Review</button>
+    </div>
+  </div>
+</div>
+
+<div class="footer" style="padding:8px 0 28px;text-align:center;color:var(--muted);font-size:.86rem;">
+  © 2026 AIFT Teacher Portal
+</div>
+<script>
+const API = "https://backend-1-9b6f.onrender.com";
+
+const token =
+  localStorage.getItem("teacherToken") ||
+  localStorage.getItem("token");
+
+const role = String(localStorage.getItem("role") || "").toLowerCase();
+
+if (!token) {
+  window.location.href = "login.html";
+}
+
+if (role && !["teacher","instructor","faculty","admin"].includes(role)) {
+  window.location.href = "home.html";
+}
+
+const FALLBACK_AVATAR =
+  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+const FALLBACK_COVER =
+  "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1600&q=80";
+
+const state = {
+  me:null,
+  classes:[],
+  assignments:[],
+  submissions:[],
+  posts:[],
+  students:[]
+};
+
+function $(id){
+  return document.getElementById(id);
+}
+
+function authHeaders(extra = {}){
+  return {
+    Authorization:"Bearer " + token,
+    ...extra
+  };
+}
+
+function escapeHtml(value){
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+async function safeJson(res){
+  try{
+    return await res.json();
+  }catch{
+    return null;
+  }
+}
+
+function asArray(value){
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.items)) return value.items;
+  return [];
+}
+
+function setText(id,value){
+  const el = $(id);
+  if (el) el.innerText = value;
+}
+
+function formatDate(value){
+  if (!value) return "No date";
+
+  const d = new Date(value);
+
+  if (Number.isNaN(d.getTime())) {
+    return "No date";
+  }
+
+  return d.toLocaleDateString([],{
+    month:"short",
+    day:"numeric",
+    year:"numeric"
+  });
+}
+
+function formatDateTime(value){
+  if (!value) return "No date";
+
+  const d = new Date(value);
+
+  if (Number.isNaN(d.getTime())) {
+    return "No date";
+  }
+
+  return d.toLocaleString([],{
+    month:"short",
+    day:"numeric",
+    hour:"2-digit",
+    minute:"2-digit"
+  });
+}
+
+function showAlert(type,message){
+  alert(message);
+}
+
+function openModal(id){
+  $(id)?.classList.add("show");
+}
+
+function closeModal(id){
+  $(id)?.classList.remove("show");
+}
+
+function openTab(tab){
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.tab === tab);
+  });
+
+  document.querySelectorAll(".section").forEach(section => {
+    section.classList.toggle(
+      "active",
+      section.id === `section-${tab}`
+    );
+  });
+
+  window.scrollTo({
+    top:0,
+    behavior:"smooth"
+  });
+}
+
+async function apiGet(path,fallback = null){
+  try{
+    const res = await fetch(API + path,{
+      headers:authHeaders()
+    });
+
+    if (res.status === 401){
+      localStorage.removeItem("teacherToken");
+      localStorage.removeItem("token");
+      window.location.href = "login.html";
+      return fallback;
+    }
+
+    if (!res.ok){
+      return fallback;
+    }
+
+    return await safeJson(res);
+
+  }catch(err){
+    console.warn(err);
+    return fallback;
+  }
+}
+
+async function apiSend(path,method,body){
+  const res = await fetch(API + path,{
+    method,
+    headers:authHeaders({
+      "Content-Type":"application/json"
+    }),
+    body:JSON.stringify(body || {})
+  });
+
+  const data = await safeJson(res);
+
+  if (!res.ok){
+    throw new Error(
+      data?.message ||
+      data?.error ||
+      "Request failed."
+    );
+  }
+
+  return data;
+}
+
+function getTeacherClasses(){
+  const id = state.me?._id;
+
+  return state.classes.filter(item => {
+    return String(item.teacherId?._id || item.teacherId) === String(id);
+  });
+}
+
+function getTeacherStudents(){
+  const classIds = getTeacherClasses().map(item => String(item._id));
+
+  const map = new Map();
+
+  getTeacherClasses().forEach(cls => {
+    (cls.studentIds || []).forEach(student => {
+      const id = String(student._id || student);
+
+      if (!map.has(id)){
+        map.set(id,student);
+      }
+    });
+  });
+
+  return Array.from(map.values());
+}
+
+async function loadAll(){
+  try{
+    const meRes = await apiGet("/api/users/me",null);
+
+    state.me = meRes?.user || meRes;
+
+    if (!state.me){
+      showAlert("error","Could not load teacher profile.");
+      return;
+    }
+
+    const teacherId = state.me._id;
+
+    const [
+      classes,
+      assignments,
+      submissions,
+      posts,
+      unread
+    ] = await Promise.all([
+      apiGet("/api/classes",[]),
+      apiGet(`/api/assignments?teacherId=${teacherId}`,[]),
+      apiGet(`/api/submissions?teacherId=${teacherId}`,[]),
+      apiGet("/api/posts",[]),
+      apiGet("/api/notifications/unread-count",{ count:0 })
+    ]);
+
+    state.classes = asArray(classes);
+    state.assignments = asArray(assignments);
+    state.submissions = asArray(submissions);
+    state.posts = asArray(posts);
+
+    renderProfile();
+    renderStats();
+    renderFeed();
+    renderClasses();
+    renderAssignments();
+    renderStudents();
+    renderSubmissions();
+    renderAnalytics();
+    hydrateSelects();
+
+    const badge = $("notificationBadge");
+
+    if (badge && Number(unread?.count || 0) > 0){
+      badge.innerText = unread.count;
+      badge.style.display = "grid";
+    }
+
+  }catch(err){
+    console.error(err);
+    showAlert("error","Teacher portal failed to load.");
+  }
+}
+
+function renderProfile(){
+  const me = state.me || {};
+
+  const avatar =
+    me.profileImage ||
+    me.avatar ||
+    FALLBACK_AVATAR;
+
+  const cover =
+    me.coverImage ||
+    me.bannerImage ||
+    FALLBACK_COVER;
+
+  $("teacherAvatar").src = avatar;
+  $("topAvatar").src = avatar;
+
+  $("teacherCover").style.backgroundImage =
+    `url("${cover}")`;
+
+  setText(
+    "teacherName",
+    me.name || "Teacher"
+  );
+
+  setText(
+    "teacherSub",
+    me.subject ||
+    me.department ||
+    "Teacher workspace"
+  );
+}
+
+function renderStats(){
+  const classes = getTeacherClasses();
+  const students = getTeacherStudents();
+
+  setText("statClasses", classes.length);
+  setText("statStudents", students.length);
+  setText("statAssignments", state.assignments.length);
+  setText("statSubmissions", state.submissions.length);
+
+  setText("todayClasses", classes.length);
+
+  const due = state.assignments.filter(item => {
+    return item.dueDate &&
+      new Date(item.dueDate) > new Date();
+  });
+
+  setText("todayDue", due.length);
+  setText("pendingReviews", state.submissions.length);
+}
+
+function renderFeed(){
+  const feed = $("teacherFeed");
+
+  const items = state.posts
+    .filter(post => {
+      return (
+        String(post.author?._id || post.author) ===
+        String(state.me?._id)
+      );
+    })
+    .sort((a,b) =>
+      new Date(b.createdAt || 0) -
+      new Date(a.createdAt || 0)
+    );
+
+  if (!items.length){
+    feed.innerHTML = `
+      <div class="empty">
+        No teacher announcements yet.
+      </div>
+    `;
+    return;
+  }
+
+  feed.innerHTML = items.map(post => `
+    <article class="assignment-card">
+
+      <div class="item-head">
+
+        <div>
+          <h3 class="item-title">
+            ${escapeHtml(state.me?.name || "Teacher")}
+          </h3>
+
+          <div class="item-sub">
+            ${formatDateTime(post.createdAt)}
+          </div>
+        </div>
+
+        <span class="chip primary">
+          Announcement
+        </span>
+
+      </div>
+
+      <p class="item-desc">
+        ${escapeHtml(post.text || post.content || "")}
+      </p>
+
+    </article>
+  `).join("");
+}
+
+function renderClasses(){
+  const list = $("classesList");
+
+  const classes = getTeacherClasses();
+
+  if (!classes.length){
+    list.innerHTML = `
+      <div class="empty">
+        No assigned classes yet.
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = classes.map(item => `
+    <article class="class-card">
+
+      <div
+        class="class-cover"
+        style="background-image:url('${item.coverImage || FALLBACK_COVER}')"
+      ></div>
+
+      <div class="item-head">
+
+        <div>
+          <h3 class="item-title">
+            ${escapeHtml(item.title || "Class")}
+          </h3>
+
+          <div class="item-sub">
+            ${escapeHtml(item.subject || "No subject")}
+          </div>
+        </div>
+
+        <span class="chip primary">
+          Class
+        </span>
+
+      </div>
+
+      <p class="item-desc">
+        ${escapeHtml(item.description || "No class description added.")}
+      </p>
+
+      <div class="meta-row">
+        ${
+          item.schedule
+            ? `<span class="chip">${escapeHtml(item.schedule)}</span>`
+            : ""
+        }
+
+        ${
+          item.classCode
+            ? `<span class="chip success">${escapeHtml(item.classCode)}</span>`
+            : ""
+        }
+      </div>
+
+      <div class="card-actions">
+
+        ${
+          item.meetingLink
+            ? `
+              <a
+                class="primary-btn"
+                href="${item.meetingLink}"
+                target="_blank"
+              >
+                Open Class
+              </a>
+            `
+            : ""
+        }
+
+      </div>
+
+    </article>
+  `).join("");
+}
+
+function renderAssignments(){
+  const list = $("assignmentsList");
+
+  if (!state.assignments.length){
+    list.innerHTML = `
+      <div class="empty">
+        No assignments yet.
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = state.assignments.map(item => `
+    <article class="assignment-card">
+
+      <div class="item-head">
+
+        <div>
+          <h3 class="item-title">
+            ${escapeHtml(item.title || "Assignment")}
+          </h3>
+
+          <div class="item-sub">
+            Due ${formatDate(item.dueDate)}
+          </div>
+        </div>
+
+        <span class="chip warning">
+          Assignment
+        </span>
+
+      </div>
+
+      <p class="item-desc">
+        ${escapeHtml(item.instructions || "No instructions")}
+      </p>
+
+      <div class="meta-row">
+        ${
+          item.attachmentUrl
+            ? `
+              <a
+                class="chip primary"
+                href="${item.attachmentUrl}"
+                target="_blank"
+              >
+                Attachment
+              </a>
+            `
+            : ""
+        }
+      </div>
+
+    </article>
+  `).join("");
+}
+
+function renderStudents(){
+  const list = $("studentsList");
+
+  const students = getTeacherStudents();
+
+  if (!students.length){
+    list.innerHTML = `
+      <div class="empty">
+        No students yet.
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = students.map(student => `
+    <article class="student-card">
+
+      <img
+        class="student-avatar"
+        src="${student.profileImage || FALLBACK_AVATAR}"
+      >
+
+      <div class="student-body">
+
+        <h3>
+          ${escapeHtml(student.name || "Student")}
+        </h3>
+
+        <p>
+          ${escapeHtml(student.email || "")}
+        </p>
+
+        <div class="meta-row">
+
+          ${
+            student.course
+              ? `<span class="chip primary">${escapeHtml(student.course)}</span>`
+              : ""
+          }
+
+        </div>
+
+      </div>
+
+    </article>
+  `).join("");
+}
+
+function renderSubmissions(){
+  const list = $("submissionsList");
+
+  if (!state.submissions.length){
+    list.innerHTML = `
+      <div class="empty">
+        No submissions yet.
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = state.submissions.map(item => `
+    <article class="submission-card">
+
+      <div class="item-head">
+
+        <div>
+          <h3 class="item-title">
+            ${escapeHtml(item.studentName || item.student?.name || "Student")}
+          </h3>
+
+          <div class="item-sub">
+            ${formatDateTime(item.createdAt)}
+          </div>
+        </div>
+
+        <span class="chip success">
+          Submission
+        </span>
+
+      </div>
+
+      <p class="item-desc">
+        ${escapeHtml(item.text || item.content || "Student work submitted")}
+      </p>
+
+      <div class="card-actions">
+
+        <button
+          class="primary-btn"
+          onclick="openReview('${item._id}')"
+        >
+          Review
+        </button>
+
+      </div>
+
+    </article>
+  `).join("");
+}
+
+function setProgress(textId,barId,value){
+  setText(textId,value + "%");
+
+  const bar = $(barId);
+
+  if (bar){
+    bar.style.width = value + "%";
+  }
+}
+
+function renderAnalytics(){
+  const completion = Math.min(
+    100,
+    state.submissions.length * 8
+  );
+
+  const engagement = Math.min(
+    100,
+    getTeacherStudents().length * 5
+  );
+
+  const submission = Math.min(
+    100,
+    state.submissions.length * 6
+  );
+
+  setProgress(
+    "completionPercent",
+    "completionBar",
+    completion
+  );
+
+  setProgress(
+    "engagementPercent",
+    "engagementBar",
+    engagement
+  );
+
+  setProgress(
+    "submissionPercent",
+    "submissionBar",
+    submission
+  );
+}
+
+function hydrateSelects(){
+  const classes = getTeacherClasses();
+
+  $("assignmentClassId").innerHTML =
+    `<option value="">Select class</option>` +
+    classes.map(item => `
+      <option value="${item._id}">
+        ${escapeHtml(item.title || "Class")}
+      </option>
+    `).join("");
+}
+
+async function submitAssignment(){
+  try{
+    await apiSend("/api/assignments","POST",{
+      teacherId:state.me._id,
+      schoolId:state.me.schoolId || state.me.linkedSchoolId,
+      classId:$("assignmentClassId").value,
+      title:$("assignmentTitle").value.trim(),
+      dueDate:$("assignmentDueDate").value,
+      instructions:$("assignmentInstructions").value.trim(),
+      attachmentUrl:$("assignmentAttachmentUrl").value.trim()
+    });
+
+    closeModal("assignmentModal");
+
+    showAlert(
+      "success",
+      "Assignment published."
+    );
+
+    await loadAll();
+
+  }catch(err){
+    showAlert("error",err.message);
+  }
+}
+
+async function submitAnnouncement(){
+  try{
+    await apiSend("/api/posts","POST",{
+      text:$("announcementText").value.trim(),
+      mediaUrl:$("announcementMediaUrl").value.trim()
+    });
+
+    closeModal("announcementModal");
+
+    showAlert(
+      "success",
+      "Announcement published."
+    );
+
+    await loadAll();
+
+  }catch(err){
+    showAlert("error",err.message);
+  }
+}
+
+function openReview(id){
+  $("reviewSubmissionId").value = id;
+  openModal("reviewModal");
+}
+
+async function submitReview(){
+  const id = $("reviewSubmissionId").value;
+
+  try{
+    await apiSend(`/api/submissions/${id}/review`,"PATCH",{
+      grade:$("reviewGrade").value.trim(),
+      feedback:$("reviewFeedback").value.trim(),
+      status:$("reviewStatus").value
+    });
+
+    closeModal("reviewModal");
+
+    showAlert(
+      "success",
+      "Submission reviewed."
+    );
+
+    await loadAll();
+
+  }catch(err){
+    showAlert("error",err.message);
+  }
+}
+
+function goNotifications(){
+  window.location.href = "notifications.html";
+}
+
+function initSearch(){
+  const input = $("globalSearch");
+
+  if (!input) return;
+
+  input.addEventListener("input",() => {
+    const q = input.value.trim().toLowerCase();
+
+    document
+      .querySelectorAll(
+        ".class-card,.assignment-card,.student-card,.submission-card,.lesson-card,.metric-card"
+      )
+      .forEach(card => {
+        card.style.display =
+          !q ||
+          card.innerText.toLowerCase().includes(q)
+            ? ""
+            : "none";
+      });
+  });
+}
+
+function initSocket(){
+  if (typeof io === "undefined") return;
+
+  try{
+    const socket = io(API,{
+      transports:["websocket","polling"],
+      auth:{ token }
+    });
+
+    socket.on("connect",() => {
+      socket.emit("join",{
+        userId:state.me?._id,
+        role:"teacher"
+      });
+    });
+
+    [
+      "assignment:new",
+      "submission:new",
+      "post:new",
+      "class:update"
+    ].forEach(event => {
+      socket.on(event,loadAll);
+    });
+
+  }catch(err){
+    console.warn(err);
+  }
+}
+
+document.querySelectorAll(".modal").forEach(modal => {
+  modal.addEventListener("click",e => {
+    if (e.target === modal){
+      modal.classList.remove("show");
+    }
+  });
+});
+
+document.addEventListener("keydown",e => {
+  if (e.key === "Escape"){
+    document.querySelectorAll(".modal").forEach(modal => {
+      modal.classList.remove("show");
+    });
+  }
+});
+
+document.addEventListener("DOMContentLoaded",async () => {
+  initSearch();
+  await loadAll();
+  initSocket();
+});
+</script>
+
+</body>
+</html>
