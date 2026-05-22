@@ -3737,6 +3737,10 @@ function personCard(user,label){
     role === "instructor" ||
     role === "faculty";
 
+  const isStudent =
+    role === "student" ||
+    role === "talent";
+
   return `
     <article class="student-card">
       <img class="student-avatar" src="${avatar}" alt="">
@@ -3757,9 +3761,16 @@ function personCard(user,label){
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
                 ${
                   isTeacher
-                    ? `<button class="primary-btn" onclick="openTeacherPortal('${user._id}')">Portal</button>`
+                    ? `<button class="primary-btn" onclick="openTeacherPortal('${user._id}')">Teacher Portal</button>`
                     : ""
                 }
+
+                ${
+                  isStudent
+                    ? `<button class="primary-btn" onclick="openStudentPortal('${user._id}')">Student Portal</button>`
+                    : ""
+                }
+
                 <button class="ghost-btn" onclick="editSchoolUser('${user._id}')">Edit</button>
                 <button class="danger-btn" onclick="deleteSchoolUser('${user._id}')">Remove</button>
               </div>
@@ -3769,6 +3780,13 @@ function personCard(user,label){
       </div>
     </article>
   `;
+}
+  function openStudentPortal(studentId){
+  if (!studentId) {
+    return showAlert("error","Student ID missing.");
+  }
+
+  window.location.href = `student.html?studentId=${encodeURIComponent(studentId)}`;
 }
 
 function renderStudents(){
