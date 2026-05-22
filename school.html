@@ -3205,6 +3205,13 @@ function goHome(){
 function getSchoolId(){
   return state.me?._id || localStorage.getItem("userId") || "";
 }
+  function openTeacherPortal(teacherId){
+  if (!teacherId) {
+    return showAlert("error","Teacher ID missing.");
+  }
+
+  window.location.href = `teacher.html?teacherId=${encodeURIComponent(teacherId)}`;
+}
 
 function openPublicPage(){
   const id = getSchoolId();
@@ -3725,6 +3732,11 @@ function personCard(user,label){
     role === "student" ||
     role === "talent";
 
+  const isTeacher =
+    role === "teacher" ||
+    role === "instructor" ||
+    role === "faculty";
+
   return `
     <article class="student-card">
       <img class="student-avatar" src="${avatar}" alt="">
@@ -3743,6 +3755,11 @@ function personCard(user,label){
           canEdit
             ? `
               <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+                ${
+                  isTeacher
+                    ? `<button class="primary-btn" onclick="openTeacherPortal('${user._id}')">Portal</button>`
+                    : ""
+                }
                 <button class="ghost-btn" onclick="editSchoolUser('${user._id}')">Edit</button>
                 <button class="danger-btn" onclick="deleteSchoolUser('${user._id}')">Remove</button>
               </div>
