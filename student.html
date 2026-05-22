@@ -1,0 +1,2094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+
+<title>AIFT | Student Portal</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<style>
+:root{
+  --primary:#2557a7;
+  --primary-dark:#16437f;
+  --primary-soft:#eef4ff;
+  --green:#15803d;
+  --green-soft:#ecfdf5;
+  --warning:#d97706;
+  --warning-soft:#fffbeb;
+  --danger:#dc2626;
+  --danger-soft:#fef2f2;
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --text:#111827;
+  --muted:#667085;
+  --border:#e5e7eb;
+  --shadow:0 10px 28px rgba(15,23,42,.07);
+  --shadow-soft:0 6px 18px rgba(15,23,42,.045);
+  --max:1380px;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Inter,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:14px;
+  line-height:1.45;
+}
+
+a{
+  color:inherit;
+  text-decoration:none;
+}
+
+button,
+input,
+select,
+textarea{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+img{
+  max-width:100%;
+  display:block;
+}
+
+.hidden{
+  display:none!important;
+}
+
+.container{
+  width:min(var(--max),calc(100% - 24px));
+  margin:0 auto;
+}
+
+/* TOPBAR */
+
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:1000;
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(229,231,235,.9);
+}
+
+.topbar-inner{
+  min-height:70px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.brand-wrap{
+  display:flex;
+  align-items:center;
+  gap:13px;
+  min-width:0;
+}
+
+.brand{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  background:linear-gradient(135deg,var(--primary),#4d83d8);
+  display:grid;
+  place-items:center;
+  color:#fff;
+  font-weight:800;
+  box-shadow:0 8px 18px rgba(37,87,167,.22);
+  flex-shrink:0;
+}
+
+.brand-title{
+  font-size:1rem;
+  font-weight:800;
+  line-height:1.1;
+  letter-spacing:-.02em;
+}
+
+.brand-sub{
+  color:var(--muted);
+  font-size:.8rem;
+  margin-top:3px;
+}
+
+.top-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:1;
+  justify-content:flex-end;
+}
+
+.search{
+  position:relative;
+  width:min(420px,100%);
+  flex:1;
+  max-width:420px;
+}
+
+.search input{
+  width:100%;
+  height:42px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:#fff;
+  padding:0 15px 0 42px;
+  outline:none;
+}
+
+.search input:focus{
+  border-color:#b8cdf5;
+  box-shadow:0 0 0 4px rgba(37,87,167,.08);
+}
+
+.search svg{
+  position:absolute;
+  left:14px;
+  top:50%;
+  transform:translateY(-50%);
+  width:17px;
+  height:17px;
+  stroke:var(--muted);
+  fill:none;
+  stroke-width:2;
+}
+
+.icon-btn,
+.primary-btn,
+.ghost-btn,
+.success-btn,
+.danger-btn{
+  border:none;
+  cursor:pointer;
+  transition:.18s ease;
+  white-space:nowrap;
+}
+
+.icon-btn{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  display:grid;
+  place-items:center;
+  background:#fff;
+  border:1px solid var(--border);
+  color:#111827;
+  position:relative;
+}
+
+.icon-btn svg{
+  width:19px;
+  height:19px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+}
+
+.primary-btn{
+  padding:10px 15px;
+  border-radius:999px;
+  background:var(--primary);
+  color:#fff;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+.ghost-btn{
+  padding:10px 14px;
+  border-radius:12px;
+  background:#fff;
+  border:1px solid var(--border);
+  color:#111827;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+.success-btn{
+  padding:10px 14px;
+  border-radius:12px;
+  background:var(--green-soft);
+  border:1px solid #bbf7d0;
+  color:#166534;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+.danger-btn{
+  padding:10px 14px;
+  border-radius:12px;
+  background:var(--danger-soft);
+  border:1px solid #fecaca;
+  color:#b91c1c;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+.avatar{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  object-fit:cover;
+  border:1px solid var(--border);
+}
+
+.badge{
+  position:absolute;
+  top:5px;
+  right:5px;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:999px;
+  background:var(--danger);
+  color:#fff;
+  font-size:.65rem;
+  font-weight:800;
+  display:none;
+  place-items:center;
+  border:2px solid #fff;
+}
+
+/* HERO */
+
+.student-hero{
+  margin-top:20px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:24px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+.student-cover{
+  min-height:160px;
+  background:url("https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=1600&q=80") center/cover no-repeat;
+}
+
+.student-main{
+  padding:0 26px 24px;
+}
+
+.student-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:18px;
+  flex-wrap:wrap;
+}
+
+.student-meta{
+  display:flex;
+  align-items:flex-end;
+  gap:16px;
+  margin-top:-52px;
+}
+
+.student-avatar{
+  width:108px;
+  height:108px;
+  border-radius:26px;
+  border:5px solid #fff;
+  object-fit:cover;
+  background:#fff;
+  box-shadow:0 12px 28px rgba(15,23,42,.16);
+}
+
+.student-name{
+  margin:0;
+  font-size:1.55rem;
+  line-height:1.15;
+  letter-spacing:-.03em;
+  font-weight:800;
+}
+
+.student-sub{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:.88rem;
+}
+
+.student-actions{
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+  padding-bottom:8px;
+}
+  /* LAYOUT */
+
+.page{
+  padding:22px 0 34px;
+}
+
+.student-shell{
+  display:grid;
+  grid-template-columns:300px minmax(0,1fr) 320px;
+  gap:18px;
+  align-items:start;
+}
+
+.left-col,
+.right-col{
+  position:sticky;
+  top:90px;
+}
+
+.center-col{
+  min-width:0;
+}
+
+.card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:22px;
+  box-shadow:var(--shadow-soft);
+  overflow:hidden;
+}
+
+.card-pad{
+  padding:20px;
+}
+
+.card-title{
+  font-size:1rem;
+  font-weight:800;
+  letter-spacing:-.02em;
+  margin:0 0 15px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.small-link{
+  color:var(--primary);
+  font-weight:700;
+  font-size:.84rem;
+  background:none;
+  border:0;
+}
+
+/* STATS */
+
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;
+  margin-top:22px;
+}
+
+.stat-card{
+  background:#f8fbff;
+  border:1px solid #e7eefb;
+  border-radius:18px;
+  padding:16px;
+}
+
+.stat-label{
+  font-size:.8rem;
+  color:var(--muted);
+  margin-bottom:7px;
+  font-weight:700;
+}
+
+.stat-value{
+  font-size:1.35rem;
+  font-weight:800;
+  line-height:1;
+}
+
+.stat-note{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:.76rem;
+}
+
+/* TABS */
+
+.tabs{
+  margin-top:18px;
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+}
+
+.tab-btn{
+  border:1px solid var(--border);
+  background:#fff;
+  color:#111827;
+  padding:10px 14px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+.tab-btn.active{
+  background:var(--primary);
+  color:#fff;
+  border-color:var(--primary);
+}
+
+/* COMMON */
+
+.section{
+  display:none;
+}
+
+.section.active{
+  display:block;
+}
+
+.loading{
+  padding:22px;
+  color:var(--muted);
+  font-size:.9rem;
+}
+
+.empty{
+  padding:22px;
+  color:var(--muted);
+  text-align:center;
+  border:1px dashed var(--border);
+  border-radius:18px;
+  background:#fff;
+  font-size:.9rem;
+}
+
+.chip{
+  padding:7px 10px;
+  border-radius:999px;
+  background:#f3f4f6;
+  color:#374151;
+  font-size:.76rem;
+  font-weight:700;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+
+.chip.primary{
+  background:var(--primary-soft);
+  color:var(--primary-dark);
+}
+
+.chip.success{
+  background:var(--green-soft);
+  color:#166534;
+}
+
+.chip.warning{
+  background:var(--warning-soft);
+  color:#92400e;
+}
+
+.chip.danger{
+  background:var(--danger-soft);
+  color:#991b1b;
+}
+
+/* QUICK ACTIONS */
+
+.quick-list{
+  display:grid;
+  gap:12px;
+}
+
+.quick-item{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  padding:14px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:#fff;
+  transition:.18s ease;
+  text-align:left;
+  width:100%;
+}
+
+.quick-item:hover{
+  transform:translateY(-1px);
+  border-color:#bfd3ff;
+  box-shadow:0 10px 22px rgba(15,23,42,.045);
+}
+
+.quick-icon{
+  width:40px;
+  height:40px;
+  border-radius:14px;
+  background:var(--primary-soft);
+  color:var(--primary);
+  display:grid;
+  place-items:center;
+  flex-shrink:0;
+}
+
+.quick-icon svg{
+  width:19px;
+  height:19px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+}
+
+.quick-item h4{
+  margin:0 0 4px;
+  font-size:.9rem;
+  font-weight:800;
+}
+
+.quick-item p{
+  margin:0;
+  color:var(--muted);
+  font-size:.82rem;
+  line-height:1.45;
+}
+
+/* CONTENT */
+
+.grid-2{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:15px;
+}
+
+.list{
+  display:grid;
+  gap:14px;
+}
+
+.class-card,
+.assignment-card,
+.schedule-card,
+.announcement-card,
+.grade-card,
+.progress-card,
+.resource-card{
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:17px;
+  background:#fff;
+  transition:.18s ease;
+}
+
+.class-card:hover,
+.assignment-card:hover,
+.schedule-card:hover,
+.announcement-card:hover,
+.grade-card:hover,
+.progress-card:hover,
+.resource-card:hover{
+  transform:translateY(-1px);
+  box-shadow:0 12px 24px rgba(15,23,42,.055);
+}
+
+.class-cover{
+  height:130px;
+  border-radius:16px;
+  margin-bottom:14px;
+  border:1px solid var(--border);
+  background:url("https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80") center/cover no-repeat;
+}
+
+.item-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.item-title{
+  font-size:.98rem;
+  font-weight:800;
+  margin:0;
+  line-height:1.35;
+  letter-spacing:-.015em;
+}
+
+.item-sub{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:.82rem;
+}
+
+.item-desc{
+  margin:0 0 14px;
+  color:#4b5563;
+  line-height:1.58;
+  font-size:.88rem;
+}
+
+.meta-row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.card-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+  /* STUDENT SIDEBAR */
+
+.student-mini{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:18px;
+}
+
+.student-mini img{
+  width:58px;
+  height:58px;
+  border-radius:18px;
+  object-fit:cover;
+  border:1px solid var(--border);
+}
+
+.student-mini strong{
+  display:block;
+  font-size:.95rem;
+  margin-bottom:4px;
+}
+
+.student-mini span{
+  color:var(--muted);
+  font-size:.82rem;
+}
+
+.progress-wrap{
+  display:grid;
+  gap:14px;
+}
+
+.progress-item{
+  display:grid;
+  gap:8px;
+}
+
+.progress-head{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-size:.86rem;
+  color:#374151;
+  font-weight:700;
+}
+
+.progress-bar{
+  width:100%;
+  height:9px;
+  border-radius:999px;
+  background:#edf2f7;
+  overflow:hidden;
+}
+
+.progress-fill{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(
+    90deg,
+    var(--primary),
+    #5a94f7
+  );
+  transition:width .6s ease;
+}
+
+/* ATTENDANCE */
+
+.attendance-list{
+  display:grid;
+  gap:12px;
+}
+
+.attendance-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:13px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#fff;
+}
+
+.attendance-left{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+.attendance-icon{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  background:var(--primary-soft);
+  color:var(--primary);
+  display:grid;
+  place-items:center;
+}
+
+.attendance-icon svg{
+  width:18px;
+  height:18px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+}
+
+.attendance-title{
+  font-weight:800;
+  font-size:.9rem;
+}
+
+.attendance-sub{
+  color:var(--muted);
+  font-size:.8rem;
+  margin-top:3px;
+}
+
+/* LEARNING */
+
+.learning-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+
+.learning-card{
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:18px;
+  background:#fff;
+}
+
+.learning-card span{
+  display:block;
+  color:var(--muted);
+  font-size:.8rem;
+  margin-bottom:8px;
+  font-weight:700;
+}
+
+.learning-card strong{
+  display:block;
+  font-size:1.25rem;
+  font-weight:800;
+}
+
+.learning-card p{
+  margin:10px 0 0;
+  color:#4b5563;
+  line-height:1.55;
+  font-size:.84rem;
+}
+
+/* SUBMISSIONS */
+
+.submission-box{
+  border:1px dashed #cbd5e1;
+  border-radius:18px;
+  padding:16px;
+  background:#f8fbff;
+}
+
+.submission-box textarea{
+  width:100%;
+  min-height:120px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:14px;
+  resize:vertical;
+  outline:none;
+}
+
+.submission-box textarea:focus{
+  border-color:#bfd3ff;
+  box-shadow:0 0 0 4px rgba(37,87,167,.08);
+}
+
+.submission-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:14px;
+  flex-wrap:wrap;
+}
+
+/* CALENDAR */
+
+.calendar-grid{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:8px;
+}
+
+.calendar-day{
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:12px;
+  min-height:84px;
+  background:#fff;
+}
+
+.calendar-day strong{
+  display:block;
+  font-size:.85rem;
+  margin-bottom:8px;
+}
+
+.calendar-day span{
+  display:block;
+  color:var(--muted);
+  font-size:.74rem;
+  line-height:1.35;
+}
+
+/* RIGHT PANEL */
+
+.side-list{
+  display:grid;
+  gap:12px;
+}
+
+.side-user{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 0;
+  border-bottom:1px solid #f1f5f9;
+}
+
+.side-user:last-child{
+  border-bottom:none;
+}
+
+.side-user img{
+  width:44px;
+  height:44px;
+  border-radius:15px;
+  object-fit:cover;
+  border:1px solid var(--border);
+}
+
+.side-user strong{
+  display:block;
+  font-size:.9rem;
+  margin-bottom:2px;
+}
+
+.side-user span{
+  display:block;
+  color:var(--muted);
+  font-size:.8rem;
+}
+
+/* ALERT */
+
+.alert{
+  display:none;
+  margin-bottom:16px;
+  padding:14px 16px;
+  border-radius:16px;
+  font-weight:700;
+  font-size:.9rem;
+}
+
+.alert.success{
+  display:block;
+  background:#ecfdf5;
+  color:#166534;
+  border:1px solid #bbf7d0;
+}
+
+.alert.error{
+  display:block;
+  background:#fef2f2;
+  color:#991b1b;
+  border:1px solid #fecaca;
+}
+
+.alert.info{
+  display:block;
+  background:#eff6ff;
+  color:#1d4ed8;
+  border:1px solid #bfdbfe;
+}
+
+/* MODALS */
+
+.modal{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(15,23,42,.45);
+  z-index:2000;
+  padding:18px;
+}
+
+.modal.show{
+  display:flex;
+}
+
+.modal-box{
+  width:min(760px,100%);
+  max-height:92vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:24px;
+  border:1px solid var(--border);
+  box-shadow:0 30px 70px rgba(15,23,42,.18);
+}
+
+.modal-head{
+  padding:20px 22px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  position:sticky;
+  top:0;
+  background:#fff;
+  z-index:2;
+}
+
+.modal-title{
+  font-size:1.05rem;
+  font-weight:800;
+  letter-spacing:-.02em;
+}
+
+.modal-body{
+  padding:22px;
+  display:grid;
+  gap:14px;
+}
+
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+  padding:0 22px 22px;
+}
+  /* MOBILE NAV */
+
+.mobile-nav{
+  display:none;
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:1200;
+  background:rgba(255,255,255,.96);
+  backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+}
+
+.mobile-nav-inner{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+}
+
+.mobile-nav button{
+  border:0;
+  background:transparent;
+  display:grid;
+  place-items:center;
+  gap:5px;
+  color:var(--muted);
+  font-size:.7rem;
+  font-weight:800;
+  border-radius:14px;
+  padding:8px 4px;
+}
+
+.mobile-nav button.active{
+  background:var(--primary-soft);
+  color:var(--primary-dark);
+}
+
+.mobile-nav svg{
+  width:19px;
+  height:19px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:1200px){
+
+  .student-shell{
+    grid-template-columns:280px minmax(0,1fr);
+  }
+
+  .right-col{
+    display:none;
+  }
+}
+
+@media(max-width:920px){
+
+  .topbar-inner{
+    min-height:auto;
+    padding:12px 0;
+    flex-wrap:wrap;
+  }
+
+  .top-actions{
+    width:100%;
+    justify-content:space-between;
+  }
+
+  .search{
+    max-width:none;
+    order:2;
+    flex-basis:100%;
+  }
+
+  .student-main{
+    padding:0 18px 20px;
+  }
+
+  .student-meta{
+    margin-top:-46px;
+  }
+
+  .student-avatar{
+    width:94px;
+    height:94px;
+    border-radius:22px;
+  }
+
+  .student-name{
+    font-size:1.35rem;
+  }
+
+  .student-shell{
+    grid-template-columns:1fr;
+  }
+
+  .left-col,
+  .right-col{
+    position:static;
+    display:block;
+  }
+
+  .left-col{
+    order:2;
+  }
+
+  .center-col{
+    order:1;
+  }
+
+  .grid-2,
+  .learning-grid{
+    grid-template-columns:1fr;
+  }
+
+  .stat-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:640px){
+
+  body{
+    padding-bottom:84px;
+  }
+
+  .container{
+    width:min(100%,calc(100% - 14px));
+  }
+
+  .student-actions{
+    width:100%;
+  }
+
+  .student-actions .primary-btn,
+  .student-actions .ghost-btn{
+    flex:1 1 100%;
+  }
+
+  .tabs{
+    overflow:auto;
+    flex-wrap:nowrap;
+    padding-bottom:4px;
+  }
+
+  .tabs::-webkit-scrollbar{
+    display:none;
+  }
+
+  .mobile-nav{
+    display:block;
+  }
+
+  .calendar-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+
+  <div class="container topbar-inner">
+
+    <div class="brand-wrap">
+
+      <a class="brand" href="home.html">
+        A
+      </a>
+
+      <div>
+
+        <div class="brand-title">
+          AIFT Student Portal
+        </div>
+
+        <div class="brand-sub">
+          Classes, assignments, schedules, progress, and learning
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="top-actions">
+
+      <div class="search">
+
+        <svg viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+
+        <input
+          type="search"
+          id="globalSearch"
+          placeholder="Search assignments, classes, schedules..."
+        >
+
+      </div>
+
+      <button
+        class="icon-btn"
+        onclick="goNotifications()"
+      >
+
+        <svg viewBox="0 0 24 24">
+          <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
+          <path d="M10 21a2 2 0 0 0 4 0"></path>
+        </svg>
+
+        <span class="badge" id="notificationBadge">0</span>
+
+      </button>
+
+      <button
+        class="primary-btn"
+        onclick="openModal('submissionModal')"
+      >
+        Submit Work
+      </button>
+
+      <img
+        id="topAvatar"
+        class="avatar"
+        src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+      >
+
+    </div>
+
+  </div>
+
+</header>
+
+<div class="container">
+
+  <div class="alert info" id="pageAlert"></div>
+
+  <!-- HERO -->
+
+  <section class="student-hero">
+
+    <div class="student-cover" id="studentCover"></div>
+
+    <div class="student-main">
+
+      <div class="student-row">
+
+        <div class="student-meta">
+
+          <img
+            id="studentAvatar"
+            class="student-avatar"
+            src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+          >
+
+          <div>
+
+            <h1 id="studentName" class="student-name">
+              Loading...
+            </h1>
+
+            <div id="studentSub" class="student-sub">
+              Student Workspace
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="student-actions">
+
+          <button
+            class="primary-btn"
+            onclick="openTab('classes')"
+          >
+            My Classes
+          </button>
+
+          <button
+            class="ghost-btn"
+            onclick="openTab('assignments')"
+          >
+            Assignments
+          </button>
+
+          <button
+            class="ghost-btn"
+            onclick="openTab('progress')"
+          >
+            Progress
+          </button>
+
+        </div>
+
+      </div>
+
+      <!-- STATS -->
+
+      <div class="stat-grid">
+
+        <article class="stat-card">
+
+          <div class="stat-label">
+            Classes
+          </div>
+
+          <div class="stat-value" id="statClasses">
+            0
+          </div>
+
+          <div class="stat-note">
+            Active enrolled classes
+          </div>
+
+        </article>
+
+        <article class="stat-card">
+
+          <div class="stat-label">
+            Assignments
+          </div>
+
+          <div class="stat-value" id="statAssignments">
+            0
+          </div>
+
+          <div class="stat-note">
+            Tasks and activities
+          </div>
+
+        </article>
+
+        <article class="stat-card">
+
+          <div class="stat-label">
+            Submissions
+          </div>
+
+          <div class="stat-value" id="statSubmissions">
+            0
+          </div>
+
+          <div class="stat-note">
+            Submitted student work
+          </div>
+
+        </article>
+
+        <article class="stat-card">
+
+          <div class="stat-label">
+            Completion
+          </div>
+
+          <div class="stat-value" id="statCompletion">
+            0%
+          </div>
+
+          <div class="stat-note">
+            Learning progress
+          </div>
+
+        </article>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- TABS -->
+
+  <div class="tabs">
+
+    <button
+      class="tab-btn active"
+      data-tab="overview"
+      onclick="openTab('overview')"
+    >
+      Overview
+    </button>
+
+    <button
+      class="tab-btn"
+      data-tab="classes"
+      onclick="openTab('classes')"
+    >
+      Classes
+    </button>
+
+    <button
+      class="tab-btn"
+      data-tab="assignments"
+      onclick="openTab('assignments')"
+    >
+      Assignments
+    </button>
+
+    <button
+      class="tab-btn"
+      data-tab="schedule"
+      onclick="openTab('schedule')"
+    >
+      Schedule
+    </button>
+
+    <button
+      class="tab-btn"
+      data-tab="progress"
+      onclick="openTab('progress')"
+    >
+      Progress
+    </button>
+
+    <button
+      class="tab-btn"
+      data-tab="resources"
+      onclick="openTab('resources')"
+    >
+      Resources
+    </button>
+
+  </div>
+  </div>
+
+<!-- MAIN -->
+
+<main class="page">
+
+  <div class="container">
+
+    <div class="student-shell">
+
+      <!-- LEFT SIDEBAR -->
+
+      <aside class="left-col">
+
+        <article class="card card-pad">
+
+          <div class="student-mini">
+
+            <img
+              id="leftStudentAvatar"
+              src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+            >
+
+            <div>
+
+              <strong id="leftStudentName">
+                Student
+              </strong>
+
+              <span id="leftStudentCourse">
+                Learning Portal
+              </span>
+
+            </div>
+
+          </div>
+
+          <h2 class="card-title">
+            Quick Actions
+          </h2>
+
+          <div class="quick-list">
+
+            <button
+              class="quick-item"
+              onclick="openTab('assignments')"
+            >
+
+              <div class="quick-icon">
+
+                <svg viewBox="0 0 24 24">
+                  <path d="M9 11l3 3L22 4"></path>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+
+              </div>
+
+              <div>
+
+                <h4>Assignments</h4>
+
+                <p>
+                  Complete and submit school work.
+                </p>
+
+              </div>
+
+            </button>
+
+            <button
+              class="quick-item"
+              onclick="openTab('schedule')"
+            >
+
+              <div class="quick-icon">
+
+                <svg viewBox="0 0 24 24">
+                  <path d="M8 7V3"></path>
+                  <path d="M16 7V3"></path>
+                  <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                  <path d="M3 11h18"></path>
+                </svg>
+
+              </div>
+
+              <div>
+
+                <h4>Class Schedule</h4>
+
+                <p>
+                  Track lessons and live classes.
+                </p>
+
+              </div>
+
+            </button>
+
+            <button
+              class="quick-item"
+              onclick="openTab('progress')"
+            >
+
+              <div class="quick-icon">
+
+                <svg viewBox="0 0 24 24">
+                  <path d="M3 3v18h18"></path>
+                  <path d="M7 15l4-4 3 3 5-7"></path>
+                </svg>
+
+              </div>
+
+              <div>
+
+                <h4>Progress</h4>
+
+                <p>
+                  Monitor grades and performance.
+                </p>
+
+              </div>
+
+            </button>
+
+            <button
+              class="quick-item"
+              onclick="openModal('submissionModal')"
+            >
+
+              <div class="quick-icon">
+
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 5v14"></path>
+                  <path d="M5 12h14"></path>
+                </svg>
+
+              </div>
+
+              <div>
+
+                <h4>Submit Work</h4>
+
+                <p>
+                  Upload assignments and activities.
+                </p>
+
+              </div>
+
+            </button>
+
+          </div>
+
+        </article>
+
+        <!-- PERFORMANCE -->
+
+        <article class="card card-pad" style="margin-top:18px;">
+
+          <h2 class="card-title">
+            Performance
+          </h2>
+
+          <div class="progress-wrap">
+
+            <div class="progress-item">
+
+              <div class="progress-head">
+                <span>Assignment Completion</span>
+                <span id="completionText">0%</span>
+              </div>
+
+              <div class="progress-bar">
+                <div class="progress-fill" id="completionBar"></div>
+              </div>
+
+            </div>
+
+            <div class="progress-item">
+
+              <div class="progress-head">
+                <span>Attendance</span>
+                <span id="attendanceText">0%</span>
+              </div>
+
+              <div class="progress-bar">
+                <div class="progress-fill" id="attendanceBar"></div>
+              </div>
+
+            </div>
+
+            <div class="progress-item">
+
+              <div class="progress-head">
+                <span>Student Engagement</span>
+                <span id="engagementText">0%</span>
+              </div>
+
+              <div class="progress-bar">
+                <div class="progress-fill" id="engagementBar"></div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </article>
+
+      </aside>
+
+      <!-- CENTER -->
+
+      <section class="center-col">
+
+        <!-- OVERVIEW -->
+
+        <section id="section-overview" class="section active">
+
+          <article class="card card-pad">
+
+            <h2 class="card-title">
+              Learning Overview
+            </h2>
+
+            <div class="learning-grid">
+
+              <div class="learning-card">
+
+                <span>
+                  Productivity
+                </span>
+
+                <strong id="productivityScore">
+                  0%
+                </strong>
+
+                <p>
+                  Measures assignment completion and participation.
+                </p>
+
+              </div>
+
+              <div class="learning-card">
+
+                <span>
+                  Attendance
+                </span>
+
+                <strong id="attendanceScore">
+                  0%
+                </strong>
+
+                <p>
+                  Tracks class attendance and schedule participation.
+                </p>
+
+              </div>
+
+              <div class="learning-card">
+
+                <span>
+                  Overall Progress
+                </span>
+
+                <strong id="overallProgress">
+                  0%
+                </strong>
+
+                <p>
+                  Combined learning analytics and student engagement.
+                </p>
+
+              </div>
+
+            </div>
+
+          </article>
+
+          <article class="card card-pad" style="margin-top:18px;">
+
+            <h2 class="card-title">
+              Announcements
+            </h2>
+
+            <div class="list" id="announcementList">
+
+              <div class="loading">
+                Loading announcements...
+              </div>
+
+            </div>
+
+          </article>
+
+        </section>
+
+        <!-- CLASSES -->
+
+        <section id="section-classes" class="section">
+
+          <article class="card card-pad">
+
+            <h2 class="card-title">
+              My Classes
+            </h2>
+
+            <div class="grid-2" id="classesList">
+
+              <div class="loading">
+                Loading classes...
+              </div>
+
+            </div>
+
+          </article>
+
+        </section>
+
+        <!-- ASSIGNMENTS -->
+
+        <section id="section-assignments" class="section">
+
+          <article class="card card-pad">
+
+            <h2 class="card-title">
+              Assignments
+            </h2>
+
+            <div class="list" id="assignmentsList">
+
+              <div class="loading">
+                Loading assignments...
+              </div>
+
+            </div>
+
+          </article>
+
+        </section>
+
+        <!-- SCHEDULE -->
+
+        <section id="section-schedule" class="section">
+
+          <article class="card card-pad">
+
+            <h2 class="card-title">
+              Schedule
+            </h2>
+
+            <div class="list" id="scheduleList">
+
+              <div class="loading">
+                Loading schedules...
+              </div>
+
+            </div>
+
+          </article>
+
+          <article class="card card-pad" style="margin-top:18px;">
+
+            <h2 class="card-title">
+              Weekly Calendar
+            </h2>
+
+            <div class="calendar-grid" id="calendarGrid"></div>
+
+          </article>
+
+        </section>
+                <!-- PROGRESS -->
+
+        <section id="section-progress" class="section">
+
+          <article class="card card-pad">
+
+            <h2 class="card-title">
+              Student Progress
+            </h2>
+
+            <div class="list" id="progressList">
+
+              <div class="loading">
+                Loading progress...
+              </div>
+
+            </div>
+
+          </article>
+
+          <article class="card card-pad" style="margin-top:18px;">
+
+            <h2 class="card-title">
+              Attendance
+            </h2>
+
+            <div class="attendance-list" id="attendanceList">
+
+              <div class="loading">
+                Loading attendance...
+              </div>
+
+            </div>
+
+          </article>
+
+        </section>
+
+        <!-- RESOURCES -->
+
+        <section id="section-resources" class="section">
+
+          <article class="card card-pad">
+
+            <h2 class="card-title">
+              Learning Resources
+            </h2>
+
+            <div class="grid-2">
+
+              <div class="resource-card">
+
+                <div class="item-head">
+
+                  <div>
+
+                    <h3 class="item-title">
+                      English Training Materials
+                    </h3>
+
+                    <div class="item-sub">
+                      Speaking • Grammar • Pronunciation
+                    </div>
+
+                  </div>
+
+                  <span class="chip primary">
+                    English
+                  </span>
+
+                </div>
+
+                <p class="item-desc">
+                  Access grammar exercises, pronunciation guides,
+                  and speaking practice activities.
+                </p>
+
+              </div>
+
+              <div class="resource-card">
+
+                <div class="item-head">
+
+                  <div>
+
+                    <h3 class="item-title">
+                      Career Preparation
+                    </h3>
+
+                    <div class="item-sub">
+                      Interview • Resume • Communication
+                    </div>
+
+                  </div>
+
+                  <span class="chip success">
+                    Career
+                  </span>
+
+                </div>
+
+                <p class="item-desc">
+                  Learn customer service communication,
+                  interview preparation, and professional English.
+                </p>
+
+              </div>
+
+            </div>
+
+          </article>
+
+        </section>
+
+      </section>
+
+      <!-- RIGHT -->
+
+      <aside class="right-col">
+
+        <article class="card card-pad">
+
+          <h2 class="card-title">
+            Teachers
+          </h2>
+
+          <div class="side-list" id="teacherList">
+
+            <div class="loading">
+              Loading teachers...
+            </div>
+
+          </div>
+
+        </article>
+
+        <article class="card card-pad" style="margin-top:18px;">
+
+          <h2 class="card-title">
+            Upcoming Deadlines
+          </h2>
+
+          <div class="list" id="deadlineList">
+
+            <div class="loading">
+              Loading deadlines...
+            </div>
+
+          </div>
+
+        </article>
+
+      </aside>
+
+    </div>
+
+  </div>
+
+</main>
+
+<!-- SUBMISSION MODAL -->
+
+<div class="modal" id="submissionModal">
+
+  <div class="modal-box">
+
+    <div class="modal-head">
+
+      <div class="modal-title">
+        Submit Assignment
+      </div>
+
+      <button
+        class="ghost-btn"
+        onclick="closeModal('submissionModal')"
+      >
+        Close
+      </button>
+
+    </div>
+
+    <div class="modal-body">
+
+      <select id="submissionAssignmentId">
+
+        <option value="">
+          Select assignment
+        </option>
+
+      </select>
+
+      <textarea
+        id="submissionText"
+        placeholder="Write your assignment answer or notes..."
+      ></textarea>
+
+      <input
+        id="submissionFile"
+        type="url"
+        placeholder="Optional file URL"
+      >
+
+    </div>
+
+    <div class="modal-actions">
+
+      <button
+        class="ghost-btn"
+        onclick="closeModal('submissionModal')"
+      >
+        Cancel
+      </button>
+
+      <button
+        class="primary-btn"
+        onclick="submitAssignmentWork()"
+      >
+        Submit
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- MOBILE NAV -->
+
+<nav class="mobile-nav">
+
+  <div class="mobile-nav-inner">
+
+    <button
+      class="active"
+      onclick="openTab('overview')"
+    >
+
+      <svg viewBox="0 0 24 24">
+        <path d="M3 10.5 12 3l9 7.5"></path>
+        <path d="M5 9.5V21h14V9.5"></path>
+      </svg>
+
+      Home
+
+    </button>
+
+    <button onclick="openTab('classes')">
+
+      <svg viewBox="0 0 24 24">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+        <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"></path>
+      </svg>
+
+      Classes
+
+    </button>
+
+    <button onclick="openTab('assignments')">
+
+      <svg viewBox="0 0 24 24">
+        <path d="M9 11l3 3L22 4"></path>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+      </svg>
+
+      Tasks
+
+    </button>
+
+    <button onclick="openTab('schedule')">
+
+      <svg viewBox="0 0 24 24">
+        <path d="M8 7V3"></path>
+        <path d="M16 7V3"></path>
+        <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+        <path d="M3 11h18"></path>
+      </svg>
+
+      Schedule
+
+    </button>
+
+    <button onclick="openTab('progress')">
+
+      <svg viewBox="0 0 24 24">
+        <path d="M3 3v18h18"></path>
+        <path d="M7 15l4-4 3 3 5-7"></path>
+      </svg>
+
+      Progress
+
+    </button>
+
+  </div>
+
+</nav>
+
+<script src="student.js"></script>
+
+</body>
+</html>
