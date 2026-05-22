@@ -1713,7 +1713,12 @@ const API = "https://backend-1-9b6f.onrender.com";
 
 const token =
   localStorage.getItem("teacherToken") ||
+  localStorage.getItem("schoolToken") ||
+  localStorage.getItem("adminToken") ||
   localStorage.getItem("token");
+
+const urlParams = new URLSearchParams(window.location.search);
+const selectedTeacherId = urlParams.get("teacherId");
 
 const role = String(localStorage.getItem("role") || "").toLowerCase();
 
@@ -1721,7 +1726,16 @@ if (!token) {
   window.location.href = "login.html";
 }
 
-if (role && !["teacher","instructor","faculty","admin"].includes(role)) {
+if (
+  role &&
+  ![
+    "teacher",
+    "instructor",
+    "faculty",
+    "school",
+    "admin"
+  ].includes(role)
+){
   window.location.href = "home.html";
 }
 
@@ -1920,14 +1934,21 @@ async function loadAll(){
   try{
     const meRes = await apiGet("/api/users/me",null);
 
-    state.me = meRes?.user || meRes;
+   const loggedUser = meRes?.user || meRes;
+
+if (selectedTeacherId) {
+  const teacherRes = await apiGet(`/api/users/${selectedTeacherId}/public`, null);
+  state.me = teacherRes?.user || teacherRes;
+} else {
+  state.me = loggedUser;
+}
 
     if (!state.me){
       showAlert("error","Could not load teacher profile.");
       return;
     }
 
-    const teacherId = state.me._id;
+    const teacherId = selectedTeacherId || state.me._id;
 
     const [
       classes,
