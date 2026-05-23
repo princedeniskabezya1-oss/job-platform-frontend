@@ -2960,29 +2960,80 @@ img{
   </div>
 </div>
 
-<!-- POST MODAL -->
+<!-- SCHOOL UPDATE MODAL -->
 <div class="modal" id="postModal">
   <div class="modal-box">
     <div class="modal-head">
-      <div class="modal-title">Post School Update</div>
+      <div class="modal-title">Create School Update</div>
       <button class="ghost-btn" onclick="closeModal('postModal')">Close</button>
     </div>
 
     <div class="modal-body">
-      <div class="field">
-        <label>Update</label>
-        <textarea id="postContent" placeholder="Share an announcement or school update"></textarea>
+
+      <div class="input-grid">
+
+        <div class="field">
+          <label>Update Title</label>
+          <input id="postTitle" type="text" placeholder="Class reminder, deadline, announcement...">
+        </div>
+
+        <div class="field">
+          <label>Update Type</label>
+          <select id="postType">
+            <option value="announcement">Announcement</option>
+            <option value="homework">Homework</option>
+            <option value="deadline">Deadline</option>
+            <option value="schedule">Schedule Change</option>
+            <option value="event">Event</option>
+            <option value="resource">Resource</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Audience</label>
+          <select id="postAudience">
+            <option value="all">Everyone in school</option>
+            <option value="students">Students only</option>
+            <option value="teachers">Teachers only</option>
+            <option value="class">Specific class</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Class</label>
+          <select id="postClassId">
+            <option value="">No specific class</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Due Date / Event Date</label>
+          <input id="postDueDate" type="date">
+        </div>
+
+        <div class="field">
+          <label>Resource Link</label>
+          <input id="postMediaUrl" type="url" placeholder="Optional file, video, meeting, or material link">
+        </div>
+
       </div>
 
       <div class="field">
-        <label>Media URL</label>
-        <input id="postMediaUrl" type="url" placeholder="Optional image/video URL">
+        <label>Message</label>
+        <textarea id="postContent" placeholder="Write the update students or teachers should see..."></textarea>
       </div>
+
+      <label style="display:flex;align-items:center;gap:10px;font-weight:700;color:#374151;">
+        <input id="postPinned" type="checkbox" style="width:16px;height:16px;">
+        Pin this update at the top
+      </label>
+
     </div>
 
     <div class="modal-actions">
       <button class="ghost-btn" onclick="closeModal('postModal')">Cancel</button>
-      <button class="primary-btn" onclick="submitPost()">Publish</button>
+      <button class="primary-btn" onclick="submitPost()">Publish Update</button>
     </div>
   </div>
 </div>
@@ -3082,6 +3133,7 @@ const state = {
   me:null,
   users:[],
   posts:[],
+  schoolUpdates:[],
   classes:[],
   assignments:[],
   submissions:[],
@@ -3394,18 +3446,20 @@ async function loadAll(){
 
     const schoolId = getSchoolId();
 
-    const [
-      posts,
-      users,
-      classes,
-      assignments,
-      submissions,
-      opportunities,
-      schedules,
-      unread
-    ] = await Promise.all([
-      apiGet("/api/posts", []),
-      apiGet("/api/users/network", []),
+const [
+  posts,
+  schoolUpdates,
+  users,
+  classes,
+  assignments,
+  submissions,
+  opportunities,
+  schedules,
+  unread
+] = await Promise.all([
+  apiGet("/api/posts", []),
+  apiGet(`/api/school-updates?schoolId=${encodeURIComponent(schoolId)}`, []),
+  apiGet("/api/users/network", []),
       apiGet(`/api/classes?schoolId=${encodeURIComponent(schoolId)}`, []),
       apiGet(`/api/assignments?schoolId=${encodeURIComponent(schoolId)}`, []),
       apiGet(`/api/submissions?schoolId=${encodeURIComponent(schoolId)}`, []),
@@ -3414,8 +3468,9 @@ async function loadAll(){
       apiGet("/api/notifications/unread-count", { count:0 })
     ]);
 
-    state.posts = asArray(posts);
-    state.users = asArray(users);
+state.posts = asArray(posts);
+state.schoolUpdates = asArray(schoolUpdates);
+state.users = asArray(users);
     state.classes = asArray(classes);
     state.assignments = asArray(assignments);
     state.submissions = asArray(submissions);
@@ -3513,52 +3568,52 @@ function renderStats(unread){
 }
 
 function renderUpdates(){
-  const posts = getSchoolPosts()
-    .sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-    .slice(0,8);
+  const updates = state.schoolUpdates
+    .sort((a,b) => {
+      const pinnedDiff = Number(b.pinned || false) - Number(a.pinned || false);
+      if (pinnedDiff) return pinnedDiff;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    })
+    .slice(0,12);
 
-  if (!posts.length){
-    showEmpty("updatesList","No school updates yet.");
+  if (!updates.length){
+    showEmpty("updatesList","No private school updates yet.");
     return;
   }
 
   const logo = state.me?.logo || state.me?.schoolLogo || state.me?.profileImage || FALLBACK_LOGO;
 
-  $("updatesList").innerHTML = posts.map(post => {
-    const text = post.text || post.content || "";
-    const media = post.mediaUrl || post.image || "";
-
-    return `
-      <article class="announce-item">
-
-        <div class="announce-head">
-          <div class="announce-user">
-            <img class="announce-avatar" src="${logo}" alt="">
-            <div>
-              <div class="announce-title">${escapeHtml(post.author?.name || getSchoolName())}</div>
-              <div class="announce-meta">${formatDateTime(post.createdAt)}</div>
+  $("updatesList").innerHTML = updates.map(update => `
+    <article class="announce-item">
+      <div class="announce-head">
+        <div class="announce-user">
+          <img class="announce-avatar" src="${logo}" alt="">
+          <div>
+            <div class="announce-title">${escapeHtml(update.title || "School Update")}</div>
+            <div class="announce-meta">
+              ${formatDateTime(update.createdAt)}
+              ${update.classId?.title ? " • " + escapeHtml(update.classId.title) : ""}
             </div>
           </div>
-
-          <span class="chip primary">Update</span>
         </div>
 
-        ${text ? `<div class="announce-text">${escapeHtml(text)}</div>` : ""}
+        <span class="chip ${update.type === "urgent" ? "warning" : "primary"}">
+          ${escapeHtml(update.type || "announcement")}
+        </span>
+      </div>
 
-        ${
-          media
-            ? `<div class="announce-media"><img src="${media}" alt="Post media"></div>`
-            : ""
-        }
+      <div class="announce-text">${escapeHtml(update.message || "")}</div>
 
-        <div class="announce-actions">
-          <span class="chip">${Array.isArray(post.likes) ? post.likes.length : 0} Likes</span>
-          <span class="chip">${Array.isArray(post.comments) ? post.comments.length : 0} Comments</span>
-        </div>
-
-      </article>
-    `;
-  }).join("");
+      <div class="announce-actions">
+        ${update.pinned ? `<span class="chip warning">Pinned</span>` : ""}
+        <span class="chip">${escapeHtml(update.audience || "all")}</span>
+        ${update.dueDate ? `<span class="chip success">Due ${formatDate(update.dueDate)}</span>` : ""}
+        ${update.resourceUrl ? `<a class="chip primary" href="${update.resourceUrl}" target="_blank">Resource</a>` : ""}
+        <button class="ghost-btn" onclick="editSchoolUpdate('${update._id}')">Edit</button>
+        <button class="danger-btn" onclick="deleteSchoolUpdate('${update._id}')">Remove</button>
+      </div>
+    </article>
+  `).join("");
 }
 
 function renderClasses(){
@@ -4020,7 +4075,7 @@ function hydrateSelects(){
       teachers.map(t => `<option value="${t._id}">${escapeHtml(t.name || t.email || "Teacher")}</option>`).join("");
   });
 
-  ["assignmentClassId","scheduleClassId"].forEach(id => {
+  ["assignmentClassId","scheduleClassId","postClassId"].forEach(id => {
     const select = $(id);
     if (!select) return;
 
@@ -4264,19 +4319,87 @@ async function submitSchedule(){
 }
 
 async function submitPost(){
-  const text = $("postContent").value.trim();
-  const mediaUrl = $("postMediaUrl").value.trim();
+  const title = $("postTitle")?.value.trim() || "School Update";
+  const message = $("postContent").value.trim();
+  const resourceUrl = $("postMediaUrl").value.trim();
 
-  if (!text && !mediaUrl){
-    return showAlert("error","Write an update or add media first.");
+  if (!message && !resourceUrl){
+    return showAlert("error","Write an update or add a resource link first.");
   }
 
-  await runAction("postModal","/api/posts",{
-    schoolId:getSchoolId(),
-    text,
-    content:text,
-    mediaUrl
-  },"Update published.");
+  try{
+    if (window.editingSchoolUpdateId){
+      await apiSend(`/api/school-updates/${window.editingSchoolUpdateId}`,"PATCH",{
+        title,
+        message,
+        resourceUrl,
+        schoolId:getSchoolId(),
+        type:$("postType")?.value || "announcement",
+        audience:$("postAudience")?.value || "all",
+        classId:$("postClassId")?.value || null,
+        dueDate:$("postDueDate")?.value || null,
+        pinned:!!$("postPinned")?.checked
+      });
+
+      window.editingSchoolUpdateId = null;
+      closeModal("postModal");
+      showAlert("success","School update edited.");
+      await loadAll();
+      return;
+    }
+
+    await runAction("postModal","/api/school-updates",{
+      schoolId:getSchoolId(),
+      title,
+      message,
+      resourceUrl,
+      type:$("postType")?.value || "announcement",
+      audience:$("postAudience")?.value || "all",
+      classId:$("postClassId")?.value || null,
+      dueDate:$("postDueDate")?.value || null,
+      pinned:!!$("postPinned")?.checked
+    },"School update published.");
+  }catch(err){
+    showAlert("error",err.message || "School update failed.");
+  }
+}
+  function editSchoolUpdate(id){
+  const item = state.schoolUpdates.find(x => String(x._id) === String(id));
+  if (!item) return showAlert("error","Update not found.");
+
+  if ($("postTitle")) $("postTitle").value = item.title || "";
+  if ($("postContent")) $("postContent").value = item.message || "";
+  if ($("postMediaUrl")) $("postMediaUrl").value = item.resourceUrl || "";
+  if ($("postType")) $("postType").value = item.type || "announcement";
+  if ($("postAudience")) $("postAudience").value = item.audience || "all";
+  if ($("postClassId")) $("postClassId").value = item.classId?._id || item.classId || "";
+  if ($("postDueDate")) $("postDueDate").value = item.dueDate ? String(item.dueDate).slice(0,10) : "";
+  if ($("postPinned")) $("postPinned").checked = !!item.pinned;
+
+  window.editingSchoolUpdateId = id;
+  openModal("postModal");
+}
+
+async function deleteSchoolUpdate(id){
+  if (!confirm("Remove this school update?")) return;
+
+  try{
+    const res = await fetch(API + "/api/school-updates/" + id, {
+      method:"DELETE",
+      headers:authHeaders()
+    });
+
+    const data = await safeJson(res);
+
+    if (!res.ok){
+      throw new Error(data?.message || "Failed to remove update.");
+    }
+
+    showAlert("success","School update removed.");
+    await loadAll();
+  }catch(err){
+    showAlert("error",err.message || "Failed to remove update.");
+  }
 }
 
 async function saveSchoolInfo(){
