@@ -1895,13 +1895,13 @@ img{
         Teachers
       </button>
 
-      <button
-        class="tab-btn"
-        data-tab="schedule"
-        onclick="openTab('schedule')"
-      >
-        Schedule
-      </button>
+<button
+  class="tab-btn"
+  data-tab="attendance"
+  onclick="openTab('attendance')"
+>
+  Attendance
+</button>
 
 <button
   class="tab-btn"
@@ -2405,8 +2405,73 @@ img{
 
           </article>
 
-        </section>
-                <!-- PORTAL -->
+</section>
+
+<!-- ATTENDANCE -->
+
+<section id="section-attendance" class="section">
+
+  <article class="card card-pad">
+
+    <h2 class="card-title">
+      Attendance Overview
+      <button class="small-link" onclick="loadAll()">Refresh</button>
+    </h2>
+
+    <div class="analytics-grid">
+
+      <div class="analytics-card">
+        <span>Attendance Rate</span>
+        <strong id="attendanceRateValue">0%</strong>
+        <div class="progress-bar">
+          <div class="progress-fill" id="attendanceRateBar"></div>
+        </div>
+      </div>
+
+      <div class="analytics-card">
+        <span>Present</span>
+        <strong id="attendancePresentValue">0</strong>
+      </div>
+
+      <div class="analytics-card">
+        <span>Late</span>
+        <strong id="attendanceLateValue">0</strong>
+      </div>
+
+      <div class="analytics-card">
+        <span>Absent</span>
+        <strong id="attendanceAbsentValue">0</strong>
+      </div>
+
+      <div class="analytics-card">
+        <span>Excused</span>
+        <strong id="attendanceExcusedValue">0</strong>
+      </div>
+
+      <div class="analytics-card">
+        <span>Participation Average</span>
+        <strong id="attendanceParticipationValue">0%</strong>
+      </div>
+
+    </div>
+
+  </article>
+
+  <article class="card card-pad" style="margin-top:18px;">
+
+    <h2 class="card-title">
+      Recent Attendance
+    </h2>
+
+    <div class="job-list" id="attendanceList">
+      <div class="loading">Loading attendance...</div>
+    </div>
+
+  </article>
+
+</section>
+
+<!-- PORTAL -->
 
         <section id="section-portal" class="section">
 
@@ -3376,7 +3441,9 @@ const state = {
   assignments:[],
   submissions:[],
   opportunities:[],
+  attendance: [],
   schedules:[]
+  
 };
 
 function $(id){ return document.getElementById(id); }
@@ -3691,9 +3758,10 @@ const [
   classes,
   assignments,
   submissions,
-  opportunities,
-  schedules,
-  unread
+opportunities,
+schedules,
+attendance,
+unread
 ] = await Promise.all([
   apiGet("/api/posts", []),
   apiGet(`/api/school-updates?schoolId=${encodeURIComponent(schoolId)}`, []),
@@ -3702,8 +3770,9 @@ const [
       apiGet(`/api/assignments?schoolId=${encodeURIComponent(schoolId)}`, []),
       apiGet(`/api/submissions?schoolId=${encodeURIComponent(schoolId)}`, []),
       apiGet(`/api/opportunities?schoolId=${encodeURIComponent(schoolId)}`, []),
-      apiGet(`/api/schedules?schoolId=${encodeURIComponent(schoolId)}`, []),
-      apiGet("/api/notifications/unread-count", { count:0 })
+apiGet(`/api/schedules?schoolId=${encodeURIComponent(schoolId)}`, []),
+apiGet(`/api/attendance?schoolId=${encodeURIComponent(schoolId)}`, []),
+apiGet("/api/notifications/unread-count", { count:0 })
     ]);
 
 state.posts = asArray(posts);
@@ -3714,6 +3783,7 @@ state.users = asArray(users);
     state.submissions = asArray(submissions);
     state.opportunities = asArray(opportunities);
     state.schedules = asArray(schedules);
+    state.attendance = asArray(attendance);
 
     renderProfile();
     renderStats(unread?.count || unread?.unread || 0);
@@ -3723,6 +3793,7 @@ state.users = asArray(users);
     renderStudents();
     renderTeachers();
     renderSchedule();
+    renderAttendance();
     renderAnalytics();
     renderSettings();
     hydrateSelects();
@@ -3772,6 +3843,120 @@ $("heroCover").style.backgroundImage = `url("${cover}")`;
     const isVerified = !!(me.verified || me.isVerified || me.adminVerified);
     verified.classList.toggle("show", isVerified);
   }
+}
+  function attendanceStats(records = state.attendance){
+  const total = records.length;
+
+  const present = records.filter(r => r.status === "present").length;
+  const late = records.filter(r => r.status === "late").length;
+  const absent = records.filter(r => r.status === "absent").length;
+  const excused = records.filter(r => r.status === "excused").length;
+
+  const weighted = records.reduce((sum,r) => {
+    if (r.status === "present") return sum + 1;
+    if (r.status === "late") return sum + 0.75;
+    if (r.status === "excused") return sum + 0.5;
+    return sum;
+  }, 0);
+
+  const attendanceRate = total ? Math.round((weighted / total) * 100) : 0;
+
+  const participationRecords = records.filter(r =>
+    typeof r.participationScore === "number"
+  );
+
+  const participationAverage = participationRecords.length
+    ? Math.round(
+        participationRecords.reduce((sum,r) => sum + Number(r.participationScore || 0), 0) /
+        participationRecords.length
+      )
+    : 0;
+
+  return {
+    total,
+    present,
+    late,
+    absent,
+    excused,
+    attendanceRate,
+    participationAverage
+  };
+}
+
+function renderAttendance(){
+  const list = $("attendanceList");
+  const stats = attendanceStats();
+
+  setText("attendanceRateValue", `${stats.attendanceRate}%`);
+  setText("attendancePresentValue", stats.present);
+  setText("attendanceLateValue", stats.late);
+  setText("attendanceAbsentValue", stats.absent);
+  setText("attendanceExcusedValue", stats.excused);
+  setText("attendanceParticipationValue", `${stats.participationAverage}%`);
+
+  const bar = $("attendanceRateBar");
+  if (bar) bar.style.width = `${stats.attendanceRate}%`;
+
+  if (!list) return;
+
+  if (!state.attendance.length){
+    list.innerHTML = `
+      <div class="empty">
+        No attendance records yet. Once teachers start marking attendance, records will appear here.
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = state.attendance.slice(0,20).map(record => {
+    const student =
+      record.studentId?.name ||
+      record.studentId?.email ||
+      "Student";
+
+    const teacher =
+      record.teacherId?.name ||
+      record.teacherId?.email ||
+      "Teacher";
+
+    const className =
+      record.classId?.title ||
+      record.classId?.name ||
+      "Class";
+
+    const date = record.date
+      ? new Date(record.date).toLocaleDateString()
+      : "No date";
+
+    const statusClass =
+      record.status === "present"
+        ? "success"
+        : record.status === "late" || record.status === "excused"
+          ? "warning"
+          : "";
+
+    return `
+      <div class="job-card">
+        <div class="job-head">
+          <div>
+            <h3 class="job-title">${escapeHtml(student)}</h3>
+            <div class="job-company">
+              ${escapeHtml(className)} • ${escapeHtml(teacher)} • ${escapeHtml(date)}
+            </div>
+          </div>
+
+          <span class="chip ${statusClass}">
+            ${escapeHtml(record.status || "present")}
+          </span>
+        </div>
+
+        <p class="job-desc">
+          Participation: ${Number(record.participationScore || 0)}%
+          ${record.notes ? ` • ${escapeHtml(record.notes)}` : ""}
+        </p>
+      </div>
+    `;
+  }).join("");
 }
 
 function renderStats(unread){
