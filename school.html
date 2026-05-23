@@ -4247,22 +4247,110 @@ function setProgress(textId,barId,value){
 
 function renderAnalytics(){
   const students = getStudents();
-  const completion = percent(state.submissions.length, state.assignments.length || 1);
-  const engagement = Math.min(100, state.posts.length * 10 + state.submissions.length * 5 + students.length * 2);
-  const activeClasses = Math.min(100, state.classes.length * 12);
+  const teachers = getTeachers();
+
+  const totalAssignments = state.assignments.length;
+  const totalSubmissions = state.submissions.length;
+
+  const reviewedSubmissions = state.submissions.filter(sub =>
+    sub.grade ||
+    sub.feedback ||
+    ["reviewed","returned"].includes(String(sub.status || "").toLowerCase())
+  ).length;
+
+  const completion = totalAssignments
+    ? Math.min(100, Math.round((totalSubmissions / totalAssignments) * 100))
+    : 0;
+
+  const expectedStudentActivity =
+    Math.max(1, students.length * Math.max(1, totalAssignments));
+
+  const submissionActivityRate =
+    totalSubmissions
+      ? Math.min(100, Math.round((totalSubmissions / expectedStudentActivity) * 100))
+      : 0;
+
+  const reviewRate =
+    totalSubmissions
+      ? Math.min(100, Math.round((reviewedSubmissions / totalSubmissions) * 100))
+      : 0;
+
+  const scheduleActivityRate =
+    state.classes.length
+      ? Math.min(100, Math.round((state.schedules.length / state.classes.length) * 100))
+      : 0;
+
+  const updateActivityRate =
+    state.schoolUpdates.length
+      ? Math.min(100, state.schoolUpdates.length * 8)
+      : 0;
+
+  const engagement = Math.min(
+    100,
+    Math.round(
+      submissionActivityRate * 0.45 +
+      reviewRate * 0.25 +
+      scheduleActivityRate * 0.20 +
+      updateActivityRate * 0.10
+    )
+  );
+
+  const activeClasses = Math.min(
+    100,
+    Math.round(state.classes.length * 12 + state.schedules.length * 6)
+  );
+
+  const setupScore =
+    (getDescription() ? 20 : 0) +
+    (getPrograms().length ? 20 : 0) +
+    (teachers.length ? 20 : 0) +
+    (students.length ? 20 : 0) +
+    (state.classes.length ? 20 : 0);
+
+  const healthScore = Math.min(
+    100,
+    Math.round(
+      setupScore * 0.35 +
+      completion * 0.25 +
+      engagement * 0.20 +
+      activeClasses * 0.20
+    )
+  );
+
+  const pendingReviews = Math.max(0, totalSubmissions - reviewedSubmissions);
+  const studentRisk = Math.max(0, students.length - totalSubmissions);
+  const teacherActivity = teachers.length
+    ? Math.min(100, Math.round((reviewedSubmissions / teachers.length) * 20))
+    : 0;
 
   setProgress("completionPercent","completionBar",completion);
   setProgress("engagementPercent","engagementBar",engagement);
   setProgress("activeClassesPercent","activeClassesBar",activeClasses);
 
-  setText("opportunityPipeline", state.opportunities.length);
-
-  const opportunityBar = $("opportunityBar");
-  if (opportunityBar) opportunityBar.style.width = Math.min(100, state.opportunities.length * 10) + "%";
-
   setProgress("rightCompletionPercent","rightCompletionBar",completion);
   setProgress("rightEngagementPercent","rightEngagementBar",engagement);
   setProgress("rightClassesPercent","rightClassesBar",activeClasses);
+
+  setText("opportunityPipeline", state.opportunities.length);
+
+  const opportunityBar = $("opportunityBar");
+  if (opportunityBar) {
+    opportunityBar.style.width = Math.min(100, state.opportunities.length * 10) + "%";
+  }
+
+  setText("schoolHealthScore", healthScore + "%");
+  setText("schoolHealthLabel", healthScore >= 80 ? "Strong operation" : healthScore >= 55 ? "Growing well" : "Needs setup");
+
+  setText("pendingReviewsValue", pendingReviews);
+  setText("scheduleCountValue", state.schedules.length);
+  setText("schoolUpdatesValue", state.schoolUpdates.length);
+  setText("opportunityMiniValue", state.opportunities.length);
+
+  setText("studentRiskValue", studentRisk);
+  setText("teacherActivityValue", teacherActivity + "%");
+  setText("attendanceReadinessValue", scheduleActivityRate + "%");
+  setText("insightCompletionValue", completion + "%");
+  setText("insightHealthValue", healthScore + "%");
 }
 
 function renderSettings(){
