@@ -1,0 +1,3113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+
+<title>AIFT | Class Builder</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --primary:#2557a7;
+  --primary-dark:#16437f;
+  --primary-soft:#eef4ff;
+  --green:#15803d;
+  --green-soft:#ecfdf5;
+  --purple:#6d28d9;
+  --purple-soft:#f5f3ff;
+  --warning:#d97706;
+  --warning-soft:#fffbeb;
+  --danger:#dc2626;
+  --danger-soft:#fef2f2;
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --text:#111827;
+  --muted:#667085;
+  --soft:#f8fafc;
+  --border:#e5e7eb;
+  --shadow:0 10px 28px rgba(15,23,42,.07);
+  --shadow-soft:0 6px 18px rgba(15,23,42,.045);
+  --radius:22px;
+  --radius-sm:14px;
+  --max:1480px;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+html{
+  scroll-behavior:smooth;
+}
+
+body{
+  margin:0;
+  font-family:Inter,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:14px;
+  line-height:1.45;
+}
+
+a{
+  color:inherit;
+  text-decoration:none;
+}
+
+button,
+input,
+select,
+textarea{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+img{
+  max-width:100%;
+  display:block;
+}
+
+.hidden{
+  display:none!important;
+}
+
+.container{
+  width:min(var(--max),calc(100% - 24px));
+  margin:0 auto;
+}
+
+/* TOPBAR */
+
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:1000;
+  background:rgba(255,255,255,.95);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(229,231,235,.9);
+}
+
+.topbar-inner{
+  min-height:68px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.brand-wrap{
+  display:flex;
+  align-items:center;
+  gap:13px;
+  min-width:0;
+}
+
+.brand{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  background:linear-gradient(135deg,var(--primary),#4d83d8);
+  display:grid;
+  place-items:center;
+  color:#fff;
+  font-weight:800;
+  box-shadow:0 8px 18px rgba(37,87,167,.22);
+  flex-shrink:0;
+}
+
+.brand-text{
+  min-width:0;
+}
+
+.brand-title{
+  font-size:1rem;
+  font-weight:800;
+  line-height:1.1;
+  letter-spacing:-.02em;
+}
+
+.brand-sub{
+  color:var(--muted);
+  font-size:.8rem;
+  margin-top:3px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.top-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  justify-content:flex-end;
+  min-width:0;
+}
+
+/* BUTTONS */
+
+.icon-btn,
+.pill-btn,
+.primary-btn,
+.ghost-btn,
+.danger-btn,
+.success-btn{
+  border:none;
+  cursor:pointer;
+  transition:.18s ease;
+  white-space:nowrap;
+}
+
+.icon-btn{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  display:grid;
+  place-items:center;
+  background:#fff;
+  border:1px solid var(--border);
+  color:#111827;
+}
+
+.icon-btn:hover,
+.pill-btn:hover,
+.primary-btn:hover,
+.ghost-btn:hover,
+.danger-btn:hover,
+.success-btn:hover{
+  transform:translateY(-1px);
+}
+
+.icon-btn svg{
+  width:19px;
+  height:19px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+}
+
+.pill-btn{
+  padding:10px 15px;
+  border-radius:999px;
+  background:#fff;
+  border:1px solid var(--border);
+  color:#111827;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+.primary-btn{
+  padding:10px 15px;
+  border-radius:999px;
+  background:var(--primary);
+  color:#fff;
+  font-weight:700;
+  font-size:.86rem;
+  box-shadow:0 8px 18px rgba(37,87,167,.18);
+}
+
+.ghost-btn{
+  padding:10px 14px;
+  border-radius:12px;
+  background:#fff;
+  border:1px solid var(--border);
+  color:#111827;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+.danger-btn{
+  padding:10px 14px;
+  border-radius:12px;
+  background:var(--danger-soft);
+  border:1px solid #fecaca;
+  color:#b91c1c;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+.success-btn{
+  padding:10px 14px;
+  border-radius:12px;
+  background:var(--green-soft);
+  border:1px solid #bbf7d0;
+  color:#166534;
+  font-weight:700;
+  font-size:.86rem;
+}
+
+/* ALERT */
+
+.alert{
+  display:none;
+  margin:16px 0 0;
+  padding:14px 16px;
+  border-radius:16px;
+  font-weight:700;
+  font-size:.9rem;
+}
+
+.alert.success{
+  display:block;
+  background:#ecfdf5;
+  color:#166534;
+  border:1px solid #bbf7d0;
+}
+
+.alert.error{
+  display:block;
+  background:#fef2f2;
+  color:#991b1b;
+  border:1px solid #fecaca;
+}
+
+.alert.info{
+  display:block;
+  background:#eff6ff;
+  color:#1d4ed8;
+  border:1px solid #bfdbfe;
+}
+
+/* HERO */
+
+.builder-hero-wrap{
+  padding:18px 0 0;
+}
+
+.builder-hero{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:24px;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+
+.builder-cover{
+  min-height:190px;
+  background:linear-gradient(135deg,#dbeafe,#eef4ff);
+  background-size:cover;
+  background-position:center;
+  position:relative;
+}
+
+.builder-cover::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,rgba(15,23,42,.05),rgba(15,23,42,.28));
+}
+
+.builder-main{
+  padding:22px 26px 24px;
+}
+
+.builder-main-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:20px;
+  flex-wrap:wrap;
+}
+
+.builder-kicker{
+  color:var(--primary-dark);
+  background:var(--primary-soft);
+  border:1px solid #dbeafe;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 10px;
+  border-radius:999px;
+  font-size:.76rem;
+  font-weight:800;
+  margin-bottom:10px;
+}
+
+.builder-kicker svg{
+  width:15px;
+  height:15px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+}
+
+.builder-title{
+  font-size:1.55rem;
+  font-weight:800;
+  margin:0;
+  letter-spacing:-.03em;
+  line-height:1.18;
+}
+
+.builder-meta{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:9px;
+  color:var(--muted);
+  font-size:.84rem;
+}
+
+.builder-meta span{
+  display:inline-flex;
+  align-items:center;
+}
+
+.builder-meta .dot{
+  width:4px;
+  height:4px;
+  border-radius:999px;
+  background:#cbd5e1;
+}
+
+.builder-actions{
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+/* STATS */
+
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:12px;
+  margin-top:20px;
+}
+
+.stat-card{
+  background:#f8fbff;
+  border:1px solid #e7eefb;
+  border-radius:18px;
+  padding:14px;
+}
+
+.stat-label{
+  font-size:.76rem;
+  color:var(--muted);
+  margin-bottom:7px;
+  font-weight:700;
+}
+
+.stat-value{
+  font-size:1.25rem;
+  font-weight:800;
+  line-height:1;
+  color:#111827;
+}
+
+/* PAGE LAYOUT */
+
+.page{
+  padding:20px 0 34px;
+}
+
+.builder-grid{
+  display:grid;
+  grid-template-columns:280px minmax(0,1fr) 330px;
+  gap:18px;
+  align-items:start;
+}
+
+.left-panel,
+.right-panel{
+  position:sticky;
+  top:88px;
+}
+
+.center-panel{
+  min-width:0;
+}
+
+.card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:22px;
+  box-shadow:var(--shadow-soft);
+  overflow:hidden;
+}
+
+.card-pad{
+  padding:20px;
+}
+
+.card-title{
+  font-size:1rem;
+  font-weight:800;
+  letter-spacing:-.02em;
+  margin:0 0 15px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.small-link{
+  color:var(--primary);
+  font-weight:700;
+  font-size:.84rem;
+  background:none;
+  border:0;
+  cursor:pointer;
+}
+
+/* NAV */
+
+.builder-nav{
+  display:grid;
+  gap:8px;
+}
+
+.builder-nav button{
+  border:1px solid transparent;
+  background:transparent;
+  color:#374151;
+  text-align:left;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:11px 12px;
+  border-radius:14px;
+  font-weight:800;
+  font-size:.86rem;
+  transition:.18s ease;
+}
+
+.builder-nav button:hover{
+  background:#f8fafc;
+}
+
+.builder-nav button.active{
+  background:var(--primary-soft);
+  border-color:#dbeafe;
+  color:var(--primary-dark);
+}
+
+.builder-nav svg{
+  width:18px;
+  height:18px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+  flex-shrink:0;
+}
+
+/* CONTENT SECTIONS */
+
+.section{
+  display:none;
+}
+
+.section.active{
+  display:block;
+}
+
+.section-stack{
+  display:grid;
+  gap:18px;
+}
+
+.loading{
+  padding:22px;
+  color:var(--muted);
+  font-size:.9rem;
+}
+
+.empty{
+  padding:22px;
+  color:var(--muted);
+  text-align:center;
+  border:1px dashed var(--border);
+  border-radius:18px;
+  background:#fff;
+  font-size:.9rem;
+}
+
+.chip{
+  padding:7px 10px;
+  border-radius:999px;
+  background:#f3f4f6;
+  color:#374151;
+  font-size:.76rem;
+  font-weight:700;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+}
+
+.chip.success{
+  background:var(--green-soft);
+  color:#166534;
+}
+
+.chip.warning{
+  background:var(--warning-soft);
+  color:#92400e;
+}
+
+.chip.primary{
+  background:var(--primary-soft);
+  color:var(--primary-dark);
+}
+
+.chip.danger{
+  background:var(--danger-soft);
+  color:#991b1b;
+}
+
+/* FORMS */
+
+.input-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.field{
+  display:grid;
+  gap:8px;
+}
+
+.field.full{
+  grid-column:1 / -1;
+}
+
+.field label{
+  font-size:.84rem;
+  color:#374151;
+  font-weight:700;
+}
+
+.field input,
+.field select,
+.field textarea{
+  width:100%;
+  padding:12px 13px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:#fff;
+  outline:none;
+  font-size:.9rem;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus{
+  border-color:#bfd3ff;
+  box-shadow:0 0 0 4px rgba(37,87,167,.08);
+}
+
+.field textarea{
+  min-height:110px;
+  resize:vertical;
+}
+
+.form-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:16px;
+}
+
+/* LISTS */
+
+.item-list{
+  display:grid;
+  gap:14px;
+}
+
+.builder-item{
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:16px;
+  background:#fff;
+}
+
+.builder-item-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+  margin-bottom:10px;
+}
+
+.builder-item-title{
+  margin:0;
+  font-size:.98rem;
+  font-weight:800;
+  letter-spacing:-.015em;
+}
+
+.builder-item-sub{
+  color:var(--muted);
+  font-size:.8rem;
+  margin-top:4px;
+}
+
+.builder-item-text{
+  color:#4b5563;
+  font-size:.88rem;
+  line-height:1.55;
+  margin:0 0 12px;
+}
+
+.builder-item-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+/* CURRICULUM */
+
+.module-card{
+  border:1px solid var(--border);
+  border-radius:20px;
+  background:#fff;
+  overflow:hidden;
+}
+
+.module-head{
+  padding:16px;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+  background:#fbfdff;
+  border-bottom:1px solid var(--border);
+}
+
+.lesson-list{
+  padding:12px;
+  display:grid;
+  gap:10px;
+}
+
+.lesson-row{
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:13px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.lesson-row h4{
+  margin:0;
+  font-size:.9rem;
+  font-weight:800;
+}
+
+.lesson-row p{
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:.8rem;
+}
+
+/* PREVIEW */
+
+.preview-box{
+  border:1px solid var(--border);
+  border-radius:20px;
+  overflow:hidden;
+  background:#fff;
+}
+
+.preview-cover{
+  height:180px;
+  background:linear-gradient(135deg,#dbeafe,#eef4ff);
+  background-size:cover;
+  background-position:center;
+}
+
+.preview-content{
+  padding:20px;
+}
+
+.preview-content h2{
+  margin:0 0 8px;
+  font-size:1.2rem;
+  letter-spacing:-.02em;
+}
+
+.preview-content p{
+  margin:0;
+  color:#4b5563;
+  line-height:1.6;
+}
+
+.outcome-list{
+  margin:15px 0 0;
+  padding:0;
+  list-style:none;
+  display:grid;
+  gap:8px;
+}
+
+.outcome-list li{
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:10px 12px;
+  color:#374151;
+  background:#f8fafc;
+  font-size:.86rem;
+}
+
+/* ANALYTICS */
+
+.analytics-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.analytics-card{
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:15px;
+  background:#fff;
+}
+
+.analytics-card span{
+  display:block;
+  color:var(--muted);
+  font-size:.78rem;
+  font-weight:700;
+  margin-bottom:8px;
+}
+
+.analytics-card strong{
+  display:block;
+  font-size:1.25rem;
+  font-weight:800;
+}
+
+.progress-bar{
+  width:100%;
+  height:9px;
+  border-radius:999px;
+  background:#edf2f7;
+  overflow:hidden;
+  margin-top:10px;
+}
+
+.progress-fill{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,var(--primary),#5a94f7);
+  width:0%;
+}
+
+/* MODALS */
+
+.modal{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(15,23,42,.45);
+  z-index:2000;
+  padding:18px;
+}
+
+.modal.show{
+  display:flex;
+}
+
+.modal-box{
+  width:min(780px,100%);
+  max-height:92vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:24px;
+  border:1px solid var(--border);
+  box-shadow:0 30px 70px rgba(15,23,42,.18);
+}
+
+.modal-head{
+  padding:20px 22px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  position:sticky;
+  top:0;
+  background:#fff;
+  z-index:2;
+}
+
+.modal-title{
+  font-size:1.05rem;
+  font-weight:800;
+  letter-spacing:-.02em;
+}
+
+.modal-body{
+  padding:22px;
+  display:grid;
+  gap:14px;
+}
+
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+  padding:0 22px 22px;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:1200px){
+  .builder-grid{
+    grid-template-columns:250px minmax(0,1fr);
+  }
+
+  .right-panel{
+    display:none;
+  }
+
+  .stat-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+@media(max-width:900px){
+  .topbar-inner{
+    min-height:auto;
+    padding:12px 0;
+    flex-wrap:wrap;
+  }
+
+  .top-actions{
+    width:100%;
+    justify-content:flex-start;
+    overflow:auto;
+  }
+
+  .builder-grid{
+    grid-template-columns:1fr;
+  }
+
+  .left-panel,
+  .right-panel{
+    position:static;
+  }
+
+  .left-panel{
+    order:1;
+  }
+
+  .center-panel{
+    order:2;
+  }
+
+  .builder-nav{
+    display:flex;
+    overflow:auto;
+    padding-bottom:4px;
+  }
+
+  .builder-nav button{
+    flex:0 0 auto;
+  }
+
+  .builder-cover{
+    min-height:150px;
+  }
+
+  .builder-title{
+    font-size:1.35rem;
+  }
+
+  .stat-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .input-grid,
+  .analytics-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:640px){
+  .container{
+    width:min(100%,calc(100% - 14px));
+  }
+
+  .brand-sub{
+    display:none;
+  }
+
+  .pill-btn{
+    display:none;
+  }
+
+  .builder-main{
+    padding:18px;
+  }
+
+  .builder-actions{
+    width:100%;
+    justify-content:flex-start;
+  }
+
+  .builder-actions button{
+    flex:1 1 100%;
+  }
+
+  .stat-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .card-pad{
+    padding:18px;
+  }
+
+  .modal{
+    padding:10px;
+  }
+
+  .modal-box{
+    border-radius:20px;
+  }
+
+  .modal-actions{
+    flex-direction:column;
+  }
+
+  .modal-actions button{
+    width:100%;
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container topbar-inner">
+
+    <div class="brand-wrap">
+      <a class="brand" href="school.html">A</a>
+
+      <div class="brand-text">
+        <div class="brand-title">AIFT Class Builder</div>
+        <div class="brand-sub">Build modules, lessons, quizzes, assignments, and progress tracking</div>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <button class="pill-btn" onclick="goBackToSchool()">Back to School</button>
+      <button class="ghost-btn" onclick="openBuilderSection('preview')">Preview</button>
+      <button class="primary-btn" onclick="saveClassProfile()">Save Class</button>
+    </div>
+
+  </div>
+</header>
+
+<div class="builder-hero-wrap">
+  <div class="container">
+
+    <div class="alert info" id="pageAlert"></div>
+
+    <section class="builder-hero">
+
+      <div class="builder-cover" id="builderCover"></div>
+
+      <div class="builder-main">
+
+        <div class="builder-main-row">
+
+          <div>
+            <div class="builder-kicker">
+              <svg viewBox="0 0 24 24">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"></path>
+              </svg>
+              LMS Builder
+            </div>
+
+            <h1 class="builder-title" id="builderTitle">Loading class...</h1>
+
+            <div class="builder-meta">
+              <span id="builderSubject">Subject not added</span>
+              <span class="dot"></span>
+              <span id="builderTeacher">Teacher not assigned</span>
+              <span class="dot"></span>
+              <span id="builderStatus">Draft</span>
+            </div>
+          </div>
+
+          <div class="builder-actions">
+            <button class="ghost-btn" onclick="openBuilderSection('settings')">Edit Details</button>
+            <button class="success-btn" onclick="publishClass()">Publish</button>
+            <button class="danger-btn" onclick="archiveClass()">Archive</button>
+          </div>
+
+        </div>
+
+        <div class="stat-grid">
+
+          <article class="stat-card">
+            <div class="stat-label">Modules</div>
+            <div class="stat-value" id="statModules">0</div>
+          </article>
+
+          <article class="stat-card">
+            <div class="stat-label">Lessons</div>
+            <div class="stat-value" id="statLessons">0</div>
+          </article>
+
+          <article class="stat-card">
+            <div class="stat-label">Quizzes</div>
+            <div class="stat-value" id="statQuizzes">0</div>
+          </article>
+
+          <article class="stat-card">
+            <div class="stat-label">Assignments</div>
+            <div class="stat-value" id="statAssignments">0</div>
+          </article>
+
+          <article class="stat-card">
+            <div class="stat-label">Progress</div>
+            <div class="stat-value" id="statProgress">0%</div>
+          </article>
+
+          <article class="stat-card">
+            <div class="stat-label">Attendance</div>
+            <div class="stat-value" id="statAttendance">0%</div>
+          </article>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </div>
+</div>
+
+<main class="page">
+  <div class="container">
+
+    <div class="builder-grid">
+
+      <!-- LEFT NAV -->
+      <aside class="left-panel">
+
+        <article class="card card-pad">
+          <h2 class="card-title">Builder Tools</h2>
+
+          <div class="builder-nav">
+
+            <button class="active" data-builder-tab="overview" onclick="openBuilderSection('overview')">
+              <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path></svg>
+              Overview
+            </button>
+
+            <button data-builder-tab="curriculum" onclick="openBuilderSection('curriculum')">
+              <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"></path></svg>
+              Curriculum
+            </button>
+
+            <button data-builder-tab="lessons" onclick="openBuilderSection('lessons')">
+              <svg viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+              Lessons
+            </button>
+
+            <button data-builder-tab="quizzes" onclick="openBuilderSection('quizzes')">
+              <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+              Quizzes
+            </button>
+
+            <button data-builder-tab="students" onclick="openBuilderSection('students')">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"></circle><path d="M5.5 21a6.5 6.5 0 0 1 13 0"></path></svg>
+              Students
+            </button>
+
+            <button data-builder-tab="analytics" onclick="openBuilderSection('analytics')">
+              <svg viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-7"></path></svg>
+              Analytics
+            </button>
+
+            <button data-builder-tab="preview" onclick="openBuilderSection('preview')">
+              <svg viewBox="0 0 24 24"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              Preview
+            </button>
+
+            <button data-builder-tab="settings" onclick="openBuilderSection('settings')">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6 1h.1a2 2 0 1 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z"></path></svg>
+              Settings
+            </button>
+
+          </div>
+        </article>
+
+      </aside>
+
+      <!-- CENTER -->
+      <section class="center-panel">
+
+        <!-- OVERVIEW -->
+        <section id="section-overview" class="section active">
+          <div class="section-stack">
+
+            <article class="card card-pad">
+              <h2 class="card-title">Class Overview</h2>
+
+              <div class="analytics-grid">
+
+                <div class="analytics-card">
+                  <span>Class Status</span>
+                  <strong id="overviewStatus">Draft</strong>
+                </div>
+
+                <div class="analytics-card">
+                  <span>Students Enrolled</span>
+                  <strong id="overviewStudents">0</strong>
+                </div>
+
+                <div class="analytics-card">
+                  <span>Learning Materials</span>
+                  <strong id="overviewMaterials">0</strong>
+                </div>
+
+                <div class="analytics-card">
+                  <span>Average Progress</span>
+                  <strong id="overviewProgress">0%</strong>
+                  <div class="progress-bar">
+                    <div class="progress-fill" id="overviewProgressBar"></div>
+                  </div>
+                </div>
+
+              </div>
+            </article>
+
+            <article class="card card-pad">
+              <h2 class="card-title">
+                Welcome Content
+                <button class="small-link" onclick="openBuilderSection('settings')">Edit</button>
+              </h2>
+
+              <div id="welcomePreview" class="builder-item-text">
+                Loading...
+              </div>
+            </article>
+
+            <article class="card card-pad">
+              <h2 class="card-title">
+                Learning Outcomes
+                <button class="small-link" onclick="openBuilderSection('settings')">Edit</button>
+              </h2>
+
+              <ul class="outcome-list" id="outcomePreviewList"></ul>
+            </article>
+
+          </div>
+        </section>
+
+        <!-- CURRICULUM -->
+        <section id="section-curriculum" class="section">
+          <div class="section-stack">
+
+            <article class="card card-pad">
+              <h2 class="card-title">
+                Curriculum Modules
+                <button class="small-link" onclick="openModuleModal()">Add module</button>
+              </h2>
+
+              <div id="modulesList" class="item-list">
+                <div class="loading">Loading modules...</div>
+              </div>
+            </article>
+
+          </div>
+        </section>
+
+        <!-- LESSONS -->
+        <section id="section-lessons" class="section">
+          <div class="section-stack">
+
+            <article class="card card-pad">
+              <h2 class="card-title">
+                Lessons
+                <button class="small-link" onclick="openLessonModal()">Add lesson</button>
+              </h2>
+
+              <div id="lessonsList" class="item-list">
+                <div class="loading">Loading lessons...</div>
+              </div>
+            </article>
+
+          </div>
+        </section>
+                <!-- QUIZZES -->
+        <section id="section-quizzes" class="section">
+          <div class="section-stack">
+
+            <article class="card card-pad">
+
+              <h2 class="card-title">
+                Quizzes
+                <button class="small-link" onclick="openQuizModal()">Create quiz</button>
+              </h2>
+
+              <div id="quizzesList" class="item-list">
+                <div class="loading">Loading quizzes...</div>
+              </div>
+
+            </article>
+
+          </div>
+        </section>
+
+        <!-- STUDENTS -->
+        <section id="section-students" class="section">
+          <div class="section-stack">
+
+            <article class="card card-pad">
+
+              <h2 class="card-title">
+                Enrolled Students
+              </h2>
+
+              <div id="studentsList" class="item-list">
+                <div class="loading">Loading students...</div>
+              </div>
+
+            </article>
+
+            <article class="card card-pad">
+
+              <h2 class="card-title">
+                Student Progress Tracking
+              </h2>
+
+              <div id="studentProgressList" class="item-list">
+                <div class="loading">Loading progress...</div>
+              </div>
+
+            </article>
+
+          </div>
+        </section>
+
+        <!-- ANALYTICS -->
+        <section id="section-analytics" class="section">
+          <div class="section-stack">
+
+            <article class="card card-pad">
+
+              <h2 class="card-title">
+                Class Analytics
+              </h2>
+
+              <div class="analytics-grid">
+
+                <div class="analytics-card">
+                  <span>Average Completion</span>
+                  <strong id="analyticsCompletion">0%</strong>
+
+                  <div class="progress-bar">
+                    <div class="progress-fill" id="analyticsCompletionBar"></div>
+                  </div>
+                </div>
+
+                <div class="analytics-card">
+                  <span>Attendance Rate</span>
+                  <strong id="analyticsAttendance">0%</strong>
+
+                  <div class="progress-bar">
+                    <div class="progress-fill" id="analyticsAttendanceBar"></div>
+                  </div>
+                </div>
+
+                <div class="analytics-card">
+                  <span>Quiz Completion</span>
+                  <strong id="analyticsQuizCompletion">0%</strong>
+
+                  <div class="progress-bar">
+                    <div class="progress-fill" id="analyticsQuizBar"></div>
+                  </div>
+                </div>
+
+                <div class="analytics-card">
+                  <span>Assignment Completion</span>
+                  <strong id="analyticsAssignments">0%</strong>
+
+                  <div class="progress-bar">
+                    <div class="progress-fill" id="analyticsAssignmentsBar"></div>
+                  </div>
+                </div>
+
+              </div>
+
+            </article>
+
+          </div>
+        </section>
+
+        <!-- PREVIEW -->
+        <section id="section-preview" class="section">
+          <div class="section-stack">
+
+            <article class="preview-box">
+
+              <div class="preview-cover" id="previewCover"></div>
+
+              <div class="preview-content">
+
+                <div class="chip primary" id="previewStatus">
+                  Draft
+                </div>
+
+                <h2 id="previewTitle">
+                  Loading...
+                </h2>
+
+                <p id="previewDescription">
+                  Loading class description...
+                </p>
+
+                <ul class="outcome-list" id="previewOutcomes"></ul>
+
+              </div>
+
+            </article>
+
+          </div>
+        </section>
+
+        <!-- SETTINGS -->
+        <section id="section-settings" class="section">
+          <div class="section-stack">
+
+            <article class="card card-pad">
+
+              <h2 class="card-title">
+                Class Settings
+              </h2>
+
+              <div class="input-grid">
+
+                <div class="field">
+                  <label>Class Title</label>
+
+                  <input
+                    type="text"
+                    id="classTitleInput"
+                    placeholder="Example: Business English Masterclass"
+                  >
+                </div>
+
+                <div class="field">
+                  <label>Subject</label>
+
+                  <input
+                    type="text"
+                    id="classSubjectInput"
+                    placeholder="Example: English"
+                  >
+                </div>
+
+                <div class="field">
+                  <label>Level</label>
+
+                  <input
+                    type="text"
+                    id="classLevelInput"
+                    placeholder="Beginner / Intermediate / Advanced"
+                  >
+                </div>
+
+                <div class="field">
+                  <label>Language</label>
+
+                  <input
+                    type="text"
+                    id="classLanguageInput"
+                    placeholder="English"
+                  >
+                </div>
+
+                <div class="field">
+                  <label>Schedule</label>
+
+                  <input
+                    type="text"
+                    id="classScheduleInput"
+                    placeholder="Mon / Wed / Fri"
+                  >
+                </div>
+
+                <div class="field">
+                  <label>Meeting Link</label>
+
+                  <input
+                    type="text"
+                    id="classMeetingInput"
+                    placeholder="https://..."
+                  >
+                </div>
+
+                <div class="field full">
+                  <label>Cover Image URL</label>
+
+                  <input
+                    type="text"
+                    id="classCoverInput"
+                    placeholder="https://..."
+                  >
+                </div>
+
+                <div class="field full">
+                  <label>Banner Image URL</label>
+
+                  <input
+                    type="text"
+                    id="classBannerInput"
+                    placeholder="https://..."
+                  >
+                </div>
+
+                <div class="field full">
+                  <label>Description</label>
+
+                  <textarea
+                    id="classDescriptionInput"
+                    placeholder="Describe this class..."
+                  ></textarea>
+                </div>
+
+                <div class="field full">
+                  <label>Welcome Content</label>
+
+                  <textarea
+                    id="classWelcomeInput"
+                    placeholder="Welcome students..."
+                  ></textarea>
+                </div>
+
+                <div class="field full">
+                  <label>Learning Outcomes (one per line)</label>
+
+                  <textarea
+                    id="classOutcomesInput"
+                    placeholder="Students will improve speaking skills..."
+                  ></textarea>
+                </div>
+
+              </div>
+
+              <div class="form-actions">
+                <button class="ghost-btn" onclick="resetSettingsForm()">
+                  Reset
+                </button>
+
+                <button class="primary-btn" onclick="saveClassProfile()">
+                  Save Changes
+                </button>
+              </div>
+
+            </article>
+
+          </div>
+        </section>
+
+      </section>
+
+      <!-- RIGHT PANEL -->
+      <aside class="right-panel">
+
+        <article class="card card-pad">
+
+          <h2 class="card-title">
+            Publishing
+          </h2>
+
+          <div class="item-list">
+
+            <div class="builder-item">
+
+              <div class="builder-item-head">
+                <div>
+                  <h3 class="builder-item-title">
+                    Class Visibility
+                  </h3>
+
+                  <div class="builder-item-sub">
+                    Manage publishing state
+                  </div>
+                </div>
+
+                <span class="chip primary" id="publishStateChip">
+                  Draft
+                </span>
+              </div>
+
+              <p class="builder-item-text">
+                Publish this class once your curriculum, lessons,
+                and quizzes are ready for students.
+              </p>
+
+              <div class="builder-item-actions">
+                <button class="success-btn" onclick="publishClass()">
+                  Publish
+                </button>
+
+                <button class="danger-btn" onclick="archiveClass()">
+                  Archive
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
+        </article>
+
+        <article class="card card-pad" style="margin-top:18px;">
+
+          <h2 class="card-title">
+            Quick Actions
+          </h2>
+
+          <div class="item-list">
+
+            <div class="builder-item">
+              <h3 class="builder-item-title">Create Module</h3>
+
+              <p class="builder-item-text">
+                Organize your curriculum into structured modules.
+              </p>
+
+              <div class="builder-item-actions">
+                <button class="primary-btn" onclick="openModuleModal()">
+                  Add Module
+                </button>
+              </div>
+            </div>
+
+            <div class="builder-item">
+              <h3 class="builder-item-title">Create Lesson</h3>
+
+              <p class="builder-item-text">
+                Add videos, content, files, and lesson resources.
+              </p>
+
+              <div class="builder-item-actions">
+                <button class="primary-btn" onclick="openLessonModal()">
+                  Add Lesson
+                </button>
+              </div>
+            </div>
+
+            <div class="builder-item">
+              <h3 class="builder-item-title">Create Quiz</h3>
+
+              <p class="builder-item-text">
+                Build quizzes and track submissions in real time.
+              </p>
+
+              <div class="builder-item-actions">
+                <button class="primary-btn" onclick="openQuizModal()">
+                  Add Quiz
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </article>
+
+      </aside>
+
+    </div>
+
+  </div>
+</main>
+
+<!-- MODULE MODAL -->
+
+<div class="modal" id="moduleModal">
+
+  <div class="modal-box">
+
+    <div class="modal-head">
+      <div class="modal-title">Create Module</div>
+
+      <button class="icon-btn" onclick="closeModal('moduleModal')">
+        ✕
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="field">
+        <label>Module Title</label>
+
+        <input
+          type="text"
+          id="moduleTitleInput"
+          placeholder="Example: Speaking Fundamentals"
+        >
+      </div>
+
+      <div class="field">
+        <label>Description</label>
+
+        <textarea
+          id="moduleDescriptionInput"
+          placeholder="Describe this module..."
+        ></textarea>
+      </div>
+
+    </div>
+
+    <div class="modal-actions">
+      <button class="ghost-btn" onclick="closeModal('moduleModal')">
+        Cancel
+      </button>
+
+      <button class="primary-btn" onclick="createModule()">
+        Create Module
+      </button>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- LESSON MODAL -->
+
+<div class="modal" id="lessonModal">
+
+  <div class="modal-box">
+
+    <div class="modal-head">
+      <div class="modal-title">Create Lesson</div>
+
+      <button class="icon-btn" onclick="closeModal('lessonModal')">
+        ✕
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="input-grid">
+
+        <div class="field">
+          <label>Lesson Title</label>
+
+          <input
+            type="text"
+            id="lessonTitleInput"
+            placeholder="Lesson title"
+          >
+        </div>
+
+        <div class="field">
+          <label>Module</label>
+
+          <select id="lessonModuleInput">
+            <option value="">No module</option>
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>Video URL</label>
+
+          <input
+            type="text"
+            id="lessonVideoInput"
+            placeholder="https://..."
+          >
+        </div>
+
+        <div class="field full">
+          <label>Lesson Content</label>
+
+          <textarea
+            id="lessonContentInput"
+            placeholder="Write lesson content..."
+          ></textarea>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="modal-actions">
+
+      <button class="ghost-btn" onclick="closeModal('lessonModal')">
+        Cancel
+      </button>
+
+      <button class="primary-btn" onclick="createLesson()">
+        Create Lesson
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+<!-- QUIZ MODAL -->
+
+<div class="modal" id="quizModal">
+
+  <div class="modal-box">
+
+    <div class="modal-head">
+      <div class="modal-title">Create Quiz</div>
+
+      <button class="icon-btn" onclick="closeModal('quizModal')">
+        ✕
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="input-grid">
+
+        <div class="field">
+          <label>Quiz Title</label>
+
+          <input
+            type="text"
+            id="quizTitleInput"
+            placeholder="Example: Module 1 Quiz"
+          >
+        </div>
+
+        <div class="field">
+          <label>Lesson</label>
+
+          <select id="quizLessonInput">
+            <option value="">No lesson</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Passing Score (%)</label>
+
+          <input
+            type="number"
+            id="quizPassingInput"
+            value="70"
+            min="0"
+            max="100"
+          >
+        </div>
+
+        <div class="field">
+          <label>Attempts Allowed</label>
+
+          <input
+            type="number"
+            id="quizAttemptsInput"
+            value="1"
+            min="1"
+          >
+        </div>
+
+        <div class="field full">
+          <label>Instructions</label>
+
+          <textarea
+            id="quizInstructionsInput"
+            placeholder="Quiz instructions..."
+          ></textarea>
+        </div>
+
+        <div class="field full">
+          <label>Question</label>
+
+          <input
+            type="text"
+            id="quizQuestionInput"
+            placeholder="Write one question for now..."
+          >
+        </div>
+
+        <div class="field full">
+          <label>Options, one per line</label>
+
+          <textarea
+            id="quizOptionsInput"
+            placeholder="Option A&#10;Option B&#10;Option C"
+          ></textarea>
+        </div>
+
+        <div class="field full">
+          <label>Correct Answer</label>
+
+          <input
+            type="text"
+            id="quizCorrectInput"
+            placeholder="Must exactly match one option"
+          >
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="modal-actions">
+
+      <button class="ghost-btn" onclick="closeModal('quizModal')">
+        Cancel
+      </button>
+
+      <button class="primary-btn" onclick="createQuiz()">
+        Create Quiz
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+/* =====================================================
+   AIFT CLASS BUILDER
+   Production frontend controller
+===================================================== */
+
+const API_BASE = "https://backend-1-9b6f.onrender.com";
+
+const state = {
+  classId: new URLSearchParams(window.location.search).get("classId"),
+  schoolId: null,
+  classData: null,
+
+  modules: [],
+  lessons: [],
+  quizzes: [],
+  assignments: [],
+  submissions: [],
+  attendance: [],
+  progress: [],
+
+  analytics: {},
+  activeTab: "overview",
+  isLoading: false,
+  isSaving: false
+};
+
+/* =====================================================
+   AUTH / API HELPERS
+===================================================== */
+
+function getToken(){
+  const possibleTokens = [
+    "schoolToken",
+    "teacherToken",
+    "studentToken",
+    "adminToken",
+    "employerToken",
+    "talentToken",
+    "agentToken",
+    "token"
+  ];
+
+  for (const key of possibleTokens){
+    const token = localStorage.getItem(key);
+
+    if (token && token.trim()){
+      return token.trim();
+    }
+  }
+
+  return "";
+}
+
+function authHeaders(extra = {}){
+  const token = getToken();
+
+  const headers = {
+    "Content-Type": "application/json",
+    ...extra
+  };
+
+  if (token){
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  return headers;
+}
+
+async function safeJson(res){
+  try{
+    return await res.json();
+  }catch(err){
+    return null;
+  }
+}
+
+async function apiGet(path){
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "GET",
+    headers: authHeaders()
+  });
+
+  const data = await safeJson(res);
+
+  if (!res.ok){
+    const message = data?.message || `Request failed: ${path}`;
+    throw new Error(message);
+  }
+
+  return data;
+}
+
+async function apiSend(path, method, payload){
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: authHeaders(),
+    body: JSON.stringify(payload || {})
+  });
+
+  const data = await safeJson(res);
+
+  if (!res.ok){
+    const message = data?.message || `Request failed: ${path}`;
+    throw new Error(message);
+  }
+
+  return data;
+}
+
+/* =====================================================
+   DOM HELPERS
+===================================================== */
+
+function byId(id){
+  return document.getElementById(id);
+}
+
+function escapeHtml(value){
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function setText(id, value){
+  const el = byId(id);
+
+  if (!el){
+    console.warn(`Missing text element: #${id}`);
+    return;
+  }
+
+  el.textContent = value ?? "";
+}
+
+function setValue(id, value){
+  const el = byId(id);
+
+  if (!el){
+    console.warn(`Missing input element: #${id}`);
+    return;
+  }
+
+  el.value = value ?? "";
+}
+
+function getValue(id){
+  const el = byId(id);
+
+  if (!el){
+    console.warn(`Missing input element: #${id}`);
+    return "";
+  }
+
+  return String(el.value || "").trim();
+}
+
+function setButtonLoading(button, isLoading, labelWhenLoading = "Saving..."){
+  if (!button) return;
+
+  if (isLoading){
+    button.dataset.originalText = button.textContent;
+    button.textContent = labelWhenLoading;
+    button.disabled = true;
+    button.style.opacity = ".75";
+  } else {
+    button.textContent = button.dataset.originalText || button.textContent;
+    button.disabled = false;
+    button.style.opacity = "";
+  }
+}
+
+function showAlert(type, message){
+  const alert = byId("pageAlert");
+
+  if (!alert){
+    console.warn("Missing #pageAlert");
+    return;
+  }
+
+  alert.className = `alert ${type || "info"}`;
+  alert.textContent = message || "";
+  alert.style.display = message ? "block" : "none";
+
+  if (message){
+    window.clearTimeout(showAlert.timer);
+
+    showAlert.timer = window.setTimeout(() => {
+      alert.textContent = "";
+      alert.style.display = "none";
+      alert.className = "alert info";
+    }, 4500);
+  }
+}
+
+/* =====================================================
+   MODALS / NAVIGATION
+===================================================== */
+
+function openModal(id){
+  const modal = byId(id);
+
+  if (!modal){
+    showAlert("error", `Modal not found: ${id}`);
+    return;
+  }
+
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden", "false");
+
+  const firstInput = modal.querySelector("input, textarea, select, button");
+
+  if (firstInput){
+    setTimeout(() => firstInput.focus(), 80);
+  }
+
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal(id){
+  const modal = byId(id);
+
+  if (!modal){
+    console.warn(`Modal not found: ${id}`);
+    return;
+  }
+
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden", "true");
+
+  const stillOpen = document.querySelector(".modal.show");
+
+  if (!stillOpen){
+    document.body.style.overflow = "";
+  }
+}
+
+function closeAllModals(){
+  document.querySelectorAll(".modal.show").forEach(modal => {
+    modal.classList.remove("show");
+    modal.setAttribute("aria-hidden", "true");
+  });
+
+  document.body.style.overflow = "";
+}
+
+function goBackToSchool(){
+  const fallbackUrl = "school.html";
+
+  try{
+    const hasHistory = window.history.length > 1;
+
+    if (document.referrer && document.referrer.includes("school.html")){
+      window.location.href = document.referrer;
+      return;
+    }
+
+    if (hasHistory){
+      window.location.href = fallbackUrl;
+      return;
+    }
+
+    window.location.assign(fallbackUrl);
+  }catch(err){
+    console.error("Back navigation failed:", err);
+    window.location.href = fallbackUrl;
+  }
+}
+
+function openBuilderSection(tab){
+  if (!tab){
+    tab = "overview";
+  }
+
+  const section = byId(`section-${tab}`);
+
+  if (!section){
+    showAlert("error", `Section not found: ${tab}`);
+    return;
+  }
+
+  state.activeTab = tab;
+
+  document.querySelectorAll(".section").forEach(item => {
+    item.classList.remove("active");
+  });
+
+  document.querySelectorAll("[data-builder-tab]").forEach(btn => {
+    btn.classList.remove("active");
+    btn.setAttribute("aria-selected", "false");
+  });
+
+  section.classList.add("active");
+
+  const activeBtn = document.querySelector(`[data-builder-tab="${tab}"]`);
+
+  if (activeBtn){
+    activeBtn.classList.add("active");
+    activeBtn.setAttribute("aria-selected", "true");
+  }
+
+  if (window.innerWidth < 900){
+    window.scrollTo({
+      top: section.offsetTop - 90,
+      behavior: "smooth"
+    });
+  }
+}
+
+/* =====================================================
+   STATUS HELPERS
+===================================================== */
+
+function statusLabel(){
+  const cls = state.classData;
+
+  if (!cls){
+    return "Draft";
+  }
+
+  if (cls.status === "archived"){
+    return "Archived";
+  }
+
+  if (cls.published){
+    return "Published";
+  }
+
+  return "Draft";
+}
+
+function statusChipClass(){
+  const label = statusLabel();
+
+  if (label === "Published"){
+    return "chip success";
+  }
+
+  if (label === "Archived"){
+    return "chip danger";
+  }
+
+  return "chip warning";
+}
+
+/* =====================================================
+   LOAD BUILDER DATA
+===================================================== */
+
+async function loadBuilder(){
+  try{
+    if (state.isLoading){
+      return;
+    }
+
+    state.isLoading = true;
+
+    if (!state.classId){
+      showAlert("error", "Missing class ID. Please open this page from a class card.");
+      return;
+    }
+
+    if (!getToken()){
+      showAlert("error", "You are not logged in. Please log in again.");
+      return;
+    }
+
+    const data = await apiGet(
+      `/api/classes/${encodeURIComponent(state.classId)}/builder`
+    );
+
+    state.classData = data.class || null;
+    state.schoolId = data.schoolId || state.classData?.schoolId || null;
+
+    state.modules = Array.isArray(data.modules) ? data.modules : [];
+    state.lessons = Array.isArray(data.lessons) ? data.lessons : [];
+    state.quizzes = Array.isArray(data.quizzes) ? data.quizzes : [];
+    state.assignments = Array.isArray(data.assignments) ? data.assignments : [];
+    state.submissions = Array.isArray(data.submissions) ? data.submissions : [];
+    state.attendance = Array.isArray(data.attendance) ? data.attendance : [];
+    state.progress = Array.isArray(data.progress) ? data.progress : [];
+
+    state.analytics = data.analytics || {};
+
+    renderAll();
+  }catch(err){
+    console.error("loadBuilder error:", err);
+    showAlert("error", err.message || "Failed to load class builder.");
+  }finally{
+    state.isLoading = false;
+  }
+}
+
+function renderAll(){
+  renderHero();
+  renderStats();
+  renderOverview();
+  renderSettingsForm();
+  hydrateSelects();
+
+  renderModules();
+  renderLessons();
+  renderQuizzes();
+  renderStudents();
+  renderAnalytics();
+  renderPreview();
+}
+
+/* =====================================================
+   HERO / OVERVIEW / SETTINGS
+===================================================== */
+
+function renderHero(){
+  const cls = state.classData || {};
+  const coverUrl = cls.bannerImage || cls.coverImage || "";
+
+  setText("builderTitle", cls.title || "Untitled class");
+  setText("builderSubject", cls.subject || "Subject not added");
+  setText("builderTeacher", cls.teacherId?.name || cls.teacherId?.email || "Teacher not assigned");
+  setText("builderStatus", statusLabel());
+
+  const heroCover = byId("builderCover");
+
+  if (heroCover){
+    if (coverUrl){
+      heroCover.style.backgroundImage = `url("${coverUrl}")`;
+    } else {
+      heroCover.style.backgroundImage = "";
+    }
+  }
+
+  const publishChip = byId("publishStateChip");
+
+  if (publishChip){
+    publishChip.textContent = statusLabel();
+    publishChip.className = statusChipClass();
+  }
+}
+
+function renderStats(){
+  const a = state.analytics || {};
+
+  setText("statModules", a.moduleCount ?? state.modules.length);
+  setText("statLessons", a.lessonCount ?? state.lessons.length);
+  setText("statQuizzes", a.quizCount ?? state.quizzes.length);
+  setText("statAssignments", a.assignmentCount ?? state.assignments.length);
+  setText("statProgress", `${a.averageProgress || 0}%`);
+  setText("statAttendance", `${a.attendanceRate || 0}%`);
+}
+
+function renderOverview(){
+  const cls = state.classData || {};
+  const a = state.analytics || {};
+
+  const studentsCount = Array.isArray(cls.studentIds) ? cls.studentIds.length : 0;
+  const materialsCount = Array.isArray(cls.materials) ? cls.materials.length : 0;
+  const averageProgress = Math.min(100, Number(a.averageProgress || 0));
+
+  setText("overviewStatus", statusLabel());
+  setText("overviewStudents", studentsCount);
+  setText("overviewMaterials", materialsCount);
+  setText("overviewProgress", `${averageProgress}%`);
+
+  const bar = byId("overviewProgressBar");
+
+  if (bar){
+    bar.style.width = `${averageProgress}%`;
+  }
+
+  const welcome = byId("welcomePreview");
+
+  if (welcome){
+    welcome.textContent = cls.welcomeContent || cls.description || "No welcome content added yet.";
+  }
+
+  const list = byId("outcomePreviewList");
+  const outcomes = Array.isArray(cls.learningOutcomes) ? cls.learningOutcomes : [];
+
+  if (list){
+    list.innerHTML = outcomes.length
+      ? outcomes.map(item => `<li>${escapeHtml(item)}</li>`).join("")
+      : `<li>No learning outcomes added yet.</li>`;
+  }
+}
+
+function renderSettingsForm(){
+  const cls = state.classData || {};
+
+  setValue("classTitleInput", cls.title || "");
+  setValue("classSubjectInput", cls.subject || "");
+  setValue("classLevelInput", cls.level || "");
+  setValue("classLanguageInput", cls.language || "");
+  setValue("classScheduleInput", cls.schedule || "");
+  setValue("classMeetingInput", cls.meetingLink || "");
+  setValue("classCoverInput", cls.coverImage || "");
+  setValue("classBannerInput", cls.bannerImage || "");
+  setValue("classDescriptionInput", cls.description || "");
+  setValue("classWelcomeInput", cls.welcomeContent || "");
+
+  const outcomes = Array.isArray(cls.learningOutcomes) ? cls.learningOutcomes : [];
+
+  setValue("classOutcomesInput", outcomes.join("\n"));
+}
+
+function resetSettingsForm(){
+  renderSettingsForm();
+  showAlert("info", "Settings form reset.");
+}
+
+async function saveClassProfile(event){
+  const button = event?.currentTarget || null;
+
+  try{
+    if (state.isSaving){
+      return;
+    }
+
+    state.isSaving = true;
+    setButtonLoading(button, true, "Saving...");
+
+    const title = getValue("classTitleInput");
+
+    if (!title){
+      showAlert("error", "Class title is required.");
+      return;
+    }
+
+    const learningOutcomes = getValue("classOutcomesInput")
+      .split("\n")
+      .map(item => item.trim())
+      .filter(Boolean);
+
+    const payload = {
+      title,
+      subject: getValue("classSubjectInput") || null,
+      level: getValue("classLevelInput") || null,
+      language: getValue("classLanguageInput") || null,
+      schedule: getValue("classScheduleInput") || null,
+      meetingLink: getValue("classMeetingInput") || null,
+      coverImage: getValue("classCoverInput") || null,
+      bannerImage: getValue("classBannerInput") || null,
+      description: getValue("classDescriptionInput") || null,
+      welcomeContent: getValue("classWelcomeInput") || null,
+      learningOutcomes
+    };
+
+    const updatedClass = await apiSend(
+      `/api/classes/${encodeURIComponent(state.classId)}/builder`,
+      "PATCH",
+      payload
+    );
+
+    state.classData = updatedClass;
+
+    showAlert("success", "Class details saved.");
+    await loadBuilder();
+  }catch(err){
+    console.error("saveClassProfile error:", err);
+    showAlert("error", err.message || "Failed to save class.");
+  }finally{
+    state.isSaving = false;
+    setButtonLoading(button, false);
+  }
+}
+
+async function publishClass(){
+  try{
+    if (!state.classId){
+      showAlert("error", "Class ID missing.");
+      return;
+    }
+
+    await apiSend(
+      `/api/classes/${encodeURIComponent(state.classId)}/builder`,
+      "PATCH",
+      {
+        published: true,
+        status: "active"
+      }
+    );
+
+    showAlert("success", "Class published.");
+    await loadBuilder();
+  }catch(err){
+    console.error("publishClass error:", err);
+    showAlert("error", err.message || "Failed to publish class.");
+  }
+}
+
+async function archiveClass(){
+  try{
+    if (!state.classId){
+      showAlert("error", "Class ID missing.");
+      return;
+    }
+
+    await apiSend(
+      `/api/classes/${encodeURIComponent(state.classId)}/builder`,
+      "PATCH",
+      {
+        published: false,
+        status: "archived"
+      }
+    );
+
+    showAlert("success", "Class archived.");
+    await loadBuilder();
+  }catch(err){
+    console.error("archiveClass error:", err);
+    showAlert("error", err.message || "Failed to archive class.");
+  }
+}
+
+  /* =====================================================
+   SELECT HYDRATION
+===================================================== */
+
+function hydrateSelects(){
+  const lessonModule = byId("lessonModuleInput");
+  const quizLesson = byId("quizLessonInput");
+
+  if (lessonModule){
+    const currentValue = lessonModule.value || "";
+
+    lessonModule.innerHTML = `
+      <option value="">No module</option>
+      ${state.modules.map(module => `
+        <option value="${escapeHtml(module._id)}">
+          ${escapeHtml(module.title || "Untitled module")}
+        </option>
+      `).join("")}
+    `;
+
+    lessonModule.value = currentValue;
+  }
+
+  if (quizLesson){
+    const currentValue = quizLesson.value || "";
+
+    quizLesson.innerHTML = `
+      <option value="">No lesson</option>
+      ${state.lessons.map(lesson => `
+        <option value="${escapeHtml(lesson._id)}">
+          ${escapeHtml(lesson.title || "Untitled lesson")}
+        </option>
+      `).join("")}
+    `;
+
+    quizLesson.value = currentValue;
+  }
+}
+
+/* =====================================================
+   MODULES
+===================================================== */
+
+function openModuleModal(){
+  setValue("moduleTitleInput", "");
+  setValue("moduleDescriptionInput", "");
+  openModal("moduleModal");
+}
+
+async function createModule(event){
+  const button = event?.currentTarget || null;
+
+  try{
+    setButtonLoading(button, true, "Creating...");
+
+    if (!state.schoolId || !state.classId){
+      showAlert("error", "Missing school or class ID.");
+      return;
+    }
+
+    const title = getValue("moduleTitleInput");
+
+    if (!title){
+      showAlert("error", "Module title is required.");
+      return;
+    }
+
+    await apiSend("/api/class-modules", "POST", {
+      schoolId: state.schoolId,
+      classId: state.classId,
+      title,
+      description: getValue("moduleDescriptionInput") || "",
+      order: state.modules.length,
+      status: "draft",
+      isLocked: false
+    });
+
+    closeModal("moduleModal");
+    showAlert("success", "Module created.");
+    await loadBuilder();
+    openBuilderSection("curriculum");
+  }catch(err){
+    console.error("createModule error:", err);
+    showAlert("error", err.message || "Failed to create module.");
+  }finally{
+    setButtonLoading(button, false);
+  }
+}
+
+function renderModules(){
+  const el = byId("modulesList");
+
+  if (!el){
+    console.warn("Missing #modulesList");
+    return;
+  }
+
+  if (!state.modules.length){
+    el.innerHTML = `
+      <div class="empty">
+        No modules yet. Create your first curriculum module.
+      </div>
+    `;
+    return;
+  }
+
+  el.innerHTML = state.modules.map(module => {
+    const moduleLessons = state.lessons.filter(lesson => {
+      return String(lesson.moduleId || "") === String(module._id || "");
+    });
+
+    const statusClass = module.status === "published" ? "success" : "warning";
+
+    return `
+      <article class="module-card">
+
+        <div class="module-head">
+
+          <div>
+            <h3 class="builder-item-title">
+              ${escapeHtml(module.title || "Untitled module")}
+            </h3>
+
+            <div class="builder-item-sub">
+              ${escapeHtml(module.description || "No description added")}
+            </div>
+          </div>
+
+          <span class="chip ${statusClass}">
+            ${escapeHtml(module.status || "draft")}
+          </span>
+
+        </div>
+
+        <div class="lesson-list">
+
+          ${
+            moduleLessons.length
+              ? moduleLessons.map(lesson => `
+                <div class="lesson-row">
+
+                  <div>
+                    <h4>${escapeHtml(lesson.title || "Untitled lesson")}</h4>
+
+                    <p>
+                      ${escapeHtml(lesson.summary || lesson.content || "No lesson summary")}
+                    </p>
+                  </div>
+
+                  <span class="chip primary">
+                    ${escapeHtml(lesson.status || "draft")}
+                  </span>
+
+                </div>
+              `).join("")
+              : `<div class="empty">No lessons in this module yet.</div>`
+          }
+
+        </div>
+
+      </article>
+    `;
+  }).join("");
+}
+
+/* =====================================================
+   LESSONS
+===================================================== */
+
+function openLessonModal(){
+  setValue("lessonTitleInput", "");
+  setValue("lessonModuleInput", "");
+  setValue("lessonVideoInput", "");
+  setValue("lessonContentInput", "");
+
+  hydrateSelects();
+  openModal("lessonModal");
+}
+
+async function createLesson(event){
+  const button = event?.currentTarget || null;
+
+  try{
+    setButtonLoading(button, true, "Creating...");
+
+    if (!state.schoolId || !state.classId){
+      showAlert("error", "Missing school or class ID.");
+      return;
+    }
+
+    const title = getValue("lessonTitleInput");
+
+    if (!title){
+      showAlert("error", "Lesson title is required.");
+      return;
+    }
+
+    await apiSend("/api/class-lessons", "POST", {
+      schoolId: state.schoolId,
+      classId: state.classId,
+      moduleId: getValue("lessonModuleInput") || null,
+      title,
+      summary: "",
+      content: getValue("lessonContentInput") || "",
+      videoUrl: getValue("lessonVideoInput") || "",
+      coverUrl: "",
+      resources: [],
+      order: state.lessons.length,
+      durationMinutes: 0,
+      status: "draft",
+      previewEnabled: false
+    });
+
+    closeModal("lessonModal");
+    showAlert("success", "Lesson created.");
+    await loadBuilder();
+    openBuilderSection("lessons");
+  }catch(err){
+    console.error("createLesson error:", err);
+    showAlert("error", err.message || "Failed to create lesson.");
+  }finally{
+    setButtonLoading(button, false);
+  }
+}
+
+function renderLessons(){
+  const el = byId("lessonsList");
+
+  if (!el){
+    console.warn("Missing #lessonsList");
+    return;
+  }
+
+  if (!state.lessons.length){
+    el.innerHTML = `
+      <div class="empty">
+        No lessons yet. Add lessons with content, video, and resources.
+      </div>
+    `;
+    return;
+  }
+
+  el.innerHTML = state.lessons.map(lesson => {
+    const module = state.modules.find(item => {
+      return String(item._id || "") === String(lesson.moduleId || "");
+    });
+
+    const lessonStatus = lesson.status || "draft";
+    const chipClass = lessonStatus === "published" ? "success" : "warning";
+
+    return `
+      <article class="builder-item">
+
+        <div class="builder-item-head">
+
+          <div>
+            <h3 class="builder-item-title">
+              ${escapeHtml(lesson.title || "Untitled lesson")}
+            </h3>
+
+            <div class="builder-item-sub">
+              ${escapeHtml(module?.title || "No module")}
+              ·
+              ${escapeHtml(lessonStatus)}
+            </div>
+          </div>
+
+          <span class="chip ${chipClass}">
+            ${Number(lesson.durationMinutes || 0)} min
+          </span>
+
+        </div>
+
+        <p class="builder-item-text">
+          ${escapeHtml(lesson.content || lesson.summary || "No lesson content added.")}
+        </p>
+
+        ${
+          lesson.videoUrl
+            ? `<p class="builder-item-text"><strong>Video:</strong> ${escapeHtml(lesson.videoUrl)}</p>`
+            : ""
+        }
+
+      </article>
+    `;
+  }).join("");
+}
+
+/* =====================================================
+   QUIZZES
+===================================================== */
+
+function openQuizModal(){
+  setValue("quizTitleInput", "");
+  setValue("quizLessonInput", "");
+  setValue("quizPassingInput", "70");
+  setValue("quizAttemptsInput", "1");
+  setValue("quizInstructionsInput", "");
+  setValue("quizQuestionInput", "");
+  setValue("quizOptionsInput", "");
+  setValue("quizCorrectInput", "");
+
+  hydrateSelects();
+  openModal("quizModal");
+}
+
+async function createQuiz(event){
+  const button = event?.currentTarget || null;
+
+  try{
+    setButtonLoading(button, true, "Creating...");
+
+    if (!state.schoolId || !state.classId){
+      showAlert("error", "Missing school or class ID.");
+      return;
+    }
+
+    const title = getValue("quizTitleInput");
+
+    if (!title){
+      showAlert("error", "Quiz title is required.");
+      return;
+    }
+
+    const question = getValue("quizQuestionInput");
+    const correctAnswer = getValue("quizCorrectInput");
+
+    const options = getValue("quizOptionsInput")
+      .split("\n")
+      .map(item => item.trim())
+      .filter(Boolean);
+
+    const questions = question
+      ? [
+          {
+            question,
+            type: "multiple_choice",
+            options,
+            correctAnswer,
+            points: 1
+          }
+        ]
+      : [];
+
+    await apiSend("/api/quizzes", "POST", {
+      schoolId: state.schoolId,
+      classId: state.classId,
+      moduleId: null,
+      lessonId: getValue("quizLessonInput") || null,
+      title,
+      instructions: getValue("quizInstructionsInput") || "",
+      questions,
+      passingScore: Number(getValue("quizPassingInput") || 70),
+      timeLimitMinutes: 0,
+      attemptsAllowed: Number(getValue("quizAttemptsInput") || 1),
+      status: "draft"
+    });
+
+    closeModal("quizModal");
+    showAlert("success", "Quiz created.");
+    await loadBuilder();
+    openBuilderSection("quizzes");
+  }catch(err){
+    console.error("createQuiz error:", err);
+    showAlert("error", err.message || "Failed to create quiz.");
+  }finally{
+    setButtonLoading(button, false);
+  }
+}
+
+function renderQuizzes(){
+  const el = byId("quizzesList");
+
+  if (!el){
+    console.warn("Missing #quizzesList");
+    return;
+  }
+
+  if (!state.quizzes.length){
+    el.innerHTML = `
+      <div class="empty">
+        No quizzes yet. Create quizzes for lessons and modules.
+      </div>
+    `;
+    return;
+  }
+
+  el.innerHTML = state.quizzes.map(quiz => {
+    const lesson = state.lessons.find(item => {
+      return String(item._id || "") === String(quiz.lessonId || "");
+    });
+
+    const questionCount = Array.isArray(quiz.questions) ? quiz.questions.length : 0;
+    const quizStatus = quiz.status || "draft";
+    const chipClass = quizStatus === "published" ? "success" : "warning";
+
+    return `
+      <article class="builder-item">
+
+        <div class="builder-item-head">
+
+          <div>
+            <h3 class="builder-item-title">
+              ${escapeHtml(quiz.title || "Untitled quiz")}
+            </h3>
+
+            <div class="builder-item-sub">
+              ${escapeHtml(lesson?.title || "No lesson")}
+              ·
+              ${escapeHtml(quizStatus)}
+            </div>
+          </div>
+
+          <span class="chip ${chipClass}">
+            ${questionCount} questions
+          </span>
+
+        </div>
+
+        <p class="builder-item-text">
+          ${escapeHtml(quiz.instructions || "No instructions added.")}
+        </p>
+
+      </article>
+    `;
+  }).join("");
+}
+
+/* =====================================================
+   STUDENTS / PROGRESS
+===================================================== */
+
+function renderStudents(){
+  const studentsEl = byId("studentsList");
+  const progressEl = byId("studentProgressList");
+
+  const students = Array.isArray(state.classData?.studentIds)
+    ? state.classData.studentIds
+    : [];
+
+  if (studentsEl){
+    if (!students.length){
+      studentsEl.innerHTML = `
+        <div class="empty">
+          No enrolled students yet.
+        </div>
+      `;
+    } else {
+      studentsEl.innerHTML = students.map(student => {
+        const isObject = typeof student === "object" && student !== null;
+
+        return `
+          <article class="builder-item">
+
+            <h3 class="builder-item-title">
+              ${escapeHtml(isObject ? student.name || student.email || "Student" : student)}
+            </h3>
+
+            <div class="builder-item-sub">
+              ${escapeHtml(isObject ? student.email || "Student" : "Student ID")}
+            </div>
+
+          </article>
+        `;
+      }).join("");
+    }
+  }
+
+  if (progressEl){
+    if (!state.progress.length){
+      progressEl.innerHTML = `
+        <div class="empty">
+          No lesson progress recorded yet.
+        </div>
+      `;
+    } else {
+      progressEl.innerHTML = state.progress.slice(0, 30).map(item => {
+        const percent = Math.min(100, Number(item.progressPercent || 0));
+
+        return `
+          <article class="builder-item">
+
+            <div class="builder-item-head">
+
+              <div>
+                <h3 class="builder-item-title">
+                  ${escapeHtml(item.status || "Progress")}
+                </h3>
+
+                <div class="builder-item-sub">
+                  Student: ${escapeHtml(item.studentId || "Unknown")}
+                </div>
+              </div>
+
+              <span class="chip primary">
+                ${percent}%
+              </span>
+
+            </div>
+
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:${percent}%"></div>
+            </div>
+
+          </article>
+        `;
+      }).join("");
+    }
+  }
+}
+
+/* =====================================================
+   ANALYTICS / PREVIEW
+===================================================== */
+
+function renderAnalytics(){
+  const a = state.analytics || {};
+
+  const averageProgress = Math.min(100, Number(a.averageProgress || 0));
+  const attendanceRate = Math.min(100, Number(a.attendanceRate || 0));
+
+  const quizCompletion = state.quizzes.length
+    ? Math.round((state.submissions.length / state.quizzes.length) * 100)
+    : 0;
+
+  const assignmentCompletion = state.assignments.length
+    ? Math.round((state.submissions.length / state.assignments.length) * 100)
+    : 0;
+
+  setText("analyticsCompletion", `${averageProgress}%`);
+  setText("analyticsAttendance", `${attendanceRate}%`);
+  setText("analyticsQuizCompletion", `${Math.min(100, quizCompletion)}%`);
+  setText("analyticsAssignments", `${Math.min(100, assignmentCompletion)}%`);
+
+  const bars = [
+    ["analyticsCompletionBar", averageProgress],
+    ["analyticsAttendanceBar", attendanceRate],
+    ["analyticsQuizBar", Math.min(100, quizCompletion)],
+    ["analyticsAssignmentsBar", Math.min(100, assignmentCompletion)]
+  ];
+
+  bars.forEach(([id, value]) => {
+    const bar = byId(id);
+
+    if (bar){
+      bar.style.width = `${value}%`;
+    }
+  });
+}
+
+function renderPreview(){
+  const cls = state.classData || {};
+  const coverUrl = cls.bannerImage || cls.coverImage || "";
+
+  const previewCover = byId("previewCover");
+
+  if (previewCover){
+    previewCover.style.backgroundImage = coverUrl ? `url("${coverUrl}")` : "";
+  }
+
+  const chip = byId("previewStatus");
+
+  if (chip){
+    chip.textContent = statusLabel();
+    chip.className = statusChipClass();
+  }
+
+  setText("previewTitle", cls.title || "Untitled class");
+  setText("previewDescription", cls.description || "No description added.");
+
+  const outcomes = Array.isArray(cls.learningOutcomes)
+    ? cls.learningOutcomes
+    : [];
+
+  const list = byId("previewOutcomes");
+
+  if (list){
+    list.innerHTML = outcomes.length
+      ? outcomes.map(item => `<li>${escapeHtml(item)}</li>`).join("")
+      : `<li>No learning outcomes added.</li>`;
+  }
+}
+
+/* =====================================================
+   GLOBAL EVENTS / INIT
+===================================================== */
+
+function bindGlobalEvents(){
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape"){
+      closeAllModals();
+    }
+  });
+
+  document.querySelectorAll(".modal").forEach(modal => {
+    modal.addEventListener("click", event => {
+      if (event.target === modal){
+        closeModal(modal.id);
+      }
+    });
+  });
+}
+
+function initBuilder(){
+  bindGlobalEvents();
+  openBuilderSection("overview");
+  loadBuilder();
+}
+
+document.addEventListener("DOMContentLoaded", initBuilder);
+</script>
+
+</body>
+</html>
