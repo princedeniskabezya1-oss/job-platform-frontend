@@ -564,17 +564,25 @@ function renderAnnouncements(){
 
       <p class="item-desc">${escapeHtml(update.message || "")}</p>
 
-      ${
-        update.mediaUrl && update.mediaType === "image"
-          ? `<div class="class-cover" style="background-image:url('${update.mediaUrl}')"></div>`
-          : ""
-      }
+${
+  update.mediaUrl && update.mediaType === "image"
+    ? `
+      <div class="announcement-media">
+        <img src="${update.mediaUrl}" alt="School update media">
+      </div>
+    `
+    : ""
+}
 
-      ${
-        update.mediaUrl && update.mediaType === "video"
-          ? `<video src="${update.mediaUrl}" controls style="width:100%;border-radius:16px;border:1px solid var(--border);margin-bottom:12px;"></video>`
-          : ""
-      }
+${
+  update.mediaUrl && update.mediaType === "video"
+    ? `
+      <div class="announcement-media">
+        <video src="${update.mediaUrl}" controls></video>
+      </div>
+    `
+    : ""
+}
 
       <div class="meta-row">
         ${update.pinned ? `<span class="chip warning">Pinned</span>` : ""}
