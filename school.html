@@ -2599,7 +2599,7 @@ img{
           Pending Reviews
         </span>
 
-        <strong id="pendingReviewsValue">
+        <strong id="insightPendingReviewsValue">
           0
         </strong>
       </div>
@@ -4342,6 +4342,7 @@ function renderAnalytics(){
   setText("schoolHealthLabel", healthScore >= 80 ? "Strong operation" : healthScore >= 55 ? "Growing well" : "Needs setup");
 
   setText("pendingReviewsValue", pendingReviews);
+  setText("insightPendingReviewsValue", pendingReviews);
   setText("scheduleCountValue", state.schedules.length);
   setText("schoolUpdatesValue", state.schoolUpdates.length);
   setText("opportunityMiniValue", state.opportunities.length);
@@ -4484,6 +4485,292 @@ function hydrateSelects(){
       `<option value="">Select class</option>` +
       classes.map(c => `<option value="${c._id}">${escapeHtml(c.title || c.name || "Class")}</option>`).join("");
   });
+    hydrateInsightSelects();
+}
+  function hydrateInsightSelects(){
+  const studentSelect = $("insightStudentSelect");
+  const teacherSelect = $("insightTeacherSelect");
+
+  if (studentSelect){
+    const students = getStudents();
+
+    studentSelect.innerHTML =
+      `<option value="">Choose student</option>` +
+      students.map(student => `
+        <option value="${student._id}">
+          ${escapeHtml(student.name || student.email || "Student")}
+        </option>
+      `).join("");
+  }
+
+  if (teacherSelect){
+    const teachers = getTeachers();
+
+    teacherSelect.innerHTML =
+      `<option value="">Choose teacher</option>` +
+      teachers.map(teacher => `
+        <option value="${teacher._id}">
+          ${escapeHtml(teacher.name || teacher.email || "Teacher")}
+        </option>
+      `).join("");
+  }
+}
+  function renderSelectedStudentInsight(){
+  const id = $("insightStudentSelect")?.value;
+
+  if (!id){
+    resetInsightView();
+    return;
+  }
+
+  $("insightTeacherSelect").value = "";
+
+  const student = getStudents().find(user =>
+    String(user._id) === String(id)
+  );
+
+  if (!student){
+    resetInsightView();
+    return;
+  }
+
+  const studentSubmissions = state.submissions.filter(sub =>
+    sameId(sub.studentId,id) ||
+    sameId(sub.userId,id) ||
+    sameId(sub.authorId,id)
+  );
+
+  const reviewedSubmissions = studentSubmissions.filter(sub =>
+    sub.grade ||
+    sub.feedback ||
+    ["reviewed","returned"].includes(String(sub.status || "").toLowerCase())
+  );
+
+const studentClasses = state.classes.filter(cls => {
+  const ids = cls.studentIds || cls.students || [];
+  return ids.some(studentId => sameId(studentId?._id || studentId,id));
+});
+
+  const completionRate = state.assignments.length
+    ? Math.min(
+        100,
+        Math.round(
+          (studentSubmissions.length / state.assignments.length) * 100
+        )
+      )
+    : 0;
+
+  const reviewRate = studentSubmissions.length
+    ? Math.round(
+        (reviewedSubmissions.length / studentSubmissions.length) * 100
+      )
+    : 0;
+
+  const score = Math.min(
+    100,
+    Math.round(
+      completionRate * 0.7 +
+      reviewRate * 0.3
+    )
+  );
+
+  setText(
+    "selectedInsightName",
+    student.name || student.email || "Student"
+  );
+
+  setText("selectedInsightRole","Student");
+
+  setText(
+    "selectedInsightClasses",
+    studentClasses.length
+  );
+
+  setText(
+    "selectedInsightScore",
+    score + "%"
+  );
+
+  $("selectedInsightDetails").innerHTML = `
+    <article class="job-card">
+
+      <div class="job-head">
+        <div>
+          <h3 class="job-title">
+            Student Performance Summary
+          </h3>
+
+          <div class="job-company">
+            ${escapeHtml(student.course || "Student")}
+          </div>
+        </div>
+
+        <span class="chip primary">
+          Student
+        </span>
+      </div>
+
+      <div class="program-meta">
+
+        <span class="chip">
+          ${studentClasses.length} Classes
+        </span>
+
+        <span class="chip success">
+          ${studentSubmissions.length} Submissions
+        </span>
+
+        <span class="chip warning">
+          ${reviewedSubmissions.length} Reviewed
+        </span>
+
+        <span class="chip primary">
+          ${completionRate}% Completion
+        </span>
+
+      </div>
+
+      <p class="job-desc" style="margin-top:14px;">
+        ${
+          score >= 80
+            ? "Excellent student activity and assignment engagement."
+            : score >= 50
+            ? "Moderate activity. Student needs more engagement."
+            : "Low activity detected. Student may need follow-up."
+        }
+      </p>
+
+    </article>
+  `;
+}
+
+function renderSelectedTeacherInsight(){
+  const id = $("insightTeacherSelect")?.value;
+
+  if (!id){
+    resetInsightView();
+    return;
+  }
+
+  $("insightStudentSelect").value = "";
+
+  const teacher = getTeachers().find(user =>
+    String(user._id) === String(id)
+  );
+
+  if (!teacher){
+    resetInsightView();
+    return;
+  }
+
+  const teacherClasses = state.classes.filter(cls =>
+    sameId(cls.teacherId,id)
+  );
+
+  const teacherAssignments = state.assignments.filter(item =>
+    sameId(item.teacherId,id)
+  );
+
+  const reviewedSubmissions = state.submissions.filter(sub =>
+    sameId(sub.reviewedBy,id) ||
+    sameId(sub.teacherId,id)
+  );
+
+  const pendingReviews = Math.max(
+    0,
+    state.submissions.length - reviewedSubmissions.length
+  );
+
+  const score = Math.min(
+    100,
+    Math.round(
+      teacherClasses.length * 15 +
+      teacherAssignments.length * 10 +
+      reviewedSubmissions.length * 5
+    )
+  );
+
+  setText(
+    "selectedInsightName",
+    teacher.name || teacher.email || "Teacher"
+  );
+
+  setText("selectedInsightRole","Teacher");
+
+  setText(
+    "selectedInsightClasses",
+    teacherClasses.length
+  );
+
+  setText(
+    "selectedInsightScore",
+    score + "%"
+  );
+
+  $("selectedInsightDetails").innerHTML = `
+    <article class="job-card">
+
+      <div class="job-head">
+        <div>
+          <h3 class="job-title">
+            Teacher Performance Summary
+          </h3>
+
+          <div class="job-company">
+            ${escapeHtml(teacher.subject || "Teacher")}
+          </div>
+        </div>
+
+        <span class="chip success">
+          Teacher
+        </span>
+      </div>
+
+      <div class="program-meta">
+
+        <span class="chip">
+          ${teacherClasses.length} Classes
+        </span>
+
+        <span class="chip success">
+          ${teacherAssignments.length} Assignments
+        </span>
+
+        <span class="chip warning">
+          ${reviewedSubmissions.length} Reviews
+        </span>
+
+        <span class="chip primary">
+          ${pendingReviews} Pending
+        </span>
+
+      </div>
+
+      <p class="job-desc" style="margin-top:14px;">
+        ${
+          score >= 80
+            ? "High teacher activity and strong classroom management."
+            : score >= 50
+            ? "Moderate teacher activity detected."
+            : "Low activity detected. More engagement may be needed."
+        }
+      </p>
+
+    </article>
+  `;
+}
+
+function resetInsightView(){
+  setText("selectedInsightName","None");
+  setText("selectedInsightRole","None");
+  setText("selectedInsightClasses","0");
+  setText("selectedInsightScore","0%");
+
+  $("selectedInsightDetails").innerHTML = `
+    <div class="empty">
+      Select a student or teacher to view detailed performance.
+    </div>
+  `;
 }
 
 function hydrateProfileForm(){
