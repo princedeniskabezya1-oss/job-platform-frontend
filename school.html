@@ -3671,24 +3671,27 @@ function showEmpty(id,message){
 function openModal(id){
   const modal = document.getElementById(id);
 
-  if(modal){
-    modal.classList.add("active");
-    document.body.style.overflow = "hidden";
-  }
+  if (!modal) return;
 
-  if(id === "attendanceModal"){
+  modal.classList.add("show");
+  document.body.style.overflow = "hidden";
 
+  if (id === "attendanceModal"){
     setDefaultAttendanceDate();
-
     hydrateAttendanceStudentSelect();
-
     hydrateAttendanceScheduleSelect();
-
   }
 }
 
 function closeModal(id){
-  $(id)?.classList.remove("show");
+  const modal = document.getElementById(id);
+
+  if (modal){
+    modal.classList.remove("show");
+    modal.classList.remove("active");
+  }
+
+  document.body.style.overflow = "";
 
   if (id === "classModal") window.editingClassId = null;
   if (id === "assignmentModal") window.editingAssignmentId = null;
