@@ -4573,6 +4573,45 @@ const studentClasses = state.classes.filter(cls => {
       reviewRate * 0.3
     )
   );
+    const missingAssignments = Math.max(
+  0,
+  state.assignments.length - studentSubmissions.length
+);
+
+const gradedSubmissions = studentSubmissions.filter(sub =>
+  typeof sub.grade === "number"
+);
+
+const averageGrade = gradedSubmissions.length
+  ? Math.round(
+      gradedSubmissions.reduce((sum,sub) => sum + Number(sub.grade || 0),0)
+      / gradedSubmissions.length
+    )
+  : 0;
+
+const lateSubmissions = studentSubmissions.filter(sub => {
+  if (!sub.submittedAt || !sub.dueDate) return false;
+
+  return new Date(sub.submittedAt) > new Date(sub.dueDate);
+}).length;
+
+const lastSubmission =
+  studentSubmissions
+    .sort((a,b) =>
+      new Date(b.submittedAt || b.createdAt || 0) -
+      new Date(a.submittedAt || a.createdAt || 0)
+    )[0];
+
+const lastActivity = lastSubmission
+  ? formatDateTime(lastSubmission.submittedAt || lastSubmission.createdAt)
+  : "No activity";
+
+const riskLevel =
+  score >= 80
+    ? "Low"
+    : score >= 50
+    ? "Moderate"
+    : "High";
 
   setText(
     "selectedInsightName",
@@ -4591,57 +4630,71 @@ const studentClasses = state.classes.filter(cls => {
     score + "%"
   );
 
-  $("selectedInsightDetails").innerHTML = `
-    <article class="job-card">
+$("selectedInsightDetails").innerHTML = `
+  <article class="job-card">
 
-      <div class="job-head">
-        <div>
-          <h3 class="job-title">
-            Student Performance Summary
-          </h3>
+    <div class="job-head">
 
-          <div class="job-company">
-            ${escapeHtml(student.course || "Student")}
-          </div>
+      <div>
+        <h3 class="job-title">
+          Student Performance Summary
+        </h3>
+
+        <div class="job-company">
+          ${escapeHtml(student.course || "Student")}
         </div>
-
-        <span class="chip primary">
-          Student
-        </span>
       </div>
 
-      <div class="program-meta">
+      <span class="chip ${
+        riskLevel === "Low"
+          ? "success"
+          : riskLevel === "Moderate"
+          ? "warning"
+          : ""
+      }">
+        ${riskLevel} Risk
+      </span>
 
-        <span class="chip">
-          ${studentClasses.length} Classes
-        </span>
+    </div>
 
-        <span class="chip success">
-          ${studentSubmissions.length} Submissions
-        </span>
+    <div class="analytics-grid" style="margin-top:14px;">
 
-        <span class="chip warning">
-          ${reviewedSubmissions.length} Reviewed
-        </span>
-
-        <span class="chip primary">
-          ${completionRate}% Completion
-        </span>
-
+      <div class="analytics-card">
+        <span>Completion</span>
+        <strong>${completionRate}%</strong>
       </div>
 
-      <p class="job-desc" style="margin-top:14px;">
-        ${
-          score >= 80
-            ? "Excellent student activity and assignment engagement."
-            : score >= 50
-            ? "Moderate activity. Student needs more engagement."
-            : "Low activity detected. Student may need follow-up."
-        }
-      </p>
+      <div class="analytics-card">
+        <span>Average Grade</span>
+        <strong>${averageGrade || "--"}</strong>
+      </div>
 
-    </article>
-  `;
+      <div class="analytics-card">
+        <span>Missing Work</span>
+        <strong>${missingAssignments}</strong>
+      </div>
+
+      <div class="analytics-card">
+        <span>Late Submissions</span>
+        <strong>${lateSubmissions}</strong>
+      </div>
+
+      <div class="analytics-card">
+        <span>Reviewed Work</span>
+        <strong>${reviewedSubmissions.length}</strong>
+      </div>
+
+      <div class="analytics-card">
+        <span>Last Activity</span>
+        <strong style="font-size:.9rem;">
+          ${lastActivity}
+        </strong>
+      </div>
+
+    </div>
+
+  </article>
+`;
 }
 
 function renderSelectedTeacherInsight(){
@@ -4689,6 +4742,39 @@ function renderSelectedTeacherInsight(){
       reviewedSubmissions.length * 5
     )
   );
+  const assignedStudents = [];
+
+teacherClasses.forEach(cls => {
+  const ids = cls.studentIds || cls.students || [];
+
+  ids.forEach(student => {
+    const studentId = student?._id || student;
+
+    if (!assignedStudents.some(item => sameId(item?._id || item, studentId))) {
+      assignedStudents.push(student);
+    }
+  });
+});
+
+const reviewRate = state.submissions.length
+  ? Math.min(
+      100,
+      Math.round((reviewedSubmissions.length / state.submissions.length) * 100)
+    )
+  : 0;
+
+const assignmentLoad = teacherAssignments.length;
+
+const averageReviewsPerClass = teacherClasses.length
+  ? Math.round(reviewedSubmissions.length / teacherClasses.length)
+  : 0;
+
+const teacherRisk =
+  score >= 80
+    ? "Strong"
+    : score >= 50
+    ? "Moderate"
+    : "Needs Follow-up";
 
   setText(
     "selectedInsightName",
@@ -4707,57 +4793,77 @@ function renderSelectedTeacherInsight(){
     score + "%"
   );
 
-  $("selectedInsightDetails").innerHTML = `
-    <article class="job-card">
+$("selectedInsightDetails").innerHTML = `
+  <article class="job-card">
 
-      <div class="job-head">
-        <div>
-          <h3 class="job-title">
-            Teacher Performance Summary
-          </h3>
+    <div class="job-head">
+      <div>
+        <h3 class="job-title">
+          Teacher Performance Summary
+        </h3>
 
-          <div class="job-company">
-            ${escapeHtml(teacher.subject || "Teacher")}
-          </div>
+        <div class="job-company">
+          ${escapeHtml(teacher.subject || "Teacher")}
         </div>
-
-        <span class="chip success">
-          Teacher
-        </span>
       </div>
 
-      <div class="program-meta">
+      <span class="chip ${
+        teacherRisk === "Strong"
+          ? "success"
+          : teacherRisk === "Moderate"
+          ? "warning"
+          : ""
+      }">
+        ${teacherRisk}
+      </span>
+    </div>
 
-        <span class="chip">
-          ${teacherClasses.length} Classes
-        </span>
+    <div class="analytics-grid" style="margin-top:14px;">
 
-        <span class="chip success">
-          ${teacherAssignments.length} Assignments
-        </span>
-
-        <span class="chip warning">
-          ${reviewedSubmissions.length} Reviews
-        </span>
-
-        <span class="chip primary">
-          ${pendingReviews} Pending
-        </span>
-
+      <div class="analytics-card">
+        <span>Assigned Students</span>
+        <strong>${assignedStudents.length}</strong>
       </div>
 
-      <p class="job-desc" style="margin-top:14px;">
-        ${
-          score >= 80
-            ? "High teacher activity and strong classroom management."
-            : score >= 50
-            ? "Moderate teacher activity detected."
-            : "Low activity detected. More engagement may be needed."
-        }
-      </p>
+      <div class="analytics-card">
+        <span>Assigned Classes</span>
+        <strong>${teacherClasses.length}</strong>
+      </div>
 
-    </article>
-  `;
+      <div class="analytics-card">
+        <span>Assignments Created</span>
+        <strong>${assignmentLoad}</strong>
+      </div>
+
+      <div class="analytics-card">
+        <span>Reviewed Work</span>
+        <strong>${reviewedSubmissions.length}</strong>
+      </div>
+
+      <div class="analytics-card">
+        <span>Pending Reviews</span>
+        <strong>${pendingReviews}</strong>
+      </div>
+
+      <div class="analytics-card">
+        <span>Review Rate</span>
+        <strong>${reviewRate}%</strong>
+      </div>
+
+      <div class="analytics-card">
+        <span>Reviews / Class</span>
+        <strong>${averageReviewsPerClass}</strong>
+      </div>
+
+      <div class="analytics-card">
+        <span>Activity Score</span>
+        <strong>${score}%</strong>
+      </div>
+
+    </div>
+
+  </article>
+`;
 }
 
 function resetInsightView(){
