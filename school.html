@@ -3000,6 +3000,10 @@ img{
           <label>Resource Link</label>
           <input id="postMediaUrl" type="url" placeholder="Optional file, video, meeting, or material link">
         </div>
+        <div class="field">
+  <label>Upload Picture / Video</label>
+  <input id="postMediaFile" type="file" accept="image/*,video/*">
+</div>
 
       </div>
 
@@ -3587,6 +3591,17 @@ function renderUpdates(){
       </div>
 
       <div class="announce-text">${escapeHtml(update.message || "")}</div>
+      ${
+  update.mediaUrl && update.mediaType === "image"
+    ? `<div class="announce-media"><img src="${update.mediaUrl}" alt="School update media"></div>`
+    : ""
+}
+
+${
+  update.mediaUrl && update.mediaType === "video"
+    ? `<div class="announce-media"><video src="${update.mediaUrl}" controls></video></div>`
+    : ""
+}
 
       <div class="announce-actions">
         ${update.pinned ? `<span class="chip warning">Pinned</span>` : ""}
@@ -4303,46 +4318,59 @@ async function submitSchedule(){
 }
 
 async function submitPost(){
-  const title = $("postTitle")?.value.trim() || "School Update";
   const message = $("postContent").value.trim();
   const resourceUrl = $("postMediaUrl").value.trim();
+  const mediaFile = $("postMediaFile")?.files?.[0];
 
-  if (!message && !resourceUrl){
-    return showAlert("error","Write an update or add a resource link first.");
+  if (!message && !resourceUrl && !mediaFile){
+    return showAlert("error","Write an update, add a link, or upload media first.");
+  }
+
+  const formData = new FormData();
+
+  formData.append("schoolId", getSchoolId());
+  formData.append("title", $("postTitle")?.value.trim() || "School Update");
+  formData.append("message", message);
+  formData.append("resourceUrl", resourceUrl);
+  formData.append("type", $("postType")?.value || "announcement");
+  formData.append("audience", $("postAudience")?.value || "all");
+  formData.append("classId", $("postClassId")?.value || "");
+  formData.append("dueDate", $("postDueDate")?.value || "");
+  formData.append("pinned", $("postPinned")?.checked ? "true" : "false");
+
+  if (mediaFile){
+    formData.append("media", mediaFile);
   }
 
   try{
-    if (window.editingSchoolUpdateId){
-      await apiSend(`/api/school-updates/${window.editingSchoolUpdateId}`,"PATCH",{
-        title,
-        message,
-        resourceUrl,
-        schoolId:getSchoolId(),
-        type:$("postType")?.value || "announcement",
-        audience:$("postAudience")?.value || "all",
-        classId:$("postClassId")?.value || null,
-        dueDate:$("postDueDate")?.value || null,
-        pinned:!!$("postPinned")?.checked
-      });
+    const endpoint = window.editingSchoolUpdateId
+      ? `/api/school-updates/${window.editingSchoolUpdateId}`
+      : "/api/school-updates";
 
-      window.editingSchoolUpdateId = null;
-      closeModal("postModal");
-      showAlert("success","School update edited.");
-      await loadAll();
-      return;
+    const method = window.editingSchoolUpdateId ? "PATCH" : "POST";
+
+    const res = await fetch(API + endpoint,{
+      method,
+      headers:{
+        Authorization:"Bearer " + token
+      },
+      body:formData
+    });
+
+    const data = await safeJson(res);
+
+    if (!res.ok){
+      throw new Error(data?.message || "School update failed.");
     }
 
-    await runAction("postModal","/api/school-updates",{
-      schoolId:getSchoolId(),
-      title,
-      message,
-      resourceUrl,
-      type:$("postType")?.value || "announcement",
-      audience:$("postAudience")?.value || "all",
-      classId:$("postClassId")?.value || null,
-      dueDate:$("postDueDate")?.value || null,
-      pinned:!!$("postPinned")?.checked
-    },"School update published.");
+    window.editingSchoolUpdateId = null;
+
+    if ($("postMediaFile")) $("postMediaFile").value = "";
+
+    closeModal("postModal");
+    showAlert("success", method === "PATCH" ? "School update edited." : "School update published.");
+    await loadAll();
+
   }catch(err){
     showAlert("error",err.message || "School update failed.");
   }
