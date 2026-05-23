@@ -2097,6 +2097,32 @@ img{
 
             </button>
 
+            <button
+              class="quick-item"
+              onclick="openModal('attendanceModal')"
+            >
+
+              <div class="quick-icon">
+
+                <svg viewBox="0 0 24 24">
+                  <path d="M9 11l3 3L22 4"></path>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+
+              </div>
+
+              <div>
+
+                <h4>Mark Attendance</h4>
+
+                <p>
+                  Record attendance, participation, and student activity.
+                </p>
+
+              </div>
+
+            </button>
+
           </div>
 
         </article>
@@ -3284,6 +3310,80 @@ img{
   </div>
 </div>
 
+<!-- ATTENDANCE MODAL -->
+<div class="modal" id="attendanceModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">Mark Attendance</div>
+      <button class="ghost-btn" onclick="closeModal('attendanceModal')">Close</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="input-grid">
+
+        <div class="field">
+          <label>Class</label>
+          <select id="attendanceClassId" onchange="hydrateAttendanceStudentSelect()">
+            <option value="">Select class</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Teacher</label>
+          <select id="attendanceTeacherId">
+            <option value="">Select teacher</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Student</label>
+          <select id="attendanceStudentId">
+            <option value="">Select student</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Schedule</label>
+          <select id="attendanceScheduleId">
+            <option value="">Optional schedule</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Date</label>
+          <input id="attendanceDate" type="date">
+        </div>
+
+        <div class="field">
+          <label>Status</label>
+          <select id="attendanceStatus">
+            <option value="present">Present</option>
+            <option value="late">Late</option>
+            <option value="absent">Absent</option>
+            <option value="excused">Excused</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Participation Score</label>
+          <input id="attendanceParticipationScore" type="number" min="0" max="100" placeholder="0 - 100">
+        </div>
+
+      </div>
+
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="attendanceNotes" placeholder="Optional notes"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="ghost-btn" onclick="closeModal('attendanceModal')">Cancel</button>
+      <button class="primary-btn" onclick="submitAttendance()">Save Attendance</button>
+    </div>
+  </div>
+</div>
+
 <!-- SCHOOL UPDATE MODAL -->
 <div class="modal" id="postModal">
   <div class="modal-box">
@@ -3569,7 +3669,22 @@ function showEmpty(id,message){
 }
 
 function openModal(id){
-  $(id)?.classList.add("show");
+  const modal = document.getElementById(id);
+
+  if(modal){
+    modal.classList.add("active");
+    document.body.style.overflow = "hidden";
+  }
+
+  if(id === "attendanceModal"){
+
+    setDefaultAttendanceDate();
+
+    hydrateAttendanceStudentSelect();
+
+    hydrateAttendanceScheduleSelect();
+
+  }
 }
 
 function closeModal(id){
@@ -4788,7 +4903,7 @@ function hydrateSelects(){
   const teachers = getTeachers();
   const classes = state.classes;
 
-  ["classTeacherId","scheduleTeacherId"].forEach(id => {
+  ["classTeacherId","scheduleTeacherId","attendanceTeacherId"].forEach(id => {
     const select = $(id);
     if (!select) return;
 
@@ -4797,7 +4912,7 @@ function hydrateSelects(){
       teachers.map(t => `<option value="${t._id}">${escapeHtml(t.name || t.email || "Teacher")}</option>`).join("");
   });
 
-  ["assignmentClassId","scheduleClassId","postClassId"].forEach(id => {
+  ["assignmentClassId","scheduleClassId","postClassId","attendanceClassId"].forEach(id => {
     const select = $(id);
     if (!select) return;
 
@@ -4805,7 +4920,9 @@ function hydrateSelects(){
       `<option value="">Select class</option>` +
       classes.map(c => `<option value="${c._id}">${escapeHtml(c.title || c.name || "Class")}</option>`).join("");
   });
-    hydrateInsightSelects();
+  hydrateAttendanceStudentSelect();
+  hydrateAttendanceScheduleSelect();
+  hydrateInsightSelects();
 }
 function hydrateInsightSelects(){
   const students = getStudents();
@@ -4873,6 +4990,100 @@ function hydrateInsightSelects(){
 
   if (attendanceClassFilter){
     attendanceClassFilter.innerHTML = classOptions;
+  }
+}
+  function hydrateAttendanceStudentSelect(){
+  const select = $("attendanceStudentId");
+  if (!select) return;
+
+  const classId = $("attendanceClassId")?.value || "";
+  let students = getStudents();
+
+  if (classId){
+    const cls = state.classes.find(item => sameId(item._id, classId));
+
+    if (cls){
+      const ids = cls.studentIds || cls.students || [];
+
+      if (ids.length){
+        students = students.filter(student =>
+          ids.some(id => sameId(id?._id || id, student._id))
+        );
+      }
+    }
+  }
+
+  select.innerHTML =
+    `<option value="">Select student</option>` +
+    students.map(student => `
+      <option value="${student._id}">
+        ${escapeHtml(student.name || student.email || "Student")}
+      </option>
+    `).join("");
+}
+
+function hydrateAttendanceScheduleSelect(){
+  const select = $("attendanceScheduleId");
+  if (!select) return;
+
+  select.innerHTML =
+    `<option value="">Optional schedule</option>` +
+    state.schedules.map(schedule => {
+      const className =
+        schedule.classId?.title ||
+        schedule.classId?.name ||
+        state.classes.find(c => sameId(c._id, schedule.classId))?.title ||
+        "Schedule";
+
+      const dateText = schedule.date
+        ? new Date(schedule.date).toLocaleDateString()
+        : "No date";
+
+      return `
+        <option value="${schedule._id}">
+          ${escapeHtml(className)} • ${escapeHtml(dateText)} ${escapeHtml(schedule.time || "")}
+        </option>
+      `;
+    }).join("");
+}
+
+function setDefaultAttendanceDate(){
+  const input = $("attendanceDate");
+  if (!input || input.value) return;
+
+  const today = new Date();
+  input.value = today.toISOString().slice(0,10);
+}
+
+async function submitAttendance(){
+  try{
+    const payload = {
+      schoolId: getSchoolId(),
+      classId: $("attendanceClassId").value,
+      teacherId: $("attendanceTeacherId").value,
+      studentId: $("attendanceStudentId").value,
+      scheduleId: $("attendanceScheduleId").value || null,
+      date: $("attendanceDate").value,
+      status: $("attendanceStatus").value,
+      participationScore: Number($("attendanceParticipationScore").value || 0),
+      notes: $("attendanceNotes").value.trim(),
+      source: "manual"
+    };
+
+    if (!payload.classId) return showAlert("error","Please select a class.");
+    if (!payload.teacherId) return showAlert("error","Please select a teacher.");
+    if (!payload.studentId) return showAlert("error","Please select a student.");
+    if (!payload.date) return showAlert("error","Please select a date.");
+
+    await apiSend("/api/attendance","POST",payload);
+
+    closeModal("attendanceModal");
+    showAlert("success","Attendance saved.");
+    await loadAll();
+    openTab("attendance");
+
+  }catch(err){
+    showAlert("error", err.message || "Unable to save attendance.");
   }
 }
 function renderSelectedStudentInsight(){
