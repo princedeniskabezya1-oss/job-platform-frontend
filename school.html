@@ -3813,6 +3813,22 @@ function openTab(tab){
     section.classList.toggle("active", section.id === `section-${tab}`);
   });
 
+  const mainGrid = document.querySelector(".main-grid");
+  const leftCol = document.querySelector(".left-col");
+  const rightCol = document.querySelector(".right-col");
+
+  const fullWidthTabs = ["classes"];
+
+  if (fullWidthTabs.includes(tab)){
+    if (mainGrid) mainGrid.style.gridTemplateColumns = "minmax(0, 1fr)";
+    if (leftCol) leftCol.style.display = "none";
+    if (rightCol) rightCol.style.display = "none";
+  } else {
+    if (mainGrid) mainGrid.style.gridTemplateColumns = "";
+    if (leftCol) leftCol.style.display = "";
+    if (rightCol) rightCol.style.display = "";
+  }
+
   document.querySelectorAll(".mobile-nav button").forEach(btn => {
     btn.classList.remove("active");
   });
@@ -4305,7 +4321,8 @@ function renderClasses(){
             ${item.classCode || item.code ? `<span class="chip">${escapeHtml(item.classCode || item.code)}</span>` : ""}
             ${item.meetingLink ? `<a class="chip success" href="${item.meetingLink}" target="_blank">Meeting Link</a>` : ""}
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
-  <button class="ghost-btn" onclick="editClass('${item._id}')">Edit</button>
+  <button class="ghost-btn" onclick="openClassBuilder('${item._id}')">Builder</button>
+<button class="ghost-btn" onclick="editClass('${item._id}')">Quick Edit</button>
   <button class="danger-btn" onclick="deleteClass('${item._id}')">Remove</button>
 </div>
           </div>
@@ -4331,6 +4348,13 @@ function renderClasses(){
 
   window.editingClassId = id;
   openModal("classModal");
+}
+  function openClassBuilder(classId){
+  if (!classId){
+    return showAlert("error","Class ID missing.");
+  }
+
+  window.location.href = `class-builder.html?classId=${encodeURIComponent(classId)}`;
 }
 
 async function deleteClass(id){
