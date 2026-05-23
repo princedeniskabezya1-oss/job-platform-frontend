@@ -45,6 +45,7 @@ const state = {
   submissions:[],
   schedules:[],
   posts:[],
+schoolUpdates:[],
   teachers:[],
   unread:0,
   metrics:{
@@ -355,28 +356,31 @@ async function loadAll(){
     const schoolId = getSchoolId();
     const studentId = getStudentId();
 
-    const [
-      classes,
-      assignments,
-      submissions,
-      schedules,
-      posts,
-      unread
-    ] = await Promise.all([
+const [
+  classes,
+  assignments,
+  submissions,
+  schedules,
+  posts,
+  schoolUpdates,
+  unread
+] = await Promise.all([
       apiGet(`/api/classes?schoolId=${encodeURIComponent(schoolId)}`, []),
       apiGet(`/api/assignments?schoolId=${encodeURIComponent(schoolId)}`, []),
       apiGet(`/api/submissions?schoolId=${encodeURIComponent(schoolId)}&studentId=${encodeURIComponent(studentId)}`, []),
       apiGet(`/api/schedules?schoolId=${encodeURIComponent(schoolId)}`, []),
-      apiGet("/api/posts", []),
-      apiGet("/api/notifications/unread-count", { count:0 })
+apiGet("/api/posts", []),
+apiGet(`/api/school-updates?schoolId=${encodeURIComponent(schoolId)}`, []),
+apiGet("/api/notifications/unread-count", { count:0 })
     ]);
 
     state.classes = asArray(classes);
     state.assignments = asArray(assignments);
     state.submissions = asArray(submissions);
     state.schedules = asArray(schedules);
-    state.posts = asArray(posts);
-    state.unread = Number(unread?.count || unread?.unread || 0);
+state.posts = asArray(posts);
+state.schoolUpdates = asArray(schoolUpdates);
+state.unread = Number(unread?.count || unread?.unread || 0);
 
     state.teachers = getTeacherMap();
 
@@ -529,54 +533,56 @@ function renderAnnouncements(){
   const container = $("announcementList");
   if (!container) return;
 
-  const schoolId = getSchoolId();
-  const teacherIds = state.teachers.map(t => String(t._id));
-
-  const posts = state.posts
-    .filter(post => {
-      const authorId = String(post.author?._id || post.author || "");
-
-      return (
-        sameId(authorId, schoolId) ||
-        teacherIds.includes(authorId) ||
-        sameId(post.schoolId, schoolId)
-      );
+  const updates = state.schoolUpdates
+    .sort((a,b) => {
+      const pinnedDiff = Number(b.pinned || false) - Number(a.pinned || false);
+      if (pinnedDiff) return pinnedDiff;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     })
-    .sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     .slice(0,10);
 
-  if (!posts.length){
-    container.innerHTML = `<div class="empty">No announcements yet.</div>`;
+  if (!updates.length){
+    container.innerHTML = `<div class="empty">No school updates yet.</div>`;
     return;
   }
 
-  container.innerHTML = posts.map(post => {
-    const authorName =
-      post.author?.name ||
-      post.author?.schoolName ||
-      "School update";
-
-    return `
-      <article class="announcement-card">
-        <div class="item-head">
-          <div>
-            <h3 class="item-title">${escapeHtml(authorName)}</h3>
-            <div class="item-sub">${formatDateTime(post.createdAt)}</div>
+  container.innerHTML = updates.map(update => `
+    <article class="announcement-card">
+      <div class="item-head">
+        <div>
+          <h3 class="item-title">${escapeHtml(update.title || "School Update")}</h3>
+          <div class="item-sub">
+            ${formatDateTime(update.createdAt)}
+            ${update.classId?.title ? " • " + escapeHtml(update.classId.title) : ""}
           </div>
-
-          <span class="chip primary">Announcement</span>
         </div>
 
-        <p class="item-desc">${escapeHtml(post.text || post.content || "")}</p>
+        <span class="chip ${update.type === "urgent" ? "warning" : "primary"}">
+          ${escapeHtml(update.type || "announcement")}
+        </span>
+      </div>
 
-        ${
-          post.mediaUrl
-            ? `<a class="chip success" href="${post.mediaUrl}" target="_blank">Open resource</a>`
-            : ""
-        }
-      </article>
-    `;
-  }).join("");
+      <p class="item-desc">${escapeHtml(update.message || "")}</p>
+
+      ${
+        update.mediaUrl && update.mediaType === "image"
+          ? `<div class="class-cover" style="background-image:url('${update.mediaUrl}')"></div>`
+          : ""
+      }
+
+      ${
+        update.mediaUrl && update.mediaType === "video"
+          ? `<video src="${update.mediaUrl}" controls style="width:100%;border-radius:16px;border:1px solid var(--border);margin-bottom:12px;"></video>`
+          : ""
+      }
+
+      <div class="meta-row">
+        ${update.pinned ? `<span class="chip warning">Pinned</span>` : ""}
+        ${update.dueDate ? `<span class="chip success">Due ${formatDate(update.dueDate)}</span>` : ""}
+        ${update.resourceUrl ? `<a class="chip primary" href="${update.resourceUrl}" target="_blank">Resource</a>` : ""}
+      </div>
+    </article>
+  `).join("");
 }
 
 function renderClasses(){
