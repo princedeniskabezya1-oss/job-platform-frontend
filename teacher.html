@@ -1781,6 +1781,7 @@ const state = {
   assignments:[],
   submissions:[],
   posts:[],
+  schoolUpdates:[],
   students:[]
 };
 
@@ -1959,6 +1960,17 @@ function getTeacherStudents(){
 
   return Array.from(map.values());
 }
+  function getTeacherSchoolId(){
+  return (
+    state.me?.schoolId?._id ||
+    state.me?.schoolId ||
+    state.me?.linkedSchoolId?._id ||
+    state.me?.linkedSchoolId ||
+    state.me?.companyId?._id ||
+    state.me?.companyId ||
+    ""
+  );
+}
 
 async function loadAll(){
   try{
@@ -1980,24 +1992,29 @@ if (selectedTeacherId) {
 
     const teacherId = selectedTeacherId || state.me._id;
 
-    const [
-      classes,
-      assignments,
-      submissions,
-      posts,
-      unread
-    ] = await Promise.all([
-      apiGet("/api/classes",[]),
-      apiGet(`/api/assignments?teacherId=${teacherId}`,[]),
-      apiGet(`/api/submissions?teacherId=${teacherId}`,[]),
-      apiGet("/api/posts",[]),
-      apiGet("/api/notifications/unread-count",{ count:0 })
-    ]);
+const schoolId = getTeacherSchoolId();
+
+const [
+  classes,
+  assignments,
+  submissions,
+  posts,
+  schoolUpdates,
+  unread
+] = await Promise.all([
+  apiGet("/api/classes",[]),
+  apiGet(`/api/assignments?teacherId=${teacherId}`,[]),
+  apiGet(`/api/submissions?teacherId=${teacherId}`,[]),
+  apiGet("/api/posts",[]),
+  apiGet(`/api/school-updates?schoolId=${encodeURIComponent(schoolId)}`,[]),
+  apiGet("/api/notifications/unread-count",{ count:0 })
+]);
 
     state.classes = asArray(classes);
     state.assignments = asArray(assignments);
     state.submissions = asArray(submissions);
     state.posts = asArray(posts);
+state.schoolUpdates = asArray(schoolUpdates);
 
     renderProfile();
     renderStats();
@@ -2075,52 +2092,48 @@ function renderStats(){
 }
 
 function renderFeed(){
-
   const feed = $("teacherFeed");
+  if (!feed) return;
 
-  const items = state.posts
-    .filter(post => {
+  const classIds = getTeacherClasses().map(item => String(item._id));
+  const teacherId = String(state.me?._id || "");
+
+  const items = state.schoolUpdates
+    .filter(update => {
+      const audience = String(update.audience || "all").toLowerCase();
+      const updateClassId = String(update.classId?._id || update.classId || "");
+
       return (
-        String(post.author?._id || post.author) ===
-        String(state.me?._id)
+        audience === "all" ||
+        audience === "teachers" ||
+        update.teacherIds?.some(t => String(t._id || t) === teacherId) ||
+        (audience === "class" && classIds.includes(updateClassId))
       );
     })
-    .sort((a,b) =>
-      new Date(b.createdAt || 0) -
-      new Date(a.createdAt || 0)
-    );
+    .sort((a,b) => {
+      const pinnedDiff = Number(b.pinned || false) - Number(a.pinned || false);
+      if (pinnedDiff) return pinnedDiff;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
 
   if (!items.length){
-
-    feed.innerHTML = `
-      <div class="empty">
-        No teacher announcements yet.
-      </div>
-    `;
-
+    feed.innerHTML = `<div class="empty">No teacher announcements yet.</div>`;
     return;
   }
 
-  feed.innerHTML = items.map(post => {
-
+  feed.innerHTML = items.map(update => {
     const media =
-      post.mediaUrl
+      update.mediaUrl
         ? (
-            post.mediaType === "video"
+            update.mediaType === "video"
               ? `
                 <div class="teacher-feed-media">
-                  <video
-                    src="${post.mediaUrl}"
-                    controls
-                  ></video>
+                  <video src="${update.mediaUrl}" controls></video>
                 </div>
               `
               : `
                 <div class="teacher-feed-media">
-                  <img
-                    src="${post.mediaUrl}"
-                    alt="Announcement media"
-                  >
+                  <img src="${update.mediaUrl}" alt="Announcement media">
                 </div>
               `
           )
@@ -2128,42 +2141,31 @@ function renderFeed(){
 
     return `
       <article class="assignment-card teacher-feed-post">
-
         <div class="item-head">
-
           <div>
-
-            <h3 class="item-title">
-              ${escapeHtml(state.me?.name || "Teacher")}
-            </h3>
-
+            <h3 class="item-title">${escapeHtml(update.title || "School Update")}</h3>
             <div class="item-sub">
-              ${formatDateTime(post.createdAt)}
+              ${formatDateTime(update.createdAt)}
+              ${update.classId?.title ? " • " + escapeHtml(update.classId.title) : ""}
             </div>
-
           </div>
 
-          <span class="chip primary">
-            Announcement
+          <span class="chip ${update.type === "urgent" ? "warning" : "primary"}">
+            ${escapeHtml(update.type || "announcement")}
           </span>
-
         </div>
 
-        ${
-          post.text || post.content
-            ? `
-              <p class="item-desc">
-                ${escapeHtml(post.text || post.content || "")}
-              </p>
-            `
-            : ""
-        }
+        ${update.message ? `<p class="item-desc">${escapeHtml(update.message)}</p>` : ""}
 
         ${media}
 
+        <div class="meta-row">
+          ${update.pinned ? `<span class="chip warning">Pinned</span>` : ""}
+          ${update.dueDate ? `<span class="chip success">Due ${formatDate(update.dueDate)}</span>` : ""}
+          ${update.resourceUrl ? `<a class="chip primary" href="${update.resourceUrl}" target="_blank">Resource</a>` : ""}
+        </div>
       </article>
     `;
-
   }).join("");
 }
 
@@ -2489,18 +2491,19 @@ async function submitAssignment(){
 
 async function submitAnnouncement(){
   try{
-    await apiSend("/api/posts","POST",{
-      text:$("announcementText").value.trim(),
-      mediaUrl:$("announcementMediaUrl").value.trim()
+    await apiSend("/api/school-updates","POST",{
+      schoolId:getTeacherSchoolId(),
+      authorId:state.me._id,
+      title:"Class Announcement",
+      message:$("announcementText").value.trim(),
+      resourceUrl:$("announcementMediaUrl").value.trim(),
+      audience:"class",
+      classId:$("assignmentClassId")?.value || null,
+      type:"announcement"
     });
 
     closeModal("announcementModal");
-
-    showAlert(
-      "success",
-      "Announcement published."
-    );
-
+    showAlert("success","Announcement published.");
     await loadAll();
 
   }catch(err){
