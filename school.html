@@ -2098,20 +2098,19 @@ img{
 
   <h2 class="card-title">
     School Information
-
-    <button
-      class="small-link"
-      onclick="openModal('profileInfoModal')"
-    >
-      Edit
-    </button>
+    <button class="small-link" onclick="openModal('profileInfoModal')">Edit</button>
   </h2>
 
   <div class="info-list">
 
     <div class="info-row">
-      <div class="info-label">School Type</div>
-      <div class="info-value" id="schoolTypeValue">School</div>
+      <div class="info-label">Founded / Started</div>
+      <div class="info-value" id="schoolFoundedValue">Not added</div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-label">Years of Service</div>
+      <div class="info-value" id="schoolYearsValue">0</div>
     </div>
 
     <div class="info-row">
@@ -2132,11 +2131,6 @@ img{
     <div class="info-row">
       <div class="info-label">Students</div>
       <div class="info-value" id="infoStudents">0</div>
-    </div>
-
-    <div class="info-row">
-      <div class="info-label">Next Deadline</div>
-      <div class="info-value" id="deadlineValue">No date</div>
     </div>
 
   </div>
@@ -2779,29 +2773,39 @@ img{
   <div class="ops-grid">
 
     <div class="ops-card">
-      <strong id="opsMainTitle">Build your school ecosystem</strong>
-
-      <span id="opsMainText">
-        Manage classes, teachers, students, assignments, updates, and schedules from one place.
-      </span>
+      <strong id="opsMainTitle">School Operations</strong>
+      <span id="opsMainText">Loading school activity...</span>
 
       <div class="ops-actions">
-        <button class="primary-btn" onclick="openModal('classModal')">Create Class</button>
-        <button class="ghost-btn" onclick="openModal('postModal')">School Update</button>
+        <button class="primary-btn" onclick="openTab('analytics')">View Analytics</button>
+        <button class="ghost-btn" onclick="openTab('students')">Review Students</button>
       </div>
     </div>
 
     <div class="ops-card">
-      <strong>Recommended Next Step</strong>
-
-      <span id="opsSuggestionText">
-        Loading recommendation...
-      </span>
+      <strong>Student Performance</strong>
+      <span id="opsStudentPerformance">Loading student performance...</span>
 
       <div class="ops-actions">
-        <button class="ghost-btn" id="opsSuggestionBtn" onclick="openTab('overview')">
-          Open
-        </button>
+        <button class="ghost-btn" onclick="openTab('students')">Open Students</button>
+      </div>
+    </div>
+
+    <div class="ops-card">
+      <strong>Teacher Performance</strong>
+      <span id="opsTeacherPerformance">Loading teacher performance...</span>
+
+      <div class="ops-actions">
+        <button class="ghost-btn" onclick="openTab('teachers')">Open Teachers</button>
+      </div>
+    </div>
+
+    <div class="ops-card">
+      <strong>Attention Needed</strong>
+      <span id="opsRiskAlerts">Loading risk alerts...</span>
+
+      <div class="ops-actions">
+        <button class="ghost-btn" id="opsSuggestionBtn" onclick="openTab('overview')">Open</button>
       </div>
     </div>
 
@@ -3184,27 +3188,37 @@ img{
     </div>
 
     <div class="modal-body">
-      <div class="input-grid">
-        <div class="field">
-          <label>School Name</label>
-          <input id="infoSchoolName" type="text" placeholder="School name">
-        </div>
+<div class="input-grid">
+  <div class="field">
+    <label>School Name</label>
+    <input id="infoSchoolName" type="text" placeholder="School name">
+  </div>
 
-        <div class="field">
-          <label>Website</label>
-          <input id="infoWebsite" type="url" placeholder="https://yourwebsite.com">
-        </div>
+  <div class="field">
+    <label>Founded / Started Year</label>
+    <input id="infoFoundedYear" type="number" min="1900" max="2100" placeholder="2024">
+  </div>
 
-        <div class="field">
-          <label>Location</label>
-          <input id="infoAddress" type="text" placeholder="School location">
-        </div>
+  <div class="field">
+    <label>Website</label>
+    <input id="infoWebsite" type="url" placeholder="https://yourwebsite.com">
+  </div>
 
-        <div class="field">
-          <label>Phone</label>
-          <input id="infoPhone" type="text" placeholder="+63...">
-        </div>
-      </div>
+  <div class="field">
+    <label>Location</label>
+    <input id="infoAddress" type="text" placeholder="School location">
+  </div>
+
+  <div class="field">
+    <label>Phone</label>
+    <input id="infoPhone" type="text" placeholder="+63...">
+  </div>
+
+  <div class="field">
+    <label>School Type</label>
+    <input id="infoSchoolType" type="text" placeholder="Language school, Training center, Academy...">
+  </div>
+</div>
 
       <div class="field">
         <label>Programs</label>
@@ -4201,13 +4215,113 @@ function renderAnalytics(){
 }
 
 function renderSettings(){
+  const students = getStudents();
+  const teachers = getTeachers();
+  const programs = getPrograms();
+
+  const foundedYear = Number(
+    state.me?.foundedYear ||
+    state.me?.startedYear ||
+    0
+  );
+
+  const currentYear = new Date().getFullYear();
+
+  const yearsOfService =
+    foundedYear && foundedYear <= currentYear
+      ? currentYear - foundedYear
+      : 0;
+
   setText("settingsName", getSchoolName());
   setText("settingsWebsite", state.me?.website || "Not added");
   setText("settingsAddress", state.me?.address || state.me?.location || "Not added");
-  setText("settingsPrograms", getPrograms().length);
+  setText("settingsPrograms", programs.length);
 
-  setText("profileSuggestion", getDescription() ? "Profile updated" : "Add description");
-  setText("programSuggestion", getPrograms().length ? "Programs added" : "Add programs");
+  setText("schoolFoundedValue", foundedYear || "Not added");
+  setText("schoolYearsValue", yearsOfService ? yearsOfService + "+ years" : "Not added");
+
+  setText("programCountValue", programs.length);
+  setText("infoActiveClasses", state.classes.length);
+  setText("infoTeachers", teachers.length);
+  setText("infoStudents", students.length);
+
+  const totalAssignments = state.assignments.length;
+  const totalSubmissions = state.submissions.length;
+
+  const reviewedSubmissions = state.submissions.filter(sub =>
+    sub.grade ||
+    sub.feedback ||
+    ["reviewed","returned"].includes(String(sub.status || "").toLowerCase())
+  ).length;
+
+  const pendingReviews = Math.max(0, totalSubmissions - reviewedSubmissions);
+
+  const completionRate = totalAssignments
+    ? Math.min(100, Math.round((totalSubmissions / totalAssignments) * 100))
+    : 0;
+
+  const attendanceReady = state.schedules.length > 0;
+
+  const studentStatus =
+    students.length
+      ? `${students.length} active students, ${completionRate}% assignment completion, ${pendingReviews} pending reviews.`
+      : "No students added yet. Add students to start tracking performance.";
+
+  const teacherStatus =
+    teachers.length
+      ? `${teachers.length} teachers connected. Track teacher quality through reviewed submissions, attendance, schedules, and class activity.`
+      : "No teachers added yet. Add teachers so performance can be measured.";
+
+  let riskText = "Everything looks stable. Keep monitoring submissions, attendance, and reviews.";
+  let buttonText = "View Analytics";
+  let action = "openTab('analytics')";
+
+  if (!getDescription()){
+    riskText = "Profile description is missing. Add it so your school looks professional.";
+    buttonText = "Edit Profile";
+    action = "openModal('profileInfoModal')";
+  } else if (!programs.length){
+    riskText = "Programs are missing. Add your courses or services.";
+    buttonText = "Edit Programs";
+    action = "openModal('profileInfoModal')";
+  } else if (!teachers.length){
+    riskText = "No teachers added. Add teachers before scaling classes.";
+    buttonText = "Add Teacher";
+    action = "openModal('teacherModal')";
+  } else if (!students.length){
+    riskText = "No students added. Add students to start class tracking.";
+    buttonText = "Add Student";
+    action = "openModal('studentModal')";
+  } else if (!state.classes.length){
+    riskText = "No active classes yet. Create classes and assign teachers.";
+    buttonText = "Create Class";
+    action = "openModal('classModal')";
+  } else if (!attendanceReady){
+    riskText = "No schedules created. Add schedules so attendance can be tracked.";
+    buttonText = "Add Schedule";
+    action = "openModal('scheduleModal')";
+  } else if (pendingReviews > 0){
+    riskText = `${pendingReviews} submissions still need teacher review.`;
+    buttonText = "View Analytics";
+    action = "openTab('analytics')";
+  }
+
+  setText("opsMainTitle", `${getSchoolName()} Operations`);
+
+  setText(
+    "opsMainText",
+    `${students.length} students, ${teachers.length} teachers, ${state.classes.length} classes, ${state.assignments.length} assignments, ${state.schedules.length} schedules.`
+  );
+
+  setText("opsStudentPerformance", studentStatus);
+  setText("opsTeacherPerformance", teacherStatus);
+  setText("opsRiskAlerts", riskText);
+
+  const btn = $("opsSuggestionBtn");
+  if (btn){
+    btn.innerText = buttonText;
+    btn.setAttribute("onclick", action);
+  }
 }
 
 function hydrateSelects(){
@@ -4240,6 +4354,20 @@ function hydrateProfileForm(){
   setVal("infoPhone", state.me?.phone || "");
   setVal("infoPrograms", getPrograms().join(", "));
   setVal("infoDescription", getDescription());
+
+  setVal(
+    "infoFoundedYear",
+    state.me?.foundedYear ||
+    state.me?.startedYear ||
+    ""
+  );
+
+  setVal(
+    "infoSchoolType",
+    state.me?.schoolType ||
+    state.me?.type ||
+    ""
+  );
 }
 
 async function runAction(modalId,endpoint,payload,successMessage){
@@ -4573,6 +4701,8 @@ async function saveSchoolInfo(){
     formData.append("address",$("infoAddress").value.trim());
     formData.append("location",$("infoAddress").value.trim());
     formData.append("phone",$("infoPhone").value.trim());
+    formData.append("foundedYear", $("infoFoundedYear").value.trim());
+formData.append("startedYear", $("infoFoundedYear").value.trim());
     formData.append("description",$("infoDescription").value.trim());
     formData.append("bio",$("infoDescription").value.trim());
     formData.append(
