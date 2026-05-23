@@ -2413,10 +2413,45 @@ img{
 
   <article class="card card-pad">
 
-    <h2 class="card-title">
-      Attendance Overview
-      <button class="small-link" onclick="loadAll()">Refresh</button>
-    </h2>
+<h2 class="card-title">
+  Attendance Overview
+  <button class="small-link" onclick="loadAll()">Refresh</button>
+</h2>
+
+<div class="input-grid" style="margin-bottom:16px;">
+
+  <div class="field">
+    <label>View Attendance For</label>
+    <select id="attendanceViewMode" onchange="renderAttendance()">
+      <option value="all">All Students & Teachers</option>
+      <option value="student">One Student</option>
+      <option value="teacher">One Teacher</option>
+      <option value="class">One Class / Group</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>Select Student</label>
+    <select id="attendanceStudentFilter" onchange="renderAttendance()">
+      <option value="">All students</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>Select Teacher</label>
+    <select id="attendanceTeacherFilter" onchange="renderAttendance()">
+      <option value="">All teachers</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>Select Class</label>
+    <select id="attendanceClassFilter" onchange="renderAttendance()">
+      <option value="">All classes</option>
+    </select>
+  </div>
+
+</div>
 
     <div class="analytics-grid">
 
@@ -3844,7 +3879,40 @@ $("heroCover").style.backgroundImage = `url("${cover}")`;
     verified.classList.toggle("show", isVerified);
   }
 }
-  function attendanceStats(records = state.attendance){
+function getRecordId(value){
+  return String(value?._id || value || "");
+}
+
+function getFilteredAttendance(){
+  const records = state.attendance || [];
+
+  const mode = $("attendanceViewMode")?.value || "all";
+  const studentId = $("attendanceStudentFilter")?.value || "";
+  const teacherId = $("attendanceTeacherFilter")?.value || "";
+  const classId = $("attendanceClassFilter")?.value || "";
+
+  return records.filter(record => {
+    const recordStudentId = getRecordId(record.studentId);
+    const recordTeacherId = getRecordId(record.teacherId);
+    const recordClassId = getRecordId(record.classId);
+
+    if (mode === "student" && studentId){
+      return sameId(recordStudentId, studentId);
+    }
+
+    if (mode === "teacher" && teacherId){
+      return sameId(recordTeacherId, teacherId);
+    }
+
+    if (mode === "class" && classId){
+      return sameId(recordClassId, classId);
+    }
+
+    return true;
+  });
+}
+
+function attendanceStats(records = state.attendance){
   const total = records.length;
 
   const present = records.filter(r => r.status === "present").length;
@@ -3859,7 +3927,9 @@ $("heroCover").style.backgroundImage = `url("${cover}")`;
     return sum;
   }, 0);
 
-  const attendanceRate = total ? Math.round((weighted / total) * 100) : 0;
+  const attendanceRate = total
+    ? Math.round((weighted / total) * 100)
+    : 0;
 
   const participationRecords = records.filter(r =>
     typeof r.participationScore === "number"
@@ -3867,10 +3937,20 @@ $("heroCover").style.backgroundImage = `url("${cover}")`;
 
   const participationAverage = participationRecords.length
     ? Math.round(
-        participationRecords.reduce((sum,r) => sum + Number(r.participationScore || 0), 0) /
-        participationRecords.length
+        participationRecords.reduce(
+          (sum,r) => sum + Number(r.participationScore || 0),
+          0
+        ) / participationRecords.length
       )
     : 0;
+
+  let riskLevel = "Low";
+
+  if (attendanceRate < 60 || absent >= 4 || participationAverage < 40){
+    riskLevel = "High";
+  } else if (attendanceRate < 80 || absent >= 2 || late >= 3 || participationAverage < 65){
+    riskLevel = "Moderate";
+  }
 
   return {
     total,
@@ -3879,13 +3959,15 @@ $("heroCover").style.backgroundImage = `url("${cover}")`;
     absent,
     excused,
     attendanceRate,
-    participationAverage
+    participationAverage,
+    riskLevel
   };
 }
 
 function renderAttendance(){
   const list = $("attendanceList");
-  const stats = attendanceStats();
+  const filtered = getFilteredAttendance();
+  const stats = attendanceStats(filtered);
 
   setText("attendanceRateValue", `${stats.attendanceRate}%`);
   setText("attendancePresentValue", stats.present);
@@ -3895,20 +3977,23 @@ function renderAttendance(){
   setText("attendanceParticipationValue", `${stats.participationAverage}%`);
 
   const bar = $("attendanceRateBar");
-  if (bar) bar.style.width = `${stats.attendanceRate}%`;
+
+  if (bar){
+    bar.style.width = `${stats.attendanceRate}%`;
+  }
 
   if (!list) return;
 
-  if (!state.attendance.length){
+  if (!filtered.length){
     list.innerHTML = `
       <div class="empty">
-        No attendance records yet. Once teachers start marking attendance, records will appear here.
+        No attendance records found for this selection.
       </div>
     `;
     return;
   }
 
-  list.innerHTML = state.attendance.slice(0,20).map(record => {
+  list.innerHTML = filtered.slice(0,30).map(record => {
     const student =
       record.studentId?.name ||
       record.studentId?.email ||
@@ -3950,10 +4035,25 @@ function renderAttendance(){
           </span>
         </div>
 
-        <p class="job-desc">
-          Participation: ${Number(record.participationScore || 0)}%
-          ${record.notes ? ` • ${escapeHtml(record.notes)}` : ""}
-        </p>
+        <div class="analytics-grid" style="margin-top:12px;">
+          <div class="analytics-card">
+            <span>Participation</span>
+            <strong>${Number(record.participationScore || 0)}%</strong>
+          </div>
+
+          <div class="analytics-card">
+            <span>Marked By</span>
+            <strong style="font-size:.88rem;">
+              ${escapeHtml(record.markedBy?.name || record.markedBy?.email || "Staff")}
+            </strong>
+          </div>
+        </div>
+
+        ${
+          record.notes
+            ? `<p class="job-desc" style="margin-top:12px;">${escapeHtml(record.notes)}</p>`
+            : ""
+        }
       </div>
     `;
   }).join("");
@@ -4473,106 +4573,105 @@ function renderAnalytics(){
   const totalAssignments = state.assignments.length;
   const totalSubmissions = state.submissions.length;
 
-  const reviewedSubmissions = state.submissions.filter(sub =>
-    sub.grade ||
-    sub.feedback ||
-    ["reviewed","returned"].includes(String(sub.status || "").toLowerCase())
-  ).length;
-
-  const completion = totalAssignments
-    ? Math.min(100, Math.round((totalSubmissions / totalAssignments) * 100))
+  const completionRate = totalAssignments && students.length
+    ? Math.min(
+        100,
+        Math.round((totalSubmissions / (totalAssignments * students.length)) * 100)
+      )
     : 0;
 
-  const expectedStudentActivity =
-    Math.max(1, students.length * Math.max(1, totalAssignments));
+  const attendance = attendanceStats(state.attendance || []);
 
-  const submissionActivityRate =
-    totalSubmissions
-      ? Math.min(100, Math.round((totalSubmissions / expectedStudentActivity) * 100))
-      : 0;
+  const activeClassesRate = state.classes.length
+    ? Math.min(100, Math.round((state.schedules.length / state.classes.length) * 100))
+    : 0;
 
-  const reviewRate =
-    totalSubmissions
-      ? Math.min(100, Math.round((reviewedSubmissions / totalSubmissions) * 100))
-      : 0;
+  const opportunityRate = Math.min(100, state.opportunities.length * 10);
 
-  const scheduleActivityRate =
-    state.classes.length
-      ? Math.min(100, Math.round((state.schedules.length / state.classes.length) * 100))
-      : 0;
+  const pendingReviews = state.submissions.filter(sub => {
+    const status = String(sub.status || "").toLowerCase();
 
-  const updateActivityRate =
-    state.schoolUpdates.length
-      ? Math.min(100, state.schoolUpdates.length * 8)
-      : 0;
+    return !sub.grade &&
+      !sub.feedback &&
+      !["reviewed","returned","graded"].includes(status);
+  }).length;
 
-  const engagement = Math.min(
-    100,
-    Math.round(
-      submissionActivityRate * 0.45 +
-      reviewRate * 0.25 +
-      scheduleActivityRate * 0.20 +
-      updateActivityRate * 0.10
-    )
-  );
+  const studentRiskCount = students.filter(student => {
+    const sid = student._id;
 
-  const activeClasses = Math.min(
-    100,
-    Math.round(state.classes.length * 12 + state.schedules.length * 6)
-  );
+    const studentAttendance = state.attendance.filter(record =>
+      sameId(record.studentId?._id || record.studentId, sid)
+    );
 
-  const setupScore =
-    (getDescription() ? 20 : 0) +
-    (getPrograms().length ? 20 : 0) +
-    (teachers.length ? 20 : 0) +
-    (students.length ? 20 : 0) +
-    (state.classes.length ? 20 : 0);
+    const stats = attendanceStats(studentAttendance);
 
-  const healthScore = Math.min(
-    100,
-    Math.round(
-      setupScore * 0.35 +
-      completion * 0.25 +
-      engagement * 0.20 +
-      activeClasses * 0.20
-    )
-  );
+    return stats.riskLevel === "High" || stats.riskLevel === "Moderate";
+  }).length;
 
-  const pendingReviews = Math.max(0, totalSubmissions - reviewedSubmissions);
-  const studentRisk = Math.max(0, students.length - totalSubmissions);
+  const teachersWithMarkedAttendance = new Set(
+    state.attendance
+      .map(record => record.teacherId?._id || record.teacherId)
+      .filter(Boolean)
+      .map(String)
+  ).size;
+
   const teacherActivity = teachers.length
-    ? Math.min(100, Math.round((reviewedSubmissions / teachers.length) * 20))
+    ? Math.round((teachersWithMarkedAttendance / teachers.length) * 100)
     : 0;
 
-  setProgress("completionPercent","completionBar",completion);
-  setProgress("engagementPercent","engagementBar",engagement);
-  setProgress("activeClassesPercent","activeClassesBar",activeClasses);
+  const attendanceReadiness = state.schedules.length
+    ? Math.min(
+        100,
+        Math.round((state.attendance.length / Math.max(1, state.schedules.length * Math.max(1, students.length))) * 100)
+      )
+    : 0;
 
-  setProgress("rightCompletionPercent","rightCompletionBar",completion);
-  setProgress("rightEngagementPercent","rightEngagementBar",engagement);
-  setProgress("rightClassesPercent","rightClassesBar",activeClasses);
+  const schoolHealth = Math.round(
+    completionRate * 0.35 +
+    attendance.attendanceRate * 0.35 +
+    teacherActivity * 0.15 +
+    activeClassesRate * 0.15
+  );
 
+  setText("completionPercent", `${completionRate}%`);
+  setText("engagementPercent", `${attendance.attendanceRate}%`);
+  setText("activeClassesPercent", `${activeClassesRate}%`);
   setText("opportunityPipeline", state.opportunities.length);
 
-  const opportunityBar = $("opportunityBar");
-  if (opportunityBar) {
-    opportunityBar.style.width = Math.min(100, state.opportunities.length * 10) + "%";
-  }
-
-  setText("schoolHealthScore", healthScore + "%");
-  setText("schoolHealthLabel", healthScore >= 80 ? "Strong operation" : healthScore >= 55 ? "Growing well" : "Needs setup");
+  setText("rightCompletionPercent", `${completionRate}%`);
+  setText("rightEngagementPercent", `${attendance.attendanceRate}%`);
+  setText("rightClassesPercent", `${activeClassesRate}%`);
 
   setText("pendingReviewsValue", pendingReviews);
-  setText("insightPendingReviewsValue", pendingReviews);
   setText("scheduleCountValue", state.schedules.length);
   setText("schoolUpdatesValue", state.schoolUpdates.length);
   setText("opportunityMiniValue", state.opportunities.length);
 
-  setText("studentRiskValue", studentRisk);
-  setText("teacherActivityValue", teacherActivity + "%");
-  setText("attendanceReadinessValue", scheduleActivityRate + "%");
-  setText("insightCompletionValue", completion + "%");
-  setText("insightHealthValue", healthScore + "%");
+  setText("schoolHealthScore", `${schoolHealth}%`);
+  setText(
+    "schoolHealthLabel",
+    schoolHealth >= 80 ? "Healthy" : schoolHealth >= 55 ? "Improving" : "Needs attention"
+  );
+
+  setText("insightPendingReviewsValue", pendingReviews);
+  setText("studentRiskValue", studentRiskCount);
+  setText("teacherActivityValue", `${teacherActivity}%`);
+  setText("attendanceReadinessValue", `${attendanceReadiness}%`);
+  setText("insightCompletionValue", `${completionRate}%`);
+  setText("insightHealthValue", `${schoolHealth}%`);
+
+  [
+    ["completionBar", completionRate],
+    ["engagementBar", attendance.attendanceRate],
+    ["activeClassesBar", activeClassesRate],
+    ["opportunityBar", opportunityRate],
+    ["rightCompletionBar", completionRate],
+    ["rightEngagementBar", attendance.attendanceRate],
+    ["rightClassesBar", activeClassesRate]
+  ].forEach(([id,value]) => {
+    const el = $(id);
+    if (el) el.style.width = `${value}%`;
+  });
 }
 
 function renderSettings(){
@@ -4708,15 +4807,53 @@ function hydrateSelects(){
   });
     hydrateInsightSelects();
 }
-  function hydrateInsightSelects(){
-  const studentSelect = $("insightStudentSelect");
-  const teacherSelect = $("insightTeacherSelect");
+function hydrateInsightSelects(){
+  const students = getStudents();
+  const teachers = getTeachers();
+  const classes = state.classes || [];
 
-  if (studentSelect){
-    const students = getStudents();
+  const studentOptions =
+    `<option value="">Choose student</option>` +
+    students.map(student => `
+      <option value="${student._id}">
+        ${escapeHtml(student.name || student.email || "Student")}
+      </option>
+    `).join("");
 
-    studentSelect.innerHTML =
-      `<option value="">Choose student</option>` +
+  const teacherOptions =
+    `<option value="">Choose teacher</option>` +
+    teachers.map(teacher => `
+      <option value="${teacher._id}">
+        ${escapeHtml(teacher.name || teacher.email || "Teacher")}
+      </option>
+    `).join("");
+
+  const classOptions =
+    `<option value="">All classes</option>` +
+    classes.map(cls => `
+      <option value="${cls._id}">
+        ${escapeHtml(cls.title || cls.name || "Class")}
+      </option>
+    `).join("");
+
+  const insightStudentSelect = $("insightStudentSelect");
+  const insightTeacherSelect = $("insightTeacherSelect");
+
+  if (insightStudentSelect){
+    insightStudentSelect.innerHTML = studentOptions;
+  }
+
+  if (insightTeacherSelect){
+    insightTeacherSelect.innerHTML = teacherOptions;
+  }
+
+  const attendanceStudentFilter = $("attendanceStudentFilter");
+  const attendanceTeacherFilter = $("attendanceTeacherFilter");
+  const attendanceClassFilter = $("attendanceClassFilter");
+
+  if (attendanceStudentFilter){
+    attendanceStudentFilter.innerHTML =
+      `<option value="">All students</option>` +
       students.map(student => `
         <option value="${student._id}">
           ${escapeHtml(student.name || student.email || "Student")}
@@ -4724,19 +4861,21 @@ function hydrateSelects(){
       `).join("");
   }
 
-  if (teacherSelect){
-    const teachers = getTeachers();
-
-    teacherSelect.innerHTML =
-      `<option value="">Choose teacher</option>` +
+  if (attendanceTeacherFilter){
+    attendanceTeacherFilter.innerHTML =
+      `<option value="">All teachers</option>` +
       teachers.map(teacher => `
         <option value="${teacher._id}">
           ${escapeHtml(teacher.name || teacher.email || "Teacher")}
         </option>
       `).join("");
   }
+
+  if (attendanceClassFilter){
+    attendanceClassFilter.innerHTML = classOptions;
+  }
 }
-  function renderSelectedStudentInsight(){
+function renderSelectedStudentInsight(){
   const id = $("insightStudentSelect")?.value;
 
   if (!id){
@@ -4755,6 +4894,11 @@ function hydrateSelects(){
     return;
   }
 
+  const studentClasses = state.classes.filter(cls => {
+    const ids = cls.studentIds || cls.students || [];
+    return ids.some(item => sameId(item?._id || item, id));
+  });
+
   const studentSubmissions = state.submissions.filter(sub =>
     sameId(sub.studentId,id) ||
     sameId(sub.userId,id) ||
@@ -4764,158 +4908,148 @@ function hydrateSelects(){
   const reviewedSubmissions = studentSubmissions.filter(sub =>
     sub.grade ||
     sub.feedback ||
-    ["reviewed","returned"].includes(String(sub.status || "").toLowerCase())
+    ["reviewed","returned","graded"].includes(String(sub.status || "").toLowerCase())
   );
 
-const studentClasses = state.classes.filter(cls => {
-  const ids = cls.studentIds || cls.students || [];
-  return ids.some(studentId => sameId(studentId?._id || studentId,id));
-});
+  const studentAttendance = state.attendance.filter(record =>
+    sameId(record.studentId?._id || record.studentId, id)
+  );
+
+  const attendance = attendanceStats(studentAttendance);
 
   const completionRate = state.assignments.length
     ? Math.min(
         100,
-        Math.round(
-          (studentSubmissions.length / state.assignments.length) * 100
-        )
+        Math.round((studentSubmissions.length / state.assignments.length) * 100)
       )
     : 0;
 
-  const reviewRate = studentSubmissions.length
+  const missingAssignments = Math.max(
+    0,
+    state.assignments.length - studentSubmissions.length
+  );
+
+  const averageGradeValues = reviewedSubmissions
+    .map(sub => Number(sub.grade || sub.score || 0))
+    .filter(score => score > 0);
+
+  const averageGrade = averageGradeValues.length
     ? Math.round(
-        (reviewedSubmissions.length / studentSubmissions.length) * 100
+        averageGradeValues.reduce((sum,score) => sum + score, 0) /
+        averageGradeValues.length
       )
     : 0;
 
-  const score = Math.min(
-    100,
-    Math.round(
-      completionRate * 0.7 +
-      reviewRate * 0.3
-    )
-  );
-    const missingAssignments = Math.max(
-  0,
-  state.assignments.length - studentSubmissions.length
-);
+  const lateSubmissions = studentSubmissions.filter(sub =>
+    String(sub.status || "").toLowerCase() === "late"
+  ).length;
 
-const gradedSubmissions = studentSubmissions.filter(sub =>
-  typeof sub.grade === "number"
-);
+  const lastActivitySource = [
+    ...studentSubmissions.map(item => item.updatedAt || item.createdAt),
+    ...studentAttendance.map(item => item.updatedAt || item.createdAt || item.date)
+  ].filter(Boolean).sort((a,b) => new Date(b) - new Date(a))[0];
 
-const averageGrade = gradedSubmissions.length
-  ? Math.round(
-      gradedSubmissions.reduce((sum,sub) => sum + Number(sub.grade || 0),0)
-      / gradedSubmissions.length
-    )
-  : 0;
+  const lastActivity = lastActivitySource
+    ? new Date(lastActivitySource).toLocaleDateString()
+    : "No activity";
 
-const lateSubmissions = studentSubmissions.filter(sub => {
-  if (!sub.submittedAt || !sub.dueDate) return false;
-
-  return new Date(sub.submittedAt) > new Date(sub.dueDate);
-}).length;
-
-const lastSubmission =
-  studentSubmissions
-    .sort((a,b) =>
-      new Date(b.submittedAt || b.createdAt || 0) -
-      new Date(a.submittedAt || a.createdAt || 0)
-    )[0];
-
-const lastActivity = lastSubmission
-  ? formatDateTime(lastSubmission.submittedAt || lastSubmission.createdAt)
-  : "No activity";
-
-const riskLevel =
-  score >= 80
-    ? "Low"
-    : score >= 50
-    ? "Moderate"
-    : "High";
-
-  setText(
-    "selectedInsightName",
-    student.name || student.email || "Student"
+  const score = Math.round(
+    completionRate * 0.35 +
+    attendance.attendanceRate * 0.35 +
+    attendance.participationAverage * 0.2 +
+    (reviewedSubmissions.length ? 10 : 0)
   );
 
+  const riskLevel =
+    score >= 80
+      ? "Low"
+      : score >= 50
+      ? "Moderate"
+      : "High";
+
+  setText("selectedInsightName", student.name || student.email || "Student");
   setText("selectedInsightRole","Student");
+  setText("selectedInsightClasses", studentClasses.length);
+  setText("selectedInsightScore", `${score}%`);
 
-  setText(
-    "selectedInsightClasses",
-    studentClasses.length
-  );
+  $("selectedInsightDetails").innerHTML = `
+    <article class="job-card">
 
-  setText(
-    "selectedInsightScore",
-    score + "%"
-  );
-
-$("selectedInsightDetails").innerHTML = `
-  <article class="job-card">
-
-    <div class="job-head">
-
-      <div>
-        <h3 class="job-title">
-          Student Performance Summary
-        </h3>
-
-        <div class="job-company">
-          ${escapeHtml(student.course || "Student")}
+      <div class="job-head">
+        <div>
+          <h3 class="job-title">Student Performance Summary</h3>
+          <div class="job-company">
+            ${escapeHtml(student.course || student.email || "Student")}
+          </div>
         </div>
+
+        <span class="chip ${
+          riskLevel === "Low"
+            ? "success"
+            : riskLevel === "Moderate"
+            ? "warning"
+            : ""
+        }">
+          ${riskLevel} Risk
+        </span>
       </div>
 
-      <span class="chip ${
-        riskLevel === "Low"
-          ? "success"
-          : riskLevel === "Moderate"
-          ? "warning"
-          : ""
-      }">
-        ${riskLevel} Risk
-      </span>
+      <div class="analytics-grid" style="margin-top:14px;">
 
-    </div>
+        <div class="analytics-card">
+          <span>Attendance</span>
+          <strong>${attendance.attendanceRate}%</strong>
+        </div>
 
-    <div class="analytics-grid" style="margin-top:14px;">
+        <div class="analytics-card">
+          <span>Absences</span>
+          <strong>${attendance.absent}</strong>
+        </div>
 
-      <div class="analytics-card">
-        <span>Completion</span>
-        <strong>${completionRate}%</strong>
+        <div class="analytics-card">
+          <span>Lates</span>
+          <strong>${attendance.late}</strong>
+        </div>
+
+        <div class="analytics-card">
+          <span>Participation Avg</span>
+          <strong>${attendance.participationAverage}%</strong>
+        </div>
+
+        <div class="analytics-card">
+          <span>Assignment Completion</span>
+          <strong>${completionRate}%</strong>
+        </div>
+
+        <div class="analytics-card">
+          <span>Reviewed Work</span>
+          <strong>${reviewedSubmissions.length}</strong>
+        </div>
+
+        <div class="analytics-card">
+          <span>Missing Assignments</span>
+          <strong>${missingAssignments}</strong>
+        </div>
+
+        <div class="analytics-card">
+          <span>Average Grade</span>
+          <strong>${averageGrade || "--"}</strong>
+        </div>
+
+        <div class="analytics-card">
+          <span>Late Submissions</span>
+          <strong>${lateSubmissions}</strong>
+        </div>
+
+        <div class="analytics-card">
+          <span>Last Activity</span>
+          <strong style="font-size:.9rem;">${lastActivity}</strong>
+        </div>
+
       </div>
 
-      <div class="analytics-card">
-        <span>Average Grade</span>
-        <strong>${averageGrade || "--"}</strong>
-      </div>
-
-      <div class="analytics-card">
-        <span>Missing Work</span>
-        <strong>${missingAssignments}</strong>
-      </div>
-
-      <div class="analytics-card">
-        <span>Late Submissions</span>
-        <strong>${lateSubmissions}</strong>
-      </div>
-
-      <div class="analytics-card">
-        <span>Reviewed Work</span>
-        <strong>${reviewedSubmissions.length}</strong>
-      </div>
-
-      <div class="analytics-card">
-        <span>Last Activity</span>
-        <strong style="font-size:.9rem;">
-          ${lastActivity}
-        </strong>
-      </div>
-
-    </div>
-
-  </article>
-`;
+    </article>
+  `;
 }
 
 function renderSelectedTeacherInsight(){
@@ -4938,16 +5072,22 @@ function renderSelectedTeacherInsight(){
   }
 
   const teacherClasses = state.classes.filter(cls =>
-    sameId(cls.teacherId,id)
+    sameId(cls.teacherId?._id || cls.teacherId, id)
   );
 
   const teacherAssignments = state.assignments.filter(item =>
-    sameId(item.teacherId,id)
+    sameId(item.teacherId?._id || item.teacherId, id)
   );
 
+  const teacherAttendance = state.attendance.filter(record =>
+    sameId(record.teacherId?._id || record.teacherId, id)
+  );
+
+  const attendance = attendanceStats(teacherAttendance);
+
   const reviewedSubmissions = state.submissions.filter(sub =>
-    sameId(sub.reviewedBy,id) ||
-    sameId(sub.teacherId,id)
+    sameId(sub.reviewedBy?._id || sub.reviewedBy,id) ||
+    sameId(sub.teacherId?._id || sub.teacherId,id)
   );
 
   const pendingReviews = Math.max(
@@ -4955,136 +5095,107 @@ function renderSelectedTeacherInsight(){
     state.submissions.length - reviewedSubmissions.length
   );
 
-  const score = Math.min(
-    100,
-    Math.round(
-      teacherClasses.length * 15 +
-      teacherAssignments.length * 10 +
-      reviewedSubmissions.length * 5
-    )
-  );
-  const assignedStudents = [];
+  const assignedStudentIds = new Set();
 
-teacherClasses.forEach(cls => {
-  const ids = cls.studentIds || cls.students || [];
+  teacherClasses.forEach(cls => {
+    const ids = cls.studentIds || cls.students || [];
 
-  ids.forEach(student => {
-    const studentId = student?._id || student;
-
-    if (!assignedStudents.some(item => sameId(item?._id || item, studentId))) {
-      assignedStudents.push(student);
-    }
+    ids.forEach(student => {
+      const studentId = student?._id || student;
+      if (studentId) assignedStudentIds.add(String(studentId));
+    });
   });
-});
 
-const reviewRate = state.submissions.length
-  ? Math.min(
-      100,
-      Math.round((reviewedSubmissions.length / state.submissions.length) * 100)
-    )
-  : 0;
+  const expectedMarks = state.schedules.filter(schedule =>
+    sameId(schedule.teacherId?._id || schedule.teacherId, id)
+  ).length * Math.max(1, assignedStudentIds.size);
 
-const assignmentLoad = teacherAssignments.length;
+  const attendanceMarkingRate = expectedMarks
+    ? Math.min(100, Math.round((teacherAttendance.length / expectedMarks) * 100))
+    : teacherAttendance.length
+      ? 100
+      : 0;
 
-const averageReviewsPerClass = teacherClasses.length
-  ? Math.round(reviewedSubmissions.length / teacherClasses.length)
-  : 0;
-
-const teacherRisk =
-  score >= 80
-    ? "Strong"
-    : score >= 50
-    ? "Moderate"
-    : "Needs Follow-up";
-
-  setText(
-    "selectedInsightName",
-    teacher.name || teacher.email || "Teacher"
+  const score = Math.round(
+    attendanceMarkingRate * 0.35 +
+    attendance.participationAverage * 0.25 +
+    Math.min(100, reviewedSubmissions.length * 8) * 0.25 +
+    Math.min(100, teacherClasses.length * 20) * 0.15
   );
 
+  setText("selectedInsightName", teacher.name || teacher.email || "Teacher");
   setText("selectedInsightRole","Teacher");
+  setText("selectedInsightClasses", teacherClasses.length);
+  setText("selectedInsightScore", `${score}%`);
 
-  setText(
-    "selectedInsightClasses",
-    teacherClasses.length
-  );
+  $("selectedInsightDetails").innerHTML = `
+    <article class="job-card">
 
-  setText(
-    "selectedInsightScore",
-    score + "%"
-  );
-
-$("selectedInsightDetails").innerHTML = `
-  <article class="job-card">
-
-    <div class="job-head">
-      <div>
-        <h3 class="job-title">
-          Teacher Performance Summary
-        </h3>
-
-        <div class="job-company">
-          ${escapeHtml(teacher.subject || "Teacher")}
+      <div class="job-head">
+        <div>
+          <h3 class="job-title">Teacher Activity Summary</h3>
+          <div class="job-company">
+            ${escapeHtml(teacher.subject || teacher.email || "Teacher")}
+          </div>
         </div>
+
+        <span class="chip ${
+          score >= 80
+            ? "success"
+            : score >= 50
+            ? "warning"
+            : ""
+        }">
+          ${score >= 80 ? "Active" : score >= 50 ? "Needs Follow-up" : "Low Activity"}
+        </span>
       </div>
 
-      <span class="chip ${
-        teacherRisk === "Strong"
-          ? "success"
-          : teacherRisk === "Moderate"
-          ? "warning"
-          : ""
-      }">
-        ${teacherRisk}
-      </span>
-    </div>
+      <div class="analytics-grid" style="margin-top:14px;">
 
-    <div class="analytics-grid" style="margin-top:14px;">
+        <div class="analytics-card">
+          <span>Classes Handled</span>
+          <strong>${teacherClasses.length}</strong>
+        </div>
 
-      <div class="analytics-card">
-        <span>Assigned Students</span>
-        <strong>${assignedStudents.length}</strong>
+        <div class="analytics-card">
+          <span>Students Handled</span>
+          <strong>${assignedStudentIds.size}</strong>
+        </div>
+
+        <div class="analytics-card">
+          <span>Attendance Marking Rate</span>
+          <strong>${attendanceMarkingRate}%</strong>
+        </div>
+
+        <div class="analytics-card">
+          <span>Attendance Records</span>
+          <strong>${teacherAttendance.length}</strong>
+        </div>
+
+        <div class="analytics-card">
+          <span>Reviewed Submissions</span>
+          <strong>${reviewedSubmissions.length}</strong>
+        </div>
+
+        <div class="analytics-card">
+          <span>Pending Reviews</span>
+          <strong>${pendingReviews}</strong>
+        </div>
+
+        <div class="analytics-card">
+          <span>Average Participation</span>
+          <strong>${attendance.participationAverage}%</strong>
+        </div>
+
+        <div class="analytics-card">
+          <span>Teacher Activity Score</span>
+          <strong>${score}%</strong>
+        </div>
+
       </div>
 
-      <div class="analytics-card">
-        <span>Assigned Classes</span>
-        <strong>${teacherClasses.length}</strong>
-      </div>
-
-      <div class="analytics-card">
-        <span>Assignments Created</span>
-        <strong>${assignmentLoad}</strong>
-      </div>
-
-      <div class="analytics-card">
-        <span>Reviewed Work</span>
-        <strong>${reviewedSubmissions.length}</strong>
-      </div>
-
-      <div class="analytics-card">
-        <span>Pending Reviews</span>
-        <strong>${pendingReviews}</strong>
-      </div>
-
-      <div class="analytics-card">
-        <span>Review Rate</span>
-        <strong>${reviewRate}%</strong>
-      </div>
-
-      <div class="analytics-card">
-        <span>Reviews / Class</span>
-        <strong>${averageReviewsPerClass}</strong>
-      </div>
-
-      <div class="analytics-card">
-        <span>Activity Score</span>
-        <strong>${score}%</strong>
-      </div>
-
-    </div>
-
-  </article>
-`;
+    </article>
+  `;
 }
 
 function resetInsightView(){
