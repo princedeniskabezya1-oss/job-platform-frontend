@@ -1,0 +1,2928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+/>
+
+<title>AIFT Visual Editor</title>
+
+<link
+  rel="preconnect"
+  href="https://fonts.googleapis.com"
+/>
+
+<link
+  rel="preconnect"
+  href="https://fonts.gstatic.com"
+  crossorigin
+/>
+
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+  rel="stylesheet"
+/>
+
+<style>
+
+/* =====================================================
+   ROOT
+===================================================== */
+
+:root{
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --text:#0f172a;
+  --muted:#667085;
+  --border:#e5e7eb;
+
+  --primary:#2557a7;
+  --primary-soft:#eef4ff;
+
+  --success:#16a34a;
+  --danger:#dc2626;
+  --warning:#f59e0b;
+
+  --shadow:
+    0 10px 30px rgba(15,23,42,.06);
+
+  --radius:20px;
+}
+
+/* =====================================================
+   RESET
+===================================================== */
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html,
+body{
+  width:100%;
+  min-height:100%;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:"Inter",sans-serif;
+  overflow:hidden;
+}
+
+/* =====================================================
+   APP LAYOUT
+===================================================== */
+
+.editor-app{
+  width:100%;
+  height:100vh;
+
+  display:grid;
+  grid-template-columns:
+    92px
+    minmax(0,1fr)
+    360px;
+}
+
+/* =====================================================
+   LEFT SIDEBAR
+===================================================== */
+
+.editor-sidebar{
+  background:#fff;
+  border-right:1px solid var(--border);
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+
+  gap:14px;
+  padding:18px 12px;
+}
+
+.editor-logo{
+  width:52px;
+  height:52px;
+  border-radius:18px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2557a7,
+      #5b7fff
+    );
+
+  color:#fff;
+
+  display:grid;
+  place-items:center;
+
+  font-size:1.1rem;
+  font-weight:800;
+}
+
+.editor-side-tools{
+  width:100%;
+  display:grid;
+  gap:10px;
+}
+
+.editor-side-btn{
+  width:100%;
+  aspect-ratio:1/1;
+
+  border:none;
+  border-radius:18px;
+
+  background:#fff;
+  border:1px solid var(--border);
+
+  display:grid;
+  place-items:center;
+
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+.editor-side-btn:hover{
+  background:var(--primary-soft);
+  border-color:#bfd3ff;
+  transform:translateY(-1px);
+}
+
+.editor-side-btn.active{
+  background:var(--primary);
+  color:#fff;
+  border-color:var(--primary);
+}
+
+.editor-side-btn svg{
+  width:22px;
+  height:22px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+}
+
+/* =====================================================
+   CENTER
+===================================================== */
+
+.editor-center{
+  display:grid;
+  grid-template-rows:
+    74px
+    minmax(0,1fr);
+}
+
+/* =====================================================
+   TOPBAR
+===================================================== */
+
+.editor-topbar{
+  background:#fff;
+  border-bottom:1px solid var(--border);
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  gap:18px;
+  padding:0 18px;
+}
+
+.editor-top-left{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.editor-back-btn{
+  border:none;
+  background:#fff;
+
+  border:1px solid var(--border);
+
+  height:42px;
+  padding:0 16px;
+
+  border-radius:14px;
+
+  display:flex;
+  align-items:center;
+  gap:10px;
+
+  font-weight:700;
+  color:#374151;
+
+  cursor:pointer;
+}
+
+.editor-back-btn:hover{
+  background:#f8fafc;
+}
+
+.editor-title-wrap{
+  display:grid;
+  gap:2px;
+}
+
+.editor-title{
+  font-size:1rem;
+  font-weight:800;
+  letter-spacing:-.03em;
+}
+
+.editor-subtitle{
+  font-size:.8rem;
+  color:var(--muted);
+}
+
+.editor-top-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* =====================================================
+   BUTTONS
+===================================================== */
+
+.primary-btn,
+.ghost-btn,
+.danger-btn{
+  height:42px;
+  padding:0 16px;
+
+  border-radius:14px;
+  border:none;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+
+  font-weight:800;
+  font-size:.84rem;
+
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+.primary-btn{
+  background:var(--primary);
+  color:#fff;
+}
+
+.primary-btn:hover{
+  transform:translateY(-1px);
+}
+
+.ghost-btn{
+  background:#fff;
+  border:1px solid var(--border);
+  color:#374151;
+}
+
+.ghost-btn:hover{
+  background:#f8fafc;
+}
+
+.danger-btn{
+  background:#fff0f0;
+  color:var(--danger);
+  border:1px solid #fecaca;
+}
+
+/* =====================================================
+   CANVAS AREA
+===================================================== */
+
+.editor-canvas-wrap{
+  overflow:auto;
+  padding:24px;
+}
+
+.editor-canvas{
+  width:100%;
+  min-height:1200px;
+
+  border-radius:28px;
+
+  background:#fff;
+  border:1px solid var(--border);
+
+  position:relative;
+
+  padding:34px;
+
+  box-shadow:var(--shadow);
+}
+
+/* =====================================================
+   ELEMENTS
+===================================================== */
+
+.canvas-element{
+  position:relative;
+
+  border:1px solid transparent;
+  border-radius:18px;
+
+  transition:.18s ease;
+
+  cursor:move;
+}
+
+.canvas-element.selected{
+  border-color:#7aa2ff;
+  box-shadow:
+    0 0 0 4px rgba(37,87,167,.10);
+}
+
+.canvas-element:hover{
+  border-color:#dbeafe;
+}
+
+.canvas-element-content{
+  width:100%;
+  outline:none;
+}
+
+.canvas-heading{
+  font-size:2rem;
+  font-weight:800;
+  line-height:1.2;
+  letter-spacing:-.04em;
+}
+
+.canvas-text{
+  font-size:1rem;
+  line-height:1.7;
+  color:#374151;
+}
+
+.canvas-image{
+  width:100%;
+  max-width:100%;
+  border-radius:18px;
+  object-fit:cover;
+}
+
+.canvas-box{
+  min-height:140px;
+  border-radius:22px;
+  border:2px dashed #dbeafe;
+  background:#f8fbff;
+}
+
+.canvas-divider{
+  height:2px;
+  background:#e5e7eb;
+  border-radius:999px;
+}
+
+.canvas-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  min-height:48px;
+  padding:0 20px;
+
+  border-radius:14px;
+  background:var(--primary);
+  color:#fff;
+
+  font-weight:800;
+}
+
+.canvas-table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.canvas-table td{
+  border:1px solid var(--border);
+  padding:10px;
+}
+
+.canvas-chart{
+  width:100%;
+  height:240px;
+
+  border-radius:20px;
+  background:
+    linear-gradient(
+      180deg,
+      #eef4ff,
+      #fff
+    );
+
+  border:1px solid #dbeafe;
+}
+
+/* =====================================================
+   RESIZE HANDLES
+===================================================== */
+
+.resize-handle{
+  width:14px;
+  height:14px;
+
+  background:#2557a7;
+  border-radius:999px;
+
+  position:absolute;
+  right:-7px;
+  bottom:-7px;
+
+  cursor:nwse-resize;
+}
+
+/* =====================================================
+   RIGHT PANEL
+===================================================== */
+
+.editor-right{
+  background:#fff;
+  border-left:1px solid var(--border);
+
+  display:grid;
+  grid-template-rows:
+    68px
+    minmax(0,1fr);
+
+  overflow:hidden;
+}
+
+.editor-panel-head{
+  border-bottom:1px solid var(--border);
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  padding:0 18px;
+}
+
+.editor-panel-title{
+  font-size:.94rem;
+  font-weight:800;
+}
+
+.editor-panel-body{
+  overflow:auto;
+  padding:18px;
+  display:grid;
+  gap:18px;
+}
+
+/* =====================================================
+   TOOL SECTIONS
+===================================================== */
+
+.tool-section{
+  display:grid;
+  gap:12px;
+}
+
+.tool-section-title{
+  font-size:.78rem;
+  font-weight:800;
+  color:var(--muted);
+
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+
+.tool-grid{
+  display:grid;
+  grid-template-columns:
+    repeat(2,minmax(0,1fr));
+
+  gap:10px;
+}
+
+.tool-btn{
+  border:1px solid var(--border);
+  background:#fff;
+
+  border-radius:16px;
+  padding:14px;
+
+  display:grid;
+  gap:10px;
+
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+.tool-btn:hover{
+  background:#f8fbff;
+  border-color:#bfd3ff;
+  transform:translateY(-1px);
+}
+
+.tool-btn svg{
+  width:20px;
+  height:20px;
+  stroke:#2557a7;
+  fill:none;
+  stroke-width:2;
+}
+
+.tool-btn span{
+  font-size:.8rem;
+  font-weight:700;
+  color:#374151;
+}
+
+/* =====================================================
+   INPUTS
+===================================================== */
+
+.editor-input,
+.editor-select,
+.editor-textarea{
+  width:100%;
+
+  border:1px solid var(--border);
+  border-radius:14px;
+
+  padding:12px 13px;
+
+  outline:none;
+
+  font-family:inherit;
+  font-size:.9rem;
+
+  background:#fff;
+}
+
+.editor-input:focus,
+.editor-select:focus,
+.editor-textarea:focus{
+  border-color:#bfd3ff;
+  box-shadow:
+    0 0 0 4px rgba(37,87,167,.08);
+}
+
+.editor-textarea{
+  min-height:120px;
+  resize:vertical;
+}
+
+/* =====================================================
+   COLORS
+===================================================== */
+
+.color-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.color-row input[type="color"]{
+  width:42px;
+  height:42px;
+  border:none;
+  background:none;
+}
+
+/* =====================================================
+   LAYER PANEL
+===================================================== */
+
+.layer-list{
+  display:grid;
+  gap:10px;
+}
+
+.layer-item{
+  border:1px solid var(--border);
+  border-radius:14px;
+
+  padding:12px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.layer-item.active{
+  border-color:#bfd3ff;
+  background:#f8fbff;
+}
+
+.layer-item-name{
+  font-size:.84rem;
+  font-weight:700;
+}
+
+/* =====================================================
+   STATUS BAR
+===================================================== */
+
+.editor-status{
+  position:fixed;
+  left:110px;
+  bottom:18px;
+
+  background:#111827;
+  color:#fff;
+
+  padding:10px 14px;
+  border-radius:14px;
+
+  font-size:.78rem;
+  font-weight:700;
+
+  z-index:1200;
+}
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+@media(max-width:1100px){
+
+  .editor-app{
+    grid-template-columns:
+      72px
+      minmax(0,1fr);
+  }
+
+  .editor-right{
+    position:fixed;
+
+    top:0;
+    right:0;
+
+    width:340px;
+    height:100vh;
+
+    z-index:2000;
+
+    transform:translateX(100%);
+    transition:.22s ease;
+  }
+
+  .editor-right.open{
+    transform:translateX(0);
+  }
+}
+
+@media(max-width:768px){
+
+  .editor-topbar{
+    padding:0 12px;
+  }
+
+  .editor-canvas-wrap{
+    padding:12px;
+  }
+
+  .editor-canvas{
+    padding:18px;
+  }
+
+  .editor-title{
+    font-size:.92rem;
+  }
+
+  .editor-subtitle{
+    display:none;
+  }
+
+  .tool-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+</style>
+</head>
+<body>
+
+<div class="editor-app">
+  <!-- LEFT SIDEBAR -->
+<aside class="editor-sidebar">
+
+  <div class="editor-logo">
+    A
+  </div>
+
+  <div class="editor-side-tools">
+
+    <button
+      class="editor-side-btn active"
+      title="Elements"
+      onclick="switchToolPanel('elements')"
+      data-panel-btn="elements"
+    >
+      <svg viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7"></rect>
+        <rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect>
+        <rect x="3" y="14" width="7" height="7"></rect>
+      </svg>
+    </button>
+
+    <button
+      class="editor-side-btn"
+      title="Text"
+      onclick="switchToolPanel('text')"
+      data-panel-btn="text"
+    >
+      <svg viewBox="0 0 24 24">
+        <path d="M4 6h16"></path>
+        <path d="M12 6v12"></path>
+        <path d="M8 18h8"></path>
+      </svg>
+    </button>
+
+    <button
+      class="editor-side-btn"
+      title="Draw"
+      onclick="switchToolPanel('draw')"
+      data-panel-btn="draw"
+    >
+      <svg viewBox="0 0 24 24">
+        <path d="M12 20h9"></path>
+        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+      </svg>
+    </button>
+
+    <button
+      class="editor-side-btn"
+      title="Layers"
+      onclick="switchToolPanel('layers')"
+      data-panel-btn="layers"
+    >
+      <svg viewBox="0 0 24 24">
+        <path d="m12 2 9 5-9 5-9-5 9-5Z"></path>
+        <path d="m3 12 9 5 9-5"></path>
+        <path d="m3 17 9 5 9-5"></path>
+      </svg>
+    </button>
+
+    <button
+      class="editor-side-btn"
+      title="Export"
+      onclick="switchToolPanel('export')"
+      data-panel-btn="export"
+    >
+      <svg viewBox="0 0 24 24">
+        <path d="M12 3v12"></path>
+        <path d="m7 10 5 5 5-5"></path>
+        <path d="M5 21h14"></path>
+      </svg>
+    </button>
+
+  </div>
+
+</aside>
+
+<!-- CENTER AREA -->
+<section class="editor-center">
+
+  <!-- TOPBAR -->
+  <header class="editor-topbar">
+
+    <div class="editor-top-left">
+
+      <button
+        class="editor-back-btn"
+        onclick="goBackToBuilder()"
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 18l-6-6 6-6"></path>
+        </svg>
+        Back
+      </button>
+
+      <div class="editor-title-wrap">
+        <div class="editor-title" id="editorTitle">
+          AIFT Visual Editor
+        </div>
+
+        <div class="editor-subtitle" id="editorSubtitle">
+          Loading project...
+        </div>
+      </div>
+
+    </div>
+
+    <div class="editor-top-actions">
+
+      <button class="ghost-btn" onclick="undoEditor()">
+        Undo
+      </button>
+
+      <button class="ghost-btn" onclick="redoEditor()">
+        Redo
+      </button>
+
+      <button class="ghost-btn" onclick="toggleRightPanel()">
+        Tools
+      </button>
+
+      <button class="primary-btn" onclick="saveVisualProject(event)">
+        Save Project
+      </button>
+
+    </div>
+
+  </header>
+
+  <!-- CANVAS -->
+  <main class="editor-canvas-wrap">
+
+    <section
+      class="editor-canvas"
+      id="editorCanvas"
+      ondragover="handleEditorDragOver(event)"
+      ondrop="handleEditorDrop(event)"
+    >
+    </section>
+
+  </main>
+
+</section>
+
+<!-- RIGHT PANEL -->
+<aside class="editor-right" id="editorRightPanel">
+
+  <div class="editor-panel-head">
+    <div class="editor-panel-title" id="toolPanelTitle">
+      Elements
+    </div>
+
+    <button
+      class="ghost-btn"
+      onclick="toggleRightPanel()"
+    >
+      Close
+    </button>
+  </div>
+
+  <div class="editor-panel-body">
+
+    <!-- ELEMENTS PANEL -->
+    <section class="tool-section" data-tool-panel="elements">
+
+      <div class="tool-section-title">
+        Add Elements
+      </div>
+
+      <div class="tool-grid">
+
+        <button class="tool-btn" onclick="addElement('shape')">
+          <svg viewBox="0 0 24 24">
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+          </svg>
+          <span>Shapes</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('line')">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 12h16"></path>
+          </svg>
+          <span>Lines</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('arrow')">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 12h16"></path>
+            <path d="m14 6 6 6-6 6"></path>
+          </svg>
+          <span>Arrows</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('icon')">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2l2.8 6 6.2.8-4.5 4.4 1.1 6.1L12 16.2 6.4 19.3l1.1-6.1L3 8.8 9.2 8 12 2z"></path>
+          </svg>
+          <span>Icons</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('sticker')">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 4h16v10l-6 6H4z"></path>
+            <path d="M14 20v-6h6"></path>
+          </svg>
+          <span>Stickers</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('frame')">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <rect x="7" y="7" width="10" height="10"></rect>
+          </svg>
+          <span>Frames</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('grid')">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 3h18v18H3z"></path>
+            <path d="M3 9h18"></path>
+            <path d="M3 15h18"></path>
+            <path d="M9 3v18"></path>
+            <path d="M15 3v18"></path>
+          </svg>
+          <span>Grids</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('chart')">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 3v18h18"></path>
+            <path d="M7 16v-5"></path>
+            <path d="M12 16V7"></path>
+            <path d="M17 16v-8"></path>
+          </svg>
+          <span>Charts</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('button')">
+          <svg viewBox="0 0 24 24">
+            <rect x="4" y="8" width="16" height="8" rx="4"></rect>
+          </svg>
+          <span>Buttons</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('table')">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+            <path d="M3 10h18"></path>
+            <path d="M9 4v16"></path>
+            <path d="M15 4v16"></path>
+          </svg>
+          <span>Tables</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('image')">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+            <path d="m3 16 5-5 4 4 3-3 6 6"></path>
+          </svg>
+          <span>Images</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('svg')">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2 4 6v12l8 4 8-4V6z"></path>
+          </svg>
+          <span>SVG</span>
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- TEXT PANEL -->
+    <section class="tool-section hidden" data-tool-panel="text">
+
+      <div class="tool-section-title">
+        Add Text
+      </div>
+
+      <div class="tool-grid">
+
+        <button class="tool-btn" onclick="addElement('heading')">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 6h16"></path>
+            <path d="M12 6v12"></path>
+          </svg>
+          <span>Heading</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('paragraph')">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 7h16"></path>
+            <path d="M4 12h16"></path>
+            <path d="M4 17h10"></path>
+          </svg>
+          <span>Paragraph</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('list')">
+          <svg viewBox="0 0 24 24">
+            <path d="M8 6h13"></path>
+            <path d="M8 12h13"></path>
+            <path d="M8 18h13"></path>
+            <path d="M3 6h.01"></path>
+            <path d="M3 12h.01"></path>
+            <path d="M3 18h.01"></path>
+          </svg>
+          <span>Lists</span>
+        </button>
+
+        <button class="tool-btn" onclick="addElement('quote')">
+          <svg viewBox="0 0 24 24">
+            <path d="M9 7H5v6h4v4H3V7h6z"></path>
+            <path d="M21 7h-4v6h4v4h-6V7h6z"></path>
+          </svg>
+          <span>Quote</span>
+        </button>
+
+      </div>
+
+      <div class="tool-section-title">
+        Text Style
+      </div>
+
+      <select class="editor-select" id="fontFamilyInput" onchange="applySelectedStyle('fontFamily', this.value)">
+        <option value="Inter">Inter</option>
+        <option value="Arial">Arial</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Courier New">Courier New</option>
+      </select>
+
+      <input
+        class="editor-input"
+        type="number"
+        id="fontSizeInput"
+        placeholder="Font size"
+        value="16"
+        onchange="applySelectedStyle('fontSize', this.value + 'px')"
+      />
+
+      <div class="color-row">
+        <input type="color" value="#111827" onchange="applySelectedStyle('color', this.value)">
+        <input type="color" value="#ffffff" onchange="applySelectedStyle('background', this.value)">
+      </div>
+
+      <div class="tool-grid">
+        <button class="tool-btn" onclick="toggleTextStyle('bold')"><span>Bold</span></button>
+        <button class="tool-btn" onclick="toggleTextStyle('italic')"><span>Italic</span></button>
+        <button class="tool-btn" onclick="toggleTextStyle('underline')"><span>Underline</span></button>
+        <button class="tool-btn" onclick="applySelectedStyle('textAlign','center')"><span>Center</span></button>
+      </div>
+
+    </section>
+
+    <!-- DRAW PANEL -->
+    <section class="tool-section hidden" data-tool-panel="draw">
+
+      <div class="tool-section-title">
+        Drawing Tools
+      </div>
+
+      <div class="tool-grid">
+        <button class="tool-btn" onclick="setDrawTool('pen')"><span>Pen</span></button>
+        <button class="tool-btn" onclick="setDrawTool('pencil')"><span>Pencil</span></button>
+        <button class="tool-btn" onclick="setDrawTool('brush')"><span>Brush</span></button>
+        <button class="tool-btn" onclick="setDrawTool('eraser')"><span>Eraser</span></button>
+      </div>
+
+    </section>
+        <!-- LAYERS PANEL -->
+    <section class="tool-section hidden" data-tool-panel="layers">
+
+      <div class="tool-section-title">
+        Layers
+      </div>
+
+      <div class="layer-list" id="layerList">
+      </div>
+
+      <div class="tool-section-title">
+        Alignment
+      </div>
+
+      <div class="tool-grid">
+
+        <button class="tool-btn" onclick="alignSelected('left')">
+          <span>Align Left</span>
+        </button>
+
+        <button class="tool-btn" onclick="alignSelected('center')">
+          <span>Align Center</span>
+        </button>
+
+        <button class="tool-btn" onclick="alignSelected('right')">
+          <span>Align Right</span>
+        </button>
+
+        <button class="tool-btn" onclick="alignSelected('middle')">
+          <span>Align Middle</span>
+        </button>
+
+        <button class="tool-btn" onclick="distributeElements()">
+          <span>Distribute</span>
+        </button>
+
+        <button class="tool-btn" onclick="toggleSnapGuides()">
+          <span>Snap Guides</span>
+        </button>
+
+      </div>
+
+      <div class="tool-section-title">
+        Arrange
+      </div>
+
+      <div class="tool-grid">
+
+        <button class="tool-btn" onclick="bringForward()">
+          <span>Bring Forward</span>
+        </button>
+
+        <button class="tool-btn" onclick="sendBackward()">
+          <span>Send Backward</span>
+        </button>
+
+        <button class="tool-btn" onclick="groupSelected()">
+          <span>Group</span>
+        </button>
+
+        <button class="tool-btn" onclick="ungroupSelected()">
+          <span>Ungroup</span>
+        </button>
+
+        <button class="tool-btn" onclick="lockSelected()">
+          <span>Lock</span>
+        </button>
+
+        <button class="tool-btn" onclick="duplicateSelected()">
+          <span>Duplicate</span>
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- EXPORT PANEL -->
+    <section class="tool-section hidden" data-tool-panel="export">
+
+      <div class="tool-section-title">
+        Save & Export
+      </div>
+
+      <div class="tool-grid">
+
+        <button class="tool-btn" onclick="exportProject('pdf')">
+          <span>PDF</span>
+        </button>
+
+        <button class="tool-btn" onclick="exportProject('png')">
+          <span>PNG</span>
+        </button>
+
+        <button class="tool-btn" onclick="exportProject('jpg')">
+          <span>JPG</span>
+        </button>
+
+        <button class="tool-btn" onclick="exportProject('pptx')">
+          <span>PPTX</span>
+        </button>
+
+        <button class="tool-btn" onclick="exportProject('mp4')">
+          <span>MP4</span>
+        </button>
+
+      </div>
+
+      <div class="tool-section-title">
+        Project
+      </div>
+
+      <div class="tool-grid">
+
+        <button class="tool-btn" onclick="saveVisualProject(event)">
+          <span>Save</span>
+        </button>
+
+        <button class="tool-btn" onclick="saveDraft()">
+          <span>Draft</span>
+        </button>
+
+        <button class="tool-btn" onclick="loadRecentProjects()">
+          <span>Recent</span>
+        </button>
+
+        <button class="tool-btn" onclick="openFolders()">
+          <span>Folders</span>
+        </button>
+
+        <button class="tool-btn" onclick="shareProject()">
+          <span>Share</span>
+        </button>
+
+        <button class="tool-btn" onclick="showVersionHistory()">
+          <span>Versions</span>
+        </button>
+
+      </div>
+
+      <div class="tool-section-title">
+        Auto Save
+      </div>
+
+      <div class="builder-item-sub">
+        Your project auto-saves every few seconds.
+      </div>
+
+    </section>
+
+  </div>
+
+</aside>
+
+<div class="editor-status" id="editorStatus">
+  Ready
+</div>
+
+<script>
+
+/* =====================================================
+   STATE
+===================================================== */
+
+const API_BASE = "https://backend-1-9b6f.onrender.com";
+
+const editorState = {
+  classId: new URLSearchParams(window.location.search).get("classId"),
+  scope: new URLSearchParams(window.location.search).get("scope") || "welcome",
+  ownerId: new URLSearchParams(window.location.search).get("ownerId") || null,
+
+  elements: [],
+  selectedElementId: null,
+
+  undoStack: [],
+  redoStack: [],
+
+  autoSaveEnabled: true,
+  snapGuides: true,
+
+  drawTool: null,
+  history: []
+};
+
+/* =====================================================
+   HELPERS
+===================================================== */
+
+function byId(id){
+  return document.getElementById(id);
+}
+
+function uid(){
+  return (
+    "el_" +
+    Date.now() +
+    "_" +
+    Math.random().toString(16).slice(2)
+  );
+}
+
+function setStatus(message){
+  const status = byId("editorStatus");
+
+  if (!status) return;
+
+  status.textContent = message || "Ready";
+}
+
+function getToken(){
+  const keys = [
+    "schoolToken",
+    "teacherToken",
+    "studentToken",
+    "adminToken",
+    "employerToken",
+    "talentToken",
+    "agentToken",
+    "token"
+  ];
+
+  for (const key of keys){
+    const value = localStorage.getItem(key);
+
+    if (value && value.trim()){
+      return value.trim();
+    }
+  }
+
+  return "";
+}
+
+function authHeaders(extra = {}){
+  const token = getToken();
+
+  return {
+    "Content-Type":"application/json",
+    ...(token ? { Authorization:`Bearer ${token}` } : {}),
+    ...extra
+  };
+}
+
+async function safeJson(res){
+  try{
+    return await res.json();
+  }catch(err){
+    return null;
+  }
+}
+
+async function apiGet(path){
+  const res = await fetch(`${API_BASE}${path}`,{
+    headers:authHeaders()
+  });
+
+  const data = await safeJson(res);
+
+  if(!res.ok){
+    throw new Error(data?.message || "Request failed");
+  }
+
+  return data;
+}
+
+async function apiSend(path,method,payload){
+  const res = await fetch(`${API_BASE}${path}`,{
+    method,
+    headers:authHeaders(),
+    body:JSON.stringify(payload || {})
+  });
+
+  const data = await safeJson(res);
+
+  if(!res.ok){
+    throw new Error(data?.message || "Request failed");
+  }
+
+  return data;
+}
+
+/* =====================================================
+   PANELS
+===================================================== */
+
+function switchToolPanel(panel){
+  document.querySelectorAll("[data-tool-panel]").forEach(item => {
+    item.classList.add("hidden");
+  });
+
+  document.querySelectorAll("[data-panel-btn]").forEach(btn => {
+    btn.classList.remove("active");
+  });
+
+  const section = document.querySelector(
+    `[data-tool-panel="${panel}"]`
+  );
+
+  if(section){
+    section.classList.remove("hidden");
+  }
+
+  const button = document.querySelector(
+    `[data-panel-btn="${panel}"]`
+  );
+
+  if(button){
+    button.classList.add("active");
+  }
+
+  const title = byId("toolPanelTitle");
+
+  if(title){
+    title.textContent =
+      panel.charAt(0).toUpperCase() +
+      panel.slice(1);
+  }
+}
+
+function toggleRightPanel(){
+  const panel = byId("editorRightPanel");
+
+  if(panel){
+    panel.classList.toggle("open");
+  }
+}
+  /* =====================================================
+   ELEMENT CREATION
+===================================================== */
+
+function getDefaultElement(type){
+
+  const base = {
+    id: uid(),
+
+    type,
+
+    x: 60,
+    y: 60,
+
+    width: 320,
+    height: 120,
+
+    rotation: 0,
+    opacity: 1,
+
+    zIndex: editorState.elements.length + 1,
+
+    locked:false,
+
+    styles:{
+      color:"#111827",
+      background:"#ffffff",
+      borderColor:"#e5e7eb",
+
+      fontFamily:"Inter",
+      fontSize:"16px",
+      fontWeight:"400",
+
+      textAlign:"left",
+      lineHeight:"1.6",
+      letterSpacing:"0px",
+
+      borderRadius:"18px"
+    },
+
+    content:""
+  };
+
+  if(type === "heading"){
+    base.content = "Heading";
+    base.height = 90;
+    base.styles.fontSize = "42px";
+    base.styles.fontWeight = "800";
+  }
+
+  if(type === "paragraph"){
+    base.content =
+      "Write lesson content here.";
+    base.height = 160;
+  }
+
+  if(type === "quote"){
+    base.content =
+      "Inspirational quote";
+    base.styles.fontStyle = "italic";
+  }
+
+  if(type === "button"){
+    base.content = "Button";
+    base.width = 180;
+    base.height = 52;
+
+    base.styles.background =
+      "#2557a7";
+
+    base.styles.color = "#ffffff";
+  }
+
+  if(type === "shape"){
+    base.width = 220;
+    base.height = 220;
+
+    base.styles.background =
+      "#eef4ff";
+  }
+
+  if(type === "line"){
+    base.width = 340;
+    base.height = 2;
+
+    base.styles.background =
+      "#111827";
+  }
+
+  if(type === "arrow"){
+    base.width = 220;
+    base.height = 40;
+  }
+
+  if(type === "table"){
+    base.width = 520;
+    base.height = 220;
+  }
+
+  if(type === "chart"){
+    base.width = 500;
+    base.height = 260;
+  }
+
+  if(type === "image"){
+    base.width = 420;
+    base.height = 260;
+
+    base.imageUrl =
+      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1200&auto=format&fit=crop";
+  }
+
+  if(type === "grid"){
+    base.width = 520;
+    base.height = 340;
+  }
+
+  if(type === "frame"){
+    base.width = 500;
+    base.height = 340;
+  }
+
+  if(type === "svg"){
+    base.width = 220;
+    base.height = 220;
+  }
+
+  return base;
+}
+
+function addElement(type){
+
+  saveUndoState();
+
+  const element =
+    getDefaultElement(type);
+
+  editorState.elements.push(element);
+
+  renderCanvas();
+  selectElement(element.id);
+
+  setStatus(`${type} added`);
+}
+
+/* =====================================================
+   RENDER
+===================================================== */
+
+function renderCanvas(){
+
+  const canvas = byId("editorCanvas");
+
+  if(!canvas) return;
+
+  canvas.innerHTML =
+    editorState.elements
+      .sort((a,b)=>
+        a.zIndex - b.zIndex
+      )
+      .map(renderElement)
+      .join("");
+
+  renderLayers();
+}
+
+function renderElement(el){
+
+  const selected =
+    editorState.selectedElementId === el.id
+      ? "selected"
+      : "";
+
+  return `
+    <div
+      class="canvas-element ${selected}"
+      id="${el.id}"
+
+      onclick="selectElement('${el.id}')"
+
+      draggable="${!el.locked}"
+
+      ondragstart="startDrag(event,'${el.id}')"
+
+      style="
+        position:absolute;
+
+        left:${el.x}px;
+        top:${el.y}px;
+
+        width:${el.width}px;
+        height:${el.height}px;
+
+        z-index:${el.zIndex};
+
+        transform:
+          rotate(${el.rotation}deg);
+
+        opacity:${el.opacity};
+
+        color:${el.styles.color};
+
+        background:${el.styles.background || el.styles.backgroundColor || "transparent"};
+
+        border-color:${el.styles.borderColor};
+
+        border-radius:${el.styles.borderRadius};
+
+        text-align:${el.styles.textAlign};
+
+        font-family:${el.styles.fontFamily};
+
+        font-size:${el.styles.fontSize};
+
+        font-weight:${el.styles.fontWeight};
+
+        line-height:${el.styles.lineHeight};
+
+        letter-spacing:${el.styles.letterSpacing};
+      "
+    >
+
+      ${renderElementBody(el)}
+
+      ${
+        !el.locked
+          ? `
+            <div
+              class="resize-handle"
+
+              onmousedown="
+                startResize(
+                  event,
+                  '${el.id}'
+                )
+              "
+            ></div>
+          `
+          : ""
+      }
+
+    </div>
+  `;
+}
+
+function renderElementBody(el){
+
+  if(el.type === "heading"){
+    return `
+      <div
+        class="
+          canvas-element-content
+          canvas-heading
+        "
+
+        contenteditable="true"
+
+        oninput="
+          updateElementContent(
+            '${el.id}',
+            this.innerHTML
+          )
+        "
+      >
+        ${el.content}
+      </div>
+    `;
+  }
+
+  if(
+    el.type === "paragraph" ||
+    el.type === "quote" ||
+    el.type === "list"
+  ){
+    return `
+      <div
+        class="
+          canvas-element-content
+          canvas-text
+        "
+
+        contenteditable="true"
+
+        oninput="
+          updateElementContent(
+            '${el.id}',
+            this.innerHTML
+          )
+        "
+      >
+        ${el.content}
+      </div>
+    `;
+  }
+
+  if(el.type === "button"){
+    return `
+      <div class="canvas-button">
+        ${el.content}
+      </div>
+    `;
+  }
+
+  if(el.type === "shape"){
+    return `
+      <div
+        class="canvas-box"
+        style="
+          width:100%;
+          height:100%;
+          background:${el.styles.background};
+        "
+      ></div>
+    `;
+  }
+
+  if(el.type === "line"){
+    return `
+      <div
+        class="canvas-divider"
+        style="
+          background:${el.styles.background};
+        "
+      ></div>
+    `;
+  }
+
+  if(el.type === "arrow"){
+    return `
+      <svg
+        width="100%"
+        height="100%"
+        viewBox="0 0 240 40"
+      >
+        <line
+          x1="10"
+          y1="20"
+          x2="210"
+          y2="20"
+          stroke="#111827"
+          stroke-width="4"
+        />
+
+        <polygon
+          points="
+            210,5
+            235,20
+            210,35
+          "
+          fill="#111827"
+        />
+      </svg>
+    `;
+  }
+
+  if(el.type === "table"){
+    return `
+      <table class="canvas-table">
+        <tr>
+          <td>Header</td>
+          <td>Header</td>
+          <td>Header</td>
+        </tr>
+
+        <tr>
+          <td>Data</td>
+          <td>Data</td>
+          <td>Data</td>
+        </tr>
+
+        <tr>
+          <td>Data</td>
+          <td>Data</td>
+          <td>Data</td>
+        </tr>
+      </table>
+    `;
+  }
+
+  if(el.type === "chart"){
+    return `
+      <div class="canvas-chart"></div>
+    `;
+  }
+
+  if(el.type === "image"){
+    return `
+      <img
+        src="${el.imageUrl}"
+        class="canvas-image"
+      />
+    `;
+  }
+
+  if(el.type === "grid"){
+    return `
+      <div
+        style="
+          display:grid;
+          grid-template-columns:
+            repeat(3,1fr);
+
+          gap:10px;
+          width:100%;
+          height:100%;
+        "
+      >
+        ${Array(9)
+          .fill(0)
+          .map(() => `
+            <div
+              style="
+                border:1px dashed #dbeafe;
+                border-radius:12px;
+              "
+            ></div>
+          `)
+          .join("")
+        }
+      </div>
+    `;
+  }
+
+  if(el.type === "frame"){
+    return `
+      <div
+        style="
+          width:100%;
+          height:100%;
+
+          border:4px solid #111827;
+          border-radius:24px;
+        "
+      ></div>
+    `;
+  }
+
+  if(el.type === "svg"){
+    return `
+      <svg
+        width="100%"
+        height="100%"
+        viewBox="0 0 200 200"
+      >
+        <circle
+          cx="100"
+          cy="100"
+          r="70"
+          fill="#eef4ff"
+          stroke="#2557a7"
+          stroke-width="4"
+        />
+      </svg>
+    `;
+  }
+
+  return `
+    <div
+      class="
+        canvas-element-content
+        canvas-text
+      "
+    >
+      ${el.content || ""}
+    </div>
+  `;
+}
+
+/* =====================================================
+   SELECT
+===================================================== */
+
+function selectElement(id){
+
+  editorState.selectedElementId = id;
+
+  renderCanvas();
+  renderLayers();
+
+  setStatus("Element selected");
+}
+
+function getSelectedElement(){
+
+  return editorState.elements.find(
+    el =>
+      el.id ===
+      editorState.selectedElementId
+  );
+}
+
+/* =====================================================
+   UPDATE
+===================================================== */
+
+function updateElementContent(id,value){
+
+  const el =
+    editorState.elements.find(
+      item => item.id === id
+    );
+
+  if(!el) return;
+
+  el.content = value;
+
+  queueAutoSave();
+}
+
+function applySelectedStyle(key,value){
+
+  const el = getSelectedElement();
+
+  if(!el) return;
+
+  saveUndoState();
+
+  el.styles[key] = value;
+
+  renderCanvas();
+
+  queueAutoSave();
+}
+
+function toggleTextStyle(type){
+
+  const el = getSelectedElement();
+
+  if(!el) return;
+
+  saveUndoState();
+
+  if(type === "bold"){
+    el.styles.fontWeight =
+      el.styles.fontWeight === "800"
+        ? "400"
+        : "800";
+  }
+
+  if(type === "italic"){
+    el.styles.fontStyle =
+      el.styles.fontStyle === "italic"
+        ? "normal"
+        : "italic";
+  }
+
+  if(type === "underline"){
+    el.styles.textDecoration =
+      el.styles.textDecoration === "underline"
+        ? "none"
+        : "underline";
+  }
+
+  renderCanvas();
+
+  queueAutoSave();
+}
+  /* =====================================================
+   DRAG / DROP
+===================================================== */
+
+let dragData = null;
+
+function startDrag(event,id){
+
+  const el =
+    editorState.elements.find(
+      item => item.id === id
+    );
+
+  if(!el || el.locked){
+    event.preventDefault();
+    return;
+  }
+
+  dragData = {
+    id,
+    offsetX:event.offsetX,
+    offsetY:event.offsetY
+  };
+
+  event.dataTransfer.setData(
+    "text/plain",
+    id
+  );
+}
+
+function handleEditorDragOver(event){
+  event.preventDefault();
+}
+
+function handleEditorDrop(event){
+
+  event.preventDefault();
+
+  if(!dragData) return;
+
+  const canvas = byId("editorCanvas");
+
+  if(!canvas) return;
+
+  const rect =
+    canvas.getBoundingClientRect();
+
+  const el =
+    editorState.elements.find(
+      item => item.id === dragData.id
+    );
+
+  if(!el) return;
+
+  saveUndoState();
+
+  let nextX =
+    event.clientX -
+    rect.left -
+    dragData.offsetX;
+
+  let nextY =
+    event.clientY -
+    rect.top -
+    dragData.offsetY;
+
+  if(editorState.snapGuides){
+    nextX = Math.round(nextX / 10) * 10;
+    nextY = Math.round(nextY / 10) * 10;
+  }
+
+  el.x = Math.max(0,nextX);
+  el.y = Math.max(0,nextY);
+
+  dragData = null;
+
+  renderCanvas();
+  queueAutoSave();
+}
+
+/* =====================================================
+   RESIZE
+===================================================== */
+
+let resizeData = null;
+
+function startResize(event,id){
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const el =
+    editorState.elements.find(
+      item => item.id === id
+    );
+
+  if(!el || el.locked) return;
+
+  resizeData = {
+    id,
+    startX:event.clientX,
+    startY:event.clientY,
+    startWidth:el.width,
+    startHeight:el.height
+  };
+
+  document.addEventListener(
+    "mousemove",
+    handleResizeMove
+  );
+
+  document.addEventListener(
+    "mouseup",
+    stopResize
+  );
+}
+
+function handleResizeMove(event){
+
+  if(!resizeData) return;
+
+  const el =
+    editorState.elements.find(
+      item => item.id === resizeData.id
+    );
+
+  if(!el) return;
+
+  const dx =
+    event.clientX -
+    resizeData.startX;
+
+  const dy =
+    event.clientY -
+    resizeData.startY;
+
+  el.width =
+    Math.max(
+      40,
+      resizeData.startWidth + dx
+    );
+
+  el.height =
+    Math.max(
+      20,
+      resizeData.startHeight + dy
+    );
+
+  renderCanvas();
+}
+
+function stopResize(){
+
+  if(resizeData){
+    queueAutoSave();
+  }
+
+  resizeData = null;
+
+  document.removeEventListener(
+    "mousemove",
+    handleResizeMove
+  );
+
+  document.removeEventListener(
+    "mouseup",
+    stopResize
+  );
+}
+
+/* =====================================================
+   ALIGNMENT / ARRANGE
+===================================================== */
+
+function alignSelected(type){
+
+  const el = getSelectedElement();
+
+  const canvas = byId("editorCanvas");
+
+  if(!el || !canvas) return;
+
+  saveUndoState();
+
+  const canvasWidth =
+    canvas.clientWidth;
+
+  const canvasHeight =
+    canvas.clientHeight;
+
+  if(type === "left"){
+    el.x = 30;
+  }
+
+  if(type === "center"){
+    el.x =
+      Math.round(
+        (canvasWidth - el.width) / 2
+      );
+  }
+
+  if(type === "right"){
+    el.x =
+      canvasWidth -
+      el.width -
+      30;
+  }
+
+  if(type === "middle"){
+    el.y =
+      Math.round(
+        (canvasHeight - el.height) / 2
+      );
+  }
+
+  renderCanvas();
+  queueAutoSave();
+}
+
+function distributeElements(){
+
+  if(editorState.elements.length < 3){
+    setStatus(
+      "Need at least 3 elements to distribute."
+    );
+    return;
+  }
+
+  saveUndoState();
+
+  const sorted =
+    [...editorState.elements]
+      .sort((a,b)=>a.y-b.y);
+
+  const first = sorted[0];
+  const last =
+    sorted[sorted.length - 1];
+
+  const gap =
+    (last.y - first.y) /
+    (sorted.length - 1);
+
+  sorted.forEach((el,index)=>{
+    el.y =
+      Math.round(first.y + gap * index);
+  });
+
+  renderCanvas();
+  queueAutoSave();
+
+  setStatus("Elements distributed");
+}
+
+function toggleSnapGuides(){
+
+  editorState.snapGuides =
+    !editorState.snapGuides;
+
+  setStatus(
+    editorState.snapGuides
+      ? "Snap guidelines enabled"
+      : "Snap guidelines disabled"
+  );
+}
+
+function bringForward(){
+
+  const el = getSelectedElement();
+
+  if(!el) return;
+
+  saveUndoState();
+
+  el.zIndex += 1;
+
+  renderCanvas();
+  queueAutoSave();
+}
+
+function sendBackward(){
+
+  const el = getSelectedElement();
+
+  if(!el) return;
+
+  saveUndoState();
+
+  el.zIndex =
+    Math.max(1,el.zIndex - 1);
+
+  renderCanvas();
+  queueAutoSave();
+}
+
+function lockSelected(){
+
+  const el = getSelectedElement();
+
+  if(!el) return;
+
+  saveUndoState();
+
+  el.locked = !el.locked;
+
+  renderCanvas();
+  queueAutoSave();
+
+  setStatus(
+    el.locked
+      ? "Element locked"
+      : "Element unlocked"
+  );
+}
+
+function duplicateSelected(){
+
+  const el = getSelectedElement();
+
+  if(!el) return;
+
+  saveUndoState();
+
+  const copy = JSON.parse(
+    JSON.stringify(el)
+  );
+
+  copy.id = uid();
+  copy.x += 24;
+  copy.y += 24;
+  copy.zIndex =
+    editorState.elements.length + 1;
+
+  editorState.elements.push(copy);
+
+  renderCanvas();
+  selectElement(copy.id);
+  queueAutoSave();
+}
+
+function groupSelected(){
+  setStatus(
+    "Group feature prepared. Multi-select will be added next."
+  );
+}
+
+function ungroupSelected(){
+  setStatus(
+    "Ungroup feature prepared. Multi-select will be added next."
+  );
+}
+
+/* =====================================================
+   LAYERS
+===================================================== */
+
+function renderLayers(){
+
+  const list = byId("layerList");
+
+  if(!list) return;
+
+  if(!editorState.elements.length){
+    list.innerHTML =
+      `<div class="builder-item-sub">No layers yet.</div>`;
+    return;
+  }
+
+  list.innerHTML =
+    editorState.elements
+      .slice()
+      .sort((a,b)=>b.zIndex-a.zIndex)
+      .map(el => `
+        <div
+          class="layer-item ${
+            editorState.selectedElementId === el.id
+              ? "active"
+              : ""
+          }"
+
+          onclick="selectElement('${el.id}')"
+        >
+          <div class="layer-item-name">
+            ${el.type}
+            ${el.locked ? " · Locked" : ""}
+          </div>
+
+          <button
+            class="ghost-btn"
+            onclick="
+              event.stopPropagation();
+              deleteElement('${el.id}');
+            "
+          >
+            Delete
+          </button>
+        </div>
+      `)
+      .join("");
+}
+
+function deleteElement(id){
+
+  saveUndoState();
+
+  editorState.elements =
+    editorState.elements.filter(
+      el => el.id !== id
+    );
+
+  if(editorState.selectedElementId === id){
+    editorState.selectedElementId = null;
+  }
+
+  renderCanvas();
+  queueAutoSave();
+
+  setStatus("Element deleted");
+}
+
+/* =====================================================
+   UNDO / REDO
+===================================================== */
+
+function saveUndoState(){
+
+  editorState.undoStack.push(
+    JSON.stringify(editorState.elements)
+  );
+
+  if(editorState.undoStack.length > 50){
+    editorState.undoStack.shift();
+  }
+
+  editorState.redoStack = [];
+}
+
+function undoEditor(){
+
+  if(!editorState.undoStack.length){
+    setStatus("Nothing to undo");
+    return;
+  }
+
+  editorState.redoStack.push(
+    JSON.stringify(editorState.elements)
+  );
+
+  const previous =
+    editorState.undoStack.pop();
+
+  editorState.elements =
+    JSON.parse(previous);
+
+  renderCanvas();
+  queueAutoSave();
+
+  setStatus("Undo");
+}
+
+function redoEditor(){
+
+  if(!editorState.redoStack.length){
+    setStatus("Nothing to redo");
+    return;
+  }
+
+  editorState.undoStack.push(
+    JSON.stringify(editorState.elements)
+  );
+
+  const next =
+    editorState.redoStack.pop();
+
+  editorState.elements =
+    JSON.parse(next);
+
+  renderCanvas();
+  queueAutoSave();
+
+  setStatus("Redo");
+}
+
+/* =====================================================
+   DRAWING TOOLS PLACEHOLDER
+===================================================== */
+
+function setDrawTool(tool){
+
+  editorState.drawTool = tool;
+
+  setStatus(`${tool} tool selected`);
+}
+  /* =====================================================
+   SAVE / LOAD
+===================================================== */
+
+function getStorageKey(){
+  return [
+    "aift_visual_editor",
+    editorState.classId || "no_class",
+    editorState.scope || "general",
+    editorState.ownerId || "main"
+  ].join("_");
+}
+
+function buildVisualPayload(){
+  return {
+    scope: editorState.scope,
+    ownerId: editorState.ownerId,
+    elements: editorState.elements,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+async function loadVisualProject(){
+
+  try{
+    if(!editorState.classId){
+      setStatus("Missing class ID");
+      return;
+    }
+
+    setStatus("Loading project...");
+
+    const data = await apiGet(
+      `/api/classes/${encodeURIComponent(editorState.classId)}/builder`
+    );
+
+    const cls = data.class || data || {};
+    const blocks = Array.isArray(cls.contentBlocks)
+      ? cls.contentBlocks
+      : [];
+
+    const matching = blocks.find(item => {
+      return (
+        item.scope === editorState.scope &&
+        String(item.ownerId || "main") === String(editorState.ownerId || "main")
+      );
+    });
+
+    if(matching && matching.content){
+      try{
+        const parsed = JSON.parse(matching.content);
+
+        editorState.elements = Array.isArray(parsed.elements)
+          ? parsed.elements
+          : [];
+      }catch(err){
+        console.warn("Could not parse saved visual content:", err);
+        editorState.elements = [];
+      }
+    } else {
+      const draft = localStorage.getItem(getStorageKey());
+
+      if(draft){
+        const parsed = JSON.parse(draft);
+        editorState.elements = Array.isArray(parsed.elements)
+          ? parsed.elements
+          : [];
+      } else {
+        seedEmptyProject();
+      }
+    }
+
+    updateEditorTitle();
+    renderCanvas();
+
+    setStatus("Project loaded");
+  }catch(err){
+    console.error("loadVisualProject error:", err);
+
+    const draft = localStorage.getItem(getStorageKey());
+
+    if(draft){
+      try{
+        const parsed = JSON.parse(draft);
+        editorState.elements = Array.isArray(parsed.elements)
+          ? parsed.elements
+          : [];
+        renderCanvas();
+        setStatus("Loaded offline draft");
+        return;
+      }catch(e){}
+    }
+
+    seedEmptyProject();
+    renderCanvas();
+    setStatus("Started new project");
+  }
+}
+
+function seedEmptyProject(){
+
+  editorState.elements = [];
+
+  if(editorState.scope === "welcome"){
+    editorState.elements.push({
+      ...getDefaultElement("heading"),
+      content:"Welcome to the class",
+      x:60,
+      y:60
+    });
+
+    editorState.elements.push({
+      ...getDefaultElement("paragraph"),
+      content:"Use this space to introduce the class, explain the goals, and guide students.",
+      x:60,
+      y:170,
+      width:620,
+      height:160
+    });
+  }
+
+  if(editorState.scope === "outcomes"){
+    editorState.elements.push({
+      ...getDefaultElement("heading"),
+      content:"Learning Outcomes",
+      x:60,
+      y:60
+    });
+
+    editorState.elements.push({
+      ...getDefaultElement("list"),
+      content:"• Outcome one<br>• Outcome two<br>• Outcome three",
+      x:60,
+      y:170,
+      width:620,
+      height:180
+    });
+  }
+
+  if(!editorState.elements.length){
+    editorState.elements.push({
+      ...getDefaultElement("heading"),
+      content:"New Visual Page",
+      x:60,
+      y:60
+    });
+  }
+}
+
+async function saveVisualProject(event){
+
+  const button = event?.currentTarget || null;
+
+  try{
+    if(button){
+      button.dataset.originalText = button.textContent;
+      button.textContent = "Saving...";
+      button.disabled = true;
+    }
+
+    if(!editorState.classId){
+      setStatus("Missing class ID");
+      return;
+    }
+
+    const currentData = await apiGet(
+      `/api/classes/${encodeURIComponent(editorState.classId)}/builder`
+    );
+
+    const cls = currentData.class || currentData || {};
+    const existingBlocks = Array.isArray(cls.contentBlocks)
+      ? cls.contentBlocks
+      : [];
+
+    const payload = buildVisualPayload();
+
+    const nextBlocks = existingBlocks.filter(item => {
+      return !(
+        item.scope === editorState.scope &&
+        String(item.ownerId || "main") === String(editorState.ownerId || "main")
+      );
+    });
+
+    nextBlocks.push({
+      blockId:[
+        "visual",
+        editorState.scope,
+        editorState.ownerId || "main"
+      ].join("_"),
+
+      scope:editorState.scope,
+      ownerId:editorState.ownerId || "main",
+      type:"visual",
+      content:JSON.stringify(payload),
+      order:nextBlocks.length
+    });
+
+    await apiSend(
+      `/api/classes/${encodeURIComponent(editorState.classId)}/builder`,
+      "PATCH",
+      {
+        contentBlocks:nextBlocks,
+        contentBlocksUpdatedAt:new Date().toISOString()
+      }
+    );
+
+    localStorage.setItem(
+      getStorageKey(),
+      JSON.stringify(payload)
+    );
+
+    pushVersionHistory();
+
+    setStatus("Saved");
+  }catch(err){
+    console.error("saveVisualProject error:", err);
+
+    localStorage.setItem(
+      getStorageKey(),
+      JSON.stringify(buildVisualPayload())
+    );
+
+    setStatus("Saved offline draft");
+  }finally{
+    if(button){
+      button.textContent = button.dataset.originalText || "Save Project";
+      button.disabled = false;
+    }
+  }
+}
+
+/* =====================================================
+   AUTO SAVE / DRAFTS / VERSION HISTORY
+===================================================== */
+
+let autoSaveTimer = null;
+
+function queueAutoSave(){
+
+  if(!editorState.autoSaveEnabled){
+    return;
+  }
+
+  window.clearTimeout(autoSaveTimer);
+
+  autoSaveTimer = window.setTimeout(() => {
+    saveDraft();
+  }, 1200);
+}
+
+function saveDraft(){
+
+  const payload = buildVisualPayload();
+
+  localStorage.setItem(
+    getStorageKey(),
+    JSON.stringify(payload)
+  );
+
+  setStatus("Draft saved");
+}
+
+function pushVersionHistory(){
+
+  const key = getStorageKey() + "_versions";
+
+  const versions = JSON.parse(
+    localStorage.getItem(key) || "[]"
+  );
+
+  versions.unshift({
+    savedAt:new Date().toISOString(),
+    elements:editorState.elements
+  });
+
+  localStorage.setItem(
+    key,
+    JSON.stringify(versions.slice(0,20))
+  );
+}
+
+function showVersionHistory(){
+
+  const key = getStorageKey() + "_versions";
+
+  const versions = JSON.parse(
+    localStorage.getItem(key) || "[]"
+  );
+
+  if(!versions.length){
+    setStatus("No version history yet");
+    return;
+  }
+
+  alert(
+    versions
+      .map((v,i)=>`${i + 1}. ${new Date(v.savedAt).toLocaleString()}`)
+      .join("\n")
+  );
+}
+
+function loadRecentProjects(){
+  setStatus("Recent projects are stored per class and section.");
+}
+
+function openFolders(){
+  setStatus("Folders UI prepared for future dashboard grouping.");
+}
+
+function shareProject(){
+  const url = window.location.href;
+
+  navigator.clipboard
+    ?.writeText(url)
+    .then(()=>setStatus("Share link copied"))
+    .catch(()=>setStatus("Share link ready"));
+}
+
+/* =====================================================
+   EXPORTS
+===================================================== */
+
+function exportProject(type){
+
+  if(type === "png" || type === "jpg"){
+    exportImage(type);
+    return;
+  }
+
+  if(type === "pdf"){
+    window.print();
+    setStatus("Use print dialog to save as PDF");
+    return;
+  }
+
+  if(type === "pptx"){
+    setStatus("PPTX export requires a backend exporter. UI is ready.");
+    return;
+  }
+
+  if(type === "mp4"){
+    setStatus("MP4 export requires video rendering. UI is ready.");
+    return;
+  }
+}
+
+function exportImage(type){
+
+  const canvasEl = byId("editorCanvas");
+
+  if(!canvasEl){
+    setStatus("Canvas not found");
+    return;
+  }
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${canvasEl.offsetWidth}" height="${canvasEl.offsetHeight}">
+      <foreignObject width="100%" height="100%">
+        ${new XMLSerializer().serializeToString(canvasEl)}
+      </foreignObject>
+    </svg>
+  `;
+
+  const blob = new Blob([svg],{
+    type:"image/svg+xml;charset=utf-8"
+  });
+
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `aift-visual-editor.${type === "jpg" ? "jpg" : "png"}`;
+  link.click();
+
+  URL.revokeObjectURL(url);
+
+  setStatus(`${type.toUpperCase()} export started`);
+}
+
+/* =====================================================
+   INIT
+===================================================== */
+
+function updateEditorTitle(){
+
+  const title = byId("editorTitle");
+  const subtitle = byId("editorSubtitle");
+
+  if(title){
+    title.textContent = "AIFT Visual Editor";
+  }
+
+  if(subtitle){
+    subtitle.textContent =
+      `Editing: ${editorState.scope}` +
+      (editorState.ownerId ? ` · ${editorState.ownerId}` : "");
+  }
+}
+
+function goBackToBuilder(){
+  if(editorState.classId){
+    window.location.href =
+      `class-builder.html?classId=${encodeURIComponent(editorState.classId)}`;
+    return;
+  }
+
+  window.location.href = "class-builder.html";
+}
+
+function bindKeyboardShortcuts(){
+
+  document.addEventListener("keydown", event => {
+
+    const isTyping =
+      event.target?.isContentEditable ||
+      ["INPUT","TEXTAREA","SELECT"].includes(event.target?.tagName);
+
+    if(isTyping){
+      return;
+    }
+
+    if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z"){
+      event.preventDefault();
+      undoEditor();
+    }
+
+    if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y"){
+      event.preventDefault();
+      redoEditor();
+    }
+
+    if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s"){
+      event.preventDefault();
+      saveVisualProject();
+    }
+
+    if(event.key === "Delete" || event.key === "Backspace"){
+      if(editorState.selectedElementId){
+        deleteElement(editorState.selectedElementId);
+      }
+    }
+  });
+}
+
+function initEditor(){
+
+  updateEditorTitle();
+
+  bindKeyboardShortcuts();
+
+  switchToolPanel("elements");
+
+  loadVisualProject();
+
+  setInterval(() => {
+    if(editorState.autoSaveEnabled){
+      saveDraft();
+    }
+  }, 5000);
+}
+
+document.addEventListener("DOMContentLoaded", initEditor);
+
+</script>
+
+</div>
+</body>
+</html>
