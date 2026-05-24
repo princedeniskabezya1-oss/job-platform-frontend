@@ -1199,7 +1199,7 @@ img{
             <article class="card card-pad">
               <h2 class="card-title">
                 Welcome Content
-                <button class="small-link" onclick="openBuilderSection('settings')">Edit</button>
+                <button class="small-link" onclick="openVisualEditor('welcome')">Edit visually</button>
               </h2>
 
               <div id="welcomePreview" class="builder-item-text">
@@ -1210,7 +1210,7 @@ img{
             <article class="card card-pad">
               <h2 class="card-title">
                 Learning Outcomes
-                <button class="small-link" onclick="openBuilderSection('settings')">Edit</button>
+                <button class="small-link" onclick="openVisualEditor('outcomes')">Edit visually</button>
               </h2>
 
               <ul class="outcome-list" id="outcomePreviewList"></ul>
@@ -1226,6 +1226,7 @@ img{
             <article class="card card-pad">
               <h2 class="card-title">
                 Curriculum Modules
+                <button class="small-link" onclick="openVisualEditor('curriculum')">Edit visually</button>
                 <button class="small-link" onclick="openModuleModal()">Add module</button>
               </h2>
 
@@ -2153,7 +2154,25 @@ function goBackToSchool(){
     window.location.href = fallbackUrl;
   }
 }
+  function openVisualEditor(scope, ownerId = null){
+  if (!state.classId){
+    showAlert("error", "Class ID missing.");
+    return;
+  }
 
+  const params = new URLSearchParams({
+    classId: state.classId,
+    scope
+  });
+
+  if (ownerId){
+    params.set("ownerId", ownerId);
+  }
+
+  window.location.href = `visual-editor.html?${params.toString()}`;
+}
+
+  
 function openBuilderSection(tab){
   if (!tab){
     tab = "overview";
@@ -2782,6 +2801,15 @@ function renderLessons(){
             : ""
         }
 
+        <div class="builder-item-actions">
+          <button
+            class="ghost-btn"
+            onclick="openVisualEditor('lesson', '${lesson._id}')"
+          >
+            Edit visually
+          </button>
+        </div>
+
       </article>
     `;
   }).join("");
@@ -2921,6 +2949,15 @@ function renderQuizzes(){
         <p class="builder-item-text">
           ${escapeHtml(quiz.instructions || "No instructions added.")}
         </p>
+
+        <div class="builder-item-actions">
+          <button
+            class="ghost-btn"
+            onclick="openVisualEditor('quiz', '${quiz._id}')"
+          >
+            Edit visually
+          </button>
+        </div>
 
       </article>
     `;
@@ -3072,11 +3109,7 @@ function renderPreview(){
   const outcomes = Array.isArray(cls.learningOutcomes)
     ? cls.learningOutcomes
     : [];
-  const canvasBlocks = Array.isArray(cls.projectCanvas)
-  ? cls.projectCanvas
-  : [];
 
-console.log("Canvas blocks ready for preview:", canvasBlocks.length);
 
   const list = byId("previewOutcomes");
 
@@ -3092,7 +3125,7 @@ console.log("Canvas blocks ready for preview:", canvasBlocks.length);
 ===================================================== */
 
 function bindGlobalEvents(){
-  bindCanvasToolDragEvents();
+  
   document.addEventListener("keydown", event => {
     if (event.key === "Escape"){
       closeAllModals();
