@@ -7,18 +7,10 @@
   content="width=device-width, initial-scale=1.0"
 />
 
-<title>AIFT Visual Editor</title>
+<title>AIFT Visual Studio</title>
 
-<link
-  rel="preconnect"
-  href="https://fonts.googleapis.com"
-/>
-
-<link
-  rel="preconnect"
-  href="https://fonts.gstatic.com"
-  crossorigin
-/>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
 <link
   href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
@@ -26,29 +18,50 @@
 />
 
 <style>
-
 /* =====================================================
-   ROOT
+   AIFT VISUAL STUDIO
+   Production LMS Visual + Normal Editor
 ===================================================== */
 
 :root{
-  --bg:#f5f7fb;
-  --card:#ffffff;
-  --text:#0f172a;
+  --bg:#f4f6f8;
+  --surface:#ffffff;
+  --surface-soft:#f8fafc;
+  --text:#111827;
+  --text-soft:#374151;
   --muted:#667085;
+  --muted-2:#98a2b3;
   --border:#e5e7eb;
 
   --primary:#2557a7;
+  --primary-2:#3b82f6;
   --primary-soft:#eef4ff;
 
-  --success:#16a34a;
+  --green:#16a34a;
+  --green-soft:#ecfdf3;
+
+  --purple:#6d5dfc;
+  --purple-soft:#f3f0ff;
+
   --danger:#dc2626;
+  --danger-soft:#fff1f2;
+
   --warning:#f59e0b;
+  --warning-soft:#fffbeb;
 
-  --shadow:
-    0 10px 30px rgba(15,23,42,.06);
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05);
+  --shadow-md:0 8px 24px rgba(15,23,42,.08);
+  --shadow-lg:0 18px 50px rgba(15,23,42,.12);
 
-  --radius:20px;
+  --radius-xs:10px;
+  --radius-sm:12px;
+  --radius-md:16px;
+  --radius-lg:22px;
+  --radius-xl:28px;
+
+  --sidebar-width:88px;
+  --right-width:390px;
+  --topbar-height:74px;
 }
 
 /* =====================================================
@@ -56,8 +69,6 @@
 ===================================================== */
 
 *{
-  margin:0;
-  padding:0;
   box-sizing:border-box;
 }
 
@@ -65,187 +76,246 @@ html,
 body{
   width:100%;
   min-height:100%;
+  margin:0;
 }
 
 body{
   background:var(--bg);
   color:var(--text);
-  font-family:"Inter",sans-serif;
+  font-family:"Inter",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:14px;
   overflow:hidden;
 }
 
+button,
+input,
+textarea,
+select{
+  font-family:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+img,
+svg{
+  max-width:100%;
+}
+
+.hidden{
+  display:none !important;
+}
+
 /* =====================================================
-   APP LAYOUT
+   APP SHELL
 ===================================================== */
 
-.editor-app{
+.studio-app{
   width:100%;
   height:100vh;
-
   display:grid;
-  grid-template-columns:
-    92px
-    minmax(0,1fr)
-    360px;
+  grid-template-columns:var(--sidebar-width) minmax(0,1fr) var(--right-width);
+  background:var(--bg);
 }
 
 /* =====================================================
    LEFT SIDEBAR
 ===================================================== */
 
-.editor-sidebar{
-  background:#fff;
+.studio-sidebar{
+  background:var(--surface);
   border-right:1px solid var(--border);
-
   display:flex;
   flex-direction:column;
   align-items:center;
-
-  gap:14px;
-  padding:18px 12px;
+  gap:16px;
+  padding:16px 10px;
+  z-index:50;
 }
 
-.editor-logo{
+.studio-logo{
   width:52px;
   height:52px;
   border-radius:18px;
-
-  background:
-    linear-gradient(
-      135deg,
-      #2557a7,
-      #5b7fff
-    );
-
-  color:#fff;
-
   display:grid;
   place-items:center;
-
-  font-size:1.1rem;
+  background:linear-gradient(135deg,#2557a7,#6d5dfc);
+  color:#fff;
+  font-size:1.05rem;
   font-weight:800;
+  letter-spacing:-.04em;
+  box-shadow:var(--shadow-sm);
+  user-select:none;
 }
 
-.editor-side-tools{
+.studio-side-divider{
+  width:42px;
+  height:1px;
+  background:var(--border);
+  margin:2px 0;
+}
+
+.studio-side-tools{
   width:100%;
   display:grid;
   gap:10px;
 }
 
-.editor-side-btn{
+.studio-side-btn{
   width:100%;
   aspect-ratio:1/1;
-
-  border:none;
-  border-radius:18px;
-
-  background:#fff;
   border:1px solid var(--border);
-
+  border-radius:18px;
+  background:var(--surface);
+  color:#475467;
   display:grid;
   place-items:center;
-
-  cursor:pointer;
   transition:.18s ease;
 }
 
-.editor-side-btn:hover{
+.studio-side-btn:hover{
   background:var(--primary-soft);
+  color:var(--primary);
   border-color:#bfd3ff;
   transform:translateY(-1px);
 }
 
-.editor-side-btn.active{
+.studio-side-btn.active{
   background:var(--primary);
   color:#fff;
   border-color:var(--primary);
+  box-shadow:0 8px 18px rgba(37,87,167,.20);
 }
 
-.editor-side-btn svg{
-  width:22px;
-  height:22px;
+.studio-side-btn svg{
+  width:21px;
+  height:21px;
   stroke:currentColor;
   fill:none;
   stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.studio-side-bottom{
+  width:100%;
+  margin-top:auto;
+  display:grid;
+  gap:10px;
 }
 
 /* =====================================================
    CENTER
 ===================================================== */
 
-.editor-center{
+.studio-center{
+  min-width:0;
   display:grid;
-  grid-template-rows:
-    74px
-    minmax(0,1fr);
+  grid-template-rows:var(--topbar-height) minmax(0,1fr);
 }
 
 /* =====================================================
    TOPBAR
 ===================================================== */
 
-.editor-topbar{
-  background:#fff;
+.studio-topbar{
+  height:var(--topbar-height);
+  background:var(--surface);
   border-bottom:1px solid var(--border);
-
   display:flex;
   align-items:center;
   justify-content:space-between;
-
-  gap:18px;
+  gap:16px;
   padding:0 18px;
+  z-index:40;
 }
 
-.editor-top-left{
+.studio-top-left{
+  min-width:0;
   display:flex;
   align-items:center;
   gap:14px;
 }
 
-.editor-back-btn{
-  border:none;
-  background:#fff;
-
-  border:1px solid var(--border);
-
+.studio-back-btn{
   height:42px;
-  padding:0 16px;
-
+  padding:0 14px;
+  border:1px solid var(--border);
   border-radius:14px;
-
+  background:var(--surface);
+  color:#344054;
   display:flex;
   align-items:center;
-  gap:10px;
-
+  gap:8px;
+  font-size:.84rem;
   font-weight:700;
-  color:#374151;
-
-  cursor:pointer;
+  transition:.18s ease;
 }
 
-.editor-back-btn:hover{
-  background:#f8fafc;
+.studio-back-btn:hover{
+  background:var(--surface-soft);
 }
 
-.editor-title-wrap{
+.studio-title-group{
+  min-width:0;
   display:grid;
-  gap:2px;
+  gap:3px;
 }
 
-.editor-title{
-  font-size:1rem;
+.studio-title{
+  margin:0;
+  font-size:.98rem;
+  line-height:1.25;
   font-weight:800;
   letter-spacing:-.03em;
+  color:var(--text);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
-.editor-subtitle{
-  font-size:.8rem;
+.studio-subtitle{
+  font-size:.78rem;
   color:var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
-.editor-top-actions{
+.studio-mode-switch{
+  height:42px;
+  padding:4px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#f8fafc;
   display:flex;
   align-items:center;
+  gap:4px;
+}
+
+.mode-btn{
+  height:32px;
+  padding:0 13px;
+  border:none;
+  border-radius:12px;
+  background:transparent;
+  color:#475467;
+  font-size:.8rem;
+  font-weight:800;
+  transition:.18s ease;
+}
+
+.mode-btn.active{
+  background:var(--surface);
+  color:var(--primary);
+  box-shadow:var(--shadow-sm);
+}
+
+.studio-top-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
   gap:10px;
   flex-wrap:wrap;
 }
@@ -254,239 +324,529 @@ body{
    BUTTONS
 ===================================================== */
 
-.primary-btn,
-.ghost-btn,
-.danger-btn{
-  height:42px;
-  padding:0 16px;
-
-  border-radius:14px;
+.btn-primary,
+.btn-ghost,
+.btn-danger,
+.btn-soft,
+.btn-icon{
   border:none;
-
-  display:flex;
+  outline:none;
+  min-height:40px;
+  border-radius:14px;
+  display:inline-flex;
   align-items:center;
   justify-content:center;
   gap:8px;
-
+  font-size:.82rem;
   font-weight:800;
-  font-size:.84rem;
-
-  cursor:pointer;
   transition:.18s ease;
 }
 
-.primary-btn{
+.btn-primary{
   background:var(--primary);
   color:#fff;
+  padding:0 16px;
+  box-shadow:0 8px 18px rgba(37,87,167,.16);
 }
 
-.primary-btn:hover{
+.btn-primary:hover{
   transform:translateY(-1px);
 }
 
-.ghost-btn{
-  background:#fff;
+.btn-ghost{
+  background:var(--surface);
+  color:#344054;
   border:1px solid var(--border);
-  color:#374151;
+  padding:0 14px;
 }
 
-.ghost-btn:hover{
-  background:#f8fafc;
+.btn-ghost:hover{
+  background:var(--surface-soft);
 }
 
-.danger-btn{
-  background:#fff0f0;
+.btn-soft{
+  background:var(--primary-soft);
+  color:var(--primary);
+  border:1px solid #dbeafe;
+  padding:0 14px;
+}
+
+.btn-danger{
+  background:var(--danger-soft);
   color:var(--danger);
-  border:1px solid #fecaca;
+  border:1px solid #fecdd3;
+  padding:0 14px;
+}
+
+.btn-icon{
+  width:40px;
+  height:40px;
+  padding:0;
+  background:var(--surface);
+  color:#344054;
+  border:1px solid var(--border);
+}
+
+.btn-icon:hover{
+  background:var(--surface-soft);
+}
+
+.btn-primary svg,
+.btn-ghost svg,
+.btn-danger svg,
+.btn-soft svg,
+.btn-icon svg{
+  width:17px;
+  height:17px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 
 /* =====================================================
-   CANVAS AREA
+   WORKSPACE
 ===================================================== */
 
-.editor-canvas-wrap{
+.studio-workspace{
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+  position:relative;
+}
+
+.mode-view{
+  width:100%;
+  height:100%;
+  min-height:0;
+}
+
+.mode-view.hidden{
+  display:none;
+}
+
+/* =====================================================
+   NORMAL EDITOR MODE
+===================================================== */
+
+.normal-editor-wrap{
+  width:100%;
+  height:100%;
   overflow:auto;
   padding:24px;
 }
 
-.editor-canvas{
-  width:100%;
-  min-height:1200px;
+.normal-editor-shell{
+  max-width:980px;
+  margin:0 auto;
+  display:grid;
+  gap:18px;
+}
 
-  border-radius:28px;
-
-  background:#fff;
+.normal-card{
+  background:var(--surface);
   border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-sm);
+  overflow:hidden;
+}
 
-  position:relative;
+.normal-card-head{
+  padding:18px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+}
 
-  padding:34px;
+.normal-card-title{
+  margin:0;
+  font-size:.96rem;
+  font-weight:800;
+  letter-spacing:-.025em;
+  color:var(--text);
+}
 
-  box-shadow:var(--shadow);
+.normal-card-subtitle{
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:.8rem;
+  line-height:1.5;
+}
+
+.normal-card-body{
+  padding:20px;
+  display:grid;
+  gap:16px;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+
+.form-field{
+  display:grid;
+  gap:7px;
+}
+
+.form-field.full{
+  grid-column:1 / -1;
+}
+
+.form-label{
+  font-size:.78rem;
+  color:#344054;
+  font-weight:800;
+}
+
+.form-help{
+  font-size:.76rem;
+  color:var(--muted);
+  line-height:1.45;
+}
+
+.studio-input,
+.studio-textarea,
+.studio-select{
+  width:100%;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--surface);
+  color:var(--text);
+  padding:12px 13px;
+  outline:none;
+  font-size:.9rem;
+  line-height:1.5;
+  transition:.18s ease;
+}
+
+.studio-textarea{
+  min-height:150px;
+  resize:vertical;
+}
+
+.studio-textarea.large{
+  min-height:260px;
+}
+
+.studio-input:focus,
+.studio-textarea:focus,
+.studio-select:focus{
+  border-color:#bfd3ff;
+  box-shadow:0 0 0 4px rgba(37,87,167,.08);
+}
+
+.outcome-list{
+  display:grid;
+  gap:10px;
+}
+
+.outcome-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 42px;
+  gap:10px;
+  align-items:center;
+}
+
+.question-list{
+  display:grid;
+  gap:14px;
+}
+
+.question-card{
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:#fff;
+  padding:14px;
+  display:grid;
+  gap:12px;
+}
+
+.question-card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.question-number{
+  font-size:.78rem;
+  font-weight:800;
+  color:var(--primary);
+}
+
+.option-list{
+  display:grid;
+  gap:8px;
+}
+
+.option-row{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr) 42px;
+  gap:8px;
+  align-items:center;
 }
 
 /* =====================================================
-   ELEMENTS
+   VISUAL CANVAS MODE
 ===================================================== */
 
-.canvas-element{
-  position:relative;
-
-  border:1px solid transparent;
-  border-radius:18px;
-
-  transition:.18s ease;
-
-  cursor:move;
+.visual-editor-wrap{
+  width:100%;
+  height:100%;
+  overflow:auto;
+  padding:24px;
+  background:
+    radial-gradient(circle at 20px 20px,rgba(37,87,167,.045) 1px,transparent 1px);
+  background-size:24px 24px;
 }
 
-.canvas-element.selected{
-  border-color:#7aa2ff;
-  box-shadow:
-    0 0 0 4px rgba(37,87,167,.10);
+.canvas-board{
+  width:1120px;
+  min-height:1280px;
+  margin:0 auto 80px;
+  border:1px solid var(--border);
+  border-radius:30px;
+  background:#fff;
+  box-shadow:var(--shadow-md);
+  position:relative;
+  overflow:hidden;
+}
+
+.canvas-page{
+  position:relative;
+  width:100%;
+  min-height:1280px;
+  background:#fff;
+  transform-origin:top center;
+}
+
+.canvas-grid-visible{
+  background-image:
+    linear-gradient(rgba(37,87,167,.08) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(37,87,167,.08) 1px,transparent 1px);
+  background-size:24px 24px;
+}
+
+.canvas-element{
+  position:absolute;
+  border:1px solid transparent;
+  border-radius:14px;
+  cursor:move;
+  user-select:none;
+  transition:border-color .12s ease, box-shadow .12s ease;
 }
 
 .canvas-element:hover{
   border-color:#dbeafe;
 }
 
-.canvas-element-content{
-  width:100%;
-  outline:none;
+.canvas-element.selected{
+  border-color:#7aa2ff;
+  box-shadow:0 0 0 4px rgba(37,87,167,.10);
 }
+
+.canvas-element.locked{
+  cursor:not-allowed;
+}
+
+.canvas-content{
+  width:100%;
+  height:100%;
+  outline:none;
+  overflow:hidden;
+}
+
+.canvas-content[contenteditable="true"]{
+  cursor:text;
+  user-select:text;
+}
+
+.resize-handle{
+  width:13px;
+  height:13px;
+  border-radius:999px;
+  background:var(--primary);
+  border:2px solid #fff;
+  position:absolute;
+  z-index:20;
+  box-shadow:0 2px 8px rgba(15,23,42,.18);
+}
+
+.resize-handle.br{
+  right:-7px;
+  bottom:-7px;
+  cursor:nwse-resize;
+}
+
+.rotate-handle{
+  width:15px;
+  height:15px;
+  border-radius:999px;
+  background:#fff;
+  border:2px solid var(--primary);
+  position:absolute;
+  top:-34px;
+  left:50%;
+  transform:translateX(-50%);
+  cursor:grab;
+  z-index:20;
+}
+
+.rotate-line{
+  width:2px;
+  height:20px;
+  background:var(--primary);
+  position:absolute;
+  top:-20px;
+  left:50%;
+  transform:translateX(-50%);
+}
+
+/* =====================================================
+   CANVAS ELEMENT TYPES
+===================================================== */
 
 .canvas-heading{
-  font-size:2rem;
   font-weight:800;
-  line-height:1.2;
   letter-spacing:-.04em;
+  line-height:1.14;
 }
 
-.canvas-text{
-  font-size:1rem;
-  line-height:1.7;
-  color:#374151;
+.canvas-paragraph{
+  line-height:1.65;
+}
+
+.canvas-quote{
+  line-height:1.65;
+  font-style:italic;
+  border-left:4px solid var(--primary);
+  padding-left:16px;
+}
+
+.canvas-list{
+  line-height:1.65;
+}
+
+.canvas-shape{
+  width:100%;
+  height:100%;
+  border:1px solid rgba(15,23,42,.08);
+}
+
+.canvas-line{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+}
+
+.canvas-line span{
+  display:block;
+  width:100%;
+  height:3px;
+  background:currentColor;
+  border-radius:999px;
+}
+
+.canvas-arrow svg,
+.canvas-icon svg{
+  width:100%;
+  height:100%;
 }
 
 .canvas-image{
   width:100%;
-  max-width:100%;
-  border-radius:18px;
+  height:100%;
   object-fit:cover;
+  display:block;
 }
 
-.canvas-box{
-  min-height:140px;
-  border-radius:22px;
-  border:2px dashed #dbeafe;
-  background:#f8fbff;
+.canvas-card-box{
+  width:100%;
+  height:100%;
+  border:1px solid var(--border);
+  border-radius:inherit;
+  padding:18px;
+  background:#fff;
+  box-shadow:var(--shadow-sm);
 }
 
-.canvas-divider{
-  height:2px;
-  background:#e5e7eb;
-  border-radius:999px;
-}
-
-.canvas-button{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-
-  min-height:48px;
-  padding:0 20px;
-
-  border-radius:14px;
-  background:var(--primary);
-  color:#fff;
-
+.canvas-button-box{
+  width:100%;
+  height:100%;
+  display:grid;
+  place-items:center;
+  border-radius:inherit;
   font-weight:800;
 }
 
 .canvas-table{
   width:100%;
+  height:100%;
   border-collapse:collapse;
+  font-size:.86rem;
 }
 
-.canvas-table td{
+.canvas-table td,
+.canvas-table th{
   border:1px solid var(--border);
   padding:10px;
+  vertical-align:top;
 }
 
-.canvas-chart{
+.canvas-chart-placeholder{
   width:100%;
-  height:240px;
-
-  border-radius:20px;
-  background:
-    linear-gradient(
-      180deg,
-      #eef4ff,
-      #fff
-    );
-
+  height:100%;
   border:1px solid #dbeafe;
-}
-
-/* =====================================================
-   RESIZE HANDLES
-===================================================== */
-
-.resize-handle{
-  width:14px;
-  height:14px;
-
-  background:#2557a7;
-  border-radius:999px;
-
-  position:absolute;
-  right:-7px;
-  bottom:-7px;
-
-  cursor:nwse-resize;
+  border-radius:inherit;
+  background:linear-gradient(180deg,#eef4ff,#fff);
+  display:grid;
+  place-items:center;
+  color:var(--primary);
+  font-weight:800;
 }
 
 /* =====================================================
    RIGHT PANEL
 ===================================================== */
 
-.editor-right{
-  background:#fff;
+.studio-right{
+  background:var(--surface);
   border-left:1px solid var(--border);
-
   display:grid;
-  grid-template-rows:
-    68px
-    minmax(0,1fr);
-
-  overflow:hidden;
+  grid-template-rows:68px minmax(0,1fr);
+  min-width:0;
+  z-index:60;
 }
 
-.editor-panel-head{
+.panel-head{
   border-bottom:1px solid var(--border);
-
   display:flex;
   align-items:center;
   justify-content:space-between;
-
+  gap:12px;
   padding:0 18px;
 }
 
-.editor-panel-title{
+.panel-title{
   font-size:.94rem;
   font-weight:800;
+  letter-spacing:-.02em;
 }
 
-.editor-panel-body{
+.panel-body{
+  min-height:0;
   overflow:auto;
   padding:18px;
   display:grid;
+  align-content:start;
   gap:18px;
 }
-
-/* =====================================================
-   TOOL SECTIONS
-===================================================== */
 
 .tool-section{
   display:grid;
@@ -494,33 +854,35 @@ body{
 }
 
 .tool-section-title{
-  font-size:.78rem;
-  font-weight:800;
   color:var(--muted);
-
+  font-size:.74rem;
+  font-weight:800;
   text-transform:uppercase;
-  letter-spacing:.05em;
+  letter-spacing:.06em;
 }
 
 .tool-grid{
   display:grid;
-  grid-template-columns:
-    repeat(2,minmax(0,1fr));
-
+  grid-template-columns:repeat(2,minmax(0,1fr));
   gap:10px;
+}
+
+.tool-grid.three{
+  grid-template-columns:repeat(3,minmax(0,1fr));
 }
 
 .tool-btn{
   border:1px solid var(--border);
-  background:#fff;
-
   border-radius:16px;
-  padding:14px;
-
+  background:#fff;
+  min-height:78px;
+  padding:13px;
   display:grid;
-  gap:10px;
-
-  cursor:pointer;
+  align-content:center;
+  justify-items:start;
+  gap:8px;
+  text-align:left;
+  color:#344054;
   transition:.18s ease;
 }
 
@@ -533,89 +895,83 @@ body{
 .tool-btn svg{
   width:20px;
   height:20px;
-  stroke:#2557a7;
+  stroke:var(--primary);
   fill:none;
   stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 
 .tool-btn span{
-  font-size:.8rem;
-  font-weight:700;
-  color:#374151;
+  font-size:.78rem;
+  font-weight:800;
 }
 
-/* =====================================================
-   INPUTS
-===================================================== */
-
-.editor-input,
-.editor-select,
-.editor-textarea{
-  width:100%;
-
-  border:1px solid var(--border);
-  border-radius:14px;
-
-  padding:12px 13px;
-
-  outline:none;
-
-  font-family:inherit;
-  font-size:.9rem;
-
-  background:#fff;
-}
-
-.editor-input:focus,
-.editor-select:focus,
-.editor-textarea:focus{
-  border-color:#bfd3ff;
-  box-shadow:
-    0 0 0 4px rgba(37,87,167,.08);
-}
-
-.editor-textarea{
-  min-height:120px;
-  resize:vertical;
-}
-
-/* =====================================================
-   COLORS
-===================================================== */
-
-.color-row{
-  display:flex;
-  align-items:center;
+.property-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
   gap:10px;
-  flex-wrap:wrap;
 }
 
-.color-row input[type="color"]{
-  width:42px;
+.property-grid.single{
+  grid-template-columns:1fr;
+}
+
+.property-row{
+  display:grid;
+  gap:7px;
+}
+
+.property-label{
+  font-size:.74rem;
+  font-weight:800;
+  color:#475467;
+}
+
+.color-field{
+  display:grid;
+  grid-template-columns:44px minmax(0,1fr);
+  align-items:center;
+  gap:8px;
+}
+
+.color-field input[type="color"]{
+  width:44px;
   height:42px;
   border:none;
-  background:none;
+  background:transparent;
+  padding:0;
+}
+
+.range-row{
+  display:grid;
+  gap:6px;
+}
+
+.range-row input{
+  width:100%;
 }
 
 /* =====================================================
-   LAYER PANEL
+   LAYERS / HISTORY
 ===================================================== */
 
-.layer-list{
+.layer-list,
+.version-list{
   display:grid;
   gap:10px;
 }
 
-.layer-item{
+.layer-item,
+.version-item{
   border:1px solid var(--border);
   border-radius:14px;
-
-  padding:12px;
-
+  padding:11px;
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:10px;
+  background:#fff;
 }
 
 .layer-item.active{
@@ -623,649 +979,981 @@ body{
   background:#f8fbff;
 }
 
-.layer-item-name{
-  font-size:.84rem;
-  font-weight:700;
+.layer-main,
+.version-main{
+  min-width:0;
+  display:grid;
+  gap:2px;
+}
+
+.layer-name,
+.version-name{
+  font-size:.8rem;
+  font-weight:800;
+  color:#344054;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.layer-meta,
+.version-meta{
+  font-size:.72rem;
+  color:var(--muted);
 }
 
 /* =====================================================
-   STATUS BAR
+   STATUS / TOAST
 ===================================================== */
 
-.editor-status{
+.studio-status{
   position:fixed;
-  left:110px;
+  left:calc(var(--sidebar-width) + 20px);
   bottom:18px;
-
+  z-index:3000;
   background:#111827;
   color:#fff;
-
-  padding:10px 14px;
   border-radius:14px;
-
+  padding:10px 14px;
   font-size:.78rem;
-  font-weight:700;
+  font-weight:800;
+  box-shadow:var(--shadow-md);
+  max-width:420px;
+}
 
-  z-index:1200;
+.studio-status.success{
+  background:#14532d;
+}
+
+.studio-status.error{
+  background:#7f1d1d;
+}
+
+.studio-status.warning{
+  background:#78350f;
 }
 
 /* =====================================================
-   MOBILE
+   MODAL
 ===================================================== */
 
-@media(max-width:1100px){
+.studio-modal-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:5000;
+  background:rgba(15,23,42,.45);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
 
-  .editor-app{
-    grid-template-columns:
-      72px
-      minmax(0,1fr);
+.studio-modal-backdrop.open{
+  display:flex;
+}
+
+.studio-modal{
+  width:min(720px,100%);
+  max-height:90vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:24px;
+  border:1px solid var(--border);
+  box-shadow:var(--shadow-lg);
+}
+
+.studio-modal-head{
+  padding:18px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.studio-modal-title{
+  margin:0;
+  font-size:1rem;
+  font-weight:800;
+}
+
+.studio-modal-body{
+  padding:20px;
+  display:grid;
+  gap:16px;
+}
+
+.studio-modal-actions{
+  padding:16px 20px;
+  border-top:1px solid var(--border);
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+}
+
+/* =====================================================
+   PRINT / EXPORT
+===================================================== */
+
+@media print{
+  body{
+    overflow:visible;
+    background:#fff;
   }
 
-  .editor-right{
-    position:fixed;
-
-    top:0;
-    right:0;
-
-    width:340px;
-    height:100vh;
-
-    z-index:2000;
-
-    transform:translateX(100%);
-    transition:.22s ease;
+  .studio-sidebar,
+  .studio-topbar,
+  .studio-right,
+  .studio-status,
+  .studio-modal-backdrop{
+    display:none !important;
   }
 
-  .editor-right.open{
-    transform:translateX(0);
+  .studio-app{
+    display:block;
+    height:auto;
+  }
+
+  .studio-center,
+  .studio-workspace,
+  .visual-editor-wrap{
+    display:block;
+    height:auto;
+    overflow:visible;
+    padding:0;
+  }
+
+  .canvas-board{
+    width:100%;
+    margin:0;
+    border:none;
+    box-shadow:none;
+    border-radius:0;
   }
 }
 
-@media(max-width:768px){
+/* =====================================================
+   RESPONSIVE
+===================================================== */
 
-  .editor-topbar{
-    padding:0 12px;
+@media(max-width:1180px){
+  .studio-app{
+    grid-template-columns:72px minmax(0,1fr);
   }
 
-  .editor-canvas-wrap{
-    padding:12px;
+  .studio-sidebar{
+    padding:14px 8px;
   }
 
-  .editor-canvas{
-    padding:18px;
+  .studio-logo{
+    width:46px;
+    height:46px;
   }
 
-  .editor-title{
-    font-size:.92rem;
+  .studio-right{
+    position:fixed;
+    top:0;
+    right:0;
+    width:min(390px,92vw);
+    height:100vh;
+    transform:translateX(100%);
+    transition:.22s ease;
+    box-shadow:var(--shadow-lg);
   }
 
-  .editor-subtitle{
+  .studio-right.open{
+    transform:translateX(0);
+  }
+
+  .canvas-board{
+    width:980px;
+  }
+}
+
+@media(max-width:760px){
+  :root{
+    --topbar-height:auto;
+  }
+
+  body{
+    overflow:auto;
+  }
+
+  .studio-app{
+    min-height:100vh;
+    height:auto;
+    grid-template-columns:1fr;
+  }
+
+  .studio-sidebar{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    height:68px;
+    border-right:none;
+    border-top:1px solid var(--border);
+    flex-direction:row;
+    justify-content:center;
+    padding:8px;
+  }
+
+  .studio-logo,
+  .studio-side-divider,
+  .studio-side-bottom{
     display:none;
   }
 
-  .tool-grid{
+  .studio-side-tools{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    max-width:520px;
+  }
+
+  .studio-side-btn{
+    width:48px;
+    height:48px;
+    aspect-ratio:auto;
+    border-radius:16px;
+  }
+
+  .studio-center{
+    min-height:100vh;
+    display:block;
+    padding-bottom:78px;
+  }
+
+  .studio-topbar{
+    min-height:72px;
+    height:auto;
+    align-items:flex-start;
+    padding:12px;
+    flex-direction:column;
+  }
+
+  .studio-top-left,
+  .studio-top-actions{
+    width:100%;
+  }
+
+  .studio-top-actions{
+    justify-content:flex-start;
+    overflow:auto;
+    padding-bottom:2px;
+  }
+
+  .studio-mode-switch{
+    order:5;
+  }
+
+  .normal-editor-wrap,
+  .visual-editor-wrap{
+    height:auto;
+    min-height:calc(100vh - 160px);
+    padding:12px;
+  }
+
+  .form-grid{
     grid-template-columns:1fr;
   }
-}
 
+  .canvas-board{
+    width:900px;
+    margin-left:0;
+    margin-right:0;
+  }
+
+  .studio-status{
+    left:12px;
+    right:12px;
+    bottom:82px;
+    max-width:none;
+  }
+}
 </style>
 </head>
+
 <body>
 
-<div class="editor-app">
+<div class="studio-app">
+
   <!-- LEFT SIDEBAR -->
-<aside class="editor-sidebar">
+  <aside class="studio-sidebar">
 
-  <div class="editor-logo">
-    A
-  </div>
+    <div class="studio-logo">A</div>
 
-  <div class="editor-side-tools">
+    <div class="studio-side-divider"></div>
 
-    <button
-      class="editor-side-btn active"
-      title="Elements"
-      onclick="switchToolPanel('elements')"
-      data-panel-btn="elements"
-    >
-      <svg viewBox="0 0 24 24">
-        <rect x="3" y="3" width="7" height="7"></rect>
-        <rect x="14" y="3" width="7" height="7"></rect>
-        <rect x="14" y="14" width="7" height="7"></rect>
-        <rect x="3" y="14" width="7" height="7"></rect>
-      </svg>
-    </button>
-
-    <button
-      class="editor-side-btn"
-      title="Text"
-      onclick="switchToolPanel('text')"
-      data-panel-btn="text"
-    >
-      <svg viewBox="0 0 24 24">
-        <path d="M4 6h16"></path>
-        <path d="M12 6v12"></path>
-        <path d="M8 18h8"></path>
-      </svg>
-    </button>
-
-    <button
-      class="editor-side-btn"
-      title="Draw"
-      onclick="switchToolPanel('draw')"
-      data-panel-btn="draw"
-    >
-      <svg viewBox="0 0 24 24">
-        <path d="M12 20h9"></path>
-        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-      </svg>
-    </button>
-
-    <button
-      class="editor-side-btn"
-      title="Layers"
-      onclick="switchToolPanel('layers')"
-      data-panel-btn="layers"
-    >
-      <svg viewBox="0 0 24 24">
-        <path d="m12 2 9 5-9 5-9-5 9-5Z"></path>
-        <path d="m3 12 9 5 9-5"></path>
-        <path d="m3 17 9 5 9-5"></path>
-      </svg>
-    </button>
-
-    <button
-      class="editor-side-btn"
-      title="Export"
-      onclick="switchToolPanel('export')"
-      data-panel-btn="export"
-    >
-      <svg viewBox="0 0 24 24">
-        <path d="M12 3v12"></path>
-        <path d="m7 10 5 5 5-5"></path>
-        <path d="M5 21h14"></path>
-      </svg>
-    </button>
-
-  </div>
-
-</aside>
-
-<!-- CENTER AREA -->
-<section class="editor-center">
-
-  <!-- TOPBAR -->
-  <header class="editor-topbar">
-
-    <div class="editor-top-left">
+    <div class="studio-side-tools">
 
       <button
-        class="editor-back-btn"
-        onclick="goBackToBuilder()"
+        class="studio-side-btn active"
+        title="Elements"
+        data-panel-btn="elements"
+        onclick="switchToolPanel('elements')"
       >
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M15 18l-6-6 6-6"></path>
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
         </svg>
-        Back
       </button>
 
-      <div class="editor-title-wrap">
-        <div class="editor-title" id="editorTitle">
-          AIFT Visual Editor
+      <button
+        class="studio-side-btn"
+        title="Text"
+        data-panel-btn="text"
+        onclick="switchToolPanel('text')"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M4 6h16"></path>
+          <path d="M12 6v12"></path>
+          <path d="M8 18h8"></path>
+        </svg>
+      </button>
+
+      <button
+        class="studio-side-btn"
+        title="Design"
+        data-panel-btn="design"
+        onclick="switchToolPanel('design')"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M12 3a9 9 0 1 0 9 9"></path>
+          <path d="M12 3v9h9"></path>
+        </svg>
+      </button>
+
+      <button
+        class="studio-side-btn"
+        title="Layers"
+        data-panel-btn="layers"
+        onclick="switchToolPanel('layers')"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="m12 2 9 5-9 5-9-5 9-5Z"></path>
+          <path d="m3 12 9 5 9-5"></path>
+          <path d="m3 17 9 5 9-5"></path>
+        </svg>
+      </button>
+
+      <button
+        class="studio-side-btn"
+        title="Export"
+        data-panel-btn="export"
+        onclick="switchToolPanel('export')"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M12 3v12"></path>
+          <path d="m7 10 5 5 5-5"></path>
+          <path d="M5 21h14"></path>
+        </svg>
+      </button>
+
+    </div>
+
+    <div class="studio-side-bottom">
+
+      <button
+        class="studio-side-btn"
+        title="Tools"
+        onclick="toggleRightPanel()"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M12 20h9"></path>
+          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+        </svg>
+      </button>
+
+    </div>
+
+  </aside>
+
+  <!-- CENTER -->
+  <section class="studio-center">
+
+    <!-- TOPBAR -->
+    <header class="studio-topbar">
+
+      <div class="studio-top-left">
+
+        <button
+          class="studio-back-btn"
+          onclick="goBackToBuilder()"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"></path>
+          </svg>
+          Back
+        </button>
+
+        <div class="studio-title-group">
+          <h1 class="studio-title" id="studioTitle">
+            AIFT Visual Studio
+          </h1>
+
+          <div class="studio-subtitle" id="studioSubtitle">
+            Loading class content...
+          </div>
         </div>
 
-        <div class="editor-subtitle" id="editorSubtitle">
-          Loading project...
+      </div>
+
+      <div class="studio-mode-switch">
+        <button
+          class="mode-btn active"
+          id="normalModeBtn"
+          onclick="switchMode('normal')"
+        >
+          Normal Edit
+        </button>
+
+        <button
+          class="mode-btn"
+          id="visualModeBtn"
+          onclick="switchMode('visual')"
+        >
+          Visual Canvas
+        </button>
+      </div>
+
+      <div class="studio-top-actions">
+
+        <button class="btn-ghost" onclick="undoEditor()">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 7v6h6"></path>
+            <path d="M21 17a9 9 0 0 0-15-6.7L3 13"></path>
+          </svg>
+          Undo
+        </button>
+
+        <button class="btn-ghost" onclick="redoEditor()">
+          <svg viewBox="0 0 24 24">
+            <path d="M21 7v6h-6"></path>
+            <path d="M3 17a9 9 0 0 1 15-6.7L21 13"></path>
+          </svg>
+          Redo
+        </button>
+
+        <button class="btn-ghost" onclick="toggleRightPanel()">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 21v-7"></path>
+            <path d="M4 10V3"></path>
+            <path d="M12 21v-9"></path>
+            <path d="M12 8V3"></path>
+            <path d="M20 21v-5"></path>
+            <path d="M20 12V3"></path>
+            <path d="M2 14h4"></path>
+            <path d="M10 8h4"></path>
+            <path d="M18 16h4"></path>
+          </svg>
+          Tools
+        </button>
+
+        <button class="btn-soft" onclick="saveDraft()">
+          <svg viewBox="0 0 24 24">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path>
+            <path d="M17 21v-8H7v8"></path>
+            <path d="M7 3v5h8"></path>
+          </svg>
+          Draft
+        </button>
+
+        <button class="btn-primary" onclick="saveAllStudio(event)">
+          <svg viewBox="0 0 24 24">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path>
+            <path d="M17 21v-8H7v8"></path>
+            <path d="M7 3v5h8"></path>
+          </svg>
+          Save
+        </button>
+
+      </div>
+
+    </header>
+
+    <!-- WORKSPACE -->
+    <main class="studio-workspace">
+
+      <!-- NORMAL EDIT MODE -->
+      <section
+        class="mode-view"
+        id="normalModeView"
+      >
+        <div class="normal-editor-wrap">
+
+          <div class="normal-editor-shell">
+
+            <article class="normal-card">
+
+              <div class="normal-card-head">
+                <div>
+                  <h2 class="normal-card-title" id="normalEditorHeading">
+                    Normal Content Editor
+                  </h2>
+
+                  <p class="normal-card-subtitle" id="normalEditorDescription">
+                    Edit the LMS text directly. These changes save back to your class builder.
+                  </p>
+                </div>
+
+                <button class="btn-soft" onclick="seedVisualFromNormal()">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M12 5v14"></path>
+                    <path d="M5 12h14"></path>
+                  </svg>
+                  Send to Canvas
+                </button>
+              </div>
+
+              <div class="normal-card-body">
+
+                <div id="normalFormMount"></div>
+
+              </div>
+
+            </article>
+
+            <article class="normal-card">
+
+              <div class="normal-card-head">
+                <div>
+                  <h2 class="normal-card-title">
+                    Saved Visual Preview
+                  </h2>
+
+                  <p class="normal-card-subtitle">
+                    This is the visual block that will appear in the class builder preview after saving.
+                  </p>
+                </div>
+              </div>
+
+              <div class="normal-card-body">
+                <div id="normalVisualPreview">
+                  No visual content saved yet.
+                </div>
+              </div>
+
+            </article>
+
+          </div>
+
+        </div>
+      </section>
+
+      <!-- VISUAL CANVAS MODE -->
+      <section
+        class="mode-view hidden"
+        id="visualModeView"
+      >
+        <div class="visual-editor-wrap">
+
+          <section
+            class="canvas-board"
+            id="canvasBoard"
+          >
+            <div
+              class="canvas-page"
+              id="editorCanvas"
+              ondragover="handleEditorDragOver(event)"
+              ondrop="handleEditorDrop(event)"
+              onclick="handleCanvasBackgroundClick(event)"
+            ></div>
+          </section>
+
+        </div>
+      </section>
+
+    </main>
+
+  </section>
+    <!-- RIGHT PANEL -->
+  <aside class="studio-right" id="studioRightPanel">
+
+    <div class="panel-head">
+      <div class="panel-title" id="toolPanelTitle">
+        Elements
+      </div>
+
+      <button class="btn-icon" onclick="toggleRightPanel()">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6 6 18"></path>
+          <path d="m6 6 12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div class="panel-body">
+
+      <!-- ELEMENTS PANEL -->
+      <section class="tool-section" data-tool-panel="elements">
+
+        <div class="tool-section-title">Layout Elements</div>
+
+        <div class="tool-grid">
+
+          <button class="tool-btn" onclick="addElement('shape')">
+            <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"></rect></svg>
+            <span>Shape</span>
+          </button>
+
+          <button class="tool-btn" onclick="addElement('card')">
+            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"></rect><path d="M7 9h10"></path><path d="M7 13h7"></path></svg>
+            <span>Card / Box</span>
+          </button>
+
+          <button class="tool-btn" onclick="addElement('line')">
+            <svg viewBox="0 0 24 24"><path d="M4 12h16"></path></svg>
+            <span>Line</span>
+          </button>
+
+          <button class="tool-btn" onclick="addElement('arrow')">
+            <svg viewBox="0 0 24 24"><path d="M4 12h16"></path><path d="m14 6 6 6-6 6"></path></svg>
+            <span>Arrow</span>
+          </button>
+
+          <button class="tool-btn" onclick="addElement('button')">
+            <svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="8" rx="4"></rect></svg>
+            <span>Button</span>
+          </button>
+
+          <button class="tool-btn" onclick="addElement('table')">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10h18"></path><path d="M9 4v16"></path><path d="M15 4v16"></path></svg>
+            <span>Table</span>
+          </button>
+
+          <button class="tool-btn" onclick="addElement('chart')">
+            <svg viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M7 16v-5"></path><path d="M12 16V7"></path><path d="M17 16v-8"></path></svg>
+            <span>Chart</span>
+          </button>
+
+          <button class="tool-btn" onclick="openImageUrlModal()">
+            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path></svg>
+            <span>Image URL</span>
+          </button>
+
+          <button class="tool-btn" onclick="addElement('icon')">
+            <svg viewBox="0 0 24 24"><path d="M12 2l2.8 6 6.2.8-4.5 4.4 1.1 6.1L12 16.2 6.4 19.3l1.1-6.1L3 8.8 9.2 8 12 2z"></path></svg>
+            <span>SVG Icon</span>
+          </button>
+
+        </div>
+
+      </section>
+
+      <!-- TEXT PANEL -->
+      <section class="tool-section hidden" data-tool-panel="text">
+
+        <div class="tool-section-title">Add Text</div>
+
+        <div class="tool-grid">
+
+          <button class="tool-btn" onclick="addElement('heading')">
+            <svg viewBox="0 0 24 24"><path d="M4 6h16"></path><path d="M12 6v12"></path><path d="M8 18h8"></path></svg>
+            <span>Heading</span>
+          </button>
+
+          <button class="tool-btn" onclick="addElement('paragraph')">
+            <svg viewBox="0 0 24 24"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h10"></path></svg>
+            <span>Paragraph</span>
+          </button>
+
+          <button class="tool-btn" onclick="addElement('list')">
+            <svg viewBox="0 0 24 24"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>
+            <span>List</span>
+          </button>
+
+          <button class="tool-btn" onclick="addElement('quote')">
+            <svg viewBox="0 0 24 24"><path d="M9 7H5v6h4v4H3V7h6z"></path><path d="M21 7h-4v6h4v4h-6V7h6z"></path></svg>
+            <span>Quote</span>
+          </button>
+
+        </div>
+
+        <div class="tool-section-title">Text Formatting</div>
+
+        <div class="property-grid single">
+
+          <div class="property-row">
+            <label class="property-label">Font Family</label>
+            <select class="studio-select" id="fontFamilyInput" onchange="applySelectedStyle('fontFamily', this.value)">
+              <option value="Inter">Inter</option>
+              <option value="Arial">Arial</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Courier New">Courier New</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div class="property-grid">
+
+          <div class="property-row">
+            <label class="property-label">Font Size</label>
+            <input class="studio-input" id="fontSizeInput" type="number" value="16" onchange="applySelectedStyle('fontSize', this.value + 'px')" />
+          </div>
+
+          <div class="property-row">
+            <label class="property-label">Line Height</label>
+            <input class="studio-input" id="lineHeightInput" type="number" step="0.1" value="1.6" onchange="applySelectedStyle('lineHeight', this.value)" />
+          </div>
+
+        </div>
+
+        <div class="property-grid">
+
+          <button class="btn-ghost" onclick="toggleTextStyle('bold')">Bold</button>
+          <button class="btn-ghost" onclick="toggleTextStyle('italic')">Italic</button>
+          <button class="btn-ghost" onclick="toggleTextStyle('underline')">Underline</button>
+          <button class="btn-ghost" onclick="applySelectedStyle('textAlign','center')">Center</button>
+
+        </div>
+
+        <div class="property-grid">
+
+          <div class="property-row">
+            <label class="property-label">Text Color</label>
+            <div class="color-field">
+              <input type="color" value="#111827" onchange="applySelectedStyle('color', this.value)" />
+              <input class="studio-input" value="#111827" onchange="applySelectedStyle('color', this.value)" />
+            </div>
+          </div>
+
+          <div class="property-row">
+            <label class="property-label">Background</label>
+            <div class="color-field">
+              <input type="color" value="#ffffff" onchange="applySelectedStyle('background', this.value)" />
+              <input class="studio-input" value="#ffffff" onchange="applySelectedStyle('background', this.value)" />
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- DESIGN PANEL -->
+      <section class="tool-section hidden" data-tool-panel="design">
+
+        <div class="tool-section-title">Selected Element</div>
+
+        <div class="property-grid">
+
+          <div class="property-row">
+            <label class="property-label">X</label>
+            <input class="studio-input" id="propX" type="number" onchange="updateSelectedNumber('x', this.value)" />
+          </div>
+
+          <div class="property-row">
+            <label class="property-label">Y</label>
+            <input class="studio-input" id="propY" type="number" onchange="updateSelectedNumber('y', this.value)" />
+          </div>
+
+          <div class="property-row">
+            <label class="property-label">Width</label>
+            <input class="studio-input" id="propWidth" type="number" onchange="updateSelectedNumber('width', this.value)" />
+          </div>
+
+          <div class="property-row">
+            <label class="property-label">Height</label>
+            <input class="studio-input" id="propHeight" type="number" onchange="updateSelectedNumber('height', this.value)" />
+          </div>
+
+          <div class="property-row">
+            <label class="property-label">Rotate</label>
+            <input class="studio-input" id="propRotation" type="number" onchange="updateSelectedNumber('rotation', this.value)" />
+          </div>
+
+          <div class="property-row">
+            <label class="property-label">Radius</label>
+            <input class="studio-input" id="propRadius" type="number" onchange="applySelectedStyle('borderRadius', this.value + 'px')" />
+          </div>
+
+        </div>
+
+        <div class="property-row range-row">
+          <label class="property-label">Transparency</label>
+          <input id="propOpacity" type="range" min="0.1" max="1" step="0.05" value="1" oninput="updateSelectedNumber('opacity', this.value)" />
+        </div>
+
+        <div class="tool-section-title">Page</div>
+
+        <div class="property-grid">
+
+          <button class="btn-ghost" onclick="toggleCanvasGrid()">
+            Grid
+          </button>
+
+          <button class="btn-ghost" onclick="toggleSnapGuides()">
+            Snap
+          </button>
+
+          <button class="btn-ghost" onclick="zoomCanvas(-0.1)">
+            Zoom -
+          </button>
+
+          <button class="btn-ghost" onclick="zoomCanvas(0.1)">
+            Zoom +
+          </button>
+
+        </div>
+
+      </section>
+
+      <!-- LAYERS PANEL -->
+      <section class="tool-section hidden" data-tool-panel="layers">
+
+        <div class="tool-section-title">Layers</div>
+
+        <div class="layer-list" id="layerList">
+          No layers yet.
+        </div>
+
+        <div class="tool-section-title">Arrange</div>
+
+        <div class="tool-grid">
+
+          <button class="tool-btn" onclick="bringForward()"><span>Bring Forward</span></button>
+          <button class="tool-btn" onclick="sendBackward()"><span>Send Backward</span></button>
+          <button class="tool-btn" onclick="duplicateSelected()"><span>Duplicate</span></button>
+          <button class="tool-btn" onclick="deleteSelected()"><span>Delete</span></button>
+          <button class="tool-btn" onclick="lockSelected()"><span>Lock / Unlock</span></button>
+          <button class="tool-btn" onclick="alignSelected('center')"><span>Align Center</span></button>
+
+        </div>
+
+      </section>
+
+      <!-- EXPORT PANEL -->
+      <section class="tool-section hidden" data-tool-panel="export">
+
+        <div class="tool-section-title">Export</div>
+
+        <div class="tool-grid">
+
+          <button class="tool-btn" onclick="exportProject('pdf')"><span>PDF</span></button>
+          <button class="tool-btn" onclick="exportProject('png')"><span>PNG</span></button>
+          <button class="tool-btn" onclick="exportProject('jpg')"><span>JPG</span></button>
+          <button class="tool-btn" onclick="exportProject('pptx')"><span>PPTX</span></button>
+          <button class="tool-btn" onclick="exportProject('mp4')"><span>MP4</span></button>
+          <button class="tool-btn" onclick="shareProject()"><span>Share Link</span></button>
+
+        </div>
+
+        <div class="tool-section-title">Version History</div>
+
+        <div class="version-list" id="versionList">
+          No versions yet.
+        </div>
+
+        <button class="btn-soft" onclick="showVersionHistory()">
+          Refresh Versions
+        </button>
+
+      </section>
+
+    </div>
+
+  </aside>
+
+  <!-- IMAGE URL MODAL -->
+  <div class="studio-modal-backdrop" id="imageUrlModal">
+    <div class="studio-modal">
+
+      <div class="studio-modal-head">
+        <h3 class="studio-modal-title">Add Image by URL</h3>
+        <button class="btn-icon" onclick="closeModal('imageUrlModal')">
+          <svg viewBox="0 0 24 24">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="studio-modal-body">
+        <div class="form-field">
+          <label class="form-label">Image URL</label>
+          <input
+            class="studio-input"
+            id="imageUrlInput"
+            placeholder="https://example.com/image.jpg"
+          />
+          <div class="form-help">
+            Cloudinary upload can be added later. For now this supports direct image URLs.
+          </div>
         </div>
       </div>
 
-    </div>
-
-    <div class="editor-top-actions">
-
-      <button class="ghost-btn" onclick="undoEditor()">
-        Undo
-      </button>
-
-      <button class="ghost-btn" onclick="redoEditor()">
-        Redo
-      </button>
-
-      <button class="ghost-btn" onclick="toggleRightPanel()">
-        Tools
-      </button>
-
-      <button class="primary-btn" onclick="saveVisualProject(event)">
-        Save Project
-      </button>
+      <div class="studio-modal-actions">
+        <button class="btn-ghost" onclick="closeModal('imageUrlModal')">Cancel</button>
+        <button class="btn-primary" onclick="confirmAddImageUrl()">Add Image</button>
+      </div>
 
     </div>
-
-  </header>
-
-  <!-- CANVAS -->
-  <main class="editor-canvas-wrap">
-
-    <section
-      class="editor-canvas"
-      id="editorCanvas"
-      ondragover="handleEditorDragOver(event)"
-      ondrop="handleEditorDrop(event)"
-    >
-    </section>
-
-  </main>
-
-</section>
-
-<!-- RIGHT PANEL -->
-<aside class="editor-right" id="editorRightPanel">
-
-  <div class="editor-panel-head">
-    <div class="editor-panel-title" id="toolPanelTitle">
-      Elements
-    </div>
-
-    <button
-      class="ghost-btn"
-      onclick="toggleRightPanel()"
-    >
-      Close
-    </button>
   </div>
 
-  <div class="editor-panel-body">
-
-    <!-- ELEMENTS PANEL -->
-    <section class="tool-section" data-tool-panel="elements">
-
-      <div class="tool-section-title">
-        Add Elements
-      </div>
-
-      <div class="tool-grid">
-
-        <button class="tool-btn" onclick="addElement('shape')">
-          <svg viewBox="0 0 24 24">
-            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
-          </svg>
-          <span>Shapes</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('line')">
-          <svg viewBox="0 0 24 24">
-            <path d="M4 12h16"></path>
-          </svg>
-          <span>Lines</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('arrow')">
-          <svg viewBox="0 0 24 24">
-            <path d="M4 12h16"></path>
-            <path d="m14 6 6 6-6 6"></path>
-          </svg>
-          <span>Arrows</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('icon')">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 2l2.8 6 6.2.8-4.5 4.4 1.1 6.1L12 16.2 6.4 19.3l1.1-6.1L3 8.8 9.2 8 12 2z"></path>
-          </svg>
-          <span>Icons</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('sticker')">
-          <svg viewBox="0 0 24 24">
-            <path d="M4 4h16v10l-6 6H4z"></path>
-            <path d="M14 20v-6h6"></path>
-          </svg>
-          <span>Stickers</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('frame')">
-          <svg viewBox="0 0 24 24">
-            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-            <rect x="7" y="7" width="10" height="10"></rect>
-          </svg>
-          <span>Frames</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('grid')">
-          <svg viewBox="0 0 24 24">
-            <path d="M3 3h18v18H3z"></path>
-            <path d="M3 9h18"></path>
-            <path d="M3 15h18"></path>
-            <path d="M9 3v18"></path>
-            <path d="M15 3v18"></path>
-          </svg>
-          <span>Grids</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('chart')">
-          <svg viewBox="0 0 24 24">
-            <path d="M3 3v18h18"></path>
-            <path d="M7 16v-5"></path>
-            <path d="M12 16V7"></path>
-            <path d="M17 16v-8"></path>
-          </svg>
-          <span>Charts</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('button')">
-          <svg viewBox="0 0 24 24">
-            <rect x="4" y="8" width="16" height="8" rx="4"></rect>
-          </svg>
-          <span>Buttons</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('table')">
-          <svg viewBox="0 0 24 24">
-            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-            <path d="M3 10h18"></path>
-            <path d="M9 4v16"></path>
-            <path d="M15 4v16"></path>
-          </svg>
-          <span>Tables</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('image')">
-          <svg viewBox="0 0 24 24">
-            <rect x="3" y="5" width="18" height="14" rx="2"></rect>
-            <path d="m3 16 5-5 4 4 3-3 6 6"></path>
-          </svg>
-          <span>Images</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('svg')">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 2 4 6v12l8 4 8-4V6z"></path>
-          </svg>
-          <span>SVG</span>
-        </button>
-
-      </div>
-
-    </section>
-
-    <!-- TEXT PANEL -->
-    <section class="tool-section hidden" data-tool-panel="text">
-
-      <div class="tool-section-title">
-        Add Text
-      </div>
-
-      <div class="tool-grid">
-
-        <button class="tool-btn" onclick="addElement('heading')">
-          <svg viewBox="0 0 24 24">
-            <path d="M4 6h16"></path>
-            <path d="M12 6v12"></path>
-          </svg>
-          <span>Heading</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('paragraph')">
-          <svg viewBox="0 0 24 24">
-            <path d="M4 7h16"></path>
-            <path d="M4 12h16"></path>
-            <path d="M4 17h10"></path>
-          </svg>
-          <span>Paragraph</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('list')">
-          <svg viewBox="0 0 24 24">
-            <path d="M8 6h13"></path>
-            <path d="M8 12h13"></path>
-            <path d="M8 18h13"></path>
-            <path d="M3 6h.01"></path>
-            <path d="M3 12h.01"></path>
-            <path d="M3 18h.01"></path>
-          </svg>
-          <span>Lists</span>
-        </button>
-
-        <button class="tool-btn" onclick="addElement('quote')">
-          <svg viewBox="0 0 24 24">
-            <path d="M9 7H5v6h4v4H3V7h6z"></path>
-            <path d="M21 7h-4v6h4v4h-6V7h6z"></path>
-          </svg>
-          <span>Quote</span>
-        </button>
-
-      </div>
-
-      <div class="tool-section-title">
-        Text Style
-      </div>
-
-      <select class="editor-select" id="fontFamilyInput" onchange="applySelectedStyle('fontFamily', this.value)">
-        <option value="Inter">Inter</option>
-        <option value="Arial">Arial</option>
-        <option value="Georgia">Georgia</option>
-        <option value="Times New Roman">Times New Roman</option>
-        <option value="Courier New">Courier New</option>
-      </select>
-
-      <input
-        class="editor-input"
-        type="number"
-        id="fontSizeInput"
-        placeholder="Font size"
-        value="16"
-        onchange="applySelectedStyle('fontSize', this.value + 'px')"
-      />
-
-      <div class="color-row">
-        <input type="color" value="#111827" onchange="applySelectedStyle('color', this.value)">
-        <input type="color" value="#ffffff" onchange="applySelectedStyle('background', this.value)">
-      </div>
-
-      <div class="tool-grid">
-        <button class="tool-btn" onclick="toggleTextStyle('bold')"><span>Bold</span></button>
-        <button class="tool-btn" onclick="toggleTextStyle('italic')"><span>Italic</span></button>
-        <button class="tool-btn" onclick="toggleTextStyle('underline')"><span>Underline</span></button>
-        <button class="tool-btn" onclick="applySelectedStyle('textAlign','center')"><span>Center</span></button>
-      </div>
-
-    </section>
-
-    <!-- DRAW PANEL -->
-    <section class="tool-section hidden" data-tool-panel="draw">
-
-      <div class="tool-section-title">
-        Drawing Tools
-      </div>
-
-      <div class="tool-grid">
-        <button class="tool-btn" onclick="setDrawTool('pen')"><span>Pen</span></button>
-        <button class="tool-btn" onclick="setDrawTool('pencil')"><span>Pencil</span></button>
-        <button class="tool-btn" onclick="setDrawTool('brush')"><span>Brush</span></button>
-        <button class="tool-btn" onclick="setDrawTool('eraser')"><span>Eraser</span></button>
-      </div>
-
-    </section>
-        <!-- LAYERS PANEL -->
-    <section class="tool-section hidden" data-tool-panel="layers">
-
-      <div class="tool-section-title">
-        Layers
-      </div>
-
-      <div class="layer-list" id="layerList">
-      </div>
-
-      <div class="tool-section-title">
-        Alignment
-      </div>
-
-      <div class="tool-grid">
-
-        <button class="tool-btn" onclick="alignSelected('left')">
-          <span>Align Left</span>
-        </button>
-
-        <button class="tool-btn" onclick="alignSelected('center')">
-          <span>Align Center</span>
-        </button>
-
-        <button class="tool-btn" onclick="alignSelected('right')">
-          <span>Align Right</span>
-        </button>
-
-        <button class="tool-btn" onclick="alignSelected('middle')">
-          <span>Align Middle</span>
-        </button>
-
-        <button class="tool-btn" onclick="distributeElements()">
-          <span>Distribute</span>
-        </button>
-
-        <button class="tool-btn" onclick="toggleSnapGuides()">
-          <span>Snap Guides</span>
-        </button>
-
-      </div>
-
-      <div class="tool-section-title">
-        Arrange
-      </div>
-
-      <div class="tool-grid">
-
-        <button class="tool-btn" onclick="bringForward()">
-          <span>Bring Forward</span>
-        </button>
-
-        <button class="tool-btn" onclick="sendBackward()">
-          <span>Send Backward</span>
-        </button>
-
-        <button class="tool-btn" onclick="groupSelected()">
-          <span>Group</span>
-        </button>
-
-        <button class="tool-btn" onclick="ungroupSelected()">
-          <span>Ungroup</span>
-        </button>
-
-        <button class="tool-btn" onclick="lockSelected()">
-          <span>Lock</span>
-        </button>
-
-        <button class="tool-btn" onclick="duplicateSelected()">
-          <span>Duplicate</span>
-        </button>
-
-      </div>
-
-    </section>
-
-    <!-- EXPORT PANEL -->
-    <section class="tool-section hidden" data-tool-panel="export">
-
-      <div class="tool-section-title">
-        Save & Export
-      </div>
-
-      <div class="tool-grid">
-
-        <button class="tool-btn" onclick="exportProject('pdf')">
-          <span>PDF</span>
-        </button>
-
-        <button class="tool-btn" onclick="exportProject('png')">
-          <span>PNG</span>
-        </button>
-
-        <button class="tool-btn" onclick="exportProject('jpg')">
-          <span>JPG</span>
-        </button>
-
-        <button class="tool-btn" onclick="exportProject('pptx')">
-          <span>PPTX</span>
-        </button>
-
-        <button class="tool-btn" onclick="exportProject('mp4')">
-          <span>MP4</span>
-        </button>
-
-      </div>
-
-      <div class="tool-section-title">
-        Project
-      </div>
-
-      <div class="tool-grid">
-
-        <button class="tool-btn" onclick="saveVisualProject(event)">
-          <span>Save</span>
-        </button>
-
-        <button class="tool-btn" onclick="saveDraft()">
-          <span>Draft</span>
-        </button>
-
-        <button class="tool-btn" onclick="loadRecentProjects()">
-          <span>Recent</span>
-        </button>
-
-        <button class="tool-btn" onclick="openFolders()">
-          <span>Folders</span>
-        </button>
-
-        <button class="tool-btn" onclick="shareProject()">
-          <span>Share</span>
-        </button>
-
-        <button class="tool-btn" onclick="showVersionHistory()">
-          <span>Versions</span>
-        </button>
-
-      </div>
-
-      <div class="tool-section-title">
-        Auto Save
-      </div>
-
-      <div class="builder-item-sub">
-        Your project auto-saves every few seconds.
-      </div>
-
-    </section>
-
+  <!-- STATUS -->
+  <div class="studio-status" id="studioStatus">
+    Ready
   </div>
+  <script>
 
-</aside>
+/* =====================================================
+   CONFIG
+===================================================== */
 
-<div class="editor-status" id="editorStatus">
-  Ready
-</div>
+const API_BASE = "https://backend-1-9b6f.onrender.com";
 
-<script>
+/* =====================================================
+   QUERY PARAMS
+===================================================== */
+
+const urlParams = new URLSearchParams(window.location.search);
+
+const QUERY = {
+  classId: urlParams.get("classId") || null,
+  scope: urlParams.get("scope") || "welcome",
+  ownerId: urlParams.get("ownerId") || null
+};
 
 /* =====================================================
    STATE
 ===================================================== */
 
-const API_BASE = "https://backend-1-9b6f.onrender.com";
+const studioState = {
+  mode: "normal",
 
-const editorState = {
-  classId: new URLSearchParams(window.location.search).get("classId"),
-  scope: new URLSearchParams(window.location.search).get("scope") || "welcome",
-  ownerId: new URLSearchParams(window.location.search).get("ownerId") || null,
+  classData: null,
+  modules: [],
+  lessons: [],
+  quizzes: [],
 
   elements: [],
   selectedElementId: null,
+
+  zoom: 1,
+  showGrid: false,
+  snapGuides: true,
 
   undoStack: [],
   redoStack: [],
 
   autoSaveEnabled: true,
-  snapGuides: true,
+  autoSaveTimer: null,
 
-  drawTool: null,
-  history: []
+  draftLoaded: false,
+
+  isDragging: false,
+  isResizing: false,
+  isRotating: false,
+
+  dragData: null,
+  resizeData: null,
+  rotateData: null,
+
+  versionHistory: []
 };
 
 /* =====================================================
@@ -1285,15 +1973,61 @@ function uid(){
   );
 }
 
-function setStatus(message){
-  const status = byId("editorStatus");
-
-  if (!status) return;
-
-  status.textContent = message || "Ready";
+function clamp(value,min,max){
+  return Math.min(max,Math.max(min,value));
 }
 
+function safeNumber(value,fallback=0){
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function deepClone(value){
+  return JSON.parse(JSON.stringify(value));
+}
+
+function escapeHtml(str=""){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;");
+}
+
+/* =====================================================
+   STATUS
+===================================================== */
+
+let statusTimeout = null;
+
+function setStatus(message,type="default"){
+
+  const status = byId("studioStatus");
+
+  if(!status) return;
+
+  status.className = "studio-status";
+
+  if(type){
+    status.classList.add(type);
+  }
+
+  status.textContent = message || "Ready";
+
+  clearTimeout(statusTimeout);
+
+  statusTimeout = setTimeout(() => {
+    status.className = "studio-status";
+    status.textContent = "Ready";
+  }, 3200);
+}
+
+/* =====================================================
+   AUTH
+===================================================== */
+
 function getToken(){
+
   const keys = [
     "schoolToken",
     "teacherToken",
@@ -1305,10 +2039,11 @@ function getToken(){
     "token"
   ];
 
-  for (const key of keys){
+  for(const key of keys){
+
     const value = localStorage.getItem(key);
 
-    if (value && value.trim()){
+    if(value && value.trim()){
       return value.trim();
     }
   }
@@ -1316,17 +2051,25 @@ function getToken(){
   return "";
 }
 
-function authHeaders(extra = {}){
+function authHeaders(extra={}){
+
   const token = getToken();
 
   return {
     "Content-Type":"application/json",
-    ...(token ? { Authorization:`Bearer ${token}` } : {}),
+    ...(token ? {
+      Authorization:`Bearer ${token}`
+    } : {}),
     ...extra
   };
 }
 
+/* =====================================================
+   API
+===================================================== */
+
 async function safeJson(res){
+
   try{
     return await res.json();
   }catch(err){
@@ -1335,54 +2078,130 @@ async function safeJson(res){
 }
 
 async function apiGet(path){
-  const res = await fetch(`${API_BASE}${path}`,{
-    headers:authHeaders()
-  });
+
+  const res = await fetch(
+    `${API_BASE}${path}`,
+    {
+      headers:authHeaders()
+    }
+  );
 
   const data = await safeJson(res);
 
   if(!res.ok){
-    throw new Error(data?.message || "Request failed");
+    throw new Error(
+      data?.message ||
+      "Request failed"
+    );
   }
 
   return data;
 }
 
 async function apiSend(path,method,payload){
-  const res = await fetch(`${API_BASE}${path}`,{
-    method,
-    headers:authHeaders(),
-    body:JSON.stringify(payload || {})
-  });
+
+  const res = await fetch(
+    `${API_BASE}${path}`,
+    {
+      method,
+      headers:authHeaders(),
+      body:JSON.stringify(payload || {})
+    }
+  );
 
   const data = await safeJson(res);
 
   if(!res.ok){
-    throw new Error(data?.message || "Request failed");
+    throw new Error(
+      data?.message ||
+      "Request failed"
+    );
   }
 
   return data;
 }
 
 /* =====================================================
-   PANELS
+   STORAGE
+===================================================== */
+
+function getDraftStorageKey(){
+
+  return [
+    "aift_visual_studio",
+    QUERY.classId || "no_class",
+    QUERY.scope || "welcome",
+    QUERY.ownerId || "main"
+  ].join("_");
+}
+
+function getVersionStorageKey(){
+  return getDraftStorageKey() + "_versions";
+}
+
+/* =====================================================
+   MODE SWITCH
+===================================================== */
+
+function switchMode(mode){
+
+  studioState.mode = mode;
+
+  byId("normalModeBtn")
+    ?.classList.toggle(
+      "active",
+      mode === "normal"
+    );
+
+  byId("visualModeBtn")
+    ?.classList.toggle(
+      "active",
+      mode === "visual"
+    );
+
+  byId("normalModeView")
+    ?.classList.toggle(
+      "hidden",
+      mode !== "normal"
+    );
+
+  byId("visualModeView")
+    ?.classList.toggle(
+      "hidden",
+      mode !== "visual"
+    );
+
+  setStatus(
+    mode === "normal"
+      ? "Normal editor mode"
+      : "Visual canvas mode"
+  );
+}
+
+/* =====================================================
+   PANEL SWITCH
 ===================================================== */
 
 function switchToolPanel(panel){
-  document.querySelectorAll("[data-tool-panel]").forEach(item => {
-    item.classList.add("hidden");
-  });
 
-  document.querySelectorAll("[data-panel-btn]").forEach(btn => {
-    btn.classList.remove("active");
-  });
+  document
+    .querySelectorAll("[data-tool-panel]")
+    .forEach(item => {
+      item.classList.add("hidden");
+    });
 
-  const section = document.querySelector(
+  document
+    .querySelectorAll("[data-panel-btn]")
+    .forEach(btn => {
+      btn.classList.remove("active");
+    });
+
+  const panelEl = document.querySelector(
     `[data-tool-panel="${panel}"]`
   );
 
-  if(section){
-    section.classList.remove("hidden");
+  if(panelEl){
+    panelEl.classList.remove("hidden");
   }
 
   const button = document.querySelector(
@@ -1403,159 +2222,1102 @@ function switchToolPanel(panel){
 }
 
 function toggleRightPanel(){
-  const panel = byId("editorRightPanel");
 
-  if(panel){
-    panel.classList.toggle("open");
+  byId("studioRightPanel")
+    ?.classList.toggle("open");
+}
+
+/* =====================================================
+   MODALS
+===================================================== */
+
+function openModal(id){
+  byId(id)?.classList.add("open");
+}
+
+function closeModal(id){
+  byId(id)?.classList.remove("open");
+}
+
+function openImageUrlModal(){
+
+  byId("imageUrlInput").value = "";
+
+  openModal("imageUrlModal");
+}
+
+/* =====================================================
+   TITLE / SUBTITLE
+===================================================== */
+
+function updateStudioHeading(){
+
+  const scopeText = QUERY.scope
+    ? QUERY.scope.charAt(0).toUpperCase() +
+      QUERY.scope.slice(1)
+    : "Content";
+
+  byId("studioTitle").textContent =
+    "AIFT Visual Studio";
+
+  byId("studioSubtitle").textContent =
+    `${scopeText} Editor`;
+}
+
+/* =====================================================
+   BACK
+===================================================== */
+
+function goBackToBuilder(){
+
+  if(QUERY.classId){
+
+    window.location.href =
+      `class-builder.html?classId=${encodeURIComponent(QUERY.classId)}`;
+
+    return;
+  }
+
+  window.location.href =
+    "class-builder.html";
+}
+
+/* =====================================================
+   LOAD CLASS BUILDER DATA
+===================================================== */
+
+async function loadBuilderData(){
+
+  try{
+
+    if(!QUERY.classId){
+      throw new Error("Missing class ID");
+    }
+
+    setStatus("Loading class builder...");
+
+    const data = await apiGet(
+      `/api/classes/${encodeURIComponent(QUERY.classId)}/builder`
+    );
+
+    studioState.classData =
+      data.class || null;
+
+    studioState.modules =
+      Array.isArray(data.modules)
+        ? data.modules
+        : [];
+
+    studioState.lessons =
+      Array.isArray(data.lessons)
+        ? data.lessons
+        : [];
+
+    studioState.quizzes =
+      Array.isArray(data.quizzes)
+        ? data.quizzes
+        : [];
+
+    renderNormalEditor();
+
+    await loadVisualProject();
+
+    setStatus(
+      "Builder loaded",
+      "success"
+    );
+
+  }catch(err){
+
+    console.error(
+      "loadBuilderData error:",
+      err
+    );
+
+    setStatus(
+      err.message ||
+      "Failed to load builder",
+      "error"
+    );
   }
 }
-  /* =====================================================
-   ELEMENT CREATION
+
+/* =====================================================
+   NORMAL EDITOR RENDER
+===================================================== */
+
+function renderNormalEditor(){
+
+  const mount = byId("normalFormMount");
+
+  if(!mount) return;
+
+  if(QUERY.scope === "welcome"){
+    renderWelcomeForm(mount);
+    return;
+  }
+
+  if(QUERY.scope === "outcomes"){
+    renderOutcomesForm(mount);
+    return;
+  }
+
+  if(QUERY.scope === "lesson"){
+    renderLessonForm(mount);
+    return;
+  }
+
+  if(QUERY.scope === "quiz"){
+    renderQuizForm(mount);
+    return;
+  }
+
+  if(QUERY.scope === "curriculum"){
+    renderCurriculumForm(mount);
+    return;
+  }
+
+  mount.innerHTML = `
+    <div class="form-help">
+      No editor available for this section yet.
+    </div>
+  `;
+}
+
+/* =====================================================
+   WELCOME FORM
+===================================================== */
+
+function renderWelcomeForm(mount){
+
+  const cls = studioState.classData || {};
+
+  mount.innerHTML = `
+    <div class="form-grid">
+
+      <div class="form-field full">
+        <label class="form-label">
+          Welcome Title
+        </label>
+
+        <input
+          class="studio-input"
+          id="welcomeTitleInput"
+          value="${escapeHtml(cls.title || "")}"
+        />
+      </div>
+
+      <div class="form-field full">
+        <label class="form-label">
+          Welcome Content
+        </label>
+
+        <textarea
+          class="studio-textarea large"
+          id="welcomeContentInput"
+        >${escapeHtml(cls.welcomeContent || cls.description || "")}</textarea>
+
+        <div class="form-help">
+          This updates the LMS welcome content directly.
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+/* =====================================================
+   OUTCOMES FORM
+===================================================== */
+
+function renderOutcomesForm(mount){
+
+  const outcomes = Array.isArray(
+    studioState.classData?.learningOutcomes
+  )
+    ? studioState.classData.learningOutcomes
+    : [];
+
+  mount.innerHTML = `
+    <div class="outcome-list" id="outcomeList">
+
+      ${
+        outcomes.length
+          ? outcomes.map((item,index)=>`
+            <div class="outcome-row">
+
+              <input
+                class="studio-input"
+                value="${escapeHtml(item)}"
+                data-outcome-index="${index}"
+              />
+
+              <button
+                class="btn-danger"
+                onclick="removeOutcome(${index})"
+              >
+                ×
+              </button>
+
+            </div>
+          `).join("")
+          : `
+            <div class="outcome-row">
+
+              <input
+                class="studio-input"
+                value=""
+                data-outcome-index="0"
+              />
+
+              <button
+                class="btn-danger"
+                onclick="removeOutcome(0)"
+              >
+                ×
+              </button>
+
+            </div>
+          `
+      }
+
+    </div>
+
+    <button
+      class="btn-soft"
+      onclick="addOutcomeField()"
+    >
+      Add Outcome
+    </button>
+  `;
+}
+    <script>
+
+/* =====================================================
+   LESSON FORM
+===================================================== */
+
+function renderLessonForm(mount){
+
+  const lesson = studioState.lessons.find(
+    item => String(item._id) === String(QUERY.ownerId)
+  );
+
+  if(!lesson){
+
+    mount.innerHTML = `
+      <div class="form-help">
+        Lesson not found.
+      </div>
+    `;
+
+    return;
+  }
+
+  mount.innerHTML = `
+    <div class="form-grid">
+
+      <div class="form-field full">
+
+        <label class="form-label">
+          Lesson Title
+        </label>
+
+        <input
+          class="studio-input"
+          id="lessonTitleInput"
+          value="${escapeHtml(lesson.title || "")}"
+        />
+
+      </div>
+
+      <div class="form-field full">
+
+        <label class="form-label">
+          Lesson Description
+        </label>
+
+        <textarea
+          class="studio-textarea"
+          id="lessonDescriptionInput"
+        >${escapeHtml(
+          lesson.description ||
+          lesson.content ||
+          ""
+        )}</textarea>
+
+      </div>
+
+      <div class="form-field">
+
+        <label class="form-label">
+          Video URL
+        </label>
+
+        <input
+          class="studio-input"
+          id="lessonVideoInput"
+          value="${escapeHtml(
+            lesson.videoUrl || ""
+          )}"
+        />
+
+      </div>
+
+      <div class="form-field">
+
+        <label class="form-label">
+          Resource URL
+        </label>
+
+        <input
+          class="studio-input"
+          id="lessonResourceInput"
+          value="${escapeHtml(
+            lesson.resourceUrl || ""
+          )}"
+        />
+
+      </div>
+
+      <div class="form-field">
+
+        <label class="form-label">
+          Duration
+        </label>
+
+        <input
+          class="studio-input"
+          id="lessonDurationInput"
+          value="${escapeHtml(
+            lesson.duration || ""
+          )}"
+        />
+
+      </div>
+
+      <div class="form-field">
+
+        <label class="form-label">
+          Published
+        </label>
+
+        <select
+          class="studio-select"
+          id="lessonPublishedInput"
+        >
+          <option value="true" ${
+            lesson.published
+              ? "selected"
+              : ""
+          }>
+            Published
+          </option>
+
+          <option value="false" ${
+            !lesson.published
+              ? "selected"
+              : ""
+          }>
+            Draft
+          </option>
+        </select>
+
+      </div>
+
+    </div>
+  `;
+}
+
+/* =====================================================
+   QUIZ FORM
+===================================================== */
+
+function renderQuizForm(mount){
+
+  const quiz = studioState.quizzes.find(
+    item => String(item._id) === String(QUERY.ownerId)
+  );
+
+  if(!quiz){
+
+    mount.innerHTML = `
+      <div class="form-help">
+        Quiz not found.
+      </div>
+    `;
+
+    return;
+  }
+
+  const questions = Array.isArray(quiz.questions)
+    ? quiz.questions
+    : [];
+
+  mount.innerHTML = `
+    <div class="form-grid">
+
+      <div class="form-field full">
+
+        <label class="form-label">
+          Quiz Title
+        </label>
+
+        <input
+          class="studio-input"
+          id="quizTitleInput"
+          value="${escapeHtml(quiz.title || "")}"
+        />
+
+      </div>
+
+      <div class="form-field full">
+
+        <label class="form-label">
+          Instructions
+        </label>
+
+        <textarea
+          class="studio-textarea"
+          id="quizInstructionsInput"
+        >${escapeHtml(
+          quiz.instructions ||
+          quiz.description ||
+          ""
+        )}</textarea>
+
+      </div>
+
+      <div class="form-field">
+
+        <label class="form-label">
+          Passing Score
+        </label>
+
+        <input
+          class="studio-input"
+          id="quizPassingInput"
+          type="number"
+          value="${escapeHtml(
+            quiz.passingScore || 0
+          )}"
+        />
+
+      </div>
+
+      <div class="form-field">
+
+        <label class="form-label">
+          Time Limit (minutes)
+        </label>
+
+        <input
+          class="studio-input"
+          id="quizTimeLimitInput"
+          type="number"
+          value="${escapeHtml(
+            quiz.timeLimit || 0
+          )}"
+        />
+
+      </div>
+
+    </div>
+
+    <div class="question-list" id="questionList">
+
+      ${
+        questions.length
+          ? questions.map((question,index)=>
+              renderQuestionCard(
+                question,
+                index
+              )
+            ).join("")
+          : ""
+      }
+
+    </div>
+
+    <button
+      class="btn-soft"
+      onclick="addQuizQuestion()"
+    >
+      Add Question
+    </button>
+  `;
+}
+
+/* =====================================================
+   CURRICULUM FORM
+===================================================== */
+
+function renderCurriculumForm(mount){
+
+  const modules = studioState.modules || [];
+  const lessons = studioState.lessons || [];
+
+  mount.innerHTML = `
+    <div class="normal-card">
+
+      <div class="normal-card-head">
+        <div>
+          <h3 class="normal-card-title">
+            Curriculum Overview
+          </h3>
+
+          <p class="normal-card-subtitle">
+            Manage module structure and lesson flow.
+          </p>
+        </div>
+      </div>
+
+      <div class="normal-card-body">
+
+        ${
+          modules.length
+            ? modules.map(module => {
+
+                const moduleLessons =
+                  lessons.filter(
+                    lesson =>
+                      String(
+                        lesson.moduleId
+                      ) === String(module._id)
+                  );
+
+                return `
+                  <div class="question-card">
+
+                    <div class="question-card-head">
+
+                      <div>
+                        <div class="question-number">
+                          MODULE
+                        </div>
+
+                        <strong>
+                          ${escapeHtml(module.title || "Untitled Module")}
+                        </strong>
+                      </div>
+
+                    </div>
+
+                    <textarea
+                      class="studio-textarea"
+                      data-module-description="${module._id}"
+                    >${escapeHtml(
+                      module.description || ""
+                    )}</textarea>
+
+                    <div class="option-list">
+
+                      ${
+                        moduleLessons.length
+                          ? moduleLessons.map(lesson => `
+                            <div class="layer-item">
+
+                              <div class="layer-main">
+                                <div class="layer-name">
+                                  ${escapeHtml(lesson.title || "Untitled Lesson")}
+                                </div>
+
+                                <div class="layer-meta">
+                                  Lesson
+                                </div>
+                              </div>
+
+                              <button
+                                class="btn-soft"
+                                onclick="openLessonEditor('${lesson._id}')"
+                              >
+                                Edit
+                              </button>
+
+                            </div>
+                          `).join("")
+                          : `
+                            <div class="form-help">
+                              No lessons in this module.
+                            </div>
+                          `
+                      }
+
+                    </div>
+
+                  </div>
+                `;
+            }).join("")
+            : `
+              <div class="form-help">
+                No curriculum modules found.
+              </div>
+            `
+        }
+
+      </div>
+
+    </div>
+  `;
+}
+
+/* =====================================================
+   QUESTION CARD
+===================================================== */
+
+function renderQuestionCard(question,index){
+
+  const options = Array.isArray(question.options)
+    ? question.options
+    : [];
+
+  return `
+    <div class="question-card">
+
+      <div class="question-card-head">
+
+        <div>
+          <div class="question-number">
+            QUESTION ${index + 1}
+          </div>
+        </div>
+
+        <button
+          class="btn-danger"
+          onclick="removeQuizQuestion(${index})"
+        >
+          Remove
+        </button>
+
+      </div>
+
+      <div class="form-field">
+
+        <label class="form-label">
+          Question
+        </label>
+
+        <textarea
+          class="studio-textarea"
+          data-question-index="${index}"
+        >${escapeHtml(
+          question.question || ""
+        )}</textarea>
+
+      </div>
+
+      <div class="option-list">
+
+        ${
+          options.map((option,optionIndex)=>`
+            <div class="option-row">
+
+              <input
+                type="radio"
+                name="correct_${index}"
+                ${
+                  question.correctAnswer === optionIndex
+                    ? "checked"
+                    : ""
+                }
+              />
+
+              <input
+                class="studio-input"
+                value="${escapeHtml(option)}"
+                data-option-index="${index}_${optionIndex}"
+              />
+
+              <button
+                class="btn-danger"
+                onclick="removeQuizOption(${index},${optionIndex})"
+              >
+                ×
+              </button>
+
+            </div>
+          `).join("")
+        }
+
+      </div>
+
+      <button
+        class="btn-soft"
+        onclick="addQuizOption(${index})"
+      >
+        Add Option
+      </button>
+
+    </div>
+  `;
+}
+
+/* =====================================================
+   OUTCOMES HELPERS
+===================================================== */
+
+function addOutcomeField(){
+
+  const list = byId("outcomeList");
+
+  if(!list) return;
+
+  const current =
+    list.querySelectorAll(".outcome-row").length;
+
+  const row = document.createElement("div");
+
+  row.className = "outcome-row";
+
+  row.innerHTML = `
+    <input
+      class="studio-input"
+      data-outcome-index="${current}"
+    />
+
+    <button
+      class="btn-danger"
+      onclick="removeOutcome(${current})"
+    >
+      ×
+    </button>
+  `;
+
+  list.appendChild(row);
+}
+
+function removeOutcome(index){
+
+  const rows = Array.from(
+    document.querySelectorAll(".outcome-row")
+  );
+
+  if(rows[index]){
+    rows[index].remove();
+  }
+}
+
+/* =====================================================
+   QUIZ HELPERS
+===================================================== */
+
+function addQuizQuestion(){
+
+  const list = byId("questionList");
+
+  if(!list) return;
+
+  const index =
+    list.querySelectorAll(".question-card").length;
+
+  const wrapper =
+    document.createElement("div");
+
+  wrapper.innerHTML =
+    renderQuestionCard(
+      {
+        question:"",
+        options:["",""],
+        correctAnswer:0
+      },
+      index
+    );
+
+  list.appendChild(wrapper.firstElementChild);
+}
+
+function removeQuizQuestion(index){
+
+  const cards = Array.from(
+    document.querySelectorAll(".question-card")
+  );
+
+  if(cards[index]){
+    cards[index].remove();
+  }
+}
+
+function addQuizOption(questionIndex){
+
+  const cards = Array.from(
+    document.querySelectorAll(".question-card")
+  );
+
+  const card = cards[questionIndex];
+
+  if(!card) return;
+
+  const list =
+    card.querySelector(".option-list");
+
+  const optionCount =
+    list.querySelectorAll(".option-row").length;
+
+  const row =
+    document.createElement("div");
+
+  row.className = "option-row";
+
+  row.innerHTML = `
+    <input
+      type="radio"
+      name="correct_${questionIndex}"
+    />
+
+    <input
+      class="studio-input"
+      data-option-index="${questionIndex}_${optionCount}"
+    />
+
+    <button
+      class="btn-danger"
+      onclick="removeQuizOption(${questionIndex},${optionCount})"
+    >
+      ×
+    </button>
+  `;
+
+  list.appendChild(row);
+}
+
+function removeQuizOption(questionIndex,optionIndex){
+
+  const cards = Array.from(
+    document.querySelectorAll(".question-card")
+  );
+
+  const card = cards[questionIndex];
+
+  if(!card) return;
+
+  const rows = Array.from(
+    card.querySelectorAll(".option-row")
+  );
+
+  if(rows[optionIndex]){
+    rows[optionIndex].remove();
+  }
+}
+
+/* =====================================================
+   OPEN LESSON EDITOR
+===================================================== */
+
+function openLessonEditor(lessonId){
+
+  const params = new URLSearchParams({
+    classId:QUERY.classId,
+    scope:"lesson",
+    ownerId:lessonId
+  });
+
+  window.location.href =
+    `visual-editor.html?${params.toString()}`;
+}
+
+</script>
+<script>
+
+/* =====================================================
+   DEFAULT ELEMENTS
 ===================================================== */
 
 function getDefaultElement(type){
 
   const base = {
     id: uid(),
-
     type,
 
-    x: 60,
-    y: 60,
-
-    width: 320,
+    x: 80,
+    y: 80,
+    width: 360,
     height: 120,
 
     rotation: 0,
     opacity: 1,
+    zIndex: getNextZIndex(),
+    locked: false,
 
-    zIndex: editorState.elements.length + 1,
+    content: "",
+    imageUrl: "",
 
-    locked:false,
-
-    styles:{
-      color:"#111827",
-      background:"#ffffff",
-      borderColor:"#e5e7eb",
-
-      fontFamily:"Inter",
-      fontSize:"16px",
-      fontWeight:"400",
-
-      textAlign:"left",
-      lineHeight:"1.6",
-      letterSpacing:"0px",
-
-      borderRadius:"18px"
-    },
-
-    content:""
+    styles: {
+      color: "#111827",
+      background: "transparent",
+      borderColor: "#e5e7eb",
+      borderRadius: "18px",
+      fontFamily: "Inter",
+      fontSize: "16px",
+      fontWeight: "400",
+      fontStyle: "normal",
+      textDecoration: "none",
+      textAlign: "left",
+      lineHeight: "1.6"
+    }
   };
 
   if(type === "heading"){
-    base.content = "Heading";
-    base.height = 90;
+    base.content = "New heading";
+    base.width = 620;
+    base.height = 92;
     base.styles.fontSize = "42px";
     base.styles.fontWeight = "800";
   }
 
   if(type === "paragraph"){
-    base.content =
-      "Write lesson content here.";
-    base.height = 160;
+    base.content = "Write your lesson content here.";
+    base.width = 620;
+    base.height = 170;
+  }
+
+  if(type === "list"){
+    base.content = "• First point<br>• Second point<br>• Third point";
+    base.width = 520;
+    base.height = 170;
   }
 
   if(type === "quote"){
-    base.content =
-      "Inspirational quote";
+    base.content = "Add an important quote or reminder here.";
+    base.width = 560;
+    base.height = 150;
     base.styles.fontStyle = "italic";
-  }
-
-  if(type === "button"){
-    base.content = "Button";
-    base.width = 180;
-    base.height = 52;
-
-    base.styles.background =
-      "#2557a7";
-
-    base.styles.color = "#ffffff";
+    base.styles.background = "#f8fafc";
   }
 
   if(type === "shape"){
-    base.width = 220;
-    base.height = 220;
+    base.width = 240;
+    base.height = 180;
+    base.styles.background = "#eef4ff";
+    base.styles.borderColor = "#bfd3ff";
+  }
 
-    base.styles.background =
-      "#eef4ff";
+  if(type === "card"){
+    base.width = 420;
+    base.height = 220;
+    base.content = "Card title<br><span style='font-weight:400;color:#667085'>Add details here.</span>";
+    base.styles.background = "#ffffff";
   }
 
   if(type === "line"){
-    base.width = 340;
-    base.height = 2;
-
-    base.styles.background =
-      "#111827";
+    base.width = 420;
+    base.height = 24;
+    base.styles.color = "#111827";
   }
 
   if(type === "arrow"){
-    base.width = 220;
-    base.height = 40;
+    base.width = 280;
+    base.height = 64;
+    base.styles.color = "#111827";
+  }
+
+  if(type === "button"){
+    base.width = 190;
+    base.height = 56;
+    base.content = "Button";
+    base.styles.background = "#2557a7";
+    base.styles.color = "#ffffff";
+    base.styles.fontWeight = "800";
+    base.styles.textAlign = "center";
   }
 
   if(type === "table"){
-    base.width = 520;
-    base.height = 220;
+    base.width = 560;
+    base.height = 260;
+    base.content = JSON.stringify({
+      rows: [
+        ["Header", "Header", "Header"],
+        ["Data", "Data", "Data"],
+        ["Data", "Data", "Data"]
+      ]
+    });
   }
 
   if(type === "chart"){
-    base.width = 500;
-    base.height = 260;
+    base.width = 520;
+    base.height = 280;
   }
 
   if(type === "image"){
-    base.width = 420;
-    base.height = 260;
-
-    base.imageUrl =
-      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1200&auto=format&fit=crop";
+    base.width = 460;
+    base.height = 280;
+    base.imageUrl = "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1200&auto=format&fit=crop";
   }
 
-  if(type === "grid"){
-    base.width = 520;
-    base.height = 340;
-  }
-
-  if(type === "frame"){
-    base.width = 500;
-    base.height = 340;
-  }
-
-  if(type === "svg"){
-    base.width = 220;
-    base.height = 220;
+  if(type === "icon"){
+    base.width = 120;
+    base.height = 120;
+    base.styles.color = "#2557a7";
   }
 
   return base;
 }
 
+function getNextZIndex(){
+  if(!studioState.elements.length) return 1;
+
+  return Math.max(
+    ...studioState.elements.map(el => Number(el.zIndex || 1))
+  ) + 1;
+}
+
+/* =====================================================
+   ADD ELEMENT
+===================================================== */
+
 function addElement(type){
 
   saveUndoState();
 
-  const element =
-    getDefaultElement(type);
+  const element = getDefaultElement(type);
 
-  editorState.elements.push(element);
+  studioState.elements.push(element);
 
   renderCanvas();
+
   selectElement(element.id);
 
-  setStatus(`${type} added`);
+  switchMode("visual");
+
+  queueAutoSave();
+
+  setStatus(`${type} added`, "success");
 }
 
 /* =====================================================
-   RENDER
+   IMAGE URL
+===================================================== */
+
+function confirmAddImageUrl(){
+
+  const input = byId("imageUrlInput");
+
+  const url = input?.value?.trim();
+
+  if(!url){
+    setStatus("Please enter an image URL", "warning");
+    return;
+  }
+
+  saveUndoState();
+
+  const element = getDefaultElement("image");
+
+  element.imageUrl = url;
+
+  studioState.elements.push(element);
+
+  closeModal("imageUrlModal");
+
+  renderCanvas();
+  selectElement(element.id);
+  switchMode("visual");
+  queueAutoSave();
+
+  setStatus("Image added", "success");
+}
+
+/* =====================================================
+   RENDER CANVAS
 ===================================================== */
 
 function renderCanvas(){
@@ -1564,316 +3326,224 @@ function renderCanvas(){
 
   if(!canvas) return;
 
+  canvas.classList.toggle(
+    "canvas-grid-visible",
+    studioState.showGrid
+  );
+
+  canvas.style.transform =
+    `scale(${studioState.zoom})`;
+
   canvas.innerHTML =
-    editorState.elements
-      .sort((a,b)=>
-        a.zIndex - b.zIndex
-      )
+    studioState.elements
+      .slice()
+      .sort((a,b) => Number(a.zIndex || 0) - Number(b.zIndex || 0))
       .map(renderElement)
       .join("");
 
   renderLayers();
+  syncPropertyPanel();
+  renderNormalVisualPreview();
 }
 
 function renderElement(el){
 
-  const selected =
-    editorState.selectedElementId === el.id
-      ? "selected"
-      : "";
+  const isSelected =
+    String(studioState.selectedElementId) === String(el.id);
+
+  const classes = [
+    "canvas-element",
+    isSelected ? "selected" : "",
+    el.locked ? "locked" : ""
+  ].filter(Boolean).join(" ");
 
   return `
     <div
-      class="canvas-element ${selected}"
-      id="${el.id}"
-
-      onclick="selectElement('${el.id}')"
-
+      class="${classes}"
+      id="${escapeHtml(el.id)}"
+      data-element-id="${escapeHtml(el.id)}"
       draggable="${!el.locked}"
-
-      ondragstart="startDrag(event,'${el.id}')"
-
+      onclick="selectElement('${escapeHtml(el.id)}', event)"
+      ondragstart="startDrag(event,'${escapeHtml(el.id)}')"
       style="
-        position:absolute;
-
-        left:${el.x}px;
-        top:${el.y}px;
-
-        width:${el.width}px;
-        height:${el.height}px;
-
-        z-index:${el.zIndex};
-
-        transform:
-          rotate(${el.rotation}deg);
-
-        opacity:${el.opacity};
-
-        color:${el.styles.color};
-
-        background:${el.styles.background || el.styles.backgroundColor || "transparent"};
-
-        border-color:${el.styles.borderColor};
-
-        border-radius:${el.styles.borderRadius};
-
-        text-align:${el.styles.textAlign};
-
-        font-family:${el.styles.fontFamily};
-
-        font-size:${el.styles.fontSize};
-
-        font-weight:${el.styles.fontWeight};
-
-        line-height:${el.styles.lineHeight};
-
-        letter-spacing:${el.styles.letterSpacing};
+        left:${safeNumber(el.x)}px;
+        top:${safeNumber(el.y)}px;
+        width:${safeNumber(el.width,100)}px;
+        height:${safeNumber(el.height,80)}px;
+        z-index:${safeNumber(el.zIndex,1)};
+        opacity:${safeNumber(el.opacity,1)};
+        transform:rotate(${safeNumber(el.rotation,0)}deg);
+        color:${escapeHtml(el.styles?.color || "#111827")};
+        background:${escapeHtml(el.styles?.background || "transparent")};
+        border-color:${escapeHtml(el.styles?.borderColor || "transparent")};
+        border-radius:${escapeHtml(el.styles?.borderRadius || "14px")};
+        font-family:${escapeHtml(el.styles?.fontFamily || "Inter")};
+        font-size:${escapeHtml(el.styles?.fontSize || "16px")};
+        font-weight:${escapeHtml(el.styles?.fontWeight || "400")};
+        font-style:${escapeHtml(el.styles?.fontStyle || "normal")};
+        text-decoration:${escapeHtml(el.styles?.textDecoration || "none")};
+        text-align:${escapeHtml(el.styles?.textAlign || "left")};
+        line-height:${escapeHtml(el.styles?.lineHeight || "1.6")};
       "
     >
-
       ${renderElementBody(el)}
 
       ${
-        !el.locked
+        isSelected && !el.locked
           ? `
+            <div class="rotate-line"></div>
             <div
-              class="resize-handle"
+              class="rotate-handle"
+              onmousedown="startRotate(event,'${escapeHtml(el.id)}')"
+            ></div>
 
-              onmousedown="
-                startResize(
-                  event,
-                  '${el.id}'
-                )
-              "
+            <div
+              class="resize-handle br"
+              onmousedown="startResize(event,'${escapeHtml(el.id)}')"
             ></div>
           `
           : ""
       }
-
     </div>
   `;
 }
 
 function renderElementBody(el){
 
-  if(el.type === "heading"){
+  if(["heading","paragraph","quote","list"].includes(el.type)){
     return `
       <div
-        class="
-          canvas-element-content
-          canvas-heading
-        "
+        class="canvas-content canvas-${escapeHtml(el.type)}"
+        contenteditable="${!el.locked}"
+        oninput="updateElementContent('${escapeHtml(el.id)}', this.innerHTML)"
+      >${el.content || ""}</div>
+    `;
+  }
 
-        contenteditable="true"
+  if(el.type === "card"){
+    return `
+      <div
+        class="canvas-content canvas-card-box"
+        contenteditable="${!el.locked}"
+        oninput="updateElementContent('${escapeHtml(el.id)}', this.innerHTML)"
+      >${el.content || ""}</div>
+    `;
+  }
 
-        oninput="
-          updateElementContent(
-            '${el.id}',
-            this.innerHTML
-          )
-        "
-      >
-        ${el.content}
+  if(el.type === "shape"){
+    return `
+      <div class="canvas-content canvas-shape"></div>
+    `;
+  }
+
+  if(el.type === "line"){
+    return `
+      <div class="canvas-content canvas-line">
+        <span></span>
       </div>
     `;
   }
 
-  if(
-    el.type === "paragraph" ||
-    el.type === "quote" ||
-    el.type === "list"
-  ){
+  if(el.type === "arrow"){
     return `
-      <div
-        class="
-          canvas-element-content
-          canvas-text
-        "
-
-        contenteditable="true"
-
-        oninput="
-          updateElementContent(
-            '${el.id}',
-            this.innerHTML
-          )
-        "
-      >
-        ${el.content}
+      <div class="canvas-content canvas-arrow">
+        <svg viewBox="0 0 260 60">
+          <line
+            x1="12"
+            y1="30"
+            x2="215"
+            y2="30"
+            stroke="currentColor"
+            stroke-width="5"
+            stroke-linecap="round"
+          ></line>
+          <path
+            d="M214 10 L250 30 L214 50 Z"
+            fill="currentColor"
+          ></path>
+        </svg>
       </div>
     `;
   }
 
   if(el.type === "button"){
     return `
-      <div class="canvas-button">
-        ${el.content}
-      </div>
-    `;
-  }
-
-  if(el.type === "shape"){
-    return `
       <div
-        class="canvas-box"
-        style="
-          width:100%;
-          height:100%;
-          background:${el.styles.background};
-        "
-      ></div>
-    `;
-  }
-
-  if(el.type === "line"){
-    return `
-      <div
-        class="canvas-divider"
-        style="
-          background:${el.styles.background};
-        "
-      ></div>
-    `;
-  }
-
-  if(el.type === "arrow"){
-    return `
-      <svg
-        width="100%"
-        height="100%"
-        viewBox="0 0 240 40"
-      >
-        <line
-          x1="10"
-          y1="20"
-          x2="210"
-          y2="20"
-          stroke="#111827"
-          stroke-width="4"
-        />
-
-        <polygon
-          points="
-            210,5
-            235,20
-            210,35
-          "
-          fill="#111827"
-        />
-      </svg>
-    `;
-  }
-
-  if(el.type === "table"){
-    return `
-      <table class="canvas-table">
-        <tr>
-          <td>Header</td>
-          <td>Header</td>
-          <td>Header</td>
-        </tr>
-
-        <tr>
-          <td>Data</td>
-          <td>Data</td>
-          <td>Data</td>
-        </tr>
-
-        <tr>
-          <td>Data</td>
-          <td>Data</td>
-          <td>Data</td>
-        </tr>
-      </table>
-    `;
-  }
-
-  if(el.type === "chart"){
-    return `
-      <div class="canvas-chart"></div>
+        class="canvas-content canvas-button-box"
+        contenteditable="${!el.locked}"
+        oninput="updateElementContent('${escapeHtml(el.id)}', this.innerHTML)"
+      >${el.content || "Button"}</div>
     `;
   }
 
   if(el.type === "image"){
     return `
       <img
-        src="${el.imageUrl}"
-        class="canvas-image"
+        class="canvas-content canvas-image"
+        src="${escapeHtml(el.imageUrl || "")}"
+        alt=""
+        draggable="false"
       />
     `;
   }
 
-  if(el.type === "grid"){
-    return `
-      <div
-        style="
-          display:grid;
-          grid-template-columns:
-            repeat(3,1fr);
+  if(el.type === "table"){
+    return renderTableElement(el);
+  }
 
-          gap:10px;
-          width:100%;
-          height:100%;
-        "
-      >
-        ${Array(9)
-          .fill(0)
-          .map(() => `
-            <div
-              style="
-                border:1px dashed #dbeafe;
-                border-radius:12px;
-              "
-            ></div>
-          `)
-          .join("")
-        }
+  if(el.type === "chart"){
+    return `
+      <div class="canvas-content canvas-chart-placeholder">
+        Chart Placeholder
       </div>
     `;
   }
 
-  if(el.type === "frame"){
+  if(el.type === "icon"){
     return `
-      <div
-        style="
-          width:100%;
-          height:100%;
-
-          border:4px solid #111827;
-          border-radius:24px;
-        "
-      ></div>
-    `;
-  }
-
-  if(el.type === "svg"){
-    return `
-      <svg
-        width="100%"
-        height="100%"
-        viewBox="0 0 200 200"
-      >
-        <circle
-          cx="100"
-          cy="100"
-          r="70"
-          fill="#eef4ff"
-          stroke="#2557a7"
-          stroke-width="4"
-        />
-      </svg>
+      <div class="canvas-content canvas-icon">
+        <svg viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="8"></circle>
+          <path d="M38 62l15 15 32-38" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </div>
     `;
   }
 
   return `
-    <div
-      class="
-        canvas-element-content
-        canvas-text
-      "
-    >
+    <div class="canvas-content">
       ${el.content || ""}
     </div>
+  `;
+}
+
+function renderTableElement(el){
+
+  let rows = [
+    ["Header", "Header", "Header"],
+    ["Data", "Data", "Data"],
+    ["Data", "Data", "Data"]
+  ];
+
+  try{
+    const parsed = JSON.parse(el.content || "{}");
+    if(Array.isArray(parsed.rows)){
+      rows = parsed.rows;
+    }
+  }catch(err){}
+
+  return `
+    <table class="canvas-content canvas-table">
+      ${rows.map((row,rowIndex)=>`
+        <tr>
+          ${row.map(cell => `
+            <${rowIndex === 0 ? "th" : "td"} contenteditable="${!el.locked}">
+              ${escapeHtml(cell)}
+            </${rowIndex === 0 ? "th" : "td"}>
+          `).join("")}
+        </tr>
+      `).join("")}
+    </table>
   `;
 }
 
@@ -1881,35 +3551,43 @@ function renderElementBody(el){
    SELECT
 ===================================================== */
 
-function selectElement(id){
+function selectElement(id,event=null){
 
-  editorState.selectedElementId = id;
+  if(event){
+    event.stopPropagation();
+  }
+
+  studioState.selectedElementId = id;
 
   renderCanvas();
-  renderLayers();
 
   setStatus("Element selected");
 }
 
+function handleCanvasBackgroundClick(event){
+
+  if(event.target?.id === "editorCanvas"){
+    studioState.selectedElementId = null;
+    renderCanvas();
+  }
+}
+
 function getSelectedElement(){
 
-  return editorState.elements.find(
-    el =>
-      el.id ===
-      editorState.selectedElementId
+  return studioState.elements.find(
+    el => String(el.id) === String(studioState.selectedElementId)
   );
 }
 
 /* =====================================================
-   UPDATE
+   UPDATE ELEMENT
 ===================================================== */
 
 function updateElementContent(id,value){
 
-  const el =
-    editorState.elements.find(
-      item => item.id === id
-    );
+  const el = studioState.elements.find(
+    item => String(item.id) === String(id)
+  );
 
   if(!el) return;
 
@@ -1922,14 +3600,17 @@ function applySelectedStyle(key,value){
 
   const el = getSelectedElement();
 
-  if(!el) return;
+  if(!el){
+    setStatus("Select an element first", "warning");
+    return;
+  }
 
   saveUndoState();
 
+  el.styles = el.styles || {};
   el.styles[key] = value;
 
   renderCanvas();
-
   queueAutoSave();
 }
 
@@ -1937,13 +3618,18 @@ function toggleTextStyle(type){
 
   const el = getSelectedElement();
 
-  if(!el) return;
+  if(!el){
+    setStatus("Select text first", "warning");
+    return;
+  }
 
   saveUndoState();
 
+  el.styles = el.styles || {};
+
   if(type === "bold"){
     el.styles.fontWeight =
-      el.styles.fontWeight === "800"
+      String(el.styles.fontWeight) === "800"
         ? "400"
         : "800";
   }
@@ -1963,28 +3649,86 @@ function toggleTextStyle(type){
   }
 
   renderCanvas();
-
   queueAutoSave();
 }
-  /* =====================================================
+
+function updateSelectedNumber(key,value){
+
+  const el = getSelectedElement();
+
+  if(!el) return;
+
+  saveUndoState();
+
+  const num = safeNumber(value,el[key] || 0);
+
+  if(key === "opacity"){
+    el[key] = clamp(num,0.1,1);
+  } else {
+    el[key] = num;
+  }
+
+  renderCanvas();
+  queueAutoSave();
+}
+
+/* =====================================================
+   PROPERTY PANEL SYNC
+===================================================== */
+
+function syncPropertyPanel(){
+
+  const el = getSelectedElement();
+
+  const ids = [
+    "propX",
+    "propY",
+    "propWidth",
+    "propHeight",
+    "propRotation",
+    "propOpacity",
+    "propRadius"
+  ];
+
+  ids.forEach(id => {
+    const input = byId(id);
+    if(input) input.value = "";
+  });
+
+  if(!el) return;
+
+  if(byId("propX")) byId("propX").value = safeNumber(el.x);
+  if(byId("propY")) byId("propY").value = safeNumber(el.y);
+  if(byId("propWidth")) byId("propWidth").value = safeNumber(el.width);
+  if(byId("propHeight")) byId("propHeight").value = safeNumber(el.height);
+  if(byId("propRotation")) byId("propRotation").value = safeNumber(el.rotation);
+  if(byId("propOpacity")) byId("propOpacity").value = safeNumber(el.opacity,1);
+
+  if(byId("propRadius")){
+    byId("propRadius").value =
+      parseInt(el.styles?.borderRadius || "0",10) || 0;
+  }
+}
+
+</script>
+<script>
+
+/* =====================================================
    DRAG / DROP
 ===================================================== */
 
-let dragData = null;
-
 function startDrag(event,id){
 
-  const el =
-    editorState.elements.find(
-      item => item.id === id
-    );
+  const el = studioState.elements.find(
+    item => String(item.id) === String(id)
+  );
 
   if(!el || el.locked){
     event.preventDefault();
     return;
   }
 
-  dragData = {
+  studioState.dragData = {
     id,
     offsetX:event.offsetX,
     offsetY:event.offsetY
@@ -1994,6 +3738,8 @@ function startDrag(event,id){
     "text/plain",
     id
   );
+
+  studioState.isDragging = true;
 }
 
 function handleEditorDragOver(event){
@@ -2004,35 +3750,31 @@ function handleEditorDrop(event){
 
   event.preventDefault();
 
+  const dragData = studioState.dragData;
+
   if(!dragData) return;
 
   const canvas = byId("editorCanvas");
 
-  if(!canvas) return;
+  const el = studioState.elements.find(
+    item => String(item.id) === String(dragData.id)
+  );
 
-  const rect =
-    canvas.getBoundingClientRect();
-
-  const el =
-    editorState.elements.find(
-      item => item.id === dragData.id
-    );
-
-  if(!el) return;
+  if(!canvas || !el) return;
 
   saveUndoState();
 
+  const rect = canvas.getBoundingClientRect();
+
   let nextX =
-    event.clientX -
-    rect.left -
+    (event.clientX - rect.left) / studioState.zoom -
     dragData.offsetX;
 
   let nextY =
-    event.clientY -
-    rect.top -
+    (event.clientY - rect.top) / studioState.zoom -
     dragData.offsetY;
 
-  if(editorState.snapGuides){
+  if(studioState.snapGuides){
     nextX = Math.round(nextX / 10) * 10;
     nextY = Math.round(nextY / 10) * 10;
   }
@@ -2040,37 +3782,41 @@ function handleEditorDrop(event){
   el.x = Math.max(0,nextX);
   el.y = Math.max(0,nextY);
 
-  dragData = null;
+  studioState.dragData = null;
+  studioState.isDragging = false;
 
   renderCanvas();
   queueAutoSave();
+
+  setStatus("Element moved");
 }
 
 /* =====================================================
    RESIZE
 ===================================================== */
 
-let resizeData = null;
-
 function startResize(event,id){
 
   event.preventDefault();
   event.stopPropagation();
 
-  const el =
-    editorState.elements.find(
-      item => item.id === id
-    );
+  const el = studioState.elements.find(
+    item => String(item.id) === String(id)
+  );
 
   if(!el || el.locked) return;
 
-  resizeData = {
+  saveUndoState();
+
+  studioState.resizeData = {
     id,
     startX:event.clientX,
     startY:event.clientY,
-    startWidth:el.width,
-    startHeight:el.height
+    startWidth:Number(el.width || 120),
+    startHeight:Number(el.height || 80)
   };
+
+  studioState.isResizing = true;
 
   document.addEventListener(
     "mousemove",
@@ -2085,45 +3831,46 @@ function startResize(event,id){
 
 function handleResizeMove(event){
 
-  if(!resizeData) return;
+  const data = studioState.resizeData;
 
-  const el =
-    editorState.elements.find(
-      item => item.id === resizeData.id
-    );
+  if(!data) return;
+
+  const el = studioState.elements.find(
+    item => String(item.id) === String(data.id)
+  );
 
   if(!el) return;
 
   const dx =
-    event.clientX -
-    resizeData.startX;
+    (event.clientX - data.startX) /
+    studioState.zoom;
 
   const dy =
-    event.clientY -
-    resizeData.startY;
+    (event.clientY - data.startY) /
+    studioState.zoom;
 
-  el.width =
-    Math.max(
-      40,
-      resizeData.startWidth + dx
-    );
+  el.width = Math.max(
+    40,
+    Math.round(data.startWidth + dx)
+  );
 
-  el.height =
-    Math.max(
-      20,
-      resizeData.startHeight + dy
-    );
+  el.height = Math.max(
+    24,
+    Math.round(data.startHeight + dy)
+  );
 
   renderCanvas();
 }
 
 function stopResize(){
 
-  if(resizeData){
+  if(studioState.resizeData){
     queueAutoSave();
+    setStatus("Element resized");
   }
 
-  resizeData = null;
+  studioState.resizeData = null;
+  studioState.isResizing = false;
 
   document.removeEventListener(
     "mousemove",
@@ -2137,98 +3884,174 @@ function stopResize(){
 }
 
 /* =====================================================
-   ALIGNMENT / ARRANGE
+   ROTATE
 ===================================================== */
 
-function alignSelected(type){
+function startRotate(event,id){
 
-  const el = getSelectedElement();
+  event.preventDefault();
+  event.stopPropagation();
 
-  const canvas = byId("editorCanvas");
+  const el = studioState.elements.find(
+    item => String(item.id) === String(id)
+  );
 
-  if(!el || !canvas) return;
+  if(!el || el.locked) return;
+
+  const elementNode =
+    document.querySelector(
+      `[data-element-id="${CSS.escape(id)}"]`
+    );
+
+  if(!elementNode) return;
 
   saveUndoState();
 
-  const canvasWidth =
-    canvas.clientWidth;
+  const rect =
+    elementNode.getBoundingClientRect();
 
-  const canvasHeight =
-    canvas.clientHeight;
+  studioState.rotateData = {
+    id,
+    centerX:rect.left + rect.width / 2,
+    centerY:rect.top + rect.height / 2
+  };
 
-  if(type === "left"){
-    el.x = 30;
-  }
+  studioState.isRotating = true;
 
-  if(type === "center"){
-    el.x =
-      Math.round(
-        (canvasWidth - el.width) / 2
-      );
-  }
+  document.addEventListener(
+    "mousemove",
+    handleRotateMove
+  );
 
-  if(type === "right"){
-    el.x =
-      canvasWidth -
-      el.width -
-      30;
-  }
-
-  if(type === "middle"){
-    el.y =
-      Math.round(
-        (canvasHeight - el.height) / 2
-      );
-  }
-
-  renderCanvas();
-  queueAutoSave();
+  document.addEventListener(
+    "mouseup",
+    stopRotate
+  );
 }
 
-function distributeElements(){
+function handleRotateMove(event){
 
-  if(editorState.elements.length < 3){
-    setStatus(
-      "Need at least 3 elements to distribute."
-    );
+  const data = studioState.rotateData;
+
+  if(!data) return;
+
+  const el = studioState.elements.find(
+    item => String(item.id) === String(data.id)
+  );
+
+  if(!el) return;
+
+  const angle =
+    Math.atan2(
+      event.clientY - data.centerY,
+      event.clientX - data.centerX
+    ) *
+    (180 / Math.PI) +
+    90;
+
+  el.rotation = Math.round(angle);
+
+  renderCanvas();
+}
+
+function stopRotate(){
+
+  if(studioState.rotateData){
+    queueAutoSave();
+    setStatus("Element rotated");
+  }
+
+  studioState.rotateData = null;
+  studioState.isRotating = false;
+
+  document.removeEventListener(
+    "mousemove",
+    handleRotateMove
+  );
+
+  document.removeEventListener(
+    "mouseup",
+    stopRotate
+  );
+}
+
+/* =====================================================
+   LAYERS
+===================================================== */
+
+function renderLayers(){
+
+  const list = byId("layerList");
+
+  if(!list) return;
+
+  if(!studioState.elements.length){
+    list.innerHTML = `
+      <div class="form-help">
+        No layers yet.
+      </div>
+    `;
     return;
   }
 
-  saveUndoState();
+  list.innerHTML =
+    studioState.elements
+      .slice()
+      .sort((a,b)=>Number(b.zIndex || 0) - Number(a.zIndex || 0))
+      .map(el => `
+        <div
+          class="layer-item ${
+            String(studioState.selectedElementId) === String(el.id)
+              ? "active"
+              : ""
+          }"
+          onclick="selectElement('${escapeHtml(el.id)}', event)"
+        >
+          <div class="layer-main">
+            <div class="layer-name">
+              ${escapeHtml(labelElementType(el.type))}
+            </div>
 
-  const sorted =
-    [...editorState.elements]
-      .sort((a,b)=>a.y-b.y);
+            <div class="layer-meta">
+              z:${safeNumber(el.zIndex,1)}
+              ${el.locked ? " · locked" : ""}
+            </div>
+          </div>
 
-  const first = sorted[0];
-  const last =
-    sorted[sorted.length - 1];
-
-  const gap =
-    (last.y - first.y) /
-    (sorted.length - 1);
-
-  sorted.forEach((el,index)=>{
-    el.y =
-      Math.round(first.y + gap * index);
-  });
-
-  renderCanvas();
-  queueAutoSave();
-
-  setStatus("Elements distributed");
+          <button
+            class="btn-icon"
+            onclick="event.stopPropagation(); deleteElement('${escapeHtml(el.id)}')"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M3 6h18"></path>
+              <path d="M8 6V4h8v2"></path>
+              <path d="M19 6l-1 14H6L5 6"></path>
+            </svg>
+          </button>
+        </div>
+      `)
+      .join("");
 }
 
-function toggleSnapGuides(){
+function labelElementType(type){
 
-  editorState.snapGuides =
-    !editorState.snapGuides;
+  const map = {
+    heading:"Heading",
+    paragraph:"Paragraph",
+    list:"List",
+    quote:"Quote",
+    shape:"Shape",
+    card:"Card",
+    line:"Line",
+    arrow:"Arrow",
+    button:"Button",
+    table:"Table",
+    chart:"Chart",
+    image:"Image",
+    icon:"Icon"
+  };
 
-  setStatus(
-    editorState.snapGuides
-      ? "Snap guidelines enabled"
-      : "Snap guidelines disabled"
-  );
+  return map[type] || type || "Element";
 }
 
 function bringForward(){
@@ -2239,7 +4062,7 @@ function bringForward(){
 
   saveUndoState();
 
-  el.zIndex += 1;
+  el.zIndex = safeNumber(el.zIndex,1) + 1;
 
   renderCanvas();
   queueAutoSave();
@@ -2253,18 +4076,51 @@ function sendBackward(){
 
   saveUndoState();
 
-  el.zIndex =
-    Math.max(1,el.zIndex - 1);
+  el.zIndex = Math.max(
+    1,
+    safeNumber(el.zIndex,1) - 1
+  );
 
   renderCanvas();
   queueAutoSave();
+}
+
+function duplicateSelected(){
+
+  const el = getSelectedElement();
+
+  if(!el){
+    setStatus("Select an element first", "warning");
+    return;
+  }
+
+  saveUndoState();
+
+  const copy = deepClone(el);
+
+  copy.id = uid();
+  copy.x = safeNumber(copy.x) + 28;
+  copy.y = safeNumber(copy.y) + 28;
+  copy.zIndex = getNextZIndex();
+
+  studioState.elements.push(copy);
+
+  renderCanvas();
+  selectElement(copy.id);
+
+  queueAutoSave();
+
+  setStatus("Element duplicated", "success");
 }
 
 function lockSelected(){
 
   const el = getSelectedElement();
 
-  if(!el) return;
+  if(!el){
+    setStatus("Select an element first", "warning");
+    return;
+  }
 
   saveUndoState();
 
@@ -2280,103 +4136,27 @@ function lockSelected(){
   );
 }
 
-function duplicateSelected(){
+function deleteSelected(){
 
-  const el = getSelectedElement();
-
-  if(!el) return;
-
-  saveUndoState();
-
-  const copy = JSON.parse(
-    JSON.stringify(el)
-  );
-
-  copy.id = uid();
-  copy.x += 24;
-  copy.y += 24;
-  copy.zIndex =
-    editorState.elements.length + 1;
-
-  editorState.elements.push(copy);
-
-  renderCanvas();
-  selectElement(copy.id);
-  queueAutoSave();
-}
-
-function groupSelected(){
-  setStatus(
-    "Group feature prepared. Multi-select will be added next."
-  );
-}
-
-function ungroupSelected(){
-  setStatus(
-    "Ungroup feature prepared. Multi-select will be added next."
-  );
-}
-
-/* =====================================================
-   LAYERS
-===================================================== */
-
-function renderLayers(){
-
-  const list = byId("layerList");
-
-  if(!list) return;
-
-  if(!editorState.elements.length){
-    list.innerHTML =
-      `<div class="builder-item-sub">No layers yet.</div>`;
+  if(!studioState.selectedElementId){
+    setStatus("Select an element first", "warning");
     return;
   }
 
-  list.innerHTML =
-    editorState.elements
-      .slice()
-      .sort((a,b)=>b.zIndex-a.zIndex)
-      .map(el => `
-        <div
-          class="layer-item ${
-            editorState.selectedElementId === el.id
-              ? "active"
-              : ""
-          }"
-
-          onclick="selectElement('${el.id}')"
-        >
-          <div class="layer-item-name">
-            ${el.type}
-            ${el.locked ? " · Locked" : ""}
-          </div>
-
-          <button
-            class="ghost-btn"
-            onclick="
-              event.stopPropagation();
-              deleteElement('${el.id}');
-            "
-          >
-            Delete
-          </button>
-        </div>
-      `)
-      .join("");
+  deleteElement(studioState.selectedElementId);
 }
 
 function deleteElement(id){
 
   saveUndoState();
 
-  editorState.elements =
-    editorState.elements.filter(
-      el => el.id !== id
+  studioState.elements =
+    studioState.elements.filter(
+      el => String(el.id) !== String(id)
     );
 
-  if(editorState.selectedElementId === id){
-    editorState.selectedElementId = null;
+  if(String(studioState.selectedElementId) === String(id)){
+    studioState.selectedElementId = null;
   }
 
   renderCanvas();
@@ -2385,38 +4165,117 @@ function deleteElement(id){
   setStatus("Element deleted");
 }
 
+function alignSelected(type){
+
+  const el = getSelectedElement();
+  const canvas = byId("editorCanvas");
+
+  if(!el || !canvas) return;
+
+  saveUndoState();
+
+  if(type === "left"){
+    el.x = 40;
+  }
+
+  if(type === "center"){
+    el.x = Math.round(
+      (canvas.offsetWidth - safeNumber(el.width)) / 2
+    );
+  }
+
+  if(type === "right"){
+    el.x =
+      canvas.offsetWidth -
+      safeNumber(el.width) -
+      40;
+  }
+
+  if(type === "middle"){
+    el.y = Math.round(
+      (canvas.offsetHeight - safeNumber(el.height)) / 2
+    );
+  }
+
+  renderCanvas();
+  queueAutoSave();
+}
+
+/* =====================================================
+   PAGE DESIGN
+===================================================== */
+
+function toggleCanvasGrid(){
+
+  studioState.showGrid = !studioState.showGrid;
+
+  renderCanvas();
+
+  setStatus(
+    studioState.showGrid
+      ? "Grid enabled"
+      : "Grid disabled"
+  );
+}
+
+function toggleSnapGuides(){
+
+  studioState.snapGuides = !studioState.snapGuides;
+
+  setStatus(
+    studioState.snapGuides
+      ? "Snap enabled"
+      : "Snap disabled"
+  );
+}
+
+function zoomCanvas(delta){
+
+  studioState.zoom = clamp(
+    Number(studioState.zoom || 1) + delta,
+    0.4,
+    1.8
+  );
+
+  renderCanvas();
+
+  setStatus(
+    `Zoom ${Math.round(studioState.zoom * 100)}%`
+  );
+}
+
 /* =====================================================
    UNDO / REDO
 ===================================================== */
 
 function saveUndoState(){
 
-  editorState.undoStack.push(
-    JSON.stringify(editorState.elements)
+  studioState.undoStack.push(
+    JSON.stringify(studioState.elements)
   );
 
-  if(editorState.undoStack.length > 50){
-    editorState.undoStack.shift();
+  if(studioState.undoStack.length > 60){
+    studioState.undoStack.shift();
   }
 
-  editorState.redoStack = [];
+  studioState.redoStack = [];
 }
 
 function undoEditor(){
 
-  if(!editorState.undoStack.length){
-    setStatus("Nothing to undo");
+  if(!studioState.undoStack.length){
+    setStatus("Nothing to undo", "warning");
     return;
   }
 
-  editorState.redoStack.push(
-    JSON.stringify(editorState.elements)
+  studioState.redoStack.push(
+    JSON.stringify(studioState.elements)
   );
 
   const previous =
-    editorState.undoStack.pop();
+    studioState.undoStack.pop();
 
-  editorState.elements =
+  studioState.elements =
     JSON.parse(previous);
 
   renderCanvas();
@@ -2427,19 +4286,19 @@ function undoEditor(){
 
 function redoEditor(){
 
-  if(!editorState.redoStack.length){
-    setStatus("Nothing to redo");
+  if(!studioState.redoStack.length){
+    setStatus("Nothing to redo", "warning");
     return;
   }
 
-  editorState.undoStack.push(
-    JSON.stringify(editorState.elements)
+  studioState.undoStack.push(
+    JSON.stringify(studioState.elements)
   );
 
   const next =
-    editorState.redoStack.pop();
+    studioState.redoStack.pop();
 
-  editorState.elements =
+  studioState.elements =
     JSON.parse(next);
 
   renderCanvas();
@@ -2449,261 +4308,105 @@ function redoEditor(){
 }
 
 /* =====================================================
-   DRAWING TOOLS PLACEHOLDER
+   VISUAL PAYLOAD
 ===================================================== */
-
-function setDrawTool(tool){
-
-  editorState.drawTool = tool;
-
-  setStatus(`${tool} tool selected`);
-}
-  /* =====================================================
-   SAVE / LOAD
-===================================================== */
-
-function getStorageKey(){
-  return [
-    "aift_visual_editor",
-    editorState.classId || "no_class",
-    editorState.scope || "general",
-    editorState.ownerId || "main"
-  ].join("_");
-}
 
 function buildVisualPayload(){
+
   return {
-    scope: editorState.scope,
-    ownerId: editorState.ownerId,
-    elements: editorState.elements,
+    scope: QUERY.scope,
+    ownerId: QUERY.ownerId || "main",
+    type: "visual",
+    elements: studioState.elements,
     updatedAt: new Date().toISOString()
   };
 }
 
-async function loadVisualProject(){
+function getExistingContentBlocks(){
 
-  try{
-    if(!editorState.classId){
-      setStatus("Missing class ID");
-      return;
-    }
+  const cls = studioState.classData || {};
 
-    setStatus("Loading project...");
-
-    const data = await apiGet(
-      `/api/classes/${encodeURIComponent(editorState.classId)}/builder`
-    );
-
-    const cls = data.class || data || {};
-    const blocks = Array.isArray(cls.contentBlocks)
-      ? cls.contentBlocks
-      : [];
-
-    const matching = blocks.find(item => {
-      return (
-        item.scope === editorState.scope &&
-        String(item.ownerId || "main") === String(editorState.ownerId || "main")
-      );
-    });
-
-    if(matching && matching.content){
-      try{
-        const parsed = JSON.parse(matching.content);
-
-        editorState.elements = Array.isArray(parsed.elements)
-          ? parsed.elements
-          : [];
-      }catch(err){
-        console.warn("Could not parse saved visual content:", err);
-        editorState.elements = [];
-      }
-    } else {
-      const draft = localStorage.getItem(getStorageKey());
-
-      if(draft){
-        const parsed = JSON.parse(draft);
-        editorState.elements = Array.isArray(parsed.elements)
-          ? parsed.elements
-          : [];
-      } else {
-        seedEmptyProject();
-      }
-    }
-
-    updateEditorTitle();
-    renderCanvas();
-
-    setStatus("Project loaded");
-  }catch(err){
-    console.error("loadVisualProject error:", err);
-
-    const draft = localStorage.getItem(getStorageKey());
-
-    if(draft){
-      try{
-        const parsed = JSON.parse(draft);
-        editorState.elements = Array.isArray(parsed.elements)
-          ? parsed.elements
-          : [];
-        renderCanvas();
-        setStatus("Loaded offline draft");
-        return;
-      }catch(e){}
-    }
-
-    seedEmptyProject();
-    renderCanvas();
-    setStatus("Started new project");
-  }
+  return Array.isArray(cls.contentBlocks)
+    ? cls.contentBlocks
+    : [];
 }
 
-function seedEmptyProject(){
+function findMatchingContentBlock(){
 
-  editorState.elements = [];
-
-  if(editorState.scope === "welcome"){
-    editorState.elements.push({
-      ...getDefaultElement("heading"),
-      content:"Welcome to the class",
-      x:60,
-      y:60
-    });
-
-    editorState.elements.push({
-      ...getDefaultElement("paragraph"),
-      content:"Use this space to introduce the class, explain the goals, and guide students.",
-      x:60,
-      y:170,
-      width:620,
-      height:160
-    });
-  }
-
-  if(editorState.scope === "outcomes"){
-    editorState.elements.push({
-      ...getDefaultElement("heading"),
-      content:"Learning Outcomes",
-      x:60,
-      y:60
-    });
-
-    editorState.elements.push({
-      ...getDefaultElement("list"),
-      content:"• Outcome one<br>• Outcome two<br>• Outcome three",
-      x:60,
-      y:170,
-      width:620,
-      height:180
-    });
-  }
-
-  if(!editorState.elements.length){
-    editorState.elements.push({
-      ...getDefaultElement("heading"),
-      content:"New Visual Page",
-      x:60,
-      y:60
-    });
-  }
-}
-
-async function saveVisualProject(event){
-
-  const button = event?.currentTarget || null;
-
-  try{
-    if(button){
-      button.dataset.originalText = button.textContent;
-      button.textContent = "Saving...";
-      button.disabled = true;
-    }
-
-    if(!editorState.classId){
-      setStatus("Missing class ID");
-      return;
-    }
-
-    const currentData = await apiGet(
-      `/api/classes/${encodeURIComponent(editorState.classId)}/builder`
+  return getExistingContentBlocks().find(block => {
+    return (
+      block.scope === QUERY.scope &&
+      String(block.ownerId || "main") === String(QUERY.ownerId || "main") &&
+      block.type === "visual"
     );
-
-    const cls = currentData.class || currentData || {};
-    const existingBlocks = Array.isArray(cls.contentBlocks)
-      ? cls.contentBlocks
-      : [];
-
-    const payload = buildVisualPayload();
-
-    const nextBlocks = existingBlocks.filter(item => {
-      return !(
-        item.scope === editorState.scope &&
-        String(item.ownerId || "main") === String(editorState.ownerId || "main")
-      );
-    });
-
-    nextBlocks.push({
-      blockId:[
-        "visual",
-        editorState.scope,
-        editorState.ownerId || "main"
-      ].join("_"),
-
-      scope:editorState.scope,
-      ownerId:editorState.ownerId || "main",
-      type:"visual",
-      content:JSON.stringify(payload),
-      order:nextBlocks.length
-    });
-
-    await apiSend(
-      `/api/classes/${encodeURIComponent(editorState.classId)}/builder`,
-      "PATCH",
-      {
-        contentBlocks:nextBlocks,
-        contentBlocksUpdatedAt:new Date().toISOString()
-      }
-    );
-
-    localStorage.setItem(
-      getStorageKey(),
-      JSON.stringify(payload)
-    );
-
-    pushVersionHistory();
-
-    setStatus("Saved");
-  }catch(err){
-    console.error("saveVisualProject error:", err);
-
-    localStorage.setItem(
-      getStorageKey(),
-      JSON.stringify(buildVisualPayload())
-    );
-
-    setStatus("Saved offline draft");
-  }finally{
-    if(button){
-      button.textContent = button.dataset.originalText || "Save Project";
-      button.disabled = false;
-    }
-  }
+  });
 }
 
 /* =====================================================
-   AUTO SAVE / DRAFTS / VERSION HISTORY
+   LOAD VISUAL PROJECT
 ===================================================== */
 
-let autoSaveTimer = null;
+async function loadVisualProject(){
+
+  const matching = findMatchingContentBlock();
+
+  if(matching?.content){
+
+    try{
+
+      const parsed = JSON.parse(matching.content);
+
+      studioState.elements = Array.isArray(parsed.elements)
+        ? parsed.elements
+        : [];
+
+      renderCanvas();
+
+      renderNormalVisualPreview();
+
+      return;
+
+    }catch(err){
+      console.warn("Invalid saved visual content:", err);
+    }
+  }
+
+  const draft = localStorage.getItem(
+    getDraftStorageKey()
+  );
+
+  if(draft){
+
+    try{
+
+      const parsed = JSON.parse(draft);
+
+      if(Array.isArray(parsed.elements)){
+        studioState.elements = parsed.elements;
+        studioState.draftLoaded = true;
+        renderCanvas();
+        renderNormalVisualPreview();
+        setStatus("Loaded local draft", "warning");
+        return;
+      }
+
+    }catch(err){}
+  }
+
+  seedVisualFromLms();
+}
+
+/* =====================================================
+   DRAFTS / VERSION HISTORY
+===================================================== */
 
 function queueAutoSave(){
 
-  if(!editorState.autoSaveEnabled){
-    return;
-  }
+  if(!studioState.autoSaveEnabled) return;
 
-  window.clearTimeout(autoSaveTimer);
+  clearTimeout(studioState.autoSaveTimer);
 
-  autoSaveTimer = window.setTimeout(() => {
+  studioState.autoSaveTimer = setTimeout(() => {
     saveDraft();
   }, 1200);
 }
@@ -2713,7 +4416,7 @@ function saveDraft(){
   const payload = buildVisualPayload();
 
   localStorage.setItem(
-    getStorageKey(),
+    getDraftStorageKey(),
     JSON.stringify(payload)
   );
 
@@ -2722,58 +4425,713 @@ function saveDraft(){
 
 function pushVersionHistory(){
 
-  const key = getStorageKey() + "_versions";
+  const key = getVersionStorageKey();
 
   const versions = JSON.parse(
     localStorage.getItem(key) || "[]"
   );
 
   versions.unshift({
+    id:uid(),
     savedAt:new Date().toISOString(),
-    elements:editorState.elements
+    elements:deepClone(studioState.elements)
   });
 
   localStorage.setItem(
     key,
-    JSON.stringify(versions.slice(0,20))
+    JSON.stringify(versions.slice(0,25))
   );
+
+  renderVersionHistory();
 }
 
-function showVersionHistory(){
+function renderVersionHistory(){
 
-  const key = getStorageKey() + "_versions";
+  const list = byId("versionList");
+
+  if(!list) return;
 
   const versions = JSON.parse(
-    localStorage.getItem(key) || "[]"
+    localStorage.getItem(getVersionStorageKey()) || "[]"
   );
 
   if(!versions.length){
-    setStatus("No version history yet");
+    list.innerHTML = `
+      <div class="form-help">
+        No versions yet.
+      </div>
+    `;
     return;
   }
 
-  alert(
-    versions
-      .map((v,i)=>`${i + 1}. ${new Date(v.savedAt).toLocaleString()}`)
-      .join("\n")
+  list.innerHTML =
+    versions.map((version,index)=>`
+      <div class="version-item">
+
+        <div class="version-main">
+          <div class="version-name">
+            Version ${index + 1}
+          </div>
+
+          <div class="version-meta">
+            ${new Date(version.savedAt).toLocaleString()}
+          </div>
+        </div>
+
+        <button
+          class="btn-soft"
+          onclick="restoreVersion('${escapeHtml(version.id)}')"
+        >
+          Restore
+        </button>
+
+      </div>
+    `).join("");
+}
+
+function showVersionHistory(){
+  renderVersionHistory();
+  switchToolPanel("export");
+}
+
+function restoreVersion(versionId){
+
+  const versions = JSON.parse(
+    localStorage.getItem(getVersionStorageKey()) || "[]"
+  );
+
+  const version = versions.find(
+    item => String(item.id) === String(versionId)
+  );
+
+  if(!version){
+    setStatus("Version not found", "error");
+    return;
+  }
+
+  saveUndoState();
+
+  studioState.elements =
+    Array.isArray(version.elements)
+      ? deepClone(version.elements)
+      : [];
+
+  renderCanvas();
+  queueAutoSave();
+
+  setStatus("Version restored", "success");
+}
+
+</script>
+<script>
+
+/* =====================================================
+   COLLECT NORMAL FORM DATA
+===================================================== */
+
+function collectNormalPayload(){
+
+  if(QUERY.scope === "welcome"){
+    return collectWelcomePayload();
+  }
+
+  if(QUERY.scope === "outcomes"){
+    return collectOutcomesPayload();
+  }
+
+  if(QUERY.scope === "lesson"){
+    return collectLessonPayload();
+  }
+
+  if(QUERY.scope === "quiz"){
+    return collectQuizPayload();
+  }
+
+  if(QUERY.scope === "curriculum"){
+    return {};
+  }
+
+  return {};
+}
+
+function collectWelcomePayload(){
+
+  return {
+    title: byId("welcomeTitleInput")?.value?.trim() || studioState.classData?.title || "",
+    welcomeContent: byId("welcomeContentInput")?.value || ""
+  };
+}
+
+function collectOutcomesPayload(){
+
+  const inputs = Array.from(
+    document.querySelectorAll("[data-outcome-index]")
+  );
+
+  return {
+    learningOutcomes: inputs
+      .map(input => input.value.trim())
+      .filter(Boolean)
+  };
+}
+
+function collectLessonPayload(){
+
+  return {
+    title: byId("lessonTitleInput")?.value?.trim() || "",
+    description: byId("lessonDescriptionInput")?.value || "",
+    content: byId("lessonDescriptionInput")?.value || "",
+    videoUrl: byId("lessonVideoInput")?.value?.trim() || "",
+    resourceUrl: byId("lessonResourceInput")?.value?.trim() || "",
+    duration: byId("lessonDurationInput")?.value?.trim() || "",
+    published: byId("lessonPublishedInput")?.value === "true"
+  };
+}
+
+function collectQuizPayload(){
+
+  const cards = Array.from(
+    document.querySelectorAll("#questionList .question-card")
+  );
+
+  const questions = cards.map((card,index) => {
+
+    const questionText =
+      card.querySelector("[data-question-index]")?.value || "";
+
+    const optionRows = Array.from(
+      card.querySelectorAll(".option-row")
+    );
+
+    const options = optionRows
+      .map(row => row.querySelector(".studio-input")?.value?.trim() || "")
+      .filter(Boolean);
+
+    let correctAnswer = 0;
+
+    optionRows.forEach((row,optionIndex) => {
+      const radio = row.querySelector("input[type='radio']");
+      if(radio?.checked){
+        correctAnswer = optionIndex;
+      }
+    });
+
+    return {
+      question: questionText,
+      options,
+      correctAnswer,
+      type: "multiple-choice"
+    };
+  }).filter(item => item.question || item.options.length);
+
+  return {
+    title: byId("quizTitleInput")?.value?.trim() || "",
+    instructions: byId("quizInstructionsInput")?.value || "",
+    description: byId("quizInstructionsInput")?.value || "",
+    passingScore: Number(byId("quizPassingInput")?.value || 0),
+    timeLimit: Number(byId("quizTimeLimitInput")?.value || 0),
+    questions
+  };
+}
+
+/* =====================================================
+   SAVE NORMAL CONTENT
+===================================================== */
+
+async function saveNormalContent(){
+
+  const payload = collectNormalPayload();
+
+  if(QUERY.scope === "lesson" && QUERY.ownerId){
+
+    const data = await apiSend(
+      `/api/classes/${encodeURIComponent(QUERY.classId)}/builder/lesson/${encodeURIComponent(QUERY.ownerId)}`,
+      "PATCH",
+      payload
+    );
+
+    const index = studioState.lessons.findIndex(
+      item => String(item._id) === String(QUERY.ownerId)
+    );
+
+    if(index >= 0 && data.lesson){
+      studioState.lessons[index] = data.lesson;
+    }
+
+    return data;
+  }
+
+  if(QUERY.scope === "quiz" && QUERY.ownerId){
+
+    const data = await apiSend(
+      `/api/classes/${encodeURIComponent(QUERY.classId)}/builder/quiz/${encodeURIComponent(QUERY.ownerId)}`,
+      "PATCH",
+      payload
+    );
+
+    const index = studioState.quizzes.findIndex(
+      item => String(item._id) === String(QUERY.ownerId)
+    );
+
+    if(index >= 0 && data.quiz){
+      studioState.quizzes[index] = data.quiz;
+    }
+
+    return data;
+  }
+
+  const data = await apiSend(
+    `/api/classes/${encodeURIComponent(QUERY.classId)}/builder`,
+    "PATCH",
+    payload
+  );
+
+  studioState.classData =
+    data.class || data || studioState.classData;
+
+  return data;
+}
+
+/* =====================================================
+   SAVE VISUAL CONTENT
+===================================================== */
+
+async function saveVisualContent(){
+
+  const existingBlocks =
+    getExistingContentBlocks();
+
+  const payload =
+    buildVisualPayload();
+
+  const filtered =
+    existingBlocks.filter(block => {
+      return !(
+        block.scope === QUERY.scope &&
+        String(block.ownerId || "main") === String(QUERY.ownerId || "main") &&
+        block.type === "visual"
+      );
+    });
+
+  filtered.push({
+    blockId:[
+      "visual",
+      QUERY.scope,
+      QUERY.ownerId || "main"
+    ].join("_"),
+
+    scope:QUERY.scope,
+    ownerId:QUERY.ownerId || "main",
+    type:"visual",
+    content:JSON.stringify(payload),
+    order:filtered.length,
+    updatedAt:new Date().toISOString()
+  });
+
+  const data = await apiSend(
+    `/api/classes/${encodeURIComponent(QUERY.classId)}/builder`,
+    "PATCH",
+    {
+      contentBlocks:filtered,
+      contentBlocksUpdatedAt:new Date().toISOString()
+    }
+  );
+
+  studioState.classData =
+    data.class || data || studioState.classData;
+
+  localStorage.setItem(
+    getDraftStorageKey(),
+    JSON.stringify(payload)
+  );
+
+  pushVersionHistory();
+
+  return data;
+}
+
+/* =====================================================
+   SAVE ALL
+===================================================== */
+
+async function saveAllStudio(event){
+
+  const button = event?.currentTarget || null;
+
+  try{
+
+    if(button){
+      button.disabled = true;
+      button.dataset.originalText = button.textContent;
+      button.textContent = "Saving...";
+    }
+
+    if(!QUERY.classId){
+      throw new Error("Missing class ID");
+    }
+
+    await saveNormalContent();
+
+    await saveVisualContent();
+
+    setStatus(
+      "Saved to LMS builder",
+      "success"
+    );
+
+  }catch(err){
+
+    console.error("saveAllStudio error:", err);
+
+    saveDraft();
+
+    setStatus(
+      err.message || "Saved draft only",
+      "error"
+    );
+
+  }finally{
+
+    if(button){
+      button.disabled = false;
+      button.textContent =
+        button.dataset.originalText || "Save";
+    }
+  }
+}
+
+/* =====================================================
+   SEED VISUAL FROM LMS / NORMAL TEXT
+===================================================== */
+
+function seedVisualFromNormal(){
+
+  saveUndoState();
+
+  const title =
+    getCurrentNormalTitle();
+
+  const body =
+    getCurrentNormalBody();
+
+  studioState.elements = [];
+
+  studioState.elements.push({
+    ...getDefaultElement("heading"),
+    content: escapeHtml(title || "Class Content"),
+    x:80,
+    y:80,
+    width:760,
+    height:96
+  });
+
+  studioState.elements.push({
+    ...getDefaultElement("paragraph"),
+    content: textToHtml(body || "Add your content here."),
+    x:80,
+    y:200,
+    width:780,
+    height:260
+  });
+
+  renderCanvas();
+
+  switchMode("visual");
+
+  queueAutoSave();
+
+  setStatus(
+    "Normal content sent to canvas",
+    "success"
   );
 }
 
-function loadRecentProjects(){
-  setStatus("Recent projects are stored per class and section.");
+function seedVisualFromLms(){
+
+  studioState.elements = [];
+
+  if(QUERY.scope === "welcome"){
+
+    const cls = studioState.classData || {};
+
+    studioState.elements.push({
+      ...getDefaultElement("heading"),
+      content: escapeHtml(cls.title || "Welcome to the class"),
+      x:80,
+      y:80,
+      width:760,
+      height:96
+    });
+
+    studioState.elements.push({
+      ...getDefaultElement("paragraph"),
+      content:textToHtml(cls.welcomeContent || cls.description || "Write your welcome content here."),
+      x:80,
+      y:200,
+      width:780,
+      height:260
+    });
+  }
+
+  if(QUERY.scope === "outcomes"){
+
+    const outcomes =
+      Array.isArray(studioState.classData?.learningOutcomes)
+        ? studioState.classData.learningOutcomes
+        : [];
+
+    studioState.elements.push({
+      ...getDefaultElement("heading"),
+      content:"Learning Outcomes",
+      x:80,
+      y:80,
+      width:760,
+      height:96
+    });
+
+    studioState.elements.push({
+      ...getDefaultElement("list"),
+      content:outcomes.length
+        ? outcomes.map(item => `• ${escapeHtml(item)}`).join("<br>")
+        : "• Add your first outcome",
+      x:80,
+      y:200,
+      width:780,
+      height:260
+    });
+  }
+
+  if(QUERY.scope === "lesson"){
+
+    const lesson =
+      studioState.lessons.find(
+        item => String(item._id) === String(QUERY.ownerId)
+      ) || {};
+
+    studioState.elements.push({
+      ...getDefaultElement("heading"),
+      content:escapeHtml(lesson.title || "Lesson Title"),
+      x:80,
+      y:80,
+      width:760,
+      height:96
+    });
+
+    studioState.elements.push({
+      ...getDefaultElement("paragraph"),
+      content:textToHtml(lesson.content || lesson.description || "Write lesson content here."),
+      x:80,
+      y:200,
+      width:780,
+      height:260
+    });
+  }
+
+  if(QUERY.scope === "quiz"){
+
+    const quiz =
+      studioState.quizzes.find(
+        item => String(item._id) === String(QUERY.ownerId)
+      ) || {};
+
+    const questions =
+      Array.isArray(quiz.questions)
+        ? quiz.questions
+        : [];
+
+    studioState.elements.push({
+      ...getDefaultElement("heading"),
+      content:escapeHtml(quiz.title || "Quiz"),
+      x:80,
+      y:80,
+      width:760,
+      height:96
+    });
+
+    studioState.elements.push({
+      ...getDefaultElement("paragraph"),
+      content:textToHtml(quiz.instructions || quiz.description || "Quiz instructions"),
+      x:80,
+      y:200,
+      width:780,
+      height:160
+    });
+
+    if(questions.length){
+      studioState.elements.push({
+        ...getDefaultElement("list"),
+        content:questions
+          .slice(0,8)
+          .map((q,index)=>`${index + 1}. ${escapeHtml(q.question || "")}`)
+          .join("<br>"),
+        x:80,
+        y:400,
+        width:780,
+        height:300
+      });
+    }
+  }
+
+  if(QUERY.scope === "curriculum"){
+
+    studioState.elements.push({
+      ...getDefaultElement("heading"),
+      content:"Curriculum Modules",
+      x:80,
+      y:80,
+      width:760,
+      height:96
+    });
+
+    const modules =
+      studioState.modules || [];
+
+    studioState.elements.push({
+      ...getDefaultElement("list"),
+      content:modules.length
+        ? modules.map((m,index)=>`${index + 1}. ${escapeHtml(m.title || "Module")}`).join("<br>")
+        : "1. Add your first module",
+      x:80,
+      y:200,
+      width:780,
+      height:300
+    });
+  }
+
+  if(!studioState.elements.length){
+    studioState.elements.push({
+      ...getDefaultElement("heading"),
+      content:"New Visual Page",
+      x:80,
+      y:80
+    });
+  }
+
+  renderCanvas();
+  queueAutoSave();
 }
 
-function openFolders(){
-  setStatus("Folders UI prepared for future dashboard grouping.");
+function getCurrentNormalTitle(){
+
+  if(QUERY.scope === "welcome"){
+    return byId("welcomeTitleInput")?.value || studioState.classData?.title || "";
+  }
+
+  if(QUERY.scope === "lesson"){
+    return byId("lessonTitleInput")?.value || "";
+  }
+
+  if(QUERY.scope === "quiz"){
+    return byId("quizTitleInput")?.value || "";
+  }
+
+  if(QUERY.scope === "outcomes"){
+    return "Learning Outcomes";
+  }
+
+  if(QUERY.scope === "curriculum"){
+    return "Curriculum Modules";
+  }
+
+  return "Class Content";
 }
 
-function shareProject(){
-  const url = window.location.href;
+function getCurrentNormalBody(){
 
-  navigator.clipboard
-    ?.writeText(url)
-    .then(()=>setStatus("Share link copied"))
-    .catch(()=>setStatus("Share link ready"));
+  if(QUERY.scope === "welcome"){
+    return byId("welcomeContentInput")?.value || "";
+  }
+
+  if(QUERY.scope === "lesson"){
+    return byId("lessonDescriptionInput")?.value || "";
+  }
+
+  if(QUERY.scope === "quiz"){
+    return byId("quizInstructionsInput")?.value || "";
+  }
+
+  if(QUERY.scope === "outcomes"){
+    const payload = collectOutcomesPayload();
+    return payload.learningOutcomes.join("\n");
+  }
+
+  if(QUERY.scope === "curriculum"){
+    return (studioState.modules || [])
+      .map(module => module.title)
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  return "";
+}
+
+function textToHtml(text=""){
+
+  return escapeHtml(text)
+    .replace(/\n/g,"<br>");
+}
+
+/* =====================================================
+   NORMAL VISUAL PREVIEW
+===================================================== */
+
+function renderNormalVisualPreview(){
+
+  const mount = byId("normalVisualPreview");
+
+  if(!mount) return;
+
+  if(!studioState.elements.length){
+    mount.innerHTML = `
+      <div class="form-help">
+        No visual content saved yet.
+      </div>
+    `;
+    return;
+  }
+
+  mount.innerHTML = `
+    <div style="
+      border:1px solid #e5e7eb;
+      border-radius:18px;
+      background:#fff;
+      padding:14px;
+      display:grid;
+      gap:10px;
+    ">
+      ${
+        studioState.elements
+          .slice()
+          .sort((a,b)=>Number(a.zIndex || 0) - Number(b.zIndex || 0))
+          .slice(0,8)
+          .map(el => `
+            <div style="
+              border:1px solid #eef2f7;
+              border-radius:14px;
+              padding:12px;
+              font-size:.84rem;
+              color:#344054;
+            ">
+              <strong>${escapeHtml(labelElementType(el.type))}</strong>
+              <div style="margin-top:4px;color:#667085;">
+                ${
+                  el.type === "image"
+                    ? `<img src="${escapeHtml(el.imageUrl || "")}" style="max-height:120px;border-radius:12px;">`
+                    : stripHtml(el.content || "").slice(0,180)
+                }
+              </div>
+            </div>
+          `).join("")
+      }
+    </div>
+  `;
+}
+
+function stripHtml(html=""){
+
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  return div.textContent || div.innerText || "";
 }
 
 /* =====================================================
@@ -2782,90 +5140,93 @@ function shareProject(){
 
 function exportProject(type){
 
-  if(type === "png" || type === "jpg"){
-    exportImage(type);
-    return;
-  }
-
   if(type === "pdf"){
     window.print();
     setStatus("Use print dialog to save as PDF");
     return;
   }
 
+  if(type === "png" || type === "jpg"){
+    exportImage(type);
+    return;
+  }
+
   if(type === "pptx"){
-    setStatus("PPTX export requires a backend exporter. UI is ready.");
+    setStatus(
+      "PPTX export UI is ready. Backend exporter is needed for real PPTX.",
+      "warning"
+    );
     return;
   }
 
   if(type === "mp4"){
-    setStatus("MP4 export requires video rendering. UI is ready.");
+    setStatus(
+      "MP4 export UI is ready. Backend rendering is needed for video.",
+      "warning"
+    );
     return;
   }
 }
 
 function exportImage(type){
 
-  const canvasEl = byId("editorCanvas");
+  const canvas = byId("editorCanvas");
 
-  if(!canvasEl){
-    setStatus("Canvas not found");
+  if(!canvas){
+    setStatus("Canvas not found", "error");
     return;
   }
 
+  const html = new XMLSerializer()
+    .serializeToString(canvas);
+
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${canvasEl.offsetWidth}" height="${canvasEl.offsetHeight}">
+    <svg xmlns="http://www.w3.org/2000/svg"
+      width="${canvas.offsetWidth}"
+      height="${canvas.offsetHeight}">
       <foreignObject width="100%" height="100%">
-        ${new XMLSerializer().serializeToString(canvasEl)}
+        ${html}
       </foreignObject>
     </svg>
   `;
 
-  const blob = new Blob([svg],{
-    type:"image/svg+xml;charset=utf-8"
-  });
+  const blob = new Blob(
+    [svg],
+    {
+      type:"image/svg+xml;charset=utf-8"
+    }
+  );
 
   const url = URL.createObjectURL(blob);
 
   const link = document.createElement("a");
   link.href = url;
-  link.download = `aift-visual-editor.${type === "jpg" ? "jpg" : "png"}`;
+  link.download = `aift-visual-studio.${type === "jpg" ? "jpg" : "png"}`;
   link.click();
 
   URL.revokeObjectURL(url);
 
-  setStatus(`${type.toUpperCase()} export started`);
+  setStatus(
+    `${type.toUpperCase()} export started`,
+    "success"
+  );
+}
+
+function shareProject(){
+
+  navigator.clipboard
+    ?.writeText(window.location.href)
+    .then(() => {
+      setStatus("Studio link copied", "success");
+    })
+    .catch(() => {
+      setStatus("Copy link manually from browser", "warning");
+    });
 }
 
 /* =====================================================
-   INIT
+   KEYBOARD SHORTCUTS
 ===================================================== */
-
-function updateEditorTitle(){
-
-  const title = byId("editorTitle");
-  const subtitle = byId("editorSubtitle");
-
-  if(title){
-    title.textContent = "AIFT Visual Editor";
-  }
-
-  if(subtitle){
-    subtitle.textContent =
-      `Editing: ${editorState.scope}` +
-      (editorState.ownerId ? ` · ${editorState.ownerId}` : "");
-  }
-}
-
-function goBackToBuilder(){
-  if(editorState.classId){
-    window.location.href =
-      `class-builder.html?classId=${encodeURIComponent(editorState.classId)}`;
-    return;
-  }
-
-  window.location.href = "class-builder.html";
-}
 
 function bindKeyboardShortcuts(){
 
@@ -2875,9 +5236,7 @@ function bindKeyboardShortcuts(){
       event.target?.isContentEditable ||
       ["INPUT","TEXTAREA","SELECT"].includes(event.target?.tagName);
 
-    if(isTyping){
-      return;
-    }
+    if(isTyping) return;
 
     if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z"){
       event.preventDefault();
@@ -2891,35 +5250,56 @@ function bindKeyboardShortcuts(){
 
     if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s"){
       event.preventDefault();
-      saveVisualProject();
+      saveAllStudio();
     }
 
     if(event.key === "Delete" || event.key === "Backspace"){
-      if(editorState.selectedElementId){
-        deleteElement(editorState.selectedElementId);
+      if(studioState.selectedElementId){
+        event.preventDefault();
+        deleteSelected();
       }
     }
   });
 }
 
-function initEditor(){
+/* =====================================================
+   AUTO SAVE INTERVAL
+===================================================== */
 
-  updateEditorTitle();
+function startAutoSaveInterval(){
 
-  bindKeyboardShortcuts();
+  setInterval(() => {
+    if(studioState.autoSaveEnabled){
+      saveDraft();
+    }
+  }, 7000);
+}
+
+/* =====================================================
+   INIT
+===================================================== */
+
+function initStudio(){
+
+  updateStudioHeading();
 
   switchToolPanel("elements");
 
-  loadVisualProject();
+  switchMode("normal");
 
-  setInterval(() => {
-    if(editorState.autoSaveEnabled){
-      saveDraft();
-    }
-  }, 5000);
+  bindKeyboardShortcuts();
+
+  renderVersionHistory();
+
+  loadBuilderData();
+
+  startAutoSaveInterval();
 }
 
-document.addEventListener("DOMContentLoaded", initEditor);
+document.addEventListener(
+  "DOMContentLoaded",
+  initStudio
+);
 
 </script>
 
