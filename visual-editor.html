@@ -1091,6 +1091,187 @@ svg{
   gap:10px;
 }
 
+  /* =====================================================
+   ADVANCED STUDIO UPGRADES
+===================================================== */
+
+.visual-editor-wrap{
+  overflow:auto !important;
+  max-width:100%;
+  max-height:100%;
+}
+
+.canvas-board{
+  margin:40px auto 140px !important;
+}
+
+.canvas-page{
+  min-height:1800px !important;
+}
+
+.studio-context-menu{
+  position:fixed;
+  z-index:8000;
+  width:230px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:16px;
+  box-shadow:var(--shadow-lg);
+  padding:8px;
+  display:none;
+}
+
+.studio-context-menu.open{
+  display:grid;
+  gap:4px;
+}
+
+.context-item{
+  width:100%;
+  min-height:38px;
+  border:none;
+  background:#fff;
+  border-radius:10px;
+  padding:0 10px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  color:#344054;
+  font-size:.8rem;
+  font-weight:750;
+  text-align:left;
+}
+
+.context-item:hover{
+  background:#f8fafc;
+}
+
+.context-item.danger{
+  color:var(--danger);
+}
+
+.context-separator{
+  height:1px;
+  background:var(--border);
+  margin:4px 0;
+}
+
+.template-grid,
+.project-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+
+.template-card,
+.project-card{
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:#fff;
+  overflow:hidden;
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+.template-card:hover,
+.project-card:hover{
+  transform:translateY(-2px);
+  border-color:#bfd3ff;
+  box-shadow:var(--shadow-md);
+}
+
+.template-preview{
+  height:160px;
+  background:linear-gradient(135deg,#eef4ff,#fff);
+  border-bottom:1px solid var(--border);
+  padding:14px;
+  display:grid;
+  align-content:center;
+  gap:8px;
+}
+
+.template-line{
+  height:10px;
+  border-radius:999px;
+  background:#dbeafe;
+}
+
+.template-line.short{
+  width:55%;
+}
+
+.template-line.medium{
+  width:75%;
+}
+
+.template-title,
+.project-title{
+  padding:12px 14px 4px;
+  font-size:.86rem;
+  font-weight:800;
+  color:#111827;
+}
+
+.template-meta,
+.project-meta{
+  padding:0 14px 14px;
+  font-size:.75rem;
+  color:var(--muted);
+}
+
+.asset-section-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.asset-mini-btn{
+  border:1px solid var(--border);
+  background:#fff;
+  border-radius:14px;
+  min-height:56px;
+  padding:10px;
+  display:grid;
+  place-items:center;
+  font-weight:800;
+  color:#344054;
+}
+
+.asset-mini-btn:hover{
+  background:#f8fbff;
+  border-color:#bfd3ff;
+}
+
+.text-toolbar-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.text-toolbar-row .btn-ghost{
+  min-height:34px;
+  padding:0 10px;
+}
+
+.canvas-element.editing{
+  cursor:text !important;
+}
+
+.canvas-element.editing .canvas-content{
+  user-select:text !important;
+  cursor:text !important;
+}
+
+@media(max-width:760px){
+  .template-grid,
+  .project-grid{
+    grid-template-columns:1fr;
+  }
+
+  .canvas-page{
+    min-height:1600px !important;
+  }
+}
 /* =====================================================
    PRINT / EXPORT
 ===================================================== */
@@ -1554,13 +1735,14 @@ svg{
             class="canvas-board"
             id="canvasBoard"
           >
-            <div
-              class="canvas-page"
-              id="editorCanvas"
-              ondragover="handleEditorDragOver(event)"
-              ondrop="handleEditorDrop(event)"
-              onclick="handleCanvasBackgroundClick(event)"
-            ></div>
+<div
+  class="canvas-page"
+  id="editorCanvas"
+  ondragover="handleEditorDragOver(event)"
+  ondrop="handleEditorDrop(event)"
+  onclick="handleCanvasBackgroundClick(event)"
+  oncontextmenu="openCanvasContextMenu(event)"
+></div>
           </section>
 
         </div>
@@ -1590,56 +1772,82 @@ svg{
       <!-- ELEMENTS PANEL -->
       <section class="tool-section" data-tool-panel="elements">
 
-        <div class="tool-section-title">Layout Elements</div>
+<div class="tool-section-title">Layout Elements</div>
 
-        <div class="tool-grid">
+<div class="tool-grid">
 
-          <button class="tool-btn" onclick="addElement('shape')">
-            <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"></rect></svg>
-            <span>Shape</span>
-          </button>
+  <button class="tool-btn" onclick="addElement('shape','rectangle')"><span>Rectangle</span></button>
+  <button class="tool-btn" onclick="addElement('shape','rounded')"><span>Rounded Box</span></button>
+  <button class="tool-btn" onclick="addElement('shape','circle')"><span>Circle</span></button>
+  <button class="tool-btn" onclick="addElement('shape','pill')"><span>Pill</span></button>
+  <button class="tool-btn" onclick="addElement('shape','badge')"><span>Badge</span></button>
+  <button class="tool-btn" onclick="addElement('shape','callout')"><span>Callout</span></button>
+  <button class="tool-btn" onclick="addElement('shape','note')"><span>Note</span></button>
+  <button class="tool-btn" onclick="addElement('shape','banner')"><span>Banner</span></button>
+  <button class="tool-btn" onclick="addElement('shape','sidebar')"><span>Sidebar</span></button>
+  <button class="tool-btn" onclick="addElement('shape','hero')"><span>Hero Block</span></button>
 
-          <button class="tool-btn" onclick="addElement('card')">
-            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"></rect><path d="M7 9h10"></path><path d="M7 13h7"></path></svg>
-            <span>Card / Box</span>
-          </button>
+</div>
 
-          <button class="tool-btn" onclick="addElement('line')">
-            <svg viewBox="0 0 24 24"><path d="M4 12h16"></path></svg>
-            <span>Line</span>
-          </button>
+<div class="tool-section-title">Cards</div>
 
-          <button class="tool-btn" onclick="addElement('arrow')">
-            <svg viewBox="0 0 24 24"><path d="M4 12h16"></path><path d="m14 6 6 6-6 6"></path></svg>
-            <span>Arrow</span>
-          </button>
+<div class="tool-grid">
+  <button class="tool-btn" onclick="addElement('card','simple')"><span>Simple Card</span></button>
+  <button class="tool-btn" onclick="addElement('card','profile')"><span>Profile Card</span></button>
+  <button class="tool-btn" onclick="addElement('card','lesson')"><span>Lesson Card</span></button>
+  <button class="tool-btn" onclick="addElement('card','pricing')"><span>Pricing Card</span></button>
+  <button class="tool-btn" onclick="addElement('card','stat')"><span>Stat Card</span></button>
+  <button class="tool-btn" onclick="addElement('card','resume')"><span>Resume Card</span></button>
+  <button class="tool-btn" onclick="addElement('card','testimonial')"><span>Testimonial</span></button>
+  <button class="tool-btn" onclick="addElement('card','timeline')"><span>Timeline</span></button>
+  <button class="tool-btn" onclick="addElement('card','feature')"><span>Feature Card</span></button>
+  <button class="tool-btn" onclick="addElement('card','certificate')"><span>Certificate</span></button>
+</div>
 
-          <button class="tool-btn" onclick="addElement('button')">
-            <svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="8" rx="4"></rect></svg>
-            <span>Button</span>
-          </button>
+<div class="tool-section-title">Lines & Arrows</div>
 
-          <button class="tool-btn" onclick="addElement('table')">
-            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10h18"></path><path d="M9 4v16"></path><path d="M15 4v16"></path></svg>
-            <span>Table</span>
-          </button>
+<div class="tool-grid">
+  <button class="tool-btn" onclick="addElement('line','solid')"><span>Solid Line</span></button>
+  <button class="tool-btn" onclick="addElement('line','dashed')"><span>Dashed Line</span></button>
+  <button class="tool-btn" onclick="addElement('line','dotted')"><span>Dotted Line</span></button>
+  <button class="tool-btn" onclick="addElement('line','thick')"><span>Thick Line</span></button>
+  <button class="tool-btn" onclick="addElement('arrow','right')"><span>Right Arrow</span></button>
+  <button class="tool-btn" onclick="addElement('arrow','left')"><span>Left Arrow</span></button>
+  <button class="tool-btn" onclick="addElement('arrow','up')"><span>Up Arrow</span></button>
+  <button class="tool-btn" onclick="addElement('arrow','down')"><span>Down Arrow</span></button>
+  <button class="tool-btn" onclick="addElement('arrow','double')"><span>Double Arrow</span></button>
+  <button class="tool-btn" onclick="addElement('arrow','curve')"><span>Curve Arrow</span></button>
+</div>
 
-          <button class="tool-btn" onclick="addElement('chart')">
-            <svg viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M7 16v-5"></path><path d="M12 16V7"></path><path d="M17 16v-8"></path></svg>
-            <span>Chart</span>
-          </button>
+<div class="tool-section-title">Media & Data</div>
 
-          <button class="tool-btn" onclick="openImageUrlModal()">
-            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 16 5-5 4 4 3-3 6 6"></path></svg>
-            <span>Image URL</span>
-          </button>
+<div class="tool-grid">
+  <button class="tool-btn" onclick="openImageUrlModal()"><span>Image URL</span></button>
+  <button class="tool-btn" onclick="openDeviceImagePicker()"><span>Upload Image</span></button>
+  <button class="tool-btn" onclick="addElement('table','basic')"><span>Basic Table</span></button>
+  <button class="tool-btn" onclick="addElement('table','schedule')"><span>Schedule Table</span></button>
+  <button class="tool-btn" onclick="addElement('table','comparison')"><span>Comparison</span></button>
+  <button class="tool-btn" onclick="addElement('chart','bar')"><span>Bar Chart</span></button>
+  <button class="tool-btn" onclick="addElement('chart','line')"><span>Line Chart</span></button>
+  <button class="tool-btn" onclick="addElement('chart','pie')"><span>Pie Chart</span></button>
+  <button class="tool-btn" onclick="addElement('button','primary')"><span>Primary Button</span></button>
+  <button class="tool-btn" onclick="addElement('button','outline')"><span>Outline Button</span></button>
+</div>
 
-          <button class="tool-btn" onclick="addElement('icon')">
-            <svg viewBox="0 0 24 24"><path d="M12 2l2.8 6 6.2.8-4.5 4.4 1.1 6.1L12 16.2 6.4 19.3l1.1-6.1L3 8.8 9.2 8 12 2z"></path></svg>
-            <span>SVG Icon</span>
-          </button>
+<div class="tool-section-title">Icons</div>
 
-        </div>
+<div class="tool-grid">
+  <button class="tool-btn" onclick="addElement('icon','check')"><span>Check</span></button>
+  <button class="tool-btn" onclick="addElement('icon','star')"><span>Star</span></button>
+  <button class="tool-btn" onclick="addElement('icon','user')"><span>User</span></button>
+  <button class="tool-btn" onclick="addElement('icon','briefcase')"><span>Briefcase</span></button>
+  <button class="tool-btn" onclick="addElement('icon','book')"><span>Book</span></button>
+  <button class="tool-btn" onclick="addElement('icon','globe')"><span>Globe</span></button>
+  <button class="tool-btn" onclick="addElement('icon','phone')"><span>Phone</span></button>
+  <button class="tool-btn" onclick="addElement('icon','mail')"><span>Email</span></button>
+  <button class="tool-btn" onclick="addElement('icon','award')"><span>Award</span></button>
+  <button class="tool-btn" onclick="addElement('icon','calendar')"><span>Calendar</span></button>
+</div>
 
       </section>
 
@@ -1703,14 +1911,42 @@ svg{
 
         </div>
 
-        <div class="property-grid">
+<div class="text-toolbar-row">
 
-          <button class="btn-ghost" onclick="toggleTextStyle('bold')">Bold</button>
-          <button class="btn-ghost" onclick="toggleTextStyle('italic')">Italic</button>
-          <button class="btn-ghost" onclick="toggleTextStyle('underline')">Underline</button>
-          <button class="btn-ghost" onclick="applySelectedStyle('textAlign','center')">Center</button>
+  <button class="btn-ghost" onclick="toggleTextStyle('bold')">Bold</button>
+  <button class="btn-ghost" onclick="toggleTextStyle('italic')">Italic</button>
+  <button class="btn-ghost" onclick="toggleTextStyle('underline')">Underline</button>
+  <button class="btn-ghost" onclick="toggleTextStyle('uppercase')">Uppercase</button>
 
-        </div>
+  <button class="btn-ghost" onclick="applySelectedStyle('textAlign','left')">Left</button>
+  <button class="btn-ghost" onclick="applySelectedStyle('textAlign','center')">Center</button>
+  <button class="btn-ghost" onclick="applySelectedStyle('textAlign','right')">Right</button>
+  <button class="btn-ghost" onclick="applySelectedStyle('textAlign','justify')">Justify</button>
+
+</div>
+
+<div class="property-grid">
+
+  <div class="property-row">
+    <label class="property-label">Letter Spacing</label>
+    <input class="studio-input" type="number" value="0" onchange="applySelectedStyle('letterSpacing', this.value + 'px')" />
+  </div>
+
+  <div class="property-row">
+    <label class="property-label">Padding</label>
+    <input class="studio-input" type="number" value="0" onchange="applySelectedStyle('padding', this.value + 'px')" />
+  </div>
+
+</div>
+
+<div class="property-grid">
+
+  <button class="btn-ghost" onclick="applySelectedStyle('fontWeight','300')">Light</button>
+  <button class="btn-ghost" onclick="applySelectedStyle('fontWeight','500')">Medium</button>
+  <button class="btn-ghost" onclick="applySelectedStyle('fontWeight','700')">Semi Bold</button>
+  <button class="btn-ghost" onclick="applySelectedStyle('fontWeight','900')">Black</button>
+
+</div>
 
         <div class="property-grid">
 
@@ -1777,6 +2013,46 @@ svg{
           <label class="property-label">Transparency</label>
           <input id="propOpacity" type="range" min="0.1" max="1" step="0.05" value="1" oninput="updateSelectedNumber('opacity', this.value)" />
         </div>
+
+        <div class="tool-section-title">Colors</div>
+
+<div class="property-grid">
+
+  <div class="property-row">
+    <label class="property-label">Text / Icon</label>
+    <div class="color-field">
+      <input type="color" value="#111827" onchange="applySelectedStyle('color', this.value)" />
+      <input class="studio-input" value="#111827" onchange="applySelectedStyle('color', this.value)" />
+    </div>
+  </div>
+
+  <div class="property-row">
+    <label class="property-label">Background</label>
+    <div class="color-field">
+      <input type="color" value="#ffffff" onchange="applySelectedStyle('background', this.value)" />
+      <input class="studio-input" value="#ffffff" onchange="applySelectedStyle('background', this.value)" />
+    </div>
+  </div>
+
+  <div class="property-row">
+    <label class="property-label">Border</label>
+    <div class="color-field">
+      <input type="color" value="#e5e7eb" onchange="applySelectedStyle('borderColor', this.value)" />
+      <input class="studio-input" value="#e5e7eb" onchange="applySelectedStyle('borderColor', this.value)" />
+    </div>
+  </div>
+
+  <div class="property-row">
+    <label class="property-label">Border Style</label>
+    <select class="studio-select" onchange="applySelectedStyle('borderStyle', this.value)">
+      <option value="solid">Solid</option>
+      <option value="dashed">Dashed</option>
+      <option value="dotted">Dotted</option>
+      <option value="double">Double</option>
+    </select>
+  </div>
+
+</div>
 
         <div class="tool-section-title">Page</div>
 
@@ -1848,9 +2124,12 @@ svg{
           No versions yet.
         </div>
 
-        <button class="btn-soft" onclick="showVersionHistory()">
-          Refresh Versions
-        </button>
+<div class="tool-grid">
+  <button class="tool-btn" onclick="showVersionHistory()"><span>Refresh Versions</span></button>
+  <button class="tool-btn" onclick="openSavedProjects()"><span>Saved Projects</span></button>
+  <button class="tool-btn" onclick="openTemplateLibrary()"><span>Templates</span></button>
+  <button class="tool-btn" onclick="saveAsNamedProject()"><span>Save as Project</span></button>
+</div>
 
       </section>
 
@@ -1894,10 +2173,64 @@ svg{
     </div>
   </div>
 
-  <!-- STATUS -->
-  <div class="studio-status" id="studioStatus">
-    Ready
+<input
+  type="file"
+  id="deviceImageInput"
+  accept="image/*"
+  class="hidden"
+  onchange="handleDeviceImageSelected(event)"
+/>
+
+<div class="studio-context-menu" id="studioContextMenu">
+  <button class="context-item" onclick="contextDuplicate()">Duplicate</button>
+  <button class="context-item" onclick="contextBringForward()">Bring forward</button>
+  <button class="context-item" onclick="contextSendBackward()">Send backward</button>
+  <button class="context-item" onclick="contextLockUnlock()">Lock / unlock</button>
+  <button class="context-item" onclick="contextEditText()">Edit text</button>
+  <button class="context-item" onclick="contextCopyStyle()">Copy style</button>
+  <button class="context-item" onclick="contextPasteStyle()">Paste style</button>
+  <div class="context-separator"></div>
+  <button class="context-item danger" onclick="contextDelete()">Delete</button>
+</div>
+
+<div class="studio-modal-backdrop" id="savedProjectsModal">
+  <div class="studio-modal">
+    <div class="studio-modal-head">
+      <h3 class="studio-modal-title">Saved Projects</h3>
+      <button class="btn-icon" onclick="closeModal('savedProjectsModal')">×</button>
+    </div>
+
+    <div class="studio-modal-body">
+      <div class="project-grid" id="savedProjectsGrid"></div>
+    </div>
+
+    <div class="studio-modal-actions">
+      <button class="btn-ghost" onclick="closeModal('savedProjectsModal')">Close</button>
+    </div>
   </div>
+</div>
+
+<div class="studio-modal-backdrop" id="templateLibraryModal">
+  <div class="studio-modal">
+    <div class="studio-modal-head">
+      <h3 class="studio-modal-title">Template Library</h3>
+      <button class="btn-icon" onclick="closeModal('templateLibraryModal')">×</button>
+    </div>
+
+    <div class="studio-modal-body">
+      <div class="template-grid" id="templateLibraryGrid"></div>
+    </div>
+
+    <div class="studio-modal-actions">
+      <button class="btn-ghost" onclick="closeModal('templateLibraryModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- STATUS -->
+<div class="studio-status" id="studioStatus">
+  Ready
+</div>
   <script>
 
 /* =====================================================
@@ -3264,11 +3597,143 @@ function getNextZIndex(){
    ADD ELEMENT
 ===================================================== */
 
-function addElement(type){
+function addElement(type,variant="default"){
 
   saveUndoState();
 
   const element = getDefaultElement(type);
+
+  element.variant = variant;
+
+  /* =====================================================
+     SHAPE VARIANTS
+  ===================================================== */
+
+  if(type === "shape"){
+
+    if(variant === "circle"){
+      element.width = 180;
+      element.height = 180;
+      element.styles.borderRadius = "999px";
+      element.styles.background = "#eef4ff";
+    }
+
+    if(variant === "pill"){
+      element.width = 320;
+      element.height = 90;
+      element.styles.borderRadius = "999px";
+      element.styles.background = "#eef4ff";
+    }
+
+    if(variant === "badge"){
+      element.width = 200;
+      element.height = 80;
+      element.styles.borderRadius = "20px";
+      element.styles.background = "#2557a7";
+      element.styles.color = "#fff";
+    }
+
+    if(variant === "banner"){
+      element.width = 760;
+      element.height = 160;
+      element.styles.background =
+        "linear-gradient(135deg,#2557a7,#6d5dfc)";
+      element.styles.color = "#fff";
+    }
+
+    if(variant === "sidebar"){
+      element.width = 220;
+      element.height = 700;
+      element.styles.background = "#111827";
+      element.styles.color = "#fff";
+    }
+
+    if(variant === "hero"){
+      element.width = 860;
+      element.height = 320;
+      element.styles.background =
+        "linear-gradient(135deg,#eef4ff,#ffffff)";
+    }
+  }
+
+  /* =====================================================
+     CARD VARIANTS
+  ===================================================== */
+
+  if(type === "card"){
+
+    if(variant === "profile"){
+      element.content = `
+        <h2 style="margin:0;font-size:28px;">John Doe</h2>
+        <p style="color:#667085;">English Teacher</p>
+      `;
+    }
+
+    if(variant === "resume"){
+      element.width = 720;
+      element.height = 920;
+      element.content = `
+        <h1 style="margin:0;">Your Name</h1>
+        <p style="color:#667085;">Professional title</p>
+        <hr>
+        <h3>Experience</h3>
+        <p>Add your work experience here.</p>
+      `;
+    }
+
+    if(variant === "certificate"){
+      element.width = 760;
+      element.height = 520;
+      element.styles.background =
+        "linear-gradient(180deg,#fff,#f8fafc)";
+      element.content = `
+        <h1 style="text-align:center;">Certificate</h1>
+        <p style="text-align:center;">Awarded to</p>
+      `;
+    }
+
+    if(variant === "pricing"){
+      element.width = 320;
+      element.height = 420;
+      element.content = `
+        <h2>Premium Plan</h2>
+        <h1>$49</h1>
+        <p>Best for professionals</p>
+      `;
+    }
+  }
+
+  /* =====================================================
+     BUTTON VARIANTS
+  ===================================================== */
+
+  if(type === "button"){
+
+    if(variant === "outline"){
+      element.styles.background = "#fff";
+      element.styles.color = "#2557a7";
+      element.styles.borderColor = "#2557a7";
+    }
+  }
+
+  /* =====================================================
+     LINE VARIANTS
+  ===================================================== */
+
+  if(type === "line"){
+
+    if(variant === "dashed"){
+      element.styles.borderStyle = "dashed";
+    }
+
+    if(variant === "dotted"){
+      element.styles.borderStyle = "dotted";
+    }
+
+    if(variant === "thick"){
+      element.height = 8;
+    }
+  }
 
   studioState.elements.push(element);
 
@@ -3287,6 +3752,47 @@ function addElement(type){
    IMAGE URL
 ===================================================== */
 
+function openDeviceImagePicker(){
+
+  byId("deviceImageInput")?.click();
+}
+
+function handleDeviceImageSelected(event){
+
+  const file =
+    event.target.files?.[0];
+
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(loadEvent){
+
+    saveUndoState();
+
+    const element =
+      getDefaultElement("image");
+
+    element.imageUrl =
+      loadEvent.target.result;
+
+    studioState.elements.push(element);
+
+    renderCanvas();
+
+    selectElement(element.id);
+
+    queueAutoSave();
+
+    setStatus(
+      "Image uploaded",
+      "success"
+    );
+  };
+
+  reader.readAsDataURL(file);
+}
+  
 function confirmAddImageUrl(){
 
   const input = byId("imageUrlInput");
@@ -3362,10 +3868,19 @@ function renderElement(el){
       class="${classes}"
       id="${escapeHtml(el.id)}"
       data-element-id="${escapeHtml(el.id)}"
-      draggable="${!el.locked}"
+
       onclick="selectElement('${escapeHtml(el.id)}', event)"
+
+      ondblclick="enableElementEditing('${escapeHtml(el.id)}')"
+
+      oncontextmenu="openContextMenu(event,'${escapeHtml(el.id)}')"
+
+      draggable="${!el.locked}"
+
       ondragstart="startDrag(event,'${escapeHtml(el.id)}')"
+
       style="
+        overflow:visible;
         left:${safeNumber(el.x)}px;
         top:${safeNumber(el.y)}px;
         width:${safeNumber(el.width,100)}px;
@@ -3373,25 +3888,44 @@ function renderElement(el){
         z-index:${safeNumber(el.zIndex,1)};
         opacity:${safeNumber(el.opacity,1)};
         transform:rotate(${safeNumber(el.rotation,0)}deg);
+
         color:${escapeHtml(el.styles?.color || "#111827")};
         background:${escapeHtml(el.styles?.background || "transparent")};
-        border-color:${escapeHtml(el.styles?.borderColor || "transparent")};
+
+        border:
+          1px
+          ${escapeHtml(el.styles?.borderStyle || "solid")}
+          ${escapeHtml(el.styles?.borderColor || "transparent")};
+
         border-radius:${escapeHtml(el.styles?.borderRadius || "14px")};
+
         font-family:${escapeHtml(el.styles?.fontFamily || "Inter")};
+
         font-size:${escapeHtml(el.styles?.fontSize || "16px")};
+
         font-weight:${escapeHtml(el.styles?.fontWeight || "400")};
+
         font-style:${escapeHtml(el.styles?.fontStyle || "normal")};
+
         text-decoration:${escapeHtml(el.styles?.textDecoration || "none")};
+
         text-align:${escapeHtml(el.styles?.textAlign || "left")};
+
         line-height:${escapeHtml(el.styles?.lineHeight || "1.6")};
+
+        padding:${escapeHtml(el.styles?.padding || "0")};
+        text-transform:${escapeHtml(el.styles?.textTransform || "none")};
+letter-spacing:${escapeHtml(el.styles?.letterSpacing || "0px")};
       "
     >
+
       ${renderElementBody(el)}
 
       ${
         isSelected && !el.locked
           ? `
             <div class="rotate-line"></div>
+
             <div
               class="rotate-handle"
               onmousedown="startRotate(event,'${escapeHtml(el.id)}')"
@@ -3404,6 +3938,7 @@ function renderElement(el){
           `
           : ""
       }
+
     </div>
   `;
 }
@@ -3415,6 +3950,7 @@ function renderElementBody(el){
       <div
         class="canvas-content canvas-${escapeHtml(el.type)}"
         contenteditable="${!el.locked}"
+        onmousedown="event.stopPropagation()"
         oninput="updateElementContent('${escapeHtml(el.id)}', this.innerHTML)"
       >${el.content || ""}</div>
     `;
@@ -3425,6 +3961,7 @@ function renderElementBody(el){
       <div
         class="canvas-content canvas-card-box"
         contenteditable="${!el.locked}"
+        onmousedown="event.stopPropagation()"
         oninput="updateElementContent('${escapeHtml(el.id)}', this.innerHTML)"
       >${el.content || ""}</div>
     `;
@@ -3432,38 +3969,36 @@ function renderElementBody(el){
 
   if(el.type === "shape"){
     return `
-      <div class="canvas-content canvas-shape"></div>
+      <div
+        class="canvas-content canvas-shape"
+        contenteditable="${!el.locked && ["badge","callout","note","banner","hero"].includes(el.variant)}"
+        onmousedown="event.stopPropagation()"
+        oninput="updateElementContent('${escapeHtml(el.id)}', this.innerHTML)"
+        style="
+          display:grid;
+          place-items:${["badge","pill"].includes(el.variant) ? "center" : "stretch"};
+          padding:${escapeHtml(el.styles?.padding || "0")};
+        "
+      >${el.content || getShapeDefaultText(el.variant)}</div>
     `;
   }
 
   if(el.type === "line"){
     return `
-      <div class="canvas-content canvas-line">
-        <span></span>
+      <div class="canvas-content canvas-line ${escapeHtml(el.variant || "solid")}">
+        <span style="
+          border-top:
+            ${el.variant === "thick" ? "6px" : "3px"}
+            ${escapeHtml(el.styles?.borderStyle || lineStyleFromVariant(el.variant))}
+            currentColor;
+          background:transparent;
+        "></span>
       </div>
     `;
   }
 
   if(el.type === "arrow"){
-    return `
-      <div class="canvas-content canvas-arrow">
-        <svg viewBox="0 0 260 60">
-          <line
-            x1="12"
-            y1="30"
-            x2="215"
-            y2="30"
-            stroke="currentColor"
-            stroke-width="5"
-            stroke-linecap="round"
-          ></line>
-          <path
-            d="M214 10 L250 30 L214 50 Z"
-            fill="currentColor"
-          ></path>
-        </svg>
-      </div>
-    `;
+    return renderArrowElement(el);
   }
 
   if(el.type === "button"){
@@ -3471,6 +4006,7 @@ function renderElementBody(el){
       <div
         class="canvas-content canvas-button-box"
         contenteditable="${!el.locked}"
+        onmousedown="event.stopPropagation()"
         oninput="updateElementContent('${escapeHtml(el.id)}', this.innerHTML)"
       >${el.content || "Button"}</div>
     `;
@@ -3492,27 +4028,159 @@ function renderElementBody(el){
   }
 
   if(el.type === "chart"){
+    return renderChartElement(el);
+  }
+
+  if(el.type === "icon"){
+    return renderIconElement(el);
+  }
+
+  return `
+    <div
+      class="canvas-content"
+      contenteditable="${!el.locked}"
+      onmousedown="event.stopPropagation()"
+      oninput="updateElementContent('${escapeHtml(el.id)}', this.innerHTML)"
+    >
+      ${el.content || ""}
+    </div>
+  `;
+}
+  function getShapeDefaultText(variant){
+
+  const map = {
+    badge:"Badge",
+    callout:"Important note",
+    note:"Write a note",
+    banner:"Banner title",
+    hero:"Hero section"
+  };
+
+  return map[variant] || "";
+}
+
+function lineStyleFromVariant(variant){
+
+  if(variant === "dashed") return "dashed";
+  if(variant === "dotted") return "dotted";
+  return "solid";
+}
+
+function renderArrowElement(el){
+
+  const variant = el.variant || "right";
+
+  const arrows = {
+    right:`
+      <svg viewBox="0 0 260 60">
+        <line x1="12" y1="30" x2="215" y2="30" stroke="currentColor" stroke-width="5" stroke-linecap="round"></line>
+        <path d="M214 10 L250 30 L214 50 Z" fill="currentColor"></path>
+      </svg>
+    `,
+    left:`
+      <svg viewBox="0 0 260 60">
+        <line x1="45" y1="30" x2="248" y2="30" stroke="currentColor" stroke-width="5" stroke-linecap="round"></line>
+        <path d="M46 10 L10 30 L46 50 Z" fill="currentColor"></path>
+      </svg>
+    `,
+    up:`
+      <svg viewBox="0 0 80 220">
+        <line x1="40" y1="200" x2="40" y2="45" stroke="currentColor" stroke-width="6" stroke-linecap="round"></line>
+        <path d="M18 48 L40 10 L62 48 Z" fill="currentColor"></path>
+      </svg>
+    `,
+    down:`
+      <svg viewBox="0 0 80 220">
+        <line x1="40" y1="20" x2="40" y2="175" stroke="currentColor" stroke-width="6" stroke-linecap="round"></line>
+        <path d="M18 172 L40 210 L62 172 Z" fill="currentColor"></path>
+      </svg>
+    `,
+    double:`
+      <svg viewBox="0 0 280 60">
+        <path d="M40 10 L10 30 L40 50 Z" fill="currentColor"></path>
+        <line x1="38" y1="30" x2="242" y2="30" stroke="currentColor" stroke-width="5" stroke-linecap="round"></line>
+        <path d="M240 10 L270 30 L240 50 Z" fill="currentColor"></path>
+      </svg>
+    `,
+    curve:`
+      <svg viewBox="0 0 280 120">
+        <path d="M20 90 C90 10 170 10 235 70" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"></path>
+        <path d="M220 40 L260 82 L202 90 Z" fill="currentColor"></path>
+      </svg>
+    `
+  };
+
+  return `
+    <div class="canvas-content canvas-arrow">
+      ${arrows[variant] || arrows.right}
+    </div>
+  `;
+}
+
+function renderIconElement(el){
+
+  const variant = el.variant || "check";
+
+  const icons = {
+    check:`<path d="M20 64l25 25 55-64" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"></path>`,
+    star:`<path d="M60 10l14 32 35 3-26 22 8 34-31-18-31 18 8-34-26-22 35-3z" fill="none" stroke="currentColor" stroke-width="8" stroke-linejoin="round"></path>`,
+    user:`<circle cx="60" cy="42" r="22" fill="none" stroke="currentColor" stroke-width="8"></circle><path d="M20 106c8-25 28-38 40-38s32 13 40 38" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"></path>`,
+    briefcase:`<rect x="18" y="34" width="84" height="62" rx="8" fill="none" stroke="currentColor" stroke-width="8"></rect><path d="M45 34v-9h30v9M18 58h84" fill="none" stroke="currentColor" stroke-width="8"></path>`,
+    book:`<path d="M25 20h48a14 14 0 0 1 14 14v66H35a10 10 0 0 1-10-10z" fill="none" stroke="currentColor" stroke-width="8"></path><path d="M35 20v80" fill="none" stroke="currentColor" stroke-width="8"></path>`,
+    globe:`<circle cx="60" cy="60" r="42" fill="none" stroke="currentColor" stroke-width="8"></circle><path d="M18 60h84M60 18c14 16 14 68 0 84M60 18c-14 16-14 68 0 84" fill="none" stroke="currentColor" stroke-width="6"></path>`,
+    phone:`<path d="M38 18h44a8 8 0 0 1 8 8v68a8 8 0 0 1-8 8H38a8 8 0 0 1-8-8V26a8 8 0 0 1 8-8z" fill="none" stroke="currentColor" stroke-width="8"></path><path d="M54 88h12" stroke="currentColor" stroke-width="8" stroke-linecap="round"></path>`,
+    mail:`<rect x="18" y="30" width="84" height="60" rx="8" fill="none" stroke="currentColor" stroke-width="8"></rect><path d="M22 36l38 30 38-30" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"></path>`,
+    award:`<circle cx="60" cy="44" r="26" fill="none" stroke="currentColor" stroke-width="8"></circle><path d="M45 68l-10 36 25-14 25 14-10-36" fill="none" stroke="currentColor" stroke-width="8" stroke-linejoin="round"></path>`,
+    calendar:`<rect x="20" y="28" width="80" height="72" rx="8" fill="none" stroke="currentColor" stroke-width="8"></rect><path d="M36 18v22M84 18v22M20 50h80" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"></path>`
+  };
+
+  return `
+    <div class="canvas-content canvas-icon">
+      <svg viewBox="0 0 120 120">
+        ${icons[variant] || icons.check}
+      </svg>
+    </div>
+  `;
+}
+
+function renderChartElement(el){
+
+  const variant = el.variant || "bar";
+
+  if(variant === "line"){
     return `
       <div class="canvas-content canvas-chart-placeholder">
-        Chart Placeholder
+        <svg viewBox="0 0 420 220" width="100%" height="100%">
+          <path d="M40 180H390" stroke="#d0d5dd" stroke-width="3"></path>
+          <path d="M40 180V25" stroke="#d0d5dd" stroke-width="3"></path>
+          <path d="M50 150 C120 60 180 140 245 80 S340 50 385 95" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"></path>
+        </svg>
       </div>
     `;
   }
 
-  if(el.type === "icon"){
+  if(variant === "pie"){
     return `
-      <div class="canvas-content canvas-icon">
-        <svg viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="8"></circle>
-          <path d="M38 62l15 15 32-38" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path>
+      <div class="canvas-content canvas-chart-placeholder">
+        <svg viewBox="0 0 240 240" width="100%" height="100%">
+          <circle cx="120" cy="120" r="80" fill="#dbeafe"></circle>
+          <path d="M120 120 L120 40 A80 80 0 0 1 200 120 Z" fill="currentColor"></path>
+          <path d="M120 120 L200 120 A80 80 0 0 1 80 190 Z" fill="#93c5fd"></path>
         </svg>
       </div>
     `;
   }
 
   return `
-    <div class="canvas-content">
-      ${el.content || ""}
+    <div class="canvas-content canvas-chart-placeholder">
+      <svg viewBox="0 0 420 220" width="100%" height="100%">
+        <path d="M40 180H390" stroke="#d0d5dd" stroke-width="3"></path>
+        <path d="M40 180V25" stroke="#d0d5dd" stroke-width="3"></path>
+        <rect x="75" y="90" width="45" height="90" rx="8" fill="currentColor"></rect>
+        <rect x="155" y="55" width="45" height="125" rx="8" fill="currentColor" opacity=".7"></rect>
+        <rect x="235" y="120" width="45" height="60" rx="8" fill="currentColor" opacity=".5"></rect>
+        <rect x="315" y="40" width="45" height="140" rx="8" fill="currentColor" opacity=".85"></rect>
+      </svg>
     </div>
   `;
 }
@@ -3563,6 +4231,54 @@ function selectElement(id,event=null){
 
   setStatus("Element selected");
 }
+  function enableElementEditing(id){
+
+  const node =
+    document.querySelector(
+      `[data-element-id="${CSS.escape(id)}"]`
+    );
+
+  if(!node) return;
+
+  node.classList.add("editing");
+
+  const content =
+    node.querySelector(".canvas-content");
+
+  if(content){
+
+    content.setAttribute(
+      "contenteditable",
+      "true"
+    );
+
+    content.focus();
+
+    document.execCommand(
+      "selectAll",
+      false,
+      null
+    );
+  }
+}
+
+function disableElementEditing(){
+
+  document
+    .querySelectorAll(".canvas-element.editing")
+    .forEach(node => {
+      node.classList.remove("editing");
+    });
+}
+
+document.addEventListener("click", event => {
+
+  if(
+    !event.target.closest(".canvas-element")
+  ){
+    disableElementEditing();
+  }
+});
 
 function handleCanvasBackgroundClick(event){
 
@@ -3629,7 +4345,9 @@ function toggleTextStyle(type){
 
   if(type === "bold"){
     el.styles.fontWeight =
-      String(el.styles.fontWeight) === "800"
+      String(el.styles.fontWeight) === "800" ||
+      String(el.styles.fontWeight) === "700" ||
+      String(el.styles.fontWeight) === "900"
         ? "400"
         : "800";
   }
@@ -3646,6 +4364,13 @@ function toggleTextStyle(type){
       el.styles.textDecoration === "underline"
         ? "none"
         : "underline";
+  }
+
+  if(type === "uppercase"){
+    el.styles.textTransform =
+      el.styles.textTransform === "uppercase"
+        ? "none"
+        : "uppercase";
   }
 
   renderCanvas();
@@ -3713,6 +4438,133 @@ function syncPropertyPanel(){
 </script>
 <script>
 
+  /* =====================================================
+   RIGHT CLICK CONTEXT MENU
+===================================================== */
+
+let copiedStyle = null;
+
+function openContextMenu(event,id){
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  studioState.selectedElementId = id;
+
+  renderCanvas();
+
+  const menu = byId("studioContextMenu");
+
+  if(!menu) return;
+
+  menu.style.left = `${event.clientX}px`;
+  menu.style.top = `${event.clientY}px`;
+
+  menu.classList.add("open");
+}
+
+function closeContextMenu(){
+
+  byId("studioContextMenu")?.classList.remove("open");
+}
+
+document.addEventListener("click", event => {
+  if(!event.target.closest("#studioContextMenu")){
+    closeContextMenu();
+  }
+});
+
+document.addEventListener("keydown", event => {
+  if(event.key === "Escape"){
+    closeContextMenu();
+  }
+});
+
+function contextDuplicate(){
+  closeContextMenu();
+  duplicateSelected();
+}
+
+function contextBringForward(){
+  closeContextMenu();
+  bringForward();
+}
+
+function contextSendBackward(){
+  closeContextMenu();
+  sendBackward();
+}
+
+function contextLockUnlock(){
+  closeContextMenu();
+  lockSelected();
+}
+
+function contextEditText(){
+
+  const el = getSelectedElement();
+
+  closeContextMenu();
+
+  if(!el) return;
+
+  enableElementEditing(el.id);
+}
+
+function contextCopyStyle(){
+
+  const el = getSelectedElement();
+
+  if(!el) return;
+
+  copiedStyle = deepClone(el.styles || {});
+
+  closeContextMenu();
+
+  setStatus("Style copied", "success");
+}
+
+function contextPasteStyle(){
+
+  const el = getSelectedElement();
+
+  if(!el || !copiedStyle){
+    setStatus("No copied style", "warning");
+    return;
+  }
+
+  saveUndoState();
+
+  el.styles = deepClone(copiedStyle);
+
+  closeContextMenu();
+  renderCanvas();
+  queueAutoSave();
+
+  setStatus("Style pasted", "success");
+}
+
+function contextDelete(){
+  closeContextMenu();
+  deleteSelected();
+}
+  function openCanvasContextMenu(event){
+
+  if(event.target.id !== "editorCanvas") return;
+
+  event.preventDefault();
+
+  studioState.selectedElementId = null;
+
+  const menu = byId("studioContextMenu");
+
+  if(!menu) return;
+
+  menu.style.left = `${event.clientX}px`;
+  menu.style.top = `${event.clientY}px`;
+
+  menu.classList.add("open");
+}
 /* =====================================================
    DRAG / DROP
 ===================================================== */
@@ -5133,6 +5985,1098 @@ function stripHtml(html=""){
   div.innerHTML = html;
   return div.textContent || div.innerText || "";
 }
+  /* =====================================================
+   SAVED PROJECTS
+===================================================== */
+
+function getSavedProjectsKey(){
+  return "aift_visual_studio_saved_projects";
+}
+
+function getSavedProjects(){
+
+  try{
+    return JSON.parse(
+      localStorage.getItem(getSavedProjectsKey()) || "[]"
+    );
+  }catch(err){
+    return [];
+  }
+}
+
+function saveAsNamedProject(){
+
+  const name = prompt("Project name:");
+
+  if(!name) return;
+
+  const projects = getSavedProjects();
+
+  projects.unshift({
+    id:uid(),
+    name:name.trim(),
+    classId:QUERY.classId,
+    scope:QUERY.scope,
+    ownerId:QUERY.ownerId || "main",
+    savedAt:new Date().toISOString(),
+    payload:buildVisualPayload()
+  });
+
+  localStorage.setItem(
+    getSavedProjectsKey(),
+    JSON.stringify(projects.slice(0,60))
+  );
+
+  setStatus("Project saved", "success");
+}
+
+function openSavedProjects(){
+
+  const grid = byId("savedProjectsGrid");
+
+  if(!grid) return;
+
+  const projects = getSavedProjects();
+
+  if(!projects.length){
+    grid.innerHTML = `
+      <div class="form-help">
+        No saved projects yet. Click “Save as Project” first.
+      </div>
+    `;
+  }else{
+    grid.innerHTML = projects.map(project => `
+      <div class="project-card" onclick="loadSavedProject('${project.id}')">
+        <div class="template-preview">
+          <div class="template-line short"></div>
+          <div class="template-line medium"></div>
+          <div class="template-line"></div>
+        </div>
+        <div class="project-title">${escapeHtml(project.name)}</div>
+        <div class="project-meta">
+          ${escapeHtml(project.scope)} · ${new Date(project.savedAt).toLocaleString()}
+        </div>
+      </div>
+    `).join("");
+  }
+
+  openModal("savedProjectsModal");
+}
+
+function loadSavedProject(projectId){
+
+  const projects = getSavedProjects();
+
+  const project = projects.find(
+    item => String(item.id) === String(projectId)
+  );
+
+  if(!project?.payload?.elements){
+    setStatus("Project not found", "error");
+    return;
+  }
+
+  saveUndoState();
+
+  studioState.elements =
+    deepClone(project.payload.elements);
+
+  closeModal("savedProjectsModal");
+
+  renderCanvas();
+
+  switchMode("visual");
+
+  queueAutoSave();
+
+  setStatus("Project loaded", "success");
+}
+
+  /* =====================================================
+   TEMPLATE LIBRARY
+===================================================== */
+
+const AIFT_TEMPLATES = [
+  {
+    id:"cv_modern",
+    name:"Modern CV",
+    type:"CV",
+    description:"Clean professional resume layout"
+  },
+  {
+    id:"cv_bpo",
+    name:"BPO Resume",
+    type:"CV",
+    description:"For customer service and call center roles"
+  },
+  {
+    id:"presentation_class",
+    name:"Class Presentation",
+    type:"Presentation",
+    description:"Teacher-friendly lesson deck layout"
+  },
+  {
+    id:"business_pitch",
+    name:"Business Pitch",
+    type:"Presentation",
+    description:"Simple investor/client proposal"
+  },
+  {
+    id:"lesson_plan",
+    name:"Lesson Plan",
+    type:"Education",
+    description:"Structured lesson visual template"
+  },
+  {
+    id:"certificate",
+    name:"Certificate",
+    type:"Document",
+    description:"Certificate of completion layout"
+  }
+];
+
+function openTemplateLibrary(){
+
+  const grid = byId("templateLibraryGrid");
+
+  if(!grid) return;
+
+  grid.innerHTML =
+    AIFT_TEMPLATES.map(template => `
+      <div class="template-card" onclick="applyTemplate('${template.id}')">
+        <div class="template-preview">
+          <div class="template-line short"></div>
+          <div class="template-line medium"></div>
+          <div class="template-line"></div>
+        </div>
+
+        <div class="template-title">
+          ${escapeHtml(template.name)}
+        </div>
+
+        <div class="template-meta">
+          ${escapeHtml(template.type)} · ${escapeHtml(template.description)}
+        </div>
+      </div>
+    `).join("");
+
+  openModal("templateLibraryModal");
+}
+
+function applyTemplate(templateId){
+
+  saveUndoState();
+
+  if(templateId === "cv_modern"){
+    studioState.elements = buildModernCvTemplate();
+  }
+
+  if(templateId === "cv_bpo"){
+    studioState.elements = buildBpoCvTemplate();
+  }
+
+  if(templateId === "presentation_class"){
+    studioState.elements = buildClassPresentationTemplate();
+  }
+
+  if(templateId === "business_pitch"){
+    studioState.elements = buildBusinessPitchTemplate();
+  }
+
+  if(templateId === "lesson_plan"){
+    studioState.elements = buildLessonPlanTemplate();
+  }
+
+  if(templateId === "certificate"){
+    studioState.elements = buildCertificateTemplate();
+  }
+
+  closeModal("templateLibraryModal");
+
+  renderCanvas();
+
+  switchMode("visual");
+
+  queueAutoSave();
+
+  setStatus("Template applied", "success");
+}
+
+function makeTemplateElement(type,variant,x,y,width,height,content,styles={}){
+
+  const el = getDefaultElement(type);
+
+  el.variant = variant || "default";
+  el.x = x;
+  el.y = y;
+  el.width = width;
+  el.height = height;
+  el.content = content || el.content;
+  el.zIndex = getNextZIndex() + Math.floor(Math.random() * 1000);
+  el.styles = {
+    ...el.styles,
+    ...styles
+  };
+
+  return el;
+}
+  /* =====================================================
+   TEMPLATE BUILDERS
+===================================================== */
+
+function resetTemplateZIndex(elements){
+  return elements.map((el,index) => ({
+    ...el,
+    id:uid(),
+    zIndex:index + 1
+  }));
+}
+
+function buildModernCvTemplate(){
+
+  const elements = [
+    makeTemplateElement(
+      "shape",
+      "sidebar",
+      60,
+      60,
+      260,
+      980,
+      "",
+      {
+        background:"#111827",
+        borderRadius:"24px"
+      }
+    ),
+
+    makeTemplateElement(
+      "heading",
+      "default",
+      360,
+      80,
+      620,
+      90,
+      "Your Name",
+      {
+        fontSize:"48px",
+        fontWeight:"900",
+        color:"#111827"
+      }
+    ),
+
+    makeTemplateElement(
+      "paragraph",
+      "default",
+      365,
+      165,
+      580,
+      70,
+      "Professional Title · City · Email · Phone",
+      {
+        fontSize:"18px",
+        color:"#667085"
+      }
+    ),
+
+    makeTemplateElement(
+      "heading",
+      "default",
+      90,
+      100,
+      200,
+      60,
+      "Profile",
+      {
+        color:"#ffffff",
+        fontSize:"24px"
+      }
+    ),
+
+    makeTemplateElement(
+      "paragraph",
+      "default",
+      90,
+      165,
+      190,
+      190,
+      "Write a short professional profile here. Focus on your skills, achievements, and career goals.",
+      {
+        color:"#d1d5db",
+        fontSize:"14px"
+      }
+    ),
+
+    makeTemplateElement(
+      "heading",
+      "default",
+      90,
+      390,
+      200,
+      55,
+      "Skills",
+      {
+        color:"#ffffff",
+        fontSize:"24px"
+      }
+    ),
+
+    makeTemplateElement(
+      "list",
+      "default",
+      90,
+      450,
+      190,
+      220,
+      "• Customer Service<br>• Communication<br>• CRM Tools<br>• English / French<br>• Problem Solving",
+      {
+        color:"#d1d5db",
+        fontSize:"14px"
+      }
+    ),
+
+    makeTemplateElement(
+      "heading",
+      "default",
+      360,
+      270,
+      620,
+      60,
+      "Work Experience",
+      {
+        fontSize:"28px",
+        fontWeight:"800"
+      }
+    ),
+
+    makeTemplateElement(
+      "card",
+      "resume",
+      360,
+      340,
+      660,
+      210,
+      "<strong>Job Title · Company</strong><br><span style='color:#667085'>2023 - Present</span><br><br>Describe your responsibilities and achievements here.",
+      {
+        background:"#ffffff",
+        borderColor:"#e5e7eb",
+        padding:"18px"
+      }
+    ),
+
+    makeTemplateElement(
+      "heading",
+      "default",
+      360,
+      600,
+      620,
+      60,
+      "Education",
+      {
+        fontSize:"28px",
+        fontWeight:"800"
+      }
+    ),
+
+    makeTemplateElement(
+      "card",
+      "resume",
+      360,
+      670,
+      660,
+      160,
+      "<strong>Degree / Certificate</strong><br><span style='color:#667085'>School or Training Center</span><br><br>Add education details.",
+      {
+        background:"#ffffff",
+        borderColor:"#e5e7eb",
+        padding:"18px"
+      }
+    )
+  ];
+
+  return resetTemplateZIndex(elements);
+}
+
+function buildBpoCvTemplate(){
+
+  const elements = [
+    makeTemplateElement(
+      "shape",
+      "banner",
+      60,
+      60,
+      980,
+      190,
+      "",
+      {
+        background:"linear-gradient(135deg,#2557a7,#6d5dfc)",
+        borderRadius:"28px"
+      }
+    ),
+
+    makeTemplateElement(
+      "heading",
+      "default",
+      100,
+      95,
+      700,
+      70,
+      "Your Name",
+      {
+        color:"#ffffff",
+        fontSize:"46px",
+        fontWeight:"900"
+      }
+    ),
+
+    makeTemplateElement(
+      "paragraph",
+      "default",
+      104,
+      165,
+      700,
+      50,
+      "Bilingual Customer Service Representative",
+      {
+        color:"#eef4ff",
+        fontSize:"20px"
+      }
+    ),
+
+    makeTemplateElement(
+      "card",
+      "stat",
+      80,
+      300,
+      280,
+      170,
+      "<strong>Languages</strong><br><br>English · French · Spanish",
+      {
+        padding:"18px",
+        background:"#ffffff",
+        borderColor:"#e5e7eb"
+      }
+    ),
+
+    makeTemplateElement(
+      "card",
+      "stat",
+      390,
+      300,
+      280,
+      170,
+      "<strong>Tools</strong><br><br>Zendesk · Shopify · CRM · Live Chat",
+      {
+        padding:"18px",
+        background:"#ffffff",
+        borderColor:"#e5e7eb"
+      }
+    ),
+
+    makeTemplateElement(
+      "card",
+      "stat",
+      700,
+      300,
+      280,
+      170,
+      "<strong>Strengths</strong><br><br>Chat Support · Email · Retention",
+      {
+        padding:"18px",
+        background:"#ffffff",
+        borderColor:"#e5e7eb"
+      }
+    ),
+
+    makeTemplateElement(
+      "heading",
+      "default",
+      80,
+      540,
+      800,
+      60,
+      "Professional Summary",
+      {
+        fontSize:"30px",
+        fontWeight:"900"
+      }
+    ),
+
+    makeTemplateElement(
+      "paragraph",
+      "default",
+      80,
+      610,
+      900,
+      140,
+      "Customer service professional with experience handling chat, email, and inbound support. Skilled in solving customer issues, improving satisfaction, and supporting e-commerce clients.",
+      {
+        fontSize:"17px",
+        color:"#374151"
+      }
+    ),
+
+    makeTemplateElement(
+      "heading",
+      "default",
+      80,
+      800,
+      800,
+      60,
+      "Experience",
+      {
+        fontSize:"30px",
+        fontWeight:"900"
+      }
+    ),
+
+    makeTemplateElement(
+      "card",
+      "resume",
+      80,
+      870,
+      900,
+      190,
+      "<strong>Customer Service Representative</strong><br><span style='color:#667085'>Company Name · 2023 - Present</span><br><br>Handled customer concerns through chat/email, processed orders, and supported customer loyalty.",
+      {
+        padding:"20px",
+        background:"#ffffff",
+        borderColor:"#e5e7eb"
+      }
+    )
+  ];
+
+  return resetTemplateZIndex(elements);
+}
+
+function buildClassPresentationTemplate(){
+
+  const elements = [
+    makeTemplateElement(
+      "shape",
+      "hero",
+      70,
+      70,
+      960,
+      360,
+      "",
+      {
+        background:"linear-gradient(135deg,#eef4ff,#ffffff)",
+        borderColor:"#dbeafe",
+        borderRadius:"30px"
+      }
+    ),
+
+    makeTemplateElement(
+      "heading",
+      "default",
+      120,
+      135,
+      780,
+      90,
+      "Lesson Title",
+      {
+        fontSize:"54px",
+        fontWeight:"900",
+        color:"#111827"
+      }
+    ),
+
+    makeTemplateElement(
+      "paragraph",
+      "default",
+      125,
+      235,
+      760,
+      90,
+      "Add your class introduction or lesson objective here.",
+      {
+        fontSize:"22px",
+        color:"#667085"
+      }
+    ),
+
+    makeTemplateElement(
+      "button",
+      "primary",
+      125,
+      345,
+      220,
+      60,
+      "Start Lesson",
+      {
+        background:"#2557a7",
+        color:"#ffffff",
+        borderRadius:"16px"
+      }
+    ),
+
+    makeTemplateElement(
+      "heading",
+      "default",
+      90,
+      510,
+      760,
+      60,
+      "Learning Objectives",
+      {
+        fontSize:"34px",
+        fontWeight:"900"
+      }
+    ),
+
+    makeTemplateElement(
+      "list",
+      "default",
+      90,
+      585,
+      860,
+      180,
+      "• Understand the main topic<br>• Practice with guided activities<br>• Apply the lesson in real examples",
+      {
+        fontSize:"20px",
+        color:"#374151"
+      }
+    ),
+
+    makeTemplateElement(
+      "chart",
+      "bar",
+      120,
+      840,
+      780,
+      340,
+      "",
+      {
+        color:"#2557a7"
+      }
+    )
+  ];
+
+  return resetTemplateZIndex(elements);
+}
+
+function buildBusinessPitchTemplate(){
+
+  const elements = [
+    makeTemplateElement(
+      "heading",
+      "default",
+      80,
+      80,
+      860,
+      90,
+      "Business Proposal",
+      {
+        fontSize:"52px",
+        fontWeight:"900"
+      }
+    ),
+
+    makeTemplateElement(
+      "paragraph",
+      "default",
+      84,
+      170,
+      800,
+      90,
+      "A clean pitch layout for clients, partners, or investors.",
+      {
+        fontSize:"21px",
+        color:"#667085"
+      }
+    ),
+
+    makeTemplateElement(
+      "card",
+      "feature",
+      80,
+      320,
+      280,
+      220,
+      "<strong>Problem</strong><br><br>Describe the customer problem clearly.",
+      {
+        padding:"20px",
+        background:"#ffffff",
+        borderColor:"#e5e7eb"
+      }
+    ),
+
+    makeTemplateElement(
+      "card",
+      "feature",
+      410,
+      320,
+      280,
+      220,
+      "<strong>Solution</strong><br><br>Explain your offer or service.",
+      {
+        padding:"20px",
+        background:"#ffffff",
+        borderColor:"#e5e7eb"
+      }
+    ),
+
+    makeTemplateElement(
+      "card",
+      "feature",
+      740,
+      320,
+      280,
+      220,
+      "<strong>Result</strong><br><br>Show the outcome or value.",
+      {
+        padding:"20px",
+        background:"#ffffff",
+        borderColor:"#e5e7eb"
+      }
+    ),
+
+    makeTemplateElement(
+      "chart",
+      "line",
+      120,
+      640,
+      820,
+      340,
+      "",
+      {
+        color:"#6d5dfc"
+      }
+    )
+  ];
+
+  return resetTemplateZIndex(elements);
+}
+
+function buildLessonPlanTemplate(){
+
+  const elements = [
+    makeTemplateElement(
+      "heading",
+      "default",
+      80,
+      80,
+      800,
+      80,
+      "Lesson Plan",
+      {
+        fontSize:"48px",
+        fontWeight:"900"
+      }
+    ),
+
+    makeTemplateElement(
+      "card",
+      "lesson",
+      80,
+      200,
+      900,
+      150,
+      "<strong>Objective</strong><br>What should students learn by the end of this lesson?",
+      {
+        padding:"20px",
+        background:"#eef4ff",
+        borderColor:"#bfd3ff"
+      }
+    ),
+
+    makeTemplateElement(
+      "card",
+      "lesson",
+      80,
+      390,
+      900,
+      150,
+      "<strong>Warm-up</strong><br>Add a short opening activity.",
+      {
+        padding:"20px",
+        background:"#ffffff",
+        borderColor:"#e5e7eb"
+      }
+    ),
+
+    makeTemplateElement(
+      "card",
+      "lesson",
+      80,
+      580,
+      900,
+      150,
+      "<strong>Main Activity</strong><br>Add instructions for the main class task.",
+      {
+        padding:"20px",
+        background:"#ffffff",
+        borderColor:"#e5e7eb"
+      }
+    ),
+
+    makeTemplateElement(
+      "card",
+      "lesson",
+      80,
+      770,
+      900,
+      150,
+      "<strong>Assessment</strong><br>How will you check student understanding?",
+      {
+        padding:"20px",
+        background:"#ffffff",
+        borderColor:"#e5e7eb"
+      }
+    )
+  ];
+
+  return resetTemplateZIndex(elements);
+}
+
+function buildCertificateTemplate(){
+
+  const elements = [
+    makeTemplateElement(
+      "shape",
+      "hero",
+      80,
+      80,
+      940,
+      640,
+      "",
+      {
+        background:"#ffffff",
+        borderColor:"#2557a7",
+        borderRadius:"30px"
+      }
+    ),
+
+    makeTemplateElement(
+      "heading",
+      "default",
+      180,
+      150,
+      740,
+      80,
+      "Certificate of Completion",
+      {
+        fontSize:"46px",
+        fontWeight:"900",
+        textAlign:"center"
+      }
+    ),
+
+    makeTemplateElement(
+      "paragraph",
+      "default",
+      260,
+      265,
+      560,
+      60,
+      "This certificate is proudly presented to",
+      {
+        fontSize:"18px",
+        textAlign:"center",
+        color:"#667085"
+      }
+    ),
+
+    makeTemplateElement(
+      "heading",
+      "default",
+      230,
+      350,
+      640,
+      90,
+      "Student Name",
+      {
+        fontSize:"52px",
+        fontWeight:"900",
+        textAlign:"center",
+        color:"#2557a7"
+      }
+    ),
+
+    makeTemplateElement(
+      "paragraph",
+      "default",
+      220,
+      470,
+      660,
+      70,
+      "For successfully completing the course.",
+      {
+        fontSize:"20px",
+        textAlign:"center",
+        color:"#374151"
+      }
+    ),
+
+    makeTemplateElement(
+      "line",
+      "solid",
+      250,
+      610,
+      260,
+      20,
+      "",
+      {
+        color:"#111827"
+      }
+    ),
+
+    makeTemplateElement(
+      "line",
+      "solid",
+      590,
+      610,
+      260,
+      20,
+      "",
+      {
+        color:"#111827"
+      }
+    ),
+
+    makeTemplateElement(
+      "paragraph",
+      "default",
+      250,
+      635,
+      260,
+      40,
+      "Teacher",
+      {
+        textAlign:"center",
+        color:"#667085"
+      }
+    ),
+
+    makeTemplateElement(
+      "paragraph",
+      "default",
+      590,
+      635,
+      260,
+      40,
+      "Date",
+      {
+        textAlign:"center",
+        color:"#667085"
+      }
+    )
+  ];
+
+  return resetTemplateZIndex(elements);
+}
+
+/* =====================================================
+   CANVAS PAGE SIZE / SCROLL HELPERS
+===================================================== */
+
+function expandCanvasHeight(extra=600){
+
+  const canvas = byId("editorCanvas");
+
+  if(!canvas) return;
+
+  const current = canvas.offsetHeight || 1800;
+
+  canvas.style.minHeight =
+    `${current + extra}px`;
+
+  setStatus("Canvas extended", "success");
+}
+
+function fitCanvasToContent(){
+
+  const canvas = byId("editorCanvas");
+
+  if(!canvas) return;
+
+  const maxBottom = studioState.elements.reduce((max,el) => {
+    return Math.max(
+      max,
+      safeNumber(el.y) + safeNumber(el.height)
+    );
+  }, 1200);
+
+  canvas.style.minHeight =
+    `${Math.max(1800,maxBottom + 240)}px`;
+}
+
+/* =====================================================
+   PATCH RENDER CANVAS TO FIT CONTENT
+===================================================== */
+
+const originalRenderCanvas =
+  renderCanvas;
+
+renderCanvas = function(){
+
+  originalRenderCanvas();
+
+  fitCanvasToContent();
+};
+
+/* =====================================================
+   MORE KEYBOARD SHORTCUTS
+===================================================== */
+
+document.addEventListener("keydown", event => {
+
+  const isTyping =
+    event.target?.isContentEditable ||
+    ["INPUT","TEXTAREA","SELECT"].includes(event.target?.tagName);
+
+  if(isTyping) return;
+
+  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d"){
+    event.preventDefault();
+    duplicateSelected();
+  }
+
+  if((event.ctrlKey || event.metaKey) && event.key === "]"){
+    event.preventDefault();
+    bringForward();
+  }
+
+  if((event.ctrlKey || event.metaKey) && event.key === "["){
+    event.preventDefault();
+    sendBackward();
+  }
+
+  if(event.key === "+"){
+    zoomCanvas(0.1);
+  }
+
+  if(event.key === "-"){
+    zoomCanvas(-0.1);
+  }
+});
+
+/* =====================================================
+   FINAL SAFETY PATCH
+===================================================== */
+
+function ensureStudioUpgradeReady(){
+
+  const exportPanel =
+    document.querySelector('[data-tool-panel="export"]');
+
+  if(exportPanel && !exportPanel.querySelector('[onclick="openTemplateLibrary()"]')){
+    const block = document.createElement("div");
+    block.className = "tool-section";
+    block.innerHTML = `
+      <div class="tool-section-title">Advanced</div>
+      <div class="tool-grid">
+        <button class="tool-btn" onclick="openSavedProjects()"><span>Saved Projects</span></button>
+        <button class="tool-btn" onclick="openTemplateLibrary()"><span>Templates</span></button>
+        <button class="tool-btn" onclick="saveAsNamedProject()"><span>Save as Project</span></button>
+        <button class="tool-btn" onclick="expandCanvasHeight(700)"><span>Add Page Space</span></button>
+      </div>
+    `;
+    exportPanel.appendChild(block);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", ensureStudioUpgradeReady);
 
 /* =====================================================
    EXPORTS
