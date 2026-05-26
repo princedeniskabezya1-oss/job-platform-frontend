@@ -3293,7 +3293,7 @@ function goBackToBuilder(){
 
   window.location.href = "class-builder.html";
 }
-  <script>
+
 /* =====================================================
    LOAD BUILDER DATA
 ===================================================== */
@@ -3902,8 +3902,1758 @@ function renderMiniPreview(pageId){
     `;
   }).join("");
 }
-</script>
-<script>
+  
+/* =====================================================
+   UNDO / REDO
+===================================================== */
+
+function snapshotState(){
+  return {
+    elements:deepClone(studioState.elements),
+    pages:deepClone(studioState.pages),
+    currentPageId:studioState.currentPageId
+  };
+}
+
+function restoreSnapshot(snapshot){
+  if(!snapshot) return;
+
+  studioState.elements = Array.isArray(snapshot.elements) ? snapshot.elements : [];
+  studioState.pages = Array.isArray(snapshot.pages) ? snapshot.pages : [];
+  studioState.currentPageId = snapshot.currentPageId || null;
+  studioState.selectedElementId = null;
+
+  ensurePages();
+  renderCanvas();
+  markDirty("history-restore");
+}
+
+function pushUndo(){
+  studioState.undoStack.push(snapshotState());
+
+  if(studioState.undoStack.length > 60){
+    studioState.undoStack.shift();
+  }
+
+  studioState.redoStack = [];
+}
+
+function undoEditor(){
+  const previous = studioState.undoStack.pop();
+
+  if(!previous){
+    setStatus("Nothing to undo", "warning");
+    return;
+  }
+
+  studioState.redoStack.push(snapshotState());
+  restoreSnapshot(previous);
+  setStatus("Undo applied", "success");
+}
+
+function redoEditor(){
+  const next = studioState.redoStack.pop();
+
+  if(!next){
+    setStatus("Nothing to redo", "warning");
+    return;
+  }
+
+  studioState.undoStack.push(snapshotState());
+  restoreSnapshot(next);
+  setStatus("Redo applied", "success");
+}
+
+/* =====================================================
+   DEFAULT ELEMENTS
+===================================================== */
+
+function getDefaultElement(type,variant="default"){
+  const base = {
+    id:uid(),
+    type,
+    variant,
+    pageId:studioState.currentPageId,
+    x:120,
+    y:120,
+    width:260,
+    height:100,
+    rotation:0,
+    opacity:1,
+    zIndex:getMaxZ() + 1,
+    locked:false,
+    content:"",
+    styles:{
+      fontFamily:"Inter",
+      fontSize:"16px",
+      fontWeight:"500",
+      lineHeight:"1.5",
+      color:"#111827",
+      background:"#ffffff",
+      borderColor:"#e5e7eb",
+      borderStyle:"solid",
+      borderWidth:"1px",
+      borderRadius:"12px",
+      padding:"0px",
+      textAlign:"left"
+    }
+  };
+
+  if(type === "heading"){
+    return {
+      ...base,
+      width:520,
+      height:90,
+      content:"Your professional heading",
+      styles:{
+        ...base.styles,
+        fontSize:"42px",
+        fontWeight:"800",
+        letterSpacing:"-1.4px",
+        lineHeight:"1.12",
+        background:"transparent",
+        borderColor:"transparent"
+      }
+    };
+  }
+
+  if(type === "paragraph"){
+    return {
+      ...base,
+      width:520,
+      height:150,
+      content:"Write your lesson content, presentation notes, resume summary, or business proposal text here.",
+      styles:{
+        ...base.styles,
+        fontSize:"17px",
+        lineHeight:"1.7",
+        background:"transparent",
+        borderColor:"transparent"
+      }
+    };
+  }
+
+  if(type === "quote"){
+    return {
+      ...base,
+      width:520,
+      height:130,
+      content:"Important quote or key learning message goes here.",
+      styles:{
+        ...base.styles,
+        fontSize:"20px",
+        fontStyle:"italic",
+        background:"transparent",
+        borderColor:"transparent",
+        color:"#2557a7"
+      }
+    };
+  }
+
+  if(type === "list"){
+    return {
+      ...base,
+      width:460,
+      height:170,
+      content:"• First point\n• Second point\n• Third point",
+      styles:{
+        ...base.styles,
+        fontSize:"17px",
+        lineHeight:"1.8",
+        background:"transparent",
+        borderColor:"transparent"
+      }
+    };
+  }
+
+  if(type === "shape"){
+    const shapeMap = {
+      rectangle:{ width:360, height:150, radius:"0px", background:"#eef4ff" },
+      rounded:{ width:360, height:150, radius:"24px", background:"#eef4ff" },
+      circle:{ width:180, height:180, radius:"999px", background:"#eef4ff" },
+      pill:{ width:280, height:70, radius:"999px", background:"#eef4ff" },
+      banner:{ width:900, height:170, radius:"0px", background:"#eef4ff" },
+      callout:{ width:430, height:150, radius:"18px", background:"#f3f0ff" }
+    };
+
+    const cfg = shapeMap[variant] || shapeMap.rectangle;
+
+    return {
+      ...base,
+      width:cfg.width,
+      height:cfg.height,
+      content:"",
+      styles:{
+        ...base.styles,
+        background:cfg.background,
+        borderRadius:cfg.radius,
+        borderColor:"#bfd3ff"
+      }
+    };
+  }
+
+  if(type === "card"){
+    return {
+      ...base,
+      width:360,
+      height:210,
+      content:
+        variant === "certificate"
+          ? "Certificate of Completion\nAwarded to: Student Name\nAIFT Foreign Training"
+          : "Professional Card\nAdd your details, lesson notes, or profile information here.",
+      styles:{
+        ...base.styles,
+        background:"#ffffff",
+        borderRadius:"18px",
+        borderColor:"#e5e7eb",
+        padding:"18px",
+        fontSize:"16px",
+        lineHeight:"1.6"
+      }
+    };
+  }
+
+  if(type === "line"){
+    return {
+      ...base,
+      width:420,
+      height:28,
+      content:"",
+      styles:{
+        ...base.styles,
+        color:"#2557a7",
+        background:"transparent",
+        borderColor:"transparent"
+      }
+    };
+  }
+
+  if(type === "arrow"){
+    return {
+      ...base,
+      width:180,
+      height:80,
+      content:"",
+      styles:{
+        ...base.styles,
+        color:"#2557a7",
+        background:"transparent",
+        borderColor:"transparent"
+      }
+    };
+  }
+
+  if(type === "icon"){
+    return {
+      ...base,
+      width:80,
+      height:80,
+      content:"",
+      styles:{
+        ...base.styles,
+        color:"#2557a7",
+        background:"transparent",
+        borderColor:"transparent"
+      }
+    };
+  }
+
+  if(type === "image"){
+    return {
+      ...base,
+      width:420,
+      height:260,
+      content:"",
+      src:"",
+      styles:{
+        ...base.styles,
+        background:"#f8fafc",
+        borderRadius:"18px",
+        borderColor:"#e5e7eb"
+      }
+    };
+  }
+
+  if(type === "table"){
+    return {
+      ...base,
+      width:560,
+      height:260,
+      content:JSON.stringify([
+        ["Header 1","Header 2","Header 3"],
+        ["Item","Detail","Status"],
+        ["Item","Detail","Status"]
+      ]),
+      styles:{
+        ...base.styles,
+        background:"#ffffff",
+        borderRadius:"12px"
+      }
+    };
+  }
+
+  if(type === "chart"){
+    return {
+      ...base,
+      width:420,
+      height:260,
+      content:variant === "line" ? "Line Chart" : "Bar Chart",
+      styles:{
+        ...base.styles,
+        background:"#ffffff",
+        borderRadius:"18px",
+        color:"#2557a7"
+      }
+    };
+  }
+
+  if(type === "button"){
+    return {
+      ...base,
+      width:190,
+      height:58,
+      content:variant === "outline" ? "Outline Button" : "Primary Button",
+      styles:{
+        ...base.styles,
+        background:variant === "outline" ? "#ffffff" : "#2557a7",
+        color:variant === "outline" ? "#2557a7" : "#ffffff",
+        borderColor:"#2557a7",
+        borderRadius:"999px",
+        textAlign:"center",
+        fontWeight:"800"
+      }
+    };
+  }
+
+  return base;
+}
+
+function addElement(type,variant="default",extra={}){
+  ensurePages();
+  pushUndo();
+
+  const element = {
+    ...getDefaultElement(type,variant),
+    ...extra,
+    id:uid(),
+    type,
+    variant,
+    pageId:studioState.currentPageId,
+    zIndex:getMaxZ() + 1
+  };
+
+  studioState.elements.push(element);
+  studioState.selectedElementId = element.id;
+
+  renderCanvas();
+  markDirty("element-added");
+
+  setStatus("Element added", "success");
+}
+
+/* =====================================================
+   CANVAS RENDER
+===================================================== */
+
+function renderCanvas(){
+  ensurePages();
+
+  const canvas = byId("editorCanvas");
+  if(!canvas) return;
+
+  canvas.innerHTML = studioState.pages.map((page,index) => {
+    const pageElements = studioState.elements
+      .filter(el => el.pageId === page.id)
+      .sort((a,b) => (a.zIndex || 1) - (b.zIndex || 1));
+
+    return `
+      <section
+        class="canvas-page ${page.id === studioState.currentPageId ? "active-page" : ""} ${studioState.showGrid ? "canvas-grid-visible" : ""}"
+        data-page-id="${page.id}"
+        style="
+          width:${page.width || 1120}px;
+          min-height:${page.height || 1280}px;
+          background:${page.background || "#ffffff"};
+        "
+        onclick="selectPage('${page.id}')"
+      >
+        <div class="page-label">${escapeHtml(page.title || `Page ${index + 1}`)}</div>
+        ${pageElements.map(renderElement).join("")}
+      </section>
+    `;
+  }).join("");
+
+  renderLayers();
+  renderPageThumbs();
+  syncDesignPanel();
+  attachElementEvents();
+}
+
+function renderElement(el){
+  const selected = el.id === studioState.selectedElementId;
+
+  const style = `
+    left:${el.x || 0}px;
+    top:${el.y || 0}px;
+    width:${el.width || 100}px;
+    height:${el.height || 50}px;
+    transform:rotate(${el.rotation || 0}deg);
+    opacity:${el.opacity ?? 1};
+    z-index:${el.zIndex || 1};
+    border-radius:${el.styles?.borderRadius || "12px"};
+  `;
+
+  return `
+    <div
+      class="canvas-element ${selected ? "selected" : ""} ${el.locked ? "locked" : ""}"
+      data-element-id="${el.id}"
+      style="${style}"
+      onmousedown="startElementDrag(event,'${el.id}')"
+      ondblclick="startTextEditing('${el.id}')"
+      oncontextmenu="openElementContextMenu(event,'${el.id}')"
+    >
+      <div
+        class="canvas-content"
+        data-content-id="${el.id}"
+        style="${styleObjectToCss(el.styles)}"
+      >
+        ${renderElementBody(el)}
+      </div>
+
+      ${
+        selected && !el.locked
+          ? `
+            <div class="rotate-line"></div>
+            <div class="rotate-handle" onmousedown="startRotate(event,'${el.id}')"></div>
+            <div class="resize-handle br" onmousedown="startResize(event,'${el.id}')"></div>
+          `
+          : ""
+      }
+    </div>
+  `;
+}
+
+function styleObjectToCss(styles={}){
+  return Object.entries(styles || {})
+    .filter(([key,value]) => value !== undefined && value !== null)
+    .map(([key,value]) => {
+      const cssKey = key.replace(/[A-Z]/g, match => "-" + match.toLowerCase());
+      return `${cssKey}:${value}`;
+    })
+    .join(";");
+}
+
+function renderElementBody(el){
+  const content = escapeHtml(el.content || "").replaceAll("\n","<br>");
+
+  if(el.type === "heading"){
+    return `<div class="canvas-heading">${content}</div>`;
+  }
+
+  if(el.type === "paragraph"){
+    return `<div class="canvas-paragraph">${content}</div>`;
+  }
+
+  if(el.type === "quote"){
+    return `<div class="canvas-quote">${content}</div>`;
+  }
+
+  if(el.type === "list"){
+    return `<div class="canvas-list">${content}</div>`;
+  }
+
+  if(el.type === "shape"){
+    return `<div class="canvas-shape"></div>`;
+  }
+
+  if(el.type === "card"){
+    return `<div class="canvas-card-box">${content}</div>`;
+  }
+
+  if(el.type === "line"){
+    const borderStyle = el.variant === "dashed" ? "dashed" : el.variant === "dotted" ? "dotted" : "solid";
+    const height = el.variant === "thick" ? 6 : 3;
+
+    return `
+      <div class="canvas-line">
+        <span style="height:${height}px;border-top:${height}px ${borderStyle} currentColor;background:transparent;"></span>
+      </div>
+    `;
+  }
+
+  if(el.type === "arrow"){
+    return `<div class="canvas-arrow">${arrowSvg(el.variant)}</div>`;
+  }
+
+  if(el.type === "icon"){
+    return `<div class="canvas-icon">${iconSvg(el.variant)}</div>`;
+  }
+
+  if(el.type === "image"){
+    return el.src
+      ? `<img class="canvas-image" src="${el.src}" alt="" />`
+      : `<div class="canvas-chart-placeholder">Image</div>`;
+  }
+
+  if(el.type === "table"){
+    let rows = [];
+
+    try{
+      rows = JSON.parse(el.content || "[]");
+    }catch(err){
+      rows = [];
+    }
+
+    if(!Array.isArray(rows) || !rows.length){
+      rows = [["Header 1","Header 2"],["Value","Value"]];
+    }
+
+    return `
+      <table class="canvas-table">
+        ${rows.map((row,rowIndex) => `
+          <tr>
+            ${row.map(cell => rowIndex === 0
+              ? `<th>${escapeHtml(cell)}</th>`
+              : `<td>${escapeHtml(cell)}</td>`
+            ).join("")}
+          </tr>
+        `).join("")}
+      </table>
+    `;
+  }
+
+  if(el.type === "chart"){
+    return `
+      <div class="canvas-chart-placeholder">
+        ${escapeHtml(el.content || "Chart")}
+      </div>
+    `;
+  }
+
+  if(el.type === "button"){
+    return `<div class="canvas-button-box">${content}</div>`;
+  }
+
+  return content;
+}
+
+function arrowSvg(type="right"){
+  const paths = {
+    right:`<path d="M4 12h14"></path><path d="m13 5 7 7-7 7"></path>`,
+    left:`<path d="M20 12H6"></path><path d="m11 5-7 7 7 7"></path>`,
+    up:`<path d="M12 20V6"></path><path d="m5 11 7-7 7 7"></path>`,
+    down:`<path d="M12 4v14"></path><path d="m5 13 7 7 7-7"></path>`,
+    double:`<path d="M7 7h10"></path><path d="m13 3 4 4-4 4"></path><path d="M17 17H7"></path><path d="m11 13-4 4 4 4"></path>`,
+    curve:`<path d="M5 19c8 0 14-6 14-14"></path><path d="m14 5h5v5"></path>`
+  };
+
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${paths[type] || paths.right}</svg>`;
+}
+
+function iconSvg(type="check"){
+  const paths = {
+    check:`<path d="m5 12 5 5L20 7"></path>`,
+    star:`<path d="m12 2 3 7 7 .6-5.3 4.7 1.6 7-6.3-3.7-6.3 3.7 1.6-7L2 9.6 9 9z"></path>`,
+    user:`<circle cx="12" cy="8" r="4"></circle><path d="M4 22c2-6 14-6 16 0"></path>`,
+    briefcase:`<rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7V5h8v2"></path><path d="M3 13h18"></path>`,
+    book:`<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M4 4v15.5"></path><path d="M20 4v13"></path><path d="M6.5 4H20"></path>`,
+    globe:`<circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2c3 3 3 17 0 20"></path>`,
+    phone:`<path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 3 5.2 2 2 0 0 1 5 3h3a2 2 0 0 1 2 1.7l.4 2.6a2 2 0 0 1-.6 1.8L8.7 10.2a16 16 0 0 0 5.1 5.1l1.1-1.1a2 2 0 0 1 1.8-.6l2.6.4a2 2 0 0 1 1.7 2Z"></path>`,
+    mail:`<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path>`,
+    award:`<circle cx="12" cy="8" r="5"></circle><path d="M8.5 12.5 7 22l5-3 5 3-1.5-9.5"></path>`,
+    calendar:`<rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4"></path><path d="M8 2v4"></path><path d="M3 10h18"></path>`
+  };
+
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${paths[type] || paths.check}</svg>`;
+}
+
+/* =====================================================
+   EVENTS / DRAG / RESIZE / ROTATE
+===================================================== */
+
+function attachElementEvents(){
+  document.querySelectorAll("[data-content-id]").forEach(content => {
+    content.addEventListener("input", event => {
+      const id = content.dataset.contentId;
+      const el = studioState.elements.find(item => item.id === id);
+      if(!el) return;
+
+      el.content = content.innerText;
+      markDirty("text-edit");
+    });
+
+    content.addEventListener("blur", () => {
+      stopTextEditing();
+    });
+  });
+}
+
+function handleCanvasBackgroundClick(event){
+  const page = event.target.closest(".canvas-page");
+
+  if(page?.dataset?.pageId){
+    studioState.currentPageId = page.dataset.pageId;
+  }
+
+  if(event.target.classList.contains("canvas-page") || event.target.id === "editorCanvas"){
+    studioState.selectedElementId = null;
+    stopTextEditing();
+    renderCanvas();
+  }
+}
+
+function startElementDrag(event,id){
+  const el = studioState.elements.find(item => item.id === id);
+  if(!el || el.locked) return;
+
+  if(studioState.activeEditingElementId === id) return;
+  if(event.target.closest(".resize-handle") || event.target.closest(".rotate-handle")) return;
+
+  event.stopPropagation();
+
+  pushUndo();
+
+  studioState.selectedElementId = id;
+  studioState.currentPageId = el.pageId;
+
+  studioState.isDragging = true;
+  studioState.dragData = {
+    id,
+    startX:event.clientX,
+    startY:event.clientY,
+    originalX:el.x || 0,
+    originalY:el.y || 0
+  };
+
+  renderCanvas();
+}
+
+function startResize(event,id){
+  event.stopPropagation();
+  event.preventDefault();
+
+  const el = studioState.elements.find(item => item.id === id);
+  if(!el || el.locked) return;
+
+  pushUndo();
+
+  studioState.isResizing = true;
+  studioState.resizeData = {
+    id,
+    startX:event.clientX,
+    startY:event.clientY,
+    originalWidth:el.width || 100,
+    originalHeight:el.height || 50
+  };
+}
+
+function startRotate(event,id){
+  event.stopPropagation();
+  event.preventDefault();
+
+  const el = studioState.elements.find(item => item.id === id);
+  if(!el || el.locked) return;
+
+  pushUndo();
+
+  const node = document.querySelector(`[data-element-id="${id}"]`);
+  const rect = node.getBoundingClientRect();
+
+  studioState.isRotating = true;
+  studioState.rotateData = {
+    id,
+    centerX:rect.left + rect.width / 2,
+    centerY:rect.top + rect.height / 2
+  };
+}
+
+document.addEventListener("mousemove", event => {
+  if(studioState.isDragging && studioState.dragData){
+    const el = studioState.elements.find(item => item.id === studioState.dragData.id);
+    if(!el) return;
+
+    let nextX = studioState.dragData.originalX + (event.clientX - studioState.dragData.startX);
+    let nextY = studioState.dragData.originalY + (event.clientY - studioState.dragData.startY);
+
+    if(studioState.snapGuides){
+      nextX = Math.round(nextX / 8) * 8;
+      nextY = Math.round(nextY / 8) * 8;
+    }
+
+    el.x = Math.max(0,nextX);
+    el.y = Math.max(0,nextY);
+
+    updateElementDom(el);
+    syncDesignPanel();
+    markDirty("drag");
+  }
+
+  if(studioState.isResizing && studioState.resizeData){
+    const el = studioState.elements.find(item => item.id === studioState.resizeData.id);
+    if(!el) return;
+
+    let width = studioState.resizeData.originalWidth + (event.clientX - studioState.resizeData.startX);
+    let height = studioState.resizeData.originalHeight + (event.clientY - studioState.resizeData.startY);
+
+    el.width = Math.max(40,width);
+    el.height = Math.max(30,height);
+
+    updateElementDom(el);
+    syncDesignPanel();
+    markDirty("resize");
+  }
+
+  if(studioState.isRotating && studioState.rotateData){
+    const el = studioState.elements.find(item => item.id === studioState.rotateData.id);
+    if(!el) return;
+
+    const angle = Math.atan2(
+      event.clientY - studioState.rotateData.centerY,
+      event.clientX - studioState.rotateData.centerX
+    ) * 180 / Math.PI;
+
+    el.rotation = Math.round(angle + 90);
+
+    updateElementDom(el);
+    syncDesignPanel();
+    markDirty("rotate");
+  }
+});
+
+document.addEventListener("mouseup", () => {
+  studioState.isDragging = false;
+  studioState.isResizing = false;
+  studioState.isRotating = false;
+
+  studioState.dragData = null;
+  studioState.resizeData = null;
+  studioState.rotateData = null;
+});
+
+function updateElementDom(el){
+  const node = document.querySelector(`[data-element-id="${el.id}"]`);
+  if(!node) return;
+
+  node.style.left = `${el.x || 0}px`;
+  node.style.top = `${el.y || 0}px`;
+  node.style.width = `${el.width || 100}px`;
+  node.style.height = `${el.height || 50}px`;
+  node.style.transform = `rotate(${el.rotation || 0}deg)`;
+  node.style.opacity = el.opacity ?? 1;
+  node.style.zIndex = el.zIndex || 1;
+}
+
+/* =====================================================
+   TEXT EDITING
+===================================================== */
+
+function startTextEditing(id){
+  const el = studioState.elements.find(item => item.id === id);
+  if(!el || el.locked || !isTextType(el.type)) return;
+
+  studioState.activeEditingElementId = id;
+  studioState.selectedElementId = id;
+
+  const elementNode = document.querySelector(`[data-element-id="${id}"]`);
+  const contentNode = document.querySelector(`[data-content-id="${id}"]`);
+
+  if(!elementNode || !contentNode) return;
+
+  elementNode.classList.add("editing");
+  contentNode.setAttribute("contenteditable","true");
+  contentNode.focus();
+
+  const range = document.createRange();
+  range.selectNodeContents(contentNode);
+  range.collapse(false);
+
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function stopTextEditing(){
+  if(!studioState.activeEditingElementId) return;
+
+  const id = studioState.activeEditingElementId;
+  const contentNode = document.querySelector(`[data-content-id="${id}"]`);
+  const elementNode = document.querySelector(`[data-element-id="${id}"]`);
+
+  if(contentNode){
+    contentNode.removeAttribute("contenteditable");
+  }
+
+  if(elementNode){
+    elementNode.classList.remove("editing");
+  }
+
+  studioState.activeEditingElementId = null;
+}
+
+/* =====================================================
+   DESIGN / STYLE
+===================================================== */
+
+function syncDesignPanel(){
+  const el = getSelectedElement();
+
+  if(!el) return;
+
+  if(byId("propX")) byId("propX").value = Math.round(el.x || 0);
+  if(byId("propY")) byId("propY").value = Math.round(el.y || 0);
+  if(byId("propWidth")) byId("propWidth").value = Math.round(el.width || 0);
+  if(byId("propHeight")) byId("propHeight").value = Math.round(el.height || 0);
+  if(byId("propRotation")) byId("propRotation").value = Math.round(el.rotation || 0);
+  if(byId("propOpacity")) byId("propOpacity").value = el.opacity ?? 1;
+
+  const radius = parseInt(el.styles?.borderRadius || "0",10);
+  if(byId("propRadius")) byId("propRadius").value = Number.isFinite(radius) ? radius : 0;
+}
+
+function updateSelectedNumber(prop,value){
+  const el = getSelectedElement();
+  if(!el) return;
+
+  pushUndo();
+
+  if(prop === "opacity"){
+    el[prop] = clamp(Number(value),0.1,1);
+  }else{
+    el[prop] = safeNumber(value,el[prop] || 0);
+  }
+
+  renderCanvas();
+  markDirty("property-update");
+}
+
+function applySelectedStyle(prop,value){
+  const el = getSelectedElement();
+  if(!el) return;
+
+  pushUndo();
+
+  el.styles = el.styles || {};
+  el.styles[prop] = value;
+
+  renderCanvas();
+  markDirty("style-update");
+}
+
+function applyRadiusPreset(value){
+  if(!value) return;
+  applySelectedStyle("borderRadius",value);
+}
+
+function removeSelectedBackground(){
+  applySelectedStyle("background","transparent");
+}
+
+function toggleTextStyle(action){
+  const el = getSelectedElement();
+  if(!el) return;
+
+  pushUndo();
+  el.styles = el.styles || {};
+
+  if(action === "bold"){
+    el.styles.fontWeight = String(el.styles.fontWeight) === "800" || String(el.styles.fontWeight) === "700" ? "500" : "800";
+  }
+
+  if(action === "italic"){
+    el.styles.fontStyle = el.styles.fontStyle === "italic" ? "normal" : "italic";
+  }
+
+  if(action === "underline"){
+    el.styles.textDecoration = el.styles.textDecoration === "underline" ? "none" : "underline";
+  }
+
+  if(action === "uppercase"){
+    el.styles.textTransform = el.styles.textTransform === "uppercase" ? "none" : "uppercase";
+  }
+
+  renderCanvas();
+  markDirty("text-style");
+}
+
+/* =====================================================
+   ARRANGE
+===================================================== */
+
+function duplicateSelected(){
+  const el = getSelectedElement();
+  if(!el) return;
+
+  pushUndo();
+
+  const copy = {
+    ...deepClone(el),
+    id:uid(),
+    x:(el.x || 0) + 28,
+    y:(el.y || 0) + 28,
+    zIndex:getMaxZ() + 1
+  };
+
+  studioState.elements.push(copy);
+  studioState.selectedElementId = copy.id;
+
+  renderCanvas();
+  markDirty("duplicate");
+}
+
+function deleteSelected(){
+  const el = getSelectedElement();
+  if(!el) return;
+
+  pushUndo();
+
+  studioState.elements = studioState.elements.filter(item => item.id !== el.id);
+  studioState.selectedElementId = null;
+
+  renderCanvas();
+  markDirty("delete");
+}
+
+function bringForward(){
+  const el = getSelectedElement();
+  if(!el) return;
+
+  pushUndo();
+  el.zIndex = (el.zIndex || 1) + 1;
+
+  renderCanvas();
+  markDirty("bring-forward");
+}
+
+function sendBackward(){
+  const el = getSelectedElement();
+  if(!el) return;
+
+  pushUndo();
+  el.zIndex = Math.max(1,(el.zIndex || 1) - 1);
+
+  renderCanvas();
+  markDirty("send-backward");
+}
+
+function lockSelected(){
+  const el = getSelectedElement();
+  if(!el) return;
+
+  pushUndo();
+  el.locked = !el.locked;
+
+  renderCanvas();
+  markDirty("lock");
+}
+
+function alignSelected(position){
+  const el = getSelectedElement();
+  const page = getCurrentPage();
+
+  if(!el || !page) return;
+
+  pushUndo();
+
+  if(position === "center"){
+    el.x = Math.round(((page.width || 1120) - (el.width || 100)) / 2);
+  }
+
+  renderCanvas();
+  markDirty("align");
+}
+
+/* =====================================================
+   CONTEXT MENU
+===================================================== */
+
+function openCanvasContextMenu(event){
+  event.preventDefault();
+}
+
+function openElementContextMenu(event,id){
+  event.preventDefault();
+  event.stopPropagation();
+
+  studioState.selectedElementId = id;
+
+  const menu = byId("studioContextMenu");
+  if(!menu) return;
+
+  menu.style.left = `${event.clientX}px`;
+  menu.style.top = `${event.clientY}px`;
+  menu.classList.add("open");
+
+  renderCanvas();
+}
+
+document.addEventListener("click", event => {
+  if(!event.target.closest("#studioContextMenu")){
+    byId("studioContextMenu")?.classList.remove("open");
+  }
+});
+
+function closeContextMenu(){
+  byId("studioContextMenu")?.classList.remove("open");
+}
+
+function contextDuplicate(){ duplicateSelected(); closeContextMenu(); }
+function contextBringForward(){ bringForward(); closeContextMenu(); }
+function contextSendBackward(){ sendBackward(); closeContextMenu(); }
+function contextLockUnlock(){ lockSelected(); closeContextMenu(); }
+function contextEditText(){ const el = getSelectedElement(); if(el) startTextEditing(el.id); closeContextMenu(); }
+function contextCopyStyle(){ const el = getSelectedElement(); if(el){ studioState.copiedStyle = deepClone(el.styles || {}); setStatus("Style copied","success"); } closeContextMenu(); }
+function contextPasteStyle(){ const el = getSelectedElement(); if(el && studioState.copiedStyle){ pushUndo(); el.styles = deepClone(studioState.copiedStyle); renderCanvas(); markDirty("paste-style"); } closeContextMenu(); }
+function contextRemoveBackground(){ removeSelectedBackground(); closeContextMenu(); }
+function contextMakeSquareCorners(){ applyRadiusPreset("0px"); closeContextMenu(); }
+function contextMakeRoundedCorners(){ applyRadiusPreset("24px"); closeContextMenu(); }
+function contextDelete(){ deleteSelected(); closeContextMenu(); }
+
+/* =====================================================
+   IMAGE UPLOAD
+===================================================== */
+
+function openDeviceImagePicker(){
+  byId("deviceImageInput")?.click();
+}
+
+function handleDeviceImageSelected(event){
+  const file = event.target.files?.[0];
+
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    addElement("image","upload",{
+      src:reader.result,
+      content:file.name || "Uploaded image"
+    });
+
+    event.target.value = "";
+    setStatus("Image uploaded as draft preview", "success");
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function confirmAddImageUrl(){
+  const url = byId("imageUrlInput")?.value?.trim();
+
+  if(!url){
+    setStatus("Please add an image URL", "warning");
+    return;
+  }
+
+  addElement("image","url",{
+    src:url,
+    content:url
+  });
+
+  closeModal("imageUrlModal");
+}
+
+/* =====================================================
+   TEMPLATES
+===================================================== */
+
+const STUDIO_TEMPLATES = [
+  "Modern CV",
+  "BPO Resume",
+  "Business Presentation",
+  "Class Presentation",
+  "Lesson Plan",
+  "Certificate",
+  "Company Profile",
+  "Job Application CV",
+  "Portfolio",
+  "Training Proposal"
+];
+
+function renderTemplateSidebar(){
+  const sidebar = byId("templateSidebarGrid");
+  const modal = byId("templateLibraryGrid");
+
+  const html = STUDIO_TEMPLATES.map(name => templateCardHtml(name,"mini")).join("");
+
+  if(sidebar) sidebar.innerHTML = html;
+  if(modal) modal.innerHTML = STUDIO_TEMPLATES.map(name => templateCardHtml(name,"modal")).join("");
+}
+
+function templateCardHtml(name,mode="mini"){
+  const cls = mode === "mini" ? "template-mini-card" : "template-card";
+  const preview = mode === "mini" ? "template-mini-preview" : "template-preview";
+
+  return `
+    <button class="${cls}" onclick="applyTemplate('${name.replaceAll("'","\\'")}')">
+      <div class="${preview}">
+        ${templatePreviewSvg(name)}
+      </div>
+      <div class="${mode === "mini" ? "template-mini-body" : ""}">
+        <div class="${mode === "mini" ? "template-mini-title" : "template-title"}">${escapeHtml(name)}</div>
+        <div class="${mode === "mini" ? "template-mini-meta" : "template-meta"}">Visual template preview</div>
+      </div>
+    </button>
+  `;
+}
+
+function templatePreviewSvg(name){
+  return `
+    <svg viewBox="0 0 320 190" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="8" width="304" height="174" rx="16" fill="#ffffff" stroke="#e5e7eb"/>
+      <rect x="24" y="24" width="${name.includes("Presentation") ? "272" : "88"}" height="22" rx="6" fill="#eef4ff"/>
+      <rect x="24" y="58" width="128" height="10" rx="5" fill="#bfd3ff"/>
+      <rect x="24" y="78" width="102" height="10" rx="5" fill="#dbeafe"/>
+      ${
+        name.includes("CV") || name.includes("Resume")
+          ? `<circle cx="250" cy="52" r="28" fill="#f3f0ff" stroke="#6d5dfc"/>
+             <rect x="24" y="112" width="250" height="8" rx="4" fill="#e5e7eb"/>
+             <rect x="24" y="132" width="220" height="8" rx="4" fill="#e5e7eb"/>
+             <rect x="24" y="152" width="180" height="8" rx="4" fill="#e5e7eb"/>`
+          : name.includes("Certificate")
+            ? `<rect x="58" y="78" width="204" height="52" rx="10" fill="#fffbeb" stroke="#f59e0b"/>
+               <circle cx="250" cy="145" r="18" fill="#fef3c7" stroke="#f59e0b"/>`
+            : `<rect x="182" y="70" width="90" height="74" rx="12" fill="#f3f0ff" stroke="#6d5dfc"/>
+               <rect x="24" y="112" width="128" height="8" rx="4" fill="#e5e7eb"/>
+               <rect x="24" y="132" width="104" height="8" rx="4" fill="#e5e7eb"/>`
+      }
+    </svg>
+  `;
+}
+
+function applyTemplate(name){
+  ensurePages();
+  pushUndo();
+
+  studioState.pages = [createPage("Page 1")];
+  studioState.currentPageId = studioState.pages[0].id;
+  studioState.elements = [];
+
+  if(name.includes("CV") || name.includes("Resume")){
+    seedCvTemplate(name);
+  }else if(name.includes("Presentation")){
+    seedPresentationTemplate(name);
+  }else if(name.includes("Certificate")){
+    seedCertificateTemplate(name);
+  }else{
+    seedGeneralTemplate(name);
+  }
+
+  renderCanvas();
+  markDirty("template-applied");
+  setStatus(`${name} template applied`, "success");
+}
+
+function addTemplateElement(type,variant,props){
+  const el = {
+    ...getDefaultElement(type,variant),
+    ...props,
+    id:uid(),
+    pageId:studioState.currentPageId,
+    zIndex:getMaxZ() + 1,
+    styles:{
+      ...getDefaultElement(type,variant).styles,
+      ...(props.styles || {})
+    }
+  };
+
+  studioState.elements.push(el);
+}
+
+function seedCvTemplate(name){
+  addTemplateElement("shape","banner",{
+    x:0,y:0,width:1120,height:220,
+    styles:{background:"#eef4ff",borderRadius:"0px",borderColor:"transparent"}
+  });
+
+  addTemplateElement("heading","default",{
+    x:70,y:60,width:560,height:70,
+    content:name,
+    styles:{background:"transparent",borderColor:"transparent",fontSize:"44px",fontWeight:"800",color:"#111827"}
+  });
+
+  addTemplateElement("paragraph","default",{
+    x:72,y:130,width:600,height:70,
+    content:"Customer Service Professional | Bilingual Support | Remote Operations",
+    styles:{background:"transparent",borderColor:"transparent",fontSize:"18px",color:"#475467"}
+  });
+
+  addTemplateElement("shape","circle",{
+    x:850,y:46,width:130,height:130,
+    styles:{background:"#f3f0ff",borderRadius:"999px",borderColor:"#6d5dfc"}
+  });
+
+  addTemplateElement("card","simple",{
+    x:70,y:280,width:460,height:260,
+    content:"Professional Summary\nExperienced bilingual customer service professional with strong communication, CRM, chat support, and client handling skills.",
+    styles:{padding:"22px",borderRadius:"18px",fontSize:"18px",lineHeight:"1.6"}
+  });
+
+  addTemplateElement("card","simple",{
+    x:590,y:280,width:460,height:260,
+    content:"Core Skills\n• Customer Support\n• BPO Operations\n• French / English Communication\n• CRM Tools\n• Problem Solving",
+    styles:{padding:"22px",borderRadius:"18px",fontSize:"18px",lineHeight:"1.7"}
+  });
+}
+
+function seedPresentationTemplate(name){
+  addTemplateElement("shape","banner",{
+    x:70,y:80,width:980,height:420,
+    styles:{background:"#eef4ff",borderRadius:"28px",borderColor:"#bfd3ff"}
+  });
+
+  addTemplateElement("heading","default",{
+    x:130,y:160,width:720,height:100,
+    content:name,
+    styles:{background:"transparent",borderColor:"transparent",fontSize:"56px",fontWeight:"800",color:"#111827"}
+  });
+
+  addTemplateElement("paragraph","default",{
+    x:134,y:280,width:680,height:120,
+    content:"A clean AIFT presentation template for lessons, business proposals, and training content.",
+    styles:{background:"transparent",borderColor:"transparent",fontSize:"22px",color:"#475467",lineHeight:"1.55"}
+  });
+
+  addTemplateElement("button","primary",{
+    x:135,y:410,width:220,height:58,
+    content:"Start Learning"
+  });
+}
+
+function seedCertificateTemplate(name){
+  addTemplateElement("shape","rectangle",{
+    x:90,y:120,width:940,height:760,
+    styles:{background:"#ffffff",borderRadius:"0px",borderColor:"#f59e0b",borderWidth:"3px"}
+  });
+
+  addTemplateElement("heading","default",{
+    x:180,y:220,width:760,height:80,
+    content:"Certificate of Completion",
+    styles:{background:"transparent",borderColor:"transparent",textAlign:"center",fontSize:"48px",fontWeight:"800",color:"#111827"}
+  });
+
+  addTemplateElement("paragraph","default",{
+    x:250,y:340,width:620,height:170,
+    content:"This certificate is proudly awarded to\n\nStudent Name\n\nfor successfully completing the training program.",
+    styles:{background:"transparent",borderColor:"transparent",textAlign:"center",fontSize:"24px",lineHeight:"1.6"}
+  });
+
+  addTemplateElement("icon","award",{
+    x:500,y:560,width:120,height:120,
+    styles:{color:"#f59e0b",background:"transparent",borderColor:"transparent"}
+  });
+}
+
+function seedGeneralTemplate(name){
+  addTemplateElement("heading","default",{
+    x:80,y:90,width:760,height:80,
+    content:name,
+    styles:{background:"transparent",borderColor:"transparent",fontSize:"46px",fontWeight:"800"}
+  });
+
+  addTemplateElement("paragraph","default",{
+    x:84,y:180,width:760,height:100,
+    content:"Use this layout to build your AIFT learning content, proposal, profile, or portfolio.",
+    styles:{background:"transparent",borderColor:"transparent",fontSize:"20px",lineHeight:"1.6",color:"#475467"}
+  });
+
+  addTemplateElement("card","simple",{
+    x:80,y:340,width:460,height:260,
+    content:"Section One\nAdd your key information here.",
+    styles:{padding:"24px",fontSize:"19px",lineHeight:"1.7"}
+  });
+
+  addTemplateElement("card","simple",{
+    x:590,y:340,width:460,height:260,
+    content:"Section Two\nAdd supporting details here.",
+    styles:{padding:"24px",fontSize:"19px",lineHeight:"1.7"}
+  });
+}
+
+function openTemplateLibrary(){
+  renderTemplateSidebar();
+  openModal("templateLibraryModal");
+}
+
+/* =====================================================
+   SAVED PROJECTS
+===================================================== */
+
+function getSavedProjects(){
+  try{
+    return JSON.parse(localStorage.getItem(getProjectsStorageKey()) || "[]");
+  }catch(err){
+    return [];
+  }
+}
+
+function setSavedProjects(projects){
+  localStorage.setItem(getProjectsStorageKey(), JSON.stringify(projects || []));
+}
+
+function saveAsNamedProject(){
+  const title = prompt("Project name", `${QUERY.scope || "AIFT"} Project`);
+  if(!title) return;
+
+  const projects = getSavedProjects();
+
+  projects.unshift({
+    id:"project_" + Date.now(),
+    title,
+    scope:QUERY.scope || "visual",
+    savedAt:new Date().toISOString(),
+    elements:deepClone(studioState.elements),
+    pages:deepClone(studioState.pages),
+    currentPageId:studioState.currentPageId
+  });
+
+  setSavedProjects(projects.slice(0,30));
+  renderSavedProjectsPanel();
+
+  setStatus("Project saved", "success");
+}
+
+function renderSavedProjectsPanel(){
+  const panel = byId("savedProjectsPanel");
+  const modal = byId("savedProjectsGrid");
+  const projects = getSavedProjects();
+
+  const html = projects.length
+    ? projects.map(projectCardHtml).join("")
+    : `<div class="form-help">No saved projects yet.</div>`;
+
+  if(panel) panel.innerHTML = html;
+  if(modal) modal.innerHTML = html;
+}
+
+function projectCardHtml(project){
+  return `
+    <div class="project-mini-card">
+      <div class="project-mini-preview">
+        ${renderProjectPreview(project)}
+      </div>
+      <div class="project-mini-body">
+        <div class="project-mini-title">${escapeHtml(project.title || "Untitled Project")}</div>
+        <div class="project-mini-meta">${escapeHtml(project.scope || "visual")} • ${formatDate(project.savedAt)}</div>
+        <div class="project-mini-actions">
+          <button class="btn-soft" onclick="loadSavedProject('${project.id}')">Load</button>
+          <button class="btn-danger" onclick="deleteSavedProject('${project.id}')">Delete</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderProjectPreview(project){
+  const elements = Array.isArray(project.elements) ? project.elements.slice(0,16) : [];
+
+  return elements.map(el => {
+    const left = ((el.x || 0) / 1120) * 100;
+    const top = ((el.y || 0) / 1280) * 100;
+    const width = ((el.width || 100) / 1120) * 100;
+    const height = ((el.height || 50) / 1280) * 100;
+
+    return `
+      <span style="
+        position:absolute;
+        left:${left}%;
+        top:${top}%;
+        width:${width}%;
+        height:${height}%;
+        background:${el.styles?.background || "#dbeafe"};
+        border:1px solid ${el.styles?.borderColor || "#bfd3ff"};
+        border-radius:4px;
+      "></span>
+    `;
+  }).join("");
+}
+
+function loadSavedProject(projectId){
+  const project = getSavedProjects().find(item => item.id === projectId);
+  if(!project) return;
+
+  pushUndo();
+
+  studioState.elements = deepClone(project.elements || []);
+  studioState.pages = deepClone(project.pages || []);
+  studioState.currentPageId = project.currentPageId || null;
+  studioState.selectedElementId = null;
+
+  ensurePages();
+  renderCanvas();
+  closeModal("savedProjectsModal");
+  markDirty("project-loaded");
+
+  setStatus("Project loaded", "success");
+}
+
+function deleteSavedProject(projectId){
+  const projects = getSavedProjects().filter(item => item.id !== projectId);
+  setSavedProjects(projects);
+  renderSavedProjectsPanel();
+  setStatus("Project deleted", "success");
+}
+
+function openSavedProjects(){
+  renderSavedProjectsPanel();
+  openModal("savedProjectsModal");
+}
+
+/* =====================================================
+   LAYERS
+===================================================== */
+
+function renderLayers(){
+  const list = byId("layerList");
+  if(!list) return;
+
+  const currentPageId = studioState.currentPageId;
+
+  const layers = studioState.elements
+    .filter(el => el.pageId === currentPageId)
+    .slice()
+    .sort((a,b) => (b.zIndex || 1) - (a.zIndex || 1));
+
+  if(!layers.length){
+    list.innerHTML = `<div class="form-help">No layers yet.</div>`;
+    return;
+  }
+
+  list.innerHTML = layers.map(el => `
+    <button
+      class="layer-item ${el.id === studioState.selectedElementId ? "active" : ""}"
+      onclick="studioState.selectedElementId='${el.id}'; renderCanvas();"
+    >
+      <div class="layer-main">
+        <div class="layer-name">${escapeHtml(el.content || el.variant || el.type)}</div>
+        <div class="layer-meta">${escapeHtml(el.type)} • z ${el.zIndex || 1}${el.locked ? " • locked" : ""}</div>
+      </div>
+    </button>
+  `).join("");
+}
+
+/* =====================================================
+   CANVAS SETTINGS / EXPORT
+===================================================== */
+
+function toggleCanvasGrid(){
+  studioState.showGrid = !studioState.showGrid;
+  renderCanvas();
+  markDirty("grid-toggle");
+}
+
+function toggleSnapGuides(){
+  studioState.snapGuides = !studioState.snapGuides;
+  setStatus(studioState.snapGuides ? "Snap enabled" : "Snap disabled", "success");
+}
+
+function zoomCanvas(amount){
+  studioState.zoom = clamp((studioState.zoom || 1) + amount,0.5,1.4);
+
+  document.querySelectorAll(".canvas-page").forEach(page => {
+    page.style.transform = `scale(${studioState.zoom})`;
+  });
+
+  setStatus(`Zoom ${Math.round(studioState.zoom * 100)}%`);
+}
+
+function exportProject(type){
+  if(type === "pdf"){
+    window.print();
+    return;
+  }
+
+  setStatus(`${type.toUpperCase()} export can be connected later`, "warning");
+}
+
+function shareProject(){
+  navigator.clipboard?.writeText(window.location.href);
+  setStatus("Studio link copied", "success");
+}
+
+/* =====================================================
+   SAVE
+===================================================== */
+
+function saveDraft(){
+  try{
+    ensurePages();
+
+    const payload = {
+      elements:studioState.elements,
+      pages:studioState.pages,
+      currentPageId:studioState.currentPageId,
+      updatedAt:new Date().toISOString()
+    };
+
+    localStorage.setItem(getDraftStorageKey(), JSON.stringify(payload));
+
+    const versions = JSON.parse(localStorage.getItem(getVersionStorageKey()) || "[]");
+
+    versions.unshift({
+      id:"version_" + Date.now(),
+      name:`Draft ${new Date().toLocaleString()}`,
+      savedAt:new Date().toISOString(),
+      ...payload
+    });
+
+    localStorage.setItem(getVersionStorageKey(), JSON.stringify(versions.slice(0,20)));
+
+    studioState.isDirty = false;
+    renderSavedProjectsPanel();
+    showVersionHistory(false);
+
+    setStatus("Draft saved", "success");
+  }catch(err){
+    console.error("saveDraft error:", err);
+    setStatus("Draft save failed", "error");
+  }
+}
+
+async function saveAllStudio(event){
+  if(event) event.preventDefault();
+
+  try{
+    setStatus("Saving studio...");
+
+    await saveNormalContent();
+    await saveVisualContent();
+
+    saveDraft();
+
+    studioState.isDirty = false;
+
+    setStatus("Studio saved to class builder", "success");
+  }catch(err){
+    console.error("saveAllStudio error:", err);
+    setStatus(err.message || "Save failed", "error");
+  }
+}
+
+async function saveNormalContent(){
+  if(!QUERY.classId) return null;
+
+  const payload = collectNormalPayload();
+
+  if(QUERY.scope === "lesson" && QUERY.ownerId){
+    return apiSend(
+      `/api/classes/${encodeURIComponent(QUERY.classId)}/builder/lesson/${encodeURIComponent(QUERY.ownerId)}`,
+      "PATCH",
+      payload
+    );
+  }
+
+  if(QUERY.scope === "quiz" && QUERY.ownerId){
+    return apiSend(
+      `/api/classes/${encodeURIComponent(QUERY.classId)}/builder/quiz/${encodeURIComponent(QUERY.ownerId)}`,
+      "PATCH",
+      payload
+    );
+  }
+
+  return apiSend(
+    `/api/classes/${encodeURIComponent(QUERY.classId)}/builder`,
+    "PATCH",
+    payload
+  );
+}
+
+async function saveVisualContent(){
+  if(!QUERY.classId) return null;
+
+  ensurePages();
+
+  const visualBlock = {
+    scope:QUERY.scope || "welcome",
+    ownerId:QUERY.ownerId || "main",
+    type:"visual",
+    content:JSON.stringify({
+      elements:studioState.elements,
+      pages:studioState.pages,
+      currentPageId:studioState.currentPageId,
+      updatedAt:new Date().toISOString()
+    })
+  };
+
+  return apiSend(
+    `/api/classes/${encodeURIComponent(QUERY.classId)}/builder`,
+    "PATCH",
+    {
+      contentBlocks:[visualBlock]
+    }
+  );
+}
+
+function showVersionHistory(showStatus=true){
+  const list = byId("versionList");
+  if(!list) return;
+
+  let versions = [];
+
+  try{
+    versions = JSON.parse(localStorage.getItem(getVersionStorageKey()) || "[]");
+  }catch(err){
+    versions = [];
+  }
+
+  if(!versions.length){
+    list.innerHTML = "No versions yet.";
+    return;
+  }
+
+  list.innerHTML = versions.map(version => `
+    <div class="version-item">
+      <div class="version-main">
+        <div class="version-name">${escapeHtml(version.name || "Draft")}</div>
+        <div class="version-meta">${formatDate(version.savedAt)}</div>
+      </div>
+      <button class="btn-soft" onclick="restoreVersion('${version.id}')">Restore</button>
+    </div>
+  `).join("");
+
+  if(showStatus) setStatus("Versions refreshed", "success");
+}
+
+function restoreVersion(versionId){
+  let versions = [];
+
+  try{
+    versions = JSON.parse(localStorage.getItem(getVersionStorageKey()) || "[]");
+  }catch(err){
+    versions = [];
+  }
+
+  const version = versions.find(item => item.id === versionId);
+  if(!version) return;
+
+  pushUndo();
+
+  studioState.elements = deepClone(version.elements || []);
+  studioState.pages = deepClone(version.pages || []);
+  studioState.currentPageId = version.currentPageId || null;
+
+  ensurePages();
+  renderCanvas();
+  markDirty("version-restored");
+
+  setStatus("Version restored", "success");
+}
+
+/* =====================================================
+   SEED VISUAL FROM NORMAL
+===================================================== */
+
+function seedVisualFromNormal(){
+  ensurePages();
+  pushUndo();
+
+  const payload = collectNormalPayload();
+
+  addTemplateElement("heading","default",{
+    x:80,
+    y:90,
+    width:760,
+    height:80,
+    content:payload.title || "AIFT Lesson Content",
+    styles:{background:"transparent",borderColor:"transparent",fontSize:"44px",fontWeight:"800"}
+  });
+
+  addTemplateElement("paragraph","default",{
+    x:84,
+    y:190,
+    width:760,
+    height:260,
+    content:payload.welcomeContent || payload.content || payload.description || payload.instructions || "Your content will appear here.",
+    styles:{background:"transparent",borderColor:"transparent",fontSize:"20px",lineHeight:"1.65",color:"#374151"}
+  });
+
+  switchMode("visual");
+  renderCanvas();
+  markDirty("seed-from-normal");
+
+  setStatus("Normal content sent to canvas", "success");
+}
+
+function renderNormalVisualPreview(){
+  const mount = byId("normalVisualPreview");
+  if(!mount) return;
+
+  if(!studioState.elements.length){
+    mount.innerHTML = "No visual content saved yet.";
+    return;
+  }
+
+  mount.innerHTML = `
+    <div class="project-mini-card" style="max-width:360px;">
+      <div class="project-mini-preview">
+        ${renderProjectPreview({
+          elements:studioState.elements
+        })}
+      </div>
+      <div class="project-mini-body">
+        <div class="project-mini-title">Current Visual Draft</div>
+        <div class="project-mini-meta">${studioState.elements.length} elements • ${studioState.pages.length} page(s)</div>
+      </div>
+    </div>
+  `;
+}
+
+/* =====================================================
+   DRAG DROP PLACEHOLDERS
+===================================================== */
+
+function handleEditorDragOver(event){
+  event.preventDefault();
+}
+
+function handleEditorDrop(event){
+  event.preventDefault();
+}
+
+/* =====================================================
+   INIT
+===================================================== */
+
+document.addEventListener("keydown", event => {
+  if((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s"){
+    event.preventDefault();
+    saveAllStudio(event);
+  }
+
+  if((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z"){
+    event.preventDefault();
+    undoEditor();
+  }
+
+  if((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "y"){
+    event.preventDefault();
+    redoEditor();
+  }
+
+  if(event.key === "Delete" || event.key === "Backspace"){
+    if(studioState.activeEditingElementId) return;
+    if(document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+    deleteSelected();
+  }
+});
+
+window.addEventListener("beforeunload", event => {
+  if(studioState.isDirty){
+    event.preventDefault();
+    event.returnValue = "";
+  }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  updateStudioHeading();
+  ensurePages();
+  renderCanvas();
+  renderTemplateSidebar();
+  renderSavedProjectsPanel();
+  showVersionHistory(false);
+  loadBuilderData();
+});
+
+
 /* =====================================================
    UNDO / REDO
 ===================================================== */
