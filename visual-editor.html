@@ -5424,96 +5424,43 @@ function buildVisualPayload(){
   };
 }
 
-function getExistingContentBlocks(){
-  const cls = studioState.classData || {};
-
-  if(Array.isArray(cls.contentBlocks)){
-    return cls.contentBlocks;
-  }
-
-  return [];
-}
-
 function saveDraft(){
-  try{
-    const payload = buildVisualPayload();
+  const payload = buildVisualPayload();
 
-    localStorage.setItem(
-      getDraftStorageKey(),
-      JSON.stringify(payload)
-    );
+  localStorage.setItem(getDraftStorageKey(), JSON.stringify(payload));
 
-    const versions = JSON.parse(
-      localStorage.getItem(getVersionStorageKey()) || "[]"
-    );
-
-    versions.unshift({
-      id:"version_" + Date.now(),
-      name:`Draft ${new Date().toLocaleString()}`,
-      savedAt:new Date().toISOString(),
-      ...payload
-    });
-
-    localStorage.setItem(
-      getVersionStorageKey(),
-      JSON.stringify(versions.slice(0,20))
-    );
-
-    studioState.isDirty = false;
-
-    renderSavedProjectsPanel?.();
-    showVersionHistory?.(false);
-
-    setStatus("Draft saved", "success");
-  }catch(err){
-    console.error("saveDraft error:", err);
-    setStatus("Draft save failed", "error");
-  }
+  studioState.isDirty = false;
+  setStatus("Draft saved locally", "success");
 }
 
 async function saveAllStudio(event){
   if(event) event.preventDefault();
 
   try{
-    setStatus("Saving studio...");
-
-    if(!QUERY.classId){
-      throw new Error("Missing class ID");
-    }
-
-    let normalSaved = false;
-    let visualSaved = false;
-
-    try{
-      await saveNormalContent();
-      normalSaved = true;
-    }catch(normalErr){
-      console.warn("Normal save failed, continuing visual save:", normalErr);
-    }
-
-    await saveVisualContent();
-    visualSaved = true;
+    setStatus("Saving...");
 
     saveDraft();
 
-    studioState.isDirty = false;
+    if(QUERY.scope === "lesson" && QUERY.ownerId){
+      await saveNormalContent();
+      setStatus("Lesson saved", "success");
+      return;
+    }
 
-    setStatus(
-      normalSaved && visualSaved
-        ? "Studio saved to class builder"
-        : "Visual saved. Normal text had an issue.",
-      normalSaved && visualSaved ? "success" : "warning"
-    );
+    if(QUERY.scope === "quiz" && QUERY.ownerId){
+      await saveNormalContent();
+      setStatus("Quiz saved", "success");
+      return;
+    }
+
+    await saveVisualContentOnly();
+
+    setStatus("Visual content saved", "success");
 
   }catch(err){
     console.error("saveAllStudio error:", err);
-
     saveDraft();
-
-    setStatus(
-      "Backend save failed, but draft was saved locally",
-      "error"
-    );
+    setStatus("Backend failed, but draft saved locally", "error");
   }
 }
 
@@ -5538,61 +5485,28 @@ async function saveNormalContent(){
     );
   }
 
-  /*
-    IMPORTANT:
-    For welcome/outcomes/curriculum, only send fields that exist in your normal form.
-    This avoids sending strange empty data to the builder route.
-  */
+  return null;
+}
+
+async function saveVisualContentOnly(){
+  if(!QUERY.classId) return null;
+
+  const visualPayload = buildVisualPayload();
+
+  const visualBlock = {
+    scope: QUERY.scope || "welcome",
+    ownerId: QUERY.ownerId || "main",
+    type: "visual",
+    content: JSON.stringify(visualPayload)
+  };
+
   return apiSend(
     `/api/classes/${encodeURIComponent(QUERY.classId)}/builder`,
     "PATCH",
-    payload
-  );
-}
-
-async function saveVisualContent(){
-  if(!QUERY.classId) return null;
-
-  const existingBlocks = getExistingContentBlocks();
-  const visualPayload = buildVisualPayload();
-
-  const scope = QUERY.scope || "welcome";
-  const ownerId = QUERY.ownerId || "main";
-
-  const filteredBlocks = existingBlocks.filter(block => {
-    return !(
-      String(block.scope || "") === String(scope) &&
-      String(block.ownerId || "main") === String(ownerId) &&
-      String(block.type || "") === "visual"
-    );
-  });
-
-  const nextBlocks = [
-    ...filteredBlocks,
     {
-      blockId:["visual", scope, ownerId].join("_"),
-      scope,
-      ownerId,
-      type:"visual",
-      content:JSON.stringify(visualPayload),
-      order:filteredBlocks.length,
-      updatedAt:new Date().toISOString()
-    }
-  ];
-
-  const data = await apiSend(
-    `/api/classes/${encodeURIComponent(QUERY.classId)}/builder`,
-    "PATCH",
-    {
-      contentBlocks:nextBlocks,
-      contentBlocksUpdatedAt:new Date().toISOString()
+      visualBlock
     }
   );
-
-  studioState.classData =
-    data?.class || data || studioState.classData;
-
-  return data;
 }
 
 function showVersionHistory(showStatus=true){
