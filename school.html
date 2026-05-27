@@ -1909,6 +1909,156 @@ body.focus-students #section-students .card{
     grid-template-columns:1fr;
   }
 }
+  /* TEACHERS TAB — FULL WIDTH 4-COLUMN PREMIUM GRID */
+
+body.focus-teachers .main-grid{
+  grid-template-columns:1fr !important;
+}
+
+body.focus-teachers .left-col,
+body.focus-teachers .right-col{
+  display:none !important;
+}
+
+body.focus-teachers .center-col{
+  width:100%;
+  max-width:none;
+}
+
+#teachersList.student-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:18px;
+}
+
+.teacher-premium-card{
+  border:1px solid var(--border);
+  border-radius:24px;
+  background:#fff;
+  overflow:hidden;
+  box-shadow:var(--shadow-soft);
+  transition:.18s ease;
+}
+
+.teacher-premium-card:hover{
+  transform:translateY(-3px);
+  box-shadow:var(--shadow);
+  border-color:#bfd3ff;
+}
+
+.teacher-premium-cover{
+  height:82px;
+  background:linear-gradient(135deg,#16437f,#2557a7);
+  position:relative;
+}
+
+.teacher-premium-avatar{
+  width:78px;
+  height:78px;
+  border-radius:22px;
+  border:4px solid #fff;
+  object-fit:cover;
+  background:#eef4ff;
+  position:absolute;
+  left:18px;
+  bottom:-36px;
+  box-shadow:0 10px 24px rgba(15,23,42,.16);
+}
+
+.teacher-premium-body{
+  padding:46px 16px 16px;
+}
+
+.teacher-premium-name{
+  margin:0;
+  font-size:.98rem;
+  font-weight:800;
+  letter-spacing:-.02em;
+}
+
+.teacher-premium-email{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:.78rem;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.teacher-premium-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin:13px 0;
+}
+
+.teacher-premium-stats{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:9px;
+  margin:12px 0 14px;
+}
+
+.teacher-premium-stat{
+  border:1px solid #eef2f7;
+  background:#f8fafc;
+  border-radius:15px;
+  padding:10px;
+}
+
+.teacher-premium-stat span{
+  display:block;
+  color:var(--muted);
+  font-size:.68rem;
+  font-weight:700;
+}
+
+.teacher-premium-stat strong{
+  display:block;
+  margin-top:3px;
+  color:#111827;
+  font-size:.84rem;
+  font-weight:800;
+}
+
+.teacher-premium-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  padding-top:13px;
+  border-top:1px solid #eef2f7;
+}
+
+.teacher-premium-actions .primary-btn,
+.teacher-premium-actions .ghost-btn,
+.teacher-premium-actions .danger-btn{
+  min-height:36px;
+  padding:8px 10px;
+  border-radius:12px;
+  font-size:.76rem;
+}
+
+.teacher-premium-actions .danger-btn{
+  grid-column:1 / -1;
+}
+
+@media(max-width:1200px){
+  #teachersList.student-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+@media(max-width:900px){
+  #teachersList.student-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:560px){
+  #teachersList.student-grid{
+    grid-template-columns:1fr;
+  }
+}
 </style>
 </head>
 
@@ -4132,6 +4282,11 @@ function openTab(tab){
   });
 
   document.body.classList.toggle("focus-students", tab === "students");
+  document.body.classList.toggle("focus-teachers", tab === "teachers");
+  
+  if(tab === "teachers"){
+  renderTeachers();
+}
 
   if(tab === "students"){
     renderStudents();
@@ -4986,31 +5141,112 @@ function renderStudents(){
 }
 
 function renderTeachers(){
+
   const teachers = getTeachers();
 
-  if (!teachers.length){
+  if(!teachers.length){
     showEmpty("teachersList","No teachers added yet.");
-
-    if ($("facultyList")){
-      $("facultyList").innerHTML = `<div class="empty">No teachers yet.</div>`;
-    }
-
     return;
   }
 
-  $("teachersList").innerHTML = teachers.map(user => personCard(user,user.subject || "Teacher")).join("");
+  $("teachersList").innerHTML = teachers.map(teacher => {
 
-  if ($("facultyList")){
-    $("facultyList").innerHTML = teachers.slice(0,6).map(user => `
-      <div class="side-user">
-        <img src="${user.profileImage || user.avatar || FALLBACK_AVATAR}" alt="">
-        <div>
-          <strong>${escapeHtml(user.name || "Teacher")}</strong>
-          <span>${escapeHtml(user.subject || user.jobTitle || "Teacher")}</span>
+    const avatar =
+      teacher.avatar ||
+      teacher.profileImage ||
+      teacher.photo ||
+      "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+
+    const name =
+      teacher.name ||
+      teacher.fullName ||
+      teacher.email ||
+      "Unnamed Teacher";
+
+    const email =
+      teacher.email ||
+      "No email added";
+
+    const subject =
+      teacher.subject ||
+      teacher.department ||
+      teacher.course ||
+      "Teacher";
+
+    const classCount = state.classes.filter(cls =>
+      sameId(cls.teacherId?._id || cls.teacherId, teacher._id)
+    ).length;
+
+    const scheduleCount = state.schedules.filter(schedule =>
+      sameId(schedule.teacherId?._id || schedule.teacherId, teacher._id)
+    ).length;
+
+    return `
+      <article class="teacher-premium-card">
+
+        <div class="teacher-premium-cover">
+          <img
+            class="teacher-premium-avatar"
+            src="${escapeHtml(avatar)}"
+            alt="${escapeHtml(name)}"
+          >
         </div>
-      </div>
-    `).join("");
-  }
+
+        <div class="teacher-premium-body">
+
+          <h3 class="teacher-premium-name">
+            ${escapeHtml(name)}
+          </h3>
+
+          <div class="teacher-premium-email">
+            ${escapeHtml(email)}
+          </div>
+
+          <div class="teacher-premium-tags">
+            <span class="chip primary">Teacher</span>
+            <span class="chip">${escapeHtml(subject)}</span>
+          </div>
+
+          <div class="teacher-premium-stats">
+            <div class="teacher-premium-stat">
+              <span>Classes</span>
+              <strong>${classCount}</strong>
+            </div>
+
+            <div class="teacher-premium-stat">
+              <span>Schedules</span>
+              <strong>${scheduleCount}</strong>
+            </div>
+          </div>
+
+          <div class="teacher-premium-actions">
+<button
+  class="primary-btn"
+  onclick="openModal('scheduleModal')"
+>
+  Schedule
+</button>
+
+            <button
+              class="ghost-btn"
+              onclick="editTeacher('${teacher._id}')"
+            >
+              Edit
+            </button>
+
+            <button
+              class="danger-btn"
+              onclick="deleteTeacher('${teacher._id}')"
+            >
+              Remove
+            </button>
+          </div>
+
+        </div>
+
+      </article>
+    `;
+  }).join("");
 }
 
 function renderSchedule(){
