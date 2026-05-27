@@ -1602,137 +1602,157 @@ img{
     width:100%;
   }
 }
-  /* SCHOOL CLASSES — CLEAN PREVIEW UPGRADE */
+ /* PREMIUM OVERLAY CLASS GRID */
 
 #classesList.program-grid{
-  grid-template-columns:repeat(auto-fit,minmax(360px,1fr));
-  align-items:stretch;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:18px;
 }
 
-.school-class-card{
-  border:1px solid var(--border);
+.premium-class-card{
+  min-height:360px;
   border-radius:24px;
-  background:#fff;
   overflow:hidden;
+  position:relative;
+  background:#111827;
+  border:1px solid var(--border);
   box-shadow:var(--shadow-soft);
   transition:.18s ease;
 }
 
-.school-class-card:hover{
-  transform:translateY(-2px);
+.premium-class-card:hover{
+  transform:translateY(-3px);
   box-shadow:var(--shadow);
-  border-color:#bfd3ff;
 }
 
-.school-class-cover{
-  height:150px;
-  background:center/cover no-repeat;
-  position:relative;
-}
-
-.school-class-cover::after{
-  content:"";
+.premium-class-bg{
   position:absolute;
   inset:0;
-  background:linear-gradient(180deg,rgba(15,23,42,.06),rgba(15,23,42,.38));
+  background:center/cover no-repeat;
+  transform:scale(1.02);
 }
 
-.school-class-badge{
+.premium-class-card:hover .premium-class-bg{
+  transform:scale(1.06);
+}
+
+.premium-class-overlay{
   position:absolute;
-  right:14px;
-  bottom:14px;
+  inset:0;
+  background:linear-gradient(
+    180deg,
+    rgba(15,23,42,.10) 0%,
+    rgba(15,23,42,.46) 45%,
+    rgba(15,23,42,.92) 100%
+  );
+}
+
+.premium-class-content{
+  position:relative;
   z-index:2;
+  min-height:360px;
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  color:#fff;
+}
+
+.premium-class-chip{
+  position:absolute;
+  top:16px;
+  left:16px;
   padding:7px 11px;
   border-radius:999px;
-  background:rgba(255,255,255,.94);
+  background:rgba(255,255,255,.92);
   color:var(--primary-dark);
-  font-size:.74rem;
+  font-size:.72rem;
   font-weight:800;
 }
 
-.school-class-body{
-  padding:16px;
-}
-
-.school-class-title-row{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  align-items:flex-start;
-}
-
-.school-class-title{
+.premium-class-title{
   margin:0;
-  font-size:1rem;
+  font-size:1.08rem;
   font-weight:800;
-  letter-spacing:-.02em;
-  line-height:1.3;
+  letter-spacing:-.03em;
+  line-height:1.25;
 }
 
-.school-class-sub{
-  margin-top:5px;
-  color:var(--muted);
-  font-size:.82rem;
+.premium-class-sub{
+  margin-top:6px;
+  color:rgba(255,255,255,.78);
+  font-size:.8rem;
 }
 
-.school-class-desc{
-  margin:12px 0 14px;
-  color:#4b5563;
-  font-size:.86rem;
-  line-height:1.55;
+.premium-class-desc{
+  margin:12px 0;
+  color:rgba(255,255,255,.84);
+  font-size:.84rem;
+  line-height:1.5;
   display:-webkit-box;
   -webkit-line-clamp:2;
   -webkit-box-orient:vertical;
   overflow:hidden;
 }
 
-.school-class-stats{
+.premium-class-stats{
   display:grid;
   grid-template-columns:repeat(3,1fr);
-  gap:10px;
-  margin:14px 0;
+  gap:8px;
+  margin:12px 0 14px;
 }
 
-.school-class-stat{
-  border:1px solid #eef2f7;
-  background:#f8fafc;
-  border-radius:16px;
-  padding:10px;
+.premium-class-stat{
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:14px;
+  padding:9px;
 }
 
-.school-class-stat span{
+.premium-class-stat span{
   display:block;
-  font-size:.7rem;
-  color:var(--muted);
+  font-size:.66rem;
+  color:rgba(255,255,255,.66);
   font-weight:700;
 }
 
-.school-class-stat strong{
+.premium-class-stat strong{
   display:block;
   margin-top:3px;
-  font-size:.86rem;
+  font-size:.82rem;
+  color:#fff;
   font-weight:800;
-  color:#111827;
   overflow:hidden;
-  text-overflow:ellipsis;
   white-space:nowrap;
+  text-overflow:ellipsis;
 }
 
-.school-class-actions{
+.premium-class-actions{
   display:flex;
   gap:8px;
   flex-wrap:wrap;
-  padding-top:14px;
-  border-top:1px solid #eef2f7;
 }
 
-.school-class-actions .ghost-btn,
-.school-class-actions .danger-btn,
-.school-class-actions .success-btn{
-  min-height:38px;
-  padding:9px 12px;
+.premium-class-actions .ghost-btn,
+.premium-class-actions .danger-btn,
+.premium-class-actions .success-btn{
+  min-height:36px;
+  padding:8px 11px;
   border-radius:12px;
-  font-size:.78rem;
+  font-size:.76rem;
+}
+
+@media(max-width:1100px){
+  #classesList.program-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:640px){
+  #classesList.program-grid{
+    grid-template-columns:1fr;
+  }
 }
 </style>
 </head>
@@ -4429,22 +4449,11 @@ function renderClasses(){
       item.teacherId?.name ||
       item.teacher?.name ||
       item.teacherName ||
-      "No teacher";
+      "No teacher assigned";
 
-    const title =
-      item.title ||
-      item.name ||
-      "Untitled Class";
-
-    const subject =
-      item.subject ||
-      item.category ||
-      "Class";
-
-    const code =
-      item.classCode ||
-      item.code ||
-      "No code";
+    const title = item.title || item.name || "Untitled Class";
+    const subject = item.subject || item.category || "Class";
+    const code = item.classCode || item.code || "No code";
 
     const cover =
       item.coverImage ||
@@ -4468,89 +4477,67 @@ function renderClasses(){
       ).length;
 
     return `
-      <article class="school-class-card">
+      <article class="premium-class-card">
 
         <div
-          class="school-class-cover"
+          class="premium-class-bg"
           style="background-image:url('${escapeHtml(cover)}')"
-        >
-          <span class="school-class-badge">
+        ></div>
+
+        <div class="premium-class-overlay"></div>
+
+        <div class="premium-class-content">
+
+          <span class="premium-class-chip">
             ${escapeHtml(subject)}
           </span>
-        </div>
 
-        <div class="school-class-body">
+          <h3 class="premium-class-title">
+            ${escapeHtml(title)}
+          </h3>
 
-          <div class="school-class-title-row">
-            <div>
-              <h3 class="school-class-title">
-                ${escapeHtml(title)}
-              </h3>
-
-              <div class="school-class-sub">
-                ${escapeHtml(teacher)}
-              </div>
-            </div>
-
-            <span class="chip primary">
-              Active
-            </span>
+          <div class="premium-class-sub">
+            ${escapeHtml(teacher)}
           </div>
 
-          <p class="school-class-desc">
+          <p class="premium-class-desc">
             ${escapeHtml(description)}
           </p>
 
-          <div class="school-class-stats">
-
-            <div class="school-class-stat">
+          <div class="premium-class-stats">
+            <div class="premium-class-stat">
               <span>Students</span>
               <strong>${studentCount}</strong>
             </div>
 
-            <div class="school-class-stat">
+            <div class="premium-class-stat">
               <span>Code</span>
               <strong>${escapeHtml(code)}</strong>
             </div>
 
-            <div class="school-class-stat">
+            <div class="premium-class-stat">
               <span>Tasks</span>
               <strong>${assignmentCount}</strong>
             </div>
-
           </div>
 
-          <div class="school-class-actions">
+          <div class="premium-class-actions">
 
             ${item.meetingLink ? `
-              <a
-                class="success-btn"
-                href="${escapeHtml(item.meetingLink)}"
-                target="_blank"
-                rel="noopener"
-              >
+              <a class="success-btn" href="${escapeHtml(item.meetingLink)}" target="_blank" rel="noopener">
                 Meeting
               </a>
             ` : ""}
 
-            <button
-              class="ghost-btn"
-              onclick="openClassBuilder('${item._id}')"
-            >
+            <button class="ghost-btn" onclick="openClassBuilder('${item._id}')">
               Builder
             </button>
 
-            <button
-              class="ghost-btn"
-              onclick="editClass('${item._id}')"
-            >
+            <button class="ghost-btn" onclick="editClass('${item._id}')">
               Edit
             </button>
 
-            <button
-              class="danger-btn"
-              onclick="deleteClass('${item._id}')"
-            >
+            <button class="danger-btn" onclick="deleteClass('${item._id}')">
               Remove
             </button>
 
