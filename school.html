@@ -1602,6 +1602,138 @@ img{
     width:100%;
   }
 }
+  /* SCHOOL CLASSES — CLEAN PREVIEW UPGRADE */
+
+#classesList.program-grid{
+  grid-template-columns:repeat(auto-fit,minmax(360px,1fr));
+  align-items:stretch;
+}
+
+.school-class-card{
+  border:1px solid var(--border);
+  border-radius:24px;
+  background:#fff;
+  overflow:hidden;
+  box-shadow:var(--shadow-soft);
+  transition:.18s ease;
+}
+
+.school-class-card:hover{
+  transform:translateY(-2px);
+  box-shadow:var(--shadow);
+  border-color:#bfd3ff;
+}
+
+.school-class-cover{
+  height:150px;
+  background:center/cover no-repeat;
+  position:relative;
+}
+
+.school-class-cover::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,rgba(15,23,42,.06),rgba(15,23,42,.38));
+}
+
+.school-class-badge{
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  z-index:2;
+  padding:7px 11px;
+  border-radius:999px;
+  background:rgba(255,255,255,.94);
+  color:var(--primary-dark);
+  font-size:.74rem;
+  font-weight:800;
+}
+
+.school-class-body{
+  padding:16px;
+}
+
+.school-class-title-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+}
+
+.school-class-title{
+  margin:0;
+  font-size:1rem;
+  font-weight:800;
+  letter-spacing:-.02em;
+  line-height:1.3;
+}
+
+.school-class-sub{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:.82rem;
+}
+
+.school-class-desc{
+  margin:12px 0 14px;
+  color:#4b5563;
+  font-size:.86rem;
+  line-height:1.55;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+.school-class-stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin:14px 0;
+}
+
+.school-class-stat{
+  border:1px solid #eef2f7;
+  background:#f8fafc;
+  border-radius:16px;
+  padding:10px;
+}
+
+.school-class-stat span{
+  display:block;
+  font-size:.7rem;
+  color:var(--muted);
+  font-weight:700;
+}
+
+.school-class-stat strong{
+  display:block;
+  margin-top:3px;
+  font-size:.86rem;
+  font-weight:800;
+  color:#111827;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.school-class-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  padding-top:14px;
+  border-top:1px solid #eef2f7;
+}
+
+.school-class-actions .ghost-btn,
+.school-class-actions .danger-btn,
+.school-class-actions .success-btn{
+  min-height:38px;
+  padding:9px 12px;
+  border-radius:12px;
+  font-size:.78rem;
+}
 </style>
 </head>
 
@@ -4285,48 +4417,147 @@ ${
 }
 
 function renderClasses(){
+
   if (!state.classes.length){
     showEmpty("classesList","No classes created yet.");
     return;
   }
 
   $("classesList").innerHTML = state.classes.map(item => {
+
     const teacher =
-  item.teacherName ||
-  item.teacher?.name ||
-  item.teacherId?.name ||
-  "No teacher assigned";
+      item.teacherId?.name ||
+      item.teacher?.name ||
+      item.teacherName ||
+      "No teacher";
+
+    const title =
+      item.title ||
+      item.name ||
+      "Untitled Class";
+
+    const subject =
+      item.subject ||
+      item.category ||
+      "Class";
+
+    const code =
+      item.classCode ||
+      item.code ||
+      "No code";
+
+    const cover =
+      item.coverImage ||
+      item.classCover ||
+      item.bannerImage ||
+      item.cover ||
+      "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80";
+
+    const description =
+      item.description ||
+      "No class description added yet.";
+
+    const studentCount =
+      Array.isArray(item.students) ? item.students.length :
+      Array.isArray(item.studentIds) ? item.studentIds.length :
+      state.users.filter(user => sameId(user.classId?._id || user.classId, item._id)).length;
+
+    const assignmentCount =
+      state.assignments.filter(assignment =>
+        sameId(assignment.classId?._id || assignment.classId, item._id)
+      ).length;
 
     return `
-      <article class="program-card">
-        <div
-  class="program-cover"
-  style="background-image:url('${item.coverImage || "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80"}')"
-></div>
+      <article class="school-class-card">
 
-        <div class="program-body">
-          <div class="program-top">
+        <div
+          class="school-class-cover"
+          style="background-image:url('${escapeHtml(cover)}')"
+        >
+          <span class="school-class-badge">
+            ${escapeHtml(subject)}
+          </span>
+        </div>
+
+        <div class="school-class-body">
+
+          <div class="school-class-title-row">
             <div>
-              <h3 class="program-title">${escapeHtml(item.title || item.name || "Untitled Class")}</h3>
-              <div class="program-sub">${escapeHtml(item.subject || item.schedule || "No subject")}</div>
+              <h3 class="school-class-title">
+                ${escapeHtml(title)}
+              </h3>
+
+              <div class="school-class-sub">
+                ${escapeHtml(teacher)}
+              </div>
             </div>
 
-            <span class="chip primary">Class</span>
+            <span class="chip primary">
+              Active
+            </span>
           </div>
 
-          <p class="program-desc">${escapeHtml(item.description || "No class description added.")}</p>
+          <p class="school-class-desc">
+            ${escapeHtml(description)}
+          </p>
 
-          <div class="program-meta">
-            <span class="chip">${escapeHtml(teacher)}</span>
-            ${item.classCode || item.code ? `<span class="chip">${escapeHtml(item.classCode || item.code)}</span>` : ""}
-            ${item.meetingLink ? `<a class="chip success" href="${item.meetingLink}" target="_blank">Meeting Link</a>` : ""}
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
-  <button class="ghost-btn" onclick="openClassBuilder('${item._id}')">Builder</button>
-<button class="ghost-btn" onclick="editClass('${item._id}')">Quick Edit</button>
-  <button class="danger-btn" onclick="deleteClass('${item._id}')">Remove</button>
-</div>
+          <div class="school-class-stats">
+
+            <div class="school-class-stat">
+              <span>Students</span>
+              <strong>${studentCount}</strong>
+            </div>
+
+            <div class="school-class-stat">
+              <span>Code</span>
+              <strong>${escapeHtml(code)}</strong>
+            </div>
+
+            <div class="school-class-stat">
+              <span>Tasks</span>
+              <strong>${assignmentCount}</strong>
+            </div>
+
           </div>
+
+          <div class="school-class-actions">
+
+            ${item.meetingLink ? `
+              <a
+                class="success-btn"
+                href="${escapeHtml(item.meetingLink)}"
+                target="_blank"
+                rel="noopener"
+              >
+                Meeting
+              </a>
+            ` : ""}
+
+            <button
+              class="ghost-btn"
+              onclick="openClassBuilder('${item._id}')"
+            >
+              Builder
+            </button>
+
+            <button
+              class="ghost-btn"
+              onclick="editClass('${item._id}')"
+            >
+              Edit
+            </button>
+
+            <button
+              class="danger-btn"
+              onclick="deleteClass('${item._id}')"
+            >
+              Remove
+            </button>
+
+          </div>
+
         </div>
+
       </article>
     `;
   }).join("");
