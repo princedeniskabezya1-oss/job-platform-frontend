@@ -3086,9 +3086,12 @@ function getMaxZ(){
 
 let statusTimeout = null;
 
-function setStatus(message,type="default"){
+function setStatus(message,type="default", options = {}){
+
   const status = byId("studioStatus");
   if(!status) return;
+
+  const silent = !!options.silent;
 
   status.className = "studio-status";
 
@@ -3098,12 +3101,16 @@ function setStatus(message,type="default"){
 
   status.textContent = message || "Ready";
 
+  if(silent){
+    return;
+  }
+
   clearTimeout(statusTimeout);
 
   statusTimeout = setTimeout(() => {
     status.className = "studio-status";
-    status.textContent = studioState.isDirty ? "Unsaved changes" : "Ready";
-  }, 3000);
+    status.textContent = studioState.isDirty ? "Unsaved changes" : "Saved locally";
+  }, 2400);
 }
 
 /* =====================================================
@@ -3117,14 +3124,17 @@ function markDirty(reason="change"){
 }
 
 function queueAutoSave(){
+
   if(!studioState.autoSaveEnabled) return;
   if(!studioState.isDirty) return;
 
   clearTimeout(studioState.autoSaveTimer);
 
+  setStatus("Unsaved changes", "warning", { silent:true });
+
   studioState.autoSaveTimer = setTimeout(() => {
     if(studioState.isDirty){
-      saveDraft();
+      saveDraft({ silent:true });
     }
   }, studioState.autoSaveDelay || 900);
 }
@@ -5424,15 +5434,6 @@ function buildVisualPayload(){
   };
 }
 
-function saveDraft(){
-  const payload = buildVisualPayload();
-
-  localStorage.setItem(getDraftStorageKey(), JSON.stringify(payload));
-
-  studioState.isDirty = false;
-  setStatus("Draft saved locally", "success");
-}
-
 async function saveAllStudio(event){
   if(event) event.preventDefault();
 
@@ -6940,113 +6941,45 @@ function shareProject(){
    SAVE
 ===================================================== */
 
-function saveDraft(){
+function saveDraft(options = {}){
+
   try{
     ensurePages();
 
-    const payload = {
-      elements:studioState.elements,
-      pages:studioState.pages,
-      currentPageId:studioState.currentPageId,
-      updatedAt:new Date().toISOString()
-    };
+    const payload = buildVisualPayload
+      ? buildVisualPayload()
+      : {
+          elements: studioState.elements || [],
+          pages: studioState.pages || [],
+          currentPageId: studioState.currentPageId || null,
+          updatedAt: new Date().toISOString()
+        };
 
-    localStorage.setItem(getDraftStorageKey(), JSON.stringify(payload));
-
-    const versions = JSON.parse(localStorage.getItem(getVersionStorageKey()) || "[]");
-
-    versions.unshift({
-      id:"version_" + Date.now(),
-      name:`Draft ${new Date().toLocaleString()}`,
-      savedAt:new Date().toISOString(),
-      ...payload
-    });
-
-    localStorage.setItem(getVersionStorageKey(), JSON.stringify(versions.slice(0,20)));
+    localStorage.setItem(
+      getDraftStorageKey(),
+      JSON.stringify(payload)
+    );
 
     studioState.isDirty = false;
-    renderSavedProjectsPanel();
-    showVersionHistory(false);
+    studioState.lastSavedAt = new Date().toISOString();
 
-    setStatus("Draft saved", "success");
+    if(!options.silent){
+      setStatus("Saved locally", "success");
+    }else{
+      setStatus("Saved locally", "success", { silent:true });
+    }
+
+    return true;
+
   }catch(err){
     console.error("saveDraft error:", err);
-    setStatus("Draft save failed", "error");
-  }
-}
 
-async function saveAllStudio(event){
-  if(event) event.preventDefault();
-
-  try{
-    setStatus("Saving studio...");
-
-    await saveNormalContent();
-    await saveVisualContent();
-
-    saveDraft();
-
-    studioState.isDirty = false;
-
-    setStatus("Studio saved to class builder", "success");
-  }catch(err){
-    console.error("saveAllStudio error:", err);
-    setStatus(err.message || "Save failed", "error");
-  }
-}
-
-async function saveNormalContent(){
-  if(!QUERY.classId) return null;
-
-  const payload = collectNormalPayload();
-
-  if(QUERY.scope === "lesson" && QUERY.ownerId){
-    return apiSend(
-      `/api/classes/${encodeURIComponent(QUERY.classId)}/builder/lesson/${encodeURIComponent(QUERY.ownerId)}`,
-      "PATCH",
-      payload
-    );
-  }
-
-  if(QUERY.scope === "quiz" && QUERY.ownerId){
-    return apiSend(
-      `/api/classes/${encodeURIComponent(QUERY.classId)}/builder/quiz/${encodeURIComponent(QUERY.ownerId)}`,
-      "PATCH",
-      payload
-    );
-  }
-
-  return apiSend(
-    `/api/classes/${encodeURIComponent(QUERY.classId)}/builder`,
-    "PATCH",
-    payload
-  );
-}
-
-async function saveVisualContent(){
-  if(!QUERY.classId) return null;
-
-  ensurePages();
-
-  const visualBlock = {
-    scope:QUERY.scope || "welcome",
-    ownerId:QUERY.ownerId || "main",
-    type:"visual",
-    content:JSON.stringify({
-      elements:studioState.elements,
-      pages:studioState.pages,
-      currentPageId:studioState.currentPageId,
-      updatedAt:new Date().toISOString()
-    })
-  };
-
-  return apiSend(
-    `/api/classes/${encodeURIComponent(QUERY.classId)}/builder`,
-    "PATCH",
-    {
-      contentBlocks:[visualBlock]
+    if(!options.silent){
+      setStatus("Draft save failed", "error");
     }
-  );
+
+    return false;
+  }
 }
 
 function showVersionHistory(showStatus=true){
