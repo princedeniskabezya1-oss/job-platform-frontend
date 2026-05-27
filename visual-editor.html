@@ -1686,6 +1686,88 @@ svg{
   margin-bottom:18px;
   pointer-events:auto;
 }
+  /* =====================================================
+   AIFT PATCH: Canva-like square pages + inline page tools
+===================================================== */
+
+.canvas-page{
+  border-radius:0 !important;
+}
+
+.canvas-element,
+.canvas-content,
+.canvas-card-box,
+.canvas-button-box,
+.canvas-chart-placeholder,
+.page-thumb,
+.template-mini-card,
+.project-mini-card{
+  border-radius:0 !important;
+}
+
+.canvas-floating-actions{
+  display:none !important;
+}
+
+.page-mini-actions{
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:50;
+  display:flex;
+  gap:6px;
+  background:rgba(255,255,255,.92);
+  border:1px solid var(--border);
+  padding:5px;
+  box-shadow:var(--shadow-sm);
+}
+
+.page-mini-actions button{
+  width:28px;
+  height:28px;
+  border:1px solid var(--border);
+  background:#fff;
+  color:#344054;
+  font-weight:900;
+}
+
+.canvas-format-toolbar{
+  position:sticky;
+  top:0;
+  z-index:200;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:10px;
+  background:#fff;
+  border-bottom:1px solid var(--border);
+}
+
+.canvas-format-toolbar input,
+.canvas-format-toolbar select{
+  height:34px;
+}
+
+.smart-guide{
+  position:absolute;
+  background:#2563eb;
+  z-index:9999;
+  pointer-events:none;
+}
+
+.smart-guide.vertical{
+  top:0;
+  bottom:0;
+  width:1px;
+}
+
+.smart-guide.horizontal{
+  left:0;
+  right:0;
+  height:1px;
+}
+  
 </style>
 </head>
 
@@ -1904,6 +1986,28 @@ svg{
 
     <!-- WORKSPACE -->
     <main class="studio-workspace">
+
+  <div class="canvas-format-toolbar" id="globalFormatToolbar">
+    <select class="studio-select" onchange="applySelectedStyle('fontFamily', this.value)">
+      <option value="Inter">Inter</option>
+      <option value="Arial">Arial</option>
+      <option value="Georgia">Georgia</option>
+      <option value="Times New Roman">Times New Roman</option>
+    </select>
+
+    <input class="studio-input" style="width:76px;" type="number" value="18" onchange="applySelectedStyle('fontSize', this.value + 'px')" />
+
+    <button class="btn-ghost" onclick="toggleTextStyle('bold')">B</button>
+    <button class="btn-ghost" onclick="toggleTextStyle('italic')">I</button>
+    <button class="btn-ghost" onclick="normalOrVisualUnderline()">U</button>
+
+    <input type="color" value="#111827" onchange="applySelectedStyle('color', this.value)" />
+    <input type="color" value="#ffffff" onchange="applySelectedStyle('background', this.value)" />
+
+    <button class="btn-ghost" onclick="applySelectedStyle('textAlign','left')">Left</button>
+    <button class="btn-ghost" onclick="applySelectedStyle('textAlign','center')">Center</button>
+    <button class="btn-ghost" onclick="applySelectedStyle('textAlign','right')">Right</button>
+  </div>
 
       <!-- NORMAL EDIT MODE -->
       <section
@@ -2649,6 +2753,16 @@ svg{
         </div>
 
         <div class="tool-section-title">Page</div>
+        <div class="property-row">
+  <label class="property-label">Canvas Size</label>
+  <select class="studio-select" onchange="setCurrentPagePreset(this.value)">
+    <option value="presentation">Presentation 16:9</option>
+    <option value="document">Page / Document</option>
+    <option value="letter">US Letter</option>
+    <option value="a4">A4 Page</option>
+    <option value="square">Square</option>
+  </select>
+</div>
 
         <div class="property-grid">
 
@@ -3013,39 +3127,39 @@ const TEXT_ELEMENT_TYPES = new Set([
 const VISUAL_BLOCK_TYPE = "visual";
 
 const PAGE_PRESETS = {
-  document: {
-    key: "document",
-    label: "Document",
-    width: 1120,
-    height: 1280
-  },
   presentation: {
     key: "presentation",
     label: "Presentation 16:9",
     width: 1280,
     height: 720
   },
+  document: {
+    key: "document",
+    label: "Page / Document",
+    width: 1120,
+    height: 1280
+  },
+  letter: {
+    key: "letter",
+    label: "US Letter",
+    width: 816,
+    height: 1056
+  },
+  a4: {
+    key: "a4",
+    label: "A4 Page",
+    width: 794,
+    height: 1123
+  },
   square: {
     key: "square",
     label: "Square",
     width: 1080,
     height: 1080
-  },
-  certificate: {
-    key: "certificate",
-    label: "Certificate",
-    width: 1280,
-    height: 900
-  },
-  resume: {
-    key: "resume",
-    label: "Resume / CV",
-    width: 900,
-    height: 1272
   }
 };
 
-const DEFAULT_PAGE_PRESET = PAGE_PRESETS.document;
+const DEFAULT_PAGE_PRESET = PAGE_PRESETS.presentation;
 
 /* =====================================================
    02. URL CONTEXT
@@ -7807,7 +7921,7 @@ function normalRichCommand(targetId, command, value = null){
 
   if(command === "underline"){
     wrapSelectionWithSpan({
-      style: "text-decoration-line:underline;text-decoration-thickness:1.5px;text-underline-offset:3px;"
+      style: "text-decoration-line:underline;text-decoration-thickness:1.6px;text-underline-offset:5px;text-decoration-skip-ink:none;"
     });
   }else if(command === "bold"){
     wrapSelectionWithSpan({ style: "font-weight:800;" });
@@ -8211,11 +8325,10 @@ function renderCanvasPage(page){
     `width:${safeNumber(page.width)}px`,
     `min-height:${safeNumber(page.height)}px`,
     `background:${page.background || "#ffffff"}`,
-    page.backgroundImage
-      ? `background-image:url('${String(page.backgroundImage).replaceAll("'", "\\'")}')`
-      : "",
+    page.backgroundImage ? `background-image:url('${String(page.backgroundImage).replaceAll("'", "\\'")}')` : "",
     `background-size:${page.backgroundSize || "cover"}`,
-    `background-position:${page.backgroundPosition || "center"}`
+    `background-position:${page.backgroundPosition || "center"}`,
+    `border-radius:0`
   ].filter(Boolean).join(";");
 
   return `
@@ -8223,13 +8336,17 @@ function renderCanvasPage(page){
       class="canvas-page ${activeClass} ${gridClass}"
       id="canvasPage_${escapeHtml(page.id)}"
       data-page-id="${escapeHtml(page.id)}"
-      style="${pageStyle}"
+      style="${escapeHtml(pageStyle)}"
       onclick="handlePageClick(event, '${escapeHtml(page.id)}')"
       onmousedown="handlePageMouseDown(event, '${escapeHtml(page.id)}')"
       oncontextmenu="openCanvasContextMenu(event)"
     >
-      <div class="page-label">
-        ${escapeHtml(page.title || "Page")}
+      <div class="page-label">${escapeHtml(page.title || "Page")}</div>
+
+      <div class="page-mini-actions" onclick="event.stopPropagation()">
+        <button title="Add page" onclick="addPage()">+</button>
+        <button title="Duplicate page" onclick="studioState.currentPageId='${escapeHtml(page.id)}'; duplicateCurrentPage();">⧉</button>
+        <button title="Delete page" onclick="studioState.currentPageId='${escapeHtml(page.id)}'; deleteCurrentPage();">×</button>
       </div>
 
       ${pageElements.map(renderCanvasElement).join("")}
@@ -8485,10 +8602,16 @@ function handlePageClick(event, pageId){
 
   studioState.currentPageId = pageId;
 
-  clearSelection({
-    skipRender: false
-  });
+  if(studioState.activeEditingElementId){
+    exitTextEdit();
+  }
 
+  studioState.selectedElementIds = [];
+  studioState.primarySelectedElementId = null;
+
+  renderCanvas();
+  renderLayers();
+  renderPropertiesPanel();
   renderPageThumbs();
 }
 
@@ -9177,7 +9300,7 @@ function handleElementDragMove(event){
       nextX = snapValue(nextX);
       nextY = snapValue(nextY);
 
-    }else if(studioState.snapToObjects && session.elementStart.length === 1 && event.ctrlKey){
+    }else if(studioState.snapToObjects && session.elementStart.length === 1){
       // Only smart-align to objects/center when Ctrl/Cmd is held.
       const snapped = snapElementPosition(element, nextX, nextY);
       nextX = snapped.x;
@@ -9326,9 +9449,16 @@ function endResize(){
   document.removeEventListener("mousemove", handleResizeMove);
   document.removeEventListener("mouseup", endResize);
 
+  const id = studioState.resizeSession.id;
   studioState.resizeSession = null;
 
-  renderCanvas();
+  const element = getElementById(id);
+  if(element){
+    element.width = Math.max(MIN_ELEMENT_SIZE, safeNumber(element.width));
+    element.height = Math.max(MIN_ELEMENT_SIZE, safeNumber(element.height));
+    element.updatedAt = nowIso();
+  }
+
   renderLayers();
   renderPropertiesPanel();
 
@@ -10108,10 +10238,15 @@ function toggleTextStyle(style){
   }
 
   if(style === "underline"){
-    applySelectedStyle(
-      "textDecoration",
-      primary.styles?.textDecoration === "underline" ? "none" : "underline"
-    );
+applySelectedStyle(
+  "textDecoration",
+  primary.styles?.textDecoration?.includes("underline")
+    ? "none"
+    : "underline 1.6px solid"
+);
+
+applySelectedStyle("textUnderlineOffset", "5px");
+applySelectedStyle("textDecorationSkipInk", "none");
     return;
   }
 
@@ -10121,6 +10256,24 @@ function toggleTextStyle(style){
       primary.styles?.textTransform === "uppercase" ? "none" : "uppercase"
     );
   }
+}
+  function normalOrVisualUnderline(){
+
+  const activeNormalEditor =
+    document.activeElement &&
+    document.activeElement.classList &&
+    document.activeElement.classList.contains("studio-rich-editor");
+
+  if(activeNormalEditor){
+    wrapSelectionWithSpan({
+      style: "text-decoration-line:underline;text-decoration-thickness:1.6px;text-underline-offset:5px;text-decoration-skip-ink:none;"
+    });
+
+    document.activeElement.dispatchEvent(new Event("input", { bubbles:true }));
+    return;
+  }
+
+  toggleTextStyle("underline");
 }
 
 function updateTextElementHtml(id, text){
@@ -10387,109 +10540,75 @@ function openCanvasContextMenu(event){
   event.preventDefault();
 
   const menu = byId("studioContextMenu");
-
   if(!menu) return;
 
   const hasSelected = hasSelection();
 
   menu.innerHTML = `
-    <button class="context-item" onclick="duplicateSelected(); closeContextMenu();">
-      Duplicate
-    </button>
-
-    <button class="context-item" onclick="copySelected(); closeContextMenu();">
-      Copy
-    </button>
-
-    <button class="context-item" onclick="pasteElements(); closeContextMenu();">
-      Paste
-    </button>
+    <button class="context-item" onclick="duplicateSelected(); closeContextMenu();">Duplicate</button>
+    <button class="context-item" onclick="copySelected(); closeContextMenu();">Copy</button>
+    <button class="context-item" onclick="pasteElements(); closeContextMenu();">Paste</button>
 
     <div class="context-separator"></div>
 
-    <button class="context-item" onclick="copyStyle(); closeContextMenu();" ${!hasSelected ? "disabled" : ""}>
-      Copy Style
-    </button>
+    <button class="context-item" onclick="toggleContextSubmenu('ctxArrange')">Arrange / Align ▸</button>
+    <div id="ctxArrange" class="hidden">
+      <button class="context-item" onclick="bringForward(); closeContextMenu();">Bring Forward</button>
+      <button class="context-item" onclick="sendBackward(); closeContextMenu();">Send Backward</button>
+      <button class="context-item" onclick="bringToFront(); closeContextMenu();">Bring to Front</button>
+      <button class="context-item" onclick="sendToBack(); closeContextMenu();">Send to Back</button>
+      <button class="context-item" onclick="alignSelected('center'); closeContextMenu();">Center Page</button>
+      <button class="context-item" onclick="alignSelected('middle'); closeContextMenu();">Middle Page</button>
+      <button class="context-item" onclick="setSelectedAsPageBackground(); closeContextMenu();">Use as Background</button>
+    </div>
 
-    <button class="context-item" onclick="pasteStyle(); closeContextMenu();">
-      Paste Style
-    </button>
+    <button class="context-item" onclick="toggleContextSubmenu('ctxStyle')">Style ▸</button>
+    <div id="ctxStyle" class="hidden">
+      <button class="context-item" onclick="copyStyle(); closeContextMenu();">Copy Style</button>
+      <button class="context-item" onclick="pasteStyle(); closeContextMenu();">Paste Style</button>
+      <button class="context-item" onclick="removeSelectedBackground(); closeContextMenu();">Remove Background</button>
+      <button class="context-item" onclick="applyRadiusPreset('0px'); closeContextMenu();">Square Corners</button>
+    </div>
 
-    <div class="context-separator"></div>
-
-    <button class="context-item" onclick="bringForward(); closeContextMenu();" ${!hasSelected ? "disabled" : ""}>
-      Bring Forward
-    </button>
-
-    <button class="context-item" onclick="sendBackward(); closeContextMenu();" ${!hasSelected ? "disabled" : ""}>
-      Send Backward
-    </button>
-
-    <button class="context-item" onclick="bringToFront(); closeContextMenu();" ${!hasSelected ? "disabled" : ""}>
-      Bring to Front
-    </button>
-
-    <button class="context-item" onclick="sendToBack(); closeContextMenu();" ${!hasSelected ? "disabled" : ""}>
-      Send to Back
-    </button>
-
-    <div class="context-separator"></div>
-
-    <button class="context-item" onclick="groupSelected(); closeContextMenu();" ${!hasMultiSelection() ? "disabled" : ""}>
-      Group
-    </button>
-
-    <button class="context-item" onclick="ungroupSelected(); closeContextMenu();" ${!hasSelected ? "disabled" : ""}>
-      Ungroup
-    </button>
-
-    <button class="context-item" onclick="lockSelected(); closeContextMenu();" ${!hasSelected ? "disabled" : ""}>
-      Lock / Unlock
-    </button>
-
-    <button class="context-item" onclick="hideSelected(); closeContextMenu();" ${!hasSelected ? "disabled" : ""}>
-      Hide
-    </button>
+    <button class="context-item" onclick="toggleContextSubmenu('ctxObject')">Object ▸</button>
+    <div id="ctxObject" class="hidden">
+      <button class="context-item" onclick="groupSelected(); closeContextMenu();">Group</button>
+      <button class="context-item" onclick="ungroupSelected(); closeContextMenu();">Ungroup</button>
+      <button class="context-item" onclick="lockSelected(); closeContextMenu();">Lock / Unlock</button>
+      <button class="context-item" onclick="hideSelected(); closeContextMenu();">Hide</button>
+    </div>
 
     <div class="context-separator"></div>
-
-    <button class="context-item" onclick="removeSelectedBackground(); closeContextMenu();" ${!hasSelected ? "disabled" : ""}>
-      Remove Background
-    </button>
-
-    <button class="context-item" onclick="applyRadiusPreset('0px'); closeContextMenu();" ${!hasSelected ? "disabled" : ""}>
-      Square Corners
-    </button>
-
-    <button class="context-item" onclick="applyRadiusPreset('24px'); closeContextMenu();" ${!hasSelected ? "disabled" : ""}>
-      Rounded Corners
-    </button>
-
-    <div class="context-separator"></div>
-
-    <button class="context-item danger" onclick="deleteSelected(); closeContextMenu();" ${!hasSelected ? "disabled" : ""}>
-      Delete
-    </button>
+    <button class="context-item danger" onclick="deleteSelected(); closeContextMenu();">Delete</button>
   `;
 
-  const padding = 12;
-  const width = 240;
-  const height = 520;
-
-  let left = event.clientX;
-  let top = event.clientY;
-
-  if(left + width > window.innerWidth){
-    left = window.innerWidth - width - padding;
-  }
-
-  if(top + height > window.innerHeight){
-    top = window.innerHeight - height - padding;
-  }
-
-  menu.style.left = `${Math.max(padding, left)}px`;
-  menu.style.top = `${Math.max(padding, top)}px`;
+  menu.style.left = `${Math.min(event.clientX, window.innerWidth - 260)}px`;
+  menu.style.top = `${Math.min(event.clientY, window.innerHeight - 420)}px`;
   menu.classList.add("open");
+}
+
+function toggleContextSubmenu(id){
+  const node = byId(id);
+  if(node) node.classList.toggle("hidden");
+}
+
+function setSelectedAsPageBackground(){
+
+  const element = getPrimarySelectedElement();
+  const page = getCurrentPage();
+
+  if(!element || !page) return;
+
+  if(element.type === "image" && element.imageUrl){
+    page.backgroundImage = element.imageUrl;
+    page.backgroundSize = "cover";
+    page.backgroundPosition = "center";
+  }else{
+    page.background = element.styles?.background || "#ffffff";
+  }
+
+  markDirty("set-page-background");
+  renderCanvas();
 }
 
 function closeContextMenu(){
