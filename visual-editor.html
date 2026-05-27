@@ -5435,33 +5435,52 @@ function buildVisualPayload(){
 }
 
 async function saveAllStudio(event){
+
   if(event) event.preventDefault();
 
-  try{
-    setStatus("Saving...");
+  const button = event?.currentTarget || null;
 
-    saveDraft();
+  try{
+    if(button){
+      button.disabled = true;
+      button.dataset.originalText = button.textContent;
+      button.textContent = "Saving...";
+    }
+
+    setStatus("Saving to builder...");
+
+    saveDraft({ silent:true });
 
     if(QUERY.scope === "lesson" && QUERY.ownerId){
       await saveNormalContent();
-      setStatus("Lesson saved", "success");
+      setStatus("Lesson saved to builder", "success");
       return;
     }
 
     if(QUERY.scope === "quiz" && QUERY.ownerId){
       await saveNormalContent();
-      setStatus("Quiz saved", "success");
+      setStatus("Quiz saved to builder", "success");
       return;
     }
 
-    await saveVisualContentOnly();
-
-    setStatus("Visual content saved", "success");
+    try{
+      await saveVisualContentOnly();
+      setStatus("Saved to builder", "success");
+    }catch(backendErr){
+      console.warn("Backend visual save failed, local draft is safe:", backendErr);
+      setStatus("Saved locally. Builder sync failed.", "warning");
+    }
 
   }catch(err){
     console.error("saveAllStudio error:", err);
-    saveDraft();
-    setStatus("Backend failed, but draft saved locally", "error");
+    saveDraft({ silent:true });
+    setStatus("Saved locally. Builder sync failed.", "warning");
+
+  }finally{
+    if(button){
+      button.disabled = false;
+      button.textContent = button.dataset.originalText || "Save";
+    }
   }
 }
 
