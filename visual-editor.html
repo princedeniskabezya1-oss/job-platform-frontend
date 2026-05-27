@@ -5413,20 +5413,39 @@ function shareProject(){
    SAVE
 ===================================================== */
 
+function buildVisualPayload(){
+  ensurePages();
+
+  return {
+    elements: studioState.elements || [],
+    pages: studioState.pages || [],
+    currentPageId: studioState.currentPageId || null,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function getExistingContentBlocks(){
+  const cls = studioState.classData || {};
+
+  if(Array.isArray(cls.contentBlocks)){
+    return cls.contentBlocks;
+  }
+
+  return [];
+}
+
 function saveDraft(){
   try{
-    ensurePages();
+    const payload = buildVisualPayload();
 
-    const payload = {
-      elements:studioState.elements,
-      pages:studioState.pages,
-      currentPageId:studioState.currentPageId,
-      updatedAt:new Date().toISOString()
-    };
+    localStorage.setItem(
+      getDraftStorageKey(),
+      JSON.stringify(payload)
+    );
 
-    localStorage.setItem(getDraftStorageKey(), JSON.stringify(payload));
-
-    const versions = JSON.parse(localStorage.getItem(getVersionStorageKey()) || "[]");
+    const versions = JSON.parse(
+      localStorage.getItem(getVersionStorageKey()) || "[]"
+    );
 
     versions.unshift({
       id:"version_" + Date.now(),
@@ -5435,11 +5454,15 @@ function saveDraft(){
       ...payload
     });
 
-    localStorage.setItem(getVersionStorageKey(), JSON.stringify(versions.slice(0,20)));
+    localStorage.setItem(
+      getVersionStorageKey(),
+      JSON.stringify(versions.slice(0,20))
+    );
 
     studioState.isDirty = false;
-    renderSavedProjectsPanel();
-    showVersionHistory(false);
+
+    renderSavedProjectsPanel?.();
+    showVersionHistory?.(false);
 
     setStatus("Draft saved", "success");
   }catch(err){
@@ -5454,17 +5477,43 @@ async function saveAllStudio(event){
   try{
     setStatus("Saving studio...");
 
-    await saveNormalContent();
+    if(!QUERY.classId){
+      throw new Error("Missing class ID");
+    }
+
+    let normalSaved = false;
+    let visualSaved = false;
+
+    try{
+      await saveNormalContent();
+      normalSaved = true;
+    }catch(normalErr){
+      console.warn("Normal save failed, continuing visual save:", normalErr);
+    }
+
     await saveVisualContent();
+    visualSaved = true;
 
     saveDraft();
 
     studioState.isDirty = false;
 
-    setStatus("Studio saved to class builder", "success");
+    setStatus(
+      normalSaved && visualSaved
+        ? "Studio saved to class builder"
+        : "Visual saved. Normal text had an issue.",
+      normalSaved && visualSaved ? "success" : "warning"
+    );
+
   }catch(err){
     console.error("saveAllStudio error:", err);
-    setStatus(err.message || "Save failed", "error");
+
+    saveDraft();
+
+    setStatus(
+      "Backend save failed, but draft was saved locally",
+      "error"
+    );
   }
 }
 
@@ -5489,6 +5538,11 @@ async function saveNormalContent(){
     );
   }
 
+  /*
+    IMPORTANT:
+    For welcome/outcomes/curriculum, only send fields that exist in your normal form.
+    This avoids sending strange empty data to the builder route.
+  */
   return apiSend(
     `/api/classes/${encodeURIComponent(QUERY.classId)}/builder`,
     "PATCH",
@@ -5499,27 +5553,46 @@ async function saveNormalContent(){
 async function saveVisualContent(){
   if(!QUERY.classId) return null;
 
-  ensurePages();
+  const existingBlocks = getExistingContentBlocks();
+  const visualPayload = buildVisualPayload();
 
-  const visualBlock = {
-    scope:QUERY.scope || "welcome",
-    ownerId:QUERY.ownerId || "main",
-    type:"visual",
-    content:JSON.stringify({
-      elements:studioState.elements,
-      pages:studioState.pages,
-      currentPageId:studioState.currentPageId,
+  const scope = QUERY.scope || "welcome";
+  const ownerId = QUERY.ownerId || "main";
+
+  const filteredBlocks = existingBlocks.filter(block => {
+    return !(
+      String(block.scope || "") === String(scope) &&
+      String(block.ownerId || "main") === String(ownerId) &&
+      String(block.type || "") === "visual"
+    );
+  });
+
+  const nextBlocks = [
+    ...filteredBlocks,
+    {
+      blockId:["visual", scope, ownerId].join("_"),
+      scope,
+      ownerId,
+      type:"visual",
+      content:JSON.stringify(visualPayload),
+      order:filteredBlocks.length,
       updatedAt:new Date().toISOString()
-    })
-  };
+    }
+  ];
 
-  return apiSend(
+  const data = await apiSend(
     `/api/classes/${encodeURIComponent(QUERY.classId)}/builder`,
     "PATCH",
     {
-      contentBlocks:[visualBlock]
+      contentBlocks:nextBlocks,
+      contentBlocksUpdatedAt:new Date().toISOString()
     }
   );
+
+  studioState.classData =
+    data?.class || data || studioState.classData;
+
+  return data;
 }
 
 function showVersionHistory(showStatus=true){
