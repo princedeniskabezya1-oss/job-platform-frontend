@@ -7801,15 +7801,25 @@ function focusRichTarget(targetId){
 function normalRichCommand(targetId, command, value = null){
 
   const target = focusRichTarget(targetId);
-
   if(!target) return;
 
-  document.execCommand(command, false, value);
+  restoreInlineSelection();
 
-  target.dispatchEvent(new Event("input", {
-    bubbles: true
-  }));
+  if(command === "underline"){
+    wrapSelectionWithSpan({
+      style: "text-decoration-line:underline;text-decoration-thickness:1.5px;text-underline-offset:3px;"
+    });
+  }else if(command === "bold"){
+    wrapSelectionWithSpan({ style: "font-weight:800;" });
+  }else if(command === "italic"){
+    wrapSelectionWithSpan({ style: "font-style:italic;" });
+  }else if(command === "strikeThrough"){
+    wrapSelectionWithSpan({ style: "text-decoration-line:line-through;" });
+  }else{
+    document.execCommand(command, false, value);
+  }
 
+  target.dispatchEvent(new Event("input", { bubbles:true }));
   rememberInlineSelection();
 }
 
@@ -7830,12 +7840,28 @@ function normalRichBlock(targetId, tag){
 
 function normalRichColor(targetId, color){
 
-  normalRichCommand(targetId, "foreColor", color);
+  const target = focusRichTarget(targetId);
+  if(!target) return;
+
+  wrapSelectionWithSpan({
+    style: `color:${color};`
+  });
+
+  target.dispatchEvent(new Event("input", { bubbles:true }));
+  rememberInlineSelection();
 }
 
 function normalRichHighlight(targetId, color){
 
-  normalRichCommand(targetId, "hiliteColor", color);
+  const target = focusRichTarget(targetId);
+  if(!target) return;
+
+  wrapSelectionWithSpan({
+    style: `background-color:${color};`
+  });
+
+  target.dispatchEvent(new Event("input", { bubbles:true }));
+  rememberInlineSelection();
 }
 
 function normalRichFontSize(targetId, size){
@@ -8781,13 +8807,18 @@ function toggleCanvasGrid(){
 
 function toggleSnapGuides(){
 
-  studioState.snapGuides = !studioState.snapGuides;
-  studioState.snapToObjects = studioState.snapGuides;
+  const enabled = !(studioState.snapGuides || studioState.snapToGrid || studioState.snapToObjects);
+
+  studioState.snapGuides = enabled;
+  studioState.snapToGrid = enabled;
+  studioState.snapToObjects = enabled;
 
   setStatus(
-    studioState.snapGuides ? "Smart guides enabled" : "Smart guides disabled",
+    enabled ? "Snapping enabled" : "Snapping disabled",
     "success"
   );
+
+  renderCanvas();
 
   markDirty("toggle-snap", {
     skipAutosave: true,
@@ -9137,14 +9168,21 @@ function handleElementDragMove(event){
     let nextX = start.x + dx;
     let nextY = start.y + dy;
 
-    if(session.elementStart.length === 1){
+    if(event.altKey){
+      // Hold Alt to temporarily disable snapping.
+      snapResult = { guideX:null, guideY:null };
+
+    }else if(studioState.snapToGrid && event.shiftKey){
+      // Only snap to grid when Shift is held.
+      nextX = snapValue(nextX);
+      nextY = snapValue(nextY);
+
+    }else if(studioState.snapToObjects && session.elementStart.length === 1 && event.ctrlKey){
+      // Only smart-align to objects/center when Ctrl/Cmd is held.
       const snapped = snapElementPosition(element, nextX, nextY);
       nextX = snapped.x;
       nextY = snapped.y;
       snapResult = snapped;
-    }else if(studioState.snapToGrid){
-      nextX = snapValue(nextX);
-      nextY = snapValue(nextY);
     }
 
     element.x = nextX;
@@ -9942,10 +9980,30 @@ function renderGenericElementProperties(element){
 
 function applySelectedStyle(key, value){
 
+  const activeNormalEditor =
+    document.activeElement &&
+    document.activeElement.classList &&
+    document.activeElement.classList.contains("studio-rich-editor");
+
+  if(activeNormalEditor){
+    rememberInlineSelection();
+
+    const cssKey = key.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`);
+
+    wrapSelectionWithSpan({
+      style: `${cssKey}:${value};`
+    });
+
+    document.activeElement.dispatchEvent(new Event("input", { bubbles:true }));
+
+    setStatus("Normal editor text updated", "success", { timeout:900 });
+    return;
+  }
+
   const selected = getSelectedElements();
 
   if(!selected.length){
-    setStatus("No element selected", "warning");
+    setStatus("Select text in Normal Edit or select an element in Visual Canvas first", "warning");
     return;
   }
 
@@ -11976,23 +12034,36 @@ function ensureModalFallbacks(){
 
 function goBackToBuilder(){
 
+  const classId =
+    studioState.classId ||
+    STUDIO_QUERY.classId ||
+    new URLSearchParams(window.location.search).get("classId") ||
+    new URLSearchParams(window.location.search).get("id") ||
+    "";
+
   if(studioState.isDirty){
-    const confirmLeave = window.confirm(
-      "You have unsaved changes. Save before going back?"
+    const confirmSave = window.confirm(
+      "You have unsaved changes. Click OK to save before going back, or Cancel to go back without saving."
     );
 
-    if(confirmLeave){
-      saveAllStudio();
+    if(confirmSave){
+      saveAllStudio().finally(() => {
+        if(classId){
+          window.location.href = `class-builder.html?classId=${encodeURIComponent(classId)}`;
+        }else{
+          window.location.href = "class-builder.html";
+        }
+      });
       return;
     }
   }
 
-  if(studioState.classId){
-    window.location.href = `class-builder.html?id=${encodeURIComponent(studioState.classId)}`;
+  if(classId){
+    window.location.href = `class-builder.html?classId=${encodeURIComponent(classId)}`;
     return;
   }
 
-  window.history.back();
+  window.location.href = "class-builder.html";
 }
 
 /* =====================================================
