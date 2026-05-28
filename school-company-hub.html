@@ -2920,39 +2920,29 @@ function goDashboard(){
 }
 
 async function loadCompanies(){
-
   try{
+    const data = await apiFetch("/api/users/public?role=employer");
 
-    const data = await apiFetch("/api/users?role=employer");
-
-    state.companies =
-      Array.isArray(data)
-        ? data
-        : data?.users || [];
+    state.companies = Array.isArray(data)
+      ? data
+      : data?.users || data?.items || data?.data || [];
 
   }catch(err){
-
-    console.error("Companies load failed",err);
-
+    console.error("Companies load failed", err);
     state.companies = [];
   }
 }
 
 async function loadSchools(){
-
   try{
+    const data = await apiFetch("/api/users/public?role=school");
 
-    const data = await apiFetch("/api/users?role=school");
-
-    state.schools =
-      Array.isArray(data)
-        ? data
-        : data?.users || [];
+    state.schools = Array.isArray(data)
+      ? data
+      : data?.users || data?.items || data?.data || [];
 
   }catch(err){
-
-    console.error("Schools load failed",err);
-
+    console.error("Schools load failed", err);
     state.schools = [];
   }
 }
@@ -2977,20 +2967,15 @@ async function loadStudents(){
 }
 
 async function loadOpportunities(){
-
   try{
-
     const data = await apiFetch("/api/opportunities");
 
-    state.opportunities =
-      Array.isArray(data)
-        ? data
-        : data?.opportunities || [];
+    state.opportunities = Array.isArray(data)
+      ? data
+      : data?.opportunities || data?.items || data?.data || [];
 
   }catch(err){
-
-    console.error("Opportunities load failed",err);
-
+    console.error("Opportunities load failed", err);
     state.opportunities = [];
   }
 }
@@ -3143,63 +3128,79 @@ async function loadAll(){
 
 function hydrateSelects(){
 
-  const companyOptions = state.companies.map(company=>`
+  const companyOptions = state.companies.length
+    ? `
+      <option value="">
+        Select employer profile
+      </option>
+      ${state.companies.map(company=>`
+        <option value="${company._id || company.id}">
+          ${escapeHtml(
+            company.companyName ||
+            company.name ||
+            company.fullName ||
+            company.email ||
+            "Employer Profile"
+          )}
+        </option>
+      `).join("")}
+    `
+    : `
+      <option value="">
+        No employer profiles found
+      </option>
+    `;
 
-    <option value="${company._id}">
-      ${escapeHtml(
-        company.companyName ||
-        company.name ||
-        company.email ||
-        "Company"
-      )}
-    </option>
+  const opportunityOptions = state.opportunities.length
+    ? `
+      <option value="">
+        Select opportunity
+      </option>
+      ${state.opportunities.map(item=>`
+        <option value="${item._id || item.id}">
+          ${escapeHtml(item.title || item.name || "Opportunity")}
+        </option>
+      `).join("")}
+    `
+    : `
+      <option value="">
+        No opportunities found
+      </option>
+    `;
 
-  `).join("");
+  const studentOptions = state.students.length
+    ? `
+      <option value="">
+        Select student
+      </option>
+      ${state.students.map(student=>`
+        <option value="${student._id || student.id}">
+          ${escapeHtml(
+            student.name ||
+            student.fullName ||
+            student.email ||
+            "Student"
+          )}
+        </option>
+      `).join("")}
+    `
+    : `
+      <option value="">
+        No students found
+      </option>
+    `;
 
-  const opportunityOptions = state.opportunities.map(item=>`
-
-    <option value="${item._id}">
-      ${escapeHtml(
-        item.title ||
-        "Opportunity"
-      )}
-    </option>
-
-  `).join("");
-
-  const studentOptions = state.students.map(student=>`
-
-    <option value="${student._id}">
-      ${escapeHtml(
-        student.name ||
-        student.fullName ||
-        student.email ||
-        "Student"
-      )}
-    </option>
-
-  `).join("");
-
-  [
-    "opportunityCompany",
-    "partnershipCompany"
-  ].forEach(id=>{
-
+  ["opportunityCompany","partnershipCompany"].forEach(id=>{
     const el = $(id);
-
-    if(el){
-      el.innerHTML = companyOptions;
-    }
+    if(el) el.innerHTML = companyOptions;
   });
 
   if($("applicationOpportunity")){
-    $("applicationOpportunity").innerHTML =
-      opportunityOptions;
+    $("applicationOpportunity").innerHTML = opportunityOptions;
   }
 
   if($("applicationStudent")){
-    $("applicationStudent").innerHTML =
-      studentOptions;
+    $("applicationStudent").innerHTML = studentOptions;
   }
 }
 
@@ -3386,15 +3387,19 @@ function getCompanyName(item){
   const companyId =
     item.companyId?._id ||
     item.companyId ||
+    item.employerId?._id ||
+    item.employerId ||
     item.company?._id ||
     item.company;
 
   const company = state.companies.find(c=>
-    sameId(c._id,companyId)
+    sameId(c._id || c.id, companyId)
   );
 
   return (
     item.companyName ||
+    item.employerId?.companyName ||
+    item.employerId?.name ||
     item.company?.companyName ||
     item.company?.name ||
     company?.companyName ||
