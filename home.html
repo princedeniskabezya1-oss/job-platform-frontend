@@ -91,16 +91,20 @@ a{
 }
 
 .brand{
-  width:34px;
-  height:34px;
-  border-radius:8px;
-  background:var(--blue);
-  color:#fff;
-  display:grid;
-  place-items:center;
-  font-size:18px;
-  font-weight:900;
+  height:38px;
+  min-width:92px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
   flex-shrink:0;
+}
+
+.brand img{
+  height:34px;
+  width:auto;
+  max-width:112px;
+  object-fit:contain;
+  display:block;
 }
 
 .search{
@@ -135,6 +139,96 @@ a{
   stroke:#64748b;
   fill:none;
   stroke-width:2;
+}
+
+.search-clear{
+  position:absolute;
+  right:8px;
+  top:50%;
+  transform:translateY(-50%);
+  border:0;
+  background:transparent;
+  color:#64748b;
+  font-size:18px;
+  width:24px;
+  height:24px;
+  border-radius:50%;
+}
+
+.search-clear:hover{
+  background:#e5e7eb;
+}
+
+.search-panel{
+  position:absolute;
+  top:42px;
+  left:0;
+  width:min(520px,90vw);
+  background:#fff;
+  border:1px solid #d8d8d8;
+  border-radius:12px;
+  box-shadow:0 18px 40px rgba(15,23,42,.14);
+  overflow:hidden;
+  z-index:2000;
+}
+
+.search-section{
+  padding:10px;
+  border-bottom:1px solid #eef0f3;
+}
+
+.search-section:last-child{
+  border-bottom:0;
+}
+
+.search-section-title{
+  font-size:12px;
+  font-weight:900;
+  color:#666;
+  margin:0 0 8px;
+}
+
+.search-result{
+  width:100%;
+  border:0;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px;
+  border-radius:8px;
+  text-align:left;
+}
+
+.search-result:hover{
+  background:#f3f2ef;
+}
+
+.search-result img{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  object-fit:cover;
+  background:#eef2f7;
+}
+
+.search-result strong{
+  display:block;
+  font-size:13px;
+  color:#111;
+}
+
+.search-result span{
+  display:block;
+  font-size:12px;
+  color:#666;
+  margin-top:2px;
+}
+
+.search-empty{
+  padding:14px;
+  color:#666;
+  font-size:13px;
 }
 
 .top-nav{
@@ -424,18 +518,40 @@ a{
 
   <div class="container top-inner">
 
-    <a class="brand" href="home.html">A</a>
+    <a class="brand" href="home.html" aria-label="AIFT Home">
+  <img src="AIFT-logo.png" alt="AIFT">
+</a>
 
-    <div class="search">
+<div class="search">
 
-      <svg viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="7"></circle>
-        <path d="M20 20l-3.5-3.5"></path>
-      </svg>
+  <svg viewBox="0 0 24 24">
+    <circle cx="11" cy="11" r="7"></circle>
+    <path d="M20 20l-3.5-3.5"></path>
+  </svg>
 
-      <input type="search" placeholder="Search">
+  <input
+    id="globalSearchInput"
+    type="search"
+    placeholder="Search jobs, people, companies"
+    autocomplete="off"
+    oninput="handleGlobalSearchInput(event)"
+    onkeydown="handleGlobalSearchKey(event)"
+    onfocus="openSearchPanel()"
+  >
 
-    </div>
+  <button
+    id="globalSearchClear"
+    class="search-clear hidden"
+    type="button"
+    onclick="clearGlobalSearch()"
+    aria-label="Clear search"
+  >
+    ×
+  </button>
+
+  <div id="globalSearchPanel" class="search-panel hidden"></div>
+
+</div>
 
     <nav class="top-nav">
 
@@ -1328,6 +1444,182 @@ async function loadNotificationBadge(){
     badge.classList.add("hidden");
   }
 }
+    let searchTimer = null;
+let searchResults = {
+  users: [],
+  jobs: []
+};
+
+function userProfileUrl(user){
+  const id = user?._id || user?.id;
+  const r = String(user?.role || "").toLowerCase();
+
+  if(!id) return "home.html";
+
+  if(r === "employer"){
+    return `employer-public-profile.html?id=${id}`;
+  }
+
+  if(r === "school"){
+    return `school.html?id=${id}`;
+  }
+
+  return `agent-public-profile.html?id=${id}`;
+}
+
+function openSearchPanel(){
+  const input = document.getElementById("globalSearchInput");
+  if(input?.value.trim()){
+    document.getElementById("globalSearchPanel")?.classList.remove("hidden");
+  }
+}
+
+function clearGlobalSearch(){
+  const input = document.getElementById("globalSearchInput");
+  const panel = document.getElementById("globalSearchPanel");
+  const clear = document.getElementById("globalSearchClear");
+
+  if(input) input.value = "";
+  if(panel){
+    panel.innerHTML = "";
+    panel.classList.add("hidden");
+  }
+  clear?.classList.add("hidden");
+}
+
+function handleGlobalSearchInput(event){
+  const q = event.target.value.trim();
+  const clear = document.getElementById("globalSearchClear");
+
+  clear?.classList.toggle("hidden", !q);
+
+  clearTimeout(searchTimer);
+
+  if(q.length < 2){
+    renderSearchPanel("", [], []);
+    return;
+  }
+
+  searchTimer = setTimeout(() => {
+    runGlobalSearch(q);
+  }, 300);
+}
+
+function handleGlobalSearchKey(event){
+  const q = event.target.value.trim();
+
+  if(event.key === "Enter" && q){
+    event.preventDefault();
+    location.href = `network.html?search=${encodeURIComponent(q)}`;
+  }
+
+  if(event.key === "Escape"){
+    clearGlobalSearch();
+  }
+}
+
+async function runGlobalSearch(q){
+  try{
+    const [usersData, jobsData] = await Promise.allSettled([
+      api(`/api/users/network?search=${encodeURIComponent(q)}&limit=5`, {
+        headers: headers()
+      }),
+      api(`/api/jobs?search=${encodeURIComponent(q)}&limit=5`, {
+        headers: headers()
+      })
+    ]);
+
+    const users =
+      usersData.status === "fulfilled"
+        ? (
+            Array.isArray(usersData.value)
+              ? usersData.value
+              : usersData.value.users || usersData.value.results || []
+          )
+        : [];
+
+    const jobs =
+      jobsData.status === "fulfilled"
+        ? (
+            Array.isArray(jobsData.value)
+              ? jobsData.value
+              : jobsData.value.jobs || jobsData.value.results || []
+          )
+        : [];
+
+    searchResults = { users, jobs };
+    renderSearchPanel(q, users, jobs);
+
+  }catch(err){
+    renderSearchPanel(q, [], []);
+  }
+}
+
+function renderSearchPanel(q, users, jobs){
+  const panel = document.getElementById("globalSearchPanel");
+  if(!panel) return;
+
+  if(!q){
+    panel.innerHTML = "";
+    panel.classList.add("hidden");
+    return;
+  }
+
+  const userHtml = users.slice(0,5).map(user => `
+    <button class="search-result" onclick="location.href='${userProfileUrl(user)}'">
+      <img src="${user.profileImage || FALLBACK_AVATAR}" alt="">
+      <span>
+        <strong>${escapeHtml(user.companyName || user.schoolName || user.name || "AIFT User")}</strong>
+        <span>${escapeHtml(user.headline || user.profession || user.role || "Profile")}</span>
+      </span>
+    </button>
+  `).join("");
+
+  const jobHtml = jobs.slice(0,5).map(job => `
+    <button class="search-result" onclick="location.href='jobs.html?job=${job._id || job.id}'">
+      <img src="${job.companyLogo || job.logo || FALLBACK_AVATAR}" alt="">
+      <span>
+        <strong>${escapeHtml(job.title || "Job opportunity")}</strong>
+        <span>${escapeHtml(job.companyName || job.company || job.location || "AIFT Job")}</span>
+      </span>
+    </button>
+  `).join("");
+
+  panel.innerHTML = `
+    ${
+      users.length
+        ? `<div class="search-section">
+            <p class="search-section-title">People and companies</p>
+            ${userHtml}
+          </div>`
+        : ""
+    }
+
+    ${
+      jobs.length
+        ? `<div class="search-section">
+            <p class="search-section-title">Jobs</p>
+            ${jobHtml}
+          </div>`
+        : ""
+    }
+
+    ${
+      !users.length && !jobs.length
+        ? `<div class="search-empty">No results found for "${escapeHtml(q)}"</div>`
+        : ""
+    }
+  `;
+
+  panel.classList.remove("hidden");
+}
+
+document.addEventListener("click", function(event){
+  const search = document.querySelector(".search");
+  if(search && !search.contains(event.target)){
+    document.getElementById("globalSearchPanel")?.classList.add("hidden");
+  }
+});
 /* =========================
    NAVIGATION
 ========================= */
