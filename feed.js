@@ -547,7 +547,15 @@ ${
             <button class="aift-action-btn" onclick="AIFTFeed.openShare('${esc(post._id)}')" aria-label="Share">${svg("share")}</button>
           </div>
 
-          <button class="aift-action-btn" onclick="AIFTFeed.savePost('${esc(post._id)}')" aria-label="Save">${svg("save")}</button>
+          <button
+  class="aift-action-btn aift-save-btn"
+  id="aift-save-post-${safeId(post._id)}"
+  onclick="AIFTFeed.savePost('${esc(post._id)}')"
+  aria-label="Save"
+  title="Save post"
+>
+  ${svg("save")}
+</button>
         </section>
 
         <section class="aift-post-stats">
@@ -1526,12 +1534,51 @@ async function createPost() {
     openOverlay("aiftMenuSheet");
   }
 
-  function savePost(postId) {
+async function savePost(postId) {
+  const btn = document.getElementById(`aift-save-post-${safeId(postId)}`);
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+    }
+
+    const data = await api(`${API}/api/saved`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        itemType: "post",
+        itemId: postId
+      })
+    });
+
+    if (btn) {
+      btn.classList.add("is-saved");
+      btn.title = "Saved";
+    }
+
+    closeOverlays();
+    toast(data.alreadySaved ? "Post already saved." : "Post saved.");
+  } catch (err) {
     const saved = JSON.parse(localStorage.getItem("aiftSavedPosts") || "[]");
-    if (!saved.includes(postId)) saved.push(postId);
+
+    if (!saved.includes(postId)) {
+      saved.push(postId);
+    }
+
     localStorage.setItem("aiftSavedPosts", JSON.stringify(saved));
-    toast("Post saved.");
+
+    if (btn) {
+      btn.classList.add("is-saved");
+      btn.title = "Saved locally";
+    }
+
+    toast("Post saved locally.");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+    }
   }
+}
 
   function notInterested(postId) {
     const hidden = JSON.parse(localStorage.getItem("aiftHiddenPosts") || "[]");
