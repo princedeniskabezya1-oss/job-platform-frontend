@@ -519,11 +519,18 @@ moveOverlaysToBody();
           </div>
 
           <div class="aift-header-actions">
-            ${
-              !followed
-                ? `<button class="aift-follow-btn" onclick="AIFTFeed.toggleFollow('${esc(author._id)}')">Follow</button>`
-                : ""
-            }
+${
+  !followed
+    ? `<button
+        class="aift-follow-btn"
+        id="aift-follow-${safeId(author._id)}"
+        onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(author._id)}')"
+      >
+        <span class="aift-follow-plus">+</span>
+        <span>Follow</span>
+      </button>`
+    : ""
+}
             <button class="aift-icon-btn" onclick="AIFTFeed.openPostMenu('${esc(post._id)}')">${svg("more")}</button>
           </div>
         </header>
@@ -1569,42 +1576,92 @@ async function createPost() {
     }
   }
 
-  async function toggleFollow(userId) {
-    if (!userId || isMine(userId)) return;
+async function toggleFollow(userId) {
+  if (!userId || isMine(userId)) return;
 
-    try {
-      const data = await api(`${API}/api/users/${userId}/follow`, {
-        method: "PATCH",
-        headers: headers()
-      });
+  const btn = document.getElementById(`aift-follow-${safeId(userId)}`);
 
-      const following = JSON.parse(localStorage.getItem("followingIds") || "[]");
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add("is-loading");
+    btn.innerHTML = `<span class="aift-follow-loader"></span><span>Following</span>`;
+  }
 
-      const next = data.following
-        ? Array.from(new Set([...following, userId]))
-        : following.filter(id => String(id) !== String(userId));
+  try {
+    const data = await api(`${API}/api/users/${userId}/follow`, {
+      method: "PATCH",
+      headers: headers()
+    });
 
-      localStorage.setItem("followingIds", JSON.stringify(next));
+    const isNowFollowing =
+      data.following === true ||
+      data.isFollowing === true ||
+      data.status === "followed";
 
-      state.posts.forEach(post => {
-        if (String(post.author?._id) === String(userId)) {
-          post.author.isFollowing = data.following;
-        }
-      });
+    const following = JSON.parse(localStorage.getItem("followingIds") || "[]");
 
-      state.followingUsers = [];
+    const next = isNowFollowing
+      ? Array.from(new Set([...following, userId]))
+      : following.filter(id => String(id) !== String(userId));
+
+    localStorage.setItem("followingIds", JSON.stringify(next));
+
+    state.posts.forEach(post => {
+      if (String(post.author?._id) === String(userId)) {
+        post.author.isFollowing = isNowFollowing;
+      }
+    });
+
+    if (btn && isNowFollowing) {
+      btn.classList.remove("is-loading");
+      btn.classList.add("is-followed");
+      btn.innerHTML = `<span class="aift-follow-check">${svg("check")}</span><span>Following</span>`;
+
+      setTimeout(() => {
+        renderFeedOnly();
+      }, 900);
+    } else {
       renderFeedOnly();
-
-      toast(data.following ? "Following user." : "Unfollowed user.");
-    } catch (err) {
-      toast(err.message, "error");
     }
-  }
 
-  function visitProfile(userId) {
-    if (!userId) return;
-    window.location.href = `public-profile.html?id=${encodeURIComponent(userId)}`;
+    toast(isNowFollowing ? "You are now following this profile." : "You unfollowed this profile.");
+  } catch (err) {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove("is-loading");
+      btn.innerHTML = `<span class="aift-follow-plus">+</span><span>Follow</span>`;
+    }
+
+    toast(err.message, "error");
   }
+}
+
+async function visitProfile(userId) {
+  if (!userId) return;
+
+  try {
+    const data = await api(`${API}/api/users/${userId}/public`, {
+      headers: headers()
+    });
+
+    const user = data.user || data;
+    const r = String(user.role || "").toLowerCase();
+
+    if (r === "employer") {
+      window.location.href = `employer-public-profile.html?id=${encodeURIComponent(userId)}`;
+      return;
+    }
+
+    if (r === "school") {
+      window.location.href = `school.html?id=${encodeURIComponent(userId)}`;
+      return;
+    }
+
+    window.location.href = `agent-public-profile.html?id=${encodeURIComponent(userId)}`;
+  } catch (err) {
+    window.location.href = `agent-public-profile.html?id=${encodeURIComponent(userId)}`;
+  }
+}
 
   async function refreshOnePost(postId) {
     try {
