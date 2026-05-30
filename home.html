@@ -378,20 +378,16 @@ a{
   font-size:12px;
 }
 
-.profile-company{
-  margin-top:14px;
-  display:flex;
+.profile-role-badge{
+  display:inline-flex;
   align-items:center;
-  gap:8px;
-  color:#333;
-  font-size:13px;
-  font-weight:700;
-}
-
-.profile-company img{
-  width:18px;
-  height:18px;
-  object-fit:contain;
+  margin-top:10px;
+  padding:5px 10px;
+  border-radius:999px;
+  background:#eef6ff;
+  color:#0a66c2;
+  font-size:12px;
+  font-weight:800;
 }
 
 .profile-stats{
@@ -638,15 +634,7 @@ a{
 
       <div id="profileLocation" class="profile-location"></div>
 
-      <div class="profile-company">
-
-        <img src="https://cdn-icons-png.flaticon.com/512/5968/5968705.png">
-
-        <span id="profileCompany">
-          AIFT
-        </span>
-
-      </div>
+<div id="profileRoleBadge" class="profile-role-badge"></div>
 
       <div class="profile-stats">
 
@@ -912,6 +900,21 @@ a{
   background:#f3f2ef;
 }
 
+  .view-network-btn{
+  width:100%;
+  margin-top:12px;
+  border:1px solid #0a66c2;
+  background:#fff;
+  color:#0a66c2;
+  border-radius:999px;
+  padding:9px 12px;
+  font-size:13px;
+  font-weight:900;
+}
+
+.view-network-btn:hover{
+  background:#eef6ff;
+}
 .news-list{
   display:grid;
   gap:2px;
@@ -1240,6 +1243,19 @@ if(state.me?.role){
 renderMe();
 }
 
+    function getRoleLabel(roleValue = ""){
+  const r = String(roleValue).toLowerCase();
+
+  if(r === "employer") return "Hiring Company";
+  if(r === "school") return "School";
+  if(r === "agent") return "Recruiter";
+  if(r === "talent") return "Professional";
+  if(r === "teacher") return "Teacher";
+  if(r === "student") return "Student";
+  if(r === "admin") return "Admin";
+
+  return "AIFT Member";
+}
 function renderMe(){
 
   const me = state.me || {};
@@ -1258,20 +1274,17 @@ function renderMe(){
     me.name ||
     "AIFT User";
 
-  document.getElementById("profileHeadline").textContent =
-    me.headline ||
-    me.profession ||
-    me.role ||
-    "AIFT member";
+document.getElementById("profileHeadline").textContent =
+  me.headline ||
+  me.profession ||
+  getRoleLabel(me.role);
 
   document.getElementById("profileLocation").textContent =
     me.location ||
     "Location not added";
 
-  document.getElementById("profileCompany").textContent =
-    me.companyName ||
-    me.schoolName ||
-    "AIFT";
+document.getElementById("profileRoleBadge").textContent =
+  getRoleLabel(me.role);
 
   document.getElementById("viewerCount").textContent =
     me.profileViews ||
@@ -1358,7 +1371,7 @@ function renderSuggestions(){
   }
 
   mount.innerHTML =
-    state.suggestions.map(user => `
+    state.suggestions.slice(0,5).map(user => `
 
       <div class="side-user">
 
@@ -1403,7 +1416,11 @@ function renderSuggestions(){
 
       </div>
 
-    `).join("");
+    `).join("") + `
+  <button class="view-network-btn" onclick="goNetwork()">
+    View more people
+  </button>
+`;
 }
 
 async function followUser(id){
