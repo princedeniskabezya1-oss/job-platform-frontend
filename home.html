@@ -899,6 +899,36 @@ a{
 .follow-btn:hover{
   background:#f3f2ef;
 }
+  .aift-save-btn{
+  border:1px solid #d1d5db;
+  background:#fff;
+  color:#444;
+  border-radius:999px;
+  min-height:34px;
+  padding:0 13px;
+  font-size:12px;
+  font-weight:800;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  cursor:pointer;
+}
+
+.aift-save-btn:hover{
+  background:#f3f2ef;
+}
+
+.aift-save-btn.is-saved{
+  color:#057642;
+  border-color:rgba(5,118,66,.35);
+  background:#ecfdf5;
+}
+
+.aift-save-btn:disabled{
+  opacity:.65;
+  cursor:not-allowed;
+}
 
 .view-network-btn{
   width:100%;
@@ -1725,6 +1755,176 @@ function openDashboard(){
 
   openProfile();
 }
+    /* =========================
+   UNIVERSAL SAVED SYSTEM
+========================= */
+
+const AIFT_SAVED_API = API + "/api/saved";
+
+function savedHeaders(){
+  return {
+    "Content-Type": "application/json",
+    ...headers()
+  };
+}
+
+async function saveAiftItem(itemType, itemId, button = null){
+  if(!itemType || !itemId){
+    alert("Missing item information.");
+    return null;
+  }
+
+  if(!token()){
+    location.href = "login.html";
+    return null;
+  }
+
+  const oldText = button?.innerHTML || "Save";
+
+  try{
+    if(button){
+      button.disabled = true;
+      button.innerHTML = "Saving...";
+    }
+
+    const data = await api("/api/saved", {
+      method: "POST",
+      headers: savedHeaders(),
+      body: JSON.stringify({
+        itemType,
+        itemId
+      })
+    });
+
+    if(button){
+      button.dataset.saved = "true";
+      button.innerHTML = "Saved";
+      button.classList.add("is-saved");
+    }
+
+    return data;
+
+  }catch(err){
+    console.error("saveAiftItem error:", err);
+
+    if(button){
+      button.innerHTML = oldText;
+    }
+
+    alert(err.message || "Unable to save item.");
+    return null;
+
+  }finally{
+    if(button){
+      button.disabled = false;
+    }
+  }
+}
+
+async function unsaveAiftItem(itemType, itemId, button = null){
+  if(!itemType || !itemId){
+    alert("Missing item information.");
+    return null;
+  }
+
+  if(!token()){
+    location.href = "login.html";
+    return null;
+  }
+
+  const oldText = button?.innerHTML || "Saved";
+
+  try{
+    if(button){
+      button.disabled = true;
+      button.innerHTML = "Removing...";
+    }
+
+    const data = await api(
+      `/api/saved/by-item/${encodeURIComponent(itemType)}/${encodeURIComponent(itemId)}`,
+      {
+        method: "DELETE",
+        headers: savedHeaders()
+      }
+    );
+
+    if(button){
+      button.dataset.saved = "false";
+      button.innerHTML = "Save";
+      button.classList.remove("is-saved");
+    }
+
+    return data;
+
+  }catch(err){
+    console.error("unsaveAiftItem error:", err);
+
+    if(button){
+      button.innerHTML = oldText;
+    }
+
+    alert(err.message || "Unable to remove saved item.");
+    return null;
+
+  }finally{
+    if(button){
+      button.disabled = false;
+    }
+  }
+}
+
+async function toggleAiftSaved(itemType, itemId, button = null){
+  const isSaved = button?.dataset.saved === "true";
+
+  if(isSaved){
+    return unsaveAiftItem(itemType, itemId, button);
+  }
+
+  return saveAiftItem(itemType, itemId, button);
+}
+
+async function checkAiftSaved(itemType, itemId, button = null){
+  if(!itemType || !itemId || !token()){
+    return false;
+  }
+
+  try{
+    const data = await api(
+      `/api/saved/check/${encodeURIComponent(itemType)}/${encodeURIComponent(itemId)}`,
+      {
+        headers: savedHeaders()
+      }
+    );
+
+    if(button){
+      button.dataset.saved = data.saved ? "true" : "false";
+      button.innerHTML = data.saved ? "Saved" : "Save";
+      button.classList.toggle("is-saved", Boolean(data.saved));
+    }
+
+    return Boolean(data.saved);
+
+  }catch(err){
+    console.warn("checkAiftSaved failed:", err.message);
+    return false;
+  }
+}
+
+async function hydrateSavedButtons(){
+  const buttons = document.querySelectorAll("[data-save-type][data-save-id]");
+
+  for(const button of buttons){
+    if(button.dataset.savedHydrated === "true") continue;
+
+    button.dataset.savedHydrated = "true";
+
+    await checkAiftSaved(
+      button.dataset.saveType,
+      button.dataset.saveId,
+      button
+    );
+  }
+}
 
 function openProfile(){
   const id = state.me?._id || currentUserId();
@@ -1824,7 +2024,7 @@ function enhanceFeedAfterRender(){
 
   const posts =
     document.querySelectorAll(
-      "#feedMount .post-card"
+      "#feedMount .post-card, #feedMount .aift-post-card, #feedMount .feed-post"
     );
 
   posts.forEach(post=>{
@@ -1832,7 +2032,43 @@ function enhanceFeedAfterRender(){
     post.style.borderRadius = "12px";
     post.style.overflow = "hidden";
 
+    const postId =
+      post.dataset.postId ||
+      post.dataset.id ||
+      post.getAttribute("data-post-id") ||
+      post.querySelector("[data-post-id]")?.dataset.postId;
+
+    if(!postId) return;
+
+    const actionArea =
+      post.querySelector(".aift-post-actions") ||
+      post.querySelector(".post-actions") ||
+      post.querySelector(".feed-actions");
+
+    if(!actionArea) return;
+
+    const existing =
+      actionArea.querySelector(`[data-save-type="post"][data-save-id="${postId}"]`);
+
+    if(existing) return;
+
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "aift-save-btn";
+    saveBtn.type = "button";
+    saveBtn.dataset.saveType = "post";
+    saveBtn.dataset.saveId = postId;
+    saveBtn.dataset.saved = "false";
+    saveBtn.innerHTML = "Save";
+
+    saveBtn.onclick = function(){
+      toggleAiftSaved("post", postId, saveBtn);
+    };
+
+    actionArea.appendChild(saveBtn);
+
   });
+
+  hydrateSavedButtons();
 }
 
 /* =========================
