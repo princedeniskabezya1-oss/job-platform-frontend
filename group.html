@@ -1160,6 +1160,10 @@ const params =
 const groupId =
   params.get("id");
 
+if (!groupId) {
+  location.href = "groups.html";
+}
+
 let currentGroup = null;
 let groupMembers = [];
 
@@ -1341,21 +1345,18 @@ function routeToProfile(user) {
 }
 
 async function loadGroup() {
-
   try {
-
-    const data =
+    const groupData =
       await api(
         `/api/groups/${groupId}`
       );
 
     currentGroup =
-      data.group;
+      groupData.group || groupData;
 
     renderGroup();
 
   } catch (err) {
-
     showError(
       err.message ||
       "Failed to load group"
@@ -1777,7 +1778,7 @@ async function initGroupFeed() {
 
   await AIFTFeed.mount("groupFeedMount", {
     mode: "group",
-    groupId,
+    groupId: groupId,
     showComposer: true,
     infiniteScroll: true,
     realtime: true
