@@ -1264,56 +1264,6 @@
 
             </button>
 
-            <button
-              class="saved-nav-btn"
-              data-type="profile"
-              onclick="setFilter('profile')"
-            >
-              <div class="saved-nav-left">
-
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="8" r="4"></circle>
-                  <path d="M4 21c0-4 3-7 8-7s8 3 8 7"></path>
-                </svg>
-
-                <span>Profiles</span>
-
-              </div>
-
-              <div
-                class="saved-count"
-                id="countProfiles"
-              >
-                0
-              </div>
-
-            </button>
-
-            <button
-              class="saved-nav-btn"
-              data-type="class"
-              onclick="setFilter('class')"
-            >
-              <div class="saved-nav-left">
-
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                  <path d="M20 22V3"></path>
-                  <path d="M6.5 2H20v15H6.5A2.5 2.5 0 0 0 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"></path>
-                </svg>
-
-                <span>Classes</span>
-
-              </div>
-
-              <div
-                class="saved-count"
-                id="countClasses"
-              >
-                0
-              </div>
-
-            </button>
 
           </div>
 
@@ -1414,13 +1364,6 @@
                 Jobs
               </option>
 
-              <option value="profile">
-                Profiles
-              </option>
-
-              <option value="class">
-                Classes
-              </option>
             </select>
 
           </div>
@@ -1616,6 +1559,7 @@
     ];
 
     const LOCAL_SAVED_KEY = "aiftSavedItems";
+const LOCAL_SAVED_POSTS_KEY = "aiftSavedPosts";
 
     let currentUser = null;
     let savedItems = [];
@@ -2085,17 +2029,52 @@
         .filter(Boolean);
     }
 
-    function getLocalSavedItems() {
-      try {
-        const raw = JSON.parse(localStorage.getItem(LOCAL_SAVED_KEY) || "[]");
+ async function getLocalSavedItems() {
+  const finalItems = [];
 
-        return raw
-          .map(normalizeSavedItem)
-          .filter(Boolean);
-      } catch (error) {
-        return [];
-      }
+  try {
+    const raw = JSON.parse(localStorage.getItem(LOCAL_SAVED_KEY) || "[]");
+
+    finalItems.push(
+      ...raw
+        .map(normalizeSavedItem)
+        .filter(Boolean)
+        .filter(item => ["post", "job"].includes(item.type))
+    );
+  } catch {}
+
+  try {
+    const savedPostIds = JSON.parse(localStorage.getItem(LOCAL_SAVED_POSTS_KEY) || "[]");
+
+    for (const postId of savedPostIds) {
+      try {
+        const post = await apiRequest(`/api/posts/${postId}`);
+
+        finalItems.push({
+          saveId: `local-post-${postId}`,
+          id: post._id || postId,
+          type: "post",
+          title: post.author?.name || post.author?.companyName || "Saved Post",
+          owner: post.author?.headline || post.author?.role || "Post",
+          description: post.text || "Saved post without text.",
+          image: post.author?.profileImage || "",
+          role: post.author?.role || "",
+          savedAt: post.createdAt || new Date().toISOString(),
+          tags: ["Feed"],
+          raw: post
+        });
+      } catch {}
     }
+  } catch {}
+
+  const unique = new Map();
+
+  finalItems.forEach(item => {
+    unique.set(`${item.type}:${item.id}`, item);
+  });
+
+  return Array.from(unique.values());
+}
 
     function saveLocalSavedItems(items = []) {
       localStorage.setItem(
@@ -2159,8 +2138,7 @@
           <h3 class="state-title">No saved items found</h3>
 
           <p class="state-desc">
-            When you save jobs, posts, profiles, schools, or classes,
-            they will appear here.
+            When you save jobs or posts, they will appear here.
           </p>
 
           <div class="state-actions">
@@ -2365,19 +2343,19 @@
     }
 
     function updateCounts() {
-      const counts = {
-        all: savedItems.length,
-        post: savedItems.filter(item => item.type === "post").length,
-        job: savedItems.filter(item => item.type === "job").length,
-        profile: savedItems.filter(item => item.type === "profile").length,
-        class: savedItems.filter(item => item.type === "class").length
-      };
+savedItems = savedItems.filter(item => ["post", "job"].includes(item.type));
+
+const counts = {
+  all: savedItems.length,
+  post: savedItems.filter(item => item.type === "post").length,
+  job: savedItems.filter(item => item.type === "job").length
+};
 
       document.getElementById("countAll").textContent = counts.all;
       document.getElementById("countPosts").textContent = counts.post;
       document.getElementById("countJobs").textContent = counts.job;
-      document.getElementById("countProfiles").textContent = counts.profile;
-      document.getElementById("countClasses").textContent = counts.class;
+      
+      
 
       document.getElementById("heroTotalSaved").textContent = counts.all;
       document.getElementById("heroMonthlySaved").textContent =
@@ -2385,8 +2363,8 @@
 
       document.getElementById("insightJobs").textContent = counts.job;
       document.getElementById("insightPosts").textContent = counts.post;
-      document.getElementById("insightProfiles").textContent = counts.profile;
-      document.getElementById("insightClasses").textContent = counts.class;
+      
+      
     }
 
     function setFilter(type) {
@@ -2432,7 +2410,7 @@
       }
 
       if (type === "post") {
-        location.href = `home.html?postId=${encodeURIComponent(id)}`;
+        location.href = `home.html?post=${encodeURIComponent(id)}`;
         return;
       }
 
@@ -2621,7 +2599,7 @@
 
         renderSavedItems();
       } catch (error) {
-        const localItems = getLocalSavedItems();
+        const localItems = await getLocalSavedItems();
 
         savedItems = localItems;
 
