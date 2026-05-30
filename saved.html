@@ -1,0 +1,2724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Saved | AIFT</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --soft: #f9fafb;
+      --border: #e5e7eb;
+      --border-strong: #d1d5db;
+      --green: #0f766e;
+      --green-soft: #ecfdf5;
+      --blue: #2563eb;
+      --red: #b91c1c;
+      --red-soft: #fef2f2;
+      --shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --max: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    select {
+      font-family: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.07), transparent 32%),
+        radial-gradient(circle at top right, rgba(37, 99, 235, 0.06), transparent 28%),
+        var(--bg);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 80;
+      height: 64px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topbar-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+      height: 100%;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: max-content;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      display: grid;
+      place-items: center;
+      color: #ffffff;
+      font-weight: 800;
+      background: linear-gradient(135deg, #0f766e, #2563eb);
+      box-shadow: 0 8px 18px rgba(15, 118, 110, 0.18);
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.05;
+    }
+
+    .brand-name {
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: -0.03em;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .top-search {
+      flex: 1;
+      max-width: 430px;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .top-search svg {
+      width: 17px;
+      height: 17px;
+      position: absolute;
+      left: 13px;
+      color: var(--muted);
+    }
+
+    .top-search input {
+      width: 100%;
+      height: 40px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--soft);
+      padding: 0 14px 0 40px;
+      outline: none;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .top-search input:focus {
+      background: #ffffff;
+      border-color: rgba(15, 118, 110, 0.65);
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.10);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn,
+    .pill-btn {
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: #374151;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: 0.18s ease;
+      font-weight: 700;
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+    }
+
+    .icon-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .pill-btn {
+      height: 40px;
+      padding: 0 14px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+
+    .icon-btn:hover,
+    .pill-btn:hover {
+      background: var(--soft);
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+
+    .page-wrap {
+      max-width: var(--max);
+      margin: 22px auto;
+      padding: 0 16px 28px;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr) 280px;
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .left-panel,
+    .right-panel {
+      position: sticky;
+      top: 84px;
+      height: fit-content;
+    }
+
+    .panel-pad {
+      padding: 16px;
+    }
+
+    .profile-mini {
+      overflow: hidden;
+    }
+
+    .mini-cover {
+      height: 62px;
+      background:
+        linear-gradient(135deg, rgba(15, 118, 110, 0.92), rgba(37, 99, 235, 0.86));
+    }
+
+    .mini-body {
+      padding: 0 16px 16px;
+      text-align: center;
+    }
+
+    .mini-avatar {
+      width: 72px;
+      height: 72px;
+      margin: -36px auto 10px;
+      border-radius: 22px;
+      border: 4px solid #ffffff;
+      background: #e5e7eb;
+      object-fit: cover;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--green);
+    }
+
+    .mini-name {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .mini-role {
+      margin: 5px 0 12px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .mini-link {
+      width: 100%;
+      border: 1px solid rgba(15, 118, 110, 0.35);
+      color: var(--green);
+      background: var(--green-soft);
+      height: 38px;
+      border-radius: 999px;
+      font-weight: 800;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .saved-nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .saved-nav-btn {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 11px 10px;
+      border-radius: 13px;
+      color: #374151;
+      font-weight: 700;
+      font-size: 13px;
+      transition: 0.16s ease;
+      text-align: left;
+    }
+
+    .saved-nav-btn:hover,
+    .saved-nav-btn.active {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .saved-nav-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .saved-nav-left svg {
+      width: 17px;
+      height: 17px;
+      flex: none;
+    }
+
+    .saved-count {
+      min-width: 25px;
+      height: 22px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: #f3f4f6;
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .saved-nav-btn.active .saved-count {
+      background: #ffffff;
+      color: var(--green);
+    }
+
+    .main-panel {
+      min-width: 0;
+    }
+
+    .hero-card {
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .hero-kicker {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+
+    .hero-title {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.15;
+      letter-spacing: -0.045em;
+    }
+
+    .hero-desc {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .stat-pill {
+      border: 1px solid var(--border);
+      background: var(--soft);
+      border-radius: 999px;
+      padding: 8px 11px;
+      font-size: 12px;
+      color: #374151;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .controls {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 170px 150px;
+      gap: 10px;
+    }
+
+    .field-wrap {
+      position: relative;
+    }
+
+    .field-wrap svg {
+      width: 17px;
+      height: 17px;
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+    }
+
+    .control-input,
+    .control-select {
+      width: 100%;
+      height: 42px;
+      border: 1px solid var(--border-strong);
+      background: #ffffff;
+      border-radius: 999px;
+      outline: none;
+      padding: 0 14px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .control-input {
+      padding-left: 40px;
+    }
+
+    .control-input:focus,
+    .control-select:focus {
+      border-color: rgba(15, 118, 110, 0.7);
+      box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.10);
+    }
+        .feed-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .saved-item {
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr) auto;
+      gap: 14px;
+      padding: 16px;
+      transition: 0.18s ease;
+    }
+
+    .saved-item:hover {
+      border-color: rgba(15, 118, 110, 0.28);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+      transform: translateY(-1px);
+    }
+
+    .item-avatar {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      background: #e5e7eb;
+      object-fit: cover;
+      display: grid;
+      place-items: center;
+      color: var(--green);
+      font-weight: 800;
+      font-size: 17px;
+      overflow: hidden;
+      flex: none;
+    }
+
+    .item-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .item-main {
+      min-width: 0;
+    }
+
+    .item-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 5px;
+    }
+
+    .type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: var(--green-soft);
+      color: var(--green);
+      border: 1px solid #ccfbf1;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .type-badge svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .saved-date {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .item-title {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.38;
+      letter-spacing: -0.015em;
+      font-weight: 800;
+      color: var(--text);
+      overflow-wrap: anywhere;
+    }
+
+    .item-meta {
+      margin: 5px 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .item-desc {
+      margin: 0;
+      color: #374151;
+      font-size: 14px;
+      line-height: 1.55;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+    }
+
+    .item-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 11px;
+    }
+
+    .mini-tag {
+      padding: 5px 8px;
+      background: #f3f4f6;
+      color: #4b5563;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .item-actions {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .action-btn {
+      border: 1px solid var(--border-strong);
+      background: #ffffff;
+      color: #374151;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: 0.16s ease;
+    }
+
+    .action-btn svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    .action-btn:hover {
+      background: var(--soft);
+      transform: translateY(-1px);
+    }
+
+    .action-btn.primary {
+      color: var(--green);
+      border-color: rgba(15, 118, 110, 0.35);
+      background: var(--green-soft);
+    }
+
+    .action-btn.danger {
+      color: var(--red);
+      border-color: #fecaca;
+      background: #ffffff;
+    }
+
+    .action-btn.danger:hover {
+      background: var(--red-soft);
+    }
+
+    .quick-card {
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .quick-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .quick-link {
+      border: 1px solid var(--border);
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 11px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #374151;
+      font-weight: 700;
+      transition: 0.16s ease;
+    }
+
+    .quick-link:hover {
+      background: var(--soft);
+      border-color: var(--border-strong);
+    }
+
+    .quick-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: var(--green-soft);
+      color: var(--green);
+      flex: none;
+    }
+
+    .quick-icon svg {
+      width: 17px;
+      height: 17px;
+    }
+
+    .quick-link span {
+      font-size: 13px;
+    }
+
+    .quick-link small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 2px;
+      font-weight: 600;
+    }
+
+    .insight-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .insight-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .insight-row:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .insight-row span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .insight-row strong {
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .empty-state,
+    .error-state,
+    .loading-state {
+      padding: 34px 20px;
+      text-align: center;
+    }
+
+    .empty-icon,
+    .error-icon,
+    .loading-icon {
+      width: 54px;
+      height: 54px;
+      margin: 0 auto 14px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+    }
+
+    .empty-icon {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .error-icon {
+      background: var(--red-soft);
+      color: var(--red);
+    }
+
+    .loading-icon {
+      background: #f3f4f6;
+      color: var(--muted);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    .empty-icon svg,
+    .error-icon svg,
+    .loading-icon svg {
+      width: 25px;
+      height: 25px;
+    }
+
+    .state-title {
+      margin: 0 0 6px;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .state-desc {
+      margin: 0 auto;
+      max-width: 410px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .state-actions {
+      display: flex;
+      justify-content: center;
+      gap: 9px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .skeleton-card {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 58px 1fr 110px;
+      gap: 14px;
+    }
+
+    .skel {
+      border-radius: 999px;
+      background: linear-gradient(90deg, #f3f4f6, #e5e7eb, #f3f4f6);
+      background-size: 220% 100%;
+      animation: shimmer 1.1s infinite linear;
+    }
+
+    .skel-avatar {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+    }
+
+    .skel-lines {
+      display: grid;
+      gap: 9px;
+      align-content: start;
+    }
+
+    .skel-line {
+      height: 12px;
+    }
+
+    .skel-line.w80 {
+      width: 80%;
+    }
+
+    .skel-line.w60 {
+      width: 60%;
+    }
+
+    .skel-line.w95 {
+      width: 95%;
+    }
+
+    .skel-btn {
+      height: 36px;
+      width: 100px;
+    }
+
+    .toast-wrap {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 200;
+      display: grid;
+      gap: 10px;
+      width: min(360px, calc(100vw - 32px));
+    }
+
+    .toast {
+      background: #111827;
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.25);
+      animation: toastIn 0.18s ease-out;
+    }
+
+    .toast.success {
+      background: #065f46;
+    }
+
+    .toast.error {
+      background: #991b1b;
+    }
+
+    .toast svg {
+      width: 18px;
+      height: 18px;
+      flex: none;
+      margin-top: 1px;
+    }
+
+    .toast strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .toast span {
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .confirm-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 160;
+      background: rgba(17, 24, 39, 0.48);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .confirm-backdrop.show {
+      display: flex;
+    }
+
+    .confirm-box {
+      width: min(420px, 100%);
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+    }
+
+    .confirm-box h3 {
+      margin: 0 0 7px;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .confirm-box p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    .confirm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 9px;
+      margin-top: 18px;
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: 220% 0;
+      }
+
+      100% {
+        background-position: -220% 0;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 0.6;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 1040px) {
+      .page-wrap {
+        grid-template-columns: 230px minmax(0, 1fr);
+      }
+
+      .right-panel {
+        display: none;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .top-search {
+        display: none;
+      }
+
+      .brand-sub {
+        display: none;
+      }
+
+      .page-wrap {
+        grid-template-columns: 1fr;
+        margin-top: 14px;
+      }
+
+      .left-panel {
+        position: static;
+      }
+
+      .profile-mini {
+        display: none;
+      }
+
+      .saved-nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .hero-top {
+        display: block;
+      }
+
+      .hero-stats {
+        justify-content: flex-start;
+        margin-top: 14px;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .saved-item {
+        grid-template-columns: 50px minmax(0, 1fr);
+      }
+
+      .item-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 15px;
+      }
+
+      .item-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+
+      .skeleton-card {
+        grid-template-columns: 50px 1fr;
+      }
+
+      .skel-btn {
+        display: none;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .topbar-inner {
+        padding: 0 12px;
+      }
+
+      .pill-btn span {
+        display: none;
+      }
+
+      .page-wrap {
+        padding: 0 10px 24px;
+      }
+
+      .hero-card {
+        padding: 16px;
+      }
+
+      .hero-title {
+        font-size: 22px;
+      }
+
+      .saved-nav {
+        grid-template-columns: 1fr;
+      }
+
+      .saved-item {
+        padding: 14px;
+      }
+
+      .action-btn {
+        flex: 1;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- TOPBAR -->
+
+    <header class="topbar">
+      <div class="topbar-inner">
+
+        <a href="home.html" class="brand">
+          <div class="brand-logo">A</div>
+
+          <div class="brand-text">
+            <span class="brand-name">AIFT</span>
+            <span class="brand-sub">Saved Content Hub</span>
+          </div>
+        </a>
+
+        <div class="top-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20L17 17"></path>
+          </svg>
+
+          <input
+            id="globalSearchInput"
+            type="text"
+            placeholder="Search saved items..."
+          />
+        </div>
+
+        <div class="top-actions">
+
+          <button
+            class="icon-btn"
+            onclick="location.href='home.html'"
+            title="Home"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 10.5L12 3l9 7.5"></path>
+              <path d="M5 9.5V21h14V9.5"></path>
+            </svg>
+          </button>
+
+          <button
+            class="pill-btn"
+            onclick="goToMyProfile()"
+          >
+            <span>My Profile</span>
+          </button>
+
+        </div>
+
+      </div>
+    </header>
+
+    <!-- MAIN -->
+
+    <main class="page-wrap">
+
+      <!-- LEFT -->
+
+      <aside class="left-panel">
+
+        <div class="card profile-mini">
+
+          <div class="mini-cover"></div>
+
+          <div class="mini-body">
+
+            <div
+              id="miniAvatar"
+              class="mini-avatar"
+            >
+              A
+            </div>
+
+            <h3
+              id="miniName"
+              class="mini-name"
+            >
+              Loading...
+            </h3>
+
+            <p
+              id="miniRole"
+              class="mini-role"
+            >
+              Loading profile...
+            </p>
+
+            <button
+              class="mini-link"
+              onclick="goToMyProfile()"
+            >
+              View Profile
+            </button>
+
+          </div>
+
+        </div>
+
+        <div class="card panel-pad" style="margin-top:14px;">
+
+          <h3 class="section-title">
+            Saved Categories
+          </h3>
+
+          <div class="saved-nav">
+
+            <button
+              class="saved-nav-btn active"
+              data-type="all"
+              onclick="setFilter('all')"
+            >
+              <div class="saved-nav-left">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 5h14v14H5z"></path>
+                </svg>
+
+                <span>All Saved</span>
+
+              </div>
+
+              <div
+                class="saved-count"
+                id="countAll"
+              >
+                0
+              </div>
+
+            </button>
+
+            <button
+              class="saved-nav-btn"
+              data-type="post"
+              onclick="setFilter('post')"
+            >
+              <div class="saved-nav-left">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 6h16"></path>
+                  <path d="M4 12h16"></path>
+                  <path d="M4 18h12"></path>
+                </svg>
+
+                <span>Posts</span>
+
+              </div>
+
+              <div
+                class="saved-count"
+                id="countPosts"
+              >
+                0
+              </div>
+
+            </button>
+
+            <button
+              class="saved-nav-btn"
+              data-type="job"
+              onclick="setFilter('job')"
+            >
+              <div class="saved-nav-left">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="7" width="18" height="12"></rect>
+                  <path d="M9 7V5h6v2"></path>
+                </svg>
+
+                <span>Jobs</span>
+
+              </div>
+
+              <div
+                class="saved-count"
+                id="countJobs"
+              >
+                0
+              </div>
+
+            </button>
+
+            <button
+              class="saved-nav-btn"
+              data-type="profile"
+              onclick="setFilter('profile')"
+            >
+              <div class="saved-nav-left">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="8" r="4"></circle>
+                  <path d="M4 21c0-4 3-7 8-7s8 3 8 7"></path>
+                </svg>
+
+                <span>Profiles</span>
+
+              </div>
+
+              <div
+                class="saved-count"
+                id="countProfiles"
+              >
+                0
+              </div>
+
+            </button>
+
+            <button
+              class="saved-nav-btn"
+              data-type="class"
+              onclick="setFilter('class')"
+            >
+              <div class="saved-nav-left">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                  <path d="M20 22V3"></path>
+                  <path d="M6.5 2H20v15H6.5A2.5 2.5 0 0 0 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+
+                <span>Classes</span>
+
+              </div>
+
+              <div
+                class="saved-count"
+                id="countClasses"
+              >
+                0
+              </div>
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </aside>
+
+      <!-- CENTER -->
+
+      <section class="main-panel">
+
+        <div class="card hero-card">
+
+          <div class="hero-top">
+
+            <div>
+
+              <div class="hero-kicker">
+                AIFT Library
+              </div>
+
+              <h1 class="hero-title">
+                Saved Items
+              </h1>
+
+              <p class="hero-desc">
+                Access all saved jobs, posts, profiles,
+                schools, classes and opportunities from
+                one place.
+              </p>
+
+            </div>
+
+            <div class="hero-stats">
+
+              <div class="stat-pill">
+                Total:
+                <span id="heroTotalSaved">0</span>
+              </div>
+
+              <div class="stat-pill">
+                This Month:
+                <span id="heroMonthlySaved">0</span>
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="controls">
+
+            <div class="field-wrap">
+
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M20 20L17 17"></path>
+              </svg>
+
+              <input
+                id="searchInput"
+                class="control-input"
+                type="text"
+                placeholder="Search saved content..."
+              />
+
+            </div>
+
+            <select
+              id="sortSelect"
+              class="control-select"
+            >
+              <option value="newest">
+                Newest First
+              </option>
+
+              <option value="oldest">
+                Oldest First
+              </option>
+
+              <option value="az">
+                A-Z
+              </option>
+            </select>
+
+            <select
+              id="statusFilter"
+              class="control-select"
+            >
+              <option value="all">
+                All Types
+              </option>
+
+              <option value="post">
+                Posts
+              </option>
+
+              <option value="job">
+                Jobs
+              </option>
+
+              <option value="profile">
+                Profiles
+              </option>
+
+              <option value="class">
+                Classes
+              </option>
+            </select>
+
+          </div>
+
+        </div>
+
+        <!-- SAVED FEED -->
+
+        <div
+          id="savedFeed"
+          class="feed-list"
+        >
+        </div>
+
+      </section>
+
+      <!-- RIGHT -->
+
+      <aside class="right-panel">
+
+        <div class="card quick-card">
+
+          <h3 class="section-title">
+            Quick Access
+          </h3>
+
+          <div class="quick-list">
+
+            <a
+              href="jobs.html"
+              class="quick-link"
+            >
+              <div class="quick-icon">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="7" width="18" height="12"></rect>
+                </svg>
+
+              </div>
+
+              <div>
+                <span>Jobs</span>
+                <small>Explore opportunities</small>
+              </div>
+
+            </a>
+
+            <a
+              href="network.html"
+              class="quick-link"
+            >
+              <div class="quick-icon">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <circle cx="17" cy="7" r="3"></circle>
+                </svg>
+
+              </div>
+
+              <div>
+                <span>Network</span>
+                <small>Grow connections</small>
+              </div>
+
+            </a>
+
+            <a
+              href="groups.html"
+              class="quick-link"
+            >
+              <div class="quick-icon">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="8" cy="8" r="3"></circle>
+                  <circle cx="16" cy="8" r="3"></circle>
+                </svg>
+
+              </div>
+
+              <div>
+                <span>Groups</span>
+                <small>Join communities</small>
+              </div>
+
+            </a>
+
+          </div>
+
+        </div>
+
+        <div class="card panel-pad">
+
+          <h3 class="section-title">
+            Insights
+          </h3>
+
+          <div class="insight-list">
+
+            <div class="insight-row">
+              <span>Saved Jobs</span>
+              <strong id="insightJobs">
+                0
+              </strong>
+            </div>
+
+            <div class="insight-row">
+              <span>Saved Posts</span>
+              <strong id="insightPosts">
+                0
+              </strong>
+            </div>
+
+            <div class="insight-row">
+              <span>Saved Profiles</span>
+              <strong id="insightProfiles">
+                0
+              </strong>
+            </div>
+
+            <div class="insight-row">
+              <span>Saved Classes</span>
+              <strong id="insightClasses">
+                0
+              </strong>
+            </div>
+
+          </div>
+
+        </div>
+
+      </aside>
+
+    </main>
+        <!-- CONFIRM MODAL -->
+
+    <div
+      id="confirmBackdrop"
+      class="confirm-backdrop"
+    >
+      <div class="confirm-box">
+
+        <h3 id="confirmTitle">
+          Remove saved item?
+        </h3>
+
+        <p id="confirmMessage">
+          This item will be removed from your saved list.
+        </p>
+
+        <div class="confirm-actions">
+
+          <button
+            class="action-btn"
+            onclick="closeConfirmModal()"
+          >
+            Cancel
+          </button>
+
+          <button
+            id="confirmActionBtn"
+            class="action-btn danger"
+          >
+            Remove
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TOASTS -->
+
+    <div
+      id="toastWrap"
+      class="toast-wrap"
+    ></div>
+
+  </div>
+
+  <script>
+    const API_BASE = "https://backend-1-9b6f.onrender.com";
+
+    const TOKEN_KEYS = [
+      "schoolToken",
+      "teacherToken",
+      "studentToken",
+      "adminToken",
+      "employerToken",
+      "talentToken",
+      "agentToken",
+      "token"
+    ];
+
+    const LOCAL_SAVED_KEY = "aiftSavedItems";
+
+    let currentUser = null;
+    let savedItems = [];
+    let filteredType = "all";
+    let pendingRemoveItem = null;
+
+    const savedFeed = document.getElementById("savedFeed");
+    const searchInput = document.getElementById("searchInput");
+    const globalSearchInput = document.getElementById("globalSearchInput");
+    const sortSelect = document.getElementById("sortSelect");
+    const statusFilter = document.getElementById("statusFilter");
+
+    function getToken() {
+      for (const key of TOKEN_KEYS) {
+        const value = localStorage.getItem(key);
+
+        if (value) {
+          return value;
+        }
+      }
+
+      return null;
+    }
+
+    function getCurrentRole() {
+      return (
+        localStorage.getItem("role") ||
+        currentUser?.role ||
+        ""
+      ).toLowerCase();
+    }
+
+    function getCurrentUserId() {
+      return (
+        currentUser?._id ||
+        currentUser?.id ||
+        localStorage.getItem("userId") ||
+        ""
+      );
+    }
+
+    function getAuthHeaders(extraHeaders = {}) {
+      const token = getToken();
+
+      return {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...extraHeaders
+      };
+    }
+
+    async function apiRequest(path, options = {}) {
+      const response = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers: getAuthHeaders(options.headers || {})
+      });
+
+      let data = null;
+
+      try {
+        data = await response.json();
+      } catch (error) {
+        data = null;
+      }
+
+      if (!response.ok) {
+        const message =
+          data?.message ||
+          data?.error ||
+          `Request failed with status ${response.status}`;
+
+        const err = new Error(message);
+        err.status = response.status;
+        err.data = data;
+        throw err;
+      }
+
+      return data;
+    }
+
+    function escapeHTML(value = "") {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function toArray(value) {
+      if (Array.isArray(value)) return value;
+      if (!value) return [];
+      return [value];
+    }
+
+    function clampText(value = "", max = 220) {
+      const text = String(value || "").trim();
+
+      if (text.length <= max) {
+        return text;
+      }
+
+      return `${text.slice(0, max).trim()}...`;
+    }
+
+    function getInitials(name = "AIFT") {
+      const clean = String(name || "AIFT").trim();
+
+      return clean
+        .split(/\s+/)
+        .slice(0, 2)
+        .map(part => part.charAt(0).toUpperCase())
+        .join("") || "A";
+    }
+
+    function formatDate(value) {
+      if (!value) return "Recently saved";
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return "Recently saved";
+      }
+
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMinutes = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMinutes / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffMinutes < 1) return "Just now";
+      if (diffMinutes < 60) return `${diffMinutes}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+
+      return date.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      });
+    }
+
+    function isThisMonth(value) {
+      if (!value) return false;
+
+      const date = new Date(value);
+      const now = new Date();
+
+      return (
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear()
+      );
+    }
+
+    function normalizeRole(role = "") {
+      const clean = String(role || "").toLowerCase();
+
+      if (clean === "company") return "employer";
+      if (clean === "professional") return "talent";
+      if (clean === "recruiter") return "agent";
+
+      return clean;
+    }
+
+    function displayRole(role = "") {
+      const clean = normalizeRole(role);
+
+      if (clean === "employer") return "Company";
+      if (clean === "school") return "School";
+      if (clean === "agent") return "Recruiter";
+      if (clean === "talent") return "Professional";
+      if (clean === "student") return "Student";
+      if (clean === "teacher") return "Teacher";
+      if (clean === "admin") return "Admin";
+
+      return "AIFT Member";
+    }
+
+    function detectSavedType(item = {}, wrapper = {}) {
+      const explicit = (
+        wrapper.type ||
+        wrapper.itemType ||
+        wrapper.targetType ||
+        item.type ||
+        item.kind ||
+        item.savedType ||
+        ""
+      ).toLowerCase();
+
+      if (explicit) {
+        if (explicit.includes("job")) return "job";
+        if (explicit.includes("post")) return "post";
+        if (explicit.includes("profile") || explicit.includes("user")) return "profile";
+        if (explicit.includes("class") || explicit.includes("course")) return "class";
+      }
+
+      if (item.companyName && item.title) return "job";
+      if (item.author || item.text || item.content || item.mediaUrl || item.mediaUrls) return "post";
+      if (item.classCode || item.subject || item.curriculum || item.lessons) return "class";
+
+      return "profile";
+    }
+
+    function getNestedId(value) {
+      if (!value) return "";
+
+      if (typeof value === "string") {
+        return value;
+      }
+
+      return value._id || value.id || "";
+    }
+
+    function getSavedTarget(wrapper = {}) {
+      return (
+        wrapper.item ||
+        wrapper.target ||
+        wrapper.data ||
+        wrapper.post ||
+        wrapper.job ||
+        wrapper.profile ||
+        wrapper.user ||
+        wrapper.class ||
+        wrapper.savedItem ||
+        wrapper
+      );
+    }
+
+    function getSavedItemId(item = {}, wrapper = {}) {
+      return (
+        item._id ||
+        item.id ||
+        wrapper.itemId ||
+        wrapper.targetId ||
+        wrapper.postId ||
+        wrapper.jobId ||
+        wrapper.profileId ||
+        wrapper.userId ||
+        wrapper.classId ||
+        getNestedId(wrapper.item) ||
+        getNestedId(wrapper.target) ||
+        ""
+      );
+    }
+
+    function getSavedOwner(item = {}, type = "") {
+      if (type === "job") {
+        return (
+          item.companyName ||
+          item.company?.companyName ||
+          item.employer?.companyName ||
+          item.createdBy?.companyName ||
+          item.createdBy?.name ||
+          "Company"
+        );
+      }
+
+      if (type === "post") {
+        return (
+          item.author?.headline ||
+          item.author?.profession ||
+          item.author?.companyName ||
+          item.author?.name ||
+          item.createdBy?.name ||
+          "Post"
+        );
+      }
+
+      if (type === "class") {
+        return (
+          item.schoolName ||
+          item.school?.name ||
+          item.school?.schoolName ||
+          item.teacher?.name ||
+          item.subject ||
+          "Class"
+        );
+      }
+
+      return (
+        item.headline ||
+        item.profession ||
+        item.companyName ||
+        item.schoolName ||
+        displayRole(item.role)
+      );
+    }
+
+    function getSavedTitle(item = {}, type = "") {
+      if (type === "job") {
+        return item.title || "Saved Job";
+      }
+
+      if (type === "post") {
+        return (
+          item.author?.name ||
+          item.createdBy?.name ||
+          "Saved Post"
+        );
+      }
+
+      if (type === "class") {
+        return (
+          item.title ||
+          item.name ||
+          item.className ||
+          "Saved Class"
+        );
+      }
+
+      return (
+        item.name ||
+        item.fullName ||
+        item.companyName ||
+        item.schoolName ||
+        "Saved Profile"
+      );
+    }
+
+    function getSavedDescription(item = {}, type = "") {
+      if (type === "job") {
+        return (
+          item.description ||
+          item.summary ||
+          item.responsibilities ||
+          item.location ||
+          "No job description available."
+        );
+      }
+
+      if (type === "post") {
+        return (
+          item.text ||
+          item.content ||
+          item.caption ||
+          "Saved post without text."
+        );
+      }
+
+      if (type === "class") {
+        return (
+          item.description ||
+          item.subject ||
+          item.curriculum ||
+          "No class description available."
+        );
+      }
+
+      return (
+        item.bio ||
+        item.about ||
+        item.description ||
+        item.location ||
+        "No profile description available."
+      );
+    }
+
+    function getSavedImage(item = {}, type = "") {
+      return (
+        item.avatar ||
+        item.photo ||
+        item.profileImage ||
+        item.profilePicture ||
+        item.logo ||
+        item.companyLogo ||
+        item.schoolLogo ||
+        item.coverImage ||
+        item.banner ||
+        item.image ||
+        item.author?.avatar ||
+        item.author?.photo ||
+        item.author?.profileImage ||
+        item.createdBy?.avatar ||
+        item.createdBy?.photo ||
+        ""
+      );
+    }
+
+    function getSavedRole(item = {}, wrapper = {}) {
+      return normalizeRole(
+        item.role ||
+        item.userRole ||
+        item.ownerRole ||
+        item.author?.role ||
+        item.createdBy?.role ||
+        wrapper.role ||
+        wrapper.targetRole ||
+        ""
+      );
+    }
+
+    function getTags(item = {}, type = "") {
+      const tags = [];
+
+      if (type === "job") {
+        tags.push(item.type || item.jobType || "");
+        tags.push(item.workSetup || item.workMode || "");
+        tags.push(item.location || "");
+      }
+
+      if (type === "profile") {
+        tags.push(displayRole(item.role));
+        tags.push(item.location || "");
+        tags.push(item.availability || "");
+      }
+
+      if (type === "class") {
+        tags.push(item.subject || "");
+        tags.push(item.level || "");
+        tags.push(item.status || "");
+      }
+
+      if (type === "post") {
+        tags.push("Feed");
+        if (item.mediaUrl || item.mediaUrls?.length) tags.push("Media");
+      }
+
+      return tags
+        .flatMap(tag => toArray(tag))
+        .filter(Boolean)
+        .slice(0, 4);
+    }
+
+    function normalizeSavedItem(wrapper = {}) {
+      const item = getSavedTarget(wrapper);
+      const type = detectSavedType(item, wrapper);
+      const id = getSavedItemId(item, wrapper);
+
+      if (!id) {
+        return null;
+      }
+
+      const savedAt =
+        wrapper.savedAt ||
+        wrapper.createdAt ||
+        item.savedAt ||
+        item.createdAt ||
+        new Date().toISOString();
+
+      return {
+        saveId: wrapper._id || wrapper.id || `${type}:${id}`,
+        id,
+        type,
+        title: getSavedTitle(item, type),
+        owner: getSavedOwner(item, type),
+        description: getSavedDescription(item, type),
+        image: getSavedImage(item, type),
+        role: getSavedRole(item, wrapper),
+        savedAt,
+        tags: getTags(item, type),
+        raw: item
+      };
+    }
+
+    function parseSavedResponse(data) {
+      const raw =
+        Array.isArray(data)
+          ? data
+          : data?.saved ||
+            data?.items ||
+            data?.data ||
+            data?.results ||
+            [];
+
+      return raw
+        .map(normalizeSavedItem)
+        .filter(Boolean);
+    }
+
+    function getLocalSavedItems() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(LOCAL_SAVED_KEY) || "[]");
+
+        return raw
+          .map(normalizeSavedItem)
+          .filter(Boolean);
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveLocalSavedItems(items = []) {
+      localStorage.setItem(
+        LOCAL_SAVED_KEY,
+        JSON.stringify(items)
+      );
+    }
+
+    function showToast(type, title, message) {
+      const wrap = document.getElementById("toastWrap");
+
+      const toast = document.createElement("div");
+      toast.className = `toast ${type || ""}`;
+
+      toast.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          ${
+            type === "error"
+              ? '<circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path>'
+              : '<path d="M20 6L9 17l-5-5"></path>'
+          }
+        </svg>
+
+        <div>
+          <strong>${escapeHTML(title)}</strong>
+          <span>${escapeHTML(message)}</span>
+        </div>
+      `;
+
+      wrap.appendChild(toast);
+
+      setTimeout(() => {
+        toast.remove();
+      }, 3200);
+    }
+
+    function renderSkeletons() {
+      savedFeed.innerHTML = Array.from({ length: 5 }).map(() => `
+        <div class="card skeleton-card">
+          <div class="skel skel-avatar"></div>
+
+          <div class="skel-lines">
+            <div class="skel skel-line w60"></div>
+            <div class="skel skel-line w80"></div>
+            <div class="skel skel-line w95"></div>
+          </div>
+
+          <div class="skel skel-btn"></div>
+        </div>
+      `).join("");
+    }
+        function renderEmptyState() {
+      savedFeed.innerHTML = `
+        <div class="card empty-state">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
+
+          <h3 class="state-title">No saved items found</h3>
+
+          <p class="state-desc">
+            When you save jobs, posts, profiles, schools, or classes,
+            they will appear here.
+          </p>
+
+          <div class="state-actions">
+            <button class="action-btn primary" onclick="location.href='jobs.html'">
+              Browse Jobs
+            </button>
+
+            <button class="action-btn" onclick="location.href='network.html'">
+              Explore Network
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderErrorState(message = "Something went wrong while loading your saved items.") {
+      savedFeed.innerHTML = `
+        <div class="card error-state">
+          <div class="error-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M12 8v5"></path>
+              <path d="M12 16h.01"></path>
+            </svg>
+          </div>
+
+          <h3 class="state-title">Unable to load saved items</h3>
+
+          <p class="state-desc">${escapeHTML(message)}</p>
+
+          <div class="state-actions">
+            <button class="action-btn primary" onclick="loadSavedItems()">
+              Try Again
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function getTypeIcon(type = "") {
+      if (type === "job") {
+        return '<rect x="3" y="7" width="18" height="12"></rect><path d="M9 7V5h6v2"></path>';
+      }
+
+      if (type === "post") {
+        return '<path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h12"></path>';
+      }
+
+      if (type === "profile") {
+        return '<circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3-7 8-7s8 3 8 7"></path>';
+      }
+
+      if (type === "class") {
+        return '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M20 22V3"></path><path d="M6.5 2H20v15H6.5A2.5 2.5 0 0 0 4 19.5V4.5A2.5 2.5 0 0 1 6.5 2z"></path>';
+      }
+
+      return '<path d="M5 5h14v14H5z"></path>';
+    }
+
+    function renderSavedCard(item) {
+      const imageHTML = item.image
+        ? `
+          <div class="item-avatar">
+            <img src="${escapeHTML(item.image)}" alt="">
+          </div>
+        `
+        : `
+          <div class="item-avatar">
+            ${escapeHTML(getInitials(item.title))}
+          </div>
+        `;
+
+      const tagsHTML = item.tags?.length
+        ? `
+          <div class="item-tags">
+            ${item.tags.map(tag => `
+              <span class="mini-tag">${escapeHTML(tag)}</span>
+            `).join("")}
+          </div>
+        `
+        : "";
+
+      return `
+        <article class="card saved-item">
+          ${imageHTML}
+
+          <div class="item-main">
+            <div class="item-row">
+              <span class="type-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  ${getTypeIcon(item.type)}
+                </svg>
+                ${escapeHTML(item.type)}
+              </span>
+
+              <span class="saved-date">
+                Saved ${escapeHTML(formatDate(item.savedAt))}
+              </span>
+            </div>
+
+            <h3 class="item-title">
+              ${escapeHTML(item.title)}
+            </h3>
+
+            <div class="item-meta">
+              ${escapeHTML(item.owner)}
+            </div>
+
+            <p class="item-desc">
+              ${escapeHTML(clampText(item.description, 260))}
+            </p>
+
+            ${tagsHTML}
+          </div>
+
+          <div class="item-actions">
+            <button
+              class="action-btn primary"
+              onclick="openSavedItem('${escapeHTML(item.type)}', '${escapeHTML(item.id)}', '${escapeHTML(item.role)}')"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 17L17 7"></path>
+                <path d="M8 7h9v9"></path>
+              </svg>
+              Open
+            </button>
+
+            <button
+              class="action-btn danger"
+              onclick="askRemoveSaved('${escapeHTML(item.saveId)}', '${escapeHTML(item.type)}', '${escapeHTML(item.id)}')"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4h8v2"></path>
+                <path d="M19 6l-1 14H6L5 6"></path>
+              </svg>
+              Remove
+            </button>
+          </div>
+        </article>
+      `;
+    }
+
+    function getFilteredSavedItems() {
+      const search =
+        (searchInput?.value || globalSearchInput?.value || "")
+          .toLowerCase()
+          .trim();
+
+      const typeSelect = statusFilter?.value || "all";
+      const activeType = filteredType !== "all" ? filteredType : typeSelect;
+      const sort = sortSelect?.value || "newest";
+
+      let list = [...savedItems];
+
+      if (activeType !== "all") {
+        list = list.filter(item => item.type === activeType);
+      }
+
+      if (search) {
+        list = list.filter(item => {
+          return [
+            item.type,
+            item.title,
+            item.owner,
+            item.description,
+            item.role,
+            ...(item.tags || [])
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(search);
+        });
+      }
+
+      list.sort((a, b) => {
+        if (sort === "oldest") {
+          return new Date(a.savedAt) - new Date(b.savedAt);
+        }
+
+        if (sort === "az") {
+          return String(a.title).localeCompare(String(b.title));
+        }
+
+        return new Date(b.savedAt) - new Date(a.savedAt);
+      });
+
+      return list;
+    }
+
+    function renderSavedItems() {
+      const list = getFilteredSavedItems();
+
+      updateCounts();
+
+      if (!list.length) {
+        renderEmptyState();
+        return;
+      }
+
+      savedFeed.innerHTML = list.map(renderSavedCard).join("");
+    }
+
+    function updateCounts() {
+      const counts = {
+        all: savedItems.length,
+        post: savedItems.filter(item => item.type === "post").length,
+        job: savedItems.filter(item => item.type === "job").length,
+        profile: savedItems.filter(item => item.type === "profile").length,
+        class: savedItems.filter(item => item.type === "class").length
+      };
+
+      document.getElementById("countAll").textContent = counts.all;
+      document.getElementById("countPosts").textContent = counts.post;
+      document.getElementById("countJobs").textContent = counts.job;
+      document.getElementById("countProfiles").textContent = counts.profile;
+      document.getElementById("countClasses").textContent = counts.class;
+
+      document.getElementById("heroTotalSaved").textContent = counts.all;
+      document.getElementById("heroMonthlySaved").textContent =
+        savedItems.filter(item => isThisMonth(item.savedAt)).length;
+
+      document.getElementById("insightJobs").textContent = counts.job;
+      document.getElementById("insightPosts").textContent = counts.post;
+      document.getElementById("insightProfiles").textContent = counts.profile;
+      document.getElementById("insightClasses").textContent = counts.class;
+    }
+
+    function setFilter(type) {
+      filteredType = type;
+
+      document.querySelectorAll(".saved-nav-btn").forEach(button => {
+        button.classList.toggle(
+          "active",
+          button.dataset.type === type
+        );
+      });
+
+      if (statusFilter) {
+        statusFilter.value = type === "all" ? "all" : type;
+      }
+
+      renderSavedItems();
+    }
+
+    function getProfileUrl(id, role = "") {
+      const cleanRole = normalizeRole(role);
+
+      if (cleanRole === "employer") {
+        return `employer-public-profile.html?id=${encodeURIComponent(id)}`;
+      }
+
+      if (cleanRole === "school") {
+        return `school.html?id=${encodeURIComponent(id)}`;
+      }
+
+      return `agent-public-profile.html?id=${encodeURIComponent(id)}`;
+    }
+
+    function openSavedItem(type, id, role = "") {
+      if (!id) {
+        showToast("error", "Missing item", "This saved item has no valid ID.");
+        return;
+      }
+
+      if (type === "job") {
+        location.href = `jobs.html?jobId=${encodeURIComponent(id)}`;
+        return;
+      }
+
+      if (type === "post") {
+        location.href = `home.html?postId=${encodeURIComponent(id)}`;
+        return;
+      }
+
+      if (type === "class") {
+        location.href = `class-builder.html?id=${encodeURIComponent(id)}`;
+        return;
+      }
+
+      location.href = getProfileUrl(id, role);
+    }
+
+    function goToMyProfile() {
+      const id = getCurrentUserId();
+      const role = getCurrentRole();
+
+      if (!id) {
+        location.href = "login.html";
+        return;
+      }
+
+      location.href = getProfileUrl(id, role);
+    }
+
+    function askRemoveSaved(saveId, type, itemId) {
+      pendingRemoveItem = {
+        saveId,
+        type,
+        itemId
+      };
+
+      document.getElementById("confirmBackdrop").classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+
+    function closeConfirmModal() {
+      pendingRemoveItem = null;
+
+      document.getElementById("confirmBackdrop").classList.remove("show");
+      document.body.classList.remove("modal-open");
+    }
+
+    async function removeSavedItem() {
+      if (!pendingRemoveItem) return;
+
+      const { saveId, type, itemId } = pendingRemoveItem;
+
+      try {
+        /*
+          BACKEND PRIMARY ROUTE:
+          DELETE /api/saved/:saveId
+
+          Optional fallback backend route:
+          DELETE /api/saved
+          body: { type, itemId }
+        */
+
+        await apiRequest(`/api/saved/${encodeURIComponent(saveId)}`, {
+          method: "DELETE"
+        });
+
+        showToast("success", "Removed", "Item removed from your saved list.");
+      } catch (error) {
+        const localRaw = JSON.parse(
+          localStorage.getItem(LOCAL_SAVED_KEY) || "[]"
+        );
+
+        const updatedLocal = localRaw.filter(entry => {
+          const target = getSavedTarget(entry);
+          const entryType = detectSavedType(target, entry);
+          const entryId = getSavedItemId(target, entry);
+
+          return !(
+            String(entryType) === String(type) &&
+            String(entryId) === String(itemId)
+          );
+        });
+
+        saveLocalSavedItems(updatedLocal);
+
+        showToast(
+          "success",
+          "Removed locally",
+          "Backend save endpoint is not ready yet, so this was removed from local storage."
+        );
+      }
+
+      savedItems = savedItems.filter(item => {
+        return !(
+          String(item.type) === String(type) &&
+          String(item.id) === String(itemId)
+        );
+      });
+
+      closeConfirmModal();
+      renderSavedItems();
+    }
+
+    async function loadCurrentUser() {
+      try {
+        const data = await apiRequest("/api/users/me");
+
+        currentUser = data?.user || data || null;
+
+        const userId = currentUser?._id || currentUser?.id;
+        const role = currentUser?.role;
+
+        if (userId) {
+          localStorage.setItem("userId", userId);
+        }
+
+        if (role) {
+          localStorage.setItem("role", role);
+        }
+
+        renderMiniProfile();
+      } catch (error) {
+        renderMiniProfile();
+      }
+    }
+
+    function renderMiniProfile() {
+      const name =
+        currentUser?.name ||
+        currentUser?.companyName ||
+        currentUser?.schoolName ||
+        "AIFT User";
+
+      const role = displayRole(
+        currentUser?.role ||
+        localStorage.getItem("role") ||
+        ""
+      );
+
+      const headline =
+        currentUser?.headline ||
+        currentUser?.profession ||
+        currentUser?.location ||
+        role;
+
+      const avatar =
+        currentUser?.avatar ||
+        currentUser?.photo ||
+        currentUser?.profileImage ||
+        currentUser?.logo ||
+        currentUser?.companyLogo ||
+        currentUser?.schoolLogo ||
+        "";
+
+      document.getElementById("miniName").textContent = name;
+      document.getElementById("miniRole").textContent = headline;
+
+      const avatarBox = document.getElementById("miniAvatar");
+
+      if (avatar) {
+        avatarBox.innerHTML = `<img src="${escapeHTML(avatar)}" alt="">`;
+      } else {
+        avatarBox.textContent = getInitials(name);
+      }
+    }
+
+    async function loadSavedItems() {
+      renderSkeletons();
+
+      try {
+        /*
+          BACKEND PRIMARY ROUTE:
+          GET /api/saved
+
+          Expected response:
+          {
+            saved: [
+              {
+                _id,
+                type: "post" | "job" | "profile" | "class",
+                itemId,
+                item,
+                savedAt
+              }
+            ]
+          }
+        */
+
+        const data = await apiRequest("/api/saved");
+
+        savedItems = parseSavedResponse(data);
+
+        renderSavedItems();
+      } catch (error) {
+        const localItems = getLocalSavedItems();
+
+        savedItems = localItems;
+
+        if (localItems.length) {
+          renderSavedItems();
+
+          showToast(
+            "success",
+            "Loaded local saves",
+            "Backend saved endpoint is not ready yet, so local saved items were loaded."
+          );
+        } else if (error.status === 401) {
+          renderErrorState("Your session expired. Please log in again.");
+
+          showToast(
+            "error",
+            "Session expired",
+            "Please log in again to view saved items."
+          );
+        } else {
+          renderEmptyState();
+        }
+      }
+    }
+
+    function bindEvents() {
+      searchInput?.addEventListener("input", () => {
+        if (globalSearchInput) {
+          globalSearchInput.value = searchInput.value;
+        }
+
+        renderSavedItems();
+      });
+
+      globalSearchInput?.addEventListener("input", () => {
+        if (searchInput) {
+          searchInput.value = globalSearchInput.value;
+        }
+
+        renderSavedItems();
+      });
+
+      sortSelect?.addEventListener("change", renderSavedItems);
+
+      statusFilter?.addEventListener("change", () => {
+        filteredType = statusFilter.value;
+
+        document.querySelectorAll(".saved-nav-btn").forEach(button => {
+          button.classList.toggle(
+            "active",
+            button.dataset.type === filteredType
+          );
+        });
+
+        if (filteredType === "all") {
+          document
+            .querySelector('.saved-nav-btn[data-type="all"]')
+            ?.classList.add("active");
+        }
+
+        renderSavedItems();
+      });
+
+      document
+        .getElementById("confirmActionBtn")
+        ?.addEventListener("click", removeSavedItem);
+
+      document
+        .getElementById("confirmBackdrop")
+        ?.addEventListener("click", event => {
+          if (event.target.id === "confirmBackdrop") {
+            closeConfirmModal();
+          }
+        });
+
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+          closeConfirmModal();
+        }
+      });
+    }
+
+    async function initSavedPage() {
+      const token = getToken();
+
+      if (!token) {
+        location.href = "login.html";
+        return;
+      }
+
+      bindEvents();
+
+      await loadCurrentUser();
+      await loadSavedItems();
+    }
+
+    initSavedPage();
+  </script>
+</body>
+</html>
