@@ -185,6 +185,24 @@ a{
   border:1px solid #ddd;
 }
 
+.nav-badge{
+  position:absolute;
+  top:7px;
+  right:18px;
+  min-width:17px;
+  height:17px;
+  padding:0 5px;
+  border-radius:999px;
+  background:#ef4444;
+  color:#fff;
+  font-size:10px;
+  font-weight:900;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:2px solid #fff;
+}
+
 /* PAGE */
 
 .page{
@@ -900,23 +918,7 @@ a{
   .top-link:nth-child(5){
     display:none;
   }
-.nav-badge{
-  position:absolute;
-  top:7px;
-  right:18px;
-  min-width:17px;
-  height:17px;
-  padding:0 5px;
-  border-radius:999px;
-  background:#ef4444;
-  color:#fff;
-  font-size:10px;
-  font-weight:900;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border:2px solid #fff;
-}
+
   .create-post,
   .card{
     border-radius:0!important;
@@ -1393,28 +1395,35 @@ function openDashboard(){
   openProfile();
 }
 
-function openProfile(){
-  const id = state.me?._id || currentUserId();
-  if(!id) return;
+function getPublicProfileUrl(user = null){
+  const id =
+    user?._id ||
+    user?.id ||
+    state.me?._id ||
+    currentUserId();
 
-  const r = String(state.me?.role || role()).toLowerCase();
+  const r = String(
+    user?.role ||
+    state.me?.role ||
+    role() ||
+    ""
+  ).toLowerCase();
+
+  if(!id) return "login.html";
 
   if(r === "employer"){
-    location.href = `employer-public-profile.html?id=${id}`;
-    return;
-  }
-
-  if(r === "agent" || r === "talent"){
-    location.href = `agent-public-profile.html?id=${id}`;
-    return;
+    return `employer-public-profile.html?id=${id}`;
   }
 
   if(r === "school"){
-    location.href = "school.html";
-    return;
+    return "school.html";
   }
 
-  location.href = `agent-public-profile.html?id=${id}`;
+  return `agent-public-profile.html?id=${id}`;
+}
+
+function openProfile(){
+  location.href = getPublicProfileUrl(state.me);
 }
 
 </script>
