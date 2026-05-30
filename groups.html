@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Groups | AIFT</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f3f4f6;
+      --card:#fff;
+      --text:#111827;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --border-strong:#d1d5db;
+      --green:#0f766e;
+      --green-soft:#ecfdf5;
+      --blue:#2563eb;
+      --purple:#7c3aed;
+      --red:#b91c1c;
+      --soft:#f9fafb;
+      --shadow:0 1px 2px rgba(15,23,42,.05);
+      --radius:18px;
+      --max:1180px;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:Inter,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      font-size:14px;
+    }
+
+    body.modal-open{overflow:hidden}
+
+    a{
+      color:inherit;
+      text-decoration:none;
+    }
+
+    button,input,select,textarea{
+      font-family:inherit;
+    }
+
+    button{cursor:pointer}
+
+    img{
+      max-width:100%;
+      display:block;
+    }
+
+    .app-shell{
+      min-height:100vh;
+      background:
+        radial-gradient(circle at top left,rgba(15,118,110,.07),transparent 32%),
+        radial-gradient(circle at top right,rgba(37,99,235,.06),transparent 28%),
+        var(--bg);
+    }
+
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:80;
+      height:64px;
+      background:rgba(255,255,255,.96);
+      backdrop-filter:blur(14px);
+      border-bottom:1px solid var(--border);
+    }
+
+    .topbar-inner{
+      max-width:var(--max);
+      margin:0 auto;
+      height:100%;
+      padding:0 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:max-content;
+    }
+
+    .brand-logo-img{
+      width:140px;
+      height:48px;
+      object-fit:contain;
+      display:block;
+    }
+
+    .top-search{
+      flex:1;
+      max-width:430px;
+      position:relative;
+      display:flex;
+      align-items:center;
+    }
+
+    .top-search svg{
+      width:17px;
+      height:17px;
+      position:absolute;
+      left:13px;
+      color:var(--muted);
+    }
+
+    .top-search input{
+      width:100%;
+      height:40px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--soft);
+      padding:0 14px 0 40px;
+      outline:none;
+      font-size:13px;
+    }
+
+    .top-search input:focus{
+      background:#fff;
+      border-color:rgba(15,118,110,.65);
+      box-shadow:0 0 0 4px rgba(15,118,110,.1);
+    }
+
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .icon-btn,
+    .pill-btn{
+      border:1px solid var(--border);
+      background:#fff;
+      color:#374151;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      transition:.18s ease;
+      font-weight:700;
+    }
+
+    .icon-btn{
+      width:40px;
+      height:40px;
+      border-radius:999px;
+    }
+
+    .icon-btn svg{
+      width:18px;
+      height:18px;
+    }
+
+    .pill-btn{
+      height:40px;
+      padding:0 14px;
+      border-radius:999px;
+      font-size:13px;
+    }
+
+    .pill-btn.primary{
+      background:var(--green);
+      color:#fff;
+      border-color:var(--green);
+    }
+
+    .icon-btn:hover,
+    .pill-btn:hover{
+      background:var(--soft);
+      border-color:var(--border-strong);
+      transform:translateY(-1px);
+    }
+
+    .pill-btn.primary:hover{
+      background:#0b645d;
+      border-color:#0b645d;
+    }
+
+    .page-wrap{
+      max-width:var(--max);
+      margin:22px auto;
+      padding:0 16px 32px;
+      display:grid;
+      grid-template-columns:260px minmax(0,1fr) 280px;
+      gap:18px;
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+
+    .left-panel,
+    .right-panel{
+      position:sticky;
+      top:84px;
+      height:fit-content;
+    }
+
+    .panel-pad{
+      padding:16px;
+    }
+
+    .section-title{
+      margin:0 0 6px;
+      font-size:15px;
+      font-weight:800;
+      letter-spacing:-.02em;
+    }
+
+    .section-sub{
+      margin:0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+
+    .group-filter-list{
+      display:grid;
+      gap:7px;
+      margin-top:14px;
+    }
+
+    .filter-btn{
+      width:100%;
+      border:0;
+      background:transparent;
+      padding:11px 10px;
+      border-radius:13px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      color:#374151;
+      font-size:13px;
+      font-weight:800;
+      text-align:left;
+    }
+
+    .filter-btn:hover,
+    .filter-btn.active{
+      background:var(--green-soft);
+      color:var(--green);
+    }
+
+    .filter-left{
+      display:flex;
+      align-items:center;
+      gap:9px;
+    }
+
+    .filter-left svg{
+      width:17px;
+      height:17px;
+      flex:none;
+    }
+
+    .filter-count{
+      min-width:24px;
+      height:22px;
+      border-radius:999px;
+      background:#f3f4f6;
+      display:grid;
+      place-items:center;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:800;
+      padding:0 7px;
+    }
+
+    .filter-btn.active .filter-count{
+      background:#fff;
+      color:var(--green);
+    }
+        .hero-card{
+      padding:18px;
+      margin-bottom:14px;
+    }
+
+    .hero-top{
+      display:flex;
+      justify-content:space-between;
+      gap:14px;
+      align-items:flex-start;
+    }
+
+    .hero-kicker{
+      font-size:12px;
+      font-weight:800;
+      color:var(--green);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin-bottom:6px;
+    }
+
+    .hero-title{
+      margin:0;
+      font-size:26px;
+      line-height:1.15;
+      letter-spacing:-.045em;
+    }
+
+    .hero-desc{
+      margin:8px 0 0;
+      color:var(--muted);
+      line-height:1.55;
+      font-size:14px;
+      max-width:640px;
+    }
+
+    .hero-stats{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      justify-content:flex-end;
+    }
+
+    .stat-pill{
+      border:1px solid var(--border);
+      background:var(--soft);
+      border-radius:999px;
+      padding:8px 11px;
+      font-size:12px;
+      color:#374151;
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .controls{
+      margin-top:16px;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 170px 150px;
+      gap:10px;
+    }
+
+    .field-wrap{
+      position:relative;
+    }
+
+    .field-wrap svg{
+      width:17px;
+      height:17px;
+      position:absolute;
+      left:13px;
+      top:50%;
+      transform:translateY(-50%);
+      color:var(--muted);
+    }
+
+    .control-input,
+    .control-select{
+      width:100%;
+      height:42px;
+      border:1px solid var(--border-strong);
+      background:#fff;
+      border-radius:999px;
+      outline:none;
+      padding:0 14px;
+      color:var(--text);
+      font-size:13px;
+    }
+
+    .control-input{
+      padding-left:40px;
+    }
+
+    .control-input:focus,
+    .control-select:focus{
+      border-color:rgba(15,118,110,.7);
+      box-shadow:0 0 0 4px rgba(15,118,110,.1);
+    }
+
+    .groups-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+    }
+
+    .group-card{
+      overflow:hidden;
+      transition:.18s ease;
+    }
+
+    .group-card:hover{
+      transform:translateY(-2px);
+      box-shadow:0 10px 24px rgba(15,23,42,.08);
+      border-color:rgba(15,118,110,.25);
+    }
+
+    .group-cover{
+      height:86px;
+      background:
+        linear-gradient(135deg,rgba(15,118,110,.22),rgba(37,99,235,.2)),
+        #dbeafe;
+      position:relative;
+    }
+
+    .group-logo{
+      position:absolute;
+      left:16px;
+      bottom:-30px;
+      width:62px;
+      height:62px;
+      border-radius:18px;
+      border:4px solid #fff;
+      background:#fff;
+      object-fit:cover;
+      box-shadow:0 8px 20px rgba(15,23,42,.12);
+      display:grid;
+      place-items:center;
+      color:var(--green);
+      font-weight:900;
+      font-size:18px;
+    }
+
+    .group-category{
+      position:absolute;
+      right:12px;
+      top:12px;
+      padding:6px 9px;
+      border-radius:999px;
+      background:rgba(255,255,255,.92);
+      border:1px solid rgba(226,232,240,.9);
+      color:#334155;
+      font-size:11px;
+      font-weight:900;
+    }
+
+    .group-body{
+      padding:40px 16px 16px;
+    }
+
+    .group-title{
+      margin:0;
+      font-size:16px;
+      font-weight:800;
+      line-height:1.25;
+      letter-spacing:-.025em;
+    }
+
+    .group-desc{
+      margin:7px 0 0;
+      color:#4b5563;
+      font-size:13px;
+      line-height:1.5;
+      min-height:40px;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+
+    .group-meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:7px;
+      margin-top:12px;
+    }
+
+    .meta-chip{
+      border:1px solid var(--border);
+      background:#f9fafb;
+      color:#4b5563;
+      border-radius:999px;
+      padding:6px 9px;
+      font-size:11px;
+      font-weight:800;
+    }
+
+    .group-actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:14px;
+    }
+
+    .group-btn{
+      height:38px;
+      border-radius:999px;
+      border:1px solid var(--border-strong);
+      background:#fff;
+      color:#374151;
+      font-weight:900;
+      font-size:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      transition:.16s ease;
+    }
+
+    .group-btn svg{
+      width:15px;
+      height:15px;
+    }
+
+    .group-btn:hover{
+      background:var(--soft);
+      transform:translateY(-1px);
+    }
+
+    .group-btn.primary{
+      color:#fff;
+      border-color:var(--green);
+      background:var(--green);
+    }
+
+    .group-btn.joined{
+      color:var(--green);
+      border-color:rgba(15,118,110,.35);
+      background:var(--green-soft);
+    }
+
+    .quick-card{
+      padding:16px;
+      margin-bottom:14px;
+    }
+
+    .quick-list{
+      display:grid;
+      gap:9px;
+      margin-top:12px;
+    }
+
+    .quick-item{
+      border:1px solid var(--border);
+      background:#fff;
+      border-radius:14px;
+      padding:11px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      color:#374151;
+      font-weight:800;
+      font-size:12px;
+    }
+
+    .quick-item span{
+      color:var(--muted);
+      font-weight:900;
+    }
+
+    .mini-group-list{
+      display:grid;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .mini-group{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      padding:10px;
+      border:1px solid var(--border);
+      background:#fff;
+      border-radius:14px;
+    }
+
+    .mini-group-logo{
+      width:38px;
+      height:38px;
+      border-radius:13px;
+      background:var(--green-soft);
+      color:var(--green);
+      display:grid;
+      place-items:center;
+      font-size:13px;
+      font-weight:900;
+      flex:none;
+    }
+
+    .mini-group strong{
+      display:block;
+      font-size:12px;
+      line-height:1.25;
+    }
+
+    .mini-group span{
+      display:block;
+      margin-top:2px;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:700;
+    }
+
+    .empty-state,
+    .loading-state{
+      padding:34px 20px;
+      text-align:center;
+    }
+
+    .empty-state svg,
+    .loading-state svg{
+      width:34px;
+      height:34px;
+      color:var(--muted);
+      margin-bottom:12px;
+    }
+
+    .empty-state h3,
+    .loading-state h3{
+      margin:0;
+      font-size:17px;
+      font-weight:800;
+    }
+
+    .empty-state p,
+    .loading-state p{
+      margin:7px auto 0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.5;
+      max-width:430px;
+    }
+
+    .toast-wrap{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      z-index:200;
+      width:min(360px,calc(100vw - 32px));
+      display:grid;
+      gap:10px;
+    }
+
+    .toast{
+      background:#111827;
+      color:#fff;
+      border-radius:16px;
+      padding:12px 14px;
+      box-shadow:0 18px 40px rgba(15,23,42,.25);
+      animation:toastIn .18s ease-out;
+    }
+
+    .toast.success{background:#065f46}
+    .toast.error{background:#991b1b}
+
+    .toast strong{
+      display:block;
+      font-size:13px;
+      margin-bottom:2px;
+    }
+
+    .toast span{
+      color:rgba(255,255,255,.86);
+      font-size:12px;
+      line-height:1.4;
+    }
+        .modal-backdrop{
+      position:fixed;
+      inset:0;
+      z-index:120;
+      background:rgba(17,24,39,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+
+    .modal-backdrop.show{
+      display:flex;
+    }
+
+    .modal{
+      width:min(680px,100%);
+      background:#fff;
+      border-radius:24px;
+      overflow:hidden;
+      box-shadow:0 28px 80px rgba(15,23,42,.35);
+    }
+
+    .modal-header{
+      padding:18px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+
+    .modal-header h2{
+      margin:0;
+      font-size:20px;
+      letter-spacing:-.03em;
+    }
+
+    .modal-close{
+      width:38px;
+      height:38px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#fff;
+      display:grid;
+      place-items:center;
+    }
+
+    .modal-close svg{
+      width:18px;
+      height:18px;
+    }
+
+    .modal-body{
+      padding:18px;
+      display:grid;
+      gap:14px;
+    }
+
+    .form-group{
+      display:grid;
+      gap:6px;
+    }
+
+    .form-group label{
+      font-size:12px;
+      font-weight:800;
+      color:#374151;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea{
+      width:100%;
+      border:1px solid var(--border-strong);
+      border-radius:14px;
+      background:#fff;
+      outline:none;
+      padding:12px 13px;
+      font-size:13px;
+    }
+
+    .form-textarea{
+      resize:vertical;
+      min-height:110px;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus{
+      border-color:rgba(15,118,110,.7);
+      box-shadow:0 0 0 4px rgba(15,118,110,.1);
+    }
+
+    .modal-actions{
+      padding:18px;
+      border-top:1px solid var(--border);
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+    }
+
+    @keyframes toastIn{
+      from{
+        opacity:0;
+        transform:translateY(8px);
+      }
+      to{
+        opacity:1;
+        transform:translateY(0);
+      }
+    }
+
+    @media (max-width:1040px){
+
+      .page-wrap{
+        grid-template-columns:minmax(0,1fr);
+      }
+
+      .right-panel{
+        display:none;
+      }
+
+      .hero-top{
+        display:block;
+      }
+
+      .hero-stats{
+        justify-content:flex-start;
+        margin-top:12px;
+      }
+
+      .groups-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width:760px){
+
+      .top-search{
+        display:none;
+      }
+
+      .controls{
+        grid-template-columns:1fr;
+      }
+
+      .page-wrap{
+        padding:0 10px 24px;
+      }
+
+      .hero-title{
+        font-size:22px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app-shell">
+
+  <!-- TOPBAR -->
+
+  <header class="topbar">
+    <div class="topbar-inner">
+
+      <a href="home.html" class="brand">
+        <img
+          src="images/aift-logo.png"
+          alt="AIFT"
+          class="brand-logo-img"
+        >
+      </a>
+
+      <div class="top-search">
+
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20L17 17"></path>
+        </svg>
+
+        <input
+          id="globalSearchInput"
+          type="text"
+          placeholder="Search groups..."
+        >
+
+      </div>
+
+      <div class="top-actions">
+
+        <button
+          class="icon-btn"
+          onclick="location.href='home.html'"
+          title="Home"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 10.5L12 3l9 7.5"></path>
+            <path d="M5 9.5V21h14V9.5"></path>
+          </svg>
+        </button>
+
+        <button
+          class="pill-btn primary"
+          onclick="openCreateGroupModal()"
+        >
+          Create Group
+        </button>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN -->
+
+  <main class="page-wrap">
+
+    <!-- LEFT -->
+
+    <aside class="left-panel">
+
+      <div class="card panel-pad">
+
+        <h3 class="section-title">
+          Group Categories
+        </h3>
+
+        <p class="section-sub">
+          Explore AIFT communities by profession and role.
+        </p>
+
+        <div class="group-filter-list">
+
+          <button class="filter-btn active" data-filter="all" onclick="setGroupFilter('all')">
+            <div class="filter-left">
+              <span>All Groups</span>
+            </div>
+            <div class="filter-count" id="countAll">0</div>
+          </button>
+
+          <button class="filter-btn" data-filter="employer" onclick="setGroupFilter('employer')">
+            <div class="filter-left">
+              <span>Employers</span>
+            </div>
+            <div class="filter-count" id="countEmployer">0</div>
+          </button>
+
+          <button class="filter-btn" data-filter="school" onclick="setGroupFilter('school')">
+            <div class="filter-left">
+              <span>Schools</span>
+            </div>
+            <div class="filter-count" id="countSchool">0</div>
+          </button>
+
+          <button class="filter-btn" data-filter="agent" onclick="setGroupFilter('agent')">
+            <div class="filter-left">
+              <span>Recruiters</span>
+            </div>
+            <div class="filter-count" id="countRecruiter">0</div>
+          </button>
+
+          <button class="filter-btn" data-filter="talent" onclick="setGroupFilter('talent')">
+            <div class="filter-left">
+              <span>Professionals</span>
+            </div>
+            <div class="filter-count" id="countProfessional">0</div>
+          </button>
+
+          <button class="filter-btn" data-filter="student" onclick="setGroupFilter('student')">
+            <div class="filter-left">
+              <span>Students</span>
+            </div>
+            <div class="filter-count" id="countStudent">0</div>
+          </button>
+
+        </div>
+
+      </div>
+
+    </aside>
+
+    <!-- CENTER -->
+
+    <section class="main-panel">
+
+      <div class="card hero-card">
+
+        <div class="hero-top">
+
+          <div>
+
+            <div class="hero-kicker">
+              AIFT Communities
+            </div>
+
+            <h1 class="hero-title">
+              Professional Groups
+            </h1>
+
+            <p class="hero-desc">
+              Join employer, recruiter, school, professional and student communities to collaborate, network and grow your career.
+            </p>
+
+          </div>
+
+          <div class="hero-stats">
+
+            <div class="stat-pill">
+              Groups:
+              <span id="heroTotalGroups">0</span>
+            </div>
+
+            <div class="stat-pill">
+              Joined:
+              <span id="heroJoinedGroups">0</span>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="controls">
+
+          <div class="field-wrap">
+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="M20 20L17 17"></path>
+            </svg>
+
+            <input
+              id="searchInput"
+              class="control-input"
+              placeholder="Search groups..."
+            >
+
+          </div>
+
+          <select id="categorySelect" class="control-select">
+
+            <option value="all">All Categories</option>
+            <option value="employer">Employers</option>
+            <option value="school">Schools</option>
+            <option value="agent">Recruiters</option>
+            <option value="talent">Professionals</option>
+            <option value="student">Students</option>
+
+          </select>
+
+          <select id="sortSelect" class="control-select">
+
+            <option value="popular">Most Popular</option>
+            <option value="newest">Newest</option>
+            <option value="az">A-Z</option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+      <div
+        id="groupsGrid"
+        class="groups-grid"
+      >
+      </div>
+
+    </section>
+        <!-- RIGHT -->
+
+    <aside class="right-panel">
+
+      <div class="card quick-card">
+
+        <h3 class="section-title">
+          My Groups
+        </h3>
+
+        <p class="section-sub">
+          Groups you joined will appear here.
+        </p>
+
+        <div
+          id="myGroupsList"
+          class="mini-group-list"
+        >
+        </div>
+
+      </div>
+
+      <div class="card quick-card">
+
+        <h3 class="section-title">
+          Popular Categories
+        </h3>
+
+        <div class="quick-list">
+
+          <button class="quick-item" onclick="setGroupFilter('employer')">
+            Employers
+            <span id="sideEmployerCount">0</span>
+          </button>
+
+          <button class="quick-item" onclick="setGroupFilter('school')">
+            Schools
+            <span id="sideSchoolCount">0</span>
+          </button>
+
+          <button class="quick-item" onclick="setGroupFilter('agent')">
+            Recruiters
+            <span id="sideRecruiterCount">0</span>
+          </button>
+
+          <button class="quick-item" onclick="setGroupFilter('talent')">
+            Professionals
+            <span id="sideProfessionalCount">0</span>
+          </button>
+
+          <button class="quick-item" onclick="setGroupFilter('student')">
+            Students
+            <span id="sideStudentCount">0</span>
+          </button>
+
+        </div>
+
+      </div>
+
+    </aside>
+
+  </main>
+
+  <!-- CREATE GROUP MODAL -->
+
+  <div
+    id="groupModalBackdrop"
+    class="modal-backdrop"
+  >
+
+    <section class="modal">
+
+      <header class="modal-header">
+
+        <h2>Create Group</h2>
+
+        <button
+          class="modal-close"
+          onclick="closeCreateGroupModal()"
+          type="button"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18"></path>
+            <path d="M6 6l12 12"></path>
+          </svg>
+        </button>
+
+      </header>
+
+      <form
+        id="groupForm"
+        onsubmit="submitGroupForm(event)"
+      >
+
+        <div class="modal-body">
+
+          <div class="form-group">
+            <label for="groupName">
+              Group Name
+            </label>
+
+            <input
+              id="groupName"
+              class="form-input"
+              placeholder="Example: AIFT Employers Network"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="groupCategory">
+              Category
+            </label>
+
+            <select
+              id="groupCategory"
+              class="form-select"
+              required
+            >
+              <option value="employer">Employers</option>
+              <option value="school">Schools</option>
+              <option value="agent">Recruiters</option>
+              <option value="talent">Professionals</option>
+              <option value="student">Students</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="groupDescription">
+              Description
+            </label>
+
+            <textarea
+              id="groupDescription"
+              class="form-textarea"
+              placeholder="Tell members what this group is about..."
+              required
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="groupVisibility">
+              Visibility
+            </label>
+
+            <select
+              id="groupVisibility"
+              class="form-select"
+            >
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div class="modal-actions">
+
+          <button
+            type="button"
+            class="pill-btn"
+            onclick="closeCreateGroupModal()"
+          >
+            Cancel
+          </button>
+
+          <button
+            id="createGroupBtn"
+            type="submit"
+            class="pill-btn primary"
+          >
+            Create Group
+          </button>
+
+        </div>
+
+      </form>
+
+    </section>
+
+  </div>
+
+  <!-- TOASTS -->
+
+  <div
+    id="toastWrap"
+    class="toast-wrap"
+  ></div>
+
+</div>
+<script>
+  const API_BASE = "https://backend-1-9b6f.onrender.com";
+
+  const TOKEN_KEYS = [
+    "schoolToken",
+    "teacherToken",
+    "studentToken",
+    "adminToken",
+    "employerToken",
+    "talentToken",
+    "agentToken",
+    "token"
+  ];
+
+  const LOCAL_GROUPS_KEY = "aiftGroups";
+  const LOCAL_JOINED_GROUPS_KEY = "aiftJoinedGroups";
+
+  let groups = [];
+  let activeFilter = "all";
+  let currentUser = null;
+
+  const defaultGroups = [
+    {
+      _id: "local-employers",
+      name: "AIFT Employers Network",
+      category: "employer",
+      description: "A professional community for companies hiring, posting jobs, and connecting with qualified AIFT talent.",
+      visibility: "public",
+      membersCount: 0,
+      followersCount: 0,
+      createdAt: new Date().toISOString()
+    },
+    {
+      _id: "local-schools",
+      name: "AIFT Schools & Training Partners",
+      category: "school",
+      description: "A group for schools, training centers, teachers, and education partners building learning opportunities.",
+      visibility: "public",
+      membersCount: 0,
+      followersCount: 0,
+      createdAt: new Date().toISOString()
+    },
+    {
+      _id: "local-recruiters",
+      name: "AIFT Recruiters Community",
+      category: "agent",
+      description: "A space for recruiters and agents to share hiring needs, talent pipelines, and professional updates.",
+      visibility: "public",
+      membersCount: 0,
+      followersCount: 0,
+      createdAt: new Date().toISOString()
+    },
+    {
+      _id: "local-professionals",
+      name: "AIFT Professionals Hub",
+      category: "talent",
+      description: "For professionals looking for jobs, networking, career growth, training, and portfolio visibility.",
+      visibility: "public",
+      membersCount: 0,
+      followersCount: 0,
+      createdAt: new Date().toISOString()
+    },
+    {
+      _id: "local-students",
+      name: "AIFT Students Career Group",
+      category: "student",
+      description: "For students looking for internships, training, interview preparation, school updates, and career support.",
+      visibility: "public",
+      membersCount: 0,
+      followersCount: 0,
+      createdAt: new Date().toISOString()
+    }
+  ];
+
+  const groupsGrid = document.getElementById("groupsGrid");
+  const searchInput = document.getElementById("searchInput");
+  const globalSearchInput = document.getElementById("globalSearchInput");
+  const categorySelect = document.getElementById("categorySelect");
+  const sortSelect = document.getElementById("sortSelect");
+
+  function getToken(){
+    for(const key of TOKEN_KEYS){
+      const token = localStorage.getItem(key);
+      if(token) return token;
+    }
+
+    return null;
+  }
+
+  function authHeaders(extra = {}){
+    const token = getToken();
+
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...extra
+    };
+  }
+
+  async function apiRequest(path, options = {}){
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: authHeaders(options.headers || {})
+    });
+
+    let data = null;
+
+    try{
+      data = await res.json();
+    }catch{}
+
+    if(!res.ok){
+      const err = new Error(data?.message || data?.error || `Request failed ${res.status}`);
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
+
+    return data;
+  }
+
+  function escapeHTML(value = ""){
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function getInitials(name = "AIFT"){
+    return String(name || "AIFT")
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map(part => part[0]?.toUpperCase() || "")
+      .join("") || "A";
+  }
+
+  function normalizeCategory(category = ""){
+    const clean = String(category || "").toLowerCase().trim();
+
+    if(clean === "recruiter" || clean === "recruiters") return "agent";
+    if(clean === "professional" || clean === "professionals") return "talent";
+    if(clean === "employers") return "employer";
+    if(clean === "schools") return "school";
+    if(clean === "students") return "student";
+
+    return clean || "talent";
+  }
+
+  function categoryLabel(category = ""){
+    const clean = normalizeCategory(category);
+
+    if(clean === "employer") return "Employers";
+    if(clean === "school") return "Schools";
+    if(clean === "agent") return "Recruiters";
+    if(clean === "talent") return "Professionals";
+    if(clean === "student") return "Students";
+
+    return "Community";
+  }
+
+  function getJoinedGroupIds(){
+    try{
+      return JSON.parse(localStorage.getItem(LOCAL_JOINED_GROUPS_KEY) || "[]");
+    }catch{
+      return [];
+    }
+  }
+
+  function saveJoinedGroupIds(ids){
+    localStorage.setItem(LOCAL_JOINED_GROUPS_KEY, JSON.stringify(ids));
+  }
+
+  function isJoined(groupId){
+    return getJoinedGroupIds().some(id => String(id) === String(groupId));
+  }
+
+  function getLocalGroups(){
+    try{
+      const local = JSON.parse(localStorage.getItem(LOCAL_GROUPS_KEY) || "[]");
+      return [...defaultGroups, ...local];
+    }catch{
+      return [...defaultGroups];
+    }
+  }
+
+  function saveLocalGroups(localGroups){
+    localStorage.setItem(LOCAL_GROUPS_KEY, JSON.stringify(localGroups));
+  }
+
+  function normalizeGroup(group = {}){
+    const id = group._id || group.id || `local-${Date.now()}`;
+
+    return {
+      _id: id,
+      name: group.name || group.title || "AIFT Group",
+      category: normalizeCategory(group.category || group.role || "talent"),
+      description: group.description || group.about || "",
+      visibility: group.visibility || "public",
+      coverImage: group.coverImage || "",
+      logo: group.logo || "",
+      membersCount: Number(group.membersCount ?? group.memberCount ?? group.members?.length ?? 0),
+      followersCount: Number(group.followersCount ?? group.followerCount ?? group.followers?.length ?? 0),
+      createdAt: group.createdAt || new Date().toISOString(),
+      raw: group
+    };
+  }
+
+  function showToast(type, title, message){
+    const wrap = document.getElementById("toastWrap");
+
+    const toast = document.createElement("div");
+    toast.className = `toast ${type || ""}`;
+
+    toast.innerHTML = `
+      <strong>${escapeHTML(title)}</strong>
+      <span>${escapeHTML(message)}</span>
+    `;
+
+    wrap.appendChild(toast);
+
+    setTimeout(() => {
+      toast.remove();
+    }, 3200);
+  }
+
+  function renderLoading(){
+    groupsGrid.innerHTML = `
+      <div class="card loading-state" style="grid-column:1 / -1;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9"></circle>
+        </svg>
+        <h3>Loading groups...</h3>
+        <p>Please wait while AIFT groups are loading.</p>
+      </div>
+    `;
+  }
+
+  function renderEmpty(){
+    groupsGrid.innerHTML = `
+      <div class="card empty-state" style="grid-column:1 / -1;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="8" cy="8" r="3"></circle>
+          <circle cx="16" cy="8" r="3"></circle>
+          <path d="M3 21c0-4 3-7 7-7"></path>
+          <path d="M14 21c0-3 2-5 5-5"></path>
+        </svg>
+        <h3>No groups found</h3>
+        <p>Try another search or create your first AIFT community group.</p>
+      </div>
+    `;
+  }
+
+  function updateCounts(){
+    const counts = {
+      all: groups.length,
+      employer: groups.filter(g => g.category === "employer").length,
+      school: groups.filter(g => g.category === "school").length,
+      agent: groups.filter(g => g.category === "agent").length,
+      talent: groups.filter(g => g.category === "talent").length,
+      student: groups.filter(g => g.category === "student").length
+    };
+
+    document.getElementById("countAll").textContent = counts.all;
+    document.getElementById("countEmployer").textContent = counts.employer;
+    document.getElementById("countSchool").textContent = counts.school;
+    document.getElementById("countRecruiter").textContent = counts.agent;
+    document.getElementById("countProfessional").textContent = counts.talent;
+    document.getElementById("countStudent").textContent = counts.student;
+
+    document.getElementById("sideEmployerCount").textContent = counts.employer;
+    document.getElementById("sideSchoolCount").textContent = counts.school;
+    document.getElementById("sideRecruiterCount").textContent = counts.agent;
+    document.getElementById("sideProfessionalCount").textContent = counts.talent;
+    document.getElementById("sideStudentCount").textContent = counts.student;
+
+    document.getElementById("heroTotalGroups").textContent = counts.all;
+    document.getElementById("heroJoinedGroups").textContent = getJoinedGroupIds().length;
+  }
+
+  function getFilteredGroups(){
+    const search = (searchInput?.value || globalSearchInput?.value || "")
+      .toLowerCase()
+      .trim();
+
+    const selectedCategory = categorySelect?.value || "all";
+    const activeCategory = activeFilter !== "all" ? activeFilter : selectedCategory;
+    const sort = sortSelect?.value || "popular";
+
+    let list = [...groups];
+
+    if(activeCategory !== "all"){
+      list = list.filter(group => group.category === activeCategory);
+    }
+
+    if(search){
+      list = list.filter(group => {
+        return [
+          group.name,
+          group.category,
+          categoryLabel(group.category),
+          group.description,
+          group.visibility
+        ].join(" ").toLowerCase().includes(search);
+      });
+    }
+
+    list.sort((a, b) => {
+      if(sort === "az"){
+        return String(a.name).localeCompare(String(b.name));
+      }
+
+      if(sort === "newest"){
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      }
+
+      return Number(b.membersCount || 0) - Number(a.membersCount || 0);
+    });
+
+    return list;
+  }
+
+  function renderGroupCard(group){
+    const joined = isJoined(group._id);
+
+    const logoHTML = group.logo
+      ? `<img class="group-logo" src="${escapeHTML(group.logo)}" alt="">`
+      : `<div class="group-logo">${escapeHTML(getInitials(group.name))}</div>`;
+
+    const coverStyle = group.coverImage
+      ? `style="background-image:linear-gradient(135deg,rgba(15,118,110,.24),rgba(37,99,235,.18)),url('${escapeHTML(group.coverImage)}');background-size:cover;background-position:center;"`
+      : "";
+
+    return `
+      <article class="card group-card">
+        <div class="group-cover" ${coverStyle}>
+          ${logoHTML}
+          <span class="group-category">${escapeHTML(categoryLabel(group.category))}</span>
+        </div>
+
+        <div class="group-body">
+          <h3 class="group-title">${escapeHTML(group.name)}</h3>
+
+          <p class="group-desc">${escapeHTML(group.description || "No description available.")}</p>
+
+          <div class="group-meta">
+            <span class="meta-chip">${escapeHTML(group.visibility)}</span>
+            <span class="meta-chip">${group.membersCount + (joined ? 1 : 0)} members</span>
+            <span class="meta-chip">${group.followersCount} followers</span>
+          </div>
+
+          <div class="group-actions">
+            <button
+              class="group-btn ${joined ? "joined" : "primary"}"
+              onclick="toggleJoinGroup('${escapeHTML(group._id)}')"
+            >
+              ${joined ? "Joined" : "Join Group"}
+            </button>
+
+            <button
+              class="group-btn"
+              onclick="openGroup('${escapeHTML(group._id)}')"
+            >
+              Open
+            </button>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function renderGroups(){
+    updateCounts();
+
+    const list = getFilteredGroups();
+
+    if(!list.length){
+      renderEmpty();
+      renderMyGroups();
+      return;
+    }
+
+    groupsGrid.innerHTML = list.map(renderGroupCard).join("");
+
+    renderMyGroups();
+  }
+
+  function renderMyGroups(){
+    const mount = document.getElementById("myGroupsList");
+    const joinedIds = getJoinedGroupIds();
+
+    const myGroups = groups.filter(group => {
+      return joinedIds.some(id => String(id) === String(group._id));
+    });
+
+    if(!myGroups.length){
+      mount.innerHTML = `
+        <div class="mini-group">
+          <div class="mini-group-logo">A</div>
+          <div>
+            <strong>No groups joined yet</strong>
+            <span>Join a group to see it here.</span>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    mount.innerHTML = myGroups.slice(0, 4).map(group => `
+      <div class="mini-group" onclick="openGroup('${escapeHTML(group._id)}')">
+        <div class="mini-group-logo">${escapeHTML(getInitials(group.name))}</div>
+        <div>
+          <strong>${escapeHTML(group.name)}</strong>
+          <span>${escapeHTML(categoryLabel(group.category))}</span>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function setGroupFilter(category){
+    activeFilter = category;
+
+    document.querySelectorAll(".filter-btn").forEach(button => {
+      button.classList.toggle(
+        "active",
+        button.dataset.filter === category
+      );
+    });
+
+    if(categorySelect){
+      categorySelect.value = category === "all" ? "all" : category;
+    }
+
+    renderGroups();
+  }
+
+  async function toggleJoinGroup(groupId){
+    const group = groups.find(g => String(g._id) === String(groupId));
+
+    if(!group){
+      showToast("error", "Group not found", "This group could not be found.");
+      return;
+    }
+
+    const joinedIds = getJoinedGroupIds();
+    const alreadyJoined = joinedIds.some(id => String(id) === String(groupId));
+
+    try{
+      /*
+        BACKEND READY:
+        POST /api/groups/:id/join
+        POST /api/groups/:id/leave
+      */
+
+      await apiRequest(
+        alreadyJoined
+          ? `/api/groups/${encodeURIComponent(groupId)}/leave`
+          : `/api/groups/${encodeURIComponent(groupId)}/join`,
+        { method: "POST" }
+      );
+    }catch{}
+
+    let updated;
+
+    if(alreadyJoined){
+      updated = joinedIds.filter(id => String(id) !== String(groupId));
+      group.membersCount = Math.max(0, Number(group.membersCount || 0) - 1);
+      showToast("success", "Left group", "You left this group.");
+    }else{
+      updated = [...joinedIds, groupId];
+      showToast("success", "Joined group", "You joined this group.");
+    }
+
+    saveJoinedGroupIds(updated);
+    renderGroups();
+  }
+
+  function openGroup(groupId){
+    /*
+      FUTURE PAGE:
+      group.html?id=<groupId>
+    */
+
+    showToast(
+      "success",
+      "Group page coming next",
+      "Next we can create group.html for full group feeds and members."
+    );
+  }
+
+  function openCreateGroupModal(){
+    document.getElementById("groupModalBackdrop").classList.add("show");
+    document.body.classList.add("modal-open");
+  }
+
+  function closeCreateGroupModal(){
+    document.getElementById("groupModalBackdrop").classList.remove("show");
+    document.body.classList.remove("modal-open");
+  }
+
+  async function submitGroupForm(event){
+    event.preventDefault();
+
+    const btn = document.getElementById("createGroupBtn");
+
+    const payload = {
+      name: document.getElementById("groupName").value.trim(),
+      category: document.getElementById("groupCategory").value,
+      description: document.getElementById("groupDescription").value.trim(),
+      visibility: document.getElementById("groupVisibility").value
+    };
+
+    if(!payload.name || !payload.description){
+      showToast("error", "Missing details", "Please complete the group name and description.");
+      return;
+    }
+
+    const oldText = btn.textContent;
+
+    try{
+      btn.disabled = true;
+      btn.textContent = "Creating...";
+
+      /*
+        BACKEND READY:
+        POST /api/groups
+      */
+
+      const data = await apiRequest("/api/groups", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+
+      const created = normalizeGroup(data.group || data);
+
+      groups.unshift(created);
+
+      showToast("success", "Group created", "Your group was created successfully.");
+    }catch{
+      const localGroup = normalizeGroup({
+        ...payload,
+        _id: `local-${Date.now()}`,
+        membersCount: 0,
+        followersCount: 0,
+        createdAt: new Date().toISOString()
+      });
+
+      const existingLocal = JSON.parse(localStorage.getItem(LOCAL_GROUPS_KEY) || "[]");
+      existingLocal.unshift(localGroup);
+      saveLocalGroups(existingLocal);
+
+      groups.unshift(localGroup);
+
+      showToast(
+        "success",
+        "Group saved locally",
+        "Backend groups route is not ready yet, so this group was saved locally."
+      );
+    }finally{
+      btn.disabled = false;
+      btn.textContent = oldText;
+
+      document.getElementById("groupForm").reset();
+      closeCreateGroupModal();
+      renderGroups();
+    }
+  }
+
+  async function loadCurrentUser(){
+    try{
+      const data = await apiRequest("/api/users/me");
+      currentUser = data.user || data;
+
+      if(currentUser?._id){
+        localStorage.setItem("userId", currentUser._id);
+      }
+
+      if(currentUser?.role){
+        localStorage.setItem("role", currentUser.role);
+      }
+    }catch{}
+  }
+
+  async function loadGroups(){
+    renderLoading();
+
+    try{
+      /*
+        BACKEND READY:
+        GET /api/groups
+      */
+
+      const data = await apiRequest("/api/groups");
+
+      const raw = Array.isArray(data)
+        ? data
+        : data.groups || data.items || data.data || [];
+
+      groups = raw.map(normalizeGroup);
+    }catch{
+      groups = getLocalGroups().map(normalizeGroup);
+
+      showToast(
+        "success",
+        "Loaded local groups",
+        "Backend groups route is not ready yet, so local groups were loaded."
+      );
+    }
+
+    renderGroups();
+  }
+
+  function bindEvents(){
+    searchInput?.addEventListener("input", () => {
+      if(globalSearchInput){
+        globalSearchInput.value = searchInput.value;
+      }
+
+      renderGroups();
+    });
+
+    globalSearchInput?.addEventListener("input", () => {
+      if(searchInput){
+        searchInput.value = globalSearchInput.value;
+      }
+
+      renderGroups();
+    });
+
+    categorySelect?.addEventListener("change", () => {
+      activeFilter = categorySelect.value;
+
+      document.querySelectorAll(".filter-btn").forEach(button => {
+        button.classList.toggle(
+          "active",
+          button.dataset.filter === activeFilter
+        );
+      });
+
+      if(activeFilter === "all"){
+        document.querySelector('.filter-btn[data-filter="all"]')?.classList.add("active");
+      }
+
+      renderGroups();
+    });
+
+    sortSelect?.addEventListener("change", renderGroups);
+
+    document.getElementById("groupModalBackdrop")?.addEventListener("click", event => {
+      if(event.target.id === "groupModalBackdrop"){
+        closeCreateGroupModal();
+      }
+    });
+
+    document.addEventListener("keydown", event => {
+      if(event.key === "Escape"){
+        closeCreateGroupModal();
+      }
+    });
+  }
+
+  async function initGroupsPage(){
+    const token = getToken();
+
+    if(!token){
+      location.href = "login.html";
+      return;
+    }
+
+    bindEvents();
+
+    await loadCurrentUser();
+    await loadGroups();
+  }
+
+  initGroupsPage();
+</script>
+
+</body>
+</html>
