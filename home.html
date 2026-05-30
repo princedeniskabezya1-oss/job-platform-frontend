@@ -1395,26 +1395,27 @@ function openDashboard(){
 }
 
 function openProfile(){
-  if(!state.me?._id) return;
+  const id = state.me?._id || currentUserId();
+  if(!id) return;
 
-  const r = String(state.me.role || role()).toLowerCase();
-
-if(r === "school"){
-  location.href = "school.html";
-  return;
-}
+  const r = String(state.me?.role || role()).toLowerCase();
 
   if(r === "employer"){
-    location.href = `employer-public-profile.html?id=${state.me._id}`;
+    location.href = `employer-public-profile.html?id=${id}`;
     return;
   }
 
-if(r === "agent" || r === "talent"){
-  location.href = `agent-public-profile.html?id=${state.me._id}`;
-  return;
-}
+  if(r === "agent" || r === "talent"){
+    location.href = `agent-public-profile.html?id=${id}`;
+    return;
+  }
 
-location.href = `public-profile.html?id=${state.me._id}`;
+  if(r === "school"){
+    location.href = "school.html";
+    return;
+  }
+
+  location.href = `public-profile.html?id=${id}`;
 }
 
 </script>
