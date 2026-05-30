@@ -1395,35 +1395,28 @@ function openDashboard(){
   openProfile();
 }
 
-function getPublicProfileUrl(user = null){
-  const id =
-    user?._id ||
-    user?.id ||
-    state.me?._id ||
-    currentUserId();
+function openProfile(){
+  const id = state.me?._id || currentUserId();
+  if(!id) return;
 
-  const r = String(
-    user?.role ||
-    state.me?.role ||
-    role() ||
-    ""
-  ).toLowerCase();
-
-  if(!id) return "login.html";
+  const r = String(state.me?.role || role()).toLowerCase();
 
   if(r === "employer"){
-    return `employer-public-profile.html?id=${id}`;
+    location.href = `employer-public-profile.html?id=${id}`;
+    return;
+  }
+
+  if(r === "agent" || r === "talent"){
+    location.href = `agent-public-profile.html?id=${id}`;
+    return;
   }
 
   if(r === "school"){
-    return "school.html";
+    location.href = "school.html";
+    return;
   }
 
-  return `agent-public-profile.html?id=${id}`;
-}
-
-function openProfile(){
-  location.href = getPublicProfileUrl(state.me);
+  location.href = `agent-public-profile.html?id=${id}`;
 }
 
 </script>
