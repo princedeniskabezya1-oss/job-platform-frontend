@@ -172,6 +172,7 @@ function userAvatar(user = {}) {
     state.rootId = rootId;
     state.mode = options.mode || "home";
     state.authorId = options.authorId || null;
+state.groupId = options.groupId || null;
     state.showComposer = options.showComposer !== false;
     state.infiniteScroll = options.infiniteScroll !== false;
     state.realtime = options.realtime !== false;
@@ -354,8 +355,16 @@ moveOverlaysToBody();
       if (list) list.innerHTML = `<div class="aift-feed-empty">Loading feed...</div>`;
     }
 
-    try {
-      let feedUrl = `${API}/api/posts?skip=${state.skip}&limit=${state.limit}`;
+let feedUrl =
+`${API}/api/posts?skip=${state.skip}&limit=${state.limit}`;
+
+if (
+  state.mode === "group" &&
+  state.groupId
+) {
+  feedUrl =
+    `${API}/api/groups/${state.groupId}/posts`;
+}
 
       if (state.mode === "profile" && state.authorId) {
         feedUrl += `&author=${encodeURIComponent(state.authorId)}`;
@@ -365,7 +374,12 @@ moveOverlaysToBody();
         headers: headers()
       });
 
-      const incoming = Array.isArray(posts) ? posts : [];
+      const incoming =
+  Array.isArray(posts)
+    ? posts
+    : Array.isArray(posts.posts)
+      ? posts.posts
+      : [];
 
       state.posts = reset ? incoming : mergePosts([...state.posts, ...incoming]);
       state.skip += incoming.length;
@@ -645,15 +659,32 @@ async function createPost() {
     postBtn.textContent = "Posting...";
   }
 
-  const form = new FormData();
-  form.append("text", text);
+const form = new FormData();
+
+form.append("text", text);
+
+if (
+  state.mode === "group" &&
+  state.groupId
+) {
+  form.append(
+    "groupId",
+    state.groupId
+  );
+}
 
   files.forEach(file => {
     form.append("media", file);
   });
 
   try {
-    const post = await api(`${API}/api/posts`, {
+    const endpoint =
+  state.mode === "group"
+    ? `${API}/api/groups/${state.groupId}/posts`
+    : `${API}/api/posts`;
+
+const post = await api(
+  endpoint, {
       method: "POST",
       headers: {
         Authorization: "Bearer " + getToken()
