@@ -17,8 +17,9 @@
       --muted:#6b7280;
       --border:#e5e7eb;
       --border-strong:#d1d5db;
-      --green:#0f766e;
-      --green-soft:#ecfdf5;
+      --green:#2563eb;
+--green-soft:#eff6ff;
+      
       --blue:#2563eb;
       --purple:#7c3aed;
       --red:#b91c1c;
@@ -182,19 +183,19 @@
       transform:translateY(-1px);
     }
 
-    .pill-btn.primary:hover{
-      background:#0b645d;
-      border-color:#0b645d;
-    }
+.pill-btn.primary:hover{
+  background:#1d4ed8;
+  border-color:#1d4ed8;
+}
 
-    .page-wrap{
-      max-width:var(--max);
-      margin:22px auto;
-      padding:0 16px 32px;
-      display:grid;
-      grid-template-columns:260px minmax(0,1fr) 280px;
-      gap:18px;
-    }
+.page-wrap{
+  max-width:var(--max);
+  margin:22px auto;
+  padding:0 16px 32px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 300px;
+  gap:18px;
+}
 
     .card{
       background:var(--card);
@@ -878,69 +879,6 @@
 
   <main class="page-wrap">
 
-    <!-- LEFT -->
-
-    <aside class="left-panel">
-
-      <div class="card panel-pad">
-
-        <h3 class="section-title">
-          Group Categories
-        </h3>
-
-        <p class="section-sub">
-          Explore AIFT communities by profession and role.
-        </p>
-
-        <div class="group-filter-list">
-
-          <button class="filter-btn active" data-filter="all" onclick="setGroupFilter('all')">
-            <div class="filter-left">
-              <span>All Groups</span>
-            </div>
-            <div class="filter-count" id="countAll">0</div>
-          </button>
-
-          <button class="filter-btn" data-filter="employer" onclick="setGroupFilter('employer')">
-            <div class="filter-left">
-              <span>Employers</span>
-            </div>
-            <div class="filter-count" id="countEmployer">0</div>
-          </button>
-
-          <button class="filter-btn" data-filter="school" onclick="setGroupFilter('school')">
-            <div class="filter-left">
-              <span>Schools</span>
-            </div>
-            <div class="filter-count" id="countSchool">0</div>
-          </button>
-
-          <button class="filter-btn" data-filter="agent" onclick="setGroupFilter('agent')">
-            <div class="filter-left">
-              <span>Recruiters</span>
-            </div>
-            <div class="filter-count" id="countRecruiter">0</div>
-          </button>
-
-          <button class="filter-btn" data-filter="talent" onclick="setGroupFilter('talent')">
-            <div class="filter-left">
-              <span>Professionals</span>
-            </div>
-            <div class="filter-count" id="countProfessional">0</div>
-          </button>
-
-          <button class="filter-btn" data-filter="student" onclick="setGroupFilter('student')">
-            <div class="filter-left">
-              <span>Students</span>
-            </div>
-            <div class="filter-count" id="countStudent">0</div>
-          </button>
-
-        </div>
-
-      </div>
-
-    </aside>
 
     <!-- CENTER -->
 
@@ -1233,7 +1171,10 @@
     "token"
   ];
 
-const LOCAL_JOINED_GROUPS_KEY = "aiftJoinedGroups";
+function isJoined(groupId){
+  const group = groups.find(g => String(g._id) === String(groupId));
+  return Boolean(group?.isJoined || group?.raw?.isJoined);
+}
 
   let groups = [];
   let activeFilter = "all";
@@ -1360,6 +1301,7 @@ const LOCAL_JOINED_GROUPS_KEY = "aiftJoinedGroups";
       membersCount: Number(group.membersCount ?? group.memberCount ?? group.members?.length ?? 0),
       followersCount: Number(group.followersCount ?? group.followerCount ?? group.followers?.length ?? 0),
       createdAt: group.createdAt || new Date().toISOString(),
+      isJoined: Boolean(group.isJoined),
       raw: group
     };
   }
@@ -1433,7 +1375,8 @@ const LOCAL_JOINED_GROUPS_KEY = "aiftJoinedGroups";
     document.getElementById("sideStudentCount").textContent = counts.student;
 
     document.getElementById("heroTotalGroups").textContent = counts.all;
-    document.getElementById("heroJoinedGroups").textContent = getJoinedGroupIds().length;
+    document.getElementById("heroJoinedGroups").textContent =
+  groups.filter(group => group.isJoined || group.raw?.isJoined).length;
   }
 
   function getFilteredGroups(){
@@ -1543,37 +1486,36 @@ const LOCAL_JOINED_GROUPS_KEY = "aiftJoinedGroups";
     renderMyGroups();
   }
 
-  function renderMyGroups(){
-    const mount = document.getElementById("myGroupsList");
-    const joinedIds = getJoinedGroupIds();
+function renderMyGroups(){
+  const mount = document.getElementById("myGroupsList");
 
-    const myGroups = groups.filter(group => {
-      return joinedIds.some(id => String(id) === String(group._id));
-    });
+  const myGroups = groups.filter(group => {
+    return Boolean(group.isJoined || group.raw?.isJoined);
+  });
 
-    if(!myGroups.length){
-      mount.innerHTML = `
-        <div class="mini-group">
-          <div class="mini-group-logo">A</div>
-          <div>
-            <strong>No groups joined yet</strong>
-            <span>Join a group to see it here.</span>
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    mount.innerHTML = myGroups.slice(0, 4).map(group => `
-      <div class="mini-group" onclick="openGroup('${escapeHTML(group._id)}')">
-        <div class="mini-group-logo">${escapeHTML(getInitials(group.name))}</div>
+  if(!myGroups.length){
+    mount.innerHTML = `
+      <div class="mini-group">
+        <div class="mini-group-logo">A</div>
         <div>
-          <strong>${escapeHTML(group.name)}</strong>
-          <span>${escapeHTML(categoryLabel(group.category))}</span>
+          <strong>No groups joined yet</strong>
+          <span>Join a group to see it here.</span>
         </div>
       </div>
-    `).join("");
+    `;
+    return;
   }
+
+  mount.innerHTML = myGroups.slice(0, 4).map(group => `
+    <div class="mini-group" onclick="openGroup('${escapeHTML(group._id)}')">
+      <div class="mini-group-logo">${escapeHTML(getInitials(group.name))}</div>
+      <div>
+        <strong>${escapeHTML(group.name)}</strong>
+        <span>${escapeHTML(categoryLabel(group.category))}</span>
+      </div>
+    </div>
+  `).join("");
+}
 
   function setGroupFilter(category){
     activeFilter = category;
@@ -1592,54 +1534,51 @@ const LOCAL_JOINED_GROUPS_KEY = "aiftJoinedGroups";
     renderGroups();
   }
 
-  async function toggleJoinGroup(groupId){
-    const group = groups.find(g => String(g._id) === String(groupId));
+async function toggleJoinGroup(groupId){
+  const group = groups.find(g => String(g._id) === String(groupId));
 
-    if(!group){
-      showToast("error", "Group not found", "This group could not be found.");
-      return;
-    }
-
-    const joinedIds = getJoinedGroupIds();
-    const alreadyJoined = joinedIds.some(id => String(id) === String(groupId));
-
-    try{
-      /*
-        BACKEND READY:
-        POST /api/groups/:id/join
-        POST /api/groups/:id/leave
-      */
-
-      await apiRequest(
-        alreadyJoined
-          ? `/api/groups/${encodeURIComponent(groupId)}/leave`
-          : `/api/groups/${encodeURIComponent(groupId)}/join`,
-        { method: "POST" }
-      );
-    }catch{}
-
-    let updated;
-
-    if(alreadyJoined){
-      updated = joinedIds.filter(id => String(id) !== String(groupId));
-      group.membersCount = Math.max(0, Number(group.membersCount || 0) - 1);
-      showToast("success", "Left group", "You left this group.");
-    }else{
-      updated = [...joinedIds, groupId];
-      showToast(
-  "success",
-  "Joined group",
-  "Opening community..."
-);
-
-setTimeout(() => {
-  openGroup(groupId);
-}, 600);
-    }
-
-    saveJoinedGroupIds(updated);
-    renderGroups();
+  if(!group){
+    showToast("error", "Group not found", "This group could not be found.");
+    return;
   }
+
+  const alreadyJoined = isJoined(groupId);
+
+  try{
+    const data = await apiRequest(
+      alreadyJoined
+        ? `/api/groups/${encodeURIComponent(groupId)}/leave`
+        : `/api/groups/${encodeURIComponent(groupId)}/join`,
+      { method: "POST" }
+    );
+
+    const updatedGroup = normalizeGroup(data.group || group);
+
+    groups = groups.map(item => {
+      return String(item._id) === String(groupId)
+        ? updatedGroup
+        : item;
+    });
+
+    showToast(
+      "success",
+      alreadyJoined ? "Left group" : "Joined group",
+      alreadyJoined ? "You left this group." : "Opening community..."
+    );
+
+    renderGroups();
+
+    if(!alreadyJoined){
+      setTimeout(() => openGroup(groupId), 500);
+    }
+  }catch(err){
+    showToast(
+      "error",
+      "Group action failed",
+      err.message || "Please try again."
+    );
+  }
+}
 
 function openGroup(groupId){
   window.location.href =
