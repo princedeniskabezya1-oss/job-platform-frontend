@@ -659,38 +659,32 @@ async function createPost() {
     postBtn.textContent = "Posting...";
   }
 
-const form = new FormData();
+  const form = new FormData();
+  form.append("text", text);
 
-form.append("text", text);
-
-if (
-  state.mode === "group" &&
-  state.groupId
-) {
-  form.append(
-    "groupId",
-    state.groupId
-  );
-}
+  if (state.mode === "group" && state.groupId) {
+    form.append("groupId", state.groupId);
+  }
 
   files.forEach(file => {
     form.append("media", file);
   });
 
-  try {
-    const endpoint =
-  state.mode === "group"
-    ? `${API}/api/groups/${state.groupId}/posts`
-    : `${API}/api/posts`;
+  const endpoint =
+    state.mode === "group" && state.groupId
+      ? `${API}/api/groups/${state.groupId}/posts`
+      : `${API}/api/posts`;
 
-const post = await api(
-  endpoint, {
+  try {
+    const response = await api(endpoint, {
       method: "POST",
       headers: {
         Authorization: "Bearer " + getToken()
       },
       body: form
     });
+
+    const post = response.post || response;
 
     if (textEl) textEl.value = "";
 
