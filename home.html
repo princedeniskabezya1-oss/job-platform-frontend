@@ -505,6 +505,77 @@ a{
 .create-actions button:hover{
   background:#f3f2ef;
 }
+  .login-wall-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.38);
+  backdrop-filter:blur(6px);
+  z-index:9999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+
+.login-wall-card{
+  width:min(440px,100%);
+  background:#fff;
+  border-radius:24px;
+  padding:26px;
+  box-shadow:0 24px 70px rgba(15,23,42,.22);
+  text-align:center;
+  border:1px solid #e5e7eb;
+}
+
+.login-wall-logo{
+  width:140px;
+  height:52px;
+  object-fit:contain;
+  margin:0 auto 10px;
+}
+
+.login-wall-card h2{
+  margin:0;
+  font-size:24px;
+  font-weight:900;
+  color:#111827;
+}
+
+.login-wall-card p{
+  margin:10px 0 20px;
+  color:#64748b;
+  font-size:14px;
+  line-height:1.6;
+}
+
+.login-wall-actions{
+  display:grid;
+  gap:10px;
+}
+
+.wall-btn{
+  height:44px;
+  border-radius:999px;
+  border:1px solid #0a66c2;
+  background:#fff;
+  color:#0a66c2;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.wall-btn.primary{
+  background:#0a66c2;
+  color:#fff;
+}
+
+.wall-close{
+  margin-top:14px;
+  border:0;
+  background:transparent;
+  color:#64748b;
+  font-weight:800;
+  cursor:pointer;
+}
 
 </style>
 </head>
@@ -1169,7 +1240,81 @@ function headers(extra = {}){
     ...extra
   };
 }
+function isGuest(){
+  return !token();
+}
 
+function enableGuestHome(){
+  state.me = {
+    name:"Guest",
+    headline:"Previewing AIFT",
+    location:"Sign in to personalize your workspace",
+    role:"guest",
+    profileImage:FALLBACK_AVATAR,
+    profileViews:0,
+    postImpressions:0
+  };
+
+  renderMe();
+  updateDashboardButtons();
+
+  setTimeout(() => {
+    showLoginWall("continue using AIFT");
+  }, 45000);
+}
+
+function requireLogin(action = "continue"){
+  if(!isGuest()) return true;
+
+  showLoginWall(action);
+  return false;
+}
+
+function showLoginWall(action = "continue"){
+  let modal = document.getElementById("loginWallModal");
+
+  if(!modal){
+    modal = document.createElement("div");
+    modal.id = "loginWallModal";
+    modal.className = "login-wall-backdrop";
+
+    modal.innerHTML = `
+      <div class="login-wall-card">
+        <img src="images/aift-logo.png" class="login-wall-logo" alt="AIFT">
+
+        <h2>Sign in to ${escapeHtml(action)}</h2>
+
+        <p>
+          Create an account or sign in to post, message, apply for jobs,
+          follow people, join groups, and access your dashboard.
+        </p>
+
+        <div class="login-wall-actions">
+          <button class="wall-btn primary" onclick="location.href='login.html'">
+            Sign in
+          </button>
+
+          <button class="wall-btn" onclick="location.href='register.html'">
+            Create account
+          </button>
+        </div>
+
+        <button class="wall-close" onclick="closeLoginWall()">
+          Continue preview
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  }
+
+  modal.style.display = "flex";
+}
+
+function closeLoginWall(){
+  const modal = document.getElementById("loginWallModal");
+  if(modal) modal.style.display = "none";
+}
 /* =========================
    HELPERS
 ========================= */
@@ -1215,7 +1360,7 @@ async function api(path,options={}){
 async function loadMe(){
 
   if(!token()){
-    location.href = "login.html";
+    enableGuestHome();
     return;
   }
 
@@ -1223,17 +1368,17 @@ async function loadMe(){
     headers:headers()
   });
 
-state.me = data.user || data;
+  state.me = data.user || data;
 
-if(state.me?._id){
-  localStorage.setItem("userId", state.me._id);
-}
+  if(state.me?._id){
+    localStorage.setItem("userId", state.me._id);
+  }
 
-if(state.me?.role){
-  localStorage.setItem("role", state.me.role);
-}
+  if(state.me?.role){
+    localStorage.setItem("role", state.me.role);
+  }
 
-renderMe();
+  renderMe();
 }
 
     function getRoleLabel(roleValue = ""){
@@ -1666,18 +1811,22 @@ function goJobs(){
 }
 
 function goMessages(){
+  if(!requireLogin("message people")) return;
   location.href = "messages.html";
 }
 
 function goNotifications(){
+  if(!requireLogin("view alerts")) return;
   location.href = "notifications.html";
 }
 
 function openSaved(){
+  if(!requireLogin("view saved items")) return;
   location.href = "saved.html";
 }
 
 function openGroups(){
+  if(!requireLogin("join groups")) return;
   location.href = "groups.html";
 }
 
@@ -1758,9 +1907,9 @@ if(
 
 AIFTFeed.mount("feedMount", {
   mode: "home",
-  showComposer: true,
+  showComposer: !isGuest(),
   infiniteScroll: true,
-  realtime: true
+  realtime: !isGuest()
 });
 
     return;
