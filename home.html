@@ -1945,37 +1945,103 @@ function openProfile(){
    FEED
 ========================= */
 
-function mountFeed(){
+async function mountFeed(){
 
-  const mount =
-    document.getElementById("feedMount");
+  const mount = document.getElementById("feedMount");
 
-if(
-  AIFTFeed &&
-  typeof AIFTFeed.mount === "function"
-){
+  if(isGuest()){
+    await mountGuestFeedPreview();
+    return;
+  }
 
-AIFTFeed.mount("feedMount", {
-  mode: "home",
-  showComposer: !isGuest(),
-  infiniteScroll: true,
-  realtime: !isGuest()
-});
+  if(AIFTFeed && typeof AIFTFeed.mount === "function"){
+
+    AIFTFeed.mount("feedMount", {
+      mode: "home",
+      showComposer: true,
+      infiniteScroll: true,
+      realtime: true
+    });
 
     return;
   }
 
   mount.innerHTML = `
-    <div class="card" style="
-      padding:24px;
-      text-align:center;
-      color:#666;
-      font-size:14px;
-    ">
+    <div class="card" style="padding:24px;text-align:center;color:#666;font-size:14px;">
       Feed system not detected.<br><br>
       Make sure feed.js is connected correctly.
     </div>
   `;
+}
+  async function mountGuestFeedPreview(){
+  const mount = document.getElementById("feedMount");
+
+  mount.innerHTML = `
+    <div class="feed-skeleton">
+      <div class="feed-skeleton-line large"></div>
+      <div class="feed-skeleton-line medium"></div>
+      <div class="feed-skeleton-media"></div>
+    </div>
+  `;
+
+  try{
+    const res = await fetch(API + "/api/posts?limit=10");
+    const data = res.ok ? await res.json() : [];
+
+    const posts = Array.isArray(data)
+      ? data
+      : data.posts || data.results || [];
+
+    if(!posts.length){
+      mount.innerHTML = `
+        <div class="card" style="padding:24px;text-align:center;color:#666;">
+          No public posts available yet.
+        </div>
+      `;
+      return;
+    }
+
+    mount.innerHTML = posts.map(post => {
+      const author = post.author || {};
+      const name = author.companyName || author.schoolName || author.name || "AIFT Member";
+      const avatar = author.profileImage || FALLBACK_AVATAR;
+
+      return `
+        <article class="aift-post-card card">
+          <div class="aift-post-header" style="display:flex;gap:10px;align-items:center;padding:12px 14px 8px;">
+            <img src="${escapeHtml(avatar)}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">
+            <div>
+              <strong style="font-size:14px;">${escapeHtml(name)}</strong>
+              <div style="font-size:12px;color:#666;">AIFT public preview</div>
+            </div>
+          </div>
+
+          <div class="aift-post-text">
+            ${escapeHtml(post.text || "")}
+          </div>
+
+          ${
+            post.mediaUrl
+              ? `<img src="${escapeHtml(post.mediaUrl)}" class="aift-post-media" style="width:100%;max-height:620px;object-fit:cover;">`
+              : ""
+          }
+
+          <div class="aift-post-actions" style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #eee;">
+            <button onclick="requireLogin('like posts')">Like</button>
+            <button onclick="requireLogin('comment on posts')">Comment</button>
+            <button onclick="requireLogin('share posts')">Share</button>
+          </div>
+        </article>
+      `;
+    }).join("");
+
+  }catch(err){
+    mount.innerHTML = `
+      <div class="card" style="padding:24px;text-align:center;color:#666;">
+        Public preview could not load. Please sign in to view the full feed.
+      </div>
+    `;
+  }
 }
 
 
@@ -2116,7 +2182,7 @@ await Promise.allSettled([
   loadNotificationBadge()
 ]);
 
-    mountFeed();
+    await mountFeed();
 
     enhanceFeedAfterRender();
 
