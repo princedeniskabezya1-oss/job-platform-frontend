@@ -304,7 +304,9 @@ a{
 
     <div class="company-actions">
       <button id="followBtn" class="pill-btn primary" onclick="followCompany()">+ Follow</button>
-      <button class="pill-btn" onclick="messageCompany()">Message</button>
+      <button id="messageCompanyBtn" class="pill-btn" onclick="messageCompany()">
+  Message
+</button>
       <button class="pill-btn dark" onclick="copyProfileLink()">Share Profile</button>
 
 <button id="editProfileBtn"
@@ -2025,6 +2027,7 @@ function updateOwnerUI(){
 const editProfileBtn =
   document.getElementById("editProfileBtn");
   const followBtn = document.getElementById("followBtn");
+  const messageCompanyBtn = document.getElementById("messageCompanyBtn");
   const signinBtn = document.getElementById("signinBtn");
   const avatar = document.getElementById("viewerAvatar");
 
@@ -2060,6 +2063,12 @@ if(editProfileBtn){
       !isLoggedIn || isOwner || state.following
     );
   }
+  if(messageCompanyBtn){
+  messageCompanyBtn.classList.toggle(
+    "hidden",
+    !isLoggedIn || isOwner
+  );
+}
 
   if(signinBtn){
     signinBtn.classList.toggle("hidden", isLoggedIn);
@@ -2154,8 +2163,14 @@ function messageCompany(){
     return goLogin();
   }
 
-  location.href =
-    `messages.html?user=${state.companyId}`;
+  const id = state.company?._id || state.companyId;
+
+  if(!id){
+    toast("Message unavailable", "This company profile could not be opened in messages.", "error");
+    return;
+  }
+
+  location.href = `messages.html?user=${encodeURIComponent(id)}`;
 }
 
 function visitPerson(id){
