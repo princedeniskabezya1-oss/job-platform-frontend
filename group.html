@@ -976,6 +976,100 @@
       transform: rotate(-45deg);
       margin-top: -2px;
     }
+    .file-upload-box {
+  border: 1px dashed var(--border2);
+  background: var(--soft);
+  border-radius: 16px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.file-upload-box input {
+  display: none;
+}
+
+.file-upload-label {
+  min-height: 42px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 13px;
+  color: var(--green);
+}
+
+.action-menu {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.white-dialog {
+  width: min(430px, calc(100vw - 28px));
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: var(--shadowLg);
+  border: 1px solid var(--border);
+  padding: 20px;
+}
+
+.white-dialog h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.white-dialog p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.white-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.share-user-list {
+  display: grid;
+  gap: 10px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.share-link-card {
+  border: 1px solid var(--border);
+  background: var(--soft);
+  border-radius: 16px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.share-link-card strong {
+  font-size: 13px;
+}
+
+.share-link-card span {
+  font-size: 12px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.member-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
 
     @media (max-width: 1040px) {
       .page-wrap {
@@ -1293,8 +1387,45 @@
               </select>
             </div>
 
-            <div class="form-group full">
-              <label for="editCoverImage">Cover Image URL</label>
+<div class="form-group full">
+  <label>Cover Image</label>
+
+  <div class="file-upload-box">
+    <label class="file-upload-label" for="editCoverFile">
+      Upload Cover Image
+    </label>
+
+    <input id="editCoverFile" type="file" accept="image/*">
+
+    <div id="coverPreview" class="image-preview cover-preview">
+      Cover
+    </div>
+
+    <p class="form-hint">
+      Upload directly from your device.
+    </p>
+  </div>
+</div>
+
+<div class="form-group full">
+  <label>Group Logo</label>
+
+  <div class="file-upload-box">
+    <label class="file-upload-label" for="editLogoFile">
+      Upload Logo
+    </label>
+
+    <input id="editLogoFile" type="file" accept="image/*">
+
+    <div id="logoPreview" class="image-preview logo-preview">
+      Logo
+    </div>
+
+    <p class="form-hint">
+      Upload your image
+    </p>
+  </div>
+</div>
               <div class="preview-grid">
                 <input id="editCoverImage" class="form-input" type="url" placeholder="https://...">
                 <div id="coverPreview" class="image-preview cover-preview">Cover</div>
@@ -1353,6 +1484,56 @@
       </footer>
     </section>
   </div>
+  <div id="confirmModal" class="modal-backdrop" aria-hidden="true">
+  <section class="white-dialog" role="dialog" aria-modal="true">
+    <h3 id="confirmTitle">Action needed</h3>
+    <p id="confirmMessage">Please confirm this action.</p>
+
+    <div class="white-dialog-actions">
+      <button id="confirmCancelBtn" class="pill-btn" type="button">
+        Cancel
+      </button>
+
+      <button id="confirmOkBtn" class="pill-btn primary" type="button">
+        Continue
+      </button>
+    </div>
+  </section>
+</div>
+
+<div id="shareModal" class="modal-backdrop" aria-hidden="true">
+  <section class="modal small" role="dialog" aria-modal="true">
+    <header class="modal-header">
+      <div>
+        <h2>Share Group</h2>
+        <p>Send this group to people you follow or copy the clean group link.</p>
+      </div>
+
+      <button id="closeShareModalBtn" class="modal-close" type="button">×</button>
+    </header>
+
+    <div class="modal-body">
+      <div class="share-link-card">
+        <strong>Group link</strong>
+        <span id="shareCleanLink">Loading...</span>
+        <button id="copyGroupLinkBtn" class="pill-btn full" type="button">
+          Copy Link
+        </button>
+      </div>
+
+      <div class="invite-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20L17 17"></path>
+        </svg>
+
+        <input id="shareUserSearchInput" type="text" placeholder="Search people you follow...">
+      </div>
+
+      <div id="shareUserList" class="share-user-list"></div>
+    </div>
+  </section>
+</div>
 
   <div id="toastWrap" class="toast-wrap"></div>
 
@@ -1838,46 +2019,79 @@
       renderMembers();
     }
 
-    async function toggleJoin() {
-      if (!state.group || state.loadingAction) return;
+async function toggleJoin() {
+  if (!state.group || state.loadingAction) return;
 
-      const joined = isJoined();
-      const buttons = [$("joinBtn"), $("sideJoinBtn")];
+  const joined = isJoined();
+  const ownerId = cleanId(state.group.owner);
 
-      setBusy(buttons, true, joined ? "Leaving..." : "Joining...");
+  if (joined && ownerId === String(currentUserId())) {
+    showInfoDialog({
+      title: "Group owner cannot leave",
+      message: "You are the owner of this group. To leave, please transfer ownership to another admin/member first, or delete the group if you no longer need it.",
+      okText: "Understood"
+    });
 
-      try {
-        const endpoint = joined ? "leave" : "join";
+    return;
+  }
 
-        const data = await api(`/api/groups/${encodeURIComponent(state.groupId)}/${endpoint}`, {
-          method: "POST",
-          headers: authHeaders()
-        });
+  if (joined) {
+    showConfirmDialog({
+      title: "Leave this group?",
+      message: "If you leave this group, you will no longer be able to post as a member. You can join again later if the group is public.",
+      okText: "Leave Group",
+      danger: true,
+      onConfirm: performJoinToggle
+    });
 
-        state.group = data.group || {
-          ...state.group,
-          isJoined: Boolean(data.joined)
-        };
+    return;
+  }
 
-        await loadGroup();
-
-if (window.AIFTFeed) {
-  state.feedMounted = false;
-  $("groupFeedMount").innerHTML = "";
-  mountFeed();
+  performJoinToggle();
 }
 
-        toast(
-          joined ? "You left the group" : "You joined the group",
-          joined ? "You can join again anytime." : "You can now post in this group.",
-          "success"
-        );
-      } catch (err) {
-        toast("Action failed", err.message, "error");
-      } finally {
-        setBusy(buttons, false);
-      }
+async function performJoinToggle() {
+  const joined = isJoined();
+  const buttons = [$("joinBtn"), $("sideJoinBtn")];
+
+  setBusy(buttons, true, joined ? "Leaving..." : "Joining...");
+
+  try {
+    const endpoint = joined ? "leave" : "join";
+
+    const data = await api(`/api/groups/${encodeURIComponent(state.groupId)}/${endpoint}`, {
+      method: "POST",
+      headers: authHeaders()
+    });
+
+    state.group = data.group || {
+      ...state.group,
+      isJoined: Boolean(data.joined)
+    };
+
+    await loadGroup();
+
+    if (window.AIFTFeed) {
+      state.feedMounted = false;
+      $("groupFeedMount").innerHTML = "";
+      mountFeed();
     }
+
+    toast(
+      joined ? "You left the group" : "You joined the group",
+      joined ? "You can join again anytime." : "You can now post in this group.",
+      "success"
+    );
+  } catch (err) {
+    showInfoDialog({
+      title: "Group action failed",
+      message: err.message || "Please try again.",
+      okText: "OK"
+    });
+  } finally {
+    setBusy(buttons, false);
+  }
+}
 
     async function toggleFollow() {
       if (!state.group) return;
@@ -1943,8 +2157,7 @@ if (window.AIFTFeed) {
       $("editDescription").value = group.description || "";
       $("editCategory").value = group.category || "talent";
       $("editVisibility").value = group.visibility || "public";
-      $("editCoverImage").value = group.coverImage || "";
-      $("editLogo").value = group.logo || "";
+      
 
       renderImagePreview("coverPreview", group.coverImage, "Cover");
       renderImagePreview("logoPreview", group.logo, "Logo");
@@ -1969,42 +2182,71 @@ if (window.AIFTFeed) {
       openModal("editGroupModal");
     }
 
-    async function saveGroupEdit(event) {
-      event.preventDefault();
+async function saveGroupEdit(event) {
+  event.preventDefault();
 
-      const payload = {
-        name: $("editName").value.trim(),
-        description: $("editDescription").value.trim(),
-        category: $("editCategory").value,
-        visibility: $("editVisibility").value,
-        coverImage: $("editCoverImage").value.trim(),
-        logo: $("editLogo").value.trim()
-      };
+  const payload = {
+    name: $("editName").value.trim(),
+    description: $("editDescription").value.trim(),
+    category: $("editCategory").value,
+    visibility: $("editVisibility").value
+  };
 
-      if (!payload.name || !payload.description) {
-        toast("Missing fields", "Group name and description are required.", "error");
-        return;
-      }
+  if (!payload.name || !payload.description) {
+    showInfoDialog({
+      title: "Missing group details",
+      message: "Please add both the group name and description before saving. These fields help members understand what this group is about.",
+      okText: "Got it"
+    });
 
-      setBusy([$("saveEditBtn")], true, "Saving...");
+    return;
+  }
 
-      try {
-        const data = await api(`/api/groups/${encodeURIComponent(state.groupId)}`, {
-          method: "PATCH",
-          headers: authHeaders({ "Content-Type": "application/json" }),
-          body: JSON.stringify(payload)
-        });
+  setBusy([$("saveEditBtn")], true, "Saving...");
 
-        state.group = data.group || data;
-        closeModal("editGroupModal");
-        renderAll();
-        toast("Group updated", "Your changes have been saved.", "success");
-      } catch (err) {
-        toast("Update failed", err.message, "error");
-      } finally {
-        setBusy([$("saveEditBtn")], false);
-      }
+  try {
+    const data = await api(`/api/groups/${encodeURIComponent(state.groupId)}`, {
+      method: "PATCH",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload)
+    });
+
+    state.group = data.group || data;
+
+    const formData = new FormData();
+    const coverFile = $("editCoverFile")?.files?.[0];
+    const logoFile = $("editLogoFile")?.files?.[0];
+
+    if (coverFile) formData.append("coverImage", coverFile);
+    if (logoFile) formData.append("logo", logoFile);
+
+    if (coverFile || logoFile) {
+      const uploadData = await api(`/api/groups/${encodeURIComponent(state.groupId)}/upload`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData
+      });
+
+      state.group = uploadData.group || state.group;
     }
+
+    $("editCoverFile").value = "";
+    $("editLogoFile").value = "";
+
+    closeModal("editGroupModal");
+    renderAll();
+
+    toast("Group updated", "Your changes have been saved.", "success");
+  } catch (err) {
+    showInfoDialog({
+      title: "Could not save group",
+      message: err.message || "Please check the group details and try again.",
+      okText: "Try Again"
+    });
+  } finally {
+    setBusy([$("saveEditBtn")], false);
+  }
+}
 
     function openInviteModal() {
       $("inviteBackendNotice").style.display = "block";
@@ -2042,9 +2284,9 @@ if (window.AIFTFeed) {
         `;
 
         try {
-          const data = await api(`/api/users?search=${encodeURIComponent(q)}`, {
-            headers: authHeaders()
-          });
+ const data = await api(`/api/groups/${encodeURIComponent(state.groupId)}/invite-candidates?search=${encodeURIComponent(q)}`, {
+  headers: authHeaders()
+});
 
           const users = Array.isArray(data.users)
             ? data.users
@@ -2061,12 +2303,12 @@ if (window.AIFTFeed) {
 
           renderInviteResults();
         } catch (err) {
-          $("inviteResults").innerHTML = `
-            <div class="empty-state">
-              <h3>User search route needed</h3>
-              <p>Your invite modal is ready, but this page needs a working user search endpoint like <strong>GET /api/users?search=keyword</strong>.</p>
-            </div>
-          `;
+$("inviteResults").innerHTML = `
+  <div class="empty-state">
+    <h3>Could not load users</h3>
+    <p>${esc(err.message || "Please check the invite-candidates backend route.")}</p>
+  </div>
+`;
         }
       }, 350);
     }
@@ -2174,6 +2416,49 @@ if (window.AIFTFeed) {
         setBusy([$("sendInviteBtn")], false);
       }
     }
+    function showInfoDialog({
+  title = "Action needed",
+  message = "Please check the instructions and try again.",
+  okText = "OK",
+  onOk = null
+} = {}) {
+  $("confirmTitle").textContent = title;
+  $("confirmMessage").textContent = message;
+  $("confirmOkBtn").textContent = okText;
+  $("confirmCancelBtn").style.display = "none";
+
+  $("confirmOkBtn").onclick = () => {
+    closeModal("confirmModal");
+    if (typeof onOk === "function") onOk();
+  };
+
+  openModal("confirmModal");
+}
+
+function showConfirmDialog({
+  title = "Please confirm",
+  message = "Are you sure you want to continue?",
+  okText = "Continue",
+  danger = false,
+  onConfirm = null
+} = {}) {
+  $("confirmTitle").textContent = title;
+  $("confirmMessage").textContent = message;
+  $("confirmOkBtn").textContent = okText;
+  $("confirmCancelBtn").style.display = "inline-flex";
+
+  $("confirmOkBtn").classList.toggle("danger", danger);
+  $("confirmOkBtn").classList.toggle("primary", !danger);
+
+  $("confirmCancelBtn").onclick = () => closeModal("confirmModal");
+
+  $("confirmOkBtn").onclick = () => {
+    closeModal("confirmModal");
+    if (typeof onConfirm === "function") onConfirm();
+  };
+
+  openModal("confirmModal");
+}
 
     function mountFeed() {
       if (state.feedMounted) return;
@@ -2212,14 +2497,15 @@ if (window.AIFTFeed) {
       $("closeEditModalBtn").onclick = () => closeModal("editGroupModal");
       $("cancelEditBtn").onclick = () => closeModal("editGroupModal");
       $("editGroupForm").addEventListener("submit", saveGroupEdit);
+      $("editCoverFile").addEventListener("change", () => {
+  previewFile("editCoverFile", "coverPreview", "Cover");
+});
 
-      $("editCoverImage").addEventListener("input", () => {
-        renderImagePreview("coverPreview", $("editCoverImage").value.trim(), "Cover");
-      });
+$("editLogoFile").addEventListener("change", () => {
+  previewFile("editLogoFile", "logoPreview", "Logo");
+});
 
-      $("editLogo").addEventListener("input", () => {
-        renderImagePreview("logoPreview", $("editLogo").value.trim(), "Logo");
-      });
+
 
       $("closeInviteModalBtn").onclick = () => closeModal("inviteModal");
       $("cancelInviteBtn").onclick = () => closeModal("inviteModal");
@@ -2249,6 +2535,24 @@ if (window.AIFTFeed) {
         }
       });
     }
+    function previewFile(inputId, previewId, label) {
+  const input = $(inputId);
+  const preview = $(previewId);
+  const file = input?.files?.[0];
+
+  if (!preview) return;
+
+  if (!file) {
+    renderImagePreview(previewId, "", label);
+    return;
+  }
+
+  const url = URL.createObjectURL(file);
+
+  preview.innerHTML = `
+    <img src="${esc(url)}" alt="${esc(label)}">
+  `;
+}
 
     async function init() {
       bindEvents();
