@@ -1035,12 +1035,25 @@ color:#0f172a;
       return map[role] || "Member";
     }
 
-    function profileUrl(user){
-      if(user.role === "employer" || user.role === "school"){
-        return "employer-public-profile.html?id=" + encodeURIComponent(user._id);
-      }
-      return "public-profile.html?id=" + encodeURIComponent(user._id);
-    }
+function profileUrl(user){
+  const id = user?._id || user?.id;
+
+  if(!id){
+    return "home.html";
+  }
+
+  const role = String(user?.role || "").toLowerCase();
+
+  if(role === "employer"){
+    return "employer-public-profile.html?id=" + encodeURIComponent(id);
+  }
+
+  if(role === "school"){
+    return "school.html?id=" + encodeURIComponent(id);
+  }
+
+  return "agent-public-profile.html?id=" + encodeURIComponent(id);
+}
 
     function dashboardUrl(){
       const role = getRole();
@@ -1052,15 +1065,28 @@ color:#0f172a;
       return "home.html";
     }
 
-    function goMe(){
-      const id = localStorage.getItem("userId") || state.me?._id;
-      if(!id) return location.href = "login.html";
-      if(getRole() === "employer" || getRole() === "school"){
-        location.href = "employer-public-profile.html?id=" + encodeURIComponent(id);
-      }else{
-        location.href = "public-profile.html?id=" + encodeURIComponent(id);
-      }
-    }
+function goMe(){
+  const id = state.me?._id || localStorage.getItem("userId");
+
+  if(!id){
+    location.href = "login.html";
+    return;
+  }
+
+  const role = String(state.me?.role || getRole() || "").toLowerCase();
+
+  if(role === "employer"){
+    location.href = "employer-public-profile.html?id=" + encodeURIComponent(id);
+    return;
+  }
+
+  if(role === "school"){
+    location.href = "school.html?id=" + encodeURIComponent(id);
+    return;
+  }
+
+  location.href = "agent-public-profile.html?id=" + encodeURIComponent(id);
+}
 
     function showToast(message){
       els.toast.textContent = message;
