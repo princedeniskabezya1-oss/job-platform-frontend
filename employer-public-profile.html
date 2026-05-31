@@ -20,8 +20,8 @@
 :root{
   --blue:#0a66c2;
   --blue-dark:#004182;
-  --green:#057642;
-  --bg:#f3f2ef;
+ --green:#0a66c2;
+--bg:#f3f6fb;
   --card:#fff;
   --text:#191919;
   --muted:#666;
@@ -91,15 +91,20 @@ a{
 }
 
 .brand-logo{
-  width:34px;
-  height:34px;
-  border-radius:8px;
-  background:var(--blue);
-  color:#fff;
-  display:grid;
-  place-items:center;
-  font-weight:900;
+  height:44px;
+  width:104px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
   flex-shrink:0;
+}
+
+.brand-logo-img{
+  height:48px;
+  width:auto;
+  max-width:130px;
+  object-fit:contain;
+  display:block;
 }
 
 .search{
@@ -232,7 +237,9 @@ a{
 <header class="topbar">
   <div class="container top-inner">
 
-    <a class="brand-logo" href="employer.html">A</a>
+    <a class="brand-logo" href="home.html" aria-label="AIFT Home">
+  <img src="images/aift-logo.png" alt="AIFT" class="brand-logo-img">
+</a>
 
     <div class="search">
       <svg viewBox="0 0 24 24">
@@ -411,17 +418,81 @@ a{
 </div>
 
 <aside class="right-col">
+
   <section class="side-card card">
-    <h3>Pages people also viewed</h3>
-    <div id="suggestionsList">
-      <div class="loading">Loading suggestions...</div>
+    <h3>Company Summary</h3>
+
+    <div class="side-stat">
+      <span>Industry</span>
+      <strong id="sideIndustry">Not added</strong>
+    </div>
+
+    <div class="side-stat">
+      <span>Location</span>
+      <strong id="sideLocation">Not added</strong>
+    </div>
+
+    <div class="side-stat">
+      <span>Company size</span>
+      <strong id="sideSize">0 employees</strong>
+    </div>
+
+    <div class="side-stat">
+      <span>Followers</span>
+      <strong id="sideFollowers">0</strong>
+    </div>
+
+    <div class="side-stat">
+      <span>Open jobs</span>
+      <strong id="sideJobs">0</strong>
     </div>
   </section>
 
   <section class="side-card card">
-    <h3>Company information</h3>
-    <div id="sideInfo"></div>
+    <h3>Hiring Activity</h3>
+
+    <div class="side-highlight">
+      <strong id="sideHiringTitle">No open jobs yet</strong>
+      <span id="sideHiringText">Open roles from this company will appear here.</span>
+    </div>
+
+    <div class="quick-actions">
+      <button class="pill-btn primary" onclick="openTab('jobs')">
+        View Jobs
+      </button>
+
+      <button class="pill-btn" onclick="messageCompany()">
+        Message
+      </button>
+    </div>
   </section>
+
+  <section class="side-card card">
+    <h3>Associated People</h3>
+
+    <div id="sidePeopleList" class="side-people-list">
+      <div class="empty">No associated people yet.</div>
+    </div>
+  </section>
+
+  <section class="side-card card">
+    <h3>Quick Actions</h3>
+
+    <div class="quick-actions">
+      <button class="pill-btn" onclick="copyProfileLink()">
+        Copy Link
+      </button>
+
+      <button class="pill-btn" onclick="visitWebsite()">
+        Visit Website
+      </button>
+
+      <button class="pill-btn" onclick="backToFeed()">
+        Back to Feed
+      </button>
+    </div>
+  </section>
+
 </aside>
 <style>
 .company-card{
@@ -430,8 +501,8 @@ a{
 }
 
 .company-cover{
-  height:176px;
-  background:linear-gradient(135deg,rgba(10,102,194,.18),rgba(34,197,94,.18)),#dbeafe;
+  height:205px;
+  background:linear-gradient(135deg,#dbeafe,#f8fafc);
   background-size:cover;
   background-position:center;
   border-bottom:1px solid #e5e7eb;
@@ -445,13 +516,13 @@ a{
 }
 
 .company-logo{
-  width:112px;
-  height:112px;
-  margin-top:-56px;
+  width:128px;
+  height:128px;
+  margin-top:-64px;
   border:4px solid #fff;
   background:#fff;
   object-fit:cover;
-  border-radius:6px;
+  border-radius:24px;
   box-shadow:0 1px 4px rgba(0,0,0,.18);
   flex-shrink:0;
 }
@@ -604,8 +675,8 @@ a{
 }
 
 .company-tab.active{
-  color:var(--green);
-  border-bottom-color:var(--green);
+  color:var(--blue);
+  border-bottom-color:var(--blue);
 }
 
 .tab-section{
@@ -666,7 +737,80 @@ a{
   font-size:16px;
   font-weight:800;
 }
+.side-highlight{
+  border:1px solid #e5e7eb;
+  background:#f8fafc;
+  border-radius:12px;
+  padding:14px;
+  display:grid;
+  gap:5px;
+}
 
+.side-highlight strong{
+  color:#111;
+  font-size:14px;
+  line-height:1.35;
+}
+
+.side-highlight span{
+  color:#666;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.quick-actions{
+  display:grid;
+  gap:8px;
+  margin-top:12px;
+}
+
+.quick-actions .pill-btn{
+  width:100%;
+  justify-content:center;
+}
+
+.side-people-list{
+  display:grid;
+  gap:10px;
+}
+
+.side-person{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border-bottom:1px solid #eee;
+  padding-bottom:10px;
+  cursor:pointer;
+}
+
+.side-person:last-child{
+  border-bottom:0;
+  padding-bottom:0;
+}
+
+.side-person img{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  object-fit:cover;
+  background:#f1f5f9;
+  border:1px solid #e5e7eb;
+}
+
+.side-person strong{
+  display:block;
+  font-size:13px;
+  color:#111;
+  line-height:1.25;
+}
+
+.side-person span{
+  display:block;
+  margin-top:2px;
+  font-size:11px;
+  color:#666;
+  line-height:1.35;
+}
 .suggestion{
   display:flex;
   gap:10px;
@@ -753,9 +897,9 @@ a{
 }
 
 .post-filters button.active{
-  background:#057642;
+  background:var(--blue);
   color:#fff;
-  border-color:#057642;
+  border-color:var(--blue);
 }
 
 .public-post-card{
@@ -1170,6 +1314,27 @@ function headers(extra={}){
     ...extra
   };
 }
+  function openPersonProfile(userId){
+  if(!userId){
+    toast("Profile unavailable", "This profile could not be opened.", "error");
+    return;
+  }
+
+  const person = state.people.find(p => String(p._id || p.id) === String(userId));
+  const role = String(person?.role || "").toLowerCase();
+
+  if(role === "employer"){
+    location.href = `employer-public-profile.html?id=${encodeURIComponent(userId)}`;
+    return;
+  }
+
+  if(role === "school"){
+    location.href = `school.html?id=${encodeURIComponent(userId)}`;
+    return;
+  }
+
+  location.href = `agent-public-profile.html?id=${encodeURIComponent(userId)}`;
+}
 
 /* =========================
    HELPERS
@@ -1352,7 +1517,7 @@ function renderHeader(){
 
   if(company.bannerImage){
     cover.style.backgroundImage =
-      `linear-gradient(135deg,rgba(10,102,194,.15),rgba(34,197,94,.15)),url('${company.bannerImage}')`;
+  `linear-gradient(135deg,rgba(10,102,194,.12),rgba(248,250,252,.2)),url('${company.bannerImage}')`;
   }
 
   document.getElementById("companyMeta").innerHTML = `
@@ -1696,30 +1861,67 @@ function renderSuggestions(){
 }
 
 function renderSideInfo(){
-
   const company = state.company || {};
+  const stats = state.publicStats || {};
 
-  document.getElementById("sideInfo").innerHTML = `
-    <div class="info-row">
-      <span>Active jobs</span>
-      <strong>${state.publicStats.activeJobs || 0}</strong>
-    </div>
+  const teamMembers = Number(stats.teamMembers || state.people.length || 0);
+  const followers = Number(stats.followers || company.followers?.length || 0);
+  const openJobs = Number(state.jobs.length || 0);
 
-    <div class="info-row">
-      <span>Posts</span>
-      <strong>${state.publicStats.posts || 0}</strong>
-    </div>
+  const sideIndustry = document.getElementById("sideIndustry");
+  const sideLocation = document.getElementById("sideLocation");
+  const sideSize = document.getElementById("sideSize");
+  const sideFollowers = document.getElementById("sideFollowers");
+  const sideJobs = document.getElementById("sideJobs");
+  const sideHiringTitle = document.getElementById("sideHiringTitle");
+  const sideHiringText = document.getElementById("sideHiringText");
 
-    <div class="info-row">
-      <span>Followers</span>
-      <strong>${state.publicStats.followers || 0}</strong>
-    </div>
+  if(sideIndustry) sideIndustry.textContent = company.industry || "Not added";
+  if(sideLocation) sideLocation.textContent = company.location || "Not added";
+  if(sideSize) sideSize.textContent = `${teamMembers} employee${teamMembers === 1 ? "" : "s"}`;
+  if(sideFollowers) sideFollowers.textContent = followers;
+  if(sideJobs) sideJobs.textContent = openJobs;
 
-    <div class="info-row">
-      <span>Location</span>
-      <strong>${escapeHtml(company.location || "-")}</strong>
-    </div>
-  `;
+  if(sideHiringTitle && sideHiringText){
+    if(openJobs){
+      sideHiringTitle.textContent = `${openJobs} open role${openJobs === 1 ? "" : "s"}`;
+      sideHiringText.textContent = "This company is currently hiring on AIFT.";
+    }else{
+      sideHiringTitle.textContent = "No open jobs yet";
+      sideHiringText.textContent = "Open roles from this company will appear here.";
+    }
+  }
+
+  renderSidePeople();
+}
+  function renderSidePeople(){
+  const list = document.getElementById("sidePeopleList");
+
+  if(!list) return;
+
+  const people = Array.isArray(state.people) ? state.people.slice(0,4) : [];
+
+  if(!people.length){
+    list.innerHTML = `<div class="empty">No associated people yet.</div>`;
+    return;
+  }
+
+  list.innerHTML = people.map(person => {
+    const id = person._id || person.id || "";
+    const name = person.name || person.companyName || "AIFT Member";
+    const headline = person.headline || person.profession || person.role || "Professional";
+    const avatar = person.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+    return `
+      <div class="side-person" onclick="openPersonProfile('${escapeHtml(id)}')">
+        <img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}">
+        <div>
+          <strong>${escapeHtml(name)}</strong>
+          <span>${escapeHtml(headline)}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 /* =========================
