@@ -505,56 +505,61 @@ a{
 .create-actions button:hover{
   background:#f3f2ef;
 }
-  .login-wall-backdrop{
+.guest-gate-backdrop{
   position:fixed;
   inset:0;
-  background:rgba(15,23,42,.38);
+  background:rgba(15,23,42,.48);
   backdrop-filter:blur(6px);
-  z-index:9999;
+  z-index:99999;
   display:none;
   align-items:center;
   justify-content:center;
   padding:18px;
 }
 
-.login-wall-card{
-  width:min(440px,100%);
+.guest-gate-backdrop.show{
+  display:flex;
+}
+
+.guest-gate-card{
+  width:min(460px,100%);
   background:#fff;
-  border-radius:24px;
-  padding:26px;
-  box-shadow:0 24px 70px rgba(15,23,42,.22);
+  border-radius:26px;
+  padding:28px;
+  box-shadow:0 30px 80px rgba(15,23,42,.26);
   text-align:center;
   border:1px solid #e5e7eb;
 }
 
-.login-wall-logo{
-  width:140px;
-  height:52px;
+.guest-gate-logo{
+  width:145px;
+  height:54px;
   object-fit:contain;
-  margin:0 auto 10px;
+  margin:0 auto 12px;
 }
 
-.login-wall-card h2{
+.guest-gate-card h2{
   margin:0;
-  font-size:24px;
+  font-size:25px;
+  line-height:1.2;
   font-weight:900;
   color:#111827;
 }
 
-.login-wall-card p{
-  margin:10px 0 20px;
+.guest-gate-card p{
+  margin:12px 0 22px;
   color:#64748b;
   font-size:14px;
-  line-height:1.6;
+  line-height:1.65;
 }
 
-.login-wall-actions{
+.guest-gate-actions{
   display:grid;
   gap:10px;
 }
 
-.wall-btn{
-  height:44px;
+.gate-btn{
+  height:46px;
   border-radius:999px;
   border:1px solid #0a66c2;
   background:#fff;
@@ -563,12 +568,12 @@ a{
   cursor:pointer;
 }
 
-.wall-btn.primary{
+.gate-btn.primary{
   background:#0a66c2;
   color:#fff;
 }
 
-.wall-close{
+.gate-close{
   margin-top:14px;
   border:0;
   background:transparent;
@@ -1258,48 +1263,52 @@ function enableGuestHome(){
   renderMe();
   updateDashboardButtons();
 
+  document.body.classList.add("guest-mode");
+
   setTimeout(() => {
-    showLoginWall("continue using AIFT");
-  }, 45000);
+    showGuestGate("continue using AIFT", true);
+  }, 60000);
 }
 
 function requireLogin(action = "continue"){
   if(!isGuest()) return true;
 
-  showLoginWall(action);
+  showGuestGate(action, false);
   return false;
 }
 
-function showLoginWall(action = "continue"){
-  let modal = document.getElementById("loginWallModal");
+function showGuestGate(action = "continue", locked = false){
+  let modal = document.getElementById("guestGateModal");
 
   if(!modal){
     modal = document.createElement("div");
-    modal.id = "loginWallModal";
-    modal.className = "login-wall-backdrop";
+    modal.id = "guestGateModal";
+    modal.className = "guest-gate-backdrop";
 
     modal.innerHTML = `
-      <div class="login-wall-card">
-        <img src="images/aift-logo.png" class="login-wall-logo" alt="AIFT">
+      <div class="guest-gate-card">
+        <img src="images/aift-logo.png" class="guest-gate-logo" alt="AIFT">
 
-        <h2>Sign in to ${escapeHtml(action)}</h2>
+        <h2>Join AIFT to ${escapeHtml(action)}</h2>
 
         <p>
-          Create an account or sign in to post, message, apply for jobs,
-          follow people, join groups, and access your dashboard.
+          You can preview the feed, but signing in lets you post, comment,
+          message people, apply for jobs, join groups, and save your activity.
         </p>
 
-        <div class="login-wall-actions">
-          <button class="wall-btn primary" onclick="location.href='login.html'">
+        <div class="guest-gate-actions">
+          <button class="gate-btn primary" onclick="location.href='login.html'">
             Sign in
           </button>
 
-          <button class="wall-btn" onclick="location.href='register.html'">
+          <button class="gate-btn" onclick="location.href='register.html'">
             Create account
           </button>
         </div>
 
-        <button class="wall-close" onclick="closeLoginWall()">
+        <button id="guestGateClose"
+                class="gate-close"
+                onclick="closeGuestGate()">
           Continue preview
         </button>
       </div>
@@ -1308,12 +1317,25 @@ function showLoginWall(action = "continue"){
     document.body.appendChild(modal);
   }
 
-  modal.style.display = "flex";
+  modal.dataset.locked = locked ? "true" : "false";
+  modal.classList.add("show");
+
+  const closeBtn = document.getElementById("guestGateClose");
+  if(closeBtn){
+    closeBtn.style.display = locked ? "none" : "inline-flex";
+  }
 }
 
-function closeLoginWall(){
-  const modal = document.getElementById("loginWallModal");
-  if(modal) modal.style.display = "none";
+function closeGuestGate(){
+  const modal = document.getElementById("guestGateModal");
+
+  if(!modal) return;
+
+  if(modal.dataset.locked === "true"){
+    return;
+  }
+
+  modal.classList.remove("show");
 }
 /* =========================
    HELPERS
@@ -1794,6 +1816,34 @@ document.addEventListener("click", function(event){
     document.getElementById("globalSearchPanel")?.classList.add("hidden");
   }
 });
+
+    document.addEventListener("click", function(event){
+  if(!isGuest()) return;
+
+  const blocked = event.target.closest(`
+    button,
+    a[href],
+    [onclick],
+    .aift-action-btn,
+    .aift-composer,
+    .aift-like-btn,
+    .aift-comment-btn,
+    .aift-share-btn
+  `);
+
+  if(!blocked) return;
+
+  const allowed =
+    blocked.closest(".guest-gate-card") ||
+    blocked.closest(".brand");
+
+  if(allowed) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  showGuestGate("use this feature", false);
+}, true);
 /* =========================
    NAVIGATION
 ========================= */
