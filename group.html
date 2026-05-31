@@ -816,17 +816,14 @@
       gap: 14px;
     }
 
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      padding: 18px;
-      border-top: 1px solid var(--border);
-      background: #ffffff;
-      position: sticky;
-      bottom: 0;
-      z-index: 2;
-    }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 18px;
+  border-top: 1px solid var(--border);
+  background: #ffffff;
+}
 
     .form-grid {
       display: grid;
@@ -987,6 +984,9 @@
 
 .file-upload-box input {
   display: none;
+}
+    .file-upload-label {
+  cursor: pointer;
 }
 
 .file-upload-label {
@@ -1402,7 +1402,7 @@
     </div>
 
     <p class="form-hint">
-      Upload directly from your device.
+      Upload directly from your device. Recommended size: 1200 × 360.
     </p>
   </div>
 </div>
@@ -1422,25 +1422,10 @@
     </div>
 
     <p class="form-hint">
-      Upload your image
+      Upload a square image for best display.
     </p>
   </div>
 </div>
-              <div class="preview-grid">
-                <input id="editCoverImage" class="form-input" type="url" placeholder="https://...">
-                <div id="coverPreview" class="image-preview cover-preview">Cover</div>
-              </div>
-              <p class="form-hint">Your current backend PATCH route accepts image URLs for coverImage.</p>
-            </div>
-
-            <div class="form-group full">
-              <label for="editLogo">Logo URL</label>
-              <div class="preview-grid">
-                <input id="editLogo" class="form-input" type="url" placeholder="https://...">
-                <div id="logoPreview" class="image-preview logo-preview">Logo</div>
-              </div>
-              <p class="form-hint">Use a square image URL for the best result.</p>
-            </div>
           </div>
         </div>
 
@@ -2248,21 +2233,18 @@ async function saveGroupEdit(event) {
   }
 }
 
-    function openInviteModal() {
-      $("inviteBackendNotice").style.display = "block";
-      $("inviteBackendNotice").innerHTML = `
-        Backend route needed for final sending:<br>
-        <strong>POST /api/groups/${esc(state.groupId)}/invite</strong><br>
-        Body: <strong>{ "users": ["userId1", "userId2"] }</strong>
-      `;
+function openInviteModal() {
+  $("inviteBackendNotice").style.display = "none";
 
-      $("inviteSearchInput").value = "";
-      state.inviteUsers = [];
-      state.selectedInviteUsers.clear();
-      renderInviteResults();
-      renderInviteSelected();
-      openModal("inviteModal");
-    }
+  $("inviteSearchInput").value = "";
+  state.inviteUsers = [];
+  state.selectedInviteUsers.clear();
+
+  renderInviteResults();
+  renderInviteSelected();
+
+  openModal("inviteModal");
+}
 
     async function searchInviteUsers() {
       const q = $("inviteSearchInput").value.trim();
