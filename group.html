@@ -2105,35 +2105,130 @@ async function performJoinToggle() {
       }
     }
 
-    async function shareGroup() {
-      const group = state.group || {};
-      const url = `${location.origin}${location.pathname}?id=${encodeURIComponent(state.groupId)}`;
-      const title = group.name || "AIFT Group";
-      const text = group.description || "Join this AIFT group.";
+function cleanGroupLink() {
+  return `${location.origin}${location.pathname}?id=${encodeURIComponent(state.groupId)}`;
+}
 
-      try {
-        if (navigator.share) {
-          await navigator.share({ title, text, url });
-          toast("Group shared", "Your group link is ready.", "success");
-          return;
-        }
+function shareGroup() {
+  const link = cleanGroupLink();
 
-        await navigator.clipboard.writeText(url);
-        toast("Link copied", "Group link copied to clipboard.", "success");
-      } catch (err) {
-        try {
-          const input = document.createElement("input");
-          input.value = url;
-          document.body.appendChild(input);
-          input.select();
-          document.execCommand("copy");
-          input.remove();
-          toast("Link copied", "Group link copied to clipboard.", "success");
-        } catch {
-          toast("Share failed", "Please copy the URL from your browser.", "error");
-        }
-      }
+  $("shareCleanLink").textContent = link;
+  $("shareUserSearchInput").value = "";
+  $("shareUserList").innerHTML = `
+    <div class="empty-state">
+      <h3>Search people</h3>
+      <p>Search people you follow, then send them this group link.</p>
+    </div>
+  `;
+
+  openModal("shareModal");
+}
+    async function copyGroupLink() {
+  const link = cleanGroupLink();
+
+  try {
+    await navigator.clipboard.writeText(link);
+    toast("Link copied", "The group link was copied.", "success");
+  } catch {
+    const input = document.createElement("input");
+    input.value = link;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand("copy");
+    input.remove();
+
+    toast("Link copied", "The group link was copied.", "success");
+  }
+}
+
+async function searchShareUsers() {
+  const q = $("shareUserSearchInput").value.trim();
+
+  if (q.length < 2) {
+    $("shareUserList").innerHTML = `
+      <div class="empty-state">
+        <h3>Search people</h3>
+        <p>Type at least 2 characters to search users.</p>
+      </div>
+    `;
+    return;
+  }
+
+  $("shareUserList").innerHTML = `
+    <div class="loading-state">
+      <h3>Searching...</h3>
+      <p>Looking for users you can send this group to.</p>
+    </div>
+  `;
+
+  try {
+    const data = await api(`/api/groups/${encodeURIComponent(state.groupId)}/invite-candidates?search=${encodeURIComponent(q)}`, {
+      headers: authHeaders()
+    });
+
+    const users = Array.isArray(data.users) ? data.users : [];
+
+    if (!users.length) {
+      $("shareUserList").innerHTML = `
+        <div class="empty-state">
+          <h3>No users found</h3>
+          <p>Try another name, company, school, or role.</p>
+        </div>
+      `;
+      return;
     }
+
+    $("shareUserList").innerHTML = users.map(user => {
+      const id = cleanId(user);
+
+      return `
+        <article class="invite-user-card">
+          <div class="invite-avatar">${imageOrInitial(user)}</div>
+
+          <div class="invite-user-info">
+            <strong>${esc(userName(user))}</strong>
+            <span>${esc(userSub(user))}</span>
+          </div>
+
+          <button class="pill-btn primary" type="button" onclick="sendGroupLinkToUser('${esc(id)}')">
+            Send
+          </button>
+        </article>
+      `;
+    }).join("");
+  } catch (err) {
+    $("shareUserList").innerHTML = `
+      <div class="empty-state">
+        <h3>Could not load users</h3>
+        <p>${esc(err.message)}</p>
+      </div>
+    `;
+  }
+}
+
+async function sendGroupLinkToUser(userId) {
+  const link = cleanGroupLink();
+  const groupName = state.group?.name || "this AIFT group";
+
+  try {
+    await api("/api/messages", {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        receiverId: userId,
+        text: `I’d like to share ${groupName} with you:\n${link}`
+      })
+    });
+
+    toast("Group sent", "The group link was sent as a message.", "success");
+  } catch (err) {
+    showInfoDialog({
+      title: "Message route needed",
+      message: `The share popup is ready, but sending needs your messages backend to accept POST /api/messages with receiverId and text. Current error: ${err.message}`,
+      okText: "OK"
+    });
+  }
+}
 
     function fillEditForm() {
       const group = state.group || {};
@@ -2486,6 +2581,9 @@ function showConfirmDialog({
 $("editLogoFile").addEventListener("change", () => {
   previewFile("editLogoFile", "logoPreview", "Logo");
 });
+      $("closeShareModalBtn").onclick = () => closeModal("shareModal");
+$("copyGroupLinkBtn").onclick = copyGroupLink;
+$("shareUserSearchInput").addEventListener("input", searchShareUsers);
 
 
 
