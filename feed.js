@@ -354,6 +354,7 @@ moveOverlaysToBody();
       state.hasMore = true;
       if (list) list.innerHTML = `<div class="aift-feed-empty">Loading feed...</div>`;
     }
+     try {
 
 let feedUrl =
 `${API}/api/posts?skip=${state.skip}&limit=${state.limit}`;
