@@ -278,10 +278,6 @@ a{
         <span>Notifications</span>
       </button>
 
-      <button class="pill-btn" onclick="copyProfileLink()">
-        Copy Link
-      </button>
-
       <button id="signinBtn" class="pill-btn primary" onclick="goLogin()">
         Sign in
       </button>
@@ -315,16 +311,6 @@ a{
         Dashboard
       </button>
 
-      <div class="more-wrap">
-        <button class="more-btn" onclick="toggleCompanyMenu(event)">•••</button>
-
-        <div id="companyMoreMenu" class="more-menu">
-          <button onclick="visitWebsite()">Visit website</button>
-          <button onclick="copyProfileLink()">Copy profile link</button>
-          <button onclick="messageCompany()">Send message</button>
-          <button onclick="reportCompany()">Report page</button>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -370,11 +356,7 @@ a{
 
 <section id="tab-posts" class="tab-section">
   <article class="posts-layout">
-    <aside class="posts-left card">
-      <img id="postsCompanyLogo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="">
-      <h3 id="postsCompanyName">Company</h3>
-      <p id="postsCompanyMeta">Company updates</p>
-    </aside>
+
 
     <div>
       <div class="post-filters">
@@ -853,9 +835,7 @@ a{
 }
 
 .posts-layout{
-  display:grid;
-  grid-template-columns:220px minmax(0,1fr);
-  gap:12px;
+  display:block;
 }
 
 .posts-left{
@@ -1538,15 +1518,6 @@ function renderHeader(){
     company.profileImage ||
     "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
 
-  document.getElementById("postsCompanyLogo").src =
-    company.profileImage ||
-    "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
-
-  document.getElementById("postsCompanyName").textContent =
-    company.companyName || company.name || "Company";
-
-  document.getElementById("postsCompanyMeta").textContent =
-    company.headline || "";
 
   const cover = document.getElementById("companyCover");
 
@@ -1566,8 +1537,11 @@ function renderHeader(){
   document.getElementById("verifiedBadge").style.display =
     company.aiftVerified ? "grid" : "none";
 
-  document.getElementById("followBtn").textContent =
-    state.following ? "Following" : "+ Follow";
+const followBtn = document.getElementById("followBtn");
+
+if(followBtn){
+  followBtn.textContent = "+ Follow";
+}
 
   renderAssociatedPeople();
 }
@@ -1982,6 +1956,7 @@ async function followCompany(){
     state.following = !!res.following;
 
     renderHeader();
+updateOwnerUI();
 
     toast(
       "Updated",
@@ -2038,31 +2013,51 @@ function openTab(tab){
 
 function updateOwnerUI(){
 
-  const isOwner =
-    token() &&
-    currentUserId() &&
-    String(currentUserId()) === String(state.companyId);
-
-  document.getElementById("dashboardBtn")
-    ?.classList.toggle("hidden",!isOwner);
-
-  document.getElementById("signinBtn")
-    ?.classList.toggle("hidden",!!token());
-
+  const dashboardBtn = document.getElementById("dashboardBtn");
+  const followBtn = document.getElementById("followBtn");
+  const signinBtn = document.getElementById("signinBtn");
   const avatar = document.getElementById("viewerAvatar");
 
-  if(token()){
+  const isLoggedIn = Boolean(token());
+  const viewerId = currentUserId();
+  const company = state.company || {};
 
-    avatar.classList.remove("hidden");
+  const ownerId =
+    company._id ||
+    company.id ||
+    company.owner?._id ||
+    company.owner ||
+    company.userId ||
+    company.createdBy;
 
-    avatar.src =
-      localStorage.getItem("profileImage") ||
-      "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
+  const isOwner =
+    isLoggedIn &&
+    viewerId &&
+    ownerId &&
+    String(viewerId) === String(ownerId);
 
-  }else{
+  if(dashboardBtn){
+    dashboardBtn.classList.toggle("hidden", !isOwner);
+  }
 
-    avatar.classList.add("hidden");
+  if(followBtn){
+    followBtn.classList.toggle(
+      "hidden",
+      !isLoggedIn || isOwner || state.following
+    );
+  }
 
+  if(signinBtn){
+    signinBtn.classList.toggle("hidden", isLoggedIn);
+  }
+
+  if(avatar){
+    avatar.classList.toggle("hidden", !isLoggedIn);
+    if(isLoggedIn){
+      avatar.src =
+        localStorage.getItem("profileImage") ||
+        "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+    }
   }
 }
 
