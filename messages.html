@@ -871,6 +871,8 @@
 
     const socket = io(API, { auth: { token } });
     socket.emit("join", myId);
+    const messageParams = new URLSearchParams(location.search);
+const pendingUserId = messageParams.get("user") || messageParams.get("userId") || "";
 
     let activeUserId = null;
     let activeUserName = null;
@@ -914,6 +916,49 @@
     function hideSidebarOnMobile(){ if(window.innerWidth <= 980) document.getElementById("sidebar").classList.add("hidden-mobile"); }
     function showSidebar(){ document.getElementById("sidebar").classList.remove("hidden-mobile"); }
     function showEmptyState(){ document.getElementById("emptyState").style.display = "flex"; document.getElementById("chatMessages").style.display = "none"; }
+async function openConversationFromUrl(){
+  if(!pendingUserId) return;
+
+  try{
+    let user = null;
+
+    const publicRes = await fetch(API + "/api/users/" + encodeURIComponent(pendingUserId) + "/public", {
+      headers:{ Authorization:"Bearer " + token }
+    });
+
+    if(publicRes.ok){
+      const data = await publicRes.json();
+      user = data.user || data.employer || data.school || data;
+    }
+
+    if(!user || !user._id){
+      const employerRes = await fetch(API + "/api/users/employer/" + encodeURIComponent(pendingUserId) + "/public", {
+        headers:{ Authorization:"Bearer " + token }
+      });
+
+      if(employerRes.ok){
+        const data = await employerRes.json();
+        user = data.user || data.employer || data.school || data;
+      }
+    }
+
+    const name =
+      user?.companyName ||
+      user?.schoolName ||
+      user?.name ||
+      "AIFT User";
+
+    const image =
+      user?.profileImage ||
+      user?.logo ||
+      "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+    await openConversation(pendingUserId, name, image);
+  }catch(err){
+    console.warn("Could not open conversation from URL:", err);
+    await openConversation(pendingUserId, "AIFT User", "");
+  }
+}
     function hideEmptyState(){ document.getElementById("emptyState").style.display = "none"; document.getElementById("chatMessages").style.display = "flex"; }
 
     function formatTime(dateString){
@@ -1531,17 +1576,15 @@
       if(e.key === "Enter") sendMessage();
     });
 
-    document.addEventListener("DOMContentLoaded", async () => {
-      showEmptyState();
-      await loadConversations();
-      const params = new URLSearchParams(window.location.search);
-      const userParam = params.get("user");
-      if(userParam){
-        const res = await fetch(API + "/api/users/" + userParam + "/public");
-        const user = res.ok ? await res.json() : null;
-        if(user) openConversation(userParam, user.name, user.profileImage);
-      }
-    });
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadConversations();
+
+  if(pendingUserId){
+    await openConversationFromUrl();
+  }else{
+    showEmptyState();
+  }
+});
   </script>
 </body>
 </html>
