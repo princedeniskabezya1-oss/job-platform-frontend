@@ -667,6 +667,113 @@
         transform: translateY(0);
       }
     }
+    /* =========================
+   EDIT GROUP MODAL
+========================= */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-backdrop.show {
+  display: flex;
+}
+
+.modal {
+  width: min(680px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.35);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.modal-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 22px;
+  transition: 0.18s ease;
+}
+
+.modal-close:hover {
+  background: #f9fafb;
+}
+
+.modal-body {
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.form-group {
+  display: grid;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 12px;
+  font-weight: 800;
+  color: #374151;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: #ffffff;
+  outline: none;
+  padding: 12px 14px;
+  font-size: 13px;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: rgba(15, 118, 110, 0.65);
+  box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.08);
+}
+
+.form-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 18px;
+  border-top: 1px solid var(--border);
+  background: #ffffff;
+}
 
     @media (max-width: 1040px) {
       .page-wrap {
@@ -806,6 +913,13 @@
             </div>
 
             <div class="group-actions">
+              <button
+  id="editGroupBtn"
+  class="pill-btn"
+  style="display:none;"
+>
+  Edit Group
+</button>
 
               <button
                 id="inviteBtn"
@@ -1129,6 +1243,74 @@
     </aside>
 
   </main>
+  <div id="editGroupModal" class="modal-backdrop">
+  <section class="modal">
+    <header class="modal-header">
+      <h2>Edit Group</h2>
+
+      <button
+        class="modal-close"
+        type="button"
+        onclick="closeEditGroupModal()"
+      >
+        ×
+      </button>
+    </header>
+
+    <form id="editGroupForm" onsubmit="submitEditGroup(event)">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Group Name</label>
+          <input id="editGroupName" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="editGroupDescription" class="form-textarea" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Category</label>
+          <select id="editGroupCategory" class="form-select">
+            <option value="employer">Employers</option>
+            <option value="school">Schools</option>
+            <option value="agent">Recruiters</option>
+            <option value="talent">Professionals</option>
+            <option value="student">Students</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Visibility</label>
+          <select id="editGroupVisibility" class="form-select">
+            <option value="public">Public</option>
+            <option value="private">Private</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Cover Image URL</label>
+          <input id="editGroupCover" class="form-input" placeholder="https://...">
+        </div>
+
+        <div class="form-group">
+          <label>Logo URL</label>
+          <input id="editGroupLogo" class="form-input" placeholder="https://...">
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="pill-btn" onclick="closeEditGroupModal()">
+          Cancel
+        </button>
+
+        <button id="saveGroupBtn" type="submit" class="pill-btn primary">
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
 
   <div
     id="toastWrap"
@@ -1494,6 +1676,7 @@ function renderGroup() {
   renderOwner();
 
   updateJoinButton();
+  updateOwnerControls();
 }
   function renderOwner() {
   const owner = currentGroup?.owner || {};
@@ -1532,23 +1715,38 @@ function renderGroup() {
 }
 
 function updateJoinButton() {
-  const btn = document.getElementById("joinBtn");
+  const joinBtn = document.getElementById("joinBtn");
+  const followBtn = document.getElementById("followBtn");
 
-  if (!currentGroup) return;
+  if (!currentGroup || !joinBtn) return;
 
-  btn.textContent = currentGroup.isJoined ? "Joined" : "Join Group";
-  btn.classList.toggle("primary", !currentGroup.isJoined);
-  btn.classList.toggle("danger", currentGroup.isJoined);
+  const joined = Boolean(currentGroup.isJoined);
+  const following = Boolean(currentGroup.isFollowing || currentGroup.following);
 
-  btn.onclick = toggleJoinGroup;
+  joinBtn.textContent = joined ? "Joined" : "Join Group";
+  joinBtn.classList.toggle("primary", !joined);
+  joinBtn.classList.toggle("danger", joined);
+  joinBtn.onclick = toggleJoinGroup;
+
+  if (followBtn) {
+    followBtn.textContent = following ? "Following" : "Follow";
+    followBtn.classList.toggle("primary", !following);
+    followBtn.onclick = toggleFollowGroup;
+  }
 }
 
 async function toggleJoinGroup() {
   if (!currentGroup) return;
 
   const joined = Boolean(currentGroup.isJoined);
+  const btn = document.getElementById("joinBtn");
 
   try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Updating...";
+    }
+
     const data = await api(
       `/api/groups/${groupId}/${joined ? "leave" : "join"}`,
       { method: "POST" }
@@ -1558,6 +1756,7 @@ async function toggleJoinGroup() {
 
     renderGroup();
     await loadMembers();
+    await initGroupFeed();
 
     showToast(
       "success",
@@ -1566,19 +1765,32 @@ async function toggleJoinGroup() {
     );
   } catch (err) {
     showToast("error", "Action failed", err.message);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
 async function toggleFollowGroup() {
   if (!currentGroup) return;
 
+  const btn = document.getElementById("followBtn");
+  const oldText = btn?.textContent || "Follow";
+
   try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Updating...";
+    }
+
     const data = await api(
       `/api/groups/${groupId}/follow`,
       { method: "POST" }
     );
 
-    currentGroup = data.group;
+    currentGroup = {
+      ...(data.group || currentGroup),
+      isFollowing: Boolean(data.following)
+    };
 
     renderGroup();
 
@@ -1591,6 +1803,11 @@ async function toggleFollowGroup() {
     );
   } catch (err) {
     showToast("error", "Action failed", err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = oldText;
+    }
   }
 }
 
@@ -1768,16 +1985,13 @@ function showError(message) {
 async function initGroupFeed() {
   const mount = document.getElementById("groupFeedMount");
 
-  if (!mount) {
-    console.error("Missing #groupFeedMount in group.html");
-    return;
-  }
+  if (!mount) return;
 
   if (!window.AIFTFeed) {
     mount.innerHTML = `
       <div class="error-state">
         <h3>Feed not loaded</h3>
-        <p>Please fix feed.js first. It has a syntax error.</p>
+        <p>Please check feed.js.</p>
       </div>
     `;
     return;
@@ -1785,11 +1999,100 @@ async function initGroupFeed() {
 
   await AIFTFeed.mount("groupFeedMount", {
     mode: "group",
-    groupId: groupId,
-    showComposer: true,
+    groupId,
+    showComposer: Boolean(currentGroup?.isJoined),
     infiniteScroll: true,
     realtime: true
   });
+
+  if (!currentGroup?.isJoined) {
+    mount.insertAdjacentHTML("afterbegin", `
+      <div class="empty-state">
+        <h3>Join this group to post</h3>
+        <p>You can view group updates, but you need to join before creating a post.</p>
+      </div>
+    `);
+  }
+}
+
+  function canEditGroup() {
+  const myId = localStorage.getItem("userId");
+  const myRole = localStorage.getItem("role");
+
+  const ownerId =
+    currentGroup?.owner?._id ||
+    currentGroup?.owner;
+
+  return (
+    String(ownerId) === String(myId) ||
+    myRole === "admin"
+  );
+}
+
+function updateOwnerControls() {
+  const editBtn = document.getElementById("editGroupBtn");
+
+  if (!editBtn) return;
+
+  editBtn.style.display = canEditGroup() ? "inline-flex" : "none";
+  editBtn.onclick = openEditGroupModal;
+}
+
+function openEditGroupModal() {
+  if (!currentGroup) return;
+
+  document.getElementById("editGroupName").value = currentGroup.name || "";
+  document.getElementById("editGroupDescription").value = currentGroup.description || "";
+  document.getElementById("editGroupCategory").value = currentGroup.category || "talent";
+  document.getElementById("editGroupVisibility").value = currentGroup.visibility || "public";
+  document.getElementById("editGroupCover").value = currentGroup.coverImage || "";
+  document.getElementById("editGroupLogo").value = currentGroup.logo || "";
+
+  document.getElementById("editGroupModal").classList.add("show");
+  document.body.classList.add("modal-open");
+}
+
+function closeEditGroupModal() {
+  document.getElementById("editGroupModal").classList.remove("show");
+  document.body.classList.remove("modal-open");
+}
+
+async function submitEditGroup(event) {
+  event.preventDefault();
+
+  const btn = document.getElementById("saveGroupBtn");
+
+  const payload = {
+    name: document.getElementById("editGroupName").value.trim(),
+    description: document.getElementById("editGroupDescription").value.trim(),
+    category: document.getElementById("editGroupCategory").value,
+    visibility: document.getElementById("editGroupVisibility").value,
+    coverImage: document.getElementById("editGroupCover").value.trim(),
+    logo: document.getElementById("editGroupLogo").value.trim()
+  };
+
+  try {
+    btn.disabled = true;
+    btn.textContent = "Saving...";
+
+    const data = await api(`/api/groups/${groupId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    });
+
+    currentGroup = data.group || data;
+
+    renderGroup();
+    updateOwnerControls();
+    closeEditGroupModal();
+
+    showToast("success", "Group updated", "Your changes were saved.");
+  } catch (err) {
+    showToast("error", "Update failed", err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Save Changes";
+  }
 }
 
 function bindEvents() {
