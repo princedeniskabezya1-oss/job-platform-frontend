@@ -1233,65 +1233,12 @@
     "token"
   ];
 
-  const LOCAL_GROUPS_KEY = "aiftGroups";
-  const LOCAL_JOINED_GROUPS_KEY = "aiftJoinedGroups";
+const LOCAL_JOINED_GROUPS_KEY = "aiftJoinedGroups";
 
   let groups = [];
   let activeFilter = "all";
   let currentUser = null;
 
-  const defaultGroups = [
-    {
-      _id: "local-employers",
-      name: "AIFT Employers Network",
-      category: "employer",
-      description: "A professional community for companies hiring, posting jobs, and connecting with qualified AIFT talent.",
-      visibility: "public",
-      membersCount: 0,
-      followersCount: 0,
-      createdAt: new Date().toISOString()
-    },
-    {
-      _id: "local-schools",
-      name: "AIFT Schools & Training Partners",
-      category: "school",
-      description: "A group for schools, training centers, teachers, and education partners building learning opportunities.",
-      visibility: "public",
-      membersCount: 0,
-      followersCount: 0,
-      createdAt: new Date().toISOString()
-    },
-    {
-      _id: "local-recruiters",
-      name: "AIFT Recruiters Community",
-      category: "agent",
-      description: "A space for recruiters and agents to share hiring needs, talent pipelines, and professional updates.",
-      visibility: "public",
-      membersCount: 0,
-      followersCount: 0,
-      createdAt: new Date().toISOString()
-    },
-    {
-      _id: "local-professionals",
-      name: "AIFT Professionals Hub",
-      category: "talent",
-      description: "For professionals looking for jobs, networking, career growth, training, and portfolio visibility.",
-      visibility: "public",
-      membersCount: 0,
-      followersCount: 0,
-      createdAt: new Date().toISOString()
-    },
-    {
-      _id: "local-students",
-      name: "AIFT Students Career Group",
-      category: "student",
-      description: "For students looking for internships, training, interview preparation, school updates, and career support.",
-      visibility: "public",
-      membersCount: 0,
-      followersCount: 0,
-      createdAt: new Date().toISOString()
-    }
-  ];
 
   const groupsGrid = document.getElementById("groupsGrid");
   const searchInput = document.getElementById("searchInput");
@@ -1398,18 +1345,6 @@
     return getJoinedGroupIds().some(id => String(id) === String(groupId));
   }
 
-  function getLocalGroups(){
-    try{
-      const local = JSON.parse(localStorage.getItem(LOCAL_GROUPS_KEY) || "[]");
-      return [...defaultGroups, ...local];
-    }catch{
-      return [...defaultGroups];
-    }
-  }
-
-  function saveLocalGroups(localGroups){
-    localStorage.setItem(LOCAL_GROUPS_KEY, JSON.stringify(localGroups));
-  }
 
   function normalizeGroup(group = {}){
     const id = group._id || group.id || `local-${Date.now()}`;
@@ -1820,15 +1755,15 @@ function openGroup(groupId){
         : data.groups || data.items || data.data || [];
 
       groups = raw.map(normalizeGroup);
-    }catch{
-      groups = getLocalGroups().map(normalizeGroup);
+ }catch(err){
+  groups = [];
 
-      showToast(
-        "success",
-        "Loaded local groups",
-        "Backend groups route is not ready yet, so local groups were loaded."
-      );
-    }
+  showToast(
+    "error",
+    "Unable to load groups",
+    err.message || "Please check your backend groups route."
+  );
+}
 
     renderGroups();
   }
