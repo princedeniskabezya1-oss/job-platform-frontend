@@ -590,7 +590,7 @@
 
   <div class="brand-text">
           <div class="page-title">Notifications</div>
-          <div class="page-subtitle">Messages, follows, likes, and comments in one place</div>
+          <div class="page-subtitle"> Your updated Notifications</div>
         </div>
       </div>
 
@@ -768,11 +768,14 @@
       return localStorage.getItem("userId") || decodeTokenUserId(getSession().token);
     }
 
-    function goBack() {
-      const currentSession = getSession();
-      const rolePage = localStorage.getItem("lastRolePage") || currentSession.rolePage || "talent.html";
-      window.location.href = rolePage;
-    }
+function goBack() {
+  if (document.referrer && document.referrer.includes(location.host)) {
+    history.back();
+    return;
+  }
+
+  window.location.href = "home.html";
+}
 
     function formatTime(date) {
       const timestamp = new Date(date).getTime();
