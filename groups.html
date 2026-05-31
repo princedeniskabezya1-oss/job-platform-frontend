@@ -1270,22 +1270,6 @@ function isJoined(groupId){
     return "Community";
   }
 
-  function getJoinedGroupIds(){
-    try{
-      return JSON.parse(localStorage.getItem(LOCAL_JOINED_GROUPS_KEY) || "[]");
-    }catch{
-      return [];
-    }
-  }
-
-  function saveJoinedGroupIds(ids){
-    localStorage.setItem(LOCAL_JOINED_GROUPS_KEY, JSON.stringify(ids));
-  }
-
-  function isJoined(groupId){
-    return getJoinedGroupIds().some(id => String(id) === String(groupId));
-  }
-
 
   function normalizeGroup(group = {}){
     const id = group._id || group.id || `local-${Date.now()}`;
@@ -1351,33 +1335,33 @@ function isJoined(groupId){
     `;
   }
 
-  function updateCounts(){
-    const counts = {
-      all: groups.length,
-      employer: groups.filter(g => g.category === "employer").length,
-      school: groups.filter(g => g.category === "school").length,
-      agent: groups.filter(g => g.category === "agent").length,
-      talent: groups.filter(g => g.category === "talent").length,
-      student: groups.filter(g => g.category === "student").length
-    };
+function setText(id, value){
+  const el = document.getElementById(id);
+  if(el) el.textContent = value;
+}
 
-    document.getElementById("countAll").textContent = counts.all;
-    document.getElementById("countEmployer").textContent = counts.employer;
-    document.getElementById("countSchool").textContent = counts.school;
-    document.getElementById("countRecruiter").textContent = counts.agent;
-    document.getElementById("countProfessional").textContent = counts.talent;
-    document.getElementById("countStudent").textContent = counts.student;
+function updateCounts(){
+  const counts = {
+    all: groups.length,
+    employer: groups.filter(g => g.category === "employer").length,
+    school: groups.filter(g => g.category === "school").length,
+    agent: groups.filter(g => g.category === "agent").length,
+    talent: groups.filter(g => g.category === "talent").length,
+    student: groups.filter(g => g.category === "student").length
+  };
 
-    document.getElementById("sideEmployerCount").textContent = counts.employer;
-    document.getElementById("sideSchoolCount").textContent = counts.school;
-    document.getElementById("sideRecruiterCount").textContent = counts.agent;
-    document.getElementById("sideProfessionalCount").textContent = counts.talent;
-    document.getElementById("sideStudentCount").textContent = counts.student;
+  setText("sideEmployerCount", counts.employer);
+  setText("sideSchoolCount", counts.school);
+  setText("sideRecruiterCount", counts.agent);
+  setText("sideProfessionalCount", counts.talent);
+  setText("sideStudentCount", counts.student);
+  setText("heroTotalGroups", counts.all);
 
-    document.getElementById("heroTotalGroups").textContent = counts.all;
-    document.getElementById("heroJoinedGroups").textContent =
-  groups.filter(group => group.isJoined || group.raw?.isJoined).length;
-  }
+  setText(
+    "heroJoinedGroups",
+    groups.filter(group => group.isJoined || group.raw?.isJoined).length
+  );
+}
 
   function getFilteredGroups(){
     const search = (searchInput?.value || globalSearchInput?.value || "")
@@ -1446,7 +1430,7 @@ function isJoined(groupId){
 
           <div class="group-meta">
             <span class="meta-chip">${escapeHTML(group.visibility)}</span>
-            <span class="meta-chip">${group.membersCount + (joined ? 1 : 0)} members</span>
+            <span class="meta-chip">${group.membersCount} members</span>
             <span class="meta-chip">${group.followersCount} followers</span>
           </div>
 
@@ -1633,27 +1617,17 @@ function openGroup(groupId){
       groups.unshift(created);
 
       showToast("success", "Group created", "Your group was created successfully.");
-    }catch{
-      const localGroup = normalizeGroup({
-        ...payload,
-        _id: `local-${Date.now()}`,
-        membersCount: 0,
-        followersCount: 0,
-        createdAt: new Date().toISOString()
-      });
+}catch(err){
+  console.error("CREATE GROUP ERROR:", err);
 
-      const existingLocal = JSON.parse(localStorage.getItem(LOCAL_GROUPS_KEY) || "[]");
-      existingLocal.unshift(localGroup);
-      saveLocalGroups(existingLocal);
+  showToast(
+    "error",
+    "Could not create group",
+    err.message || "Please check your backend group creation route."
+  );
 
-      groups.unshift(localGroup);
-
-      showToast(
-        "success",
-        "Group saved locally",
-        "Backend groups route is not ready yet, so this group was saved locally."
-      );
-    }finally{
+  return;
+}finally{
       btn.disabled = false;
       btn.textContent = oldText;
 
