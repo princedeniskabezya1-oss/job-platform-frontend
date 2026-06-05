@@ -3,34 +3,35 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+
 <title>AIFT | Student Public Profile</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="feed.css">
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <style>
 :root{
   --blue:#0a66c2;
   --blue-dark:#004182;
   --green:#057642;
-  --red:#b42318;
-  --orange:#b54708;
-  --purple:#6941c6;
+  --purple:#6d28d9;
   --bg:#f3f2ef;
-  --card:#ffffff;
+  --card:#fff;
   --text:#191919;
-  --muted:#666666;
-  --soft:#eef3f8;
+  --muted:#666;
   --line:#d8d8d8;
-  --line-soft:#edf0f3;
+  --soft:#eef3f8;
   --shadow:0 1px 2px rgba(0,0,0,.08);
   --radius:12px;
   --max:1128px;
 }
 
 *{box-sizing:border-box}
-
 html{scroll-behavior:smooth}
 
 body{
@@ -41,44 +42,23 @@ body{
   font-size:14px;
 }
 
-button,input,select,textarea{
-  font:inherit;
-}
-
-button{
-  cursor:pointer;
-}
-
-a{
-  color:inherit;
-  text-decoration:none;
-}
-
-img{
-  display:block;
-  max-width:100%;
-}
-
-.hidden{
-  display:none!important;
-}
+button,input{font:inherit}
+button{cursor:pointer}
+img{display:block;max-width:100%}
+a{text-decoration:none;color:inherit}
+.hidden{display:none!important}
 
 .container{
   width:min(var(--max),calc(100% - 24px));
   margin:auto;
 }
 
-.icon{
-  width:18px;
-  height:18px;
-  display:inline-block;
-  vertical-align:middle;
-}
+/* TOPBAR */
 
 .topbar{
   position:sticky;
   top:0;
-  z-index:1000;
+  z-index:500;
   background:#fff;
   border-bottom:1px solid #e5e7eb;
 }
@@ -91,30 +71,48 @@ img{
 }
 
 .brand{
-  width:34px;
-  height:34px;
-  border-radius:8px;
-  background:var(--blue);
-  color:#fff;
-  display:grid;
-  place-items:center;
-  font-weight:800;
-  font-size:18px;
+  height:44px;
+  width:104px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
   flex-shrink:0;
 }
 
-.search-pill{
-  height:36px;
-  min-width:220px;
-  background:#eef3f8;
-  border:1px solid transparent;
-  border-radius:999px;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:0 12px;
-  color:#475569;
-  font-size:13px;
+.brand-logo-img{
+  height:48px;
+  width:auto;
+  max-width:130px;
+  object-fit:contain;
+  display:block;
+}
+
+.search{
+  position:relative;
+  width:280px;
+  max-width:40vw;
+}
+
+.search input{
+  width:100%;
+  height:34px;
+  border:1px solid #cfd8e3;
+  background:var(--soft);
+  border-radius:6px;
+  padding:0 12px 0 36px;
+  outline:none;
+}
+
+.search svg{
+  position:absolute;
+  left:11px;
+  top:50%;
+  transform:translateY(-50%);
+  width:16px;
+  height:16px;
+  stroke:#64748b;
+  fill:none;
+  stroke-width:2;
 }
 
 .top-nav{
@@ -124,31 +122,46 @@ img{
   gap:4px;
 }
 
-.nav-btn{
-  min-width:74px;
-  height:48px;
+.top-link{
   border:0;
-  background:transparent;
-  color:#475569;
-  display:grid;
-  place-items:center;
+  background:#fff;
+  color:#555;
+  min-width:68px;
+  height:54px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
   gap:2px;
   font-size:11px;
-  font-weight:700;
+  border-bottom:2px solid transparent;
 }
 
-.nav-btn:hover{
-  color:var(--blue);
+.top-link:hover,
+.top-link.active{
+  color:#111;
+  border-bottom-color:#111;
 }
 
-.nav-btn svg{
-  width:19px;
-  height:19px;
+.top-link svg{
+  width:21px;
+  height:21px;
+  stroke:currentColor;
+  fill:none;
+  stroke-width:2;
 }
 
-.page{
-  padding:16px 0 48px;
+.top-avatar{
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  object-fit:cover;
+  border:1px solid #ddd;
 }
+
+/* PAGE */
+
+.page{padding:14px 0 44px}
 
 .layout{
   display:grid;
@@ -157,14 +170,8 @@ img{
   align-items:start;
 }
 
-.main-col{
-  min-width:0;
-}
-
-.right-col{
-  position:sticky;
-  top:74px;
-}
+.main-col{min-width:0}
+.right-col{position:sticky;top:74px}
 
 .card{
   background:#fff;
@@ -174,169 +181,192 @@ img{
   overflow:hidden;
 }
 
-.btn{
-  border:1px solid #cfd8e3;
-  background:#fff;
-  color:#334155;
-  border-radius:999px;
-  min-height:36px;
-  padding:0 14px;
-  font-size:12px;
-  font-weight:700;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:7px;
-  transition:.18s ease;
-}
+/* HERO */
 
-.btn:hover{
-  background:#f3f2ef;
-}
+.agent-hero{margin-bottom:12px}
 
-.btn.primary{
-  border-color:var(--blue);
-  background:var(--blue);
-  color:#fff;
-}
-
-.btn.primary:hover{
-  background:var(--blue-dark);
-}
-
-.btn.green{
-  border-color:#bbf7d0;
-  background:#ecfdf5;
-  color:#057642;
-}
-
-.btn:disabled{
-  opacity:.55;
-  cursor:not-allowed;
-}
-  .profile-hero{
-  margin-bottom:12px;
-}
-
-.banner{
-  height:210px;
+.cover{
+  height:205px;
   background:
-    linear-gradient(135deg,rgba(10,102,194,.18),rgba(5,118,66,.10)),
+    linear-gradient(135deg,rgba(10,102,194,.24),rgba(5,118,66,.18),rgba(109,40,217,.16)),
     #dbeafe;
   background-size:cover;
   background-position:center;
+  border-bottom:1px solid #e5e7eb;
 }
 
-.profile-main{
-  padding:0 22px 20px;
-}
+.hero-body{padding:0 24px 20px}
 
-.avatar-row{
+.agent-top{
   display:flex;
+  align-items:flex-end;
   justify-content:space-between;
   gap:16px;
-  align-items:flex-end;
 }
 
-.avatar{
-  width:132px;
-  height:132px;
+.avatar-wrap{position:relative}
+
+.agent-avatar{
+  width:128px;
+  height:128px;
+  margin-top:-64px;
   border-radius:50%;
   object-fit:cover;
   border:4px solid #fff;
   background:#fff;
-  margin-top:-66px;
+  box-shadow:0 1px 4px rgba(0,0,0,.18);
 }
 
-.profile-actions{
+.verified-badge{
+  position:absolute;
+  right:8px;
+  bottom:8px;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:var(--blue);
+  color:#fff;
+  display:grid;
+  place-items:center;
+  border:3px solid #fff;
+  font-weight:900;
+}
+
+.hero-actions{
   display:flex;
   flex-wrap:wrap;
   gap:8px;
-  padding-top:12px;
+  margin-bottom:6px;
 }
 
-.name{
-  margin:14px 0 4px;
-  font-size:28px;
-  line-height:1.15;
-  font-weight:750;
-  letter-spacing:-.03em;
+.pill-btn{
+  border:1px solid var(--blue);
+  background:#fff;
+  color:var(--blue);
+  border-radius:999px;
+  padding:8px 15px;
+  font-weight:800;
+  transition:.18s ease;
 }
 
-.headline{
+.pill-btn:hover{
+  background:#eef6ff;
+}
+
+.pill-btn.primary{
+  background:var(--blue);
+  color:#fff;
+}
+
+.pill-btn.primary:hover{
+  background:var(--blue-dark);
+}
+
+.pill-btn.dark{
+  border-color:#444;
   color:#333;
+}
+
+.agent-name{
+  margin:16px 0 4px;
+  font-size:28px;
+  line-height:1.2;
+  font-weight:800;
+  letter-spacing:-.02em;
+}
+
+.agent-headline{
+  margin:0;
+  color:#222;
   font-size:15px;
   line-height:1.45;
-  max-width:720px;
 }
 
-.meta{
-  margin-top:9px;
+.agent-meta{
+  margin-top:7px;
+  color:#666;
   display:flex;
   flex-wrap:wrap;
-  gap:7px;
-}
-
-.pill{
-  display:inline-flex;
-  align-items:center;
   gap:5px;
-  padding:5px 9px;
-  border-radius:999px;
-  border:1px solid #e2e8f0;
+  font-size:14px;
+}
+
+.agent-story{
+  margin-top:12px;
+  color:#333;
+  line-height:1.65;
+  max-width:820px;
+}
+
+.highlight-row{
+  margin-top:16px;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+
+.highlight-box{
+  border:1px solid #e5e7eb;
   background:#f8fafc;
-  color:#475569;
+  border-radius:12px;
+  padding:12px;
+}
+
+.highlight-box span{
+  display:block;
+  color:#666;
   font-size:12px;
-  font-weight:700;
+  font-weight:800;
+  margin-bottom:6px;
 }
 
-.pill.blue{
-  background:#eef3f8;
-  color:var(--blue);
-  border-color:#cfe1f3;
-}
-
-.pill.green{
-  background:#ecfdf5;
-  color:#057642;
-  border-color:#bbf7d0;
-}
-
-.pill.orange{
-  background:#fffbeb;
-  color:#b54708;
-  border-color:#fde68a;
-}
-
-.section-card{
-  padding:18px;
-  margin-bottom:12px;
-}
-
-.section-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:12px;
-}
-
-.section-head h2{
-  margin:0;
+.highlight-box strong{
+  display:block;
   font-size:18px;
-  font-weight:750;
-  letter-spacing:-.01em;
+  color:#111;
 }
 
-.section-head p{
-  margin:4px 0 0;
-  color:#666;
-  font-size:13px;
+.agent-tabs{
+  display:flex;
+  border-top:1px solid #eee;
+  overflow:auto;
 }
 
-.text-muted{
-  color:#666;
-  line-height:1.55;
+.agent-tab{
+  border:0;
+  background:#fff;
+  padding:14px 18px;
+  color:#555;
+  font-weight:900;
+  border-bottom:3px solid transparent;
+  white-space:nowrap;
+}
+
+.agent-tab.active{
+  color:var(--green);
+  border-bottom-color:var(--green);
+}
+
+/* CONTENT */
+
+.section{display:none}
+.section.active{display:block}
+
+.content-card{
+  padding:20px;
+  margin-bottom:12px;
+}
+
+.content-card h2{
+  margin:0 0 12px;
+  font-size:20px;
+  font-weight:800;
+}
+
+.content-card p{
+  margin:0;
+  line-height:1.65;
+  color:#222;
 }
 
 .grid-2{
@@ -345,103 +375,73 @@ img{
   gap:12px;
 }
 
-.info-card{
-  border:1px solid var(--line-soft);
+.grid-3{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+
+.feature-card,
+.info-box,
+.timeline-item{
+  border:1px solid #e5e7eb;
   border-radius:12px;
   padding:14px;
   background:#fff;
 }
 
-.info-card h3{
-  margin:0;
-  font-size:15px;
-  font-weight:750;
+.feature-card h3,
+.timeline-item h3{
+  margin:0 0 7px;
+  font-size:16px;
 }
 
-.info-card p{
-  margin:6px 0 0;
+.feature-card p,
+.timeline-item p{
+  margin:0;
   color:#666;
   font-size:13px;
-  line-height:1.5;
+  line-height:1.55;
 }
 
-.skill-list{
+.info-box span{
+  display:block;
+  color:#666;
+  font-size:12px;
+  font-weight:800;
+  margin-bottom:5px;
+}
+
+.info-box strong{
+  display:block;
+  font-size:15px;
+  color:#111;
+}
+
+.pill-list{
   display:flex;
   flex-wrap:wrap;
   gap:8px;
 }
 
-.project-card{
-  border:1px solid var(--line-soft);
-  border-radius:12px;
-  padding:14px;
-  background:#fff;
-  margin-bottom:10px;
-}
-
-.project-card h3{
-  margin:0;
-  font-size:15px;
-  font-weight:750;
-}
-
-.project-card p{
-  margin:7px 0 0;
-  color:#666;
-  font-size:13px;
-  line-height:1.5;
-}
-
-.project-actions{
-  margin-top:10px;
-}
-
-.cv-frame{
-  width:100%;
-  height:420px;
-  border:1px solid #e5e7eb;
-  border-radius:12px;
-  background:#f8fafc;
-}
-
-.post-card{
-  border:1px solid var(--line-soft);
-  border-radius:12px;
-  padding:14px;
-  margin-bottom:10px;
-  background:#fff;
-}
-
-.post-top{
-  display:flex;
-  gap:10px;
+.skill-pill{
+  display:inline-flex;
   align-items:center;
-}
-
-.post-avatar{
-  width:38px;
-  height:38px;
-  border-radius:50%;
-  object-fit:cover;
-}
-
-.post-name{
-  font-weight:750;
+  padding:7px 12px;
+  border-radius:999px;
+  background:#eef3f8;
+  border:1px solid #dbeafe;
   font-size:13px;
+  font-weight:700;
+  color:#1f2937;
 }
 
-.post-date{
-  color:#777;
-  font-size:12px;
-  margin-top:2px;
+.timeline{
+  display:grid;
+  gap:12px;
 }
 
-.post-text{
-  margin-top:10px;
-  color:#333;
-  line-height:1.55;
-  white-space:pre-wrap;
-}
+/* SIDEBAR */
 
 .side-card{
   padding:16px;
@@ -451,239 +451,135 @@ img{
 .side-card h3{
   margin:0 0 12px;
   font-size:16px;
-  font-weight:750;
+  font-weight:800;
 }
 
-.readiness-row{
-  margin-bottom:12px;
+.side-stat{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  padding:10px 0;
+  border-bottom:1px solid #eee;
 }
 
-.readiness-top{
-  display:flex;
-  justify-content:space-between;
-  font-size:12px;
-  font-weight:750;
-  color:#475569;
-  margin-bottom:6px;
+.side-stat:last-child{border-bottom:0}
+
+.side-stat span{
+  color:#666;
+  font-size:13px;
+  font-weight:700;
 }
 
-.progress{
-  height:8px;
-  border-radius:999px;
-  background:#edf2f7;
-  overflow:hidden;
-}
-
-.progress-fill{
-  height:100%;
-  width:0%;
-  background:var(--blue);
-  border-radius:999px;
+.side-stat strong{
+  color:#111;
+  font-size:13px;
+  text-align:right;
 }
 
 .empty{
-  padding:22px;
-  text-align:center;
   color:#666;
-}
-
-.empty h3{
-  margin:0;
-  color:#191919;
-  font-size:16px;
-}
-
-.empty p{
-  margin:7px auto 0;
-  max-width:430px;
-  line-height:1.5;
-}
-
-.modal{
-  display:none;
-  position:fixed;
-  inset:0;
-  z-index:3000;
-  background:rgba(15,23,42,.48);
-  align-items:center;
-  justify-content:center;
-  padding:16px;
-}
-
-.modal.show{
-  display:flex;
-}
-
-.modal-box{
-  width:min(430px,100%);
+  padding:14px;
+  border:1px dashed #ddd;
+  border-radius:10px;
+  text-align:center;
   background:#fff;
-  border-radius:18px;
-  border:1px solid #e5e7eb;
-  overflow:hidden;
-  box-shadow:0 24px 70px rgba(0,0,0,.25);
 }
 
-.modal-body{
-  padding:22px;
+/* FEED */
+
+#studentFeedMount .aift-feed-shell{
+  width:100%!important;
+  max-width:100%!important;
+  margin:0!important;
+}
+
+#studentFeedMount .aift-composer{
+  display:none!important;
+}
+
+.state-screen{
+  min-height:70vh;
+  display:grid;
+  place-items:center;
+  padding:24px;
   text-align:center;
 }
 
-.modal-body h3{
-  margin:0;
-  font-size:20px;
+.state-card{
+  width:min(520px,100%);
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:18px;
+  padding:28px;
+  box-shadow:0 20px 60px rgba(0,0,0,.08);
 }
 
-.modal-body p{
-  color:#666;
-  line-height:1.5;
-  margin:8px 0 18px;
+/* MOBILE */
+
+.mobile-bottom{display:none}
+
+@media(max-width:980px){
+  .layout{grid-template-columns:1fr}
+  .right-col{display:none}
+  .top-link span{display:none}
+  .top-link{min-width:42px}
+  .search{flex:1;width:auto;max-width:none}
+  .highlight-row,.grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
-.modal-actions{
-  display:flex;
-  gap:8px;
-  justify-content:center;
-  flex-wrap:wrap;
-}
-
-.toast{
-  position:fixed;
-  right:18px;
-  bottom:18px;
-  z-index:4000;
-  background:#111827;
-  color:#fff;
-  padding:12px 14px;
-  border-radius:12px;
-  font-size:13px;
-  font-weight:700;
-  box-shadow:0 18px 50px rgba(0,0,0,.2);
-  opacity:0;
-  pointer-events:none;
-  transform:translateY(12px);
-  transition:.2s ease;
-}
-
-.toast.show{
-  opacity:1;
-  transform:translateY(0);
-}
-  .mobile-nav{
-  display:none;
-}
-
-@media(max-width:920px){
-  .layout{
-    grid-template-columns:1fr;
-  }
-
-  .right-col{
-    position:static;
-  }
-
-  .search-pill{
-    display:none;
-  }
-}
-
-@media(max-width:760px){
-  body{
-    padding-bottom:74px;
-  }
-
-  .container{
-    width:100%;
-  }
-
-  .top-inner{
-    height:56px;
-    padding:0 10px;
-  }
-
-  .top-nav{
-    gap:0;
-  }
-
-  .nav-btn{
-    min-width:48px;
-    font-size:0;
-  }
-
-  .nav-btn span{
-    display:none;
-  }
-
-  .page{
-    padding:0;
-  }
-
-  .card{
+@media(max-width:640px){
+  body{padding-bottom:76px}
+  .container{width:100%}
+  .page{padding:0}
+  .agent-hero,.content-card,.card{
     border-radius:0;
     border-left:0;
     border-right:0;
   }
+  .brand{
+  width:86px;
+  height:38px;
+  min-width:86px;
+}
 
-  .banner{
-    height:150px;
+.brand-logo-img{
+  height:30px;
+  max-width:86px;
+}
+  .cover{height:140px}
+  .hero-body{padding:0 16px 18px}
+  .agent-top{display:block}
+  .agent-avatar{
+    width:96px;
+    height:96px;
+    margin-top:-48px;
   }
-
-  .profile-main{
-    padding:0 14px 16px;
+  .hero-actions{
+    margin-top:14px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
   }
-
-  .avatar-row{
-    display:block;
-  }
-
-  .avatar{
-    width:104px;
-    height:104px;
-    margin-top:-52px;
-  }
-
-  .profile-actions{
-    padding-top:12px;
-  }
-
-  .profile-actions .btn{
-    flex:1;
-  }
-
-  .name{
-    font-size:24px;
-  }
-
-  .grid-2{
-    grid-template-columns:1fr;
-  }
-
-  .cv-frame{
-    height:360px;
-  }
-
-  .mobile-nav{
+  .agent-name{font-size:22px}
+  .highlight-row,.grid-2,.grid-3{grid-template-columns:1fr}
+  .content-card{padding:16px}
+  .mobile-bottom{
     position:fixed;
     left:0;
     right:0;
     bottom:0;
-    z-index:2000;
-    height:72px;
+    z-index:999;
+    height:74px;
     background:rgba(255,255,255,.98);
     border-top:1px solid #e5e7eb;
     display:grid;
     grid-template-columns:repeat(5,1fr);
   }
-
-  .mobile-nav button{
+  .mobile-bottom button{
     border:0;
     background:transparent;
     color:#64748b;
     font-size:11px;
-    font-weight:700;
-  }
-
-  .mobile-nav button.active{
-    color:var(--blue);
+    font-weight:800;
   }
 }
 </style>
@@ -693,1074 +589,1207 @@ img{
 
 <header class="topbar">
   <div class="container top-inner">
+    <a class="brand" href="home.html" aria-label="AIFT Home">
+  <img src="images/aift-logo.png" alt="AIFT" class="brand-logo-img">
+</a>
 
-    <a class="brand" href="home.html">A</a>
-
-    <div class="search-pill">
-      <svg class="icon" viewBox="0 0 24 24" fill="none">
-        <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <div class="search">
+      <svg viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="M20 20l-3.5-3.5"></path>
       </svg>
-      AIFT student profile
+      <input type="search" placeholder="Search AIFT">
     </div>
 
     <nav class="top-nav">
-
-      <button class="nav-btn" onclick="location.href='home.html'">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3V10.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <button class="top-link active" onclick="goHome()">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 10.5 12 3l9 7.5"></path>
+          <path d="M5 9.5V21h14V9.5"></path>
         </svg>
         <span>Home</span>
       </button>
 
-      <button class="nav-btn" onclick="location.href='jobs.html'">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1m-9 0h14v14H5V6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-        </svg>
-        <span>Jobs</span>
-      </button>
-
-      <button class="nav-btn" onclick="location.href='network.html'">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M7 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm10 0a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a5 5 0 0 1 10 0M12 21a5 5 0 0 1 10 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <span>Network</span>
-      </button>
-
-      <button class="nav-btn" onclick="openMessages()">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M4 5h16v11H7l-3 3V5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <button class="top-link" onclick="goMessages()">
+        <svg viewBox="0 0 24 24">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
         </svg>
         <span>Messages</span>
       </button>
 
-      <button class="nav-btn" onclick="openAlerts()">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9zM10 21h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <button class="top-link" onclick="goNotifications()">
+        <svg viewBox="0 0 24 24">
+          <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
+          <path d="M10 21a2 2 0 0 0 4 0"></path>
         </svg>
         <span>Alerts</span>
       </button>
 
+      <button class="top-link" onclick="openMyProfile()">
+        <img id="viewerAvatar" class="top-avatar" alt="" src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+        <span>Me</span>
+      </button>
     </nav>
-
   </div>
 </header>
-
 <main class="page">
-  <div class="container layout">
+  <div class="container">
 
-    <section class="main-col">
+    <div class="layout">
 
-      <article class="card profile-hero" id="profileTop">
+      <div class="main-col">
 
-        <div id="banner" class="banner"></div>
+        <section class="card agent-hero">
 
-        <div class="profile-main">
+          <div class="cover" id="agentCover"></div>
 
-          <div class="avatar-row">
+          <div class="hero-body">
 
-            <img
-              id="avatar"
-              class="avatar"
-              src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-              alt="Student profile photo"
-            >
+            <div class="agent-top">
 
-            <div class="profile-actions">
-              <button class="btn primary" onclick="messageStudent()">Message</button>
-              <button class="btn" id="followBtn" onclick="followStudent()">Follow</button>
-              <button class="btn green" onclick="scrollToSection('cvSection')">View CV</button>
+              <div class="avatar-wrap">
+
+                <img
+                  id="agentAvatar"
+                  class="agent-avatar"
+                  src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                  alt="Agent Avatar"
+                >
+
+                <div class="verified-badge hidden" id="verifiedBadge">
+                  ✓
+                </div>
+
+              </div>
+
+              <div class="hero-actions">
+
+                <button class="pill-btn primary" id="messageAgentBtn">
+                  Message
+                </button>
+
+                <button class="pill-btn" id="followAgentBtn">
+                  Follow
+                </button>
+
+                <button class="pill-btn dark" id="shareAgentBtn">
+                  Share Profile
+                </button>
+
+                <button class="pill-btn hidden" id="editProfileBtn">
+                  Edit Profile
+                </button>
+
+                <button class="pill-btn hidden" id="dashboardBtn">
+                  Dashboard
+                </button>
+
+              </div>
+
+            </div>
+
+            <h1 class="agent-name" id="agentName">
+              Loading...
+            </h1>
+
+            <p class="agent-headline" id="agentHeadline">
+              No professional headline added yet
+            </p>
+
+<div
+  class="agent-meta hidden"
+  id="agentMeta"
+></div>
+
+<div
+  class="agent-story hidden"
+  id="agentStory"
+></div>
+
+            <div class="highlight-row">
+
+              <div class="highlight-box">
+                <span>Completed Tasks</span>
+                <strong id="statTasks">0</strong>
+              </div>
+
+              <div class="highlight-box">
+                <span>Performance</span>
+                <strong id="statPerformance">0%</strong>
+              </div>
+
+              <div class="highlight-box">
+                <span>Experience</span>
+                <strong id="statExperience">0 yrs</strong>
+              </div>
+
+              <div class="highlight-box">
+                <span>Languages</span>
+                <strong id="statLanguages">0</strong>
+              </div>
+
             </div>
 
           </div>
 
-          <h1 id="studentName" class="name">Loading student...</h1>
+          <div class="agent-tabs">
 
-          <div id="studentHeadline" class="headline">
-            Loading student profile...
+            <button class="agent-tab active" data-tab="overview">
+              Overview
+            </button>
+
+<button class="agent-tab" data-tab="experience">
+  Projects
+</button>
+
+            <button class="agent-tab" data-tab="skills">
+              Skills
+            </button>
+
+<button class="agent-tab" data-tab="performance">
+  Achievements
+</button>
+
+            <button class="agent-tab" data-tab="feed">
+              Posts
+            </button>
+
           </div>
 
-          <div class="meta" id="studentMeta"></div>
+        </section>
 
-        </div>
+        <section class="section active" id="section-overview">
 
-      </article>
-            <article class="card section-card" id="aboutSection">
-        <div class="section-head">
-          <div>
+          <div class="card content-card">
             <h2>About</h2>
-            <p>Student background, goals, and career interests.</p>
-          </div>
-        </div>
-
-        <div id="aboutContent" class="text-muted">
-          Loading...
-        </div>
-      </article>
-
-      <article class="card section-card" id="careerSection">
-        <div class="section-head">
-          <div>
-            <h2>Career readiness</h2>
-            <p>Useful for internships, part-time jobs, and entry-level opportunities.</p>
-          </div>
-        </div>
-
-        <div class="grid-2">
-
-          <div class="info-card">
-            <h3>Program / Course</h3>
-            <p id="courseText">Not added yet</p>
+            <p id="overviewAbout">
+              Loading...
+            </p>
           </div>
 
-          <div class="info-card">
-            <h3>School</h3>
-            <p id="schoolText">Not added yet</p>
+          <div class="grid-2">
+
+            <div class="card content-card">
+              <h2>Services</h2>
+
+              <div class="grid-2" id="servicesWrap">
+                <div class="empty">
+                  No services added yet.
+                </div>
+              </div>
+            </div>
+
+            <div class="card content-card">
+              <h2>Work Information</h2>
+
+              <div class="grid-2">
+
+                <div class="info-box">
+                  <span>Current Company</span>
+                  <strong id="infoCompany">Not added</strong>
+                </div>
+
+                <div class="info-box">
+                  <span>Role</span>
+                  <strong id="infoRole">Not added</strong>
+                </div>
+
+                <div class="info-box">
+                  <span>Employment Type</span>
+                  <strong id="infoEmployment">Not added</strong>
+                </div>
+
+                <div class="info-box">
+                  <span>Availability</span>
+                  <strong id="infoAvailability">Not added</strong>
+                </div>
+
+                <div class="info-box">
+                  <span>Shift</span>
+                  <strong id="infoShift">Not added</strong>
+                </div>
+
+                <div class="info-box">
+                  <span>Work Setup</span>
+                  <strong id="infoSetup">Not added</strong>
+                </div>
+
+              </div>
+            </div>
+
           </div>
 
-          <div class="info-card">
-            <h3>Career interest</h3>
-            <p id="careerInterestText">Open to internships, part-time jobs, and entry-level training.</p>
+        </section>
+
+        <section class="section" id="section-experience">
+
+          <div class="card content-card">
+            <h2>Projects & Activities</h2>
+
+            <div class="timeline" id="experienceTimeline">
+              <div class="empty">
+                No experience added yet.
+              </div>
+            </div>
           </div>
 
-          <div class="info-card">
-            <h3>Availability</h3>
-            <p id="availabilityText">Not added yet</p>
+        </section>
+
+        <section class="section" id="section-skills">
+
+          <div class="card content-card">
+            <h2>Skills & Expertise</h2>
+
+            <div class="pill-list" id="skillsWrap">
+              <div class="empty">
+                No skills added yet.
+              </div>
+            </div>
           </div>
 
-        </div>
-      </article>
+          <div class="grid-3">
 
-      <article class="card section-card" id="skillsSection">
-        <div class="section-head">
-          <div>
-            <h2>Skills</h2>
-            <p>Academic, communication, technical, and work-ready skills.</p>
+            <div class="card content-card">
+              <h2>Languages</h2>
+
+              <div class="pill-list" id="languagesWrap">
+                <div class="empty">
+                  No languages added yet.
+                </div>
+              </div>
+            </div>
+
+            <div class="card content-card">
+              <h2>Tools</h2>
+
+              <div class="pill-list" id="toolsWrap">
+                <div class="empty">
+                  No tools added yet.
+                </div>
+              </div>
+            </div>
+
+            <div class="card content-card">
+              <h2>Industries</h2>
+
+              <div class="pill-list" id="industriesWrap">
+                <div class="empty">
+                  No industries added yet.
+                </div>
+              </div>
+            </div>
+
           </div>
-        </div>
 
-        <div id="skillsList" class="skill-list"></div>
-      </article>
+        </section>
 
-      <article class="card section-card" id="languagesSection">
-        <div class="section-head">
-          <div>
-            <h2>Languages</h2>
-            <p>Languages the student can use for study, work, or customer support.</p>
+        <section class="section" id="section-performance">
+
+          <div class="grid-2">
+
+            <div class="card content-card">
+              <h2>Student Progress</h2>
+
+              <div class="grid-2">
+
+                <div class="info-box">
+                  <span>Task Completion</span>
+                  <strong id="metricCompletion">0%</strong>
+                </div>
+
+                <div class="info-box">
+                  <span>Attendance</span>
+                  <strong id="metricAttendance">Not tracked</strong>
+                </div>
+
+                <div class="info-box">
+                  <span>Customer Satisfaction</span>
+                  <strong id="metricCSAT">Not rated</strong>
+                </div>
+
+                <div class="info-box">
+                  <span>Average Response Time</span>
+                  <strong id="metricResponse">Not tracked</strong>
+                </div>
+
+              </div>
+            </div>
+
+            <div class="card content-card">
+              <h2>Achievements</h2>
+
+              <div class="timeline" id="achievementsWrap">
+                <div class="empty">
+                  No achievements added yet.
+                </div>
+              </div>
+            </div>
+
           </div>
-        </div>
 
-        <div id="languagesList" class="skill-list"></div>
-      </article>
+        </section>
 
-      <article class="card section-card" id="educationSection">
-        <div class="section-head">
-          <div>
-            <h2>Education</h2>
-            <p>School history, program, and academic background.</p>
+        <section class="section" id="section-feed">
+
+          <div class="card content-card" style="padding:0;">
+
+            <div style="padding:18px 18px 0;">
+              <h2 style="margin-bottom:6px;">
+                Recent Posts
+              </h2>
+
+              <p style="color:#666;">
+                Public activity, updates, and professional posts.
+              </p>
+            </div>
+
+            <div id="studentFeedMount"></div>
+
           </div>
-        </div>
 
-        <div id="educationList"></div>
-      </article>
-
-      <article class="card section-card" id="projectsSection">
-        <div class="section-head">
-          <div>
-            <h2>Projects / Portfolio</h2>
-            <p>Class projects, training work, portfolio links, and practical experience.</p>
-          </div>
-        </div>
-
-        <div id="projectsList"></div>
-      </article>
-
-      <article class="card section-card" id="certificationsSection">
-        <div class="section-head">
-          <div>
-            <h2>Certifications / Achievements</h2>
-            <p>Certificates, awards, school achievements, and training milestones.</p>
-          </div>
-        </div>
-
-        <div id="certificationsList"></div>
-      </article>
-
-      <article class="card section-card" id="cvSection">
-        <div class="section-head">
-          <div>
-            <h2>CV</h2>
-            <p>Visible only when the student has allowed public CV viewing.</p>
-          </div>
-        </div>
-
-        <div id="cvContent"></div>
-      </article>
-
-      <article class="card section-card" id="postsSection">
-        <div class="section-head">
-          <div>
-            <h2>Posts</h2>
-            <p>Student updates, learning progress, and public activity.</p>
-          </div>
-        </div>
-
-        <div id="postsList"></div>
-      </article>
-
-    </section>
-
-    <aside class="right-col">
-
-      <section class="card side-card">
-        <h3>Student readiness</h3>
-
-        <div class="readiness-row">
-          <div class="readiness-top">
-            <span>Profile strength</span>
-            <span id="readinessScore">0%</span>
-          </div>
-          <div class="progress">
-            <div id="readinessBar" class="progress-fill"></div>
-          </div>
-        </div>
-
-        <p class="text-muted" id="readinessText">
-          Loading student readiness...
-        </p>
-      </section>
-
-      <section class="card side-card">
-        <h3>Open to</h3>
-
-        <div class="skill-list">
-          <span class="pill blue">Internships</span>
-          <span class="pill green">Part-time jobs</span>
-          <span class="pill orange">Entry-level roles</span>
-          <span class="pill">Training</span>
-        </div>
-      </section>
-
-      <section class="card side-card">
-        <h3>Quick actions</h3>
-
-        <div style="display:grid;gap:8px;">
-          <button class="btn primary" onclick="messageStudent()">Message student</button>
-          <button class="btn" onclick="followStudent()">Follow student</button>
-          <button class="btn" onclick="location.href='jobs.html'">Browse jobs</button>
-          <button class="btn" onclick="location.href='network.html'">Open network</button>
-        </div>
-      </section>
-
-    </aside>
-
-  </div>
-</main>
-<!-- LOGIN REQUIRED MODAL -->
-
-<div id="loginModal" class="modal">
-
-  <div class="modal-box">
-
-    <div class="modal-body">
-
-      <h3>Join AIFT</h3>
-
-      <p>
-        Create an account or sign in to message students,
-        follow profiles, save opportunities, and connect
-        with schools and employers.
-      </p>
-
-      <div class="modal-actions">
-
-        <button
-          class="btn"
-          onclick="closeLoginModal()"
-        >
-          Close
-        </button>
-
-        <button
-          class="btn primary"
-          onclick="location.href='login.html'"
-        >
-          Login
-        </button>
-
-        <button
-          class="btn green"
-          onclick="location.href='register.html'"
-        >
-          Register
-        </button>
+        </section>
 
       </div>
+
+      <aside class="right-col">
+
+        <div class="card side-card">
+          <h3>Student Summary</h3>
+
+          <div class="side-stat">
+            <span>Current Status</span>
+            <strong id="sideStatus">Not added</strong>
+          </div>
+
+          <div class="side-stat">
+            <span>Location</span>
+            <strong id="sideLocation">Not added</strong>
+          </div>
+
+          <div class="side-stat">
+            <span>Company</span>
+            <strong id="sideCompany">Not added</strong>
+          </div>
+
+          <div class="side-stat">
+            <span>Experience</span>
+            <strong id="sideExperience">0 yrs</strong>
+          </div>
+
+          <div class="side-stat">
+            <span>Languages</span>
+            <strong id="sideLanguages">Not added</strong>
+          </div>
+        </div>
+
+        <div class="card side-card">
+          <h3>Why Employers Like This Profile</h3>
+
+          <div class="timeline" id="employerPraiseWrap">
+            <div class="empty">
+              No employer feedback yet.
+            </div>
+          </div>
+        </div>
+
+        <div class="card side-card hidden" id="cvCard">
+          <h3>Resume / CV</h3>
+
+          <div id="cvPreviewWrap" class="timeline">
+            <div class="empty">
+              No CV uploaded yet.
+            </div>
+          </div>
+        </div>
+
+        <div class="card side-card">
+          <h3>Open to</h3>
+
+          <div class="pill-list" id="openToWrap">
+            <div class="empty">
+              No work preferences added yet.
+            </div>
+          </div>
+        </div>
+
+      </aside>
 
     </div>
 
   </div>
+</main>
 
+<div class="mobile-bottom">
+  <button onclick="goHome()">Home</button>
+  <button onclick="activateTab('overview')">About</button>
+  <button onclick="activateTab('feed')">Posts</button>
+  <button onclick="goMessages()">Chat</button>
+  <button onclick="openMyProfile()">Me</button>
 </div>
-
-<div id="toast" class="toast"></div>
-
-<!-- MOBILE NAV -->
-
-<nav class="mobile-nav">
-
-  <button onclick="scrollToSection('profileTop')">
-    Home
-  </button>
-
-  <button onclick="scrollToSection('postsSection')">
-    Posts
-  </button>
-
-  <button onclick="scrollToSection('projectsSection')">
-    Projects
-  </button>
-
-  <button onclick="scrollToSection('cvSection')">
-    CV
-  </button>
-
-  <button onclick="scrollToSection('aboutSection')">
-    About
-  </button>
-
-</nav>
-
 <script>
+const API = "https://backend-1-9b6f.onrender.com";
+const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-const API =
-  "https://backend-1-9b6f.onrender.com";
+const params = new URLSearchParams(location.search);
+const profileId = params.get("id");
 
-const FALLBACK_AVATAR =
-  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
-const params =
-  new URLSearchParams(location.search);
-
-const USER_ID =
-  params.get("id");
+const token =
+  localStorage.getItem("agentToken") ||
+  localStorage.getItem("employerToken") ||
+  localStorage.getItem("talentToken") ||
+  localStorage.getItem("schoolToken") ||
+  localStorage.getItem("adminToken") ||
+  localStorage.getItem("token") ||
+  "";
 
 const state = {
+  viewer:null,
   profile:null,
-  posts:[]
+  stats:null
 };
 
-function getRole(){
-  return (
-    localStorage.getItem("role") || ""
-  ).toLowerCase();
-}
-
-function getToken(){
-
-  const role =
-    getRole();
-
-  return (
-    localStorage.getItem(role + "Token") ||
-    localStorage.getItem("talentToken") ||
-    localStorage.getItem("studentToken") ||
-    localStorage.getItem("teacherToken") ||
-    localStorage.getItem("employerToken") ||
-    localStorage.getItem("agentToken") ||
-    localStorage.getItem("token") ||
-    ""
-  );
-}
-
-function isLoggedIn(){
-  return !!getToken();
-}
-
 function authHeaders(extra = {}){
-
-  const token =
-    getToken();
-
   return {
-    ...(token
-      ? { Authorization:"Bearer " + token }
-      : {}),
+    Authorization:`Bearer ${token}`,
     ...extra
   };
 }
 
-function toast(message){
-
-  const el =
-    document.getElementById("toast");
-
-  el.textContent =
-    message;
-
-  el.classList.add("show");
-
-  clearTimeout(window.__toastTimer);
-
-  window.__toastTimer =
-    setTimeout(()=>{
-      el.classList.remove("show");
-    },2500);
-}
-
-function showLoginModal(){
-
-  document
-    .getElementById("loginModal")
-    .classList.add("show");
-}
-
-function closeLoginModal(){
-
-  document
-    .getElementById("loginModal")
-    .classList.remove("show");
-}
-
-function openMessages(){
-
-  if(!isLoggedIn()){
-    showLoginModal();
-    return;
-  }
-
-  location.href =
-    "messages.html";
-}
-
-function openAlerts(){
-
-  if(!isLoggedIn()){
-    showLoginModal();
-    return;
-  }
-
-  location.href =
-    "notifications.html";
-}
-
-function scrollToSection(id){
-
-  document
-    .getElementById(id)
-    ?.scrollIntoView({
-      behavior:"smooth",
-      block:"start"
-    });
-}
-
-function esc(value=""){
+function escapeHtml(value){
   return String(value ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;");
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
 }
 
-async function fetchJSON(
-  path,
-  options={}
-){
+function normalizeUserResponse(data){
+  return data?.user || data;
+}
 
-  const response =
-    await fetch(
-      API + path,
-      options
-    );
+function normalizeStatsResponse(data){
+  return data?.stats || {};
+}
+  function publicRoleLabel(role){
+  switch(String(role || "").toLowerCase()){
+case "talent":
+  return "Job Seeker";
+case "agent":
+  return "Recruiter";
+case "student":
+  return "Student";
+    case "employer":
+      return "Company";
+    case "school":
+      return "School";
+    case "admin":
+      return "Admin";
+    default:
+      return "Member";
+  }
+}
 
-  const text =
-    await response.text();
+function showState(title,message){
+  document.body.innerHTML = `
+    <div class="state-screen">
+      <div class="state-card">
+        <h1 style="margin:0 0 10px;font-size:30px;">
+          ${escapeHtml(title)}
+        </h1>
+        <p style="margin:0;color:#666;line-height:1.6;">
+          ${escapeHtml(message)}
+        </p>
+        <div style="margin-top:18px;">
+          <button class="pill-btn primary" onclick="location.href='home.html'">
+            Go Home
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
-  let data = {};
+function goHome(){
+  location.href = "home.html";
+}
+
+function goMessages(){
+  location.href = "messages.html";
+}
+
+function goNotifications(){
+  location.href = "notifications.html";
+}
+
+function openMyProfile(){
+  const me = state.viewer;
+  const id = me?._id || localStorage.getItem("userId");
+  const role = String(me?.role || localStorage.getItem("role") || "").toLowerCase();
+
+  if(!id){
+    location.href = "login.html";
+    return;
+  }
+
+  if(role === "agent"){
+    location.href = `agent-public-profile.html?id=${id}`;
+    return;
+  }
+
+  if(role === "employer"){
+    location.href = `employer-public-profile.html?id=${id}`;
+    return;
+  }
+
+  if(role === "school"){
+    location.href = `school-public-profile.html?id=${id}`;
+    return;
+  }
+
+  if(role === "student"){
+  location.href = `student-public-profile.html?id=${id}`;
+  return;
+}
+
+location.href = `agent-public-profile.html?id=${id}`;
+}
+
+function activateTab(tab){
+  document.querySelectorAll(".agent-tab").forEach(btn=>{
+    btn.classList.toggle("active",btn.dataset.tab === tab);
+  });
+
+  document.querySelectorAll(".section").forEach(section=>{
+    section.classList.toggle("active",section.id === `section-${tab}`);
+  });
+}
+
+document.querySelectorAll(".agent-tab").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    activateTab(btn.dataset.tab);
+  });
+});
+
+async function fetchViewer(){
+  if(!token) return;
 
   try{
-    data =
-      text
-      ? JSON.parse(text)
-      : {};
-  }catch{
-    data = {};
-  }
+    const res = await fetch(API + "/api/users/me", {
+      headers:authHeaders()
+    });
 
-  if(!response.ok){
-    throw new Error(
-      data.message ||
-      "Request failed"
-    );
-  }
+    if(!res.ok) return;
 
-  return data;
+    const data = await res.json();
+    state.viewer = normalizeUserResponse(data);
+
+    if(state.viewer?._id){
+      localStorage.setItem("userId",state.viewer._id);
+    }
+
+    if(state.viewer?.role){
+      localStorage.setItem("role",state.viewer.role);
+    }
+
+  }catch(err){
+    console.warn("Viewer load failed:",err.message);
+  }
 }
 
-function profileScore(user){
+async function fetchProfile(){
+  if(!profileId){
+    throw new Error("Missing profile id");
+  }
 
-  const checks = [
+  const res = await fetch(`${API}/api/users/${profileId}/public`, {
+    headers:token ? authHeaders() : {}
+  });
 
-    user?.name,
+  const data = await res.json().catch(()=>({}));
 
-    user?.headline,
+  if(!res.ok){
+    throw new Error(data.message || "Could not load agent profile");
+  }
 
-    user?.bio,
+  state.profile = normalizeUserResponse(data);
+  state.stats = normalizeStatsResponse(data);
+}
 
-    user?.location,
+function protectStudentProfile(){
+  const role = String(state.profile?.role || "").toLowerCase();
 
-    user?.course,
+  if(role && role !== "student"){
+    if(role === "employer"){
+      location.href = `employer-public-profile.html?id=${state.profile._id}`;
+      return;
+    }
 
-    user?.profileImage,
+    if(role === "school"){
+      location.href = `school-public-profile.html?id=${state.profile._id}`;
+      return;
+    }
 
-    Array.isArray(user?.skills) &&
-    user.skills.length,
+    if(role === "agent" || role === "talent"){
+      location.href = `agent-public-profile.html?id=${state.profile._id}`;
+      return;
+    }
 
-    Array.isArray(user?.languages) &&
-    user.languages.length,
+    showState("This is not a student profile", "The profile you opened does not belong to a student.");
+  }
+}
 
-    Array.isArray(user?.education) &&
-    user.education.length,
+function renderProfile(){
+  const user = state.profile || {};
+  const viewer = state.viewer || {};
+  const stats = state.stats || {};
 
-    user?.cvUrl
+  const avatar = user.profileImage || FALLBACK_AVATAR;
+  const cover = user.bannerImage || user.coverImage || "";
+  const name = user.name || publicRoleLabel(user.role);
+  const headline =
+  user.course ||
+  user.program ||
+  user.headline ||
+  user.profession ||
+  "Student";
 
-  ];
+  const company =
+    user.companyName ||
+    user.companyId?.companyName ||
+    user.companyId?.name ||
+    user.company ||
+    "Not added";
 
-  return Math.round(
-    (
-      checks.filter(Boolean).length /
-      checks.length
-    ) * 100
+  const location =
+    user.location ||
+    user.address ||
+    "Not added";
+
+  const availability =
+    user.availability ||
+    "Not added";
+
+  const story =
+    user.about ||
+    user.story ||
+    user.bio ||
+    "";
+
+  document.title = `${name} | AIFT`;
+
+  document.getElementById("agentAvatar").src = avatar;
+  document.getElementById("viewerAvatar").src = viewer.profileImage || FALLBACK_AVATAR;
+
+  document.getElementById("agentName").textContent = name;
+  document.getElementById("agentHeadline").textContent = headline;
+const agentStoryEl = document.getElementById("agentStory");
+
+if(agentStoryEl){
+  agentStoryEl.textContent = "";
+}
+
+  document.getElementById("overviewAbout").innerHTML =
+    story
+      ? escapeHtml(story)
+      : `<span style="color:#777;">No about section added yet.</span>`;
+
+  document.getElementById("infoCompany").textContent = company;
+  document.getElementById("sideCompany").textContent = company;
+  document.getElementById("sideLocation").textContent = location;
+  document.getElementById("sideStatus").textContent = availability;
+
+document.getElementById("infoRole").textContent =
+  user.preferredRole || publicRoleLabel(user.role) || "Not added";
+
+  document.getElementById("infoEmployment").textContent =
+    user.employmentType || "Not added";
+
+  document.getElementById("infoAvailability").textContent =
+    user.availability || "Not added";
+
+  document.getElementById("infoShift").textContent =
+    user.preferredShift || "Not added";
+
+  document.getElementById("infoSetup").textContent =
+    user.workSetup || user.workPreference || "Not added";
+
+  document.getElementById("verifiedBadge").classList.toggle(
+    "hidden",
+    !(user.isVerified || user.verified)
   );
+
+  if(cover){
+    document.getElementById("agentCover").style.background =
+      `linear-gradient(135deg,rgba(10,102,194,.24),rgba(5,118,66,.18),rgba(109,40,217,.16)),url("${cover}") center/cover no-repeat`;
+  }
+
+  setupOwnerControls(user,viewer);
+  renderStats(user,stats);
+  renderServices(user.services || []);
+  renderAgentExperience(user.experience || []);
+  renderPillList("skillsWrap",user.skills || [],"No skills added yet.");
+  renderPillList("languagesWrap",user.languages || [],"No languages added yet.");
+  renderPillList("toolsWrap",user.tools || [],"No tools added yet.");
+  renderPillList("industriesWrap",user.industries || user.companyTags || [],"No industries added yet.");
+  renderEmployerPraise(user.employerPraise || user.positiveFeedback || []);
+  renderAchievements(user.achievements || []);
+  renderPerformance(user.performance || user.performanceMetrics || {});
+  renderCVSection(user);
+  renderOpenTo(user);
 }
 
-function messageStudent(){
+function setupOwnerControls(user,viewer){
+  const viewerId =
+    viewer?._id ||
+    viewer?.id ||
+    localStorage.getItem("userId");
 
-  if(!isLoggedIn()){
-    showLoginModal();
+  const profileUserId =
+    user?._id ||
+    user?.id;
+
+  const isOwner =
+    viewerId &&
+    profileUserId &&
+    String(viewerId) === String(profileUserId);
+
+  if(!isOwner) return;
+
+document.getElementById("editProfileBtn").classList.remove("hidden");
+
+if(["agent","talent"].includes(String(user.role || "").toLowerCase())){
+  document.getElementById("dashboardBtn").classList.remove("hidden");
+}else{
+  document.getElementById("dashboardBtn").classList.add("hidden");
+}
+
+  document.getElementById("followAgentBtn").classList.add("hidden");
+  document.getElementById("messageAgentBtn").classList.add("hidden");
+
+  document.getElementById("editProfileBtn").onclick = () => {
+    location.href = "profile.html";
+  };
+
+document.getElementById("dashboardBtn").onclick = () => {
+  const r = String(user.role || "").toLowerCase();
+
+  if(r === "talent"){
+    location.href = "talent.html";
     return;
   }
 
-  location.href =
-    `messages.html?user=${USER_ID}`;
-}
-
-async function followStudent(){
-
-  if(!isLoggedIn()){
-    showLoginModal();
+  if(r === "agent"){
+    location.href = "agent.html";
     return;
   }
 
-  try{
+  location.href = "home.html";
+};
+}
 
-    await fetchJSON(
-      `/api/users/${USER_ID}/follow`,
-      {
-        method:"PATCH",
-        headers:authHeaders()
+function renderStats(user,stats){
+  const completed =
+    Number(stats.completedTasks ?? user.completedTasks ?? 0);
+
+  const performance =
+    Number(stats.performanceScore ?? user.performanceScore ?? 0);
+
+  const experience =
+    Number(user.yearsOfExperience ?? user.experienceYears ?? 0);
+
+  const languageCount =
+    Array.isArray(user.languages) ? user.languages.length : 0;
+
+  document.getElementById("statTasks").textContent = completed;
+  document.getElementById("statPerformance").textContent = performance + "%";
+  document.getElementById("statExperience").textContent = experience + " yrs";
+  document.getElementById("statLanguages").textContent = languageCount;
+  document.getElementById("sideExperience").textContent = experience + " yrs";
+
+  document.getElementById("sideLanguages").textContent =
+    Array.isArray(user.languages) && user.languages.length
+      ? user.languages.join(", ")
+      : "Not added";
+}
+
+function renderServices(services){
+  const wrap = document.getElementById("servicesWrap");
+
+  if(!Array.isArray(services) || !services.length){
+    wrap.innerHTML = `<div class="empty">No services added yet.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = services.map(service=>{
+    if(typeof service === "string"){
+      return `
+        <div class="feature-card">
+          <h3>${escapeHtml(service)}</h3>
+          <p>Service added by this agent.</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="feature-card">
+        <h3>${escapeHtml(service.title || service.name || "Service")}</h3>
+        <p>${escapeHtml(service.description || "")}</p>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderAgentExperience(experience){
+  const wrap = document.getElementById("experienceTimeline");
+
+  if(!Array.isArray(experience) || !experience.length){
+    wrap.innerHTML = `<div class="empty">No experience added yet.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = experience.map(item=>`
+    <div class="timeline-item">
+      <h3>${escapeHtml(item.title || "Experience")}</h3>
+      <p>
+        ${escapeHtml(item.company || "")}
+        ${item.startDate || item.endDate ? " • " : ""}
+        ${escapeHtml(item.startDate || "")}
+        ${item.endDate ? " - " + escapeHtml(item.endDate) : ""}
+      </p>
+      ${
+        item.description
+          ? `<p style="margin-top:8px;">${escapeHtml(item.description)}</p>`
+          : ""
       }
-    );
-
-    toast("Following student");
-
-  }catch(error){
-
-    toast(
-      error.message ||
-      "Unable to follow"
-    );
-  }
-}
-  <script>
-function getSchoolName(user){
-
-  return (
-    user?.schoolId?.name ||
-    user?.schoolId?.schoolName ||
-    user?.linkedSchoolId?.name ||
-    user?.linkedSchoolId?.schoolName ||
-    user?.schoolName ||
-    "School not added yet"
-  );
+    </div>
+  `).join("");
 }
 
-function avatarUrl(user){
-
-  return (
-    user?.profileImage ||
-    user?.avatar ||
-    user?.photoURL ||
-    user?.profilePicture ||
-    FALLBACK_AVATAR
-  );
-}
-
-function bannerUrl(user){
-
-  return (
-    user?.bannerImage ||
-    user?.coverImage ||
-    ""
-  );
-}
-
-function renderMeta(user){
-
-  const meta = [];
-
-  meta.push(`<span class="pill blue">Student</span>`);
-
-  if(user?.course){
-    meta.push(`<span class="pill">${esc(user.course)}</span>`);
-  }
-
-  const school =
-    getSchoolName(user);
-
-  if(school && school !== "School not added yet"){
-    meta.push(`<span class="pill green">${esc(school)}</span>`);
-  }
-
-  if(user?.location){
-    meta.push(`<span class="pill">${esc(user.location)}</span>`);
-  }
-
-  document.getElementById("studentMeta").innerHTML =
-    meta.join("");
-}
-
-function renderArrayPills(id, items, emptyText){
-
-  const el =
-    document.getElementById(id);
+function renderPillList(containerId,items,emptyText){
+  const wrap = document.getElementById(containerId);
 
   if(!Array.isArray(items) || !items.length){
-    el.innerHTML =
-      `<div class="empty"><p>${esc(emptyText)}</p></div>`;
+    wrap.innerHTML = `<div class="empty">${escapeHtml(emptyText || "Nothing added yet.")}</div>`;
     return;
   }
 
-  el.innerHTML =
-    items
-      .map(item=>{
-        const value =
-          typeof item === "string"
-            ? item
-            : item.name || item.title || item.skill || "";
-
-        return value
-          ? `<span class="pill">${esc(value)}</span>`
-          : "";
-      })
-      .join("");
+  wrap.innerHTML = items.map(item=>`
+    <span class="skill-pill">${escapeHtml(item)}</span>
+  `).join("");
 }
 
-function renderEducation(user){
+function renderEmployerPraise(items){
+  const wrap = document.getElementById("employerPraiseWrap");
 
-  const list =
-    document.getElementById("educationList");
-
-  const education =
-    Array.isArray(user?.education)
-      ? user.education
-      : [];
-
-  if(!education.length){
-    list.innerHTML =
-      `
-        <div class="empty">
-          <h3>No education added yet</h3>
-          <p>Education details will appear here when the student updates their profile.</p>
-        </div>
-      `;
+  if(!Array.isArray(items) || !items.length){
+    wrap.innerHTML = `<div class="empty">No employer feedback yet.</div>`;
     return;
   }
 
-  list.innerHTML =
-    education.map(item=>`
-      <div class="project-card">
-        <h3>${esc(item.school || item.name || item.title || "Education")}</h3>
-        <p>
-          ${esc(item.degree || item.program || item.course || "")}
-          ${item.year ? " • " + esc(item.year) : ""}
-        </p>
-        ${
-          item.description
-            ? `<p>${esc(item.description)}</p>`
-            : ""
-        }
-      </div>
-    `).join("");
-}
-
-function renderPortfolio(user){
-
-  const list =
-    document.getElementById("projectsList");
-
-  const portfolio =
-    Array.isArray(user?.portfolio)
-      ? user.portfolio
-      : [];
-
-  if(!portfolio.length){
-    list.innerHTML =
-      `
-        <div class="empty">
-          <h3>No projects added yet</h3>
-          <p>Student class projects, portfolio links, and internship-ready work will appear here.</p>
-        </div>
-      `;
-    return;
-  }
-
-  list.innerHTML =
-    portfolio.map(item=>{
-
-      const title =
-        item.title || item.name || "Student project";
-
-      const desc =
-        item.description || item.summary || "";
-
-      const url =
-        item.url || item.link || item.projectUrl || "";
-
+  wrap.innerHTML = items.map(item=>{
+    if(typeof item === "string"){
       return `
-        <div class="project-card">
-          <h3>${esc(title)}</h3>
-          ${
-            desc
-              ? `<p>${esc(desc)}</p>`
-              : ""
-          }
-          ${
-            url
-              ? `
-                <div class="project-actions">
-                  <button class="btn" onclick="window.open('${esc(url)}','_blank')">
-                    View project
-                  </button>
-                </div>
-              `
-              : ""
-          }
+        <div class="timeline-item">
+          <h3>Employer Feedback</h3>
+          <p>${escapeHtml(item)}</p>
         </div>
       `;
-    }).join("");
-}
+    }
 
-function renderCertifications(user){
-
-  const list =
-    document.getElementById("certificationsList");
-
-  const certifications =
-    Array.isArray(user?.certifications)
-      ? user.certifications
-      : [];
-
-  const achievements =
-    Array.isArray(user?.achievements)
-      ? user.achievements
-      : [];
-
-  const all =
-    [
-      ...certifications.map(item=>({
-        ...(
-          typeof item === "string"
-            ? { title:item }
-            : item
-        ),
-        type:"Certification"
-      })),
-      ...achievements.map(item=>({
-        ...(
-          typeof item === "string"
-            ? { title:item }
-            : item
-        ),
-        type:"Achievement"
-      }))
-    ];
-
-  if(!all.length){
-    list.innerHTML =
-      `
-        <div class="empty">
-          <h3>No certifications or achievements yet</h3>
-          <p>Certificates, awards, and training achievements will appear here.</p>
-        </div>
-      `;
-    return;
-  }
-
-  list.innerHTML =
-    all.map(item=>`
-      <div class="project-card">
-        <h3>${esc(item.title || item.name || item.type)}</h3>
-        <p>
-          ${esc(item.type)}
-          ${
-            item.issuer
-              ? " • " + esc(item.issuer)
-              : ""
-          }
-          ${
-            item.year
-              ? " • " + esc(item.year)
-              : ""
-          }
-        </p>
-        ${
-          item.description
-            ? `<p>${esc(item.description)}</p>`
-            : ""
-        }
+    return `
+      <div class="timeline-item">
+        <h3>${escapeHtml(item.title || item.category || "Employer Feedback")}</h3>
+        <p>${escapeHtml(item.message || item.feedback || item.description || "")}</p>
       </div>
-    `).join("");
+    `;
+  }).join("");
 }
 
-function renderCV(user){
+function renderAchievements(items){
+  const wrap = document.getElementById("achievementsWrap");
 
-  const box =
-    document.getElementById("cvContent");
-
-  if(!user?.showCV || !user?.cvUrl){
-    box.innerHTML =
-      `
-        <div class="empty">
-          <h3>CV is private</h3>
-          <p>This student has not made their CV public.</p>
-        </div>
-      `;
+  if(!Array.isArray(items) || !items.length){
+    wrap.innerHTML = `<div class="empty">No achievements added yet.</div>`;
     return;
   }
 
-  box.innerHTML =
-    `
+  wrap.innerHTML = items.map(item=>{
+    if(typeof item === "string"){
+      return `
+        <div class="timeline-item">
+          <h3>${escapeHtml(item)}</h3>
+          <p>Achievement added to this profile.</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="timeline-item">
+        <h3>${escapeHtml(item.title || "Achievement")}</h3>
+        <p>${escapeHtml(item.description || item.note || "")}</p>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderPerformance(metrics){
+  document.getElementById("metricCompletion").textContent =
+    metrics.taskCompletion !== undefined ? metrics.taskCompletion + "%" : "0%";
+
+  document.getElementById("metricAttendance").textContent =
+    metrics.attendance !== undefined ? metrics.attendance + "%" : "Not tracked";
+
+  document.getElementById("metricCSAT").textContent =
+    metrics.csat !== undefined ? metrics.csat + "/5" : "Not rated";
+
+  document.getElementById("metricResponse").textContent =
+    metrics.responseTime || "Not tracked";
+}
+
+function renderCVSection(user){
+
+  const card = document.getElementById("cvCard");
+  const wrap = document.getElementById("cvPreviewWrap");
+
+  if(!card || !wrap) return;
+
+  if(!user.cvUrl || user.showCV === false){
+    card.classList.add("hidden");
+    return;
+  }
+
+  card.classList.remove("hidden");
+
+  const userId = user._id || user.id || profileId;
+
+  const previewUrl =
+    `${API}/api/users/${userId}/cv/inline`;
+
+  const originalUrl =
+    String(user.cvUrl);
+
+  wrap.innerHTML = `
+    <div
+      style="
+        border:1px solid #e5e7eb;
+        border-radius:14px;
+        overflow:hidden;
+        background:#fff;
+      "
+    >
       <iframe
-        class="cv-frame"
-        src="${esc(user.cvUrl)}"
-        title="Student CV"
+        src="${previewUrl}"
+        title="CV Preview"
+        style="
+          width:100%;
+          height:150px;
+          border:0;
+          display:block;
+          background:#fff;
+        "
       ></iframe>
 
-      <div style="margin-top:12px;">
-        <button
-          class="btn primary"
-          onclick="window.open('${esc(user.cvUrl)}','_blank')"
+      <div
+        style="
+          padding:10px;
+          border-top:1px solid #f1f5f9;
+          display:flex;
+          justify-content:center;
+          background:#fff;
+        "
+      >
+        <a
+          href="${previewUrl}"
+          target="_blank"
+          rel="noopener"
+          class="pill-btn primary"
+          style="min-width:120px;text-align:center;"
         >
-          Open CV
-        </button>
+          View CV
+        </a>
       </div>
-    `;
+    </div>
+  `;
 }
 
-function renderPosts(posts, user){
+function renderOpenTo(user){
+  const wrap = document.getElementById("openToWrap");
 
-  const list =
-    document.getElementById("postsList");
+  const items = [
+    user.preferredRole,
+    user.employmentType,
+    user.workSetup || user.workPreference,
+    user.preferredShift
+  ].filter(Boolean);
 
-  if(!Array.isArray(posts) || !posts.length){
-    list.innerHTML =
-      `
-        <div class="empty">
-          <h3>No public posts yet</h3>
-          <p>Student posts and learning updates will appear here.</p>
-        </div>
-      `;
+  if(!items.length){
+    wrap.innerHTML = `<div class="empty">No work preferences added yet.</div>`;
     return;
   }
 
-  list.innerHTML =
-    posts.map(post=>`
-      <article class="post-card">
-
-        <div class="post-top">
-          <img
-            class="post-avatar"
-            src="${esc(avatarUrl(user))}"
-            alt=""
-          >
-
-          <div>
-            <div class="post-name">
-              ${esc(user?.name || "Student")}
-            </div>
-
-            <div class="post-date">
-              ${post.createdAt
-                ? new Date(post.createdAt).toLocaleDateString()
-                : "AIFT post"
-              }
-            </div>
-          </div>
-        </div>
-
-        ${
-          post.text
-            ? `<div class="post-text">${esc(post.text)}</div>`
-            : ""
-        }
-
-      </article>
-    `).join("");
+  wrap.innerHTML = items.map(item=>`
+    <span class="skill-pill">${escapeHtml(item)}</span>
+  `).join("");
 }
 
-function renderStudent(user, posts){
+document.getElementById("messageAgentBtn").addEventListener("click",()=>{
+  if(!profileId) return;
 
-  document.getElementById("avatar").src =
-    avatarUrl(user);
-
-  if(bannerUrl(user)){
-    document.getElementById("banner").style.backgroundImage =
-      `linear-gradient(135deg,rgba(10,102,194,.14),rgba(255,255,255,.05)),url('${bannerUrl(user)}')`;
+  if(!token){
+    location.href = "login.html";
+    return;
   }
 
-  document.getElementById("studentName").textContent =
-    user?.name || "AIFT Student";
+  location.href = `messages.html?user=${profileId}`;
+});
 
-  document.getElementById("studentHeadline").textContent =
-    user?.headline ||
-    user?.bio ||
-    "Student preparing for internships, part-time work, and future career opportunities.";
+document.getElementById("shareAgentBtn").addEventListener("click",async()=>{
+  try{
+    await navigator.clipboard.writeText(location.href);
+    alert("Profile link copied");
+  }catch{
+    alert("Copy this profile link from your browser.");
+  }
+});
 
-  renderMeta(user);
+document.getElementById("followAgentBtn").addEventListener("click",async()=>{
+  if(!profileId || !token){
+    location.href = "login.html";
+    return;
+  }
 
-  document.getElementById("aboutContent").textContent =
-    user?.bio ||
-    "This student has not added an about section yet.";
+  try{
+    const res = await fetch(`${API}/api/users/${profileId}/follow`,{
+      method:"PATCH",
+      headers:authHeaders()
+    });
 
-  document.getElementById("courseText").textContent =
-    user?.course || "Not added yet";
+    const data = await res.json();
 
-  document.getElementById("schoolText").textContent =
-    getSchoolName(user);
+    if(!res.ok){
+      throw new Error(data.message || "Follow failed");
+    }
 
-  document.getElementById("careerInterestText").textContent =
-    user?.careerInterest ||
-    user?.workPreference ||
-    "Open to internships, part-time jobs, entry-level roles, and career training.";
+    document.getElementById("followAgentBtn").textContent =
+      data.following ? "Following" : "Follow";
 
-  document.getElementById("availabilityText").textContent =
-    user?.availability ||
-    "Not added yet";
+  }catch(err){
+    alert(err.message);
+  }
+});
 
-  renderArrayPills(
-    "skillsList",
-    user?.skills,
-    "No skills added yet."
-  );
+function mountStudentFeed(){
+  if(typeof AIFTFeed === "undefined") return;
 
-  renderArrayPills(
-    "languagesList",
-    user?.languages,
-    "No languages added yet."
-  );
-
-  renderEducation(user);
-  renderPortfolio(user);
-  renderCertifications(user);
-  renderCV(user);
-  renderPosts(posts,user);
-
-  const score =
-    profileScore(user);
-
-  document.getElementById("readinessScore").textContent =
-    score + "%";
-
-  document.getElementById("readinessBar").style.width =
-    score + "%";
-
-  document.getElementById("readinessText").textContent =
-    score >= 80
-      ? "This student profile looks strong for internships and entry-level opportunities."
-      : score >= 50
-        ? "This student has started building a career-ready profile."
-        : "This student can improve their profile by adding skills, education, projects, and CV.";
+  AIFTFeed.mount("studentFeedMount",{
+    mode:"profile",
+    authorId:profileId,
+    showComposer:false,
+    infiniteScroll:true,
+    realtime:true
+  });
 }
 
-function renderMessage(title,message){
+async function loadPerformance(){
+  if(!token || !profileId) return;
 
-  document.querySelector(".layout").innerHTML =
-    `
-      <section class="main-col">
-        <article class="card empty">
-          <h3>${esc(title)}</h3>
-          <p>${esc(message)}</p>
-        </article>
-      </section>
-    `;
+  try{
+    const [tasksRes,sessionsRes] = await Promise.allSettled([
+      fetch(`${API}/api/work-tasks`,{headers:authHeaders()}),
+      fetch(`${API}/api/agent-sessions/me`,{headers:authHeaders()})
+    ]);
+
+    let tasks = [];
+    let sessions = [];
+
+    if(tasksRes.status === "fulfilled" && tasksRes.value.ok){
+      tasks = await tasksRes.value.json();
+    }
+
+    if(sessionsRes.status === "fulfilled" && sessionsRes.value.ok){
+      sessions = await sessionsRes.value.json();
+    }
+
+    if(Array.isArray(tasks)){
+      const total = tasks.length;
+      const done = tasks.filter(t=>t.status === "done").length;
+      const completion = total ? Math.round((done / total) * 100) : 0;
+
+      document.getElementById("statTasks").textContent = done;
+      document.getElementById("metricCompletion").textContent = completion + "%";
+
+      if(completion){
+        document.getElementById("statPerformance").textContent = completion + "%";
+      }
+    }
+
+    if(Array.isArray(sessions)){
+      document.getElementById("metricAttendance").textContent =
+        sessions.length ? "Tracked" : "Not tracked";
+    }
+
+  }catch(err){
+    console.warn("Performance metrics not available:",err.message);
+  }
 }
 
 async function init(){
-
-  if(!USER_ID){
-    renderMessage(
-      "Student not found",
-      "Missing student profile ID."
-    );
-    return;
-  }
-
   try{
-
-    const data =
-      await fetchJSON(
-        `/api/users/${USER_ID}/public`
-      );
-
-    const user =
-      data.user || data.profile || data;
-
-    const posts =
-      data.posts || [];
-
-    if(user?.isPublic === false){
-      renderMessage(
-        "This profile is private",
-        "This student has chosen to keep their public profile private."
-      );
-      return;
+    if(!profileId){
+      throw new Error("Missing student profile id.");
     }
 
-    if(String(user?.role || "").toLowerCase() !== "student"){
-      renderMessage(
-        "This is not a student profile",
-        "The profile you opened does not belong to a student account."
-      );
-      return;
-    }
+    await fetchViewer();
+    await fetchProfile();
 
-    state.profile =
-      user;
+    protectStudentProfile();
+    renderProfile();
 
-    state.posts =
-      posts;
+    await loadPerformance();
+    mountStudentFeed();
 
-    renderStudent(user,posts);
+    document.body.classList.add("loaded");
 
-  }catch(error){
-
-    renderMessage(
-      "Unable to load student profile",
-      error.message || "Something went wrong."
-    );
+  }catch(err){
+    console.error(err);
+    showState("Unable to load student profile",err.message || "Something went wrong.");
   }
 }
 
-document
-  .getElementById("loginModal")
-  ?.addEventListener("click",event=>{
-    if(event.target.id === "loginModal"){
-      closeLoginModal();
-    }
+document.addEventListener("error",e=>{
+  const target = e.target;
+
+  if(target.tagName === "IMG"){
+    target.src = FALLBACK_AVATAR;
+  }
+},true);
+
+try{
+  const socket = io(API,{
+    transports:["websocket","polling"]
   });
 
-init();
+  socket.on("connect",()=>{
+    console.log("Agent public socket connected");
+  });
+}catch(err){
+  console.warn("Socket connection failed:",err);
+}
 
+window.AIFTAgentPublic = {
+  refresh(){
+    init();
+  },
+  activateTab(tab){
+    activateTab(tab);
+  }
+};
+
+init();
 </script>
+
+<script src="feed.js"></script>
 
 </body>
 </html>
