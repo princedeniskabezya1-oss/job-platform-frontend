@@ -1983,7 +1983,7 @@ async function mountGuestFeedPreview(){
   `;
 
   try{
-    const res = await fetch(API + "/api/posts?limit=10");
+    const res = await fetch(API + "/api/posts/public?limit=10");
 
     if(!res.ok){
       throw new Error("Guest feed is blocked by backend.");
@@ -2008,7 +2008,12 @@ async function mountGuestFeedPreview(){
       const author = post.author || {};
       const name = author.companyName || author.schoolName || author.name || "AIFT Member";
       const avatar = author.profileImage || FALLBACK_AVATAR;
-      const media = post.mediaUrl || post.image || post.video || "";
+      const media =
+  post.mediaUrl ||
+  post.media?.[0]?.url ||
+  post.image ||
+  post.video ||
+  "";
 
       return `
         <article class="aift-post-card card" style="margin-bottom:12px;overflow:hidden;">
