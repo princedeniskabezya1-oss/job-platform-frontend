@@ -1236,9 +1236,13 @@ async function loadNetwork(){
   els.resultsMeta.textContent = "Loading network...";
 
   try{
-    const users = await fetchJSON(`${API}/api/users/network`, {
-      headers: isGuest() ? {} : authHeaders()
-    });
+const networkUrl = isGuest()
+  ? `${API}/api/users/network/public`
+  : `${API}/api/users/network`;
+
+const users = await fetchJSON(networkUrl, {
+  headers: isGuest() ? {} : authHeaders()
+});
 
         const currentRole = getRole();
 
