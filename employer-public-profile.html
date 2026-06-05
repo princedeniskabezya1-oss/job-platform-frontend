@@ -366,10 +366,15 @@ a{
 
 
     <div>
-      <div class="post-filters">
-        <button class="active">Recent</button>
-        <button>Popular</button>
-      </div>
+<div class="post-filters">
+  <button id="recentPostsBtn" class="active" type="button" onclick="setPostSort('recent')">
+    Recent
+  </button>
+
+  <button id="popularPostsBtn" type="button" onclick="setPostSort('popular')">
+    Popular
+  </button>
+</div>
 
 <div id="postsList">
   <div id="employerFeedMount"></div>
@@ -1313,7 +1318,8 @@ const state = {
   people: [],
   suggestions: [],
   publicStats: {},
-  following: false
+  following: false,
+postSort: "recent"
 };
 
 const socket = io(API,{
@@ -1506,7 +1512,7 @@ async function loadCompany(){
 function mountEmployerFeed(){
   const mount = document.getElementById("employerFeedMount");
 
-  if(!mount || !state.companyId) return;
+  if(!mount || !state.companyId || !window.AIFTFeed) return;
 
   mount.innerHTML = `
     <div class="loading">
@@ -1521,8 +1527,18 @@ function mountEmployerFeed(){
     infiniteScroll: true,
     realtime: Boolean(token()),
     guestMode: !token(),
-    limit: 20
+    limit: 20,
+    sort: state.postSort
   });
+}
+
+function setPostSort(sort){
+  state.postSort = sort;
+
+  document.getElementById("recentPostsBtn")?.classList.toggle("active", sort === "recent");
+  document.getElementById("popularPostsBtn")?.classList.toggle("active", sort === "popular");
+
+  mountEmployerFeed();
 }
   
 function renderAll(){
