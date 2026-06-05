@@ -23,7 +23,8 @@ const AIFTFeed = (() => {
     visibleComments: {},
     isMobile: window.innerWidth <= 768,
     lastTapAt: 0,
-    viewedPosts: new Set()
+    viewedPosts: new Set(),
+guestMode: false
   };
 
   function getToken() {
@@ -37,12 +38,30 @@ const AIFTFeed = (() => {
     );
   }
 
-  function headers(extra = {}) {
-    return {
-      Authorization: "Bearer " + getToken(),
-      ...extra
-    };
+function headers(extra = {}) {
+  const token = getToken();
+
+  return {
+    ...(token ? { Authorization: "Bearer " + token } : {}),
+    ...extra
+  };
+}
+
+function isGuestMode(){
+  return state.guestMode || !getToken();
+}
+
+function requireMember(action = "use this feature"){
+  if(!isGuestMode()) return true;
+
+  if(typeof window.requireLogin === "function"){
+    window.requireLogin(action);
+  }else{
+    alert("Please sign in to " + action + ".");
   }
+
+  return false;
+}
 
   function esc(value) {
     return String(value ?? "")
@@ -173,9 +192,10 @@ function userAvatar(user = {}) {
     state.mode = options.mode || "home";
     state.authorId = options.authorId || null;
 state.groupId = options.groupId || null;
-    state.showComposer = options.showComposer !== false;
-    state.infiniteScroll = options.infiniteScroll !== false;
-    state.realtime = options.realtime !== false;
+state.guestMode = options.guestMode === true || !getToken();
+state.showComposer = state.guestMode ? false : options.showComposer !== false;
+state.infiniteScroll = options.infiniteScroll !== false;
+state.realtime = state.guestMode ? false : options.realtime !== false;
     state.limit = Number(options.limit || 20);
     state.skip = 0;
     state.hasMore = true;
@@ -185,12 +205,23 @@ state.groupId = options.groupId || null;
 
     if (!root()) return;
 
-    if (!getToken()) {
-      root().innerHTML = `<div class="aift-feed-empty">Please log in to view the feed.</div>`;
-      return;
-    }
+if (!getToken() && !state.guestMode) {
+  root().innerHTML = `<div class="aift-feed-empty">Please log in to view the feed.</div>`;
+  return;
+}
 
-await loadMe();
+if(state.guestMode){
+  state.me = {
+    _id: "guest",
+    name: "Guest",
+    role: "guest",
+    profileImage: DEFAULT_AVATAR,
+    following: []
+  };
+  state.meId = "guest";
+}else{
+  await loadMe();
+}
 
 renderShell();
 moveOverlaysToBody();
@@ -199,8 +230,11 @@ moveOverlaysToBody();
     if (singlePostId) {
       await loadSinglePost(singlePostId);
     } else {
-      connectSocket();
-      await loadFeed({ reset: true });
+if(!state.guestMode){
+  connectSocket();
+}
+
+await loadFeed({ reset: true });
     }
 
     window.addEventListener("resize", debounce(() => {
@@ -356,8 +390,9 @@ moveOverlaysToBody();
     }
      try {
 
-let feedUrl =
-`${API}/api/posts?skip=${state.skip}&limit=${state.limit}`;
+let feedUrl = state.guestMode
+  ? `${API}/api/posts/public?skip=${state.skip}&limit=${state.limit}`
+  : `${API}/api/posts?skip=${state.skip}&limit=${state.limit}`;
 
 if (
   state.mode === "group" &&
@@ -517,7 +552,7 @@ if (
     const commentsCount = countComments(post);
     const followed = isFollowing(author);
     const verified = isVerified(author);
-    const canManage = isMine(author._id) || isAdmin();
+    const canManage = !state.guestMode && (isMine(author._id) || isAdmin());
 
     return `
       <article class="aift-post-card" id="aift-post-${safeId(post._id)}" data-post-id="${esc(post._id)}">
@@ -535,7 +570,7 @@ if (
 
           <div class="aift-header-actions">
 ${
-  !followed
+  !state.guestMode && !followed
     ? `<button
         class="aift-follow-btn"
         id="aift-follow-${safeId(author._id)}"
@@ -640,6 +675,7 @@ ${
   }
 
 async function createPost() {
+  if(!requireMember("create posts")) return;
   const textEl = document.getElementById("aiftPostText");
   const mediaEl = document.getElementById("aiftPostMedia");
   const preview = document.getElementById("aiftComposerPreview");
@@ -712,6 +748,7 @@ async function createPost() {
   }
 }
     async function likePost(postId, silent = false) {
+  if(!requireMember("like posts")) return;
     const post = getPost(postId);
     const beforeLiked = post?.likes?.some(u => String(u?._id || u) === String(state.meId));
 
@@ -797,6 +834,7 @@ async function createPost() {
   }
 
   function openComments(postId) {
+  if(!requireMember("comment on posts")) return;
     const post = getPost(postId);
     if (!post) return;
 
@@ -1342,6 +1380,7 @@ async function createPost() {
   }
 
   async function openShare(postId) {
+  if(!requireMember("share posts")) return;
     state.activePostId = postId;
     state.selectedShareUsers = new Set();
 
@@ -1448,6 +1487,7 @@ async function createPost() {
   }
 
   async function copyPostLink(postId) {
+  if(!requireMember("share posts")) return;
     await trackShare(postId);
     const link = getPostLink(postId);
 
@@ -1460,6 +1500,7 @@ async function createPost() {
   }
 
   async function nativeShare(postId) {
+  if(!requireMember("share posts")) return;
     await trackShare(postId);
 
     const post = getPost(postId);
@@ -1515,7 +1556,8 @@ async function createPost() {
     return `${location.origin}${location.pathname}?post=${encodeURIComponent(postId)}`;
   }
 
-  function openRepost(postId) {
+ function openRepost(postId) {
+  if(!requireMember("repost")) return;
     state.repostPostId = postId;
     const textarea = document.getElementById("aiftRepostText");
     if (textarea) textarea.value = "";
@@ -1561,6 +1603,7 @@ async function createPost() {
   }
 
 async function savePost(postId) {
+  if(!requireMember("save posts")) return;
   const btn = document.getElementById(`aift-save-post-${safeId(postId)}`);
 
   try {
@@ -1650,6 +1693,7 @@ async function savePost(postId) {
   }
 
 async function toggleFollow(userId) {
+  if(!requireMember("follow people")) return;
   if (!userId || isMine(userId)) return;
 
   const btn = document.getElementById(`aift-follow-${safeId(userId)}`);
@@ -1710,6 +1754,7 @@ async function toggleFollow(userId) {
 }
 
 async function visitProfile(userId) {
+  if(!requireMember("view full profiles")) return;
   if (!userId) return;
 
   try {
