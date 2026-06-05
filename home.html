@@ -1953,19 +1953,16 @@ async function mountFeed(){
 
   const mount = document.getElementById("feedMount");
 
-  if(isGuest()){
-    await mountGuestFeedPreview();
-    return;
-  }
 
   if(window.AIFTFeed && typeof window.AIFTFeed.mount === "function"){
 
-    AIFTFeed.mount("feedMount", {
-      mode: "home",
-      showComposer: true,
-      infiniteScroll: true,
-      realtime: true
-    });
+AIFTFeed.mount("feedMount", {
+  mode: "home",
+  showComposer: !isGuest(),
+  infiniteScroll: true,
+  realtime: !isGuest(),
+  guestMode: isGuest()
+});
 
     return;
   }
