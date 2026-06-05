@@ -1406,10 +1406,10 @@ async function loadMe(){
     function getRoleLabel(roleValue = ""){
   const r = String(roleValue).toLowerCase();
 
-  if(r === "employer") return "Hiring Company";
-  if(r === "school") return "School";
-  if(r === "agent") return "Recruiter";
-  if(r === "talent") return "Professional";
+if(r === "employer") return "Employer";
+if(r === "school") return "School";
+if(r === "agent") return "Recruiter";
+if(r === "talent") return "Job Seeker";
   if(r === "teacher") return "Teacher";
   if(r === "student") return "Student";
   if(r === "admin") return "Admin";
@@ -1954,7 +1954,7 @@ async function mountFeed(){
     return;
   }
 
-  if(AIFTFeed && typeof AIFTFeed.mount === "function"){
+  if(window.AIFTFeed && typeof window.AIFTFeed.mount === "function"){
 
     AIFTFeed.mount("feedMount", {
       mode: "home",
@@ -1973,20 +1973,23 @@ async function mountFeed(){
     </div>
   `;
 }
-  async function mountGuestFeedPreview(){
+async function mountGuestFeedPreview(){
   const mount = document.getElementById("feedMount");
 
   mount.innerHTML = `
-    <div class="feed-skeleton">
-      <div class="feed-skeleton-line large"></div>
-      <div class="feed-skeleton-line medium"></div>
-      <div class="feed-skeleton-media"></div>
+    <div class="card" style="padding:24px;text-align:center;color:#666;font-size:14px;">
+      Loading AIFT public preview...
     </div>
   `;
 
   try{
     const res = await fetch(API + "/api/posts?limit=10");
-    const data = res.ok ? await res.json() : [];
+
+    if(!res.ok){
+      throw new Error("Guest feed is blocked by backend.");
+    }
+
+    const data = await res.json();
 
     const posts = Array.isArray(data)
       ? data
@@ -1994,7 +1997,7 @@ async function mountFeed(){
 
     if(!posts.length){
       mount.innerHTML = `
-        <div class="card" style="padding:24px;text-align:center;color:#666;">
+        <div class="card" style="padding:24px;text-align:center;color:#666;font-size:14px;">
           No public posts available yet.
         </div>
       `;
@@ -2005,10 +2008,11 @@ async function mountFeed(){
       const author = post.author || {};
       const name = author.companyName || author.schoolName || author.name || "AIFT Member";
       const avatar = author.profileImage || FALLBACK_AVATAR;
+      const media = post.mediaUrl || post.image || post.video || "";
 
       return `
-        <article class="aift-post-card card">
-          <div class="aift-post-header" style="display:flex;gap:10px;align-items:center;padding:12px 14px 8px;">
+        <article class="aift-post-card card" style="margin-bottom:12px;overflow:hidden;">
+          <div style="display:flex;gap:10px;align-items:center;padding:14px;">
             <img src="${escapeHtml(avatar)}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;">
             <div>
               <strong style="font-size:14px;">${escapeHtml(name)}</strong>
@@ -2016,20 +2020,20 @@ async function mountFeed(){
             </div>
           </div>
 
-          <div class="aift-post-text">
-            ${escapeHtml(post.text || "")}
-          </div>
+          ${post.text ? `
+            <div style="padding:0 14px 12px;font-size:14px;line-height:1.55;color:#222;">
+              ${escapeHtml(post.text)}
+            </div>
+          ` : ""}
 
-          ${
-            post.mediaUrl
-              ? `<img src="${escapeHtml(post.mediaUrl)}" class="aift-post-media" style="width:100%;max-height:620px;object-fit:cover;">`
-              : ""
-          }
+          ${media ? `
+            <img src="${escapeHtml(media)}" style="width:100%;max-height:520px;object-fit:cover;">
+          ` : ""}
 
-          <div class="aift-post-actions" style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #eee;">
-            <button onclick="requireLogin('like posts')">Like</button>
-            <button onclick="requireLogin('comment on posts')">Comment</button>
-            <button onclick="requireLogin('share posts')">Share</button>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #eee;">
+            <button onclick="requireLogin('like posts')" style="border:0;background:#fff;padding:12px;font-weight:800;color:#666;">Like</button>
+            <button onclick="requireLogin('comment on posts')" style="border:0;background:#fff;padding:12px;font-weight:800;color:#666;">Comment</button>
+            <button onclick="requireLogin('share posts')" style="border:0;background:#fff;padding:12px;font-weight:800;color:#666;">Share</button>
           </div>
         </article>
       `;
@@ -2037,8 +2041,13 @@ async function mountFeed(){
 
   }catch(err){
     mount.innerHTML = `
-      <div class="card" style="padding:24px;text-align:center;color:#666;">
-        Public preview could not load. Please sign in to view the full feed.
+      <div class="card" style="padding:24px;color:#666;font-size:14px;line-height:1.6;">
+        Guest feed preview could not load because the backend is blocking public post access.
+        <br><br>
+        Backend needed:
+        <strong>GET /api/posts/public</strong>
+        or allow public read-only access to
+        <strong>GET /api/posts?limit=10</strong>.
       </div>
     `;
   }
