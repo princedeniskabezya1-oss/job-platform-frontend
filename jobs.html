@@ -895,13 +895,20 @@ color:#0f172a;
       };
     }
 
-    function requireAuth(){
-      if(!getToken()){
-        location.href = "login.html";
-        return false;
-      }
-      return true;
-    }
+function isGuest(){
+  return !getToken();
+}
+
+function requireAuth(){
+  return true;
+}
+
+function requireLogin(action = "use this feature"){
+  if(!isGuest()) return true;
+
+  showGuestModal(action);
+  return false;
+}
 
     function escapeHTML(value){
       return String(value ?? "")
@@ -1037,9 +1044,9 @@ return "public-profile.html?id=" + encodeURIComponent(id);
       els.resultsMeta.textContent = "Loading jobs...";
 
       try{
-        const jobs = await fetchJSON(`${API}/api/jobs`, {
-          headers: authHeaders()
-        });
+const jobs = await fetchJSON(`${API}/api/jobs`, {
+  headers: isGuest() ? {} : authHeaders()
+});
 
         state.jobs = safeArray(jobs).filter(job => job && job._id);
         applyFilters();
@@ -1272,8 +1279,10 @@ return "public-profile.html?id=" + encodeURIComponent(id);
       `;
     }
 
-    async function saveJob(jobId){
-      if(!["talent","agent"].includes(getRole())){
+async function saveJob(jobId){
+  if(!requireLogin("save jobs")) return;
+
+  if(!["talent","agent"].includes(getRole())){
         showToast("Only talents or agents can save jobs.");
         return;
       }
@@ -1305,8 +1314,10 @@ return "public-profile.html?id=" + encodeURIComponent(id);
       }
     }
 
-    async function applyToJob(jobId){
-      const job = state.jobs.find(j => String(j._id) === String(jobId));
+async function applyToJob(jobId){
+  if(!requireLogin("apply for jobs")) return;
+
+  const job = state.jobs.find(j => String(j._id) === String(jobId));
 
       try{
         await fetchJSON(`${API}/api/jobs/${jobId}/click-apply`, {
@@ -1327,8 +1338,10 @@ if(role === "talent" || role === "agent" || role === "school"){
 showToast("Only talents, agents, and students can apply.");
     }
 
-    function openEmployer(jobId){
-      const job = state.jobs.find(j => String(j._id) === String(jobId));
+function openEmployer(jobId){
+  if(!requireLogin("view employer profiles")) return;
+
+  const job = state.jobs.find(j => String(j._id) === String(jobId));
       if(!job) return;
       const url = employerProfileUrl(job);
       if(url === "#"){
@@ -1379,14 +1392,58 @@ showToast("Only talents, agents, and students can apply.");
       });
     }
 
-    async function init(){
-      if(!requireAuth()) return;
-      bindEvents();
-      await loadMe();
-      await loadJobs();
-    }
+async function init(){
+  bindEvents();
+
+  if(!isGuest()){
+    await loadMe();
+  }else{
+    state.me = { role:"guest" };
+  }
+
+  await loadJobs();
+}
+    function showGuestModal(action){
+  const modal = document.getElementById("guestModal");
+  const text = document.getElementById("guestModalText");
+
+  if(text){
+    text.textContent = "Create your free AIFT account to " + action + ".";
+  }
+
+  modal?.classList.add("show");
+}
+
+function closeGuestModal(){
+  document.getElementById("guestModal")?.classList.remove("show");
+}
 
     init();
   </script>
+  <div id="guestModal" class="guest-gate-backdrop">
+  <div class="guest-gate-card">
+    <img src="images/aift-logo.png" class="guest-gate-logo" alt="AIFT">
+
+    <h2>Join AIFT</h2>
+
+    <p id="guestModalText">
+      Create your free account to continue.
+    </p>
+
+    <div class="guest-gate-actions">
+      <button class="gate-btn primary" onclick="location.href='login.html'">
+        Sign In
+      </button>
+
+      <button class="gate-btn" onclick="location.href='register.html'">
+        Create Account
+      </button>
+    </div>
+
+    <button class="gate-close" onclick="closeGuestModal()">
+      Maybe later
+    </button>
+  </div>
+</div>
 </body>
 </html>
