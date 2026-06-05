@@ -618,10 +618,88 @@ color:#0f172a;
       max-width:330px;
     }
 
-    .toast.show{
-      transform:translateY(0);
-      opacity:1;
-    }
+.toast.show{
+  transform:translateY(0);
+  opacity:1;
+}
+
+.guest-gate-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.48);
+  backdrop-filter:blur(6px);
+  z-index:99999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+
+.guest-gate-backdrop.show{
+  display:flex;
+}
+
+.guest-gate-card{
+  width:min(460px,100%);
+  background:#fff;
+  border-radius:26px;
+  padding:28px;
+  box-shadow:0 30px 80px rgba(15,23,42,.26);
+  text-align:center;
+  border:1px solid #e5e7eb;
+}
+
+.guest-gate-logo{
+  width:145px;
+  height:54px;
+  object-fit:contain;
+  margin:0 auto 12px;
+}
+
+.guest-gate-card h2{
+  margin:0;
+  font-size:25px;
+  line-height:1.2;
+  font-weight:900;
+  color:#111827;
+}
+
+.guest-gate-card p{
+  margin:12px 0 22px;
+  color:#64748b;
+  font-size:14px;
+  line-height:1.65;
+}
+
+.guest-gate-actions{
+  display:grid;
+  gap:10px;
+}
+
+.gate-btn{
+  height:46px;
+  border-radius:999px;
+  border:1px solid #2563eb;
+  background:#fff;
+  color:#2563eb;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.gate-btn.primary{
+  background:#2563eb;
+  color:#fff;
+}
+
+.gate-close{
+  margin-top:14px;
+  border:0;
+  background:transparent;
+  color:#64748b;
+  font-weight:800;
+  cursor:pointer;
+}
+    
 
     @media(max-width:1150px){
       .search-grid{
@@ -1193,19 +1271,19 @@ const jobs = await fetchJSON(`${API}/api/jobs`, {
       renderList();
       renderDetail(job);
 
-      if(shouldTrack && !state.viewedIds.has(String(jobId))){
-        state.viewedIds.add(String(jobId));
-        try{
-          const data = await fetchJSON(`${API}/api/jobs/${jobId}/view`, {
-            method:"PATCH",
-            headers:authHeaders({ "Content-Type":"application/json" })
-          });
-          job.viewsCount = data.viewsCount;
-          renderDetail(job);
-        }catch(err){
-          console.warn("JOB VIEW TRACK FAILED:", err.message);
-        }
-      }
+if(!isGuest() && shouldTrack && !state.viewedIds.has(String(jobId))){
+  state.viewedIds.add(String(jobId));
+  try{
+    const data = await fetchJSON(`${API}/api/jobs/${jobId}/view`, {
+      method:"PATCH",
+      headers:authHeaders({ "Content-Type":"application/json" })
+    });
+    job.viewsCount = data.viewsCount;
+    renderDetail(job);
+  }catch(err){
+    console.warn("JOB VIEW TRACK FAILED:", err.message);
+  }
+}
     }
 
     function renderDetail(job){
