@@ -709,17 +709,17 @@ a{text-decoration:none;color:inherit}
             <div class="highlight-row">
 
               <div class="highlight-box">
-                <span>Completed Tasks</span>
+                <span>Projects</span>
                 <strong id="statTasks">0</strong>
               </div>
 
               <div class="highlight-box">
-                <span>Performance</span>
+                <span>Progress</span>
                 <strong id="statPerformance">0%</strong>
               </div>
 
               <div class="highlight-box">
-                <span>Experience</span>
+                <span>Study Level</span>
                 <strong id="statExperience">0 yrs</strong>
               </div>
 
@@ -770,47 +770,47 @@ a{text-decoration:none;color:inherit}
           <div class="grid-2">
 
             <div class="card content-card">
-              <h2>Services</h2>
+              <h2>Learning Interests</h2>
 
               <div class="grid-2" id="servicesWrap">
                 <div class="empty">
-                  No services added yet.
+                  No learning interests added yet.
                 </div>
               </div>
             </div>
 
             <div class="card content-card">
-              <h2>Work Information</h2>
+              <h2>Academic Information</h2>
 
               <div class="grid-2">
 
                 <div class="info-box">
-                  <span>Current Company</span>
+                  <span>School</span>
                   <strong id="infoCompany">Not added</strong>
                 </div>
 
                 <div class="info-box">
-                  <span>Role</span>
+                  <span>Student Type</span>
                   <strong id="infoRole">Not added</strong>
                 </div>
 
                 <div class="info-box">
-                  <span>Employment Type</span>
+                  <span>Course / Program</span>
                   <strong id="infoEmployment">Not added</strong>
                 </div>
 
                 <div class="info-box">
-                  <span>Availability</span>
+                  <span>Student Status</span>
                   <strong id="infoAvailability">Not added</strong>
                 </div>
 
                 <div class="info-box">
-                  <span>Shift</span>
+                  <span>Year Level</span>
                   <strong id="infoShift">Not added</strong>
                 </div>
 
                 <div class="info-box">
-                  <span>Work Setup</span>
+                  <span>Learning Mode</span>
                   <strong id="infoSetup">Not added</strong>
                 </div>
 
@@ -967,12 +967,12 @@ a{text-decoration:none;color:inherit}
           </div>
 
           <div class="side-stat">
-            <span>Company</span>
+            <span>School</span>
             <strong id="sideCompany">Not added</strong>
           </div>
 
           <div class="side-stat">
-            <span>Experience</span>
+            <span>Study Level</span>
             <strong id="sideExperience">0 yrs</strong>
           </div>
 
@@ -983,11 +983,11 @@ a{text-decoration:none;color:inherit}
         </div>
 
         <div class="card side-card">
-          <h3>Why Employers Like This Profile</h3>
+          <h3>Student Highlights</h3>
 
           <div class="timeline" id="employerPraiseWrap">
             <div class="empty">
-              No employer feedback yet.
+              No student highlights added yet.
             </div>
           </div>
         </div>
@@ -1003,11 +1003,11 @@ a{text-decoration:none;color:inherit}
         </div>
 
         <div class="card side-card">
-          <h3>Open to</h3>
+          <h3>Open to Learning</h3>
 
           <div class="pill-list" id="openToWrap">
             <div class="empty">
-              No work preferences added yet.
+              No learning preferences added yet.
             </div>
           </div>
         </div>
@@ -1254,12 +1254,14 @@ function renderProfile(){
   user.profession ||
   "Student";
 
-  const company =
-    user.companyName ||
-    user.companyId?.companyName ||
-    user.companyId?.name ||
-    user.company ||
-    "Not added";
+const school =
+  user.schoolName ||
+  user.schoolId?.schoolName ||
+  user.schoolId?.name ||
+  user.linkedSchoolId?.schoolName ||
+  user.linkedSchoolId?.name ||
+  user.school ||
+  "Not added";
 
   const location =
     user.location ||
@@ -1294,25 +1296,25 @@ if(agentStoryEl){
       ? escapeHtml(story)
       : `<span style="color:#777;">No about section added yet.</span>`;
 
-  document.getElementById("infoCompany").textContent = company;
-  document.getElementById("sideCompany").textContent = company;
+document.getElementById("infoCompany").textContent = school;
+document.getElementById("sideCompany").textContent = school;
   document.getElementById("sideLocation").textContent = location;
   document.getElementById("sideStatus").textContent = availability;
 
 document.getElementById("infoRole").textContent =
-  user.preferredRole || publicRoleLabel(user.role) || "Not added";
+  "Student";
 
-  document.getElementById("infoEmployment").textContent =
-    user.employmentType || "Not added";
+document.getElementById("infoEmployment").textContent =
+  user.course || user.program || user.major || "Not added";
 
-  document.getElementById("infoAvailability").textContent =
-    user.availability || "Not added";
+document.getElementById("infoAvailability").textContent =
+  user.studentStatus || user.availability || "Active student";
 
-  document.getElementById("infoShift").textContent =
-    user.preferredShift || "Not added";
+document.getElementById("infoShift").textContent =
+  user.yearLevel || user.gradeLevel || user.level || "Not added";
 
-  document.getElementById("infoSetup").textContent =
-    user.workSetup || user.workPreference || "Not added";
+document.getElementById("infoSetup").textContent =
+  user.learningMode || user.studyMode || "Not added";
 
   document.getElementById("verifiedBadge").classList.toggle(
     "hidden",
@@ -1326,7 +1328,7 @@ document.getElementById("infoRole").textContent =
 
   setupOwnerControls(user,viewer);
   renderStats(user,stats);
-  renderServices(user.services || []);
+  renderServices(user.learningInterests || user.subjects || user.services || []);
   renderAgentExperience(user.experience || []);
   renderPillList("skillsWrap",user.skills || [],"No skills added yet.");
   renderPillList("languagesWrap",user.languages || [],"No languages added yet.");
@@ -1417,7 +1419,7 @@ function renderServices(services){
   const wrap = document.getElementById("servicesWrap");
 
   if(!Array.isArray(services) || !services.length){
-    wrap.innerHTML = `<div class="empty">No services added yet.</div>`;
+    wrap.innerHTML = `<div class="empty">No learning interests added yet.</div>`;
     return;
   }
 
@@ -1483,7 +1485,7 @@ function renderEmployerPraise(items){
   const wrap = document.getElementById("employerPraiseWrap");
 
   if(!Array.isArray(items) || !items.length){
-    wrap.innerHTML = `<div class="empty">No employer feedback yet.</div>`;
+    wrap.innerHTML = `<div class="empty">No student highlights added yet.</div>`;
     return;
   }
 
@@ -1624,7 +1626,7 @@ function renderOpenTo(user){
   ].filter(Boolean);
 
   if(!items.length){
-    wrap.innerHTML = `<div class="empty">No work preferences added yet.</div>`;
+    wrap.innerHTML = `<div class="empty">No learning preferences added yet.</div>`;
     return;
   }
 
