@@ -705,6 +705,82 @@ color:#0f172a;
       transform:translateY(0);
       opacity:1;
     }
+    .guest-gate-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.48);
+  backdrop-filter:blur(6px);
+  z-index:99999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+
+.guest-gate-backdrop.show{
+  display:flex;
+}
+
+.guest-gate-card{
+  width:min(460px,100%);
+  background:#fff;
+  border-radius:26px;
+  padding:28px;
+  box-shadow:0 30px 80px rgba(15,23,42,.26);
+  text-align:center;
+  border:1px solid #e5e7eb;
+}
+
+.guest-gate-logo{
+  width:145px;
+  height:54px;
+  object-fit:contain;
+  margin:0 auto 12px;
+}
+
+.guest-gate-card h2{
+  margin:0;
+  font-size:25px;
+  line-height:1.2;
+  font-weight:900;
+  color:#111827;
+}
+
+.guest-gate-card p{
+  margin:12px 0 22px;
+  color:#64748b;
+  font-size:14px;
+  line-height:1.65;
+}
+
+.guest-gate-actions{
+  display:grid;
+  gap:10px;
+}
+
+.gate-btn{
+  height:46px;
+  border-radius:999px;
+  border:1px solid #2563eb;
+  background:#fff;
+  color:#2563eb;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.gate-btn.primary{
+  background:#2563eb;
+  color:#fff;
+}
+
+.gate-close{
+  margin-top:14px;
+  border:0;
+  background:transparent;
+  color:#64748b;
+  font-weight:800;
+  cursor:pointer;
+}
 
     @media(max-width:1180px){
       .layout{grid-template-columns:260px minmax(0,1fr)}
@@ -985,13 +1061,20 @@ color:#0f172a;
       };
     }
 
-    function requireAuth(){
-      if(!getToken()){
-        location.href = "login.html";
-        return false;
-      }
-      return true;
-    }
+function isGuest(){
+  return !getToken();
+}
+
+function requireAuth(){
+  return true;
+}
+
+function requireLogin(action = "use this feature"){
+  if(!isGuest()) return true;
+
+  showGuestModal(action);
+  return false;
+}
 
     function escapeHTML(value){
       return String(value ?? "")
@@ -1066,10 +1149,12 @@ function profileUrl(user){
     }
 
 function goMe(){
+  if(!requireLogin("view your profile")) return;
+
   const id = state.me?._id || localStorage.getItem("userId");
 
   if(!id){
-    location.href = "login.html";
+    showGuestModal("view your profile");
     return;
   }
 
@@ -1144,16 +1229,16 @@ function goMe(){
       }
     }
 
-    async function loadNetwork(){
-      state.loading = true;
-      els.grid.innerHTML = "";
-      setState("loading", "Loading network", "Please wait while AIFT loads members from your backend.");
-      els.resultsMeta.textContent = "Loading network...";
+async function loadNetwork(){
+  state.loading = true;
+  els.grid.innerHTML = "";
+  setState("loading", "Loading network", "Please wait while AIFT loads members from your backend.");
+  els.resultsMeta.textContent = "Loading network...";
 
-      try{
-        const users = await fetchJSON(`${API}/api/users/network`, {
-          headers: authHeaders()
-        });
+  try{
+    const users = await fetchJSON(`${API}/api/users/network`, {
+      headers: isGuest() ? {} : authHeaders()
+    });
 
         const currentRole = getRole();
 
@@ -1333,7 +1418,7 @@ function goMe(){
                   `}
                 </button>
 
-                <button class="card-btn" onclick="location.href='${escapeHTML(profileUrl(user))}'">
+                <button class="card-btn" onclick="if(!requireLogin('view full profiles')) return; location.href='${escapeHTML(profileUrl(user))}'">
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
                   View
                 </button>
@@ -1345,7 +1430,9 @@ function goMe(){
     }
 
     async function toggleFollow(userId){
-      try{
+  if(!requireLogin("follow people and build your network")) return;
+
+  try{
         const res = await fetchJSON(`${API}/api/users/${userId}/follow`, {
           method: "PATCH",
           headers: authHeaders({ "Content-Type": "application/json" })
@@ -1417,19 +1504,76 @@ function goMe(){
         e.preventDefault();
         goMe();
       });
-      document.getElementById("dashboardBtn").addEventListener("click", () => {
-        location.href = dashboardUrl();
-      });
+document.getElementById("dashboardBtn").addEventListener("click", () => {
+  if(!requireLogin("open your dashboard")) return;
+  location.href = dashboardUrl();
+});
     }
 
-    async function init(){
-      if(!requireAuth()) return;
-      bindEvents();
-      await loadMe();
-      await loadNetwork();
+async function init(){
+  bindEvents();
+
+  if(!isGuest()){
+    await loadMe();
+  }else{
+    state.me = { role:"guest", following:[] };
+
+    if(els.currentAvatar){
+      els.currentAvatar.src = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
     }
+
+    if(els.currentName){
+      els.currentName.textContent = "Guest";
+    }
+
+    if(els.currentRole){
+      els.currentRole.textContent = "Previewing AIFT Network";
+    }
+  }
+
+  await loadNetwork();
+}
+    function showGuestModal(action){
+  const modal = document.getElementById("guestModal");
+  const text = document.getElementById("guestModalText");
+
+  if(text){
+    text.textContent = "Create your free AIFT account to " + action + ".";
+  }
+
+  modal?.classList.add("show");
+}
+
+function closeGuestModal(){
+  document.getElementById("guestModal")?.classList.remove("show");
+}
 
     init();
   </script>
+  <div id="guestModal" class="guest-gate-backdrop">
+  <div class="guest-gate-card">
+    <img src="images/aift-logo.png" class="guest-gate-logo" alt="AIFT">
+
+    <h2>Join AIFT</h2>
+
+    <p id="guestModalText">
+      Create your free account to continue.
+    </p>
+
+    <div class="guest-gate-actions">
+      <button class="gate-btn primary" onclick="location.href='login.html'">
+        Sign In
+      </button>
+
+      <button class="gate-btn" onclick="location.href='register.html'">
+        Create Account
+      </button>
+    </div>
+
+    <button class="gate-close" onclick="closeGuestModal()">
+      Maybe later
+    </button>
+  </div>
+</div>
 </body>
 </html>
