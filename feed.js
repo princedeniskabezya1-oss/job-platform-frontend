@@ -394,17 +394,15 @@ let feedUrl = state.guestMode
   ? `${API}/api/posts/public?skip=${state.skip}&limit=${state.limit}`
   : `${API}/api/posts?skip=${state.skip}&limit=${state.limit}`;
 
-if (
-  state.mode === "group" &&
-  state.groupId
-) {
-  feedUrl =
-    `${API}/api/groups/${state.groupId}/posts`;
+if(state.mode === "profile" && state.authorId){
+  feedUrl = state.guestMode
+    ? `${API}/api/posts/company/${encodeURIComponent(state.authorId)}/public?skip=${state.skip}&limit=${state.limit}`
+    : `${API}/api/posts?skip=${state.skip}&limit=${state.limit}&author=${encodeURIComponent(state.authorId)}`;
 }
 
-      if (state.mode === "profile" && state.authorId) {
-        feedUrl += `&author=${encodeURIComponent(state.authorId)}`;
-      }
+if(state.mode === "group" && state.groupId){
+  feedUrl = `${API}/api/groups/${state.groupId}/posts`;
+}
 
       const posts = await api(feedUrl, {
         headers: headers()
