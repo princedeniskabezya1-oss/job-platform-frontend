@@ -370,9 +370,9 @@ a{
         <button>Popular</button>
       </div>
 
-      <div id="postsList">
-        <div class="loading">Loading posts...</div>
-      </div>
+<div id="postsList">
+  <div id="employerFeedMount"></div>
+</div>
     </div>
   </article>
 </section>
@@ -1502,16 +1502,40 @@ async function loadCompany(){
 /* =========================
    RENDER
 ========================= */
+function mountEmployerFeed(){
+  const mount = document.getElementById("employerFeedMount");
 
+  if(!mount || !state.companyId) return;
+
+  if(!window.AIFTFeed || typeof window.AIFTFeed.mount !== "function"){
+    mount.innerHTML = `
+      <div class="empty">
+        Feed system not detected. Make sure feed.js is connected.
+      </div>
+    `;
+    return;
+  }
+
+  AIFTFeed.mount("employerFeedMount", {
+    mode: "profile",
+    authorId: state.companyId,
+    showComposer: false,
+    infiniteScroll: true,
+    realtime: Boolean(token()),
+    guestMode: !token()
+  });
+}
+  
 function renderAll(){
   renderHeader();
   renderAbout();
   renderJobs();
   renderPeople();
-  renderPosts();
+  mountEmployerFeed();
   renderSideInfo();
   updateOwnerUI();
 }
+  
 
 function renderHeader(){
 
