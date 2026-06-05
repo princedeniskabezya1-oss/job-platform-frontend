@@ -197,6 +197,7 @@ state.showComposer = state.guestMode ? false : options.showComposer !== false;
 state.infiniteScroll = options.infiniteScroll !== false;
 state.realtime = state.guestMode ? false : options.realtime !== false;
     state.limit = Number(options.limit || 20);
+state.sort = options.sort || "recent";
     state.skip = 0;
     state.hasMore = true;
     state.posts = [];
@@ -391,8 +392,8 @@ await loadFeed({ reset: true });
      try {
 
 let feedUrl = state.guestMode
-  ? `${API}/api/posts/public?skip=${state.skip}&limit=${state.limit}`
-  : `${API}/api/posts?skip=${state.skip}&limit=${state.limit}`;
+  ? `${API}/api/posts/public?skip=${state.skip}&limit=${state.limit}&sort=${encodeURIComponent(state.sort || "recent")}`
+  : `${API}/api/posts?skip=${state.skip}&limit=${state.limit}&sort=${encodeURIComponent(state.sort || "recent")}`;
 
 if(state.mode === "profile" && state.authorId){
   feedUrl = state.guestMode
