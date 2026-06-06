@@ -2131,8 +2131,10 @@ function getToken(){
     localStorage.getItem("talentToken") ||
     localStorage.getItem("adminToken") ||
     localStorage.getItem("agentToken") ||
-    localStorage.getItem("schoolToken") ||
-    localStorage.getItem("token") ||
+localStorage.getItem("schoolToken") ||
+localStorage.getItem("studentToken") ||
+localStorage.getItem("teacherToken") ||
+localStorage.getItem("token") ||
     ""
   );
 }
@@ -2346,6 +2348,10 @@ function publicProfileUrl(){
     return `agent-public-profile.html?id=${id}`;
   }
 
+  if(r === "student"){
+    return `student-public-profile.html?id=${id}`;
+  }
+
   if(r === "employer"){
     return `employer-public-profile.html?id=${id}`;
   }
@@ -2433,9 +2439,25 @@ function fillForm(){
   document.getElementById("locationInput").value = me.location || me.address || "";
   document.getElementById("bioInput").value = me.bio || me.schoolDescription || "";
 
-  document.getElementById("preferredRoleInput").value = me.preferredRole || me.profession || "";
+if(role() === "student"){
+  document.getElementById("preferredRoleInput").value =
+    me.course || me.program || me.preferredRole || me.profession || "";
+
   document.getElementById("currentCompanyInput").value =
-  me.currentCompany || me.company || "";
+    me.schoolName ||
+    me.schoolId?.schoolName ||
+    me.schoolId?.name ||
+    me.linkedSchoolId?.schoolName ||
+    me.linkedSchoolId?.name ||
+    me.currentCompany ||
+    me.company ||
+    "";
+}else{
+  document.getElementById("preferredRoleInput").value = me.preferredRole || me.profession || "";
+
+  document.getElementById("currentCompanyInput").value =
+    me.currentCompany || me.company || "";
+}
 
 document.getElementById("currentPositionInput").value =
   me.currentPosition || "";
@@ -2482,7 +2504,80 @@ function normalizeAvailability(value){
   return value || "not-specified";
 }
 
+function applyRoleLabels(){
+  const r = role();
+
+  if(r !== "student") return;
+
+  const setText = (selector, text) => {
+    const el = document.querySelector(selector);
+    if(el) el.textContent = text;
+  };
+
+  const setLabelForInput = (inputId, text) => {
+    const input = document.getElementById(inputId);
+    const field = input?.closest(".field");
+    const label = field?.querySelector("label");
+    if(label) label.textContent = text;
+  };
+
+  const setPlaceholder = (inputId, text) => {
+    const input = document.getElementById(inputId);
+    if(input) input.placeholder = text;
+  };
+
+  setText(".top-title p", "Manage your student profile, academic information, CV, projects, and visibility.");
+
+  setText('[data-section="career"]', "Academic");
+  setText('[data-section="career"] span', "School, course & learning status");
+
+  setText('[data-section="services"]', "Learning Interests");
+  setText('[data-section="services"] span', "Subjects, interests & tools");
+
+  setText('[data-section="experience"]', "Projects");
+  setText('[data-section="experience"] span', "Projects & activities");
+
+  setText("#section-career .section-head h2", "Academic Information");
+  setText("#section-career .section-head p", "Add your school, course, student status, learning mode, and academic goals.");
+
+  setText("#section-services .section-head h2", "Learning Interests");
+  setText("#section-services .section-head p", "Add subjects, study interests, learning tools, and career interests.");
+
+  setText("#section-experience .section-head h2", "Projects & Activities");
+  setText("#section-experience .section-head p", "Add school projects, activities, training, internships, and achievements.");
+
+  setText("#openExperienceModalBtn", "Add Project / Activity");
+
+  setLabelForInput("headlineInput", "Student Headline");
+  setLabelForInput("preferredRoleInput", "Course / Program");
+  setLabelForInput("currentCompanyInput", "School");
+  setLabelForInput("availabilityInput", "Student Status");
+  setLabelForInput("employmentTypeInput", "Learning Goal");
+  setLabelForInput("workSetupInput", "Learning Mode");
+  setLabelForInput("preferredShiftInput", "Year Level");
+  setLabelForInput("salaryExpectationInput", "Internship / Career Goal");
+  setLabelForInput("noticePeriodInput", "Graduation Year");
+  setLabelForInput("experienceYearsInput", "Years Studying");
+  setLabelForInput("currentPositionInput", "Current Student Status");
+
+  setLabelForInput("serviceInput", "Learning Interests");
+  setLabelForInput("toolInput", "Study Tools");
+  setLabelForInput("industryInput", "Career Interests");
+
+  setPlaceholder("headlineInput", "Business English student | Customer Service trainee");
+  setPlaceholder("preferredRoleInput", "Business English / Customer Service Training");
+  setPlaceholder("currentCompanyInput", "AIFT Foreign Training");
+  setPlaceholder("salaryExpectationInput", "Internship, BPO job, customer service role...");
+  setPlaceholder("noticePeriodInput", "2026");
+  setPlaceholder("currentPositionInput", "Active student");
+  setPlaceholder("serviceInput", "English, Customer Service, Business Communication...");
+  setPlaceholder("toolInput", "Google Docs, Zoom, Canva, LMS...");
+  setPlaceholder("industryInput", "BPO, Hospitality, Business, Education...");
+}
+
 function renderAll(){
+  applyRoleLabels();
+
   const me = state.me || {};
   const avatar = me.profileImage || FALLBACK_AVATAR;
   const banner = me.bannerImage || me.schoolBanner || "";
@@ -2494,7 +2589,8 @@ function renderAll(){
   document.getElementById("profileHeadlinePreview").textContent =
     me.headline || me.profession || "Add a professional headline";
 
-  document.getElementById("roleBadge").textContent = role();
+  document.getElementById("roleBadge").textContent =
+  role() === "student" ? "Student" : role();
 
   if(banner){
     document.getElementById("coverPreview").style.backgroundImage =
