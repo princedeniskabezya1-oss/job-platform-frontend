@@ -1182,3 +1182,118 @@ function toggleBackgroundBlur(){
 function toggleCaptions(){
   toast("Live captions ready");
 }
+
+let inviteSearchTimer = null;
+
+function openInvitePanel(){
+  document.getElementById("inviteModal")?.classList.remove("hidden");
+
+  setTimeout(()=>{
+    document.getElementById("inviteSearchInput")?.focus();
+  },80);
+}
+
+function closeInvitePanel(){
+  document.getElementById("inviteModal")?.classList.add("hidden");
+}
+
+async function searchInviteUsers(query){
+  const q = String(query || "").trim();
+
+  const box =
+    document.getElementById("inviteResults");
+
+  if(!box) return;
+
+  if(q.length < 2){
+    box.innerHTML = "Type at least 2 letters.";
+    return;
+  }
+
+  box.innerHTML = "Searching...";
+
+  try{
+    const data =
+      await api(
+        `/api/users/network?search=${encodeURIComponent(q)}&limit=12`,
+        { headers:authHeaders() }
+      );
+
+    const users =
+      Array.isArray(data)
+        ? data
+        : data.users || data.results || [];
+
+    if(!users.length){
+      box.innerHTML = "No users found.";
+      return;
+    }
+
+    box.innerHTML =
+      users
+        .filter(user=>getId(user) !== meetingState.myId)
+        .map(user=>`
+          <div class="invite-user">
+            <div class="invite-user-main">
+              <img src="${esc(avatar(user))}" alt="">
+              <div>
+                <strong>${esc(displayName(user))}</strong>
+                <span>${esc(user.role || user.headline || "AIFT user")}</span>
+              </div>
+            </div>
+
+            <button onclick="inviteUserToMeeting('${esc(getId(user))}', this)">
+              Invite
+            </button>
+          </div>
+        `)
+        .join("");
+
+  }catch(error){
+    box.innerHTML =
+      error.message || "Unable to search users.";
+  }
+}
+
+async function inviteUserToMeeting(userId,btn){
+  if(!userId) return;
+
+  try{
+    btn.disabled = true;
+    btn.textContent = "Inviting...";
+
+    await apiJSON(
+      `/api/meetings/${encodeURIComponent(meetingState.meetingId)}/invite`,
+      "POST",
+      {
+        users:[userId]
+      }
+    );
+
+    btn.textContent = "Invited";
+    toast("Invitation sent");
+
+  }catch(error){
+    btn.disabled = false;
+    btn.textContent = "Invite";
+    toast(error.message || "Unable to invite user");
+  }
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+  setTimeout(()=>{
+    const input =
+      document.getElementById("inviteSearchInput");
+
+    if(!input) return;
+
+    input.addEventListener("input",event=>{
+      clearTimeout(inviteSearchTimer);
+
+      inviteSearchTimer =
+        setTimeout(()=>{
+          searchInviteUsers(event.target.value);
+        },280);
+    });
+  },300);
+});
