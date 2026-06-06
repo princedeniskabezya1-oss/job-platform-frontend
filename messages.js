@@ -986,8 +986,17 @@ async function openConversation(id){
 
   }catch(error){
     console.error(error);
-    toast(error.message || "Unable to open conversation");
-    showEmptyState();
+toast(error.message || "Unable to open conversation");
+
+if(
+  String(error.message || "").toLowerCase().includes("access") &&
+  id
+){
+  console.warn("Access denied for conversation:", id);
+}
+
+showEmptyState();
+throw error;
   }finally{
     state.isLoadingMessages = false;
   }
@@ -2681,20 +2690,26 @@ function bindEvents(){
 ========================= */
 
 async function openInitialTarget(){
+
   if(initialConversationId){
-    await openConversation(initialConversationId);
-    return;
+    try{
+      await openConversation(initialConversationId);
+      return;
+    }catch(error){
+      console.warn("Conversation open failed, trying as user ID:", error.message);
+    }
   }
 
-  if(initialUserId){
+  const targetUserId =
+    initialUserId || initialConversationId;
+
+  if(targetUserId){
     try{
       const conversation =
         await apiJSON(
           "/api/conversations/direct",
           "POST",
-          {
-            userId:initialUserId
-          }
+          { userId:targetUserId }
         );
 
       await loadConversations();
