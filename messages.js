@@ -490,11 +490,13 @@ function connectSocket(){
     transports:["websocket","polling"]
   });
 
-  state.socket.on("connect",()=>{
-    if(state.myId){
-      state.socket.emit("join",state.myId);
-    }
-  });
+state.socket.on("connect",()=>{
+  if(state.myId){
+    state.socket.emit("join",state.myId);
+  }
+
+  registerCallSocketEvents();
+});
 
   state.socket.on("connect_error",error=>{
     console.warn("Socket connection error:",error.message);
@@ -3244,6 +3246,944 @@ function saveReceivedAssetById(id){
   saveReceivedAsset(message);
 }
 
+/* =========================
+   AIFT CALL ENGINE
+========================= */
+
+const RTC_CONFIG = {
+  iceServers:[
+    { urls:"stun:stun.l.google.com:19302" },
+    { urls:"stun:stun1.l.google.com:19302" },
+    { urls:"stun:stun2.l.google.com:19302" }
+  ]
+};
+
+function safePlay(audio){
+  if(!audio) return;
+
+  try{
+    audio.loop = true;
+    audio.currentTime = 0;
+    audio.play().catch(()=>{});
+  }catch(error){
+    console.warn("Audio play failed:", error.message);
+  }
+}
+
+function stopSound(audio){
+  if(!audio) return;
+
+  try{
+    audio.pause();
+    audio.currentTime = 0;
+    audio.loop = false;
+  }catch(error){}
+}
+
+function getCallTarget(){
+  if(!state.activeConversation || !state.activeOtherUser){
+    toast("Select a conversation first");
+    return null;
+  }
+
+  const userId = getId(state.activeOtherUser);
+
+  if(!userId){
+    toast("Unable to find user");
+    return null;
+  }
+
+  return {
+    userId,
+    name:userDisplayName(state.activeOtherUser),
+    avatar:userAvatar(state.activeOtherUser),
+    conversationId:conversationId(state.activeConversation)
+  };
+}
+
+function updateCallUI({
+  name,
+  avatar,
+  status,
+  type = "audio",
+  waiting = true
+} = {}){
+  document.getElementById("callName").textContent =
+    name || "AIFT Call";
+
+  document.getElementById("callStatus").textContent =
+    status || "Connecting...";
+
+  document.getElementById("callAvatar").src =
+    avatar || FALLBACK_AVATAR;
+
+  document.getElementById("callWaitingAvatar").src =
+    avatar || FALLBACK_AVATAR;
+
+  document.getElementById("callWaitingName").textContent =
+    name || "Calling...";
+
+  document
+    .getElementById("callWaitingState")
+    ?.classList
+    .toggle("hidden", !waiting);
+
+  document
+    .getElementById("cameraBtn")
+    ?.classList
+    .toggle("hidden", type === "audio");
+}
+
+function openCallModal(){
+  document
+    .getElementById("callModal")
+    ?.classList
+    .remove("hidden");
+}
+
+function closeCallModal(){
+  document
+    .getElementById("callModal")
+    ?.classList
+    .add("hidden");
+}
+
+function openIncomingCallModal(payload){
+  document.getElementById("incomingAvatar").src =
+    payload.avatar || FALLBACK_AVATAR;
+
+  document.getElementById("incomingCaller").textContent =
+    payload.callerName || "Incoming call";
+
+  document.getElementById("incomingType").textContent =
+    payload.callType === "video"
+      ? "Video call"
+      : "Audio call";
+
+  document
+    .getElementById("incomingCallModal")
+    ?.classList
+    .remove("hidden");
+
+  safePlay(state.ringtone);
+}
+
+function closeIncomingCallModal(){
+  stopSound(state.ringtone);
+
+  document
+    .getElementById("incomingCallModal")
+    ?.classList
+    .add("hidden");
+}
+
+async function getLocalMedia(callType){
+  const constraints = {
+    audio:true,
+    video:callType === "video"
+      ? {
+          width:{ ideal:1280 },
+          height:{ ideal:720 },
+          facingMode:"user"
+        }
+      : false
+  };
+
+  const stream =
+    await navigator.mediaDevices.getUserMedia(constraints);
+
+  state.localStream = stream;
+
+  const localVideo =
+    document.getElementById("localVideo");
+
+  if(localVideo){
+    localVideo.srcObject = stream;
+  }
+
+  state.isMuted = false;
+  state.cameraEnabled = callType === "video";
+
+  return stream;
+}
+
+function createPeerConnection(remoteUserId){
+  const pc =
+    new RTCPeerConnection(RTC_CONFIG);
+
+  state.peerConnection = pc;
+  state.remoteStream = new MediaStream();
+
+  const remoteVideo =
+    document.getElementById("remoteVideo");
+
+  if(remoteVideo){
+    remoteVideo.srcObject = state.remoteStream;
+  }
+
+  if(state.localStream){
+    state.localStream.getTracks().forEach(track=>{
+      pc.addTrack(track,state.localStream);
+    });
+  }
+
+  pc.ontrack = event=>{
+    event.streams[0].getTracks().forEach(track=>{
+      state.remoteStream.addTrack(track);
+    });
+
+    document
+      .getElementById("callWaitingState")
+      ?.classList
+      .add("hidden");
+
+    document.getElementById("callStatus").textContent =
+      "Connected";
+  };
+
+  pc.onicecandidate = event=>{
+    if(event.candidate && state.socket){
+      state.socket.emit("webrtcIceCandidate",{
+        to:remoteUserId,
+        candidate:event.candidate,
+        callId:state.currentCall?.callId,
+        meetingId:state.currentCall?.meetingId || null
+      });
+    }
+  };
+
+  pc.onconnectionstatechange = ()=>{
+    const status =
+      pc.connectionState;
+
+    document.getElementById("callNetworkStatus").textContent =
+      status === "connected"
+        ? "HD"
+        : status;
+
+    if(status === "connected"){
+      document.getElementById("callStatus").textContent =
+        "Connected";
+      stopSound(state.outgoingTone);
+      startCallTimer();
+    }
+
+    if(["failed","disconnected","closed"].includes(status)){
+      document.getElementById("callStatus").textContent =
+        status === "failed"
+          ? "Connection failed"
+          : "Disconnected";
+    }
+  };
+
+  return pc;
+}
+
+async function startAudioCall(){
+  await startOutgoingCall("audio");
+}
+
+async function startVideoCall(){
+  await startOutgoingCall("video");
+}
+
+async function startOutgoingCall(callType){
+  const target =
+    getCallTarget();
+
+  if(!target) return;
+
+  try{
+    openCallModal();
+
+    state.currentCall = {
+      callId:"call-" + Date.now(),
+      type:callType,
+      direction:"outgoing",
+      targetUserId:target.userId,
+      targetName:target.name,
+      targetAvatar:target.avatar,
+      conversationId:target.conversationId,
+      status:"ringing"
+    };
+
+    updateCallUI({
+      name:target.name,
+      avatar:target.avatar,
+      status:"Ringing...",
+      type:callType,
+      waiting:true
+    });
+
+    safePlay(state.outgoingTone);
+
+    await createCallLog(callType);
+
+    await getLocalMedia(callType);
+
+    const pc =
+      createPeerConnection(target.userId);
+
+    const offer =
+      await pc.createOffer({
+        offerToReceiveAudio:true,
+        offerToReceiveVideo:callType === "video"
+      });
+
+    await pc.setLocalDescription(offer);
+
+    state.socket?.emit("callUser",{
+      to:target.userId,
+      from:state.myId,
+      callerName:userDisplayName(state.me),
+      callerAvatar:userAvatar(state.me),
+      callType,
+      conversationId:target.conversationId,
+      callId:state.currentCall.callId,
+      offer
+    });
+
+  }catch(error){
+    console.error("START CALL ERROR:", error);
+    toast(error.message || "Unable to start call");
+    cleanupCall();
+  }
+}
+
+/* =========================
+   AIFT CALL SIGNALING
+========================= */
+
+function registerCallSocketEvents(){
+  if(!state.socket) return;
+
+  state.socket.off("incomingCall");
+  state.socket.off("callAccepted");
+  state.socket.off("callDeclined");
+  state.socket.off("callEnded");
+  state.socket.off("webrtcOffer");
+  state.socket.off("webrtcAnswer");
+  state.socket.off("webrtcIceCandidate");
+
+  state.socket.on("incomingCall",async payload=>{
+    if(!payload?.from){
+      return;
+    }
+
+    if(state.currentCall){
+      state.socket.emit("declineCall",{
+        to:payload.from,
+        callId:payload.callId,
+        reason:"busy"
+      });
+
+      return;
+    }
+
+    state.pendingIncomingCall = {
+      from:payload.from,
+      callerName:payload.callerName || "AIFT User",
+      callerAvatar:payload.callerAvatar || FALLBACK_AVATAR,
+      callType:payload.callType || "audio",
+      conversationId:payload.conversationId || "",
+      callId:payload.callId || "call-" + Date.now(),
+      offer:payload.offer || null
+    };
+
+    openIncomingCallModal({
+      avatar:state.pendingIncomingCall.callerAvatar,
+      callerName:state.pendingIncomingCall.callerName,
+      callType:state.pendingIncomingCall.callType
+    });
+  });
+
+  state.socket.on("callAccepted",async payload=>{
+    if(!state.currentCall){
+      return;
+    }
+
+    stopSound(state.outgoingTone);
+
+    state.currentCall.status = "accepted";
+
+    document.getElementById("callStatus").textContent =
+      "Connecting...";
+
+    if(payload?.answer && state.peerConnection){
+      await state.peerConnection.setRemoteDescription(
+        new RTCSessionDescription(payload.answer)
+      );
+    }
+
+    document
+      .getElementById("callWaitingState")
+      ?.classList
+      .add("hidden");
+
+    startCallTimer();
+  });
+
+  state.socket.on("callDeclined",payload=>{
+    stopSound(state.outgoingTone);
+
+    toast(
+      payload?.reason === "busy"
+        ? "User is currently busy"
+        : "Call declined"
+    );
+
+    cleanupCall(true);
+  });
+
+  state.socket.on("callEnded",()=>{
+    toast("Call ended");
+    cleanupCall(true);
+  });
+
+  state.socket.on("webrtcOffer",async payload=>{
+    if(!payload?.offer || !payload?.from){
+      return;
+    }
+
+    if(!state.pendingIncomingCall){
+      state.pendingIncomingCall = {
+        from:payload.from,
+        callerName:"AIFT User",
+        callerAvatar:FALLBACK_AVATAR,
+        callType:"video",
+        conversationId:"",
+        callId:payload.callId || "call-" + Date.now(),
+        offer:payload.offer
+      };
+
+      openIncomingCallModal(state.pendingIncomingCall);
+      return;
+    }
+
+    state.pendingIncomingCall.offer =
+      payload.offer;
+  });
+
+  state.socket.on("webrtcAnswer",async payload=>{
+    if(!payload?.answer || !state.peerConnection){
+      return;
+    }
+
+    try{
+      await state.peerConnection.setRemoteDescription(
+        new RTCSessionDescription(payload.answer)
+      );
+    }catch(error){
+      console.error("SET REMOTE ANSWER ERROR:",error);
+    }
+  });
+
+  state.socket.on("webrtcIceCandidate",async payload=>{
+    if(!payload?.candidate || !state.peerConnection){
+      return;
+    }
+
+    try{
+      await state.peerConnection.addIceCandidate(
+        new RTCIceCandidate(payload.candidate)
+      );
+    }catch(error){
+      console.warn("ICE candidate failed:",error.message);
+    }
+  });
+}
+
+async function acceptIncomingCall(){
+  const incoming =
+    state.pendingIncomingCall;
+
+  if(!incoming){
+    return;
+  }
+
+  try{
+    closeIncomingCallModal();
+    openCallModal();
+
+    state.currentCall = {
+      callId:incoming.callId,
+      type:incoming.callType,
+      direction:"incoming",
+      targetUserId:incoming.from,
+      targetName:incoming.callerName,
+      targetAvatar:incoming.callerAvatar,
+      conversationId:incoming.conversationId,
+      status:"accepted"
+    };
+
+    updateCallUI({
+      name:incoming.callerName,
+      avatar:incoming.callerAvatar,
+      status:"Connecting...",
+      type:incoming.callType,
+      waiting:true
+    });
+
+    await getLocalMedia(incoming.callType);
+
+    const pc =
+      createPeerConnection(incoming.from);
+
+    if(incoming.offer){
+      await pc.setRemoteDescription(
+        new RTCSessionDescription(incoming.offer)
+      );
+
+      const answer =
+        await pc.createAnswer();
+
+      await pc.setLocalDescription(answer);
+
+      state.socket?.emit("acceptCall",{
+        to:incoming.from,
+        callId:incoming.callId,
+        answer,
+        meetingId:null
+      });
+    }else{
+      state.socket?.emit("acceptCall",{
+        to:incoming.from,
+        callId:incoming.callId,
+        meetingId:null
+      });
+    }
+
+    state.pendingIncomingCall = null;
+
+    startCallTimer();
+
+  }catch(error){
+    console.error("ACCEPT CALL ERROR:",error);
+    toast(error.message || "Unable to accept call");
+    cleanupCall(true);
+  }
+}
+
+function declineIncomingCall(){
+  const incoming =
+    state.pendingIncomingCall;
+
+  if(incoming){
+    state.socket?.emit("declineCall",{
+      to:incoming.from,
+      callId:incoming.callId,
+      reason:"declined"
+    });
+  }
+
+  closeIncomingCallModal();
+
+  state.pendingIncomingCall = null;
+
+  stopSound(state.ringtone);
+}
+
+function endCurrentCall(){
+  if(state.currentCall?.targetUserId){
+    state.socket?.emit("endCall",{
+      to:state.currentCall.targetUserId,
+      callId:state.currentCall.callId,
+      meetingId:state.currentCall.meetingId || null
+    });
+  }
+
+  cleanupCall(true);
+}
+
+function cleanupCall(playEndSound = false){
+  stopSound(state.ringtone);
+  stopSound(state.outgoingTone);
+
+  if(playEndSound){
+    try{
+      state.callEndTone?.play?.().catch(()=>{});
+    }catch(error){}
+  }
+
+  if(state.callTimer){
+    clearInterval(state.callTimer);
+    state.callTimer = null;
+  }
+
+  if(state.localStream){
+    state.localStream.getTracks().forEach(track=>track.stop());
+    state.localStream = null;
+  }
+
+  if(state.remoteStream){
+    state.remoteStream.getTracks().forEach(track=>track.stop());
+    state.remoteStream = null;
+  }
+
+  if(state.screenStream){
+    state.screenStream.getTracks().forEach(track=>track.stop());
+    state.screenStream = null;
+  }
+
+  if(state.peerConnection){
+    try{
+      state.peerConnection.close();
+    }catch(error){}
+    state.peerConnection = null;
+  }
+
+  const localVideo =
+    document.getElementById("localVideo");
+
+  const remoteVideo =
+    document.getElementById("remoteVideo");
+
+  if(localVideo){
+    localVideo.srcObject = null;
+  }
+
+  if(remoteVideo){
+    remoteVideo.srcObject = null;
+  }
+
+  state.currentCall = null;
+  state.pendingIncomingCall = null;
+  state.callStartTime = null;
+  state.isMuted = false;
+  state.cameraEnabled = true;
+  state.speakerEnabled = true;
+
+  closeIncomingCallModal();
+  closeCallModal();
+
+  updateCallButtons();
+}
+
+function startCallTimer(){
+  if(state.callTimer){
+    clearInterval(state.callTimer);
+  }
+
+  if(!state.callStartTime){
+    state.callStartTime = Date.now();
+  }
+
+  state.callTimer =
+    setInterval(()=>{
+      const diff =
+        Math.floor((Date.now() - state.callStartTime) / 1000);
+
+      const min =
+        String(Math.floor(diff / 60)).padStart(2,"0");
+
+      const sec =
+        String(diff % 60).padStart(2,"0");
+
+      const el =
+        document.getElementById("callDuration");
+
+      if(el){
+        el.textContent =
+          `${min}:${sec}`;
+      }
+    },1000);
+}
+/* =========================
+   AIFT CALL CONTROLS
+========================= */
+
+function updateCallButtons(){
+  const muteBtn =
+    document.getElementById("muteBtn");
+
+  const cameraBtn =
+    document.getElementById("cameraBtn");
+
+  const speakerBtn =
+    document.getElementById("speakerBtn");
+
+  const screenBtn =
+    document.getElementById("screenBtn");
+
+  muteBtn?.classList.toggle("active",state.isMuted);
+  cameraBtn?.classList.toggle("active",!state.cameraEnabled);
+  speakerBtn?.classList.toggle("active",!state.speakerEnabled);
+  screenBtn?.classList.toggle("active",!!state.screenStream);
+
+  if(muteBtn){
+    muteBtn.querySelector("span").textContent =
+      state.isMuted ? "Unmute" : "Mute";
+  }
+
+  if(cameraBtn){
+    cameraBtn.querySelector("span").textContent =
+      state.cameraEnabled ? "Camera" : "Camera off";
+  }
+
+  if(speakerBtn){
+    speakerBtn.querySelector("span").textContent =
+      state.speakerEnabled ? "Speaker" : "Muted";
+  }
+
+  if(screenBtn){
+    screenBtn.querySelector("span").textContent =
+      state.screenStream ? "Stop share" : "Share";
+  }
+}
+
+function toggleMute(){
+  if(!state.localStream){
+    return;
+  }
+
+  const audioTracks =
+    state.localStream.getAudioTracks();
+
+  state.isMuted =
+    !state.isMuted;
+
+  audioTracks.forEach(track=>{
+    track.enabled = !state.isMuted;
+  });
+
+  updateCallButtons();
+
+  document.getElementById("callStatus").textContent =
+    state.isMuted
+      ? "Microphone muted"
+      : "Microphone active";
+
+  setTimeout(()=>{
+    if(state.currentCall){
+      document.getElementById("callStatus").textContent =
+        "Connected";
+    }
+  },1200);
+}
+
+function toggleCamera(){
+  if(!state.localStream){
+    return;
+  }
+
+  const videoTracks =
+    state.localStream.getVideoTracks();
+
+  if(!videoTracks.length){
+    toast("Camera is not active for this call");
+    return;
+  }
+
+  state.cameraEnabled =
+    !state.cameraEnabled;
+
+  videoTracks.forEach(track=>{
+    track.enabled = state.cameraEnabled;
+  });
+
+  updateCallButtons();
+
+  document.getElementById("callStatus").textContent =
+    state.cameraEnabled
+      ? "Camera on"
+      : "Camera off";
+
+  setTimeout(()=>{
+    if(state.currentCall){
+      document.getElementById("callStatus").textContent =
+        "Connected";
+    }
+  },1200);
+}
+
+function toggleSpeaker(){
+  const remoteVideo =
+    document.getElementById("remoteVideo");
+
+  if(!remoteVideo){
+    return;
+  }
+
+  state.speakerEnabled =
+    !state.speakerEnabled;
+
+  remoteVideo.muted =
+    !state.speakerEnabled;
+
+  updateCallButtons();
+
+  document.getElementById("callStatus").textContent =
+    state.speakerEnabled
+      ? "Speaker enabled"
+      : "Speaker muted";
+
+  setTimeout(()=>{
+    if(state.currentCall){
+      document.getElementById("callStatus").textContent =
+        "Connected";
+    }
+  },1200);
+}
+
+async function toggleScreenShare(){
+  if(!state.peerConnection){
+    toast("Screen sharing is available after the call connects");
+    return;
+  }
+
+  if(state.screenStream){
+    stopScreenShare();
+    return;
+  }
+
+  try{
+    const screenStream =
+      await navigator.mediaDevices.getDisplayMedia({
+        video:true,
+        audio:false
+      });
+
+    state.screenStream =
+      screenStream;
+
+    const screenTrack =
+      screenStream.getVideoTracks()[0];
+
+    const sender =
+      state.peerConnection
+        .getSenders()
+        .find(item =>
+          item.track &&
+          item.track.kind === "video"
+        );
+
+    if(sender){
+      await sender.replaceTrack(screenTrack);
+    }
+
+    const localVideo =
+      document.getElementById("localVideo");
+
+    if(localVideo){
+      localVideo.srcObject = screenStream;
+    }
+
+    screenTrack.onended = ()=>{
+      stopScreenShare();
+    };
+
+    updateCallButtons();
+
+    document.getElementById("callStatus").textContent =
+      "Screen sharing";
+
+  }catch(error){
+    console.warn("SCREEN SHARE ERROR:",error);
+    toast("Unable to share screen");
+  }
+}
+
+async function stopScreenShare(){
+  if(!state.screenStream){
+    return;
+  }
+
+  state.screenStream
+    .getTracks()
+    .forEach(track=>track.stop());
+
+  state.screenStream = null;
+
+  const cameraTrack =
+    state.localStream
+      ?.getVideoTracks()
+      ? state.localStream.getVideoTracks()[0]
+      : null;
+
+  const sender =
+    state.peerConnection
+      ?.getSenders()
+      .find(item =>
+        item.track &&
+        item.track.kind === "video"
+      );
+
+  if(sender && cameraTrack){
+    await sender.replaceTrack(cameraTrack);
+  }
+
+  const localVideo =
+    document.getElementById("localVideo");
+
+  if(localVideo && state.localStream){
+    localVideo.srcObject = state.localStream;
+  }
+
+  updateCallButtons();
+
+  if(state.currentCall){
+    document.getElementById("callStatus").textContent =
+      "Connected";
+  }
+}
+
+async function upgradeToMeeting(){
+  if(!state.activeConversation){
+    toast("Select a conversation first");
+    return;
+  }
+
+  try{
+    const invitedUsers = [];
+
+    if(state.activeOtherUser){
+      invitedUsers.push(getId(state.activeOtherUser));
+    }
+
+    const meeting =
+      await apiJSON(
+        "/api/meetings",
+        "POST",
+        {
+          title:
+            state.activeOtherUser
+              ? `Meeting with ${userDisplayName(state.activeOtherUser)}`
+              : conversationTitle(state.activeConversation),
+          meetingType:"instant",
+          conversationId:conversationId(state.activeConversation),
+          invitedUsers,
+          waitingRoomEnabled:false,
+          recordingEnabled:false,
+          allowScreenShare:true,
+          allowChat:true,
+          allowFileSharing:true,
+          allowRaiseHand:true,
+          allowParticipantVideo:true,
+          allowParticipantAudio:true
+        }
+      );
+
+    if(state.currentCall){
+      endCurrentCall();
+    }
+
+    if(meeting?.joinUrl){
+      window.location.href = meeting.joinUrl;
+      return;
+    }
+
+    if(meeting?.meetingCode){
+      window.location.href =
+        `meeting.html?code=${encodeURIComponent(meeting.meetingCode)}`;
+      return;
+    }
+
+    toast("Meeting created");
+
+  }catch(error){
+    toast(error.message || "Unable to upgrade to meeting");
+  }
+}
 
 function bindEvents(){
   const messageInput =
