@@ -2897,6 +2897,7 @@ function handleCameraCapture(file){
 }
 
 async function sendRemoteAsset(url,type,title){
+
   if(!state.activeConversation){
     toast("Select a conversation first");
     return;
@@ -2917,6 +2918,11 @@ async function sendRemoteAsset(url,type,title){
   const tempId =
     "client-" + Date.now() + "-" + Math.random().toString(36).slice(2);
 
+  const mimeType =
+    type === "gif"
+      ? "image/gif"
+      : "image/webp";
+
   const tempMessage = {
     _id:tempId,
     sender:{
@@ -2928,7 +2934,7 @@ async function sendRemoteAsset(url,type,title){
     },
     text:"",
     fileUrl:url,
-    fileType:type === "gif" ? "image/gif" : "image/webp",
+    fileType:mimeType,
     fileName:title || type,
     fileSize:0,
     attachments:[
@@ -2936,7 +2942,7 @@ async function sendRemoteAsset(url,type,title){
         url,
         secureUrl:url,
         type:"image",
-        mimeType:type === "gif" ? "image/gif" : "image/webp",
+        mimeType,
         originalName:title || type,
         size:0
       }
@@ -2954,19 +2960,23 @@ async function sendRemoteAsset(url,type,title){
   renderMessages();
 
   try{
+
+    const form =
+      new FormData();
+
+    form.append("receiverId",receiverId);
+    form.append("text","");
+    form.append("fileUrl",url);
+    form.append("fileType",mimeType);
+    form.append("fileName",title || type);
+    form.append("clientMessageId",tempId);
+
     const saved =
-      await apiJSON(
-        "/api/messages",
-        "POST",
-        {
-          receiverId,
-          text:"",
-          fileUrl:url,
-          fileType:type === "gif" ? "image/gif" : "image/webp",
-          fileName:title || type,
-          clientMessageId:tempId
-        }
-      );
+      await api("/api/messages",{
+        method:"POST",
+        headers:authHeaders(),
+        body:form
+      });
 
     const index =
       state.messages.findIndex(item =>
@@ -2984,8 +2994,11 @@ async function sendRemoteAsset(url,type,title){
     await loadConversations();
 
   }catch(error){
+
     const failed =
-      state.messages.find(item => String(item._id) === String(tempId));
+      state.messages.find(item =>
+        String(item._id) === String(tempId)
+      );
 
     if(failed){
       failed.status = "failed";
