@@ -1612,8 +1612,8 @@ async function sendMessage(){
     sendBtn.disabled = true;
   }
 
-  const tempId =
-    "temp-" + Date.now();
+const tempId =
+  "client-" + Date.now() + "-" + Math.random().toString(36).slice(2);
 
   const tempMessage = {
     _id:tempId,
@@ -1648,7 +1648,10 @@ async function sendMessage(){
       : "text",
     status:"sending",
     seen:false,
-    createdAt:new Date().toISOString()
+    createdAt:new Date().toISOString(),
+metadata:{
+  clientMessageId:tempId
+}
   };
 
   state.messages.push(tempMessage);
@@ -1686,10 +1689,12 @@ async function sendMessage(){
         body:form
       });
 
-    const index =
-      state.messages.findIndex(
-        item => String(item._id) === String(tempId)
-      );
+const index =
+  state.messages.findIndex(
+    item =>
+      String(item._id) === String(tempId) ||
+      String(item?.metadata?.clientMessageId || "") === String(tempId)
+  );
 
     if(index !== -1){
       state.messages[index] =
@@ -1877,24 +1882,39 @@ function handleRealtimeMessage(message){
     );
 
   if(sameConversation || sameDirectFallback){
+
+    const incomingClientId =
+      message?.metadata?.clientMessageId || "";
+
+    if(incomingClientId){
+      const tempIndex =
+        state.messages.findIndex(item =>
+          String(item?.metadata?.clientMessageId || "") ===
+          String(incomingClientId)
+        );
+
+      if(tempIndex !== -1){
+        state.messages[tempIndex] = message;
+        renderMessages();
+
+        if(activeId){
+          markConversationRead(activeId);
+        }
+
+        loadConversations();
+        return;
+      }
+    }
+
     const alreadyExists =
       state.messages.some(item =>
         String(messageId(item)) === String(messageId(message))
       );
 
-    const tempIndex =
-      state.messages.findIndex(item =>
-        String(item.metadata?.clientMessageId || "") ===
-        String(message.metadata?.clientMessageId || "")
-      );
-
-    if(tempIndex !== -1){
-      state.messages[tempIndex] = message;
-    }else if(!alreadyExists){
+    if(!alreadyExists){
       state.messages.push(message);
+      renderMessages();
     }
-
-    renderMessages();
 
     if(activeId){
       markConversationRead(activeId);
