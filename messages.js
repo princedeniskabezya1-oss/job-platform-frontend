@@ -39,6 +39,11 @@ const state = {
   selectedMessage:null,
   replyTo:null,
   attachment:null,
+  pickerOpen:false,
+pickerTab:"emoji",
+savedStickers:[],
+savedGifs:[],
+gifSearchTimer:null,
 
   typingTimer:null,
   isSending:false,
@@ -1309,8 +1314,12 @@ function attachmentHtml(attachment,message){
     message.fileName ||
     "Attachment";
 
-  if(type === "image"){
-    return `
+if(type === "image"){
+  const canSave =
+    !isMyMessage(message);
+
+  return `
+    <div style="position:relative;">
       <img
         class="message-file-image"
         src="${esc(url)}"
@@ -1318,8 +1327,25 @@ function attachmentHtml(attachment,message){
         loading="lazy"
         onclick="event.stopPropagation();window.open('${esc(url)}','_blank')"
       >
-    `;
-  }
+
+      ${
+        canSave
+          ? `
+            <button
+              class="asset-save-btn"
+              onclick="event.stopPropagation();saveReceivedAssetById('${esc(messageId(message))}')"
+              title="Save sticker"
+            >
+              <svg viewBox="0 0 24 24">
+                <path d="M12 5v14M5 12h14"></path>
+              </svg>
+            </button>
+          `
+          : ""
+      }
+    </div>
+  `;
+}
 
   if(type === "video"){
     return `
@@ -2563,6 +2589,465 @@ function handleConversationSearchInput(value){
 /* =========================
    EVENT BINDING
 ========================= */
+/* =========================
+   CHAT PICKER
+========================= */
+
+const DEFAULT_EMOJIS = [
+  "😀","😁","😄","😊","🙂","😉","😎","😅",
+  "😂","🤣","😍","🥰","😘","😇","🤝","👏",
+  "👍","👎","🙏","💪","🔥","⭐","💙","💚",
+  "❤️","💼","📚","🎓","🏫","📝","📌","✅",
+  "📞","🎥","📎","📄","📷","💡","🚀","🎯"
+];
+
+const DEFAULT_GIFS = [
+  {
+    title:"Good job",
+    url:"https://media.giphy.com/media/ely3apij36BJhoZ234/giphy.gif"
+  },
+  {
+    title:"Congratulations",
+    url:"https://media.giphy.com/media/3oz8xAFtqoOUUrsh7W/giphy.gif"
+  },
+  {
+    title:"Thank you",
+    url:"https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif"
+  },
+  {
+    title:"Welcome",
+    url:"https://media.giphy.com/media/ASd0Ukj0y3qMM/giphy.gif"
+  },
+  {
+    title:"Approved",
+    url:"https://media.giphy.com/media/111ebonMs90YLu/giphy.gif"
+  },
+  {
+    title:"Typing",
+    url:"https://media.giphy.com/media/ule4vhcY1xEKQ/giphy.gif"
+  }
+];
+
+function toggleChatPicker(){
+  const picker =
+    document.getElementById("chatPicker");
+
+  if(!picker) return;
+
+  state.pickerOpen =
+    picker.classList.contains("hidden");
+
+  picker.classList.toggle("hidden",!state.pickerOpen);
+
+  if(state.pickerOpen){
+    renderEmojiPanel();
+
+    if(state.pickerTab === "sticker"){
+      loadSavedStickers();
+    }
+
+    if(state.pickerTab === "gif"){
+      renderGifGrid(DEFAULT_GIFS);
+    }
+  }
+}
+
+function closeChatPicker(){
+  state.pickerOpen = false;
+
+  document
+    .getElementById("chatPicker")
+    ?.classList
+    .add("hidden");
+}
+
+function switchPickerTab(tab,button){
+  state.pickerTab = tab;
+
+  document
+    .querySelectorAll(".picker-tabs button")
+    .forEach(item=>item.classList.remove("active"));
+
+  button?.classList.add("active");
+
+  document.getElementById("emojiPanel")?.classList.add("hidden");
+  document.getElementById("gifPanel")?.classList.add("hidden");
+  document.getElementById("stickerPanel")?.classList.add("hidden");
+
+  if(tab === "emoji"){
+    document.getElementById("emojiPanel")?.classList.remove("hidden");
+    renderEmojiPanel();
+  }
+
+  if(tab === "gif"){
+    document.getElementById("gifPanel")?.classList.remove("hidden");
+    renderGifGrid(DEFAULT_GIFS);
+  }
+
+  if(tab === "sticker"){
+    document.getElementById("stickerPanel")?.classList.remove("hidden");
+    loadSavedStickers();
+  }
+}
+
+function renderEmojiPanel(){
+  const panel =
+    document.getElementById("emojiPanel");
+
+  if(!panel) return;
+
+  panel.innerHTML = `
+    <div class="emoji-grid">
+      ${
+        DEFAULT_EMOJIS.map(item=>`
+          <button
+            class="emoji-btn"
+            onclick="insertEmoji('${item}')"
+            type="button"
+          >
+            ${item}
+          </button>
+        `).join("")
+      }
+    </div>
+  `;
+}
+
+function insertEmoji(emoji){
+  const input =
+    document.getElementById("messageInput");
+
+  if(!input) return;
+
+  const start =
+    input.selectionStart || 0;
+
+  const end =
+    input.selectionEnd || 0;
+
+  const before =
+    input.value.slice(0,start);
+
+  const after =
+    input.value.slice(end);
+
+  input.value =
+    before + emoji + after;
+
+  const nextPos =
+    start + emoji.length;
+
+  input.focus();
+  input.setSelectionRange(nextPos,nextPos);
+
+  autoGrowComposer();
+}
+
+function renderGifGrid(gifs = []){
+  const grid =
+    document.getElementById("gifGrid");
+
+  if(!grid) return;
+
+  const list =
+    gifs.length ? gifs : DEFAULT_GIFS;
+
+  grid.innerHTML =
+    list.map(asset=>`
+      <article
+        class="asset-card"
+        onclick="sendRemoteAsset('${esc(asset.url)}','gif','${esc(asset.title || "GIF")}')"
+      >
+        <img src="${esc(asset.url)}" alt="${esc(asset.title || "GIF")}">
+        <span class="asset-label">${esc(asset.title || "GIF")}</span>
+      </article>
+    `).join("");
+}
+
+function searchGifLocal(query){
+  const q =
+    cleanText(query).toLowerCase();
+
+  if(!q){
+    renderGifGrid(DEFAULT_GIFS);
+    return;
+  }
+
+  const results =
+    DEFAULT_GIFS.filter(item =>
+      String(item.title || "")
+        .toLowerCase()
+        .includes(q)
+    );
+
+  renderGifGrid(results);
+}
+
+async function loadSavedStickers(){
+  const grid =
+    document.getElementById("stickerGrid");
+
+  if(!grid) return;
+
+  grid.innerHTML = `
+    <div class="asset-empty">
+      Loading your stickers...
+    </div>
+  `;
+
+  try{
+    const data =
+      await api("/api/chat-assets?type=sticker",{
+        headers:authHeaders()
+      });
+
+    state.savedStickers =
+      Array.isArray(data)
+        ? data
+        : [];
+
+    renderStickerGrid();
+
+  }catch(error){
+    grid.innerHTML = `
+      <div class="asset-empty">
+        ${esc(error.message || "Unable to load stickers")}
+      </div>
+    `;
+  }
+}
+
+function renderStickerGrid(){
+  const grid =
+    document.getElementById("stickerGrid");
+
+  if(!grid) return;
+
+  if(!state.savedStickers.length){
+    grid.innerHTML = `
+      <div class="asset-empty">
+        No stickers yet. Import one or save a sticker from a chat.
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML =
+    state.savedStickers.map(asset=>`
+      <article
+        class="asset-card"
+        onclick="sendRemoteAsset('${esc(asset.url)}','sticker','${esc(asset.title || "Sticker")}')"
+      >
+        <img src="${esc(asset.url)}" alt="${esc(asset.title || "Sticker")}">
+        <span class="asset-label">${esc(asset.title || "Sticker")}</span>
+      </article>
+    `).join("");
+}
+
+function importSticker(){
+  document
+    .getElementById("stickerImportInput")
+    ?.click();
+}
+
+async function handleStickerImport(file){
+  if(!file) return;
+
+  if(file.size > 20 * 1024 * 1024){
+    toast("Sticker file is too large. Maximum is 20MB.");
+    return;
+  }
+
+  const form =
+    new FormData();
+
+  form.append("file",file);
+  form.append("type","sticker");
+  form.append("title",file.name || "Sticker");
+  form.append("source","uploaded");
+
+  try{
+    const asset =
+      await api("/api/chat-assets",{
+        method:"POST",
+        headers:authHeaders(),
+        body:form
+      });
+
+    state.savedStickers.unshift(asset);
+    renderStickerGrid();
+    toast("Sticker imported");
+
+  }catch(error){
+    toast(error.message || "Unable to import sticker");
+  }
+}
+
+function openCameraCapture(){
+  document
+    .getElementById("cameraInput")
+    ?.click();
+}
+
+function handleCameraCapture(file){
+  if(!file) return;
+
+  state.attachment = file;
+  renderAttachmentPreview(file);
+}
+
+async function sendRemoteAsset(url,type,title){
+  if(!state.activeConversation){
+    toast("Select a conversation first");
+    return;
+  }
+
+  const other =
+    state.activeOtherUser ||
+    getOtherParticipant(state.activeConversation);
+
+  const receiverId =
+    getId(other);
+
+  if(!receiverId){
+    toast("Unable to find receiver");
+    return;
+  }
+
+  const tempId =
+    "client-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+
+  const tempMessage = {
+    _id:tempId,
+    sender:{
+      _id:state.myId,
+      name:"You"
+    },
+    receiver:{
+      _id:receiverId
+    },
+    text:"",
+    fileUrl:url,
+    fileType:type === "gif" ? "image/gif" : "image/webp",
+    fileName:title || type,
+    fileSize:0,
+    attachments:[
+      {
+        url,
+        secureUrl:url,
+        type:"image",
+        mimeType:type === "gif" ? "image/gif" : "image/webp",
+        originalName:title || type,
+        size:0
+      }
+    ],
+    messageType:"image",
+    status:"sending",
+    seen:false,
+    createdAt:new Date().toISOString(),
+    metadata:{
+      clientMessageId:tempId
+    }
+  };
+
+  state.messages.push(tempMessage);
+  renderMessages();
+
+  try{
+    const saved =
+      await apiJSON(
+        "/api/messages",
+        "POST",
+        {
+          receiverId,
+          text:"",
+          fileUrl:url,
+          fileType:type === "gif" ? "image/gif" : "image/webp",
+          fileName:title || type,
+          clientMessageId:tempId
+        }
+      );
+
+    const index =
+      state.messages.findIndex(item =>
+        String(item._id) === String(tempId) ||
+        String(item?.metadata?.clientMessageId || "") === String(tempId)
+      );
+
+    if(index !== -1){
+      state.messages[index] =
+        saved.message || saved;
+    }
+
+    renderMessages();
+    closeChatPicker();
+    await loadConversations();
+
+  }catch(error){
+    const failed =
+      state.messages.find(item => String(item._id) === String(tempId));
+
+    if(failed){
+      failed.status = "failed";
+      renderMessages();
+    }
+
+    toast(error.message || "Unable to send asset");
+  }
+}
+
+async function saveReceivedAsset(message){
+  const attachment =
+    getPrimaryAttachment(message);
+
+  if(!attachment){
+    toast("No asset to save");
+    return;
+  }
+
+  const url =
+    attachment.secureUrl ||
+    attachment.url;
+
+  if(!url){
+    toast("No asset URL found");
+    return;
+  }
+
+  try{
+    await apiJSON(
+      "/api/chat-assets",
+      "POST",
+      {
+        type:"sticker",
+        title:attachment.originalName || "Saved sticker",
+        url,
+        mimeType:attachment.mimeType || message.fileType || "",
+        source:"saved_from_chat",
+        originalMessageId:messageId(message)
+      }
+    );
+
+    toast("Saved to your stickers");
+
+  }catch(error){
+    toast(error.message || "Unable to save sticker");
+  }
+}
+function saveReceivedAssetById(id){
+  const message =
+    state.messages.find(item =>
+      String(messageId(item)) === String(id)
+    );
+
+  if(!message){
+    toast("Message not found");
+    return;
+  }
+
+  saveReceivedAsset(message);
+}
+
 
 function bindEvents(){
   const messageInput =
@@ -2632,6 +3117,49 @@ function bindEvents(){
         },280);
     });
   }
+  const cameraInput =
+  document.getElementById("cameraInput");
+
+if(cameraInput){
+  cameraInput.addEventListener("change",event=>{
+    const file =
+      event.target.files?.[0];
+
+    if(file){
+      handleCameraCapture(file);
+    }
+  });
+}
+
+const stickerImportInput =
+  document.getElementById("stickerImportInput");
+
+if(stickerImportInput){
+  stickerImportInput.addEventListener("change",event=>{
+    const file =
+      event.target.files?.[0];
+
+    if(file){
+      handleStickerImport(file);
+    }
+
+    stickerImportInput.value = "";
+  });
+}
+
+const gifSearchInput =
+  document.getElementById("gifSearchInput");
+
+if(gifSearchInput){
+  gifSearchInput.addEventListener("input",event=>{
+    clearTimeout(state.gifSearchTimer);
+
+    state.gifSearchTimer =
+      setTimeout(()=>{
+        searchGifLocal(event.target.value);
+      },250);
+  });
+}
 
   const messagesBox =
     document.getElementById("messagesBox");
