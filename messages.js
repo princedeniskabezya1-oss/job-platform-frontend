@@ -1,26 +1,64 @@
 const API = "https://backend-1-9b6f.onrender.com";
-const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-const params = new URLSearchParams(location.search);
-const pendingUserId = params.get("user") || params.get("userId") || "";
+const FALLBACK_AVATAR =
+  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+const params =
+  new URLSearchParams(window.location.search);
+
+const initialUserId =
+  params.get("user") ||
+  params.get("userId") ||
+  "";
+
+const initialConversationId =
+  params.get("conversation") ||
+  params.get("conversationId") ||
+  "";
 
 const state = {
+  token:"",
+  role:"",
   me:null,
-  myId:localStorage.getItem("userId") || "",
-  token:getToken(),
+  myId:"",
   socket:null,
+
   conversations:[],
-  activeUser:null,
+  filteredConversations:[],
+  activeConversation:null,
+  activeOtherUser:null,
   messages:[],
-  selected:null,
+
+  onlineUsers:new Map(),
+
+  conversationFilter:"all",
+  conversationSearch:"",
+  userSearchTimer:null,
+  conversationSearchTimer:null,
+
+  selectedMessage:null,
   replyTo:null,
   attachment:null,
-  filter:"all",
-  typingTimer:null
+
+  typingTimer:null,
+  isSending:false,
+  isLoadingMessages:false,
+  messagesPageBefore:null,
+  hasMoreMessages:true,
+
+  confirmCallback:null
 };
 
+/* =========================
+   AUTH
+========================= */
+
+function getRole(){
+  return String(localStorage.getItem("role") || "").toLowerCase();
+}
+
 function getToken(){
-  const role = String(localStorage.getItem("role") || "").toLowerCase();
+  const role = getRole();
 
   return (
     localStorage.getItem(role + "Token") ||
@@ -36,14 +74,37 @@ function getToken(){
   );
 }
 
+function requireAuth(){
+  state.role = getRole();
+  state.token = getToken();
+
+  if(!state.token){
+    window.location.href =
+      "login.html?next=" +
+      encodeURIComponent(
+        "messages.html" + window.location.search
+      );
+
+    return false;
+  }
+
+  return true;
+}
+
 function authHeaders(extra = {}){
   return {
-    ...(state.token ? { Authorization:"Bearer " + state.token } : {}),
+    ...(state.token
+      ? { Authorization:"Bearer " + state.token }
+      : {}),
     ...extra
   };
 }
 
-function esc(value=""){
+/* =========================
+   SAFE HELPERS
+========================= */
+
+function esc(value = ""){
   return String(value ?? "")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
@@ -52,237 +113,724 @@ function esc(value=""){
     .replaceAll("'","&#039;");
 }
 
-async function api(path, options = {}){
-  const res = await fetch(API + path, {
-    ...options,
-    headers:{
-      ...(options.headers || {})
-    }
-  });
+function cleanText(value = ""){
+  return String(value ?? "").trim();
+}
 
-  const text = await res.text();
-  let data = {};
+function getId(value){
+  if(!value) return "";
 
-  try{
-    data = text ? JSON.parse(text) : {};
-  }catch{
-    data = { message:text };
+  if(typeof value === "string"){
+    return value;
   }
 
-  if(!res.ok){
-    throw new Error(data.message || "Request failed");
+  return value._id || value.id || "";
+}
+
+function userDisplayName(user = {}){
+  return (
+    user.companyName ||
+    user.schoolName ||
+    user.name ||
+    "AIFT User"
+  );
+}
+
+function userAvatar(user = {}){
+  return (
+    user.profileImage ||
+    user.logo ||
+    user.avatar ||
+    FALLBACK_AVATAR
+  );
+}
+
+function userSubtitle(user = {}){
+  return (
+    user.headline ||
+    user.profession ||
+    user.course ||
+    user.role ||
+    "AIFT member"
+  );
+}
+
+function readableRole(role = ""){
+  const r = String(role).toLowerCase();
+
+  if(r === "talent") return "Job Seeker";
+  if(r === "student") return "Student";
+  if(r === "teacher") return "Teacher";
+  if(r === "employer") return "Employer";
+  if(r === "school") return "School";
+  if(r === "agent") return "Recruiter";
+  if(r === "admin") return "Admin";
+
+  return "AIFT Member";
+}
+
+function profileUrl(user = {}){
+  const id = getId(user);
+  const role = String(user.role || "").toLowerCase();
+
+  if(!id) return "home.html";
+
+  if(role === "student"){
+    return `student-public-profile.html?id=${encodeURIComponent(id)}`;
   }
 
-  return data;
-}
+  if(role === "teacher"){
+    return `teacher-public-profile.html?id=${encodeURIComponent(id)}`;
+  }
 
-function toast(message){
-  const el = document.getElementById("toast");
-  el.textContent = message;
-  el.classList.add("show");
+  if(role === "school"){
+    return `school-public-profile.html?id=${encodeURIComponent(id)}`;
+  }
 
-  clearTimeout(window.__toastTimer);
-  window.__toastTimer = setTimeout(()=>{
-    el.classList.remove("show");
-  },2300);
-}
+  if(role === "employer"){
+    return `employer-public-profile.html?id=${encodeURIComponent(id)}`;
+  }
 
-function userName(user){
-  return user?.companyName || user?.schoolName || user?.name || "AIFT User";
-}
-
-function userImage(user){
-  return user?.profileImage || user?.logo || user?.avatar || FALLBACK_AVATAR;
-}
-
-function messageSenderId(message){
-  return String(message?.sender?._id || message?.sender || "");
-}
-
-function messageReceiverId(message){
-  return String(message?.receiver?._id || message?.receiver || "");
-}
-
-function isMine(message){
-  return messageSenderId(message) === String(state.myId);
+  return `agent-public-profile.html?id=${encodeURIComponent(id)}`;
 }
 
 function formatTime(value){
   if(!value) return "";
 
   const date = new Date(value);
+
+  if(Number.isNaN(date.getTime())){
+    return "";
+  }
+
   const now = new Date();
 
   if(date.toDateString() === now.toDateString()){
-    return date.toLocaleTimeString([], {
+    return date.toLocaleTimeString([],{
       hour:"numeric",
       minute:"2-digit"
     });
   }
 
-  return date.toLocaleDateString([], {
+  return date.toLocaleDateString([],{
     month:"short",
     day:"numeric"
   });
 }
 
-function formatDay(value){
+function formatMessageTime(value){
+  if(!value) return "";
+
   const date = new Date(value);
+
+  if(Number.isNaN(date.getTime())){
+    return "";
+  }
+
+  return date.toLocaleTimeString([],{
+    hour:"numeric",
+    minute:"2-digit"
+  });
+}
+
+function formatDay(value){
+  const date = new Date(value || Date.now());
+
   const today = new Date();
 
   const yesterday = new Date();
   yesterday.setDate(today.getDate() - 1);
 
-  if(date.toDateString() === today.toDateString()) return "Today";
-  if(date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  if(date.toDateString() === today.toDateString()){
+    return "Today";
+  }
 
-  return date.toLocaleDateString([], {
+  if(date.toDateString() === yesterday.toDateString()){
+    return "Yesterday";
+  }
+
+  return date.toLocaleDateString([],{
     month:"long",
     day:"numeric",
     year:"numeric"
   });
 }
 
-function setConversationFilter(filter, btn){
-  state.filter = filter;
+function fileSize(bytes = 0){
+  const size = Number(bytes || 0);
 
-  document.querySelectorAll(".conversation-tabs button")
-    .forEach(item=>item.classList.remove("active"));
+  if(size < 1024) return size + " B";
+  if(size < 1024 * 1024) return Math.round(size / 1024) + " KB";
 
-  btn?.classList.add("active");
-
-  renderConversations();
+  return (size / (1024 * 1024)).toFixed(1) + " MB";
 }
 
-function showSidebar(){
-  document.getElementById("sidebar").classList.remove("hidden-mobile");
-}
+/* =========================
+   API HELPER
+========================= */
 
-function hideSidebarOnMobile(){
-  if(window.innerWidth <= 980){
-    document.getElementById("sidebar").classList.add("hidden-mobile");
+async function api(path, options = {}){
+  const response =
+    await fetch(API + path,{
+      ...options,
+      headers:{
+        ...(options.headers || {})
+      }
+    });
+
+  const text =
+    await response.text();
+
+  let data = {};
+
+  try{
+    data =
+      text
+        ? JSON.parse(text)
+        : {};
+  }catch{
+    data = {
+      message:text
+    };
   }
+
+  if(!response.ok){
+    throw new Error(
+      data.message ||
+      "Request failed"
+    );
+  }
+
+  return data;
 }
 
-function showChat(){
-  document.getElementById("emptyState").classList.add("hidden");
-  document.getElementById("messagesBox").classList.remove("hidden");
-}
-
-function showEmpty(){
-  document.getElementById("emptyState").classList.remove("hidden");
-  document.getElementById("messagesBox").classList.add("hidden");
-}
-
-function focusUserSearch(){
-  showSidebar();
-  setTimeout(()=>{
-    document.getElementById("userSearchInput")?.focus();
-  },100);
-}
-
-function autoGrowTextarea(){
-  const input = document.getElementById("messageInput");
-  input.style.height = "auto";
-  input.style.height = Math.min(input.scrollHeight,130) + "px";
-}
-
-async function loadMe(){
-  const data = await api("/api/users/me", {
-    headers:authHeaders()
+async function apiJSON(path, method = "GET", body = null){
+  return api(path,{
+    method,
+    headers:authHeaders({
+      "Content-Type":"application/json"
+    }),
+    body:body
+      ? JSON.stringify(body)
+      : undefined
   });
+}
 
-  state.me = data.user || data;
+/* =========================
+   UI HELPERS
+========================= */
 
-  if(state.me?._id){
-    state.myId = state.me._id;
-    localStorage.setItem("userId", state.me._id);
-  }
+function toast(message){
+  const el =
+    document.getElementById("toast");
 
-  if(state.me?.role){
-    localStorage.setItem("role", state.me.role);
+  if(!el) return;
+
+  el.textContent =
+    message;
+
+  el.classList.add("show");
+
+  clearTimeout(window.__toastTimer);
+
+  window.__toastTimer =
+    setTimeout(()=>{
+      el.classList.remove("show");
+    },2400);
+}
+
+function openConfirmModal({
+  title = "Confirm action",
+  text = "Are you sure?",
+  confirmText = "Confirm",
+  danger = false,
+  onConfirm
+} = {}){
+  state.confirmCallback =
+    typeof onConfirm === "function"
+      ? onConfirm
+      : null;
+
+  document.getElementById("confirmTitle").textContent =
+    title;
+
+  document.getElementById("confirmText").textContent =
+    text;
+
+  const btn =
+    document.getElementById("confirmActionBtn");
+
+  btn.textContent =
+    confirmText;
+
+  btn.classList.toggle(
+    "danger",
+    danger
+  );
+
+  btn.onclick = async ()=>{
+    const callback =
+      state.confirmCallback;
+
+    closeConfirmModal();
+
+    if(callback){
+      await callback();
+    }
+  };
+
+  document
+    .getElementById("confirmModal")
+    .classList
+    .remove("hidden");
+}
+
+function closeConfirmModal(){
+  state.confirmCallback = null;
+
+  document
+    .getElementById("confirmModal")
+    .classList
+    .add("hidden");
+}
+
+function showConversationSidebar(){
+  document
+    .getElementById("conversationSidebar")
+    ?.classList
+    .remove("hidden-mobile");
+}
+
+function hideConversationSidebarOnMobile(){
+  if(window.innerWidth <= 980){
+    document
+      .getElementById("conversationSidebar")
+      ?.classList
+      .add("hidden-mobile");
   }
 }
+
+function showEmptyState(){
+  document
+    .getElementById("emptyState")
+    ?.classList
+    .remove("hidden");
+
+  document
+    .getElementById("messagesBox")
+    ?.classList
+    .add("hidden");
+}
+
+function showMessagesState(){
+  document
+    .getElementById("emptyState")
+    ?.classList
+    .add("hidden");
+
+  document
+    .getElementById("messagesBox")
+    ?.classList
+    .remove("hidden");
+}
+
+function setStatus(text){
+  const el =
+    document.getElementById("activeConversationStatus");
+
+  if(el){
+    el.textContent = text;
+  }
+}
+
+function autoGrowComposer(){
+  const input =
+    document.getElementById("messageInput");
+
+  if(!input) return;
+
+  input.style.height = "auto";
+  input.style.height =
+    Math.min(input.scrollHeight,132) + "px";
+}
+/* =========================
+   SOCKETS
+========================= */
 
 function connectSocket(){
-  state.socket = io(API, {
-    auth:{ token:state.token }
+  if(state.socket){
+    state.socket.disconnect();
+  }
+
+  state.socket = io(API,{
+    auth:{
+      token:state.token
+    },
+    transports:["websocket","polling"]
   });
 
-  state.socket.emit("join", state.myId);
-
-  state.socket.on("newMessage", handleIncomingMessage);
-
-  state.socket.on("typing", payload=>{
-    const from = payload?.from || payload?.sender || "";
-    if(state.activeUser && String(from) === String(state.activeUser._id)){
-      document.getElementById("activeUserStatus").textContent = "Typing...";
+  state.socket.on("connect",()=>{
+    if(state.myId){
+      state.socket.emit("join",state.myId);
     }
   });
 
-  state.socket.on("stopTyping", payload=>{
-    const from = payload?.from || payload?.sender || "";
-    if(state.activeUser && String(from) === String(state.activeUser._id)){
-      document.getElementById("activeUserStatus").textContent = "Online";
+  state.socket.on("connect_error",error=>{
+    console.warn("Socket connection error:",error.message);
+  });
+
+  state.socket.on("userOnline",payload=>{
+    if(!payload?.userId) return;
+
+    state.onlineUsers.set(
+      String(payload.userId),
+      {
+        online:!!payload.online,
+        lastSeen:payload.lastSeen || null
+      }
+    );
+
+    renderConversations();
+
+    if(
+      state.activeOtherUser &&
+      String(getId(state.activeOtherUser)) ===
+      String(payload.userId)
+    ){
+      updateActiveHeader();
     }
   });
 
-  state.socket.on("reactionUpdate", updated=>{
-    const index = state.messages.findIndex(m => String(m._id) === String(updated._id));
+  state.socket.on("typing",payload=>{
+    const from =
+      payload?.from ||
+      payload?.sender ||
+      "";
+
+    if(
+      state.activeOtherUser &&
+      String(from) === String(getId(state.activeOtherUser))
+    ){
+      setStatus("Typing...");
+    }
+  });
+
+  state.socket.on("stopTyping",payload=>{
+    const from =
+      payload?.from ||
+      payload?.sender ||
+      "";
+
+    if(
+      state.activeOtherUser &&
+      String(from) === String(getId(state.activeOtherUser))
+    ){
+      updateActiveHeader();
+    }
+  });
+
+  state.socket.on("newMessage",message=>{
+    handleRealtimeMessage(message);
+  });
+
+  state.socket.on("messageDeleted",payload=>{
+    if(!payload?.messageId) return;
+
+    const index =
+      state.messages.findIndex(
+        item => String(item._id) === String(payload.messageId)
+      );
+
     if(index !== -1){
-      state.messages[index] = updated;
+      state.messages[index].deletedForEveryone = true;
+      state.messages[index].text = "This message was deleted";
+      state.messages[index].fileUrl = "";
+      state.messages[index].fileType = "";
+      state.messages[index].attachments = [];
+      renderMessages();
+    }
+
+    loadConversations();
+  });
+
+  state.socket.on("messageEdited",message=>{
+    const index =
+      state.messages.findIndex(
+        item => String(item._id) === String(message._id)
+      );
+
+    if(index !== -1){
+      state.messages[index] = message;
+      renderMessages();
+    }
+
+    loadConversations();
+  });
+
+  state.socket.on("reactionUpdate",message=>{
+    const index =
+      state.messages.findIndex(
+        item => String(item._id) === String(message._id)
+      );
+
+    if(index !== -1){
+      state.messages[index] = message;
       renderMessages();
     }
   });
+
+  state.socket.on("conversationCreated",()=>{
+    loadConversations();
+  });
+
+  state.socket.on("conversationUpdated",()=>{
+    loadConversations();
+  });
+
+  state.socket.on("conversationRead",()=>{
+    loadConversations();
+  });
+
+  state.socket.on("meetingInvited",payload=>{
+    toast(
+      payload?.title
+        ? `Meeting invitation: ${payload.title}`
+        : "You have a new meeting invitation"
+    );
+  });
+
+  state.socket.on("incomingCall",payload=>{
+    toast(
+      payload?.callType === "video"
+        ? "Incoming video call"
+        : "Incoming audio call"
+    );
+  });
+}
+
+/* =========================
+   ME
+========================= */
+
+async function loadMe(){
+  const data =
+    await api("/api/users/me",{
+      headers:authHeaders()
+    });
+
+  state.me =
+    data.user || data;
+
+  state.myId =
+    getId(state.me);
+
+  if(state.myId){
+    localStorage.setItem("userId",state.myId);
+  }
+
+  if(state.me?.role){
+    localStorage.setItem("role",state.me.role);
+  }
+}
+
+/* =========================
+   CONVERSATIONS
+========================= */
+
+function conversationId(conversation){
+  return getId(conversation);
+}
+
+function conversationTitle(conversation){
+  if(!conversation) return "Conversation";
+
+  if(conversation.displayName){
+    return conversation.displayName;
+  }
+
+  if(conversation.type !== "direct" && conversation.title){
+    return conversation.title;
+  }
+
+  return userDisplayName(
+    conversation.user ||
+    getOtherParticipant(conversation) ||
+    {}
+  );
+}
+
+function conversationImage(conversation){
+  if(!conversation) return FALLBACK_AVATAR;
+
+  if(conversation.displayImage){
+    return conversation.displayImage;
+  }
+
+  if(conversation.type !== "direct" && conversation.photo){
+    return conversation.photo;
+  }
+
+  return userAvatar(
+    conversation.user ||
+    getOtherParticipant(conversation) ||
+    {}
+  );
+}
+
+function getOtherParticipant(conversation){
+  const participants =
+    conversation?.participants || [];
+
+  const other =
+    participants.find(item=>{
+      const user =
+        item.user || item;
+
+      return String(getId(user)) !== String(state.myId);
+    });
+
+  return other?.user || other || conversation?.user || null;
+}
+
+function conversationPreview(conversation){
+  const last =
+    conversation?.lastMessage;
+
+  if(typeof last === "string"){
+    return last || "Start a conversation";
+  }
+
+  if(last?.text){
+    return last.text;
+  }
+
+  if(last?.messageType === "image") return "Image";
+  if(last?.messageType === "video") return "Video";
+  if(last?.messageType === "audio") return "Audio";
+  if(last?.messageType === "document") return "Document";
+  if(last?.messageType === "meeting") return "Meeting";
+
+  return "Start a conversation";
+}
+
+function conversationUpdatedAt(conversation){
+  return (
+    conversation.lastMessageDate ||
+    conversation.lastMessage?.createdAt ||
+    conversation.updatedAt ||
+    conversation.createdAt
+  );
+}
+
+function isConversationOnline(conversation){
+  const other =
+    conversation.user ||
+    getOtherParticipant(conversation);
+
+  const id =
+    getId(other);
+
+  if(!id) return false;
+
+  return state.onlineUsers.get(String(id))?.online === true;
 }
 
 async function loadConversations(){
-  const data = await api("/api/messages", {
-    headers:authHeaders()
-  });
+  const query = new URLSearchParams();
 
-  state.conversations = Array.isArray(data)
-    ? data
-    : data.conversations || data.results || [];
+  if(state.conversationFilter === "archived"){
+    query.set("archived","true");
+  }
 
+  if(state.conversationFilter === "unread"){
+    query.set("unread","true");
+  }
+
+  if(state.conversationFilter === "pinned"){
+    query.set("pinned","true");
+  }
+
+  if(state.conversationSearch){
+    query.set("search",state.conversationSearch);
+  }
+
+  const path =
+    "/api/conversations" +
+    (query.toString()
+      ? "?" + query.toString()
+      : "");
+
+  const data =
+    await api(path,{
+      headers:authHeaders()
+    });
+
+  state.conversations =
+    Array.isArray(data)
+      ? data
+      : data.conversations || [];
+
+  applyConversationFilter();
   renderConversations();
 }
 
-function normalizeConversation(conv){
-  const user = conv.user || conv.otherUser || conv.participant || {};
-  return {
-    ...conv,
-    user,
-    id:user._id || user.id,
-    name:userName(user),
-    image:userImage(user),
-    last:conv.lastMessage || conv.preview || "Start a conversation",
-    date:conv.lastMessageDate || conv.updatedAt || conv.createdAt,
-    unread:conv.unread || conv.unreadCount || 0,
-    pinned:!!conv.pinned
-  };
-}
+function applyConversationFilter(){
+  let list =
+    [...state.conversations];
 
-function renderConversations(){
-  const box = document.getElementById("conversationList");
-  const normalized = state.conversations.map(normalizeConversation);
-
-  let list = normalized.filter(conv => conv.id && String(conv.id) !== String(state.myId));
-
-  if(state.filter === "unread"){
-    list = list.filter(conv => Number(conv.unread) > 0);
+  if(state.conversationFilter === "all"){
+    list = list.filter(item => !item.archived);
   }
 
-  if(state.filter === "pinned"){
-    list = list.filter(conv => conv.pinned);
+  if(state.conversationFilter === "archived"){
+    list = list.filter(item => item.archived);
+  }
+
+  if(state.conversationFilter === "pinned"){
+    list = list.filter(item => item.pinned && !item.archived);
+  }
+
+  if(state.conversationFilter === "unread"){
+    list = list.filter(item => Number(item.unreadCount || item.unread || 0) > 0);
+  }
+
+  if(state.conversationSearch){
+    const q =
+      state.conversationSearch.toLowerCase();
+
+    list = list.filter(item=>{
+      return [
+        conversationTitle(item),
+        conversationPreview(item),
+        userSubtitle(item.user || {})
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    });
   }
 
   list.sort((a,b)=>{
-    if(a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-    return new Date(b.date || 0) - new Date(a.date || 0);
+    if(Boolean(a.pinned) !== Boolean(b.pinned)){
+      return a.pinned ? -1 : 1;
+    }
+
+    return new Date(conversationUpdatedAt(b) || 0) -
+      new Date(conversationUpdatedAt(a) || 0);
   });
 
-  if(!list.length){
+  state.filteredConversations = list;
+}
+
+function renderConversations(){
+  const box =
+    document.getElementById("conversationList");
+
+  if(!box) return;
+
+  applyConversationFilter();
+
+  if(!state.filteredConversations.length){
     box.innerHTML = `
       <div class="empty-list">
         No conversations found.
@@ -291,274 +839,976 @@ function renderConversations(){
     return;
   }
 
-  box.innerHTML = list.map(conv=>`
-    <article
-      class="conversation ${state.activeUser && String(state.activeUser._id) === String(conv.id) ? "active" : ""}"
-      onclick="openConversation('${esc(conv.id)}')"
-    >
-      <img src="${esc(conv.image)}" alt="">
-      <div class="conversation-main">
-        <div class="conversation-top">
-          <div class="conversation-name">${esc(conv.name)}</div>
-          <div class="conversation-time">${esc(formatTime(conv.date))}</div>
-        </div>
-        <div class="conversation-preview">${esc(conv.last)}</div>
-      </div>
-      ${Number(conv.unread) > 0 ? `<span class="unread-dot"></span>` : ""}
-    </article>
-  `).join("");
+  box.innerHTML =
+    state.filteredConversations
+      .map(conversation=>{
+        const id =
+          conversationId(conversation);
+
+        const active =
+          state.activeConversation &&
+          String(conversationId(state.activeConversation)) === String(id);
+
+        const unread =
+          Number(conversation.unreadCount || conversation.unread || 0);
+
+        const online =
+          isConversationOnline(conversation);
+
+        return `
+          <article
+            class="conversation-item ${active ? "active" : ""}"
+            onclick="openConversation('${esc(id)}')"
+          >
+            <div class="conversation-avatar-wrap">
+              <img
+                class="conversation-avatar"
+                src="${esc(conversationImage(conversation))}"
+                alt=""
+              >
+              ${online ? `<span class="online-dot"></span>` : ""}
+            </div>
+
+            <div class="conversation-main">
+              <div class="conversation-top">
+                <div class="conversation-name">
+                  ${esc(conversationTitle(conversation))}
+                </div>
+
+                <div class="conversation-time">
+                  ${esc(formatTime(conversationUpdatedAt(conversation)))}
+                </div>
+              </div>
+
+              <div class="conversation-preview">
+                ${esc(conversationPreview(conversation))}
+              </div>
+
+              <div class="conversation-meta-row">
+                ${
+                  conversation.pinned
+                    ? `<span class="mini-pill blue">Pinned</span>`
+                    : ""
+                }
+
+                ${
+                  conversation.muted
+                    ? `<span class="mini-pill">Muted</span>`
+                    : ""
+                }
+
+                ${
+                  conversation.type && conversation.type !== "direct"
+                    ? `<span class="mini-pill">${esc(conversation.type)}</span>`
+                    : ""
+                }
+
+                ${
+                  unread > 0
+                    ? `<span class="unread-count">${unread > 99 ? "99+" : unread}</span>`
+                    : ""
+                }
+              </div>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
 }
 
-async function getPublicUser(userId){
-  const data = await api(`/api/users/${encodeURIComponent(userId)}/public`, {
-    headers:authHeaders()
-  });
+function setConversationFilter(filter,button){
+  state.conversationFilter = filter;
 
-  return data.user || data.profile || data.employer || data.school || data;
+  document
+    .querySelectorAll(".conversation-tabs button")
+    .forEach(item=>item.classList.remove("active"));
+
+  button?.classList.add("active");
+
+  loadConversations();
 }
 
-async function openConversation(userId, fallbackName = "", fallbackImage = ""){
+/* =========================
+   OPEN CONVERSATION
+========================= */
+
+async function openConversation(id){
+  if(!id) return;
+
   try{
-    let user = null;
+    showMessagesState();
+    hideConversationSidebarOnMobile();
 
-    try{
-      user = await getPublicUser(userId);
-    }catch{
-      const found = state.conversations
-        .map(normalizeConversation)
-        .find(conv => String(conv.id) === String(userId));
+    state.isLoadingMessages = true;
+    state.messages = [];
+    state.messagesPageBefore = null;
+    state.hasMoreMessages = true;
 
-      user = found?.user || {
-        _id:userId,
-        name:fallbackName || "AIFT User",
-        profileImage:fallbackImage || FALLBACK_AVATAR
-      };
-    }
+    const conversation =
+      await api(`/api/conversations/${encodeURIComponent(id)}`,{
+        headers:authHeaders()
+      });
 
-    state.activeUser = {
-      ...user,
-      _id:user._id || user.id || userId
-    };
+    state.activeConversation = conversation;
+    state.activeOtherUser =
+      conversation.user ||
+      getOtherParticipant(conversation) ||
+      null;
 
-    clearSelectedMessage();
-    clearReply();
-    showChat();
-    hideSidebarOnMobile();
+    updateActiveHeader();
 
-    document.getElementById("activeUserName").textContent = userName(state.activeUser);
-    document.getElementById("activeUserImage").src = userImage(state.activeUser);
-    document.getElementById("activeUserStatus").textContent = "Online";
+    renderMessagesSkeleton();
 
-    renderConversations();
+    const messages =
+      await api(
+        `/api/conversations/${encodeURIComponent(id)}/messages?limit=60`,
+        {
+          headers:authHeaders()
+        }
+      );
 
-    const messagesData = await api(`/api/messages/${encodeURIComponent(userId)}`, {
-      headers:authHeaders()
-    });
+    state.messages =
+      Array.isArray(messages)
+        ? messages
+        : [];
 
-    state.messages = Array.isArray(messagesData)
-      ? messagesData
-      : messagesData.messages || [];
+    state.messagesPageBefore =
+      state.messages[0]?.createdAt || null;
+
+    state.hasMoreMessages =
+      state.messages.length >= 60;
 
     renderMessages();
 
-    try{
-      await api(`/api/messages/seen/${encodeURIComponent(userId)}`, {
-        method:"PATCH",
-        headers:authHeaders()
-      });
-    }catch{}
+    await markConversationRead(id);
 
     await loadConversations();
 
   }catch(error){
+    console.error(error);
     toast(error.message || "Unable to open conversation");
+    showEmptyState();
+  }finally{
+    state.isLoadingMessages = false;
   }
 }
 
+function updateActiveHeader(){
+  const conversation =
+    state.activeConversation;
+
+  const other =
+    state.activeOtherUser || {};
+
+  const title =
+    conversation
+      ? conversationTitle(conversation)
+      : "Messages";
+
+  const avatar =
+    conversation
+      ? conversationImage(conversation)
+      : FALLBACK_AVATAR;
+
+  document.getElementById("activeConversationTitle").textContent =
+    title;
+
+  document.getElementById("activeUserImage").src =
+    avatar;
+
+  if(!conversation){
+    setStatus("Select a conversation");
+    return;
+  }
+
+  const otherId =
+    getId(other);
+
+  const online =
+    otherId &&
+    state.onlineUsers.get(String(otherId))?.online;
+
+  if(online){
+    setStatus("Online");
+  }else{
+    setStatus(
+      conversation.type === "direct"
+        ? userSubtitle(other)
+        : `${conversation.participants?.length || 0} participants`
+    );
+  }
+
+  document.getElementById("drawerUserImage").src =
+    avatar;
+
+  document.getElementById("drawerUserName").textContent =
+    title;
+
+  document.getElementById("drawerUserMeta").textContent =
+    conversation.type === "direct"
+      ? `${readableRole(other.role)} • ${userSubtitle(other)}`
+      : `${conversation.type || "Group"} conversation`;
+}
+
+async function markConversationRead(id){
+  try{
+    await apiJSON(
+      `/api/conversations/${encodeURIComponent(id)}/read`,
+      "PATCH",
+      {}
+    );
+  }catch(error){
+    console.warn("Mark read failed:",error.message);
+  }
+}
+/* =========================
+   MESSAGE RENDERING
+========================= */
+
+function senderId(message){
+  return getId(message.sender);
+}
+
+function receiverId(message){
+  return getId(message.receiver);
+}
+
+function isMyMessage(message){
+  return String(senderId(message)) === String(state.myId);
+}
+
+function messageId(message){
+  return getId(message) || message._id || "";
+}
+
+function renderMessagesSkeleton(){
+  const box =
+    document.getElementById("messagesBox");
+
+  if(!box) return;
+
+  box.innerHTML = `
+    <div class="day-divider">Loading messages</div>
+  `;
+}
+
 function renderMessages(){
-  const box = document.getElementById("messagesBox");
-  box.innerHTML = "";
+  const box =
+    document.getElementById("messagesBox");
+
+  if(!box) return;
 
   if(!state.messages.length){
-    box.innerHTML = `<div class="day-divider">No messages yet</div>`;
+    box.innerHTML = `
+      <div class="day-divider">
+        No messages yet
+      </div>
+    `;
     return;
   }
 
   let lastDay = "";
 
+  box.innerHTML = "";
+
   state.messages.forEach(message=>{
-    const day = formatDay(message.createdAt || new Date());
+    const day =
+      formatDay(message.createdAt || new Date());
 
     if(day !== lastDay){
-      const divider = document.createElement("div");
-      divider.className = "day-divider";
-      divider.textContent = day;
+      const divider =
+        document.createElement("div");
+
+      divider.className =
+        "day-divider";
+
+      divider.textContent =
+        day;
+
       box.appendChild(divider);
+
       lastDay = day;
     }
 
-    box.appendChild(createMessageNode(message));
+    box.appendChild(
+      createMessageNode(message)
+    );
   });
 
-  box.scrollTop = box.scrollHeight;
+  scrollMessagesToBottom();
 }
 
 function createMessageNode(message){
-  const mine = isMine(message);
+  const mine =
+    isMyMessage(message);
 
-  const row = document.createElement("div");
-  row.className = "message-row " + (mine ? "me" : "other");
+  if(message.messageType === "system"){
+    const system =
+      document.createElement("div");
 
-  const bubble = document.createElement("article");
-  bubble.className = "bubble " + (mine ? "me" : "other");
-  bubble.dataset.id = message._id || "";
-  bubble.onclick = () => selectMessage(message,bubble);
+    system.className =
+      "system-message";
+
+    system.textContent =
+      message.text || "System update";
+
+    return system;
+  }
+
+  const row =
+    document.createElement("div");
+
+  row.className =
+    "message-row " + (mine ? "me" : "other");
+
+  const bubble =
+    document.createElement("article");
+
+  bubble.className =
+    "message-bubble " + (mine ? "me" : "other");
+
+  bubble.dataset.messageId =
+    messageId(message);
+
+  bubble.onclick = event=>{
+    event.stopPropagation();
+    selectMessage(message,bubble);
+  };
 
   bubble.innerHTML = `
-    ${replyHtml(message)}
-    ${message.text ? `<div class="message-text">${esc(message.text)}</div>` : ""}
-    ${fileHtml(message)}
-    <div class="message-meta">
-      <span>${esc(formatTime(message.createdAt))}</span>
-      ${mine ? `<span class="${message.seen ? "status-seen" : ""}">${message.seen ? "Read" : "Sent"}</span>` : ""}
-    </div>
+    ${replyPreviewHtml(message)}
+    ${messageContentHtml(message)}
+    ${messageMetaHtml(message,mine)}
   `;
 
   row.appendChild(bubble);
+
   return row;
 }
 
-function replyHtml(message){
-  const reply = message.replyTo;
-  if(!reply) return "";
+function replyPreviewHtml(message){
+  const reply =
+    message.replyTo;
+
+  if(!reply){
+    return "";
+  }
+
+  const replySender =
+    reply.sender?.name ||
+    reply.sender?.companyName ||
+    reply.sender?.schoolName ||
+    "Reply";
 
   return `
     <div class="reply-preview">
-      <strong>${esc(reply.sender?.name || "Reply")}</strong>
-      <span>${esc(reply.text || "Message")}</span>
+      <strong>${esc(replySender)}</strong>
+      <span>${esc(reply.text || reply.messageType || "Message")}</span>
     </div>
   `;
 }
 
-function fileHtml(message){
-  const url = message.fileUrl || message.mediaUrl || "";
-  const type = message.fileType || message.mediaType || "";
-
-  if(!url) return "";
-
-  if(type.includes("image")){
-    return `<img class="message-file" src="${esc(url)}" alt="Attachment">`;
+function messageContentHtml(message){
+  if(message.deletedForEveryone){
+    return `
+      <div class="message-deleted">
+        This message was deleted
+      </div>
+    `;
   }
 
-  if(type.includes("video")){
-    return `<video class="message-file" src="${esc(url)}" controls></video>`;
+  const parts = [];
+
+  if(message.text){
+    parts.push(`
+      <div class="message-text">
+        ${esc(message.text)}
+      </div>
+    `);
   }
 
-  if(type.includes("audio")){
-    return `<audio class="message-file" src="${esc(url)}" controls></audio>`;
+  const attachment =
+    getPrimaryAttachment(message);
+
+  if(attachment){
+    parts.push(
+      attachmentHtml(attachment,message)
+    );
+  }
+
+  if(!parts.length){
+    parts.push(`
+      <div class="message-text">
+        Message
+      </div>
+    `);
+  }
+
+  return parts.join("");
+}
+
+function getPrimaryAttachment(message){
+  if(Array.isArray(message.attachments) && message.attachments.length){
+    return message.attachments[0];
+  }
+
+  if(message.fileUrl || message.mediaUrl){
+    return {
+      url:message.fileUrl || message.mediaUrl,
+      secureUrl:message.fileUrl || message.mediaUrl,
+      type:normalizeAttachmentType(message.fileType || message.mediaType || ""),
+      mimeType:message.fileType || message.mediaType || "",
+      originalName:message.fileName || "Attachment",
+      size:message.fileSize || 0
+    };
+  }
+
+  return null;
+}
+
+function normalizeAttachmentType(type = ""){
+  const t =
+    String(type).toLowerCase();
+
+  if(t.includes("image")) return "image";
+  if(t.includes("video")) return "video";
+  if(t.includes("audio")) return "audio";
+  if(t.includes("pdf") || t.includes("document")) return "document";
+
+  return t || "file";
+}
+
+function attachmentHtml(attachment,message){
+  const url =
+    attachment.secureUrl ||
+    attachment.url ||
+    "";
+
+  if(!url){
+    return "";
+  }
+
+  const type =
+    normalizeAttachmentType(
+      attachment.type ||
+      attachment.mimeType ||
+      message.fileType ||
+      ""
+    );
+
+  const name =
+    attachment.originalName ||
+    message.fileName ||
+    "Attachment";
+
+  if(type === "image"){
+    return `
+      <img
+        class="message-file-image"
+        src="${esc(url)}"
+        alt="${esc(name)}"
+        loading="lazy"
+        onclick="event.stopPropagation();window.open('${esc(url)}','_blank')"
+      >
+    `;
+  }
+
+  if(type === "video"){
+    return `
+      <video
+        class="message-file-video"
+        src="${esc(url)}"
+        controls
+      ></video>
+    `;
+  }
+
+  if(type === "audio"){
+    return `
+      <audio
+        class="message-file-audio"
+        src="${esc(url)}"
+        controls
+      ></audio>
+    `;
   }
 
   return `
-    <a class="file-card" href="${esc(url)}" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
-      <span>Open attachment</span>
+    <a
+      class="file-card"
+      href="${esc(url)}"
+      target="_blank"
+      rel="noopener noreferrer"
+      onclick="event.stopPropagation()"
+    >
+      <svg viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <path d="M14 2v6h6"></path>
+      </svg>
+
+      <div>
+        <strong>${esc(name)}</strong>
+        <span>${esc(fileSize(attachment.size || message.fileSize || 0))}</span>
+      </div>
     </a>
   `;
 }
 
+function messageMetaHtml(message,mine){
+  const edited =
+    message.isEdited || message.editedAt;
+
+  const status =
+    mine
+      ? message.status === "failed"
+        ? `<span class="status-failed">Failed</span>`
+        : message.seen || message.status === "seen"
+          ? `<span class="status-read">Read</span>`
+          : `<span>Sent</span>`
+      : "";
+
+  return `
+    <div class="message-meta">
+      ${edited ? `<span>Edited</span>` : ""}
+      <span>${esc(formatMessageTime(message.createdAt))}</span>
+      ${status}
+    </div>
+  `;
+}
+
+function scrollMessagesToBottom(){
+  const box =
+    document.getElementById("messagesBox");
+
+  if(!box) return;
+
+  requestAnimationFrame(()=>{
+    box.scrollTop =
+      box.scrollHeight;
+  });
+}
+
+/* =========================
+   OLDER MESSAGES
+========================= */
+
+async function loadOlderMessages(){
+  if(
+    state.isLoadingMessages ||
+    !state.hasMoreMessages ||
+    !state.activeConversation ||
+    !state.messagesPageBefore
+  ){
+    return;
+  }
+
+  const box =
+    document.getElementById("messagesBox");
+
+  if(!box) return;
+
+  const oldHeight =
+    box.scrollHeight;
+
+  try{
+    state.isLoadingMessages = true;
+
+    const id =
+      conversationId(state.activeConversation);
+
+    const older =
+      await api(
+        `/api/conversations/${encodeURIComponent(id)}/messages?limit=40&before=${encodeURIComponent(state.messagesPageBefore)}`,
+        {
+          headers:authHeaders()
+        }
+      );
+
+    const list =
+      Array.isArray(older)
+        ? older
+        : [];
+
+    if(!list.length){
+      state.hasMoreMessages = false;
+      return;
+    }
+
+    const existingIds =
+      new Set(
+        state.messages.map(item => String(messageId(item)))
+      );
+
+    const unique =
+      list.filter(item =>
+        !existingIds.has(String(messageId(item)))
+      );
+
+    state.messages =
+      [...unique,...state.messages];
+
+    state.messagesPageBefore =
+      state.messages[0]?.createdAt || null;
+
+    if(list.length < 40){
+      state.hasMoreMessages = false;
+    }
+
+    renderMessages();
+
+    requestAnimationFrame(()=>{
+      box.scrollTop =
+        box.scrollHeight - oldHeight;
+    });
+
+  }catch(error){
+    console.warn("Load older messages failed:",error.message);
+  }finally{
+    state.isLoadingMessages = false;
+  }
+}
+
+/* =========================
+   MESSAGE SELECTION
+========================= */
+
 function selectMessage(message,bubble){
   clearSelectedMessage();
 
-  state.selected = {
-    id:message._id,
+  state.selectedMessage = {
+    id:messageId(message),
     text:message.text || "",
-    sender:isMine(message) ? "You" : userName(state.activeUser)
+    mine:isMyMessage(message),
+    message
   };
 
   bubble.classList.add("selected");
-  document.getElementById("messageActionBar").classList.remove("hidden");
+
+  document
+    .getElementById("messageActionBar")
+    .classList
+    .remove("hidden");
 }
 
 function clearSelectedMessage(){
-  state.selected = null;
-  document.querySelectorAll(".bubble.selected").forEach(el=>el.classList.remove("selected"));
-  document.getElementById("messageActionBar")?.classList.add("hidden");
+  state.selectedMessage = null;
+
+  document
+    .querySelectorAll(".message-bubble.selected")
+    .forEach(item=>{
+      item.classList.remove("selected");
+    });
+
+  document
+    .getElementById("messageActionBar")
+    ?.classList
+    .add("hidden");
 }
 
-function replyToSelected(){
-  if(!state.selected) return;
+function replyToSelectedMessage(){
+  if(!state.selectedMessage) return;
+
+  const message =
+    state.selectedMessage.message;
+
+  const sender =
+    state.selectedMessage.mine
+      ? "You"
+      : conversationTitle(state.activeConversation);
 
   state.replyTo = {
-    id:state.selected.id,
-    text:state.selected.text || "Message",
-    sender:state.selected.sender || "User"
+    id:state.selectedMessage.id,
+    text:message.text ||
+      getPrimaryAttachment(message)?.originalName ||
+      "Message",
+    sender
   };
 
-  document.getElementById("replyTitle").textContent = "Replying to " + state.replyTo.sender;
-  document.getElementById("replyText").textContent = state.replyTo.text;
-  document.getElementById("replyBar").classList.remove("hidden");
+  document.getElementById("replyTitle").textContent =
+    "Replying to " + sender;
+
+  document.getElementById("replyText").textContent =
+    state.replyTo.text;
+
+  document
+    .getElementById("replyBar")
+    .classList
+    .remove("hidden");
 
   clearSelectedMessage();
-  document.getElementById("messageInput").focus();
+
+  document
+    .getElementById("messageInput")
+    .focus();
 }
 
 function clearReply(){
   state.replyTo = null;
-  document.getElementById("replyBar").classList.add("hidden");
-  document.getElementById("replyText").textContent = "";
+
+  document
+    .getElementById("replyBar")
+    .classList
+    .add("hidden");
+
+  document.getElementById("replyTitle").textContent =
+    "Replying";
+
+  document.getElementById("replyText").textContent =
+    "";
+}
+/* =========================
+   SEND MESSAGE
+========================= */
+
+async function sendMessage(){
+  const input =
+    document.getElementById("messageInput");
+
+  const text =
+    cleanText(input?.value || "");
+
+  const file =
+    state.attachment;
+
+  if(state.isSending){
+    return;
+  }
+
+  if(!state.activeConversation){
+    toast("Select a conversation first");
+    return;
+  }
+
+  if(!text && !file){
+    return;
+  }
+
+  const other =
+    state.activeOtherUser ||
+    getOtherParticipant(state.activeConversation);
+
+  const receiverId =
+    getId(other);
+
+  if(!receiverId){
+    toast("Unable to find receiver");
+    return;
+  }
+
+  state.isSending = true;
+
+  const sendBtn =
+    document.querySelector(".send-btn");
+
+  if(sendBtn){
+    sendBtn.disabled = true;
+  }
+
+  const tempId =
+    "temp-" + Date.now();
+
+  const tempMessage = {
+    _id:tempId,
+    sender:{
+      _id:state.myId,
+      name:"You"
+    },
+    receiver:{
+      _id:receiverId
+    },
+    text,
+    fileUrl:file ? URL.createObjectURL(file) : "",
+    fileType:file ? file.type : "",
+    fileName:file ? file.name : "",
+    fileSize:file ? file.size : 0,
+    attachments:file ? [{
+      url:URL.createObjectURL(file),
+      secureUrl:URL.createObjectURL(file),
+      type:normalizeAttachmentType(file.type),
+      mimeType:file.type,
+      originalName:file.name,
+      size:file.size
+    }] : [],
+    replyTo:state.replyTo ? {
+      text:state.replyTo.text,
+      sender:{
+        name:state.replyTo.sender
+      }
+    } : null,
+    messageType:file
+      ? normalizeAttachmentType(file.type)
+      : "text",
+    status:"sending",
+    seen:false,
+    createdAt:new Date().toISOString()
+  };
+
+  state.messages.push(tempMessage);
+  renderMessages();
+
+  const form =
+    new FormData();
+
+  form.append("receiverId",receiverId);
+
+  if(text){
+    form.append("text",text);
+  }
+
+  if(file){
+    form.append("file",file);
+  }
+
+  if(state.replyTo?.id){
+    form.append("replyTo",state.replyTo.id);
+  }
+
+  form.append("clientMessageId",tempId);
+
+  input.value = "";
+  autoGrowComposer();
+  clearAttachment();
+  clearReply();
+
+  try{
+    const saved =
+      await api("/api/messages",{
+        method:"POST",
+        headers:authHeaders(),
+        body:form
+      });
+
+    const index =
+      state.messages.findIndex(
+        item => String(item._id) === String(tempId)
+      );
+
+    if(index !== -1){
+      state.messages[index] =
+        saved.message || saved;
+    }
+
+    renderMessages();
+    await loadConversations();
+
+  }catch(error){
+    const failed =
+      state.messages.find(
+        item => String(item._id) === String(tempId)
+      );
+
+    if(failed){
+      failed.status = "failed";
+      renderMessages();
+    }
+
+    toast(error.message || "Message failed to send");
+
+  }finally{
+    state.isSending = false;
+
+    if(sendBtn){
+      sendBtn.disabled = false;
+    }
+  }
 }
 
-async function copySelectedMessage(){
-  if(!state.selected?.text) return;
-
-  await navigator.clipboard.writeText(state.selected.text);
-  clearSelectedMessage();
-  toast("Message copied");
-}
-
-function deleteSelectedFromView(){
-  if(!state.selected?.id) return;
-
-  document.querySelector(`.bubble[data-id="${CSS.escape(state.selected.id)}"]`)
-    ?.closest(".message-row")
-    ?.remove();
-
-  clearSelectedMessage();
-  toast("Message removed from view");
-}
+/* =========================
+   ATTACHMENTS
+========================= */
 
 function toggleAttachmentMenu(){
-  document.getElementById("attachmentMenu").classList.toggle("hidden");
+  document
+    .getElementById("attachmentMenu")
+    ?.classList
+    .toggle("hidden");
 }
 
 function chooseAttachment(type){
-  const input = document.getElementById("fileInput");
+  const input =
+    document.getElementById("fileInput");
 
-  if(type === "image") input.accept = "image/*";
-  if(type === "video") input.accept = "video/*";
-  if(type === "audio") input.accept = "audio/*";
-  if(type === "document") input.accept = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt";
+  if(!input) return;
 
-  document.getElementById("attachmentMenu").classList.add("hidden");
+  if(type === "image"){
+    input.accept = "image/*";
+  }
+
+  if(type === "video"){
+    input.accept = "video/*";
+  }
+
+  if(type === "audio"){
+    input.accept = "audio/*";
+  }
+
+  if(type === "document"){
+    input.accept =
+      ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt";
+  }
+
+  document
+    .getElementById("attachmentMenu")
+    ?.classList
+    .add("hidden");
+
   input.click();
 }
 
+function handleAttachmentSelected(file){
+  if(!file) return;
+
+  const maxSize =
+    50 * 1024 * 1024;
+
+  if(file.size > maxSize){
+    toast("File is too large. Maximum size is 50MB.");
+    return;
+  }
+
+  state.attachment = file;
+  renderAttachmentPreview(file);
+}
+
 function renderAttachmentPreview(file){
-  const box = document.getElementById("attachmentPreview");
+  const box =
+    document.getElementById("attachmentPreview");
+
+  if(!box) return;
+
+  const type =
+    normalizeAttachmentType(file.type);
 
   let preview = "";
 
-  if(file.type.startsWith("image")){
-    preview = `<img src="${URL.createObjectURL(file)}" alt="">`;
-  }else if(file.type.startsWith("video")){
-    preview = `<video src="${URL.createObjectURL(file)}" controls></video>`;
+  if(type === "image"){
+    preview = `
+      <img src="${esc(URL.createObjectURL(file))}" alt="">
+    `;
+  }else if(type === "video"){
+    preview = `
+      <video src="${esc(URL.createObjectURL(file))}" controls></video>
+    `;
   }else{
-    preview = `<strong>${esc(file.name)}</strong>`;
+    preview = `
+      <div class="preview-file-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <path d="M14 2v6h6"></path>
+        </svg>
+      </div>
+    `;
   }
 
   box.innerHTML = `
     <div class="preview-card">
       ${preview}
+
+      <div class="preview-info">
+        <strong>${esc(file.name)}</strong>
+        <span>${esc(fileSize(file.size))}</span>
+      </div>
+
       <button onclick="clearAttachment()">Remove</button>
     </div>
   `;
@@ -568,232 +1818,907 @@ function renderAttachmentPreview(file){
 
 function clearAttachment(){
   state.attachment = null;
-  document.getElementById("fileInput").value = "";
-  document.getElementById("attachmentPreview").classList.add("hidden");
-  document.getElementById("attachmentPreview").innerHTML = "";
-}
 
-async function sendMessage(){
-  const input = document.getElementById("messageInput");
-  const text = input.value.trim();
-  const file = state.attachment;
+  const input =
+    document.getElementById("fileInput");
 
-  if(!state.activeUser){
-    toast("Select a conversation first");
-    return;
+  if(input){
+    input.value = "";
   }
 
-  if(!text && !file) return;
+  const box =
+    document.getElementById("attachmentPreview");
 
-  const tempMessage = {
-    _id:"temp-" + Date.now(),
-    sender:{ _id:state.myId, name:"You" },
-    receiver:{ _id:state.activeUser._id },
-    text,
-    fileUrl:file ? URL.createObjectURL(file) : "",
-    fileType:file ? file.type : "",
-    createdAt:new Date().toISOString(),
-    seen:false,
-    replyTo:state.replyTo ? {
-      text:state.replyTo.text,
-      sender:{ name:state.replyTo.sender }
-    } : null
-  };
-
-  state.messages.push(tempMessage);
-  renderMessages();
-
-  const form = new FormData();
-  form.append("receiverId", state.activeUser._id);
-  if(text) form.append("text", text);
-  if(file) form.append("file", file);
-  if(state.replyTo?.id) form.append("replyTo", state.replyTo.id);
-
-  input.value = "";
-  input.style.height = "42px";
-  clearAttachment();
-  clearReply();
-
-  try{
-    const saved = await api("/api/messages", {
-      method:"POST",
-      headers:authHeaders(),
-      body:form
-    });
-
-    const msg = saved.message || saved;
-
-    const index = state.messages.findIndex(m => m._id === tempMessage._id);
-    if(index !== -1){
-      state.messages[index] = msg;
-      renderMessages();
-    }
-
-    await loadConversations();
-
-  }catch(error){
-    toast(error.message || "Message failed to send");
+  if(box){
+    box.classList.add("hidden");
+    box.innerHTML = "";
   }
 }
 
-function handleIncomingMessage(message){
-  const senderId = messageSenderId(message);
-  const receiverId = messageReceiverId(message);
+/* =========================
+   REALTIME MESSAGE HANDLING
+========================= */
 
-  const belongsToOpenChat =
-    state.activeUser &&
+function handleRealtimeMessage(message){
+  if(!message) return;
+
+  const activeId =
+    state.activeConversation
+      ? conversationId(state.activeConversation)
+      : "";
+
+  const messageConversationId =
+    getId(message.conversationId);
+
+  const sameConversation =
+    activeId &&
+    messageConversationId &&
+    String(activeId) === String(messageConversationId);
+
+  const sender =
+    senderId(message);
+
+  const receiver =
+    receiverId(message);
+
+  const sameDirectFallback =
+    state.activeOtherUser &&
     (
-      senderId === String(state.activeUser._id) ||
-      receiverId === String(state.activeUser._id)
+      String(sender) === String(getId(state.activeOtherUser)) ||
+      String(receiver) === String(getId(state.activeOtherUser))
     );
 
-  if(belongsToOpenChat){
-    const exists = state.messages.some(m => String(m._id) === String(message._id));
-    if(!exists){
+  if(sameConversation || sameDirectFallback){
+    const alreadyExists =
+      state.messages.some(item =>
+        String(messageId(item)) === String(messageId(message))
+      );
+
+    const tempIndex =
+      state.messages.findIndex(item =>
+        String(item.metadata?.clientMessageId || "") ===
+        String(message.metadata?.clientMessageId || "")
+      );
+
+    if(tempIndex !== -1){
+      state.messages[tempIndex] = message;
+    }else if(!alreadyExists){
       state.messages.push(message);
-      renderMessages();
+    }
+
+    renderMessages();
+
+    if(activeId){
+      markConversationRead(activeId);
     }
   }
 
   loadConversations();
 }
 
+/* =========================
+   USER SEARCH / NEW CHAT
+========================= */
+
+function openNewChatMode(){
+  document
+    .getElementById("newChatPanel")
+    ?.classList
+    .remove("hidden");
+
+  setTimeout(()=>{
+    document
+      .getElementById("userSearchInput")
+      ?.focus();
+  },80);
+}
+
+function closeNewChatMode(){
+  document
+    .getElementById("newChatPanel")
+    ?.classList
+    .add("hidden");
+
+  const input =
+    document.getElementById("userSearchInput");
+
+  const results =
+    document.getElementById("userSearchResults");
+
+  if(input){
+    input.value = "";
+  }
+
+  if(results){
+    results.innerHTML = "";
+  }
+}
+
 async function searchUsers(query){
-  if(query.trim().length < 2){
-    document.getElementById("searchResults").classList.add("hidden");
+  const q =
+    cleanText(query);
+
+  const box =
+    document.getElementById("userSearchResults");
+
+  if(!box) return;
+
+  if(q.length < 2){
+    box.innerHTML = `
+      <div class="empty-list">
+        Type at least 2 letters to search.
+      </div>
+    `;
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="loading-card">
+      Searching...
+    </div>
+  `;
+
+  try{
+    const data =
+      await api(
+        `/api/users/network?search=${encodeURIComponent(q)}&limit=12`,
+        {
+          headers:authHeaders()
+        }
+      );
+
+    const users =
+      Array.isArray(data)
+        ? data
+        : data.users || data.results || [];
+
+    renderUserSearchResults(
+      users.filter(user =>
+        String(getId(user)) !== String(state.myId)
+      )
+    );
+
+  }catch(error){
+    box.innerHTML = `
+      <div class="empty-list">
+        ${esc(error.message || "Unable to search users")}
+      </div>
+    `;
+  }
+}
+
+function renderUserSearchResults(users){
+  const box =
+    document.getElementById("userSearchResults");
+
+  if(!box) return;
+
+  if(!users.length){
+    box.innerHTML = `
+      <div class="empty-list">
+        No users found.
+      </div>
+    `;
+    return;
+  }
+
+  box.innerHTML =
+    users.map(user=>`
+      <article
+        class="conversation-item"
+        onclick="createDirectConversation('${esc(getId(user))}')"
+      >
+        <div class="conversation-avatar-wrap">
+          <img
+            class="conversation-avatar"
+            src="${esc(userAvatar(user))}"
+            alt=""
+          >
+        </div>
+
+        <div class="conversation-main">
+          <div class="conversation-top">
+            <div class="conversation-name">
+              ${esc(userDisplayName(user))}
+            </div>
+          </div>
+
+          <div class="conversation-preview">
+            ${esc(readableRole(user.role))} • ${esc(userSubtitle(user))}
+          </div>
+        </div>
+      </article>
+    `).join("");
+}
+
+async function createDirectConversation(userId){
+  if(!userId) return;
+
+  try{
+    const conversation =
+      await apiJSON(
+        "/api/conversations/direct",
+        "POST",
+        { userId }
+      );
+
+    closeNewChatMode();
+
+    await loadConversations();
+
+    await openConversation(
+      conversationId(conversation)
+    );
+
+  }catch(error){
+    toast(error.message || "Unable to start conversation");
+  }
+}
+/* =========================
+   MESSAGE ACTIONS
+========================= */
+
+async function copySelectedMessage(){
+  if(!state.selectedMessage){
+    return;
+  }
+
+  const text =
+    state.selectedMessage.text ||
+    state.selectedMessage.message?.text ||
+    "";
+
+  if(!text){
+    toast("No text to copy");
     return;
   }
 
   try{
-    const data = await api(`/api/users/network?search=${encodeURIComponent(query)}&limit=8`, {
-      headers:authHeaders()
-    });
-
-    const users = Array.isArray(data)
-      ? data
-      : data.users || data.results || [];
-
-    renderSearchResults(users.filter(u => String(u._id || u.id) !== String(state.myId)));
-
+    await navigator.clipboard.writeText(text);
+    toast("Message copied");
+    clearSelectedMessage();
   }catch{
-    renderSearchResults([]);
+    toast("Unable to copy message");
   }
 }
 
-function renderSearchResults(users){
-  const box = document.getElementById("searchResults");
-
-  if(!users.length){
-    box.innerHTML = `<div class="empty-list">No users found.</div>`;
-    box.classList.remove("hidden");
+async function starSelectedMessage(){
+  if(!state.selectedMessage?.id){
     return;
   }
 
-  box.innerHTML = users.map(user=>`
-    <article class="conversation" onclick="selectSearchUser('${esc(user._id || user.id)}')">
-      <img src="${esc(userImage(user))}" alt="">
-      <div class="conversation-main">
-        <div class="conversation-name">${esc(userName(user))}</div>
-        <div class="conversation-preview">${esc(user.headline || user.profession || user.role || "AIFT member")}</div>
-      </div>
-    </article>
-  `).join("");
+  try{
+    await apiJSON(
+      `/api/messages/${encodeURIComponent(state.selectedMessage.id)}/star`,
+      "PATCH",
+      {}
+    );
 
-  box.classList.remove("hidden");
+    toast("Message updated");
+    clearSelectedMessage();
+
+  }catch(error){
+    toast(error.message || "Unable to update message");
+  }
 }
 
-async function selectSearchUser(userId){
-  document.getElementById("searchResults").classList.add("hidden");
-  document.getElementById("userSearchInput").value = "";
-  await openConversation(userId);
+function deleteSelectedMessageForMe(){
+  if(!state.selectedMessage?.id){
+    return;
+  }
+
+  openConfirmModal({
+    title:"Delete message for you",
+    text:"This message will be removed from your view only.",
+    confirmText:"Delete",
+    danger:true,
+    onConfirm:async ()=>{
+      try{
+        await apiJSON(
+          `/api/messages/${encodeURIComponent(state.selectedMessage.id)}/delete-for-me`,
+          "PATCH",
+          {}
+        );
+
+        state.messages =
+          state.messages.filter(item =>
+            String(messageId(item)) !== String(state.selectedMessage.id)
+          );
+
+        clearSelectedMessage();
+        renderMessages();
+        toast("Message deleted");
+
+      }catch(error){
+        toast(error.message || "Unable to delete message");
+      }
+    }
+  });
 }
 
-function startAudioCall(){
-  toast("Audio call UI is ready. Backend WebRTC signaling must be enabled for production calls.");
+function deleteSelectedMessageForEveryone(){
+  if(!state.selectedMessage?.id){
+    return;
+  }
+
+  if(!state.selectedMessage.mine){
+    toast("Only the sender can delete this message for everyone");
+    return;
+  }
+
+  openConfirmModal({
+    title:"Delete message for everyone",
+    text:"This will remove the message for everyone in this conversation.",
+    confirmText:"Delete",
+    danger:true,
+    onConfirm:async ()=>{
+      try{
+        await apiJSON(
+          `/api/messages/${encodeURIComponent(state.selectedMessage.id)}/delete-for-everyone`,
+          "PATCH",
+          {}
+        );
+
+        const item =
+          state.messages.find(msg =>
+            String(messageId(msg)) === String(state.selectedMessage.id)
+          );
+
+        if(item){
+          item.deletedForEveryone = true;
+          item.text = "This message was deleted";
+          item.fileUrl = "";
+          item.fileType = "";
+          item.attachments = [];
+        }
+
+        clearSelectedMessage();
+        renderMessages();
+        toast("Message deleted for everyone");
+
+      }catch(error){
+        toast(error.message || "Unable to delete message");
+      }
+    }
+  });
 }
 
-function startVideoCall(){
-  toast("Video call UI is ready. Backend WebRTC signaling must be enabled for production calls.");
-}
+/* =========================
+   CONVERSATION SETTINGS
+========================= */
 
-function openChatInfo(){
-  if(!state.activeUser){
+async function toggleActivePin(){
+  if(!state.activeConversation){
     toast("Select a conversation first");
     return;
   }
 
-  const url = profileUrl(state.activeUser);
-  location.href = url;
+  try{
+    const id =
+      conversationId(state.activeConversation);
+
+    const setting =
+      await apiJSON(
+        `/api/conversations/${encodeURIComponent(id)}/pin`,
+        "PATCH",
+        {}
+      );
+
+    state.activeConversation.pinned =
+      !!setting.pinned;
+
+    toast(setting.pinned ? "Conversation pinned" : "Conversation unpinned");
+
+    closeChatInfo();
+    await loadConversations();
+
+  }catch(error){
+    toast(error.message || "Unable to update pin");
+  }
 }
 
-function profileUrl(user){
-  const id = user?._id || user?.id;
-  const role = String(user?.role || "").toLowerCase();
+async function toggleActiveMute(){
+  if(!state.activeConversation){
+    toast("Select a conversation first");
+    return;
+  }
 
-  if(role === "student") return `student-public-profile.html?id=${encodeURIComponent(id)}`;
-  if(role === "teacher") return `teacher-public-profile.html?id=${encodeURIComponent(id)}`;
-  if(role === "school") return `school-public-profile.html?id=${encodeURIComponent(id)}`;
-  if(role === "employer") return `employer-public-profile.html?id=${encodeURIComponent(id)}`;
-  return `agent-public-profile.html?id=${encodeURIComponent(id)}`;
+  try{
+    const id =
+      conversationId(state.activeConversation);
+
+    const setting =
+      await apiJSON(
+        `/api/conversations/${encodeURIComponent(id)}/mute`,
+        "PATCH",
+        {}
+      );
+
+    state.activeConversation.muted =
+      !!setting.muted;
+
+    toast(setting.muted ? "Conversation muted" : "Conversation unmuted");
+
+    closeChatInfo();
+    await loadConversations();
+
+  }catch(error){
+    toast(error.message || "Unable to update mute");
+  }
 }
+
+function archiveActiveConversation(){
+  if(!state.activeConversation){
+    toast("Select a conversation first");
+    return;
+  }
+
+  openConfirmModal({
+    title:"Archive conversation",
+    text:"This conversation will move to your archived messages.",
+    confirmText:"Archive",
+    onConfirm:async ()=>{
+      try{
+        const id =
+          conversationId(state.activeConversation);
+
+        await apiJSON(
+          `/api/conversations/${encodeURIComponent(id)}/archive`,
+          "PATCH",
+          {}
+        );
+
+        closeChatInfo();
+        state.activeConversation = null;
+        state.activeOtherUser = null;
+        showEmptyState();
+
+        await loadConversations();
+        toast("Conversation archived");
+
+      }catch(error){
+        toast(error.message || "Unable to archive conversation");
+      }
+    }
+  });
+}
+
+function blockActiveConversation(){
+  if(!state.activeConversation){
+    toast("Select a conversation first");
+    return;
+  }
+
+  openConfirmModal({
+    title:"Block conversation",
+    text:"You will stop receiving messages from this conversation. You can unblock later from settings.",
+    confirmText:"Block",
+    danger:true,
+    onConfirm:async ()=>{
+      try{
+        const id =
+          conversationId(state.activeConversation);
+
+        await apiJSON(
+          `/api/conversations/${encodeURIComponent(id)}/block`,
+          "PATCH",
+          {}
+        );
+
+        closeChatInfo();
+        state.activeConversation = null;
+        state.activeOtherUser = null;
+        showEmptyState();
+
+        await loadConversations();
+        toast("Conversation blocked");
+
+      }catch(error){
+        toast(error.message || "Unable to block conversation");
+      }
+    }
+  });
+}
+
+/* =========================
+   DRAWER / PROFILE
+========================= */
+
+function openChatInfo(){
+  if(!state.activeConversation){
+    toast("Select a conversation first");
+    return;
+  }
+
+  updateActiveHeader();
+
+  document
+    .getElementById("chatInfoDrawer")
+    ?.classList
+    .remove("hidden");
+}
+
+function closeChatInfo(){
+  document
+    .getElementById("chatInfoDrawer")
+    ?.classList
+    .add("hidden");
+}
+
+function openActiveProfile(){
+  if(!state.activeOtherUser){
+    toast("No profile available");
+    return;
+  }
+
+  window.location.href =
+    profileUrl(state.activeOtherUser);
+}
+
+function openSharedFilesPanel(){
+  if(!state.activeConversation){
+    toast("Select a conversation first");
+    return;
+  }
+
+  const files =
+    state.messages.filter(message =>
+      getPrimaryAttachment(message)
+    );
+
+  if(!files.length){
+    toast("No shared files in this conversation");
+    return;
+  }
+
+  const firstFile =
+    getPrimaryAttachment(files[files.length - 1]);
+
+  const url =
+    firstFile.secureUrl ||
+    firstFile.url;
+
+  if(url){
+    window.open(url,"_blank");
+  }
+}
+
+/* =========================
+   CALLS AND MEETINGS
+========================= */
+
+async function startAudioCall(){
+  if(!state.activeConversation || !state.activeOtherUser){
+    toast("Select a conversation first");
+    return;
+  }
+
+  await createCallLog("audio");
+
+  state.socket?.emit("callUser",{
+    to:getId(state.activeOtherUser),
+    from:state.myId,
+    callerName:userDisplayName(state.me),
+    callType:"audio",
+    conversationId:conversationId(state.activeConversation)
+  });
+
+  toast("Audio call request sent");
+}
+
+async function startVideoCall(){
+  if(!state.activeConversation || !state.activeOtherUser){
+    toast("Select a conversation first");
+    return;
+  }
+
+  await createCallLog("video");
+
+  state.socket?.emit("callUser",{
+    to:getId(state.activeOtherUser),
+    from:state.myId,
+    callerName:userDisplayName(state.me),
+    callType:"video",
+    conversationId:conversationId(state.activeConversation)
+  });
+
+  toast("Video call request sent");
+}
+
+async function createCallLog(type){
+  try{
+    await apiJSON(
+      "/api/call-logs",
+      "POST",
+      {
+        receiver:getId(state.activeOtherUser),
+        conversationId:conversationId(state.activeConversation),
+        callType:type,
+        direction:"outgoing",
+        status:"ringing"
+      }
+    );
+  }catch(error){
+    console.warn("Call log failed:",error.message);
+  }
+}
+
+async function createInstantMeeting(){
+  if(!state.activeConversation){
+    toast("Select a conversation first");
+    return;
+  }
+
+  try{
+    const title =
+      state.activeOtherUser
+        ? `Meeting with ${userDisplayName(state.activeOtherUser)}`
+        : conversationTitle(state.activeConversation);
+
+    const invitedUsers = [];
+
+    if(state.activeOtherUser){
+      invitedUsers.push(getId(state.activeOtherUser));
+    }
+
+    const meeting =
+      await apiJSON(
+        "/api/meetings",
+        "POST",
+        {
+          title,
+          meetingType:"instant",
+          conversationId:conversationId(state.activeConversation),
+          invitedUsers,
+          waitingRoomEnabled:false,
+          recordingEnabled:false,
+          allowScreenShare:true,
+          allowChat:true,
+          allowFileSharing:true,
+          allowRaiseHand:true,
+          allowParticipantVideo:true,
+          allowParticipantAudio:true
+        }
+      );
+
+    if(meeting?.joinUrl){
+      toast("Meeting created");
+      window.location.href = meeting.joinUrl;
+      return;
+    }
+
+    if(meeting?.meetingCode){
+      window.location.href =
+        `meeting.html?code=${encodeURIComponent(meeting.meetingCode)}`;
+      return;
+    }
+
+    toast("Meeting created");
+
+  }catch(error){
+    toast(error.message || "Unable to create meeting");
+  }
+}
+
+/* =========================
+   SEARCH / REFRESH
+========================= */
+
+async function refreshEverything(){
+  try{
+    await loadConversations();
+
+    if(state.activeConversation){
+      await openConversation(
+        conversationId(state.activeConversation)
+      );
+    }
+
+    toast("Messages refreshed");
+
+  }catch(error){
+    toast(error.message || "Unable to refresh");
+  }
+}
+
+function handleConversationSearchInput(value){
+  state.conversationSearch =
+    cleanText(value);
+
+  clearTimeout(state.conversationSearchTimer);
+
+  state.conversationSearchTimer =
+    setTimeout(()=>{
+      loadConversations();
+    },250);
+}
+/* =========================
+   EVENT BINDING
+========================= */
 
 function bindEvents(){
-  const input = document.getElementById("messageInput");
+  const messageInput =
+    document.getElementById("messageInput");
 
-  input.addEventListener("input", ()=>{
-    autoGrowTextarea();
+  if(messageInput){
+    messageInput.addEventListener("input",()=>{
+      autoGrowComposer();
 
-    if(state.activeUser && state.socket){
-      state.socket.emit("typing", { to:state.activeUser._id });
+      if(state.activeOtherUser && state.socket){
+        state.socket.emit("typing",{
+          to:getId(state.activeOtherUser)
+        });
 
-      clearTimeout(state.typingTimer);
-      state.typingTimer = setTimeout(()=>{
-        state.socket.emit("stopTyping", { to:state.activeUser._id });
-      },900);
+        clearTimeout(state.typingTimer);
+
+        state.typingTimer =
+          setTimeout(()=>{
+            state.socket.emit("stopTyping",{
+              to:getId(state.activeOtherUser)
+            });
+          },900);
+      }
+    });
+
+    messageInput.addEventListener("keydown",event=>{
+      if(event.key === "Enter" && !event.shiftKey){
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+  }
+
+  const fileInput =
+    document.getElementById("fileInput");
+
+  if(fileInput){
+    fileInput.addEventListener("change",event=>{
+      const file =
+        event.target.files?.[0];
+
+      if(file){
+        handleAttachmentSelected(file);
+      }
+    });
+  }
+
+  const conversationSearch =
+    document.getElementById("conversationSearch");
+
+  if(conversationSearch){
+    conversationSearch.addEventListener("input",event=>{
+      handleConversationSearchInput(event.target.value);
+    });
+  }
+
+  const userSearchInput =
+    document.getElementById("userSearchInput");
+
+  if(userSearchInput){
+    userSearchInput.addEventListener("input",event=>{
+      clearTimeout(state.userSearchTimer);
+
+      state.userSearchTimer =
+        setTimeout(()=>{
+          searchUsers(event.target.value);
+        },280);
+    });
+  }
+
+  const messagesBox =
+    document.getElementById("messagesBox");
+
+  if(messagesBox){
+    messagesBox.addEventListener("scroll",()=>{
+      if(messagesBox.scrollTop < 80){
+        loadOlderMessages();
+      }
+    });
+  }
+
+  document.addEventListener("click",event=>{
+    const attachmentMenu =
+      document.getElementById("attachmentMenu");
+
+    if(
+      attachmentMenu &&
+      !attachmentMenu.contains(event.target) &&
+      !event.target.closest(".composer-icon")
+    ){
+      attachmentMenu.classList.add("hidden");
     }
-  });
 
-  input.addEventListener("keydown", event=>{
-    if(event.key === "Enter" && !event.shiftKey){
-      event.preventDefault();
-      sendMessage();
-    }
-  });
-
-  document.getElementById("fileInput").addEventListener("change", event=>{
-    const file = event.target.files?.[0];
-    if(!file) return;
-    state.attachment = file;
-    renderAttachmentPreview(file);
-  });
-
-  let searchTimer = null;
-  document.getElementById("userSearchInput").addEventListener("input", event=>{
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(()=>{
-      searchUsers(event.target.value);
-    },260);
-  });
-
-  document.addEventListener("click", event=>{
-    const search = document.querySelector(".sidebar-header");
-    if(search && !search.contains(event.target)){
-      document.getElementById("searchResults").classList.add("hidden");
-    }
-
-    if(!event.target.closest(".attachment-menu") && !event.target.closest(".composer-btn")){
-      document.getElementById("attachmentMenu").classList.add("hidden");
-    }
-
-    if(!event.target.closest(".bubble") && !event.target.closest(".message-action-bar")){
+    if(
+      !event.target.closest(".message-bubble") &&
+      !event.target.closest(".message-action-bar")
+    ){
       clearSelectedMessage();
+    }
+
+    const newChatPanel =
+      document.getElementById("newChatPanel");
+
+    if(
+      newChatPanel &&
+      !newChatPanel.contains(event.target) &&
+      !event.target.closest(".primary-soft")
+    ){
+      newChatPanel.classList.add("hidden");
+    }
+
+    const drawer =
+      document.getElementById("chatInfoDrawer");
+
+    if(
+      drawer &&
+      !drawer.classList.contains("hidden") &&
+      event.target === drawer
+    ){
+      closeChatInfo();
+    }
+
+    const modal =
+      document.getElementById("confirmModal");
+
+    if(
+      modal &&
+      !modal.classList.contains("hidden") &&
+      event.target === modal
+    ){
+      closeConfirmModal();
+    }
+  });
+
+  window.addEventListener("resize",()=>{
+    if(window.innerWidth > 980){
+      showConversationSidebar();
     }
   });
 }
 
-async function init(){
-  if(!state.token){
-    location.href = "login.html";
+/* =========================
+   OPEN FROM URL
+========================= */
+
+async function openInitialTarget(){
+  if(initialConversationId){
+    await openConversation(initialConversationId);
+    return;
+  }
+
+  if(initialUserId){
+    try{
+      const conversation =
+        await apiJSON(
+          "/api/conversations/direct",
+          "POST",
+          {
+            userId:initialUserId
+          }
+        );
+
+      await loadConversations();
+
+      await openConversation(
+        conversationId(conversation)
+      );
+
+      return;
+
+    }catch(error){
+      toast(error.message || "Unable to open conversation");
+    }
+  }
+
+  showEmptyState();
+}
+
+/* =========================
+   INIT
+========================= */
+
+async function initMessagesPage(){
+  if(!requireAuth()){
     return;
   }
 
@@ -801,18 +2726,20 @@ async function init(){
 
   try{
     await loadMe();
+
     connectSocket();
+
     await loadConversations();
 
-    if(pendingUserId){
-      await openConversation(pendingUserId);
-    }else{
-      showEmpty();
-    }
+    await openInitialTarget();
 
   }catch(error){
+    console.error("MESSAGES INIT ERROR:",error);
     toast(error.message || "Unable to load messages");
+    showEmptyState();
   }
 }
 
-init();
+document.addEventListener("DOMContentLoaded",()=>{
+  initMessagesPage();
+});
