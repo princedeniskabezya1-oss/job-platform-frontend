@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AIFT Meeting</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="meeting.css">
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+
+<body>
+
+<div id="toast" class="toast"></div>
+
+<div class="meeting-app">
+
+  <header class="meeting-topbar">
+    <div class="meeting-brand">
+      <a href="home.html">
+        <img src="images/aift-logo.png" alt="AIFT">
+      </a>
+
+      <div>
+        <h1 id="meetingTitle">AIFT Meeting</h1>
+        <p id="meetingStatus">Preparing meeting...</p>
+      </div>
+    </div>
+
+    <div class="meeting-meta">
+      <span id="meetingTimer">00:00</span>
+      <span id="meetingCode">Code</span>
+    </div>
+  </header>
+
+  <main class="meeting-main">
+
+    <section class="stage">
+
+      <div id="videoGrid" class="video-grid">
+
+        <article class="video-tile local-tile">
+          <video id="localVideo" autoplay muted playsinline></video>
+
+          <div class="tile-footer">
+            <span>You</span>
+            <strong id="localMicStatus">Mic on</strong>
+          </div>
+        </article>
+
+        <article class="video-tile remote-tile">
+          <video id="remoteVideo" autoplay playsinline></video>
+
+          <div class="tile-footer">
+            <span id="remoteName">Waiting for participant</span>
+            <strong id="remoteStatus">Not connected</strong>
+          </div>
+        </article>
+
+      </div>
+
+      <div id="waitingOverlay" class="waiting-overlay">
+        <img id="waitingAvatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="">
+        <h2>Waiting for others to join</h2>
+        <p>Share this meeting code with invited participants.</p>
+      </div>
+
+    </section>
+
+    <aside id="sidePanel" class="side-panel hidden">
+
+      <div class="side-tabs">
+        <button class="active" onclick="switchPanel('participants',this)">Participants</button>
+        <button onclick="switchPanel('chat',this)">Chat</button>
+        <button onclick="switchPanel('info',this)">Info</button>
+      </div>
+
+      <section id="participantsPanel" class="panel-section">
+        <div id="participantsList" class="participants-list"></div>
+      </section>
+
+      <section id="chatPanel" class="panel-section hidden">
+        <div id="meetingChatMessages" class="meeting-chat-messages"></div>
+
+        <div class="meeting-chat-composer">
+          <input id="meetingChatInput" placeholder="Write a meeting message">
+          <button onclick="sendMeetingChat()">Send</button>
+        </div>
+      </section>
+
+      <section id="infoPanel" class="panel-section hidden">
+        <div class="info-card">
+          <span>Meeting code</span>
+          <strong id="infoMeetingCode">---</strong>
+          <button onclick="copyMeetingLink()">Copy invite link</button>
+        </div>
+
+        <div class="info-card">
+          <span>Host</span>
+          <strong id="infoHost">---</strong>
+        </div>
+      </section>
+
+    </aside>
+
+  </main>
+
+  <footer class="meeting-controls">
+
+    <button id="micBtn" class="control-btn" onclick="toggleMeetingMic()">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 1 0 6 0V4a3 3 0 0 0-3-3z"></path>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+      </svg>
+      <span>Mute</span>
+    </button>
+
+    <button id="cameraBtn" class="control-btn" onclick="toggleMeetingCamera()">
+      <svg viewBox="0 0 24 24">
+        <rect x="2" y="6" width="14" height="12" rx="2"></rect>
+        <path d="M16 10l6-3v10l-6-3z"></path>
+      </svg>
+      <span>Camera</span>
+    </button>
+
+    <button id="shareBtn" class="control-btn" onclick="toggleMeetingScreenShare()">
+      <svg viewBox="0 0 24 24">
+        <rect x="2" y="3" width="20" height="14"></rect>
+        <path d="M8 21h8"></path>
+      </svg>
+      <span>Share</span>
+    </button>
+
+    <button id="handBtn" class="control-btn" onclick="toggleRaiseHand()">
+      <svg viewBox="0 0 24 24">
+        <path d="M7 11V5a2 2 0 0 1 4 0v6"></path>
+        <path d="M11 11V3a2 2 0 0 1 4 0v8"></path>
+        <path d="M15 11V6a2 2 0 0 1 4 0v7a7 7 0 0 1-14 0v-2"></path>
+      </svg>
+      <span>Raise hand</span>
+    </button>
+
+    <button class="control-btn" onclick="toggleSidePanel()">
+      <svg viewBox="0 0 24 24">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </svg>
+      <span>People</span>
+    </button>
+
+    <button class="control-btn" onclick="copyMeetingLink()">
+      <svg viewBox="0 0 24 24">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+      </svg>
+      <span>Invite</span>
+    </button>
+
+    <button id="leaveBtn" class="control-btn leave" onclick="leaveMeeting()">
+      <svg viewBox="0 0 24 24">
+        <path d="M4 15c5-5 11-5 16 0"></path>
+      </svg>
+      <span>Leave</span>
+    </button>
+
+  </footer>
+
+</div>
+
+<script src="meeting.js"></script>
+
+</body>
+</html>
