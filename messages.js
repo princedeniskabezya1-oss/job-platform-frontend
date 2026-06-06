@@ -638,10 +638,12 @@ async function loadMe(){
   }
 }
 let currentMediaUrl = "";
+let currentMediaType = "image";
 
 function openMediaViewer(url,type="image"){
 
   currentMediaUrl = url;
+currentMediaType = type;
 
   const modal =
     document.getElementById("mediaViewer");
@@ -683,33 +685,62 @@ function closeMediaViewer(){
   video.src = "";
 }
 
-function downloadCurrentMedia(){
+async function downloadCurrentMedia(){
 
-  if(!currentMediaUrl) return;
-
-  const a =
-    document.createElement("a");
-
-  a.href = currentMediaUrl;
-  a.download = "";
-
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
-
-document.addEventListener("keydown",e=>{
-
-  if(
-    e.key === "Escape" &&
-    !document
-      .getElementById("mediaViewer")
-      .classList
-      .contains("hidden")
-  ){
-    closeMediaViewer();
+  if(!currentMediaUrl){
+    toast("No media selected");
+    return;
   }
-});
+
+  try{
+    const response = await fetch(currentMediaUrl, {
+      mode:"cors"
+    });
+
+    if(!response.ok){
+      throw new Error("Download failed");
+    }
+
+    const blob = await response.blob();
+
+    const blobUrl =
+      URL.createObjectURL(blob);
+
+    const extension =
+      blob.type.includes("gif")
+        ? "gif"
+        : blob.type.includes("png")
+          ? "png"
+          : blob.type.includes("webp")
+            ? "webp"
+            : blob.type.includes("video")
+              ? "mp4"
+              : "jpg";
+
+    const a =
+      document.createElement("a");
+
+    a.href = blobUrl;
+    a.download =
+      "aift-media-" + Date.now() + "." + extension;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(blobUrl);
+
+    toast("Download started");
+
+  }catch(error){
+
+    console.warn("Direct download failed:", error);
+
+    window.open(currentMediaUrl, "_blank");
+
+    toast("Media opened in a new tab. Use your browser save option.");
+  }
+}
 
 /* =========================
    CONVERSATIONS
