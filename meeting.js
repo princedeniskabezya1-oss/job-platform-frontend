@@ -19,9 +19,9 @@ const meetingState = {
   accessMode:"restricted",
 
   localStream:null,
-  remoteStream:null,
-  screenStream:null,
-  peerConnection:null,
+screenStream:null,
+peerConnections:{},
+remoteStreams:{},
 
   micMuted:false,
   cameraOff:false,
@@ -243,10 +243,15 @@ function connectSocket(){
     reloadMeetingSoft();
   });
 
-  meetingState.socket.on("meetingParticipantLeft",payload=>{
-    toast("Participant left");
-    reloadMeetingSoft();
-  });
+meetingState.socket.on("meetingParticipantLeft",payload=>{
+  toast("Participant left");
+
+  if(payload?.userId){
+    removeParticipantVideoTile(payload.userId);
+  }
+
+  reloadMeetingSoft();
+});
 
   meetingState.socket.on("meetingWaitingRoomRequest",payload=>{
     if(meetingState.isHost){
@@ -445,16 +450,21 @@ async function startLocalMediaFromLobbyOrFresh(){
 /* WEBRTC */
 
 async function ensurePeerConnection(remoteUserId){
-  if(meetingState.peerConnection){
-    return meetingState.peerConnection;
+  if(!remoteUserId) return null;
+
+  if(meetingState.peerConnections[remoteUserId]){
+    return meetingState.peerConnections[remoteUserId];
   }
 
   const pc = new RTCPeerConnection(RTC_CONFIG);
-  meetingState.peerConnection = pc;
 
-  meetingState.remoteStream = new MediaStream();
-  document.getElementById("remoteVideo").srcObject =
-    meetingState.remoteStream;
+  meetingState.peerConnections[remoteUserId] = pc;
+  meetingState.remoteStreams[remoteUserId] = new MediaStream();
+
+  addParticipantVideoTile({
+    _id:remoteUserId,
+    name:"Participant"
+  });
 
   meetingState.localStream?.getTracks().forEach(track=>{
     pc.addTrack(track,meetingState.localStream);
@@ -462,11 +472,22 @@ async function ensurePeerConnection(remoteUserId){
 
   pc.ontrack = event=>{
     event.streams[0].getTracks().forEach(track=>{
-      meetingState.remoteStream.addTrack(track);
+      meetingState.remoteStreams[remoteUserId].addTrack(track);
     });
 
-    document.getElementById("remoteStatus").textContent =
-      "Connected";
+    const video =
+      document.getElementById(`stream-${remoteUserId}`);
+
+    if(video){
+      video.srcObject = meetingState.remoteStreams[remoteUserId];
+    }
+
+    const status =
+      document.getElementById(`status-${remoteUserId}`);
+
+    if(status){
+      status.textContent = "Connected";
+    }
 
     hideWaitingOverlay();
   };
@@ -482,8 +503,16 @@ async function ensurePeerConnection(remoteUserId){
   };
 
   pc.onconnectionstatechange = ()=>{
-    document.getElementById("remoteStatus").textContent =
-      pc.connectionState;
+    const status =
+      document.getElementById(`status-${remoteUserId}`);
+
+    if(status){
+      status.textContent = pc.connectionState;
+    }
+
+    if(["failed","closed","disconnected"].includes(pc.connectionState)){
+      removeParticipantVideoTile(remoteUserId);
+    }
   };
 
   return pc;
@@ -492,29 +521,95 @@ async function ensurePeerConnection(remoteUserId){
 async function createOfferForParticipants(){
   const others =
     (meetingState.meeting.participants || [])
-      .map(p => getId(p.user || p))
-      .filter(id => id && id !== meetingState.myId);
+      .map(p => p.user || p)
+      .filter(user => getId(user) && getId(user) !== meetingState.myId);
 
-  const remoteUserId = others[0];
+  for(const user of others){
+    const userId = getId(user);
 
-  if(!remoteUserId) return;
+    addParticipantVideoTile(user);
 
-  const pc =
-    await ensurePeerConnection(remoteUserId);
+    const pc =
+      await ensurePeerConnection(userId);
 
-  const offer =
-    await pc.createOffer({
-      offerToReceiveAudio:true,
-      offerToReceiveVideo:true
+    if(!pc) continue;
+
+    const offer =
+      await pc.createOffer({
+        offerToReceiveAudio:true,
+        offerToReceiveVideo:true
+      });
+
+    await pc.setLocalDescription(offer);
+
+    meetingState.socket.emit("webrtcOffer",{
+      to:userId,
+      offer,
+      meetingId:meetingState.meetingId
     });
+  }
+}
 
-  await pc.setLocalDescription(offer);
+function addParticipantVideoTile(user){
+  const userId = getId(user);
 
-  meetingState.socket.emit("webrtcOffer",{
-    to:remoteUserId,
-    offer,
-    meetingId:meetingState.meetingId
-  });
+  if(!userId || document.getElementById(`video-${userId}`)){
+    return;
+  }
+
+  const grid =
+    document.getElementById("videoGrid");
+
+  if(!grid) return;
+
+  const tile =
+    document.createElement("article");
+
+  tile.className = "video-tile remote-tile";
+  tile.id = `video-${userId}`;
+
+  tile.innerHTML = `
+    <video
+      id="stream-${userId}"
+      autoplay
+      playsinline
+    ></video>
+
+    <div class="tile-footer">
+      <span>${esc(displayName(user))}</span>
+      <strong id="status-${userId}">Connecting...</strong>
+    </div>
+  `;
+
+  grid.appendChild(tile);
+  updateVideoGridLayout();
+}
+
+function removeParticipantVideoTile(userId){
+  document.getElementById(`video-${userId}`)?.remove();
+
+  if(meetingState.peerConnections[userId]){
+    try{
+      meetingState.peerConnections[userId].close();
+    }catch(error){}
+  }
+
+  delete meetingState.peerConnections[userId];
+  delete meetingState.remoteStreams[userId];
+
+  updateVideoGridLayout();
+}
+
+function updateVideoGridLayout(){
+  const grid =
+    document.getElementById("videoGrid");
+
+  if(!grid) return;
+
+  const count =
+    grid.querySelectorAll(".video-tile").length;
+
+  grid.dataset.count = String(count);
 }
 
 /* CONTROLS */
@@ -599,14 +694,15 @@ async function stopMeetingScreenShare(){
   const cameraTrack =
     meetingState.localStream?.getVideoTracks?.()[0];
 
+Object.values(meetingState.peerConnections || {}).forEach(async pc=>{
+Object.values(meetingState.peerConnections || {}).forEach(async pc=>{
   const sender =
-    meetingState.peerConnection
-      ?.getSenders()
-      .find(s => s.track?.kind === "video");
+    pc.getSenders().find(s => s.track?.kind === "video");
 
   if(sender && cameraTrack){
     await sender.replaceTrack(cameraTrack);
   }
+});
 
   document.getElementById("localVideo").srcObject =
     meetingState.localStream;
@@ -843,7 +939,18 @@ async function leaveMeeting(){
 
 function cleanupMeeting(){
   meetingState.localStream?.getTracks().forEach(t=>t.stop());
-  meetingState.remoteStream?.getTracks().forEach(t=>t.stop());
+  Object.values(meetingState.remoteStreams || {}).forEach(stream=>{
+  stream.getTracks().forEach(track=>track.stop());
+});
+
+Object.values(meetingState.peerConnections || {}).forEach(pc=>{
+  try{
+    pc.close();
+  }catch(error){}
+});
+
+meetingState.peerConnections = {};
+meetingState.remoteStreams = {};
   meetingState.screenStream?.getTracks().forEach(t=>t.stop());
   meetingState.lobbyStream?.getTracks().forEach(t=>t.stop());
 
