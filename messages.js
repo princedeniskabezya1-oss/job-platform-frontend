@@ -1325,7 +1325,7 @@ if(type === "image"){
         src="${esc(url)}"
         alt="${esc(name)}"
         loading="lazy"
-        onclick="event.stopPropagation();window.open('${esc(url)}','_blank')"
+        
       >
 
       ${
@@ -2883,10 +2883,72 @@ async function handleStickerImport(file){
   }
 }
 
-function openCameraCapture(){
-  document
-    .getElementById("cameraInput")
-    ?.click();
+let cameraStream = null;
+let cameraFacingMode = "environment";
+
+async function openCameraCapture(){
+  try{
+    document.getElementById("cameraModal").classList.remove("hidden");
+
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:cameraFacingMode },
+      audio:false
+    });
+
+    document.getElementById("cameraVideo").srcObject = cameraStream;
+
+  }catch(error){
+    toast("Camera permission is required. Your browser may ask for access.");
+    document.getElementById("cameraInput")?.click();
+  }
+}
+
+function closeCameraModal(){
+  if(cameraStream){
+    cameraStream.getTracks().forEach(track=>track.stop());
+    cameraStream = null;
+  }
+
+  document.getElementById("cameraModal").classList.add("hidden");
+}
+
+async function switchCamera(){
+  cameraFacingMode =
+    cameraFacingMode === "environment"
+      ? "user"
+      : "environment";
+
+  closeCameraModal();
+  await openCameraCapture();
+}
+
+function captureCameraPhoto(){
+  const video = document.getElementById("cameraVideo");
+  const canvas = document.getElementById("cameraCanvas");
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+
+  canvas.toBlob(blob=>{
+    if(!blob){
+      toast("Unable to capture photo");
+      return;
+    }
+
+    const file = new File(
+      [blob],
+      "camera-photo-" + Date.now() + ".jpg",
+      { type:"image/jpeg" }
+    );
+
+    state.attachment = file;
+    renderAttachmentPreview(file);
+    closeCameraModal();
+
+  },"image/jpeg",0.92);
 }
 
 function handleCameraCapture(file){
