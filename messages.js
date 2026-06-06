@@ -996,7 +996,6 @@ if(
 }
 
 showEmptyState();
-throw error;
   }finally{
     state.isLoadingMessages = false;
   }
