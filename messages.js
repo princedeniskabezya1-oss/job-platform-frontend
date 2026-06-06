@@ -637,6 +637,79 @@ async function loadMe(){
     localStorage.setItem("role",state.me.role);
   }
 }
+let currentMediaUrl = "";
+
+function openMediaViewer(url,type="image"){
+
+  currentMediaUrl = url;
+
+  const modal =
+    document.getElementById("mediaViewer");
+
+  const image =
+    document.getElementById("mediaViewerImage");
+
+  const video =
+    document.getElementById("mediaViewerVideo");
+
+  image.classList.add("hidden");
+  video.classList.add("hidden");
+
+  if(type === "video"){
+
+    video.src = url;
+    video.classList.remove("hidden");
+
+  }else{
+
+    image.src = url;
+    image.classList.remove("hidden");
+  }
+
+  modal.classList.remove("hidden");
+}
+
+function closeMediaViewer(){
+
+  document
+    .getElementById("mediaViewer")
+    .classList
+    .add("hidden");
+
+  const video =
+    document.getElementById("mediaViewerVideo");
+
+  video.pause();
+  video.src = "";
+}
+
+function downloadCurrentMedia(){
+
+  if(!currentMediaUrl) return;
+
+  const a =
+    document.createElement("a");
+
+  a.href = currentMediaUrl;
+  a.download = "";
+
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+document.addEventListener("keydown",e=>{
+
+  if(
+    e.key === "Escape" &&
+    !document
+      .getElementById("mediaViewer")
+      .classList
+      .contains("hidden")
+  ){
+    closeMediaViewer();
+  }
+});
 
 /* =========================
    CONVERSATIONS
@@ -1314,38 +1387,38 @@ function attachmentHtml(attachment,message){
     message.fileName ||
     "Attachment";
 
-if(type === "image"){
-  const canSave =
-    !isMyMessage(message);
+  if(type === "image"){
+    const canSave =
+      !isMyMessage(message);
 
-  return `
-    <div style="position:relative;">
-      <img
-        class="message-file-image"
-        src="${esc(url)}"
-        alt="${esc(name)}"
-        loading="lazy"
-        
-      >
+    return `
+      <div style="position:relative;">
+        <img
+          class="message-file-image"
+          src="${esc(url)}"
+          alt="${esc(name)}"
+          loading="lazy"
+          onclick="event.stopPropagation();openMediaViewer('${esc(url)}','image')"
+        >
 
-      ${
-        canSave
-          ? `
-            <button
-              class="asset-save-btn"
-              onclick="event.stopPropagation();saveReceivedAssetById('${esc(messageId(message))}')"
-              title="Save sticker"
-            >
-              <svg viewBox="0 0 24 24">
-                <path d="M12 5v14M5 12h14"></path>
-              </svg>
-            </button>
-          `
-          : ""
-      }
-    </div>
-  `;
-}
+        ${
+          canSave
+            ? `
+              <button
+                class="asset-save-btn"
+                onclick="event.stopPropagation();saveReceivedAssetById('${esc(messageId(message))}')"
+                title="Save sticker"
+              >
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 5v14M5 12h14"></path>
+                </svg>
+              </button>
+            `
+            : ""
+        }
+      </div>
+    `;
+  }
 
   if(type === "video"){
     return `
@@ -1353,6 +1426,7 @@ if(type === "image"){
         class="message-file-video"
         src="${esc(url)}"
         controls
+        onclick="event.stopPropagation();openMediaViewer('${esc(url)}','video')"
       ></video>
     `;
   }
