@@ -1,44 +1,190 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>AIFT | Messages</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AIFT | Messages</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <link rel="stylesheet" href="messages.css">
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="messages.css">
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 
 <body>
 
-<div id="toast" class="toast"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<div id="messageActionBar" class="message-action-bar hidden">
-  <button onclick="replyToSelected()">Reply</button>
-  <button onclick="copySelectedMessage()">Copy</button>
-  <button onclick="deleteSelectedFromView()">Delete</button>
-  <button onclick="clearSelectedMessage()">Cancel</button>
+<div id="confirmModal" class="modal-backdrop hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="confirmTitle">Confirm action</h3>
+      <button class="modal-close" onclick="closeConfirmModal()" aria-label="Close">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <p id="confirmText" class="modal-text">Are you sure?</p>
+
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeConfirmModal()">Cancel</button>
+      <button id="confirmActionBtn" class="btn danger">Confirm</button>
+    </div>
+  </div>
 </div>
 
-<div id="appShell" class="messages-shell">
+<div id="chatInfoDrawer" class="drawer hidden">
+  <div class="drawer-panel">
+    <div class="drawer-head">
+      <h2>Conversation details</h2>
+      <button class="icon-btn" onclick="closeChatInfo()" aria-label="Close">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
 
-  <aside id="sidebar" class="sidebar">
+    <div class="drawer-profile">
+      <img id="drawerUserImage" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="">
+      <h3 id="drawerUserName">AIFT User</h3>
+      <p id="drawerUserMeta">Conversation</p>
+    </div>
+
+    <div class="drawer-actions">
+      <button onclick="openActiveProfile()">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 21a8 8 0 0 0-16 0"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        View profile
+      </button>
+
+      <button onclick="toggleActivePin()">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 17v5"></path>
+          <path d="M5 17h14l-2-8V4H7v5z"></path>
+        </svg>
+        Pin conversation
+      </button>
+
+      <button onclick="toggleActiveMute()">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+          <path d="M10 21h4"></path>
+        </svg>
+        Mute notifications
+      </button>
+
+      <button onclick="archiveActiveConversation()">
+        <svg viewBox="0 0 24 24">
+          <path d="M21 8v13H3V8"></path>
+          <path d="M1 3h22v5H1z"></path>
+          <path d="M10 12h4"></path>
+        </svg>
+        Archive conversation
+      </button>
+
+      <button onclick="openSharedFilesPanel()">
+        <svg viewBox="0 0 24 24">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <path d="M14 2v6h6"></path>
+        </svg>
+        Shared files
+      </button>
+
+      <button class="danger-text" onclick="blockActiveConversation()">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M4.93 4.93l14.14 14.14"></path>
+        </svg>
+        Block conversation
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="messageActionBar" class="message-action-bar hidden">
+  <button onclick="replyToSelectedMessage()">
+    <svg viewBox="0 0 24 24">
+      <path d="M9 10l-5 5 5 5"></path>
+      <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+    </svg>
+    Reply
+  </button>
+
+  <button onclick="copySelectedMessage()">
+    <svg viewBox="0 0 24 24">
+      <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>
+    Copy
+  </button>
+
+  <button onclick="starSelectedMessage()">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01z"></path>
+    </svg>
+    Star
+  </button>
+
+  <button onclick="deleteSelectedMessageForMe()">
+    <svg viewBox="0 0 24 24">
+      <path d="M3 6h18"></path>
+      <path d="M8 6V4h8v2"></path>
+      <path d="M19 6l-1 14H6L5 6"></path>
+    </svg>
+    Delete for me
+  </button>
+
+  <button onclick="deleteSelectedMessageForEveryone()">
+    <svg viewBox="0 0 24 24">
+      <path d="M3 6h18"></path>
+      <path d="M8 6V4h8v2"></path>
+      <path d="M19 6l-1 14H6L5 6"></path>
+      <path d="M9 11l6 6M15 11l-6 6"></path>
+    </svg>
+    Delete for everyone
+  </button>
+
+  <button onclick="clearSelectedMessage()">
+    <svg viewBox="0 0 24 24">
+      <path d="M18 6L6 18M6 6l12 12"></path>
+    </svg>
+    Cancel
+  </button>
+</div>
+
+<div class="messages-app">
+
+  <aside id="conversationSidebar" class="sidebar">
 
     <header class="sidebar-header">
+
       <div class="brand-row">
-        <a href="home.html" class="brand">
+        <a href="home.html" class="brand" aria-label="AIFT Home">
           <img src="images/aift-logo.png" alt="AIFT">
         </a>
 
-        <button class="icon-btn" onclick="focusUserSearch()" title="New chat">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 5v14M5 12h14"/>
-          </svg>
-        </button>
+        <div class="sidebar-header-actions">
+          <button class="icon-btn" onclick="refreshEverything()" aria-label="Refresh">
+            <svg viewBox="0 0 24 24">
+              <path d="M21 12a9 9 0 1 1-3-6.7"></path>
+              <path d="M21 3v6h-6"></path>
+            </svg>
+          </button>
+
+          <button class="icon-btn primary-soft" onclick="openNewChatMode()" aria-label="New chat">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div class="search-box">
@@ -48,21 +194,44 @@
         </svg>
 
         <input
-          id="userSearchInput"
+          id="conversationSearch"
           type="search"
-          placeholder="Search people or companies"
+          placeholder="Search messages or people"
           autocomplete="off"
         >
       </div>
 
-      <div id="searchResults" class="search-results hidden"></div>
+      <div id="newChatPanel" class="new-chat-panel hidden">
+        <div class="new-chat-head">
+          <strong>Start a new conversation</strong>
+          <button onclick="closeNewChatMode()">Close</button>
+        </div>
+
+        <div class="search-box compact">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20l-3.5-3.5"></path>
+          </svg>
+
+          <input
+            id="userSearchInput"
+            type="search"
+            placeholder="Search students, employers, schools"
+            autocomplete="off"
+          >
+        </div>
+
+        <div id="userSearchResults" class="user-search-results"></div>
+      </div>
+
     </header>
 
-    <div class="conversation-tabs">
-      <button class="active" onclick="setConversationFilter('all', this)">All</button>
-      <button onclick="setConversationFilter('unread', this)">Unread</button>
-      <button onclick="setConversationFilter('pinned', this)">Pinned</button>
-    </div>
+    <nav class="conversation-tabs">
+      <button class="active" data-filter="all" onclick="setConversationFilter('all',this)">All</button>
+      <button data-filter="unread" onclick="setConversationFilter('unread',this)">Unread</button>
+      <button data-filter="pinned" onclick="setConversationFilter('pinned',this)">Pinned</button>
+      <button data-filter="archived" onclick="setConversationFilter('archived',this)">Archived</button>
+    </nav>
 
     <section id="conversationList" class="conversation-list">
       <div class="loading-card">Loading conversations...</div>
@@ -74,46 +243,50 @@
 
     <header class="chat-header">
 
-      <div class="chat-user-wrap">
-
-        <button class="mobile-back" onclick="showSidebar()">
+      <div class="chat-user">
+        <button class="mobile-back" onclick="showConversationSidebar()" aria-label="Back">
           <svg viewBox="0 0 24 24">
-            <path d="M15 18l-6-6 6-6"/>
+            <path d="M15 18l-6-6 6-6"></path>
           </svg>
         </button>
 
         <img id="activeUserImage" class="chat-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="">
 
-        <div class="chat-user-info">
-          <h1 id="activeUserName">Messages</h1>
-          <p id="activeUserStatus">Select a conversation</p>
+        <div class="chat-title">
+          <h1 id="activeConversationTitle">Messages</h1>
+          <p id="activeConversationStatus">Select a conversation</p>
         </div>
-
       </div>
 
-      <div class="chat-actions">
-
-        <button class="icon-btn" onclick="startAudioCall()" title="Audio call">
+      <div class="chat-header-actions">
+        <button class="icon-btn" onclick="startAudioCall()" aria-label="Audio call">
           <svg viewBox="0 0 24 24">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6.04-6.04A19.8 19.8 0 0 1 2.08 4.09 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.63 2.62a2 2 0 0 1-.45 2.11L8 9.94a16 16 0 0 0 6.06 6.06l1.49-1.24a2 2 0 0 1 2.11-.45c.84.3 1.72.51 2.62.63A2 2 0 0 1 22 16.92z"/>
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 11.19 18.9 19.5 19.5 0 0 1 5.1 12.8 19.8 19.8 0 0 1 2.08 4.1 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.63 2.62a2 2 0 0 1-.45 2.11L8 9.94A16 16 0 0 0 14.06 16l1.49-1.24a2 2 0 0 1 2.11-.45c.84.3 1.72.51 2.62.63A2 2 0 0 1 22 16.92z"></path>
           </svg>
         </button>
 
-        <button class="icon-btn" onclick="startVideoCall()" title="Video call">
+        <button class="icon-btn" onclick="startVideoCall()" aria-label="Video call">
           <svg viewBox="0 0 24 24">
             <rect x="3" y="6" width="13" height="12" rx="2"></rect>
             <path d="M16 10l5-3v10l-5-3z"></path>
           </svg>
         </button>
 
-        <button class="icon-btn" onclick="openChatInfo()" title="Chat info">
+        <button class="icon-btn" onclick="createInstantMeeting()" aria-label="Create meeting">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="5" width="14" height="14" rx="2"></rect>
+            <path d="M17 9l4-2v10l-4-2"></path>
+            <path d="M8 12h4M10 10v4"></path>
+          </svg>
+        </button>
+
+        <button class="icon-btn" onclick="openChatInfo()" aria-label="Conversation info">
           <svg viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="1"></circle>
             <circle cx="19" cy="12" r="1"></circle>
             <circle cx="5" cy="12" r="1"></circle>
           </svg>
         </button>
-
       </div>
 
     </header>
@@ -127,12 +300,13 @@
         </div>
 
         <h2>Your AIFT messages</h2>
+
         <p>
-          Start private conversations with students, employers, schools,
-          recruiters, teachers, and job seekers.
+          Start secure conversations with students, job seekers, employers,
+          recruiters, teachers, and schools.
         </p>
 
-        <button onclick="focusUserSearch()">Start new chat</button>
+        <button onclick="openNewChatMode()">Start new chat</button>
       </div>
     </section>
 
@@ -144,7 +318,7 @@
         <p id="replyText"></p>
       </div>
 
-      <button onclick="clearReply()">
+      <button onclick="clearReply()" aria-label="Cancel reply">
         <svg viewBox="0 0 24 24">
           <path d="M18 6L6 18M6 6l12 12"></path>
         </svg>
@@ -155,17 +329,47 @@
 
     <footer class="composer">
 
-      <button class="composer-btn" onclick="toggleAttachmentMenu()" title="Attach">
-        <svg viewBox="0 0 24 24">
-          <path d="M21.44 11.05l-9.19 9.19a5.5 5.5 0 0 1-7.78-7.78l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.19 9.19a1.5 1.5 0 0 1-2.12-2.12l8.49-8.48"/>
-        </svg>
-      </button>
+      <div class="attachment-wrap">
+        <button class="composer-icon" onclick="toggleAttachmentMenu()" aria-label="Attach file">
+          <svg viewBox="0 0 24 24">
+            <path d="M21.44 11.05l-9.19 9.19a5.5 5.5 0 0 1-7.78-7.78l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.19 9.19a1.5 1.5 0 0 1-2.12-2.12l8.49-8.48"></path>
+          </svg>
+        </button>
 
-      <div id="attachmentMenu" class="attachment-menu hidden">
-        <button onclick="chooseAttachment('image')">Image</button>
-        <button onclick="chooseAttachment('video')">Video</button>
-        <button onclick="chooseAttachment('audio')">Audio</button>
-        <button onclick="chooseAttachment('document')">Document</button>
+        <div id="attachmentMenu" class="attachment-menu hidden">
+          <button onclick="chooseAttachment('image')">
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <path d="M21 15l-5-5L5 21"></path>
+            </svg>
+            Image
+          </button>
+
+          <button onclick="chooseAttachment('video')">
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="5" width="14" height="14" rx="2"></rect>
+              <path d="M17 9l4-2v10l-4-2"></path>
+            </svg>
+            Video
+          </button>
+
+          <button onclick="chooseAttachment('audio')">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 3v10a4 4 0 1 1-4-4"></path>
+              <path d="M12 3h5"></path>
+            </svg>
+            Audio
+          </button>
+
+          <button onclick="chooseAttachment('document')">
+            <svg viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <path d="M14 2v6h6"></path>
+            </svg>
+            Document
+          </button>
+        </div>
       </div>
 
       <input id="fileInput" type="file" hidden>
@@ -174,9 +378,10 @@
         id="messageInput"
         rows="1"
         placeholder="Write a message"
+        aria-label="Write a message"
       ></textarea>
 
-      <button class="send-btn" onclick="sendMessage()">
+      <button class="send-btn" onclick="sendMessage()" aria-label="Send message">
         <svg viewBox="0 0 24 24">
           <path d="M22 2L11 13"></path>
           <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
@@ -190,5 +395,6 @@
 </div>
 
 <script src="messages.js"></script>
+
 </body>
 </html>
