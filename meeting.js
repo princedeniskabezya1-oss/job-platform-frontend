@@ -209,7 +209,20 @@ async function loadMeeting(){
   document.getElementById("infoHost").textContent =
     displayName(meetingState.meeting.host || {});
 
-  renderParticipants();
+  const accessSelect =
+  document.getElementById("meetingAccessMode");
+
+if(accessSelect){
+  accessSelect.value =
+    meetingState.meeting.accessMode || "restricted";
+
+  accessSelect.onchange =
+    saveAccessMode;
+}
+
+renderParticipants();
+renderWaitingRoom();
+renderMeetingAnalytics();
 }
 
 /* SOCKET */
@@ -622,14 +635,38 @@ function toggleSidePanel(){
 }
 
 function switchPanel(panel,btn){
-  document.querySelectorAll(".side-tabs button").forEach(b=>b.classList.remove("active"));
-  btn.classList.add("active");
+  document
+    .querySelectorAll(".side-tabs button")
+    .forEach(button=>button.classList.remove("active"));
 
-  document.getElementById("participantsPanel").classList.add("hidden");
-  document.getElementById("chatPanel").classList.add("hidden");
-  document.getElementById("infoPanel").classList.add("hidden");
+  btn?.classList.add("active");
 
-  document.getElementById(panel + "Panel").classList.remove("hidden");
+  [
+    "participants",
+    "chat",
+    "info",
+    "host",
+    "waiting",
+    "analytics"
+  ].forEach(id=>{
+    document
+      .getElementById(id + "Panel")
+      ?.classList
+      .add("hidden");
+  });
+
+  document
+    .getElementById(panel + "Panel")
+    ?.classList
+    .remove("hidden");
+
+  if(panel === "waiting"){
+    renderWaitingRoom();
+  }
+
+  if(panel === "analytics"){
+    renderMeetingAnalytics();
+  }
 }
 
 /* PARTICIPANTS */
@@ -831,3 +868,211 @@ document.addEventListener("DOMContentLoaded",()=>{
     toast(error.message || "Unable to open meeting");
   });
 });
+
+async function muteAllParticipants(){
+  await apiJSON(
+    `/api/meetings/${meetingState.meetingId}/mute-all`,
+    "PATCH",
+    {}
+  );
+
+  toast("All participants muted");
+}
+
+async function endMeetingForEveryone(){
+
+  if(!confirm("End meeting for everyone?")){
+    return;
+  }
+
+  await apiJSON(
+    `/api/meetings/${meetingState.meetingId}/end-for-everyone`,
+    "PATCH",
+    {}
+  );
+}
+
+async function updateMeetingAccessPatch(patch){
+  try{
+    const meeting =
+      await apiJSON(
+        `/api/meetings/${encodeURIComponent(meetingState.meetingId)}/access`,
+        "PATCH",
+        patch
+      );
+
+    meetingState.meeting = meeting;
+    toast("Meeting settings updated");
+    renderParticipants();
+
+  }catch(error){
+    toast(error.message || "Unable to update meeting settings");
+  }
+}
+
+async function saveAccessMode(){
+  const accessMode =
+    document.getElementById("meetingAccessMode")?.value || "restricted";
+
+  await updateMeetingAccessPatch({ accessMode });
+}
+
+async function toggleMeetingLock(){
+  const next =
+    !meetingState.meeting?.lockMeeting;
+
+  await updateMeetingAccessPatch({
+    lockMeeting:next
+  });
+
+  toast(next ? "Meeting locked" : "Meeting unlocked");
+}
+
+async function disableAllCameras(){
+  await updateMeetingAccessPatch({
+    allowParticipantVideo:false
+  });
+
+  toast("Participant cameras disabled");
+}
+
+async function toggleMeetingChatPermission(){
+  const current =
+    meetingState.meeting?.hostControls?.allowParticipantsToChat !== false;
+
+  await updateMeetingAccessPatch({
+    hostControls:{
+      allowParticipantsToChat:!current
+    }
+  });
+
+  toast(!current ? "Chat enabled" : "Chat disabled");
+}
+
+async function toggleScreenSharePermission(){
+  const current =
+    meetingState.meeting?.hostControls?.allowParticipantsToShareScreen !== false;
+
+  await updateMeetingAccessPatch({
+    hostControls:{
+      allowParticipantsToShareScreen:!current
+    },
+    allowScreenShare:!current
+  });
+
+  toast(!current ? "Screen sharing enabled" : "Screen sharing disabled");
+}
+
+function renderWaitingRoom(){
+  const box =
+    document.getElementById("waitingRoomList");
+
+  if(!box) return;
+
+  const waiting =
+    meetingState.meeting?.waitingRoomUsers || [];
+
+  if(!waiting.length){
+    box.innerHTML = "No users waiting.";
+    return;
+  }
+
+  box.innerHTML =
+    waiting.map(user=>{
+      const id = getId(user);
+
+      return `
+        <div class="participant-card">
+          <div class="participant-user">
+            <img src="${esc(avatar(user))}" alt="">
+            <div>
+              <strong>${esc(displayName(user))}</strong>
+              <span>Waiting for approval</span>
+            </div>
+          </div>
+
+          <div class="participant-actions">
+            <button onclick="approveWaitingUser('${esc(id)}')">Approve</button>
+            <button onclick="rejectWaitingUser('${esc(id)}')">Reject</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+}
+
+async function approveWaitingUser(userId){
+  try{
+    await apiJSON(
+      `/api/meetings/${encodeURIComponent(meetingState.meetingId)}/waiting-room/${encodeURIComponent(userId)}/approve`,
+      "PATCH",
+      {}
+    );
+
+    toast("User approved");
+    await reloadMeetingSoft();
+    renderWaitingRoom();
+
+  }catch(error){
+    toast(error.message || "Unable to approve user");
+  }
+}
+
+async function rejectWaitingUser(userId){
+  try{
+    await apiJSON(
+      `/api/meetings/${encodeURIComponent(meetingState.meetingId)}/waiting-room/${encodeURIComponent(userId)}/reject`,
+      "PATCH",
+      {}
+    );
+
+    toast("User rejected");
+    await reloadMeetingSoft();
+    renderWaitingRoom();
+
+  }catch(error){
+    toast(error.message || "Unable to reject user");
+  }
+}
+
+function renderMeetingAnalytics(){
+  const participants =
+    meetingState.meeting?.participants || [];
+
+  const analytics =
+    meetingState.meeting?.analytics || {};
+
+  document.getElementById("analyticsParticipants").textContent =
+    participants.length;
+
+  document.getElementById("analyticsPeak").textContent =
+    analytics.peakParticipants || participants.length || 0;
+
+  document.getElementById("analyticsDuration").textContent =
+    document.getElementById("meetingTimer")?.textContent || "00:00";
+
+  document.getElementById("analyticsShares").textContent =
+    participants.filter(p=>p.screenSharing).length;
+}
+
+function toggleMeetingChatPanel(){
+  toggleSidePanel();
+
+  const btns =
+    document.querySelectorAll(".side-tabs button");
+
+  if(btns[1]){
+    btns[1].click();
+  }
+}
+
+function toggleRecording(){
+  toast("Recording system ready");
+}
+
+function toggleBackgroundBlur(){
+  toast("Background blur ready");
+}
+
+function toggleCaptions(){
+  toast("Live captions ready");
+}
