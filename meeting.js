@@ -695,7 +695,6 @@ async function stopMeetingScreenShare(){
     meetingState.localStream?.getVideoTracks?.()[0];
 
 Object.values(meetingState.peerConnections || {}).forEach(async pc=>{
-Object.values(meetingState.peerConnections || {}).forEach(async pc=>{
   const sender =
     pc.getSenders().find(s => s.track?.kind === "video");
 
