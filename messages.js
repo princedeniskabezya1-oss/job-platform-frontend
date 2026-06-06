@@ -46,6 +46,7 @@ savedGifs:[],
 gifSearchTimer:null,
 
 currentCall:null,
+currentCallLogId:null,
 localStream:null,
 remoteStream:null,
 peerConnection:null,
@@ -2604,19 +2605,46 @@ async function startVideoCall(){
 
 async function createCallLog(type){
   try{
+    const log =
+      await apiJSON(
+        "/api/call-logs",
+        "POST",
+        {
+          receiver:getId(state.activeOtherUser),
+          conversationId:conversationId(state.activeConversation),
+          callType:type,
+          direction:"outgoing",
+          status:"ringing"
+        }
+      );
+
+    state.currentCallLogId =
+      log._id || log.id || null;
+
+    return log;
+
+  }catch(error){
+    console.warn("Call log failed:",error.message);
+    return null;
+  }
+}
+async function updateCallLogEnd(status = "ended"){
+  if(!state.currentCallLogId){
+    return;
+  }
+
+  try{
     await apiJSON(
-      "/api/call-logs",
-      "POST",
+      `/api/call-logs/${encodeURIComponent(state.currentCallLogId)}/end`,
+      "PATCH",
       {
-        receiver:getId(state.activeOtherUser),
-        conversationId:conversationId(state.activeConversation),
-        callType:type,
-        direction:"outgoing",
-        status:"ringing"
+        status
       }
     );
   }catch(error){
-    console.warn("Call log failed:",error.message);
+    console.warn("Call log update failed:",error.message);
+  }finally{
+    state.currentCallLogId = null;
   }
 }
 
@@ -3264,7 +3292,16 @@ function safePlay(audio){
   try{
     audio.loop = true;
     audio.currentTime = 0;
-    audio.play().catch(()=>{});
+
+    const playPromise =
+      audio.play();
+
+    if(playPromise && typeof playPromise.catch === "function"){
+      playPromise.catch(()=>{
+        console.warn("Browser blocked autoplay until user interacts");
+      });
+    }
+
   }catch(error){
     console.warn("Audio play failed:", error.message);
   }
@@ -3846,8 +3883,10 @@ function cleanupCall(playEndSound = false){
     remoteVideo.srcObject = null;
   }
 
-  state.currentCall = null;
-  state.pendingIncomingCall = null;
+updateCallLogEnd("ended");
+
+state.currentCall = null;
+state.pendingIncomingCall = null;
   state.callStartTime = null;
   state.isMuted = false;
   state.cameraEnabled = true;
@@ -4216,6 +4255,7 @@ function bindEvents(){
       }
     });
   }
+  
 
   const fileInput =
     document.getElementById("fileInput");
@@ -4307,6 +4347,24 @@ if(gifSearchInput){
       }
     });
   }
+  document.addEventListener(
+  "click",
+  ()=>{
+    [
+      state.ringtone,
+      state.outgoingTone,
+      state.callEndTone
+    ].forEach(audio=>{
+      if(!audio) return;
+
+      try{
+        audio.volume = 0.75;
+        audio.load();
+      }catch(error){}
+    });
+  },
+  { once:true }
+);
 
   document.addEventListener("click",event=>{
     const attachmentMenu =
