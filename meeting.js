@@ -583,24 +583,7 @@ async function createOfferForParticipants(){
 
     addParticipantVideoTile(user);
 
-    const pc =
-      await ensurePeerConnection(userId);
-
-    if(!pc) continue;
-
-    const offer =
-      await pc.createOffer({
-        offerToReceiveAudio:true,
-        offerToReceiveVideo:true
-      });
-
-    await pc.setLocalDescription(offer);
-
-    meetingState.socket.emit("webrtcOffer",{
-      to:userId,
-      offer,
-      meetingId:meetingState.meetingId
-    });
+    await createOfferForSingleParticipant(userId);
   }
 }
 
@@ -633,7 +616,7 @@ try{
 
 }finally{
   meetingState.makingOffer[userId] = false;
-
+}
 }
 
 function addParticipantVideoTile(user){
