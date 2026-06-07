@@ -17,7 +17,15 @@ const meetingState = {
   meetingCode:"",
   isHost:false,
   accessMode:"restricted",
-
+rawLocalStream:null,
+processedStream:null,
+backgroundMode:"none",
+backgroundImage:null,
+backgroundCanvas:null,
+backgroundVideo:null,
+backgroundProcessor:null,
+backgroundProcessing:false,
+backgroundAnimation:null,
   localStream:null,
 screenStream:null,
 peerConnections:{},
@@ -497,8 +505,19 @@ async function startLocalMediaFromLobbyOrFresh(){
       });
   }
 
-  document.getElementById("localVideo").srcObject =
-    meetingState.localStream;
+meetingState.rawLocalStream = meetingState.localStream;
+
+document.getElementById("localVideo").srcObject =
+  meetingState.localStream;
+
+const savedBg =
+  localStorage.getItem("aiftMeetingBackground") || "none";
+
+if(savedBg !== "none"){
+  setTimeout(()=>{
+    setBackgroundMode(savedBg);
+  },600);
+}
 }
 
 /* WEBRTC */
@@ -822,14 +841,15 @@ function switchPanel(panel,btn){
 
   btn?.classList.add("active");
 
-  [
-    "participants",
-    "chat",
-    "info",
-    "host",
-    "waiting",
-    "analytics"
-  ].forEach(id=>{
+[
+  "participants",
+  "chat",
+  "info",
+  "host",
+  "waiting",
+  "analytics",
+  "background"
+].forEach(id=>{
     document
       .getElementById(id + "Panel")
       ?.classList
@@ -1292,8 +1312,274 @@ function toggleRecording(){
   toast("Recording system ready");
 }
 
-function toggleBackgroundBlur(){
-  toast("Background blur ready");
+function openBackgroundPanel(){
+  const panel = document.getElementById("sidePanel");
+
+  if(panel?.classList.contains("hidden")){
+    panel.classList.remove("hidden");
+  }
+
+  const buttons =
+    document.querySelectorAll(".side-tabs button");
+
+  const backgroundBtn =
+    Array.from(buttons).find(btn =>
+      btn.textContent.trim().toLowerCase() === "background"
+    );
+
+  switchPanel("background",backgroundBtn);
+}
+
+async function setBackgroundMode(mode){
+  meetingState.backgroundMode = mode;
+  localStorage.setItem("aiftMeetingBackground",mode);
+
+  document
+    .querySelectorAll(".bg-option")
+    .forEach(btn=>btn.classList.remove("active"));
+
+  const active =
+    Array.from(document.querySelectorAll(".bg-option"))
+      .find(btn => btn.getAttribute("onclick")?.includes(`'${mode}'`));
+
+  active?.classList.add("active");
+
+  if(mode === "none"){
+    stopVirtualBackground();
+    toast("Background removed");
+    return;
+  }
+
+  await startVirtualBackground(mode);
+  toast("Background updated");
+}
+
+async function startVirtualBackground(mode){
+  if(!meetingState.rawLocalStream){
+    toast("Camera is not ready yet");
+    return;
+  }
+
+  if(!window.SelfieSegmentation){
+    toast("Background engine is still loading. Try again.");
+    return;
+  }
+
+  stopVirtualBackground(false);
+
+  meetingState.backgroundCanvas =
+    document.createElement("canvas");
+
+  meetingState.backgroundCanvas.width = 1280;
+  meetingState.backgroundCanvas.height = 720;
+
+  meetingState.backgroundVideo =
+    document.createElement("video");
+
+  meetingState.backgroundVideo.muted = true;
+  meetingState.backgroundVideo.playsInline = true;
+  meetingState.backgroundVideo.srcObject = meetingState.rawLocalStream;
+
+  await meetingState.backgroundVideo.play();
+
+  if(mode.startsWith("aift")){
+    meetingState.backgroundImage = new Image();
+    meetingState.backgroundImage.crossOrigin = "anonymous";
+    meetingState.backgroundImage.src = getBackgroundImageUrl(mode);
+
+    await new Promise(resolve=>{
+      meetingState.backgroundImage.onload = resolve;
+      meetingState.backgroundImage.onerror = resolve;
+    });
+  }
+
+  meetingState.backgroundProcessor =
+    new SelfieSegmentation({
+      locateFile:file =>
+        `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
+    });
+
+  meetingState.backgroundProcessor.setOptions({
+    modelSelection:1,
+    selfieMode:true
+  });
+
+  meetingState.backgroundProcessor.onResults(drawVirtualBackgroundFrame);
+
+  const processedStream =
+    meetingState.backgroundCanvas.captureStream(30);
+
+  const processedVideoTrack =
+    processedStream.getVideoTracks()[0];
+
+  const audioTracks =
+    meetingState.rawLocalStream.getAudioTracks();
+
+  meetingState.processedStream =
+    new MediaStream([
+      processedVideoTrack,
+      ...audioTracks
+    ]);
+
+  meetingState.localStream =
+    meetingState.processedStream;
+
+  document.getElementById("localVideo").srcObject =
+    meetingState.localStream;
+
+  replaceOutgoingVideoTrack(processedVideoTrack);
+
+  runBackgroundProcessor();
+}
+
+function drawVirtualBackgroundFrame(results){
+  const canvas = meetingState.backgroundCanvas;
+  const video = meetingState.backgroundVideo;
+
+  if(!canvas || !video) return;
+
+  const ctx = canvas.getContext("2d");
+
+  ctx.save();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.drawImage(
+    results.segmentationMask,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  ctx.globalCompositeOperation = "source-in";
+
+  ctx.drawImage(
+    video,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  ctx.globalCompositeOperation = "destination-over";
+
+  if(
+    meetingState.backgroundMode === "blur" ||
+    meetingState.backgroundMode === "strongBlur"
+  ){
+    ctx.filter =
+      meetingState.backgroundMode === "strongBlur"
+        ? "blur(24px)"
+        : "blur(14px)";
+
+    ctx.drawImage(
+      video,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    ctx.filter = "none";
+  }else if(meetingState.backgroundImage){
+    ctx.drawImage(
+      meetingState.backgroundImage,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+  }else{
+    ctx.fillStyle = "#111827";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  ctx.restore();
+}
+
+async function runBackgroundProcessor(){
+  if(
+    !meetingState.backgroundProcessor ||
+    !meetingState.backgroundVideo ||
+    meetingState.backgroundMode === "none"
+  ){
+    return;
+  }
+
+  if(!meetingState.backgroundProcessing){
+    meetingState.backgroundProcessing = true;
+
+    try{
+      await meetingState.backgroundProcessor.send({
+        image:meetingState.backgroundVideo
+      });
+    }catch(error){
+      console.warn("Background frame skipped:",error.message);
+    }
+
+    meetingState.backgroundProcessing = false;
+  }
+
+  meetingState.backgroundAnimation =
+    requestAnimationFrame(runBackgroundProcessor);
+}
+
+function stopVirtualBackground(restoreCamera = true){
+  if(meetingState.backgroundAnimation){
+    cancelAnimationFrame(meetingState.backgroundAnimation);
+    meetingState.backgroundAnimation = null;
+  }
+
+  meetingState.backgroundProcessor = null;
+  meetingState.backgroundProcessing = false;
+  meetingState.backgroundImage = null;
+
+  meetingState.processedStream
+    ?.getVideoTracks()
+    ?.forEach(track=>track.stop());
+
+  meetingState.processedStream = null;
+
+  if(restoreCamera && meetingState.rawLocalStream){
+    meetingState.localStream = meetingState.rawLocalStream;
+
+    document.getElementById("localVideo").srcObject =
+      meetingState.localStream;
+
+    const cameraTrack =
+      meetingState.rawLocalStream.getVideoTracks()[0];
+
+    replaceOutgoingVideoTrack(cameraTrack);
+  }
+}
+
+function replaceOutgoingVideoTrack(track){
+  if(!track) return;
+
+  Object.values(meetingState.peerConnections || {}).forEach(async pc=>{
+    const sender =
+      pc.getSenders().find(item => item.track?.kind === "video");
+
+    if(sender){
+      try{
+        await sender.replaceTrack(track);
+      }catch(error){
+        console.warn("Replace video track failed:",error.message);
+      }
+    }
+  });
+}
+
+function getBackgroundImageUrl(mode){
+  const map = {
+    aiftOffice:"images/aift-bg-office.svg",
+    aiftClassroom:"images/aift-bg-classroom.svg",
+    aiftStudio:"images/aift-bg-studio.svg",
+    aiftCity:"images/aift-bg-city.svg",
+    aiftConference:"images/aift-bg-conference.svg"
+  };
+
+  return map[mode] || "";
 }
 
 function toggleCaptions(){
