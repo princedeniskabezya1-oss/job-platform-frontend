@@ -1399,15 +1399,15 @@ meetingState.backgroundCanvas.height = 360;
         `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
     });
 
-  meetingState.backgroundProcessor.setOptions({
-    modelSelection:1,
-    selfieMode:true
-  });
+meetingState.backgroundProcessor.setOptions({
+  modelSelection:0,
+  selfieMode:true
+});
 
   meetingState.backgroundProcessor.onResults(drawVirtualBackgroundFrame);
 
-  const processedStream =
-    meetingState.backgroundCanvas.captureStream(30);
+const processedStream =
+  meetingState.backgroundCanvas.captureStream(15);
 
   const processedVideoTrack =
     processedStream.getVideoTracks()[0];
@@ -1506,27 +1506,31 @@ async function runBackgroundProcessor(){
     return;
   }
 
-  if(!meetingState.backgroundProcessing){
-    meetingState.backgroundProcessing = true;
-
-    try{
-      await meetingState.backgroundProcessor.send({
-        image:meetingState.backgroundVideo
-      });
-    }catch(error){
-      console.warn("Background frame skipped:",error.message);
-    }
-
-    meetingState.backgroundProcessing = false;
+  if(meetingState.backgroundProcessing){
+    meetingState.backgroundAnimation =
+      setTimeout(runBackgroundProcessor, 66);
+    return;
   }
 
+  meetingState.backgroundProcessing = true;
+
+  try{
+    await meetingState.backgroundProcessor.send({
+      image:meetingState.backgroundVideo
+    });
+  }catch(error){
+    console.warn("Background frame skipped:",error.message);
+  }
+
+  meetingState.backgroundProcessing = false;
+
   meetingState.backgroundAnimation =
-    requestAnimationFrame(runBackgroundProcessor);
+    setTimeout(runBackgroundProcessor, 66);
 }
 
 function stopVirtualBackground(restoreCamera = true){
   if(meetingState.backgroundAnimation){
-    cancelAnimationFrame(meetingState.backgroundAnimation);
+    clearTimeout(meetingState.backgroundAnimation);
     meetingState.backgroundAnimation = null;
   }
 
