@@ -237,11 +237,20 @@ function connectSocket(){
     meetingState.socket.emit("join",meetingState.myId);
   });
 
-  meetingState.socket.on("meetingParticipantJoined",payload=>{
-    toast("Participant joined");
-    hideWaitingOverlay();
-    reloadMeetingSoft();
-  });
+meetingState.socket.on("meetingParticipantJoined", async payload => {
+  toast("Participant joined");
+  hideWaitingOverlay();
+
+  await reloadMeetingSoft();
+
+  const userId = payload?.userId || payload?.participantId;
+
+  if(userId && userId !== meetingState.myId){
+    await createOfferForSingleParticipant(userId);
+  }else{
+    await createOfferForParticipants();
+  }
+});
 
 meetingState.socket.on("meetingParticipantLeft",payload=>{
   toast("Participant left");
@@ -276,44 +285,51 @@ meetingState.socket.on("meetingParticipantLeft",payload=>{
     setTimeout(()=>location.href="home.html",1000);
   });
 
-  meetingState.socket.on("webrtcOffer",async payload=>{
-    if(!payload.offer || !payload.from) return;
+meetingState.socket.on("webrtcOffer", async payload => {
+  if(!payload.offer || !payload.from) return;
 
-    await ensurePeerConnection(payload.from);
+  const pc = await ensurePeerConnection(payload.from);
+  if(!pc) return;
 
-    await meetingState.peerConnection.setRemoteDescription(
-      new RTCSessionDescription(payload.offer)
+  await pc.setRemoteDescription(
+    new RTCSessionDescription(payload.offer)
+  );
+
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+
+  meetingState.socket.emit("webrtcAnswer", {
+    to: payload.from,
+    answer,
+    meetingId: meetingState.meetingId
+  });
+});
+
+meetingState.socket.on("webrtcAnswer", async payload => {
+  if(!payload.answer || !payload.from) return;
+
+  const pc = meetingState.peerConnections[payload.from];
+  if(!pc) return;
+
+  await pc.setRemoteDescription(
+    new RTCSessionDescription(payload.answer)
+  );
+});
+
+meetingState.socket.on("webrtcIceCandidate", async payload => {
+  if(!payload.candidate || !payload.from) return;
+
+  const pc = meetingState.peerConnections[payload.from];
+  if(!pc) return;
+
+  try{
+    await pc.addIceCandidate(
+      new RTCIceCandidate(payload.candidate)
     );
-
-    const answer = await meetingState.peerConnection.createAnswer();
-    await meetingState.peerConnection.setLocalDescription(answer);
-
-    meetingState.socket.emit("webrtcAnswer",{
-      to:payload.from,
-      answer,
-      meetingId:meetingState.meetingId
-    });
-  });
-
-  meetingState.socket.on("webrtcAnswer",async payload=>{
-    if(!payload.answer || !meetingState.peerConnection) return;
-
-    await meetingState.peerConnection.setRemoteDescription(
-      new RTCSessionDescription(payload.answer)
-    );
-  });
-
-  meetingState.socket.on("webrtcIceCandidate",async payload=>{
-    if(!payload.candidate || !meetingState.peerConnection) return;
-
-    try{
-      await meetingState.peerConnection.addIceCandidate(
-        new RTCIceCandidate(payload.candidate)
-      );
-    }catch(error){
-      console.warn("ICE failed:",error.message);
-    }
-  });
+  }catch(error){
+    console.warn("ICE failed:", error.message);
+  }
+});
 
   meetingState.socket.on("participantHandRaised",payload=>{
     toast("A participant raised their hand");
@@ -550,6 +566,26 @@ async function createOfferForParticipants(){
   }
 }
 
+async function createOfferForSingleParticipant(userId){
+  if(!userId || userId === meetingState.myId) return;
+
+  const pc = await ensurePeerConnection(userId);
+  if(!pc) return;
+
+  const offer = await pc.createOffer({
+    offerToReceiveAudio:true,
+    offerToReceiveVideo:true
+  });
+
+  await pc.setLocalDescription(offer);
+
+  meetingState.socket.emit("webrtcOffer",{
+    to:userId,
+    offer,
+    meetingId:meetingState.meetingId
+  });
+}
+
 function addParticipantVideoTile(user){
   const userId = getId(user);
 
@@ -659,14 +695,14 @@ async function toggleMeetingScreenShare(){
     const screenTrack =
       meetingState.screenStream.getVideoTracks()[0];
 
-    const sender =
-      meetingState.peerConnection
-        ?.getSenders()
-        .find(s => s.track?.kind === "video");
+Object.values(meetingState.peerConnections || {}).forEach(async pc=>{
+  const sender =
+    pc.getSenders().find(s => s.track?.kind === "video");
 
-    if(sender){
-      await sender.replaceTrack(screenTrack);
-    }
+  if(sender){
+    await sender.replaceTrack(screenTrack);
+  }
+});
 
     document.getElementById("localVideo").srcObject =
       meetingState.screenStream;
@@ -953,9 +989,14 @@ meetingState.remoteStreams = {};
   meetingState.screenStream?.getTracks().forEach(t=>t.stop());
   meetingState.lobbyStream?.getTracks().forEach(t=>t.stop());
 
-  if(meetingState.peerConnection){
-    meetingState.peerConnection.close();
-  }
+Object.values(meetingState.peerConnections || {}).forEach(pc=>{
+  try{
+    pc.close();
+  }catch(error){}
+});
+
+meetingState.peerConnections = {};
+meetingState.remoteStreams = {};
 
   if(meetingState.timer){
     clearInterval(meetingState.timer);
