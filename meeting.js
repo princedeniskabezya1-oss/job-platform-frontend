@@ -1377,8 +1377,8 @@ async function startVirtualBackground(mode){
   meetingState.backgroundCanvas =
     document.createElement("canvas");
 
-  meetingState.backgroundCanvas.width = 960;
-  meetingState.backgroundCanvas.height = 540;
+meetingState.backgroundCanvas.width = 640;
+meetingState.backgroundCanvas.height = 360;
 
   meetingState.backgroundVideo =
     document.createElement("video");
@@ -1463,7 +1463,7 @@ async function runBackgroundProcessor(){
         }
       );
 
-    drawTensorflowBackgroundFrame(people);
+    await drawTensorflowBackgroundFrame(people);
 
   }catch(error){
     console.warn("Background frame skipped:",error.message);
@@ -1488,76 +1488,68 @@ async function drawTensorflowBackgroundFrame(people){
 
   const mode = meetingState.backgroundMode;
 
-  const backgroundBlur =
-    mode === "strongBlur"
-      ? 18
-      : mode === "blur"
-        ? 10
-        : 0;
+  if(mode === "blur" || mode === "strongBlur"){
+    const blurAmount =
+      mode === "strongBlur"
+        ? 18
+        : 10;
 
-  try{
     await bodySegmentation.drawBokehEffect(
       canvas,
       video,
       people,
-      backgroundBlur,
-      7,
+      blurAmount,
+      5,
       false
     );
 
-    if(mode.startsWith("aift") && meetingState.backgroundImage){
-      await drawImageBackgroundWithMask(ctx,canvas,video,people);
-    }
-
-  }catch(error){
-    fallbackDrawBackground(ctx,canvas,video);
+    return;
   }
-}
 
-async function drawImageBackgroundWithMask(ctx,canvas,video,people){
-  const tempCanvas =
-    document.createElement("canvas");
+  if(mode.startsWith("aift") && meetingState.backgroundImage){
+    const mask =
+      await bodySegmentation.toBinaryMask(
+        people,
+        { r:0, g:0, b:0, a:0 },
+        { r:0, g:0, b:0, a:255 }
+      );
 
-  tempCanvas.width = canvas.width;
-  tempCanvas.height = canvas.height;
+    const personCanvas =
+      document.createElement("canvas");
 
-  const tempCtx =
-    tempCanvas.getContext("2d");
+    personCanvas.width = canvas.width;
+    personCanvas.height = canvas.height;
 
-  tempCtx.drawImage(
-    meetingState.backgroundImage,
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
+    const personCtx =
+      personCanvas.getContext("2d");
 
-  await bodySegmentation.drawMask(
-    tempCanvas,
-    video,
-    people,
-    1,
-    7,
-    false
-  );
+    personCtx.drawImage(
+      video,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
 
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+    personCtx.globalCompositeOperation = "destination-in";
+    personCtx.putImageData(mask,0,0);
 
-  ctx.drawImage(
-    meetingState.backgroundImage,
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  ctx.drawImage(
-    tempCanvas,
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
+    ctx.drawImage(
+      meetingState.backgroundImage,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    ctx.drawImage(personCanvas,0,0);
+
+    return;
+  }
+
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
 }
 
 function fallbackDrawBackground(ctx,canvas,video){
