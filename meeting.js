@@ -22,6 +22,8 @@ const meetingState = {
 screenStream:null,
 peerConnections:{},
 remoteStreams:{},
+makingOffer:{},
+ignoreOffer:{},
 
   micMuted:false,
   cameraOff:false,
@@ -290,18 +292,34 @@ meetingState.socket.on("webrtcOffer", async payload => {
   const pc = await ensurePeerConnection(payload.from);
   if(!pc) return;
 
-  await pc.setRemoteDescription(
-    new RTCSessionDescription(payload.offer)
-  );
+  const offerCollision =
+    pc.signalingState !== "stable";
 
-  const answer = await pc.createAnswer();
-  await pc.setLocalDescription(answer);
+  meetingState.ignoreOffer[payload.from] =
+    !meetingState.isHost && offerCollision;
 
-  meetingState.socket.emit("webrtcAnswer", {
-    to: payload.from,
-    answer,
-    meetingId: meetingState.meetingId
-  });
+  if(meetingState.ignoreOffer[payload.from]){
+    console.warn("Ignored offer collision from", payload.from);
+    return;
+  }
+
+  try{
+    await pc.setRemoteDescription(
+      new RTCSessionDescription(payload.offer)
+    );
+
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    meetingState.socket.emit("webrtcAnswer", {
+      to: payload.from,
+      answer: pc.localDescription,
+      meetingId: meetingState.meetingId
+    });
+
+  }catch(error){
+    console.warn("Offer handling failed:", error.message);
+  }
 });
 
 meetingState.socket.on("webrtcAnswer", async payload => {
@@ -310,9 +328,21 @@ meetingState.socket.on("webrtcAnswer", async payload => {
   const pc = meetingState.peerConnections[payload.from];
   if(!pc) return;
 
-  await pc.setRemoteDescription(
-    new RTCSessionDescription(payload.answer)
-  );
+  if(pc.signalingState !== "have-local-offer"){
+    console.warn(
+      "Skipped answer because signalingState is",
+      pc.signalingState
+    );
+    return;
+  }
+
+  try{
+    await pc.setRemoteDescription(
+      new RTCSessionDescription(payload.answer)
+    );
+  }catch(error){
+    console.warn("Answer handling failed:", error.message);
+  }
 });
 
 meetingState.socket.on("webrtcIceCandidate", async payload => {
@@ -580,6 +610,14 @@ async function createOfferForSingleParticipant(userId){
   const pc = await ensurePeerConnection(userId);
   if(!pc) return;
 
+if(pc.signalingState !== "stable"){
+  console.warn("Skipping offer, connection is not stable:", pc.signalingState);
+  return;
+}
+
+meetingState.makingOffer[userId] = true;
+
+try{
   const offer = await pc.createOffer({
     offerToReceiveAudio:true,
     offerToReceiveVideo:true
@@ -589,9 +627,13 @@ async function createOfferForSingleParticipant(userId){
 
   meetingState.socket.emit("webrtcOffer",{
     to:userId,
-    offer,
+    offer:pc.localDescription,
     meetingId:meetingState.meetingId
   });
+
+}finally{
+  meetingState.makingOffer[userId] = false;
+
 }
 
 function addParticipantVideoTile(user){
