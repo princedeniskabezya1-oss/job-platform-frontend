@@ -918,16 +918,42 @@ function renderMeetingChat(){
 
 /* INVITE */
 
+function getMeetingInviteLink(){
+  return `${location.origin}/meeting.html?code=${encodeURIComponent(meetingState.meetingCode)}`;
+}
+
 async function copyMeetingLink(){
-  const url =
-    `${location.origin}/meeting.html?code=${encodeURIComponent(meetingState.meetingCode)}`;
+  const url = getMeetingInviteLink();
 
   try{
     await navigator.clipboard.writeText(url);
-    toast("Meeting link copied");
+    toast("AIFT Meet link copied");
   }catch{
     toast(url);
   }
+}
+
+function renderInvitePreview(){
+  const box = document.getElementById("invitePreviewBox");
+  if(!box) return;
+
+  const url = getMeetingInviteLink();
+
+  box.innerHTML = `
+    <div class="aift-invite-preview">
+      <div class="aift-invite-logo">
+        <img src="images/aift-logo.png" alt="AIFT">
+      </div>
+
+      <div class="aift-invite-content">
+        <strong>${esc(meetingState.meeting?.title || "AIFT Meeting")}</strong>
+        <span>Join with camera and microphone preview</span>
+        <p>${esc(url)}</p>
+      </div>
+
+      <button onclick="copyMeetingLink()">Copy</button>
+    </div>
+  `;
 }
 
 /* TIMER */
@@ -1228,6 +1254,8 @@ let inviteSearchTimer = null;
 
 function openInvitePanel(){
   document.getElementById("inviteModal")?.classList.remove("hidden");
+
+  renderInvitePreview();
 
   setTimeout(()=>{
     document.getElementById("inviteSearchInput")?.focus();
