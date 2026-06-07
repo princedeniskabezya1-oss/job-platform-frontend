@@ -335,9 +335,18 @@ meetingState.socket.on("webrtcIceCandidate", async payload => {
     reloadMeetingSoft();
   });
 
-  meetingState.socket.on("screenShareStatus",payload=>{
-    toast(payload.sharing ? "Screen sharing started" : "Screen sharing stopped");
-  });
+meetingState.socket.on("screenShareStatus",payload=>{
+  toast(payload.sharing ? "Screen sharing started" : "Screen sharing stopped");
+
+  if(payload.sharing){
+    document.querySelector(".stage")?.classList.add("screen-sharing-mode");
+    document.getElementById("screenShareLabel").textContent =
+      payload.name ? `${payload.name} is presenting` : "Someone is presenting";
+  }else{
+    document.querySelector(".stage")?.classList.remove("screen-sharing-mode");
+    document.getElementById("screenShareVideo").srcObject = null;
+  }
+});
 }
 
 /* LOBBY */
@@ -703,8 +712,13 @@ Object.values(meetingState.peerConnections || {}).forEach(async pc=>{
   }
 });
 
-    document.getElementById("localVideo").srcObject =
-      meetingState.screenStream;
+document.querySelector(".stage")?.classList.add("screen-sharing-mode");
+
+document.getElementById("screenShareVideo").srcObject =
+  meetingState.screenStream;
+
+document.getElementById("screenShareLabel").textContent =
+  "You are presenting";
 
     screenTrack.onended =
       stopMeetingScreenShare;
@@ -738,8 +752,12 @@ Object.values(meetingState.peerConnections || {}).forEach(async pc=>{
   }
 });
 
-  document.getElementById("localVideo").srcObject =
-    meetingState.localStream;
+document.querySelector(".stage")?.classList.remove("screen-sharing-mode");
+
+document.getElementById("screenShareVideo").srcObject = null;
+
+document.getElementById("localVideo").srcObject =
+  meetingState.localStream;
 
   meetingState.socket.emit("screenShareStatus",{
     meetingId:meetingState.meetingId,
