@@ -1370,8 +1370,8 @@ async function startVirtualBackground(mode){
   meetingState.backgroundCanvas =
     document.createElement("canvas");
 
-  meetingState.backgroundCanvas.width = 1280;
-  meetingState.backgroundCanvas.height = 720;
+meetingState.backgroundCanvas.width = 640;
+meetingState.backgroundCanvas.height = 360;
 
   meetingState.backgroundVideo =
     document.createElement("video");
