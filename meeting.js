@@ -751,7 +751,6 @@ document.getElementById("screenShareVideo").srcObject =
 document.getElementById("screenShareLabel").textContent =
   "You are presenting";
 
-showPresenterToolbar();
 
     screenTrack.onended =
       stopMeetingScreenShare;
@@ -798,7 +797,7 @@ document.getElementById("localVideo").srcObject =
   });
 
   document.getElementById("shareBtn").classList.remove("active");
-hidePresenterToolbar();
+
 }
 
 function toggleRaiseHand(){
@@ -1400,27 +1399,7 @@ await apiJSON(
     toast(error.message || "Unable to invite user");
   }
 }
-function showPresenterToolbar(){
-  let bar = document.getElementById("presenterToolbar");
 
-  if(!bar){
-    bar = document.createElement("div");
-    bar.id = "presenterToolbar";
-    bar.className = "presenter-toolbar";
-
-    bar.innerHTML = `
-      <button onclick="focusScreenPreview()">View shared screen</button>
-      <button onclick="toggleSidePanel()">People / Chat</button>
-      <button onclick="toggleMeetingMic()">Mute</button>
-      <button onclick="toggleMeetingCamera()">Camera</button>
-      <button class="danger" onclick="stopMeetingScreenShare()">Stop sharing</button>
-    `;
-
-    document.body.appendChild(bar);
-  }
-
-  bar.classList.remove("hidden");
-}
 
 function hidePresenterToolbar(){
   document
