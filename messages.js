@@ -1346,6 +1346,9 @@ function replyPreviewHtml(message){
 
 function messageContentHtml(message){
   if(message.deletedForEveryone){
+    if(message.messageType === "meeting" && message.meetingInvite){
+  return meetingInviteHtml(message);
+}
     return `
       <div class="message-deleted">
         This message was deleted
@@ -1381,6 +1384,57 @@ function messageContentHtml(message){
   }
 
   return parts.join("");
+}
+function meetingInviteHtml(message){
+
+  const invite = message.meetingInvite || {};
+
+  return `
+    <div class="meeting-invite-card">
+
+      <div class="meeting-invite-header">
+
+        <img
+          src="${invite.logoUrl || 'images/aift-logo.png'}"
+          class="meeting-invite-logo"
+        >
+
+        <div>
+          <strong>${esc(invite.title || "AIFT Meeting")}</strong>
+
+          <div class="meeting-invite-host">
+            Hosted by ${esc(invite.hostName || "AIFT")}
+          </div>
+        </div>
+
+      </div>
+
+      <div class="meeting-code-box">
+        Meeting Code:
+        <strong>${esc(invite.meetingCode || "")}</strong>
+      </div>
+
+      <button
+        class="meeting-join-btn"
+        onclick="event.stopPropagation();joinMeetingInvite('${esc(invite.joinUrl || "")}','${esc(invite.meetingCode || "")}')"
+      >
+        Join Meeting
+      </button>
+
+    </div>
+  `;
+}
+function joinMeetingInvite(url, code){
+
+  if(!url){
+    toast("Meeting link not available");
+    return;
+  }
+
+  window.location.href =
+    url +
+    "&meetingCode=" +
+    encodeURIComponent(code);
 }
 
 function getPrimaryAttachment(message){
