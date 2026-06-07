@@ -26,6 +26,8 @@ backgroundVideo:null,
 backgroundProcessor:null,
 backgroundProcessing:false,
 backgroundAnimation:null,
+lastMask:null,
+backgroundFps:24,
   localStream:null,
 screenStream:null,
 peerConnections:{},
@@ -1330,6 +1332,8 @@ function openBackgroundPanel(){
   switchPanel("background",backgroundBtn);
 }
 
+
+
 async function setBackgroundMode(mode){
   meetingState.backgroundMode = mode;
   localStorage.setItem("aiftMeetingBackground",mode);
@@ -1360,18 +1364,21 @@ async function startVirtualBackground(mode){
     return;
   }
 
-  if(!window.SelfieSegmentation){
+  if(!window.tf || !window.bodySegmentation){
     toast("Background engine is still loading. Try again.");
     return;
   }
 
   stopVirtualBackground(false);
 
+  await tf.setBackend("webgl");
+  await tf.ready();
+
   meetingState.backgroundCanvas =
     document.createElement("canvas");
 
-meetingState.backgroundCanvas.width = 640;
-meetingState.backgroundCanvas.height = 360;
+  meetingState.backgroundCanvas.width = 960;
+  meetingState.backgroundCanvas.height = 540;
 
   meetingState.backgroundVideo =
     document.createElement("video");
@@ -1394,20 +1401,17 @@ meetingState.backgroundCanvas.height = 360;
   }
 
   meetingState.backgroundProcessor =
-    new SelfieSegmentation({
-      locateFile:file =>
-        `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
-    });
+    await bodySegmentation.createSegmenter(
+      bodySegmentation.SupportedModels.MediaPipeSelfieSegmentation,
+      {
+        runtime:"mediapipe",
+        modelType:"landscape",
+        solutionPath:"https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation"
+      }
+    );
 
-meetingState.backgroundProcessor.setOptions({
-  modelSelection:0,
-  selfieMode:true
-});
-
-  meetingState.backgroundProcessor.onResults(drawVirtualBackgroundFrame);
-
-const processedStream =
-  meetingState.backgroundCanvas.captureStream(15);
+  const processedStream =
+    meetingState.backgroundCanvas.captureStream(meetingState.backgroundFps);
 
   const processedVideoTrack =
     processedStream.getVideoTracks()[0];
@@ -1432,71 +1436,6 @@ const processedStream =
   runBackgroundProcessor();
 }
 
-function drawVirtualBackgroundFrame(results){
-  const canvas = meetingState.backgroundCanvas;
-  const video = meetingState.backgroundVideo;
-
-  if(!canvas || !video) return;
-
-  const ctx = canvas.getContext("2d");
-
-  ctx.save();
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  ctx.drawImage(
-    results.segmentationMask,
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-  ctx.globalCompositeOperation = "source-in";
-
-  ctx.drawImage(
-    video,
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-  ctx.globalCompositeOperation = "destination-over";
-
-  if(
-    meetingState.backgroundMode === "blur" ||
-    meetingState.backgroundMode === "strongBlur"
-  ){
-    ctx.filter =
-      meetingState.backgroundMode === "strongBlur"
-        ? "blur(24px)"
-        : "blur(14px)";
-
-    ctx.drawImage(
-      video,
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-
-    ctx.filter = "none";
-  }else if(meetingState.backgroundImage){
-    ctx.drawImage(
-      meetingState.backgroundImage,
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-  }else{
-    ctx.fillStyle = "#111827";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-  }
-
-  ctx.restore();
-}
-
 async function runBackgroundProcessor(){
   if(
     !meetingState.backgroundProcessor ||
@@ -1508,16 +1447,24 @@ async function runBackgroundProcessor(){
 
   if(meetingState.backgroundProcessing){
     meetingState.backgroundAnimation =
-      setTimeout(runBackgroundProcessor, 66);
+      setTimeout(runBackgroundProcessor,1000 / meetingState.backgroundFps);
     return;
   }
 
   meetingState.backgroundProcessing = true;
 
   try{
-    await meetingState.backgroundProcessor.send({
-      image:meetingState.backgroundVideo
-    });
+    const people =
+      await meetingState.backgroundProcessor.segmentPeople(
+        meetingState.backgroundVideo,
+        {
+          multiSegmentation:false,
+          segmentBodyParts:false
+        }
+      );
+
+    drawTensorflowBackgroundFrame(people);
+
   }catch(error){
     console.warn("Background frame skipped:",error.message);
   }
@@ -1525,7 +1472,97 @@ async function runBackgroundProcessor(){
   meetingState.backgroundProcessing = false;
 
   meetingState.backgroundAnimation =
-    setTimeout(runBackgroundProcessor, 66);
+    setTimeout(runBackgroundProcessor,1000 / meetingState.backgroundFps);
+}
+
+async function drawTensorflowBackgroundFrame(people){
+  const canvas = meetingState.backgroundCanvas;
+  const video = meetingState.backgroundVideo;
+
+  if(!canvas || !video) return;
+
+  const ctx = canvas.getContext("2d",{
+    alpha:false,
+    desynchronized:true
+  });
+
+  const mode = meetingState.backgroundMode;
+
+  const backgroundBlur =
+    mode === "strongBlur"
+      ? 18
+      : mode === "blur"
+        ? 10
+        : 0;
+
+  try{
+    await bodySegmentation.drawBokehEffect(
+      canvas,
+      video,
+      people,
+      backgroundBlur,
+      7,
+      false
+    );
+
+    if(mode.startsWith("aift") && meetingState.backgroundImage){
+      await drawImageBackgroundWithMask(ctx,canvas,video,people);
+    }
+
+  }catch(error){
+    fallbackDrawBackground(ctx,canvas,video);
+  }
+}
+
+async function drawImageBackgroundWithMask(ctx,canvas,video,people){
+  const tempCanvas =
+    document.createElement("canvas");
+
+  tempCanvas.width = canvas.width;
+  tempCanvas.height = canvas.height;
+
+  const tempCtx =
+    tempCanvas.getContext("2d");
+
+  tempCtx.drawImage(
+    meetingState.backgroundImage,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  await bodySegmentation.drawMask(
+    tempCanvas,
+    video,
+    people,
+    1,
+    7,
+    false
+  );
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.drawImage(
+    meetingState.backgroundImage,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  ctx.drawImage(
+    tempCanvas,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+}
+
+function fallbackDrawBackground(ctx,canvas,video){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
 }
 
 function stopVirtualBackground(restoreCamera = true){
@@ -1534,9 +1571,11 @@ function stopVirtualBackground(restoreCamera = true){
     meetingState.backgroundAnimation = null;
   }
 
-  meetingState.backgroundProcessor = null;
   meetingState.backgroundProcessing = false;
+  meetingState.lastMask = null;
   meetingState.backgroundImage = null;
+
+  meetingState.backgroundProcessor = null;
 
   meetingState.processedStream
     ?.getVideoTracks()
@@ -1556,6 +1595,10 @@ function stopVirtualBackground(restoreCamera = true){
     replaceOutgoingVideoTrack(cameraTrack);
   }
 }
+
+
+
+
 
 function replaceOutgoingVideoTrack(track){
   if(!track) return;
