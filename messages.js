@@ -1345,10 +1345,15 @@ function replyPreviewHtml(message){
 }
 
 function messageContentHtml(message){
+
+  if(
+    message.messageType === "meeting" &&
+    message.meetingInvite
+  ){
+    return meetingInviteHtml(message);
+  }
+
   if(message.deletedForEveryone){
-    if(message.messageType === "meeting" && message.meetingInvite){
-  return meetingInviteHtml(message);
-}
     return `
       <div class="message-deleted">
         This message was deleted
@@ -1431,9 +1436,15 @@ function joinMeetingInvite(url, code){
     return;
   }
 
+  const separator =
+    url.includes("?")
+      ? "&"
+      : "?";
+
   window.location.href =
     url +
-    "&meetingCode=" +
+    separator +
+    "meetingCode=" +
     encodeURIComponent(code);
 }
 
