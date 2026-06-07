@@ -187,10 +187,9 @@ async function loadMeeting(){
   meetingState.isHost =
     getId(meetingState.meeting.host) === meetingState.myId;
 
-  meetingState.accessMode =
-    meetingState.meeting.waitingRoomEnabled
-      ? "waiting-room"
-      : "open";
+meetingState.accessMode =
+  meetingState.meeting.accessMode ||
+  (meetingState.meeting.waitingRoomEnabled ? "waiting_room" : "restricted");
 
   document.getElementById("meetingTitle").textContent =
     meetingState.meeting.title || "AIFT Meeting";
@@ -1331,13 +1330,14 @@ async function inviteUserToMeeting(userId,btn){
     btn.disabled = true;
     btn.textContent = "Inviting...";
 
-    await apiJSON(
-      `/api/meetings/${encodeURIComponent(meetingState.meetingId)}/invite`,
-      "POST",
-      {
-        users:[userId]
-      }
-    );
+await apiJSON(
+  `/api/meetings/${encodeURIComponent(meetingState.meetingId)}/invite`,
+  "POST",
+  {
+    users:[userId],
+    inviteLink:getMeetingInviteLink()
+  }
+);
 
     btn.textContent = "Invited";
     toast("Invitation sent");
