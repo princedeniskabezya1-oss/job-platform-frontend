@@ -53,6 +53,7 @@ peerConnection:null,
 screenStream:null,
 callStartTime:null,
 callTimer:null,
+callTimeout:null,
 isMuted:false,
 cameraEnabled:true,
 speakerEnabled:true,
@@ -3555,12 +3556,20 @@ if(callNetworkStatus){
   callNetworkStatus.textContent = "";
 }
 
-    if(status === "connected"){
-      document.getElementById("callStatus").textContent =
-        "Connected";
-      stopSound(state.outgoingTone);
-      startCallTimer();
-    }
+if(status === "connected"){
+  state.currentCall.status = "connected";
+
+  clearTimeout(state.callTimeout);
+  state.callTimeout = null;
+
+  document.getElementById("callStatus").textContent =
+    "Connected";
+
+  stopSound(state.outgoingTone);
+  stopSound(state.ringtone);
+
+  startCallTimer();
+}
 
     if(["failed","disconnected","closed"].includes(status)){
       document.getElementById("callStatus").textContent =
@@ -3609,7 +3618,8 @@ async function startOutgoingCall(callType){
       waiting:true
     });
 
-    safePlay(state.outgoingTone);
+    safePlay(state.outgoingTone, true);
+    startOutgoingCallTimeout();
 
     await createCallLog(callType);
 
@@ -3643,6 +3653,34 @@ async function startOutgoingCall(callType){
     cleanupCall();
   }
 }
+function startOutgoingCallTimeout(){
+  clearTimeout(state.callTimeout);
+
+  state.callTimeout = setTimeout(()=>{
+    if(!state.currentCall || state.currentCall.status === "connected"){
+      return;
+    }
+
+    toast("No answer");
+
+    stopSound(state.outgoingTone);
+    stopSound(state.ringtone);
+
+    safePlay(state.busyTone);
+
+    if(state.currentCall?.targetUserId){
+      state.socket?.emit("endCall",{
+        to:state.currentCall.targetUserId,
+        callId:state.currentCall.callId,
+        reason:"no_answer"
+      });
+    }
+
+    cleanupCall(false);
+
+  },60000);
+}
+
 
 /* =========================
    AIFT CALL SIGNALING
@@ -3870,11 +3908,17 @@ function declineIncomingCall(){
     });
   }
 
+  clearTimeout(state.callTimeout);
+  state.callTimeout = null;
+
   closeIncomingCallModal();
 
   state.pendingIncomingCall = null;
 
   stopSound(state.ringtone);
+  stopSound(state.outgoingTone);
+
+  safePlay(state.busyTone);
 }
 
 function endCurrentCall(){
@@ -3890,6 +3934,9 @@ function endCurrentCall(){
 }
 
 function cleanupCall(playEndSound = false){
+  clearTimeout(state.callTimeout);
+  state.callTimeout = null;
+
   stopSound(state.ringtone);
   stopSound(state.outgoingTone);
 
