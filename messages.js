@@ -61,6 +61,9 @@ pendingIncomingCall:null,
 ringtone:null,
 outgoingTone:null,
 callEndTone:null,
+messageTone:null,
+messageSentTone:null,
+busyTone:null,
 
 typingTimer:null,
   isSending:false,
@@ -1927,8 +1930,9 @@ const index =
         saved.message || saved;
     }
 
-    renderMessages();
-    await loadConversations();
+renderMessages();
+safePlay(state.messageSentTone);
+await loadConversations();
 
   }catch(error){
     const failed =
@@ -2080,6 +2084,9 @@ function clearAttachment(){
 
 function handleRealtimeMessage(message){
   if(!message) return;
+  if(String(senderId(message)) !== String(state.myId)){
+  safePlay(state.messageTone);
+}
 
   const activeId =
     state.activeConversation
@@ -2658,6 +2665,7 @@ async function startAudioCall(){
   });
 
   toast("Audio call request sent");
+  safePlay(state.outgoingTone, true);
 }
 
 async function startVideoCall(){
@@ -2677,6 +2685,7 @@ async function startVideoCall(){
   });
 
   toast("Video call request sent");
+  safePlay(state.outgoingTone, true);
 }
 
 async function createCallLog(type){
@@ -3309,19 +3318,42 @@ const RTC_CONFIG = {
   ]
 };
 
-function safePlay(audio){
+function setupAiftSounds(){
+  state.ringtone = new Audio("audio/ringtone.mp3");
+  state.outgoingTone = new Audio("audio/calling.mp3");
+  state.callEndTone = new Audio("audio/call-end.mp3");
+  state.messageTone = new Audio("audio/message.mp3");
+  state.messageSentTone = new Audio("audio/message-sent.mp3");
+  state.busyTone = new Audio("audio/busy.mp3");
+
+  state.ringtone.loop = true;
+  state.outgoingTone.loop = true;
+
+  [
+    state.ringtone,
+    state.outgoingTone,
+    state.callEndTone,
+    state.messageTone,
+    state.messageSentTone,
+    state.busyTone
+  ].forEach(sound=>{
+    if(!sound) return;
+    sound.volume = 0.55;
+  });
+}
+
+function safePlay(audio, loop = false){
   if(!audio) return;
 
   try{
-    audio.loop = true;
+    audio.loop = loop;
     audio.currentTime = 0;
 
-    const playPromise =
-      audio.play();
+    const playPromise = audio.play();
 
     if(playPromise && typeof playPromise.catch === "function"){
       playPromise.catch(()=>{
-        console.warn("Browser blocked autoplay until user interacts");
+        console.warn("Browser blocked audio until user interacts");
       });
     }
 
@@ -3425,7 +3457,7 @@ function openIncomingCallModal(payload){
     ?.classList
     .remove("hidden");
 
-  safePlay(state.ringtone);
+  safePlay(state.ringtone, true);
 }
 
 function closeIncomingCallModal(){
@@ -4522,5 +4554,6 @@ async function initMessagesPage(){
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
+  setupAiftSounds();
   initMessagesPage();
 });
