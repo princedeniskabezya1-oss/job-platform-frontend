@@ -1332,15 +1332,19 @@ function openBackgroundPanel(){
   switchPanel("background",backgroundBtn);
 }
 
+function setBackgroundMode(mode){
+  const allowedModes = ["none", "blur", "strongBlur"];
 
+  if(!allowedModes.includes(mode)){
+    mode = "none";
+  }
 
-async function setBackgroundMode(mode){
   meetingState.backgroundMode = mode;
-  localStorage.setItem("aiftMeetingBackground",mode);
+  localStorage.setItem("aiftMeetingBackground", mode);
 
   document
     .querySelectorAll(".bg-option")
-    .forEach(btn=>btn.classList.remove("active"));
+    .forEach(btn => btn.classList.remove("active"));
 
   const active =
     Array.from(document.querySelectorAll(".bg-option"))
@@ -1348,277 +1352,48 @@ async function setBackgroundMode(mode){
 
   active?.classList.add("active");
 
+  applyCameraBlurMode(mode);
+
   if(mode === "none"){
-    stopVirtualBackground();
     toast("Background removed");
     return;
   }
 
-  await startVirtualBackground(mode);
-  toast("Background updated");
+  toast(mode === "strongBlur" ? "Strong blur enabled" : "Light blur enabled");
 }
 
-async function startVirtualBackground(mode){
-  if(!meetingState.rawLocalStream){
-    toast("Camera is not ready yet");
-    return;
-  }
+function applyCameraBlurMode(mode){
+  const videos = [
+    document.getElementById("localVideo"),
+    document.getElementById("lobbyVideo")
+  ];
 
-  if(!window.tf || !window.bodySegmentation){
-    toast("Background engine is still loading. Try again.");
-    return;
-  }
+  videos.forEach(video=>{
+    if(!video) return;
 
-  stopVirtualBackground(false);
+    video.classList.remove("camera-blur", "camera-strong-blur");
 
-  await tf.setBackend("webgl");
-  await tf.ready();
+    if(mode === "blur"){
+      video.classList.add("camera-blur");
+    }
 
-  meetingState.backgroundCanvas =
-    document.createElement("canvas");
-
-meetingState.backgroundCanvas.width = 640;
-meetingState.backgroundCanvas.height = 360;
-
-  meetingState.backgroundVideo =
-    document.createElement("video");
-
-  meetingState.backgroundVideo.muted = true;
-  meetingState.backgroundVideo.playsInline = true;
-  meetingState.backgroundVideo.srcObject = meetingState.rawLocalStream;
-
-  await meetingState.backgroundVideo.play();
-
-  if(mode.startsWith("aift")){
-    meetingState.backgroundImage = new Image();
-    meetingState.backgroundImage.crossOrigin = "anonymous";
-    meetingState.backgroundImage.src = getBackgroundImageUrl(mode);
-
-    await new Promise(resolve=>{
-      meetingState.backgroundImage.onload = resolve;
-      meetingState.backgroundImage.onerror = resolve;
-    });
-  }
-
-  meetingState.backgroundProcessor =
-    await bodySegmentation.createSegmenter(
-      bodySegmentation.SupportedModels.MediaPipeSelfieSegmentation,
-      {
-        runtime:"mediapipe",
-        modelType:"landscape",
-        solutionPath:"https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation"
-      }
-    );
-
-  const processedStream =
-    meetingState.backgroundCanvas.captureStream(meetingState.backgroundFps);
-
-  const processedVideoTrack =
-    processedStream.getVideoTracks()[0];
-
-  const audioTracks =
-    meetingState.rawLocalStream.getAudioTracks();
-
-  meetingState.processedStream =
-    new MediaStream([
-      processedVideoTrack,
-      ...audioTracks
-    ]);
-
-  meetingState.localStream =
-    meetingState.processedStream;
-
-  document.getElementById("localVideo").srcObject =
-    meetingState.localStream;
-
-  replaceOutgoingVideoTrack(processedVideoTrack);
-
-  runBackgroundProcessor();
-}
-
-async function runBackgroundProcessor(){
-  if(
-    !meetingState.backgroundProcessor ||
-    !meetingState.backgroundVideo ||
-    meetingState.backgroundMode === "none"
-  ){
-    return;
-  }
-
-  if(meetingState.backgroundProcessing){
-    meetingState.backgroundAnimation =
-      setTimeout(runBackgroundProcessor,1000 / meetingState.backgroundFps);
-    return;
-  }
-
-  meetingState.backgroundProcessing = true;
-
-  try{
-    const people =
-      await meetingState.backgroundProcessor.segmentPeople(
-        meetingState.backgroundVideo,
-        {
-          multiSegmentation:false,
-          segmentBodyParts:false
-        }
-      );
-
-    await drawTensorflowBackgroundFrame(people);
-
-  }catch(error){
-    console.warn("Background frame skipped:",error.message);
-  }
-
-  meetingState.backgroundProcessing = false;
-
-  meetingState.backgroundAnimation =
-    setTimeout(runBackgroundProcessor,1000 / meetingState.backgroundFps);
-}
-
-async function drawTensorflowBackgroundFrame(people){
-  const canvas = meetingState.backgroundCanvas;
-  const video = meetingState.backgroundVideo;
-
-  if(!canvas || !video) return;
-
-  const ctx = canvas.getContext("2d",{
-    alpha:false,
-    desynchronized:true
-  });
-
-  const mode = meetingState.backgroundMode;
-
-  if(mode === "blur" || mode === "strongBlur"){
-    const blurAmount =
-      mode === "strongBlur"
-        ? 18
-        : 10;
-
-    await bodySegmentation.drawBokehEffect(
-      canvas,
-      video,
-      people,
-      blurAmount,
-      5,
-      false
-    );
-
-    return;
-  }
-
-  if(mode.startsWith("aift") && meetingState.backgroundImage){
-    const mask =
-      await bodySegmentation.toBinaryMask(
-        people,
-        { r:0, g:0, b:0, a:0 },
-        { r:0, g:0, b:0, a:255 }
-      );
-
-    const personCanvas =
-      document.createElement("canvas");
-
-    personCanvas.width = canvas.width;
-    personCanvas.height = canvas.height;
-
-    const personCtx =
-      personCanvas.getContext("2d");
-
-    personCtx.drawImage(
-      video,
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-
-    personCtx.globalCompositeOperation = "destination-in";
-    personCtx.putImageData(mask,0,0);
-
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    ctx.drawImage(
-      meetingState.backgroundImage,
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-
-    ctx.drawImage(personCanvas,0,0);
-
-    return;
-  }
-
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);
-}
-
-function fallbackDrawBackground(ctx,canvas,video){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);
-}
-
-function stopVirtualBackground(restoreCamera = true){
-  if(meetingState.backgroundAnimation){
-    clearTimeout(meetingState.backgroundAnimation);
-    meetingState.backgroundAnimation = null;
-  }
-
-  meetingState.backgroundProcessing = false;
-  meetingState.lastMask = null;
-  meetingState.backgroundImage = null;
-
-  meetingState.backgroundProcessor = null;
-
-  meetingState.processedStream
-    ?.getVideoTracks()
-    ?.forEach(track=>track.stop());
-
-  meetingState.processedStream = null;
-
-  if(restoreCamera && meetingState.rawLocalStream){
-    meetingState.localStream = meetingState.rawLocalStream;
-
-    document.getElementById("localVideo").srcObject =
-      meetingState.localStream;
-
-    const cameraTrack =
-      meetingState.rawLocalStream.getVideoTracks()[0];
-
-    replaceOutgoingVideoTrack(cameraTrack);
-  }
-}
-
-
-
-
-
-function replaceOutgoingVideoTrack(track){
-  if(!track) return;
-
-  Object.values(meetingState.peerConnections || {}).forEach(async pc=>{
-    const sender =
-      pc.getSenders().find(item => item.track?.kind === "video");
-
-    if(sender){
-      try{
-        await sender.replaceTrack(track);
-      }catch(error){
-        console.warn("Replace video track failed:",error.message);
-      }
+    if(mode === "strongBlur"){
+      video.classList.add("camera-strong-blur");
     }
   });
 }
 
-function getBackgroundImageUrl(mode){
-  const map = {
-    aiftOffice:"images/aift-bg-office.svg",
-    aiftClassroom:"images/aift-bg-classroom.svg",
-    aiftStudio:"images/aift-bg-studio.svg",
-    aiftCity:"images/aift-bg-city.svg",
-    aiftConference:"images/aift-bg-conference.svg"
-  };
+function stopVirtualBackground(){
+  applyCameraBlurMode("none");
 
-  return map[mode] || "";
+  meetingState.backgroundMode = "none";
+  meetingState.processedStream = null;
+  meetingState.backgroundProcessor = null;
+  meetingState.backgroundProcessing = false;
+  meetingState.backgroundAnimation = null;
+  meetingState.backgroundImage = null;
+  meetingState.backgroundCanvas = null;
+  meetingState.backgroundVideo = null;
 }
 
 function toggleCaptions(){
