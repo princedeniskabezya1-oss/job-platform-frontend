@@ -1430,9 +1430,21 @@ function meetingInviteHtml(message){
   `;
 }
 function joinMeetingInvite(url, code){
+  showMeetingComingSoon();
+}
 
-  showMeetingComingSoonModal();
+function showMeetingComingSoon(){
+  document
+    .getElementById("meetingComingSoonModal")
+    ?.classList
+    .remove("hidden");
+}
 
+function closeMeetingComingSoon(){
+  document
+    .getElementById("meetingComingSoonModal")
+    ?.classList
+    .add("hidden");
 }
 function showMeetingComingSoonModal(){
 
