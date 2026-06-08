@@ -2725,60 +2725,7 @@ async function updateCallLogEnd(status = "ended"){
 }
 
 async function createInstantMeeting(){
-  if(!state.activeConversation){
-    toast("Select a conversation first");
-    return;
-  }
-
-  try{
-    const title =
-      state.activeOtherUser
-        ? `Meeting with ${userDisplayName(state.activeOtherUser)}`
-        : conversationTitle(state.activeConversation);
-
-    const invitedUsers = [];
-
-    if(state.activeOtherUser){
-      invitedUsers.push(getId(state.activeOtherUser));
-    }
-
-    const meeting =
-      await apiJSON(
-        "/api/meetings",
-        "POST",
-        {
-          title,
-          meetingType:"instant",
-          conversationId:conversationId(state.activeConversation),
-          invitedUsers,
-          waitingRoomEnabled:false,
-          recordingEnabled:false,
-          allowScreenShare:true,
-          allowChat:true,
-          allowFileSharing:true,
-          allowRaiseHand:true,
-          allowParticipantVideo:true,
-          allowParticipantAudio:true
-        }
-      );
-
-    if(meeting?.joinUrl){
-      toast("Meeting created");
-      window.location.href = meeting.joinUrl;
-      return;
-    }
-
-    if(meeting?.meetingCode){
-      window.location.href =
-        `meeting.html?code=${encodeURIComponent(meeting.meetingCode)}`;
-      return;
-    }
-
-    toast("Meeting created");
-
-  }catch(error){
-    toast(error.message || "Unable to create meeting");
-  }
+  showMeetingComingSoon();
 }
 
 /* =========================
