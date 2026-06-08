@@ -515,11 +515,9 @@ document.getElementById("localVideo").srcObject =
 const savedBg =
   localStorage.getItem("aiftMeetingBackground") || "none";
 
-if(savedBg !== "none"){
-  setTimeout(()=>{
-    setBackgroundMode(savedBg);
-  },600);
-}
+setTimeout(()=>{
+  setBackgroundMode(savedBg);
+},300);
 }
 
 /* WEBRTC */
