@@ -1431,21 +1431,20 @@ function meetingInviteHtml(message){
 }
 function joinMeetingInvite(url, code){
 
-  if(!url){
-    toast("Meeting link not available");
-    return;
-  }
+  showMeetingComingSoonModal();
 
-  const separator =
-    url.includes("?")
-      ? "&"
-      : "?";
+}
+function showMeetingComingSoonModal(){
 
-  window.location.href =
-    url +
-    separator +
-    "meetingCode=" +
-    encodeURIComponent(code);
+  openConfirmModal({
+    title:"🚀 AIFT Meet 2.0",
+    text:
+      "We are currently upgrading AIFT Meeting with professional video calls, virtual backgrounds, noise reduction, screen sharing improvements, recordings and many more features. Thank you for your patience while we build a better experience for everyone.",
+    confirmText:"Coming Soon",
+    danger:false,
+    onConfirm:()=>{}
+  });
+
 }
 
 function getPrimaryAttachment(message){
