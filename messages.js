@@ -3516,10 +3516,12 @@ function createPeerConnection(remoteUserId){
     const status =
       pc.connectionState;
 
-    document.getElementById("callNetworkStatus").textContent =
-      status === "connected"
-        ? "HD"
-        : status;
+const callNetworkStatus =
+  document.getElementById("callNetworkStatus");
+
+if(callNetworkStatus){
+  callNetworkStatus.textContent = "";
+}
 
     if(status === "connected"){
       document.getElementById("callStatus").textContent =
