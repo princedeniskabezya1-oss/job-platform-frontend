@@ -17,9 +17,18 @@ const adminState = {
   jobs: [],
   applications: [],
   schools: [],
-  reports: [],
-  posts: [],
-  meetings: [],
+reports: [],
+posts: [],
+meetings: [],
+callLogs: [],
+payments: [],
+
+platformSettings:{
+  maintenanceMode:false,
+  allowRegistration:true,
+  allowMeetings:true,
+  allowMessaging:true
+},
 
   loading: false,
 
@@ -69,6 +78,11 @@ reportFilters:{
   search:"",
   status:"open",
   type:"all"
+},
+
+paymentFilters:{
+  search:"",
+  status:"all"
 },
   drawerData: null,
   confirmAction: null
@@ -310,6 +324,20 @@ if(section === "users"){
   if(section === "content"){
   loadContentModeration();
 }
+   if(section === "meetings"){
+  loadAdminMeetings();
+}
+
+if(section === "reports"){
+  loadReportsCenter();
+}
+   if(section === "payments"){
+  loadPaymentsCenter();
+}
+
+if(section === "settings"){
+  loadPlatformSettings();
+}
 
   document
     .querySelectorAll(
@@ -339,6 +367,15 @@ async function initAdmin(){
 
     adminState.role =
       getUserRole();
+     try{
+  const savedSettings =
+    JSON.parse(localStorage.getItem("aiftAdminSettings") || "{}");
+
+  adminState.platformSettings = {
+    ...adminState.platformSettings,
+    ...savedSettings
+  };
+}catch{}
 
     if(
       !adminState.token
@@ -4451,6 +4488,544 @@ function adminReportRow(report){
   `;
 
 }
+function openReportReview(reportId){
+
+  const report =
+    (adminState.reports || [])
+      .find(item =>
+        String(getId(item)) === String(reportId)
+      );
+
+  if(!report){
+    adminToast("Report not found");
+    return;
+  }
+
+  const modal =
+    document.getElementById("reportModal");
+
+  const content =
+    document.getElementById("reportContent");
+
+  if(!modal || !content) return;
+
+  content.innerHTML = `
+    <div style="padding:20px;">
+
+      <div class="admin-detail-grid">
+
+        <div class="admin-detail-card">
+          <span>Reason</span>
+          <strong>${esc(report.reason || "-")}</strong>
+        </div>
+
+        <div class="admin-detail-card">
+          <span>Type</span>
+          <strong>${esc(report.type || report.targetType || "-")}</strong>
+        </div>
+
+        <div class="admin-detail-card">
+          <span>Status</span>
+          <strong>${esc(report.status || "open")}</strong>
+        </div>
+
+        <div class="admin-detail-card">
+          <span>Reporter</span>
+          <strong>${esc(report.reporter?.name || report.reportedBy?.name || report.email || "-")}</strong>
+        </div>
+
+      </div>
+
+      <div class="admin-panel" style="box-shadow:none;margin-top:16px;">
+        <h2>Description</h2>
+        <p style="padding:0;color:#344054;white-space:pre-wrap;">
+          ${esc(report.description || report.message || "No description provided.")}
+        </p>
+      </div>
+
+      <div class="admin-panel" style="box-shadow:none;margin-top:16px;">
+        <h2>Investigation Actions</h2>
+
+        <div class="admin-actions">
+
+          <button class="success"
+                  onclick="updateReportStatus('${esc(reportId)}','resolved')">
+            Mark Resolved
+          </button>
+
+          <button onclick="updateReportStatus('${esc(reportId)}','dismissed')">
+            Dismiss
+          </button>
+
+          <button class="danger"
+                  onclick="confirmDeleteReport('${esc(reportId)}')">
+            Delete Report
+          </button>
+
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  modal.classList.remove("hidden");
+
+}
+function closeReportModal(){
+
+  document
+    .getElementById("reportModal")
+    ?.classList
+    .add("hidden");
+
+}
+async function updateReportStatus(reportId,status){
+
+  try{
+
+    await adminJSON(
+      `/api/reports/${encodeURIComponent(reportId)}`,
+      "PATCH",
+      { status }
+    );
+
+    const report =
+      adminState.reports.find(item =>
+        String(getId(item)) === String(reportId)
+      );
+
+    if(report){
+      report.status = status;
+    }
+
+    adminToast("Report updated");
+
+    renderReportsCenter();
+    closeReportModal();
+
+  }catch(error){
+
+    adminToast(error.message || "Unable to update report");
+
+  }
+
+}
+function confirmDeleteReport(reportId){
+
+  openAdminConfirm(
+    "Delete report",
+    "This will permanently delete this report record.",
+    async ()=>{
+
+      try{
+
+        await adminRequest(
+          `/api/reports/${encodeURIComponent(reportId)}`,
+          {
+            method:"DELETE"
+          }
+        );
+
+        adminState.reports =
+          adminState.reports.filter(report =>
+            String(getId(report)) !== String(reportId)
+          );
+
+        adminToast("Report deleted");
+
+        renderReportsCenter();
+        closeReportModal();
+
+      }catch(error){
+
+        adminToast(error.message || "Unable to delete report");
+
+      }
+
+    }
+  );
+
+}
+async function fetchAdminPayments(){
+
+  try{
+
+    const data =
+      await adminRequest("/api/payments");
+
+    return Array.isArray(data)
+      ? data
+      : data.payments || [];
+
+  }catch(error){
+
+    console.warn("Payments endpoint unavailable:", error.message);
+    return [];
+
+  }
+
+}
+async function loadPaymentsCenter(){
+
+  const section =
+    document.getElementById("paymentsSection");
+
+  if(!section) return;
+
+  section.innerHTML = `
+    <div class="admin-filter-bar">
+
+      <input id="adminPaymentSearch"
+             placeholder="Search user, plan, invoice, email..."
+             value="${esc(adminState.paymentFilters.search)}"
+             oninput="adminState.paymentFilters.search=this.value; renderPaymentsCenter()">
+
+      <select onchange="adminState.paymentFilters.status=this.value; renderPaymentsCenter()">
+        <option value="all">All Payments</option>
+        <option value="paid">Paid</option>
+        <option value="pending">Pending</option>
+        <option value="failed">Failed</option>
+        <option value="refunded">Refunded</option>
+      </select>
+
+      <button class="admin-btn"
+              onclick="refreshPaymentsCenter()">
+        Refresh
+      </button>
+
+    </div>
+
+    <div class="admin-panel">
+
+      <div class="admin-panel-head">
+        <h2>Payments & Subscriptions</h2>
+        <button onclick="renderPaymentsCenter()">Reload View</button>
+      </div>
+
+      <div id="adminPaymentsTable">
+        <div class="admin-empty">
+          <strong>Payments module ready</strong>
+          Once your backend payments endpoint is ready, records will appear here.
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  await refreshPaymentsCenter();
+
+}
+async function refreshPaymentsCenter(){
+
+  adminState.payments =
+    await fetchAdminPayments();
+
+  renderPaymentsCenter();
+
+}
+function renderPaymentsCenter(){
+
+  const box =
+    document.getElementById("adminPaymentsTable");
+
+  if(!box) return;
+
+  let payments =
+    [...(adminState.payments || [])];
+
+  const search =
+    String(adminState.paymentFilters.search || "")
+      .toLowerCase();
+
+  const status =
+    adminState.paymentFilters.status;
+
+  if(search){
+    payments = payments.filter(payment =>
+      [
+        payment.user?.name,
+        payment.user?.email,
+        payment.email,
+        payment.plan,
+        payment.invoiceId,
+        payment.status
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(search)
+    );
+  }
+
+  if(status !== "all"){
+    payments = payments.filter(payment =>
+      String(payment.status || "").toLowerCase() === status
+    );
+  }
+
+  if(!payments.length){
+    box.innerHTML = `
+      <div class="admin-empty">
+        <strong>No payment records</strong>
+        This is ready for your future subscription/payment system.
+      </div>
+    `;
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Plan</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${
+            payments.map(payment=>`
+              <tr>
+                <td>
+                  <strong>${esc(payment.user?.name || payment.email || "User")}</strong>
+                  <div style="color:#667085;font-size:12px;margin-top:3px;">
+                    ${esc(payment.user?.email || payment.email || "")}
+                  </div>
+                </td>
+
+                <td>${esc(payment.plan || "-")}</td>
+
+                <td>${esc(payment.amount || payment.total || "-")}</td>
+
+                <td>
+                  <span class="admin-badge status-${esc(payment.status || "pending")}">
+                    ${esc(payment.status || "pending")}
+                  </span>
+                </td>
+
+                <td>${esc(formatAdminDate(payment.createdAt))}</td>
+              </tr>
+            `).join("")
+          }
+        </tbody>
+      </table>
+    </div>
+  `;
+
+}
+function loadPlatformSettings(){
+
+  const section =
+    document.getElementById("settingsSection");
+
+  if(!section) return;
+
+  section.innerHTML = `
+    <div class="admin-panel">
+
+      <div class="admin-panel-head">
+        <h2>Platform Settings</h2>
+        <button onclick="savePlatformSettings()">Save Settings</button>
+      </div>
+
+      <div class="settings-grid">
+
+        <label>
+          <span>Maintenance Mode</span>
+          <input type="checkbox"
+                 id="settingsMaintenanceMode"
+                 ${adminState.platformSettings.maintenanceMode ? "checked" : ""}>
+        </label>
+
+        <label>
+          <span>Allow Registration</span>
+          <input type="checkbox"
+                 id="settingsAllowRegistration"
+                 ${adminState.platformSettings.allowRegistration ? "checked" : ""}>
+        </label>
+
+        <label>
+          <span>Allow Meetings</span>
+          <input type="checkbox"
+                 id="settingsAllowMeetings"
+                 ${adminState.platformSettings.allowMeetings ? "checked" : ""}>
+        </label>
+
+        <label>
+          <span>Allow Messaging</span>
+          <input type="checkbox"
+                 id="settingsAllowMessaging"
+                 ${adminState.platformSettings.allowMessaging ? "checked" : ""}>
+        </label>
+
+      </div>
+
+    </div>
+
+    <div class="admin-panel">
+
+      <div class="admin-panel-head">
+        <h2>System Notes</h2>
+      </div>
+
+      <div class="admin-empty">
+        <strong>Settings are frontend-ready</strong>
+        Connect these toggles to backend feature flags later.
+      </div>
+
+    </div>
+  `;
+
+}
+async function savePlatformSettings(){
+
+  const nextSettings = {
+    maintenanceMode:
+      document.getElementById("settingsMaintenanceMode")?.checked || false,
+
+    allowRegistration:
+      document.getElementById("settingsAllowRegistration")?.checked || false,
+
+    allowMeetings:
+      document.getElementById("settingsAllowMeetings")?.checked || false,
+
+    allowMessaging:
+      document.getElementById("settingsAllowMessaging")?.checked || false
+  };
+
+  adminState.platformSettings =
+    nextSettings;
+
+  try{
+
+    await adminJSON(
+      "/api/admin/settings",
+      "PATCH",
+      nextSettings
+    );
+
+    adminToast("Platform settings saved");
+
+  }catch(error){
+
+    console.warn("Settings backend not ready:", error.message);
+
+    localStorage.setItem(
+      "aiftAdminSettings",
+      JSON.stringify(nextSettings)
+    );
+
+    adminToast("Settings saved locally until backend is ready");
+
+  }
+
+}
+function openAdminQuickCreate(){
+
+  openAdminDrawer(
+    "Quick Create",
+    "Create or manage important platform records",
+    `
+      <div class="admin-form">
+
+        <button class="admin-btn" onclick="switchAdminSection('users'); closeAdminDrawer(); openAdminCreateUserModal();">
+          Create User
+        </button>
+
+        <button class="admin-btn" onclick="switchAdminSection('jobs'); closeAdminDrawer();">
+          Review Jobs
+        </button>
+
+        <button class="admin-btn" onclick="switchAdminSection('verification'); closeAdminDrawer();">
+          Verification Queue
+        </button>
+
+        <button class="admin-btn" onclick="switchAdminSection('reports'); closeAdminDrawer();">
+          Reports & Support
+        </button>
+
+      </div>
+    `
+  );
+
+}
+function refreshAdminData(){
+
+  const section =
+    adminState.currentSection;
+
+  if(section === "overview") return loadOverview();
+  if(section === "users") return refreshAdminUsers();
+  if(section === "verification") return refreshVerificationCenter();
+  if(section === "jobs") return refreshAdminJobs();
+  if(section === "applications") return refreshAdminApplications();
+  if(section === "schools") return refreshAdminSchools();
+  if(section === "content") return refreshContentModeration();
+  if(section === "meetings") return refreshAdminMeetings();
+  if(section === "reports") return refreshReportsCenter();
+  if(section === "payments") return refreshPaymentsCenter();
+
+}
+function handleAdminGlobalSearch(value){
+
+  const search =
+    String(value || "").trim();
+
+  const section =
+    adminState.currentSection;
+
+  if(section === "users"){
+    adminState.userFilters.search = search;
+    renderAdminUsers();
+  }
+
+  if(section === "verification"){
+    adminState.verificationFilters.search = search;
+    renderVerificationCenter();
+  }
+
+  if(section === "jobs"){
+    adminState.jobFilters.search = search;
+    renderAdminJobs();
+  }
+
+  if(section === "applications"){
+    adminState.applicationFilters.search = search;
+    renderAdminApplications();
+  }
+
+  if(section === "schools"){
+    adminState.schoolFilters.search = search;
+    renderAdminSchools();
+  }
+
+  if(section === "content"){
+    adminState.contentFilters.search = search;
+    renderContentModeration();
+  }
+
+  if(section === "meetings"){
+    adminState.meetingFilters.search = search;
+    renderAdminMeetings();
+  }
+
+  if(section === "reports"){
+    adminState.reportFilters.search = search;
+    renderReportsCenter();
+  }
+
+  if(section === "payments"){
+    adminState.paymentFilters.search = search;
+    renderPaymentsCenter();
+  }
+
+}
+
+
+
 
 
 
