@@ -1,666 +1,608 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Dashboard | HireFlow</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AIFT Admin Control Center</title>
 
-<style>
-:root{
-  --primary:#2557a7;
-  --primary-light:#edf2fc;
-  --dark:#1c1c1c;
-  --gray:#6f6f6f;
-  --bg:#f8f9fa;
-  --white:#ffffff;
-}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-  font-family:'Inter',sans-serif;
-}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-body{
-  display:flex;
-  min-height:100vh;
-  background:var(--bg);
-  color:var(--dark);
-}
-
-
-/* SIDEBAR */
-.sidebar{
-  width:260px;
-  height:100vh;
-  background:var(--white);
-  border-right:1px solid #eee;
-  padding:30px 20px;
-  position:fixed;
-  transition:0.3s;
-}
-
-.logo{
-  font-size:28px;
-  font-weight:800;
-  margin-bottom:40px;
-  letter-spacing:1px;
-}
-
-.logo-main{
-  color:#2557a7;
-}
-
-.logo-accent{
-  color:#1c1c1c;
-}
-
-
-.sidebar a{
-  display:block;
-  padding:14px 16px;
-  border-radius:10px;
-  margin-bottom:10px;
-  color:#1c1c1c;
-  text-decoration:none;
-  transition:all 0.2s ease;
-  font-weight:500;
-  cursor:pointer;
-}
-
-
-.sidebar a:hover,
-.sidebar a.active{
-  background:var(--primary-light);
-  color:var(--primary);
-}
-
-/* MAIN */
-.main{
-  margin-left:260px;
-  width:100%;
-  padding:40px;
-  display:flex;
-  flex-direction:column;
-  min-height:100vh;
-}
-
-
-/* TOPBAR */
-.topbar{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  background:white;
-  padding:20px 30px;
-  border-radius:14px;
-  box-shadow:0 4px 15px rgba(0,0,0,0.04);
-  margin-bottom:40px;
-}
-
-
-.topbar h1{
-  font-size:24px;
-}
-
-.topbar input{
-  padding:10px 14px;
-  border-radius:8px;
-  border:1px solid #ddd;
-  width:250px;
-  transition:0.2s;
-}
-
-.topbar input:focus{
-  outline:none;
-  border-color:var(--primary);
-  box-shadow:0 0 0 3px rgba(37,87,167,0.1);
-}
-
-.logout{
-  background:var(--primary);
-  color:white;
-  border:none;
-  padding:10px 18px;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:600;
-  transition:0.2s;
-}
-
-.logout:hover{
-  opacity:0.9;
-}
-
-/* STAT CARDS */
-.stats{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:20px;
-  margin-bottom:40px;
-}
-
-.card{
-  background:white;
-  padding:25px;
-  border-radius:14px;
-  box-shadow:0 8px 25px rgba(0,0,0,0.05);
-  transition:0.3s;
-}
-
-.card:hover{
-  transform:translateY(-6px);
-  box-shadow:0 15px 35px rgba(0,0,0,0.08);
-}
-
-.card h3{
-  font-size:14px;
-  color:var(--gray);
-  margin-bottom:10px;
-}
-
-.card p{
-  font-size:26px;
-  font-weight:700;
-}
-
-/* TABLE */
-.table-wrapper{
-  background:white;
-  border-radius:14px;
-  padding:25px;
-  box-shadow:0 8px 25px rgba(0,0,0,0.05);
-  overflow-x:auto;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-
-th{
-  font-size:13px;
-  color:var(--gray);
-  text-align:left;
-  padding-bottom:12px;
-  border-bottom:1px solid #eee;
-}
-
-td{
-  padding:14px 0;
-  border-bottom:1px solid #f0f0f0;
-}
-
-.status-badge{
-  padding:6px 12px;
-  border-radius:20px;
-  font-size:12px;
-  font-weight:600;
-}
-
-.status-active{
-  background:#e6f4ea;
-  color:#1e7e34;
-}
-
-.status-pending{
-  background:#fff4e5;
-  color:#cc7a00;
-}
-
-.status-rejected{
-  background:#fdecea;
-  color:#b71c1c;
-}
-
-.status-suspended{
-  background:#e3e3e3;
-  color:#555;
-}
-
-/* RESPONSIVE */
-@media(max-width:900px){
-  .sidebar{
-    display:none;
-  }
-  .main{
-    margin-left:0;
-  }
-}
-</style>
+<link rel="stylesheet" href="admin.css">
 </head>
 
 <body>
 
-<div class="sidebar">
-  <div class="logo">
-    <span class="logo-main">AI</span><span class="logo-accent">FT</span>
-  </div>
+<div id="adminToast" class="admin-toast" role="status" aria-live="polite"></div>
 
-<p style="font-size:13px;color:#6f6f6f;margin-top:-25px;margin-bottom:30px;">
-  Admin Control Panel
-</p>
-
-  <a onclick="showSection('dashboard')" class="active">Dashboard</a>
-  <a onclick="showSection('pending')">Pending Jobs</a>
-  <a onclick="showSection('jobs')">All Jobs</a>
-  <a onclick="showSection('applications')">Applications</a>
-  <a onclick="showSection('users')">Users</a>
-  <a onclick="logout()">Logout</a>
-</div>
-
-<div class="main">
-<div class="topbar">
-  <div style="display:flex;align-items:center;gap:20px;">
-    <h1 id="pageTitle">Dashboard</h1>
-  </div>
-
-  <div style="flex:1;text-align:center;">
-    <input type="text"
-           id="searchInput"
-           placeholder="Search users, jobs, roles..."
-           onkeyup="globalSearch()"
-           style="width:60%;max-width:600px;">
-  </div>
-
+<div id="adminLoader" class="admin-loader">
   <div>
-    <button class="logout" onclick="logout()">Logout</button>
+    <img src="images/aift-logo.png" alt="AIFT">
+    <strong>Loading Admin Control Center...</strong>
+    <span>Checking secure access</span>
   </div>
 </div>
 
+<div id="adminConfirmModal" class="admin-modal hidden">
+  <div class="admin-modal-card">
+    <div class="admin-modal-head">
+      <h3 id="adminConfirmTitle">Confirm action</h3>
+      <button onclick="closeAdminConfirm()" class="admin-icon-btn">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
 
+    <p id="adminConfirmText">Are you sure?</p>
 
-  <div id="content" style="flex:1;"></div>
-  <footer style="
-  margin-top:60px;
-  padding:30px;
-  text-align:center;
-  font-size:13px;
-  color:#6f6f6f;
-  border-top:1px solid #eee;
-">
-  <div style="margin-bottom:10px;font-weight:600;color:#1c1c1c;">
-    AIFT Talent Platform
+    <div class="admin-modal-actions">
+      <button class="admin-btn ghost" onclick="closeAdminConfirm()">Cancel</button>
+      <button id="adminConfirmBtn" class="admin-btn danger">Confirm</button>
+    </div>
   </div>
-  © 2026 AIFT · Privacy Policy · Terms · Support · Enterprise
-</footer>
-
 </div>
 
-<script>
-const API="https://backend-1-9b6f.onrender.com";
-const token=localStorage.getItem("token");
-if(!token){window.location.href="login.html";}
-
-function setActive(section){
-  document.querySelectorAll(".sidebar a").forEach(a=>{
-    a.classList.remove("active");
-    if(a.getAttribute("onclick")?.includes(section)){
-      a.classList.add("active");
-    }
-  });
-}
-
-async function showSection(section){
-  setActive(section);
-  const content=document.getElementById("content");
-  const title=document.getElementById("pageTitle");
-
-if(section==="dashboard"){
-  title.innerText="Dashboard";
-
-  const statsRes = await fetch(API+"/api/admin/stats",{
-    headers:{Authorization:"Bearer "+token}
-  });
-
-  let stats = {jobs:0, users:0, revenue:0};
-
-if(statsRes.ok){
-  stats = await statsRes.json();
-}
-
-
-  const pendingRes=await fetch(API+"/api/jobs/pending",{
-    headers:{Authorization:"Bearer "+token}
-  });
-
-  let pending = [];
-
-if(pendingRes.ok){
-  pending = await pendingRes.json();
-}
-
-
-  content.innerHTML=`
-    <div class="stats">
-      <div class="card">
-        <h3>Total Jobs</h3>
-        <p>${stats.jobs}</p>
+<div id="adminDrawer" class="admin-drawer hidden">
+  <div class="admin-drawer-panel">
+    <div class="admin-drawer-head">
+      <div>
+        <h3 id="adminDrawerTitle">Details</h3>
+        <p id="adminDrawerSubtitle">View and manage selected item</p>
       </div>
 
-      <div class="card">
-        <h3>Total Users</h3>
-        <p>${stats.users}</p>
-      </div>
+      <button onclick="closeAdminDrawer()" class="admin-icon-btn">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
 
-      <div class="card">
-        <h3>Total Revenue</h3>
-        <p>$${stats.revenue}</p>
-      </div>
+    <div id="adminDrawerBody" class="admin-drawer-body"></div>
+  </div>
+</div>
 
-      <div class="card">
-        <h3>Pending Approvals</h3>
-        <p>${pending.length}</p>
+<div class="admin-app">
+    <aside id="adminSidebar" class="admin-sidebar">
+
+    <div class="admin-sidebar-top">
+
+      <a href="home.html" class="admin-brand">
+        <img src="images/aift-logo.png" alt="AIFT">
+      </a>
+
+      <button class="admin-mobile-close"
+              onclick="toggleAdminSidebar(false)">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+
+    </div>
+
+    <div class="admin-profile-mini">
+      <img id="adminMiniAvatar"
+           src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+           alt="">
+
+      <div>
+        <strong id="adminMiniName">AIFT Admin</strong>
+        <span id="adminMiniRole">Super Admin</span>
       </div>
     </div>
-  `;
-}
 
-  if(section==="pending"){
-    title.innerText="Pending Jobs";
-    const res=await fetch(API+"/api/jobs/pending",{
-      headers:{Authorization:"Bearer "+token}
-    });
-let jobs = [];
+    <nav class="admin-nav">
 
-if(res.ok){
-  jobs = await res.json();
-}
+      <button class="active" data-section="overview" onclick="switchAdminSection('overview',this)">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 13h8V3H3z"></path>
+          <path d="M13 21h8V3h-8z"></path>
+          <path d="M3 21h8v-6H3z"></path>
+        </svg>
+        <span>Overview</span>
+      </button>
 
-    let html=`<div class="table-wrapper"><table>
-      <tr><th>Title</th><th>Company</th><th>Action</th></tr>`;
+      <button data-section="users" onclick="switchAdminSection('users',this)">
+        <svg viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span>Users</span>
+      </button>
 
-    jobs.forEach(job=>{
-      html+=`
-        <tr>
-          <td>${job.title}</td>
-          <td>${job.company}</td>
-          <td>
-            <button class="approve" onclick="updateStatus('${job._id}','active')">Approve</button>
-            <button class="reject" onclick="updateStatus('${job._id}','rejected')">Reject</button>
-          </td>
-        </tr>`;
-    });
+      <button data-section="verification" onclick="switchAdminSection('verification',this)">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <path d="M9 12l2 2 4-4"></path>
+        </svg>
+        <span>Verification</span>
+      </button>
 
-    html+=`</table></div>`;
-    content.innerHTML=html;
-  }
+      <button data-section="content" onclick="switchAdminSection('content',this)">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 4h16v16H4z"></path>
+          <path d="M8 8h8"></path>
+          <path d="M8 12h8"></path>
+          <path d="M8 16h5"></path>
+        </svg>
+        <span>Content Moderation</span>
+      </button>
 
-if(section==="jobs"){
-  title.innerText="All Jobs";
+      <button data-section="jobs" onclick="switchAdminSection('jobs',this)">
+        <svg viewBox="0 0 24 24">
+          <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+          <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path>
+        </svg>
+        <span>Jobs</span>
+      </button>
 
-  const res = await fetch(API+"/api/jobs/admin/all",{
-    headers:{Authorization:"Bearer "+token}
-  });
+      <button data-section="applications" onclick="switchAdminSection('applications',this)">
+        <svg viewBox="0 0 24 24">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <path d="M14 2v6h6"></path>
+          <path d="M9 15h6"></path>
+        </svg>
+        <span>Applications</span>
+      </button>
 
-  let jobs = [];
-  if(res.ok){
-    jobs = await res.json();
-  }
+      <button data-section="schools" onclick="switchAdminSection('schools',this)">
+        <svg viewBox="0 0 24 24">
+          <path d="M22 10L12 4 2 10l10 6 10-6z"></path>
+          <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+        </svg>
+        <span>Schools & LMS</span>
+      </button>
 
-  let html=`<div class="table-wrapper"><table>
-    <tr>
-      <th>Title</th>
-      <th>Company</th>
-      <th>Employer</th>
-      <th>Status</th>
-      <th>Actions</th>
-    </tr>`;
+      <button data-section="meetings" onclick="switchAdminSection('meetings',this)">
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="6" width="13" height="12" rx="2"></rect>
+          <path d="M16 10l5-3v10l-5-3z"></path>
+        </svg>
+        <span>Meetings & Calls</span>
+      </button>
 
-  jobs.forEach(job=>{
-    html+=`
-      <tr>
-        <td>${job.title}</td>
-        <td>${job.company}</td>
-        <td>${job.employerId?.name || ""}</td>
-        <td>
-          <span class="status-badge status-${job.status}">
-            ${job.status}
-          </span>
-        </td>
-        <td>
-          <button onclick="updateStatus('${job._id}','active')">Approve</button>
-          <button onclick="updateStatus('${job._id}','suspended')">Suspend</button>
-          <button onclick="updateStatus('${job._id}','rejected')">Reject</button>
-          <button onclick="deleteJob('${job._id}')">Delete</button>
-        </td>
-      </tr>
-    `;
-  });
+      <button data-section="reports" onclick="switchAdminSection('reports',this)">
+        <svg viewBox="0 0 24 24">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <path d="M12 9v4"></path>
+          <path d="M12 17h.01"></path>
+        </svg>
+        <span>Reports & Support</span>
+      </button>
 
-  html+=`</table></div>`;
+      <button data-section="payments" onclick="switchAdminSection('payments',this)">
+        <svg viewBox="0 0 24 24">
+          <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+          <path d="M2 10h20"></path>
+        </svg>
+        <span>Payments</span>
+      </button>
 
-  content.innerHTML = html;
-}
+      <button data-section="settings" onclick="switchAdminSection('settings',this)">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4"></path>
+          <path d="M4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 0 1 7.04 4.35l.06.06A1.65 1.65 0 0 0 9 4.6"></path>
+        </svg>
+        <span>Settings</span>
+      </button>
 
+    </nav>
 
-  if(section==="applications"){
-    title.innerText="Applications";
-    const res=await fetch(API+"/api/applications",{
-      headers:{Authorization:"Bearer "+token}
-    });
-    let apps = [];
+    <div class="admin-sidebar-bottom">
+      <button onclick="refreshAdminData()">
+        Refresh Data
+      </button>
 
-if(res.ok){
-  apps = await res.json();
-}
+      <button class="danger" onclick="adminLogout()">
+        Logout
+      </button>
+    </div>
 
+  </aside>
 
-    let html=`<div class="table-wrapper"><table>
-      <tr><th>Name</th><th>Email</th><th>Job</th></tr>`;
+  <main class="admin-main">
 
-    apps.forEach(app=>{
-      html+=`
-        <tr>
-          <td>${app.name}</td>
-          <td>${app.email}</td>
-          <td>${app.jobId?.title || ''}</td>
-        </tr>`;
-    });
+    <header class="admin-mobile-bar">
+      <button onclick="toggleAdminSidebar(true)">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 6h18"></path>
+          <path d="M3 12h18"></path>
+          <path d="M3 18h18"></path>
+        </svg>
+      </button>
 
-    html+=`</table></div>`;
-    content.innerHTML=html;
-  }
+      <img src="images/aift-logo.png" alt="AIFT">
+    </header>
 
-if(section==="users"){
-  title.innerText="User Management";
+    <section class="admin-topbar">
 
-  const res = await fetch(API+"/api/users",{
-    headers:{Authorization:"Bearer "+token}
-  });
+      <div class="admin-title-block">
+        <span id="adminSectionBadge">Control Center</span>
+        <h1 id="adminPageTitle">Overview</h1>
+        <p id="adminPageSubtitle">
+          Monitor users, jobs, schools, content, reports, and platform activity.
+        </p>
+      </div>
 
-  let users = [];
-  if(res.ok){
-    users = await res.json();
-  }
+      <div class="admin-top-actions">
 
-  let html = `
-  <div style="margin-bottom:20px;">
-<a href="create-user.html" 
-   style="background:#2557a7;
-          color:white;
-          padding:12px 18px;
-          border-radius:8px;
-          text-decoration:none;
-          font-weight:600;
-          display:inline-block;">
-   + Create New User
-</a>
+        <div class="admin-search">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20l-3.5-3.5"></path>
+          </svg>
+
+          <input id="adminGlobalSearch"
+                 type="search"
+                 placeholder="Search users, jobs, schools, posts..."
+                 oninput="handleAdminGlobalSearch(this.value)">
+        </div>
+
+        <button class="admin-btn" onclick="openAdminQuickCreate()">
+          Create
+        </button>
+
+      </div>
+
+    </section>
+        <section id="adminContent" class="admin-content">
+
+      <!-- OVERVIEW -->
+
+      <section id="overviewSection" class="admin-section">
+
+        <div class="admin-stats-grid">
+
+          <article class="admin-stat-card">
+            <span>Total Users</span>
+            <strong id="totalUsersValue">0</strong>
+            <small id="totalUsersTrend">Loading...</small>
+          </article>
+
+          <article class="admin-stat-card">
+            <span>Total Jobs</span>
+            <strong id="totalJobsValue">0</strong>
+            <small id="totalJobsTrend">Loading...</small>
+          </article>
+
+          <article class="admin-stat-card">
+            <span>Total Applications</span>
+            <strong id="totalApplicationsValue">0</strong>
+            <small id="totalApplicationsTrend">Loading...</small>
+          </article>
+
+          <article class="admin-stat-card">
+            <span>Pending Reviews</span>
+            <strong id="pendingReviewsValue">0</strong>
+            <small id="pendingReviewsTrend">Needs attention</small>
+          </article>
+
+        </div>
+
+        <div class="admin-dashboard-grid">
+
+          <article class="admin-panel">
+
+<div class="admin-panel-head">
+  <h2>Platform Activity</h2>
+
+  <button onclick="loadOverview()">
+    Refresh
+  </button>
+</div>
+
+<div id="platformActivityFeed"
+     class="admin-feed-list">
+
+  Loading platform activity...
+
+</div>
+
+          </article>
+
+          <article class="admin-panel">
+
+            <div class="admin-panel-head">
+              <h2>Quick Actions</h2>
+            </div>
+
+            <div class="admin-quick-grid">
+
+              <button onclick="switchAdminSection('users')">
+                Manage Users
+              </button>
+
+              <button onclick="switchAdminSection('verification')">
+                Verification Queue
+              </button>
+
+              <button onclick="switchAdminSection('jobs')">
+                Job Approvals
+              </button>
+
+              <button onclick="switchAdminSection('reports')">
+                Reports
+              </button>
+
+              <button onclick="switchAdminSection('schools')">
+                Schools
+              </button>
+
+              <button onclick="switchAdminSection('meetings')">
+                Meetings
+              </button>
+
+            </div>
+
+          </article>
+
+</div>
+
+<div class="admin-dashboard-grid">
+
+  <article class="admin-panel">
+    <div class="admin-panel-head">
+      <h2>Admin Notifications</h2>
+    </div>
+
+    <div id="adminNotifications"></div>
+  </article>
+
+  <article class="admin-panel">
+    <div class="admin-panel-head">
+      <h2>Verification Queue</h2>
+    </div>
+
+    <div id="verificationQueue"></div>
+  </article>
+
+</div>
+
+<article class="admin-panel">
+  <div class="admin-panel-head">
+    <h2>System Health</h2>
+  </div>
+
+  <div class="system-health-grid">
+    <div>
+      API
+      <strong id="apiHealth">Healthy</strong>
+    </div>
+
+    <div>
+      Database
+      <strong id="databaseHealth">Healthy</strong>
+    </div>
+
+    <div>
+      Socket
+      <strong id="socketHealth">Healthy</strong>
+    </div>
+  </div>
+</article>
+
+</section>
+
+<!-- USERS -->
+
+      <section id="usersSection"
+               class="admin-section hidden">
+
+      </section>
+
+      <!-- VERIFICATION -->
+
+      <section id="verificationSection"
+               class="admin-section hidden">
+
+      </section>
+
+      <!-- JOBS -->
+
+      <section id="jobsSection"
+               class="admin-section hidden">
+
+      </section>
+
+      <!-- APPLICATIONS -->
+
+      <section id="applicationsSection"
+               class="admin-section hidden">
+
+      </section>
+
+      <!-- SCHOOLS -->
+
+      <section id="schoolsSection"
+               class="admin-section hidden">
+
+      </section>
+
+      <!-- CONTENT -->
+
+      <section id="contentSection"
+               class="admin-section hidden">
+
+      </section>
+
+      <!-- MEETINGS -->
+
+      <section id="meetingsSection"
+               class="admin-section hidden">
+
+      </section>
+
+      <!-- REPORTS -->
+
+      <section id="reportsSection"
+               class="admin-section hidden">
+
+      </section>
+
+      <!-- PAYMENTS -->
+
+      <section id="paymentsSection"
+               class="admin-section hidden">
+
+      </section>
+
+      <!-- SETTINGS -->
+
+      <section id="settingsSection"
+               class="admin-section hidden">
+
+      </section>
+
+    </section>
+
+    <div id="verificationModal"
+     class="admin-modal hidden">
+
+  <div class="admin-modal-card large">
+
+    <div class="admin-modal-header">
+
+      <h2>Verification Review</h2>
+
+      <button onclick="closeVerificationModal()">
+        ✕
+      </button>
+
+    </div>
+
+    <div id="verificationContent">
+
+    </div>
 
   </div>
 
-  <div class="table-wrapper">
-  <table>
-    <tr>
-      <th>Name</th>
-      <th>Email</th>
-      <th>Role</th>
-      <th>Status</th>
-      <th>Actions</th>
-    </tr>
-  `;
+</div>
+    <div id="jobReviewModal"
+     class="admin-modal hidden">
 
-  users.forEach(user=>{
-    html+=`
-      <tr>
-        <td>${user.name}</td>
-        <td>${user.email}</td>
-        <td>${user.role}</td>
-        <td>${user.status}</td>
-        <td>
-          <button onclick="changeRole('${user._id}')">Change Role</button>
-          <button onclick="changePassword('${user._id}')">Change Password</button>
-          <button onclick="toggleStatus('${user._id}','${user.status}')">Suspend/Activate</button>
-          <button onclick="deleteUser('${user._id}')">Delete</button>
-        </td>
-      </tr>
-    `;
-  });
+  <div class="admin-modal-card large">
 
-  html+=`</table></div>`;
+    <div class="admin-modal-header">
 
-  content.innerHTML = html;
-}
-}
+      <h2>Job Review</h2>
 
-async function updateStatus(id,status){
+      <button onclick="closeJobReviewModal()">
+        ✕
+      </button>
 
-  const res = await fetch(API+"/api/jobs/"+id+"/status",{
-    method:"PATCH",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer "+token
-    },
-    body:JSON.stringify({status})
-  });
+    </div>
 
-  if(res.ok){
-    // Refresh current visible section instead of forcing pending
-    const current = document.getElementById("pageTitle").innerText.toLowerCase();
+    <div id="jobReviewContent">
 
-    if(current.includes("pending")){
-      showSection("pending");
-    } else {
-      showSection("jobs");
-    }
-  }
-}
+    </div>
+
+  </div>
+
+</div>
+    <div id="schoolReviewModal"
+     class="admin-modal hidden">
+
+  <div class="admin-modal-card large">
+
+    <div class="admin-modal-header">
+
+      <h2>School Profile</h2>
+
+      <button onclick="closeSchoolReviewModal()">
+        ✕
+      </button>
+
+    </div>
+
+    <div id="schoolReviewContent">
+
+    </div>
+
+  </div>
+
+</div>
+    <div id="reportModal"
+     class="admin-modal hidden">
+
+  <div class="admin-modal-card large">
+
+    <div class="admin-modal-header">
+
+      <h2>Investigation Center</h2>
+
+      <button onclick="closeReportModal()">
+        ✕
+      </button>
+
+    </div>
+
+    <div id="reportContent">
+
+    </div>
+
+  </div>
+
+</div>
+    <div id="platformSettingsModal"
+     class="admin-modal hidden">
+
+  <div class="admin-modal-card">
+
+    <div class="admin-modal-header">
+
+      <h2>Platform Settings</h2>
+
+      <button onclick="closePlatformSettingsModal()">
+        ✕
+      </button>
+
+    </div>
+
+    <div class="settings-grid">
+
+      <label>
+        <span>Maintenance Mode</span>
+        <input type="checkbox"
+               id="maintenanceMode">
+      </label>
+
+      <label>
+        <span>Allow Registration</span>
+        <input type="checkbox"
+               id="allowRegistration">
+      </label>
+
+      <label>
+        <span>Allow Meetings</span>
+        <input type="checkbox"
+               id="allowMeetings">
+      </label>
+
+      <label>
+        <span>Allow Messaging</span>
+        <input type="checkbox"
+               id="allowMessaging">
+      </label>
+
+    </div>
+
+  </div>
+
+</div>
 
 
-function logout(){
-  localStorage.removeItem("token");
-  window.location.href="login.html";
-}
-async function globalSearch(){
-  const query=document.getElementById("searchInput").value.toLowerCase();
+  </main>
 
-  const res=await fetch(API+"/api/users",{
-    headers:{Authorization:"Bearer "+token}
-  });
+</div>
 
-  const users=await res.json();
-
-  const filtered=users.filter(u =>
-    u.name.toLowerCase().includes(query) ||
-    u.email.toLowerCase().includes(query) ||
-    u.role.toLowerCase().includes(query)
-  );
-
-  let html=`<div class="table-wrapper"><table>
-    <tr>
-      <th>Name</th>
-      <th>Email</th>
-      <th>Role</th>
-      <th>Status</th>
-      <th>Commission</th>
-    </tr>`;
-
-  filtered.forEach(user=>{
-    html+=`
-      <tr>
-        <td>${user.name}</td>
-        <td>${user.email}</td>
-        <td>${user.role}</td>
-        <td>${user.status}</td>
-        <td>$${user.commissionEarned || 0}</td>
-      </tr>`;
-  });
-
-  html+=`</table></div>`;
-
-  document.getElementById("content").innerHTML=html;
-}
-
-async function changeRole(id){
-  const role = prompt("New role (admin, employer, talent, agent):");
-
-  await fetch(API+"/api/users/"+id,{
-    method:"PATCH",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer "+token
-    },
-    body:JSON.stringify({role})
-  });
-
-  showSection("users");
-}
-
-async function changePassword(id){
-  const newPassword = prompt("New password:");
-
-  await fetch(API+"/api/users/"+id+"/password",{
-    method:"PATCH",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer "+token
-    },
-    body:JSON.stringify({newPassword})
-  });
-
-  alert("Password updated");
-}
-
-async function toggleStatus(id,currentStatus){
-  const newStatus = currentStatus==="active" ? "suspended" : "active";
-
-  await fetch(API+"/api/users/"+id,{
-    method:"PATCH",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer "+token
-    },
-    body:JSON.stringify({status:newStatus})
-  });
-
-  showSection("users");
-}
-
-async function deleteUser(id){
-  if(!confirm("Delete this user?")) return;
-
-  await fetch(API+"/api/users/"+id,{
-    method:"DELETE",
-    headers:{Authorization:"Bearer "+token}
-  });
-
-  showSection("users");
-}
-async function deleteJob(id){
-  if(!confirm("Delete this job?")) return;
-
-  await fetch(API+"/api/jobs/"+id,{
-    method:"DELETE",
-    headers:{Authorization:"Bearer "+token}
-  });
-
-  showSection("jobs");
-}
-
-showSection("dashboard");
-</script>
+<script src="admin.js"></script>
 
 </body>
 </html>
+
+  
