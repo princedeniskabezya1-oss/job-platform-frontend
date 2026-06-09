@@ -627,13 +627,7 @@ async function fetchAdminAssignments(){
 }
 
 async function fetchAdminAttendance(){
-  return tryAdminEndpoints(
-    [
-      "/api/attendance",
-      "/api/admin/attendance"
-    ],
-    ["attendance", "records"]
-  );
+  return [];
 }
 
 function splitSchoolUsers(){
