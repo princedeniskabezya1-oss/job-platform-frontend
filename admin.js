@@ -377,9 +377,13 @@ function toggleAdminSidebar(show = true){
 function setAdminSectionTitle(section){
   const item = ADMIN_SECTIONS[section] || ADMIN_SECTIONS.overview;
 
-  document.getElementById("adminPageTitle").textContent = item.title;
-  document.getElementById("adminPageSubtitle").textContent = item.subtitle;
-  document.getElementById("adminSectionBadge").textContent = "Control Center";
+  const title = document.getElementById("adminPageTitle");
+  const subtitle = document.getElementById("adminPageSubtitle");
+  const badge = document.getElementById("adminSectionBadge");
+
+  if(title) title.textContent = item.title || "Overview";
+  if(subtitle) subtitle.textContent = item.subtitle || "Monitor and manage AIFT.";
+  if(badge) badge.textContent = "Control Center";
 }
 
 function setActiveAdminNav(section, button = null){
@@ -482,7 +486,6 @@ document.addEventListener("keydown", event => {
   }
 });
 
-document.addEventListener("DOMContentLoaded", initAdmin);
 /* =====================================================
    PART 2 / 20 — FETCHERS, HEALTH CHECK, REFRESH, SEARCH
 ===================================================== */
@@ -7011,3 +7014,7 @@ window.openBackendRoutesNeeded = openBackendRoutesNeeded;
 window.openLocalOnlyWarning = openLocalOnlyWarning;
 
 console.log("AIFT Admin Control Center loaded successfully.");
+function toggleNotificationCenter(){
+  document.getElementById("adminNotificationCenter")?.classList.toggle("hidden");
+}
+window.toggleNotificationCenter = toggleNotificationCenter;
