@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="AIFT Admin Control Center">
+<meta name="theme-color" content="#0a66c2">
+
 <title>AIFT Admin Control Center</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,43 +20,123 @@
 
 <div id="adminToast" class="admin-toast" role="status" aria-live="polite"></div>
 
-<div id="adminLoader" class="admin-loader">
-  <div>
+<div id="adminLoader" class="admin-loader" aria-live="polite">
+  <div class="admin-loader-card">
     <img src="images/aift-logo.png" alt="AIFT">
-    <strong>Loading Admin Control Center...</strong>
-    <span>Checking secure access</span>
+    <strong>Loading Admin Control Center</strong>
+    <span>Checking secure admin access...</span>
   </div>
 </div>
 
-<div id="adminConfirmModal" class="admin-modal hidden">
-  <div class="admin-modal-card">
+<div id="adminBackdrop" class="admin-backdrop hidden" onclick="closeAllAdminOverlays()"></div>
+
+<div id="adminConfirmModal" class="admin-modal hidden" aria-hidden="true">
+  <div class="admin-modal-card small" role="dialog" aria-modal="true">
+
     <div class="admin-modal-head">
-      <h3 id="adminConfirmTitle">Confirm action</h3>
-      <button onclick="closeAdminConfirm()" class="admin-icon-btn">
+      <div>
+        <h3 id="adminConfirmTitle">Confirm action</h3>
+        <p id="adminConfirmSubtitle">Please review before continuing.</p>
+      </div>
+
+      <button type="button" class="admin-icon-btn" onclick="closeAdminConfirm()" aria-label="Close">
         <svg viewBox="0 0 24 24">
           <path d="M18 6L6 18M6 6l12 12"></path>
         </svg>
       </button>
     </div>
 
-    <p id="adminConfirmText">Are you sure?</p>
+    <div class="admin-modal-body">
+      <p id="adminConfirmText">Are you sure you want to continue?</p>
+    </div>
 
     <div class="admin-modal-actions">
-      <button class="admin-btn ghost" onclick="closeAdminConfirm()">Cancel</button>
-      <button id="adminConfirmBtn" class="admin-btn danger">Confirm</button>
+      <button type="button" class="admin-btn ghost" onclick="closeAdminConfirm()">Cancel</button>
+      <button type="button" id="adminConfirmBtn" class="admin-btn danger">Confirm</button>
     </div>
+
+  </div>
+</div>
+<!-- FORM MODAL -->
+<div id="adminFormModal" class="admin-modal hidden" aria-hidden="true">
+  <div class="admin-modal-card large" role="dialog" aria-modal="true">
+
+    <div class="admin-modal-head">
+      <div>
+        <h3 id="adminFormTitle">Admin Action</h3>
+        <p id="adminFormSubtitle">Complete the required information below.</p>
+      </div>
+
+      <button type="button" class="admin-icon-btn" onclick="closeAdminFormModal()" aria-label="Close">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div id="adminFormBody" class="admin-form-body"></div>
+
   </div>
 </div>
 
-<div id="adminDrawer" class="admin-drawer hidden">
-  <div class="admin-drawer-panel">
-    <div class="admin-drawer-head">
+<!-- REVIEW MODAL -->
+<div id="adminReviewModal" class="admin-modal hidden" aria-hidden="true">
+  <div class="admin-modal-card xlarge" role="dialog" aria-modal="true">
+
+    <div class="admin-modal-head">
       <div>
-        <h3 id="adminDrawerTitle">Details</h3>
-        <p id="adminDrawerSubtitle">View and manage selected item</p>
+        <h3 id="adminReviewTitle">Review Details</h3>
+        <p id="adminReviewSubtitle">Inspect this item before taking action.</p>
       </div>
 
-      <button onclick="closeAdminDrawer()" class="admin-icon-btn">
+      <button type="button" class="admin-icon-btn" onclick="closeAdminReviewModal()" aria-label="Close">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div id="adminReviewBody" class="admin-review-body"></div>
+
+    <div id="adminReviewActions" class="admin-modal-actions"></div>
+
+  </div>
+</div>
+
+<!-- BULK MODAL -->
+<div id="adminBulkModal" class="admin-modal hidden" aria-hidden="true">
+  <div class="admin-modal-card medium" role="dialog" aria-modal="true">
+
+    <div class="admin-modal-head">
+      <div>
+        <h3 id="adminBulkTitle">Bulk Actions</h3>
+        <p id="adminBulkSubtitle">Apply one action to selected records.</p>
+      </div>
+
+      <button type="button" class="admin-icon-btn" onclick="closeAdminBulkModal()" aria-label="Close">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div id="adminBulkBody" class="admin-form-body"></div>
+
+  </div>
+</div>
+
+<!-- RIGHT DRAWER -->
+<div id="adminDrawer" class="admin-drawer hidden" aria-hidden="true">
+  <div class="admin-drawer-panel" role="dialog" aria-modal="true">
+
+    <div class="admin-drawer-head">
+      <div>
+        <span id="adminDrawerBadge" class="admin-mini-badge">Details</span>
+        <h3 id="adminDrawerTitle">Selected Record</h3>
+        <p id="adminDrawerSubtitle">View and manage selected item.</p>
+      </div>
+
+      <button type="button" class="admin-icon-btn" onclick="closeAdminDrawer()" aria-label="Close drawer">
         <svg viewBox="0 0 24 24">
           <path d="M18 6L6 18M6 6l12 12"></path>
         </svg>
@@ -61,52 +144,96 @@
     </div>
 
     <div id="adminDrawerBody" class="admin-drawer-body"></div>
+
+    <div id="adminDrawerFooter" class="admin-drawer-footer"></div>
+
   </div>
 </div>
-
+<!-- MAIN APP -->
 <div class="admin-app">
-    <aside id="adminSidebar" class="admin-sidebar">
 
-    <div class="admin-sidebar-top">
+  <!-- MOBILE MENU BUTTON -->
+  <button
+    type="button"
+    class="admin-mobile-toggle"
+    onclick="toggleAdminSidebar()"
+    aria-label="Open menu"
+  >
+    <svg viewBox="0 0 24 24">
+      <path d="M4 7h16M4 12h16M4 17h16"></path>
+    </svg>
+  </button>
 
-      <a href="home.html" class="admin-brand">
-        <img src="images/aift-logo.png" alt="AIFT">
-      </a>
+  <!-- SIDEBAR -->
+  <aside id="adminSidebar" class="admin-sidebar">
 
-      <button class="admin-mobile-close"
-              onclick="toggleAdminSidebar(false)">
-        <svg viewBox="0 0 24 24">
-          <path d="M18 6L6 18M6 6l12 12"></path>
-        </svg>
-      </button>
-
-    </div>
-
-    <div class="admin-profile-mini">
-      <img id="adminMiniAvatar"
-           src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-           alt="">
+    <!-- LOGO -->
+    <div class="admin-sidebar-brand">
+      <img src="images/aift-logo.png" alt="AIFT">
 
       <div>
-        <strong id="adminMiniName">AIFT Admin</strong>
-        <span id="adminMiniRole">Super Admin</span>
+        <strong>AIFT</strong>
+        <span>Admin Control Center</span>
       </div>
     </div>
 
+    <!-- ADMIN PROFILE -->
+    <div class="admin-sidebar-profile">
+
+      <img
+        id="adminMiniAvatar"
+        src="images/default-avatar.png"
+        alt="Admin"
+      >
+
+      <div>
+        <strong id="adminMiniName">AIFT Admin</strong>
+        <span id="adminMiniRole">Administrator</span>
+      </div>
+
+    </div>
+
+    <!-- SYSTEM STATUS -->
+    <div class="admin-sidebar-status">
+
+      <div class="status-row">
+        <span>API</span>
+        <strong id="sidebarApiStatus">Checking...</strong>
+      </div>
+
+      <div class="status-row">
+        <span>Database</span>
+        <strong id="sidebarDbStatus">Checking...</strong>
+      </div>
+
+      <div class="status-row">
+        <span>Services</span>
+        <strong id="sidebarSocketStatus">Checking...</strong>
+      </div>
+
+    </div>
+
+    <!-- NAVIGATION -->
     <nav class="admin-nav">
 
-      <button class="active" data-section="overview" onclick="switchAdminSection('overview',this)">
+      <button
+        type="button"
+        data-section="overview"
+        class="active"
+      >
         <svg viewBox="0 0 24 24">
-          <path d="M3 13h8V3H3z"></path>
-          <path d="M13 21h8V3h-8z"></path>
-          <path d="M3 21h8v-6H3z"></path>
+          <path d="M3 13l9-8 9 8"></path>
+          <path d="M5 11v9h14v-9"></path>
         </svg>
         <span>Overview</span>
       </button>
 
-      <button data-section="users" onclick="switchAdminSection('users',this)">
+      <button
+        type="button"
+        data-section="users"
+      >
         <svg viewBox="0 0 24 24">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
           <circle cx="9" cy="7" r="4"></circle>
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
           <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
@@ -114,42 +241,44 @@
         <span>Users</span>
       </button>
 
-      <button data-section="verification" onclick="switchAdminSection('verification',this)">
+      <button
+        type="button"
+        data-section="verification"
+      >
         <svg viewBox="0 0 24 24">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
           <path d="M9 12l2 2 4-4"></path>
+          <path d="M21 12c0 5-4 9-9 9s-9-4-9-9 4-9 9-9 9 4 9 9z"></path>
         </svg>
         <span>Verification</span>
       </button>
 
-      <button data-section="content" onclick="switchAdminSection('content',this)">
-        <svg viewBox="0 0 24 24">
-          <path d="M4 4h16v16H4z"></path>
-          <path d="M8 8h8"></path>
-          <path d="M8 12h8"></path>
-          <path d="M8 16h5"></path>
-        </svg>
-        <span>Content Moderation</span>
-      </button>
-
-      <button data-section="jobs" onclick="switchAdminSection('jobs',this)">
+      <button
+        type="button"
+        data-section="jobs"
+      >
         <svg viewBox="0 0 24 24">
           <rect x="2" y="7" width="20" height="14" rx="2"></rect>
-          <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path>
+          <path d="M16 21V5a2 2 0 0 0-2-2H10a2 2 0 0 0-2 2v16"></path>
         </svg>
         <span>Jobs</span>
       </button>
 
-      <button data-section="applications" onclick="switchAdminSection('applications',this)">
+      <button
+        type="button"
+        data-section="applications"
+      >
         <svg viewBox="0 0 24 24">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
           <path d="M14 2v6h6"></path>
-          <path d="M9 15h6"></path>
         </svg>
         <span>Applications</span>
       </button>
 
-      <button data-section="schools" onclick="switchAdminSection('schools',this)">
+    </nav>
+          <button
+        type="button"
+        data-section="schools"
+      >
         <svg viewBox="0 0 24 24">
           <path d="M22 10L12 4 2 10l10 6 10-6z"></path>
           <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
@@ -157,7 +286,23 @@
         <span>Schools & LMS</span>
       </button>
 
-      <button data-section="meetings" onclick="switchAdminSection('meetings',this)">
+      <button
+        type="button"
+        data-section="content"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M4 4h16v16H4z"></path>
+          <path d="M8 8h8"></path>
+          <path d="M8 12h8"></path>
+          <path d="M8 16h5"></path>
+        </svg>
+        <span>Moderation</span>
+      </button>
+
+      <button
+        type="button"
+        data-section="meetings"
+      >
         <svg viewBox="0 0 24 24">
           <rect x="3" y="6" width="13" height="12" rx="2"></rect>
           <path d="M16 10l5-3v10l-5-3z"></path>
@@ -165,7 +310,10 @@
         <span>Meetings & Calls</span>
       </button>
 
-      <button data-section="reports" onclick="switchAdminSection('reports',this)">
+      <button
+        type="button"
+        data-section="reports"
+      >
         <svg viewBox="0 0 24 24">
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
           <path d="M12 9v4"></path>
@@ -174,7 +322,10 @@
         <span>Reports & Support</span>
       </button>
 
-      <button data-section="payments" onclick="switchAdminSection('payments',this)">
+      <button
+        type="button"
+        data-section="payments"
+      >
         <svg viewBox="0 0 24 24">
           <rect x="2" y="5" width="20" height="14" rx="2"></rect>
           <path d="M2 10h20"></path>
@@ -182,7 +333,10 @@
         <span>Payments</span>
       </button>
 
-      <button data-section="settings" onclick="switchAdminSection('settings',this)">
+      <button
+        type="button"
+        data-section="settings"
+      >
         <svg viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="3"></circle>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4"></path>
@@ -191,418 +345,427 @@
         <span>Settings</span>
       </button>
 
+      <button
+        type="button"
+        data-section="audit"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M9 11l3 3L22 4"></path>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+        </svg>
+        <span>Audit Logs</span>
+      </button>
+
     </nav>
 
-    <div class="admin-sidebar-bottom">
-      <button onclick="refreshAdminData()">
-        Refresh Data
+    <!-- SIDEBAR FOOTER -->
+    <div class="admin-sidebar-footer">
+
+      <button
+        type="button"
+        onclick="refreshAdminData()"
+      >
+        Refresh Platform
       </button>
 
-      <button class="danger" onclick="adminLogout()">
+      <button
+        type="button"
+        onclick="runHealthCheck()"
+      >
+        System Check
+      </button>
+
+      <button
+        type="button"
+        onclick="exportAdminReport()"
+      >
+        Export Report
+      </button>
+
+      <button
+        type="button"
+        class="danger"
+        onclick="adminLogout()"
+      >
         Logout
       </button>
+
     </div>
 
   </aside>
-
+    <!-- MAIN CONTENT -->
   <main class="admin-main">
 
-    <header class="admin-mobile-bar">
-      <button onclick="toggleAdminSidebar(true)">
-        <svg viewBox="0 0 24 24">
-          <path d="M3 6h18"></path>
-          <path d="M3 12h18"></path>
-          <path d="M3 18h18"></path>
-        </svg>
-      </button>
+    <!-- TOPBAR -->
+    <header class="admin-topbar">
 
-      <img src="images/aift-logo.png" alt="AIFT">
-    </header>
+      <div class="admin-topbar-left">
 
-    <section class="admin-topbar">
-
-      <div class="admin-title-block">
-        <span id="adminSectionBadge">Control Center</span>
-        <h1 id="adminPageTitle">Overview</h1>
-        <p id="adminPageSubtitle">
-          Monitor users, jobs, schools, content, reports, and platform activity.
-        </p>
-      </div>
-
-      <div class="admin-top-actions">
-
-        <div class="admin-search">
-          <svg viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="7"></circle>
-            <path d="M20 20l-3.5-3.5"></path>
-          </svg>
-
-          <input id="adminGlobalSearch"
-                 type="search"
-                 placeholder="Search users, jobs, schools, posts..."
-                 oninput="handleAdminGlobalSearch(this.value)">
+        <div>
+          <h1 id="adminPageTitle">Overview</h1>
+          <p id="adminPageSubtitle">
+            Monitor and manage the entire AIFT ecosystem.
+          </p>
         </div>
 
-        <button class="admin-btn" onclick="openAdminQuickCreate()">
-          Create
+      </div>
+
+      <div class="admin-topbar-right">
+
+        <!-- GLOBAL SEARCH -->
+        <div class="admin-search">
+
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+
+          <input
+            id="adminGlobalSearch"
+            type="search"
+            placeholder="Search users, jobs, applications, schools..."
+            autocomplete="off"
+          >
+
+        </div>
+
+        <!-- QUICK ACTIONS -->
+        <button
+          type="button"
+          class="admin-btn ghost"
+          onclick="openAdminQuickCreate()"
+        >
+          Quick Action
+        </button>
+
+        <button
+          type="button"
+          class="admin-btn"
+          onclick="refreshCurrentAdminSection()"
+        >
+          Refresh
         </button>
 
       </div>
 
-    </section>
-        <section id="adminContent" class="admin-content">
+    </header>
+
+    <!-- CONTENT WRAPPER -->
+    <div id="adminContent" class="admin-content">
 
       <!-- OVERVIEW -->
+      <section
+        id="overviewSection"
+        class="admin-section active"
+      >
 
-      <section id="overviewSection" class="admin-section">
-
-        <div class="admin-stats-grid">
+        <!-- PLATFORM STATS -->
+        <div id="overviewStatsGrid" class="admin-stats-grid">
 
           <article class="admin-stat-card">
             <span>Total Users</span>
-            <strong id="totalUsersValue">0</strong>
-            <small id="totalUsersTrend">Loading...</small>
+            <strong>--</strong>
+            <small>Loading...</small>
           </article>
 
           <article class="admin-stat-card">
             <span>Total Jobs</span>
-            <strong id="totalJobsValue">0</strong>
-            <small id="totalJobsTrend">Loading...</small>
+            <strong>--</strong>
+            <small>Loading...</small>
           </article>
 
           <article class="admin-stat-card">
-            <span>Total Applications</span>
-            <strong id="totalApplicationsValue">0</strong>
-            <small id="totalApplicationsTrend">Loading...</small>
+            <span>Applications</span>
+            <strong>--</strong>
+            <small>Loading...</small>
           </article>
 
           <article class="admin-stat-card">
-            <span>Pending Reviews</span>
-            <strong id="pendingReviewsValue">0</strong>
-            <small id="pendingReviewsTrend">Needs attention</small>
+            <span>Reports</span>
+            <strong>--</strong>
+            <small>Loading...</small>
           </article>
 
         </div>
 
-        <div class="admin-dashboard-grid">
+        <!-- PLATFORM INSIGHTS -->
+        <div id="platformInsightsPanel"></div>
 
-          <article class="admin-panel">
-
-<div class="admin-panel-head">
-  <h2>Platform Activity</h2>
-
-  <button onclick="loadOverview()">
-    Refresh
-  </button>
-</div>
-
-<div id="platformActivityFeed"
-     class="admin-feed-list">
-
-  Loading platform activity...
-
-</div>
-
-          </article>
-
-          <article class="admin-panel">
-
-            <div class="admin-panel-head">
-              <h2>Quick Actions</h2>
-            </div>
-
-            <div class="admin-quick-grid">
-
-              <button onclick="switchAdminSection('users')">
-                Manage Users
-              </button>
-
-              <button onclick="switchAdminSection('verification')">
-                Verification Queue
-              </button>
-
-              <button onclick="switchAdminSection('jobs')">
-                Job Approvals
-              </button>
-
-              <button onclick="switchAdminSection('reports')">
-                Reports
-              </button>
-
-              <button onclick="switchAdminSection('schools')">
-                Schools
-              </button>
-
-              <button onclick="switchAdminSection('meetings')">
-                Meetings
-              </button>
-
-            </div>
-
-          </article>
-
-</div>
-
-<div class="admin-dashboard-grid">
-
-  <article class="admin-panel">
-    <div class="admin-panel-head">
-      <h2>Admin Notifications</h2>
-    </div>
-
-    <div id="adminNotifications"></div>
-  </article>
-
-  <article class="admin-panel">
-    <div class="admin-panel-head">
-      <h2>Verification Queue</h2>
-    </div>
-
-    <div id="verificationQueue"></div>
-  </article>
-
-</div>
-
-<article class="admin-panel">
-  <div class="admin-panel-head">
-    <h2>System Health</h2>
-  </div>
-
-  <div class="system-health-grid">
-    <div>
-      API
-      <strong id="apiHealth">Healthy</strong>
-    </div>
-
-    <div>
-      Database
-      <strong id="databaseHealth">Healthy</strong>
-    </div>
-
-    <div>
-      Socket
-      <strong id="socketHealth">Healthy</strong>
-    </div>
-  </div>
-</article>
-
-</section>
-
-<!-- USERS -->
-
-      <section id="usersSection"
-               class="admin-section hidden">
+        <!-- ANALYTICS -->
+        <div id="dashboardChartsPanel"></div>
 
       </section>
+            <!-- USERS -->
+      <section
+        id="usersSection"
+        class="admin-section hidden"
+        aria-label="Users Management"
+      ></section>
 
       <!-- VERIFICATION -->
-
-      <section id="verificationSection"
-               class="admin-section hidden">
-
-      </section>
+      <section
+        id="verificationSection"
+        class="admin-section hidden"
+        aria-label="Verification Center"
+      ></section>
 
       <!-- JOBS -->
-
-      <section id="jobsSection"
-               class="admin-section hidden">
-
-      </section>
+      <section
+        id="jobsSection"
+        class="admin-section hidden"
+        aria-label="Jobs Management"
+      ></section>
 
       <!-- APPLICATIONS -->
+      <section
+        id="applicationsSection"
+        class="admin-section hidden"
+        aria-label="Applications Management"
+      ></section>
 
-      <section id="applicationsSection"
-               class="admin-section hidden">
+      <!-- SCHOOLS & LMS -->
+      <section
+        id="schoolsSection"
+        class="admin-section hidden"
+        aria-label="Schools and LMS Management"
+      ></section>
 
-      </section>
+      <!-- CONTENT MODERATION -->
+      <section
+        id="contentSection"
+        class="admin-section hidden"
+        aria-label="Content Moderation"
+      ></section>
 
-      <!-- SCHOOLS -->
+      <!-- MEETINGS & CALLS -->
+      <section
+        id="meetingsSection"
+        class="admin-section hidden"
+        aria-label="Meetings and Calls"
+      ></section>
 
-      <section id="schoolsSection"
-               class="admin-section hidden">
-
-      </section>
-
-      <!-- CONTENT -->
-
-      <section id="contentSection"
-               class="admin-section hidden">
-
-      </section>
-
-      <!-- MEETINGS -->
-
-      <section id="meetingsSection"
-               class="admin-section hidden">
-
-      </section>
-
-      <!-- REPORTS -->
-
-      <section id="reportsSection"
-               class="admin-section hidden">
-
-      </section>
+      <!-- REPORTS & SUPPORT -->
+      <section
+        id="reportsSection"
+        class="admin-section hidden"
+        aria-label="Reports and Support"
+      ></section>
 
       <!-- PAYMENTS -->
-
-      <section id="paymentsSection"
-               class="admin-section hidden">
-
-      </section>
+      <section
+        id="paymentsSection"
+        class="admin-section hidden"
+        aria-label="Payments Management"
+      ></section>
 
       <!-- SETTINGS -->
+      <section
+        id="settingsSection"
+        class="admin-section hidden"
+        aria-label="Platform Settings"
+      ></section>
 
-      <section id="settingsSection"
-               class="admin-section hidden">
+      <!-- AUDIT LOGS -->
+      <section
+        id="auditSection"
+        class="admin-section hidden"
+        aria-label="Audit Logs"
+      ></section>
+          </div>
+    <!-- END CONTENT -->
 
-      </section>
-
-    </section>
-
-    <div id="verificationModal"
-     class="admin-modal hidden">
-
-  <div class="admin-modal-card large">
-
-    <div class="admin-modal-header">
-
-      <h2>Verification Review</h2>
-
-      <button onclick="closeVerificationModal()">
-        ✕
-      </button>
-
-    </div>
-
-    <div id="verificationContent">
-
-    </div>
-
-  </div>
-
-</div>
-    <div id="jobReviewModal"
-     class="admin-modal hidden">
-
-  <div class="admin-modal-card large">
-
-    <div class="admin-modal-header">
-
-      <h2>Job Review</h2>
-
-      <button onclick="closeJobReviewModal()">
-        ✕
-      </button>
-
-    </div>
-
-    <div id="jobReviewContent">
-
-    </div>
-
-  </div>
-
-</div>
-    <div id="schoolReviewModal"
-     class="admin-modal hidden">
-
-  <div class="admin-modal-card large">
-
-    <div class="admin-modal-header">
-
-      <h2>School Profile</h2>
-
-      <button onclick="closeSchoolReviewModal()">
-        ✕
-      </button>
-
-    </div>
-
-    <div id="schoolReviewContent">
-
-    </div>
-
-  </div>
-
-</div>
-    <div id="reportModal"
-     class="admin-modal hidden">
-
-  <div class="admin-modal-card large">
-
-    <div class="admin-modal-header">
-
-      <h2>Investigation Center</h2>
-
-      <button onclick="closeReportModal()">
-        ✕
-      </button>
-
-    </div>
-
-    <div id="reportContent">
-
-    </div>
-
-  </div>
-
-</div>
-    <div id="platformSettingsModal"
-     class="admin-modal hidden">
-
-  <div class="admin-modal-card">
-
-    <div class="admin-modal-header">
-
-      <h2>Platform Settings</h2>
-
-      <button onclick="closePlatformSettingsModal()">
-        ✕
-      </button>
-
-    </div>
-
-    <div class="settings-grid">
-
-      <label>
-        <span>Maintenance Mode</span>
-        <input type="checkbox"
-               id="maintenanceMode">
-      </label>
-
-      <label>
-        <span>Allow Registration</span>
-        <input type="checkbox"
-               id="allowRegistration">
-      </label>
-
-      <label>
-        <span>Allow Meetings</span>
-        <input type="checkbox"
-               id="allowMeetings">
-      </label>
-
-      <label>
-        <span>Allow Messaging</span>
-        <input type="checkbox"
-               id="allowMessaging">
-      </label>
-
-    </div>
-
-  </div>
-
-</div>
-
+    <!-- FLOATING QUICK ACTION BUTTON -->
+    <button
+      type="button"
+      id="adminFloatingAction"
+      class="admin-floating-action"
+      onclick="openAdminQuickCreate()"
+      aria-label="Quick Action"
+    >
+      <svg viewBox="0 0 24 24">
+        <path d="M12 5v14"></path>
+        <path d="M5 12h14"></path>
+      </svg>
+    </button>
 
   </main>
+  <!-- END MAIN -->
 
 </div>
+<!-- END APP -->
+
+<!-- QUICK CREATE MENU -->
+<div id="adminQuickMenu" class="admin-quick-menu hidden">
+
+  <button type="button" onclick="switchAdminSection('users')">
+    <span>👤</span>
+    <div>
+      <strong>User Management</strong>
+      <small>Manage platform users</small>
+    </div>
+  </button>
+
+  <button type="button" onclick="switchAdminSection('jobs')">
+    <span>💼</span>
+    <div>
+      <strong>Jobs</strong>
+      <small>Review and moderate jobs</small>
+    </div>
+  </button>
+
+  <button type="button" onclick="switchAdminSection('verification')">
+    <span>✅</span>
+    <div>
+      <strong>Verification</strong>
+      <small>Review verification requests</small>
+    </div>
+  </button>
+
+  <button type="button" onclick="switchAdminSection('schools')">
+    <span>🎓</span>
+    <div>
+      <strong>LMS</strong>
+      <small>Schools, teachers, students</small>
+    </div>
+  </button>
+
+  <button type="button" onclick="switchAdminSection('reports')">
+    <span>🚨</span>
+    <div>
+      <strong>Reports</strong>
+      <small>Support and abuse reports</small>
+    </div>
+  </button>
+
+</div>
+
+<!-- CV PREVIEW MODAL -->
+<div id="adminCvViewer" class="admin-modal hidden">
+
+  <div class="admin-modal-card cv-viewer">
+
+    <div class="admin-modal-head">
+
+      <div>
+        <h3>CV Preview</h3>
+        <p>Application attachment review</p>
+      </div>
+
+      <button
+        type="button"
+        class="admin-icon-btn"
+        onclick="closeAdminCvViewer()"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M18 6L6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+
+    </div>
+
+    <iframe
+      id="adminCvFrame"
+      title="CV Preview"
+      loading="lazy"
+    ></iframe>
+
+  </div>
+
+</div>
+<!-- ADMIN NOTIFICATIONS CENTER -->
+<div id="adminNotificationCenter" class="admin-notification-center">
+
+  <div class="admin-notification-header">
+    <strong>Platform Activity</strong>
+    <button
+      type="button"
+      onclick="toggleNotificationCenter()"
+    >
+      Hide
+    </button>
+  </div>
+
+  <div id="adminActivityFeed" class="admin-activity-feed">
+
+    <div class="admin-activity-item">
+      <span class="pulse"></span>
+      <div>
+        <strong>Waiting for live activity</strong>
+        <small>New users, jobs, reports, and applications will appear here.</small>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- REAL TIME STATUS BAR -->
+<section class="admin-live-status">
+
+  <article>
+    <span>Users Online</span>
+    <strong id="liveUsersCount">0</strong>
+  </article>
+
+  <article>
+    <span>Active Meetings</span>
+    <strong id="liveMeetingsCount">0</strong>
+  </article>
+
+  <article>
+    <span>Open Reports</span>
+    <strong id="liveReportsCount">0</strong>
+  </article>
+
+  <article>
+    <span>Jobs Pending</span>
+    <strong id="liveJobsPending">0</strong>
+  </article>
+
+  <article>
+    <span>Applications Today</span>
+    <strong id="liveApplicationsToday">0</strong>
+  </article>
+
+</section>
+<!-- HIDDEN GLOBAL COMPONENTS -->
+
+<div id="adminHiddenTemplates" style="display:none;">
+
+  <template id="adminUserTemplate"></template>
+
+  <template id="adminJobTemplate"></template>
+
+  <template id="adminApplicationTemplate"></template>
+
+  <template id="adminReportTemplate"></template>
+
+</div>
+
+<!-- SYSTEM WARNINGS -->
+<div id="adminWarningContainer"></div>
+
+<!-- HEALTH CHECK RESULT -->
+<div id="adminHealthContainer"></div>
+
+<!-- GLOBAL LOADING BAR -->
+<div id="adminTopProgress">
+  <div id="adminTopProgressFill"></div>
+</div>
+<!-- JAVASCRIPT -->
+
+<script>
+window.API_BASE = "https://backend-1-9b6f.onrender.com";
+
+window.ADMIN_CONFIG = {
+  version: "3.0",
+  appName: "AIFT Admin Control Center",
+  environment: "production",
+  apiBase: window.API_BASE
+};
+</script>
 
 <script src="admin.js"></script>
 
 </body>
 </html>
-
-  
