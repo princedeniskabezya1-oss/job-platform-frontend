@@ -6948,6 +6948,7 @@ window.switchAdminSection = window.switchAdminSection || switchAdminSection;
 window.refreshAdminData = refreshAdminData;
 window.adminLogout = adminLogout;
 window.toggleAdminSidebar = toggleAdminSidebar;
+window.closeAdminSidebar = closeAdminSidebar;
 
 window.closeAdminConfirm = closeAdminConfirm;
 window.closeAdminFormModal = closeAdminFormModal;
