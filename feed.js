@@ -588,42 +588,48 @@ ${
 
         ${post.repostOf ? renderOriginalPostCard(post.repostOf) : renderMediaCarousel(post)}
 
-        <section class="aift-post-actions">
+        <section class="aift-post-actions instagram-style">
           <div class="aift-left-actions">
-            <button class="aift-action-btn ${liked ? "is-liked" : ""}" onclick="AIFTFeed.likePost('${esc(post._id)}')" aria-label="Like">${svg("heart")}</button>
-            <button class="aift-action-btn" onclick="AIFTFeed.openComments('${esc(post._id)}')" aria-label="Comment">${svg("comment")}</button>
-            <button class="aift-action-btn" onclick="AIFTFeed.openRepost('${esc(post._id)}')" aria-label="Repost">${svg("repost")}</button>
-            <button class="aift-action-btn" onclick="AIFTFeed.openShare('${esc(post._id)}')" aria-label="Share">${svg("share")}</button>
+            <button class="aift-action-btn ${liked ? "is-liked" : ""}" onclick="AIFTFeed.likePost('${esc(post._id)}')" aria-label="Like">
+              ${svg("heart")}
+              <strong id="aift-likes-count-${safeId(post._id)}">${(post.likes || []).length}</strong>
+            </button>
+
+            <button class="aift-action-btn" onclick="AIFTFeed.openComments('${esc(post._id)}')" aria-label="Comment">
+              ${svg("comment")}
+              <strong id="aift-comments-count-${safeId(post._id)}">${commentsCount}</strong>
+            </button>
+
+            <button class="aift-action-btn" onclick="AIFTFeed.openRepost('${esc(post._id)}')" aria-label="Repost">
+              ${svg("repost")}
+              <strong>${post.repostsCount || post.repostCount || 0}</strong>
+            </button>
+
+            <button class="aift-action-btn" onclick="AIFTFeed.openShare('${esc(post._id)}')" aria-label="Share">
+              ${svg("share")}
+              <strong id="aift-shares-count-${safeId(post._id)}">${post.sharesCount || 0}</strong>
+            </button>
           </div>
 
           <button
-  class="aift-action-btn aift-save-btn"
-  id="aift-save-post-${safeId(post._id)}"
-  onclick="AIFTFeed.savePost('${esc(post._id)}')"
-  aria-label="Save"
-  title="Save post"
->
-  ${svg("save")}
-</button>
+            class="aift-action-btn aift-save-btn"
+            id="aift-save-post-${safeId(post._id)}"
+            onclick="AIFTFeed.savePost('${esc(post._id)}')"
+            aria-label="Save"
+            title="Save post"
+          >
+            ${svg("save")}
+          </button>
         </section>
 
-        <section class="aift-post-stats">
-          <button onclick="AIFTFeed.openLikes('${esc(post._id)}')">
-            <strong id="aift-likes-count-${safeId(post._id)}">${(post.likes || []).length}</strong> likes
-          </button>
-         <button onclick="AIFTFeed.openComments('${esc(post._id)}')">
-  <strong id="aift-comments-count-${safeId(post._id)}">${commentsCount}</strong> comments
-</button>
-         ${
-  !post.repostOf
-    ? `<span id="aift-views-wrap-${safeId(post._id)}">
-        <strong id="aift-views-count-${safeId(post._id)}">${post.viewsCount || 0}</strong> views
-      </span>`
-    : ""
-}
-          <span class="${post.sharesCount ? "" : "aift-hidden"}" id="aift-shares-wrap-${safeId(post._id)}">
-            <strong id="aift-shares-count-${safeId(post._id)}">${post.sharesCount || 0}</strong> shares
-          </span>
+        <section class="aift-post-stats compact-hidden">
+          ${
+            !post.repostOf
+              ? `<span id="aift-views-wrap-${safeId(post._id)}">
+                  <strong id="aift-views-count-${safeId(post._id)}">${post.viewsCount || 0}</strong>
+                </span>`
+              : ""
+          }
         </section>
 
         <section id="aift-comments-inline-${safeId(post._id)}" class="aift-comments-inline-container"></section>
