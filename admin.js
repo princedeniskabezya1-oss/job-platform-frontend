@@ -368,10 +368,28 @@ function closeAllAdminOverlays(){
   closeAdminReviewModal();
   closeAdminBulkModal();
   closeAdminDrawer();
+  closeAdminSidebar();
 }
 
-function toggleAdminSidebar(show = true){
-  document.getElementById("adminSidebar")?.classList[show ? "add" : "remove"]("show");
+function toggleAdminSidebar(force){
+  const sidebar = document.getElementById("adminSidebar");
+  const backdrop = document.getElementById("adminBackdrop");
+  if(!sidebar) return;
+
+  const shouldOpen =
+    typeof force === "boolean"
+      ? force
+      : !sidebar.classList.contains("show");
+
+  sidebar.classList.toggle("show", shouldOpen);
+
+  if(backdrop){
+    backdrop.classList.toggle("hidden", !shouldOpen);
+  }
+}
+
+function closeAdminSidebar(){
+  toggleAdminSidebar(false);
 }
 
 function setAdminSectionTitle(section){
