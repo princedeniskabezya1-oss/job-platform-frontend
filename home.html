@@ -581,7 +581,44 @@ a{
   font-weight:800;
   cursor:pointer;
 }
+.aift-double-heart{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%) scale(.4);
+  z-index:50;
+  color:#ed4956;
+  font-size:82px;
+  line-height:1;
+  pointer-events:none;
+  animation:aiftHeartPop .85s ease forwards;
+  text-shadow:0 8px 30px rgba(0,0,0,.22);
+}
 
+#feedMount .aift-post-card,
+#feedMount .post-card,
+#feedMount .feed-post{
+  position:relative;
+}
+
+@keyframes aiftHeartPop{
+  0%{
+    opacity:0;
+    transform:translate(-50%,-50%) scale(.35);
+  }
+  25%{
+    opacity:1;
+    transform:translate(-50%,-50%) scale(1.12);
+  }
+  55%{
+    opacity:1;
+    transform:translate(-50%,-50%) scale(.96);
+  }
+  100%{
+    opacity:0;
+    transform:translate(-50%,-50%) scale(1.35);
+  }
+}
 </style>
 </head>
 
@@ -1370,92 +1407,138 @@ a{
     width:23px;
     height:23px;
   }
-  @media(max-width:760px){
+  /* Final clean mobile topbar */
+  .topbar.scrolled{
+    background:rgba(255,255,255,.72)!important;
+    backdrop-filter:blur(14px);
+  }
+
   .topbar.scrolled .top-link,
-  .topbar.scrolled .top-link:hover,
   .topbar.scrolled .top-nav,
   .topbar.scrolled .top-avatar{
     background:transparent!important;
     box-shadow:none!important;
   }
 
-  .topbar.scrolled .top-avatar{
-    border:0!important;
-  }
-      /* Center search perfectly */
   .top-inner{
-    grid-template-columns:74px minmax(0,1fr) 42px!important;
+    height:54px!important;
+    display:grid!important;
+    grid-template-columns:72px minmax(0,1fr) 42px!important;
+    align-items:center!important;
+    gap:10px!important;
     padding:0 14px!important;
+  }
+
+  .brand{
+    width:72px!important;
+    min-width:72px!important;
+  }
+
+  .brand img{
+    height:28px!important;
+    max-width:72px!important;
   }
 
   .search{
     justify-self:center!important;
-    width:min(100%, 440px)!important;
-    max-width:440px!important;
+    width:100%!important;
+    max-width:420px!important;
     margin:0!important;
   }
 
   .search input{
-    background:#fff!important;
     height:34px!important;
+    background:#fff!important;
+    border:1px solid #d8dee6!important;
+    border-radius:999px!important;
     font-size:13px!important;
+    padding-left:34px!important;
   }
 
-  /* Instagram-style post action row */
+  .search input::placeholder{
+    color:transparent!important;
+  }
+
+  .search::after{
+    content:"Search";
+    position:absolute;
+    left:36px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#667085;
+    font-size:13px;
+    pointer-events:none;
+  }
+
+  .search:focus-within::after{
+    display:none;
+  }
+
+  /* Final Instagram-style post actions */
   #feedMount .aift-post-actions{
     display:flex!important;
     align-items:center!important;
     justify-content:space-between!important;
     gap:0!important;
-    padding:8px 18px 6px!important;
-    min-height:42px!important;
+    margin:0!important;
+    padding:7px 16px!important;
+    min-height:40px!important;
+    background:#fff!important;
     border-top:0!important;
+    border-bottom:0!important;
   }
 
   #feedMount .aift-action-btn{
     width:auto!important;
     min-width:auto!important;
-    height:32px!important;
+    height:30px!important;
     padding:0!important;
+    border:0!important;
+    background:transparent!important;
     display:inline-flex!important;
     align-items:center!important;
     justify-content:center!important;
     gap:6px!important;
-    background:transparent!important;
-    border:0!important;
+    color:#111!important;
+    font-size:14px!important;
+    font-weight:800!important;
   }
 
   #feedMount .aift-action-btn svg{
-    width:25px!important;
-    height:25px!important;
+    width:24px!important;
+    height:24px!important;
+    stroke-width:2.2!important;
   }
 
-  /* remove text labels like Like / Comment / Share */
+  #feedMount .aift-action-btn span,
   #feedMount .aift-action-label,
-  #feedMount .aift-action-text,
-  #feedMount .aift-action-btn span:not(.aift-count){
+  #feedMount .aift-action-text{
     display:none!important;
   }
 
-  /* reduce/remove stats row space */
+  #feedMount .aift-action-btn strong,
+  #feedMount .aift-action-count{
+    display:inline-flex!important;
+    font-size:14px!important;
+    font-weight:800!important;
+    color:#111!important;
+  }
+
   #feedMount .aift-post-stats{
-    margin:0!important;
-    padding:0 18px 8px!important;
-    min-height:0!important;
-    font-size:13px!important;
-    font-weight:800!important;
-    display:flex!important;
-    gap:18px!important;
+    display:none!important;
   }
 
-  #feedMount .aift-post-stats span{
-    font-size:13px!important;
-    font-weight:800!important;
+  #feedMount .aift-action-btn.liked,
+  #feedMount .aift-action-btn.liked svg,
+  #feedMount .aift-like-btn.liked,
+  #feedMount .aift-like-btn.liked svg{
+    color:#ed4956!important;
+    fill:#ed4956!important;
+    stroke:#ed4956!important;
   }
 
-  /* smaller bottom nav */
   .mobile-nav{
-    height:58px!important;
+    height:56px!important;
     padding:0 8px!important;
   }
 
@@ -1471,62 +1554,14 @@ a{
   }
 
   .mobile-create{
-    width:46px!important;
-    height:46px!important;
+    width:44px!important;
+    height:44px!important;
   }
 
   .mobile-create svg{
-    width:21px!important;
-    height:21px!important;
+    width:20px!important;
+    height:20px!important;
   }
-      #feedMount .aift-post-actions.instagram-style{
-    display:flex!important;
-    align-items:center!important;
-    justify-content:space-between!important;
-    padding:8px 18px!important;
-    min-height:42px!important;
-    border-top:0!important;
-  }
-
-  #feedMount .aift-left-actions{
-    display:flex!important;
-    align-items:center!important;
-    justify-content:space-between!important;
-    flex:1!important;
-    max-width:78%!important;
-    gap:18px!important;
-  }
-
-  #feedMount .aift-action-btn{
-    display:inline-flex!important;
-    align-items:center!important;
-    gap:6px!important;
-    width:auto!important;
-    height:32px!important;
-    padding:0!important;
-    background:transparent!important;
-    border:0!important;
-    font-size:14px!important;
-    font-weight:800!important;
-    color:#111!important;
-  }
-
-  #feedMount .aift-action-btn svg{
-    width:25px!important;
-    height:25px!important;
-  }
-
-  #feedMount .aift-action-btn strong{
-    display:inline!important;
-    font-size:14px!important;
-    font-weight:800!important;
-    color:#111!important;
-  }
-
-  #feedMount .aift-post-stats.compact-hidden{
-    display:none!important;
-  }
-}
 }
 </style>
 
@@ -2770,7 +2805,6 @@ input{
 ========================= */
 
 @media(max-width:760px){
-
   #feedMount .post-card,
   #feedMount .feed-post,
   #feedMount .feed-item,
@@ -2778,7 +2812,10 @@ input{
     border-radius:0!important;
     border-left:0!important;
     border-right:0!important;
-    margin-bottom:8px!important;
+    border-top:0!important;
+    margin-bottom:0!important;
+    box-shadow:none!important;
+    background:#fff!important;
   }
 
   #feedMount video,
@@ -2786,22 +2823,41 @@ input{
     max-height:520px!important;
   }
 
+  #feedMount .aift-composer,
+  #feedMount .create-post,
+  .create-post{
+    display:none!important;
+  }
+
   #feedMount .aift-post-actions{
     display:flex!important;
     align-items:center!important;
     justify-content:space-between!important;
-    padding:6px 18px!important;
+    padding:7px 16px!important;
+    margin:0!important;
+    min-height:40px!important;
     gap:0!important;
+    border:0!important;
+    background:#fff!important;
   }
 
   #feedMount .aift-action-btn{
-    width:40px!important;
-    height:40px!important;
+    width:auto!important;
+    height:30px!important;
     padding:0!important;
     border:0!important;
-    background:#fff!important;
-    display:grid!important;
-    place-items:center!important;
+    background:transparent!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    gap:6px!important;
+    color:#111!important;
+    font-size:14px!important;
+    font-weight:800!important;
+  }
+
+  #feedMount .aift-action-btn svg{
+    width:24px!important;
+    height:24px!important;
   }
 
   #feedMount .aift-action-btn span,
@@ -2810,91 +2866,30 @@ input{
     display:none!important;
   }
 
-  #feedMount .aift-action-btn svg{
-    width:22px!important;
-    height:22px!important;
+  #feedMount .aift-action-btn strong,
+  #feedMount .aift-action-count{
+    display:inline-flex!important;
+    font-size:14px!important;
+    font-weight:800!important;
+    color:#111!important;
   }
 
   #feedMount .aift-post-stats{
-    padding:0 18px 10px!important;
-    font-size:13px!important;
-    gap:12px!important;
+    display:none!important;
+  }
+
+  #feedMount .aift-action-btn.liked,
+  #feedMount .aift-action-btn.liked svg,
+  #feedMount .aift-like-btn.liked,
+  #feedMount .aift-like-btn.liked svg{
+    color:#ed4956!important;
+    fill:#ed4956!important;
+    stroke:#ed4956!important;
   }
 
   .mobile-nav{
     transition:transform .28s ease;
   }
-    /* Hide mobile composer completely */
-  #feedMount .aift-composer,
-  #feedMount .create-post,
-  .create-post{
-    display:none!important;
-  }
-
-  /* Clean centered mobile search */
-  .search{
-    flex:0 1 56%;
-    margin:0 auto;
-  }
-
-  .search input{
-    height:34px;
-    border-radius:999px;
-    background:#fff!important;
-    border:1px solid #d7dce2;
-    font-size:13px;
-    padding-left:34px;
-  }
-
-  .search input::placeholder{
-    color:transparent;
-  }
-
-  .search input:not(:focus)::placeholder{
-    color:transparent;
-  }
-
-  .search::after{
-    content:"Search";
-    position:absolute;
-    left:36px;
-    top:50%;
-    transform:translateY(-50%);
-    color:#667085;
-    font-size:13px;
-    pointer-events:none;
-  }
-
-  .search:focus-within::after{
-    display:none;
-  }
-
-  /* Icon stats: icon + number only */
-  #feedMount .aift-post-actions{
-    padding:8px 18px 2px!important;
-  }
-
-  #feedMount .aift-action-btn{
-    width:auto!important;
-    height:34px!important;
-    display:inline-flex!important;
-    align-items:center!important;
-    gap:5px!important;
-  }
-
-  #feedMount .aift-action-btn span,
-  #feedMount .aift-action-btn .aift-action-label,
-  #feedMount .aift-action-text{
-    display:none!important;
-  }
-
-  #feedMount .aift-post-stats{
-    padding:2px 18px 10px!important;
-    font-size:13px!important;
-    display:flex!important;
-    gap:14px!important;
-  }
-
 }
 
 /* =========================
@@ -2980,6 +2975,29 @@ function focusComposer(){
     setTimeout(() => textarea.focus(), 300);
   }
 }
+</script>
+  <script>
+document.addEventListener("dblclick", function(event){
+  const post = event.target.closest("#feedMount .aift-post-card, #feedMount .post-card, #feedMount .feed-post");
+  if(!post) return;
+
+  const likeBtn =
+    post.querySelector(".aift-like-btn") ||
+    post.querySelector("[data-action='like']") ||
+    post.querySelector(".aift-action-btn");
+
+  if(likeBtn && !likeBtn.classList.contains("liked")){
+    likeBtn.click();
+    likeBtn.classList.add("liked");
+  }
+
+  const heart = document.createElement("div");
+  heart.className = "aift-double-heart";
+  heart.textContent = "♥";
+  post.appendChild(heart);
+
+  setTimeout(() => heart.remove(), 850);
+});
 </script>
 </body>
 </html>
