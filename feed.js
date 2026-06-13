@@ -601,7 +601,14 @@ ${
           </div>
         </header>
 
-        ${post.text?.trim() ? `<div class="aift-post-text">${esc(post.text)}</div>` : ""}
+        ${
+  post.text?.trim()
+    ? `<div id="aift-text-${safeId(post._id)}" class="aift-post-text is-collapsed">${esc(post.text)}</div>
+       <button class="aift-view-more-text" onclick="AIFTFeed.expandPostText('${esc(post._id)}')">
+         View more
+       </button>`
+    : ""
+}
 
         ${post.repostOf ? renderOriginalPostCard(post.repostOf) : renderMediaCarousel(post)}
 
@@ -669,19 +676,23 @@ ${
       ? `
         <div class="aift-carousel-preview">
           <div class="aift-carousel-track" onscroll="AIFTFeed.updateCarouselDots(this)">
-            ${files.map(file => {
-              const url = URL.createObjectURL(file);
+${files.map((file, index) => {
+  const url = URL.createObjectURL(file);
 
-              return `
-                <div class="aift-carousel-slide">
-                  ${
-                    file.type.startsWith("video/")
-                      ? `<video src="${url}" controls playsinline></video>`
-                      : `<img src="${url}" alt="">`
-                  }
-                </div>
-              `;
-            }).join("")}
+  return `
+    <div class="aift-carousel-slide aift-preview-item">
+      <button class="aift-preview-remove" onclick="AIFTFeed.removeComposerMedia(${index})" type="button">
+        ×
+      </button>
+
+      ${
+        file.type.startsWith("video/")
+          ? `<video src="${url}" controls playsinline></video>`
+          : `<img src="${url}" alt="">`
+      }
+    </div>
+  `;
+}).join("")}
           </div>
 
           ${
@@ -695,6 +706,24 @@ ${
       `
       : "";
   }
+
+  function removeComposerMedia(index){
+  const mediaEl = document.getElementById("aiftPostMedia");
+  if(!mediaEl) return;
+
+  const dt = new DataTransfer();
+  const files = Array.from(mediaEl.files || []);
+
+  files.forEach((file, i) => {
+    if(i !== index){
+      dt.items.add(file);
+    }
+  });
+
+  mediaEl.files = dt.files;
+  previewComposerMedia();
+}
+  
 
 async function createPost() {
   if(!requireMember("create posts")) return;
@@ -813,6 +842,18 @@ async function createPost() {
     if (Array.isArray(data.likes)) post.likes = data.likes;
     updatePostActions(postId);
   }
+  function expandPostText(postId){
+  const text = document.getElementById(`aift-text-${safeId(postId)}`);
+  const btn = text?.nextElementSibling;
+
+  if(!text) return;
+
+  text.classList.remove("is-collapsed");
+
+  if(btn){
+    btn.style.display = "none";
+  }
+}
 
   function updatePostActions(postId) {
     const post = getPost(postId);
@@ -2098,11 +2139,13 @@ async function visitProfile(userId) {
     openRepost,
     submitRepost,
     openPostMenu,
+    removeComposerMedia,
     savePost,
     notInterested,
     reportPost,
     deletePost,
     toggleFollow,
+    expandPostText,
     visitProfile,
     closeOverlays
   };
