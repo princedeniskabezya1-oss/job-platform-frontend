@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
 
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+
 <title>AIFT | Home</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -77,11 +80,26 @@ a{
 /* TOPBAR */
 
 .topbar{
-  position:sticky;
+  position:fixed;
   top:0;
-  z-index:1000;
+  left:0;
+  right:0;
+  z-index:5000;
   background:#fff;
   border-bottom:1px solid #e5e7eb;
+  transition:
+    transform .28s ease,
+    background .25s ease,
+    backdrop-filter .25s ease;
+}
+  .topbar.is-glass{
+  background:rgba(255,255,255,.72);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+
+.topbar.is-hidden{
+  transform:translateY(-105%);
 }
 
 .top-inner{
@@ -302,7 +320,7 @@ a{
 /* PAGE */
 
 .page{
-  padding:16px 0 40px;
+  padding:74px 0 40px;
 }
 
 .layout{
@@ -1997,21 +2015,26 @@ window.addEventListener("scroll",()=>{
     return;
   }
 
-  const nav =
-    document.querySelector(".mobile-nav");
+  const nav = document.querySelector(".mobile-nav");
+  const topbar = document.querySelector(".topbar");
 
-  const current =
-    window.scrollY;
+  const current = window.scrollY;
 
-  if(current > lastScroll && current > 80){
+  if(current > 10){
+    topbar?.classList.add("is-glass");
+  }else{
+    topbar?.classList.remove("is-glass");
+  }
 
-    nav.style.transform =
-      "translateY(100%)";
+  if(current > lastScroll && current > 900){
+
+    nav.style.transform = "translateY(105%)";
+    topbar?.classList.add("is-hidden");
 
   }else{
 
-    nav.style.transform =
-      "translateY(0)";
+    nav.style.transform = "translateY(0)";
+    topbar?.classList.remove("is-hidden");
 
   }
 
