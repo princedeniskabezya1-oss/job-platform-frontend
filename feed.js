@@ -627,6 +627,7 @@ ${
         id="aift-text-${safeId(post._id)}"
         class="aift-post-text ${textData.needsMore ? "is-shortened" : ""}"
         data-full="${textData.full}"
+data-short="${textData.short}"
       >
         ${textData.needsMore
           ? `${textData.short} <button class="aift-inline-more" onclick="event.stopPropagation(); AIFTFeed.expandPostText('${esc(post._id)}')">more</button>`
@@ -872,8 +873,23 @@ function expandPostText(postId){
   const text = document.getElementById(`aift-text-${safeId(postId)}`);
   if(!text) return;
 
-  text.innerHTML = text.dataset.full || text.innerHTML;
+  text.innerHTML = `
+    ${text.dataset.full || text.innerHTML}
+    <button class="aift-inline-more" onclick="event.stopPropagation(); AIFTFeed.collapsePostText('${postId}')">view less</button>
+  `;
+
   text.classList.remove("is-shortened");
+}
+  function collapsePostText(postId){
+  const text = document.getElementById(`aift-text-${safeId(postId)}`);
+  if(!text) return;
+
+  const short = text.dataset.short || "";
+  text.innerHTML = `
+    ${short} <button class="aift-inline-more" onclick="event.stopPropagation(); AIFTFeed.expandPostText('${postId}')">more</button>
+  `;
+
+  text.classList.add("is-shortened");
 }
 
   function updatePostActions(postId) {
@@ -2167,6 +2183,7 @@ async function visitProfile(userId) {
     deletePost,
     toggleFollow,
     expandPostText,
+    collapsePostText,
     visitProfile,
     closeOverlays
   };
