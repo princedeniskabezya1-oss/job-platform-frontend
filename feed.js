@@ -393,7 +393,7 @@ await loadFeed({ reset: true });
 
 let feedUrl = state.guestMode
   ? `${API}/api/posts/public?skip=${state.skip}&limit=${state.limit}&sort=${encodeURIComponent(state.sort || "recent")}`
-  : `${API}/api/posts?skip=${state.skip}&limit=${state.limit}&sort=${encodeURIComponent(state.sort || "recent")}`;
+  : `${API}/api/posts/feed?skip=${state.skip}&limit=${state.limit}`;
 
 if(state.mode === "profile" && state.authorId){
   feedUrl = state.guestMode
