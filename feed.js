@@ -603,10 +603,10 @@ ${
 
         ${
   post.text?.trim()
-    ? `<div id="aift-text-${safeId(post._id)}" class="aift-post-text is-collapsed">${esc(post.text)}</div>
-       <button class="aift-view-more-text" onclick="AIFTFeed.expandPostText('${esc(post._id)}')">
-         View more
-       </button>`
+? `<div id="aift-text-${safeId(post._id)}" class="aift-post-text is-collapsed">${esc(post.text)}</div>
+   <button class="aift-view-more-text" onclick="AIFTFeed.expandPostText('${esc(post._id)}')">
+     more
+   </button>`
     : ""
 }
 
