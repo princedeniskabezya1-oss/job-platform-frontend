@@ -2006,39 +2006,44 @@ observer.observe(
 /* =========================
    SCROLL
 ========================= */
-
 let lastScroll = 0;
+let scrollTicking = false;
 
-window.addEventListener("scroll",()=>{
+function handleHomeMobileScroll(){
+  if(window.innerWidth > 760) return;
 
-  if(window.innerWidth > 760){
-    return;
-  }
-
-  const nav = document.querySelector(".mobile-nav");
   const topbar = document.querySelector(".topbar");
+  const nav = document.querySelector(".mobile-nav");
+  if(!topbar || !nav) return;
 
   const current = window.scrollY;
+  const scrollingDown = current > lastScroll;
+  const scrollingUp = current < lastScroll;
 
-  if(current > 10){
-    topbar?.classList.add("is-glass");
-  }else{
-    topbar?.classList.remove("is-glass");
+  topbar.classList.toggle("is-glass", current > 20);
+
+  if(scrollingDown && current > 900){
+    topbar.classList.add("is-hidden");
+    nav.style.transform = "translateY(110%)";
   }
 
-  if(current > lastScroll && current > 900){
-
-    nav.style.transform = "translateY(105%)";
-    topbar?.classList.add("is-hidden");
-
-  }else{
-
+  if(scrollingUp || current < 120){
+    topbar.classList.remove("is-hidden");
     nav.style.transform = "translateY(0)";
-    topbar?.classList.remove("is-hidden");
-
   }
 
-  lastScroll = current;
+  lastScroll = current <= 0 ? 0 : current;
+}
+
+window.addEventListener("scroll", () => {
+  if(scrollTicking) return;
+
+  scrollTicking = true;
+
+  requestAnimationFrame(() => {
+    handleHomeMobileScroll();
+    scrollTicking = false;
+  });
 });
 
 /* =========================
