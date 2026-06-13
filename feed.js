@@ -603,10 +603,13 @@ ${
 
         ${
   post.text?.trim()
-? `<div id="aift-text-${safeId(post._id)}" class="aift-post-text is-collapsed">${esc(post.text)}</div>
-   <button class="aift-view-more-text" onclick="AIFTFeed.expandPostText('${esc(post._id)}')">
-     more
-   </button>`
+? `<div
+  id="aift-text-${safeId(post._id)}"
+  class="aift-post-text is-collapsed"
+  data-full="${esc(post.text)}"
+>
+  ${esc(post.text)}
+</div>`
     : ""
 }
 
@@ -842,17 +845,16 @@ async function createPost() {
     if (Array.isArray(data.likes)) post.likes = data.likes;
     updatePostActions(postId);
   }
-  function expandPostText(postId){
-  const text = document.getElementById(`aift-text-${safeId(postId)}`);
-  const btn = text?.nextElementSibling;
+function expandPostText(postId){
+
+  const text =
+    document.getElementById(
+      `aift-text-${safeId(postId)}`
+    );
 
   if(!text) return;
 
   text.classList.remove("is-collapsed");
-
-  if(btn){
-    btn.style.display = "none";
-  }
 }
 
   function updatePostActions(postId) {
@@ -1600,7 +1602,7 @@ async function createPost() {
     const count = document.getElementById(`aift-shares-count-${safeId(postId)}`);
     const wrap = document.getElementById(`aift-shares-wrap-${safeId(postId)}`);
 
-    if (count) count.textContent = String(sharesCount || 0);
+    if (count) count.textContent = formatCount(sharesCount || 0);
     if (wrap) wrap.classList.toggle("aift-hidden", !sharesCount);
   }
 
@@ -1612,7 +1614,7 @@ async function createPost() {
   function updateCommentCount(postId) {
     const post = getPost(postId);
     const count = document.getElementById(`aift-comments-count-${safeId(postId)}`);
-    if (post && count) count.textContent = String(countComments(post));
+    if (post && count) count.textContent = formatCount(countComments(post));
   }
 
   function getPostLink(postId) {
@@ -2150,5 +2152,11 @@ async function visitProfile(userId) {
     closeOverlays
   };
 })();
+document.addEventListener("click", (e) => {
+  const text = e.target.closest(".aift-post-text.is-collapsed");
+  if(!text) return;
+
+  text.classList.remove("is-collapsed");
+});
 
 window.AIFTFeed = AIFTFeed;
