@@ -562,8 +562,9 @@ if(state.mode === "group" && state.groupId){
     dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
   }
 
-  function shortText(text = "", max = 115){
+function shortText(text = ""){
   const clean = String(text || "").trim();
+  const max = window.innerWidth <= 720 ? 92 : 180;
 
   if(clean.length <= max){
     return {
@@ -574,7 +575,7 @@ if(state.mode === "group" && state.groupId){
   }
 
   return {
-    short: esc(clean.slice(0, max).trim()),
+    short: esc(clean.slice(0, max).trim()) + "...",
     full: esc(clean),
     needsMore: true
   };
@@ -587,7 +588,7 @@ if(state.mode === "group" && state.groupId){
     const followed = isFollowing(author);
     const verified = isVerified(author);
     const canManage = !state.guestMode && (isMine(author._id) || isAdmin());
-    const textData = shortText(post.text || "", 115);
+    const textData = shortText(post.text || "");
 
     return `
       <article class="aift-post-card" id="aift-post-${safeId(post._id)}" data-post-id="${esc(post._id)}">
@@ -628,7 +629,7 @@ ${
         data-full="${textData.full}"
       >
         ${textData.needsMore
-          ? `${textData.short}<button class="aift-inline-more" onclick="event.stopPropagation(); AIFTFeed.expandPostText('${esc(post._id)}')">... more</button>`
+          ? `${textData.short} <button class="aift-inline-more" onclick="event.stopPropagation(); AIFTFeed.expandPostText('${esc(post._id)}')">more</button>`
           : textData.full
         }
       </div>`
