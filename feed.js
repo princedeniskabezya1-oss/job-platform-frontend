@@ -268,7 +268,7 @@ await loadFeed({ reset: true });
 
           <div class="aift-composer-actions">
             <label class="aift-upload-btn">
-              <input id="aiftPostMedia" type="file" accept="image/*,video/*" multiple onchange="AIFTFeed.previewComposerMedia()" />
+              <input id="aiftPostMedia" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" multiple onchange="AIFTFeed.previewComposerMedia()" />
               Add media
             </label>
             <button class="aift-primary-btn" onclick="AIFTFeed.createPost()">Post</button>
