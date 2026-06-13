@@ -1095,11 +1095,11 @@ function expandPostText(postId){
               <div class="aift-fb-text">${esc(comment.text)}</div>
             </div>
 
-            ${
-              canDelete
-                ? `<button class="aift-comment-more" onclick="AIFTFeed.deleteComment('${esc(postId)}','${esc(comment._id)}')" title="Delete comment">${svg("trash")}</button>`
-                : `<button class="aift-comment-more" title="More">${svg("more")}</button>`
-            }
+${
+  canDelete
+    ? `<button class="aift-comment-more" onclick="AIFTFeed.deleteComment('${esc(postId)}','${esc(comment._id)}')" title="Delete comment">${svg("trash")}</button>`
+    : `<button class="aift-comment-more" title="More">${svg("more")}</button>`
+}
           </div>
 
           <div class="aift-fb-actions">
@@ -1153,11 +1153,11 @@ function expandPostText(postId){
               <div class="aift-fb-text"><span class="aift-reply-to">@${esc(userName(parentUser))}</span> ${esc(reply.text)}</div>
             </div>
 
-            ${
-              canDelete
-                ? `<button class="aift-comment-more" onclick="AIFTFeed.deleteReply('${esc(postId)}','${esc(commentId)}','${esc(reply._id)}')" title="Delete reply">${svg("trash")}</button>`
-                : ""
-            }
+${
+  canDelete
+    ? `<button class="aift-comment-more" onclick="AIFTFeed.openReplyMenu('${esc(postId)}','${esc(commentId)}','${esc(reply._id)}')" title="Reply options">${svg("more")}</button>`
+    : ""
+}
           </div>
 
           <div class="aift-fb-actions">
@@ -1340,6 +1340,45 @@ function expandPostText(postId){
       }
     });
   }
+  function openCommentMenu(postId, commentId){
+  openConfirmModal({
+    title: "Comment options",
+    message: "You can manage your own comment here.",
+    confirmText: "Delete comment",
+    danger: true,
+    onConfirm: async () => {
+      await api(`${API}/api/posts/${postId}/comments/${commentId}`, {
+        method: "DELETE",
+        headers: headers()
+      });
+
+      await refreshOnePost(postId);
+      rerenderActiveComments(postId);
+      updateCommentCount(postId);
+      toast("Comment deleted.");
+    }
+  });
+}
+
+function openReplyMenu(postId, commentId, replyId){
+  openConfirmModal({
+    title: "Reply options",
+    message: "You can manage your own reply here.",
+    confirmText: "Delete reply",
+    danger: true,
+    onConfirm: async () => {
+      await api(`${API}/api/posts/${postId}/comments/${commentId}/replies/${replyId}`, {
+        method: "DELETE",
+        headers: headers()
+      });
+
+      await refreshOnePost(postId);
+      rerenderActiveComments(postId);
+      updateCommentCount(postId);
+      toast("Reply deleted.");
+    }
+  });
+}
 
   async function deleteReply(postId, commentId, replyId) {
     openConfirmModal({
@@ -2162,9 +2201,11 @@ async function visitProfile(userId) {
     submitInlineReply,
     likeComment,
     likeReply,
-    deleteComment,
-    deleteReply,
-    replyTo,
+deleteComment,
+deleteReply,
+openCommentMenu,
+openReplyMenu,
+replyTo,
     cancelReply,
     openLikes,
     openShare,
