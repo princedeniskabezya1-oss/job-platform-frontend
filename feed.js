@@ -118,6 +118,23 @@ function userAvatar(user = {}) {
   function isAdmin() {
     return state.me?.role === "admin" || localStorage.getItem("role") === "admin";
   }
+  function formatCount(value = 0){
+  const n = Number(value || 0);
+
+  if(n >= 1000000000){
+    return (n / 1000000000).toFixed(n >= 10000000000 ? 0 : 1).replace(".0","") + "B";
+  }
+
+  if(n >= 1000000){
+    return (n / 1000000).toFixed(n >= 10000000 ? 0 : 1).replace(".0","") + "M";
+  }
+
+  if(n >= 1000){
+    return (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(".0","") + "K";
+  }
+
+  return String(n);
+}
 
   function formatTime(dateValue) {
     if (!dateValue) return "";
@@ -592,22 +609,22 @@ ${
           <div class="aift-left-actions">
             <button class="aift-action-btn ${liked ? "is-liked" : ""}" onclick="AIFTFeed.likePost('${esc(post._id)}')" aria-label="Like">
               ${svg("heart")}
-              <strong id="aift-likes-count-${safeId(post._id)}">${(post.likes || []).length}</strong>
+              <strong id="aift-likes-count-${safeId(post._id)}">${formatCount((post.likes || []).length)}</strong>
             </button>
 
             <button class="aift-action-btn" onclick="AIFTFeed.openComments('${esc(post._id)}')" aria-label="Comment">
               ${svg("comment")}
-              <strong id="aift-comments-count-${safeId(post._id)}">${commentsCount}</strong>
+              <strong id="aift-comments-count-${safeId(post._id)}">${formatCount(commentsCount)}</strong>
             </button>
 
             <button class="aift-action-btn" onclick="AIFTFeed.openRepost('${esc(post._id)}')" aria-label="Repost">
               ${svg("repost")}
-              <strong>${post.repostsCount || post.repostCount || 0}</strong>
+              <strong>${formatCount(post.repostsCount || post.repostCount || 0)}</strong>
             </button>
 
             <button class="aift-action-btn" onclick="AIFTFeed.openShare('${esc(post._id)}')" aria-label="Share">
               ${svg("share")}
-              <strong id="aift-shares-count-${safeId(post._id)}">${post.sharesCount || 0}</strong>
+              <strong id="aift-shares-count-${safeId(post._id)}">${formatCount(post.sharesCount || 0)}</strong>
             </button>
           </div>
 
@@ -809,7 +826,7 @@ async function createPost() {
     const count = document.getElementById(`aift-likes-count-${safeId(postId)}`);
 
     if (likeBtn) likeBtn.classList.toggle("is-liked", liked);
-    if (count) count.textContent = String((post.likes || []).length);
+    if (count) count.textContent = formatCount((post.likes || []).length);
   }
 
   function handleTapLike(event, postId) {
