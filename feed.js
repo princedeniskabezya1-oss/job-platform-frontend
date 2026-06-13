@@ -562,6 +562,24 @@ if(state.mode === "group" && state.groupId){
     dots.forEach((dot, i) => dot.classList.toggle("active", i === index));
   }
 
+  function shortText(text = "", max = 115){
+  const clean = String(text || "").trim();
+
+  if(clean.length <= max){
+    return {
+      short: esc(clean),
+      full: esc(clean),
+      needsMore: false
+    };
+  }
+
+  return {
+    short: esc(clean.slice(0, max).trim()),
+    full: esc(clean),
+    needsMore: true
+  };
+}
+
   function renderPost(post) {
     const author = post.author || {};
     const liked = (post.likes || []).some(u => String(u?._id || u) === String(state.meId));
@@ -569,6 +587,7 @@ if(state.mode === "group" && state.groupId){
     const followed = isFollowing(author);
     const verified = isVerified(author);
     const canManage = !state.guestMode && (isMine(author._id) || isAdmin());
+    const textData = shortText(post.text || "", 115);
 
     return `
       <article class="aift-post-card" id="aift-post-${safeId(post._id)}" data-post-id="${esc(post._id)}">
@@ -601,15 +620,18 @@ ${
           </div>
         </header>
 
-        ${
+${
   post.text?.trim()
-? `<div
-  id="aift-text-${safeId(post._id)}"
-  class="aift-post-text is-collapsed"
-  data-full="${esc(post.text)}"
->
-  ${esc(post.text)}
-</div>`
+    ? `<div
+        id="aift-text-${safeId(post._id)}"
+        class="aift-post-text ${textData.needsMore ? "is-shortened" : ""}"
+        data-full="${textData.full}"
+      >
+        ${textData.needsMore
+          ? `${textData.short}<button class="aift-inline-more" onclick="event.stopPropagation(); AIFTFeed.expandPostText('${esc(post._id)}')">... more</button>`
+          : textData.full
+        }
+      </div>`
     : ""
 }
 
@@ -846,15 +868,11 @@ async function createPost() {
     updatePostActions(postId);
   }
 function expandPostText(postId){
-
-  const text =
-    document.getElementById(
-      `aift-text-${safeId(postId)}`
-    );
-
+  const text = document.getElementById(`aift-text-${safeId(postId)}`);
   if(!text) return;
 
-  text.classList.remove("is-collapsed");
+  text.innerHTML = text.dataset.full || text.innerHTML;
+  text.classList.remove("is-shortened");
 }
 
   function updatePostActions(postId) {
