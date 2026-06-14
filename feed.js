@@ -1183,7 +1183,6 @@ function openCommentMenu(postId, commentId){
   const user = comment.user || {};
   const commentOwnerId = String(user._id || user.id || "");
   const myId = String(state.meId || localStorage.getItem("userId") || "");
-
   const isMyComment = commentOwnerId && myId && commentOwnerId === myId;
   const name = userName(user);
 
@@ -1192,15 +1191,13 @@ function openCommentMenu(postId, commentId){
 
   menu.innerHTML = `
     <button class="aift-sheet-option" onclick="AIFTFeed.nativeShare('${esc(postId)}')">
-      ${svg("share")}
-      <span>Send</span>
+      ${svg("share")}<span>Send</span>
     </button>
 
     ${
       !isMyComment && user._id
         ? `<button class="aift-sheet-option" onclick="AIFTFeed.toggleFollow('${esc(user._id)}')">
-            ${svg("plus")}
-            <span>Follow ${esc(name)}</span>
+            ${svg("plus")}<span>Follow ${esc(name)}</span>
           </button>`
         : ""
     }
@@ -1208,13 +1205,11 @@ function openCommentMenu(postId, commentId){
     ${
       !isMyComment
         ? `<button class="aift-sheet-option danger" onclick="AIFTFeed.reportComment('${esc(postId)}','${esc(commentId)}')">
-            ${svg("flag")}
-            <span>Report comment</span>
+            ${svg("flag")}<span>Report comment</span>
           </button>
 
           <button class="aift-sheet-option" onclick="AIFTFeed.hideComment('${esc(commentId)}')">
-            ${svg("close")}
-            <span>I don’t want to see this</span>
+            ${svg("close")}<span>I don’t want to see this</span>
           </button>`
         : ""
     }
@@ -1222,13 +1217,11 @@ function openCommentMenu(postId, commentId){
     ${
       isMyComment
         ? `<button class="aift-sheet-option" onclick="AIFTFeed.editComment('${esc(postId)}','${esc(commentId)}')">
-            ${svg("edit")}
-            <span>Edit comment</span>
+            ${svg("edit")}<span>Edit comment</span>
           </button>
 
           <button class="aift-sheet-option danger" onclick="AIFTFeed.deleteComment('${esc(postId)}','${esc(commentId)}')">
-            ${svg("trash")}
-            <span>Delete comment</span>
+            ${svg("trash")}<span>Delete comment</span>
           </button>`
         : ""
     }
@@ -1465,25 +1458,6 @@ async function copyCommentLink(postId){
       }
     });
   }
-  function openCommentMenu(postId, commentId){
-  openConfirmModal({
-    title: "Comment options",
-    message: "You can manage your own comment here.",
-    confirmText: "Delete comment",
-    danger: true,
-    onConfirm: async () => {
-      await api(`${API}/api/posts/${postId}/comments/${commentId}`, {
-        method: "DELETE",
-        headers: headers()
-      });
-
-      await refreshOnePost(postId);
-      rerenderActiveComments(postId);
-      updateCommentCount(postId);
-      toast("Comment deleted.");
-    }
-  });
-}
 
 function openReplyMenu(postId, commentId, replyId){
   openConfirmModal({
@@ -2328,7 +2302,7 @@ async function visitProfile(userId) {
     likeReply,
 deleteComment,
 deleteReply,
-openCommentMenu,
+
 openReplyMenu,
 replyTo,
     cancelReply,
