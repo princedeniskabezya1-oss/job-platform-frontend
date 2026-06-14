@@ -198,6 +198,7 @@ function userAvatar(user = {}) {
       send: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2 11 13"></path><path d="M22 2 15 22 11 13 2 9 22 2Z"></path></svg>`,
       search: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>`,
       trash: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path></svg>`,
+      plus: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>`,
       edit: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"></path></svg>`
     };
 
@@ -1095,11 +1096,13 @@ function expandPostText(postId){
               <div class="aift-fb-text">${esc(comment.text)}</div>
             </div>
 
-${
-  canDelete
-    ? `<button class="aift-comment-more" onclick="AIFTFeed.deleteComment('${esc(postId)}','${esc(comment._id)}')" title="Delete comment">${svg("trash")}</button>`
-    : `<button class="aift-comment-more" title="More">${svg("more")}</button>`
-}
+<button
+  class="aift-comment-more"
+  onclick="AIFTFeed.openCommentMenu('${esc(postId)}','${esc(comment._id)}')"
+  title="Comment options"
+>
+  ${svg("more")}
+</button>
           </div>
 
           <div class="aift-fb-actions">
@@ -1172,7 +1175,95 @@ ${
       </div>
     `;
   }
+function openCommentMenu(postId, commentId){
+  const post = getPost(postId);
+  const comment = post?.comments?.find(c => String(c._id) === String(commentId));
+  if(!post || !comment) return;
 
+  const user = comment.user || {};
+  const owner = isMine(user._id);
+  const name = userName(user);
+
+  const menu = document.getElementById("aiftMenuBody");
+  if(!menu) return;
+
+  menu.innerHTML = owner
+    ? `
+      <button class="aift-sheet-option" onclick="AIFTFeed.editComment('${esc(postId)}','${esc(commentId)}')">${svg("edit")}<span>Edit comment</span></button>
+      <button class="aift-sheet-option" onclick="AIFTFeed.copyCommentLink('${esc(postId)}')">${svg("copy")}<span>Copy link</span></button>
+      <button class="aift-sheet-option danger" onclick="AIFTFeed.deleteComment('${esc(postId)}','${esc(commentId)}')">${svg("trash")}<span>Delete comment</span></button>
+    `
+    : `
+      <button class="aift-sheet-option" onclick="AIFTFeed.nativeShare('${esc(postId)}')">${svg("share")}<span>Send</span></button>
+      <button class="aift-sheet-option" onclick="AIFTFeed.toggleFollow('${esc(user._id)}')">${svg("plus")}<span>Follow ${esc(name)}</span></button>
+      <button class="aift-sheet-option danger" onclick="AIFTFeed.reportComment('${esc(postId)}','${esc(commentId)}')">${svg("flag")}<span>Report comment</span></button>
+      <button class="aift-sheet-option" onclick="AIFTFeed.hideComment('${esc(commentId)}')">${svg("close")}<span>I don’t want to see this</span></button>
+    `;
+
+  openOverlay("aiftMenuSheet");
+}
+
+async function editComment(postId, commentId){
+  const post = getPost(postId);
+  const comment = post?.comments?.find(c => String(c._id) === String(commentId));
+  if(!comment) return;
+
+  const next = prompt("Edit your comment:", comment.text || "");
+  if(next === null) return;
+
+  const text = next.trim();
+  if(!text) return;
+
+  try{
+    await api(`${API}/api/posts/${postId}/comments/${commentId}`, {
+      method:"PATCH",
+      headers:headers({ "Content-Type":"application/json" }),
+      body:JSON.stringify({ text })
+    });
+
+    closeOverlays();
+    await refreshOnePost(postId);
+    rerenderActiveComments(postId);
+    toast("Comment updated.");
+  }catch(err){
+    toast(err.message || "Edit comment endpoint is not ready yet.", "error");
+  }
+}
+
+async function reportComment(postId, commentId){
+  try{
+    await api(`${API}/api/posts/${postId}/report`, {
+      method:"POST",
+      headers:headers({ "Content-Type":"application/json" }),
+      body:JSON.stringify({
+        reason:`Reported comment: ${commentId}`
+      })
+    });
+
+    closeOverlays();
+    toast("Comment reported.");
+  }catch(err){
+    toast(err.message, "error");
+  }
+}
+
+function hideComment(commentId){
+  document.getElementById(`aift-comment-${safeId(commentId)}`)?.remove();
+  closeOverlays();
+  toast("Comment hidden.");
+}
+
+async function copyCommentLink(postId){
+  const link = getPostLink(postId);
+
+  try{
+    await navigator.clipboard.writeText(link);
+    closeOverlays();
+    toast("Comment link copied.");
+  }catch{
+    alert(link);
+  }
+}
   function handleCommentKey(event) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
@@ -2221,6 +2312,11 @@ replyTo,
     savePost,
     notInterested,
     reportPost,
+    openCommentMenu,
+editComment,
+reportComment,
+hideComment,
+copyCommentLink,
     deletePost,
     toggleFollow,
     expandPostText,
