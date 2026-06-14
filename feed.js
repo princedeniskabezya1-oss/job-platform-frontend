@@ -135,6 +135,19 @@ function userAvatar(user = {}) {
 
   return String(n);
 }
+  function getHiddenComments(){
+  return JSON.parse(localStorage.getItem("aiftHiddenComments") || "[]");
+}
+
+function saveHiddenComment(commentId){
+  const hidden = getHiddenComments();
+
+  if(!hidden.includes(String(commentId))){
+    hidden.push(String(commentId));
+  }
+
+  localStorage.setItem("aiftHiddenComments", JSON.stringify(hidden));
+}
 
   function formatTime(dateValue) {
     if (!dateValue) return "";
@@ -1024,7 +1037,11 @@ function expandPostText(postId){
   }
 
   function renderComments(post, limit = 3) {
-    const comments = post.comments || [];
+    const hiddenComments = getHiddenComments();
+
+const comments = (post.comments || []).filter(comment =>
+  !hiddenComments.includes(String(comment._id))
+);
     const visibleLimit = state.visibleComments[post._id] || limit;
     const visibleComments = comments.slice(-visibleLimit);
 
@@ -1284,10 +1301,21 @@ function sendCommentOwner(userId){
 }
   
 function hideComment(commentId){
-  document.getElementById(`aift-comment-${safeId(commentId)}`)?.remove();
+  if(!commentId) return;
 
-  document.querySelectorAll(`#aift-comment-${safeId(commentId)}, #aift-reply-${safeId(commentId)}`)
-    .forEach(el => el.remove());
+  saveHiddenComment(commentId);
+
+  document
+    .querySelectorAll(`#aift-comment-${safeId(commentId)}, #aift-reply-${safeId(commentId)}`)
+    .forEach(el => {
+      el.style.transition = "opacity .18s ease, transform .18s ease";
+      el.style.opacity = "0";
+      el.style.transform = "translateX(12px)";
+
+      setTimeout(() => {
+        el.remove();
+      }, 180);
+    });
 
   closeOverlays();
   toast("Comment hidden.");
