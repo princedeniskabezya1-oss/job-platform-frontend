@@ -1184,27 +1184,26 @@ function openCommentMenu(postId, commentId){
   const commentOwnerId = String(user._id || user.id || "");
   const myId = String(state.meId || localStorage.getItem("userId") || "");
   const isMyComment = commentOwnerId && myId && commentOwnerId === myId;
+
   const name = userName(user);
+  const alreadyFollowing = isFollowing(user);
 
   const menu = document.getElementById("aiftMenuBody");
   if(!menu) return;
 
   menu.innerHTML = `
-    <button class="aift-sheet-option" onclick="AIFTFeed.nativeShare('${esc(postId)}')">
-      ${svg("share")}<span>Send</span>
-    </button>
-
     ${
       !isMyComment && user._id
-        ? `<button class="aift-sheet-option" onclick="AIFTFeed.toggleFollow('${esc(user._id)}')">
-            ${svg("plus")}<span>Follow ${esc(name)}</span>
-          </button>`
-        : ""
-    }
+        ? `<button class="aift-sheet-option" onclick="AIFTFeed.sendCommentOwner('${esc(user._id)}')">
+            ${svg("send")}<span>Send message</span>
+          </button>
 
-    ${
-      !isMyComment
-        ? `<button class="aift-sheet-option danger" onclick="AIFTFeed.reportComment('${esc(postId)}','${esc(commentId)}')">
+          <button class="aift-sheet-option" onclick="AIFTFeed.toggleFollow('${esc(user._id)}')">
+            ${alreadyFollowing ? svg("close") : svg("plus")}
+            <span>${alreadyFollowing ? "Unfollow" : "Follow"} ${esc(name)}</span>
+          </button>
+
+          <button class="aift-sheet-option danger" onclick="AIFTFeed.reportComment('${esc(postId)}','${esc(commentId)}')">
             ${svg("flag")}<span>Report comment</span>
           </button>
 
@@ -1263,19 +1262,33 @@ async function reportComment(postId, commentId){
       method:"POST",
       headers:headers({ "Content-Type":"application/json" }),
       body:JSON.stringify({
-        reason:`Reported comment: ${commentId}`
+        type:"comment",
+        commentId,
+        reason:"Reported from comment menu"
       })
     });
 
     closeOverlays();
-    toast("Comment reported.");
+    toast("Comment reported. Our admin team will review it.");
   }catch(err){
     toast(err.message, "error");
   }
 }
+function sendCommentOwner(userId){
+  if(!userId) return;
 
+  closeOverlays();
+
+  window.location.href =
+    `messages.html?user=${encodeURIComponent(userId)}`;
+}
+  
 function hideComment(commentId){
   document.getElementById(`aift-comment-${safeId(commentId)}`)?.remove();
+
+  document.querySelectorAll(`#aift-comment-${safeId(commentId)}, #aift-reply-${safeId(commentId)}`)
+    .forEach(el => el.remove());
+
   closeOverlays();
   toast("Comment hidden.");
 }
@@ -2325,6 +2338,7 @@ editComment,
 reportComment,
 hideComment,
 copyCommentLink,
+    sendCommentOwner,
     deletePost,
     toggleFollow,
     expandPostText,
