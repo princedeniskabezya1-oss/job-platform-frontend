@@ -1181,24 +1181,58 @@ function openCommentMenu(postId, commentId){
   if(!post || !comment) return;
 
   const user = comment.user || {};
-  const owner = isMine(user._id);
+  const commentOwnerId = String(user._id || user.id || "");
+  const myId = String(state.meId || localStorage.getItem("userId") || "");
+
+  const isMyComment = commentOwnerId && myId && commentOwnerId === myId;
   const name = userName(user);
 
   const menu = document.getElementById("aiftMenuBody");
   if(!menu) return;
 
-  menu.innerHTML = owner
-    ? `
-      <button class="aift-sheet-option" onclick="AIFTFeed.editComment('${esc(postId)}','${esc(commentId)}')">${svg("edit")}<span>Edit comment</span></button>
-      <button class="aift-sheet-option" onclick="AIFTFeed.copyCommentLink('${esc(postId)}')">${svg("copy")}<span>Copy link</span></button>
-      <button class="aift-sheet-option danger" onclick="AIFTFeed.deleteComment('${esc(postId)}','${esc(commentId)}')">${svg("trash")}<span>Delete comment</span></button>
-    `
-    : `
-      <button class="aift-sheet-option" onclick="AIFTFeed.nativeShare('${esc(postId)}')">${svg("share")}<span>Send</span></button>
-      <button class="aift-sheet-option" onclick="AIFTFeed.toggleFollow('${esc(user._id)}')">${svg("plus")}<span>Follow ${esc(name)}</span></button>
-      <button class="aift-sheet-option danger" onclick="AIFTFeed.reportComment('${esc(postId)}','${esc(commentId)}')">${svg("flag")}<span>Report comment</span></button>
-      <button class="aift-sheet-option" onclick="AIFTFeed.hideComment('${esc(commentId)}')">${svg("close")}<span>I don’t want to see this</span></button>
-    `;
+  menu.innerHTML = `
+    <button class="aift-sheet-option" onclick="AIFTFeed.nativeShare('${esc(postId)}')">
+      ${svg("share")}
+      <span>Send</span>
+    </button>
+
+    ${
+      !isMyComment && user._id
+        ? `<button class="aift-sheet-option" onclick="AIFTFeed.toggleFollow('${esc(user._id)}')">
+            ${svg("plus")}
+            <span>Follow ${esc(name)}</span>
+          </button>`
+        : ""
+    }
+
+    ${
+      !isMyComment
+        ? `<button class="aift-sheet-option danger" onclick="AIFTFeed.reportComment('${esc(postId)}','${esc(commentId)}')">
+            ${svg("flag")}
+            <span>Report comment</span>
+          </button>
+
+          <button class="aift-sheet-option" onclick="AIFTFeed.hideComment('${esc(commentId)}')">
+            ${svg("close")}
+            <span>I don’t want to see this</span>
+          </button>`
+        : ""
+    }
+
+    ${
+      isMyComment
+        ? `<button class="aift-sheet-option" onclick="AIFTFeed.editComment('${esc(postId)}','${esc(commentId)}')">
+            ${svg("edit")}
+            <span>Edit comment</span>
+          </button>
+
+          <button class="aift-sheet-option danger" onclick="AIFTFeed.deleteComment('${esc(postId)}','${esc(commentId)}')">
+            ${svg("trash")}
+            <span>Delete comment</span>
+          </button>`
+        : ""
+    }
+  `;
 
   openOverlay("aiftMenuSheet");
 }
