@@ -510,7 +510,7 @@ function openReelMode(postId){
               ${state.globalVideoMuted ? "Muted" : "Sound on"}
             </div>
 
-            <button class="aift-reel-sound" type="button">
+            <button class="aift-reel-sound" type="button" onclick="AIFTFeed.toggleReelSound(event)">
               ${state.globalVideoMuted ? "Muted" : "Sound on"}
             </button>
 
@@ -585,21 +585,32 @@ function openReelMode(postId){
 
 function handleReelScreenTap(event, postId){
   const clickedAction = event.target.closest(
-    ".aift-reel-actions, .aift-reel-close, .aift-reel-author"
+    ".aift-reel-actions, .aift-reel-close, .aift-reel-author, .aift-reel-more, .aift-reel-sound"
   );
 
   if(clickedAction) return;
 
+  const video = event.currentTarget.querySelector(".aift-reel-video");
   const now = Date.now();
 
   if(now - state.lastTapAt < 320){
     showHeart(postId);
-    likePost(postId, true);
+    handleReelLike(postId);
   }else{
-    setAllVideoMuted(!state.globalVideoMuted);
+    if(video){
+      if(video.paused){
+        video.play().catch(() => {});
+      }else{
+        video.pause();
+      }
+    }
   }
 
   state.lastTapAt = now;
+}
+  function toggleReelSound(event){
+  event?.stopPropagation();
+  setAllVideoMuted(!state.globalVideoMuted);
 }
 
 function closeReelMode(){
@@ -673,10 +684,14 @@ function observeReelVideos(){
 }
 
 async function handleReelSave(postId){
+  if(!requireMember("save reels")) return;
+
   await savePost(postId);
 
   const btn = document.getElementById(`aift-reel-save-${safeId(postId)}`);
   btn?.classList.add("is-saved");
+
+  toast("Saved.");
 
   setTimeout(() => {
     btn?.classList.remove("is-saved");
@@ -3003,6 +3018,11 @@ function closeOverlays(clear = true) {
     likeReply,
 deleteComment,
 deleteReply,
+    toggleReelSound,
+handleReelLike,
+handleReelSave,
+openReelShare,
+openReelComments,
 
 openReplyMenu,
 replyTo,
