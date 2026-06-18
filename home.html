@@ -2354,6 +2354,7 @@ const feedWatcher =
 
 </script>
   <script>
+<script>
 function openMobileComposer(event){
   if(event){
     event.preventDefault();
@@ -2365,39 +2366,176 @@ function openMobileComposer(event){
     return;
   }
 
-  const composer = document.querySelector("#feedMount .aift-composer");
-  const textarea =
-    document.getElementById("aiftPostText") ||
-    composer?.querySelector("textarea") ||
-    composer?.querySelector("[contenteditable='true']") ||
-    composer?.querySelector("input[type='text']");
+  openStartPostModal();
+}
 
-  if(!composer){
-    window.scrollTo({
-      top:0,
-      behavior:"smooth"
-    });
+function openStartPostModal(){
+  let modal = document.getElementById("startPostModal");
 
-    setTimeout(openMobileComposer, 500);
+  if(!modal){
+    modal = document.createElement("div");
+    modal.id = "startPostModal";
+    modal.className = "start-post-backdrop";
+
+    modal.innerHTML = `
+      <div class="start-post-modal">
+        <header class="start-post-head">
+          <strong>Start a post</strong>
+          <button type="button" onclick="closeStartPostModal()">×</button>
+        </header>
+
+        <textarea id="startPostText" placeholder="What do you want to talk about?"></textarea>
+
+        <footer class="start-post-actions">
+          <button type="button" onclick="closeStartPostModal()">Cancel</button>
+          <button type="button" id="startPostSubmit" onclick="submitStartPost()">Post</button>
+        </footer>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+  }
+
+  modal.classList.add("show");
+  document.body.classList.add("start-post-open");
+
+  setTimeout(() => {
+    document.getElementById("startPostText")?.focus();
+  }, 100);
+}
+
+function closeStartPostModal(){
+  document.getElementById("startPostModal")?.classList.remove("show");
+  document.body.classList.remove("start-post-open");
+}
+
+async function submitStartPost(){
+  const textEl = document.getElementById("startPostText");
+  const btn = document.getElementById("startPostSubmit");
+  const text = textEl?.value.trim() || "";
+
+  if(!text){
+    alert("Please write something first.");
     return;
   }
 
-  composer.style.display = "";
-  composer.classList.add("mobile-composer-active");
+  btn.disabled = true;
+  btn.textContent = "Posting...";
 
-  composer.scrollIntoView({
-    behavior:"smooth",
-    block:"center"
-  });
+  try{
+    const res = await fetch(API + "/api/posts", {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        Authorization:`Bearer ${token()}`
+      },
+      body:JSON.stringify({ text })
+    });
 
-  setTimeout(() => {
-    textarea?.focus();
-  }, 450);
+    const data = await res.json().catch(() => ({}));
+
+    if(!res.ok){
+      throw new Error(data.message || "Post failed");
+    }
+
+    closeStartPostModal();
+
+    await AIFTFeed.mount("feedMount", {
+      mode:"home",
+      showComposer:!isGuest(),
+      infiniteScroll:true,
+      realtime:!isGuest(),
+      guestMode:isGuest()
+    });
+
+  }catch(err){
+    alert(err.message || "Unable to create post.");
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "Post";
+  }
 }
 
 function focusComposer(){
   openMobileComposer();
 }
 </script>
+</script>
+  <style>
+.start-post-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:999999;
+  background:rgba(15,23,42,.55);
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+}
+
+.start-post-backdrop.show{
+  display:flex;
+}
+
+.start-post-modal{
+  width:100%;
+  max-width:640px;
+  background:#fff;
+  border-radius:22px 22px 0 0;
+  overflow:hidden;
+}
+
+.start-post-head{
+  height:54px;
+  padding:0 16px;
+  border-bottom:1px solid #e5e7eb;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.start-post-head button{
+  border:0;
+  background:#f3f4f6;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  font-size:22px;
+}
+
+#startPostText{
+  width:100%;
+  min-height:220px;
+  border:0;
+  outline:0;
+  resize:none;
+  padding:16px;
+  font-size:18px;
+  font-family:Inter,sans-serif;
+}
+
+.start-post-actions{
+  border-top:1px solid #e5e7eb;
+  padding:12px 16px;
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+}
+
+.start-post-actions button{
+  border:0;
+  border-radius:999px;
+  padding:10px 18px;
+  font-weight:900;
+}
+
+#startPostSubmit{
+  background:#0a66c2;
+  color:#fff;
+}
+
+body.start-post-open{
+  overflow:hidden;
+}
+</style>
 </body>
 </html>
