@@ -399,9 +399,23 @@ await loadFeed({ reset: true });
         headers: headers()
       });
 
-      state.posts = [post];
-      renderFeedOnly();
-      connectSocket();
+state.posts = [post];
+renderFeedOnly();
+
+const list = document.getElementById("aiftFeedList");
+
+if (list) {
+  list.insertAdjacentHTML("afterbegin", `
+    <div class="aift-single-post-bar">
+      <button onclick="history.back()">← Back</button>
+      <strong>Post</strong>
+    </div>
+  `);
+}
+
+if (!state.guestMode) {
+  connectSocket();
+}
     } catch (err) {
       if (list) list.innerHTML = `<div class="aift-feed-empty">${esc(err.message)}</div>`;
     }
@@ -605,9 +619,9 @@ function renderOriginalPostCard(original) {
   `;
 }
 
-  function openOriginalPost(postId) {
-    location.href = `feed.html?post=${encodeURIComponent(postId)}`;
-  }
+function openOriginalPost(postId) {
+  location.href = `home.html?post=${encodeURIComponent(postId)}`;
+}
 
   function updateCarouselDots(track) {
     const carousel = track.closest(".aift-carousel, .aift-composer-preview");
