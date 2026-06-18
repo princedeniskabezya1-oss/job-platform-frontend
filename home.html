@@ -875,7 +875,7 @@ a{
     <span>Network</span>
   </a>
 
-  <button class="mobile-create" onclick="focusComposer()">
+  <button type="button" class="mobile-create" onclick="openMobileComposer(event)">
     <svg viewBox="0 0 24 24">
       <path d="M12 5v14"></path>
       <path d="M5 12h14"></path>
@@ -2354,20 +2354,49 @@ const feedWatcher =
 
 </script>
   <script>
-function focusComposer(){
+function openMobileComposer(event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  if(isGuest()){
+    requireLogin("create posts");
+    return;
+  }
+
   const composer = document.querySelector("#feedMount .aift-composer");
   const textarea =
+    document.getElementById("aiftPostText") ||
     composer?.querySelector("textarea") ||
     composer?.querySelector("[contenteditable='true']") ||
     composer?.querySelector("input[type='text']");
 
-  if(composer){
-    composer.scrollIntoView({ behavior:"smooth", block:"center" });
+  if(!composer){
+    window.scrollTo({
+      top:0,
+      behavior:"smooth"
+    });
+
+    setTimeout(openMobileComposer, 500);
+    return;
   }
 
-  if(textarea){
-    setTimeout(() => textarea.focus(), 300);
-  }
+  composer.style.display = "";
+  composer.classList.add("mobile-composer-active");
+
+  composer.scrollIntoView({
+    behavior:"smooth",
+    block:"center"
+  });
+
+  setTimeout(() => {
+    textarea?.focus();
+  }, 450);
+}
+
+function focusComposer(){
+  openMobileComposer();
 }
 </script>
 </body>
