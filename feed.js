@@ -542,17 +542,11 @@ function renderOriginalPostCard(original) {
   const followed = isFollowing(author);
   const textData = shortText(original.text || "");
 
-  const liked = (original.likes || []).some(
-    u => String(u?._id || u) === String(state.meId)
-  );
-
-  const commentsCount = countComments(original);
-
   return `
-    <div class="aift-reposted-original"
+    <div class="aift-repost-clean-box"
          onclick="AIFTFeed.openOriginalPost('${esc(original._id)}')">
 
-      <header class="aift-post-header aift-repost-original-header">
+      <header class="aift-repost-clean-head">
 
         <div class="aift-author"
              onclick="event.stopPropagation(); AIFTFeed.visitProfile('${esc(author._id)}')">
@@ -577,7 +571,7 @@ function renderOriginalPostCard(original) {
           !state.guestMode && !followed
             ? `
               <button
-                class="aift-follow-btn"
+                class="aift-follow-btn aift-repost-clean-follow"
                 onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(author._id)}')"
               >
                 <span class="aift-follow-plus">+</span>
@@ -592,7 +586,7 @@ function renderOriginalPostCard(original) {
       ${
         original.text?.trim()
           ? `
-            <div class="aift-post-text aift-repost-original-text">
+            <div class="aift-repost-clean-text">
               ${
                 textData.needsMore
                   ? `${textData.short} <button class="aift-inline-more" onclick="event.stopPropagation(); AIFTFeed.openOriginalPost('${esc(original._id)}')">see more</button>`
@@ -603,49 +597,9 @@ function renderOriginalPostCard(original) {
           : ""
       }
 
-      ${renderMediaCarousel(original)}
-
-      <section class="aift-post-actions instagram-style">
-        <div class="aift-left-actions">
-
-          <button
-            class="aift-action-btn ${liked ? "is-liked" : ""}"
-            onclick="event.stopPropagation(); AIFTFeed.likePost('${esc(original._id)}')"
-            aria-label="Like"
-          >
-            ${svg("heart")}
-            <strong>${formatCount((original.likes || []).length)}</strong>
-          </button>
-
-          <button
-            class="aift-action-btn"
-            onclick="event.stopPropagation(); AIFTFeed.openComments('${esc(original._id)}')"
-            aria-label="Comment"
-          >
-            ${svg("comment")}
-            <strong>${formatCount(commentsCount)}</strong>
-          </button>
-
-          <button
-            class="aift-action-btn"
-            onclick="event.stopPropagation(); AIFTFeed.openRepost('${esc(original._id)}')"
-            aria-label="Repost"
-          >
-            ${svg("repost")}
-            <strong>${formatCount(original.repostsCount || original.repostCount || 0)}</strong>
-          </button>
-
-          <button
-            class="aift-action-btn"
-            onclick="event.stopPropagation(); AIFTFeed.openShare('${esc(original._id)}')"
-            aria-label="Share"
-          >
-            ${svg("share")}
-            <strong>${formatCount(original.sharesCount || 0)}</strong>
-          </button>
-
-        </div>
-      </section>
+      <div class="aift-repost-clean-media">
+        ${renderMediaCarousel(original)}
+      </div>
 
     </div>
   `;
