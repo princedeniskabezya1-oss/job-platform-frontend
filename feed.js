@@ -24,6 +24,10 @@ const AIFTFeed = (() => {
     isMobile: window.innerWidth <= 768,
     lastTapAt: 0,
     viewedPosts: new Set(),
+globalVideoMuted: true,
+videoObserver: null,
+reelObserver: null,
+reelActivePostId: null,
 guestMode: false
   };
 
@@ -372,16 +376,38 @@ await loadFeed({ reset: true });
       </section>
     `;
   }
-  let videoObserver = null;
+function updateSoundBadges(){
+  document.querySelectorAll(".aift-video-sound, .aift-reel-sound").forEach(btn => {
+    btn.textContent = state.globalVideoMuted ? "Muted" : "Sound on";
+    btn.classList.toggle("is-on", !state.globalVideoMuted);
+  });
+}
+
+function setAllVideoMuted(muted){
+  state.globalVideoMuted = muted;
+
+  document.querySelectorAll(".aift-feed-video, .aift-reel-video").forEach(video => {
+    video.muted = muted;
+  });
+
+  updateSoundBadges();
+
+  document.querySelectorAll(".aift-reel-sound-pop").forEach(pop => {
+    pop.textContent = muted ? "Muted" : "Sound on";
+    pop.classList.remove("show");
+    void pop.offsetWidth;
+    pop.classList.add("show");
+  });
+}
 
 function observeFeedVideos(){
   const videos = document.querySelectorAll(".aift-feed-video");
 
-  if(videoObserver){
-    videoObserver.disconnect();
+  if(state.videoObserver){
+    state.videoObserver.disconnect();
   }
 
-  videoObserver = new IntersectionObserver(entries => {
+  state.videoObserver = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       const video = entry.target;
 
@@ -390,33 +416,32 @@ function observeFeedVideos(){
           if(v !== video) v.pause();
         });
 
+        video.muted = state.globalVideoMuted;
         video.play().catch(() => {});
       }else{
         video.pause();
       }
     });
   }, {
-    threshold:[0, .25, .6, .9]
+    threshold:[0, .25, .6, .85]
   });
 
-  videos.forEach(video => videoObserver.observe(video));
+  videos.forEach(video => state.videoObserver.observe(video));
+  updateSoundBadges();
 }
 
-function toggleFeedVideoSound(button){
-  const wrap = button.closest(".aift-video-wrap");
-  const video = wrap?.querySelector("video");
-  if(!video) return;
-
-  video.muted = !video.muted;
-  button.textContent = video.muted ? "Muted" : "Sound on";
+function getVideoPosts(){
+  return state.posts.filter(post =>
+    getMediaItems(post).some(item => item.type === "video")
+  );
 }
 
 function openReelMode(postId){
-  const videos = state.posts.filter(post =>
-    getMediaItems(post).some(item => item.type === "video")
-  );
+  const videos = getVideoPosts();
 
   if(!videos.length) return;
+
+  document.querySelectorAll(".aift-feed-video").forEach(v => v.pause());
 
   let modal = document.getElementById("aiftReelViewer");
 
@@ -434,20 +459,66 @@ function openReelMode(postId){
       ${videos.map(post => {
         const author = post.author || {};
         const video = getMediaItems(post).find(item => item.type === "video");
+        const liked = (post.likes || []).some(u => String(u?._id || u) === String(state.meId));
+        const commentsCount = countComments(post);
 
         return `
-          <section class="aift-reel-slide" data-post-id="${esc(post._id)}">
-            <video class="aift-reel-video" src="${esc(video.url)}" muted playsinline loop></video>
+          <section
+            class="aift-reel-slide"
+            data-post-id="${esc(post._id)}"
+            onclick="AIFTFeed.handleReelScreenTap(event, '${esc(post._id)}')"
+          >
+            <video
+              class="aift-reel-video"
+              src="${esc(video.url)}"
+              ${state.globalVideoMuted ? "muted" : ""}
+              playsinline
+              loop
+              preload="metadata"
+            ></video>
+
+            <div class="aift-reel-gradient"></div>
+
+            <div class="aift-reel-sound-pop">
+              ${state.globalVideoMuted ? "Muted" : "Sound on"}
+            </div>
+
+            <button class="aift-reel-sound" type="button">
+              ${state.globalVideoMuted ? "Muted" : "Sound on"}
+            </button>
 
             <div class="aift-reel-info">
-              <strong>${esc(userName(author))}</strong>
-              <p>${esc(post.text || "")}</p>
+              <div class="aift-reel-author" onclick="event.stopPropagation(); AIFTFeed.visitProfile('${esc(author._id)}')">
+                <img src="${esc(userAvatar(author))}" alt="">
+                <strong>${esc(userName(author))}</strong>
+              </div>
+
+              ${
+                post.text?.trim()
+                  ? `<p>${esc(post.text)}</p>`
+                  : ""
+              }
             </div>
 
             <div class="aift-reel-actions">
-              <button onclick="event.stopPropagation(); AIFTFeed.likePost('${esc(post._id)}')">${svg("heart")}</button>
-              <button onclick="event.stopPropagation(); AIFTFeed.openComments('${esc(post._id)}')">${svg("comment")}</button>
-              <button onclick="event.stopPropagation(); AIFTFeed.openShare('${esc(post._id)}')">${svg("share")}</button>
+              <button class="${liked ? "is-liked" : ""}" onclick="event.stopPropagation(); AIFTFeed.likePost('${esc(post._id)}')">
+                ${svg("heart")}
+                <span>${formatCount((post.likes || []).length)}</span>
+              </button>
+
+              <button onclick="event.stopPropagation(); AIFTFeed.openComments('${esc(post._id)}')">
+                ${svg("comment")}
+                <span>${formatCount(commentsCount)}</span>
+              </button>
+
+              <button onclick="event.stopPropagation(); AIFTFeed.openShare('${esc(post._id)}')">
+                ${svg("share")}
+                <span>${formatCount(post.sharesCount || 0)}</span>
+              </button>
+
+              <button onclick="event.stopPropagation(); AIFTFeed.savePost('${esc(post._id)}')">
+                ${svg("save")}
+              </button>
             </div>
           </section>
         `;
@@ -462,37 +533,81 @@ function openReelMode(postId){
     const target = modal.querySelector(`[data-post-id="${CSS.escape(String(postId))}"]`);
     target?.scrollIntoView({ block:"start" });
     observeReelVideos();
-  }, 100);
+    updateSoundBadges();
+  }, 80);
+}
+
+function handleReelScreenTap(event, postId){
+  const clickedAction = event.target.closest(
+    ".aift-reel-actions, .aift-reel-close, .aift-reel-author"
+  );
+
+  if(clickedAction) return;
+
+  const now = Date.now();
+
+  if(now - state.lastTapAt < 320){
+    showHeart(postId);
+    likePost(postId, true);
+  }else{
+    setAllVideoMuted(!state.globalVideoMuted);
+  }
+
+  state.lastTapAt = now;
 }
 
 function closeReelMode(){
-  document.querySelectorAll(".aift-reel-video").forEach(v => v.pause());
+  document.querySelectorAll(".aift-reel-video").forEach(v => {
+    v.pause();
+    v.currentTime = 0;
+  });
+
+  if(state.reelObserver){
+    state.reelObserver.disconnect();
+    state.reelObserver = null;
+  }
+
+  state.reelActivePostId = null;
+
   document.getElementById("aiftReelViewer")?.classList.remove("show");
   document.body.classList.remove("aift-reel-open");
 }
 
 function observeReelVideos(){
+  const track = document.querySelector(".aift-reel-track");
   const videos = document.querySelectorAll(".aift-reel-video");
 
-  const observer = new IntersectionObserver(entries => {
+  if(state.reelObserver){
+    state.reelObserver.disconnect();
+  }
+
+  state.reelObserver = new IntersectionObserver(entries => {
     entries.forEach(entry => {
+      const slide = entry.target.closest(".aift-reel-slide");
       const video = entry.target;
+      const postId = slide?.dataset.postId;
 
       if(entry.isIntersecting && entry.intersectionRatio >= 0.75){
         document.querySelectorAll(".aift-reel-video").forEach(v => {
-          if(v !== video) v.pause();
+          if(v !== video){
+            v.pause();
+            v.currentTime = 0;
+          }
         });
 
+        state.reelActivePostId = postId;
+        video.muted = state.globalVideoMuted;
         video.play().catch(() => {});
       }else{
         video.pause();
       }
     });
   }, {
+    root: track,
     threshold:[0, .5, .75, 1]
   });
 
-  videos.forEach(video => observer.observe(video));
+  videos.forEach(video => state.reelObserver.observe(video));
 }
 
   function moveOverlaysToBody() {
@@ -688,7 +803,7 @@ observeFeedVideos();
             <div class="aift-carousel-slide">
               ${
                 item.type === "video"
-                  ? `<div class="aift-video-wrap">
+? `<div class="aift-video-wrap">
       <video
         class="aift-post-media aift-feed-video"
         src="${esc(item.url)}"
@@ -699,7 +814,8 @@ observeFeedVideos();
         data-post-id="${esc(post._id)}"
         onclick="event.stopPropagation(); AIFTFeed.openReelMode('${esc(post._id)}')"
       ></video>
-      <button class="aift-video-sound" onclick="event.stopPropagation(); AIFTFeed.toggleFeedVideoSound(this)">
+
+      <button class="aift-video-sound" type="button">
         Muted
       </button>
    </div>`
@@ -2633,8 +2749,8 @@ replyTo,
     removeComposerMedia,
     savePost,
     openReelMode,
-closeReelMode,
-toggleFeedVideoSound,
+
+
     notInterested,
     reportPost,
     openCommentMenu,
@@ -2645,6 +2761,10 @@ copyCommentLink,
     sendCommentOwner,
     deletePost,
     toggleFollow,
+    openReelMode,
+closeReelMode,
+handleReelScreenTap,
+setAllVideoMuted,
     expandPostText,
     collapsePostText,
     visitProfile,
