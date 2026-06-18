@@ -2093,48 +2093,82 @@ async function visitProfile(userId) {
     if (rerender) renderFeedOnly();
   }
 
-  function openOverlay(id) {
-    moveOverlaysToBody();
-    closeOverlays(false);
+let aiftLockedScrollY = 0;
 
-    const backdrop = document.getElementById("aiftSheetBackdrop");
-    const sheet = document.getElementById(id);
+function lockFeedScroll(){
+  if(!isMobileNow()) return;
 
-    if (backdrop) {
-      backdrop.classList.add("open");
-      backdrop.style.display = "block";
-    }
+  aiftLockedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
 
-    if (sheet) {
-      sheet.classList.add("open");
-      sheet.setAttribute("aria-hidden", "false");
-      sheet.style.display = "flex";
-    }
+  document.documentElement.classList.add("aift-sheet-open");
+  document.body.classList.add("aift-sheet-open");
 
-    document.body.classList.add("aift-sheet-open");
+  document.body.style.position = "fixed";
+  document.body.style.top = `-${aiftLockedScrollY}px`;
+  document.body.style.left = "0";
+  document.body.style.right = "0";
+  document.body.style.width = "100%";
+  document.body.style.overflow = "hidden";
+}
+
+function unlockFeedScroll(){
+  if(!document.body.classList.contains("aift-sheet-open")) return;
+
+  document.documentElement.classList.remove("aift-sheet-open");
+  document.body.classList.remove("aift-sheet-open");
+
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.left = "";
+  document.body.style.right = "";
+  document.body.style.width = "";
+  document.body.style.overflow = "";
+
+  window.scrollTo(0, aiftLockedScrollY || 0);
+}
+
+function openOverlay(id) {
+  moveOverlaysToBody();
+  closeOverlays(false);
+
+  const backdrop = document.getElementById("aiftSheetBackdrop");
+  const sheet = document.getElementById(id);
+
+  if (backdrop) {
+    backdrop.classList.add("open");
+    backdrop.style.display = "block";
   }
 
-  function closeOverlays(clear = true) {
-    const backdrop = document.getElementById("aiftSheetBackdrop");
-
-    if (backdrop) {
-      backdrop.classList.remove("open");
-      backdrop.style.display = "";
-    }
-
-    document.querySelectorAll(".aift-bottom-sheet").forEach(sheet => {
-      sheet.classList.remove("open");
-      sheet.setAttribute("aria-hidden", "true");
-      sheet.style.display = "";
-    });
-
-    document.body.classList.remove("aift-sheet-open");
-
-    if (clear) {
-      state.replyTarget = null;
-      hideReplyBanner();
-    }
+  if (sheet) {
+    sheet.classList.add("open");
+    sheet.setAttribute("aria-hidden", "false");
+    sheet.style.display = "flex";
   }
+
+  lockFeedScroll();
+}
+
+function closeOverlays(clear = true) {
+  const backdrop = document.getElementById("aiftSheetBackdrop");
+
+  if (backdrop) {
+    backdrop.classList.remove("open");
+    backdrop.style.display = "";
+  }
+
+  document.querySelectorAll(".aift-bottom-sheet").forEach(sheet => {
+    sheet.classList.remove("open");
+    sheet.setAttribute("aria-hidden", "true");
+    sheet.style.display = "";
+  });
+
+  unlockFeedScroll();
+
+  if (clear) {
+    state.replyTarget = null;
+    hideReplyBanner();
+  }
+}
 
   function observePosts() {
     if (!("IntersectionObserver" in window)) return;
