@@ -2375,6 +2375,7 @@ function openStartPostModal(){
     modal = document.createElement("div");
     modal.id = "startPostModal";
     modal.className = "start-post-backdrop";
+    
 
     modal.innerHTML = `
       <div class="start-post-modal">
@@ -2394,6 +2395,15 @@ function openStartPostModal(){
         <textarea id="startPostText" placeholder="What do you want to share?"></textarea>
 
         <div id="startPostPreview" class="start-post-preview"></div>
+        <div class="start-upload-progress">
+
+  <div class="start-upload-track">
+    <div id="startUploadBar" class="start-upload-bar"></div>
+  </div>
+
+  <span id="startUploadText">0%</span>
+
+</div>
 
         <footer class="start-post-actions">
           <label class="start-media-btn">
@@ -2424,6 +2434,7 @@ function openStartPostModal(){
 }
 
 function closeStartPostModal(){
+  resetStartPostModal();
   document.getElementById("startPostModal")?.classList.remove("show");
   document.body.classList.remove("start-post-open");
 }
@@ -2449,6 +2460,24 @@ function previewStartPostMedia(){
       </div>
     `;
   }).join("");
+}
+  function resetStartPostModal(){
+  const textEl = document.getElementById("startPostText");
+  const mediaEl = document.getElementById("startPostMedia");
+  const preview = document.getElementById("startPostPreview");
+  const progress = document.querySelector(".start-upload-progress");
+  const uploadBar = document.getElementById("startUploadBar");
+  const uploadText = document.getElementById("startUploadText");
+
+  if(textEl) textEl.value = "";
+  if(mediaEl) mediaEl.value = "";
+  if(preview) preview.innerHTML = "";
+
+  startPostFiles = [];
+
+  if(progress) progress.style.display = "none";
+  if(uploadBar) uploadBar.style.width = "0%";
+  if(uploadText) uploadText.textContent = "0%";
 }
 
 function removeStartPostMedia(index){
@@ -2478,6 +2507,11 @@ async function submitStartPost(){
 
   btn.disabled = true;
   btn.textContent = "Posting...";
+  const uploadProgress = document.querySelector(".start-upload-progress");
+
+if(uploadProgress){
+  uploadProgress.style.display = "flex";
+}
 
   const form = new FormData();
   form.append("text", text);
@@ -2487,21 +2521,31 @@ async function submitStartPost(){
   });
 
   try{
-    const res = await fetch(API + "/api/posts", {
-      method:"POST",
-      headers:{
-        Authorization:`Bearer ${token()}`
-      },
-      body:form
-    });
+const res = await uploadPostWithProgress(form, percent => {
+  const bar = document.getElementById("startUploadBar");
+  const text = document.getElementById("startUploadText");
+
+  if(bar) bar.style.width = percent + "%";
+  if(text) text.textContent = percent + "%";
+});
 
     const data = await res.json().catch(() => ({}));
 
     if(!res.ok){
       throw new Error(data.message || "Post failed");
     }
+if(uploadProgress){
+  uploadProgress.style.display = "none";
+}
 
-    closeStartPostModal();
+const uploadBar = document.getElementById("startUploadBar");
+const uploadText = document.getElementById("startUploadText");
+
+if(uploadBar) uploadBar.style.width = "0%";
+if(uploadText) uploadText.textContent = "0%";
+
+resetStartPostModal();
+closeStartPostModal();
 
     await AIFTFeed.mount("feedMount", {
       mode:"home",
@@ -2517,6 +2561,33 @@ async function submitStartPost(){
     btn.disabled = false;
     btn.textContent = "Post";
   }
+}
+  function uploadPostWithProgress(form, onProgress){
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.open("POST", API + "/api/posts");
+
+    xhr.setRequestHeader("Authorization", `Bearer ${token()}`);
+
+    xhr.upload.onprogress = event => {
+      if(event.lengthComputable){
+        const percent = Math.round((event.loaded / event.total) * 100);
+        onProgress(percent);
+      }
+    };
+
+    xhr.onload = () => {
+      resolve({
+        ok: xhr.status >= 200 && xhr.status < 300,
+        status: xhr.status,
+        json: async () => JSON.parse(xhr.responseText || "{}")
+      });
+    };
+
+    xhr.onerror = () => reject(new Error("Upload failed"));
+    xhr.send(form);
+  });
 }
 </script>
 <style>
@@ -2680,6 +2751,40 @@ async function submitStartPost(){
 
 body.start-post-open{
   overflow:hidden;
+}
+  .start-upload-progress{
+  display:none;
+  align-items:center;
+  gap:10px;
+  padding:0 16px 12px;
+}
+
+.start-upload-track{
+  flex:1;
+  height:8px;
+  background:#e5e7eb;
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.start-upload-bar{
+  width:0%;
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(
+    90deg,
+    #0a66c2,
+    #22c55e
+  );
+  transition:width .25s ease;
+}
+
+#startUploadText{
+  font-size:12px;
+  font-weight:900;
+  color:#0a66c2;
+  min-width:42px;
+  text-align:right;
 }
 </style>
 </body>
