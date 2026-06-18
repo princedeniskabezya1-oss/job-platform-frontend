@@ -542,8 +542,14 @@ function renderOriginalPostCard(original) {
   const followed = isFollowing(author);
   const textData = shortText(original.text || "");
 
+  const liked = (original.likes || []).some(
+    u => String(u?._id || u) === String(state.meId)
+  );
+
+  const commentsCount = countComments(original);
+
   return `
-    <div class="aift-repost-original-card"
+    <div class="aift-reposted-original"
          onclick="AIFTFeed.openOriginalPost('${esc(original._id)}')">
 
       <header class="aift-post-header aift-repost-original-header">
@@ -599,6 +605,48 @@ function renderOriginalPostCard(original) {
 
       ${renderMediaCarousel(original)}
 
+      <section class="aift-post-actions instagram-style">
+        <div class="aift-left-actions">
+
+          <button
+            class="aift-action-btn ${liked ? "is-liked" : ""}"
+            onclick="event.stopPropagation(); AIFTFeed.likePost('${esc(original._id)}')"
+            aria-label="Like"
+          >
+            ${svg("heart")}
+            <strong>${formatCount((original.likes || []).length)}</strong>
+          </button>
+
+          <button
+            class="aift-action-btn"
+            onclick="event.stopPropagation(); AIFTFeed.openComments('${esc(original._id)}')"
+            aria-label="Comment"
+          >
+            ${svg("comment")}
+            <strong>${formatCount(commentsCount)}</strong>
+          </button>
+
+          <button
+            class="aift-action-btn"
+            onclick="event.stopPropagation(); AIFTFeed.openRepost('${esc(original._id)}')"
+            aria-label="Repost"
+          >
+            ${svg("repost")}
+            <strong>${formatCount(original.repostsCount || original.repostCount || 0)}</strong>
+          </button>
+
+          <button
+            class="aift-action-btn"
+            onclick="event.stopPropagation(); AIFTFeed.openShare('${esc(original._id)}')"
+            aria-label="Share"
+          >
+            ${svg("share")}
+            <strong>${formatCount(original.sharesCount || 0)}</strong>
+          </button>
+
+        </div>
+      </section>
+
     </div>
   `;
 }
@@ -645,7 +693,16 @@ function shortText(text = ""){
     const textData = shortText(post.text || "");
 
     return `
-      <article class="aift-post-card" id="aift-post-${safeId(post._id)}" data-post-id="${esc(post._id)}">
+      <article class="aift-post-card ${post.repostOf ? "is-repost-post" : ""}" id="aift-post-${safeId(post._id)}" data-post-id="${esc(post._id)}">
+      ${
+  post.repostOf
+    ? `<div class="aift-repost-banner">
+        ${svg("repost")}
+        <strong>${esc(userName(author))}</strong>
+        <span>reposted this</span>
+      </div>`
+    : ""
+}
         <header class="aift-post-header">
           <div class="aift-author" onclick="AIFTFeed.visitProfile('${esc(author._id)}')">
             <img class="aift-avatar" src="${esc(userAvatar(author))}" alt="" />
