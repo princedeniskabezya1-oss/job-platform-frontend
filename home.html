@@ -2354,11 +2354,11 @@ const feedWatcher =
 
 </script>
 <script>
+let startPostFiles = [];
+
 function openMobileComposer(event){
-  if(event){
-    event.preventDefault();
-    event.stopPropagation();
-  }
+  event?.preventDefault();
+  event?.stopPropagation();
 
   if(isGuest()){
     requireLogin("create posts");
@@ -2379,14 +2379,34 @@ function openStartPostModal(){
     modal.innerHTML = `
       <div class="start-post-modal">
         <header class="start-post-head">
-          <strong>Start a post</strong>
+          <strong>Create post</strong>
           <button type="button" onclick="closeStartPostModal()">×</button>
         </header>
 
-        <textarea id="startPostText" placeholder="What do you want to talk about?"></textarea>
+        <div class="start-post-profile">
+          <img src="${state.me?.profileImage || FALLBACK_AVATAR}" alt="">
+          <div>
+            <strong>${escapeHtml(state.me?.companyName || state.me?.schoolName || state.me?.name || "AIFT User")}</strong>
+            <span>Post to your feed</span>
+          </div>
+        </div>
+
+        <textarea id="startPostText" placeholder="What do you want to share?"></textarea>
+
+        <div id="startPostPreview" class="start-post-preview"></div>
 
         <footer class="start-post-actions">
-          <button type="button" onclick="closeStartPostModal()">Cancel</button>
+          <label class="start-media-btn">
+            Photo / Video
+            <input
+              id="startPostMedia"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+              multiple
+              onchange="previewStartPostMedia()"
+            >
+          </label>
+
           <button type="button" id="startPostSubmit" onclick="submitStartPost()">Post</button>
         </footer>
       </div>
@@ -2408,27 +2428,71 @@ function closeStartPostModal(){
   document.body.classList.remove("start-post-open");
 }
 
+function previewStartPostMedia(){
+  const input = document.getElementById("startPostMedia");
+  const preview = document.getElementById("startPostPreview");
+
+  startPostFiles = Array.from(input?.files || []);
+  if(!preview) return;
+
+  preview.innerHTML = startPostFiles.map((file, index) => {
+    const url = URL.createObjectURL(file);
+
+    return `
+      <div class="start-preview-item">
+        <button type="button" onclick="removeStartPostMedia(${index})">×</button>
+        ${
+          file.type.startsWith("video/")
+            ? `<video src="${url}" controls playsinline></video>`
+            : `<img src="${url}" alt="">`
+        }
+      </div>
+    `;
+  }).join("");
+}
+
+function removeStartPostMedia(index){
+  const input = document.getElementById("startPostMedia");
+  const dt = new DataTransfer();
+
+  startPostFiles.forEach((file, i) => {
+    if(i !== index) dt.items.add(file);
+  });
+
+  input.files = dt.files;
+  previewStartPostMedia();
+}
+
 async function submitStartPost(){
   const textEl = document.getElementById("startPostText");
+  const mediaEl = document.getElementById("startPostMedia");
   const btn = document.getElementById("startPostSubmit");
-  const text = textEl?.value.trim() || "";
 
-  if(!text){
-    alert("Please write something first.");
+  const text = textEl?.value.trim() || "";
+  const files = Array.from(mediaEl?.files || []);
+
+  if(!text && !files.length){
+    alert("Please write something or add a photo/video.");
     return;
   }
 
   btn.disabled = true;
   btn.textContent = "Posting...";
 
+  const form = new FormData();
+  form.append("text", text);
+
+  files.forEach(file => {
+    form.append("media", file);
+  });
+
   try{
     const res = await fetch(API + "/api/posts", {
       method:"POST",
       headers:{
-        "Content-Type":"application/json",
         Authorization:`Bearer ${token()}`
       },
-      body:JSON.stringify({ text })
+      body:form
     });
 
     const data = await res.json().catch(() => ({}));
@@ -2455,7 +2519,7 @@ async function submitStartPost(){
   }
 }
 </script>
-  <style>
+<style>
 .start-post-backdrop{
   position:fixed;
   inset:0;
@@ -2473,18 +2537,27 @@ async function submitStartPost(){
 .start-post-modal{
   width:100%;
   max-width:640px;
+  max-height:92vh;
   background:#fff;
-  border-radius:22px 22px 0 0;
+  border-radius:24px 24px 0 0;
   overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  box-shadow:0 -18px 50px rgba(15,23,42,.24);
 }
 
 .start-post-head{
-  height:54px;
+  height:56px;
   padding:0 16px;
-  border-bottom:1px solid #e5e7eb;
+  border-bottom:1px solid #eef0f3;
   display:flex;
   align-items:center;
   justify-content:space-between;
+}
+
+.start-post-head strong{
+  font-size:17px;
+  font-weight:900;
 }
 
 .start-post-head button{
@@ -2496,35 +2569,113 @@ async function submitStartPost(){
   font-size:22px;
 }
 
+.start-post-profile{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:14px 16px;
+}
+
+.start-post-profile img{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+.start-post-profile strong{
+  display:block;
+  font-size:14px;
+}
+
+.start-post-profile span{
+  display:block;
+  color:#64748b;
+  font-size:12px;
+}
+
 #startPostText{
   width:100%;
-  min-height:220px;
+  min-height:150px;
   border:0;
   outline:0;
   resize:none;
-  padding:16px;
+  padding:4px 16px 14px;
   font-size:18px;
+  line-height:1.45;
   font-family:Inter,sans-serif;
 }
 
-.start-post-actions{
-  border-top:1px solid #e5e7eb;
-  padding:12px 16px;
-  display:flex;
-  justify-content:flex-end;
+.start-post-preview{
+  padding:0 16px 12px;
+  overflow:auto;
+  display:grid;
   gap:10px;
 }
 
-.start-post-actions button{
+.start-preview-item{
+  position:relative;
+  border-radius:18px;
+  overflow:hidden;
+  background:#000;
+}
+
+.start-preview-item img,
+.start-preview-item video{
+  width:100%;
+  max-height:360px;
+  object-fit:contain;
+  display:block;
+}
+
+.start-preview-item button{
+  position:absolute;
+  top:8px;
+  right:8px;
   border:0;
+  background:rgba(0,0,0,.7);
+  color:#fff;
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  font-size:20px;
+}
+
+.start-post-actions{
+  margin-top:auto;
+  border-top:1px solid #eef0f3;
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.start-media-btn{
+  border:1px solid #dbe3ee;
+  background:#f8fafc;
+  color:#0a66c2;
   border-radius:999px;
-  padding:10px 18px;
+  padding:10px 14px;
   font-weight:900;
+  font-size:13px;
+}
+
+.start-media-btn input{
+  display:none;
 }
 
 #startPostSubmit{
+  border:0;
   background:#0a66c2;
   color:#fff;
+  border-radius:999px;
+  padding:10px 22px;
+  font-weight:900;
+}
+
+#startPostSubmit:disabled{
+  opacity:.55;
 }
 
 body.start-post-open{
