@@ -309,7 +309,9 @@ await loadFeed({ reset: true });
         </section>
 
         <section id="aiftFeedList" class="aift-feed-list"></section>
-        <button id="aiftLoadMore" class="aift-load-more" onclick="AIFTFeed.loadMore()">Load more</button>
+        <div id="aiftInfiniteSentinel" class="aift-infinite-sentinel">
+  <span>Loading more posts...</span>
+</div>
       </div>
 
       <div id="aiftSheetBackdrop" class="aift-sheet-backdrop" onclick="AIFTFeed.closeOverlays()"></div>
@@ -370,6 +372,128 @@ await loadFeed({ reset: true });
       </section>
     `;
   }
+  let videoObserver = null;
+
+function observeFeedVideos(){
+  const videos = document.querySelectorAll(".aift-feed-video");
+
+  if(videoObserver){
+    videoObserver.disconnect();
+  }
+
+  videoObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      const video = entry.target;
+
+      if(entry.isIntersecting && entry.intersectionRatio >= 0.6){
+        document.querySelectorAll(".aift-feed-video").forEach(v => {
+          if(v !== video) v.pause();
+        });
+
+        video.play().catch(() => {});
+      }else{
+        video.pause();
+      }
+    });
+  }, {
+    threshold:[0, .25, .6, .9]
+  });
+
+  videos.forEach(video => videoObserver.observe(video));
+}
+
+function toggleFeedVideoSound(button){
+  const wrap = button.closest(".aift-video-wrap");
+  const video = wrap?.querySelector("video");
+  if(!video) return;
+
+  video.muted = !video.muted;
+  button.textContent = video.muted ? "Muted" : "Sound on";
+}
+
+function openReelMode(postId){
+  const videos = state.posts.filter(post =>
+    getMediaItems(post).some(item => item.type === "video")
+  );
+
+  if(!videos.length) return;
+
+  let modal = document.getElementById("aiftReelViewer");
+
+  if(!modal){
+    modal = document.createElement("div");
+    modal.id = "aiftReelViewer";
+    modal.className = "aift-reel-viewer";
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <button class="aift-reel-close" onclick="AIFTFeed.closeReelMode()">×</button>
+
+    <div class="aift-reel-track">
+      ${videos.map(post => {
+        const author = post.author || {};
+        const video = getMediaItems(post).find(item => item.type === "video");
+
+        return `
+          <section class="aift-reel-slide" data-post-id="${esc(post._id)}">
+            <video class="aift-reel-video" src="${esc(video.url)}" muted playsinline loop></video>
+
+            <div class="aift-reel-info">
+              <strong>${esc(userName(author))}</strong>
+              <p>${esc(post.text || "")}</p>
+            </div>
+
+            <div class="aift-reel-actions">
+              <button onclick="event.stopPropagation(); AIFTFeed.likePost('${esc(post._id)}')">${svg("heart")}</button>
+              <button onclick="event.stopPropagation(); AIFTFeed.openComments('${esc(post._id)}')">${svg("comment")}</button>
+              <button onclick="event.stopPropagation(); AIFTFeed.openShare('${esc(post._id)}')">${svg("share")}</button>
+            </div>
+          </section>
+        `;
+      }).join("")}
+    </div>
+  `;
+
+  modal.classList.add("show");
+  document.body.classList.add("aift-reel-open");
+
+  setTimeout(() => {
+    const target = modal.querySelector(`[data-post-id="${CSS.escape(String(postId))}"]`);
+    target?.scrollIntoView({ block:"start" });
+    observeReelVideos();
+  }, 100);
+}
+
+function closeReelMode(){
+  document.querySelectorAll(".aift-reel-video").forEach(v => v.pause());
+  document.getElementById("aiftReelViewer")?.classList.remove("show");
+  document.body.classList.remove("aift-reel-open");
+}
+
+function observeReelVideos(){
+  const videos = document.querySelectorAll(".aift-reel-video");
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      const video = entry.target;
+
+      if(entry.isIntersecting && entry.intersectionRatio >= 0.75){
+        document.querySelectorAll(".aift-reel-video").forEach(v => {
+          if(v !== video) v.pause();
+        });
+
+        video.play().catch(() => {});
+      }else{
+        video.pause();
+      }
+    });
+  }, {
+    threshold:[0, .5, .75, 1]
+  });
+
+  videos.forEach(video => observer.observe(video));
+}
 
   function moveOverlaysToBody() {
     [
@@ -467,7 +591,15 @@ if(state.mode === "group" && state.groupId){
 
       renderFeedOnly();
 
-      if (loadMore) loadMore.style.display = state.hasMore ? "block" : "none";
+      const sentinel = document.getElementById("aiftInfiniteSentinel");
+
+if(loadMore){
+  loadMore.style.display = "none";
+}
+
+if(sentinel){
+  sentinel.style.display = state.hasMore ? "flex" : "none";
+}
     } catch (err) {
       console.error(err);
       if (list) list.innerHTML = `<div class="aift-feed-empty">${esc(err.message)}</div>`;
@@ -479,6 +611,32 @@ if(state.mode === "group" && state.groupId){
   function loadMore() {
     if (state.hasMore) loadFeed();
   }
+  let infiniteObserver = null;
+
+function observeInfiniteScroll(){
+  if(!state.infiniteScroll) return;
+
+  const sentinel = document.getElementById("aiftInfiniteSentinel");
+  if(!sentinel) return;
+
+  if(infiniteObserver){
+    infiniteObserver.disconnect();
+  }
+
+  infiniteObserver = new IntersectionObserver(entries => {
+    const entry = entries[0];
+
+    if(entry.isIntersecting && state.hasMore && !state.loading){
+      loadFeed();
+    }
+  }, {
+    root:null,
+    rootMargin:"900px 0px",
+    threshold:0
+  });
+
+  infiniteObserver.observe(sentinel);
+}
 
   function mergePosts(posts) {
     const map = new Map();
@@ -500,6 +658,8 @@ if(state.mode === "group" && state.groupId){
       : `<div class="aift-feed-empty">No posts yet.</div>`;
 
     observePosts();
+observeInfiniteScroll();
+observeFeedVideos();
   }
 
   function getMediaItems(post = {}) {
@@ -528,7 +688,21 @@ if(state.mode === "group" && state.groupId){
             <div class="aift-carousel-slide">
               ${
                 item.type === "video"
-                  ? `<video class="aift-post-media" src="${esc(item.url)}" controls playsinline preload="metadata"></video>`
+                  ? `<div class="aift-video-wrap">
+      <video
+        class="aift-post-media aift-feed-video"
+        src="${esc(item.url)}"
+        muted
+        playsinline
+        loop
+        preload="metadata"
+        data-post-id="${esc(post._id)}"
+        onclick="event.stopPropagation(); AIFTFeed.openReelMode('${esc(post._id)}')"
+      ></video>
+      <button class="aift-video-sound" onclick="event.stopPropagation(); AIFTFeed.toggleFeedVideoSound(this)">
+        Muted
+      </button>
+   </div>`
                   : `<img class="aift-post-media" src="${esc(item.url)}" alt="Post media" loading="lazy" />`
               }
             </div>
@@ -2458,6 +2632,9 @@ replyTo,
     openPostMenu,
     removeComposerMedia,
     savePost,
+    openReelMode,
+closeReelMode,
+toggleFeedVideoSound,
     notInterested,
     reportPost,
     openCommentMenu,
