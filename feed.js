@@ -537,136 +537,67 @@ if(state.mode === "group" && state.groupId){
 function renderOriginalPostCard(original) {
   if (!original) return "";
 
-  const originalAuthor = original.author || {};
-  const originalLiked = (original.likes || []).some(
-    u => String(u?._id || u) === String(state.meId)
-  );
-
-  const originalCommentsCount = countComments(original);
-  const originalVerified = isVerified(originalAuthor);
-  const originalFollowed = isFollowing(originalAuthor);
-  const originalTextData = shortText(original.text || "");
+  const author = original.author || {};
+  const verified = isVerified(author);
+  const followed = isFollowing(author);
+  const textData = shortText(original.text || "");
 
   return `
-    <div class="aift-reposted-original">
+    <div class="aift-repost-original-card"
+         onclick="AIFTFeed.openOriginalPost('${esc(original._id)}')">
 
-      <header class="aift-post-header">
+      <header class="aift-post-header aift-repost-original-header">
 
         <div class="aift-author"
-             onclick="event.stopPropagation(); AIFTFeed.visitProfile('${esc(originalAuthor._id)}')">
+             onclick="event.stopPropagation(); AIFTFeed.visitProfile('${esc(author._id)}')">
 
-          <img
-            class="aift-avatar"
-            src="${esc(userAvatar(originalAuthor))}"
-            alt=""
-          >
+          <img class="aift-avatar" src="${esc(userAvatar(author))}" alt="">
 
           <div class="aift-author-text">
-
             <div class="aift-author-name">
-
-              <strong>${esc(userName(originalAuthor))}</strong>
-
-              ${
-                originalVerified
-                  ? `<span class="aift-verified">${svg("check")}</span>`
-                  : ""
-              }
-
+              <strong>${esc(userName(author))}</strong>
+              ${verified ? `<span class="aift-verified">${svg("check")}</span>` : ""}
             </div>
 
             <span>
-              ${esc(userSub(originalAuthor))}
-              ${
-                original.createdAt
-                  ? ` · ${formatTime(original.createdAt)}`
-                  : ""
-              }
+              ${esc(userSub(author))}
+              ${original.createdAt ? ` · ${formatTime(original.createdAt)}` : ""}
             </span>
-
           </div>
 
         </div>
 
-        <div class="aift-header-actions">
-
-          ${
-            !state.guestMode && !originalFollowed
-              ? `
+        ${
+          !state.guestMode && !followed
+            ? `
               <button
                 class="aift-follow-btn"
-                onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(originalAuthor._id)}')"
+                onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(author._id)}')"
               >
                 <span class="aift-follow-plus">+</span>
                 <span>Follow</span>
               </button>
-              `
-              : ""
-          }
-
-        </div>
+            `
+            : ""
+        }
 
       </header>
 
       ${
         original.text?.trim()
           ? `
-          <div
-            class="aift-post-text"
-            data-full="${originalTextData.full}"
-            data-short="${originalTextData.short}"
-          >
-            ${
-              originalTextData.needsMore
-                ? `${originalTextData.short}`
-                : originalTextData.full
-            }
-          </div>
+            <div class="aift-post-text aift-repost-original-text">
+              ${
+                textData.needsMore
+                  ? `${textData.short} <button class="aift-inline-more" onclick="event.stopPropagation(); AIFTFeed.openOriginalPost('${esc(original._id)}')">see more</button>`
+                  : textData.full
+              }
+            </div>
           `
           : ""
       }
 
       ${renderMediaCarousel(original)}
-
-      <section class="aift-post-actions instagram-style">
-
-        <div class="aift-left-actions">
-
-          <button
-            class="aift-action-btn ${originalLiked ? "is-liked" : ""}"
-            onclick="event.stopPropagation(); AIFTFeed.likePost('${esc(original._id)}')"
-          >
-            ${svg("heart")}
-            <strong>${formatCount((original.likes || []).length)}</strong>
-          </button>
-
-          <button
-            class="aift-action-btn"
-            onclick="event.stopPropagation(); AIFTFeed.openComments('${esc(original._id)}')"
-          >
-            ${svg("comment")}
-            <strong>${formatCount(originalCommentsCount)}</strong>
-          </button>
-
-          <button
-            class="aift-action-btn"
-            onclick="event.stopPropagation(); AIFTFeed.openRepost('${esc(original._id)}')"
-          >
-            ${svg("repost")}
-            <strong>${formatCount(original.repostsCount || 0)}</strong>
-          </button>
-
-          <button
-            class="aift-action-btn"
-            onclick="event.stopPropagation(); AIFTFeed.openShare('${esc(original._id)}')"
-          >
-            ${svg("share")}
-            <strong>${formatCount(original.sharesCount || 0)}</strong>
-          </button>
-
-        </div>
-
-      </section>
 
     </div>
   `;
