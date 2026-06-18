@@ -534,34 +534,55 @@ if(state.mode === "group" && state.groupId){
     `;
   }
 
-  function renderOriginalPostCard(original) {
-    if (!original) return "";
+function renderOriginalPostCard(original) {
+  if (!original) return "";
 
-    const author = original.author || {};
-    const commentsCount = countComments(original);
+  const author = original.author || {};
+  const commentsCount = countComments(original);
+  const textData = shortText(original.text || "");
 
-    return `
-      <div class="aift-repost-card" onclick="AIFTFeed.openOriginalPost('${esc(original._id)}')">
+  return `
+    <div class="aift-repost-wrap" onclick="AIFTFeed.openOriginalPost('${esc(original._id)}')">
+
+      <div class="aift-repost-label">
+        ${svg("repost")}
+        <span>Reposted post</span>
+      </div>
+
+      <div class="aift-repost-card insta-repost">
+
         <div class="aift-repost-author">
           <img src="${esc(userAvatar(author))}" alt="" />
+
           <div>
             <strong>${esc(userName(author))}</strong>
             <span>${esc(userSub(author))}${original.createdAt ? ` · ${formatTime(original.createdAt)}` : ""}</span>
           </div>
         </div>
 
-        ${original.text?.trim() ? `<div class="aift-repost-text">${esc(original.text)}</div>` : ""}
+        ${
+          original.text?.trim()
+            ? `<div class="aift-repost-text">
+                ${
+                  textData.needsMore
+                    ? textData.short
+                    : textData.full
+                }
+              </div>`
+            : ""
+        }
 
         ${renderMediaCarousel(original)}
 
-<div class="aift-repost-stats">
-  <span>${(original.likes || []).length} likes</span>
-  <span>${original.sharesCount || 0} shares</span>
-  <span>${commentsCount} comments</span>
-</div>
+        <div class="aift-repost-stats">
+          <span>${formatCount((original.likes || []).length)} likes</span>
+          <span>${formatCount(commentsCount)} comments</span>
+        </div>
+
       </div>
-    `;
-  }
+    </div>
+  `;
+}
 
   function openOriginalPost(postId) {
     location.href = `feed.html?post=${encodeURIComponent(postId)}`;
