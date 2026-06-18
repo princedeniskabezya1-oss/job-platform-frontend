@@ -28,6 +28,8 @@ globalVideoMuted: true,
 videoObserver: null,
 reelObserver: null,
 reelActivePostId: null,
+reelScrollY: 0,
+reelPanelPostId: null,
 guestMode: false
   };
 
@@ -435,6 +437,31 @@ function getVideoPosts(){
     getMediaItems(post).some(item => item.type === "video")
   );
 }
+  function lockReelPageScroll(){
+  state.reelScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+
+  document.documentElement.classList.add("aift-reel-lock");
+  document.body.classList.add("aift-reel-open");
+
+  document.body.style.position = "fixed";
+  document.body.style.top = `-${state.reelScrollY}px`;
+  document.body.style.left = "0";
+  document.body.style.right = "0";
+  document.body.style.width = "100%";
+}
+
+function unlockReelPageScroll(){
+  document.documentElement.classList.remove("aift-reel-lock");
+  document.body.classList.remove("aift-reel-open");
+
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.left = "";
+  document.body.style.right = "";
+  document.body.style.width = "";
+
+  window.scrollTo(0, state.reelScrollY || 0);
+}
 
 function openReelMode(postId){
   const videos = getVideoPosts();
@@ -493,30 +520,46 @@ function openReelMode(postId){
                 <strong>${esc(userName(author))}</strong>
               </div>
 
-              ${
-                post.text?.trim()
-                  ? `<p>${esc(post.text)}</p>`
-                  : ""
-              }
+              <div class="aift-reel-caption-row">
+                ${
+                  post.text?.trim()
+                    ? `<p>${esc(post.text)}</p>`
+                    : `<p></p>`
+                }
+
+                <button
+                  class="aift-reel-more"
+                  onclick="event.stopPropagation(); AIFTFeed.openReelMoreOptions('${esc(post._id)}')"
+                >
+                  ${svg("more")}
+                </button>
+              </div>
             </div>
 
             <div class="aift-reel-actions">
-              <button class="${liked ? "is-liked" : ""}" onclick="event.stopPropagation(); AIFTFeed.likePost('${esc(post._id)}')">
+              <button
+                class="${liked ? "is-liked" : ""}"
+                id="aift-reel-like-${safeId(post._id)}"
+                onclick="event.stopPropagation(); AIFTFeed.handleReelLike('${esc(post._id)}')"
+              >
                 ${svg("heart")}
-                <span>${formatCount((post.likes || []).length)}</span>
+                <span id="aift-reel-like-count-${safeId(post._id)}">${formatCount((post.likes || []).length)}</span>
               </button>
 
-              <button onclick="event.stopPropagation(); AIFTFeed.openComments('${esc(post._id)}')">
+              <button onclick="event.stopPropagation(); AIFTFeed.openReelComments('${esc(post._id)}')">
                 ${svg("comment")}
-                <span>${formatCount(commentsCount)}</span>
+                <span id="aift-reel-comment-count-${safeId(post._id)}">${formatCount(commentsCount)}</span>
               </button>
 
-              <button onclick="event.stopPropagation(); AIFTFeed.openShare('${esc(post._id)}')">
+              <button onclick="event.stopPropagation(); AIFTFeed.openReelShare('${esc(post._id)}')">
                 ${svg("share")}
                 <span>${formatCount(post.sharesCount || 0)}</span>
               </button>
 
-              <button onclick="event.stopPropagation(); AIFTFeed.savePost('${esc(post._id)}')">
+              <button
+                id="aift-reel-save-${safeId(post._id)}"
+                onclick="event.stopPropagation(); AIFTFeed.handleReelSave('${esc(post._id)}')"
+              >
                 ${svg("save")}
               </button>
             </div>
@@ -524,10 +567,13 @@ function openReelMode(postId){
         `;
       }).join("")}
     </div>
+
+    <div id="aiftReelPanelBackdrop" class="aift-reel-panel-backdrop" onclick="AIFTFeed.closeReelPanel()"></div>
+    <section id="aiftReelPanel" class="aift-reel-panel"></section>
   `;
 
   modal.classList.add("show");
-  document.body.classList.add("aift-reel-open");
+  lockReelPageScroll();
 
   setTimeout(() => {
     const target = modal.querySelector(`[data-post-id="${CSS.escape(String(postId))}"]`);
@@ -557,6 +603,8 @@ function handleReelScreenTap(event, postId){
 }
 
 function closeReelMode(){
+  closeReelPanel();
+
   document.querySelectorAll(".aift-reel-video").forEach(v => {
     v.pause();
     v.currentTime = 0;
@@ -570,7 +618,7 @@ function closeReelMode(){
   state.reelActivePostId = null;
 
   document.getElementById("aiftReelViewer")?.classList.remove("show");
-  document.body.classList.remove("aift-reel-open");
+  unlockReelPageScroll();
 }
 
 function observeReelVideos(){
@@ -608,6 +656,229 @@ function observeReelVideos(){
   });
 
   videos.forEach(video => state.reelObserver.observe(video));
+}
+  async function handleReelLike(postId){
+  await likePost(postId, true);
+
+  const post = getPost(postId);
+  if(!post) return;
+
+  const liked = (post.likes || []).some(u => String(u?._id || u) === String(state.meId));
+
+  const btn = document.getElementById(`aift-reel-like-${safeId(postId)}`);
+  const count = document.getElementById(`aift-reel-like-count-${safeId(postId)}`);
+
+  btn?.classList.toggle("is-liked", liked);
+  if(count) count.textContent = formatCount((post.likes || []).length);
+}
+
+async function handleReelSave(postId){
+  await savePost(postId);
+
+  const btn = document.getElementById(`aift-reel-save-${safeId(postId)}`);
+  btn?.classList.add("is-saved");
+
+  setTimeout(() => {
+    btn?.classList.remove("is-saved");
+  }, 900);
+}
+
+function openReelComments(postId){
+  if(!requireMember("comment on reels")) return;
+
+  const post = getPost(postId);
+  if(!post) return;
+
+  state.reelPanelPostId = postId;
+  state.activePostId = postId;
+  state.isMobile = true;
+
+  const panel = document.getElementById("aiftReelPanel");
+  const backdrop = document.getElementById("aiftReelPanelBackdrop");
+  if(!panel || !backdrop) return;
+
+  panel.innerHTML = `
+    <div class="aift-reel-panel-handle"></div>
+
+    <header class="aift-reel-panel-head">
+      <strong>Comments</strong>
+      <button onclick="AIFTFeed.closeReelPanel()">${svg("close")}</button>
+    </header>
+
+    <div class="aift-reel-comments-list">
+      ${renderComments(post, 20)}
+    </div>
+
+    <footer class="aift-reel-comment-footer">
+      <img src="${esc(userAvatar(state.me || {}))}" alt="">
+      <input
+        id="aiftReelCommentInput"
+        placeholder="Add a comment..."
+        onkeydown="AIFTFeed.handleReelCommentKey(event)"
+      >
+      <button onclick="AIFTFeed.submitReelComment()">Post</button>
+    </footer>
+  `;
+
+  backdrop.classList.add("show");
+  panel.classList.add("show");
+
+  setTimeout(() => {
+    document.getElementById("aiftReelCommentInput")?.focus();
+  }, 160);
+}
+
+function handleReelCommentKey(event){
+  if(event.key === "Enter" && !event.shiftKey){
+    event.preventDefault();
+    submitReelComment();
+  }
+}
+
+async function submitReelComment(){
+  const input = document.getElementById("aiftReelCommentInput");
+  const postId = state.reelPanelPostId;
+  const text = input?.value.trim();
+
+  if(!text || !postId) return;
+
+  input.disabled = true;
+
+  try{
+    await api(`${API}/api/posts/${postId}/comment`, {
+      method:"POST",
+      headers:headers({ "Content-Type":"application/json" }),
+      body:JSON.stringify({ text })
+    });
+
+    input.value = "";
+
+    await refreshOnePost(postId);
+
+    const post = getPost(postId);
+    const list = document.querySelector(".aift-reel-comments-list");
+
+    if(post && list){
+      list.innerHTML = renderComments(post, 20);
+    }
+
+    const count = document.getElementById(`aift-reel-comment-count-${safeId(postId)}`);
+    if(count && post){
+      count.textContent = formatCount(countComments(post));
+    }
+
+    updateCommentCount(postId);
+
+  }catch(err){
+    toast(err.message, "error");
+  }finally{
+    input.disabled = false;
+    input.focus();
+  }
+}
+
+function openReelShare(postId){
+  if(!requireMember("share reels")) return;
+
+  state.reelPanelPostId = postId;
+
+  const panel = document.getElementById("aiftReelPanel");
+  const backdrop = document.getElementById("aiftReelPanelBackdrop");
+  if(!panel || !backdrop) return;
+
+  const link = getPostLink(postId);
+
+  panel.innerHTML = `
+    <div class="aift-reel-panel-handle"></div>
+
+    <header class="aift-reel-panel-head">
+      <strong>Share</strong>
+      <button onclick="AIFTFeed.closeReelPanel()">${svg("close")}</button>
+    </header>
+
+    <div class="aift-reel-share-grid">
+      <button onclick="AIFTFeed.copyPostLink('${esc(postId)}')">
+        ${svg("copy")}
+        <span>Copy link</span>
+      </button>
+
+      <button onclick="AIFTFeed.openRepost('${esc(postId)}')">
+        ${svg("repost")}
+        <span>Repost</span>
+      </button>
+
+      <button onclick="AIFTFeed.nativeShare('${esc(postId)}')">
+        ${svg("share")}
+        <span>More</span>
+      </button>
+    </div>
+
+    <div class="aift-reel-copy-link">${esc(link)}</div>
+  `;
+
+  backdrop.classList.add("show");
+  panel.classList.add("show");
+}
+
+function openReelMoreOptions(postId){
+  const post = getPost(postId);
+  if(!post) return;
+
+  const panel = document.getElementById("aiftReelPanel");
+  const backdrop = document.getElementById("aiftReelPanelBackdrop");
+  if(!panel || !backdrop) return;
+
+  const author = post.author || {};
+  const canManage = !state.guestMode && (isMine(author._id) || isAdmin());
+
+  panel.innerHTML = `
+    <div class="aift-reel-panel-handle"></div>
+
+    <header class="aift-reel-panel-head">
+      <strong>Options</strong>
+      <button onclick="AIFTFeed.closeReelPanel()">${svg("close")}</button>
+    </header>
+
+    <div class="aift-reel-options">
+      <button onclick="AIFTFeed.copyPostLink('${esc(postId)}')">
+        ${svg("copy")}
+        <span>Copy link</span>
+      </button>
+
+      <button onclick="AIFTFeed.savePost('${esc(postId)}')">
+        ${svg("save")}
+        <span>Save reel</span>
+      </button>
+
+      <button onclick="AIFTFeed.notInterested('${esc(postId)}')">
+        ${svg("close")}
+        <span>Not interested</span>
+      </button>
+
+      <button onclick="AIFTFeed.reportPost('${esc(postId)}')">
+        ${svg("flag")}
+        <span>Report</span>
+      </button>
+
+      ${
+        canManage
+          ? `<button class="danger" onclick="AIFTFeed.deletePost('${esc(postId)}')">
+              ${svg("trash")}
+              <span>Delete reel</span>
+            </button>`
+          : ""
+      }
+    </div>
+  `;
+
+  backdrop.classList.add("show");
+  panel.classList.add("show");
+}
+
+function closeReelPanel(){
+  document.getElementById("aiftReelPanelBackdrop")?.classList.remove("show");
+  document.getElementById("aiftReelPanel")?.classList.remove("show");
+  state.reelPanelPostId = null;
 }
 
   function moveOverlaysToBody() {
@@ -2749,6 +3020,14 @@ replyTo,
     removeComposerMedia,
     savePost,
     openReelMode,
+    openReelComments,
+submitReelComment,
+handleReelCommentKey,
+openReelShare,
+openReelMoreOptions,
+closeReelPanel,
+handleReelLike,
+handleReelSave,
 
 
     notInterested,
