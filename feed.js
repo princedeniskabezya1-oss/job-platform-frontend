@@ -385,7 +385,7 @@ function updateSoundBadges(){
   });
 }
 
-function setAllVideoMuted(muted){
+function setAllVideoMuted(muted, sourceBtn = null){
   state.globalVideoMuted = muted;
 
   document.querySelectorAll(".aift-feed-video, .aift-reel-video").forEach(video => {
@@ -396,10 +396,21 @@ function setAllVideoMuted(muted){
 
   document.querySelectorAll(".aift-reel-sound-pop").forEach(pop => {
     pop.textContent = muted ? "Muted" : "Sound on";
-    pop.classList.remove("show");
+    pop.classList.remove("show", "is-paused");
+  });
+
+  const activeSlide =
+    sourceBtn?.closest?.(".aift-reel-slide") ||
+    document.querySelector(`.aift-reel-slide[data-post-id="${CSS.escape(String(state.reelActivePostId || ""))}"]`);
+
+  const pop = activeSlide?.querySelector(".aift-reel-sound-pop");
+
+  if(pop){
+    pop.textContent = muted ? "Muted" : "Sound on";
+    pop.classList.remove("show", "is-paused");
     void pop.offsetWidth;
     pop.classList.add("show");
-  });
+  }
 }
 
 function observeFeedVideos(){
@@ -647,11 +658,23 @@ function handleReelScreenTap(event, postId){
 
   state.lastTapAt = now;
 }
-  function toggleReelSound(event){
+function toggleReelSound(event){
   event?.stopPropagation();
-  setAllVideoMuted(!state.globalVideoMuted);
+  setAllVideoMuted(!state.globalVideoMuted, event?.currentTarget);
 }
+function toggleFeedVideoSound(event){
+  event?.stopPropagation();
 
+  if(!isMobileNow()) return;
+
+  const video = event.currentTarget
+    ?.closest(".aift-video-wrap")
+    ?.querySelector(".aift-feed-video");
+
+  if(!video) return;
+
+  setAllVideoMuted(!video.muted, event.currentTarget);
+}
 function closeReelMode(){
   closeReelPanel();
 
@@ -693,9 +716,19 @@ function observeReelVideos(){
           }
         });
 
-        state.reelActivePostId = postId;
-        video.muted = state.globalVideoMuted;
-        video.play().catch(() => {});
+state.reelActivePostId = postId;
+
+document.querySelectorAll(".aift-reel-sound-pop").forEach(pop => {
+  pop.classList.remove("show", "is-paused");
+  pop.textContent = state.globalVideoMuted ? "Muted" : "Sound on";
+});
+
+document.querySelectorAll(".aift-reel-play-indicator").forEach(icon => {
+  icon.classList.remove("show");
+});
+
+video.muted = state.globalVideoMuted;
+video.play().catch(() => {});
       }else{
         video.pause();
       }
@@ -791,17 +824,27 @@ async function submitReelComment(){
   const text = input?.value.trim();
 
   if(!text || !postId) return;
+  if(!requireMember("comment on reels")) return;
 
   input.disabled = true;
 
   try{
-    await api(`${API}/api/posts/${postId}/comment`, {
-      method:"POST",
-      headers:headers({ "Content-Type":"application/json" }),
-      body:JSON.stringify({ text })
-    });
+    if(state.replyTarget?.commentId){
+      await api(`${API}/api/posts/${postId}/comments/${state.replyTarget.commentId}/reply`, {
+        method:"POST",
+        headers:headers({ "Content-Type":"application/json" }),
+        body:JSON.stringify({ text })
+      });
+    }else{
+      await api(`${API}/api/posts/${postId}/comment`, {
+        method:"POST",
+        headers:headers({ "Content-Type":"application/json" }),
+        body:JSON.stringify({ text })
+      });
+    }
 
     input.value = "";
+    state.replyTarget = null;
 
     await refreshOnePost(postId);
 
@@ -809,7 +852,7 @@ async function submitReelComment(){
     const list = document.querySelector(".aift-reel-comments-list");
 
     if(post && list){
-      list.innerHTML = renderComments(post, 20);
+      list.innerHTML = renderComments(post, 50);
     }
 
     const count = document.getElementById(`aift-reel-comment-count-${safeId(postId)}`);
@@ -827,11 +870,42 @@ async function submitReelComment(){
   }
 }
 
-function openReelShare(postId){
+async function openReelShare(postId){
   if(!requireMember("share reels")) return;
 
-  closeReelPanel();
-  openShare(postId);
+  state.activePostId = postId;
+  state.reelPanelPostId = postId;
+  state.selectedShareUsers = new Set();
+
+  if(!state.followingUsers.length){
+    try{
+      state.followingUsers = await api(`${API}/api/users/me/following`, {
+        headers:headers()
+      });
+    }catch{
+      state.followingUsers = [];
+    }
+  }
+
+  const panel = document.getElementById("aiftReelPanel");
+  const backdrop = document.getElementById("aiftReelPanelBackdrop");
+  if(!panel || !backdrop) return;
+
+  panel.innerHTML = `
+    <div class="aift-reel-panel-handle"></div>
+
+    <header class="aift-reel-panel-head">
+      <strong>Share</strong>
+      <button onclick="AIFTFeed.closeReelPanel()">${svg("close")}</button>
+    </header>
+
+    <div id="aiftReelShareBody" class="aift-sheet-body"></div>
+  `;
+
+  backdrop.classList.add("show");
+  panel.classList.add("show");
+
+  renderShareUI(postId);
 }
 
 function openReelMoreOptions(postId){
@@ -1098,11 +1172,16 @@ observeFeedVideos();
         preload="metadata"
         data-post-id="${esc(post._id)}"
         onclick="event.stopPropagation(); AIFTFeed.openReelMode('${esc(post._id)}')"
+ondblclick="event.stopPropagation(); AIFTFeed.doubleLike('${esc(post._id)}')"
       ></video>
 
-      <button class="aift-video-sound" type="button">
-        Muted
-      </button>
+<button
+  class="aift-video-sound"
+  type="button"
+  onclick="event.stopPropagation(); AIFTFeed.toggleFeedVideoSound(event)"
+>
+  Muted
+</button>
    </div>`
                   : `<img class="aift-post-media" src="${esc(item.url)}" alt="Post media" loading="lazy" />`
               }
@@ -2318,7 +2397,13 @@ function openReplyMenu(postId, commentId, replyId){
   }
 
   function renderShareUI(postId, keyword = "") {
-    const body = document.getElementById("aiftShareBody");
+   const reelPanel = document.getElementById("aiftReelPanel");
+const reelBody = document.getElementById("aiftReelShareBody");
+
+const body =
+  reelPanel?.classList.contains("show") && reelBody
+    ? reelBody
+    : document.getElementById("aiftShareBody");
     const link = getPostLink(postId);
     const users = state.followingUsers.filter(user => {
       const term = `${userName(user)} ${userSub(user)}`.toLowerCase();
@@ -3042,7 +3127,7 @@ replyTo,
     openReelComments,
 submitReelComment,
 handleReelCommentKey,
-openReelShare,
+
 openReelMoreOptions,
 closeReelPanel,
 handleReelLike,
@@ -3063,6 +3148,7 @@ copyCommentLink,
 closeReelMode,
 handleReelScreenTap,
 setAllVideoMuted,
+    toggleFeedVideoSound,
     expandPostText,
     collapsePostText,
     visitProfile,
