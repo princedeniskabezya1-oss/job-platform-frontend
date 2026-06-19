@@ -515,24 +515,51 @@ function openReelMode(postId){
             </button>
 
             <div class="aift-reel-info">
-              <div class="aift-reel-author" onclick="event.stopPropagation(); AIFTFeed.visitProfile('${esc(author._id)}')">
-                <img src="${esc(userAvatar(author))}" alt="">
-                <strong>${esc(userName(author))}</strong>
-              </div>
+<div class="aift-reel-author">
 
-              <div class="aift-reel-caption-row">
-                ${
-                  post.text?.trim()
-                    ? `<p>${esc(post.text)}</p>`
-                    : `<p></p>`
-                }
+  <div
+    class="aift-reel-author-main"
+    onclick="event.stopPropagation(); AIFTFeed.visitProfile('${esc(author._id)}')"
+  >
+    <img src="${esc(userAvatar(author))}" alt="">
+    <strong>${esc(userName(author))}</strong>
+  </div>
 
-                <button
-                  class="aift-reel-more"
-                  onclick="event.stopPropagation(); AIFTFeed.openReelMoreOptions('${esc(post._id)}')"
-                >
-                  ${svg("more")}
-                </button>
+  ${
+    !isFollowing(author) &&
+    String(author._id) !== String(state.meId)
+      ? `
+      <button
+        class="aift-reel-follow-btn"
+        onclick="event.stopPropagation(); AIFTFeed.followUser('${author._id}')"
+      >
+        Follow
+      </button>
+      `
+      : ""
+  }
+
+</div>
+
+<div class="aift-reel-caption-row">
+  ${
+    post.text?.trim()
+      ? `
+      <p
+        class="aift-reel-caption"
+        onclick="event.stopPropagation(); AIFTFeed.openReelComments('${esc(post._id)}')"
+      >
+        ${
+          post.text.split(/\s+/).length > 37
+            ? esc(post.text.split(/\s+/).slice(0,37).join(" ")) + "..."
+            : esc(post.text)
+        }
+      </p>
+      `
+      : `<p></p>`
+  }
+
+
               </div>
             </div>
 
@@ -562,6 +589,11 @@ function openReelMode(postId){
               >
                 ${svg("save")}
               </button>
+              <button
+  onclick="event.stopPropagation(); AIFTFeed.openReelMoreOptions('${esc(post._id)}')"
+>
+  ${svg("more")}
+</button>
             </div>
           </section>
         `;
@@ -689,13 +721,9 @@ async function handleReelSave(postId){
   await savePost(postId);
 
   const btn = document.getElementById(`aift-reel-save-${safeId(postId)}`);
-  btn?.classList.add("is-saved");
+btn?.classList.toggle("is-saved");
 
-  toast("Saved.");
-
-  setTimeout(() => {
-    btn?.classList.remove("is-saved");
-  }, 900);
+toast("Saved.");
 }
 
 function openReelComments(postId){
@@ -795,44 +823,9 @@ async function submitReelComment(){
 function openReelShare(postId){
   if(!requireMember("share reels")) return;
 
-  state.reelPanelPostId = postId;
+  state.activePostId = postId;
 
-  const panel = document.getElementById("aiftReelPanel");
-  const backdrop = document.getElementById("aiftReelPanelBackdrop");
-  if(!panel || !backdrop) return;
-
-  const link = getPostLink(postId);
-
-  panel.innerHTML = `
-    <div class="aift-reel-panel-handle"></div>
-
-    <header class="aift-reel-panel-head">
-      <strong>Share</strong>
-      <button onclick="AIFTFeed.closeReelPanel()">${svg("close")}</button>
-    </header>
-
-    <div class="aift-reel-share-grid">
-      <button onclick="AIFTFeed.copyPostLink('${esc(postId)}')">
-        ${svg("copy")}
-        <span>Copy link</span>
-      </button>
-
-      <button onclick="AIFTFeed.openRepost('${esc(postId)}')">
-        ${svg("repost")}
-        <span>Repost</span>
-      </button>
-
-      <button onclick="AIFTFeed.nativeShare('${esc(postId)}')">
-        ${svg("share")}
-        <span>More</span>
-      </button>
-    </div>
-
-    <div class="aift-reel-copy-link">${esc(link)}</div>
-  `;
-
-  backdrop.classList.add("show");
-  panel.classList.add("show");
+  openShareSheet(postId);
 }
 
 function openReelMoreOptions(postId){
