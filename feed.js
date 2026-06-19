@@ -675,6 +675,31 @@ function toggleFeedVideoSound(event){
 
   setAllVideoMuted(!video.muted, event.currentTarget);
 }
+  function handleFeedVideoTap(event, postId){
+  event?.preventDefault();
+  event?.stopPropagation();
+
+  const target = event.target;
+
+  if(target.closest(".aift-video-sound")){
+    return;
+  }
+
+  const now = Date.now();
+
+  if(state.feedVideoTapTimer){
+    clearTimeout(state.feedVideoTapTimer);
+    state.feedVideoTapTimer = null;
+
+    doubleLike(postId);
+    return;
+  }
+
+  state.feedVideoTapTimer = setTimeout(() => {
+    state.feedVideoTapTimer = null;
+    openReelMode(postId);
+  }, 260);
+}
 function closeReelMode(){
   closeReelPanel();
 
@@ -775,6 +800,7 @@ function openReelComments(postId){
   state.reelPanelPostId = postId;
   state.activePostId = postId;
   state.isMobile = true;
+  state.replyTarget = null;
 
   const panel = document.getElementById("aiftReelPanel");
   const backdrop = document.getElementById("aiftReelPanelBackdrop");
@@ -793,13 +819,20 @@ function openReelComments(postId){
     </div>
 
     <footer class="aift-reel-comment-footer">
-      <img src="${esc(userAvatar(state.me || {}))}" alt="">
-      <input
-        id="aiftReelCommentInput"
-        placeholder="Add a comment..."
-        onkeydown="AIFTFeed.handleReelCommentKey(event)"
-      >
-      <button onclick="AIFTFeed.submitReelComment()">Post</button>
+      <div id="aiftReelReplyBanner" class="aift-reply-banner">
+        <span id="aiftReelReplyText"></span>
+        <button onclick="AIFTFeed.cancelReply()">Cancel</button>
+      </div>
+
+      <div class="aift-reel-comment-row">
+        <img src="${esc(userAvatar(state.me || {}))}" alt="">
+        <input
+          id="aiftReelCommentInput"
+          placeholder="Add a comment..."
+          onkeydown="AIFTFeed.handleReelCommentKey(event)"
+        >
+        <button onclick="AIFTFeed.submitReelComment()">Post</button>
+      </div>
     </footer>
   `;
 
@@ -810,7 +843,6 @@ function openReelComments(postId){
     document.getElementById("aiftReelCommentInput")?.focus();
   }, 160);
 }
-
 function handleReelCommentKey(event){
   if(event.key === "Enter" && !event.shiftKey){
     event.preventDefault();
@@ -1163,22 +1195,22 @@ observeFeedVideos();
               ${
                 item.type === "video"
 ? `<div class="aift-video-wrap">
-      <video
-        class="aift-post-media aift-feed-video"
-        src="${esc(item.url)}"
-        muted
-        playsinline
-        loop
-        preload="metadata"
-        data-post-id="${esc(post._id)}"
-        onclick="event.stopPropagation(); AIFTFeed.openReelMode('${esc(post._id)}')"
-ondblclick="event.stopPropagation(); AIFTFeed.doubleLike('${esc(post._id)}')"
-      ></video>
+<video
+  class="aift-post-media aift-feed-video"
+  src="${esc(item.url)}"
+  muted
+  playsinline
+  loop
+  preload="metadata"
+  data-post-id="${esc(post._id)}"
+  onclick="AIFTFeed.handleFeedVideoTap(event, '${esc(post._id)}')"
+></video>
 
 <button
   class="aift-video-sound"
   type="button"
-  onclick="event.stopPropagation(); AIFTFeed.toggleFeedVideoSound(event)"
+  onpointerdown="event.preventDefault(); event.stopPropagation();"
+  onclick="event.preventDefault(); event.stopPropagation(); AIFTFeed.toggleFeedVideoSound(event)"
 >
   Muted
 </button>
@@ -2258,84 +2290,114 @@ function openReplyMenu(postId, commentId, replyId){
       }
     });
   }
-    function rerenderActiveComments(postId) {
-    const post = getPost(postId);
-    if (!post) return;
+function rerenderActiveComments(postId) {
+  const post = getPost(postId);
+  if (!post) return;
 
-    if (state.isMobile && state.activePostId === postId) {
-      const body = document.getElementById("aiftCommentsBody");
-      if (body) {
-        body.innerHTML = `
-          <div class="aift-comments-topbar">
-            <button class="aift-comments-filter">Most relevant</button>
-          </div>
-          <div class="aift-comments-preview">${renderComments(post, 3)}</div>
-        `;
-      }
-      return;
-    }
+  const reelPanel = document.getElementById("aiftReelPanel");
+  const reelList = document.querySelector(".aift-reel-comments-list");
 
-    const container = document.getElementById(`aift-comments-inline-${safeId(postId)}`);
-    if (container?.dataset.open === "true") {
-      showAllComments(postId);
-    }
+  if(reelPanel?.classList.contains("show") && reelList && state.reelPanelPostId === postId){
+    reelList.innerHTML = renderComments(post, 50);
+    return;
   }
 
-  function replyTo(postId, commentId, name) {
-    state.activePostId = postId;
-    state.replyTarget = { commentId, name };
-
-    if (!state.isMobile) {
-      document.querySelectorAll(".aift-inline-reply-box").forEach(box => box.remove());
-
-      const commentEl = document.getElementById(`aift-comment-${safeId(commentId)}`);
-      if (!commentEl) return;
-
-      const replyBox = document.createElement("div");
-      replyBox.className = "aift-inline-reply-box";
-      replyBox.innerHTML = `
-        <div class="aift-reply-banner show">
-          <span>Replying to ${esc(name)}</span>
-          <button onclick="AIFTFeed.cancelReply()">Cancel</button>
+  if (state.isMobile && state.activePostId === postId) {
+    const body = document.getElementById("aiftCommentsBody");
+    if (body) {
+      body.innerHTML = `
+        <div class="aift-comments-topbar">
+          <button class="aift-comments-filter">Most relevant</button>
         </div>
-
-        <div class="aift-inline-input">
-          <img class="aift-input-avatar" src="${esc(userAvatar(state.me || {}))}" alt="" />
-          <input
-            type="text"
-            placeholder="Write a reply..."
-            onkeydown="AIFTFeed.handleInlineReplyKey(event, '${esc(postId)}', '${esc(commentId)}', this)"
-          />
-          <button onclick="AIFTFeed.submitInlineReply('${esc(postId)}', '${esc(commentId)}', this.previousElementSibling)">Post</button>
-        </div>
+        <div class="aift-comments-preview">${renderComments(post, 3)}</div>
       `;
-
-      commentEl.querySelector(".aift-fb-comment-content")?.appendChild(replyBox);
-      replyBox.querySelector("input")?.focus();
-      return;
     }
-
-    const banner = document.getElementById("aiftReplyBanner");
-    const text = document.getElementById("aiftReplyText");
-    const input = document.getElementById("aiftCommentInput");
-
-    if (banner && text) {
-      text.textContent = `Replying to ${name}`;
-      banner.classList.add("show");
-    }
-
-    input?.focus();
+    return;
   }
+
+  const container = document.getElementById(`aift-comments-inline-${safeId(postId)}`);
+  if (container?.dataset.open === "true") {
+    showAllComments(postId);
+  }
+}
+
+function replyTo(postId, commentId, name) {
+  state.activePostId = postId;
+  state.replyTarget = { commentId, name };
+
+  const reelInput = document.getElementById("aiftReelCommentInput");
+  const reelBanner = document.getElementById("aiftReelReplyBanner");
+  const reelText = document.getElementById("aiftReelReplyText");
+
+  if(reelInput && reelBanner && reelText){
+    reelText.textContent = `Replying to ${name}`;
+    reelBanner.classList.add("show");
+    reelInput.placeholder = `Reply to ${name}...`;
+    reelInput.focus();
+    return;
+  }
+
+  if (!state.isMobile) {
+    document.querySelectorAll(".aift-inline-reply-box").forEach(box => box.remove());
+
+    const commentEl = document.getElementById(`aift-comment-${safeId(commentId)}`);
+    if (!commentEl) return;
+
+    const replyBox = document.createElement("div");
+    replyBox.className = "aift-inline-reply-box";
+    replyBox.innerHTML = `
+      <div class="aift-reply-banner show">
+        <span>Replying to ${esc(name)}</span>
+        <button onclick="AIFTFeed.cancelReply()">Cancel</button>
+      </div>
+
+      <div class="aift-inline-input">
+        <img class="aift-input-avatar" src="${esc(userAvatar(state.me || {}))}" alt="" />
+        <input
+          type="text"
+          placeholder="Write a reply..."
+          onkeydown="AIFTFeed.handleInlineReplyKey(event, '${esc(postId)}', '${esc(commentId)}', this)"
+        />
+        <button onclick="AIFTFeed.submitInlineReply('${esc(postId)}', '${esc(commentId)}', this.previousElementSibling)">Post</button>
+      </div>
+    `;
+
+    commentEl.querySelector(".aift-fb-comment-content")?.appendChild(replyBox);
+    replyBox.querySelector("input")?.focus();
+    return;
+  }
+
+  const banner = document.getElementById("aiftReplyBanner");
+  const text = document.getElementById("aiftReplyText");
+  const input = document.getElementById("aiftCommentInput");
+
+  if (banner && text) {
+    text.textContent = `Replying to ${name}`;
+    banner.classList.add("show");
+  }
+
+  input?.focus();
+}
 
   function hideReplyBanner() {
     document.getElementById("aiftReplyBanner")?.classList.remove("show");
   }
 
-  function cancelReply() {
-    state.replyTarget = null;
-    document.querySelectorAll(".aift-inline-reply-box").forEach(box => box.remove());
-    hideReplyBanner();
+function cancelReply() {
+  state.replyTarget = null;
+
+  document.querySelectorAll(".aift-inline-reply-box").forEach(box => box.remove());
+
+  hideReplyBanner();
+
+  document.getElementById("aiftReelReplyBanner")?.classList.remove("show");
+
+  const reelInput = document.getElementById("aiftReelCommentInput");
+  if(reelInput){
+    reelInput.placeholder = "Add a comment...";
+    reelInput.focus();
   }
+}
 
   function toggleReplies(commentId) {
     state.openReplies[commentId] = !state.openReplies[commentId];
@@ -3148,7 +3210,9 @@ copyCommentLink,
 closeReelMode,
 handleReelScreenTap,
 setAllVideoMuted,
-    toggleFeedVideoSound,
+    handleFeedVideoTap,
+toggleFeedVideoSound,
+    
     expandPostText,
     collapsePostText,
     visitProfile,
