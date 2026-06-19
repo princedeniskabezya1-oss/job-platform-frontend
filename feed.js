@@ -630,21 +630,33 @@ function openReelMode(postId){
 
 function handleReelScreenTap(event, postId){
   const clickedAction = event.target.closest(
-    ".aift-reel-actions, .aift-reel-close, .aift-reel-author, .aift-reel-more, .aift-reel-sound-pop"
+    ".aift-reel-actions, .aift-reel-close, .aift-reel-author, .aift-reel-more, .aift-reel-sound-pop, .aift-reel-panel, .aift-reel-caption"
   );
 
   if(clickedAction) return;
+
+  event.preventDefault();
+  event.stopPropagation();
 
   const slide = event.currentTarget;
   const video = slide.querySelector(".aift-reel-video");
   const playIcon = slide.querySelector(".aift-reel-play-indicator");
   const soundPop = slide.querySelector(".aift-reel-sound-pop");
-  const now = Date.now();
 
-  if(now - state.lastTapAt < 320){
+  if(state.reelTapTimer){
+    clearTimeout(state.reelTapTimer);
+    state.reelTapTimer = null;
+
     showHeart(postId);
     handleReelLike(postId);
-  }else if(video){
+    return;
+  }
+
+  state.reelTapTimer = setTimeout(() => {
+    state.reelTapTimer = null;
+
+    if(!video) return;
+
     if(video.paused){
       video.play().catch(() => {});
       playIcon?.classList.remove("show");
@@ -654,10 +666,9 @@ function handleReelScreenTap(event, postId){
       playIcon?.classList.add("show");
       soundPop?.classList.add("show", "is-paused");
     }
-  }
-
-  state.lastTapAt = now;
+  }, 280);
 }
+  
 function toggleReelSound(event){
   event?.stopPropagation();
   setAllVideoMuted(!state.globalVideoMuted, event?.currentTarget);
@@ -683,24 +694,18 @@ function handleFeedVideoTap(event, postId){
     return;
   }
 
-  if(event.detail >= 2){
-    if(state.feedVideoTapTimer){
-      clearTimeout(state.feedVideoTapTimer);
-      state.feedVideoTapTimer = null;
-    }
+  if(state.feedVideoTapTimer){
+    clearTimeout(state.feedVideoTapTimer);
+    state.feedVideoTapTimer = null;
 
     doubleLike(postId);
     return;
   }
 
-  if(state.feedVideoTapTimer){
-    clearTimeout(state.feedVideoTapTimer);
-  }
-
   state.feedVideoTapTimer = setTimeout(() => {
     state.feedVideoTapTimer = null;
     openReelMode(postId);
-  }, 260);
+  }, 280);
 }
 function closeReelMode(){
   closeReelPanel();
@@ -1195,7 +1200,7 @@ observeFeedVideos();
     if (!items.length) return "";
 
     return `
-      <div class="aift-carousel" ondblclick="AIFTFeed.doubleLike('${esc(post._id)}')" ontouchend="AIFTFeed.handleTapLike(event, '${esc(post._id)}')">
+      <div class="aift-carousel">
         <div class="aift-carousel-track" onscroll="AIFTFeed.updateCarouselDots(this)">
           ${items.map(item => `
             <div class="aift-carousel-slide">
@@ -1211,6 +1216,7 @@ observeFeedVideos();
   preload="metadata"
   data-post-id="${esc(post._id)}"
   onclick="AIFTFeed.handleFeedVideoTap(event, '${esc(post._id)}')"
+  ondblclick="event.preventDefault(); event.stopPropagation();"
 ></video>
 
 <button
