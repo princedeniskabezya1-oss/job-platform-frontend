@@ -506,9 +506,14 @@ function openReelMode(postId){
 
             <div class="aift-reel-gradient"></div>
 
-            <div class="aift-reel-sound-pop">
-              ${state.globalVideoMuted ? "Muted" : "Sound on"}
-            </div>
+<div
+  class="aift-reel-sound-pop"
+  onclick="event.stopPropagation(); AIFTFeed.toggleReelSound(event)"
+>
+  ${state.globalVideoMuted ? "Muted" : "Sound on"}
+</div>
+
+<div class="aift-reel-play-indicator"></div>
 
 
             <div class="aift-reel-info">
@@ -561,9 +566,6 @@ function openReelMode(postId){
             </div>
 
             <div class="aift-reel-actions">
-            <button class="aift-reel-sound" type="button" onclick="event.stopPropagation(); AIFTFeed.toggleReelSound(event)">
-  ${state.globalVideoMuted ? "Muted" : "Sound on"}
-</button>
               <button
                 class="${liked ? "is-liked" : ""}"
                 id="aift-reel-like-${safeId(post._id)}"
@@ -617,24 +619,29 @@ function openReelMode(postId){
 
 function handleReelScreenTap(event, postId){
   const clickedAction = event.target.closest(
-    ".aift-reel-actions, .aift-reel-close, .aift-reel-author, .aift-reel-more, .aift-reel-sound"
+    ".aift-reel-actions, .aift-reel-close, .aift-reel-author, .aift-reel-more, .aift-reel-sound-pop"
   );
 
   if(clickedAction) return;
 
-  const video = event.currentTarget.querySelector(".aift-reel-video");
+  const slide = event.currentTarget;
+  const video = slide.querySelector(".aift-reel-video");
+  const playIcon = slide.querySelector(".aift-reel-play-indicator");
+  const soundPop = slide.querySelector(".aift-reel-sound-pop");
   const now = Date.now();
 
   if(now - state.lastTapAt < 320){
     showHeart(postId);
     handleReelLike(postId);
-  }else{
-    if(video){
-      if(video.paused){
-        video.play().catch(() => {});
-      }else{
-        video.pause();
-      }
+  }else if(video){
+    if(video.paused){
+      video.play().catch(() => {});
+      playIcon?.classList.remove("show");
+      soundPop?.classList.remove("show", "is-paused");
+    }else{
+      video.pause();
+      playIcon?.classList.add("show");
+      soundPop?.classList.add("show", "is-paused");
     }
   }
 
