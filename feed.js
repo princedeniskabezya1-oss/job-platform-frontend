@@ -675,24 +675,26 @@ function toggleFeedVideoSound(event){
 
   setAllVideoMuted(!video.muted, event.currentTarget);
 }
-  function handleFeedVideoTap(event, postId){
+function handleFeedVideoTap(event, postId){
   event?.preventDefault();
   event?.stopPropagation();
 
-  const target = event.target;
-
-  if(target.closest(".aift-video-sound")){
+  if(event.target.closest(".aift-video-sound")){
     return;
   }
 
-  const now = Date.now();
-
-  if(state.feedVideoTapTimer){
-    clearTimeout(state.feedVideoTapTimer);
-    state.feedVideoTapTimer = null;
+  if(event.detail >= 2){
+    if(state.feedVideoTapTimer){
+      clearTimeout(state.feedVideoTapTimer);
+      state.feedVideoTapTimer = null;
+    }
 
     doubleLike(postId);
     return;
+  }
+
+  if(state.feedVideoTapTimer){
+    clearTimeout(state.feedVideoTapTimer);
   }
 
   state.feedVideoTapTimer = setTimeout(() => {
@@ -877,6 +879,11 @@ async function submitReelComment(){
 
     input.value = "";
     state.replyTarget = null;
+    document.getElementById("aiftReelReplyBanner")?.classList.remove("show");
+
+if(input){
+  input.placeholder = "Add a comment...";
+}
 
     await refreshOnePost(postId);
 
