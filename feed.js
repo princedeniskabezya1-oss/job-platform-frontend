@@ -510,9 +510,6 @@ function openReelMode(postId){
               ${state.globalVideoMuted ? "Muted" : "Sound on"}
             </div>
 
-            <button class="aift-reel-sound" type="button" onclick="AIFTFeed.toggleReelSound(event)">
-              ${state.globalVideoMuted ? "Muted" : "Sound on"}
-            </button>
 
             <div class="aift-reel-info">
 <div class="aift-reel-author">
@@ -531,7 +528,7 @@ function openReelMode(postId){
       ? `
       <button
         class="aift-reel-follow-btn"
-        onclick="event.stopPropagation(); AIFTFeed.followUser('${author._id}')"
+        onclick="event.stopPropagation(); AIFTFeed.toggleFollow('${esc(author._id)}')"
       >
         Follow
       </button>
@@ -564,6 +561,9 @@ function openReelMode(postId){
             </div>
 
             <div class="aift-reel-actions">
+            <button class="aift-reel-sound" type="button" onclick="event.stopPropagation(); AIFTFeed.toggleReelSound(event)">
+  ${state.globalVideoMuted ? "Muted" : "Sound on"}
+</button>
               <button
                 class="${liked ? "is-liked" : ""}"
                 id="aift-reel-like-${safeId(post._id)}"
@@ -823,9 +823,8 @@ async function submitReelComment(){
 function openReelShare(postId){
   if(!requireMember("share reels")) return;
 
-  state.activePostId = postId;
-
-  openShareSheet(postId);
+  closeReelPanel();
+  openShare(postId);
 }
 
 function openReelMoreOptions(postId){
