@@ -1232,8 +1232,18 @@ function restoreReelPosition(){
 
   sessionStorage.removeItem("aiftLastReelPost");
 }
-  function saveFeedScroll(postId = ""){
-  sessionStorage.setItem("aiftFeedScrollY", String(window.scrollY || 0));
+function saveFeedScroll(postId = ""){
+  const card = postId
+    ? document.getElementById(`aift-post-${safeId(postId)}`)
+    : null;
+
+  if(card){
+    sessionStorage.setItem(
+      "aiftFeedPostOffset",
+      String(card.getBoundingClientRect().top)
+    );
+  }
+
   if(postId){
     sessionStorage.setItem("aiftFeedLastPost", String(postId));
   }
@@ -1256,24 +1266,26 @@ observeFeedVideos();
     restoreFeedScroll();
   }
 function restoreFeedScroll(){
-  const savedPost = sessionStorage.getItem("aiftFeedLastPost");
-  const savedY = Number(sessionStorage.getItem("aiftFeedScrollY") || 0);
+  const postId = sessionStorage.getItem("aiftFeedLastPost");
+  const offset = Number(
+    sessionStorage.getItem("aiftFeedPostOffset") || 0
+  );
 
-  if(!savedPost && !savedY) return;
+  if(!postId) return;
 
-  const el = savedPost
-    ? document.getElementById(`aift-post-${safeId(savedPost)}`)
-    : null;
+  const card = document.getElementById(
+    `aift-post-${safeId(postId)}`
+  );
 
-  if(el){
-    const top = el.offsetTop - 90;
-    window.scrollTo(0, Math.max(top, 0));
-  }else if(savedY){
-    window.scrollTo(0, savedY);
+  if(card){
+    const currentTop = card.getBoundingClientRect().top;
+    const diff = currentTop - offset;
+
+    window.scrollBy(0, diff);
   }
 
   sessionStorage.removeItem("aiftFeedLastPost");
-  sessionStorage.removeItem("aiftFeedScrollY");
+  sessionStorage.removeItem("aiftFeedPostOffset");
 }
   function getMediaItems(post = {}) {
     if (Array.isArray(post.media) && post.media.length) {
