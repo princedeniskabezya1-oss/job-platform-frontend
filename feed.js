@@ -465,7 +465,8 @@ function getVideoPosts(){
 }
 
 function unlockReelPageScroll(){
-  const savedY = state.reelScrollY || 0;
+  const topValue = document.body.style.top || "0";
+  const savedY = Math.abs(parseInt(topValue, 10)) || state.reelScrollY || 0;
 
   document.documentElement.classList.remove("aift-reel-lock");
   document.body.classList.remove("aift-reel-open");
@@ -739,9 +740,43 @@ saveReelPosition(postId);
 openReelMode(postId);
   }, 280);
 }
+function handlePostMediaTap(event, postId){
+  event?.preventDefault();
+  event?.stopPropagation();
+
+  if(event.target.closest(".aift-video-sound")){
+    return;
+  }
+
+  const isVideo = Boolean(event.target.closest(".aift-video-wrap"));
+
+  if(state.postMediaTapTimer){
+    clearTimeout(state.postMediaTapTimer);
+    state.postMediaTapTimer = null;
+
+    doubleLike(postId);
+    return;
+  }
+
+  state.postMediaTapTimer = setTimeout(() => {
+    state.postMediaTapTimer = null;
+
+    if(isVideo){
+      saveFeedScroll(postId);
+      saveReelPosition(postId);
+      openReelMode(postId);
+    }
+  }, 280);
+}
+  
 function closeReelMode(){
-  saveFeedScroll(state.reelActivePostId || state.reelPanelPostId || "");
-saveReelPosition();
+  const viewer = document.getElementById("aiftReelViewer");
+
+  if(viewer){
+    viewer.style.visibility = "hidden";
+    viewer.classList.remove("show");
+  }
+
   closeReelPanel();
 
   document.querySelectorAll(".aift-reel-video").forEach(v => {
@@ -754,9 +789,6 @@ saveReelPosition();
     state.reelObserver = null;
   }
 
-  
-
-  document.getElementById("aiftReelViewer")?.classList.remove("show");
   unlockReelPageScroll();
 }
 
@@ -1312,7 +1344,7 @@ function restoreFeedScroll(){
     if (!items.length) return "";
 
     return `
-      <div class="aift-carousel">
+      <div class="aift-carousel" onclick="AIFTFeed.handlePostMediaTap(event, '${esc(post._id)}')">
         <div class="aift-carousel-track" onscroll="AIFTFeed.updateCarouselDots(this)">
           ${items.map(item => `
             <div class="aift-carousel-slide">
@@ -1327,7 +1359,7 @@ function restoreFeedScroll(){
   loop
   preload="metadata"
   data-post-id="${esc(post._id)}"
-  onclick="AIFTFeed.handleFeedVideoTap(event, '${esc(post._id)}')"
+  
   ondblclick="event.preventDefault(); event.stopPropagation();"
 ></video>
 
@@ -3483,6 +3515,7 @@ handleReelScreenTap,
 setAllVideoMuted,
     handleFeedVideoTap,
 toggleFeedVideoSound,
+    handlePostMediaTap,
     
     expandPostText,
     collapsePostText,
