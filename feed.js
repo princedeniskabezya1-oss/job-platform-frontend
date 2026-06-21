@@ -627,12 +627,22 @@ function openReelMode(postId){
   modal.classList.add("show");
   lockReelPageScroll();
 
-  setTimeout(() => {
-    const target = modal.querySelector(`[data-post-id="${CSS.escape(String(postId))}"]`);
-    target?.scrollIntoView({ block:"start" });
-    observeReelVideos();
-    updateSoundBadges();
-  }, 80);
+setTimeout(() => {
+  const targetId =
+    sessionStorage.getItem("aiftLastReelPost") ||
+    postId;
+
+  const track = modal.querySelector(".aift-reel-track");
+  const target = modal.querySelector(`[data-post-id="${CSS.escape(String(targetId))}"]`);
+
+  if(track && target){
+    track.scrollTop = target.offsetTop;
+    state.reelActivePostId = targetId;
+  }
+
+  observeReelVideos();
+  updateSoundBadges();
+}, 120);
 }
 
 function handleReelScreenTap(event, postId){
@@ -711,10 +721,14 @@ function handleFeedVideoTap(event, postId){
 
   state.feedVideoTapTimer = setTimeout(() => {
     state.feedVideoTapTimer = null;
-    openReelMode(postId);
+    saveFeedScroll(postId);
+saveReelPosition(postId);
+openReelMode(postId);
   }, 280);
 }
 function closeReelMode(){
+  saveFeedScroll(state.reelActivePostId || state.reelPanelPostId || "");
+saveReelPosition();
   closeReelPanel();
 
   document.querySelectorAll(".aift-reel-video").forEach(v => {
@@ -779,8 +793,9 @@ video.play().catch(() => {});
 
   videos.forEach(video => state.reelObserver.observe(video));
 }
-  async function handleReelLike(postId){
-    showReelHeart(postId);
+ async function handleReelLike(postId){
+  saveReelPosition(postId);
+  showReelHeart(postId);
   await likePost(postId, true);
 
   const post = getPost(postId);
@@ -796,6 +811,8 @@ video.play().catch(() => {});
 }
 
 async function handleReelSave(postId){
+  saveReelPosition(postId);
+
   if(!requireMember("save reels")) return;
 
   await savePost(postId);
@@ -807,6 +824,8 @@ toast("Saved.");
 }
 
 function openReelComments(postId){
+  saveReelPosition(postId);
+
   if(!requireMember("comment on reels")) return;
 
   const post = getPost(postId);
@@ -925,6 +944,8 @@ if(input){
 }
 
 async function openReelShare(postId){
+  saveReelPosition(postId);
+
   if(!requireMember("share reels")) return;
 
   state.activePostId = postId;
@@ -963,6 +984,8 @@ async function openReelShare(postId){
 }
 
 function openReelMoreOptions(postId){
+  saveReelPosition(postId);
+
   const post = getPost(postId);
   if(!post) return;
 
@@ -1018,8 +1041,11 @@ function openReelMoreOptions(postId){
 }
 
 function closeReelPanel(){
+  saveReelPosition();
+
   document.getElementById("aiftReelPanelBackdrop")?.classList.remove("show");
   document.getElementById("aiftReelPanel")?.classList.remove("show");
+
   state.reelPanelPostId = null;
   setReelKeyboard(false);
 }
@@ -1174,6 +1200,30 @@ function observeInfiniteScroll(){
     });
     return Array.from(map.values());
   }
+  function saveReelPosition(postId = ""){
+  const activeId = postId || state.reelActivePostId || state.reelPanelPostId || "";
+  if(activeId){
+    sessionStorage.setItem("aiftLastReelPost", String(activeId));
+  }
+}
+
+function restoreReelPosition(){
+  const savedId = sessionStorage.getItem("aiftLastReelPost");
+  if(!savedId) return;
+
+  const track = document.querySelector(".aift-reel-track");
+  const slide = document.querySelector(`.aift-reel-slide[data-post-id="${CSS.escape(savedId)}"]`);
+
+  if(track && slide){
+    track.scrollTo({
+      top: slide.offsetTop,
+      behavior: "instant"
+    });
+    state.reelActivePostId = savedId;
+  }
+
+  sessionStorage.removeItem("aiftLastReelPost");
+}
   function saveFeedScroll(postId = ""){
   sessionStorage.setItem("aiftFeedScrollY", String(window.scrollY || 0));
   if(postId){
@@ -1203,20 +1253,21 @@ function restoreFeedScroll(){
 
   if(!savedPost && !savedY) return;
 
-  requestAnimationFrame(() => {
+  setTimeout(() => {
     const el = savedPost
       ? document.getElementById(`aift-post-${safeId(savedPost)}`)
       : null;
 
     if(el){
-      el.scrollIntoView({ block:"center" });
+      const top = el.getBoundingClientRect().top + window.scrollY - 90;
+      window.scrollTo({ top: Math.max(top, 0), behavior: "instant" });
     }else if(savedY){
-      window.scrollTo(0, savedY);
+      window.scrollTo({ top: savedY, behavior: "instant" });
     }
 
     sessionStorage.removeItem("aiftFeedLastPost");
     sessionStorage.removeItem("aiftFeedScrollY");
-  });
+  }, 250);
 }
   function getMediaItems(post = {}) {
     if (Array.isArray(post.media) && post.media.length) {
@@ -3343,6 +3394,8 @@ handleReelLike,
 handleReelSave,
 openReelShare,
 openReelComments,
+    saveReelPosition,
+restoreReelPosition,
 
 openReplyMenu,
 replyTo,
