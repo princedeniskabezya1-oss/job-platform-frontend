@@ -768,13 +768,12 @@ openReelMode(postId);
 }
   
 function closeReelMode(){
-  const savedY = state.reelScrollY || 0;
   const viewer = document.getElementById("aiftReelViewer");
 
-  if(viewer){
-    viewer.style.visibility = "hidden";
-    viewer.classList.remove("show");
-  }
+  const savedY =
+    state.reelScrollY ||
+    Math.abs(parseInt(document.body.style.top || "0", 10)) ||
+    0;
 
   document.getElementById("aiftReelPanelBackdrop")?.classList.remove("show");
   document.getElementById("aiftReelPanel")?.classList.remove("show");
@@ -802,6 +801,15 @@ function closeReelMode(){
   document.body.style.width = "";
 
   window.scrollTo(0, savedY);
+
+  requestAnimationFrame(() => {
+    window.scrollTo(0, savedY);
+
+    if(viewer){
+      viewer.classList.remove("show");
+      viewer.style.visibility = "";
+    }
+  });
 }
 
 function observeReelVideos(){
