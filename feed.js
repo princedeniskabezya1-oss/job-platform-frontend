@@ -633,17 +633,22 @@ lockReelPageScroll();
 
 modal.classList.add("show");
 
+const targetId =
+  sessionStorage.getItem("aiftLastReelPost") ||
+  postId;
+
+const track = modal.querySelector(".aift-reel-track");
+const target = modal.querySelector(`[data-post-id="${CSS.escape(String(targetId))}"]`);
+
+if(track && target){
+  track.style.scrollBehavior = "auto";
+  track.scrollTop = target.offsetTop;
+  state.reelActivePostId = targetId;
+}
+
 requestAnimationFrame(() => {
-  const targetId =
-    sessionStorage.getItem("aiftLastReelPost") ||
-    postId;
-
-  const track = modal.querySelector(".aift-reel-track");
-  const target = modal.querySelector(`[data-post-id="${CSS.escape(String(targetId))}"]`);
-
   if(track && target){
     track.scrollTop = target.offsetTop;
-    state.reelActivePostId = targetId;
   }
 
   observeReelVideos();
