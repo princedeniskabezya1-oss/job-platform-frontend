@@ -1119,7 +1119,10 @@ if (!state.guestMode) {
     if (reset) {
       state.skip = 0;
       state.hasMore = true;
-      if (list) list.innerHTML = `<div class="aift-feed-loading"><span class="aift-spinner"></span></div>`;
+      if (list) {
+  list.style.visibility = sessionStorage.getItem("aiftFeedLastPost") ? "hidden" : "visible";
+  list.innerHTML = `<div class="aift-feed-loading"><span class="aift-spinner"></span></div>`;
+}
     }
      try {
 
@@ -1232,22 +1235,6 @@ function restoreReelPosition(){
 
   sessionStorage.removeItem("aiftLastReelPost");
 }
-function saveFeedScroll(postId = ""){
-  const card = postId
-    ? document.getElementById(`aift-post-${safeId(postId)}`)
-    : null;
-
-  if(card){
-    sessionStorage.setItem(
-      "aiftFeedPostOffset",
-      String(card.getBoundingClientRect().top)
-    );
-  }
-
-  if(postId){
-    sessionStorage.setItem("aiftFeedLastPost", String(postId));
-  }
-}
 
   function renderFeedOnly() {
     const list = document.getElementById("aiftFeedList");
@@ -1267,22 +1254,19 @@ observeFeedVideos();
   }
 function restoreFeedScroll(){
   const postId = sessionStorage.getItem("aiftFeedLastPost");
-  const offset = Number(
-    sessionStorage.getItem("aiftFeedPostOffset") || 0
-  );
+  const offset = Number(sessionStorage.getItem("aiftFeedPostOffset") || 0);
 
   if(!postId) return;
 
-  const card = document.getElementById(
-    `aift-post-${safeId(postId)}`
-  );
+  const card = document.getElementById(`aift-post-${safeId(postId)}`);
 
   if(card){
     const currentTop = card.getBoundingClientRect().top;
-    const diff = currentTop - offset;
-
-    window.scrollBy(0, diff);
+    window.scrollBy(0, currentTop - offset);
   }
+
+  const list = document.getElementById("aiftFeedList");
+  if(list) list.style.visibility = "visible";
 
   sessionStorage.removeItem("aiftFeedLastPost");
   sessionStorage.removeItem("aiftFeedPostOffset");
