@@ -3127,8 +3127,16 @@ let aiftLockedScrollY = 0;
 
 function lockFeedScroll(){
   if(!isMobileNow()) return;
+  if(document.body.classList.contains("aift-sheet-open")) return;
 
-  aiftLockedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+  aiftLockedScrollY =
+    window.pageYOffset ||
+    document.documentElement.scrollTop ||
+    document.body.scrollTop ||
+    0;
+
+  document.documentElement.style.scrollBehavior = "auto";
+  document.body.style.scrollBehavior = "auto";
 
   document.documentElement.classList.add("aift-sheet-open");
   document.body.classList.add("aift-sheet-open");
@@ -3138,11 +3146,13 @@ function lockFeedScroll(){
   document.body.style.left = "0";
   document.body.style.right = "0";
   document.body.style.width = "100%";
-  document.body.style.overflow = "hidden";
 }
 
 function unlockFeedScroll(){
   if(!document.body.classList.contains("aift-sheet-open")) return;
+
+  const topValue = document.body.style.top || "0";
+  const savedY = Math.abs(parseInt(topValue, 10)) || aiftLockedScrollY || 0;
 
   document.documentElement.classList.remove("aift-sheet-open");
   document.body.classList.remove("aift-sheet-open");
@@ -3152,9 +3162,16 @@ function unlockFeedScroll(){
   document.body.style.left = "";
   document.body.style.right = "";
   document.body.style.width = "";
-  document.body.style.overflow = "";
 
-  window.scrollTo(0, aiftLockedScrollY || 0);
+  window.scrollTo({
+    top: savedY,
+    left: 0,
+    behavior: "instant"
+  });
+
+  requestAnimationFrame(() => {
+    window.scrollTo(0, savedY);
+  });
 }
 
 function openOverlay(id) {
