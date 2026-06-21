@@ -316,7 +316,7 @@ await loadFeed({ reset: true });
 
         <section id="aiftFeedList" class="aift-feed-list"></section>
         <div id="aiftInfiniteSentinel" class="aift-infinite-sentinel">
-  <span>Loading more posts...</span>
+  <span class="aift-spinner"></span>
 </div>
       </div>
 
@@ -1085,7 +1085,7 @@ if (!state.guestMode) {
     if (reset) {
       state.skip = 0;
       state.hasMore = true;
-      if (list) list.innerHTML = `<div class="aift-feed-empty">Loading feed...</div>`;
+      if (list) list.innerHTML = `<div class="aift-feed-loading"><span class="aift-spinner"></span></div>`;
     }
      try {
 
@@ -1174,6 +1174,12 @@ function observeInfiniteScroll(){
     });
     return Array.from(map.values());
   }
+  function saveFeedScroll(postId = ""){
+  sessionStorage.setItem("aiftFeedScrollY", String(window.scrollY || 0));
+  if(postId){
+    sessionStorage.setItem("aiftFeedLastPost", String(postId));
+  }
+}
 
   function renderFeedOnly() {
     const list = document.getElementById("aiftFeedList");
@@ -1189,8 +1195,29 @@ function observeInfiniteScroll(){
     observePosts();
 observeInfiniteScroll();
 observeFeedVideos();
+    restoreFeedScroll();
   }
+function restoreFeedScroll(){
+  const savedPost = sessionStorage.getItem("aiftFeedLastPost");
+  const savedY = Number(sessionStorage.getItem("aiftFeedScrollY") || 0);
 
+  if(!savedPost && !savedY) return;
+
+  requestAnimationFrame(() => {
+    const el = savedPost
+      ? document.getElementById(`aift-post-${safeId(savedPost)}`)
+      : null;
+
+    if(el){
+      el.scrollIntoView({ block:"center" });
+    }else if(savedY){
+      window.scrollTo(0, savedY);
+    }
+
+    sessionStorage.removeItem("aiftFeedLastPost");
+    sessionStorage.removeItem("aiftFeedScrollY");
+  });
+}
   function getMediaItems(post = {}) {
     if (Array.isArray(post.media) && post.media.length) {
       return post.media;
@@ -1330,7 +1357,8 @@ function renderOriginalPostCard(original) {
 }
 
 function openOriginalPost(postId) {
-  location.href = `home.html?post=${encodeURIComponent(postId)}`;
+  saveFeedScroll(postId);
+location.href = `home.html?post=${encodeURIComponent(postId)}`;
 }
   function setReelKeyboard(open){
   document.body.classList.toggle("aift-reel-keyboard", Boolean(open));
@@ -2562,47 +2590,59 @@ function cancelReply() {
     openOverlay("aiftShareSheet");
   }
 
-  function renderShareUI(postId, keyword = "") {
-   const reelPanel = document.getElementById("aiftReelPanel");
-const reelBody = document.getElementById("aiftReelShareBody");
+function renderShareUI(postId, keyword = "") {
+  const reelPanel = document.getElementById("aiftReelPanel");
+  const reelBody = document.getElementById("aiftReelShareBody");
 
-const body =
-  reelPanel?.classList.contains("show") && reelBody
+  const isReelShare = reelPanel?.classList.contains("show") && reelBody;
+
+  const body = isReelShare
     ? reelBody
     : document.getElementById("aiftShareBody");
-    const link = getPostLink(postId);
-    const users = state.followingUsers.filter(user => {
-      const term = `${userName(user)} ${userSub(user)}`.toLowerCase();
-      return term.includes(keyword.toLowerCase());
-    });
 
-    body.innerHTML = `
-      <div class="aift-share-search">
-        ${svg("search")}
-        <input placeholder="Search people you follow" value="${esc(keyword)}" oninput="AIFTFeed.filterShareUsers('${esc(postId)}', this.value)" />
-      </div>
+  if(!body) return;
 
-      <div class="aift-share-grid">
-        ${
-          users.length
-            ? users.map(user => renderShareUser(postId, user)).join("")
-            : `<div class="aift-feed-empty flat">You are not following anyone yet.</div>`
-        }
-      </div>
+  const link = getPostLink(postId);
 
-      <div class="aift-share-actions">
-        <button onclick="AIFTFeed.copyPostLink('${esc(postId)}')">${svg("copy")} Copy link</button>
-        <button onclick="AIFTFeed.openRepost('${esc(postId)}')">${svg("repost")} Repost</button>
-        <button onclick="AIFTFeed.nativeShare('${esc(postId)}')">${svg("share")} More</button>
-      </div>
+  const users = state.followingUsers.filter(user => {
+    const term = `${userName(user)} ${userSub(user)}`.toLowerCase();
+    return term.includes(keyword.toLowerCase());
+  });
 
-      <button id="aiftSendSelectedBtn" class="aift-primary-btn wide" disabled onclick="AIFTFeed.sendSelectedPost('${esc(postId)}')">
-        Send
-      </button>
+  const selectedCount = state.selectedShareUsers.size;
 
-      <div class="aift-copy-link">${esc(link)}</div>
-    `;
-  }
+  body.innerHTML = `
+    <div class="aift-share-search">
+      ${svg("search")}
+      <input placeholder="Search people you follow" value="${esc(keyword)}" oninput="AIFTFeed.filterShareUsers('${esc(postId)}', this.value)" />
+    </div>
+
+    <div class="aift-share-grid">
+      ${
+        users.length
+          ? users.map(user => renderShareUser(postId, user)).join("")
+          : `<div class="aift-feed-empty flat">No users found.</div>`
+      }
+    </div>
+
+    <div class="aift-share-actions">
+      <button onclick="AIFTFeed.copyPostLink('${esc(postId)}')">${svg("copy")} Copy link</button>
+      <button onclick="AIFTFeed.openRepost('${esc(postId)}')">${svg("repost")} Repost</button>
+      <button onclick="AIFTFeed.nativeShare('${esc(postId)}')">${svg("share")} More</button>
+    </div>
+
+    <button
+      id="aiftSendSelectedBtn"
+      class="aift-primary-btn wide"
+      ${selectedCount ? "" : "disabled"}
+      onclick="AIFTFeed.sendSelectedPost('${esc(postId)}')"
+    >
+      ${selectedCount ? `Share with ${selectedCount}` : "Share"}
+    </button>
+
+    <div class="aift-copy-link">${esc(link)}</div>
+  `;
+}
 
   function renderShareUser(postId, user) {
     const selected = state.selectedShareUsers.has(String(user._id));
@@ -2634,27 +2674,56 @@ const body =
     if (btn) btn.disabled = state.selectedShareUsers.size === 0;
   }
 
-  async function sendSelectedPost(postId) {
-    const userIds = Array.from(state.selectedShareUsers);
-    if (!userIds.length) return;
+async function sendSelectedPost(postId) {
+  const userIds = Array.from(state.selectedShareUsers);
+  if (!userIds.length) return;
 
-    try {
-      const data = await api(`${API}/api/posts/${postId}/send`, {
-        method: "POST",
-        headers: headers({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ userIds })
-      });
+  const selectedNames = userIds
+    .map(id => {
+      const user = state.followingUsers.find(u => String(u._id) === String(id));
+      return user ? userName(user) : "";
+    })
+    .filter(Boolean);
 
-      const post = getPost(postId);
-      if (post) post.sharesCount = data.sharesCount;
+  const btn = document.getElementById("aiftSendSelectedBtn");
 
-      updateShareCount(postId, data.sharesCount);
-      closeOverlays();
-      toast(`Sent to ${data.sentTo} user${data.sentTo > 1 ? "s" : ""}.`);
-    } catch (err) {
-      toast(err.message, "error");
+  if(btn){
+    btn.disabled = true;
+    btn.textContent = "Sharing...";
+  }
+
+  try {
+    const data = await api(`${API}/api/posts/${postId}/send`, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ userIds })
+    });
+
+    const post = getPost(postId);
+    if (post) post.sharesCount = data.sharesCount;
+
+    updateShareCount(postId, data.sharesCount);
+
+    closeOverlays();
+    closeReelPanel();
+
+    const namesText =
+      selectedNames.length === 1
+        ? selectedNames[0]
+        : selectedNames.length === 2
+          ? `${selectedNames[0]} and ${selectedNames[1]}`
+          : `${selectedNames[0]} and ${selectedNames.length - 1} others`;
+
+    toast(`Shared with ${namesText}.`);
+  } catch (err) {
+    toast(err.message, "error");
+
+    if(btn){
+      btn.disabled = false;
+      btn.textContent = "Share";
     }
   }
+}
 
   async function copyPostLink(postId) {
   if(!requireMember("share posts")) return;
@@ -2924,6 +2993,7 @@ async function toggleFollow(userId) {
 }
 
 async function visitProfile(userId) {
+  saveFeedScroll(state.activePostId || "");
   if(!requireMember("view full profiles")) return;
   if (!userId) return;
 
@@ -3324,6 +3394,8 @@ toggleFeedVideoSound,
     expandPostText,
     collapsePostText,
     visitProfile,
+    saveFeedScroll,
+restoreFeedScroll,
     closeOverlays
   };
 })();
