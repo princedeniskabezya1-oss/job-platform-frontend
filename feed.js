@@ -225,6 +225,9 @@ function saveHiddenComment(commentId){
   }
 
   async function mount(rootId, options = {}) {
+    if("scrollRestoration" in history){
+  history.scrollRestoration = "manual";
+}
     state.rootId = rootId;
     state.mode = options.mode || "home";
     state.authorId = options.authorId || null;
@@ -462,6 +465,8 @@ function getVideoPosts(){
 }
 
 function unlockReelPageScroll(){
+  const savedY = state.reelScrollY || 0;
+
   document.documentElement.classList.remove("aift-reel-lock");
   document.body.classList.remove("aift-reel-open");
 
@@ -471,7 +476,7 @@ function unlockReelPageScroll(){
   document.body.style.right = "";
   document.body.style.width = "";
 
-  window.scrollTo(0, state.reelScrollY || 0);
+  window.scrollTo(0, savedY);
 }
 
 function openReelMode(postId){
@@ -489,7 +494,7 @@ function openReelMode(postId){
     modal.className = "aift-reel-viewer";
     document.body.appendChild(modal);
   }
-
+modal.style.visibility = "hidden";
   modal.innerHTML = `
     <button class="aift-reel-close" onclick="AIFTFeed.closeReelMode()">×</button>
 
@@ -624,10 +629,11 @@ function openReelMode(postId){
     <section id="aiftReelPanel" class="aift-reel-panel"></section>
   `;
 
-  modal.classList.add("show");
-  lockReelPageScroll();
+lockReelPageScroll();
 
-setTimeout(() => {
+modal.classList.add("show");
+
+requestAnimationFrame(() => {
   const targetId =
     sessionStorage.getItem("aiftLastReelPost") ||
     postId;
@@ -642,7 +648,9 @@ setTimeout(() => {
 
   observeReelVideos();
   updateSoundBadges();
-}, 120);
+
+  modal.style.visibility = "visible";
+});
 }
 
 function handleReelScreenTap(event, postId){
@@ -741,7 +749,7 @@ saveReelPosition();
     state.reelObserver = null;
   }
 
-  state.reelActivePostId = null;
+  
 
   document.getElementById("aiftReelViewer")?.classList.remove("show");
   unlockReelPageScroll();
@@ -1253,21 +1261,19 @@ function restoreFeedScroll(){
 
   if(!savedPost && !savedY) return;
 
-  setTimeout(() => {
-    const el = savedPost
-      ? document.getElementById(`aift-post-${safeId(savedPost)}`)
-      : null;
+  const el = savedPost
+    ? document.getElementById(`aift-post-${safeId(savedPost)}`)
+    : null;
 
-    if(el){
-      const top = el.getBoundingClientRect().top + window.scrollY - 90;
-      window.scrollTo({ top: Math.max(top, 0), behavior: "instant" });
-    }else if(savedY){
-      window.scrollTo({ top: savedY, behavior: "instant" });
-    }
+  if(el){
+    const top = el.offsetTop - 90;
+    window.scrollTo(0, Math.max(top, 0));
+  }else if(savedY){
+    window.scrollTo(0, savedY);
+  }
 
-    sessionStorage.removeItem("aiftFeedLastPost");
-    sessionStorage.removeItem("aiftFeedScrollY");
-  }, 250);
+  sessionStorage.removeItem("aiftFeedLastPost");
+  sessionStorage.removeItem("aiftFeedScrollY");
 }
   function getMediaItems(post = {}) {
     if (Array.isArray(post.media) && post.media.length) {
