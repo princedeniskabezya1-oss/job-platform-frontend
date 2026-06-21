@@ -318,9 +318,7 @@ await loadFeed({ reset: true });
         </section>
 
         <section id="aiftFeedList" class="aift-feed-list"></section>
-        <div id="aiftInfiniteSentinel" class="aift-infinite-sentinel">
-  <span class="aift-spinner"></span>
-</div>
+<div id="aiftInfiniteSentinel" class="aift-infinite-sentinel"></div>
       </div>
 
       <div id="aiftSheetBackdrop" class="aift-sheet-backdrop" onclick="AIFTFeed.closeOverlays()"></div>
