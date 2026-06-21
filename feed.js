@@ -770,6 +770,11 @@ function handlePostMediaTap(event, postId){
 }
   
 function closeReelMode(){
+  const savedY =
+    state.reelScrollY ||
+    Math.abs(parseInt(document.body.style.top || "0", 10)) ||
+    0;
+
   const viewer = document.getElementById("aiftReelViewer");
 
   if(viewer){
@@ -777,7 +782,11 @@ function closeReelMode(){
     viewer.classList.remove("show");
   }
 
-  closeReelPanel();
+  document.getElementById("aiftReelPanelBackdrop")?.classList.remove("show");
+  document.getElementById("aiftReelPanel")?.classList.remove("show");
+
+  state.reelPanelPostId = null;
+  setReelKeyboard(false);
 
   document.querySelectorAll(".aift-reel-video").forEach(v => {
     v.pause();
@@ -789,7 +798,16 @@ function closeReelMode(){
     state.reelObserver = null;
   }
 
-  unlockReelPageScroll();
+  document.documentElement.classList.remove("aift-reel-lock");
+  document.body.classList.remove("aift-reel-open");
+
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.left = "";
+  document.body.style.right = "";
+  document.body.style.width = "";
+
+  window.scrollTo(0, savedY);
 }
 
 function observeReelVideos(){
