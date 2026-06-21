@@ -526,6 +526,13 @@ function openReelMode(postId){
 
 <div class="aift-reel-play-indicator"></div>
 
+<div
+  class="aift-heart-overlay aift-reel-heart-overlay"
+  id="aift-reel-heart-${safeId(post._id)}"
+>
+  ${svg("heart")}
+</div>
+
 
             <div class="aift-reel-info">
 <div class="aift-reel-author">
@@ -647,8 +654,8 @@ function handleReelScreenTap(event, postId){
     clearTimeout(state.reelTapTimer);
     state.reelTapTimer = null;
 
-    showHeart(postId);
-    handleReelLike(postId);
+showReelHeart(postId);
+handleReelLike(postId);
     return;
   }
 
@@ -773,6 +780,7 @@ video.play().catch(() => {});
   videos.forEach(video => state.reelObserver.observe(video));
 }
   async function handleReelLike(postId){
+    showReelHeart(postId);
   await likePost(postId, true);
 
   const post = getPost(postId);
@@ -833,11 +841,13 @@ function openReelComments(postId){
 
       <div class="aift-reel-comment-row">
         <img src="${esc(userAvatar(state.me || {}))}" alt="">
-        <input
-          id="aiftReelCommentInput"
-          placeholder="Add a comment..."
-          onkeydown="AIFTFeed.handleReelCommentKey(event)"
-        >
+<input
+  id="aiftReelCommentInput"
+  placeholder="Add a comment..."
+  onfocus="AIFTFeed.setReelKeyboard(true)"
+  onblur="AIFTFeed.setReelKeyboard(false)"
+  onkeydown="AIFTFeed.handleReelCommentKey(event)"
+>
         <button onclick="AIFTFeed.submitReelComment()">Post</button>
       </div>
     </footer>
@@ -1011,6 +1021,7 @@ function closeReelPanel(){
   document.getElementById("aiftReelPanelBackdrop")?.classList.remove("show");
   document.getElementById("aiftReelPanel")?.classList.remove("show");
   state.reelPanelPostId = null;
+  setReelKeyboard(false);
 }
 
   function moveOverlaysToBody() {
@@ -1320,6 +1331,9 @@ function renderOriginalPostCard(original) {
 
 function openOriginalPost(postId) {
   location.href = `home.html?post=${encodeURIComponent(postId)}`;
+}
+  function setReelKeyboard(open){
+  document.body.classList.toggle("aift-reel-keyboard", Boolean(open));
 }
 
   function updateCarouselDots(track) {
@@ -1700,6 +1714,16 @@ function expandPostText(postId){
     showHeart(postId);
     await likePost(postId, true);
   }
+  function showReelHeart(postId){
+  const heart = document.getElementById(`aift-reel-heart-${safeId(postId)}`);
+  if(!heart) return;
+
+  heart.classList.remove("show");
+  void heart.offsetWidth;
+  heart.classList.add("show");
+
+  setTimeout(() => heart.classList.remove("show"), 900);
+}
 
   function showHeart(postId) {
     const heart = document.getElementById(`aift-heart-${safeId(postId)}`);
@@ -1957,6 +1981,13 @@ ${
     `;
   }
 function openCommentMenu(postId, commentId){
+  const reelPanel = document.getElementById("aiftReelPanel");
+
+  if(reelPanel?.classList.contains("show") && state.reelPanelPostId === postId){
+    openReelCommentMenu(postId, commentId);
+    return;
+  }
+
   const post = getPost(postId);
   const comment = post?.comments?.find(c => String(c._id) === String(commentId));
   if(!post || !comment) return;
@@ -2008,6 +2039,66 @@ function openCommentMenu(postId, commentId){
   `;
 
   openOverlay("aiftMenuSheet");
+}
+  function openReelCommentMenu(postId, commentId){
+  const post = getPost(postId);
+  const comment = post?.comments?.find(c => String(c._id) === String(commentId));
+  if(!post || !comment) return;
+
+  const user = comment.user || {};
+  const isMyComment = String(user._id || user.id || "") === String(state.meId || localStorage.getItem("userId") || "");
+  const alreadyFollowing = isFollowing(user);
+
+  const panel = document.getElementById("aiftReelPanel");
+  if(!panel) return;
+
+  panel.innerHTML = `
+    <div class="aift-reel-panel-handle"></div>
+
+    <header class="aift-reel-panel-head">
+      <strong>Comment options</strong>
+      <button onclick="AIFTFeed.openReelComments('${esc(postId)}')">${svg("close")}</button>
+    </header>
+
+    <div class="aift-reel-options">
+      ${
+        !isMyComment && user._id
+          ? `
+          <button onclick="AIFTFeed.sendCommentOwner('${esc(user._id)}')">
+            ${svg("send")}<span>Send message</span>
+          </button>
+
+          <button onclick="AIFTFeed.toggleFollow('${esc(user._id)}')">
+            ${alreadyFollowing ? svg("close") : svg("plus")}
+            <span>${alreadyFollowing ? "Unfollow" : "Follow"}</span>
+          </button>
+
+          <button onclick="AIFTFeed.hideComment('${esc(commentId)}'); AIFTFeed.openReelComments('${esc(postId)}')">
+            ${svg("close")}<span>I don’t want to see this</span>
+          </button>
+
+          <button class="danger" onclick="AIFTFeed.reportComment('${esc(postId)}','${esc(commentId)}')">
+            ${svg("flag")}<span>Report comment</span>
+          </button>
+          `
+          : ""
+      }
+
+      ${
+        isMyComment
+          ? `
+          <button onclick="AIFTFeed.editComment('${esc(postId)}','${esc(commentId)}')">
+            ${svg("edit")}<span>Edit comment</span>
+          </button>
+
+          <button class="danger" onclick="AIFTFeed.deleteComment('${esc(postId)}','${esc(commentId)}')">
+            ${svg("trash")}<span>Delete comment</span>
+          </button>
+          `
+          : ""
+      }
+    </div>
+  `;
 }
 
 async function editComment(postId, commentId){
@@ -3202,11 +3293,15 @@ replyTo,
     openReelComments,
 submitReelComment,
 handleReelCommentKey,
+    
 
 openReelMoreOptions,
 closeReelPanel,
 handleReelLike,
 handleReelSave,
+    showReelHeart,
+setReelKeyboard,
+openReelCommentMenu,
 
 
     notInterested,
