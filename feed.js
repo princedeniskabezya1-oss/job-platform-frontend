@@ -1235,6 +1235,22 @@ function restoreReelPosition(){
 
   sessionStorage.removeItem("aiftLastReelPost");
 }
+  function saveFeedScroll(postId = ""){
+  const card = postId
+    ? document.getElementById(`aift-post-${safeId(postId)}`)
+    : null;
+
+  if(card){
+    sessionStorage.setItem(
+      "aiftFeedPostOffset",
+      String(card.getBoundingClientRect().top)
+    );
+  }
+
+  if(postId){
+    sessionStorage.setItem("aiftFeedLastPost", String(postId));
+  }
+}
 
   function renderFeedOnly() {
     const list = document.getElementById("aiftFeedList");
