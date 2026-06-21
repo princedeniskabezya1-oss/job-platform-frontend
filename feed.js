@@ -735,7 +735,6 @@ function handleFeedVideoTap(event, postId){
 
   state.feedVideoTapTimer = setTimeout(() => {
     state.feedVideoTapTimer = null;
-    saveFeedScroll(postId);
 saveReelPosition(postId);
 openReelMode(postId);
   }, 280);
@@ -762,19 +761,14 @@ function handlePostMediaTap(event, postId){
     state.postMediaTapTimer = null;
 
     if(isVideo){
-      saveFeedScroll(postId);
-      saveReelPosition(postId);
-      openReelMode(postId);
+saveReelPosition(postId);
+openReelMode(postId);
     }
   }, 280);
 }
   
 function closeReelMode(){
-  const savedY =
-    state.reelScrollY ||
-    Math.abs(parseInt(document.body.style.top || "0", 10)) ||
-    0;
-
+  const savedY = state.reelScrollY || 0;
   const viewer = document.getElementById("aiftReelViewer");
 
   if(viewer){
