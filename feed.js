@@ -493,7 +493,8 @@ function openReelMode(postId){
     modal.className = "aift-reel-viewer";
     document.body.appendChild(modal);
   }
-modal.style.visibility = "hidden";
+modal.style.opacity = "0";
+modal.style.opacity = "1";
   modal.innerHTML = `
     <button class="aift-reel-close" onclick="AIFTFeed.closeReelMode()">×</button>
 
@@ -789,6 +790,11 @@ function closeReelMode(){
     state.reelObserver = null;
   }
 
+  /*
+   KEEP REEL OVERLAY VISIBLE
+   while feed position is restored
+  */
+
   document.documentElement.classList.remove("aift-reel-lock");
   document.body.classList.remove("aift-reel-open");
 
@@ -798,15 +804,28 @@ function closeReelMode(){
   document.body.style.right = "";
   document.body.style.width = "";
 
-  window.scrollTo(0, savedY);
+  window.scrollTo({
+    top: savedY,
+    left: 0,
+    behavior: "auto"
+  });
 
   requestAnimationFrame(() => {
+
     window.scrollTo(0, savedY);
 
-    if(viewer){
-      viewer.classList.remove("show");
-      viewer.style.visibility = "";
-    }
+    requestAnimationFrame(() => {
+
+      if(viewer){
+        viewer.style.opacity = "0";
+
+        setTimeout(() => {
+          viewer.classList.remove("show");
+        }, 10);
+      }
+
+    });
+
   });
 }
 
