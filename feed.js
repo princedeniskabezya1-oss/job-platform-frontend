@@ -791,9 +791,20 @@ function closeReelMode(){
   }
 
   /*
-   KEEP REEL OVERLAY VISIBLE
-   while feed position is restored
+    DO NOT hide or fade reels yet.
+    Keep it covering the screen while feed scroll is restored.
   */
+  if(viewer){
+    viewer.style.opacity = "1";
+    viewer.style.visibility = "visible";
+    viewer.style.display = "block";
+  }
+
+  const oldHtmlScroll = document.documentElement.style.scrollBehavior;
+  const oldBodyScroll = document.body.style.scrollBehavior;
+
+  document.documentElement.style.scrollBehavior = "auto";
+  document.body.style.scrollBehavior = "auto";
 
   document.documentElement.classList.remove("aift-reel-lock");
   document.body.classList.remove("aift-reel-open");
@@ -804,28 +815,28 @@ function closeReelMode(){
   document.body.style.right = "";
   document.body.style.width = "";
 
-  window.scrollTo({
-    top: savedY,
-    left: 0,
-    behavior: "auto"
-  });
+  window.scrollTo(0, savedY);
+  document.documentElement.scrollTop = savedY;
+  document.body.scrollTop = savedY;
 
   requestAnimationFrame(() => {
-
     window.scrollTo(0, savedY);
+    document.documentElement.scrollTop = savedY;
+    document.body.scrollTop = savedY;
 
     requestAnimationFrame(() => {
+      window.scrollTo(0, savedY);
+
+      document.documentElement.style.scrollBehavior = oldHtmlScroll;
+      document.body.style.scrollBehavior = oldBodyScroll;
 
       if(viewer){
+        viewer.classList.remove("show");
         viewer.style.opacity = "0";
-
-        setTimeout(() => {
-          viewer.classList.remove("show");
-        }, 10);
+        viewer.style.visibility = "hidden";
+        viewer.style.display = "none";
       }
-
     });
-
   });
 }
 
