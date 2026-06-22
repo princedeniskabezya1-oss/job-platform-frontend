@@ -494,7 +494,7 @@ function openReelMode(postId){
     document.body.appendChild(modal);
   }
 modal.style.opacity = "0";
-modal.style.opacity = "1";
+modal.style.visibility = "visible";
   modal.innerHTML = `
     <button class="aift-reel-close" onclick="AIFTFeed.closeReelMode()">×</button>
 
@@ -654,7 +654,7 @@ requestAnimationFrame(() => {
   observeReelVideos();
   updateSoundBadges();
 
-  modal.style.visibility = "visible";
+  modal.style.opacity = "1";
 });
 }
 
