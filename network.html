@@ -1179,6 +1179,48 @@ function requireLogin(action = "use this feature"){
       };
       return map[role] || "Member";
     }
+    async function loadNotificationBadge(){
+  const badge = document.getElementById("notificationBadge");
+  if(!badge) return;
+
+  try{
+    if(!token()){
+      badge.classList.add("hidden");
+      return;
+    }
+
+    let count = 0;
+
+    try{
+      const unread = await api("/api/notifications/unread", {
+        headers: headers()
+      });
+
+      count =
+        unread.count ||
+        unread.unreadCount ||
+        unread.total ||
+        (Array.isArray(unread) ? unread.length : 0);
+
+    }catch{
+      const data = await api("/api/notifications", {
+        headers: headers()
+      });
+
+      const list = Array.isArray(data)
+        ? data
+        : data.notifications || [];
+
+      count = list.filter(n => !n.read && !n.isRead).length;
+    }
+
+    badge.textContent = count > 99 ? "99+" : String(count);
+    badge.classList.toggle("hidden", count <= 0);
+
+  }catch(err){
+    badge.classList.add("hidden");
+  }
+}
 
 function profileUrl(user){
   const id = user?._id || user?.id;
@@ -1596,7 +1638,7 @@ async function init(){
       els.currentRole.textContent = "Previewing AIFT Network";
     }
   }
-
+await loadNotificationBadge();
   await loadNetwork();
 }
     function showGuestModal(action){
