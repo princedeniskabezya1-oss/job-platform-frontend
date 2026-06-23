@@ -1061,32 +1061,9 @@ color:#0f172a;
 
 </nav>
 
-  <div class="toast" id="toast"></div>
-  <div id="networkPostModal" class="network-post-backdrop">
-  <div class="network-post-modal">
-    <div class="network-post-head">
-      <strong>Create post</strong>
-      <button type="button" onclick="closeNetworkPostModal()">×</button>
-    </div>
+<div class="toast" id="toast"></div>
 
-    <textarea id="networkPostText" placeholder="What do you want to share?"></textarea>
-
-    <div id="networkPostPreview" class="network-post-preview hidden"></div>
-
-    <div class="network-post-actions">
-      <label class="network-file-btn">
-        Add media
-        <input id="networkPostFiles" type="file" accept="image/*,video/*" multiple hidden>
-      </label>
-
-      <button id="networkPostSubmit" type="button" onclick="submitNetworkPost()">
-        Post
-      </button>
-    </div>
-  </div>
-</div>
-
-  <script>
+<script>
     const API = "https://backend-1-9b6f.onrender.com";
 
     const state = {
@@ -1310,186 +1287,7 @@ function goMe(){
 
   location.href = "agent-public-profile.html?id=" + encodeURIComponent(id);
 }
-    let networkPostFiles = [];
 
-function openNetworkPostModal(event){
-  event?.preventDefault?.();
-
-  if(!requireLogin("create a post")) return;
-
-  document.getElementById("networkPostModal")?.classList.add("show");
-  document.body.style.overflow = "hidden";
-}
-
-function closeNetworkPostModal(){
-  document.getElementById("networkPostModal")?.classList.remove("show");
-  document.body.style.overflow = "";
-
-  const text = document.getElementById("networkPostText");
-  const files = document.getElementById("networkPostFiles");
-  const preview = document.getElementById("networkPostPreview");
-
-  if(text) text.value = "";
-  if(files) files.value = "";
-  if(preview){
-    preview.innerHTML = "";
-    preview.classList.add("hidden");
-  }
-
-  networkPostFiles = [];
-}
-
-function renderNetworkPostPreview(){
-  const preview = document.getElementById("networkPostPreview");
-  if(!preview) return;
-
-  preview.innerHTML = "";
-
-  if(!networkPostFiles.length){
-    preview.classList.add("hidden");
-    return;
-  }
-
-  networkPostFiles.forEach(file => {
-    const url = URL.createObjectURL(file);
-
-    if(file.type.startsWith("video/")){
-      preview.innerHTML += `
-        <video src="${url}" controls playsinline></video>
-      `;
-    }else{
-      preview.innerHTML += `
-        <img src="${url}" alt="">
-      `;
-    }
-  });
-
-  preview.classList.remove("hidden");
-}
-
-async function submitNetworkPost(){
-  const textEl = document.getElementById("networkPostText");
-  const submit = document.getElementById("networkPostSubmit");
-
-  const text = textEl?.value.trim() || "";
-
-  if(!text && !networkPostFiles.length){
-    showToast("Write something or add media first.");
-    return;
-  }
-
-  if(!getToken()){
-    showGuestModal("create a post");
-    return;
-  }
-
-  function buildPostForm(){
-    const formData = new FormData();
-
-    formData.append("text", text);
-    formData.append("content", text);
-    formData.append("caption", text);
-    formData.append("body", text);
-
-    networkPostFiles.forEach(file => {
-      formData.append("media", file);
-      formData.append("files", file);
-
-      if(file.type.startsWith("image/")){
-        formData.append("images", file);
-      }
-
-      if(file.type.startsWith("video/")){
-        formData.append("videos", file);
-      }
-    });
-
-    return formData;
-  }
-
-  async function postWithForm(url){
-    const res = await fetch(url, {
-      method:"POST",
-      headers:authHeaders(),
-      body:buildPostForm()
-    });
-
-    const raw = await res.text();
-
-    let data = {};
-    try{
-      data = raw ? JSON.parse(raw) : {};
-    }catch{
-      data = { message:raw };
-    }
-
-    if(!res.ok){
-      throw new Error(data.message || data.error || "Post failed.");
-    }
-
-    return data;
-  }
-
-  try{
-    submit.disabled = true;
-    submit.textContent = "Posting...";
-
-    let createdPost = null;
-    let lastError = null;
-
-    const endpoints = [
-      `${API}/api/posts`,
-      `${API}/api/posts/create`
-    ];
-
-    for(const url of endpoints){
-      try{
-        createdPost = await postWithForm(url);
-        break;
-      }catch(err){
-        lastError = err;
-      }
-    }
-
-    if(!createdPost){
-      throw lastError || new Error("Post failed.");
-    }
-
-    showToast("Post created successfully.");
-    closeNetworkPostModal();
-
-    setTimeout(() => {
-      location.href = "home.html";
-    }, 600);
-
-  }catch(err){
-    console.error("Network post failed:", err);
-    showToast(err.message || "Post failed.");
-  }finally{
-    submit.disabled = false;
-    submit.textContent = "Post";
-  }
-}
-
-document.addEventListener("change", function(event){
-  if(event.target?.id !== "networkPostFiles") return;
-
-  const files = Array.from(event.target.files || []);
-
-  networkPostFiles = files.filter(file => {
-    const ok =
-      file.type.startsWith("image/") ||
-      file.type.startsWith("video/");
-
-    if(!ok){
-      showToast("Only images and videos are allowed.");
-    }
-
-    return ok;
-  });
-
-  renderNetworkPostPreview();
-});
 
     function showToast(message){
       els.toast.textContent = message;
@@ -1550,8 +1348,14 @@ document.addEventListener("change", function(event){
 async function loadNetwork(){
   state.loading = true;
   els.grid.innerHTML = "";
-  setState("loading", "Loading network", "Please wait while AIFT loads members from your backend.");
-  els.resultsMeta.textContent = "Loading network...";
+els.stateBox.innerHTML = `
+  <div class="network-logo-loader">
+    <img src="images/aift-logo.png" alt="AIFT">
+    <span>Loading...</span>
+  </div>
+`;
+
+els.resultsMeta.textContent = "Loading...";
 
   try{
 const networkUrl = isGuest()
@@ -1692,12 +1496,21 @@ const users = await fetchJSON(networkUrl, {
         const following = isFollowing(user);
         const verified = user.aiftVerified || user.aiftCertified;
 
-        return `
-          <article class="profile-card">
-            <div class="cover">
-              <img class="avatar" src="${escapeHTML(avatarOf(user))}" alt="${escapeHTML(displayName(user))}">
-              <div class="role-badge">${escapeHTML(roleLabel(user.role))}</div>
-            </div>
+const banner =
+  user.bannerImage ||
+  user.coverImage ||
+  user.profileCover ||
+  user.coverPhoto ||
+  user.companyBanner ||
+  user.schoolBanner ||
+  "";
+
+return `
+  <article class="profile-card">
+    <div class="cover ${banner ? "has-banner" : ""}" style="${banner ? `background-image:url('${escapeHTML(banner)}')` : ""}">
+      <img class="avatar" src="${escapeHTML(avatarOf(user))}" alt="${escapeHTML(displayName(user))}">
+      <div class="role-badge">${escapeHTML(roleLabel(user.role))}</div>
+    </div>
 
             <div class="card-body">
               <div class="name-row">
