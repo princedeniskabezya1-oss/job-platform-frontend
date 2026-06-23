@@ -1377,27 +1377,92 @@ async function submitNetworkPost(){
     return;
   }
 
+  if(!getToken()){
+    showGuestModal("create a post");
+    return;
+  }
+
+  function buildPostForm(){
+    const formData = new FormData();
+
+    formData.append("text", text);
+    formData.append("content", text);
+    formData.append("caption", text);
+    formData.append("body", text);
+
+    networkPostFiles.forEach(file => {
+      formData.append("media", file);
+      formData.append("files", file);
+
+      if(file.type.startsWith("image/")){
+        formData.append("images", file);
+      }
+
+      if(file.type.startsWith("video/")){
+        formData.append("videos", file);
+      }
+    });
+
+    return formData;
+  }
+
+  async function postWithForm(url){
+    const res = await fetch(url, {
+      method:"POST",
+      headers:authHeaders(),
+      body:buildPostForm()
+    });
+
+    const raw = await res.text();
+
+    let data = {};
+    try{
+      data = raw ? JSON.parse(raw) : {};
+    }catch{
+      data = { message:raw };
+    }
+
+    if(!res.ok){
+      throw new Error(data.message || data.error || "Post failed.");
+    }
+
+    return data;
+  }
+
   try{
     submit.disabled = true;
     submit.textContent = "Posting...";
 
-    const formData = new FormData();
-    formData.append("text", text);
+    let createdPost = null;
+    let lastError = null;
 
-    networkPostFiles.forEach(file => {
-      formData.append("media", file);
-    });
+    const endpoints = [
+      `${API}/api/posts`,
+      `${API}/api/posts/create`
+    ];
 
-    await fetchJSON(`${API}/api/posts`, {
-      method:"POST",
-      headers: authHeaders(),
-      body: formData
-    });
+    for(const url of endpoints){
+      try{
+        createdPost = await postWithForm(url);
+        break;
+      }catch(err){
+        lastError = err;
+      }
+    }
+
+    if(!createdPost){
+      throw lastError || new Error("Post failed.");
+    }
 
     showToast("Post created successfully.");
     closeNetworkPostModal();
 
+    setTimeout(() => {
+      location.href = "home.html";
+    }, 600);
+
   }catch(err){
+    console.error("Network post failed:", err);
     showToast(err.message || "Post failed.");
   }finally{
     submit.disabled = false;
@@ -1408,7 +1473,20 @@ async function submitNetworkPost(){
 document.addEventListener("change", function(event){
   if(event.target?.id !== "networkPostFiles") return;
 
-  networkPostFiles = Array.from(event.target.files || []);
+  const files = Array.from(event.target.files || []);
+
+  networkPostFiles = files.filter(file => {
+    const ok =
+      file.type.startsWith("image/") ||
+      file.type.startsWith("video/");
+
+    if(!ok){
+      showToast("Only images and videos are allowed.");
+    }
+
+    return ok;
+  });
+
   renderNetworkPostPreview();
 });
 
