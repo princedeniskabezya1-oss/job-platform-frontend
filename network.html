@@ -1035,7 +1035,7 @@ color:#0f172a;
     <span>Network</span>
   </a>
 
-  <button type="button" class="mobile-create" onclick="location.href='home.html?compose=1'">
+  <button type="button" class="mobile-create" onclick="openNetworkPostModal(event)">
     <svg viewBox="0 0 24 24">
       <path d="M12 5v14"></path>
       <path d="M5 12h14"></path>
@@ -1061,6 +1061,29 @@ color:#0f172a;
 </nav>
 
   <div class="toast" id="toast"></div>
+  <div id="networkPostModal" class="network-post-backdrop">
+  <div class="network-post-modal">
+    <div class="network-post-head">
+      <strong>Create post</strong>
+      <button type="button" onclick="closeNetworkPostModal()">×</button>
+    </div>
+
+    <textarea id="networkPostText" placeholder="What do you want to share?"></textarea>
+
+    <div id="networkPostPreview" class="network-post-preview hidden"></div>
+
+    <div class="network-post-actions">
+      <label class="network-file-btn">
+        Add media
+        <input id="networkPostFiles" type="file" accept="image/*,video/*" multiple hidden>
+      </label>
+
+      <button id="networkPostSubmit" type="button" onclick="submitNetworkPost()">
+        Post
+      </button>
+    </div>
+  </div>
+</div>
 
   <script>
     const API = "https://backend-1-9b6f.onrender.com";
@@ -1179,12 +1202,12 @@ function requireLogin(action = "use this feature"){
       };
       return map[role] || "Member";
     }
-    async function loadNotificationBadge(){
+async function loadNotificationBadge(){
   const badge = document.getElementById("notificationBadge");
   if(!badge) return;
 
   try{
-    if(!token()){
+    if(!getToken()){
       badge.classList.add("hidden");
       return;
     }
@@ -1192,8 +1215,8 @@ function requireLogin(action = "use this feature"){
     let count = 0;
 
     try{
-      const unread = await api("/api/notifications/unread", {
-        headers: headers()
+      const unread = await fetchJSON(`${API}/api/notifications/unread`, {
+        headers: authHeaders()
       });
 
       count =
@@ -1203,13 +1226,13 @@ function requireLogin(action = "use this feature"){
         (Array.isArray(unread) ? unread.length : 0);
 
     }catch{
-      const data = await api("/api/notifications", {
-        headers: headers()
+      const data = await fetchJSON(`${API}/api/notifications`, {
+        headers: authHeaders()
       });
 
       const list = Array.isArray(data)
         ? data
-        : data.notifications || [];
+        : data.notifications || data.results || [];
 
       count = list.filter(n => !n.read && !n.isRead).length;
     }
@@ -1218,6 +1241,7 @@ function requireLogin(action = "use this feature"){
     badge.classList.toggle("hidden", count <= 0);
 
   }catch(err){
+    console.warn("Notification badge failed:", err.message);
     badge.classList.add("hidden");
   }
 }
@@ -1251,6 +1275,15 @@ function profileUrl(user){
       if(role === "admin") return "admin.html";
       return "home.html";
     }
+    function goMessages(){
+  if(!requireLogin("message people")) return;
+  location.href = "messages.html";
+}
+
+function goNotifications(){
+  if(!requireLogin("view alerts")) return;
+  location.href = "notifications.html";
+}
 
 function goMe(){
   if(!requireLogin("view your profile")) return;
@@ -1276,6 +1309,108 @@ function goMe(){
 
   location.href = "agent-public-profile.html?id=" + encodeURIComponent(id);
 }
+    let networkPostFiles = [];
+
+function openNetworkPostModal(event){
+  event?.preventDefault?.();
+
+  if(!requireLogin("create a post")) return;
+
+  document.getElementById("networkPostModal")?.classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+
+function closeNetworkPostModal(){
+  document.getElementById("networkPostModal")?.classList.remove("show");
+  document.body.style.overflow = "";
+
+  const text = document.getElementById("networkPostText");
+  const files = document.getElementById("networkPostFiles");
+  const preview = document.getElementById("networkPostPreview");
+
+  if(text) text.value = "";
+  if(files) files.value = "";
+  if(preview){
+    preview.innerHTML = "";
+    preview.classList.add("hidden");
+  }
+
+  networkPostFiles = [];
+}
+
+function renderNetworkPostPreview(){
+  const preview = document.getElementById("networkPostPreview");
+  if(!preview) return;
+
+  preview.innerHTML = "";
+
+  if(!networkPostFiles.length){
+    preview.classList.add("hidden");
+    return;
+  }
+
+  networkPostFiles.forEach(file => {
+    const url = URL.createObjectURL(file);
+
+    if(file.type.startsWith("video/")){
+      preview.innerHTML += `
+        <video src="${url}" controls playsinline></video>
+      `;
+    }else{
+      preview.innerHTML += `
+        <img src="${url}" alt="">
+      `;
+    }
+  });
+
+  preview.classList.remove("hidden");
+}
+
+async function submitNetworkPost(){
+  const textEl = document.getElementById("networkPostText");
+  const submit = document.getElementById("networkPostSubmit");
+
+  const text = textEl?.value.trim() || "";
+
+  if(!text && !networkPostFiles.length){
+    showToast("Write something or add media first.");
+    return;
+  }
+
+  try{
+    submit.disabled = true;
+    submit.textContent = "Posting...";
+
+    const formData = new FormData();
+    formData.append("text", text);
+
+    networkPostFiles.forEach(file => {
+      formData.append("media", file);
+    });
+
+    await fetchJSON(`${API}/api/posts`, {
+      method:"POST",
+      headers: authHeaders(),
+      body: formData
+    });
+
+    showToast("Post created successfully.");
+    closeNetworkPostModal();
+
+  }catch(err){
+    showToast(err.message || "Post failed.");
+  }finally{
+    submit.disabled = false;
+    submit.textContent = "Post";
+  }
+}
+
+document.addEventListener("change", function(event){
+  if(event.target?.id !== "networkPostFiles") return;
+
+  networkPostFiles = Array.from(event.target.files || []);
+  renderNetworkPostPreview();
+});
 
     function showToast(message){
       els.toast.textContent = message;
