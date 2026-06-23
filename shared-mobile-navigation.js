@@ -19,7 +19,7 @@
 
   function headers(){
     const t = token();
-    return t ? { Authorization: "Bearer " + t } : {};
+    return t ? { Authorization:"Bearer " + t } : {};
   }
 
   function setMobileAvatar(url){
@@ -29,25 +29,25 @@
     );
   }
 
-  async function loadSharedAvatar(){
+  async function loadMobileAvatar(){
     if(!token()){
       setMobileAvatar(FALLBACK_AVATAR);
       return;
     }
 
     try{
-      const res = await fetch(API + "/api/users/me", {
-        headers: headers()
+      const res = await fetch(`${API}/api/users/me`, {
+        headers:headers()
       });
 
       const data = await res.json();
-      const user = data.user || data;
+      const me = data.user || data;
 
       const avatar =
-        user.profileImage ||
-        user.avatar ||
-        user.photoURL ||
-        user.profilePicture ||
+        me.profileImage ||
+        me.avatar ||
+        me.photoURL ||
+        me.profilePicture ||
         FALLBACK_AVATAR;
 
       setMobileAvatar(avatar);
@@ -55,13 +55,8 @@
       const topAvatar = document.getElementById("topAvatar");
       if(topAvatar) topAvatar.src = avatar;
 
-      if(user?._id){
-        localStorage.setItem("userId", user._id);
-      }
-
-      if(user?.role){
-        localStorage.setItem("role", user.role);
-      }
+      if(me._id) localStorage.setItem("userId", me._id);
+      if(me.role) localStorage.setItem("role", me.role);
 
     }catch{
       setMobileAvatar(FALLBACK_AVATAR);
@@ -76,8 +71,8 @@
       let count = 0;
 
       try{
-        const res = await fetch(API + "/api/notifications/unread", {
-          headers: headers()
+        const res = await fetch(`${API}/api/notifications/unread`, {
+          headers:headers()
         });
 
         const data = await res.json();
@@ -89,8 +84,8 @@
           (Array.isArray(data) ? data.length : 0);
 
       }catch{
-        const res = await fetch(API + "/api/notifications", {
-          headers: headers()
+        const res = await fetch(`${API}/api/notifications`, {
+          headers:headers()
         });
 
         const data = await res.json();
@@ -107,56 +102,58 @@
     }
   }
 
-  function setupScrollTopbar(){
+  function setupHomeExactScrollAnimation(){
     const topbar = document.querySelector(".topbar");
-    if(!topbar) return;
+    const nav = document.querySelector(".mobile-nav");
+
+    if(!topbar && !nav) return;
 
     let lastY = window.scrollY || 0;
+    let hiddenAfter = 700;
 
     window.addEventListener("scroll", () => {
       const y = window.scrollY || 0;
+      const goingDown = y > lastY;
 
-      topbar.classList.toggle("is-glass", y > 12);
+      if(topbar){
+        topbar.classList.toggle("is-glass", y > 12);
 
-      if(y > 260 && y > lastY){
-        topbar.classList.add("is-hidden");
-      }else{
-        topbar.classList.remove("is-hidden");
+        if(y > hiddenAfter && goingDown){
+          topbar.classList.add("is-hidden");
+        }else{
+          topbar.classList.remove("is-hidden");
+        }
+      }
+
+      if(nav){
+        if(y > 180 && goingDown){
+          nav.classList.add("is-pulled-down");
+        }else{
+          nav.classList.remove("is-pulled-down");
+        }
       }
 
       lastY = y;
     }, { passive:true });
   }
 
-  window.goHome = function(){
+  window.goHome = window.goHome || function(){
     location.href = "home.html";
   };
 
-  window.goNetwork = function(){
-    location.href = "network.html";
-  };
-
-  window.goJobs = function(){
-    location.href = "jobs.html";
-  };
-
-  window.goMessages = function(){
+  window.goMessages = window.goMessages || function(){
     if(typeof requireLogin === "function" && !requireLogin("message people")) return;
     location.href = "messages.html";
   };
 
-  window.goNotifications = function(){
+  window.goNotifications = window.goNotifications || function(){
     if(typeof requireLogin === "function" && !requireLogin("view alerts")) return;
     location.href = "notifications.html";
   };
 
-  window.openSharedPost = function(){
-    location.href = "home.html?compose=1";
-  };
-
   document.addEventListener("DOMContentLoaded", () => {
-    loadSharedAvatar();
+    loadMobileAvatar();
     loadNotificationBadge();
-    setupScrollTopbar();
+    setupHomeExactScrollAnimation();
   });
 })();
