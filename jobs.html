@@ -1238,7 +1238,7 @@ if(state.filtered.length && window.innerWidth > 760){
         const skills = safeArray(job.skills).slice(0,3);
 
         return `
-          <article class="job-card ${active ? "active" : ""}" onclick="selectJob('${escapeHTML(job._id)}', true)">
+          <article class="job-card ${active ? "active" : ""}" onclick="openJobDetails('${escapeHTML(job._id)}')">
             <h3 class="job-title">${escapeHTML(job.title || "Untitled job")}</h3>
             <div class="company">${escapeHTML(companyName(job))}</div>
 
@@ -1463,6 +1463,16 @@ function openEmployer(jobId){
       }
       location.href = url;
     }
+    function openJobDetails(jobId){
+  if(window.innerWidth <= 760){
+    location.href = `job-details.html?id=${encodeURIComponent(jobId)}`;
+    return;
+  }
+
+  selectJob(jobId, true);
+}
+
+window.openJobDetails = openJobDetails;
 
     window.selectJob = selectJob;
     window.saveJob = saveJob;
