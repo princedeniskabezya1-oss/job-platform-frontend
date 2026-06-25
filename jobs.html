@@ -878,7 +878,7 @@ color:#0f172a;
           <div id="listState"></div>
         </aside>
 
-        <article class="detail-panel" id="detailPanel">
+        <article class="detail-panel" id="detailPanel" hidden>
           <div class="empty">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"/><path d="M4 7h16v13H4z"/><path d="M4 12h16"/></svg>
             <h3>Select a job</h3>
@@ -1266,32 +1266,40 @@ if(state.filtered.length && window.innerWidth > 760){
       `;
     }
 
-    async function selectJob(jobId, shouldTrack = true){
-      state.selectedJobId = jobId;
-      const job = state.jobs.find(j => String(j._id) === String(jobId));
-      if(!job) return;
+async function selectJob(jobId, shouldTrack = true){
+  state.selectedJobId = jobId;
+  const job = state.jobs.find(j => String(j._id) === String(jobId));
+  if(!job) return;
 
-renderList();
-renderDetail(job);
+  renderList();
+  renderDetail(job);
 
-if(window.innerWidth <= 760 && shouldTrack){
-  els.detailPanel.classList.add("mobile-open");
-}
+  if(window.innerWidth <= 760){
+    if(shouldTrack){
+      els.detailPanel.hidden = false;
+      els.detailPanel.classList.add("mobile-open");
+    }else{
+      els.detailPanel.hidden = true;
+      els.detailPanel.classList.remove("mobile-open");
+    }
+  }else{
+    els.detailPanel.hidden = false;
+  }
 
-if(!isGuest() && shouldTrack && !state.viewedIds.has(String(jobId))){
-  state.viewedIds.add(String(jobId));
-  try{
-    const data = await fetchJSON(`${API}/api/jobs/${jobId}/view`, {
-      method:"PATCH",
-      headers:authHeaders({ "Content-Type":"application/json" })
-    });
-    job.viewsCount = data.viewsCount;
-    renderDetail(job);
-  }catch(err){
-    console.warn("JOB VIEW TRACK FAILED:", err.message);
+  if(!isGuest() && shouldTrack && !state.viewedIds.has(String(jobId))){
+    state.viewedIds.add(String(jobId));
+    try{
+      const data = await fetchJSON(`${API}/api/jobs/${jobId}/view`, {
+        method:"PATCH",
+        headers:authHeaders({ "Content-Type":"application/json" })
+      });
+      job.viewsCount = data.viewsCount;
+      renderDetail(job);
+    }catch(err){
+      console.warn("JOB VIEW TRACK FAILED:", err.message);
+    }
   }
 }
-    }
 
     function renderDetail(job){
       const skills = safeArray(job.skills);
@@ -1299,6 +1307,7 @@ if(!isGuest() && shouldTrack && !state.viewedIds.has(String(jobId))){
       const canSave = ["talent","agent"].includes(getRole());
 
       els.detailPanel.innerHTML = `
+      <button class="mobile-detail-close" onclick="closeJobDetail()" type="button">×</button>
         <div class="detail-cover">
           <img class="company-logo" src="${escapeHTML(logoOf(job))}" alt="${escapeHTML(companyName(job))}">
         </div>
@@ -1363,6 +1372,12 @@ if(!isGuest() && shouldTrack && !state.viewedIds.has(String(jobId))){
         </div>
       `;
     }
+    function closeJobDetail(){
+  els.detailPanel.hidden = true;
+  els.detailPanel.classList.remove("mobile-open");
+}
+
+window.closeJobDetail = closeJobDetail;
 
 async function saveJob(jobId){
   if(!requireLogin("save jobs")) return;
