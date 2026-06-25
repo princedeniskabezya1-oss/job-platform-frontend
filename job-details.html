@@ -1,51 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
 <title>AIFT Job Details</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <style>
-*{box-sizing:border-box}
+:root{
+  --blue:#2557a7;
+  --blue-dark:#164081;
+  --blue-soft:#eef5ff;
+  --green:#087f5b;
+  --bg:#f3f2ef;
+  --card:#ffffff;
+  --ink:#111827;
+  --text:#1f2937;
+  --muted:#64748b;
+  --line:#e5e7eb;
+  --line-dark:#d1d5db;
+  --soft:#f8fafc;
+  --shadow-xs:0 1px 2px rgba(15,23,42,.06);
+  --shadow-sm:0 8px 22px rgba(15,23,42,.06);
+  --shadow-md:0 18px 48px rgba(15,23,42,.10);
+  --radius:18px;
+  --radius-lg:26px;
+  --top:56px;
+  --bottom:76px;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+html,
+body{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+}
 
 body{
   margin:0;
   font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  background:#fff;
-  color:#111827;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
 }
 
 button{
   font-family:inherit;
+  cursor:pointer;
 }
 
-.page{
+button:disabled{
+  cursor:not-allowed;
+  opacity:.6;
+}
+
+a{
+  color:inherit;
+  text-decoration:none;
+}
+
+svg{
+  flex:none;
+}
+
+/* =========================
+   PAGE
+========================= */
+
+.detail-page{
   min-height:100vh;
-  padding-bottom:92px;
-  background:#fff;
+  padding-bottom:calc(var(--bottom) + env(safe-area-inset-bottom,0px));
+  background:var(--bg);
 }
 
-.backbar{
+.detail-topbar{
   position:sticky;
   top:0;
-  z-index:50;
-  height:54px;
+  z-index:60;
+  height:var(--top);
   display:flex;
   align-items:center;
   gap:10px;
   padding:0 14px;
-  background:rgba(255,255,255,.95);
+  background:rgba(255,255,255,.96);
   backdrop-filter:blur(14px);
-  border-bottom:1px solid #e5e7eb;
+  -webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
 }
 
 .back-btn{
-  width:38px;
-  height:38px;
+  width:39px;
+  height:39px;
   border:0;
   border-radius:999px;
   background:#f3f4f6;
@@ -53,32 +108,92 @@ button{
   display:flex;
   align-items:center;
   justify-content:center;
-  cursor:pointer;
+}
+
+.back-btn:active{
+  transform:scale(.97);
 }
 
 .back-btn svg{
-  width:22px;
-  height:22px;
+  width:23px;
+  height:23px;
+  stroke-width:2.6;
 }
 
-.backbar strong{
-  font-size:16px;
+.detail-top-title{
+  min-width:0;
+  flex:1;
+}
+
+.detail-top-title strong{
+  display:block;
+  color:#111827;
+  font-size:15px;
   font-weight:900;
 }
 
+.detail-top-title span{
+  display:block;
+  margin-top:1px;
+  color:#64748b;
+  font-size:11px;
+  font-weight:700;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.top-action{
+  width:39px;
+  height:39px;
+  border:0;
+  border-radius:999px;
+  background:#f3f4f6;
+  color:#111827;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.top-action svg{
+  width:20px;
+  height:20px;
+}
+
+/* =========================
+   CONTENT CARD
+========================= */
+
+.detail-shell{
+  max-width:980px;
+  margin:0 auto;
+  padding:12px 12px 22px;
+}
+
+.detail-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:24px;
+  overflow:hidden;
+  box-shadow:var(--shadow-xs);
+}
+
 .cover{
-  height:132px;
-  background:linear-gradient(135deg,#dbeafe,#f8fafc);
+  height:136px;
+  background:
+    radial-gradient(circle at 12% 18%,rgba(37,87,167,.16),transparent 30%),
+    radial-gradient(circle at 90% 4%,rgba(8,127,91,.13),transparent 28%),
+    linear-gradient(135deg,#dbeafe,#f8fafc);
   position:relative;
 }
 
 .logo{
   position:absolute;
   left:18px;
-  bottom:-36px;
-  width:76px;
-  height:76px;
-  border-radius:20px;
+  bottom:-38px;
+  width:78px;
+  height:78px;
+  border-radius:22px;
   border:4px solid #fff;
   background:#fff;
   object-fit:cover;
@@ -86,75 +201,109 @@ button{
 }
 
 .content{
-  padding:48px 18px 22px;
+  padding:52px 18px 22px;
+}
+
+.eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  color:var(--blue);
+  font-size:11px;
+  font-weight:900;
+  margin-bottom:8px;
+}
+
+.eyebrow::before{
+  content:"";
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 0 5px rgba(8,127,91,.12);
 }
 
 .title{
   margin:0;
-  font-size:25px;
-  line-height:1.14;
-  letter-spacing:-.05em;
+  color:#0f172a;
+  font-size:26px;
+  line-height:1.12;
+  letter-spacing:-.06em;
   font-weight:900;
 }
 
 .company{
-  margin-top:7px;
-  font-size:15px;
-  font-weight:800;
+  margin-top:8px;
   color:#334155;
+  font-size:15px;
+  font-weight:900;
+}
+
+.company-link{
+  color:var(--blue);
 }
 
 .meta{
-  margin-top:12px;
+  margin-top:13px;
   display:flex;
   flex-wrap:wrap;
-  gap:10px;
-  color:#64748b;
+  gap:8px;
+}
+
+.meta-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:7px 10px;
+  border-radius:999px;
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  color:#475569;
   font-size:12px;
   font-weight:800;
 }
 
-.meta span{
-  display:flex;
-  align-items:center;
-  gap:5px;
-}
-
-.meta svg{
-  width:15px;
-  height:15px;
+.meta-pill svg{
+  width:14px;
+  height:14px;
 }
 
 .actions{
+  margin-top:20px;
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:9px;
-  margin-top:20px;
 }
 
 .btn{
-  height:46px;
+  min-height:46px;
   border-radius:999px;
-  border:1px solid #dbe3ea;
+  border:1px solid var(--line);
   background:#fff;
   color:#334155;
+  padding:0 14px;
   font-size:13px;
   font-weight:900;
   display:flex;
   align-items:center;
   justify-content:center;
   gap:8px;
-  cursor:pointer;
+}
+
+.btn svg{
+  width:17px;
+  height:17px;
 }
 
 .btn.primary{
-  background:#2557a7;
-  color:#fff;
   border:0;
+  background:var(--blue);
+  color:#fff;
+  box-shadow:0 10px 20px rgba(37,87,167,.18);
 }
 
-.btn.full{
-  grid-column:1 / -1;
+.btn.primary:active{
+  background:var(--blue-dark);
 }
 
 .btn.saved{
@@ -163,26 +312,29 @@ button{
   border-color:#c7d2fe;
 }
 
-.btn svg{
-  width:17px;
-  height:17px;
+.btn.full{
+  grid-column:1 / -1;
 }
 
-.grid{
+/* =========================
+   QUICK FACTS
+========================= */
+
+.quick-grid{
   margin-top:18px;
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:repeat(2,1fr);
   gap:10px;
 }
 
-.box{
+.quick-box{
   background:#f8fafc;
-  border:1px solid #e5e7eb;
+  border:1px solid var(--line);
   border-radius:16px;
   padding:13px;
 }
 
-.box span{
+.quick-box span{
   display:block;
   color:#64748b;
   font-size:10px;
@@ -191,29 +343,37 @@ button{
   letter-spacing:.06em;
 }
 
-.box strong{
+.quick-box strong{
   display:block;
   margin-top:6px;
-  font-size:14px;
   color:#0f172a;
+  font-size:14px;
+  line-height:1.25;
+  font-weight:900;
 }
+
+/* =========================
+   SECTIONS
+========================= */
 
 .section{
   margin-top:20px;
   padding-top:18px;
-  border-top:1px solid #e5e7eb;
+  border-top:1px solid var(--line);
 }
 
 .section h2{
-  margin:0 0 10px;
+  margin:0 0 11px;
+  color:#0f172a;
   font-size:19px;
-  letter-spacing:-.03em;
+  letter-spacing:-.035em;
+  font-weight:900;
 }
 
 .description{
   color:#334155;
   font-size:14px;
-  line-height:1.7;
+  line-height:1.75;
   white-space:pre-wrap;
 }
 
@@ -233,403 +393,402 @@ button{
   font-weight:900;
 }
 
+/* =========================
+   COMPANY PANEL
+========================= */
+
+.company-panel{
+  margin-top:12px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:#fbfdff;
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+.company-panel img{
+  width:48px;
+  height:48px;
+  border-radius:15px;
+  object-fit:cover;
+  border:1px solid var(--line);
+  background:#fff;
+}
+
+.company-panel strong{
+  display:block;
+  color:#111827;
+  font-size:14px;
+  font-weight:900;
+}
+
+.company-panel span{
+  display:block;
+  margin-top:4px;
+  color:#64748b;
+  font-size:12px;
+  font-weight:700;
+}
+
+/* =========================
+   STICKY APPLY
+========================= */
+
 .sticky-apply{
   position:fixed;
   left:0;
   right:0;
   bottom:0;
-  z-index:60;
+  z-index:70;
   padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));
-  background:rgba(255,255,255,.96);
+  background:rgba(255,255,255,.97);
   backdrop-filter:blur(14px);
-  border-top:1px solid #e5e7eb;
+  -webkit-backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);
+  display:none;
+}
+
+.sticky-apply.show{
+  display:block;
+}
+
+.sticky-apply-inner{
+  max-width:980px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+  align-items:center;
+}
+
+.sticky-apply-title{
+  min-width:0;
+}
+
+.sticky-apply-title strong{
+  display:block;
+  color:#111827;
+  font-size:13px;
+  font-weight:900;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.sticky-apply-title span{
+  display:block;
+  margin-top:2px;
+  color:#64748b;
+  font-size:11px;
+  font-weight:700;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .sticky-apply button{
-  width:100%;
-  height:48px;
+  min-width:138px;
+  height:46px;
   border:0;
   border-radius:999px;
-  background:#2557a7;
+  background:var(--blue);
   color:#fff;
-  font-size:15px;
+  font-size:14px;
   font-weight:900;
 }
 
-.loading,
-.error{
-  margin:18px;
+/* =========================
+   STATES
+========================= */
+
+.state-card{
+  margin:14px 12px;
   padding:30px 18px;
   text-align:center;
-  border:1px solid #e5e7eb;
-  border-radius:18px;
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:#fff;
   color:#64748b;
+  box-shadow:var(--shadow-xs);
 }
 
-.loading h2,
-.error h2{
+.state-icon{
+  width:48px;
+  height:48px;
+  border-radius:18px;
+  margin:0 auto 13px;
+  background:#eef5ff;
+  color:var(--blue);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.state-icon svg{
+  width:25px;
+  height:25px;
+}
+
+.state-card h2{
   margin:0;
   color:#111827;
+  font-size:19px;
+  letter-spacing:-.03em;
+  font-weight:900;
+}
+
+.state-card p{
+  margin:8px auto 0;
+  max-width:440px;
+  color:#64748b;
+  font-size:13px;
+  line-height:1.55;
+  font-weight:600;
+}
+
+.state-card .btn{
+  margin:16px auto 0;
+  width:max-content;
+  min-width:160px;
+}
+
+/* =========================
+   GUEST MODAL / TOAST
+========================= */
+
+.guest-gate-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:rgba(15,23,42,.48);
+  backdrop-filter:blur(6px);
+}
+
+.guest-gate-backdrop.show{
+  display:flex;
+}
+
+.guest-gate-card{
+  width:min(460px,100%);
+  background:#fff;
+  border-radius:26px;
+  padding:26px 20px;
+  box-shadow:0 30px 80px rgba(15,23,42,.26);
+  text-align:center;
+  border:1px solid #e5e7eb;
+}
+
+.guest-gate-logo{
+  width:145px;
+  height:54px;
+  object-fit:contain;
+  margin:0 auto 12px;
+}
+
+.guest-gate-card h2{
+  margin:0;
+  font-size:24px;
+  line-height:1.2;
+  font-weight:900;
+  color:#111827;
+}
+
+.guest-gate-card p{
+  margin:12px 0 22px;
+  color:#64748b;
+  font-size:14px;
+  line-height:1.6;
+}
+
+.guest-gate-actions{
+  display:grid;
+  gap:10px;
+}
+
+.gate-btn{
+  height:46px;
+  border-radius:999px;
+  border:1px solid var(--blue);
+  background:#fff;
+  color:var(--blue);
+  font-weight:900;
+}
+
+.gate-btn.primary{
+  background:var(--blue);
+  color:#fff;
+}
+
+.gate-close{
+  margin-top:14px;
+  border:0;
+  background:transparent;
+  color:#64748b;
+  font-weight:900;
+}
+
+.toast{
+  position:fixed;
+  left:14px;
+  right:14px;
+  bottom:calc(84px + env(safe-area-inset-bottom,0px));
+  z-index:9999;
+  background:#0f172a;
+  color:#fff;
+  padding:12px 14px;
+  border-radius:14px;
+  box-shadow:0 18px 40px rgba(15,23,42,.25);
+  font-size:13px;
+  font-weight:900;
+  text-align:center;
+  transform:translateY(18px);
+  opacity:0;
+  pointer-events:none;
+  transition:.2s ease;
+}
+
+.toast.show{
+  transform:translateY(0);
+  opacity:1;
+}
+
+/* =========================
+   DESKTOP ENHANCEMENT
+========================= */
+
+@media(min-width:761px){
+
+  body{
+    background:#f3f6fb;
+  }
+
+  .detail-page{
+    padding-bottom:100px;
+  }
+
+  .detail-topbar{
+    height:64px;
+  }
+
+  .detail-shell{
+    padding:22px 18px 34px;
+  }
+
+  .detail-card{
+    border-radius:28px;
+    box-shadow:var(--shadow-md);
+  }
+
+  .cover{
+    height:168px;
+  }
+
+  .logo{
+    width:92px;
+    height:92px;
+    border-radius:26px;
+    bottom:-44px;
+    left:28px;
+  }
+
+  .content{
+    padding:62px 28px 28px;
+  }
+
+  .title{
+    font-size:34px;
+  }
+
+  .actions{
+    display:flex;
+    flex-wrap:wrap;
+  }
+
+  .btn.full{
+    grid-column:auto;
+  }
+
+  .quick-grid{
+    grid-template-columns:repeat(4,1fr);
+  }
+
+  .sticky-apply{
+    padding:12px 18px;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<div class="page">
-  <header class="backbar">
-    <button class="back-btn" onclick="history.back()" type="button">
+<div class="detail-page">
+  <header class="detail-topbar">
+    <button class="back-btn" type="button" onclick="goBackToJobs()" aria-label="Go back">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path d="M15 18 9 12l6-6"></path>
       </svg>
     </button>
-    <strong>Job details</strong>
+
+    <div class="detail-top-title">
+      <strong>Job details</strong>
+      <span id="topSubText">AIFT opportunities</span>
+    </div>
+
+    <button class="top-action" type="button" onclick="shareCurrentJob()" aria-label="Share job">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path>
+        <path d="M16 6l-4-4-4 4"></path>
+        <path d="M12 2v14"></path>
+      </svg>
+    </button>
   </header>
 
-  <main id="jobMount">
-    <div class="loading">
+  <main class="detail-shell" id="jobMount">
+    <div class="state-card">
+      <div class="state-icon">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M21 12a9 9 0 0 1-9 9"></path>
+          <path d="M3 12a9 9 0 0 1 9-9"></path>
+        </svg>
+      </div>
       <h2>Loading job</h2>
-      <p>Please wait...</p>
+      <p>Please wait while AIFT loads the job information.</p>
     </div>
   </main>
 </div>
 
-<div class="sticky-apply" id="stickyApply" style="display:none;">
-  <button type="button" id="stickyApplyBtn">Apply now</button>
+<div class="sticky-apply" id="stickyApply">
+  <div class="sticky-apply-inner">
+    <div class="sticky-apply-title">
+      <strong id="stickyJobTitle">Apply now</strong>
+      <span id="stickyCompany">AIFT job</span>
+    </div>
+
+    <button type="button" id="stickyApplyBtn">Apply</button>
+  </div>
 </div>
 
-<script>
-const API = "https://backend-1-9b6f.onrender.com";
+<div id="guestModal" class="guest-gate-backdrop">
+  <div class="guest-gate-card">
+    <img src="images/aift-logo.png" class="guest-gate-logo" alt="AIFT">
 
-const state = {
-  job:null,
-  savedIds:new Set(),
-  me:null
-};
+    <h2>Join AIFT</h2>
 
-const mount = document.getElementById("jobMount");
-const stickyApply = document.getElementById("stickyApply");
-const stickyApplyBtn = document.getElementById("stickyApplyBtn");
+    <p id="guestModalText">Create your free account to continue.</p>
 
-function getRole(){
-  return localStorage.getItem("role") || "";
-}
-
-function getToken(){
-  const role = getRole();
-  return (
-    localStorage.getItem(role + "Token") ||
-    localStorage.getItem("talentToken") ||
-    localStorage.getItem("employerToken") ||
-    localStorage.getItem("adminToken") ||
-    localStorage.getItem("agentToken") ||
-    localStorage.getItem("schoolToken") ||
-    localStorage.getItem("token") ||
-    ""
-  );
-}
-
-function isGuest(){
-  return !getToken();
-}
-
-function authHeaders(extra = {}){
-  const token = getToken();
-  return {
-    ...extra,
-    ...(token ? { Authorization:"Bearer " + token } : {})
-  };
-}
-
-function escapeHTML(value){
-  return String(value ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-function safeArray(value){
-  if(Array.isArray(value)) return value.filter(Boolean);
-  if(typeof value === "string" && value.trim()){
-    return value.split(",").map(v => v.trim()).filter(Boolean);
-  }
-  return [];
-}
-
-function companyName(job){
-  return job?.company || job?.employerId?.companyName || job?.employerId?.name || "Company";
-}
-
-function logoOf(job){
-  const name = companyName(job);
-  return job?.employerId?.profileImage || "https://ui-avatars.com/api/?name=" + encodeURIComponent(name) + "&background=e0f2fe&color=0f172a";
-}
-
-function formatDate(value){
-  if(!value) return "Recently posted";
-  const date = new Date(value);
-  const diff = Date.now() - date.getTime();
-  const days = Math.floor(diff / 86400000);
-  if(days <= 0) return "Today";
-  if(days === 1) return "1 day ago";
-  if(days < 30) return days + " days ago";
-  return date.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
-}
-
-function getJobId(){
-  return new URLSearchParams(location.search).get("id");
-}
-
-async function fetchJSON(url, options = {}){
-  const res = await fetch(url, options);
-  let data = null;
-  try{ data = await res.json(); }catch{}
-  if(!res.ok){
-    throw new Error(data?.message || "Request failed");
-  }
-  return data;
-}
-
-async function loadMe(){
-  if(isGuest()) return;
-
-  try{
-    state.me = await fetchJSON(`${API}/api/users/me`, {
-      headers:authHeaders()
-    });
-
-    if(state.me?._id) localStorage.setItem("userId", state.me._id);
-    if(state.me?.role) localStorage.setItem("role", state.me.role);
-
-    safeArray(state.me?.savedJobs).forEach(id => state.savedIds.add(String(id)));
-  }catch(err){
-    console.warn("ME LOAD FAILED:", err.message);
-  }
-}
-
-async function loadJob(){
-  const id = getJobId();
-
-  if(!id){
-    showError("Job not found", "Missing job id.");
-    return;
-  }
-
-  try{
-    const jobs = await fetchJSON(`${API}/api/jobs`, {
-      headers:isGuest() ? {} : authHeaders()
-    });
-
-    const job = safeArray(jobs).find(j => String(j._id) === String(id));
-
-    if(!job){
-      showError("Job not found", "This job may have been removed.");
-      return;
-    }
-
-    state.job = job;
-    renderJob(job);
-    trackView(job._id);
-  }catch(err){
-    showError("Could not load job", err.message || "Please try again.");
-  }
-}
-
-function showError(title, message){
-  stickyApply.style.display = "none";
-  mount.innerHTML = `
-    <div class="error">
-      <h2>${escapeHTML(title)}</h2>
-      <p>${escapeHTML(message)}</p>
+    <div class="guest-gate-actions">
+      <button class="gate-btn primary" type="button" onclick="location.href='login.html'">Sign In</button>
+      <button class="gate-btn" type="button" onclick="location.href='register.html'">Create Account</button>
     </div>
-  `;
-}
 
-async function trackView(jobId){
-  if(isGuest()) return;
+    <button class="gate-close" type="button" onclick="closeGuestModal()">Maybe later</button>
+  </div>
+</div>
 
-  try{
-    const data = await fetchJSON(`${API}/api/jobs/${jobId}/view`, {
-      method:"PATCH",
-      headers:authHeaders({ "Content-Type":"application/json" })
-    });
-
-    if(state.job){
-      state.job.viewsCount = data.viewsCount;
-      renderJob(state.job);
-    }
-  }catch(err){
-    console.warn("VIEW TRACK FAILED:", err.message);
-  }
-}
-
-function renderJob(job){
-  const skills = safeArray(job.skills);
-  const saved = state.savedIds.has(String(job._id));
-
-  stickyApply.style.display = "block";
-  stickyApplyBtn.onclick = () => applyToJob(job._id);
-
-  mount.innerHTML = `
-    <section class="cover">
-      <img class="logo" src="${escapeHTML(logoOf(job))}" alt="${escapeHTML(companyName(job))}">
-    </section>
-
-    <section class="content">
-      <h1 class="title">${escapeHTML(job.title || "Untitled job")}</h1>
-      <div class="company">${escapeHTML(companyName(job))}</div>
-
-      <div class="meta">
-        <span>
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11Z"></path>
-            <circle cx="12" cy="10" r="2.5"></circle>
-          </svg>
-          ${escapeHTML(job.location || "Location not added")}
-        </span>
-
-        <span>
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path d="M4 7h16v13H4z"></path>
-            <path d="M4 12h16"></path>
-          </svg>
-          ${escapeHTML(job.type || "Full-time")}
-        </span>
-
-        <span>
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="9"></circle>
-            <path d="M12 7v5l3 2"></path>
-          </svg>
-          ${escapeHTML(formatDate(job.createdAt))}
-        </span>
-      </div>
-
-      <div class="actions">
-        <button class="btn primary" onclick="applyToJob('${escapeHTML(job._id)}')">
-          Apply now
-        </button>
-
-        <button class="btn ${saved ? "saved" : ""}" onclick="saveJob('${escapeHTML(job._id)}')">
-          ${saved ? "Saved" : "Save job"}
-        </button>
-
-        <button class="btn full" onclick="openEmployer('${escapeHTML(job._id)}')">
-          View company
-        </button>
-      </div>
-
-      <div class="grid">
-        <div class="box"><span>Salary</span><strong>${escapeHTML(job.salary || "Not specified")}</strong></div>
-        <div class="box"><span>Level</span><strong>${escapeHTML(job.experienceLevel || "Not specified")}</strong></div>
-        <div class="box"><span>Views</span><strong>${escapeHTML(job.viewsCount || 0)}</strong></div>
-        <div class="box"><span>Saves</span><strong>${escapeHTML(job.saveCount || 0)}</strong></div>
-      </div>
-
-      <div class="section">
-        <h2>Job description</h2>
-        <div class="description">${escapeHTML(job.description || "No description added yet.")}</div>
-      </div>
-
-      <div class="section">
-        <h2>Skills</h2>
-        <div class="tags">
-          ${skills.length ? skills.map(skill => `<span class="tag">${escapeHTML(skill)}</span>`).join("") : `<span class="tag">No skills listed</span>`}
-        </div>
-      </div>
-    </section>
-  `;
-}
-
-function requireLogin(action){
-  if(!isGuest()) return true;
-  alert("Create your free AIFT account to " + action + ".");
-  location.href = "login.html";
-  return false;
-}
-
-async function saveJob(jobId){
-  if(!requireLogin("save jobs")) return;
-
-  if(!["talent","agent"].includes(getRole())){
-    alert("Only talents or agents can save jobs.");
-    return;
-  }
-
-  try{
-    const res = await fetchJSON(`${API}/api/jobs/${jobId}/save`, {
-      method:"PATCH",
-      headers:authHeaders({ "Content-Type":"application/json" })
-    });
-
-    if(res.saved){
-      state.savedIds.add(String(jobId));
-    }else{
-      state.savedIds.delete(String(jobId));
-    }
-
-    if(state.job){
-      state.job.saveCount = res.saveCount ?? state.job.saveCount;
-      renderJob(state.job);
-    }
-  }catch(err){
-    alert(err.message || "Could not save job.");
-  }
-}
-
-async function applyToJob(jobId){
-  if(!requireLogin("apply for jobs")) return;
-
-  try{
-    await fetchJSON(`${API}/api/jobs/${jobId}/click-apply`, {
-      method:"PATCH",
-      headers:authHeaders({ "Content-Type":"application/json" })
-    });
-  }catch(err){
-    console.warn("APPLY CLICK TRACK FAILED:", err.message);
-  }
-
-  const role = getRole();
-
-  if(role === "talent" || role === "agent" || role === "school"){
-    location.href = `job-apply.html?jobId=${encodeURIComponent(jobId)}`;
-    return;
-  }
-
-  alert("Only talents, agents, and students can apply.");
-}
-
-function employerProfileUrl(job){
-  const id = job?.employerId?._id || job?.employerId || "";
-  if(!id) return "#";
-  return "employer-public-profile.html?id=" + encodeURIComponent(id);
-}
-
-function openEmployer(jobId){
-  if(!requireLogin("view employer profiles")) return;
-
-  const job = state.job;
-  if(!job) return;
-
-  const url = employerProfileUrl(job);
-
-  if(url === "#"){
-    alert("Employer profile is not available.");
-    return;
-  }
-
-  location.href = url;
-}
-
-async function init(){
-  await loadMe();
-  await loadJob();
-}
-
-init();
-</script>
-
-</body>
-</html>
+<div class="toast" id="toast"></div>
