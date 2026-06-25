@@ -1132,9 +1132,9 @@ const jobs = await fetchJSON(`${API}/api/jobs`, {
         state.jobs = safeArray(jobs).filter(job => job && job._id);
         applyFilters();
 
-        if(state.filtered.length){
-          selectJob(state.filtered[0]._id, false);
-        }
+if(state.filtered.length && window.innerWidth > 760){
+  selectJob(state.filtered[0]._id, false);
+}
       }catch(err){
         els.jobList.innerHTML = "";
         setListState("error", "Jobs could not load", err.message || "Please check your backend or login again.");
@@ -1271,8 +1271,12 @@ const jobs = await fetchJSON(`${API}/api/jobs`, {
       const job = state.jobs.find(j => String(j._id) === String(jobId));
       if(!job) return;
 
-      renderList();
-      renderDetail(job);
+renderList();
+renderDetail(job);
+
+if(window.innerWidth <= 760 && shouldTrack){
+  els.detailPanel.classList.add("mobile-open");
+}
 
 if(!isGuest() && shouldTrack && !state.viewedIds.has(String(jobId))){
   state.viewedIds.add(String(jobId));
@@ -1454,9 +1458,13 @@ function openEmployer(jobId){
         els.workSetupFilter.value = "";
         applyFilters();
 
-        if(state.filtered.length){
-          selectJob(state.filtered[0]._id, false);
-        }
+if(state.filtered.length && window.innerWidth > 760){
+  selectJob(state.filtered[0]._id, false);
+}
+
+if(window.innerWidth <= 760){
+  renderEmptyDetail();
+}
       });
 
 document.getElementById("dashboardBtn").addEventListener("click", () => {
