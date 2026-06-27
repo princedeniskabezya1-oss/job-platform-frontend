@@ -797,6 +797,9 @@ svg{
 }
 
 /* MOBILE VERSION */
+  .jobs-filter-toggle{
+  display:none;
+}
 
 @media(max-width:760px){
 
@@ -832,23 +835,26 @@ svg{
     border-bottom:1px solid #e5e2dc;
   }
 
-  .jobs-search-grid{
+.jobs-search-grid{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:1fr 46px;
     gap:8px;
-  }
+    align-items:center;
+}
 
-  .jobs-field{
-    height:42px;
-    border-radius:12px;
+.jobs-field{
+    display:none;
+    height:44px;
+    border-radius:999px;
     background:#f8fafc;
-    padding:0 11px;
-    gap:7px;
-  }
+    padding:0 12px;
+    gap:8px;
+}
 
-  .jobs-field:first-child{
-    grid-column:1 / -1;
-  }
+.jobs-field:first-child{
+    display:flex;
+    grid-column:1 / 2;
+}
 
   .jobs-field svg{
     width:16px;
@@ -860,12 +866,56 @@ svg{
     font-size:13px;
   }
 
-  .jobs-search-btn{
-    grid-column:1 / -1;
-    height:42px;
+.jobs-search-btn{
+    grid-column:2 / 3;
+    width:46px;
+    height:44px;
+    padding:0;
     border-radius:999px;
+    font-size:0;
+}
+  .jobs-search-btn svg{
+    width:20px;
+    height:20px;
+}
+
+.jobs-filter-toggle{
+    grid-column:1 / -1;
+    height:38px;
+    border:none;
+    border-radius:999px;
+    background:#f3f4f6;
+    color:#111827;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
     font-size:13px;
-  }
+    font-weight:800;
+}
+
+.jobs-filter-toggle svg{
+    width:16px;
+    height:16px;
+}
+  body.show-job-filters .jobs-field{
+  display:flex;
+}
+
+body.show-job-filters .jobs-field:first-child{
+  grid-column:1 / -1;
+}
+
+body.show-job-filters .jobs-search-btn{
+  grid-column:1 / -1;
+  width:100%;
+  font-size:13px;
+}
+
+body.show-job-filters .jobs-filter-toggle{
+  background:#eef5ff;
+  color:#2557a7;
+}
 
   .jobs-hero{
     margin:8px 0;
@@ -1074,7 +1124,7 @@ svg{
 }
 </style>
 </head>
-<body>
+<body class="jobs-page">
 
 <div class="jobs-app">
 
@@ -1260,6 +1310,14 @@ svg{
           </svg>
           Search jobs
         </button>
+<button class="jobs-filter-toggle" id="jobsFilterToggle" type="button" onclick="toggleJobFilters()">
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path d="M4 6h16"></path>
+    <path d="M7 12h10"></path>
+    <path d="M10 18h4"></path>
+  </svg>
+  <span>Filters</span>
+</button>
 
       </div>
     </section>
@@ -1342,31 +1400,18 @@ svg{
   </main>
 </div>
 
-<nav class="mobile-nav">
+<nav class="jobs-bottom-bar">
+  <button type="button" onclick="history.back()">
+    ←
+    <span>Back</span>
+  </button>
+
   <a href="home.html">
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10.5Z"></path>
     </svg>
     <span>Home</span>
   </a>
-
-  <a href="network.html">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"></path>
-      <path d="M3 21a9 9 0 0 1 18 0"></path>
-      <path d="M19 8v6"></path>
-      <path d="M22 11h-6"></path>
-    </svg>
-    <span>Network</span>
-  </a>
-
-  <button class="mobile-create" type="button" onclick="openMobileComposer(event)">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path d="M12 5v14"></path>
-      <path d="M5 12h14"></path>
-    </svg>
-    <span>Post</span>
-  </button>
 
   <a class="active" href="jobs.html">
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1377,11 +1422,12 @@ svg{
     <span>Jobs</span>
   </a>
 
-  <a href="messages.html" onclick="if(!requireLogin('message people')) return false;">
+  <a href="my-applications.html" onclick="if(!requireLogin('track your applications')) return false;">
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"></path>
+      <path d="M9 11l2 2 4-4"></path>
+      <path d="M5 4h14v16H5z"></path>
     </svg>
-    <span>Messages</span>
+    <span>Apps</span>
   </a>
 </nav>
 
@@ -2690,6 +2736,17 @@ window.handleJobCardKeydown = handleJobCardKeydown;
   /* =========================
    EVENT BINDING
 ========================= */
+  function toggleJobFilters(){
+  document.body.classList.toggle("show-job-filters");
+
+  const btn = document.getElementById("jobsFilterToggle");
+  if(btn){
+    const open = document.body.classList.contains("show-job-filters");
+    btn.querySelector("span").textContent = open ? "Hide filters" : "Filters";
+  }
+}
+
+window.toggleJobFilters = toggleJobFilters;
 
 function bindEvents(){
   const filterInputs = [
@@ -2787,6 +2844,7 @@ function bindEvents(){
   window.addEventListener("resize", debounce(handleResponsiveMode, 180));
   window.addEventListener("popstate", handleBrowserNavigation);
 }
+  
 
 /* =========================
    CLEAR FILTERS
