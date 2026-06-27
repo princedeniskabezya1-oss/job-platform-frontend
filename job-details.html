@@ -722,6 +722,176 @@ svg{
     padding:12px 18px;
   }
 }
+  .cover.has-banner{
+  background-size:cover!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
+}
+
+.cover.has-banner::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(to bottom,rgba(15,23,42,.05),rgba(15,23,42,.16));
+}
+
+.cover .logo{
+  z-index:2;
+}
+
+.job-more-menu{
+  display:none;
+}
+
+.job-more-menu.show{
+  display:block;
+}
+
+@media(max-width:760px){
+
+  .detail-shell{
+    padding:10px 10px 96px!important;
+  }
+
+  .detail-card{
+    border-radius:20px!important;
+  }
+
+  .cover{
+    height:150px!important;
+  }
+
+  .logo{
+    width:72px!important;
+    height:72px!important;
+    border-radius:18px!important;
+    bottom:-34px!important;
+  }
+
+  .content{
+    padding:46px 14px 18px!important;
+  }
+
+  .eyebrow{
+    font-size:11px!important;
+    font-weight:800!important;
+    margin-bottom:6px!important;
+  }
+
+  .title{
+    font-size:24px!important;
+    line-height:1.08!important;
+    font-weight:800!important;
+    letter-spacing:-.035em!important;
+  }
+
+  .company{
+    margin-top:5px!important;
+    font-size:15px!important;
+    font-weight:750!important;
+  }
+
+  .meta{
+    gap:6px!important;
+    margin-top:10px!important;
+  }
+
+  .meta-pill{
+    padding:6px 9px!important;
+    font-size:11px!important;
+    font-weight:700!important;
+  }
+
+  .meta-pill svg{
+    width:13px!important;
+    height:13px!important;
+  }
+
+  .detail-actions{
+    grid-template-columns:1fr 48px!important;
+    gap:8px!important;
+    margin-top:14px!important;
+  }
+
+  .detail-actions .btn{
+    min-height:42px!important;
+    font-size:14px!important;
+    font-weight:800!important;
+  }
+
+  .more-btn{
+    font-size:24px!important;
+    padding:0!important;
+  }
+
+  .job-more-menu{
+    margin-top:8px!important;
+    border:1px solid #e5e7eb!important;
+    border-radius:14px!important;
+    background:#fff!important;
+    overflow:hidden!important;
+  }
+
+  .job-more-menu button{
+    width:100%!important;
+    height:42px!important;
+    border:0!important;
+    border-bottom:1px solid #eef2f7!important;
+    background:#fff!important;
+    color:#1f2937!important;
+    text-align:left!important;
+    padding:0 14px!important;
+    font-size:13px!important;
+    font-weight:750!important;
+  }
+
+  .job-more-menu button:last-child{
+    border-bottom:0!important;
+  }
+
+  .quick-grid{
+    grid-template-columns:repeat(4,1fr)!important;
+    gap:6px!important;
+    margin-top:12px!important;
+  }
+
+  .quick-box{
+    padding:8px 6px!important;
+    border-radius:10px!important;
+    background:#f8fafc!important;
+  }
+
+  .quick-box span{
+    font-size:8px!important;
+    font-weight:800!important;
+    letter-spacing:.04em!important;
+  }
+
+  .quick-box strong{
+    margin-top:3px!important;
+    font-size:10px!important;
+    line-height:1.15!important;
+    font-weight:800!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+
+  .section{
+    margin-top:16px!important;
+    padding-top:14px!important;
+  }
+
+  .section h2{
+    font-size:16px!important;
+    font-weight:800!important;
+  }
+
+  .description{
+    font-size:13px!important;
+    line-height:1.65!important;
+  }
+}
 </style>
 </head>
 
@@ -931,6 +1101,18 @@ function logoOf(job){
     "https://ui-avatars.com/api/?name=" +
       encodeURIComponent(company) +
       "&background=e0f2fe&color=0f172a"
+  );
+}
+  function bannerOf(job){
+  return (
+    job?.employerId?.bannerImage ||
+    job?.employerId?.coverImage ||
+    job?.employerId?.coverPhoto ||
+    job?.employerId?.banner ||
+    job?.employerId?.backgroundImage ||
+    job?.companyBanner ||
+    job?.bannerImage ||
+    ""
   );
 }
 
@@ -1218,7 +1400,10 @@ function renderJob(job){
 
   els.mount.innerHTML = `
     <article class="detail-card">
-      <section class="cover">
+      <section
+  class="cover ${bannerOf(job) ? "has-banner" : ""}"
+  ${bannerOf(job) ? `style="background-image:url('${escapeHTML(bannerOf(job))}')"` : ""}
+>
         <img
           class="logo"
           src="${escapeHTML(logoOf(job))}"
@@ -1266,31 +1451,29 @@ function renderJob(job){
           </span>
         </div>
 
-        <div class="actions">
-          <button class="btn primary" type="button" onclick="applyToJob('${escapeHTML(job._id)}')">
-            Apply now
-          </button>
+<div class="actions detail-actions">
+  <button class="btn primary" type="button" onclick="applyToJob('${escapeHTML(job._id)}')">
+    Apply now
+  </button>
 
-          <button class="btn ${saved ? "saved" : ""}" type="button" onclick="saveJob('${escapeHTML(job._id)}')">
-            <svg fill="${saved ? "currentColor" : "none"}" stroke="currentColor" viewBox="0 0 24 24">
-              <path d="M19 21 12 17 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"></path>
-            </svg>
-            ${saved ? "Saved" : "Save job"}
-          </button>
+  <button class="btn more-btn" type="button" onclick="toggleJobMoreMenu()" aria-label="More options">
+    ⋯
+  </button>
+</div>
 
-          <button class="btn" type="button" onclick="shareCurrentJob()">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path>
-              <path d="M16 6l-4-4-4 4"></path>
-              <path d="M12 2v14"></path>
-            </svg>
-            Share
-          </button>
+<div class="job-more-menu" id="jobMoreMenu">
+  <button type="button" onclick="saveJob('${escapeHTML(job._id)}')">
+    ${saved ? "Remove saved job" : "Save job"}
+  </button>
 
-          <button class="btn" type="button" onclick="openEmployer()">
-            View company
-          </button>
-        </div>
+  <button type="button" onclick="shareCurrentJob()">
+    Share job
+  </button>
+
+  <button type="button" onclick="openEmployer()">
+    View company
+  </button>
+</div>
 
         <div class="quick-grid">
           <div class="quick-box">
@@ -1350,7 +1533,11 @@ function renderJob(job){
     </article>
   `;
 }
+function toggleJobMoreMenu(){
+  document.getElementById("jobMoreMenu")?.classList.toggle("show");
+}
 
+window.toggleJobMoreMenu = toggleJobMoreMenu;
 /* =========================
    SAVE JOB
 ========================= */
