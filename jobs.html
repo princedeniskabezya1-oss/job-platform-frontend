@@ -825,6 +825,61 @@ svg{
   font-weight:900;
   vertical-align:middle;
 }
+  /* cleaner desktop action row */
+.jobs-detail-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:18px;
+  flex-wrap:wrap;
+}
+
+.jobs-action-btn{
+  width:auto;
+  min-width:118px;
+  height:42px;
+  border-radius:999px;
+}
+
+.jobs-action-btn svg{
+  width:18px;
+  height:18px;
+}
+
+.jobs-action-btn.primary{
+  min-width:132px;
+}
+
+/* desktop banner image */
+.jobs-detail-cover.has-banner{
+  background-size:cover!important;
+  background-position:center!important;
+}
+
+.jobs-detail-cover.has-banner::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(to bottom,rgba(15,23,42,.08),rgba(15,23,42,.18));
+}
+
+/* calmer LinkedIn-style hero */
+.jobs-hero{
+  background:#fff!important;
+  border:1px solid #dbe3ee!important;
+  box-shadow:none!important;
+}
+
+.jobs-hero h1{
+  font-size:28px!important;
+  color:#1f2937!important;
+  letter-spacing:-.04em!important;
+}
+
+.jobs-hero p{
+  color:#64748b!important;
+  max-width:420px!important;
+}
 
 @media(max-width:760px){
   .job-pro-badge{
@@ -1039,11 +1094,8 @@ svg{
     <section class="jobs-hero">
       <div class="jobs-hero-copy">
         <div class="jobs-hero-eyebrow">AIFT job marketplace</div>
-        <h1>Find better opportunities faster.</h1>
-        <p>
-          Search real openings from employers, schools, agencies, and companies on AIFT.
-          Save jobs, track applications, and apply with a cleaner mobile-first experience.
-        </p>
+<h1>Explore jobs</h1>
+<p>Search, save, and apply in one place.</p>
       </div>
 
       <div class="jobs-hero-stats">
@@ -1333,10 +1385,22 @@ function logoOf(job){
 
   return (
     job?.employerId?.profileImage ||
+    job?.employerId?.avatar ||
     job?.companyLogo ||
     "https://ui-avatars.com/api/?name=" +
       encodeURIComponent(company) +
       "&background=e0f2fe&color=0f172a"
+  );
+}
+
+function bannerOf(job){
+  return (
+    job?.employerId?.bannerImage ||
+    job?.employerId?.coverImage ||
+    job?.employerId?.coverPhoto ||
+    job?.employerId?.banner ||
+    job?.companyBanner ||
+    ""
   );
 }
 
@@ -2066,14 +2130,17 @@ function renderDetail(job){
   const canSave = ["talent","agent","student"].includes(getRole());
 
   els.detailPanel.innerHTML = `
-    <div class="jobs-detail-cover">
-      <img
-        class="jobs-company-logo"
-        src="${escapeHTML(logoOf(job))}"
-        alt="${escapeHTML(companyName(job))}"
-        onerror="this.src='https://ui-avatars.com/api/?name=AIFT&background=e0f2fe&color=0f172a'"
-      >
-    </div>
+<div
+  class="jobs-detail-cover ${bannerOf(job) ? "has-banner" : ""}"
+  ${bannerOf(job) ? `style="background-image:url('${escapeHTML(bannerOf(job))}')"` : ""}
+>
+  <img
+    class="jobs-company-logo"
+    src="${escapeHTML(logoOf(job))}"
+    alt="${escapeHTML(companyName(job))}"
+    onerror="this.src='https://ui-avatars.com/api/?name=AIFT&background=e0f2fe&color=0f172a'"
+  >
+</div>
 
     <div class="jobs-detail-body">
       <h2 class="jobs-detail-title">${escapeHTML(job.title || "Untitled job")}</h2>
