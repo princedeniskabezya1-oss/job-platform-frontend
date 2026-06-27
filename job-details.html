@@ -892,10 +892,54 @@ svg{
     line-height:1.65!important;
   }
 }
+  .job-details-loader{
+  position:fixed;
+  inset:0;
+  z-index:999999;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  transition:opacity .25s ease, visibility .25s ease;
+}
+
+.job-details-loader img{
+  width:132px;
+  height:auto;
+  object-fit:contain;
+}
+
+.job-loader-spinner{
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  border:3px solid #dbeafe;
+  border-top-color:var(--blue);
+  animation:jobSpin .75s linear infinite;
+}
+
+.job-details-loader.hide{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+
+@keyframes jobSpin{
+  to{
+    transform:rotate(360deg);
+  }
+}
 </style>
 </head>
 
 <body>
+
+<div id="jobDetailsLoader" class="job-details-loader">
+  <img src="images/aift-logo.png" alt="AIFT">
+  <div class="job-loader-spinner"></div>
+</div>
 
 <div class="detail-page">
   <header class="detail-topbar">
@@ -920,16 +964,7 @@ svg{
   </header>
 
   <main class="detail-shell" id="jobMount">
-    <div class="state-card">
-      <div class="state-icon">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path d="M21 12a9 9 0 0 1-9 9"></path>
-          <path d="M3 12a9 9 0 0 1 9-9"></path>
-        </svg>
-      </div>
-      <h2>Loading job</h2>
-      <p>Please wait while AIFT loads the job information.</p>
-    </div>
+<div></div>
   </main>
 </div>
 
@@ -1170,6 +1205,17 @@ function employerProfileUrl(job){
 /* =========================
    UI HELPERS
 ========================= */
+  function hideJobDetailsLoader(){
+  const loader = document.getElementById("jobDetailsLoader");
+
+  if(!loader) return;
+
+  loader.classList.add("hide");
+
+  setTimeout(() => {
+    loader.remove();
+  }, 300);
+}
 
 function showToast(message){
   if(!els.toast) return;
@@ -1318,8 +1364,9 @@ async function loadJob(){
     state.job = normalizeJob(job);
     localStorage.setItem("selectedJobId", String(state.job._id));
 
-    renderJob(state.job);
-    trackView(state.job._id);
+renderJob(state.job);
+hideJobDetailsLoader();
+trackView(state.job._id);
   }catch(err){
     console.error("LOAD JOB DETAILS FAILED:", err);
 
