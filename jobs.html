@@ -922,7 +922,7 @@ svg{
   line-height:1.2!important;
   font-weight:800!important;
   letter-spacing:-.025em!important;
-  color:#1f2937!important;
+  color:var(--aift-blue)!important;
 }
 
 .jobs-hero p{
@@ -938,7 +938,7 @@ svg{
     font-size:24px!important;
     line-height:1.15!important;
     font-weight:800!important;
-    color:#1f2937!important;
+    color:var(--aift-blue)!important;
   }
 
   .jobs-hero p{
@@ -947,9 +947,53 @@ svg{
     font-weight:500!important;
   }
 }
+  .jobs-page-loader{
+  position:fixed;
+  inset:0;
+  z-index:999999;
+  background:#ffffff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  transition:opacity .25s ease, visibility .25s ease;
+}
+
+.jobs-page-loader img{
+  width:132px;
+  height:auto;
+  object-fit:contain;
+}
+
+.jobs-loader-spinner{
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  border:3px solid #dbeafe;
+  border-top-color:var(--aift-blue);
+  animation:jobsSpin .75s linear infinite;
+}
+
+.jobs-page-loader.hide{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+
+@keyframes jobsSpin{
+  to{
+    transform:rotate(360deg);
+  }
+}
 </style>
 </head>
 <body class="jobs-page">
+
+<div id="jobsPageLoader" class="jobs-page-loader">
+  <img src="images/aift-logo.png" alt="AIFT">
+  <div class="jobs-loader-spinner"></div>
+</div>
 
 <div class="jobs-app">
 
@@ -1627,6 +1671,16 @@ function updateMobileSearchClear(){
 function setLoading(isLoading){
   state.ui.loading = Boolean(isLoading);
   document.body.classList.toggle("jobs-loading", state.ui.loading);
+
+  const pageLoader = document.getElementById("jobsPageLoader");
+
+  if(pageLoader && !isLoading){
+    pageLoader.classList.add("hide");
+
+    setTimeout(() => {
+      pageLoader.remove();
+    }, 300);
+  }
 
   if(els.searchBtn){
     els.searchBtn.disabled = state.ui.loading;
