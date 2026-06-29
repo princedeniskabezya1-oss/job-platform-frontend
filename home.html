@@ -601,11 +601,53 @@ a{
   font-weight:800;
   cursor:pointer;
 }
+  .home-page-loader{
+  position:fixed;
+  inset:0;
+  z-index:999999;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  transition:opacity .25s ease, visibility .25s ease;
+}
+
+.home-page-loader img{
+  width:132px;
+  height:auto;
+  object-fit:contain;
+}
+
+.home-loader-spinner{
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  border:3px solid #dbeafe;
+  border-top-color:#0a66c2;
+  animation:homeSpin .75s linear infinite;
+}
+
+.home-page-loader.hide{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+
+@keyframes homeSpin{
+  to{ transform:rotate(360deg); }
+}
 
 </style>
 </head>
 
 <body>
+
+<div id="homePageLoader" class="home-page-loader">
+  <img src="images/aift-logo.png" alt="AIFT">
+  <div class="home-loader-spinner"></div>
+</div>
 
 <header class="topbar">
 
@@ -2166,7 +2208,15 @@ await Promise.allSettled([
   }
 }
 
-init();
+init().finally(() => {
+  const loader = document.getElementById("homePageLoader");
+  if(loader){
+    loader.classList.add("hide");
+    setTimeout(() => loader.remove(), 300);
+  }
+
+  document.body.classList.add("loaded");
+});
 
 </script>
 <style>
@@ -2352,20 +2402,6 @@ body{
 </style>
 
 <script>
-
-/* =========================
-   FINAL PAGE READY
-========================= */
-
-window.addEventListener(
-  "load",
-  ()=>{
-
-    document.body.classList.add("loaded");
-
-  }
-);
-
 
 /* =========================
    FEED READY WATCHER
