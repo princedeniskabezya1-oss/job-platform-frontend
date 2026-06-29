@@ -749,27 +749,43 @@ svg{
 
 @media(max-width:760px){
 
+  .detail-page{
+    padding-bottom:24px!important;
+    background:#f3f2ef!important;
+  }
+
+  .detail-topbar{
+    display:none!important;
+  }
+
   .detail-shell{
-    padding:10px 10px 96px!important;
+    padding:0!important;
+    max-width:none!important;
   }
 
   .detail-card{
-    border-radius:20px!important;
+    border-radius:0!important;
+    border:0!important;
+    box-shadow:none!important;
+    background:#fff!important;
   }
 
   .cover{
-    height:150px!important;
+    height:118px!important;
+    border-radius:0!important;
   }
 
   .logo{
-    width:72px!important;
-    height:72px!important;
-    border-radius:18px!important;
-    bottom:-34px!important;
+    width:66px!important;
+    height:66px!important;
+    left:16px!important;
+    bottom:-30px!important;
+    border-radius:16px!important;
+    border:4px solid #fff!important;
   }
 
   .content{
-    padding:46px 14px 18px!important;
+    padding:42px 16px 24px!important;
   }
 
   .eyebrow{
@@ -779,10 +795,10 @@ svg{
   }
 
   .title{
-    font-size:24px!important;
+    font-size:25px!important;
     line-height:1.08!important;
-    font-weight:800!important;
-    letter-spacing:-.035em!important;
+    font-weight:850!important;
+    letter-spacing:-.04em!important;
   }
 
   .company{
@@ -791,15 +807,20 @@ svg{
     font-weight:750!important;
   }
 
+  .company-link{
+    font-weight:750!important;
+  }
+
   .meta{
-    gap:6px!important;
-    margin-top:10px!important;
+    margin-top:12px!important;
+    gap:7px!important;
   }
 
   .meta-pill{
     padding:6px 9px!important;
     font-size:11px!important;
     font-weight:700!important;
+    background:#f8fafc!important;
   }
 
   .meta-pill svg{
@@ -808,9 +829,10 @@ svg{
   }
 
   .detail-actions{
-    grid-template-columns:1fr 48px!important;
-    gap:8px!important;
-    margin-top:14px!important;
+    margin-top:16px!important;
+    display:grid!important;
+    grid-template-columns:1fr 46px!important;
+    gap:9px!important;
   }
 
   .detail-actions .btn{
@@ -820,14 +842,14 @@ svg{
   }
 
   .more-btn{
-    font-size:24px!important;
     padding:0!important;
+    font-size:23px!important;
   }
 
   .job-more-menu{
     margin-top:8px!important;
     border:1px solid #e5e7eb!important;
-    border-radius:14px!important;
+    border-radius:12px!important;
     background:#fff!important;
     overflow:hidden!important;
   }
@@ -883,13 +905,17 @@ svg{
   }
 
   .section h2{
-    font-size:16px!important;
-    font-weight:800!important;
+    font-size:18px!important;
+    font-weight:850!important;
   }
 
   .description{
-    font-size:13px!important;
-    line-height:1.65!important;
+    font-size:14px!important;
+    line-height:1.6!important;
+  }
+
+  .sticky-apply{
+    display:none!important;
   }
 }
   .job-details-loader{
@@ -954,13 +980,9 @@ svg{
       <span id="topSubText">AIFT opportunities</span>
     </div>
 
-    <button class="top-action" type="button" onclick="shareCurrentJob()" aria-label="Share job">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path>
-        <path d="M16 6l-4-4-4 4"></path>
-        <path d="M12 2v14"></path>
-      </svg>
-    </button>
+<button class="top-action" type="button" onclick="toggleJobMoreMenu()" aria-label="More options">
+  ⋯
+</button>
   </header>
 
   <main class="detail-shell" id="jobMount">
@@ -1335,6 +1357,8 @@ async function loadMe(){
 
 async function loadJob(){
   if(!state.jobId){
+    hideJobDetailsLoader();
+
     showState(
       "error",
       "Job not found",
@@ -1352,6 +1376,8 @@ async function loadJob(){
     const job = safeArray(jobs).find(item => String(item?._id) === String(state.jobId));
 
     if(!job){
+      hideJobDetailsLoader();
+
       showState(
         "error",
         "Job not found",
@@ -1364,10 +1390,13 @@ async function loadJob(){
     state.job = normalizeJob(job);
     localStorage.setItem("selectedJobId", String(state.job._id));
 
-renderJob(state.job);
-hideJobDetailsLoader();
-trackView(state.job._id);
+    renderJob(state.job);
+    hideJobDetailsLoader();
+    trackView(state.job._id);
+
   }catch(err){
+    hideJobDetailsLoader();
+
     console.error("LOAD JOB DETAILS FAILED:", err);
 
     showState(
@@ -1443,7 +1472,11 @@ function renderJob(job){
     els.stickyApplyBtn.onclick = () => applyToJob(job._id);
   }
 
+  if(window.innerWidth > 760){
   els.stickyApply?.classList.add("show");
+}else{
+  els.stickyApply?.classList.remove("show");
+}
 
   els.mount.innerHTML = `
     <article class="detail-card">
