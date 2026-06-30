@@ -239,7 +239,12 @@ a{
 </style>
 </head>
 
-<body>
+<body class="loading-profile">
+
+<div id="profileLoader" class="profile-loader">
+  <img src="images/aift-logo.png" alt="AIFT">
+  <div class="profile-loader-spin"></div>
+</div>
 
 <header class="topbar">
   <div class="container top-inner">
@@ -515,6 +520,44 @@ a{
 
 </aside>
 <style>
+  .profile-loader{
+  position:fixed;
+  inset:0;
+  z-index:999999;
+  background:#fff;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:14px;
+}
+
+.profile-loader img{
+  width:132px;
+  height:auto;
+  object-fit:contain;
+}
+
+.profile-loader-spin{
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  border:3px solid #dbeafe;
+  border-top-color:var(--blue);
+  animation:profileSpin .75s linear infinite;
+}
+
+@keyframes profileSpin{
+  to{transform:rotate(360deg)}
+}
+
+body.loading-profile .profile-loader{
+  display:flex;
+}
+
+body.loading-profile .page{
+  visibility:hidden;
+}
 
 .company-card{
   overflow:hidden;
@@ -2515,14 +2558,27 @@ socket.on("connect",()=>{
 ========================= */
 
 async function init(){
-
   try{
-
     await loadCompany();
 
-  }catch(err){
+    document.body.classList.add("loaded");
+    document.body.classList.remove("loading-profile");
 
+    const loader = document.getElementById("profileLoader");
+    if(loader){
+      loader.remove();
+    }
+
+  }catch(err){
     console.error(err);
+
+    document.body.classList.add("loaded");
+    document.body.classList.remove("loading-profile");
+
+    const loader = document.getElementById("profileLoader");
+    if(loader){
+      loader.remove();
+    }
 
     document.querySelector(".main-content").innerHTML = `
       <div class="card content-card">
