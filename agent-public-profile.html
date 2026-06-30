@@ -13,6 +13,7 @@
 
 <link rel="stylesheet" href="feed.css">
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
 :root{
@@ -977,6 +978,36 @@ body.loading-profile .page{
 
 body.cv-viewer-open{
   overflow:hidden;
+}
+  .cv-viewer-body{
+  flex:1;
+  overflow:auto;
+  background:#f3f4f6;
+  padding:12px;
+}
+
+.cv-pages{
+  display:grid;
+  gap:14px;
+  justify-content:center;
+}
+
+.cv-page-canvas{
+  width:100%;
+  max-width:900px;
+  height:auto;
+  background:#fff;
+  box-shadow:0 4px 16px rgba(15,23,42,.12);
+  border-radius:6px;
+}
+
+.cv-loading,
+.cv-error{
+  margin:40px auto;
+  max-width:320px;
+  text-align:center;
+  color:#64748b;
+  font-weight:800;
 }
 </style>
 </head>
@@ -1982,14 +2013,10 @@ function renderCVSection(user){
   mobileCvBtn?.classList.remove("hidden");
   if(mobileCvBtn){
 mobileCvBtn.onclick = () => {
-  const cvUrl = user.cvUrl;
+  const userId = user._id || user.id || profileId;
+  const previewUrl = `${API}/api/users/${userId}/cv/inline`;
 
-  if(!cvUrl){
-    alert("No CV uploaded yet.");
-    return;
-  }
-
-  window.open(cvUrl, "_blank");
+  openCvViewer(previewUrl);
 };
   }
 
@@ -2235,22 +2262,63 @@ window.AIFTAgentPublic = {
     ? "view less"
     : "view more...";
 }
-  function openCvViewer(url){
+async function openCvViewer(url){
   const panel = document.getElementById("cvViewerPanel");
-  const frame = document.getElementById("cvViewerFrame");
+  const pages = document.getElementById("cvPages");
 
-  if(!panel || !frame) return;
+  if(!panel || !pages) return;
 
-  frame.src = url;
   panel.classList.remove("hidden");
   document.body.classList.add("cv-viewer-open");
+
+  pages.innerHTML = `<div class="cv-loading">Loading CV...</div>`;
+
+  try{
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    const pdf = await pdfjsLib.getDocument(url).promise;
+
+    pages.innerHTML = "";
+
+    for(let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++){
+      const page = await pdf.getPage(pageNumber);
+
+      const containerWidth = Math.min(window.innerWidth - 24, 900);
+      const viewportBase = page.getViewport({scale:1});
+      const scale = containerWidth / viewportBase.width;
+      const viewport = page.getViewport({scale});
+
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      canvas.className = "cv-page-canvas";
+
+      pages.appendChild(canvas);
+
+      await page.render({
+        canvasContext:context,
+        viewport
+      }).promise;
+    }
+
+  }catch(err){
+    console.error(err);
+    pages.innerHTML = `
+      <div class="cv-error">
+        CV preview failed. Please check that your backend sends the PDF with inline headers.
+      </div>
+    `;
+  }
 }
 
 function closeCvViewer(){
   const panel = document.getElementById("cvViewerPanel");
-  const frame = document.getElementById("cvViewerFrame");
+  const pages = document.getElementById("cvPages");
 
-  if(frame) frame.src = "";
+  if(pages) pages.innerHTML = "";
   panel?.classList.add("hidden");
   document.body.classList.remove("cv-viewer-open");
 }
@@ -2264,14 +2332,9 @@ init();
     <button type="button" onclick="closeCvViewer()">×</button>
   </div>
 
-  <div class="cv-viewer-body">
-    <iframe
-      id="cvViewerFrame"
-      title="CV Preview"
-      sandbox="allow-same-origin"
-      referrerpolicy="no-referrer"
-    ></iframe>
-  </div>
+<div class="cv-viewer-body">
+  <div id="cvPages" class="cv-pages"></div>
+</div>
 </div>
 
 <script src="feed.js"></script>
