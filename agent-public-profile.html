@@ -837,6 +837,48 @@ body.loading-profile .page{
     font-size:12px!important;
     padding:7px 10px!important;
   }
+
+  .agent-mobile-head{
+    grid-template-columns:1fr auto!important;
+  }
+
+  .agent-title-wrap{
+    min-width:0!important;
+  }
+
+  .hero-actions{
+    align-self:start!important;
+    padding-top:2px!important;
+  }
+
+  .agent-name{
+    font-size:22px!important;
+    line-height:1.12!important;
+    max-width:180px!important;
+  }
+
+  .agent-headline{
+    max-width:100%!important;
+    display:-webkit-box!important;
+    -webkit-line-clamp:2!important;
+    -webkit-box-orient:vertical!important;
+    overflow:hidden!important;
+  }
+
+  .agent-headline.expanded{
+    display:block!important;
+    overflow:visible!important;
+  }
+
+  .headline-more-btn{
+    margin-top:2px!important;
+    border:0!important;
+    background:transparent!important;
+    padding:0!important;
+    color:#64748b!important;
+    font-size:13px!important;
+    font-weight:700!important;
+  }
 }
 </style>
 </head>
@@ -923,49 +965,32 @@ body.loading-profile .page{
 
               </div>
 
- <div class="hero-actions">
-
-  <button class="pill-btn primary" id="messageAgentBtn">
-    Message
-  </button>
-
-  <button class="pill-btn" id="followAgentBtn">
-    Follow
-  </button>
-
-  <button class="pill-btn hidden" id="editProfileBtn">
-    Edit Profile
-  </button>
-
-  <button class="pill-btn more-profile-btn" type="button" onclick="toggleProfileMoreMenu()">
-    ⋯
-  </button>
-
-  <div class="profile-more-menu" id="profileMoreMenu">
-    <button type="button" id="shareAgentBtn">Share Profile</button>
-    <button type="button" id="dashboardBtn" class="hidden">Dashboard</button>
-    <button type="button" onclick="activateTab('performance')">Completed Tasks</button>
-  </div>
-
-</div>
-
             </div>
 
 <div class="agent-mobile-head">
-  <div>
+  <div class="agent-title-wrap">
     <h1 class="agent-name" id="agentName">Loading...</h1>
+
     <p class="agent-headline" id="agentHeadline">
       No professional headline added yet
     </p>
+
+    <button
+      id="headlineMoreBtn"
+      class="headline-more-btn hidden"
+      type="button"
+      onclick="toggleHeadlineMore()"
+    >
+      view more...
+    </button>
   </div>
 
   <div class="hero-actions">
-
-    <button class="pill-btn primary" id="messageAgentBtn">
+    <button class="pill-btn primary hidden" id="messageAgentBtn">
       Message
     </button>
 
-    <button class="pill-btn" id="followAgentBtn">
+    <button class="pill-btn hidden" id="followAgentBtn">
       Follow
     </button>
 
@@ -973,7 +998,12 @@ body.loading-profile .page{
       Edit
     </button>
 
-    <button class="pill-btn more-profile-btn" type="button" onclick="toggleProfileMoreMenu()">
+    <button
+      class="pill-btn more-profile-btn hidden"
+      id="profileMoreBtn"
+      type="button"
+      onclick="toggleProfileMoreMenu()"
+    >
       ⋯
     </button>
 
@@ -982,7 +1012,6 @@ body.loading-profile .page{
       <button type="button" id="dashboardBtn" class="hidden">Dashboard</button>
       <button type="button" onclick="activateTab('performance')">Completed Tasks</button>
     </div>
-
   </div>
 </div>
 
@@ -1555,7 +1584,16 @@ function renderProfile(){
   document.getElementById("viewerAvatar").src = viewer.profileImage || FALLBACK_AVATAR;
 
   document.getElementById("agentName").textContent = name;
-  document.getElementById("agentHeadline").textContent = headline;
+const headlineEl = document.getElementById("agentHeadline");
+const headlineBtn = document.getElementById("headlineMoreBtn");
+
+headlineEl.textContent = headline;
+headlineEl.classList.remove("expanded");
+
+if(headlineBtn){
+  headlineBtn.classList.toggle("hidden", headline.length <= 95);
+  headlineBtn.textContent = "view more...";
+}
 const agentStoryEl = document.getElementById("agentStory");
 
 if(agentStoryEl){
@@ -1613,52 +1651,54 @@ document.getElementById("infoRole").textContent =
 }
 
 function setupOwnerControls(user,viewer){
-  const viewerId =
-    viewer?._id ||
-    viewer?.id ||
-    localStorage.getItem("userId");
+  const messageBtn = document.getElementById("messageAgentBtn");
+  const followBtn = document.getElementById("followAgentBtn");
+  const editBtn = document.getElementById("editProfileBtn");
+  const dashboardBtn = document.getElementById("dashboardBtn");
+  const moreBtn = document.getElementById("profileMoreBtn");
 
-  const profileUserId =
-    user?._id ||
-    user?.id;
+  [messageBtn, followBtn, editBtn, dashboardBtn, moreBtn].forEach(btn=>{
+    btn?.classList.add("hidden");
+  });
+
+  const viewerId = viewer?._id || viewer?.id || localStorage.getItem("userId");
+  const profileUserId = user?._id || user?.id;
 
   const isOwner =
     viewerId &&
     profileUserId &&
     String(viewerId) === String(profileUserId);
 
-  if(!isOwner) return;
+  moreBtn?.classList.remove("hidden");
 
-document.getElementById("editProfileBtn").classList.remove("hidden");
+  if(isOwner){
+    editBtn?.classList.remove("hidden");
 
-if(["agent","talent"].includes(String(user.role || "").toLowerCase())){
-  document.getElementById("dashboardBtn").classList.remove("hidden");
-}else{
-  document.getElementById("dashboardBtn").classList.add("hidden");
-}
+    if(["agent","talent"].includes(String(user.role || "").toLowerCase())){
+      dashboardBtn?.classList.remove("hidden");
+    }
 
-  document.getElementById("followAgentBtn").classList.add("hidden");
-  document.getElementById("messageAgentBtn").classList.add("hidden");
+    editBtn.onclick = () => {
+      location.href = "profile.html";
+    };
 
-  document.getElementById("editProfileBtn").onclick = () => {
-    location.href = "profile.html";
-  };
+    dashboardBtn.onclick = () => {
+      const r = String(user.role || "").toLowerCase();
+      location.href = r === "talent" ? "talent.html" : r === "agent" ? "agent.html" : "home.html";
+    };
 
-document.getElementById("dashboardBtn").onclick = () => {
-  const r = String(user.role || "").toLowerCase();
-
-  if(r === "talent"){
-    location.href = "talent.html";
     return;
   }
 
-  if(r === "agent"){
-    location.href = "agent.html";
-    return;
-  }
+  messageBtn?.classList.remove("hidden");
 
-  location.href = "home.html";
-};
+  const followers = Array.isArray(user.followers)
+    ? user.followers.map(String)
+    : [];
+
+  if(!viewerId || !followers.includes(String(viewerId))){
+    followBtn?.classList.remove("hidden");
+  }
 }
 
 function renderStats(user,stats){
@@ -2067,6 +2107,17 @@ window.AIFTAgentPublic = {
 
   function toggleProfileMoreMenu(){
   document.getElementById("profileMoreMenu")?.classList.toggle("show");
+}
+  function toggleHeadlineMore(){
+  const text = document.getElementById("agentHeadline");
+  const btn = document.getElementById("headlineMoreBtn");
+
+  if(!text || !btn) return;
+
+  text.classList.toggle("expanded");
+  btn.textContent = text.classList.contains("expanded")
+    ? "view less"
+    : "view more...";
 }
   
 init();
