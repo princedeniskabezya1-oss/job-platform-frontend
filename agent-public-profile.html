@@ -570,7 +570,23 @@ body.loading-profile .profile-loader{
 body.loading-profile .page{
   visibility:hidden;
 }
+.agent-mobile-head{
+  display:block;
+}
 
+.agent-title-wrap{
+  margin-top:16px;
+}
+
+.agent-mobile-head .hero-actions{
+  margin-top:12px;
+  display:flex;
+  justify-content:flex-start;
+}
+
+.headline-more-btn{
+  display:none;
+}
 @media(max-width:640px){
 
   html,
@@ -578,6 +594,9 @@ body.loading-profile .page{
     background:#fff!important;
     background-color:#fff!important;
   }
+  .headline-more-btn{
+  display:inline-block;
+}
 
   body{
     padding-bottom:0!important;
@@ -929,7 +948,7 @@ body.loading-profile .page{
     display:none!important;
   }
 }
-  .cv-viewer-panel{
+.cv-viewer-panel{
   position:fixed;
   inset:0;
   z-index:999999;
@@ -943,12 +962,14 @@ body.loading-profile .page{
 }
 
 .cv-viewer-head{
-  height:54px;
+  height:56px;
   padding:0 14px;
   border-bottom:1px solid #e5e7eb;
+  background:#fff;
   display:flex;
   align-items:center;
   justify-content:space-between;
+  flex:none;
 }
 
 .cv-viewer-head strong{
@@ -957,33 +978,21 @@ body.loading-profile .page{
 }
 
 .cv-viewer-head button{
-  width:34px;
-  height:34px;
+  width:36px;
+  height:36px;
   border:0;
   border-radius:50%;
   background:#f3f4f6;
-  font-size:22px;
+  font-size:24px;
+  line-height:1;
 }
 
 .cv-viewer-body{
   flex:1;
-  overflow:hidden;
-}
-
-#cvViewerFrame{
-  width:100%;
-  height:100%;
-  border:0;
-}
-
-body.cv-viewer-open{
-  overflow:hidden;
-}
-  .cv-viewer-body{
-  flex:1;
   overflow:auto;
   background:#f3f4f6;
-  padding:12px;
+  padding:10px;
+  -webkit-overflow-scrolling:touch;
 }
 
 .cv-pages{
@@ -993,8 +1002,8 @@ body.cv-viewer-open{
 }
 
 .cv-page-canvas{
-  width:100%;
-  max-width:900px;
+  display:block;
+  max-width:100%;
   height:auto;
   background:#fff;
   box-shadow:0 4px 16px rgba(15,23,42,.12);
@@ -1003,6 +1012,16 @@ body.cv-viewer-open{
 
 .cv-loading,
 .cv-error{
+  margin:40px auto;
+  max-width:320px;
+  text-align:center;
+  color:#64748b;
+  font-weight:800;
+}
+
+body.cv-viewer-open{
+  overflow:hidden;
+}
   margin:40px auto;
   max-width:320px;
   text-align:center;
@@ -2277,24 +2296,35 @@ async function openCvViewer(url){
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-    const pdf = await pdfjsLib.getDocument(url).promise;
+    const pdf = await pdfjsLib.getDocument({
+      url,
+      withCredentials:false
+    }).promise;
 
     pages.innerHTML = "";
 
     for(let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++){
       const page = await pdf.getPage(pageNumber);
 
-      const containerWidth = Math.min(window.innerWidth - 24, 900);
-      const viewportBase = page.getViewport({scale:1});
-      const scale = containerWidth / viewportBase.width;
-      const viewport = page.getViewport({scale});
+      const viewerWidth = Math.min(window.innerWidth - 20, 920);
+      const baseViewport = page.getViewport({scale:1});
+      const cssScale = viewerWidth / baseViewport.width;
+      const viewport = page.getViewport({scale:cssScale});
+
+      const outputScale = Math.min(window.devicePixelRatio || 1, 2.5);
 
       const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
+      const context = canvas.getContext("2d", {alpha:false});
 
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+      canvas.width = Math.floor(viewport.width * outputScale);
+      canvas.height = Math.floor(viewport.height * outputScale);
+
+      canvas.style.width = `${Math.floor(viewport.width)}px`;
+      canvas.style.height = `${Math.floor(viewport.height)}px`;
+
       canvas.className = "cv-page-canvas";
+
+      context.setTransform(outputScale,0,0,outputScale,0,0);
 
       pages.appendChild(canvas);
 
@@ -2308,7 +2338,7 @@ async function openCvViewer(url){
     console.error(err);
     pages.innerHTML = `
       <div class="cv-error">
-        CV preview failed. Please check that your backend sends the PDF with inline headers.
+        CV preview failed. Please try again later.
       </div>
     `;
   }
