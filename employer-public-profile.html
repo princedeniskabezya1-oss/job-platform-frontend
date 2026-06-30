@@ -313,6 +313,14 @@ a{
     >
   </div>
 
+  <div class="desktop-profile-actions" id="desktopCompanyActions">
+    <button class="pill-btn hidden" id="desktopCompanyEditBtn">Edit</button>
+    <button class="pill-btn hidden" id="desktopCompanyShareBtn">Share Profile</button>
+    <button class="pill-btn hidden" id="desktopCompanyDashboardBtn">Dashboard</button>
+    <button class="pill-btn primary hidden" id="desktopCompanyMessageBtn">Message</button>
+    <button class="pill-btn hidden" id="desktopCompanyFollowBtn">Follow</button>
+  </div>
+
 </div>
 
 <div class="company-mobile-head">
@@ -526,10 +534,35 @@ a{
 }
 
 .company-top{
+  position:relative;
   display:flex;
   align-items:flex-end;
   justify-content:space-between;
   gap:16px;
+}
+  .desktop-profile-actions{
+  position:absolute;
+  top:18px;
+  right:24px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  z-index:30;
+}
+
+.desktop-profile-actions .pill-btn{
+  height:34px;
+  padding:0 14px;
+  font-size:13px;
+  white-space:nowrap;
+  background:#fff;
+}
+
+@media(max-width:640px){
+  .desktop-profile-actions{
+    display:none!important;
+  }
 }
 
 .company-logo-wrap{
@@ -2223,8 +2256,30 @@ function updateOwnerUI(){
   const followBtn = document.getElementById("followBtn");
   const messageCompanyBtn = document.getElementById("messageCompanyBtn");
   const companyMoreBtn = document.getElementById("companyMoreBtn");
+
+  const desktopEditBtn = document.getElementById("desktopCompanyEditBtn");
+  const desktopShareBtn = document.getElementById("desktopCompanyShareBtn");
+  const desktopDashboardBtn = document.getElementById("desktopCompanyDashboardBtn");
+  const desktopMessageBtn = document.getElementById("desktopCompanyMessageBtn");
+  const desktopFollowBtn = document.getElementById("desktopCompanyFollowBtn");
+
   const signinBtn = document.getElementById("signinBtn");
   const avatar = document.getElementById("viewerAvatar");
+
+  [
+    dashboardBtn,
+    editProfileBtn,
+    followBtn,
+    messageCompanyBtn,
+    companyMoreBtn,
+    desktopEditBtn,
+    desktopShareBtn,
+    desktopDashboardBtn,
+    desktopMessageBtn,
+    desktopFollowBtn
+  ].forEach(btn=>{
+    btn?.classList.add("hidden");
+  });
 
   const isLoggedIn = Boolean(token());
   const viewerId = currentUserId();
@@ -2246,26 +2301,29 @@ function updateOwnerUI(){
 
   const isMobile = window.innerWidth <= 640;
 
-  editProfileBtn?.classList.add("hidden");
-  dashboardBtn?.classList.add("hidden");
-  companyMoreBtn?.classList.add("hidden");
-  followBtn?.classList.add("hidden");
-  messageCompanyBtn?.classList.add("hidden");
-
   if(isOwner){
     if(isMobile){
       editProfileBtn?.classList.remove("hidden");
       companyMoreBtn?.classList.remove("hidden");
       dashboardBtn?.classList.remove("hidden");
     }else{
-      editProfileBtn?.classList.remove("hidden");
-      dashboardBtn?.classList.remove("hidden");
+      desktopEditBtn?.classList.remove("hidden");
+      desktopShareBtn?.classList.remove("hidden");
+      desktopDashboardBtn?.classList.remove("hidden");
     }
   }else if(isLoggedIn){
-    messageCompanyBtn?.classList.remove("hidden");
+    if(isMobile){
+      messageCompanyBtn?.classList.remove("hidden");
 
-    if(!state.following){
-      followBtn?.classList.remove("hidden");
+      if(!state.following){
+        followBtn?.classList.remove("hidden");
+      }
+    }else{
+      desktopMessageBtn?.classList.remove("hidden");
+
+      if(!state.following){
+        desktopFollowBtn?.classList.remove("hidden");
+      }
     }
   }
 
@@ -2280,6 +2338,26 @@ function updateOwnerUI(){
         localStorage.getItem("profileImage") ||
         "https://cdn-icons-png.flaticon.com/512/149/149071.png";
     }
+  }
+
+  if(desktopEditBtn){
+    desktopEditBtn.onclick = editCompanyProfile;
+  }
+
+  if(desktopShareBtn){
+    desktopShareBtn.onclick = copyProfileLink;
+  }
+
+  if(desktopDashboardBtn){
+    desktopDashboardBtn.onclick = goDashboard;
+  }
+
+  if(desktopMessageBtn){
+    desktopMessageBtn.onclick = messageCompany;
+  }
+
+  if(desktopFollowBtn){
+    desktopFollowBtn.onclick = followCompany;
   }
 }
 
