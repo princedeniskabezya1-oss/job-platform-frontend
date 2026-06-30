@@ -587,6 +587,44 @@ body.loading-profile .page{
 .headline-more-btn{
   display:none;
 }
+  .profile-more-menu{
+  display:none;
+  position:absolute;
+  top:42px;
+  right:0;
+  z-index:50;
+  width:190px;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  box-shadow:0 18px 40px rgba(15,23,42,.16);
+  overflow:hidden;
+}
+
+.profile-more-menu.show{
+  display:block;
+}
+
+.profile-more-menu button{
+  width:100%;
+  height:42px;
+  border:0;
+  border-bottom:1px solid #eef2f7;
+  background:#fff;
+  text-align:left;
+  padding:0 14px;
+  font-size:13px;
+  font-weight:750;
+  color:#1f2937;
+}
+
+.profile-more-menu button:last-child{
+  border-bottom:0;
+}
+
+.hero-actions{
+  position:relative;
+}
 @media(max-width:640px){
 
   html,
@@ -1027,6 +1065,40 @@ body.loading-profile .page{
 
 body.cv-viewer-open{
   overflow:hidden;
+}
+  .cv-mini-preview{
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  overflow:hidden;
+  background:#fff;
+  cursor:pointer;
+  user-select:none;
+}
+
+.cv-mini-canvas-wrap{
+  min-height:220px;
+  max-height:260px;
+  overflow:hidden;
+  background:#f8fafc;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding:10px;
+}
+
+.cv-mini-canvas{
+  display:block;
+  max-width:100%;
+  height:auto;
+  background:#fff;
+  box-shadow:0 4px 14px rgba(15,23,42,.14);
+  border-radius:4px;
+}
+
+.cv-mini-btn{
+  width:calc(100% - 24px);
+  margin:12px;
+  text-align:center;
 }
 </style>
 </head>
@@ -2010,7 +2082,6 @@ function renderPerformance(metrics){
 }
 
 function renderCVSection(user){
-
   const card = document.getElementById("cvCard");
   const wrap = document.getElementById("cvPreviewWrap");
   const mobileCvBtn = document.getElementById("mobileCvBtn");
@@ -2018,8 +2089,7 @@ function renderCVSection(user){
   if(!card || !wrap) return;
 
   const userId = user._id || user.id || profileId;
-  const previewUrl =
-  `${API}/api/users/${userId}/cv/inline#toolbar=0&navpanes=0&scrollbar=1`;
+  const previewUrl = `${API}/api/users/${userId}/cv/inline`;
 
   if(!user.cvUrl || user.showCV === false){
     card.classList.add("hidden");
@@ -2028,64 +2098,79 @@ function renderCVSection(user){
   }
 
   card.classList.remove("hidden");
-
   mobileCvBtn?.classList.remove("hidden");
-  if(mobileCvBtn){
-mobileCvBtn.onclick = () => {
-  const userId = user._id || user.id || profileId;
-  const previewUrl = `${API}/api/users/${userId}/cv/inline`;
 
-  openCvViewer(previewUrl);
-};
+  if(mobileCvBtn){
+    mobileCvBtn.onclick = () => openCvViewer(previewUrl);
   }
 
-  const originalUrl =
-    String(user.cvUrl);
-
   wrap.innerHTML = `
-    <div
-      style="
-        border:1px solid #e5e7eb;
-        border-radius:14px;
-        overflow:hidden;
-        background:#fff;
-      "
-    >
-<iframe
-    src="${previewUrl}"
-    sandbox="allow-same-origin"
-    referrerpolicy="no-referrer"
-        title="CV Preview"
-        style="
-          width:100%;
-          height:150px;
-          border:0;
-          display:block;
-          background:#fff;
-        "
-      ></iframe>
-
-      <div
-        style="
-          padding:10px;
-          border-top:1px solid #f1f5f9;
-          display:flex;
-          justify-content:center;
-          background:#fff;
-        "
-      >
-        <a
-          href="${previewUrl}"
-          target="_blank"
-          rel="noopener"
-          class="pill-btn primary"
-          style="min-width:120px;text-align:center;"
-        >
-          View CV
-        </a>
+    <div class="cv-mini-preview" onclick="openCvViewer('${previewUrl}')">
+      <div id="cvMiniCanvasWrap" class="cv-mini-canvas-wrap">
+        <div class="cv-loading">Loading CV...</div>
       </div>
+
+      <button type="button" class="pill-btn primary cv-mini-btn">
+        View Full CV
+      </button>
     </div>
   `;
+
+  renderCvMiniPreview(previewUrl);
+}
+  async function renderCvMiniPreview(url){
+  const wrap = document.getElementById("cvMiniCanvasWrap");
+  if(!wrap) return;
+
+  try{
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    const pdf = await pdfjsLib.getDocument({
+      url,
+      withCredentials:false,
+      disableAutoFetch:false,
+      disableStream:false
+    }).promise;
+
+    const page = await pdf.getPage(1);
+
+    wrap.innerHTML = "";
+
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", {alpha:false});
+
+    const baseViewport = page.getViewport({scale:1});
+    const previewWidth = wrap.clientWidth || 240;
+    const cssScale = previewWidth / baseViewport.width;
+    const viewport = page.getViewport({scale:cssScale});
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+
+    canvas.width = Math.floor(viewport.width * dpr);
+    canvas.height = Math.floor(viewport.height * dpr);
+
+    canvas.style.width = `${Math.floor(viewport.width)}px`;
+    canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+    context.setTransform(dpr,0,0,dpr,0,0);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+
+    canvas.className = "cv-mini-canvas";
+
+    wrap.appendChild(canvas);
+
+    await page.render({
+      canvasContext:context,
+      viewport,
+      intent:"display"
+    }).promise;
+
+  }catch(err){
+    console.error(err);
+    wrap.innerHTML = `<div class="cv-error">CV preview failed.</div>`;
+  }
 }
 
 function renderOpenTo(user){
