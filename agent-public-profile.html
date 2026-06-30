@@ -641,12 +641,10 @@ body.loading-profile .page{
   }
 
 .agent-mobile-head{
-    position:relative!important;
-
-    display:block!important;
-
-    margin-top:12px!important;
-    padding-top:30px!important;
+  position:relative!important;
+  display:block!important;
+  margin-top:4px!important;
+  padding-top:8px!important;
 }
 
   .agent-name{
@@ -666,22 +664,20 @@ body.loading-profile .page{
   }
 
 .hero-actions{
-    position:absolute!important;
-    top:-34px!important;
-    right:0!important;
-
-    display:flex!important;
-    align-items:center!important;
-    gap:8px!important;
-
-    margin:0!important;
-    padding:0!important;
-    justify-content:flex-end!important;
+  position:absolute!important;
+  top:-58px!important;
+  right:0!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  margin:0!important;
+  padding:0!important;
+  justify-content:flex-end!important;
 }
 
-  .pill-btn{
-    height:34px!important;
-    padding:0 12px!important;
+.pill-btn{
+    height:30px!important;
+    padding:0 10px!important;
     border-radius:999px!important;
     font-size:12px!important;
     font-weight:800!important;
@@ -696,9 +692,9 @@ body.loading-profile .page{
     min-width:82px!important;
   }
 
-  .more-profile-btn{
-    width:38px!important;
-    min-width:38px!important;
+.more-profile-btn{
+    width:32px!important;
+    min-width:32px!important;
     padding:0!important;
     font-size:21px!important;
     border-color:#d1d5db!important;
@@ -896,6 +892,12 @@ body.loading-profile .page{
     font-size:13px!important;
     font-weight:700!important;
   }
+  .section.active > .content-card:last-child,
+.section.active > .grid-2:last-child .content-card:last-child,
+.section.active > .grid-3:last-child .content-card:last-child{
+  border-bottom:0!important;
+  margin-bottom:0!important;
+}
 }
 </style>
 </head>
@@ -1024,11 +1026,12 @@ body.loading-profile .page{
       ⋯
     </button>
 
-    <div class="profile-more-menu" id="profileMoreMenu">
-      <button type="button" id="shareAgentBtn">Share Profile</button>
-      <button type="button" id="dashboardBtn" class="hidden">Dashboard</button>
-      <button type="button" onclick="activateTab('performance')">Completed Tasks</button>
-    </div>
+<div class="profile-more-menu" id="profileMoreMenu">
+  <button type="button" id="shareAgentBtn">Share Profile</button>
+  <button type="button" id="mobileCvBtn" class="hidden">View CV</button>
+  <button type="button" id="dashboardBtn" class="hidden">Dashboard</button>
+  <button type="button" onclick="activateTab('performance')">Completed Tasks</button>
+</div>
   </div>
 </div>
 
@@ -1881,20 +1884,27 @@ function renderCVSection(user){
 
   const card = document.getElementById("cvCard");
   const wrap = document.getElementById("cvPreviewWrap");
+  const mobileCvBtn = document.getElementById("mobileCvBtn");
 
   if(!card || !wrap) return;
 
+  const userId = user._id || user.id || profileId;
+  const previewUrl = `${API}/api/users/${userId}/cv/inline`;
+
   if(!user.cvUrl || user.showCV === false){
     card.classList.add("hidden");
+    mobileCvBtn?.classList.add("hidden");
     return;
   }
 
   card.classList.remove("hidden");
 
-  const userId = user._id || user.id || profileId;
-
-  const previewUrl =
-    `${API}/api/users/${userId}/cv/inline`;
+  mobileCvBtn?.classList.remove("hidden");
+  if(mobileCvBtn){
+    mobileCvBtn.onclick = () => {
+      window.open(previewUrl, "_blank");
+    };
+  }
 
   const originalUrl =
     String(user.cvUrl);
