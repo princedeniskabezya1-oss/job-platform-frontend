@@ -207,11 +207,14 @@ a{text-decoration:none;color:inherit}
 }
 
 .desktop-profile-actions{
+  position:absolute;
+  top:18px;
+  right:24px;
   display:flex;
   align-items:center;
   justify-content:flex-end;
   gap:8px;
-  margin-bottom:10px;
+  z-index:30;
 }
 
 .desktop-profile-actions .pill-btn{
@@ -219,6 +222,7 @@ a{text-decoration:none;color:inherit}
   padding:0 14px;
   font-size:13px;
   white-space:nowrap;
+  background:#fff;
 }
 
 @media(max-width:640px){
@@ -1911,9 +1915,24 @@ function setupOwnerControls(user,viewer){
   const dashboardBtn = document.getElementById("dashboardBtn");
   const moreBtn = document.getElementById("profileMoreBtn");
 
-  [messageBtn, followBtn, editBtn, dashboardBtn, moreBtn].forEach(btn=>{
-    btn?.classList.add("hidden");
-  });
+  const desktopEditBtn = document.getElementById("desktopEditBtn");
+  const desktopShareBtn = document.getElementById("desktopShareBtn");
+  const desktopDashboardBtn = document.getElementById("desktopDashboardBtn");
+  const desktopMessageBtn = document.getElementById("desktopMessageBtn");
+  const desktopFollowBtn = document.getElementById("desktopFollowBtn");
+
+  [
+    messageBtn,
+    followBtn,
+    editBtn,
+    dashboardBtn,
+    moreBtn,
+    desktopEditBtn,
+    desktopShareBtn,
+    desktopDashboardBtn,
+    desktopMessageBtn,
+    desktopFollowBtn
+  ].forEach(btn => btn?.classList.add("hidden"));
 
   const viewerId = viewer?._id || viewer?.id || localStorage.getItem("userId");
   const profileUserId = user?._id || user?.id;
@@ -1923,40 +1942,116 @@ function setupOwnerControls(user,viewer){
     profileUserId &&
     String(viewerId) === String(profileUserId);
 
- if(window.innerWidth <= 640){
-  moreBtn?.classList.remove("hidden");
-}
+  const isMobile = window.innerWidth <= 640;
 
-  if(isOwner){
-    editBtn?.classList.remove("hidden");
-    document.getElementById("shareAgentBtn")?.classList.remove("hidden");
-mobileCvBtn?.classList.remove("hidden");
-dashboardBtn?.classList.remove("hidden");
+  const goEdit = () => {
+    location.href = "profile.html";
+  };
 
-    if(["agent","talent"].includes(String(user.role || "").toLowerCase())){
-      dashboardBtn?.classList.remove("hidden");
+  const goDashboard = () => {
+    const r = String(user.role || "").toLowerCase();
+    location.href = r === "talent" ? "talent.html" : r === "agent" ? "agent.html" : "home.html";
+  };
+
+  const shareProfile = async () => {
+    try{
+      await navigator.clipboard.writeText(location.href);
+      alert("Profile link copied");
+    }catch{
+      alert("Copy this profile link from your browser.");
+    }
+  };
+
+  const goMessage = () => {
+    if(!profileId) return;
+
+    if(!token){
+      location.href = "login.html";
+      return;
     }
 
-    editBtn.onclick = () => {
-      location.href = "profile.html";
-    };
+    location.href = `messages.html?user=${profileId}`;
+  };
 
-    dashboardBtn.onclick = () => {
-      const r = String(user.role || "").toLowerCase();
-      location.href = r === "talent" ? "talent.html" : r === "agent" ? "agent.html" : "home.html";
-    };
+  const followUser = async () => {
+    if(!profileId || !token){
+      location.href = "login.html";
+      return;
+    }
+
+    try{
+      const res = await fetch(`${API}/api/users/${profileId}/follow`,{
+        method:"PATCH",
+        headers:authHeaders()
+      });
+
+      const data = await res.json();
+
+      if(!res.ok){
+        throw new Error(data.message || "Follow failed");
+      }
+
+      const text = data.following ? "Following" : "Follow";
+      if(followBtn) followBtn.textContent = text;
+      if(desktopFollowBtn) desktopFollowBtn.textContent = text;
+
+    }catch(err){
+      alert(err.message);
+    }
+  };
+
+  if(editBtn) editBtn.onclick = goEdit;
+  if(desktopEditBtn) desktopEditBtn.onclick = goEdit;
+
+  if(dashboardBtn) dashboardBtn.onclick = goDashboard;
+  if(desktopDashboardBtn) desktopDashboardBtn.onclick = goDashboard;
+
+  const shareAgentBtn = document.getElementById("shareAgentBtn");
+  if(shareAgentBtn) shareAgentBtn.onclick = shareProfile;
+  if(desktopShareBtn) desktopShareBtn.onclick = shareProfile;
+
+  if(messageBtn) messageBtn.onclick = goMessage;
+  if(desktopMessageBtn) desktopMessageBtn.onclick = goMessage;
+
+  if(followBtn) followBtn.onclick = followUser;
+  if(desktopFollowBtn) desktopFollowBtn.onclick = followUser;
+
+  if(isOwner){
+    if(isMobile){
+      moreBtn?.classList.remove("hidden");
+      editBtn?.classList.remove("hidden");
+      dashboardBtn?.classList.remove("hidden");
+    }else{
+      desktopEditBtn?.classList.remove("hidden");
+      desktopShareBtn?.classList.remove("hidden");
+
+      if(["agent","talent"].includes(String(user.role || "").toLowerCase())){
+        desktopDashboardBtn?.classList.remove("hidden");
+      }
+    }
 
     return;
   }
 
-  messageBtn?.classList.remove("hidden");
+  if(isMobile){
+    moreBtn?.classList.remove("hidden");
+    messageBtn?.classList.remove("hidden");
+  }else{
+    desktopMessageBtn?.classList.remove("hidden");
+  }
 
   const followers = Array.isArray(user.followers)
     ? user.followers.map(String)
     : [];
 
-  if(!viewerId || !followers.includes(String(viewerId))){
-    followBtn?.classList.remove("hidden");
+  const isFollowing = viewerId && followers.includes(String(viewerId));
+
+  if(!isFollowing){
+    if(isMobile){
+      followBtn?.classList.remove("hidden");
+    }else{
+      desktopFollowBtn?.classList.remove("hidden");
+    }
   }
 }
 
