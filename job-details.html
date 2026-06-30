@@ -819,6 +819,33 @@ svg{
     border:1px solid #d1d5db;
   }
 }
+  .desktop-job-actions{
+  display:none;
+}
+
+@media(min-width:761px){
+  .content{
+    position:relative;
+  }
+
+  .desktop-job-actions{
+    position:absolute;
+    top:24px;
+    right:28px;
+    z-index:20;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+
+  .desktop-job-actions .btn{
+    height:36px;
+    min-height:36px;
+    padding:0 14px;
+    font-size:12px;
+    box-shadow:none;
+  }
+}
   .mobile-more-btn{
   display:none!important;
 }
@@ -1528,14 +1555,46 @@ async function trackView(jobId){
     console.warn("VIEW TRACK FAILED:", err.message);
   }
 }
-  /* =========================
+function jobOwnerId(job){
+  return (
+    job?.employerId?._id ||
+    job?.employerId ||
+    job?.createdBy?._id ||
+    job?.createdBy ||
+    job?.userId?._id ||
+    job?.userId ||
+    ""
+  );
+}
+
+function currentViewerId(){
+  return (
+    state.me?._id ||
+    localStorage.getItem("userId") ||
+    ""
+  );
+}
+
+function isJobOwner(job){
+  const ownerId = jobOwnerId(job);
+  const viewerId = currentViewerId();
+
+  return Boolean(
+    ownerId &&
+    viewerId &&
+    String(ownerId) === String(viewerId)
+  );
+}
+
+/* =========================
    RENDER JOB
 ========================= */
 
 function renderJob(job){
-  const skills = safeArray(job.skills);
-  const saved = state.savedIds.has(String(job._id));
-  const employerUrl = employerProfileUrl(job);
+const skills = safeArray(job.skills);
+const saved = state.savedIds.has(String(job._id));
+const employerUrl = employerProfileUrl(job);
+const ownerView = isJobOwner(job);
 
   if(els.topSubText){
     els.topSubText.textContent = companyName(job);
@@ -1622,32 +1681,88 @@ els.stickyApply?.classList.remove("show");
   </button>
 </div>
 
+<div class="desktop-job-actions">
+  ${
+    ownerView
+      ? `
+        <button class="btn primary" type="button" onclick="viewJobApplications('${escapeHTML(job._id)}')">
+          View applications
+        </button>
+
+        <button class="btn" type="button" onclick="editJobFromDetails('${escapeHTML(job._id)}')">
+          Edit job
+        </button>
+
+        <button class="btn" type="button" onclick="shareCurrentJob()">
+          Share job
+        </button>
+      `
+      : `
+        <button class="btn" type="button" onclick="saveJob('${escapeHTML(job._id)}')">
+          ${saved ? "Saved" : "Save job"}
+        </button>
+
+        <button class="btn" type="button" onclick="shareCurrentJob()">
+          Share job
+        </button>
+
+        <button class="btn" type="button" onclick="openEmployer()">
+          View company
+        </button>
+      `
+  }
+</div>
+
 <div class="actions detail-actions">
-  <button class="btn primary" type="button" onclick="applyToJob('${escapeHTML(job._id)}')">
-    Apply now
-  </button>
+  ${
+    ownerView
+      ? `
+        <button class="btn primary" type="button" onclick="viewJobApplications('${escapeHTML(job._id)}')">
+          View applications
+        </button>
+      `
+      : `
+        <button class="btn primary" type="button" onclick="applyToJob('${escapeHTML(job._id)}')">
+          Apply now
+        </button>
+      `
+  }
 
   <button
-      class="btn more-btn mobile-more-btn"
-      type="button"
-      onclick="toggleJobMoreMenu()"
-      aria-label="More options">
-      ⋯
+    class="btn more-btn mobile-more-btn"
+    type="button"
+    onclick="toggleJobMoreMenu()"
+    aria-label="More options">
+    ⋯
   </button>
 </div>
 
 <div class="job-more-menu" id="jobMoreMenu">
-  <button type="button" onclick="saveJob('${escapeHTML(job._id)}')">
-    ${saved ? "Remove saved job" : "Save job"}
-  </button>
+  ${
+    ownerView
+      ? `
+        <button type="button" onclick="editJobFromDetails('${escapeHTML(job._id)}')">
+          Edit job
+        </button>
 
-  <button type="button" onclick="shareCurrentJob()">
-    Share job
-  </button>
+        <button type="button" onclick="shareCurrentJob()">
+          Share job
+        </button>
+      `
+      : `
+        <button type="button" onclick="saveJob('${escapeHTML(job._id)}')">
+          ${saved ? "Remove saved job" : "Save job"}
+        </button>
 
-  <button type="button" onclick="openEmployer()">
-    View company
-  </button>
+        <button type="button" onclick="shareCurrentJob()">
+          Share job
+        </button>
+
+        <button type="button" onclick="openEmployer()">
+          View company
+        </button>
+      `
+  }
 </div>
 
         <div class="quick-grid">
@@ -1815,6 +1930,29 @@ window.applyToJob = applyToJob;
 /* =========================
    COMPANY
 ========================= */
+  function viewJobApplications(jobId){
+  if(!requireLogin("view applications")) return;
+
+  localStorage.setItem("selectedJobId", String(jobId));
+  localStorage.setItem("employerSelectedJobId", String(jobId));
+  localStorage.setItem("employerOpenTab", "applications");
+
+  location.href = `employer.html?tab=applications&jobId=${encodeURIComponent(jobId)}`;
+}
+
+function editJobFromDetails(jobId){
+  if(!requireLogin("edit this job")) return;
+
+  localStorage.setItem("selectedJobId", String(jobId));
+  localStorage.setItem("employerSelectedJobId", String(jobId));
+  localStorage.setItem("employerOpenTab", "jobs");
+  localStorage.setItem("employerEditJobId", String(jobId));
+
+  location.href = `employer.html?tab=jobs&editJob=${encodeURIComponent(jobId)}`;
+}
+
+window.viewJobApplications = viewJobApplications;
+window.editJobFromDetails = editJobFromDetails;
 
 function openEmployer(){
   if(!requireLogin("view employer profiles")) return;
