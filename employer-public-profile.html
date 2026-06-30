@@ -1615,6 +1615,154 @@ body.loading-profile .page{
     width:100%!important;
   }
 }
+  /* EMPLOYER JOBS — MATCH JOBS MOBILE CARD ONLY */
+@media(max-width:640px){
+  #tab-jobs .content-card{
+    margin:0 0 8px!important;
+    padding:16px 10px!important;
+    border-radius:0!important;
+    border-left:0!important;
+    border-right:0!important;
+    box-shadow:none!important;
+    background:#f3f2ef!important;
+  }
+
+  #tab-jobs .content-card h2{
+    padding:0 4px!important;
+  }
+
+  #tab-jobs .filter-row{
+    padding:0 4px!important;
+  }
+
+  #jobsList{
+    padding:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    gap:10px!important;
+    background:transparent!important;
+  }
+
+  #jobsList .job-card{
+    width:100%!important;
+    height:224px!important;
+    min-height:224px!important;
+    max-height:224px!important;
+    margin:0!important;
+    padding:15px!important;
+    border-radius:12px!important;
+    border:1px solid #e5e7eb!important;
+    background:#fff!important;
+    box-shadow:0 2px 8px rgba(15,23,42,.05)!important;
+    overflow:hidden!important;
+    display:block!important;
+  }
+
+  #jobsList .job-card-top{
+    display:flex!important;
+    align-items:flex-start!important;
+    gap:12px!important;
+  }
+
+  #jobsList .job-card-logo{
+    width:54px!important;
+    height:54px!important;
+    border-radius:14px!important;
+    object-fit:cover!important;
+    flex:none!important;
+    background:#f1f5f9!important;
+  }
+
+  #jobsList .job-card-main{
+    min-width:0!important;
+    flex:1!important;
+  }
+
+  #jobsList .job-title{
+    margin:0!important;
+    font-size:18px!important;
+    line-height:1.18!important;
+    font-weight:800!important;
+    letter-spacing:-.025em!important;
+    color:#111827!important;
+    display:-webkit-box!important;
+    -webkit-line-clamp:2!important;
+    -webkit-box-orient:vertical!important;
+    overflow:hidden!important;
+  }
+
+  #jobsList .company{
+    margin-top:4px!important;
+    font-size:14px!important;
+    font-weight:650!important;
+    color:#4b5563!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+
+  #jobsList .meta{
+    margin-top:9px!important;
+    display:flex!important;
+    flex-wrap:wrap!important;
+    gap:6px 9px!important;
+    font-size:12px!important;
+    font-weight:650!important;
+    color:#64748b!important;
+  }
+
+  #jobsList .tags{
+    margin-top:11px!important;
+    display:flex!important;
+    flex-wrap:wrap!important;
+    gap:7px!important;
+    max-height:28px!important;
+    overflow:hidden!important;
+  }
+
+  #jobsList .tag{
+    padding:5px 10px!important;
+    font-size:11px!important;
+    font-weight:700!important;
+    border-radius:999px!important;
+    background:#eef5ff!important;
+    border:1px solid #dbeafe!important;
+    color:#334155!important;
+    white-space:nowrap!important;
+  }
+
+  #jobsList .job-snippet{
+    margin:12px 0 0!important;
+    height:42px!important;
+    max-height:42px!important;
+    font-size:14px!important;
+    line-height:1.5!important;
+    color:#64748b!important;
+    display:-webkit-box!important;
+    -webkit-line-clamp:2!important;
+    -webkit-box-orient:vertical!important;
+    overflow:hidden!important;
+  }
+
+  #jobsList .job-card-foot{
+    margin-top:11px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:10px!important;
+  }
+
+  #jobsList .job-posted,
+  #jobsList .job-open{
+    font-size:13px!important;
+    font-weight:750!important;
+  }
+
+  #jobsList .job-open{
+    color:#2557a7!important;
+    white-space:nowrap!important;
+  }
+}
 </style>
 <script>
 
@@ -2045,23 +2193,23 @@ function renderPosts(){
 ========================= */
 
 function renderJobs(){
-
   const list = document.getElementById("jobsList");
 
   const q = (
     document.getElementById("jobSearch")?.value || ""
   ).toLowerCase();
 
-  const jobs = state.jobs.filter(job=>{
+  const company = state.company || {};
 
+  const jobs = state.jobs.filter(job=>{
     const haystack = `
       ${job.title || ""}
       ${job.location || ""}
       ${job.type || ""}
+      ${job.description || ""}
     `.toLowerCase();
 
     return haystack.includes(q);
-
   });
 
   if(!jobs.length){
@@ -2073,33 +2221,73 @@ function renderJobs(){
     return;
   }
 
-  list.innerHTML = jobs.map(job=>`
-    <article class="job-card">
+  list.innerHTML = jobs.map(job=>{
+    const logo =
+      company.profileImage ||
+      "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
 
-      <div>
+    const companyName =
+      company.companyName ||
+      company.name ||
+      "Company";
 
-        <h3>${escapeHtml(job.title || "Untitled role")}</h3>
+    const tags = [
+      job.type,
+      job.workSetup,
+      job.salary ? `₱${job.salary}` : "",
+      job.experienceLevel
+    ].filter(Boolean).slice(0,3);
 
-        <div class="job-meta">
-          ${escapeHtml(job.location || "Remote")}
-          •
-          ${escapeHtml(job.type || "Full-time")}
+    return `
+      <article class="job-card employer-mobile-job-card" onclick="applyJob('${job._id}')">
+
+        <div class="job-card-top">
+
+          <img
+            class="job-card-logo"
+            src="${escapeHtml(logo)}"
+            alt="${escapeHtml(companyName)}"
+          >
+
+          <div class="job-card-main">
+
+            <h3 class="job-title">
+              ${escapeHtml(job.title || "Untitled role")}
+            </h3>
+
+            <div class="company">
+              ${escapeHtml(companyName)}
+            </div>
+
+            <div class="meta">
+              <span>${escapeHtml(job.location || "Remote")}</span>
+              <span>${escapeHtml(job.type || "Full-time")}</span>
+            </div>
+
+          </div>
+
         </div>
 
-        <p>
-          ${escapeHtml((job.description || "").slice(0,180))}
+        <div class="tags">
+          ${
+            tags.length
+              ? tags.map(tag=>`<span class="tag">${escapeHtml(tag)}</span>`).join("")
+              : `<span class="tag">Hiring</span>`
+          }
+        </div>
+
+        <p class="job-snippet">
+          ${escapeHtml(job.description || "No job description added yet.")}
         </p>
 
-      </div>
+        <div class="job-card-foot">
+          <span class="job-posted">Open role</span>
+          <span class="job-open">Apply now</span>
+        </div>
 
-      <div>
-        <button class="pill-btn primary" onclick="applyJob('${job._id}')">
-          Apply
-        </button>
-      </div>
-
-    </article>
-  `).join("");
+      </article>
+    `;
+  }).join("");
 }
 
 /* =========================
