@@ -1763,6 +1763,30 @@ body.loading-profile .page{
     white-space:nowrap!important;
   }
 }
+  @media(max-width:640px){
+  #jobsList .job-card-foot{
+    margin-top:11px!important;
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:8px!important;
+  }
+
+  #jobsList .job-frame-btn{
+    height:34px!important;
+    border:1px solid #d1d5db!important;
+    border-radius:999px!important;
+    background:#fff!important;
+    color:#334155!important;
+    font-size:12px!important;
+    font-weight:850!important;
+  }
+
+  #jobsList .job-frame-btn.primary{
+    border:0!important;
+    background:#2557a7!important;
+    color:#fff!important;
+  }
+}
 </style>
 <script>
 
@@ -2213,15 +2237,13 @@ function renderJobs(){
   });
 
   if(!jobs.length){
-    list.innerHTML = `
-      <div class="empty">
-        No jobs found.
-      </div>
-    `;
+    list.innerHTML = `<div class="empty">No jobs found.</div>`;
     return;
   }
 
   list.innerHTML = jobs.map(job=>{
+    const id = job._id || job.id;
+
     const logo =
       company.profileImage ||
       "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
@@ -2239,33 +2261,25 @@ function renderJobs(){
     ].filter(Boolean).slice(0,3);
 
     return `
-      <article class="job-card employer-mobile-job-card" onclick="applyJob('${job._id}')">
+      <article
+        class="job-card employer-mobile-job-card"
+        onclick="openEmployerJobDetails('${escapeHtml(id)}')"
+        tabindex="0"
+      >
 
         <div class="job-card-top">
-
-          <img
-            class="job-card-logo"
-            src="${escapeHtml(logo)}"
-            alt="${escapeHtml(companyName)}"
-          >
+          <img class="job-card-logo" src="${escapeHtml(logo)}" alt="${escapeHtml(companyName)}">
 
           <div class="job-card-main">
+            <h3 class="job-title">${escapeHtml(job.title || "Untitled role")}</h3>
 
-            <h3 class="job-title">
-              ${escapeHtml(job.title || "Untitled role")}
-            </h3>
-
-            <div class="company">
-              ${escapeHtml(companyName)}
-            </div>
+            <div class="company">${escapeHtml(companyName)}</div>
 
             <div class="meta">
               <span>${escapeHtml(job.location || "Remote")}</span>
               <span>${escapeHtml(job.type || "Full-time")}</span>
             </div>
-
           </div>
-
         </div>
 
         <div class="tags">
@@ -2281,13 +2295,60 @@ function renderJobs(){
         </p>
 
         <div class="job-card-foot">
-          <span class="job-posted">Open role</span>
-          <span class="job-open">Apply now</span>
+          <button
+            type="button"
+            class="job-frame-btn"
+            onclick="event.stopPropagation(); openEmployerJobDetails('${escapeHtml(id)}')"
+          >
+            View details
+          </button>
+
+          <button
+            type="button"
+            class="job-frame-btn primary"
+            onclick="event.stopPropagation(); applyEmployerJob('${escapeHtml(id)}')"
+          >
+            Apply now
+          </button>
         </div>
 
       </article>
     `;
   }).join("");
+}
+  function openEmployerJobDetails(jobId){
+  if(!jobId){
+    toast("Job unavailable", "This job could not be opened.", "error");
+    return;
+  }
+
+  localStorage.setItem("selectedJobId", String(jobId));
+  location.href = `job-details.html?id=${encodeURIComponent(jobId)}`;
+}
+
+async function applyEmployerJob(jobId){
+  if(!jobId){
+    toast("Job unavailable", "This job could not be opened.", "error");
+    return;
+  }
+
+  if(!token()){
+    location.href = "login.html";
+    return;
+  }
+
+  localStorage.setItem("selectedJobId", String(jobId));
+
+  try{
+    await api(`/api/jobs/${jobId}/click-apply`,{
+      method:"PATCH",
+      headers:headers({ "Content-Type":"application/json" })
+    });
+  }catch(err){
+    console.warn("Apply click tracking failed:", err.message);
+  }
+
+  location.href = `job-apply.html?jobId=${encodeURIComponent(jobId)}`;
 }
 
 /* =========================
