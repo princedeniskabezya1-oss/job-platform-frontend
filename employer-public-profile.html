@@ -307,26 +307,35 @@ a{
     </div>
 
     <div class="company-actions">
-      <button id="followBtn" class="pill-btn primary" onclick="followCompany()">+ Follow</button>
-      <button id="messageCompanyBtn" class="pill-btn" onclick="messageCompany()">
+<button id="followBtn" class="pill-btn primary" onclick="followCompany()">+ Follow</button>
+
+<button id="messageCompanyBtn" class="pill-btn" onclick="messageCompany()">
   Message
 </button>
-      <button class="pill-btn dark" onclick="copyProfileLink()">Share Profile</button>
 
-<button id="editProfileBtn"
-        class="pill-btn hidden"
-        onclick="editCompanyProfile()">
-  Edit Profile
+<button
+  id="editProfileBtn"
+  class="pill-btn hidden"
+  onclick="editCompanyProfile()"
+>
+  Edit
 </button>
 
-<button id="dashboardBtn"
-        class="pill-btn hidden"
-        onclick="goDashboard()">
-  Dashboard
-</button>
+<div class="company-more-wrap">
+  <button
+    id="companyMoreBtn"
+    class="pill-btn company-more-btn hidden"
+    type="button"
+    onclick="toggleCompanyMobileMenu(event)"
+  >
+    ⋯
+  </button>
 
-    </div>
+  <div class="company-mobile-menu" id="companyMobileMenu">
+    <button type="button" onclick="copyProfileLink()">Share Profile</button>
+    <button type="button" id="dashboardBtn" onclick="goDashboard()">Dashboard</button>
   </div>
+</div>
 
   <div class="company-main">
     <div class="company-title-row">
@@ -1198,6 +1207,24 @@ a{
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
 }
+  .company-more-wrap{
+  position:relative;
+  display:none;
+}
+
+.company-mobile-menu{
+  display:none;
+}
+
+.company-more-btn{
+  width:34px;
+  min-width:34px;
+  padding:0!important;
+  font-size:21px;
+  border-color:#d1d5db;
+  color:#334155;
+  background:#fff;
+}
 
 @media(max-width:640px){
   html,
@@ -1207,11 +1234,12 @@ a{
   }
 
   body{
-    padding-bottom:76px!important;
+    padding-bottom:0!important;
   }
 
   .topbar,
-  .right-col{
+  .right-col,
+  .mobile-public-bottom{
     display:none!important;
   }
 
@@ -1251,6 +1279,7 @@ a{
 
   .company-top{
     display:block!important;
+    position:relative!important;
   }
 
   .company-logo{
@@ -1264,11 +1293,6 @@ a{
     padding-top:8px!important;
   }
 
-  .company-title-row{
-    align-items:center!important;
-    gap:6px!important;
-  }
-
   .company-title-row h1{
     margin:0!important;
     font-size:22px!important;
@@ -1279,12 +1303,6 @@ a{
     max-width:260px!important;
   }
 
-  .verified-badge{
-    width:22px!important;
-    height:22px!important;
-    font-size:12px!important;
-  }
-
   .company-headline{
     margin-top:5px!important;
     font-size:14px!important;
@@ -1292,34 +1310,84 @@ a{
     color:#475569!important;
   }
 
-  .company-meta,
   .associated-line{
-    margin-top:8px!important;
-    font-size:12px!important;
+    margin-top:10px!important;
+    font-size:13px!important;
     color:#64748b!important;
   }
 
   .company-actions{
-    margin-top:12px!important;
+    position:absolute!important;
+    top:14px!important;
+    right:0!important;
+    margin:0!important;
     display:flex!important;
     align-items:center!important;
+    justify-content:flex-end!important;
     gap:6px!important;
-    overflow-x:auto!important;
-    padding-bottom:2px!important;
     flex-wrap:nowrap!important;
+    z-index:30!important;
   }
 
-  .company-actions::-webkit-scrollbar{
-    display:none!important;
-  }
-
-  .pill-btn{
-    height:30px!important;
-    padding:0 10px!important;
+  .company-actions .pill-btn{
+    height:34px!important;
+    padding:0 16px!important;
     border-radius:999px!important;
-    font-size:12px!important;
-    font-weight:800!important;
+    font-size:14px!important;
+    font-weight:850!important;
     white-space:nowrap!important;
+    background:#fff!important;
+  }
+
+  .company-more-wrap{
+    display:block!important;
+    position:relative!important;
+  }
+
+  .company-more-btn{
+    width:38px!important;
+    min-width:38px!important;
+    height:38px!important;
+    padding:0!important;
+    font-size:22px!important;
+    border:1px solid #d1d5db!important;
+    color:#334155!important;
+    background:#fff!important;
+  }
+
+  .company-mobile-menu{
+    display:none;
+    position:absolute;
+    top:46px;
+    right:0;
+    z-index:100;
+    width:190px;
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    box-shadow:0 18px 40px rgba(15,23,42,.16);
+    overflow:hidden;
+  }
+
+  .company-mobile-menu.show{
+    display:block;
+  }
+
+  .company-mobile-menu button{
+    width:100%;
+    height:42px;
+    border:0;
+    border-bottom:1px solid #eef2f7;
+    background:#fff;
+    text-align:left;
+    padding:0 14px;
+    font-size:13px;
+    font-weight:750;
+    color:#1f2937;
+  }
+
+  .company-mobile-menu button:last-child{
+    border-bottom:0;
   }
 
   .company-tabs{
@@ -1342,7 +1410,6 @@ a{
   }
 
   .content-card,
-  .side-card,
   .public-post-card{
     margin:0 0 8px!important;
     padding:16px!important;
@@ -1369,29 +1436,9 @@ a{
     color:#334155!important;
   }
 
-  .info-row{
-    padding:10px 0!important;
-  }
-
-  .info-row span{
-    font-size:12px!important;
-    color:#64748b!important;
-    font-weight:800!important;
-  }
-
-  .info-row strong{
-    font-size:13px!important;
-    color:#111827!important;
-  }
-
   .people-grid{
     grid-template-columns:1fr!important;
     gap:8px!important;
-  }
-
-  .person-card{
-    border-radius:12px!important;
-    min-height:auto!important;
   }
 
   .job-card{
@@ -1402,43 +1449,6 @@ a{
 
   .job-card .pill-btn{
     width:100%!important;
-  }
-
-  .post-filters{
-    padding:0 14px!important;
-  }
-
-  .mobile-public-bottom{
-    position:fixed!important;
-    left:0!important;
-    right:0!important;
-    bottom:0!important;
-    height:74px!important;
-    z-index:999!important;
-    background:rgba(255,255,255,.97)!important;
-    border-top:1px solid #e5e7eb!important;
-    display:grid!important;
-    grid-template-columns:repeat(5,1fr)!important;
-    align-items:center!important;
-    padding:0 6px!important;
-  }
-
-  .mobile-public-bottom button{
-    border:0!important;
-    background:transparent!important;
-    color:#64748b!important;
-    font-weight:900!important;
-    font-size:12px!important;
-    height:100%!important;
-    display:flex!important;
-    flex-direction:column!important;
-    align-items:center!important;
-    justify-content:center!important;
-    gap:4px!important;
-  }
-
-  .mobile-public-bottom button.active{
-    color:var(--blue)!important;
   }
 }
 </style>
@@ -2197,14 +2207,11 @@ function openTab(tab){
 ========================= */
 
 function updateOwnerUI(){
-
-  const dashboardBtn =
-  document.getElementById("dashboardBtn");
-
-const editProfileBtn =
-  document.getElementById("editProfileBtn");
+  const dashboardBtn = document.getElementById("dashboardBtn");
+  const editProfileBtn = document.getElementById("editProfileBtn");
   const followBtn = document.getElementById("followBtn");
   const messageCompanyBtn = document.getElementById("messageCompanyBtn");
+  const companyMoreBtn = document.getElementById("companyMoreBtn");
   const signinBtn = document.getElementById("signinBtn");
   const avatar = document.getElementById("viewerAvatar");
 
@@ -2226,26 +2233,30 @@ const editProfileBtn =
     ownerId &&
     String(viewerId) === String(ownerId);
 
-if(dashboardBtn){
-  dashboardBtn.classList.toggle("hidden", !isOwner);
-}
+  const isMobile = window.innerWidth <= 640;
 
-if(editProfileBtn){
-  editProfileBtn.classList.toggle("hidden", !isOwner);
-}
+  editProfileBtn?.classList.add("hidden");
+  dashboardBtn?.classList.add("hidden");
+  companyMoreBtn?.classList.add("hidden");
+  followBtn?.classList.add("hidden");
+  messageCompanyBtn?.classList.add("hidden");
 
-  if(followBtn){
-    followBtn.classList.toggle(
-      "hidden",
-      !isLoggedIn || isOwner || state.following
-    );
+  if(isOwner){
+    if(isMobile){
+      editProfileBtn?.classList.remove("hidden");
+      companyMoreBtn?.classList.remove("hidden");
+      dashboardBtn?.classList.remove("hidden");
+    }else{
+      editProfileBtn?.classList.remove("hidden");
+      dashboardBtn?.classList.remove("hidden");
+    }
+  }else if(isLoggedIn){
+    messageCompanyBtn?.classList.remove("hidden");
+
+    if(!state.following){
+      followBtn?.classList.remove("hidden");
+    }
   }
-  if(messageCompanyBtn){
-  messageCompanyBtn.classList.toggle(
-    "hidden",
-    !isLoggedIn || isOwner
-  );
-}
 
   if(signinBtn){
     signinBtn.classList.toggle("hidden", isLoggedIn);
@@ -2277,7 +2288,14 @@ document.addEventListener("click",()=>{
   document.getElementById("companyMoreMenu")
     ?.classList.remove("show");
 });
+function toggleCompanyMobileMenu(e){
+  e?.stopPropagation();
+  document.getElementById("companyMobileMenu")?.classList.toggle("show");
+}
 
+document.addEventListener("click",()=>{
+  document.getElementById("companyMobileMenu")?.classList.remove("show");
+});
 /* =========================
    ACTIONS
 ========================= */
