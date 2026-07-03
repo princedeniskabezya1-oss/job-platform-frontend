@@ -986,6 +986,128 @@ svg{
     transform:rotate(360deg);
   }
 }
+  .job-share-modal{
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(15,23,42,.45);
+  padding:18px;
+}
+
+.job-share-modal.show{
+  display:flex;
+}
+
+.job-share-box{
+  width:min(480px,100%);
+  max-height:82vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:24px;
+  padding:16px;
+  box-shadow:0 30px 80px rgba(15,23,42,.24);
+}
+
+.job-share-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:12px;
+}
+
+.job-share-head strong{
+  font-size:18px;
+  font-weight:900;
+}
+
+.job-share-head button{
+  width:34px;
+  height:34px;
+  border:0;
+  border-radius:50%;
+  background:#f3f4f6;
+  font-size:22px;
+}
+
+.job-share-search,
+.job-share-link-row input{
+  width:100%;
+  height:42px;
+  border:1px solid #e5e7eb;
+  border-radius:999px;
+  padding:0 14px;
+  outline:none;
+}
+
+.job-share-people{
+  display:grid;
+  gap:8px;
+  margin:14px 0;
+}
+
+.job-share-person{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px;
+  border-radius:14px;
+  cursor:pointer;
+}
+
+.job-share-person:hover{
+  background:#f8fafc;
+}
+
+.job-share-person img{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+.job-share-person div{
+  flex:1;
+  min-width:0;
+}
+
+.job-share-person b{
+  display:block;
+  font-size:13px;
+}
+
+.job-share-person span{
+  display:block;
+  font-size:11px;
+  color:#64748b;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.job-share-link-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+}
+
+.job-share-link-row button,
+.job-share-send-btn{
+  height:42px;
+  border:0;
+  border-radius:999px;
+  padding:0 16px;
+  background:#2557a7;
+  color:#fff;
+  font-weight:900;
+}
+
+.job-share-send-btn{
+  width:100%;
+  margin-top:12px;
+}
 </style>
 </head>
 <body class="jobs-page">
@@ -2241,44 +2363,46 @@ function renderDetail(job){
         </span>
       </div>
 
-      <div class="jobs-detail-actions">
-        <button class="jobs-action-btn primary" type="button" onclick="applyToJob('${escapeHTML(job._id)}')">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path d="M5 12h14"></path>
-            <path d="m13 6 6 6-6 6"></path>
-          </svg>
+<div class="jobs-detail-actions">
+  ${
+    isJobOwner(job)
+      ? `
+        <button class="jobs-action-btn primary" type="button" onclick="editJobFromJobsPage('${escapeHTML(job._id)}')">
+          Edit job
+        </button>
+
+        <button class="jobs-action-btn" type="button" onclick="viewJobApplicationsFromJobsPage('${escapeHTML(job._id)}')">
+          View applications
+        </button>
+
+        <button class="jobs-action-btn" type="button" onclick="openJobShareModal('${escapeHTML(job._id)}')">
+          Share
+        </button>
+      `
+      : `
+        <button class="jobs-action-btn primary" type="button" onclick="event.stopPropagation(); applyToJob('${escapeHTML(job._id)}')">
           Apply now
         </button>
 
         <button
           class="jobs-action-btn ${saved ? "saved" : ""}"
           type="button"
-          onclick="saveJob('${escapeHTML(job._id)}')"
+          onclick="event.stopPropagation(); saveJob('${escapeHTML(job._id)}')"
           ${canSave ? "" : "title='Only talents, students, or agents can save jobs'"}
         >
-          <svg fill="${saved ? "currentColor" : "none"}" stroke="currentColor" viewBox="0 0 24 24">
-            <path d="M19 21 12 17 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16Z"></path>
-          </svg>
           ${saved ? "Saved" : "Save job"}
         </button>
 
-        <button class="jobs-action-btn" type="button" onclick="openEmployer('${escapeHTML(job._id)}')">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path d="M3 21h18"></path>
-            <path d="M5 21V7l8-4v18"></path>
-            <path d="M19 21V11l-6-3"></path>
-          </svg>
+        <button class="jobs-action-btn" type="button" onclick="event.stopPropagation(); openEmployer('${escapeHTML(job._id)}')">
           View company
         </button>
-        <button class="jobs-action-btn" type="button" onclick="shareJob('${escapeHTML(job._id)}')">
-  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"></path>
-    <path d="M16 6l-4-4-4 4"></path>
-    <path d="M12 2v14"></path>
-  </svg>
-  Share
-</button>
-      </div>
+
+        <button class="jobs-action-btn" type="button" onclick="event.stopPropagation(); openJobShareModal('${escapeHTML(job._id)}')">
+          Share
+        </button>
+      `
+  }
+</div>
       
 
       <div class="jobs-detail-grid">
@@ -2420,16 +2544,9 @@ async function applyToJob(jobId){
     return;
   }
 
-  const role = getRole();
+  const role = String(getRole() || "").toLowerCase();
 
-  const allowedRoles = [
-    "talent",
-    "agent",
-    "student",
-    "school"
-  ];
-
-  if(!allowedRoles.includes(role)){
+  if(!["talent","agent","student","school"].includes(role)){
     showToast("Only talents, agents, students, and schools can apply.");
     return;
   }
@@ -2488,6 +2605,169 @@ window.openEmployer = openEmployer;
 /* =========================
    SHARE JOB
 ========================= */
+  let activeShareJobId = null;
+let selectedJobSharePeople = new Set();
+let jobSharePeople = [];
+
+function jobOwnerId(job){
+  return String(
+    job?.employerId?._id ||
+    job?.employerId ||
+    job?.createdBy?._id ||
+    job?.createdBy ||
+    job?.userId?._id ||
+    job?.userId ||
+    ""
+  );
+}
+
+function currentViewerId(){
+  return String(state.me?._id || localStorage.getItem("userId") || "");
+}
+
+function isJobOwner(job){
+  return jobOwnerId(job) && currentViewerId() && jobOwnerId(job) === currentViewerId();
+}
+
+function shortJobLink(jobId){
+  return `${location.origin}/j/${encodeURIComponent(jobId)}`;
+}
+
+function fullJobLink(jobId){
+  return `${location.origin}/job-details.html?id=${encodeURIComponent(jobId)}`;
+}
+
+async function openJobShareModal(jobId){
+  activeShareJobId = String(jobId);
+  selectedJobSharePeople = new Set();
+
+  const input = document.getElementById("jobShareLinkInput");
+  if(input) input.value = shortJobLink(jobId);
+
+  document.getElementById("jobShareModal")?.classList.add("show");
+
+  await loadJobSharePeople();
+  renderJobSharePeople();
+}
+
+function closeJobShareModal(){
+  document.getElementById("jobShareModal")?.classList.remove("show");
+  activeShareJobId = null;
+  selectedJobSharePeople = new Set();
+}
+
+async function loadJobSharePeople(){
+  try{
+    const data = await fetchJSON(`${API}/api/users`, {
+      headers:authHeaders()
+    });
+
+    jobSharePeople = Array.isArray(data) ? data : [];
+  }catch{
+    jobSharePeople = [];
+  }
+}
+
+function renderJobSharePeople(){
+  const wrap = document.getElementById("jobSharePeopleList");
+  if(!wrap) return;
+
+  const q = (document.getElementById("jobShareSearch")?.value || "").toLowerCase();
+
+  const people = jobSharePeople
+    .filter(p => String(p._id || p.id || "") !== currentViewerId())
+    .filter(p => `${p.name || ""} ${p.email || ""} ${p.headline || ""} ${p.role || ""}`.toLowerCase().includes(q))
+    .slice(0, 40);
+
+  wrap.innerHTML = people.length
+    ? people.map(p => {
+        const id = String(p._id || p.id || "");
+        const checked = selectedJobSharePeople.has(id) ? "checked" : "";
+
+        return `
+          <label class="job-share-person">
+            <img src="${escapeHTML(p.profileImage || "https://ui-avatars.com/api/?name=AIFT&background=e0f2fe&color=0f172a")}">
+            <div>
+              <b>${escapeHTML(p.name || "AIFT user")}</b>
+              <span>${escapeHTML(p.headline || p.email || p.role || "AIFT member")}</span>
+            </div>
+            <input type="checkbox" ${checked} onchange="toggleJobSharePerson('${escapeHTML(id)}', this.checked)">
+          </label>
+        `;
+      }).join("")
+    : `<div class="jobs-state-card">No users found.</div>`;
+}
+
+function toggleJobSharePerson(id, checked){
+  if(checked) selectedJobSharePeople.add(id);
+  else selectedJobSharePeople.delete(id);
+}
+
+async function copyJobShareLink(){
+  if(!activeShareJobId) return;
+
+  await navigator.clipboard.writeText(fullJobLink(activeShareJobId));
+  showToast("Job link copied.");
+}
+
+async function sendJobToSelectedPeople(){
+  if(!activeShareJobId) return;
+
+  const recipients = Array.from(selectedJobSharePeople);
+
+  if(!recipients.length){
+    showToast("Select at least one person.");
+    return;
+  }
+
+  try{
+    await fetchJSON(`${API}/api/messages/share-job`, {
+      method:"POST",
+      headers:authHeaders({ "Content-Type":"application/json" }),
+      body:JSON.stringify({
+        jobId:activeShareJobId,
+        recipients,
+        url:fullJobLink(activeShareJobId)
+      })
+    });
+
+    closeJobShareModal();
+    showToast("Job sent.");
+  }catch(err){
+    await copyJobShareLink();
+    showToast("Direct send is not ready yet. Job link copied.");
+  }
+}
+
+function editJobFromJobsPage(jobId){
+  localStorage.setItem("selectedJobId", String(jobId));
+  localStorage.setItem("employerSelectedJobId", String(jobId));
+  localStorage.setItem("employerOpenTab", "jobs");
+  localStorage.setItem("employerEditJobId", String(jobId));
+
+  location.href = `employer.html?tab=jobs&editJob=${encodeURIComponent(jobId)}`;
+}
+
+function viewJobApplicationsFromJobsPage(jobId){
+  localStorage.setItem("selectedJobId", String(jobId));
+  localStorage.setItem("employerSelectedJobId", String(jobId));
+  localStorage.setItem("employerOpenTab", "pipeline");
+
+  location.href = `employer.html?tab=pipeline&jobId=${encodeURIComponent(jobId)}`;
+}
+
+document.addEventListener("input", e => {
+  if(e.target?.id === "jobShareSearch"){
+    renderJobSharePeople();
+  }
+});
+
+document.addEventListener("click", e => {
+  const modal = document.getElementById("jobShareModal");
+  if(e.target === modal){
+    closeJobShareModal();
+  }
+});
 
 async function shareJob(jobId){
   const job = state.jobs.find(item => String(item._id) === String(jobId));
@@ -2895,6 +3175,27 @@ document.addEventListener("DOMContentLoaded", initJobsPage);
 
 <script src="shared-post-composer.js"></script>
 <script src="shared-mobile-navigation.js"></script>
+  <div class="job-share-modal" id="jobShareModal">
+  <div class="job-share-box">
+    <div class="job-share-head">
+      <strong>Share job</strong>
+      <button type="button" onclick="closeJobShareModal()">×</button>
+    </div>
+
+    <input id="jobShareSearch" class="job-share-search" type="text" placeholder="Search people">
+
+    <div id="jobSharePeopleList" class="job-share-people"></div>
+
+    <div class="job-share-link-row">
+      <input id="jobShareLinkInput" readonly>
+      <button type="button" onclick="copyJobShareLink()">Copy</button>
+    </div>
+
+    <button class="job-share-send-btn" type="button" onclick="sendJobToSelectedPeople()">
+      Send job
+    </button>
+  </div>
+</div>
 
 </body>
 </html>
