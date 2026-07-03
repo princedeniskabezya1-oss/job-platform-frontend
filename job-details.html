@@ -1904,10 +1904,13 @@ window.saveJob = saveJob;
 async function applyToJob(jobId){
   if(!requireLogin("apply for jobs")) return;
 
-  const role = getRole();
+  if(!state.job || String(state.job._id) !== String(jobId)){
+    showToast("This job could not be found.");
+    return;
+  }
 
-  if(!["talent","agent","student","school"].includes(role)){
-    showToast("Only talents, agents, students, and schools can apply.");
+  if(isJobOwner(state.job)){
+    showToast("You cannot apply to your own job.");
     return;
   }
 
