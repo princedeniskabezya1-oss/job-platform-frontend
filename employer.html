@@ -2061,13 +2061,30 @@ body.compact-workspace .right-col{
   align-items:center;
   gap:8px;
 }
+  .brand{
+  display:none!important;
+}
+
+.brand-logo-img{
+  width:42px;
+  height:42px;
+  object-fit:contain;
+  border-radius:10px;
+  background:transparent;
+}
 </style>
   <link rel="stylesheet" href="feed.css">
 </head>
 <body>
   <div class="topbar">
     <div class="container topbar-inner">
-      <div class="brand-wrap"><div class="brand">A</div><div><div class="brand-title">AIFT Employer</div><div class="brand-sub">Hiring command center, employer brand, pipeline growth</div></div></div>
+      <div class="brand-wrap">
+  <img class="brand-logo-img" src="images/aift-logo.png" alt="AIFT logo">
+  <div>
+    <div class="brand-title">AIFT Employer</div>
+    <div class="brand-sub">Hiring command center</div>
+  </div>
+</div>
       <div class="top-actions">
         <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input type="text" id="globalSearch" placeholder="Search" /></div>
         <button class="icon-btn" title="Messages" onclick="goMessages()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><span class="badge" id="messageBadge">0</span></button>
@@ -2820,51 +2837,59 @@ async function loadCounters() {
   updateBadge(document.getElementById("mobileMessageBadge"), messageCount);
   updateBadge(document.getElementById("mobileNotificationBadge"), notificationCount);
 }
-    function populateHero(){
+function setImgSafe(id, src){
+  const img = document.getElementById(id);
+  if (!img) return;
+  img.onerror = () => {
+    img.onerror = null;
+    img.src = FALLBACK_AVATAR;
+  };
+  img.src = src || FALLBACK_AVATAR;
+}
+
+function setTextSafe(id, value){
+  const el = document.getElementById(id);
+  if (el) el.innerText = value || "";
+}
+
+function setValueSafe(id, value){
+  const el = document.getElementById(id);
+  if (el) el.value = value || "";
+}
+
+function populateHero(){
   const me = state.me || {};
-  const logo = me.profileImage || me.companyLogo || FALLBACK_AVATAR;
-  const cover = me.bannerImage || me.coverImage || me.companyBanner || me.banner || me.coverPhoto || me.backgroundImage || "";
+
+  const logo =
+    me.profileImage ||
+    me.companyLogo ||
+    me.logo ||
+    me.avatar ||
+    me.photo ||
+    FALLBACK_AVATAR;
+
   const stats = getStats();
   const tags = Array.isArray(me.companyTags) ? me.companyTags : [];
-
-  document.getElementById("topAvatar").src = logo;
-  document.getElementById("mobileTopAvatar").src = logo;
-  document.getElementById("companyLogo").src = logo;
-
-  document.getElementById("companyName").innerText = me.companyName || me.name || "Employer Company";
-  const line = document.querySelector(".company-line");
-  if (line) line.style.display = "none";
-  const bio = document.getElementById("companyBio");
-  if (bio) bio.style.display = "none";
-  const tagsBox = document.getElementById("companyTags");
-  if (tagsBox) tagsBox.style.display = "none";
-  document.getElementById("companyLocation").innerText = "";
-  document.getElementById("companyIndustry").innerText = "";
-  document.getElementById("companyEmail").innerText = "";
-  document.getElementById("companyBio").innerText = "";
-
-  document.getElementById("statJobs").innerText = String(Array.isArray(state.jobs) ? state.jobs.length : 0);
-  document.getElementById("statApplications").innerText = String(stats.applications || 0);
-  document.getElementById("statFollowers").innerText = String(stats.followers || 0);
-  document.getElementById("statTeam").innerText = String(stats.team || 0);
-  document.getElementById("statPosts").innerText = String(stats.posts || 0);
-
-  const heroCover = document.getElementById("heroCover");
-  if (heroCover) {
-    heroCover.style.background = cover ? `url("${cover}") center/cover no-repeat` : "#eef3f8";
-  }
-
-  const tagsWrap = document.getElementById("companyTags");
   const finalTags = tags.length ? tags : ["Hiring", "Employer Brand", "Talent Acquisition"];
-  if (tagsWrap) tagsWrap.innerHTML = "";
 
-  document.getElementById("infoCompanyName").value = me.companyName || me.name || "";
-  document.getElementById("infoWebsite").value = me.website || "";
-  document.getElementById("infoLocation").value = me.location || me.city || "";
-  document.getElementById("infoIndustry").value = me.industry || "";
-  document.getElementById("infoEmail").value = me.contactEmail || me.email || "";
-  document.getElementById("infoTags").value = finalTags.join(", ");
-  document.getElementById("infoBio").value = me.bio || me.headline || "";
+  setImgSafe("topAvatar", logo);
+  setImgSafe("mobileTopAvatar", logo);
+  setImgSafe("companyLogo", logo);
+
+  setTextSafe("companyName", me.companyName || me.name || "Employer Company");
+  setTextSafe("statJobs", String(Array.isArray(state.jobs) ? state.jobs.length : 0));
+  setTextSafe("statApplications", String(stats.applications || 0));
+  setTextSafe("statFollowers", String(stats.followers || 0));
+  setTextSafe("statTeam", String(stats.team || 0));
+  setTextSafe("statPosts", String(stats.posts || 0));
+
+  setValueSafe("infoCompanyName", me.companyName || me.name || "");
+  setValueSafe("infoWebsite", me.website || "");
+  setValueSafe("infoLocation", me.location || me.city || "");
+  setValueSafe("infoIndustry", me.industry || "");
+  setValueSafe("infoEmail", me.contactEmail || me.email || "");
+  setValueSafe("infoTags", finalTags.join(", "));
+  setValueSafe("infoBio", me.bio || me.headline || "");
 }
     function buildTeamSidebar(){
   const wrap = document.getElementById("teamList");
@@ -4436,14 +4461,17 @@ function wireSearch(){
 }
 
 function wireButtons(){
-  document.getElementById("openJobsBtn").onclick = () => openModal("jobModal");
-  document.getElementById("heroPostJobBtn").onclick = () => openModal("jobModal");
-  document.getElementById("openFeedBtn").onclick = () => openTab("feed");
+  const openJobsBtn = document.getElementById("openJobsBtn");
+  if (openJobsBtn) openJobsBtn.onclick = () => openModal("jobModal");
+
+  const heroPostJobBtn = document.getElementById("heroPostJobBtn");
+  if (heroPostJobBtn) heroPostJobBtn.onclick = () => openModal("jobModal");
+
+  const openFeedBtn = document.getElementById("openFeedBtn");
+  if (openFeedBtn) openFeedBtn.onclick = () => openTab("feed");
 
   const shareBtn = document.getElementById("shareCompanyBtn");
-  if (shareBtn) {
-    shareBtn.onclick = () => openShareProfileModal();
-  }
+  if (shareBtn) shareBtn.onclick = () => openShareProfileModal();
 
   const visitBtn = document.getElementById("visitWebsiteBtn");
   if (visitBtn) {
@@ -4459,9 +4487,7 @@ function wireButtons(){
   }
 
   const publicBtn = document.getElementById("openPublicEmployerBtn");
-  if (publicBtn) {
-    publicBtn.onclick = () => openEmployerPublicProfile();
-  }
+  if (publicBtn) publicBtn.onclick = () => openEmployerPublicProfile();
 }
 
 function getEmployerPublicProfileUrl() {
