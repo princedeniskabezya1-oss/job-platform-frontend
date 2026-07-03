@@ -2333,6 +2333,40 @@ async function selectJob(jobId, shouldTrack = true){
     }
   }
 }
+  /* =========================
+   JOB OWNER HELPERS
+========================= */
+
+function jobOwnerId(job){
+  return (
+    job?.employerId?._id ||
+    job?.employerId ||
+    job?.createdBy?._id ||
+    job?.createdBy ||
+    job?.userId?._id ||
+    job?.userId ||
+    job?.postedBy?._id ||
+    job?.postedBy ||
+    ""
+  );
+}
+
+function currentViewerId(){
+  return String(
+    state.me?._id ||
+    localStorage.getItem("userId") ||
+    ""
+  );
+}
+
+function isJobOwner(job){
+  const ownerId = String(jobOwnerId(job));
+  const viewerId = String(currentViewerId());
+
+  return Boolean(ownerId && viewerId && ownerId === viewerId);
+}
+
+window.isJobOwner = isJobOwner;
 
 /* =========================
    RENDER DESKTOP DETAIL
@@ -3199,27 +3233,6 @@ document.addEventListener("DOMContentLoaded", initJobsPage);
 
 <script src="shared-post-composer.js"></script>
 <script src="shared-mobile-navigation.js"></script>
-  <div class="job-share-modal" id="jobShareModal">
-  <div class="job-share-box">
-    <div class="job-share-head">
-      <strong>Share job</strong>
-      <button type="button" onclick="closeJobShareModal()">×</button>
-    </div>
-
-    <input id="jobShareSearch" class="job-share-search" type="text" placeholder="Search people">
-
-    <div id="jobSharePeopleList" class="job-share-people"></div>
-
-    <div class="job-share-link-row">
-      <input id="jobShareLinkInput" readonly>
-      <button type="button" onclick="copyJobShareLink()">Copy</button>
-    </div>
-
-    <button class="job-share-send-btn" type="button" onclick="sendJobToSelectedPeople()">
-      Send job
-    </button>
-  </div>
-</div>
 
 </body>
 </html>
