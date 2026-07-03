@@ -2069,6 +2069,20 @@ body.compact-workspace .right-col{
   border-radius:10px;
   background:transparent;
 }
+  .insights-show-more-btn{
+  width:100%;
+  height:38px;
+  border-radius:999px;
+  border:1px solid #cfe1f5;
+  background:#fff;
+  color:#0a66c2;
+  font-size:12px;
+  font-weight:900;
+}
+
+.insights-show-more-btn:hover{
+  background:#eef6ff;
+}
 </style>
   <link rel="stylesheet" href="feed.css">
 </head>
@@ -3421,27 +3435,24 @@ function mediaUrl(value){
 function getUserBannerImage(user){
   return mediaUrl(
     user.bannerImage ||
+    user.schoolBanner ||
+    user.companyBanner ||
     user.coverImage ||
     user.coverPhoto ||
     user.backgroundImage ||
     user.profileBanner ||
     user.profileCover ||
-    user.profileCoverImage ||
     user.cover ||
-    user.coverUrl ||
-    user.coverPhotoUrl ||
     user.banner ||
-    user.bannerUrl ||
     user.headerImage ||
-    user.headerPhoto ||
-    user.bgImage ||
-    user.background ||
     user?.profile?.bannerImage ||
     user?.profile?.coverImage ||
-    user?.profile?.coverPhoto ||
-    user?.profile?.banner ||
-    user?.profile?.cover
+    ""
   );
+}
+function mergeJobSeekerWithNetworkUser(user){
+  const sameUser = (state.people || []).find(p => String(p._id) === String(user._id));
+  return sameUser ? { ...sameUser, ...user } : user;
 }
 
 function buildJobSeekers(){
@@ -3485,7 +3496,8 @@ function buildJobSeekers(){
   const totalJobSeekers = list.length;
 const visibleJobSeekers = list.slice(0, state.jobSeekersVisibleCount || 9);
 
-wrap.innerHTML = visibleJobSeekers.map(user => {
+wrap.innerHTML = visibleJobSeekers.map(rawUser => {
+  const user = mergeJobSeekerWithNetworkUser(rawUser);
     const skills = Array.isArray(user.skills) ? user.skills.filter(Boolean) : [];
     const languages = Array.isArray(user.languages) ? user.languages.filter(Boolean) : [];
     const certs = Array.isArray(user.certifications) ? user.certifications.filter(c => c?.title) : [];
@@ -4002,9 +4014,48 @@ function buildAnalytics(){
     </article>
   `;
 }
-    function buildInsights(){const stats=getStats();const shortlistRate=stats.applications?Math.round((stats.grouped.shortlisted/stats.applications)*100):0;const hireRate=stats.applications?Math.round((stats.grouped.hired/stats.applications)*100):0;const blockedCount=state.teamMembers.filter(member=>member.isBlockedByEmployer===true).length;document.getElementById("insightsList").innerHTML=`<div class="info-row"><div class="info-label">Candidates Needing Review</div><div class="info-value">${stats.grouped.new+stats.grouped.shortlisted}</div></div><div class="info-row"><div class="info-label">Interviews in Progress</div><div class="info-value">${stats.grouped.interview}</div></div><div class="info-row"><div class="info-label">Active Jobs</div><div class="info-value">${stats.activeJobs}</div></div><div class="info-row"><div class="info-label">Team Members</div><div class="info-value">${stats.team}</div></div><div class="info-row"><div class="info-label">Blocked Staff</div><div class="info-value">${blockedCount}</div></div><div class="info-row"><div class="info-label">Shortlist Rate</div><div class="info-value">${shortlistRate}%</div></div><div class="info-row"><div class="info-label">Hire Rate</div><div class="info-value">${hireRate}%</div></div>`;}
+let insightsExpanded = false;
 
-    async function submitJob(){
+function toggleInsights(){
+  insightsExpanded = !insightsExpanded;
+  buildInsights();
+}
+
+function buildInsights(){
+  const stats = getStats();
+  const shortlistRate = stats.applications ? Math.round((stats.grouped.shortlisted / stats.applications) * 100) : 0;
+  const hireRate = stats.applications ? Math.round((stats.grouped.hired / stats.applications) * 100) : 0;
+  const blockedCount = (state.teamMembers || []).filter(member => member.isBlockedByEmployer === true).length;
+
+  const items = [
+    ["Candidates Needing Review", stats.grouped.new + stats.grouped.shortlisted],
+    ["Interviews in Progress", stats.grouped.interview],
+    ["Active Jobs", stats.activeJobs],
+    ["Team Members", stats.team],
+    ["Shortlist Rate", `${shortlistRate}%`],
+    ["Hire Rate", `${hireRate}%`],
+    ["Blocked Team Members", blockedCount]
+  ];
+
+  const visible = insightsExpanded ? items : items.slice(0, 4);
+
+  document.getElementById("insightsList").innerHTML = `
+    ${visible.map(([label, value]) => `
+      <div class="info-row">
+        <div class="info-label">${label}</div>
+        <div class="info-value">${value}</div>
+      </div>
+    `).join("")}
+
+    ${items.length > 4 ? `
+      <button class="insights-show-more-btn" type="button" onclick="toggleInsights()">
+        ${insightsExpanded ? "Show less" : "Show more"}
+      </button>
+    ` : ""}
+  `;
+}
+  
+  async function submitJob(){
   const title = document.getElementById("jobTitle").value.trim();
   const company = document.getElementById("jobCompany").value.trim() || state.me?.companyName || state.me?.name || "";
   const location = document.getElementById("jobLocation").value.trim();
