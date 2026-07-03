@@ -2544,17 +2544,15 @@ async function applyToJob(jobId){
     return;
   }
 
-  const role = String(getRole() || "").toLowerCase();
-
-  if(!["talent","agent","student","school"].includes(role)){
-    showToast("Only talents, agents, students, and schools can apply.");
-    return;
-  }
-
   const job = state.jobs.find(item => String(item._id) === String(jobId));
 
   if(!job){
     showToast("This job could not be found.");
+    return;
+  }
+
+  if(isJobOwner(job)){
+    showToast("You cannot apply to your own job.");
     return;
   }
 
