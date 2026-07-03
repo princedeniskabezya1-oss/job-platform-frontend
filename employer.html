@@ -5659,18 +5659,28 @@ init();
 (function(){
   const btn = document.getElementById("mobileMenuBtn");
 
-  if(btn){
-    btn.addEventListener("click", function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      document.body.classList.toggle("mobile-menu-open");
-    });
+  let backdrop = document.getElementById("mobileMenuBackdrop");
+  if(!backdrop){
+    backdrop = document.createElement("div");
+    backdrop.id = "mobileMenuBackdrop";
+    backdrop.className = "mobile-menu-backdrop";
+    document.body.appendChild(backdrop);
   }
 
+  function closeMenu(){
+    document.body.classList.remove("mobile-menu-open");
+  }
+
+  btn?.addEventListener("click", function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    document.body.classList.toggle("mobile-menu-open");
+  });
+
+  backdrop.addEventListener("click", closeMenu);
+
   document.querySelectorAll(".tab-btn").forEach(function(tab){
-    tab.addEventListener("click", function(){
-      document.body.classList.remove("mobile-menu-open");
-    });
+    tab.addEventListener("click", closeMenu);
   });
 })();
 </script>
