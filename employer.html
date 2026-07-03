@@ -1863,116 +1863,168 @@ body.compact-workspace .right-col{
   font-weight:800;
 }
 
-
-/* ===================================================
-   TOP CANDIDATES
-=================================================== */
+/* TOP CANDIDATES — RECRUITER CARD DESIGN */
 
 .top-talent-card{
-
-    padding:24px!important;
-
-    border-radius:20px;
-
-    background:#fff;
-
-    border:1px solid var(--border);
-
-    box-shadow:var(--shadow);
+  padding:22px!important;
+  border-radius:22px!important;
+  background:#fff!important;
+  border:1px solid var(--border)!important;
+  box-shadow:var(--shadow)!important;
 }
 
 .top-talent-card .card-title{
-
-    padding:0!important;
-
-    margin-bottom:20px!important;
-
-    border:none!important;
-
-    box-shadow:none!important;
-
-    background:none!important;
+  padding:0!important;
+  margin:0 0 18px!important;
+  border:0!important;
+  box-shadow:none!important;
+  background:transparent!important;
 }
 
 #topCandidatesList{
-
-    display:grid;
-
-    grid-template-columns:repeat(3,1fr);
-
-    gap:18px;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:16px;
 }
 
-#topCandidatesList .mini-person{
-
-    display:flex;
-
-    align-items:flex-start;
-
-    gap:14px;
-
-    padding:18px;
-
-    background:#f8fafc;
-
-    border:1px solid #e7edf5;
-
-    border-radius:18px;
-
-    transition:.2s;
+.top-candidate-card{
+  min-height:178px;
+  padding:16px;
+  border:1px solid #e6edf5;
+  border-radius:18px;
+  background:#f8fafc;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
 }
 
-#topCandidatesList .mini-person:hover{
-
-    background:#fff;
-
-    transform:translateY(-2px);
-
-    box-shadow:0 14px 30px rgba(0,0,0,.08);
+.top-candidate-head{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
 }
 
-#topCandidatesList .mini-person img{
-
-    width:58px!important;
-
-    height:58px!important;
-
-    min-width:58px!important;
-
-    border-radius:50%!important;
-
-    object-fit:cover!important;
-
-    border:3px solid #fff!important;
-
-    box-shadow:0 10px 20px rgba(0,0,0,.10);
+.top-candidate-avatar{
+  width:54px;
+  height:54px;
+  border-radius:50%;
+  object-fit:cover;
+  border:3px solid #fff;
+  box-shadow:0 8px 18px rgba(15,23,42,.12);
 }
 
-#topCandidatesList .mini-person h4{
-
-    margin:0 0 5px;
-
-    font-size:15px;
-
-    font-weight:900;
-
-    color:#172033;
+.top-candidate-info{
+  min-width:0;
+  flex:1;
 }
 
-#topCandidatesList .mini-person p{
-
-    margin:0;
-
-    color:#667085;
-
-    font-size:12px;
-
-    line-height:1.45;
+.top-candidate-info h4{
+  margin:0 0 4px;
+  font-size:14px;
+  font-weight:900;
+  color:#172033;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
-#topCandidatesList .mini-person:last-child{
+.top-candidate-info p{
+  margin:0;
+  color:#667085;
+  font-size:12px;
+  line-height:1.4;
+}
 
-    border-bottom:none!important;
+.top-candidate-score{
+  min-width:48px;
+  height:48px;
+  border-radius:16px;
+  background:#0a66c2;
+  color:#fff;
+  display:grid;
+  place-items:center;
+  font-size:13px;
+  font-weight:900;
+}
+
+.top-candidate-reasons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+.top-candidate-reasons span{
+  padding:5px 8px;
+  border-radius:999px;
+  background:#fff;
+  border:1px solid #e4eaf2;
+  color:#475467;
+  font-size:11px;
+  font-weight:800;
+}
+
+.top-candidate-actions{
+  margin-top:auto;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.top-candidate-actions button{
+  height:34px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:850;
+}
+
+@media(max-width:1280px){
+  #topCandidatesList{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+  .crypto-line-chart{
+  width:100%;
+  height:92px;
+  display:block;
+  margin-top:auto;
+}
+
+.crypto-chart-grid{
+  fill:none;
+  stroke:#e5eaf2;
+  stroke-width:1;
+}
+
+.crypto-chart-area{
+  fill:rgba(10,102,194,.08);
+}
+
+.crypto-chart-area.up{
+  fill:rgba(22,163,74,.10);
+}
+
+.crypto-chart-area.down{
+  fill:rgba(225,29,72,.08);
+}
+
+.crypto-chart-line{
+  fill:none;
+  stroke:#0a66c2;
+  stroke-width:3;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.crypto-chart-line.up{
+  stroke:#16a34a;
+}
+
+.crypto-chart-line.down{
+  stroke:#e11d48;
+}
+
+.trend-dot{
+  display:none!important;
 }
 </style>
   <link rel="stylesheet" href="feed.css">
@@ -3241,6 +3293,36 @@ function candidateMatchScore(user){
   return calculateCandidateMatch(user).score;
 }
 
+    function renderTopCandidateCard(user){
+  const match = user.matchData || calculateCandidateMatch(user);
+  const name = user.name || "Candidate";
+  const title = user.profession || user.headline || user.department || "Candidate";
+  const avatar = user.profileImage || FALLBACK_AVATAR;
+  const reasons = Array.isArray(match.reasons) ? match.reasons : ["Profile match"];
+
+  return `
+    <article class="top-candidate-card">
+      <div class="top-candidate-head">
+        <img class="top-candidate-avatar" src="${escapeHtml(avatar)}" alt="">
+        <div class="top-candidate-info">
+          <h4>${escapeHtml(name)}</h4>
+          <p>${escapeHtml(title)}</p>
+        </div>
+        <div class="top-candidate-score">${match.score}%</div>
+      </div>
+
+      <div class="top-candidate-reasons">
+        ${reasons.slice(0,3).map(r => `<span>${escapeHtml(r)}</span>`).join("")}
+      </div>
+
+      <div class="top-candidate-actions">
+        <button class="ghost-btn" type="button" onclick="openPublicProfile('${user._id}')">View</button>
+        <button class="primary-btn" type="button" onclick="inviteCandidate('${user._id}')">Invite</button>
+      </div>
+    </article>
+  `;
+}
+
 function buildJobSeekers(){
   const wrap = document.getElementById("jobseekersList");
   const topWrap = document.getElementById("topCandidatesList");
@@ -3370,20 +3452,13 @@ wrap.innerHTML = visibleJobSeekers.map(user => {
       : ""
   );
 
-  if (topWrap) {
-    topWrap.innerHTML = list.slice(0,5).map(user => `
-      <div class="top-candidate">
-        <div class="candidate-left">
-          <div class="candidate-initial">${candidateInitials(user)}</div>
-          <div class="candidate-meta">
-            <b>${escapeHtml(user.name || "Candidate")}</b>
-            <span>${escapeHtml(user.profession || user.headline || "Candidate")}</span>
-          </div>
-        </div>
-        <div class="match-score">★ ${user.matchData.score}%</div>
-      </div>
-    `).join("");
-  }
+if (topWrap) {
+  const topCandidates = list.slice(0, 6);
+
+  topWrap.innerHTML = topCandidates.length
+    ? topCandidates.map(renderTopCandidateCard).join("")
+    : `<div class="empty">No top candidates found yet.</div>`;
+}
 }
     function loadMoreJobSeekers(){
   state.jobSeekersVisibleCount = (state.jobSeekersVisibleCount || 9) + 9;
@@ -3453,7 +3528,31 @@ function buildTeamTable(){
 function toDateValue(item){ const raw=item?.createdAt||item?.updatedAt||item?.date||item?.startDate||item?.submittedAt||item?.appliedAt; const d=raw?new Date(raw):null; return d&&!isNaN(d.getTime())?d:null; }
 function buildDailySeries(items, days=7){ const now=new Date(); const today=new Date(now); today.setHours(0,0,0,0); const counts=Array(days).fill(0); (items||[]).forEach(item=>{ const d=toDateValue(item); if(!d)return; const day=new Date(d); day.setHours(0,0,0,0); const index=days-1+Math.round((day-today)/86400000); if(index>=0&&index<days)counts[index]++; }); return {counts}; }
 function trendMeta(counts){ const mid=Math.max(1,Math.floor(counts.length/2)); const previous=counts.slice(0,mid).reduce((a,b)=>a+b,0); const current=counts.slice(mid).reduce((a,b)=>a+b,0); const diff=current-previous; const pct=previous?Math.round((diff/previous)*100):(current?100:0); return {previous,current,diff,pct,dir:diff>0?'up':diff<0?'down':'flat'}; }
-function renderSparkline(counts){ const w=320,h=86,pad=8,max=Math.max(1,...counts),step=counts.length>1?(w-pad*2)/(counts.length-1):0; const pts=counts.map((v,i)=>[pad+step*i,h-pad-(v/max)*(h-pad*2)]); const line=pts.map((p,i)=>`${i?'L':'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' '); const area=`${line} L${w-pad},${h-pad} L${pad},${h-pad} Z`; const meta=trendMeta(counts); const color=meta.dir==='up'?'#16a34a':meta.dir==='down'?'#dc2626':'#0a66c2'; return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path class="trend-axis" d="M${pad},${h-pad} L${w-pad},${h-pad}"></path><path class="trend-area ${meta.dir}" d="${area}"></path><path class="trend-line ${meta.dir}" d="${line}"></path>${pts.map((p,i)=>`<circle class="trend-dot" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${i===pts.length-1?4:3}" style="stroke:${color}"></circle>`).join('')}</svg>`; }
+function renderSparkline(counts){
+  const values = Array.isArray(counts) && counts.length ? counts.map(Number) : [0,0,0,0,0,0,0];
+  const w = 320;
+  const h = 92;
+  const pad = 10;
+  const max = Math.max(1, ...values);
+  const step = values.length > 1 ? (w - pad * 2) / (values.length - 1) : 0;
+
+  const pts = values.map((v,i) => [
+    pad + step * i,
+    h - pad - (v / max) * (h - pad * 2)
+  ]);
+
+  const line = pts.map((p,i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  const area = `${line} L${w-pad},${h-pad} L${pad},${h-pad} Z`;
+  const meta = trendMeta(values);
+
+  return `
+    <svg class="crypto-line-chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <path class="crypto-chart-grid" d="M${pad},${h-pad} L${w-pad},${h-pad}"></path>
+      <path class="crypto-chart-area ${meta.dir}" d="${area}"></path>
+      <path class="crypto-chart-line ${meta.dir}" d="${line}"></path>
+    </svg>
+  `;
+}
 function growthCard(title,total,items,subtitle){ const series=buildDailySeries(items,7); const meta=trendMeta(series.counts); const arrow=meta.dir==='up'?'↗':meta.dir==='down'?'↘':'→'; const label=meta.dir==='flat'?'No change':`${arrow} ${Math.abs(meta.pct)}%`; return `<article class="trend-card"><div class="trend-head"><div><h3 class="trend-title">${escapeHtml(title)}</h3><p class="trend-sub">${escapeHtml(subtitle||'Last 7 days')}</p></div><span class="trend-delta ${meta.dir}">${label}</span></div><div class="trend-value">${Number(total||0).toLocaleString()}</div><div class="trend-chart">${renderSparkline(series.counts)}</div></article>`; }
 function formatDateTime(value){ if(!value)return '-'; const d=new Date(value); if(isNaN(d.getTime()))return escapeHtml(value); return d.toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
 function durationBetween(start,end){ const a=start?new Date(start):null,b=end?new Date(end):null; if(!a||!b||isNaN(a)||isNaN(b)||b<a)return '-'; const mins=Math.round((b-a)/60000),h=Math.floor(mins/60),m=mins%60; return h?`${h}h ${m}m`:`${m}m`; }
