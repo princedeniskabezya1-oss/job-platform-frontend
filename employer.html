@@ -2092,11 +2092,16 @@ body.compact-workspace .right-col{
 <body>
   <div class="topbar">
     <div class="container topbar-inner">
-      <div class="brand-wrap">
+<button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Open menu">
+  <span></span>
+</button>
+
+<div class="brand-wrap">
   <img class="brand-logo-img" src="images/aift-logo.png" alt="AIFT logo">
   <div>
     <div class="brand-sub">Hiring command center</div>
   </div>
+</div>
 </div>
       <div class="top-actions">
         <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input type="text" id="globalSearch" placeholder="Search" /></div>
@@ -2122,6 +2127,19 @@ body.compact-workspace .right-col{
   <button class="tab-btn" data-tab="profile">Profile</button>
   <button class="tab-btn" type="button" onclick="openSchoolCompanyHub(event)">School Hub</button>
 </div>
+
+  <div class="mobile-menu-backdrop" id="mobileMenuBackdrop"></div>
+
+<nav class="mobile-side-menu" id="mobileSideMenu">
+  <div class="mobile-menu-title">Employer Menu</div>
+
+  <button class="mobile-menu-link active" type="button" data-mobile-tab="overview">Overview</button>
+  <button class="mobile-menu-link" type="button" data-mobile-tab="jobs">Jobs</button>
+  <button class="mobile-menu-link" type="button" data-mobile-tab="pipeline">Pipeline</button>
+  <button class="mobile-menu-link" type="button" data-mobile-tab="network">Network</button>
+  <button class="mobile-menu-link" type="button" data-mobile-tab="jobseekers">Job Seekers</button>
+  <button class="mobile-menu-link" type="button" onclick="goMessages()">Messages</button>
+</nav>
 
   <main class="page"><div class="container"><div class="main-grid">
     <aside class="left-col">
@@ -5644,5 +5662,37 @@ async function init() {
 
 init();
   </script>
+
+  <script>
+  const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+  const mobileMenuBackdrop = document.getElementById("mobileMenuBackdrop");
+
+  function closeMobileMenu(){
+    document.body.classList.remove("mobile-menu-open");
+  }
+
+  mobileMenuBtn?.addEventListener("click", () => {
+    document.body.classList.toggle("mobile-menu-open");
+  });
+
+  mobileMenuBackdrop?.addEventListener("click", closeMobileMenu);
+
+  document.querySelectorAll("[data-mobile-tab]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.mobileTab;
+
+      if(typeof openTab === "function"){
+        openTab(tab);
+      }
+
+      document.querySelectorAll(".mobile-menu-link").forEach(x => {
+        x.classList.remove("active");
+      });
+
+      btn.classList.add("active");
+      closeMobileMenu();
+    });
+  });
+</script>
 </body>
 </html>
