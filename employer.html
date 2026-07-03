@@ -2379,8 +2379,52 @@ body.compact-workspace .right-col{
   </div>
 </div>
 
-  <div class="modal" id="jobModal"><div class="modal-box"><div class="modal-head"><div class="modal-title">Create Job Posting</div><button class="ghost-btn" type="button" onclick="closeModal('jobModal')">Close</button></div><div class="modal-body"><div class="input-grid"><div class="field"><label>Job Title</label><input id="jobTitle" type="text" placeholder="e.g. Frontend Developer"></div><div class="field"><label>Company</label><input id="jobCompany" type="text" placeholder="Company name"></div><div class="field"><label>Location</label><input id="jobLocation" type="text" placeholder="e.g. Makati / Remote"></div><div class="field"><label>Salary</label><input id="jobSalary" type="text" placeholder="e.g. ₱40,000 - ₱60,000"></div></div><div class="field"><label>Description</label><textarea id="jobDescription" placeholder="Describe responsibilities, qualifications, and expectations."></textarea></div></div><div class="modal-actions"><button class="ghost-btn" type="button" onclick="closeModal('jobModal')">Cancel</button><button class="primary-btn" type="button" onclick="submitJob()">Publish Job</button></div></div></div>
-  <div class="modal" id="postModal"><div class="modal-box"><div class="modal-head"><div class="modal-title">Create Company Update</div><button class="ghost-btn" type="button" onclick="closeModal('postModal')">Close</button></div><div class="modal-body"><div class="field"><label>Post Content</label><textarea id="postContent" placeholder="Share something about your company..."></textarea></div><div class="field"><label>Optional Media</label><input id="postMedia" type="file" accept="image/*,video/*"></div></div><div class="modal-actions"><button class="ghost-btn" type="button" onclick="closeModal('postModal')">Cancel</button><button class="primary-btn" type="button" onclick="submitPost()">Post Update</button></div></div></div>
+  <div class="modal" id="jobModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="jobModalTitle">Create Job Posting</div>
+      <button class="ghost-btn" type="button" onclick="closeModal('jobModal')">Close</button>
+    </div>
+
+    <div class="modal-body">
+      <input type="hidden" id="editingJobId">
+
+      <div class="input-grid">
+        <div class="field">
+          <label>Job Title</label>
+          <input id="jobTitle" type="text" placeholder="e.g. Frontend Developer">
+        </div>
+
+        <div class="field">
+          <label>Company</label>
+          <input id="jobCompany" type="text" placeholder="Company name">
+        </div>
+
+        <div class="field">
+          <label>Location</label>
+          <input id="jobLocation" type="text" placeholder="e.g. Makati / Remote">
+        </div>
+
+        <div class="field">
+          <label>Salary</label>
+          <input id="jobSalary" type="text" placeholder="e.g. ₱40,000 - ₱60,000">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Description</label>
+        <textarea id="jobDescription" placeholder="Describe responsibilities, qualifications, and expectations."></textarea>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="ghost-btn" type="button" onclick="closeModal('jobModal')">Cancel</button>
+      <button class="primary-btn" id="jobSubmitBtn" type="button" onclick="submitJob()">Publish Job</button>
+    </div>
+  </div>
+</div>
+
+   <div class="modal" id="postModal"><div class="modal-box"><div class="modal-head"><div class="modal-title">Create Company Update</div><button class="ghost-btn" type="button" onclick="closeModal('postModal')">Close</button></div><div class="modal-body"><div class="field"><label>Post Content</label><textarea id="postContent" placeholder="Share something about your company..."></textarea></div><div class="field"><label>Optional Media</label><input id="postMedia" type="file" accept="image/*,video/*"></div></div><div class="modal-actions"><button class="ghost-btn" type="button" onclick="closeModal('postModal')">Cancel</button><button class="primary-btn" type="button" onclick="submitPost()">Post Update</button></div></div></div>
   <div class="modal" id="profileModal">
   <div class="modal-box">
     <div class="modal-head">
@@ -3102,10 +3146,17 @@ async function buildJobs(){
         </div>
 
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
-          <button class="primary-btn" type="button" onclick="toggleJobStatus('${job._id}', '${safeStatus(job.status) === 'closed' ? 'active' : 'closed'}')">
-            ${safeStatus(job.status) === 'closed' ? 'Reopen Job' : 'Close Job'}
-          </button>
-          <button class="ghost-btn" type="button" onclick="openTab('pipeline')">View Pipeline</button>
+<button class="primary-btn" type="button" onclick="openEditJob('${job._id}')">
+  Edit Job
+</button>
+
+<button class="ghost-btn" type="button" onclick="toggleJobStatus('${job._id}', '${safeStatus(job.status) === 'closed' ? 'active' : 'closed'}')">
+  ${safeStatus(job.status) === 'closed' ? 'Reopen Job' : 'Close Job'}
+</button>
+
+<button class="ghost-btn" type="button" onclick="openTab('pipeline')">
+  View Pipeline
+</button>
         </div>
       </article>
     `;
@@ -4102,7 +4153,9 @@ function buildInsights(){
   `;
 }
   
-  async function submitJob(){
+async function submitJob(){
+  const editingJobId = document.getElementById("editingJobId")?.value || "";
+
   const title = document.getElementById("jobTitle").value.trim();
   const company = document.getElementById("jobCompany").value.trim() || state.me?.companyName || state.me?.name || "";
   const location = document.getElementById("jobLocation").value.trim();
@@ -4114,28 +4167,70 @@ function buildInsights(){
     return;
   }
 
+  const payload = { title, company, location, salary, description };
+
   try {
-    await fetchJSON(API + "/api/jobs", {
-      method: "POST",
-      headers: authHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ title, company, location, salary, description })
-    });
+    if (editingJobId) {
+      await fetchJSON(`${API}/api/jobs/${editingJobId}`, {
+        method: "PATCH",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(payload)
+      });
+    } else {
+      await fetchJSON(API + "/api/jobs", {
+        method: "POST",
+        headers: authHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(payload)
+      });
+    }
 
-    document.getElementById("jobTitle").value = "";
-    document.getElementById("jobCompany").value = "";
-    document.getElementById("jobLocation").value = "";
-    document.getElementById("jobSalary").value = "";
-    document.getElementById("jobDescription").value = "";
+    resetJobModal();
+    closeModal("jobModal");
 
-closeModal("jobModal");
     await loadJobs();
     await loadEmployerStats();
     refreshAllUI();
     openTab("jobs");
-    showToast("Job created", "Your job posting is now live.");
+
+    showToast(
+      editingJobId ? "Job updated" : "Job created",
+      editingJobId ? "Your job posting was updated successfully." : "Your job posting is now live."
+    );
   } catch (err) {
-    showToast("Job creation failed", err.message, "error");
+    showToast(editingJobId ? "Job update failed" : "Job creation failed", err.message, "error");
   }
+}
+    function resetJobModal(){
+  document.getElementById("editingJobId").value = "";
+  document.getElementById("jobTitle").value = "";
+  document.getElementById("jobCompany").value = "";
+  document.getElementById("jobLocation").value = "";
+  document.getElementById("jobSalary").value = "";
+  document.getElementById("jobDescription").value = "";
+
+  document.getElementById("jobModalTitle").innerText = "Create Job Posting";
+  document.getElementById("jobSubmitBtn").innerText = "Publish Job";
+}
+
+function openEditJob(jobId){
+  const job = (state.jobs || []).find(j => String(j._id) === String(jobId));
+
+  if (!job) {
+    showToast("Job not found", "Please refresh and try again.", "error");
+    return;
+  }
+
+  document.getElementById("editingJobId").value = job._id;
+  document.getElementById("jobTitle").value = job.title || "";
+  document.getElementById("jobCompany").value = job.company || "";
+  document.getElementById("jobLocation").value = job.location || "";
+  document.getElementById("jobSalary").value = job.salary || "";
+  document.getElementById("jobDescription").value = job.description || "";
+
+  document.getElementById("jobModalTitle").innerText = "Edit Job Posting";
+  document.getElementById("jobSubmitBtn").innerText = "Save Changes";
+
+  openModal("jobModal");
 }
     async function toggleJobStatus(jobId, status){
   try {
