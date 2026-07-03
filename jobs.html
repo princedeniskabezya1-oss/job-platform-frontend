@@ -1389,6 +1389,32 @@ svg{
     </nav>
 
 </div>
+  <div class="job-share-modal" id="jobShareModal">
+  <div class="job-share-box">
+    <div class="job-share-head">
+      <strong>Share job</strong>
+      <button type="button" onclick="closeJobShareModal()">×</button>
+    </div>
+
+    <input
+      id="jobShareSearch"
+      class="job-share-search"
+      type="search"
+      placeholder="Search people you follow"
+    >
+
+    <div class="job-share-people" id="jobSharePeopleList"></div>
+
+    <div class="job-share-link-row">
+      <input id="jobShareLinkInput" type="text" readonly>
+      <button type="button" onclick="copyJobShareLink()">Copy</button>
+    </div>
+
+    <button class="job-share-send-btn" type="button" onclick="sendJobToSelectedPeople()">
+      Send message
+    </button>
+  </div>
+</div>
 
 <script>
 const API = "https://backend-1-9b6f.onrender.com";
@@ -2454,13 +2480,6 @@ async function saveJob(jobId){
     return;
   }
 
-  const role = getRole();
-
-  if(!["talent","agent","student"].includes(role)){
-    showToast("Only talents, students, or agents can save jobs.");
-    return;
-  }
-
   const job = state.jobs.find(item => String(item._id) === String(jobId));
 
   if(!job){
@@ -2468,64 +2487,67 @@ async function saveJob(jobId){
     return;
   }
 
-  const wasSaved = state.savedIds.has(String(jobId));
-
-  if(wasSaved){
-    state.savedIds.delete(String(jobId));
-  }else{
-    state.savedIds.add(String(jobId));
+  if(isJobOwner(job)){
+    showToast("You cannot save your own job.");
+    return;
   }
 
-  job.saveCount = Math.max(
-    0,
-    Number(job.saveCount || 0) + (wasSaved ? -1 : 1)
-  );
+  const id = String(jobId);
+  const wasSaved = state.savedIds.has(id);
+
+  if(wasSaved){
+    state.savedIds.delete(id);
+    job.saveCount = Math.max(0, Number(job.saveCount || 0) - 1);
+  }else{
+    state.savedIds.add(id);
+    job.saveCount = Number(job.saveCount || 0) + 1;
+  }
 
   renderStats();
   renderList();
 
-  if(state.selectedJobId === String(jobId)){
+  if(state.selectedJobId === id){
     renderDetail(job);
   }
 
   try{
-    const res = await fetchJSON(`${API}/api/jobs/${jobId}/save`, {
+    const res = await fetchJSON(`${API}/api/jobs/${id}/save`, {
       method:"PATCH",
       headers:authHeaders({ "Content-Type":"application/json" })
     });
 
     if(res.saved){
-      state.savedIds.add(String(jobId));
+      state.savedIds.add(id);
       showToast("Job saved.");
     }else{
-      state.savedIds.delete(String(jobId));
+      state.savedIds.delete(id);
       showToast("Job removed from saved jobs.");
     }
 
     job.saveCount = Number(res.saveCount ?? job.saveCount ?? 0);
 
+    await loadMe();
+
     renderStats();
     renderList();
 
-    if(state.selectedJobId === String(jobId)){
+    if(state.selectedJobId === id){
       renderDetail(job);
     }
+
   }catch(err){
     if(wasSaved){
-      state.savedIds.add(String(jobId));
+      state.savedIds.add(id);
+      job.saveCount = Number(job.saveCount || 0) + 1;
     }else{
-      state.savedIds.delete(String(jobId));
+      state.savedIds.delete(id);
+      job.saveCount = Math.max(0, Number(job.saveCount || 0) - 1);
     }
-
-    job.saveCount = Math.max(
-      0,
-      Number(job.saveCount || 0) + (wasSaved ? 1 : -1)
-    );
 
     renderStats();
     renderList();
 
-    if(state.selectedJobId === String(jobId)){
+    if(state.selectedJobId === id){
       renderDetail(job);
     }
 
@@ -2601,41 +2623,40 @@ function openEmployer(jobId){
 window.openEmployer = openEmployer;
 
 /* =========================
-   SHARE JOB
+   SHARE JOB - FOLLOWING USERS ONLY
 ========================= */
-  let activeShareJobId = null;
+
+let activeShareJobId = null;
 let selectedJobSharePeople = new Set();
 let jobSharePeople = [];
 
-function jobOwnerId(job){
-  return String(
-    job?.employerId?._id ||
-    job?.employerId ||
-    job?.createdBy?._id ||
-    job?.createdBy ||
-    job?.userId?._id ||
-    job?.userId ||
-    ""
-  );
-}
-
 function currentViewerId(){
   return String(state.me?._id || localStorage.getItem("userId") || "");
-}
-
-function isJobOwner(job){
-  return jobOwnerId(job) && currentViewerId() && jobOwnerId(job) === currentViewerId();
-}
-
-function shortJobLink(jobId){
-  return `${location.origin}/j/${encodeURIComponent(jobId)}`;
 }
 
 function fullJobLink(jobId){
   return `${location.origin}/job-details.html?id=${encodeURIComponent(jobId)}`;
 }
 
+function shortJobLink(jobId){
+  return `${location.origin}/j/${encodeURIComponent(jobId)}`;
+}
+
+function getFollowingIds(){
+  const following = Array.isArray(state.me?.following) ? state.me.following : [];
+
+  return new Set(
+    following
+      .map(item => String(item?._id || item?.id || item))
+      .filter(Boolean)
+  );
+}
+
 async function openJobShareModal(jobId){
+  if(!requireLogin("share jobs")){
+    return;
+  }
+
   activeShareJobId = String(jobId);
   selectedJobSharePeople = new Set();
 
@@ -2656,12 +2677,26 @@ function closeJobShareModal(){
 
 async function loadJobSharePeople(){
   try{
+    const followingIds = getFollowingIds();
+
+    if(!followingIds.size){
+      jobSharePeople = [];
+      return;
+    }
+
     const data = await fetchJSON(`${API}/api/users`, {
       headers:authHeaders()
     });
 
-    jobSharePeople = Array.isArray(data) ? data : [];
-  }catch{
+    const users = Array.isArray(data) ? data : [];
+
+    jobSharePeople = users.filter(user => {
+      const id = String(user?._id || user?.id || "");
+      return id && followingIds.has(id) && id !== currentViewerId();
+    });
+
+  }catch(err){
+    console.warn("LOAD FOLLOWING USERS FAILED:", err.message);
     jobSharePeople = [];
   }
 }
@@ -2670,42 +2705,57 @@ function renderJobSharePeople(){
   const wrap = document.getElementById("jobSharePeopleList");
   if(!wrap) return;
 
-  const q = (document.getElementById("jobShareSearch")?.value || "").toLowerCase();
+  const q = String(document.getElementById("jobShareSearch")?.value || "")
+    .trim()
+    .toLowerCase();
 
   const people = jobSharePeople
-    .filter(p => String(p._id || p.id || "") !== currentViewerId())
-    .filter(p => `${p.name || ""} ${p.email || ""} ${p.headline || ""} ${p.role || ""}`.toLowerCase().includes(q))
-    .slice(0, 40);
+    .filter(p => {
+      return `${p.name || ""} ${p.email || ""} ${p.headline || ""} ${p.role || ""}`
+        .toLowerCase()
+        .includes(q);
+    })
+    .slice(0, 50);
 
   wrap.innerHTML = people.length
     ? people.map(p => {
         const id = String(p._id || p.id || "");
         const checked = selectedJobSharePeople.has(id) ? "checked" : "";
+        const avatar = p.profileImage || p.avatar || p.photo || "https://ui-avatars.com/api/?name=AIFT&background=e0f2fe&color=0f172a";
 
         return `
           <label class="job-share-person">
-            <img src="${escapeHTML(p.profileImage || "https://ui-avatars.com/api/?name=AIFT&background=e0f2fe&color=0f172a")}">
+            <img src="${escapeHTML(avatar)}" onerror="this.src='https://ui-avatars.com/api/?name=AIFT&background=e0f2fe&color=0f172a'">
             <div>
               <b>${escapeHTML(p.name || "AIFT user")}</b>
-              <span>${escapeHTML(p.headline || p.email || p.role || "AIFT member")}</span>
+              <span>${escapeHTML(p.headline || p.email || p.role || "Following")}</span>
             </div>
             <input type="checkbox" ${checked} onchange="toggleJobSharePerson('${escapeHTML(id)}', this.checked)">
           </label>
         `;
       }).join("")
-    : `<div class="jobs-state-card">No users found.</div>`;
+    : `
+      <div class="jobs-state-card">
+        <h3>No followed users found</h3>
+        <p>Follow people first, then you can share jobs with them here.</p>
+      </div>
+    `;
 }
 
 function toggleJobSharePerson(id, checked){
-  if(checked) selectedJobSharePeople.add(id);
-  else selectedJobSharePeople.delete(id);
+  if(checked) selectedJobSharePeople.add(String(id));
+  else selectedJobSharePeople.delete(String(id));
 }
 
 async function copyJobShareLink(){
   if(!activeShareJobId) return;
 
-  await navigator.clipboard.writeText(fullJobLink(activeShareJobId));
-  showToast("Job link copied.");
+  try{
+    await navigator.clipboard.writeText(fullJobLink(activeShareJobId));
+    showToast("Job link copied.");
+  }catch{
+    showToast("Could not copy link.");
+  }
 }
 
 async function sendJobToSelectedPeople(){
@@ -2718,41 +2768,48 @@ async function sendJobToSelectedPeople(){
     return;
   }
 
+  const job = state.jobs.find(item => String(item._id) === String(activeShareJobId));
+  const url = fullJobLink(activeShareJobId);
+
+  const message = `Check this job on AIFT: ${job?.title || "Job opportunity"}${job ? " at " + companyName(job) : ""}\n${url}`;
+
   try{
-    await fetchJSON(`${API}/api/messages/share-job`, {
-      method:"POST",
-      headers:authHeaders({ "Content-Type":"application/json" }),
-      body:JSON.stringify({
-        jobId:activeShareJobId,
-        recipients,
-        url:fullJobLink(activeShareJobId)
+    await Promise.all(
+      recipients.map(receiverId => {
+        return fetchJSON(`${API}/api/messages`, {
+          method:"POST",
+          headers:authHeaders({ "Content-Type":"application/json" }),
+          body:JSON.stringify({
+            receiverId,
+            recipientId:receiverId,
+            to:receiverId,
+            text:message,
+            message,
+            jobId:activeShareJobId,
+            type:"job_share"
+          })
+        });
       })
-    });
+    );
 
     closeJobShareModal();
     showToast("Job sent.");
   }catch(err){
-    await copyJobShareLink();
-    showToast("Direct send is not ready yet. Job link copied.");
+    console.warn("SEND JOB MESSAGE FAILED:", err.message);
+    showToast(err.message || "Could not send job.");
   }
 }
 
-function editJobFromJobsPage(jobId){
-  localStorage.setItem("selectedJobId", String(jobId));
-  localStorage.setItem("employerSelectedJobId", String(jobId));
-  localStorage.setItem("employerOpenTab", "jobs");
-  localStorage.setItem("employerEditJobId", String(jobId));
-
-  location.href = `employer.html?tab=jobs&editJob=${encodeURIComponent(jobId)}`;
+function shareJob(jobId){
+  openJobShareModal(jobId);
 }
 
-function viewJobApplicationsFromJobsPage(jobId){
-  localStorage.setItem("selectedJobId", String(jobId));
-  localStorage.setItem("employerSelectedJobId", String(jobId));
-  localStorage.setItem("employerOpenTab", "pipeline");
-
-  location.href = `employer.html?tab=pipeline&jobId=${encodeURIComponent(jobId)}`;
-}
+window.openJobShareModal = openJobShareModal;
+window.closeJobShareModal = closeJobShareModal;
+window.toggleJobSharePerson = toggleJobSharePerson;
+window.copyJobShareLink = copyJobShareLink;
+window.sendJobToSelectedPeople = sendJobToSelectedPeople;
+window.shareJob = shareJob;
 
 document.addEventListener("input", e => {
   if(e.target?.id === "jobShareSearch"){
@@ -2766,37 +2823,6 @@ document.addEventListener("click", e => {
     closeJobShareModal();
   }
 });
-
-async function shareJob(jobId){
-  const job = state.jobs.find(item => String(item._id) === String(jobId));
-
-  if(!job){
-    showToast("This job could not be shared.");
-    return;
-  }
-
-  const url = `${location.origin}${location.pathname.replace("jobs.html","job-details.html")}?id=${encodeURIComponent(jobId)}`;
-
-  const shareData = {
-    title:job.title || "AIFT Job",
-    text:`${job.title || "Job opportunity"} at ${companyName(job)}`,
-    url
-  };
-
-  try{
-    if(navigator.share){
-      await navigator.share(shareData);
-      return;
-    }
-
-    await navigator.clipboard.writeText(url);
-    showToast("Job link copied.");
-  }catch(err){
-    console.warn("SHARE FAILED:", err.message);
-  }
-}
-
-window.shareJob = shareJob;
 
 /* =========================
    OPEN JOB IN NEW PAGE
