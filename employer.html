@@ -1136,12 +1136,7 @@ img{display:block;max-width:100%}
 }
 
 .upwork-network-card::before{
-  content:"";
-  height:82px;
-  background:#e6eef5;
-  background-size:cover;
-  background-position:center;
-  display:block;
+  display:none!important;
 }
 
 .jobseeker-cover{
@@ -3448,13 +3443,27 @@ wrap.innerHTML = visibleJobSeekers.map(user => {
     const expCount = Number(user.yearsOfExperience || 0) ||
       (Array.isArray(user.experience) ? user.experience.length : 0);
 
-    const title = user.profession || user.headline || user.course || "Professional candidate";
-    const salary = user.expectedSalary || user.salaryExpectation || "Open";
-    const match = user.matchData.score;
+const title = user.profession || user.headline || user.course || "Professional candidate";
+const salary = user.expectedSalary || user.salaryExpectation || "Open";
+const match = user.matchData.score;
 
-    return `
-      <article class="upwork-network-card">
-        <div class="upwork-card-top">
+const banner =
+  user.bannerImage ||
+  user.coverImage ||
+  user.coverPhoto ||
+  user.backgroundImage ||
+  user.profileBanner ||
+  user.banner ||
+  "";
+
+return `
+  <article class="upwork-network-card">
+    <div
+      class="jobseeker-cover ${banner ? "" : "empty"}"
+      ${banner ? `style="background-image:url('${escapeHtml(banner)}')"` : ""}
+    ></div>
+
+    <div class="upwork-card-top">
           <div class="upwork-profile-main">
             <img class="upwork-avatar" src="${user.profileImage || FALLBACK_AVATAR}" alt="">
             <div class="upwork-identity">
