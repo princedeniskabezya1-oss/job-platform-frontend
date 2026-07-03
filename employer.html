@@ -2026,6 +2026,41 @@ body.compact-workspace .right-col{
 .trend-dot{
   display:none!important;
 }
+  .analytics-titlebar{
+  align-items:center;
+}
+
+.analytics-range-bar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.analytics-range-bar select,
+.analytics-range-bar input{
+  height:36px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:#fff;
+  padding:0 12px;
+  color:#172033;
+  font-size:12px;
+  font-weight:800;
+  outline:none;
+}
+
+.analytics-range-bar select:focus,
+.analytics-range-bar input:focus{
+  border-color:#9cc8f5;
+  box-shadow:0 0 0 4px rgba(10,102,194,.08);
+}
+
+.analytics-custom-dates{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
 </style>
   <link rel="stylesheet" href="feed.css">
 </head>
@@ -2194,7 +2229,25 @@ body.compact-workspace .right-col{
 
 <div class="section" id="section-analytics">
   <section class="card card-pad">
-    <h2 class="card-title">Hiring Analytics</h2>
+    <h2 class="card-title analytics-titlebar">
+  <span>Hiring Analytics</span>
+
+  <div class="analytics-range-bar">
+    <select id="analyticsRangeSelect" onchange="setAnalyticsRange(this.value)">
+      <option value="7">Last 7 days</option>
+      <option value="14">Last 14 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
+      <option value="custom">Custom</option>
+    </select>
+
+    <div id="analyticsCustomDates" class="analytics-custom-dates hidden">
+      <input id="analyticsStartDate" type="date">
+      <input id="analyticsEndDate" type="date">
+      <button class="small-link" type="button" onclick="applyCustomAnalyticsRange()">Apply</button>
+    </div>
+  </div>
+</h2>
     <div class="analytics-grid" id="analyticsGrid">
       <div class="loading">Loading analytics...</div>
     </div>
@@ -3525,9 +3578,120 @@ function buildTeamTable(){
 
 
 
-function toDateValue(item){ const raw=item?.createdAt||item?.updatedAt||item?.date||item?.startDate||item?.submittedAt||item?.appliedAt; const d=raw?new Date(raw):null; return d&&!isNaN(d.getTime())?d:null; }
-function buildDailySeries(items, days=7){ const now=new Date(); const today=new Date(now); today.setHours(0,0,0,0); const counts=Array(days).fill(0); (items||[]).forEach(item=>{ const d=toDateValue(item); if(!d)return; const day=new Date(d); day.setHours(0,0,0,0); const index=days-1+Math.round((day-today)/86400000); if(index>=0&&index<days)counts[index]++; }); return {counts}; }
-function trendMeta(counts){ const mid=Math.max(1,Math.floor(counts.length/2)); const previous=counts.slice(0,mid).reduce((a,b)=>a+b,0); const current=counts.slice(mid).reduce((a,b)=>a+b,0); const diff=current-previous; const pct=previous?Math.round((diff/previous)*100):(current?100:0); return {previous,current,diff,pct,dir:diff>0?'up':diff<0?'down':'flat'}; }
+function toDateValue(item){
+  const raw =
+    item?.createdAt ||
+    item?.updatedAt ||
+    item?.date ||
+    item?.startDate ||
+    item?.submittedAt ||
+    item?.appliedAt;
+
+  const d = raw ? new Date(raw) : null;
+  return d && !isNaN(d.getTime()) ? d : null;
+}
+
+function getAnalyticsRange(){
+  const selected = document.getElementById("analyticsRangeSelect")?.value || state.analyticsRange || "30";
+
+  if (selected === "custom") {
+    const startValue = document.getElementById("analyticsStartDate")?.value;
+    const endValue = document.getElementById("analyticsEndDate")?.value;
+
+    const start = startValue ? new Date(startValue + "T00:00:00") : null;
+    const end = endValue ? new Date(endValue + "T23:59:59") : null;
+
+    return {
+      mode:"custom",
+      days:30,
+      start,
+      end,
+      label:startValue && endValue ? `${startValue} to ${endValue}` : "Custom range"
+    };
+  }
+
+  const days = Number(selected) || 30;
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - (days - 1));
+  start.setHours(0,0,0,0);
+
+  return {
+    mode:selected,
+    days,
+    start,
+    end,
+    label:`Last ${days} days`
+  };
+}
+
+function isInsideAnalyticsRange(item, range){
+  const d = toDateValue(item);
+  if (!d) return false;
+  if (range.start && d < range.start) return false;
+  if (range.end && d > range.end) return false;
+  return true;
+}
+
+function filterByAnalyticsRange(items){
+  const range = getAnalyticsRange();
+  return (items || []).filter(item => isInsideAnalyticsRange(item, range));
+}
+
+function setAnalyticsRange(value){
+  state.analyticsRange = value;
+
+  const customBox = document.getElementById("analyticsCustomDates");
+  if (customBox) customBox.classList.toggle("hidden", value !== "custom");
+
+  if (value !== "custom") buildAnalytics();
+}
+
+function applyCustomAnalyticsRange(){
+  state.analyticsRange = "custom";
+  buildAnalytics();
+}
+
+function buildDailySeries(items){
+  const range = getAnalyticsRange();
+  const days = Math.max(1, Math.min(range.days || 30, 90));
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const counts = Array(days).fill(0);
+
+  (items || []).forEach(item => {
+    const d = toDateValue(item);
+    if (!d) return;
+
+    const day = new Date(d);
+    day.setHours(0,0,0,0);
+
+    const index = days - 1 + Math.round((day - today) / 86400000);
+
+    if (index >= 0 && index < days) counts[index]++;
+  });
+
+  return { counts };
+}
+
+function trendMeta(counts){
+  const mid = Math.max(1, Math.floor(counts.length / 2));
+  const previous = counts.slice(0, mid).reduce((a,b) => a + b, 0);
+  const current = counts.slice(mid).reduce((a,b) => a + b, 0);
+  const diff = current - previous;
+  const pct = previous ? Math.round((diff / previous) * 100) : (current ? 100 : 0);
+
+  return {
+    previous,
+    current,
+    diff,
+    pct,
+    dir: diff > 0 ? "up" : diff < 0 ? "down" : "flat"
+  };
+}
+
 function renderSparkline(counts){
   const values = Array.isArray(counts) && counts.length ? counts.map(Number) : [0,0,0,0,0,0,0];
   const w = 320;
@@ -3553,7 +3717,30 @@ function renderSparkline(counts){
     </svg>
   `;
 }
-function growthCard(title,total,items,subtitle){ const series=buildDailySeries(items,7); const meta=trendMeta(series.counts); const arrow=meta.dir==='up'?'↗':meta.dir==='down'?'↘':'→'; const label=meta.dir==='flat'?'No change':`${arrow} ${Math.abs(meta.pct)}%`; return `<article class="trend-card"><div class="trend-head"><div><h3 class="trend-title">${escapeHtml(title)}</h3><p class="trend-sub">${escapeHtml(subtitle||'Last 7 days')}</p></div><span class="trend-delta ${meta.dir}">${label}</span></div><div class="trend-value">${Number(total||0).toLocaleString()}</div><div class="trend-chart">${renderSparkline(series.counts)}</div></article>`; }
+
+function growthCard(title, items, subtitle){
+  const range = getAnalyticsRange();
+  const filtered = filterByAnalyticsRange(items || []);
+  const series = buildDailySeries(items || []);
+  const meta = trendMeta(series.counts);
+  const arrow = meta.dir === "up" ? "↗" : meta.dir === "down" ? "↘" : "→";
+  const label = meta.dir === "flat" ? "No change" : `${arrow} ${Math.abs(meta.pct)}%`;
+
+  return `
+    <article class="trend-card">
+      <div class="trend-head">
+        <div>
+          <h3 class="trend-title">${escapeHtml(title)}</h3>
+          <p class="trend-sub">${escapeHtml(subtitle || range.label)}</p>
+        </div>
+        <span class="trend-delta ${meta.dir}">${label}</span>
+      </div>
+
+      <div class="trend-value">${filtered.length.toLocaleString()}</div>
+      <div class="trend-chart">${renderSparkline(series.counts)}</div>
+    </article>
+  `;
+}
 function formatDateTime(value){ if(!value)return '-'; const d=new Date(value); if(isNaN(d.getTime()))return escapeHtml(value); return d.toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
 function durationBetween(start,end){ const a=start?new Date(start):null,b=end?new Date(end):null; if(!a||!b||isNaN(a)||isNaN(b)||b<a)return '-'; const mins=Math.round((b-a)/60000),h=Math.floor(mins/60),m=mins%60; return h?`${h}h ${m}m`:`${m}m`; }
 function getAgentIdFrom(value){ return String(value?._id||value?.id||value||''); }
@@ -3620,24 +3807,97 @@ taskWrap.innerHTML = tasks.length
   : '<div class="empty">No tasks assigned yet.</div>';
   buildAgentActivityPanel();
 }
-  function buildAnalytics(){
-  const stats=getStats(); const eStats=state.employerStats||{}; const pAnalytics=state.postAnalytics?.summary||{};
-  const apps=Array.isArray(state.applications)?state.applications:[], jobs=Array.isArray(state.jobs)?state.jobs:[], tasks=Array.isArray(state.tasks)?state.tasks:[], schedules=Array.isArray(state.schedules)?state.schedules:[], companyPosts=getCompanyPosts();
-  const shortlistRate=stats.applications?Math.round((stats.grouped.shortlisted/stats.applications)*100):0;
-  const hireRate=stats.applications?Math.round((stats.grouped.hired/stats.applications)*100):0;
-  const completedTasks=tasks.filter(t=>['done','completed','complete'].includes(safeStatus(t.status))).length;
-  const taskCompletion=tasks.length?Math.round((completedTasks/tasks.length)*100):0;
-  const totalEngagement=(pAnalytics.totalLikes||0)+(pAnalytics.totalComments||0)+(pAnalytics.totalShares||0);
-  const grid=document.getElementById('analyticsGrid');
-  grid.innerHTML=`
-    ${growthCard('Applications Growth',stats.applications,apps,'Real application records over the last 7 days')}
-    ${growthCard('Jobs Growth',stats.jobsPosted,jobs,'Real job records over the last 7 days')}
-    ${growthCard('Company Post Growth',companyPosts.length,companyPosts,'Real company post records over the last 7 days')}
-    ${growthCard('Operations Activity',schedules.length+tasks.length,[...schedules,...tasks],'Real schedule and task records over the last 7 days')}
-    <article class="analytics-card"><h3>Hiring Funnel</h3><p>Live candidate movement from your backend application records.</p><div class="metric-line"><span>New Applicants</span><b>${stats.grouped.new}</b></div><div class="metric-line"><span>Shortlisted</span><b class="metric-good">${stats.grouped.shortlisted}</b></div><div class="metric-line"><span>Interview</span><b>${stats.grouped.interview}</b></div><div class="metric-line"><span>Offers</span><b>${stats.grouped.offer}</b></div><div class="metric-line"><span>Hired</span><b class="metric-good">${stats.grouped.hired}</b></div><div class="metric-line"><span>Rejected</span><b class="metric-bad">${stats.grouped.rejected||0}</b></div></article>
-    <article class="analytics-card"><h3>Employer Performance</h3><p>Rates are calculated from real applications and job statistics only.</p><div class="metric-line"><span>Total Job Views</span><b>${eStats.totalViews||0}</b></div><div class="metric-line"><span>Total Saves</span><b>${eStats.totalSaves||0}</b></div><div class="metric-line"><span>Total Invites</span><b>${eStats.totalInvites||0}</b></div><div class="metric-line"><span>Shortlist Rate</span><b class="${shortlistRate>=30?'metric-good':'metric-bad'}">${shortlistRate}%</b></div><div class="metric-line"><span>Hire Rate</span><b class="${hireRate>=10?'metric-good':'metric-bad'}">${hireRate}%</b></div></article>
-    <article class="analytics-card"><h3>Company Feed Performance</h3><p>Engagement comes from your post analytics endpoint when available.</p><div class="metric-line"><span>Total Posts</span><b>${pAnalytics.totalPosts||companyPosts.length}</b></div><div class="metric-line"><span>Total Views</span><b>${pAnalytics.totalViews||0}</b></div><div class="metric-line"><span>Total Likes</span><b>${pAnalytics.totalLikes||0}</b></div><div class="metric-line"><span>Total Comments</span><b>${pAnalytics.totalComments||0}</b></div><div class="metric-line"><span>Total Shares</span><b>${pAnalytics.totalShares||0}</b></div><div class="metric-line"><span>Total Engagement</span><b>${totalEngagement}</b></div></article>
-    <article class="analytics-card"><h3>Agent Performance</h3><p>Based on assigned schedules and task completion. Login/logout rows appear below Schedules & Tasks.</p><div class="metric-line"><span>Schedules Assigned</span><b>${schedules.length}</b></div><div class="metric-line"><span>Tasks Created</span><b>${tasks.length}</b></div><div class="metric-line"><span>Tasks Done</span><b class="metric-good">${completedTasks}</b></div><div class="metric-line"><span>Tasks In Progress</span><b>${tasks.filter(t=>safeStatus(t.status)==='in_progress').length}</b></div><div class="metric-line"><span>Task Completion</span><b class="${taskCompletion>=70?'metric-good':'metric-bad'}">${taskCompletion}%</b></div></article>`;
+function buildAnalytics(){
+  const range = getAnalyticsRange();
+
+  const appsAll = Array.isArray(state.applications) ? state.applications : [];
+  const jobsAll = Array.isArray(state.jobs) ? state.jobs : [];
+  const tasksAll = Array.isArray(state.tasks) ? state.tasks : [];
+  const schedulesAll = Array.isArray(state.schedules) ? state.schedules : [];
+  const postsAll = getCompanyPosts();
+
+  const apps = filterByAnalyticsRange(appsAll);
+  const jobs = filterByAnalyticsRange(jobsAll);
+  const tasks = filterByAnalyticsRange(tasksAll);
+  const schedules = filterByAnalyticsRange(schedulesAll);
+  const companyPosts = filterByAnalyticsRange(postsAll);
+
+  const grouped = {
+    new:0,
+    shortlisted:0,
+    interview:0,
+    offer:0,
+    hired:0
+  };
+
+  apps.forEach(app => {
+    const status = safeStatus(app.status || app.stage || app.applicationStatus);
+
+    if (status.includes("shortlist")) grouped.shortlisted++;
+    else if (status.includes("interview")) grouped.interview++;
+    else if (status.includes("offer")) grouped.offer++;
+    else if (status.includes("hired")) grouped.hired++;
+    else grouped.new++;
+  });
+
+  const shortlistRate = apps.length ? Math.round((grouped.shortlisted / apps.length) * 100) : 0;
+  const hireRate = apps.length ? Math.round((grouped.hired / apps.length) * 100) : 0;
+
+  const completedTasks = tasks.filter(t =>
+    ["done","completed","complete"].includes(safeStatus(t.status))
+  ).length;
+
+  const taskCompletion = tasks.length ? Math.round((completedTasks / tasks.length) * 100) : 0;
+
+  const countValue = value => Array.isArray(value) ? value.length : Number(value || 0) || 0;
+
+  const totalEngagement = companyPosts.reduce((sum, post) => {
+    return sum +
+      countValue(post.likes) +
+      countValue(post.comments) +
+      countValue(post.shares);
+  }, 0);
+
+  const grid = document.getElementById("analyticsGrid");
+
+  grid.innerHTML = `
+    ${growthCard("Applications Growth", appsAll, `Real application records • ${range.label}`)}
+    ${growthCard("Jobs Growth", jobsAll, `Real job records • ${range.label}`)}
+    ${growthCard("Company Post Growth", postsAll, `Real company posts • ${range.label}`)}
+    ${growthCard("Operations Activity", [...schedulesAll, ...tasksAll], `Schedules and tasks • ${range.label}`)}
+
+    <article class="analytics-card">
+      <h3>Hiring Funnel</h3>
+      <p>Candidate movement filtered by ${escapeHtml(range.label)}.</p>
+      <div class="metric-line"><span>New Applicants</span><b>${grouped.new}</b></div>
+      <div class="metric-line"><span>Shortlisted</span><b class="metric-good">${grouped.shortlisted}</b></div>
+      <div class="metric-line"><span>Interview</span><b>${grouped.interview}</b></div>
+      <div class="metric-line"><span>Offer</span><b>${grouped.offer}</b></div>
+      <div class="metric-line"><span>Hired</span><b class="metric-good">${grouped.hired}</b></div>
+      <div class="metric-line"><span>Shortlist Rate</span><b>${shortlistRate}%</b></div>
+      <div class="metric-line"><span>Hire Rate</span><b>${hireRate}%</b></div>
+    </article>
+
+    <article class="analytics-card">
+      <h3>Company Feed Performance</h3>
+      <p>Engagement from company posts created during ${escapeHtml(range.label)}.</p>
+      <div class="metric-line"><span>Total Posts</span><b>${companyPosts.length}</b></div>
+      <div class="metric-line"><span>Total Likes</span><b>${companyPosts.reduce((s,p)=>s+countValue(p.likes),0)}</b></div>
+      <div class="metric-line"><span>Total Comments</span><b>${companyPosts.reduce((s,p)=>s+countValue(p.comments),0)}</b></div>
+      <div class="metric-line"><span>Total Shares</span><b>${companyPosts.reduce((s,p)=>s+countValue(p.shares),0)}</b></div>
+      <div class="metric-line"><span>Total Engagement</span><b>${totalEngagement}</b></div>
+    </article>
+
+    <article class="analytics-card">
+      <h3>Agent Performance</h3>
+      <p>Schedules and tasks filtered by ${escapeHtml(range.label)}.</p>
+      <div class="metric-line"><span>Schedules Assigned</span><b>${schedules.length}</b></div>
+      <div class="metric-line"><span>Tasks Created</span><b>${tasks.length}</b></div>
+      <div class="metric-line"><span>Tasks Done</span><b class="metric-good">${completedTasks}</b></div>
+      <div class="metric-line"><span>Tasks In Progress</span><b>${tasks.filter(t=>safeStatus(t.status)==="in_progress").length}</b></div>
+      <div class="metric-line"><span>Task Completion</span><b class="${taskCompletion >= 70 ? "metric-good" : "metric-bad"}">${taskCompletion}%</b></div>
+    </article>
+  `;
 }
   function buildProfileSection(){
   const me = state.me || {};
