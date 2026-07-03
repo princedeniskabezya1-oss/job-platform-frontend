@@ -4242,6 +4242,33 @@ function openEditJob(jobId){
 
   openModal("jobModal");
 }
+    function handleEmployerJobDeepLink(){
+  const params = new URLSearchParams(location.search);
+
+  const tab =
+    params.get("tab") ||
+    localStorage.getItem("employerOpenTab") ||
+    "";
+
+  const editJobId =
+    params.get("editJob") ||
+    localStorage.getItem("employerEditJobId") ||
+    "";
+
+  if(tab === "jobs"){
+    openTab("jobs");
+  }
+
+  if(editJobId){
+    setTimeout(() => {
+      openTab("jobs");
+      openEditJob(editJobId);
+
+      localStorage.removeItem("employerEditJobId");
+      localStorage.removeItem("employerOpenTab");
+    }, 500);
+  }
+}
     async function toggleJobStatus(jobId, status){
   try {
     await fetchJSON(`${API}/api/jobs/${jobId}`, {
@@ -5783,8 +5810,18 @@ async function init() {
     setupSocket();
     applyRolePreset('viewer');
     document.getElementById('editTeamPhoto')?.addEventListener('change', function(){ const file=this.files?.[0]; if(!file)return; document.getElementById('editTeamPreview').src=URL.createObjectURL(file); });
-    refreshAllUI();
-    openTab('overview');
+refreshAllUI();
+
+const params = new URLSearchParams(location.search);
+const tab = params.get("tab") || localStorage.getItem("employerOpenTab");
+
+if(tab){
+  openTab(tab);
+}else{
+  openTab("overview");
+}
+
+handleEmployerJobDeepLink();
   } catch (err) {
     console.error(err);
     showToast('Unable to load employer page', err.message || 'Please try again.', 'error');
