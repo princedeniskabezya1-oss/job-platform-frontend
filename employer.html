@@ -1135,20 +1135,23 @@ img{display:block;max-width:100%}
   border-radius:18px;
 }
 
-.upwork-network-card::before{
-  display:none!important;
-}
-
 .jobseeker-cover{
-  height:82px;
-  background:#e6eef5;
+  width:100%;
+  height:96px;
+  flex-shrink:0;
+  display:block;
+  background-color:#e6eef5;
   background-size:cover;
   background-position:center;
-  display:block;
+  background-repeat:no-repeat;
 }
 
 .jobseeker-cover.empty{
-  background:#eef3f8;
+  background:linear-gradient(135deg,#eef6ff,#f8fafc);
+}
+
+.upwork-network-card::before{
+  display:none!important;
 }
 
 .upwork-card-top{
@@ -3394,6 +3397,53 @@ function candidateMatchScore(user){
   `;
 }
 
+function mediaUrl(value){
+  if (!value) return "";
+
+  if (typeof value === "object") {
+    value = value.secure_url || value.url || value.path || "";
+  }
+
+  value = String(value || "").trim();
+  if (!value) return "";
+
+  if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("data:")) {
+    return value;
+  }
+
+  if (value.startsWith("/")) {
+    return API + value;
+  }
+
+  return value;
+}
+
+function getUserBannerImage(user){
+  return mediaUrl(
+    user.bannerImage ||
+    user.coverImage ||
+    user.coverPhoto ||
+    user.backgroundImage ||
+    user.profileBanner ||
+    user.profileCover ||
+    user.profileCoverImage ||
+    user.cover ||
+    user.coverUrl ||
+    user.coverPhotoUrl ||
+    user.banner ||
+    user.bannerUrl ||
+    user.headerImage ||
+    user.headerPhoto ||
+    user.bgImage ||
+    user.background ||
+    user?.profile?.bannerImage ||
+    user?.profile?.coverImage ||
+    user?.profile?.coverPhoto ||
+    user?.profile?.banner ||
+    user?.profile?.cover
+  );
+}
+
 function buildJobSeekers(){
   const wrap = document.getElementById("jobseekersList");
   const topWrap = document.getElementById("topCandidatesList");
@@ -3447,21 +3497,14 @@ const title = user.profession || user.headline || user.course || "Professional c
 const salary = user.expectedSalary || user.salaryExpectation || "Open";
 const match = user.matchData.score;
 
-const banner =
-  user.bannerImage ||
-  user.coverImage ||
-  user.coverPhoto ||
-  user.backgroundImage ||
-  user.profileBanner ||
-  user.banner ||
-  "";
+const banner = getUserBannerImage(user);
 
 return `
   <article class="upwork-network-card">
-    <div
-      class="jobseeker-cover ${banner ? "" : "empty"}"
-      ${banner ? `style="background-image:url('${escapeHtml(banner)}')"` : ""}
-    ></div>
+<div
+  class="jobseeker-cover ${banner ? "" : "empty"}"
+  ${banner ? `style="background-image:url(&quot;${escapeHtml(banner)}&quot;)"` : ""}
+></div>
 
     <div class="upwork-card-top">
           <div class="upwork-profile-main">
