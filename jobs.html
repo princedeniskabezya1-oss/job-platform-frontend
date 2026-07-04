@@ -3210,6 +3210,25 @@ async function initJobsPage(){
 
     restoreSelectedJobDesktop();
     loadNotificationBadge();
+
+    const shareJobId =
+      new URLSearchParams(location.search).get("shareJob") ||
+      localStorage.getItem("pendingShareJobId");
+
+    if(shareJobId){
+      localStorage.removeItem("pendingShareJobId");
+
+      const jobExists = state.jobs.some(job => String(job._id) === String(shareJobId));
+
+      if(jobExists){
+        setTimeout(() => {
+          openJobShareModal(shareJobId);
+        }, 350);
+      }else{
+        showToast("This job could not be shared.");
+      }
+    }
+
   }catch(err){
     console.error("JOBS PAGE INIT FAILED:", err);
 
