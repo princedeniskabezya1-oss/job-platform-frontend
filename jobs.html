@@ -3211,18 +3211,19 @@ async function initJobsPage(){
     restoreSelectedJobDesktop();
     loadNotificationBadge();
 
-    const shareJobId =
-      new URLSearchParams(location.search).get("shareJob") ||
-      localStorage.getItem("pendingShareJobId");
+    const pendingShareJobId = localStorage.getItem("pendingShareJobId");
 
-    if(shareJobId){
+    if(pendingShareJobId){
       localStorage.removeItem("pendingShareJobId");
 
-      const jobExists = state.jobs.some(job => String(job._id) === String(shareJobId));
+      const cleanUrl = location.pathname;
+      history.replaceState(null, "", cleanUrl);
+
+      const jobExists = state.jobs.some(job => String(job._id) === String(pendingShareJobId));
 
       if(jobExists){
         setTimeout(() => {
-          openJobShareModal(shareJobId);
+          openJobShareModal(pendingShareJobId);
         }, 350);
       }else{
         showToast("This job could not be shared.");
