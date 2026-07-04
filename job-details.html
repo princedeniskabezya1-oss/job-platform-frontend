@@ -1335,31 +1335,36 @@ function formatDate(value){
 }
 
 function employerProfileUrl(job){
-  const rawId =
-    job?.employerId?._id ||
-    job?.employerId?.id ||
-    job?.employer?._id ||
-    job?.employer?.id ||
-    job?.createdBy?._id ||
-    job?.createdBy?.id ||
-    job?.userId?._id ||
-    job?.userId?.id ||
-    job?.postedBy?._id ||
-    job?.postedBy?.id ||
+  const owner =
     job?.employerId ||
     job?.employer ||
     job?.createdBy ||
     job?.userId ||
     job?.postedBy ||
+    job?.owner ||
+    job?.author ||
+    null;
+
+  const rawId =
+    owner?._id ||
+    owner?.id ||
+    job?.employerId?._id ||
+    job?.createdBy?._id ||
+    job?.userId?._id ||
+    job?.postedBy?._id ||
+    job?.employerId ||
+    job?.createdBy ||
+    job?.userId ||
+    job?.postedBy ||
     "";
 
-  const id = String(rawId);
+  const id = String(rawId || "").trim();
 
-  if(!id || id === "[object Object]"){
+  if(!id || id === "undefined" || id === "null" || id === "[object Object]"){
     return "#";
   }
 
-  return "employer-public-profile.html?id=" + encodeURIComponent(id);
+  return `employer-public-profile.html?id=${encodeURIComponent(id)}`;
 }
 
 /* =========================
@@ -1992,8 +1997,6 @@ window.viewJobApplications = viewJobApplications;
 window.editJobFromDetails = editJobFromDetails;
 
 function openEmployer(){
-  if(!requireLogin("view employer profiles")) return;
-
   if(!state.job){
     showToast("Employer profile is not available.");
     return;
@@ -2002,6 +2005,7 @@ function openEmployer(){
   const url = employerProfileUrl(state.job);
 
   if(url === "#"){
+    console.log("JOB OWNER DATA:", state.job);
     showToast("Employer profile is not available.");
     return;
   }
