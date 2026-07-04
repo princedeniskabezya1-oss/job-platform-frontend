@@ -784,120 +784,15 @@ img{
     grid-template-columns:1fr;
   }
 }
-
-@media(max-width:760px){
-  body{
-    padding-bottom:74px;
-  }
-
-  .container{
-    width:100%;
-  }
-
-  .top-inner{
-    height:auto;
-    padding:10px;
-    flex-wrap:wrap;
-  }
-
-  .top-title{
-    flex:1;
-  }
-
-  .top-title p{
-    display:none;
-  }
-
-  .top-actions{
-    width:100%;
-    margin-left:0;
-  }
-
-  .top-actions .btn{
-    flex:1;
-  }
-
-  .page{
-    padding:0;
-  }
-
-  .layout{
-    grid-template-columns:1fr;
-  }
-
-  .left-col{
-    position:static;
-  }
-
-  .card{
-    border-radius:0;
-    border-left:0;
-    border-right:0;
-  }
-
-  .side-menu{
-    display:flex;
-    overflow-x:auto;
-    border-radius:0;
-    border-left:0;
-    border-right:0;
-  }
-
-  .menu-btn{
-    width:auto;
-    white-space:nowrap;
-    flex-shrink:0;
-  }
-
-  .menu-btn small{
-    display:none;
-  }
-
-  .stat-grid{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
-
-  .toolbar{
-    grid-template-columns:1fr;
-  }
-
-  .item-top{
-    display:block;
-  }
-
-  .item-actions .btn{
-    flex:1;
-  }
-
-  .mobile-nav{
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:0;
-    z-index:2000;
-    height:72px;
-    background:rgba(255,255,255,.98);
-    border-top:1px solid #e5e7eb;
-    display:grid;
-    grid-template-columns:repeat(5,1fr);
-  }
-
-  .mobile-nav button{
-    border:0;
-    background:transparent;
-    color:#64748b;
-    font-size:11px;
-    font-weight:700;
-  }
-
-  .mobile-nav button.active{
-    color:var(--blue);
-  }
-}
 </style>
 </head>
 
 <body>
+  <button class="mobile-menu-btn" type="button" onclick="toggleTalentMenu()">
+  <span></span>
+</button>
+
+<div class="mobile-menu-backdrop" onclick="closeTalentMenu()"></div>
 
 <header class="topbar">
   <div class="container top-inner">
@@ -1440,33 +1335,6 @@ img{
   class="toast"
 ></div>
 
-<nav class="mobile-nav">
-
-  <button
-    class="active"
-    onclick="showSection('overview')"
-  >
-    Home
-  </button>
-
-  <button onclick="showSection('applications')">
-    Apps
-  </button>
-
-  <button onclick="showSection('jobs')">
-    Jobs
-  </button>
-
-  <button onclick="location.href='messages.html'">
-    Messages
-  </button>
-
-  <button onclick="openProfile()">
-    Me
-  </button>
-
-</nav>
-
 <script>
 const API = "https://backend-1-9b6f.onrender.com";
 
@@ -1616,6 +1484,7 @@ function showSection(name){
     .forEach(btn=>{
       btn.classList.remove("active");
     });
+  closeTalentMenu();
 }
 
 document.querySelectorAll(".menu-btn")
@@ -1624,6 +1493,7 @@ document.querySelectorAll(".menu-btn")
       showSection(btn.dataset.section);
     });
   });
+  
 
 /* =========================
    PROFILE
@@ -2471,6 +2341,14 @@ async function init(){
         </div>
       `;
   }
+}
+
+function toggleTalentMenu(){
+  document.body.classList.toggle("talent-menu-open");
+}
+
+function closeTalentMenu(){
+  document.body.classList.remove("talent-menu-open");
 }
 
 init();
