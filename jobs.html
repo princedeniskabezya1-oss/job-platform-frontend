@@ -1670,31 +1670,41 @@ function jobSkills(job, limit = 3){
   return safeArray(job?.skills).slice(0, limit);
 }
 
+function cleanOwnerId(value){
+  if(!value) return "";
+
+  if(typeof value === "string"){
+    return value.trim();
+  }
+
+  if(typeof value === "object"){
+    return String(
+      value._id ||
+      value.id ||
+      value.userId ||
+      value.ownerId ||
+      value.employerId ||
+      value.createdBy ||
+      value.postedBy ||
+      ""
+    ).trim();
+  }
+
+  return String(value).trim();
+}
+
 function employerProfileUrl(job){
-  const owner =
-    job?.employerId ||
-    job?.employer ||
-    job?.createdBy ||
-    job?.userId ||
-    job?.postedBy ||
-    job?.owner ||
-    job?.author ||
-    null;
-
-  const rawId =
-    owner?._id ||
-    owner?.id ||
-    job?.employerId?._id ||
-    job?.createdBy?._id ||
-    job?.userId?._id ||
-    job?.postedBy?._id ||
-    job?.employerId ||
-    job?.createdBy ||
-    job?.userId ||
-    job?.postedBy ||
-    "";
-
-  const id = String(rawId || "").trim();
+  const id =
+    cleanOwnerId(job?.employerId) ||
+    cleanOwnerId(job?.employer) ||
+    cleanOwnerId(job?.createdBy) ||
+    cleanOwnerId(job?.userId) ||
+    cleanOwnerId(job?.postedBy) ||
+    cleanOwnerId(job?.owner) ||
+    cleanOwnerId(job?.author) ||
+    cleanOwnerId(job?.company?.owner) ||
+    cleanOwnerId(job?.company?.userId) ||
+    cleanOwnerId(job?.company?.employerId);
 
   if(!id || id === "undefined" || id === "null" || id === "[object Object]"){
     return "#";
