@@ -1671,7 +1671,7 @@ function jobSkills(job, limit = 3){
 }
 
 function employerProfileUrl(job){
-  const id = String(
+  const rawId =
     job?.employerId?._id ||
     job?.employerId?.id ||
     job?.employer?._id ||
@@ -1683,8 +1683,13 @@ function employerProfileUrl(job){
     job?.postedBy?._id ||
     job?.postedBy?.id ||
     job?.employerId ||
-    ""
-  );
+    job?.employer ||
+    job?.createdBy ||
+    job?.userId ||
+    job?.postedBy ||
+    "";
+
+  const id = String(rawId);
 
   if(!id || id === "[object Object]"){
     return "#";
