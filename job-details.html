@@ -1335,9 +1335,24 @@ function formatDate(value){
 }
 
 function employerProfileUrl(job){
-  const id = job?.employerId?._id || job?.employerId || "";
+  const id = String(
+    job?.employerId?._id ||
+    job?.employerId?.id ||
+    job?.employer?._id ||
+    job?.employer?.id ||
+    job?.createdBy?._id ||
+    job?.createdBy?.id ||
+    job?.userId?._id ||
+    job?.userId?.id ||
+    job?.postedBy?._id ||
+    job?.postedBy?.id ||
+    job?.employerId ||
+    ""
+  );
 
-  if(!id) return "#";
+  if(!id || id === "[object Object]"){
+    return "#";
+  }
 
   return "employer-public-profile.html?id=" + encodeURIComponent(id);
 }
