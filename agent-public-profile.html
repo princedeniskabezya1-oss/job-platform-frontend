@@ -1973,32 +1973,40 @@ function setupOwnerControls(user,viewer){
     location.href = `messages.html?user=${profileId}`;
   };
 
-  const followUser = async () => {
-    if(!profileId || !token){
-      location.href = "login.html";
-      return;
+const followUser = async () => {
+  if(!profileId || !token){
+    location.href = "login.html";
+    return;
+  }
+
+  try{
+    const res = await fetch(`${API}/api/users/${profileId}/follow`,{
+      method:"PATCH",
+      headers:authHeaders()
+    });
+
+    const data = await res.json();
+
+    if(!res.ok){
+      throw new Error(data.message || "Follow failed");
     }
 
-    try{
-      const res = await fetch(`${API}/api/users/${profileId}/follow`,{
-        method:"PATCH",
-        headers:authHeaders()
-      });
+    const isNowFollowing = Boolean(data.following);
 
-      const data = await res.json();
-
-      if(!res.ok){
-        throw new Error(data.message || "Follow failed");
-      }
-
-      const text = data.following ? "Following" : "Follow";
-      if(followBtn) followBtn.textContent = text;
-      if(desktopFollowBtn) desktopFollowBtn.textContent = text;
-
-    }catch(err){
-      alert(err.message);
+    if(followBtn){
+      followBtn.textContent = isNowFollowing ? "Following" : "Follow";
+      followBtn.classList.toggle("hidden", isNowFollowing);
     }
-  };
+
+    if(desktopFollowBtn){
+      desktopFollowBtn.textContent = isNowFollowing ? "Following" : "Follow";
+      desktopFollowBtn.classList.toggle("hidden", isNowFollowing);
+    }
+
+  }catch(err){
+    alert(err.message);
+  }
+};
 
   if(editBtn) editBtn.onclick = goEdit;
   if(desktopEditBtn) desktopEditBtn.onclick = goEdit;
@@ -2040,11 +2048,34 @@ function setupOwnerControls(user,viewer){
     desktopMessageBtn?.classList.remove("hidden");
   }
 
-  const followers = Array.isArray(user.followers)
-    ? user.followers.map(String)
-    : [];
+const followers = Array.isArray(user.followers)
+  ? user.followers.map(f =>
+      String(
+        f?._id ||
+        f?.id ||
+        f?.userId ||
+        f
+      )
+    )
+  : [];
 
-  const isFollowing = viewerId && followers.includes(String(viewerId));
+const following = Array.isArray(viewer.following)
+  ? viewer.following.map(f =>
+      String(
+        f?._id ||
+        f?.id ||
+        f?.userId ||
+        f
+      )
+    )
+  : [];
+
+const isFollowing =
+  viewerId &&
+  (
+    followers.includes(String(viewerId)) ||
+    following.includes(String(profileUserId))
+  );
 
   if(!isFollowing){
     if(isMobile){
