@@ -1981,31 +1981,13 @@ window.openEmployer = openEmployer;
    SHARE
 ========================= */
 
-async function shareCurrentJob(){
+function shareCurrentJob(){
   if(!state.job){
     showToast("This job is not ready to share.");
     return;
   }
 
-  const url = `${location.origin}${location.pathname}?id=${encodeURIComponent(state.job._id)}`;
-
-  const shareData = {
-    title:state.job.title || "AIFT Job",
-    text:`${state.job.title || "Job opportunity"} at ${companyName(state.job)}`,
-    url
-  };
-
-  try{
-    if(navigator.share){
-      await navigator.share(shareData);
-      return;
-    }
-
-    await navigator.clipboard.writeText(url);
-    showToast("Job link copied.");
-  }catch(err){
-    console.warn("SHARE FAILED:", err.message);
-  }
+  location.href = `jobs.html?shareJob=${encodeURIComponent(state.job._id)}`;
 }
 
 window.shareCurrentJob = shareCurrentJob;
