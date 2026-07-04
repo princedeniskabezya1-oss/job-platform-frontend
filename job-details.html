@@ -1233,6 +1233,16 @@ function safeArray(value){
 function compactText(value, fallback = ""){
   return String(value || fallback || "").trim().replace(/\s+/g," ");
 }
+  function savedJobId(value){
+  return String(
+    value?._id ||
+    value?.id ||
+    value?.jobId?._id ||
+    value?.jobId ||
+    value ||
+    ""
+  );
+}
 
 function numberFormat(value){
   const num = Number(value || 0);
@@ -1449,11 +1459,15 @@ async function loadMe(){
       localStorage.setItem("role", state.me.role);
     }
 
-    state.savedIds.clear();
+state.savedIds.clear();
 
-    safeArray(state.me?.savedJobs).forEach(id => {
-      state.savedIds.add(String(id));
-    });
+safeArray(state.me?.savedJobs).forEach(item => {
+  const id = savedJobId(item);
+
+  if(id && id !== "[object Object]"){
+    state.savedIds.add(id);
+  }
+});
   }catch(err){
     console.warn("ME LOAD FAILED:", err.message);
   }
