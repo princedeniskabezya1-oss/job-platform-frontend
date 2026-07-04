@@ -1671,9 +1671,24 @@ function jobSkills(job, limit = 3){
 }
 
 function employerProfileUrl(job){
-  const id = job?.employerId?._id || job?.employerId || "";
+  const id = String(
+    job?.employerId?._id ||
+    job?.employerId?.id ||
+    job?.employer?._id ||
+    job?.employer?.id ||
+    job?.createdBy?._id ||
+    job?.createdBy?.id ||
+    job?.userId?._id ||
+    job?.userId?.id ||
+    job?.postedBy?._id ||
+    job?.postedBy?.id ||
+    job?.employerId ||
+    ""
+  );
 
-  if(!id) return "#";
+  if(!id || id === "[object Object]"){
+    return "#";
+  }
 
   return "employer-public-profile.html?id=" + encodeURIComponent(id);
 }
@@ -2669,6 +2684,38 @@ function openEmployer(jobId){
 }
 
 window.openEmployer = openEmployer;
+
+  /* =========================
+   OWNER JOB ACTIONS
+========================= */
+
+function editJobFromJobsPage(jobId){
+  if(!requireLogin("edit this job")){
+    return;
+  }
+
+  localStorage.setItem("selectedJobId", String(jobId));
+  localStorage.setItem("employerSelectedJobId", String(jobId));
+  localStorage.setItem("employerOpenTab", "jobs");
+  localStorage.setItem("employerEditJobId", String(jobId));
+
+  location.href = `employer.html?tab=jobs&editJob=${encodeURIComponent(jobId)}`;
+}
+
+function viewJobApplicationsFromJobsPage(jobId){
+  if(!requireLogin("view applications")){
+    return;
+  }
+
+  localStorage.setItem("selectedJobId", String(jobId));
+  localStorage.setItem("employerSelectedJobId", String(jobId));
+  localStorage.setItem("employerOpenTab", "applications");
+
+  location.href = `employer.html?tab=applications&jobId=${encodeURIComponent(jobId)}`;
+}
+
+window.editJobFromJobsPage = editJobFromJobsPage;
+window.viewJobApplicationsFromJobsPage = viewJobApplicationsFromJobsPage;
 
 /* =========================
    SHARE JOB - FOLLOWING USERS ONLY
