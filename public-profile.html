@@ -1139,6 +1139,151 @@ body.cv-viewer-open{
     display:none!important;
   }
 }
+  .profile-share-overlay{
+  position:fixed;
+  inset:0;
+  z-index:999999;
+  background:rgba(15,23,42,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+}
+
+.profile-share-overlay.hidden{
+  display:none!important;
+}
+
+.profile-share-panel{
+  width:min(440px,100%);
+  max-height:82vh;
+  background:#fff;
+  border-radius:18px;
+  box-shadow:0 24px 70px rgba(15,23,42,.28);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+.profile-share-head{
+  height:58px;
+  padding:0 16px;
+  border-bottom:1px solid #e5e7eb;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.profile-share-head strong{
+  font-size:17px;
+  font-weight:900;
+}
+
+.profile-share-head button{
+  width:34px;
+  height:34px;
+  border:0;
+  border-radius:50%;
+  background:#f3f4f6;
+  font-size:24px;
+  line-height:1;
+}
+
+.profile-share-search{
+  padding:12px 14px;
+  border-bottom:1px solid #eef2f7;
+}
+
+.profile-share-search input{
+  width:100%;
+  height:38px;
+  border:1px solid #dbe3ef;
+  border-radius:999px;
+  background:#f8fafc;
+  padding:0 14px;
+  outline:none;
+}
+
+.profile-share-list{
+  overflow:auto;
+  padding:6px 0;
+}
+
+.profile-share-user{
+  width:100%;
+  border:0;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 14px;
+  text-align:left;
+}
+
+.profile-share-user:hover{
+  background:#f8fafc;
+}
+
+.profile-share-user img{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  object-fit:cover;
+  background:#f1f5f9;
+}
+
+.profile-share-user-info{
+  min-width:0;
+  flex:1;
+}
+
+.profile-share-user-info strong{
+  display:block;
+  font-size:14px;
+  color:#111827;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.profile-share-user-info span{
+  display:block;
+  margin-top:2px;
+  font-size:12px;
+  color:#64748b;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.profile-share-send{
+  border:1px solid var(--blue);
+  background:var(--blue);
+  color:#fff;
+  border-radius:999px;
+  padding:7px 12px;
+  font-size:12px;
+  font-weight:900;
+}
+
+.profile-share-footer{
+  padding:12px 14px;
+  border-top:1px solid #eef2f7;
+  background:#fff;
+}
+
+@media(max-width:640px){
+  .profile-share-overlay{
+    align-items:flex-end;
+    padding:0;
+  }
+
+  .profile-share-panel{
+    width:100%;
+    max-height:86vh;
+    border-radius:18px 18px 0 0;
+  }
+}
 </style>
 </head>
 
@@ -2042,6 +2187,173 @@ function setupOwnerControls(user){
     };
   }
 }
+const shareState = {
+  users:[],
+  loading:false
+};
+
+function uniqueShareUsers(users){
+  const map = new Map();
+
+  users.forEach(user=>{
+    const id = user?._id || user?.id;
+    if(!id) return;
+
+    if(String(id) === String(state.viewer?._id || localStorage.getItem("userId"))){
+      return;
+    }
+
+    map.set(String(id), user);
+  });
+
+  return Array.from(map.values());
+}
+
+function getShareUserListFromViewer(viewer){
+  const following = Array.isArray(viewer?.following) ? viewer.following : [];
+  const followers = Array.isArray(viewer?.followers) ? viewer.followers : [];
+
+  return uniqueShareUsers([...following, ...followers]);
+}
+
+async function openProfileSharePanel(){
+  if(!getToken()){
+    location.href = "login.html";
+    return;
+  }
+
+  document.getElementById("profileMoreMenu")?.classList.remove("show");
+
+  const overlay = document.getElementById("profileShareOverlay");
+  const list = document.getElementById("profileShareList");
+
+  overlay?.classList.remove("hidden");
+
+  if(list){
+    list.innerHTML = `<div class="empty">Loading people...</div>`;
+  }
+
+  try{
+    let viewer = state.viewer;
+
+    if(!viewer){
+      const data = await fetchJSON("/api/users/me", {
+        headers:authHeaders()
+      });
+
+      viewer = normalizeUserResponse(data);
+      state.viewer = viewer;
+    }
+
+    shareState.users = getShareUserListFromViewer(viewer);
+    renderProfileShareUsers();
+
+  }catch(err){
+    if(list){
+      list.innerHTML = `<div class="empty">${esc(err.message || "Unable to load people.")}</div>`;
+    }
+  }
+}
+
+function closeProfileSharePanel(){
+  document.getElementById("profileShareOverlay")?.classList.add("hidden");
+}
+
+function renderProfileShareUsers(){
+  const list = document.getElementById("profileShareList");
+  const search = String(document.getElementById("profileShareSearch")?.value || "").toLowerCase().trim();
+
+  if(!list) return;
+
+  const users = shareState.users.filter(user=>{
+    const name = String(user.name || "").toLowerCase();
+    const role = String(user.role || user.profession || "").toLowerCase();
+    return !search || name.includes(search) || role.includes(search);
+  });
+
+  if(!users.length){
+    list.innerHTML = `<div class="empty">No followers or following found.</div>`;
+    return;
+  }
+
+  list.innerHTML = users.map(user=>{
+    const id = user._id || user.id;
+    const avatar = user.profileImage || FALLBACK_AVATAR;
+    const name = user.name || "AIFT User";
+    const label = user.profession || user.role || "AIFT member";
+
+    return `
+      <div class="profile-share-user">
+        <img src="${esc(avatar)}" alt="">
+        <div class="profile-share-user-info">
+          <strong>${esc(name)}</strong>
+          <span>${esc(label)}</span>
+        </div>
+        <button
+          type="button"
+          class="profile-share-send"
+          onclick="sendProfileShare('${esc(id)}', this)"
+        >
+          Send
+        </button>
+      </div>
+    `;
+  }).join("");
+}
+
+async function sendProfileShare(receiverId, button){
+  if(!receiverId) return;
+
+  const profile = state.profile || {};
+  const profileName = profile.name || "this profile";
+  const profileUrl = location.href;
+
+  const messageText =
+    `Check out ${profileName}'s AIFT profile: ${profileUrl}`;
+
+  button.disabled = true;
+  button.textContent = "Sending...";
+
+  try{
+    const res = await fetch(`${API}/api/messages`, {
+      method:"POST",
+      headers:authHeaders({
+        "Content-Type":"application/json"
+      }),
+      body:JSON.stringify({
+        receiverId,
+        text:messageText,
+        message:messageText,
+        content:messageText,
+        type:"profile_share",
+        sharedProfileId:profile._id || profileId,
+        profileUrl
+      })
+    });
+
+    const data = await res.json().catch(()=>({}));
+
+    if(!res.ok){
+      throw new Error(data.message || "Unable to send profile.");
+    }
+
+    button.textContent = "Sent";
+
+  }catch(err){
+    button.disabled = false;
+    button.textContent = "Send";
+    alert(err.message);
+  }
+}
+
+async function copyProfileLinkOnly(){
+  try{
+    await navigator.clipboard.writeText(location.href);
+    alert("Profile link copied");
+  }catch{
+    alert("Copy this profile link from your browser.");
+  }
+}
 
 function setupButtons(user){
   const shareBtn = document.getElementById("shareBtn");
@@ -2053,16 +2365,9 @@ function setupButtons(user){
   const followBtn = document.getElementById("connectBtn");
   const mobileFollowBtn = document.getElementById("mobileConnectBtn");
 
-  const shareProfile = async () => {
-    try{
-      await navigator.clipboard.writeText(location.href);
-      alert("Profile link copied");
-    }catch{
-      alert("Copy this profile link from your browser.");
-    }
-
-    document.getElementById("profileMoreMenu")?.classList.remove("show");
-  };
+const shareProfile = () => {
+  openProfileSharePanel();
+};
 
   const messageUser = () => {
     if(!getToken()){
@@ -2171,6 +2476,33 @@ async function init(){
 
 init();
 </script>
+  <div class="profile-share-overlay hidden" id="profileShareOverlay">
+  <div class="profile-share-panel">
+    <div class="profile-share-head">
+      <strong>Share Profile</strong>
+      <button type="button" onclick="closeProfileSharePanel()">×</button>
+    </div>
+
+    <div class="profile-share-search">
+      <input
+        id="profileShareSearch"
+        type="search"
+        placeholder="Search people"
+        oninput="renderProfileShareUsers()"
+      >
+    </div>
+
+    <div class="profile-share-list" id="profileShareList">
+      <div class="empty">Loading people...</div>
+    </div>
+
+    <div class="profile-share-footer">
+      <button type="button" class="pill-btn" onclick="copyProfileLinkOnly()">
+        Copy Link
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="feed.js"></script>
 
