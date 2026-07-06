@@ -2209,11 +2209,64 @@ function uniqueShareUsers(users){
   return Array.from(map.values());
 }
 
-function getShareUserListFromViewer(viewer){
+function getRawShareConnections(viewer){
   const following = Array.isArray(viewer?.following) ? viewer.following : [];
   const followers = Array.isArray(viewer?.followers) ? viewer.followers : [];
 
-  return uniqueShareUsers([...following, ...followers]);
+  return [...following, ...followers];
+}
+
+function getConnectionId(item){
+  if(!item) return "";
+
+  if(typeof item === "string") return item;
+
+  return (
+    item._id ||
+    item.id ||
+    item.userId ||
+    item.user?._id ||
+    item.user?.id ||
+    item.following?._id ||
+    item.follower?._id ||
+    ""
+  );
+}
+
+async function hydrateShareUsers(connections){
+  const map = new Map();
+
+  for(const item of connections){
+    const id = getConnectionId(item);
+    if(!id) continue;
+
+    const viewerId = state.viewer?._id || localStorage.getItem("userId");
+    if(String(id) === String(viewerId)) continue;
+
+    if(typeof item === "object" && (item.name || item.profileImage || item.email)){
+      map.set(String(id), {
+        _id:id,
+        ...item
+      });
+      continue;
+    }
+
+    try{
+      const data = await fetchJSON(`/api/users/${id}/public`, {
+        headers:authHeaders()
+      });
+
+      const user = normalizeUserResponse(data);
+
+      if(user?._id || user?.id){
+        map.set(String(user._id || user.id), user);
+      }
+    }catch(err){
+      console.warn("Could not load share user:", id, err.message);
+    }
+  }
+
+  return Array.from(map.values());
 }
 
 async function openProfileSharePanel(){
@@ -2245,8 +2298,10 @@ async function openProfileSharePanel(){
       state.viewer = viewer;
     }
 
-    shareState.users = getShareUserListFromViewer(viewer);
-    renderProfileShareUsers();
+const rawConnections = getRawShareConnections(viewer);
+
+shareState.users = await hydrateShareUsers(rawConnections);
+renderProfileShareUsers();
 
   }catch(err){
     if(list){
@@ -2277,7 +2332,7 @@ function renderProfileShareUsers(){
   }
 
   list.innerHTML = users.map(user=>{
-    const id = user._id || user.id;
+    const id = getConnectionId(user);
     const avatar = user.profileImage || FALLBACK_AVATAR;
     const name = user.name || "AIFT User";
     const label = user.profession || user.role || "AIFT member";
