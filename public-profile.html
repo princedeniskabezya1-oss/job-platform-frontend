@@ -2076,16 +2076,57 @@ function setupButtons(user){
   if(mobileFollowBtn) mobileFollowBtn.onclick = followUser;
 }
 
-function mountFeed(){
-  if(typeof AIFTFeed === "undefined") return;
-
-  AIFTFeed.mount("profileFeedMount", {
-    mode:"profile",
-    authorId:profileId,
-    showComposer:false,
-    infiniteScroll:true,
-    realtime:true
+function activateProfileTab(tab){
+  document.querySelectorAll(".profile-tab, .agent-tab").forEach(btn=>{
+    btn.classList.toggle("active", btn.dataset.tab === tab);
   });
+
+  document.querySelectorAll(".section").forEach(section=>{
+    section.classList.toggle("active", section.id === `section-${tab}`);
+  });
+
+  document.getElementById("profileMoreMenu")?.classList.remove("show");
+}
+
+document.querySelectorAll(".profile-tab, .agent-tab").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    activateProfileTab(btn.dataset.tab);
+  });
+});
+
+function toggleProfileMoreMenu(){
+  const menu = document.getElementById("profileMoreMenu");
+  if(menu) menu.classList.toggle("show");
+}
+
+function toggleHeadlineMore(){
+  const headline = document.getElementById("profileHeadline");
+  const btn = document.getElementById("headlineMoreBtn");
+
+  if(!headline || !btn) return;
+
+  headline.classList.toggle("expanded");
+
+  btn.textContent = headline.classList.contains("expanded")
+    ? "view less"
+    : "view more...";
+}
+
+function mountFeed(){
+  const startFeed = () => {
+    if(typeof AIFTFeed === "undefined") return;
+
+    AIFTFeed.mount("profileFeedMount", {
+      mode:"profile",
+      authorId:profileId,
+      showComposer:false,
+      infiniteScroll:true,
+      realtime:true
+    });
+  };
+
+  startFeed();
+  setTimeout(startFeed, 400);
 }
 
 async function init(){
