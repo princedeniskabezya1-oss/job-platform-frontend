@@ -13,6 +13,7 @@
 
 <link rel="stylesheet" href="feed.css">
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
 :root{
@@ -1133,9 +1134,6 @@ body.cv-viewer-open{
   margin:12px;
   text-align:center;
 }
-  .profile-more-menu{
-  display:none;
-}
 </style>
 </head>
 
@@ -1231,12 +1229,12 @@ body.cv-viewer-open{
     </div>
   </div>
 
-  <div class="desktop-profile-actions" id="desktopProfileActions">
-    <button class="pill-btn hidden" id="editProfileBtn">Edit</button>
-    <button class="pill-btn hidden" id="desktopShareBtn">Share Profile</button>
-    <button class="pill-btn primary" id="messageBtn">Message</button>
-    <button class="pill-btn" id="connectBtn">Connect</button>
-  </div>
+<div class="desktop-profile-actions" id="desktopProfileActions">
+  <button class="pill-btn hidden" id="editProfileBtn">Edit</button>
+  <button class="pill-btn hidden" id="desktopShareBtn">Share Profile</button>
+  <button class="pill-btn primary hidden" id="messageBtn">Message</button>
+  <button class="pill-btn hidden" id="connectBtn">Follow</button>
+</div>
 
 </div>
 
@@ -1260,13 +1258,13 @@ body.cv-viewer-open{
 
   <div class="hero-actions">
 
-    <button class="pill-btn primary" id="mobileMessageBtn">
-      Message
-    </button>
+<button class="pill-btn primary hidden" id="mobileMessageBtn">
+  Message
+</button>
 
-    <button class="pill-btn" id="mobileConnectBtn">
-      Connect
-    </button>
+<button class="pill-btn hidden" id="mobileConnectBtn">
+  Follow
+</button>
 
     <button
       class="pill-btn more-profile-btn"
@@ -1278,8 +1276,9 @@ body.cv-viewer-open{
     </button>
 
     <div class="profile-more-menu" id="profileMoreMenu">
-      <button type="button" id="shareBtn">Share Profile</button>
-      <button type="button" id="mobileEditBtn" class="hidden">Edit Profile</button>
+<button type="button" id="shareBtn">Share Profile</button>
+<button type="button" id="mobileCvBtn" class="hidden">View CV</button>
+<button type="button" id="mobileEditBtn" class="hidden">Edit Profile</button>
       <button type="button" onclick="activateProfileTab('education')">Education</button>
       <button type="button" onclick="activateProfileTab('portfolio')">Portfolio</button>
     </div>
@@ -1460,22 +1459,15 @@ body.cv-viewer-open{
           </div>
         </article>
 
-        <article class="card side-card" id="cvCard">
-          <h3>Resume / CV</h3>
+<article class="card side-card hidden" id="cvCard">
+  <h3>Resume / CV</h3>
 
-          <div class="cv-box">
-            <p id="cvText">
-              No CV available.
-            </p>
-
-            <button
-              class="pill-btn primary hidden"
-              id="resumeBtn"
-            >
-              View CV
-            </button>
-          </div>
-        </article>
+  <div id="cvPreviewWrap" class="timeline">
+    <div class="empty">
+      No CV uploaded yet.
+    </div>
+  </div>
+</article>
 
         <article class="card side-card">
           <h3>Career Highlights</h3>
@@ -1918,28 +1910,43 @@ function renderInsights(user){
 
 function applyPrivacyVisibility(user){
   const messageBtn = document.getElementById("messageBtn");
-  const resumeBtn = document.getElementById("resumeBtn");
-  const cvText = document.getElementById("cvText");
-  const cvCard = document.getElementById("cvCard");
+  const mobileMessageBtn = document.getElementById("mobileMessageBtn");
+  const card = document.getElementById("cvCard");
+  const wrap = document.getElementById("cvPreviewWrap");
+  const mobileCvBtn = document.getElementById("mobileCvBtn");
 
-  if(messageBtn){
-    messageBtn.classList.toggle("hidden", user.allowMessages === false);
-  }
+  if(messageBtn) messageBtn.classList.toggle("hidden", user.allowMessages === false);
+  if(mobileMessageBtn) mobileMessageBtn.classList.toggle("hidden", user.allowMessages === false);
+
+  if(!card || !wrap) return;
+
+  const userId = user._id || user.id || profileId;
+  const previewUrl = `${API}/api/users/${userId}/cv/inline`;
 
   if(!user.cvUrl || user.showCV === false){
-    resumeBtn.classList.add("hidden");
-    cvText.textContent = "No CV available.";
-    cvCard.classList.toggle("hidden", user.showCV === false);
+    card.classList.add("hidden");
+    mobileCvBtn?.classList.add("hidden");
     return;
   }
 
-  cvCard.classList.remove("hidden");
-  resumeBtn.classList.remove("hidden");
-  cvText.textContent = "This profile has a CV available for review.";
+  card.classList.remove("hidden");
+  mobileCvBtn?.classList.remove("hidden");
 
-  resumeBtn.onclick = () => {
-    window.open(user.cvUrl,"_blank");
-  };
+  if(mobileCvBtn){
+    mobileCvBtn.onclick = () => window.open(previewUrl, "_blank");
+  }
+
+  wrap.innerHTML = `
+    <div class="cv-mini-preview" onclick="window.open('${previewUrl}','_blank')">
+      <div class="cv-mini-canvas-wrap">
+        <div class="cv-loading">CV available</div>
+      </div>
+
+      <button type="button" class="pill-btn primary cv-mini-btn">
+        View Full CV
+      </button>
+    </div>
+  `;
 }
 
 function setupOwnerControls(user){
@@ -1948,9 +1955,7 @@ function setupOwnerControls(user){
     state.viewer?.id ||
     localStorage.getItem("userId");
 
-  const profileUserId =
-    user._id ||
-    user.id;
+  const profileUserId = user._id || user.id;
 
   const isOwner =
     viewerId &&
@@ -1959,27 +1964,43 @@ function setupOwnerControls(user){
 
   const editBtn = document.getElementById("editProfileBtn");
   const mobileEditBtn = document.getElementById("mobileEditBtn");
+  const desktopShareBtn = document.getElementById("desktopShareBtn");
+  const profileMoreBtn = document.getElementById("profileMoreBtn");
+
   const connectBtn = document.getElementById("connectBtn");
   const mobileConnectBtn = document.getElementById("mobileConnectBtn");
   const messageBtn = document.getElementById("messageBtn");
   const mobileMessageBtn = document.getElementById("mobileMessageBtn");
 
-  if(!isOwner) return;
+  desktopShareBtn?.classList.remove("hidden");
+  profileMoreBtn?.classList.remove("hidden");
 
-  editBtn?.classList.remove("hidden");
-  mobileEditBtn?.classList.remove("hidden");
+  if(isOwner){
+    editBtn?.classList.remove("hidden");
+    mobileEditBtn?.classList.remove("hidden");
 
-  connectBtn?.classList.add("hidden");
-  mobileConnectBtn?.classList.add("hidden");
-  messageBtn?.classList.add("hidden");
-  mobileMessageBtn?.classList.add("hidden");
+    connectBtn?.classList.add("hidden");
+    mobileConnectBtn?.classList.add("hidden");
+    messageBtn?.classList.add("hidden");
+    mobileMessageBtn?.classList.add("hidden");
 
-  const goEdit = () => {
-    location.href = "profile.html";
-  };
+    const goEdit = () => {
+      location.href = "profile.html";
+    };
 
-  if(editBtn) editBtn.onclick = goEdit;
-  if(mobileEditBtn) mobileEditBtn.onclick = goEdit;
+    if(editBtn) editBtn.onclick = goEdit;
+    if(mobileEditBtn) mobileEditBtn.onclick = goEdit;
+
+    return;
+  }
+
+  connectBtn?.classList.remove("hidden");
+  mobileConnectBtn?.classList.remove("hidden");
+
+  if(user.allowMessages !== false){
+    messageBtn?.classList.remove("hidden");
+    mobileMessageBtn?.classList.remove("hidden");
+  }
 }
 
 function setupButtons(user){
@@ -1989,8 +2010,8 @@ function setupButtons(user){
   const messageBtn = document.getElementById("messageBtn");
   const mobileMessageBtn = document.getElementById("mobileMessageBtn");
 
-  const connectBtn = document.getElementById("connectBtn");
-  const mobileConnectBtn = document.getElementById("mobileConnectBtn");
+  const followBtn = document.getElementById("connectBtn");
+  const mobileFollowBtn = document.getElementById("mobileConnectBtn");
 
   const shareProfile = async () => {
     try{
@@ -2012,7 +2033,7 @@ function setupButtons(user){
     location.href = `messages.html?user=${user._id || profileId}`;
   };
 
-  const connectUser = async () => {
+  const followUser = async () => {
     if(!getToken()){
       location.href = "login.html";
       return;
@@ -2027,13 +2048,13 @@ function setupButtons(user){
       const data = await res.json();
 
       if(!res.ok){
-        throw new Error(data.message || "Connection failed");
+        throw new Error(data.message || "Follow failed");
       }
 
-      const text = data.following ? "Connected" : "Connect";
+      const text = data.following ? "Following" : "Follow";
 
-      if(connectBtn) connectBtn.textContent = text;
-      if(mobileConnectBtn) mobileConnectBtn.textContent = text;
+      if(followBtn) followBtn.textContent = text;
+      if(mobileFollowBtn) mobileFollowBtn.textContent = text;
 
     }catch(err){
       alert(err.message);
@@ -2046,8 +2067,8 @@ function setupButtons(user){
   if(messageBtn) messageBtn.onclick = messageUser;
   if(mobileMessageBtn) mobileMessageBtn.onclick = messageUser;
 
-  if(connectBtn) connectBtn.onclick = connectUser;
-  if(mobileConnectBtn) mobileConnectBtn.onclick = connectUser;
+  if(followBtn) followBtn.onclick = followUser;
+  if(mobileFollowBtn) mobileFollowBtn.onclick = followUser;
 }
 
 function mountFeed(){
