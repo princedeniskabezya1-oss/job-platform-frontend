@@ -1261,34 +1261,37 @@ body.cv-viewer-open{
     </button>
   </div>
 
-  <div class="hero-actions">
+<div class="hero-actions">
 
-<button class="pill-btn primary hidden" id="mobileMessageBtn">
-  Message
-</button>
+  <button class="pill-btn hidden" id="mobileEditBtn">
+    Edit
+  </button>
 
-<button class="pill-btn hidden" id="mobileConnectBtn">
-  Follow
-</button>
+  <button class="pill-btn primary hidden" id="mobileMessageBtn">
+    Message
+  </button>
 
-    <button
-      class="pill-btn more-profile-btn"
-      id="profileMoreBtn"
-      type="button"
-      onclick="toggleProfileMoreMenu()"
-    >
-      ⋯
-    </button>
+  <button class="pill-btn hidden" id="mobileConnectBtn">
+    Follow
+  </button>
 
-    <div class="profile-more-menu" id="profileMoreMenu">
-<button type="button" id="shareBtn">Share Profile</button>
-<button type="button" id="mobileCvBtn" class="hidden">View CV</button>
-<button type="button" id="mobileEditBtn" class="hidden">Edit Profile</button>
-      <button type="button" onclick="activateProfileTab('education')">Education</button>
-      <button type="button" onclick="activateProfileTab('portfolio')">Portfolio</button>
-    </div>
+  <button
+    class="pill-btn more-profile-btn hidden"
+    id="profileMoreBtn"
+    type="button"
+    onclick="toggleProfileMoreMenu()"
+  >
+    ⋯
+  </button>
 
+  <div class="profile-more-menu" id="profileMoreMenu">
+    <button type="button" id="shareBtn">Share Profile</button>
+    <button type="button" id="mobileCvBtn" class="hidden">View CV</button>
+    <button type="button" id="dashboardBtn" class="hidden">Dashboard</button>
+    <button type="button" id="completedTasksBtn" class="hidden">Completed Tasks</button>
   </div>
+
+</div>
 </div>
 
 <div class="hero-meta agent-meta hidden" id="profileMeta"></div>
@@ -1977,8 +1980,16 @@ function setupOwnerControls(user){
   const messageBtn = document.getElementById("messageBtn");
   const mobileMessageBtn = document.getElementById("mobileMessageBtn");
 
+  const mobileCvBtn = document.getElementById("mobileCvBtn");
+  const dashboardBtn = document.getElementById("dashboardBtn");
+  const completedTasksBtn = document.getElementById("completedTasksBtn");
+
   desktopShareBtn?.classList.remove("hidden");
   profileMoreBtn?.classList.remove("hidden");
+
+  mobileCvBtn?.classList.add("hidden");
+  dashboardBtn?.classList.add("hidden");
+  completedTasksBtn?.classList.add("hidden");
 
   if(isOwner){
     editBtn?.classList.remove("hidden");
@@ -1989,6 +2000,8 @@ function setupOwnerControls(user){
     messageBtn?.classList.add("hidden");
     mobileMessageBtn?.classList.add("hidden");
 
+    dashboardBtn?.classList.remove("hidden");
+
     const goEdit = () => {
       location.href = "profile.html";
     };
@@ -1996,15 +2009,37 @@ function setupOwnerControls(user){
     if(editBtn) editBtn.onclick = goEdit;
     if(mobileEditBtn) mobileEditBtn.onclick = goEdit;
 
+    if(dashboardBtn){
+      dashboardBtn.onclick = () => {
+        location.href = "profile.html";
+      };
+    }
+
     return;
   }
+
+  editBtn?.classList.add("hidden");
+  mobileEditBtn?.classList.add("hidden");
+  dashboardBtn?.classList.add("hidden");
 
   connectBtn?.classList.remove("hidden");
   mobileConnectBtn?.classList.remove("hidden");
 
+  completedTasksBtn?.classList.remove("hidden");
+
+  if(user.cvUrl && user.showCV !== false){
+    mobileCvBtn?.classList.remove("hidden");
+  }
+
   if(user.allowMessages !== false){
     messageBtn?.classList.remove("hidden");
     mobileMessageBtn?.classList.remove("hidden");
+  }
+
+  if(completedTasksBtn){
+    completedTasksBtn.onclick = () => {
+      activateProfileTab("experience");
+    };
   }
 }
 
