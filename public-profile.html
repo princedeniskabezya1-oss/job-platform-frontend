@@ -2234,37 +2234,48 @@ function getConnectionId(item){
 }
 
 async function hydrateShareUsers(connections){
+  const viewerId = state.viewer?._id || localStorage.getItem("userId");
   const map = new Map();
+  const idsToFetch = [];
 
-  for(const item of connections){
+  connections.forEach(item=>{
     const id = getConnectionId(item);
-    if(!id) continue;
-
-    const viewerId = state.viewer?._id || localStorage.getItem("userId");
-    if(String(id) === String(viewerId)) continue;
+    if(!id) return;
+    if(String(id) === String(viewerId)) return;
 
     if(typeof item === "object" && (item.name || item.profileImage || item.email)){
       map.set(String(id), {
         _id:id,
         ...item
       });
-      continue;
+      return;
     }
 
-    try{
-      const data = await fetchJSON(`/api/users/${id}/public`, {
+    if(!map.has(String(id))){
+      idsToFetch.push(String(id));
+    }
+  });
+
+  const uniqueIds = [...new Set(idsToFetch)];
+
+  const results = await Promise.allSettled(
+    uniqueIds.map(id =>
+      fetchJSON(`/api/users/${id}/public`, {
         headers:authHeaders()
-      });
+      })
+    )
+  );
 
-      const user = normalizeUserResponse(data);
+  results.forEach(result=>{
+    if(result.status !== "fulfilled") return;
 
-      if(user?._id || user?.id){
-        map.set(String(user._id || user.id), user);
-      }
-    }catch(err){
-      console.warn("Could not load share user:", id, err.message);
+    const user = normalizeUserResponse(result.value);
+    const id = user?._id || user?.id;
+
+    if(id){
+      map.set(String(id), user);
     }
-  }
+  });
 
   return Array.from(map.values());
 }
