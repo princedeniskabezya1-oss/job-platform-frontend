@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="feed.css">
+<link rel="stylesheet" href="student-mobile.css">
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <style>
@@ -514,74 +515,6 @@ a{text-decoration:none;color:inherit}
   box-shadow:0 20px 60px rgba(0,0,0,.08);
 }
 
-/* MOBILE */
-
-.mobile-bottom{display:none}
-
-@media(max-width:980px){
-  .layout{grid-template-columns:1fr}
-  .right-col{display:none}
-  .top-link span{display:none}
-  .top-link{min-width:42px}
-  .search{flex:1;width:auto;max-width:none}
-  .highlight-row,.grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-
-@media(max-width:640px){
-  body{padding-bottom:76px}
-  .container{width:100%}
-  .page{padding:0}
-  .agent-hero,.content-card,.card{
-    border-radius:0;
-    border-left:0;
-    border-right:0;
-  }
-  .brand{
-  width:86px;
-  height:38px;
-  min-width:86px;
-}
-
-.brand-logo-img{
-  height:30px;
-  max-width:86px;
-}
-  .cover{height:140px}
-  .hero-body{padding:0 16px 18px}
-  .agent-top{display:block}
-  .agent-avatar{
-    width:96px;
-    height:96px;
-    margin-top:-48px;
-  }
-  .hero-actions{
-    margin-top:14px;
-    display:grid;
-    grid-template-columns:1fr 1fr;
-  }
-  .agent-name{font-size:22px}
-  .highlight-row,.grid-2,.grid-3{grid-template-columns:1fr}
-  .content-card{padding:16px}
-  .mobile-bottom{
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:0;
-    z-index:999;
-    height:74px;
-    background:rgba(255,255,255,.98);
-    border-top:1px solid #e5e7eb;
-    display:grid;
-    grid-template-columns:repeat(5,1fr);
-  }
-  .mobile-bottom button{
-    border:0;
-    background:transparent;
-    color:#64748b;
-    font-size:11px;
-    font-weight:800;
-  }
-}
 </style>
 </head>
 
@@ -662,39 +595,53 @@ a{text-decoration:none;color:inherit}
 
               </div>
 
-              <div class="hero-actions">
-
-                <button class="pill-btn primary" id="messageAgentBtn">
-                  Message
-                </button>
-
-                <button class="pill-btn" id="followAgentBtn">
-                  Follow
-                </button>
-
-                <button class="pill-btn dark" id="shareAgentBtn">
-                  Share Profile
-                </button>
-
-                <button class="pill-btn hidden" id="editProfileBtn">
-                  Edit Profile
-                </button>
-
-                <button class="pill-btn hidden" id="dashboardBtn">
-                  Dashboard
-                </button>
-
-              </div>
+<div class="desktop-profile-actions" id="desktopProfileActions">
+  <button class="pill-btn hidden" id="desktopEditBtn">Edit</button>
+  <button class="pill-btn hidden" id="desktopShareBtn">Share Profile</button>
+  <button class="pill-btn primary hidden" id="desktopMessageBtn">Message</button>
+  <button class="pill-btn hidden" id="desktopFollowBtn">Follow</button>
+</div>
 
             </div>
 
-            <h1 class="agent-name" id="agentName">
-              Loading...
-            </h1>
+<div class="agent-mobile-head">
+  <div class="agent-title-wrap">
+    <h1 class="agent-name" id="agentName">Loading...</h1>
 
-            <p class="agent-headline" id="agentHeadline">
-              No professional headline added yet
-            </p>
+    <p class="agent-headline" id="agentHeadline">
+      No professional headline added yet
+    </p>
+
+    <button
+      id="headlineMoreBtn"
+      class="headline-more-btn hidden"
+      type="button"
+      onclick="toggleHeadlineMore()"
+    >
+      view more...
+    </button>
+  </div>
+
+  <div class="hero-actions">
+    <button class="pill-btn hidden" id="editProfileBtn">Edit</button>
+    <button class="pill-btn primary hidden" id="messageAgentBtn">Message</button>
+    <button class="pill-btn hidden" id="followAgentBtn">Follow</button>
+
+    <button
+      class="pill-btn more-profile-btn hidden"
+      id="profileMoreBtn"
+      type="button"
+      onclick="toggleProfileMoreMenu(event)"
+    >
+      ⋯
+    </button>
+
+    <div class="profile-more-menu" id="profileMoreMenu">
+      <button type="button" id="shareAgentBtn">Share Profile</button>
+      <button type="button" id="dashboardBtn" class="hidden">Dashboard</button>
+    </div>
+  </div>
+</div>
 
 <div
   class="agent-meta hidden"
@@ -1341,6 +1288,184 @@ document.getElementById("infoSetup").textContent =
   renderOpenTo(user);
 }
 
+function setupStudentProfileActions(){
+  const user = state.profile || {};
+  const viewer = state.viewer || {};
+
+  const messageBtn = document.getElementById("messageAgentBtn");
+  const followBtn = document.getElementById("followAgentBtn");
+  const editBtn = document.getElementById("editProfileBtn");
+  const dashboardBtn = document.getElementById("dashboardBtn");
+  const moreBtn = document.getElementById("profileMoreBtn");
+
+  const desktopEditBtn = document.getElementById("desktopEditBtn");
+  const desktopShareBtn = document.getElementById("desktopShareBtn");
+  const desktopMessageBtn = document.getElementById("desktopMessageBtn");
+  const desktopFollowBtn = document.getElementById("desktopFollowBtn");
+
+  [
+    messageBtn,
+    followBtn,
+    editBtn,
+    dashboardBtn,
+    moreBtn,
+    desktopEditBtn,
+    desktopShareBtn,
+    desktopMessageBtn,
+    desktopFollowBtn
+  ].forEach(btn=>btn?.classList.add("hidden"));
+
+  const viewerId = viewer?._id || viewer?.id || localStorage.getItem("userId");
+  const profileUserId = user?._id || user?.id || profileId;
+
+  const isLoggedIn = Boolean(token);
+  const isOwner =
+    isLoggedIn &&
+    viewerId &&
+    profileUserId &&
+    String(viewerId) === String(profileUserId);
+
+  const isMobile = window.innerWidth <= 640;
+
+  const goEdit = () => {
+    location.href = "profile.html";
+  };
+
+  const goDashboard = () => {
+    location.href = "student.html";
+  };
+
+  const goMessage = () => {
+    if(!profileId) return;
+
+    if(!token){
+      location.href = "login.html";
+      return;
+    }
+
+    location.href = `messages.html?user=${profileId}`;
+  };
+
+  const followUser = async () => {
+    if(!profileId || !token){
+      location.href = "login.html";
+      return;
+    }
+
+    try{
+      const res = await fetch(`${API}/api/users/${profileId}/follow`,{
+        method:"PATCH",
+        headers:authHeaders()
+      });
+
+      const data = await res.json();
+
+      if(!res.ok){
+        throw new Error(data.message || "Follow failed");
+      }
+
+      const isNowFollowing = Boolean(data.following);
+
+      if(followBtn){
+        followBtn.textContent = isNowFollowing ? "Following" : "Follow";
+        followBtn.classList.toggle("hidden", isNowFollowing);
+      }
+
+      if(desktopFollowBtn){
+        desktopFollowBtn.textContent = isNowFollowing ? "Following" : "Follow";
+        desktopFollowBtn.classList.toggle("hidden", isNowFollowing);
+      }
+
+    }catch(err){
+      alert(err.message);
+    }
+  };
+
+  if(editBtn) editBtn.onclick = goEdit;
+  if(desktopEditBtn) desktopEditBtn.onclick = goEdit;
+
+  if(dashboardBtn) dashboardBtn.onclick = goDashboard;
+
+  const shareAgentBtn = document.getElementById("shareAgentBtn");
+  if(shareAgentBtn) shareAgentBtn.onclick = openProfileSharePanel;
+  if(desktopShareBtn) desktopShareBtn.onclick = openProfileSharePanel;
+
+  if(messageBtn) messageBtn.onclick = goMessage;
+  if(desktopMessageBtn) desktopMessageBtn.onclick = goMessage;
+
+  if(followBtn) followBtn.onclick = followUser;
+  if(desktopFollowBtn) desktopFollowBtn.onclick = followUser;
+
+  if(isOwner){
+    if(isMobile){
+      moreBtn?.classList.remove("hidden");
+      editBtn?.classList.remove("hidden");
+      dashboardBtn?.classList.remove("hidden");
+    }else{
+      desktopEditBtn?.classList.remove("hidden");
+      desktopShareBtn?.classList.remove("hidden");
+    }
+
+    return;
+  }
+
+  if(isMobile){
+    moreBtn?.classList.remove("hidden");
+
+    if(isLoggedIn){
+      messageBtn?.classList.remove("hidden");
+    }
+  }else{
+    desktopShareBtn?.classList.remove("hidden");
+
+    if(isLoggedIn){
+      desktopMessageBtn?.classList.remove("hidden");
+    }
+  }
+
+  const followers = Array.isArray(user.followers)
+    ? user.followers.map(f =>
+        String(
+          f?._id ||
+          f?.id ||
+          f?.userId ||
+          f
+        )
+      )
+    : [];
+
+  const alreadyFollowing =
+    viewerId &&
+    followers.includes(String(viewerId));
+
+  if(isLoggedIn && !alreadyFollowing){
+    if(isMobile){
+      followBtn?.classList.remove("hidden");
+    }else{
+      desktopFollowBtn?.classList.remove("hidden");
+    }
+  }
+}
+
+function toggleProfileMoreMenu(e){
+  e?.stopPropagation();
+  document.getElementById("profileMoreMenu")?.classList.toggle("show");
+}
+
+document.addEventListener("click",()=>{
+  document.getElementById("profileMoreMenu")?.classList.remove("show");
+});
+
+function toggleHeadlineMore(){
+  const text = document.getElementById("agentHeadline");
+  const btn = document.getElementById("headlineMoreBtn");
+
+  if(!text || !btn) return;
+
+  const expanded = text.classList.toggle("expanded");
+  btn.textContent = expanded ? "view less" : "view more...";
+}
+
 function setupOwnerControls(user,viewer){
   const viewerId =
     viewer?._id ||
@@ -1646,14 +1771,229 @@ document.getElementById("messageAgentBtn").addEventListener("click",()=>{
   location.href = `messages.html?user=${profileId}`;
 });
 
-document.getElementById("shareAgentBtn").addEventListener("click",async()=>{
+const shareState = {
+  users:[]
+};
+
+function getRawShareConnections(viewer){
+  const following = Array.isArray(viewer?.following) ? viewer.following : [];
+  const followers = Array.isArray(viewer?.followers) ? viewer.followers : [];
+  return [...following, ...followers];
+}
+
+function getConnectionId(item){
+  if(!item) return "";
+  if(typeof item === "string") return item;
+
+  return (
+    item._id ||
+    item.id ||
+    item.userId ||
+    item.user?._id ||
+    item.user?.id ||
+    item.following?._id ||
+    item.following?.id ||
+    item.follower?._id ||
+    item.follower?.id ||
+    ""
+  );
+}
+
+async function hydrateShareUsers(connections){
+  const viewerId = state.viewer?._id || localStorage.getItem("userId");
+  const map = new Map();
+  const idsToFetch = [];
+
+  connections.forEach(item=>{
+    const id = getConnectionId(item);
+    if(!id) return;
+    if(String(id) === String(viewerId)) return;
+
+    if(typeof item === "object" && (item.name || item.companyName || item.profileImage || item.email)){
+      map.set(String(id), {
+        _id:id,
+        ...item
+      });
+      return;
+    }
+
+    idsToFetch.push(String(id));
+  });
+
+  const uniqueIds = [...new Set(idsToFetch)];
+
+  const results = await Promise.allSettled(
+    uniqueIds.map(id =>
+      fetch(`${API}/api/users/${encodeURIComponent(id)}/public`, {
+        headers:authHeaders()
+      }).then(res=>res.json())
+    )
+  );
+
+  results.forEach(result=>{
+    if(result.status !== "fulfilled") return;
+
+    const user = normalizeUserResponse(result.value);
+    const id = user?._id || user?.id;
+
+    if(id){
+      map.set(String(id), user);
+    }
+  });
+
+  return Array.from(map.values());
+}
+
+async function openProfileSharePanel(){
+  if(!token){
+    location.href = "login.html";
+    return;
+  }
+
+  document.getElementById("profileMoreMenu")?.classList.remove("show");
+
+  const overlay = document.getElementById("profileShareOverlay");
+  const list = document.getElementById("profileShareList");
+  const search = document.getElementById("profileShareSearch");
+
+  if(search){
+    search.value = "";
+  }
+
+  overlay?.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+
+  if(list){
+    list.innerHTML = `<div class="empty">Loading people...</div>`;
+  }
+
+  try{
+    let viewer = state.viewer;
+
+    if(!viewer){
+      const res = await fetch(API + "/api/users/me", {
+        headers:authHeaders()
+      });
+
+      const data = await res.json();
+      viewer = normalizeUserResponse(data);
+      state.viewer = viewer;
+    }
+
+    const rawConnections = getRawShareConnections(viewer);
+    shareState.users = await hydrateShareUsers(rawConnections);
+
+    renderProfileShareUsers();
+
+  }catch(err){
+    if(list){
+      list.innerHTML = `<div class="empty">${escapeHtml(err.message || "Unable to load people.")}</div>`;
+    }
+  }
+}
+
+function closeProfileSharePanel(){
+  document.getElementById("profileShareOverlay")?.classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+function renderProfileShareUsers(){
+  const list = document.getElementById("profileShareList");
+  const search = String(document.getElementById("profileShareSearch")?.value || "")
+    .toLowerCase()
+    .trim();
+
+  if(!list) return;
+
+  const users = shareState.users.filter(user=>{
+    const name = String(user.name || user.companyName || "").toLowerCase();
+    const role = String(user.role || user.profession || user.headline || "").toLowerCase();
+
+    return !search || name.includes(search) || role.includes(search);
+  });
+
+  if(!users.length){
+    list.innerHTML = `<div class="empty">No followers or following found.</div>`;
+    return;
+  }
+
+  list.innerHTML = users.map(user=>{
+    const id = getConnectionId(user);
+    const avatar = user.profileImage || FALLBACK_AVATAR;
+    const name = user.name || user.companyName || "AIFT User";
+    const label = user.headline || user.profession || user.role || "AIFT member";
+
+    return `
+      <div class="profile-share-user">
+        <img src="${escapeHtml(avatar)}" alt="">
+        <div class="profile-share-user-info">
+          <strong>${escapeHtml(name)}</strong>
+          <span>${escapeHtml(label)}</span>
+        </div>
+        <button
+          type="button"
+          class="profile-share-send"
+          onclick="sendProfileShare('${escapeHtml(id)}', this)"
+        >
+          Send
+        </button>
+      </div>
+    `;
+  }).join("");
+}
+
+async function sendProfileShare(receiverId, button){
+  if(!receiverId) return;
+
+  const profile = state.profile || {};
+  const profileName = profile.name || "this student";
+  const profileUrl = location.href;
+
+  const messageText = `Check out ${profileName}'s AIFT student profile: ${profileUrl}`;
+
+  button.disabled = true;
+  button.textContent = "Sending...";
+
+  try{
+    const res = await fetch(`${API}/api/messages`, {
+      method:"POST",
+      headers:authHeaders({
+        "Content-Type":"application/json"
+      }),
+      body:JSON.stringify({
+        receiverId,
+        text:messageText,
+        message:messageText,
+        content:messageText,
+        type:"profile_share",
+        sharedProfileId:profile._id || profileId,
+        profileUrl
+      })
+    });
+
+    const data = await res.json().catch(()=>({}));
+
+    if(!res.ok){
+      throw new Error(data.message || "Unable to send profile.");
+    }
+
+    button.textContent = "Sent";
+
+  }catch(err){
+    button.disabled = false;
+    button.textContent = "Send";
+    alert(err.message);
+  }
+}
+
+async function copyProfileLinkOnly(){
   try{
     await navigator.clipboard.writeText(location.href);
     alert("Profile link copied");
   }catch{
     alert("Copy this profile link from your browser.");
   }
-});
+}
 
 document.getElementById("followAgentBtn").addEventListener("click",async()=>{
   if(!profileId || !token){
@@ -1746,9 +2086,10 @@ async function init(){
     await fetchProfile();
 
     protectStudentProfile();
-    renderProfile();
+renderProfile();
+setupStudentProfileActions();
 
-    await loadPerformance();
+await loadPerformance();
     mountStudentFeed();
 
     document.body.classList.add("loaded");
@@ -1792,6 +2133,34 @@ init();
 </script>
 
 <script src="feed.js"></script>
+
+  <div id="profileShareOverlay" class="profile-share-overlay hidden">
+  <div class="profile-share-panel">
+    <div class="profile-share-head">
+      <strong>Share Profile</strong>
+      <button type="button" onclick="closeProfileSharePanel()">×</button>
+    </div>
+
+    <div class="profile-share-search">
+      <input
+        id="profileShareSearch"
+        type="search"
+        placeholder="Search followers or following"
+        oninput="renderProfileShareUsers()"
+      >
+    </div>
+
+    <div id="profileShareList" class="profile-share-list">
+      <div class="empty">Loading people...</div>
+    </div>
+
+    <div class="profile-share-footer">
+      <button class="pill-btn primary" type="button" onclick="copyProfileLinkOnly()">
+        Copy profile link
+      </button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
