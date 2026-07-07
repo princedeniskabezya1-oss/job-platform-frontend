@@ -1003,17 +1003,24 @@ img{display:block;max-width:100%}
 }
 
 .hero-main{
+  position:relative!important;
   margin-top:0!important;
   padding:0 24px 20px!important;
 }
 
 .hero-top{
   position:relative!important;
-  display:block!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:16px!important;
 }
 
 .school-profile-head{
   display:block!important;
+  min-width:0!important;
+  flex:1!important;
+  padding-right:260px!important;
 }
 
 .school-logo{
@@ -1024,6 +1031,13 @@ img{display:block;max-width:100%}
   border:4px solid #fff!important;
   background:#fff!important;
   box-shadow:0 1px 4px rgba(0,0,0,.18)!important;
+  overflow:hidden!important;
+}
+
+.school-logo img{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
 }
 
 .school-info{
@@ -1036,6 +1050,7 @@ img{display:block;max-width:100%}
   line-height:1.2!important;
   font-weight:800!important;
   letter-spacing:-.02em!important;
+  color:#191919!important;
 }
 
 .school-bio{
@@ -1058,9 +1073,10 @@ img{display:block;max-width:100%}
 .desktop-profile-actions{
   position:absolute!important;
   top:18px!important;
-  right:0!important;
+  right:24px!important;
   display:flex!important;
   align-items:center!important;
+  justify-content:flex-end!important;
   gap:8px!important;
   z-index:30!important;
 }
@@ -1083,6 +1099,41 @@ img{display:block;max-width:100%}
 #schoolType,
 #schoolLocation{
   display:none!important;
+}
+  .profile-share-overlay{
+  position:fixed!important;
+  inset:0!important;
+  z-index:999999!important;
+  background:rgba(15,23,42,.35)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:16px!important;
+}
+
+.profile-share-overlay.hidden{
+  display:none!important;
+}
+
+.profile-share-panel{
+  width:min(440px,100%)!important;
+  max-height:82vh!important;
+  background:#fff!important;
+  border-radius:18px!important;
+  box-shadow:0 24px 70px rgba(15,23,42,.28)!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+
+.profile-share-send{
+  border:1px solid #0a66c2!important;
+  background:#0a66c2!important;
+  color:#fff!important;
+  border-radius:999px!important;
+  padding:7px 12px!important;
+  font-size:12px!important;
+  font-weight:900!important;
 }
 </style>
 </head>
@@ -1201,8 +1252,9 @@ img{display:block;max-width:100%}
           <button class="tab-btn" data-tab="programs" onclick="openTab('programs')">Programs</button>
           <button class="tab-btn" data-tab="partners" onclick="openTab('partners')">Partners</button>
           <button class="tab-btn" data-tab="students" onclick="openTab('students')">Students</button>
-          <button class="tab-btn" data-tab="internships" onclick="openTab('internships')">Internships</button>
-          <button class="tab-btn" data-tab="posts" onclick="openTab('posts')">Posts</button>
+<button class="tab-btn" data-tab="internships" onclick="openTab('internships')">Internships</button>
+<button class="tab-btn" data-tab="jobs" onclick="openTab('jobs')">Jobs</button>
+<button class="tab-btn" data-tab="posts" onclick="openTab('posts')">Posts</button>
         </nav>
       </div>
     </article>
@@ -1351,6 +1403,15 @@ img{display:block;max-width:100%}
             </div>
           </article>
         </section>
+        <section id="section-jobs" class="section">
+  <article class="card card-pad">
+    <h2 class="card-title">Jobs</h2>
+
+    <div id="jobsList" class="job-list">
+      <div class="loading">Loading jobs...</div>
+    </div>
+  </article>
+</section>
 
         <section id="section-posts" class="section">
           <div id="schoolFeedMount"></div>
@@ -1673,8 +1734,9 @@ const state = {
   school:null,
   posts:[],
   students:[],
-  opportunities:[],
-  partners:[],
+opportunities:[],
+jobs:[],
+partners:[],
   analytics:{},
   viewer:null
 };
@@ -2319,6 +2381,46 @@ async function fetchOpportunities(){
   }catch{
 
     state.opportunities = [];
+  }
+}
+  async function fetchJobs(){
+  try{
+    const res = await fetch(`${API}/api/jobs`, {
+      headers:authHeaders()
+    });
+
+    if(!res.ok){
+      state.jobs = [];
+      return;
+    }
+
+    const data = await safeJson(res);
+
+    const jobs = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.jobs)
+        ? data.jobs
+        : Array.isArray(data?.results)
+          ? data.results
+          : [];
+
+    state.jobs = jobs.filter(job => {
+      const ownerId = String(
+        job.schoolId ||
+        job.employerId ||
+        job.companyId ||
+        job.postedBy?._id ||
+        job.postedBy ||
+        job.author?._id ||
+        job.author ||
+        ""
+      );
+
+      return ownerId === String(schoolId);
+    });
+
+  }catch{
+    state.jobs = [];
   }
 }
 
@@ -3043,7 +3145,59 @@ function renderInternships(){
 
     `).join("");
 }
+function renderJobs(){
+  const mount = document.getElementById("jobsList");
+  if(!mount) return;
 
+  if(!state.jobs.length){
+    mount.innerHTML = `
+      <div class="empty-state">
+        No jobs posted yet.
+      </div>
+    `;
+    return;
+  }
+
+  mount.innerHTML = state.jobs.map(job => `
+    <article class="job-item">
+      <div class="job-head">
+        <div>
+          <h3 class="job-title">
+            ${escapeHtml(job.title || "Job opening")}
+          </h3>
+
+          <div class="job-sub">
+            ${escapeHtml(job.companyName || job.location || "AIFT Job")}
+            •
+            ${escapeHtml(job.type || job.jobType || "Job")}
+          </div>
+        </div>
+
+        <span class="chip success">
+          Open
+        </span>
+      </div>
+
+      <p class="job-desc">
+        ${escapeHtml(job.description || "Job opportunity posted by this school or organization.")}
+      </p>
+
+      <div class="job-footer">
+        <div class="pill-list">
+          <span class="chip">Job</span>
+          <span class="chip">Career Opportunity</span>
+        </div>
+
+        <button
+          class="primary-btn"
+          onclick="location.href='job-details.html?id=${job._id || job.id}'"
+        >
+          View Job
+        </button>
+      </div>
+    </article>
+  `).join("");
+}
 /* =========================
    FEED
 ========================= */
@@ -3533,8 +3687,9 @@ async function initPage(){
       fetchSchoolProfile(),
       fetchPosts(),
       fetchStudents(),
-      fetchOpportunities(),
-      fetchPartners()
+fetchOpportunities(),
+fetchJobs(),
+fetchPartners()
     ]);
 
     buildAnalytics();
@@ -3549,9 +3704,11 @@ async function initPage(){
 
     renderStudents();
 
-    renderInternships();
+renderInternships();
 
-    renderFeed();
+renderJobs();
+
+renderFeed();
 
     renderPublicStats();
 
