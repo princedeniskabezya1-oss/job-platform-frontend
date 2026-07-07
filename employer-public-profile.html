@@ -410,7 +410,7 @@ a{
     </button>
 
     <div class="company-mobile-menu" id="companyMobileMenu">
-      <button type="button" onclick="copyProfileLink()">Share Profile</button>
+      <button type="button" id="mobileCompanyShareBtn" onclick="openCompanySharePanel()">Share Profile</button>
       <button type="button" id="dashboardBtn" onclick="goDashboard()">Dashboard</button>
     </div>
   </div>
@@ -2379,9 +2379,9 @@ function updateOwnerUI(){
     desktopEditBtn.onclick = editCompanyProfile;
   }
 
-  if(desktopShareBtn){
-    desktopShareBtn.onclick = copyProfileLink;
-  }
+if(desktopShareBtn){
+  desktopShareBtn.onclick = openCompanySharePanel;
+}
 
   if(desktopDashboardBtn){
     desktopDashboardBtn.onclick = goDashboard;
@@ -2465,6 +2465,32 @@ function copyProfileLink(){
     "Profile link copied.",
     "success"
   );
+}
+  function openCompanySharePanel(){
+  const overlay = document.getElementById("companyShareOverlay");
+  const input = document.getElementById("companyShareLink");
+
+  if(input){
+    input.value = location.href;
+  }
+
+  overlay?.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function closeCompanySharePanel(){
+  document.getElementById("companyShareOverlay")?.classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+async function copyCompanyShareLink(){
+  try{
+    await navigator.clipboard.writeText(location.href);
+    toast("Copied", "Profile link copied.", "success");
+    closeCompanySharePanel();
+  }catch{
+    toast("Copy failed", "Please copy the link manually.", "error");
+  }
 }
 
 function reportCompany(){
@@ -2618,6 +2644,24 @@ init();
   </button>
 
 </nav>
+  <div id="companyShareOverlay" class="profile-share-overlay hidden">
+  <div class="profile-share-panel">
+    <div class="profile-share-head">
+      <strong>Share Profile</strong>
+      <button type="button" onclick="closeCompanySharePanel()">×</button>
+    </div>
+
+    <div class="profile-share-search">
+      <input id="companyShareLink" type="text" readonly>
+    </div>
+
+    <div class="profile-share-footer">
+      <button class="pill-btn primary" type="button" onclick="copyCompanyShareLink()">
+        Copy profile link
+      </button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
