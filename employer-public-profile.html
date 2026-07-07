@@ -1588,14 +1588,21 @@ const qs = new URLSearchParams(location.search);
 const state = {
   companyId: qs.get("id") || "",
   company: {},
+  viewer: null,
   jobs: [],
   posts: [],
   people: [],
   suggestions: [],
   publicStats: {},
   following: false,
-postSort: "recent"
+  postSort: "recent"
 };
+
+const shareState = {
+  users: []
+};
+
+const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 const socket = io(API,{
   transports:["websocket","polling"]
@@ -2590,16 +2597,139 @@ function copyProfileLink(){
     "success"
   );
 }
-  function openCompanySharePanel(){
-  const overlay = document.getElementById("companyShareOverlay");
-  const input = document.getElementById("companyShareLink");
+function normalizeShareUser(data){
+  return (
+    data?.user ||
+    data?.profile ||
+    data?.employer ||
+    data?.talent ||
+    data?.agent ||
+    data?.data ||
+    data ||
+    {}
+  );
+}
 
-  if(input){
-    input.value = location.href;
+function getRawCompanyShareConnections(viewer){
+  const following = Array.isArray(viewer?.following) ? viewer.following : [];
+  const followers = Array.isArray(viewer?.followers) ? viewer.followers : [];
+  return [...following, ...followers];
+}
+
+function getCompanyConnectionId(item){
+  if(!item) return "";
+
+  if(typeof item === "string") return item;
+
+  return (
+    item._id ||
+    item.id ||
+    item.userId ||
+    item.user?._id ||
+    item.user?.id ||
+    item.following?._id ||
+    item.following?.id ||
+    item.follower?._id ||
+    item.follower?.id ||
+    ""
+  );
+}
+
+async function hydrateCompanyShareUsers(connections){
+  const viewerId = currentUserId();
+  const map = new Map();
+  const idsToFetch = [];
+
+  connections.forEach(item=>{
+    const id = getCompanyConnectionId(item);
+    if(!id) return;
+    if(String(id) === String(viewerId)) return;
+
+    if(typeof item === "object" && (item.name || item.companyName || item.profileImage || item.email)){
+      map.set(String(id), {
+        _id:id,
+        ...item
+      });
+      return;
+    }
+
+    idsToFetch.push(String(id));
+  });
+
+  const uniqueIds = [...new Set(idsToFetch)];
+
+  const results = await Promise.allSettled(
+    uniqueIds.map(id =>
+      api(`/api/users/${encodeURIComponent(id)}/public`, {
+        headers:headers()
+      })
+    )
+  );
+
+  results.forEach(result=>{
+    if(result.status !== "fulfilled") return;
+
+    const user = normalizeShareUser(result.value);
+    const id = user?._id || user?.id;
+
+    if(id){
+      map.set(String(id), user);
+    }
+  });
+
+  return Array.from(map.values());
+}
+
+async function openCompanySharePanel(){
+  if(!token()){
+    location.href = "login.html";
+    return;
+  }
+
+  document.getElementById("companyMobileMenu")?.classList.remove("show");
+
+  const overlay = document.getElementById("companyShareOverlay");
+  const list = document.getElementById("companyShareList");
+  const search = document.getElementById("companyShareSearch");
+
+  if(search){
+    search.value = "";
   }
 
   overlay?.classList.remove("hidden");
   document.body.style.overflow = "hidden";
+
+  if(list){
+    list.innerHTML = `<div class="empty">Loading people...</div>`;
+  }
+
+  try{
+    let viewer = state.viewer;
+
+    if(!viewer){
+      const data = await api("/api/users/me", {
+        headers:headers()
+      });
+
+      viewer = normalizeShareUser(data);
+      state.viewer = viewer;
+    }
+
+    const rawConnections = getRawCompanyShareConnections(viewer);
+
+    shareState.users = await hydrateCompanyShareUsers(rawConnections);
+
+    renderCompanyShareUsers();
+
+  }catch(err){
+    if(list){
+      list.innerHTML = `
+        <div class="empty">
+          ${escapeHtml(err.message || "Unable to load people.")}
+        </div>
+      `;
+    }
+  }
 }
 
 function closeCompanySharePanel(){
@@ -2607,11 +2737,99 @@ function closeCompanySharePanel(){
   document.body.style.overflow = "";
 }
 
+function renderCompanyShareUsers(){
+  const list = document.getElementById("companyShareList");
+  const search = String(document.getElementById("companyShareSearch")?.value || "")
+    .toLowerCase()
+    .trim();
+
+  if(!list) return;
+
+  const users = shareState.users.filter(user=>{
+    const name = String(user.name || user.companyName || "").toLowerCase();
+    const role = String(user.role || user.profession || user.headline || "").toLowerCase();
+
+    return !search || name.includes(search) || role.includes(search);
+  });
+
+  if(!users.length){
+    list.innerHTML = `<div class="empty">No followers or following found.</div>`;
+    return;
+  }
+
+  list.innerHTML = users.map(user=>{
+    const id = getCompanyConnectionId(user);
+    const avatar = user.profileImage || FALLBACK_AVATAR;
+    const name = user.companyName || user.name || "AIFT User";
+    const label = user.headline || user.profession || user.role || "AIFT member";
+
+    return `
+      <div class="profile-share-user">
+        <img src="${escapeHtml(avatar)}" alt="">
+        <div class="profile-share-user-info">
+          <strong>${escapeHtml(name)}</strong>
+          <span>${escapeHtml(label)}</span>
+        </div>
+        <button
+          type="button"
+          class="profile-share-send"
+          onclick="sendCompanyProfileShare('${escapeHtml(id)}', this)"
+        >
+          Send
+        </button>
+      </div>
+    `;
+  }).join("");
+}
+
+async function sendCompanyProfileShare(receiverId, button){
+  if(!receiverId) return;
+
+  const company = state.company || {};
+  const companyName = company.companyName || company.name || "this company";
+  const profileUrl = location.href;
+
+  const messageText = `Check out ${companyName}'s AIFT company profile: ${profileUrl}`;
+
+  button.disabled = true;
+  button.textContent = "Sending...";
+
+  try{
+    const res = await fetch(`${API}/api/messages`, {
+      method:"POST",
+      headers:headers({
+        "Content-Type":"application/json"
+      }),
+      body:JSON.stringify({
+        receiverId,
+        text:messageText,
+        message:messageText,
+        content:messageText,
+        type:"profile_share",
+        sharedProfileId:company._id || company.id || state.companyId,
+        profileUrl
+      })
+    });
+
+    const data = await res.json().catch(()=>({}));
+
+    if(!res.ok){
+      throw new Error(data.message || "Unable to send profile.");
+    }
+
+    button.textContent = "Sent";
+
+  }catch(err){
+    button.disabled = false;
+    button.textContent = "Send";
+    toast("Share failed", err.message, "error");
+  }
+}
+
 async function copyCompanyShareLink(){
   try{
     await navigator.clipboard.writeText(location.href);
     toast("Copied", "Profile link copied.", "success");
-    closeCompanySharePanel();
   }catch{
     toast("Copy failed", "Please copy the link manually.", "error");
   }
@@ -2768,7 +2986,7 @@ init();
   </button>
 
 </nav>
-  <div id="companyShareOverlay" class="profile-share-overlay hidden">
+<div id="companyShareOverlay" class="profile-share-overlay hidden">
   <div class="profile-share-panel">
     <div class="profile-share-head">
       <strong>Share Profile</strong>
@@ -2776,7 +2994,16 @@ init();
     </div>
 
     <div class="profile-share-search">
-      <input id="companyShareLink" type="text" readonly>
+      <input
+        id="companyShareSearch"
+        type="search"
+        placeholder="Search followers or following"
+        oninput="renderCompanyShareUsers()"
+      >
+    </div>
+
+    <div id="companyShareList" class="profile-share-list">
+      <div class="empty">Loading people...</div>
     </div>
 
     <div class="profile-share-footer">
