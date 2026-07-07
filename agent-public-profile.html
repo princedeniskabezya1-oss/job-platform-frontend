@@ -1126,9 +1126,6 @@ body.cv-viewer-open{
   margin:12px;
   text-align:center;
 }
-  .profile-more-menu{
-  display:none;
-}
   .profile-share-overlay{
   position:fixed;
   inset:0;
@@ -2040,6 +2037,219 @@ document.getElementById("infoRole").textContent =
   renderOpenTo(user);
 }
 
+const shareState = {
+  users:[],
+  loading:false
+};
+
+function getRawShareConnections(viewer){
+  const following = Array.isArray(viewer?.following) ? viewer.following : [];
+  const followers = Array.isArray(viewer?.followers) ? viewer.followers : [];
+  return [...following, ...followers];
+}
+
+function getConnectionId(item){
+  if(!item) return "";
+  if(typeof item === "string") return item;
+
+  return (
+    item._id ||
+    item.id ||
+    item.userId ||
+    item.user?._id ||
+    item.user?.id ||
+    item.following?._id ||
+    item.follower?._id ||
+    ""
+  );
+}
+
+async function hydrateShareUsers(connections){
+  const viewerId = state.viewer?._id || localStorage.getItem("userId");
+  const map = new Map();
+  const idsToFetch = [];
+
+  connections.forEach(item=>{
+    const id = getConnectionId(item);
+    if(!id) return;
+    if(String(id) === String(viewerId)) return;
+
+    if(typeof item === "object" && (item.name || item.profileImage || item.email)){
+      map.set(String(id), {
+        _id:id,
+        ...item
+      });
+      return;
+    }
+
+    idsToFetch.push(String(id));
+  });
+
+  const uniqueIds = [...new Set(idsToFetch)];
+
+  const results = await Promise.allSettled(
+    uniqueIds.map(id =>
+      fetch(`${API}/api/users/${id}/public`, {
+        headers:authHeaders()
+      }).then(res=>res.json())
+    )
+  );
+
+  results.forEach(result=>{
+    if(result.status !== "fulfilled") return;
+
+    const user = normalizeUserResponse(result.value);
+    const id = user?._id || user?.id;
+
+    if(id){
+      map.set(String(id), user);
+    }
+  });
+
+  return Array.from(map.values());
+}
+
+async function openProfileSharePanel(){
+  if(!token){
+    location.href = "login.html";
+    return;
+  }
+
+  document.getElementById("profileMoreMenu")?.classList.remove("show");
+
+  const overlay = document.getElementById("profileShareOverlay");
+  const list = document.getElementById("profileShareList");
+
+  overlay?.classList.remove("hidden");
+
+  if(list){
+    list.innerHTML = `<div class="empty">Loading people...</div>`;
+  }
+
+  try{
+    let viewer = state.viewer;
+
+    if(!viewer){
+      const res = await fetch(API + "/api/users/me", {
+        headers:authHeaders()
+      });
+
+      const data = await res.json();
+      viewer = normalizeUserResponse(data);
+      state.viewer = viewer;
+    }
+
+    const rawConnections = getRawShareConnections(viewer);
+    shareState.users = await hydrateShareUsers(rawConnections);
+
+    renderProfileShareUsers();
+
+  }catch(err){
+    if(list){
+      list.innerHTML = `<div class="empty">${escapeHtml(err.message || "Unable to load people.")}</div>`;
+    }
+  }
+}
+
+function closeProfileSharePanel(){
+  document.getElementById("profileShareOverlay")?.classList.add("hidden");
+}
+
+function renderProfileShareUsers(){
+  const list = document.getElementById("profileShareList");
+  const search = String(document.getElementById("profileShareSearch")?.value || "").toLowerCase().trim();
+
+  if(!list) return;
+
+  const users = shareState.users.filter(user=>{
+    const name = String(user.name || "").toLowerCase();
+    const role = String(user.role || user.profession || "").toLowerCase();
+    return !search || name.includes(search) || role.includes(search);
+  });
+
+  if(!users.length){
+    list.innerHTML = `<div class="empty">No followers or following found.</div>`;
+    return;
+  }
+
+  list.innerHTML = users.map(user=>{
+    const id = getConnectionId(user);
+    const avatar = user.profileImage || FALLBACK_AVATAR;
+    const name = user.name || "AIFT User";
+    const label = user.profession || user.role || "AIFT member";
+
+    return `
+      <div class="profile-share-user">
+        <img src="${escapeHtml(avatar)}" alt="">
+        <div class="profile-share-user-info">
+          <strong>${escapeHtml(name)}</strong>
+          <span>${escapeHtml(label)}</span>
+        </div>
+        <button
+          type="button"
+          class="profile-share-send"
+          onclick="sendProfileShare('${escapeHtml(id)}', this)"
+        >
+          Send
+        </button>
+      </div>
+    `;
+  }).join("");
+}
+
+async function sendProfileShare(receiverId, button){
+  if(!receiverId) return;
+
+  const profile = state.profile || {};
+  const profileName = profile.name || "this profile";
+  const profileUrl = location.href;
+
+  const messageText = `Check out ${profileName}'s AIFT profile: ${profileUrl}`;
+
+  button.disabled = true;
+  button.textContent = "Sending...";
+
+  try{
+    const res = await fetch(`${API}/api/messages`, {
+      method:"POST",
+      headers:authHeaders({
+        "Content-Type":"application/json"
+      }),
+      body:JSON.stringify({
+        receiverId,
+        text:messageText,
+        message:messageText,
+        content:messageText,
+        type:"profile_share",
+        sharedProfileId:profile._id || profileId,
+        profileUrl
+      })
+    });
+
+    const data = await res.json().catch(()=>({}));
+
+    if(!res.ok){
+      throw new Error(data.message || "Unable to send profile.");
+    }
+
+    button.textContent = "Sent";
+
+  }catch(err){
+    button.disabled = false;
+    button.textContent = "Send";
+    alert(err.message);
+  }
+}
+
+async function copyProfileLinkOnly(){
+  try{
+    await navigator.clipboard.writeText(location.href);
+    alert("Profile link copied");
+  }catch{
+    alert("Copy this profile link from your browser.");
+  }
+}
+
 function setupOwnerControls(user,viewer){
   const messageBtn = document.getElementById("messageAgentBtn");
   const followBtn = document.getElementById("followAgentBtn");
@@ -2085,14 +2295,9 @@ function setupOwnerControls(user,viewer){
     location.href = r === "talent" ? "talent.html" : r === "agent" ? "agent.html" : "home.html";
   };
 
-  const shareProfile = async () => {
-    try{
-      await navigator.clipboard.writeText(location.href);
-      alert("Profile link copied");
-    }catch{
-      alert("Copy this profile link from your browser.");
-    }
-  };
+const shareProfile = () => {
+  openProfileSharePanel();
+};
 
   const goMessage = () => {
     if(!profileId) return;
@@ -2500,15 +2705,6 @@ document.getElementById("messageAgentBtn").addEventListener("click",()=>{
   location.href = `messages.html?user=${profileId}`;
 });
 
-document.getElementById("shareAgentBtn").addEventListener("click",async()=>{
-  try{
-    await navigator.clipboard.writeText(location.href);
-    alert("Profile link copied");
-  }catch{
-    alert("Copy this profile link from your browser.");
-  }
-});
-
 document.getElementById("followAgentBtn").addEventListener("click",async()=>{
   if(!profileId || !token){
     location.href = "login.html";
@@ -2765,6 +2961,33 @@ init();
 <div class="cv-viewer-body">
   <div id="cvPages" class="cv-pages"></div>
 </div>
+</div>
+  <div class="profile-share-overlay hidden" id="profileShareOverlay">
+  <div class="profile-share-panel">
+    <div class="profile-share-head">
+      <strong>Share Profile</strong>
+      <button type="button" onclick="closeProfileSharePanel()">×</button>
+    </div>
+
+    <div class="profile-share-search">
+      <input
+        id="profileShareSearch"
+        type="search"
+        placeholder="Search people"
+        oninput="renderProfileShareUsers()"
+      >
+    </div>
+
+    <div class="profile-share-list" id="profileShareList">
+      <div class="empty">Loading people...</div>
+    </div>
+
+    <div class="profile-share-footer">
+      <button type="button" class="pill-btn" onclick="copyProfileLinkOnly()">
+        Copy Link
+      </button>
+    </div>
+  </div>
 </div>
 
 <script src="feed.js"></script>
