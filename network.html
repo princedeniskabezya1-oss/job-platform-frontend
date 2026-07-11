@@ -1308,23 +1308,62 @@ async function loadNotificationBadge(){
 }
 
 function profileUrl(user){
-  const id = user?._id || user?.id;
+  const id = String(
+    user?._id ||
+    user?.id ||
+    ""
+  ).trim();
 
   if(!id){
-    return "home.html";
+    console.error("Profile URL failed: missing user ID", user);
+    return "#";
   }
 
-  const role = String(user?.role || "").toLowerCase();
+  const role = String(
+    user?.role ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
 
   if(role === "employer"){
-    return "employer-public-profile.html?id=" + encodeURIComponent(id);
+    return (
+      "employer-public-profile.html?id=" +
+      encodeURIComponent(id)
+    );
   }
 
   if(role === "school"){
-    return "school.html?id=" + encodeURIComponent(id);
+    return (
+      "school-public-profile.html?id=" +
+      encodeURIComponent(id)
+    );
   }
 
-  return "agent-public-profile.html?id=" + encodeURIComponent(id);
+  if(role === "student"){
+    return (
+      "student-public-profile.html?id=" +
+      encodeURIComponent(id)
+    );
+  }
+
+  if(role === "agent" || role === "talent"){
+    return (
+      "agent-public-profile.html?id=" +
+      encodeURIComponent(id)
+    );
+  }
+
+  console.warn(
+    "Unknown profile role. Using agent public profile:",
+    role,
+    user
+  );
+
+  return (
+    "agent-public-profile.html?id=" +
+    encodeURIComponent(id)
+  );
 }
 
     function dashboardUrl(){
@@ -1347,28 +1386,58 @@ function goNotifications(){
 }
 
 function goMe(){
-  if(!requireLogin("view your profile")) return;
 
-  const id = state.me?._id || localStorage.getItem("userId");
+  if(!requireLogin("view your profile")){
+    return;
+  }
+
+  const id = String(
+    state.me?._id ||
+    state.me?.id ||
+    localStorage.getItem("userId") ||
+    ""
+  ).trim();
 
   if(!id){
     showGuestModal("view your profile");
     return;
   }
 
-  const role = String(state.me?.role || getRole() || "").toLowerCase();
+  const role = String(
+    state.me?.role ||
+    getRole() ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
 
   if(role === "employer"){
-    location.href = "employer-public-profile.html?id=" + encodeURIComponent(id);
+    location.href =
+      "employer-public-profile.html?id=" +
+      encodeURIComponent(id);
+
     return;
   }
 
   if(role === "school"){
-    location.href = "school.html?id=" + encodeURIComponent(id);
+    location.href =
+      "school-public-profile.html?id=" +
+      encodeURIComponent(id);
+
     return;
   }
 
-  location.href = "agent-public-profile.html?id=" + encodeURIComponent(id);
+  if(role === "student"){
+    location.href =
+      "student-public-profile.html?id=" +
+      encodeURIComponent(id);
+
+    return;
+  }
+
+  location.href =
+    "agent-public-profile.html?id=" +
+    encodeURIComponent(id);
 }
 
 
