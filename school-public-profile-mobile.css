@@ -1,82 +1,178 @@
-from pathlib import Path
-import re
+/* =========================
+   SCHOOL PUBLIC PROFILE MOBILE
+   Talent-style mobile design mapped to school public profile
+========================= */
 
-src = Path("/mnt/data/Pasted text(752).txt")
-text = src.read_text()
+/* LOADER */
+.profile-loader{
+  position:fixed;
+  inset:0;
+  z-index:999999;
+  background:#fff;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:14px;
+}
 
-# Match the agent mobile breakpoint for exact profile behavior.
-text = text.replace("@media(max-width:760px){", "@media(max-width:640px){", 1)
+.profile-loader img{
+  width:132px;
+  height:auto;
+  object-fit:contain;
+}
 
-# Replace school profile header.
-text = re.sub(
-    r"\.school-profile-head\{\s*position:relative!important;\s*display:block!important;\s*margin-top:2px!important;\s*padding-top:4px!important;\s*\}",
-    """.school-profile-head{
+.profile-loader-spin{
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  border:3px solid #dbeafe;
+  border-top-color:#0a66c2;
+  animation:profileSpin .75s linear infinite;
+}
+
+@keyframes profileSpin{
+  to{transform:rotate(360deg)}
+}
+
+body.loading-profile .profile-loader{
+  display:flex;
+}
+
+body.loading-profile .page{
+  visibility:hidden;
+}
+
+/* DESKTOP SAFE */
+.profile-more-menu{
+  display:none;
+}
+
+.profile-more-menu.show{
+  display:block;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media(max-width:760px){
+
+  html,
+  body{
+    background:#fff!important;
+    overflow-x:hidden!important;
+  }
+
+  body{
+    padding:0!important;
+  }
+
+  .topbar,
+  .right-col,
+  .left-col,
+  .school-line,
+  .tag-row,
+  .verified,
+  .school-meta{
+    display:none!important;
+  }
+
+  .container{
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  .page{
+    padding:0!important;
+    background:#fff!important;
+  }
+
+  .main-grid,
+  .layout{
+    display:block!important;
+    background:#fff!important;
+  }
+
+  .center-col,
+  .main-col{
+    width:100%!important;
+    min-width:0!important;
+  }
+
+  .hero-wrap{
+    padding:0!important;
+    background:#fff!important;
+  }
+
+  .hero{
+    margin:0 0 8px!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    background:#fff!important;
+  }
+
+  .cover{
+    height:142px!important;
+    min-height:142px!important;
+    border:0!important;
+    background-position:center!important;
+    background-size:cover!important;
+  }
+
+.hero-main{
+    position:relative!important;
+    margin-top:0!important;
+    padding:0 14px 14px!important;
+    background:#fff!important;
+}
+
+  .hero-top{
+    display:block!important;
+    position:relative!important;
+  }
+
+.school-profile-head{
   position:relative!important;
   display:block!important;
   margin-top:4px!important;
   padding-top:8px!important;
-}""",
-    text,
-    count=1
-)
+}
 
-# Replace school logo block.
-text = re.sub(
-    r"\.school-logo\{\s*width:72px!important;\s*height:72px!important;\s*margin-top:-36px!important;\s*border:4px solid #fff!important;\s*border-radius:50%!important;\s*background:#fff!important;\s*object-fit:cover!important;\s*box-shadow:0 1px 4px rgba\(0,0,0,.18\)!important;\s*overflow:hidden!important;\s*\}",
-    """.school-logo{
+.school-logo{
   width:88px!important;
   min-width:88px!important;
   max-width:88px!important;
+
   height:88px!important;
   min-height:88px!important;
   max-height:88px!important;
+
   margin-top:-44px!important;
   padding:0!important;
   flex:0 0 88px!important;
+
   border:4px solid #fff!important;
   border-radius:50%!important;
   background:#fff!important;
-  object-fit:cover!important;
   box-shadow:0 1px 4px rgba(0,0,0,.18)!important;
   overflow:hidden!important;
-}""",
-    text,
-    count=1
-)
+}
 
-# Replace logo image block.
-text = re.sub(
-    r"\.school-logo img\{\s*width:100%!important;\s*height:100%!important;\s*object-fit:cover!important;\s*\}",
-    """.school-logo img{
-  display:block!important;
-  width:100%!important;
-  height:100%!important;
-  margin:0!important;
-  padding:0!important;
-  border-radius:50%!important;
-  object-fit:cover!important;
-}""",
-    text,
-    count=1
-)
+  .school-logo img{
+    width:100%!important;
+    height:100%!important;
+    object-fit:cover!important;
+  }
 
-# Replace school info block.
-text = re.sub(
-    r"\.school-info\{\s*margin-top:0!important;\s*min-width:0!important;\s*max-width:100%!important;\s*\}",
-    """.school-info{
+.school-info{
   margin-top:0!important;
-  padding:0!important;
   min-width:0!important;
   max-width:100%!important;
-}""",
-    text,
-    count=1
-)
+}
 
-# Replace school name.
-text = re.sub(
-    r"\.school-name\{\s*margin:0!important;\s*font-size:22px!important;\s*line-height:1\.12!important;\s*font-weight:850!important;\s*letter-spacing:-\.035em!important;\s*color:#111827!important;\s*max-width:180px!important;\s*\}",
-    """.school-name{
+.school-name{
   margin:0!important;
   font-size:22px!important;
   line-height:1.12!important;
@@ -84,17 +180,10 @@ text = re.sub(
   letter-spacing:-.035em!important;
   color:#111827!important;
   max-width:180px!important;
-  overflow-wrap:anywhere!important;
-}""",
-    text,
-    count=1
-)
+}
 
-# Replace school bio.
-text = re.sub(
-    r"\.school-bio\{\s*margin-top:5px!important;\s*width:100%!important;\s*max-width:100%!important;\s*font-size:14px!important;\s*line-height:1\.45!important;\s*color:#475569!important;\s*display:-webkit-box!important;\s*-webkit-line-clamp:2!important;\s*-webkit-box-orient:vertical!important;\s*overflow:hidden!important;\s*\}",
-    """.school-bio{
-  margin:5px 0 0!important;
+.school-bio{
+  margin-top:5px!important;
   width:100%!important;
   max-width:100%!important;
   font-size:14px!important;
@@ -104,17 +193,12 @@ text = re.sub(
   -webkit-line-clamp:2!important;
   -webkit-box-orient:vertical!important;
   overflow:hidden!important;
-}""",
-    text,
-    count=1
-)
+}
 
-# Replace profile actions.
-text = re.sub(
-    r"#profileHeroActions\{\s*position:absolute!important;\s*top:-16px!important;\s*right:0!important;\s*left:auto!important;\s*bottom:auto!important;\s*display:flex!important;\s*align-items:center!important;\s*justify-content:flex-end!important;\s*gap:5px!important;\s*margin:0!important;\s*padding:0!important;\s*flex-wrap:nowrap!important;\s*height:auto!important;\s*z-index:80!important;\s*\}",
-    """#profileHeroActions{
+  /* ACTIONS EXACT TALENT/EMPLOYER-STYLE */
+#profileHeroActions{
   position:absolute!important;
-  top:-58px!important;
+  top:-16px!important;
   right:0!important;
   left:auto!important;
   bottom:auto!important;
@@ -123,15 +207,326 @@ text = re.sub(
   justify-content:flex-end!important;
   gap:5px!important;
   margin:0!important;
-  padding:2px 0 0!important;
+  padding:0!important;
   flex-wrap:nowrap!important;
   height:auto!important;
   z-index:80!important;
-}""",
-    text,
-    count=1
-)
+}
 
-out = Path("/mnt/data/school-public-profile-mobile.css")
-out.write_text(text)
-print(out)
+  #profileHeroActions .pill-btn{
+    height:30px!important;
+    min-height:30px!important;
+    padding:0 10px!important;
+    border-radius:999px!important;
+    font-size:12px!important;
+    font-weight:800!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+    box-shadow:none!important;
+  }
+
+  #messageSchoolBtn,
+  #followSchoolBtn{
+    min-width:84px!important;
+  }
+
+  #editSchoolBtn{
+    min-width:82px!important;
+  }
+
+  #profileHeroActions .pill-btn.primary{
+    background:#0a66c2!important;
+    color:#fff!important;
+    border-color:#0a66c2!important;
+  }
+
+  #profileMoreBtn{
+    width:32px!important;
+    min-width:32px!important;
+    height:30px!important;
+    padding:0!important;
+    font-size:21px!important;
+    line-height:1!important;
+    border-color:#d1d5db!important;
+    color:#334155!important;
+    background:#fff!important;
+    border-radius:999px!important;
+  }
+
+  .profile-more-menu{
+    display:none!important;
+    position:absolute!important;
+    top:42px!important;
+    right:0!important;
+    z-index:80!important;
+    width:190px!important;
+    background:#fff!important;
+    border:1px solid #e5e7eb!important;
+    border-radius:12px!important;
+    box-shadow:0 18px 40px rgba(15,23,42,.16)!important;
+    overflow:hidden!important;
+  }
+
+  .profile-more-menu.show{
+    display:block!important;
+  }
+
+  .profile-more-menu button{
+    width:100%!important;
+    height:42px!important;
+    border:0!important;
+    border-bottom:1px solid #eef2f7!important;
+    background:#fff!important;
+    text-align:left!important;
+    padding:0 14px!important;
+    font-size:13px!important;
+    font-weight:750!important;
+    color:#1f2937!important;
+    border-radius:0!important;
+  }
+
+  .profile-more-menu button:last-child{
+    border-bottom:0!important;
+  }
+
+  /* STATS HIDDEN FIRST */
+  .trust-grid{
+    display:none!important;
+  }
+
+  body.school-stats-open .trust-grid{
+    display:grid!important;
+    grid-template-columns:repeat(2,1fr)!important;
+    gap:8px!important;
+    margin-top:14px!important;
+    padding:0!important;
+  }
+
+  .trust-card{
+    padding:14px!important;
+    border:1px solid #e5e7eb!important;
+    border-radius:16px!important;
+    background:#fff!important;
+    box-shadow:none!important;
+  }
+
+  .trust-label{
+    display:block!important;
+    font-size:13px!important;
+    font-weight:850!important;
+    color:#64748b!important;
+    margin-bottom:6px!important;
+  }
+
+  .trust-value{
+    display:block!important;
+    font-size:22px!important;
+    line-height:1.15!important;
+    font-weight:900!important;
+    color:#111827!important;
+  }
+
+  .trust-note{
+    display:none!important;
+  }
+
+  /* TABS */
+  .tabs{
+    margin-top:14px!important;
+    display:flex!important;
+    background:#fff!important;
+    border-top:1px solid #eef2f7!important;
+    border-bottom:1px solid #eef2f7!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    scrollbar-width:none!important;
+  }
+
+  .tabs::-webkit-scrollbar{
+    display:none!important;
+  }
+
+  .tab-btn{
+    flex:none!important;
+    padding:12px 14px!important;
+    background:#fff!important;
+    border:0!important;
+    border-bottom:3px solid transparent!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    color:#64748b!important;
+    font-size:12px!important;
+    font-weight:850!important;
+    white-space:nowrap!important;
+  }
+
+  .tab-btn.active{
+    background:#fff!important;
+    color:#0a66c2!important;
+    border-bottom-color:#0a66c2!important;
+  }
+
+  /* CONTENT */
+  .section{
+    display:none!important;
+  }
+
+  .section.active{
+    display:block!important;
+  }
+
+  .card,
+  .card-pad,
+  .content-card{
+    margin:0 0 8px!important;
+    padding:16px!important;
+    border-radius:0!important;
+    border-left:0!important;
+    border-right:0!important;
+    border-top:0!important;
+    box-shadow:none!important;
+    background:#fff!important;
+  }
+
+  .card-title,
+  .content-card h2{
+    margin:0 0 12px!important;
+    font-size:18px!important;
+    line-height:1.2!important;
+    font-weight:850!important;
+    color:#111827!important;
+    letter-spacing:-.025em!important;
+  }
+
+  .story-text,
+  .card p,
+  .content-card p,
+  .program-desc,
+  .student-about,
+  .job-desc{
+    margin:0!important;
+    font-size:13px!important;
+    line-height:1.6!important;
+    color:#334155!important;
+  }
+
+  .feature-grid,
+  .outcome-grid,
+  .program-grid,
+  .partner-grid,
+  .student-grid,
+  .job-list{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:8px!important;
+  }
+
+  .feature-card,
+  .outcome-card,
+  .program-card,
+  .partner-card,
+  .student-card,
+  .job-item{
+    border:1px solid #e5e7eb!important;
+    border-radius:14px!important;
+    padding:14px!important;
+    background:#fff!important;
+    box-shadow:none!important;
+  }
+
+  .feature-card h3,
+  .program-title,
+  .partner-name,
+  .student-name,
+  .job-title{
+    margin:0 0 6px!important;
+    font-size:14px!important;
+    font-weight:850!important;
+    line-height:1.35!important;
+    color:#111827!important;
+  }
+
+  .feature-card p,
+  .program-sub,
+  .partner-role,
+  .student-role,
+  .job-sub{
+    font-size:12px!important;
+    line-height:1.5!important;
+    color:#64748b!important;
+  }
+
+  .program-cover{
+    height:130px!important;
+    border-radius:12px 12px 0 0!important;
+  }
+
+  .program-body,
+  .partner-content,
+  .student-content{
+    padding:12px!important;
+  }
+
+  .partner-banner,
+  .student-cover{
+    height:105px!important;
+    border-radius:12px 12px 0 0!important;
+  }
+
+  .partner-logo,
+  .student-avatar{
+    width:72px!important;
+    height:72px!important;
+    border-radius:50%!important;
+    border:4px solid #fff!important;
+    object-fit:cover!important;
+  }
+
+  .partner-stats{
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:8px!important;
+  }
+
+  .loading,
+  .empty,
+  .empty-state{
+    padding:13px!important;
+    font-size:13px!important;
+    border-radius:12px!important;
+    color:#64748b!important;
+    background:#fff!important;
+    text-align:center!important;
+  }
+
+  #schoolFeedMount,
+  #schoolFeedMount .aift-feed-shell{
+    width:100%!important;
+    max-width:100%!important;
+    margin:0!important;
+  }
+
+  #schoolFeedMount .aift-composer{
+    display:none!important;
+  }
+
+  .profile-share-overlay{
+    align-items:flex-end!important;
+    padding:0!important;
+  }
+
+  .profile-share-panel{
+    width:100%!important;
+    max-height:86vh!important;
+    border-radius:18px 18px 0 0!important;
+  }
+
+  .profile-share-user{
+    padding:12px 16px!important;
+  }
+
+  .profile-share-user img{
+    width:48px!important;
+    height:48px!important;
+  }
+}
