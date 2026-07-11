@@ -2790,286 +2790,6 @@ function renderSchoolDetails(){
   );
 
   if(!rows.length){
-    mount.innerHTML = `
-      <div class="empty">
-        No additional school details added yet.
-      </div>
-    `;
-    return;
-  }
-
-  mount.innerHTML = rows.join("");
-}
-
-  const school = state.school || {};
-
-  const schoolName =
-    school.schoolName ||
-    school.name ||
-    "School";
-
-  const logo =
-    school.schoolLogo ||
-    school.logo ||
-    school.profileImage ||
-    FALLBACK_LOGO;
-
-  const banner =
-    school.schoolBanner ||
-    school.bannerImage ||
-    school.coverImage ||
-    "";
-
-  const bio =
-    school.schoolDescription ||
-    school.description ||
-    school.bio ||
-    school.headline ||
-    "";
-
-  document.title = `${schoolName} | AIFT`;
-
-  const nameElement =
-    document.getElementById("schoolName");
-
-  const bioElement =
-    document.getElementById("schoolBio");
-
-  const logoElement =
-    document.getElementById("schoolLogo");
-
-  const lineElement =
-    document.getElementById("schoolLine");
-
-  const aboutElement =
-    document.getElementById("aboutSchoolText");
-
-  if(nameElement){
-    nameElement.textContent = schoolName;
-  }
-
-  if(bioElement){
-    bioElement.textContent =
-      bio || "No school description added yet.";
-  }
-
-  if(aboutElement){
-    aboutElement.textContent =
-      bio || "No school description added yet.";
-  }
-
-  if(logoElement){
-    logoElement.src = logo;
-
-    logoElement.onerror = () => {
-      logoElement.src = FALLBACK_LOGO;
-    };
-  }
-
-  const meta = [];
-
-  const location =
-    school.address ||
-    school.location ||
-    school.city ||
-    "";
-
-  const schoolType =
-    school.schoolType ||
-    school.type ||
-    school.institutionType ||
-    "";
-
-  if(schoolType){
-    meta.push(escapeHtml(schoolType));
-  }
-
-  if(location){
-    meta.push(escapeHtml(location));
-  }
-
-  if(state.analytics.followers){
-    meta.push(
-      `${state.analytics.followers} follower${
-        state.analytics.followers === 1 ? "" : "s"
-      }`
-    );
-  }
-
-  if(lineElement){
-    lineElement.innerHTML =
-      meta.length
-        ? meta.join(" • ")
-        : "";
-  }
-
-  if(state.viewer?.profileImage){
-    const viewerAvatar =
-      document.getElementById("viewerAvatar");
-
-    if(viewerAvatar){
-      viewerAvatar.src = state.viewer.profileImage;
-    }
-  }
-
-  const cover =
-    document.getElementById("schoolCover");
-
-  if(cover){
-
-    if(banner){
-      cover.style.backgroundImage =
-        `url("${banner}")`;
-    }else{
-      cover.style.backgroundImage = "";
-    }
-  }
-
-  document.getElementById("studentCount").textContent =
-    String(state.analytics.students);
-
-  document.getElementById("programCount").textContent =
-    String(state.analytics.programs);
-
-  document.getElementById("partnerCount").textContent =
-    String(state.analytics.partners);
-
-  document.getElementById("opportunityCount").textContent =
-    String(state.analytics.opportunities);
-
-  document.getElementById("jobCount").textContent =
-    String(state.analytics.jobs);
-
-  const sidePostCount =
-    document.getElementById("sidePostCount");
-
-  const sideJobCount =
-    document.getElementById("sideJobCount");
-
-  const sideOpportunityCount =
-    document.getElementById("sideOpportunityCount");
-
-  const sidePartnerCount =
-    document.getElementById("sidePartnerCount");
-
-  if(sidePostCount){
-    sidePostCount.textContent =
-      String(state.analytics.posts);
-  }
-
-  if(sideJobCount){
-    sideJobCount.textContent =
-      String(state.analytics.jobs);
-  }
-
-  if(sideOpportunityCount){
-    sideOpportunityCount.textContent =
-      String(state.analytics.opportunities);
-  }
-
-  if(sidePartnerCount){
-    sidePartnerCount.textContent =
-      String(state.analytics.partners);
-  }
-
- if(typeof renderSchoolDetails === "function"){
-  renderSchoolDetails();
-}else{
-  console.warn("renderSchoolDetails() is not available in the loaded page.");
-
-  const detailsMount =
-    document.getElementById("schoolDetailsList");
-
-  if(detailsMount){
-    detailsMount.innerHTML = `
-      <div class="empty">
-        School details are temporarily unavailable.
-      </div>
-    `;
-  }
-}
-}
-
-/* =========================
-   SCHOOL DETAILS
-========================= */
-
-function renderSchoolDetails(){
-
-  const school = state.school || {};
-
-  const mount =
-    document.getElementById("schoolDetailsList");
-
-  if(!mount) return;
-
-  const rows = [];
-
-  const addRow = (label, value) => {
-
-    if(
-      value === undefined ||
-      value === null ||
-      String(value).trim() === ""
-    ){
-      return;
-    }
-
-    rows.push(`
-      <div class="info-row">
-
-        <div class="info-label">
-          ${escapeHtml(label)}
-        </div>
-
-        <div class="info-value">
-          ${escapeHtml(value)}
-        </div>
-
-      </div>
-    `);
-  };
-
-  addRow(
-    "School type",
-    school.schoolType ||
-    school.institutionType ||
-    school.type
-  );
-
-  addRow(
-    "Location",
-    school.address ||
-    school.location ||
-    school.city
-  );
-
-  addRow(
-    "Email",
-    school.contactEmail ||
-    school.schoolEmail ||
-    school.email
-  );
-
-  addRow(
-    "Phone",
-    school.contactPhone ||
-    school.phone
-  );
-
-  addRow(
-    "Website",
-    school.website
-  );
-
-  addRow(
-    "Established",
-    school.establishedYear ||
-    school.yearFounded ||
-    school.foundedYear
-  );
-
-  if(!rows.length){
 
     mount.innerHTML = `
       <div class="empty">
@@ -3102,7 +2822,6 @@ function buildSidebar(){
     "Not added";
 
   stats.innerHTML = `
-
     <div class="info-row">
       <div class="info-label">Location</div>
       <div class="info-value">
@@ -3113,45 +2832,44 @@ function buildSidebar(){
     <div class="info-row">
       <div class="info-label">Students</div>
       <div class="info-value">
-        ${state.analytics.students}
+        ${state.analytics.students || 0}
       </div>
     </div>
 
     <div class="info-row">
       <div class="info-label">Programs</div>
       <div class="info-value">
-        ${state.analytics.programs}
+        ${state.analytics.programs || 0}
       </div>
     </div>
 
     <div class="info-row">
       <div class="info-label">Internships</div>
       <div class="info-value">
-        ${state.analytics.opportunities}
+        ${state.analytics.opportunities || 0}
       </div>
     </div>
 
     <div class="info-row">
       <div class="info-label">Jobs</div>
       <div class="info-value">
-        ${state.analytics.jobs}
+        ${state.analytics.jobs || 0}
       </div>
     </div>
 
     <div class="info-row">
       <div class="info-label">Partners</div>
       <div class="info-value">
-        ${state.analytics.partners}
+        ${state.analytics.partners || 0}
       </div>
     </div>
 
     <div class="info-row">
       <div class="info-label">Followers</div>
       <div class="info-value">
-        ${state.analytics.followers}
+        ${state.analytics.followers || 0}
       </div>
     </div>
-
   `;
 }
 function toggleProfileMoreMenu(){
