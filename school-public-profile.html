@@ -2420,6 +2420,7 @@ async function fetchSchoolProfile(){
 
   state.school = school;
 }
+
 /* =========================
    FETCH POSTS
 ========================= */
@@ -2436,7 +2437,6 @@ async function fetchPosts(){
     );
 
     if(!res.ok){
-
       state.posts = [];
       return;
     }
@@ -2452,24 +2452,24 @@ async function fetchPosts(){
 
     state.posts = posts.filter(post => {
 
-      const authorId =
-        String(
-          post.author?._id ||
-          post.author ||
-          ""
-        );
+      const authorId = String(
+        post.author?._id ||
+        post.author ||
+        ""
+      );
 
       return authorId === String(schoolId);
     });
 
-  }catch{
+  }catch(err){
 
+    console.error("Unable to load posts:", err);
     state.posts = [];
   }
 }
 
 /* =========================
-   FETCH USERS
+   FETCH STUDENTS
 ========================= */
 
 async function fetchStudents(){
@@ -2484,7 +2484,6 @@ async function fetchStudents(){
     );
 
     if(!res.ok){
-
       state.students = [];
       return;
     }
@@ -2494,20 +2493,33 @@ async function fetchStudents(){
     const users =
       Array.isArray(data)
         ? data
-        : [];
+        : Array.isArray(data?.users)
+          ? data.users
+          : [];
 
-    state.students =
-      users.filter(user => {
+    state.students = users.filter(user => {
 
-        return (
-          String(user.role || "")
-            .toLowerCase() === "talent" &&
-          String(user.schoolId || "") === String(schoolId)
-        );
-      });
+      const role =
+        String(user.role || "")
+          .toLowerCase();
 
-  }catch{
+      const linkedSchoolId = String(
+        user.schoolId?._id ||
+        user.schoolId ||
+        user.school?._id ||
+        user.school ||
+        ""
+      );
 
+      return (
+        (role === "talent" || role === "student") &&
+        linkedSchoolId === String(schoolId)
+      );
+    });
+
+  }catch(err){
+
+    console.error("Unable to load students:", err);
     state.students = [];
   }
 }
@@ -2521,14 +2533,13 @@ async function fetchOpportunities(){
   try{
 
     const res = await fetch(
-      `${API}/api/opportunities?schoolId=${schoolId}`,
+      `${API}/api/opportunities?schoolId=${encodeURIComponent(schoolId)}`,
       {
         headers:authHeaders()
       }
     );
 
     if(!res.ok){
-
       state.opportunities = [];
       return;
     }
@@ -2540,18 +2551,31 @@ async function fetchOpportunities(){
         ? data
         : Array.isArray(data?.items)
           ? data.items
-          : [];
+          : Array.isArray(data?.opportunities)
+            ? data.opportunities
+            : [];
 
-  }catch{
+  }catch(err){
 
+    console.error("Unable to load opportunities:", err);
     state.opportunities = [];
   }
 }
-  async function fetchJobs(){
+
+/* =========================
+   FETCH JOBS
+========================= */
+
+async function fetchJobs(){
+
   try{
-    const res = await fetch(`${API}/api/jobs`, {
-      headers:authHeaders()
-    });
+
+    const res = await fetch(
+      API + "/api/jobs",
+      {
+        headers:authHeaders()
+      }
+    );
 
     if(!res.ok){
       state.jobs = [];
@@ -2560,19 +2584,20 @@ async function fetchOpportunities(){
 
     const data = await safeJson(res);
 
-    const jobs = Array.isArray(data)
-      ? data
-      : Array.isArray(data?.jobs)
-        ? data.jobs
-        : Array.isArray(data?.results)
-          ? data.results
-          : [];
+    const jobs =
+      Array.isArray(data)
+        ? data
+        : Array.isArray(data?.jobs)
+          ? data.jobs
+          : Array.isArray(data?.results)
+            ? data.results
+            : [];
 
     state.jobs = jobs.filter(job => {
+
       const ownerId = String(
+        job.schoolId?._id ||
         job.schoolId ||
-        job.employerId ||
-        job.companyId ||
         job.postedBy?._id ||
         job.postedBy ||
         job.author?._id ||
@@ -2583,14 +2608,15 @@ async function fetchOpportunities(){
       return ownerId === String(schoolId);
     });
 
-  }catch{
+  }catch(err){
+
+    console.error("Unable to load jobs:", err);
     state.jobs = [];
   }
 }
 
 /* =========================
-   MOCK PARTNERS
-   (production placeholder)
+   FETCH PARTNERS
 ========================= */
 
 async function fetchPartners(){
@@ -2599,73 +2625,78 @@ async function fetchPartners(){
 
   if(!schoolId) return;
 
-  try{
+  const endpoints = [
+    `/api/school-company-partnerships?schoolId=${encodeURIComponent(schoolId)}`,
+    `/api/school-company-partnerships/school/${encodeURIComponent(schoolId)}`
+  ];
 
-    const possibleEndpoints = [
-      `/api/school-company-partnerships?schoolId=${encodeURIComponent(schoolId)}`,
-      `/api/school-company-partnerships/school/${encodeURIComponent(schoolId)}`
-    ];
+  for(const path of endpoints){
 
-    for(const path of possibleEndpoints){
+    try{
 
-      try{
-
-        const res = await fetch(API + path, {
+      const res = await fetch(
+        API + path,
+        {
           headers:authHeaders()
-        });
-
-        if(!res.ok){
-          continue;
         }
+      );
 
-        const data = await safeJson(res);
-
-        const partnerships =
-          Array.isArray(data)
-            ? data
-            : Array.isArray(data?.partnerships)
-              ? data.partnerships
-              : Array.isArray(data?.items)
-                ? data.items
-                : Array.isArray(data?.results)
-                  ? data.results
-                  : [];
-
-        state.partners = partnerships.filter(partnership => {
-
-          const partnershipSchoolId = String(
-            partnership.schoolId?._id ||
-            partnership.schoolId ||
-            partnership.school?._id ||
-            partnership.school ||
-            ""
-          );
-
-          return (
-            !partnershipSchoolId ||
-            partnershipSchoolId === String(schoolId)
-          );
-        });
-
-        return;
-
-      }catch(err){
-        console.warn("Partnership endpoint failed:", path, err);
+      if(!res.ok){
+        continue;
       }
-    }
 
-  }catch(err){
-    console.error("Unable to load partnerships:", err);
-    state.partners = [];
+      const data = await safeJson(res);
+
+      const partnerships =
+        Array.isArray(data)
+          ? data
+          : Array.isArray(data?.partnerships)
+            ? data.partnerships
+            : Array.isArray(data?.items)
+              ? data.items
+              : Array.isArray(data?.results)
+                ? data.results
+                : [];
+
+      state.partners = partnerships.filter(partnership => {
+
+        const linkedSchoolId = String(
+          partnership.schoolId?._id ||
+          partnership.schoolId ||
+          partnership.school?._id ||
+          partnership.school ||
+          ""
+        );
+
+        return (
+          !linkedSchoolId ||
+          linkedSchoolId === String(schoolId)
+        );
+      });
+
+      return;
+
+    }catch(err){
+
+      console.warn(
+        "Partnership endpoint failed:",
+        path,
+        err
+      );
+    }
   }
 }
+
 /* =========================
-   VIEWER
+   FETCH VIEWER
 ========================= */
 
 async function fetchViewer(){
 
-  if(!token) return;
+  if(!token){
+    state.viewer = null;
+    return;
+  }
 
   try{
 
@@ -2676,11 +2707,23 @@ async function fetchViewer(){
       }
     );
 
-    if(!res.ok) return;
+    if(!res.ok){
+      state.viewer = null;
+      return;
+    }
 
-    state.viewer = await safeJson(res);
+    const data = await safeJson(res);
 
-  }catch{}
+    state.viewer =
+      data?.user ||
+      data ||
+      null;
+
+  }catch(err){
+
+    console.error("Unable to load viewer:", err);
+    state.viewer = null;
+  }
 }
 
 /* =========================
@@ -2689,7 +2732,8 @@ async function fetchViewer(){
 
 function buildAnalytics(){
 
-  const school = state.school || {};
+  const school =
+    state.school || {};
 
   const programs =
     Array.isArray(school.programs)
@@ -2718,7 +2762,8 @@ function buildAnalytics(){
 
 function renderSchoolDetails(){
 
-  const school = state.school || {};
+  const school =
+    state.school || {};
 
   const mount =
     document.getElementById("schoolDetailsList");
@@ -2804,12 +2849,153 @@ function renderSchoolDetails(){
 }
 
 /* =========================
-   SIDEBAR STATS
+   POPULATE HERO
+========================= */
+
+function populateHero(){
+
+  const school =
+    state.school || {};
+
+  const schoolName =
+    school.schoolName ||
+    school.name ||
+    "School";
+
+  const logo =
+    school.schoolLogo ||
+    school.logo ||
+    school.profileImage ||
+    FALLBACK_LOGO;
+
+  const banner =
+    school.schoolBanner ||
+    school.bannerImage ||
+    school.coverImage ||
+    "";
+
+  const bio =
+    school.schoolDescription ||
+    school.description ||
+    school.bio ||
+    school.headline ||
+    "";
+
+  document.title =
+    `${schoolName} | AIFT`;
+
+  const nameElement =
+    document.getElementById("schoolName");
+
+  const bioElement =
+    document.getElementById("schoolBio");
+
+  const logoElement =
+    document.getElementById("schoolLogo");
+
+  const lineElement =
+    document.getElementById("schoolLine");
+
+  const aboutElement =
+    document.getElementById("aboutSchoolText");
+
+  if(nameElement){
+    nameElement.textContent = schoolName;
+  }
+
+  if(bioElement){
+    bioElement.textContent =
+      bio || "No school description added yet.";
+  }
+
+  if(aboutElement){
+    aboutElement.textContent =
+      bio || "No school description added yet.";
+  }
+
+  if(logoElement){
+
+    logoElement.src = logo;
+
+    logoElement.onerror = () => {
+      logoElement.src = FALLBACK_LOGO;
+    };
+  }
+
+  const meta = [];
+
+  const location =
+    school.address ||
+    school.location ||
+    school.city ||
+    "";
+
+  const schoolType =
+    school.schoolType ||
+    school.type ||
+    school.institutionType ||
+    "";
+
+  if(schoolType){
+    meta.push(escapeHtml(schoolType));
+  }
+
+  if(location){
+    meta.push(escapeHtml(location));
+  }
+
+  if(state.analytics.followers){
+
+    meta.push(
+      `${state.analytics.followers} follower${
+        state.analytics.followers === 1
+          ? ""
+          : "s"
+      }`
+    );
+  }
+
+  if(lineElement){
+    lineElement.innerHTML =
+      meta.join(" • ");
+  }
+
+  const viewerAvatar =
+    document.getElementById("viewerAvatar");
+
+  if(viewerAvatar && state.viewer?.profileImage){
+    viewerAvatar.src =
+      state.viewer.profileImage;
+  }
+
+  const cover =
+    document.getElementById("schoolCover");
+
+  if(cover){
+
+    if(banner){
+
+      cover.style.backgroundImage =
+        `url("${banner}")`;
+
+    }else{
+
+      cover.style.backgroundImage = "";
+    }
+  }
+
+  renderPublicStats();
+  renderSchoolDetails();
+}
+
+/* =========================
+   SIDEBAR
 ========================= */
 
 function buildSidebar(){
 
-  const school = state.school || {};
+  const school =
+    state.school || {};
 
   const stats =
     document.getElementById("sideStats");
@@ -2872,57 +3058,88 @@ function buildSidebar(){
     </div>
   `;
 }
+
+/* =========================
+   PROFILE MENU
+========================= */
+
 function toggleProfileMoreMenu(){
-  document.getElementById("profileMoreMenu")?.classList.toggle("show");
+
+  document
+    .getElementById("profileMoreMenu")
+    ?.classList.toggle("show");
 }
+
 function toggleSchoolStats(event){
 
   event?.stopPropagation();
 
-  document.body.classList.toggle("school-stats-open");
+  document.body.classList.toggle(
+    "school-stats-open"
+  );
 
-  document.getElementById("profileMoreMenu")
+  document
+    .getElementById("profileMoreMenu")
     ?.classList.remove("show");
 }
+
+/* =========================
+   FOLLOW SCHOOL
+========================= */
+
 async function followSchool(){
+
   if(!token){
     location.href = "login.html";
     return;
   }
 
   try{
-    const res = await fetch(`${API}/api/users/${schoolId}/follow`, {
-      method:"PATCH",
-      headers:authHeaders()
-    });
+
+    const res = await fetch(
+      `${API}/api/users/${encodeURIComponent(schoolId)}/follow`,
+      {
+        method:"PATCH",
+        headers:authHeaders()
+      }
+    );
 
     const data = await safeJson(res);
 
     if(!res.ok){
-      throw new Error(data?.message || "Follow failed");
+      throw new Error(
+        data?.message ||
+        "Follow failed"
+      );
     }
 
-const mobileBtn =
-  document.getElementById("followSchoolBtn");
+    const mobileBtn =
+      document.getElementById("followSchoolBtn");
 
-const desktopBtn =
-  document.getElementById("desktopSchoolFollowBtn");
+    const desktopBtn =
+      document.getElementById("desktopSchoolFollowBtn");
 
-[mobileBtn, desktopBtn].forEach(btn => {
-  if(!btn) return;
+    [mobileBtn, desktopBtn].forEach(btn => {
 
-  btn.textContent =
-    data.following
-      ? "Following"
-      : "Follow";
-});
+      if(!btn) return;
+
+      btn.textContent =
+        data?.following
+          ? "Following"
+          : "Follow";
+    });
 
   }catch(err){
-    alert(err.message || "Unable to follow school.");
+
+    alert(
+      err.message ||
+      "Unable to follow school."
+    );
   }
 }
+
 /* =========================
-   DASHBOARD BUTTONS
+   OWNER BUTTONS
 ========================= */
 
 function setupOwnerButtons(){
@@ -2947,9 +3164,9 @@ function setupOwnerButtons(){
     viewerId === pageSchoolId;
 
   const isMobile =
-    window.matchMedia("(max-width:760px)").matches;
-
-  /* MOBILE BUTTONS */
+    window.matchMedia(
+      "(max-width:760px)"
+    ).matches;
 
   const mobileEditBtn =
     document.getElementById("editSchoolBtn");
@@ -2966,8 +3183,6 @@ function setupOwnerButtons(){
   const mobileDashboardBtn =
     document.getElementById("dashboardHeroBtn");
 
-  /* DESKTOP BUTTONS */
-
   const desktopEditBtn =
     document.getElementById("desktopSchoolEditBtn");
 
@@ -2982,8 +3197,6 @@ function setupOwnerButtons(){
 
   const desktopFollowBtn =
     document.getElementById("desktopSchoolFollowBtn");
-
-  /* HIDE EVERYTHING FIRST */
 
   [
     mobileEditBtn,
@@ -3000,15 +3213,16 @@ function setupOwnerButtons(){
     button?.classList.add("hidden");
   });
 
-  /* OWNER */
-
   if(isOwner){
 
     if(isMobile){
+
       mobileEditBtn?.classList.remove("hidden");
       mobileMoreBtn?.classList.remove("hidden");
       mobileDashboardBtn?.classList.remove("hidden");
+
     }else{
+
       desktopEditBtn?.classList.remove("hidden");
       desktopShareBtn?.classList.remove("hidden");
       desktopDashboardBtn?.classList.remove("hidden");
@@ -3017,13 +3231,12 @@ function setupOwnerButtons(){
     return;
   }
 
-  /* NON-OWNER */
-
   if(isMobile){
 
     mobileMoreBtn?.classList.remove("hidden");
 
     if(token){
+
       mobileMessageBtn?.classList.remove("hidden");
       mobileFollowBtn?.classList.remove("hidden");
     }
@@ -3033,21 +3246,25 @@ function setupOwnerButtons(){
     desktopShareBtn?.classList.remove("hidden");
 
     if(token){
+
       desktopMessageBtn?.classList.remove("hidden");
       desktopFollowBtn?.classList.remove("hidden");
     }
   }
 }
+
 let schoolProfileResizeTimer;
 
 window.addEventListener("resize", () => {
 
   clearTimeout(schoolProfileResizeTimer);
 
-  schoolProfileResizeTimer = setTimeout(() => {
-    setupOwnerButtons();
-  }, 120);
+  schoolProfileResizeTimer =
+    setTimeout(() => {
+      setupOwnerButtons();
+    },120);
 });
+
 </script>
 <script>
 
