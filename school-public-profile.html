@@ -1616,45 +1616,13 @@ img{display:block;max-width:100%}
     <h2 class="card-title">School details</h2>
 
     <div id="schoolDetailsList" class="info-list">
-      <div class="loading">Loading school details...</div>
+      <div class="loading">
+        Loading school details...
+      </div>
     </div>
   </article>
 
 </section>
-
-          <article class="card card-pad" style="margin-top:18px;">
-            <h2 class="card-title">School story</h2>
-            <p id="aboutSchoolText" class="story-text">
-              This institution prepares students for meaningful opportunities through academic excellence, career development, industry exposure, and practical learning.
-            </p>
-          </article>
-
-          <article class="card card-pad" style="margin-top:18px;">
-            <h2 class="card-title">Career outcomes</h2>
-
-            <div class="outcome-grid">
-              <div class="outcome-card">
-                <span>Hiring support</span>
-                <strong>CV building, interviews, job matching</strong>
-              </div>
-
-              <div class="outcome-card">
-                <span>Internships</span>
-                <strong>Employer-backed opportunities</strong>
-              </div>
-
-              <div class="outcome-card">
-                <span>Student preparation</span>
-                <strong>Projects, training, mentorship</strong>
-              </div>
-
-              <div class="outcome-card">
-                <span>Industry collaboration</span>
-                <strong>Career talks and recruitment events</strong>
-              </div>
-            </div>
-          </article>
-        </section>
 
         <section id="section-programs" class="section">
           <article class="card card-pad">
@@ -2922,6 +2890,99 @@ function populateHero(){
   }
 
   renderSchoolDetails();
+}
+
+/* =========================
+   SCHOOL DETAILS
+========================= */
+
+function renderSchoolDetails(){
+
+  const school = state.school || {};
+
+  const mount =
+    document.getElementById("schoolDetailsList");
+
+  if(!mount) return;
+
+  const rows = [];
+
+  const addRow = (label, value) => {
+
+    if(
+      value === undefined ||
+      value === null ||
+      String(value).trim() === ""
+    ){
+      return;
+    }
+
+    rows.push(`
+      <div class="info-row">
+
+        <div class="info-label">
+          ${escapeHtml(label)}
+        </div>
+
+        <div class="info-value">
+          ${escapeHtml(value)}
+        </div>
+
+      </div>
+    `);
+  };
+
+  addRow(
+    "School type",
+    school.schoolType ||
+    school.institutionType ||
+    school.type
+  );
+
+  addRow(
+    "Location",
+    school.address ||
+    school.location ||
+    school.city
+  );
+
+  addRow(
+    "Email",
+    school.contactEmail ||
+    school.schoolEmail ||
+    school.email
+  );
+
+  addRow(
+    "Phone",
+    school.contactPhone ||
+    school.phone
+  );
+
+  addRow(
+    "Website",
+    school.website
+  );
+
+  addRow(
+    "Established",
+    school.establishedYear ||
+    school.yearFounded ||
+    school.foundedYear
+  );
+
+  if(!rows.length){
+
+    mount.innerHTML = `
+      <div class="empty">
+        No additional school details added yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  mount.innerHTML = rows.join("");
 }
 
 /* =========================
