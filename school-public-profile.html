@@ -2713,10 +2713,93 @@ function buildAnalytics(){
 }
 
 /* =========================
-   POPULATE HERO
+   SCHOOL DETAILS
 ========================= */
 
-function populateHero(){
+function renderSchoolDetails(){
+
+  const school = state.school || {};
+
+  const mount =
+    document.getElementById("schoolDetailsList");
+
+  if(!mount) return;
+
+  const rows = [];
+
+  const addRow = (label, value) => {
+
+    if(
+      value === undefined ||
+      value === null ||
+      String(value).trim() === ""
+    ){
+      return;
+    }
+
+    rows.push(`
+      <div class="info-row">
+        <div class="info-label">
+          ${escapeHtml(label)}
+        </div>
+
+        <div class="info-value">
+          ${escapeHtml(value)}
+        </div>
+      </div>
+    `);
+  };
+
+  addRow(
+    "School type",
+    school.schoolType ||
+    school.institutionType ||
+    school.type
+  );
+
+  addRow(
+    "Location",
+    school.address ||
+    school.location ||
+    school.city
+  );
+
+  addRow(
+    "Email",
+    school.contactEmail ||
+    school.schoolEmail ||
+    school.email
+  );
+
+  addRow(
+    "Phone",
+    school.contactPhone ||
+    school.phone
+  );
+
+  addRow(
+    "Website",
+    school.website
+  );
+
+  addRow(
+    "Established",
+    school.establishedYear ||
+    school.yearFounded ||
+    school.foundedYear
+  );
+
+  if(!rows.length){
+    mount.innerHTML = `
+      <div class="empty">
+        No additional school details added yet.
+      </div>
+    `;
+    return;
+  }
+
+  mount.innerHTML = rows.join("");
+}
 
   const school = state.school || {};
 
@@ -2889,7 +2972,22 @@ function populateHero(){
       String(state.analytics.partners);
   }
 
+ if(typeof renderSchoolDetails === "function"){
   renderSchoolDetails();
+}else{
+  console.warn("renderSchoolDetails() is not available in the loaded page.");
+
+  const detailsMount =
+    document.getElementById("schoolDetailsList");
+
+  if(detailsMount){
+    detailsMount.innerHTML = `
+      <div class="empty">
+        School details are temporarily unavailable.
+      </div>
+    `;
+  }
+}
 }
 
 /* =========================
