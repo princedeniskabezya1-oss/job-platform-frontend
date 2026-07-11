@@ -1070,6 +1070,10 @@ img{display:block;max-width:100%}
   font-size:14px!important;
 }
 
+/* =========================================
+   DESKTOP SCHOOL PROFILE ACTIONS
+========================================= */
+
 .desktop-profile-actions{
   position:absolute!important;
   top:18px!important;
@@ -1077,21 +1081,52 @@ img{display:block;max-width:100%}
   display:flex!important;
   align-items:center!important;
   justify-content:flex-end!important;
+  flex-wrap:wrap!important;
   gap:8px!important;
   z-index:30!important;
 }
 
 .desktop-profile-actions .pill-btn{
-  height:34px!important;
-  padding:0 14px!important;
-  font-size:13px!important;
-  white-space:nowrap!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  height:36px!important;
+  min-height:36px!important;
+  padding:0 15px!important;
+  border:1px solid #0a66c2!important;
+  border-radius:999px!important;
   background:#fff!important;
+  color:#0a66c2!important;
+  font-size:13px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  white-space:nowrap!important;
 }
 
 .desktop-profile-actions .pill-btn.primary{
+  border-color:#0a66c2!important;
   background:#0a66c2!important;
   color:#fff!important;
+}
+
+.desktop-profile-actions .pill-btn:hover{
+  background:#eef6ff!important;
+}
+
+.desktop-profile-actions .pill-btn.primary:hover{
+  border-color:#004182!important;
+  background:#004182!important;
+  color:#fff!important;
+}
+
+/* Keep hidden desktop buttons hidden */
+.desktop-profile-actions .pill-btn.hidden{
+  display:none!important;
+}
+
+/* Mobile action block must never appear on desktop */
+#profileHeroActions{
+  display:none!important;
 }
 
 .tag-row,
@@ -1334,7 +1369,11 @@ img{display:block;max-width:100%}
   <div class="school-profile-head">
 
     <div class="school-logo">
-      <img id="schoolLogo" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="School logo">
+      <img
+        id="schoolLogo"
+        src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+        alt="School logo"
+      >
     </div>
 
     <div class="school-info">
@@ -1343,6 +1382,7 @@ img{display:block;max-width:100%}
       <div class="school-line" id="schoolLine"></div>
     </div>
 
+    <!-- MOBILE ACTIONS ONLY -->
     <div class="hero-actions" id="profileHeroActions">
 
       <button
@@ -1374,29 +1414,94 @@ img{display:block;max-width:100%}
 
       <button
         id="profileMoreBtn"
-        class="pill-btn more-profile-btn"
+        class="pill-btn more-profile-btn hidden"
         type="button"
         onclick="toggleProfileMoreMenu()"
       >
         ⋯
       </button>
 
-<div class="profile-more-menu" id="profileMoreMenu">
-  <button type="button" onclick="openProfileSharePanel()">Share Profile</button>
+      <div class="profile-more-menu" id="profileMoreMenu">
 
-  <button type="button" onclick="toggleSchoolStats(event)">
-    Statistics
-  </button>
+        <button
+          type="button"
+          onclick="openProfileSharePanel()"
+        >
+          Share Profile
+        </button>
 
-  <button id="dashboardHeroBtn" class="hidden" type="button" onclick="openDashboard()">
-    Dashboard
-  </button>
-</div>
+        <button
+          type="button"
+          onclick="toggleSchoolStats(event)"
+        >
+          Statistics
+        </button>
 
+        <button
+          id="dashboardHeroBtn"
+          class="hidden"
+          type="button"
+          onclick="openDashboard()"
+        >
+          Dashboard
+        </button>
 
-</div>
+      </div>
 
     </div>
+
+  </div>
+
+  <!-- DESKTOP ACTIONS ONLY -->
+  <div
+    class="desktop-profile-actions"
+    id="desktopSchoolActions"
+  >
+
+    <button
+      id="desktopSchoolEditBtn"
+      class="pill-btn hidden"
+      type="button"
+      onclick="openDashboard()"
+    >
+      Edit
+    </button>
+
+    <button
+      id="desktopSchoolShareBtn"
+      class="pill-btn hidden"
+      type="button"
+      onclick="openProfileSharePanel()"
+    >
+      Share Profile
+    </button>
+
+    <button
+      id="desktopSchoolDashboardBtn"
+      class="pill-btn hidden"
+      type="button"
+      onclick="openDashboard()"
+    >
+      Dashboard
+    </button>
+
+    <button
+      id="desktopSchoolMessageBtn"
+      class="pill-btn primary hidden"
+      type="button"
+      onclick="messageSchool()"
+    >
+      Message
+    </button>
+
+    <button
+      id="desktopSchoolFollowBtn"
+      class="pill-btn hidden"
+      type="button"
+      onclick="followSchool()"
+    >
+      Follow
+    </button>
 
   </div>
 
@@ -2798,10 +2903,20 @@ async function followSchool(){
       throw new Error(data?.message || "Follow failed");
     }
 
-    const btn = document.getElementById("followSchoolBtn");
-    if(btn){
-      btn.textContent = data.following ? "Following" : "Follow";
-    }
+const mobileBtn =
+  document.getElementById("followSchoolBtn");
+
+const desktopBtn =
+  document.getElementById("desktopSchoolFollowBtn");
+
+[mobileBtn, desktopBtn].forEach(btn => {
+  if(!btn) return;
+
+  btn.textContent =
+    data.following
+      ? "Following"
+      : "Follow";
+});
 
   }catch(err){
     alert(err.message || "Unable to follow school.");
@@ -2812,38 +2927,128 @@ async function followSchool(){
 ========================= */
 
 function setupOwnerButtons(){
-  const viewerId = String(state.viewer?._id || "");
-  const pageSchoolId = String(state.school?._id || schoolId || "");
+
+  const viewerId = String(
+    state.viewer?._id ||
+    state.viewer?.id ||
+    localStorage.getItem("userId") ||
+    ""
+  );
+
+  const pageSchoolId = String(
+    state.school?._id ||
+    state.school?.id ||
+    schoolId ||
+    ""
+  );
 
   const isOwner =
-    viewerId &&
-    pageSchoolId &&
+    Boolean(viewerId) &&
+    Boolean(pageSchoolId) &&
     viewerId === pageSchoolId;
 
-  const editBtn = document.getElementById("editSchoolBtn");
-  const messageBtn = document.getElementById("messageSchoolBtn");
-  const followBtn = document.getElementById("followSchoolBtn");
-  const moreBtn = document.getElementById("profileMoreBtn");
-  const dashboardBtn = document.getElementById("dashboardHeroBtn");
+  const isMobile =
+    window.matchMedia("(max-width:760px)").matches;
 
-  moreBtn?.classList.remove("hidden");
+  /* MOBILE BUTTONS */
+
+  const mobileEditBtn =
+    document.getElementById("editSchoolBtn");
+
+  const mobileMessageBtn =
+    document.getElementById("messageSchoolBtn");
+
+  const mobileFollowBtn =
+    document.getElementById("followSchoolBtn");
+
+  const mobileMoreBtn =
+    document.getElementById("profileMoreBtn");
+
+  const mobileDashboardBtn =
+    document.getElementById("dashboardHeroBtn");
+
+  /* DESKTOP BUTTONS */
+
+  const desktopEditBtn =
+    document.getElementById("desktopSchoolEditBtn");
+
+  const desktopShareBtn =
+    document.getElementById("desktopSchoolShareBtn");
+
+  const desktopDashboardBtn =
+    document.getElementById("desktopSchoolDashboardBtn");
+
+  const desktopMessageBtn =
+    document.getElementById("desktopSchoolMessageBtn");
+
+  const desktopFollowBtn =
+    document.getElementById("desktopSchoolFollowBtn");
+
+  /* HIDE EVERYTHING FIRST */
+
+  [
+    mobileEditBtn,
+    mobileMessageBtn,
+    mobileFollowBtn,
+    mobileMoreBtn,
+    mobileDashboardBtn,
+    desktopEditBtn,
+    desktopShareBtn,
+    desktopDashboardBtn,
+    desktopMessageBtn,
+    desktopFollowBtn
+  ].forEach(button => {
+    button?.classList.add("hidden");
+  });
+
+  /* OWNER */
 
   if(isOwner){
-    editBtn?.classList.remove("hidden");
-    dashboardBtn?.classList.remove("hidden");
 
-    messageBtn?.classList.add("hidden");
-    followBtn?.classList.add("hidden");
+    if(isMobile){
+      mobileEditBtn?.classList.remove("hidden");
+      mobileMoreBtn?.classList.remove("hidden");
+      mobileDashboardBtn?.classList.remove("hidden");
+    }else{
+      desktopEditBtn?.classList.remove("hidden");
+      desktopShareBtn?.classList.remove("hidden");
+      desktopDashboardBtn?.classList.remove("hidden");
+    }
+
     return;
   }
 
-  editBtn?.classList.add("hidden");
-  dashboardBtn?.classList.add("hidden");
+  /* NON-OWNER */
 
-  messageBtn?.classList.remove("hidden");
-  followBtn?.classList.remove("hidden");
+  if(isMobile){
+
+    mobileMoreBtn?.classList.remove("hidden");
+
+    if(token){
+      mobileMessageBtn?.classList.remove("hidden");
+      mobileFollowBtn?.classList.remove("hidden");
+    }
+
+  }else{
+
+    desktopShareBtn?.classList.remove("hidden");
+
+    if(token){
+      desktopMessageBtn?.classList.remove("hidden");
+      desktopFollowBtn?.classList.remove("hidden");
+    }
+  }
 }
+let schoolProfileResizeTimer;
 
+window.addEventListener("resize", () => {
+
+  clearTimeout(schoolProfileResizeTimer);
+
+  schoolProfileResizeTimer = setTimeout(() => {
+    setupOwnerButtons();
+  }, 120);
+});
 </script>
 <script>
 
