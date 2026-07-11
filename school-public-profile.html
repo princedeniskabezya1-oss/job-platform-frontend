@@ -1905,11 +1905,14 @@ partners:[],
 ========================= */
 
 const token =
+  localStorage.getItem("token") ||
+  localStorage.getItem("studentToken") ||
   localStorage.getItem("talentToken") ||
   localStorage.getItem("employerToken") ||
   localStorage.getItem("schoolToken") ||
   localStorage.getItem("adminToken") ||
-  localStorage.getItem("agentToken");
+  localStorage.getItem("agentToken") ||
+  "";
 
 /* =========================
    SCHOOL ID
@@ -1918,8 +1921,14 @@ const token =
 const params =
   new URLSearchParams(window.location.search);
 
-const schoolId =
-  params.get("id");
+const schoolId = String(
+  params.get("id") ||
+  params.get("schoolId") ||
+  params.get("userId") ||
+  ""
+).trim();
+
+console.log("School public profile ID:", schoolId);
 
 /* =========================
    HEADERS
@@ -2390,32 +2399,100 @@ const FALLBACK_LOGO =
 async function fetchSchoolProfile(){
 
   if(!schoolId){
-    throw new Error("Missing school ID");
+    throw new Error(
+      "The school profile link does not contain a school ID."
+    );
   }
 
-  const res = await fetch(
-    `${API}/api/users/${encodeURIComponent(schoolId)}/public`,
-    {
-      headers:authHeaders()
+  const profileUrl =
+    `${API}/api/users/${encodeURIComponent(schoolId)}/public`;
+
+  console.log("Loading school profile:", profileUrl);
+
+  /*
+   * This is a public-profile endpoint.
+   * First load it without an authorization header so an old or
+   * incorrect role token cannot cause the request to fail.
+   */
+  let res = await fetch(profileUrl, {
+    method:"GET",
+    headers:{
+      Accept:"application/json"
     }
-  );
+  });
+
+  /*
+   * Some backend configurations may require authentication.
+   * Retry with the current token only when the public request fails.
+   */
+  if(!res.ok && token){
+
+    console.warn(
+      "Public school request failed. Retrying with authentication:",
+      res.status
+    );
+
+    res = await fetch(profileUrl, {
+      method:"GET",
+      headers:{
+        ...authHeaders(),
+        Accept:"application/json"
+      }
+    });
+  }
 
   const data = await safeJson(res);
 
   if(!res.ok){
+
+    console.error("School profile response:", {
+      status:res.status,
+      data,
+      schoolId
+    });
+
     throw new Error(
       data?.message ||
-      "Failed to load school profile"
+      data?.error ||
+      `Failed to load school profile (${res.status})`
     );
   }
 
   const school =
     data?.user ||
     data?.school ||
+    data?.profile ||
+    data?.result ||
     data;
 
-  if(!school?._id && !school?.id){
-    throw new Error("School profile not found");
+  const loadedSchoolId =
+    school?._id ||
+    school?.id ||
+    school?.userId ||
+    "";
+
+  if(!loadedSchoolId){
+    console.error(
+      "Invalid school profile response:",
+      data
+    );
+
+    throw new Error(
+      "The server returned an invalid school profile."
+    );
+  }
+
+  const role = String(
+    school?.role ||
+    school?.userRole ||
+    ""
+  ).toLowerCase();
+
+  if(role && role !== "school"){
+    console.warn(
+      "The requested profile does not have the school role:",
+      role
+    );
   }
 
   state.school = school;
@@ -4404,153 +4481,159 @@ function renderPublicStats(){
 
 async function initPage(){
 
+  showLoading();
+
   try{
 
-    showLoading();
+    /*
+     * The school profile is the only request required
+     * before the page can be displayed.
+     */
+    await fetchSchoolProfile();
 
-    await Promise.all([
+    /*
+     * These requests are optional profile sections.
+     * A failure in one section must not close the page.
+     */
+    const results = await Promise.allSettled([
       fetchViewer(),
-      fetchSchoolProfile(),
       fetchPosts(),
       fetchStudents(),
-fetchOpportunities(),
-fetchJobs(),
-fetchPartners()
+      fetchOpportunities(),
+      fetchJobs(),
+      fetchPartners()
     ]);
 
+    results.forEach((result, index) => {
+
+      if(result.status === "rejected"){
+
+        const requestNames = [
+          "viewer",
+          "posts",
+          "students",
+          "opportunities",
+          "jobs",
+          "partners"
+        ];
+
+        console.warn(
+          `Unable to load school ${requestNames[index]}:`,
+          result.reason
+        );
+      }
+    });
+
     buildAnalytics();
-
     populateHero();
-
     buildSidebar();
 
     renderPrograms();
-
     renderPartners();
-
     renderStudents();
-
-renderInternships();
-
-renderJobs();
-
-renderFeed();
-
+    renderInternships();
+    renderJobs();
+    renderFeed();
     renderPublicStats();
 
     setupOwnerButtons();
-
     setupHeroActions();
-
     setupTabs();
-
     setupCTA();
-
     setupFeedSafety();
-
     setupProfileCompleteness();
-
     setupMobileSpacing();
-
     setupTopbarBehavior();
-
     setupSearch();
-
     setupScrollEffects();
-
     setupSocket();
-
     setupEmptyStates();
-
     animateCards();
 
     openTab("overview");
 
+    hideLoading();
+
   }catch(error){
 
-    console.error(error);
+    console.error(
+      "School profile initialization failed:",
+      error
+    );
+
+    document.body.classList.remove(
+      "loading-profile"
+    );
+
+    document.getElementById(
+      "profileLoader"
+    )?.remove();
 
     document.body.innerHTML = `
-      <div style="
+      <main style="
         min-height:100vh;
         display:flex;
         align-items:center;
         justify-content:center;
         padding:24px;
         background:#f4f7fb;
+        font-family:Inter,Arial,sans-serif;
       ">
-
-        <div style="
+        <section style="
           width:min(520px,100%);
-          background:#fff;
-          border-radius:28px;
+          padding:32px;
           border:1px solid #e5e7eb;
-          padding:34px;
+          border-radius:20px;
+          background:#fff;
           text-align:center;
-          box-shadow:0 20px 60px rgba(15,23,42,.08);
         ">
-
-          <div style="
-            width:78px;
-            height:78px;
-            border-radius:24px;
-            margin:0 auto 20px;
-            background:#eff6ff;
-            display:grid;
-            place-items:center;
-          ">
-
-            <svg
-              viewBox="0 0 24 24"
-              width="34"
-              height="34"
-              fill="none"
-              stroke="#2557a7"
-              stroke-width="2"
-            >
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M12 8v5"></path>
-              <circle cx="12" cy="16" r="1"></circle>
-            </svg>
-
-          </div>
-
           <h1 style="
             margin:0 0 10px;
-            font-size:1.45rem;
-            font-weight:900;
-            color:#0f172a;
+            color:#111827;
+            font-size:22px;
           ">
             Could not load school profile
           </h1>
 
           <p style="
-            margin:0 0 24px;
-            color:#6b7280;
-            line-height:1.7;
+            margin:0 0 8px;
+            color:#64748b;
+            line-height:1.6;
           ">
-            The school profile may not exist anymore,
-            or the server is currently unavailable.
+            ${escapeHtml(
+              error?.message ||
+              "The school profile could not be loaded."
+            )}
+          </p>
+
+          <p style="
+            margin:0 0 22px;
+            color:#94a3b8;
+            font-size:12px;
+            word-break:break-all;
+          ">
+            Profile ID: ${escapeHtml(schoolId || "missing")}
           </p>
 
           <button
-            class="primary-btn"
-            onclick="goHome()"
+            type="button"
+            onclick="history.length > 1 ? history.back() : location.href='network.html'"
+            style="
+              min-height:40px;
+              padding:0 18px;
+              border:0;
+              border-radius:999px;
+              background:#0a66c2;
+              color:#fff;
+              font-weight:800;
+              cursor:pointer;
+            "
           >
-            Return Home
+            Return to Network
           </button>
-
-        </div>
-
-      </div>
+        </section>
+      </main>
     `;
-  }finally{
-    if(!document.querySelector("h1")){
-      hideLoading();
-    }else{
-      document.body.classList.remove("loading-profile");
-      document.getElementById("profileLoader")?.remove();
-    }
   }
 }
 
