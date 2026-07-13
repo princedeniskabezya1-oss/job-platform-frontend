@@ -18510,6 +18510,10 @@ await loadSchoolAnalytics({
   force:true,
   silent:false
 });
+  /*
+  Refresh Overview after the real analytics response is available.
+*/
+renderOverview();
     /*
   Render Insights again so backend analytics such as the
   overall school score can be included in school health.
@@ -19543,100 +19547,146 @@ function renderAttendance(){
 }
 
 function renderStats(){
+  const students =
+    typeof getStudents === "function"
+      ? getStudents()
+      : [];
 
-    const studentCount = state.students.length;
-    const teacherCount = state.teachers.length;
-    const classCount = state.classes.length;
+  const teachers =
+    typeof getTeachers === "function"
+      ? getTeachers()
+      : [];
 
-    const assignmentCount =
-        state.assignments
-        ? state.assignments.length
-        : 0;
+  const classes =
+    Array.isArray(state.classes)
+      ? state.classes
+      : [];
 
-    document.getElementById("statStudents").textContent =
-        formatNumber(studentCount);
+  const assignments =
+    Array.isArray(state.assignments)
+      ? state.assignments
+      : [];
 
-    document.getElementById("statTeachers").textContent =
-        formatNumber(teacherCount);
+  const studentCount =
+    students.length;
 
-    document.getElementById("statClasses").textContent =
-        formatNumber(classCount);
+  const teacherCount =
+    teachers.length;
 
-    document.getElementById("statAssignments").textContent =
-        formatNumber(assignmentCount);
+  const classCount =
+    classes.length;
 
-    updateOverviewMetric(
-        "Student",
-        studentCount,
-        1000
-    );
+  const assignmentCount =
+    assignments.length;
 
-    updateOverviewMetric(
-        "Teacher",
-        teacherCount,
-        100
-    );
+  setText(
+    "statStudents",
+    studentCount.toLocaleString()
+  );
 
-    updateOverviewMetric(
-        "Class",
-        classCount,
-        50
-    );
+  setText(
+    "statTeachers",
+    teacherCount.toLocaleString()
+  );
 
-    updateOverviewMetric(
-        "Assignment",
-        assignmentCount,
-        500
-    );
+  setText(
+    "statClasses",
+    classCount.toLocaleString()
+  );
 
-    renderOverview();
+  setText(
+    "statAssignments",
+    assignmentCount.toLocaleString()
+  );
+
+  updateOverviewMetric(
+    "Student",
+    studentCount
+  );
+
+  updateOverviewMetric(
+    "Teacher",
+    teacherCount
+  );
+
+  updateOverviewMetric(
+    "Class",
+    classCount
+  );
+
+  updateOverviewMetric(
+    "Assignment",
+    assignmentCount
+  );
+
+  renderOverview();
 }
 
-function updateOverviewMetric(name,value,target){
-
-    const percent=Math.min(
-        Math.round((value/Math.max(target,1))*100),
-        100
+function updateOverviewMetric(
+  name,
+  value
+){
+  const count =
+    Math.max(
+      0,
+      Number(value) || 0
     );
 
-    const chip=document.getElementById(
-        `overview${name}Status`
+  const chip =
+    $(`overview${name}Status`);
+
+  const note =
+    $(`overview${name}Note`);
+
+  if(!chip || !note){
+    return;
+  }
+
+  chip.className =
+    "overview-performance-chip";
+
+  if(count > 0){
+    chip.classList.add(
+      "good"
     );
 
-    const note=document.getElementById(
-        `overview${name}Note`
+    chip.textContent =
+      "Active";
+  }else{
+    chip.classList.add(
+      "neutral"
     );
 
-    if(!chip || !note) return;
+    chip.textContent =
+      "No data";
+  }
 
-    chip.className="overview-performance-chip";
+  const labels = {
+    Student:
+      count === 1
+        ? "1 learner connected to the school"
+        : `${count.toLocaleString()} learners connected to the school`,
 
-    if(percent>=90){
+    Teacher:
+      count === 1
+        ? "1 faculty member connected to the school"
+        : `${count.toLocaleString()} faculty members connected to the school`,
 
-        chip.classList.add("excellent");
-        chip.textContent="Excellent";
+    Class:
+      count === 1
+        ? "1 class currently available"
+        : `${count.toLocaleString()} classes currently available`,
 
-    }else if(percent>=70){
+    Assignment:
+      count === 1
+        ? "1 learning task across the school"
+        : `${count.toLocaleString()} learning tasks across the school`
+  };
 
-        chip.classList.add("good");
-        chip.textContent="Good";
-
-    }else if(percent>=45){
-
-        chip.classList.add("warning");
-        chip.textContent="Needs growth";
-
-    }else{
-
-        chip.classList.add("poor");
-        chip.textContent="Low";
-
-    }
-
-    note.textContent=
-        `${value.toLocaleString()} registered`;
+  note.textContent =
+    labels[name] ||
+    `${count.toLocaleString()} records available`;
 }
-
 
 
 function getPerformanceColor(score){
@@ -19673,21 +19723,75 @@ function setOverviewProgress(id,value){
 }
 
 function renderOverview(){
+  const summary =
+    state.analytics?.summary &&
+    typeof state.analytics.summary ===
+      "object"
+      ? state.analytics.summary
+      : {};
 
-    const analytics=
-        state.analytics||{};
+  const attendanceFallback =
+    typeof attendanceStats ===
+      "function"
+      ? attendanceStats(
+          Array.isArray(state.attendance)
+            ? state.attendance
+            : []
+        )
+      : {
+          attendanceRate:0
+        };
 
-    const attendance=
-        analytics.attendanceRate||0;
+  const attendance =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(
+          summary.attendanceRate ??
+          attendanceFallback.attendanceRate ??
+          0
+        ) || 0
+      )
+    );
 
-    const completion=
-        analytics.assignmentCompletionRate||0;
+  const completion =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(
+          summary.completionRate ??
+          0
+        ) || 0
+      )
+    );
 
-    const review=
-        analytics.reviewRate||0;
+  const review =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(
+          summary.teacherReviewRate ??
+          summary.reviewRate ??
+          0
+        ) || 0
+      )
+    );
 
-    const utilization=
-        analytics.classUtilization||0;
+  const utilization =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(
+          summary.classUtilizationRate ??
+          summary.classUtilization ??
+          0
+        ) || 0
+      )
+    );
 
     setOverviewProgress(
         "overviewAttendanceBar",
