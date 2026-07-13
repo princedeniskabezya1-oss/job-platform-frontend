@@ -13,6 +13,9 @@
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
+<!-- Shared AIFT analytics SDK -->
+<script src="analytics-tracker.js"></script>
+
 <style>
 :root{
   --primary:#2557a7;
@@ -4494,13 +4497,14 @@ body.focus-portal .center-col{
         <option value="all">All time</option>
       </select>
 
-      <button
-        type="button"
-        class="analytics-refresh-btn"
-        onclick="renderAnalytics()"
-      >
-        Refresh
-      </button>
+<button
+  type="button"
+  class="analytics-refresh-btn"
+  id="analyticsRefreshButton"
+  onclick="loadSchoolAnalytics({ force:true })"
+>
+  Refresh
+</button>
 
     </div>
 
@@ -5951,17 +5955,46 @@ const FALLBACK_LOGO = "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
 const FALLBACK_COVER = "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1600&q=80";
 
 const state = {
-  me:null,
-  users:[],
-  posts:[],
-  schoolUpdates:[],
-  classes:[],
-  assignments:[],
-  submissions:[],
-  opportunities:[],
+
+  /* ==========================
+     SCHOOL DATA
+  ========================== */
+
+  me: null,
+
+  users: [],
+
+  posts: [],
+
+  schoolUpdates: [],
+
+  classes: [],
+
+  assignments: [],
+
+  submissions: [],
+
+  opportunities: [],
+
   attendance: [],
-  schedules:[]
-  
+
+  schedules: [],
+
+
+  /* ==========================
+     REAL ANALYTICS
+  ========================== */
+
+  analytics: null,
+
+  analyticsLoading: false,
+
+  analyticsError: null,
+
+  analyticsRange: "30",
+
+  analyticsLastLoadedAt: null
+
 };
 
 function $(id){ return document.getElementById(id); }
@@ -6253,11 +6286,23 @@ function openTab(tab){
     renderAttendance();
   }
 
-  if(tab === "analytics"){
-    if(typeof renderAnalytics === "function"){
-      renderAnalytics();
-    }
+if(tab === "analytics"){
+  /*
+    Render cached analytics immediately, then load fresh
+    backend data when necessary.
+  */
+  if(
+    state.analytics &&
+    typeof renderAnalytics === "function"
+  ){
+    renderAnalytics();
   }
+
+  loadSchoolAnalytics({
+    force:
+      !state.analytics
+  });
+}
 
   if(tab === "insights"){
     if(typeof renderInsights === "function"){
@@ -6384,20 +6429,70 @@ state.users = asArray(users);
     state.schedules = asArray(schedules);
     state.attendance = asArray(attendance);
 
-    renderProfile();
-    renderStats(unread?.count || unread?.unread || 0);
-    renderUpdates();
-    renderClasses();
-    renderAssignments();
-    renderStudents();
-    renderTeachers();
-    renderSchedule();
-    renderAttendance();
-    renderAnalytics();
-    renderCareerHub();
-    renderSettings();
-    hydrateSelects();
-    hydrateProfileForm();
+renderProfile();
+renderStats(
+  unread?.count ||
+  unread?.unread ||
+  0
+);
+
+renderUpdates();
+renderClasses();
+renderAssignments();
+renderStudents();
+renderTeachers();
+renderSchedule();
+renderAttendance();
+renderCareerHub();
+renderSettings();
+hydrateSelects();
+hydrateProfileForm();
+
+/*
+  Use the real backend analytics response.
+
+  The dashboard sections can finish loading even when the
+  analytics endpoint is temporarily unavailable.
+*/
+await loadSchoolAnalytics({
+  force: true,
+  silent: false
+});
+    if(
+  window.AiftAnalytics &&
+  typeof window.AiftAnalytics.trackOncePerSession ===
+    "function"
+){
+  window.AiftAnalytics.trackOncePerSession(
+    `school-dashboard:${schoolId}`,
+    {
+      schoolId,
+
+      eventType:
+        "dashboard_view",
+
+      entityType:
+        "school",
+
+      entityId:
+        schoolId,
+
+      source:
+        "dashboard",
+
+      metadata: {
+        pageName:
+          "school_dashboard",
+
+        section:
+          "overview",
+
+        viewerRole:
+          "school"
+      }
+    }
+  );
+}
 
   }catch(err){
     console.error(err);
@@ -7387,168 +7482,220 @@ function setProgress(textId,barId,value){
   if (bar) bar.style.width = safe + "%";
 }
 
+
+
+
+
+
+
 /* =========================================================
-   SCHOOL ANALYTICS ENGINE
+   REAL SCHOOL ANALYTICS ENGINE
+   Backend-powered production implementation
 ========================================================= */
 
-let schoolAnalyticsRange = "30";
+let analyticsLoadRequestId = 0;
 
-function changeSchoolAnalyticsRange(value){
-  schoolAnalyticsRange = String(value || "30");
-  renderAnalytics();
+let analyticsRealtimeRefreshTimer = null;
+
+/* =========================================================
+   RANGE
+========================================================= */
+
+function normalizeSchoolAnalyticsRange(value){
+  const range = String(
+    value || "30"
+  )
+    .trim()
+    .toLowerCase();
+
+  const allowedRanges = new Set([
+    "7",
+    "30",
+    "90",
+    "180",
+    "365",
+    "all"
+  ]);
+
+  return allowedRanges.has(range)
+    ? range
+    : "30";
 }
 
-function analyticsDate(item){
-  const raw =
-    item?.createdAt ||
-    item?.updatedAt ||
-    item?.submittedAt ||
-    item?.date ||
-    item?.startDate ||
-    item?.publishedAt ||
-    item?.timestamp;
+async function changeSchoolAnalyticsRange(value){
+  state.analyticsRange =
+    normalizeSchoolAnalyticsRange(value);
 
-  if(!raw) return null;
+  const select =
+    $("analyticsRangeSelect");
 
-  const date = new Date(raw);
-
-  return Number.isNaN(date.getTime())
-    ? null
-    : date;
-}
-
-function analyticsRangeDates(){
-  const end = new Date();
-
-  if(schoolAnalyticsRange === "all"){
-    return {
-      start:null,
-      end,
-      label:"All time"
-    };
+  if(
+    select &&
+    select.value !== state.analyticsRange
+  ){
+    select.value =
+      state.analyticsRange;
   }
 
-  const days = Math.max(
-    1,
-    Number(schoolAnalyticsRange) || 30
-  );
-
-  const start = new Date();
-
-  start.setDate(start.getDate() - (days - 1));
-  start.setHours(0,0,0,0);
-
-  return {
-    start,
-    end,
-    days,
-    label:`Last ${days} days`
-  };
-}
-
-function filterAnalyticsItems(items){
-  const range = analyticsRangeDates();
-
-  return (Array.isArray(items) ? items : []).filter(item => {
-    if(!range.start) return true;
-
-    const date = analyticsDate(item);
-
-    return date && date >= range.start && date <= range.end;
+  await loadSchoolAnalytics({
+    force:true
   });
 }
 
-function arrayCount(value){
-  if(Array.isArray(value)) return value.length;
+/* =========================================================
+   GENERAL ANALYTICS HELPERS
+========================================================= */
 
-  if(value && typeof value === "object"){
-    return Object.keys(value).length;
-  }
-
+function analyticsNumber(value,fallback = 0){
   const number = Number(value);
 
   return Number.isFinite(number)
     ? number
-    : 0;
+    : fallback;
 }
 
-function postLikes(post){
+function analyticsNonNegative(value){
   return Math.max(
-    arrayCount(post?.likes),
-    Number(post?.likesCount || 0),
-    Number(post?.likeCount || 0)
+    0,
+    analyticsNumber(value)
   );
 }
 
-function postComments(post){
-  return Math.max(
-    arrayCount(post?.comments),
-    Number(post?.commentsCount || 0),
-    Number(post?.commentCount || 0)
+function analyticsPercent(value,total){
+  const safeValue =
+    analyticsNonNegative(value);
+
+  const safeTotal =
+    analyticsNonNegative(total);
+
+  if(!safeTotal){
+    return 0;
+  }
+
+  return Number(
+    (
+      safeValue /
+      safeTotal *
+      100
+    ).toFixed(2)
   );
 }
 
-function postShares(post){
+function analyticsWholePercent(value){
   return Math.max(
-    arrayCount(post?.shares),
-    Number(post?.sharesCount || 0),
-    Number(post?.shareCount || 0)
+    0,
+    Math.min(
+      100,
+      Math.round(
+        analyticsNumber(value)
+      )
+    )
   );
 }
 
-function postViews(post){
-  return Math.max(
-    Number(post?.views || 0),
-    Number(post?.viewCount || 0),
-    Number(post?.viewsCount || 0),
-    arrayCount(post?.viewedBy)
+function analyticsFormatNumber(value){
+  return new Intl.NumberFormat(
+    undefined,
+    {
+      maximumFractionDigits:0
+    }
+  ).format(
+    analyticsNonNegative(value)
   );
 }
 
-function schoolFollowerCount(){
-  const me = state.me || {};
+function analyticsFormatPercent(value){
+  const number =
+    analyticsNumber(value);
 
-  return Math.max(
-    arrayCount(me.followers),
-    Number(me.followersCount || 0),
-    Number(me.followerCount || 0),
-    Number(me.totalFollowers || 0)
-  );
+  return `${Number(
+    number.toFixed(1)
+  )}%`;
 }
 
-function schoolProfileViews(){
-  const me = state.me || {};
+function analyticsFormatMinutes(value){
+  const minutes =
+    analyticsNonNegative(value);
 
-  return Math.max(
-    Number(me.profileViews || 0),
-    Number(me.profileViewCount || 0),
-    Number(me.views || 0),
-    Number(me.viewCount || 0),
-    Number(me.publicProfileViews || 0)
+  if(minutes < 60){
+    return `${Math.round(minutes)} min`;
+  }
+
+  const hours =
+    minutes / 60;
+
+  return `${Number(
+    hours.toFixed(1)
+  )} hr`;
+}
+
+function analyticsDateLabel(value){
+  if(!value){
+    return "";
+  }
+
+  const date =
+    new Date(
+      `${String(value).slice(0,10)}T00:00:00`
+    );
+
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return String(value);
+  }
+
+  return date.toLocaleDateString(
+    undefined,
+    {
+      month:"short",
+      day:"numeric"
+    }
   );
 }
 
 function performanceClass(score){
-  const value = Number(score) || 0;
+  const value =
+    analyticsWholePercent(score);
 
-  if(value >= 75) return "good";
-  if(value >= 50) return "warning";
+  if(value >= 75){
+    return "good";
+  }
+
+  if(value >= 50){
+    return "warning";
+  }
+
   return "poor";
 }
 
 function performanceLabel(score){
-  const value = Number(score) || 0;
+  const value =
+    analyticsWholePercent(score);
 
-  if(value >= 85) return "Excellent";
-  if(value >= 75) return "Good";
-  if(value >= 50) return "Needs attention";
+  if(value >= 85){
+    return "Excellent";
+  }
+
+  if(value >= 75){
+    return "Good";
+  }
+
+  if(value >= 50){
+    return "Needs attention";
+  }
+
   return "Poor";
 }
 
 function setPerformanceCard(id,score){
   const card = $(id);
 
-  if(!card) return;
+  if(!card){
+    return;
+  }
 
   card.classList.remove(
     "performance-good",
@@ -7565,14 +7712,15 @@ function setPerformanceCard(id,score){
 function setPerformanceBar(id,value){
   const bar = $(id);
 
-  if(!bar) return;
+  if(!bar){
+    return;
+  }
 
-  const safeValue = Math.max(
-    0,
-    Math.min(100,Number(value) || 0)
-  );
+  const safeValue =
+    analyticsWholePercent(value);
 
-  bar.style.width = `${safeValue}%`;
+  bar.style.width =
+    `${safeValue}%`;
 
   bar.classList.remove(
     "good",
@@ -7585,124 +7733,359 @@ function setPerformanceBar(id,value){
   );
 }
 
-function isReviewedSubmission(submission){
-  const status = String(
-    submission?.status || ""
-  ).toLowerCase();
+function setAnalyticsLoading(isLoading){
+  state.analyticsLoading =
+    Boolean(isLoading);
 
-  return Boolean(
-    submission?.grade ||
-    submission?.feedback ||
-    ["reviewed","returned","graded","completed"].includes(status)
-  );
-}
+  const refreshButton =
+    $("analyticsRefreshButton");
 
-function countStudentsAtRisk(students,attendanceRecords,submissions){
-  return students.filter(student => {
-    const studentId = normalizeId(student?._id);
+  if(refreshButton){
+    refreshButton.disabled =
+      state.analyticsLoading;
 
-    const studentAttendance = attendanceRecords.filter(record => {
-      return sameId(
-        record?.studentId?._id || record?.studentId,
-        studentId
-      );
-    });
-
-    const attendance = attendanceStats(studentAttendance);
-
-    const studentSubmissions = submissions.filter(submission => {
-      return sameId(
-        submission?.studentId?._id ||
-        submission?.studentId ||
-        submission?.userId?._id ||
-        submission?.userId,
-        studentId
-      );
-    });
-
-    const lowAttendance =
-      studentAttendance.length > 0 &&
-      attendance.attendanceRate < 65;
-
-    const lowParticipation =
-      studentAttendance.length > 0 &&
-      attendance.participationAverage < 55;
-
-    const noSubmission =
-      state.assignments.length > 0 &&
-      studentSubmissions.length === 0;
-
-    return lowAttendance || lowParticipation || noSubmission;
-  }).length;
-}
-
-function buildAnalyticsDailySeries(items,days){
-  const safeDays = Math.max(
-    7,
-    Math.min(Number(days) || 30,365)
-  );
-
-  const counts = Array(safeDays).fill(0);
-  const labels = [];
-
-  const today = new Date();
-  today.setHours(0,0,0,0);
-
-  for(let i = 0; i < safeDays; i++){
-    const day = new Date(today);
-
-    day.setDate(
-      today.getDate() - (safeDays - 1 - i)
-    );
-
-    labels.push(
-      day.toLocaleDateString([],{
-        month:"short",
-        day:"numeric"
-      })
-    );
+    refreshButton.textContent =
+      state.analyticsLoading
+        ? "Refreshing..."
+        : "Refresh";
   }
 
-  (items || []).forEach(item => {
-    const date = analyticsDate(item);
+  const rangeSelect =
+    $("analyticsRangeSelect");
 
-    if(!date) return;
-
-    const normalized = new Date(date);
-    normalized.setHours(0,0,0,0);
-
-    const distance = Math.round(
-      (today - normalized) / 86400000
-    );
-
-    const index = safeDays - 1 - distance;
-
-    if(index >= 0 && index < safeDays){
-      counts[index] += 1;
-    }
-  });
-
-  return {
-    counts,
-    labels
-  };
+  if(rangeSelect){
+    rangeSelect.disabled =
+      state.analyticsLoading;
+  }
 }
 
-function renderSchoolLineChart(containerId,counts,labels){
-  const container = $(containerId);
+function analyticsActionExpression(action){
+  const normalized =
+    String(action || "")
+      .trim()
+      .toLowerCase();
 
-  if(!container) return;
+  const actions = {
+    overview:
+      "openTab('overview')",
 
-  const values = Array.isArray(counts)
-    ? counts.map(value => Number(value) || 0)
-    : [];
+    profile:
+      "openPublicPage()",
+
+    attendance:
+      "openTab('attendance')",
+
+    classes:
+      "openTab('classes')",
+
+    teachers:
+      "openTab('teachers')",
+
+    students:
+      "openTab('students')",
+
+    insights:
+      "openTab('insights')",
+
+    portal:
+      "openTab('portal')",
+
+    career:
+      "openTab('portal')",
+
+    analytics:
+      "openTab('analytics')",
+
+    assignments:
+      "openTab('classes')",
+
+    posts:
+      "openTab('overview')"
+  };
+
+  return (
+    actions[normalized] ||
+    "openTab('overview')"
+  );
+}
+
+function analyticsActionLabel(action){
+  const normalized =
+    String(action || "")
+      .trim()
+      .toLowerCase();
+
+  const labels = {
+    overview:"Overview",
+    profile:"Public page",
+    attendance:"Attendance",
+    classes:"Classes",
+    teachers:"Teachers",
+    students:"Students",
+    insights:"Insights",
+    portal:"Career Hub",
+    career:"Career Hub",
+    analytics:"Analytics",
+    assignments:"Assignments",
+    posts:"Updates"
+  };
+
+  return (
+    labels[normalized] ||
+    "Open"
+  );
+}
+
+/* =========================================================
+   ERROR AND EMPTY STATES
+========================================================= */
+
+function showAnalyticsLoadError(message){
+  state.analyticsError =
+    String(
+      message ||
+      "School analytics could not be loaded."
+    );
+
+  const recommendations =
+    $("analyticsRecommendations");
+
+  if(recommendations){
+    recommendations.innerHTML = `
+      <div class="analytics-recommendation-item poor">
+
+        <div class="analytics-recommendation-level"></div>
+
+        <div class="analytics-recommendation-copy">
+
+          <strong>
+            Analytics unavailable
+          </strong>
+
+          <span>
+            ${escapeHtml(state.analyticsError)}
+          </span>
+
+        </div>
+
+        <button
+          type="button"
+          onclick="loadSchoolAnalytics({ force:true })"
+        >
+          Retry
+        </button>
+
+      </div>
+    `;
+  }
+
+  const chart =
+    $("schoolActivityChart");
+
+  if(chart){
+    chart.innerHTML = `
+      <div class="analytics-chart-empty">
+        ${escapeHtml(state.analyticsError)}
+      </div>
+    `;
+  }
+}
+
+function renderAnalyticsLoadingState(){
+  const chart =
+    $("schoolActivityChart");
+
+  if(
+    chart &&
+    !state.analytics
+  ){
+    chart.innerHTML = `
+      <div class="analytics-chart-empty">
+        Loading verified school analytics...
+      </div>
+    `;
+  }
+}
+
+/* =========================================================
+   AUTHENTICATED BACKEND LOADER
+========================================================= */
+
+async function loadSchoolAnalytics({
+  force = false,
+  silent = false
+} = {}){
+  const schoolId =
+    getSchoolId();
+
+  if(!schoolId){
+    showAnalyticsLoadError(
+      "The school ID is unavailable."
+    );
+
+    return null;
+  }
+
+  if(
+    state.analyticsLoading &&
+    !force
+  ){
+    return state.analytics;
+  }
+
+  const requestId =
+    ++analyticsLoadRequestId;
+
+  if(!silent){
+    setAnalyticsLoading(true);
+    renderAnalyticsLoadingState();
+  }
+
+  state.analyticsError = null;
+
+  try{
+    const range =
+      normalizeSchoolAnalyticsRange(
+        state.analyticsRange
+      );
+
+    const response =
+      await fetch(
+        `${API}/api/analytics/school/${encodeURIComponent(schoolId)}?range=${encodeURIComponent(range)}`,
+        {
+          method:"GET",
+
+          headers:{
+            ...authHeaders(),
+
+            Accept:
+              "application/json"
+          },
+
+          cache:
+            "no-store"
+        }
+      );
+
+    const payload =
+      await safeJson(response);
+
+    if(!response.ok){
+      throw new Error(
+        payload?.message ||
+        `Analytics request failed with status ${response.status}.`
+      );
+    }
+
+    if(
+      !payload ||
+      payload.success !== true
+    ){
+      throw new Error(
+        payload?.message ||
+        "The analytics response was invalid."
+      );
+    }
+
+    /*
+      Ignore an older request if the user changed the range
+      while another request was still loading.
+    */
+    if(
+      requestId !==
+      analyticsLoadRequestId
+    ){
+      return state.analytics;
+    }
+
+    state.analytics =
+      payload;
+
+    state.analyticsRange =
+      normalizeSchoolAnalyticsRange(
+        payload?.range?.key ||
+        range
+      );
+
+    state.analyticsLastLoadedAt =
+      new Date();
+
+    state.analyticsError =
+      null;
+
+    const rangeSelect =
+      $("analyticsRangeSelect");
+
+    if(rangeSelect){
+      rangeSelect.value =
+        state.analyticsRange;
+    }
+
+    renderAnalytics();
+
+    return payload;
+  }catch(error){
+    console.error(
+      "LOAD SCHOOL ANALYTICS ERROR:",
+      error
+    );
+
+    if(
+      requestId ===
+      analyticsLoadRequestId
+    ){
+      showAnalyticsLoadError(
+        error.message
+      );
+    }
+
+    return null;
+  }finally{
+    if(
+      requestId ===
+      analyticsLoadRequestId &&
+      !silent
+    ){
+      setAnalyticsLoading(false);
+    }
+  }
+}
+
+/* =========================================================
+   LINE CHART
+========================================================= */
+
+function renderSchoolLineChart(
+  containerId,
+  counts,
+  labels
+){
+  const container =
+    $(containerId);
+
+  if(!container){
+    return;
+  }
+
+  const values =
+    Array.isArray(counts)
+      ? counts.map(value =>
+          analyticsNonNegative(value)
+        )
+      : [];
+
+  const safeLabels =
+    Array.isArray(labels)
+      ? labels
+      : [];
 
   if(!values.length){
     container.innerHTML = `
       <div class="analytics-chart-empty">
-        No dated activity is available for this period.
+        No verified activity is available for this period.
       </div>
     `;
+
     return;
   }
 
@@ -7713,125 +8096,175 @@ function renderSchoolLineChart(containerId,counts,labels){
     top:20,
     right:24,
     bottom:42,
-    left:44
+    left:48
   };
 
-  const maxValue = Math.max(1,...values);
+  const maxValue =
+    Math.max(
+      1,
+      ...values
+    );
 
   const chartWidth =
-    width - padding.left - padding.right;
+    width -
+    padding.left -
+    padding.right;
 
   const chartHeight =
-    height - padding.top - padding.bottom;
+    height -
+    padding.top -
+    padding.bottom;
 
   const stepX =
     values.length > 1
-      ? chartWidth / (values.length - 1)
-      : chartWidth;
+      ? chartWidth /
+        (values.length - 1)
+      : 0;
 
-  const points = values.map((value,index) => {
-    const x = padding.left + index * stepX;
+  const points =
+    values.map(
+      (value,index) => {
+        const x =
+          values.length > 1
+            ? padding.left +
+              index * stepX
+            : padding.left +
+              chartWidth / 2;
 
-    const y =
-      padding.top +
-      chartHeight -
-      (value / maxValue) * chartHeight;
+        const y =
+          padding.top +
+          chartHeight -
+          (
+            value /
+            maxValue
+          ) *
+          chartHeight;
 
-    return {
-      x,
-      y,
-      value,
-      label:labels[index] || ""
-    };
-  });
+        return {
+          x,
+          y,
+          value,
+          label:
+            safeLabels[index] ||
+            ""
+        };
+      }
+    );
 
-  const path = points.map((point,index) => {
-    return `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`;
-  }).join(" ");
+  const path =
+    points
+      .map(
+        (point,index) =>
+          `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`
+      )
+      .join(" ");
 
   const area = `
     ${path}
-    L ${points[points.length - 1].x} ${padding.top + chartHeight}
-    L ${points[0].x} ${padding.top + chartHeight}
+    L ${points[points.length - 1].x}
+      ${padding.top + chartHeight}
+    L ${points[0].x}
+      ${padding.top + chartHeight}
     Z
   `;
 
-  const gridLines = [0,1,2,3,4].map(index => {
-    const ratio = index / 4;
-    const y = padding.top + chartHeight * ratio;
+  const gridLines =
+    [0,1,2,3,4]
+      .map(index => {
+        const ratio =
+          index / 4;
 
-    const label = Math.round(
-      maxValue * (1 - ratio)
-    );
+        const y =
+          padding.top +
+          chartHeight *
+          ratio;
 
-    return `
-      <line
-        class="analytics-chart-grid-line"
-        x1="${padding.left}"
-        y1="${y}"
-        x2="${width - padding.right}"
-        y2="${y}"
-      ></line>
+        const label =
+          Math.round(
+            maxValue *
+            (1 - ratio)
+          );
 
-      <text
-        class="analytics-chart-label"
-        x="${padding.left - 10}"
-        y="${y + 4}"
-        text-anchor="end"
-      >
-        ${label}
-      </text>
-    `;
-  }).join("");
+        return `
+          <line
+            class="analytics-chart-grid-line"
+            x1="${padding.left}"
+            y1="${y}"
+            x2="${width - padding.right}"
+            y2="${y}"
+          ></line>
+
+          <text
+            class="analytics-chart-label"
+            x="${padding.left - 10}"
+            y="${y + 4}"
+            text-anchor="end"
+          >
+            ${label}
+          </text>
+        `;
+      })
+      .join("");
 
   const maxLabels = 7;
 
-  const labelInterval = Math.max(
-    1,
-    Math.ceil(points.length / maxLabels)
-  );
+  const labelInterval =
+    Math.max(
+      1,
+      Math.ceil(
+        points.length /
+        maxLabels
+      )
+    );
 
-  const xLabels = points.map((point,index) => {
-    if(
-      index !== 0 &&
-      index !== points.length - 1 &&
-      index % labelInterval !== 0
-    ){
-      return "";
-    }
+  const xLabels =
+    points
+      .map(
+        (point,index) => {
+          if(
+            index !== 0 &&
+            index !== points.length - 1 &&
+            index % labelInterval !== 0
+          ){
+            return "";
+          }
 
-    return `
-      <text
-        class="analytics-chart-label"
-        x="${point.x}"
-        y="${height - 12}"
-        text-anchor="middle"
-      >
-        ${escapeHtml(point.label)}
-      </text>
-    `;
-  }).join("");
+          return `
+            <text
+              class="analytics-chart-label"
+              x="${point.x}"
+              y="${height - 12}"
+              text-anchor="middle"
+            >
+              ${escapeHtml(point.label)}
+            </text>
+          `;
+        }
+      )
+      .join("");
 
-  const circles = points.map(point => {
-    return `
-      <circle
-        class="analytics-chart-point"
-        cx="${point.x}"
-        cy="${point.y}"
-        r="3.5"
-      >
-        <title>
-          ${escapeHtml(point.label)}: ${point.value}
-        </title>
-      </circle>
-    `;
-  }).join("");
+  const circles =
+    points
+      .map(point => `
+        <circle
+          class="analytics-chart-point"
+          cx="${point.x}"
+          cy="${point.y}"
+          r="3.5"
+        >
+          <title>
+            ${escapeHtml(point.label)}:
+            ${analyticsFormatNumber(point.value)}
+          </title>
+        </circle>
+      `)
+      .join("");
 
   container.innerHTML = `
     <svg
       viewBox="0 0 ${width} ${height}"
       role="img"
-      aria-label="School activity line chart"
+      aria-label="Verified school activity line chart"
     >
       ${gridLines}
 
@@ -7851,15 +8284,38 @@ function renderSchoolLineChart(containerId,counts,labels){
   `;
 }
 
-function analyticsRecommendation(level,title,text,buttonText,action){
+/* =========================================================
+   RECOMMENDATIONS
+========================================================= */
+
+function analyticsRecommendation(
+  level,
+  title,
+  text,
+  buttonText,
+  action
+){
+  const safeLevel =
+    ["good","warning","poor"]
+      .includes(level)
+      ? level
+      : "warning";
+
   return `
-    <div class="analytics-recommendation-item ${level}">
+    <div class="analytics-recommendation-item ${safeLevel}">
 
       <span class="analytics-recommendation-level"></span>
 
       <div class="analytics-recommendation-copy">
-        <strong>${escapeHtml(title)}</strong>
-        <span>${escapeHtml(text)}</span>
+
+        <strong>
+          ${escapeHtml(title)}
+        </strong>
+
+        <span>
+          ${escapeHtml(text)}
+        </span>
+
       </div>
 
       <button
@@ -7873,202 +8329,346 @@ function analyticsRecommendation(level,title,text,buttonText,action){
   `;
 }
 
+function renderBackendRecommendations(
+  recommendations
+){
+  const wrap =
+    $("analyticsRecommendations");
+
+  if(!wrap){
+    return;
+  }
+
+  const list =
+    Array.isArray(recommendations)
+      ? recommendations
+      : [];
+
+  if(!list.length){
+    wrap.innerHTML =
+      analyticsRecommendation(
+        "good",
+        "School performance is healthy",
+        "No critical performance risks were detected for the selected period.",
+        "Overview",
+        "openTab('overview')"
+      );
+
+    return;
+  }
+
+  wrap.innerHTML =
+    list
+      .map(item => {
+        const rawLevel =
+          String(
+            item?.level ||
+            "warning"
+          ).toLowerCase();
+
+        const level =
+          rawLevel === "good"
+            ? "good"
+            : rawLevel === "poor"
+            ? "poor"
+            : "warning";
+
+        const action =
+          analyticsActionExpression(
+            item?.action
+          );
+
+        const buttonText =
+          analyticsActionLabel(
+            item?.action
+          );
+
+        return analyticsRecommendation(
+          level,
+          item?.title ||
+          "Performance recommendation",
+          item?.message ||
+          "Review this area of school performance.",
+          buttonText,
+          action
+        );
+      })
+      .join("");
+}
+  /* =========================================================
+   FINAL REAL ANALYTICS RENDERER
+========================================================= */
+
 function renderAnalytics(){
-  const students = getStudents();
-  const teachers = getTeachers();
+  const analytics =
+    state.analytics;
 
-  const range = analyticsRangeDates();
+  if(!analytics){
+    renderAnalyticsLoadingState();
+    return;
+  }
 
-  const rangedPosts = filterAnalyticsItems(
-    getSchoolPosts()
-  );
+  const summary =
+    analytics.summary ||
+    {};
 
-  const rangedUpdates = filterAnalyticsItems(
-    state.schoolUpdates
-  );
+  const daily =
+    Array.isArray(
+      analytics.daily
+    )
+      ? analytics.daily
+      : [];
 
-  const rangedClasses = filterAnalyticsItems(
-    state.classes
-  );
+  const attendance =
+    summary.attendance ||
+    {};
 
-  const rangedAssignments = filterAnalyticsItems(
-    state.assignments
-  );
+  const submissions =
+    summary.submissions ||
+    {};
 
-  const rangedSubmissions = filterAnalyticsItems(
-    state.submissions
-  );
+  const range =
+    analytics.range ||
+    {};
 
-  const rangedSchedules = filterAnalyticsItems(
-    state.schedules
-  );
-
-  const rangedAttendance = filterAnalyticsItems(
-    state.attendance
-  );
-
-  const rangedOpportunities = filterAnalyticsItems(
-    state.opportunities
-  );
-
-  const totalAssignments = state.assignments.length;
-  const totalSubmissions = state.submissions.length;
-
-  const expectedSubmissions =
-    totalAssignments * students.length;
-
-  const completionRate = expectedSubmissions
-    ? Math.min(
-        100,
-        Math.round(
-          (totalSubmissions / expectedSubmissions) * 100
-        )
-      )
-    : 0;
-
-  const attendance = attendanceStats(
-    state.attendance || []
-  );
+  const overallScore =
+    analyticsWholePercent(
+      summary.overallScore
+    );
 
   const attendanceRate =
-    attendance.attendanceRate || 0;
+    analyticsWholePercent(
+      attendance.attendanceRate
+    );
 
   const participationRate =
-    attendance.participationAverage || 0;
+    analyticsWholePercent(
+      attendance.participationAverage
+    );
 
-  const reviewedSubmissions =
-    state.submissions.filter(isReviewedSubmission);
+  const completionRate =
+    analyticsWholePercent(
+      submissions.completionRate
+    );
 
-  const pendingReviews = Math.max(
-    0,
-    totalSubmissions - reviewedSubmissions.length
-  );
+  const teacherReviewRate =
+    analyticsWholePercent(
+      submissions.reviewRate
+    );
 
-  const teacherReviewRate = totalSubmissions
-    ? percent(reviewedSubmissions.length,totalSubmissions)
-    : 0;
+  const classUtilizationRate =
+    analyticsWholePercent(
+      summary.classUtilizationRate
+    );
 
-  const classUtilizationRate = state.classes.length
-    ? Math.min(
-        100,
-        Math.round(
-          (state.schedules.length / state.classes.length) * 100
-        )
-      )
-    : 0;
+  const publicEngagementRate =
+    analyticsNumber(
+      summary.publicEngagementRate
+    );
 
-  const teacherActivityScore = teachers.length
-    ? Math.round(
-        (
-          teacherReviewRate +
-          attendanceRate +
-          Math.min(
-            100,
-            state.schedules.length /
-            Math.max(1,teachers.length) *
-            25
-          )
-        ) / 3
-      )
-    : 0;
+  const publicEngagementScore =
+    analyticsWholePercent(
+      summary.publicEngagementScore
+    );
 
-  const postsAndUpdates = [
-    ...rangedPosts,
-    ...rangedUpdates
-  ];
+  const studentCount =
+    analyticsNonNegative(
+      summary.studentCount
+    );
 
-  const likesTotal = postsAndUpdates.reduce(
-    (sum,post) => sum + postLikes(post),
-    0
-  );
+  const teacherCount =
+    analyticsNonNegative(
+      summary.teacherCount
+    );
 
-  const commentsTotal = postsAndUpdates.reduce(
-    (sum,post) => sum + postComments(post),
-    0
-  );
+  const activeClassCount =
+    analyticsNonNegative(
+      summary.activeClassCount
+    );
 
-  const sharesTotal = postsAndUpdates.reduce(
-    (sum,post) => sum + postShares(post),
-    0
-  );
+  const assignmentCount =
+    analyticsNonNegative(
+      summary.assignmentCount
+    );
 
-  const postViewsTotal = postsAndUpdates.reduce(
-    (sum,post) => sum + postViews(post),
-    0
-  );
+  const submissionCount =
+    analyticsNonNegative(
+      summary.submissionCount
+    );
+
+  const studentsAtRisk =
+    analyticsNonNegative(
+      summary.studentsAtRisk
+    );
+
+  const currentFollowers =
+    analyticsNonNegative(
+      summary.currentFollowers
+    );
+
+  const currentProfileViews =
+    analyticsNonNegative(
+      summary.currentProfileViews
+    );
+
+  const followersGained =
+    analyticsNonNegative(
+      summary.followersGained
+    );
+
+  const followersLost =
+    analyticsNonNegative(
+      summary.followersLost
+    );
+
+  const netFollowers =
+    analyticsNumber(
+      summary.netFollowers
+    );
+
+  const postsCreated =
+    analyticsNonNegative(
+      summary.postsCreated
+    );
+
+  const postViews =
+    analyticsNonNegative(
+      summary.postViews
+    );
+
+  const postImpressions =
+    analyticsNonNegative(
+      summary.postImpressions
+    );
+
+  const uniquePostViews =
+    analyticsNonNegative(
+      summary.uniquePostViews
+    );
+
+  const postLikes =
+    analyticsNonNegative(
+      summary.netPostLikes
+    );
+
+  const postComments =
+    analyticsNonNegative(
+      summary.postComments
+    );
+
+  const postShares =
+    analyticsNonNegative(
+      summary.postShares
+    );
 
   const engagementTotal =
-    likesTotal +
-    commentsTotal +
-    sharesTotal;
+    analyticsNonNegative(
+      summary.engagementTotal
+    );
 
-  const publicEngagementRate = postViewsTotal
-    ? Math.min(
-        100,
-        Math.round(
-          engagementTotal / postViewsTotal * 100
-        )
-      )
-    : 0;
+  const opportunityCount =
+    analyticsNonNegative(
+      summary.opportunityCount
+    );
 
-  const followersTotal = schoolFollowerCount();
-  const profileViewsTotal = schoolProfileViews();
+  const careerApplications =
+    analyticsNonNegative(
+      summary.careerApplications
+    );
 
-  const studentsAtRisk = countStudentsAtRisk(
-    students,
-    state.attendance || [],
-    state.submissions || []
-  );
+  const careerPlacements =
+    analyticsNonNegative(
+      summary.careerPlacements
+    );
 
-  const internalActivity = [
-    ...rangedClasses,
-    ...rangedAssignments,
-    ...rangedSubmissions,
-    ...rangedSchedules,
-    ...rangedAttendance,
-    ...rangedOpportunities,
-    ...rangedPosts,
-    ...rangedUpdates
-  ];
+  const pendingReviews =
+    analyticsNonNegative(
+      submissions.pending
+    );
 
-  const activityScore = Math.min(
-    100,
-    Math.round(
-      internalActivity.length /
-      Math.max(1,students.length + teachers.length) *
-      20
-    )
-  );
+  const reviewedSubmissions =
+    analyticsNonNegative(
+      submissions.reviewed
+    );
 
-  const overallHealth = Math.round(
+  const expectedSubmissions =
+    studentCount *
+    assignmentCount;
+
+  /* =======================================================
+     RANGE DESCRIPTION
+  ======================================================= */
+
+  const rangeLabel =
+    range.label ||
     (
-      attendanceRate +
-      completionRate +
-      participationRate +
-      teacherActivityScore +
-      classUtilizationRate +
-      Math.max(
-        publicEngagementRate,
-        activityScore
-      )
-    ) / 6
-  );
-
-  /* RANGE TEXT */
+      state.analyticsRange === "all"
+        ? "All time"
+        : `Last ${state.analyticsRange} days`
+    );
 
   setText(
     "analyticsRangeDescription",
-    `${range.label}: school operations, learning outcomes, campus activity, public visibility, and engagement.`
+    `${rangeLabel}: verified school operations, learning outcomes, campus activity, public visibility, and engagement.`
   );
+
+  const verifiedActivityTotal =
+    daily.reduce(
+      (total,row) => {
+        return total +
+          analyticsNonNegative(
+            row.profileViews
+          ) +
+          analyticsNonNegative(
+            row.postViews
+          ) +
+          analyticsNonNegative(
+            row.studentViews
+          ) +
+          analyticsNonNegative(
+            row.classViews
+          ) +
+          analyticsNonNegative(
+            row.attendanceRecordsCreated
+          ) +
+          analyticsNonNegative(
+            row.assignmentsSubmitted
+          ) +
+          analyticsNonNegative(
+            row.careerApplications
+          ) +
+          analyticsNonNegative(
+            row.searchClicks
+          );
+      },
+      0
+    );
 
   setText(
     "analyticsTrendSubtitle",
-    `${internalActivity.length} recorded activities during ${range.label.toLowerCase()}.`
+    `${analyticsFormatNumber(verifiedActivityTotal)} verified activities during ${String(rangeLabel).toLowerCase()}.`
   );
 
-  /* HEALTH */
+  /* =======================================================
+     HEALTH BANNER
+  ======================================================= */
 
-  const healthBanner = $("analyticsHealthBanner");
+  const healthBanner =
+    $("analyticsHealthBanner");
+
+  const backendPerformance =
+    summary.overallPerformance ||
+    {};
+
+  const healthClass =
+    backendPerformance.key === "excellent" ||
+    backendPerformance.key === "good"
+      ? "good"
+      : backendPerformance.key === "poor"
+      ? "poor"
+      : performanceClass(
+          overallScore
+        );
 
   if(healthBanner){
     healthBanner.classList.remove(
@@ -8078,115 +8678,208 @@ function renderAnalytics(){
     );
 
     healthBanner.classList.add(
-      `health-${performanceClass(overallHealth)}`
+      `health-${healthClass}`
     );
   }
 
+  const healthLabel =
+    backendPerformance.label ||
+    performanceLabel(
+      overallScore
+    );
+
   setText(
     "analyticsHealthScore",
-    overallHealth
+    overallScore
   );
 
   setText(
     "analyticsHealthTitle",
-    performanceLabel(overallHealth)
+    healthLabel
   );
 
   setText(
     "analyticsHealthStatus",
-    performanceLabel(overallHealth)
+    healthLabel
   );
 
-  const healthMessage =
-    overallHealth >= 75
-      ? "Your school is performing well. Continue monitoring attendance, learning completion, teacher reviews, and public engagement."
-      : overallHealth >= 50
-      ? "Your school is stable, but several areas require attention. Review the recommendations below."
-      : "Your school currently has important performance risks. Prioritize attendance, submissions, teacher reviews, and class activity.";
+  let healthMessage =
+    "Your analytics are based on verified backend activity.";
+
+  if(overallScore >= 75){
+    healthMessage =
+      "Your school is performing well. Continue monitoring attendance, learning completion, teacher reviews, career outcomes, and public engagement.";
+  }else if(overallScore >= 50){
+    healthMessage =
+      "Your school is stable, but several areas require attention. Review the prioritized recommendations below.";
+  }else{
+    healthMessage =
+      "Important performance risks were detected. Prioritize attendance, assignment completion, teacher reviews, student support, and class activity.";
+  }
 
   setText(
     "analyticsHealthMessage",
     healthMessage
   );
 
-  /* KPI VALUES */
+  /* =======================================================
+     KPI VALUES
+  ======================================================= */
 
-  setText("analyticsStudentsTotal",students.length);
-  setText("analyticsAttendanceRate",`${attendanceRate}%`);
-  setText("analyticsCompletionRate",`${completionRate}%`);
-  setText("analyticsEngagementTotal",engagementTotal);
-  setText("analyticsFollowersTotal",followersTotal);
-  setText("analyticsProfileViewsTotal",profileViewsTotal);
-  setText("analyticsClassesTotal",state.classes.length);
-  setText("analyticsTeacherScore",`${teacherActivityScore}%`);
+  setText(
+    "analyticsStudentsTotal",
+    analyticsFormatNumber(
+      studentCount
+    )
+  );
+
+  setText(
+    "analyticsAttendanceRate",
+    analyticsFormatPercent(
+      attendanceRate
+    )
+  );
+
+  setText(
+    "analyticsCompletionRate",
+    analyticsFormatPercent(
+      completionRate
+    )
+  );
+
+  setText(
+    "analyticsEngagementTotal",
+    analyticsFormatNumber(
+      engagementTotal
+    )
+  );
+
+  setText(
+    "analyticsFollowersTotal",
+    analyticsFormatNumber(
+      currentFollowers
+    )
+  );
+
+  setText(
+    "analyticsProfileViewsTotal",
+    analyticsFormatNumber(
+      currentProfileViews
+    )
+  );
+
+  setText(
+    "analyticsClassesTotal",
+    analyticsFormatNumber(
+      activeClassCount
+    )
+  );
+
+  setText(
+    "analyticsTeacherScore",
+    analyticsFormatPercent(
+      teacherReviewRate
+    )
+  );
+
+  /* KPI STATUS */
 
   setText(
     "analyticsStudentsStatus",
-    students.length ? "Active" : "No students"
+    studentCount
+      ? studentsAtRisk
+        ? "Monitor"
+        : "Healthy"
+      : "No students"
   );
 
   setText(
     "analyticsAttendanceStatus",
-    performanceLabel(attendanceRate)
+    performanceLabel(
+      attendanceRate
+    )
   );
 
   setText(
     "analyticsCompletionStatus",
-    performanceLabel(completionRate)
+    performanceLabel(
+      completionRate
+    )
   );
 
   setText(
     "analyticsEngagementStatus",
-    postsAndUpdates.length
-      ? performanceLabel(publicEngagementRate)
+    postViews ||
+    postImpressions
+      ? performanceLabel(
+          publicEngagementScore
+        )
       : "No activity"
   );
 
   setText(
     "analyticsClassesStatus",
-    performanceLabel(classUtilizationRate)
+    performanceLabel(
+      classUtilizationRate
+    )
   );
 
   setText(
     "analyticsTeacherStatus",
-    performanceLabel(teacherActivityScore)
+    performanceLabel(
+      teacherReviewRate
+    )
   );
+
+  /* KPI NOTES */
 
   setText(
     "analyticsStudentsNote",
-    `${studentsAtRisk} student${studentsAtRisk === 1 ? "" : "s"} currently need attention`
+    `${analyticsFormatNumber(studentsAtRisk)} student${studentsAtRisk === 1 ? "" : "s"} currently need attention`
   );
 
   setText(
     "analyticsAttendanceNote",
-    `${attendance.total || 0} attendance records`
+    `${analyticsFormatNumber(attendance.total)} verified attendance records`
   );
 
   setText(
     "analyticsCompletionNote",
-    `${totalSubmissions} of ${expectedSubmissions || 0} expected submissions`
+    `${analyticsFormatNumber(submissionCount)} of ${analyticsFormatNumber(expectedSubmissions)} expected submissions`
   );
 
   setText(
     "analyticsEngagementNote",
-    `${postsAndUpdates.length} posts and school updates`
+    `${analyticsFormatNumber(postImpressions)} impressions and ${analyticsFormatNumber(postViews)} views`
   );
 
   setText(
     "analyticsClassesNote",
-    `${state.schedules.length} schedules across ${state.classes.length} classes`
+    `${analyticsFormatNumber(activeClassCount)} active classes`
   );
 
   setText(
     "analyticsTeacherNote",
-    `${pendingReviews} pending reviews`
+    `${analyticsFormatNumber(pendingReviews)} pending reviews`
   );
+
+  /* KPI PERFORMANCE COLORS */
+
+  const studentHealthScore =
+    studentCount
+      ? Math.max(
+          0,
+          100 -
+          analyticsPercent(
+            studentsAtRisk,
+            studentCount
+          )
+        )
+      : 0;
 
   setPerformanceCard(
     "analyticsStudentsCard",
-    students.length
-      ? Math.max(0,100 - percent(studentsAtRisk,students.length))
-      : 0
+    studentHealthScore
   );
 
   setPerformanceCard(
@@ -8201,19 +8894,34 @@ function renderAnalytics(){
 
   setPerformanceCard(
     "analyticsEngagementCard",
-    postsAndUpdates.length
-      ? Math.max(publicEngagementRate,25)
-      : 0
+    publicEngagementScore
   );
 
   setPerformanceCard(
     "analyticsFollowersCard",
-    followersTotal ? 75 : 25
+    currentFollowers
+      ? Math.min(
+          100,
+          60 +
+          Math.max(
+            0,
+            netFollowers
+          )
+        )
+      : 20
   );
 
   setPerformanceCard(
     "analyticsProfileViewsCard",
-    profileViewsTotal ? 75 : 25
+    currentProfileViews
+      ? Math.min(
+          100,
+          55 +
+          analyticsNonNegative(
+            summary.uniqueProfileViews
+          )
+        )
+      : 20
   );
 
   setPerformanceCard(
@@ -8223,19 +8931,23 @@ function renderAnalytics(){
 
   setPerformanceCard(
     "analyticsTeacherCard",
-    teacherActivityScore
+    teacherReviewRate
   );
 
-  /* PERFORMANCE BARS */
+  /* =======================================================
+     PERFORMANCE BARS
+  ======================================================= */
 
   setText(
     "analyticsAttendanceBarValue",
-    `${attendanceRate}%`
+    analyticsFormatPercent(
+      attendanceRate
+    )
   );
 
   setText(
     "analyticsAttendanceDetail",
-    `${attendance.total || 0} attendance records`
+    `${analyticsFormatNumber(attendance.present)} present, ${analyticsFormatNumber(attendance.late)} late, ${analyticsFormatNumber(attendance.absent)} absent`
   );
 
   setPerformanceBar(
@@ -8245,12 +8957,14 @@ function renderAnalytics(){
 
   setText(
     "analyticsCompletionBarValue",
-    `${completionRate}%`
+    analyticsFormatPercent(
+      completionRate
+    )
   );
 
   setText(
     "analyticsCompletionDetail",
-    `${totalSubmissions} submissions from ${totalAssignments} assignments`
+    `${analyticsFormatNumber(submissionCount)} submissions from ${analyticsFormatNumber(assignmentCount)} assignments`
   );
 
   setPerformanceBar(
@@ -8260,12 +8974,14 @@ function renderAnalytics(){
 
   setText(
     "analyticsParticipationBarValue",
-    `${participationRate}%`
+    analyticsFormatPercent(
+      participationRate
+    )
   );
 
   setText(
     "analyticsParticipationDetail",
-    `${attendance.total || 0} recorded participation entries`
+    `${analyticsFormatNumber(attendance.participationCount)} participation records`
   );
 
   setPerformanceBar(
@@ -8275,12 +8991,14 @@ function renderAnalytics(){
 
   setText(
     "analyticsClassUtilizationValue",
-    `${classUtilizationRate}%`
+    analyticsFormatPercent(
+      classUtilizationRate
+    )
   );
 
   setText(
     "analyticsClassUtilizationDetail",
-    `${state.schedules.length} schedules for ${state.classes.length} classes`
+    `${analyticsFormatNumber(activeClassCount)} active and ${analyticsFormatNumber(summary.archivedClassCount)} archived classes`
   );
 
   setPerformanceBar(
@@ -8290,12 +9008,14 @@ function renderAnalytics(){
 
   setText(
     "analyticsTeacherReviewValue",
-    `${teacherReviewRate}%`
+    analyticsFormatPercent(
+      teacherReviewRate
+    )
   );
 
   setText(
     "analyticsTeacherReviewDetail",
-    `${reviewedSubmissions.length} reviewed, ${pendingReviews} pending`
+    `${analyticsFormatNumber(reviewedSubmissions)} reviewed, ${analyticsFormatNumber(pendingReviews)} pending`
   );
 
   setPerformanceBar(
@@ -8303,57 +9023,81 @@ function renderAnalytics(){
     teacherReviewRate
   );
 
-  /* PUBLIC PERFORMANCE */
+  /* =======================================================
+     PUBLIC PERFORMANCE
+  ======================================================= */
 
   setText(
     "analyticsPostsTotal",
-    postsAndUpdates.length
+    analyticsFormatNumber(
+      postsCreated
+    )
   );
 
   setText(
     "analyticsPostViewsTotal",
-    postViewsTotal
+    analyticsFormatNumber(
+      postViews
+    )
   );
 
   setText(
     "analyticsLikesTotal",
-    likesTotal
+    analyticsFormatNumber(
+      postLikes
+    )
   );
 
   setText(
     "analyticsCommentsTotal",
-    commentsTotal
+    analyticsFormatNumber(
+      postComments
+    )
   );
 
   setText(
     "analyticsSharesTotal",
-    sharesTotal
+    analyticsFormatNumber(
+      postShares
+    )
   );
 
   setText(
     "analyticsPublicEngagementRate",
-    `${publicEngagementRate}%`
+    analyticsFormatPercent(
+      publicEngagementRate
+    )
   );
 
-  /* OPERATIONAL SUMMARY */
+  /* =======================================================
+     OPERATIONAL SUMMARY
+  ======================================================= */
 
   setText(
     "analyticsStudentsAtRisk",
-    studentsAtRisk
+    analyticsFormatNumber(
+      studentsAtRisk
+    )
   );
 
   setText(
     "analyticsStudentHealthLabel",
     studentsAtRisk === 0
       ? "Healthy"
-      : studentsAtRisk <= Math.max(1,students.length * .2)
+      : studentsAtRisk <=
+        Math.max(
+          1,
+          studentCount * .2
+        )
       ? "Monitor"
       : "At risk"
   );
 
   setText(
     "analyticsPendingReviews",
-    pendingReviews
+    analyticsFormatNumber(
+      pendingReviews
+    )
   );
 
   setText(
@@ -8367,160 +9111,86 @@ function renderAnalytics(){
 
   setText(
     "analyticsOpportunitiesTotal",
-    state.opportunities.length
+    analyticsFormatNumber(
+      opportunityCount
+    )
   );
 
   setText(
     "analyticsCareerHealthLabel",
-    state.opportunities.length >= 5
+    careerPlacements > 0
+      ? "Placements recorded"
+      : careerApplications > 0
+      ? "Applications active"
+      : opportunityCount >= 5
       ? "Strong"
-      : state.opportunities.length
+      : opportunityCount
       ? "Growing"
       : "Needs opportunities"
   );
 
-  /* LINE CHART */
+  /* =======================================================
+     VERIFIED DAILY LINE CHART
+  ======================================================= */
 
-  if(schoolAnalyticsRange === "all"){
-    const totalDays = 90;
+  const chartCounts =
+    daily.map(row => {
+      return (
+        analyticsNonNegative(
+          row.profileViews
+        ) +
+        analyticsNonNegative(
+          row.postViews
+        ) +
+        analyticsNonNegative(
+          row.studentViews
+        ) +
+        analyticsNonNegative(
+          row.classViews
+        ) +
+        analyticsNonNegative(
+          row.attendanceRecordsCreated
+        ) +
+        analyticsNonNegative(
+          row.assignmentsSubmitted
+        ) +
+        analyticsNonNegative(
+          row.assignmentsReviewed
+        ) +
+        analyticsNonNegative(
+          row.careerApplications
+        ) +
+        analyticsNonNegative(
+          row.searchClicks
+        )
+      );
+    });
 
-    const series = buildAnalyticsDailySeries(
-      internalActivity,
-      totalDays
-    );
-
-    renderSchoolLineChart(
-      "schoolActivityChart",
-      series.counts,
-      series.labels
-    );
-  }else{
-    const series = buildAnalyticsDailySeries(
-      internalActivity,
-      Number(schoolAnalyticsRange) || 30
-    );
-
-    renderSchoolLineChart(
-      "schoolActivityChart",
-      series.counts,
-      series.labels
-    );
-  }
-
-  /* RECOMMENDATIONS */
-
-  const recommendations = [];
-
-  if(attendanceRate < 75){
-    recommendations.push(
-      analyticsRecommendation(
-        "poor",
-        "Improve student attendance",
-        `Attendance is currently ${attendanceRate}%. Review absent students and class schedules.`,
-        "Attendance",
-        "openTab('attendance')"
+  const chartLabels =
+    daily.map(row =>
+      analyticsDateLabel(
+        row.date
       )
     );
-  }else{
-    recommendations.push(
-      analyticsRecommendation(
-        "good",
-        "Attendance is performing well",
-        `Your current attendance score is ${attendanceRate}%. Continue monitoring late and absent records.`,
-        "View",
-        "openTab('attendance')"
-      )
-    );
-  }
 
-  if(completionRate < 70){
-    recommendations.push(
-      analyticsRecommendation(
-        "warning",
-        "Increase assignment completion",
-        `${totalSubmissions} submissions were recorded against ${expectedSubmissions || 0} expected submissions.`,
-        "Assignments",
-        "openTab('classes')"
-      )
-    );
-  }
+  renderSchoolLineChart(
+    "schoolActivityChart",
+    chartCounts,
+    chartLabels
+  );
 
-  if(pendingReviews > 0){
-    recommendations.push(
-      analyticsRecommendation(
-        pendingReviews > 10 ? "poor" : "warning",
-        "Complete pending teacher reviews",
-        `${pendingReviews} student submissions still require review or feedback.`,
-        "Teachers",
-        "openTab('teachers')"
-      )
-    );
-  }
+  /* =======================================================
+     BACKEND RECOMMENDATIONS
+  ======================================================= */
 
-  if(studentsAtRisk > 0){
-    recommendations.push(
-      analyticsRecommendation(
-        "poor",
-        "Support students at risk",
-        `${studentsAtRisk} student${studentsAtRisk === 1 ? "" : "s"} may require intervention based on attendance, participation, or submissions.`,
-        "Insights",
-        "openTab('insights')"
-      )
-    );
-  }
+  renderBackendRecommendations(
+    analytics.recommendations
+  );
 
-  if(state.opportunities.length < 3){
-    recommendations.push(
-      analyticsRecommendation(
-        "warning",
-        "Expand career opportunities",
-        "Add more internships, jobs, company requests, or placement opportunities.",
-        "Career Hub",
-        "openTab('portal')"
-      )
-    );
-  }
-
-  if(postsAndUpdates.length === 0){
-    recommendations.push(
-      analyticsRecommendation(
-        "warning",
-        "Publish a school update",
-        "No school posts or updates were recorded during the selected period.",
-        "Create update",
-        "openModal('postModal')"
-      )
-    );
-  }
-
-  if(!followersTotal && !profileViewsTotal){
-    recommendations.push(
-      analyticsRecommendation(
-        "warning",
-        "Improve public visibility",
-        "Share your public school page and publish regular updates to increase profile reach.",
-        "Public page",
-        "openPublicPage()"
-      )
-    );
-  }
-
-  const recommendationsWrap = $("analyticsRecommendations");
-
-  if(recommendationsWrap){
-    recommendationsWrap.innerHTML =
-      recommendations.length
-        ? recommendations.join("")
-        : analyticsRecommendation(
-            "good",
-            "School performance is healthy",
-            "No critical performance risks were detected for the selected period.",
-            "Overview",
-            "openTab('overview')"
-          );
-  }
-
-  /* SUPPORT EXISTING OLD ANALYTICS IDS */
+  /* =======================================================
+     SUPPORT EXISTING LEGACY DISPLAY IDS
+     Values still come from the real backend.
+  ======================================================= */
 
   setProgress(
     "completionPercent",
@@ -8542,15 +9212,103 @@ function renderAnalytics(){
 
   setText(
     "opportunityPipeline",
-    state.opportunities.length
+    analyticsFormatNumber(
+      opportunityCount
+    )
   );
 
-  const opportunityBar = $("opportunityBar");
+  const opportunityBar =
+    $("opportunityBar");
 
   if(opportunityBar){
     opportunityBar.style.width =
-      `${Math.min(100,state.opportunities.length * 10)}%`;
+      `${Math.min(
+        100,
+        opportunityCount * 10
+      )}%`;
   }
+
+  /* =======================================================
+     OPTIONAL EXTRA IDS
+     These update automatically when present in your HTML.
+  ======================================================= */
+
+  setText(
+    "analyticsImpressionsTotal",
+    analyticsFormatNumber(
+      postImpressions
+    )
+  );
+
+  setText(
+    "analyticsUniquePostViews",
+    analyticsFormatNumber(
+      uniquePostViews
+    )
+  );
+
+  setText(
+    "analyticsFollowersGained",
+    analyticsFormatNumber(
+      followersGained
+    )
+  );
+
+  setText(
+    "analyticsFollowersLost",
+    analyticsFormatNumber(
+      followersLost
+    )
+  );
+
+  setText(
+    "analyticsNetFollowers",
+    netFollowers > 0
+      ? `+${analyticsFormatNumber(netFollowers)}`
+      : String(netFollowers)
+  );
+
+  setText(
+    "analyticsAverageReviewTime",
+    analyticsFormatMinutes(
+      submissions.averageReviewTimeMinutes
+    )
+  );
+
+  setText(
+    "analyticsAverageGrade",
+    analyticsNumber(
+      submissions.averageGrade
+    ).toFixed(1)
+  );
+
+  setText(
+    "analyticsCareerApplications",
+    analyticsFormatNumber(
+      careerApplications
+    )
+  );
+
+  setText(
+    "analyticsCareerPlacements",
+    analyticsFormatNumber(
+      careerPlacements
+    )
+  );
+
+  setText(
+    "analyticsLastUpdated",
+    state.analyticsLastLoadedAt
+      ? state.analyticsLastLoadedAt
+          .toLocaleTimeString(
+            [],
+            {
+              hour:"2-digit",
+              minute:"2-digit"
+            }
+          )
+      : "Just now"
+  );
 }
 
 function renderSettings(){
@@ -9939,6 +10697,41 @@ function initSocket(){
     socket.on("connect",() => {
       socket.emit("join",{ userId:getSchoolId(), role:"school" });
     });
+    let analyticsRealtimeTimer = null;
+
+socket.on(
+  "analytics:updated",
+  payload => {
+    if(
+      String(payload?.schoolId || "") !==
+      String(getSchoolId() || "")
+    ){
+      return;
+    }
+
+    /*
+      Several backend events may arrive close together.
+      Reload once after a short delay instead of requesting
+      the dashboard repeatedly.
+    */
+    if(analyticsRealtimeTimer){
+      clearTimeout(
+        analyticsRealtimeTimer
+      );
+    }
+
+    analyticsRealtimeTimer =
+      setTimeout(
+        async () => {
+          await loadSchoolAnalytics({
+            force: true,
+            silent: true
+          });
+        },
+        900
+      );
+  }
+);
 
     [
       "post:new",
