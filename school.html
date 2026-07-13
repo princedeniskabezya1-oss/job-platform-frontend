@@ -17027,6 +17027,11 @@ hydrateSelects();
 hydrateProfileForm();
 
 /*
+  Render operational insights from the records already loaded.
+*/
+renderInsights();
+
+/*
   Load authenticated, backend-generated analytics after the
   main dashboard content is available.
 */
@@ -17034,6 +17039,11 @@ await loadSchoolAnalytics({
   force:true,
   silent:false
 });
+    /*
+  Render Insights again so backend analytics such as the
+  overall school score can be included in school health.
+*/
+renderInsights();
 
 /*
   Record one school dashboard view per browser session.
@@ -26935,340 +26945,2685 @@ async function submitAttendance(){
     });
   }
 }
-function renderSelectedStudentInsight(){
-  const id = $("insightStudentSelect")?.value;
 
-  if (!id){
-    resetInsightView();
-    return;
-  }
+/* =========================================================
+   AIFT SCHOOL INSIGHTS ENGINE
 
-  $("insightTeacherSelect").value = "";
+   These insights are deterministic operational rules based
+   only on records already loaded into the school dashboard.
 
-  const student = getStudents().find(user =>
-    String(user._id) === String(id)
-  );
+   Missing data is excluded from performance averages and is
+   never automatically treated as poor performance.
+========================================================= */
 
-  if (!student){
-    resetInsightView();
-    return;
-  }
+function insightNumber(
+  value,
+  fallback = 0
+){
+  const number =
+    Number(value);
 
-  const studentClasses = state.classes.filter(cls => {
-    const ids = cls.studentIds || cls.students || [];
-    return ids.some(item => sameId(item?._id || item, id));
-  });
-
-  const studentSubmissions = state.submissions.filter(sub =>
-    sameId(sub.studentId,id) ||
-    sameId(sub.userId,id) ||
-    sameId(sub.authorId,id)
-  );
-
-  const reviewedSubmissions = studentSubmissions.filter(sub =>
-    sub.grade ||
-    sub.feedback ||
-    ["reviewed","returned","graded"].includes(String(sub.status || "").toLowerCase())
-  );
-
-  const studentAttendance = state.attendance.filter(record =>
-    sameId(record.studentId?._id || record.studentId, id)
-  );
-
-  const attendance = attendanceStats(studentAttendance);
-
-  const completionRate = state.assignments.length
-    ? Math.min(
-        100,
-        Math.round((studentSubmissions.length / state.assignments.length) * 100)
-      )
-    : 0;
-
-  const missingAssignments = Math.max(
-    0,
-    state.assignments.length - studentSubmissions.length
-  );
-
-  const averageGradeValues = reviewedSubmissions
-    .map(sub => Number(sub.grade || sub.score || 0))
-    .filter(score => score > 0);
-
-  const averageGrade = averageGradeValues.length
-    ? Math.round(
-        averageGradeValues.reduce((sum,score) => sum + score, 0) /
-        averageGradeValues.length
-      )
-    : 0;
-
-  const lateSubmissions = studentSubmissions.filter(sub =>
-    String(sub.status || "").toLowerCase() === "late"
-  ).length;
-
-  const lastActivitySource = [
-    ...studentSubmissions.map(item => item.updatedAt || item.createdAt),
-    ...studentAttendance.map(item => item.updatedAt || item.createdAt || item.date)
-  ].filter(Boolean).sort((a,b) => new Date(b) - new Date(a))[0];
-
-  const lastActivity = lastActivitySource
-    ? new Date(lastActivitySource).toLocaleDateString()
-    : "No activity";
-
-  const score = Math.round(
-    completionRate * 0.35 +
-    attendance.attendanceRate * 0.35 +
-    attendance.participationAverage * 0.2 +
-    (reviewedSubmissions.length ? 10 : 0)
-  );
-
-  const riskLevel =
-    score >= 80
-      ? "Low"
-      : score >= 50
-      ? "Moderate"
-      : "High";
-
-  setText("selectedInsightName", student.name || student.email || "Student");
-  setText("selectedInsightRole","Student");
-  setText("selectedInsightClasses", studentClasses.length);
-  setText("selectedInsightScore", `${score}%`);
-
-  $("selectedInsightDetails").innerHTML = `
-    <article class="job-card">
-
-      <div class="job-head">
-        <div>
-          <h3 class="job-title">Student Performance Summary</h3>
-          <div class="job-company">
-            ${escapeHtml(student.course || student.email || "Student")}
-          </div>
-        </div>
-
-        <span class="chip ${
-          riskLevel === "Low"
-            ? "success"
-            : riskLevel === "Moderate"
-            ? "warning"
-            : ""
-        }">
-          ${riskLevel} Risk
-        </span>
-      </div>
-
-      <div class="analytics-grid" style="margin-top:14px;">
-
-        <div class="analytics-card">
-          <span>Attendance</span>
-          <strong>${attendance.attendanceRate}%</strong>
-        </div>
-
-        <div class="analytics-card">
-          <span>Absences</span>
-          <strong>${attendance.absent}</strong>
-        </div>
-
-        <div class="analytics-card">
-          <span>Lates</span>
-          <strong>${attendance.late}</strong>
-        </div>
-
-        <div class="analytics-card">
-          <span>Participation Avg</span>
-          <strong>${attendance.participationAverage}%</strong>
-        </div>
-
-        <div class="analytics-card">
-          <span>Assignment Completion</span>
-          <strong>${completionRate}%</strong>
-        </div>
-
-        <div class="analytics-card">
-          <span>Reviewed Work</span>
-          <strong>${reviewedSubmissions.length}</strong>
-        </div>
-
-        <div class="analytics-card">
-          <span>Missing Assignments</span>
-          <strong>${missingAssignments}</strong>
-        </div>
-
-        <div class="analytics-card">
-          <span>Average Grade</span>
-          <strong>${averageGrade || "--"}</strong>
-        </div>
-
-        <div class="analytics-card">
-          <span>Late Submissions</span>
-          <strong>${lateSubmissions}</strong>
-        </div>
-
-        <div class="analytics-card">
-          <span>Last Activity</span>
-          <strong style="font-size:.9rem;">${lastActivity}</strong>
-        </div>
-
-      </div>
-
-    </article>
-  `;
+  return Number.isFinite(number)
+    ? number
+    : fallback;
 }
 
-function renderSelectedTeacherInsight(){
-  const id = $("insightTeacherSelect")?.value;
-
-  if (!id){
-    resetInsightView();
-    return;
-  }
-
-  $("insightStudentSelect").value = "";
-
-  const teacher = getTeachers().find(user =>
-    String(user._id) === String(id)
-  );
-
-  if (!teacher){
-    resetInsightView();
-    return;
-  }
-
-  const teacherClasses = state.classes.filter(cls =>
-    sameId(cls.teacherId?._id || cls.teacherId, id)
-  );
-
-  const teacherAssignments = state.assignments.filter(item =>
-    sameId(item.teacherId?._id || item.teacherId, id)
-  );
-
-  const teacherAttendance = state.attendance.filter(record =>
-    sameId(record.teacherId?._id || record.teacherId, id)
-  );
-
-  const attendance = attendanceStats(teacherAttendance);
-
-  const reviewedSubmissions = state.submissions.filter(sub =>
-    sameId(sub.reviewedBy?._id || sub.reviewedBy,id) ||
-    sameId(sub.teacherId?._id || sub.teacherId,id)
-  );
-
-  const pendingReviews = Math.max(
+function insightClampScore(value){
+  return Math.max(
     0,
-    state.submissions.length - reviewedSubmissions.length
+    Math.min(
+      100,
+      Math.round(
+        insightNumber(value)
+      )
+    )
   );
+}
 
-  const assignedStudentIds = new Set();
+function insightPercent(
+  value,
+  total
+){
+  const safeValue =
+    Math.max(
+      0,
+      insightNumber(value)
+    );
 
-  teacherClasses.forEach(cls => {
-    const ids = cls.studentIds || cls.students || [];
+  const safeTotal =
+    Math.max(
+      0,
+      insightNumber(total)
+    );
 
-    ids.forEach(student => {
-      const studentId = student?._id || student;
-      if (studentId) assignedStudentIds.add(String(studentId));
-    });
+  if(!safeTotal){
+    return 0;
+  }
+
+  return insightClampScore(
+    safeValue /
+    safeTotal *
+    100
+  );
+}
+
+function insightPerformanceClass(
+  score,
+  hasData = true
+){
+  if(!hasData){
+    return "neutral";
+  }
+
+  const value =
+    insightClampScore(score);
+
+  if(value >= 85){
+    return "excellent";
+  }
+
+  if(value >= 75){
+    return "good";
+  }
+
+  if(value >= 50){
+    return "warning";
+  }
+
+  return "poor";
+}
+
+function insightPerformanceLabel(
+  score,
+  hasData = true
+){
+  if(!hasData){
+    return "No data";
+  }
+
+  const value =
+    insightClampScore(score);
+
+  if(value >= 85){
+    return "Excellent";
+  }
+
+  if(value >= 75){
+    return "Good";
+  }
+
+  if(value >= 50){
+    return "Needs attention";
+  }
+
+  return "Poor";
+}
+
+function insightSafeDate(value){
+  if(!value){
+    return null;
+  }
+
+  const date =
+    new Date(value);
+
+  return Number.isNaN(
+    date.getTime()
+  )
+    ? null
+    : date;
+}
+
+function insightFormatDate(value){
+  const date =
+    insightSafeDate(value);
+
+  if(!date){
+    return "No activity";
+  }
+
+  return date.toLocaleDateString(
+    [],
+    {
+      month:"short",
+      day:"numeric",
+      year:"numeric"
+    }
+  );
+}
+
+function insightIsSubmissionReviewed(
+  submission
+){
+  const status =
+    String(
+      submission?.status ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+  return Boolean(
+    submission?.reviewedAt ||
+    submission?.grade !== undefined &&
+    submission?.grade !== null &&
+    submission?.grade !== "" ||
+    submission?.feedback ||
+    [
+      "reviewed",
+      "returned",
+      "graded",
+      "completed"
+    ].includes(status)
+  );
+}
+
+function insightGetStudentId(student){
+  return String(
+    student?._id ||
+    student?.id ||
+    ""
+  );
+}
+
+function insightGetTeacherId(teacher){
+  return String(
+    teacher?._id ||
+    teacher?.id ||
+    ""
+  );
+}
+
+function insightGetClassId(classItem){
+  return String(
+    classItem?._id ||
+    classItem?.id ||
+    ""
+  );
+}
+
+function insightGetAssignmentId(
+  assignment
+){
+  return String(
+    assignment?._id ||
+    assignment?.id ||
+    ""
+  );
+}
+
+function insightGetStudentClasses(
+  studentId
+){
+  return (
+    Array.isArray(state.classes)
+      ? state.classes
+      : []
+  ).filter(classItem => {
+    const students =
+      Array.isArray(classItem.studentIds)
+        ? classItem.studentIds
+        : Array.isArray(classItem.students)
+        ? classItem.students
+        : Array.isArray(
+            classItem.enrolledStudents
+          )
+        ? classItem.enrolledStudents
+        : [];
+
+    return students.some(student =>
+      sameId(
+        student?._id ||
+        student,
+        studentId
+      )
+    );
+  });
+}
+
+function insightGetTeacherClasses(
+  teacherId
+){
+  return (
+    Array.isArray(state.classes)
+      ? state.classes
+      : []
+  ).filter(classItem =>
+    sameId(
+      classItem.teacherId?._id ||
+      classItem.teacherId ||
+      classItem.teacher?._id ||
+      classItem.teacher,
+      teacherId
+    )
+  );
+}
+
+function insightGetStudentAssignments(
+  studentId
+){
+  const classes =
+    insightGetStudentClasses(
+      studentId
+    );
+
+  const classIds =
+    new Set(
+      classes.map(classItem =>
+        insightGetClassId(
+          classItem
+        )
+      )
+    );
+
+  return (
+    Array.isArray(state.assignments)
+      ? state.assignments
+      : []
+  ).filter(assignment => {
+    const assignmentClassId =
+      String(
+        assignment.classId?._id ||
+        assignment.classId ||
+        ""
+      );
+
+    if(
+      classIds.has(
+        assignmentClassId
+      )
+    ){
+      return true;
+    }
+
+    const assignedStudents =
+      Array.isArray(
+        assignment.studentIds
+      )
+        ? assignment.studentIds
+        : Array.isArray(
+            assignment.students
+          )
+        ? assignment.students
+        : [];
+
+    return assignedStudents.some(student =>
+      sameId(
+        student?._id ||
+        student,
+        studentId
+      )
+    );
+  });
+}
+
+function insightGetTeacherAssignments(
+  teacherId
+){
+  const teacherClasses =
+    insightGetTeacherClasses(
+      teacherId
+    );
+
+  const classIds =
+    new Set(
+      teacherClasses.map(classItem =>
+        insightGetClassId(
+          classItem
+        )
+      )
+    );
+
+  return (
+    Array.isArray(state.assignments)
+      ? state.assignments
+      : []
+  ).filter(assignment => {
+    const directTeacherId =
+      assignment.teacherId?._id ||
+      assignment.teacherId ||
+      assignment.teacher?._id ||
+      assignment.teacher;
+
+    if(
+      directTeacherId &&
+      sameId(
+        directTeacherId,
+        teacherId
+      )
+    ){
+      return true;
+    }
+
+    const assignmentClassId =
+      String(
+        assignment.classId?._id ||
+        assignment.classId ||
+        ""
+      );
+
+    return classIds.has(
+      assignmentClassId
+    );
+  });
+}
+
+function insightGetStudentSubmissions(
+  studentId
+){
+  return (
+    Array.isArray(state.submissions)
+      ? state.submissions
+      : []
+  ).filter(submission =>
+    sameId(
+      submission.studentId?._id ||
+      submission.studentId ||
+      submission.userId?._id ||
+      submission.userId ||
+      submission.authorId?._id ||
+      submission.authorId,
+      studentId
+    )
+  );
+}
+
+function insightGetTeacherSubmissions(
+  teacherId
+){
+  const assignments =
+    insightGetTeacherAssignments(
+      teacherId
+    );
+
+  const assignmentIds =
+    new Set(
+      assignments.map(assignment =>
+        insightGetAssignmentId(
+          assignment
+        )
+      )
+    );
+
+  return (
+    Array.isArray(state.submissions)
+      ? state.submissions
+      : []
+  ).filter(submission => {
+    const directTeacherId =
+      submission.teacherId?._id ||
+      submission.teacherId ||
+      submission.reviewedBy?._id ||
+      submission.reviewedBy;
+
+    if(
+      directTeacherId &&
+      sameId(
+        directTeacherId,
+        teacherId
+      )
+    ){
+      return true;
+    }
+
+    const assignmentId =
+      String(
+        submission.assignmentId?._id ||
+        submission.assignmentId ||
+        ""
+      );
+
+    return assignmentIds.has(
+      assignmentId
+    );
+  });
+}
+
+function insightGetStudentAttendance(
+  studentId
+){
+  return (
+    Array.isArray(state.attendance)
+      ? state.attendance
+      : []
+  ).filter(record =>
+    sameId(
+      record.studentId?._id ||
+      record.studentId,
+      studentId
+    )
+  );
+}
+
+function insightGetTeacherAttendance(
+  teacherId
+){
+  return (
+    Array.isArray(state.attendance)
+      ? state.attendance
+      : []
+  ).filter(record =>
+    sameId(
+      record.teacherId?._id ||
+      record.teacherId ||
+      record.markedBy?._id ||
+      record.markedBy,
+      teacherId
+    )
+  );
+}
+
+function insightAttendanceMetrics(
+  records
+){
+  const safeRecords =
+    Array.isArray(records)
+      ? records
+      : [];
+
+  const result =
+    safeRecords.reduce(
+      (summary,record) => {
+        const status =
+          String(
+            record.status ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
+
+        if(status === "present"){
+          summary.present += 1;
+        }else if(status === "late"){
+          summary.late += 1;
+        }else if(status === "absent"){
+          summary.absent += 1;
+        }else if(status === "excused"){
+          summary.excused += 1;
+        }
+
+        summary.total += 1;
+
+        const participation =
+          Number(
+            record.participationScore ??
+            record.participation
+          );
+
+        if(
+          Number.isFinite(
+            participation
+          )
+        ){
+          summary.participationScores.push(
+            participation
+          );
+        }
+
+        return summary;
+      },
+      {
+        total:0,
+        present:0,
+        late:0,
+        absent:0,
+        excused:0,
+        participationScores:[]
+      }
+    );
+
+  const weightedPresent =
+    result.present +
+    result.late * .75 +
+    result.excused * .5;
+
+  const attendanceRate =
+    result.total
+      ? insightClampScore(
+          weightedPresent /
+          result.total *
+          100
+        )
+      : 0;
+
+  const participationAverage =
+    result.participationScores.length
+      ? insightClampScore(
+          result.participationScores
+            .reduce(
+              (total,score) =>
+                total + score,
+              0
+            ) /
+          result.participationScores
+            .length
+        )
+      : 0;
+
+  return {
+    ...result,
+    attendanceRate,
+    participationAverage,
+    hasAttendanceData:
+      result.total > 0,
+    hasParticipationData:
+      result.participationScores
+        .length > 0
+  };
+}
+
+function insightStudentMetrics(
+  student
+){
+  const studentId =
+    insightGetStudentId(
+      student
+    );
+
+  const classes =
+    insightGetStudentClasses(
+      studentId
+    );
+
+  const assignments =
+    insightGetStudentAssignments(
+      studentId
+    );
+
+  const submissions =
+    insightGetStudentSubmissions(
+      studentId
+    );
+
+  const attendance =
+    insightAttendanceMetrics(
+      insightGetStudentAttendance(
+        studentId
+      )
+    );
+
+  const assignmentIds =
+    new Set(
+      assignments.map(assignment =>
+        insightGetAssignmentId(
+          assignment
+        )
+      )
+    );
+
+  const submittedAssignmentIds =
+    new Set();
+
+  submissions.forEach(submission => {
+    const assignmentId =
+      String(
+        submission.assignmentId?._id ||
+        submission.assignmentId ||
+        ""
+      );
+
+    if(
+      assignmentIds.has(
+        assignmentId
+      )
+    ){
+      submittedAssignmentIds.add(
+        assignmentId
+      );
+    }
   });
 
-  const expectedMarks = state.schedules.filter(schedule =>
-    sameId(schedule.teacherId?._id || schedule.teacherId, id)
-  ).length * Math.max(1, assignedStudentIds.size);
+  const completionRate =
+    assignments.length
+      ? insightPercent(
+          submittedAssignmentIds.size,
+          assignments.length
+        )
+      : 0;
 
-  const attendanceMarkingRate = expectedMarks
-    ? Math.min(100, Math.round((teacherAttendance.length / expectedMarks) * 100))
-    : teacherAttendance.length
+  const reviewed =
+    submissions.filter(
+      insightIsSubmissionReviewed
+    );
+
+  const grades =
+    reviewed
+      .map(submission =>
+        Number(
+          submission.grade ??
+          submission.score
+        )
+      )
+      .filter(grade =>
+        Number.isFinite(grade)
+      );
+
+  const averageGrade =
+    grades.length
+      ? insightClampScore(
+          grades.reduce(
+            (total,grade) =>
+              total + grade,
+            0
+          ) /
+          grades.length
+        )
+      : 0;
+
+  const availableScores = [];
+
+  if(attendance.hasAttendanceData){
+    availableScores.push(
+      attendance.attendanceRate
+    );
+  }
+
+  if(attendance.hasParticipationData){
+    availableScores.push(
+      attendance.participationAverage
+    );
+  }
+
+  if(assignments.length){
+    availableScores.push(
+      completionRate
+    );
+  }
+
+  if(grades.length){
+    availableScores.push(
+      averageGrade
+    );
+  }
+
+  const hasPerformanceData =
+    availableScores.length > 0;
+
+  const score =
+    hasPerformanceData
+      ? insightClampScore(
+          availableScores.reduce(
+            (total,value) =>
+              total + value,
+            0
+          ) /
+          availableScores.length
+        )
+      : null;
+
+  const status =
+    insightPerformanceClass(
+      score,
+      hasPerformanceData
+    );
+
+  const lastActivityValue = [
+    ...submissions.map(item =>
+      item.updatedAt ||
+      item.submittedAt ||
+      item.createdAt
+    ),
+
+    ...insightGetStudentAttendance(
+      studentId
+    ).map(item =>
+      item.updatedAt ||
+      item.createdAt ||
+      item.date
+    )
+  ]
+    .filter(Boolean)
+    .sort(
+      (first,second) =>
+        new Date(second) -
+        new Date(first)
+    )[0];
+
+  return {
+    student,
+    studentId,
+    classes,
+    assignments,
+    submissions,
+    reviewed,
+    attendance,
+    completionRate,
+    averageGrade,
+    gradeCount:grades.length,
+    missingAssignments:
+      Math.max(
+        0,
+        assignments.length -
+        submittedAssignmentIds.size
+      ),
+    score,
+    status,
+    label:
+      insightPerformanceLabel(
+        score,
+        hasPerformanceData
+      ),
+    hasPerformanceData,
+    needsAttention:
+      hasPerformanceData &&
+      (
+        status === "warning" ||
+        status === "poor"
+      ),
+    lastActivity:
+      insightFormatDate(
+        lastActivityValue
+      )
+  };
+}
+
+function insightTeacherMetrics(
+  teacher
+){
+  const teacherId =
+    insightGetTeacherId(
+      teacher
+    );
+
+  const classes =
+    insightGetTeacherClasses(
+      teacherId
+    );
+
+  const assignments =
+    insightGetTeacherAssignments(
+      teacherId
+    );
+
+  const submissions =
+    insightGetTeacherSubmissions(
+      teacherId
+    );
+
+  const reviewed =
+    submissions.filter(
+      insightIsSubmissionReviewed
+    );
+
+  const pending =
+    Math.max(
+      0,
+      submissions.length -
+      reviewed.length
+    );
+
+  const reviewRate =
+    submissions.length
+      ? insightPercent(
+          reviewed.length,
+          submissions.length
+        )
+      : 0;
+
+  const schedules =
+    (
+      Array.isArray(state.schedules)
+        ? state.schedules
+        : []
+    ).filter(schedule =>
+      sameId(
+        schedule.teacherId?._id ||
+        schedule.teacherId,
+        teacherId
+      )
+    );
+
+  const attendanceRecords =
+    insightGetTeacherAttendance(
+      teacherId
+    );
+
+  const activitySignals = [
+    classes.length > 0,
+    schedules.length > 0,
+    assignments.length > 0,
+    reviewed.length > 0,
+    attendanceRecords.length > 0
+  ];
+
+  const activeSignalCount =
+    activitySignals.filter(
+      Boolean
+    ).length;
+
+  const activityScore =
+    insightPercent(
+      activeSignalCount,
+      activitySignals.length
+    );
+
+  let workloadStatus =
+    "good";
+
+  let workloadLabel =
+    "Balanced";
+
+  if(
+    pending >= 20 ||
+    classes.length >= 8 ||
+    schedules.length >= 16
+  ){
+    workloadStatus =
+      "poor";
+
+    workloadLabel =
+      "Overloaded";
+  }else if(
+    pending >= 10 ||
+    classes.length >= 6 ||
+    schedules.length >= 11
+  ){
+    workloadStatus =
+      "warning";
+
+    workloadLabel =
+      "Busy";
+  }else if(
+    submissions.length &&
+    reviewRate >= 90 &&
+    pending <= 3
+  ){
+    workloadStatus =
+      "excellent";
+
+    workloadLabel =
+      "Healthy";
+  }
+
+  const availableScores = [];
+
+  if(submissions.length){
+    availableScores.push(
+      reviewRate
+    );
+  }
+
+  if(activeSignalCount){
+    availableScores.push(
+      activityScore
+    );
+  }
+
+  const hasPerformanceData =
+    availableScores.length > 0;
+
+  const score =
+    hasPerformanceData
+      ? insightClampScore(
+          availableScores.reduce(
+            (total,value) =>
+              total + value,
+            0
+          ) /
+          availableScores.length
+        )
+      : null;
+
+  return {
+    teacher,
+    teacherId,
+    classes,
+    assignments,
+    submissions,
+    reviewed,
+    pending,
+    reviewRate,
+    schedules,
+    attendanceRecords,
+    activityScore,
+    activeSignalCount,
+    workloadStatus,
+    workloadLabel,
+    score,
+    hasPerformanceData
+  };
+}
+
+function insightSetPerformanceChip(
+  id,
+  score,
+  hasData = true
+){
+  const element =
+    $(id);
+
+  if(!element){
+    return;
+  }
+
+  const cssClass =
+    insightPerformanceClass(
+      score,
+      hasData
+    );
+
+  element.className =
+    `insights-performance-chip ${cssClass}`;
+
+  element.textContent =
+    insightPerformanceLabel(
+      score,
+      hasData
+    );
+}
+
+function insightSetCountChip(
+  id,
+  {
+    value,
+    warningAt,
+    poorAt,
+    zeroLabel = "Clear",
+    normalLabel = "Stable",
+    warningLabel = "Needs attention",
+    poorLabel = "Critical"
+  }
+){
+  const element =
+    $(id);
+
+  if(!element){
+    return;
+  }
+
+  const count =
+    Math.max(
+      0,
+      insightNumber(value)
+    );
+
+  let cssClass =
+    "good";
+
+  let label =
+    normalLabel;
+
+  if(count === 0){
+    cssClass =
+      "excellent";
+
+    label =
+      zeroLabel;
+  }else if(count >= poorAt){
+    cssClass =
+      "poor";
+
+    label =
+      poorLabel;
+  }else if(count >= warningAt){
+    cssClass =
+      "warning";
+
+    label =
+      warningLabel;
+  }
+
+  element.className =
+    `insights-count-chip ${cssClass}`;
+
+  element.textContent =
+    label;
+}
+
+function insightRenderProgress(
+  id,
+  score,
+  hasData = true
+){
+  const element =
+    $(id);
+
+  if(!element){
+    return;
+  }
+
+  const value =
+    hasData
+      ? insightClampScore(score)
+      : 0;
+
+  const cssClass =
+    insightPerformanceClass(
+      score,
+      hasData
+    );
+
+  element.className =
+    `insights-progress-fill ${cssClass}`;
+
+  element.style.width =
+    `${value}%`;
+}
+
+function insightBuildPriorityItems(
+  metrics
+){
+  const items = [];
+
+  if(metrics.studentRiskCount > 0){
+    items.push({
+      severity:
+        metrics.studentRiskRate >= 35
+          ? "poor"
+          : "warning",
+
+      title:
+        `${metrics.studentRiskCount} ${
+          metrics.studentRiskCount === 1
+            ? "student requires"
+            : "students require"
+        } attention`,
+
+      message:
+        `${metrics.studentRiskRate}% of students with available performance data have attendance, participation, or completion concerns.`,
+
+      actionLabel:
+        "Review students",
+
+      actionTab:
+        "students"
+    });
+  }else if(metrics.studentMetrics.length){
+    items.push({
+      severity:"excellent",
+      title:"No current student risk alerts",
+      message:
+        "No students with available records are currently below the attention threshold.",
+      actionLabel:"View students",
+      actionTab:"students"
+    });
+  }
+
+  if(metrics.pendingReviews >= 10){
+    items.push({
+      severity:
+        metrics.pendingReviews >= 20
+          ? "poor"
+          : "warning",
+
+      title:
+        `${metrics.pendingReviews} submissions are waiting for review`,
+
+      message:
+        "Pending teacher reviews can delay feedback and assignment completion.",
+
+      actionLabel:
+        "Review teachers",
+
+      actionTab:
+        "teachers"
+    });
+  }else if(metrics.pendingReviews === 0){
+    items.push({
+      severity:"excellent",
+      title:"Submission review queue is clear",
+      message:
+        "No loaded student submissions are currently waiting for review.",
+      actionLabel:"View teachers",
+      actionTab:"teachers"
+    });
+  }
+
+  if(
+    metrics.attendanceHasData &&
+    metrics.attendanceRate < 75
+  ){
+    items.push({
+      severity:
+        metrics.attendanceRate < 50
+          ? "poor"
+          : "warning",
+
+      title:
+        `Attendance is ${metrics.attendanceRate}%`,
+
+      message:
+        "Attendance performance is below the recommended operational range.",
+
+      actionLabel:
+        "Open attendance",
+
+      actionTab:
+        "attendance"
+    });
+  }else if(
+    metrics.attendanceHasData &&
+    metrics.attendanceRate >= 85
+  ){
+    items.push({
+      severity:"excellent",
+      title:"Attendance is performing strongly",
+      message:
+        `Weighted attendance is currently ${metrics.attendanceRate}%.`,
+      actionLabel:"View attendance",
+      actionTab:"attendance"
+    });
+  }
+
+  if(
+    metrics.completionHasData &&
+    metrics.completionRate < 75
+  ){
+    items.push({
+      severity:
+        metrics.completionRate < 50
+          ? "poor"
+          : "warning",
+
+      title:
+        `Assignment completion is ${metrics.completionRate}%`,
+
+      message:
+        "Submitted student work is below the expected assignment volume.",
+
+      actionLabel:
+        "Open classes",
+
+      actionTab:
+        "classes"
+    });
+  }else if(
+    metrics.completionHasData &&
+    metrics.completionRate >= 85
+  ){
+    items.push({
+      severity:"excellent",
+      title:"Assignment completion is strong",
+      message:
+        `${metrics.completionRate}% of expected student assignments have a verified submission.`,
+      actionLabel:"View classes",
+      actionTab:"classes"
+    });
+  }
+
+  if(metrics.overloadedTeachers > 0){
+    items.push({
+      severity:
+        metrics.overloadedTeachers >= 3
+          ? "poor"
+          : "warning",
+
+      title:
+        `${metrics.overloadedTeachers} ${
+          metrics.overloadedTeachers === 1
+            ? "teacher has"
+            : "teachers have"
+        } a heavy workload`,
+
+      message:
+        "High review queues, class allocations, or schedule volume require attention.",
+
+      actionLabel:
+        "Review workload",
+
+      actionTab:
+        "teachers"
+    });
+  }
+
+  if(metrics.activeClassCount === 0){
+    items.push({
+      severity:"warning",
+      title:"No active classes were detected",
+      message:
+        "Create or reactivate a class before assigning schedules and coursework.",
+      actionLabel:"Open classes",
+      actionTab:"classes"
+    });
+  }
+
+  if(metrics.opportunityCount === 0){
+    items.push({
+      severity:"good",
+      title:"Career opportunity pipeline is empty",
+      message:
+        "Adding internships or jobs can improve student career exposure.",
+      actionLabel:"Open Career Hub",
+      actionTab:"portal"
+    });
+  }
+
+  return items;
+}
+
+function insightBuildSchoolMetrics(){
+  const students =
+    getStudents();
+
+  const teachers =
+    getTeachers();
+
+  const studentMetrics =
+    students.map(
+      insightStudentMetrics
+    );
+
+  const teacherMetrics =
+    teachers.map(
+      insightTeacherMetrics
+    );
+
+  const attendance =
+    insightAttendanceMetrics(
+      state.attendance
+    );
+
+  const totalAssignments =
+    (
+      Array.isArray(state.assignments)
+        ? state.assignments
+        : []
+    ).length;
+
+  const expectedSubmissions =
+    studentMetrics.reduce(
+      (total,item) =>
+        total +
+        item.assignments.length,
+      0
+    );
+
+  const uniqueCompletedAssignments =
+    studentMetrics.reduce(
+      (total,item) => {
+        const assignmentIds =
+          new Set(
+            item.assignments.map(
+              insightGetAssignmentId
+            )
+          );
+
+        const completedIds =
+          new Set();
+
+        item.submissions.forEach(
+          submission => {
+            const assignmentId =
+              String(
+                submission.assignmentId?._id ||
+                submission.assignmentId ||
+                ""
+              );
+
+            if(
+              assignmentIds.has(
+                assignmentId
+              )
+            ){
+              completedIds.add(
+                assignmentId
+              );
+            }
+          }
+        );
+
+        return total +
+          completedIds.size;
+      },
+      0
+    );
+
+  const completionHasData =
+    expectedSubmissions > 0;
+
+  const completionRate =
+    completionHasData
+      ? insightPercent(
+          uniqueCompletedAssignments,
+          expectedSubmissions
+        )
+      : 0;
+
+  const submissions =
+    Array.isArray(state.submissions)
+      ? state.submissions
+      : [];
+
+  const reviewedSubmissions =
+    submissions.filter(
+      insightIsSubmissionReviewed
+    );
+
+  const pendingReviews =
+    Math.max(
+      0,
+      submissions.length -
+      reviewedSubmissions.length
+    );
+
+  const activeTeachers =
+    teacherMetrics.filter(item =>
+      item.activeSignalCount > 0
+    ).length;
+
+  const teacherActivityHasData =
+    teachers.length > 0;
+
+  const teacherActivityRate =
+    teacherActivityHasData
+      ? insightPercent(
+          activeTeachers,
+          teachers.length
+        )
+      : 0;
+
+  const schedules =
+    Array.isArray(state.schedules)
+      ? state.schedules
+      : [];
+
+  const expectedAttendanceMarks =
+    schedules.length *
+    Math.max(
+      1,
+      students.length
+    );
+
+  const attendanceReadinessHasData =
+    schedules.length > 0 ||
+    attendance.total > 0;
+
+  const attendanceReadiness =
+    expectedAttendanceMarks
+      ? Math.min(
+          100,
+          insightPercent(
+            attendance.total,
+            expectedAttendanceMarks
+          )
+        )
+      : attendance.total
       ? 100
       : 0;
 
-  const score = Math.round(
-    attendanceMarkingRate * 0.35 +
-    attendance.participationAverage * 0.25 +
-    Math.min(100, reviewedSubmissions.length * 8) * 0.25 +
-    Math.min(100, teacherClasses.length * 20) * 0.15
+  const classItems =
+    Array.isArray(state.classes)
+      ? state.classes
+      : [];
+
+  const activeClasses =
+    classItems.filter(classItem => {
+      const status =
+        String(
+          classItem.status ||
+          classItem.classStatus ||
+          "active"
+        )
+          .trim()
+          .toLowerCase();
+
+      return ![
+        "inactive",
+        "archived",
+        "closed",
+        "completed"
+      ].includes(status);
+    });
+
+  const classUtilizationHasData =
+    classItems.length > 0;
+
+  const classUtilization =
+    classUtilizationHasData
+      ? insightPercent(
+          activeClasses.length,
+          classItems.length
+        )
+      : 0;
+
+  const riskStudents =
+    studentMetrics.filter(item =>
+      item.needsAttention
+    );
+
+  const studentsWithData =
+    studentMetrics.filter(item =>
+      item.hasPerformanceData
+    );
+
+  const studentRiskRate =
+    studentsWithData.length
+      ? insightPercent(
+          riskStudents.length,
+          studentsWithData.length
+        )
+      : 0;
+
+  const overloadedTeachers =
+    teacherMetrics.filter(item =>
+      item.workloadStatus === "poor" ||
+      item.workloadStatus === "warning"
+    ).length;
+
+  const followUpCount =
+    (
+      Array.isArray(state.attendance)
+        ? state.attendance
+        : []
+    ).filter(record =>
+      record.requiresFollowUp === true ||
+      String(
+        record.engagementLevel ||
+        ""
+      ).toLowerCase() === "low"
+    ).length;
+
+  const healthScores = [];
+
+  if(attendance.hasAttendanceData){
+    healthScores.push(
+      attendance.attendanceRate
+    );
+  }
+
+  if(completionHasData){
+    healthScores.push(
+      completionRate
+    );
+  }
+
+  if(teacherActivityHasData){
+    healthScores.push(
+      teacherActivityRate
+    );
+  }
+
+  if(classUtilizationHasData){
+    healthScores.push(
+      classUtilization
+    );
+  }
+
+  const analyticsScore =
+    insightNumber(
+      state.analytics?.summary
+        ?.overallScore,
+      NaN
+    );
+
+  if(
+    Number.isFinite(
+      analyticsScore
+    )
+  ){
+    healthScores.push(
+      insightClampScore(
+        analyticsScore
+      )
+    );
+  }
+
+  const healthHasData =
+    healthScores.length > 0;
+
+  const healthScore =
+    healthHasData
+      ? insightClampScore(
+          healthScores.reduce(
+            (total,value) =>
+              total + value,
+            0
+          ) /
+          healthScores.length
+        )
+      : 0;
+
+  const opportunityCount =
+    Array.isArray(state.opportunities)
+      ? state.opportunities.length
+      : 0;
+
+  const metrics = {
+    students,
+    teachers,
+    studentMetrics,
+    teacherMetrics,
+    attendance,
+    attendanceRate:
+      attendance.attendanceRate,
+    attendanceHasData:
+      attendance.hasAttendanceData,
+    completionRate,
+    completionHasData,
+    pendingReviews,
+    teacherActivityRate,
+    teacherActivityHasData,
+    attendanceReadiness,
+    attendanceReadinessHasData,
+    classUtilization,
+    classUtilizationHasData,
+    healthScore,
+    healthHasData,
+    riskStudents,
+    studentRiskCount:
+      riskStudents.length,
+    studentRiskRate,
+    overloadedTeachers,
+    activeClassCount:
+      activeClasses.length,
+    totalClassCount:
+      classItems.length,
+    scheduleCount:
+      schedules.length,
+    opportunityCount,
+    followUpCount,
+    totalAssignments
+  };
+
+  metrics.priorityItems =
+    insightBuildPriorityItems(
+      metrics
+    );
+
+  return metrics;
+}
+
+function insightRenderPriorityList(
+  metrics
+){
+  const container =
+    $("insightsPriorityList");
+
+  if(!container){
+    return;
+  }
+
+  const filter =
+    String(
+      $("insightsSeverityFilter")
+        ?.value ||
+      "all"
+    ).toLowerCase();
+
+  const items =
+    metrics.priorityItems.filter(item =>
+      filter === "all" ||
+      item.severity === filter
+    );
+
+  const description =
+    $("insightsPriorityDescription");
+
+  if(description){
+    description.textContent =
+      `${items.length} ${
+        items.length === 1
+          ? "insight"
+          : "insights"
+      } match the selected priority filter.`;
+  }
+
+  if(!items.length){
+    container.innerHTML = `
+      <div class="insights-list-empty">
+        No insights match the selected priority filter.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    items.map(item => `
+      <article class="insights-priority-item ${escapeHtml(item.severity)}">
+
+        <span
+          class="insights-priority-marker"
+          aria-hidden="true"
+        ></span>
+
+        <div class="insights-priority-copy">
+
+          <strong>
+            ${escapeHtml(item.title)}
+          </strong>
+
+          <p>
+            ${escapeHtml(item.message)}
+          </p>
+
+        </div>
+
+        <button
+          type="button"
+          class="insights-priority-action"
+          onclick="openTab('${escapeHtml(item.actionTab)}')"
+        >
+          ${escapeHtml(item.actionLabel)}
+        </button>
+
+      </article>
+    `).join("");
+}
+
+function insightRenderPerformanceAreas(
+  metrics
+){
+  const container =
+    $("insightsPerformanceAreas");
+
+  if(!container){
+    return;
+  }
+
+  const areas = [
+    {
+      label:"Attendance",
+      description:
+        "Weighted present, late, and excused records",
+      score:metrics.attendanceRate,
+      hasData:metrics.attendanceHasData
+    },
+    {
+      label:"Assignment completion",
+      description:
+        "Unique submitted work against assigned work",
+      score:metrics.completionRate,
+      hasData:metrics.completionHasData
+    },
+    {
+      label:"Teacher activity",
+      description:
+        "Faculty with verified operational activity",
+      score:metrics.teacherActivityRate,
+      hasData:metrics.teacherActivityHasData
+    },
+    {
+      label:"Class utilization",
+      description:
+        "Active classes against all loaded classes",
+      score:metrics.classUtilization,
+      hasData:metrics.classUtilizationHasData
+    },
+    {
+      label:"Attendance readiness",
+      description:
+        "Recorded attendance against scheduled coverage",
+      score:metrics.attendanceReadiness,
+      hasData:
+        metrics.attendanceReadinessHasData
+    }
+  ];
+
+  container.innerHTML =
+    areas.map(area => {
+      const cssClass =
+        insightPerformanceClass(
+          area.score,
+          area.hasData
+        );
+
+      return `
+        <div class="insights-performance-row">
+
+          <div class="insights-performance-row-head">
+
+            <div class="insights-performance-row-copy">
+
+              <strong>
+                ${escapeHtml(area.label)}
+              </strong>
+
+              <span>
+                ${escapeHtml(area.description)}
+              </span>
+
+            </div>
+
+            <span class="insights-performance-row-value">
+              ${
+                area.hasData
+                  ? `${insightClampScore(area.score)}%`
+                  : "—"
+              }
+            </span>
+
+          </div>
+
+          <div class="insights-area-track">
+
+            <div
+              class="insights-area-fill ${cssClass}"
+              style="width:${
+                area.hasData
+                  ? insightClampScore(area.score)
+                  : 0
+              }%"
+            ></div>
+
+          </div>
+
+        </div>
+      `;
+    }).join("");
+}
+
+function insightRenderStudentRiskList(
+  metrics
+){
+  const container =
+    $("insightsStudentRiskList");
+
+  if(!container){
+    return;
+  }
+
+  const rows =
+    metrics.studentMetrics
+      .filter(item =>
+        item.needsAttention
+      )
+      .sort(
+        (first,second) =>
+          insightNumber(first.score,101) -
+          insightNumber(second.score,101)
+      )
+      .slice(0,8);
+
+  if(!rows.length){
+    container.innerHTML = `
+      <div class="insights-list-empty">
+        No students with available records currently require attention.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    rows.map(item => {
+      const student =
+        item.student;
+
+      const name =
+        student.name ||
+        student.fullName ||
+        student.email ||
+        "Student";
+
+      const avatar =
+        student.avatar ||
+        student.profileImage ||
+        student.photo ||
+        FALLBACK_AVATAR;
+
+      return `
+        <button
+          type="button"
+          class="insights-person-row"
+          onclick="selectInsightStudent('${escapeHtml(item.studentId)}')"
+        >
+
+          <img
+            class="insights-person-avatar"
+            src="${escapeHtml(avatar)}"
+            alt="${escapeHtml(name)}"
+            loading="lazy"
+            onerror="this.src='${escapeHtml(FALLBACK_AVATAR)}'"
+          >
+
+          <span class="insights-person-copy">
+
+            <strong>
+              ${escapeHtml(name)}
+            </strong>
+
+            <span>
+              Attendance ${
+                item.attendance.hasAttendanceData
+                  ? `${item.attendance.attendanceRate}%`
+                  : "unavailable"
+              }
+              • Completion ${
+                item.assignments.length
+                  ? `${item.completionRate}%`
+                  : "unavailable"
+              }
+            </span>
+
+          </span>
+
+          <span class="insights-person-score ${escapeHtml(item.status)}">
+            ${
+              item.hasPerformanceData
+                ? `${item.score}%`
+                : "No data"
+            }
+          </span>
+
+        </button>
+      `;
+    }).join("");
+}
+
+function insightRenderTeacherWorkloadList(
+  metrics
+){
+  const container =
+    $("insightsTeacherWorkloadList");
+
+  if(!container){
+    return;
+  }
+
+  const rows =
+    [...metrics.teacherMetrics]
+      .sort(
+        (first,second) => {
+          const severity = {
+            poor:4,
+            warning:3,
+            good:2,
+            excellent:1
+          };
+
+          return (
+            severity[
+              second.workloadStatus
+            ] -
+            severity[
+              first.workloadStatus
+            ] ||
+            second.pending -
+            first.pending
+          );
+        }
+      )
+      .slice(0,8);
+
+  if(!rows.length){
+    container.innerHTML = `
+      <div class="insights-list-empty">
+        No teacher workload records are available.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    rows.map(item => {
+      const teacher =
+        item.teacher;
+
+      const name =
+        teacher.name ||
+        teacher.fullName ||
+        teacher.email ||
+        "Teacher";
+
+      const avatar =
+        teacher.avatar ||
+        teacher.profileImage ||
+        teacher.photo ||
+        FALLBACK_AVATAR;
+
+      return `
+        <button
+          type="button"
+          class="insights-person-row"
+          onclick="selectInsightTeacher('${escapeHtml(item.teacherId)}')"
+        >
+
+          <img
+            class="insights-person-avatar"
+            src="${escapeHtml(avatar)}"
+            alt="${escapeHtml(name)}"
+            loading="lazy"
+            onerror="this.src='${escapeHtml(FALLBACK_AVATAR)}'"
+          >
+
+          <span class="insights-person-copy">
+
+            <strong>
+              ${escapeHtml(name)}
+            </strong>
+
+            <span>
+              ${item.classes.length} classes
+              • ${item.pending} pending reviews
+            </span>
+
+          </span>
+
+          <span class="insights-person-score ${escapeHtml(item.workloadStatus)}">
+            ${escapeHtml(item.workloadLabel)}
+          </span>
+
+        </button>
+      `;
+    }).join("");
+}
+
+function renderInsights(){
+  const metrics =
+    insightBuildSchoolMetrics();
+
+  setText(
+    "insightHealthValue",
+    metrics.healthHasData
+      ? `${metrics.healthScore}%`
+      : "—"
   );
 
-  setText("selectedInsightName", teacher.name || teacher.email || "Teacher");
-  setText("selectedInsightRole","Teacher");
-  setText("selectedInsightClasses", teacherClasses.length);
-  setText("selectedInsightScore", `${score}%`);
+  setText(
+    "studentRiskValue",
+    metrics.studentRiskCount
+  );
 
-  $("selectedInsightDetails").innerHTML = `
-    <article class="job-card">
+  setText(
+    "insightPendingReviewsValue",
+    metrics.pendingReviews
+  );
 
-      <div class="job-head">
-        <div>
-          <h3 class="job-title">Teacher Activity Summary</h3>
-          <div class="job-company">
-            ${escapeHtml(teacher.subject || teacher.email || "Teacher")}
-          </div>
-        </div>
+  setText(
+    "teacherActivityValue",
+    metrics.teacherActivityHasData
+      ? `${metrics.teacherActivityRate}%`
+      : "—"
+  );
 
-        <span class="chip ${
-          score >= 80
-            ? "success"
-            : score >= 50
-            ? "warning"
-            : ""
-        }">
-          ${score >= 80 ? "Active" : score >= 50 ? "Needs Follow-up" : "Low Activity"}
-        </span>
+  setText(
+    "attendanceReadinessValue",
+    metrics.attendanceReadinessHasData
+      ? `${metrics.attendanceReadiness}%`
+      : "—"
+  );
+
+  setText(
+    "insightCompletionValue",
+    metrics.completionHasData
+      ? `${metrics.completionRate}%`
+      : "—"
+  );
+
+  insightSetPerformanceChip(
+    "insightHealthStatus",
+    metrics.healthScore,
+    metrics.healthHasData
+  );
+
+  insightSetPerformanceChip(
+    "teacherActivityStatus",
+    metrics.teacherActivityRate,
+    metrics.teacherActivityHasData
+  );
+
+  insightSetPerformanceChip(
+    "attendanceReadinessStatus",
+    metrics.attendanceReadiness,
+    metrics.attendanceReadinessHasData
+  );
+
+  insightSetPerformanceChip(
+    "insightCompletionStatus",
+    metrics.completionRate,
+    metrics.completionHasData
+  );
+
+  insightSetCountChip(
+    "studentRiskStatus",
+    {
+      value:metrics.studentRiskCount,
+      warningAt:1,
+      poorAt:Math.max(
+        3,
+        Math.ceil(
+          metrics.students.length *
+          .35
+        )
+      ),
+      zeroLabel:"Clear",
+      normalLabel:"Monitored",
+      warningLabel:"Needs attention",
+      poorLabel:"Critical"
+    }
+  );
+
+  insightSetCountChip(
+    "insightPendingReviewStatus",
+    {
+      value:metrics.pendingReviews,
+      warningAt:10,
+      poorAt:20,
+      zeroLabel:"Clear",
+      normalLabel:"Manageable",
+      warningLabel:"Backlog",
+      poorLabel:"Critical"
+    }
+  );
+
+  insightRenderProgress(
+    "insightHealthBar",
+    metrics.healthScore,
+    metrics.healthHasData
+  );
+
+  setText(
+    "insightActiveClassesValue",
+    metrics.activeClassCount
+  );
+
+  setText(
+    "insightActiveClassesNote",
+    metrics.totalClassCount
+      ? `${metrics.activeClassCount} of ${metrics.totalClassCount} classes are active`
+      : "No classes available"
+  );
+
+  setText(
+    "insightScheduleValue",
+    metrics.scheduleCount
+  );
+
+  setText(
+    "insightScheduleNote",
+    metrics.scheduleCount
+      ? `${metrics.scheduleCount} scheduled class sessions`
+      : "No schedules available"
+  );
+
+  setText(
+    "insightOpportunityValue",
+    metrics.opportunityCount
+  );
+
+  setText(
+    "insightOpportunityNote",
+    metrics.opportunityCount
+      ? `${metrics.opportunityCount} career opportunities loaded`
+      : "No opportunities available"
+  );
+
+  setText(
+    "insightFollowUpValue",
+    metrics.followUpCount
+  );
+
+  setText(
+    "insightFollowUpNote",
+    metrics.followUpCount
+      ? `${metrics.followUpCount} attendance records require follow-up`
+      : "No follow-ups required"
+  );
+
+  insightRenderPriorityList(
+    metrics
+  );
+
+  insightRenderPerformanceAreas(
+    metrics
+  );
+
+  insightRenderStudentRiskList(
+    metrics
+  );
+
+  insightRenderTeacherWorkloadList(
+    metrics
+  );
+
+  hydrateInsightSelectors();
+}
+
+function hydrateInsightSelectors(){
+  const studentSelect =
+    $("insightStudentSelect");
+
+  const teacherSelect =
+    $("insightTeacherSelect");
+
+  if(studentSelect){
+    const previous =
+      studentSelect.value;
+
+    studentSelect.innerHTML =
+      `<option value="">Choose student</option>` +
+      getStudents()
+        .map(student => `
+          <option value="${escapeHtml(
+            insightGetStudentId(student)
+          )}">
+            ${escapeHtml(
+              student.name ||
+              student.fullName ||
+              student.email ||
+              "Student"
+            )}
+          </option>
+        `)
+        .join("");
+
+    if(
+      previous &&
+      Array.from(
+        studentSelect.options
+      ).some(option =>
+        option.value === previous
+      )
+    ){
+      studentSelect.value =
+        previous;
+    }
+  }
+
+  if(teacherSelect){
+    const previous =
+      teacherSelect.value;
+
+    teacherSelect.innerHTML =
+      `<option value="">Choose teacher</option>` +
+      getTeachers()
+        .map(teacher => `
+          <option value="${escapeHtml(
+            insightGetTeacherId(teacher)
+          )}">
+            ${escapeHtml(
+              teacher.name ||
+              teacher.fullName ||
+              teacher.email ||
+              "Teacher"
+            )}
+          </option>
+        `)
+        .join("");
+
+    if(
+      previous &&
+      Array.from(
+        teacherSelect.options
+      ).some(option =>
+        option.value === previous
+      )
+    ){
+      teacherSelect.value =
+        previous;
+    }
+  }
+}
+
+function clearInsightInspector(){
+  if($("insightStudentSelect")){
+    $("insightStudentSelect").value =
+      "";
+  }
+
+  if($("insightTeacherSelect")){
+    $("insightTeacherSelect").value =
+      "";
+  }
+
+  setText(
+    "selectedInsightName",
+    "None"
+  );
+
+  setText(
+    "selectedInsightRole",
+    "None"
+  );
+
+  setText(
+    "selectedInsightClasses",
+    "0"
+  );
+
+  setText(
+    "selectedInsightScore",
+    "—"
+  );
+
+  const details =
+    $("selectedInsightDetails");
+
+  if(details){
+    details.innerHTML = `
+      <div class="insights-empty-state">
+        Select a student or teacher to review detailed performance.
       </div>
+    `;
+  }
+}
 
-      <div class="analytics-grid" style="margin-top:14px;">
+function selectInsightStudent(
+  studentId
+){
+  const select =
+    $("insightStudentSelect");
 
-        <div class="analytics-card">
-          <span>Classes Handled</span>
-          <strong>${teacherClasses.length}</strong>
-        </div>
+  if(!select){
+    return;
+  }
 
-        <div class="analytics-card">
-          <span>Students Handled</span>
-          <strong>${assignedStudentIds.size}</strong>
-        </div>
+  select.value =
+    String(studentId);
 
-        <div class="analytics-card">
-          <span>Attendance Marking Rate</span>
-          <strong>${attendanceMarkingRate}%</strong>
-        </div>
+  handleInsightStudentSelection();
 
-        <div class="analytics-card">
-          <span>Attendance Records</span>
-          <strong>${teacherAttendance.length}</strong>
-        </div>
+  $("selectedInsightDetails")
+    ?.scrollIntoView({
+      behavior:"smooth",
+      block:"nearest"
+    });
+}
 
-        <div class="analytics-card">
-          <span>Reviewed Submissions</span>
-          <strong>${reviewedSubmissions.length}</strong>
-        </div>
+function selectInsightTeacher(
+  teacherId
+){
+  const select =
+    $("insightTeacherSelect");
 
-        <div class="analytics-card">
-          <span>Pending Reviews</span>
-          <strong>${pendingReviews}</strong>
-        </div>
+  if(!select){
+    return;
+  }
 
-        <div class="analytics-card">
-          <span>Average Participation</span>
-          <strong>${attendance.participationAverage}%</strong>
-        </div>
+  select.value =
+    String(teacherId);
 
-        <div class="analytics-card">
-          <span>Teacher Activity Score</span>
-          <strong>${score}%</strong>
-        </div>
+  handleInsightTeacherSelection();
 
-      </div>
+  $("selectedInsightDetails")
+    ?.scrollIntoView({
+      behavior:"smooth",
+      block:"nearest"
+    });
+}
 
-    </article>
+function handleInsightStudentSelection(){
+  const studentSelect =
+    $("insightStudentSelect");
+
+  const teacherSelect =
+    $("insightTeacherSelect");
+
+  const id =
+    studentSelect?.value ||
+    "";
+
+  if(teacherSelect){
+    teacherSelect.value =
+      "";
+  }
+
+  if(!id){
+    clearInsightInspector();
+    return;
+  }
+
+  const student =
+    getStudents().find(item =>
+      sameId(
+        insightGetStudentId(item),
+        id
+      )
+    );
+
+  if(!student){
+    clearInsightInspector();
+
+    showAiftToast?.({
+      type:"error",
+      title:"Student unavailable",
+      message:
+        "The selected student could not be found."
+    });
+
+    return;
+  }
+
+  renderSelectedStudentInsight(
+    student
+  );
+}
+
+function handleInsightTeacherSelection(){
+  const teacherSelect =
+    $("insightTeacherSelect");
+
+  const studentSelect =
+    $("insightStudentSelect");
+
+  const id =
+    teacherSelect?.value ||
+    "";
+
+  if(studentSelect){
+    studentSelect.value =
+      "";
+  }
+
+  if(!id){
+    clearInsightInspector();
+    return;
+  }
+
+  const teacher =
+    getTeachers().find(item =>
+      sameId(
+        insightGetTeacherId(item),
+        id
+      )
+    );
+
+  if(!teacher){
+    clearInsightInspector();
+
+    showAiftToast?.({
+      type:"error",
+      title:"Teacher unavailable",
+      message:
+        "The selected teacher could not be found."
+    });
+
+    return;
+  }
+
+  renderSelectedTeacherInsight(
+    teacher
+  );
+}
+
+function renderSelectedStudentInsight(
+  student
+){
+  const metrics =
+    insightStudentMetrics(
+      student
+    );
+
+  const name =
+    student.name ||
+    student.fullName ||
+    student.email ||
+    "Student";
+
+  setText(
+    "selectedInsightName",
+    name
+  );
+
+  setText(
+    "selectedInsightRole",
+    "Student"
+  );
+
+  setText(
+    "selectedInsightClasses",
+    metrics.classes.length
+  );
+
+  setText(
+    "selectedInsightScore",
+    metrics.hasPerformanceData
+      ? `${metrics.score}%`
+      : "—"
+  );
+
+  const details =
+    $("selectedInsightDetails");
+
+  if(!details){
+    return;
+  }
+
+  const attendanceText =
+    metrics.attendance
+      .hasAttendanceData
+      ? `${metrics.attendance.attendanceRate}%`
+      : "Unavailable";
+
+  const participationText =
+    metrics.attendance
+      .hasParticipationData
+      ? `${metrics.attendance.participationAverage}%`
+      : "Unavailable";
+
+  const completionText =
+    metrics.assignments.length
+      ? `${metrics.completionRate}%`
+      : "Unavailable";
+
+  const gradeText =
+    metrics.gradeCount
+      ? `${metrics.averageGrade}%`
+      : "Unavailable";
+
+  details.innerHTML = `
+    <div class="insights-detail-row">
+      <span>Performance status</span>
+
+      <strong>
+        ${escapeHtml(metrics.label)}
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Attendance</span>
+
+      <strong>
+        ${escapeHtml(attendanceText)}
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Participation</span>
+
+      <strong>
+        ${escapeHtml(participationText)}
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Assignment completion</span>
+
+      <strong>
+        ${escapeHtml(completionText)}
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Missing assignments</span>
+
+      <strong>
+        ${metrics.missingAssignments}
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Reviewed submissions</span>
+
+      <strong>
+        ${metrics.reviewed.length}
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Average recorded grade</span>
+
+      <strong>
+        ${escapeHtml(gradeText)}
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Last recorded activity</span>
+
+      <strong>
+        ${escapeHtml(metrics.lastActivity)}
+      </strong>
+    </div>
   `;
 }
 
-function resetInsightView(){
-  setText("selectedInsightName","None");
-  setText("selectedInsightRole","None");
-  setText("selectedInsightClasses","0");
-  setText("selectedInsightScore","0%");
+function renderSelectedTeacherInsight(
+  teacher
+){
+  const metrics =
+    insightTeacherMetrics(
+      teacher
+    );
 
-  $("selectedInsightDetails").innerHTML = `
-    <div class="empty">
-      Select a student or teacher to view detailed performance.
+  const name =
+    teacher.name ||
+    teacher.fullName ||
+    teacher.email ||
+    "Teacher";
+
+  setText(
+    "selectedInsightName",
+    name
+  );
+
+  setText(
+    "selectedInsightRole",
+    "Teacher"
+  );
+
+  setText(
+    "selectedInsightClasses",
+    metrics.classes.length
+  );
+
+  setText(
+    "selectedInsightScore",
+    metrics.hasPerformanceData
+      ? `${metrics.score}%`
+      : "—"
+  );
+
+  const details =
+    $("selectedInsightDetails");
+
+  if(!details){
+    return;
+  }
+
+  details.innerHTML = `
+    <div class="insights-detail-row">
+      <span>Workload status</span>
+
+      <strong>
+        ${escapeHtml(metrics.workloadLabel)}
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Assigned classes</span>
+
+      <strong>
+        ${metrics.classes.length}
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Scheduled sessions</span>
+
+      <strong>
+        ${metrics.schedules.length}
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Assignments</span>
+
+      <strong>
+        ${metrics.assignments.length}
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Submission review rate</span>
+
+      <strong>
+        ${
+          metrics.submissions.length
+            ? `${metrics.reviewRate}%`
+            : "Unavailable"
+        }
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Reviewed submissions</span>
+
+      <strong>
+        ${metrics.reviewed.length}
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Pending reviews</span>
+
+      <strong>
+        ${metrics.pending}
+      </strong>
+    </div>
+
+    <div class="insights-detail-row">
+      <span>Attendance records handled</span>
+
+      <strong>
+        ${metrics.attendanceRecords.length}
+      </strong>
     </div>
   `;
+}
+
+async function refreshInsightsSection(){
+  const button =
+    $("insightsRefreshButton");
+
+  if(button){
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Refreshing...";
+  }
+
+  try{
+    await loadAll();
+
+    renderInsights();
+
+    if(
+      typeof showAiftToast ===
+      "function"
+    ){
+      showAiftToast({
+        type:"success",
+        title:"Insights refreshed",
+        message:
+          "The latest school records are now reflected in Insights."
+      });
+    }
+  }catch(error){
+    if(
+      typeof showAiftToast ===
+      "function"
+    ){
+      showAiftToast({
+        type:"error",
+        title:"Insights refresh failed",
+        message:
+          error?.message ||
+          "The latest school records could not be loaded."
+      });
+    }
+  }finally{
+    if(button){
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Refresh insights";
+    }
+  }
 }
 
 function hydrateProfileForm(){
