@@ -9963,6 +9963,10 @@ function setAnalyticsLoading(isLoading){
     rangeSelect.disabled =
       state.analyticsLoading;
   }
+
+  setAnalyticsSectionLoading(
+    state.analyticsLoading
+  );
 }
 
 function analyticsActionExpression(action){
@@ -10854,6 +10858,619 @@ const rangeSelect =
     }
 }
 
+
+/* =========================================================
+   PRODUCTION ANALYTICS UI HELPERS
+   Counters, loading states, sparklines, and formatting
+========================================================= */
+
+const analyticsCounterAnimations =
+  new WeakMap();
+
+function analyticsReducedMotionEnabled(){
+  return Boolean(
+    window.matchMedia &&
+    window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches
+  );
+}
+
+function analyticsParseDisplayedNumber(value){
+  const cleaned =
+    String(value ?? "")
+      .replace(/,/g,"")
+      .replace(/%/g,"")
+      .replace(/[^\d.-]/g,"");
+
+  const number =
+    Number(cleaned);
+
+  return Number.isFinite(number)
+    ? number
+    : 0;
+}
+
+function analyticsFormatCounterValue(
+  value,
+  {
+    decimals = 0,
+    suffix = "",
+    prefix = ""
+  } = {}
+){
+  const number =
+    analyticsNumber(value);
+
+  const safeDecimals =
+    Math.max(
+      0,
+      Math.min(
+        Number(decimals) || 0,
+        2
+      )
+    );
+
+  const formatted =
+    new Intl.NumberFormat(
+      undefined,
+      {
+        minimumFractionDigits:
+          safeDecimals,
+
+        maximumFractionDigits:
+          safeDecimals
+      }
+    ).format(number);
+
+  return `${prefix}${formatted}${suffix}`;
+}
+
+function setAnalyticsCounter(
+  id,
+  value,
+  {
+    duration = 700,
+    decimals = 0,
+    suffix = null,
+    prefix = ""
+  } = {}
+){
+  const element =
+    $(id);
+
+  if(!element){
+    return;
+  }
+
+  const target =
+    analyticsNumber(value);
+
+  const finalSuffix =
+    suffix !== null
+      ? suffix
+      : String(
+          element.dataset.analyticsSuffix ||
+          ""
+        );
+
+  const previousAnimation =
+    analyticsCounterAnimations.get(
+      element
+    );
+
+  if(previousAnimation){
+    cancelAnimationFrame(
+      previousAnimation
+    );
+  }
+
+  const startValue =
+    analyticsParseDisplayedNumber(
+      element.textContent
+    );
+
+  if(
+    analyticsReducedMotionEnabled() ||
+    duration <= 0 ||
+    startValue === target
+  ){
+    element.textContent =
+      analyticsFormatCounterValue(
+        target,
+        {
+          decimals,
+          suffix:finalSuffix,
+          prefix
+        }
+      );
+
+    element.classList.remove(
+      "analytics-counter-updating"
+    );
+
+    return;
+  }
+
+  const startedAt =
+    performance.now();
+
+  element.classList.add(
+    "analytics-counter-updating"
+  );
+
+  function animate(now){
+    const elapsed =
+      now - startedAt;
+
+    const progress =
+      Math.min(
+        1,
+        elapsed / duration
+      );
+
+    /*
+      Cubic ease-out produces a quick initial movement and
+      a smooth finish, similar to modern analytics products.
+    */
+    const eased =
+      1 -
+      Math.pow(
+        1 - progress,
+        3
+      );
+
+    const current =
+      startValue +
+      (
+        target -
+        startValue
+      ) *
+      eased;
+
+    element.textContent =
+      analyticsFormatCounterValue(
+        current,
+        {
+          decimals,
+          suffix:finalSuffix,
+          prefix
+        }
+      );
+
+    if(progress < 1){
+      const frame =
+        requestAnimationFrame(
+          animate
+        );
+
+      analyticsCounterAnimations.set(
+        element,
+        frame
+      );
+
+      return;
+    }
+
+    element.textContent =
+      analyticsFormatCounterValue(
+        target,
+        {
+          decimals,
+          suffix:finalSuffix,
+          prefix
+        }
+      );
+
+    element.classList.remove(
+      "analytics-counter-updating"
+    );
+
+    analyticsCounterAnimations.delete(
+      element
+    );
+  }
+
+  const frame =
+    requestAnimationFrame(
+      animate
+    );
+
+  analyticsCounterAnimations.set(
+    element,
+    frame
+  );
+}
+
+function setAnalyticsSectionLoading(
+  isLoading
+){
+  const section =
+    $("section-analytics");
+
+  if(section){
+    section.classList.toggle(
+      "is-loading",
+      Boolean(isLoading)
+    );
+  }
+
+  document
+    .querySelectorAll(
+      "#section-analytics .analytics-kpi-card"
+    )
+    .forEach(card => {
+      card.classList.toggle(
+        "analytics-loading",
+        Boolean(isLoading)
+      );
+    });
+}
+
+function removeAnalyticsSkeletons(){
+  setAnalyticsSectionLoading(
+    false
+  );
+}
+
+function analyticsSafeSeries(values){
+  return (
+    Array.isArray(values)
+      ? values
+      : []
+  ).map(value =>
+    analyticsNonNegative(value)
+  );
+}
+
+function renderAnalyticsSparkline(
+  containerId,
+  values
+){
+  const container =
+    $(containerId);
+
+  if(!container){
+    return;
+  }
+
+  const series =
+    analyticsSafeSeries(values);
+
+  if(!series.length){
+    container.innerHTML = `
+      <div class="analytics-sparkline-empty">
+        No activity in this period
+      </div>
+    `;
+
+    return;
+  }
+
+  const width = 240;
+  const height = 42;
+
+  const padding = {
+    top:4,
+    right:3,
+    bottom:3,
+    left:3
+  };
+
+  const minimum =
+    Math.min(
+      ...series
+    );
+
+  const maximum =
+    Math.max(
+      ...series
+    );
+
+  const range =
+    Math.max(
+      1,
+      maximum - minimum
+    );
+
+  const chartWidth =
+    width -
+    padding.left -
+    padding.right;
+
+  const chartHeight =
+    height -
+    padding.top -
+    padding.bottom;
+
+  const step =
+    series.length > 1
+      ? chartWidth /
+        (
+          series.length - 1
+        )
+      : 0;
+
+  const points =
+    series.map(
+      (value,index) => {
+        const x =
+          series.length > 1
+            ? padding.left +
+              index * step
+            : padding.left +
+              chartWidth / 2;
+
+        const normalized =
+          (
+            value -
+            minimum
+          ) /
+          range;
+
+        const y =
+          padding.top +
+          chartHeight -
+          normalized *
+          chartHeight;
+
+        return {
+          x,
+          y,
+          value
+        };
+      }
+    );
+
+  const linePath =
+    points
+      .map(
+        (point,index) =>
+          `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`
+      )
+      .join(" ");
+
+  const baseline =
+    padding.top +
+    chartHeight;
+
+  const areaPath = `
+    ${linePath}
+    L ${points[points.length - 1].x} ${baseline}
+    L ${points[0].x} ${baseline}
+    Z
+  `;
+
+  const uniqueGradientId =
+    `analyticsSparklineGradient-${containerId}`;
+
+  const finalPoint =
+    points[
+      points.length - 1
+    ];
+
+  container.innerHTML = `
+    <svg
+      viewBox="0 0 ${width} ${height}"
+      role="img"
+      aria-label="Metric trend"
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <linearGradient
+          id="${uniqueGradientId}"
+          x1="0"
+          y1="0"
+          x2="0"
+          y2="1"
+        >
+          <stop
+            offset="0%"
+            stop-color="#1a73e8"
+            stop-opacity=".18"
+          ></stop>
+
+          <stop
+            offset="100%"
+            stop-color="#1a73e8"
+            stop-opacity="0"
+          ></stop>
+        </linearGradient>
+      </defs>
+
+      <path
+        class="analytics-sparkline-area"
+        d="${areaPath}"
+        fill="url(#${uniqueGradientId})"
+      ></path>
+
+      <path
+        class="analytics-sparkline-line"
+        d="${linePath}"
+      ></path>
+
+      <circle
+        class="analytics-sparkline-point"
+        cx="${finalPoint.x}"
+        cy="${finalPoint.y}"
+        r="2.6"
+      >
+        <title>
+          Latest value:
+          ${analyticsFormatNumber(finalPoint.value)}
+        </title>
+      </circle>
+    </svg>
+  `;
+}
+
+function analyticsDailyEngagement(row){
+  return (
+    analyticsNonNegative(
+      row?.postLikes
+    ) +
+    analyticsNonNegative(
+      row?.postComments
+    ) +
+    analyticsNonNegative(
+      row?.postShares
+    ) +
+    analyticsNonNegative(
+      row?.postSaves
+    )
+  );
+}
+
+function analyticsDailyAttendanceRate(row){
+  const present =
+    analyticsNonNegative(
+      row?.attendancePresent
+    );
+
+  const late =
+    analyticsNonNegative(
+      row?.attendanceLate
+    );
+
+  const absent =
+    analyticsNonNegative(
+      row?.attendanceAbsent
+    );
+
+  const excused =
+    analyticsNonNegative(
+      row?.attendanceExcused
+    );
+
+  const total =
+    present +
+    late +
+    absent +
+    excused;
+
+  if(!total){
+    return 0;
+  }
+
+  return (
+    (
+      present +
+      late * .75
+    ) /
+    total *
+    100
+  );
+}
+
+function analyticsDailyCompletionRate(row){
+  const submitted =
+    analyticsNonNegative(
+      row?.assignmentsSubmitted
+    );
+
+  const reviewed =
+    analyticsNonNegative(
+      row?.assignmentsReviewed
+    );
+
+  if(!submitted){
+    return reviewed
+      ? 100
+      : 0;
+  }
+
+  return Math.min(
+    100,
+    reviewed /
+    submitted *
+    100
+  );
+}
+
+function renderAnalyticsKpiSparklines(
+  daily
+){
+  const rows =
+    Array.isArray(daily)
+      ? daily
+      : [];
+
+  renderAnalyticsSparkline(
+    "analyticsStudentsSparkline",
+    rows.map(row =>
+      analyticsNonNegative(
+        row.studentsAdded
+      ) +
+      analyticsNonNegative(
+        row.studentViews
+      )
+    )
+  );
+
+  renderAnalyticsSparkline(
+    "analyticsAttendanceSparkline",
+    rows.map(
+      analyticsDailyAttendanceRate
+    )
+  );
+
+  renderAnalyticsSparkline(
+    "analyticsCompletionSparkline",
+    rows.map(
+      analyticsDailyCompletionRate
+    )
+  );
+
+  renderAnalyticsSparkline(
+    "analyticsEngagementSparkline",
+    rows.map(
+      analyticsDailyEngagement
+    )
+  );
+
+  renderAnalyticsSparkline(
+    "analyticsFollowersSparkline",
+    rows.map(row =>
+      analyticsNumber(
+        row.followersGained
+      ) -
+      analyticsNumber(
+        row.followersLost
+      )
+    )
+  );
+
+  renderAnalyticsSparkline(
+    "analyticsProfileViewsSparkline",
+    rows.map(row =>
+      analyticsNonNegative(
+        row.profileViews
+      )
+    )
+  );
+
+  renderAnalyticsSparkline(
+    "analyticsClassesSparkline",
+    rows.map(row =>
+      analyticsNonNegative(
+        row.classViews
+      ) +
+      analyticsNonNegative(
+        row.classesCreated
+      )
+    )
+  );
+
+  renderAnalyticsSparkline(
+    "analyticsTeacherSparkline",
+    rows.map(row =>
+      analyticsNonNegative(
+        row.assignmentsReviewed
+      )
+    )
+  );
+}
+
 /* =========================================================
    LINE CHART
 ========================================================= */
@@ -10861,7 +11478,8 @@ const rangeSelect =
 function renderSchoolLineChart(
   containerId,
   counts,
-  labels
+  labels,
+  dailyRows = []
 ){
   const container =
     $(containerId);
@@ -10871,15 +11489,16 @@ function renderSchoolLineChart(
   }
 
   const values =
-    Array.isArray(counts)
-      ? counts.map(value =>
-          analyticsNonNegative(value)
-        )
-      : [];
+    analyticsSafeSeries(counts);
 
   const safeLabels =
     Array.isArray(labels)
       ? labels
+      : [];
+
+  const safeRows =
+    Array.isArray(dailyRows)
+      ? dailyRows
       : [];
 
   if(!values.length){
@@ -10889,23 +11508,37 @@ function renderSchoolLineChart(
       </div>
     `;
 
+    hideAnalyticsChartTooltip();
+
     return;
   }
 
   const width = 1100;
   const height = 340;
 
-const padding = {
-  top:28,
-  right:30,
-  bottom:46,
-  left:52
-};
+  const padding = {
+    top:28,
+    right:30,
+    bottom:46,
+    left:52
+  };
 
-  const maxValue =
+  const maximum =
     Math.max(
       1,
       ...values
+    );
+
+  /*
+    Add some visual headroom so the largest point does not
+    touch the top of the chart.
+  */
+  const scaleMaximum =
+    Math.max(
+      1,
+      Math.ceil(
+        maximum * 1.12
+      )
     );
 
   const chartWidth =
@@ -10921,7 +11554,9 @@ const padding = {
   const stepX =
     values.length > 1
       ? chartWidth /
-        (values.length - 1)
+        (
+          values.length - 1
+        )
       : 0;
 
   const points =
@@ -10939,22 +11574,26 @@ const padding = {
           chartHeight -
           (
             value /
-            maxValue
+            scaleMaximum
           ) *
           chartHeight;
 
         return {
+          index,
           x,
           y,
           value,
           label:
             safeLabels[index] ||
-            ""
+            "",
+          row:
+            safeRows[index] ||
+            {}
         };
       }
     );
 
-  const path =
+  const linePath =
     points
       .map(
         (point,index) =>
@@ -10962,30 +11601,41 @@ const padding = {
       )
       .join(" ");
 
-  const area = `
-    ${path}
-    L ${points[points.length - 1].x}
-      ${padding.top + chartHeight}
-    L ${points[0].x}
-      ${padding.top + chartHeight}
+  const baseline =
+    padding.top +
+    chartHeight;
+
+  const areaPath = `
+    ${linePath}
+    L ${points[points.length - 1].x} ${baseline}
+    L ${points[0].x} ${baseline}
     Z
   `;
 
+  const gridSteps = 4;
+
   const gridLines =
-    [0,1,2,3,4]
-      .map(index => {
+    Array.from(
+      {
+        length:
+          gridSteps + 1
+      },
+      (_,index) => {
         const ratio =
-          index / 4;
+          index /
+          gridSteps;
 
         const y =
           padding.top +
           chartHeight *
           ratio;
 
-        const label =
+        const gridValue =
           Math.round(
-            maxValue *
-            (1 - ratio)
+            scaleMaximum *
+            (
+              1 - ratio
+            )
           );
 
         return `
@@ -10999,24 +11649,24 @@ const padding = {
 
           <text
             class="analytics-chart-label"
-            x="${padding.left - 10}"
+            x="${padding.left - 11}"
             y="${y + 4}"
             text-anchor="end"
           >
-            ${label}
+            ${analyticsFormatNumber(gridValue)}
           </text>
         `;
-      })
-      .join("");
+      }
+    ).join("");
 
-  const maxLabels = 7;
+  const maximumLabels = 7;
 
   const labelInterval =
     Math.max(
       1,
       Math.ceil(
         points.length /
-        maxLabels
+        maximumLabels
       )
     );
 
@@ -11024,11 +11674,15 @@ const padding = {
     points
       .map(
         (point,index) => {
-          if(
-            index !== 0 &&
-            index !== points.length - 1 &&
-            index % labelInterval !== 0
-          ){
+          const shouldRender =
+            index === 0 ||
+            index ===
+              points.length - 1 ||
+            index %
+              labelInterval ===
+              0;
+
+          if(!shouldRender){
             return "";
           }
 
@@ -11036,7 +11690,7 @@ const padding = {
             <text
               class="analytics-chart-label"
               x="${point.x}"
-              y="${height - 12}"
+              y="${height - 13}"
               text-anchor="middle"
             >
               ${escapeHtml(point.label)}
@@ -11046,73 +11700,365 @@ const padding = {
       )
       .join("");
 
-  const circles =
+  const pointElements =
     points
       .map(point => `
         <circle
           class="analytics-chart-point"
+          data-analytics-point-index="${point.index}"
           cx="${point.x}"
           cy="${point.y}"
-          r="3.5"
-        >
-          <title>
-            ${escapeHtml(point.label)}:
-            ${analyticsFormatNumber(point.value)}
-          </title>
-        </circle>
+          r="3.8"
+          tabindex="0"
+          role="button"
+          aria-label="${escapeHtml(point.label)}: ${analyticsFormatNumber(point.value)} activities"
+        ></circle>
       `)
       .join("");
 
-container.innerHTML = `
-  <svg
-    viewBox="0 0 ${width} ${height}"
-    role="img"
-    aria-label="Verified school activity line chart"
-  >
-    <defs>
-      <linearGradient
-        id="analyticsAreaGradient"
-        x1="0"
-        y1="0"
-        x2="0"
-        y2="1"
-      >
-        <stop
-          offset="0%"
-          stop-color="#1a73e8"
-          stop-opacity=".20"
-        ></stop>
+  container.innerHTML = `
+    <svg
+      viewBox="0 0 ${width} ${height}"
+      role="img"
+      aria-label="Verified school activity line chart"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <defs>
+        <linearGradient
+          id="analyticsAreaGradient"
+          x1="0"
+          y1="0"
+          x2="0"
+          y2="1"
+        >
+          <stop
+            offset="0%"
+            stop-color="#1a73e8"
+            stop-opacity=".20"
+          ></stop>
 
-        <stop
-          offset="72%"
-          stop-color="#1a73e8"
-          stop-opacity=".035"
-        ></stop>
+          <stop
+            offset="70%"
+            stop-color="#1a73e8"
+            stop-opacity=".035"
+          ></stop>
 
-        <stop
-          offset="100%"
-          stop-color="#1a73e8"
-          stop-opacity="0"
-        ></stop>
-      </linearGradient>
-    </defs>
+          <stop
+            offset="100%"
+            stop-color="#1a73e8"
+            stop-opacity="0"
+          ></stop>
+        </linearGradient>
+      </defs>
 
-    ${gridLines}
+      ${gridLines}
 
       <path
         class="analytics-chart-area"
-        d="${area}"
+        d="${areaPath}"
       ></path>
+
+      <line
+        class="analytics-chart-crosshair"
+        id="analyticsChartCrosshair"
+        x1="0"
+        y1="${padding.top}"
+        x2="0"
+        y2="${baseline}"
+      ></line>
 
       <path
         class="analytics-chart-line"
-        d="${path}"
+        d="${linePath}"
       ></path>
 
-      ${circles}
+      ${pointElements}
       ${xLabels}
     </svg>
   `;
+
+  bindAnalyticsChartInteractions(
+    container,
+    points,
+    {
+      width,
+      height
+    }
+  );
+}
+
+
+
+function hideAnalyticsChartTooltip(){
+  const tooltip =
+    $("analyticsChartTooltip");
+
+  const crosshair =
+    $("analyticsChartCrosshair");
+
+  if(tooltip){
+    tooltip.hidden =
+      true;
+  }
+
+  if(crosshair){
+    crosshair.classList.remove(
+      "is-visible"
+    );
+  }
+
+  document
+    .querySelectorAll(
+      ".analytics-chart-point.is-active"
+    )
+    .forEach(point => {
+      point.classList.remove(
+        "is-active"
+      );
+    });
+}
+
+function showAnalyticsChartTooltip(
+  pointElement,
+  point,
+  chartContainer
+){
+  const tooltip =
+    $("analyticsChartTooltip");
+
+  const shell =
+    $("analyticsChartShell");
+
+  const crosshair =
+    $("analyticsChartCrosshair");
+
+  if(
+    !tooltip ||
+    !shell ||
+    !pointElement
+  ){
+    return;
+  }
+
+  document
+    .querySelectorAll(
+      ".analytics-chart-point.is-active"
+    )
+    .forEach(element => {
+      element.classList.remove(
+        "is-active"
+      );
+    });
+
+  pointElement.classList.add(
+    "is-active"
+  );
+
+  const row =
+    point.row ||
+    {};
+
+  const engagement =
+    analyticsDailyEngagement(
+      row
+    );
+
+  setText(
+    "analyticsChartTooltipDate",
+    point.label ||
+    analyticsDateLabel(
+      row.date
+    ) ||
+    "Selected period"
+  );
+
+  setText(
+    "analyticsChartTooltipValue",
+    analyticsFormatNumber(
+      point.value
+    )
+  );
+
+  setText(
+    "analyticsChartTooltipProfileViews",
+    analyticsFormatNumber(
+      row.profileViews
+    )
+  );
+
+  setText(
+    "analyticsChartTooltipEngagement",
+    analyticsFormatNumber(
+      engagement
+    )
+  );
+
+  setText(
+    "analyticsChartTooltipSubmissions",
+    analyticsFormatNumber(
+      row.assignmentsSubmitted
+    )
+  );
+
+  tooltip.hidden =
+    false;
+
+  /*
+    SVG coordinates differ from CSS pixels. The element's
+    bounding rectangle gives us a reliable screen position.
+  */
+  const pointRect =
+    pointElement.getBoundingClientRect();
+
+  const shellRect =
+    shell.getBoundingClientRect();
+
+  let left =
+    pointRect.left -
+    shellRect.left +
+    pointRect.width / 2;
+
+  let top =
+    pointRect.top -
+    shellRect.top;
+
+  const tooltipWidth =
+    tooltip.offsetWidth ||
+    210;
+
+  const minimumLeft =
+    tooltipWidth / 2 +
+    8;
+
+  const maximumLeft =
+    shell.clientWidth -
+    tooltipWidth / 2 -
+    8;
+
+  left =
+    Math.max(
+      minimumLeft,
+      Math.min(
+        maximumLeft,
+        left
+      )
+    );
+
+  /*
+    When the point is close to the top, display the tooltip
+    underneath it instead of allowing it to leave the card.
+  */
+  if(top < 120){
+    top =
+      pointRect.bottom -
+      shellRect.top +
+      tooltip.offsetHeight +
+      20;
+
+    tooltip.style.transform =
+      "translate(-50%,0)";
+  }else{
+    tooltip.style.transform =
+      "translate(-50%,calc(-100% - 14px))";
+  }
+
+  tooltip.style.left =
+    `${left}px`;
+
+  tooltip.style.top =
+    `${top}px`;
+
+  if(crosshair){
+    crosshair.setAttribute(
+      "x1",
+      String(point.x)
+    );
+
+    crosshair.setAttribute(
+      "x2",
+      String(point.x)
+    );
+
+    crosshair.classList.add(
+      "is-visible"
+    );
+  }
+}
+
+function bindAnalyticsChartInteractions(
+  container,
+  points
+){
+  const pointElements =
+    Array.from(
+      container.querySelectorAll(
+        "[data-analytics-point-index]"
+      )
+    );
+
+  pointElements.forEach(
+    pointElement => {
+      const index =
+        Number(
+          pointElement.dataset
+            .analyticsPointIndex
+        );
+
+      const point =
+        points[index];
+
+      if(!point){
+        return;
+      }
+
+      const show = () => {
+        showAnalyticsChartTooltip(
+          pointElement,
+          point,
+          container
+        );
+      };
+
+      pointElement.addEventListener(
+        "mouseenter",
+        show
+      );
+
+      pointElement.addEventListener(
+        "focus",
+        show
+      );
+
+      pointElement.addEventListener(
+        "click",
+        show
+      );
+
+      pointElement.addEventListener(
+        "keydown",
+        event => {
+          if(
+            event.key === "Enter" ||
+            event.key === " "
+          ){
+            event.preventDefault();
+            show();
+          }
+
+          if(event.key === "Escape"){
+            hideAnalyticsChartTooltip();
+
+            pointElement.blur();
+          }
+        }
+      );
+    }
+  );
+
+  container.addEventListener(
+    "mouseleave",
+    hideAnalyticsChartTooltip
+  );
 }
 
 /* =========================================================
@@ -11574,6 +12520,18 @@ const followerTrend =
     currentFollowerChange,
     previousFollowers
   );
+  const overallHealthTrend =
+  Number(
+    (
+      (
+        attendanceTrend +
+        completionTrend +
+        engagementTrend +
+        teacherTrend +
+        classesTrend
+      ) / 5
+    ).toFixed(1)
+  );
 
   /* =======================================================
      RANGE DESCRIPTION
@@ -11692,6 +12650,10 @@ if(healthRing){
     "analyticsHealthStatus",
     healthLabel
   );
+  setAnalyticsTrend(
+  "analyticsHealthTrend",
+  overallHealthTrend
+);
 
   let healthMessage =
     "Your analytics are based on verified backend activity.";
@@ -11716,61 +12678,62 @@ if(healthRing){
      KPI VALUES
   ======================================================= */
 
-  setText(
-    "analyticsStudentsTotal",
-    analyticsFormatNumber(
-      studentCount
-    )
-  );
+setAnalyticsCounter(
+  "analyticsStudentsTotal",
+  studentCount
+);
 
-  setText(
-    "analyticsAttendanceRate",
-    analyticsFormatPercent(
-      attendanceRate
-    )
-  );
+setAnalyticsCounter(
+  "analyticsAttendanceRate",
+  attendanceRate,
+  {
+    decimals:0,
+    suffix:"%"
+  }
+);
 
-  setText(
-    "analyticsCompletionRate",
-    analyticsFormatPercent(
-      completionRate
-    )
-  );
+setAnalyticsCounter(
+  "analyticsCompletionRate",
+  completionRate,
+  {
+    decimals:0,
+    suffix:"%"
+  }
+);
 
-  setText(
-    "analyticsEngagementTotal",
-    analyticsFormatNumber(
-      engagementTotal
-    )
-  );
+setAnalyticsCounter(
+  "analyticsEngagementTotal",
+  engagementTotal
+);
 
-  setText(
-    "analyticsFollowersTotal",
-    analyticsFormatNumber(
-      currentFollowers
-    )
-  );
+setAnalyticsCounter(
+  "analyticsFollowersTotal",
+  currentFollowers
+);
 
-  setText(
-    "analyticsProfileViewsTotal",
-    analyticsFormatNumber(
-      currentProfileViews
-    )
-  );
+setAnalyticsCounter(
+  "analyticsProfileViewsTotal",
+  currentProfileViews
+);
 
-  setText(
-    "analyticsClassesTotal",
-    analyticsFormatNumber(
-      activeClassCount
-    )
-  );
+setAnalyticsCounter(
+  "analyticsClassesTotal",
+  activeClassCount
+);
 
-  setText(
-    "analyticsTeacherScore",
-    analyticsFormatPercent(
-      teacherReviewRate
-    )
-  );
+setAnalyticsCounter(
+  "analyticsTeacherScore",
+  teacherReviewRate,
+  {
+    decimals:0,
+    suffix:"%"
+  }
+);
+  renderAnalyticsKpiSparklines(
+  daily
+);
+
+removeAnalyticsSkeletons();
 
 /* KPI TRENDS */
 
@@ -12213,11 +13176,12 @@ setAnalyticsTrend(
       )
     );
 
-  renderSchoolLineChart(
-    "schoolActivityChart",
-    chartCounts,
-    chartLabels
-  );
+renderSchoolLineChart(
+  "schoolActivityChart",
+  chartCounts,
+  chartLabels,
+  daily
+);
 
   /* =======================================================
      BACKEND RECOMMENDATIONS
@@ -12336,19 +13300,27 @@ setAnalyticsTrend(
     )
   );
 
-  setText(
-    "analyticsLastUpdated",
-    state.analyticsLastLoadedAt
-      ? state.analyticsLastLoadedAt
-          .toLocaleTimeString(
-            [],
-            {
-              hour:"2-digit",
-              minute:"2-digit"
-            }
-          )
-      : "Just now"
-  );
+const analyticsRefreshTime =
+  state.analyticsLastLoadedAt
+    ? state.analyticsLastLoadedAt
+        .toLocaleTimeString(
+          [],
+          {
+            hour:"2-digit",
+            minute:"2-digit"
+          }
+        )
+    : "Just now";
+
+setText(
+  "analyticsLastUpdated",
+  analyticsRefreshTime
+);
+
+setText(
+  "analyticsLastRefreshValue",
+  analyticsRefreshTime
+);
 }
 
 function renderSettings(){
