@@ -3343,6 +3343,185 @@ body.focus-portal .center-col{
     grid-template-columns:1fr;
   }
 }
+
+  /* =========================================================
+   FINAL DESKTOP POLISH
+========================================================= */
+
+@media (min-width:761px){
+
+  :root{
+    --school-sidebar-width:264px;
+    --school-topbar-height:72px;
+  }
+
+  body{
+    background:#f5f7fa;
+  }
+
+  .topbar{
+    box-shadow:0 1px 0 rgba(16,24,40,.04);
+  }
+
+  .topbar-inner{
+    padding:0 22px;
+  }
+
+  .brand-wrap{
+    width:220px;
+    min-width:220px;
+  }
+
+  .brand-logo-img{
+    width:172px;
+    height:50px;
+    max-width:172px;
+  }
+
+  .top-actions{
+    grid-template-columns:
+      minmax(360px,760px)
+      42px
+      auto
+      auto
+      42px;
+
+    gap:9px;
+  }
+
+  .search{
+    max-width:760px;
+  }
+
+  .search input{
+    height:44px;
+    border-radius:12px;
+    background:#f7f9fc;
+  }
+
+  .search input:hover{
+    border-color:#c7d3e2;
+    background:#fff;
+  }
+
+  .icon-btn,
+  .avatar{
+    width:40px;
+    height:40px;
+    border-radius:11px;
+  }
+
+  .pill-btn,
+  .primary-btn{
+    min-height:40px;
+    padding:0 15px;
+    border-radius:10px;
+  }
+
+  .school-sidebar{
+    width:var(--school-sidebar-width);
+    padding:18px 12px 28px;
+    box-shadow:4px 0 18px rgba(16,24,40,.025);
+  }
+
+  .school-sidebar-label{
+    margin:4px 12px 14px;
+  }
+
+  .school-sidebar .tab-btn{
+    min-height:43px;
+    padding:0 12px;
+    border-radius:10px;
+  }
+
+  .school-sidebar .tab-btn.active{
+    background:#edf5ff;
+    box-shadow:
+      inset 3px 0 0 #0a66c2;
+  }
+
+  .page{
+    margin-left:
+      var(--school-sidebar-width);
+
+    padding:
+      calc(var(--school-topbar-height) + 22px)
+      26px
+      44px;
+  }
+
+  .workspace-section-header,
+  .analytics-page-header{
+    min-height:96px;
+    padding:19px 21px;
+    border-radius:16px;
+    box-shadow:
+      0 2px 8px rgba(16,24,40,.035);
+  }
+
+  .workspace-section-header h1,
+  .analytics-page-header h1{
+    font-size:23px;
+  }
+
+  .card,
+  .analytics-chart-card,
+  .analytics-summary-card,
+  .analytics-kpi-card{
+    border-color:#e7ebf0;
+    border-radius:16px;
+    box-shadow:
+      0 2px 8px rgba(16,24,40,.035);
+  }
+
+  .stat-card{
+    min-height:132px;
+    border-radius:16px;
+    box-shadow:
+      0 2px 8px rgba(16,24,40,.035);
+  }
+
+  .analytics-kpi-card{
+    min-height:136px;
+    padding:16px;
+  }
+
+  .analytics-kpi-card > strong{
+    margin-top:15px;
+    font-size:27px;
+  }
+
+  .analytics-health-banner{
+    border-radius:16px;
+    box-shadow:
+      0 2px 8px rgba(16,24,40,.025);
+  }
+
+  .analytics-chart-container{
+    min-height:275px;
+  }
+
+  .analytics-range-controls select,
+  .analytics-refresh-btn{
+    height:39px;
+    border-radius:10px;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible{
+    outline:3px solid rgba(10,102,194,.18);
+    outline-offset:2px;
+  }
+
+  button:disabled,
+  select:disabled{
+    cursor:not-allowed;
+    opacity:.62;
+  }
+}
 </style>
 </head>
 
@@ -6208,21 +6387,36 @@ function openTab(tab){
   }
 
 if(tab === "analytics"){
-  /*
-    Render cached analytics immediately, then load fresh
-    backend data when necessary.
-  */
   if(
     state.analytics &&
-    typeof renderAnalytics === "function"
+    typeof renderAnalytics ===
+      "function"
   ){
     renderAnalytics();
   }
 
-  loadSchoolAnalytics({
-    force:
-      !state.analytics
-  });
+  const lastLoadedAt =
+    state.analyticsLastLoadedAt
+      ? new Date(
+          state.analyticsLastLoadedAt
+        ).getTime()
+      : 0;
+
+  const analyticsAge =
+    Date.now() -
+    lastLoadedAt;
+
+  const shouldReload =
+    !state.analytics ||
+    !lastLoadedAt ||
+    analyticsAge >
+      5 * 60 * 1000;
+
+  if(shouldReload){
+    loadSchoolAnalytics({
+      force:true
+    });
+  }
 }
 
   if(tab === "insights"){
@@ -6316,29 +6510,121 @@ async function loadAll(){
 
     const schoolId = getSchoolId();
 
-const [
-  posts,
-  schoolUpdates,
-  users,
-  classes,
-  assignments,
-  submissions,
-opportunities,
-schedules,
-attendance,
-unread
-] = await Promise.all([
-  apiGet("/api/posts", []),
-  apiGet(`/api/school-updates?schoolId=${encodeURIComponent(schoolId)}`, []),
-  apiGet("/api/users/network", []),
-      apiGet(`/api/classes?schoolId=${encodeURIComponent(schoolId)}`, []),
-      apiGet(`/api/assignments?schoolId=${encodeURIComponent(schoolId)}`, []),
-      apiGet(`/api/submissions?schoolId=${encodeURIComponent(schoolId)}`, []),
-      apiGet(`/api/opportunities?schoolId=${encodeURIComponent(schoolId)}`, []),
-apiGet(`/api/schedules?schoolId=${encodeURIComponent(schoolId)}`, []),
-apiGet(`/api/attendance?schoolId=${encodeURIComponent(schoolId)}`, []),
-apiGet("/api/notifications/unread-count", { count:0 })
-    ]);
+const dashboardRequests = [
+  apiGet(
+    "/api/posts",
+    []
+  ),
+
+  apiGet(
+    `/api/school-updates?schoolId=${encodeURIComponent(schoolId)}`,
+    []
+  ),
+
+  apiGet(
+    "/api/users/network",
+    []
+  ),
+
+  apiGet(
+    `/api/classes?schoolId=${encodeURIComponent(schoolId)}`,
+    []
+  ),
+
+  apiGet(
+    `/api/assignments?schoolId=${encodeURIComponent(schoolId)}`,
+    []
+  ),
+
+  apiGet(
+    `/api/submissions?schoolId=${encodeURIComponent(schoolId)}`,
+    []
+  ),
+
+  apiGet(
+    `/api/opportunities?schoolId=${encodeURIComponent(schoolId)}`,
+    []
+  ),
+
+  apiGet(
+    `/api/schedules?schoolId=${encodeURIComponent(schoolId)}`,
+    []
+  ),
+
+  apiGet(
+    `/api/attendance?schoolId=${encodeURIComponent(schoolId)}`,
+    []
+  ),
+
+  apiGet(
+    "/api/notifications/unread-count",
+    {
+      count:0
+    }
+  )
+];
+
+const dashboardResults =
+  await Promise.allSettled(
+    dashboardRequests
+  );
+
+const valueOrFallback = (
+  index,
+  fallback
+) => {
+  const result =
+    dashboardResults[index];
+
+  if(
+    result?.status ===
+    "fulfilled"
+  ){
+    return result.value;
+  }
+
+  console.warn(
+    "Dashboard request failed:",
+    result?.reason
+  );
+
+  return fallback;
+};
+
+const posts =
+  valueOrFallback(0,[]);
+
+const schoolUpdates =
+  valueOrFallback(1,[]);
+
+const users =
+  valueOrFallback(2,[]);
+
+const classes =
+  valueOrFallback(3,[]);
+
+const assignments =
+  valueOrFallback(4,[]);
+
+const submissions =
+  valueOrFallback(5,[]);
+
+const opportunities =
+  valueOrFallback(6,[]);
+
+const schedules =
+  valueOrFallback(7,[]);
+
+const attendance =
+  valueOrFallback(8,[]);
+
+const unread =
+  valueOrFallback(
+    9,
+    {
+      count:0
+    }
+  );
 
 state.posts = asArray(posts);
 state.schoolUpdates = asArray(schoolUpdates);
@@ -6350,7 +6636,9 @@ state.users = asArray(users);
     state.schedules = asArray(schedules);
     state.attendance = asArray(attendance);
 
+
 renderProfile();
+
 renderStats(
   unread?.count ||
   unread?.unread ||
@@ -6370,55 +6658,63 @@ hydrateSelects();
 hydrateProfileForm();
 
 /*
-  Use the real backend analytics response.
-
-  The dashboard sections can finish loading even when the
-  analytics endpoint is temporarily unavailable.
+  Load authenticated, backend-generated analytics after the
+  main dashboard content is available.
 */
 await loadSchoolAnalytics({
-  force: true,
-  silent: false
+  force:true,
+  silent:false
 });
-    if(
+
+/*
+  Record one school dashboard view per browser session.
+  Tracking failures must never stop the dashboard.
+*/
+if(
   window.AiftAnalytics &&
-  typeof window.AiftAnalytics.trackOncePerSession ===
+  typeof window.AiftAnalytics
+    .trackOncePerSession ===
     "function"
 ){
-  window.AiftAnalytics.trackOncePerSession(
-    `school-dashboard:${schoolId}`,
-    {
-      schoolId,
-
-      eventType:
-        "dashboard_view",
-
-      entityType:
-        "school",
-
-      entityId:
+  window.AiftAnalytics
+    .trackOncePerSession(
+      `school-dashboard:${schoolId}`,
+      {
         schoolId,
 
-      source:
-        "dashboard",
+        eventType:
+          "dashboard_view",
 
-      metadata: {
-        pageName:
-          "school_dashboard",
+        entityType:
+          "school",
 
-        section:
-          "overview",
+        entityId:
+          schoolId,
 
-        viewerRole:
-          "school"
+        source:
+          "dashboard",
+
+        metadata:{
+          pageName:
+            "school_dashboard",
+
+          section:
+            "overview",
+
+          viewerRole:
+            role === "admin"
+              ? "admin"
+              : "school"
+        }
       }
-    }
-  );
-}
-
-  }catch(err){
-    console.error(err);
-    showAlert("error", err.message || "Dashboard loading failed.");
-  }
+    )
+    .catch(error => {
+      console.warn(
+        "Dashboard analytics tracking failed:",
+        error?.message ||
+        error
+      );
+    });
 }
 
 function renderProfile(){
@@ -6440,14 +6736,20 @@ function renderProfile(){
     me.cover ||
     FALLBACK_COVER;
 
-  if ($("schoolLogo")) $("schoolLogo").src = logo;
-  if ($("topAvatar")) $("topAvatar").src = logo;
-  if ($("logoPreview")) $("logoPreview").src = logo;
-  if ($("bannerPreview")) $("bannerPreview").src = cover;
+if($("topAvatar")){
+  $("topAvatar").src =
+    logo;
+}
 
-  if ($("heroCover")){
-$("heroCover").style.backgroundImage = `url("${cover}")`;
-  }
+if($("logoPreview")){
+  $("logoPreview").src =
+    logo;
+}
+
+if($("bannerPreview")){
+  $("bannerPreview").src =
+    cover;
+}
 
   setText("schoolName", getSchoolName());
   setText("schoolTypeText", me.schoolType || me.type || "School");
@@ -8403,12 +8705,15 @@ async function loadSchoolAnalytics({
   const requestId =
     ++analyticsLoadRequestId;
 
-  if(!silent){
-    setAnalyticsLoading(true);
-    renderAnalyticsLoadingState();
-  }
+state.analyticsLoading =
+  true;
 
-  state.analyticsError = null;
+if(!silent){
+  setAnalyticsLoading(true);
+  renderAnalyticsLoadingState();
+}
+
+state.analyticsError = null;
 
   try{
     const requestedRange =
@@ -8513,11 +8818,19 @@ async function loadSchoolAnalytics({
     state.analyticsLastLoadedAt =
       new Date();
 
-    state.analyticsError =
-      null;
+state.analyticsError =
+  null;
 
-    const rangeSelect =
-      $("analyticsRangeSelect");
+const recommendationsWrap =
+  $("analyticsRecommendations");
+
+if(recommendationsWrap){
+  recommendationsWrap.innerHTML =
+    "";
+}
+
+const rangeSelect =
+  $("analyticsRangeSelect");
 
     if(rangeSelect){
       rangeSelect.value =
@@ -8543,15 +8856,19 @@ async function loadSchoolAnalytics({
     }
 
     return null;
-  }finally{
-    if(
-      requestId ===
-      analyticsLoadRequestId &&
-      !silent
-    ){
+}finally{
+  if(
+    requestId ===
+    analyticsLoadRequestId
+  ){
+    state.analyticsLoading =
+      false;
+
+    if(!silent){
       setAnalyticsLoading(false);
     }
   }
+}
 }
 
 /* =========================================================
