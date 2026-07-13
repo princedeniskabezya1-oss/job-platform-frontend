@@ -2727,64 +2727,107 @@ body.focus-portal .center-col{
   font-weight:800;
 }
 
-/* HEALTH BANNER */
 
+
+
+  
+/* HEALTH BANNER */
 .analytics-health-banner{
   margin-bottom:16px;
-  padding:20px;
+  padding:24px;
 
   display:grid;
   grid-template-columns:auto minmax(0,1fr) auto;
   align-items:center;
-  gap:18px;
+  gap:22px;
 
-  border:1px solid #d5e9ff;
-  border-radius:18px;
+  border:1px solid #e5e7eb;
+  border-radius:14px;
 
-  background:#f8fbff;
+  background:#fff;
+  box-shadow:none;
 }
 
-.analytics-health-banner.health-good{
-  border-color:#bbf7d0;
-  background:#f0fdf4;
-}
-
-.analytics-health-banner.health-warning{
-  border-color:#fde68a;
-  background:#fffbeb;
-}
-
+.analytics-health-banner.health-good,
+.analytics-health-banner.health-warning,
 .analytics-health-banner.health-poor{
-  border-color:#fecaca;
-  background:#fef2f2;
+  border-color:#e5e7eb;
+  background:#fff;
 }
 
-.analytics-health-score{
-  width:74px;
-  height:74px;
+.analytics-health-ring{
+  --analytics-score:0;
+  --analytics-ring-color:#1a73e8;
+
+  position:relative;
+
+  width:92px;
+  height:92px;
+  flex-shrink:0;
 
   display:grid;
   place-items:center;
 
   border-radius:50%;
 
-  background:#0a66c2;
-  color:#fff;
+  background:
+    conic-gradient(
+      var(--analytics-ring-color)
+      calc(var(--analytics-score) * 1%),
+      #edf0f4 0
+    );
+}
+
+.analytics-health-ring::before{
+  content:"";
+
+  position:absolute;
+  inset:8px;
+
+  border-radius:50%;
+  background:#fff;
+}
+
+.analytics-health-score{
+  position:relative;
+  z-index:1;
+
+  width:auto;
+  height:auto;
+
+  display:flex;
+  align-items:baseline;
+  gap:1px;
+
+  border-radius:0;
+
+  background:transparent;
+  color:#111827;
 
   font-size:25px;
-  font-weight:900;
+  line-height:1;
+  font-weight:700;
 }
 
-.health-good .analytics-health-score{
-  background:#16a34a;
+.analytics-health-score::after{
+  content:"%";
+
+  color:#6b7280;
+
+  font-size:12px;
+  font-weight:600;
 }
 
-.health-warning .analytics-health-score{
-  background:#d97706;
+.analytics-health-banner.health-good .analytics-health-ring{
+  --analytics-ring-color:#0f9d58;
 }
 
-.health-poor .analytics-health-score{
-  background:#dc2626;
+.analytics-health-banner.health-warning .analytics-health-ring{
+  --analytics-ring-color:#f9ab00;
+}
+
+.analytics-health-banner.health-poor .analytics-health-ring{
+  --analytics-ring-color:#d93025;
 }
 
 .analytics-health-copy span{
@@ -2813,15 +2856,35 @@ body.focus-portal .center-col{
 }
 
 .analytics-health-status{
-  padding:7px 11px;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
 
+  padding:7px 10px;
+
+  border:1px solid #e5e7eb;
   border-radius:999px;
 
-  background:#eaf4ff;
-  color:#0a66c2;
+  background:#fff;
+  color:#5f6368;
 
-  font-size:12px;
-  font-weight:800;
+  font-size:11px;
+  font-weight:700;
+}
+
+.health-good .analytics-health-status{
+  border-color:#b7e1cd;
+  color:#0f9d58;
+}
+
+.health-warning .analytics-health-status{
+  border-color:#fce8b2;
+  color:#b06000;
+}
+
+.health-poor .analytics-health-status{
+  border-color:#f4c7c3;
+  color:#d93025;
 }
 
 /* KPI CARDS */
@@ -2835,74 +2898,172 @@ body.focus-portal .center-col{
 }
 
 .analytics-kpi-card{
-  min-height:142px;
-  padding:17px;
+  position:relative;
+  min-width:0;
+  min-height:168px;
+  padding:20px;
 
-  border:1px solid var(--border);
-  border-radius:17px;
+  display:flex;
+  flex-direction:column;
+
+  border:1px solid #e5e7eb;
+  border-radius:14px;
 
   background:#fff;
-  box-shadow:var(--shadow-soft);
+  box-shadow:none;
+
+  transition:
+    border-color .18s ease,
+    box-shadow .18s ease,
+    transform .18s ease;
 }
 
-.analytics-kpi-card.performance-good{
-  border-top:4px solid #16a34a;
+.analytics-kpi-card:hover{
+  transform:translateY(-1px);
+  border-color:#d1d5db;
+  box-shadow:0 4px 14px rgba(15,23,42,.055);
 }
 
-.analytics-kpi-card.performance-warning{
-  border-top:4px solid #d97706;
-}
-
-.analytics-kpi-card.performance-poor{
-  border-top:4px solid #dc2626;
-}
-
+/*
+  Performance classes no longer color the card.
+  They are retained only for JavaScript compatibility.
+*/
+.analytics-kpi-card.performance-good,
+.analytics-kpi-card.performance-warning,
+.analytics-kpi-card.performance-poor,
 .analytics-kpi-card.performance-neutral{
-  border-top:4px solid #0a66c2;
+  border-top:1px solid #e5e7eb;
 }
 
 .analytics-kpi-top{
+  min-width:0;
+
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:8px;
+  gap:12px;
 }
 
-.analytics-kpi-top > span:first-child{
-  color:#667085;
-  font-size:12px;
-  font-weight:700;
+.analytics-kpi-label{
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+  gap:9px;
+
+  color:#374151;
+
+  font-size:13px;
+  line-height:1.35;
+  font-weight:600;
+}
+
+.analytics-kpi-icon{
+  width:30px;
+  height:30px;
+  flex-shrink:0;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:9px;
+
+  background:#f3f6fa;
+  color:#5f6368;
+}
+
+.analytics-kpi-icon svg{
+  width:16px;
+  height:16px;
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 
 .analytics-kpi-status{
-  padding:5px 8px;
+  padding:0;
 
-  border-radius:999px;
+  border-radius:0;
 
-  background:#f1f5f9;
-  color:#475467;
+  background:transparent;
+  color:#6b7280;
 
-  font-size:10px;
-  font-weight:800;
+  font-size:11px;
+  font-weight:600;
+  white-space:nowrap;
 }
 
 .analytics-kpi-card > strong{
   display:block;
-  margin-top:18px;
+  margin-top:20px;
 
-  color:#172033;
+  color:#111827;
 
-  font-size:28px;
+  font-size:30px;
+  line-height:1.05;
+  font-weight:700;
+  letter-spacing:-.035em;
+}
+
+.analytics-kpi-trend-row{
+  min-height:25px;
+  margin-top:13px;
+
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+}
+
+.analytics-trend{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+
+  font-size:12px;
   line-height:1;
-  font-weight:900;
+  font-weight:700;
+}
+
+.analytics-trend svg{
+  width:13px;
+  height:13px;
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2.4;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.analytics-trend.positive{
+  color:#0f9d58;
+}
+
+.analytics-trend.negative{
+  color:#d93025;
+}
+
+.analytics-trend.neutral{
+  color:#6b7280;
+}
+
+.analytics-trend-context{
+  color:#6b7280;
+
+  font-size:11px;
+  line-height:1.35;
 }
 
 .analytics-kpi-card > p{
-  margin:9px 0 0;
+  margin:10px 0 0;
 
-  color:#667085;
+  color:#6b7280;
 
-  font-size:12px;
+  font-size:11px;
   line-height:1.45;
 }
 
@@ -2977,8 +3138,18 @@ body.focus-portal .center-col{
 }
 
 .analytics-chart-container{
+  position:relative;
+
   width:100%;
-  min-height:290px;
+  min-height:340px;
+
+  overflow:hidden;
+}
+
+.analytics-main-chart{
+  padding:24px;
+  border-radius:14px;
+  box-shadow:none;
 }
 
 .analytics-chart-container svg{
@@ -2994,20 +3165,41 @@ body.focus-portal .center-col{
 
 .analytics-chart-line{
   fill:none;
-  stroke:#0a66c2;
-  stroke-width:3;
+  stroke:#1a73e8;
+  stroke-width:2.5;
   stroke-linecap:round;
   stroke-linejoin:round;
+  filter:drop-shadow(0 2px 2px rgba(26,115,232,.08));
 }
 
 .analytics-chart-area{
-  fill:rgba(10,102,194,.09);
+  fill:url(#analyticsAreaGradient);
 }
 
 .analytics-chart-point{
   fill:#fff;
-  stroke:#0a66c2;
+  stroke:#1a73e8;
   stroke-width:2;
+  cursor:pointer;
+
+  transition:
+    r .14s ease,
+    stroke-width .14s ease;
+}
+
+.analytics-chart-point:hover{
+  r:6;
+  stroke-width:3;
+}
+
+.analytics-chart-grid-line{
+  stroke:#edf0f3;
+  stroke-width:1;
+}
+
+.analytics-chart-label{
+  fill:#80868b;
+  font-size:10px;
 }
 
 .analytics-chart-label{
@@ -4614,9 +4806,18 @@ body.focus-portal .center-col{
 
   <div class="analytics-health-banner" id="analyticsHealthBanner">
 
-    <div class="analytics-health-score" id="analyticsHealthScore">
-      0
-    </div>
+<div
+  class="analytics-health-ring"
+  id="analyticsHealthRing"
+  aria-label="Overall school performance score"
+>
+  <div
+    class="analytics-health-score"
+    id="analyticsHealthScore"
+  >
+    0
+  </div>
+</div>
 
     <div class="analytics-health-copy">
 
@@ -4644,163 +4845,350 @@ body.focus-portal .center-col{
 
   </div>
 
-  <!-- PRIMARY METRICS -->
+<!-- PRIMARY METRICS -->
 
-  <div class="analytics-kpi-grid">
+<div class="analytics-kpi-grid">
 
-    <article class="analytics-kpi-card" id="analyticsStudentsCard">
+  <article class="analytics-kpi-card" id="analyticsStudentsCard">
 
-      <div class="analytics-kpi-top">
+    <div class="analytics-kpi-top">
+
+      <div class="analytics-kpi-label">
+
+        <span class="analytics-kpi-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </span>
+
         <span>Students</span>
-        <span class="analytics-kpi-status" id="analyticsStudentsStatus">
-          Stable
-        </span>
+
       </div>
 
-      <strong id="analyticsStudentsTotal">
-        0
-      </strong>
+      <span class="analytics-kpi-status" id="analyticsStudentsStatus">
+        Loading
+      </span>
 
-      <p id="analyticsStudentsNote">
-        Connected learners
-      </p>
+    </div>
 
-    </article>
+    <strong id="analyticsStudentsTotal">0</strong>
 
-    <article class="analytics-kpi-card" id="analyticsAttendanceCard">
+    <div class="analytics-kpi-trend-row">
+      <span class="analytics-trend neutral" id="analyticsStudentsTrend">
+        —
+      </span>
 
-      <div class="analytics-kpi-top">
+      <span class="analytics-trend-context">
+        current enrollment
+      </span>
+    </div>
+
+    <p id="analyticsStudentsNote">
+      Connected learners
+    </p>
+
+  </article>
+
+
+  <article class="analytics-kpi-card" id="analyticsAttendanceCard">
+
+    <div class="analytics-kpi-top">
+
+      <div class="analytics-kpi-label">
+
+        <span class="analytics-kpi-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+        </span>
+
         <span>Attendance</span>
-        <span class="analytics-kpi-status" id="analyticsAttendanceStatus">
-          Loading
-        </span>
+
       </div>
 
-      <strong id="analyticsAttendanceRate">
-        0%
-      </strong>
+      <span class="analytics-kpi-status" id="analyticsAttendanceStatus">
+        Loading
+      </span>
 
-      <p id="analyticsAttendanceNote">
-        Overall attendance rate
-      </p>
+    </div>
 
-    </article>
+    <strong id="analyticsAttendanceRate">0%</strong>
 
-    <article class="analytics-kpi-card" id="analyticsCompletionCard">
+    <div class="analytics-kpi-trend-row">
+      <span class="analytics-trend neutral" id="analyticsAttendanceTrend">
+        —
+      </span>
 
-      <div class="analytics-kpi-top">
+      <span class="analytics-trend-context">
+        vs earlier period
+      </span>
+    </div>
+
+    <p id="analyticsAttendanceNote">
+      Overall attendance rate
+    </p>
+
+  </article>
+
+
+  <article class="analytics-kpi-card" id="analyticsCompletionCard">
+
+    <div class="analytics-kpi-top">
+
+      <div class="analytics-kpi-label">
+
+        <span class="analytics-kpi-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 12l2 2 4-4"></path>
+            <path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path>
+          </svg>
+        </span>
+
         <span>Assignment completion</span>
-        <span class="analytics-kpi-status" id="analyticsCompletionStatus">
-          Loading
-        </span>
+
       </div>
 
-      <strong id="analyticsCompletionRate">
-        0%
-      </strong>
+      <span class="analytics-kpi-status" id="analyticsCompletionStatus">
+        Loading
+      </span>
 
-      <p id="analyticsCompletionNote">
-        Completed student work
-      </p>
+    </div>
 
-    </article>
+    <strong id="analyticsCompletionRate">0%</strong>
 
-    <article class="analytics-kpi-card" id="analyticsEngagementCard">
+    <div class="analytics-kpi-trend-row">
+      <span class="analytics-trend neutral" id="analyticsCompletionTrend">
+        —
+      </span>
 
-      <div class="analytics-kpi-top">
+      <span class="analytics-trend-context">
+        vs earlier period
+      </span>
+    </div>
+
+    <p id="analyticsCompletionNote">
+      Completed student work
+    </p>
+
+  </article>
+
+
+  <article class="analytics-kpi-card" id="analyticsEngagementCard">
+
+    <div class="analytics-kpi-top">
+
+      <div class="analytics-kpi-label">
+
+        <span class="analytics-kpi-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+          </svg>
+        </span>
+
         <span>Community engagement</span>
-        <span class="analytics-kpi-status" id="analyticsEngagementStatus">
-          Loading
-        </span>
+
       </div>
 
-      <strong id="analyticsEngagementTotal">
-        0
-      </strong>
+      <span class="analytics-kpi-status" id="analyticsEngagementStatus">
+        Loading
+      </span>
 
-      <p id="analyticsEngagementNote">
-        Likes, comments, shares, and views
-      </p>
+    </div>
 
-    </article>
+    <strong id="analyticsEngagementTotal">0</strong>
 
-    <article class="analytics-kpi-card" id="analyticsFollowersCard">
+    <div class="analytics-kpi-trend-row">
+      <span class="analytics-trend neutral" id="analyticsEngagementTrend">
+        —
+      </span>
 
-      <div class="analytics-kpi-top">
+      <span class="analytics-trend-context">
+        vs earlier period
+      </span>
+    </div>
+
+    <p id="analyticsEngagementNote">
+      Likes, comments, shares, and saves
+    </p>
+
+  </article>
+
+
+  <article class="analytics-kpi-card" id="analyticsFollowersCard">
+
+    <div class="analytics-kpi-top">
+
+      <div class="analytics-kpi-label">
+
+        <span class="analytics-kpi-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M3 21v-2a6 6 0 0 1 12 0v2"></path>
+            <path d="M19 8v6"></path>
+            <path d="M16 11h6"></path>
+          </svg>
+        </span>
+
         <span>Followers</span>
-        <span class="analytics-kpi-status" id="analyticsFollowersStatus">
-          Current
-        </span>
+
       </div>
 
-      <strong id="analyticsFollowersTotal">
-        0
-      </strong>
+      <span class="analytics-kpi-status" id="analyticsFollowersStatus">
+        Current
+      </span>
 
-      <p>
-        Current school followers
-      </p>
+    </div>
 
-    </article>
+    <strong id="analyticsFollowersTotal">0</strong>
 
-    <article class="analytics-kpi-card" id="analyticsProfileViewsCard">
+    <div class="analytics-kpi-trend-row">
+      <span class="analytics-trend neutral" id="analyticsFollowersTrend">
+        —
+      </span>
 
-      <div class="analytics-kpi-top">
+      <span class="analytics-trend-context">
+        net follower change
+      </span>
+    </div>
+
+    <p id="analyticsFollowersNote">
+      Current school followers
+    </p>
+
+  </article>
+
+
+  <article class="analytics-kpi-card" id="analyticsProfileViewsCard">
+
+    <div class="analytics-kpi-top">
+
+      <div class="analytics-kpi-label">
+
+        <span class="analytics-kpi-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </span>
+
         <span>Public profile views</span>
-        <span class="analytics-kpi-status" id="analyticsProfileViewsStatus">
-          Current
-        </span>
+
       </div>
 
-      <strong id="analyticsProfileViewsTotal">
-        0
-      </strong>
+      <span class="analytics-kpi-status" id="analyticsProfileViewsStatus">
+        Current
+      </span>
 
-      <p>
-        Public school visibility
-      </p>
+    </div>
 
-    </article>
+    <strong id="analyticsProfileViewsTotal">0</strong>
 
-    <article class="analytics-kpi-card" id="analyticsClassesCard">
+    <div class="analytics-kpi-trend-row">
+      <span class="analytics-trend neutral" id="analyticsProfileViewsTrend">
+        —
+      </span>
 
-      <div class="analytics-kpi-top">
+      <span class="analytics-trend-context">
+        vs earlier period
+      </span>
+    </div>
+
+    <p id="analyticsProfileViewsNote">
+      Public school visibility
+    </p>
+
+  </article>
+
+
+  <article class="analytics-kpi-card" id="analyticsClassesCard">
+
+    <div class="analytics-kpi-top">
+
+      <div class="analytics-kpi-label">
+
+        <span class="analytics-kpi-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 5h18v14H3z"></path>
+            <path d="M7 9h10"></path>
+            <path d="M7 13h7"></path>
+          </svg>
+        </span>
+
         <span>Active classes</span>
-        <span class="analytics-kpi-status" id="analyticsClassesStatus">
-          Loading
-        </span>
+
       </div>
 
-      <strong id="analyticsClassesTotal">
-        0
-      </strong>
+      <span class="analytics-kpi-status" id="analyticsClassesStatus">
+        Loading
+      </span>
 
-      <p id="analyticsClassesNote">
-        Classes with current activity
-      </p>
+    </div>
 
-    </article>
+    <strong id="analyticsClassesTotal">0</strong>
 
-    <article class="analytics-kpi-card" id="analyticsTeacherCard">
+    <div class="analytics-kpi-trend-row">
+      <span class="analytics-trend neutral" id="analyticsClassesTrend">
+        —
+      </span>
 
-      <div class="analytics-kpi-top">
+      <span class="analytics-trend-context">
+        class activity
+      </span>
+    </div>
+
+    <p id="analyticsClassesNote">
+      Classes with current activity
+    </p>
+
+  </article>
+
+
+  <article class="analytics-kpi-card" id="analyticsTeacherCard">
+
+    <div class="analytics-kpi-top">
+
+      <div class="analytics-kpi-label">
+
+        <span class="analytics-kpi-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 6l9-4 9 4-9 4z"></path>
+            <path d="M6 8v6c0 2 3 4 6 4s6-2 6-4V8"></path>
+          </svg>
+        </span>
+
         <span>Teacher performance</span>
-        <span class="analytics-kpi-status" id="analyticsTeacherStatus">
-          Loading
-        </span>
+
       </div>
 
-      <strong id="analyticsTeacherScore">
-        0%
-      </strong>
+      <span class="analytics-kpi-status" id="analyticsTeacherStatus">
+        Loading
+      </span>
 
-      <p id="analyticsTeacherNote">
-        Reviews, attendance, and class activity
-      </p>
+    </div>
 
-    </article>
+    <strong id="analyticsTeacherScore">0%</strong>
 
-  </div>
+    <div class="analytics-kpi-trend-row">
+      <span class="analytics-trend neutral" id="analyticsTeacherTrend">
+        —
+      </span>
+
+      <span class="analytics-trend-context">
+        review performance
+      </span>
+    </div>
+
+    <p id="analyticsTeacherNote">
+      Reviews, attendance, and class activity
+    </p>
+
+  </article>
+
+</div>
 
   <!-- MAIN TREND GRAPH -->
 
@@ -7927,22 +8315,227 @@ function performanceLabel(score){
   return "Poor";
 }
 
+function analyticsTrendPercent(current,previous){
+  const currentValue =
+    analyticsNumber(current);
+
+  const previousValue =
+    analyticsNumber(previous);
+
+  if(
+    previousValue === 0 &&
+    currentValue === 0
+  ){
+    return 0;
+  }
+
+  if(previousValue === 0){
+    return currentValue > 0
+      ? 100
+      : -100;
+  }
+
+  return Number(
+    (
+      (
+        currentValue -
+        previousValue
+      ) /
+      Math.abs(previousValue) *
+      100
+    ).toFixed(1)
+  );
+}
+
+function analyticsSplitDaily(daily){
+  const rows =
+    Array.isArray(daily)
+      ? daily
+      : [];
+
+  if(rows.length < 2){
+    return {
+      previous:[],
+      current:rows
+    };
+  }
+
+  const middle =
+    Math.floor(
+      rows.length / 2
+    );
+
+  return {
+    previous:
+      rows.slice(0,middle),
+
+    current:
+      rows.slice(middle)
+  };
+}
+
+function analyticsSumRows(rows,selector){
+  return (
+    Array.isArray(rows)
+      ? rows
+      : []
+  ).reduce(
+    (total,row) =>
+      total +
+      analyticsNumber(
+        selector(row)
+      ),
+    0
+  );
+}
+
+function analyticsAttendanceRateFromRows(rows){
+  const present =
+    analyticsSumRows(
+      rows,
+      row => row.attendancePresent
+    );
+
+  const late =
+    analyticsSumRows(
+      rows,
+      row => row.attendanceLate
+    );
+
+  const absent =
+    analyticsSumRows(
+      rows,
+      row => row.attendanceAbsent
+    );
+
+  const excused =
+    analyticsSumRows(
+      rows,
+      row => row.attendanceExcused
+    );
+
+  const total =
+    present +
+    late +
+    absent +
+    excused;
+
+  if(!total){
+    return 0;
+  }
+
+  return (
+    (
+      present +
+      late * .75
+    ) /
+    total *
+    100
+  );
+}
+
+function analyticsTrendIcon(direction){
+  if(direction === "positive"){
+    return `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 19V5"></path>
+        <path d="M6 11l6-6 6 6"></path>
+      </svg>
+    `;
+  }
+
+  if(direction === "negative"){
+    return `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5v14"></path>
+        <path d="M18 13l-6 6-6-6"></path>
+      </svg>
+    `;
+  }
+
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 12h14"></path>
+    </svg>
+  `;
+}
+
+function setAnalyticsTrend(
+  id,
+  value,
+  {
+    invert = false,
+    suffix = "%"
+  } = {}
+){
+  const element =
+    $(id);
+
+  if(!element){
+    return;
+  }
+
+  const number =
+    analyticsNumber(value);
+
+  let direction =
+    number > 0
+      ? "positive"
+      : number < 0
+      ? "negative"
+      : "neutral";
+
+  if(invert){
+    direction =
+      direction === "positive"
+        ? "negative"
+        : direction === "negative"
+        ? "positive"
+        : "neutral";
+  }
+
+  element.classList.remove(
+    "positive",
+    "negative",
+    "neutral"
+  );
+
+  element.classList.add(
+    direction
+  );
+
+  const prefix =
+    number > 0
+      ? "+"
+      : "";
+
+  element.innerHTML = `
+    ${analyticsTrendIcon(direction)}
+    <span>
+      ${prefix}${number.toFixed(1)}${suffix}
+    </span>
+  `;
+}
+
 function setPerformanceCard(id,score){
-  const card = $(id);
+  const card =
+    $(id);
 
   if(!card){
     return;
   }
+
+  const status =
+    performanceClass(score);
+
+  card.dataset.performance =
+    status;
 
   card.classList.remove(
     "performance-good",
     "performance-warning",
     "performance-poor",
     "performance-neutral"
-  );
-
-  card.classList.add(
-    `performance-${performanceClass(score)}`
   );
 }
 
@@ -8924,14 +9517,14 @@ function renderSchoolLineChart(
   }
 
   const width = 1100;
-  const height = 300;
+  const height = 340;
 
-  const padding = {
-    top:20,
-    right:24,
-    bottom:42,
-    left:48
-  };
+const padding = {
+  top:28,
+  right:30,
+  bottom:46,
+  left:52
+};
 
   const maxValue =
     Math.max(
@@ -9094,13 +9687,41 @@ function renderSchoolLineChart(
       `)
       .join("");
 
-  container.innerHTML = `
-    <svg
-      viewBox="0 0 ${width} ${height}"
-      role="img"
-      aria-label="Verified school activity line chart"
-    >
-      ${gridLines}
+container.innerHTML = `
+  <svg
+    viewBox="0 0 ${width} ${height}"
+    role="img"
+    aria-label="Verified school activity line chart"
+  >
+    <defs>
+      <linearGradient
+        id="analyticsAreaGradient"
+        x1="0"
+        y1="0"
+        x2="0"
+        y2="1"
+      >
+        <stop
+          offset="0%"
+          stop-color="#1a73e8"
+          stop-opacity=".20"
+        ></stop>
+
+        <stop
+          offset="72%"
+          stop-color="#1a73e8"
+          stop-opacity=".035"
+        ></stop>
+
+        <stop
+          offset="100%"
+          stop-color="#1a73e8"
+          stop-opacity="0"
+        ></stop>
+      </linearGradient>
+    </defs>
+
+    ${gridLines}
 
       <path
         class="analytics-chart-area"
@@ -9429,6 +10050,155 @@ function renderAnalytics(){
     studentCount *
     assignmentCount;
 
+  /*
+  Compare the later half of the selected range with the
+  earlier half. This uses only verified daily backend data.
+*/
+const dailyComparison =
+  analyticsSplitDaily(daily);
+
+const previousDaily =
+  dailyComparison.previous;
+
+const currentDaily =
+  dailyComparison.current;
+
+const previousProfileViews =
+  analyticsSumRows(
+    previousDaily,
+    row => row.profileViews
+  );
+
+const currentProfilePeriodViews =
+  analyticsSumRows(
+    currentDaily,
+    row => row.profileViews
+  );
+
+const profileViewsTrend =
+  analyticsTrendPercent(
+    currentProfilePeriodViews,
+    previousProfileViews
+  );
+
+const previousEngagement =
+  analyticsSumRows(
+    previousDaily,
+    row =>
+      analyticsNumber(row.postLikes) +
+      analyticsNumber(row.postComments) +
+      analyticsNumber(row.postShares) +
+      analyticsNumber(row.postSaves)
+  );
+
+const currentEngagement =
+  analyticsSumRows(
+    currentDaily,
+    row =>
+      analyticsNumber(row.postLikes) +
+      analyticsNumber(row.postComments) +
+      analyticsNumber(row.postShares) +
+      analyticsNumber(row.postSaves)
+  );
+
+const engagementTrend =
+  analyticsTrendPercent(
+    currentEngagement,
+    previousEngagement
+  );
+
+const previousAttendanceRate =
+  analyticsAttendanceRateFromRows(
+    previousDaily
+  );
+
+const currentAttendanceRate =
+  analyticsAttendanceRateFromRows(
+    currentDaily
+  );
+
+const attendanceTrend =
+  analyticsTrendPercent(
+    currentAttendanceRate,
+    previousAttendanceRate
+  );
+
+const previousSubmissions =
+  analyticsSumRows(
+    previousDaily,
+    row => row.assignmentsSubmitted
+  );
+
+const currentSubmissions =
+  analyticsSumRows(
+    currentDaily,
+    row => row.assignmentsSubmitted
+  );
+
+const completionTrend =
+  analyticsTrendPercent(
+    currentSubmissions,
+    previousSubmissions
+  );
+
+const previousReviews =
+  analyticsSumRows(
+    previousDaily,
+    row => row.assignmentsReviewed
+  );
+
+const currentReviews =
+  analyticsSumRows(
+    currentDaily,
+    row => row.assignmentsReviewed
+  );
+
+const teacherTrend =
+  analyticsTrendPercent(
+    currentReviews,
+    previousReviews
+  );
+
+const previousClassViews =
+  analyticsSumRows(
+    previousDaily,
+    row => row.classViews
+  );
+
+const currentClassViews =
+  analyticsSumRows(
+    currentDaily,
+    row => row.classViews
+  );
+
+const classesTrend =
+  analyticsTrendPercent(
+    currentClassViews,
+    previousClassViews
+  );
+
+const previousFollowers =
+  analyticsSumRows(
+    previousDaily,
+    row =>
+      analyticsNumber(row.followersGained) -
+      analyticsNumber(row.followersLost)
+  );
+
+const currentFollowerChange =
+  analyticsSumRows(
+    currentDaily,
+    row =>
+      analyticsNumber(row.followersGained) -
+      analyticsNumber(row.followersLost)
+  );
+
+const followerTrend =
+  analyticsTrendPercent(
+    currentFollowerChange,
+    previousFollowers
+  );
+
   /* =======================================================
      RANGE DESCRIPTION
   ======================================================= */
@@ -9522,10 +10292,20 @@ function renderAnalytics(){
       overallScore
     );
 
-  setText(
-    "analyticsHealthScore",
-    overallScore
+setText(
+  "analyticsHealthScore",
+  overallScore
+);
+
+const healthRing =
+  $("analyticsHealthRing");
+
+if(healthRing){
+  healthRing.style.setProperty(
+    "--analytics-score",
+    String(overallScore)
   );
+}
 
   setText(
     "analyticsHealthTitle",
@@ -9615,6 +10395,56 @@ function renderAnalytics(){
       teacherReviewRate
     )
   );
+
+/* KPI TRENDS */
+
+setAnalyticsTrend(
+  "analyticsStudentsTrend",
+  studentsAtRisk
+    ? analyticsPercent(
+        studentsAtRisk,
+        studentCount
+      )
+    : 0,
+  {
+    invert:true
+  }
+);
+
+setAnalyticsTrend(
+  "analyticsAttendanceTrend",
+  attendanceTrend
+);
+
+setAnalyticsTrend(
+  "analyticsCompletionTrend",
+  completionTrend
+);
+
+setAnalyticsTrend(
+  "analyticsEngagementTrend",
+  engagementTrend
+);
+
+setAnalyticsTrend(
+  "analyticsFollowersTrend",
+  followerTrend
+);
+
+setAnalyticsTrend(
+  "analyticsProfileViewsTrend",
+  profileViewsTrend
+);
+
+setAnalyticsTrend(
+  "analyticsClassesTrend",
+  classesTrend
+);
+
+setAnalyticsTrend(
+  "analyticsTeacherTrend",
+  teacherTrend
+);
 
   /* KPI STATUS */
 
