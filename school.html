@@ -3158,22 +3158,58 @@ body.focus-portal .center-col{
 }
 
 .analytics-trend.positive{
-  color:var(--analytics-success);
+
+    color:#16a34a;
+
+}
+
+.analytics-trend.warning{
+
+    color:#d97706;
+
 }
 
 .analytics-trend.negative{
-  color:var(--analytics-danger);
+
+    color:#dc2626;
+
 }
 
 .analytics-trend.neutral{
-  color:var(--analytics-neutral);
+
+    color:#6b7280;
+
+}
+  .analytics-trend{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:6px;
+
+    font-size:13px;
+
+    font-weight:700;
+
 }
 
-.analytics-trend-context{
-  color:var(--analytics-subtle);
+.analytics-trend-arrow{
 
-  font-size:11px;
-  line-height:1.35;
+    font-size:14px;
+
+    font-weight:900;
+
+}
+
+.analytics-trend small{
+
+    font-size:11px;
+
+    font-weight:600;
+
+    opacity:.85;
+
 }
 
 .analytics-kpi-card > p{
@@ -9837,60 +9873,81 @@ function analyticsTrendIcon(direction){
 }
 
 function setAnalyticsTrend(
-  id,
-  value,
-  {
-    invert = false,
-    suffix = "%"
-  } = {}
+    id,
+    percentage,
+    {
+        excellent = 20,
+        good = 5,
+        warning = -5,
+        poor = -20
+    } = {}
 ){
-  const element =
-    $(id);
 
-  if(!element){
-    return;
-  }
+    const element = $(id);
 
-  const number =
-    analyticsNumber(value);
+    if(!element){
+        return;
+    }
 
-  let direction =
-    number > 0
-      ? "positive"
-      : number < 0
-      ? "negative"
-      : "neutral";
+    const value =
+        Number(percentage) || 0;
 
-  if(invert){
-    direction =
-      direction === "positive"
-        ? "negative"
-        : direction === "negative"
-        ? "positive"
-        : "neutral";
-  }
+    let cssClass = "neutral";
 
-  element.classList.remove(
-    "positive",
-    "negative",
-    "neutral"
-  );
+    let icon = "→";
 
-  element.classList.add(
-    direction
-  );
+    let label = "No significant change";
 
-  const prefix =
-    number > 0
-      ? "+"
-      : "";
+    if(value >= excellent){
 
-  element.innerHTML = `
-    ${analyticsTrendIcon(direction)}
-    <span>
-      ${prefix}${number.toFixed(1)}${suffix}
-    </span>
-  `;
+        cssClass = "positive";
+
+        icon = "▲";
+
+        label = "Excellent";
+
+    }else if(value >= good){
+
+        cssClass = "positive";
+
+        icon = "▲";
+
+        label = "Growing";
+
+    }else if(value <= poor){
+
+        cssClass = "negative";
+
+        icon = "▼";
+
+        label = "Poor";
+
+    }else if(value <= warning){
+
+        cssClass = "warning";
+
+        icon = "▼";
+
+        label = "Needs attention";
+
+    }
+
+    element.className =
+        `analytics-trend ${cssClass}`;
+
+    element.innerHTML = `
+        <span class="analytics-trend-arrow">
+            ${icon}
+        </span>
+
+        <span>
+            ${Math.abs(value).toFixed(1)}%
+        </span>
+
+        <small>
+            ${label}
+        </small>
+    `;
 }
 
 function setPerformanceCard(id,score){
