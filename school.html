@@ -19542,35 +19542,288 @@ function renderAttendance(){
       .join("");
 }
 
-function renderStats(unread){
-  const students = getStudents();
-  const teachers = getTeachers();
+function renderStats(){
 
-  setText("statStudents", students.length);
-  setText("statTeachers", teachers.length);
-  setText("statClasses", state.classes.length);
-  setText("statAssignments", state.assignments.length);
+    const studentCount = state.students.length;
+    const teacherCount = state.teachers.length;
+    const classCount = state.classes.length;
 
-  setText("programCountValue", getPrograms().length);
-  setText("opportunityCountValue", state.opportunities.length);
-  setText("schoolTypeValue", state.me?.schoolType || state.me?.type || "School");
+    const assignmentCount =
+        state.assignments
+        ? state.assignments.length
+        : 0;
 
-  const nextDeadline = state.assignments
-    .map(item => item.dueDate || item.deadline)
-    .filter(Boolean)
-    .sort()[0];
+    document.getElementById("statStudents").textContent =
+        formatNumber(studentCount);
 
-  setText("deadlineValue", formatDate(nextDeadline));
+    document.getElementById("statTeachers").textContent =
+        formatNumber(teacherCount);
 
-  const badge = $("notificationBadge");
-  if (badge){
-    if (Number(unread) > 0){
-      badge.textContent = unread > 99 ? "99+" : unread;
-      badge.style.display = "grid";
-    } else {
-      badge.style.display = "none";
+    document.getElementById("statClasses").textContent =
+        formatNumber(classCount);
+
+    document.getElementById("statAssignments").textContent =
+        formatNumber(assignmentCount);
+
+    updateOverviewMetric(
+        "Student",
+        studentCount,
+        1000
+    );
+
+    updateOverviewMetric(
+        "Teacher",
+        teacherCount,
+        100
+    );
+
+    updateOverviewMetric(
+        "Class",
+        classCount,
+        50
+    );
+
+    updateOverviewMetric(
+        "Assignment",
+        assignmentCount,
+        500
+    );
+
+    renderOverview();
+}
+
+function updateOverviewMetric(name,value,target){
+
+    const percent=Math.min(
+        Math.round((value/Math.max(target,1))*100),
+        100
+    );
+
+    const chip=document.getElementById(
+        `overview${name}Status`
+    );
+
+    const note=document.getElementById(
+        `overview${name}Note`
+    );
+
+    if(!chip || !note) return;
+
+    chip.className="overview-performance-chip";
+
+    if(percent>=90){
+
+        chip.classList.add("excellent");
+        chip.textContent="Excellent";
+
+    }else if(percent>=70){
+
+        chip.classList.add("good");
+        chip.textContent="Good";
+
+    }else if(percent>=45){
+
+        chip.classList.add("warning");
+        chip.textContent="Needs growth";
+
+    }else{
+
+        chip.classList.add("poor");
+        chip.textContent="Low";
+
     }
-  }
+
+    note.textContent=
+        `${value.toLocaleString()} registered`;
+}
+
+
+
+function getPerformanceColor(score){
+
+    if(score>=90) return "excellent";
+
+    if(score>=70) return "good";
+
+    if(score>=45) return "warning";
+
+    return "poor";
+}
+
+
+
+function setOverviewProgress(id,value){
+
+    const bar=document.getElementById(id);
+
+    if(!bar) return;
+
+    const score=Math.max(
+        0,
+        Math.min(value,100)
+    );
+
+    bar.style.width=score+"%";
+
+    bar.className="overview-progress-fill";
+
+    bar.classList.add(
+        getPerformanceColor(score)
+    );
+}
+
+function renderOverview(){
+
+    const analytics=
+        state.analytics||{};
+
+    const attendance=
+        analytics.attendanceRate||0;
+
+    const completion=
+        analytics.assignmentCompletionRate||0;
+
+    const review=
+        analytics.reviewRate||0;
+
+    const utilization=
+        analytics.classUtilization||0;
+
+    setOverviewProgress(
+        "overviewAttendanceBar",
+        attendance
+    );
+
+    setOverviewProgress(
+        "overviewCompletionBar",
+        completion
+    );
+
+    setOverviewProgress(
+        "overviewReviewBar",
+        review
+    );
+
+    setOverviewProgress(
+        "overviewUtilizationBar",
+        utilization
+    );
+
+    document.getElementById(
+        "overviewAttendanceValue"
+    ).textContent=
+        attendance+"%";
+
+    document.getElementById(
+        "overviewCompletionValue"
+    ).textContent=
+        completion+"%";
+
+    document.getElementById(
+        "overviewReviewValue"
+    ).textContent=
+        review+"%";
+
+    document.getElementById(
+        "overviewUtilizationValue"
+    ).textContent=
+        utilization+"%";
+
+
+
+    const health=Math.round(
+
+        (
+            attendance+
+            completion+
+            review+
+            utilization
+        )/4
+
+    );
+
+
+
+    document.getElementById(
+        "overviewHealthValue"
+    ).textContent=health+"%";
+
+
+
+    document.getElementById(
+        "overviewHealthRing"
+    ).style.setProperty(
+
+        "--overview-health-progress",
+
+        (health*3.6)+"deg"
+
+    );
+
+
+
+    const chip=document.getElementById(
+        "overviewHealthStatus"
+    );
+
+    chip.className=
+        "overview-performance-chip";
+
+    chip.classList.add(
+        getPerformanceColor(health)
+    );
+
+
+
+    if(health>=90){
+
+        chip.textContent="Excellent";
+
+        document.getElementById(
+            "overviewHealthTitle"
+        ).textContent=
+        "School performing excellently";
+
+    }
+
+    else if(health>=70){
+
+        chip.textContent="Good";
+
+        document.getElementById(
+            "overviewHealthTitle"
+        ).textContent=
+        "School operating well";
+
+    }
+
+    else if(health>=45){
+
+        chip.textContent="Needs attention";
+
+        document.getElementById(
+            "overviewHealthTitle"
+        ).textContent=
+        "Some operations need improvement";
+
+    }
+
+    else{
+
+        chip.textContent="Poor";
+
+        document.getElementById(
+            "overviewHealthTitle"
+        ).textContent=
+        "Immediate improvements recommended";
+
+    }
+
+    document.getElementById(
+        "overviewHealthDescription"
+    ).textContent=
+
+    "Attendance, assignments, reviews and class utilization are monitored continuously.";
 }
 
 function renderUpdates(){
