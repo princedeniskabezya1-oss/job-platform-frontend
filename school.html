@@ -1070,88 +1070,8 @@ img{
   font-size:1rem;
   font-weight:800;
 }
-  .ops-grid{
-  display:grid;
-  gap:12px;
-}
 
-.ops-card{
-  border:1px solid var(--border);
-  border-radius:18px;
-  padding:14px;
-  background:#fff;
-}
 
-.ops-card strong{
-  display:block;
-  font-size:.95rem;
-  font-weight:800;
-  margin-bottom:5px;
-}
-
-.ops-card span{
-  display:block;
-  color:var(--muted);
-  font-size:.82rem;
-  line-height:1.45;
-}
-
-.ops-actions{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  margin-top:12px;
-}
-
-.health-score{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  padding:14px;
-  border:1px solid #dbeafe;
-  border-radius:18px;
-  background:#f8fbff;
-  margin-bottom:14px;
-}
-
-.health-score strong{
-  font-size:1.6rem;
-  font-weight:800;
-  color:var(--primary-dark);
-}
-
-.health-score span{
-  color:var(--muted);
-  font-size:.82rem;
-}
-
-.mini-metric-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-top:14px;
-}
-
-.mini-metric{
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:12px;
-  background:#fff;
-}
-
-.mini-metric span{
-  display:block;
-  color:var(--muted);
-  font-size:.76rem;
-  font-weight:700;
-  margin-bottom:5px;
-}
-
-.mini-metric strong{
-  font-size:1rem;
-  font-weight:800;
-}
   /* ALERT */
 
 .alert{
@@ -4481,21 +4401,22 @@ body.focus-portal .center-col{
 
     <div class="analytics-range-controls">
 
-      <label for="schoolAnalyticsRange">
-        Date range
-      </label>
+<label for="analyticsRangeSelect">
+  Date range
+</label>
 
-      <select
-        id="schoolAnalyticsRange"
-        onchange="changeSchoolAnalyticsRange(this.value)"
-      >
-        <option value="7">Last 7 days</option>
-        <option value="30" selected>Last 30 days</option>
-        <option value="90">Last 90 days</option>
-        <option value="180">Last 6 months</option>
-        <option value="365">Last 12 months</option>
-        <option value="all">All time</option>
-      </select>
+<select
+  id="analyticsRangeSelect"
+  onchange="changeSchoolAnalyticsRange(this.value)"
+  aria-label="Select analytics date range"
+>
+  <option value="7">Last 7 days</option>
+  <option value="30" selected>Last 30 days</option>
+  <option value="90">Last 90 days</option>
+  <option value="180">Last 6 months</option>
+  <option value="365">Last 12 months</option>
+  <option value="all">All time</option>
+</select>
 
 <button
   type="button"
@@ -7908,6 +7829,552 @@ function renderAnalyticsLoadingState(){
 }
 
 /* =========================================================
+   NORMALIZE ANALYTICS API RESPONSE
+   Supports the current backend response while keeping the
+   dashboard renderer isolated from backend field changes.
+========================================================= */
+
+function normalizeAnalyticsApiResponse(payload, requestedRange){
+  if(
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload)
+  ){
+    throw new Error(
+      "The analytics server returned an invalid response."
+    );
+  }
+
+  const rawSummary =
+    payload.summary &&
+    typeof payload.summary === "object"
+      ? payload.summary
+      : {};
+
+  const rawDaily =
+    Array.isArray(payload.daily)
+      ? payload.daily
+      : [];
+
+  const attendancePresent =
+    analyticsNonNegative(
+      rawSummary.attendancePresent
+    );
+
+  const attendanceLate =
+    analyticsNonNegative(
+      rawSummary.attendanceLate
+    );
+
+  const attendanceAbsent =
+    analyticsNonNegative(
+      rawSummary.attendanceAbsent
+    );
+
+  const attendanceExcused =
+    analyticsNonNegative(
+      rawSummary.attendanceExcused
+    );
+
+  const attendanceTotal =
+    attendancePresent +
+    attendanceLate +
+    attendanceAbsent +
+    attendanceExcused;
+
+  const assignmentsSubmitted =
+    analyticsNonNegative(
+      rawSummary.assignmentsSubmitted
+    );
+
+  const assignmentsReviewed =
+    analyticsNonNegative(
+      rawSummary.assignmentsReviewed
+    );
+
+  const submissionCount =
+    analyticsNonNegative(
+      rawSummary.submissionCount
+    );
+
+const reviewedCount =
+  Math.min(
+    submissionCount,
+    assignmentsReviewed
+  );
+  const pendingReviews =
+    Math.max(
+      0,
+      submissionCount -
+      reviewedCount
+    );
+
+  const reviewRate =
+    submissionCount
+      ? analyticsWholePercent(
+          reviewedCount /
+          submissionCount *
+          100
+        )
+      : 0;
+
+  const classCount =
+    analyticsNonNegative(
+      rawSummary.classCount
+    );
+
+  const classesCreated =
+    analyticsNonNegative(
+      rawSummary.classesCreated
+    );
+
+  /*
+    The current backend does not yet return archived or active
+    class counts separately. Until those fields are added,
+    existing classes are treated as active.
+  */
+  const activeClassCount =
+    analyticsNonNegative(
+      rawSummary.activeClassCount ??
+      classCount
+    );
+
+  const archivedClassCount =
+    analyticsNonNegative(
+      rawSummary.archivedClassCount
+    );
+
+  const classUtilizationRate =
+    analyticsWholePercent(
+      rawSummary.classUtilizationRate ??
+      (
+        classCount
+          ? (
+              activeClassCount /
+              classCount *
+              100
+            )
+          : 0
+      )
+    );
+
+  const engagementRate =
+    analyticsNumber(
+      rawSummary.publicEngagementRate ??
+      rawSummary.engagementRate
+    );
+
+  const engagementScore =
+    analyticsWholePercent(
+      rawSummary.publicEngagementScore ??
+      Math.min(
+        100,
+        engagementRate * 5
+      )
+    );
+
+  const overallScore =
+    analyticsWholePercent(
+      rawSummary.overallScore
+    );
+
+  const rangeKey =
+    normalizeSchoolAnalyticsRange(
+      payload?.range?.key ||
+      requestedRange
+    );
+
+  const rangeLabel =
+    payload?.range?.label ||
+    (
+      rangeKey === "all"
+        ? "All time"
+        : `Last ${rangeKey} days`
+    );
+
+  const normalizedDaily =
+    rawDaily.map(row => ({
+      date:
+        String(
+          row?.date || ""
+        ).slice(0,10),
+
+      profileViews:
+        analyticsNonNegative(
+          row?.profileViews
+        ),
+
+      uniqueProfileViews:
+        analyticsNonNegative(
+          row?.uniqueProfileViews
+        ),
+
+      followersGained:
+        analyticsNonNegative(
+          row?.followersGained
+        ),
+
+      followersLost:
+        analyticsNonNegative(
+          row?.followersLost
+        ),
+
+      postsCreated:
+        analyticsNonNegative(
+          row?.postsCreated
+        ),
+
+      postImpressions:
+        analyticsNonNegative(
+          row?.postImpressions
+        ),
+
+      postViews:
+        analyticsNonNegative(
+          row?.postViews
+        ),
+
+      uniquePostViews:
+        analyticsNonNegative(
+          row?.uniquePostViews
+        ),
+
+      postLikes:
+        analyticsNonNegative(
+          row?.postLikes
+        ),
+
+      postComments:
+        analyticsNonNegative(
+          row?.postComments
+        ),
+
+      postShares:
+        analyticsNonNegative(
+          row?.postShares
+        ),
+
+      postSaves:
+        analyticsNonNegative(
+          row?.postSaves
+        ),
+
+      studentViews:
+        analyticsNonNegative(
+          row?.studentViews
+        ),
+
+      studentsAdded:
+        analyticsNonNegative(
+          row?.studentsAdded
+        ),
+
+      classViews:
+        analyticsNonNegative(
+          row?.classViews
+        ),
+
+      classesCreated:
+        analyticsNonNegative(
+          row?.classesCreated
+        ),
+
+      attendanceRecordsCreated:
+        analyticsNonNegative(
+          row?.attendancePresent
+        ) +
+        analyticsNonNegative(
+          row?.attendanceLate
+        ) +
+        analyticsNonNegative(
+          row?.attendanceAbsent
+        ) +
+        analyticsNonNegative(
+          row?.attendanceExcused
+        ),
+
+      attendancePresent:
+        analyticsNonNegative(
+          row?.attendancePresent
+        ),
+
+      attendanceLate:
+        analyticsNonNegative(
+          row?.attendanceLate
+        ),
+
+      attendanceAbsent:
+        analyticsNonNegative(
+          row?.attendanceAbsent
+        ),
+
+      attendanceExcused:
+        analyticsNonNegative(
+          row?.attendanceExcused
+        ),
+
+      assignmentsSubmitted:
+        analyticsNonNegative(
+          row?.assignmentsSubmitted
+        ),
+
+      assignmentsReviewed:
+        analyticsNonNegative(
+          row?.assignmentsReviewed
+        ),
+
+      careerViews:
+        analyticsNonNegative(
+          row?.careerViews
+        ),
+
+      careerApplications:
+        analyticsNonNegative(
+          row?.careerApplications
+        ),
+
+      careerPlacements:
+        analyticsNonNegative(
+          row?.careerPlacements
+        ),
+
+      searchImpressions:
+        analyticsNonNegative(
+          row?.searchImpressions
+        ),
+
+      searchClicks:
+        analyticsNonNegative(
+          row?.searchClicks
+        )
+    }));
+
+  return {
+    success: true,
+
+    range: {
+      ...payload.range,
+      key:
+        rangeKey,
+      label:
+        rangeLabel
+    },
+
+    summary: {
+      ...rawSummary,
+
+      overallScore,
+
+      studentCount:
+        analyticsNonNegative(
+          rawSummary.studentCount
+        ),
+
+      teacherCount:
+        analyticsNonNegative(
+          rawSummary.teacherCount
+        ),
+
+      classCount,
+
+      activeClassCount,
+
+      archivedClassCount,
+
+      classUtilizationRate,
+
+      assignmentCount:
+        analyticsNonNegative(
+          rawSummary.assignmentCount
+        ),
+
+      submissionCount,
+
+      opportunityCount:
+        analyticsNonNegative(
+          rawSummary.opportunityCount
+        ),
+
+      studentsAtRisk:
+        analyticsNonNegative(
+          rawSummary.studentsAtRisk
+        ),
+
+      currentFollowers:
+        analyticsNonNegative(
+          rawSummary.currentFollowers
+        ),
+
+      currentProfileViews:
+        analyticsNonNegative(
+          rawSummary.currentProfileViews
+        ),
+
+      profileViews:
+        analyticsNonNegative(
+          rawSummary.profileViews
+        ),
+
+      uniqueProfileViews:
+        analyticsNonNegative(
+          rawSummary.uniqueProfileViews
+        ),
+
+      followersGained:
+        analyticsNonNegative(
+          rawSummary.followersGained
+        ),
+
+      followersLost:
+        analyticsNonNegative(
+          rawSummary.followersLost
+        ),
+
+      netFollowers:
+        analyticsNumber(
+          rawSummary.netFollowers
+        ),
+
+      postsCreated:
+        analyticsNonNegative(
+          rawSummary.postsCreated
+        ),
+
+      postImpressions:
+        analyticsNonNegative(
+          rawSummary.postImpressions
+        ),
+
+      postViews:
+        analyticsNonNegative(
+          rawSummary.postViews
+        ),
+
+      uniquePostViews:
+        analyticsNonNegative(
+          rawSummary.uniquePostViews
+        ),
+
+      netPostLikes:
+        analyticsNumber(
+          rawSummary.netPostLikes ??
+          rawSummary.postLikes
+        ),
+
+      postComments:
+        analyticsNonNegative(
+          rawSummary.postComments
+        ),
+
+      postShares:
+        analyticsNonNegative(
+          rawSummary.postShares
+        ),
+
+      postSaves:
+        analyticsNonNegative(
+          rawSummary.postSaves
+        ),
+
+      engagementTotal:
+        analyticsNonNegative(
+          rawSummary.engagementTotal
+        ),
+
+      publicEngagementRate:
+        engagementRate,
+
+      publicEngagementScore:
+        engagementScore,
+
+      careerApplications:
+        analyticsNonNegative(
+          rawSummary.careerApplications
+        ),
+
+      careerPlacements:
+        analyticsNonNegative(
+          rawSummary.careerPlacements
+        ),
+
+      attendance: {
+        total:
+          attendanceTotal,
+
+        present:
+          attendancePresent,
+
+        late:
+          attendanceLate,
+
+        absent:
+          attendanceAbsent,
+
+        excused:
+          attendanceExcused,
+
+        attendanceRate:
+          analyticsWholePercent(
+            rawSummary.attendanceRate
+          ),
+
+        participationAverage:
+          analyticsWholePercent(
+            rawSummary.participationAverage
+          ),
+
+        participationCount:
+          analyticsNonNegative(
+            rawSummary.participationCount ??
+            attendanceTotal
+          )
+      },
+
+      submissions: {
+        total:
+          submissionCount,
+
+        submitted:
+          assignmentsSubmitted,
+
+        reviewed:
+          reviewedCount,
+
+        pending:
+          pendingReviews,
+
+        reviewRate,
+
+        completionRate:
+          analyticsWholePercent(
+            rawSummary.completionRate
+          ),
+
+        averageReviewTimeMinutes:
+          analyticsNonNegative(
+            rawSummary.averageReviewTimeMinutes
+          ),
+
+        averageGrade:
+          analyticsNumber(
+            rawSummary.averageGrade
+          )
+      }
+    },
+
+    daily:
+      normalizedDaily,
+
+    recommendations:
+      Array.isArray(
+        payload.recommendations
+      )
+        ? payload.recommendations
+        : []
+  };
+}
+
+/* =========================================================
    AUTHENTICATED BACKEND LOADER
 ========================================================= */
 
@@ -7944,18 +8411,22 @@ async function loadSchoolAnalytics({
   state.analyticsError = null;
 
   try{
-    const range =
+    const requestedRange =
       normalizeSchoolAnalyticsRange(
         state.analyticsRange
       );
 
+    const url =
+      `${API}/api/analytics/school/${encodeURIComponent(schoolId)}?range=${encodeURIComponent(requestedRange)}`;
+
     const response =
       await fetch(
-        `${API}/api/analytics/school/${encodeURIComponent(schoolId)}?range=${encodeURIComponent(range)}`,
+        url,
         {
-          method:"GET",
+          method:
+            "GET",
 
-          headers:{
+          headers: {
             ...authHeaders(),
 
             Accept:
@@ -7967,30 +8438,59 @@ async function loadSchoolAnalytics({
         }
       );
 
-    const payload =
+    const rawPayload =
       await safeJson(response);
+
+    if(response.status === 401){
+      localStorage.removeItem(
+        "schoolToken"
+      );
+
+      localStorage.removeItem(
+        "token"
+      );
+
+      window.location.href =
+        "login.html";
+
+      return null;
+    }
+
+    if(response.status === 403){
+      throw new Error(
+        rawPayload?.message ||
+        "You are not authorized to view these school analytics."
+      );
+    }
 
     if(!response.ok){
       throw new Error(
-        payload?.message ||
+        rawPayload?.message ||
         `Analytics request failed with status ${response.status}.`
       );
     }
 
+    /*
+      The current backend returns:
+      { range, summary, daily }
+
+      It does not currently include:
+      { success:true }
+
+      Therefore we validate the actual required fields rather
+      than rejecting a correct response.
+    */
     if(
-      !payload ||
-      payload.success !== true
+      !rawPayload ||
+      typeof rawPayload !== "object" ||
+      !rawPayload.summary ||
+      !Array.isArray(rawPayload.daily)
     ){
       throw new Error(
-        payload?.message ||
-        "The analytics response was invalid."
+        "The analytics server returned an incomplete response."
       );
     }
 
-    /*
-      Ignore an older request if the user changed the range
-      while another request was still loading.
-    */
     if(
       requestId !==
       analyticsLoadRequestId
@@ -7998,14 +8498,17 @@ async function loadSchoolAnalytics({
       return state.analytics;
     }
 
+    const normalizedPayload =
+      normalizeAnalyticsApiResponse(
+        rawPayload,
+        requestedRange
+      );
+
     state.analytics =
-      payload;
+      normalizedPayload;
 
     state.analyticsRange =
-      normalizeSchoolAnalyticsRange(
-        payload?.range?.key ||
-        range
-      );
+      normalizedPayload.range.key;
 
     state.analyticsLastLoadedAt =
       new Date();
@@ -8023,7 +8526,7 @@ async function loadSchoolAnalytics({
 
     renderAnalytics();
 
-    return payload;
+    return normalizedPayload;
   }catch(error){
     console.error(
       "LOAD SCHOOL ANALYTICS ERROR:",
@@ -10685,65 +11188,184 @@ function initSearch(){
   });
 }
 
+/* =========================================================
+   SOCKET.IO
+========================================================= */
+
+let dashboardRealtimeReloadTimer = null;
+
 function initSocket(){
-  if (typeof io === "undefined") return;
+  if(typeof io === "undefined"){
+    console.warn(
+      "Socket.IO client is unavailable."
+    );
+
+    return;
+  }
 
   try{
-    const socket = io(API,{
-      transports:["websocket","polling"],
-      auth:{ token }
-    });
+    const socket = io(
+      API,
+      {
+        transports:[
+          "websocket",
+          "polling"
+        ],
 
-    socket.on("connect",() => {
-      socket.emit("join",{ userId:getSchoolId(), role:"school" });
-    });
-    let analyticsRealtimeTimer = null;
-
-socket.on(
-  "analytics:updated",
-  payload => {
-    if(
-      String(payload?.schoolId || "") !==
-      String(getSchoolId() || "")
-    ){
-      return;
-    }
-
-    /*
-      Several backend events may arrive close together.
-      Reload once after a short delay instead of requesting
-      the dashboard repeatedly.
-    */
-    if(analyticsRealtimeTimer){
-      clearTimeout(
-        analyticsRealtimeTimer
-      );
-    }
-
-    analyticsRealtimeTimer =
-      setTimeout(
-        async () => {
-          await loadSchoolAnalytics({
-            force: true,
-            silent: true
-          });
+        auth:{
+          token
         },
-        900
-      );
-  }
-);
 
-    [
+        reconnection:true,
+
+        reconnectionAttempts:
+          Infinity,
+
+        reconnectionDelay:
+          1000,
+
+        reconnectionDelayMax:
+          8000,
+
+        timeout:
+          12000
+      }
+    );
+
+    socket.on(
+      "connect",
+      () => {
+        const schoolId =
+          getSchoolId();
+
+        if(!schoolId){
+          return;
+        }
+
+        socket.emit(
+          "join",
+          {
+            userId:
+              schoolId,
+
+            role:
+              role === "admin"
+                ? "admin"
+                : "school"
+          }
+        );
+      }
+    );
+
+    socket.on(
+      "connect_error",
+      error => {
+        console.warn(
+          "Socket connection error:",
+          error?.message ||
+          error
+        );
+      }
+    );
+
+    socket.on(
+      "analytics:updated",
+      payload => {
+        const currentSchoolId =
+          String(
+            getSchoolId() ||
+            ""
+          );
+
+        const payloadSchoolId =
+          String(
+            payload?.schoolId ||
+            ""
+          );
+
+        if(
+          !currentSchoolId ||
+          payloadSchoolId !==
+            currentSchoolId
+        ){
+          return;
+        }
+
+        if(
+          analyticsRealtimeRefreshTimer
+        ){
+          clearTimeout(
+            analyticsRealtimeRefreshTimer
+          );
+        }
+
+        analyticsRealtimeRefreshTimer =
+          setTimeout(
+            () => {
+              loadSchoolAnalytics({
+                force:true,
+                silent:true
+              });
+            },
+            900
+          );
+      }
+    );
+
+    const dashboardRefreshEvents = [
       "post:new",
       "class:new",
       "assignment:new",
       "schedule:new",
       "notification:new",
-      "user:new"
-    ].forEach(event => socket.on(event,loadAll));
+      "user:new",
+      "submission:new",
+      "submission:reviewed"
+    ];
 
-  }catch(err){
-    console.warn("Socket unavailable:",err);
+    dashboardRefreshEvents.forEach(
+      eventName => {
+        socket.on(
+          eventName,
+          () => {
+            /*
+              Group rapid Socket.IO events into one dashboard
+              reload instead of calling loadAll repeatedly.
+            */
+            if(
+              dashboardRealtimeReloadTimer
+            ){
+              clearTimeout(
+                dashboardRealtimeReloadTimer
+              );
+            }
+
+            dashboardRealtimeReloadTimer =
+              setTimeout(
+                () => {
+                  loadAll();
+                },
+                700
+              );
+          }
+        );
+      }
+    );
+
+    socket.on(
+      "disconnect",
+      reason => {
+        console.info(
+          "Socket disconnected:",
+          reason
+        );
+      }
+    );
+  }catch(error){
+    console.warn(
+      "Socket unavailable:",
+      error
+    );
   }
 }
 
