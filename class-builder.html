@@ -3216,6 +3216,178 @@ align-items:flex-start;
 }
 
 }
+
+/* ==========================================================
+   PRESENTATION SLIDE
+========================================================== */
+
+.studio-slide{
+
+position:relative;
+
+width:100%;
+height:100%;
+
+padding:60px;
+
+display:flex;
+
+flex-direction:column;
+
+background:white;
+
+overflow:hidden;
+
+}
+
+.slide-title{
+
+font-size:42px;
+
+font-weight:800;
+
+outline:none;
+
+cursor:text;
+
+}
+
+.slide-subtitle{
+
+margin-top:25px;
+
+font-size:22px;
+
+line-height:1.7;
+
+outline:none;
+
+cursor:text;
+
+color:#555;
+
+max-width:760px;
+
+}
+
+.slide-image-drop{
+
+margin-top:auto;
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+height:220px;
+
+}
+
+.slide-image-placeholder{
+
+width:320px;
+
+height:180px;
+
+border:3px dashed #d1d5db;
+
+border-radius:18px;
+
+display:flex;
+
+flex-direction:column;
+
+justify-content:center;
+
+align-items:center;
+
+gap:16px;
+
+transition:.25s;
+
+}
+
+.slide-image-placeholder:hover{
+
+border-color:#2563eb;
+
+background:#f8fbff;
+
+}
+
+.slide-image-placeholder svg{
+
+width:48px;
+
+height:48px;
+
+stroke:#2563eb;
+
+fill:none;
+
+stroke-width:2;
+
+}
+
+.slide-image-placeholder span{
+
+font-size:15px;
+
+font-weight:700;
+
+color:#2563eb;
+
+}
+
+.slide-object{
+
+position:absolute;
+
+cursor:move;
+
+border:2px solid transparent;
+
+transition:.15s;
+
+}
+
+.slide-object.selected{
+
+border-color:#2563eb;
+
+box-shadow:0 0 0 2px rgba(37,99,235,.15);
+
+}
+
+.slide-object img{
+
+width:100%;
+height:100%;
+
+object-fit:cover;
+
+pointer-events:none;
+
+}
+
+.resize-handle{
+
+position:absolute;
+
+width:12px;
+height:12px;
+
+background:#2563eb;
+
+border-radius:50%;
+
+right:-7px;
+bottom:-7px;
+
+cursor:nwse-resize;
+
+}
   
 </style>
 </head>
@@ -4125,19 +4297,47 @@ class="presentation-canvas">
 id="presentationCanvas"
 class="presentation-page">
 
-<div class="presentation-placeholder">
+<div
+id="activePresentationSlide"
+class="studio-slide">
 
-<h2>
+<div
+class="slide-title"
+contenteditable="true">
 
-No Slide Selected
+Lesson Title
 
-</h2>
+</div>
 
-<p>
+<div
+class="slide-subtitle"
+contenteditable="true">
 
-Select or create a slide.
+Write your lesson introduction here...
 
-</p>
+</div>
+
+<div class="slide-image-drop">
+
+<div class="slide-image-placeholder">
+
+<svg viewBox="0 0 24 24">
+
+<path d="M3 5h18v14H3z"></path>
+<circle cx="8" cy="9" r="2"></circle>
+<path d="M21 16l-6-6-8 8"></path>
+
+</svg>
+
+<span>
+
+Drop image here
+
+</span>
+
+</div>
+
+</div>
 
 </div>
 
@@ -5235,6 +5435,50 @@ function getToken(){
   return "";
 }
 
+function createTextObject(){
+
+return{
+
+id:crypto.randomUUID(),
+
+type:"text",
+
+text:"New text",
+
+x:120,
+
+y:120,
+
+width:280,
+
+height:60
+
+};
+
+}
+
+function createImageObject(url){
+
+return{
+
+id:crypto.randomUUID(),
+
+type:"image",
+
+url,
+
+x:150,
+
+y:150,
+
+width:300,
+
+height:200
+
+};
+
+}
+
 function authHeaders(extra = {}){
   const token = getToken();
 
@@ -5272,6 +5516,295 @@ async function apiGet(path){
   }
 
   return data;
+}
+
+function renderPresentationCanvas(){
+
+const canvas=
+document.getElementById(
+"presentationCanvas"
+);
+
+if(!canvas)return;
+
+if(!currentSlide){
+
+canvas.innerHTML=`
+
+<div class="presentation-placeholder">
+
+<h2>
+
+No Slide
+
+</h2>
+
+<p>
+
+Create your first slide.
+
+</p>
+
+</div>
+
+`;
+
+return;
+
+}
+
+canvas.innerHTML=`
+
+<div
+class="studio-slide"
+style="background:${currentSlide.background};">
+
+<div
+class="slide-title"
+contenteditable="true"
+data-role="title">
+
+${escapeHtml(currentSlide.title||"Title")}
+
+</div>
+
+<div
+class="slide-subtitle"
+contenteditable="true"
+data-role="subtitle">
+
+${escapeHtml(currentSlide.subtitle||"Subtitle")}
+
+</div>
+
+<div
+id="slideObjects">
+
+</div>
+
+</div>
+
+`;
+
+renderSlideObjects();
+
+}
+
+/* ==========================================================
+   OBJECT RENDERER
+========================================================== */
+
+let selectedObjectId = null;
+
+function renderSlideObjects(){
+
+    const wrap = document.getElementById("slideObjects");
+
+    if(!wrap || !currentSlide) return;
+
+    wrap.innerHTML = "";
+
+    currentSlide.objects.forEach(object=>{
+
+        const element = document.createElement("div");
+
+        element.className =
+            "slide-object" +
+            (selectedObjectId===object.id ? " selected" : "");
+
+        element.dataset.id = object.id;
+
+        element.style.left = object.x + "px";
+        element.style.top = object.y + "px";
+        element.style.width = object.width + "px";
+        element.style.height = object.height + "px";
+
+        switch(object.type){
+
+            case "text":
+
+                element.innerHTML = `
+                    <div
+                        class="slide-object-text"
+                        contenteditable="true"
+                    >
+                        ${escapeHtml(object.text||"")}
+                    </div>
+                `;
+
+                break;
+
+            case "image":
+
+                element.innerHTML = `
+                    <img
+                        draggable="false"
+                        src="${object.url}"
+                    >
+                `;
+
+                break;
+
+        }
+
+        attachObjectEvents(
+            element,
+            object
+        );
+
+        wrap.appendChild(element);
+
+    });
+
+}
+
+function attachObjectEvents(
+element,
+object
+){
+
+element.addEventListener("mousedown",()=>{
+
+selectedObjectId = object.id;
+
+renderSlideObjects();
+
+});
+
+enableObjectDragging(
+element,
+object
+);
+
+}
+
+function enableObjectDragging(
+element,
+object
+){
+
+let dragging=false;
+
+let startX=0;
+let startY=0;
+
+element.addEventListener(
+"mousedown",
+e=>{
+
+if(e.target.isContentEditable) return;
+
+dragging=true;
+
+startX=e.clientX-object.x;
+startY=e.clientY-object.y;
+
+document.body.style.userSelect="none";
+
+});
+
+window.addEventListener(
+"mousemove",
+e=>{
+
+if(!dragging) return;
+
+object.x=e.clientX-startX;
+
+object.y=e.clientY-startY;
+
+element.style.left=
+object.x+"px";
+
+element.style.top=
+object.y+"px";
+
+});
+
+window.addEventListener(
+"mouseup",
+()=>{
+
+if(!dragging) return;
+
+dragging=false;
+
+document.body.style.userSelect="";
+
+schedulePresentationAutosave();
+
+});
+
+}
+
+function addPresentationSlide(){
+
+const slide=
+createSlide("title");
+
+slide.title="New Slide";
+
+slide.subtitle="Start editing...";
+
+presentationStudio.slides.push(slide);
+
+loadPresentationSlide(slide.id);
+
+renderPresentationSlides();
+
+schedulePresentationAutosave();
+
+}
+function renderPresentationSlides(){
+
+const panel=
+document.getElementById(
+"presentationSlides"
+);
+
+if(!panel)return;
+
+panel.innerHTML="";
+
+presentationStudio.slides.forEach(
+(slide,index)=>{
+
+panel.innerHTML+=`
+
+<div
+class="presentation-slide-card
+${slide.id===presentationStudio.currentSlideId?"active":""}"
+
+onclick="loadPresentationSlide('${slide.id}')">
+
+<div class="presentation-slide-number">
+
+${index+1}
+
+</div>
+
+<div>
+
+<div class="presentation-slide-title">
+
+${escapeHtml(slide.title)}
+
+</div>
+
+<div class="presentation-slide-type">
+
+${slide.type}
+
+</div>
+
+</div>
+
+</div>
+
+`;
+
+});
+
 }
 
 async function apiSend(path, method, payload){
@@ -5830,6 +6363,81 @@ function createPresentation(){
   window.location.href =
     `visual-editor.html?${params.toString()}`;
 }
+
+/* ==========================================================
+   PRESENTATION ENGINE
+========================================================== */
+
+const presentationStudio={
+
+id:null,
+
+lessonId:null,
+
+theme:"classic",
+
+background:"#ffffff",
+
+ratio:"16:9",
+
+currentSlideId:null,
+
+slides:[]
+
+};
+
+function createSlide(type="title"){
+
+return{
+
+id:
+crypto.randomUUID
+?crypto.randomUUID()
+:
+"slide-"+Date.now()+"-"+Math.random(),
+
+type,
+
+title:"",
+
+subtitle:"",
+
+background:"#ffffff",
+
+notes:"",
+
+objects:[],
+
+transition:"fade",
+
+duration:0
+
+};
+
+}
+let currentSlide=null;
+
+function loadPresentationSlide(slideId){
+
+const slide=
+presentationStudio.slides.find(
+item=>item.id===slideId
+);
+
+if(!slide)return;
+
+presentationStudio.currentSlideId=slide.id;
+
+currentSlide=slide;
+
+renderPresentationCanvas();
+
+renderPresentationSidebar();
+
+}
+  
+
+
 
 function openMediaUploader(){
   showAlert(
