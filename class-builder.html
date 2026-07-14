@@ -5352,6 +5352,130 @@ body[data-builder-section="overview"] .studio-workspace{
   font-size:9px;
   line-height:1.5;
 }
+
+/* =========================================================
+   BUILDER STARTUP RECOVERY
+========================================================= */
+
+.builder-recovery-screen{
+  min-height:calc(100vh - 110px);
+  padding:40px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  background:#f6f8fb;
+}
+
+.builder-recovery-card{
+  width:min(560px,100%);
+  padding:34px;
+
+  border:1px solid #dfe3e8;
+  border-radius:16px;
+
+  background:#fff;
+
+  box-shadow:
+    0 12px 34px rgba(15,23,42,.1);
+
+  text-align:center;
+}
+
+.builder-recovery-icon{
+  width:54px;
+  height:54px;
+  margin:0 auto;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:14px;
+
+  background:#fce8e6;
+  color:#c5221f;
+}
+
+.builder-recovery-icon svg{
+  width:26px;
+  height:26px;
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.builder-recovery-card h1{
+  margin:18px 0 0;
+
+  color:#202124;
+
+  font-size:21px;
+  line-height:1.3;
+}
+
+.builder-recovery-card p{
+  margin:9px auto 0;
+
+  max-width:440px;
+
+  color:#5f6368;
+
+  font-size:12px;
+  line-height:1.6;
+}
+
+.builder-recovery-card code{
+  display:block;
+  margin-top:18px;
+  padding:12px 14px;
+
+  overflow-wrap:anywhere;
+
+  border:1px solid #f2b8b5;
+  border-radius:9px;
+
+  background:#fef7f6;
+  color:#a50e0e;
+
+  font-size:10px;
+  line-height:1.5;
+  text-align:left;
+}
+
+.builder-recovery-actions{
+  margin-top:20px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:9px;
+}
+
+.builder-recovery-actions button{
+  min-height:40px;
+  padding:0 15px;
+
+  border:1px solid #dadce0;
+  border-radius:8px;
+
+  background:#fff;
+  color:#202124;
+
+  font-size:10px;
+  font-weight:700;
+}
+
+.builder-recovery-actions button:first-child{
+  border-color:#1a73e8;
+
+  background:#1a73e8;
+  color:#fff;
+}
   
 </style>
 </head>
@@ -9609,38 +9733,78 @@ function loadPresentationSlide(
 
 function safelyRenderPresentationStudio(){
   const renderers = [
-    renderPresentationSlides,
-    renderPresentationCanvas,
-    renderPresentationProperties,
-    renderPresentationNotes
+    {
+      name:"slides",
+      run:() => {
+        if(
+          typeof renderPresentationSlides ===
+          "function"
+        ){
+          renderPresentationSlides();
+        }
+      }
+    },
+    {
+      name:"canvas",
+      run:() => {
+        if(
+          typeof renderPresentationCanvas ===
+          "function"
+        ){
+          renderPresentationCanvas();
+        }
+      }
+    },
+    {
+      name:"properties",
+      run:() => {
+        if(
+          typeof renderPresentationProperties ===
+          "function"
+        ){
+          renderPresentationProperties();
+        }
+      }
+    },
+    {
+      name:"notes",
+      run:() => {
+        if(
+          typeof renderPresentationNotes ===
+          "function"
+        ){
+          renderPresentationNotes();
+        }
+      }
+    }
   ];
 
   renderers.forEach(renderer => {
     try{
-      if(
-        typeof renderer ===
-        "function"
-      ){
-        renderer();
-      }
+      renderer.run();
     }catch(error){
       console.error(
-        `Presentation renderer failed: ${renderer?.name || "unknown"}`,
+        `Presentation ${renderer.name} renderer failed:`,
         error
       );
     }
   });
 
-  window.requestAnimationFrame(
-    () => {
+  window.requestAnimationFrame(() => {
+    try{
       if(
         typeof resizePresentationWorkspace ===
         "function"
       ){
         resizePresentationWorkspace();
       }
+    }catch(error){
+      console.error(
+        "Presentation workspace resize failed:",
+        error
+      );
     }
-  );
+  });
 }
 
 function openMediaUploader(){
@@ -9838,7 +10002,7 @@ function resizePresentationWorkspace(){
 function openBuilderSection(
   requestedTab = "overview"
 ){
-  const tab =
+  let tab =
     String(
       requestedTab ||
       "overview"
@@ -9846,19 +10010,54 @@ function openBuilderSection(
       .trim()
       .toLowerCase();
 
-  const section =
+  const allowedSections =
+    new Set([
+      "overview",
+      "curriculum",
+      "lessons",
+      "content",
+      "presentations",
+      "media",
+      "quizzes",
+      "assignments",
+      "students",
+      "analytics",
+      "preview",
+      "settings"
+    ]);
+
+  if(
+    !allowedSections.has(tab)
+  ){
+    tab =
+      "overview";
+  }
+
+  let section =
     byId(
       `section-${tab}`
     );
 
+  /*
+    Fall back to Overview instead of leaving every section hidden.
+  */
   if(!section){
-    showAlert(
-      "error",
-      `Section not found: ${tab}`
-    );
+    tab =
+      "overview";
 
-    return;
+    section =
+      byId(
+        "section-overview"
+      );
   }
+
+if(!section){
+  console.error(
+    "The Overview section is missing from class-builder.html."
+  );
+
+  return;
+}
 
   state.activeTab =
     tab;
@@ -10037,16 +10236,28 @@ if(
     behavior:"auto"
   });
 
-  try{
-    sessionStorage.setItem(
-      "aiftClassBuilderActiveSection",
-      tab
-    );
-  }catch(error){
-    /*
-      Storage may be unavailable.
-    */
-  }
+try{
+  /*
+    Full-screen editors must not become the automatic startup
+    screen. A broken draft should never blank the builder.
+  */
+  const startupSafeSection =
+    tab === "presentations" ||
+    tab === "content" ||
+    tab === "media"
+      ? "overview"
+      : tab;
+
+  sessionStorage.setItem(
+    "aiftClassBuilderActiveSection",
+    startupSafeSection
+  );
+}catch(error){
+  console.warn(
+    "Unable to store active builder section:",
+    error
+  );
+}
 }
 /* =====================================================
    STATUS HELPERS
@@ -12380,77 +12591,196 @@ function bindGlobalEvents(){
   });
 }
 
-async function initBuilder(){
-  bindGlobalEvents();
-  restoreBuilderSidebarState();
-
-  let initialSection =
-    "overview";
-
-  try{
-    const storedSection =
-      sessionStorage.getItem(
-        "aiftClassBuilderActiveSection"
-      );
-
-    if(
-      storedSection &&
-      byId(
-        `section-${storedSection}`
-      )
-    ){
-      initialSection =
-        storedSection;
-    }
-  }catch(error){
-    /*
-      Use Overview when session storage is unavailable.
-    */
-  }
-
-  openBuilderSection(
-    initialSection
+function recoverClassBuilderUI(error){
+  document.body.classList.remove(
+    "studio-editor-mode",
+    "studio-wide-mode",
+    "studio-mobile-sidebar-open"
   );
 
-  await loadBuilder();
+  document.body.dataset.builderSection =
+    "overview";
 
-if(
-  initialSection ===
-  "presentations"
-){
+  const overviewSection =
+    byId("section-overview");
+
+  document
+    .querySelectorAll(".section")
+    .forEach(section => {
+      const shouldShow =
+        section === overviewSection;
+
+      section.classList.toggle(
+        "active",
+        shouldShow
+      );
+
+      section.hidden =
+        !shouldShow;
+
+      section.setAttribute(
+        "aria-hidden",
+        String(!shouldShow)
+      );
+    });
+
+  const workspace =
+    byId("studioWorkspace");
+
+  if(
+    workspace &&
+    !overviewSection
+  ){
+    workspace.innerHTML = `
+      <section class="builder-recovery-screen">
+
+        <div class="builder-recovery-card">
+
+          <div class="builder-recovery-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M12 8v5"></path>
+              <path d="M12 17h.01"></path>
+            </svg>
+          </div>
+
+          <h1>
+            Class builder could not start
+          </h1>
+
+          <p>
+            A workspace component encountered an error.
+            Your class information has not been deleted.
+          </p>
+
+          <code>
+            ${escapeHtml(
+              error?.message ||
+              "Unknown builder error"
+            )}
+          </code>
+
+          <div class="builder-recovery-actions">
+
+            <button
+              type="button"
+              onclick="resetClassBuilderWorkspace()"
+            >
+              Reset workspace
+            </button>
+
+            <button
+              type="button"
+              onclick="window.location.reload()"
+            >
+              Reload page
+            </button>
+
+          </div>
+
+        </div>
+
+      </section>
+    `;
+  }
+
+  showAlert(
+    "error",
+    error?.message ||
+    "The class builder could not finish loading."
+  );
+}
+
+function resetClassBuilderWorkspace(){
   try{
-    if(
-      typeof restorePresentationDraft ===
-      "function"
-    ){
-      restorePresentationDraft();
+    sessionStorage.removeItem(
+      "aiftClassBuilderActiveSection"
+    );
+
+    localStorage.removeItem(
+      "aiftPresentationDraft"
+    );
+  }catch(error){
+    console.warn(
+      "Unable to clear builder storage:",
+      error
+    );
+  }
+
+  const url =
+    new URL(
+      window.location.href
+    );
+
+  url.searchParams.delete(
+    "section"
+  );
+
+  url.searchParams.delete(
+    "tab"
+  );
+
+  window.location.replace(
+    url.toString()
+  );
+}
+
+async function initBuilder(){
+  try{
+    /*
+      Never restore a broken editor section during startup.
+      Overview is the safe default workspace.
+    */
+    try{
+      sessionStorage.removeItem(
+        "aiftClassBuilderActiveSection"
+      );
+    }catch(storageError){
+      console.warn(
+        "Builder session storage unavailable:",
+        storageError
+      );
     }
 
-    if(
-      typeof initializePresentationStudio ===
-      "function"
-    ){
-      initializePresentationStudio();
-    }
+    document.body.classList.remove(
+      "studio-editor-mode",
+      "studio-wide-mode",
+      "studio-mobile-sidebar-open"
+    );
+
+    document.body.dataset.builderSection =
+      "overview";
+
+    bindGlobalEvents();
+    restoreBuilderSidebarState();
+
+    /*
+      Open the visible shell before making API requests.
+      The user should never see an entirely blank page.
+    */
+    openBuilderSection(
+      "overview"
+    );
+
+    await loadBuilder();
+
+    /*
+      Reapply Overview because render functions may update
+      active classes while data is loading.
+    */
+    openBuilderSection(
+      "overview"
+    );
   }catch(error){
     console.error(
-      "Presentation studio initialization failed:",
+      "Class builder startup failed:",
       error
     );
 
-    showAlert(
-      "error",
-      "The presentation editor could not be initialized. The rest of the class builder remains available."
+    recoverClassBuilderUI(
+      error
     );
   }
-}
-
-  /*
-    Reapply after data rendering so the chosen workspace stays open.
-  */
-  openBuilderSection(
-    initialSection
-  );
 }
 document.addEventListener("DOMContentLoaded", initBuilder);
 </script>
