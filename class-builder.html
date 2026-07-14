@@ -5152,6 +5152,206 @@ body[data-builder-section="overview"] .studio-workspace{
     grid-template-columns:1fr;
   }
 }
+
+/* =========================================================
+   PRESENTATION SLIDE DIRECTORY — FIXED
+========================================================= */
+
+.presentation-slides{
+  min-width:0;
+}
+
+.presentation-slide-card{
+  position:relative;
+
+  width:100%;
+  min-width:0;
+  margin:0 0 10px;
+  padding:10px;
+
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr) 30px;
+  align-items:center;
+  gap:10px;
+
+  border:1px solid transparent;
+  border-radius:9px;
+
+  background:#f8f9fa;
+  color:#202124;
+
+  cursor:pointer;
+
+  transition:
+    border-color .18s ease,
+    background .18s ease,
+    opacity .18s ease,
+    transform .18s ease;
+}
+
+.presentation-slide-card:hover{
+  transform:none;
+  border-color:#c7d7f5;
+  background:#f4f8ff;
+}
+
+.presentation-slide-card.active{
+  border-color:#1a73e8;
+  background:#e8f0fe;
+}
+
+.presentation-slide-card:focus-visible{
+  outline:3px solid rgba(26,115,232,.24);
+  outline-offset:2px;
+}
+
+.presentation-slide-card.dragging{
+  opacity:.45;
+}
+
+.presentation-slide-card.drag-over{
+  border-color:#1a73e8;
+  box-shadow:0 3px 0 #1a73e8;
+}
+
+.presentation-slide-number{
+  width:28px;
+  height:28px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:7px;
+
+  background:#fff;
+  color:#5f6368;
+
+  font-size:9px;
+  font-weight:700;
+}
+
+.presentation-slide-card.active
+.presentation-slide-number{
+  background:#1a73e8;
+  color:#fff;
+}
+
+.presentation-slide-copy{
+  min-width:0;
+}
+
+.presentation-slide-title{
+  display:block;
+
+  overflow:hidden;
+
+  color:#202124;
+
+  font-size:10px;
+  line-height:1.35;
+  font-weight:700;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.presentation-slide-type{
+  display:block;
+  margin-top:3px;
+
+  overflow:hidden;
+
+  color:#80868b;
+
+  font-size:8px;
+  line-height:1.35;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.presentation-slide-menu{
+  width:30px;
+  height:30px;
+  padding:0;
+
+  display:grid;
+  place-items:center;
+
+  border:0;
+  border-radius:7px;
+
+  background:transparent;
+  color:#80868b;
+}
+
+.presentation-slide-menu:hover{
+  background:#fce8e6;
+  color:#c5221f;
+}
+
+.presentation-slide-menu svg{
+  width:15px;
+  height:15px;
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.presentation-empty-slides{
+  min-height:220px;
+  padding:20px;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+
+  text-align:center;
+}
+
+.presentation-empty-slides-icon{
+  width:44px;
+  height:44px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:11px;
+
+  background:#e8f0fe;
+  color:#1a73e8;
+}
+
+.presentation-empty-slides-icon svg{
+  width:21px;
+  height:21px;
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+}
+
+.presentation-empty-slides strong{
+  margin-top:13px;
+
+  color:#202124;
+
+  font-size:11px;
+}
+
+.presentation-empty-slides p{
+  max-width:190px;
+  margin:6px 0 14px;
+
+  color:#80868b;
+
+  font-size:9px;
+  line-height:1.5;
+}
   
 </style>
 </head>
@@ -8848,12 +9048,14 @@ function openContentStudio(
   }
 
   const firstLesson =
-    state.lessons[0];
+    Array.isArray(state.lessons)
+      ? state.lessons[0]
+      : null;
 
   if(!firstLesson){
     showAlert(
       "info",
-      "Create a lesson before adding learning content."
+      "Create a lesson before adding lesson content."
     );
 
     openBuilderSection(
@@ -8863,25 +9065,35 @@ function openContentStudio(
     return;
   }
 
-  const params =
-    new URLSearchParams({
-      classId:state.classId,
-      scope:"lesson",
-      ownerId:
-        firstLesson._id ||
-        firstLesson.id ||
-        ""
-    });
+  state.activeLessonId =
+    firstLesson._id ||
+    firstLesson.id ||
+    null;
 
-  if(blockType){
-    params.set(
-      "blockType",
-      blockType
-    );
-  }
+  openBuilderSection(
+    "content"
+  );
 
-  window.location.href =
-    `visual-editor.html?${params.toString()}`;
+  window.requestAnimationFrame(
+    () => {
+      if(
+        blockType &&
+        typeof addContentBlock ===
+        "function"
+      ){
+        addContentBlock(
+          blockType
+        );
+      }
+
+      if(
+        typeof renderContentStudioWorkspace ===
+        "function"
+      ){
+        renderContentStudioWorkspace();
+      }
+    }
+  );
 }
 
 function createPresentation(){
@@ -8894,14 +9106,21 @@ function createPresentation(){
     return;
   }
 
-  const params =
-    new URLSearchParams({
-      classId:state.classId,
-      scope:"presentation"
-    });
+  openBuilderSection(
+    "presentations"
+  );
 
-  window.location.href =
-    `visual-editor.html?${params.toString()}`;
+  window.requestAnimationFrame(
+    () => {
+      if(
+        !presentationStudio.slides.length
+      ){
+        initializePresentationStudio();
+      }else{
+        safelyRenderPresentationStudio();
+      }
+    }
+  );
 }
 
 /* ==========================================================
@@ -8957,6 +9176,378 @@ duration:0
 }
 let currentSlide=null;
 
+/* =========================================================
+   PRESENTATION SLIDE DIRECTORY
+========================================================= */
+
+function renderPresentationSlides(){
+  const container =
+    byId("presentationSlides");
+
+  if(!container){
+    return;
+  }
+
+  const slides =
+    Array.isArray(presentationStudio.slides)
+      ? presentationStudio.slides
+      : [];
+
+  if(!slides.length){
+    container.innerHTML = `
+      <div class="presentation-empty-slides">
+
+        <div class="presentation-empty-slides-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+            <path d="M8 9h8"></path>
+            <path d="M8 13h5"></path>
+          </svg>
+        </div>
+
+        <strong>
+          No slides yet
+        </strong>
+
+        <p>
+          Create the first slide to begin building this presentation.
+        </p>
+
+        <button
+          type="button"
+          class="studio-primary-button"
+          onclick="addPresentationSlide()"
+        >
+          Add first slide
+        </button>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    slides
+      .map((slide,index) => {
+        const slideId =
+          String(
+            slide.id ||
+            ""
+          );
+
+        const isActive =
+          String(
+            presentationStudio.currentSlideId ||
+            ""
+          ) === slideId;
+
+        const title =
+          String(
+            slide.title ||
+            `Slide ${index + 1}`
+          ).trim();
+
+        const subtitle =
+          String(
+            slide.subtitle ||
+            slide.type ||
+            "Presentation slide"
+          ).trim();
+
+        return `
+          <article
+            class="presentation-slide-card ${
+              isActive
+                ? "active"
+                : ""
+            }"
+            data-presentation-slide-id="${escapeHtml(slideId)}"
+            draggable="true"
+            role="button"
+            tabindex="0"
+            aria-current="${isActive ? "true" : "false"}"
+            onclick="loadPresentationSlide('${escapeJsString(slideId)}')"
+            onkeydown="handlePresentationSlideKeydown(event,'${escapeJsString(slideId)}')"
+            ondragstart="handlePresentationSlideDragStart(event,'${escapeJsString(slideId)}')"
+            ondragover="handlePresentationSlideDragOver(event)"
+            ondrop="handlePresentationSlideDrop(event,'${escapeJsString(slideId)}')"
+          >
+
+            <span class="presentation-slide-number">
+              ${index + 1}
+            </span>
+
+            <div class="presentation-slide-copy">
+
+              <strong class="presentation-slide-title">
+                ${escapeHtml(title)}
+              </strong>
+
+              <small class="presentation-slide-type">
+                ${escapeHtml(subtitle)}
+              </small>
+
+            </div>
+
+            <button
+              type="button"
+              class="presentation-slide-menu"
+              aria-label="Delete slide ${index + 1}"
+              title="Delete slide"
+              onclick="event.stopPropagation(); deletePresentationSlide('${escapeJsString(slideId)}')"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4h8v2"></path>
+                <path d="M19 6l-1 14H6L5 6"></path>
+                <path d="M10 11v5"></path>
+                <path d="M14 11v5"></path>
+              </svg>
+            </button>
+
+          </article>
+        `;
+      })
+      .join("");
+}
+
+function escapeJsString(value){
+  return String(value ?? "")
+    .replaceAll("\\","\\\\")
+    .replaceAll("'","\\'")
+    .replaceAll("\r","\\r")
+    .replaceAll("\n","\\n");
+}
+
+function handlePresentationSlideKeydown(
+  event,
+  slideId
+){
+  if(
+    event.key !== "Enter" &&
+    event.key !== " "
+  ){
+    return;
+  }
+
+  event.preventDefault();
+
+  loadPresentationSlide(
+    slideId
+  );
+}
+
+function deletePresentationSlide(
+  slideId
+){
+  const normalizedId =
+    String(
+      slideId ||
+      ""
+    );
+
+  const index =
+    presentationStudio.slides.findIndex(
+      slide =>
+        String(slide.id) ===
+        normalizedId
+    );
+
+  if(index < 0){
+    return;
+  }
+
+  const confirmed =
+    window.confirm(
+      "Delete this slide? This action cannot be undone after the presentation is saved."
+    );
+
+  if(!confirmed){
+    return;
+  }
+
+  presentationStudio.slides.splice(
+    index,
+    1
+  );
+
+  selectedObjectId =
+    null;
+
+  if(
+    presentationStudio.slides.length ===
+    0
+  ){
+    currentSlide =
+      null;
+
+    presentationStudio.currentSlideId =
+      null;
+  }else{
+    const replacement =
+      presentationStudio.slides[
+        Math.min(
+          index,
+          presentationStudio.slides.length - 1
+        )
+      ];
+
+    currentSlide =
+      replacement;
+
+    presentationStudio.currentSlideId =
+      replacement.id;
+  }
+
+  renderPresentationSlides();
+  renderPresentationCanvas();
+  renderPresentationProperties();
+  renderPresentationNotes();
+
+  schedulePresentationAutosave();
+}
+
+let draggedPresentationSlideId =
+  null;
+
+function handlePresentationSlideDragStart(
+  event,
+  slideId
+){
+  draggedPresentationSlideId =
+    String(
+      slideId ||
+      ""
+    );
+
+  event.dataTransfer.effectAllowed =
+    "move";
+
+  event.dataTransfer.setData(
+    "text/plain",
+    draggedPresentationSlideId
+  );
+
+  event.currentTarget.classList.add(
+    "dragging"
+  );
+
+  event.currentTarget.addEventListener(
+    "dragend",
+    () => {
+      event.currentTarget.classList.remove(
+        "dragging"
+      );
+
+      document
+        .querySelectorAll(
+          ".presentation-slide-card.drag-over"
+        )
+        .forEach(card => {
+          card.classList.remove(
+            "drag-over"
+          );
+        });
+
+      draggedPresentationSlideId =
+        null;
+    },
+    {
+      once:true
+    }
+  );
+}
+
+function handlePresentationSlideDragOver(
+  event
+){
+  event.preventDefault();
+
+  event.dataTransfer.dropEffect =
+    "move";
+
+  event.currentTarget.classList.add(
+    "drag-over"
+  );
+}
+
+function handlePresentationSlideDrop(
+  event,
+  targetSlideId
+){
+  event.preventDefault();
+
+  event.currentTarget.classList.remove(
+    "drag-over"
+  );
+
+  const sourceId =
+    draggedPresentationSlideId ||
+    event.dataTransfer.getData(
+      "text/plain"
+    );
+
+  const normalizedSourceId =
+    String(
+      sourceId ||
+      ""
+    );
+
+  const normalizedTargetId =
+    String(
+      targetSlideId ||
+      ""
+    );
+
+  if(
+    !normalizedSourceId ||
+    !normalizedTargetId ||
+    normalizedSourceId ===
+      normalizedTargetId
+  ){
+    return;
+  }
+
+  const sourceIndex =
+    presentationStudio.slides.findIndex(
+      slide =>
+        String(slide.id) ===
+        normalizedSourceId
+    );
+
+  const targetIndex =
+    presentationStudio.slides.findIndex(
+      slide =>
+        String(slide.id) ===
+        normalizedTargetId
+    );
+
+  if(
+    sourceIndex < 0 ||
+    targetIndex < 0
+  ){
+    return;
+  }
+
+  const [
+    movedSlide
+  ] =
+    presentationStudio.slides.splice(
+      sourceIndex,
+      1
+    );
+
+  presentationStudio.slides.splice(
+    targetIndex,
+    0,
+    movedSlide
+  );
+
+  renderPresentationSlides();
+  schedulePresentationAutosave();
+}
+
 function loadPresentationSlide(
   slideId
 ){
@@ -8966,8 +9557,15 @@ function loadPresentationSlide(
       ""
     );
 
+  const slides =
+    Array.isArray(
+      presentationStudio.slides
+    )
+      ? presentationStudio.slides
+      : [];
+
   const slide =
-    presentationStudio.slides.find(
+    slides.find(
       item =>
         String(item.id) ===
         normalizedId
@@ -8977,12 +9575,13 @@ function loadPresentationSlide(
     currentSlide =
       null;
 
+    selectedObjectId =
+      null;
+
     presentationStudio.currentSlideId =
       null;
 
-    renderPresentationCanvas();
-    renderPresentationSlides();
-    renderPresentationProperties();
+    safelyRenderPresentationStudio();
 
     return;
   }
@@ -8993,15 +9592,56 @@ function loadPresentationSlide(
   currentSlide =
     slide;
 
+  if(
+    !Array.isArray(
+      currentSlide.objects
+    )
+  ){
+    currentSlide.objects =
+      [];
+  }
+
   selectedObjectId =
     null;
 
-  renderPresentationCanvas();
-  renderPresentationSlides();
-  renderPresentationProperties();
-  renderPresentationNotes();
+  safelyRenderPresentationStudio();
 }
 
+function safelyRenderPresentationStudio(){
+  const renderers = [
+    renderPresentationSlides,
+    renderPresentationCanvas,
+    renderPresentationProperties,
+    renderPresentationNotes
+  ];
+
+  renderers.forEach(renderer => {
+    try{
+      if(
+        typeof renderer ===
+        "function"
+      ){
+        renderer();
+      }
+    }catch(error){
+      console.error(
+        `Presentation renderer failed: ${renderer?.name || "unknown"}`,
+        error
+      );
+    }
+  });
+
+  window.requestAnimationFrame(
+    () => {
+      if(
+        typeof resizePresentationWorkspace ===
+        "function"
+      ){
+        resizePresentationWorkspace();
+      }
+    }
+  );
+}
 
 function openMediaUploader(){
   showAlert(
@@ -9315,24 +9955,39 @@ function openBuilderSection(
   */
   window.requestAnimationFrame(
     () => {
-      if(
-        tab === "presentations"
-      ){
-        if(
-          typeof initializePresentationStudio ===
-          "function" &&
-          !presentationStudio?.slides?.length
-        ){
-          initializePresentationStudio();
-        }else{
-          renderPresentationCanvas?.();
-          renderPresentationSlides?.();
-          renderPresentationProperties?.();
-          renderPresentationNotes?.();
-        }
+if(
+  tab === "presentations"
+){
+  try{
+    if(
+      typeof restorePresentationDraft ===
+      "function" &&
+      !presentationStudio.slides.length
+    ){
+      restorePresentationDraft();
+    }
 
-        resizePresentationWorkspace?.();
-      }
+    if(
+      typeof initializePresentationStudio ===
+      "function" &&
+      !presentationStudio.slides.length
+    ){
+      initializePresentationStudio();
+    }else{
+      safelyRenderPresentationStudio();
+    }
+  }catch(error){
+    console.error(
+      "Unable to open presentation editor:",
+      error
+    );
+
+    showAlert(
+      "error",
+      "The presentation editor encountered an error, but your class data is still available."
+    );
+  }
+}
 
       if(
         tab === "content"
@@ -11759,14 +12414,36 @@ async function initBuilder(){
 
   await loadBuilder();
 
-  restorePresentationDraft?.();
+if(
+  initialSection ===
+  "presentations"
+){
+  try{
+    if(
+      typeof restorePresentationDraft ===
+      "function"
+    ){
+      restorePresentationDraft();
+    }
 
-  if(
-    typeof initializePresentationStudio ===
-    "function"
-  ){
-    initializePresentationStudio();
+    if(
+      typeof initializePresentationStudio ===
+      "function"
+    ){
+      initializePresentationStudio();
+    }
+  }catch(error){
+    console.error(
+      "Presentation studio initialization failed:",
+      error
+    );
+
+    showAlert(
+      "error",
+      "The presentation editor could not be initialized. The rest of the class builder remains available."
+    );
   }
+}
 
   /*
     Reapply after data rendering so the chosen workspace stays open.
