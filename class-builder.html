@@ -6645,6 +6645,59 @@ body.elementor-panel-collapsed
     min-height:580px;
   }
 }
+
+/* =========================================================
+   ELEMENTOR LESSON SELECTOR
+========================================================= */
+
+.elementor-title-row{
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.elementor-title-row > strong{
+  min-width:0;
+  flex:1;
+}
+
+#elementorLessonSelector{
+  width:min(230px,36vw);
+  height:34px;
+  padding:0 30px 0 10px;
+
+  border:1px solid #dadce0;
+  border-radius:7px;
+
+  background:#fff;
+  color:#3c4043;
+
+  font-size:9px;
+  font-weight:600;
+  outline:none;
+}
+
+#elementorLessonSelector:focus{
+  border-color:#1a73e8;
+
+  box-shadow:
+    0 0 0 2px
+    rgba(26,115,232,.12);
+}
+
+@media(max-width:760px){
+
+  .elementor-title-row{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  #elementorLessonSelector{
+    width:100%;
+  }
+}
   
 </style>
 </head>
@@ -8018,17 +8071,31 @@ body.elementor-panel-collapsed
 
       <header class="elementor-canvas-toolbar">
 
-        <div class="elementor-canvas-title">
+<div class="elementor-canvas-title">
 
-          <span>
-            Editing
-          </span>
+  <span>
+    Editing
+  </span>
 
-          <strong id="elementorLessonTitle">
-            Class learning content
-          </strong>
+  <div class="elementor-title-row">
 
-        </div>
+    <strong id="elementorLessonTitle">
+      Class learning content
+    </strong>
+
+    <select
+      id="elementorLessonSelector"
+      aria-label="Select lesson to edit"
+      onchange="changeElementorLesson(this.value)"
+    >
+      <option value="">
+        Class landing content
+      </option>
+    </select>
+
+  </div>
+
+</div>
 
 
         <div class="elementor-toolbar-actions">
@@ -9334,11 +9401,16 @@ const state = {
     builderSearchParams.get("id") ||
     "",
 
-  schoolId: null,
-  classData: null,
+  schoolId:null,
+  classData:null,
 
-  modules: [],
-  lessons: [],
+  /*
+    The lesson currently opened inside the drag-and-drop builder.
+  */
+  activeLessonId:null,
+
+  modules:[],
+  lessons:[],
   quizzes: [],
   assignments: [],
   submissions: [],
@@ -12523,7 +12595,157 @@ function toggleElementorPanel(){
   );
 }
 
+/* =========================================================
+   LOAD CLASS OR LESSON CONTENT INTO ELEMENTOR
+========================================================= */
+
+function getActiveElementorLesson(){
+  if(!state.activeLessonId){
+    return null;
+  }
+
+  return state.lessons.find(
+    lesson =>
+      String(
+        lesson._id ||
+        lesson.id ||
+        ""
+      ) ===
+      String(
+        state.activeLessonId
+      )
+  ) || null;
+}
+
+function loadElementorLesson(
+  lesson
+){
+  if(!lesson){
+    return;
+  }
+
+  state.activeLessonId =
+    String(
+      lesson._id ||
+      lesson.id ||
+      ""
+    );
+
+const storedLessonBlocks =
+  state.classData
+    ?.projectCanvas
+    ?.lessonContent
+    ?.[
+      String(
+        lesson._id ||
+        lesson.id ||
+        ""
+      )
+    ]
+    ?.blocks;
+
+const savedBlocks =
+  Array.isArray(
+    storedLessonBlocks
+  )
+    ? storedLessonBlocks
+    : Array.isArray(
+        lesson.contentBlocks
+      )
+        ? lesson.contentBlocks
+        : [];
+
+  elementorEditor.blocks =
+    cloneElementorData(
+      savedBlocks
+    );
+
+  /*
+    Older lessons may only have plain content.
+    Convert that content into a paragraph so it remains editable.
+  */
+  if(
+    elementorEditor.blocks.length === 0 &&
+    String(
+      lesson.content ||
+      lesson.summary ||
+      ""
+    ).trim()
+  ){
+    elementorEditor.blocks = [
+      {
+        ...createElementorBlock(
+          "paragraph"
+        ),
+
+        text:String(
+          lesson.content ||
+          lesson.summary ||
+          ""
+        ).trim(),
+
+        order:0
+      }
+    ];
+  }
+
+  normalizeElementorOrder();
+
+  elementorEditor.selectedBlockId =
+    null;
+
+  elementorEditor.history =
+    [];
+
+  elementorEditor.future =
+    [];
+
+  elementorEditor.isDirty =
+    false;
+
+  elementorEditor.initialized =
+    true;
+
+  setText(
+    "elementorLessonTitle",
+    lesson.title ||
+    "Untitled lesson"
+  );
+
+  renderElementorBuilder();
+
+  const status =
+    byId(
+      "elementorSaveStatus"
+    );
+
+  if(status){
+    status.textContent =
+      "All lesson changes are saved";
+
+    status.className =
+      "elementor-save-status";
+  }
+}
+
 function loadElementorContent(){
+  /*
+    When a lesson is already selected, keep editing it.
+  */
+  const activeLesson =
+    getActiveElementorLesson();
+
+  if(activeLesson){
+    loadElementorLesson(
+      activeLesson
+    );
+
+    return;
+  }
+
+  /*
+    Otherwise load the class-level landing content.
+  */
   const savedBlocks =
     Array.isArray(
       state.classData?.contentBlocks
@@ -12553,19 +12775,19 @@ function loadElementorContent(){
   elementorEditor.initialized =
     true;
 
-  const classTitle =
-    state.classData?.title ||
-    "Class learning content";
-
   setText(
     "elementorLessonTitle",
-    classTitle
+    state.classData?.title
+      ? `${state.classData.title} — Class content`
+      : "Class learning content"
   );
 
   renderElementorBuilder();
 
   const status =
-    byId("elementorSaveStatus");
+    byId(
+      "elementorSaveStatus"
+    );
 
   if(status){
     status.textContent =
@@ -12574,6 +12796,120 @@ function loadElementorContent(){
     status.className =
       "elementor-save-status";
   }
+}
+
+/* =========================================================
+   ELEMENTOR LESSON SELECTION
+========================================================= */
+
+function renderElementorLessonSelector(){
+  const selector =
+    byId(
+      "elementorLessonSelector"
+    );
+
+  if(!selector){
+    return;
+  }
+
+  const lessons =
+    Array.isArray(
+      state.lessons
+    )
+      ? state.lessons
+      : [];
+
+  selector.innerHTML = `
+    <option value="">
+      Class landing content
+    </option>
+
+    ${lessons.map(lesson => {
+      const id =
+        lesson._id ||
+        lesson.id ||
+        "";
+
+      const title =
+        lesson.title ||
+        "Untitled lesson";
+
+      return `
+        <option
+          value="${escapeHtml(id)}"
+          ${
+            String(id) ===
+            String(
+              state.activeLessonId ||
+              ""
+            )
+              ? "selected"
+              : ""
+          }
+        >
+          ${escapeHtml(title)}
+        </option>
+      `;
+    }).join("")}
+  `;
+}
+
+function changeElementorLesson(
+  lessonId
+){
+  if(
+    elementorEditor.isDirty &&
+    !window.confirm(
+      "You have unsaved changes. Continue without saving them?"
+    )
+  ){
+    renderElementorLessonSelector();
+
+    return;
+  }
+
+  const id =
+    String(
+      lessonId ||
+      ""
+    ).trim();
+
+  if(!id){
+    state.activeLessonId =
+      null;
+
+    loadElementorContent();
+    renderElementorLessonSelector();
+
+    return;
+  }
+
+  const lesson =
+    state.lessons.find(
+      item =>
+        String(
+          item._id ||
+          item.id ||
+          ""
+        ) === id
+    );
+
+  if(!lesson){
+    showAlert(
+      "error",
+      "The selected lesson could not be found."
+    );
+
+    renderElementorLessonSelector();
+
+    return;
+  }
+
+  loadElementorLesson(
+    lesson
+  );
+
+  renderElementorLessonSelector();
 }
 
 async function saveElementorContent(
@@ -12619,7 +12955,7 @@ async function saveElementorContent(
       "Saving..."
     );
 
-    const contentBlocks =
+    const blocks =
       elementorEditor.blocks.map(
         (block,index) => ({
           ...cloneElementorData(block),
@@ -12627,27 +12963,113 @@ async function saveElementorContent(
         })
       );
 
-    const updatedClass =
+    /*
+      Class landing content remains a normal array.
+
+      Lesson content is stored as a grouped record inside
+      projectCanvas.lessonContent until the lesson model is
+      upgraded to accept contentBlocks directly.
+    */
+    let payload;
+
+    if(state.activeLessonId){
+      const existingCanvas =
+        state.classData?.projectCanvas &&
+        typeof state.classData.projectCanvas ===
+          "object" &&
+        !Array.isArray(
+          state.classData.projectCanvas
+        )
+          ? cloneElementorData(
+              state.classData.projectCanvas
+            )
+          : {};
+
+      const lessonContent =
+        existingCanvas.lessonContent &&
+        typeof existingCanvas.lessonContent ===
+          "object" &&
+        !Array.isArray(
+          existingCanvas.lessonContent
+        )
+          ? existingCanvas.lessonContent
+          : {};
+
+      lessonContent[
+        String(state.activeLessonId)
+      ] = {
+        lessonId:
+          String(
+            state.activeLessonId
+          ),
+
+        blocks,
+
+        updatedAt:
+          new Date().toISOString()
+      };
+
+      existingCanvas.lessonContent =
+        lessonContent;
+
+      payload = {
+        projectCanvas:
+          existingCanvas,
+
+        projectCanvasUpdatedAt:
+          new Date().toISOString()
+      };
+    }else{
+      payload = {
+        contentBlocks:
+          blocks,
+
+        contentBlocksUpdatedAt:
+          new Date().toISOString()
+      };
+    }
+
+    const response =
       await apiSend(
         `/api/classes/${encodeURIComponent(state.classId)}/builder`,
         "PATCH",
-        {
-          contentBlocks,
-          contentBlocksUpdatedAt:
-            new Date().toISOString()
-        }
+        payload
       );
 
     state.classData =
-      updatedClass?.class ||
-      updatedClass;
+      response?.class ||
+      response ||
+      state.classData;
+
+    /*
+      Keep the active lesson state synchronized locally.
+    */
+    if(state.activeLessonId){
+      const lesson =
+        getActiveElementorLesson();
+
+      if(lesson){
+        lesson.contentBlocks =
+          cloneElementorData(
+            blocks
+          );
+      }
+    }
 
     elementorEditor.isDirty =
       false;
 
+    elementorEditor.history =
+      [];
+
+    elementorEditor.future =
+      [];
+
     if(status){
       status.textContent =
-        "All content is saved";
+        state.activeLessonId
+          ? "All lesson changes are saved"
+          : "All content is saved";
 
       status.className =
         "elementor-save-status";
@@ -12660,7 +13082,9 @@ async function saveElementorContent(
 
     showAlert(
       "success",
-      "Lesson content saved successfully."
+      state.activeLessonId
+        ? "Lesson content saved successfully."
+        : "Class content saved successfully."
     );
   }catch(error){
     console.error(
@@ -12689,7 +13113,7 @@ async function saveElementorContent(
     showAlert(
       "error",
       error?.message ||
-      "The lesson content could not be saved."
+      "The content could not be saved."
     );
   }finally{
     setButtonLoading(
@@ -13753,7 +14177,12 @@ function renderAll(){
   renderStudents();
   renderAnalytics();
   renderPreview();
-    loadElementorContent();
+
+  /*
+    Initialize the same-page Elementor builder.
+  */
+  loadElementorContent();
+  renderElementorLessonSelector();
 
   setBuilderSaveState(
     "",
@@ -15181,29 +15610,22 @@ async function createLesson(
       );
     }
 
-    if(
-      openStudio &&
-      lessonId
-    ){
-      const params =
-        new URLSearchParams({
-          classId:
-            state.classId,
+if(
+  openStudio &&
+  lessonId
+){
+  /*
+    Reload the class data so the newly-created lesson exists
+    inside state.lessons.
+  */
+  await loadBuilder();
 
-          scope:
-            "lesson",
+  openLessonStudio(
+    lessonId
+  );
 
-          ownerId:
-            String(
-              lessonId
-            )
-        });
-
-      window.location.href =
-        `visual-editor.html?${params.toString()}`;
-
-      return;
-    }
+  return;
+}
 
     await loadBuilder();
 
@@ -15271,6 +15693,10 @@ function getLessonResourceCount(
     );
 }
 
+/* =========================================================
+   OPEN LESSON IN THE SAME ELEMENTOR BUILDER
+========================================================= */
+
 function openLessonStudio(
   lessonId
 ){
@@ -15289,20 +15715,54 @@ function openLessonStudio(
     return;
   }
 
-  const params =
-    new URLSearchParams({
-      classId:
-        state.classId,
+  const lesson =
+    state.lessons.find(
+      item =>
+        String(
+          item._id ||
+          item.id ||
+          ""
+        ) === id
+    );
 
-      scope:
-        "lesson",
+  if(!lesson){
+    showAlert(
+      "error",
+      "The selected lesson could not be found."
+    );
 
-      ownerId:
-        id
-    });
+    return;
+  }
 
-  window.location.href =
-    `visual-editor.html?${params.toString()}`;
+  state.activeLessonId =
+    id;
+
+  /*
+    Copy lesson blocks into the Elementor editor.
+  */
+  loadElementorLesson(
+    lesson
+  );
+
+  openBuilderSection(
+    "content"
+  );
+
+  window.requestAnimationFrame(
+    () => {
+      byId(
+        "elementorCanvasScroll"
+      )?.scrollTo({
+        top:0,
+        left:0,
+        behavior:"auto"
+      });
+
+      byId(
+        "contentStudioBlocks"
+      )?.focus?.();
+    }
+  );
 }
 
 function previewBuilderLesson(
