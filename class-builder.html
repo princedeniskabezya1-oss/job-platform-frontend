@@ -3388,6 +3388,1270 @@ bottom:-7px;
 cursor:nwse-resize;
 
 }
+
+/* =========================================================
+   AIFT STUDIO WORKSPACE 2.0
+   Full-width YouTube Studio-style application layout
+========================================================= */
+
+:root{
+  --aift-studio-topbar:64px;
+  --aift-studio-sidebar:252px;
+  --aift-studio-sidebar-collapsed:76px;
+
+  --aift-studio-bg:#f8f9fa;
+  --aift-studio-panel:#ffffff;
+  --aift-studio-canvas:#f1f3f4;
+  --aift-studio-border:#dadce0;
+  --aift-studio-border-soft:#e8eaed;
+
+  --aift-studio-text:#202124;
+  --aift-studio-muted:#5f6368;
+  --aift-studio-subtle:#80868b;
+
+  --aift-studio-blue:#1a73e8;
+  --aift-studio-blue-hover:#1765cc;
+  --aift-studio-blue-soft:#e8f0fe;
+
+  --aift-studio-radius:12px;
+  --aift-studio-shadow:
+    0 1px 2px rgba(60,64,67,.08),
+    0 1px 3px rgba(60,64,67,.06);
+}
+
+/* =========================================================
+   APPLICATION FOUNDATION
+========================================================= */
+
+html{
+  width:100%;
+  min-height:100%;
+
+  background:var(--aift-studio-bg);
+}
+
+body{
+  width:100%;
+  min-height:100vh;
+
+  overflow-x:hidden;
+
+  background:var(--aift-studio-bg);
+}
+
+body.studio-sidebar-collapsed{
+  --studio-sidebar-width:
+    var(--aift-studio-sidebar-collapsed);
+}
+
+.studio-app-shell{
+  width:100%;
+  min-height:100vh;
+  padding-top:var(--aift-studio-topbar);
+}
+
+/* =========================================================
+   FIXED LEFT SIDEBAR
+========================================================= */
+
+.studio-sidebar{
+  top:var(--aift-studio-topbar);
+
+  width:var(
+    --studio-sidebar-width,
+    var(--aift-studio-sidebar)
+  );
+
+  border-right:
+    1px solid
+    var(--aift-studio-border);
+
+  background:#fff;
+
+  box-shadow:none;
+}
+
+.studio-sidebar-scroll{
+  padding:
+    12px
+    10px
+    18px;
+}
+
+.studio-sidebar-class{
+  margin-bottom:14px;
+  padding:12px;
+
+  border:
+    1px solid
+    var(--aift-studio-border-soft);
+
+  border-radius:10px;
+
+  background:#f8f9fa;
+}
+
+.studio-builder-nav{
+  gap:16px;
+}
+
+.studio-nav-group{
+  gap:3px;
+}
+
+.studio-nav-label{
+  padding:
+    0
+    10px
+    5px;
+
+  font-size:9px;
+  line-height:1.3;
+  font-weight:700;
+  letter-spacing:.065em;
+}
+
+.studio-builder-nav button{
+  min-height:42px;
+  padding:0 11px;
+
+  grid-template-columns:
+    20px
+    minmax(0,1fr)
+    auto;
+
+  gap:10px;
+
+  border-radius:8px;
+
+  color:#5f6368;
+}
+
+.studio-builder-nav button:hover{
+  background:#f1f3f4;
+  color:#202124;
+}
+
+.studio-builder-nav button.active{
+  background:#e8f0fe;
+  color:#185abc;
+}
+
+.studio-builder-nav button.active::before{
+  top:7px;
+  bottom:7px;
+  left:-10px;
+
+  width:3px;
+
+  background:#1a73e8;
+}
+
+.studio-builder-nav button > span{
+  font-size:11px;
+  font-weight:600;
+}
+
+/* =========================================================
+   RIGHT APPLICATION WORKSPACE
+========================================================= */
+
+.studio-main{
+  width:auto;
+  min-width:0;
+  min-height:
+    calc(
+      100vh -
+      var(--aift-studio-topbar)
+    );
+
+  margin-left:
+    var(
+      --studio-sidebar-width,
+      var(--aift-studio-sidebar)
+    );
+
+  overflow:visible;
+
+  background:var(--aift-studio-bg);
+
+  transition:
+    margin-left .2s ease;
+}
+
+.studio-workspace{
+  width:100%;
+  max-width:none;
+  min-width:0;
+  margin:0;
+
+  padding:
+    22px
+    28px
+    42px;
+
+  background:var(--aift-studio-bg);
+}
+
+/*
+  All selected sidebar sections occupy the complete available
+  right-side workspace.
+*/
+
+.studio-workspace > .section{
+  width:100%;
+  max-width:none;
+  min-width:0;
+}
+
+.studio-workspace > .section:not(.active){
+  display:none!important;
+}
+
+.studio-workspace > .section.active{
+  display:block!important;
+  width:100%;
+  min-height:
+    calc(
+      100vh -
+      var(--aift-studio-topbar) -
+      44px
+    );
+}
+
+/* =========================================================
+   NORMAL DASHBOARD MODE
+========================================================= */
+
+body:not(.studio-editor-mode)
+.studio-class-header{
+  display:block;
+}
+
+body:not(.studio-editor-mode)
+.studio-workspace{
+  padding:
+    22px
+    28px
+    42px;
+}
+
+/*
+  Overview remains centered and readable.
+*/
+
+body[data-builder-section="overview"]
+.studio-workspace{
+  max-width:1600px;
+  margin-inline:auto;
+}
+
+/*
+  Administrative pages use the complete right side but keep
+  comfortable workspace gutters.
+*/
+
+body.studio-wide-mode:not(.studio-editor-mode)
+.studio-workspace{
+  max-width:none;
+  padding:
+    20px
+    24px
+    38px;
+}
+
+/* =========================================================
+   FULL EDITOR MODE
+   Content Studio, Presentations and Media
+========================================================= */
+
+body.studio-editor-mode{
+  overflow:hidden;
+}
+
+body.studio-editor-mode
+.studio-app-shell{
+  height:100vh;
+}
+
+body.studio-editor-mode
+.studio-main{
+  height:
+    calc(
+      100vh -
+      var(--aift-studio-topbar)
+    );
+
+  min-height:0;
+
+  overflow:hidden;
+}
+
+body.studio-editor-mode
+.studio-workspace{
+  height:100%;
+  min-height:0;
+  padding:0;
+
+  overflow:hidden;
+
+  background:#f1f3f4;
+}
+
+body.studio-editor-mode
+.studio-class-header{
+  display:none!important;
+}
+
+body.studio-editor-mode
+.studio-workspace > .section.active{
+  height:100%;
+  min-height:0;
+
+  overflow:hidden;
+}
+
+/* =========================================================
+   SHARED SECTION HEADERS
+========================================================= */
+
+.studio-section-header{
+  width:100%;
+  min-width:0;
+  padding:
+    2px
+    0
+    4px;
+
+  align-items:flex-start;
+}
+
+.studio-section-header h2{
+  font-size:22px;
+  line-height:1.25;
+}
+
+.studio-section-header p{
+  max-width:760px;
+
+  font-size:11px;
+  line-height:1.55;
+}
+
+.section-stack{
+  width:100%;
+  max-width:none;
+  gap:16px;
+}
+
+/* =========================================================
+   CARDS — YOUTUBE STUDIO STYLE
+========================================================= */
+
+.card{
+  width:100%;
+
+  border:
+    1px solid
+    var(--aift-studio-border);
+
+  border-radius:12px;
+
+  background:#fff;
+
+  box-shadow:
+    0 1px 2px
+    rgba(60,64,67,.06);
+}
+
+.card-pad{
+  padding:20px;
+}
+
+.card-title{
+  font-size:14px;
+  line-height:1.35;
+  font-weight:600;
+}
+
+/* =========================================================
+   CONTENT STUDIO — FULL CANVAS
+========================================================= */
+
+body[data-builder-section="content"]
+#section-content{
+  height:100%;
+}
+
+body[data-builder-section="content"]
+.studio-content-shell{
+  height:100%;
+  min-height:0;
+
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+
+  gap:0;
+
+  background:#f1f3f4;
+}
+
+body[data-builder-section="content"]
+.studio-content-toolbar{
+  min-height:66px;
+  padding:10px 16px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+
+  border-bottom:
+    1px solid
+    var(--aift-studio-border);
+
+  background:#fff;
+}
+
+body[data-builder-section="content"]
+.studio-content-title h2{
+  margin:0;
+
+  font-size:15px;
+  line-height:1.3;
+  font-weight:600;
+}
+
+body[data-builder-section="content"]
+.studio-content-title p{
+  margin:3px 0 0;
+
+  color:var(--aift-studio-muted);
+
+  font-size:10px;
+}
+
+body[data-builder-section="content"]
+.studio-content-actions{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:7px;
+}
+
+body[data-builder-section="content"]
+.studio-primary-button{
+  min-height:36px;
+  padding:0 11px;
+
+  border:
+    1px solid
+    var(--aift-studio-border);
+
+  border-radius:7px;
+
+  background:#fff;
+  color:#3c4043;
+
+  font-size:10px;
+  font-weight:600;
+}
+
+body[data-builder-section="content"]
+.studio-primary-button:hover{
+  border-color:#a8c7fa;
+
+  background:#f8fbff;
+  color:#185abc;
+}
+
+body[data-builder-section="content"]
+.content-block-list{
+  min-height:0;
+  padding:28px;
+
+  overflow:auto;
+
+  display:flex;
+  align-items:center;
+  flex-direction:column;
+  gap:16px;
+
+  background:
+    radial-gradient(
+      circle at 1px 1px,
+      #dfe3e8 1px,
+      transparent 0
+    );
+
+  background-size:20px 20px;
+}
+
+body[data-builder-section="content"]
+.lesson-content-block{
+  width:min(900px,100%);
+  padding:22px;
+
+  border:
+    1px solid
+    var(--aift-studio-border);
+
+  border-radius:10px;
+
+  background:#fff;
+
+  box-shadow:
+    0 1px 2px rgba(60,64,67,.08),
+    0 4px 12px rgba(60,64,67,.06);
+}
+
+/* =========================================================
+   PRESENTATION STUDIO — FULL CANVAS
+========================================================= */
+
+body[data-builder-section="presentations"]
+#section-presentations{
+  height:100%;
+}
+
+body[data-builder-section="presentations"]
+.presentation-shell{
+  width:100%;
+  height:100%;
+  min-height:0;
+  gap:0;
+
+  display:grid;
+  grid-template-rows:
+    58px
+    minmax(0,1fr);
+
+  overflow:hidden;
+
+  background:#f1f3f4;
+}
+
+body[data-builder-section="presentations"]
+.presentation-toolbar{
+  min-width:0;
+  min-height:58px;
+  padding:8px 14px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+
+  border:0;
+  border-bottom:
+    1px solid
+    var(--aift-studio-border);
+
+  border-radius:0;
+
+  background:#fff;
+
+  box-shadow:none;
+}
+
+body[data-builder-section="presentations"]
+.presentation-toolbar-left{
+  min-width:0;
+}
+
+body[data-builder-section="presentations"]
+.presentation-toolbar-left h2{
+  margin:0;
+
+  font-size:14px;
+  line-height:1.25;
+  font-weight:600;
+}
+
+body[data-builder-section="presentations"]
+.presentation-toolbar-left p{
+  margin:2px 0 0;
+
+  overflow:hidden;
+
+  color:var(--aift-studio-muted);
+
+  font-size:9px;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+body[data-builder-section="presentations"]
+.presentation-toolbar-right{
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:nowrap;
+  gap:6px;
+}
+
+body[data-builder-section="presentations"]
+.presentation-toolbar-right button{
+  min-height:34px;
+  padding:0 10px;
+
+  border-radius:7px;
+
+  font-size:9px;
+}
+
+body[data-builder-section="presentations"]
+.presentation-layout{
+  width:100%;
+  height:100%;
+  min-height:0;
+
+  display:grid;
+
+  grid-template-columns:
+    214px
+    minmax(520px,1fr)
+    264px;
+
+  gap:0;
+
+  overflow:hidden;
+}
+
+body[data-builder-section="presentations"]
+.presentation-slides{
+  min-width:0;
+  min-height:0;
+  padding:12px 10px;
+
+  overflow-y:auto;
+  overflow-x:hidden;
+
+  border:0;
+  border-right:
+    1px solid
+    var(--aift-studio-border);
+
+  border-radius:0;
+
+  background:#fff;
+
+  box-shadow:none;
+}
+
+body[data-builder-section="presentations"]
+.presentation-slide-card{
+  width:100%;
+    position:relative;
+  min-width:0;
+  margin:0 0 8px;
+  padding:8px;
+
+  display:grid;
+  grid-template-columns:24px minmax(0,1fr);
+  align-items:start;
+  gap:8px;
+
+  border:
+    1px solid
+    transparent;
+
+  border-radius:7px;
+
+  background:#fff;
+
+  transform:none;
+}
+
+body[data-builder-section="presentations"]
+.presentation-slide-card:hover{
+  border-color:#dadce0;
+
+  background:#f8f9fa;
+
+  transform:none;
+}
+
+body[data-builder-section="presentations"]
+.presentation-slide-card.active{
+  border-color:#1a73e8;
+
+  background:#e8f0fe;
+}
+
+body[data-builder-section="presentations"]
+.presentation-slide-number{
+  width:24px;
+  height:24px;
+
+  border-radius:50%;
+
+  background:#f1f3f4;
+  color:#5f6368;
+
+  font-size:9px;
+}
+
+body[data-builder-section="presentations"]
+.presentation-slide-card.active
+.presentation-slide-number{
+  background:#1a73e8;
+  color:#fff;
+}
+
+body[data-builder-section="presentations"]
+.presentation-slide-title{
+  overflow:hidden;
+
+  color:#202124;
+
+  font-size:10px;
+  line-height:1.35;
+  font-weight:600;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+body[data-builder-section="presentations"]
+.presentation-slide-type{
+  margin-top:2px;
+
+  font-size:8px;
+  line-height:1.3;
+}
+
+body[data-builder-section="presentations"]
+.presentation-canvas{
+  position:relative;
+
+  min-width:0;
+  min-height:0;
+  padding:28px;
+
+  overflow:auto;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border:0;
+  border-radius:0;
+
+  background:
+    radial-gradient(
+      circle at 1px 1px,
+      #d5d9de 1px,
+      transparent 0
+    );
+
+  background-size:20px 20px;
+}
+
+body[data-builder-section="presentations"]
+.presentation-page{
+  width:min(
+    960px,
+    calc(100vw - 790px)
+  );
+
+  aspect-ratio:16 / 9;
+  height:auto;
+  min-width:640px;
+
+  flex:0 0 auto;
+
+  overflow:hidden;
+
+  border:
+    1px solid
+    rgba(60,64,67,.16);
+
+  border-radius:2px;
+
+  background:#fff;
+
+  box-shadow:
+    0 3px 8px rgba(60,64,67,.14),
+    0 14px 34px rgba(60,64,67,.12);
+}
+
+body[data-builder-section="presentations"]
+.presentation-properties{
+  min-width:0;
+  min-height:0;
+  padding:14px;
+
+  overflow-y:auto;
+
+  border:0;
+  border-left:
+    1px solid
+    var(--aift-studio-border);
+
+  border-radius:0;
+
+  background:#fff;
+
+  box-shadow:none;
+}
+
+body[data-builder-section="presentations"]
+.presentation-properties > h3{
+  margin:0 0 14px;
+
+  font-size:12px;
+  line-height:1.35;
+  font-weight:600;
+}
+
+/*
+  Speaker notes become a compact bottom drawer instead of
+  taking a full card beneath the canvas.
+*/
+
+body[data-builder-section="presentations"]
+.presentation-notes{
+  position:absolute;
+  right:264px;
+  bottom:0;
+  left:214px;
+  z-index:20;
+
+  height:42px;
+  padding:0;
+
+  overflow:hidden;
+
+  border:0;
+  border-top:
+    1px solid
+    var(--aift-studio-border);
+
+  border-radius:0;
+
+  background:#fff;
+
+  box-shadow:
+    0 -2px 8px
+    rgba(60,64,67,.05);
+
+  transition:
+    height .2s ease;
+}
+
+body[data-builder-section="presentations"]
+.presentation-notes:focus-within{
+  height:150px;
+}
+
+body[data-builder-section="presentations"]
+.presentation-notes h3{
+  height:41px;
+  margin:0;
+  padding:0 14px;
+
+  display:flex;
+  align-items:center;
+
+  color:#5f6368;
+
+  font-size:10px;
+  font-weight:600;
+}
+
+body[data-builder-section="presentations"]
+#presentationNotes{
+  width:100%;
+  min-height:108px;
+  padding:12px 14px;
+
+  border:0;
+  border-top:
+    1px solid
+    var(--aift-studio-border-soft);
+
+  border-radius:0;
+
+  background:#fff;
+
+  font-size:10px;
+  line-height:1.55;
+
+  box-shadow:none;
+}
+
+/* =========================================================
+   MEDIA LIBRARY — FULL WORKSPACE
+========================================================= */
+
+body[data-builder-section="media"]
+#section-media{
+  height:100%;
+  padding:20px 24px;
+
+  overflow-y:auto;
+
+  background:#f8f9fa;
+}
+
+body[data-builder-section="media"]
+#section-media .section-stack{
+  min-height:100%;
+}
+
+/* =========================================================
+   PRESENTATION PROPERTY CONTROLS
+========================================================= */
+
+.presentation-property-group{
+  display:grid;
+  gap:7px;
+  margin-bottom:15px;
+}
+
+.presentation-property-group label,
+.presentation-property-grid label{
+  color:#5f6368;
+
+  font-size:9px;
+  line-height:1.35;
+  font-weight:600;
+}
+
+.presentation-property-group input,
+.presentation-property-group select,
+.presentation-property-grid input{
+  width:100%;
+  min-height:34px;
+  padding:0 9px;
+
+  border:
+    1px solid
+    var(--aift-studio-border);
+
+  border-radius:7px;
+
+  background:#fff;
+  color:#202124;
+
+  font-size:10px;
+  outline:none;
+}
+
+.presentation-property-group input:focus,
+.presentation-property-group select:focus,
+.presentation-property-grid input:focus{
+  border-color:#1a73e8;
+
+  box-shadow:
+    0 0 0 2px
+    rgba(26,115,232,.12);
+}
+
+.presentation-property-grid{
+  display:grid;
+  grid-template-columns:
+    repeat(2,minmax(0,1fr));
+  gap:9px;
+}
+
+.presentation-property-grid label{
+  display:grid;
+  gap:5px;
+}
+
+/* =========================================================
+   PRESENTATION OBJECT CANVAS
+========================================================= */
+
+.studio-slide{
+  position:relative;
+
+  width:100%;
+  height:100%;
+  min-height:0;
+  padding:0;
+
+  overflow:hidden;
+
+  display:block;
+}
+
+.slide-title[data-role="title"]{
+  position:absolute;
+  top:12%;
+  right:8%;
+  left:8%;
+
+  margin:0;
+
+  color:#202124;
+
+  font-size:clamp(28px,4vw,48px);
+  line-height:1.15;
+  font-weight:700;
+  letter-spacing:-.025em;
+
+  outline:none;
+}
+
+.slide-subtitle[data-role="subtitle"]{
+  position:absolute;
+  top:32%;
+  right:8%;
+  left:8%;
+
+  margin:0;
+
+  max-width:none;
+
+  color:#5f6368;
+
+  font-size:clamp(16px,2vw,24px);
+  line-height:1.45;
+
+  outline:none;
+}
+
+#slideObjects{
+  position:absolute;
+  inset:0;
+
+  pointer-events:none;
+}
+
+.slide-object{
+  position:absolute;
+
+  min-width:20px;
+  min-height:20px;
+
+  border:
+    1px solid
+    transparent;
+
+  cursor:move;
+
+  pointer-events:auto;
+
+  user-select:none;
+
+  transition:
+    border-color .1s ease,
+    box-shadow .1s ease;
+}
+
+.slide-object:hover{
+  border-color:
+    rgba(26,115,232,.55);
+}
+
+.slide-object.selected{
+  border-color:#1a73e8;
+
+  box-shadow:
+    0 0 0 1px #fff,
+    0 0 0 2px #1a73e8;
+}
+
+.slide-object-text{
+  width:100%;
+  height:100%;
+  padding:4px;
+
+  overflow:hidden;
+
+  color:#202124;
+
+  font-size:20px;
+  line-height:1.35;
+
+  outline:none;
+
+  user-select:text;
+}
+
+.resize-handle{
+  right:-6px;
+  bottom:-6px;
+
+  width:11px;
+  height:11px;
+
+  border:2px solid #fff;
+  border-radius:50%;
+
+  background:#1a73e8;
+
+  box-shadow:
+    0 1px 3px
+    rgba(60,64,67,.28);
+}
+
+/* =========================================================
+   RESPONSIVE DESKTOP
+========================================================= */
+
+@media(
+  min-width:761px
+)
+and
+(
+  max-width:1320px
+){
+
+  body[data-builder-section="presentations"]
+  .presentation-layout{
+    grid-template-columns:
+      184px
+      minmax(480px,1fr)
+      230px;
+  }
+
+  body[data-builder-section="presentations"]
+  .presentation-page{
+    width:min(
+      860px,
+      calc(100vw - 690px)
+    );
+
+    min-width:560px;
+  }
+
+  body[data-builder-section="presentations"]
+  .presentation-notes{
+    right:230px;
+    left:184px;
+  }
+}
+
+/* =========================================================
+   MOBILE FALLBACK
+========================================================= */
+
+@media(max-width:760px){
+
+  body.studio-editor-mode{
+    overflow:auto;
+  }
+
+  body.studio-editor-mode
+  .studio-main,
+  body.studio-editor-mode
+  .studio-workspace{
+    height:auto;
+    min-height:
+      calc(
+        100vh -
+        58px
+      );
+
+    overflow:visible;
+  }
+
+  body.studio-editor-mode
+  .studio-class-header{
+    display:none!important;
+  }
+
+  .studio-workspace{
+    padding:12px;
+  }
+
+  body[data-builder-section="presentations"]
+  .presentation-shell{
+    height:auto;
+    min-height:
+      calc(
+        100vh -
+        58px
+      );
+
+    display:block;
+  }
+
+  body[data-builder-section="presentations"]
+  .presentation-toolbar{
+    position:sticky;
+    top:58px;
+    z-index:50;
+
+    min-height:auto;
+    padding:10px;
+
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  body[data-builder-section="presentations"]
+  .presentation-toolbar-right{
+    width:100%;
+
+    overflow-x:auto;
+    justify-content:flex-start;
+  }
+
+  body[data-builder-section="presentations"]
+  .presentation-layout{
+    height:auto;
+
+    display:grid;
+    grid-template-columns:1fr;
+  }
+
+  body[data-builder-section="presentations"]
+  .presentation-slides{
+    min-height:120px;
+    max-height:190px;
+
+    border-right:0;
+    border-bottom:
+      1px solid
+      var(--aift-studio-border);
+  }
+
+  body[data-builder-section="presentations"]
+  .presentation-canvas{
+    min-height:420px;
+    padding:18px 12px;
+  }
+
+  body[data-builder-section="presentations"]
+  .presentation-page{
+    width:100%;
+    min-width:0;
+  }
+
+  body[data-builder-section="presentations"]
+  .presentation-properties{
+    border-top:
+      1px solid
+      var(--aift-studio-border);
+
+    border-left:0;
+  }
+
+  body[data-builder-section="presentations"]
+  .presentation-notes{
+    position:static;
+
+    width:100%;
+    height:auto;
+
+    border-top:
+      1px solid
+      var(--aift-studio-border);
+  }
+
+  body[data-builder-section="presentations"]
+  .presentation-notes:focus-within{
+    height:auto;
+  }
+}
   
 </style>
 </head>
@@ -3852,15 +5116,24 @@ cursor:nwse-resize;
        MAIN WORKSPACE
   ===================================================== -->
 
-  <main class="studio-main">
+<main
+  class="studio-main"
+  id="studioMain"
+>
 
-    <div class="studio-workspace">
+  <div
+    class="studio-workspace"
+    id="studioWorkspace"
+  >
 
       <!-- ==================================================
            COMPACT CLASS HEADER
       =================================================== -->
 
-      <section class="studio-class-header">
+      <section
+  class="studio-class-header"
+  id="studioClassHeader"
+>
 
         <div class="studio-class-header-main">
 
@@ -7047,46 +8320,287 @@ function renderBuilderAssignments(){
     }).join("");
 }
   
-function openBuilderSection(tab){
-  if (!tab){
-    tab = "overview";
-  }
+/* =========================================================
+   STUDIO WORKSPACE NAVIGATION
+========================================================= */
 
-  const section = byId(`section-${tab}`);
+const BUILDER_EDITOR_SECTIONS =
+  new Set([
+    "content",
+    "presentations",
+    "media"
+  ]);
 
-  if (!section){
-    showAlert("error", `Section not found: ${tab}`);
+const BUILDER_WIDE_SECTIONS =
+  new Set([
+    "curriculum",
+    "lessons",
+    "content",
+    "presentations",
+    "media",
+    "quizzes",
+    "assignments",
+    "students",
+    "analytics",
+    "preview",
+    "settings"
+  ]);
+
+function resizePresentationWorkspace(){
+  const canvasArea =
+    document.querySelector(
+      "#section-presentations .presentation-canvas"
+    );
+
+  const page =
+    byId(
+      "presentationCanvas"
+    );
+
+  if(
+    !canvasArea ||
+    !page
+  ){
     return;
   }
 
-  state.activeTab = tab;
+  const availableWidth =
+    Math.max(
+      320,
+      canvasArea.clientWidth -
+      56
+    );
 
-  document.querySelectorAll(".section").forEach(item => {
-    item.classList.remove("active");
-  });
+  const availableHeight =
+    Math.max(
+      220,
+      canvasArea.clientHeight -
+      88
+    );
 
-  document.querySelectorAll("[data-builder-tab]").forEach(btn => {
-    btn.classList.remove("active");
-    btn.setAttribute("aria-selected", "false");
-  });
+  const widthFromHeight =
+    availableHeight *
+    (16 / 9);
 
-  section.classList.add("active");
+  const resolvedWidth =
+    Math.min(
+      960,
+      availableWidth,
+      widthFromHeight
+    );
 
-  const activeBtn = document.querySelector(`[data-builder-tab="${tab}"]`);
+  page.style.width =
+    `${Math.max(
+      320,
+      resolvedWidth
+    )}px`;
 
-  if (activeBtn){
-    activeBtn.classList.add("active");
-    activeBtn.setAttribute("aria-selected", "true");
-  }
-
-  if (window.innerWidth < 900){
-    window.scrollTo({
-      top: section.offsetTop - 90,
-      behavior: "smooth"
-    });
-  }
+  page.style.height =
+    `${Math.max(
+      180,
+      resolvedWidth *
+      (9 / 16)
+    )}px`;
 }
 
+function openBuilderSection(
+  requestedTab = "overview"
+){
+  const tab =
+    String(
+      requestedTab ||
+      "overview"
+    )
+      .trim()
+      .toLowerCase();
+
+  const section =
+    byId(
+      `section-${tab}`
+    );
+
+  if(!section){
+    showAlert(
+      "error",
+      `Section not found: ${tab}`
+    );
+
+    return;
+  }
+
+  state.activeTab =
+    tab;
+
+  document
+    .querySelectorAll(
+      ".section"
+    )
+    .forEach(item => {
+      const isActive =
+        item === section;
+
+      item.classList.toggle(
+        "active",
+        isActive
+      );
+
+      item.hidden =
+        !isActive;
+
+      item.setAttribute(
+        "aria-hidden",
+        String(!isActive)
+      );
+    });
+
+  document
+    .querySelectorAll(
+      "[data-builder-tab]"
+    )
+    .forEach(button => {
+      const isActive =
+        button.dataset.builderTab ===
+        tab;
+
+      button.classList.toggle(
+        "active",
+        isActive
+      );
+
+      button.setAttribute(
+        "aria-selected",
+        String(isActive)
+      );
+
+      if(isActive){
+        button.setAttribute(
+          "aria-current",
+          "page"
+        );
+      }else{
+        button.removeAttribute(
+          "aria-current"
+        );
+      }
+    });
+
+  const isEditorSection =
+    BUILDER_EDITOR_SECTIONS.has(
+      tab
+    );
+
+  const isWideSection =
+    BUILDER_WIDE_SECTIONS.has(
+      tab
+    );
+
+  document.body.dataset.builderSection =
+    tab;
+
+  document.body.classList.toggle(
+    "studio-editor-mode",
+    isEditorSection
+  );
+
+  document.body.classList.toggle(
+    "studio-wide-mode",
+    isWideSection
+  );
+
+  const workspace =
+    byId(
+      "studioWorkspace"
+    );
+
+  if(workspace){
+    workspace.dataset.activeSection =
+      tab;
+  }
+
+  /*
+    Presentation and content editors need their own full-height
+    canvas initialization after becoming visible.
+  */
+  window.requestAnimationFrame(
+    () => {
+      if(
+        tab === "presentations"
+      ){
+        if(
+          typeof initializePresentationStudio ===
+          "function" &&
+          !presentationStudio?.slides?.length
+        ){
+          initializePresentationStudio();
+        }else{
+          renderPresentationCanvas?.();
+          renderPresentationSlides?.();
+          renderPresentationProperties?.();
+          renderPresentationNotes?.();
+        }
+
+        resizePresentationWorkspace?.();
+      }
+
+      if(
+        tab === "content"
+      ){
+        renderContentStudioWorkspace?.();
+      }
+    }
+  );
+
+  if(
+    window.matchMedia(
+      "(max-width:760px)"
+    ).matches
+  ){
+    document.body.classList.remove(
+      "studio-mobile-sidebar-open"
+    );
+
+    byId(
+      "studioSidebarToggle"
+    )?.setAttribute(
+      "aria-expanded",
+      "false"
+    );
+  }
+
+  /*
+    Keep the active workspace at its own top.
+    Do not scroll the entire page into the middle of a canvas.
+  */
+  const main =
+    byId(
+      "studioMain"
+    );
+
+  if(main){
+    main.scrollTo?.({
+      top:0,
+      left:0,
+      behavior:"auto"
+    });
+  }
+
+  window.scrollTo({
+    top:0,
+    left:0,
+    behavior:"auto"
+  });
+
+  try{
+    sessionStorage.setItem(
+      "aiftClassBuilderActiveSection",
+      tab
+    );
+  }catch(error){
+    /*
+      Storage may be unavailable.
+    */
+  }
+}
 /* =====================================================
    STATUS HELPERS
 ===================================================== */
@@ -8948,16 +10462,52 @@ async function initBuilder(){
   bindGlobalEvents();
   restoreBuilderSidebarState();
 
+  let initialSection =
+    "overview";
+
+  try{
+    const storedSection =
+      sessionStorage.getItem(
+        "aiftClassBuilderActiveSection"
+      );
+
+    if(
+      storedSection &&
+      byId(
+        `section-${storedSection}`
+      )
+    ){
+      initialSection =
+        storedSection;
+    }
+  }catch(error){
+    /*
+      Use Overview when session storage is unavailable.
+    */
+  }
+
   openBuilderSection(
-    "overview"
+    initialSection
   );
 
   await loadBuilder();
 
-  restorePresentationDraft();
-  initializePresentationStudio();
-}
+  restorePresentationDraft?.();
 
+  if(
+    typeof initializePresentationStudio ===
+    "function"
+  ){
+    initializePresentationStudio();
+  }
+
+  /*
+    Reapply after data rendering so the chosen workspace stays open.
+  */
+  openBuilderSection(
+    initialSection
+  );
+}
 document.addEventListener("DOMContentLoaded", initBuilder);
 </script>
 
