@@ -4259,88 +4259,36 @@ Save Presentation
 <div class="presentation-layout">
 
 <aside
-class="presentation-slides"
-id="presentationSlides">
-
-<div class="presentation-slide-card active">
-
-<div class="presentation-slide-number">
-
-1
-
-</div>
-
-<div>
-
-<div class="presentation-slide-title">
-
-Title Slide
-
-</div>
-
-<div class="presentation-slide-type">
-
-Cover
-
-</div>
-
-</div>
-
-</div>
-
+  class="presentation-slides"
+  id="presentationSlides"
+  aria-label="Presentation slides"
+  aria-live="polite"
+>
+  <div class="presentation-placeholder">
+    Loading presentation...
+  </div>
 </aside>
 
 <section
 class="presentation-canvas">
 
 <div
-id="presentationCanvas"
-class="presentation-page">
+  id="presentationCanvas"
+  class="presentation-page"
+  role="application"
+  aria-label="Presentation slide canvas"
+>
+  <div class="presentation-placeholder">
 
-<div
-id="activePresentationSlide"
-class="studio-slide">
+    <h2>
+      Loading presentation
+    </h2>
 
-<div
-class="slide-title"
-contenteditable="true">
+    <p>
+      Preparing the slide editor...
+    </p>
 
-Lesson Title
-
-</div>
-
-<div
-class="slide-subtitle"
-contenteditable="true">
-
-Write your lesson introduction here...
-
-</div>
-
-<div class="slide-image-drop">
-
-<div class="slide-image-placeholder">
-
-<svg viewBox="0 0 24 24">
-
-<path d="M3 5h18v14H3z"></path>
-<circle cx="8" cy="9" r="2"></circle>
-<path d="M21 16l-6-6-8 8"></path>
-
-</svg>
-
-<span>
-
-Drop image here
-
-</span>
-
-</div>
-
-</div>
-
-</div>
-
+  </div>
 </div>
 
 </section>
@@ -5659,23 +5607,39 @@ function renderSlideObjects(){
 }
 
 function attachObjectEvents(
-element,
-object
+  element,
+  object
 ){
+  element.addEventListener(
+    "pointerdown",
+    event => {
+      event.stopPropagation();
 
-element.addEventListener("mousedown",()=>{
+      selectedObjectId =
+        object.id;
 
-selectedObjectId = object.id;
+      document
+        .querySelectorAll(
+          ".slide-object.selected"
+        )
+        .forEach(item => {
+          item.classList.remove(
+            "selected"
+          );
+        });
 
-renderSlideObjects();
+      element.classList.add(
+        "selected"
+      );
 
-});
+      renderPresentationProperties();
+    }
+  );
 
-enableObjectDragging(
-element,
-object
-);
-
+  enableObjectDragging(
+    element,
+    object
+  );
 }
 
 function enableObjectDragging(
@@ -5755,56 +5719,567 @@ renderPresentationSlides();
 schedulePresentationAutosave();
 
 }
-function renderPresentationSlides(){
+/* =========================================================
+   PRESENTATION INITIALIZATION AND AUTOSAVE
+========================================================= */
 
-const panel=
-document.getElementById(
-"presentationSlides"
-);
+let presentationAutosaveTimer =
+  null;
 
-if(!panel)return;
+let presentationHasUnsavedChanges =
+  false;
 
-panel.innerHTML="";
+function initializePresentationStudio(){
+  if(
+    !Array.isArray(
+      presentationStudio.slides
+    )
+  ){
+    presentationStudio.slides =
+      [];
+  }
 
-presentationStudio.slides.forEach(
-(slide,index)=>{
+  if(
+    presentationStudio.slides.length ===
+    0
+  ){
+    const firstSlide =
+      createSlide("cover");
 
-panel.innerHTML+=`
+    firstSlide.title =
+      state.classData?.title ||
+      "Lesson presentation";
 
-<div
-class="presentation-slide-card
-${slide.id===presentationStudio.currentSlideId?"active":""}"
+    firstSlide.subtitle =
+      state.classData?.subject ||
+      "Click to edit this subtitle";
 
-onclick="loadPresentationSlide('${slide.id}')">
+    firstSlide.background =
+      "#ffffff";
 
-<div class="presentation-slide-number">
+    presentationStudio.slides.push(
+      firstSlide
+    );
+  }
 
-${index+1}
+  let requestedSlide =
+    presentationStudio.slides.find(
+      slide =>
+        String(slide.id) ===
+        String(
+          presentationStudio.currentSlideId ||
+          ""
+        )
+    );
 
-</div>
+  if(!requestedSlide){
+    requestedSlide =
+      presentationStudio.slides[0];
+  }
 
-<div>
+  loadPresentationSlide(
+    requestedSlide.id
+  );
+}
 
-<div class="presentation-slide-title">
+function markPresentationUnsaved(){
+  presentationHasUnsavedChanges =
+    true;
 
-${escapeHtml(slide.title)}
+  if(
+    typeof setBuilderSaveState ===
+    "function"
+  ){
+    setBuilderSaveState(
+      "unsaved",
+      "Unsaved changes"
+    );
+  }
+}
 
-</div>
+function schedulePresentationAutosave(){
+  markPresentationUnsaved();
 
-<div class="presentation-slide-type">
+  window.clearTimeout(
+    presentationAutosaveTimer
+  );
 
-${slide.type}
+  presentationAutosaveTimer =
+    window.setTimeout(
+      savePresentationDraft,
+      800
+    );
+}
 
-</div>
+async function savePresentationDraft(){
+  if(
+    !presentationHasUnsavedChanges
+  ){
+    return;
+  }
 
-</div>
+  if(
+    typeof setBuilderSaveState ===
+    "function"
+  ){
+    setBuilderSaveState(
+      "saving",
+      "Saving..."
+    );
+  }
 
-</div>
+  try{
+    const snapshot = {
+      version:1,
+      updatedAt:
+        new Date().toISOString(),
 
-`;
+      classId:
+        state.classId ||
+        null,
 
-});
+      presentation:{
+        ...presentationStudio,
 
+        slides:
+          presentationStudio.slides.map(
+            slide => ({
+              ...slide,
+
+              objects:
+                Array.isArray(
+                  slide.objects
+                )
+                  ? slide.objects.map(
+                      object => ({
+                        ...object
+                      })
+                    )
+                  : []
+            })
+          )
+      }
+    };
+
+    /*
+      Safe local draft storage is used until the dedicated
+      presentation backend endpoint is connected.
+    */
+    localStorage.setItem(
+      getPresentationStorageKey(),
+      JSON.stringify(snapshot)
+    );
+
+    presentationHasUnsavedChanges =
+      false;
+
+    if(
+      typeof setBuilderSaveState ===
+      "function"
+    ){
+      setBuilderSaveState(
+        "",
+        "Saved"
+      );
+    }
+  }catch(error){
+    console.error(
+      "Presentation autosave failed:",
+      error
+    );
+
+    if(
+      typeof setBuilderSaveState ===
+      "function"
+    ){
+      setBuilderSaveState(
+        "error",
+        "Save failed"
+      );
+    }
+  }
+}
+
+function getPresentationStorageKey(){
+  return [
+    "aift",
+    "presentation",
+    state.classId ||
+      "unknown-class"
+  ].join(":");
+}
+
+function restorePresentationDraft(){
+  try{
+    const rawDraft =
+      localStorage.getItem(
+        getPresentationStorageKey()
+      );
+
+    if(!rawDraft){
+      return false;
+    }
+
+    const parsedDraft =
+      JSON.parse(rawDraft);
+
+    const savedPresentation =
+      parsedDraft?.presentation;
+
+    if(
+      !savedPresentation ||
+      !Array.isArray(
+        savedPresentation.slides
+      )
+    ){
+      return false;
+    }
+
+    presentationStudio.id =
+      savedPresentation.id ||
+      null;
+
+    presentationStudio.lessonId =
+      savedPresentation.lessonId ||
+      null;
+
+    presentationStudio.theme =
+      savedPresentation.theme ||
+      "classic";
+
+    presentationStudio.background =
+      savedPresentation.background ||
+      "#ffffff";
+
+    presentationStudio.ratio =
+      savedPresentation.ratio ||
+      "16:9";
+
+    presentationStudio.currentSlideId =
+      savedPresentation.currentSlideId ||
+      null;
+
+    presentationStudio.slides =
+      savedPresentation.slides.map(
+        slide => ({
+          ...slide,
+
+          objects:
+            Array.isArray(
+              slide.objects
+            )
+              ? slide.objects
+              : []
+        })
+      );
+
+    return true;
+  }catch(error){
+    console.warn(
+      "Stored presentation draft could not be restored:",
+      error
+    );
+
+    return false;
+  }
+}
+
+/* =========================================================
+   PRESENTATION SIDE PANELS
+========================================================= */
+
+function renderPresentationProperties(){
+  const container =
+    byId(
+      "presentationProperties"
+    );
+
+  if(!container){
+    return;
+  }
+
+  if(!currentSlide){
+    container.innerHTML = `
+      <div class="presentation-properties-empty">
+        Select or create a slide.
+      </div>
+    `;
+
+    return;
+  }
+
+  const selectedObject =
+    currentSlide.objects.find(
+      object =>
+        String(object.id) ===
+        String(
+          selectedObjectId ||
+          ""
+        )
+    );
+
+  if(selectedObject){
+    container.innerHTML = `
+      <div class="presentation-property-group">
+
+        <label>
+          Object type
+        </label>
+
+        <strong>
+          ${escapeHtml(
+            selectedObject.type ||
+            "object"
+          )}
+        </strong>
+
+      </div>
+
+      <div class="presentation-property-grid">
+
+        <label>
+          X position
+
+          <input
+            type="number"
+            value="${Number(
+              selectedObject.x ||
+              0
+            )}"
+            onchange="updateSelectedObjectProperty('x',this.value)"
+          >
+        </label>
+
+        <label>
+          Y position
+
+          <input
+            type="number"
+            value="${Number(
+              selectedObject.y ||
+              0
+            )}"
+            onchange="updateSelectedObjectProperty('y',this.value)"
+          >
+        </label>
+
+        <label>
+          Width
+
+          <input
+            type="number"
+            min="20"
+            value="${Number(
+              selectedObject.width ||
+              100
+            )}"
+            onchange="updateSelectedObjectProperty('width',this.value)"
+          >
+        </label>
+
+        <label>
+          Height
+
+          <input
+            type="number"
+            min="20"
+            value="${Number(
+              selectedObject.height ||
+              60
+            )}"
+            onchange="updateSelectedObjectProperty('height',this.value)"
+          >
+        </label>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="presentation-property-group">
+
+      <label for="presentationSlideBackground">
+        Slide background
+      </label>
+
+      <input
+        id="presentationSlideBackground"
+        type="color"
+        value="${escapeHtml(
+          normalizePresentationColor(
+            currentSlide.background
+          )
+        )}"
+        oninput="updateCurrentSlideBackground(this.value)"
+      >
+
+    </div>
+
+    <div class="presentation-property-group">
+
+      <label for="presentationTransition">
+        Transition
+      </label>
+
+      <select
+        id="presentationTransition"
+        onchange="updateCurrentSlideTransition(this.value)"
+      >
+        ${[
+          "none",
+          "fade",
+          "slide",
+          "zoom"
+        ].map(value => `
+          <option
+            value="${value}"
+            ${
+              currentSlide.transition ===
+              value
+                ? "selected"
+                : ""
+            }
+          >
+            ${
+              value.charAt(0)
+                .toUpperCase() +
+              value.slice(1)
+            }
+          </option>
+        `).join("")}
+      </select>
+
+    </div>
+  `;
+}
+
+function normalizePresentationColor(
+  value
+){
+  const color =
+    String(
+      value ||
+      ""
+    ).trim();
+
+  return /^#[0-9a-f]{6}$/i.test(color)
+    ? color
+    : "#ffffff";
+}
+
+function updateCurrentSlideBackground(
+  value
+){
+  if(!currentSlide){
+    return;
+  }
+
+  currentSlide.background =
+    normalizePresentationColor(
+      value
+    );
+
+  renderPresentationCanvas();
+  schedulePresentationAutosave();
+}
+
+function updateCurrentSlideTransition(
+  value
+){
+  if(!currentSlide){
+    return;
+  }
+
+  const allowed = new Set([
+    "none",
+    "fade",
+    "slide",
+    "zoom"
+  ]);
+
+  currentSlide.transition =
+    allowed.has(value)
+      ? value
+      : "fade";
+
+  schedulePresentationAutosave();
+}
+
+function updateSelectedObjectProperty(
+  property,
+  value
+){
+  if(
+    !currentSlide ||
+    !selectedObjectId
+  ){
+    return;
+  }
+
+  const object =
+    currentSlide.objects.find(
+      item =>
+        String(item.id) ===
+        String(selectedObjectId)
+    );
+
+  if(!object){
+    return;
+  }
+
+  const allowedProperties =
+    new Set([
+      "x",
+      "y",
+      "width",
+      "height"
+    ]);
+
+  if(
+    !allowedProperties.has(
+      property
+    )
+  ){
+    return;
+  }
+
+  const number =
+    Number(value);
+
+  if(
+    !Number.isFinite(number)
+  ){
+    return;
+  }
+
+  object[property] =
+    property === "width" ||
+    property === "height"
+      ? Math.max(20,number)
+      : number;
+
+  renderSlideObjects();
+  schedulePresentationAutosave();
+}
+
+function renderPresentationNotes(){
+  const textarea =
+    byId(
+      "presentationNotes"
+    );
+
+  if(!textarea){
+    return;
+  }
+
+  textarea.disabled =
+    !currentSlide;
+
+  textarea.value =
+    currentSlide?.notes ||
+    "";
 }
 
 async function apiSend(path, method, payload){
@@ -6417,26 +6892,50 @@ duration:0
 }
 let currentSlide=null;
 
-function loadPresentationSlide(slideId){
+function loadPresentationSlide(
+  slideId
+){
+  const normalizedId =
+    String(
+      slideId ||
+      ""
+    );
 
-const slide=
-presentationStudio.slides.find(
-item=>item.id===slideId
-);
+  const slide =
+    presentationStudio.slides.find(
+      item =>
+        String(item.id) ===
+        normalizedId
+    );
 
-if(!slide)return;
+  if(!slide){
+    currentSlide =
+      null;
 
-presentationStudio.currentSlideId=slide.id;
+    presentationStudio.currentSlideId =
+      null;
 
-currentSlide=slide;
+    renderPresentationCanvas();
+    renderPresentationSlides();
+    renderPresentationProperties();
 
-renderPresentationCanvas();
+    return;
+  }
 
-renderPresentationSidebar();
+  presentationStudio.currentSlideId =
+    slide.id;
 
+  currentSlide =
+    slide;
+
+  selectedObjectId =
+    null;
+
+  renderPresentationCanvas();
+  renderPresentationSlides();
+  renderPresentationProperties();
+  renderPresentationNotes();
 }
-  
-
 
 
 function openMediaUploader(){
@@ -6547,12 +7046,6 @@ function renderBuilderAssignments(){
       `;
     }).join("");
 }
-
-document.addEventListener(
-  "DOMContentLoaded",
-  restoreBuilderSidebarState
-);
-
   
 function openBuilderSection(tab){
   if (!tab){
@@ -8356,6 +8849,85 @@ function renderPreview(){
 ===================================================== */
 
 function bindGlobalEvents(){
+    document.addEventListener(
+    "input",
+    event => {
+      const target =
+        event.target;
+
+      if(
+        !currentSlide ||
+        !(target instanceof HTMLElement)
+      ){
+        return;
+      }
+
+      if(
+        target.matches(
+          '.slide-title[data-role="title"]'
+        )
+      ){
+        currentSlide.title =
+          target.innerText
+            .replace(/\u00a0/g," ")
+            .trim();
+
+        renderPresentationSlides();
+        schedulePresentationAutosave();
+
+        return;
+      }
+
+      if(
+        target.matches(
+          '.slide-subtitle[data-role="subtitle"]'
+        )
+      ){
+        currentSlide.subtitle =
+          target.innerText
+            .replace(/\u00a0/g," ")
+            .trim();
+
+        schedulePresentationAutosave();
+
+        return;
+      }
+
+      if(
+        target.id ===
+        "presentationNotes"
+      ){
+        currentSlide.notes =
+          target.value;
+
+        schedulePresentationAutosave();
+
+        return;
+      }
+
+      if(
+        target.classList.contains(
+          "slide-object-text"
+        ) &&
+        selectedObjectId
+      ){
+        const object =
+          currentSlide.objects.find(
+            item =>
+              String(item.id) ===
+              String(selectedObjectId)
+          );
+
+        if(object){
+          object.text =
+            target.innerText
+              .replace(/\u00a0/g," ");
+
+          schedulePresentationAutosave();
+        }
+      }
+    }
+  );
   
   document.addEventListener("keydown", event => {
     if (event.key === "Escape"){
@@ -8372,10 +8944,18 @@ function bindGlobalEvents(){
   });
 }
 
-function initBuilder(){
+async function initBuilder(){
   bindGlobalEvents();
-  openBuilderSection("overview");
-  loadBuilder();
+  restoreBuilderSidebarState();
+
+  openBuilderSection(
+    "overview"
+  );
+
+  await loadBuilder();
+
+  restorePresentationDraft();
+  initializePresentationStudio();
 }
 
 document.addEventListener("DOMContentLoaded", initBuilder);
