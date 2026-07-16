@@ -12668,27 +12668,256 @@ const state = {
    AUTH / API HELPERS
 ===================================================== */
 
+/* =====================================================
+   AUTHENTICATED TOKEN SELECTION
+===================================================== */
+
+function normalizeAuthRole(value){
+  const role =
+    String(value || "")
+      .trim()
+      .toLowerCase();
+
+  const aliases = {
+    instructor:"teacher",
+    faculty:"teacher",
+    learner:"student",
+    administrator:"admin"
+  };
+
+  return aliases[role] || role;
+}
+
+function decodeJwtPayload(token){
+  try{
+    const parts =
+      String(token || "")
+        .split(".");
+
+    if(parts.length !== 3){
+      return null;
+    }
+
+    const normalizedPayload =
+      parts[1]
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
+    const paddedPayload =
+      normalizedPayload.padEnd(
+        Math.ceil(
+          normalizedPayload.length / 4
+        ) * 4,
+        "="
+      );
+
+    return JSON.parse(
+      decodeURIComponent(
+        window
+          .atob(paddedPayload)
+          .split("")
+          .map(character => {
+            return `%${(
+              "00" +
+              character.charCodeAt(0).toString(16)
+            ).slice(-2)}`;
+          })
+          .join("")
+      )
+    );
+  }catch(error){
+    return null;
+  }
+}
+
+function isUsableAuthToken(token){
+  if(
+    !token ||
+    !String(token).trim()
+  ){
+    return false;
+  }
+
+  const payload =
+    decodeJwtPayload(token);
+
+  /*
+    Some older AIFT tokens may only include an ID.
+    Those remain usable when no expiration exists.
+  */
+  if(
+    payload?.exp &&
+    Number(payload.exp) * 1000 <=
+      Date.now()
+  ){
+    return false;
+  }
+
+  return true;
+}
+
+function getStoredAuthRole(){
+  const directRole =
+    normalizeAuthRole(
+      localStorage.getItem("role") ||
+      localStorage.getItem("userRole") ||
+      localStorage.getItem("activeRole")
+    );
+
+  if(directRole){
+    return directRole;
+  }
+
+  const storedUserKeys = [
+    "user",
+    "currentUser",
+    "authUser",
+    "loggedInUser"
+  ];
+
+  for(
+    const key of storedUserKeys
+  ){
+    try{
+      const rawValue =
+        localStorage.getItem(key);
+
+      if(!rawValue){
+        continue;
+      }
+
+      const parsedValue =
+        JSON.parse(rawValue);
+
+      const parsedRole =
+        normalizeAuthRole(
+          parsedValue?.role
+        );
+
+      if(parsedRole){
+        return parsedRole;
+      }
+    }catch(error){
+      /*
+        Ignore malformed legacy storage.
+      */
+    }
+  }
+
+  return "";
+}
+
 function getToken(){
-  const possibleTokens = [
+  const activeRole =
+    getStoredAuthRole();
+
+  const tokenKeyByRole = {
+    school:"schoolToken",
+    teacher:"teacherToken",
+    student:"studentToken",
+    admin:"adminToken",
+    employer:"employerToken",
+    talent:"talentToken",
+    agent:"agentToken"
+  };
+
+  /*
+    Always prefer the token belonging to the currently active
+    account role. This prevents an old school/teacher/student
+    token from being sent accidentally.
+  */
+  const preferredKey =
+    tokenKeyByRole[activeRole];
+
+  if(preferredKey){
+    const preferredToken =
+      localStorage.getItem(
+        preferredKey
+      );
+
+    if(
+      isUsableAuthToken(
+        preferredToken
+      )
+    ){
+      return preferredToken.trim();
+    }
+  }
+
+  /*
+    The shared token is the next valid option because some
+    login flows store only "token".
+  */
+  const sharedToken =
+    localStorage.getItem(
+      "token"
+    );
+
+  if(
+    isUsableAuthToken(
+      sharedToken
+    )
+  ){
+    const payloadRole =
+      normalizeAuthRole(
+        decodeJwtPayload(
+          sharedToken
+        )?.role
+      );
+
+    if(
+      !activeRole ||
+      !payloadRole ||
+      payloadRole === activeRole
+    ){
+      return sharedToken.trim();
+    }
+  }
+
+  /*
+    Last-resort compatibility:
+    choose the newest non-expired token instead of blindly
+    choosing schoolToken first.
+  */
+  const tokenKeys = [
     "schoolToken",
     "teacherToken",
     "studentToken",
     "adminToken",
     "employerToken",
     "talentToken",
-    "agentToken",
-    "token"
+    "agentToken"
   ];
 
-  for (const key of possibleTokens){
-    const token = localStorage.getItem(key);
+  const validTokens =
+    tokenKeys
+      .map(key => {
+        const token =
+          localStorage.getItem(key);
 
-    if (token && token.trim()){
-      return token.trim();
-    }
-  }
+        const payload =
+          decodeJwtPayload(token);
 
-  return "";
+        return {
+          key,
+          token,
+          issuedAt:
+            Number(payload?.iat || 0)
+        };
+      })
+      .filter(item =>
+        isUsableAuthToken(
+          item.token
+        )
+      )
+      .sort(
+        (first,second) =>
+          second.issuedAt -
+          first.issuedAt
+      );
+
+  return validTokens[0]?.token
+    ?.trim() || "";
 }
 
 function createTextObject(){
