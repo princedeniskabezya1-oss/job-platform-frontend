@@ -15422,7 +15422,7 @@ id="presentationNotes">
   <input
     type="file"
     id="lessonCoverFileInput"
-    accept="image/jpeg,image/png,image/webp,image/gif"
+    accept="image/*,video/mp4,video/webm,video/quicktime"
     hidden
     onchange="handleLessonCoverSelection(event)"
   >
@@ -16981,6 +16981,94 @@ async function apiSend(path, method, payload){
   }
 
   return data;
+}
+
+/* =========================================================
+   UPLOAD A LESSON COVER IMAGE
+========================================================= */
+
+async function uploadLessonCoverImage(
+  file
+){
+  if(
+    !(file instanceof File)
+  ){
+    throw new Error(
+      "A valid lesson cover image is required."
+    );
+  }
+
+  const token =
+    getToken();
+
+  if(!token){
+    throw new Error(
+      "Your session has expired. Please sign in again."
+    );
+  }
+
+  const formData =
+    new FormData();
+
+  /*
+    This name must match:
+
+    upload.single("cover")
+
+    inside routes/uploads.js.
+  */
+  formData.append(
+    "cover",
+    file,
+    file.name
+  );
+
+  const response =
+    await fetch(
+      `${API_BASE}/api/uploads/lesson-cover`,
+      {
+        method:"POST",
+
+        /*
+          Do not manually set Content-Type here.
+          The browser must add the multipart boundary.
+        */
+        headers:{
+          Authorization:
+            `Bearer ${token}`
+        },
+
+        body:
+          formData
+      }
+    );
+
+  const data =
+    await safeJson(
+      response
+    );
+
+  if(!response.ok){
+    throw new Error(
+      data?.message ||
+      "Failed to upload the lesson cover image."
+    );
+  }
+
+  const uploadedUrl =
+    String(
+      data?.secureUrl ||
+      data?.url ||
+      ""
+    ).trim();
+
+  if(!uploadedUrl){
+    throw new Error(
+      "The upload completed, but no image URL was returned."
+    );
+  }
+
+  return uploadedUrl;
 }
 
 /* =====================================================
@@ -24001,10 +24089,6 @@ async function saveLesson(
     event?.currentTarget ||
     null;
 
-  /*
-    A selected device image must be uploaded before the lesson
-    record can be saved. Never store the temporary blob URL.
-  */
   if(
     lessonCoverUploadState?.file &&
     typeof uploadLessonCoverImage !==
@@ -24012,7 +24096,7 @@ async function saveLesson(
   ){
     showAlert(
       "error",
-      "The image was selected successfully, but the lesson image upload route has not been connected yet."
+      "The lesson cover upload service is unavailable."
     );
 
     return;
@@ -24051,10 +24135,10 @@ async function saveLesson(
       "lessonVideoInput"
     ).trim();
 
-  const coverUrl =
-    getValue(
-      "lessonCoverInput"
-    ).trim();
+let coverUrl =
+  getValue(
+    "lessonCoverInput"
+  ).trim();
 
   const resourceUrl =
     getValue(
@@ -24212,6 +24296,37 @@ async function saveLesson(
   }
 
   try{
+
+     if(
+  lessonCoverUploadState?.file
+){
+  if(button){
+    button.disabled =
+      true;
+
+    button.dataset.originalText =
+      button.textContent;
+
+    button.textContent =
+      "Uploading cover...";
+  }
+
+  coverUrl =
+    await uploadLessonCoverImage(
+      lessonCoverUploadState.file
+    );
+
+  setValue(
+    "lessonCoverInput",
+    coverUrl
+  );
+
+  lessonCoverUploadState.existingUrl =
+    coverUrl;
+
+  lessonCoverUploadState.removeExisting =
+    false;
+}
     setButtonLoading(
       button,
       true,
