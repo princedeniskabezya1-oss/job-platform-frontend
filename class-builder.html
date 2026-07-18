@@ -3033,91 +3033,6 @@ body.studio-sidebar-collapsed
 }
 
 /* =========================================================
-   OVERVIEW SAVE BAR
-========================================================= */
-
-.project-overview-save{
-  position:sticky;
-  bottom:16px;
-  z-index:80;
-
-  width:100%;
-  min-height:76px;
-  padding:14px 16px;
-
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:20px;
-
-  border:1px solid var(--aift-border);
-  border-radius:13px;
-
-  background:rgba(255,255,255,.97);
-
-  box-shadow:
-    0 10px 28px rgba(60,64,67,.14);
-
-  backdrop-filter:blur(14px);
-  -webkit-backdrop-filter:blur(14px);
-}
-
-.project-overview-save-copy{
-  min-width:0;
-
-  display:flex;
-  align-items:flex-start;
-  gap:11px;
-}
-
-.project-overview-save-indicator{
-  width:10px;
-  height:10px;
-  margin-top:5px;
-
-  flex:0 0 auto;
-
-  border-radius:50%;
-
-  background:var(--aift-success);
-
-  box-shadow:
-    0 0 0 4px var(--aift-success-soft);
-}
-
-.project-overview-save-copy > div{
-  min-width:0;
-}
-
-.project-overview-save-copy strong{
-  display:block;
-
-  color:var(--aift-text-strong);
-
-  font-size:13px;
-  line-height:1.4;
-  font-weight:650;
-}
-
-.project-overview-save-copy p{
-  margin:3px 0 0;
-
-  color:var(--aift-muted);
-
-  font-size:11px;
-  line-height:1.45;
-}
-
-.project-overview-save-actions{
-  display:flex;
-  align-items:center;
-  justify-content:flex-end;
-  gap:8px;
-
-  flex:0 0 auto;
-}
-
-/* =========================================================
    RESPONSIVE OVERVIEW
 ========================================================= */
 
@@ -3201,22 +3116,6 @@ body.studio-sidebar-collapsed
   .project-overview-panel,
   .project-overview-editor{
     padding:18px;
-  }
-
-  .project-overview-save{
-    position:static;
-
-    align-items:stretch;
-    flex-direction:column;
-  }
-
-  .project-overview-save-actions{
-    width:100%;
-  }
-
-  .project-overview-save-actions
-  .project-overview-button{
-    flex:1 1 0;
   }
 }
 
@@ -10327,13 +10226,15 @@ backface-visibility:hidden;
       Preview
     </button>
 
-    <button
-      type="button"
-      class="studio-topbar-button primary"
-      onclick="saveClassProfile(event)"
-    >
-      Save
-    </button>
+ <button
+  type="button"
+  class="studio-topbar-button primary"
+  id="studioPrimarySaveButton"
+  onclick="saveActiveBuilderWorkspace(event)"
+  aria-label="Save current workspace"
+>
+  Save
+</button>
 
     <button
       type="button"
@@ -11575,49 +11476,7 @@ backface-visibility:hidden;
          SAVE BAR
     ================================================= -->
 
-    <footer
-      class="project-overview-save"
-      id="overviewSaveBar"
-    >
 
-      <div class="project-overview-save-copy">
-
-        <span class="project-overview-save-indicator"></span>
-
-        <div>
-          <strong id="overviewSaveLabel">
-            All overview changes are saved
-          </strong>
-
-          <p>
-            Changes are saved to the same class record used across AIFT.
-          </p>
-        </div>
-
-      </div>
-
-      <div class="project-overview-save-actions">
-
-        <button
-          type="button"
-          class="project-overview-button secondary"
-          onclick="resetOverviewEditor()"
-        >
-          Reset changes
-        </button>
-
-        <button
-          type="button"
-          class="project-overview-button primary"
-          id="saveOverviewButton"
-          onclick="saveOverviewContent(event)"
-        >
-          Save overview
-        </button>
-
-      </div>
-
-    </footer>
 
   </div>
 
@@ -14912,6 +14771,252 @@ function restoreBuilderSidebarState(){
   }
 }
 
+/* =========================================================
+   GLOBAL CLASS BUILDER SAVE CONTROLLER
+========================================================= */
+
+let activeBuilderSavePromise =
+  null;
+
+function getActiveBuilderWorkspace(){
+  return String(
+    state?.activeTab ||
+    document.body.dataset.builderSection ||
+    "overview"
+  )
+    .trim()
+    .toLowerCase();
+}
+
+function getWorkspaceSaveConfiguration(
+  workspace
+){
+  const configurations = {
+    overview:{
+      label:"overview",
+      handler:async event => {
+        if(
+          typeof saveOverviewContent !==
+          "function"
+        ){
+          throw new Error(
+            "The Overview save function is unavailable."
+          );
+        }
+
+        return saveOverviewContent(
+          event
+        );
+      }
+    },
+
+    content:{
+      label:"lesson content",
+      handler:async event => {
+        if(
+          typeof saveElementorContent !==
+          "function"
+        ){
+          throw new Error(
+            "The lesson-content save function is unavailable."
+          );
+        }
+
+        return saveElementorContent(
+          event
+        );
+      }
+    },
+
+    presentations:{
+      label:"presentation",
+      handler:async event => {
+        /*
+          Support the presentation save function already
+          installed in the current builder.
+        */
+        if(
+          typeof savePresentationStudio ===
+          "function"
+        ){
+          return savePresentationStudio(
+            event
+          );
+        }
+
+        if(
+          typeof savePresentation ===
+          "function"
+        ){
+          return savePresentation(
+            event
+          );
+        }
+
+        if(
+          typeof savePresentationProject ===
+          "function"
+        ){
+          return savePresentationProject(
+            event
+          );
+        }
+
+        throw new Error(
+          "The presentation save function is unavailable."
+        );
+      }
+    },
+
+    settings:{
+      label:"class settings",
+      handler:async event => {
+        if(
+          typeof saveSettings ===
+          "function"
+        ){
+          return saveSettings(
+            event
+          );
+        }
+
+        if(
+          typeof saveClassSettings ===
+          "function"
+        ){
+          return saveClassSettings(
+            event
+          );
+        }
+
+        throw new Error(
+          "The class-settings save function is unavailable."
+        );
+      }
+    }
+  };
+
+  return configurations[
+    workspace
+  ] || null;
+}
+
+async function saveActiveBuilderWorkspace(
+  event
+){
+  /*
+    Prevent double-clicks from sending duplicate PATCH
+    requests while a save is already in progress.
+  */
+  if(activeBuilderSavePromise){
+    return activeBuilderSavePromise;
+  }
+
+  const button =
+    event?.currentTarget ||
+    byId(
+      "studioPrimarySaveButton"
+    );
+
+  const workspace =
+    getActiveBuilderWorkspace();
+
+  const configuration =
+    getWorkspaceSaveConfiguration(
+      workspace
+    );
+
+  /*
+    Management workspaces usually save from their own forms
+    or modals. Do not pretend that a save occurred.
+  */
+  if(!configuration){
+    showAlert(
+      "info",
+      "There are no unsaved changes in this workspace."
+    );
+
+    setBuilderSaveState(
+      "",
+      "Saved"
+    );
+
+    return;
+  }
+
+  const originalContent =
+    button?.innerHTML || "Save";
+
+  activeBuilderSavePromise =
+    (async () => {
+      try{
+        if(button){
+          button.disabled =
+            true;
+
+          button.setAttribute(
+            "aria-busy",
+            "true"
+          );
+
+          button.textContent =
+            "Saving...";
+        }
+
+        setBuilderSaveState(
+          "saving",
+          "Saving..."
+        );
+
+        await configuration.handler({
+          currentTarget:
+            button,
+
+          source:
+            "global-topbar"
+        });
+
+        setBuilderSaveState(
+          "",
+          "Saved"
+        );
+      }catch(error){
+        console.error(
+          `Failed to save ${configuration.label}:`,
+          error
+        );
+
+        setBuilderSaveState(
+          "error",
+          "Save failed"
+        );
+
+        showAlert(
+          "error",
+          error?.message ||
+          `The ${configuration.label} could not be saved.`
+        );
+      }finally{
+        if(button){
+          button.disabled =
+            false;
+
+          button.removeAttribute(
+            "aria-busy"
+          );
+
+          button.innerHTML =
+            originalContent;
+        }
+
+        activeBuilderSavePromise =
+          null;
+      }
+    })();
+
+  return activeBuilderSavePromise;
+}
+
 function setBuilderSaveState(
   status,
   label
@@ -14932,28 +15037,6 @@ function setBuilderSaveState(
     "Saved";
 }
 
-  function addContentBlock(type){
-
-const container =
-document.getElementById(
-"contentStudioBlocks"
-);
-
-if(!container)return;
-
-const block =
-document.createElement("div");
-
-block.className =
-"lesson-content-block";
-
-block.dataset.type = type;
-
-block.innerHTML = createContentBlock(type);
-
-container.appendChild(block);
-
-}
 
 /* =========================================================
    ELEMENTOR-STYLE CONTENT BUILDER
@@ -19105,46 +19188,54 @@ function updateOverviewWelcomeCount(){
     `${input.value.length} / 3000`;
 }
 
-function setOverviewSaveState(isUnsaved){
+function setOverviewSaveState(
+  isUnsaved
+){
   overviewHasUnsavedChanges =
     Boolean(isUnsaved);
 
-  const label =
-    byId("overviewSaveLabel");
+  state.overviewDirty =
+    overviewHasUnsavedChanges;
 
-  const saveState =
-    byId("builderSaveState");
+  setBuilderSaveState(
+    overviewHasUnsavedChanges
+      ? "unsaved"
+      : "",
 
-  if(label){
-    label.textContent =
-      overviewHasUnsavedChanges
-        ? "You have unsaved overview changes"
-        : "All overview changes are saved";
-  }
+    overviewHasUnsavedChanges
+      ? "Unsaved"
+      : "Saved"
+  );
 
-  if(saveState){
-    saveState.textContent =
-      overviewHasUnsavedChanges
-        ? "Unsaved"
-        : "Saved";
-
-    saveState.classList.toggle(
-      "unsaved",
-      overviewHasUnsavedChanges
+  const saveButton =
+    byId(
+      "studioPrimarySaveButton"
     );
 
-    if(!overviewHasUnsavedChanges){
-      saveState.classList.remove(
-        "saving",
-        "error"
-      );
-    }
+  if(saveButton){
+    saveButton.setAttribute(
+      "aria-label",
+      overviewHasUnsavedChanges
+        ? "Save unsaved Overview changes"
+        : "Save current workspace"
+    );
   }
 }
 
 function markOverviewUnsaved(){
-  updateOverviewWelcomeCount();
-  setOverviewSaveState(true);
+  setOverviewSaveState(
+    true
+  );
+
+  const saveButton =
+    byId(
+      "studioPrimarySaveButton"
+    );
+
+  if(saveButton){
+    saveButton.disabled =
+      false;
+  }
 }
 
 function renderOverviewOutcomeEditor(outcomes = []){
@@ -19385,49 +19476,57 @@ function resetOverviewEditor(){
   );
 }
 
-async function saveOverviewContent(event){
+async function saveOverviewContent(
+  event
+){
   const button =
     event?.currentTarget ||
-    byId("saveOverviewButton");
-
-  try{
-    if(state.isSaving){
-      return;
-    }
-
-    if(!state.classId){
-      showAlert(
-        "error",
-        "Class ID missing."
-      );
-
-      return;
-    }
-
-    state.isSaving = true;
-
-    setButtonLoading(
-      button,
-      true,
-      "Saving..."
+    byId(
+      "studioPrimarySaveButton"
     );
 
-    const saveState =
-      byId("builderSaveState");
+  /*
+    Return the existing save operation instead of silently
+    reporting success when another class request is active.
+  */
+  if(state.isSaving){
+    return false;
+  }
 
-    if(saveState){
-      saveState.textContent =
-        "Saving";
+  if(!state.classId){
+    throw new Error(
+      "Class ID missing."
+    );
+  }
 
-      saveState.classList.remove(
-        "unsaved",
-        "error"
-      );
+  state.isSaving =
+    true;
 
-      saveState.classList.add(
-        "saving"
+  try{
+    /*
+      saveActiveBuilderWorkspace() already manages the top
+      button's loading text. Only manage it here when this
+      function is called directly from somewhere else.
+    */
+    const calledFromGlobalSave =
+      event?.source ===
+      "global-topbar";
+
+    if(
+      !calledFromGlobalSave &&
+      button
+    ){
+      setButtonLoading(
+        button,
+        true,
+        "Saving..."
       );
     }
+
+    setBuilderSaveState(
+      "saving",
+      "Saving..."
+    );
 
     const welcomeContent =
       getValue(
@@ -19437,7 +19536,7 @@ async function saveOverviewContent(event){
     const learningOutcomes =
       getOverviewOutcomes();
 
-    const updatedClass =
+    const response =
       await apiSend(
         `/api/classes/${encodeURIComponent(state.classId)}/builder`,
         "PATCH",
@@ -19450,53 +19549,107 @@ async function saveOverviewContent(event){
         }
       );
 
+    /*
+      Support both API response formats:
+
+      1. The route returns the class directly.
+      2. The route returns { class: updatedClass }.
+    */
+    const updatedClass =
+      response?.class ||
+      response;
+
+    if(
+      !updatedClass ||
+      typeof updatedClass !==
+        "object"
+    ){
+      throw new Error(
+        "The server returned an invalid class response."
+      );
+    }
+
     state.classData =
       updatedClass;
 
-    setOverviewSaveState(false);
+    /*
+      Mark every Overview dirty-state source as clean.
+    */
+    state.overviewDirty =
+      false;
+
+    overviewHasUnsavedChanges =
+      false;
+
+    setOverviewSaveState(
+      false
+    );
+
+    setBuilderSaveState(
+      "",
+      "Saved"
+    );
+
+    const topSaveButton =
+      byId(
+        "studioPrimarySaveButton"
+      );
+
+    if(topSaveButton){
+      topSaveButton.setAttribute(
+        "aria-label",
+        "Save current workspace"
+      );
+    }
+
+    /*
+      Render again from the saved server response so the
+      inputs and the local state remain synchronized.
+    */
+    renderOverview();
+    renderPreview();
 
     showAlert(
       "success",
       "Class overview saved successfully."
     );
 
-    renderOverview();
-    renderPreview();
-  }catch(err){
+    return true;
+  }catch(error){
     console.error(
       "saveOverviewContent error:",
-      err
+      error
     );
 
-    const saveState =
-      byId("builderSaveState");
+    /*
+      Keep the Overview dirty after a failed request.
+    */
+    state.overviewDirty =
+      true;
 
-    if(saveState){
-      saveState.textContent =
-        "Error";
+    overviewHasUnsavedChanges =
+      true;
 
-      saveState.classList.remove(
-        "saving",
-        "unsaved"
-      );
+    setBuilderSaveState(
+      "error",
+      "Save failed"
+    );
 
-      saveState.classList.add(
-        "error"
+    throw error;
+  }finally{
+    state.isSaving =
+      false;
+
+    if(
+      event?.source !==
+        "global-topbar" &&
+      button
+    ){
+      setButtonLoading(
+        button,
+        false
       );
     }
-
-    showAlert(
-      "error",
-      err.message ||
-      "Failed to save the class overview."
-    );
-  }finally{
-    state.isSaving = false;
-
-    setButtonLoading(
-      button,
-      false
-    );
   }
 }
 
