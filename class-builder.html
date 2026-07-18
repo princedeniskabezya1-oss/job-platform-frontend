@@ -13021,6 +13021,87 @@ body[data-builder-section="content"]
     );
 }
 
+/* =========================================================
+   CONTENT STUDIO — BALANCED FLUID CANVAS SPACING
+========================================================= */
+
+body[data-builder-section="content"]
+.elementor-builder{
+  --elementor-canvas-gap:20px;
+}
+
+/*
+  Keep equal spacing around the complete white canvas.
+*/
+body[data-builder-section="content"]
+.elementor-canvas-scroll{
+  padding:
+    var(--elementor-canvas-gap)!important;
+
+  background-color:#eef1f5;
+}
+
+/*
+  Fluid mode must no longer remove the canvas spacing.
+*/
+body[data-builder-section="content"]
+.elementor-builder[data-canvas-preset="fluid"]
+.elementor-canvas-scroll{
+  padding:
+    var(--elementor-canvas-gap)!important;
+}
+
+/*
+  Center the canvas horizontally and vertically whenever its
+  content is smaller than the available editing viewport.
+*/
+body[data-builder-section="content"]
+.elementor-canvas-stage{
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:center!important;
+
+  width:100%;
+  min-width:100%;
+
+  height:auto;
+  min-height:100%;
+}
+
+/*
+  Fluid canvas keeps a clean white page with equal surrounding
+  space instead of touching the workspace edges.
+*/
+body[data-builder-section="content"]
+.elementor-builder[data-canvas-preset="fluid"]
+.elementor-canvas{
+  flex:0 0 auto;
+
+  border:1px solid #d8dde3!important;
+  border-radius:4px!important;
+
+  background:#fff;
+
+  box-shadow:
+    0 2px 8px rgba(32,33,36,.08),
+    0 12px 30px rgba(32,33,36,.06)!important;
+}
+
+/*
+  Keep the floating zoom controls inside the same visual gap.
+*/
+body[data-builder-section="content"]
+.elementor-floating-zoom{
+  right:
+    var(--elementor-canvas-gap);
+
+  bottom:
+    var(--elementor-canvas-gap);
+
+  margin-right:0;
+  margin-bottom:0;
+}
+
 </style>
 </head>
 <body>
@@ -21288,43 +21369,61 @@ function refreshElementorCanvasViewport(){
       scrollArea.clientHeight
     );
 
-  if(isFluid){
-    /*
-      In fluid mode, the visible canvas must cover the complete
-      editing viewport even while zoomed below 100%.
+if(isFluid){
+  /*
+    Fluid mode keeps the same gap on the top, right, bottom,
+    and left sides of the white lesson canvas.
+  */
+  const canvasGap =
+    20;
 
-      Dividing by zoom gives the unscaled size needed so the
-      transformed canvas still visually fills the viewport.
-    */
-    const requiredCanvasWidth =
-      viewportWidth / zoom;
+  const availableWidth =
+    Math.max(
+      320,
+      viewportWidth -
+      canvasGap * 2
+    );
 
-    const requiredCanvasHeight =
-      viewportHeight / zoom;
+  const availableHeight =
+    Math.max(
+      420,
+      viewportHeight -
+      canvasGap * 2
+    );
 
-    canvas.style.width =
-      `${requiredCanvasWidth}px`;
+  /*
+    The canvas is transformed by zoom, so calculate its
+    unscaled dimensions before applying the transform.
+  */
+  const requiredCanvasWidth =
+    availableWidth / zoom;
 
-    canvas.style.minWidth =
-      `${requiredCanvasWidth}px`;
+  const requiredCanvasHeight =
+    availableHeight / zoom;
 
-    canvas.style.minHeight =
-      `${requiredCanvasHeight}px`;
+  canvas.style.width =
+    `${requiredCanvasWidth}px`;
 
-    stage.style.width =
-      `${viewportWidth}px`;
+  canvas.style.minWidth =
+    `${requiredCanvasWidth}px`;
 
-    stage.style.minWidth =
-      `${viewportWidth}px`;
+  canvas.style.minHeight =
+    `${requiredCanvasHeight}px`;
 
-    stage.style.height =
-      `${viewportHeight}px`;
+  stage.style.width =
+    `${availableWidth}px`;
 
-    stage.style.minHeight =
-      `${viewportHeight}px`;
+  stage.style.minWidth =
+    `${availableWidth}px`;
 
-    return;
-  }
+  stage.style.height =
+    `${availableHeight}px`;
+
+  stage.style.minHeight =
+    `${availableHeight}px`;
+
+  return;
+}
 
   /*
     Clear fluid-only inline dimensions when a fixed page
