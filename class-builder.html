@@ -13073,6 +13073,238 @@ body[data-builder-section="content"]
   background:#fff!important;
 }
 
+/* =========================================================
+   PRESENTATION STUDIO — LESSON-ATTACHED TOOLBAR
+========================================================= */
+
+body[data-builder-section="presentations"]
+.studio-workspace{
+  padding:0!important;
+  overflow:hidden!important;
+}
+
+body[data-builder-section="presentations"]
+#section-presentations{
+  width:100%;
+  height:
+    calc(
+      100vh -
+      var(--aift-topbar-height)
+    );
+  min-height:0;
+  overflow:hidden;
+}
+
+body[data-builder-section="presentations"]
+.presentation-shell{
+  width:100%;
+  height:100%;
+  min-height:0;
+
+  border:0;
+  border-radius:0;
+
+  box-shadow:none;
+}
+
+.presentation-toolbar{
+  min-height:70px;
+  padding:8px 12px;
+
+  gap:18px;
+}
+
+.presentation-toolbar-left{
+  min-width:0;
+  flex:1 1 auto;
+
+  display:grid;
+  gap:3px;
+}
+
+.presentation-toolbar-eyebrow{
+  color:var(--aift-primary);
+
+  font-size:7px;
+  line-height:1.2;
+  font-weight:700;
+  letter-spacing:.075em;
+  text-transform:uppercase;
+}
+
+.presentation-toolbar-title-row{
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+  gap:18px;
+}
+
+.presentation-toolbar-title-copy{
+  min-width:140px;
+  max-width:280px;
+  flex:1 1 auto;
+}
+
+.presentation-toolbar-title-copy h2{
+  margin:0;
+
+  overflow:hidden;
+
+  color:var(--aift-text-strong);
+
+  font-size:13px;
+  line-height:1.35;
+  font-weight:600;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.presentation-toolbar-title-copy p{
+  margin:2px 0 0;
+
+  overflow:hidden;
+
+  color:var(--aift-muted);
+
+  font-size:8px;
+  line-height:1.4;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.presentation-lesson-field{
+  min-width:210px;
+  max-width:310px;
+  flex:0 1 310px;
+
+  display:grid;
+  gap:3px;
+}
+
+.presentation-lesson-field > span{
+  color:var(--aift-subtle);
+
+  font-size:7px;
+  line-height:1.2;
+  font-weight:700;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+
+#presentationLessonSelector{
+  width:100%;
+  height:34px;
+  padding:0 30px 0 10px;
+
+  border:1px solid var(--aift-border);
+  border-radius:8px;
+
+  background:#fff;
+  color:var(--aift-text);
+
+  font-size:8px;
+  line-height:1;
+  font-weight:600;
+
+  outline:none;
+
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+#presentationLessonSelector:hover{
+  border-color:var(--aift-border-strong);
+}
+
+#presentationLessonSelector:focus{
+  border-color:var(--aift-primary);
+  box-shadow:var(--aift-focus-ring);
+}
+
+.presentation-toolbar-right{
+  flex-wrap:wrap;
+}
+
+.presentation-toolbar-right button{
+  min-height:34px;
+}
+
+body.presentation-mode-active{
+  overflow:hidden!important;
+}
+
+body.presentation-mode-active
+#presentationCanvas{
+  position:fixed!important;
+  inset:0!important;
+  z-index:30000!important;
+
+  width:100vw!important;
+  max-width:none!important;
+  min-width:0!important;
+  height:100vh!important;
+
+  aspect-ratio:auto!important;
+
+  border:0!important;
+  border-radius:0!important;
+
+  box-shadow:none!important;
+
+  background:#000;
+}
+
+body.presentation-mode-active
+#presentationCanvas .studio-slide{
+  width:100%;
+  height:100%;
+}
+
+.presentation-mode-exit{
+  position:fixed;
+  top:18px;
+  right:18px;
+  z-index:30001;
+
+  min-height:40px;
+  padding:0 15px;
+
+  border:1px solid rgba(255,255,255,.32);
+  border-radius:9px;
+
+  background:rgba(15,23,42,.76);
+  color:#fff;
+
+  font-size:10px;
+  font-weight:600;
+
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+
+.presentation-mode-navigation{
+  position:fixed;
+  right:50%;
+  bottom:22px;
+  z-index:30001;
+
+  transform:translateX(50%);
+
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.presentation-mode-navigation button{
+  min-width:44px;
+  height:42px;
+  padding:0 14px;
+
+  border:1px solid rgba(255,255,
 
 </style>
 </head>
@@ -15722,42 +15954,103 @@ body[data-builder-section="content"]
 
 <div class="presentation-toolbar">
 
-<div class="presentation-toolbar-left">
+  <div class="presentation-toolbar-left">
 
-<h2>Presentation Studio</h2>
+    <span class="presentation-toolbar-eyebrow">
+      Lesson presentation
+    </span>
 
-<p>Create interactive presentations for your students.</p>
+    <div class="presentation-toolbar-title-row">
 
-</div>
+      <div class="presentation-toolbar-title-copy">
 
-<div class="presentation-toolbar-right">
+        <h2 id="presentationStudioTitle">
+          Presentation Studio
+        </h2>
 
-<button class="studio-topbar-button secondary"
-onclick="addPresentationSlide()">
+        <p id="presentationStudioSubtitle">
+          Select the lesson this presentation belongs to.
+        </p>
 
-+ Slide
+      </div>
 
-</button>
+      <label
+        class="presentation-lesson-field"
+        for="presentationLessonSelector"
+      >
 
-<button class="studio-topbar-button secondary">
+        <span>Attached lesson</span>
 
-Theme
+        <select
+          id="presentationLessonSelector"
+          aria-label="Select lesson for presentation"
+          onchange="changePresentationLesson(this.value)"
+        >
+          <option value="">
+            Select a lesson
+          </option>
+        </select>
 
-</button>
+      </label>
 
-<button class="studio-topbar-button secondary">
+    </div>
 
-Present
+  </div>
 
-</button>
 
-<button class="studio-topbar-button publish">
+  <div class="presentation-toolbar-right">
 
-Save Presentation
+    <button
+      type="button"
+      class="studio-topbar-button secondary"
+      onclick="addPresentationSlide()"
+    >
+      + Slide
+    </button>
 
-</button>
+    <button
+      type="button"
+      class="studio-topbar-button secondary"
+      onclick="addPresentationTextObject()"
+    >
+      Add text
+    </button>
 
-</div>
+    <button
+      type="button"
+      class="studio-topbar-button secondary"
+      onclick="openPresentationImagePrompt()"
+    >
+      Add image
+    </button>
+
+    <button
+      type="button"
+      class="studio-topbar-button secondary"
+      onclick="cyclePresentationTheme()"
+      id="presentationThemeButton"
+    >
+      Theme
+    </button>
+
+    <button
+      type="button"
+      class="studio-topbar-button secondary"
+      onclick="startPresentationMode()"
+    >
+      Present
+    </button>
+
+    <button
+      type="button"
+      class="studio-topbar-button publish"
+      id="savePresentationButton"
+      onclick="savePresentationNow(event)"
+    >
+      Save
+    </button>
+
+  </div>
 
 </div>
 
@@ -17812,12 +18105,19 @@ async function savePresentationDraft(){
   }
 }
 
-function getPresentationStorageKey(){
+function getPresentationStorageKey(
+  lessonId =
+    presentationStudio.lessonId
+){
   return [
     "aift",
     "presentation",
     state.classId ||
-      "unknown-class"
+      "unknown-class",
+    String(
+      lessonId ||
+      "class-presentation"
+    )
   ].join(":");
 }
 
@@ -22059,6 +22359,895 @@ slides:[]
 
 };
 
+/* =========================================================
+   PRESENTATION — LESSON CONNECTION
+========================================================= */
+
+function getPresentationLessonId(
+  lesson
+){
+  return String(
+    lesson?._id ||
+    lesson?.id ||
+    ""
+  );
+}
+
+function getPresentationLessonTitle(
+  lesson,
+  index = 0
+){
+  return String(
+    lesson?.title ||
+    lesson?.name ||
+    `Lesson ${index + 1}`
+  ).trim();
+}
+
+function getPresentationLessonById(
+  lessonId
+){
+  const normalizedId =
+    String(
+      lessonId ||
+      ""
+    );
+
+  return (
+    Array.isArray(state.lessons)
+      ? state.lessons
+      : []
+  ).find(
+    lesson =>
+      getPresentationLessonId(
+        lesson
+      ) === normalizedId
+  ) || null;
+}
+
+function populatePresentationLessonSelector(){
+  const selector =
+    byId(
+      "presentationLessonSelector"
+    );
+
+  if(!selector){
+    return;
+  }
+
+  const lessons =
+    Array.isArray(state.lessons)
+      ? state.lessons
+      : [];
+
+  const previousValue =
+    String(
+      presentationStudio.lessonId ||
+      state.activeLessonId ||
+      ""
+    );
+
+  selector.innerHTML = `
+    <option value="">
+      Select a lesson
+    </option>
+
+    ${lessons
+      .map((lesson,index) => {
+        const lessonId =
+          getPresentationLessonId(
+            lesson
+          );
+
+        const title =
+          getPresentationLessonTitle(
+            lesson,
+            index
+          );
+
+        return `
+          <option
+            value="${escapeHtml(lessonId)}"
+          >
+            ${escapeHtml(title)}
+          </option>
+        `;
+      })
+      .join("")}
+  `;
+
+  const lessonExists =
+    lessons.some(
+      lesson =>
+        getPresentationLessonId(
+          lesson
+        ) === previousValue
+    );
+
+  if(lessonExists){
+    selector.value =
+      previousValue;
+  }else if(lessons.length){
+    selector.value =
+      getPresentationLessonId(
+        lessons[0]
+      );
+  }else{
+    selector.value =
+      "";
+  }
+
+  updatePresentationLessonHeading();
+}
+
+function updatePresentationLessonHeading(){
+  const lesson =
+    getPresentationLessonById(
+      presentationStudio.lessonId
+    );
+
+  const titleElement =
+    byId(
+      "presentationStudioTitle"
+    );
+
+  const subtitleElement =
+    byId(
+      "presentationStudioSubtitle"
+    );
+
+  if(titleElement){
+    titleElement.textContent =
+      lesson
+        ? getPresentationLessonTitle(
+            lesson
+          )
+        : "Presentation Studio";
+  }
+
+  if(subtitleElement){
+    subtitleElement.textContent =
+      lesson
+        ? "This presentation will appear inside this lesson."
+        : "Select the lesson this presentation belongs to.";
+  }
+}
+
+function resetPresentationStudioForLesson(
+  lessonId
+){
+  presentationStudio.id =
+    null;
+
+  presentationStudio.lessonId =
+    String(
+      lessonId ||
+      ""
+    );
+
+  presentationStudio.theme =
+    "classic";
+
+  presentationStudio.background =
+    "#ffffff";
+
+  presentationStudio.ratio =
+    "16:9";
+
+  presentationStudio.currentSlideId =
+    null;
+
+  presentationStudio.slides =
+    [];
+
+  currentSlide =
+    null;
+
+  selectedObjectId =
+    null;
+}
+
+async function changePresentationLesson(
+  lessonId
+){
+  const normalizedLessonId =
+    String(
+      lessonId ||
+      ""
+    );
+
+  if(!normalizedLessonId){
+    return;
+  }
+
+  /*
+    Save the presentation belonging to the lesson being left
+    before loading another lesson.
+  */
+  if(
+    presentationStudio.lessonId &&
+    presentationHasUnsavedChanges
+  ){
+    await savePresentationDraft();
+  }
+
+  resetPresentationStudioForLesson(
+    normalizedLessonId
+  );
+
+  state.activeLessonId =
+    normalizedLessonId;
+
+  const restored =
+    restorePresentationDraft();
+
+  if(!restored){
+    initializePresentationStudio();
+  }else{
+    const selectedSlide =
+      presentationStudio.slides.find(
+        slide =>
+          String(slide.id) ===
+          String(
+            presentationStudio.currentSlideId ||
+            ""
+          )
+      ) ||
+      presentationStudio.slides[0] ||
+      null;
+
+    if(selectedSlide){
+      currentSlide =
+        selectedSlide;
+
+      presentationStudio.currentSlideId =
+        selectedSlide.id;
+    }
+
+    safelyRenderPresentationStudio();
+  }
+
+  const selector =
+    byId(
+      "presentationLessonSelector"
+    );
+
+  if(
+    selector &&
+    selector.value !==
+      normalizedLessonId
+  ){
+    selector.value =
+      normalizedLessonId;
+  }
+
+  updatePresentationLessonHeading();
+
+  presentationHasUnsavedChanges =
+    false;
+
+  if(
+    typeof setBuilderSaveState ===
+    "function"
+  ){
+    setBuilderSaveState(
+      "",
+      "Saved"
+    );
+  }
+}
+
+function initializePresentationLessonConnection(){
+  populatePresentationLessonSelector();
+
+  const selector =
+    byId(
+      "presentationLessonSelector"
+    );
+
+  const preferredLessonId =
+    String(
+      presentationStudio.lessonId ||
+      state.activeLessonId ||
+      selector?.value ||
+      getPresentationLessonId(
+        state.lessons?.[0]
+      ) ||
+      ""
+    );
+
+  if(!preferredLessonId){
+    resetPresentationStudioForLesson(
+      ""
+    );
+
+    safelyRenderPresentationStudio();
+    return;
+  }
+
+  selector.value =
+    preferredLessonId;
+
+  resetPresentationStudioForLesson(
+    preferredLessonId
+  );
+
+  const restored =
+    restorePresentationDraft();
+
+  if(!restored){
+    initializePresentationStudio();
+  }else{
+    const selectedSlide =
+      presentationStudio.slides.find(
+        slide =>
+          String(slide.id) ===
+          String(
+            presentationStudio.currentSlideId ||
+            ""
+          )
+      ) ||
+      presentationStudio.slides[0] ||
+      null;
+
+    if(selectedSlide){
+      currentSlide =
+        selectedSlide;
+
+      presentationStudio.currentSlideId =
+        selectedSlide.id;
+    }
+
+    safelyRenderPresentationStudio();
+  }
+
+  updatePresentationLessonHeading();
+}
+
+/* =========================================================
+   PRESENTATION — MANUAL SAVE
+========================================================= */
+
+async function savePresentationNow(
+  event
+){
+  const button =
+    event?.currentTarget ||
+    byId(
+      "savePresentationButton"
+    );
+
+  if(
+    !presentationStudio.lessonId
+  ){
+    showAlert(
+      "error",
+      "Select a lesson before saving the presentation."
+    );
+
+    return;
+  }
+
+  const originalText =
+    button?.textContent ||
+    "Save";
+
+  if(button){
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Saving...";
+  }
+
+  try{
+    /*
+      Manual Save must save even when autosave currently
+      considers the document clean.
+    */
+    presentationHasUnsavedChanges =
+      true;
+
+    await savePresentationDraft();
+
+    showAlert(
+      "success",
+      "Presentation saved for this lesson."
+    );
+  }catch(error){
+    console.error(
+      "Manual presentation save failed:",
+      error
+    );
+
+    showAlert(
+      "error",
+      error?.message ||
+      "The presentation could not be saved."
+    );
+  }finally{
+    if(button){
+      button.disabled =
+        false;
+
+      button.textContent =
+        originalText;
+    }
+  }
+}
+
+/* =========================================================
+   PRESENTATION — QUICK CONTENT TOOLS
+========================================================= */
+
+function addPresentationTextObject(){
+  if(!currentSlide){
+    showAlert(
+      "error",
+      "Create or select a slide first."
+    );
+
+    return;
+  }
+
+  const object =
+    createTextObject();
+
+  object.x =
+    120;
+
+  object.y =
+    170;
+
+  object.width =
+    360;
+
+  object.height =
+    90;
+
+  object.text =
+    "New text";
+
+  currentSlide.objects.push(
+    object
+  );
+
+  selectedObjectId =
+    object.id;
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+}
+
+function openPresentationImagePrompt(){
+  if(!currentSlide){
+    showAlert(
+      "error",
+      "Create or select a slide first."
+    );
+
+    return;
+  }
+
+  const url =
+    window.prompt(
+      "Paste the image URL:"
+    );
+
+  if(
+    !url ||
+    !String(url).trim()
+  ){
+    return;
+  }
+
+  let parsedUrl;
+
+  try{
+    parsedUrl =
+      new URL(
+        String(url).trim(),
+        window.location.href
+      );
+  }catch(error){
+    showAlert(
+      "error",
+      "Enter a valid image URL."
+    );
+
+    return;
+  }
+
+  if(
+    ![
+      "http:",
+      "https:"
+    ].includes(
+      parsedUrl.protocol
+    )
+  ){
+    showAlert(
+      "error",
+      "Only HTTP or HTTPS image URLs are allowed."
+    );
+
+    return;
+  }
+
+  const object =
+    createImageObject(
+      parsedUrl.href
+    );
+
+  object.x =
+    180;
+
+  object.y =
+    180;
+
+  object.width =
+    420;
+
+  object.height =
+    240;
+
+  currentSlide.objects.push(
+    object
+  );
+
+  selectedObjectId =
+    object.id;
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+}
+
+/* =========================================================
+   PRESENTATION — THEMES
+========================================================= */
+
+const presentationThemes = [
+  {
+    id:"classic",
+    name:"Classic",
+    background:"#ffffff",
+    title:"#202124",
+    subtitle:"#5f6368"
+  },
+  {
+    id:"midnight",
+    name:"Midnight",
+    background:"#0f172a",
+    title:"#ffffff",
+    subtitle:"#cbd5e1"
+  },
+  {
+    id:"blue",
+    name:"AIFT Blue",
+    background:"#e8f0fe",
+    title:"#0b3b75",
+    subtitle:"#365b85"
+  },
+  {
+    id:"warm",
+    name:"Warm",
+    background:"#fff7ed",
+    title:"#7c2d12",
+    subtitle:"#9a5a39"
+  }
+];
+
+function getPresentationTheme(){
+  return (
+    presentationThemes.find(
+      theme =>
+        theme.id ===
+        presentationStudio.theme
+    ) ||
+    presentationThemes[0]
+  );
+}
+
+function cyclePresentationTheme(){
+  const currentIndex =
+    presentationThemes.findIndex(
+      theme =>
+        theme.id ===
+        presentationStudio.theme
+    );
+
+  const nextTheme =
+    presentationThemes[
+      (
+        currentIndex + 1
+      ) %
+      presentationThemes.length
+    ];
+
+  presentationStudio.theme =
+    nextTheme.id;
+
+  presentationStudio.background =
+    nextTheme.background;
+
+  presentationStudio.slides.forEach(
+    slide => {
+      slide.background =
+        nextTheme.background;
+    }
+  );
+
+  const themeButton =
+    byId(
+      "presentationThemeButton"
+    );
+
+  if(themeButton){
+    themeButton.textContent =
+      nextTheme.name;
+  }
+
+  safelyRenderPresentationStudio();
+  schedulePresentationAutosave();
+}
+
+/* =========================================================
+   PRESENTATION — FULLSCREEN PRESENTER MODE
+========================================================= */
+
+let presentationModeIndex =
+  0;
+
+function getCurrentPresentationSlideIndex(){
+  const index =
+    presentationStudio.slides.findIndex(
+      slide =>
+        String(slide.id) ===
+        String(
+          presentationStudio.currentSlideId ||
+          ""
+        )
+    );
+
+  return index >= 0
+    ? index
+    : 0;
+}
+
+function startPresentationMode(){
+  if(
+    !Array.isArray(
+      presentationStudio.slides
+    ) ||
+    presentationStudio.slides.length ===
+      0
+  ){
+    showAlert(
+      "error",
+      "Add at least one slide before presenting."
+    );
+
+    return;
+  }
+
+  presentationModeIndex =
+    getCurrentPresentationSlideIndex();
+
+  document.body.classList.add(
+    "presentation-mode-active"
+  );
+
+  loadPresentationSlide(
+    presentationStudio.slides[
+      presentationModeIndex
+    ].id
+  );
+
+  createPresentationModeControls();
+
+  document.documentElement
+    .requestFullscreen?.()
+    .catch(() => {
+      /*
+        Fullscreen permission may be blocked. The fixed
+        presentation mode still remains usable.
+      */
+    });
+
+  document.addEventListener(
+    "keydown",
+    handlePresentationModeKeydown
+  );
+}
+
+function createPresentationModeControls(){
+  removePresentationModeControls();
+
+  const exitButton =
+    document.createElement(
+      "button"
+    );
+
+  exitButton.type =
+    "button";
+
+  exitButton.className =
+    "presentation-mode-exit";
+
+  exitButton.textContent =
+    "Exit presentation";
+
+  exitButton.onclick =
+    stopPresentationMode;
+
+  const navigation =
+    document.createElement(
+      "div"
+    );
+
+  navigation.className =
+    "presentation-mode-navigation";
+
+  navigation.innerHTML = `
+    <button
+      type="button"
+      onclick="showPreviousPresentationSlide()"
+      aria-label="Previous slide"
+    >
+      ←
+    </button>
+
+    <span
+      class="presentation-mode-counter"
+      id="presentationModeCounter"
+    >
+      1 / 1
+    </span>
+
+    <button
+      type="button"
+      onclick="showNextPresentationSlide()"
+      aria-label="Next slide"
+    >
+      →
+    </button>
+  `;
+
+  document.body.append(
+    exitButton,
+    navigation
+  );
+
+  updatePresentationModeCounter();
+}
+
+function removePresentationModeControls(){
+  document
+    .querySelectorAll(
+      ".presentation-mode-exit, .presentation-mode-navigation"
+    )
+    .forEach(
+      element =>
+        element.remove()
+    );
+}
+
+function updatePresentationModeCounter(){
+  const counter =
+    byId(
+      "presentationModeCounter"
+    );
+
+  if(counter){
+    counter.textContent =
+      `${
+        presentationModeIndex + 1
+      } / ${
+        presentationStudio.slides.length
+      }`;
+  }
+}
+
+function showPresentationSlideAtIndex(
+  index
+){
+  const slides =
+    presentationStudio.slides;
+
+  if(!slides.length){
+    return;
+  }
+
+  presentationModeIndex =
+    Math.max(
+      0,
+      Math.min(
+        slides.length - 1,
+        Number(index) || 0
+      )
+    );
+
+  loadPresentationSlide(
+    slides[
+      presentationModeIndex
+    ].id
+  );
+
+  updatePresentationModeCounter();
+}
+
+function showNextPresentationSlide(){
+  showPresentationSlideAtIndex(
+    presentationModeIndex + 1
+  );
+}
+
+function showPreviousPresentationSlide(){
+  showPresentationSlideAtIndex(
+    presentationModeIndex - 1
+  );
+}
+
+function handlePresentationModeKeydown(
+  event
+){
+  if(
+    !document.body.classList.contains(
+      "presentation-mode-active"
+    )
+  ){
+    return;
+  }
+
+  if(
+    [
+      "ArrowRight",
+      "PageDown",
+      " "
+    ].includes(event.key)
+  ){
+    event.preventDefault();
+    showNextPresentationSlide();
+  }
+
+  if(
+    [
+      "ArrowLeft",
+      "PageUp"
+    ].includes(event.key)
+  ){
+    event.preventDefault();
+    showPreviousPresentationSlide();
+  }
+
+  if(event.key === "Escape"){
+    stopPresentationMode();
+  }
+}
+
+function stopPresentationMode(){
+  document.body.classList.remove(
+    "presentation-mode-active"
+  );
+
+  removePresentationModeControls();
+
+  document.removeEventListener(
+    "keydown",
+    handlePresentationModeKeydown
+  );
+
+  if(document.fullscreenElement){
+    document
+      .exitFullscreen?.()
+      .catch(() => {});
+  }
+
+  safelyRenderPresentationStudio();
+}
+
 function createSlide(type="title"){
 
 return{
@@ -22899,27 +24088,31 @@ function openBuilderSection(requestedTab = "overview"){
     Only render tools that actually exist.
     Never call undeclared optional functions.
   */
-  if(tab === "presentations"){
-    try{
-      if(
-        typeof initializePresentationStudio ===
-        "function" &&
-        presentationStudio.slides.length === 0
-      ){
-        initializePresentationStudio();
-      }else if(
-        typeof safelyRenderPresentationStudio ===
-        "function"
-      ){
-        safelyRenderPresentationStudio();
-      }
-    }catch(error){
-      console.error(
-        "Presentation section could not render:",
-        error
-      );
+if(tab === "presentations"){
+  try{
+    if(
+      typeof initializePresentationLessonConnection ===
+      "function"
+    ){
+      initializePresentationLessonConnection();
+    }else if(
+      typeof initializePresentationStudio ===
+      "function"
+    ){
+      initializePresentationStudio();
     }
+  }catch(error){
+    console.error(
+      "Presentation section could not render:",
+      error
+    );
+
+    showAlert(
+      "error",
+      "The Presentation Studio could not be initialized."
+    );
   }
+}
 
   if(
     window.matchMedia(
@@ -26068,6 +27261,8 @@ function openLessonEditor(
     50
   );
 }
+
+
 
 function openLessonModal(){
 
