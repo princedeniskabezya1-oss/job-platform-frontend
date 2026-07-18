@@ -791,6 +791,37 @@ p{
   text-transform:uppercase;
 }
 
+/* =========================================================
+   CONTEXTUAL SIDEBAR GROUP LABEL
+========================================================= */
+
+/*
+  The Learning content heading is useful on the Overview,
+  where the user is seeing the complete class structure.
+
+  On focused workspaces, the heading is removed so the
+  navigation uses less vertical space.
+*/
+
+body[data-builder-section]:not(
+  [data-builder-section="overview"]
+)
+.studio-nav-label-learning{
+  display:none;
+}
+
+/*
+  Prevent the hidden heading from leaving additional space
+  above the first Learning Content navigation item.
+*/
+
+body[data-builder-section]:not(
+  [data-builder-section="overview"]
+)
+.studio-nav-label-learning + button{
+  margin-top:0;
+}
+
 .studio-builder-nav button{
   position:relative;
 
@@ -12105,13 +12136,13 @@ backface-visibility:hidden;
       Back to school
     </button>
 
-    <button
-      type="button"
-      class="studio-topbar-button secondary"
-      onclick="openBuilderSection('preview')"
-    >
-      Preview
-    </button>
+<button
+  type="button"
+  class="studio-topbar-button secondary"
+  onclick="openClassPreview()"
+>
+  Preview
+</button>
 
  <button
   type="button"
@@ -12275,9 +12306,9 @@ backface-visibility:hidden;
 
         <div class="studio-nav-group">
 
-          <span class="studio-nav-label">
-            Learning content
-          </span>
+<span class="studio-nav-label studio-nav-label-learning">
+  Learning content
+</span>
 
           <button
             type="button"
@@ -12450,18 +12481,22 @@ backface-visibility:hidden;
           </button>
 
 
-          <button
-            type="button"
-            data-builder-tab="preview"
-            onclick="openBuilderSection('preview')"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
+<button
+  type="button"
+  data-builder-tab="preview"
+  onclick="openClassPreview()"
+>
 
-            <span>Student preview</span>
-          </button>
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path>
+    <circle cx="12" cy="12" r="3"></circle>
+  </svg>
+
+  <span>
+    Student preview
+  </span>
+
+</button>
 
         </div>
 
@@ -12579,13 +12614,13 @@ backface-visibility:hidden;
               Edit details
             </button>
 
-            <button
-              type="button"
-              class="studio-header-action"
-              onclick="openBuilderSection('preview')"
-            >
-              Preview class
-            </button>
+<button
+  type="button"
+  class="studio-header-action"
+  onclick="openClassPreview()"
+>
+  Preview class
+</button>
 
             <button
               type="button"
@@ -12720,11 +12755,11 @@ backface-visibility:hidden;
 
       <div class="project-overview-header-actions">
 
-        <button
-          type="button"
-          class="project-overview-button secondary"
-          onclick="openBuilderSection('preview')"
-        >
+<button
+  type="button"
+  class="project-overview-button secondary"
+  onclick="openClassPreview()"
+>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path>
             <circle cx="12" cy="12" r="3"></circle>
@@ -13220,13 +13255,13 @@ backface-visibility:hidden;
            
         </div>
 
-        <button
-          type="button"
-          class="project-overview-button secondary"
-          onclick="openBuilderSection('preview')"
-        >
-          Preview changes
-        </button>
+<button
+  type="button"
+  class="project-overview-button secondary"
+  onclick="openClassPreview()"
+>
+  Preview changes
+</button>
 
       </div>
 
@@ -23955,6 +23990,23 @@ async function saveLesson(
     event?.currentTarget ||
     null;
 
+  /*
+    A selected device image must be uploaded before the lesson
+    record can be saved. Never store the temporary blob URL.
+  */
+  if(
+    lessonCoverUploadState?.file &&
+    typeof uploadLessonCoverImage !==
+      "function"
+  ){
+    showAlert(
+      "error",
+      "The image was selected successfully, but the lesson image upload route has not been connected yet."
+    );
+
+    return;
+  }
+
   if(
     !state.schoolId ||
     !state.classId
@@ -24422,23 +24474,111 @@ function openLessonStudio(
   );
 }
 
+/* =========================================================
+   OPEN GENERAL CLASS PREVIEW
+========================================================= */
+
+function openClassPreview(){
+  /*
+    Clear the lesson-specific preview selection.
+
+    This guarantees that buttons labeled Preview,
+    Preview class, Student preview, or Preview changes
+    always display the complete class instead of the last
+    lesson that was previewed.
+  */
+  state.previewLessonId =
+    "";
+
+  openBuilderSection(
+    "preview"
+  );
+
+  window.requestAnimationFrame(
+    () => {
+      if(
+        typeof renderPreview ===
+        "function"
+      ){
+        renderPreview();
+      }
+
+      const previewSection =
+        byId(
+          "section-preview"
+        );
+
+      previewSection?.scrollIntoView({
+        behavior:"smooth",
+        block:"start"
+      });
+    }
+  );
+}
+
+/* =========================================================
+   PREVIEW A SELECTED LESSON
+========================================================= */
+
 function previewBuilderLesson(
   lessonId
 ){
-  const id =
+  const normalizedLessonId =
     String(
       lessonId ||
       ""
     ).trim();
 
-  if(!id){
+  if(!normalizedLessonId){
+    showAlert(
+      "error",
+      "The lesson ID is missing."
+    );
+
     return;
   }
 
-  window.location.href =
-    `class.html?id=${encodeURIComponent(
-      state.classId
-    )}&lessonId=${encodeURIComponent(id)}`;
+  const lesson =
+    (
+      Array.isArray(state.lessons)
+        ? state.lessons
+        : []
+    ).find(item => {
+      return String(
+        item._id ||
+        item.id ||
+        ""
+      ) === normalizedLessonId;
+    });
+
+  if(!lesson){
+    showAlert(
+      "error",
+      "The selected lesson could not be found."
+    );
+
+    return;
+  }
+
+  state.previewLessonId =
+    normalizedLessonId;
+
+  openBuilderSection(
+    "preview"
+  );
+
+  window.requestAnimationFrame(
+    () => {
+      renderPreview();
+
+      byId(
+        "section-preview"
+      )?.scrollIntoView({
+        behavior:"smooth",
+        block:"start"
+      });
+    }
+  );
 }
 
 /* =========================================================
@@ -25553,37 +25693,231 @@ function renderAnalytics(){
   });
 }
 
+/* =========================================================
+   CLASS AND LESSON PREVIEW
+========================================================= */
+
 function renderPreview(){
-  const cls = state.classData || {};
-  const coverUrl = cls.bannerImage || cls.coverImage || "";
+  const classData =
+    state.classData ||
+    {};
 
-  const previewCover = byId("previewCover");
+  const previewLessonId =
+    String(
+      state.previewLessonId ||
+      ""
+    );
 
-  if (previewCover){
-    previewCover.style.backgroundImage = coverUrl ? `url("${coverUrl}")` : "";
+  const previewLesson =
+    previewLessonId
+      ? (
+          Array.isArray(state.lessons)
+            ? state.lessons
+            : []
+        ).find(lesson => {
+          return String(
+            lesson._id ||
+            lesson.id ||
+            ""
+          ) === previewLessonId;
+        })
+      : null;
+
+  const coverUrl =
+    previewLesson
+      ? (
+          previewLesson.coverUrl ||
+          previewLesson.thumbnailUrl ||
+          classData.bannerImage ||
+          classData.coverImage ||
+          ""
+        )
+      : (
+          classData.bannerImage ||
+          classData.coverImage ||
+          ""
+        );
+
+  const previewCover =
+    byId(
+      "previewCover"
+    );
+
+  if(previewCover){
+    previewCover.style.backgroundImage =
+      coverUrl
+        ? `url("${coverUrl}")`
+        : "";
+
+    previewCover.classList.toggle(
+      "has-cover",
+      Boolean(coverUrl)
+    );
   }
 
-  const chip = byId("previewStatus");
+  const previewStatus =
+    previewLesson
+      ? String(
+          previewLesson.status ||
+          (
+            previewLesson.published
+              ? "published"
+              : "draft"
+          )
+        )
+          .trim()
+          .toLowerCase()
+      : String(
+          classData.status ||
+          (
+            classData.published
+              ? "published"
+              : "draft"
+          )
+        )
+          .trim()
+          .toLowerCase();
 
-  if (chip){
-    chip.textContent = statusLabel();
-    chip.className = statusChipClass();
+  const chip =
+    byId(
+      "previewStatus"
+    );
+
+  if(chip){
+    chip.textContent =
+      previewStatus === "published"
+        ? "Published"
+        : (
+            previewStatus === "archived"
+              ? "Archived"
+              : "Draft"
+          );
+
+    chip.className =
+      previewStatus === "published"
+        ? "chip success"
+        : (
+            previewStatus === "archived"
+              ? "chip danger"
+              : "chip warning"
+          );
   }
 
-  setText("previewTitle", cls.title || "Untitled class");
-  setText("previewDescription", cls.description || "No description added.");
+  const previewTitle =
+    previewLesson?.title ||
+    classData.title ||
+    "Untitled class";
 
-  const outcomes = Array.isArray(cls.learningOutcomes)
-    ? cls.learningOutcomes
-    : [];
+  const previewDescription =
+    previewLesson
+      ? (
+          previewLesson.summary ||
+          previewLesson.description ||
+          previewLesson.content ||
+          "No lesson summary has been added."
+        )
+      : (
+          classData.description ||
+          "No class description has been added."
+        );
 
+  setText(
+    "previewTitle",
+    previewTitle
+  );
 
-  const list = byId("previewOutcomes");
+  setText(
+    "previewDescription",
+    previewDescription
+  );
 
-  if (list){
-    list.innerHTML = outcomes.length
-      ? outcomes.map(item => `<li>${escapeHtml(item)}</li>`).join("")
-      : `<li>No learning outcomes added.</li>`;
+  const outcomes =
+    previewLesson
+      ? []
+      : (
+          Array.isArray(
+            classData.learningOutcomes
+          )
+            ? classData.learningOutcomes
+            : []
+        );
+
+  const list =
+    byId(
+      "previewOutcomes"
+    );
+
+  if(list){
+    if(previewLesson){
+      const duration =
+        Number(
+          previewLesson.durationMinutes ||
+          previewLesson.duration ||
+          0
+        );
+
+      const module =
+        (
+          Array.isArray(state.modules)
+            ? state.modules
+            : []
+        ).find(item => {
+          return String(
+            item._id ||
+            item.id ||
+            ""
+          ) === String(
+            previewLesson.moduleId?._id ||
+            previewLesson.moduleId ||
+            ""
+          );
+        });
+
+      list.innerHTML = `
+        <li>
+          Module:
+          ${escapeHtml(
+            module?.title ||
+            "No module assigned"
+          )}
+        </li>
+
+        <li>
+          Duration:
+          ${
+            duration > 0
+              ? `${duration} minutes`
+              : "Not specified"
+          }
+        </li>
+
+        <li>
+          Student preview:
+          ${
+            previewLesson.previewEnabled
+              ? "Enabled"
+              : "Disabled"
+          }
+        </li>
+      `;
+    }else{
+      list.innerHTML =
+        outcomes.length
+          ? outcomes
+              .map(item => {
+                return `
+                  <li>
+                    ${escapeHtml(item)}
+                  </li>
+                `;
+              })
+              .join("")
+          : `
+              <li>
+                No learning outcomes have been added.
+              </li>
+            `;
+    }
   }
 }
 
