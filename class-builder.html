@@ -6393,6 +6393,85 @@ body[data-builder-section]:not(
 }
 
 /* =========================================================
+   LESSON VIDEO UPLOADER
+========================================================= */
+
+.lesson-video-upload-actions{
+  margin-top:10px;
+
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.lesson-video-file-preview{
+  margin-top:12px;
+  padding:12px;
+
+  display:grid;
+  grid-template-columns:
+    minmax(180px,280px)
+    minmax(0,1fr);
+
+  align-items:center;
+  gap:14px;
+
+  border:1px solid var(--aift-border);
+  border-radius:var(--aift-radius-md);
+
+  background:var(--aift-surface-soft);
+}
+
+.lesson-video-file-preview[hidden]{
+  display:none!important;
+}
+
+.lesson-video-file-preview video{
+  width:100%;
+  max-height:180px;
+
+  border-radius:var(--aift-radius-sm);
+
+  background:#000;
+
+  object-fit:contain;
+}
+
+.lesson-video-file-meta{
+  min-width:0;
+
+  display:grid;
+  justify-items:start;
+  gap:8px;
+}
+
+.lesson-video-file-meta strong{
+  max-width:100%;
+
+  overflow:hidden;
+
+  color:var(--aift-text-strong);
+
+  font-size:11px;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.lesson-video-file-meta span{
+  color:var(--aift-muted);
+
+  font-size:9px;
+}
+
+@media(max-width:700px){
+  .lesson-video-file-preview{
+    grid-template-columns:1fr;
+  }
+}
+
+/* =========================================================
    LESSON COVER IMAGE UPLOADER
 ========================================================= */
 
@@ -15376,29 +15455,92 @@ id="presentationNotes">
               Video link
             </label>
 
-            <div class="lesson-input-icon-wrap">
+<div class="lesson-input-icon-wrap">
 
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect
-                  x="3"
-                  y="5"
-                  width="14"
-                  height="14"
-                  rx="2"
-                ></rect>
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <rect
+      x="3"
+      y="5"
+      width="14"
+      height="14"
+      rx="2"
+    ></rect>
 
-                <path d="M17 10l4-3v10l-4-3"></path>
-              </svg>
+    <path d="M17 10l4-3v10l-4-3"></path>
+  </svg>
 
-              <input
-                type="url"
-                id="lessonVideoInput"
-                placeholder="https://youtube.com/... or https://vimeo.com/..."
-                inputmode="url"
-                autocomplete="url"
-              >
+  <input
+    type="url"
+    id="lessonVideoInput"
+    placeholder="YouTube, Vimeo, or uploaded video URL"
+    inputmode="url"
+    autocomplete="url"
+  >
 
-            </div>
+</div>
+
+<input
+  type="file"
+  id="lessonVideoFileInput"
+  accept="video/mp4,video/webm,video/quicktime"
+  hidden
+  onchange="handleLessonVideoSelection(event)"
+>
+
+<div class="lesson-video-upload-actions">
+
+  <button
+    type="button"
+    class="ghost-btn"
+    id="lessonVideoSelectButton"
+    onclick="openLessonVideoFilePicker()"
+  >
+    Upload video
+  </button>
+
+  <span
+    class="field-help"
+    id="lessonVideoUploadStatus"
+  >
+    MP4, WEBM or MOV · Maximum 50 MB
+  </span>
+
+</div>
+
+<div
+  class="lesson-video-file-preview"
+  id="lessonVideoFilePreview"
+  hidden
+>
+
+  <video
+    id="lessonVideoPreviewPlayer"
+    controls
+    playsinline
+    preload="metadata"
+  ></video>
+
+  <div class="lesson-video-file-meta">
+
+    <strong id="lessonVideoFileName">
+      Selected video
+    </strong>
+
+    <span id="lessonVideoFileSize">
+      Ready to upload
+    </span>
+
+    <button
+      type="button"
+      class="danger-btn"
+      onclick="removeLessonVideoSelection()"
+    >
+      Remove
+    </button>
+
+  </div>
+
+</div>
 
           </div>
 
@@ -15419,13 +15561,13 @@ id="presentationNotes">
     value=""
   >
 
-  <input
-    type="file"
-    id="lessonCoverFileInput"
-    accept="image/*,video/mp4,video/webm,video/quicktime"
-    hidden
-    onchange="handleLessonCoverSelection(event)"
-  >
+<input
+  type="file"
+  id="lessonCoverFileInput"
+  accept="image/jpeg,image/png,image/webp,image/gif"
+  hidden
+  onchange="handleLessonCoverSelection(event)"
+>
 
   <div
     class="lesson-cover-uploader"
@@ -17065,6 +17207,90 @@ async function uploadLessonCoverImage(
   if(!uploadedUrl){
     throw new Error(
       "The upload completed, but no image URL was returned."
+    );
+  }
+
+  return uploadedUrl;
+}
+
+/* =========================================================
+   UPLOAD A LESSON VIDEO
+========================================================= */
+
+async function uploadLessonVideo(
+  file
+){
+  if(
+    !(file instanceof File)
+  ){
+    throw new Error(
+      "A valid lesson video is required."
+    );
+  }
+
+  const token =
+    getToken();
+
+  if(!token){
+    throw new Error(
+      "Your session has expired. Please sign in again."
+    );
+  }
+
+  const formData =
+    new FormData();
+
+  /*
+    This must match:
+
+    upload.single("video")
+
+    in routes/uploads.js.
+  */
+  formData.append(
+    "video",
+    file,
+    file.name
+  );
+
+  const response =
+    await fetch(
+      `${API_BASE}/api/uploads/lesson-video`,
+      {
+        method:"POST",
+
+        headers:{
+          Authorization:
+            `Bearer ${token}`
+        },
+
+        body:
+          formData
+      }
+    );
+
+  const data =
+    await safeJson(
+      response
+    );
+
+  if(!response.ok){
+    throw new Error(
+      data?.message ||
+      "Failed to upload the lesson video."
+    );
+  }
+
+  const uploadedUrl =
+    String(
+      data?.secureUrl ||
+      data?.url ||
+      ""
+    ).trim();
+
+  if(!uploadedUrl){
+    throw new Error(
+      "The video uploaded, but no URL was returned."
     );
   }
 
@@ -23787,6 +24013,221 @@ function setExistingLessonCover(
 }
 
 /* =========================================================
+   LESSON VIDEO UPLOAD STATE
+========================================================= */
+
+const lessonVideoUploadState = {
+  file:null,
+  previewUrl:""
+};
+
+function openLessonVideoFilePicker(){
+  byId(
+    "lessonVideoFileInput"
+  )?.click();
+}
+
+function validateLessonVideoFile(
+  file
+){
+  const allowedTypes =
+    new Set([
+      "video/mp4",
+      "video/webm",
+      "video/quicktime"
+    ]);
+
+  if(
+    !file ||
+    !allowedTypes.has(
+      file.type
+    )
+  ){
+    showAlert(
+      "error",
+      "Choose an MP4, WEBM, or MOV video."
+    );
+
+    return false;
+  }
+
+  const maximumSize =
+    50 * 1024 * 1024;
+
+  if(
+    file.size >
+    maximumSize
+  ){
+    showAlert(
+      "error",
+      "The lesson video must be 50 MB or smaller."
+    );
+
+    return false;
+  }
+
+  return true;
+}
+
+function handleLessonVideoSelection(
+  event
+){
+  const file =
+    event.target
+      ?.files?.[0];
+
+  if(!file){
+    return;
+  }
+
+  if(
+    !validateLessonVideoFile(
+      file
+    )
+  ){
+    event.target.value =
+      "";
+
+    return;
+  }
+
+  releaseLessonVideoPreviewUrl();
+
+  const previewUrl =
+    URL.createObjectURL(
+      file
+    );
+
+  lessonVideoUploadState.file =
+    file;
+
+  lessonVideoUploadState.previewUrl =
+    previewUrl;
+
+  const preview =
+    byId(
+      "lessonVideoFilePreview"
+    );
+
+  const player =
+    byId(
+      "lessonVideoPreviewPlayer"
+    );
+
+  const name =
+    byId(
+      "lessonVideoFileName"
+    );
+
+  const size =
+    byId(
+      "lessonVideoFileSize"
+    );
+
+  const status =
+    byId(
+      "lessonVideoUploadStatus"
+    );
+
+  if(preview){
+    preview.hidden =
+      false;
+  }
+
+  if(player){
+    player.src =
+      previewUrl;
+
+    player.load();
+  }
+
+  if(name){
+    name.textContent =
+      file.name ||
+      "Selected video";
+  }
+
+  if(size){
+    size.textContent =
+      `${formatLessonCoverFileSize(file.size)} · Ready to upload`;
+  }
+
+  if(status){
+    status.textContent =
+      "Video selected and ready to upload.";
+  }
+}
+
+function releaseLessonVideoPreviewUrl(){
+  if(
+    lessonVideoUploadState
+      .previewUrl
+  ){
+    URL.revokeObjectURL(
+      lessonVideoUploadState
+        .previewUrl
+    );
+  }
+
+  lessonVideoUploadState.previewUrl =
+    "";
+}
+
+function removeLessonVideoSelection(){
+  releaseLessonVideoPreviewUrl();
+
+  lessonVideoUploadState.file =
+    null;
+
+  const input =
+    byId(
+      "lessonVideoFileInput"
+    );
+
+  const preview =
+    byId(
+      "lessonVideoFilePreview"
+    );
+
+  const player =
+    byId(
+      "lessonVideoPreviewPlayer"
+    );
+
+  const status =
+    byId(
+      "lessonVideoUploadStatus"
+    );
+
+  if(input){
+    input.value =
+      "";
+  }
+
+  if(preview){
+    preview.hidden =
+      true;
+  }
+
+  if(player){
+    player.pause();
+    player.removeAttribute(
+      "src"
+    );
+    player.load();
+  }
+
+  if(status){
+    status.textContent =
+      "MP4, WEBM or MOV · Maximum 50 MB";
+  }
+}
+
+function resetLessonVideoUploader(){
+  removeLessonVideoSelection();
+}
+
+/* =========================================================
    LESSON CREATE / EDIT STATE
 ========================================================= */
 
@@ -24022,12 +24463,13 @@ function openLessonModal(){
     "false"
   );
 
-  setValue(
-    "lessonVideoInput",
-    ""
-  );
+setValue(
+  "lessonVideoInput",
+  ""
+);
 
-  resetLessonCoverUploader();
+resetLessonVideoUploader();
+resetLessonCoverUploader();
 
   setValue(
     "lessonResourceInput",
@@ -24130,10 +24572,10 @@ async function saveLesson(
       "lessonSummaryInput"
     ).trim();
 
-  const videoUrl =
-    getValue(
-      "lessonVideoInput"
-    ).trim();
+let videoUrl =
+  getValue(
+    "lessonVideoInput"
+  ).trim();
 
 let coverUrl =
   getValue(
@@ -24298,6 +24740,7 @@ let coverUrl =
   try{
 
      if(
+if(
   lessonCoverUploadState?.file
 ){
   if(button){
@@ -24326,6 +24769,28 @@ let coverUrl =
 
   lessonCoverUploadState.removeExisting =
     false;
+}
+
+if(
+  lessonVideoUploadState?.file
+){
+  if(button){
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Uploading video...";
+  }
+
+  videoUrl =
+    await uploadLessonVideo(
+      lessonVideoUploadState.file
+    );
+
+  setValue(
+    "lessonVideoInput",
+    videoUrl
+  );
 }
     setButtonLoading(
       button,
