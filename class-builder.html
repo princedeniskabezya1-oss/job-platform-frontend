@@ -16681,7 +16681,402 @@ body[data-builder-section="presentations"]
     display:none;
   }
 }
-   
+   /* =========================================================
+   PRESENTATION SEARCH IN APPLICATION TOP BAR
+========================================================= */
+
+.studio-topbar-class-summary{
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+
+.studio-presentation-topbar-search{
+  position:relative;
+
+  width:min(
+    620px,
+    100%
+  );
+  min-width:240px;
+}
+
+.studio-presentation-topbar-search[hidden]{
+  display:none!important;
+}
+
+.studio-presentation-topbar-search > svg{
+  position:absolute;
+  top:50%;
+  left:15px;
+  z-index:2;
+
+  width:18px;
+  height:18px;
+
+  fill:none;
+  stroke:#5f6368;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+
+  pointer-events:none;
+
+  transform:translateY(-50%);
+}
+
+.studio-presentation-topbar-search input{
+  width:100%;
+  height:42px;
+  padding:
+    0
+    44px
+    0
+    44px;
+
+  border:1px solid #d5d9df;
+  border-radius:22px;
+  outline:none;
+
+  background:#f8f9fa;
+  color:#202124;
+
+  font-family:inherit;
+  font-size:13px;
+  line-height:1;
+
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.studio-presentation-topbar-search input:hover{
+  border-color:#bdc1c6;
+  background:#ffffff;
+}
+
+.studio-presentation-topbar-search input:focus{
+  border-color:#1a73e8;
+  background:#ffffff;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(26,115,232,.13);
+}
+
+.studio-presentation-search-clear{
+  position:absolute;
+  top:50%;
+  right:8px;
+  z-index:3;
+
+  width:30px;
+  height:30px;
+  padding:0;
+
+  display:grid;
+  place-items:center;
+
+  border:0;
+  border-radius:50%;
+
+  background:transparent;
+  color:#5f6368;
+
+  transform:translateY(-50%);
+}
+
+.studio-presentation-search-clear[hidden]{
+  display:none!important;
+}
+
+.studio-presentation-search-clear:hover{
+  background:#e8eaed;
+}
+
+.studio-presentation-search-clear svg{
+  width:16px;
+  height:16px;
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+}
+
+/*
+  The presentation command bar now contains only editor commands.
+  The duplicate logo and duplicate search field are removed.
+*/
+
+#aiftPresentationCommandBar
+.aift-presentation-command-left,
+#aiftPresentationCommandBar
+.aift-presentation-search{
+  display:none!important;
+}
+
+#aiftPresentationCommandBar{
+  min-height:56px;
+  padding:8px 12px;
+
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+
+  border:0;
+  border-bottom:1px solid #e5e7eb;
+  background:#ffffff;
+}
+
+#aiftPresentationCommandBar
+.aift-presentation-command-right{
+  width:auto;
+
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+/*
+  Never show Presentation Studio controls in Overview,
+  Lessons, Content Studio or another builder section.
+*/
+
+body:not([data-builder-section="presentations"])
+#aiftPresentationCommandBar{
+  display:none!important;
+}
+
+body[data-builder-section="presentations"]
+#aiftPresentationCommandBar{
+  display:flex!important;
+}
+
+/* =========================================================
+   FULL-SCREEN PRESENTATION PLAYER
+========================================================= */
+
+.aift-presentation-player{
+  position:fixed;
+  inset:0;
+  z-index:999999;
+
+  display:none;
+  align-items:center;
+  justify-content:center;
+
+  overflow:hidden;
+
+  background:#05070b;
+  color:#ffffff;
+}
+
+.aift-presentation-player.active{
+  display:flex;
+}
+
+.aift-presentation-player-stage{
+  position:relative;
+
+  width:min(
+    100vw,
+    177.777777vh
+  );
+
+  height:min(
+    56.25vw,
+    100vh
+  );
+
+  overflow:hidden;
+  background:#000000;
+}
+
+.aift-presentation-player-slide{
+  position:absolute;
+  inset:0;
+
+  display:none;
+}
+
+.aift-presentation-player-slide.active{
+  display:block;
+}
+
+.aift-presentation-player-slide svg{
+  width:100%;
+  height:100%;
+  max-width:none;
+}
+
+.aift-presentation-player-controls{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:5;
+
+  display:flex;
+  align-items:center;
+  gap:8px;
+
+  opacity:0;
+
+  transition:
+    opacity 180ms ease;
+}
+
+.aift-presentation-player:hover
+.aift-presentation-player-controls,
+.aift-presentation-player:focus-within
+.aift-presentation-player-controls{
+  opacity:1;
+}
+
+.aift-presentation-player-button{
+  min-width:42px;
+  height:42px;
+  padding:0 13px;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:9px;
+
+  background:rgba(10,12,16,.78);
+  color:#ffffff;
+
+  font-family:inherit;
+  font-size:12px;
+  font-weight:650;
+
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+
+.aift-presentation-player-button:hover{
+  background:rgba(36,40,48,.95);
+}
+
+.aift-presentation-player-button svg{
+  width:18px;
+  height:18px;
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aift-presentation-player-counter{
+  min-width:62px;
+  height:42px;
+  padding:0 11px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:9px;
+
+  background:rgba(10,12,16,.78);
+  color:#ffffff;
+
+  font-size:12px;
+  font-variant-numeric:tabular-nums;
+
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+
+/* =========================================================
+   RELIABLE TEXT EDITING
+========================================================= */
+
+.presentation-studio-v2
+.slide-object.is-editing{
+  cursor:text!important;
+  touch-action:auto!important;
+}
+
+.presentation-studio-v2
+.slide-object.is-editing
+.slide-object-text{
+  position:relative;
+  z-index:2000;
+
+  overflow:auto;
+
+  cursor:text!important;
+  user-select:text!important;
+  -webkit-user-select:text!important;
+
+  pointer-events:auto!important;
+  touch-action:auto!important;
+
+  caret-color:currentColor;
+}
+
+.presentation-studio-v2
+.slide-object.is-editing
+.presentation-object-controls{
+  display:none!important;
+}
+
+/* =========================================================
+   PROFESSIONAL LIVE COLOR INPUT
+========================================================= */
+
+.aift-property-color-row{
+  grid-template-columns:
+    48px
+    minmax(0,1fr);
+}
+
+.aift-property-color-row
+input[type="color"]{
+  width:48px;
+  height:40px;
+  padding:3px;
+
+  appearance:auto;
+  -webkit-appearance:auto;
+
+  overflow:hidden;
+
+  border:1px solid #d7dce3;
+  border-radius:9px;
+
+  background:#ffffff;
+
+  cursor:pointer;
+}
+
+.aift-property-color-row
+input[type="color"]::-webkit-color-swatch-wrapper{
+  padding:0;
+}
+
+.aift-property-color-row
+input[type="color"]::-webkit-color-swatch{
+  border:0;
+  border-radius:6px;
+}
+
+.aift-property-color-row
+input[type="color"]::-moz-color-swatch{
+  border:0;
+  border-radius:6px;
+}
 </style>
 </head>
 <body>
@@ -16729,7 +17124,12 @@ body[data-builder-section="presentations"]
   </div>
 
 
-  <div class="studio-topbar-class">
+<div class="studio-topbar-class">
+
+  <div
+    id="studioTopbarClassSummary"
+    class="studio-topbar-class-summary"
+  >
 
     <div class="studio-topbar-class-copy">
 
@@ -16756,6 +17156,56 @@ body[data-builder-section="presentations"]
     </span>
 
   </div>
+
+
+  <div
+    id="studioPresentationTopbarSearch"
+    class="studio-presentation-topbar-search"
+    hidden
+  >
+
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <circle
+        cx="11"
+        cy="11"
+        r="7"
+      ></circle>
+
+      <path
+        d="m20 20-3.8-3.8"
+      ></path>
+    </svg>
+
+    <input
+      id="aiftPresentationSearchInput"
+      type="search"
+      placeholder="Search tools, slides and elements"
+      autocomplete="off"
+      aria-label="Search Presentation Studio"
+    >
+
+    <button
+      id="aiftPresentationSearchClear"
+      type="button"
+      class="studio-presentation-search-clear"
+      aria-label="Clear search"
+      hidden
+    >
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path d="M6 6l12 12"></path>
+        <path d="M18 6 6 18"></path>
+      </svg>
+    </button>
+
+  </div>
+
+</div>
 
 
   <div class="studio-topbar-actions">
@@ -24459,25 +24909,6 @@ function attachObjectEvents(
         return;
       }
 
-      /*
-        A second normal pointer press on an already selected
-        text object enters editing mode.
-
-        Dragging itself is handled separately and only starts
-        after the movement threshold has been crossed.
-      */
-      if(
-        object.type === "text" &&
-        wasAlreadySelected &&
-        !additiveSelection &&
-        event.detail > 1
-      ){
-        event.preventDefault();
-
-        beginTextEditing();
-
-        return;
-      }
 
       if(
         presentationEditingObjectId &&
@@ -24592,20 +25023,68 @@ function attachObjectEvents(
       ".slide-object-text"
     );
 
-  editable?.addEventListener(
-    "pointerdown",
-    event => {
-      if(
-        String(
-          presentationEditingObjectId ||
-          ""
-        ) ===
-        objectId
-      ){
-        event.stopPropagation();
-      }
+editable?.addEventListener(
+  "pointerdown",
+  event => {
+    const isEditing =
+      String(
+        presentationEditingObjectId ||
+        ""
+      ) ===
+      objectId;
+
+    if(!isEditing){
+      return;
     }
-  );
+
+    /*
+      Stop object selection and dragging, but do not call
+      preventDefault. The browser needs the default action
+      to place the text caret and select text.
+    */
+    event.stopPropagation();
+  }
+);
+
+
+editable?.addEventListener(
+  "click",
+  event => {
+    if(
+      String(
+        presentationEditingObjectId ||
+        ""
+      ) ===
+      objectId
+    ){
+      event.stopPropagation();
+    }
+  }
+);
+
+
+editable?.addEventListener(
+  "keydown",
+  event => {
+    if(
+      String(
+        presentationEditingObjectId ||
+        ""
+      ) !==
+      objectId
+    ){
+      return;
+    }
+
+    event.stopPropagation();
+
+    if(event.key === "Escape"){
+      event.preventDefault();
+
+      event.currentTarget.blur();
+    }
+  }
+);
 
 
   editable?.addEventListener(
@@ -28331,310 +28810,211 @@ function initializeAiftPresentationCommandBar(){
     ) ||
     canvasViewport.parentElement;
 
-  if(
-    !presentationSection ||
-    presentationSection.querySelector(
-      "#aiftPresentationCommandBar"
-    )
-  ){
+  if(!presentationSection){
     return;
   }
 
-  const commandBar =
-    document.createElement(
-      "div"
+  let commandBar =
+    byId(
+      "aiftPresentationCommandBar"
     );
 
-  commandBar.id =
-    "aiftPresentationCommandBar";
+  if(!commandBar){
+    commandBar =
+      document.createElement(
+        "div"
+      );
 
-  commandBar.className =
-    "aift-presentation-command-bar";
+    commandBar.id =
+      "aiftPresentationCommandBar";
 
-  commandBar.innerHTML = `
-    <div class="aift-presentation-command-left">
+    commandBar.className =
+      "aift-presentation-command-bar";
 
-      <div class="aift-presentation-brand">
-
-        <div
-          id="aiftPresentationBrandLogo"
-          class="aift-presentation-brand-logo"
-        ></div>
-
-        <div class="aift-presentation-brand-copy">
-          <strong>
-            AIFT Presentation Studio
-          </strong>
-
-          <span id="aiftPresentationDocumentName">
-            Lesson presentation
-          </span>
-        </div>
-
-      </div>
-
-    </div>
-
-
-    <div class="aift-presentation-search">
-
-      <svg
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <circle
-          cx="11"
-          cy="11"
-          r="7"
-        ></circle>
-
-        <path
-          d="m20 20-3.8-3.8"
-        ></path>
-      </svg>
-
-      <input
-        id="aiftPresentationSearchInput"
-        type="search"
-        placeholder="Search tools, slides and elements"
-        autocomplete="off"
-        aria-label="Search Presentation Studio"
-      >
-
-      <button
-        id="aiftPresentationSearchClear"
-        type="button"
-        class="aift-presentation-search-clear"
-        aria-label="Clear search"
-      >
-        ×
-      </button>
-
-    </div>
-
-
-    <div class="aift-presentation-command-right">
-
-      <button
-        type="button"
-        class="aift-command-button"
-        data-presentation-undo
-        onclick="undoPresentationChange()"
-        title="Undo"
-        aria-label="Undo"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path d="M9 7 4 12l5 5"></path>
-          <path d="M5 12h8a6 6 0 0 1 6 6"></path>
-        </svg>
-
-        <span class="button-label">
-          Undo
-        </span>
-      </button>
-
-
-      <button
-        type="button"
-        class="aift-command-button"
-        data-presentation-redo
-        onclick="redoPresentationChange()"
-        title="Redo"
-        aria-label="Redo"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path d="m15 7 5 5-5 5"></path>
-          <path d="M19 12h-8a6 6 0 0 0-6 6"></path>
-        </svg>
-
-        <span class="button-label">
-          Redo
-        </span>
-      </button>
-
-
-      <button
-        type="button"
-        class="aift-command-button"
-        onclick="presentAiftPresentation()"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <rect
-            x="3"
-            y="4"
-            width="18"
-            height="13"
-            rx="2"
-          ></rect>
-
-          <path d="m10 8 5 3-5 3Z"></path>
-          <path d="M12 17v3"></path>
-        </svg>
-
-        <span class="button-label">
-          Present
-        </span>
-      </button>
-
-
-      <div class="aift-download-shell">
+    commandBar.innerHTML = `
+      <div class="aift-presentation-command-right">
 
         <button
-          id="aiftPresentationDownloadButton"
           type="button"
           class="aift-command-button"
-          onclick="toggleAiftPresentationDownloadMenu(event)"
+          data-presentation-undo
+          onclick="undoPresentationChange()"
+          title="Undo"
+          aria-label="Undo"
         >
           <svg
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
-            <path d="M12 3v12"></path>
-            <path d="m7 10 5 5 5-5"></path>
-            <path d="M4 21h16"></path>
+            <path d="M9 7 4 12l5 5"></path>
+            <path d="M5 12h8a6 6 0 0 1 6 6"></path>
           </svg>
 
           <span class="button-label">
-            Download
+            Undo
           </span>
         </button>
 
 
-        <div
-          id="aiftPresentationDownloadMenu"
-          class="aift-download-menu"
+        <button
+          type="button"
+          class="aift-command-button"
+          data-presentation-redo
+          onclick="redoPresentationChange()"
+          title="Redo"
+          aria-label="Redo"
         >
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="m15 7 5 5-5 5"></path>
+            <path d="M19 12h-8a6 6 0 0 0-6 6"></path>
+          </svg>
+
+          <span class="button-label">
+            Redo
+          </span>
+        </button>
+
+
+        <button
+          type="button"
+          class="aift-command-button primary"
+          onclick="presentAiftPresentation()"
+          title="Present full screen"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <rect
+              x="3"
+              y="4"
+              width="18"
+              height="13"
+              rx="2"
+            ></rect>
+
+            <path d="m10 8 5 3-5 3Z"></path>
+            <path d="M12 17v3"></path>
+          </svg>
+
+          <span class="button-label">
+            Present
+          </span>
+        </button>
+
+
+        <div class="aift-download-shell">
 
           <button
+            id="aiftPresentationDownloadButton"
             type="button"
-            onclick="downloadAiftPresentation('png')"
+            class="aift-command-button"
+            onclick="toggleAiftPresentationDownloadMenu(event)"
           >
-            <svg viewBox="0 0 24 24">
-              <rect
-                x="3"
-                y="4"
-                width="18"
-                height="16"
-                rx="2"
-              ></rect>
-
-              <circle
-                cx="9"
-                cy="10"
-                r="2"
-              ></circle>
-
-              <path d="m4 17 5-5 4 4 3-3 4 4"></path>
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M12 3v12"></path>
+              <path d="m7 10 5 5 5-5"></path>
+              <path d="M4 21h16"></path>
             </svg>
 
-            <span>
-              <strong>
-                PNG image
-              </strong>
-
-              <span>
-                Download the current slide
-              </span>
+            <span class="button-label">
+              Download
             </span>
           </button>
 
 
-          <button
-            type="button"
-            onclick="downloadAiftPresentation('svg')"
+          <div
+            id="aiftPresentationDownloadMenu"
+            class="aift-download-menu"
           >
-            <svg viewBox="0 0 24 24">
-              <path d="M4 4h16v16H4z"></path>
-              <path d="M8 15h8"></path>
-              <path d="m9 12 3-4 3 4"></path>
-            </svg>
 
-            <span>
-              <strong>
-                SVG graphic
-              </strong>
-
+            <button
+              type="button"
+              onclick="downloadAiftPresentation('png')"
+            >
               <span>
-                Editable vector version
+                <strong>
+                  PNG image
+                </strong>
+
+                <span>
+                  Download the current slide
+                </span>
               </span>
-            </span>
-          </button>
+            </button>
 
 
-          <button
-            type="button"
-            onclick="downloadAiftPresentation('json')"
-          >
-            <svg viewBox="0 0 24 24">
-              <path d="M8 3H5v18h3"></path>
-              <path d="M16 3h3v18h-3"></path>
-              <path d="M10 9h4"></path>
-              <path d="M10 15h4"></path>
-            </svg>
-
-            <span>
-              <strong>
-                AIFT editable file
-              </strong>
-
+            <button
+              type="button"
+              onclick="downloadAiftPresentation('svg')"
+            >
               <span>
-                Backup presentation data
+                <strong>
+                  SVG graphic
+                </strong>
+
+                <span>
+                  Download an editable vector
+                </span>
               </span>
-            </span>
-          </button>
+            </button>
 
 
-          <button
-            type="button"
-            onclick="downloadAiftPresentation('pdf')"
-          >
-            <svg viewBox="0 0 24 24">
-              <path d="M6 2h9l4 4v16H6z"></path>
-              <path d="M15 2v5h5"></path>
-              <path d="M9 16h6"></path>
-              <path d="M9 12h6"></path>
-            </svg>
-
-            <span>
-              <strong>
-                PDF
-              </strong>
-
+            <button
+              type="button"
+              onclick="downloadAiftPresentation('pdf')"
+            >
               <span>
-                Open print-to-PDF view
+                <strong>
+                  PDF document
+                </strong>
+
+                <span>
+                  Download all presentation pages
+                </span>
               </span>
-            </span>
-          </button>
+            </button>
+
+
+            <button
+              type="button"
+              onclick="downloadAiftPresentation('json')"
+            >
+              <span>
+                <strong>
+                  AIFT editable file
+                </strong>
+
+                <span>
+                  Save an editable backup
+                </span>
+              </span>
+            </button>
+
+          </div>
 
         </div>
 
       </div>
+    `;
 
-    </div>
-  `;
+    presentationSection.insertBefore(
+      commandBar,
+      presentationSection.firstChild
+    );
+  }
 
-  presentationSection.insertBefore(
-    commandBar,
-    presentationSection.firstChild
-  );
-
-  installAiftPresentationLogo();
   initializeAiftPresentationSearch();
   relocateAiftSaveStatus();
-  hideUnnecessaryPresentationHeaderItems();
+  createAiftPresentationPlayer();
   updatePresentationHistoryControls?.();
 }
-
-
 function installAiftPresentationLogo(){
   const target =
     byId(
@@ -28778,51 +29158,58 @@ function initializeAiftPresentationSearch(){
   input.dataset.initialized =
     "true";
 
+
+  function applySearch(){
+    const query =
+      String(
+        input.value ||
+        ""
+      )
+        .trim()
+        .toLowerCase();
+
+    if(clearButton){
+      clearButton.hidden =
+        !query;
+    }
+
+    const searchableItems =
+      document.querySelectorAll(
+        [
+          "#section-presentations [data-presentation-tool]",
+          "#section-presentations [data-presentation-tool-panel] button",
+          "#section-presentations .presentation-slide-card",
+          "#section-presentations .presentation-template-card",
+          "#section-presentations .presentation-layout-card",
+          "#section-presentations .presentation-element-card"
+        ].join(",")
+      );
+
+    searchableItems.forEach(
+      item => {
+        const searchableText =
+          String(
+            item.textContent ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
+
+        item.hidden =
+          Boolean(query) &&
+          !searchableText.includes(
+            query
+          );
+      }
+    );
+  }
+
+
   input.addEventListener(
     "input",
-    event => {
-      const query =
-        String(
-          event.currentTarget.value ||
-          ""
-        )
-          .trim()
-          .toLowerCase();
-
-      clearButton?.classList.toggle(
-        "show",
-        Boolean(query)
-      );
-
-      const searchableItems =
-        document.querySelectorAll(
-          [
-            "[data-presentation-tool]",
-            "[data-presentation-tool-panel] button",
-            ".presentation-slide-card",
-            ".presentation-template-card"
-          ].join(",")
-        );
-
-      searchableItems.forEach(
-        item => {
-          const searchableText =
-            String(
-              item.textContent ||
-              ""
-            )
-              .trim()
-              .toLowerCase();
-
-          item.hidden =
-            Boolean(query) &&
-            !searchableText.includes(
-              query
-            );
-        }
-      );
-    }
+    applySearch
   );
+
 
   clearButton?.addEventListener(
     "click",
@@ -28830,20 +29217,12 @@ function initializeAiftPresentationSearch(){
       input.value =
         "";
 
-      input.dispatchEvent(
-        new Event(
-          "input",
-          {
-            bubbles:true
-          }
-        )
-      );
+      applySearch();
 
       input.focus();
     }
   );
 }
-
 
 function toggleAiftPresentationDownloadMenu(
   event
@@ -28884,6 +29263,111 @@ document.addEventListener(
 );
 
 
+let aiftPresentationPlayerIndex =
+  0;
+
+
+function createAiftPresentationPlayer(){
+  if(
+    byId(
+      "aiftPresentationPlayer"
+    )
+  ){
+    return;
+  }
+
+  const player =
+    document.createElement(
+      "div"
+    );
+
+  player.id =
+    "aiftPresentationPlayer";
+
+  player.className =
+    "aift-presentation-player";
+
+  player.setAttribute(
+    "role",
+    "dialog"
+  );
+
+  player.setAttribute(
+    "aria-modal",
+    "true"
+  );
+
+  player.setAttribute(
+    "aria-label",
+    "Full-screen presentation"
+  );
+
+  player.innerHTML = `
+    <div
+      id="aiftPresentationPlayerStage"
+      class="aift-presentation-player-stage"
+    ></div>
+
+    <div class="aift-presentation-player-controls">
+
+      <button
+        type="button"
+        class="aift-presentation-player-button"
+        onclick="showPreviousAiftPresentationPage()"
+        aria-label="Previous slide"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+      </button>
+
+      <div
+        id="aiftPresentationPlayerCounter"
+        class="aift-presentation-player-counter"
+      >
+        1 / 1
+      </div>
+
+      <button
+        type="button"
+        class="aift-presentation-player-button"
+        onclick="showNextAiftPresentationPage()"
+        aria-label="Next slide"
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="m9 18 6-6-6-6"></path>
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        class="aift-presentation-player-button"
+        onclick="closeAiftPresentationPlayer()"
+      >
+        Exit
+      </button>
+
+    </div>
+  `;
+
+  document.body.appendChild(
+    player
+  );
+
+  player.addEventListener(
+    "click",
+    event => {
+      if(
+        event.target ===
+        player
+      ){
+        showNextAiftPresentationPage();
+      }
+    }
+  );
+}
+
+
 function presentAiftPresentation(){
   if(
     !Array.isArray(
@@ -28899,193 +29383,281 @@ function presentAiftPresentation(){
     return;
   }
 
-  const presentationWindow =
-    window.open(
-      "",
-      "_blank",
-      "noopener,noreferrer"
+  createAiftPresentationPlayer();
+
+  const player =
+    byId(
+      "aiftPresentationPlayer"
     );
 
-  if(!presentationWindow){
+  const stage =
+    byId(
+      "aiftPresentationPlayerStage"
+    );
+
+  if(
+    !player ||
+    !stage
+  ){
     showAlert(
       "error",
-      "The browser blocked the presentation window. Allow pop-ups and try again."
+      "The presentation player could not be opened."
     );
 
     return;
   }
 
-  const slidesHtml =
+  stage.innerHTML =
     presentationStudio.slides
       .map(
-        slide =>
-          createAiftExportSlideSvg(
-            slide
-          )
-      )
-      .map(
-        svg => `
-          <section class="aift-present-slide">
-            ${svg}
+        (slide,index) => `
+          <section
+            class="aift-presentation-player-slide ${
+              index === 0
+                ? "active"
+                : ""
+            }"
+            data-player-slide-index="${index}"
+          >
+            ${createAiftExportSlideSvg(slide)}
           </section>
         `
       )
       .join("");
 
-  presentationWindow.document.open();
+  aiftPresentationPlayerIndex =
+    Math.max(
+      0,
+      presentationStudio.slides.findIndex(
+        slide =>
+          String(slide.id) ===
+          String(
+            currentSlide?.id ||
+            ""
+          )
+      )
+    );
 
-  presentationWindow.document.write(`
-    <!doctype html>
+  player.classList.add(
+    "active"
+  );
 
-    <html>
-      <head>
-        <meta charset="utf-8">
+  document.body.classList.add(
+    "modal-open"
+  );
 
-        <meta
-          name="viewport"
-          content="width=device-width,initial-scale=1"
-        >
+  renderAiftPresentationPlayerPage();
 
-        <title>
-          ${escapeHtml(
-            state.classData?.title ||
-            "AIFT Presentation"
-          )}
-        </title>
+  /*
+    This fullscreen request runs directly from the Present
+    button click, so browsers are more likely to allow it.
+  */
+  const fullscreenPromise =
+    player.requestFullscreen?.();
 
-        <style>
-          *{
-            box-sizing:border-box;
-          }
-
-          html,
-          body{
-            width:100%;
-            height:100%;
-            margin:0;
-            overflow:hidden;
-            background:#05070b;
-          }
-
-          body{
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-family:Inter,Arial,sans-serif;
-          }
-
-          .aift-present-slide{
-            width:min(100vw,177.777vh);
-            height:min(56.25vw,100vh);
-            display:none;
-          }
-
-          .aift-present-slide.active{
-            display:block;
-          }
-
-          .aift-present-slide svg{
-            display:block;
-            width:100%;
-            height:100%;
-          }
-
-          .aift-present-help{
-            position:fixed;
-            right:16px;
-            bottom:14px;
-
-            padding:8px 11px;
-
-            border-radius:8px;
-            background:rgba(0,0,0,.55);
-            color:#ffffff;
-            font-size:12px;
-          }
-        </style>
-      </head>
-
-      <body>
-        ${slidesHtml}
-
-        <div class="aift-present-help">
-          Use ← and → to navigate · Esc to close
-        </div>
-
-        <script>
-          const slides =
-            Array.from(
-              document.querySelectorAll(
-                ".aift-present-slide"
-              )
-            );
-
-          let index =
-            0;
-
-          function showSlide(){
-            slides.forEach(
-              (slide,slideIndex) => {
-                slide.classList.toggle(
-                  "active",
-                  slideIndex === index
-                );
-              }
-            );
-          }
-
-          document.addEventListener(
-            "keydown",
-            event => {
-              if(
-                event.key === "ArrowRight" ||
-                event.key === "PageDown" ||
-                event.key === " "
-              ){
-                index =
-                  Math.min(
-                    slides.length - 1,
-                    index + 1
-                  );
-
-                showSlide();
-              }
-
-              if(
-                event.key === "ArrowLeft" ||
-                event.key === "PageUp"
-              ){
-                index =
-                  Math.max(
-                    0,
-                    index - 1
-                  );
-
-                showSlide();
-              }
-
-              if(event.key === "Escape"){
-                window.close();
-              }
-            }
-          );
-
-          showSlide();
-
-          document.documentElement
-            .requestFullscreen?.()
-            .catch(
-              () => {}
-            );
-        <\/script>
-      </body>
-    </html>
-  `);
-
-  presentationWindow.document.close();
+  if(
+    fullscreenPromise &&
+    typeof fullscreenPromise.catch ===
+    "function"
+  ){
+    fullscreenPromise.catch(
+      error => {
+        /*
+          The player still fills the complete browser viewport
+          even when browser-level fullscreen is declined.
+        */
+        console.info(
+          "Browser fullscreen was not granted:",
+          error
+        );
+      }
+    );
+  }
 }
 
 
+function renderAiftPresentationPlayerPage(){
+  const slides =
+    Array.from(
+      document.querySelectorAll(
+        ".aift-presentation-player-slide"
+      )
+    );
+
+  if(!slides.length){
+    return;
+  }
+
+  aiftPresentationPlayerIndex =
+    Math.max(
+      0,
+      Math.min(
+        slides.length -
+        1,
+        aiftPresentationPlayerIndex
+      )
+    );
+
+  slides.forEach(
+    (slide,index) => {
+      slide.classList.toggle(
+        "active",
+        index ===
+        aiftPresentationPlayerIndex
+      );
+    }
+  );
+
+  const counter =
+    byId(
+      "aiftPresentationPlayerCounter"
+    );
+
+  if(counter){
+    counter.textContent =
+      `${
+        aiftPresentationPlayerIndex +
+        1
+      } / ${slides.length}`;
+  }
+}
+
+
+function showNextAiftPresentationPage(){
+  const slideCount =
+    presentationStudio.slides.length;
+
+  if(!slideCount){
+    return;
+  }
+
+  aiftPresentationPlayerIndex =
+    Math.min(
+      slideCount -
+      1,
+      aiftPresentationPlayerIndex +
+      1
+    );
+
+  renderAiftPresentationPlayerPage();
+}
+
+
+function showPreviousAiftPresentationPage(){
+  aiftPresentationPlayerIndex =
+    Math.max(
+      0,
+      aiftPresentationPlayerIndex -
+      1
+    );
+
+  renderAiftPresentationPlayerPage();
+}
+
+
+async function closeAiftPresentationPlayer(){
+  const player =
+    byId(
+      "aiftPresentationPlayer"
+    );
+
+  player?.classList.remove(
+    "active"
+  );
+
+  document.body.classList.remove(
+    "modal-open"
+  );
+
+  if(
+    document.fullscreenElement &&
+    typeof document.exitFullscreen ===
+    "function"
+  ){
+    try{
+      await document.exitFullscreen();
+    }catch(error){
+      console.info(
+        "Fullscreen exit was not required:",
+        error
+      );
+    }
+  }
+}
+
+
+document.addEventListener(
+  "fullscreenchange",
+  () => {
+    const player =
+      byId(
+        "aiftPresentationPlayer"
+      );
+
+    if(
+      player?.classList.contains(
+        "active"
+      ) &&
+      !document.fullscreenElement
+    ){
+      player.classList.remove(
+        "active"
+      );
+
+      document.body.classList.remove(
+        "modal-open"
+      );
+    }
+  }
+);
+
+
+document.addEventListener(
+  "keydown",
+  event => {
+    const player =
+      byId(
+        "aiftPresentationPlayer"
+      );
+
+    if(
+      !player?.classList.contains(
+        "active"
+      )
+    ){
+      return;
+    }
+
+    if(
+      event.key === "ArrowRight" ||
+      event.key === "PageDown" ||
+      event.key === " "
+    ){
+      event.preventDefault();
+
+      showNextAiftPresentationPage();
+
+      return;
+    }
+
+    if(
+      event.key === "ArrowLeft" ||
+      event.key === "PageUp"
+    ){
+      event.preventDefault();
+
+      showPreviousAiftPresentationPage();
+
+      return;
+    }
+
+    if(event.key === "Escape"){
+      closeAiftPresentationPlayer();
+    }
+  },
+  true
+);
+   
 function createAiftExportSlideSvg(
   slide
 ){
@@ -30498,7 +31070,8 @@ function createPresentationTextPropertiesHtml(
           <input
             type="color"
             value="${escapeHtml(textColor)}"
-            oninput="updateSelectedPresentationStyle('color',this.value)"
+            oninput="updateSelectedPresentationColorLive('color',this.value)"
+onchange="commitSelectedPresentationColor('color',this.value)"
           >
 
           <input
@@ -30518,7 +31091,8 @@ function createPresentationTextPropertiesHtml(
           <input
             type="color"
             value="${escapeHtml(backgroundColor)}"
-            oninput="updateSelectedPresentationStyle('background',this.value)"
+            oninput="updateSelectedPresentationColorLive('background',this.value)"
+onchange="commitSelectedPresentationColor('background',this.value)"
           >
 
           <input
@@ -30695,7 +31269,8 @@ function createPresentationShapePropertiesHtml(
           <input
             type="color"
             value="${escapeHtml(fillColor)}"
-            oninput="updateSelectedPresentationStyle('background',this.value)"
+            oninput="updateSelectedPresentationColorLive('background',this.value)"
+onchange="commitSelectedPresentationColor('background',this.value)"
           >
 
           <input
@@ -30729,7 +31304,8 @@ function createPresentationShapePropertiesHtml(
           <input
             type="color"
             value="${escapeHtml(borderColor)}"
-            oninput="updateSelectedPresentationStyle('borderColor',this.value)"
+            oninput="updateSelectedPresentationColorLive('borderColor',this.value)"
+onchange="commitSelectedPresentationColor('borderColor',this.value)"
           >
 
           <input
@@ -31211,7 +31787,8 @@ function normalizePresentationEditableColor(
 function updateSelectedPresentationStyle(
   property,
   value,
-  valueType = "string"
+  valueType = "string",
+  options = {}
 ){
   const selectedObjects =
     getEditablePresentationSelection();
@@ -31289,7 +31866,12 @@ function updateSelectedPresentationStyle(
       candidate;
   }
 
-  pushPresentationHistory?.();
+  if(
+    options.recordHistory !==
+    false
+  ){
+    pushPresentationHistory?.();
+  }
 
   selectedObjects.forEach(
     object => {
@@ -31299,10 +31881,66 @@ function updateSelectedPresentationStyle(
   );
 
   synchronizePresentationSlideSummary();
+
+  /*
+    Object rendering is still required so the canvas shows
+    the new color immediately.
+  */
   renderSlideObjects();
-  renderPresentationProperties();
-  renderPresentationSlides();
+
+  /*
+    Do not rebuild the right panel during a live color-picker
+    drag. Rebuilding it destroys the input and closes the
+    native color interface.
+  */
+  if(
+    options.refreshProperties !==
+    false
+  ){
+    renderPresentationProperties();
+  }
+
+  if(
+    options.refreshSlides !==
+    false
+  ){
+    renderPresentationSlides();
+  }
+
   schedulePresentationAutosave();
+}
+
+function updateSelectedPresentationColorLive(
+  property,
+  value
+){
+  updateSelectedPresentationStyle(
+    property,
+    value,
+    "string",
+    {
+      recordHistory:false,
+      refreshProperties:false,
+      refreshSlides:false
+    }
+  );
+}
+
+
+function commitSelectedPresentationColor(
+  property,
+  value
+){
+  updateSelectedPresentationStyle(
+    property,
+    value,
+    "string",
+    {
+      recordHistory:true,
+      refreshProperties:true,
+      refreshSlides:true
+    }
+  );
 }
 
 
@@ -37395,6 +38033,82 @@ const CLASS_BUILDER_SECTIONS = new Set([
   "settings"
 ]);
 
+function synchronizeAiftPresentationTopbar(
+  requestedTab
+){
+  const tab =
+    String(
+      requestedTab ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const isPresentationSection =
+    tab ===
+    "presentations";
+
+  const classSummary =
+    byId(
+      "studioTopbarClassSummary"
+    );
+
+  const presentationSearch =
+    byId(
+      "studioPresentationTopbarSearch"
+    );
+
+  if(classSummary){
+    classSummary.hidden =
+      isPresentationSection;
+  }
+
+  if(presentationSearch){
+    presentationSearch.hidden =
+      !isPresentationSection;
+  }
+
+  const commandBar =
+    byId(
+      "aiftPresentationCommandBar"
+    );
+
+  if(commandBar){
+    commandBar.hidden =
+      !isPresentationSection;
+  }
+
+  if(!isPresentationSection){
+    const searchInput =
+      byId(
+        "aiftPresentationSearchInput"
+      );
+
+    if(
+      searchInput &&
+      searchInput.value
+    ){
+      searchInput.value =
+        "";
+
+      searchInput.dispatchEvent(
+        new Event(
+          "input",
+          {
+            bubbles:true
+          }
+        )
+      );
+    }
+
+    byId(
+      "aiftPresentationDownloadMenu"
+    )?.classList.remove(
+      "show"
+    );
+  }
+}
+   
 function openBuilderSection(requestedTab = "overview"){
   let tab = String(requestedTab || "overview")
     .trim()
@@ -37435,6 +38149,9 @@ function openBuilderSection(requestedTab = "overview"){
   );
 
   document.body.dataset.builderSection = tab;
+   synchronizeAiftPresentationTopbar(
+  tab
+);
 
   document
     .querySelectorAll(".section")
