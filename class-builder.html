@@ -15930,6 +15930,188 @@ body.presentation-notes-open
 
   background:#137c41;
 }
+
+/* =========================================================
+   PRESENTATION PROFESSIONAL SELECTION ENGINE
+========================================================= */
+
+.presentation-studio-v2 .slide-object{
+  transform-origin:center center;
+}
+
+.presentation-studio-v2 .slide-object.selected{
+  outline:2px solid #1a73e8;
+  outline-offset:1px;
+
+  box-shadow:
+    0 0 0 1px
+    rgba(255,255,255,.96);
+}
+
+.presentation-studio-v2 .slide-object.is-editing{
+  cursor:text!important;
+
+  outline:2px solid #1a73e8;
+  outline-offset:2px;
+}
+
+.presentation-studio-v2
+.slide-object.is-editing
+.slide-object-text{
+  cursor:text!important;
+  user-select:text!important;
+}
+
+.presentation-studio-v2
+.slide-object.is-dragging{
+  cursor:grabbing!important;
+}
+
+.presentation-object-controls{
+  position:absolute;
+  inset:0;
+  z-index:1000;
+
+  overflow:visible;
+
+  pointer-events:none;
+}
+
+.presentation-resize-handle,
+.presentation-rotate-handle{
+  position:absolute;
+  z-index:1002;
+
+  width:11px;
+  height:11px;
+  padding:0;
+
+  border:2px solid #fff;
+  border-radius:50%;
+
+  background:#1a73e8;
+
+  box-shadow:
+    0 1px 4px
+    rgba(32,33,36,.32);
+
+  pointer-events:auto;
+  touch-action:none;
+}
+
+.presentation-resize-handle.nw{
+  top:-7px;
+  left:-7px;
+
+  cursor:nwse-resize;
+}
+
+.presentation-resize-handle.n{
+  top:-7px;
+  left:50%;
+
+  transform:translateX(-50%);
+
+  cursor:ns-resize;
+}
+
+.presentation-resize-handle.ne{
+  top:-7px;
+  right:-7px;
+
+  cursor:nesw-resize;
+}
+
+.presentation-resize-handle.e{
+  top:50%;
+  right:-7px;
+
+  transform:translateY(-50%);
+
+  cursor:ew-resize;
+}
+
+.presentation-resize-handle.se{
+  right:-7px;
+  bottom:-7px;
+
+  cursor:nwse-resize;
+}
+
+.presentation-resize-handle.s{
+  bottom:-7px;
+  left:50%;
+
+  transform:translateX(-50%);
+
+  cursor:ns-resize;
+}
+
+.presentation-resize-handle.sw{
+  bottom:-7px;
+  left:-7px;
+
+  cursor:nesw-resize;
+}
+
+.presentation-resize-handle.w{
+  top:50%;
+  left:-7px;
+
+  transform:translateY(-50%);
+
+  cursor:ew-resize;
+}
+
+.presentation-rotate-handle{
+  top:-38px;
+  left:50%;
+
+  width:14px;
+  height:14px;
+
+  transform:translateX(-50%);
+
+  cursor:grab;
+}
+
+.presentation-rotate-handle::after{
+  content:"";
+
+  position:absolute;
+  top:12px;
+  left:50%;
+
+  width:2px;
+  height:24px;
+
+  transform:translateX(-50%);
+
+  background:#1a73e8;
+
+  pointer-events:none;
+}
+
+.presentation-rotate-handle:active{
+  cursor:grabbing;
+}
+
+.presentation-context-menu[hidden]{
+  display:none!important;
+}
+
+.presentation-context-menu.show{
+  display:grid!important;
+}
+
+.presentation-context-menu button:disabled{
+  opacity:.42;
+  cursor:not-allowed;
+}
+
+.presentation-context-menu button:disabled:hover{
+  background:transparent;
+}
    
 </style>
 </head>
@@ -21791,26 +21973,17 @@ function handlePresentationCanvasBackgroundClick(
 ){
   if(
     event.target.closest(
-      ".slide-object, .slide-title, .slide-subtitle"
+      ".slide-object"
+    ) ||
+    event.target.closest(
+      "#presentationContextMenu"
     )
   ){
     return;
   }
 
-  selectedObjectId =
-    null;
-
-  document
-    .querySelectorAll(
-      ".slide-object.selected"
-    )
-    .forEach(element => {
-      element.classList.remove(
-        "selected"
-      );
-    });
-
-  renderPresentationProperties();
+  clearPresentationSelection();
+  closePresentationContextMenu();
 }
 
 /* =========================================================
@@ -22087,7 +22260,158 @@ function renderPresentationCanvas(){
    OBJECT RENDERER
 ========================================================== */
 
+/* ==========================================================
+   PRESENTATION SELECTION STATE
+========================================================== */
+
 let selectedObjectId = null;
+
+const selectedPresentationObjectIds =
+  new Set();
+
+let presentationEditingObjectId =
+  null;
+
+let presentationSelectionAnchorId =
+  null;
+
+
+function getPresentationSelectedIds(){
+  return Array.from(
+    selectedPresentationObjectIds
+  );
+}
+
+
+function isPresentationObjectSelected(
+  objectId
+){
+  return selectedPresentationObjectIds.has(
+    String(objectId)
+  );
+}
+
+
+function synchronizePrimaryPresentationSelection(){
+  const selectedIds =
+    getPresentationSelectedIds();
+
+  selectedObjectId =
+    selectedIds.length
+      ? selectedIds[
+          selectedIds.length - 1
+        ]
+      : null;
+}
+
+
+function clearPresentationSelection(
+  options = {}
+){
+  selectedPresentationObjectIds.clear();
+
+  selectedObjectId =
+    null;
+
+  presentationSelectionAnchorId =
+    null;
+
+  if(
+    options.keepEditing !== true
+  ){
+    presentationEditingObjectId =
+      null;
+  }
+
+  if(
+    options.render !== false
+  ){
+    renderSlideObjects();
+    renderPresentationProperties();
+  }
+}
+
+
+function selectPresentationObject(
+  objectId,
+  options = {}
+){
+  const normalizedId =
+    String(
+      objectId ||
+      ""
+    );
+
+  if(!normalizedId){
+    return;
+  }
+
+  const additive =
+    options.additive === true;
+
+  const toggle =
+    options.toggle === true;
+
+  if(!additive){
+    selectedPresentationObjectIds.clear();
+  }
+
+  if(
+    toggle &&
+    selectedPresentationObjectIds.has(
+      normalizedId
+    )
+  ){
+    selectedPresentationObjectIds.delete(
+      normalizedId
+    );
+  }else{
+    selectedPresentationObjectIds.add(
+      normalizedId
+    );
+  }
+
+  presentationSelectionAnchorId =
+    normalizedId;
+
+  synchronizePrimaryPresentationSelection();
+
+  if(
+    options.render !== false
+  ){
+    renderSlideObjects();
+    renderPresentationProperties();
+  }
+}
+
+
+function getSelectedPresentationObjects(){
+  if(
+    !currentSlide ||
+    !Array.isArray(
+      currentSlide.objects
+    )
+  ){
+    return [];
+  }
+
+  return currentSlide.objects.filter(
+    object =>
+      selectedPresentationObjectIds.has(
+        String(object.id)
+      )
+  );
+}
+
+
+function getEditablePresentationSelection(){
+  return getSelectedPresentationObjects()
+    .filter(
+      object =>
+        !object.locked &&
+        !object.hidden
+    );
+}
 
 function renderSlideObjects(){
   const wrap =
@@ -22124,20 +22448,57 @@ function renderSlideObjects(){
           "div"
         );
 
-      element.className =
-        "slide-object" +
-        (
-          String(selectedObjectId) ===
-          String(object.id)
-            ? " selected"
-            : ""
-        );
+const objectIsSelected =
+  isPresentationObjectSelected(
+    object.id
+  );
+
+const objectIsBeingEdited =
+  String(
+    presentationEditingObjectId ||
+    ""
+  ) ===
+  String(object.id);
+
+element.className = [
+  "slide-object",
+
+  objectIsSelected
+    ? "selected"
+    : "",
+
+  objectIsBeingEdited
+    ? "is-editing"
+    : "",
+
+  object.locked
+    ? "locked"
+    : "",
+
+  object.hidden
+    ? "hidden"
+    : "",
+
+  object.groupId
+    ? "grouped"
+    : ""
+]
+  .filter(Boolean)
+  .join(" ");
 
       element.dataset.id =
         object.id;
 
       element.dataset.type =
         object.type;
+       element.dataset.groupId =
+  object.groupId ||
+  "";
+
+element.dataset.locked =
+  object.locked
+    ? "true"
+    : "false";
 
       element.style.left =
         `${Number(object.x || 0)}px`;
@@ -22185,13 +22546,26 @@ function renderSlideObjects(){
           )
         );
 
-      element.style.transform =
-        `rotate(${
-          Number(
-            object.rotation ||
-            0
-          )
-        }deg)`;
+const horizontalFlip =
+  object.flipX
+    ? -1
+    : 1;
+
+const verticalFlip =
+  object.flipY
+    ? -1
+    : 1;
+
+element.style.transform = `
+  rotate(${
+    Number(
+      object.rotation ||
+      0
+    )
+  }deg)
+  scaleX(${horizontalFlip})
+  scaleY(${verticalFlip})
+`;
 
       if(object.shadow){
         element.style.filter =
@@ -22201,8 +22575,17 @@ function renderSlideObjects(){
       if(object.type === "text"){
         element.innerHTML = `
           <div
-            class="slide-object-text"
-            contenteditable="true"
+class="slide-object-text"
+contenteditable="${
+  objectIsBeingEdited
+    ? "true"
+    : "false"
+}"
+spellcheck="${
+  objectIsBeingEdited
+    ? "true"
+    : "false"
+}"
             style="
               color:${escapeHtml(
                 object.color ||
@@ -22488,6 +22871,98 @@ if(object.type === "shape"){
     `;
   }
 }
+       if(
+  objectIsSelected &&
+  !object.locked &&
+  !objectIsBeingEdited
+){
+  const controls =
+    document.createElement(
+      "div"
+    );
+
+  controls.className =
+    "presentation-object-controls";
+
+  controls.innerHTML = `
+    <button
+      type="button"
+      class="presentation-resize-handle nw"
+      data-resize-direction="nw"
+      aria-label="Resize top left"
+    ></button>
+
+    <button
+      type="button"
+      class="presentation-resize-handle n"
+      data-resize-direction="n"
+      aria-label="Resize top"
+    ></button>
+
+    <button
+      type="button"
+      class="presentation-resize-handle ne"
+      data-resize-direction="ne"
+      aria-label="Resize top right"
+    ></button>
+
+    <button
+      type="button"
+      class="presentation-resize-handle e"
+      data-resize-direction="e"
+      aria-label="Resize right"
+    ></button>
+
+    <button
+      type="button"
+      class="presentation-resize-handle se"
+      data-resize-direction="se"
+      aria-label="Resize bottom right"
+    ></button>
+
+    <button
+      type="button"
+      class="presentation-resize-handle s"
+      data-resize-direction="s"
+      aria-label="Resize bottom"
+    ></button>
+
+    <button
+      type="button"
+      class="presentation-resize-handle sw"
+      data-resize-direction="sw"
+      aria-label="Resize bottom left"
+    ></button>
+
+    <button
+      type="button"
+      class="presentation-resize-handle w"
+      data-resize-direction="w"
+      aria-label="Resize left"
+    ></button>
+
+    <button
+      type="button"
+      class="presentation-rotate-handle"
+      aria-label="Rotate object"
+      title="Rotate"
+    ></button>
+  `;
+
+  element.appendChild(
+    controls
+  );
+
+  attachPresentationResizeHandles(
+    element,
+    object
+  );
+
+  attachPresentationRotateHandle(
+    element,
+    object
+  );
+}
 
       attachObjectEvents(
         element,
@@ -22525,11 +23000,31 @@ function openPresentationContextMenu(
   event.preventDefault();
   event.stopPropagation();
 
-  selectedObjectId =
-    objectId;
+  const normalizedObjectId =
+    String(
+      objectId ||
+      ""
+    );
+
+  if(
+    normalizedObjectId &&
+    !isPresentationObjectSelected(
+      normalizedObjectId
+    )
+  ){
+    selectPresentationObject(
+      normalizedObjectId,
+      {
+        render:false
+      }
+    );
+  }
+
+  synchronizePrimaryPresentationSelection();
 
   presentationEditorView.contextTargetId =
-    objectId;
+    normalizedObjectId ||
+    selectedObjectId;
 
   renderSlideObjects();
   renderPresentationProperties();
@@ -22543,36 +23038,56 @@ function openPresentationContextMenu(
     return;
   }
 
+  updatePresentationContextMenuState();
+
   menu.hidden =
     false;
 
-  const menuWidth =
-    224;
+  menu.classList.add(
+    "show"
+  );
 
-  const estimatedHeight =
-    390;
+  menu.style.visibility =
+    "hidden";
+
+  const menuWidth =
+    menu.offsetWidth ||
+    240;
+
+  const menuHeight =
+    menu.offsetHeight ||
+    520;
 
   const left =
-    Math.min(
-      event.clientX,
-      window.innerWidth -
-      menuWidth -
-      12
+    Math.max(
+      8,
+      Math.min(
+        event.clientX,
+        window.innerWidth -
+        menuWidth -
+        8
+      )
     );
 
   const top =
-    Math.min(
-      event.clientY,
-      window.innerHeight -
-      estimatedHeight -
-      12
+    Math.max(
+      8,
+      Math.min(
+        event.clientY,
+        window.innerHeight -
+        menuHeight -
+        8
+      )
     );
 
   menu.style.left =
-    `${Math.max(8,left)}px`;
+    `${left}px`;
 
   menu.style.top =
-    `${Math.max(8,top)}px`;
+    `${top}px`;
+
+  menu.style.visibility =
+    "visible";
 }
 
 
@@ -22583,33 +23098,77 @@ function closePresentationContextMenu(){
     );
 
   if(menu){
+    menu.classList.remove(
+      "show"
+    );
+
     menu.hidden =
       true;
+
+    menu.style.visibility =
+      "";
   }
 
   presentationEditorView.contextTargetId =
     null;
 }
 
+function updatePresentationContextMenuState(){
+  const menu =
+    byId(
+      "presentationContextMenu"
+    );
 
-document.addEventListener(
-  "pointerdown",
-  event => {
-    if(
-      !event.target.closest(
-        "#presentationContextMenu"
-      )
-    ){
-      closePresentationContextMenu();
-    }
+  if(!menu){
+    return;
   }
-);
 
+  const selectedObjects =
+    getSelectedPresentationObjects();
 
-window.addEventListener(
-  "blur",
-  closePresentationContextMenu
-);
+  const selectedCount =
+    selectedObjects.length;
+
+  const hasGroup =
+    selectedObjects.some(
+      object =>
+        Boolean(
+          object.groupId
+        )
+    );
+
+  const groupButton =
+    menu.querySelector(
+      '[data-context-action="group"]'
+    );
+
+  const ungroupButton =
+    menu.querySelector(
+      '[data-context-action="ungroup"]'
+    );
+
+  const flipButtons =
+    menu.querySelectorAll(
+      '[data-context-action^="flip-"]'
+    );
+
+  if(groupButton){
+    groupButton.disabled =
+      selectedCount < 2;
+  }
+
+  if(ungroupButton){
+    ungroupButton.disabled =
+      !hasGroup;
+  }
+
+  flipButtons.forEach(
+    button => {
+      button.disabled =
+        selectedCount === 0;
+    }
+  );
+}
 
 function attachObjectEvents(
   element,
@@ -22618,26 +23177,130 @@ function attachObjectEvents(
   element.addEventListener(
     "pointerdown",
     event => {
+      if(
+        event.button !== 0
+      ){
+        return;
+      }
+
+      if(
+        event.target.closest(
+          ".presentation-resize-handle, .presentation-rotate-handle"
+        )
+      ){
+        return;
+      }
+
       event.stopPropagation();
 
-      selectedObjectId =
-        object.id;
+      const objectId =
+        String(object.id);
 
-      document
-        .querySelectorAll(
-          ".slide-object.selected"
-        )
-        .forEach(item => {
-          item.classList.remove(
-            "selected"
-          );
-        });
+      const additiveSelection =
+        event.shiftKey ||
+        event.ctrlKey ||
+        event.metaKey;
 
-      element.classList.add(
-        "selected"
-      );
+      const wasAlreadySelected =
+        isPresentationObjectSelected(
+          objectId
+        );
 
-      renderPresentationProperties();
+      const isEditingThisObject =
+        String(
+          presentationEditingObjectId ||
+          ""
+        ) ===
+        objectId;
+
+      if(
+        object.type === "text" &&
+        wasAlreadySelected &&
+        !additiveSelection &&
+        !isEditingThisObject
+      ){
+        presentationEditingObjectId =
+          objectId;
+
+        selectedPresentationObjectIds.clear();
+        selectedPresentationObjectIds.add(
+          objectId
+        );
+
+        synchronizePrimaryPresentationSelection();
+
+        renderSlideObjects();
+        renderPresentationProperties();
+
+        requestAnimationFrame(
+          () => {
+            const renderedObject =
+              document.querySelector(
+                `.slide-object[data-id="${CSS.escape(objectId)}"]`
+              );
+
+            const editable =
+              renderedObject?.querySelector(
+                ".slide-object-text"
+              );
+
+            if(editable){
+              editable.focus();
+
+              const selection =
+                window.getSelection();
+
+              const range =
+                document.createRange();
+
+              range.selectNodeContents(
+                editable
+              );
+
+              range.collapse(false);
+
+              selection?.removeAllRanges();
+              selection?.addRange(
+                range
+              );
+            }
+          }
+        );
+
+        return;
+      }
+
+      if(
+        presentationEditingObjectId &&
+        String(
+          presentationEditingObjectId
+        ) !== objectId
+      ){
+        presentationEditingObjectId =
+          null;
+      }
+
+      if(additiveSelection){
+        selectPresentationObject(
+          objectId,
+          {
+            additive:true,
+            toggle:true,
+            render:true
+          }
+        );
+
+        return;
+      }
+
+      if(!wasAlreadySelected){
+        selectPresentationObject(
+          objectId,
+          {
+            render:true
+          }
+        );
+      }
     }
   );
 
@@ -22645,9 +23308,28 @@ function attachObjectEvents(
   element.addEventListener(
     "contextmenu",
     event => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const objectId =
+        String(object.id);
+
+      if(
+        !isPresentationObjectSelected(
+          objectId
+        )
+      ){
+        selectPresentationObject(
+          objectId,
+          {
+            render:false
+          }
+        );
+      }
+
       openPresentationContextMenu(
         event,
-        object.id
+        objectId
       );
     }
   );
@@ -22657,36 +23339,101 @@ function attachObjectEvents(
     "dblclick",
     event => {
       if(
-        object.type !== "text"
+        object.type !== "text" ||
+        object.locked
       ){
         return;
       }
 
-      const editable =
-        element.querySelector(
-          "[contenteditable='true']"
-        );
+      event.preventDefault();
+      event.stopPropagation();
 
-      if(editable){
+      presentationEditingObjectId =
+        String(object.id);
+
+      selectedPresentationObjectIds.clear();
+      selectedPresentationObjectIds.add(
+        String(object.id)
+      );
+
+      synchronizePrimaryPresentationSelection();
+
+      renderSlideObjects();
+      renderPresentationProperties();
+
+      requestAnimationFrame(
+        () => {
+          const renderedObject =
+            document.querySelector(
+              `.slide-object[data-id="${CSS.escape(String(object.id))}"]`
+            );
+
+          const editable =
+            renderedObject?.querySelector(
+              ".slide-object-text"
+            );
+
+          if(editable){
+            editable.focus();
+
+            const range =
+              document.createRange();
+
+            range.selectNodeContents(
+              editable
+            );
+
+            const selection =
+              window.getSelection();
+
+            selection?.removeAllRanges();
+            selection?.addRange(
+              range
+            );
+          }
+        }
+      );
+    }
+  );
+
+
+  const editable =
+    element.querySelector(
+      ".slide-object-text"
+    );
+
+  editable?.addEventListener(
+    "pointerdown",
+    event => {
+      if(
+        String(
+          presentationEditingObjectId ||
+          ""
+        ) ===
+        String(object.id)
+      ){
         event.stopPropagation();
-
-        editable.focus();
-
-        const selection =
-          window.getSelection();
-
-        const range =
-          document.createRange();
-
-        range.selectNodeContents(
-          editable
-        );
-
-        selection?.removeAllRanges();
-        selection?.addRange(
-          range
-        );
       }
+    }
+  );
+
+
+  editable?.addEventListener(
+    "blur",
+    event => {
+      object.text =
+        event.currentTarget.textContent ||
+        "";
+
+      synchronizePresentationSlideSummary();
+
+      presentationEditingObjectId =
+        null;
+
+      renderPresentationSlides();
+      renderSlideObjects();
+      renderPresentationProperties();
+      schedulePresentationAutosave();
     }
   );
 
@@ -22715,11 +23462,11 @@ function enableObjectDragging(
   let startPointerY =
     0;
 
-  let startObjectX =
-    0;
+  let startingObjects =
+    [];
 
-  let startObjectY =
-    0;
+  let movementStarted =
+    false;
 
 
   element.addEventListener(
@@ -22727,16 +23474,51 @@ function enableObjectDragging(
     event => {
       if(
         event.button !== 0 ||
+        object.locked ||
+        event.target.closest(
+          ".presentation-resize-handle, .presentation-rotate-handle"
+        ) ||
         event.target.isContentEditable ||
-        object.locked
+        String(
+          presentationEditingObjectId ||
+          ""
+        ) ===
+        String(object.id)
       ){
         return;
       }
 
+      const objectId =
+        String(object.id);
+
+      if(
+        !isPresentationObjectSelected(
+          objectId
+        )
+      ){
+        selectPresentationObject(
+          objectId,
+          {
+            render:false
+          }
+        );
+      }
+
+      const movableObjects =
+        getEditablePresentationSelection();
+
+      if(!movableObjects.length){
+        return;
+      }
+
       event.preventDefault();
+      event.stopPropagation();
 
       dragging =
         true;
+
+      movementStarted =
+        false;
 
       pointerId =
         event.pointerId;
@@ -22747,16 +23529,31 @@ function enableObjectDragging(
       startPointerY =
         event.clientY;
 
-      startObjectX =
-        Number(
-          object.x ||
-          0
-        );
+      startingObjects =
+        movableObjects.map(
+          selectedObject => ({
+            object:selectedObject,
 
-      startObjectY =
-        Number(
-          object.y ||
-          0
+            x:Number(
+              selectedObject.x ||
+              0
+            ),
+
+            y:Number(
+              selectedObject.y ||
+              0
+            ),
+
+            width:Number(
+              selectedObject.width ||
+              100
+            ),
+
+            height:Number(
+              selectedObject.height ||
+              60
+            )
+          })
         );
 
       element.setPointerCapture?.(
@@ -22786,23 +23583,21 @@ function enableObjectDragging(
 
       const zoom =
         Math.max(
-          .3,
+          .1,
           Number(
             presentationEditorView.zoom ||
             100
           ) / 100
         );
 
-      let nextX =
-        startObjectX +
+      let deltaX =
         (
           event.clientX -
           startPointerX
         ) /
         zoom;
 
-      let nextY =
-        startObjectY +
+      let deltaY =
         (
           event.clientY -
           startPointerY
@@ -22810,7 +23605,18 @@ function enableObjectDragging(
         zoom;
 
       if(
-        presentationEditorView.snapToGrid
+        Math.abs(deltaX) >
+        2 ||
+        Math.abs(deltaY) >
+        2
+      ){
+        movementStarted =
+          true;
+      }
+
+      if(
+        presentationEditorView.snapToGrid &&
+        !event.altKey
       ){
         const gridSize =
           Math.max(
@@ -22821,140 +23627,835 @@ function enableObjectDragging(
             )
           );
 
-        nextX =
+        deltaX =
           Math.round(
-            nextX /
+            deltaX /
             gridSize
           ) *
           gridSize;
 
-        nextY =
+        deltaY =
           Math.round(
-            nextY /
+            deltaY /
             gridSize
           ) *
           gridSize;
       }
 
-      const objectWidth =
+      const minimumX =
+        Math.min(
+          ...startingObjects.map(
+            item =>
+              item.x +
+              deltaX
+          )
+        );
+
+      const minimumY =
+        Math.min(
+          ...startingObjects.map(
+            item =>
+              item.y +
+              deltaY
+          )
+        );
+
+      const maximumRight =
         Math.max(
-          20,
+          ...startingObjects.map(
+            item =>
+              item.x +
+              item.width +
+              deltaX
+          )
+        );
+
+      const maximumBottom =
+        Math.max(
+          ...startingObjects.map(
+            item =>
+              item.y +
+              item.height +
+              deltaY
+          )
+        );
+
+      if(minimumX < 0){
+        deltaX -=
+          minimumX;
+      }
+
+      if(minimumY < 0){
+        deltaY -=
+          minimumY;
+      }
+
+      if(maximumRight > 960){
+        deltaX -=
+          maximumRight -
+          960;
+      }
+
+      if(maximumBottom > 540){
+        deltaY -=
+          maximumBottom -
+          540;
+      }
+
+      startingObjects.forEach(
+        item => {
+          item.object.x =
+            Math.round(
+              item.x +
+              deltaX
+            );
+
+          item.object.y =
+            Math.round(
+              item.y +
+              deltaY
+            );
+
+          const renderedElement =
+            document.querySelector(
+              `.slide-object[data-id="${CSS.escape(String(item.object.id))}"]`
+            );
+
+          if(renderedElement){
+            renderedElement.style.left =
+              `${item.object.x}px`;
+
+            renderedElement.style.top =
+              `${item.object.y}px`;
+          }
+        }
+      );
+    }
+  );
+
+
+  const finishDragging =
+    event => {
+      if(
+        !dragging ||
+        event.pointerId !==
+        pointerId
+      ){
+        return;
+      }
+
+      dragging =
+        false;
+
+      element.releasePointerCapture?.(
+        pointerId
+      );
+
+      pointerId =
+        null;
+
+      document.body.style.userSelect =
+        "";
+
+      element.classList.remove(
+        "is-dragging"
+      );
+
+      if(movementStarted){
+        renderPresentationProperties();
+        schedulePresentationAutosave();
+      }
+    };
+
+
+  element.addEventListener(
+    "pointerup",
+    finishDragging
+  );
+
+  element.addEventListener(
+    "pointercancel",
+    finishDragging
+  );
+}
+
+   /* ==========================================================
+   PRESENTATION OBJECT RESIZING
+========================================================== */
+
+function attachPresentationResizeHandles(
+  element,
+  sourceObject
+){
+  element
+    .querySelectorAll(
+      ".presentation-resize-handle"
+    )
+    .forEach(handle => {
+      handle.addEventListener(
+        "pointerdown",
+        event => {
+          if(
+            event.button !== 0
+          ){
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+
+          const direction =
+            handle.dataset.resizeDirection ||
+            "se";
+
+          const pointerId =
+            event.pointerId;
+
+          const zoom =
+            Math.max(
+              .1,
+              Number(
+                presentationEditorView.zoom ||
+                100
+              ) / 100
+            );
+
+          const selectedObjects =
+            getEditablePresentationSelection();
+
+          if(!selectedObjects.length){
+            return;
+          }
+
+          const startPointerX =
+            event.clientX;
+
+          const startPointerY =
+            event.clientY;
+
+          const initialBounds =
+            getPresentationSelectionBounds(
+              selectedObjects
+            );
+
+          const initialObjects =
+            selectedObjects.map(
+              object => ({
+                object,
+
+                x:Number(
+                  object.x ||
+                  0
+                ),
+
+                y:Number(
+                  object.y ||
+                  0
+                ),
+
+                width:Number(
+                  object.width ||
+                  100
+                ),
+
+                height:Number(
+                  object.height ||
+                  60
+                )
+              })
+            );
+
+          handle.setPointerCapture?.(
+            pointerId
+          );
+
+          document.body.style.userSelect =
+            "none";
+
+
+          const move =
+            moveEvent => {
+              if(
+                moveEvent.pointerId !==
+                pointerId
+              ){
+                return;
+              }
+
+              const deltaX =
+                (
+                  moveEvent.clientX -
+                  startPointerX
+                ) /
+                zoom;
+
+              const deltaY =
+                (
+                  moveEvent.clientY -
+                  startPointerY
+                ) /
+                zoom;
+
+              let nextX =
+                initialBounds.x;
+
+              let nextY =
+                initialBounds.y;
+
+              let nextWidth =
+                initialBounds.width;
+
+              let nextHeight =
+                initialBounds.height;
+
+              if(
+                direction.includes("e")
+              ){
+                nextWidth =
+                  initialBounds.width +
+                  deltaX;
+              }
+
+              if(
+                direction.includes("s")
+              ){
+                nextHeight =
+                  initialBounds.height +
+                  deltaY;
+              }
+
+              if(
+                direction.includes("w")
+              ){
+                nextX =
+                  initialBounds.x +
+                  deltaX;
+
+                nextWidth =
+                  initialBounds.width -
+                  deltaX;
+              }
+
+              if(
+                direction.includes("n")
+              ){
+                nextY =
+                  initialBounds.y +
+                  deltaY;
+
+                nextHeight =
+                  initialBounds.height -
+                  deltaY;
+              }
+
+              const minimumSize =
+                20;
+
+              if(nextWidth < minimumSize){
+                if(
+                  direction.includes("w")
+                ){
+                  nextX =
+                    initialBounds.x +
+                    initialBounds.width -
+                    minimumSize;
+                }
+
+                nextWidth =
+                  minimumSize;
+              }
+
+              if(nextHeight < minimumSize){
+                if(
+                  direction.includes("n")
+                ){
+                  nextY =
+                    initialBounds.y +
+                    initialBounds.height -
+                    minimumSize;
+                }
+
+                nextHeight =
+                  minimumSize;
+              }
+
+              if(
+                moveEvent.shiftKey &&
+                (
+                  direction === "nw" ||
+                  direction === "ne" ||
+                  direction === "se" ||
+                  direction === "sw"
+                )
+              ){
+                const ratio =
+                  initialBounds.width /
+                  Math.max(
+                    1,
+                    initialBounds.height
+                  );
+
+                if(
+                  Math.abs(deltaX) >=
+                  Math.abs(deltaY)
+                ){
+                  nextHeight =
+                    nextWidth /
+                    ratio;
+                }else{
+                  nextWidth =
+                    nextHeight *
+                    ratio;
+                }
+
+                if(
+                  direction.includes("w")
+                ){
+                  nextX =
+                    initialBounds.x +
+                    initialBounds.width -
+                    nextWidth;
+                }
+
+                if(
+                  direction.includes("n")
+                ){
+                  nextY =
+                    initialBounds.y +
+                    initialBounds.height -
+                    nextHeight;
+                }
+              }
+
+              nextX =
+                Math.max(
+                  0,
+                  Math.min(
+                    960 -
+                    nextWidth,
+                    nextX
+                  )
+                );
+
+              nextY =
+                Math.max(
+                  0,
+                  Math.min(
+                    540 -
+                    nextHeight,
+                    nextY
+                  )
+                );
+
+              const scaleX =
+                nextWidth /
+                Math.max(
+                  1,
+                  initialBounds.width
+                );
+
+              const scaleY =
+                nextHeight /
+                Math.max(
+                  1,
+                  initialBounds.height
+                );
+
+              initialObjects.forEach(
+                item => {
+                  item.object.x =
+                    Math.round(
+                      nextX +
+                      (
+                        item.x -
+                        initialBounds.x
+                      ) *
+                      scaleX
+                    );
+
+                  item.object.y =
+                    Math.round(
+                      nextY +
+                      (
+                        item.y -
+                        initialBounds.y
+                      ) *
+                      scaleY
+                    );
+
+                  item.object.width =
+                    Math.max(
+                      minimumSize,
+                      Math.round(
+                        item.width *
+                        scaleX
+                      )
+                    );
+
+                  item.object.height =
+                    Math.max(
+                      minimumSize,
+                      Math.round(
+                        item.height *
+                        scaleY
+                      )
+                    );
+                }
+              );
+
+              renderSlideObjects();
+            };
+
+
+          const finish =
+            finishEvent => {
+              if(
+                finishEvent.pointerId !==
+                pointerId
+              ){
+                return;
+              }
+
+              handle.releasePointerCapture?.(
+                pointerId
+              );
+
+              document.removeEventListener(
+                "pointermove",
+                move
+              );
+
+              document.removeEventListener(
+                "pointerup",
+                finish
+              );
+
+              document.removeEventListener(
+                "pointercancel",
+                finish
+              );
+
+              document.body.style.userSelect =
+                "";
+
+              renderSlideObjects();
+              renderPresentationProperties();
+              schedulePresentationAutosave();
+            };
+
+
+          document.addEventListener(
+            "pointermove",
+            move
+          );
+
+          document.addEventListener(
+            "pointerup",
+            finish
+          );
+
+          document.addEventListener(
+            "pointercancel",
+            finish
+          );
+        }
+      );
+    });
+}
+
+
+function getPresentationSelectionBounds(
+  objects
+){
+  const safeObjects =
+    Array.isArray(objects)
+      ? objects
+      : [];
+
+  if(!safeObjects.length){
+    return {
+      x:0,
+      y:0,
+      width:0,
+      height:0
+    };
+  }
+
+  const left =
+    Math.min(
+      ...safeObjects.map(
+        object =>
+          Number(
+            object.x ||
+            0
+          )
+      )
+    );
+
+  const top =
+    Math.min(
+      ...safeObjects.map(
+        object =>
+          Number(
+            object.y ||
+            0
+          )
+      )
+    );
+
+  const right =
+    Math.max(
+      ...safeObjects.map(
+        object =>
+          Number(
+            object.x ||
+            0
+          ) +
           Number(
             object.width ||
             100
           )
-        );
+      )
+    );
 
-      const objectHeight =
-        Math.max(
-          20,
+  const bottom =
+    Math.max(
+      ...safeObjects.map(
+        object =>
+          Number(
+            object.y ||
+            0
+          ) +
           Number(
             object.height ||
             60
           )
-        );
+      )
+    );
 
-      nextX =
-        Math.max(
-          0,
-          Math.min(
-            960 -
-            objectWidth,
-            nextX
-          )
-        );
+  return {
+    x:left,
+    y:top,
+    width:right - left,
+    height:bottom - top
+  };
+}
 
-      nextY =
-        Math.max(
-          0,
-          Math.min(
-            540 -
-            objectHeight,
-            nextY
-          )
-        );
 
-      const centerThreshold =
-        6;
+/* ==========================================================
+   PRESENTATION OBJECT ROTATION
+========================================================== */
 
-      const horizontalCenter =
-        480 -
-        objectWidth / 2;
+function attachPresentationRotateHandle(
+  element,
+  sourceObject
+){
+  const handle =
+    element.querySelector(
+      ".presentation-rotate-handle"
+    );
 
-      const verticalCenter =
-        270 -
-        objectHeight / 2;
+  if(!handle){
+    return;
+  }
 
-      const verticalGuide =
-        byId(
-          "presentationVerticalGuide"
-        );
-
-      const horizontalGuide =
-        byId(
-          "presentationHorizontalGuide"
-        );
-
+  handle.addEventListener(
+    "pointerdown",
+    event => {
       if(
-        presentationEditorView.smartGuides &&
-        Math.abs(
-          nextX -
-          horizontalCenter
-        ) <=
-        centerThreshold
+        event.button !== 0
       ){
-        nextX =
-          horizontalCenter;
-
-        if(verticalGuide){
-          verticalGuide.hidden =
-            false;
-
-          verticalGuide.style.left =
-            "50%";
-        }
-      }else if(verticalGuide){
-        verticalGuide.hidden =
-          true;
+        return;
       }
 
-      if(
-        presentationEditorView.smartGuides &&
-        Math.abs(
-          nextY -
-          verticalCenter
-        ) <=
-        centerThreshold
-      ){
-        nextY =
-          verticalCenter;
+      event.preventDefault();
+      event.stopPropagation();
 
-        if(horizontalGuide){
-          horizontalGuide.hidden =
-            false;
+      const selectedObjects =
+        getEditablePresentationSelection();
 
-          horizontalGuide.style.top =
-            "50%";
-        }
-      }else if(horizontalGuide){
-        horizontalGuide.hidden =
-          true;
+      if(!selectedObjects.length){
+        return;
       }
 
-      object.x =
-        Math.round(nextX);
+      const pointerId =
+        event.pointerId;
 
-      object.y =
-        Math.round(nextY);
+      const canvas =
+        byId(
+          "presentationCanvas"
+        );
 
-      element.style.left =
-        `${object.x}px`;
+      const canvasRect =
+        canvas?.getBoundingClientRect();
 
-      element.style.top =
-        `${object.y}px`;
+      if(!canvasRect){
+        return;
+      }
+
+      const zoom =
+        Math.max(
+          .1,
+          Number(
+            presentationEditorView.zoom ||
+            100
+          ) / 100
+        );
+
+      const bounds =
+        getPresentationSelectionBounds(
+          selectedObjects
+        );
+
+      const centerX =
+        canvasRect.left +
+        (
+          bounds.x +
+          bounds.width / 2
+        ) *
+        zoom;
+
+      const centerY =
+        canvasRect.top +
+        (
+          bounds.y +
+          bounds.height / 2
+        ) *
+        zoom;
+
+      const startAngle =
+        Math.atan2(
+          event.clientY -
+          centerY,
+          event.clientX -
+          centerX
+        ) *
+        180 /
+        Math.PI;
+
+      const startingRotations =
+        selectedObjects.map(
+          object => ({
+            object,
+            rotation:Number(
+              object.rotation ||
+              0
+            )
+          })
+        );
+
+      handle.setPointerCapture?.(
+        pointerId
+      );
+
+      document.body.style.userSelect =
+        "none";
+
+
+      const move =
+        moveEvent => {
+          if(
+            moveEvent.pointerId !==
+            pointerId
+          ){
+            return;
+          }
+
+          const currentAngle =
+            Math.atan2(
+              moveEvent.clientY -
+              centerY,
+              moveEvent.clientX -
+              centerX
+            ) *
+            180 /
+            Math.PI;
+
+          let rotationDelta =
+            currentAngle -
+            startAngle;
+
+          if(moveEvent.shiftKey){
+            rotationDelta =
+              Math.round(
+                rotationDelta /
+                15
+              ) *
+              15;
+          }
+
+          startingRotations.forEach(
+            item => {
+              item.object.rotation =
+                Math.round(
+                  (
+                    item.rotation +
+                    rotationDelta
+                  ) *
+                  10
+                ) /
+                10;
+            }
+          );
+
+          renderSlideObjects();
+        };
+
+
+      const finish =
+        finishEvent => {
+          if(
+            finishEvent.pointerId !==
+            pointerId
+          ){
+            return;
+          }
+
+          handle.releasePointerCapture?.(
+            pointerId
+          );
+
+          document.removeEventListener(
+            "pointermove",
+            move
+          );
+
+          document.removeEventListener(
+            "pointerup",
+            finish
+          );
+
+          document.removeEventListener(
+            "pointercancel",
+            finish
+          );
+
+          document.body.style.userSelect =
+            "";
+
+          renderSlideObjects();
+          renderPresentationProperties();
+          schedulePresentationAutosave();
+        };
+
+
+      document.addEventListener(
+        "pointermove",
+        move
+      );
+
+      document.addEventListener(
+        "pointerup",
+        finish
+      );
+
+      document.addEventListener(
+        "pointercancel",
+        finish
+      );
     }
   );
-
+}
 
   function finishDragging(){
     if(!dragging){
@@ -24371,10 +25872,559 @@ function alignSelectedPresentationObject(
   schedulePresentationAutosave();
 }
 
+/* ==========================================================
+   PRESENTATION GROUPING
+========================================================== */
 
+function groupSelectedPresentationObjects(){
+  const selectedObjects =
+    getEditablePresentationSelection();
+
+  if(selectedObjects.length < 2){
+    showAlert(
+      "info",
+      "Select at least two objects to create a group."
+    );
+
+    return;
+  }
+
+  pushPresentationHistory?.();
+
+  const groupId =
+    `group-${
+      createPresentationObjectId()
+    }`;
+
+  selectedObjects.forEach(
+    object => {
+      object.groupId =
+        groupId;
+    }
+  );
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+
+  showAlert(
+    "success",
+    `${selectedObjects.length} objects grouped.`
+  );
+}
+
+
+function ungroupSelectedPresentationObjects(){
+  const selectedObjects =
+    getSelectedPresentationObjects();
+
+  const groupIds =
+    new Set(
+      selectedObjects
+        .map(
+          object =>
+            object.groupId
+        )
+        .filter(Boolean)
+    );
+
+  if(!groupIds.size){
+    showAlert(
+      "info",
+      "The selected objects are not grouped."
+    );
+
+    return;
+  }
+
+  pushPresentationHistory?.();
+
+  currentSlide.objects.forEach(
+    object => {
+      if(
+        groupIds.has(
+          object.groupId
+        )
+      ){
+        delete object.groupId;
+      }
+    }
+  );
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+
+  showAlert(
+    "success",
+    "Objects ungrouped."
+  );
+}
+
+
+/* ==========================================================
+   PRESENTATION FLIP
+========================================================== */
+
+function flipSelectedPresentationObjects(
+  axis
+){
+  const selectedObjects =
+    getEditablePresentationSelection();
+
+  if(!selectedObjects.length){
+    return;
+  }
+
+  pushPresentationHistory?.();
+
+  selectedObjects.forEach(
+    object => {
+      if(axis === "horizontal"){
+        object.flipX =
+          !object.flipX;
+      }
+
+      if(axis === "vertical"){
+        object.flipY =
+          !object.flipY;
+      }
+    }
+  );
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+}
+
+
+function rotateSelectedPresentationObjects(
+  degrees
+){
+  const selectedObjects =
+    getEditablePresentationSelection();
+
+  if(!selectedObjects.length){
+    return;
+  }
+
+  pushPresentationHistory?.();
+
+  selectedObjects.forEach(
+    object => {
+      object.rotation =
+        (
+          Number(
+            object.rotation ||
+            0
+          ) +
+          Number(
+            degrees ||
+            0
+          )
+        ) %
+        360;
+    }
+  );
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+}
+
+function duplicateSelectedPresentationObjects(){
+  const selectedObjects =
+    getSelectedPresentationObjects();
+
+  if(
+    !currentSlide ||
+    !selectedObjects.length
+  ){
+    return;
+  }
+
+  pushPresentationHistory?.();
+
+  selectedPresentationObjectIds.clear();
+
+  selectedObjects.forEach(
+    original => {
+      const duplicate =
+        JSON.parse(
+          JSON.stringify(
+            original
+          )
+        );
+
+      duplicate.id =
+        createPresentationObjectId();
+
+      duplicate.x =
+        Math.min(
+          960 -
+          Number(
+            duplicate.width ||
+            100
+          ),
+          Number(
+            duplicate.x ||
+            0
+          ) +
+          20
+        );
+
+      duplicate.y =
+        Math.min(
+          540 -
+          Number(
+            duplicate.height ||
+            60
+          ),
+          Number(
+            duplicate.y ||
+            0
+          ) +
+          20
+        );
+
+      duplicate.zIndex =
+        currentSlide.objects.length;
+
+      delete duplicate.role;
+
+      currentSlide.objects.push(
+        duplicate
+      );
+
+      selectedPresentationObjectIds.add(
+        String(
+          duplicate.id
+        )
+      );
+    }
+  );
+
+  synchronizePrimaryPresentationSelection();
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+}
+
+
+function deleteSelectedPresentationObjects(){
+  const selectedIds =
+    new Set(
+      getPresentationSelectedIds()
+    );
+
+  if(
+    !currentSlide ||
+    !selectedIds.size
+  ){
+    return;
+  }
+
+  const deletableIds =
+    new Set(
+      currentSlide.objects
+        .filter(
+          object =>
+            selectedIds.has(
+              String(object.id)
+            ) &&
+            !object.locked
+        )
+        .map(
+          object =>
+            String(object.id)
+        )
+    );
+
+  if(!deletableIds.size){
+    return;
+  }
+
+  pushPresentationHistory?.();
+
+  currentSlide.objects =
+    currentSlide.objects.filter(
+      object =>
+        !deletableIds.has(
+          String(object.id)
+        )
+    );
+
+  clearPresentationSelection({
+    render:false
+  });
+
+  synchronizePresentationSlideSummary();
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  renderPresentationSlides();
+  schedulePresentationAutosave();
+}
+
+
+function copySelectedPresentationObjects(){
+  const selectedObjects =
+    getSelectedPresentationObjects();
+
+  if(!selectedObjects.length){
+    return;
+  }
+
+  presentationEditorView.clipboard =
+    selectedObjects.map(
+      object =>
+        JSON.parse(
+          JSON.stringify(
+            object
+          )
+        )
+    );
+}
+
+
+function pastePresentationObjects(){
+  if(
+    !currentSlide ||
+    !presentationEditorView.clipboard
+  ){
+    return;
+  }
+
+  const copiedObjects =
+    Array.isArray(
+      presentationEditorView.clipboard
+    )
+      ? presentationEditorView.clipboard
+      : [
+          presentationEditorView.clipboard
+        ];
+
+  pushPresentationHistory?.();
+
+  selectedPresentationObjectIds.clear();
+
+  copiedObjects.forEach(
+    copied => {
+      const pasted =
+        JSON.parse(
+          JSON.stringify(
+            copied
+          )
+        );
+
+      pasted.id =
+        createPresentationObjectId();
+
+      pasted.x =
+        Math.min(
+          960 -
+          Number(
+            pasted.width ||
+            100
+          ),
+          Number(
+            pasted.x ||
+            0
+          ) +
+          20
+        );
+
+      pasted.y =
+        Math.min(
+          540 -
+          Number(
+            pasted.height ||
+            60
+          ),
+          Number(
+            pasted.y ||
+            0
+          ) +
+          20
+        );
+
+      pasted.zIndex =
+        currentSlide.objects.length;
+
+      delete pasted.role;
+
+      currentSlide.objects.push(
+        pasted
+      );
+
+      selectedPresentationObjectIds.add(
+        String(
+          pasted.id
+        )
+      );
+    }
+  );
+
+  synchronizePrimaryPresentationSelection();
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+}
+
+
+function toggleSelectedPresentationObjectsLock(){
+  const selectedObjects =
+    getSelectedPresentationObjects();
+
+  if(!selectedObjects.length){
+    return;
+  }
+
+  const shouldLock =
+    selectedObjects.some(
+      object =>
+        !object.locked
+    );
+
+  selectedObjects.forEach(
+    object => {
+      object.locked =
+        shouldLock;
+    }
+  );
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+}
+
+
+function moveSelectedPresentationObjectsLayer(
+  direction
+){
+  const selectedIds =
+    new Set(
+      getPresentationSelectedIds()
+    );
+
+  if(
+    !currentSlide ||
+    !selectedIds.size
+  ){
+    return;
+  }
+
+  const objects =
+    currentSlide.objects;
+
+  const selectedObjects =
+    objects.filter(
+      object =>
+        selectedIds.has(
+          String(object.id)
+        )
+    );
+
+  const remainingObjects =
+    objects.filter(
+      object =>
+        !selectedIds.has(
+          String(object.id)
+        )
+    );
+
+  if(direction === "front"){
+    currentSlide.objects = [
+      ...remainingObjects,
+      ...selectedObjects
+    ];
+  }
+
+  if(direction === "back"){
+    currentSlide.objects = [
+      ...selectedObjects,
+      ...remainingObjects
+    ];
+  }
+
+  if(direction === "forward"){
+    for(
+      let index =
+        objects.length - 2;
+      index >= 0;
+      index -= 1
+    ){
+      if(
+        selectedIds.has(
+          String(
+            objects[index].id
+          )
+        ) &&
+        !selectedIds.has(
+          String(
+            objects[index + 1].id
+          )
+        )
+      ){
+        [
+          objects[index],
+          objects[index + 1]
+        ] = [
+          objects[index + 1],
+          objects[index]
+        ];
+      }
+    }
+  }
+
+  if(direction === "backward"){
+    for(
+      let index = 1;
+      index <
+        objects.length;
+      index += 1
+    ){
+      if(
+        selectedIds.has(
+          String(
+            objects[index].id
+          )
+        ) &&
+        !selectedIds.has(
+          String(
+            objects[index - 1].id
+          )
+        )
+      ){
+        [
+          objects[index],
+          objects[index - 1]
+        ] = [
+          objects[index - 1],
+          objects[index]
+        ];
+      }
+    }
+  }
+
+  currentSlide.objects.forEach(
+    (object,index) => {
+      object.zIndex =
+        index;
+    }
+  );
+
+  renderSlideObjects();
+  schedulePresentationAutosave();
+}
+   
 /* =========================================================
    PAGE NAVIGATION
 ========================================================= */
+
+
 
 function getCurrentPresentationSlideIndex(){
   return presentationStudio.slides.findIndex(
@@ -36792,6 +38842,217 @@ window.addEventListener(
 );
 
 document.addEventListener(
+  "keydown",
+  event => {
+    const activeElement =
+      document.activeElement;
+
+    const isEditingText =
+      Boolean(
+        activeElement?.isContentEditable ||
+        activeElement?.matches(
+          "input, textarea, select"
+        )
+      );
+
+    if(isEditingText){
+      if(event.key === "Escape"){
+        activeElement.blur();
+      }
+
+      return;
+    }
+
+    const commandKey =
+      event.ctrlKey ||
+      event.metaKey;
+
+    if(
+      commandKey &&
+      event.key.toLowerCase() ===
+      "a"
+    ){
+      event.preventDefault();
+
+      selectedPresentationObjectIds.clear();
+
+      currentSlide?.objects
+        ?.filter(
+          object =>
+            !object.hidden
+        )
+        .forEach(
+          object => {
+            selectedPresentationObjectIds.add(
+              String(object.id)
+            );
+          }
+        );
+
+      synchronizePrimaryPresentationSelection();
+
+      renderSlideObjects();
+      renderPresentationProperties();
+      return;
+    }
+
+    if(
+      commandKey &&
+      event.key.toLowerCase() ===
+      "c"
+    ){
+      event.preventDefault();
+      copySelectedPresentationObjects();
+      return;
+    }
+
+    if(
+      commandKey &&
+      event.key.toLowerCase() ===
+      "v"
+    ){
+      event.preventDefault();
+      pastePresentationObjects();
+      return;
+    }
+
+    if(
+      commandKey &&
+      event.key.toLowerCase() ===
+      "d"
+    ){
+      event.preventDefault();
+      duplicateSelectedPresentationObjects();
+      return;
+    }
+
+    if(
+      commandKey &&
+      !event.shiftKey &&
+      event.key.toLowerCase() ===
+      "g"
+    ){
+      event.preventDefault();
+      groupSelectedPresentationObjects();
+      return;
+    }
+
+    if(
+      commandKey &&
+      event.shiftKey &&
+      event.key.toLowerCase() ===
+      "g"
+    ){
+      event.preventDefault();
+      ungroupSelectedPresentationObjects();
+      return;
+    }
+
+    if(
+      event.key === "Delete" ||
+      event.key === "Backspace"
+    ){
+      event.preventDefault();
+      deleteSelectedPresentationObjects();
+      return;
+    }
+
+    if(event.key === "Escape"){
+      clearPresentationSelection();
+      closePresentationContextMenu();
+      return;
+    }
+
+    const movementMap = {
+      ArrowLeft:{
+        x:-1,
+        y:0
+      },
+
+      ArrowRight:{
+        x:1,
+        y:0
+      },
+
+      ArrowUp:{
+        x:0,
+        y:-1
+      },
+
+      ArrowDown:{
+        x:0,
+        y:1
+      }
+    };
+
+    const movement =
+      movementMap[
+        event.key
+      ];
+
+    if(movement){
+      const selectedObjects =
+        getEditablePresentationSelection();
+
+      if(!selectedObjects.length){
+        return;
+      }
+
+      event.preventDefault();
+
+      const amount =
+        event.shiftKey
+          ? 10
+          : 1;
+
+      selectedObjects.forEach(
+        object => {
+          object.x =
+            Math.max(
+              0,
+              Math.min(
+                960 -
+                Number(
+                  object.width ||
+                  100
+                ),
+                Number(
+                  object.x ||
+                  0
+                ) +
+                movement.x *
+                amount
+              )
+            );
+
+          object.y =
+            Math.max(
+              0,
+              Math.min(
+                540 -
+                Number(
+                  object.height ||
+                  60
+                ),
+                Number(
+                  object.y ||
+                  0
+                ) +
+                movement.y *
+                amount
+              )
+            );
+        }
+      );
+
+      renderSlideObjects();
+      renderPresentationProperties();
+      schedulePresentationAutosave();
+    }
+  }
+);
+   
+document.addEventListener(
   "DOMContentLoaded",
   initBuilder
 );
@@ -36802,49 +39063,34 @@ document.addEventListener(
   id="presentationContextMenu"
   hidden
   role="menu"
-  aria-label="Presentation object actions"
+  aria-label="Presentation selection actions"
 >
 
   <button
     type="button"
     role="menuitem"
-    onclick="duplicateSelectedPresentationObject(); closePresentationContextMenu();"
+    onclick="duplicateSelectedPresentationObjects(); closePresentationContextMenu();"
   >
-    <span>
-      Duplicate
-    </span>
-
-    <kbd>
-      Ctrl D
-    </kbd>
+    <span>Duplicate</span>
+    <kbd>Ctrl D</kbd>
   </button>
 
   <button
     type="button"
     role="menuitem"
-    onclick="copySelectedPresentationObject(); closePresentationContextMenu();"
+    onclick="copySelectedPresentationObjects(); closePresentationContextMenu();"
   >
-    <span>
-      Copy
-    </span>
-
-    <kbd>
-      Ctrl C
-    </kbd>
+    <span>Copy</span>
+    <kbd>Ctrl C</kbd>
   </button>
 
   <button
     type="button"
     role="menuitem"
-    onclick="pastePresentationObject(); closePresentationContextMenu();"
+    onclick="pastePresentationObjects(); closePresentationContextMenu();"
   >
-    <span>
-      Paste
-    </span>
-
-    <kbd>
-      Ctrl V
-    </kbd>
+    <span>Paste</span>
+    <kbd>Ctrl V</kbd>
   </button>
 
   <div class="presentation-context-divider"></div>
@@ -36852,7 +39098,57 @@ document.addEventListener(
   <button
     type="button"
     role="menuitem"
-    onclick="moveSelectedPresentationObjectLayer('front'); closePresentationContextMenu();"
+    data-context-action="group"
+    onclick="groupSelectedPresentationObjects(); closePresentationContextMenu();"
+  >
+    <span>Group</span>
+    <kbd>Ctrl G</kbd>
+  </button>
+
+  <button
+    type="button"
+    role="menuitem"
+    data-context-action="ungroup"
+    onclick="ungroupSelectedPresentationObjects(); closePresentationContextMenu();"
+  >
+    <span>Ungroup</span>
+    <kbd>Ctrl Shift G</kbd>
+  </button>
+
+  <div class="presentation-context-divider"></div>
+
+  <button
+    type="button"
+    role="menuitem"
+    data-context-action="flip-horizontal"
+    onclick="flipSelectedPresentationObjects('horizontal'); closePresentationContextMenu();"
+  >
+    Flip horizontally
+  </button>
+
+  <button
+    type="button"
+    role="menuitem"
+    data-context-action="flip-vertical"
+    onclick="flipSelectedPresentationObjects('vertical'); closePresentationContextMenu();"
+  >
+    Flip vertically
+  </button>
+
+  <button
+    type="button"
+    role="menuitem"
+    onclick="rotateSelectedPresentationObjects(90); closePresentationContextMenu();"
+  >
+    Rotate 90°
+  </button>
+
+  <div class="presentation-context-divider"></div>
+
+  <button
+    type="button"
+    role="menuitem"
+    onclick="moveSelectedPresentationObjectsLayer('front'); closePresentationContextMenu();"
   >
     Bring to front
   </button>
@@ -36860,7 +39156,7 @@ document.addEventListener(
   <button
     type="button"
     role="menuitem"
-    onclick="moveSelectedPresentationObjectLayer('forward'); closePresentationContextMenu();"
+    onclick="moveSelectedPresentationObjectsLayer('forward'); closePresentationContextMenu();"
   >
     Bring forward
   </button>
@@ -36868,7 +39164,7 @@ document.addEventListener(
   <button
     type="button"
     role="menuitem"
-    onclick="moveSelectedPresentationObjectLayer('backward'); closePresentationContextMenu();"
+    onclick="moveSelectedPresentationObjectsLayer('backward'); closePresentationContextMenu();"
   >
     Send backward
   </button>
@@ -36876,7 +39172,7 @@ document.addEventListener(
   <button
     type="button"
     role="menuitem"
-    onclick="moveSelectedPresentationObjectLayer('back'); closePresentationContextMenu();"
+    onclick="moveSelectedPresentationObjectsLayer('back'); closePresentationContextMenu();"
   >
     Send to back
   </button>
@@ -36886,7 +39182,7 @@ document.addEventListener(
   <button
     type="button"
     role="menuitem"
-    onclick="toggleSelectedPresentationObjectLock(); closePresentationContextMenu();"
+    onclick="toggleSelectedPresentationObjectsLock(); closePresentationContextMenu();"
   >
     Lock or unlock
   </button>
@@ -36894,26 +39190,11 @@ document.addEventListener(
   <button
     type="button"
     role="menuitem"
-    onclick="toggleSelectedPresentationObjectVisibility(); closePresentationContextMenu();"
-  >
-    Hide or show
-  </button>
-
-  <div class="presentation-context-divider"></div>
-
-  <button
-    type="button"
-    role="menuitem"
     class="danger"
-    onclick="deleteSelectedPresentationObject(); closePresentationContextMenu();"
+    onclick="deleteSelectedPresentationObjects(); closePresentationContextMenu();"
   >
-    <span>
-      Delete
-    </span>
-
-    <kbd>
-      Delete
-    </kbd>
+    <span>Delete</span>
+    <kbd>Delete</kbd>
   </button>
 
 </div>
