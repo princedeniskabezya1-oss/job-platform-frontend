@@ -21794,6 +21794,351 @@ const presentationEditorView = {
   smartGuides: true
 };
 
+/* ==========================================================
+   PRESENTATION HISTORY ENGINE
+========================================================== */
+
+const PRESENTATION_HISTORY_LIMIT =
+  100;
+
+
+function clonePresentationData(
+  value
+){
+  if(
+    typeof window.structuredClone ===
+    "function"
+  ){
+    try{
+      return window.structuredClone(
+        value
+      );
+    }catch(error){
+      /*
+        Fall through to JSON cloning for plain
+        presentation data.
+      */
+    }
+  }
+
+  return JSON.parse(
+    JSON.stringify(
+      value
+    )
+  );
+}
+
+
+function createPresentationHistorySnapshot(){
+  return {
+    presentation:
+      clonePresentationData(
+        presentationStudio
+      ),
+
+    currentSlideId:
+      String(
+        currentSlide?.id ||
+        presentationStudio.currentSlideId ||
+        ""
+      ),
+
+    selectedObjectIds:
+      getPresentationSelectedIds(),
+
+    editingObjectId:
+      presentationEditingObjectId
+        ? String(
+            presentationEditingObjectId
+          )
+        : null
+  };
+}
+
+
+function serializePresentationHistorySnapshot(
+  snapshot
+){
+  return JSON.stringify(
+    snapshot
+  );
+}
+
+
+function pushPresentationHistory(){
+  if(
+    !presentationStudio ||
+    !Array.isArray(
+      presentationStudio.slides
+    )
+  ){
+    return;
+  }
+
+  const snapshot =
+    createPresentationHistorySnapshot();
+
+  const serializedSnapshot =
+    serializePresentationHistorySnapshot(
+      snapshot
+    );
+
+  const lastSnapshot =
+    presentationEditorView.history[
+      presentationEditorView.history.length -
+      1
+    ];
+
+  if(
+    lastSnapshot ===
+    serializedSnapshot
+  ){
+    return;
+  }
+
+  presentationEditorView.history.push(
+    serializedSnapshot
+  );
+
+  if(
+    presentationEditorView.history.length >
+    PRESENTATION_HISTORY_LIMIT
+  ){
+    presentationEditorView.history.shift();
+  }
+
+  presentationEditorView.future.length =
+    0;
+
+  updatePresentationHistoryControls();
+}
+
+
+function restorePresentationHistorySnapshot(
+  serializedSnapshot
+){
+  if(!serializedSnapshot){
+    return false;
+  }
+
+  let snapshot;
+
+  try{
+    snapshot =
+      typeof serializedSnapshot ===
+      "string"
+        ? JSON.parse(
+            serializedSnapshot
+          )
+        : clonePresentationData(
+            serializedSnapshot
+          );
+  }catch(error){
+    console.error(
+      "Could not restore presentation history:",
+      error
+    );
+
+    return false;
+  }
+
+  const restoredPresentation =
+    snapshot?.presentation;
+
+  if(
+    !restoredPresentation ||
+    !Array.isArray(
+      restoredPresentation.slides
+    )
+  ){
+    return false;
+  }
+
+  Object.keys(
+    presentationStudio
+  ).forEach(
+    key => {
+      delete presentationStudio[key];
+    }
+  );
+
+  Object.assign(
+    presentationStudio,
+    clonePresentationData(
+      restoredPresentation
+    )
+  );
+
+  const requestedSlideId =
+    String(
+      snapshot.currentSlideId ||
+      presentationStudio.currentSlideId ||
+      ""
+    );
+
+  currentSlide =
+    presentationStudio.slides.find(
+      slide =>
+        String(slide.id) ===
+        requestedSlideId
+    ) ||
+    presentationStudio.slides[0] ||
+    null;
+
+  presentationStudio.currentSlideId =
+    currentSlide?.id ||
+    null;
+
+  selectedPresentationObjectIds.clear();
+
+  const existingObjectIds =
+    new Set(
+      Array.isArray(
+        currentSlide?.objects
+      )
+        ? currentSlide.objects.map(
+            object =>
+              String(object.id)
+          )
+        : []
+    );
+
+  (
+    Array.isArray(
+      snapshot.selectedObjectIds
+    )
+      ? snapshot.selectedObjectIds
+      : []
+  ).forEach(
+    objectId => {
+      const normalizedId =
+        String(objectId);
+
+      if(
+        existingObjectIds.has(
+          normalizedId
+        )
+      ){
+        selectedPresentationObjectIds.add(
+          normalizedId
+        );
+      }
+    }
+  );
+
+  synchronizePrimaryPresentationSelection();
+
+  const restoredEditingId =
+    snapshot.editingObjectId
+      ? String(
+          snapshot.editingObjectId
+        )
+      : null;
+
+  presentationEditingObjectId =
+    restoredEditingId &&
+    existingObjectIds.has(
+      restoredEditingId
+    )
+      ? restoredEditingId
+      : null;
+
+  renderPresentationSlides();
+  renderPresentationCanvas();
+  renderPresentationProperties();
+  renderPresentationNotes?.();
+  updatePresentationNavigation();
+  updatePresentationHistoryControls();
+  schedulePresentationAutosave();
+
+  return true;
+}
+
+
+function undoPresentationChange(){
+  if(
+    !presentationEditorView.history.length
+  ){
+    return;
+  }
+
+  const currentSnapshot =
+    serializePresentationHistorySnapshot(
+      createPresentationHistorySnapshot()
+    );
+
+  const previousSnapshot =
+    presentationEditorView.history.pop();
+
+  presentationEditorView.future.push(
+    currentSnapshot
+  );
+
+  restorePresentationHistorySnapshot(
+    previousSnapshot
+  );
+}
+
+
+function redoPresentationChange(){
+  if(
+    !presentationEditorView.future.length
+  ){
+    return;
+  }
+
+  const currentSnapshot =
+    serializePresentationHistorySnapshot(
+      createPresentationHistorySnapshot()
+    );
+
+  const nextSnapshot =
+    presentationEditorView.future.pop();
+
+  presentationEditorView.history.push(
+    currentSnapshot
+  );
+
+  restorePresentationHistorySnapshot(
+    nextSnapshot
+  );
+}
+
+
+function updatePresentationHistoryControls(){
+  const undoButtons =
+    document.querySelectorAll(
+      [
+        "[data-presentation-undo]",
+        "#presentationUndoButton"
+      ].join(",")
+    );
+
+  const redoButtons =
+    document.querySelectorAll(
+      [
+        "[data-presentation-redo]",
+        "#presentationRedoButton"
+      ].join(",")
+    );
+
+  undoButtons.forEach(
+    button => {
+      button.disabled =
+        presentationEditorView.history.length ===
+        0;
+    }
+  );
+
+  redoButtons.forEach(
+    button => {
+      button.disabled =
+        presentationEditorView.future.length ===
+        0;
+    }
+  );
+}
+
 function openPresentationToolPanel(
   panelName,
   triggerButton
@@ -23126,10 +23471,20 @@ function updatePresentationContextMenuState(){
   const selectedObjects =
     getSelectedPresentationObjects();
 
+  const editableObjects =
+    selectedObjects.filter(
+      object =>
+        !object.locked &&
+        !object.hidden
+    );
+
   const selectedCount =
     selectedObjects.length;
 
-  const hasGroup =
+  const editableCount =
+    editableObjects.length;
+
+  const containsGroupedObject =
     selectedObjects.some(
       object =>
         Boolean(
@@ -23137,36 +23492,287 @@ function updatePresentationContextMenuState(){
         )
     );
 
-  const groupButton =
-    menu.querySelector(
-      '[data-context-action="group"]'
-    );
+  const hasClipboard =
+    Array.isArray(
+      presentationEditorView.clipboard
+    )
+      ? presentationEditorView.clipboard.length >
+        0
+      : Boolean(
+          presentationEditorView.clipboard
+        );
 
-  const ungroupButton =
-    menu.querySelector(
-      '[data-context-action="ungroup"]'
-    );
+  menu
+    .querySelectorAll(
+      "[data-context-action]"
+    )
+    .forEach(
+      button => {
+        const action =
+          String(
+            button.dataset.contextAction ||
+            ""
+          );
 
-  const flipButtons =
-    menu.querySelectorAll(
-      '[data-context-action^="flip-"]'
-    );
+        let disabled =
+          false;
 
-  if(groupButton){
-    groupButton.disabled =
-      selectedCount < 2;
+        switch(action){
+          case "copy":
+          case "duplicate":
+            disabled =
+              selectedCount ===
+              0;
+            break;
+
+          case "paste":
+            disabled =
+              !hasClipboard;
+            break;
+
+          case "delete":
+          case "flip-horizontal":
+          case "flip-vertical":
+          case "rotate-left":
+          case "rotate-right":
+          case "bring-front":
+          case "bring-forward":
+          case "send-backward":
+          case "send-back":
+          case "lock":
+          case "unlock":
+            disabled =
+              editableCount ===
+              0;
+            break;
+
+          case "group":
+            disabled =
+              editableCount <
+              2;
+            break;
+
+          case "ungroup":
+            disabled =
+              !containsGroupedObject;
+            break;
+
+          default:
+            disabled =
+              false;
+        }
+
+        button.disabled =
+          disabled;
+
+        button.setAttribute(
+          "aria-disabled",
+          disabled
+            ? "true"
+            : "false"
+        );
+      }
+    );
+}
+
+function executePresentationContextAction(
+  action
+){
+  const normalizedAction =
+    String(
+      action ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+  switch(normalizedAction){
+    case "copy":
+      copySelectedPresentationObjects();
+      break;
+
+    case "paste":
+      pastePresentationObjects();
+      break;
+
+    case "duplicate":
+      duplicateSelectedPresentationObjects();
+      break;
+
+    case "delete":
+      deleteSelectedPresentationObjects();
+      break;
+
+    case "group":
+      groupSelectedPresentationObjects();
+      break;
+
+    case "ungroup":
+      ungroupSelectedPresentationObjects();
+      break;
+
+    case "flip-horizontal":
+      flipSelectedPresentationObjects(
+        "horizontal"
+      );
+      break;
+
+    case "flip-vertical":
+      flipSelectedPresentationObjects(
+        "vertical"
+      );
+      break;
+
+    case "rotate-left":
+      rotateSelectedPresentationObjects(
+        -90
+      );
+      break;
+
+    case "rotate-right":
+      rotateSelectedPresentationObjects(
+        90
+      );
+      break;
+
+    case "bring-front":
+      moveSelectedPresentationObjectLayer(
+        "front"
+      );
+      break;
+
+    case "bring-forward":
+      moveSelectedPresentationObjectLayer(
+        "forward"
+      );
+      break;
+
+    case "send-backward":
+      moveSelectedPresentationObjectLayer(
+        "backward"
+      );
+      break;
+
+    case "send-back":
+      moveSelectedPresentationObjectLayer(
+        "back"
+      );
+      break;
+
+    case "lock":
+      setSelectedPresentationObjectsLocked(
+        true
+      );
+      break;
+
+    case "unlock":
+      setSelectedPresentationObjectsLocked(
+        false
+      );
+      break;
+
+    default:
+      console.warn(
+        "Unknown presentation context action:",
+        normalizedAction
+      );
+      return;
   }
 
-  if(ungroupButton){
-    ungroupButton.disabled =
-      !hasGroup;
+  closePresentationContextMenu();
+}
+
+
+function setSelectedPresentationObjectsLocked(
+  locked
+){
+  const selectedObjects =
+    getSelectedPresentationObjects();
+
+  if(!selectedObjects.length){
+    return;
   }
 
-  flipButtons.forEach(
-    button => {
-      button.disabled =
-        selectedCount === 0;
+  pushPresentationHistory();
+
+  selectedObjects.forEach(
+    object => {
+      object.locked =
+        Boolean(
+          locked
+        );
     }
+  );
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+}
+
+
+function initializePresentationContextMenu(){
+  const menu =
+    byId(
+      "presentationContextMenu"
+    );
+
+  if(
+    !menu ||
+    menu.dataset.initialized ===
+    "true"
+  ){
+    return;
+  }
+
+  menu.dataset.initialized =
+    "true";
+
+  menu.addEventListener(
+    "click",
+    event => {
+      const actionButton =
+        event.target.closest(
+          "[data-context-action]"
+        );
+
+      if(
+        !actionButton ||
+        actionButton.disabled
+      ){
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      executePresentationContextAction(
+        actionButton.dataset.contextAction
+      );
+    }
+  );
+
+  document.addEventListener(
+    "pointerdown",
+    event => {
+      if(
+        !event.target.closest(
+          "#presentationContextMenu"
+        )
+      ){
+        closePresentationContextMenu();
+      }
+    }
+  );
+
+  document.addEventListener(
+    "scroll",
+    closePresentationContextMenu,
+    true
+  );
+
+  window.addEventListener(
+    "resize",
+    closePresentationContextMenu
   );
 }
 
@@ -23174,18 +23780,86 @@ function attachObjectEvents(
   element,
   object
 ){
+  const objectId =
+    String(
+      object.id
+    );
+
+
+  function beginTextEditing(){
+    if(
+      object.type !== "text" ||
+      object.locked
+    ){
+      return;
+    }
+
+    presentationEditingObjectId =
+      objectId;
+
+    selectedPresentationObjectIds.clear();
+
+    selectedPresentationObjectIds.add(
+      objectId
+    );
+
+    synchronizePrimaryPresentationSelection();
+
+    renderSlideObjects();
+    renderPresentationProperties();
+
+    window.requestAnimationFrame(
+      () => {
+        const renderedObject =
+          document.querySelector(
+            `.slide-object[data-id="${CSS.escape(objectId)}"]`
+          );
+
+        const editable =
+          renderedObject?.querySelector(
+            ".slide-object-text"
+          );
+
+        if(!editable){
+          return;
+        }
+
+        editable.focus();
+
+        const range =
+          document.createRange();
+
+        range.selectNodeContents(
+          editable
+        );
+
+        range.collapse(
+          false
+        );
+
+        const selection =
+          window.getSelection();
+
+        selection?.removeAllRanges();
+
+        selection?.addRange(
+          range
+        );
+      }
+    );
+  }
+
+
   element.addEventListener(
     "pointerdown",
     event => {
       if(
-        event.button !== 0
-      ){
-        return;
-      }
-
-      if(
+        event.button !== 0 ||
         event.target.closest(
-          ".presentation-resize-handle, .presentation-rotate-handle"
+          [
+            ".presentation-resize-handle",
+            ".presentation-rotate-handle"
+          ].join(",")
         )
       ){
         return;
@@ -23193,8 +23867,7 @@ function attachObjectEvents(
 
       event.stopPropagation();
 
-      const objectId =
-        String(object.id);
+      closePresentationContextMenu();
 
       const additiveSelection =
         event.shiftKey ||
@@ -23213,59 +23886,26 @@ function attachObjectEvents(
         ) ===
         objectId;
 
+      if(isEditingThisObject){
+        return;
+      }
+
+      /*
+        A second normal pointer press on an already selected
+        text object enters editing mode.
+
+        Dragging itself is handled separately and only starts
+        after the movement threshold has been crossed.
+      */
       if(
         object.type === "text" &&
         wasAlreadySelected &&
         !additiveSelection &&
-        !isEditingThisObject
+        event.detail > 1
       ){
-        presentationEditingObjectId =
-          objectId;
+        event.preventDefault();
 
-        selectedPresentationObjectIds.clear();
-        selectedPresentationObjectIds.add(
-          objectId
-        );
-
-        synchronizePrimaryPresentationSelection();
-
-        renderSlideObjects();
-        renderPresentationProperties();
-
-        requestAnimationFrame(
-          () => {
-            const renderedObject =
-              document.querySelector(
-                `.slide-object[data-id="${CSS.escape(objectId)}"]`
-              );
-
-            const editable =
-              renderedObject?.querySelector(
-                ".slide-object-text"
-              );
-
-            if(editable){
-              editable.focus();
-
-              const selection =
-                window.getSelection();
-
-              const range =
-                document.createRange();
-
-              range.selectNodeContents(
-                editable
-              );
-
-              range.collapse(false);
-
-              selection?.removeAllRanges();
-              selection?.addRange(
-                range
-              );
-            }
-          }
-        );
+        beginTextEditing();
 
         return;
       }
@@ -23274,7 +23914,8 @@ function attachObjectEvents(
         presentationEditingObjectId &&
         String(
           presentationEditingObjectId
-        ) !== objectId
+        ) !==
+        objectId
       ){
         presentationEditingObjectId =
           null;
@@ -23286,9 +23927,18 @@ function attachObjectEvents(
           {
             additive:true,
             toggle:true,
-            render:true
+            render:false
           }
         );
+
+        element.classList.toggle(
+          "selected",
+          isPresentationObjectSelected(
+            objectId
+          )
+        );
+
+        renderPresentationProperties();
 
         return;
       }
@@ -23297,9 +23947,27 @@ function attachObjectEvents(
         selectPresentationObject(
           objectId,
           {
-            render:true
+            render:false
           }
         );
+
+        document
+          .querySelectorAll(
+            ".slide-object.selected"
+          )
+          .forEach(
+            selectedElement => {
+              selectedElement.classList.remove(
+                "selected"
+              );
+            }
+          );
+
+        element.classList.add(
+          "selected"
+        );
+
+        renderPresentationProperties();
       }
     }
   );
@@ -23310,9 +23978,6 @@ function attachObjectEvents(
     event => {
       event.preventDefault();
       event.stopPropagation();
-
-      const objectId =
-        String(object.id);
 
       if(
         !isPresentationObjectSelected(
@@ -23348,51 +24013,7 @@ function attachObjectEvents(
       event.preventDefault();
       event.stopPropagation();
 
-      presentationEditingObjectId =
-        String(object.id);
-
-      selectedPresentationObjectIds.clear();
-      selectedPresentationObjectIds.add(
-        String(object.id)
-      );
-
-      synchronizePrimaryPresentationSelection();
-
-      renderSlideObjects();
-      renderPresentationProperties();
-
-      requestAnimationFrame(
-        () => {
-          const renderedObject =
-            document.querySelector(
-              `.slide-object[data-id="${CSS.escape(String(object.id))}"]`
-            );
-
-          const editable =
-            renderedObject?.querySelector(
-              ".slide-object-text"
-            );
-
-          if(editable){
-            editable.focus();
-
-            const range =
-              document.createRange();
-
-            range.selectNodeContents(
-              editable
-            );
-
-            const selection =
-              window.getSelection();
-
-            selection?.removeAllRanges();
-            selection?.addRange(
-              range
-            );
-          }
-        }
-      );
+      beginTextEditing();
     }
   );
 
@@ -23410,10 +24031,23 @@ function attachObjectEvents(
           presentationEditingObjectId ||
           ""
         ) ===
-        String(object.id)
+        objectId
       ){
         event.stopPropagation();
       }
+    }
+  );
+
+
+  editable?.addEventListener(
+    "input",
+    event => {
+      object.text =
+        event.currentTarget.textContent ||
+        "";
+
+      synchronizePresentationSlideSummary();
+      schedulePresentationAutosave();
     }
   );
 
@@ -23450,35 +24084,19 @@ function enableObjectDragging(
   element,
   object
 ){
-  let dragging =
-    false;
-
-  let pointerId =
-    null;
-
-  let startPointerX =
-    0;
-
-  let startPointerY =
-    0;
-
-  let startingObjects =
-    [];
-
-  let movementStarted =
-    false;
-
-
   element.addEventListener(
     "pointerdown",
-    event => {
+    pointerDownEvent => {
       if(
-        event.button !== 0 ||
+        pointerDownEvent.button !== 0 ||
         object.locked ||
-        event.target.closest(
-          ".presentation-resize-handle, .presentation-rotate-handle"
+        pointerDownEvent.target.closest(
+          [
+            ".presentation-resize-handle",
+            ".presentation-rotate-handle"
+          ].join(",")
         ) ||
-        event.target.isContentEditable ||
+        pointerDownEvent.target.isContentEditable ||
         String(
           presentationEditingObjectId ||
           ""
@@ -23489,7 +24107,9 @@ function enableObjectDragging(
       }
 
       const objectId =
-        String(object.id);
+        String(
+          object.id
+        );
 
       if(
         !isPresentationObjectSelected(
@@ -23511,25 +24131,31 @@ function enableObjectDragging(
         return;
       }
 
-      event.preventDefault();
-      event.stopPropagation();
+      pointerDownEvent.preventDefault();
+      pointerDownEvent.stopPropagation();
 
-      dragging =
-        true;
+      closePresentationContextMenu();
 
-      movementStarted =
-        false;
+      const activePointerId =
+        pointerDownEvent.pointerId;
 
-      pointerId =
-        event.pointerId;
+      const startPointerX =
+        pointerDownEvent.clientX;
 
-      startPointerX =
-        event.clientX;
+      const startPointerY =
+        pointerDownEvent.clientY;
 
-      startPointerY =
-        event.clientY;
+      const zoom =
+        Math.max(
+          .1,
+          Number(
+            presentationEditorView.zoom ||
+            100
+          ) /
+          100
+        );
 
-      startingObjects =
+      const startingObjects =
         movableObjects.map(
           selectedObject => ({
             object:selectedObject,
@@ -23544,238 +24170,375 @@ function enableObjectDragging(
               0
             ),
 
-            width:Number(
-              selectedObject.width ||
-              100
+            width:Math.max(
+              20,
+              Number(
+                selectedObject.width ||
+                100
+              )
             ),
 
-            height:Number(
-              selectedObject.height ||
-              60
+            height:Math.max(
+              4,
+              Number(
+                selectedObject.height ||
+                60
+              )
             )
           })
         );
 
-      element.setPointerCapture?.(
-        pointerId
-      );
+      let interactionFinished =
+        false;
 
-      document.body.style.userSelect =
-        "none";
+      let movementStarted =
+        false;
 
-      element.classList.add(
-        "is-dragging"
-      );
-    }
-  );
+      let historyRecorded =
+        false;
 
 
-  element.addEventListener(
-    "pointermove",
-    event => {
-      if(
-        !dragging ||
-        event.pointerId !==
-        pointerId
+      function calculateDragDelta(
+        moveEvent
       ){
-        return;
-      }
+        let deltaX =
+          (
+            moveEvent.clientX -
+            startPointerX
+          ) /
+          zoom;
 
-      const zoom =
-        Math.max(
-          .1,
-          Number(
-            presentationEditorView.zoom ||
-            100
-          ) / 100
-        );
+        let deltaY =
+          (
+            moveEvent.clientY -
+            startPointerY
+          ) /
+          zoom;
 
-      let deltaX =
-        (
-          event.clientX -
-          startPointerX
-        ) /
-        zoom;
+        if(
+          presentationEditorView.snapToGrid &&
+          !moveEvent.altKey
+        ){
+          const gridSize =
+            Math.max(
+              1,
+              Number(
+                presentationEditorView.gridSize ||
+                10
+              )
+            );
 
-      let deltaY =
-        (
-          event.clientY -
-          startPointerY
-        ) /
-        zoom;
+          deltaX =
+            Math.round(
+              deltaX /
+              gridSize
+            ) *
+            gridSize;
 
-      if(
-        Math.abs(deltaX) >
-        2 ||
-        Math.abs(deltaY) >
-        2
-      ){
-        movementStarted =
-          true;
-      }
+          deltaY =
+            Math.round(
+              deltaY /
+              gridSize
+            ) *
+            gridSize;
+        }
 
-      if(
-        presentationEditorView.snapToGrid &&
-        !event.altKey
-      ){
-        const gridSize =
-          Math.max(
-            1,
-            Number(
-              presentationEditorView.gridSize ||
-              10
+        const minimumX =
+          Math.min(
+            ...startingObjects.map(
+              item =>
+                item.x +
+                deltaX
             )
           );
 
-        deltaX =
-          Math.round(
-            deltaX /
-            gridSize
-          ) *
-          gridSize;
+        const minimumY =
+          Math.min(
+            ...startingObjects.map(
+              item =>
+                item.y +
+                deltaY
+            )
+          );
 
-        deltaY =
-          Math.round(
-            deltaY /
-            gridSize
-          ) *
-          gridSize;
+        const maximumRight =
+          Math.max(
+            ...startingObjects.map(
+              item =>
+                item.x +
+                item.width +
+                deltaX
+            )
+          );
+
+        const maximumBottom =
+          Math.max(
+            ...startingObjects.map(
+              item =>
+                item.y +
+                item.height +
+                deltaY
+            )
+          );
+
+        if(minimumX < 0){
+          deltaX -=
+            minimumX;
+        }
+
+        if(minimumY < 0){
+          deltaY -=
+            minimumY;
+        }
+
+        if(maximumRight > 960){
+          deltaX -=
+            maximumRight -
+            960;
+        }
+
+        if(maximumBottom > 540){
+          deltaY -=
+            maximumBottom -
+            540;
+        }
+
+        return {
+          x:deltaX,
+          y:deltaY
+        };
       }
 
-      const minimumX =
-        Math.min(
-          ...startingObjects.map(
-            item =>
-              item.x +
-              deltaX
-          )
-        );
 
-      const minimumY =
-        Math.min(
-          ...startingObjects.map(
-            item =>
-              item.y +
-              deltaY
-          )
-        );
+      function updateRenderedObjectPosition(
+        selectedObject
+      ){
+        const renderedElement =
+          document.querySelector(
+            `.slide-object[data-id="${CSS.escape(String(selectedObject.id))}"]`
+          );
 
-      const maximumRight =
-        Math.max(
-          ...startingObjects.map(
-            item =>
-              item.x +
-              item.width +
-              deltaX
-          )
-        );
+        if(!renderedElement){
+          return;
+        }
 
-      const maximumBottom =
-        Math.max(
-          ...startingObjects.map(
-            item =>
-              item.y +
-              item.height +
-              deltaY
-          )
-        );
+        renderedElement.style.left =
+          `${Number(selectedObject.x)}px`;
 
-      if(minimumX < 0){
-        deltaX -=
-          minimumX;
+        renderedElement.style.top =
+          `${Number(selectedObject.y)}px`;
       }
 
-      if(minimumY < 0){
-        deltaY -=
-          minimumY;
-      }
 
-      if(maximumRight > 960){
-        deltaX -=
-          maximumRight -
-          960;
-      }
+      function move(
+        moveEvent
+      ){
+        if(
+          interactionFinished ||
+          moveEvent.pointerId !==
+          activePointerId
+        ){
+          return;
+        }
 
-      if(maximumBottom > 540){
-        deltaY -=
-          maximumBottom -
-          540;
-      }
+        const rawDeltaX =
+          (
+            moveEvent.clientX -
+            startPointerX
+          ) /
+          zoom;
 
-      startingObjects.forEach(
-        item => {
-          item.object.x =
-            Math.round(
-              item.x +
-              deltaX
+        const rawDeltaY =
+          (
+            moveEvent.clientY -
+            startPointerY
+          ) /
+          zoom;
+
+        if(
+          !movementStarted &&
+          Math.hypot(
+            rawDeltaX,
+            rawDeltaY
+          ) <
+          3
+        ){
+          return;
+        }
+
+        if(!movementStarted){
+          movementStarted =
+            true;
+
+          element.classList.add(
+            "is-dragging"
+          );
+
+          document.body.style.userSelect =
+            "none";
+
+          document.body.style.cursor =
+            "grabbing";
+        }
+
+        if(!historyRecorded){
+          pushPresentationHistory();
+
+          historyRecorded =
+            true;
+        }
+
+        moveEvent.preventDefault();
+
+        const delta =
+          calculateDragDelta(
+            moveEvent
+          );
+
+        startingObjects.forEach(
+          item => {
+            item.object.x =
+              Math.round(
+                item.x +
+                delta.x
+              );
+
+            item.object.y =
+              Math.round(
+                item.y +
+                delta.y
+              );
+
+            updateRenderedObjectPosition(
+              item.object
             );
-
-          item.object.y =
-            Math.round(
-              item.y +
-              deltaY
-            );
-
-          const renderedElement =
-            document.querySelector(
-              `.slide-object[data-id="${CSS.escape(String(item.object.id))}"]`
-            );
-
-          if(renderedElement){
-            renderedElement.style.left =
-              `${item.object.x}px`;
-
-            renderedElement.style.top =
-              `${item.object.y}px`;
           }
+        );
+      }
+
+
+      function finish(
+        finishEvent
+      ){
+        if(
+          interactionFinished ||
+          finishEvent.pointerId !==
+          activePointerId
+        ){
+          return;
+        }
+
+        interactionFinished =
+          true;
+
+        document.removeEventListener(
+          "pointermove",
+          move
+        );
+
+        document.removeEventListener(
+          "pointerup",
+          finish
+        );
+
+        document.removeEventListener(
+          "pointercancel",
+          cancel
+        );
+
+        window.removeEventListener(
+          "blur",
+          finishFromWindowBlur
+        );
+
+        document.body.style.userSelect =
+          "";
+
+        document.body.style.cursor =
+          "";
+
+        element.classList.remove(
+          "is-dragging"
+        );
+
+        /*
+          Rebuild once after the completed interaction.
+          Do not rebuild during pointer movement.
+        */
+        renderSlideObjects();
+        renderPresentationProperties();
+
+        if(movementStarted){
+          synchronizePresentationSlideSummary();
+          schedulePresentationAutosave();
+        }
+      }
+
+
+      function cancel(
+        cancelEvent
+      ){
+        if(
+          interactionFinished ||
+          cancelEvent.pointerId !==
+          activePointerId
+        ){
+          return;
+        }
+
+        if(movementStarted){
+          startingObjects.forEach(
+            item => {
+              item.object.x =
+                item.x;
+
+              item.object.y =
+                item.y;
+            }
+          );
+        }
+
+        finish(
+          cancelEvent
+        );
+      }
+
+
+      function finishFromWindowBlur(){
+        if(interactionFinished){
+          return;
+        }
+
+        finish({
+          pointerId:
+            activePointerId
+        });
+      }
+
+
+      document.addEventListener(
+        "pointermove",
+        move,
+        {
+          passive:false
         }
       );
+
+      document.addEventListener(
+        "pointerup",
+        finish
+      );
+
+      document.addEventListener(
+        "pointercancel",
+        cancel
+      );
+
+      window.addEventListener(
+        "blur",
+        finishFromWindowBlur
+      );
     }
-  );
-
-
-  const finishDragging =
-    event => {
-      if(
-        !dragging ||
-        event.pointerId !==
-        pointerId
-      ){
-        return;
-      }
-
-      dragging =
-        false;
-
-      element.releasePointerCapture?.(
-        pointerId
-      );
-
-      pointerId =
-        null;
-
-      document.body.style.userSelect =
-        "";
-
-      element.classList.remove(
-        "is-dragging"
-      );
-
-      if(movementStarted){
-        renderPresentationProperties();
-        schedulePresentationAutosave();
-      }
-    };
-
-
-  element.addEventListener(
-    "pointerup",
-    finishDragging
-  );
-
-  element.addEventListener(
-    "pointercancel",
-    finishDragging
   );
 }
 
@@ -23787,29 +24550,42 @@ function attachPresentationResizeHandles(
   element,
   sourceObject
 ){
-  element
-    .querySelectorAll(
+  const handles =
+    element.querySelectorAll(
       ".presentation-resize-handle"
-    )
-    .forEach(handle => {
+    );
+
+  handles.forEach(
+    handle => {
       handle.addEventListener(
         "pointerdown",
-        event => {
+        pointerDownEvent => {
           if(
-            event.button !== 0
+            pointerDownEvent.button !== 0 ||
+            sourceObject.locked
           ){
             return;
           }
 
-          event.preventDefault();
-          event.stopPropagation();
+          pointerDownEvent.preventDefault();
+          pointerDownEvent.stopPropagation();
+
+          closePresentationContextMenu();
 
           const direction =
-            handle.dataset.resizeDirection ||
-            "se";
+            String(
+              handle.dataset.resizeDirection ||
+              "se"
+            );
 
-          const pointerId =
-            event.pointerId;
+          const activePointerId =
+            pointerDownEvent.pointerId;
+
+          const startPointerX =
+            pointerDownEvent.clientX;
+
+          const startPointerY =
+            pointerDownEvent.clientY;
 
           const zoom =
             Math.max(
@@ -23817,7 +24593,8 @@ function attachPresentationResizeHandles(
               Number(
                 presentationEditorView.zoom ||
                 100
-              ) / 100
+              ) /
+              100
             );
 
           const selectedObjects =
@@ -23827,326 +24604,484 @@ function attachPresentationResizeHandles(
             return;
           }
 
-          const startPointerX =
-            event.clientX;
-
-          const startPointerY =
-            event.clientY;
-
           const initialBounds =
             getPresentationSelectionBounds(
               selectedObjects
             );
 
+          if(
+            initialBounds.width <= 0 ||
+            initialBounds.height <= 0
+          ){
+            return;
+          }
+
           const initialObjects =
             selectedObjects.map(
-              object => ({
-                object,
+              selectedObject => ({
+                object:selectedObject,
 
                 x:Number(
-                  object.x ||
+                  selectedObject.x ||
                   0
                 ),
 
                 y:Number(
-                  object.y ||
+                  selectedObject.y ||
                   0
                 ),
 
-                width:Number(
-                  object.width ||
-                  100
+                width:Math.max(
+                  20,
+                  Number(
+                    selectedObject.width ||
+                    100
+                  )
                 ),
 
-                height:Number(
-                  object.height ||
-                  60
+                height:Math.max(
+                  20,
+                  Number(
+                    selectedObject.height ||
+                    60
+                  )
                 )
               })
             );
 
-          handle.setPointerCapture?.(
-            pointerId
-          );
+          let interactionFinished =
+            false;
 
-          document.body.style.userSelect =
-            "none";
+          let resizeStarted =
+            false;
+
+          let historyRecorded =
+            false;
 
 
-          const move =
-            moveEvent => {
+          function updateRenderedObject(
+            selectedObject
+          ){
+            const renderedElement =
+              document.querySelector(
+                `.slide-object[data-id="${CSS.escape(String(selectedObject.id))}"]`
+              );
+
+            if(!renderedElement){
+              return;
+            }
+
+            renderedElement.style.left =
+              `${Number(selectedObject.x)}px`;
+
+            renderedElement.style.top =
+              `${Number(selectedObject.y)}px`;
+
+            renderedElement.style.width =
+              `${Number(selectedObject.width)}px`;
+
+            renderedElement.style.height =
+              `${Number(selectedObject.height)}px`;
+          }
+
+
+          function move(
+            moveEvent
+          ){
+            if(
+              interactionFinished ||
+              moveEvent.pointerId !==
+              activePointerId
+            ){
+              return;
+            }
+
+            const deltaX =
+              (
+                moveEvent.clientX -
+                startPointerX
+              ) /
+              zoom;
+
+            const deltaY =
+              (
+                moveEvent.clientY -
+                startPointerY
+              ) /
+              zoom;
+
+            if(
+              !resizeStarted &&
+              Math.hypot(
+                deltaX,
+                deltaY
+              ) <
+              2
+            ){
+              return;
+            }
+
+            if(!resizeStarted){
+              resizeStarted =
+                true;
+
+              document.body.style.userSelect =
+                "none";
+            }
+
+            if(!historyRecorded){
+              pushPresentationHistory();
+
+              historyRecorded =
+                true;
+            }
+
+            moveEvent.preventDefault();
+
+            let nextX =
+              initialBounds.x;
+
+            let nextY =
+              initialBounds.y;
+
+            let nextWidth =
+              initialBounds.width;
+
+            let nextHeight =
+              initialBounds.height;
+
+            if(
+              direction.includes(
+                "e"
+              )
+            ){
+              nextWidth =
+                initialBounds.width +
+                deltaX;
+            }
+
+            if(
+              direction.includes(
+                "s"
+              )
+            ){
+              nextHeight =
+                initialBounds.height +
+                deltaY;
+            }
+
+            if(
+              direction.includes(
+                "w"
+              )
+            ){
+              nextX =
+                initialBounds.x +
+                deltaX;
+
+              nextWidth =
+                initialBounds.width -
+                deltaX;
+            }
+
+            if(
+              direction.includes(
+                "n"
+              )
+            ){
+              nextY =
+                initialBounds.y +
+                deltaY;
+
+              nextHeight =
+                initialBounds.height -
+                deltaY;
+            }
+
+            const minimumSize =
+              20;
+
+            if(nextWidth < minimumSize){
               if(
-                moveEvent.pointerId !==
-                pointerId
-              ){
-                return;
-              }
-
-              const deltaX =
-                (
-                  moveEvent.clientX -
-                  startPointerX
-                ) /
-                zoom;
-
-              const deltaY =
-                (
-                  moveEvent.clientY -
-                  startPointerY
-                ) /
-                zoom;
-
-              let nextX =
-                initialBounds.x;
-
-              let nextY =
-                initialBounds.y;
-
-              let nextWidth =
-                initialBounds.width;
-
-              let nextHeight =
-                initialBounds.height;
-
-              if(
-                direction.includes("e")
-              ){
-                nextWidth =
-                  initialBounds.width +
-                  deltaX;
-              }
-
-              if(
-                direction.includes("s")
-              ){
-                nextHeight =
-                  initialBounds.height +
-                  deltaY;
-              }
-
-              if(
-                direction.includes("w")
+                direction.includes(
+                  "w"
+                )
               ){
                 nextX =
                   initialBounds.x +
-                  deltaX;
-
-                nextWidth =
                   initialBounds.width -
-                  deltaX;
+                  minimumSize;
               }
 
+              nextWidth =
+                minimumSize;
+            }
+
+            if(nextHeight < minimumSize){
               if(
-                direction.includes("n")
+                direction.includes(
+                  "n"
+                )
               ){
                 nextY =
                   initialBounds.y +
-                  deltaY;
-
-                nextHeight =
                   initialBounds.height -
-                  deltaY;
-              }
-
-              const minimumSize =
-                20;
-
-              if(nextWidth < minimumSize){
-                if(
-                  direction.includes("w")
-                ){
-                  nextX =
-                    initialBounds.x +
-                    initialBounds.width -
-                    minimumSize;
-                }
-
-                nextWidth =
                   minimumSize;
               }
 
-              if(nextHeight < minimumSize){
-                if(
-                  direction.includes("n")
-                ){
-                  nextY =
-                    initialBounds.y +
-                    initialBounds.height -
-                    minimumSize;
-                }
+              nextHeight =
+                minimumSize;
+            }
 
-                nextHeight =
-                  minimumSize;
-              }
+            const isCornerHandle =
+              direction.length ===
+              2;
 
-              if(
-                moveEvent.shiftKey &&
-                (
-                  direction === "nw" ||
-                  direction === "ne" ||
-                  direction === "se" ||
-                  direction === "sw"
-                )
-              ){
-                const ratio =
-                  initialBounds.width /
-                  Math.max(
-                    1,
-                    initialBounds.height
-                  );
-
-                if(
-                  Math.abs(deltaX) >=
-                  Math.abs(deltaY)
-                ){
-                  nextHeight =
-                    nextWidth /
-                    ratio;
-                }else{
-                  nextWidth =
-                    nextHeight *
-                    ratio;
-                }
-
-                if(
-                  direction.includes("w")
-                ){
-                  nextX =
-                    initialBounds.x +
-                    initialBounds.width -
-                    nextWidth;
-                }
-
-                if(
-                  direction.includes("n")
-                ){
-                  nextY =
-                    initialBounds.y +
-                    initialBounds.height -
-                    nextHeight;
-                }
-              }
-
-              nextX =
-                Math.max(
-                  0,
-                  Math.min(
-                    960 -
-                    nextWidth,
-                    nextX
-                  )
-                );
-
-              nextY =
-                Math.max(
-                  0,
-                  Math.min(
-                    540 -
-                    nextHeight,
-                    nextY
-                  )
-                );
-
-              const scaleX =
-                nextWidth /
-                Math.max(
-                  1,
-                  initialBounds.width
-                );
-
-              const scaleY =
-                nextHeight /
+            if(
+              moveEvent.shiftKey &&
+              isCornerHandle
+            ){
+              const aspectRatio =
+                initialBounds.width /
                 Math.max(
                   1,
                   initialBounds.height
                 );
 
-              initialObjects.forEach(
-                item => {
-                  item.object.x =
-                    Math.round(
-                      nextX +
-                      (
-                        item.x -
-                        initialBounds.x
-                      ) *
-                      scaleX
-                    );
-
-                  item.object.y =
-                    Math.round(
-                      nextY +
-                      (
-                        item.y -
-                        initialBounds.y
-                      ) *
-                      scaleY
-                    );
-
-                  item.object.width =
-                    Math.max(
-                      minimumSize,
-                      Math.round(
-                        item.width *
-                        scaleX
-                      )
-                    );
-
-                  item.object.height =
-                    Math.max(
-                      minimumSize,
-                      Math.round(
-                        item.height *
-                        scaleY
-                      )
-                    );
-                }
-              );
-
-              renderSlideObjects();
-            };
-
-
-          const finish =
-            finishEvent => {
               if(
-                finishEvent.pointerId !==
-                pointerId
+                Math.abs(deltaX) >=
+                Math.abs(deltaY)
               ){
-                return;
+                nextHeight =
+                  nextWidth /
+                  aspectRatio;
+              }else{
+                nextWidth =
+                  nextHeight *
+                  aspectRatio;
               }
 
-              handle.releasePointerCapture?.(
-                pointerId
+              if(
+                direction.includes(
+                  "w"
+                )
+              ){
+                nextX =
+                  initialBounds.x +
+                  initialBounds.width -
+                  nextWidth;
+              }
+
+              if(
+                direction.includes(
+                  "n"
+                )
+              ){
+                nextY =
+                  initialBounds.y +
+                  initialBounds.height -
+                  nextHeight;
+              }
+            }
+
+            nextWidth =
+              Math.min(
+                960,
+                Math.max(
+                  minimumSize,
+                  nextWidth
+                )
               );
 
-              document.removeEventListener(
-                "pointermove",
-                move
+            nextHeight =
+              Math.min(
+                540,
+                Math.max(
+                  minimumSize,
+                  nextHeight
+                )
               );
 
-              document.removeEventListener(
-                "pointerup",
-                finish
+            nextX =
+              Math.max(
+                0,
+                Math.min(
+                  960 -
+                  nextWidth,
+                  nextX
+                )
               );
 
-              document.removeEventListener(
-                "pointercancel",
-                finish
+            nextY =
+              Math.max(
+                0,
+                Math.min(
+                  540 -
+                  nextHeight,
+                  nextY
+                )
               );
 
-              document.body.style.userSelect =
-                "";
+            const scaleX =
+              nextWidth /
+              Math.max(
+                1,
+                initialBounds.width
+              );
 
-              renderSlideObjects();
-              renderPresentationProperties();
+            const scaleY =
+              nextHeight /
+              Math.max(
+                1,
+                initialBounds.height
+              );
+
+            initialObjects.forEach(
+              item => {
+                item.object.x =
+                  Math.round(
+                    nextX +
+                    (
+                      item.x -
+                      initialBounds.x
+                    ) *
+                    scaleX
+                  );
+
+                item.object.y =
+                  Math.round(
+                    nextY +
+                    (
+                      item.y -
+                      initialBounds.y
+                    ) *
+                    scaleY
+                  );
+
+                item.object.width =
+                  Math.max(
+                    minimumSize,
+                    Math.round(
+                      item.width *
+                      scaleX
+                    )
+                  );
+
+                item.object.height =
+                  Math.max(
+                    minimumSize,
+                    Math.round(
+                      item.height *
+                      scaleY
+                    )
+                  );
+
+                updateRenderedObject(
+                  item.object
+                );
+              }
+            );
+          }
+
+
+          function finish(
+            finishEvent
+          ){
+            if(
+              interactionFinished ||
+              finishEvent.pointerId !==
+              activePointerId
+            ){
+              return;
+            }
+
+            interactionFinished =
+              true;
+
+            document.removeEventListener(
+              "pointermove",
+              move
+            );
+
+            document.removeEventListener(
+              "pointerup",
+              finish
+            );
+
+            document.removeEventListener(
+              "pointercancel",
+              cancel
+            );
+
+            window.removeEventListener(
+              "blur",
+              finishFromWindowBlur
+            );
+
+            document.body.style.userSelect =
+              "";
+
+            renderSlideObjects();
+            renderPresentationProperties();
+
+            if(resizeStarted){
+              synchronizePresentationSlideSummary();
               schedulePresentationAutosave();
-            };
+            }
+          }
+
+
+          function cancel(
+            cancelEvent
+          ){
+            if(
+              interactionFinished ||
+              cancelEvent.pointerId !==
+              activePointerId
+            ){
+              return;
+            }
+
+            initialObjects.forEach(
+              item => {
+                item.object.x =
+                  item.x;
+
+                item.object.y =
+                  item.y;
+
+                item.object.width =
+                  item.width;
+
+                item.object.height =
+                  item.height;
+              }
+            );
+
+            finish(
+              cancelEvent
+            );
+          }
+
+
+          function finishFromWindowBlur(){
+            if(interactionFinished){
+              return;
+            }
+
+            finish({
+              pointerId:
+                activePointerId
+            });
+          }
 
 
           document.addEventListener(
             "pointermove",
-            move
+            move,
+            {
+              passive:false
+            }
           );
 
           document.addEventListener(
@@ -24156,11 +25091,17 @@ function attachPresentationResizeHandles(
 
           document.addEventListener(
             "pointercancel",
-            finish
+            cancel
+          );
+
+          window.addEventListener(
+            "blur",
+            finishFromWindowBlur
           );
         }
       );
-    });
+    }
+  );
 }
 
 
@@ -24255,21 +25196,27 @@ function attachPresentationRotateHandle(
       ".presentation-rotate-handle"
     );
 
-  if(!handle){
+  if(
+    !handle ||
+    sourceObject.locked
+  ){
     return;
   }
 
   handle.addEventListener(
     "pointerdown",
-    event => {
+    pointerDownEvent => {
       if(
-        event.button !== 0
+        pointerDownEvent.button !==
+        0
       ){
         return;
       }
 
-      event.preventDefault();
-      event.stopPropagation();
+      pointerDownEvent.preventDefault();
+      pointerDownEvent.stopPropagation();
+
+      closePresentationContextMenu();
 
       const selectedObjects =
         getEditablePresentationSelection();
@@ -24277,9 +25224,6 @@ function attachPresentationRotateHandle(
       if(!selectedObjects.length){
         return;
       }
-
-      const pointerId =
-        event.pointerId;
 
       const canvas =
         byId(
@@ -24293,13 +25237,17 @@ function attachPresentationRotateHandle(
         return;
       }
 
+      const activePointerId =
+        pointerDownEvent.pointerId;
+
       const zoom =
         Math.max(
           .1,
           Number(
             presentationEditorView.zoom ||
             100
-          ) / 100
+          ) /
+          100
         );
 
       const bounds =
@@ -24311,7 +25259,8 @@ function attachPresentationRotateHandle(
         canvasRect.left +
         (
           bounds.x +
-          bounds.width / 2
+          bounds.width /
+          2
         ) *
         zoom;
 
@@ -24319,15 +25268,16 @@ function attachPresentationRotateHandle(
         canvasRect.top +
         (
           bounds.y +
-          bounds.height / 2
+          bounds.height /
+          2
         ) *
         zoom;
 
       const startAngle =
         Math.atan2(
-          event.clientY -
+          pointerDownEvent.clientY -
           centerY,
-          event.clientX -
+          pointerDownEvent.clientX -
           centerX
         ) *
         180 /
@@ -24335,58 +25285,140 @@ function attachPresentationRotateHandle(
 
       const startingRotations =
         selectedObjects.map(
-          object => ({
-            object,
+          selectedObject => ({
+            object:selectedObject,
+
             rotation:Number(
-              object.rotation ||
+              selectedObject.rotation ||
               0
             )
           })
         );
 
-      handle.setPointerCapture?.(
-        pointerId
-      );
+      let interactionFinished =
+        false;
 
-      document.body.style.userSelect =
-        "none";
+      let rotationStarted =
+        false;
+
+      let historyRecorded =
+        false;
 
 
-      const move =
-        moveEvent => {
-          if(
-            moveEvent.pointerId !==
-            pointerId
-          ){
-            return;
-          }
+      function normalizeRotation(
+        value
+      ){
+        const normalized =
+          value %
+          360;
 
-          const currentAngle =
-            Math.atan2(
-              moveEvent.clientY -
-              centerY,
-              moveEvent.clientX -
-              centerX
+        return normalized < 0
+          ? normalized +
+            360
+          : normalized;
+      }
+
+
+      function updateRenderedRotation(
+        selectedObject
+      ){
+        const renderedElement =
+          document.querySelector(
+            `.slide-object[data-id="${CSS.escape(String(selectedObject.id))}"]`
+          );
+
+        if(!renderedElement){
+          return;
+        }
+
+        const horizontalFlip =
+          selectedObject.flipX
+            ? -1
+            : 1;
+
+        const verticalFlip =
+          selectedObject.flipY
+            ? -1
+            : 1;
+
+        renderedElement.style.transform = `
+          rotate(${
+            Number(
+              selectedObject.rotation ||
+              0
+            )
+          }deg)
+          scaleX(${horizontalFlip})
+          scaleY(${verticalFlip})
+        `;
+      }
+
+
+      function move(
+        moveEvent
+      ){
+        if(
+          interactionFinished ||
+          moveEvent.pointerId !==
+          activePointerId
+        ){
+          return;
+        }
+
+        const currentAngle =
+          Math.atan2(
+            moveEvent.clientY -
+            centerY,
+            moveEvent.clientX -
+            centerX
+          ) *
+          180 /
+          Math.PI;
+
+        let rotationDelta =
+          currentAngle -
+          startAngle;
+
+        if(
+          !rotationStarted &&
+          Math.abs(
+            rotationDelta
+          ) <
+          1
+        ){
+          return;
+        }
+
+        if(!rotationStarted){
+          rotationStarted =
+            true;
+
+          document.body.style.userSelect =
+            "none";
+        }
+
+        if(!historyRecorded){
+          pushPresentationHistory();
+
+          historyRecorded =
+            true;
+        }
+
+        moveEvent.preventDefault();
+
+        if(moveEvent.shiftKey){
+          rotationDelta =
+            Math.round(
+              rotationDelta /
+              15
             ) *
-            180 /
-            Math.PI;
+            15;
+        }
 
-          let rotationDelta =
-            currentAngle -
-            startAngle;
-
-          if(moveEvent.shiftKey){
-            rotationDelta =
-              Math.round(
-                rotationDelta /
-                15
-              ) *
-              15;
-          }
-
-          startingRotations.forEach(
-            item => {
-              item.object.rotation =
+        startingRotations.forEach(
+          item => {
+            item.object.rotation =
+              normalizeRotation(
                 Math.round(
                   (
                     item.rotation +
@@ -24394,54 +25426,105 @@ function attachPresentationRotateHandle(
                   ) *
                   10
                 ) /
-                10;
-            }
-          );
+                10
+              );
 
-          renderSlideObjects();
-        };
-
-
-      const finish =
-        finishEvent => {
-          if(
-            finishEvent.pointerId !==
-            pointerId
-          ){
-            return;
+            updateRenderedRotation(
+              item.object
+            );
           }
+        );
+      }
 
-          handle.releasePointerCapture?.(
-            pointerId
-          );
 
-          document.removeEventListener(
-            "pointermove",
-            move
-          );
+      function finish(
+        finishEvent
+      ){
+        if(
+          interactionFinished ||
+          finishEvent.pointerId !==
+          activePointerId
+        ){
+          return;
+        }
 
-          document.removeEventListener(
-            "pointerup",
-            finish
-          );
+        interactionFinished =
+          true;
 
-          document.removeEventListener(
-            "pointercancel",
-            finish
-          );
+        document.removeEventListener(
+          "pointermove",
+          move
+        );
 
-          document.body.style.userSelect =
-            "";
+        document.removeEventListener(
+          "pointerup",
+          finish
+        );
 
-          renderSlideObjects();
-          renderPresentationProperties();
+        document.removeEventListener(
+          "pointercancel",
+          cancel
+        );
+
+        window.removeEventListener(
+          "blur",
+          finishFromWindowBlur
+        );
+
+        document.body.style.userSelect =
+          "";
+
+        renderSlideObjects();
+        renderPresentationProperties();
+
+        if(rotationStarted){
           schedulePresentationAutosave();
-        };
+        }
+      }
+
+
+      function cancel(
+        cancelEvent
+      ){
+        if(
+          interactionFinished ||
+          cancelEvent.pointerId !==
+          activePointerId
+        ){
+          return;
+        }
+
+        startingRotations.forEach(
+          item => {
+            item.object.rotation =
+              item.rotation;
+          }
+        );
+
+        finish(
+          cancelEvent
+        );
+      }
+
+
+      function finishFromWindowBlur(){
+        if(interactionFinished){
+          return;
+        }
+
+        finish({
+          pointerId:
+            activePointerId
+        });
+      }
 
 
       document.addEventListener(
         "pointermove",
-        move
+        move,
+        {
+          passive:false
+        }
       );
 
       document.addEventListener(
@@ -24451,12 +25534,16 @@ function attachPresentationRotateHandle(
 
       document.addEventListener(
         "pointercancel",
-        finish
+        cancel
+      );
+
+      window.addEventListener(
+        "blur",
+        finishFromWindowBlur
       );
     }
   );
 }
-
 
 function isPresentationStudioActive(){
   return (
@@ -38994,10 +40081,16 @@ document.addEventListener(
     }
   }
 );
+
+
    
 document.addEventListener(
   "DOMContentLoaded",
-  initBuilder
+  () => {
+    initializePresentationContextMenu();
+    updatePresentationHistoryControls();
+    initBuilder();
+  }
 );
 </script>
 
