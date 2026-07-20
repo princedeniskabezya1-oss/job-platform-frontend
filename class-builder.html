@@ -15527,7 +15527,85 @@ body.presentation-notes-open
 
 }
                         
+/* =========================================================
+   PRESENTATION CONTEXT MENU
+========================================================= */
 
+.presentation-context-menu{
+  position:fixed;
+  z-index:30000;
+
+  width:224px;
+  padding:6px;
+
+  overflow:hidden;
+
+  border:1px solid #dadce0;
+  border-radius:10px;
+
+  background:rgba(255,255,255,.98);
+
+  box-shadow:
+    0 12px 32px rgba(32,33,36,.18),
+    0 2px 8px rgba(32,33,36,.10);
+
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+
+.presentation-context-menu[hidden]{
+  display:none;
+}
+
+.presentation-context-menu button{
+  width:100%;
+  min-height:35px;
+  padding:0 10px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+
+  border:0;
+  border-radius:7px;
+
+  background:transparent;
+  color:#202124;
+
+  font-size:9px;
+  font-weight:500;
+
+  text-align:left;
+}
+
+.presentation-context-menu button:hover{
+  background:#f1f3f4;
+}
+
+.presentation-context-menu button.danger{
+  color:#c5221f;
+}
+
+.presentation-context-menu button.danger:hover{
+  background:#fce8e6;
+}
+
+.presentation-context-menu kbd{
+  color:#80868b;
+
+  font-family:Inter,sans-serif;
+  font-size:7px;
+  font-weight:500;
+}
+
+.presentation-context-divider{
+  height:1px;
+  margin:5px 4px;
+
+  background:#e8eaed;
+}
+   
 </style>
 </head>
 <body>
@@ -20966,48 +21044,131 @@ function getToken(){
     ?.trim() || "";
 }
 
-function createTextObject(){
-
-return{
-
-id:crypto.randomUUID(),
-
-type:"text",
-
-text:"New text",
-
-x:120,
-
-y:120,
-
-width:280,
-
-height:60
-
-};
-
+function createPresentationObjectId(){
+  return (
+    window.crypto &&
+    typeof window.crypto.randomUUID ===
+      "function"
+  )
+    ? window.crypto.randomUUID()
+    : [
+        "presentation-object",
+        Date.now(),
+        Math.random()
+          .toString(36)
+          .slice(2)
+      ].join("-");
 }
 
-function createImageObject(url){
 
-return{
+function createTextObject(
+  overrides = {}
+){
+  return {
+    id:createPresentationObjectId(),
 
-id:crypto.randomUUID(),
+    type:"text",
+    name:"Text",
 
-type:"image",
+    text:"New text",
 
-url,
+    x:120,
+    y:120,
+    width:280,
+    height:70,
 
-x:150,
+    rotation:0,
+    opacity:1,
+    zIndex:0,
 
-y:150,
+    locked:false,
+    hidden:false,
 
-width:300,
+    fontFamily:"Inter",
+    fontSize:28,
+    fontWeight:500,
+    fontStyle:"normal",
+    textDecoration:"none",
 
-height:200
+    color:"#202124",
+    background:"transparent",
 
-};
+    align:"left",
+    verticalAlign:"top",
 
+    lineHeight:1.35,
+    letterSpacing:0,
+
+    borderColor:"transparent",
+    borderWidth:0,
+    borderStyle:"solid",
+    borderRadius:0,
+
+    shadow:false,
+    shadowColor:"#000000",
+    shadowBlur:16,
+    shadowX:0,
+    shadowY:8,
+    shadowOpacity:.2,
+
+    animation:"none",
+    animationDuration:600,
+    animationDelay:0,
+
+    ...overrides
+  };
+}
+
+
+function createImageObject(
+  url,
+  overrides = {}
+){
+  return {
+    id:createPresentationObjectId(),
+
+    type:"image",
+    name:"Image",
+
+    url:String(url || ""),
+    alt:"Presentation image",
+
+    x:150,
+    y:150,
+    width:300,
+    height:200,
+
+    rotation:0,
+    opacity:1,
+    zIndex:0,
+
+    locked:false,
+    hidden:false,
+
+    objectFit:"cover",
+    objectPosition:"center",
+
+    borderColor:"transparent",
+    borderWidth:0,
+    borderStyle:"solid",
+    borderRadius:0,
+
+    shadow:false,
+    shadowColor:"#000000",
+    shadowBlur:16,
+    shadowX:0,
+    shadowY:8,
+    shadowOpacity:.2,
+
+    flipX:false,
+    flipY:false,
+
+    animation:"none",
+    animationDuration:600,
+    animationDelay:0,
+
+    ...overrides
+  };
 }
 
 function authHeaders(extra = {}){
@@ -21058,6 +21219,11 @@ const presentationEditorView = {
   zoom:100,
   history:[],
   future:[]
+   clipboard:null,
+contextTargetId:null,
+snapToGrid:true,
+gridSize:10,
+smartGuides:true,
 };
 
 function openPresentationToolPanel(
@@ -21261,6 +21427,144 @@ function handlePresentationCanvasBackgroundClick(
   renderPresentationProperties();
 }
 
+/* =========================================================
+   PRESENTATION LEGACY TITLE MIGRATION
+========================================================= */
+
+function ensurePresentationSlideObjects(
+  slide
+){
+  if(!slide){
+    return;
+  }
+
+  if(!Array.isArray(slide.objects)){
+    slide.objects = [];
+  }
+
+  const hasLegacyTitleObject =
+    slide.objects.some(
+      object =>
+        object.role ===
+        "slide-title"
+    );
+
+  const hasLegacySubtitleObject =
+    slide.objects.some(
+      object =>
+        object.role ===
+        "slide-subtitle"
+    );
+
+  if(
+    !hasLegacyTitleObject &&
+    String(slide.title || "").trim()
+  ){
+    slide.objects.push(
+      createTextObject({
+        role:"slide-title",
+        name:"Slide title",
+
+        text:String(slide.title),
+
+        x:80,
+        y:70,
+        width:800,
+        height:90,
+
+        fontSize:46,
+        fontWeight:700,
+        lineHeight:1.12,
+        letterSpacing:-.8,
+
+        align:"left",
+
+        zIndex:
+          slide.objects.length
+      })
+    );
+  }
+
+  if(
+    !hasLegacySubtitleObject &&
+    String(slide.subtitle || "").trim()
+  ){
+    slide.objects.push(
+      createTextObject({
+        role:"slide-subtitle",
+        name:"Slide subtitle",
+
+        text:String(slide.subtitle),
+
+        x:80,
+        y:175,
+        width:800,
+        height:70,
+
+        fontSize:23,
+        fontWeight:400,
+        lineHeight:1.4,
+
+        color:"#5f6368",
+
+        align:"left",
+
+        zIndex:
+          slide.objects.length
+      })
+    );
+  }
+
+  /*
+    Keep these fields for slide-directory compatibility,
+    but they are no longer rendered as permanent elements.
+  */
+  slide.title =
+    String(
+      slide.title ||
+      ""
+    );
+
+  slide.subtitle =
+    String(
+      slide.subtitle ||
+      ""
+    );
+}
+
+
+function synchronizePresentationSlideSummary(){
+  if(!currentSlide){
+    return;
+  }
+
+  const titleObject =
+    currentSlide.objects.find(
+      object =>
+        object.role ===
+        "slide-title"
+    );
+
+  const subtitleObject =
+    currentSlide.objects.find(
+      object =>
+        object.role ===
+        "slide-subtitle"
+    );
+
+  currentSlide.title =
+    String(
+      titleObject?.text ||
+      "Untitled slide"
+    ).trim();
+
+  currentSlide.subtitle =
+    String(
+      subtitleObject?.text ||
+      ""
+    ).trim();
+}
+
 function renderPresentationCanvas(){
   const canvas =
     byId(
@@ -21298,6 +21602,10 @@ function renderPresentationCanvas(){
     return;
   }
 
+  ensurePresentationSlideObjects(
+    currentSlide
+  );
+
   const backgroundColor =
     normalizePresentationColor(
       currentSlide.background
@@ -21309,22 +21617,28 @@ function renderPresentationCanvas(){
       ""
     ).trim();
 
-  const overlay =
+  const backgroundOverlay =
     Math.max(
       0,
       Math.min(
-        80,
+        .9,
         Number(
           currentSlide.backgroundOverlay ||
           0
-        )
+        ) / 100
       )
-    ) / 100;
+    );
 
   canvas.innerHTML = `
     <div
       class="studio-slide"
+      data-presentation-slide-root
       style="
+        position:absolute;
+        inset:0;
+
+        overflow:hidden;
+
         background-color:${escapeHtml(backgroundColor)};
         background-image:${
           backgroundImage
@@ -21349,75 +21663,25 @@ function renderPresentationCanvas(){
           position:absolute;
           inset:0;
           z-index:0;
-          background:rgba(0,0,0,${overlay});
+
+          background:rgba(
+            0,
+            0,
+            0,
+            ${backgroundOverlay}
+          );
+
           pointer-events:none;
         "
       ></div>
 
       <div
-        class="slide-title"
-        contenteditable="true"
-        data-role="title"
-        style="z-index:2;"
-      >${escapeHtml(
-        currentSlide.title ||
-        ""
-      )}</div>
-
-      <div
-        class="slide-subtitle"
-        contenteditable="true"
-        data-role="subtitle"
-        style="z-index:2;"
-      >${escapeHtml(
-        currentSlide.subtitle ||
-        ""
-      )}</div>
-
-      <div
         id="slideObjects"
-        style="
-          position:absolute;
-          inset:0;
-          z-index:3;
-        "
+        class="presentation-slide-objects"
       ></div>
 
     </div>
   `;
-
-  const titleElement =
-    canvas.querySelector(
-      '[data-role="title"]'
-    );
-
-  const subtitleElement =
-    canvas.querySelector(
-      '[data-role="subtitle"]'
-    );
-
-  titleElement?.addEventListener(
-    "input",
-    event => {
-      currentSlide.title =
-        event.currentTarget.textContent ||
-        "";
-
-      schedulePresentationAutosave();
-      updatePresentationNavigation();
-    }
-  );
-
-  subtitleElement?.addEventListener(
-    "input",
-    event => {
-      currentSlide.subtitle =
-        event.currentTarget.textContent ||
-        "";
-
-      schedulePresentationAutosave();
-    }
-  );
 
   renderSlideObjects();
   updatePresentationNavigation();
@@ -21742,6 +22006,99 @@ function renderSlideObjects(){
   updatePresentationNavigation();
 }
 
+function openPresentationContextMenu(
+  event,
+  objectId
+){
+  event.preventDefault();
+  event.stopPropagation();
+
+  selectedObjectId =
+    objectId;
+
+  presentationEditorView.contextTargetId =
+    objectId;
+
+  renderSlideObjects();
+  renderPresentationProperties();
+
+  const menu =
+    byId(
+      "presentationContextMenu"
+    );
+
+  if(!menu){
+    return;
+  }
+
+  menu.hidden =
+    false;
+
+  const menuWidth =
+    224;
+
+  const estimatedHeight =
+    390;
+
+  const left =
+    Math.min(
+      event.clientX,
+      window.innerWidth -
+      menuWidth -
+      12
+    );
+
+  const top =
+    Math.min(
+      event.clientY,
+      window.innerHeight -
+      estimatedHeight -
+      12
+    );
+
+  menu.style.left =
+    `${Math.max(8,left)}px`;
+
+  menu.style.top =
+    `${Math.max(8,top)}px`;
+}
+
+
+function closePresentationContextMenu(){
+  const menu =
+    byId(
+      "presentationContextMenu"
+    );
+
+  if(menu){
+    menu.hidden =
+      true;
+  }
+
+  presentationEditorView.contextTargetId =
+    null;
+}
+
+
+document.addEventListener(
+  "pointerdown",
+  event => {
+    if(
+      !event.target.closest(
+        "#presentationContextMenu"
+      )
+    ){
+      closePresentationContextMenu();
+    }
+  }
+);
+
+
+window.addEventListener(
+  "blur",
+  closePresentationContextMenu
+);
+
 function attachObjectEvents(
   element,
   object
@@ -21772,70 +22129,502 @@ function attachObjectEvents(
     }
   );
 
-  enableObjectDragging(
-    element,
-    object
+
+  element.addEventListener(
+    "contextmenu",
+    event => {
+      openPresentationContextMenu(
+        event,
+        object.id
+      );
+    }
   );
+
+
+  element.addEventListener(
+    "dblclick",
+    event => {
+      if(
+        object.type !== "text"
+      ){
+        return;
+      }
+
+      const editable =
+        element.querySelector(
+          "[contenteditable='true']"
+        );
+
+      if(editable){
+        event.stopPropagation();
+
+        editable.focus();
+
+        const selection =
+          window.getSelection();
+
+        const range =
+          document.createRange();
+
+        range.selectNodeContents(
+          editable
+        );
+
+        selection?.removeAllRanges();
+        selection?.addRange(
+          range
+        );
+      }
+    }
+  );
+
+
+  if(!object.locked){
+    enableObjectDragging(
+      element,
+      object
+    );
+  }
 }
 
 function enableObjectDragging(
-element,
-object
+  element,
+  object
 ){
+  let dragging =
+    false;
 
-let dragging=false;
+  let pointerId =
+    null;
 
-let startX=0;
-let startY=0;
+  let startPointerX =
+    0;
 
-element.addEventListener(
-"mousedown",
-e=>{
+  let startPointerY =
+    0;
 
-if(e.target.isContentEditable) return;
+  let startObjectX =
+    0;
 
-dragging=true;
+  let startObjectY =
+    0;
 
-startX=e.clientX-object.x;
-startY=e.clientY-object.y;
 
-document.body.style.userSelect="none";
+  element.addEventListener(
+    "pointerdown",
+    event => {
+      if(
+        event.button !== 0 ||
+        event.target.isContentEditable ||
+        object.locked
+      ){
+        return;
+      }
 
-});
+      event.preventDefault();
 
-window.addEventListener(
-"mousemove",
-e=>{
+      dragging =
+        true;
 
-if(!dragging) return;
+      pointerId =
+        event.pointerId;
 
-object.x=e.clientX-startX;
+      startPointerX =
+        event.clientX;
 
-object.y=e.clientY-startY;
+      startPointerY =
+        event.clientY;
 
-element.style.left=
-object.x+"px";
+      startObjectX =
+        Number(
+          object.x ||
+          0
+        );
 
-element.style.top=
-object.y+"px";
+      startObjectY =
+        Number(
+          object.y ||
+          0
+        );
 
-});
+      element.setPointerCapture?.(
+        pointerId
+      );
 
-window.addEventListener(
-"mouseup",
-()=>{
+      document.body.style.userSelect =
+        "none";
 
-if(!dragging) return;
+      element.classList.add(
+        "is-dragging"
+      );
+    }
+  );
 
-dragging=false;
 
-document.body.style.userSelect="";
+  element.addEventListener(
+    "pointermove",
+    event => {
+      if(
+        !dragging ||
+        event.pointerId !==
+        pointerId
+      ){
+        return;
+      }
 
-schedulePresentationAutosave();
+      const zoom =
+        Math.max(
+          .3,
+          Number(
+            presentationEditorView.zoom ||
+            100
+          ) / 100
+        );
 
-});
+      let nextX =
+        startObjectX +
+        (
+          event.clientX -
+          startPointerX
+        ) /
+        zoom;
 
+      let nextY =
+        startObjectY +
+        (
+          event.clientY -
+          startPointerY
+        ) /
+        zoom;
+
+      if(
+        presentationEditorView.snapToGrid
+      ){
+        const gridSize =
+          Math.max(
+            1,
+            Number(
+              presentationEditorView.gridSize ||
+              10
+            )
+          );
+
+        nextX =
+          Math.round(
+            nextX /
+            gridSize
+          ) *
+          gridSize;
+
+        nextY =
+          Math.round(
+            nextY /
+            gridSize
+          ) *
+          gridSize;
+      }
+
+      const objectWidth =
+        Math.max(
+          20,
+          Number(
+            object.width ||
+            100
+          )
+        );
+
+      const objectHeight =
+        Math.max(
+          20,
+          Number(
+            object.height ||
+            60
+          )
+        );
+
+      nextX =
+        Math.max(
+          0,
+          Math.min(
+            960 -
+            objectWidth,
+            nextX
+          )
+        );
+
+      nextY =
+        Math.max(
+          0,
+          Math.min(
+            540 -
+            objectHeight,
+            nextY
+          )
+        );
+
+      const centerThreshold =
+        6;
+
+      const horizontalCenter =
+        480 -
+        objectWidth / 2;
+
+      const verticalCenter =
+        270 -
+        objectHeight / 2;
+
+      const verticalGuide =
+        byId(
+          "presentationVerticalGuide"
+        );
+
+      const horizontalGuide =
+        byId(
+          "presentationHorizontalGuide"
+        );
+
+      if(
+        presentationEditorView.smartGuides &&
+        Math.abs(
+          nextX -
+          horizontalCenter
+        ) <=
+        centerThreshold
+      ){
+        nextX =
+          horizontalCenter;
+
+        if(verticalGuide){
+          verticalGuide.hidden =
+            false;
+
+          verticalGuide.style.left =
+            "50%";
+        }
+      }else if(verticalGuide){
+        verticalGuide.hidden =
+          true;
+      }
+
+      if(
+        presentationEditorView.smartGuides &&
+        Math.abs(
+          nextY -
+          verticalCenter
+        ) <=
+        centerThreshold
+      ){
+        nextY =
+          verticalCenter;
+
+        if(horizontalGuide){
+          horizontalGuide.hidden =
+            false;
+
+          horizontalGuide.style.top =
+            "50%";
+        }
+      }else if(horizontalGuide){
+        horizontalGuide.hidden =
+          true;
+      }
+
+      object.x =
+        Math.round(nextX);
+
+      object.y =
+        Math.round(nextY);
+
+      element.style.left =
+        `${object.x}px`;
+
+      element.style.top =
+        `${object.y}px`;
+    }
+  );
+
+
+  function finishDragging(){
+    if(!dragging){
+      return;
+    }
+
+    dragging =
+      false;
+
+    element.releasePointerCapture?.(
+      pointerId
+    );
+
+    pointerId =
+      null;
+
+    document.body.style.userSelect =
+      "";
+
+    element.classList.remove(
+      "is-dragging"
+    );
+
+    const verticalGuide =
+      byId(
+        "presentationVerticalGuide"
+      );
+
+    const horizontalGuide =
+      byId(
+        "presentationHorizontalGuide"
+      );
+
+    if(verticalGuide){
+      verticalGuide.hidden =
+        true;
+    }
+
+    if(horizontalGuide){
+      horizontalGuide.hidden =
+        true;
+    }
+
+    renderPresentationProperties();
+    schedulePresentationAutosave();
+  }
+
+
+  element.addEventListener(
+    "pointerup",
+    finishDragging
+  );
+
+  element.addEventListener(
+    "pointercancel",
+    finishDragging
+  );
 }
+
+function isPresentationStudioActive(){
+  return (
+    document.body.dataset
+      .builderSection ===
+    "presentations"
+  );
+}
+
+
+document.addEventListener(
+  "keydown",
+  event => {
+    if(
+      !isPresentationStudioActive() ||
+      event.target.matches(
+        "input, textarea, select"
+      ) ||
+      event.target.isContentEditable
+    ){
+      return;
+    }
+
+    const modifier =
+      event.ctrlKey ||
+      event.metaKey;
+
+    if(
+      modifier &&
+      event.key.toLowerCase() ===
+        "d"
+    ){
+      event.preventDefault();
+
+      duplicateSelectedPresentationObject();
+      return;
+    }
+
+    if(
+      modifier &&
+      event.key.toLowerCase() ===
+        "c"
+    ){
+      event.preventDefault();
+
+      copySelectedPresentationObject();
+      return;
+    }
+
+    if(
+      modifier &&
+      event.key.toLowerCase() ===
+        "v"
+    ){
+      event.preventDefault();
+
+      pastePresentationObject();
+      return;
+    }
+
+    if(
+      event.key === "Delete" ||
+      event.key === "Backspace"
+    ){
+      event.preventDefault();
+
+      deleteSelectedPresentationObject();
+      return;
+    }
+
+    const object =
+      getSelectedPresentationObject();
+
+    if(
+      !object ||
+      object.locked
+    ){
+      return;
+    }
+
+    const movement =
+      event.shiftKey
+        ? 10
+        : 1;
+
+    if(event.key === "ArrowLeft"){
+      object.x -= movement;
+    }else if(event.key === "ArrowRight"){
+      object.x += movement;
+    }else if(event.key === "ArrowUp"){
+      object.y -= movement;
+    }else if(event.key === "ArrowDown"){
+      object.y += movement;
+    }else{
+      return;
+    }
+
+    event.preventDefault();
+
+    object.x =
+      Math.max(
+        0,
+        Math.min(
+          960 -
+          Number(object.width || 0),
+          object.x
+        )
+      );
+
+    object.y =
+      Math.max(
+        0,
+        Math.min(
+          540 -
+          Number(object.height || 0),
+          object.y
+        )
+      );
+
+    renderSlideObjects();
+    renderPresentationProperties();
+    schedulePresentationAutosave();
+  }
+);
 
 /* =========================================================
    PRESENTATION OBJECT FACTORY
@@ -22061,51 +22850,121 @@ function addPresentationShape(
     addPresentationSlide();
   }
 
-  const presets = {
-    rectangle:{
-      width:260,
-      height:150,
-      background:"#1a73e8",
-      borderRadius:0
-    },
+const presets = {
+  rectangle:{
+    width:260,
+    height:150,
+    background:"#1a73e8",
+    borderRadius:0
+  },
 
-    rounded:{
-      width:260,
-      height:150,
-      background:"#1a73e8",
-      borderRadius:22
-    },
+  rounded:{
+    width:260,
+    height:150,
+    background:"#1a73e8",
+    borderRadius:22
+  },
 
-    circle:{
-      width:150,
-      height:150,
-      background:"#1a73e8",
-      borderRadius:999
-    },
+  circle:{
+    width:150,
+    height:150,
+    background:"#1a73e8",
+    borderRadius:999
+  },
 
-    triangle:{
-      width:170,
-      height:145,
-      background:"#1a73e8"
-    },
+  ellipse:{
+    width:240,
+    height:140,
+    background:"#1a73e8",
+    borderRadius:999
+  },
 
-    line:{
-      width:300,
-      height:4,
-      background:"#1a73e8"
-    },
+  triangle:{
+    width:170,
+    height:145,
+    background:"#1a73e8"
+  },
 
-    arrow:{
-      width:190,
-      height:75,
-      background:"transparent",
-      color:"#1a73e8",
-      text:"→",
-      fontSize:70,
-      fontWeight:600,
-      align:"center"
-    }
-  };
+  diamond:{
+    width:150,
+    height:150,
+    background:"#1a73e8"
+  },
+
+  pentagon:{
+    width:170,
+    height:160,
+    background:"#1a73e8"
+  },
+
+  hexagon:{
+    width:190,
+    height:160,
+    background:"#1a73e8"
+  },
+
+  star:{
+    width:170,
+    height:165,
+    background:"#f9ab00"
+  },
+
+  line:{
+    width:300,
+    height:4,
+    background:"#1a73e8"
+  },
+
+  arrow:{
+    width:190,
+    height:75,
+    background:"transparent",
+    color:"#1a73e8",
+    text:"→",
+    fontSize:70,
+    fontWeight:600,
+    align:"center"
+  },
+
+  chevron:{
+    width:190,
+    height:110,
+    background:"#1a73e8"
+  },
+
+  callout:{
+    width:280,
+    height:160,
+    background:"#e8f0fe",
+    borderColor:"#1a73e8",
+    borderWidth:2,
+    borderRadius:18
+  },
+
+  speech:{
+    width:280,
+    height:160,
+    background:"#ffffff",
+    borderColor:"#1a73e8",
+    borderWidth:2,
+    borderRadius:24
+  },
+
+  badge:{
+    width:180,
+    height:180,
+    background:"#1a73e8"
+  },
+
+  frame:{
+    width:320,
+    height:220,
+    background:"transparent",
+    borderColor:"#1a73e8",
+    borderWidth:4,
+    borderRadius:16
+  }
+};
 
   const preset =
     presets[shape] ||
@@ -22562,6 +23421,227 @@ function deleteCurrentPresentationSlide(){
 /* =========================================================
    LAYERS AND ALIGNMENT
 ========================================================= */
+
+
+/* =========================================================
+   PRESENTATION OBJECT ACTIONS
+========================================================= */
+
+function duplicateSelectedPresentationObject(){
+  const selectedObject =
+    requireSelectedPresentationObject();
+
+  if(
+    !selectedObject ||
+    !currentSlide
+  ){
+    return;
+  }
+
+  pushPresentationHistory?.();
+
+  const duplicate =
+    JSON.parse(
+      JSON.stringify(
+        selectedObject
+      )
+    );
+
+  duplicate.id =
+    createPresentationObjectId();
+
+  duplicate.name =
+    `${
+      selectedObject.name ||
+      selectedObject.type ||
+      "Object"
+    } copy`;
+
+  duplicate.x =
+    Math.min(
+      960 -
+      Number(
+        duplicate.width ||
+        100
+      ),
+      Number(
+        duplicate.x ||
+        0
+      ) +
+      20
+    );
+
+  duplicate.y =
+    Math.min(
+      540 -
+      Number(
+        duplicate.height ||
+        60
+      ),
+      Number(
+        duplicate.y ||
+        0
+      ) +
+      20
+    );
+
+  duplicate.zIndex =
+    currentSlide.objects.length;
+
+  /*
+    A duplicate should not take over the special
+    slide-title or slide-subtitle role.
+  */
+  delete duplicate.role;
+
+  currentSlide.objects.push(
+    duplicate
+  );
+
+  selectedObjectId =
+    duplicate.id;
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+}
+
+
+function deleteSelectedPresentationObject(){
+  if(
+    !currentSlide ||
+    !selectedObjectId
+  ){
+    return;
+  }
+
+  const objectIndex =
+    currentSlide.objects.findIndex(
+      object =>
+        String(object.id) ===
+        String(selectedObjectId)
+    );
+
+  if(objectIndex < 0){
+    return;
+  }
+
+  pushPresentationHistory?.();
+
+  currentSlide.objects.splice(
+    objectIndex,
+    1
+  );
+
+  selectedObjectId =
+    null;
+
+  synchronizePresentationSlideSummary();
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  renderPresentationSlides();
+
+  schedulePresentationAutosave();
+}
+
+
+function toggleSelectedPresentationObjectLock(){
+  const object =
+    requireSelectedPresentationObject();
+
+  if(!object){
+    return;
+  }
+
+  object.locked =
+    !object.locked;
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+}
+
+
+function toggleSelectedPresentationObjectVisibility(){
+  const object =
+    requireSelectedPresentationObject();
+
+  if(!object){
+    return;
+  }
+
+  object.hidden =
+    !object.hidden;
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+}
+
+
+function copySelectedPresentationObject(){
+  const object =
+    requireSelectedPresentationObject();
+
+  if(!object){
+    return;
+  }
+
+  presentationEditorView.clipboard =
+    JSON.parse(
+      JSON.stringify(
+        object
+      )
+    );
+}
+
+
+function pastePresentationObject(){
+  const copied =
+    presentationEditorView.clipboard;
+
+  if(
+    !copied ||
+    !currentSlide
+  ){
+    return;
+  }
+
+  const pasted =
+    JSON.parse(
+      JSON.stringify(
+        copied
+      )
+    );
+
+  pasted.id =
+    createPresentationObjectId();
+
+  pasted.x =
+    Number(pasted.x || 0) +
+    20;
+
+  pasted.y =
+    Number(pasted.y || 0) +
+    20;
+
+  pasted.zIndex =
+    currentSlide.objects.length;
+
+  delete pasted.role;
+
+  currentSlide.objects.push(
+    pasted
+  );
+
+  selectedObjectId =
+    pasted.id;
+
+  renderSlideObjects();
+  renderPresentationProperties();
+  schedulePresentationAutosave();
+}
 
 function moveSelectedPresentationObjectLayer(
   direction
@@ -34814,5 +35894,126 @@ document.addEventListener(
 );
 </script>
 
+<div
+  class="presentation-context-menu"
+  id="presentationContextMenu"
+  hidden
+  role="menu"
+  aria-label="Presentation object actions"
+>
+
+  <button
+    type="button"
+    role="menuitem"
+    onclick="duplicateSelectedPresentationObject(); closePresentationContextMenu();"
+  >
+    <span>
+      Duplicate
+    </span>
+
+    <kbd>
+      Ctrl D
+    </kbd>
+  </button>
+
+  <button
+    type="button"
+    role="menuitem"
+    onclick="copySelectedPresentationObject(); closePresentationContextMenu();"
+  >
+    <span>
+      Copy
+    </span>
+
+    <kbd>
+      Ctrl C
+    </kbd>
+  </button>
+
+  <button
+    type="button"
+    role="menuitem"
+    onclick="pastePresentationObject(); closePresentationContextMenu();"
+  >
+    <span>
+      Paste
+    </span>
+
+    <kbd>
+      Ctrl V
+    </kbd>
+  </button>
+
+  <div class="presentation-context-divider"></div>
+
+  <button
+    type="button"
+    role="menuitem"
+    onclick="moveSelectedPresentationObjectLayer('front'); closePresentationContextMenu();"
+  >
+    Bring to front
+  </button>
+
+  <button
+    type="button"
+    role="menuitem"
+    onclick="moveSelectedPresentationObjectLayer('forward'); closePresentationContextMenu();"
+  >
+    Bring forward
+  </button>
+
+  <button
+    type="button"
+    role="menuitem"
+    onclick="moveSelectedPresentationObjectLayer('backward'); closePresentationContextMenu();"
+  >
+    Send backward
+  </button>
+
+  <button
+    type="button"
+    role="menuitem"
+    onclick="moveSelectedPresentationObjectLayer('back'); closePresentationContextMenu();"
+  >
+    Send to back
+  </button>
+
+  <div class="presentation-context-divider"></div>
+
+  <button
+    type="button"
+    role="menuitem"
+    onclick="toggleSelectedPresentationObjectLock(); closePresentationContextMenu();"
+  >
+    Lock or unlock
+  </button>
+
+  <button
+    type="button"
+    role="menuitem"
+    onclick="toggleSelectedPresentationObjectVisibility(); closePresentationContextMenu();"
+  >
+    Hide or show
+  </button>
+
+  <div class="presentation-context-divider"></div>
+
+  <button
+    type="button"
+    role="menuitem"
+    class="danger"
+    onclick="deleteSelectedPresentationObject(); closePresentationContextMenu();"
+  >
+    <span>
+      Delete
+    </span>
+
+    <kbd>
+      Delete
+    </kbd>
+  </button>
+
+</div>
+   
 </body>
 </html>
