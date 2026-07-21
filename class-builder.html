@@ -17352,6 +17352,268 @@ body[data-builder-section="presentations"]
     padding-inline:11px;
   }
 }
+
+/* =========================================================
+   AIFT CLASS BUILDER — FINAL WORKSPACE STRUCTURE FIX
+========================================================= */
+
+.studio-app-shell{
+  position:relative;
+
+  width:100%;
+  min-width:0;
+  min-height:100vh;
+
+  padding-top:var(--aift-topbar-height);
+
+  background:var(--aift-page);
+}
+
+.studio-main{
+  position:relative;
+
+  width:auto;
+  min-width:0;
+  min-height:
+    calc(
+      100vh -
+      var(--aift-topbar-height)
+    );
+
+  margin-top:0;
+  margin-right:0;
+  margin-bottom:0;
+  margin-left:
+    var(
+      --studio-sidebar-width,
+      var(--aift-sidebar-width)
+    );
+
+  padding:0;
+
+  overflow:visible;
+
+  background:var(--aift-page);
+}
+
+.studio-workspace{
+  position:relative;
+
+  width:100%;
+  min-width:0;
+  min-height:
+    calc(
+      100vh -
+      var(--aift-topbar-height)
+    );
+
+  margin:0;
+  padding:24px 28px 48px;
+
+  display:block;
+
+  overflow:visible;
+
+  background:var(--aift-page);
+}
+
+.studio-workspace > .section.active{
+  position:relative;
+
+  top:auto;
+  right:auto;
+  bottom:auto;
+  left:auto;
+
+  width:100%;
+  min-width:0;
+  min-height:0;
+
+  margin:0;
+
+  display:block!important;
+
+  transform:none;
+}
+
+#studioClassHeader{
+  position:relative;
+
+  top:auto;
+  right:auto;
+  bottom:auto;
+  left:auto;
+
+  margin:
+    0
+    0
+    20px;
+
+  transform:none;
+}
+
+#section-overview{
+  position:relative;
+
+  top:auto;
+  right:auto;
+  bottom:auto;
+  left:auto;
+
+  width:100%;
+  min-width:0;
+
+  margin:0;
+  padding:0;
+
+  transform:none;
+}
+
+.project-overview{
+  position:relative;
+
+  width:100%;
+  max-width:1600px;
+
+  margin:
+    0
+    auto;
+
+  display:grid;
+  align-content:start;
+  align-items:start;
+  gap:22px;
+}
+
+/* =========================================================
+   PRESENTATION STUDIO — FULL WORKSPACE RESTORATION
+========================================================= */
+
+body[data-builder-section="presentations"]{
+  overflow:hidden;
+}
+
+body[data-builder-section="presentations"]
+.studio-main{
+  height:
+    calc(
+      100vh -
+      var(--aift-topbar-height)
+    );
+
+  min-height:0;
+
+  overflow:hidden!important;
+}
+
+body[data-builder-section="presentations"]
+.studio-workspace{
+  width:100%;
+  height:100%;
+  min-height:0;
+
+  padding:0!important;
+
+  overflow:hidden!important;
+}
+
+body[data-builder-section="presentations"]
+.studio-workspace > #section-presentations.active{
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+
+  margin:0;
+  padding:0;
+
+  display:block!important;
+
+  overflow:hidden;
+}
+
+body[data-builder-section="presentations"]
+#presentationShell{
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+
+  display:grid!important;
+
+  overflow:hidden;
+}
+
+body[data-builder-section="presentations"]
+.presentation-editor-main{
+  min-width:0;
+  min-height:0;
+
+  overflow:hidden;
+}
+
+body[data-builder-section="presentations"]
+.presentation-editor-body{
+  min-width:0;
+  min-height:0;
+  height:100%;
+
+  overflow:hidden;
+}
+
+body[data-builder-section="presentations"]
+.presentation-canvas{
+  position:relative;
+
+  min-width:0;
+  min-height:0;
+  height:100%;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  overflow:auto;
+
+  background:#eef1f5;
+}
+
+body[data-builder-section="presentations"]
+.presentation-canvas-stage{
+  position:relative;
+
+  width:100%;
+  min-width:100%;
+  min-height:100%;
+
+  padding:32px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+body[data-builder-section="presentations"]
+#presentationCanvas{
+  position:relative;
+
+  width:960px;
+  height:540px;
+  min-width:320px;
+  min-height:180px;
+
+  display:block;
+
+  overflow:hidden;
+
+  background:#ffffff;
+
+  box-shadow:
+    0 3px 10px rgba(15,23,42,.12),
+    0 18px 44px rgba(15,23,42,.10);
+}
+   
+
 </style>
 </head>
 <body>
@@ -38493,6 +38755,33 @@ if(tab === "presentations"){
     ){
       initializePresentationStudio();
     }
+
+    /*
+      The Presentation section was hidden before this point.
+      Wait for the browser to calculate its visible dimensions
+      before rendering and resizing the canvas.
+    */
+    window.requestAnimationFrame(
+      () => {
+        window.requestAnimationFrame(
+          () => {
+            if(
+              typeof safelyRenderPresentationStudio ===
+              "function"
+            ){
+              safelyRenderPresentationStudio();
+            }
+
+            if(
+              typeof resizePresentationWorkspace ===
+              "function"
+            ){
+              resizePresentationWorkspace();
+            }
+          }
+        );
+      }
+    );
   }catch(error){
     console.error(
       "Presentation section could not render:",
@@ -38501,6 +38790,7 @@ if(tab === "presentations"){
 
     showAlert(
       "error",
+      error?.message ||
       "The Presentation Studio could not be initialized."
     );
   }
