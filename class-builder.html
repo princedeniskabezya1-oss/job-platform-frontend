@@ -25643,110 +25643,109 @@ function attachObjectEvents(
   }
 
 
-  function beginTextEditing(
-    sourceEvent = null
+function beginTextEditing(
+  sourceEvent = null
+){
+  if(
+    object.type !== "text" ||
+    object.locked ||
+    !editable
   ){
-    if(
-      object.type !== "text" ||
-      object.locked
-    ){
-      return;
-    }
-
-    presentationEditingObjectId =
-      objectId;
-
-    selectedPresentationObjectIds.clear();
-
-    selectedPresentationObjectIds.add(
-      objectId
-    );
-
-    synchronizePrimaryPresentationSelection();
-
-    /*
-      Rebuild the object so the text node receives
-      contenteditable="true".
-    */
-    renderSlideObjects();
-
-    renderPresentationProperties();
-
-    window.requestAnimationFrame(
-      () => {
-        const renderedObject =
-          document.querySelector(
-            `.slide-object[data-id="${CSS.escape(objectId)}"]`
-          );
-
-        const renderedEditable =
-          renderedObject?.querySelector(
-            ".slide-object-text"
-          );
-
-        if(
-          !renderedObject ||
-          !renderedEditable
-        ){
-          return;
-        }
-
-        renderedObject.classList.add(
-          "is-editing"
-        );
-
-        renderedEditable.setAttribute(
-          "contenteditable",
-          "true"
-        );
-
-        renderedEditable.setAttribute(
-          "spellcheck",
-          "true"
-        );
-
-        renderedEditable.focus({
-          preventScroll:true
-        });
-
-        if(
-          sourceEvent &&
-          Number.isFinite(
-            sourceEvent.clientX
-          ) &&
-          Number.isFinite(
-            sourceEvent.clientY
-          )
-        ){
-          placeCaretAtPointer(
-            renderedEditable,
-            sourceEvent.clientX,
-            sourceEvent.clientY
-          );
-        }else{
-          const range =
-            document.createRange();
-
-          range.selectNodeContents(
-            renderedEditable
-          );
-
-          range.collapse(
-            false
-          );
-
-          const selection =
-            window.getSelection();
-
-          selection?.removeAllRanges();
-
-          selection?.addRange(
-            range
-          );
-        }
-      }
-    );
+    return;
   }
+
+  presentationEditingObjectId =
+    objectId;
+
+  selectedPresentationObjectIds.clear();
+
+  selectedPresentationObjectIds.add(
+    objectId
+  );
+
+  synchronizePrimaryPresentationSelection();
+
+  /*
+    Enable editing directly on the existing DOM element.
+
+    Do not rerender here because replacing the element can
+    remove focus before the user begins typing.
+  */
+  element.classList.add(
+    "selected",
+    "is-editing"
+  );
+
+  editable.setAttribute(
+    "contenteditable",
+    "true"
+  );
+
+  editable.setAttribute(
+    "spellcheck",
+    "true"
+  );
+
+  editable.setAttribute(
+    "tabindex",
+    "0"
+  );
+
+  editable.focus({
+    preventScroll:true
+  });
+
+  /*
+    Place the caret where the user double-clicked.
+  */
+  window.requestAnimationFrame(
+    () => {
+      if(
+        sourceEvent &&
+        Number.isFinite(
+          sourceEvent.clientX
+        ) &&
+        Number.isFinite(
+          sourceEvent.clientY
+        )
+      ){
+        placeCaretAtPointer(
+          editable,
+          sourceEvent.clientX,
+          sourceEvent.clientY
+        );
+
+        return;
+      }
+
+      const range =
+        document.createRange();
+
+      range.selectNodeContents(
+        editable
+      );
+
+      range.collapse(
+        false
+      );
+
+      const selection =
+        window.getSelection();
+
+      if(!selection){
+        return;
+      }
+
+      selection.removeAllRanges();
+
+      selection.addRange(
+        range
+      );
+    }
+  );
+
+  renderPresentationProperties();
+}
 
 
   function finishTextEditing(
@@ -26129,14 +26128,35 @@ function attachObjectEvents(
   );
 
 
-  editable?.addEventListener(
-    "blur",
-    event => {
-      finishTextEditing(
-        event.currentTarget
-      );
-    }
-  );
+editable?.addEventListener(
+  "blur",
+  event => {
+    const target =
+      event.currentTarget;
+
+    target.setAttribute(
+      "contenteditable",
+      "false"
+    );
+
+    target.setAttribute(
+      "spellcheck",
+      "false"
+    );
+
+    target.removeAttribute(
+      "tabindex"
+    );
+
+    element.classList.remove(
+      "is-editing"
+    );
+
+    finishTextEditing(
+      target
+    );
+  }
+);
 
 
   if(!object.locked){
@@ -26163,12 +26183,18 @@ function enableObjectDragging(
             ".presentation-rotate-handle"
           ].join(",")
         ) ||
-        pointerDownEvent.target.isContentEditable ||
-        String(
-          presentationEditingObjectId ||
-          ""
-        ) ===
-        String(object.id)
+pointerDownEvent.target.isContentEditable ||
+pointerDownEvent.target.closest(
+  '[contenteditable="true"]'
+) ||
+element.classList.contains(
+  "is-editing"
+) ||
+String(
+  presentationEditingObjectId ||
+  ""
+) ===
+String(object.id)
       ){
         return;
       }
@@ -26537,17 +26563,23 @@ closePresentationContextMenu();
           "is-dragging"
         );
 
-        /*
-          Rebuild once after the completed interaction.
-          Do not rebuild during pointer movement.
-        */
-        renderSlideObjects();
-        renderPresentationProperties();
+/*
+  Only rebuild the canvas when an actual drag occurred.
 
-        if(movementStarted){
-          synchronizePresentationSlideSummary();
-          schedulePresentationAutosave();
-        }
+  A normal click must preserve the existing DOM element.
+  Rebuilding after every pointer release prevents the browser
+  from recognizing two clicks on the same element as a
+  double-click.
+*/
+if(movementStarted){
+  synchronizePresentationSlideSummary();
+
+  renderSlideObjects();
+
+  renderPresentationProperties();
+
+  schedulePresentationAutosave();
+}
       }
 
 
