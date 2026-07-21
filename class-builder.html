@@ -17612,7 +17612,67 @@ body[data-builder-section="presentations"]
     0 3px 10px rgba(15,23,42,.12),
     0 18px 44px rgba(15,23,42,.10);
 }
-   
+
+/* =========================================================
+   PRESENTATION TEXT EDITING — FINAL INTERACTION FIX
+========================================================= */
+
+.presentation-studio-v2
+.slide-object[data-object-type="text"]{
+  cursor:move;
+}
+
+.presentation-studio-v2
+.slide-object[data-object-type="text"]
+.slide-object-text{
+  pointer-events:auto;
+}
+
+.presentation-studio-v2
+.slide-object.is-editing{
+  cursor:text!important;
+  touch-action:auto!important;
+}
+
+.presentation-studio-v2
+.slide-object.is-editing
+.slide-object-text{
+  position:relative;
+  z-index:2001;
+
+  width:100%;
+  height:100%;
+
+  overflow:auto;
+
+  cursor:text!important;
+
+  pointer-events:auto!important;
+
+  user-select:text!important;
+  -webkit-user-select:text!important;
+
+  touch-action:auto!important;
+
+  caret-color:currentColor;
+
+  white-space:pre-wrap;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+}
+
+.presentation-studio-v2
+.slide-object.is-editing
+.presentation-object-controls{
+  display:none!important;
+}
+
+.presentation-studio-v2
+.slide-object.is-editing::before,
+.presentation-studio-v2
+.slide-object.is-editing::after{
+  pointer-events:none!important;
+}
 
 </style>
 </head>
@@ -25479,8 +25539,113 @@ function attachObjectEvents(
       object.id
     );
 
+  const editable =
+    element.querySelector(
+      ".slide-object-text"
+    );
 
-  function beginTextEditing(){
+
+  function isThisObjectBeingEdited(){
+    return (
+      String(
+        presentationEditingObjectId ||
+        ""
+      ) ===
+      objectId
+    );
+  }
+
+
+  function placeCaretAtPointer(
+    target,
+    clientX,
+    clientY
+  ){
+    if(!target){
+      return;
+    }
+
+    const selection =
+      window.getSelection();
+
+    if(!selection){
+      return;
+    }
+
+    let range =
+      null;
+
+    if(
+      typeof document.caretRangeFromPoint ===
+      "function"
+    ){
+      range =
+        document.caretRangeFromPoint(
+          clientX,
+          clientY
+        );
+    }else if(
+      typeof document.caretPositionFromPoint ===
+      "function"
+    ){
+      const position =
+        document.caretPositionFromPoint(
+          clientX,
+          clientY
+        );
+
+      if(position){
+        range =
+          document.createRange();
+
+        range.setStart(
+          position.offsetNode,
+          position.offset
+        );
+
+        range.collapse(
+          true
+        );
+      }
+    }
+
+    if(
+      range &&
+      target.contains(
+        range.startContainer
+      )
+    ){
+      selection.removeAllRanges();
+
+      selection.addRange(
+        range
+      );
+
+      return;
+    }
+
+    range =
+      document.createRange();
+
+    range.selectNodeContents(
+      target
+    );
+
+    range.collapse(
+      false
+    );
+
+    selection.removeAllRanges();
+
+    selection.addRange(
+      range
+    );
+  }
+
+
+  function beginTextEditing(
+    sourceEvent = null
+  ){
     if(
       object.type !== "text" ||
       object.locked
@@ -25499,7 +25664,12 @@ function attachObjectEvents(
 
     synchronizePrimaryPresentationSelection();
 
+    /*
+      Rebuild the object so the text node receives
+      contenteditable="true".
+    */
     renderSlideObjects();
+
     renderPresentationProperties();
 
     window.requestAnimationFrame(
@@ -25509,38 +25679,108 @@ function attachObjectEvents(
             `.slide-object[data-id="${CSS.escape(objectId)}"]`
           );
 
-        const editable =
+        const renderedEditable =
           renderedObject?.querySelector(
             ".slide-object-text"
           );
 
-        if(!editable){
+        if(
+          !renderedObject ||
+          !renderedEditable
+        ){
           return;
         }
 
-        editable.focus();
-
-        const range =
-          document.createRange();
-
-        range.selectNodeContents(
-          editable
+        renderedObject.classList.add(
+          "is-editing"
         );
 
-        range.collapse(
-          false
+        renderedEditable.setAttribute(
+          "contenteditable",
+          "true"
         );
 
-        const selection =
-          window.getSelection();
-
-        selection?.removeAllRanges();
-
-        selection?.addRange(
-          range
+        renderedEditable.setAttribute(
+          "spellcheck",
+          "true"
         );
+
+        renderedEditable.focus({
+          preventScroll:true
+        });
+
+        if(
+          sourceEvent &&
+          Number.isFinite(
+            sourceEvent.clientX
+          ) &&
+          Number.isFinite(
+            sourceEvent.clientY
+          )
+        ){
+          placeCaretAtPointer(
+            renderedEditable,
+            sourceEvent.clientX,
+            sourceEvent.clientY
+          );
+        }else{
+          const range =
+            document.createRange();
+
+          range.selectNodeContents(
+            renderedEditable
+          );
+
+          range.collapse(
+            false
+          );
+
+          const selection =
+            window.getSelection();
+
+          selection?.removeAllRanges();
+
+          selection?.addRange(
+            range
+          );
+        }
       }
     );
+  }
+
+
+  function finishTextEditing(
+    target
+  ){
+    if(
+      !target ||
+      !isThisObjectBeingEdited()
+    ){
+      return;
+    }
+
+    object.text =
+      String(
+        target.textContent ||
+        ""
+      )
+        .replace(
+          /\u00a0/g,
+          " "
+        );
+
+    synchronizePresentationSlideSummary();
+
+    presentationEditingObjectId =
+      null;
+
+    renderPresentationSlides();
+
+    renderSlideObjects();
+
+    renderPresentationProperties();
+
+    schedulePresentationAutosave();
   }
 
 
@@ -25559,6 +25799,10 @@ function attachObjectEvents(
         return;
       }
 
+      if(isThisObjectBeingEdited()){
+        return;
+      }
+
       event.stopPropagation();
 
       closePresentationContextMenu();
@@ -25572,18 +25816,6 @@ function attachObjectEvents(
         isPresentationObjectSelected(
           objectId
         );
-
-      const isEditingThisObject =
-        String(
-          presentationEditingObjectId ||
-          ""
-        ) ===
-        objectId;
-
-      if(isEditingThisObject){
-        return;
-      }
-
 
       if(
         presentationEditingObjectId &&
@@ -25652,6 +25884,7 @@ function attachObjectEvents(
     "contextmenu",
     event => {
       event.preventDefault();
+
       event.stopPropagation();
 
       if(
@@ -25675,6 +25908,10 @@ function attachObjectEvents(
   );
 
 
+  /*
+    Attach double-click to the complete object.
+    This lets the user double-click the border or the text.
+  */
   element.addEventListener(
     "dblclick",
     event => {
@@ -25686,91 +25923,208 @@ function attachObjectEvents(
       }
 
       event.preventDefault();
+
       event.stopPropagation();
 
-      beginTextEditing();
+      beginTextEditing(
+        event
+      );
     }
   );
 
 
-  const editable =
-    element.querySelector(
-      ".slide-object-text"
-    );
+  /*
+    Also attach double-click directly to the text node.
+    This prevents another child element from swallowing it.
+  */
+  editable?.addEventListener(
+    "dblclick",
+    event => {
+      if(
+        object.locked
+      ){
+        return;
+      }
 
-editable?.addEventListener(
-  "pointerdown",
-  event => {
-    const isEditing =
-      String(
-        presentationEditingObjectId ||
-        ""
-      ) ===
-      objectId;
-
-    if(!isEditing){
-      return;
-    }
-
-    /*
-      Stop object selection and dragging, but do not call
-      preventDefault. The browser needs the default action
-      to place the text caret and select text.
-    */
-    event.stopPropagation();
-  }
-);
-
-
-editable?.addEventListener(
-  "click",
-  event => {
-    if(
-      String(
-        presentationEditingObjectId ||
-        ""
-      ) ===
-      objectId
-    ){
-      event.stopPropagation();
-    }
-  }
-);
-
-
-editable?.addEventListener(
-  "keydown",
-  event => {
-    if(
-      String(
-        presentationEditingObjectId ||
-        ""
-      ) !==
-      objectId
-    ){
-      return;
-    }
-
-    event.stopPropagation();
-
-    if(event.key === "Escape"){
       event.preventDefault();
 
-      event.currentTarget.blur();
+      event.stopPropagation();
+
+      beginTextEditing(
+        event
+      );
     }
-  }
-);
+  );
+
+
+  editable?.addEventListener(
+    "pointerdown",
+    event => {
+      if(!isThisObjectBeingEdited()){
+        return;
+      }
+
+      /*
+        Do not call preventDefault here.
+
+        The browser needs the default pointer action to place
+        the caret and allow click-and-drag text selection.
+      */
+      event.stopPropagation();
+    }
+  );
+
+
+  editable?.addEventListener(
+    "click",
+    event => {
+      if(isThisObjectBeingEdited()){
+        event.stopPropagation();
+      }
+    }
+  );
+
+
+  editable?.addEventListener(
+    "keydown",
+    event => {
+      if(!isThisObjectBeingEdited()){
+        return;
+      }
+
+      /*
+        Prevent the presentation keyboard controller from
+        moving or deleting the whole selected object.
+      */
+      event.stopPropagation();
+
+      if(event.key === "Escape"){
+        event.preventDefault();
+
+        event.currentTarget.blur();
+
+        return;
+      }
+
+      if(
+        event.key === "Enter" &&
+        (
+          event.ctrlKey ||
+          event.metaKey
+        )
+      ){
+        event.preventDefault();
+
+        event.currentTarget.blur();
+      }
+    }
+  );
 
 
   editable?.addEventListener(
     "input",
     event => {
+      if(!isThisObjectBeingEdited()){
+        return;
+      }
+
       object.text =
-        event.currentTarget.textContent ||
-        "";
+        String(
+          event.currentTarget.textContent ||
+          ""
+        )
+          .replace(
+            /\u00a0/g,
+            " "
+          );
 
       synchronizePresentationSlideSummary();
+
       schedulePresentationAutosave();
+    }
+  );
+
+
+  editable?.addEventListener(
+    "paste",
+    event => {
+      if(!isThisObjectBeingEdited()){
+        return;
+      }
+
+      /*
+        Insert plain text only so pasted website formatting
+        cannot corrupt the presentation object.
+      */
+      event.preventDefault();
+
+      const plainText =
+        event.clipboardData?.getData(
+          "text/plain"
+        ) ||
+        "";
+
+      if(
+        typeof document.execCommand ===
+        "function"
+      ){
+        document.execCommand(
+          "insertText",
+          false,
+          plainText
+        );
+
+        return;
+      }
+
+      const selection =
+        window.getSelection();
+
+      if(
+        !selection ||
+        !selection.rangeCount
+      ){
+        return;
+      }
+
+      const range =
+        selection.getRangeAt(
+          0
+        );
+
+      range.deleteContents();
+
+      const textNode =
+        document.createTextNode(
+          plainText
+        );
+
+      range.insertNode(
+        textNode
+      );
+
+      range.setStartAfter(
+        textNode
+      );
+
+      range.collapse(
+        true
+      );
+
+      selection.removeAllRanges();
+
+      selection.addRange(
+        range
+      );
+
+      editable.dispatchEvent(
+        new Event(
+          "input",
+          {
+            bubbles:true
+          }
+        )
+      );
     }
   );
 
@@ -25778,19 +26132,9 @@ editable?.addEventListener(
   editable?.addEventListener(
     "blur",
     event => {
-      object.text =
-        event.currentTarget.textContent ||
-        "";
-
-      synchronizePresentationSlideSummary();
-
-      presentationEditingObjectId =
-        null;
-
-      renderPresentationSlides();
-      renderSlideObjects();
-      renderPresentationProperties();
-      schedulePresentationAutosave();
+      finishTextEditing(
+        event.currentTarget
+      );
     }
   );
 
@@ -25854,10 +26198,19 @@ function enableObjectDragging(
         return;
       }
 
-      pointerDownEvent.preventDefault();
-      pointerDownEvent.stopPropagation();
+/*
+  Do not call preventDefault during pointer-down.
 
-      closePresentationContextMenu();
+  Calling it here suppresses the normal click sequence and
+  prevents Chrome from producing a reliable double-click
+  event for text objects.
+
+  preventDefault is applied later only after real dragging
+  has started.
+*/
+pointerDownEvent.stopPropagation();
+
+closePresentationContextMenu();
 
       const activePointerId =
         pointerDownEvent.pointerId;
