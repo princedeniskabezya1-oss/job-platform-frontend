@@ -41,8 +41,8 @@
   const STORAGE_PREFIX =
     "aift.mediaLibrary";
 
-  const DEFAULT_API_BASE_URL =
-    "https://aift-backend-1-9b6f.onrender.com/api";
+const DEFAULT_API_BASE_URL =
+  "https://backend-1-9b6f.onrender.com/api";
 
   const DEFAULT_REQUEST_TIMEOUT_MS =
     30000;
@@ -148029,4 +148029,3 @@
       true
   });
 })(window);
-
