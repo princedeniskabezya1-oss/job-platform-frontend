@@ -40887,8 +40887,40 @@ function handleMediaLibrarySearchKey(
 async function openMediaUploader(){
 
   try{
-    await initializeProductionMediaLibrary();
+    const browser =
+      await initializeProductionMediaLibrary();
 
+    /*
+      Always use the uploader owned by the mounted browser.
+      It already knows the current browser ID and folder.
+    */
+    if(
+      typeof browser
+        ?.renderer
+        ?.requestUpload ===
+      "function"
+    ){
+      browser.renderer
+        .requestUpload();
+
+      return;
+    }
+
+    if(
+      typeof browser
+        ?.requestUpload ===
+      "function"
+    ){
+      browser
+        .requestUpload();
+
+      return;
+    }
+
+    /*
+      Fall back to the production upload UI only when the
+      mounted browser does not expose its upload controller.
+    */
     if(
       typeof window.AIFTMediaLibrary
         ?.openMediaUploadUI ===
@@ -40896,40 +40928,42 @@ async function openMediaUploader(){
     ){
       window.AIFTMediaLibrary
         .openMediaUploadUI({
+          mode:
+            "modal",
+
           classId:
             state.classId,
 
+          folderId:
+            browser?.snapshot
+              ?.currentFolderId ||
+            null,
+
+          browserId:
+            browser?.id ||
+            "",
+
           apiBaseUrl:
-            PRODUCTION_MEDIA_API_BASE,
+            API_BASE,
+
+          uploadEndpoint:
+            "/api/media/upload-multiple",
 
           credentials:
             "omit",
 
           authTokenProvider:
-            getProductionMediaToken
+            getProductionMediaToken,
+
+          multiple:
+            true,
+
+          autoStart:
+            true,
+
+          closeOnComplete:
+            false
         });
-
-      return;
-    }
-
-    if(
-      typeof productionMediaBrowser
-        ?.requestUpload ===
-      "function"
-    ){
-      productionMediaBrowser
-        .requestUpload();
-
-      return;
-    }
-
-    if(
-      typeof window.AIFTMediaLibrary
-        ?.requestUpload ===
-      "function"
-    ){
-      window.AIFTMediaLibrary
-        .requestUpload();
 
       return;
     }
@@ -40950,7 +40984,6 @@ async function openMediaUploader(){
     );
   }
 }
-
 
 function setMediaLibraryUploadProgress(
   {
