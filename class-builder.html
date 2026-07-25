@@ -18110,6 +18110,165 @@ body[data-builder-section="presentations"]
   }
 }
 
+
+   /* =========================================================
+   PRODUCTION MEDIA ASSET MANAGER INTEGRATION
+========================================================= */
+
+#section-media{
+  width:100%;
+  min-width:0;
+}
+
+#section-media .section-stack{
+  width:100%;
+  min-width:0;
+  gap:14px;
+}
+
+.aift-builder-media-header-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.aift-builder-media-selection-status{
+  min-height:38px;
+  padding:9px 13px;
+
+  display:flex;
+  align-items:center;
+
+  border:1px solid var(--aift-border-soft);
+  border-radius:var(--aift-radius-sm);
+
+  background:#fff;
+  color:var(--aift-muted);
+
+  font-size:10px;
+  line-height:1.45;
+}
+
+.aift-builder-media-selection-status.has-selection{
+  border-color:#aecbfa;
+
+  background:var(--aift-primary-soft);
+  color:var(--aift-primary);
+
+  font-weight:600;
+}
+
+.aift-builder-production-media-library{
+  width:100%;
+  min-width:0;
+  min-height:
+    calc(
+      100vh -
+      var(--aift-topbar-height) -
+      190px
+    );
+
+  overflow:hidden;
+
+  border:1px solid var(--aift-border);
+  border-radius:var(--aift-radius-md);
+
+  background:#fff;
+
+  box-shadow:var(--aift-shadow-xs);
+}
+
+.aift-builder-production-media-library
+.aift-media-browser{
+  width:100%;
+  min-width:0;
+  min-height:
+    calc(
+      100vh -
+      var(--aift-topbar-height) -
+      190px
+    );
+
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+}
+
+.aift-builder-media-boot-state{
+  min-height:420px;
+  padding:40px;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+
+  color:var(--aift-muted);
+
+  text-align:center;
+}
+
+.aift-builder-media-boot-state strong{
+  color:var(--aift-text-strong);
+
+  font-size:13px;
+  line-height:1.4;
+  font-weight:600;
+}
+
+.aift-builder-media-boot-state > span:last-child{
+  font-size:9px;
+  line-height:1.5;
+}
+
+#aiftInsertSelectedMediaButton:disabled{
+  cursor:not-allowed;
+  opacity:.5;
+}
+
+@media(max-width:960px){
+
+  #section-media .studio-section-header{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .aift-builder-media-header-actions{
+    justify-content:flex-start;
+  }
+
+  .aift-builder-production-media-library{
+    min-height:650px;
+  }
+}
+
+@media(max-width:760px){
+
+  .aift-builder-media-header-actions{
+    width:100%;
+  }
+
+  .aift-builder-media-header-actions button{
+    flex:1 1 auto;
+  }
+
+  .aift-builder-production-media-library{
+    min-height:
+      calc(
+        100vh -
+        var(--aift-topbar-height) -
+        220px
+      );
+
+    border-right:0;
+    border-left:0;
+    border-radius:0;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -22337,8 +22496,15 @@ body[data-builder-section="presentations"]
      MEDIA LIBRARY
 ====================================================== -->
 
-<section id="section-media" class="section">
+<!-- ======================================================
+     AIFT PRODUCTION MEDIA ASSET MANAGER
+====================================================== -->
 
+<section
+  id="section-media"
+  class="section"
+  aria-labelledby="aiftMediaWorkspaceTitle"
+>
   <div class="section-stack">
 
     <header class="studio-section-header">
@@ -22346,186 +22512,77 @@ body[data-builder-section="presentations"]
       <div>
 
         <span class="studio-section-eyebrow">
-          Class media
+          Class assets
         </span>
 
-        <h2>
+        <h2 id="aiftMediaWorkspaceTitle">
           Media library
         </h2>
 
         <p>
-          Upload and reuse images, videos, audio,
-          documents, worksheets and learning assets.
-          Drag an asset onto the lesson canvas or select
-          Use in canvas.
+          Upload, organise, search and reuse class files.
+          Select one or more assets and add them directly
+          to the content canvas.
         </p>
 
       </div>
 
-      <button
-        type="button"
-        class="primary-btn"
-        onclick="openMediaUploader()"
-      >
-        Upload media
-      </button>
+      <div class="aift-builder-media-header-actions">
+
+        <button
+          type="button"
+          class="ghost-btn"
+          onclick="refreshProductionMediaLibrary()"
+        >
+          Refresh
+        </button>
+
+        <button
+          type="button"
+          class="primary-btn"
+          id="aiftInsertSelectedMediaButton"
+          onclick="insertSelectedProductionMedia()"
+          disabled
+        >
+          Add selected to canvas
+        </button>
+
+      </div>
 
     </header>
 
 
-    <article class="card card-pad">
-
-      <input
-        type="file"
-        id="mediaLibraryFileInput"
-        hidden
-        multiple
-        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv"
-        onchange="handleMediaLibraryFiles(this.files)"
-      >
+    <div
+      class="aift-builder-media-selection-status"
+      id="aiftBuilderMediaSelectionStatus"
+      aria-live="polite"
+    >
+      Select an asset to add it to the canvas.
+    </div>
 
 
-      <div class="studio-media-toolbar">
+    <div
+      id="aiftMediaLibrary"
+      class="aift-builder-production-media-library"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div class="aift-builder-media-boot-state">
 
-        <div class="studio-media-toolbar-left">
+        <span class="studio-media-spinner"></span>
 
-          <div class="studio-media-search">
+        <strong>
+          Loading Media Library
+        </strong>
 
-            <input
-              type="search"
-              id="mediaLibrarySearch"
-              placeholder="Search media..."
-              autocomplete="off"
-              onkeydown="handleMediaLibrarySearchKey(event)"
-            >
-
-            <button
-              type="button"
-              aria-label="Search media"
-              onclick="applyMediaLibraryFilters()"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="11" cy="11" r="7"></circle>
-                <path d="M20 20l-4-4"></path>
-              </svg>
-            </button>
-
-          </div>
-
-
-          <select
-            id="mediaLibraryTypeFilter"
-            class="studio-media-filter"
-            aria-label="Filter media type"
-            onchange="applyMediaLibraryFilters()"
-          >
-            <option value="all">
-              All media
-            </option>
-
-            <option value="image">
-              Images
-            </option>
-
-            <option value="video">
-              Videos
-            </option>
-
-            <option value="audio">
-              Audio
-            </option>
-
-            <option value="document">
-              Documents
-            </option>
-          </select>
-
-
-          <select
-            id="mediaLibrarySort"
-            class="studio-media-filter"
-            aria-label="Sort media"
-            onchange="applyMediaLibraryFilters()"
-          >
-            <option value="newest">
-              Newest
-            </option>
-
-            <option value="oldest">
-              Oldest
-            </option>
-
-            <option value="name-asc">
-              Name A–Z
-            </option>
-
-            <option value="name-desc">
-              Name Z–A
-            </option>
-
-            <option value="most-used">
-              Most used
-            </option>
-
-            <option value="size-desc">
-              Largest
-            </option>
-          </select>
-
-        </div>
-
-
-        <div class="studio-media-toolbar-right">
-
-          <span
-            class="studio-media-summary"
-            id="mediaLibrarySummary"
-          >
-            0 files
-          </span>
-
-          <button
-            type="button"
-            class="ghost-btn"
-            onclick="loadMediaLibrary({ force:true })"
-          >
-            Refresh
-          </button>
-
-        </div>
-
-      </div>
-
-
-      <div
-        class="studio-media-upload-progress"
-        id="mediaLibraryUploadProgress"
-      >
-        <span id="mediaLibraryUploadLabel">
-          Uploading media...
+        <span>
+          Preparing your class assets...
         </span>
 
-        <span id="mediaLibraryUploadCount">
-          0%
-        </span>
       </div>
-
-
-      <div
-        class="studio-media-library"
-        id="mediaLibraryList"
-        aria-live="polite"
-      >
-        <div class="studio-media-loading">
-          <span class="studio-media-spinner"></span>
-          <span>Loading your class media...</span>
-        </div>
-      </div>
-
-    </article>
+    </div>
 
   </div>
-
 </section>
 
 
@@ -23614,6 +23671,8 @@ body[data-builder-section="presentations"]
   </div>
 
 </div>
+
+<script src="/media-library.js"></script>
 
 <script>
 /* =====================================================
@@ -40825,25 +40884,71 @@ function handleMediaLibrarySearchKey(
 }
 
 
-function openMediaUploader(){
-  const input =
-    byId(
-      "mediaLibraryFileInput"
+async function openMediaUploader(){
+
+  try{
+    await initializeProductionMediaLibrary();
+
+    if(
+      typeof window.AIFTMediaLibrary
+        ?.openMediaUploadUI ===
+      "function"
+    ){
+      window.AIFTMediaLibrary
+        .openMediaUploadUI({
+          classId:
+            state.classId,
+
+          apiBaseUrl:
+            PRODUCTION_MEDIA_API_BASE,
+
+          credentials:
+            "omit",
+
+          authTokenProvider:
+            getProductionMediaToken
+        });
+
+      return;
+    }
+
+    if(
+      typeof productionMediaBrowser
+        ?.requestUpload ===
+      "function"
+    ){
+      productionMediaBrowser
+        .requestUpload();
+
+      return;
+    }
+
+    if(
+      typeof window.AIFTMediaLibrary
+        ?.requestUpload ===
+      "function"
+    ){
+      window.AIFTMediaLibrary
+        .requestUpload();
+
+      return;
+    }
+
+    throw new Error(
+      "The production upload interface is unavailable."
+    );
+  }catch(error){
+    console.error(
+      "Open production media uploader error:",
+      error
     );
 
-  if(!input){
     showAlert(
       "error",
-      "The media file selector is unavailable."
+      error?.message ||
+      "The media uploader could not be opened."
     );
-
-    return;
   }
-
-  input.value =
-    "";
-
-  input.click();
 }
 
 
@@ -41782,6 +41887,821 @@ function synchronizeAiftPresentationTopbar(
     );
   }
 }
+
+/* =====================================================
+   PRODUCTION MEDIA ASSET MANAGER INTEGRATION
+===================================================== */
+
+const PRODUCTION_MEDIA_API_BASE =
+  "https://aift-backend-1-9b6f.onrender.com/api/media";
+
+let productionMediaBrowser =
+  null;
+
+let productionMediaBrowserPromise =
+  null;
+
+
+/* =====================================================
+   TOKEN PROVIDER
+===================================================== */
+
+function getProductionMediaToken(){
+
+  const tokenKeys = [
+    "token",
+    "authToken",
+    "aiftToken",
+    "accessToken"
+  ];
+
+  for(
+    const tokenKey
+    of tokenKeys
+  ){
+    const localToken =
+      window.localStorage
+        .getItem(
+          tokenKey
+        );
+
+    if(localToken){
+      return String(
+        localToken
+      ).trim();
+    }
+
+    const sessionToken =
+      window.sessionStorage
+        .getItem(
+          tokenKey
+        );
+
+    if(sessionToken){
+      return String(
+        sessionToken
+      ).trim();
+    }
+  }
+
+  return "";
+}
+
+
+/* =====================================================
+   NORMALIZE PRODUCTION MEDIA ITEM
+===================================================== */
+
+function normalizeProductionMediaForBuilder(
+  item
+){
+  const source =
+    item &&
+    typeof item === "object"
+      ? item
+      : {};
+
+  const id =
+    String(
+      source.id ||
+      source._id ||
+      ""
+    );
+
+  const mediaType =
+    String(
+      source.mediaType ||
+      source.type ||
+      source.resourceType ||
+      "other"
+    )
+      .trim()
+      .toLowerCase();
+
+  const url =
+    String(
+      source.secureUrl ||
+      source.url ||
+      source.fileUrl ||
+      source.mediaUrl ||
+      ""
+    )
+      .trim();
+
+  return {
+    ...source,
+
+    id,
+
+    _id:
+      String(
+        source._id ||
+        id
+      ),
+
+    name:
+      source.name ||
+      source.originalName ||
+      source.fileName ||
+      "Untitled media",
+
+    originalName:
+      source.originalName ||
+      source.name ||
+      source.fileName ||
+      "Untitled media",
+
+    mediaType,
+
+    type:
+      mediaType,
+
+    secureUrl:
+      url,
+
+    url,
+
+    thumbnailUrl:
+      source.thumbnailUrl ||
+      source.previewUrl ||
+      source.posterUrl ||
+      url
+  };
+}
+
+
+/* =====================================================
+   READ CURRENT SELECTION
+===================================================== */
+
+function getSelectedProductionMediaAssets(){
+
+  if(
+    !productionMediaBrowser ||
+    typeof productionMediaBrowser
+      .getSelectedAssets !==
+      "function"
+  ){
+    return [];
+  }
+
+  const selectedAssets =
+    productionMediaBrowser
+      .getSelectedAssets();
+
+  return Array.isArray(
+    selectedAssets
+  )
+    ? selectedAssets
+        .filter(Boolean)
+        .filter(
+          item =>
+            !item.isFolder
+        )
+        .map(
+          normalizeProductionMediaForBuilder
+        )
+    : [];
+}
+
+
+/* =====================================================
+   UPDATE SELECTION UI
+===================================================== */
+
+function updateProductionMediaSelectionUi(
+  selectedAssets = []
+){
+  const assets =
+    Array.isArray(
+      selectedAssets
+    )
+      ? selectedAssets
+          .filter(Boolean)
+          .filter(
+            item =>
+              !item.isFolder
+          )
+      : [];
+
+  const button =
+    byId(
+      "aiftInsertSelectedMediaButton"
+    );
+
+  const status =
+    byId(
+      "aiftBuilderMediaSelectionStatus"
+    );
+
+  if(button){
+    button.disabled =
+      assets.length === 0;
+
+    button.textContent =
+      assets.length === 0
+        ? "Add selected to canvas"
+        : assets.length === 1
+          ? "Add 1 asset to canvas"
+          : `Add ${assets.length} assets to canvas`;
+  }
+
+  if(status){
+    status.classList.toggle(
+      "has-selection",
+      assets.length > 0
+    );
+
+    status.textContent =
+      assets.length === 0
+        ? "Select an asset to add it to the canvas."
+        : assets.length === 1
+          ? `${
+              assets[0].name ||
+              "1 asset"
+            } selected.`
+          : `${assets.length} assets selected.`;
+  }
+}
+
+
+/* =====================================================
+   INITIALIZE PRODUCTION MEDIA LIBRARY
+===================================================== */
+
+async function initializeProductionMediaLibrary(){
+
+  if(productionMediaBrowser){
+    return productionMediaBrowser;
+  }
+
+  if(productionMediaBrowserPromise){
+    return productionMediaBrowserPromise;
+  }
+
+  const target =
+    byId(
+      "aiftMediaLibrary"
+    );
+
+  if(!target){
+    throw new Error(
+      "The production Media Library container is missing."
+    );
+  }
+
+  if(
+    !window.AIFTMediaLibrary ||
+    typeof window.AIFTMediaLibrary
+      .initializeProductionMediaAssetBrowser !==
+      "function"
+  ){
+    throw new Error(
+      "media-library.js is not loaded or the production asset browser is unavailable."
+    );
+  }
+
+  target.setAttribute(
+    "aria-busy",
+    "true"
+  );
+
+  productionMediaBrowserPromise =
+    window.AIFTMediaLibrary
+      .initializeProductionMediaAssetBrowser(
+        "#aiftMediaLibrary",
+        {
+          id:
+            `aift_class_media_${state.classId}`,
+
+          title:
+            "Class Media Library",
+
+          description:
+            "Upload, organise and reuse assets across this class.",
+
+          apiBaseUrl:
+            PRODUCTION_MEDIA_API_BASE,
+
+          credentials:
+            "omit",
+
+          authTokenProvider:
+            getProductionMediaToken,
+
+          pageSize:
+            40,
+
+          autoLoad:
+            true,
+
+          allowUpload:
+            true,
+
+          allowCreateFolder:
+            true,
+
+          allowRename:
+            true,
+
+          allowDelete:
+            true,
+
+          allowPermanentDelete:
+            true,
+
+          allowRestore:
+            true,
+
+          allowDownload:
+            true,
+
+          allowFavorite:
+            true,
+
+          /*
+            These are disabled because your current media
+            backend does not provide /move or /copy routes.
+          */
+          allowMove:
+            false,
+
+          allowCopy:
+            false,
+
+          endpoints: {
+            list:
+              "",
+
+            details:
+              "/:id",
+
+            rename:
+              "/:id",
+
+            favorite:
+              "/:id/favorite",
+
+            delete:
+              "/:id",
+
+            restore:
+              "/:id/restore",
+
+            folders:
+              "/folders/list",
+
+            createFolder:
+              "/folders",
+
+            download:
+              "/:id/download"
+          },
+
+          query: {
+            classId:
+              state.classId
+          },
+
+          requestParameters: {
+            classId:
+              state.classId
+          },
+
+          onSelectionChange(
+            selectedAssets
+          ){
+            updateProductionMediaSelectionUi(
+              selectedAssets
+            );
+          },
+
+          rendererOptions: {
+            injectStyles:
+              true,
+
+            showHeader:
+              true,
+
+            showSidebar:
+              true,
+
+            showDescription:
+              true,
+
+            showSearch:
+              true,
+
+            showFilters:
+              true,
+
+            showSort:
+              true,
+
+            showViewControls:
+              true,
+
+            showBreadcrumbs:
+              true,
+
+            showPagination:
+              true,
+
+            showSelectionToolbar:
+              true,
+
+            showContextMenu:
+              true,
+
+            showAssetMeta:
+              true,
+
+            showAssetCheckbox:
+              true,
+
+            showFavoriteButton:
+              true,
+
+            showActionMenu:
+              true,
+
+            showUploadButton:
+              true,
+
+            showCreateFolderButton:
+              true,
+
+            allowDoubleClickOpen:
+              true,
+
+            allowContextMenu:
+              true,
+
+            allowKeyboardNavigation:
+              true,
+
+            dragAndDrop:
+              true,
+
+            dragAndDropOptions: {
+              enabled:
+                true,
+
+              allowAssetMove:
+                false,
+
+              allowFileUpload:
+                true,
+
+              allowFolderAutoOpen:
+                true,
+
+              allowRootDrop:
+                true,
+
+              allowContentUploadDrop:
+                true,
+
+              optimisticMove:
+                false,
+
+              refreshAfterMove:
+                true,
+
+              refreshAfterUpload:
+                true
+            }
+          }
+        }
+      )
+      .then(
+        browser => {
+          productionMediaBrowser =
+            browser;
+
+          target.setAttribute(
+            "aria-busy",
+            "false"
+          );
+
+          updateProductionMediaSelectionUi(
+            browser.getSelectedAssets?.() ||
+            []
+          );
+
+          return browser;
+        }
+      )
+      .catch(
+        error => {
+          productionMediaBrowser =
+            null;
+
+          target.setAttribute(
+            "aria-busy",
+            "false"
+          );
+
+          target.innerHTML = `
+            <div class="studio-empty-workspace">
+
+              <div class="studio-empty-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 9v4"></path>
+                  <path d="M12 17h.01"></path>
+                  <path d="M10.3 3.7L2.5 17.2A2 2 0 0 0 4.2 20h15.6a2 2 0 0 0 1.7-2.8L13.7 3.7a2 2 0 0 0-3.4 0z"></path>
+                </svg>
+              </div>
+
+              <h3>
+                Media Library could not load
+              </h3>
+
+              <p>
+                ${
+                  escapeHtml(
+                    error?.message ||
+                    "The production Media Library is unavailable."
+                  )
+                }
+              </p>
+
+              <button
+                type="button"
+                class="primary-btn"
+                onclick="retryProductionMediaLibrary()"
+              >
+                Try again
+              </button>
+
+            </div>
+          `;
+
+          console.error(
+            "Production Media Library initialization failed:",
+            error
+          );
+
+          throw error;
+        }
+      )
+      .finally(
+        () => {
+          productionMediaBrowserPromise =
+            null;
+        }
+      );
+
+  return productionMediaBrowserPromise;
+}
+
+
+/* =====================================================
+   RETRY
+===================================================== */
+
+async function retryProductionMediaLibrary(){
+
+  productionMediaBrowser =
+    null;
+
+  productionMediaBrowserPromise =
+    null;
+
+  const target =
+    byId(
+      "aiftMediaLibrary"
+    );
+
+  if(target){
+    target.innerHTML = `
+      <div class="aift-builder-media-boot-state">
+
+        <span class="studio-media-spinner"></span>
+
+        <strong>
+          Loading Media Library
+        </strong>
+
+        <span>
+          Preparing your class assets...
+        </span>
+
+      </div>
+    `;
+  }
+
+  try{
+    await initializeProductionMediaLibrary();
+  }catch(error){
+    showAlert(
+      "error",
+      error?.message ||
+      "The Media Library could not be loaded."
+    );
+  }
+}
+
+
+/* =====================================================
+   REFRESH
+===================================================== */
+
+async function refreshProductionMediaLibrary(){
+
+  try{
+    const browser =
+      await initializeProductionMediaLibrary();
+
+    if(
+      typeof browser.refresh ===
+      "function"
+    ){
+      await browser.refresh();
+    }else if(
+      typeof browser.load ===
+      "function"
+    ){
+      await browser.load();
+    }else if(
+      typeof browser.loadAssets ===
+      "function"
+    ){
+      await browser.loadAssets({
+        force:
+          true
+      });
+    }
+
+    showAlert(
+      "success",
+      "Media Library refreshed."
+    );
+  }catch(error){
+    showAlert(
+      "error",
+      error?.message ||
+      "The Media Library could not be refreshed."
+    );
+  }
+}
+
+
+/* =====================================================
+   INSERT SELECTED ASSETS INTO ELEMENTOR CANVAS
+===================================================== */
+
+async function insertSelectedProductionMedia(){
+
+  const selectedAssets =
+    getSelectedProductionMediaAssets();
+
+  if(!selectedAssets.length){
+    showAlert(
+      "error",
+      "Select at least one media asset."
+    );
+
+    return;
+  }
+
+  const usableAssets =
+    selectedAssets.filter(
+      item =>
+        Boolean(
+          item.secureUrl ||
+          item.url
+        )
+    );
+
+  if(!usableAssets.length){
+    showAlert(
+      "error",
+      "The selected assets do not contain usable file URLs."
+    );
+
+    return;
+  }
+
+  try{
+    pushElementorHistory();
+
+    const insertedBlocks = [];
+
+    for(
+      const mediaItem
+      of usableAssets
+    ){
+      const block =
+        createElementorBlockFromMedia(
+          mediaItem
+        );
+
+      block.order =
+        elementorEditor
+          .blocks
+          .length;
+
+      elementorEditor
+        .blocks
+        .push(
+          block
+        );
+
+      insertedBlocks.push(
+        {
+          mediaItem,
+          block
+        }
+      );
+    }
+
+    const lastInserted =
+      insertedBlocks[
+        insertedBlocks.length - 1
+      ];
+
+    elementorEditor.selectedBlockId =
+      lastInserted.block.id;
+
+    markElementorDirty();
+
+    renderElementorBuilder();
+
+    openBuilderSection(
+      "content"
+    );
+
+    window.requestAnimationFrame(
+      () => {
+        const element =
+          document.querySelector(
+            `[data-elementor-block-id="${
+              CSS.escape(
+                lastInserted.block.id
+              )
+            }"]`
+          );
+
+        element?.scrollIntoView({
+          behavior:
+            "smooth",
+
+          block:
+            "center"
+        });
+
+        focusElementorBlock(
+          lastInserted.block.id
+        );
+      }
+    );
+
+    for(
+      const {
+        mediaItem,
+        block
+      }
+      of insertedBlocks
+    ){
+      trackMediaLibraryUsage(
+        mediaItem,
+        block
+      );
+    }
+
+    if(
+      typeof productionMediaBrowser
+        ?.clearSelection ===
+      "function"
+    ){
+      productionMediaBrowser
+        .clearSelection();
+    }
+
+    updateProductionMediaSelectionUi(
+      []
+    );
+
+    showAlert(
+      "success",
+      insertedBlocks.length === 1
+        ? "The media asset was added to the canvas."
+        : `${insertedBlocks.length} media assets were added to the canvas.`
+    );
+  }catch(error){
+    console.error(
+      "Insert production media error:",
+      error
+    );
+
+    showAlert(
+      "error",
+      error?.message ||
+      "The selected media could not be added to the canvas."
+    );
+  }
+}
    
 function openBuilderSection(requestedTab = "overview"){
   let tab = String(requestedTab || "overview")
@@ -41877,6 +42797,30 @@ function openBuilderSection(requestedTab = "overview"){
     Only render tools that actually exist.
     Never call undeclared optional functions.
   */
+
+if(tab === "media"){
+
+  window.requestAnimationFrame(
+    () => {
+      initializeProductionMediaLibrary()
+        .catch(
+          error => {
+            console.error(
+              "Media section could not initialize:",
+              error
+            );
+
+            showAlert(
+              "error",
+              error?.message ||
+              "The Media Library could not be initialized."
+            );
+          }
+        );
+    }
+  );
+}
+
 if(tab === "presentations"){
   try{
     if(
@@ -47438,12 +48382,13 @@ async function initBuilder(){
 await loadBuilder();
 
 /*
-  Load class-scoped Media Library assets after the
-  class and access permissions have been confirmed.
+/*
+  The production Media Asset Browser is initialized only
+  when the Media section becomes visible.
+
+  This prevents the old custom gallery and the new production
+  browser from requesting and rendering the same media twice.
 */
-await loadMediaLibrary({
-  force:true
-});
 
 /*
   Initialize the new Content Studio workspace
