@@ -120698,14 +120698,21 @@ const DEFAULT_API_BASE_URL =
       accessibilitySelectorLimit:
         500,
 
+      /*
+        Dedicated media-insertion telemetry is disabled because
+        these endpoints are not registered on the backend.
+
+        Real media usage remains recorded through:
+        POST /api/media/:id/usage
+      */
       analyticsEndpoint:
-        "/api/media-insertion/analytics",
+        "",
 
       errorEndpoint:
-        "/api/media-insertion/errors",
+        "",
 
       queueEndpoint:
-        "/api/media-insertion/replay",
+        "",
 
       headers: {},
 
