@@ -120428,14 +120428,22 @@ const DEFAULT_API_BASE_URL =
       accessibilitySelectorLimit:
         500,
 
-      analyticsEndpoint:
-        "/api/media-insertion/analytics",
+/*
+  The current backend records real media usage through:
 
-      errorEndpoint:
-        "/api/media-insertion/errors",
+  POST /api/media/:id/usage
 
-      queueEndpoint:
-        "/api/media-insertion/replay",
+  Dedicated insertion telemetry endpoints are not registered,
+  so the optional telemetry transport remains disabled.
+*/
+analyticsEndpoint:
+  "",
+
+errorEndpoint:
+  "",
+
+queueEndpoint:
+  "",
 
       headers: {},
 
