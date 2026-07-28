@@ -18111,6 +18111,33 @@ body[data-builder-section="presentations"]
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   
+
    /* =========================================================
    PRODUCTION MEDIA ASSET MANAGER INTEGRATION
 ========================================================= */
@@ -41921,42 +41948,139 @@ function synchronizeAiftPresentationTopbar(
   }
 }
 
-/* =====================================================
-   PRODUCTION MEDIA ASSET MANAGER INTEGRATION
-===================================================== */
 
-const PRODUCTION_MEDIA_API_BASE =
+/* =========================================================
+   PRODUCTION ASSET MANAGER
+   DIRECT CLASS-BUILDER INTEGRATION
+========================================================= */
+
+const ASSET_MANAGER_API_BASE =
   `${API_BASE}/api/media`;
 
-let productionMediaBrowser =
-  null;
+const ASSET_MANAGER_ALLOWED_TYPES =
+  new Set([
+    "image",
+    "video",
+    "audio",
+    "document",
+    "other"
+  ]);
 
-let productionMediaBrowserPromise =
-  null;
+const ASSET_MANAGER_BACKEND_SORTS =
+  new Set([
+    "newest",
+    "oldest",
+    "name",
+    "name-asc",
+    "name-desc",
+    "size-asc",
+    "size-desc",
+    "most-used",
+    "least-used",
+    "recently-edited"
+  ]);
+
+const ASSET_MANAGER_SPECIAL_FILTERS =
+  new Set([
+    "all",
+    "recent",
+    "favorites",
+    "trash"
+  ]);
+
+const AssetManager = {
+  initialized:false,
+  initializing:false,
+  loading:false,
+  uploading:false,
+
+  assets:[],
+  folders:[],
+  uploadQueue:[],
+
+  selectedIds:new Set(),
+  inspectedAssetId:"",
+
+  search:"",
+  filter:"all",
+  folderId:"",
+  sort:"newest",
+  view:"grid",
+
+  page:1,
+  limit:40,
+  total:0,
+  totalPages:1,
+  hasMore:false,
+
+  storage:{
+    totalSize:0,
+    totalCount:0,
+    byType:{}
+  },
+
+  searchTimer:null,
+  requestController:null,
+
+  dragDepth:0
+};
 
 
-/* =====================================================
-   TOKEN PROVIDER
-===================================================== */
+/* =========================================================
+   SHARED HELPERS
+========================================================= */
 
-function getProductionMediaToken(){
+function getAssetManagerClassId(){
+  return String(
+    state.classId ||
+    new URLSearchParams(
+      window.location.search
+    ).get("classId") ||
+    ""
+  ).trim();
+}
 
-  const tokenKeys = [
+
+function requireAssetManagerClassId(){
+  const classId =
+    getAssetManagerClassId();
+
+  if(!classId){
+    throw new Error(
+      "A valid class ID is required to use the Asset Manager."
+    );
+  }
+
+  return classId;
+}
+
+
+function getAssetManagerToken(){
+  if(
+    typeof getToken ===
+    "function"
+  ){
+    const existingToken =
+      getToken();
+
+    if(existingToken){
+      return String(
+        existingToken
+      ).trim();
+    }
+  }
+
+  const keys = [
     "token",
     "authToken",
     "aiftToken",
     "accessToken"
   ];
 
-  for(
-    const tokenKey
-    of tokenKeys
-  ){
+  for(const key of keys){
     const localToken =
       window.localStorage
-        .getItem(
-          tokenKey
-        );
+        .getItem(key);
 
     if(localToken){
       return String(
@@ -41966,9 +42090,7 @@ function getProductionMediaToken(){
 
     const sessionToken =
       window.sessionStorage
-        .getItem(
-          tokenKey
-        );
+        .getItem(key);
 
     if(sessionToken){
       return String(
@@ -41981,636 +42103,3293 @@ function getProductionMediaToken(){
 }
 
 
-/* =====================================================
-   NORMALIZE PRODUCTION MEDIA ITEM
-===================================================== */
+function getAssetManagerHeaders(
+  additionalHeaders = {}
+){
+  const token =
+    getAssetManagerToken();
 
-function normalizeProductionMediaForBuilder(
+  return {
+    Accept:"application/json",
+
+    ...(token
+      ? {
+          Authorization:
+            `Bearer ${token}`
+        }
+      : {}),
+
+    ...additionalHeaders
+  };
+}
+
+
+async function assetManagerRequest(
+  endpoint,
+  {
+    method = "GET",
+    body,
+    signal,
+    headers = {}
+  } = {}
+){
+  const isFormData =
+    body instanceof FormData;
+
+  const requestHeaders =
+    getAssetManagerHeaders(
+      headers
+    );
+
+  if(
+    body !== undefined &&
+    body !== null &&
+    !isFormData
+  ){
+    requestHeaders["Content-Type"] =
+      "application/json";
+  }
+
+  const response =
+    await fetch(
+      `${ASSET_MANAGER_API_BASE}${endpoint}`,
+      {
+        method,
+        headers:
+          requestHeaders,
+
+        body:
+          body === undefined ||
+          body === null
+            ? undefined
+            : isFormData
+              ? body
+              : JSON.stringify(body),
+
+        signal
+      }
+    );
+
+  const data =
+    await safeJson(response);
+
+  if(!response.ok){
+    const error =
+      new Error(
+        data?.message ||
+        `Asset Manager request failed with status ${response.status}.`
+      );
+
+    error.status =
+      response.status;
+
+    error.data =
+      data;
+
+    throw error;
+  }
+
+  return data || {};
+}
+
+
+function normalizeAssetManagerId(
+  asset
+){
+  return String(
+    asset?.id ||
+    asset?._id ||
+    ""
+  ).trim();
+}
+
+
+function normalizeAssetManagerItem(
   item
 ){
   const source =
     item &&
-    typeof item === "object"
+    typeof item ===
+      "object"
       ? item
       : {};
 
   const id =
-    String(
-      source.id ||
-      source._id ||
-      ""
+    normalizeAssetManagerId(
+      source
     );
 
   const mediaType =
     String(
       source.mediaType ||
       source.type ||
-      source.resourceType ||
       "other"
     )
       .trim()
       .toLowerCase();
 
-  const url =
+  const secureUrl =
     String(
       source.secureUrl ||
       source.url ||
-      source.fileUrl ||
-      source.mediaUrl ||
       ""
-    )
-      .trim();
+    ).trim();
 
   return {
     ...source,
 
     id,
-
-    _id:
-      String(
-        source._id ||
-        id
-      ),
+    _id:id,
 
     name:
-      source.name ||
-      source.originalName ||
-      source.fileName ||
-      "Untitled media",
+      String(
+        source.name ||
+        source.originalName ||
+        "Untitled file"
+      ).trim(),
 
     originalName:
-      source.originalName ||
-      source.name ||
-      source.fileName ||
-      "Untitled media",
+      String(
+        source.originalName ||
+        source.name ||
+        "Untitled file"
+      ).trim(),
 
-    mediaType,
+    mediaType:
+      ASSET_MANAGER_ALLOWED_TYPES.has(
+        mediaType
+      )
+        ? mediaType
+        : "other",
 
     type:
-      mediaType,
+      ASSET_MANAGER_ALLOWED_TYPES.has(
+        mediaType
+      )
+        ? mediaType
+        : "other",
 
-    secureUrl:
-      url,
+    secureUrl,
 
-    url,
+    url:
+      secureUrl,
 
     thumbnailUrl:
-      source.thumbnailUrl ||
-      source.previewUrl ||
-      source.posterUrl ||
-      url
+      String(
+        source.thumbnailUrl ||
+        ""
+      ).trim(),
+
+    size:
+      Math.max(
+        0,
+        Number(
+          source.size ||
+          0
+        )
+      ),
+
+    usageCount:
+      Math.max(
+        0,
+        Number(
+          source.usageCount ||
+          0
+        )
+      ),
+
+    downloadCount:
+      Math.max(
+        0,
+        Number(
+          source.downloadCount ||
+          0
+        )
+      ),
+
+    favorite:
+      Boolean(
+        source.favorite
+      ),
+
+    isDeleted:
+      Boolean(
+        source.isDeleted
+      )
   };
 }
 
 
-/* =====================================================
-   READ CURRENT SELECTION
-===================================================== */
-
-function getSelectedProductionMediaAssets(){
-
-  if(
-    !productionMediaBrowser ||
-    typeof productionMediaBrowser
-      .getSelectedAssets !==
-      "function"
-  ){
-    return [];
-  }
-
-  const selectedAssets =
-    productionMediaBrowser
-      .getSelectedAssets();
-
-  return Array.isArray(
-    selectedAssets
-  )
-    ? selectedAssets
-        .filter(Boolean)
-        .filter(
-          item =>
-            !item.isFolder
-        )
-        .map(
-          normalizeProductionMediaForBuilder
-        )
-    : [];
-}
-
-
-/* =====================================================
-   UPDATE SELECTION UI
-===================================================== */
-
-function updateProductionMediaSelectionUi(
-  selectedAssets = []
+function formatAssetManagerBytes(
+  value
 ){
-  const assets =
-    Array.isArray(
-      selectedAssets
-    )
-      ? selectedAssets
-          .filter(Boolean)
-          .filter(
-            item =>
-              !item.isFolder
-          )
-      : [];
-
-  const button =
-    byId(
-      "aiftInsertSelectedMediaButton"
-    );
-
-  const status =
-    byId(
-      "aiftBuilderMediaSelectionStatus"
-    );
-
-  if(button){
-    button.disabled =
-      assets.length === 0;
-
-    button.textContent =
-      assets.length === 0
-        ? "Add selected to canvas"
-        : assets.length === 1
-          ? "Add 1 asset to canvas"
-          : `Add ${assets.length} assets to canvas`;
-  }
-
-  if(status){
-    status.classList.toggle(
-      "has-selection",
-      assets.length > 0
-    );
-
-    status.textContent =
-      assets.length === 0
-        ? "Select an asset to add it to the canvas."
-        : assets.length === 1
-          ? `${
-              assets[0].name ||
-              "1 asset"
-            } selected.`
-          : `${assets.length} assets selected.`;
-  }
-}
-
-
-/* =====================================================
-   INITIALIZE PRODUCTION MEDIA LIBRARY
-===================================================== */
-
-async function initializeProductionMediaLibrary(){
-
-  if(productionMediaBrowser){
-    return productionMediaBrowser;
-  }
-
-  if(productionMediaBrowserPromise){
-    return productionMediaBrowserPromise;
-  }
-
-  const target =
-    byId(
-      "aiftMediaLibrary"
-    );
-
-  if(!target){
-    throw new Error(
-      "The production Media Library container is missing."
-    );
-  }
+  const bytes =
+    Number(value || 0);
 
   if(
-    !window.AIFTMediaLibrary ||
-    typeof window.AIFTMediaLibrary
-      .initializeProductionMediaAssetBrowser !==
-      "function"
+    !Number.isFinite(bytes) ||
+    bytes <= 0
   ){
-    throw new Error(
-      "media-library.js is not loaded or the production asset browser is unavailable."
-    );
+    return "0 B";
   }
 
-  target.setAttribute(
-    "aria-busy",
-    "true"
-  );
-
-  productionMediaBrowserPromise =
-    window.AIFTMediaLibrary
-      .initializeProductionMediaAssetBrowser(
-        "#aiftMediaLibrary",
-        {
-          id:
-            `aift_class_media_${state.classId}`,
-
-          title:
-            "Class Media Library",
-
-          description:
-            "Upload, organise and reuse assets across this class.",
-
-          apiBaseUrl:
-            PRODUCTION_MEDIA_API_BASE,
-
-          credentials:
-            "omit",
-
-          authTokenProvider:
-            getProductionMediaToken,
-
-          pageSize:
-            40,
-
-          autoLoad:
-            true,
-
-          allowUpload:
-            true,
-
-          allowCreateFolder:
-            true,
-
-          allowRename:
-            true,
-
-          allowDelete:
-            true,
-
-          allowPermanentDelete:
-            true,
-
-          allowRestore:
-            true,
-
-          allowDownload:
-            true,
-
-          allowFavorite:
-            true,
-
-          /*
-            These are disabled because your current media
-            backend does not provide /move or /copy routes.
-          */
-          allowMove:
-            false,
-
-          allowCopy:
-            false,
-
-          endpoints: {
-            list:
-              "",
-
-            details:
-              "/:id",
-
-            rename:
-              "/:id",
-
-            favorite:
-              "/:id/favorite",
-
-            delete:
-              "/:id",
-
-            restore:
-              "/:id/restore",
-
-            folders:
-              "/folders/list",
-
-            createFolder:
-              "/folders",
-
-            download:
-              "/:id/download"
-          },
-
-          query: {
-            classId:
-              state.classId
-          },
-
-          requestParameters: {
-            classId:
-              state.classId
-          },
-
-          onSelectionChange(
-            selectedAssets
-          ){
-            updateProductionMediaSelectionUi(
-              selectedAssets
-            );
-          },
-
-          rendererOptions: {
-            injectStyles:
-              true,
-
-            showHeader:
-              true,
-
-            showSidebar:
-              true,
-
-            showDescription:
-              true,
-
-            showSearch:
-              true,
-
-            showFilters:
-              true,
-
-            showSort:
-              true,
-
-            showViewControls:
-              true,
-
-            showBreadcrumbs:
-              true,
-
-            showPagination:
-              true,
-
-            showSelectionToolbar:
-              true,
-
-            showContextMenu:
-              true,
-
-            showAssetMeta:
-              true,
-
-            showAssetCheckbox:
-              true,
-
-            showFavoriteButton:
-              true,
-
-            showActionMenu:
-              true,
-
-            showUploadButton:
-              true,
-
-            showCreateFolderButton:
-              true,
-
-            allowDoubleClickOpen:
-              true,
-
-            allowContextMenu:
-              true,
-
-            allowKeyboardNavigation:
-              true,
-
-            dragAndDrop:
-              true,
-
-            dragAndDropOptions: {
-              enabled:
-                true,
-
-              allowAssetMove:
-                false,
-
-              allowFileUpload:
-                true,
-
-              allowFolderAutoOpen:
-                true,
-
-              allowRootDrop:
-                true,
-
-              allowContentUploadDrop:
-                true,
-
-              optimisticMove:
-                false,
-
-              refreshAfterMove:
-                true,
-
-              refreshAfterUpload:
-                true
-            }
-          }
-        }
-      )
-      .then(
-        browser => {
-          productionMediaBrowser =
-            browser;
-
-          target.setAttribute(
-            "aria-busy",
-            "false"
-          );
-
-          updateProductionMediaSelectionUi(
-            browser.getSelectedAssets?.() ||
-            []
-          );
-
-          return browser;
-        }
-      )
-      .catch(
-        error => {
-          productionMediaBrowser =
-            null;
-
-          target.setAttribute(
-            "aria-busy",
-            "false"
-          );
-
-          target.innerHTML = `
-            <div class="studio-empty-workspace">
-
-              <div class="studio-empty-icon">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 9v4"></path>
-                  <path d="M12 17h.01"></path>
-                  <path d="M10.3 3.7L2.5 17.2A2 2 0 0 0 4.2 20h15.6a2 2 0 0 0 1.7-2.8L13.7 3.7a2 2 0 0 0-3.4 0z"></path>
-                </svg>
-              </div>
-
-              <h3>
-                Media Library could not load
-              </h3>
-
-              <p>
-                ${
-                  escapeHtml(
-                    error?.message ||
-                    "The production Media Library is unavailable."
-                  )
-                }
-              </p>
-
-              <button
-                type="button"
-                class="primary-btn"
-                onclick="retryProductionMediaLibrary()"
-              >
-                Try again
-              </button>
-
-            </div>
-          `;
-
-          console.error(
-            "Production Media Library initialization failed:",
-            error
-          );
-
-          throw error;
-        }
-      )
-      .finally(
-        () => {
-          productionMediaBrowserPromise =
-            null;
-        }
-      );
-
-  return productionMediaBrowserPromise;
+  const units = [
+    "B",
+    "KB",
+    "MB",
+    "GB",
+    "TB"
+  ];
+
+  const index =
+    Math.min(
+      Math.floor(
+        Math.log(bytes) /
+        Math.log(1024)
+      ),
+      units.length - 1
+    );
+
+  const amount =
+    bytes /
+    Math.pow(
+      1024,
+      index
+    );
+
+  return `${amount.toFixed(
+    index === 0
+      ? 0
+      : amount >= 10
+        ? 1
+        : 2
+  )} ${units[index]}`;
 }
 
 
-/* =====================================================
-   RETRY
-===================================================== */
+function formatAssetManagerDate(
+  value
+){
+  if(!value){
+    return "Unknown date";
+  }
 
-async function retryProductionMediaLibrary(){
+  const date =
+    new Date(value);
 
-  productionMediaBrowser =
-    null;
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return "Unknown date";
+  }
 
-  productionMediaBrowserPromise =
-    null;
+  return date.toLocaleDateString(
+    undefined,
+    {
+      year:"numeric",
+      month:"short",
+      day:"numeric"
+    }
+  );
+}
 
-  const target =
-    byId(
-      "aiftMediaLibrary"
+
+function getAssetManagerFileUrl(
+  asset
+){
+  return String(
+    asset?.secureUrl ||
+    asset?.url ||
+    ""
+  ).trim();
+}
+
+
+function getAssetManagerThumbnailUrl(
+  asset
+){
+  return String(
+    asset?.thumbnailUrl ||
+    (
+      asset?.mediaType === "image"
+        ? getAssetManagerFileUrl(
+            asset
+          )
+        : ""
+    )
+  ).trim();
+}
+
+
+function getAssetManagerSelectedAssets(){
+  return AssetManager.assets.filter(
+    asset =>
+      AssetManager.selectedIds.has(
+        normalizeAssetManagerId(
+          asset
+        )
+      )
+  );
+}
+
+
+function getAssetManagerInspectedAsset(){
+  if(
+    !AssetManager.inspectedAssetId
+  ){
+    return null;
+  }
+
+  return AssetManager.assets.find(
+    asset =>
+      normalizeAssetManagerId(
+        asset
+      ) ===
+      AssetManager.inspectedAssetId
+  ) || null;
+}
+
+
+function mapAssetManagerFilter(
+  filter
+){
+  const normalized =
+    String(
+      filter ||
+      "all"
+    )
+      .trim()
+      .toLowerCase();
+
+  switch(normalized){
+    case "images":
+      return {
+        category:"all",
+        type:"image"
+      };
+
+    case "videos":
+      return {
+        category:"all",
+        type:"video"
+      };
+
+    case "audio":
+      return {
+        category:"all",
+        type:"audio"
+      };
+
+    case "pdf":
+      return {
+        category:"all",
+        type:"document",
+        localMimeType:
+          "application/pdf"
+      };
+
+    case "slides":
+      return {
+        category:"all",
+        type:"document",
+        localExtensions:[
+          "ppt",
+          "pptx"
+        ]
+      };
+
+    case "documents":
+      return {
+        category:"all",
+        type:"document"
+      };
+
+    case "favorites":
+      return {
+        category:"favorites",
+        type:""
+      };
+
+    case "trash":
+      return {
+        category:"trash",
+        type:""
+      };
+
+    case "recent":
+      return {
+        category:"recent",
+        type:""
+      };
+
+    /*
+      The current backend has no dedicated template category.
+      Keep this filter functional by matching template tags
+      client-side on the current page.
+    */
+    case "templates":
+      return {
+        category:"all",
+        type:"",
+        localTag:
+          "template"
+      };
+
+    /*
+      Shared is stored as isShared on Media, but the current
+      list route does not expose an isShared query filter.
+      Apply it to the records returned for the current page.
+    */
+    case "shared":
+      return {
+        category:"all",
+        type:"",
+        localShared:
+          true
+      };
+
+    case "all":
+    default:
+      return {
+        category:"all",
+        type:""
+      };
+  }
+}
+
+
+function filterAssetManagerItemsLocally(
+  assets
+){
+  const mapping =
+    mapAssetManagerFilter(
+      AssetManager.filter
     );
 
-  if(target){
-    target.innerHTML = `
-      <div class="aift-builder-media-boot-state">
+  return assets.filter(
+    asset => {
+      if(
+        mapping.localMimeType &&
+        String(
+          asset.mimeType ||
+          ""
+        ).toLowerCase() !==
+        mapping.localMimeType
+      ){
+        return false;
+      }
 
-        <span class="studio-media-spinner"></span>
+      if(
+        Array.isArray(
+          mapping.localExtensions
+        ) &&
+        !mapping.localExtensions.includes(
+          String(
+            asset.extension ||
+            ""
+          ).toLowerCase()
+        )
+      ){
+        return false;
+      }
 
-        <strong>
-          Loading Media Library
-        </strong>
+      if(
+        mapping.localTag &&
+        !(
+          Array.isArray(
+            asset.tags
+          ) &&
+          asset.tags.some(
+            tag =>
+              String(tag)
+                .trim()
+                .toLowerCase() ===
+              mapping.localTag
+          )
+        )
+      ){
+        return false;
+      }
 
-        <span>
-          Preparing your class assets...
-        </span>
+      if(
+        mapping.localShared &&
+        !asset.isShared
+      ){
+        return false;
+      }
 
-      </div>
+      return true;
+    }
+  );
+}
+
+
+/* =========================================================
+   THUMBNAIL AND CARD RENDERING
+========================================================= */
+
+function buildAssetManagerThumbnail(
+  asset,
+  {
+    large = false
+  } = {}
+){
+  const mediaType =
+    String(
+      asset.mediaType ||
+      "other"
+    ).toLowerCase();
+
+  const fileUrl =
+    getAssetManagerFileUrl(
+      asset
+    );
+
+  const thumbnailUrl =
+    getAssetManagerThumbnailUrl(
+      asset
+    );
+
+  const safeName =
+    escapeHtml(
+      asset.name ||
+      "Media asset"
+    );
+
+  if(
+    mediaType === "image" &&
+    fileUrl
+  ){
+    return `
+      <img
+        src="${escapeHtml(fileUrl)}"
+        alt="${escapeHtml(
+          asset.altText ||
+          asset.alt ||
+          asset.name ||
+          "Media image"
+        )}"
+        loading="lazy"
+        decoding="async"
+      >
     `;
   }
 
-  try{
-    await initializeProductionMediaLibrary();
-  }catch(error){
-    showAlert(
-      "error",
-      error?.message ||
-      "The Media Library could not be loaded."
-    );
+  if(
+    mediaType === "video" &&
+    thumbnailUrl
+  ){
+    return `
+      <img
+        src="${escapeHtml(thumbnailUrl)}"
+        alt="${safeName}"
+        loading="lazy"
+        decoding="async"
+      >
+
+      <span class="asset-card-play-indicator">
+        ▶
+      </span>
+    `;
   }
+
+  if(
+    mediaType === "video" &&
+    fileUrl &&
+    large
+  ){
+    return `
+      <video
+        src="${escapeHtml(fileUrl)}"
+        controls
+        preload="metadata"
+      ></video>
+    `;
+  }
+
+  const icon =
+    mediaType === "audio"
+      ? "♫"
+      : mediaType === "document"
+        ? "DOC"
+        : "FILE";
+
+  return `
+    <div
+      class="asset-file-fallback"
+      role="img"
+      aria-label="${safeName}"
+    >
+      <strong>
+        ${escapeHtml(icon)}
+      </strong>
+
+      <span>
+        ${escapeHtml(
+          String(
+            asset.extension ||
+            mediaType
+          ).toUpperCase()
+        )}
+      </span>
+    </div>
+  `;
 }
 
 
-/* =====================================================
-   REFRESH
-===================================================== */
+function createAssetManagerCard(
+  asset
+){
+  const assetId =
+    normalizeAssetManagerId(
+      asset
+    );
 
-async function refreshProductionMediaLibrary(){
+  const card =
+    document.createElement(
+      "article"
+    );
+
+  card.className =
+    "asset-card";
+
+  card.dataset.assetId =
+    assetId;
+
+  card.tabIndex =
+    0;
+
+  card.draggable =
+    !asset.isDeleted;
+
+  card.setAttribute(
+    "role",
+    "option"
+  );
+
+  const selected =
+    AssetManager.selectedIds.has(
+      assetId
+    );
+
+  card.classList.toggle(
+    "selected",
+    selected
+  );
+
+  card.setAttribute(
+    "aria-selected",
+    String(selected)
+  );
+
+  card.innerHTML = `
+    <div class="asset-preview">
+
+      ${buildAssetManagerThumbnail(
+        asset
+      )}
+
+      <label
+        class="asset-card-checkbox"
+        title="Select asset"
+      >
+        <input
+          type="checkbox"
+          ${selected
+            ? "checked"
+            : ""}
+          aria-label="Select ${escapeHtml(
+            asset.name
+          )}"
+        >
+      </label>
+
+      <div class="asset-preview-overlay">
+
+        <button
+          type="button"
+          class="icon-btn asset-preview-button"
+          data-asset-action="preview"
+          aria-label="Preview ${escapeHtml(
+            asset.name
+          )}"
+        >
+          Preview
+        </button>
+
+      </div>
+
+    </div>
+
+    <div class="asset-information">
+
+      <strong
+        class="asset-title"
+        title="${escapeHtml(
+          asset.name
+        )}"
+      >
+        ${escapeHtml(
+          asset.name
+        )}
+      </strong>
+
+      <span class="asset-type">
+        ${escapeHtml(
+          asset.mediaType
+        )}
+        ${
+          asset.favorite
+            ? " • Favorite"
+            : ""
+        }
+      </span>
+
+      <small class="asset-size">
+        ${escapeHtml(
+          formatAssetManagerBytes(
+            asset.size
+          )
+        )}
+        •
+        ${escapeHtml(
+          formatAssetManagerDate(
+            asset.createdAt
+          )
+        )}
+      </small>
+
+    </div>
+  `;
+
+  const checkbox =
+    card.querySelector(
+      'input[type="checkbox"]'
+    );
+
+  checkbox?.addEventListener(
+    "click",
+    event => {
+      event.stopPropagation();
+
+      toggleAssetSelection(
+        assetId,
+        {
+          additive:true
+        }
+      );
+    }
+  );
+
+  card.addEventListener(
+    "click",
+    event => {
+      if(
+        event.target.closest(
+          "[data-asset-action]"
+        ) ||
+        event.target.closest(
+          ".asset-card-checkbox"
+        )
+      ){
+        return;
+      }
+
+      const additive =
+        event.ctrlKey ||
+        event.metaKey;
+
+      toggleAssetSelection(
+        assetId,
+        {
+          additive
+        }
+      );
+
+      inspectAssetManagerItem(
+        assetId
+      );
+    }
+  );
+
+  card.addEventListener(
+    "dblclick",
+    event => {
+      if(
+        event.target.closest(
+          "button, input, label"
+        )
+      ){
+        return;
+      }
+
+      previewAssetManagerItem(
+        assetId
+      );
+    }
+  );
+
+  card.addEventListener(
+    "keydown",
+    event => {
+      if(
+        event.key === "Enter"
+      ){
+        event.preventDefault();
+
+        inspectAssetManagerItem(
+          assetId
+        );
+
+        previewAssetManagerItem(
+          assetId
+        );
+      }
+
+      if(
+        event.key === " "
+      ){
+        event.preventDefault();
+
+        toggleAssetSelection(
+          assetId,
+          {
+            additive:
+              event.ctrlKey ||
+              event.metaKey
+          }
+        );
+      }
+    }
+  );
+
+  card.querySelector(
+    '[data-asset-action="preview"]'
+  )?.addEventListener(
+    "click",
+    event => {
+      event.stopPropagation();
+
+      previewAssetManagerItem(
+        assetId
+      );
+    }
+  );
+
+  card.addEventListener(
+    "dragstart",
+    event => {
+      if(asset.isDeleted){
+        event.preventDefault();
+        return;
+      }
+
+      event.dataTransfer.effectAllowed =
+        "copy";
+
+      event.dataTransfer.setData(
+        "application/x-aift-media-id",
+        assetId
+      );
+
+      event.dataTransfer.setData(
+        "text/aift-media-id",
+        assetId
+      );
+
+      event.dataTransfer.setData(
+        "text/plain",
+        getAssetManagerFileUrl(
+          asset
+        )
+      );
+    }
+  );
+
+  return card;
+}
+
+
+function renderAssetGrid(){
+  const grid =
+    byId(
+      "assetGrid"
+    );
+
+  if(!grid){
+    return;
+  }
+
+  const count =
+    byId(
+      "assetCount"
+    );
+
+  const filteredAssets =
+    filterAssetManagerItemsLocally(
+      AssetManager.assets
+    );
+
+  if(count){
+    count.textContent =
+      `${AssetManager.total} ${
+        AssetManager.total === 1
+          ? "Asset"
+          : "Assets"
+      }`;
+  }
+
+  grid.classList.toggle(
+    "asset-list-view",
+    AssetManager.view === "list"
+  );
+
+  if(AssetManager.loading){
+    grid.innerHTML = `
+      <div class="studio-empty-workspace">
+        <span class="studio-media-spinner"></span>
+
+        <h3>
+          Loading assets
+        </h3>
+
+        <p>
+          Retrieving this class's reusable media resources.
+        </p>
+      </div>
+    `;
+
+    return;
+  }
+
+  if(!filteredAssets.length){
+    grid.innerHTML = `
+      <div
+        id="assetEmptyState"
+        class="studio-empty-workspace"
+      >
+        <div class="studio-empty-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 7h18"></path>
+            <path d="M3 17h18"></path>
+            <path d="M8 3v18"></path>
+            <path d="M16 3v18"></path>
+          </svg>
+        </div>
+
+        <h3>
+          No assets found
+        </h3>
+
+        <p>
+          Change the current filter or upload files
+          for this class.
+        </p>
+
+        ${
+          AssetManager.filter === "trash"
+            ? ""
+            : `
+              <button
+                type="button"
+                class="primary-btn"
+                id="assetRenderedUploadButton"
+              >
+                Upload Assets
+              </button>
+            `
+        }
+      </div>
+    `;
+
+    byId(
+      "assetRenderedUploadButton"
+    )?.addEventListener(
+      "click",
+      openAssetManagerFilePicker
+    );
+
+    renderAssetManagerPagination();
+    updateAssetManagerSelectionToolbar();
+
+    return;
+  }
+
+  const fragment =
+    document.createDocumentFragment();
+
+  filteredAssets.forEach(
+    asset => {
+      fragment.appendChild(
+        createAssetManagerCard(
+          asset
+        )
+      );
+    }
+  );
+
+  grid.replaceChildren(
+    fragment
+  );
+
+  renderAssetManagerPagination();
+  updateAssetManagerSelectionToolbar();
+}
+
+
+/* =========================================================
+   DATA LOADING
+========================================================= */
+
+async function loadAssetLibrary(
+  {
+    preserveSelection = false
+  } = {}
+){
+  const classId =
+    requireAssetManagerClassId();
+
+  if(AssetManager.requestController){
+    AssetManager.requestController.abort();
+  }
+
+  AssetManager.requestController =
+    new AbortController();
+
+  AssetManager.loading =
+    true;
+
+  renderAssetGrid();
+
+  if(!preserveSelection){
+    AssetManager.selectedIds.clear();
+    AssetManager.inspectedAssetId =
+      "";
+  }
+
+  const mapping =
+    mapAssetManagerFilter(
+      AssetManager.filter
+    );
+
+  const query =
+    new URLSearchParams();
+
+  query.set(
+    "classId",
+    classId
+  );
+
+  query.set(
+    "page",
+    String(
+      AssetManager.page
+    )
+  );
+
+  query.set(
+    "limit",
+    String(
+      AssetManager.limit
+    )
+  );
+
+  query.set(
+    "sort",
+    ASSET_MANAGER_BACKEND_SORTS.has(
+      AssetManager.sort
+    )
+      ? AssetManager.sort
+      : "newest"
+  );
+
+  if(
+    mapping.category &&
+    mapping.category !== "all"
+  ){
+    query.set(
+      "category",
+      mapping.category
+    );
+  }
+
+  if(mapping.type){
+    query.set(
+      "type",
+      mapping.type
+    );
+  }
+
+  if(AssetManager.folderId){
+    query.set(
+      "folderId",
+      AssetManager.folderId
+    );
+  }
+
+  if(AssetManager.search){
+    query.set(
+      "search",
+      AssetManager.search
+    );
+  }
 
   try{
-    const browser =
-      await initializeProductionMediaLibrary();
+    const data =
+      await assetManagerRequest(
+        `/?${query.toString()}`,
+        {
+          signal:
+            AssetManager
+              .requestController
+              .signal
+        }
+      );
 
+    AssetManager.assets =
+      (
+        Array.isArray(
+          data.items
+        )
+          ? data.items
+          : []
+      ).map(
+        normalizeAssetManagerItem
+      );
+
+    AssetManager.page =
+      Math.max(
+        1,
+        Number(
+          data.pagination?.page ||
+          AssetManager.page
+        )
+      );
+
+    AssetManager.limit =
+      Math.max(
+        1,
+        Number(
+          data.pagination?.limit ||
+          AssetManager.limit
+        )
+      );
+
+    AssetManager.total =
+      Math.max(
+        0,
+        Number(
+          data.pagination?.total ||
+          0
+        )
+      );
+
+    AssetManager.totalPages =
+      Math.max(
+        1,
+        Number(
+          data.pagination?.pages ||
+          1
+        )
+      );
+
+    AssetManager.hasMore =
+      Boolean(
+        data.pagination?.hasMore
+      );
+  }catch(error){
     if(
-      typeof browser.refresh ===
-      "function"
+      error?.name ===
+      "AbortError"
     ){
-      await browser.refresh();
-    }else if(
-      typeof browser.load ===
-      "function"
-    ){
-      await browser.load();
-    }else if(
-      typeof browser.loadAssets ===
-      "function"
-    ){
-      await browser.loadAssets({
-        force:
-          true
-      });
+      return;
     }
 
-    showAlert(
-      "success",
-      "Media Library refreshed."
+    console.error(
+      "Asset Manager load error:",
+      error
     );
-  }catch(error){
+
+    AssetManager.assets =
+      [];
+
+    AssetManager.total =
+      0;
+
     showAlert(
       "error",
       error?.message ||
-      "The Media Library could not be refreshed."
+      "The Asset Manager could not be loaded."
+    );
+  }finally{
+    AssetManager.loading =
+      false;
+
+    AssetManager.requestController =
+      null;
+
+    renderAssetGrid();
+    renderAssetManagerInspector();
+  }
+}
+
+
+async function loadAssetManagerFolders(){
+  const classId =
+    requireAssetManagerClassId();
+
+  try{
+    const data =
+      await assetManagerRequest(
+        `/folders/list?${
+          new URLSearchParams({
+            classId
+          }).toString()
+        }`
+      );
+
+    AssetManager.folders =
+      Array.isArray(
+        data.folders
+      )
+        ? data.folders
+        : [];
+
+    renderAssetManagerFolders();
+  }catch(error){
+    console.error(
+      "Asset folder load error:",
+      error
+    );
+
+    AssetManager.folders =
+      [];
+
+    renderAssetManagerFolders();
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Asset folders could not be loaded."
     );
   }
 }
 
 
-/* =====================================================
-   INSERT SELECTED ASSETS INTO ELEMENTOR CANVAS
-===================================================== */
+async function loadAssetManagerStorage(){
+  const classId =
+    requireAssetManagerClassId();
 
-async function insertSelectedProductionMedia(){
+  try{
+    const data =
+      await assetManagerRequest(
+        `/storage/summary?${
+          new URLSearchParams({
+            classId
+          }).toString()
+        }`
+      );
 
-  const selectedAssets =
-    getSelectedProductionMediaAssets();
+    AssetManager.storage = {
+      totalSize:
+        Math.max(
+          0,
+          Number(
+            data.storage?.totalSize ||
+            0
+          )
+        ),
 
-  if(!selectedAssets.length){
+      totalCount:
+        Math.max(
+          0,
+          Number(
+            data.storage?.totalCount ||
+            0
+          )
+        ),
+
+      byType:
+        data.storage?.byType &&
+        typeof data.storage.byType ===
+          "object"
+          ? data.storage.byType
+          : {}
+    };
+
+    renderAssetManagerStorage();
+  }catch(error){
+    console.error(
+      "Asset storage load error:",
+      error
+    );
+
+    AssetManager.storage = {
+      totalSize:0,
+      totalCount:0,
+      byType:{}
+    };
+
+    renderAssetManagerStorage();
+  }
+}
+
+
+async function refreshAssetManager(){
+  await Promise.all([
+    loadAssetLibrary({
+      preserveSelection:false
+    }),
+
+    loadAssetManagerFolders(),
+
+    loadAssetManagerStorage()
+  ]);
+}
+
+
+/* =========================================================
+   SEARCH, FILTERS, FOLDERS AND SORTING
+========================================================= */
+
+function initializeAssetSearch(){
+  const input =
+    byId(
+      "assetSearchInput"
+    );
+
+  if(!input){
+    return;
+  }
+
+  input.value =
+    AssetManager.search;
+
+  input.addEventListener(
+    "input",
+    () => {
+      window.clearTimeout(
+        AssetManager.searchTimer
+      );
+
+      AssetManager.searchTimer =
+        window.setTimeout(
+          () => {
+            AssetManager.search =
+              input.value.trim();
+
+            AssetManager.page =
+              1;
+
+            loadAssetLibrary();
+          },
+          300
+        );
+    }
+  );
+}
+
+
+async function openFolder(
+  folderId
+){
+  AssetManager.folderId =
+    String(
+      folderId ||
+      ""
+    ).trim();
+
+  AssetManager.filter =
+    "all";
+
+  AssetManager.page =
+    1;
+
+  updateAssetManagerSidebarState();
+
+  await loadAssetLibrary();
+}
+
+
+async function changeAssetSort(
+  value
+){
+  const normalized =
+    String(
+      value ||
+      "newest"
+    )
+      .trim()
+      .toLowerCase();
+
+  /*
+    The HTML contains old "type" and "size" values.
+    Convert them to supported backend sorts.
+  */
+  AssetManager.sort =
+    normalized === "size"
+      ? "size-desc"
+      : normalized === "type"
+        ? "newest"
+        : ASSET_MANAGER_BACKEND_SORTS.has(
+            normalized
+          )
+          ? normalized
+          : "newest";
+
+  AssetManager.page =
+    1;
+
+  await loadAssetLibrary();
+}
+
+
+async function changeAssetFilter(
+  filter
+){
+  AssetManager.filter =
+    String(
+      filter ||
+      "all"
+    )
+      .trim()
+      .toLowerCase();
+
+  AssetManager.folderId =
+    "";
+
+  AssetManager.page =
+    1;
+
+  updateAssetManagerSidebarState();
+
+  await loadAssetLibrary();
+}
+
+
+function updateAssetManagerSidebarState(){
+  document
+    .querySelectorAll(
+      "#section-media .asset-side-item"
+    )
+    .forEach(
+      button => {
+        const active =
+          !AssetManager.folderId &&
+          String(
+            button.dataset.filter ||
+            ""
+          ).toLowerCase() ===
+          AssetManager.filter;
+
+        button.classList.toggle(
+          "active",
+          active
+        );
+
+        button.setAttribute(
+          "aria-pressed",
+          String(active)
+        );
+      }
+    );
+
+  document
+    .querySelectorAll(
+      "#assetFolderList [data-folder-id]"
+    )
+    .forEach(
+      button => {
+        const active =
+          String(
+            button.dataset.folderId ||
+            ""
+          ) ===
+          AssetManager.folderId;
+
+        button.classList.toggle(
+          "active",
+          active
+        );
+
+        button.setAttribute(
+          "aria-pressed",
+          String(active)
+        );
+      }
+    );
+}
+
+
+function renderAssetManagerFolders(){
+  const container =
+    byId(
+      "assetFolderList"
+    );
+
+  if(!container){
+    return;
+  }
+
+  if(!AssetManager.folders.length){
+    container.innerHTML = `
+      <div class="asset-folder-empty">
+        No folders created.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    AssetManager.folders.map(
+      folder => {
+        const folderId =
+          String(
+            folder.id ||
+            folder._id ||
+            ""
+          );
+
+        return `
+          <button
+            type="button"
+            class="asset-folder-item"
+            data-folder-id="${escapeHtml(
+              folderId
+            )}"
+            aria-pressed="false"
+          >
+            <span>
+              ${escapeHtml(
+                folder.name ||
+                "Untitled folder"
+              )}
+            </span>
+
+            <small>
+              ${Math.max(
+                0,
+                Number(
+                  folder.itemCount ||
+                  0
+                )
+              )}
+            </small>
+          </button>
+        `;
+      }
+    ).join("");
+
+  container
+    .querySelectorAll(
+      "[data-folder-id]"
+    )
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          () => {
+            openFolder(
+              button.dataset.folderId
+            );
+          }
+        );
+      }
+    );
+
+  updateAssetManagerSidebarState();
+}
+
+
+/* =========================================================
+   SELECTION
+========================================================= */
+
+function toggleAssetSelection(
+  assetOrId,
+  {
+    additive = false
+  } = {}
+){
+  const assetId =
+    typeof assetOrId ===
+      "string"
+      ? assetOrId
+      : normalizeAssetManagerId(
+          assetOrId
+        );
+
+  if(!assetId){
+    return;
+  }
+
+  if(!additive){
+    const wasOnlySelection =
+      AssetManager.selectedIds.size ===
+        1 &&
+      AssetManager.selectedIds.has(
+        assetId
+      );
+
+    AssetManager.selectedIds.clear();
+
+    if(!wasOnlySelection){
+      AssetManager.selectedIds.add(
+        assetId
+      );
+    }
+  }else if(
+    AssetManager.selectedIds.has(
+      assetId
+    )
+  ){
+    AssetManager.selectedIds.delete(
+      assetId
+    );
+  }else{
+    AssetManager.selectedIds.add(
+      assetId
+    );
+  }
+
+  AssetManager.inspectedAssetId =
+    AssetManager.selectedIds.has(
+      assetId
+    )
+      ? assetId
+      : (
+          AssetManager.selectedIds
+            .values()
+            .next()
+            .value ||
+          ""
+        );
+
+  renderAssetGrid();
+  renderAssetManagerInspector();
+}
+
+
+function selectAllAssetManagerItems(){
+  filterAssetManagerItemsLocally(
+    AssetManager.assets
+  ).forEach(
+    asset => {
+      const id =
+        normalizeAssetManagerId(
+          asset
+        );
+
+      if(id){
+        AssetManager.selectedIds.add(
+          id
+        );
+      }
+    }
+  );
+
+  AssetManager.inspectedAssetId =
+    AssetManager.selectedIds
+      .values()
+      .next()
+      .value ||
+    "";
+
+  renderAssetGrid();
+  renderAssetManagerInspector();
+}
+
+
+function clearAssetManagerSelection(){
+  AssetManager.selectedIds.clear();
+
+  AssetManager.inspectedAssetId =
+    "";
+
+  renderAssetGrid();
+  renderAssetManagerInspector();
+}
+
+
+function updateAssetManagerSelectionToolbar(){
+  const selectedCount =
+    AssetManager.selectedIds.size;
+
+  const clearButton =
+    byId(
+      "assetClearSelectionButton"
+    );
+
+  const deleteButton =
+    byId(
+      "assetDeleteSelectionButton"
+    );
+
+  if(clearButton){
+    clearButton.disabled =
+      selectedCount === 0;
+  }
+
+  if(deleteButton){
+    deleteButton.disabled =
+      selectedCount === 0;
+  }
+
+  byId(
+    "assetSelectAllButton"
+  )?.setAttribute(
+    "aria-label",
+    "Select all assets on this page"
+  );
+}
+
+
+/* =========================================================
+   INSPECTOR
+========================================================= */
+
+function inspectAssetManagerItem(
+  assetId
+){
+  const normalizedId =
+    String(
+      assetId ||
+      ""
+    ).trim();
+
+  if(!normalizedId){
+    return;
+  }
+
+  AssetManager.inspectedAssetId =
+    normalizedId;
+
+  renderAssetManagerInspector();
+}
+
+
+function renderAssetManagerInspector(){
+  const empty =
+    byId(
+      "assetInspectorEmpty"
+    );
+
+  const panel =
+    byId(
+      "assetInspector"
+    );
+
+  if(
+    !empty ||
+    !panel
+  ){
+    return;
+  }
+
+  const asset =
+    getAssetManagerInspectedAsset();
+
+  empty.classList.toggle(
+    "hidden",
+    Boolean(asset)
+  );
+
+  panel.classList.toggle(
+    "hidden",
+    !asset
+  );
+
+  if(!asset){
+    return;
+  }
+
+  const preview =
+    byId(
+      "assetInspectorPreview"
+    );
+
+  const previewContainer =
+    preview?.parentElement;
+
+  if(previewContainer){
+    previewContainer.innerHTML =
+      buildAssetManagerThumbnail(
+        asset,
+        {
+          large:true
+        }
+      );
+  }
+
+  const title =
+    byId(
+      "assetInspectorTitle"
+    );
+
+  if(title){
+    title.textContent =
+      asset.name;
+  }
+
+  const metadata =
+    byId(
+      "assetInspectorMeta"
+    );
+
+  if(metadata){
+    metadata.innerHTML = `
+      <dl class="asset-inspector-metadata">
+
+        <div>
+          <dt>Type</dt>
+          <dd>
+            ${escapeHtml(
+              asset.mediaType
+            )}
+          </dd>
+        </div>
+
+        <div>
+          <dt>Format</dt>
+          <dd>
+            ${escapeHtml(
+              asset.extension ||
+              asset.format ||
+              "—"
+            )}
+          </dd>
+        </div>
+
+        <div>
+          <dt>Size</dt>
+          <dd>
+            ${escapeHtml(
+              formatAssetManagerBytes(
+                asset.size
+              )
+            )}
+          </dd>
+        </div>
+
+        <div>
+          <dt>Uploaded</dt>
+          <dd>
+            ${escapeHtml(
+              formatAssetManagerDate(
+                asset.createdAt
+              )
+            )}
+          </dd>
+        </div>
+
+        <div>
+          <dt>Usage</dt>
+          <dd>
+            ${asset.usageCount}
+          </dd>
+        </div>
+
+        <div>
+          <dt>Downloads</dt>
+          <dd>
+            ${asset.downloadCount}
+          </dd>
+        </div>
+
+      </dl>
+    `;
+  }
+
+  const useButton =
+    byId(
+      "assetUseButton"
+    );
+
+  if(useButton){
+    useButton.disabled =
+      asset.isDeleted;
+  }
+
+  const renameButton =
+    byId(
+      "assetRenameButton"
+    );
+
+  if(renameButton){
+    renameButton.disabled =
+      asset.isDeleted;
+  }
+
+  const downloadButton =
+    byId(
+      "assetDownloadButton"
+    );
+
+  if(downloadButton){
+    downloadButton.disabled =
+      asset.isDeleted;
+  }
+}
+
+
+/* =========================================================
+   PREVIEW
+========================================================= */
+
+function previewAssetManagerItem(
+  assetId
+){
+  const asset =
+    AssetManager.assets.find(
+      item =>
+        normalizeAssetManagerId(
+          item
+        ) ===
+        String(assetId)
+    );
+
+  if(!asset){
     showAlert(
       "error",
-      "Select at least one media asset."
+      "The selected asset could not be found."
     );
 
     return;
   }
 
-  const usableAssets =
-    selectedAssets.filter(
-      item =>
-        Boolean(
-          item.secureUrl ||
-          item.url
-        )
+  const modal =
+    byId(
+      "assetPreviewModal"
     );
 
-  if(!usableAssets.length){
+  const content =
+    byId(
+      "assetPreviewContent"
+    );
+
+  const title =
+    byId(
+      "assetPreviewTitle"
+    );
+
+  const fileUrl =
+    getAssetManagerFileUrl(
+      asset
+    );
+
+  if(
+    !modal ||
+    !content
+  ){
+    if(fileUrl){
+      window.open(
+        fileUrl,
+        "_blank",
+        "noopener,noreferrer"
+      );
+    }
+
+    return;
+  }
+
+  if(title){
+    title.textContent =
+      asset.name;
+  }
+
+  if(
+    asset.mediaType === "image" &&
+    fileUrl
+  ){
+    content.innerHTML = `
+      <img
+        src="${escapeHtml(fileUrl)}"
+        alt="${escapeHtml(
+          asset.altText ||
+          asset.name
+        )}"
+      >
+    `;
+  }else if(
+    asset.mediaType === "video" &&
+    fileUrl
+  ){
+    content.innerHTML = `
+      <video
+        src="${escapeHtml(fileUrl)}"
+        controls
+        autoplay
+        preload="metadata"
+      ></video>
+    `;
+  }else if(
+    asset.mediaType === "audio" &&
+    fileUrl
+  ){
+    content.innerHTML = `
+      <audio
+        src="${escapeHtml(fileUrl)}"
+        controls
+        autoplay
+      ></audio>
+    `;
+  }else if(fileUrl){
+    content.innerHTML = `
+      <iframe
+        src="${escapeHtml(fileUrl)}"
+        title="${escapeHtml(
+          asset.name
+        )}"
+      ></iframe>
+    `;
+  }else{
+    content.innerHTML = `
+      <div class="studio-empty-workspace">
+        <h3>
+          Preview unavailable
+        </h3>
+
+        <p>
+          This asset does not have a usable file URL.
+        </p>
+      </div>
+    `;
+  }
+
+  modal.classList.add(
+    "show"
+  );
+
+  modal.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+  document.body.classList.add(
+    "modal-open"
+  );
+}
+
+
+function closeAssetManagerPreview(){
+  const modal =
+    byId(
+      "assetPreviewModal"
+    );
+
+  const content =
+    byId(
+      "assetPreviewContent"
+    );
+
+  if(content){
+    content
+      .querySelectorAll(
+        "video, audio"
+      )
+      .forEach(
+        player => {
+          player.pause();
+        }
+      );
+
+    content.innerHTML =
+      "";
+  }
+
+  modal?.classList.remove(
+    "show"
+  );
+
+  modal?.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  document.body.classList.remove(
+    "modal-open"
+  );
+}
+
+
+/* =========================================================
+   UPLOADS
+========================================================= */
+
+function openAssetManagerFilePicker(){
+  if(AssetManager.uploading){
+    showAlert(
+      "info",
+      "An upload is already in progress."
+    );
+
+    return;
+  }
+
+  byId(
+    "assetFileInput"
+  )?.click();
+}
+
+
+function validateAssetManagerFile(
+  file
+){
+  const maximumSize =
+    100 *
+    1024 *
+    1024;
+
+  if(!(file instanceof File)){
+    return {
+      valid:false,
+      message:
+        "The selected upload is not a valid file."
+    };
+  }
+
+  if(file.size > maximumSize){
+    return {
+      valid:false,
+      message:
+        `${file.name} exceeds the 100 MB upload limit.`
+    };
+  }
+
+  return {
+    valid:true,
+    message:""
+  };
+}
+
+
+function renderAssetManagerUploadQueue(){
+  const container =
+    byId(
+      "assetUploadQueue"
+    );
+
+  if(!container){
+    return;
+  }
+
+  if(!AssetManager.uploadQueue.length){
+    container.innerHTML = `
+      <div class="empty">
+        No uploads in progress.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    AssetManager.uploadQueue.map(
+      entry => `
+        <article
+          class="asset-upload-item ${escapeHtml(
+            entry.status
+          )}"
+        >
+          <div class="asset-upload-item-head">
+            <strong>
+              ${escapeHtml(
+                entry.name
+              )}
+            </strong>
+
+            <span>
+              ${Math.max(
+                0,
+                Math.min(
+                  100,
+                  Number(
+                    entry.progress ||
+                    0
+                  )
+                )
+              )}%
+            </span>
+          </div>
+
+          <div class="asset-upload-progress">
+            <span
+              style="width:${
+                Math.max(
+                  0,
+                  Math.min(
+                    100,
+                    Number(
+                      entry.progress ||
+                      0
+                    )
+                  )
+                )
+              }%"
+            ></span>
+          </div>
+
+          <small>
+            ${escapeHtml(
+              entry.message ||
+              entry.status
+            )}
+          </small>
+        </article>
+      `
+    ).join("");
+}
+
+
+async function uploadAssetManagerFiles(
+  fileList
+){
+  const files =
+    Array.from(
+      fileList ||
+      []
+    ).slice(
+      0,
+      20
+    );
+
+  if(!files.length){
+    return;
+  }
+
+  if(AssetManager.uploading){
+    showAlert(
+      "info",
+      "An upload is already in progress."
+    );
+
+    return;
+  }
+
+  const validFiles = [];
+
+  AssetManager.uploadQueue =
+    files.map(
+      file => {
+        const validation =
+          validateAssetManagerFile(
+            file
+          );
+
+        if(validation.valid){
+          validFiles.push(
+            file
+          );
+        }
+
+        return {
+          id:
+            typeof crypto?.randomUUID ===
+              "function"
+              ? crypto.randomUUID()
+              : `upload_${Date.now()}_${Math.random()
+                  .toString(36)
+                  .slice(2)}`,
+
+          name:
+            file.name,
+
+          status:
+            validation.valid
+              ? "queued"
+              : "failed",
+
+          progress:
+            validation.valid
+              ? 0
+              : 100,
+
+          message:
+            validation.valid
+              ? "Waiting to upload"
+              : validation.message
+        };
+      }
+    );
+
+  renderAssetManagerUploadQueue();
+
+  if(!validFiles.length){
     showAlert(
       "error",
-      "The selected assets do not contain usable file URLs."
+      "None of the selected files can be uploaded."
+    );
+
+    return;
+  }
+
+  AssetManager.uploading =
+    true;
+
+  const formData =
+    new FormData();
+
+  validFiles.forEach(
+    file => {
+      formData.append(
+        "files",
+        file,
+        file.name
+      );
+    }
+  );
+
+  formData.append(
+    "classId",
+    requireAssetManagerClassId()
+  );
+
+  formData.append(
+    "source",
+    "class-builder-asset-manager"
+  );
+
+  if(AssetManager.folderId){
+    formData.append(
+      "folderId",
+      AssetManager.folderId
+    );
+  }
+
+  AssetManager.uploadQueue
+    .filter(
+      entry =>
+        entry.status === "queued"
+    )
+    .forEach(
+      entry => {
+        entry.status =
+          "uploading";
+
+        entry.progress =
+          35;
+
+        entry.message =
+          "Uploading";
+      }
+    );
+
+  renderAssetManagerUploadQueue();
+
+  try{
+    const data =
+      await assetManagerRequest(
+        "/upload-multiple",
+        {
+          method:"POST",
+          body:
+            formData
+        }
+      );
+
+    const uploadedNames =
+      new Set(
+        (
+          Array.isArray(
+            data.uploaded
+          )
+            ? data.uploaded
+            : []
+        ).map(
+          item =>
+            String(
+              item.originalName ||
+              item.name ||
+              ""
+            )
+        )
+      );
+
+    const failures =
+      new Map(
+        (
+          Array.isArray(
+            data.failed
+          )
+            ? data.failed
+            : []
+        ).map(
+          item => [
+            String(
+              item.name ||
+              ""
+            ),
+            String(
+              item.message ||
+              "Upload failed."
+            )
+          ]
+        )
+      );
+
+    AssetManager.uploadQueue.forEach(
+      entry => {
+        if(
+          entry.status ===
+          "failed"
+        ){
+          return;
+        }
+
+        if(
+          failures.has(
+            entry.name
+          )
+        ){
+          entry.status =
+            "failed";
+
+          entry.progress =
+            100;
+
+          entry.message =
+            failures.get(
+              entry.name
+            );
+
+          return;
+        }
+
+        entry.status =
+          "completed";
+
+        entry.progress =
+          100;
+
+        entry.message =
+          uploadedNames.has(
+            entry.name
+          )
+            ? "Uploaded"
+            : "Upload completed";
+      }
+    );
+
+    renderAssetManagerUploadQueue();
+
+    await refreshAssetManager();
+
+    const uploadedCount =
+      Number(
+        data.summary?.uploaded ||
+        data.uploaded?.length ||
+        0
+      );
+
+    const failedCount =
+      Number(
+        data.summary?.failed ||
+        data.failed?.length ||
+        0
+      );
+
+    showAlert(
+      uploadedCount
+        ? "success"
+        : "error",
+
+      uploadedCount
+        ? `${uploadedCount} ${
+            uploadedCount === 1
+              ? "asset was"
+              : "assets were"
+          } uploaded.${
+            failedCount
+              ? ` ${failedCount} failed.`
+              : ""
+          }`
+        : "No assets were uploaded."
+    );
+  }catch(error){
+    console.error(
+      "Asset upload error:",
+      error
+    );
+
+    AssetManager.uploadQueue
+      .filter(
+        entry =>
+          entry.status ===
+          "uploading"
+      )
+      .forEach(
+        entry => {
+          entry.status =
+            "failed";
+
+          entry.progress =
+            100;
+
+          entry.message =
+            error?.message ||
+            "Upload failed.";
+        }
+      );
+
+    renderAssetManagerUploadQueue();
+
+    showAlert(
+      "error",
+      error?.message ||
+      "The selected assets could not be uploaded."
+    );
+  }finally{
+    AssetManager.uploading =
+      false;
+
+    const input =
+      byId(
+        "assetFileInput"
+      );
+
+    if(input){
+      input.value =
+        "";
+    }
+  }
+}
+
+
+/* =========================================================
+   BULK ACTIONS
+========================================================= */
+
+async function performAssetManagerBulkAction(
+  action,
+  {
+    folderId = ""
+  } = {}
+){
+  const ids =
+    Array.from(
+      AssetManager.selectedIds
+    );
+
+  if(!ids.length){
+    showAlert(
+      "error",
+      "Select at least one asset."
+    );
+
+    return false;
+  }
+
+  const body = {
+    action,
+    ids
+  };
+
+  if(action === "move"){
+    body.folderId =
+      folderId ||
+      null;
+  }
+
+  try{
+    await assetManagerRequest(
+      "/bulk",
+      {
+        method:"POST",
+        body
+      }
+    );
+
+    AssetManager.selectedIds.clear();
+
+    AssetManager.inspectedAssetId =
+      "";
+
+    await refreshAssetManager();
+
+    showAlert(
+      "success",
+      action === "delete"
+        ? "Selected assets were moved to Trash."
+        : action === "restore"
+          ? "Selected assets were restored."
+          : action === "favorite"
+            ? "Selected assets were added to Favorites."
+            : action === "unfavorite"
+              ? "Selected assets were removed from Favorites."
+              : "Selected assets were updated."
+    );
+
+    return true;
+  }catch(error){
+    console.error(
+      "Asset bulk action error:",
+      error
+    );
+
+    showAlert(
+      "error",
+      error?.message ||
+      "The selected assets could not be updated."
+    );
+
+    return false;
+  }
+}
+
+
+async function bulkDelete(){
+  if(
+    !AssetManager.selectedIds.size
+  ){
+    return;
+  }
+
+  const confirmed =
+    window.confirm(
+      `Move ${AssetManager.selectedIds.size} selected ${
+        AssetManager.selectedIds.size === 1
+          ? "asset"
+          : "assets"
+      } to Trash?`
+    );
+
+  if(!confirmed){
+    return;
+  }
+
+  await performAssetManagerBulkAction(
+    AssetManager.filter === "trash"
+      ? "restore"
+      : "delete"
+  );
+}
+
+
+async function bulkFavorite(){
+  await performAssetManagerBulkAction(
+    "favorite"
+  );
+}
+
+
+async function moveAssets(
+  folderId
+){
+  await performAssetManagerBulkAction(
+    "move",
+    {
+      folderId
+    }
+  );
+}
+
+
+/* =========================================================
+   SINGLE-ASSET ACTIONS
+========================================================= */
+
+async function renameAssetManagerItem(){
+  const asset =
+    getAssetManagerInspectedAsset();
+
+  if(!asset){
+    return;
+  }
+
+  const name =
+    window.prompt(
+      "Enter the new asset name:",
+      asset.name
+    );
+
+  if(name === null){
+    return;
+  }
+
+  const normalizedName =
+    String(name)
+      .trim()
+      .replace(
+        /\s+/g,
+        " "
+      );
+
+  if(!normalizedName){
+    showAlert(
+      "error",
+      "The asset name cannot be empty."
+    );
+
+    return;
+  }
+
+  try{
+    const data =
+      await assetManagerRequest(
+        `/${encodeURIComponent(
+          normalizeAssetManagerId(
+            asset
+          )
+        )}`,
+        {
+          method:"PATCH",
+
+          body:{
+            name:
+              normalizedName
+          }
+        }
+      );
+
+    const updated =
+      normalizeAssetManagerItem(
+        data.item ||
+        {
+          ...asset,
+          name:
+            normalizedName
+        }
+      );
+
+    const index =
+      AssetManager.assets.findIndex(
+        item =>
+          normalizeAssetManagerId(
+            item
+          ) ===
+          normalizeAssetManagerId(
+            updated
+          )
+      );
+
+    if(index >= 0){
+      AssetManager.assets[index] =
+        updated;
+    }
+
+    renderAssetGrid();
+    renderAssetManagerInspector();
+
+    showAlert(
+      "success",
+      "The asset was renamed."
+    );
+  }catch(error){
+    showAlert(
+      "error",
+      error?.message ||
+      "The asset could not be renamed."
+    );
+  }
+}
+
+
+async function deleteAssetManagerItem(){
+  const asset =
+    getAssetManagerInspectedAsset();
+
+  if(!asset){
+    return;
+  }
+
+  const confirmed =
+    window.confirm(
+      asset.isDeleted
+        ? `Restore "${asset.name}" from Trash?`
+        : `Move "${asset.name}" to Trash?`
+    );
+
+  if(!confirmed){
+    return;
+  }
+
+  try{
+    if(asset.isDeleted){
+      await assetManagerRequest(
+        `/${encodeURIComponent(
+          normalizeAssetManagerId(
+            asset
+          )
+        )}/restore`,
+        {
+          method:"POST"
+        }
+      );
+    }else{
+      await assetManagerRequest(
+        `/${encodeURIComponent(
+          normalizeAssetManagerId(
+            asset
+          )
+        )}`,
+        {
+          method:"DELETE"
+        }
+      );
+    }
+
+    AssetManager.selectedIds.delete(
+      normalizeAssetManagerId(
+        asset
+      )
+    );
+
+    AssetManager.inspectedAssetId =
+      "";
+
+    await refreshAssetManager();
+
+    showAlert(
+      "success",
+      asset.isDeleted
+        ? "The asset was restored."
+        : "The asset was moved to Trash."
+    );
+  }catch(error){
+    showAlert(
+      "error",
+      error?.message ||
+      "The asset could not be updated."
+    );
+  }
+}
+
+
+async function downloadAssetManagerItem(){
+  const asset =
+    getAssetManagerInspectedAsset();
+
+  if(!asset){
+    return;
+  }
+
+  try{
+    const data =
+      await assetManagerRequest(
+        `/${encodeURIComponent(
+          normalizeAssetManagerId(
+            asset
+          )
+        )}/download`,
+        {
+          method:"POST"
+        }
+      );
+
+    const url =
+      String(
+        data.download?.url ||
+        getAssetManagerFileUrl(
+          asset
+        )
+      ).trim();
+
+    if(!url){
+      throw new Error(
+        "The asset does not have a download URL."
+      );
+    }
+
+    window.open(
+      url,
+      "_blank",
+      "noopener,noreferrer"
+    );
+
+    asset.downloadCount =
+      Number(
+        data.download?.downloadCount ||
+        asset.downloadCount ||
+        0
+      );
+
+    renderAssetManagerInspector();
+  }catch(error){
+    showAlert(
+      "error",
+      error?.message ||
+      "The asset could not be downloaded."
+    );
+  }
+}
+
+
+/* =========================================================
+   CREATE FOLDER
+========================================================= */
+
+async function createAssetManagerFolder(){
+  const modal =
+    byId(
+      "assetFolderModal"
+    );
+
+  const input =
+    byId(
+      "assetFolderNameInput"
+    );
+
+  if(
+    modal &&
+    input
+  ){
+    input.value =
+      "";
+
+    modal.classList.add(
+      "show"
+    );
+
+    modal.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+
+    document.body.classList.add(
+      "modal-open"
+    );
+
+    window.requestAnimationFrame(
+      () => {
+        input.focus();
+      }
+    );
+
+    return;
+  }
+
+  const name =
+    window.prompt(
+      "Enter the new folder name:"
+    );
+
+  if(name){
+    await submitAssetManagerFolder(
+      name
+    );
+  }
+}
+
+
+async function submitAssetManagerFolder(
+  suppliedName
+){
+  const input =
+    byId(
+      "assetFolderNameInput"
+    );
+
+  const name =
+    String(
+      suppliedName ??
+      input?.value ??
+      ""
+    )
+      .trim()
+      .replace(
+        /\s+/g,
+        " "
+      );
+
+  if(!name){
+    showAlert(
+      "error",
+      "Enter a folder name."
+    );
+
+    input?.focus();
+
+    return;
+  }
+
+  try{
+    await assetManagerRequest(
+      "/folders",
+      {
+        method:"POST",
+
+        body:{
+          classId:
+            requireAssetManagerClassId(),
+
+          parentFolderId:
+            null,
+
+          name
+        }
+      }
+    );
+
+    closeAssetManagerFolderModal();
+
+    await loadAssetManagerFolders();
+
+    showAlert(
+      "success",
+      "The folder was created."
+    );
+  }catch(error){
+    showAlert(
+      "error",
+      error?.message ||
+      "The folder could not be created."
+    );
+  }
+}
+
+
+function closeAssetManagerFolderModal(){
+  const modal =
+    byId(
+      "assetFolderModal"
+    );
+
+  modal?.classList.remove(
+    "show"
+  );
+
+  modal?.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  document.body.classList.remove(
+    "modal-open"
+  );
+}
+
+
+/* =========================================================
+   STORAGE AND PAGINATION
+========================================================= */
+
+function renderAssetManagerStorage(){
+  const used =
+    byId(
+      "assetStorageUsed"
+    );
+
+  const remaining =
+    byId(
+      "assetStorageRemaining"
+    );
+
+  const progress =
+    byId(
+      "assetStorageProgress"
+    );
+
+  if(used){
+    used.textContent =
+      `${formatAssetManagerBytes(
+        AssetManager.storage.totalSize
+      )} used`;
+  }
+
+  /*
+    The backend supplies usage only, not an account quota.
+    Do not display a fabricated remaining amount.
+  */
+  if(remaining){
+    remaining.textContent =
+      `${AssetManager.storage.totalCount} ${
+        AssetManager.storage.totalCount === 1
+          ? "file"
+          : "files"
+      }`;
+  }
+
+  if(progress){
+    progress.style.width =
+      AssetManager.storage.totalSize > 0
+        ? "100%"
+        : "0%";
+
+    progress.setAttribute(
+      "aria-label",
+      `${formatAssetManagerBytes(
+        AssetManager.storage.totalSize
+      )} currently used`
+    );
+  }
+}
+
+
+function renderAssetManagerPagination(){
+  const indicator =
+    byId(
+      "assetPageIndicator"
+    );
+
+  const previous =
+    byId(
+      "assetPreviousPage"
+    );
+
+  const next =
+    byId(
+      "assetNextPage"
+    );
+
+  if(indicator){
+    indicator.textContent =
+      `Page ${AssetManager.page} of ${AssetManager.totalPages}`;
+  }
+
+  if(previous){
+    previous.disabled =
+      AssetManager.loading ||
+      AssetManager.page <= 1;
+  }
+
+  if(next){
+    next.disabled =
+      AssetManager.loading ||
+      !AssetManager.hasMore;
+  }
+}
+
+
+async function changeAssetManagerPage(
+  page
+){
+  const nextPage =
+    Math.min(
+      AssetManager.totalPages,
+      Math.max(
+        1,
+        Number(page || 1)
+      )
+    );
+
+  if(
+    nextPage ===
+    AssetManager.page
+  ){
+    return;
+  }
+
+  AssetManager.page =
+    nextPage;
+
+  await loadAssetLibrary();
+
+  byId(
+    "assetGrid"
+  )?.scrollIntoView({
+    behavior:"smooth",
+    block:"start"
+  });
+}
+
+
+/* =========================================================
+   USE ASSET IN CONTENT CANVAS
+========================================================= */
+
+async function trackAssetManagerUsage(
+  asset,
+  block
+){
+  const mediaId =
+    normalizeAssetManagerId(
+      asset
+    );
+
+  if(!mediaId){
+    return;
+  }
+
+  try{
+    const data =
+      await assetManagerRequest(
+        `/${encodeURIComponent(
+          mediaId
+        )}/usage`,
+        {
+          method:"POST",
+
+          body:{
+            moduleType:
+              state.activeLessonId
+                ? "lesson"
+                : "class",
+
+            moduleId:
+              state.activeLessonId ||
+              state.classId ||
+              null,
+
+            slideId:
+              "",
+
+            label:
+              String(
+                block?.title ||
+                block?.alt ||
+                block?.name ||
+                asset.name ||
+                "Class Builder asset"
+              ).slice(
+                0,
+                180
+              )
+          }
+        }
+      );
+
+    asset.usageCount =
+      Math.max(
+        0,
+        Number(
+          data.usageCount ||
+          asset.usageCount ||
+          0
+        )
+      );
+  }catch(error){
+    console.warn(
+      "Asset usage tracking failed:",
+      error
+    );
+  }
+}
+
+
+async function useAssetManagerItem(){
+  const asset =
+    getAssetManagerInspectedAsset();
+
+  if(!asset){
+    showAlert(
+      "error",
+      "Select an asset first."
+    );
+
+    return;
+  }
+
+  if(asset.isDeleted){
+    showAlert(
+      "error",
+      "Restore this asset before using it."
+    );
+
+    return;
+  }
+
+  const url =
+    getAssetManagerFileUrl(
+      asset
+    );
+
+  if(!url){
+    showAlert(
+      "error",
+      "The selected asset does not have a usable URL."
     );
 
     return;
@@ -42619,121 +45398,508 @@ async function insertSelectedProductionMedia(){
   try{
     pushElementorHistory();
 
-    const insertedBlocks = [];
-
-    for(
-      const mediaItem
-      of usableAssets
-    ){
-      const block =
-        createElementorBlockFromMedia(
-          mediaItem
-        );
-
-      block.order =
-        elementorEditor
-          .blocks
-          .length;
-
-      elementorEditor
-        .blocks
-        .push(
-          block
-        );
-
-      insertedBlocks.push(
-        {
-          mediaItem,
-          block
-        }
+    const block =
+      createElementorBlockFromMedia(
+        asset
       );
-    }
 
-    const lastInserted =
-      insertedBlocks[
-        insertedBlocks.length - 1
-      ];
+    block.order =
+      elementorEditor.blocks.length;
+
+    elementorEditor.blocks.push(
+      block
+    );
 
     elementorEditor.selectedBlockId =
-      lastInserted.block.id;
+      block.id;
 
     markElementorDirty();
-
     renderElementorBuilder();
 
     openBuilderSection(
       "content"
     );
 
-    window.requestAnimationFrame(
-      () => {
-        const element =
-          document.querySelector(
-            `[data-elementor-block-id="${
-              CSS.escape(
-                lastInserted.block.id
-              )
-            }"]`
-          );
-
-        element?.scrollIntoView({
-          behavior:
-            "smooth",
-
-          block:
-            "center"
-        });
-
-        focusElementorBlock(
-          lastInserted.block.id
-        );
-      }
-    );
-
-    for(
-      const {
-        mediaItem,
-        block
-      }
-      of insertedBlocks
-    ){
-      trackMediaLibraryUsage(
-        mediaItem,
-        block
-      );
-    }
-
-    if(
-      typeof productionMediaBrowser
-        ?.clearSelection ===
-      "function"
-    ){
-      productionMediaBrowser
-        .clearSelection();
-    }
-
-    updateProductionMediaSelectionUi(
-      []
+    await trackAssetManagerUsage(
+      asset,
+      block
     );
 
     showAlert(
       "success",
-      insertedBlocks.length === 1
-        ? "The media asset was added to the canvas."
-        : `${insertedBlocks.length} media assets were added to the canvas.`
+      `${asset.name} was added to the content canvas.`
     );
   }catch(error){
     console.error(
-      "Insert production media error:",
+      "Use asset error:",
       error
     );
 
     showAlert(
       "error",
       error?.message ||
-      "The selected media could not be added to the canvas."
+      "The asset could not be added to the content canvas."
     );
   }
+}
+
+
+/* =========================================================
+   VIEW CONTROLS AND DRAG/DROP
+========================================================= */
+
+function setAssetManagerView(
+  view
+){
+  AssetManager.view =
+    view === "list"
+      ? "list"
+      : "grid";
+
+  byId(
+    "assetGridViewButton"
+  )?.classList.toggle(
+    "active",
+    AssetManager.view === "grid"
+  );
+
+  byId(
+    "assetListViewButton"
+  )?.classList.toggle(
+    "active",
+    AssetManager.view === "list"
+  );
+
+  renderAssetGrid();
+}
+
+
+function showAssetManagerDropZone(){
+  byId(
+    "assetDropZone"
+  )?.classList.remove(
+    "hidden"
+  );
+}
+
+
+function hideAssetManagerDropZone(){
+  AssetManager.dragDepth =
+    0;
+
+  byId(
+    "assetDropZone"
+  )?.classList.add(
+    "hidden"
+  );
+}
+
+
+function initializeAssetManagerDragAndDrop(){
+  const section =
+    byId(
+      "section-media"
+    );
+
+  if(!section){
+    return;
+  }
+
+  section.addEventListener(
+    "dragenter",
+    event => {
+      if(
+        !event.dataTransfer?.types?.includes(
+          "Files"
+        )
+      ){
+        return;
+      }
+
+      event.preventDefault();
+
+      AssetManager.dragDepth +=
+        1;
+
+      showAssetManagerDropZone();
+    }
+  );
+
+  section.addEventListener(
+    "dragover",
+    event => {
+      if(
+        !event.dataTransfer?.types?.includes(
+          "Files"
+        )
+      ){
+        return;
+      }
+
+      event.preventDefault();
+
+      event.dataTransfer.dropEffect =
+        "copy";
+    }
+  );
+
+  section.addEventListener(
+    "dragleave",
+    event => {
+      if(
+        !event.dataTransfer?.types?.includes(
+          "Files"
+        )
+      ){
+        return;
+      }
+
+      AssetManager.dragDepth =
+        Math.max(
+          0,
+          AssetManager.dragDepth - 1
+        );
+
+      if(
+        AssetManager.dragDepth ===
+        0
+      ){
+        hideAssetManagerDropZone();
+      }
+    }
+  );
+
+  section.addEventListener(
+    "drop",
+    event => {
+      if(
+        !event.dataTransfer?.files?.length
+      ){
+        return;
+      }
+
+      event.preventDefault();
+
+      hideAssetManagerDropZone();
+
+      uploadAssetManagerFiles(
+        event.dataTransfer.files
+      );
+    }
+  );
+}
+
+
+/* =========================================================
+   EVENT BINDING
+========================================================= */
+
+function bindAssetManagerEvents(){
+  byId(
+    "assetRefreshButton"
+  )?.addEventListener(
+    "click",
+    refreshAssetManager
+  );
+
+  byId(
+    "assetUploadButton"
+  )?.addEventListener(
+    "click",
+    openAssetManagerFilePicker
+  );
+
+  byId(
+    "assetUploadEmptyButton"
+  )?.addEventListener(
+    "click",
+    openAssetManagerFilePicker
+  );
+
+  byId(
+    "assetNewFolderButton"
+  )?.addEventListener(
+    "click",
+    createAssetManagerFolder
+  );
+
+  byId(
+    "assetGridViewButton"
+  )?.addEventListener(
+    "click",
+    () => {
+      setAssetManagerView(
+        "grid"
+      );
+    }
+  );
+
+  byId(
+    "assetListViewButton"
+  )?.addEventListener(
+    "click",
+    () => {
+      setAssetManagerView(
+        "list"
+      );
+    }
+  );
+
+  byId(
+    "assetSortSelect"
+  )?.addEventListener(
+    "change",
+    event => {
+      changeAssetSort(
+        event.target.value
+      );
+    }
+  );
+
+  document
+    .querySelectorAll(
+      "#section-media .asset-side-item"
+    )
+    .forEach(
+      button => {
+        button.addEventListener(
+          "click",
+          () => {
+            changeAssetFilter(
+              button.dataset.filter
+            );
+          }
+        );
+      }
+    );
+
+  byId(
+    "assetSelectAllButton"
+  )?.addEventListener(
+    "click",
+    selectAllAssetManagerItems
+  );
+
+  byId(
+    "assetClearSelectionButton"
+  )?.addEventListener(
+    "click",
+    clearAssetManagerSelection
+  );
+
+  byId(
+    "assetDeleteSelectionButton"
+  )?.addEventListener(
+    "click",
+    bulkDelete
+  );
+
+  byId(
+    "assetUseButton"
+  )?.addEventListener(
+    "click",
+    useAssetManagerItem
+  );
+
+  byId(
+    "assetRenameButton"
+  )?.addEventListener(
+    "click",
+    renameAssetManagerItem
+  );
+
+  byId(
+    "assetDownloadButton"
+  )?.addEventListener(
+    "click",
+    downloadAssetManagerItem
+  );
+
+  byId(
+    "assetDeleteButton"
+  )?.addEventListener(
+    "click",
+    deleteAssetManagerItem
+  );
+
+  byId(
+    "assetPreviousPage"
+  )?.addEventListener(
+    "click",
+    () => {
+      changeAssetManagerPage(
+        AssetManager.page - 1
+      );
+    }
+  );
+
+  byId(
+    "assetNextPage"
+  )?.addEventListener(
+    "click",
+    () => {
+      changeAssetManagerPage(
+        AssetManager.page + 1
+      );
+    }
+  );
+
+  byId(
+    "assetFileInput"
+  )?.addEventListener(
+    "change",
+    event => {
+      uploadAssetManagerFiles(
+        event.target.files
+      );
+    }
+  );
+
+  byId(
+    "assetClearQueue"
+  )?.addEventListener(
+    "click",
+    () => {
+      AssetManager.uploadQueue =
+        AssetManager.uploadQueue.filter(
+          entry =>
+            ![
+              "completed",
+              "failed"
+            ].includes(
+              entry.status
+            )
+        );
+
+      renderAssetManagerUploadQueue();
+    }
+  );
+
+  byId(
+    "assetFolderCreateConfirm"
+  )?.addEventListener(
+    "click",
+    () => {
+      submitAssetManagerFolder();
+    }
+  );
+
+  byId(
+    "assetFolderNameInput"
+  )?.addEventListener(
+    "keydown",
+    event => {
+      if(event.key === "Enter"){
+        event.preventDefault();
+
+        submitAssetManagerFolder();
+      }
+    }
+  );
+
+  initializeAssetSearch();
+  initializeAssetManagerDragAndDrop();
+
+  setAssetManagerView(
+    AssetManager.view
+  );
+
+  updateAssetManagerSelectionToolbar();
+}
+
+
+/* =========================================================
+   INITIALIZATION
+========================================================= */
+
+async function initializeAssetManager(){
+  if(AssetManager.initialized){
+    return AssetManager;
+  }
+
+  if(AssetManager.initializing){
+    return AssetManager;
+  }
+
+  AssetManager.initializing =
+    true;
+
+  try{
+    requireAssetManagerClassId();
+
+    bindAssetManagerEvents();
+
+    await refreshAssetManager();
+
+    AssetManager.initialized =
+      true;
+
+    return AssetManager;
+  }catch(error){
+    console.error(
+      "Asset Manager initialization error:",
+      error
+    );
+
+    showAlert(
+      "error",
+      error?.message ||
+      "The Asset Manager could not be initialized."
+    );
+
+    throw error;
+  }finally{
+    AssetManager.initializing =
+      false;
+  }
+}
+
+
+/*
+  Backwards-compatible names used by earlier builder code.
+*/
+
+async function initializeProductionMediaLibrary(){
+  return initializeAssetManager();
+}
+
+
+async function refreshProductionMediaLibrary(){
+  return refreshAssetManager();
+}
+
+
+async function retryProductionMediaLibrary(){
+  AssetManager.initialized =
+    false;
+
+  return initializeAssetManager();
+}
+
+
+async function insertSelectedProductionMedia(){
+  const selected =
+    getAssetManagerSelectedAssets();
+
+  if(!selected.length){
+    showAlert(
+      "error",
+      "Select at least one asset."
+    );
+
+    return;
+  }
+
+  for(const asset of selected){
+    AssetManager.inspectedAssetId =
+      normalizeAssetManagerId(
+        asset
+      );
+
+    await useAssetManagerItem();
+  }
+
+  clearAssetManagerSelection();
 }
    
 function openBuilderSection(requestedTab = "overview"){
