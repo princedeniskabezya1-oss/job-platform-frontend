@@ -55861,6 +55861,167 @@ coming next.
 
 }
 
+/* ======================================================
+   QUESTION SETTINGS PANEL
+====================================================== */
+
+function renderQuizQuestionSettings(){
+
+    const container =
+        byId("quizQuestionSettings");
+
+    if(!container){
+        return;
+    }
+
+    if(
+        !quizBuilder.quiz ||
+        !Array.isArray(quizBuilder.quiz.questions)
+    ){
+
+        container.innerHTML = `
+            <div class="empty">
+                No quiz loaded.
+            </div>
+        `;
+
+        return;
+    }
+
+    const question =
+        quizBuilder.quiz.questions.find(
+            q => q.id === quizBuilder.selectedQuestion
+        );
+
+    if(!question){
+
+        container.innerHTML = `
+            <div class="empty">
+                Select a question to edit its settings.
+            </div>
+        `;
+
+        return;
+    }
+
+    container.innerHTML = `
+
+<div class="field">
+
+<label>
+
+Points
+
+</label>
+
+<input
+type="number"
+min="1"
+value="${Number(question.points || 1)}"
+oninput="
+updateQuizQuestionField(
+'points',
+Number(this.value)||1
+)
+">
+
+</div>
+
+
+<div class="field">
+
+<label>
+
+Difficulty
+
+</label>
+
+<select
+onchange="
+updateQuizQuestionField(
+'difficulty',
+this.value
+)
+">
+
+<option value="easy"
+${question.difficulty==="easy"?"selected":""}>
+Easy
+</option>
+
+<option value="medium"
+${question.difficulty==="medium"?"selected":""}>
+Medium
+</option>
+
+<option value="hard"
+${question.difficulty==="hard"?"selected":""}>
+Hard
+</option>
+
+</select>
+
+</div>
+
+
+<div class="field">
+
+<label>
+
+Explanation
+
+</label>
+
+<textarea
+
+placeholder="Explanation shown after submission"
+
+oninput="
+updateQuizQuestionField(
+'explanation',
+this.value
+)
+"
+
+>${escapeHtml(question.explanation || "")}</textarea>
+
+</div>
+
+
+<div class="field">
+
+<label>
+
+Required
+
+</label>
+
+<label style="display:flex;gap:8px;align-items:center;">
+
+<input
+type="checkbox"
+
+${question.required!==false?"checked":""}
+
+onchange="
+updateQuizQuestionField(
+'required',
+this.checked
+)
+">
+
+<span>
+Students must answer this question
+</span>
+
+</label>
+
+</div>
+
+`;
+
+}
+
 function updateQuizQuestionField(
 field,
 value
@@ -55883,6 +56044,10 @@ question[field]=value;
 quizBuilder.dirty=true;
 
 renderQuizQuestionList();
+
+renderQuizQuestionEditor();
+
+renderQuizQuestionSettings();
 
 }
 
