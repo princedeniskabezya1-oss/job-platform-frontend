@@ -55119,45 +55119,224 @@ function renderQuizzes(){
 
 async function openQuizBuilder(quizId){
 
-    const quiz =
-        state.quizzes.find(
-            q=>String(q._id)===String(quizId)
-        );
+  const normalizedQuizId =
+    String(quizId || "").trim();
 
-    if(!quiz){
+  if(!normalizedQuizId){
 
-        showAlert(
-            "error",
-            "Quiz not found."
-        );
-
-        return;
-
-    }
-
-    quizBuilder.quiz =
-        JSON.parse(
-            JSON.stringify(
-                quiz
-            )
-        );
-
-    quizBuilder.selectedQuestion=null;
-
-    setText(
-        "quizBuilderTitle",
-        quiz.title
+    showAlert(
+      "error",
+      "Missing quiz ID."
     );
 
-    renderQuizQuestionList();
+    return;
 
-    renderQuizQuestionEditor();
+  }
+
+
+  const quiz =
+    state.quizzes.find(item => {
+      return String(item?._id || "") === normalizedQuizId;
+    });
+
+
+  if(!quiz){
+
+    console.error(
+      "openQuizBuilder: Quiz not found:",
+      normalizedQuizId
+    );
+
+    showAlert(
+      "error",
+      "Quiz not found. Refresh the page and try again."
+    );
+
+    return;
+
+  }
+
+
+  /*
+    Create a separate working copy so unsaved changes
+    do not immediately modify state.quizzes.
+  */
+  try{
+
+    quizBuilder.quiz =
+      typeof structuredClone === "function"
+        ? structuredClone(quiz)
+        : JSON.parse(JSON.stringify(quiz));
+
+  }catch(error){
+
+    console.error(
+      "openQuizBuilder clone error:",
+      error
+    );
+
+    quizBuilder.quiz =
+      JSON.parse(JSON.stringify(quiz));
+
+  }
+
+
+  /*
+    Guarantee that questions is always an array.
+  */
+  if(
+    !Array.isArray(
+      quizBuilder.quiz.questions
+    )
+  ){
+
+    quizBuilder.quiz.questions = [];
+
+  }
+
+
+  /*
+    Normalize every question.
+
+    Existing backend questions may use _id.
+    Newly created frontend questions use id.
+  */
+  quizBuilder.quiz.questions =
+    quizBuilder.quiz.questions.map(
+      (question, index) => {
+
+        const questionId =
+          question?.id ||
+          question?._id ||
+          `quiz-question-${Date.now()}-${index}`;
+
+
+        return {
+
+          ...question,
+
+          id:
+            String(questionId),
+
+          type:
+            String(
+              question?.type ||
+              "multiple_choice"
+            ),
+
+          question:
+            String(
+              question?.question ||
+              question?.text ||
+              ""
+            ),
+
+          options:
+            Array.isArray(question?.options)
+              ? [...question.options]
+              : [],
+
+          points:
+            Number.isFinite(
+              Number(question?.points)
+            )
+              ? Number(question.points)
+              : 1
+
+        };
+
+      }
+    );
+
+
+  /*
+    Automatically select the first question.
+  */
+  quizBuilder.selectedQuestion =
+    quizBuilder.quiz.questions.length
+      ? quizBuilder.quiz.questions[0].id
+      : null;
+
+
+  quizBuilder.dirty = false;
+  quizBuilder.saving = false;
+  quizBuilder.mode = "edit";
+
+
+  setText(
+    "quizBuilderTitle",
+    quizBuilder.quiz.title ||
+    "Untitled quiz"
+  );
+
+
+  const questionCount =
+    quizBuilder.quiz.questions.length;
+
+
+  setText(
+    "quizBuilderQuestionCount",
+    `${questionCount} ${
+      questionCount === 1
+        ? "question"
+        : "questions"
+    }`
+  );
+
+
+  setText(
+    "quizBuilderSaveStatus",
+    "No unsaved changes"
+  );
+
+
+  const saveDot =
+    byId("quizBuilderSaveDot");
+
+  if(saveDot){
+
+    saveDot.classList.remove(
+      "is-dirty",
+      "is-saving",
+      "is-saved",
+      "is-error"
+    );
+
+  }
+
+
+  renderQuizQuestionList();
+
+  renderQuizQuestionEditor();
+
+
+  /*
+    This function has not been added yet.
+    The check prevents the page from crashing.
+  */
+  if(
+    typeof renderQuizQuestionSettings ===
+    "function"
+  ){
 
     renderQuizQuestionSettings();
 
-    openModal(
-        "quizBuilderModal"
-    );
+  }
+
+
+  if(
+    typeof updateQuizBuilderQuestionActions ===
+    "function"
+  ){
+
+    updateQuizBuilderQuestionActions();
+
+  }
+
+
+  openModal(
+    "quizBuilderModal"
+  );
 
 }
 
@@ -55175,8 +55354,13 @@ function addQuizQuestion(){
 
     const question={
 
-        id:
-            crypto.randomUUID(),
+id:
+  typeof crypto !== "undefined" &&
+  typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `quiz-question-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 10)}`,
 
         type:"multiple_choice",
 
@@ -55284,13 +55468,69 @@ question.question
 
 function selectQuizQuestion(id){
 
-    quizBuilder.selectedQuestion=id;
+  const normalizedQuestionId =
+    String(id || "").trim();
 
-    renderQuizQuestionList();
+  if(
+    !quizBuilder.quiz ||
+    !Array.isArray(
+      quizBuilder.quiz.questions
+    )
+  ){
 
-    renderQuizQuestionEditor();
+    return;
+
+  }
+
+
+  const questionExists =
+    quizBuilder.quiz.questions.some(
+      question => {
+        return String(question?.id || "") ===
+          normalizedQuestionId;
+      }
+    );
+
+
+  if(!questionExists){
+
+    console.warn(
+      "selectQuizQuestion: Question not found:",
+      normalizedQuestionId
+    );
+
+    return;
+
+  }
+
+
+  quizBuilder.selectedQuestion =
+    normalizedQuestionId;
+
+
+  renderQuizQuestionList();
+
+  renderQuizQuestionEditor();
+
+
+  if(
+    typeof renderQuizQuestionSettings ===
+    "function"
+  ){
 
     renderQuizQuestionSettings();
+
+  }
+
+
+  if(
+    typeof updateQuizBuilderQuestionActions ===
+    "function"
+  ){
+
+    updateQuizBuilderQuestionActions();
+
+  }
 
 }
 
