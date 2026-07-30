@@ -43361,6 +43361,36 @@ function synchronizeAiftPresentationTopbar(
   }
 }
 
+/* =========================================================
+   GLOBAL HELPERS
+========================================================= */
+
+function debounce(
+  callback,
+  delay = 200
+){
+
+  let timeoutId;
+
+  return function(...args){
+
+    const context = this;
+
+    window.clearTimeout(timeoutId);
+
+    timeoutId = window.setTimeout(
+      () => {
+        callback.apply(
+          context,
+          args
+        );
+      },
+      delay
+    );
+
+  };
+
+}
 
 /* =========================================================
    PRODUCTION ASSET MANAGER
@@ -47759,15 +47789,26 @@ byId(
 );
 
 
+let assetManagerResizeTimer = null;
+
 window.addEventListener(
   "resize",
-  debounce(
-    () => {
-      resetAssetManagerVisibleCount();
-      renderAssetGrid();
-    },
-    160
-  )
+  () => {
+
+    window.clearTimeout(
+      assetManagerResizeTimer
+    );
+
+    assetManagerResizeTimer =
+      window.setTimeout(
+        () => {
+          resetAssetManagerVisibleCount();
+          renderAssetGrid();
+        },
+        160
+      );
+
+  }
 );
 
 
