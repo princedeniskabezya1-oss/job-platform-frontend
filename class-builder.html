@@ -21468,6 +21468,28 @@ text-align:left;
 
           <button
             type="button"
+            data-builder-tab="question-bank"
+            onclick="openQuestionBank()"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 5h16"></path>
+              <path d="M4 12h16"></path>
+              <path d="M4 19h16"></path>
+              <circle cx="7" cy="5" r="1"></circle>
+              <circle cx="7" cy="12" r="1"></circle>
+              <circle cx="7" cy="19" r="1"></circle>
+            </svg>
+
+            <span>Question Bank</span>
+
+            <small id="sidebarQuestionBankCount">
+              0
+            </small>
+          </button>
+
+
+          <button
+            type="button"
             data-builder-tab="assignments"
             onclick="openBuilderSection('assignments')"
           >
@@ -26550,6 +26572,28 @@ text-align:left;
 </div>
 
 </section>
+
+
+<!-- ==========================================================
+     QUESTION BANK
+========================================================== -->
+
+<section
+    id="section-question-bank"
+    class="section"
+    hidden
+    aria-hidden="true"
+>
+    <div
+        id="questionBankView"
+        class="question-bank-view"
+    >
+        <div class="loading">
+            Loading Question Bank...
+        </div>
+    </div>
+</section>
+
 
       <!-- ======================================================
      ASSIGNMENTS
@@ -44700,6 +44744,7 @@ const CLASS_BUILDER_SECTIONS = new Set([
   "presentations",
   "media",
   "quizzes",
+  "question-bank",
   "assignments",
   "students",
   "analytics",
@@ -55428,21 +55473,49 @@ function closeQuizBuilder(){
 
 function openQuestionBank(){
 
-    byId("quizLibraryView").hidden = true;
+    openBuilderSection(
+        "question-bank"
+    );
 
-    byId("quizEditorView").hidden = true;
+    window.requestAnimationFrame(
+        () => {
 
-    byId("questionBankView").hidden = false;
+            renderQuestionBank();
 
-    renderQuestionBank();
+        }
+    );
 
 }
 
 function closeQuestionBank(){
 
-    byId("questionBankView").hidden = true;
+    openBuilderSection(
+        "quizzes"
+    );
 
-    byId("quizLibraryView").hidden = false;
+    const library =
+        byId(
+            "quizLibraryView"
+        );
+
+    const editor =
+        byId(
+            "quizEditorView"
+        );
+
+    if(editor){
+
+        editor.hidden = true;
+
+    }
+
+    if(library){
+
+        library.hidden = false;
+
+    }
+
+    renderQuizzes();
 
 }
 
@@ -55452,6 +55525,21 @@ function renderQuestionBank(){
         byId(
             "questionBankView"
         );
+
+    if(!container){
+
+        console.error(
+            "Question Bank could not render because #questionBankView is missing."
+        );
+
+        showAlert(
+            "error",
+            "The Question Bank workspace is unavailable."
+        );
+
+        return;
+
+    }
 
     container.innerHTML = `
 
