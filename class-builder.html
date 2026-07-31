@@ -27557,13 +27557,13 @@ body[data-builder-section="presentations"]
           Close
         </button>
 
-        <button
-          type="button"
-          class="primary-btn"
-          onclick="saveQuizDraft(event)"
-        >
-          Save changes
-        </button>
+<button
+  type="button"
+  class="primary-btn"
+  onclick="saveQuizBuilder()"
+>
+  Save changes
+</button>
 
       </div>
 
@@ -55388,11 +55388,11 @@ id:
     quizBuilder.selectedQuestion=
         question.id;
 
-    renderQuizQuestionList();
+markQuizBuilderDirty();
 
-    renderQuizQuestionEditor();
-
-    renderQuizQuestionSettings();
+renderQuizQuestionList();
+renderQuizQuestionEditor();
+renderQuizQuestionSettings();
 
 }
 
@@ -56078,13 +56078,11 @@ function duplicateSelectedQuizQuestion(){
     quizBuilder.selectedQuestion =
         copy.id;
 
-    quizBuilder.dirty = true;
+markQuizBuilderDirty();
 
-    renderQuizQuestionList();
-    renderQuizQuestionEditor();
-    renderQuizQuestionSettings();
-
-    updateQuizBuilderSaveState();
+renderQuizQuestionList();
+renderQuizQuestionEditor();
+renderQuizQuestionSettings();
 
 }
 
@@ -56132,13 +56130,11 @@ function deleteSelectedQuizQuestion(){
             ? quizBuilder.quiz.questions[0].id
             : null;
 
-    quizBuilder.dirty = true;
+markQuizBuilderDirty();
 
-    renderQuizQuestionList();
-    renderQuizQuestionEditor();
-    renderQuizQuestionSettings();
-
-    updateQuizBuilderSaveState();
+renderQuizQuestionList();
+renderQuizQuestionEditor();
+renderQuizQuestionSettings();
 
 }
 
@@ -56209,17 +56205,14 @@ function scheduleQuizAutoSave(){
 
     quizBuilder.autoSaveTimer=
 
-        setTimeout(
-
-            ()=>{
-
-                saveQuizBuilder();
-
-            },
-
-            1800
-
-        );
+setTimeout(
+  () => {
+    saveQuizBuilder({
+      silent: true
+    });
+  },
+  1800
+);
 
 }
    
@@ -56227,85 +56220,203 @@ function scheduleQuizAutoSave(){
    SAVE QUIZ BUILDER
 ====================================================== */
 
-async function saveQuizBuilder(){
+async function saveQuizBuilder(
+  {
+    silent = false
+  } = {}
+){
 
-    if(
-        !quizBuilder.quiz ||
-        !quizBuilder.quiz._id
-    ){
-        return;
+  if(
+    !quizBuilder.quiz ||
+    !quizBuilder.quiz._id ||
+    !state.classId ||
+    quizBuilder.saving
+  ){
+    return null;
+  }
+
+  clearTimeout(
+    quizBuilder.autoSaveTimer
+  );
+
+  quizBuilder.autoSaveTimer = null;
+  quizBuilder.saving = true;
+
+  const dot =
+    byId(
+      "quizBuilderSaveDot"
+    );
+
+  const draftButton =
+    byId(
+      "quizBuilderDraftButton"
+    );
+
+  const publishButton =
+    byId(
+      "quizBuilderPublishButton"
+    );
+
+  try{
+
+    if(dot){
+
+      dot.classList.remove(
+        "is-dirty",
+        "is-saved",
+        "is-error"
+      );
+
+      dot.classList.add(
+        "is-saving"
+      );
+
     }
 
-    try{
+    if(draftButton){
+      draftButton.disabled = true;
+    }
 
-        const dot =
-            byId("quizBuilderSaveDot");
+    if(publishButton){
+      publishButton.disabled = true;
+    }
 
-        if(dot){
-            dot.className="is-saving";
+    setText(
+      "quizBuilderSaveStatus",
+      "Saving..."
+    );
+
+    const response =
+      await apiSend(
+        `/api/classes/${encodeURIComponent(state.classId)}/builder/quiz/${encodeURIComponent(quizBuilder.quiz._id)}`,
+        "PATCH",
+        {
+          title:
+            String(
+              quizBuilder.quiz.title ||
+              "Untitled Quiz"
+            ).trim(),
+
+          instructions:
+            String(
+              quizBuilder.quiz.instructions ||
+              ""
+            ),
+
+          questions:
+            Array.isArray(
+              quizBuilder.quiz.questions
+            )
+              ? quizBuilder.quiz.questions
+              : [],
+
+          passingScore:
+            Number(
+              quizBuilder.quiz.passingScore ??
+              70
+            ),
+
+          timeLimitMinutes:
+            Number(
+              quizBuilder.quiz.timeLimitMinutes ??
+              0
+            ),
+
+          attemptsAllowed:
+            Number(
+              quizBuilder.quiz.attemptsAllowed ??
+              1
+            ),
+
+          moduleId:
+            quizBuilder.quiz.moduleId ||
+            null,
+
+          lessonId:
+            quizBuilder.quiz.lessonId ||
+            null,
+
+          status:
+            quizBuilder.quiz.status ||
+            "draft"
         }
+      );
 
-        setText(
-            "quizBuilderSaveStatus",
-            "Saving..."
-        );
+    if(response?.quiz){
 
-        const updatedQuiz =
-            await apiPatch(
-
-                `/classes/${builder.classId}/builder/quiz/${quizBuilder.quiz._id}`,
-
-                {
-
-                    title:
-                        quizBuilder.quiz.title,
-
-                    instructions:
-                        quizBuilder.quiz.instructions,
-
-                    questions:
-                        quizBuilder.quiz.questions,
-
-                    passingScore:
-                        quizBuilder.quiz.passingScore,
-
-                    moduleId:
-                        quizBuilder.quiz.moduleId,
-
-                    lessonId:
-                        quizBuilder.quiz.lessonId
-
-                }
-
-            );
-
-        if(updatedQuiz?.quiz){
-
-            quizBuilder.quiz =
-                updatedQuiz.quiz;
-
-        }
-
-        quizBuilder.dirty=false;
-
-        updateQuizBuilderSaveState();
-
-        toast(
-            "Quiz saved successfully."
+      quizBuilder.quiz =
+        normalizeQuizForBuilder(
+          response.quiz
         );
 
     }
 
-    catch(error){
+    quizBuilder.dirty = false;
+    quizBuilder.lastSavedAt = new Date();
 
-        console.error(error);
+    updateQuizBuilderSaveState();
 
-        toast(
-            "Failed to save quiz.",
-            "error"
-        );
+    if(!silent){
+
+      toast(
+        "Quiz saved successfully."
+      );
 
     }
+
+    return response?.quiz || null;
+
+  }catch(error){
+
+    console.error(
+      "saveQuizBuilder error:",
+      error
+    );
+
+    if(dot){
+
+      dot.classList.remove(
+        "is-saving",
+        "is-saved",
+        "is-dirty"
+      );
+
+      dot.classList.add(
+        "is-error"
+      );
+
+    }
+
+    setText(
+      "quizBuilderSaveStatus",
+      "Save failed"
+    );
+
+    if(!silent){
+
+      toast(
+        error?.message ||
+        "Failed to save quiz.",
+        "error"
+      );
+
+    }
+
+    return null;
+
+  }finally{
+
+    quizBuilder.saving = false;
+
+    if(draftButton){
+      draftButton.disabled = false;
+    }
+
+    if(publishButton){
+      publishButton.disabled = false;
+    }
+
+  }
 
 }
 
@@ -56413,128 +56524,153 @@ async function publishQuizBuilder(){
 
 }
 
-function updateQuizQuestionField(
-field,
-value
-){
+function getSelectedQuizQuestion(){
 
-const question=
+  if(
+    !quizBuilder.quiz ||
+    !Array.isArray(
+      quizBuilder.quiz.questions
+    ) ||
+    !quizBuilder.selectedQuestion
+  ){
+    return null;
+  }
 
-quizBuilder.quiz.questions.find(
+  return (
+    quizBuilder.quiz.questions.find(
+      question =>
+        String(question.id) ===
+        String(
+          quizBuilder.selectedQuestion
+        )
+    ) ||
+    null
+  );
 
-q=>q.id===quizBuilder.selectedQuestion
-
-);
-
-if(!question){
-return;
 }
 
-question[field]=value;
+function markQuizBuilderDirty(){
 
-   quizBuilder.dirty = true;
+  quizBuilder.dirty = true;
 
-updateQuizBuilderSaveState();
+  updateQuizBuilderSaveState();
+  scheduleQuizAutoSave();
 
-quizBuilder.dirty=true;
+}
 
-scheduleQuizAutoSave();
+function updateQuizQuestionField(
+  field,
+  value
+){
 
-renderQuizQuestionList();
+  const question =
+    getSelectedQuizQuestion();
 
-renderQuizQuestionEditor();
+  if(!question){
+    return;
+  }
 
-renderQuizQuestionSettings();
+  question[field] = value;
+
+  markQuizBuilderDirty();
+
+  renderQuizQuestionList();
+  renderQuizQuestionEditor();
+  renderQuizQuestionSettings();
 
 }
 
 function updateQuizOption(
-index,
-value
+  index,
+  value
 ){
 
-const question=
+  const question =
+    getSelectedQuizQuestion();
 
-quizBuilder.quiz.questions.find(
+  if(
+    !question ||
+    !Array.isArray(
+      question.options
+    ) ||
+    index < 0 ||
+    index >= question.options.length
+  ){
+    return;
+  }
 
-q=>q.id===quizBuilder.selectedQuestion
+  question.options[index] =
+    value;
 
-);
-
-if(!question){
-return;
-}
-
-question.options[index]=value;
-   quizBuilder.dirty = true;
-
-updateQuizBuilderSaveState();
+  markQuizBuilderDirty();
 
 }
 
 function addQuizOption(){
 
-const question=
+  const question =
+    getSelectedQuizQuestion();
 
-quizBuilder.quiz.questions.find(
+  if(!question){
+    return;
+  }
 
-q=>q.id===quizBuilder.selectedQuestion
+  if(
+    !Array.isArray(
+      question.options
+    )
+  ){
+    question.options = [];
+  }
 
-);
+  question.options.push(
+    `Option ${
+      question.options.length + 1
+    }`
+  );
 
-if(!question){
-return;
-}
+  markQuizBuilderDirty();
 
-question.options.push(
-
-`Option ${question.options.length+1}`
-
-);
-
-quizBuilder.dirty = true;
-
-updateQuizBuilderSaveState();
-
-renderQuizQuestionEditor();
+  renderQuizQuestionEditor();
+  renderQuizQuestionSettings();
 
 }
 
 function setCorrectAnswer(index){
 
-const question=
+  const question =
+    getSelectedQuizQuestion();
 
-quizBuilder.quiz.questions.find(
+  if(!question){
+    return;
+  }
 
-q=>q.id===quizBuilder.selectedQuestion
+  question.correctAnswer =
+    Number(index);
 
-);
+  markQuizBuilderDirty();
 
-question.correctAnswer=index;
-
-quizBuilder.dirty = true;
-
-updateQuizBuilderSaveState();
-
-renderQuizQuestionEditor();
+  renderQuizQuestionEditor();
+  renderQuizQuestionSettings();
 
 }
 
 function setTrueFalse(value){
 
-const question=
+  const question =
+    getSelectedQuizQuestion();
 
-quizBuilder.quiz.questions.find(
+  if(!question){
+    return;
+  }
 
-q=>q.id===quizBuilder.selectedQuestion
+  question.correctAnswer =
+    String(value);
 
-);
+  markQuizBuilderDirty();
 
-question.correctAnswer=value;
-
-quizBuilder.dirty = true;
-
-updateQuizBuilderSaveState();
+  renderQuizQuestionEditor();
+  renderQuizQuestionSettings();
 
 }
 
