@@ -27653,7 +27653,11 @@ const quizBuilder = {
   /*
     Tracks whether there are unsaved changes.
   */
-  dirty: false,
+dirty:false,
+
+autoSaveTimer:null,
+
+lastSavedAt:null,
 
   /*
     True while saving.
@@ -56188,6 +56192,38 @@ function updateQuizBuilderSaveState(){
 }
 
 /* ======================================================
+   QUIZ AUTO SAVE
+====================================================== */
+
+function scheduleQuizAutoSave(){
+
+    if(
+        !quizBuilder.dirty
+    ){
+        return;
+    }
+
+    clearTimeout(
+        quizBuilder.autoSaveTimer
+    );
+
+    quizBuilder.autoSaveTimer=
+
+        setTimeout(
+
+            ()=>{
+
+                saveQuizBuilder();
+
+            },
+
+            1800
+
+        );
+
+}
+   
+/* ======================================================
    SAVE QUIZ BUILDER
 ====================================================== */
 
@@ -56401,6 +56437,8 @@ question[field]=value;
 updateQuizBuilderSaveState();
 
 quizBuilder.dirty=true;
+
+scheduleQuizAutoSave();
 
 renderQuizQuestionList();
 
