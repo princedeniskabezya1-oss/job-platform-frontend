@@ -56022,6 +56022,171 @@ Students must answer this question
 
 }
 
+/* ======================================================
+   DUPLICATE QUESTION
+====================================================== */
+
+function duplicateSelectedQuizQuestion(){
+
+    if(
+        !quizBuilder.quiz ||
+        !quizBuilder.selectedQuestion
+    ){
+        return;
+    }
+
+    const index =
+        quizBuilder.quiz.questions.findIndex(
+            question =>
+                question.id ===
+                quizBuilder.selectedQuestion
+        );
+
+    if(index === -1){
+        return;
+    }
+
+    const original =
+        quizBuilder.quiz.questions[index];
+
+    const copy =
+        JSON.parse(
+            JSON.stringify(original)
+        );
+
+    copy.id =
+        typeof crypto !== "undefined" &&
+        typeof crypto.randomUUID === "function"
+            ? crypto.randomUUID()
+            : `quiz-question-${Date.now()}-${Math.random()
+                .toString(36)
+                .slice(2,10)}`;
+
+    copy.question =
+        `${copy.question} (Copy)`;
+
+    quizBuilder.quiz.questions.splice(
+        index + 1,
+        0,
+        copy
+    );
+
+    quizBuilder.selectedQuestion =
+        copy.id;
+
+    quizBuilder.dirty = true;
+
+    renderQuizQuestionList();
+    renderQuizQuestionEditor();
+    renderQuizQuestionSettings();
+
+    updateQuizBuilderSaveState();
+
+}
+
+
+/* ======================================================
+   DELETE QUESTION
+====================================================== */
+
+function deleteSelectedQuizQuestion(){
+
+    if(
+        !quizBuilder.selectedQuestion
+    ){
+        return;
+    }
+
+    const question =
+        quizBuilder.quiz.questions.find(
+            q =>
+                q.id ===
+                quizBuilder.selectedQuestion
+        );
+
+    if(!question){
+        return;
+    }
+
+    if(
+        !window.confirm(
+            `Delete "${question.question || "Untitled Question"}"?`
+        )
+    ){
+        return;
+    }
+
+    quizBuilder.quiz.questions =
+        quizBuilder.quiz.questions.filter(
+            q =>
+                q.id !==
+                quizBuilder.selectedQuestion
+        );
+
+    quizBuilder.selectedQuestion =
+        quizBuilder.quiz.questions.length
+            ? quizBuilder.quiz.questions[0].id
+            : null;
+
+    quizBuilder.dirty = true;
+
+    renderQuizQuestionList();
+    renderQuizQuestionEditor();
+    renderQuizQuestionSettings();
+
+    updateQuizBuilderSaveState();
+
+}
+
+/* ======================================================
+   QUIZ SAVE STATE
+====================================================== */
+
+function updateQuizBuilderSaveState(){
+
+    const status =
+        byId("quizBuilderSaveStatus");
+
+    const dot =
+        byId("quizBuilderSaveDot");
+
+    if(status){
+
+        status.textContent =
+            quizBuilder.dirty
+                ? "Unsaved changes"
+                : "All changes saved";
+
+    }
+
+    if(dot){
+
+        dot.classList.remove(
+            "is-dirty",
+            "is-saving",
+            "is-saved",
+            "is-error"
+        );
+
+        dot.classList.add(
+            quizBuilder.dirty
+                ? "is-dirty"
+                : "is-saved"
+        );
+
+    }
+
+    setText(
+        "quizBuilderQuestionCount",
+        `${quizBuilder.quiz.questions.length} ${
+            quizBuilder.quiz.questions.length===1
+                ? "question"
+                : "questions"
+        }`
+    );
+
+}
+
 function updateQuizQuestionField(
 field,
 value
@@ -56040,6 +56205,10 @@ return;
 }
 
 question[field]=value;
+
+   quizBuilder.dirty = true;
+
+updateQuizBuilderSaveState();
 
 quizBuilder.dirty=true;
 
@@ -56069,8 +56238,9 @@ return;
 }
 
 question.options[index]=value;
+   quizBuilder.dirty = true;
 
-quizBuilder.dirty=true;
+updateQuizBuilderSaveState();
 
 }
 
@@ -56094,6 +56264,10 @@ question.options.push(
 
 );
 
+quizBuilder.dirty = true;
+
+updateQuizBuilderSaveState();
+
 renderQuizQuestionEditor();
 
 }
@@ -56110,6 +56284,10 @@ q=>q.id===quizBuilder.selectedQuestion
 
 question.correctAnswer=index;
 
+quizBuilder.dirty = true;
+
+updateQuizBuilderSaveState();
+
 renderQuizQuestionEditor();
 
 }
@@ -56125,6 +56303,10 @@ q=>q.id===quizBuilder.selectedQuestion
 );
 
 question.correctAnswer=value;
+
+quizBuilder.dirty = true;
+
+updateQuizBuilderSaveState();
 
 }
 
