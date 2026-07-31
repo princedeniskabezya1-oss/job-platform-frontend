@@ -27298,24 +27298,24 @@ body[data-builder-section="presentations"]
         </button>
 
 
-        <button
-          type="button"
-          class="ghost-btn"
-          id="quizBuilderDraftButton"
-          onclick="saveQuizDraft(event)"
-        >
-          Save Draft
-        </button>
+<button
+  type="button"
+  class="ghost-btn"
+  id="quizBuilderDraftButton"
+  onclick="saveQuizBuilder()"
+>
+  Save Draft
+</button>
 
 
-        <button
-          type="button"
-          class="primary-btn"
-          id="quizBuilderPublishButton"
-          onclick="publishCurrentQuiz(event)"
-        >
-          Publish
-        </button>
+<button
+  type="button"
+  class="primary-btn"
+  id="quizBuilderPublishButton"
+  onclick="publishQuizBuilder()"
+>
+  Publish
+</button>
 
 
         <button
@@ -56184,6 +56184,196 @@ function updateQuizBuilderSaveState(){
                 : "questions"
         }`
     );
+
+}
+
+/* ======================================================
+   SAVE QUIZ BUILDER
+====================================================== */
+
+async function saveQuizBuilder(){
+
+    if(
+        !quizBuilder.quiz ||
+        !quizBuilder.quiz._id
+    ){
+        return;
+    }
+
+    try{
+
+        const dot =
+            byId("quizBuilderSaveDot");
+
+        if(dot){
+            dot.className="is-saving";
+        }
+
+        setText(
+            "quizBuilderSaveStatus",
+            "Saving..."
+        );
+
+        const updatedQuiz =
+            await apiPatch(
+
+                `/classes/${builder.classId}/builder/quiz/${quizBuilder.quiz._id}`,
+
+                {
+
+                    title:
+                        quizBuilder.quiz.title,
+
+                    instructions:
+                        quizBuilder.quiz.instructions,
+
+                    questions:
+                        quizBuilder.quiz.questions,
+
+                    passingScore:
+                        quizBuilder.quiz.passingScore,
+
+                    moduleId:
+                        quizBuilder.quiz.moduleId,
+
+                    lessonId:
+                        quizBuilder.quiz.lessonId
+
+                }
+
+            );
+
+        if(updatedQuiz?.quiz){
+
+            quizBuilder.quiz =
+                updatedQuiz.quiz;
+
+        }
+
+        quizBuilder.dirty=false;
+
+        updateQuizBuilderSaveState();
+
+        toast(
+            "Quiz saved successfully."
+        );
+
+    }
+
+    catch(error){
+
+        console.error(error);
+
+        toast(
+            "Failed to save quiz.",
+            "error"
+        );
+
+    }
+
+}
+
+/* ======================================================
+   PUBLISH QUIZ
+====================================================== */
+
+async function publishQuizBuilder(){
+
+    if(
+        !quizBuilder.quiz ||
+        !quizBuilder.quiz._id
+    ){
+        return;
+    }
+
+    try{
+
+        const confirmed =
+            confirm(
+                "Publish this quiz? Students will be able to access it."
+            );
+
+        if(!confirmed){
+            return;
+        }
+
+        const dot =
+            byId("quizBuilderSaveDot");
+
+        if(dot){
+
+            dot.className =
+                "saving";
+
+        }
+
+        setText(
+            "quizBuilderSaveStatus",
+            "Publishing..."
+        );
+
+        const response =
+            await apiPatch(
+
+                `/classes/${builder.classId}/builder/quiz/${quizBuilder.quiz._id}`,
+
+                {
+
+                    title:
+                        quizBuilder.quiz.title,
+
+                    instructions:
+                        quizBuilder.quiz.instructions,
+
+                    questions:
+                        quizBuilder.quiz.questions,
+
+                    passingScore:
+                        quizBuilder.quiz.passingScore,
+
+                    moduleId:
+                        quizBuilder.quiz.moduleId,
+
+                    lessonId:
+                        quizBuilder.quiz.lessonId,
+
+                    status:
+                        "published"
+
+                }
+
+            );
+
+        if(response?.quiz){
+
+            quizBuilder.quiz =
+                response.quiz;
+
+        }
+
+        quizBuilder.quiz.status =
+            "published";
+
+        quizBuilder.dirty=false;
+
+        updateQuizBuilderSaveState();
+
+        toast(
+            "Quiz published successfully."
+        );
+
+    }
+
+    catch(error){
+
+        console.error(error);
+
+        toast(
+            "Unable to publish quiz.",
+            "error"
+        );
+
+    }
 
 }
 
