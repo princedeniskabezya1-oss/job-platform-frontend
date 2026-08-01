@@ -23073,39 +23073,6 @@ body[data-builder-section="presentations"]
 
 </div>
 
-
-<div class="studio-topbar-actions">
-
-    <button
-        class="studio-topbar-button secondary"
-        id="backToSchoolBtn"
-    >
-        Back to school
-    </button>
-
-    <button
-        class="studio-topbar-button secondary"
-        id="previewQuizBtn"
-    >
-        Preview
-    </button>
-
-    <button
-        class="studio-topbar-button primary"
-        id="saveQuizBtn"
-    >
-        Save
-    </button>
-
-    <button
-        class="studio-topbar-button publish"
-        id="publishQuizBtn"
-    >
-        Publish
-    </button>
-
-</div>
-
   <button
     type="button"
     class="studio-topbar-button secondary"
@@ -30109,8 +30076,6 @@ const quizBuilder = {
     Tracks whether there are unsaved changes.
   */
 dirty:false,
-
-autoSaveTimer:null,
 
 lastSavedAt:null,
 
@@ -58273,10 +58238,6 @@ function closeQuizBuilder(){
 
     }
 
-    clearTimeout(
-        quizBuilder.autoSaveTimer
-    );
-
     quizBuilder.quiz = null;
 
     quizBuilder.selectedQuestion = null;
@@ -63066,34 +63027,6 @@ function updateQuizBuilderSaveState(){
 
 }
 
-/* ======================================================
-   QUIZ AUTO SAVE
-====================================================== */
-
-function scheduleQuizAutoSave(){
-
-    if(
-        !quizBuilder.dirty
-    ){
-        return;
-    }
-
-    clearTimeout(
-        quizBuilder.autoSaveTimer
-    );
-
-    quizBuilder.autoSaveTimer=
-
-setTimeout(
-  () => {
-    saveQuizBuilder({
-      silent: true
-    });
-  },
-  1800
-);
-
-}
    
 /* ======================================================
    SAVE QUIZ BUILDER
@@ -63263,9 +63196,6 @@ async function saveQuizBuilder(
     );
 
 
-  clearTimeout(
-    quizBuilder.autoSaveTimer
-  );
 
   quizBuilder.autoSaveTimer =
     null;
@@ -63888,7 +63818,6 @@ function markQuizBuilderDirty(){
   quizBuilder.dirty = true;
 
   updateQuizBuilderSaveState();
-  scheduleQuizAutoSave();
 
 }
 
