@@ -1599,6 +1599,107 @@ body[data-builder-section]:not(
   text-decoration:underline;
 }
 
+/* ==========================================================
+   QUIZ SAVE STATUS
+========================================================== */
+
+.quiz-save-status{
+
+    display:flex;
+    align-items:center;
+    gap:10px;
+
+    padding:8px 16px;
+
+    border-radius:999px;
+
+    background:#eef7ee;
+
+    border:1px solid #cce8cf;
+
+    color:#1d7d3f;
+
+    font-size:13px;
+    font-weight:600;
+
+    transition:.25s;
+
+}
+
+.quiz-save-dot{
+
+    width:10px;
+    height:10px;
+
+    border-radius:50%;
+
+    background:#1d7d3f;
+
+}
+
+.quiz-save-status.saved{
+
+    background:#eef7ee;
+    border-color:#cce8cf;
+    color:#1d7d3f;
+
+}
+
+.quiz-save-status.saving{
+
+    background:#edf4ff;
+    border-color:#b9d3ff;
+    color:#1565d8;
+
+}
+
+.quiz-save-status.saving
+.quiz-save-dot{
+
+    background:#1565d8;
+
+    animation:quizSavingPulse .8s infinite alternate;
+
+}
+
+.quiz-save-status.error{
+
+    background:#fff3f3;
+    border-color:#ffb9b9;
+    color:#d93025;
+
+}
+
+.quiz-save-status.error
+.quiz-save-dot{
+
+    background:#d93025;
+
+}
+
+.quiz-save-status.hidden{
+
+    display:none;
+
+}
+
+@keyframes quizSavingPulse{
+
+    from{
+
+        transform:scale(.75);
+        opacity:.4;
+
+    }
+
+    to{
+
+        transform:scale(1.2);
+        opacity:1;
+
+    }
+
+}
 /* =========================================================
    STATUS CHIPS
 ========================================================= */
@@ -1886,78 +1987,350 @@ body[data-builder-section]:not(
   line-height:1.55;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   
 /* =========================================================
-   ALERTS AND TOASTS
+   GLOBAL AIFT NOTIFICATION SYSTEM
 ========================================================= */
 
 .studio-alert-region{
   position:fixed;
-  top:calc(var(--aift-topbar-height) + 14px);
-  right:20px;
-  z-index:10000;
+  top:calc(var(--aift-topbar-height) + 18px);
+  right:22px;
+  z-index:100000;
 
-  width:min(420px,calc(100vw - 40px));
+  width:min(430px,calc(100vw - 32px));
+
+  display:grid;
+  gap:10px;
 
   pointer-events:none;
 }
 
 .alert{
-  display:none;
+  position:relative;
 
   width:100%;
+  min-height:76px;
   margin:0;
-  padding:13px 15px;
+  padding:14px 46px 14px 14px;
 
-  border-radius:var(--aift-radius-md);
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr);
+  align-items:center;
+  gap:12px;
 
-  font-size:10px;
-  line-height:1.5;
-  font-weight:600;
+  overflow:hidden;
 
-  box-shadow:var(--aift-shadow-lg);
+  border:1px solid var(--aift-border);
+  border-radius:14px;
+
+  background:#ffffff;
+  color:var(--aift-text);
+
+  box-shadow:
+    0 18px 48px rgba(15,23,42,.16),
+    0 4px 14px rgba(15,23,42,.08);
 
   pointer-events:auto;
+
+  transform-origin:top right;
+
+  animation:
+    aiftAlertEnter .24s ease-out both;
 }
 
-.alert.success,
-.alert.error,
-.alert.info{
+.alert[hidden]{
+  display:none;
+}
+
+.alert-icon{
+  width:42px;
+  height:42px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:11px;
+
+  flex:0 0 auto;
+}
+
+.alert-icon svg{
+  width:21px;
+  height:21px;
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.alert-copy{
+  min-width:0;
+}
+
+.alert-title{
   display:block;
+  margin:0;
 
-  animation:aiftAlertEnter .2s ease-out both;
+  color:var(--aift-text-strong);
+
+  font-size:12px;
+  line-height:1.35;
+  font-weight:700;
 }
+
+.alert-message{
+  display:block;
+  margin-top:3px;
+
+  color:var(--aift-muted);
+
+  font-size:10px;
+  line-height:1.55;
+  font-weight:500;
+
+  overflow-wrap:anywhere;
+}
+
+.alert-close{
+  position:absolute;
+  top:12px;
+  right:12px;
+
+  width:28px;
+  height:28px;
+  padding:0;
+
+  display:grid;
+  place-items:center;
+
+  border:0;
+  border-radius:7px;
+
+  background:transparent;
+  color:var(--aift-muted);
+
+  cursor:pointer;
+
+  transition:
+    background var(--aift-transition-fast),
+    color var(--aift-transition-fast);
+}
+
+.alert-close:hover{
+  background:var(--aift-surface-muted);
+  color:var(--aift-text-strong);
+}
+
+.alert-close svg{
+  width:15px;
+  height:15px;
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+}
+
+.alert-progress{
+  position:absolute;
+  right:0;
+  bottom:0;
+  left:0;
+
+  height:3px;
+
+  overflow:hidden;
+
+  background:rgba(15,23,42,.06);
+}
+
+.alert-progress::after{
+  content:"";
+
+  display:block;
+  width:100%;
+  height:100%;
+
+  background:currentColor;
+
+  transform-origin:left center;
+
+  animation:
+    aiftAlertProgress var(--aift-alert-duration,4500ms)
+    linear forwards;
+}
+
+
+/* SUCCESS */
 
 .alert.success{
-  border:1px solid var(--aift-success-border);
+  border-color:var(--aift-success-border);
+}
 
+.alert.success .alert-icon{
   background:var(--aift-success-soft);
   color:var(--aift-success);
 }
 
-.alert.error{
-  border:1px solid var(--aift-danger-border);
-
-  background:var(--aift-danger-soft);
-  color:var(--aift-danger-hover);
+.alert.success .alert-progress{
+  color:var(--aift-success);
 }
+
+
+/* ERROR */
+
+.alert.error{
+  border-color:var(--aift-danger-border);
+}
+
+.alert.error .alert-icon{
+  background:var(--aift-danger-soft);
+  color:var(--aift-danger);
+}
+
+.alert.error .alert-progress{
+  color:var(--aift-danger);
+}
+
+
+/* WARNING */
+
+.alert.warning{
+  border-color:var(--aift-warning-border);
+}
+
+.alert.warning .alert-icon{
+  background:var(--aift-warning-soft);
+  color:var(--aift-warning);
+}
+
+.alert.warning .alert-progress{
+  color:var(--aift-warning);
+}
+
+
+/* INFO */
 
 .alert.info{
-  border:1px solid #aecbfa;
-
-  background:var(--aift-info-soft);
-  color:var(--aift-info);
+  border-color:#aecbfa;
 }
+
+.alert.info .alert-icon{
+  background:var(--aift-primary-soft);
+  color:var(--aift-primary);
+}
+
+.alert.info .alert-progress{
+  color:var(--aift-primary);
+}
+
+
+/* SAVING */
+
+.alert.loading{
+  border-color:#aecbfa;
+}
+
+.alert.loading .alert-icon{
+  background:var(--aift-primary-soft);
+  color:var(--aift-primary);
+}
+
+.alert.loading .alert-icon svg{
+  animation:aiftAlertSpin .8s linear infinite;
+}
+
+.alert.loading .alert-progress{
+  display:none;
+}
+
 
 @keyframes aiftAlertEnter{
   from{
     opacity:0;
-    transform:translateY(-8px);
+    transform:
+      translateY(-10px)
+      scale(.97);
   }
 
   to{
     opacity:1;
-    transform:translateY(0);
+    transform:
+      translateY(0)
+      scale(1);
   }
+}
+
+@keyframes aiftAlertLeave{
+  from{
+    opacity:1;
+    transform:
+      translateY(0)
+      scale(1);
+  }
+
+  to{
+    opacity:0;
+    transform:
+      translateY(-8px)
+      scale(.98);
+  }
+}
+
+@keyframes aiftAlertProgress{
+  from{
+    transform:scaleX(1);
+  }
+
+  to{
+    transform:scaleX(0);
+  }
+}
+
+@keyframes aiftAlertSpin{
+  to{
+    transform:rotate(360deg);
+  }
+}
+
+@media(max-width:640px){
+
+  .studio-alert-region{
+    top:calc(var(--aift-topbar-height) + 10px);
+    right:12px;
+    left:12px;
+
+    width:auto;
+  }
+
+  .alert{
+    min-height:70px;
+  }
+
 }
 
 /* =========================================================
@@ -20845,6 +21218,147 @@ body[data-builder-section="presentations"]
 }
 
 
+
+/* =========================================================
+   QUIZ BUILDER SAVE STATUS
+========================================================= */
+
+.quiz-save-status{
+    display:flex;
+    align-items:center;
+    gap:10px;
+
+    padding:10px 16px;
+
+    border-radius:999px;
+
+    background:#ffffff;
+
+    border:1px solid #e5e7eb;
+
+    font-size:13px;
+
+    font-weight:600;
+
+    color:#64748b;
+
+    transition:.25s ease;
+}
+
+.quiz-save-dot{
+
+    width:10px;
+    height:10px;
+
+    border-radius:50%;
+
+    background:#22c55e;
+
+    flex-shrink:0;
+
+    transition:.25s ease;
+
+}
+
+/* ---------- SAVED ---------- */
+
+.quiz-save-status.saved{
+
+    color:#15803d;
+    background:#f0fdf4;
+    border-color:#bbf7d0;
+
+}
+
+.quiz-save-status.saved
+.quiz-save-dot{
+
+    background:#22c55e;
+
+}
+
+/* ---------- UNSAVED ---------- */
+
+.quiz-save-status.unsaved{
+
+    color:#92400e;
+    background:#fffbeb;
+    border-color:#fde68a;
+
+}
+
+.quiz-save-status.unsaved
+.quiz-save-dot{
+
+    background:#f59e0b;
+
+}
+
+/* ---------- SAVING ---------- */
+
+.quiz-save-status.saving{
+
+    color:#1d4ed8;
+    background:#eff6ff;
+    border-color:#bfdbfe;
+
+}
+
+.quiz-save-status.saving
+.quiz-save-dot{
+
+    background:#3b82f6;
+
+    animation:
+        quizSavingPulse
+        1s
+        infinite;
+
+}
+
+/* ---------- ERROR ---------- */
+
+.quiz-save-status.error{
+
+    color:#991b1b;
+    background:#fef2f2;
+    border-color:#fecaca;
+
+}
+
+.quiz-save-status.error
+.quiz-save-dot{
+
+    background:#ef4444;
+
+}
+
+/* ---------- PULSE ---------- */
+
+@keyframes quizSavingPulse{
+
+    0%{
+
+        transform:scale(.9);
+        opacity:.45;
+
+    }
+
+    50%{
+
+        transform:scale(1.4);
+        opacity:1;
+
+    }
+
+    100%{
+
+        transform:scale(.9);
+        opacity:.45;
+
+    }
+
+}
 /* =========================================================
    CENTER QUESTION CANVAS
 ========================================================= */
@@ -22441,6 +22955,53 @@ body[data-builder-section="presentations"]
 
 
 <div class="studio-topbar-actions">
+
+    <div
+        id="quizSaveStatus"
+        class="quiz-save-status saved"
+    >
+
+        <span
+            class="quiz-save-dot"
+        ></span>
+
+        <span
+            id="quizSaveStatusText"
+        >
+            All changes saved
+        </span>
+
+    </div>
+
+    <button
+        class="studio-topbar-button secondary"
+        id="backToSchoolBtn"
+    >
+        Back to school
+    </button>
+
+    <button
+        class="studio-topbar-button secondary"
+        id="previewQuizBtn"
+    >
+        Preview
+    </button>
+
+    <button
+        class="studio-topbar-button primary"
+        id="saveQuizBtn"
+    >
+        Save
+    </button>
+
+    <button
+        class="studio-topbar-button publish"
+        id="publishQuizBtn"
+    >
+        Publish
+    </button>
+
+</div>
 
   <button
     type="button"
@@ -40600,27 +41161,279 @@ function setButtonLoading(button, isLoading, labelWhenLoading = "Saving..."){
   }
 }
 
-function showAlert(type, message){
-  const alert = byId("pageAlert");
+function getAlertConfiguration(
+  type
+){
 
-  if (!alert){
-    console.warn("Missing #pageAlert");
+  const normalizedType =
+    String(
+      type ||
+      "info"
+    )
+      .trim()
+      .toLowerCase();
+
+  const configurations = {
+
+    success:{
+      type:"success",
+      title:"Success",
+      duration:4200,
+      icon:`
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="m8 12 2.5 2.5L16.5 8.5"></path>
+        </svg>
+      `
+    },
+
+    error:{
+      type:"error",
+      title:"Something went wrong",
+      duration:6500,
+      icon:`
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 7v6"></path>
+          <path d="M12 17h.01"></path>
+        </svg>
+      `
+    },
+
+    warning:{
+      type:"warning",
+      title:"Attention needed",
+      duration:5500,
+      icon:`
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M10.3 4.3 2.7 18a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 4.3a2 2 0 0 0-3.4 0z"></path>
+          <path d="M12 9v4"></path>
+          <path d="M12 17h.01"></path>
+        </svg>
+      `
+    },
+
+    loading:{
+      type:"loading",
+      title:"Working on it",
+      duration:0,
+      icon:`
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-3-6.7"></path>
+        </svg>
+      `
+    },
+
+    info:{
+      type:"info",
+      title:"Information",
+      duration:4500,
+      icon:`
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 11v5"></path>
+          <path d="M12 8h.01"></path>
+        </svg>
+      `
+    }
+
+  };
+
+  return (
+    configurations[
+      normalizedType
+    ] ||
+    configurations.info
+  );
+
+}
+
+
+function hideAlert(){
+
+  const alert =
+    byId(
+      "pageAlert"
+    );
+
+  if(!alert){
     return;
   }
 
-  alert.className = `alert ${type || "info"}`;
-  alert.textContent = message || "";
-  alert.style.display = message ? "block" : "none";
+  window.clearTimeout(
+    showAlert.timer
+  );
 
-  if (message){
-    window.clearTimeout(showAlert.timer);
+  alert.style.animation =
+    "aiftAlertLeave .18s ease-in both";
 
-    showAlert.timer = window.setTimeout(() => {
-      alert.textContent = "";
-      alert.style.display = "none";
+  window.setTimeout(
+    () => {
+
+      alert.hidden = true;
+      alert.innerHTML = "";
       alert.className = "alert info";
-    }, 4500);
+      alert.style.animation = "";
+
+    },
+    180
+  );
+
+}
+
+
+function showAlert(
+  type,
+  message,
+  options = {}
+){
+
+  const alert =
+    byId(
+      "pageAlert"
+    );
+
+  if(!alert){
+
+    console.warn(
+      "Missing #pageAlert:",
+      message
+    );
+
+    return null;
+
   }
+
+  const configuration =
+    getAlertConfiguration(
+      type
+    );
+
+  const title =
+    String(
+      options?.title ||
+      configuration.title
+    );
+
+  const safeMessage =
+    String(
+      message ||
+      ""
+    ).trim();
+
+  if(!safeMessage){
+
+    hideAlert();
+
+    return null;
+
+  }
+
+  const duration =
+    Number.isFinite(
+      Number(
+        options?.duration
+      )
+    )
+      ? Math.max(
+          0,
+          Number(
+            options.duration
+          )
+        )
+      : configuration.duration;
+
+  window.clearTimeout(
+    showAlert.timer
+  );
+
+  alert.hidden = false;
+
+  alert.className =
+    `alert ${configuration.type}`;
+
+  alert.style.setProperty(
+    "--aift-alert-duration",
+    `${duration || 4500}ms`
+  );
+
+  alert.innerHTML = `
+
+    <span class="alert-icon">
+      ${configuration.icon}
+    </span>
+
+    <span class="alert-copy">
+
+      <strong class="alert-title">
+        ${escapeHtml(title)}
+      </strong>
+
+      <span class="alert-message">
+        ${escapeHtml(safeMessage)}
+      </span>
+
+    </span>
+
+    <button
+      type="button"
+      class="alert-close"
+      aria-label="Dismiss notification"
+      onclick="hideAlert()"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 6l12 12"></path>
+        <path d="M18 6 6 18"></path>
+      </svg>
+    </button>
+
+    ${
+      duration > 0
+        ? `
+            <span
+              class="alert-progress"
+              aria-hidden="true"
+            ></span>
+          `
+        : ""
+    }
+
+  `;
+
+  if(duration > 0){
+
+    showAlert.timer =
+      window.setTimeout(
+        hideAlert,
+        duration
+      );
+
+  }
+
+  return alert;
+
+}
+
+
+/*
+  Compatibility helper.
+
+  Older Quiz Builder functions call toast().
+  This keeps them working while routing all messages
+  through the new AIFT notification system.
+*/
+function toast(
+  message,
+  type = "success",
+  options = {}
+){
+
+  return showAlert(
+    type,
+    message,
+    options
+  );
+
 }
 
 /* =====================================================
@@ -40868,6 +41681,51 @@ function getWorkspaceSaveConfiguration(
         );
       }
     },
+
+         quizzes:{
+      label:"quiz",
+      handler:async event => {
+
+        if(
+          !quizBuilder.quiz ||
+          !quizBuilder.quiz._id
+        ){
+
+          showAlert(
+            "info",
+            "Open a quiz with the Edit Quiz button before using the top Save button.",
+            {
+              title:
+                "No quiz currently open"
+            }
+          );
+
+          return null;
+
+        }
+
+        const result =
+          await saveQuizBuilder({
+            currentTarget:
+              event?.currentTarget ||
+              null,
+            silent:
+              false
+          });
+
+        if(!result){
+
+          throw new Error(
+            "The quiz could not be saved."
+          );
+
+        }
+
+        return result;
+
+      }
+    },
+
 
     content:{
       label:"lesson content",
@@ -59981,104 +60839,137 @@ function renderInlineQuizBuilder(){
 
 function createInlineQuizBuilder(){
 
-return `
+  const quizTitle =
+    String(
+      quizBuilder.quiz?.title ||
+      "Untitled quiz"
+    );
 
-<div class="quiz-workspace">
+  const questionCount =
+    Array.isArray(
+      quizBuilder.quiz?.questions
+    )
+      ? quizBuilder.quiz.questions.length
+      : 0;
 
-<div class="quiz-workspace-header">
+  return `
 
-<button
-class="btn"
-onclick="closeQuizBuilder()">
+    <div class="quiz-workspace">
 
-← Back
+      <div class="quiz-workspace-header">
 
-</button>
+        <button
+          type="button"
+          class="btn"
+          onclick="closeQuizBuilder()"
+        >
+          ← Back
+        </button>
 
-<div class="quiz-workspace-title">
 
-<h2 id="quizBuilderTitle">
+        <div class="quiz-workspace-title">
 
-Quiz Builder
+          <h2 id="quizBuilderTitle">
+            ${escapeHtml(quizTitle)}
+          </h2>
 
-</h2>
+          <p>
 
-<p>
+            <span
+              class="quiz-builder-save-indicator"
+            >
 
-Create and manage quiz questions
+              <span
+                class="quiz-builder-save-dot is-saved"
+                id="quizBuilderSaveDot"
+                aria-hidden="true"
+              ></span>
 
-</p>
+              <span id="quizBuilderSaveStatus">
+                All changes saved
+              </span>
 
-</div>
+            </span>
 
-<div class="quiz-builder-actions">
+            <span aria-hidden="true">
+              ·
+            </span>
 
-<button
-class="btn"
-onclick="previewCurrentQuiz()">
+            <span id="quizBuilderQuestionCount">
+              ${questionCount}
+              ${
+                questionCount === 1
+                  ? "question"
+                  : "questions"
+              }
+            </span>
 
-Preview
+          </p>
 
-</button>
+        </div>
 
-<button
-class="btn btn-primary"
-onclick="saveQuizBuilder()">
 
-Save
+        <div class="quiz-builder-actions">
 
-</button>
+          <button
+            type="button"
+            class="btn"
+            id="quizBuilderPreviewButton"
+            onclick="previewCurrentQuiz()"
+          >
+            Preview
+          </button>
 
-</div>
 
-</div>
+          <button
+            type="button"
+            class="btn btn-primary"
+            id="quizBuilderDraftButton"
+            onclick="saveQuizBuilder({ currentTarget:this })"
+          >
+            Save
+          </button>
 
-<div class="quiz-builder-layout">
+        </div>
 
-<aside
-class="quiz-builder-sidebar">
+      </div>
 
-<div
-id="quizQuestionsList">
 
-</div>
+      <div class="quiz-builder-layout">
 
-<button
-class="btn btn-primary"
-style="width:100%;margin-top:16px"
-onclick="addQuizQuestion()">
+        <aside class="quiz-builder-sidebar">
 
-+ Add Question
+          <div id="quizQuestionsList"></div>
 
-</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            onclick="addQuizQuestion()"
+          >
+            + Add Question
+          </button>
 
-</aside>
+        </aside>
 
-<main
-class="quiz-builder-main">
 
-<div
-id="quizQuestionEditor">
+        <main class="quiz-builder-main">
 
-</div>
+          <div id="quizQuestionEditor"></div>
 
-</main>
+        </main>
 
-<aside
-class="quiz-builder-settings">
 
-<div
-id="quizQuestionSettings">
+        <aside class="quiz-builder-settings">
 
-</div>
+          <div id="quizQuestionSettings"></div>
 
-</aside>
+        </aside>
 
-</div>
+      </div>
 
-</div>
+    </div>
 
-`;
+  `;
 
 }
 
@@ -62106,41 +62997,171 @@ setTimeout(
 ====================================================== */
 
 async function saveQuizBuilder(
-  {
-    silent = false
-  } = {}
+  options = {}
 ){
 
+  const silent =
+    Boolean(
+      options?.silent
+    );
+
+  const button =
+    options?.currentTarget ||
+    byId(
+      "quizBuilderDraftButton"
+    );
+
   if(
-    !quizBuilder.quiz ||
-    !quizBuilder.quiz._id ||
-    !state.classId ||
+    !quizBuilder.quiz
+  ){
+
+    if(!silent){
+
+      showAlert(
+        "error",
+        "No quiz is currently open.",
+        {
+          title:
+            "Quiz cannot be saved"
+        }
+      );
+
+    }
+
+    return null;
+
+  }
+
+  if(
+    !quizBuilder.quiz._id
+  ){
+
+    if(!silent){
+
+      showAlert(
+        "error",
+        "The quiz does not have a valid ID. Refresh the Quiz Library and open it again.",
+        {
+          title:
+            "Missing quiz ID"
+        }
+      );
+
+    }
+
+    return null;
+
+  }
+
+  if(
+    !state.classId
+  ){
+
+    if(!silent){
+
+      showAlert(
+        "error",
+        "The current class ID is unavailable.",
+        {
+          title:
+            "Class information missing"
+        }
+      );
+
+    }
+
+    return null;
+
+  }
+
+  if(
     quizBuilder.saving
   ){
     return null;
+  }
+
+  const title =
+    String(
+      quizBuilder.quiz.title ||
+      ""
+    ).trim();
+
+  if(!title){
+
+    if(!silent){
+
+      showAlert(
+        "warning",
+        "Enter a title before saving this quiz.",
+        {
+          title:
+            "Quiz title required"
+        }
+      );
+
+    }
+
+    return null;
+
+  }
+
+  const questions =
+    Array.isArray(
+      quizBuilder.quiz.questions
+    )
+      ? quizBuilder.quiz.questions
+      : [];
+
+  const invalidQuestionIndex =
+    questions.findIndex(
+      question => {
+        return !String(
+          question?.question ||
+          question?.text ||
+          ""
+        ).trim();
+      }
+    );
+
+  if(
+    invalidQuestionIndex !== -1
+  ){
+
+    if(!silent){
+
+      showAlert(
+        "warning",
+        `Question ${invalidQuestionIndex + 1} is empty. Add the question text before saving.`,
+        {
+          title:
+            "Incomplete question"
+        }
+      );
+
+    }
+
+    return null;
+
   }
 
   clearTimeout(
     quizBuilder.autoSaveTimer
   );
 
-  quizBuilder.autoSaveTimer = null;
-  quizBuilder.saving = true;
+  quizBuilder.autoSaveTimer =
+    null;
+
+  quizBuilder.saving =
+    true;
 
   const dot =
     byId(
       "quizBuilderSaveDot"
     );
 
-  const draftButton =
-    byId(
-      "quizBuilderDraftButton"
-    );
-
-  const publishButton =
-    byId(
-      "quizBuilderPublishButton"
-    );
+  const originalButtonContent =
+    button?.innerHTML ||
+    "Save";
 
   try{
 
@@ -62158,12 +63179,19 @@ async function saveQuizBuilder(
 
     }
 
-    if(draftButton){
-      draftButton.disabled = true;
-    }
+    if(button){
 
-    if(publishButton){
-      publishButton.disabled = true;
+      button.disabled =
+        true;
+
+      button.setAttribute(
+        "aria-busy",
+        "true"
+      );
+
+      button.textContent =
+        "Saving...";
+
     }
 
     setText(
@@ -62171,85 +63199,209 @@ async function saveQuizBuilder(
       "Saving..."
     );
 
-    const response =
-      await apiSend(
-        `/api/classes/${encodeURIComponent(state.classId)}/builder/quiz/${encodeURIComponent(quizBuilder.quiz._id)}`,
-        "PATCH",
+    if(!silent){
+
+      showAlert(
+        "loading",
+        "Saving your quiz and question changes...",
         {
           title:
-            String(
-              quizBuilder.quiz.title ||
-              "Untitled Quiz"
-            ).trim(),
-
-          instructions:
-            String(
-              quizBuilder.quiz.instructions ||
-              ""
-            ),
-
-          questions:
-            Array.isArray(
-              quizBuilder.quiz.questions
-            )
-              ? quizBuilder.quiz.questions
-              : [],
-
-          passingScore:
-            Number(
-              quizBuilder.quiz.passingScore ??
-              70
-            ),
-
-          timeLimitMinutes:
-            Number(
-              quizBuilder.quiz.timeLimitMinutes ??
-              0
-            ),
-
-          attemptsAllowed:
-            Number(
-              quizBuilder.quiz.attemptsAllowed ??
-              1
-            ),
-
-          moduleId:
-            quizBuilder.quiz.moduleId ||
-            null,
-
-          lessonId:
-            quizBuilder.quiz.lessonId ||
-            null,
-
-          status:
-            quizBuilder.quiz.status ||
-            "draft"
+            "Saving quiz",
+          duration:
+            0
         }
       );
 
-    if(response?.quiz){
+    }
+
+    const payload = {
+
+      title,
+
+      instructions:
+        String(
+          quizBuilder.quiz.instructions ||
+          ""
+        ),
+
+      questions:
+        questions.map(
+          question => ({
+
+            ...question,
+
+            question:
+              String(
+                question?.question ||
+                question?.text ||
+                ""
+              ),
+
+            points:
+              Math.max(
+                0,
+                Number(
+                  question?.points ??
+                  1
+                )
+              )
+
+          })
+        ),
+
+      passingScore:
+        Math.min(
+          100,
+          Math.max(
+            0,
+            Number(
+              quizBuilder.quiz.passingScore ??
+              70
+            )
+          )
+        ),
+
+      timeLimitMinutes:
+        Math.max(
+          0,
+          Number(
+            quizBuilder.quiz.timeLimitMinutes ??
+            0
+          )
+        ),
+
+      attemptsAllowed:
+        Math.max(
+          1,
+          Number(
+            quizBuilder.quiz.attemptsAllowed ??
+            1
+          )
+        ),
+
+      moduleId:
+        quizBuilder.quiz.moduleId ||
+        null,
+
+      lessonId:
+        quizBuilder.quiz.lessonId ||
+        null,
+
+      status:
+        quizBuilder.quiz.status ||
+        "draft"
+
+    };
+
+    const response =
+      await apiSend(
+        `/api/classes/${encodeURIComponent(
+          state.classId
+        )}/builder/quiz/${encodeURIComponent(
+          quizBuilder.quiz._id
+        )}`,
+        "PATCH",
+        payload
+      );
+
+    const savedQuiz =
+      response?.quiz ||
+      response?.data?.quiz ||
+      (
+        response?._id
+          ? response
+          : null
+      );
+
+    if(savedQuiz){
 
       quizBuilder.quiz =
-        normalizeQuizForBuilder(
-          response.quiz
+        typeof normalizeQuizForBuilder ===
+        "function"
+          ? normalizeQuizForBuilder(
+              savedQuiz
+            )
+          : savedQuiz;
+
+      const stateQuizIndex =
+        (
+          Array.isArray(
+            state.quizzes
+          )
+            ? state.quizzes
+            : []
+        ).findIndex(
+          quiz => {
+            return (
+              String(
+                quiz?._id ||
+                ""
+              ) ===
+              String(
+                savedQuiz?._id ||
+                ""
+              )
+            );
+          }
         );
+
+      if(
+        stateQuizIndex !== -1
+      ){
+
+        state.quizzes[
+          stateQuizIndex
+        ] = savedQuiz;
+
+      }
 
     }
 
-    quizBuilder.dirty = false;
-    quizBuilder.lastSavedAt = new Date();
+    quizBuilder.dirty =
+      false;
+
+    quizBuilder.lastSavedAt =
+      new Date();
 
     updateQuizBuilderSaveState();
 
-    if(!silent){
+    if(dot){
 
-      toast(
-        "Quiz saved successfully."
+      dot.classList.remove(
+        "is-saving",
+        "is-dirty",
+        "is-error"
+      );
+
+      dot.classList.add(
+        "is-saved"
       );
 
     }
 
-    return response?.quiz || null;
+    setText(
+      "quizBuilderSaveStatus",
+      "All changes saved"
+    );
+
+    if(!silent){
+
+      showAlert(
+        "success",
+        "Your quiz and question changes were saved successfully.",
+        {
+          title:
+            "Quiz saved"
+        }
+      );
+
+    }
+
+    return (
+      savedQuiz ||
+      response ||
+      true
+    );
 
   }catch(error){
 
@@ -62258,12 +63410,14 @@ async function saveQuizBuilder(
       error
     );
 
+    quizBuilder.dirty =
+      true;
+
     if(dot){
 
       dot.classList.remove(
         "is-saving",
-        "is-saved",
-        "is-dirty"
+        "is-saved"
       );
 
       dot.classList.add(
@@ -62279,10 +63433,14 @@ async function saveQuizBuilder(
 
     if(!silent){
 
-      toast(
+      showAlert(
+        "error",
         error?.message ||
-        "Failed to save quiz.",
-        "error"
+        "The quiz could not be saved. Check your connection and try again.",
+        {
+          title:
+            "Quiz save failed"
+        }
       );
 
     }
@@ -62291,14 +63449,21 @@ async function saveQuizBuilder(
 
   }finally{
 
-    quizBuilder.saving = false;
+    quizBuilder.saving =
+      false;
 
-    if(draftButton){
-      draftButton.disabled = false;
-    }
+    if(button){
 
-    if(publishButton){
-      publishButton.disabled = false;
+      button.disabled =
+        false;
+
+      button.removeAttribute(
+        "aria-busy"
+      );
+
+      button.innerHTML =
+        originalButtonContent;
+
     }
 
   }
