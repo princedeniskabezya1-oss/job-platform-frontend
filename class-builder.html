@@ -1988,27 +1988,147 @@ body[data-builder-section]:not(
 }
 
 
+/* =========================================================
+   QUIZ BUILDER SAVE INDICATOR
+========================================================= */
 
+.quiz-builder-save-indicator{
+  min-height:24px;
+  padding:0 9px;
 
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
 
+  border:1px solid transparent;
+  border-radius:var(--aift-radius-pill);
 
+  background:var(--aift-success-soft);
+  color:var(--aift-success);
 
+  font-size:8px;
+  line-height:1;
+  font-weight:700;
 
+  white-space:nowrap;
 
+  transition:
+    background var(--aift-transition-fast),
+    border-color var(--aift-transition-fast),
+    color var(--aift-transition-fast);
+}
 
+.quiz-builder-save-dot{
+  width:7px;
+  height:7px;
 
+  display:block;
+  flex:0 0 auto;
 
+  border-radius:50%;
 
+  background:currentColor;
 
+  transition:
+    background var(--aift-transition-fast),
+    box-shadow var(--aift-transition-fast),
+    transform var(--aift-transition-fast);
+}
 
+.quiz-builder-save-dot.is-saved{
+  background:var(--aift-success);
 
+  box-shadow:
+    0 0 0 3px rgba(19,124,65,.12);
+}
 
+.quiz-builder-save-indicator:
+  has(.quiz-builder-save-dot.is-dirty){
+  border-color:var(--aift-warning-border);
 
+  background:var(--aift-warning-soft);
+  color:var(--aift-warning);
+}
 
+.quiz-builder-save-dot.is-dirty{
+  background:var(--aift-warning);
 
+  box-shadow:
+    0 0 0 3px rgba(154,103,0,.12);
+}
 
+.quiz-builder-save-indicator:
+  has(.quiz-builder-save-dot.is-saving){
+  border-color:#aecbfa;
 
-   
+  background:var(--aift-primary-soft);
+  color:var(--aift-primary);
+}
+
+.quiz-builder-save-dot.is-saving{
+  background:var(--aift-primary);
+
+  animation:
+    quizSaveDotPulse
+    .85s ease-in-out
+    infinite alternate;
+}
+
+.quiz-builder-save-indicator:
+  has(.quiz-builder-save-dot.is-error){
+  border-color:var(--aift-danger-border);
+
+  background:var(--aift-danger-soft);
+  color:var(--aift-danger);
+}
+
+.quiz-builder-save-dot.is-error{
+  background:var(--aift-danger);
+
+  box-shadow:
+    0 0 0 3px rgba(197,34,31,.12);
+}
+
+.quiz-save-button-spinner{
+  width:14px;
+  height:14px;
+
+  display:inline-block;
+  flex:0 0 auto;
+
+  border:2px solid rgba(255,255,255,.42);
+  border-top-color:#fff;
+  border-radius:50%;
+
+  animation:
+    quizSaveButtonSpin
+    .7s linear
+    infinite;
+}
+
+@keyframes quizSaveDotPulse{
+
+  from{
+    opacity:.35;
+    transform:scale(.82);
+  }
+
+  to{
+    opacity:1;
+    transform:scale(1.08);
+  }
+
+}
+
+@keyframes quizSaveButtonSpin{
+
+  to{
+    transform:rotate(360deg);
+  }
+
+}
+
 /* =========================================================
    GLOBAL AIFT NOTIFICATION SYSTEM
 ========================================================= */
@@ -22955,23 +23075,6 @@ body[data-builder-section="presentations"]
 
 
 <div class="studio-topbar-actions">
-
-    <div
-        id="quizSaveStatus"
-        class="quiz-save-status saved"
-    >
-
-        <span
-            class="quiz-save-dot"
-        ></span>
-
-        <span
-            id="quizSaveStatusText"
-        >
-            All changes saved
-        </span>
-
-    </div>
 
     <button
         class="studio-topbar-button secondary"
@@ -63022,7 +63125,7 @@ async function saveQuizBuilder(
         "No quiz is currently open.",
         {
           title:
-            "Quiz cannot be saved"
+            "Unable to save quiz"
         }
       );
 
@@ -63032,15 +63135,20 @@ async function saveQuizBuilder(
 
   }
 
-  if(
-    !quizBuilder.quiz._id
-  ){
+
+  const quizId =
+    String(
+      quizBuilder.quiz._id ||
+      ""
+    ).trim();
+
+  if(!quizId){
 
     if(!silent){
 
       showAlert(
         "error",
-        "The quiz does not have a valid ID. Refresh the Quiz Library and open it again.",
+        "This quiz does not have a valid ID. Return to the Quiz Library, refresh it, and open the quiz again.",
         {
           title:
             "Missing quiz ID"
@@ -63053,32 +63161,15 @@ async function saveQuizBuilder(
 
   }
 
-  if(
-    !state.classId
-  ){
-
-    if(!silent){
-
-      showAlert(
-        "error",
-        "The current class ID is unavailable.",
-        {
-          title:
-            "Class information missing"
-        }
-      );
-
-    }
-
-    return null;
-
-  }
 
   if(
     quizBuilder.saving
   ){
+
     return null;
+
   }
+
 
   const title =
     String(
@@ -63105,6 +63196,7 @@ async function saveQuizBuilder(
 
   }
 
+
   const questions =
     Array.isArray(
       quizBuilder.quiz.questions
@@ -63112,14 +63204,17 @@ async function saveQuizBuilder(
       ? quizBuilder.quiz.questions
       : [];
 
+
   const invalidQuestionIndex =
     questions.findIndex(
       question => {
+
         return !String(
           question?.question ||
           question?.text ||
           ""
         ).trim();
+
       }
     );
 
@@ -63128,6 +63223,22 @@ async function saveQuizBuilder(
   ){
 
     if(!silent){
+
+      const invalidQuestion =
+        questions[
+          invalidQuestionIndex
+        ];
+
+      quizBuilder.selectedQuestion =
+        String(
+          invalidQuestion?.id ||
+          invalidQuestion?._id ||
+          ""
+        );
+
+      renderQuizQuestionList();
+      renderQuizQuestionEditor();
+      renderQuizQuestionSettings();
 
       showAlert(
         "warning",
@@ -63144,6 +63255,14 @@ async function saveQuizBuilder(
 
   }
 
+
+  const selectedQuestionId =
+    String(
+      quizBuilder.selectedQuestion ||
+      ""
+    );
+
+
   clearTimeout(
     quizBuilder.autoSaveTimer
   );
@@ -63154,7 +63273,8 @@ async function saveQuizBuilder(
   quizBuilder.saving =
     true;
 
-  const dot =
+
+  const saveDot =
     byId(
       "quizBuilderSaveDot"
     );
@@ -63163,21 +63283,29 @@ async function saveQuizBuilder(
     button?.innerHTML ||
     "Save";
 
+
   try{
 
-    if(dot){
+    if(saveDot){
 
-      dot.classList.remove(
+      saveDot.classList.remove(
         "is-dirty",
         "is-saved",
         "is-error"
       );
 
-      dot.classList.add(
+      saveDot.classList.add(
         "is-saving"
       );
 
     }
+
+
+    setText(
+      "quizBuilderSaveStatus",
+      "Saving changes..."
+    );
+
 
     if(button){
 
@@ -63189,15 +63317,17 @@ async function saveQuizBuilder(
         "true"
       );
 
-      button.textContent =
-        "Saving...";
+      button.innerHTML = `
+        <span
+          class="quiz-save-button-spinner"
+          aria-hidden="true"
+        ></span>
+
+        Saving...
+      `;
 
     }
 
-    setText(
-      "quizBuilderSaveStatus",
-      "Saving..."
-    );
 
     if(!silent){
 
@@ -63207,6 +63337,7 @@ async function saveQuizBuilder(
         {
           title:
             "Saving quiz",
+
           duration:
             0
         }
@@ -63214,7 +63345,114 @@ async function saveQuizBuilder(
 
     }
 
+
+    const normalizedQuestions =
+      questions.map(
+        (
+          question,
+          index
+        ) => {
+
+          const questionId =
+            String(
+              question?.id ||
+              question?._id ||
+              `quiz-question-${Date.now()}-${index}`
+            );
+
+          const questionText =
+            String(
+              question?.question ||
+              question?.text ||
+              ""
+            ).trim();
+
+          const questionType =
+            String(
+              question?.type ||
+              "multiple_choice"
+            );
+
+          const points =
+            Number.isFinite(
+              Number(
+                question?.points
+              )
+            )
+              ? Math.max(
+                  0,
+                  Number(
+                    question.points
+                  )
+                )
+              : 1;
+
+          return {
+
+            ...question,
+
+            id:
+              questionId,
+
+            question:
+              questionText,
+
+            text:
+              questionText,
+
+            type:
+              questionType,
+
+            options:
+              Array.isArray(
+                question?.options
+              )
+                ? question.options.map(
+                    option =>
+                      String(
+                        option ||
+                        ""
+                      )
+                  )
+                : [],
+
+            correctAnswer:
+              question?.correctAnswer ??
+              "",
+
+            explanation:
+              String(
+                question?.explanation ||
+                ""
+              ),
+
+            points,
+
+            required:
+              question?.required !==
+              false,
+
+            difficulty:
+              String(
+                question?.difficulty ||
+                "medium"
+              )
+
+          };
+
+        }
+      );
+
+
     const payload = {
+
+      moduleId:
+        quizBuilder.quiz.moduleId ||
+        null,
+
+      lessonId:
+        quizBuilder.quiz.lessonId ||
+        null,
 
       title,
 
@@ -63225,29 +63463,7 @@ async function saveQuizBuilder(
         ),
 
       questions:
-        questions.map(
-          question => ({
-
-            ...question,
-
-            question:
-              String(
-                question?.question ||
-                question?.text ||
-                ""
-              ),
-
-            points:
-              Math.max(
-                0,
-                Number(
-                  question?.points ??
-                  1
-                )
-              )
-
-          })
-        ),
+        normalizedQuestions,
 
       passingScore:
         Math.min(
@@ -63279,30 +63495,24 @@ async function saveQuizBuilder(
           )
         ),
 
-      moduleId:
-        quizBuilder.quiz.moduleId ||
-        null,
-
-      lessonId:
-        quizBuilder.quiz.lessonId ||
-        null,
-
       status:
-        quizBuilder.quiz.status ||
-        "draft"
+        String(
+          quizBuilder.quiz.status ||
+          "draft"
+        )
 
     };
 
+
     const response =
       await apiSend(
-        `/api/classes/${encodeURIComponent(
-          state.classId
-        )}/builder/quiz/${encodeURIComponent(
-          quizBuilder.quiz._id
+        `/api/quizzes/${encodeURIComponent(
+          quizId
         )}`,
         "PATCH",
         payload
       );
+
 
     const savedQuiz =
       response?.quiz ||
@@ -63313,49 +63523,109 @@ async function saveQuizBuilder(
           : null
       );
 
-    if(savedQuiz){
 
-      quizBuilder.quiz =
-        typeof normalizeQuizForBuilder ===
-        "function"
-          ? normalizeQuizForBuilder(
-              savedQuiz
-            )
-          : savedQuiz;
+    if(!savedQuiz){
 
-      const stateQuizIndex =
-        (
-          Array.isArray(
-            state.quizzes
+      throw new Error(
+        "The server did not return the saved quiz."
+      );
+
+    }
+
+
+    const normalizedSavedQuiz =
+      typeof normalizeQuizForBuilder ===
+      "function"
+        ? normalizeQuizForBuilder(
+            savedQuiz
           )
-            ? state.quizzes
-            : []
-        ).findIndex(
-          quiz => {
-            return (
-              String(
-                quiz?._id ||
-                ""
-              ) ===
-              String(
-                savedQuiz?._id ||
-                ""
-              )
-            );
+        : savedQuiz;
+
+
+    quizBuilder.quiz =
+      normalizedSavedQuiz;
+
+
+    if(
+      Array.isArray(
+        quizBuilder.quiz.questions
+      )
+    ){
+
+      const selectedQuestionStillExists =
+        quizBuilder.quiz.questions.some(
+          question => {
+
+            return String(
+              question?.id ||
+              question?._id ||
+              ""
+            ) ===
+              selectedQuestionId;
+
           }
         );
 
-      if(
-        stateQuizIndex !== -1
-      ){
-
-        state.quizzes[
-          stateQuizIndex
-        ] = savedQuiz;
-
-      }
+      quizBuilder.selectedQuestion =
+        selectedQuestionStillExists
+          ? selectedQuestionId
+          : String(
+              quizBuilder.quiz
+                .questions[0]?.id ||
+              quizBuilder.quiz
+                .questions[0]?._id ||
+              ""
+            ) ||
+            null;
 
     }
+
+
+    if(
+      !Array.isArray(
+        state.quizzes
+      )
+    ){
+
+      state.quizzes = [];
+
+    }
+
+
+    const stateQuizIndex =
+      state.quizzes.findIndex(
+        quiz => {
+
+          return String(
+            quiz?._id ||
+            ""
+          ) ===
+            String(
+              savedQuiz._id ||
+              ""
+            );
+
+        }
+      );
+
+
+    if(
+      stateQuizIndex !== -1
+    ){
+
+      state.quizzes[
+        stateQuizIndex
+      ] =
+        savedQuiz;
+
+    }else{
+
+      state.quizzes.unshift(
+        savedQuiz
+      );
+
+    }
+
 
     quizBuilder.dirty =
       false;
@@ -63363,26 +63633,34 @@ async function saveQuizBuilder(
     quizBuilder.lastSavedAt =
       new Date();
 
-    updateQuizBuilderSaveState();
 
-    if(dot){
+    if(saveDot){
 
-      dot.classList.remove(
+      saveDot.classList.remove(
         "is-saving",
         "is-dirty",
         "is-error"
       );
 
-      dot.classList.add(
+      saveDot.classList.add(
         "is-saved"
       );
 
     }
 
+
     setText(
       "quizBuilderSaveStatus",
       "All changes saved"
     );
+
+
+    updateQuizBuilderSaveState();
+
+    renderQuizQuestionList();
+    renderQuizQuestionEditor();
+    renderQuizQuestionSettings();
+
 
     if(!silent){
 
@@ -63397,11 +63675,8 @@ async function saveQuizBuilder(
 
     }
 
-    return (
-      savedQuiz ||
-      response ||
-      true
-    );
+
+    return savedQuiz;
 
   }catch(error){
 
@@ -63410,26 +63685,30 @@ async function saveQuizBuilder(
       error
     );
 
+
     quizBuilder.dirty =
       true;
 
-    if(dot){
 
-      dot.classList.remove(
+    if(saveDot){
+
+      saveDot.classList.remove(
         "is-saving",
         "is-saved"
       );
 
-      dot.classList.add(
+      saveDot.classList.add(
         "is-error"
       );
 
     }
 
+
     setText(
       "quizBuilderSaveStatus",
       "Save failed"
     );
+
 
     if(!silent){
 
@@ -63439,11 +63718,15 @@ async function saveQuizBuilder(
         "The quiz could not be saved. Check your connection and try again.",
         {
           title:
-            "Quiz save failed"
+            "Quiz save failed",
+
+          duration:
+            6500
         }
       );
 
     }
+
 
     return null;
 
@@ -63451,6 +63734,7 @@ async function saveQuizBuilder(
 
     quizBuilder.saving =
       false;
+
 
     if(button){
 
