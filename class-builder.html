@@ -56220,6 +56220,49 @@ id="quizQuestionSettings">
 
 }
 
+
+/* ======================================================
+   SELECTED QUIZ QUESTION HELPER
+====================================================== */
+
+function getSelectedQuizQuestion(){
+
+  if(
+    !quizBuilder.quiz ||
+    !Array.isArray(
+      quizBuilder.quiz.questions
+    )
+  ){
+    return null;
+  }
+
+  const selectedId =
+    String(
+      quizBuilder.selectedQuestion ||
+      ""
+    ).trim();
+
+  if(!selectedId){
+    return null;
+  }
+
+  return (
+    quizBuilder.quiz.questions.find(
+      question => {
+        return (
+          String(
+            question?.id ||
+            question?._id ||
+            ""
+          ) === selectedId
+        );
+      }
+    ) ||
+    null
+  );
+
+}
+   
 /* ======================================================
    QUESTIONS
 ====================================================== */
@@ -56274,96 +56317,229 @@ renderQuizQuestionSettings();
 
 function renderQuizQuestionList(){
 
-    const container =
-        byId("quizQuestionsList");
+  const container =
+    byId(
+      "quizQuestionsList"
+    );
 
-    if(
-        !container ||
-        !quizBuilder.quiz
-    ){
-        return;
-    }
+  if(
+    !container ||
+    !quizBuilder.quiz
+  ){
+    return;
+  }
 
-    const questions =
-        quizBuilder.quiz.questions || [];
+  const questions =
+    Array.isArray(
+      quizBuilder.quiz.questions
+    )
+      ? quizBuilder.quiz.questions
+      : [];
 
-    container.innerHTML = questions
-        .map((question,index)=>{
+  if(!questions.length){
 
-            const active =
-                quizBuilder.selectedQuestion===index
-                ? "active"
-                : "";
+    container.innerHTML = `
+      <div class="quiz-empty-state">
 
-            return `
+        <span class="quiz-empty-state-icon">
 
-<div
-class="quiz-question-card ${active}"
-data-index="${index}">
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+            ></circle>
 
-<div
-class="quiz-question-head">
+            <path d="M12 8v8"></path>
+            <path d="M8 12h8"></path>
+          </svg>
 
-<div
-class="quiz-drag-handle">
+        </span>
 
-☰
+        <h3>
+          No questions yet
+        </h3>
 
-</div>
+        <p>
+          Add your first question to begin building this quiz.
+        </p>
 
-<div
-class="quiz-question-meta"
-onclick="selectQuizQuestion(${index})">
+      </div>
+    `;
 
-<div class="quiz-question-title">
+    return;
+  }
 
-Question ${index+1}
+  const selectedId =
+    String(
+      quizBuilder.selectedQuestion ||
+      ""
+    );
 
-</div>
+  container.innerHTML =
+    questions
+      .map(
+        (question, index) => {
 
-<div class="quiz-question-sub">
+          const questionId =
+            String(
+              question?.id ||
+              question?._id ||
+              ""
+            );
 
-${escapeHtml(question.type)}
+          const active =
+            selectedId === questionId
+              ? "active"
+              : "";
 
-•
+          const questionText =
+            String(
+              question?.question ||
+              question?.text ||
+              ""
+            ).trim();
 
-${question.points||0} pts
+          const questionType =
+            String(
+              question?.type ||
+              "multiple_choice"
+            )
+              .replaceAll(
+                "_",
+                " "
+              );
 
-</div>
+          const points =
+            Number.isFinite(
+              Number(
+                question?.points
+              )
+            )
+              ? Number(
+                  question.points
+                )
+              : 1;
 
-</div>
+          return `
+            <article
+              class="quiz-question-card ${active}"
+              data-question-id="${escapeHtml(questionId)}"
+              data-index="${index}"
+            >
 
-<div
-class="quiz-question-tools">
+              <div class="quiz-question-head">
 
-<button
-class="icon-btn"
-onclick="duplicateQuizQuestion(${index})">
+                <button
+                  type="button"
+                  class="quiz-drag-handle"
+                  aria-label="Drag question ${index + 1}"
+                  title="Drag to reorder"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <circle cx="9" cy="6" r="1"></circle>
+                    <circle cx="15" cy="6" r="1"></circle>
+                    <circle cx="9" cy="12" r="1"></circle>
+                    <circle cx="15" cy="12" r="1"></circle>
+                    <circle cx="9" cy="18" r="1"></circle>
+                    <circle cx="15" cy="18" r="1"></circle>
+                  </svg>
+                </button>
 
-⧉
 
-</button>
+                <button
+                  type="button"
+                  class="quiz-question-meta"
+                  onclick="selectQuizQuestion('${escapeHtml(questionId)}')"
+                >
 
-<button
-class="icon-btn danger"
-onclick="deleteQuizQuestion(${index})">
+                  <span class="quiz-question-title">
+                    Question ${index + 1}
+                  </span>
 
-🗑
+                  <span class="quiz-question-preview">
+                    ${
+                      questionText
+                        ? escapeHtml(questionText)
+                        : "Untitled question"
+                    }
+                  </span>
 
-</button>
+                  <span class="quiz-question-sub">
+                    ${escapeHtml(questionType)}
+                    ·
+                    ${points}
+                    ${
+                      points === 1
+                        ? "point"
+                        : "points"
+                    }
+                  </span>
 
-</div>
+                </button>
 
-</div>
 
-</div>
+                <div class="quiz-question-tools">
 
-`;
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    aria-label="Duplicate question"
+                    title="Duplicate question"
+                    onclick="selectQuizQuestion('${escapeHtml(questionId)}'); duplicateSelectedQuizQuestion();"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <rect
+                        x="8"
+                        y="8"
+                        width="12"
+                        height="12"
+                        rx="2"
+                      ></rect>
 
-        })
-        .join("");
+                      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path>
+                    </svg>
+                  </button>
 
-    initializeQuizSorting();
+
+                  <button
+                    type="button"
+                    class="icon-btn danger"
+                    aria-label="Delete question"
+                    title="Delete question"
+                    onclick="selectQuizQuestion('${escapeHtml(questionId)}'); deleteSelectedQuizQuestion();"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 6h18"></path>
+                      <path d="M8 6V4h8v2"></path>
+                      <path d="M19 6l-1 14H6L5 6"></path>
+                    </svg>
+                  </button>
+
+                </div>
+
+              </div>
+
+            </article>
+          `;
+
+        }
+      )
+      .join("");
+
+  initializeQuizSorting();
 
 }
 
@@ -56388,55 +56564,84 @@ function duplicateQuizQuestion(index){
 
 function initializeQuizSorting(){
 
-    const list =
-        byId(
-            "quizQuestionsList"
-        );
+  const list =
+    byId(
+      "quizQuestionsList"
+    );
 
-    if(!list){
+  if(
+    !list ||
+    typeof Sortable === "undefined"
+  ){
+    return;
+  }
 
-        return;
+  if(list._quizSortable){
 
-    }
+    list._quizSortable.destroy();
+    list._quizSortable = null;
 
-    Sortable.create(list,{
+  }
 
-        animation:180,
+  list._quizSortable =
+    Sortable.create(
+      list,
+      {
+        animation: 180,
 
-        handle:".quiz-drag-handle",
+        handle:
+          ".quiz-drag-handle",
+
+        draggable:
+          ".quiz-question-card",
+
+        ghostClass:
+          "quiz-question-dragging",
 
         onEnd(event){
 
-            const moved =
-                quizBuilder.quiz.questions.splice(
-                    event.oldIndex,
-                    1
-                )[0];
+          if(
+            event.oldIndex ===
+            event.newIndex
+          ){
+            return;
+          }
 
-            quizBuilder.quiz.questions.splice(
+          const questions =
+            quizBuilder.quiz.questions;
 
-                event.newIndex,
+          const movedQuestion =
+            questions.splice(
+              event.oldIndex,
+              1
+            )[0];
 
-                0,
+          if(!movedQuestion){
+            return;
+          }
 
-                moved
+          questions.splice(
+            event.newIndex,
+            0,
+            movedQuestion
+          );
 
+          quizBuilder.selectedQuestion =
+            String(
+              movedQuestion.id ||
+              movedQuestion._id ||
+              ""
             );
 
-            quizBuilder.selectedQuestion=
-                event.newIndex;
+          markQuizBuilderDirty();
 
-            quizBuilder.dirty=true;
-
-            renderQuizQuestionList();
-
-            renderQuizQuestionEditor();
-
-            renderQuizQuestionSettings();
+          renderQuizQuestionList();
+          renderQuizQuestionEditor();
+          renderQuizQuestionSettings();
 
         }
-
-    });
+      }
+    );
 
 }
 
@@ -56514,319 +56719,775 @@ function selectQuizQuestion(id){
 
 function renderQuizQuestionEditor(){
 
-    const container =
-        byId("quizQuestionEditor");
+  const container =
+    byId(
+      "quizQuestionEditor"
+    );
 
-    if(
-        !container ||
-        !quizBuilder.quiz
-    ){
-        return;
-    }
+  if(
+    !container ||
+    !quizBuilder.quiz
+  ){
+    return;
+  }
 
-    const question =
-        quizBuilder.quiz.questions[
-            quizBuilder.selectedQuestion
-        ];
+  const question =
+    getSelectedQuizQuestion();
 
-    if(!question){
+  if(!question){
 
-        container.innerHTML=`
+    container.innerHTML = `
+      <div class="quiz-empty">
 
-<div class="quiz-empty">
+        <div>
 
-Select a question
+          <h3>
+            Select a question
+          </h3>
 
-</div>
+          <p>
+            Choose a question from the left panel or add a new one.
+          </p>
 
-`;
+          <button
+            type="button"
+            class="primary-btn"
+            onclick="addQuizQuestion()"
+          >
+            Add question
+          </button>
 
-        return;
+        </div>
 
-    }
+      </div>
+    `;
 
-    container.innerHTML=`
+    return;
+  }
 
-<div class="quiz-editor">
+  const questionText =
+    String(
+      question.question ||
+      question.text ||
+      ""
+    );
 
-<section class="quiz-panel">
+  const explanation =
+    String(
+      question.explanation ||
+      ""
+    );
 
-<h3>
+  container.innerHTML = `
+    <div class="quiz-editor">
 
-Question
+      <section class="quiz-panel">
 
-</h3>
+        <div class="quiz-panel-heading">
 
-<textarea
-id="quizQuestionText"
-class="quiz-input quiz-textarea"
+          <div>
 
-placeholder="Write your question...">${escapeHtml(
-question.text||""
-)}</textarea>
+            <span class="quiz-panel-eyebrow">
+              Question editor
+            </span>
 
-</section>
+            <h3>
+              Question content
+            </h3>
 
-<section class="quiz-panel">
+          </div>
 
-<h3>
+        </div>
 
-Question Type
 
-</h3>
+        <label
+          class="field"
+          for="quizQuestionText"
+        >
 
-<select
-id="quizQuestionType"
-class="quiz-input">
+          <span>
+            Question
+          </span>
 
-<option value="multiple_choice">Multiple Choice</option>
+          <textarea
+            id="quizQuestionText"
+            class="quiz-input quiz-textarea"
+            placeholder="Write the question students will answer..."
+          >${escapeHtml(questionText)}</textarea>
 
-<option value="checkbox">Checkbox</option>
+        </label>
 
-<option value="true_false">True / False</option>
+      </section>
 
-<option value="essay">Essay</option>
 
-<option value="short_answer">Short Answer</option>
+      <section class="quiz-panel">
 
-<option value="matching">Matching</option>
+        <label
+          class="field"
+          for="quizQuestionType"
+        >
 
-<option value="ordering">Ordering</option>
+          <span>
+            Question type
+          </span>
 
-<option value="fill_blank">Fill in the Blank</option>
+          <select
+            id="quizQuestionType"
+            class="quiz-input"
+          >
+            <option value="multiple_choice">
+              Multiple choice
+            </option>
 
-<option value="coding">Coding</option>
+            <option value="true_false">
+              True or false
+            </option>
 
-</select>
+            <option value="short_answer">
+              Short answer
+            </option>
 
-</section>
+            <option value="essay">
+              Essay
+            </option>
+          </select>
 
-<section class="quiz-panel">
+        </label>
 
-<h3>
+      </section>
 
-Answer Choices
 
-</h3>
+      <section
+        class="quiz-panel"
+        id="quizAnswerEditorPanel"
+      >
 
-<div id="quizChoices">
+        <div class="quiz-panel-heading">
 
-</div>
+          <div>
 
-<button
-class="btn btn-primary"
-onclick="addQuizChoice()">
+            <span class="quiz-panel-eyebrow">
+              Answers
+            </span>
 
-+ Add Choice
+            <h3>
+              Answer options
+            </h3>
 
-</button>
+          </div>
 
-</section>
+        </div>
 
-<section class="quiz-panel">
+        <div id="quizChoices"></div>
 
-<h3>
+      </section>
 
-Explanation
 
-</h3>
+      <section class="quiz-panel">
 
-<textarea
-id="quizExplanation"
-class="quiz-input quiz-textarea"
+        <label
+          class="field"
+          for="quizExplanation"
+        >
 
-placeholder="Explain the answer...">${escapeHtml(
-question.explanation||""
-)}</textarea>
+          <span>
+            Answer explanation
+          </span>
 
-</section>
+          <textarea
+            id="quizExplanation"
+            class="quiz-input quiz-textarea"
+            placeholder="Explain the correct answer to students..."
+          >${escapeHtml(explanation)}</textarea>
 
-<section class="quiz-panel">
+        </label>
 
-<h3>
+      </section>
 
-Attachments
+    </div>
+  `;
 
-</h3>
+  const typeSelect =
+    byId(
+      "quizQuestionType"
+    );
 
-<div class="quiz-upload-grid">
+  if(typeSelect){
 
-<button class="btn">
+    typeSelect.value =
+      question.type ||
+      "multiple_choice";
 
-📷 Image
+  }
 
-</button>
-
-<button class="btn">
-
-🎥 Video
-
-</button>
-
-<button class="btn">
-
-🎙 Audio
-
-</button>
-
-<button class="btn">
-
-📄 File
-
-</button>
-
-</div>
-
-</section>
-
-</div>
-
-`;
-
-    byId("quizQuestionType").value =
-        question.type ||
-        "multiple_choice";
-
-    renderQuizChoices();
-
-    initializeQuestionEditorEvents();
+  renderQuizChoices();
+  initializeQuestionEditorEvents();
 
 }
 
 function initializeQuestionEditorEvents(){
 
-    const question =
-        quizBuilder.quiz.questions[
-            quizBuilder.selectedQuestion
-        ];
+  const question =
+    getSelectedQuizQuestion();
 
+  if(!question){
+    return;
+  }
+
+  const questionInput =
     byId(
-        "quizQuestionText"
-    ).oninput=e=>{
+      "quizQuestionText"
+    );
 
-        question.text=e.target.value;
+  const typeInput =
+    byId(
+      "quizQuestionType"
+    );
+
+  const explanationInput =
+    byId(
+      "quizExplanation"
+    );
+
+  if(questionInput){
+
+    questionInput.oninput =
+      event => {
+
+        const value =
+          event.target.value;
+
+        question.question =
+          value;
+
+        question.text =
+          value;
 
         markQuizBuilderDirty();
 
-    };
+        const selectedCard =
+          document.querySelector(
+            `.quiz-question-card[data-question-id="${CSS.escape(
+              String(
+                question.id ||
+                question._id ||
+                ""
+              )
+            )}"]`
+          );
 
-    byId(
-        "quizQuestionType"
-    ).onchange=e=>{
+        const preview =
+          selectedCard?.querySelector(
+            ".quiz-question-preview"
+          );
 
-        question.type=e.target.value;
+        if(preview){
+
+          preview.textContent =
+            value.trim() ||
+            "Untitled question";
+
+        }
+
+      };
+
+  }
+
+  if(typeInput){
+
+    typeInput.onchange =
+      event => {
+
+        question.type =
+          event.target.value;
+
+        normalizeQuestionForType(
+          question
+        );
 
         markQuizBuilderDirty();
 
         renderQuizQuestionList();
+        renderQuizQuestionEditor();
+        renderQuizQuestionSettings();
 
-    };
+      };
 
-    byId(
-        "quizExplanation"
-    ).oninput=e=>{
+  }
 
-        question.explanation=
-            e.target.value;
+  if(explanationInput){
+
+    explanationInput.oninput =
+      event => {
+
+        question.explanation =
+          event.target.value;
 
         markQuizBuilderDirty();
 
-    };
+      };
+
+  }
+
+}
+
+function normalizeQuestionForType(
+  question
+){
+
+  if(!question){
+    return;
+  }
+
+  switch(
+    question.type
+  ){
+
+    case "multiple_choice":
+
+      if(
+        !Array.isArray(
+          question.options
+        ) ||
+        question.options.length < 2
+      ){
+
+        question.options = [
+          "Option A",
+          "Option B"
+        ];
+
+      }
+
+      if(
+        !Number.isInteger(
+          Number(
+            question.correctAnswer
+          )
+        )
+      ){
+
+        question.correctAnswer = 0;
+
+      }
+
+      break;
+
+
+    case "true_false":
+
+      question.options = [
+        "True",
+        "False"
+      ];
+
+      if(
+        question.correctAnswer !== true &&
+        question.correctAnswer !== false
+      ){
+
+        question.correctAnswer = true;
+
+      }
+
+      break;
+
+
+    case "short_answer":
+
+      question.options = [];
+
+      if(
+        typeof question.correctAnswer !==
+        "string"
+      ){
+
+        question.correctAnswer = "";
+
+      }
+
+      break;
+
+
+    case "essay":
+
+      question.options = [];
+      question.correctAnswer = "";
+
+      break;
+
+  }
 
 }
 
 
 function renderQuizChoices(){
 
-    const wrap=
-        byId(
-            "quizChoices"
-        );
+  const wrap =
+    byId(
+      "quizChoices"
+    );
 
-    if(!wrap){
+  if(!wrap){
+    return;
+  }
 
-        return;
+  const question =
+    getSelectedQuizQuestion();
 
-    }
+  if(!question){
+    return;
+  }
 
-    const question=
-        quizBuilder.quiz.questions[
-            quizBuilder.selectedQuestion
-        ];
+  normalizeQuestionForType(
+    question
+  );
 
-    if(!question.options){
+  if(
+    question.type ===
+    "multiple_choice"
+  ){
 
-        question.options=[];
+    wrap.innerHTML = `
+      <div class="quiz-choice-list">
 
-    }
+        ${question.options
+          .map(
+            (option, index) => `
+              <div class="quiz-choice-row">
 
-    wrap.innerHTML=
-        question.options
-        .map((option,index)=>`
+                <button
+                  type="button"
+                  class="quiz-correct-choice ${
+                    Number(
+                      question.correctAnswer
+                    ) === index
+                      ? "active"
+                      : ""
+                  }"
+                  aria-label="Mark option ${index + 1} as correct"
+                  title="Mark as correct answer"
+                  onclick="setQuizCorrectChoice(${index})"
+                >
+                  ${
+                    Number(
+                      question.correctAnswer
+                    ) === index
+                      ? "✓"
+                      : String.fromCharCode(
+                          65 + index
+                        )
+                  }
+                </button>
 
-<div class="quiz-choice-row">
 
-<input
-class="quiz-input"
+                <input
+                  type="text"
+                  class="quiz-input"
+                  value="${escapeHtml(option)}"
+                  placeholder="Option ${index + 1}"
+                  oninput="updateQuizChoice(${index}, this.value)"
+                >
 
-value="${escapeHtml(option)}"
 
-oninput="updateQuizChoice(${index},this.value)">
+                <button
+                  type="button"
+                  class="icon-btn danger"
+                  aria-label="Remove option"
+                  title="Remove option"
+                  ${
+                    question.options.length <= 2
+                      ? "disabled"
+                      : ""
+                  }
+                  onclick="removeQuizChoice(${index})"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 6h18"></path>
+                    <path d="M8 6V4h8v2"></path>
+                    <path d="M19 6l-1 14H6L5 6"></path>
+                  </svg>
+                </button>
 
-<button
-class="icon-btn danger"
-onclick="removeQuizChoice(${index})">
+              </div>
+            `
+          )
+          .join("")}
 
-🗑
+      </div>
 
-</button>
 
-</div>
+      <button
+        type="button"
+        class="ghost-btn"
+        onclick="addQuizChoice()"
+      >
+        + Add option
+      </button>
+    `;
 
-`).join("");
+    return;
+  }
+
+
+  if(
+    question.type ===
+    "true_false"
+  ){
+
+    wrap.innerHTML = `
+      <div class="quiz-truefalse">
+
+        <label>
+
+          <input
+            type="radio"
+            name="quizTrueFalseAnswer"
+            value="true"
+            ${
+              question.correctAnswer === true
+                ? "checked"
+                : ""
+            }
+            onchange="setQuizTrueFalseAnswer(true)"
+          >
+
+          <span>
+            True
+          </span>
+
+        </label>
+
+
+        <label>
+
+          <input
+            type="radio"
+            name="quizTrueFalseAnswer"
+            value="false"
+            ${
+              question.correctAnswer === false
+                ? "checked"
+                : ""
+            }
+            onchange="setQuizTrueFalseAnswer(false)"
+          >
+
+          <span>
+            False
+          </span>
+
+        </label>
+
+      </div>
+    `;
+
+    return;
+  }
+
+
+  if(
+    question.type ===
+    "short_answer"
+  ){
+
+    wrap.innerHTML = `
+      <label class="field">
+
+        <span>
+          Correct answer
+        </span>
+
+        <input
+          type="text"
+          class="quiz-input"
+          value="${escapeHtml(
+            question.correctAnswer ||
+            ""
+          )}"
+          placeholder="Enter the accepted answer"
+          oninput="updateQuizShortAnswer(this.value)"
+        >
+
+      </label>
+    `;
+
+    return;
+  }
+
+
+  wrap.innerHTML = `
+    <div class="empty">
+      Essay questions are reviewed and graded manually.
+    </div>
+  `;
 
 }
 
 function addQuizChoice(){
 
-    const question=
-        quizBuilder.quiz.questions[
-            quizBuilder.selectedQuestion
-        ];
+  const question =
+    getSelectedQuizQuestion();
 
-    if(!question.options){
+  if(
+    !question ||
+    question.type !==
+    "multiple_choice"
+  ){
+    return;
+  }
 
-        question.options=[];
+  if(
+    !Array.isArray(
+      question.options
+    )
+  ){
+    question.options = [];
+  }
 
-    }
+  question.options.push(
+    `Option ${String.fromCharCode(
+      65 +
+      question.options.length
+    )}`
+  );
 
-    question.options.push("");
-
-    renderQuizChoices();
-
-    markQuizBuilderDirty();
+  markQuizBuilderDirty();
+  renderQuizChoices();
 
 }
 
-function updateQuizChoice(index,value){
 
-    quizBuilder.quiz.questions[
-        quizBuilder.selectedQuestion
-    ].options[index]=value;
+function updateQuizChoice(
+  index,
+  value
+){
 
-    markQuizBuilderDirty();
+  const question =
+    getSelectedQuizQuestion();
+
+  if(
+    !question ||
+    !Array.isArray(
+      question.options
+    )
+  ){
+    return;
+  }
+
+  question.options[index] =
+    value;
+
+  markQuizBuilderDirty();
 
 }
 
-function removeQuizChoice(index){
 
-    quizBuilder.quiz.questions[
-        quizBuilder.selectedQuestion
-    ].options.splice(index,1);
+function removeQuizChoice(
+  index
+){
 
-    renderQuizChoices();
+  const question =
+    getSelectedQuizQuestion();
 
-    markQuizBuilderDirty();
+  if(
+    !question ||
+    !Array.isArray(
+      question.options
+    ) ||
+    question.options.length <= 2
+  ){
+    return;
+  }
+
+  question.options.splice(
+    index,
+    1
+  );
+
+  const correctIndex =
+    Number(
+      question.correctAnswer
+    );
+
+  if(
+    correctIndex === index
+  ){
+
+    question.correctAnswer = 0;
+
+  }else if(
+    correctIndex > index
+  ){
+
+    question.correctAnswer =
+      correctIndex - 1;
+
+  }
+
+  markQuizBuilderDirty();
+  renderQuizChoices();
+
+}
+
+
+function setQuizCorrectChoice(
+  index
+){
+
+  const question =
+    getSelectedQuizQuestion();
+
+  if(!question){
+    return;
+  }
+
+  question.correctAnswer =
+    Number(index);
+
+  markQuizBuilderDirty();
+  renderQuizChoices();
+
+}
+
+
+function setQuizTrueFalseAnswer(
+  value
+){
+
+  const question =
+    getSelectedQuizQuestion();
+
+  if(!question){
+    return;
+  }
+
+  question.correctAnswer =
+    Boolean(value);
+
+  markQuizBuilderDirty();
+
+}
+
+
+function updateQuizShortAnswer(
+  value
+){
+
+  const question =
+    getSelectedQuizQuestion();
+
+  if(!question){
+    return;
+  }
+
+  question.correctAnswer =
+    value;
+
+  markQuizBuilderDirty();
 
 }
 
@@ -57069,10 +57730,8 @@ function renderQuizQuestionSettings(){
         return;
     }
 
-    const question =
-        quizBuilder.quiz.questions[
-            quizBuilder.selectedQuestion
-        ];
+const question =
+  getSelectedQuizQuestion();
 
     if(!question){
 
@@ -57298,10 +57957,12 @@ ${question.autoGrade!==false ? "checked" : ""}>
 
 function initializeQuestionSettingsEvents(){
 
-    const question =
-        quizBuilder.quiz.questions[
-            quizBuilder.selectedQuestion
-        ];
+const question =
+  getSelectedQuizQuestion();
+
+if(!question){
+  return;
+}
 
     byId("quizPoints").oninput=e=>{
 
