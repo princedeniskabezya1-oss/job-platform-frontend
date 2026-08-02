@@ -2423,11 +2423,11 @@ body[data-builder-section]:not(
 
 @keyframes aiftAlertProgress{
   from{
-    transform:scaleX(1);
+    transform:scaleX(0);
   }
 
   to{
-    transform:scaleX(0);
+    transform:scaleX(1);
   }
 }
 
@@ -23245,13 +23245,15 @@ body[data-builder-section="presentations"]
   </button>
 
 
-  <button
-    type="button"
-    class="studio-topbar-button publish"
-    onclick="publishClass()"
-  >
-    Publish
-  </button>
+<button
+  type="button"
+  class="studio-topbar-button publish"
+  id="studioPublishButton"
+  onclick="publishClass(event)"
+  aria-label="Publish class and class content"
+>
+  Publish
+</button>
 
 </div>
 
@@ -53540,28 +53542,596 @@ async function saveClassProfile(event){
   }
 }
 
-async function publishClass(){
-  try{
-    if (!state.classId){
-      showAlert("error", "Class ID missing.");
-      return;
-    }
+async function publishClass(
+  event
+){
 
-    await apiSend(
-      `/api/classes/${encodeURIComponent(state.classId)}/builder`,
-      "PATCH",
+  if(
+    publishClass.isRunning
+  ){
+    return false;
+  }
+
+
+  const button =
+    event?.currentTarget ||
+    byId(
+      "studioPublishButton"
+    );
+
+
+  if(
+    !state.classId
+  ){
+
+    showAlert(
+      "error",
+      "The current class ID is unavailable.",
       {
-        published: true,
-        status: "active"
+        title:
+          "Class cannot be published"
       }
     );
 
-    showAlert("success", "Class published.");
-    await loadBuilder();
-  }catch(err){
-    console.error("publishClass error:", err);
-    showAlert("error", err.message || "Failed to publish class.");
+    return false;
+
   }
+
+
+  const originalButtonContent =
+    button?.innerHTML ||
+    "Publish";
+
+
+  const modules =
+    Array.isArray(
+      state.modules
+    )
+      ? state.modules
+      : [];
+
+
+  const lessons =
+    Array.isArray(
+      state.lessons
+    )
+      ? state.lessons
+      : [];
+
+
+  const quizzes =
+    Array.isArray(
+      state.quizzes
+    )
+      ? state.quizzes
+      : [];
+
+
+  const modulesToPublish =
+    modules.filter(
+      module => {
+
+        return (
+          module?._id &&
+          String(
+            module.status ||
+            "draft"
+          )
+            .trim()
+            .toLowerCase() !==
+            "published"
+        );
+
+      }
+    );
+
+
+  const lessonsToPublish =
+    lessons.filter(
+      lesson => {
+
+        return (
+          lesson?._id &&
+          String(
+            lesson.status ||
+            "draft"
+          )
+            .trim()
+            .toLowerCase() !==
+            "published"
+        );
+
+      }
+    );
+
+
+  const quizzesToPublish =
+    quizzes.filter(
+      quiz => {
+
+        return (
+          quiz?._id &&
+          String(
+            quiz.status ||
+            "draft"
+          )
+            .trim()
+            .toLowerCase() !==
+            "published"
+        );
+
+      }
+    );
+
+
+  publishClass.isRunning =
+    true;
+
+
+  try{
+
+    if(button){
+
+      button.disabled =
+        true;
+
+      button.setAttribute(
+        "aria-busy",
+        "true"
+      );
+
+      button.innerHTML = `
+        <span
+          class="quiz-save-button-spinner"
+          aria-hidden="true"
+        ></span>
+
+        Publishing...
+      `;
+
+    }
+
+
+    setBuilderSaveState(
+      "saving",
+      "Publishing..."
+    );
+
+
+    showAlert(
+      "loading",
+      "Publishing the class, curriculum, lessons and quizzes...",
+      {
+        title:
+          "Publishing class",
+
+        duration:
+          0
+      }
+    );
+
+
+    const [
+      classResponse
+    ] =
+      await Promise.all([
+
+        apiSend(
+          `/api/classes/${encodeURIComponent(
+            state.classId
+          )}/builder`,
+          "PATCH",
+          {
+            published:
+              true,
+
+            status:
+              "active"
+          }
+        ),
+
+
+        Promise.all(
+          modulesToPublish.map(
+            module => {
+
+              return apiSend(
+                `/api/class-modules/${encodeURIComponent(
+                  module._id
+                )}`,
+                "PATCH",
+                {
+                  status:
+                    "published"
+                }
+              );
+
+            }
+          )
+        ),
+
+
+        Promise.all(
+          lessonsToPublish.map(
+            lesson => {
+
+              return apiSend(
+                `/api/class-lessons/${encodeURIComponent(
+                  lesson._id
+                )}`,
+                "PATCH",
+                {
+                  status:
+                    "published"
+                }
+              );
+
+            }
+          )
+        ),
+
+
+        Promise.all(
+          quizzesToPublish.map(
+            quiz => {
+
+              return apiSend(
+                `/api/quizzes/${encodeURIComponent(
+                  quiz._id
+                )}`,
+                "PATCH",
+                {
+                  status:
+                    "published"
+                }
+              );
+
+            }
+          )
+        )
+
+      ]);
+
+
+    const updatedClass =
+      classResponse?.class ||
+      classResponse?.data?.class ||
+      classResponse;
+
+
+    state.classData = {
+
+      ...(
+        state.classData ||
+        {}
+      ),
+
+      ...(
+        updatedClass &&
+        typeof updatedClass ===
+          "object"
+          ? updatedClass
+          : {}
+      ),
+
+      published:
+        true,
+
+      status:
+        "active"
+
+    };
+
+
+    const publishedModuleIds =
+      new Set(
+        modulesToPublish.map(
+          module =>
+            String(
+              module._id
+            )
+        )
+      );
+
+
+    const publishedLessonIds =
+      new Set(
+        lessonsToPublish.map(
+          lesson =>
+            String(
+              lesson._id
+            )
+        )
+      );
+
+
+    const publishedQuizIds =
+      new Set(
+        quizzesToPublish.map(
+          quiz =>
+            String(
+              quiz._id
+            )
+        )
+      );
+
+
+    state.modules =
+      modules.map(
+        module => {
+
+          if(
+            publishedModuleIds.has(
+              String(
+                module?._id ||
+                ""
+              )
+            )
+          ){
+
+            return {
+              ...module,
+              status:
+                "published"
+            };
+
+          }
+
+          return module;
+
+        }
+      );
+
+
+    state.lessons =
+      lessons.map(
+        lesson => {
+
+          if(
+            publishedLessonIds.has(
+              String(
+                lesson?._id ||
+                ""
+              )
+            )
+          ){
+
+            return {
+              ...lesson,
+              status:
+                "published"
+            };
+
+          }
+
+          return lesson;
+
+        }
+      );
+
+
+    state.quizzes =
+      quizzes.map(
+        quiz => {
+
+          if(
+            publishedQuizIds.has(
+              String(
+                quiz?._id ||
+                ""
+              )
+            )
+          ){
+
+            return {
+              ...quiz,
+              status:
+                "published"
+            };
+
+          }
+
+          return quiz;
+
+        }
+      );
+
+
+    if(
+      quizBuilder.quiz?._id &&
+      publishedQuizIds.has(
+        String(
+          quizBuilder.quiz._id
+        )
+      )
+    ){
+
+      quizBuilder.quiz.status =
+        "published";
+
+      quizBuilder.dirty =
+        false;
+
+      updateQuizBuilderSaveState();
+
+    }
+
+
+    /*
+      Refresh every counter and workspace from the updated
+      local state without moving away from the current page.
+    */
+
+    if(
+      typeof renderStats ===
+      "function"
+    ){
+      renderStats();
+    }
+
+
+    if(
+      typeof updateCurriculumSummary ===
+      "function"
+    ){
+      updateCurriculumSummary();
+    }
+
+
+    if(
+      typeof updateLessonsWorkspaceSummary ===
+      "function"
+    ){
+      updateLessonsWorkspaceSummary();
+    }
+
+
+    if(
+      typeof updateQuizWorkspaceSummary ===
+      "function"
+    ){
+      updateQuizWorkspaceSummary();
+    }
+
+
+    if(
+      typeof renderModules ===
+      "function"
+    ){
+      renderModules();
+    }
+
+
+    if(
+      typeof renderLessons ===
+      "function"
+    ){
+      renderLessons();
+    }
+
+
+    if(
+      typeof renderQuizzes ===
+      "function"
+    ){
+      renderQuizzes();
+    }
+
+
+    if(
+      typeof renderOverview ===
+      "function"
+    ){
+      renderOverview();
+    }
+
+
+    if(
+      typeof renderPreview ===
+      "function"
+    ){
+      renderPreview();
+    }
+
+
+    if(
+      typeof renderHeader ===
+      "function"
+    ){
+      renderHeader();
+    }
+
+
+    setBuilderSaveState(
+      "",
+      "Published"
+    );
+
+
+    showAlert(
+      "success",
+      [
+        "The class was published successfully.",
+        `${modulesToPublish.length} module${
+          modulesToPublish.length === 1
+            ? ""
+            : "s"
+        },`,
+        `${lessonsToPublish.length} lesson${
+          lessonsToPublish.length === 1
+            ? ""
+            : "s"
+        }, and`,
+        `${quizzesToPublish.length} quiz${
+          quizzesToPublish.length === 1
+            ? ""
+            : "zes"
+        } were published.`
+      ].join(" "),
+      {
+        title:
+          "Class published",
+
+        duration:
+          5500
+      }
+    );
+
+
+    return true;
+
+  }catch(error){
+
+    console.error(
+      "publishClass error:",
+      error
+    );
+
+
+    setBuilderSaveState(
+      "error",
+      "Publish failed"
+    );
+
+
+    showAlert(
+      "error",
+      error?.message ||
+      "The class or some of its content could not be published.",
+      {
+        title:
+          "Publishing failed",
+
+        duration:
+          7000
+      }
+    );
+
+
+    return false;
+
+  }finally{
+
+    publishClass.isRunning =
+      false;
+
+
+    if(button){
+
+      button.disabled =
+        false;
+
+      button.removeAttribute(
+        "aria-busy"
+      );
+
+      button.innerHTML =
+        originalButtonContent;
+
+    }
+
+  }
+
 }
 
 async function archiveClass(){
