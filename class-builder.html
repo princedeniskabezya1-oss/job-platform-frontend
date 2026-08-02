@@ -27962,13 +27962,18 @@ body[data-builder-section="presentations"]
             type="button"
             data-builder-tab="students"
             onclick="openBuilderSection('students')"
+            aria-label="Open student performance"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="7" r="4"></circle>
-              <path d="M5.5 21a6.5 6.5 0 0 1 13 0"></path>
+              <circle cx="9" cy="8" r="3"></circle>
+              <circle cx="17" cy="9" r="2"></circle>
+              <path d="M3 20c0-4 2.5-7 6-7s6 3 6 7"></path>
+              <path d="M15 14c3 0 5 2 5 5"></path>
+              <path d="M17 4v3"></path>
+              <path d="M15.5 5.5h3"></path>
             </svg>
 
-            <span>Students</span>
+            <span>Student Performance</span>
 
             <small id="sidebarStudentCount">
               0
@@ -76161,89 +76166,2203 @@ async function deleteQuizConfirm(quizId){
 
 }
 
-/* =====================================================
-   STUDENTS / PROGRESS
-===================================================== */
+/* =========================================================
+   STUDENT PERFORMANCE STATE
+========================================================= */
 
-function renderStudents(){
-  const studentsEl = byId("studentsList");
-  const progressEl = byId("studentProgressList");
+const studentPerformanceState = {
+  search:"",
+  status:"all",
+  progress:"all",
+  sort:"attention-first",
+  selectedStudentId:"",
+  eventsBound:false,
+  refreshing:false
+};
 
-  const students = Array.isArray(state.classData?.studentIds)
-    ? state.classData.studentIds
-    : [];
 
-  if (studentsEl){
-    if (!students.length){
-      studentsEl.innerHTML = `
-        <div class="empty">
-          No enrolled students yet.
-        </div>
-      `;
-    } else {
-      studentsEl.innerHTML = students.map(student => {
-        const isObject = typeof student === "object" && student !== null;
+/* =========================================================
+   STUDENT IDENTITY HELPERS
+========================================================= */
 
-        return `
-          <article class="builder-item">
+function normalizeStudentReference(value){
+  if(!value){
+    return "";
+  }
 
-            <h3 class="builder-item-title">
-              ${escapeHtml(isObject ? student.name || student.email || "Student" : student)}
-            </h3>
+  if(typeof value === "object"){
+    const objectId =
+      value._id ||
+      value.id ||
+      value.userId ||
+      value.studentId ||
+      value.learnerId ||
+      value.ownerId;
 
-            <div class="builder-item-sub">
-              ${escapeHtml(isObject ? student.email || "Student" : "Student ID")}
-            </div>
+    if(objectId){
+      if(
+        typeof objectId === "object" &&
+        objectId._id
+      ){
+        return String(objectId._id);
+      }
 
-          </article>
-        `;
-      }).join("");
+      return String(objectId);
+    }
+
+    return "";
+  }
+
+  return String(value);
+}
+
+function getPerformanceStudentId(student){
+  return normalizeStudentReference(
+    student?._id ||
+    student?.id ||
+    student
+  );
+}
+
+
+function getStudentRecordName(student){
+  if(
+    !student ||
+    typeof student !== "object"
+  ){
+    return "Student";
+  }
+
+  return String(
+    student.name ||
+    student.fullName ||
+    student.displayName ||
+    student.email ||
+    "Student"
+  ).trim();
+}
+
+
+function getStudentRecordEmail(student){
+  if(
+    !student ||
+    typeof student !== "object"
+  ){
+    return "";
+  }
+
+  return String(
+    student.email ||
+    ""
+  ).trim();
+}
+
+
+function getStudentRecordImage(student){
+  if(
+    !student ||
+    typeof student !== "object"
+  ){
+    return "";
+  }
+
+  return String(
+    student.profileImage ||
+    student.avatar ||
+    student.photoURL ||
+    ""
+  ).trim();
+}
+
+
+function getStudentRecordInitials(student){
+  const name =
+    getStudentRecordName(
+      student
+    );
+
+  const parts =
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0,2);
+
+  return (
+    parts
+      .map(
+        part =>
+          part.charAt(0)
+            .toUpperCase()
+      )
+      .join("") ||
+    "ST"
+  );
+}
+
+
+/* =========================================================
+   RECORD STUDENT-ID HELPERS
+========================================================= */
+
+function getProgressStudentId(record){
+  return normalizeStudentReference(
+    record?.studentId ||
+    record?.student ||
+    record?.userId ||
+    record?.user ||
+    record?.learnerId ||
+    record?.ownerId
+  );
+}
+
+
+function getAttendanceStudentId(record){
+  return normalizeStudentReference(
+    record?.studentId ||
+    record?.student ||
+    record?.userId ||
+    record?.user ||
+    record?.learnerId
+  );
+}
+
+
+function getSubmissionStudentId(record){
+  return normalizeStudentReference(
+    record?.studentId ||
+    record?.student ||
+    record?.userId ||
+    record?.user ||
+    record?.learnerId
+  );
+}
+
+
+/* =========================================================
+   DATE AND NUMBER HELPERS
+========================================================= */
+
+function clampStudentMetric(
+  value,
+  minimum = 0,
+  maximum = 100
+){
+  const number =
+    Number(value);
+
+  if(!Number.isFinite(number)){
+    return minimum;
+  }
+
+  return Math.min(
+    maximum,
+    Math.max(
+      minimum,
+      number
+    )
+  );
+}
+
+
+function getStudentRecordDate(record){
+  const candidates = [
+    record?.updatedAt,
+    record?.completedAt,
+    record?.lastActivityAt,
+    record?.submittedAt,
+    record?.reviewedAt,
+    record?.date,
+    record?.createdAt
+  ];
+
+  for(const candidate of candidates){
+    const date =
+      parseAssignmentDate(
+        candidate
+      );
+
+    if(date){
+      return date;
     }
   }
 
-  if (progressEl){
-    if (!state.progress.length){
-      progressEl.innerHTML = `
-        <div class="empty">
-          No lesson progress recorded yet.
+  return null;
+}
+
+
+function formatStudentActivityDate(value){
+  const date =
+    value instanceof Date
+      ? value
+      : parseAssignmentDate(value);
+
+  if(!date){
+    return "No activity";
+  }
+
+  return formatAssignmentUpdatedDate(
+    date
+  );
+}
+
+
+/* =========================================================
+   STUDENT-SPECIFIC RECORDS
+========================================================= */
+
+function getStudentProgressRecords(studentId){
+  return (
+    Array.isArray(state.progress)
+      ? state.progress
+      : []
+  ).filter(
+    record =>
+      getProgressStudentId(record) ===
+      String(studentId || "")
+  );
+}
+
+
+function getStudentAttendanceRecords(studentId){
+  return (
+    Array.isArray(state.attendance)
+      ? state.attendance
+      : []
+  ).filter(
+    record =>
+      getAttendanceStudentId(record) ===
+      String(studentId || "")
+  );
+}
+
+
+function getStudentAssignmentSubmissions(studentId){
+  return (
+    Array.isArray(state.submissions)
+      ? state.submissions
+      : []
+  ).filter(
+    record =>
+      getSubmissionStudentId(record) ===
+      String(studentId || "")
+  );
+}
+
+
+/* =========================================================
+   LESSON PROGRESS
+========================================================= */
+
+function getProgressRecordPercent(record){
+  if(
+    record?.progressPercent !== undefined
+  ){
+    return clampStudentMetric(
+      record.progressPercent
+    );
+  }
+
+  if(
+    record?.percent !== undefined
+  ){
+    return clampStudentMetric(
+      record.percent
+    );
+  }
+
+  if(
+    record?.completionPercent !== undefined
+  ){
+    return clampStudentMetric(
+      record.completionPercent
+    );
+  }
+
+  const status =
+    String(
+      record?.status ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+  if(
+    [
+      "completed",
+      "complete",
+      "done"
+    ].includes(status)
+  ){
+    return 100;
+  }
+
+  if(
+    [
+      "in_progress",
+      "in-progress",
+      "started"
+    ].includes(status)
+  ){
+    return 50;
+  }
+
+  return 0;
+}
+
+
+function calculateStudentProgress(studentId){
+  const records =
+    getStudentProgressRecords(
+      studentId
+    );
+
+  if(!records.length){
+    return {
+      percent:0,
+      hasData:false,
+      records:[]
+    };
+  }
+
+  /*
+    A student can have multiple records for the same lesson.
+    Keep only the latest or highest available percentage per
+    lesson so duplicate progress events do not inflate results.
+  */
+  const progressByLesson =
+    new Map();
+
+  records.forEach(
+    record => {
+      const lessonId =
+        normalizeStudentReference(
+          record?.lessonId?._id ||
+          record?.lessonId ||
+          record?.contentId?._id ||
+          record?.contentId ||
+          record?._id
+        );
+
+      const percent =
+        getProgressRecordPercent(
+          record
+        );
+
+      const existing =
+        progressByLesson.get(
+          lessonId
+        );
+
+      if(
+        !existing ||
+        percent >
+        existing.percent
+      ){
+        progressByLesson.set(
+          lessonId,
+          {
+            record,
+            percent
+          }
+        );
+      }
+    }
+  );
+
+  const normalizedRecords =
+    Array.from(
+      progressByLesson.values()
+    );
+
+  const lessonCount =
+    Array.isArray(state.lessons)
+      ? state.lessons.length
+      : 0;
+
+  let percent = 0;
+
+  if(lessonCount > 0){
+    const totalEarned =
+      normalizedRecords.reduce(
+        (sum, item) =>
+          sum +
+          item.percent,
+        0
+      );
+
+    percent =
+      Math.round(
+        totalEarned /
+        lessonCount
+      );
+  }else{
+    const total =
+      normalizedRecords.reduce(
+        (sum, item) =>
+          sum +
+          item.percent,
+        0
+      );
+
+    percent =
+      normalizedRecords.length
+        ? Math.round(
+            total /
+            normalizedRecords.length
+          )
+        : 0;
+  }
+
+  return {
+    percent:
+      clampStudentMetric(
+        percent
+      ),
+
+    hasData:true,
+
+    records:
+      normalizedRecords.map(
+        item =>
+          item.record
+      )
+  };
+}
+
+
+/* =========================================================
+   ATTENDANCE
+========================================================= */
+
+function calculateStudentAttendance(studentId){
+  const records =
+    getStudentAttendanceRecords(
+      studentId
+    );
+
+  if(!records.length){
+    return {
+      percent:0,
+      hasData:false,
+      records:[]
+    };
+  }
+
+  const points =
+    records.reduce(
+      (total, record) => {
+        const status =
+          String(
+            record?.status ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
+
+        if(status === "present"){
+          return total + 100;
+        }
+
+        if(status === "late"){
+          return total + 70;
+        }
+
+        if(status === "excused"){
+          return total + 50;
+        }
+
+        return total;
+      },
+      0
+    );
+
+  return {
+    percent:
+      Math.round(
+        points /
+        records.length
+      ),
+
+    hasData:true,
+    records
+  };
+}
+
+
+/* =========================================================
+   ASSIGNMENT COMPLETION
+========================================================= */
+
+function calculateStudentAssignments(studentId){
+  const assignments =
+    (
+      Array.isArray(state.assignments)
+        ? state.assignments
+        : []
+    ).filter(
+      assignment =>
+        getAssignmentStatus(
+          assignment
+        ) !== "archived"
+    );
+
+  const submissions =
+    getStudentAssignmentSubmissions(
+      studentId
+    );
+
+  const submittedAssignmentIds =
+    new Set(
+      submissions
+        .map(
+          submission =>
+            getSubmissionAssignmentId(
+              submission
+            )
+        )
+        .filter(Boolean)
+    );
+
+  const completed =
+    assignments.filter(
+      assignment =>
+        submittedAssignmentIds.has(
+          getAssignmentId(
+            assignment
+          )
+        )
+    ).length;
+
+  const total =
+    assignments.length;
+
+  return {
+    completed,
+    total,
+    missing:
+      Math.max(
+        0,
+        total -
+        completed
+      ),
+
+    percent:
+      total
+        ? Math.round(
+            completed /
+            total *
+            100
+          )
+        : 0,
+
+    submissions
+  };
+}
+
+
+/* =========================================================
+   QUIZ METRICS
+========================================================= */
+
+function calculateStudentQuizzes(){
+  /*
+    The current Class Builder state does not load a dedicated
+    quiz-attempt collection. Assignment submissions must not
+    be counted as quiz completions.
+  */
+  const total =
+    Array.isArray(state.quizzes)
+      ? state.quizzes.length
+      : 0;
+
+  return {
+    completed:0,
+    total,
+    percent:0,
+    hasData:false,
+    attempts:[]
+  };
+}
+
+
+/* =========================================================
+   RECENT ACTIVITY
+========================================================= */
+
+function calculateStudentLastActivity(
+  progressRecords,
+  attendanceRecords,
+  submissions
+){
+  const dates = [
+    ...progressRecords,
+    ...attendanceRecords,
+    ...submissions
+  ]
+    .map(
+      getStudentRecordDate
+    )
+    .filter(Boolean)
+    .sort(
+      (first, second) =>
+        second.getTime() -
+        first.getTime()
+    );
+
+  return dates[0] || null;
+}
+
+
+/* =========================================================
+   PERFORMANCE CLASSIFICATION
+========================================================= */
+
+function classifyStudentPerformance(metrics){
+  const hasAnyData =
+    metrics.progress.hasData ||
+    metrics.attendance.hasData ||
+    metrics.assignments.submissions.length > 0;
+
+  if(!hasAnyData){
+    return {
+      key:"no-data",
+      label:"No activity data",
+      priority:3
+    };
+  }
+
+  const progress =
+    metrics.progress.percent;
+
+  const attendance =
+    metrics.attendance.hasData
+      ? metrics.attendance.percent
+      : null;
+
+  const missingWork =
+    metrics.assignments.missing;
+
+  if(
+    progress < 25 ||
+    (
+      attendance !== null &&
+      attendance < 50
+    ) ||
+    missingWork >= 3
+  ){
+    return {
+      key:"at-risk",
+      label:"At risk",
+      priority:0
+    };
+  }
+
+  if(
+    progress < 60 ||
+    (
+      attendance !== null &&
+      attendance < 75
+    ) ||
+    missingWork > 0
+  ){
+    return {
+      key:"needs-attention",
+      label:"Needs attention",
+      priority:1
+    };
+  }
+
+  return {
+    key:"on-track",
+    label:"On track",
+    priority:2
+  };
+}
+
+
+/* =========================================================
+   BUILD STUDENT PERFORMANCE RECORD
+========================================================= */
+
+function buildStudentPerformanceRecord(student){
+  const studentId =
+    getPerformanceStudentId(
+      student
+    );
+
+  const progress =
+    calculateStudentProgress(
+      studentId
+    );
+
+  const attendance =
+    calculateStudentAttendance(
+      studentId
+    );
+
+  const assignments =
+    calculateStudentAssignments(
+      studentId
+    );
+
+  const quizzes =
+    calculateStudentQuizzes(
+      studentId
+    );
+
+  const lastActivity =
+    calculateStudentLastActivity(
+      progress.records,
+      attendance.records,
+      assignments.submissions
+    );
+
+  const metrics = {
+    student,
+    studentId,
+    progress,
+    attendance,
+    assignments,
+    quizzes,
+    lastActivity
+  };
+
+  return {
+    ...metrics,
+    performance:
+      classifyStudentPerformance(
+        metrics
+      )
+  };
+}
+
+
+function getStudentPerformanceRecords(){
+  const students =
+    Array.isArray(
+      state.classData?.studentIds
+    )
+      ? state.classData.studentIds
+      : [];
+
+  return students.map(
+    student =>
+      buildStudentPerformanceRecord(
+        student
+      )
+  );
+}
+
+
+/* =========================================================
+   SUMMARY METRICS
+========================================================= */
+
+function updateStudentPerformanceSummary(records){
+  const total =
+    records.length;
+
+  const progressRecords =
+    records.filter(
+      record =>
+        record.progress.hasData
+    );
+
+  const attendanceRecords =
+    records.filter(
+      record =>
+        record.attendance.hasData
+    );
+
+  const averageProgress =
+    progressRecords.length
+      ? Math.round(
+          progressRecords.reduce(
+            (sum, record) =>
+              sum +
+              record.progress.percent,
+            0
+          ) /
+          progressRecords.length
+        )
+      : 0;
+
+  const averageAttendance =
+    attendanceRecords.length
+      ? Math.round(
+          attendanceRecords.reduce(
+            (sum, record) =>
+              sum +
+              record.attendance.percent,
+            0
+          ) /
+          attendanceRecords.length
+        )
+      : 0;
+
+  const attentionCount =
+    records.filter(
+      record =>
+        record.performance.key ===
+          "needs-attention" ||
+        record.performance.key ===
+          "at-risk"
+    ).length;
+
+  const missingWork =
+    records.reduce(
+      (sum, record) =>
+        sum +
+        record.assignments.missing,
+      0
+    );
+
+  setText(
+    "studentPerformanceTotalCount",
+    total
+  );
+
+  setText(
+    "studentPerformanceAverageProgress",
+    `${averageProgress}%`
+  );
+
+  setText(
+    "studentPerformanceAverageAttendance",
+    `${averageAttendance}%`
+  );
+
+  setText(
+    "studentPerformanceAttentionCount",
+    attentionCount
+  );
+
+  setText(
+    "studentPerformanceMissingWorkCount",
+    missingWork
+  );
+}
+
+
+/* =========================================================
+   FILTERING AND SORTING
+========================================================= */
+
+function getFilteredStudentPerformanceRecords(records){
+  const search =
+    String(
+      studentPerformanceState.search ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const status =
+    String(
+      studentPerformanceState.status ||
+      "all"
+    );
+
+  const progressFilter =
+    String(
+      studentPerformanceState.progress ||
+      "all"
+    );
+
+  const filtered =
+    records.filter(
+      record => {
+        const name =
+          getStudentRecordName(
+            record.student
+          ).toLowerCase();
+
+        const email =
+          getStudentRecordEmail(
+            record.student
+          ).toLowerCase();
+
+        if(
+          search &&
+          !`${name} ${email}`.includes(
+            search
+          )
+        ){
+          return false;
+        }
+
+        if(
+          status !== "all" &&
+          record.performance.key !== status
+        ){
+          return false;
+        }
+
+        const progress =
+          record.progress.percent;
+
+        if(
+          progressFilter === "high" &&
+          progress < 75
+        ){
+          return false;
+        }
+
+        if(
+          progressFilter === "medium" &&
+          (
+            progress < 40 ||
+            progress >= 75
+          )
+        ){
+          return false;
+        }
+
+        if(
+          progressFilter === "low" &&
+          (
+            progress <= 0 ||
+            progress >= 40
+          )
+        ){
+          return false;
+        }
+
+        if(
+          progressFilter === "none" &&
+          progress !== 0
+        ){
+          return false;
+        }
+
+        return true;
+      }
+    );
+
+  const sort =
+    studentPerformanceState.sort;
+
+  filtered.sort(
+    (first, second) => {
+      const firstName =
+        getStudentRecordName(
+          first.student
+        );
+
+      const secondName =
+        getStudentRecordName(
+          second.student
+        );
+
+      if(sort === "progress-desc"){
+        return (
+          second.progress.percent -
+          first.progress.percent
+        );
+      }
+
+      if(sort === "progress-asc"){
+        return (
+          first.progress.percent -
+          second.progress.percent
+        );
+      }
+
+      if(sort === "attendance-desc"){
+        return (
+          second.attendance.percent -
+          first.attendance.percent
+        );
+      }
+
+      if(sort === "attendance-asc"){
+        return (
+          first.attendance.percent -
+          second.attendance.percent
+        );
+      }
+
+      if(sort === "name-asc"){
+        return firstName.localeCompare(
+          secondName
+        );
+      }
+
+      if(sort === "name-desc"){
+        return secondName.localeCompare(
+          firstName
+        );
+      }
+
+      if(sort === "recent-activity"){
+        return (
+          (
+            second.lastActivity?.getTime() ||
+            0
+          ) -
+          (
+            first.lastActivity?.getTime() ||
+            0
+          )
+        );
+      }
+
+      return (
+        first.performance.priority -
+        second.performance.priority ||
+        first.progress.percent -
+        second.progress.percent ||
+        firstName.localeCompare(
+          secondName
+        )
+      );
+    }
+  );
+
+  return filtered;
+}
+
+
+/* =========================================================
+   EVENT BINDING
+========================================================= */
+
+function bindStudentPerformanceEvents(){
+  if(
+    studentPerformanceState.eventsBound
+  ){
+    return;
+  }
+
+  byId(
+    "studentPerformanceSearchInput"
+  )?.addEventListener(
+    "input",
+    event => {
+      studentPerformanceState.search =
+        event.target.value ||
+        "";
+
+      renderStudents();
+    }
+  );
+
+  byId(
+    "studentPerformanceStatusFilter"
+  )?.addEventListener(
+    "change",
+    event => {
+      studentPerformanceState.status =
+        event.target.value ||
+        "all";
+
+      renderStudents();
+    }
+  );
+
+  byId(
+    "studentPerformanceProgressFilter"
+  )?.addEventListener(
+    "change",
+    event => {
+      studentPerformanceState.progress =
+        event.target.value ||
+        "all";
+
+      renderStudents();
+    }
+  );
+
+  byId(
+    "studentPerformanceSortFilter"
+  )?.addEventListener(
+    "change",
+    event => {
+      studentPerformanceState.sort =
+        event.target.value ||
+        "attention-first";
+
+      renderStudents();
+    }
+  );
+
+  studentPerformanceState.eventsBound =
+    true;
+}
+
+
+/* =========================================================
+   STUDENT ROW
+========================================================= */
+
+function getStudentProgressLevel(percent){
+  if(percent >= 75){
+    return "high";
+  }
+
+  if(percent >= 40){
+    return "medium";
+  }
+
+  if(percent > 0){
+    return "low";
+  }
+
+  return "none";
+}
+
+
+function renderStudentPerformanceRow(record){
+  const student =
+    record.student;
+
+  const studentId =
+    record.studentId;
+
+  const name =
+    getStudentRecordName(
+      student
+    );
+
+  const email =
+    getStudentRecordEmail(
+      student
+    );
+
+  const image =
+    getStudentRecordImage(
+      student
+    );
+
+  const initials =
+    getStudentRecordInitials(
+      student
+    );
+
+  const progress =
+    record.progress.percent;
+
+  const progressLevel =
+    getStudentProgressLevel(
+      progress
+    );
+
+  const attendanceLabel =
+    record.attendance.hasData
+      ? `${record.attendance.percent}%`
+      : "No data";
+
+  const quizLabel =
+    record.quizzes.hasData
+      ? `${record.quizzes.completed} / ${record.quizzes.total}`
+      : "No data";
+
+  return `
+    <article
+      class="student-performance-row"
+      data-student-id="${escapeHtml(studentId)}"
+    >
+
+      <div class="student-performance-student">
+
+        <div class="student-performance-avatar">
+
+          ${
+            image
+              ? `
+<img
+  src="${escapeHtml(image)}"
+  alt=""
+  loading="lazy"
+  referrerpolicy="no-referrer"
+  onerror="
+    this.remove();
+    this.parentElement.textContent='${escapeHtml(initials)}';
+  "
+/>
+              `
+              : escapeHtml(initials)
+          }
+
         </div>
-      `;
-    } else {
-      progressEl.innerHTML = state.progress.slice(0, 30).map(item => {
-        const percent = Math.min(100, Number(item.progressPercent || 0));
 
-        return `
-          <article class="builder-item">
+        <div class="student-performance-student-copy">
 
-            <div class="builder-item-head">
+          <strong>
+            ${escapeHtml(name)}
+          </strong>
+
+          <span>
+            ${escapeHtml(
+              email ||
+              student?.course ||
+              "Student"
+            )}
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <div class="student-performance-progress">
+
+        <div class="student-performance-progress-head">
+
+          <strong>
+            ${progress}%
+          </strong>
+
+        </div>
+
+        <div class="student-performance-progress-track">
+
+          <div
+            class="student-performance-progress-fill ${progressLevel}"
+            style="width:${progress}%"
+          ></div>
+
+        </div>
+
+      </div>
+
+
+      <div class="student-performance-cell">
+
+        <strong>
+          ${escapeHtml(attendanceLabel)}
+        </strong>
+
+        <span>
+          ${
+            record.attendance.hasData
+              ? `${record.attendance.records.length} records`
+              : "Not recorded"
+          }
+        </span>
+
+      </div>
+
+
+      <div class="student-performance-cell">
+
+        <strong>
+          ${record.assignments.completed}
+          /
+          ${record.assignments.total}
+        </strong>
+
+        <span>
+          ${
+            record.assignments.missing > 0
+              ? `${record.assignments.missing} missing`
+              : "Up to date"
+          }
+        </span>
+
+      </div>
+
+
+      <div class="student-performance-cell">
+
+        <strong>
+          ${escapeHtml(quizLabel)}
+        </strong>
+
+        <span>
+          Quiz data unavailable
+        </span>
+
+      </div>
+
+
+      <div class="student-performance-cell">
+
+        <strong>
+          ${escapeHtml(
+            formatStudentActivityDate(
+              record.lastActivity
+            )
+          )}
+        </strong>
+
+        <span>
+          Recent class activity
+        </span>
+
+      </div>
+
+
+      <div>
+
+        <span
+          class="student-performance-status ${escapeHtml(
+            record.performance.key
+          )}"
+        >
+          ${escapeHtml(
+            record.performance.label
+          )}
+        </span>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="student-performance-row-action"
+        onclick="openStudentPerformanceDrawer('${escapeHtml(studentId)}')"
+      >
+        View
+      </button>
+
+    </article>
+  `;
+}
+
+
+/* =========================================================
+   EMPTY STATES
+========================================================= */
+
+function renderStudentPerformanceEmptyState(){
+  return `
+    <div class="student-performance-empty">
+
+      <div class="student-performance-empty-icon">
+
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <circle cx="9" cy="8" r="3"></circle>
+          <circle cx="17" cy="9" r="2"></circle>
+          <path d="M3 20c0-4 2.5-7 6-7s6 3 6 7"></path>
+          <path d="M15 14c3 0 5 2 5 5"></path>
+        </svg>
+
+      </div>
+
+      <h3>
+        No enrolled students
+      </h3>
+
+      <p>
+        Students enrolled in this class will appear here with
+        their progress, attendance, and coursework activity.
+      </p>
+
+    </div>
+  `;
+}
+
+
+function renderStudentPerformanceNoResults(){
+  return `
+    <div class="student-performance-empty">
+
+      <div class="student-performance-empty-icon">
+
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-4-4"></path>
+        </svg>
+
+      </div>
+
+      <h3>
+        No matching students
+      </h3>
+
+      <p>
+        Change the search term or filters to display other
+        students in this class.
+      </p>
+
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   MAIN STUDENT RENDERER
+========================================================= */
+
+function renderStudents(){
+  const container =
+    byId(
+      "studentsList"
+    );
+
+  if(!container){
+    return;
+  }
+
+  bindStudentPerformanceEvents();
+
+  const records =
+    getStudentPerformanceRecords();
+
+  updateStudentPerformanceSummary(
+    records
+  );
+
+  const filtered =
+    getFilteredStudentPerformanceRecords(
+      records
+    );
+
+  setText(
+    "studentPerformanceResultCount",
+    `${filtered.length} ${
+      filtered.length === 1
+        ? "student"
+        : "students"
+    }`
+  );
+
+  container.setAttribute(
+    "aria-busy",
+    "false"
+  );
+
+  if(!records.length){
+    container.innerHTML =
+      renderStudentPerformanceEmptyState();
+
+    return;
+  }
+
+  if(!filtered.length){
+    container.innerHTML =
+      renderStudentPerformanceNoResults();
+
+    return;
+  }
+
+  container.innerHTML =
+    filtered
+      .map(
+        record =>
+          renderStudentPerformanceRow(
+            record
+          )
+      )
+      .join("");
+}
+
+
+/* =========================================================
+   STUDENT PERFORMANCE DRAWER
+========================================================= */
+
+function getStudentPerformanceRecordById(studentId){
+  return getStudentPerformanceRecords()
+    .find(
+      record =>
+        record.studentId ===
+        String(studentId || "")
+    ) || null;
+}
+
+
+function openStudentPerformanceDrawer(studentId){
+  const record =
+    getStudentPerformanceRecordById(
+      studentId
+    );
+
+  if(!record){
+    showAlert(
+      "error",
+      "The selected student could not be found."
+    );
+
+    return;
+  }
+
+  const drawer =
+    byId(
+      "studentPerformanceDrawer"
+    );
+
+  if(!drawer){
+    showAlert(
+      "error",
+      "The Student Performance drawer is missing."
+    );
+
+    return;
+  }
+
+  studentPerformanceState.selectedStudentId =
+    record.studentId;
+
+  hydrateStudentPerformanceDrawer(
+    record
+  );
+
+  drawer.classList.remove(
+    "hidden"
+  );
+
+  drawer.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+  document.body.classList.add(
+    "modal-open"
+  );
+}
+
+
+function closeStudentPerformanceDrawer(){
+  const drawer =
+    byId(
+      "studentPerformanceDrawer"
+    );
+
+  drawer?.classList.add(
+    "hidden"
+  );
+
+  drawer?.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  studentPerformanceState.selectedStudentId =
+    "";
+
+  document.body.classList.remove(
+    "modal-open"
+  );
+}
+
+
+function hydrateStudentPerformanceDrawer(record){
+  const student =
+    record.student;
+
+  const name =
+    getStudentRecordName(
+      student
+    );
+
+  const email =
+    getStudentRecordEmail(
+      student
+    );
+
+  const image =
+    getStudentRecordImage(
+      student
+    );
+
+  const initials =
+    getStudentRecordInitials(
+      student
+    );
+
+  setText(
+    "studentPerformanceDrawerTitle",
+    name
+  );
+
+  setText(
+    "studentPerformanceDrawerEmail",
+    email ||
+    student?.course ||
+    "Student"
+  );
+
+  const avatar =
+    byId(
+      "studentPerformanceDrawerAvatar"
+    );
+
+  if(avatar){
+    avatar.innerHTML =
+      image
+        ? `
+<img
+  src="${escapeHtml(image)}"
+  alt=""
+  referrerpolicy="no-referrer"
+  onerror="
+    this.remove();
+    this.parentElement.textContent='${escapeHtml(initials)}';
+  "
+/>
+        `
+        : escapeHtml(initials);
+  }
+
+  setText(
+    "studentDetailProgress",
+    `${record.progress.percent}%`
+  );
+
+  setText(
+    "studentDetailAttendance",
+    record.attendance.hasData
+      ? `${record.attendance.percent}%`
+      : "No data"
+  );
+
+  setText(
+    "studentDetailAssignments",
+    `${record.assignments.completed} / ${record.assignments.total}`
+  );
+
+  setText(
+    "studentDetailQuizzes",
+    record.quizzes.hasData
+      ? `${record.quizzes.completed} / ${record.quizzes.total}`
+      : "No data"
+  );
+
+  setText(
+    "studentDetailProgressLabel",
+    `${record.progress.percent}%`
+  );
+
+  const progressBar =
+    byId(
+      "studentDetailProgressBar"
+    );
+
+  if(progressBar){
+    progressBar.style.width =
+      `${record.progress.percent}%`;
+  }
+
+  renderStudentLessonDetails(
+    record
+  );
+
+  renderStudentAssignmentDetails(
+    record
+  );
+
+  renderStudentAttendanceDetails(
+    record
+  );
+
+  setText(
+    "studentDetailInsight",
+    buildStudentPerformanceInsight(
+      record
+    )
+  );
+}
+
+
+/* =========================================================
+   DRAWER LESSON DETAILS
+========================================================= */
+
+function getProgressLessonTitle(record){
+  return String(
+    record?.lessonId?.title ||
+    record?.lessonTitle ||
+    record?.title ||
+    "Lesson activity"
+  );
+}
+
+
+function renderStudentLessonDetails(record){
+  const container =
+    byId(
+      "studentDetailLessonProgress"
+    );
+
+  if(!container){
+    return;
+  }
+
+  const progressRecords =
+    [...record.progress.records]
+      .sort(
+        (first, second) =>
+          (
+            getStudentRecordDate(second)
+              ?.getTime() ||
+            0
+          ) -
+          (
+            getStudentRecordDate(first)
+              ?.getTime() ||
+            0
+          )
+      )
+      .slice(
+        0,
+        10
+      );
+
+  if(!progressRecords.length){
+    container.innerHTML = `
+      <div class="student-performance-empty-small">
+        No lesson progress recorded.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    progressRecords
+      .map(
+        progressRecord => {
+          const percent =
+            getProgressRecordPercent(
+              progressRecord
+            );
+
+          return `
+            <article class="student-performance-detail-item">
 
               <div>
-                <h3 class="builder-item-title">
-                  ${escapeHtml(item.status || "Progress")}
-                </h3>
 
-                <div class="builder-item-sub">
-                  Student: ${escapeHtml(item.studentId || "Unknown")}
-                </div>
+                <strong>
+                  ${escapeHtml(
+                    getProgressLessonTitle(
+                      progressRecord
+                    )
+                  )}
+                </strong>
+
+                <span>
+                  ${escapeHtml(
+                    progressRecord.status ||
+                    "Progress recorded"
+                  )}
+                </span>
+
               </div>
 
-              <span class="chip primary">
+              <small>
                 ${percent}%
+              </small>
+
+            </article>
+          `;
+        }
+      )
+      .join("");
+}
+
+
+/* =========================================================
+   DRAWER ASSIGNMENT DETAILS
+========================================================= */
+
+function renderStudentAssignmentDetails(record){
+  const container =
+    byId(
+      "studentDetailAssignmentsList"
+    );
+
+  if(!container){
+    return;
+  }
+
+  const assignments =
+    (
+      Array.isArray(state.assignments)
+        ? state.assignments
+        : []
+    ).filter(
+      assignment =>
+        getAssignmentStatus(
+          assignment
+        ) !== "archived"
+    );
+
+  if(!assignments.length){
+    container.innerHTML = `
+      <div class="student-performance-empty-small">
+        No assignments are available for this class.
+      </div>
+    `;
+
+    return;
+  }
+
+  const submissionByAssignment =
+    new Map(
+      record.assignments.submissions.map(
+        submission => [
+          getSubmissionAssignmentId(
+            submission
+          ),
+          submission
+        ]
+      )
+    );
+
+  container.innerHTML =
+    assignments
+      .slice(
+        0,
+        12
+      )
+      .map(
+        assignment => {
+          const assignmentId =
+            getAssignmentId(
+              assignment
+            );
+
+          const submission =
+            submissionByAssignment.get(
+              assignmentId
+            );
+
+          const status =
+            submission
+              ? getBuilderSubmissionStatus(
+                  submission
+                )
+              : "missing";
+
+          const statusLabel =
+            submission
+              ? getBuilderSubmissionStatusLabel(
+                  status
+                )
+              : "Not submitted";
+
+          return `
+            <article class="student-performance-detail-item">
+
+              <div>
+
+                <strong>
+                  ${escapeHtml(
+                    assignment.title ||
+                    "Untitled assignment"
+                  )}
+                </strong>
+
+                <span>
+                  ${
+                    assignment.dueDate
+                      ? `Due ${escapeHtml(
+                          formatAssignmentDate(
+                            assignment.dueDate
+                          )
+                        )}`
+                      : "No due date"
+                  }
+                </span>
+
+              </div>
+
+              <small>
+                ${escapeHtml(statusLabel)}
+              </small>
+
+            </article>
+          `;
+        }
+      )
+      .join("");
+}
+
+
+/* =========================================================
+   DRAWER ATTENDANCE DETAILS
+========================================================= */
+
+function renderStudentAttendanceDetails(record){
+  const container =
+    byId(
+      "studentDetailAttendanceList"
+    );
+
+  if(!container){
+    return;
+  }
+
+  const attendance =
+    [...record.attendance.records]
+      .sort(
+        (first, second) =>
+          (
+            getStudentRecordDate(second)
+              ?.getTime() ||
+            0
+          ) -
+          (
+            getStudentRecordDate(first)
+              ?.getTime() ||
+            0
+          )
+      )
+      .slice(
+        0,
+        12
+      );
+
+  if(!attendance.length){
+    container.innerHTML = `
+      <div class="student-performance-empty-small">
+        No attendance records found.
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    attendance
+      .map(
+        attendanceRecord => `
+          <article class="student-performance-detail-item">
+
+            <div>
+
+              <strong>
+                ${escapeHtml(
+                  formatAssignmentDate(
+                    attendanceRecord.date ||
+                    attendanceRecord.createdAt,
+                    {
+                      fallback:"Date unavailable"
+                    }
+                  )
+                )}
+              </strong>
+
+              <span>
+                ${escapeHtml(
+                  attendanceRecord.sessionType ||
+                  attendanceRecord.source ||
+                  "Class attendance"
+                )}
               </span>
 
             </div>
 
-            <div class="progress-bar">
-              <div class="progress-fill" style="width:${percent}%"></div>
-            </div>
+            <small>
+              ${escapeHtml(
+                String(
+                  attendanceRecord.status ||
+                  "Unknown"
+                )
+              )}
+            </small>
 
           </article>
-        `;
-      }).join("");
+        `
+      )
+      .join("");
+}
+
+
+/* =========================================================
+   REFRESH STUDENT PERFORMANCE
+========================================================= */
+
+async function refreshStudentPerformance(){
+  if(
+    studentPerformanceState.refreshing
+  ){
+    return;
+  }
+
+  const button =
+    byId(
+      "refreshStudentPerformanceButton"
+    );
+
+  studentPerformanceState.refreshing =
+    true;
+
+  button?.setAttribute(
+    "disabled",
+    ""
+  );
+
+  if(button){
+    button.dataset.originalHtml =
+      button.dataset.originalHtml ||
+      button.innerHTML;
+
+    button.innerHTML = `
+      <span
+        class="student-performance-spinner"
+        style="width:14px;height:14px;min-width:14px;border-width:2px"
+        aria-hidden="true"
+      ></span>
+
+      <span>
+        Refreshing...
+      </span>
+    `;
+  }
+
+  try{
+    /*
+      The current class-builder endpoint already returns the
+      enrolled students, progress, attendance, assignments,
+      and submissions required by this workspace.
+    */
+    await loadBuilder();
+
+    /*
+      loadBuilder() already calls renderAll(), which calls
+      renderStudents(). Keep the current workspace active
+      without triggering another navigation cycle.
+    */
+    if(
+      state.activeTab !== "students"
+    ){
+      performOpenBuilderSection(
+        "students"
+      );
+    }else{
+      renderStudents();
+    }
+
+    showAlert(
+      "success",
+      "Student performance was refreshed."
+    );
+  }catch(error){
+    console.error(
+      "refreshStudentPerformance error:",
+      error
+    );
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Student performance could not be refreshed."
+    );
+  }finally{
+    studentPerformanceState.refreshing =
+      false;
+
+    button?.removeAttribute(
+      "disabled"
+    );
+
+    if(
+      button &&
+      button.dataset.originalHtml
+    ){
+      button.innerHTML =
+        button.dataset.originalHtml;
     }
   }
 }
 
+/* =========================================================
+   PERFORMANCE INSIGHT
+========================================================= */
+
+function buildStudentPerformanceInsight(record){
+  if(
+    record.performance.key ===
+    "no-data"
+  ){
+    return (
+      "No class activity has been recorded for this student yet. " +
+      "Progress and attendance insights will appear after the student begins participating."
+    );
+  }
+
+  const observations = [];
+
+  if(record.progress.percent >= 75){
+    observations.push(
+      "lesson progress is strong"
+    );
+  }else if(record.progress.percent < 40){
+    observations.push(
+      "lesson progress is below 40%"
+    );
+  }else{
+    observations.push(
+      "lesson progress is developing"
+    );
+  }
+
+  if(record.attendance.hasData){
+    if(record.attendance.percent >= 80){
+      observations.push(
+        "attendance is consistent"
+      );
+    }else if(record.attendance.percent < 60){
+      observations.push(
+        "attendance may require follow-up"
+      );
+    }
+  }
+
+  if(record.assignments.missing > 0){
+    observations.push(
+      `${record.assignments.missing} ${
+        record.assignments.missing === 1
+          ? "assignment is"
+          : "assignments are"
+      } not submitted`
+    );
+  }else if(record.assignments.total > 0){
+    observations.push(
+      "assignment submissions are up to date"
+    );
+  }
+
+  const summary =
+    observations.length
+      ? observations.join(", ")
+      : "limited performance information is available";
+
+  return (
+    `${record.performance.label}: ` +
+    `${summary}.`
+  );
+}
+
+
+/* =========================================================
+   KEYBOARD CLOSE
+========================================================= */
+
+document.addEventListener(
+  "keydown",
+  event => {
+    if(
+      event.key !== "Escape"
+    ){
+      return;
+    }
+
+    const drawer =
+      byId(
+        "studentPerformanceDrawer"
+      );
+
+    if(
+      drawer &&
+      !drawer.classList.contains(
+        "hidden"
+      )
+    ){
+      closeStudentPerformanceDrawer();
+    }
+  }
+);
+   
 /* =====================================================
    ANALYTICS / PREVIEW
 ===================================================== */
