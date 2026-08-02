@@ -36682,9 +36682,10 @@ const state = {
 
   modules:[],
   lessons:[],
-  quizzes: [],
-  assignments: [],
-  submissions: [],
+quizzes:[],
+quizSubmissions:[],
+assignments:[],
+submissions:[],
   attendance: [],
   progress: [],
 
@@ -63808,10 +63809,10 @@ async function loadBuilder(){
         ? data.lessons
         : [];
 
-    state.quizzes =
-      Array.isArray(data.quizzes)
-        ? data.quizzes
-        : [];
+state.quizSubmissions =
+  Array.isArray(data.quizSubmissions)
+    ? data.quizSubmissions
+    : [];
 
     state.assignments =
       Array.isArray(data.assignments)
@@ -76764,23 +76765,158 @@ function calculateStudentAssignments(studentId){
    QUIZ METRICS
 ========================================================= */
 
-function calculateStudentQuizzes(){
+function getQuizSubmissionStudentId(submission){
+  return normalizeStudentReference(
+    submission?.studentId ||
+    submission?.student ||
+    submission?.userId ||
+    submission?.user
+  );
+}
+
+
+function getQuizSubmissionQuizId(submission){
+  return normalizeStudentReference(
+    submission?.quizId ||
+    submission?.quiz
+  );
+}
+
+
+function calculateStudentQuizzes(studentId){
+  const quizzes =
+    (
+      Array.isArray(state.quizzes)
+        ? state.quizzes
+        : []
+    ).filter(
+      quiz =>
+        String(
+          quiz?.status ||
+          "draft"
+        ).toLowerCase() !==
+        "archived"
+    );
+
+  const attempts =
+    (
+      Array.isArray(
+        state.quizSubmissions
+      )
+        ? state.quizSubmissions
+        : []
+    ).filter(
+      submission =>
+        getQuizSubmissionStudentId(
+          submission
+        ) ===
+        String(studentId || "")
+    );
+
   /*
-    The current Class Builder state does not load a dedicated
-    quiz-attempt collection. Assignment submissions must not
-    be counted as quiz completions.
+    A quiz may allow multiple attempts. Use the best attempt
+    per quiz for completion, score, and pass calculations.
   */
+  const bestAttemptByQuiz =
+    new Map();
+
+  attempts.forEach(
+    attempt => {
+      const quizId =
+        getQuizSubmissionQuizId(
+          attempt
+        );
+
+      if(!quizId){
+        return;
+      }
+
+      const existing =
+        bestAttemptByQuiz.get(
+          quizId
+        );
+
+      const percentage =
+        clampStudentMetric(
+          attempt?.percentage
+        );
+
+      if(
+        !existing ||
+        percentage >
+        clampStudentMetric(
+          existing?.percentage
+        )
+      ){
+        bestAttemptByQuiz.set(
+          quizId,
+          attempt
+        );
+      }
+    }
+  );
+
+  const bestAttempts =
+    Array.from(
+      bestAttemptByQuiz.values()
+    );
+
+  const completed =
+    bestAttempts.length;
+
   const total =
-    Array.isArray(state.quizzes)
-      ? state.quizzes.length
+    quizzes.length;
+
+  const passed =
+    bestAttempts.filter(
+      attempt =>
+        attempt?.passed === true
+    ).length;
+
+  const averageScore =
+    bestAttempts.length
+      ? Math.round(
+          bestAttempts.reduce(
+            (sum, attempt) =>
+              sum +
+              clampStudentMetric(
+                attempt?.percentage
+              ),
+            0
+          ) /
+          bestAttempts.length
+        )
       : 0;
 
   return {
-    completed:0,
+    completed,
     total,
-    percent:0,
-    hasData:false,
-    attempts:[]
+    passed,
+
+    failed:
+      Math.max(
+        0,
+        completed -
+        passed
+      ),
+
+    percent:
+      total
+        ? Math.round(
+            completed /
+            total *
+            100
+          )
+        : 0,
+
+    averageScore,
+
+    hasData:
+      attempts.length > 0,
+
+    attempts,
+
+    bestAttempts
   };
 }
 
