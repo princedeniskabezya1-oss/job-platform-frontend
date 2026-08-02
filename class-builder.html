@@ -64091,20 +64091,25 @@ async function loadBuilder(){
         ? data.modules
         : [];
 
-    state.lessons =
-      Array.isArray(data.lessons)
-        ? data.lessons
-        : [];
+state.lessons =
+  Array.isArray(data.lessons)
+    ? data.lessons
+    : [];
+
+state.quizzes =
+  Array.isArray(data.quizzes)
+    ? data.quizzes
+    : [];
 
 state.quizSubmissions =
   Array.isArray(data.quizSubmissions)
     ? data.quizSubmissions
     : [];
 
-    state.assignments =
-      Array.isArray(data.assignments)
-        ? data.assignments
-        : [];
+state.assignments =
+  Array.isArray(data.assignments)
+    ? data.assignments
+    : [];
 
     state.submissions =
       Array.isArray(data.submissions)
@@ -77085,20 +77090,47 @@ function calculateStudentQuizzes(studentId){
         "archived"
     );
 
-  const attempts =
-    (
-      Array.isArray(
-        state.quizSubmissions
+const activeQuizIds =
+  new Set(
+    quizzes
+      .map(
+        quiz =>
+          normalizeStudentReference(
+            quiz?._id ||
+            quiz?.id
+          )
       )
-        ? state.quizSubmissions
-        : []
-    ).filter(
-      submission =>
+      .filter(Boolean)
+  );
+
+const attempts =
+  (
+    Array.isArray(
+      state.quizSubmissions
+    )
+      ? state.quizSubmissions
+      : []
+  ).filter(
+    submission => {
+      const submissionStudentId =
         getQuizSubmissionStudentId(
           submission
-        ) ===
-        String(studentId || "")
-    );
+        );
+
+      const submissionQuizId =
+        getQuizSubmissionQuizId(
+          submission
+        );
+
+      return (
+        submissionStudentId ===
+          String(studentId || "") &&
+        activeQuizIds.has(
+          submissionQuizId
+        )
+      );
+    }
+  );
 
   /*
     A quiz may allow multiple attempts. Use the best attempt
@@ -77215,12 +77247,14 @@ function calculateStudentQuizzes(studentId){
 function calculateStudentLastActivity(
   progressRecords,
   attendanceRecords,
-  submissions
+  submissions,
+  quizAttempts = []
 ){
   const dates = [
     ...progressRecords,
     ...attendanceRecords,
-    ...submissions
+    ...submissions,
+    ...quizAttempts
   ]
     .map(
       getStudentRecordDate
@@ -77241,10 +77275,11 @@ function calculateStudentLastActivity(
 ========================================================= */
 
 function classifyStudentPerformance(metrics){
-  const hasAnyData =
-    metrics.progress.hasData ||
-    metrics.attendance.hasData ||
-    metrics.assignments.submissions.length > 0;
+const hasAnyData =
+  metrics.progress.hasData ||
+  metrics.attendance.hasData ||
+  metrics.assignments.submissions.length > 0 ||
+  metrics.quizzes.hasData;
 
   if(!hasAnyData){
     return {
@@ -77333,12 +77368,13 @@ function buildStudentPerformanceRecord(student){
       studentId
     );
 
-  const lastActivity =
-    calculateStudentLastActivity(
-      progress.records,
-      attendance.records,
-      assignments.submissions
-    );
+const lastActivity =
+  calculateStudentLastActivity(
+    progress.records,
+    attendance.records,
+    assignments.submissions,
+    quizzes.attempts
+  );
 
   const metrics = {
     student,
