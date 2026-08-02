@@ -22360,15 +22360,36 @@ body[data-builder-section="presentations"]
 .question-bank-search input{
   width:100%;
   height:38px;
+  min-width:0;
   padding:0;
 
   border:0;
   outline:0;
+  box-shadow:none;
+
+  appearance:none;
+  -webkit-appearance:none;
 
   background:transparent;
   color:var(--aift-text);
 
   font-size:10px;
+}
+
+.question-bank-search input:focus,
+.question-bank-search input:focus-visible{
+  border:0;
+  outline:0;
+  box-shadow:none;
+}
+
+.question-bank-search input::-webkit-search-decoration,
+.question-bank-search input::-webkit-search-cancel-button,
+.question-bank-search input::-webkit-search-results-button,
+.question-bank-search input::-webkit-search-results-decoration{
+  display:none;
+  appearance:none;
+  -webkit-appearance:none;
 }
 
 .question-bank-filters{
@@ -59250,19 +59271,24 @@ async function loadQuestionBank(){
 
   if(!schoolId){
 
+    QuestionBankWorkspace.loading =
+      false;
+
     showAlert(
       "error",
       "The school ID is missing."
     );
 
     return;
-
   }
 
   QuestionBankWorkspace.loading =
     true;
 
   renderQuestionBankList();
+
+  let loadError =
+    null;
 
   try{
 
@@ -59293,39 +59319,64 @@ async function loadQuestionBank(){
         normalizeQuestionBankItem
       );
 
+    QuestionBankWorkspace.filteredItems =
+      [];
+
     QuestionBankWorkspace.initialized =
       true;
 
     updateQuestionBankSidebarCount();
 
-    applyQuestionBankFilters();
-
   }catch(error){
+
+    loadError =
+      error;
 
     console.error(
       "loadQuestionBank error:",
       error
     );
 
-    QuestionBankWorkspace.items = [];
-    QuestionBankWorkspace.filteredItems = [];
+    QuestionBankWorkspace.items =
+      [];
 
-    renderQuestionBankLoadError(
-      error
-    );
+    QuestionBankWorkspace.filteredItems =
+      [];
 
-    showAlert(
-      "error",
-      error?.message ||
-      "Failed to load the Question Bank."
-    );
+    QuestionBankWorkspace.initialized =
+      false;
 
   }finally{
 
+    /*
+      Loading must be turned off BEFORE rendering
+      either the results or the error state.
+    */
     QuestionBankWorkspace.loading =
       false;
 
   }
+
+  if(loadError){
+
+    renderQuestionBankLoadError(
+      loadError
+    );
+
+    showAlert(
+      "error",
+      loadError?.message ||
+      "Failed to load the Question Bank."
+    );
+
+    return;
+  }
+
+  /*
+    This now runs after loading has been set to false,
+    so renderQuestionBankList() displays the real results.
+  */
+  applyQuestionBankFilters();
 
 }
 
