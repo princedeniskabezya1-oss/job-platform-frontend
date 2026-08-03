@@ -3624,6 +3624,180 @@ body.student-sidebar-mobile-open
   }
 }
 
+/* =========================================================
+   STUDENT STUDIO SHELL SAFETY
+   Temporary foundation during the production rebuild
+========================================================= */
+
+html{
+  width:100%;
+  min-width:320px;
+  min-height:100%;
+  margin:0;
+  padding:0;
+  overflow-x:hidden;
+}
+
+body{
+  width:100%;
+  min-width:320px;
+  min-height:100vh;
+  margin:0;
+  padding:
+    var(--student-studio-topbar-height)
+    0
+    0;
+
+  overflow-x:hidden;
+
+  background:
+    var(--student-studio-page);
+}
+
+#studentStudioApp{
+  position:relative;
+
+  width:100%;
+  max-width:none;
+  min-width:0;
+  min-height:
+    calc(
+      100vh -
+      var(--student-studio-topbar-height)
+    );
+
+  margin:0;
+  padding:0;
+
+  background:
+    var(--student-studio-page);
+}
+
+#studentStudioMain{
+  position:relative;
+
+  width:auto;
+  max-width:none;
+  min-width:0;
+  min-height:
+    calc(
+      100vh -
+      var(--student-studio-topbar-height)
+    );
+
+  margin:
+    0
+    0
+    0
+    var(
+      --student-sidebar-current-width,
+      var(--student-studio-sidebar-width)
+    );
+
+  padding:0;
+
+  overflow:visible;
+
+  background:
+    var(--student-studio-page);
+}
+
+#studentStudioWorkspace{
+  position:relative;
+
+  width:100%;
+  max-width:none;
+  min-width:0;
+  min-height:
+    calc(
+      100vh -
+      var(--student-studio-topbar-height)
+    );
+
+  margin:0;
+  padding:24px 28px 48px;
+
+  overflow:visible;
+
+  background:
+    var(--student-studio-page);
+}
+
+#studentWorkspaceSections{
+  width:100%;
+  max-width:none;
+  min-width:0;
+  margin:0;
+}
+
+#studentWorkspaceSections > .section{
+  width:100%;
+  max-width:none;
+  min-width:0;
+  margin:0;
+}
+
+#studentWorkspaceSections > .section:not(.active),
+#studentWorkspaceSections > .section[hidden]{
+  display:none!important;
+}
+
+#studentWorkspaceSections > .section.active{
+  display:block!important;
+}
+
+.student-studio-page-alert{
+  position:fixed;
+  top:
+    calc(
+      var(--student-studio-topbar-height) +
+      12px
+    );
+
+  right:18px;
+  z-index:9500;
+
+  width:min(420px,calc(100vw - 36px));
+  margin:0;
+
+  display:none;
+}
+
+body.student-sidebar-collapsed
+#studentStudioMain{
+  margin-left:
+    var(
+      --student-studio-sidebar-collapsed-width
+    );
+}
+
+.student-dashboard-header,
+.student-dashboard-metrics,
+.studio-router{
+  display:none!important;
+}
+
+@media(max-width:980px){
+
+  #studentStudioMain{
+    width:100%;
+    margin-left:0;
+  }
+
+  #studentStudioWorkspace{
+    padding:20px 18px 100px;
+  }
+
+}
+
+@media(max-width:640px){
+
+  #studentStudioWorkspace{
+    padding:16px 12px 96px;
+  }
+
+}
+
 </style>
 </head>
 
@@ -4105,527 +4279,17 @@ body.student-sidebar-mobile-open
 
 </header>
 
-<div class="container">
 
-  <div class="alert info" id="pageAlert"></div>
-
-<!-- ===========================================================
-     AIFT STUDENT DASHBOARD HEADER
-=========================================================== -->
-
-<section class="student-dashboard-header">
-
-    <!-- LEFT SIDE -->
-
-    <div class="student-dashboard-main">
-
-        <div class="student-dashboard-greeting">
-
-            <span class="dashboard-welcome">
-
-                Welcome back
-
-            </span>
-
-            <h1>
-
-                Good Morning,
-
-                <span id="studentNameHero">
-
-                    Student
-
-                </span>
-
-            </h1>
-
-            <p id="studentHeroSubtitle">
-
-                Ready to continue learning today?
-
-            </p>
-
-        </div>
-
-        <!-- GLOBAL SEARCH -->
-
-        <div class="student-dashboard-search">
-
-            <svg
-                class="dashboard-search-icon"
-                viewBox="0 0 24 24"
-                aria-hidden="true">
-
-                <circle
-                    cx="11"
-                    cy="11"
-                    r="7">
-                </circle>
-
-                <path
-                    d="m20 20-3.8-3.8">
-                </path>
-
-            </svg>
-
-            <input
-
-                id="studentDashboardSearch"
-
-                type="search"
-
-                autocomplete="off"
-
-                spellcheck="false"
-
-                placeholder="Search classes, assignments, lessons, teachers, files..."
-
-            >
-
-            <button
-
-                id="studentDashboardSearchClear"
-
-                type="button"
-
-                hidden
-
-            >
-
-                <svg
-                    viewBox="0 0 24 24">
-
-                    <path d="M6 6l12 12"></path>
-
-                    <path d="M18 6L6 18"></path>
-
-                </svg>
-
-            </button>
-
-        </div>
-
-        <!-- CONTINUE LEARNING -->
-
-        <section class="continue-learning-card">
-
-            <div class="continue-learning-cover">
-
-                <img
-
-                    id="continueLearningImage"
-
-                    src=""
-
-                    alt="Course"
-
-                >
-
-            </div>
-
-            <div class="continue-learning-content">
-
-                <span>
-
-                    Continue Learning
-
-                </span>
-
-                <h2
-
-                    id="continueCourseTitle"
-
-                >
-
-                    No lesson selected
-
-                </h2>
-
-                <p
-
-                    id="continueLessonTitle"
-
-                >
-
-                    Everything is completed.
-
-                </p>
-
-                <div
-
-                    class="learning-progress"
-
-                >
-
-                    <div
-
-                        id="continueProgressBar"
-
-                    ></div>
-
-                </div>
-
-                <div class="continue-meta">
-
-                    <span
-
-                        id="continueProgressPercent"
-
-                    >
-
-                        0%
-
-                    </span>
-
-                    <span
-
-                        id="continueRemaining"
-
-                    >
-
-                        0 lessons remaining
-
-                    </span>
-
-                </div>
-
-            </div>
-
-            <button
-
-                class="continue-button"
-
-                id="continueLearningButton"
-
-            >
-
-                Continue
-
-            </button>
-
-        </section>
-
-    </div>
-
-    <!-- RIGHT SIDE -->
-
-    <aside class="student-dashboard-side">
-
-        <!-- TODAY -->
-
-        <section class="dashboard-widget">
-
-            <div class="dashboard-widget-header">
-
-                <h3>
-
-                    Today's Schedule
-
-                </h3>
-
-                <button
-
-                    id="openCalendarButton"
-
-                    type="button"
-
-                >
-
-                    Calendar
-
-                </button>
-
-            </div>
-
-            <div
-
-                id="todayScheduleContainer"
-
-                class="today-schedule"
-
-            >
-
-            </div>
-
-        </section>
-
-        <!-- ACTIVITY -->
-
-        <section class="dashboard-widget">
-
-            <div class="dashboard-widget-header">
-
-                <h3>
-
-                    Recent Activity
-
-                </h3>
-
-            </div>
-
-            <div
-
-                id="studentRecentActivity"
-
-            >
-
-            </div>
-
-        </section>
-
-    </aside>
-
-</section>
-
-<!-- ===========================================================
-     STUDENT DASHBOARD METRICS
-=========================================================== -->
-
-<section class="student-dashboard-metrics">
-
-    <article class="dashboard-metric-card attendance">
-
-        <div class="metric-icon">
-            <i class="fas fa-user-check"></i>
-        </div>
-
-        <div class="metric-content">
-
-            <span class="metric-label">
-                Attendance
-            </span>
-
-            <strong id="studentAttendancePercent">
-                0%
-            </strong>
-
-            <small id="studentAttendanceTrend">
-                Loading...
-            </small>
-
-        </div>
-
-    </article>
-
-    <article class="dashboard-metric-card progress">
-
-        <div class="metric-icon">
-            <i class="fas fa-chart-line"></i>
-        </div>
-
-        <div class="metric-content">
-
-            <span class="metric-label">
-                Progress
-            </span>
-
-            <strong id="studentOverallProgress">
-                0%
-            </strong>
-
-            <small>
-                Overall Completion
-            </small>
-
-        </div>
-
-    </article>
-
-    <article class="dashboard-metric-card assignments">
-
-        <div class="metric-icon">
-            <i class="fas fa-book-open"></i>
-        </div>
-
-        <div class="metric-content">
-
-            <span class="metric-label">
-                Assignments
-            </span>
-
-            <strong id="studentAssignmentsDue">
-                0
-            </strong>
-
-            <small>
-                Due Soon
-            </small>
-
-        </div>
-
-    </article>
-
-    <article class="dashboard-metric-card quizzes">
-
-        <div class="metric-icon">
-            <i class="fas fa-clipboard-check"></i>
-        </div>
-
-        <div class="metric-content">
-
-            <span class="metric-label">
-                Quiz Average
-            </span>
-
-            <strong id="studentQuizAverage">
-                --
-            </strong>
-
-            <small>
-                Average Score
-            </small>
-
-        </div>
-
-    </article>
-
-    <article class="dashboard-metric-card streak">
-
-        <div class="metric-icon">
-            <i class="fas fa-fire"></i>
-        </div>
-
-        <div class="metric-content">
-
-            <span class="metric-label">
-                Learning Streak
-            </span>
-
-            <strong id="studentLearningStreak">
-                0
-            </strong>
-
-            <small>
-                Consecutive Days
-            </small>
-
-        </div>
-
-    </article>
-
-    <article class="dashboard-metric-card certificates">
-
-        <div class="metric-icon">
-            <i class="fas fa-award"></i>
-        </div>
-
-        <div class="metric-content">
-
-            <span class="metric-label">
-                Certificates
-            </span>
-
-            <strong id="studentCertificates">
-                0
-            </strong>
-
-            <small>
-                Earned
-            </small>
-
-        </div>
-
-    </article>
-
-    <article class="dashboard-metric-card classes">
-
-        <div class="metric-icon">
-            <i class="fas fa-school"></i>
-        </div>
-
-        <div class="metric-content">
-
-            <span class="metric-label">
-                Active Classes
-            </span>
-
-            <strong id="studentActiveClasses">
-                0
-            </strong>
-
-            <small>
-                Enrolled
-            </small>
-
-        </div>
-
-    </article>
-
-    <article class="dashboard-metric-card hours">
-
-        <div class="metric-icon">
-            <i class="fas fa-clock"></i>
-        </div>
-
-        <div class="metric-content">
-
-            <span class="metric-label">
-                Study Hours
-            </span>
-
-            <strong id="studentStudyHours">
-                0h
-            </strong>
-
-            <small>
-                This Week
-            </small>
-
-        </div>
-
-    </article>
-
-</section>
-
-<!-- ===========================================================
-     STUDENT STUDIO ROUTER
-=========================================================== -->
-
-<div class="studio-router">
-
-    <div class="studio-router-left">
-
-        <h2 id="studioCurrentPage">
-
-            Dashboard
-
-        </h2>
-
-        <p id="studioCurrentDescription">
-
-            Your learning workspace
-
-        </p>
-
-    </div>
-
-    <div class="studio-router-right">
-
-        <button
-            id="refreshWorkspaceButton"
-            class="ghost-btn"
-            type="button">
-
-            <i class="fas fa-rotate-right"></i>
-
-            Refresh
-
-        </button>
-
-        <button
-            id="openCommandPalette"
-            class="primary-btn"
-            type="button">
-
-            <i class="fas fa-magnifying-glass"></i>
-
-            Quick Search
-
-        </button>
-
-    </div>
-
-</div>
+<!-- =========================================================
+     STUDENT STUDIO PAGE ALERT
+========================================================= -->
+
+<div
+  id="pageAlert"
+  class="alert info student-studio-page-alert"
+  role="status"
+  aria-live="polite"
+></div>
 
 
 <!-- =========================================================
