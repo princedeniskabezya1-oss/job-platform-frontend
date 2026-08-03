@@ -9,7 +9,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+  rel="stylesheet"
+>
+
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+  integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+>
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
@@ -37,12 +48,39 @@
 *{box-sizing:border-box}
 
 body{
+  width:100%;
+  min-width:320px;
+  min-height:100vh;
   margin:0;
-  font-family:Inter,Arial,sans-serif;
-  background:var(--bg);
-  color:var(--text);
+  padding-top:var(--student-studio-topbar-height);
+
+  overflow-x:hidden;
+  overflow-y:auto;
+
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  background:
+    var(--student-studio-page);
+
+  color:
+    var(--student-studio-text);
+
   font-size:14px;
-  line-height:1.45;
+  line-height:1.5;
+
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+body.student-studio-menu-open{
+  overflow:hidden;
 }
 
 a{
@@ -75,193 +113,1347 @@ img{
   margin:0 auto;
 }
 
-/* TOPBAR */
 
-.topbar{
-  position:sticky;
-  top:0;
-  z-index:1000;
-  background:rgba(255,255,255,.94);
+/* =========================================================
+   AIFT STUDENT STUDIO
+   APPLICATION TOP BAR
+========================================================= */
+
+:root{
+  --student-studio-topbar-height:64px;
+  --student-studio-sidebar-width:248px;
+  --student-studio-sidebar-collapsed-width:72px;
+
+  --student-studio-page:#f8f9fa;
+  --student-studio-surface:#ffffff;
+  --student-studio-surface-soft:#f6f7f8;
+  --student-studio-surface-muted:#f1f3f4;
+
+  --student-studio-text:#202124;
+  --student-studio-text-strong:#0f0f0f;
+  --student-studio-muted:#5f6368;
+  --student-studio-subtle:#80868b;
+
+  --student-studio-border:#dadce0;
+  --student-studio-border-soft:#e8eaed;
+  --student-studio-border-strong:#bdc1c6;
+
+  --student-studio-primary:#1a73e8;
+  --student-studio-primary-hover:#1765cc;
+  --student-studio-primary-active:#1558b0;
+  --student-studio-primary-soft:#e8f0fe;
+  --student-studio-primary-softer:#f4f8ff;
+
+  --student-studio-success:#137c41;
+  --student-studio-success-soft:#e6f4ea;
+
+  --student-studio-warning:#9a6700;
+  --student-studio-warning-soft:#fef7e0;
+
+  --student-studio-danger:#c5221f;
+  --student-studio-danger-soft:#fce8e6;
+
+  --student-studio-radius-xs:6px;
+  --student-studio-radius-sm:8px;
+  --student-studio-radius-md:12px;
+  --student-studio-radius-lg:16px;
+  --student-studio-radius-pill:999px;
+
+  --student-studio-shadow-xs:
+    0 1px 2px rgba(60,64,67,.08);
+
+  --student-studio-shadow-sm:
+    0 1px 2px rgba(60,64,67,.08),
+    0 1px 3px rgba(60,64,67,.06);
+
+  --student-studio-shadow-md:
+    0 4px 12px rgba(60,64,67,.10);
+
+  --student-studio-shadow-lg:
+    0 18px 48px rgba(15,23,42,.16);
+
+  --student-studio-focus-ring:
+    0 0 0 3px rgba(26,115,232,.16);
+
+  --student-studio-transition-fast:120ms ease;
+  --student-studio-transition:180ms ease;
+}
+
+
+/* =========================================================
+   TOP BAR SHELL
+========================================================= */
+
+.studio-topbar{
+  position:fixed;
+  inset:0 0 auto 0;
+  z-index:7000;
+
+  width:100%;
+  height:var(--student-studio-topbar-height);
+  padding:0 16px;
+
+  display:grid;
+  grid-template-columns:
+    minmax(300px,1fr)
+    minmax(420px,960px)
+    minmax(360px,1fr);
+
+  align-items:center;
+  gap:18px;
+
+  border-bottom:
+    1px solid
+    var(--student-studio-border);
+
+  background:
+    rgba(255,255,255,.98);
+
+  box-shadow:
+    0 1px 2px
+    rgba(60,64,67,.04);
+
   backdrop-filter:blur(14px);
-  border-bottom:1px solid rgba(229,231,235,.9);
+  -webkit-backdrop-filter:blur(14px);
 }
 
-.topbar-inner{
-  min-height:70px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:16px;
-}
 
-.brand-wrap{
-  display:flex;
-  align-items:center;
-  gap:13px;
+/* =========================================================
+   TOP BAR BRAND
+========================================================= */
+
+.studio-topbar-brand{
   min-width:0;
+
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:10px;
 }
 
-.brand{
-  width:42px;
-  height:42px;
-  border-radius:14px;
-  background:linear-gradient(135deg,var(--primary),#4d83d8);
+.studio-sidebar-toggle{
+  width:40px;
+  height:40px;
+  min-width:40px;
+  padding:0;
+
   display:grid;
   place-items:center;
-  color:#fff;
-  font-weight:800;
-  box-shadow:0 8px 18px rgba(37,87,167,.22);
-  flex-shrink:0;
+
+  border:0;
+  border-radius:50%;
+
+  background:transparent;
+  color:var(--student-studio-text);
+
+  transition:
+    background
+    var(--student-studio-transition-fast),
+    color
+    var(--student-studio-transition-fast);
 }
 
-.brand-title{
-  font-size:1rem;
-  font-weight:800;
-  line-height:1.1;
-  letter-spacing:-.02em;
+.studio-sidebar-toggle:hover{
+  background:
+    var(--student-studio-surface-muted);
 }
 
-.brand-sub{
-  color:var(--muted);
-  font-size:.8rem;
-  margin-top:3px;
+.studio-sidebar-toggle:active{
+  background:#e3e5e7;
 }
 
-.top-actions{
+.studio-sidebar-toggle:focus-visible{
+  outline:2px solid
+    var(--student-studio-primary);
+
+  outline-offset:2px;
+}
+
+.studio-sidebar-toggle svg{
+  width:20px;
+  height:20px;
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.studio-brand-link{
+  min-width:0;
+
   display:flex;
   align-items:center;
-  gap:10px;
-  flex:1;
-  justify-content:flex-end;
+  gap:9px;
+
+  color:inherit;
+  text-decoration:none;
 }
 
-.search{
-  position:relative;
-  width:min(420px,100%);
-  flex:1;
-  max-width:420px;
+.student-studio-logo{
+  width:34px;
+  height:34px;
+  min-width:34px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:9px;
+
+  background:
+    var(--student-studio-primary);
+
+  color:#fff;
+
+  font-size:13px;
+  line-height:1;
+  font-weight:800;
+
+  box-shadow:
+    0 5px 14px
+    rgba(26,115,232,.18);
 }
 
-.search input{
-  width:100%;
-  height:42px;
-  border-radius:999px;
-  border:1px solid var(--border);
-  background:#fff;
-  padding:0 15px 0 42px;
-  outline:none;
+.studio-brand-copy{
+  min-width:0;
+
+  display:grid;
+  gap:1px;
 }
 
-.search input:focus{
-  border-color:#b8cdf5;
-  box-shadow:0 0 0 4px rgba(37,87,167,.08);
-}
+.studio-brand-copy strong{
+  overflow:hidden;
 
-.search svg{
-  position:absolute;
-  left:14px;
-  top:50%;
-  transform:translateY(-50%);
-  width:17px;
-  height:17px;
-  stroke:var(--muted);
-  fill:none;
-  stroke-width:2;
-}
+  color:
+    var(--student-studio-text-strong);
 
-.icon-btn,
-.primary-btn,
-.ghost-btn,
-.success-btn,
-.danger-btn{
-  border:none;
-  cursor:pointer;
-  transition:.18s ease;
+  font-size:13px;
+  line-height:1.3;
+  font-weight:700;
+
+  text-overflow:ellipsis;
   white-space:nowrap;
 }
 
-.icon-btn{
-  width:42px;
+.studio-brand-copy small{
+  overflow:hidden;
+
+  color:
+    var(--student-studio-muted);
+
+  font-size:9px;
+  line-height:1.3;
+  font-weight:500;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+
+/* =========================================================
+   CENTERED GLOBAL SEARCH
+========================================================= */
+
+.studio-topbar-class{
+  width:100%;
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.builder-global-search{
+  position:relative;
+
+  width:100%;
+  min-width:0;
+
+  justify-self:center;
+}
+
+.builder-global-search-icon{
+  position:absolute;
+  top:50%;
+  left:15px;
+  z-index:2;
+
+  width:19px;
+  height:19px;
+
+  transform:
+    translateY(-50%);
+
+  fill:none;
+  stroke:
+    var(--student-studio-muted);
+
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+
+  pointer-events:none;
+
+  transition:
+    stroke
+    var(--student-studio-transition-fast);
+}
+
+.builder-global-search input{
+  width:100%;
   height:42px;
-  border-radius:14px;
+
+  padding:
+    0
+    92px
+    0
+    45px;
+
+  border:
+    1px solid
+    var(--student-studio-border-strong);
+
+  border-radius:12px;
+
+  outline:0;
+
+  background:#fff;
+  color:
+    var(--student-studio-text-strong);
+
+  font-size:10px;
+  line-height:1;
+
+  box-shadow:
+    0 1px 2px
+    rgba(60,64,67,.04);
+
+  transition:
+    border-color
+    var(--student-studio-transition-fast),
+    box-shadow
+    var(--student-studio-transition-fast),
+    background
+    var(--student-studio-transition-fast);
+}
+
+.builder-global-search input::placeholder{
+  color:#8a9099;
+}
+
+.builder-global-search input:hover{
+  border-color:#aeb8c5;
+}
+
+.builder-global-search input:focus{
+  border-color:
+    var(--student-studio-primary);
+
+  box-shadow:
+    var(--student-studio-focus-ring);
+}
+
+.builder-global-search:focus-within
+.builder-global-search-icon{
+  stroke:
+    var(--student-studio-primary);
+}
+
+.builder-global-search-clear{
+  position:absolute;
+  top:50%;
+  right:49px;
+  z-index:3;
+
+  width:29px;
+  height:29px;
+  padding:0;
+
   display:grid;
   place-items:center;
+
+  transform:
+    translateY(-50%);
+
+  border:0;
+  border-radius:50%;
+
+  background:transparent;
+  color:
+    var(--student-studio-muted);
+}
+
+.builder-global-search-clear:hover{
+  background:
+    var(--student-studio-surface-muted);
+
+  color:
+    var(--student-studio-text-strong);
+}
+
+.builder-global-search-clear:focus-visible{
+  outline:
+    2px solid
+    var(--student-studio-primary);
+
+  outline-offset:1px;
+}
+
+.builder-global-search-clear svg{
+  width:15px;
+  height:15px;
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.builder-global-search-shortcut{
+  position:absolute;
+  top:50%;
+  right:11px;
+  z-index:2;
+
+  min-width:30px;
+  height:24px;
+  padding:0 6px;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  transform:
+    translateY(-50%);
+
+  border:
+    1px solid
+    var(--student-studio-border-soft);
+
+  border-radius:6px;
+
+  background:
+    var(--student-studio-surface-soft);
+
+  color:
+    var(--student-studio-muted);
+
+  font-size:8px;
+  line-height:1;
+  font-weight:600;
+
+  pointer-events:none;
+}
+
+
+/* =========================================================
+   GLOBAL SEARCH RESULTS
+========================================================= */
+
+.builder-global-search-results{
+  position:absolute;
+  top:calc(100% + 8px);
+  right:0;
+  left:0;
+  z-index:9000;
+
+  max-height:
+    min(
+      520px,
+      calc(100vh - 110px)
+    );
+
+  padding:7px;
+
+  overflow-x:hidden;
+  overflow-y:auto;
+
+  border:
+    1px solid
+    var(--student-studio-border);
+
+  border-radius:14px;
+
   background:#fff;
-  border:1px solid var(--border);
-  color:#111827;
+
+  box-shadow:
+    var(--student-studio-shadow-lg);
+
+  scrollbar-width:thin;
+  scrollbar-color:#c7c9cc transparent;
+}
+
+.builder-global-search-results::-webkit-scrollbar{
+  width:7px;
+}
+
+.builder-global-search-results::-webkit-scrollbar-thumb{
+  border-radius:
+    var(--student-studio-radius-pill);
+
+  background:#c7c9cc;
+}
+
+.builder-global-search-results[hidden]{
+  display:none!important;
+}
+
+.builder-global-search-empty{
+  min-height:110px;
+  padding:20px;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+
+  color:
+    var(--student-studio-muted);
+
+  text-align:center;
+}
+
+.builder-global-search-empty strong{
+  color:
+    var(--student-studio-text-strong);
+
+  font-size:10px;
+  font-weight:600;
+}
+
+.builder-global-search-empty span{
+  max-width:330px;
+
+  font-size:8px;
+  line-height:1.5;
+}
+
+.builder-global-search-group{
+  padding:7px 7px 4px;
+
+  color:
+    var(--student-studio-subtle);
+
+  font-size:7px;
+  line-height:1.3;
+  font-weight:700;
+  letter-spacing:.065em;
+  text-transform:uppercase;
+}
+
+.builder-global-search-result{
+  width:100%;
+  min-height:49px;
+  padding:8px 10px;
+
+  display:grid;
+  grid-template-columns:
+    34px
+    minmax(0,1fr)
+    auto;
+
+  align-items:center;
+  gap:10px;
+
+  border:0;
+  border-radius:9px;
+
+  background:transparent;
+  color:
+    var(--student-studio-text);
+
+  text-align:left;
+
+  transition:
+    background
+    var(--student-studio-transition-fast);
+}
+
+.builder-global-search-result:hover,
+.builder-global-search-result.active{
+  background:
+    var(--student-studio-primary-softer);
+}
+
+.builder-global-search-result-icon{
+  width:34px;
+  height:34px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:9px;
+
+  background:
+    var(--student-studio-primary-soft);
+
+  color:
+    var(--student-studio-primary);
+
+  font-size:12px;
+  font-weight:700;
+}
+
+.builder-global-search-result-copy{
+  min-width:0;
+
+  display:grid;
+  gap:2px;
+}
+
+.builder-global-search-result-copy strong{
+  overflow:hidden;
+
+  color:
+    var(--student-studio-text-strong);
+
+  font-size:9px;
+  line-height:1.4;
+  font-weight:600;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.builder-global-search-result-copy small{
+  overflow:hidden;
+
+  color:
+    var(--student-studio-muted);
+
+  font-size:7px;
+  line-height:1.4;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.builder-global-search-result-type{
+  color:
+    var(--student-studio-subtle);
+
+  font-size:7px;
+  line-height:1;
+  font-weight:600;
+
+  white-space:nowrap;
+}
+
+
+/* =========================================================
+   TOP BAR ACTIONS
+========================================================= */
+
+.studio-topbar-actions{
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+.studio-topbar-button{
+  position:relative;
+
+  min-height:38px;
+  padding:0 13px;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+
+  border-radius:
+    var(--student-studio-radius-sm);
+
+  font-size:9px;
+  line-height:1;
+  font-weight:600;
+
+  white-space:nowrap;
+
+  transition:
+    background
+    var(--student-studio-transition-fast),
+    border-color
+    var(--student-studio-transition-fast),
+    color
+    var(--student-studio-transition-fast),
+    box-shadow
+    var(--student-studio-transition-fast);
+}
+
+.studio-topbar-button.secondary{
+  border:
+    1px solid
+    var(--student-studio-border-strong);
+
+  background:#fff;
+  color:
+    var(--student-studio-text-strong);
+}
+
+.studio-topbar-button.secondary:hover{
+  background:
+    var(--student-studio-surface-muted);
+}
+
+.studio-topbar-button.primary{
+  border:
+    1px solid
+    var(--student-studio-primary);
+
+  background:
+    var(--student-studio-primary);
+
+  color:#fff;
+}
+
+.studio-topbar-button.primary:hover{
+  border-color:
+    var(--student-studio-primary-hover);
+
+  background:
+    var(--student-studio-primary-hover);
+}
+
+.studio-topbar-button.primary:active{
+  background:
+    var(--student-studio-primary-active);
+}
+
+.studio-topbar-button:focus-visible{
+  outline:
+    2px solid
+    var(--student-studio-primary);
+
+  outline-offset:2px;
+}
+
+.studio-topbar-button i{
+  font-size:12px;
+}
+
+.student-topbar-icon-button{
   position:relative;
 }
 
-.icon-btn svg{
-  width:19px;
-  height:19px;
-  stroke:currentColor;
-  fill:none;
-  stroke-width:2;
-}
-
-.primary-btn{
-  padding:10px 15px;
-  border-radius:999px;
-  background:var(--primary);
-  color:#fff;
-  font-weight:700;
-  font-size:.86rem;
-}
-
-.ghost-btn{
-  padding:10px 14px;
-  border-radius:12px;
-  background:#fff;
-  border:1px solid var(--border);
-  color:#111827;
-  font-weight:700;
-  font-size:.86rem;
-}
-
-.success-btn{
-  padding:10px 14px;
-  border-radius:12px;
-  background:var(--green-soft);
-  border:1px solid #bbf7d0;
-  color:#166534;
-  font-weight:700;
-  font-size:.86rem;
-}
-
-.danger-btn{
-  padding:10px 14px;
-  border-radius:12px;
-  background:var(--danger-soft);
-  border:1px solid #fecaca;
-  color:#b91c1c;
-  font-weight:700;
-  font-size:.86rem;
-}
-
-.avatar{
-  width:42px;
-  height:42px;
-  border-radius:14px;
-  object-fit:cover;
-  border:1px solid var(--border);
-}
-
-.badge{
+.student-notification-badge{
   position:absolute;
-  top:5px;
-  right:5px;
+  top:-6px;
+  right:-6px;
+
   min-width:18px;
   height:18px;
   padding:0 5px;
-  border-radius:999px;
-  background:var(--danger);
-  color:#fff;
-  font-size:.65rem;
-  font-weight:800;
+
   display:none;
   place-items:center;
-  border:2px solid #fff;
+
+  border:
+    2px solid #fff;
+
+  border-radius:
+    var(--student-studio-radius-pill);
+
+  background:
+    var(--student-studio-danger);
+
+  color:#fff;
+
+  font-size:7px;
+  line-height:1;
+  font-weight:800;
+
+  font-variant-numeric:
+    tabular-nums;
+}
+
+
+/* =========================================================
+   PROFILE BUTTON
+========================================================= */
+
+.student-profile-menu-button{
+  min-width:0;
+  height:42px;
+  padding:3px 8px 3px 4px;
+
+  display:grid;
+  grid-template-columns:
+    34px
+    minmax(0,1fr)
+    12px;
+
+  align-items:center;
+  gap:8px;
+
+  border:
+    1px solid
+    var(--student-studio-border);
+
+  border-radius:11px;
+
+  background:#fff;
+  color:
+    var(--student-studio-text);
+
+  text-align:left;
+
+  transition:
+    background
+    var(--student-studio-transition-fast),
+    border-color
+    var(--student-studio-transition-fast);
+}
+
+.student-profile-menu-button:hover{
+  border-color:
+    var(--student-studio-border-strong);
+
+  background:
+    var(--student-studio-surface-soft);
+}
+
+.student-profile-menu-button:focus-visible{
+  outline:
+    2px solid
+    var(--student-studio-primary);
+
+  outline-offset:2px;
+}
+
+.student-topbar-avatar{
+  width:34px;
+  height:34px;
+
+  border-radius:9px;
+
+  object-fit:cover;
+
+  border:
+    1px solid
+    var(--student-studio-border-soft);
+
+  background:
+    var(--student-studio-surface-muted);
+}
+
+.student-profile-menu-copy{
+  min-width:0;
+
+  display:grid;
+  gap:1px;
+}
+
+.student-profile-menu-copy strong{
+  overflow:hidden;
+
+  color:
+    var(--student-studio-text-strong);
+
+  font-size:9px;
+  line-height:1.3;
+  font-weight:600;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.student-profile-menu-copy small{
+  overflow:hidden;
+
+  color:
+    var(--student-studio-muted);
+
+  font-size:7px;
+  line-height:1.3;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.student-profile-menu-button >
+.fa-chevron-down{
+  color:
+    var(--student-studio-subtle);
+
+  font-size:8px;
+}
+
+
+/* =========================================================
+   QUICK ACTIONS MENU
+========================================================= */
+
+.student-topbar-menu,
+.student-profile-dropdown{
+  position:fixed;
+  top:
+    calc(
+      var(--student-studio-topbar-height) +
+      8px
+    );
+
+  z-index:9000;
+
+  padding:7px;
+
+  border:
+    1px solid
+    var(--student-studio-border);
+
+  border-radius:14px;
+
+  background:#fff;
+
+  box-shadow:
+    var(--student-studio-shadow-lg);
+}
+
+.student-topbar-menu[hidden],
+.student-profile-dropdown[hidden]{
+  display:none!important;
+}
+
+.student-topbar-menu{
+  right:245px;
+
+  width:min(330px,calc(100vw - 24px));
+}
+
+.student-topbar-menu > button{
+  width:100%;
+  min-height:54px;
+  padding:8px 10px;
+
+  display:grid;
+  grid-template-columns:
+    34px
+    minmax(0,1fr);
+
+  align-items:center;
+  gap:10px;
+
+  border:0;
+  border-radius:9px;
+
+  background:transparent;
+  color:
+    var(--student-studio-text);
+
+  text-align:left;
+
+  transition:
+    background
+    var(--student-studio-transition-fast);
+}
+
+.student-topbar-menu > button:hover{
+  background:
+    var(--student-studio-primary-softer);
+}
+
+.student-topbar-menu-icon{
+  width:34px;
+  height:34px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:9px;
+
+  background:
+    var(--student-studio-primary-soft);
+
+  color:
+    var(--student-studio-primary);
+
+  font-size:12px;
+}
+
+.student-topbar-menu > button >
+span:last-child{
+  min-width:0;
+
+  display:grid;
+  gap:2px;
+}
+
+.student-topbar-menu strong{
+  color:
+    var(--student-studio-text-strong);
+
+  font-size:9px;
+  line-height:1.4;
+  font-weight:600;
+}
+
+.student-topbar-menu small{
+  color:
+    var(--student-studio-muted);
+
+  font-size:7px;
+  line-height:1.4;
+}
+
+
+/* =========================================================
+   PROFILE DROPDOWN
+========================================================= */
+
+.student-profile-dropdown{
+  right:16px;
+
+  width:min(285px,calc(100vw - 24px));
+}
+
+.student-profile-dropdown-head{
+  padding:9px;
+
+  display:grid;
+  grid-template-columns:
+    44px
+    minmax(0,1fr);
+
+  align-items:center;
+  gap:10px;
+}
+
+.student-profile-dropdown-head img{
+  width:44px;
+  height:44px;
+
+  border-radius:11px;
+
+  object-fit:cover;
+
+  border:
+    1px solid
+    var(--student-studio-border-soft);
+}
+
+.student-profile-dropdown-head > div{
+  min-width:0;
+
+  display:grid;
+  gap:3px;
+}
+
+.student-profile-dropdown-head strong{
+  overflow:hidden;
+
+  color:
+    var(--student-studio-text-strong);
+
+  font-size:10px;
+  line-height:1.4;
+  font-weight:600;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.student-profile-dropdown-head span{
+  overflow:hidden;
+
+  color:
+    var(--student-studio-muted);
+
+  font-size:8px;
+  line-height:1.4;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.student-profile-dropdown-divider{
+  height:1px;
+  margin:5px 0;
+
+  background:
+    var(--student-studio-border-soft);
+}
+
+.student-profile-dropdown > button{
+  width:100%;
+  min-height:40px;
+  padding:0 10px;
+
+  display:grid;
+  grid-template-columns:
+    20px
+    minmax(0,1fr);
+
+  align-items:center;
+  gap:10px;
+
+  border:0;
+  border-radius:8px;
+
+  background:transparent;
+  color:
+    var(--student-studio-text);
+
+  font-size:9px;
+  font-weight:500;
+
+  text-align:left;
+
+  transition:
+    background
+    var(--student-studio-transition-fast);
+}
+
+.student-profile-dropdown > button:hover{
+  background:
+    var(--student-studio-surface-muted);
+}
+
+.student-profile-dropdown > button i{
+  color:
+    var(--student-studio-muted);
+
+  font-size:12px;
+}
+
+.student-profile-dropdown
+.student-profile-logout{
+  color:
+    var(--student-studio-danger);
+}
+
+.student-profile-dropdown
+.student-profile-logout i{
+  color:
+    var(--student-studio-danger);
+}
+
+.student-profile-dropdown
+.student-profile-logout:hover{
+  background:
+    var(--student-studio-danger-soft);
+}
+
+
+/* =========================================================
+   TOP BAR RESPONSIVE
+========================================================= */
+
+@media(max-width:1260px){
+
+  .studio-topbar{
+    grid-template-columns:
+      minmax(240px,1fr)
+      minmax(320px,700px)
+      max-content;
+
+    gap:12px;
+  }
+
+  .student-topbar-button-label{
+    display:none;
+  }
+
+  .student-profile-menu-copy{
+    display:none;
+  }
+
+  .student-profile-menu-button{
+    min-width:44px;
+    width:44px;
+    padding:4px;
+
+    grid-template-columns:1fr;
+  }
+
+  .student-profile-menu-button >
+  .fa-chevron-down{
+    display:none;
+  }
+
+  .student-topbar-menu{
+    right:120px;
+  }
+
+}
+
+
+@media(max-width:980px){
+
+  .studio-topbar{
+    grid-template-columns:
+      190px
+      minmax(260px,1fr)
+      max-content;
+
+    padding:0 10px;
+  }
+
+  .studio-brand-copy small{
+    display:none;
+  }
+
+  .studio-topbar-actions{
+    gap:6px;
+  }
+
+  .studio-topbar-button{
+    min-width:38px;
+    padding:0 10px;
+  }
+
+  #studentQuickActionsButton span,
+  #studentMessagesButton span,
+  #studentNotificationButton span{
+    display:none;
+  }
+
+}
+
+
+@media(max-width:820px){
+
+  .studio-topbar{
+    grid-template-columns:
+      54px
+      minmax(0,1fr)
+      max-content;
+
+    gap:8px;
+  }
+
+  .studio-brand-link{
+    display:none;
+  }
+
+  .builder-global-search input{
+    padding-right:45px;
+  }
+
+  .builder-global-search-shortcut{
+    display:none;
+  }
+
+  .builder-global-search-clear{
+    right:9px;
+  }
+
+  #studentQuickActionsButton,
+  #studentMessagesButton{
+    display:none;
+  }
+
+  #studentSubmitWorkButton span{
+    display:none;
+  }
+
+  #studentSubmitWorkButton{
+    width:40px;
+    min-width:40px;
+    padding:0;
+  }
+
+  .student-topbar-menu{
+    right:8px;
+    left:8px;
+
+    width:auto;
+  }
+
+}
+
+
+@media(max-width:640px){
+
+  .studio-topbar{
+    height:58px;
+
+    grid-template-columns:
+      42px
+      minmax(0,1fr)
+      auto;
+
+    padding:0 8px;
+  }
+
+  :root{
+    --student-studio-topbar-height:58px;
+  }
+
+  .studio-sidebar-toggle{
+    width:38px;
+    height:38px;
+    min-width:38px;
+  }
+
+  .builder-global-search input{
+    height:39px;
+
+    padding-left:40px;
+
+    font-size:9px;
+  }
+
+  .builder-global-search-icon{
+    left:13px;
+
+    width:17px;
+    height:17px;
+  }
+
+  .builder-global-search-results{
+    position:fixed;
+    top:
+      calc(
+        var(--student-studio-topbar-height) +
+        6px
+      );
+
+    right:8px;
+    left:8px;
+
+    max-height:
+      calc(
+        100vh -
+        var(--student-studio-topbar-height) -
+        20px
+      );
+  }
+
+  #studentNotificationButton{
+    display:none;
+  }
+
+  #studentSubmitWorkButton{
+    display:none;
+  }
+
+  .student-profile-menu-button{
+    width:38px;
+    min-width:38px;
+    height:38px;
+  }
+
+  .student-topbar-avatar{
+    width:30px;
+    height:30px;
+  }
+
+  .student-profile-dropdown{
+    top:
+      calc(
+        var(--student-studio-topbar-height) +
+        6px
+      );
+
+    right:8px;
+  }
+
 }
 
 /* HERO */
@@ -332,23 +1524,28 @@ img{
   /* LAYOUT */
 
 .page{
-  padding:22px 0 34px;
+  width:100%;
+  min-height:
+    calc(
+      100vh -
+      var(--student-studio-topbar-height)
+    );
+
+  padding:0;
 }
 
 .student-shell{
-  display:grid;
-  grid-template-columns:300px minmax(0,1fr) 320px;
-  gap:18px;
-  align-items:start;
+  width:100%;
+  min-width:0;
 }
 
 .left-col,
 .right-col{
-  position:sticky;
-  top:90px;
+  position:static;
 }
 
 .center-col{
+  width:100%;
   min-width:0;
 }
 
@@ -665,70 +1862,1222 @@ img{
   flex-wrap:wrap;
   margin-top:14px;
 }
-  /* STUDENT SIDEBAR */
+/* =========================================================
+   STUDENT STUDIO APPLICATION SHELL
+========================================================= */
 
-.student-mini{
+.student-studio-app{
+  position:relative;
+
+  width:100%;
+  min-width:0;
+  min-height:
+    calc(
+      100vh -
+      var(--student-studio-topbar-height)
+    );
+
+  background:
+    var(--student-studio-page);
+}
+
+
+/* =========================================================
+   FIXED STUDENT STUDIO SIDEBAR
+========================================================= */
+
+.studio-sidebar{
+  position:fixed;
+  top:var(--student-studio-topbar-height);
+  bottom:0;
+  left:0;
+  z-index:5000;
+
+  width:
+    var(
+      --student-sidebar-current-width,
+      var(--student-studio-sidebar-width)
+    );
+
+  display:flex;
+  flex-direction:column;
+
+  overflow:hidden;
+
+  border-right:
+    1px solid
+    var(--student-studio-border);
+
+  background:#fff;
+
+  transition:
+    width
+    var(--student-studio-transition),
+    transform
+    var(--student-studio-transition);
+}
+
+.studio-sidebar-scroll{
+  min-height:0;
+  flex:1 1 auto;
+
+  padding:12px 10px 18px;
+
+  overflow-x:hidden;
+  overflow-y:auto;
+
+  overscroll-behavior:contain;
+
+  scrollbar-width:thin;
+  scrollbar-color:#c7c9cc transparent;
+}
+
+.studio-sidebar-scroll::-webkit-scrollbar{
+  width:7px;
+}
+
+.studio-sidebar-scroll::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+.studio-sidebar-scroll::-webkit-scrollbar-thumb{
+  border-radius:
+    var(--student-studio-radius-pill);
+
+  background:#c7c9cc;
+}
+
+
+/* =========================================================
+   STUDENT PROFILE SUMMARY
+========================================================= */
+
+.studio-sidebar-class{
+  margin:0 0 14px;
+  padding:12px;
+
+  border:
+    1px solid
+    var(--student-studio-border-soft);
+
+  border-radius:10px;
+
+  background:
+    var(--student-studio-surface-soft);
+}
+
+.studio-sidebar-class-head{
+  min-width:0;
+
   display:flex;
   align-items:center;
-  gap:12px;
-  margin-bottom:18px;
+  gap:10px;
 }
 
-.student-mini img{
-  width:58px;
-  height:58px;
-  border-radius:18px;
+.student-sidebar-avatar-wrap{
+  position:relative;
+
+  width:42px;
+  height:42px;
+  min-width:42px;
+}
+
+.student-sidebar-avatar{
+  width:42px;
+  height:42px;
+
+  border:
+    1px solid
+    var(--student-studio-border-soft);
+
+  border-radius:10px;
+
+  background:
+    var(--student-studio-surface-muted);
+
   object-fit:cover;
-  border:1px solid var(--border);
 }
 
-.student-mini strong{
-  display:block;
-  font-size:.95rem;
-  margin-bottom:4px;
+.student-sidebar-online-indicator{
+  position:absolute;
+  right:-1px;
+  bottom:-1px;
+
+  width:11px;
+  height:11px;
+
+  border:2px solid #fff;
+  border-radius:50%;
+
+  background:
+    var(--student-studio-success);
+
+  box-shadow:
+    0 0 0 1px
+    rgba(19,124,65,.1);
 }
 
-.student-mini span{
-  color:var(--muted);
-  font-size:.82rem;
-}
+.student-sidebar-profile-copy{
+  min-width:0;
 
-.progress-wrap{
   display:grid;
-  gap:14px;
+  gap:2px;
 }
 
-.progress-item{
-  display:grid;
+.student-sidebar-profile-copy > span{
+  overflow:hidden;
+
+  color:
+    var(--student-studio-subtle);
+
+  font-size:7px;
+  line-height:1.25;
+  font-weight:700;
+  letter-spacing:.055em;
+  text-transform:uppercase;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.student-sidebar-profile-copy > strong{
+  overflow:hidden;
+
+  color:
+    var(--student-studio-text-strong);
+
+  font-size:10px;
+  line-height:1.4;
+  font-weight:600;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.student-sidebar-profile-copy > small{
+  overflow:hidden;
+
+  color:
+    var(--student-studio-muted);
+
+  font-size:8px;
+  line-height:1.35;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.studio-sidebar-meta{
+  margin-top:10px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
   gap:8px;
 }
 
-.progress-head{
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  font-size:.86rem;
-  color:#374151;
+.studio-sidebar-meta > span:first-child{
+  min-width:0;
+
+  overflow:hidden;
+
+  color:
+    var(--student-studio-muted);
+
+  font-size:8px;
+  line-height:1.35;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.studio-sidebar-status{
+  min-height:21px;
+  padding:0 7px;
+
+  display:inline-flex;
+  align-items:center;
+  flex:0 0 auto;
+
+  border-radius:
+    var(--student-studio-radius-pill);
+
+  background:
+    var(--student-studio-success-soft);
+
+  color:
+    var(--student-studio-success);
+
+  font-size:7px;
+  line-height:1;
   font-weight:700;
 }
 
-.progress-bar{
+
+/* =========================================================
+   SIDEBAR NAVIGATION
+========================================================= */
+
+.studio-builder-nav{
   width:100%;
-  height:9px;
-  border-radius:999px;
-  background:#edf2f7;
-  overflow:hidden;
+
+  display:grid;
+  gap:18px;
 }
 
-.progress-fill{
+.studio-nav-group{
+  width:100%;
+
+  display:grid;
+  gap:3px;
+}
+
+.studio-nav-label{
+  padding:0 12px 5px;
+
+  color:
+    var(--student-studio-subtle);
+
+  font-size:8px;
+  line-height:1.3;
+  font-weight:700;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+
+.studio-builder-nav button{
+  position:relative;
+
+  width:100%;
+  min-height:40px;
+  padding:0 11px;
+
+  display:grid;
+  grid-template-columns:
+    20px
+    minmax(0,1fr)
+    auto;
+
+  align-items:center;
+  gap:11px;
+
+  border:0;
+  border-radius:
+    var(--student-studio-radius-sm);
+
+  background:transparent;
+  color:
+    var(--student-studio-text);
+
+  text-align:left;
+
+  transition:
+    background
+    var(--student-studio-transition-fast),
+    color
+    var(--student-studio-transition-fast);
+}
+
+.studio-builder-nav button:hover{
+  background:
+    var(--student-studio-surface-muted);
+}
+
+.studio-builder-nav button.active{
+  background:#e9eef6;
+  color:
+    var(--student-studio-text-strong);
+}
+
+.studio-builder-nav button.active::before{
+  content:"";
+
+  position:absolute;
+  top:7px;
+  bottom:7px;
+  left:-10px;
+
+  width:3px;
+
+  border-radius:
+    0
+    var(--student-studio-radius-pill)
+    var(--student-studio-radius-pill)
+    0;
+
+  background:
+    var(--student-studio-primary);
+}
+
+.studio-builder-nav button svg{
+  width:19px;
+  height:19px;
+
+  color:
+    var(--student-studio-muted);
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.studio-builder-nav button.active svg{
+  color:
+    var(--student-studio-primary);
+}
+
+.studio-builder-nav button > span{
+  min-width:0;
+
+  overflow:hidden;
+
+  color:inherit;
+
+  font-size:10px;
+  line-height:1.35;
+  font-weight:500;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.studio-builder-nav button.active > span{
+  font-weight:600;
+}
+
+.studio-builder-nav button > small{
+  min-width:22px;
+  height:21px;
+  padding:0 6px;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:
+    var(--student-studio-radius-pill);
+
+  background:#eceff1;
+  color:
+    var(--student-studio-muted);
+
+  font-size:7px;
+  line-height:1;
+  font-weight:600;
+}
+
+.studio-builder-nav button.active > small{
+  background:#fff;
+  color:
+    var(--student-studio-primary);
+}
+
+.studio-builder-nav button >
+.student-nav-new-badge{
+  min-width:auto;
+  padding:0 7px;
+
+  background:
+    var(--student-studio-primary-soft);
+
+  color:
+    var(--student-studio-primary);
+}
+
+
+/* =========================================================
+   SIDEBAR WEEKLY PROGRESS
+========================================================= */
+
+.student-sidebar-progress-card{
+  margin-top:18px;
+  padding:12px;
+
+  border:
+    1px solid
+    var(--student-studio-border-soft);
+
+  border-radius:10px;
+
+  background:#fff;
+}
+
+.student-sidebar-progress-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.student-sidebar-progress-head > div:first-child{
+  min-width:0;
+
+  display:grid;
+  gap:3px;
+}
+
+.student-sidebar-progress-head span{
+  color:
+    var(--student-studio-muted);
+
+  font-size:8px;
+  line-height:1.35;
+  font-weight:500;
+}
+
+.student-sidebar-progress-head strong{
+  color:
+    var(--student-studio-text-strong);
+
+  font-size:16px;
+  line-height:1;
+  font-weight:600;
+  font-variant-numeric:tabular-nums;
+}
+
+.student-sidebar-progress-icon{
+  width:32px;
+  height:32px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:9px;
+
+  background:
+    var(--student-studio-primary-soft);
+
+  color:
+    var(--student-studio-primary);
+}
+
+.student-sidebar-progress-icon svg{
+  width:16px;
+  height:16px;
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.student-sidebar-progress-track{
+  width:100%;
+  height:7px;
+  margin-top:12px;
+
+  overflow:hidden;
+
+  border-radius:
+    var(--student-studio-radius-pill);
+
+  background:
+    var(--student-studio-surface-muted);
+}
+
+.student-sidebar-progress-value{
+  width:0;
   height:100%;
-  border-radius:999px;
-  background:linear-gradient(
-    90deg,
-    var(--primary),
-    #5a94f7
-  );
-  transition:width .6s ease;
+
+  border-radius:
+    var(--student-studio-radius-pill);
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--student-studio-primary),
+      #4f8ff2
+    );
+
+  transition:
+    width .5s ease;
+}
+
+.student-sidebar-progress-meta{
+  margin-top:8px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+
+  color:
+    var(--student-studio-subtle);
+
+  font-size:7px;
+  line-height:1.35;
+}
+
+
+/* =========================================================
+   SIDEBAR FOOTER
+========================================================= */
+
+.studio-sidebar-footer{
+  flex:0 0 auto;
+
+  padding:10px;
+
+  border-top:
+    1px solid
+    var(--student-studio-border-soft);
+
+  background:#fff;
+}
+
+.student-sidebar-footer{
+  display:grid;
+  gap:3px;
+}
+
+.studio-sidebar-footer button{
+  width:100%;
+  min-height:40px;
+  padding:0 11px;
+
+  display:flex;
+  align-items:center;
+  gap:11px;
+
+  border:0;
+  border-radius:
+    var(--student-studio-radius-sm);
+
+  background:transparent;
+  color:
+    var(--student-studio-text);
+
+  font-size:10px;
+  font-weight:500;
+
+  text-align:left;
+
+  transition:
+    background
+    var(--student-studio-transition-fast),
+    color
+    var(--student-studio-transition-fast);
+}
+
+.studio-sidebar-footer button:hover{
+  background:
+    var(--student-studio-surface-muted);
+}
+
+.studio-sidebar-footer svg{
+  width:19px;
+  height:19px;
+
+  fill:none;
+  stroke:
+    var(--student-studio-muted);
+
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+
+/* =========================================================
+   COLLAPSED SIDEBAR
+========================================================= */
+
+body.student-sidebar-collapsed{
+  --student-sidebar-current-width:
+    var(
+      --student-studio-sidebar-collapsed-width
+    );
+}
+
+body.student-sidebar-collapsed
+.studio-sidebar-scroll{
+  padding-inline:8px;
+}
+
+body.student-sidebar-collapsed
+.studio-sidebar-class,
+body.student-sidebar-collapsed
+.studio-nav-label,
+body.student-sidebar-collapsed
+.studio-builder-nav button > span,
+body.student-sidebar-collapsed
+.studio-builder-nav button > small,
+body.student-sidebar-collapsed
+.student-sidebar-progress-card,
+body.student-sidebar-collapsed
+.studio-sidebar-footer button > span{
+  display:none;
+}
+
+body.student-sidebar-collapsed
+.studio-builder-nav{
+  gap:12px;
+}
+
+body.student-sidebar-collapsed
+.studio-builder-nav button{
+  min-height:44px;
+  padding:0;
+
+  grid-template-columns:1fr;
+
+  place-items:center;
+}
+
+body.student-sidebar-collapsed
+.studio-builder-nav button.active::before{
+  left:-8px;
+}
+
+body.student-sidebar-collapsed
+.studio-sidebar-footer button{
+  padding:0;
+
+  justify-content:center;
+}
+
+
+/* =========================================================
+   MAIN WORKSPACE ALIGNMENT
+========================================================= */
+
+.student-studio-main{
+  position:relative;
+
+  width:auto;
+  min-width:0;
+  min-height:
+    calc(
+      100vh -
+      var(--student-studio-topbar-height)
+    );
+
+  margin-left:
+    var(
+      --student-sidebar-current-width,
+      var(--student-studio-sidebar-width)
+    );
+
+  background:
+    var(--student-studio-page);
+
+  transition:
+    margin-left
+    var(--student-studio-transition);
+}
+
+.student-studio-workspace{
+  width:100%;
+  max-width:none;
+  min-width:0;
+  min-height:
+    calc(
+      100vh -
+      var(--student-studio-topbar-height)
+    );
+
+  margin:0;
+  padding:24px 28px 48px;
+
+  background:
+    var(--student-studio-page);
+}
+
+
+/* =========================================================
+   SIDEBAR MOBILE OVERLAY
+========================================================= */
+
+.student-sidebar-overlay{
+  position:fixed;
+  inset:
+    var(--student-studio-topbar-height)
+    0
+    0
+    0;
+
+  z-index:4900;
+
+  display:none;
+
+  background:
+    rgba(15,23,42,.32);
+
+  opacity:0;
+  pointer-events:none;
+
+  transition:
+    opacity
+    var(--student-studio-transition);
+}
+
+body.student-sidebar-mobile-open
+.student-sidebar-overlay{
+  opacity:1;
+  pointer-events:auto;
+}
+
+
+/* =========================================================
+   SIDEBAR RESPONSIVE
+========================================================= */
+
+@media(max-width:980px){
+
+  .studio-sidebar{
+    width:
+      var(--student-studio-sidebar-width);
+
+    transform:
+      translateX(-100%);
+
+    box-shadow:
+      12px 0 32px
+      rgba(15,23,42,.12);
+  }
+
+  body.student-sidebar-mobile-open
+  .studio-sidebar{
+    transform:
+      translateX(0);
+  }
+
+  .student-sidebar-overlay{
+    display:block;
+  }
+
+  .student-studio-main{
+    margin-left:0;
+  }
+
+  body.student-sidebar-collapsed
+  .studio-sidebar{
+    width:
+      var(--student-studio-sidebar-width);
+  }
+
+  body.student-sidebar-collapsed
+  .studio-sidebar-class,
+  body.student-sidebar-collapsed
+  .studio-nav-label,
+  body.student-sidebar-collapsed
+  .studio-builder-nav button > span,
+  body.student-sidebar-collapsed
+  .studio-builder-nav button > small,
+  body.student-sidebar-collapsed
+  .student-sidebar-progress-card,
+  body.student-sidebar-collapsed
+  .studio-sidebar-footer button > span{
+    display:initial;
+  }
+
+  body.student-sidebar-collapsed
+  .studio-builder-nav button{
+    min-height:40px;
+    padding:0 11px;
+
+    grid-template-columns:
+      20px
+      minmax(0,1fr)
+      auto;
+
+    place-items:initial;
+  }
+
+  body.student-sidebar-collapsed
+  .studio-sidebar-footer button{
+    padding:0 11px;
+
+    justify-content:flex-start;
+  }
+
+}
+
+
+@media(max-width:640px){
+
+  .studio-sidebar{
+    top:
+      var(--student-studio-topbar-height);
+
+    width:min(
+      286px,
+      calc(100vw - 44px)
+    );
+  }
+
+  .student-studio-workspace{
+    padding:18px 14px 100px;
+  }
+
+}
+
+/* =========================================================
+   STUDENT STUDIO MAIN WORKSPACE
+========================================================= */
+
+.student-studio-router{
+  width:100%;
+  min-width:0;
+  margin:0 0 16px;
+  padding:18px 20px;
+
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:24px;
+
+  border:
+    1px solid
+    var(--student-studio-border);
+
+  border-radius:
+    var(--student-studio-radius-md);
+
+  background:#fff;
+
+  box-shadow:
+    var(--student-studio-shadow-xs);
+}
+
+.student-studio-router-copy{
+  min-width:0;
+}
+
+.student-studio-router-eyebrow{
+  display:block;
+  margin-bottom:5px;
+
+  color:
+    var(--student-studio-primary);
+
+  font-size:8px;
+  line-height:1.25;
+  font-weight:700;
+  letter-spacing:.075em;
+  text-transform:uppercase;
+}
+
+.student-studio-router h1{
+  margin:0;
+
+  color:
+    var(--student-studio-text-strong);
+
+  font-size:21px;
+  line-height:1.3;
+  font-weight:600;
+  letter-spacing:-.02em;
+}
+
+.student-studio-router p{
+  max-width:720px;
+  margin:6px 0 0;
+
+  color:
+    var(--student-studio-muted);
+
+  font-size:10px;
+  line-height:1.5;
+}
+
+.student-studio-router-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:7px;
+}
+
+.student-workspace-status{
+  width:100%;
+  min-height:64px;
+  margin-bottom:18px;
+  padding:10px 14px;
+
+  display:flex;
+  align-items:center;
+  gap:14px;
+
+  border:
+    1px solid
+    var(--student-studio-border-soft);
+
+  border-radius:
+    var(--student-studio-radius-md);
+
+  background:
+    var(--student-studio-surface);
+
+  box-shadow:
+    var(--student-studio-shadow-xs);
+}
+
+.student-workspace-status-item{
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+
+.student-workspace-status-icon{
+  width:32px;
+  height:32px;
+  min-width:32px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:9px;
+
+  background:
+    var(--student-studio-primary-soft);
+
+  color:
+    var(--student-studio-primary);
+
+  font-size:12px;
+}
+
+.student-workspace-status-item > span:last-child{
+  min-width:0;
+
+  display:grid;
+  gap:2px;
+}
+
+.student-workspace-status-item strong{
+  color:
+    var(--student-studio-text-strong);
+
+  font-size:10px;
+  line-height:1.25;
+  font-weight:600;
+}
+
+.student-workspace-status-item small{
+  color:
+    var(--student-studio-muted);
+
+  font-size:7px;
+  line-height:1.25;
+}
+
+.student-workspace-status-divider{
+  width:1px;
+  height:30px;
+
+  background:
+    var(--student-studio-border-soft);
+}
+
+.student-workspace-status-spacer{
+  flex:1 1 auto;
+}
+
+.student-workspace-sync-status{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+
+  color:
+    var(--student-studio-muted);
+
+  font-size:8px;
+  line-height:1.3;
+  font-weight:500;
+}
+
+.student-workspace-sync-dot{
+  width:7px;
+  height:7px;
+
+  border-radius:50%;
+
+  background:
+    var(--student-studio-success);
+
+  box-shadow:
+    0 0 0 4px
+    rgba(19,124,65,.08);
+}
+
+.student-workspace-sections{
+  width:100%;
+  min-width:0;
+}
+
+.student-workspace-sections >
+.section{
+  display:none;
+  width:100%;
+  min-width:0;
+}
+
+.student-workspace-sections >
+.section.active{
+  display:block;
+
+  animation:
+    studentWorkspaceEnter
+    .16s ease-out both;
+}
+
+.student-workspace-sections >
+.section[hidden]{
+  display:none!important;
+}
+
+@keyframes studentWorkspaceEnter{
+  from{
+    opacity:.45;
+    transform:translateY(3px);
+  }
+
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+
+.section-stack{
+  width:100%;
+
+  display:grid;
+  gap:16px;
+}
+
+.studio-section-header{
+  width:100%;
+  min-width:0;
+  padding:2px 1px 4px;
+
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+}
+
+.studio-section-eyebrow{
+  display:block;
+  margin-bottom:5px;
+
+  color:
+    var(--student-studio-primary);
+
+  font-size:8px;
+  line-height:1.25;
+  font-weight:700;
+  letter-spacing:.075em;
+  text-transform:uppercase;
+}
+
+.studio-section-header h2{
+  margin:0;
+
+  color:
+    var(--student-studio-text-strong);
+
+  font-size:21px;
+  line-height:1.3;
+  font-weight:600;
+  letter-spacing:-.02em;
+}
+
+.studio-section-header p{
+  max-width:720px;
+  margin:6px 0 0;
+
+  color:
+    var(--student-studio-muted);
+
+  font-size:10px;
+  line-height:1.55;
+}
+
+.student-workspace-placeholder{
+  min-height:320px;
+  padding:40px;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+
+  color:
+    var(--student-studio-muted);
+
+  text-align:center;
+}
+
+.student-workspace-placeholder-icon{
+  width:52px;
+  height:52px;
+  margin-bottom:5px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:14px;
+
+  background:
+    var(--student-studio-primary-soft);
+
+  color:
+    var(--student-studio-primary);
+
+  font-size:19px;
+}
+
+.student-workspace-placeholder strong{
+  color:
+    var(--student-studio-text-strong);
+
+  font-size:12px;
+  line-height:1.4;
+  font-weight:600;
+}
+
+.student-workspace-placeholder p{
+  max-width:470px;
+  margin:0;
+
+  font-size:9px;
+  line-height:1.55;
+}
+
+@media(max-width:760px){
+
+  .student-studio-router{
+    padding:16px;
+
+    flex-direction:column;
+  }
+
+  .student-studio-router-actions{
+    width:100%;
+
+    justify-content:flex-start;
+  }
+
+  .student-workspace-status{
+    overflow-x:auto;
+  }
+
+  .student-workspace-status-item{
+    min-width:110px;
+  }
+
+  .student-workspace-status-spacer,
+  .student-workspace-sync-status{
+    display:none;
+  }
+
 }
 
 /* ATTENDANCE */
@@ -1179,75 +3528,477 @@ img{
 
 <body>
 
-<header class="topbar">
+<!-- =========================================================
+     AIFT STUDENT STUDIO TOP BAR
+========================================================= -->
 
-  <div class="container topbar-inner">
+<header
+  id="studentStudioTopbar"
+  class="studio-topbar"
+>
 
-    <div class="brand-wrap">
+  <!-- LEFT: BRAND AND SIDEBAR CONTROL -->
 
-      <a class="brand" href="home.html">
+  <div class="studio-topbar-brand">
+
+    <button
+      id="studentSidebarToggle"
+      class="studio-sidebar-toggle"
+      type="button"
+      aria-label="Collapse or expand Student Studio navigation"
+      aria-expanded="true"
+      aria-controls="studentStudioSidebar"
+    >
+
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path d="M4 6h16"></path>
+        <path d="M4 12h16"></path>
+        <path d="M4 18h16"></path>
+      </svg>
+
+    </button>
+
+    <a
+      class="studio-brand-link"
+      href="home.html"
+      aria-label="Return to AIFT home"
+    >
+
+      <span
+        class="student-studio-logo"
+        aria-hidden="true"
+      >
         A
-      </a>
+      </span>
 
-      <div>
+      <span class="studio-brand-copy">
 
-        <div class="brand-title">
-          AIFT Student Portal
-        </div>
+        <strong>
+          AIFT Student Studio
+        </strong>
 
-        <div class="brand-sub">
-          Classes, assignments, schedules, progress, and learning
+        <small>
+          Learning workspace
+        </small>
+
+      </span>
+
+    </a>
+
+  </div>
+
+
+  <!-- CENTER: GLOBAL SEARCH -->
+
+  <div class="studio-topbar-class">
+
+    <div
+      id="studentGlobalSearch"
+      class="builder-global-search"
+    >
+
+      <svg
+        class="builder-global-search-icon"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="7"></circle>
+        <path d="m20 20-3.8-3.8"></path>
+      </svg>
+
+      <input
+        id="globalSearch"
+        type="search"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Search Student Studio"
+        aria-controls="studentGlobalSearchResults"
+        aria-expanded="false"
+        placeholder="Search classes, assignments, schedules, teachers, resources..."
+      >
+
+      <button
+        id="studentGlobalSearchClear"
+        class="builder-global-search-clear"
+        type="button"
+        aria-label="Clear search"
+        hidden
+      >
+
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path d="M6 6l12 12"></path>
+          <path d="M18 6L6 18"></path>
+        </svg>
+
+      </button>
+
+      <span
+        class="builder-global-search-shortcut"
+        aria-hidden="true"
+      >
+        /
+      </span>
+
+      <div
+        id="studentGlobalSearchResults"
+        class="builder-global-search-results"
+        role="listbox"
+        aria-label="Student Studio search results"
+        hidden
+      >
+
+        <div class="builder-global-search-empty">
+
+          <strong>
+            Search Student Studio
+          </strong>
+
+          <span>
+            Find classes, assignments, schedules, teachers, and resources.
+          </span>
+
         </div>
 
       </div>
 
     </div>
 
-    <div class="top-actions">
+  </div>
 
-      <div class="search">
 
-        <svg viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="M20 20l-3.5-3.5"></path>
-        </svg>
+  <!-- RIGHT: APPLICATION ACTIONS -->
 
-        <input
-          type="search"
-          id="globalSearch"
-          placeholder="Search assignments, classes, schedules..."
-        >
+  <div class="studio-topbar-actions">
 
-      </div>
+    <button
+      id="studentQuickActionsButton"
+      class="studio-topbar-button secondary student-topbar-icon-button"
+      type="button"
+      aria-label="Open quick actions"
+      aria-haspopup="menu"
+      aria-expanded="false"
+    >
 
-      <button
-        class="icon-btn"
-        onclick="goNotifications()"
+      <i
+        class="fa-solid fa-plus"
+        aria-hidden="true"
+      ></i>
+
+      <span>
+        Quick actions
+      </span>
+
+    </button>
+
+    <button
+      id="studentMessagesButton"
+      class="studio-topbar-button secondary student-topbar-icon-button"
+      type="button"
+      aria-label="Open messages"
+    >
+
+      <i
+        class="fa-regular fa-comment-dots"
+        aria-hidden="true"
+      ></i>
+
+      <span class="student-topbar-button-label">
+        Messages
+      </span>
+
+    </button>
+
+    <button
+      id="studentNotificationButton"
+      class="studio-topbar-button secondary student-topbar-icon-button"
+      type="button"
+      aria-label="Open notifications"
+      onclick="goNotifications()"
+    >
+
+      <i
+        class="fa-regular fa-bell"
+        aria-hidden="true"
+      ></i>
+
+      <span class="student-topbar-button-label">
+        Notifications
+      </span>
+
+      <span
+        id="notificationBadge"
+        class="student-notification-badge"
+        aria-label="Unread notifications"
       >
+        0
+      </span>
 
-        <svg viewBox="0 0 24 24">
-          <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
-          <path d="M10 21a2 2 0 0 0 4 0"></path>
-        </svg>
+    </button>
 
-        <span class="badge" id="notificationBadge">0</span>
+    <button
+      id="studentSubmitWorkButton"
+      class="studio-topbar-button primary"
+      type="button"
+      onclick="openModal('submissionModal')"
+    >
 
-      </button>
+      <i
+        class="fa-solid fa-arrow-up-from-bracket"
+        aria-hidden="true"
+      ></i>
 
-      <button
-        class="primary-btn"
-        onclick="openModal('submissionModal')"
-      >
-        Submit Work
-      </button>
+      <span>
+        Submit work
+      </span>
+
+    </button>
+
+    <button
+      id="studentProfileMenuButton"
+      class="student-profile-menu-button"
+      type="button"
+      aria-label="Open student account menu"
+      aria-haspopup="menu"
+      aria-expanded="false"
+    >
 
       <img
         id="topAvatar"
-        class="avatar"
+        class="student-topbar-avatar"
         src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+        alt="Student profile"
       >
 
+      <span class="student-profile-menu-copy">
+
+        <strong id="topStudentName">
+          Student
+        </strong>
+
+        <small id="topStudentRole">
+          Learner
+        </small>
+
+      </span>
+
+      <i
+        class="fa-solid fa-chevron-down"
+        aria-hidden="true"
+      ></i>
+
+    </button>
+
+  </div>
+
+
+  <!-- QUICK ACTIONS MENU -->
+
+  <div
+    id="studentQuickActionsMenu"
+    class="student-topbar-menu"
+    role="menu"
+    hidden
+  >
+
+    <button
+      type="button"
+      role="menuitem"
+      data-studio-action="submit"
+    >
+
+      <span class="student-topbar-menu-icon">
+
+        <i
+          class="fa-solid fa-arrow-up-from-bracket"
+          aria-hidden="true"
+        ></i>
+
+      </span>
+
+      <span>
+
+        <strong>
+          Submit assignment
+        </strong>
+
+        <small>
+          Upload or update your coursework
+        </small>
+
+      </span>
+
+    </button>
+
+    <button
+      type="button"
+      role="menuitem"
+      data-studio-action="calendar"
+    >
+
+      <span class="student-topbar-menu-icon">
+
+        <i
+          class="fa-regular fa-calendar"
+          aria-hidden="true"
+        ></i>
+
+      </span>
+
+      <span>
+
+        <strong>
+          Open calendar
+        </strong>
+
+        <small>
+          Review classes and deadlines
+        </small>
+
+      </span>
+
+    </button>
+
+    <button
+      type="button"
+      role="menuitem"
+      data-studio-action="ai"
+    >
+
+      <span class="student-topbar-menu-icon">
+
+        <i
+          class="fa-solid fa-wand-magic-sparkles"
+          aria-hidden="true"
+        ></i>
+
+      </span>
+
+      <span>
+
+        <strong>
+          Open AI Learning
+        </strong>
+
+        <small>
+          Get explanations and study help
+        </small>
+
+      </span>
+
+    </button>
+
+  </div>
+
+
+  <!-- PROFILE MENU -->
+
+  <div
+    id="studentProfileMenu"
+    class="student-profile-dropdown"
+    role="menu"
+    hidden
+  >
+
+    <div class="student-profile-dropdown-head">
+
+      <img
+        id="profileMenuAvatar"
+        src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+        alt=""
+      >
+
+      <div>
+
+        <strong id="profileMenuName">
+          Student
+        </strong>
+
+        <span id="profileMenuEmail">
+          Student account
+        </span>
+
+      </div>
+
     </div>
+
+    <div class="student-profile-dropdown-divider"></div>
+
+    <button
+      type="button"
+      role="menuitem"
+      data-profile-action="profile"
+    >
+
+      <i
+        class="fa-regular fa-user"
+        aria-hidden="true"
+      ></i>
+
+      <span>
+        View profile
+      </span>
+
+    </button>
+
+    <button
+      type="button"
+      role="menuitem"
+      data-profile-action="settings"
+    >
+
+      <i
+        class="fa-solid fa-sliders"
+        aria-hidden="true"
+      ></i>
+
+      <span>
+        Studio settings
+      </span>
+
+    </button>
+
+    <button
+      type="button"
+      role="menuitem"
+      data-profile-action="help"
+    >
+
+      <i
+        class="fa-regular fa-circle-question"
+        aria-hidden="true"
+      ></i>
+
+      <span>
+        Help and support
+      </span>
+
+    </button>
+
+    <div class="student-profile-dropdown-divider"></div>
+
+    <button
+      class="student-profile-logout"
+      type="button"
+      role="menuitem"
+      data-profile-action="logout"
+    >
+
+      <i
+        class="fa-solid fa-arrow-right-from-bracket"
+        aria-hidden="true"
+      ></i>
+
+      <span>
+        Sign out
+      </span>
+
+    </button>
 
   </div>
 
@@ -1775,380 +4526,851 @@ img{
 
 </div>
 
-<!-- MAIN -->
 
-<main class="page">
+<!-- =========================================================
+     AIFT STUDENT STUDIO APPLICATION
+========================================================= -->
 
-  <div class="container">
+<div
+  id="studentStudioApp"
+  class="student-studio-app"
+>
 
-    <div class="student-shell">
+  <!-- LEFT SIDEBAR -->
 
-      <!-- ===========================================================
-     NEW STUDENT WORKSPACE
-=========================================================== -->
+<!-- =========================================================
+     STUDENT STUDIO SIDEBAR
+========================================================= -->
 
-<section class="student-dashboard-workspace">
+<aside
+  id="studentStudioSidebar"
+  class="studio-sidebar student-studio-sidebar"
+  aria-label="Student Studio navigation"
+>
 
-    <div class="student-dashboard-primary">
+  <div class="studio-sidebar-scroll">
 
-        <!-- Continue Learning -->
+    <!-- =====================================================
+         STUDENT ACCOUNT SUMMARY
+    ====================================================== -->
 
-        <section class="dashboard-panel">
+    <section class="studio-sidebar-class student-sidebar-profile">
 
-            <div class="dashboard-panel-header">
+      <div class="studio-sidebar-class-head">
 
-                <h2>
+        <div class="student-sidebar-avatar-wrap">
 
-                    Continue Learning
-
-                </h2>
-
-                <button
-                    id="viewAllCoursesButton"
-                    type="button">
-
-                    View All
-
-                </button>
-
-            </div>
-
-            <div
-                id="studentContinueLearningGrid"
-                class="continue-learning-grid">
-
-            </div>
-
-        </section>
-
-        <!-- My Classes -->
-
-        <section class="dashboard-panel">
-
-            <div class="dashboard-panel-header">
-
-                <h2>
-
-                    My Classes
-
-                </h2>
-
-                <button
-                    id="studentOpenClasses"
-                    type="button">
-
-                    Open
-
-                </button>
-
-            </div>
-
-            <div
-                id="studentDashboardClasses"
-                class="dashboard-class-grid">
-
-            </div>
-
-        </section>
-
-        <!-- Assignments -->
-
-        <section class="dashboard-panel">
-
-            <div class="dashboard-panel-header">
-
-                <h2>
-
-                    Upcoming Assignments
-
-                </h2>
-
-                <button
-                    id="studentViewAssignments"
-                    type="button">
-
-                    View All
-
-                </button>
-
-            </div>
-
-            <div
-                id="studentUpcomingAssignments"
-                class="dashboard-assignment-list">
-
-            </div>
-
-        </section>
-
-    </div>
-
-    <aside class="student-dashboard-secondary">
-
-        <!-- Performance -->
-
-        <section class="dashboard-side-panel">
-
-            <div class="dashboard-panel-header">
-
-                <h3>
-
-                    Performance
-
-                </h3>
-
-            </div>
-
-            <canvas
-                id="studentPerformanceChart">
-
-            </canvas>
-
-        </section>
-
-        <!-- Deadlines -->
-
-        <section class="dashboard-side-panel">
-
-            <div class="dashboard-panel-header">
-
-                <h3>
-
-                    Deadlines
-
-                </h3>
-
-            </div>
-
-            <div
-                id="studentDeadlineList">
-
-            </div>
-
-        </section>
-
-        <!-- Quick Actions -->
-
-        <section class="dashboard-side-panel">
-
-            <div class="dashboard-panel-header">
-
-                <h3>
-
-                    Quick Actions
-
-                </h3>
-
-            </div>
-
-            <div class="student-quick-actions">
-
-                <button id="openCalendarAction">
-
-                    Calendar
-
-                </button>
-
-                <button id="openMessagesAction">
-
-                    Messages
-
-                </button>
-
-                <button id="openResourcesAction">
-
-                    Resources
-
-                </button>
-
-                <button id="openCertificatesAction">
-
-                    Certificates
-
-                </button>
-
-            </div>
-
-        </section>
-
-    </aside>
-
-</section>
-
-      <!-- LEFT SIDEBAR -->
-
-      <aside class="left-col">
-
-<article class="dashboard-panel student-control-center">
-
-    <div class="student-control-header">
-
-        <img
+          <img
             id="leftStudentAvatar"
-            class="student-control-avatar"
-            src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+            class="student-sidebar-avatar"
+            src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+            alt="Student profile"
+          >
 
-        <div>
-
-            <h3
-                id="leftStudentName">
-
-                Student
-
-            </h3>
-
-            <p
-                id="leftStudentCourse">
-
-                Learning Portal
-
-            </p>
+          <span
+            id="studentOnlineIndicator"
+            class="student-sidebar-online-indicator"
+            aria-label="Online"
+            title="Online"
+          ></span>
 
         </div>
 
-    </div>
+        <div class="student-sidebar-profile-copy">
 
-    <nav class="student-dashboard-nav">
+          <span>
+            Student account
+          </span>
+
+          <strong id="leftStudentName">
+            Student
+          </strong>
+
+          <small id="leftStudentCourse">
+            Learning workspace
+          </small>
+
+        </div>
+
+      </div>
+
+      <div class="studio-sidebar-meta">
+
+        <span id="studentSidebarSchool">
+          AIFT Learning
+        </span>
+
+        <span
+          id="studentSidebarStatus"
+          class="studio-sidebar-status"
+        >
+          Active
+        </span>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         PRIMARY NAVIGATION
+    ====================================================== -->
+
+    <nav
+      id="studentSidebarNavigation"
+      class="studio-builder-nav student-studio-navigation"
+      aria-label="Student Studio sections"
+    >
+
+      <!-- OVERVIEW -->
+
+      <div class="studio-nav-group">
+
+        <span class="studio-nav-label">
+          Overview
+        </span>
 
         <button
-            class="dashboard-nav-btn active"
-            onclick="openTab('overview')">
+          class="active"
+          type="button"
+          data-page="overview"
+          aria-current="page"
+        >
 
-            <i class="fas fa-home"></i>
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <rect
+              x="3"
+              y="3"
+              width="7"
+              height="7"
+              rx="1.5"
+            ></rect>
 
+            <rect
+              x="14"
+              y="3"
+              width="7"
+              height="7"
+              rx="1.5"
+            ></rect>
+
+            <rect
+              x="3"
+              y="14"
+              width="7"
+              height="7"
+              rx="1.5"
+            ></rect>
+
+            <rect
+              x="14"
+              y="14"
+              width="7"
+              height="7"
+              rx="1.5"
+            ></rect>
+          </svg>
+
+          <span>
             Dashboard
+          </span>
 
         </button>
 
         <button
-            class="dashboard-nav-btn"
-            onclick="openTab('classes')">
+          type="button"
+          data-page="continue"
+        >
 
-            <i class="fas fa-chalkboard"></i>
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+            ></circle>
 
+            <path d="m10 8 6 4-6 4z"></path>
+          </svg>
+
+          <span>
+            Continue Learning
+          </span>
+
+          <small id="continueLearningBadge">
+            1
+          </small>
+
+        </button>
+
+      </div>
+
+
+      <!-- LEARNING -->
+
+      <div class="studio-nav-group">
+
+        <span class="studio-nav-label">
+          Learning
+        </span>
+
+        <button
+          type="button"
+          data-page="classes"
+        >
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+
+            <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"></path>
+          </svg>
+
+          <span>
             My Classes
+          </span>
+
+          <small id="classesBadge">
+            0
+          </small>
 
         </button>
 
         <button
-            class="dashboard-nav-btn"
-            onclick="openTab('assignments')">
+          type="button"
+          data-page="assignments"
+        >
 
-            <i class="fas fa-book-open"></i>
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M9 11l3 3L22 4"></path>
 
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+
+          <span>
             Assignments
+          </span>
+
+          <small id="assignmentBadge">
+            0
+          </small>
 
         </button>
 
         <button
-            class="dashboard-nav-btn"
-            onclick="openTab('schedule')">
+          type="button"
+          data-page="schedule"
+        >
 
-            <i class="fas fa-calendar-alt"></i>
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M8 2v4"></path>
+            <path d="M16 2v4"></path>
 
-            Schedule
+            <rect
+              x="3"
+              y="5"
+              width="18"
+              height="16"
+              rx="2"
+            ></rect>
+
+            <path d="M3 10h18"></path>
+          </svg>
+
+          <span>
+            Calendar
+          </span>
+
+          <small id="scheduleBadge">
+            0
+          </small>
 
         </button>
 
         <button
-            class="dashboard-nav-btn"
-            onclick="openTab('progress')">
+          type="button"
+          data-page="progress"
+        >
 
-            <i class="fas fa-chart-line"></i>
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M4 19V9"></path>
+            <path d="M10 19V5"></path>
+            <path d="M16 19v-7"></path>
+            <path d="M22 19V3"></path>
+          </svg>
 
+          <span>
             Analytics
+          </span>
+
+        </button>
+
+      </div>
+
+
+      <!-- LIBRARY -->
+
+      <div class="studio-nav-group">
+
+        <span class="studio-nav-label">
+          Library
+        </span>
+
+        <button
+          type="button"
+          data-page="resources"
+        >
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H9l2 2h7.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path>
+          </svg>
+
+          <span>
+            Resources
+          </span>
+
+          <small id="resourceBadge">
+            0
+          </small>
 
         </button>
 
         <button
-            class="dashboard-nav-btn"
-            onclick="openTab('resources')">
+          type="button"
+          data-page="certificates"
+        >
 
-            <i class="fas fa-folder-open"></i>
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <circle
+              cx="12"
+              cy="8"
+              r="5"
+            ></circle>
 
-            Resources
+            <path d="m8.5 12.5-1 8 4.5-2.5 4.5 2.5-1-8"></path>
+          </svg>
+
+          <span>
+            Certificates
+          </span>
+
+          <small id="certificateBadge">
+            0
+          </small>
 
         </button>
+
+        <button
+          type="button"
+          data-page="portfolio"
+        >
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <rect
+              x="3"
+              y="5"
+              width="18"
+              height="15"
+              rx="2"
+            ></rect>
+
+            <path d="M8 5V3h8v2"></path>
+            <path d="M3 11h18"></path>
+          </svg>
+
+          <span>
+            Portfolio
+          </span>
+
+        </button>
+
+      </div>
+
+
+      <!-- DEVELOPMENT -->
+
+      <div class="studio-nav-group">
+
+        <span class="studio-nav-label">
+          Development
+        </span>
+
+        <button
+          type="button"
+          data-page="ai"
+        >
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <rect
+              x="4"
+              y="7"
+              width="16"
+              height="12"
+              rx="3"
+            ></rect>
+
+            <path d="M9 11h.01"></path>
+            <path d="M15 11h.01"></path>
+            <path d="M9 15h6"></path>
+            <path d="M12 3v4"></path>
+            <path d="M8 3h8"></path>
+          </svg>
+
+          <span>
+            AI Learning
+          </span>
+
+          <small class="student-nav-new-badge">
+            New
+          </small>
+
+        </button>
+
+        <button
+          type="button"
+          data-page="career"
+        >
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <rect
+              x="3"
+              y="7"
+              width="18"
+              height="13"
+              rx="2"
+            ></rect>
+
+            <path d="M8 7V4h8v3"></path>
+            <path d="M3 12h18"></path>
+          </svg>
+
+          <span>
+            Career Hub
+          </span>
+
+        </button>
+
+        <button
+          type="button"
+          data-page="messages"
+        >
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+          </svg>
+
+          <span>
+            Messages
+          </span>
+
+          <small
+            id="messageBadge"
+            hidden
+          >
+            0
+          </small>
+
+        </button>
+
+      </div>
 
     </nav>
 
-    <div class="student-storage-widget">
 
-        <span>
+    <!-- =====================================================
+         LEARNING PROGRESS WIDGET
+    ====================================================== -->
 
-            Learning Progress
+    <section class="student-sidebar-progress-card">
 
-        </span>
+      <div class="student-sidebar-progress-head">
 
-        <div class="progress-bar">
+        <div>
 
-            <div
-                id="overallLearningProgressBar"
-                class="progress-fill">
+          <span>
+            Weekly progress
+          </span>
 
-            </div>
+          <strong id="overallLearningProgressText">
+            0%
+          </strong>
 
         </div>
 
-        <strong
-            id="overallLearningProgressText">
+        <div
+          class="student-sidebar-progress-icon"
+          aria-hidden="true"
+        >
 
-            0%
+          <svg viewBox="0 0 24 24">
 
-        </strong>
+            <path d="M12 2v4"></path>
+            <path d="m4.9 4.9 2.8 2.8"></path>
+            <path d="M2 12h4"></path>
+            <path d="m4.9 19.1 2.8-2.8"></path>
+            <path d="M12 22v-4"></path>
+            <path d="m19.1 19.1-2.8-2.8"></path>
+            <path d="M22 12h-4"></path>
+            <path d="m19.1 4.9-2.8 2.8"></path>
 
-    </div>
+          </svg>
 
-</article>
+        </div>
 
-        <!-- PERFORMANCE -->
+      </div>
 
-        <article class="card card-pad" style="margin-top:18px;">
+      <div class="student-sidebar-progress-track">
 
-<div class="dashboard-panel-header">
+        <div
+          id="overallLearningProgressBar"
+          class="student-sidebar-progress-value"
+          style="width:0%"
+        ></div>
 
-    <div>
+      </div>
 
-        <span class="panel-eyebrow">
+      <div class="student-sidebar-progress-meta">
 
-            LIVE ANALYTICS
+        <span id="studentProgressCompleted">
+          0 completed
+        </span>
+
+        <span id="studentProgressRemaining">
+          0 remaining
+        </span>
+
+      </div>
+
+    </section>
+
+  </div>
+
+
+  <!-- =====================================================
+       SIDEBAR FOOTER
+  ====================================================== -->
+
+  <div class="studio-sidebar-footer student-sidebar-footer">
+
+    <button
+      type="button"
+      data-page="settings"
+    >
+
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="3"
+        ></circle>
+
+        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"></path>
+      </svg>
+
+      <span>
+        Settings
+      </span>
+
+    </button>
+
+    <button
+      id="studentSidebarHelpButton"
+      type="button"
+    >
+
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="9"
+        ></circle>
+
+        <path d="M9.7 9a2.5 2.5 0 1 1 4.3 1.7c-.9.8-2 1.3-2 2.8"></path>
+
+        <path d="M12 17h.01"></path>
+      </svg>
+
+      <span>
+        Help and support
+      </span>
+
+    </button>
+
+  </div>
+
+</aside>
+
+<!-- =========================================================
+     STUDENT STUDIO MAIN WORKSPACE
+========================================================= -->
+
+<main
+  id="studentStudioMain"
+  class="student-studio-main"
+>
+
+  <div
+    id="studentStudioWorkspace"
+    class="student-studio-workspace"
+  >
+
+    <!-- =====================================================
+         WORKSPACE ROUTER
+    ====================================================== -->
+
+    <header
+      id="studentStudioRouter"
+      class="student-studio-router"
+    >
+
+      <div class="student-studio-router-copy">
+
+        <span class="student-studio-router-eyebrow">
+          Student Studio
+        </span>
+
+        <h1 id="studioCurrentPage">
+          Dashboard
+        </h1>
+
+        <p id="studioCurrentDescription">
+          Your learning workspace
+        </p>
+
+      </div>
+
+      <div class="student-studio-router-actions">
+
+        <button
+          id="studentWorkspaceBackButton"
+          class="ghost-btn"
+          type="button"
+          hidden
+        >
+
+          <i
+            class="fa-solid fa-arrow-left"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Back
+          </span>
+
+        </button>
+
+        <button
+          id="refreshWorkspaceButton"
+          class="ghost-btn"
+          type="button"
+        >
+
+          <i
+            class="fa-solid fa-rotate-right"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Refresh
+          </span>
+
+        </button>
+
+        <button
+          id="studentWorkspaceSearchButton"
+          class="ghost-btn"
+          type="button"
+        >
+
+          <i
+            class="fa-solid fa-magnifying-glass"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Search
+          </span>
+
+        </button>
+
+        <button
+          id="studentWorkspaceSubmitButton"
+          class="primary-btn"
+          type="button"
+          onclick="openModal('submissionModal')"
+        >
+
+          <i
+            class="fa-solid fa-arrow-up-from-bracket"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Submit work
+          </span>
+
+        </button>
+
+      </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         WORKSPACE STATUS BAR
+    ====================================================== -->
+
+    <div
+      id="studentWorkspaceStatus"
+      class="student-workspace-status"
+      aria-live="polite"
+    >
+
+      <div class="student-workspace-status-item">
+
+        <span class="student-workspace-status-icon">
+
+          <i
+            class="fa-solid fa-circle-check"
+            aria-hidden="true"
+          ></i>
 
         </span>
 
-        <h2>
+        <span>
 
-            Performance
+          <strong id="workspaceCompletionStatus">
+            0%
+          </strong>
 
-        </h2>
+          <small>
+            Completed
+          </small>
+
+        </span>
+
+      </div>
+
+      <div class="student-workspace-status-divider"></div>
+
+      <div class="student-workspace-status-item">
+
+        <span class="student-workspace-status-icon">
+
+          <i
+            class="fa-regular fa-calendar"
+            aria-hidden="true"
+          ></i>
+
+        </span>
+
+        <span>
+
+          <strong id="workspaceUpcomingCount">
+            0
+          </strong>
+
+          <small>
+            Upcoming
+          </small>
+
+        </span>
+
+      </div>
+
+      <div class="student-workspace-status-divider"></div>
+
+      <div class="student-workspace-status-item">
+
+        <span class="student-workspace-status-icon">
+
+          <i
+            class="fa-solid fa-fire"
+            aria-hidden="true"
+          ></i>
+
+        </span>
+
+        <span>
+
+          <strong id="workspaceLearningStreak">
+            0 days
+          </strong>
+
+          <small>
+            Learning streak
+          </small>
+
+        </span>
+
+      </div>
+
+      <div class="student-workspace-status-spacer"></div>
+
+      <span
+        id="workspaceSyncStatus"
+        class="student-workspace-sync-status"
+      >
+
+        <span class="student-workspace-sync-dot"></span>
+
+        Live data connected
+
+      </span>
 
     </div>
 
-</div>
 
-<div class="student-performance-rings">
+    <!-- =====================================================
+         WORKSPACE SECTIONS
+    ====================================================== -->
 
-    <canvas
-        id="performanceRing">
+    <div
+      id="studentWorkspaceSections"
+      class="student-workspace-sections"
+    >
 
-    </canvas>
-
-</div>
-
-<div class="progress-wrap">
-
-    <!-- KEEP YOUR EXISTING THREE PROGRESS ITEMS HERE -->
-
-</div>
-
-        </article>
-
-      </aside>
-
-      <!-- CENTER -->
-
-      <section class="center-col">
-
-        <!-- OVERVIEW -->
+      <!-- OVERVIEW -->
 
 <section
     id="section-overview"
@@ -2903,77 +6125,333 @@ img{
 
       </section>
 
-      <!-- RIGHT -->
+      </section>
 
-      <aside class="right-col">
 
-<article class="dashboard-panel">
+      <!-- ===================================================
+           CERTIFICATES WORKSPACE
+      ==================================================== -->
 
-    <div class="dashboard-panel-header">
+      <section
+        id="section-certificates"
+        class="section"
+        hidden
+        aria-hidden="true"
+      >
 
-        <div>
+        <div class="section-stack">
 
-            <span class="panel-eyebrow">
+          <header class="studio-section-header">
 
-                FACULTY
+            <div>
 
-            </span>
+              <span class="studio-section-eyebrow">
+                Achievements
+              </span>
 
-            <h2>
+              <h2>
+                Certificates
+              </h2>
 
-                My Teachers
+              <p>
+                Review completed programs, earned certificates,
+                and learning milestones.
+              </p>
 
-            </h2>
-
-        </div>
-
-        <button
-            class="ghost-btn"
-            id="refreshTeachersButton">
-
-            Refresh
-
-        </button>
-
-    </div>
-
-    <div
-        id="teacherList"
-        class="teacher-dashboard-list">
-
-        <div class="loading">
-
-            Loading teachers...
-
-        </div>
-
-    </div>
-
-</article>
-
-        <article class="card card-pad" style="margin-top:18px;">
-
-          <h2 class="card-title">
-            Upcoming Deadlines
-          </h2>
-
-          <div class="list" id="deadlineList">
-
-            <div class="loading">
-              Loading deadlines...
             </div>
 
-          </div>
+          </header>
 
-        </article>
+          <article class="card card-pad">
 
-      </aside>
+            <div
+              id="studentCertificatesWorkspace"
+              class="student-workspace-placeholder"
+            >
+
+              <div class="student-workspace-placeholder-icon">
+
+                <i
+                  class="fa-solid fa-certificate"
+                  aria-hidden="true"
+                ></i>
+
+              </div>
+
+              <strong>
+                Certificates will appear here
+              </strong>
+
+              <p>
+                Certificates earned through completed classes and
+                learning programs will be organized in this workspace.
+              </p>
+
+            </div>
+
+          </article>
+
+        </div>
+
+      </section>
+
+
+      <!-- ===================================================
+           PORTFOLIO WORKSPACE
+      ==================================================== -->
+
+      <section
+        id="section-portfolio"
+        class="section"
+        hidden
+        aria-hidden="true"
+      >
+
+        <div class="section-stack">
+
+          <header class="studio-section-header">
+
+            <div>
+
+              <span class="studio-section-eyebrow">
+                Showcase
+              </span>
+
+              <h2>
+                Student Portfolio
+              </h2>
+
+              <p>
+                Organize projects, completed work, certificates,
+                and career-ready accomplishments.
+              </p>
+
+            </div>
+
+          </header>
+
+          <article class="card card-pad">
+
+            <div
+              id="studentPortfolioWorkspace"
+              class="student-workspace-placeholder"
+            >
+
+              <div class="student-workspace-placeholder-icon">
+
+                <i
+                  class="fa-solid fa-briefcase"
+                  aria-hidden="true"
+                ></i>
+
+              </div>
+
+              <strong>
+                Build your learning portfolio
+              </strong>
+
+              <p>
+                Your strongest projects and completed coursework
+                can be presented here.
+              </p>
+
+            </div>
+
+          </article>
+
+        </div>
+
+      </section>
+
+
+      <!-- ===================================================
+           AI LEARNING WORKSPACE
+      ==================================================== -->
+
+      <section
+        id="section-ai"
+        class="section"
+        hidden
+        aria-hidden="true"
+      >
+
+        <div class="section-stack">
+
+          <header class="studio-section-header">
+
+            <div>
+
+              <span class="studio-section-eyebrow">
+                Learning assistant
+              </span>
+
+              <h2>
+                AI Learning
+              </h2>
+
+              <p>
+                Get explanations, lesson summaries, practice
+                questions, grammar support, and study guidance.
+              </p>
+
+            </div>
+
+          </header>
+
+          <div
+            id="studentAIWorkspace"
+            class="student-ai-workspace"
+          ></div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ===================================================
+           CAREER WORKSPACE
+      ==================================================== -->
+
+      <section
+        id="section-career"
+        class="section"
+        hidden
+        aria-hidden="true"
+      >
+
+        <div class="section-stack">
+
+          <header class="studio-section-header">
+
+            <div>
+
+              <span class="studio-section-eyebrow">
+                Career readiness
+              </span>
+
+              <h2>
+                Career Hub
+              </h2>
+
+              <p>
+                Prepare your profile, portfolio, applications,
+                interviews, and professional development.
+              </p>
+
+            </div>
+
+          </header>
+
+          <div
+            id="studentCareerWorkspace"
+            class="student-career-workspace"
+          ></div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ===================================================
+           MESSAGES WORKSPACE
+      ==================================================== -->
+
+      <section
+        id="section-messages"
+        class="section"
+        hidden
+        aria-hidden="true"
+      >
+
+        <div class="section-stack">
+
+          <header class="studio-section-header">
+
+            <div>
+
+              <span class="studio-section-eyebrow">
+                Communication
+              </span>
+
+              <h2>
+                Messages
+              </h2>
+
+              <p>
+                Communicate with teachers, classmates, and your
+                school from one workspace.
+              </p>
+
+            </div>
+
+          </header>
+
+          <div
+            id="studentMessagesWorkspace"
+            class="student-messages-workspace"
+          ></div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ===================================================
+           SETTINGS WORKSPACE
+      ==================================================== -->
+
+      <section
+        id="section-settings"
+        class="section"
+        hidden
+        aria-hidden="true"
+      >
+
+        <div class="section-stack">
+
+          <header class="studio-section-header">
+
+            <div>
+
+              <span class="studio-section-eyebrow">
+                Control center
+              </span>
+
+              <h2>
+                Student Studio Settings
+              </h2>
+
+              <p>
+                Manage learning preferences, notifications,
+                accessibility, privacy, and account settings.
+              </p>
+
+            </div>
+
+          </header>
+
+          <div
+            id="studentSettingsWorkspace"
+            class="student-settings-workspace"
+          ></div>
+
+        </div>
+
+      </section>
 
     </div>
 
   </div>
 
 </main>
+
+</div>
+
+<div
+  id="studentSidebarOverlay"
+  class="student-sidebar-overlay"
+  aria-hidden="true"
+></div>
 
 <!-- SUBMISSION MODAL -->
 
