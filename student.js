@@ -1362,6 +1362,10 @@ renderActiveStudentStudioPage(
 
 bindStudentStudioNavigation();
 
+closeStudentSearchResults({
+  clear:false
+});
+
   }catch(err){
     console.error(err);
     showAlert("error","Student portal failed to load.");
