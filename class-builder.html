@@ -268,9 +268,9 @@ p{
 
   display:grid;
   grid-template-columns:
-    minmax(210px,1fr)
-    minmax(220px,1fr)
-    minmax(370px,1fr);
+    minmax(150px,220px)
+    minmax(420px,1fr)
+    minmax(370px,max-content);
 
   align-items:center;
   gap:18px;
@@ -279,7 +279,9 @@ p{
 
   background:rgba(255,255,255,.98);
 
-  box-shadow:0 1px 2px rgba(60,64,67,.04);
+  box-shadow:
+    0 1px 2px
+    rgba(60,64,67,.04);
 
   backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
@@ -383,113 +385,416 @@ p{
 }
 
 /* =========================================================
-   CURRENT CLASS IN TOP BAR
+   GLOBAL CLASS BUILDER SEARCH
 ========================================================= */
 
 .studio-topbar-class{
+  width:100%;
   min-width:0;
 
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:10px;
 }
 
-.studio-topbar-class-copy{
+
+.builder-global-search{
+  position:relative;
+
+  width:min(
+    100%,
+    1040px
+  );
+
+  min-width:0;
+}
+
+
+.builder-global-search-icon{
+  position:absolute;
+  top:50%;
+  left:15px;
+  z-index:2;
+
+  width:19px;
+  height:19px;
+
+  transform:translateY(-50%);
+
+  fill:none;
+  stroke:var(--aift-muted);
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+
+  pointer-events:none;
+}
+
+
+.builder-global-search input{
+  width:100%;
+  height:42px;
+  padding:
+    0
+    92px
+    0
+    45px;
+
+  border:1px solid var(--aift-border-strong);
+  border-radius:12px;
+
+  outline:0;
+
+  background:#fff;
+  color:var(--aift-text-strong);
+
+  font-size:10px;
+  line-height:1;
+
+  box-shadow:
+    0 1px 2px
+    rgba(60,64,67,.04);
+
+  transition:
+    border-color var(--aift-transition-fast),
+    box-shadow var(--aift-transition-fast),
+    background var(--aift-transition-fast);
+}
+
+
+.builder-global-search input::placeholder{
+  color:#8a9099;
+}
+
+
+.builder-global-search input:hover{
+  border-color:#aeb8c5;
+}
+
+
+.builder-global-search input:focus{
+  border-color:var(--aift-primary);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(26,115,232,.12);
+}
+
+
+.builder-global-search:focus-within
+.builder-global-search-icon{
+  stroke:var(--aift-primary);
+}
+
+
+.builder-global-search-clear{
+  position:absolute;
+  top:50%;
+  right:49px;
+  z-index:3;
+
+  width:29px;
+  height:29px;
+  padding:0;
+
+  display:grid;
+  place-items:center;
+
+  transform:translateY(-50%);
+
+  border:0;
+  border-radius:50%;
+
+  background:transparent;
+  color:var(--aift-muted);
+}
+
+
+.builder-global-search-clear:hover{
+  background:var(--aift-surface-muted);
+  color:var(--aift-text-strong);
+}
+
+
+.builder-global-search-clear svg{
+  width:15px;
+  height:15px;
+
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+
+.builder-global-search-shortcut{
+  position:absolute;
+  top:50%;
+  right:11px;
+  z-index:2;
+
+  min-width:30px;
+  height:24px;
+  padding:0 6px;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  transform:translateY(-50%);
+
+  border:1px solid var(--aift-border-soft);
+  border-radius:6px;
+
+  background:var(--aift-surface-soft);
+  color:var(--aift-muted);
+
+  font-size:7px;
+  line-height:1;
+  font-weight:600;
+
+  pointer-events:none;
+}
+
+
+.builder-global-search-results{
+  position:absolute;
+  top:calc(100% + 8px);
+  right:0;
+  left:0;
+  z-index:9000;
+
+  max-height:min(
+    520px,
+    calc(100vh - 110px)
+  );
+
+  padding:7px;
+
+  overflow-x:hidden;
+  overflow-y:auto;
+
+  border:1px solid var(--aift-border);
+  border-radius:14px;
+
+  background:#fff;
+
+  box-shadow:
+    0 18px 45px
+    rgba(15,23,42,.16);
+}
+
+
+.builder-global-search-results[hidden]{
+  display:none!important;
+}
+
+
+.builder-global-search-empty{
+  min-height:110px;
+  padding:20px;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+
+  color:var(--aift-muted);
+
+  text-align:center;
+}
+
+
+.builder-global-search-empty strong{
+  color:var(--aift-text-strong);
+
+  font-size:10px;
+  font-weight:600;
+}
+
+
+.builder-global-search-empty span{
+  font-size:8px;
+  line-height:1.5;
+}
+
+
+.builder-global-search-group{
+  padding:7px 7px 4px;
+
+  color:var(--aift-subtle);
+
+  font-size:7px;
+  line-height:1.3;
+  font-weight:700;
+  letter-spacing:.065em;
+  text-transform:uppercase;
+}
+
+
+.builder-global-search-result{
+  width:100%;
+  min-height:49px;
+  padding:8px 10px;
+
+  display:grid;
+  grid-template-columns:
+    34px
+    minmax(0,1fr)
+    auto;
+
+  align-items:center;
+  gap:10px;
+
+  border:0;
+  border-radius:9px;
+
+  background:transparent;
+  color:var(--aift-text);
+
+  text-align:left;
+
+  transition:
+    background var(--aift-transition-fast);
+}
+
+
+.builder-global-search-result:hover,
+.builder-global-search-result.active{
+  background:var(--aift-primary-softer);
+}
+
+
+.builder-global-search-result-icon{
+  width:34px;
+  height:34px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:9px;
+
+  background:var(--aift-primary-soft);
+  color:var(--aift-primary);
+
+  font-size:12px;
+  font-weight:700;
+}
+
+
+.builder-global-search-result-copy{
   min-width:0;
 
   display:grid;
   gap:2px;
-
-  text-align:left;
 }
 
-.studio-topbar-eyebrow{
-  color:var(--aift-subtle);
 
-  font-size:8px;
-  line-height:1.2;
-  font-weight:700;
-  letter-spacing:.075em;
-  text-transform:uppercase;
-}
-
-.studio-topbar-class-copy strong{
-  max-width:340px;
-
+.builder-global-search-result-copy strong{
   overflow:hidden;
 
   color:var(--aift-text-strong);
 
-  font-size:12px;
-  line-height:1.35;
+  font-size:9px;
+  line-height:1.4;
   font-weight:600;
 
   text-overflow:ellipsis;
   white-space:nowrap;
 }
 
-.studio-save-state{
-  min-height:24px;
-  padding:0 9px;
 
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:5px;
+.builder-global-search-result-copy small{
+  overflow:hidden;
 
-  flex:0 0 auto;
+  color:var(--aift-muted);
 
-  border-radius:var(--aift-radius-pill);
+  font-size:7px;
+  line-height:1.4;
 
-  background:var(--aift-success-soft);
-  color:var(--aift-success);
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
 
-  font-size:8px;
+
+.builder-global-search-result-type{
+  color:var(--aift-subtle);
+
+  font-size:7px;
   line-height:1;
-  font-weight:700;
+  font-weight:600;
+
+  white-space:nowrap;
 }
 
-.studio-save-state::before{
-  content:"";
 
-  width:6px;
-  height:6px;
+@media(max-width:1100px){
 
-  border-radius:50%;
+  .studio-topbar{
+    grid-template-columns:
+      minmax(90px,140px)
+      minmax(300px,1fr)
+      max-content;
 
-  background:currentColor;
-}
-
-.studio-save-state.saving{
-  background:var(--aift-primary-soft);
-  color:var(--aift-primary);
-}
-
-.studio-save-state.saving::before{
-  animation:aiftSavePulse .8s ease-in-out infinite alternate;
-}
-
-.studio-save-state.unsaved{
-  background:var(--aift-warning-soft);
-  color:var(--aift-warning);
-}
-
-.studio-save-state.error{
-  background:var(--aift-danger-soft);
-  color:var(--aift-danger);
-}
-
-@keyframes aiftSavePulse{
-  from{
-    opacity:.3;
+    gap:12px;
   }
 
-  to{
-    opacity:1;
-  }
 }
 
+
+@media(max-width:820px){
+
+  .studio-topbar{
+    grid-template-columns:
+      54px
+      minmax(0,1fr)
+      max-content;
+
+    padding:0 10px;
+  }
+
+  .studio-brand-logo-large{
+    width:38px;
+  }
+
+  .builder-global-search input{
+    padding-right:45px;
+  }
+
+  .builder-global-search-shortcut{
+    display:none;
+  }
+
+  .builder-global-search-clear{
+    right:9px;
+  }
+
+}
+
+
+@media(max-width:640px){
+
+  .studio-topbar-actions
+  .studio-topbar-button:not(.publish){
+    display:none;
+  }
+
+  .builder-global-search input{
+    height:39px;
+
+    font-size:9px;
+  }
+
+  .builder-global-search-results{
+    position:fixed;
+    top:calc(var(--aift-topbar-height) + 6px);
+    right:8px;
+    left:8px;
+  }
+
+}
 /* =========================================================
    TOP BAR ACTIONS
 ========================================================= */
@@ -33504,44 +33809,12 @@ body[data-builder-section="presentations"]
 <div class="studio-topbar-class">
 
   <div
-    id="studioTopbarClassSummary"
-    class="studio-topbar-class-summary"
-  >
-
-    <div class="studio-topbar-class-copy">
-
-      <span class="studio-topbar-eyebrow">
-        Editing class
-      </span>
-
-      <strong
-        id="builderTitle"
-        title="Loading class..."
-      >
-        Loading class...
-      </strong>
-
-    </div>
-
-    <span
-      class="studio-save-state"
-      id="builderSaveState"
-      role="status"
-      aria-live="polite"
-    >
-      Saved
-    </span>
-
-  </div>
-
-
-  <div
-    id="studioPresentationTopbarSearch"
-    class="studio-presentation-topbar-search"
-    hidden
+    class="builder-global-search"
+    id="builderGlobalSearch"
   >
 
     <svg
+      class="builder-global-search-icon"
       viewBox="0 0 24 24"
       aria-hidden="true"
     >
@@ -33556,19 +33829,28 @@ body[data-builder-section="presentations"]
       ></path>
     </svg>
 
+
     <input
-      id="aiftPresentationSearchInput"
+      id="builderGlobalSearchInput"
       type="search"
-      placeholder="Search tools, slides and elements"
+      placeholder="Search lessons, modules, quizzes, assignments, students, presentations and more"
       autocomplete="off"
-      aria-label="Search Presentation Studio"
+      spellcheck="false"
+      aria-label="Search the Class Builder"
+      aria-controls="builderGlobalSearchResults"
+      aria-expanded="false"
+      oninput="handleBuilderGlobalSearch(event)"
+      onfocus="handleBuilderGlobalSearchFocus()"
+      onkeydown="handleBuilderGlobalSearchKeydown(event)"
     >
 
+
     <button
-      id="aiftPresentationSearchClear"
       type="button"
-      class="studio-presentation-search-clear"
+      class="builder-global-search-clear"
+      id="builderGlobalSearchClear"
       aria-label="Clear search"
+      onclick="clearBuilderGlobalSearch()"
       hidden
     >
       <svg
@@ -33579,6 +33861,22 @@ body[data-builder-section="presentations"]
         <path d="M18 6 6 18"></path>
       </svg>
     </button>
+
+
+    <span
+      class="builder-global-search-shortcut"
+      aria-hidden="true"
+    >
+      ⌘ K
+    </span>
+
+
+    <div
+      class="builder-global-search-results"
+      id="builderGlobalSearchResults"
+      role="listbox"
+      hidden
+    ></div>
 
   </div>
 
@@ -56742,7 +57040,7 @@ function initializeAiftPresentationCommandBar(){
     legacyCommandBar.remove();
   }
 
-  initializeAiftPresentationSearch();
+  
   createAiftPresentationPlayer();
   updatePresentationHistoryControls?.();
 
@@ -73142,15 +73440,10 @@ function synchronizeAiftPresentationTopbar(
     tab ===
     "presentations";
 
-  const classSummary =
-    byId(
-      "studioTopbarClassSummary"
-    );
-
-  const presentationSearch =
-    byId(
-      "studioPresentationTopbarSearch"
-    );
+/*
+  The top-center area now contains one permanent global search.
+  Presentation Studio must not replace or hide it.
+*/
 
   const presentButton =
     byId(
@@ -73162,19 +73455,7 @@ function synchronizeAiftPresentationTopbar(
       "studioTopbarDownloadShell"
     );
 
-  /*
-    Replace the normal class title in the center with the
-    presentation search only while editing presentations.
-  */
-  if(classSummary){
-    classSummary.hidden =
-      isPresentationSection;
-  }
 
-  if(presentationSearch){
-    presentationSearch.hidden =
-      !isPresentationSection;
-  }
 
   /*
     Present and Download belong beside Back to school and
@@ -73237,6 +73518,854 @@ function synchronizeAiftPresentationTopbar(
       "false"
     );
   }
+}
+
+/* =========================================================
+   GLOBAL CLASS BUILDER SEARCH
+========================================================= */
+
+const BUILDER_GLOBAL_SEARCH_SECTIONS = [
+  {
+    title:"Overview",
+    section:"overview",
+    description:"Class summary and quick actions",
+    icon:"O"
+  },
+  {
+    title:"Curriculum",
+    section:"curriculum",
+    description:"Modules and course structure",
+    icon:"C"
+  },
+  {
+    title:"Lessons",
+    section:"lessons",
+    description:"Create and manage lessons",
+    icon:"L"
+  },
+  {
+    title:"Content Studio",
+    section:"content",
+    description:"Drag-and-drop lesson content",
+    icon:"C"
+  },
+  {
+    title:"Presentations",
+    section:"presentations",
+    description:"Slides and visual learning content",
+    icon:"P"
+  },
+  {
+    title:"Media library",
+    section:"media",
+    description:"Uploaded images, videos and files",
+    icon:"M"
+  },
+  {
+    title:"Quizzes",
+    section:"quizzes",
+    description:"Knowledge checks and assessments",
+    icon:"Q"
+  },
+  {
+    title:"Question Bank",
+    section:"question-bank",
+    description:"Reusable assessment questions",
+    icon:"Q"
+  },
+  {
+    title:"Assignments",
+    section:"assignments",
+    description:"Coursework and submissions",
+    icon:"A"
+  },
+  {
+    title:"Student Performance",
+    section:"students",
+    description:"Student activity and progress",
+    icon:"S"
+  },
+  {
+    title:"Analytics",
+    section:"analytics",
+    description:"Class engagement and performance",
+    icon:"A"
+  },
+  {
+    title:"Student Preview",
+    section:"preview",
+    description:"Preview the student experience",
+    icon:"P"
+  },
+  {
+    title:"Settings",
+    section:"settings",
+    description:"Class configuration and access",
+    icon:"S"
+  }
+];
+
+
+const builderGlobalSearchState = {
+  results:[],
+  activeIndex:-1,
+  initialized:false
+};
+
+
+function normalizeBuilderSearchText(
+  value
+){
+  return String(
+    value ||
+    ""
+  )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim()
+    .toLowerCase();
+}
+
+
+function getBuilderSearchReferenceName(
+  value,
+  fallback = ""
+){
+  if(
+    value &&
+    typeof value ===
+      "object"
+  ){
+    return String(
+      value.title ||
+      value.name ||
+      value.email ||
+      fallback
+    );
+  }
+
+  return String(
+    value ||
+    fallback
+  );
+}
+
+
+function buildBuilderGlobalSearchIndex(){
+  const results = [];
+
+
+  BUILDER_GLOBAL_SEARCH_SECTIONS.forEach(
+    item => {
+      results.push({
+        id:
+          `section-${item.section}`,
+
+        title:
+          item.title,
+
+        description:
+          item.description,
+
+        type:
+          "Section",
+
+        section:
+          item.section,
+
+        icon:
+          item.icon,
+
+        searchText:
+          normalizeBuilderSearchText(
+            [
+              item.title,
+              item.description,
+              item.section
+            ].join(" ")
+          )
+      });
+    }
+  );
+
+
+  (
+    Array.isArray(state.modules)
+      ? state.modules
+      : []
+  ).forEach(
+    item => {
+      results.push({
+        id:
+          String(
+            item._id ||
+            item.id ||
+            ""
+          ),
+
+        title:
+          item.title ||
+          item.name ||
+          "Untitled module",
+
+        description:
+          item.description ||
+          "Curriculum module",
+
+        type:
+          "Module",
+
+        section:
+          "curriculum",
+
+        icon:
+          "M",
+
+        searchText:
+          normalizeBuilderSearchText(
+            [
+              item.title,
+              item.name,
+              item.description,
+              item.subject
+            ].join(" ")
+          )
+      });
+    }
+  );
+
+
+  (
+    Array.isArray(state.lessons)
+      ? state.lessons
+      : []
+  ).forEach(
+    item => {
+      results.push({
+        id:
+          String(
+            item._id ||
+            item.id ||
+            ""
+          ),
+
+        title:
+          item.title ||
+          "Untitled lesson",
+
+        description:
+          item.description ||
+          getBuilderSearchReferenceName(
+            item.moduleId,
+            "Class lesson"
+          ),
+
+        type:
+          "Lesson",
+
+        section:
+          "lessons",
+
+        icon:
+          "L",
+
+        searchText:
+          normalizeBuilderSearchText(
+            [
+              item.title,
+              item.description,
+              item.content,
+              getBuilderSearchReferenceName(
+                item.moduleId
+              )
+            ].join(" ")
+          )
+      });
+    }
+  );
+
+
+  (
+    Array.isArray(state.quizzes)
+      ? state.quizzes
+      : []
+  ).forEach(
+    item => {
+      results.push({
+        id:
+          String(
+            item._id ||
+            item.id ||
+            ""
+          ),
+
+        title:
+          item.title ||
+          "Untitled quiz",
+
+        description:
+          item.instructions ||
+          "Class quiz",
+
+        type:
+          "Quiz",
+
+        section:
+          "quizzes",
+
+        icon:
+          "Q",
+
+        searchText:
+          normalizeBuilderSearchText(
+            [
+              item.title,
+              item.instructions,
+              item.status
+            ].join(" ")
+          )
+      });
+    }
+  );
+
+
+  (
+    Array.isArray(state.assignments)
+      ? state.assignments
+      : []
+  ).forEach(
+    item => {
+      results.push({
+        id:
+          String(
+            item._id ||
+            item.id ||
+            ""
+          ),
+
+        title:
+          item.title ||
+          "Untitled assignment",
+
+        description:
+          item.instructions ||
+          item.description ||
+          "Class assignment",
+
+        type:
+          "Assignment",
+
+        section:
+          "assignments",
+
+        icon:
+          "A",
+
+        searchText:
+          normalizeBuilderSearchText(
+            [
+              item.title,
+              item.instructions,
+              item.description,
+              item.status
+            ].join(" ")
+          )
+      });
+    }
+  );
+
+
+  (
+    Array.isArray(
+      state.classData?.studentIds
+    )
+      ? state.classData.studentIds
+      : []
+  ).forEach(
+    item => {
+      results.push({
+        id:
+          String(
+            item?._id ||
+            item?.id ||
+            item ||
+            ""
+          ),
+
+        title:
+          getBuilderSearchReferenceName(
+            item,
+            "Student"
+          ),
+
+        description:
+          item?.email ||
+          item?.course ||
+          "Enrolled student",
+
+        type:
+          "Student",
+
+        section:
+          "students",
+
+        icon:
+          "S",
+
+        searchText:
+          normalizeBuilderSearchText(
+            [
+              item?.name,
+              item?.email,
+              item?.course
+            ].join(" ")
+          )
+      });
+    }
+  );
+
+
+  return results;
+}
+
+
+function renderBuilderGlobalSearchResults(
+  query
+){
+  const container =
+    byId(
+      "builderGlobalSearchResults"
+    );
+
+  const input =
+    byId(
+      "builderGlobalSearchInput"
+    );
+
+  if(
+    !container ||
+    !input
+  ){
+    return;
+  }
+
+  const normalizedQuery =
+    normalizeBuilderSearchText(
+      query
+    );
+
+  if(!normalizedQuery){
+    builderGlobalSearchState.results =
+      [];
+
+    builderGlobalSearchState.activeIndex =
+      -1;
+
+    container.hidden =
+      true;
+
+    input.setAttribute(
+      "aria-expanded",
+      "false"
+    );
+
+    return;
+  }
+
+  const allResults =
+    buildBuilderGlobalSearchIndex();
+
+  const results =
+    allResults
+      .filter(
+        item =>
+          item.searchText.includes(
+            normalizedQuery
+          )
+      )
+      .slice(
+        0,
+        24
+      );
+
+  builderGlobalSearchState.results =
+    results;
+
+  builderGlobalSearchState.activeIndex =
+    results.length
+      ? 0
+      : -1;
+
+  if(!results.length){
+    container.innerHTML = `
+      <div class="builder-global-search-empty">
+
+        <strong>
+          No matching result
+        </strong>
+
+        <span>
+          Try another lesson, module, quiz, assignment,
+          student, page, or tool name.
+        </span>
+
+      </div>
+    `;
+  }else{
+    container.innerHTML =
+      results.map(
+        (item,index) => `
+          <button
+            type="button"
+            class="builder-global-search-result ${
+              index === 0
+                ? "active"
+                : ""
+            }"
+            role="option"
+            aria-selected="${
+              index === 0
+                ? "true"
+                : "false"
+            }"
+            onclick="selectBuilderGlobalSearchResult(${index})"
+          >
+
+            <span class="builder-global-search-result-icon">
+              ${escapeHtml(item.icon)}
+            </span>
+
+            <span class="builder-global-search-result-copy">
+
+              <strong>
+                ${escapeHtml(item.title)}
+              </strong>
+
+              <small>
+                ${escapeHtml(item.description)}
+              </small>
+
+            </span>
+
+            <span class="builder-global-search-result-type">
+              ${escapeHtml(item.type)}
+            </span>
+
+          </button>
+        `
+      ).join("");
+  }
+
+  container.hidden =
+    false;
+
+  input.setAttribute(
+    "aria-expanded",
+    "true"
+  );
+}
+
+
+function handleBuilderGlobalSearch(
+  event
+){
+  const value =
+    event?.target?.value ||
+    "";
+
+  const clearButton =
+    byId(
+      "builderGlobalSearchClear"
+    );
+
+  if(clearButton){
+    clearButton.hidden =
+      !String(value).trim();
+  }
+
+  renderBuilderGlobalSearchResults(
+    value
+  );
+}
+
+
+function handleBuilderGlobalSearchFocus(){
+  const input =
+    byId(
+      "builderGlobalSearchInput"
+    );
+
+  if(
+    input?.value.trim()
+  ){
+    renderBuilderGlobalSearchResults(
+      input.value
+    );
+  }
+}
+
+
+function updateBuilderGlobalSearchActiveResult(){
+  const buttons =
+    Array.from(
+      document.querySelectorAll(
+        "#builderGlobalSearchResults .builder-global-search-result"
+      )
+    );
+
+  buttons.forEach(
+    (button,index) => {
+      const active =
+        index ===
+        builderGlobalSearchState
+          .activeIndex;
+
+      button.classList.toggle(
+        "active",
+        active
+      );
+
+      button.setAttribute(
+        "aria-selected",
+        String(active)
+      );
+
+      if(active){
+        button.scrollIntoView({
+          block:"nearest"
+        });
+      }
+    }
+  );
+}
+
+
+function handleBuilderGlobalSearchKeydown(
+  event
+){
+  const results =
+    builderGlobalSearchState.results;
+
+  if(
+    event.key ===
+      "ArrowDown" &&
+    results.length
+  ){
+    event.preventDefault();
+
+    builderGlobalSearchState.activeIndex =
+      (
+        builderGlobalSearchState.activeIndex +
+        1
+      ) %
+      results.length;
+
+    updateBuilderGlobalSearchActiveResult();
+
+    return;
+  }
+
+  if(
+    event.key ===
+      "ArrowUp" &&
+    results.length
+  ){
+    event.preventDefault();
+
+    builderGlobalSearchState.activeIndex =
+      (
+        builderGlobalSearchState.activeIndex -
+        1 +
+        results.length
+      ) %
+      results.length;
+
+    updateBuilderGlobalSearchActiveResult();
+
+    return;
+  }
+
+  if(
+    event.key ===
+      "Enter" &&
+    results.length &&
+    builderGlobalSearchState.activeIndex >=
+      0
+  ){
+    event.preventDefault();
+
+    selectBuilderGlobalSearchResult(
+      builderGlobalSearchState
+        .activeIndex
+    );
+
+    return;
+  }
+
+  if(event.key === "Escape"){
+    clearBuilderGlobalSearch();
+  }
+}
+
+
+function selectBuilderGlobalSearchResult(
+  index
+){
+  const result =
+    builderGlobalSearchState
+      .results[index];
+
+  if(!result){
+    return;
+  }
+
+  clearBuilderGlobalSearch();
+
+  openBuilderSection(
+    result.section
+  );
+
+  window.setTimeout(
+    () => {
+      if(
+        result.type ===
+          "Assignment" &&
+        typeof openAssignmentEditor ===
+          "function"
+      ){
+        openAssignmentEditor(
+          result.id
+        );
+      }
+
+      if(
+        result.type ===
+          "Lesson" &&
+        typeof openLessonEditor ===
+          "function"
+      ){
+        openLessonEditor(
+          result.id
+        );
+      }
+    },
+    120
+  );
+}
+
+
+function clearBuilderGlobalSearch(){
+  const input =
+    byId(
+      "builderGlobalSearchInput"
+    );
+
+  const clearButton =
+    byId(
+      "builderGlobalSearchClear"
+    );
+
+  const results =
+    byId(
+      "builderGlobalSearchResults"
+    );
+
+  if(input){
+    input.value =
+      "";
+
+    input.setAttribute(
+      "aria-expanded",
+      "false"
+    );
+  }
+
+  if(clearButton){
+    clearButton.hidden =
+      true;
+  }
+
+  if(results){
+    results.hidden =
+      true;
+
+    results.innerHTML =
+      "";
+  }
+
+  builderGlobalSearchState.results =
+    [];
+
+  builderGlobalSearchState.activeIndex =
+    -1;
+}
+
+
+function initializeBuilderGlobalSearch(){
+  if(
+    builderGlobalSearchState.initialized
+  ){
+    return;
+  }
+
+  const input =
+    byId(
+      "builderGlobalSearchInput"
+    );
+
+  if(!input){
+    return;
+  }
+
+  builderGlobalSearchState.initialized =
+    true;
+
+  document.addEventListener(
+    "click",
+    event => {
+      if(
+        !event.target.closest(
+          "#builderGlobalSearch"
+        )
+      ){
+        byId(
+          "builderGlobalSearchResults"
+        )?.setAttribute(
+          "hidden",
+          ""
+        );
+
+        input.setAttribute(
+          "aria-expanded",
+          "false"
+        );
+      }
+    }
+  );
+
+  document.addEventListener(
+    "keydown",
+    event => {
+      const isShortcut =
+        (
+          event.metaKey ||
+          event.ctrlKey
+        ) &&
+        event.key.toLowerCase() ===
+          "k";
+
+      if(!isShortcut){
+        return;
+      }
+
+      event.preventDefault();
+
+      input.focus();
+      input.select();
+    }
+  );
 }
 
 /* =========================================================
@@ -103874,8 +105003,9 @@ async function initBuilder(){
     document.body.dataset.builderSection =
       "overview";
 
-    bindGlobalEvents();
-    restoreBuilderSidebarState();
+bindGlobalEvents();
+restoreBuilderSidebarState();
+initializeBuilderGlobalSearch();
 
     /*
       The shell must appear before the API request finishes.
