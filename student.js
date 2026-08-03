@@ -540,6 +540,637 @@ function openTab(page){
   openStudentStudioPage(page);
 }
 
+/* =========================================================
+   STUDENT STUDIO SHELL CONTROLLER
+========================================================= */
+
+const STUDENT_STUDIO_STORAGE_KEYS = Object.freeze({
+  sidebarCollapsed:
+    "aiftStudentStudioSidebarCollapsed",
+
+  activePage:
+    "aiftStudentStudioActivePage"
+});
+
+let studentStudioInitialized = false;
+
+function isStudentStudioMobile(){
+  return window.matchMedia(
+    "(max-width:980px)"
+  ).matches;
+}
+
+function setStudentSidebarCollapsed(
+  collapsed,
+  options = {}
+){
+  const shouldCollapse =
+    Boolean(collapsed) &&
+    !isStudentStudioMobile();
+
+  document.body.classList.toggle(
+    "student-sidebar-collapsed",
+    shouldCollapse
+  );
+
+  const toggle =
+    $("studentSidebarToggle");
+
+  if (toggle){
+    toggle.setAttribute(
+      "aria-expanded",
+      String(!shouldCollapse)
+    );
+
+    toggle.setAttribute(
+      "aria-label",
+      shouldCollapse
+        ? "Expand Student Studio navigation"
+        : "Collapse Student Studio navigation"
+    );
+  }
+
+  if (options.persist !== false){
+    localStorage.setItem(
+      STUDENT_STUDIO_STORAGE_KEYS
+        .sidebarCollapsed,
+
+      String(shouldCollapse)
+    );
+  }
+}
+
+function setStudentSidebarMobileOpen(open){
+  const shouldOpen =
+    Boolean(open) &&
+    isStudentStudioMobile();
+
+  document.body.classList.toggle(
+    "student-sidebar-mobile-open",
+    shouldOpen
+  );
+
+  const toggle =
+    $("studentSidebarToggle");
+
+  const overlay =
+    $("studentSidebarOverlay");
+
+  if (toggle){
+    toggle.setAttribute(
+      "aria-expanded",
+      String(shouldOpen)
+    );
+  }
+
+  if (overlay){
+    overlay.setAttribute(
+      "aria-hidden",
+      String(!shouldOpen)
+    );
+  }
+}
+
+function toggleStudentStudioSidebar(){
+  if (isStudentStudioMobile()){
+    setStudentSidebarMobileOpen(
+      !document.body.classList.contains(
+        "student-sidebar-mobile-open"
+      )
+    );
+
+    return;
+  }
+
+  setStudentSidebarCollapsed(
+    !document.body.classList.contains(
+      "student-sidebar-collapsed"
+    )
+  );
+}
+
+function closeStudentStudioMenus(){
+  const quickMenu =
+    $("studentQuickActionsMenu");
+
+  const profileMenu =
+    $("studentProfileMenu");
+
+  if (quickMenu){
+    quickMenu.hidden = true;
+  }
+
+  if (profileMenu){
+    profileMenu.hidden = true;
+  }
+
+  $("studentQuickActionsButton")
+    ?.setAttribute(
+      "aria-expanded",
+      "false"
+    );
+
+  $("studentProfileMenuButton")
+    ?.setAttribute(
+      "aria-expanded",
+      "false"
+    );
+}
+
+function toggleStudentStudioMenu(
+  menuId,
+  buttonId
+){
+  const menu = $(menuId);
+  const button = $(buttonId);
+
+  if (!menu || !button){
+    return;
+  }
+
+  const shouldOpen =
+    menu.hidden;
+
+  closeStudentStudioMenus();
+
+  menu.hidden = !shouldOpen;
+
+  button.setAttribute(
+    "aria-expanded",
+    String(shouldOpen)
+  );
+}
+
+function activateStudentStudioPage(
+  requestedPage,
+  options = {}
+){
+  const page =
+    normalizeStudentStudioPage(
+      requestedPage
+    );
+
+  activeStudentStudioPage = page;
+
+  document.body.dataset.studentSection =
+    page;
+
+  document
+    .querySelectorAll(
+      "#studentWorkspaceSections > .section"
+    )
+    .forEach(section => {
+      const active =
+        section.id ===
+        `section-${page}`;
+
+      section.classList.toggle(
+        "active",
+        active
+      );
+
+      section.hidden = !active;
+
+      section.setAttribute(
+        "aria-hidden",
+        String(!active)
+      );
+    });
+
+  document
+    .querySelectorAll(
+      "#studentSidebarNavigation [data-page]," +
+      ".student-sidebar-footer [data-page]," +
+      ".mobile-nav [data-page]"
+    )
+    .forEach(button => {
+      const buttonPage =
+        normalizeStudentStudioPage(
+          button.dataset.page
+        );
+
+      const active =
+        buttonPage === page;
+
+      button.classList.toggle(
+        "active",
+        active
+      );
+
+      button.setAttribute(
+        "aria-current",
+        active
+          ? "page"
+          : "false"
+      );
+    });
+
+  setStudentStudioRouteContent(page);
+
+  renderActiveStudentStudioPage(page);
+
+  localStorage.setItem(
+    STUDENT_STUDIO_STORAGE_KEYS.activePage,
+    page
+  );
+
+  if (options.history !== false){
+    const url =
+      new URL(window.location.href);
+
+    if (page === "overview"){
+      url.searchParams.delete("section");
+    }else{
+      url.searchParams.set(
+        "section",
+        page
+      );
+    }
+
+    window.history.replaceState(
+      {
+        studentStudioPage:page
+      },
+      "",
+      url
+    );
+  }
+
+  if (
+    options.scroll !== false &&
+    $("studentStudioWorkspace")
+  ){
+    $("studentStudioWorkspace")
+      .scrollIntoView({
+        behavior:
+          options.instant
+            ? "auto"
+            : "smooth",
+
+        block:"start"
+      });
+  }
+
+  setStudentSidebarMobileOpen(false);
+
+  closeStudentStudioMenus();
+}
+
+function bindStudentStudioNavigation(){
+  document
+    .querySelectorAll(
+      "#studentSidebarNavigation [data-page]," +
+      ".student-sidebar-footer [data-page]," +
+      ".mobile-nav [data-page]"
+    )
+    .forEach(button => {
+      if (
+        button.dataset
+          .studentStudioBound === "true"
+      ){
+        return;
+      }
+
+      button.dataset.studentStudioBound =
+        "true";
+
+      button.addEventListener(
+        "click",
+        () => {
+          activateStudentStudioPage(
+            button.dataset.page
+          );
+        }
+      );
+    });
+}
+
+function bindStudentStudioTopbar(){
+  $("studentSidebarToggle")
+    ?.addEventListener(
+      "click",
+      toggleStudentStudioSidebar
+    );
+
+  $("studentSidebarOverlay")
+    ?.addEventListener(
+      "click",
+      () => {
+        setStudentSidebarMobileOpen(false);
+      }
+    );
+
+  $("studentQuickActionsButton")
+    ?.addEventListener(
+      "click",
+      event => {
+        event.stopPropagation();
+
+        toggleStudentStudioMenu(
+          "studentQuickActionsMenu",
+          "studentQuickActionsButton"
+        );
+      }
+    );
+
+  $("studentProfileMenuButton")
+    ?.addEventListener(
+      "click",
+      event => {
+        event.stopPropagation();
+
+        toggleStudentStudioMenu(
+          "studentProfileMenu",
+          "studentProfileMenuButton"
+        );
+      }
+    );
+
+  $("studentMessagesButton")
+    ?.addEventListener(
+      "click",
+      () => {
+        activateStudentStudioPage(
+          "messages"
+        );
+      }
+    );
+
+  $("refreshWorkspaceButton")
+    ?.addEventListener(
+      "click",
+      async () => {
+        const button =
+          $("refreshWorkspaceButton");
+
+        if (button){
+          button.disabled = true;
+          button.classList.add(
+            "is-loading"
+          );
+        }
+
+        try{
+          await loadAll();
+
+          showAlert(
+            "success",
+            "Student Studio refreshed."
+          );
+        }finally{
+          if (button){
+            button.disabled = false;
+            button.classList.remove(
+              "is-loading"
+            );
+          }
+        }
+      }
+    );
+
+  $("studentWorkspaceSearchButton")
+    ?.addEventListener(
+      "click",
+      () => {
+        $("globalSearch")?.focus();
+      }
+    );
+
+  $("studentSidebarHelpButton")
+    ?.addEventListener(
+      "click",
+      () => {
+        window.location.href =
+          "support.html";
+      }
+    );
+
+  document.addEventListener(
+    "click",
+    event => {
+      if (
+        !event.target.closest(
+          "#studentQuickActionsMenu"
+        ) &&
+        !event.target.closest(
+          "#studentQuickActionsButton"
+        ) &&
+        !event.target.closest(
+          "#studentProfileMenu"
+        ) &&
+        !event.target.closest(
+          "#studentProfileMenuButton"
+        )
+      ){
+        closeStudentStudioMenus();
+      }
+    }
+  );
+}
+
+function bindStudentStudioQuickActions(){
+  $("studentQuickActionsMenu")
+    ?.querySelectorAll(
+      "[data-studio-action]"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => {
+          const action =
+            button.dataset.studioAction;
+
+          closeStudentStudioMenus();
+
+          switch(action){
+
+            case "submit":
+              openModal(
+                "submissionModal"
+              );
+              break;
+
+            case "calendar":
+              activateStudentStudioPage(
+                "schedule"
+              );
+              break;
+
+            case "ai":
+              activateStudentStudioPage(
+                "ai"
+              );
+              break;
+          }
+        }
+      );
+    });
+}
+
+function bindStudentProfileActions(){
+  $("studentProfileMenu")
+    ?.querySelectorAll(
+      "[data-profile-action]"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => {
+          const action =
+            button.dataset.profileAction;
+
+          closeStudentStudioMenus();
+
+          switch(action){
+
+            case "profile":
+              window.location.href =
+                selectedStudentId
+                  ? `public-profile.html?id=${encodeURIComponent(
+                      selectedStudentId
+                    )}`
+                  : "profile.html";
+              break;
+
+            case "settings":
+              activateStudentStudioPage(
+                "settings"
+              );
+              break;
+
+            case "help":
+              window.location.href =
+                "support.html";
+              break;
+
+            case "logout":
+              [
+                "studentToken",
+                "talentToken",
+                "schoolToken",
+                "adminToken",
+                "token",
+                "role",
+                "userId"
+              ].forEach(key => {
+                localStorage.removeItem(
+                  key
+                );
+              });
+
+              window.location.href =
+                "login.html";
+              break;
+          }
+        }
+      );
+    });
+}
+
+function restoreStudentStudioState(){
+  const storedCollapsed =
+    localStorage.getItem(
+      STUDENT_STUDIO_STORAGE_KEYS
+        .sidebarCollapsed
+    ) === "true";
+
+  setStudentSidebarCollapsed(
+    storedCollapsed,
+    {
+      persist:false
+    }
+  );
+
+  const urlPage =
+    new URLSearchParams(
+      window.location.search
+    ).get("section");
+
+  const storedPage =
+    localStorage.getItem(
+      STUDENT_STUDIO_STORAGE_KEYS
+        .activePage
+    );
+
+  return normalizeStudentStudioPage(
+    urlPage ||
+    storedPage ||
+    "overview"
+  );
+}
+
+function handleStudentStudioResize(){
+  if (!isStudentStudioMobile()){
+    setStudentSidebarMobileOpen(false);
+  }
+
+  const storedCollapsed =
+    localStorage.getItem(
+      STUDENT_STUDIO_STORAGE_KEYS
+        .sidebarCollapsed
+    ) === "true";
+
+  setStudentSidebarCollapsed(
+    storedCollapsed,
+    {
+      persist:false
+    }
+  );
+}
+
+function initializeStudentStudioShell(){
+  if (studentStudioInitialized){
+    bindStudentStudioNavigation();
+    return;
+  }
+
+  studentStudioInitialized = true;
+
+  bindStudentStudioNavigation();
+
+  bindStudentStudioTopbar();
+
+  bindStudentStudioQuickActions();
+
+  bindStudentProfileActions();
+
+  const initialPage =
+    restoreStudentStudioState();
+
+  activateStudentStudioPage(
+    initialPage,
+    {
+      history:false,
+      scroll:false,
+      instant:true
+    }
+  );
+
+  window.addEventListener(
+    "resize",
+    handleStudentStudioResize
+  );
+
+  window.addEventListener(
+    "popstate",
+    event => {
+      activateStudentStudioPage(
+        event.state?.studentStudioPage ||
+        new URLSearchParams(
+          window.location.search
+        ).get("section") ||
+        "overview",
+
+        {
+          history:false,
+          scroll:false,
+          instant:true
+        }
+      );
+    }
+  );
+}
+
 async function apiGet(path,fallback = null){
   try{
     const res = await fetch(API + path,{
@@ -714,20 +1345,22 @@ state.unread = Number(unread?.count || unread?.unread || 0);
 
     calculateMetrics();
 
-    renderProfile();
-    renderStats();
-    renderAnnouncements();
-    renderClasses();
-    renderAssignments();
-    renderSchedule();
-    renderCalendar();
-    renderProgress();
-    renderAttendance();
-    renderResources();
-    renderTeachers();
-    renderDeadlines();
-    hydrateSubmissionSelect();
-    renderBadges();
+renderProfile();
+
+renderStats();
+
+renderBadges();
+
+hydrateSubmissionSelect();
+
+renderStudioHome();
+
+renderActiveStudentStudioPage(
+  activeStudentStudioPage ||
+  "overview"
+);
+
+bindStudentStudioNavigation();
 
   }catch(err){
     console.error(err);
@@ -1776,9 +2409,42 @@ function calculateMetrics(){
 function renderProfile(){
   const me = state.me || {};
 
+  const name =
+    String(
+      me.name ||
+      me.fullName ||
+      me.displayName ||
+      "Student"
+    ).trim();
+
+  const email =
+    String(
+      me.email ||
+      "Student account"
+    ).trim();
+
+  const course =
+    String(
+      me.course ||
+      me.program ||
+      me.profession ||
+      me.department ||
+      "Learning workspace"
+    ).trim();
+
+  const schoolName =
+    String(
+      me.schoolId?.name ||
+      me.linkedSchoolId?.name ||
+      me.companyId?.name ||
+      me.schoolName ||
+      "AIFT Learning"
+    ).trim();
+
   const avatar =
     me.profileImage ||
     me.avatar ||
+    me.photoUrl ||
     FALLBACK_AVATAR;
 
   const cover =
@@ -1786,44 +2452,384 @@ function renderProfile(){
     me.bannerImage ||
     FALLBACK_COVER;
 
-  if ($("studentAvatar")) $("studentAvatar").src = avatar;
-  if ($("topAvatar")) $("topAvatar").src = avatar;
-  if ($("leftStudentAvatar")) $("leftStudentAvatar").src = avatar;
+  const avatarTargets = [
+    "studentAvatar",
+    "topAvatar",
+    "leftStudentAvatar",
+    "profileMenuAvatar"
+  ];
+
+  avatarTargets.forEach(id => {
+    const image = $(id);
+
+    if (!image){
+      return;
+    }
+
+    image.src = avatar;
+    image.alt = `${name} profile`;
+
+    image.onerror = () => {
+      image.onerror = null;
+      image.src = FALLBACK_AVATAR;
+    };
+  });
 
   if ($("studentCover")){
-    $("studentCover").style.backgroundImage = `url("${cover}")`;
+    $("studentCover").style.backgroundImage =
+      `url("${cover}")`;
   }
 
-  setText("studentName", me.name || "Student");
-  setText("leftStudentName", me.name || "Student");
+  [
+    "studentName",
+    "leftStudentName",
+    "topStudentName",
+    "profileMenuName",
+    "studentNameHero"
+  ].forEach(id => {
+    setText(id,name);
+  });
 
-  const course =
-    me.course ||
-    me.program ||
-    me.profession ||
-    "Student Workspace";
+  [
+    "studentSub",
+    "leftStudentCourse"
+  ].forEach(id => {
+    setText(id,course);
+  });
 
-  setText("studentSub", course);
-  setText("leftStudentCourse", course);
+  setText(
+    "studentHeroSubtitle",
+    `${course} · Continue your learning journey`
+  );
+
+  setText(
+    "topStudentRole",
+    me.role
+      ? String(me.role)
+          .replace(/_/g," ")
+          .replace(/\b\w/g,char => char.toUpperCase())
+      : "Learner"
+  );
+
+  setText(
+    "profileMenuEmail",
+    email
+  );
+
+  setText(
+    "studentSidebarSchool",
+    schoolName
+  );
+
+  setText(
+    "studentSidebarStatus",
+    me.status === "archived"
+      ? "Archived"
+      : me.isSuspended
+        ? "Restricted"
+        : "Active"
+  );
+
+  const status = $("studentSidebarStatus");
+
+  if (status){
+    status.classList.toggle(
+      "danger",
+      Boolean(
+        me.status === "archived" ||
+        me.isSuspended
+      )
+    );
+  }
+
+  const greeting =
+    new Date().getHours() < 12
+      ? "Good morning"
+      : new Date().getHours() < 18
+        ? "Good afternoon"
+        : "Good evening";
+
+  const heroHeading =
+    document.querySelector(
+      ".student-dashboard-greeting h1"
+    );
+
+  if (heroHeading){
+    heroHeading.innerHTML = `
+      ${escapeHtml(greeting)},
+      <span id="studentNameHero">
+        ${escapeHtml(name)}
+      </span>
+    `;
+  }
 }
 
 function renderStats(){
-  const classes = getStudentClasses();
-  const assignments = getStudentAssignments();
-  const submissions = getStudentSubmissions();
+  const classes =
+    getStudentClasses();
 
-  setText("statClasses", classes.length);
-  setText("statAssignments", assignments.length);
-  setText("statSubmissions", submissions.length);
-  setText("statCompletion", state.metrics.completion + "%");
+  const assignments =
+    getStudentAssignments();
 
-  setText("productivityScore", state.metrics.productivity + "%");
-  setText("attendanceScore", state.metrics.attendance + "%");
-  setText("overallProgress", state.metrics.overall + "%");
+  const submissions =
+    getStudentSubmissions();
 
-  setProgress("completionText","completionBar",state.metrics.completion);
-  setProgress("attendanceText","attendanceBar",state.metrics.attendance);
-  setProgress("engagementText","engagementBar",state.metrics.engagement);
+  const submittedAssignmentIds =
+    new Set(
+      submissions.map(item =>
+        normalizeId(
+          item.assignmentId?._id ||
+          item.assignmentId
+        )
+      )
+    );
+
+  const pendingAssignments =
+    assignments.filter(item =>
+      !submittedAssignmentIds.has(
+        normalizeId(item._id)
+      )
+    );
+
+  const upcomingAssignments =
+    pendingAssignments.filter(item => {
+      const due =
+        item.dueDate ||
+        item.deadline;
+
+      if (!due){
+        return false;
+      }
+
+      const dueTime =
+        new Date(due).getTime();
+
+      if (!Number.isFinite(dueTime)){
+        return false;
+      }
+
+      const difference =
+        dueTime - Date.now();
+
+      return (
+        difference >= 0 &&
+        difference <=
+          7 * 24 * 60 * 60 * 1000
+      );
+    });
+
+  const gradedSubmissions =
+    submissions.filter(item =>
+      item.grade !== undefined &&
+      item.grade !== null &&
+      String(item.grade).trim() !== ""
+    );
+
+  const numericGrades =
+    gradedSubmissions
+      .map(item => Number(item.grade))
+      .filter(Number.isFinite);
+
+  const averageGrade =
+    numericGrades.length
+      ? Math.round(
+          numericGrades.reduce(
+            (sum,value) => sum + value,
+            0
+          ) / numericGrades.length
+        )
+      : null;
+
+  const completion =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(state.metrics.completion) || 0
+      )
+    );
+
+  const attendance =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(state.metrics.attendance) || 0
+      )
+    );
+
+  const overall =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(state.metrics.overall) || 0
+      )
+    );
+
+  const engagement =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(state.metrics.engagement) || 0
+      )
+    );
+
+  const productivity =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(state.metrics.productivity) || 0
+      )
+    );
+
+  setText("statClasses",classes.length);
+  setText("statAssignments",assignments.length);
+  setText("statSubmissions",submissions.length);
+  setText("statCompletion",`${completion}%`);
+
+  setText("productivityScore",`${productivity}%`);
+  setText("attendanceScore",`${attendance}%`);
+  setText("overallProgress",`${overall}%`);
+
+  setText(
+    "studentAttendancePercent",
+    `${attendance}%`
+  );
+
+  setText(
+    "studentAttendanceTrend",
+    attendance >= 80
+      ? "On track"
+      : attendance > 0
+        ? "Needs attention"
+        : "No attendance data"
+  );
+
+  setText(
+    "studentOverallProgress",
+    `${overall}%`
+  );
+
+  setText(
+    "studentAssignmentsDue",
+    upcomingAssignments.length
+  );
+
+  setText(
+    "studentQuizAverage",
+    averageGrade === null
+      ? "--"
+      : `${averageGrade}%`
+  );
+
+  setText(
+    "studentActiveClasses",
+    classes.length
+  );
+
+  setText(
+    "studentCertificates",
+    Number(
+      state.me?.certificateCount ||
+      state.me?.certificates?.length ||
+      0
+    )
+  );
+
+  setText(
+    "studentStudyHours",
+    `${Number(
+      state.me?.weeklyStudyHours ||
+      state.me?.studyHours ||
+      0
+    )}h`
+  );
+
+  const streak =
+    Number(
+      state.me?.learningStreak ||
+      state.me?.streak ||
+      0
+    );
+
+  setText(
+    "studentLearningStreak",
+    streak
+  );
+
+  setText(
+    "workspaceLearningStreak",
+    `${streak} ${streak === 1 ? "day" : "days"}`
+  );
+
+  setText(
+    "workspaceCompletionStatus",
+    `${completion}%`
+  );
+
+  setText(
+    "workspaceUpcomingCount",
+    upcomingAssignments.length
+  );
+
+  setText(
+    "overallLearningProgressText",
+    `${completion}%`
+  );
+
+  setText(
+    "studentProgressCompleted",
+    `${submissions.length} completed`
+  );
+
+  setText(
+    "studentProgressRemaining",
+    `${pendingAssignments.length} remaining`
+  );
+
+  setText(
+    "classesBadge",
+    classes.length
+  );
+
+  setText(
+    "assignmentBadge",
+    pendingAssignments.length
+  );
+
+  setText(
+    "scheduleBadge",
+    state.schedules.length
+  );
+
+  const sidebarProgress =
+    $("overallLearningProgressBar");
+
+  if (sidebarProgress){
+    sidebarProgress.style.width =
+      `${completion}%`;
+  }
+
+  setProgress(
+    "completionText",
+    "completionBar",
+    completion
+  );
+
+  setProgress(
+    "attendanceText",
+    "attendanceBar",
+    attendance
+  );
+
+  setProgress(
+    "engagementText",
+    "engagementBar",
+    engagement
+  );
 }
 
 function renderBadges(){
