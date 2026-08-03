@@ -172,44 +172,372 @@ function closeModal(id){
   $(id)?.classList.remove("show");
 }
 
-function openTab(tab){
-  document.querySelectorAll(".tab-btn").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.tab === tab);
-  });
+/* =========================================================
+   STUDENT STUDIO NAVIGATION CONTROLLER
+========================================================= */
 
-  document.querySelectorAll(".section").forEach(section => {
-    section.classList.toggle(
-      "active",
-      section.id === `section-${tab}`
-    );
-  });
+const STUDENT_STUDIO_PAGES = Object.freeze({
+  overview:{
+    title:"Dashboard",
+    description:"Your learning workspace"
+  },
 
-  document.querySelectorAll(".mobile-nav button").forEach(btn => {
-    btn.classList.remove("active");
-  });
+  classes:{
+    title:"My Classes",
+    description:"Continue lessons, review modules, and join live classes"
+  },
 
-  const mobileMap = {
-    overview:0,
-    classes:1,
-    assignments:2,
-    schedule:3,
-    progress:4
+  assignments:{
+    title:"Assignment Center",
+    description:"Manage pending, submitted, graded, and late coursework"
+  },
+
+  schedule:{
+    title:"Calendar",
+    description:"Review classes, deadlines, meetings, and learning events"
+  },
+
+  progress:{
+    title:"Learning Analytics",
+    description:"Track attendance, completion, grades, and engagement"
+  },
+
+  resources:{
+    title:"Resources",
+    description:"Access class files, recordings, links, and study materials"
+  },
+
+  certificates:{
+    title:"Certificates",
+    description:"View completed programs and earned achievements"
+  },
+
+  career:{
+    title:"Career Hub",
+    description:"Build your career profile and prepare for opportunities"
+  },
+
+  ai:{
+    title:"AI Learning",
+    description:"Get guided explanations, summaries, practice, and study help"
+  },
+
+  messages:{
+    title:"Messages",
+    description:"Communicate with teachers, classmates, and your school"
+  },
+
+  settings:{
+    title:"Settings",
+    description:"Manage your Student Studio preferences"
+  }
+});
+
+let activeStudentStudioPage = "overview";
+
+function normalizeStudentStudioPage(page){
+  const requested = String(page || "")
+    .trim()
+    .toLowerCase();
+
+  const aliases = {
+    dashboard:"overview",
+    home:"overview",
+    continue:"overview",
+    calendar:"schedule",
+    analytics:"progress"
   };
 
-  const index = mobileMap[tab];
+  const normalized = aliases[requested] || requested;
 
-  if (typeof index === "number"){
-    const btn = document.querySelectorAll(".mobile-nav button")[index];
+  return STUDENT_STUDIO_PAGES[normalized]
+    ? normalized
+    : "overview";
+}
 
-    if (btn){
-      btn.classList.add("active");
+function setStudentStudioRouteContent(page){
+  const config =
+    STUDENT_STUDIO_PAGES[page] ||
+    STUDENT_STUDIO_PAGES.overview;
+
+  setText(
+    "studioCurrentPage",
+    config.title
+  );
+
+  setText(
+    "studioCurrentDescription",
+    config.description
+  );
+
+  setText(
+    "dashboardCurrentSection",
+    config.title
+  );
+}
+
+function setStudentStudioActiveSection(page){
+  document
+    .querySelectorAll(".section")
+    .forEach(section => {
+      const isActive =
+        section.id === `section-${page}`;
+
+      section.classList.toggle(
+        "active",
+        isActive
+      );
+
+      section.hidden = !isActive;
+
+      section.setAttribute(
+        "aria-hidden",
+        String(!isActive)
+      );
+    });
+}
+
+function setStudentStudioActiveNavigation(page){
+  document
+    .querySelectorAll(
+      [
+        ".tab-btn",
+        ".dashboard-nav-btn",
+        ".student-nav-btn",
+        ".student-navigation button",
+        ".student-dashboard-nav button"
+      ].join(",")
+    )
+    .forEach(button => {
+      const buttonPage = normalizeStudentStudioPage(
+        button.dataset.page ||
+        button.dataset.tab ||
+        button.getAttribute("data-section") ||
+        ""
+      );
+
+      const inlineHandler =
+        button.getAttribute("onclick") || "";
+
+      const handlerMatch =
+        inlineHandler.match(
+          /openTab\(['"]([^'"]+)['"]\)/
+        );
+
+      const resolvedPage = handlerMatch
+        ? normalizeStudentStudioPage(handlerMatch[1])
+        : buttonPage;
+
+      const isActive =
+        resolvedPage === page;
+
+      button.classList.toggle(
+        "active",
+        isActive
+      );
+
+      button.setAttribute(
+        "aria-current",
+        isActive ? "page" : "false"
+      );
+    });
+}
+
+function setStudentStudioActiveMobileNavigation(page){
+  const mobilePageMap = {
+    overview:"overview",
+    classes:"classes",
+    assignments:"assignments",
+    schedule:"schedule",
+    progress:"progress"
+  };
+
+  document
+    .querySelectorAll(".mobile-nav button")
+    .forEach(button => {
+      const inlineHandler =
+        button.getAttribute("onclick") || "";
+
+      const handlerMatch =
+        inlineHandler.match(
+          /openTab\(['"]([^'"]+)['"]\)/
+        );
+
+      const buttonPage = handlerMatch
+        ? normalizeStudentStudioPage(handlerMatch[1])
+        : normalizeStudentStudioPage(
+            button.dataset.page ||
+            button.dataset.tab ||
+            ""
+          );
+
+      const isActive =
+        mobilePageMap[page] === buttonPage;
+
+      button.classList.toggle(
+        "active",
+        isActive
+      );
+
+      button.setAttribute(
+        "aria-current",
+        isActive ? "page" : "false"
+      );
+    });
+}
+
+function renderActiveStudentStudioPage(page){
+  switch(page){
+
+    case "overview":
+      renderStudioHome();
+      break;
+
+    case "classes":
+      renderClasses();
+      break;
+
+    case "assignments":
+      renderAssignments();
+      hydrateSubmissionSelect();
+      break;
+
+    case "schedule":
+      renderSchedule();
+      renderCalendar();
+      break;
+
+    case "progress":
+      renderProgress();
+      renderAttendance();
+      break;
+
+    case "resources":
+      renderResources();
+      break;
+
+    case "certificates":
+      renderStudentCertificates();
+      break;
+
+    case "career":
+      renderStudentCareerHub();
+      break;
+
+    case "ai":
+      renderStudentAILearning();
+      break;
+
+    case "messages":
+      openStudentMessages();
+      break;
+
+    case "settings":
+      renderStudentSettings();
+      break;
+
+    default:
+      renderStudioHome();
+      break;
+  }
+}
+
+function openStudentStudioPage(
+  requestedPage,
+  options = {}
+){
+  const page =
+    normalizeStudentStudioPage(
+      requestedPage
+    );
+
+  activeStudentStudioPage = page;
+
+  document.body.dataset.studentSection =
+    page;
+
+  setStudentStudioRouteContent(page);
+
+  setStudentStudioActiveSection(page);
+
+  setStudentStudioActiveNavigation(page);
+
+  setStudentStudioActiveMobileNavigation(page);
+
+  renderActiveStudentStudioPage(page);
+
+  if(options.updateHistory !== false){
+    const url =
+      new URL(window.location.href);
+
+    if(page === "overview"){
+      url.searchParams.delete("section");
+    }else{
+      url.searchParams.set(
+        "section",
+        page
+      );
     }
+
+    window.history.replaceState(
+      {
+        studentStudioPage:page
+      },
+      "",
+      url
+    );
   }
 
-  window.scrollTo({
-    top:0,
-    behavior:"smooth"
-  });
+  if(options.scroll !== false){
+    const workspace =
+      document.querySelector(
+        ".center-col"
+      ) ||
+      document.querySelector(
+        ".student-main-content"
+      ) ||
+      document.querySelector(
+        ".student-dashboard-workspace"
+      );
+
+    const top =
+      workspace
+        ? workspace.getBoundingClientRect().top +
+          window.scrollY -
+          82
+        : 0;
+
+    window.scrollTo({
+      top:Math.max(0,top),
+      behavior:
+        options.instant
+          ? "auto"
+          : "smooth"
+    });
+  }
+
+  document.dispatchEvent(
+    new CustomEvent(
+      "studentstudio:pagechange",
+      {
+        detail:{
+          page
+        }
+      }
+    )
+  );
+}
+
+/*
+  Compatibility alias.
+
+  Existing HTML buttons currently call openTab(...).
+  Keeping this function prevents those buttons from breaking
+  while the Student Studio HTML is migrated.
+*/
+
+function openTab(page){
+  openStudentStudioPage(page);
 }
 
 async function apiGet(path,fallback = null){
@@ -405,6 +733,988 @@ state.unread = Number(unread?.count || unread?.unread || 0);
     console.error(err);
     showAlert("error","Student portal failed to load.");
   }
+}
+
+/* =========================================================
+   STUDENT STUDIO HOME RENDERER
+========================================================= */
+
+function getUpcomingStudentAssignments(limit = 5){
+  const now = Date.now();
+
+  return getStudentAssignments()
+    .filter(item => {
+      const submission =
+        getSubmissionForAssignment(item._id);
+
+      const dueValue =
+        item.dueDate ||
+        item.deadline;
+
+      const dueTime =
+        dueValue
+          ? new Date(dueValue).getTime()
+          : Number.POSITIVE_INFINITY;
+
+      return (
+        !submission &&
+        (
+          !Number.isFinite(dueTime) ||
+          dueTime >= now
+        )
+      );
+    })
+    .sort((a,b) => {
+      const first =
+        new Date(
+          a.dueDate ||
+          a.deadline ||
+          8640000000000000
+        ).getTime();
+
+      const second =
+        new Date(
+          b.dueDate ||
+          b.deadline ||
+          8640000000000000
+        ).getTime();
+
+      return first - second;
+    })
+    .slice(0,limit);
+}
+
+function getUpcomingStudentSchedules(limit = 5){
+  const now = Date.now();
+
+  return [...state.schedules]
+    .filter(item => {
+      const value =
+        item.date ||
+        item.startAt ||
+        item.startDate;
+
+      if(!value){
+        return true;
+      }
+
+      const time =
+        new Date(value).getTime();
+
+      return (
+        !Number.isFinite(time) ||
+        time >= now -
+          86400000
+      );
+    })
+    .sort((a,b) => {
+      const first =
+        new Date(
+          a.date ||
+          a.startAt ||
+          a.startDate ||
+          0
+        ).getTime();
+
+      const second =
+        new Date(
+          b.date ||
+          b.startAt ||
+          b.startDate ||
+          0
+        ).getTime();
+
+      return first - second;
+    })
+    .slice(0,limit);
+}
+
+function getRecentStudentUpdates(limit = 6){
+  return [...state.schoolUpdates]
+    .sort((a,b) => {
+      const pinnedDifference =
+        Number(Boolean(b.pinned)) -
+        Number(Boolean(a.pinned));
+
+      if(pinnedDifference){
+        return pinnedDifference;
+      }
+
+      return (
+        new Date(
+          b.createdAt || 0
+        ).getTime() -
+        new Date(
+          a.createdAt || 0
+        ).getTime()
+      );
+    })
+    .slice(0,limit);
+}
+
+function getPreferredStudentClass(){
+  const classes =
+    getStudentClasses();
+
+  if(!classes.length){
+    return null;
+  }
+
+  return (
+    classes.find(item =>
+      Boolean(
+        item.meetingLink ||
+        item.published
+      )
+    ) ||
+    classes[0]
+  );
+}
+
+function renderStudioHome(){
+  renderStudioContinueLearning();
+
+  renderStudioTodaySchedule();
+
+  renderStudioAssignmentTimeline();
+
+  renderStudioWeeklyProgress();
+
+  renderStudioPerformance();
+
+  renderStudioRecentActivity();
+
+  renderStudioAITutor();
+
+  renderStudioAchievements();
+}
+
+function renderStudioContinueLearning(){
+  const container =
+    $("studioContinueLearningCard");
+
+  if(!container){
+    return;
+  }
+
+  const selectedClass =
+    getPreferredStudentClass();
+
+  if(!selectedClass){
+    container.innerHTML = `
+      <div class="studio-widget-empty">
+        <div class="studio-widget-empty-icon">
+          <i class="fas fa-graduation-cap"></i>
+        </div>
+
+        <strong>
+          No class available
+        </strong>
+
+        <p>
+          Your enrolled classes will appear here once your school
+          assigns them to your account.
+        </p>
+      </div>
+    `;
+
+    return;
+  }
+
+  const teacher =
+    selectedClass.teacherId?.name ||
+    selectedClass.teacherName ||
+    "Instructor";
+
+  const progress =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(
+          selectedClass.progress ||
+          selectedClass.completion ||
+          state.metrics.completion ||
+          0
+        )
+      )
+    );
+
+  const cover =
+    selectedClass.coverImage ||
+    selectedClass.bannerImage ||
+    CLASS_FALLBACK;
+
+  container.innerHTML = `
+    <div class="studio-widget-heading">
+      <div>
+        <span class="studio-widget-eyebrow">
+          CONTINUE LEARNING
+        </span>
+
+        <h3>
+          ${escapeHtml(
+            selectedClass.title ||
+            "Current class"
+          )}
+        </h3>
+      </div>
+
+      <span class="chip primary">
+        ${progress}% complete
+      </span>
+    </div>
+
+    <div class="studio-continue-layout">
+      <div
+        class="studio-continue-cover"
+        style="background-image:url('${escapeHtml(cover)}')"
+        role="img"
+        aria-label="${escapeHtml(
+          selectedClass.title ||
+          "Class cover"
+        )}">
+      </div>
+
+      <div class="studio-continue-content">
+        <p class="studio-continue-subject">
+          ${escapeHtml(
+            selectedClass.subject ||
+            "Learning program"
+          )}
+        </p>
+
+        <div class="studio-continue-teacher">
+          <i class="fas fa-user-circle"></i>
+
+          <span>
+            ${escapeHtml(teacher)}
+          </span>
+        </div>
+
+        <div class="studio-progress-track">
+          <div
+            class="studio-progress-value"
+            style="width:${progress}%">
+          </div>
+        </div>
+
+        <div class="studio-progress-meta">
+          <span>
+            ${progress}% completed
+          </span>
+
+          <span>
+            ${
+              selectedClass.schedule
+                ? escapeHtml(
+                    selectedClass.schedule
+                  )
+                : "Self-paced"
+            }
+          </span>
+        </div>
+
+        <div class="studio-widget-actions">
+          <button
+            class="primary-btn"
+            type="button"
+            data-studio-open-class="${escapeHtml(
+              selectedClass._id
+            )}">
+            <i class="fas fa-play"></i>
+            Continue
+          </button>
+
+          ${
+            selectedClass.meetingLink
+              ? `
+                <a
+                  class="ghost-btn"
+                  href="${escapeHtml(
+                    selectedClass.meetingLink
+                  )}"
+                  target="_blank"
+                  rel="noopener noreferrer">
+                  <i class="fas fa-video"></i>
+                  Join class
+                </a>
+              `
+              : ""
+          }
+        </div>
+      </div>
+    </div>
+  `;
+
+  container
+    .querySelector(
+      "[data-studio-open-class]"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+        openStudentClass(
+          selectedClass._id
+        );
+      }
+    );
+}
+
+function renderStudioTodaySchedule(){
+  const container =
+    $("studioTodayScheduleCard");
+
+  if(!container){
+    return;
+  }
+
+  const schedules =
+    getUpcomingStudentSchedules(4);
+
+  container.innerHTML = `
+    <div class="studio-widget-heading">
+      <div>
+        <span class="studio-widget-eyebrow">
+          TODAY
+        </span>
+
+        <h3>
+          Upcoming Schedule
+        </h3>
+      </div>
+
+      <button
+        class="studio-widget-link"
+        type="button"
+        data-open-studio-page="schedule">
+        View calendar
+      </button>
+    </div>
+
+    <div class="studio-schedule-list">
+      ${
+        schedules.length
+          ? schedules.map(item => `
+              <article class="studio-schedule-item">
+                <div class="studio-schedule-time">
+                  <strong>
+                    ${escapeHtml(
+                      item.time ||
+                      item.startTime ||
+                      "--:--"
+                    )}
+                  </strong>
+
+                  <span>
+                    ${formatDate(
+                      item.date ||
+                      item.startAt ||
+                      item.startDate
+                    )}
+                  </span>
+                </div>
+
+                <div class="studio-schedule-copy">
+                  <strong>
+                    ${escapeHtml(
+                      item.title ||
+                      item.classId?.title ||
+                      "Scheduled class"
+                    )}
+                  </strong>
+
+                  <span>
+                    ${escapeHtml(
+                      item.teacherId?.name ||
+                      item.notes ||
+                      "Class activity"
+                    )}
+                  </span>
+                </div>
+
+                ${
+                  item.meetingLink
+                    ? `
+                      <a
+                        class="studio-icon-action"
+                        href="${escapeHtml(
+                          item.meetingLink
+                        )}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Join scheduled class">
+                        <i class="fas fa-arrow-up-right-from-square"></i>
+                      </a>
+                    `
+                    : ""
+                }
+              </article>
+            `).join("")
+          : `
+            <div class="studio-widget-empty compact">
+              <strong>
+                Nothing scheduled
+              </strong>
+
+              <p>
+                Your upcoming classes and meetings will appear here.
+              </p>
+            </div>
+          `
+      }
+    </div>
+  `;
+}
+
+function renderStudioAssignmentTimeline(){
+  const container =
+    $("studioAssignmentTimeline");
+
+  if(!container){
+    return;
+  }
+
+  const assignments =
+    getUpcomingStudentAssignments(5);
+
+  container.innerHTML = `
+    <div class="studio-widget-heading">
+      <div>
+        <span class="studio-widget-eyebrow">
+          COURSEWORK
+        </span>
+
+        <h3>
+          Assignment Timeline
+        </h3>
+      </div>
+
+      <button
+        class="studio-widget-link"
+        type="button"
+        data-open-studio-page="assignments">
+        View all
+      </button>
+    </div>
+
+    <div class="studio-assignment-timeline">
+      ${
+        assignments.length
+          ? assignments.map(item => `
+              <article class="studio-timeline-item">
+                <span class="studio-timeline-dot"></span>
+
+                <div class="studio-timeline-copy">
+                  <strong>
+                    ${escapeHtml(
+                      item.title ||
+                      "Assignment"
+                    )}
+                  </strong>
+
+                  <span>
+                    Due ${formatDate(
+                      item.dueDate ||
+                      item.deadline
+                    )}
+                  </span>
+                </div>
+
+                <button
+                  class="studio-timeline-action"
+                  type="button"
+                  data-submit-assignment="${escapeHtml(
+                    item._id
+                  )}">
+                  Submit
+                </button>
+              </article>
+            `).join("")
+          : `
+            <div class="studio-widget-empty compact">
+              <strong>
+                You're all caught up
+              </strong>
+
+              <p>
+                There are no pending assignments.
+              </p>
+            </div>
+          `
+      }
+    </div>
+  `;
+
+  container
+    .querySelectorAll(
+      "[data-submit-assignment]"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => {
+          openSubmissionModal(
+            button.dataset.submitAssignment
+          );
+        }
+      );
+    });
+}
+
+function renderStudioWeeklyProgress(){
+  const container =
+    $("studioWeeklyProgress");
+
+  if(!container){
+    return;
+  }
+
+  const completion =
+    state.metrics.completion;
+
+  const attendance =
+    state.metrics.attendance;
+
+  const engagement =
+    state.metrics.engagement;
+
+  container.innerHTML = `
+    <div class="studio-widget-heading">
+      <div>
+        <span class="studio-widget-eyebrow">
+          THIS WEEK
+        </span>
+
+        <h3>
+          Weekly Progress
+        </h3>
+      </div>
+    </div>
+
+    <div class="studio-progress-list">
+      ${renderStudioProgressRow(
+        "Assignment completion",
+        completion
+      )}
+
+      ${renderStudioProgressRow(
+        "Attendance",
+        attendance
+      )}
+
+      ${renderStudioProgressRow(
+        "Engagement",
+        engagement
+      )}
+    </div>
+  `;
+}
+
+function renderStudioProgressRow(
+  label,
+  value
+){
+  const safeValue =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(value) || 0
+      )
+    );
+
+  return `
+    <div class="studio-progress-row">
+      <div class="studio-progress-row-head">
+        <span>
+          ${escapeHtml(label)}
+        </span>
+
+        <strong>
+          ${safeValue}%
+        </strong>
+      </div>
+
+      <div class="studio-progress-track">
+        <div
+          class="studio-progress-value"
+          style="width:${safeValue}%">
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderStudioPerformance(){
+  const container =
+    $("studioPerformanceChart");
+
+  if(!container){
+    return;
+  }
+
+  const score =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(
+          state.metrics.overall
+        ) || 0
+      )
+    );
+
+  container.innerHTML = `
+    <div class="studio-widget-heading">
+      <div>
+        <span class="studio-widget-eyebrow">
+          PERFORMANCE
+        </span>
+
+        <h3>
+          Learning Score
+        </h3>
+      </div>
+    </div>
+
+    <div class="studio-score-layout">
+      <div
+        class="studio-score-ring"
+        style="--studio-score:${score}">
+        <div>
+          <strong>
+            ${score}%
+          </strong>
+
+          <span>
+            Overall
+          </span>
+        </div>
+      </div>
+
+      <div class="studio-score-details">
+        <div>
+          <span>
+            Productivity
+          </span>
+
+          <strong>
+            ${state.metrics.productivity}%
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            Completion
+          </span>
+
+          <strong>
+            ${state.metrics.completion}%
+          </strong>
+        </div>
+
+        <div>
+          <span>
+            Attendance
+          </span>
+
+          <strong>
+            ${state.metrics.attendance}%
+          </strong>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderStudioRecentActivity(){
+  const container =
+    $("studioRecentActivity");
+
+  if(!container){
+    return;
+  }
+
+  const updates =
+    getRecentStudentUpdates(5);
+
+  container.innerHTML = `
+    <div class="studio-widget-heading">
+      <div>
+        <span class="studio-widget-eyebrow">
+          LIVE FEED
+        </span>
+
+        <h3>
+          Recent Activity
+        </h3>
+      </div>
+    </div>
+
+    <div class="studio-activity-list">
+      ${
+        updates.length
+          ? updates.map(update => `
+              <article class="studio-activity-item">
+                <div class="studio-activity-icon">
+                  <i class="${
+                    update.type === "urgent"
+                      ? "fas fa-triangle-exclamation"
+                      : "fas fa-bullhorn"
+                  }"></i>
+                </div>
+
+                <div class="studio-activity-copy">
+                  <strong>
+                    ${escapeHtml(
+                      update.title ||
+                      "School update"
+                    )}
+                  </strong>
+
+                  <span>
+                    ${escapeHtml(
+                      update.message ||
+                      "A new update was posted."
+                    )}
+                  </span>
+
+                  <small>
+                    ${formatDateTime(
+                      update.createdAt
+                    )}
+                  </small>
+                </div>
+              </article>
+            `).join("")
+          : `
+            <div class="studio-widget-empty compact">
+              <strong>
+                No recent activity
+              </strong>
+
+              <p>
+                School and class updates will appear here.
+              </p>
+            </div>
+          `
+      }
+    </div>
+  `;
+}
+
+function renderStudioAITutor(){
+  const container =
+    $("studioAITutor");
+
+  if(!container){
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="studio-widget-heading">
+      <div>
+        <span class="studio-widget-eyebrow">
+          AI LEARNING
+        </span>
+
+        <h3>
+          Study Assistant
+        </h3>
+      </div>
+    </div>
+
+    <p class="studio-ai-description">
+      Get support with explanations, summaries, quizzes,
+      grammar, and study planning.
+    </p>
+
+    <div class="studio-ai-actions">
+      <button
+        type="button"
+        data-ai-action="explain">
+        <i class="fas fa-lightbulb"></i>
+        Explain a topic
+      </button>
+
+      <button
+        type="button"
+        data-ai-action="quiz">
+        <i class="fas fa-list-check"></i>
+        Practice quiz
+      </button>
+
+      <button
+        type="button"
+        data-ai-action="summary">
+        <i class="fas fa-file-lines"></i>
+        Summarize lesson
+      </button>
+
+      <button
+        type="button"
+        data-ai-action="grammar">
+        <i class="fas fa-spell-check"></i>
+        Check grammar
+      </button>
+    </div>
+  `;
+
+  container
+    .querySelectorAll(
+      "[data-ai-action]"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => {
+          openStudentStudioPage(
+            "ai"
+          );
+        }
+      );
+    });
+}
+
+function renderStudioAchievements(){
+  const container =
+    $("studioAchievements");
+
+  if(!container){
+    return;
+  }
+
+  const submitted =
+    getStudentSubmissions().length;
+
+  const classes =
+    getStudentClasses().length;
+
+  const milestones = [
+    {
+      icon:"fas fa-clipboard-check",
+      label:"Work submitted",
+      value:submitted
+    },
+    {
+      icon:"fas fa-graduation-cap",
+      label:"Active classes",
+      value:classes
+    },
+    {
+      icon:"fas fa-chart-line",
+      label:"Completion",
+      value:`${state.metrics.completion}%`
+    }
+  ];
+
+  container.innerHTML = `
+    <div class="studio-widget-heading">
+      <div>
+        <span class="studio-widget-eyebrow">
+          ACHIEVEMENTS
+        </span>
+
+        <h3>
+          Learning Milestones
+        </h3>
+      </div>
+    </div>
+
+    <div class="studio-achievement-list">
+      ${milestones.map(item => `
+        <div class="studio-achievement-item">
+          <div class="studio-achievement-icon">
+            <i class="${item.icon}"></i>
+          </div>
+
+          <div>
+            <strong>
+              ${escapeHtml(item.value)}
+            </strong>
+
+            <span>
+              ${escapeHtml(item.label)}
+            </span>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function bindStudentStudioDelegatedActions(){
+  document.addEventListener(
+    "click",
+    event => {
+      const pageButton =
+        event.target.closest(
+          "[data-open-studio-page]"
+        );
+
+      if(pageButton){
+        openStudentStudioPage(
+          pageButton.dataset.openStudioPage
+        );
+
+        return;
+      }
+
+      const navigationButton =
+        event.target.closest(
+          ".student-nav-btn[data-page]"
+        );
+
+      if(navigationButton){
+        openStudentStudioPage(
+          navigationButton.dataset.page
+        );
+      }
+    }
+  );
+}
+
+function openStudentClass(classId){
+  if(!classId){
+    return;
+  }
+
+  window.location.href =
+    `student-class.html?classId=${encodeURIComponent(
+      classId
+    )}`;
+}
+
+function renderStudentCertificates(){
+  showAlert(
+    "info",
+    "The Certificates workspace will be added in the next production module."
+  );
+}
+
+function renderStudentCareerHub(){
+  window.location.href =
+    "career-hub.html";
+}
+
+function renderStudentAILearning(){
+  showAlert(
+    "info",
+    "The AI Learning workspace will be added in its dedicated module."
+  );
+}
+
+function openStudentMessages(){
+  window.location.href =
+    "messages.html";
+}
+
+function renderStudentSettings(){
+  showAlert(
+    "info",
+    "The Student Settings workspace will be added in its dedicated module."
+  );
 }
 
 function calculateMetrics(){
@@ -1066,8 +2376,29 @@ document.addEventListener("keydown",e => {
   }
 });
 
-document.addEventListener("DOMContentLoaded",async () => {
-  initSearch();
-  await loadAll();
-  initSocket();
-});
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
+    initSearch();
+
+    bindStudentStudioDelegatedActions();
+
+    await loadAll();
+
+    const requestedPage =
+      new URLSearchParams(
+        window.location.search
+      ).get("section");
+
+    openStudentStudioPage(
+      requestedPage || "overview",
+      {
+        updateHistory:false,
+        scroll:false,
+        instant:true
+      }
+    );
+
+    initSocket();
+  }
+);
