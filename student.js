@@ -2927,7 +2927,12 @@ function renderClasses(){
       "Teacher not assigned";
 
     return `
-      <article class="class-card">
+      <article
+  class="class-card"
+  data-class-id="${escapeHtml(
+    normalizeId(cls._id)
+  )}"
+>
         <div
           class="class-cover"
           style="background-image:url('${cls.coverImage || CLASS_FALLBACK}')"
@@ -2978,7 +2983,12 @@ function renderAssignments(){
     const submission = getSubmissionForAssignment(item._id);
 
     return `
-      <article class="assignment-card">
+      <article
+  class="assignment-card"
+  data-assignment-id="${escapeHtml(
+    normalizeId(item._id)
+  )}"
+>
         <div class="item-head">
           <div>
             <h3 class="item-title">${escapeHtml(item.title || "Assignment")}</h3>
@@ -3036,7 +3046,12 @@ function renderSchedule(){
   }
 
   container.innerHTML = schedules.map(item => `
-    <article class="schedule-card">
+    <article
+  class="schedule-card"
+  data-schedule-id="${escapeHtml(
+    normalizeId(item._id)
+  )}"
+>
       <div class="item-head">
         <div>
           <h3 class="item-title">${escapeHtml(item.title || item.classId?.title || "Class Schedule")}</h3>
@@ -3313,26 +3328,1159 @@ function goNotifications(){
   window.location.href = "notifications.html";
 }
 
-function initSearch(){
-  const input = $("globalSearch");
+/* =========================================================
+   STUDENT STUDIO GLOBAL SEARCH
+========================================================= */
 
-  if (!input) return;
+const STUDENT_SEARCH_LIMITS = Object.freeze({
+  total:24,
+  perGroup:6
+});
 
-  input.addEventListener("input",() => {
-    const q = input.value.trim().toLowerCase();
+let studentSearchActiveIndex = -1;
+let studentSearchResults = [];
+let studentSearchDebounceTimer = null;
 
-    document
-      .querySelectorAll(
-        ".class-card,.assignment-card,.schedule-card,.announcement-card,.grade-card,.progress-card,.resource-card,.attendance-item"
+function normalizeStudentSearchValue(value){
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g," ");
+}
+
+function getStudentSearchText(...values){
+  return normalizeStudentSearchValue(
+    values
+      .flat(Infinity)
+      .filter(
+        value =>
+          value !== undefined &&
+          value !== null &&
+          value !== ""
       )
-      .forEach(card => {
-        card.style.display =
-          !q ||
-          card.innerText.toLowerCase().includes(q)
-            ? ""
-            : "none";
-      });
+      .join(" ")
+  );
+}
+
+function createStudentSearchItem({
+  id,
+  group,
+  type,
+  title,
+  subtitle,
+  keywords,
+  icon,
+  page,
+  action,
+  payload
+}){
+  return {
+    id:String(id || ""),
+    group:String(group || "Other"),
+    type:String(type || ""),
+    title:String(title || "Untitled"),
+    subtitle:String(subtitle || ""),
+    keywords:getStudentSearchText(
+      title,
+      subtitle,
+      keywords
+    ),
+    icon:String(icon || "fa-solid fa-magnifying-glass"),
+    page:page
+      ? normalizeStudentStudioPage(page)
+      : "overview",
+    action:String(action || "page"),
+    payload:payload || {}
+  };
+}
+
+function buildStudentStudioSearchIndex(){
+  const items = [];
+
+  const sections = [
+    {
+      id:"overview",
+      title:"Dashboard",
+      subtitle:"Learning overview, progress, and recent activity",
+      keywords:"home overview learning workspace",
+      icon:"fa-solid fa-table-cells-large",
+      page:"overview"
+    },
+    {
+      id:"classes",
+      title:"My Classes",
+      subtitle:"Open classes, lessons, teachers, and modules",
+      keywords:"courses lessons modules learning",
+      icon:"fa-solid fa-book-open",
+      page:"classes"
+    },
+    {
+      id:"assignments",
+      title:"Assignment Center",
+      subtitle:"Review, submit, and track coursework",
+      keywords:"tasks homework submission due graded",
+      icon:"fa-solid fa-clipboard-check",
+      page:"assignments"
+    },
+    {
+      id:"schedule",
+      title:"Calendar",
+      subtitle:"Classes, meetings, schedules, and deadlines",
+      keywords:"schedule calendar meeting event deadline",
+      icon:"fa-regular fa-calendar",
+      page:"schedule"
+    },
+    {
+      id:"progress",
+      title:"Learning Analytics",
+      subtitle:"Completion, attendance, grades, and engagement",
+      keywords:"analytics progress attendance performance grade",
+      icon:"fa-solid fa-chart-line",
+      page:"progress"
+    },
+    {
+      id:"resources",
+      title:"Resources",
+      subtitle:"Learning files, links, recordings, and materials",
+      keywords:"library files documents videos resources",
+      icon:"fa-regular fa-folder-open",
+      page:"resources"
+    },
+    {
+      id:"certificates",
+      title:"Certificates",
+      subtitle:"Review earned learning achievements",
+      keywords:"certificate achievement award completion",
+      icon:"fa-solid fa-certificate",
+      page:"certificates"
+    },
+    {
+      id:"portfolio",
+      title:"Student Portfolio",
+      subtitle:"Projects, completed work, and achievements",
+      keywords:"portfolio projects showcase work",
+      icon:"fa-solid fa-briefcase",
+      page:"portfolio"
+    },
+    {
+      id:"ai",
+      title:"AI Learning",
+      subtitle:"Explanations, summaries, quizzes, and study support",
+      keywords:"ai tutor explain summary quiz grammar",
+      icon:"fa-solid fa-wand-magic-sparkles",
+      page:"ai"
+    },
+    {
+      id:"career",
+      title:"Career Hub",
+      subtitle:"Career preparation and professional development",
+      keywords:"career jobs interview resume cv",
+      icon:"fa-solid fa-briefcase",
+      page:"career"
+    },
+    {
+      id:"messages",
+      title:"Messages",
+      subtitle:"Communicate with teachers and classmates",
+      keywords:"messages chat communication teacher student",
+      icon:"fa-regular fa-comment-dots",
+      page:"messages"
+    },
+    {
+      id:"settings",
+      title:"Student Studio Settings",
+      subtitle:"Preferences, privacy, notifications, and accessibility",
+      keywords:"settings preferences account privacy notifications",
+      icon:"fa-solid fa-sliders",
+      page:"settings"
+    }
+  ];
+
+  sections.forEach(section => {
+    items.push(
+      createStudentSearchItem({
+        ...section,
+        group:"Studio",
+        type:"Workspace",
+        action:"page"
+      })
+    );
   });
+
+  getStudentClasses().forEach(cls => {
+    const teacher =
+      cls.teacherId?.name ||
+      cls.teacherName ||
+      "Teacher not assigned";
+
+    items.push(
+      createStudentSearchItem({
+        id:`class-${normalizeId(cls._id)}`,
+        group:"Classes",
+        type:"Class",
+        title:cls.title || "Untitled class",
+        subtitle:[
+          cls.subject,
+          teacher,
+          cls.schedule
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        keywords:[
+          cls.description,
+          cls.classCode,
+          cls.level,
+          cls.language,
+          cls.teacherId?.email
+        ],
+        icon:"fa-solid fa-graduation-cap",
+        page:"classes",
+        action:"class",
+        payload:{
+          classId:normalizeId(cls._id)
+        }
+      })
+    );
+  });
+
+  getStudentAssignments().forEach(assignment => {
+    const classTitle =
+      assignment.classId?.title ||
+      assignment.classTitle ||
+      "";
+
+    const submission =
+      getSubmissionForAssignment(
+        assignment._id
+      );
+
+    const status =
+      submission
+        ? submission.status ||
+          "submitted"
+        : "pending";
+
+    items.push(
+      createStudentSearchItem({
+        id:`assignment-${normalizeId(assignment._id)}`,
+        group:"Assignments",
+        type:"Assignment",
+        title:assignment.title || "Untitled assignment",
+        subtitle:[
+          classTitle,
+          `Due ${formatDate(
+            assignment.dueDate ||
+            assignment.deadline
+          )}`,
+          status
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        keywords:[
+          assignment.description,
+          assignment.instructions,
+          assignment.subject,
+          assignment.teacherId?.name,
+          status
+        ],
+        icon:
+          submission
+            ? "fa-solid fa-circle-check"
+            : "fa-regular fa-clipboard",
+        page:"assignments",
+        action:"assignment",
+        payload:{
+          assignmentId:
+            normalizeId(assignment._id)
+        }
+      })
+    );
+  });
+
+  state.schedules.forEach(schedule => {
+    const classTitle =
+      schedule.classId?.title ||
+      schedule.className ||
+      schedule.title ||
+      "Scheduled activity";
+
+    items.push(
+      createStudentSearchItem({
+        id:`schedule-${normalizeId(schedule._id)}`,
+        group:"Schedule",
+        type:"Schedule",
+        title:classTitle,
+        subtitle:[
+          formatDateTime(
+            schedule.startAt ||
+            schedule.startDate ||
+            schedule.date
+          ),
+          schedule.teacherId?.name ||
+          schedule.teacherName,
+          schedule.location
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        keywords:[
+          schedule.notes,
+          schedule.description,
+          schedule.meetingLink,
+          schedule.scheduleType,
+          schedule.sessionType
+        ],
+        icon:"fa-regular fa-calendar-days",
+        page:"schedule",
+        action:"schedule",
+        payload:{
+          scheduleId:
+            normalizeId(schedule._id)
+        }
+      })
+    );
+  });
+
+  state.teachers.forEach(teacher => {
+    items.push(
+      createStudentSearchItem({
+        id:`teacher-${normalizeId(teacher._id)}`,
+        group:"Teachers",
+        type:"Teacher",
+        title:teacher.name || "Teacher",
+        subtitle:[
+          teacher.subject,
+          teacher.profession,
+          teacher.email
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        keywords:[
+          teacher.department,
+          teacher.bio,
+          teacher.course
+        ],
+        icon:"fa-solid fa-chalkboard-user",
+        page:"classes",
+        action:"teacher",
+        payload:{
+          teacherId:
+            normalizeId(teacher._id)
+        }
+      })
+    );
+  });
+
+  state.schoolUpdates.forEach(update => {
+    items.push(
+      createStudentSearchItem({
+        id:`update-${normalizeId(update._id)}`,
+        group:"Updates",
+        type:"Announcement",
+        title:
+          update.title ||
+          "School update",
+        subtitle:[
+          formatDateTime(update.createdAt),
+          update.pinned
+            ? "Pinned"
+            : ""
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        keywords:[
+          update.message,
+          update.description,
+          update.content,
+          update.type
+        ],
+        icon:
+          update.type === "urgent"
+            ? "fa-solid fa-triangle-exclamation"
+            : "fa-solid fa-bullhorn",
+        page:"overview",
+        action:"update",
+        payload:{
+          updateId:
+            normalizeId(update._id)
+        }
+      })
+    );
+  });
+
+  return items;
+}
+
+function scoreStudentSearchItem(item,query){
+  const normalizedQuery =
+    normalizeStudentSearchValue(query);
+
+  if (!normalizedQuery){
+    return 0;
+  }
+
+  const terms =
+    normalizedQuery
+      .split(" ")
+      .filter(Boolean);
+
+  const title =
+    normalizeStudentSearchValue(
+      item.title
+    );
+
+  const subtitle =
+    normalizeStudentSearchValue(
+      item.subtitle
+    );
+
+  const keywords =
+    normalizeStudentSearchValue(
+      item.keywords
+    );
+
+  let score = 0;
+
+  if (title === normalizedQuery){
+    score += 120;
+  }
+
+  if (title.startsWith(normalizedQuery)){
+    score += 75;
+  }
+
+  if (title.includes(normalizedQuery)){
+    score += 55;
+  }
+
+  if (subtitle.includes(normalizedQuery)){
+    score += 28;
+  }
+
+  if (keywords.includes(normalizedQuery)){
+    score += 22;
+  }
+
+  terms.forEach(term => {
+    if (title.startsWith(term)){
+      score += 20;
+    }else if (title.includes(term)){
+      score += 14;
+    }
+
+    if (subtitle.includes(term)){
+      score += 8;
+    }
+
+    if (keywords.includes(term)){
+      score += 6;
+    }
+  });
+
+  return score;
+}
+
+function searchStudentStudio(query){
+  const normalizedQuery =
+    normalizeStudentSearchValue(query);
+
+  if (!normalizedQuery){
+    return [];
+  }
+
+  return buildStudentStudioSearchIndex()
+    .map(item => ({
+      ...item,
+      score:scoreStudentSearchItem(
+        item,
+        normalizedQuery
+      )
+    }))
+    .filter(item => item.score > 0)
+    .sort((first,second) => {
+      if (second.score !== first.score){
+        return second.score - first.score;
+      }
+
+      return first.title.localeCompare(
+        second.title
+      );
+    })
+    .slice(
+      0,
+      STUDENT_SEARCH_LIMITS.total
+    );
+}
+
+function renderStudentSearchEmpty({
+  title = "Search Student Studio",
+  message = "Find classes, assignments, schedules, teachers, and resources."
+} = {}){
+  const container =
+    $("studentGlobalSearchResults");
+
+  if (!container){
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="builder-global-search-empty">
+
+      <strong>
+        ${escapeHtml(title)}
+      </strong>
+
+      <span>
+        ${escapeHtml(message)}
+      </span>
+
+    </div>
+  `;
+}
+
+function groupStudentSearchResults(results){
+  return results.reduce(
+    (groups,item) => {
+      if (!groups.has(item.group)){
+        groups.set(item.group,[]);
+      }
+
+      if (
+        groups.get(item.group).length <
+        STUDENT_SEARCH_LIMITS.perGroup
+      ){
+        groups
+          .get(item.group)
+          .push(item);
+      }
+
+      return groups;
+    },
+    new Map()
+  );
+}
+
+function renderStudentSearchResults(results){
+  const container =
+    $("studentGlobalSearchResults");
+
+  if (!container){
+    return;
+  }
+
+  studentSearchResults = results;
+  studentSearchActiveIndex = -1;
+
+  if (!results.length){
+    renderStudentSearchEmpty({
+      title:"No results found",
+      message:
+        "Try a class title, assignment, teacher, schedule, or workspace."
+    });
+
+    return;
+  }
+
+  const groups =
+    groupStudentSearchResults(results);
+
+  container.innerHTML =
+    Array.from(groups.entries())
+      .map(([group,items]) => `
+        <section class="student-search-result-group">
+
+          <div class="builder-global-search-group">
+            ${escapeHtml(group)}
+          </div>
+
+          ${items.map(item => {
+            const resultIndex =
+              results.findIndex(
+                result =>
+                  result.id === item.id
+              );
+
+            return `
+              <button
+                class="builder-global-search-result"
+                type="button"
+                role="option"
+                aria-selected="false"
+                data-student-search-index="${resultIndex}"
+              >
+
+                <span class="builder-global-search-result-icon">
+
+                  <i
+                    class="${escapeHtml(item.icon)}"
+                    aria-hidden="true"
+                  ></i>
+
+                </span>
+
+                <span class="builder-global-search-result-copy">
+
+                  <strong>
+                    ${escapeHtml(item.title)}
+                  </strong>
+
+                  <small>
+                    ${escapeHtml(
+                      item.subtitle ||
+                      item.type
+                    )}
+                  </small>
+
+                </span>
+
+                <span class="builder-global-search-result-type">
+                  ${escapeHtml(item.type)}
+                </span>
+
+              </button>
+            `;
+          }).join("")}
+
+        </section>
+      `)
+      .join("");
+
+  container
+    .querySelectorAll(
+      "[data-student-search-index]"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "mouseenter",
+        () => {
+          setStudentSearchActiveResult(
+            Number(
+              button.dataset
+                .studentSearchIndex
+            )
+          );
+        }
+      );
+
+      button.addEventListener(
+        "click",
+        () => {
+          activateStudentSearchResult(
+            Number(
+              button.dataset
+                .studentSearchIndex
+            )
+          );
+        }
+      );
+    });
+}
+
+function openStudentSearchResults(){
+  const input =
+    $("globalSearch");
+
+  const results =
+    $("studentGlobalSearchResults");
+
+  if (!input || !results){
+    return;
+  }
+
+  results.hidden = false;
+
+  input.setAttribute(
+    "aria-expanded",
+    "true"
+  );
+}
+
+function closeStudentSearchResults({
+  clear = false
+} = {}){
+  const input =
+    $("globalSearch");
+
+  const results =
+    $("studentGlobalSearchResults");
+
+  if (!input || !results){
+    return;
+  }
+
+  results.hidden = true;
+
+  input.setAttribute(
+    "aria-expanded",
+    "false"
+  );
+
+  input.removeAttribute(
+    "aria-activedescendant"
+  );
+
+  studentSearchActiveIndex = -1;
+
+  if (clear){
+    input.value = "";
+
+    const clearButton =
+      $("studentGlobalSearchClear");
+
+    if (clearButton){
+      clearButton.hidden = true;
+    }
+
+    renderStudentSearchEmpty();
+  }
+}
+
+function setStudentSearchActiveResult(index){
+  if (!studentSearchResults.length){
+    studentSearchActiveIndex = -1;
+    return;
+  }
+
+  const boundedIndex =
+    Math.max(
+      0,
+      Math.min(
+        studentSearchResults.length - 1,
+        Number(index) || 0
+      )
+    );
+
+  studentSearchActiveIndex =
+    boundedIndex;
+
+  const buttons =
+    Array.from(
+      document.querySelectorAll(
+        "[data-student-search-index]"
+      )
+    );
+
+  buttons.forEach(button => {
+    const active =
+      Number(
+        button.dataset
+          .studentSearchIndex
+      ) === boundedIndex;
+
+    button.classList.toggle(
+      "active",
+      active
+    );
+
+    button.setAttribute(
+      "aria-selected",
+      String(active)
+    );
+
+    if (active){
+      button.scrollIntoView({
+        block:"nearest"
+      });
+    }
+  });
+}
+
+function moveStudentSearchSelection(direction){
+  if (!studentSearchResults.length){
+    return;
+  }
+
+  const nextIndex =
+    studentSearchActiveIndex < 0
+      ? direction > 0
+        ? 0
+        : studentSearchResults.length - 1
+      : (
+          studentSearchActiveIndex +
+          direction +
+          studentSearchResults.length
+        ) %
+        studentSearchResults.length;
+
+  setStudentSearchActiveResult(
+    nextIndex
+  );
+}
+
+function highlightStudentWorkspaceItem({
+  selector,
+  duration = 2200
+}){
+  const element =
+    document.querySelector(selector);
+
+  if (!element){
+    return;
+  }
+
+  element.scrollIntoView({
+    behavior:"smooth",
+    block:"center"
+  });
+
+  element.classList.add(
+    "student-search-target"
+  );
+
+  window.setTimeout(
+    () => {
+      element.classList.remove(
+        "student-search-target"
+      );
+    },
+    duration
+  );
+}
+
+function activateStudentSearchResult(index){
+  const item =
+    studentSearchResults[index];
+
+  if (!item){
+    return;
+  }
+
+  closeStudentSearchResults();
+
+  switch(item.action){
+
+    case "class":
+      activateStudentStudioPage(
+        "classes"
+      );
+
+      window.setTimeout(
+        () => {
+          const classId =
+            item.payload.classId;
+
+          const target =
+            document.querySelector(
+              `[data-class-id="${CSS.escape(classId)}"]`
+            );
+
+          if (target){
+            highlightStudentWorkspaceItem({
+              selector:
+                `[data-class-id="${CSS.escape(classId)}"]`
+            });
+          }else{
+            openStudentClass(classId);
+          }
+        },
+        120
+      );
+      break;
+
+    case "assignment":
+      activateStudentStudioPage(
+        "assignments"
+      );
+
+      window.setTimeout(
+        () => {
+          const assignmentId =
+            item.payload.assignmentId;
+
+          const target =
+            document.querySelector(
+              `[data-assignment-id="${CSS.escape(assignmentId)}"]`
+            );
+
+          if (target){
+            highlightStudentWorkspaceItem({
+              selector:
+                `[data-assignment-id="${CSS.escape(assignmentId)}"]`
+            });
+          }
+        },
+        120
+      );
+      break;
+
+    case "schedule":
+      activateStudentStudioPage(
+        "schedule"
+      );
+
+      window.setTimeout(
+        () => {
+          const scheduleId =
+            item.payload.scheduleId;
+
+          const target =
+            document.querySelector(
+              `[data-schedule-id="${CSS.escape(scheduleId)}"]`
+            );
+
+          if (target){
+            highlightStudentWorkspaceItem({
+              selector:
+                `[data-schedule-id="${CSS.escape(scheduleId)}"]`
+            });
+          }
+        },
+        120
+      );
+      break;
+
+    case "teacher":
+      activateStudentStudioPage(
+        "classes"
+      );
+      break;
+
+    case "update":
+      activateStudentStudioPage(
+        "overview"
+      );
+
+      window.setTimeout(
+        () => {
+          const updateId =
+            item.payload.updateId;
+
+          const target =
+            document.querySelector(
+              `[data-update-id="${CSS.escape(updateId)}"]`
+            );
+
+          if (target){
+            highlightStudentWorkspaceItem({
+              selector:
+                `[data-update-id="${CSS.escape(updateId)}"]`
+            });
+          }
+        },
+        120
+      );
+      break;
+
+    case "page":
+    default:
+      activateStudentStudioPage(
+        item.page
+      );
+      break;
+  }
+}
+
+function executeStudentSearch(){
+  const input =
+    $("globalSearch");
+
+  if (!input){
+    return;
+  }
+
+  const query =
+    input.value.trim();
+
+  const clearButton =
+    $("studentGlobalSearchClear");
+
+  if (clearButton){
+    clearButton.hidden =
+      query.length === 0;
+  }
+
+  openStudentSearchResults();
+
+  if (!query){
+    studentSearchResults = [];
+    studentSearchActiveIndex = -1;
+
+    renderStudentSearchEmpty();
+
+    return;
+  }
+
+  const results =
+    searchStudentStudio(query);
+
+  renderStudentSearchResults(results);
+}
+
+function handleStudentSearchKeyboard(event){
+  switch(event.key){
+
+    case "ArrowDown":
+      event.preventDefault();
+
+      openStudentSearchResults();
+
+      moveStudentSearchSelection(1);
+      break;
+
+    case "ArrowUp":
+      event.preventDefault();
+
+      openStudentSearchResults();
+
+      moveStudentSearchSelection(-1);
+      break;
+
+    case "Enter":
+      if (
+        studentSearchActiveIndex >= 0
+      ){
+        event.preventDefault();
+
+        activateStudentSearchResult(
+          studentSearchActiveIndex
+        );
+
+        return;
+      }
+
+      if (
+        studentSearchResults.length
+      ){
+        event.preventDefault();
+
+        activateStudentSearchResult(0);
+      }
+      break;
+
+    case "Escape":
+      event.preventDefault();
+
+      closeStudentSearchResults();
+      break;
+  }
+}
+
+function initSearch(){
+  const input =
+    $("globalSearch");
+
+  const clearButton =
+    $("studentGlobalSearchClear");
+
+  const resultContainer =
+    $("studentGlobalSearchResults");
+
+  if (!input || !resultContainer){
+    return;
+  }
+
+  if (
+    input.dataset
+      .studentSearchInitialized ===
+    "true"
+  ){
+    return;
+  }
+
+  input.dataset
+    .studentSearchInitialized =
+    "true";
+
+  renderStudentSearchEmpty();
+
+  input.addEventListener(
+    "focus",
+    () => {
+      openStudentSearchResults();
+
+      if (input.value.trim()){
+        executeStudentSearch();
+      }
+    }
+  );
+
+  input.addEventListener(
+    "input",
+    () => {
+      window.clearTimeout(
+        studentSearchDebounceTimer
+      );
+
+      studentSearchDebounceTimer =
+        window.setTimeout(
+          executeStudentSearch,
+          100
+        );
+    }
+  );
+
+  input.addEventListener(
+    "keydown",
+    handleStudentSearchKeyboard
+  );
+
+  clearButton?.addEventListener(
+    "click",
+    () => {
+      input.value = "";
+
+      clearButton.hidden = true;
+
+      studentSearchResults = [];
+      studentSearchActiveIndex = -1;
+
+      renderStudentSearchEmpty();
+
+      input.focus();
+    }
+  );
+
+  document.addEventListener(
+    "keydown",
+    event => {
+      const target =
+        event.target;
+
+      const isTyping =
+        target instanceof
+          HTMLInputElement ||
+        target instanceof
+          HTMLTextAreaElement ||
+        target?.isContentEditable;
+
+      if (
+        event.key === "/" &&
+        !isTyping
+      ){
+        event.preventDefault();
+
+        input.focus();
+
+        openStudentSearchResults();
+      }
+
+      if (
+        (
+          event.ctrlKey ||
+          event.metaKey
+        ) &&
+        event.key.toLowerCase() === "k"
+      ){
+        event.preventDefault();
+
+        input.focus();
+
+        openStudentSearchResults();
+      }
+    }
+  );
+
+  document.addEventListener(
+    "click",
+    event => {
+      if (
+        !event.target.closest(
+          "#studentGlobalSearch"
+        )
+      ){
+        closeStudentSearchResults();
+      }
+    }
+  );
 }
 
 function initSocket(){
