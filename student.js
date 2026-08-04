@@ -10776,6 +10776,96 @@ function renderAssignmentWorkspaceExistingSubmission(
    HISTORY
 ========================================================= */
 
+
+function getAssignmentHistoryPresentation(
+  item
+){
+  const action =
+    String(
+      item?.action ||
+      item?.status ||
+      "updated"
+    )
+      .trim()
+      .toLowerCase();
+
+  const attempt =
+    Math.max(
+      1,
+      Number(
+        item?.attempt ||
+        item?.attemptNumber ||
+        1
+      )
+    );
+
+  const revision =
+    Math.max(
+      1,
+      Number(
+        item?.revision ||
+        item?.revisionNumber ||
+        1
+      )
+    );
+
+  const presentations = {
+    published:{
+      title:"Assignment published",
+      className:"published"
+    },
+
+    submitted:{
+      title:"Work submitted",
+      className:"submitted"
+    },
+
+    updated:{
+      title:"Submission updated",
+      className:"updated"
+    },
+
+    resubmitted:{
+      title:"Work resubmitted",
+      className:"resubmitted"
+    },
+
+    returned:{
+      title:"Returned for revision",
+      className:"returned"
+    },
+
+    reviewed:{
+      title:"Submission reviewed",
+      className:"reviewed"
+    },
+
+    graded:{
+      title:"Submission graded",
+      className:"graded"
+    },
+
+    locked:{
+      title:"Submission locked",
+      className:"locked"
+    }
+  };
+
+  const presentation =
+    presentations[action] ||
+    presentations.updated;
+
+  const subtitle =
+    action === "published"
+      ? "Assignment activity"
+      : `Attempt ${attempt} • Revision ${revision}`;
+
+  return {
+    ...presentation,
+    subtitle
+  };
+}
+
 function renderAssignmentWorkspaceHistory(
   assignment,
   submission
@@ -10814,64 +10904,178 @@ function renderAssignmentWorkspaceHistory(
     return;
   }
 
-  const events = [
-    {
-      title:"Assignment published",
-      date:
-        assignment?.createdAt,
+  const history =
+    Array.isArray(
+      submission?.submissionHistory
+    )
+      ? submission.submissionHistory
+      : [];
 
-      visible:
-        Boolean(
-          assignment?.createdAt
-        )
-    },
+  const normalizedHistory =
+    history
+      .map((item,index) => ({
+        id:
+          normalizeId(
+            item?._id
+          ) ||
+          `history-${index}`,
 
-    {
-      title:"Work submitted",
+        revision:
+          Math.max(
+            1,
+            Number(
+              item?.revisionNumber ||
+              item?.revision ||
+              index + 1
+            )
+          ),
+
+        attempt:
+          Math.max(
+            1,
+            Number(
+              item?.attemptNumber ||
+              item?.attempt ||
+              1
+            )
+          ),
+
+        action:
+          String(
+            item?.action ||
+            item?.status ||
+            "updated"
+          )
+            .trim()
+            .toLowerCase(),
+
+        status:
+          String(
+            item?.status ||
+            "submitted"
+          )
+            .trim()
+            .toLowerCase(),
+
+        text:
+          String(
+            item?.text || ""
+          ),
+
+        fileUrl:
+          String(
+            item?.fileUrl || ""
+          ),
+
+        grade:
+          item?.grade,
+
+        feedback:
+          String(
+            item?.feedback || ""
+          ),
+
+        date:
+          item?.createdAt ||
+          item?.editedAt ||
+          item?.submittedAt ||
+          null
+      }))
+      .sort(
+        (first,second) =>
+          new Date(
+            second.date || 0
+          ).getTime() -
+          new Date(
+            first.date || 0
+          ).getTime()
+      );
+
+  /*
+    Backward compatibility for submissions created before
+    submissionHistory existed.
+  */
+
+  if (
+    !normalizedHistory.length &&
+    submission
+  ){
+    normalizedHistory.push({
+      id:"legacy-submission",
+      revision:
+        Number(
+          submission?.revisionNumber ||
+          1
+        ),
+      attempt:
+        Number(
+          submission?.attemptNumber ||
+          1
+        ),
+      action:
+        String(
+          submission?.status ||
+          "submitted"
+        ).toLowerCase(),
+      status:
+        String(
+          submission?.status ||
+          "submitted"
+        ).toLowerCase(),
+      text:
+        String(
+          submission?.text || ""
+        ),
+      fileUrl:
+        String(
+          submission?.fileUrl || ""
+        ),
+      grade:
+        submission?.grade,
+      feedback:
+        String(
+          submission?.feedback || ""
+        ),
       date:
         submission?.submittedAt ||
-        submission?.createdAt,
+        submission?.createdAt
+    });
+  }
 
-      visible:
-        Boolean(submission)
-    },
+  const assignmentPublishedItem = {
+    id:"assignment-published",
+    revision:0,
+    attempt:0,
+    action:"published",
+    status:"published",
+    text:"",
+    fileUrl:"",
+    grade:null,
+    feedback:"",
+    date:
+      assignment?.createdAt ||
+      assignment?.publishedAt ||
+      null
+  };
 
-    {
-      title:"Submission reviewed",
-      date:
-        submission?.reviewedAt ||
-        submission?.updatedAt,
+  const timelineItems = [
+    ...normalizedHistory,
+    assignmentPublishedItem
+  ]
+    .filter(item =>
+      item.date
+    )
+    .sort(
+      (first,second) =>
+        new Date(
+          second.date
+        ).getTime() -
+        new Date(
+          first.date
+        ).getTime()
+    );
 
-      visible:
-        Boolean(
-          submission &&
-          (
-            submission?.grade !==
-              undefined &&
-            submission?.grade !==
-              null &&
-            submission?.grade !== ""
-          ||
-            submission?.feedback
-          ||
-            [
-              "reviewed",
-              "graded",
-              "returned"
-            ].includes(
-              String(
-                submission?.status ||
-                ""
-              ).toLowerCase()
-            )
-          )
-        )
-    }
-  ].filter(event =>
-    event.visible
-  );
-
-  if (!events.length){
+  if (!timelineItems.length){
     container.innerHTML = `
       <div class="assignment-workspace-empty">
 
@@ -10887,8 +11091,8 @@ function renderAssignmentWorkspaceHistory(
           </strong>
 
           <p>
-            Activity will appear here after work
-            has been submitted.
+            Activity will appear after work has been
+            submitted or reviewed.
           </p>
 
         </div>
@@ -10900,29 +11104,129 @@ function renderAssignmentWorkspaceHistory(
   }
 
   container.innerHTML =
-    events
-      .map(event => `
-        <div class="assignment-workspace-history-item">
+    timelineItems
+      .map(item => {
+        const presentation =
+          getAssignmentHistoryPresentation(
+            item
+          );
 
-          <strong>
-            ${escapeHtml(
-              event.title
-            )}
-          </strong>
+        return `
+          <article
+            class="
+              assignment-workspace-history-item
+              ${escapeHtml(
+                presentation.className
+              )}
+            "
+          >
 
-          <span>
-            ${escapeHtml(
-              formatDateTime(
-                event.date
-              )
-            )}
-          </span>
+            <div class="assignment-workspace-history-head">
 
-        </div>
-      `)
+              <div>
+
+                <strong>
+                  ${escapeHtml(
+                    presentation.title
+                  )}
+                </strong>
+
+                <span>
+                  ${escapeHtml(
+                    presentation.subtitle
+                  )}
+                </span>
+
+              </div>
+
+              <time
+                datetime="${escapeHtml(
+                  item.date
+                    ? new Date(
+                        item.date
+                      ).toISOString()
+                    : ""
+                )}"
+              >
+                ${escapeHtml(
+                  formatDateTime(
+                    item.date
+                  )
+                )}
+              </time>
+
+            </div>
+
+            ${
+              item.text
+                ? `
+                  <p class="assignment-workspace-history-preview">
+                    ${escapeHtml(
+                      item.text
+                    )}
+                  </p>
+                `
+                : ""
+            }
+
+            ${
+              item.fileUrl
+                ? `
+                  <a
+                    class="assignment-workspace-history-file"
+                    href="${escapeHtml(
+                      item.fileUrl
+                    )}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <i
+                      class="fa-solid fa-paperclip"
+                      aria-hidden="true"
+                    ></i>
+
+                    Open attached file
+                  </a>
+                `
+                : ""
+            }
+
+            ${
+              item.grade !==
+                undefined &&
+              item.grade !==
+                null &&
+              item.grade !== ""
+                ? `
+                  <div class="assignment-workspace-history-grade">
+                    Grade:
+                    <strong>
+                      ${escapeHtml(
+                        item.grade
+                      )}
+                    </strong>
+                  </div>
+                `
+                : ""
+            }
+
+            ${
+              item.feedback
+                ? `
+                  <div class="assignment-workspace-history-feedback">
+                    ${escapeHtml(
+                      item.feedback
+                    )}
+                  </div>
+                `
+                : ""
+            }
+
+          </article>
+        `;
+      })
       .join("");
 }
-
 
 /* =========================================================
    GRADE AND FEEDBACK
