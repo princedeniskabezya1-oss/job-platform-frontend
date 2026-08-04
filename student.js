@@ -7240,6 +7240,1565 @@ function resumeStudentLearning(
   openStudentClass(classId);
 }
 
+/* =========================================================
+   STUDENT ASSIGNMENT CENTER
+========================================================= */
+
+const STUDENT_ASSIGNMENT_VIEW_STORAGE_KEY =
+  "aiftStudentAssignmentView";
+
+let studentAssignmentView =
+  localStorage.getItem(
+    STUDENT_ASSIGNMENT_VIEW_STORAGE_KEY
+  ) === "list"
+    ? "list"
+    : "card";
+
+let activeStudentAssignmentTab =
+  "all";
+
+
+function getAssignmentSubmission(
+  assignment
+){
+  return getSubmissionForAssignment(
+    assignment?._id ||
+    assignment?.id
+  );
+}
+
+
+function getAssignmentDueTime(
+  assignment
+){
+  const dueValue =
+    assignment?.dueDate ||
+    assignment?.deadline;
+
+  if (!dueValue){
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const timestamp =
+    new Date(dueValue).getTime();
+
+  return Number.isFinite(timestamp)
+    ? timestamp
+    : Number.POSITIVE_INFINITY;
+}
+
+
+function isAssignmentGraded(
+  submission
+){
+  if (!submission){
+    return false;
+  }
+
+  const status =
+    String(
+      submission?.status || ""
+    )
+      .trim()
+      .toLowerCase();
+
+  return Boolean(
+    submission?.grade !== undefined &&
+    submission?.grade !== null &&
+    submission?.grade !== ""
+  ) ||
+  Boolean(
+    submission?.feedback
+  ) ||
+  [
+    "graded",
+    "reviewed"
+  ].includes(status);
+}
+
+
+function isAssignmentReturned(
+  submission
+){
+  return String(
+    submission?.status || ""
+  )
+    .trim()
+    .toLowerCase() === "returned";
+}
+
+
+function isAssignmentDueSoon(
+  assignment,
+  submission = null
+){
+  if (submission){
+    return false;
+  }
+
+  const dueTime =
+    getAssignmentDueTime(
+      assignment
+    );
+
+  if (
+    !Number.isFinite(dueTime)
+  ){
+    return false;
+  }
+
+  const now =
+    Date.now();
+
+  const sevenDays =
+    7 * 24 * 60 * 60 * 1000;
+
+  return (
+    dueTime >= now &&
+    dueTime <= now + sevenDays
+  );
+}
+
+
+function isAssignmentLate(
+  assignment,
+  submission = null
+){
+  if (submission){
+    return false;
+  }
+
+  const dueTime =
+    getAssignmentDueTime(
+      assignment
+    );
+
+  return (
+    Number.isFinite(dueTime) &&
+    dueTime < Date.now()
+  );
+}
+
+
+function getStudentAssignmentStatus(
+  assignment
+){
+  const submission =
+    getAssignmentSubmission(
+      assignment
+    );
+
+  if (
+    isAssignmentGraded(
+      submission
+    )
+  ){
+    return "graded";
+  }
+
+  if (
+    isAssignmentReturned(
+      submission
+    )
+  ){
+    return "returned";
+  }
+
+  if (submission){
+    return "submitted";
+  }
+
+  if (
+    isAssignmentLate(
+      assignment,
+      submission
+    )
+  ){
+    return "late";
+  }
+
+  if (
+    isAssignmentDueSoon(
+      assignment,
+      submission
+    )
+  ){
+    return "due-soon";
+  }
+
+  return "pending";
+}
+
+
+function getStudentAssignmentClass(
+  assignment
+){
+  const classId =
+    normalizeId(
+      assignment?.classId?._id ||
+      assignment?.classId
+    );
+
+  const linkedClass =
+    getStudentClasses()
+      .find(classItem =>
+        sameId(
+          classItem?._id ||
+          classItem?.id,
+          classId
+        )
+      );
+
+  return {
+    id:classId,
+
+    title:
+      assignment?.classId?.title ||
+      linkedClass?.title ||
+      assignment?.classTitle ||
+      "General coursework",
+
+    subject:
+      assignment?.classId?.subject ||
+      linkedClass?.subject ||
+      assignment?.subject ||
+      "Coursework",
+
+    code:
+      assignment?.classId?.classCode ||
+      linkedClass?.classCode ||
+      ""
+  };
+}
+
+
+function getStudentAssignmentTeacher(
+  assignment
+){
+  return {
+    name:
+      assignment?.teacherId?.name ||
+      assignment?.teacherName ||
+      "Instructor",
+
+    image:
+      assignment?.teacherId
+        ?.profileImage ||
+      assignment?.teacherId
+        ?.profilePicture ||
+      assignment?.teacherImage ||
+      FALLBACK_AVATAR
+  };
+}
+
+
+function getAssignmentStatusLabel(
+  status
+){
+  const labels = {
+    pending:"Pending",
+    "due-soon":"Due soon",
+    submitted:"Submitted",
+    graded:"Graded",
+    returned:"Returned",
+    late:"Overdue"
+  };
+
+  return (
+    labels[status] ||
+    "Pending"
+  );
+}
+
+
+function getAssignmentStatusIcon(
+  status
+){
+  const icons = {
+    pending:
+      "fa-regular fa-clock",
+
+    "due-soon":
+      "fa-solid fa-hourglass-half",
+
+    submitted:
+      "fa-solid fa-paper-plane",
+
+    graded:
+      "fa-solid fa-circle-check",
+
+    returned:
+      "fa-solid fa-rotate-left",
+
+    late:
+      "fa-solid fa-triangle-exclamation"
+  };
+
+  return (
+    icons[status] ||
+    icons.pending
+  );
+}
+
+
+function getAssignmentDuePresentation(
+  assignment,
+  status
+){
+  const dueValue =
+    assignment?.dueDate ||
+    assignment?.deadline;
+
+  if (!dueValue){
+    return {
+      formatted:"No deadline",
+      relative:"Open deadline",
+      badgeClass:""
+    };
+  }
+
+  const dueTime =
+    new Date(dueValue)
+      .getTime();
+
+  if (
+    !Number.isFinite(dueTime)
+  ){
+    return {
+      formatted:"No deadline",
+      relative:"Open deadline",
+      badgeClass:""
+    };
+  }
+
+  const difference =
+    dueTime - Date.now();
+
+  const absoluteDifference =
+    Math.abs(difference);
+
+  const minute =
+    60 * 1000;
+
+  const hour =
+    60 * minute;
+
+  const day =
+    24 * hour;
+
+  let relative =
+    "Due soon";
+
+  if (difference < 0){
+    if (
+      absoluteDifference < hour
+    ){
+      relative =
+        "Overdue recently";
+    }else if (
+      absoluteDifference < day
+    ){
+      relative =
+        `Overdue by ${
+          Math.max(
+            1,
+            Math.floor(
+              absoluteDifference /
+              hour
+            )
+          )
+        }h`;
+    }else{
+      const days =
+        Math.max(
+          1,
+          Math.floor(
+            absoluteDifference /
+            day
+          )
+        );
+
+      relative =
+        `Overdue by ${days} ${
+          days === 1
+            ? "day"
+            : "days"
+        }`;
+    }
+  }else if (
+    difference < hour
+  ){
+    const minutes =
+      Math.max(
+        1,
+        Math.ceil(
+          difference /
+          minute
+        )
+      );
+
+    relative =
+      `Due in ${minutes} min`;
+  }else if (
+    difference < day
+  ){
+    const hours =
+      Math.max(
+        1,
+        Math.ceil(
+          difference /
+          hour
+        )
+      );
+
+    relative =
+      `Due in ${hours} ${
+        hours === 1
+          ? "hour"
+          : "hours"
+      }`;
+  }else{
+    const days =
+      Math.max(
+        1,
+        Math.ceil(
+          difference /
+          day
+        )
+      );
+
+    relative =
+      `Due in ${days} ${
+        days === 1
+          ? "day"
+          : "days"
+      }`;
+  }
+
+  return {
+    formatted:
+      formatDateTime(
+        dueValue
+      ),
+
+    relative,
+
+    badgeClass:
+      status === "late"
+        ? "overdue"
+        : status === "due-soon"
+          ? "urgent"
+          : ""
+  };
+}
+
+
+function getStudentAssignmentGrade(
+  submission
+){
+  if (
+    !submission ||
+    submission.grade ===
+      undefined ||
+    submission.grade ===
+      null ||
+    submission.grade === ""
+  ){
+    return "";
+  }
+
+  const grade =
+    String(
+      submission.grade
+    ).trim();
+
+  return grade.includes("%")
+    ? grade
+    : `${grade}`;
+}
+
+
+function getStudentAssignmentCounts(
+  assignments
+){
+  const counts = {
+    all:assignments.length,
+    pending:0,
+    dueSoon:0,
+    submitted:0,
+    graded:0,
+    returned:0,
+    late:0
+  };
+
+  assignments.forEach(
+    assignment => {
+      const status =
+        getStudentAssignmentStatus(
+          assignment
+        );
+
+      if (status === "pending"){
+        counts.pending += 1;
+      }
+
+      if (status === "due-soon"){
+        counts.pending += 1;
+        counts.dueSoon += 1;
+      }
+
+      if (status === "submitted"){
+        counts.submitted += 1;
+      }
+
+      if (status === "graded"){
+        counts.graded += 1;
+      }
+
+      if (status === "returned"){
+        counts.returned += 1;
+      }
+
+      if (status === "late"){
+        counts.pending += 1;
+        counts.late += 1;
+      }
+    }
+  );
+
+  return counts;
+}
+
+
+function updateStudentAssignmentSummary(
+  assignments
+){
+  const counts =
+    getStudentAssignmentCounts(
+      assignments
+    );
+
+  setText(
+    "assignmentPendingCount",
+    counts.pending
+  );
+
+  setText(
+    "assignmentDueSoonCount",
+    counts.dueSoon
+  );
+
+  setText(
+    "assignmentSubmittedCount",
+    counts.submitted
+  );
+
+  setText(
+    "assignmentGradedCount",
+    counts.graded
+  );
+
+  setText(
+    "assignmentLateCount",
+    counts.late
+  );
+
+  setText(
+    "assignmentAllTabCount",
+    counts.all
+  );
+
+  setText(
+    "assignmentPendingTabCount",
+    counts.pending
+  );
+
+  setText(
+    "assignmentSubmittedTabCount",
+    counts.submitted
+  );
+
+  setText(
+    "assignmentGradedTabCount",
+    counts.graded
+  );
+
+  setText(
+    "assignmentLateTabCount",
+    counts.late
+  );
+
+  return counts;
+}
+
+
+function hydrateAssignmentClassFilter(
+  assignments
+){
+  const select =
+    $("assignmentSubject");
+
+  if (!select){
+    return;
+  }
+
+  const currentValue =
+    select.value || "all";
+
+  const classMap =
+    new Map();
+
+  assignments.forEach(
+    assignment => {
+      const classInfo =
+        getStudentAssignmentClass(
+          assignment
+        );
+
+      if (!classInfo.id){
+        return;
+      }
+
+      if (
+        !classMap.has(
+          classInfo.id
+        )
+      ){
+        classMap.set(
+          classInfo.id,
+          classInfo.title
+        );
+      }
+    }
+  );
+
+  select.innerHTML = `
+    <option value="all">
+      All classes
+    </option>
+
+    ${
+      Array.from(
+        classMap.entries()
+      )
+        .sort(
+          (
+            first,
+            second
+          ) =>
+            String(
+              first[1]
+            ).localeCompare(
+              String(
+                second[1]
+              )
+            )
+        )
+        .map(
+          ([
+            classId,
+            classTitle
+          ]) => `
+            <option
+              value="${escapeHtml(
+                classId
+              )}"
+            >
+              ${escapeHtml(
+                classTitle
+              )}
+            </option>
+          `
+        )
+        .join("")
+    }
+  `;
+
+  if (
+    classMap.has(currentValue)
+  ){
+    select.value =
+      currentValue;
+  }else{
+    select.value =
+      "all";
+  }
+}
+
+
+function getFilteredStudentAssignments(
+  assignments
+){
+  const keyword =
+    String(
+      $("assignmentSearch")
+        ?.value || ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const selectedStatus =
+    $("assignmentStatus")
+      ?.value ||
+    activeStudentAssignmentTab ||
+    "all";
+
+  const selectedClass =
+    $("assignmentSubject")
+      ?.value || "all";
+
+  const sort =
+    $("assignmentSort")
+      ?.value || "due-asc";
+
+  let filtered =
+    [...assignments];
+
+  if (keyword){
+    filtered =
+      filtered.filter(
+        assignment => {
+          const classInfo =
+            getStudentAssignmentClass(
+              assignment
+            );
+
+          const teacher =
+            getStudentAssignmentTeacher(
+              assignment
+            );
+
+          const searchableText = [
+            assignment?.title,
+            assignment?.description,
+            assignment?.instructions,
+            classInfo.title,
+            classInfo.subject,
+            classInfo.code,
+            teacher.name
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+          return searchableText
+            .includes(keyword);
+        }
+      );
+  }
+
+  if (
+    selectedClass !== "all"
+  ){
+    filtered =
+      filtered.filter(
+        assignment =>
+          sameId(
+            assignment
+              ?.classId?._id ||
+            assignment
+              ?.classId,
+            selectedClass
+          )
+      );
+  }
+
+  if (
+    selectedStatus !== "all"
+  ){
+    filtered =
+      filtered.filter(
+        assignment => {
+          const status =
+            getStudentAssignmentStatus(
+              assignment
+            );
+
+          if (
+            selectedStatus ===
+              "pending"
+          ){
+            return [
+              "pending",
+              "due-soon",
+              "late"
+            ].includes(status);
+          }
+
+          return (
+            status ===
+            selectedStatus
+          );
+        }
+      );
+  }
+
+  switch(sort){
+
+    case "due-desc":
+      filtered.sort(
+        (
+          first,
+          second
+        ) =>
+          getAssignmentDueTime(
+            second
+          ) -
+          getAssignmentDueTime(
+            first
+          )
+      );
+      break;
+
+    case "created-desc":
+      filtered.sort(
+        (
+          first,
+          second
+        ) =>
+          new Date(
+            second?.createdAt || 0
+          ).getTime() -
+          new Date(
+            first?.createdAt || 0
+          ).getTime()
+      );
+      break;
+
+    case "title-asc":
+      filtered.sort(
+        (
+          first,
+          second
+        ) =>
+          String(
+            first?.title || ""
+          ).localeCompare(
+            String(
+              second?.title || ""
+            )
+          )
+      );
+      break;
+
+    case "status":
+      filtered.sort(
+        (
+          first,
+          second
+        ) =>
+          getStudentAssignmentStatus(
+            first
+          ).localeCompare(
+            getStudentAssignmentStatus(
+              second
+            )
+          )
+      );
+      break;
+
+    case "due-asc":
+    default:
+      filtered.sort(
+        (
+          first,
+          second
+        ) =>
+          getAssignmentDueTime(
+            first
+          ) -
+          getAssignmentDueTime(
+            second
+          )
+      );
+      break;
+  }
+
+  return {
+    filtered,
+    keyword,
+    selectedStatus,
+    selectedClass,
+    sort
+  };
+}
+
+
+function updateStudentAssignmentResultsBar({
+  count,
+  keyword,
+  selectedStatus,
+  selectedClass,
+  sort
+}){
+  const countElement =
+    $("studentAssignmentResultCount");
+
+  const descriptionElement =
+    $("studentAssignmentResultDescription");
+
+  const resetButton =
+    $("resetAssignmentFiltersButton");
+
+  const clearButton =
+    $("clearAssignmentSearchButton");
+
+  if (countElement){
+    countElement.textContent =
+      `${count} ${
+        count === 1
+          ? "assignment"
+          : "assignments"
+      }`;
+  }
+
+  if (descriptionElement){
+    if (keyword){
+      descriptionElement.textContent =
+        `Results for “${keyword}”`;
+    }else if (
+      selectedStatus !== "all"
+    ){
+      descriptionElement.textContent =
+        `Showing ${
+          getAssignmentStatusLabel(
+            selectedStatus
+          )
+        } coursework`;
+    }else if (
+      selectedClass !== "all"
+    ){
+      descriptionElement.textContent =
+        "Showing assignments for the selected class";
+    }else{
+      descriptionElement.textContent =
+        "Showing all coursework";
+    }
+  }
+
+  if (resetButton){
+    resetButton.hidden =
+      !keyword &&
+      selectedStatus === "all" &&
+      selectedClass === "all" &&
+      sort === "due-asc";
+  }
+
+  if (clearButton){
+    clearButton.hidden =
+      !keyword;
+  }
+}
+
+
+function updateStudentAssignmentViewButtons(){
+  const cardButton =
+    $("assignmentCardViewButton");
+
+  const listButton =
+    $("assignmentListViewButton");
+
+  const cardActive =
+    studentAssignmentView ===
+      "card";
+
+  cardButton?.classList.toggle(
+    "active",
+    cardActive
+  );
+
+  listButton?.classList.toggle(
+    "active",
+    !cardActive
+  );
+
+  cardButton?.setAttribute(
+    "aria-pressed",
+    String(cardActive)
+  );
+
+  listButton?.setAttribute(
+    "aria-pressed",
+    String(!cardActive)
+  );
+}
+
+
+function updateStudentAssignmentTabs(
+  selectedStatus
+){
+  document
+    .querySelectorAll(
+      "[data-assignment-tab]"
+    )
+    .forEach(button => {
+      const active =
+        button.dataset
+          .assignmentTab ===
+        selectedStatus;
+
+      button.classList.toggle(
+        "active",
+        active
+      );
+
+      button.setAttribute(
+        "aria-pressed",
+        String(active)
+      );
+    });
+
+  document
+    .querySelectorAll(
+      "[data-assignment-summary-filter]"
+    )
+    .forEach(card => {
+      const cardStatus =
+        card.dataset
+          .assignmentSummaryFilter;
+
+      const active =
+        cardStatus ===
+        selectedStatus;
+
+      card.classList.toggle(
+        "active",
+        active
+      );
+    });
+}
+
+
+function createStudentAssignmentCard(
+  assignment
+){
+  const assignmentId =
+    normalizeId(
+      assignment?._id ||
+      assignment?.id
+    );
+
+  const submission =
+    getAssignmentSubmission(
+      assignment
+    );
+
+  const status =
+    getStudentAssignmentStatus(
+      assignment
+    );
+
+  const classInfo =
+    getStudentAssignmentClass(
+      assignment
+    );
+
+  const teacher =
+    getStudentAssignmentTeacher(
+      assignment
+    );
+
+  const due =
+    getAssignmentDuePresentation(
+      assignment,
+      status
+    );
+
+  const grade =
+    getStudentAssignmentGrade(
+      submission
+    );
+
+  const description =
+    assignment?.instructions ||
+    assignment?.description ||
+    "No assignment instructions have been added.";
+
+  const feedback =
+    String(
+      submission?.feedback || ""
+    ).trim();
+
+  const attachment =
+    assignment?.attachmentUrl ||
+    assignment?.fileUrl ||
+    "";
+
+  const submittedAt =
+    submission?.submittedAt ||
+    submission?.createdAt;
+
+  const canSubmit =
+    ![
+      "submitted",
+      "graded"
+    ].includes(status);
+
+  return `
+    <article
+      class="student-assignment-card ${escapeHtml(
+        status
+      )}"
+      data-assignment-id="${escapeHtml(
+        assignmentId
+      )}"
+      data-assignment-status="${escapeHtml(
+        status
+      )}"
+    >
+
+      <header class="student-assignment-card-head">
+
+        <div class="student-assignment-card-title">
+
+          <span class="student-assignment-class-label">
+
+            ${escapeHtml(
+              classInfo.subject
+            )}
+
+            ${
+              classInfo.code
+                ? ` • ${escapeHtml(
+                    classInfo.code
+                  )}`
+                : ""
+            }
+
+          </span>
+
+          <h3>
+            ${escapeHtml(
+              assignment?.title ||
+              "Untitled assignment"
+            )}
+          </h3>
+
+        </div>
+
+        <button
+          class="student-assignment-menu"
+          type="button"
+          data-assignment-menu="${escapeHtml(
+            assignmentId
+          )}"
+          aria-label="Open assignment actions"
+        >
+          <i
+            class="fa-solid fa-ellipsis"
+            aria-hidden="true"
+          ></i>
+        </button>
+
+      </header>
+
+
+      <div class="student-assignment-card-body">
+
+        <p class="student-assignment-description">
+          ${escapeHtml(description)}
+        </p>
+
+
+        <div class="student-assignment-status-row">
+
+          <span
+            class="student-assignment-status ${escapeHtml(
+              status
+            )}"
+          >
+            <i
+              class="${escapeHtml(
+                getAssignmentStatusIcon(
+                  status
+                )
+              )}"
+              aria-hidden="true"
+            ></i>
+
+            ${escapeHtml(
+              getAssignmentStatusLabel(
+                status
+              )
+            )}
+          </span>
+
+          ${
+            grade
+              ? `
+                <strong class="student-assignment-grade">
+                  Grade: ${escapeHtml(
+                    grade
+                  )}
+                </strong>
+              `
+              : ""
+          }
+
+        </div>
+
+
+        <div class="student-assignment-meta">
+
+          <div class="student-assignment-meta-item">
+
+            <i
+              class="fa-solid fa-graduation-cap"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              ${escapeHtml(
+                classInfo.title
+              )}
+            </span>
+
+          </div>
+
+          <div class="student-assignment-meta-item">
+
+            <i
+              class="fa-solid fa-user"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              ${escapeHtml(
+                teacher.name
+              )}
+            </span>
+
+          </div>
+
+          ${
+            submittedAt
+              ? `
+                <div class="student-assignment-meta-item">
+
+                  <i
+                    class="fa-solid fa-paper-plane"
+                    aria-hidden="true"
+                  ></i>
+
+                  <span>
+                    Submitted ${
+                      formatDateTime(
+                        submittedAt
+                      )
+                    }
+                  </span>
+
+                </div>
+              `
+              : ""
+          }
+
+        </div>
+
+
+        <div class="student-assignment-due">
+
+          <div class="student-assignment-due-copy">
+
+            <span>
+              Deadline
+            </span>
+
+            <strong>
+              ${escapeHtml(
+                due.formatted
+              )}
+            </strong>
+
+          </div>
+
+          <span
+            class="student-assignment-due-badge ${escapeHtml(
+              due.badgeClass
+            )}"
+          >
+            ${escapeHtml(
+              due.relative
+            )}
+          </span>
+
+        </div>
+
+
+        ${
+          feedback
+            ? `
+              <div class="student-assignment-feedback">
+
+                <strong>
+                  Teacher feedback
+                </strong>
+
+                <p>
+                  ${escapeHtml(
+                    feedback
+                  )}
+                </p>
+
+              </div>
+            `
+            : ""
+        }
+
+      </div>
+
+
+      <footer class="student-assignment-card-actions">
+
+        ${
+          attachment
+            ? `
+              <a
+                class="ghost-btn"
+                href="${escapeHtml(
+                  attachment
+                )}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <i
+                  class="fa-solid fa-paperclip"
+                  aria-hidden="true"
+                ></i>
+
+                Attachment
+              </a>
+            `
+            : `
+              <button
+                class="ghost-btn"
+                type="button"
+                data-view-assignment="${escapeHtml(
+                  assignmentId
+                )}"
+              >
+                <i
+                  class="fa-solid fa-eye"
+                  aria-hidden="true"
+                ></i>
+
+                View details
+              </button>
+            `
+        }
+
+        ${
+          canSubmit
+            ? `
+              <button
+                class="primary-btn"
+                type="button"
+                data-submit-assignment="${escapeHtml(
+                  assignmentId
+                )}"
+              >
+                <i
+                  class="fa-solid fa-cloud-arrow-up"
+                  aria-hidden="true"
+                ></i>
+
+                ${
+                  status === "returned"
+                    ? "Resubmit"
+                    : "Submit work"
+                }
+              </button>
+            `
+            : `
+              <button
+                class="primary-btn"
+                type="button"
+                data-review-submission="${escapeHtml(
+                  assignmentId
+                )}"
+              >
+                <i
+                  class="fa-solid fa-file-circle-check"
+                  aria-hidden="true"
+                ></i>
+
+                Review work
+              </button>
+            `
+        }
+
+      </footer>
+
+    </article>
+  `;
+}
+
+
+function createEmptyAssignmentWorkspace(){
+  return `
+    <div class="studio-widget-empty">
+
+      <div class="studio-widget-empty-icon">
+
+        <i
+          class="fa-solid fa-clipboard-check"
+          aria-hidden="true"
+        ></i>
+
+      </div>
+
+      <strong>
+        No assignments yet
+      </strong>
+
+      <p>
+        Coursework assigned by your teachers will appear
+        here automatically.
+      </p>
+
+      <button
+        class="primary-btn"
+        type="button"
+        data-open-studio-page="classes"
+      >
+        View my classes
+      </button>
+
+    </div>
+  `;
+}
+
+
+function createNoMatchingAssignmentsWorkspace(){
+  return `
+    <div class="studio-widget-empty">
+
+      <div class="studio-widget-empty-icon">
+
+        <i
+          class="fa-solid fa-magnifying-glass"
+          aria-hidden="true"
+        ></i>
+
+      </div>
+
+      <strong>
+        No matching assignments
+      </strong>
+
+      <p>
+        Try changing your search, status, class,
+        or sorting options.
+      </p>
+
+      <button
+        id="emptyAssignmentsResetButton"
+        class="primary-btn"
+        type="button"
+      >
+        Reset filters
+      </button>
+
+    </div>
+  `;
+}
+
+
+function renderAssignments(){
+  const container =
+    $("assignmentsList");
+
+  if (!container){
+    return;
+  }
+
+  const assignments =
+    getStudentAssignments();
+
+  hydrateAssignmentClassFilter(
+    assignments
+  );
+
+  updateStudentAssignmentSummary(
+    assignments
+  );
+
+  container.setAttribute(
+    "aria-busy",
+    "false"
+  );
+
+  container.classList.toggle(
+    "is-card-view",
+    studentAssignmentView ===
+      "card"
+  );
+
+  container.classList.toggle(
+    "is-list-view",
+    studentAssignmentView ===
+      "list"
+  );
+
+  updateStudentAssignmentViewButtons();
+
+  if (!assignments.length){
+    updateStudentAssignmentResultsBar({
+      count:0,
+      keyword:"",
+      selectedStatus:"all",
+      selectedClass:"all",
+      sort:"due-asc"
+    });
+
+    updateStudentAssignmentTabs(
+      "all"
+    );
+
+    container.innerHTML =
+      createEmptyAssignmentWorkspace();
+
+    return;
+  }
+
+  const {
+    filtered,
+    keyword,
+    selectedStatus,
+    selectedClass,
+    sort
+  } =
+    getFilteredStudentAssignments(
+      assignments
+    );
+
+  updateStudentAssignmentTabs(
+    selectedStatus
+  );
+
+  updateStudentAssignmentResultsBar({
+    count:filtered.length,
+    keyword,
+    selectedStatus,
+    selectedClass,
+    sort
+  });
+
+  if (!filtered.length){
+    container.innerHTML =
+      createNoMatchingAssignmentsWorkspace();
+
+    return;
+  }
+
+  container.innerHTML =
+    filtered
+      .map(
+        createStudentAssignmentCard
+      )
+      .join("");
+}
+
 function renderSchedule(){
   const container = $("scheduleList");
   if (!container) return;
