@@ -4056,6 +4056,57 @@ return;
         Continue or open class
       */
 
+
+      /*
+====================================================
+OPEN CLASS
+====================================================
+*/
+
+const openClass =
+target.closest(
+"[data-open-class]"
+);
+
+if(openClass){
+
+event.preventDefault();
+
+openStudentClass(
+
+openClass.dataset.openClass
+
+);
+
+return;
+
+}
+
+/*
+====================================================
+CONTINUE CLASS
+====================================================
+*/
+
+const continueClass =
+target.closest(
+"[data-continue-class]"
+);
+
+if(continueClass){
+
+event.preventDefault();
+
+resumeStudentLearning(
+
+continueClass.dataset.continueClass
+
+);
+
+return;
+
+}
+
       const classButton =
         target.closest(
           "[data-studio-open-class]"
@@ -4987,33 +5038,125 @@ function createStudentClassCard(cls){
     const teacher =
         cls.teacherId?.name ||
         cls.teacherName ||
-        "Teacher";
+        "Instructor";
 
-    const progress =
-        Number(cls.progress||0);
+    const teacherImage =
+        cls.teacherId?.profilePicture ||
+        cls.teacherId?.profileImage ||
+        cls.teacherImage ||
+        DEFAULT_AVATAR;
 
     const cover =
         cls.coverImage ||
         cls.bannerImage ||
-        CLASS_FALLBACK;
+        cls.thumbnail ||
+        cls.image ||
+        FALLBACK_COVER;
+
+    const progress =
+        Math.max(
+            0,
+            Math.min(
+                100,
+                Number(
+                    cls.progress ||
+                    cls.completion ||
+                    0
+                )
+            )
+        );
+
+    const lessons =
+        Number(
+            cls.lessonCount ||
+            cls.lessons ||
+            0
+        );
+
+    const assignments =
+        Number(
+            cls.assignmentCount ||
+            cls.assignments ||
+            0
+        );
+
+    const students =
+        Number(
+            cls.studentCount ||
+            cls.students ||
+            0
+        );
+
+    const classId =
+        normalizeId(
+            cls._id ||
+            cls.id
+        );
 
     return `
 
 <article
 class="student-class-card"
-data-class-id="${escapeHtml(normalizeId(cls._id))}"
+data-class-id="${classId}"
 >
 
 <div
 class="student-class-cover"
-style="background-image:url('${cover}')"
+style="
+background-image:url('${escapeHtml(cover)}')
+"
 >
 
-<div class="student-class-overlay">
+<div class="student-class-cover-gradient"></div>
 
-<span class="student-class-chip">
+<div class="student-class-top">
 
-${escapeHtml(cls.subject||"Course")}
+<span class="student-class-subject">
+
+${escapeHtml(
+cls.subject ||
+"Course"
+)}
+
+</span>
+
+<button
+class="student-class-menu"
+data-class-menu="${classId}"
+>
+
+<i class="fa-solid fa-ellipsis"></i>
+
+</button>
+
+</div>
+
+<div class="student-class-bottom">
+
+<div class="student-class-progress-circle">
+
+<svg viewBox="0 0 36 36">
+
+<path
+class="circle-bg"
+d="M18 2
+a16 16 0 0 1 0 32
+a16 16 0 0 1 0-32"
+/>
+
+<path
+class="circle-fill"
+stroke-dasharray="${progress},100"
+d="M18 2
+a16 16 0 0 1 0 32
+a16 16 0 0 1 0-32"
+/>
+
+</svg>
+
+<span>
+
+${progress}%
 
 </span>
 
@@ -5021,35 +5164,94 @@ ${escapeHtml(cls.subject||"Course")}
 
 </div>
 
-<div class="student-class-body">
+</div>
+
+<div class="student-class-content">
 
 <h3>
 
-${escapeHtml(cls.title)}
+${escapeHtml(
+cls.title ||
+"Untitled Class"
+)}
 
 </h3>
 
 <p>
 
-${escapeHtml(cls.description||"No class description yet.")}
+${escapeHtml(
+cls.description ||
+"No description available."
+)}
 
 </p>
 
-<div class="student-class-meta">
+<div class="student-class-teacher">
+
+<img
+src="${escapeHtml(teacherImage)}"
+loading="lazy"
+>
 
 <div>
 
-<i class="fa-solid fa-user"></i>
+<strong>
 
 ${escapeHtml(teacher)}
+
+</strong>
+
+<span>
+
+Instructor
+
+</span>
+
+</div>
+
+</div>
+
+<div class="student-class-stats">
+
+<div>
+
+<i class="fa-solid fa-book"></i>
+
+<span>
+
+${lessons}
+
+Lessons
+
+</span>
 
 </div>
 
 <div>
 
-<i class="fa-solid fa-calendar"></i>
+<i class="fa-solid fa-file-lines"></i>
 
-${escapeHtml(cls.schedule||"Self paced")}
+<span>
+
+${assignments}
+
+Assignments
+
+</span>
+
+</div>
+
+<div>
+
+<i class="fa-solid fa-users"></i>
+
+<span>
+
+${students}
+
+Students
+
+</span>
 
 </div>
 
@@ -5061,16 +5263,28 @@ ${escapeHtml(cls.schedule||"Self paced")}
 
 <div
 class="progress-fill"
-style="width:${progress}%"
+style="
+width:${progress}%;
+"
 ></div>
 
 </div>
 
+<div class="student-class-progress-info">
+
 <span>
 
-${progress}% complete
+Progress
 
 </span>
+
+<strong>
+
+${progress}%
+
+</strong>
+
+</div>
 
 </div>
 
@@ -5078,39 +5292,25 @@ ${progress}% complete
 
 <button
 class="ghost-btn"
-onclick="openStudentClass('${cls._id}')"
+data-open-class="${classId}"
 >
+
+<i class="fa-solid fa-door-open"></i>
 
 Open Class
 
 </button>
 
-${
-cls.meetingLink
-?
-
-`<a
+<button
 class="primary-btn"
-target="_blank"
-href="${cls.meetingLink}"
+data-continue-class="${classId}"
 >
 
-Join Live
-
-</a>`
-
-:
-
-`<button
-class="primary-btn"
-onclick="resumeStudentLearning()"
->
+<i class="fa-solid fa-play"></i>
 
 Continue
 
-</button>`
-
-}
+</button>
 
 </div>
 
