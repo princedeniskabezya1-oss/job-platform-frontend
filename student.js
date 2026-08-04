@@ -3990,6 +3990,25 @@ function openStudentSearchResults(){
     return;
   }
 
+  const query =
+    input.value.trim();
+
+  /*
+    Never display the panel for an empty search.
+  */
+
+  if (!query){
+    results.hidden = true;
+    results.innerHTML = "";
+
+    input.setAttribute(
+      "aria-expanded",
+      "false"
+    );
+
+    return;
+  }
+
   results.hidden = false;
 
   input.setAttribute(
@@ -4352,41 +4371,59 @@ function handleStudentSearchKeyboard(event){
   }
 }
 
+
 function initSearch(){
   const input =
     $("globalSearch");
 
-const resultContainer =
-  $("studentGlobalSearchResults");
+  const resultContainer =
+    $("studentGlobalSearchResults");
 
-if (!input || !resultContainer){
-  return;
-}
+  if (!input || !resultContainer){
+    return;
+  }
 
   if (
-    input.dataset
-      .studentSearchInitialized ===
+    input.dataset.studentSearchInitialized ===
     "true"
   ){
     return;
   }
 
-  input.dataset
-    .studentSearchInitialized =
+  input.dataset.studentSearchInitialized =
     "true";
 
-  renderStudentSearchEmpty();
+  /*
+    The search panel must always begin closed.
+  */
 
-input.addEventListener(
-  "focus",
-  () => {
-    if (input.value.trim()){
+  input.value = "";
+
+  studentSearchResults = [];
+  studentSearchActiveIndex = -1;
+
+  resultContainer.hidden = true;
+  resultContainer.innerHTML = "";
+
+  input.setAttribute(
+    "aria-expanded",
+    "false"
+  );
+
+  input.addEventListener(
+    "focus",
+    () => {
+      const query =
+        input.value.trim();
+
+      if (!query){
+        closeStudentSearchResults();
+        return;
+      }
+
       executeStudentSearch();
-    }else{
-      closeStudentSearchResults();
     }
-  }
-);
+  );
 
   input.addEventListener(
     "input",
@@ -4395,57 +4432,50 @@ input.addEventListener(
         studentSearchDebounceTimer
       );
 
+      const query =
+        input.value.trim();
+
+      if (!query){
+        studentSearchResults = [];
+        studentSearchActiveIndex = -1;
+
+        resultContainer.innerHTML = "";
+
+        closeStudentSearchResults();
+
+        return;
+      }
+
       studentSearchDebounceTimer =
         window.setTimeout(
           executeStudentSearch,
-          100
+          120
         );
     }
   );
 
   input.addEventListener(
     "keydown",
-    handleStudentSearchKeyboard
-  );
-
-
-  document.addEventListener(
-    "keydown",
     event => {
-      const target =
-        event.target;
+      const query =
+        input.value.trim();
 
-      const isTyping =
-        target instanceof
-          HTMLInputElement ||
-        target instanceof
-          HTMLTextAreaElement ||
-        target?.isContentEditable;
+      if (!query){
+        if (
+          event.key === "ArrowDown" ||
+          event.key === "ArrowUp" ||
+          event.key === "Enter" ||
+          event.key === "Escape"
+        ){
+          closeStudentSearchResults();
+        }
 
-      if (
-        event.key === "/" &&
-        !isTyping
-      ){
-        event.preventDefault();
-
-        input.focus();
-
-        openStudentSearchResults();
+        return;
       }
 
-      if (
-        (
-          event.ctrlKey ||
-          event.metaKey
-        ) &&
-        event.key.toLowerCase() === "k"
-      ){
-        event.preventDefault();
-
-        input.focus();
-
-        openStudentSearchResults();
-      }
+      handleStudentSearchKeyboard(
+        event
+      );
     }
   );
 
@@ -4457,6 +4487,16 @@ input.addEventListener(
           "#studentGlobalSearch"
         )
       ){
+        closeStudentSearchResults();
+      }
+    }
+  );
+
+  window.addEventListener(
+    "pageshow",
+    () => {
+      if (!input.value.trim()){
+        resultContainer.innerHTML = "";
         closeStudentSearchResults();
       }
     }
