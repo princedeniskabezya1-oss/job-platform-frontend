@@ -654,11 +654,54 @@ function notifyAIFTInfo(
 }
 
 function openModal(id){
-  $(id)?.classList.add("show");
+  const modal =
+    $(id);
+
+  if (!modal){
+    return;
+  }
+
+  modal.classList.add(
+    "show"
+  );
+
+  modal.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+  document.body.classList.add(
+    "student-studio-menu-open"
+  );
 }
 
+
 function closeModal(id){
-  $(id)?.classList.remove("show");
+  const modal =
+    $(id);
+
+  if (!modal){
+    return;
+  }
+
+  modal.classList.remove(
+    "show"
+  );
+
+  modal.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  if (
+    !document.querySelector(
+      ".modal.show"
+    )
+  ){
+    document.body.classList.remove(
+      "student-studio-menu-open"
+    );
+  }
 }
 
 /* =========================================================
@@ -9521,69 +9564,1781 @@ function renderDeadlines(){
   }).join("");
 }
 
-function hydrateSubmissionSelect(){
-  const select = $("submissionAssignmentId");
-  if (!select) return;
+/* =========================================================
+   ASSIGNMENT SUBMISSION WORKSPACE CONTROLLER
+========================================================= */
 
-  const assignments = getStudentAssignments();
+let assignmentWorkspaceControlsBound =
+  false;
 
-  select.innerHTML =
-    `<option value="">Select assignment</option>` +
-    assignments.map(item => `
-      <option value="${item._id}">
-        ${escapeHtml(item.title || "Assignment")}
-      </option>
-    `).join("");
+let assignmentWorkspaceSubmitting =
+  false;
+
+
+/* =========================================================
+   ASSIGNMENT SELECT
+========================================================= */
+
+function hydrateSubmissionSelect(
+  preferredAssignmentId = ""
+){
+  const select =
+    $("submissionAssignmentId");
+
+  if (!select){
+    return;
+  }
+
+  const assignments =
+    getStudentAssignments();
+
+  const currentValue =
+    normalizeId(
+      preferredAssignmentId ||
+      select.value
+    );
+
+  select.innerHTML = `
+    <option value="">
+      Select assignment
+    </option>
+
+    ${
+      assignments
+        .map(assignment => {
+          const assignmentId =
+            normalizeId(
+              assignment?._id ||
+              assignment?.id
+            );
+
+          const classInfo =
+            getStudentAssignmentClass(
+              assignment
+            );
+
+          const status =
+            getStudentAssignmentStatus(
+              assignment
+            );
+
+          return `
+            <option
+              value="${escapeHtml(
+                assignmentId
+              )}"
+            >
+              ${escapeHtml(
+                assignment?.title ||
+                "Untitled assignment"
+              )}
+              ${
+                classInfo.title
+                  ? ` — ${escapeHtml(
+                      classInfo.title
+                    )}`
+                  : ""
+              }
+              (${escapeHtml(
+                getAssignmentStatusLabel(
+                  status
+                )
+              )})
+            </option>
+          `;
+        })
+        .join("")
+    }
+  `;
+
+  const assignmentExists =
+    assignments.some(assignment =>
+      sameId(
+        assignment?._id ||
+        assignment?.id,
+        currentValue
+      )
+    );
+
+  select.value =
+    assignmentExists
+      ? currentValue
+      : "";
 }
 
-function openSubmissionModal(assignmentId = ""){
-  if ($("submissionAssignmentId")) {
-    $("submissionAssignmentId").value = assignmentId;
+
+/* =========================================================
+   WORKSPACE ELEMENT HELPERS
+========================================================= */
+
+function setAssignmentWorkspaceSaveStatus(
+  status = "ready",
+  text = "Ready"
+){
+  const element =
+    $("assignmentWorkspaceSaveStatus");
+
+  if (!element){
+    return;
   }
 
-  const oldSubmission = assignmentId
-    ? getSubmissionForAssignment(assignmentId)
-    : null;
+  element.classList.remove(
+    "saving",
+    "error"
+  );
 
-  if ($("submissionText")) {
-    $("submissionText").value = oldSubmission?.text || "";
+  if (
+    status === "saving" ||
+    status === "error"
+  ){
+    element.classList.add(
+      status
+    );
   }
 
-  if ($("submissionFile")) {
-    $("submissionFile").value = oldSubmission?.fileUrl || "";
-  }
+  const icon =
+    status === "saving"
+      ? "fa-solid fa-spinner fa-spin"
+      : status === "error"
+        ? "fa-solid fa-circle-exclamation"
+        : "fa-regular fa-circle-check";
 
-  openModal("submissionModal");
+  element.innerHTML = `
+    <i
+      class="${icon}"
+      aria-hidden="true"
+    ></i>
+
+    <span>
+      ${escapeHtml(text)}
+    </span>
+  `;
 }
 
-async function submitAssignmentWork(){
-  const assignmentId = $("submissionAssignmentId")?.value;
-  const text = $("submissionText")?.value.trim();
-  const fileUrl = $("submissionFile")?.value.trim();
 
-  if (!assignmentId){
-    return showAlert("error","Please select an assignment.");
+function updateAssignmentWorkspaceCharacterCount(){
+  const textarea =
+    $("submissionText");
+
+  const counter =
+    $("assignmentWorkspaceCharacterCount");
+
+  if (
+    !textarea ||
+    !counter
+  ){
+    return;
   }
 
-  if (!text && !fileUrl){
-    return showAlert("error","Write your answer or add a file URL.");
+  const count =
+    textarea.value.length;
+
+  counter.textContent =
+    `${count.toLocaleString()} ${
+      count === 1
+        ? "character"
+        : "characters"
+    }`;
+}
+
+
+function isValidSubmissionUrl(
+  value
+){
+  const url =
+    String(value || "")
+      .trim();
+
+  if (!url){
+    return false;
   }
 
   try{
-    await apiSend("/api/submissions","POST",{
-      assignmentId,
-      text,
+    const parsed =
+      new URL(url);
+
+    return [
+      "http:",
+      "https:"
+    ].includes(
+      parsed.protocol
+    );
+  }catch{
+    return false;
+  }
+}
+
+
+/* =========================================================
+   FILE LINK PREVIEW
+========================================================= */
+
+function renderAssignmentWorkspaceFilePreview(){
+  const input =
+    $("submissionFile");
+
+  const preview =
+    $("assignmentWorkspaceFilePreview");
+
+  if (
+    !input ||
+    !preview
+  ){
+    return;
+  }
+
+  const fileUrl =
+    input.value.trim();
+
+  if (!fileUrl){
+    preview.hidden = true;
+    preview.innerHTML = "";
+
+    return;
+  }
+
+  if (
+    !isValidSubmissionUrl(
       fileUrl
+    )
+  ){
+    preview.hidden = false;
+
+    preview.innerHTML = `
+      <div class="assignment-workspace-resource-item">
+
+        <span class="assignment-workspace-resource-icon">
+
+          <i
+            class="fa-solid fa-triangle-exclamation"
+            aria-hidden="true"
+          ></i>
+
+        </span>
+
+        <span class="assignment-workspace-resource-copy">
+
+          <strong>
+            Invalid file link
+          </strong>
+
+          <span>
+            Enter a complete link beginning with
+            http:// or https://
+          </span>
+
+        </span>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  let host =
+    "External file";
+
+  try{
+    host =
+      new URL(fileUrl)
+        .hostname
+        .replace(/^www\./,"");
+  }catch{
+    host =
+      "External file";
+  }
+
+  preview.hidden = false;
+
+  preview.innerHTML = `
+    <div class="assignment-workspace-resource-item">
+
+      <span class="assignment-workspace-resource-icon">
+
+        <i
+          class="fa-solid fa-link"
+          aria-hidden="true"
+        ></i>
+
+      </span>
+
+      <span class="assignment-workspace-resource-copy">
+
+        <strong>
+          Submission file
+        </strong>
+
+        <span>
+          ${escapeHtml(host)}
+        </span>
+
+      </span>
+
+      <a
+        href="${escapeHtml(fileUrl)}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Preview
+      </a>
+
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   EMPTY WORKSPACE
+========================================================= */
+
+function renderEmptyAssignmentWorkspace(){
+  setText(
+    "assignmentWorkspaceTitle",
+    "Submit Assignment"
+  );
+
+  setText(
+    "assignmentWorkspaceDescription",
+    "Choose an assignment to begin preparing your submission."
+  );
+
+  const statusBadge =
+    $("assignmentWorkspaceStatusBadge");
+
+  if (statusBadge){
+    statusBadge.className =
+      "assignment-workspace-status pending";
+
+    statusBadge.textContent =
+      "Pending";
+  }
+
+  const summary =
+    $("assignmentWorkspaceAssignmentSummary");
+
+  if (summary){
+    summary.innerHTML = `
+      <div class="assignment-workspace-placeholder-icon">
+
+        <i
+          class="fa-solid fa-clipboard-list"
+          aria-hidden="true"
+        ></i>
+
+      </div>
+
+      <div>
+
+        <strong>
+          Choose an assignment
+        </strong>
+
+        <p>
+          The class, teacher, deadline, and status
+          will appear here.
+        </p>
+
+      </div>
+    `;
+  }
+
+  const instructions =
+    $("assignmentWorkspaceInstructions");
+
+  if (instructions){
+    instructions.innerHTML = `
+      <p>
+        Select an assignment to review its instructions.
+      </p>
+    `;
+  }
+
+  const resources =
+    $("assignmentWorkspaceResources");
+
+  if (resources){
+    resources.innerHTML = `
+      <div class="assignment-workspace-empty compact">
+
+        <i
+          class="fa-solid fa-paperclip"
+          aria-hidden="true"
+        ></i>
+
+        <span>
+          No assignment resources selected.
+        </span>
+
+      </div>
+    `;
+  }
+
+  const existingPanel =
+    $("assignmentWorkspaceExistingSubmission");
+
+  if (existingPanel){
+    existingPanel.hidden = true;
+  }
+
+  renderAssignmentWorkspaceHistory(
+    null,
+    null
+  );
+
+  renderAssignmentWorkspaceFeedback(
+    null
+  );
+
+  setAssignmentWorkspaceSubmitState(
+    null,
+    null
+  );
+}
+
+
+/* =========================================================
+   ASSIGNMENT SUMMARY
+========================================================= */
+
+function renderAssignmentWorkspaceSummary(
+  assignment,
+  submission
+){
+  const classInfo =
+    getStudentAssignmentClass(
+      assignment
+    );
+
+  const teacher =
+    getStudentAssignmentTeacher(
+      assignment
+    );
+
+  const status =
+    getStudentAssignmentStatus(
+      assignment
+    );
+
+  const due =
+    getAssignmentDuePresentation(
+      assignment,
+      status
+    );
+
+  setText(
+    "assignmentWorkspaceTitle",
+    assignment?.title ||
+    "Untitled assignment"
+  );
+
+  setText(
+    "assignmentWorkspaceDescription",
+    [
+      classInfo.title,
+      teacher.name,
+      due.relative
+    ]
+      .filter(Boolean)
+      .join(" • ")
+  );
+
+  const statusBadge =
+    $("assignmentWorkspaceStatusBadge");
+
+  if (statusBadge){
+    statusBadge.className =
+      `assignment-workspace-status ${status}`;
+
+    statusBadge.textContent =
+      getAssignmentStatusLabel(
+        status
+      );
+  }
+
+  const summary =
+    $("assignmentWorkspaceAssignmentSummary");
+
+  if (summary){
+    summary.innerHTML = `
+      <div class="assignment-workspace-placeholder-icon">
+
+        <i
+          class="fa-solid fa-clipboard-check"
+          aria-hidden="true"
+        ></i>
+
+      </div>
+
+      <div>
+
+        <strong>
+          ${escapeHtml(
+            assignment?.title ||
+            "Untitled assignment"
+          )}
+        </strong>
+
+        <p>
+          ${escapeHtml(
+            classInfo.title
+          )}
+          •
+          ${escapeHtml(
+            teacher.name
+          )}
+          •
+          ${escapeHtml(
+            due.formatted
+          )}
+        </p>
+
+      </div>
+    `;
+  }
+
+  renderAssignmentWorkspaceInstructions(
+    assignment
+  );
+
+  renderAssignmentWorkspaceResources(
+    assignment
+  );
+
+  renderAssignmentWorkspaceExistingSubmission(
+    assignment,
+    submission
+  );
+
+  renderAssignmentWorkspaceHistory(
+    assignment,
+    submission
+  );
+
+  renderAssignmentWorkspaceFeedback(
+    submission
+  );
+
+  setAssignmentWorkspaceSubmitState(
+    assignment,
+    submission
+  );
+}
+
+
+/* =========================================================
+   INSTRUCTIONS
+========================================================= */
+
+function renderAssignmentWorkspaceInstructions(
+  assignment
+){
+  const container =
+    $("assignmentWorkspaceInstructions");
+
+  if (!container){
+    return;
+  }
+
+  const instructions =
+    String(
+      assignment?.instructions ||
+      assignment?.description ||
+      ""
+    ).trim();
+
+  if (!instructions){
+    container.innerHTML = `
+      <div class="assignment-workspace-empty compact">
+
+        <i
+          class="fa-solid fa-align-left"
+          aria-hidden="true"
+        ></i>
+
+        <span>
+          No detailed instructions were provided.
+        </span>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML = `
+    <p>
+      ${escapeHtml(instructions)
+        .replace(/\n/g,"<br>")}
+    </p>
+  `;
+}
+
+
+/* =========================================================
+   TEACHER RESOURCES
+========================================================= */
+
+function getAssignmentWorkspaceResources(
+  assignment
+){
+  const resources = [];
+
+  const addResource = (
+    title,
+    url,
+    type = "link"
+  ) => {
+    const cleanUrl =
+      String(url || "")
+        .trim();
+
+    if (!cleanUrl){
+      return;
+    }
+
+    resources.push({
+      title:
+        String(
+          title ||
+          "Assignment attachment"
+        ).trim(),
+
+      url:cleanUrl,
+      type
     });
+  };
 
-    closeModal("submissionModal");
+  addResource(
+    "Assignment attachment",
+    assignment?.attachmentUrl,
+    "attachment"
+  );
 
-    showAlert("success","Assignment submitted.");
+  addResource(
+    "Assignment file",
+    assignment?.fileUrl,
+    "file"
+  );
+
+  if (
+    Array.isArray(
+      assignment?.attachments
+    )
+  ){
+    assignment.attachments
+      .forEach(
+        (
+          resource,
+          index
+        ) => {
+          if (
+            typeof resource ===
+              "string"
+          ){
+            addResource(
+              `Attachment ${index + 1}`,
+              resource,
+              "attachment"
+            );
+
+            return;
+          }
+
+          addResource(
+            resource?.title ||
+            resource?.name ||
+            `Attachment ${index + 1}`,
+
+            resource?.url ||
+            resource?.fileUrl,
+
+            resource?.type ||
+            "attachment"
+          );
+        }
+      );
+  }
+
+  return resources;
+}
+
+
+function renderAssignmentWorkspaceResources(
+  assignment
+){
+  const container =
+    $("assignmentWorkspaceResources");
+
+  if (!container){
+    return;
+  }
+
+  const resources =
+    getAssignmentWorkspaceResources(
+      assignment
+    );
+
+  if (!resources.length){
+    container.innerHTML = `
+      <div class="assignment-workspace-empty compact">
+
+        <i
+          class="fa-solid fa-paperclip"
+          aria-hidden="true"
+        ></i>
+
+        <span>
+          This assignment has no attachments.
+        </span>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    resources
+      .map(resource => `
+        <div class="assignment-workspace-resource-item">
+
+          <span class="assignment-workspace-resource-icon">
+
+            <i
+              class="fa-solid fa-paperclip"
+              aria-hidden="true"
+            ></i>
+
+          </span>
+
+          <span class="assignment-workspace-resource-copy">
+
+            <strong>
+              ${escapeHtml(
+                resource.title
+              )}
+            </strong>
+
+            <span>
+              ${escapeHtml(
+                resource.type
+              )}
+            </span>
+
+          </span>
+
+          <a
+            href="${escapeHtml(
+              resource.url
+            )}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open
+          </a>
+
+        </div>
+      `)
+      .join("");
+}
+
+
+/* =========================================================
+   EXISTING SUBMISSION
+========================================================= */
+
+function renderAssignmentWorkspaceExistingSubmission(
+  assignment,
+  submission
+){
+  const panel =
+    $("assignmentWorkspaceExistingSubmission");
+
+  const container =
+    $("assignmentWorkspaceSubmissionDetails");
+
+  if (
+    !panel ||
+    !container
+  ){
+    return;
+  }
+
+  if (!submission){
+    panel.hidden = true;
+    container.innerHTML = "";
+
+    return;
+  }
+
+  panel.hidden = false;
+
+  const status =
+    String(
+      submission?.status ||
+      "submitted"
+    )
+      .trim()
+      .toLowerCase();
+
+  container.innerHTML = `
+    <div class="assignment-workspace-submission-row">
+
+      <span>
+        Status
+      </span>
+
+      <strong>
+        ${escapeHtml(
+          status
+        )}
+      </strong>
+
+    </div>
+
+    <div class="assignment-workspace-submission-row">
+
+      <span>
+        Submitted
+      </span>
+
+      <strong>
+        ${escapeHtml(
+          formatDateTime(
+            submission?.submittedAt ||
+            submission?.createdAt
+          )
+        )}
+      </strong>
+
+    </div>
+
+    ${
+      submission?.fileUrl
+        ? `
+          <div class="assignment-workspace-submission-row">
+
+            <span>
+              Submitted file
+            </span>
+
+            <strong>
+              <a
+                href="${escapeHtml(
+                  submission.fileUrl
+                )}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open submitted file
+              </a>
+            </strong>
+
+          </div>
+        `
+        : ""
+    }
+
+    ${
+      submission?.grade !== undefined &&
+      submission?.grade !== null &&
+      submission?.grade !== ""
+        ? `
+          <div class="assignment-workspace-submission-row">
+
+            <span>
+              Grade
+            </span>
+
+            <strong>
+              ${escapeHtml(
+                submission.grade
+              )}
+            </strong>
+
+          </div>
+        `
+        : ""
+    }
+  `;
+}
+
+
+/* =========================================================
+   HISTORY
+========================================================= */
+
+function renderAssignmentWorkspaceHistory(
+  assignment,
+  submission
+){
+  const container =
+    $("assignmentWorkspaceHistory");
+
+  if (!container){
+    return;
+  }
+
+  if (!assignment){
+    container.innerHTML = `
+      <div class="assignment-workspace-empty">
+
+        <i
+          class="fa-regular fa-clock"
+          aria-hidden="true"
+        ></i>
+
+        <div>
+
+          <strong>
+            No assignment selected
+          </strong>
+
+          <p>
+            Select an assignment to view its activity.
+          </p>
+
+        </div>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  const events = [
+    {
+      title:"Assignment published",
+      date:
+        assignment?.createdAt,
+
+      visible:
+        Boolean(
+          assignment?.createdAt
+        )
+    },
+
+    {
+      title:"Work submitted",
+      date:
+        submission?.submittedAt ||
+        submission?.createdAt,
+
+      visible:
+        Boolean(submission)
+    },
+
+    {
+      title:"Submission reviewed",
+      date:
+        submission?.reviewedAt ||
+        submission?.updatedAt,
+
+      visible:
+        Boolean(
+          submission &&
+          (
+            submission?.grade !==
+              undefined &&
+            submission?.grade !==
+              null &&
+            submission?.grade !== ""
+          ||
+            submission?.feedback
+          ||
+            [
+              "reviewed",
+              "graded",
+              "returned"
+            ].includes(
+              String(
+                submission?.status ||
+                ""
+              ).toLowerCase()
+            )
+          )
+        )
+    }
+  ].filter(event =>
+    event.visible
+  );
+
+  if (!events.length){
+    container.innerHTML = `
+      <div class="assignment-workspace-empty">
+
+        <i
+          class="fa-regular fa-clock"
+          aria-hidden="true"
+        ></i>
+
+        <div>
+
+          <strong>
+            No submission history
+          </strong>
+
+          <p>
+            Activity will appear here after work
+            has been submitted.
+          </p>
+
+        </div>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    events
+      .map(event => `
+        <div class="assignment-workspace-history-item">
+
+          <strong>
+            ${escapeHtml(
+              event.title
+            )}
+          </strong>
+
+          <span>
+            ${escapeHtml(
+              formatDateTime(
+                event.date
+              )
+            )}
+          </span>
+
+        </div>
+      `)
+      .join("");
+}
+
+
+/* =========================================================
+   GRADE AND FEEDBACK
+========================================================= */
+
+function renderAssignmentWorkspaceFeedback(
+  submission
+){
+  const container =
+    $("assignmentWorkspaceFeedback");
+
+  if (!container){
+    return;
+  }
+
+  const hasGrade =
+    submission?.grade !==
+      undefined &&
+    submission?.grade !==
+      null &&
+    submission?.grade !== "";
+
+  const feedback =
+    String(
+      submission?.feedback || ""
+    ).trim();
+
+  if (
+    !hasGrade &&
+    !feedback
+  ){
+    container.innerHTML = `
+      <div class="assignment-workspace-empty">
+
+        <i
+          class="fa-regular fa-comment-dots"
+          aria-hidden="true"
+        ></i>
+
+        <div>
+
+          <strong>
+            No feedback yet
+          </strong>
+
+          <p>
+            Your teacher’s grade and comments will
+            appear after review.
+          </p>
+
+        </div>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML = `
+    ${
+      hasGrade
+        ? `
+          <div class="assignment-workspace-grade-card">
+
+            <div class="assignment-workspace-grade-copy">
+
+              <span>
+                Assignment grade
+              </span>
+
+              <strong>
+                Teacher evaluation
+              </strong>
+
+            </div>
+
+            <span class="assignment-workspace-grade-value">
+              ${escapeHtml(
+                submission.grade
+              )}
+            </span>
+
+          </div>
+        `
+        : ""
+    }
+
+    ${
+      feedback
+        ? `
+          <div class="assignment-workspace-feedback-message">
+
+            <strong>
+              Teacher feedback
+            </strong>
+
+            <p>
+              ${escapeHtml(feedback)
+                .replace(/\n/g,"<br>")}
+            </p>
+
+          </div>
+        `
+        : ""
+    }
+  `;
+}
+
+
+/* =========================================================
+   SUBMIT BUTTON STATE
+========================================================= */
+
+function setAssignmentWorkspaceSubmitState(
+  assignment,
+  submission
+){
+  const button =
+    $("assignmentWorkspaceSubmitButton");
+
+  if (!button){
+    return;
+  }
+
+  const status =
+    String(
+      submission?.status || ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const graded =
+    submission &&
+    (
+      submission?.grade !==
+        undefined &&
+      submission?.grade !==
+        null &&
+      submission?.grade !== ""
+    );
+
+  const locked =
+    Boolean(
+      submission &&
+      (
+        graded ||
+        [
+          "graded",
+          "reviewed"
+        ].includes(status)
+      )
+    );
+
+  button.disabled =
+    !assignment ||
+    locked ||
+    assignmentWorkspaceSubmitting;
+
+  let label =
+    "Submit work";
+
+  let icon =
+    "fa-solid fa-paper-plane";
+
+  if (
+    submission &&
+    status === "returned"
+  ){
+    label =
+      "Resubmit work";
+
+    icon =
+      "fa-solid fa-rotate";
+  }else if (submission){
+    label =
+      locked
+        ? "Submission reviewed"
+        : "Update submission";
+
+    icon =
+      locked
+        ? "fa-solid fa-lock"
+        : "fa-solid fa-pen-to-square";
+  }
+
+  button.innerHTML = `
+    <i
+      class="${icon}"
+      aria-hidden="true"
+    ></i>
+
+    <span>
+      ${escapeHtml(label)}
+    </span>
+  `;
+}
+
+
+/* =========================================================
+   WORKSPACE RENDER
+========================================================= */
+
+function renderAssignmentSubmissionWorkspace(
+  assignmentId = ""
+){
+  const normalizedAssignmentId =
+    normalizeId(
+      assignmentId ||
+      $("submissionAssignmentId")
+        ?.value
+    );
+
+  const assignment =
+    getStudentAssignments()
+      .find(item =>
+        sameId(
+          item?._id ||
+          item?.id,
+          normalizedAssignmentId
+        )
+      );
+
+  if (!assignment){
+    renderEmptyAssignmentWorkspace();
+
+    updateAssignmentWorkspaceCharacterCount();
+
+    renderAssignmentWorkspaceFilePreview();
+
+    return;
+  }
+
+  const submission =
+    getSubmissionForAssignment(
+      normalizedAssignmentId
+    );
+
+  renderAssignmentWorkspaceSummary(
+    assignment,
+    submission
+  );
+
+  updateAssignmentWorkspaceCharacterCount();
+
+  renderAssignmentWorkspaceFilePreview();
+}
+
+
+/* =========================================================
+   OPEN WORKSPACE
+========================================================= */
+
+function openSubmissionModal(
+  assignmentId = ""
+){
+  hydrateSubmissionSelect(
+    assignmentId
+  );
+
+  const select =
+    $("submissionAssignmentId");
+
+  if (
+    select &&
+    assignmentId
+  ){
+    select.value =
+      normalizeId(
+        assignmentId
+      );
+  }
+
+  const selectedAssignmentId =
+    normalizeId(
+      assignmentId ||
+      select?.value
+    );
+
+  const oldSubmission =
+    selectedAssignmentId
+      ? getSubmissionForAssignment(
+          selectedAssignmentId
+        )
+      : null;
+
+  const textInput =
+    $("submissionText");
+
+  const fileInput =
+    $("submissionFile");
+
+  if (textInput){
+    textInput.value =
+      oldSubmission?.text ||
+      "";
+  }
+
+  if (fileInput){
+    fileInput.value =
+      oldSubmission?.fileUrl ||
+      "";
+  }
+
+  bindAssignmentWorkspaceControls();
+
+  renderAssignmentSubmissionWorkspace(
+    selectedAssignmentId
+  );
+
+  setAssignmentWorkspaceSaveStatus(
+    "ready",
+    oldSubmission
+      ? "Submission loaded"
+      : "Ready"
+  );
+
+  openModal(
+    "submissionModal"
+  );
+
+  const modal =
+    $("submissionModal");
+
+  modal?.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+  window.setTimeout(
+    () => {
+      if (selectedAssignmentId){
+        textInput?.focus();
+      }else{
+        select?.focus();
+      }
+    },
+    50
+  );
+}
+
+
+/* =========================================================
+   CONTROL BINDING
+========================================================= */
+
+function bindAssignmentWorkspaceControls(){
+  if (
+    assignmentWorkspaceControlsBound
+  ){
+    return;
+  }
+
+  const select =
+    $("submissionAssignmentId");
+
+  const textInput =
+    $("submissionText");
+
+  const fileInput =
+    $("submissionFile");
+
+  const clearButton =
+    $("clearAssignmentResponseButton");
+
+  select?.addEventListener(
+    "change",
+    () => {
+      const assignmentId =
+        normalizeId(
+          select.value
+        );
+
+      const oldSubmission =
+        assignmentId
+          ? getSubmissionForAssignment(
+              assignmentId
+            )
+          : null;
+
+      if (textInput){
+        textInput.value =
+          oldSubmission?.text ||
+          "";
+      }
+
+      if (fileInput){
+        fileInput.value =
+          oldSubmission?.fileUrl ||
+          "";
+      }
+
+      renderAssignmentSubmissionWorkspace(
+        assignmentId
+      );
+
+      setAssignmentWorkspaceSaveStatus(
+        "ready",
+        oldSubmission
+          ? "Submission loaded"
+          : "Ready"
+      );
+    }
+  );
+
+  textInput?.addEventListener(
+    "input",
+    () => {
+      updateAssignmentWorkspaceCharacterCount();
+
+      setAssignmentWorkspaceSaveStatus(
+        "saving",
+        "Unsaved changes"
+      );
+    }
+  );
+
+  fileInput?.addEventListener(
+    "input",
+    () => {
+      renderAssignmentWorkspaceFilePreview();
+
+      setAssignmentWorkspaceSaveStatus(
+        "saving",
+        "Unsaved changes"
+      );
+    }
+  );
+
+  clearButton?.addEventListener(
+    "click",
+    () => {
+      if (!textInput){
+        return;
+      }
+
+      textInput.value = "";
+
+      updateAssignmentWorkspaceCharacterCount();
+
+      textInput.focus();
+
+      setAssignmentWorkspaceSaveStatus(
+        "saving",
+        "Response cleared"
+      );
+    }
+  );
+
+  document.addEventListener(
+    "keydown",
+    event => {
+      const modal =
+        $("submissionModal");
+
+      if (
+        event.key !== "Escape" ||
+        !modal?.classList.contains(
+          "show"
+        )
+      ){
+        return;
+      }
+
+      closeModal(
+        "submissionModal"
+      );
+    }
+  );
+
+  assignmentWorkspaceControlsBound =
+    true;
+}
+
+
+/* =========================================================
+   SUBMIT ASSIGNMENT
+========================================================= */
+
+async function submitAssignmentWork(){
+  if (
+    assignmentWorkspaceSubmitting
+  ){
+    return;
+  }
+
+  const assignmentId =
+    normalizeId(
+      $("submissionAssignmentId")
+        ?.value
+    );
+
+  const text =
+    String(
+      $("submissionText")
+        ?.value || ""
+    ).trim();
+
+  const fileUrl =
+    String(
+      $("submissionFile")
+        ?.value || ""
+    ).trim();
+
+  if (!assignmentId){
+    showAlert(
+      "error",
+      "Please select an assignment.",
+      {
+        title:"Assignment required"
+      }
+    );
+
+    $("submissionAssignmentId")
+      ?.focus();
+
+    return;
+  }
+
+  if (
+    !text &&
+    !fileUrl
+  ){
+    showAlert(
+      "error",
+      "Write an answer or add a file URL before submitting.",
+      {
+        title:"Submission is empty"
+      }
+    );
+
+    $("submissionText")
+      ?.focus();
+
+    return;
+  }
+
+  if (
+    fileUrl &&
+    !isValidSubmissionUrl(
+      fileUrl
+    )
+  ){
+    showAlert(
+      "error",
+      "Enter a valid file URL beginning with http:// or https://.",
+      {
+        title:"Invalid file link"
+      }
+    );
+
+    $("submissionFile")
+      ?.focus();
+
+    return;
+  }
+
+  const assignment =
+    getStudentAssignments()
+      .find(item =>
+        sameId(
+          item?._id ||
+          item?.id,
+          assignmentId
+        )
+      );
+
+  if (!assignment){
+    showAlert(
+      "error",
+      "This assignment is no longer available.",
+      {
+        title:"Assignment unavailable"
+      }
+    );
+
+    return;
+  }
+
+  const existingSubmission =
+    getSubmissionForAssignment(
+      assignmentId
+    );
+
+  const existingStatus =
+    String(
+      existingSubmission?.status ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const submissionLocked =
+    Boolean(
+      existingSubmission &&
+      (
+        existingSubmission?.grade !==
+          undefined &&
+        existingSubmission?.grade !==
+          null &&
+        existingSubmission?.grade !== ""
+      ||
+        [
+          "graded",
+          "reviewed"
+        ].includes(
+          existingStatus
+        )
+      )
+    );
+
+  if (submissionLocked){
+    showAlert(
+      "warning",
+      "This submission has already been reviewed and cannot be changed.",
+      {
+        title:"Submission locked"
+      }
+    );
+
+    return;
+  }
+
+  const button =
+    $("assignmentWorkspaceSubmitButton");
+
+  assignmentWorkspaceSubmitting =
+    true;
+
+  setAssignmentWorkspaceSaveStatus(
+    "saving",
+    existingSubmission
+      ? "Updating submission"
+      : "Submitting work"
+  );
+
+  if (button){
+    button.disabled = true;
+
+    button.innerHTML = `
+      <i
+        class="fa-solid fa-spinner fa-spin"
+        aria-hidden="true"
+      ></i>
+
+      <span>
+        ${
+          existingSubmission
+            ? "Updating..."
+            : "Submitting..."
+        }
+      </span>
+    `;
+  }
+
+  try{
+    await apiSend(
+      "/api/submissions",
+      "POST",
+      {
+        assignmentId,
+        text,
+        fileUrl
+      }
+    );
+
+    setAssignmentWorkspaceSaveStatus(
+      "ready",
+      existingSubmission
+        ? "Submission updated"
+        : "Work submitted"
+    );
+
+    showAlert(
+      "success",
+      existingSubmission
+        ? "Your assignment submission was updated."
+        : "Your assignment was submitted successfully.",
+      {
+        title:
+          existingSubmission
+            ? "Submission updated"
+            : "Work submitted"
+      }
+    );
 
     await loadAll();
 
-  }catch(err){
-    showAlert("error",err.message || "Submission failed.");
+    closeModal(
+      "submissionModal"
+    );
+
+  }catch(error){
+    console.error(
+      "Assignment submission failed:",
+      error
+    );
+
+    setAssignmentWorkspaceSaveStatus(
+      "error",
+      "Submission failed"
+    );
+
+    showAlert(
+      "error",
+      error?.message ||
+      "AIFT could not submit your assignment.",
+      {
+        title:"Submission failed"
+      }
+    );
+
+  }finally{
+    assignmentWorkspaceSubmitting =
+      false;
+
+    const currentSubmission =
+      getSubmissionForAssignment(
+        assignmentId
+      );
+
+    setAssignmentWorkspaceSubmitState(
+      assignment,
+      currentSubmission
+    );
   }
 }
 
