@@ -10060,6 +10060,361 @@ function hideAssignmentUploadProgress(){
   }
 
 }
+
+/* =========================================================
+   RENDER ASSIGNMENT ATTACHMENTS
+========================================================= */
+
+function renderAssignmentAttachments(){
+
+  const container =
+    $("assignmentWorkspaceAttachmentList");
+
+  if(!container){
+    return;
+  }
+
+  const pending =
+    assignmentWorkspacePendingFiles;
+
+  const uploaded =
+    assignmentWorkspaceUploadedFiles;
+
+  const files = [
+    ...pending.map(file => ({
+      pending:true,
+      uploaded:false,
+      file
+    })),
+
+    ...uploaded.map(file => ({
+      pending:false,
+      uploaded:true,
+      file
+    }))
+  ];
+
+  if(!files.length){
+
+    container.innerHTML = `
+      <div class="assignment-workspace-empty compact">
+
+        <i class="fa-solid fa-paperclip"></i>
+
+        <span>
+          No files have been attached yet.
+        </span>
+
+      </div>
+    `;
+
+    updateAssignmentUploadCounter();
+
+    return;
+  }
+
+  container.innerHTML = "";
+
+  files.forEach(item => {
+
+    const file =
+      item.file;
+
+    const card =
+      document.createElement("div");
+
+    card.className =
+      "assignment-workspace-attachment-item";
+
+    let icon =
+      "fa-file";
+
+    let type =
+      "file";
+
+    const mime =
+      String(
+        file.mimeType ||
+        file.type ||
+        ""
+      ).toLowerCase();
+
+    if(
+      mime.startsWith("image/")
+    ){
+      icon="fa-image";
+      type="image";
+    }
+
+    else if(
+      mime.startsWith("video/")
+    ){
+      icon="fa-video";
+      type="video";
+    }
+
+    else if(
+      mime.startsWith("audio/")
+    ){
+      icon="fa-music";
+      type="audio";
+    }
+
+    else if(
+      mime.includes("pdf")
+    ){
+      icon="fa-file-pdf";
+      type="pdf";
+    }
+
+    else if(
+      mime.includes("word")
+    ){
+      icon="fa-file-word";
+      type="document";
+    }
+
+    else if(
+      mime.includes("presentation")
+    ){
+      icon="fa-file-powerpoint";
+      type="presentation";
+    }
+
+    else if(
+      mime.includes("spreadsheet") ||
+      mime.includes("excel")
+    ){
+      icon="fa-file-excel";
+      type="spreadsheet";
+    }
+
+    const size =
+      Number(
+        file.size ||
+        0
+      );
+
+    const readableSize =
+      formatBytes(size);
+
+    card.innerHTML = `
+
+      <div
+        class="
+          assignment-workspace-attachment-icon
+          ${type}
+        "
+      >
+
+        <i
+          class="fa-solid ${icon}"
+        ></i>
+
+      </div>
+
+      <div
+        class="
+          assignment-workspace-attachment-copy
+        "
+      >
+
+        <strong>
+
+          ${
+            escapeHtml(
+              file.originalName ||
+              file.name ||
+              "Attachment"
+            )
+          }
+
+        </strong>
+
+        <span>
+
+          ${readableSize}
+
+        </span>
+
+      </div>
+
+      <div
+        class="
+          assignment-workspace-attachment-actions
+        "
+      >
+
+        ${
+          item.pending
+          ?`
+          <button
+            class="
+              assignment-workspace-attachment-action
+            "
+            disabled
+          >
+
+            <i
+              class="
+                fa-solid
+                fa-spinner
+                fa-spin
+              "
+            ></i>
+
+          </button>
+          `
+          :`
+          <button
+            class="
+              assignment-workspace-attachment-action
+            "
+            onclick="
+              window.open(
+                '${file.url}',
+                '_blank'
+              )
+            "
+          >
+
+            <i
+              class="
+                fa-solid
+                fa-arrow-up-right-from-square
+              "
+            ></i>
+
+          </button>
+          `
+        }
+
+        <button
+          class="
+            assignment-workspace-attachment-action
+            remove
+          "
+
+          data-index="${
+            files.indexOf(item)
+          }"
+
+        >
+
+          <i
+            class="
+              fa-solid
+              fa-trash
+            "
+          ></i>
+
+        </button>
+
+      </div>
+
+    `;
+
+    container.appendChild(
+      card
+    );
+
+  });
+
+  container
+    .querySelectorAll(
+      ".remove"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const index =
+            Number(
+              button.dataset.index
+            );
+
+          const pendingCount =
+            assignmentWorkspacePendingFiles.length;
+
+          if(
+            index <
+            pendingCount
+          ){
+
+            assignmentWorkspacePendingFiles.splice(
+              index,
+              1
+            );
+
+          }else{
+
+            assignmentWorkspaceUploadedFiles.splice(
+              index -
+              pendingCount,
+              1
+            );
+
+          }
+
+          updateAssignmentUploadCounter();
+
+          renderAssignmentAttachments();
+
+        }
+      );
+
+    });
+
+  updateAssignmentUploadCounter();
+
+}
+
+function formatBytes(bytes){
+
+  if(!bytes){
+    return "0 B";
+  }
+
+  const units=[
+    "B",
+    "KB",
+    "MB",
+    "GB"
+  ];
+
+  const power=
+    Math.floor(
+      Math.log(bytes)/
+      Math.log(1024)
+    );
+
+  return `${
+
+    (
+      bytes/
+      Math.pow(
+        1024,
+        power
+      )
+    ).toFixed(
+      power===0
+      ?0
+      :1
+    )
+
+  } ${
+
+    units[power]
+
+  }`;
+
+}
+
+
+
+
 function validateAssignmentFiles(
   files
 ){
