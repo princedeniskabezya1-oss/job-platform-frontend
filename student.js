@@ -1674,6 +1674,262 @@ function bindStudentClassControls(){
   );
 }
 
+/* =========================================================
+   ASSIGNMENT CENTER CONTROL BINDING
+========================================================= */
+
+function bindStudentAssignmentControls(){
+  if (
+    studentAssignmentControlsInitialized
+  ){
+    return;
+  }
+
+  const searchInput =
+    $("assignmentSearch");
+
+  const statusFilter =
+    $("assignmentStatus");
+
+  const classFilter =
+    $("assignmentSubject");
+
+  const sortFilter =
+    $("assignmentSort");
+
+  const clearSearchButton =
+    $("clearAssignmentSearchButton");
+
+  const resetButton =
+    $("resetAssignmentFiltersButton");
+
+  const cardViewButton =
+    $("assignmentCardViewButton");
+
+  const listViewButton =
+    $("assignmentListViewButton");
+
+  const refreshButton =
+    $("assignmentRefreshButton");
+
+  const submitWorkButton =
+    $("assignmentSubmitWorkButton");
+
+  /*
+    The function may run before the new Assignment Center
+    HTML has been added. In that case, allow a later retry.
+  */
+
+  if (
+    !searchInput &&
+    !statusFilter &&
+    !classFilter &&
+    !sortFilter
+  ){
+    return;
+  }
+
+  studentAssignmentControlsInitialized =
+    true;
+
+
+  searchInput?.addEventListener(
+    "input",
+    () => {
+      window.clearTimeout(
+        studentAssignmentSearchTimer
+      );
+
+      const hasValue =
+        Boolean(
+          searchInput.value.trim()
+        );
+
+      if (clearSearchButton){
+        clearSearchButton.hidden =
+          !hasValue;
+      }
+
+      studentAssignmentSearchTimer =
+        window.setTimeout(
+          () => {
+            renderAssignments();
+          },
+          160
+        );
+    }
+  );
+
+
+  searchInput?.addEventListener(
+    "keydown",
+    event => {
+      if (event.key === "Escape"){
+        event.preventDefault();
+
+        searchInput.value = "";
+
+        if (clearSearchButton){
+          clearSearchButton.hidden =
+            true;
+        }
+
+        renderAssignments();
+
+        return;
+      }
+
+      if (event.key === "Enter"){
+        event.preventDefault();
+
+        window.clearTimeout(
+          studentAssignmentSearchTimer
+        );
+
+        renderAssignments();
+      }
+    }
+  );
+
+
+  statusFilter?.addEventListener(
+    "change",
+    () => {
+      activeStudentAssignmentTab =
+        statusFilter.value || "all";
+
+      renderAssignments();
+    }
+  );
+
+
+  classFilter?.addEventListener(
+    "change",
+    () => {
+      renderAssignments();
+    }
+  );
+
+
+  sortFilter?.addEventListener(
+    "change",
+    () => {
+      renderAssignments();
+    }
+  );
+
+
+  clearSearchButton?.addEventListener(
+    "click",
+    event => {
+      event.preventDefault();
+
+      if (searchInput){
+        searchInput.value = "";
+        searchInput.focus();
+      }
+
+      clearSearchButton.hidden =
+        true;
+
+      renderAssignments();
+    }
+  );
+
+
+  resetButton?.addEventListener(
+    "click",
+    event => {
+      event.preventDefault();
+
+      resetStudentAssignmentFilters();
+    }
+  );
+
+
+  cardViewButton?.addEventListener(
+    "click",
+    event => {
+      event.preventDefault();
+
+      setStudentAssignmentView(
+        "card"
+      );
+    }
+  );
+
+
+  listViewButton?.addEventListener(
+    "click",
+    event => {
+      event.preventDefault();
+
+      setStudentAssignmentView(
+        "list"
+      );
+    }
+  );
+
+
+  refreshButton?.addEventListener(
+    "click",
+    async event => {
+      event.preventDefault();
+
+      setDashboardButtonLoading(
+        refreshButton,
+        true,
+        "Refreshing..."
+      );
+
+      try{
+        await loadAll();
+
+        renderAssignments();
+
+        showAlert(
+          "success",
+          "Your assignments have been refreshed.",
+          {
+            title:"Coursework updated"
+          }
+        );
+      }catch(error){
+        console.error(
+          "Assignment refresh failed:",
+          error
+        );
+
+        showAlert(
+          "error",
+          error?.message ||
+          "AIFT could not refresh your assignments.",
+          {
+            title:"Refresh failed"
+          }
+        );
+      }finally{
+        setDashboardButtonLoading(
+          refreshButton,
+          false
+        );
+      }
+    }
+  );
+
+
+  submitWorkButton?.addEventListener(
+    "click",
+    event => {
+      event.preventDefault();
+
+      openDashboardAssignmentSubmission(
+        ""
+      );
+    }
+  );
+}
+
 function bindStudentStudioQuickActions(){
   $("studentQuickActionsMenu")
     ?.querySelectorAll(
@@ -1837,6 +2093,8 @@ function initializeStudentStudioShell(){
 bindStudentStudioTopbar();
 
 bindStudentClassControls();
+
+bindStudentAssignmentControls();
 
 bindStudentStudioQuickActions();
 
@@ -2333,6 +2591,8 @@ renderActiveStudentStudioPage(
 bindStudentStudioNavigation();
 
 bindStudentClassControls();
+
+bindStudentAssignmentControls();
 
 closeStudentSearchResults({
   clear:false
@@ -4840,6 +5100,120 @@ if (classMenuAction){
   return;
 }
 
+
+
+      /* =====================================================
+   ASSIGNMENT CENTER DYNAMIC ACTIONS
+===================================================== */
+
+const assignmentTabButton =
+  target.closest(
+    "[data-assignment-tab]"
+  );
+
+if (assignmentTabButton){
+  event.preventDefault();
+
+  setStudentAssignmentStatus(
+    assignmentTabButton.dataset
+      .assignmentTab
+  );
+
+  return;
+}
+
+
+const assignmentSummaryCard =
+  target.closest(
+    "[data-assignment-summary-filter]"
+  );
+
+if (assignmentSummaryCard){
+  event.preventDefault();
+
+  setStudentAssignmentStatus(
+    assignmentSummaryCard.dataset
+      .assignmentSummaryFilter
+  );
+
+  return;
+}
+
+
+const emptyAssignmentsResetButton =
+  target.closest(
+    "#emptyAssignmentsResetButton"
+  );
+
+if (emptyAssignmentsResetButton){
+  event.preventDefault();
+
+  resetStudentAssignmentFilters();
+
+  return;
+}
+
+
+const reviewSubmissionButton =
+  target.closest(
+    "[data-review-submission]"
+  );
+
+if (reviewSubmissionButton){
+  event.preventDefault();
+
+  openDashboardAssignmentSubmission(
+    reviewSubmissionButton.dataset
+      .reviewSubmission
+  );
+
+  return;
+}
+
+
+const viewAssignmentButton =
+  target.closest(
+    "[data-view-assignment]"
+  );
+
+if (viewAssignmentButton){
+  event.preventDefault();
+
+  const assignmentId =
+    normalizeId(
+      viewAssignmentButton.dataset
+        .viewAssignment
+    );
+
+  const assignment =
+    getStudentAssignments()
+      .find(item =>
+        sameId(
+          item?._id ||
+          item?.id,
+          assignmentId
+        )
+      );
+
+  if (!assignment){
+    showAlert(
+      "error",
+      "This assignment is no longer available.",
+      {
+        title:"Assignment unavailable"
+      }
+    );
+
+    return;
+  }
+
+  openDashboardAssignmentSubmission(
+    assignmentId
+  );
+
+  return;
+}
+
       const pageButton =
         target.closest(
           "[data-open-studio-page]"
@@ -5040,6 +5414,36 @@ if (classMenuAction){
           )}"]`
         )
         ?.focus();
+    }
+  );
+
+    document.addEventListener(
+    "keydown",
+    event => {
+      const summaryCard =
+        event.target instanceof Element
+          ? event.target.closest(
+              "[data-assignment-summary-filter]"
+            )
+          : null;
+
+      if (!summaryCard){
+        return;
+      }
+
+      if (
+        event.key !== "Enter" &&
+        event.key !== " "
+      ){
+        return;
+      }
+
+      event.preventDefault();
+
+      setStudentAssignmentStatus(
+        summaryCard.dataset
+          .assignmentSummaryFilter
+      );
     }
   );
 }
@@ -7257,6 +7661,104 @@ let studentAssignmentView =
 let activeStudentAssignmentTab =
   "all";
 
+let studentAssignmentControlsInitialized =
+  false;
+
+let studentAssignmentSearchTimer =
+  null;
+
+
+
+/* =========================================================
+   ASSIGNMENT CENTER CONTROLS
+========================================================= */
+
+function resetStudentAssignmentFilters(){
+  const searchInput =
+    $("assignmentSearch");
+
+  const statusFilter =
+    $("assignmentStatus");
+
+  const classFilter =
+    $("assignmentSubject");
+
+  const sortFilter =
+    $("assignmentSort");
+
+  if (searchInput){
+    searchInput.value = "";
+  }
+
+  if (statusFilter){
+    statusFilter.value = "all";
+  }
+
+  if (classFilter){
+    classFilter.value = "all";
+  }
+
+  if (sortFilter){
+    sortFilter.value = "due-asc";
+  }
+
+  activeStudentAssignmentTab =
+    "all";
+
+  window.clearTimeout(
+    studentAssignmentSearchTimer
+  );
+
+  renderAssignments();
+}
+
+
+function setStudentAssignmentView(
+  view
+){
+  studentAssignmentView =
+    view === "list"
+      ? "list"
+      : "card";
+
+  localStorage.setItem(
+    STUDENT_ASSIGNMENT_VIEW_STORAGE_KEY,
+    studentAssignmentView
+  );
+
+  renderAssignments();
+}
+
+
+function setStudentAssignmentStatus(
+  status
+){
+  const normalizedStatus =
+    [
+      "all",
+      "pending",
+      "due-soon",
+      "submitted",
+      "graded",
+      "returned",
+      "late"
+    ].includes(status)
+      ? status
+      : "all";
+
+  activeStudentAssignmentTab =
+    normalizedStatus;
+
+  const statusFilter =
+    $("assignmentStatus");
+
+  if (statusFilter){
+    statusFilter.value =
+      normalizedStatus;
+  }
+
+  renderAssignments();
+}
 
 function getAssignmentSubmission(
   assignment
