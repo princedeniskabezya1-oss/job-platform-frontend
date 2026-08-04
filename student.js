@@ -725,9 +725,42 @@ const aliases = {
 }
 
 function setStudentStudioRouteContent(page){
+  const normalizedPage =
+    normalizeStudentStudioPage(page);
+
   const config =
-    STUDENT_STUDIO_PAGES[page] ||
+    STUDENT_STUDIO_PAGES[
+      normalizedPage
+    ] ||
     STUDENT_STUDIO_PAGES.overview;
+
+  /*
+    The global workspace router belongs only
+    on the main Dashboard page.
+  */
+
+  const router =
+    document.getElementById(
+      "studentStudioRouter"
+    );
+
+  const showRouter =
+    normalizedPage === "overview";
+
+  if (router){
+    router.hidden =
+      !showRouter;
+
+    router.setAttribute(
+      "aria-hidden",
+      String(!showRouter)
+    );
+
+    router.style.display =
+      showRouter
+        ? ""
+        : "none";
+  }
 
   setText(
     "studioCurrentPage",
