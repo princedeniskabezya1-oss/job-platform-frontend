@@ -1814,6 +1814,824 @@ closeStudentSearchResults({
 }
 
 /* =========================================================
+   CONTINUE LEARNING WORKSPACE
+========================================================= */
+
+function getContinueLearningProgress(item){
+  return Math.max(
+    0,
+    Math.min(
+      100,
+      Number(
+        item?.progress ??
+        item?.completion ??
+        item?.completionPercentage ??
+        state.metrics?.completion ??
+        0
+      ) || 0
+    )
+  );
+}
+
+function getContinueLearningPendingAssignments(){
+  return getStudentAssignments()
+    .filter(assignment => {
+      return !getSubmissionForAssignment(
+        assignment._id
+      );
+    })
+    .sort((first,second) => {
+      const firstDue =
+        new Date(
+          first.dueDate ||
+          first.deadline ||
+          8640000000000000
+        ).getTime();
+
+      const secondDue =
+        new Date(
+          second.dueDate ||
+          second.deadline ||
+          8640000000000000
+        ).getTime();
+
+      return firstDue - secondDue;
+    });
+}
+
+function getContinueLearningClassCover(item){
+  return (
+    item?.coverImage ||
+    item?.bannerImage ||
+    item?.thumbnail ||
+    item?.image ||
+    CLASS_FALLBACK
+  );
+}
+
+function renderContinueLearningWorkspace(){
+  const classes =
+    getStudentClasses();
+
+  const preferredClass =
+    getPreferredStudentClass();
+
+  const assignments =
+    getContinueLearningPendingAssignments();
+
+  const completion =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(
+          state.metrics?.completion
+        ) || 0
+      )
+    );
+
+  const streak =
+    Number(
+      state.me?.learningStreak ||
+      state.me?.streak ||
+      0
+    );
+
+  setText(
+    "continueActiveClassCount",
+    classes.length
+  );
+
+  setText(
+    "continueOverallCompletion",
+    `${completion}%`
+  );
+
+  setText(
+    "continuePendingAssignments",
+    assignments.length
+  );
+
+  setText(
+    "continueLearningStreak",
+    `${streak} ${
+      streak === 1
+        ? "day"
+        : "days"
+    }`
+  );
+
+  renderContinueLearningHero(
+    preferredClass
+  );
+
+  renderContinueLearningNextSteps(
+    preferredClass,
+    assignments
+  );
+
+  renderContinueLearningClasses(
+    classes
+  );
+
+  renderContinueLearningAssignments(
+    assignments
+  );
+
+  renderContinueLearningRecent(
+    classes
+  );
+}
+
+function renderContinueLearningHero(
+  selectedClass
+){
+  const container =
+    $("continueLearningHero");
+
+  if (!container){
+    return;
+  }
+
+  if (!selectedClass){
+    container.innerHTML = `
+      <div class="studio-widget-empty">
+
+        <div class="studio-widget-empty-icon">
+
+          <i
+            class="fa-solid fa-book-open"
+            aria-hidden="true"
+          ></i>
+
+        </div>
+
+        <strong>
+          No class available to continue
+        </strong>
+
+        <p>
+          Your school has not assigned an active class
+          to this account yet.
+        </p>
+
+        <button
+          class="primary-btn"
+          type="button"
+          data-open-studio-page="classes"
+        >
+          Browse classes
+        </button>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  const classId =
+    selectedClass._id ||
+    selectedClass.id;
+
+  const progress =
+    getContinueLearningProgress(
+      selectedClass
+    );
+
+  const teacher =
+    selectedClass.teacherId?.name ||
+    selectedClass.teacherName ||
+    "Instructor";
+
+  const cover =
+    getContinueLearningClassCover(
+      selectedClass
+    );
+
+  container.innerHTML = `
+    <div
+      class="continue-hero-cover"
+      style="background-image:url('${escapeHtml(
+        cover
+      )}')"
+    >
+
+      <span class="continue-hero-badge">
+        Continue where you stopped
+      </span>
+
+    </div>
+
+    <div class="continue-hero-content">
+
+      <span class="continue-panel-eyebrow">
+        Recommended next
+      </span>
+
+      <h3>
+        ${escapeHtml(
+          selectedClass.title ||
+          "Current class"
+        )}
+      </h3>
+
+      <p class="continue-hero-subject">
+        ${escapeHtml(
+          selectedClass.subject ||
+          "Learning program"
+        )}
+      </p>
+
+      <div class="continue-hero-teacher">
+
+        <i
+          class="fa-solid fa-chalkboard-user"
+          aria-hidden="true"
+        ></i>
+
+        <span>
+          ${escapeHtml(teacher)}
+        </span>
+
+      </div>
+
+      <div class="studio-progress-track">
+
+        <div
+          class="studio-progress-value"
+          style="width:${progress}%"
+        ></div>
+
+      </div>
+
+      <div class="studio-progress-meta">
+
+        <span>
+          ${progress}% completed
+        </span>
+
+        <span>
+          ${
+            progress >= 100
+              ? "Completed"
+              : `${100 - progress}% remaining`
+          }
+        </span>
+
+      </div>
+
+      <div class="studio-widget-actions">
+
+        <button
+          class="primary-btn"
+          type="button"
+          data-studio-open-class="${escapeHtml(
+            classId
+          )}"
+        >
+          <i
+            class="fa-solid fa-play"
+            aria-hidden="true"
+          ></i>
+
+          Continue class
+        </button>
+
+        ${
+          selectedClass.meetingLink
+            ? `
+              <a
+                class="ghost-btn"
+                href="${escapeHtml(
+                  selectedClass.meetingLink
+                )}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <i
+                  class="fa-solid fa-video"
+                  aria-hidden="true"
+                ></i>
+
+                Join live class
+              </a>
+            `
+            : ""
+        }
+
+      </div>
+
+    </div>
+  `;
+}
+
+function renderContinueLearningNextSteps(
+  selectedClass,
+  assignments
+){
+  const container =
+    $("continueLearningNextSteps");
+
+  if (!container){
+    return;
+  }
+
+  const nextAssignment =
+    assignments[0];
+
+  container.innerHTML = `
+    <div class="studio-widget-heading">
+
+      <div>
+
+        <span class="studio-widget-eyebrow">
+          NEXT STEPS
+        </span>
+
+        <h3>
+          Keep your learning moving
+        </h3>
+
+      </div>
+
+    </div>
+
+    <div class="continue-next-list">
+
+      <button
+        type="button"
+        class="continue-next-item"
+        ${
+          selectedClass
+            ? `data-studio-open-class="${escapeHtml(
+                selectedClass._id ||
+                selectedClass.id
+              )}"`
+            : `data-open-studio-page="classes"`
+        }
+      >
+
+        <span class="continue-next-icon blue">
+
+          <i
+            class="fa-solid fa-play"
+            aria-hidden="true"
+          ></i>
+
+        </span>
+
+        <span>
+
+          <strong>
+            Resume your current class
+          </strong>
+
+          <small>
+            Continue from your latest learning progress
+          </small>
+
+        </span>
+
+        <i
+          class="fa-solid fa-chevron-right"
+          aria-hidden="true"
+        ></i>
+
+      </button>
+
+
+      <button
+        type="button"
+        class="continue-next-item"
+        ${
+          nextAssignment
+            ? `data-submit-assignment="${escapeHtml(
+                nextAssignment._id
+              )}"`
+            : `data-open-studio-page="assignments"`
+        }
+      >
+
+        <span class="continue-next-icon orange">
+
+          <i
+            class="fa-solid fa-list-check"
+            aria-hidden="true"
+          ></i>
+
+        </span>
+
+        <span>
+
+          <strong>
+            ${
+              nextAssignment
+                ? escapeHtml(
+                    nextAssignment.title ||
+                    "Complete next assignment"
+                  )
+                : "Review assignments"
+            }
+          </strong>
+
+          <small>
+            ${
+              nextAssignment
+                ? `Due ${formatDate(
+                    nextAssignment.dueDate ||
+                    nextAssignment.deadline
+                  )}`
+                : "You have no pending coursework"
+            }
+          </small>
+
+        </span>
+
+        <i
+          class="fa-solid fa-chevron-right"
+          aria-hidden="true"
+        ></i>
+
+      </button>
+
+
+      <button
+        type="button"
+        class="continue-next-item"
+        data-open-studio-page="ai"
+      >
+
+        <span class="continue-next-icon purple">
+
+          <i
+            class="fa-solid fa-wand-magic-sparkles"
+            aria-hidden="true"
+          ></i>
+
+        </span>
+
+        <span>
+
+          <strong>
+            Ask the AI learning assistant
+          </strong>
+
+          <small>
+            Get explanations, summaries, and practice
+          </small>
+
+        </span>
+
+        <i
+          class="fa-solid fa-chevron-right"
+          aria-hidden="true"
+        ></i>
+
+      </button>
+
+    </div>
+  `;
+}
+
+function renderContinueLearningClasses(
+  classes
+){
+  const container =
+    $("continueLearningClassGrid");
+
+  if (!container){
+    return;
+  }
+
+  if (!classes.length){
+    container.innerHTML = `
+      <div class="studio-widget-empty">
+
+        <div class="studio-widget-empty-icon">
+
+          <i
+            class="fa-solid fa-graduation-cap"
+            aria-hidden="true"
+          ></i>
+
+        </div>
+
+        <strong>
+          No active classes
+        </strong>
+
+        <p>
+          Classes assigned by your school will appear here.
+        </p>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    classes
+      .slice(0,6)
+      .map(item => {
+        const classId =
+          item._id ||
+          item.id;
+
+        const progress =
+          getContinueLearningProgress(
+            item
+          );
+
+        return `
+          <article class="continue-class-card">
+
+            <div
+              class="continue-class-cover"
+              style="background-image:url('${escapeHtml(
+                getContinueLearningClassCover(
+                  item
+                )
+              )}')"
+            ></div>
+
+            <div class="continue-class-content">
+
+              <span>
+                ${escapeHtml(
+                  item.subject ||
+                  "Learning program"
+                )}
+              </span>
+
+              <h4>
+                ${escapeHtml(
+                  item.title ||
+                  "Untitled class"
+                )}
+              </h4>
+
+              <div class="studio-progress-track">
+
+                <div
+                  class="studio-progress-value"
+                  style="width:${progress}%"
+                ></div>
+
+              </div>
+
+              <div class="studio-progress-meta">
+
+                <span>
+                  ${progress}% complete
+                </span>
+
+                <span>
+                  ${
+                    item.teacherId?.name
+                      ? escapeHtml(
+                          item.teacherId.name
+                        )
+                      : "Instructor"
+                  }
+                </span>
+
+              </div>
+
+              <button
+                class="primary-btn"
+                type="button"
+                data-studio-open-class="${escapeHtml(
+                  classId
+                )}"
+              >
+                <i
+                  class="fa-solid fa-play"
+                  aria-hidden="true"
+                ></i>
+
+                Continue
+              </button>
+
+            </div>
+
+          </article>
+        `;
+      })
+      .join("");
+}
+
+function renderContinueLearningAssignments(
+  assignments
+){
+  const container =
+    $("continueLearningAssignments");
+
+  if (!container){
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="studio-widget-heading">
+
+      <div>
+
+        <span class="studio-widget-eyebrow">
+          COURSEWORK
+        </span>
+
+        <h3>
+          Continue pending work
+        </h3>
+
+      </div>
+
+      <button
+        class="studio-widget-link"
+        type="button"
+        data-open-studio-page="assignments"
+      >
+        View all
+      </button>
+
+    </div>
+
+    <div class="studio-assignment-timeline">
+
+      ${
+        assignments.length
+          ? assignments
+              .slice(0,4)
+              .map(item => `
+                <article class="studio-timeline-item">
+
+                  <span class="studio-timeline-dot"></span>
+
+                  <div class="studio-timeline-copy">
+
+                    <strong>
+                      ${escapeHtml(
+                        item.title ||
+                        "Assignment"
+                      )}
+                    </strong>
+
+                    <span>
+                      Due ${formatDate(
+                        item.dueDate ||
+                        item.deadline
+                      )}
+                    </span>
+
+                  </div>
+
+                  <button
+                    class="studio-timeline-action"
+                    type="button"
+                    data-submit-assignment="${escapeHtml(
+                      item._id
+                    )}"
+                  >
+                    Continue
+                  </button>
+
+                </article>
+              `)
+              .join("")
+          : `
+            <div class="studio-widget-empty compact">
+
+              <strong>
+                Coursework completed
+              </strong>
+
+              <p>
+                You have no pending assignments.
+              </p>
+
+            </div>
+          `
+      }
+
+    </div>
+  `;
+}
+
+function renderContinueLearningRecent(
+  classes
+){
+  const container =
+    $("continueLearningRecent");
+
+  if (!container){
+    return;
+  }
+
+  const recentClasses =
+    [...classes]
+      .sort((first,second) => {
+        return (
+          new Date(
+            second.lastAccessedAt ||
+            second.updatedAt ||
+            0
+          ).getTime() -
+          new Date(
+            first.lastAccessedAt ||
+            first.updatedAt ||
+            0
+          ).getTime()
+        );
+      })
+      .slice(0,4);
+
+  container.innerHTML = `
+    <div class="studio-widget-heading">
+
+      <div>
+
+        <span class="studio-widget-eyebrow">
+          RECENTLY OPENED
+        </span>
+
+        <h3>
+          Recent learning
+        </h3>
+
+      </div>
+
+    </div>
+
+    <div class="continue-recent-list">
+
+      ${
+        recentClasses.length
+          ? recentClasses
+              .map(item => `
+                <button
+                  class="continue-recent-item"
+                  type="button"
+                  data-studio-open-class="${escapeHtml(
+                    item._id ||
+                    item.id
+                  )}"
+                >
+
+                  <span
+                    class="continue-recent-thumbnail"
+                    style="background-image:url('${escapeHtml(
+                      getContinueLearningClassCover(
+                        item
+                      )
+                    )}')"
+                  ></span>
+
+                  <span>
+
+                    <strong>
+                      ${escapeHtml(
+                        item.title ||
+                        "Class"
+                      )}
+                    </strong>
+
+                    <small>
+                      ${getContinueLearningProgress(
+                        item
+                      )}% complete
+                    </small>
+
+                  </span>
+
+                  <i
+                    class="fa-solid fa-play"
+                    aria-hidden="true"
+                  ></i>
+
+                </button>
+              `)
+              .join("")
+          : `
+            <div class="studio-widget-empty compact">
+
+              <strong>
+                Nothing opened recently
+              </strong>
+
+              <p>
+                Your recently accessed classes will appear here.
+              </p>
+
+            </div>
+          `
+      }
+
+    </div>
+  `;
+}
+
+
+/* =========================================================
    STUDENT STUDIO HOME RENDERER
 ========================================================= */
 
@@ -2892,6 +3710,14 @@ async function refreshStudentDashboard(
     }
 
     if (
+  activeStudentStudioPage === "continue" &&
+  typeof renderContinueLearningWorkspace ===
+    "function"
+){
+  renderContinueLearningWorkspace();
+}
+
+    if (
       typeof renderStats ===
       "function"
     ){
@@ -3047,11 +3873,12 @@ function bindStudentStudioDelegatedActions(){
         Dashboard refresh
       */
 
-      const refreshButton =
-        target.closest(
-          "#refreshWorkspace," +
-          "#refreshWorkspaceButton"
-        );
+const refreshButton =
+  target.closest(
+    "#refreshWorkspace," +
+    "#refreshWorkspaceButton," +
+    "#continueLearningRefreshButton"
+  );
 
       if (refreshButton){
         event.preventDefault();
