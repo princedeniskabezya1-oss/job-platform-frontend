@@ -4999,36 +4999,80 @@ function renderClasses(){
 
     }
 
-    $("studentClassesResultCount").textContent =
-        `${list.length} Classes`;
+const resultCount =
+    $("studentClassesResultCount");
 
-    $("studentClassesResultDescription").textContent =
+const resultDescription =
+    $("studentClassesResultDescription");
+
+if(resultCount){
+    resultCount.textContent =
+        `${list.length} ${
+            list.length === 1
+                ? "class"
+                : "classes"
+        }`;
+}
+
+if(resultDescription){
+    resultDescription.textContent =
         keyword
             ? `Results for "${keyword}"`
-            : "Showing enrolled classes";
+            : status !== "all"
+                ? `Showing ${status} classes`
+                : "Showing all enrolled classes";
+}
 
-    container.innerHTML = list
-        container.setAttribute(
+container.setAttribute(
     "aria-busy",
     "false"
 );
 
-container.innerHTML =
-list
-.map(createStudentClassCard)
-.join("");
+if(!list.length){
+    container.innerHTML = `
+        <div class="studio-widget-empty">
 
-const reset =
+            <div class="studio-widget-empty-icon">
+                <i
+                    class="fa-solid fa-magnifying-glass"
+                    aria-hidden="true"
+                ></i>
+            </div>
+
+            <strong>
+                No matching classes
+            </strong>
+
+            <p>
+                Try changing your search or class filters.
+            </p>
+
+            <button
+                class="primary-btn"
+                type="button"
+                id="emptyClassesResetButton"
+            >
+                Reset filters
+            </button>
+
+        </div>
+    `;
+}else{
+    container.innerHTML =
+        list
+            .map(createStudentClassCard)
+            .join("");
+}
+
+const resetButton =
     $("resetClassFiltersButton");
 
-if(reset){
-
-    reset.hidden =
+if(resetButton){
+    resetButton.hidden =
         !keyword &&
-        status==="all";
-
+        status === "all" &&
+        sort === "recent";
 }
-        .join("");
 
 }
 
@@ -5043,8 +5087,8 @@ function createStudentClassCard(cls){
     const teacherImage =
         cls.teacherId?.profilePicture ||
         cls.teacherId?.profileImage ||
-        cls.teacherImage ||
-        DEFAULT_AVATAR;
+cls.teacherImage ||
+FALLBACK_AVATAR;
 
     const cover =
         cls.coverImage ||
