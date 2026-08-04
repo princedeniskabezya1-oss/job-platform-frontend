@@ -40,14 +40,38 @@ const selectedStudentId = urlParams.get("studentId");
 const state = {
   loggedUser:null,
   me:null,
+
   classes:[],
   assignments:[],
   submissions:[],
   schedules:[],
   posts:[],
-schoolUpdates:[],
+  schoolUpdates:[],
   teachers:[],
+
+  /*
+    Student-specific progress returned by:
+
+    GET /api/classes/:id/student-progress
+
+    Map key:
+    String class ID
+
+    Map value:
+    Complete progress endpoint response
+  */
+
+  classProgressById:
+    new Map(),
+
+  classProgressLoading:
+    false,
+
+  classProgressLoaded:
+    false,
+
   unread:0,
+
   metrics:{
     completion:0,
     attendance:0,
@@ -1919,6 +1943,236 @@ function getSchoolId(){
   );
 }
 
+/* =========================================================
+   STUDENT CLASS PROGRESS CONTROLLER
+========================================================= */
+
+function createEmptyStudentClassProgress(
+  classId = ""
+){
+  return {
+    classId:
+      normalizeId(classId),
+
+    studentId:
+      getStudentId(),
+
+    progress:{
+      overall:0,
+
+      lessons:{
+        total:0,
+        completed:0,
+        percentage:0
+      },
+
+      assignments:{
+        total:0,
+        completed:0,
+        percentage:0
+      },
+
+      quizzes:{
+        total:0,
+        completed:0,
+        percentage:0
+      },
+
+      attendance:{
+        total:0,
+        present:0,
+        late:0,
+        absent:0,
+        excused:0,
+        percentage:0
+      }
+    },
+
+    latestActivity:null,
+
+    generatedAt:null,
+
+    available:false
+  };
+}
+
+
+function getStudentClassProgressRecord(
+  classItemOrId
+){
+  const classId =
+    normalizeId(
+      typeof classItemOrId ===
+        "object"
+        ? (
+            classItemOrId?._id ||
+            classItemOrId?.id
+          )
+        : classItemOrId
+    );
+
+  if (!classId){
+    return createEmptyStudentClassProgress();
+  }
+
+  return (
+    state.classProgressById.get(
+      classId
+    ) ||
+    createEmptyStudentClassProgress(
+      classId
+    )
+  );
+}
+
+
+async function loadStudentClassProgress({
+  force = false
+} = {}){
+  if (
+    state.classProgressLoading &&
+    !force
+  ){
+    return;
+  }
+
+  const classes =
+    getStudentClasses();
+
+  if (!classes.length){
+    state.classProgressById.clear();
+
+    state.classProgressLoaded =
+      true;
+
+    return;
+  }
+
+  state.classProgressLoading =
+    true;
+
+  try{
+    const requestedStudentId =
+      normalizeId(
+        selectedStudentId ||
+        state.me?._id ||
+        state.loggedUser?._id
+      );
+
+    const results =
+      await Promise.allSettled(
+        classes.map(
+          async classItem => {
+            const classId =
+              normalizeId(
+                classItem?._id ||
+                classItem?.id
+              );
+
+            if (!classId){
+              return null;
+            }
+
+            const query =
+              selectedStudentId &&
+              requestedStudentId
+                ? (
+                    `?studentId=${
+                      encodeURIComponent(
+                        requestedStudentId
+                      )
+                    }`
+                  )
+                : "";
+
+            const response =
+              await apiGet(
+                `/api/classes/${
+                  encodeURIComponent(
+                    classId
+                  )
+                }/student-progress${query}`,
+                null
+              );
+
+            if (
+              !response ||
+              !response.progress
+            ){
+              return {
+                classId,
+                data:
+                  createEmptyStudentClassProgress(
+                    classId
+                  )
+              };
+            }
+
+            return {
+              classId,
+
+              data:{
+                ...response,
+                available:true
+              }
+            };
+          }
+        )
+      );
+
+    results.forEach(
+      (result,index) => {
+        const classItem =
+          classes[index];
+
+        const classId =
+          normalizeId(
+            classItem?._id ||
+            classItem?.id
+          );
+
+        if (!classId){
+          return;
+        }
+
+        if (
+          result.status ===
+            "fulfilled" &&
+          result.value?.data
+        ){
+          state.classProgressById.set(
+            classId,
+            result.value.data
+          );
+
+          return;
+        }
+
+        console.warn(
+          "Student class progress failed:",
+          classId,
+          result.status === "rejected"
+            ? result.reason
+            : "No progress response"
+        );
+
+        state.classProgressById.set(
+          classId,
+          createEmptyStudentClassProgress(
+            classId
+          )
+        );
+      }
+    );
+
+    state.classProgressLoaded =
+      true;
+  }finally{
+    state.classProgressLoading =
+      false;
+  }
+}
+
 function getStudentClasses(){
   const studentId = getStudentId();
   const schoolId = getSchoolId();
@@ -2017,15 +2271,47 @@ apiGet(`/api/school-updates?schoolId=${encodeURIComponent(schoolId)}`, []),
 apiGet("/api/notifications/unread-count", { count:0 })
     ]);
 
-    state.classes = asArray(classes);
-    state.assignments = asArray(assignments);
-    state.submissions = asArray(submissions);
-    state.schedules = asArray(schedules);
-state.posts = asArray(posts);
-state.schoolUpdates = asArray(schoolUpdates);
-state.unread = Number(unread?.count || unread?.unread || 0);
+    state.classes =
+      asArray(classes);
 
-    state.teachers = getTeacherMap();
+    state.assignments =
+      asArray(assignments);
+
+    state.submissions =
+      asArray(submissions);
+
+    state.schedules =
+      asArray(schedules);
+
+    state.posts =
+      asArray(posts);
+
+    state.schoolUpdates =
+      asArray(schoolUpdates);
+
+    state.unread =
+      Number(
+        unread?.count ||
+        unread?.unread ||
+        0
+      );
+
+    state.teachers =
+      getTeacherMap();
+
+    /*
+      Clear stale progress before loading the current
+      student's class-specific results.
+    */
+
+    state.classProgressById.clear();
+
+    state.classProgressLoaded =
+      false;
+
+    await loadStudentClassProgress({
+      force:true
+    });
 
     calculateMetrics();
 
@@ -5374,7 +5660,42 @@ let studentClassView =
     : "grid";
 
 
-function getStudentClassProgress(classItem){
+function getStudentClassProgress(
+  classItem
+){
+  const progressRecord =
+    getStudentClassProgressRecord(
+      classItem
+    );
+
+  const backendProgress =
+    Number(
+      progressRecord
+        ?.progress
+        ?.overall
+    );
+
+  if (
+    Number.isFinite(
+      backendProgress
+    )
+  ){
+    return Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          backendProgress
+        )
+      )
+    );
+  }
+
+  /*
+    Compatibility fallback for old class records while
+    the progress endpoint is unavailable.
+  */
+
   return Math.max(
     0,
     Math.min(
@@ -5382,7 +5703,8 @@ function getStudentClassProgress(classItem){
       Number(
         classItem?.progress ??
         classItem?.completion ??
-        classItem?.completionPercentage ??
+        classItem
+          ?.completionPercentage ??
         0
       ) || 0
     )
@@ -5454,7 +5776,32 @@ function getStudentClassScheduleTime(classItem){
 }
 
 
-function getStudentClassAssignmentCount(classItem){
+function getStudentClassAssignmentCount(
+  classItem
+){
+  const progressRecord =
+    getStudentClassProgressRecord(
+      classItem
+    );
+
+  const backendTotal =
+    Number(
+      progressRecord
+        ?.progress
+        ?.assignments
+        ?.total
+    );
+
+  if (
+    progressRecord?.available &&
+    Number.isFinite(backendTotal)
+  ){
+    return Math.max(
+      0,
+      backendTotal
+    );
+  }
+
   const classId =
     normalizeId(
       classItem?._id ||
@@ -5477,27 +5824,59 @@ function getStudentClassAssignmentCount(classItem){
       Array.isArray(
         classItem?.assignments
       )
-        ? classItem.assignments.length
+        ? classItem
+            .assignments
+            .length
         : linkedAssignments.length
     )
   ) || 0;
 }
 
+function getStudentClassLessonCount(
+  classItem
+){
+  const progressRecord =
+    getStudentClassProgressRecord(
+      classItem
+    );
 
-function getStudentClassLessonCount(classItem){
+  const backendTotal =
+    Number(
+      progressRecord
+        ?.progress
+        ?.lessons
+        ?.total
+    );
+
   if (
-    Array.isArray(classItem?.lessons)
+    progressRecord?.available &&
+    Number.isFinite(backendTotal)
+  ){
+    return Math.max(
+      0,
+      backendTotal
+    );
+  }
+
+  if (
+    Array.isArray(
+      classItem?.lessons
+    )
   ){
     return classItem.lessons.length;
   }
 
   if (
-    Array.isArray(classItem?.modules)
+    Array.isArray(
+      classItem?.modules
+    )
   ){
     return classItem.modules.reduce(
       (total,module) => {
         if (
-          Array.isArray(module?.lessons)
+          Array.isArray(
+            module?.lessons
+          )
         ){
           return (
             total +
@@ -5517,7 +5896,6 @@ function getStudentClassLessonCount(classItem){
     0
   ) || 0;
 }
-
 
 function getStudentClassStudentCount(classItem){
   if (
@@ -5997,6 +6375,11 @@ function createStudentClassCard(
       classItem
     );
 
+  const progressRecord =
+    getStudentClassProgressRecord(
+      classItem
+    );
+
   const progress =
     getStudentClassProgress(
       classItem
@@ -6012,9 +6395,54 @@ function createStudentClassCard(
       classItem
     );
 
+  const completedLessons =
+    Number(
+      progressRecord
+        ?.progress
+        ?.lessons
+        ?.completed ||
+      0
+    );
+
   const assignments =
     getStudentClassAssignmentCount(
       classItem
+    );
+
+  const completedAssignments =
+    Number(
+      progressRecord
+        ?.progress
+        ?.assignments
+        ?.completed ||
+      0
+    );
+
+  const quizzes =
+    Number(
+      progressRecord
+        ?.progress
+        ?.quizzes
+        ?.total ||
+      0
+    );
+
+  const completedQuizzes =
+    Number(
+      progressRecord
+        ?.progress
+        ?.quizzes
+        ?.completed ||
+      0
+    );
+
+  const attendancePercentage =
+    Number(
+      progressRecord
+        ?.progress
+        ?.attendance
+        ?.percentage ||
+      0
     );
 
   const students =
