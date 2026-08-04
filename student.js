@@ -5804,12 +5804,27 @@ function renderClasses(){
     return;
   }
 
-  const classes =
+const container =
+    $("classesList");
+
+if(container){
+
+    container.setAttribute(
+        "aria-busy",
+        "true"
+    );
+
+    container.innerHTML =
+        createStudentClassSkeletons();
+
+}
+
+const classes =
     getStudentClasses();
 
-  updateStudentClassSummary(
+updateStudentClassSummary(
     classes
-  );
+);
 
   container.setAttribute(
     "aria-busy",
@@ -6555,6 +6570,69 @@ function createNoMatchingClassesWorkspace(){
 
     </div>
   `;
+}
+
+
+/* =========================================================
+   CLASS SKELETONS
+========================================================= */
+
+function createStudentClassSkeletons(){
+
+    return Array.from({
+
+        length:6
+
+    })
+
+    .map(()=>`
+
+<article class="student-class-card skeleton-card">
+
+<div class="student-class-cover skeleton-box"></div>
+
+<div class="student-class-content">
+
+<div class="skeleton-title skeleton-box"></div>
+
+<div class="skeleton-text skeleton-box"></div>
+
+<div class="skeleton-text short skeleton-box"></div>
+
+<div class="student-class-teacher">
+
+<div class="skeleton-avatar skeleton-box"></div>
+
+<div>
+
+<div class="skeleton-line skeleton-box"></div>
+
+<div class="skeleton-line short skeleton-box"></div>
+
+</div>
+
+</div>
+
+<div class="student-class-progress">
+
+<div class="skeleton-line skeleton-box"></div>
+
+</div>
+
+<div class="student-class-actions">
+
+<div class="skeleton-button skeleton-box"></div>
+
+<div class="skeleton-button skeleton-box"></div>
+
+</div>
+
+</div>
+
+</article>
+
+`).join("");
+
 }
 
 function resumeStudentLearning(
