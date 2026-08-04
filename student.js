@@ -4284,24 +4284,18 @@ function executeStudentSearch(){
   const query =
     input.value.trim();
 
-  const clearButton =
-    $("studentGlobalSearchClear");
 
-  if (clearButton){
-    clearButton.hidden =
-      query.length === 0;
-  }
 
-  openStudentSearchResults();
+if (!query){
+  studentSearchResults = [];
+  studentSearchActiveIndex = -1;
 
-  if (!query){
-    studentSearchResults = [];
-    studentSearchActiveIndex = -1;
+  closeStudentSearchResults();
 
-    renderStudentSearchEmpty();
+  return;
+}
 
-    return;
-  }
+openStudentSearchResults();
 
   const results =
     searchStudentStudio(query);
@@ -4362,15 +4356,12 @@ function initSearch(){
   const input =
     $("globalSearch");
 
-  const clearButton =
-    $("studentGlobalSearchClear");
+const resultContainer =
+  $("studentGlobalSearchResults");
 
-  const resultContainer =
-    $("studentGlobalSearchResults");
-
-  if (!input || !resultContainer){
-    return;
-  }
+if (!input || !resultContainer){
+  return;
+}
 
   if (
     input.dataset
@@ -4386,16 +4377,16 @@ function initSearch(){
 
   renderStudentSearchEmpty();
 
-  input.addEventListener(
-    "focus",
-    () => {
-      openStudentSearchResults();
-
-      if (input.value.trim()){
-        executeStudentSearch();
-      }
+input.addEventListener(
+  "focus",
+  () => {
+    if (input.value.trim()){
+      executeStudentSearch();
+    }else{
+      closeStudentSearchResults();
     }
-  );
+  }
+);
 
   input.addEventListener(
     "input",
@@ -4417,21 +4408,6 @@ function initSearch(){
     handleStudentSearchKeyboard
   );
 
-  clearButton?.addEventListener(
-    "click",
-    () => {
-      input.value = "";
-
-      clearButton.hidden = true;
-
-      studentSearchResults = [];
-      studentSearchActiveIndex = -1;
-
-      renderStudentSearchEmpty();
-
-      input.focus();
-    }
-  );
 
   document.addEventListener(
     "keydown",
