@@ -1440,6 +1440,50 @@ function bindStudentStudioTopbar(){
       }
     }
   );
+
+  /*
+====================================================
+LIVE FILTERS
+====================================================
+*/
+
+$("classSearchInput")
+?.addEventListener(
+
+"input",
+
+()=>{
+
+    const clear =
+        $("clearClassSearchButton");
+
+    clear.hidden =
+        !$("classSearchInput")
+        .value;
+
+    renderClasses();
+
+}
+
+);
+
+$("classStatusFilter")
+?.addEventListener(
+
+"change",
+
+renderClasses
+
+);
+
+$("classSortFilter")
+?.addEventListener(
+
+"change",
+
+renderClasses
+
+);
 }
 
 function bindStudentStudioQuickActions(){
@@ -3944,6 +3988,54 @@ const refreshButton =
         Dashboard and widget navigation
       */
 
+
+      /*
+====================================================
+CLASS SEARCH
+====================================================
+*/
+
+const classSearch =
+    target.closest(
+        "#clearClassSearchButton"
+    );
+
+if(classSearch){
+
+    event.preventDefault();
+
+    const input =
+        $("classSearchInput");
+
+    input.value="";
+
+    renderClasses();
+
+    return;
+
+}
+
+      const resetFilters =
+target.closest(
+"#resetClassFiltersButton"
+);
+
+if(resetFilters){
+
+event.preventDefault();
+
+$("classSearchInput").value="";
+
+$("classStatusFilter").value="all";
+
+$("classSortFilter").value="recent";
+
+renderClasses();
+
+return;
+
+}
+
       const pageButton =
         target.closest(
           "[data-open-studio-page]"
@@ -4720,61 +4812,416 @@ ${
 }
 
 function renderClasses(){
-  const container = $("classesList");
-  if (!container) return;
 
-  const classes = getStudentClasses();
+    const container = $("classesList");
 
-  if (!classes.length){
-    container.innerHTML = `<div class="empty">No classes assigned yet.</div>`;
-    return;
-  }
+    if(!container) return;
 
-  container.innerHTML = classes.map(cls => {
+    const classes = getStudentClasses();
+
+    updateStudentClassSummary(classes);
+
+    if(!classes.length){
+
+        container.innerHTML = createEmptyClassesWorkspace();
+
+        return;
+
+    }
+
+    const keyword =
+        ($("classSearchInput")?.value || "")
+        .trim()
+        .toLowerCase();
+
+    const status =
+        $("classStatusFilter")?.value || "all";
+
+    const sort =
+        $("classSortFilter")?.value || "recent";
+
+    let list = [...classes];
+
+    if(keyword){
+
+        list = list.filter(cls=>{
+
+            return [
+
+                cls.title,
+
+                cls.subject,
+
+                cls.classCode,
+
+                cls.teacherName,
+
+                cls.teacherId?.name,
+
+                cls.description
+
+            ]
+
+            .join(" ")
+
+            .toLowerCase()
+
+            .includes(keyword);
+
+        });
+
+    }
+
+    if(status !== "all"){
+
+        list = list.filter(cls=>{
+
+            switch(status){
+
+                case "active":
+
+                    return !cls.completed;
+
+                case "completed":
+
+                    return cls.completed;
+
+                case "upcoming":
+
+                    return Boolean(cls.schedule);
+
+                case "archived":
+
+                    return cls.archived;
+
+                default:
+
+                    return true;
+
+            }
+
+        });
+
+    }
+
+    switch(sort){
+
+        case "title-asc":
+
+            list.sort((a,b)=>
+
+                (a.title||"").localeCompare(b.title||"")
+
+            );
+
+            break;
+
+        case "title-desc":
+
+            list.sort((a,b)=>
+
+                (b.title||"").localeCompare(a.title||"")
+
+            );
+
+            break;
+
+        case "progress-desc":
+
+            list.sort((a,b)=>
+
+                (b.progress||0)-(a.progress||0)
+
+            );
+
+            break;
+
+        case "progress-asc":
+
+            list.sort((a,b)=>
+
+                (a.progress||0)-(b.progress||0)
+
+            );
+
+            break;
+
+    }
+
+    $("studentClassesResultCount").textContent =
+        `${list.length} Classes`;
+
+    $("studentClassesResultDescription").textContent =
+        keyword
+            ? `Results for "${keyword}"`
+            : "Showing enrolled classes";
+
+    container.innerHTML = list
+        container.setAttribute(
+    "aria-busy",
+    "false"
+);
+
+container.innerHTML =
+list
+.map(createStudentClassCard)
+.join("");
+
+const reset =
+    $("resetClassFiltersButton");
+
+if(reset){
+
+    reset.hidden =
+        !keyword &&
+        status==="all";
+
+}
+        .join("");
+
+}
+
+
+function createStudentClassCard(cls){
+
     const teacher =
-      cls.teacherId?.name ||
-      cls.teacherName ||
-      "Teacher not assigned";
+        cls.teacherId?.name ||
+        cls.teacherName ||
+        "Teacher";
+
+    const progress =
+        Number(cls.progress||0);
+
+    const cover =
+        cls.coverImage ||
+        cls.bannerImage ||
+        CLASS_FALLBACK;
 
     return `
-      <article
-  class="class-card"
-  data-class-id="${escapeHtml(
-    normalizeId(cls._id)
-  )}"
+
+<article
+class="student-class-card"
+data-class-id="${escapeHtml(normalizeId(cls._id))}"
 >
-        <div
-          class="class-cover"
-          style="background-image:url('${cls.coverImage || CLASS_FALLBACK}')"
-        ></div>
 
-        <div class="item-head">
-          <div>
-            <h3 class="item-title">${escapeHtml(cls.title || "Class")}</h3>
-            <div class="item-sub">${escapeHtml(cls.subject || "No subject")}</div>
-          </div>
+<div
+class="student-class-cover"
+style="background-image:url('${cover}')"
+>
 
-          <span class="chip primary">Class</span>
-        </div>
+<div class="student-class-overlay">
 
-        <p class="item-desc">${escapeHtml(cls.description || "No class description added.")}</p>
+<span class="student-class-chip">
 
-        <div class="meta-row">
-          <span class="chip">${escapeHtml(teacher)}</span>
-          ${cls.schedule ? `<span class="chip">${escapeHtml(cls.schedule)}</span>` : ""}
-          ${cls.classCode ? `<span class="chip success">${escapeHtml(cls.classCode)}</span>` : ""}
-        </div>
+${escapeHtml(cls.subject||"Course")}
 
-        <div class="card-actions">
-          ${
-            cls.meetingLink
-              ? `<a class="primary-btn" href="${cls.meetingLink}" target="_blank">Join Class</a>`
-              : ""
-          }
-        </div>
-      </article>
-    `;
-  }).join("");
+</span>
+
+</div>
+
+</div>
+
+<div class="student-class-body">
+
+<h3>
+
+${escapeHtml(cls.title)}
+
+</h3>
+
+<p>
+
+${escapeHtml(cls.description||"No class description yet.")}
+
+</p>
+
+<div class="student-class-meta">
+
+<div>
+
+<i class="fa-solid fa-user"></i>
+
+${escapeHtml(teacher)}
+
+</div>
+
+<div>
+
+<i class="fa-solid fa-calendar"></i>
+
+${escapeHtml(cls.schedule||"Self paced")}
+
+</div>
+
+</div>
+
+<div class="student-class-progress">
+
+<div class="progress-track">
+
+<div
+class="progress-fill"
+style="width:${progress}%"
+></div>
+
+</div>
+
+<span>
+
+${progress}% complete
+
+</span>
+
+</div>
+
+<div class="student-class-actions">
+
+<button
+class="ghost-btn"
+onclick="openStudentClass('${cls._id}')"
+>
+
+Open Class
+
+</button>
+
+${
+cls.meetingLink
+?
+
+`<a
+class="primary-btn"
+target="_blank"
+href="${cls.meetingLink}"
+>
+
+Join Live
+
+</a>`
+
+:
+
+`<button
+class="primary-btn"
+onclick="resumeStudentLearning()"
+>
+
+Continue
+
+</button>`
+
+}
+
+</div>
+
+</div>
+
+</article>
+
+`;
+
+}
+
+
+/* =========================================================
+   STUDENT CLASSES HELPERS
+========================================================= */
+
+function updateStudentClassSummary(classes){
+
+    const total =
+        classes.length;
+
+    const active =
+        classes.filter(item=>!item.completed)
+        .length;
+
+    const upcoming =
+        classes.filter(item=>Boolean(item.schedule))
+        .length;
+
+    const average =
+        total
+            ? Math.round(
+
+                classes.reduce(
+
+                    (sum,item)=>
+
+                        sum+
+                        Number(item.progress||0),
+
+                    0
+
+                )/total
+
+            )
+
+            :0;
+
+    setText(
+        "studentTotalClassesCount",
+        total
+    );
+
+    setText(
+        "studentActiveClassesCount",
+        active
+    );
+
+    setText(
+        "studentUpcomingClassCount",
+        upcoming
+    );
+
+    setText(
+        "studentClassesAverageProgress",
+        `${average}%`
+    );
+
+}
+
+function createEmptyClassesWorkspace(){
+
+    return `
+
+<div class="studio-widget-empty">
+
+<div class="studio-widget-empty-icon">
+
+<i class="fa-solid fa-graduation-cap"></i>
+
+</div>
+
+<strong>
+
+No classes assigned
+
+</strong>
+
+<p>
+
+Your enrolled classes will appear here
+once your school assigns one.
+
+</p>
+
+<button
+
+class="primary-btn"
+
+onclick="navigateStudentStudio('continue')"
+
+>
+
+Continue Learning
+
+</button>
+
+</div>
+
+`;
+
 }
 
 function renderAssignments(){
