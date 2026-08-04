@@ -896,38 +896,6 @@ function bindStudentStudioTopbar(){
       }
     );
 
-  $("refreshWorkspaceButton")
-    ?.addEventListener(
-      "click",
-      async () => {
-        const button =
-          $("refreshWorkspaceButton");
-
-        if (button){
-          button.disabled = true;
-          button.classList.add(
-            "is-loading"
-          );
-        }
-
-        try{
-          await loadAll();
-
-          showAlert(
-            "success",
-            "Student Studio refreshed."
-          );
-        }finally{
-          if (button){
-            button.disabled = false;
-            button.classList.remove(
-              "is-loading"
-            );
-          }
-        }
-      }
-    );
-
   $("studentWorkspaceSearchButton")
     ?.addEventListener(
       "click",
@@ -2281,30 +2249,535 @@ function renderStudioAchievements(){
   `;
 }
 
-function bindStudentStudioDelegatedActions(){
-  document.addEventListener(
-    "click",
-    event => {
-      const pageButton =
-        event.target.closest(
-          "[data-open-studio-page]"
+/* =========================================================
+   STUDENT DASHBOARD ACTION CONTROLLER
+========================================================= */
+
+let studentDashboardActionsBound = false;
+
+function navigateStudentStudio(page, options = {}){
+  const targetPage =
+    String(page || "overview")
+      .trim()
+      .toLowerCase();
+
+  if (
+    typeof activateStudentStudioPage ===
+    "function"
+  ){
+    activateStudentStudioPage(
+      targetPage,
+      options
+    );
+
+    return;
+  }
+
+  if (
+    typeof openStudentStudioPage ===
+    "function"
+  ){
+    openStudentStudioPage(
+      targetPage,
+      {
+        updateHistory:
+          options.history !== false,
+
+        scroll:
+          options.scroll !== false,
+
+        instant:
+          options.instant === true
+      }
+    );
+
+    return;
+  }
+
+  const url =
+    new URL(window.location.href);
+
+  if (targetPage === "overview"){
+    url.searchParams.delete("section");
+  }else{
+    url.searchParams.set(
+      "section",
+      targetPage
+    );
+  }
+
+  window.location.href =
+    url.toString();
+}
+
+function setDashboardButtonLoading(
+  button,
+  loading,
+  loadingLabel = "Loading..."
+){
+  if (!button){
+    return;
+  }
+
+  if (loading){
+    if (
+      !button.dataset.originalHtml
+    ){
+      button.dataset.originalHtml =
+        button.innerHTML;
+    }
+
+    button.disabled = true;
+
+    button.classList.add(
+      "is-loading"
+    );
+
+    button.innerHTML = `
+      <i
+        class="fa-solid fa-spinner fa-spin"
+        aria-hidden="true"
+      ></i>
+
+      <span>
+        ${escapeHtml(loadingLabel)}
+      </span>
+    `;
+
+    return;
+  }
+
+  button.disabled = false;
+
+  button.classList.remove(
+    "is-loading"
+  );
+
+  if (button.dataset.originalHtml){
+    button.innerHTML =
+      button.dataset.originalHtml;
+
+    delete button.dataset.originalHtml;
+  }
+}
+
+function openDashboardAssignmentSubmission(
+  assignmentId = ""
+){
+  const safeAssignmentId =
+    String(assignmentId || "").trim();
+
+  if (
+    typeof openSubmissionModal ===
+    "function"
+  ){
+    openSubmissionModal(
+      safeAssignmentId
+    );
+
+    return;
+  }
+
+  const assignmentSelect =
+    $("submissionAssignmentId");
+
+  if (
+    assignmentSelect &&
+    safeAssignmentId
+  ){
+    assignmentSelect.value =
+      safeAssignmentId;
+  }
+
+  openModal(
+    "submissionModal"
+  );
+}
+
+async function refreshStudentDashboard(
+  triggerButton = null
+){
+  const button =
+    triggerButton ||
+    $("refreshWorkspace") ||
+    $("refreshWorkspaceButton");
+
+  setDashboardButtonLoading(
+    button,
+    true,
+    "Refreshing..."
+  );
+
+  try{
+    await loadAll();
+
+    if (
+      typeof renderStudioHome ===
+      "function"
+    ){
+      renderStudioHome();
+    }
+
+    if (
+      typeof renderStats ===
+      "function"
+    ){
+      renderStats();
+    }
+
+    if (
+      typeof showAlert ===
+      "function"
+    ){
+      showAlert(
+        "success",
+        "Student dashboard refreshed."
+      );
+    }
+  }catch(error){
+    console.error(
+      "refreshStudentDashboard failed:",
+      error
+    );
+
+    if (
+      typeof showAlert ===
+      "function"
+    ){
+      showAlert(
+        "error",
+        error?.message ||
+        "Unable to refresh the dashboard."
+      );
+    }
+  }finally{
+    setDashboardButtonLoading(
+      button,
+      false
+    );
+  }
+}
+
+function resumeStudentLearning(){
+  const selectedClass =
+    typeof getPreferredStudentClass ===
+    "function"
+      ? getPreferredStudentClass()
+      : (
+          typeof getStudentClasses ===
+          "function"
+            ? getStudentClasses()[0]
+            : null
         );
 
-      if(pageButton){
-        openStudentStudioPage(
-          pageButton.dataset.openStudioPage
+  if (!selectedClass){
+    navigateStudentStudio(
+      "classes"
+    );
+
+    if (
+      typeof showAlert ===
+      "function"
+    ){
+      showAlert(
+        "info",
+        "No class is currently available to resume."
+      );
+    }
+
+    return;
+  }
+
+  const classId =
+    selectedClass._id ||
+    selectedClass.id;
+
+  if (!classId){
+    navigateStudentStudio(
+      "classes"
+    );
+
+    return;
+  }
+
+  if (
+    typeof openStudentClass ===
+    "function"
+  ){
+    openStudentClass(classId);
+
+    return;
+  }
+
+  window.location.href =
+    `student-class.html?classId=${encodeURIComponent(
+      classId
+    )}`;
+}
+
+function handleStudentAIAction(action){
+  const selectedAction =
+    String(action || "")
+      .trim()
+      .toLowerCase();
+
+  navigateStudentStudio(
+    "ai"
+  );
+
+  window.setTimeout(
+    () => {
+      const workspace =
+        $("studentAIWorkspace");
+
+      if (!workspace){
+        return;
+      }
+
+      workspace.dataset.requestedAction =
+        selectedAction;
+
+      workspace.dispatchEvent(
+        new CustomEvent(
+          "student-ai-action",
+          {
+            bubbles:true,
+            detail:{
+              action:selectedAction
+            }
+          }
+        )
+      );
+    },
+    80
+  );
+}
+
+function bindStudentStudioDelegatedActions(){
+  if (studentDashboardActionsBound){
+    return;
+  }
+
+  studentDashboardActionsBound = true;
+
+  document.addEventListener(
+    "click",
+    async event => {
+      const target =
+        event.target;
+
+      if (!(target instanceof Element)){
+        return;
+      }
+
+      /*
+        Dashboard refresh
+      */
+
+      const refreshButton =
+        target.closest(
+          "#refreshWorkspace," +
+          "#refreshWorkspaceButton"
+        );
+
+      if (refreshButton){
+        event.preventDefault();
+
+        await refreshStudentDashboard(
+          refreshButton
         );
 
         return;
       }
 
-      const navigationButton =
-        event.target.closest(
-          ".student-nav-btn[data-page]"
+      /*
+        Resume learning
+      */
+
+      const resumeButton =
+        target.closest(
+          "#resumeLearningButton"
         );
 
-      if(navigationButton){
-        openStudentStudioPage(
+      if (resumeButton){
+        event.preventDefault();
+
+        resumeStudentLearning();
+
+        return;
+      }
+
+      /*
+        Dashboard and widget navigation
+      */
+
+      const pageButton =
+        target.closest(
+          "[data-open-studio-page]"
+        );
+
+      if (pageButton){
+        event.preventDefault();
+
+        navigateStudentStudio(
+          pageButton.dataset
+            .openStudioPage
+        );
+
+        return;
+      }
+
+      /*
+        Continue or open class
+      */
+
+      const classButton =
+        target.closest(
+          "[data-studio-open-class]"
+        );
+
+      if (classButton){
+        event.preventDefault();
+
+        const classId =
+          classButton.dataset
+            .studioOpenClass;
+
+        if (!classId){
+          return;
+        }
+
+        if (
+          typeof openStudentClass ===
+          "function"
+        ){
+          openStudentClass(classId);
+        }else{
+          window.location.href =
+            `student-class.html?classId=${encodeURIComponent(
+              classId
+            )}`;
+        }
+
+        return;
+      }
+
+      /*
+        Submit a specific assignment
+      */
+
+      const assignmentButton =
+        target.closest(
+          "[data-submit-assignment]"
+        );
+
+      if (assignmentButton){
+        event.preventDefault();
+
+        openDashboardAssignmentSubmission(
+          assignmentButton.dataset
+            .submitAssignment
+        );
+
+        return;
+      }
+
+      /*
+        AI dashboard actions
+      */
+
+      const aiButton =
+        target.closest(
+          "[data-ai-action]"
+        );
+
+      if (aiButton){
+        event.preventDefault();
+
+        handleStudentAIAction(
+          aiButton.dataset.aiAction
+        );
+
+        return;
+      }
+
+      /*
+        Router search button
+      */
+
+      const searchButton =
+        target.closest(
+          "#studentWorkspaceSearchButton"
+        );
+
+      if (searchButton){
+        event.preventDefault();
+
+        const searchInput =
+          $("globalSearch");
+
+        searchInput?.focus();
+
+        searchInput?.scrollIntoView({
+          behavior:"smooth",
+          block:"center"
+        });
+
+        return;
+      }
+
+      /*
+        Router back button
+      */
+
+      const backButton =
+        target.closest(
+          "#studentWorkspaceBackButton"
+        );
+
+      if (backButton){
+        event.preventDefault();
+
+        navigateStudentStudio(
+          "overview"
+        );
+
+        return;
+      }
+
+      /*
+        Submit work from top bar or router
+      */
+
+      const submitWorkButton =
+        target.closest(
+          "#studentSubmitWorkButton," +
+          "#studentWorkspaceSubmitButton"
+        );
+
+      if (submitWorkButton){
+        event.preventDefault();
+
+        openDashboardAssignmentSubmission();
+
+        return;
+      }
+
+      /*
+        Sidebar and mobile navigation
+      */
+
+      const navigationButton =
+        target.closest(
+          "#studentSidebarNavigation [data-page]," +
+          ".student-sidebar-footer [data-page]," +
+          ".mobile-nav [data-page]"
+        );
+
+      if (navigationButton){
+        event.preventDefault();
+
+        navigateStudentStudio(
           navigationButton.dataset.page
         );
       }
