@@ -1865,7 +1865,7 @@ function getContinueLearningClassCover(item){
     item?.bannerImage ||
     item?.thumbnail ||
     item?.image ||
-    CLASS_FALLBACK
+    FALLBACK_COVER
   );
 }
 
