@@ -147,21 +147,486 @@ function formatDateTime(value){
   });
 }
 
-function showAlert(type,message){
-  const box = $("pageAlert");
+/* =========================================================
+   AIFT NOTIFICATION CONTROLLER
+========================================================= */
 
-  if (!box){
-    alert(message);
+const AIFT_NOTIFICATION_DEFAULT_DURATION =
+  4200;
+
+const AIFT_NOTIFICATION_MAX_VISIBLE =
+  4;
+
+const AIFT_NOTIFICATION_TYPES =
+  Object.freeze({
+    success:{
+      title:"Completed",
+      icon:"fa-solid fa-circle-check"
+    },
+
+    error:{
+      title:"Something went wrong",
+      icon:"fa-solid fa-circle-exclamation"
+    },
+
+    warning:{
+      title:"Attention needed",
+      icon:"fa-solid fa-triangle-exclamation"
+    },
+
+    info:{
+      title:"AIFT update",
+      icon:"fa-solid fa-circle-info"
+    }
+  });
+
+let aiftNotificationSequence = 0;
+
+function getAIFTNotificationRegion(){
+  let region =
+    document.getElementById(
+      "aiftNotificationRegion"
+    );
+
+  if (region){
+    return region;
+  }
+
+  region =
+    document.createElement("div");
+
+  region.id =
+    "aiftNotificationRegion";
+
+  region.className =
+    "aift-notification-region";
+
+  region.setAttribute(
+    "role",
+    "region"
+  );
+
+  region.setAttribute(
+    "aria-label",
+    "AIFT notifications"
+  );
+
+  region.setAttribute(
+    "aria-live",
+    "polite"
+  );
+
+  region.setAttribute(
+    "aria-relevant",
+    "additions removals"
+  );
+
+  document.body.appendChild(region);
+
+  return region;
+}
+
+function normalizeAIFTNotificationType(type){
+  const normalized =
+    String(type || "info")
+      .trim()
+      .toLowerCase();
+
+  return Object.prototype.hasOwnProperty.call(
+    AIFT_NOTIFICATION_TYPES,
+    normalized
+  )
+    ? normalized
+    : "info";
+}
+
+function removeAIFTNotification(
+  notification,
+  immediate = false
+){
+  if (!notification){
     return;
   }
 
-  box.className = "alert " + type;
-  box.innerText = message;
-  box.style.display = "block";
+  window.clearTimeout(
+    Number(
+      notification.dataset
+        .notificationTimer
+    )
+  );
 
-  setTimeout(() => {
-    box.style.display = "none";
-  }, 3500);
+  if (immediate){
+    notification.remove();
+    return;
+  }
+
+  if (
+    notification.classList.contains(
+      "is-leaving"
+    )
+  ){
+    return;
+  }
+
+  notification.classList.remove(
+    "is-visible"
+  );
+
+  notification.classList.add(
+    "is-leaving"
+  );
+
+  window.setTimeout(
+    () => {
+      notification.remove();
+    },
+    290
+  );
+}
+
+function enforceAIFTNotificationLimit(
+  region
+){
+  const notifications =
+    Array.from(
+      region.querySelectorAll(
+        ".aift-notification"
+      )
+    );
+
+  while (
+    notifications.length >=
+    AIFT_NOTIFICATION_MAX_VISIBLE
+  ){
+    const oldest =
+      notifications.shift();
+
+    removeAIFTNotification(
+      oldest,
+      true
+    );
+  }
+}
+
+function showAlert(
+  type,
+  message,
+  options = {}
+){
+  const normalizedType =
+    normalizeAIFTNotificationType(
+      type
+    );
+
+  const configuration =
+    AIFT_NOTIFICATION_TYPES[
+      normalizedType
+    ];
+
+  const safeMessage =
+    String(
+      message ||
+      "An update is available."
+    ).trim();
+
+  const title =
+    String(
+      options.title ||
+      configuration.title
+    ).trim();
+
+  const duration =
+    Math.max(
+      1500,
+      Number(options.duration) ||
+      AIFT_NOTIFICATION_DEFAULT_DURATION
+    );
+
+  const region =
+    getAIFTNotificationRegion();
+
+  enforceAIFTNotificationLimit(
+    region
+  );
+
+  const notification =
+    document.createElement("article");
+
+  const notificationId =
+    `aift-notification-${
+      ++aiftNotificationSequence
+    }`;
+
+  notification.id =
+    notificationId;
+
+  notification.className =
+    `aift-notification ${normalizedType}`;
+
+  notification.setAttribute(
+    "role",
+    normalizedType === "error"
+      ? "alert"
+      : "status"
+  );
+
+  notification.setAttribute(
+    "aria-atomic",
+    "true"
+  );
+
+  notification.style.setProperty(
+    "--aift-notification-duration",
+    `${duration}ms`
+  );
+
+  notification.innerHTML = `
+    <div
+      class="aift-notification-icon"
+      aria-hidden="true"
+    >
+      <i
+        class="${configuration.icon}"
+      ></i>
+    </div>
+
+    <div class="aift-notification-copy">
+
+      <span class="aift-notification-brand">
+        AIFT
+      </span>
+
+      <strong>
+        ${escapeHtml(title)}
+      </strong>
+
+      <p>
+        ${escapeHtml(safeMessage)}
+      </p>
+
+    </div>
+
+    <button
+      class="aift-notification-close"
+      type="button"
+      aria-label="Dismiss notification"
+    >
+      <i
+        class="fa-solid fa-xmark"
+        aria-hidden="true"
+      ></i>
+    </button>
+
+    <div
+      class="aift-notification-progress"
+      aria-hidden="true"
+    ></div>
+  `;
+
+  region.appendChild(
+    notification
+  );
+
+  window.requestAnimationFrame(
+    () => {
+      window.requestAnimationFrame(
+        () => {
+          notification.classList.add(
+            "is-visible"
+          );
+        }
+      );
+    }
+  );
+
+  let remaining =
+    duration;
+
+  let startedAt =
+    Date.now();
+
+  const beginTimer = () => {
+    startedAt =
+      Date.now();
+
+    const timer =
+      window.setTimeout(
+        () => {
+          removeAIFTNotification(
+            notification
+          );
+        },
+        remaining
+      );
+
+    notification.dataset
+      .notificationTimer =
+      String(timer);
+  };
+
+  const pauseTimer = () => {
+    const timer =
+      Number(
+        notification.dataset
+          .notificationTimer
+      );
+
+    window.clearTimeout(timer);
+
+    remaining =
+      Math.max(
+        0,
+        remaining -
+        (
+          Date.now() -
+          startedAt
+        )
+      );
+
+    notification.classList.add(
+      "is-paused"
+    );
+  };
+
+  const resumeTimer = () => {
+    if (remaining <= 0){
+      removeAIFTNotification(
+        notification
+      );
+
+      return;
+    }
+
+    notification.classList.remove(
+      "is-paused"
+    );
+
+    beginTimer();
+  };
+
+  notification
+    .querySelector(
+      ".aift-notification-close"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+        removeAIFTNotification(
+          notification
+        );
+      }
+    );
+
+  notification.addEventListener(
+    "mouseenter",
+    pauseTimer
+  );
+
+  notification.addEventListener(
+    "mouseleave",
+    resumeTimer
+  );
+
+  notification.addEventListener(
+    "focusin",
+    pauseTimer
+  );
+
+  notification.addEventListener(
+    "focusout",
+    resumeTimer
+  );
+
+  beginTimer();
+
+  return {
+    id:notificationId,
+
+    close(){
+      removeAIFTNotification(
+        notification
+      );
+    },
+
+    element:notification
+  };
+}
+
+
+function notifyAIFTSuccess(
+  message,
+  options = {}
+){
+  return showAlert(
+    "success",
+    message,
+    {
+      title:
+        options.title ||
+        "Completed",
+
+      duration:
+        options.duration ||
+        3800
+    }
+  );
+}
+
+function notifyAIFTError(
+  message,
+  options = {}
+){
+  return showAlert(
+    "error",
+    message,
+    {
+      title:
+        options.title ||
+        "Something went wrong",
+
+      duration:
+        options.duration ||
+        5600
+    }
+  );
+}
+
+function notifyAIFTWarning(
+  message,
+  options = {}
+){
+  return showAlert(
+    "warning",
+    message,
+    {
+      title:
+        options.title ||
+        "Attention needed",
+
+      duration:
+        options.duration ||
+        4800
+    }
+  );
+}
+
+function notifyAIFTInfo(
+  message,
+  options = {}
+){
+  return showAlert(
+    "info",
+    message,
+    {
+      title:
+        options.title ||
+        "AIFT update",
+
+      duration:
+        options.duration ||
+        4200
+    }
+  );
 }
 
 function openModal(id){
