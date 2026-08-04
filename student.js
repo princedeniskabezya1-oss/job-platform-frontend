@@ -647,6 +647,11 @@ const STUDENT_STUDIO_PAGES = Object.freeze({
     description:"Your learning workspace"
   },
 
+  continue:{
+    title:"Continue Learning",
+    description:"Resume lessons, track class progress, and continue where you stopped"
+  },
+
   classes:{
     title:"My Classes",
     description:"Continue lessons, review modules, and join live classes"
@@ -705,13 +710,12 @@ function normalizeStudentStudioPage(page){
     .trim()
     .toLowerCase();
 
-  const aliases = {
-    dashboard:"overview",
-    home:"overview",
-    continue:"overview",
-    calendar:"schedule",
-    analytics:"progress"
-  };
+const aliases = {
+  dashboard:"overview",
+  home:"overview",
+  calendar:"schedule",
+  analytics:"progress"
+};
 
   const normalized = aliases[requested] || requested;
 
@@ -854,13 +858,17 @@ function setStudentStudioActiveMobileNavigation(page){
 function renderActiveStudentStudioPage(page){
   switch(page){
 
-    case "overview":
-      renderStudioHome();
-      break;
+case "overview":
+  renderStudioHome();
+  break;
 
-    case "classes":
-      renderClasses();
-      break;
+case "continue":
+  renderContinueLearningWorkspace();
+  break;
+
+case "classes":
+  renderClasses();
+  break;
 
     case "assignments":
       renderAssignments();
