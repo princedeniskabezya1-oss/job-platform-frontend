@@ -9574,6 +9574,314 @@ let assignmentWorkspaceControlsBound =
 let assignmentWorkspaceSubmitting =
   false;
 
+let assignmentWorkspaceDraftTimer =
+  null;
+
+let assignmentWorkspaceHasUnsavedChanges =
+  false;
+
+let assignmentWorkspaceAllowClose =
+  false;
+
+const ASSIGNMENT_WORKSPACE_DRAFT_PREFIX =
+  "aiftStudentAssignmentDraft";
+
+
+
+/* =========================================================
+   ASSIGNMENT DRAFT STORAGE
+========================================================= */
+
+function getAssignmentWorkspaceStudentId(){
+  return normalizeId(
+    selectedStudentId ||
+    state.me?._id ||
+    state.loggedUser?._id ||
+    "student"
+  );
+}
+
+
+function getAssignmentWorkspaceDraftKey(
+  assignmentId
+){
+  const safeStudentId =
+    getAssignmentWorkspaceStudentId();
+
+  const safeAssignmentId =
+    normalizeId(
+      assignmentId
+    );
+
+  if (!safeAssignmentId){
+    return "";
+  }
+
+  return [
+    ASSIGNMENT_WORKSPACE_DRAFT_PREFIX,
+    safeStudentId,
+    safeAssignmentId
+  ].join(":");
+}
+
+
+function readAssignmentWorkspaceDraft(
+  assignmentId
+){
+  const key =
+    getAssignmentWorkspaceDraftKey(
+      assignmentId
+    );
+
+  if (!key){
+    return null;
+  }
+
+  try{
+    const stored =
+      localStorage.getItem(
+        key
+      );
+
+    if (!stored){
+      return null;
+    }
+
+    const draft =
+      JSON.parse(stored);
+
+    if (
+      !draft ||
+      typeof draft !== "object"
+    ){
+      return null;
+    }
+
+    return {
+      assignmentId:
+        normalizeId(
+          draft.assignmentId
+        ),
+
+      text:
+        String(
+          draft.text || ""
+        ),
+
+      fileUrl:
+        String(
+          draft.fileUrl || ""
+        ),
+
+      savedAt:
+        String(
+          draft.savedAt || ""
+        )
+    };
+
+  }catch(error){
+    console.warn(
+      "Assignment draft could not be read:",
+      error
+    );
+
+    return null;
+  }
+}
+
+
+function writeAssignmentWorkspaceDraft(
+  assignmentId
+){
+  const key =
+    getAssignmentWorkspaceDraftKey(
+      assignmentId
+    );
+
+  if (!key){
+    return false;
+  }
+
+  const text =
+    String(
+      $("submissionText")
+        ?.value || ""
+    );
+
+  const fileUrl =
+    String(
+      $("submissionFile")
+        ?.value || ""
+    );
+
+  const draft = {
+    assignmentId:
+      normalizeId(
+        assignmentId
+      ),
+
+    text,
+    fileUrl,
+
+    savedAt:
+      new Date()
+        .toISOString()
+  };
+
+  try{
+    /*
+      Remove empty drafts instead of filling localStorage
+      with unused records.
+    */
+
+    if (
+      !text.trim() &&
+      !fileUrl.trim()
+    ){
+      localStorage.removeItem(
+        key
+      );
+
+      assignmentWorkspaceHasUnsavedChanges =
+        false;
+
+      return true;
+    }
+
+    localStorage.setItem(
+      key,
+      JSON.stringify(
+        draft
+      )
+    );
+
+    assignmentWorkspaceHasUnsavedChanges =
+      false;
+
+    return true;
+
+  }catch(error){
+    console.error(
+      "Assignment draft could not be saved:",
+      error
+    );
+
+    return false;
+  }
+}
+
+
+function removeAssignmentWorkspaceDraft(
+  assignmentId
+){
+  const key =
+    getAssignmentWorkspaceDraftKey(
+      assignmentId
+    );
+
+  if (!key){
+    return;
+  }
+
+  try{
+    localStorage.removeItem(
+      key
+    );
+  }catch(error){
+    console.warn(
+      "Assignment draft could not be removed:",
+      error
+    );
+  }
+}
+
+
+function scheduleAssignmentWorkspaceDraftSave(){
+  window.clearTimeout(
+    assignmentWorkspaceDraftTimer
+  );
+
+  assignmentWorkspaceHasUnsavedChanges =
+    true;
+
+  setAssignmentWorkspaceSaveStatus(
+    "saving",
+    "Saving draft..."
+  );
+
+  assignmentWorkspaceDraftTimer =
+    window.setTimeout(
+      () => {
+        const assignmentId =
+          normalizeId(
+            $("submissionAssignmentId")
+              ?.value
+          );
+
+        if (!assignmentId){
+          setAssignmentWorkspaceSaveStatus(
+            "error",
+            "Select an assignment"
+          );
+
+          return;
+        }
+
+        const saved =
+          writeAssignmentWorkspaceDraft(
+            assignmentId
+          );
+
+        setAssignmentWorkspaceSaveStatus(
+          saved
+            ? "ready"
+            : "error",
+
+          saved
+            ? "Draft saved"
+            : "Draft not saved"
+        );
+      },
+      650
+    );
+}
+
+
+function flushAssignmentWorkspaceDraft(){
+  window.clearTimeout(
+    assignmentWorkspaceDraftTimer
+  );
+
+  const assignmentId =
+    normalizeId(
+      $("submissionAssignmentId")
+        ?.value
+    );
+
+  if (
+    !assignmentId ||
+    !assignmentWorkspaceHasUnsavedChanges
+  ){
+    return true;
+  }
+
+  const saved =
+    writeAssignmentWorkspaceDraft(
+      assignmentId
+    );
+
+  setAssignmentWorkspaceSaveStatus(
+    saved
+      ? "ready"
+      : "error",
+
+    saved
+      ? "Draft saved"
+      : "Draft not saved"
+  );
+
+  return saved;
+}
 
 /* =========================================================
    ASSIGNMENT SELECT
@@ -10812,6 +11120,115 @@ function setAssignmentWorkspaceSubmitState(
   `;
 }
 
+/* =========================================================
+   LOAD SUBMISSION OR LOCAL DRAFT
+========================================================= */
+
+function loadAssignmentWorkspaceEditorValues(
+  assignmentId
+){
+  const normalizedAssignmentId =
+    normalizeId(
+      assignmentId
+    );
+
+  const submission =
+    normalizedAssignmentId
+      ? getSubmissionForAssignment(
+          normalizedAssignmentId
+        )
+      : null;
+
+  const draft =
+    normalizedAssignmentId
+      ? readAssignmentWorkspaceDraft(
+          normalizedAssignmentId
+        )
+      : null;
+
+  const textInput =
+    $("submissionText");
+
+  const fileInput =
+    $("submissionFile");
+
+  /*
+    Prefer a local draft when it exists. A draft represents
+    the student's latest unsent changes.
+
+    Otherwise, load the existing server submission.
+  */
+
+  const text =
+    draft
+      ? draft.text
+      : String(
+          submission?.text || ""
+        );
+
+  const fileUrl =
+    draft
+      ? draft.fileUrl
+      : String(
+          submission?.fileUrl || ""
+        );
+
+  if (textInput){
+    textInput.value =
+      text;
+  }
+
+  if (fileInput){
+    fileInput.value =
+      fileUrl;
+  }
+
+  assignmentWorkspaceHasUnsavedChanges =
+    false;
+
+  updateAssignmentWorkspaceCharacterCount();
+
+  renderAssignmentWorkspaceFilePreview();
+
+  if (draft){
+    const savedDate =
+      draft.savedAt
+        ? formatDateTime(
+            draft.savedAt
+          )
+        : "";
+
+    setAssignmentWorkspaceSaveStatus(
+      "ready",
+      savedDate
+        ? `Draft restored • ${savedDate}`
+        : "Draft restored"
+    );
+
+    return {
+      source:"draft",
+      submission,
+      draft
+    };
+  }
+
+  setAssignmentWorkspaceSaveStatus(
+    "ready",
+    submission
+      ? "Submission loaded"
+      : "Ready"
+  );
+
+  return {
+    source:
+      submission
+        ? "submission"
+        : "empty",
+
+    submission,
+    draft:null
+  };
+}
 
 /* =========================================================
    WORKSPACE RENDER
@@ -10893,42 +11310,17 @@ function openSubmissionModal(
       select?.value
     );
 
-  const oldSubmission =
-    selectedAssignmentId
-      ? getSubmissionForAssignment(
-          selectedAssignmentId
-        )
-      : null;
-
   const textInput =
     $("submissionText");
 
-  const fileInput =
-    $("submissionFile");
-
-  if (textInput){
-    textInput.value =
-      oldSubmission?.text ||
-      "";
-  }
-
-  if (fileInput){
-    fileInput.value =
-      oldSubmission?.fileUrl ||
-      "";
-  }
-
   bindAssignmentWorkspaceControls();
 
-  renderAssignmentSubmissionWorkspace(
+  loadAssignmentWorkspaceEditorValues(
     selectedAssignmentId
   );
 
-  setAssignmentWorkspaceSaveStatus(
-    "ready",
-    oldSubmission
-      ? "Submission loaded"
-      : "Ready"
+  renderAssignmentSubmissionWorkspace(
+    selectedAssignmentId
   );
 
   openModal(
@@ -10982,39 +11374,23 @@ function bindAssignmentWorkspaceControls(){
   select?.addEventListener(
     "change",
     () => {
+      /*
+        Save the previous assignment before switching.
+      */
+
+      flushAssignmentWorkspaceDraft();
+
       const assignmentId =
         normalizeId(
           select.value
         );
 
-      const oldSubmission =
-        assignmentId
-          ? getSubmissionForAssignment(
-              assignmentId
-            )
-          : null;
-
-      if (textInput){
-        textInput.value =
-          oldSubmission?.text ||
-          "";
-      }
-
-      if (fileInput){
-        fileInput.value =
-          oldSubmission?.fileUrl ||
-          "";
-      }
-
-      renderAssignmentSubmissionWorkspace(
+      loadAssignmentWorkspaceEditorValues(
         assignmentId
       );
 
-      setAssignmentWorkspaceSaveStatus(
-        "ready",
-        oldSubmission
-          ? "Submission loaded"
-          : "Ready"
+      renderAssignmentSubmissionWorkspace(
+        assignmentId
       );
     }
   );
@@ -11024,10 +11400,7 @@ function bindAssignmentWorkspaceControls(){
     () => {
       updateAssignmentWorkspaceCharacterCount();
 
-      setAssignmentWorkspaceSaveStatus(
-        "saving",
-        "Unsaved changes"
-      );
+      scheduleAssignmentWorkspaceDraftSave();
     }
   );
 
@@ -11036,10 +11409,7 @@ function bindAssignmentWorkspaceControls(){
     () => {
       renderAssignmentWorkspaceFilePreview();
 
-      setAssignmentWorkspaceSaveStatus(
-        "saving",
-        "Unsaved changes"
-      );
+      scheduleAssignmentWorkspaceDraftSave();
     }
   );
 
@@ -11056,10 +11426,7 @@ function bindAssignmentWorkspaceControls(){
 
       textInput.focus();
 
-      setAssignmentWorkspaceSaveStatus(
-        "saving",
-        "Response cleared"
-      );
+      scheduleAssignmentWorkspaceDraftSave();
     }
   );
 
@@ -11078,9 +11445,62 @@ function bindAssignmentWorkspaceControls(){
         return;
       }
 
+      flushAssignmentWorkspaceDraft();
+
       closeModal(
         "submissionModal"
       );
+    }
+  );
+
+    document.addEventListener(
+    "visibilitychange",
+    () => {
+      if (
+        document.visibilityState !==
+          "hidden"
+      ){
+        return;
+      }
+
+      const modal =
+        $("submissionModal");
+
+      if (
+        modal?.classList.contains(
+          "show"
+        )
+      ){
+        flushAssignmentWorkspaceDraft();
+      }
+    }
+  );
+
+
+  window.addEventListener(
+    "beforeunload",
+    event => {
+      const modal =
+        $("submissionModal");
+
+      if (
+        !modal?.classList.contains(
+          "show"
+        ) ||
+        !assignmentWorkspaceHasUnsavedChanges
+      ){
+        return;
+      }
+
+      flushAssignmentWorkspaceDraft();
+
+      /*
+        The browser controls the warning text.
+      */
+
+      event.preventDefault();
+
+      event.returnValue = "";
     }
   );
 
@@ -11243,12 +11663,20 @@ async function submitAssignmentWork(){
   assignmentWorkspaceSubmitting =
     true;
 
-  setAssignmentWorkspaceSaveStatus(
-    "saving",
-    existingSubmission
-      ? "Updating submission"
-      : "Submitting work"
-  );
+    removeAssignmentWorkspaceDraft(
+      assignmentId
+    );
+
+    assignmentWorkspaceHasUnsavedChanges =
+      false;
+
+    setAssignmentWorkspaceSaveStatus(
+      "ready",
+      existingSubmission
+        ? "Submission updated"
+        : "Work submitted"
+    );
+  
 
   if (button){
     button.disabled = true;
