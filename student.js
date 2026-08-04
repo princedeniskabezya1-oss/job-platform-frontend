@@ -6772,55 +6772,180 @@ function createStudentClassCard(
 
         </div>
 
+        <div
+          class="student-class-progress-breakdown"
+          aria-label="Class progress details"
+        >
 
-        <div class="student-class-stats">
+          <div class="student-class-progress-metric">
 
-          <div>
-            <i
-              class="fa-solid fa-book-open"
-              aria-hidden="true"
-            ></i>
+            <span class="student-class-progress-metric-icon blue">
 
-            <span>
-              ${lessons}
-              ${
-                lessons === 1
-                  ? "lesson"
-                  : "lessons"
-              }
+              <i
+                class="fa-solid fa-book-open"
+                aria-hidden="true"
+              ></i>
+
             </span>
+
+            <div class="student-class-progress-metric-copy">
+
+              <span>
+                Lessons
+              </span>
+
+              <strong>
+                ${completedLessons} / ${lessons}
+              </strong>
+
+            </div>
+
+            <span class="student-class-progress-metric-percent">
+
+              ${
+                lessons
+                  ? Math.round(
+                      (
+                        completedLessons /
+                        lessons
+                      ) * 100
+                    )
+                  : 0
+              }%
+
+            </span>
+
           </div>
 
-          <div>
-            <i
-              class="fa-solid fa-file-lines"
-              aria-hidden="true"
-            ></i>
 
-            <span>
-              ${assignments}
-              ${
-                assignments === 1
-                  ? "assignment"
-                  : "assignments"
-              }
+          <div class="student-class-progress-metric">
+
+            <span class="student-class-progress-metric-icon orange">
+
+              <i
+                class="fa-solid fa-file-circle-check"
+                aria-hidden="true"
+              ></i>
+
             </span>
+
+            <div class="student-class-progress-metric-copy">
+
+              <span>
+                Assignments
+              </span>
+
+              <strong>
+                ${completedAssignments} / ${assignments}
+              </strong>
+
+            </div>
+
+            <span class="student-class-progress-metric-percent">
+
+              ${
+                assignments
+                  ? Math.round(
+                      (
+                        completedAssignments /
+                        assignments
+                      ) * 100
+                    )
+                  : 0
+              }%
+
+            </span>
+
           </div>
 
-          <div>
-            <i
-              class="fa-solid fa-users"
-              aria-hidden="true"
-            ></i>
 
-            <span>
-              ${students}
-              ${
-                students === 1
-                  ? "student"
-                  : "students"
-              }
+          <div class="student-class-progress-metric">
+
+            <span class="student-class-progress-metric-icon purple">
+
+              <i
+                class="fa-solid fa-circle-question"
+                aria-hidden="true"
+              ></i>
+
             </span>
+
+            <div class="student-class-progress-metric-copy">
+
+              <span>
+                Quizzes
+              </span>
+
+              <strong>
+                ${completedQuizzes} / ${quizzes}
+              </strong>
+
+            </div>
+
+            <span class="student-class-progress-metric-percent">
+
+              ${
+                quizzes
+                  ? Math.round(
+                      (
+                        completedQuizzes /
+                        quizzes
+                      ) * 100
+                    )
+                  : 0
+              }%
+
+            </span>
+
+          </div>
+
+
+          <div class="student-class-progress-metric">
+
+            <span class="student-class-progress-metric-icon green">
+
+              <i
+                class="fa-solid fa-user-check"
+                aria-hidden="true"
+              ></i>
+
+            </span>
+
+            <div class="student-class-progress-metric-copy">
+
+              <span>
+                Attendance
+              </span>
+
+              <strong>
+                ${attendancePercentage}%
+              </strong>
+
+            </div>
+
+            <span
+              class="
+                student-class-progress-metric-status
+                ${
+                  attendancePercentage >= 85
+                    ? "good"
+                    : attendancePercentage >= 70
+                      ? "warning"
+                      : "risk"
+                }
+              "
+            >
+
+              ${
+                attendancePercentage >= 85
+                  ? "Good"
+                  : attendancePercentage >= 70
+                    ? "Needs attention"
+                    : "At risk"
+              }
+
+            </span>
+
           </div>
 
         </div>
