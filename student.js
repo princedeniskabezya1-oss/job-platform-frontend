@@ -6077,20 +6077,137 @@ function createStudentClassCard(
             )}
           </span>
 
-          <button
-            class="student-class-menu"
-            type="button"
-            data-class-menu="${escapeHtml(
-              classId
-            )}"
-            aria-label="Open class actions"
-            aria-expanded="false"
-          >
-            <i
-              class="fa-solid fa-ellipsis"
-              aria-hidden="true"
-            ></i>
-          </button>
+          <div class="student-class-menu-wrap">
+
+            <button
+              class="student-class-menu"
+              type="button"
+              data-class-menu="${escapeHtml(
+                classId
+              )}"
+              aria-label="Open class actions"
+              aria-expanded="false"
+              aria-controls="studentClassMenu-${escapeHtml(
+                classId
+              )}"
+            >
+              <i
+                class="fa-solid fa-ellipsis"
+                aria-hidden="true"
+              ></i>
+            </button>
+
+            <div
+              id="studentClassMenu-${escapeHtml(
+                classId
+              )}"
+              class="student-class-dropdown"
+              role="menu"
+              data-class-menu-panel="${escapeHtml(
+                classId
+              )}"
+              hidden
+            >
+
+              <button
+                type="button"
+                role="menuitem"
+                data-class-action="open"
+                data-class-id="${escapeHtml(
+                  classId
+                )}"
+              >
+                <i
+                  class="fa-solid fa-door-open"
+                  aria-hidden="true"
+                ></i>
+
+                <span>
+                  Open class
+                </span>
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                data-class-action="continue"
+                data-class-id="${escapeHtml(
+                  classId
+                )}"
+              >
+                <i
+                  class="fa-solid fa-play"
+                  aria-hidden="true"
+                ></i>
+
+                <span>
+                  Continue learning
+                </span>
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                data-class-action="assignments"
+                data-class-id="${escapeHtml(
+                  classId
+                )}"
+              >
+                <i
+                  class="fa-solid fa-list-check"
+                  aria-hidden="true"
+                ></i>
+
+                <span>
+                  View assignments
+                </span>
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                data-class-action="resources"
+                data-class-id="${escapeHtml(
+                  classId
+                )}"
+              >
+                <i
+                  class="fa-solid fa-folder-open"
+                  aria-hidden="true"
+                ></i>
+
+                <span>
+                  Class resources
+                </span>
+              </button>
+
+              ${
+                meetingLink
+                  ? `
+                    <a
+                      role="menuitem"
+                      href="${escapeHtml(
+                        meetingLink
+                      )}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <i
+                        class="fa-solid fa-video"
+                        aria-hidden="true"
+                      ></i>
+
+                      <span>
+                        Join live class
+                      </span>
+                    </a>
+                  `
+                  : ""
+              }
+
+            </div>
+
+          </div>
 
         </div>
 
