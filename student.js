@@ -5804,27 +5804,12 @@ function renderClasses(){
     return;
   }
 
-const container =
-    $("classesList");
-
-if(container){
-
-    container.setAttribute(
-        "aria-busy",
-        "true"
-    );
-
-    container.innerHTML =
-        createStudentClassSkeletons();
-
-}
-
-const classes =
+  const classes =
     getStudentClasses();
 
-updateStudentClassSummary(
+  updateStudentClassSummary(
     classes
-);
+  );
 
   container.setAttribute(
     "aria-busy",
