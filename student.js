@@ -4097,6 +4097,50 @@ function handleStudentAIAction(action){
   );
 }
 
+/* =========================================================
+   STUDENT CLASS CARD MENUS
+========================================================= */
+
+function closeStudentClassMenus(
+  excludedMenu = null
+){
+  document
+    .querySelectorAll(
+      "[data-class-menu-panel]"
+    )
+    .forEach(menu => {
+      if (menu === excludedMenu){
+        return;
+      }
+
+      menu.hidden = true;
+    });
+
+  document
+    .querySelectorAll(
+      "[data-class-menu]"
+    )
+    .forEach(button => {
+      const controlledMenuId =
+        button.getAttribute(
+          "aria-controls"
+        );
+
+      if (
+        excludedMenu &&
+        controlledMenuId ===
+          excludedMenu.id
+      ){
+        return;
+      }
+
+      button.setAttribute(
+        "aria-expanded",
+        "false"
+      );
+    });
+}
+
 function bindStudentStudioDelegatedActions(){
   if (studentDashboardActionsBound){
     return;
@@ -4112,6 +4156,14 @@ function bindStudentStudioDelegatedActions(){
 
       if (!(target instanceof Element)){
         return;
+      }
+
+            if (
+        !target.closest(
+          ".student-class-menu-wrap"
+        )
+      ){
+        closeStudentClassMenus();
       }
 
       /*
@@ -4390,6 +4442,118 @@ if (continueClassButton){
   return;
 }
 
+
+      /* =====================================================
+   CLASS CARD MENU
+===================================================== */
+
+const classMenuButton =
+  target.closest(
+    "[data-class-menu]"
+  );
+
+if (classMenuButton){
+  event.preventDefault();
+  event.stopPropagation();
+
+  const classId =
+    classMenuButton.dataset
+      .classMenu;
+
+  const menu =
+    document.querySelector(
+      `[data-class-menu-panel="${CSS.escape(
+        classId
+      )}"]`
+    );
+
+  const shouldOpen =
+    Boolean(menu?.hidden);
+
+  closeStudentClassMenus();
+
+  if (menu){
+    menu.hidden =
+      !shouldOpen;
+
+    classMenuButton.setAttribute(
+      "aria-expanded",
+      String(shouldOpen)
+    );
+
+    if (shouldOpen){
+      menu
+        .querySelector(
+          'button, a[href]'
+        )
+        ?.focus({
+          preventScroll:true
+        });
+    }
+  }
+
+  return;
+}
+
+
+const classMenuAction =
+  target.closest(
+    "[data-class-action]"
+  );
+
+if (classMenuAction){
+  event.preventDefault();
+
+  const action =
+    classMenuAction.dataset
+      .classAction;
+
+  const classId =
+    classMenuAction.dataset
+      .classId;
+
+  closeStudentClassMenus();
+
+  switch(action){
+
+    case "open":
+      openStudentClass(
+        classId
+      );
+      break;
+
+    case "continue":
+      resumeStudentLearning(
+        classId
+      );
+      break;
+
+    case "assignments":
+      sessionStorage.setItem(
+        "aiftSelectedClassId",
+        classId
+      );
+
+      navigateStudentStudio(
+        "assignments"
+      );
+      break;
+
+    case "resources":
+      sessionStorage.setItem(
+        "aiftSelectedClassId",
+        classId
+      );
+
+      navigateStudentStudio(
+        "resources"
+      );
+      break;
+  }
+
+  return;
+}
+
       const pageButton =
         target.closest(
           "[data-open-studio-page]"
@@ -4406,60 +4570,6 @@ if (continueClassButton){
         return;
       }
 
-      /*
-        Continue or open class
-      */
-
-
-      /*
-====================================================
-OPEN CLASS
-====================================================
-*/
-
-const openClass =
-target.closest(
-"[data-open-class]"
-);
-
-if(openClass){
-
-event.preventDefault();
-
-openStudentClass(
-
-openClass.dataset.openClass
-
-);
-
-return;
-
-}
-
-/*
-====================================================
-CONTINUE CLASS
-====================================================
-*/
-
-const continueClass =
-target.closest(
-"[data-continue-class]"
-);
-
-if(continueClass){
-
-event.preventDefault();
-
-resumeStudentLearning(
-
-continueClass.dataset.continueClass
-
-);
-
-return;
-
-}
 
       const classButton =
         target.closest(
@@ -4611,6 +4721,39 @@ return;
           navigationButton.dataset.page
         );
       }
+    }
+  );
+
+
+    document.addEventListener(
+    "keydown",
+    event => {
+      if (event.key !== "Escape"){
+        return;
+      }
+
+      const openMenu =
+        document.querySelector(
+          "[data-class-menu-panel]:not([hidden])"
+        );
+
+      if (!openMenu){
+        return;
+      }
+
+      const classId =
+        openMenu.dataset
+          .classMenuPanel;
+
+      closeStudentClassMenus();
+
+      document
+        .querySelector(
+          `[data-class-menu="${CSS.escape(
+            classId
+          )}"]`
+        )
+        ?.focus();
     }
   );
 }
