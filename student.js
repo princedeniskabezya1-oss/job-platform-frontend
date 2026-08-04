@@ -9997,6 +9997,187 @@ let assignmentWorkspaceUploadedFiles =
 let assignmentWorkspacePendingFiles =
   [];
 
+/* =========================================================
+   ASSIGNMENT FILE UPLOAD CONTROLLER
+========================================================= */
+
+function resetAssignmentUploader(){
+
+  assignmentWorkspacePendingFiles = [];
+
+  assignmentWorkspaceUploadedFiles = [];
+
+  assignmentWorkspaceUploading = false;
+
+  updateAssignmentUploadCounter();
+
+  renderAssignmentAttachments();
+
+  hideAssignmentUploadProgress();
+
+}
+
+
+function updateAssignmentUploadCounter(){
+
+  const counter =
+    $("assignmentWorkspaceUploadCount");
+
+  if(!counter){
+    return;
+  }
+
+  const total =
+    assignmentWorkspaceUploadedFiles.length +
+    assignmentWorkspacePendingFiles.length;
+
+  counter.textContent =
+    `${total} / ${MAX_ASSIGNMENT_UPLOAD_FILES} files`;
+
+}
+
+
+function hideAssignmentUploadProgress(){
+
+  $("assignmentWorkspaceUploadProgress")
+    ?.setAttribute(
+      "hidden",
+      ""
+    );
+
+  const bar =
+    $("assignmentWorkspaceUploadProgressBar");
+
+  if(bar){
+    bar.style.width = "0%";
+  }
+
+  const percent =
+    $("assignmentWorkspaceUploadProgressPercent");
+
+  if(percent){
+    percent.textContent = "0%";
+  }
+
+}
+function validateAssignmentFiles(
+  files
+){
+
+  const accepted = [];
+
+  const errors = [];
+
+  const currentCount =
+    assignmentWorkspaceUploadedFiles.length +
+    assignmentWorkspacePendingFiles.length;
+
+  for(const file of files){
+
+    if(
+      currentCount +
+      accepted.length >=
+      MAX_ASSIGNMENT_UPLOAD_FILES
+    ){
+      errors.push(
+        "Maximum upload limit reached."
+      );
+
+      break;
+    }
+
+    if(
+      file.size >
+      MAX_ASSIGNMENT_FILE_SIZE
+    ){
+      errors.push(
+        `${file.name} exceeds 50 MB.`
+      );
+
+      continue;
+    }
+
+    if(
+      !ASSIGNMENT_ALLOWED_MIME_TYPES.has(
+        file.type
+      )
+    ){
+      errors.push(
+        `${file.name} is not supported.`
+      );
+
+      continue;
+    }
+
+    const duplicate =
+      [
+        ...assignmentWorkspacePendingFiles,
+        ...assignmentWorkspaceUploadedFiles
+      ].some(existing => {
+
+        return (
+          existing.name === file.name &&
+          existing.size === file.size
+        );
+
+      });
+
+    if(duplicate){
+      errors.push(
+        `${file.name} already added.`
+      );
+
+      continue;
+    }
+
+    accepted.push(file);
+
+  }
+
+  return {
+    accepted,
+    errors
+  };
+
+}
+function addAssignmentFiles(
+  files
+){
+
+  const {
+    accepted,
+    errors
+  } =
+    validateAssignmentFiles(files);
+
+  if(errors.length){
+
+    showAlert(
+      "warning",
+      errors.join("\n"),
+      {
+        title:"Upload warning"
+      }
+    );
+
+  }
+
+  if(!accepted.length){
+    return;
+  }
+
+  assignmentWorkspacePendingFiles.push(
+    ...accepted
+  );
+
+  updateAssignmentUploadCounter();
+
+  renderAssignmentAttachments();
+
+  uploadAssignmentQueue();
+
+}
+
 const MAX_ASSIGNMENT_UPLOAD_FILES =
   10;
 
@@ -12338,6 +12519,222 @@ function bindAssignmentWorkspaceControls(){
 
   const clearButton =
     $("clearAssignmentResponseButton");
+
+  const browseButton =
+    $("assignmentWorkspaceBrowseButton");
+
+  const uploadInput =
+    $("assignmentWorkspaceFileInput");
+
+  /*
+    Open the device file picker when the student clicks
+    the Choose Files button.
+  */
+
+  browseButton?.addEventListener(
+    "click",
+    event => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (
+        assignmentWorkspaceUploading
+      ){
+        return;
+      }
+
+      uploadInput?.click();
+    }
+  );
+
+
+  /*
+    Add every selected file to the assignment upload queue.
+
+    Resetting the input afterward allows the student to
+    select the same file again if it was previously removed.
+  */
+
+  uploadInput?.addEventListener(
+    "change",
+    event => {
+      const selectedFiles =
+        Array.from(
+          event.target.files ||
+          []
+        );
+
+      if (
+        selectedFiles.length
+      ){
+        addAssignmentFiles(
+          selectedFiles
+        );
+      }
+
+      event.target.value = "";
+    }
+  );
+
+
+  /* =====================================================
+     DRAG AND DROP
+  ===================================================== */
+
+  const dropzone =
+    $("assignmentWorkspaceDropzone");
+
+  const preventAssignmentDropDefaults =
+    event => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+
+  [
+    "dragenter",
+    "dragover"
+  ].forEach(
+    eventName => {
+      dropzone?.addEventListener(
+        eventName,
+        event => {
+          preventAssignmentDropDefaults(
+            event
+          );
+
+          if (
+            assignmentWorkspaceUploading
+          ){
+            return;
+          }
+
+          dropzone.classList.add(
+            "drag-active"
+          );
+
+          if (
+            event.dataTransfer
+          ){
+            event.dataTransfer.dropEffect =
+              "copy";
+          }
+        }
+      );
+    }
+  );
+
+
+  [
+    "dragleave",
+    "dragend"
+  ].forEach(
+    eventName => {
+      dropzone?.addEventListener(
+        eventName,
+        event => {
+          preventAssignmentDropDefaults(
+            event
+          );
+
+          dropzone.classList.remove(
+            "drag-active"
+          );
+        }
+      );
+    }
+  );
+
+
+  dropzone?.addEventListener(
+    "drop",
+    event => {
+      preventAssignmentDropDefaults(
+        event
+      );
+
+      dropzone.classList.remove(
+        "drag-active"
+      );
+
+      if (
+        assignmentWorkspaceUploading
+      ){
+        return;
+      }
+
+      const droppedFiles =
+        Array.from(
+          event.dataTransfer?.files ||
+          []
+        );
+
+      if (
+        droppedFiles.length
+      ){
+        addAssignmentFiles(
+          droppedFiles
+        );
+      }
+    }
+  );
+
+
+  /*
+    Clicking anywhere on the dropzone opens the file picker,
+    except when the actual Choose Files button was clicked.
+    The button already has its own listener.
+  */
+
+  dropzone?.addEventListener(
+    "click",
+    event => {
+      if (
+        event.target.closest(
+          "#assignmentWorkspaceBrowseButton"
+        )
+      ){
+        return;
+      }
+
+      if (
+        assignmentWorkspaceUploading
+      ){
+        return;
+      }
+
+      uploadInput?.click();
+    }
+  );
+
+
+  /* =====================================================
+     KEYBOARD ACCESSIBILITY
+  ===================================================== */
+
+  dropzone?.addEventListener(
+    "keydown",
+    event => {
+      if (
+        event.key !== "Enter" &&
+        event.key !== " "
+      ){
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (
+        assignmentWorkspaceUploading
+      ){
+        return;
+      }
+
+      uploadInput?.click();
+    }
+  );
+
 
   select?.addEventListener(
     "change",
