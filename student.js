@@ -4746,6 +4746,18 @@ function bindStudentStudioDelegatedActions(){
       if (!(target instanceof Element)){
         return;
       }
+            if (
+        openStudentAssignmentMenuId &&
+        !target.closest(
+          ".student-assignment-menu-wrap"
+        )
+      ){
+        closeStudentAssignmentMenus({
+          render:true
+        });
+
+        return;
+      }
 
             if (
         !target.closest(
@@ -5257,6 +5269,111 @@ if (viewAssignmentButton){
   return;
 }
 
+            const assignmentMenuButton =
+        target.closest(
+          "[data-assignment-menu]"
+        );
+
+      if (assignmentMenuButton){
+        event.preventDefault();
+        event.stopPropagation();
+
+        toggleStudentAssignmentMenu(
+          assignmentMenuButton.dataset
+            .assignmentMenu
+        );
+
+        return;
+      }
+
+
+      const assignmentMenuAction =
+        target.closest(
+          "[data-assignment-menu-action]"
+        );
+
+      if (assignmentMenuAction){
+        event.preventDefault();
+        event.stopPropagation();
+
+        const action =
+          assignmentMenuAction.dataset
+            .assignmentMenuAction;
+
+        const assignmentId =
+          normalizeId(
+            assignmentMenuAction.dataset
+              .assignmentId
+          );
+
+        const assignment =
+          getAssignmentById(
+            assignmentId
+          );
+
+        closeStudentAssignmentMenus({
+          render:false
+        });
+
+        if (!assignment){
+          showAlert(
+            "error",
+            "This assignment is no longer available.",
+            {
+              title:"Assignment unavailable"
+            }
+          );
+
+          renderAssignments();
+
+          return;
+        }
+
+        if (action === "open"){
+          openSubmissionModal(
+            assignmentId
+          );
+
+          renderAssignments();
+
+          return;
+        }
+
+        if (action === "submit"){
+          openSubmissionModal(
+            assignmentId
+          );
+
+          renderAssignments();
+
+          return;
+        }
+
+        if (action === "review"){
+          openSubmissionModal(
+            assignmentId
+          );
+
+          renderAssignments();
+
+          return;
+        }
+
+        if (action === "copy"){
+          await copyStudentAssignmentLink(
+            assignmentId
+          );
+
+          renderAssignments();
+
+          return;
+        }
+
+        renderAssignments();
+
+        return;
+      }
+
       const pageButton =
         target.closest(
           "[data-open-studio-page]"
@@ -5487,6 +5604,24 @@ if (viewAssignmentButton){
         summaryCard.dataset
           .assignmentSummaryFilter
       );
+    }
+  );
+
+    document.addEventListener(
+    "keydown",
+    event => {
+      if (
+        event.key !== "Escape" ||
+        !openStudentAssignmentMenuId
+      ){
+        return;
+      }
+
+      event.preventDefault();
+
+      closeStudentAssignmentMenus({
+        render:true
+      });
     }
   );
 }
@@ -7704,6 +7839,9 @@ let studentAssignmentView =
 let activeStudentAssignmentTab =
   "all";
 
+let openStudentAssignmentMenuId =
+  "";
+
 let studentAssignmentControlsInitialized =
   false;
 
@@ -8813,6 +8951,142 @@ function updateStudentAssignmentTabs(
     });
 }
 
+/* =========================================================
+   ASSIGNMENT CARD ACTION MENU
+========================================================= */
+
+function closeStudentAssignmentMenus({
+  render = true
+} = {}){
+  if (!openStudentAssignmentMenuId){
+    return;
+  }
+
+  openStudentAssignmentMenuId =
+    "";
+
+  if (render){
+    renderAssignments();
+  }
+}
+
+
+function toggleStudentAssignmentMenu(
+  assignmentId
+){
+  const normalizedAssignmentId =
+    normalizeId(
+      assignmentId
+    );
+
+  openStudentAssignmentMenuId =
+    openStudentAssignmentMenuId ===
+      normalizedAssignmentId
+      ? ""
+      : normalizedAssignmentId;
+
+  renderAssignments();
+
+  if (
+    openStudentAssignmentMenuId
+  ){
+    window.setTimeout(
+      () => {
+        document
+          .querySelector(
+            `[data-assignment-menu-wrap="${
+              CSS.escape(
+                openStudentAssignmentMenuId
+              )
+            }"] .student-assignment-menu-panel.show`
+          )
+          ?.querySelector(
+            "button, a"
+          )
+          ?.focus();
+      },
+      0
+    );
+  }
+}
+
+
+function getAssignmentById(
+  assignmentId
+){
+  const normalizedAssignmentId =
+    normalizeId(
+      assignmentId
+    );
+
+  return (
+    getStudentAssignments()
+      .find(assignment =>
+        sameId(
+          assignment?._id ||
+          assignment?.id,
+          normalizedAssignmentId
+        )
+      ) ||
+    null
+  );
+}
+
+
+async function copyStudentAssignmentLink(
+  assignmentId
+){
+  const normalizedAssignmentId =
+    normalizeId(
+      assignmentId
+    );
+
+  if (!normalizedAssignmentId){
+    return;
+  }
+
+  const url =
+    new URL(
+      window.location.href
+    );
+
+  url.searchParams.set(
+    "page",
+    "assignments"
+  );
+
+  url.searchParams.set(
+    "assignmentId",
+    normalizedAssignmentId
+  );
+
+  try{
+    await navigator.clipboard.writeText(
+      url.toString()
+    );
+
+    showAlert(
+      "success",
+      "Assignment link copied.",
+      {
+        title:"Link copied"
+      }
+    );
+  }catch(error){
+    console.error(
+      "Assignment link copy failed:",
+      error
+    );
+
+    showAlert(
+      "error",
+      "AIFT could not copy the assignment link.",
+      {
+        title:"Copy failed"
+      }
+    );
+  }
+}
 
 function createStudentAssignmentCard(
   assignment
@@ -8921,19 +9195,160 @@ function createStudentAssignmentCard(
 
         </div>
 
-        <button
-          class="student-assignment-menu"
-          type="button"
-          data-assignment-menu="${escapeHtml(
+        <div
+          class="student-assignment-menu-wrap"
+          data-assignment-menu-wrap="${escapeHtml(
             assignmentId
           )}"
-          aria-label="Open assignment actions"
         >
-          <i
-            class="fa-solid fa-ellipsis"
-            aria-hidden="true"
-          ></i>
-        </button>
+
+          <button
+            class="student-assignment-menu"
+            type="button"
+            data-assignment-menu="${escapeHtml(
+              assignmentId
+            )}"
+            aria-label="Open assignment actions"
+            aria-haspopup="menu"
+            aria-expanded="${
+              openStudentAssignmentMenuId ===
+                assignmentId
+                ? "true"
+                : "false"
+            }"
+          >
+            <i
+              class="fa-solid fa-ellipsis"
+              aria-hidden="true"
+            ></i>
+          </button>
+
+
+          <div
+            class="student-assignment-menu-panel ${
+              openStudentAssignmentMenuId ===
+                assignmentId
+                ? "show"
+                : ""
+            }"
+            role="menu"
+            aria-label="Assignment actions"
+          >
+
+            <button
+              type="button"
+              role="menuitem"
+              data-assignment-menu-action="open"
+              data-assignment-id="${escapeHtml(
+                assignmentId
+              )}"
+            >
+              <i
+                class="fa-solid fa-arrow-up-right-from-square"
+                aria-hidden="true"
+              ></i>
+
+              <span>
+                Open assignment
+              </span>
+            </button>
+
+
+            ${
+              canSubmit
+                ? `
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-assignment-menu-action="submit"
+                    data-assignment-id="${escapeHtml(
+                      assignmentId
+                    )}"
+                  >
+                    <i
+                      class="fa-solid fa-cloud-arrow-up"
+                      aria-hidden="true"
+                    ></i>
+
+                    <span>
+                      ${
+                        status === "returned"
+                          ? "Resubmit work"
+                          : submission
+                            ? "Update submission"
+                            : "Submit work"
+                      }
+                    </span>
+                  </button>
+                `
+                : `
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-assignment-menu-action="review"
+                    data-assignment-id="${escapeHtml(
+                      assignmentId
+                    )}"
+                  >
+                    <i
+                      class="fa-solid fa-file-circle-check"
+                      aria-hidden="true"
+                    ></i>
+
+                    <span>
+                      Review submission
+                    </span>
+                  </button>
+                `
+            }
+
+
+            ${
+              attachment
+                ? `
+                  <a
+                    role="menuitem"
+                    href="${escapeHtml(
+                      attachment
+                    )}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <i
+                      class="fa-solid fa-paperclip"
+                      aria-hidden="true"
+                    ></i>
+
+                    <span>
+                      Open attachment
+                    </span>
+                  </a>
+                `
+                : ""
+            }
+
+
+            <button
+              type="button"
+              role="menuitem"
+              data-assignment-menu-action="copy"
+              data-assignment-id="${escapeHtml(
+                assignmentId
+              )}"
+            >
+              <i
+                class="fa-solid fa-link"
+                aria-hidden="true"
+              ></i>
+
+              <span>
+                Copy assignment link
+              </span>
+            </button>
+
+          </div>
+
+        </div>
 
       </header>
 
@@ -10689,20 +11104,110 @@ function renderAssignmentWorkspaceExistingSubmission(
       .trim()
       .toLowerCase();
 
+  const attemptNumber =
+    Math.max(
+      1,
+      Number(
+        submission?.attemptNumber ||
+        1
+      )
+    );
+
+  const revisionNumber =
+    Math.max(
+      1,
+      Number(
+        submission?.revisionNumber ||
+        1
+      )
+    );
+
+  const submittedDate =
+    submission?.submittedAt ||
+    submission?.createdAt;
+
+  const lastEditedDate =
+    submission?.lastEditedAt ||
+    submission?.updatedAt ||
+    submittedDate;
+
+  const returnedDate =
+    submission?.returnedAt ||
+    null;
+
+  const returnedReason =
+    String(
+      submission?.returnedReason ||
+      (
+        status === "returned"
+          ? submission?.feedback
+          : ""
+      ) ||
+      ""
+    ).trim();
+
+  const locked =
+    submission?.locked === true ||
+    [
+      "graded",
+      "reviewed",
+      "locked"
+    ].includes(status) ||
+    (
+      submission?.grade !==
+        undefined &&
+      submission?.grade !==
+        null &&
+      submission?.grade !== ""
+    );
+
+  const statusLabel =
+    getAssignmentStatusLabel(
+      status
+    );
+
   container.innerHTML = `
-    <div class="assignment-workspace-submission-row">
 
-      <span>
-        Status
-      </span>
+    <div class="assignment-workspace-submission-overview">
 
-      <strong>
-        ${escapeHtml(
-          status
-        )}
-      </strong>
+      <div class="assignment-workspace-submission-stat">
+
+        <span>
+          Attempt
+        </span>
+
+        <strong>
+          ${attemptNumber}
+        </strong>
+
+      </div>
+
+      <div class="assignment-workspace-submission-stat">
+
+        <span>
+          Revision
+        </span>
+
+        <strong>
+          ${revisionNumber}
+        </strong>
+
+      </div>
+
+      <div class="assignment-workspace-submission-stat">
+
+        <span>
+          Current status
+        </span>
+
+        <strong class="status-${escapeHtml(status)}">
+          ${escapeHtml(statusLabel)}
+        </strong>
+
+      </div>
 
     </div>
+
 
     <div class="assignment-workspace-submission-row">
 
@@ -10713,13 +11218,30 @@ function renderAssignmentWorkspaceExistingSubmission(
       <strong>
         ${escapeHtml(
           formatDateTime(
-            submission?.submittedAt ||
-            submission?.createdAt
+            submittedDate
           )
         )}
       </strong>
 
     </div>
+
+
+    <div class="assignment-workspace-submission-row">
+
+      <span>
+        Last edited
+      </span>
+
+      <strong>
+        ${escapeHtml(
+          formatDateTime(
+            lastEditedDate
+          )
+        )}
+      </strong>
+
+    </div>
+
 
     ${
       submission?.fileUrl
@@ -10731,6 +11253,7 @@ function renderAssignmentWorkspaceExistingSubmission(
             </span>
 
             <strong>
+
               <a
                 href="${escapeHtml(
                   submission.fileUrl
@@ -10738,8 +11261,14 @@ function renderAssignmentWorkspaceExistingSubmission(
                 target="_blank"
                 rel="noopener noreferrer"
               >
+                <i
+                  class="fa-solid fa-arrow-up-right-from-square"
+                  aria-hidden="true"
+                ></i>
+
                 Open submitted file
               </a>
+
             </strong>
 
           </div>
@@ -10747,9 +11276,67 @@ function renderAssignmentWorkspaceExistingSubmission(
         : ""
     }
 
+
     ${
-      submission?.grade !== undefined &&
-      submission?.grade !== null &&
+      status === "returned"
+        ? `
+          <div class="assignment-workspace-return-panel">
+
+            <div class="assignment-workspace-return-icon">
+
+              <i
+                class="fa-solid fa-rotate-left"
+                aria-hidden="true"
+              ></i>
+
+            </div>
+
+            <div>
+
+              <strong>
+                Returned for revision
+              </strong>
+
+              ${
+                returnedDate
+                  ? `
+                    <span>
+                      ${escapeHtml(
+                        formatDateTime(
+                          returnedDate
+                        )
+                      )}
+                    </span>
+                  `
+                  : ""
+              }
+
+              <p>
+                ${
+                  returnedReason
+                    ? escapeHtml(
+                        returnedReason
+                      ).replace(
+                        /\n/g,
+                        "<br>"
+                      )
+                    : "Your teacher requested changes before this work can be accepted."
+                }
+              </p>
+
+            </div>
+
+          </div>
+        `
+        : ""
+    }
+
+
+    ${
+      submission?.grade !==
+        undefined &&
+      submission?.grade !==
+        null &&
       submission?.grade !== ""
         ? `
           <div class="assignment-workspace-submission-row">
@@ -10758,7 +11345,7 @@ function renderAssignmentWorkspaceExistingSubmission(
               Grade
             </span>
 
-            <strong>
+            <strong class="assignment-workspace-submission-grade">
               ${escapeHtml(
                 submission.grade
               )}
@@ -10768,9 +11355,38 @@ function renderAssignmentWorkspaceExistingSubmission(
         `
         : ""
     }
+
+
+    ${
+      locked
+        ? `
+          <div class="assignment-workspace-lock-notice">
+
+            <i
+              class="fa-solid fa-lock"
+              aria-hidden="true"
+            ></i>
+
+            <div>
+
+              <strong>
+                Submission locked
+              </strong>
+
+              <span>
+                This work has been reviewed and can no longer
+                be edited unless your teacher returns it.
+              </span>
+
+            </div>
+
+          </div>
+        `
+        : ""
+    }
+
   `;
 }
-
 
 /* =========================================================
    HISTORY
