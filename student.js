@@ -10539,6 +10539,139 @@ const MAX_ASSIGNMENT_UPLOAD_FILES =
 const MAX_ASSIGNMENT_FILE_SIZE =
   50 * 1024 * 1024;
 
+/* =========================================================
+   UPLOAD ASSIGNMENT FILES
+========================================================= */
+
+async function uploadAssignmentQueue(){
+
+  if(
+    assignmentWorkspaceUploading ||
+    !assignmentWorkspacePendingFiles.length
+  ){
+    return;
+  }
+
+  assignmentWorkspaceUploading = true;
+
+  const progressWrap =
+    $("assignmentWorkspaceUploadProgress");
+
+  const progressBar =
+    $("assignmentWorkspaceUploadProgressBar");
+
+  const progressText =
+    $("assignmentWorkspaceUploadProgressText");
+
+  if(progressWrap){
+    progressWrap.removeAttribute("hidden");
+  }
+
+  try{
+
+    while(assignmentWorkspacePendingFiles.length){
+
+      const file =
+        assignmentWorkspacePendingFiles.shift();
+
+      if(progressText){
+        progressText.textContent =
+          `Uploading ${file.name}...`;
+      }
+
+      if(progressBar){
+        progressBar.style.width = "15%";
+      }
+
+      const form =
+        new FormData();
+
+      form.append(
+        "attachments",
+        file
+      );
+
+      const response =
+        await fetch(
+          API + "/api/uploads/assignment-attachments",
+          {
+            method:"POST",
+
+            headers:{
+              Authorization:
+                "Bearer " + token
+            },
+
+            body:form
+          }
+        );
+
+      const data =
+        await safeJson(response);
+
+      if(!response.ok){
+
+        throw new Error(
+          data?.message ||
+          "Upload failed."
+        );
+
+      }
+
+      if(progressBar){
+        progressBar.style.width = "100%";
+      }
+
+      assignmentWorkspaceUploadedFiles.push({
+        url:
+          data.url,
+
+        secureUrl:
+          data.secureUrl,
+
+        publicId:
+          data.publicId,
+
+        originalName:
+          data.originalName,
+
+        bytes:
+          data.bytes,
+
+        resourceType:
+          data.resourceType,
+
+        mediaType:
+          data.mediaType
+      });
+
+      renderAssignmentAttachments();
+
+      updateAssignmentUploadCounter();
+
+    }
+
+  }catch(error){
+
+    console.error(error);
+
+    showAlert(
+      "error",
+      error.message ||
+      "Unable to upload attachment."
+    );
+
+  }finally{
+
+    assignmentWorkspaceUploading =
+      false;
+
+    hideAssignmentUploadProgress();
+
+  }
+
+}
+
 const ASSIGNMENT_ALLOWED_MIME_TYPES =
   new Set([
     "image/jpeg",
@@ -12687,6 +12820,124 @@ function loadAssignmentWorkspaceEditorValues(
       fileUrl;
   }
 
+  /*
+    Restore files already saved with the server submission.
+
+    Pending File objects cannot survive a reload, so the
+    pending queue must always start empty when the workspace
+    is opened.
+  */
+
+  assignmentWorkspacePendingFiles =
+    [];
+
+  assignmentWorkspaceUploadedFiles =
+    Array.isArray(
+      submission?.attachments
+    )
+      ? submission.attachments
+          .filter(attachment =>
+            Boolean(
+              attachment?.url ||
+              attachment?.secureUrl
+            )
+          )
+          .map(attachment => ({
+            _id:
+              normalizeId(
+                attachment?._id
+              ),
+
+            url:
+              String(
+                attachment?.url ||
+                attachment?.secureUrl ||
+                ""
+              ),
+
+            secureUrl:
+              String(
+                attachment?.secureUrl ||
+                attachment?.url ||
+                ""
+              ),
+
+            publicId:
+              String(
+                attachment?.publicId ||
+                ""
+              ),
+
+            originalName:
+              String(
+                attachment?.originalName ||
+                attachment?.name ||
+                "Attachment"
+              ),
+
+            mimeType:
+              String(
+                attachment?.mimeType ||
+                "application/octet-stream"
+              ),
+
+            attachmentType:
+              String(
+                attachment?.attachmentType ||
+                "file"
+              ),
+
+            resourceType:
+              String(
+                attachment?.resourceType ||
+                "raw"
+              ),
+
+            size:
+              Math.max(
+                0,
+                Number(
+                  attachment?.size ||
+                  attachment?.bytes ||
+                  0
+                ) || 0
+              ),
+
+            format:
+              attachment?.format ||
+              "",
+
+            width:
+              attachment?.width ??
+              null,
+
+            height:
+              attachment?.height ??
+              null,
+
+            duration:
+              attachment?.duration ??
+              null,
+
+            uploadedBy:
+              attachment?.uploadedBy ||
+              null,
+
+            uploadedAt:
+              attachment?.uploadedAt ||
+              null
+          }))
+      : [];
+
+  assignmentWorkspaceUploading =
+    false;
+
+  hideAssignmentUploadProgress();
+
+  updateAssignmentUploadCounter();
+
+  renderAssignmentAttachments();
+
   assignmentWorkspaceHasUnsavedChanges =
     false;
 
@@ -13421,11 +13672,14 @@ async function submitAssignmentWork(){
     await apiSend(
       "/api/submissions",
       "POST",
-      {
-        assignmentId,
-        text,
-        fileUrl
-      }
+{
+    assignmentId,
+
+    text,
+
+    attachments:
+      assignmentWorkspaceUploadedFiles
+}
     );
 
     setAssignmentWorkspaceSaveStatus(
