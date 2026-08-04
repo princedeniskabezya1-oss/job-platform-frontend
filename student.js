@@ -4036,6 +4036,192 @@ return;
 
 }
 
+
+      /* =====================================================
+   MY CLASSES ACTIONS
+===================================================== */
+
+const refreshClassesButton =
+  target.closest(
+    "#refreshClassesButton"
+  );
+
+if (refreshClassesButton){
+  event.preventDefault();
+
+  setDashboardButtonLoading(
+    refreshClassesButton,
+    true,
+    "Refreshing..."
+  );
+
+  try{
+    await loadAll();
+
+    renderClasses();
+
+    showAlert(
+      "success",
+      "Your classes have been refreshed.",
+      {
+        title:"Classes updated"
+      }
+    );
+  }catch(error){
+    console.error(
+      "Class refresh failed:",
+      error
+    );
+
+    showAlert(
+      "error",
+      error?.message ||
+      "We could not refresh your classes."
+    );
+  }finally{
+    setDashboardButtonLoading(
+      refreshClassesButton,
+      false
+    );
+  }
+
+  return;
+}
+
+
+const preferredClassButton =
+  target.closest(
+    "#continuePreferredClassButton"
+  );
+
+if (preferredClassButton){
+  event.preventDefault();
+
+  resumeStudentLearning();
+
+  return;
+}
+
+
+const clearClassSearchButton =
+  target.closest(
+    "#clearClassSearchButton"
+  );
+
+if (clearClassSearchButton){
+  event.preventDefault();
+
+  const searchInput =
+    $("classSearchInput");
+
+  if (searchInput){
+    searchInput.value = "";
+    searchInput.focus();
+  }
+
+  renderClasses();
+
+  return;
+}
+
+
+const resetClassFiltersButton =
+  target.closest(
+    "#resetClassFiltersButton," +
+    "#emptyClassesResetButton"
+  );
+
+if (resetClassFiltersButton){
+  event.preventDefault();
+
+  const searchInput =
+    $("classSearchInput");
+
+  const statusFilter =
+    $("classStatusFilter");
+
+  const sortFilter =
+    $("classSortFilter");
+
+  if (searchInput){
+    searchInput.value = "";
+  }
+
+  if (statusFilter){
+    statusFilter.value = "all";
+  }
+
+  if (sortFilter){
+    sortFilter.value = "recent";
+  }
+
+  renderClasses();
+
+  return;
+}
+
+
+const gridViewButton =
+  target.closest(
+    "#classGridViewButton"
+  );
+
+if (gridViewButton){
+  event.preventDefault();
+
+  setStudentClassView("grid");
+
+  return;
+}
+
+
+const listViewButton =
+  target.closest(
+    "#classListViewButton"
+  );
+
+if (listViewButton){
+  event.preventDefault();
+
+  setStudentClassView("list");
+
+  return;
+}
+
+
+const openClassButton =
+  target.closest(
+    "[data-open-class]"
+  );
+
+if (openClassButton){
+  event.preventDefault();
+
+  openStudentClass(
+    openClassButton.dataset
+      .openClass
+  );
+
+  return;
+}
+
+
+const continueClassButton =
+  target.closest(
+    "[data-continue-class]"
+  );
+
+if (continueClassButton){
+  event.preventDefault();
+
+  resumeStudentLearning(
+    continueClassButton.dataset
+      .continueClass
+  );
+
+  return;
+}
+
       const pageButton =
         target.closest(
           "[data-open-studio-page]"
@@ -4862,669 +5048,1152 @@ ${
   `).join("");
 }
 
-function renderClasses(){
-
-    const container = $("classesList");
-
-    if(!container) return;
-
-    const classes = getStudentClasses();
-
-    updateStudentClassSummary(classes);
-
-    if(!classes.length){
-
-        container.innerHTML = createEmptyClassesWorkspace();
-
-        return;
-
-    }
-
-    const keyword =
-        ($("classSearchInput")?.value || "")
-        .trim()
-        .toLowerCase();
-
-    const status =
-        $("classStatusFilter")?.value || "all";
-
-    const sort =
-        $("classSortFilter")?.value || "recent";
-
-    let list = [...classes];
-
-    if(keyword){
-
-        list = list.filter(cls=>{
-
-            return [
-
-                cls.title,
-
-                cls.subject,
-
-                cls.classCode,
-
-                cls.teacherName,
-
-                cls.teacherId?.name,
-
-                cls.description
-
-            ]
-
-            .join(" ")
-
-            .toLowerCase()
-
-            .includes(keyword);
-
-        });
-
-    }
-
-    if(status !== "all"){
-
-        list = list.filter(cls=>{
-
-            switch(status){
-
-                case "active":
-
-                    return !cls.completed;
-
-                case "completed":
-
-                    return cls.completed;
-
-                case "upcoming":
-
-                    return Boolean(cls.schedule);
-
-                case "archived":
-
-                    return cls.archived;
-
-                default:
-
-                    return true;
-
-            }
-
-        });
-
-    }
-
-    switch(sort){
-
-        case "title-asc":
-
-            list.sort((a,b)=>
-
-                (a.title||"").localeCompare(b.title||"")
-
-            );
-
-            break;
-
-        case "title-desc":
-
-            list.sort((a,b)=>
-
-                (b.title||"").localeCompare(a.title||"")
-
-            );
-
-            break;
-
-        case "progress-desc":
-
-            list.sort((a,b)=>
-
-                (b.progress||0)-(a.progress||0)
-
-            );
-
-            break;
-
-        case "progress-asc":
-
-            list.sort((a,b)=>
-
-                (a.progress||0)-(b.progress||0)
-
-            );
-
-            break;
-
-    }
-
-const resultCount =
-    $("studentClassesResultCount");
-
-const resultDescription =
-    $("studentClassesResultDescription");
-
-if(resultCount){
-    resultCount.textContent =
-        `${list.length} ${
-            list.length === 1
-                ? "class"
-                : "classes"
-        }`;
-}
-
-if(resultDescription){
-    resultDescription.textContent =
-        keyword
-            ? `Results for "${keyword}"`
-            : status !== "all"
-                ? `Showing ${status} classes`
-                : "Showing all enrolled classes";
-}
-
-container.setAttribute(
-    "aria-busy",
-    "false"
-);
-
-if(!list.length){
-    container.innerHTML = `
-        <div class="studio-widget-empty">
-
-            <div class="studio-widget-empty-icon">
-                <i
-                    class="fa-solid fa-magnifying-glass"
-                    aria-hidden="true"
-                ></i>
-            </div>
-
-            <strong>
-                No matching classes
-            </strong>
-
-            <p>
-                Try changing your search or class filters.
-            </p>
-
-            <button
-                class="primary-btn"
-                type="button"
-                id="emptyClassesResetButton"
-            >
-                Reset filters
-            </button>
-
-        </div>
-    `;
-}else{
-    container.innerHTML =
-        list
-            .map(createStudentClassCard)
-            .join("");
-}
-
-const resetButton =
-    $("resetClassFiltersButton");
-
-if(resetButton){
-    resetButton.hidden =
-        !keyword &&
-        status === "all" &&
-        sort === "recent";
-}
-
-}
-
-
-function createStudentClassCard(cls){
-
-    const teacher =
-        cls.teacherId?.name ||
-        cls.teacherName ||
-        "Instructor";
-
-    const teacherImage =
-        cls.teacherId?.profilePicture ||
-        cls.teacherId?.profileImage ||
-cls.teacherImage ||
-FALLBACK_AVATAR;
-
-    const cover =
-        cls.coverImage ||
-        cls.bannerImage ||
-        cls.thumbnail ||
-        cls.image ||
-        FALLBACK_COVER;
-
-    const progress =
-        Math.max(
-            0,
-            Math.min(
-                100,
-                Number(
-                    cls.progress ||
-                    cls.completion ||
-                    0
-                )
-            )
-        );
-
-    const lessons =
-        Number(
-            cls.lessonCount ||
-            cls.lessons ||
-            0
-        );
-
-    const assignments =
-        Number(
-            cls.assignmentCount ||
-            cls.assignments ||
-            0
-        );
-
-    const students =
-        Number(
-            cls.studentCount ||
-            cls.students ||
-            0
-        );
-
-    const classId =
-        normalizeId(
-            cls._id ||
-            cls.id
-        );
-
-    return `
-
-<article
-class="student-class-card"
-data-class-id="${classId}"
->
-
-<div
-class="student-class-cover"
-style="
-background-image:url('${escapeHtml(cover)}')
-"
->
-
-<div class="student-class-cover-gradient"></div>
-
-<div class="student-class-top">
-
-<span class="student-class-subject">
-
-${escapeHtml(
-cls.subject ||
-"Course"
-)}
-
-</span>
-
-<button
-class="student-class-menu"
-data-class-menu="${classId}"
->
-
-<i class="fa-solid fa-ellipsis"></i>
-
-</button>
-
-</div>
-
-<div class="student-class-bottom">
-
-<div class="student-class-progress-circle">
-
-<svg viewBox="0 0 36 36">
-
-<path
-class="circle-bg"
-d="M18 2
-a16 16 0 0 1 0 32
-a16 16 0 0 1 0-32"
-/>
-
-<path
-class="circle-fill"
-stroke-dasharray="${progress},100"
-d="M18 2
-a16 16 0 0 1 0 32
-a16 16 0 0 1 0-32"
-/>
-
-</svg>
-
-<span>
-
-${progress}%
-
-</span>
-
-</div>
-
-</div>
-
-</div>
-
-<div class="student-class-content">
-
-<h3>
-
-${escapeHtml(
-cls.title ||
-"Untitled Class"
-)}
-
-</h3>
-
-<p>
-
-${escapeHtml(
-cls.description ||
-"No description available."
-)}
-
-</p>
-
-<div class="student-class-teacher">
-
-<img
-src="${escapeHtml(teacherImage)}"
-loading="lazy"
->
-
-<div>
-
-<strong>
-
-${escapeHtml(teacher)}
-
-</strong>
-
-<span>
-
-Instructor
-
-</span>
-
-</div>
-
-</div>
-
-<div class="student-class-stats">
-
-<div>
-
-<i class="fa-solid fa-book"></i>
-
-<span>
-
-${lessons}
-
-Lessons
-
-</span>
-
-</div>
-
-<div>
-
-<i class="fa-solid fa-file-lines"></i>
-
-<span>
-
-${assignments}
-
-Assignments
-
-</span>
-
-</div>
-
-<div>
-
-<i class="fa-solid fa-users"></i>
-
-<span>
-
-${students}
-
-Students
-
-</span>
-
-</div>
-
-</div>
-
-<div class="student-class-progress">
-
-<div class="progress-track">
-
-<div
-class="progress-fill"
-style="
-width:${progress}%;
-"
-></div>
-
-</div>
-
-<div class="student-class-progress-info">
-
-<span>
-
-Progress
-
-</span>
-
-<strong>
-
-${progress}%
-
-</strong>
-
-</div>
-
-</div>
-
-<div class="student-class-actions">
-
-<button
-class="ghost-btn"
-data-open-class="${classId}"
->
-
-<i class="fa-solid fa-door-open"></i>
-
-Open Class
-
-</button>
-
-<button
-class="primary-btn"
-data-continue-class="${classId}"
->
-
-<i class="fa-solid fa-play"></i>
-
-Continue
-
-</button>
-
-</div>
-
-</div>
-
-</article>
-
-`;
-
-}
-
-
 /* =========================================================
-   STUDENT CLASSES HELPERS
+   STUDENT CLASSES WORKSPACE
 ========================================================= */
 
+const STUDENT_CLASS_VIEW_STORAGE_KEY =
+  "aiftStudentClassView";
+
+let studentClassView =
+  localStorage.getItem(
+    STUDENT_CLASS_VIEW_STORAGE_KEY
+  ) === "list"
+    ? "list"
+    : "grid";
+
+
+function getStudentClassProgress(classItem){
+  return Math.max(
+    0,
+    Math.min(
+      100,
+      Number(
+        classItem?.progress ??
+        classItem?.completion ??
+        classItem?.completionPercentage ??
+        0
+      ) || 0
+    )
+  );
+}
+
+
+function getStudentClassStatus(classItem){
+  if (
+    classItem?.archived === true ||
+    classItem?.status === "archived"
+  ){
+    return "archived";
+  }
+
+  if (
+    classItem?.completed === true ||
+    classItem?.status === "completed" ||
+    getStudentClassProgress(classItem) >= 100
+  ){
+    return "completed";
+  }
+
+  const startsAt =
+    classItem?.startDate ||
+    classItem?.startsAt;
+
+  if (
+    startsAt &&
+    new Date(startsAt).getTime() >
+      Date.now()
+  ){
+    return "upcoming";
+  }
+
+  return "active";
+}
+
+
+function getStudentClassUpdatedTime(classItem){
+  const value =
+    classItem?.lastAccessedAt ||
+    classItem?.updatedAt ||
+    classItem?.createdAt ||
+    0;
+
+  const timestamp =
+    new Date(value).getTime();
+
+  return Number.isFinite(timestamp)
+    ? timestamp
+    : 0;
+}
+
+
+function getStudentClassScheduleTime(classItem){
+  const value =
+    classItem?.nextSessionAt ||
+    classItem?.nextClassAt ||
+    classItem?.startDate ||
+    classItem?.startsAt;
+
+  const timestamp =
+    new Date(value || 0).getTime();
+
+  return Number.isFinite(timestamp)
+    ? timestamp
+    : Number.MAX_SAFE_INTEGER;
+}
+
+
+function getStudentClassAssignmentCount(classItem){
+  const classId =
+    normalizeId(
+      classItem?._id ||
+      classItem?.id
+    );
+
+  const linkedAssignments =
+    getStudentAssignments()
+      .filter(assignment => {
+        return sameId(
+          assignment?.classId?._id ||
+          assignment?.classId,
+          classId
+        );
+      });
+
+  return Number(
+    classItem?.assignmentCount ??
+    (
+      Array.isArray(
+        classItem?.assignments
+      )
+        ? classItem.assignments.length
+        : linkedAssignments.length
+    )
+  ) || 0;
+}
+
+
+function getStudentClassLessonCount(classItem){
+  if (
+    Array.isArray(classItem?.lessons)
+  ){
+    return classItem.lessons.length;
+  }
+
+  if (
+    Array.isArray(classItem?.modules)
+  ){
+    return classItem.modules.reduce(
+      (total,module) => {
+        if (
+          Array.isArray(module?.lessons)
+        ){
+          return (
+            total +
+            module.lessons.length
+          );
+        }
+
+        return total;
+      },
+      0
+    );
+  }
+
+  return Number(
+    classItem?.lessonCount ||
+    classItem?.lessonsCount ||
+    0
+  ) || 0;
+}
+
+
+function getStudentClassStudentCount(classItem){
+  if (
+    Array.isArray(classItem?.studentIds)
+  ){
+    return classItem.studentIds.length;
+  }
+
+  if (
+    Array.isArray(classItem?.students)
+  ){
+    return classItem.students.length;
+  }
+
+  return Number(
+    classItem?.studentCount ||
+    classItem?.studentsCount ||
+    0
+  ) || 0;
+}
+
+
+function getStudentClassCover(classItem){
+  return (
+    classItem?.coverImage ||
+    classItem?.bannerImage ||
+    classItem?.thumbnail ||
+    classItem?.image ||
+    CLASS_FALLBACK
+  );
+}
+
+
+function getStudentClassTeacher(classItem){
+  return {
+    name:
+      classItem?.teacherId?.name ||
+      classItem?.teacherName ||
+      "Instructor",
+
+    image:
+      classItem?.teacherId
+        ?.profilePicture ||
+      classItem?.teacherId
+        ?.profileImage ||
+      classItem?.teacherImage ||
+      FALLBACK_AVATAR
+  };
+}
+
+
 function updateStudentClassSummary(classes){
+  const total =
+    classes.length;
 
-    const total =
-        classes.length;
+  const active =
+    classes.filter(
+      item =>
+        getStudentClassStatus(item) ===
+        "active"
+    ).length;
 
-    const active =
-        classes.filter(item=>!item.completed)
-        .length;
+  const now =
+    Date.now();
 
-    const upcoming =
-        classes.filter(item=>Boolean(item.schedule))
-        .length;
+  const upcoming =
+    state.schedules.filter(schedule => {
+      const scheduleClassId =
+        normalizeId(
+          schedule?.classId?._id ||
+          schedule?.classId
+        );
 
-    const average =
-        total
-            ? Math.round(
+      const belongsToStudent =
+        classes.some(classItem =>
+          sameId(
+            classItem?._id ||
+            classItem?.id,
+            scheduleClassId
+          )
+        );
 
-                classes.reduce(
+      const scheduleDate =
+        new Date(
+          schedule?.startTime ||
+          schedule?.date ||
+          schedule?.startsAt ||
+          0
+        ).getTime();
 
-                    (sum,item)=>
+      return (
+        belongsToStudent &&
+        Number.isFinite(scheduleDate) &&
+        scheduleDate >= now
+      );
+    }).length;
 
-                        sum+
-                        Number(item.progress||0),
+  const averageProgress =
+    total
+      ? Math.round(
+          classes.reduce(
+            (sum,item) =>
+              sum +
+              getStudentClassProgress(
+                item
+              ),
+            0
+          ) / total
+        )
+      : 0;
 
-                    0
+  setText(
+    "studentTotalClassesCount",
+    total
+  );
 
-                )/total
+  setText(
+    "studentActiveClassesCount",
+    active
+  );
 
+  setText(
+    "studentUpcomingClassCount",
+    upcoming
+  );
+
+  setText(
+    "studentClassesAverageProgress",
+    `${averageProgress}%`
+  );
+}
+
+
+function getFilteredStudentClasses(
+  classes
+){
+  const keyword =
+    String(
+      $("classSearchInput")
+        ?.value || ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const status =
+    $("classStatusFilter")
+      ?.value || "all";
+
+  const sort =
+    $("classSortFilter")
+      ?.value || "recent";
+
+  let filtered =
+    [...classes];
+
+  if (keyword){
+    filtered =
+      filtered.filter(classItem => {
+        const teacher =
+          getStudentClassTeacher(
+            classItem
+          );
+
+        const searchableText = [
+          classItem?.title,
+          classItem?.subject,
+          classItem?.description,
+          classItem?.classCode,
+          classItem?.schedule,
+          teacher.name
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(
+          keyword
+        );
+      });
+  }
+
+  if (status !== "all"){
+    filtered =
+      filtered.filter(
+        classItem =>
+          getStudentClassStatus(
+            classItem
+          ) === status
+      );
+  }
+
+  switch(sort){
+
+    case "title-asc":
+      filtered.sort(
+        (first,second) =>
+          String(
+            first?.title || ""
+          ).localeCompare(
+            String(
+              second?.title || ""
             )
+          )
+      );
+      break;
 
-            :0;
+    case "title-desc":
+      filtered.sort(
+        (first,second) =>
+          String(
+            second?.title || ""
+          ).localeCompare(
+            String(
+              first?.title || ""
+            )
+          )
+      );
+      break;
 
-    setText(
-        "studentTotalClassesCount",
-        total
-    );
+    case "progress-desc":
+      filtered.sort(
+        (first,second) =>
+          getStudentClassProgress(
+            second
+          ) -
+          getStudentClassProgress(
+            first
+          )
+      );
+      break;
 
-    setText(
-        "studentActiveClassesCount",
-        active
-    );
+    case "progress-asc":
+      filtered.sort(
+        (first,second) =>
+          getStudentClassProgress(
+            first
+          ) -
+          getStudentClassProgress(
+            second
+          )
+      );
+      break;
 
-    setText(
-        "studentUpcomingClassCount",
-        upcoming
-    );
+    case "schedule":
+      filtered.sort(
+        (first,second) =>
+          getStudentClassScheduleTime(
+            first
+          ) -
+          getStudentClassScheduleTime(
+            second
+          )
+      );
+      break;
 
-    setText(
-        "studentClassesAverageProgress",
-        `${average}%`
-    );
+    case "recent":
+    default:
+      filtered.sort(
+        (first,second) =>
+          getStudentClassUpdatedTime(
+            second
+          ) -
+          getStudentClassUpdatedTime(
+            first
+          )
+      );
+      break;
+  }
 
+  return {
+    filtered,
+    keyword,
+    status,
+    sort
+  };
 }
 
-function createEmptyClassesWorkspace(){
 
-    return `
+function renderClasses(){
+  const container =
+    $("classesList");
 
-<div class="studio-widget-empty">
-
-<div class="studio-widget-empty-icon">
-
-<i class="fa-solid fa-graduation-cap"></i>
-
-</div>
-
-<strong>
-
-No classes assigned
-
-</strong>
-
-<p>
-
-Your enrolled classes will appear here
-once your school assigns one.
-
-</p>
-
-<button
-
-class="primary-btn"
-
-onclick="navigateStudentStudio('continue')"
-
->
-
-Continue Learning
-
-</button>
-
-</div>
-
-`;
-
-}
-
-function renderAssignments(){
-  const container = $("assignmentsList");
-  if (!container) return;
-
-  const assignments = getStudentAssignments()
-    .sort((a,b) => new Date(a.dueDate || 0) - new Date(b.dueDate || 0));
-
-  if (!assignments.length){
-    container.innerHTML = `<div class="empty">No assignments yet.</div>`;
+  if (!container){
     return;
   }
 
-  container.innerHTML = assignments.map(item => {
-    const submission = getSubmissionForAssignment(item._id);
+  const classes =
+    getStudentClasses();
 
-    return `
-      <article
-  class="assignment-card"
-  data-assignment-id="${escapeHtml(
-    normalizeId(item._id)
-  )}"
->
-        <div class="item-head">
-          <div>
-            <h3 class="item-title">${escapeHtml(item.title || "Assignment")}</h3>
-            <div class="item-sub">Due ${formatDate(item.dueDate || item.deadline)}</div>
+  updateStudentClassSummary(
+    classes
+  );
+
+  container.setAttribute(
+    "aria-busy",
+    "false"
+  );
+
+  container.classList.toggle(
+    "is-list-view",
+    studentClassView === "list"
+  );
+
+  container.classList.toggle(
+    "is-grid-view",
+    studentClassView === "grid"
+  );
+
+  updateStudentClassViewButtons();
+
+  if (!classes.length){
+    updateStudentClassResultBar({
+      count:0,
+      keyword:"",
+      status:"all",
+      sort:"recent"
+    });
+
+    container.innerHTML =
+      createEmptyClassesWorkspace();
+
+    return;
+  }
+
+  const {
+    filtered,
+    keyword,
+    status,
+    sort
+  } =
+    getFilteredStudentClasses(
+      classes
+    );
+
+  updateStudentClassResultBar({
+    count:filtered.length,
+    keyword,
+    status,
+    sort
+  });
+
+  if (!filtered.length){
+    container.innerHTML =
+      createNoMatchingClassesWorkspace();
+
+    return;
+  }
+
+  container.innerHTML =
+    filtered
+      .map(
+        createStudentClassCard
+      )
+      .join("");
+}
+
+
+function updateStudentClassResultBar({
+  count,
+  keyword,
+  status,
+  sort
+}){
+  const countElement =
+    $("studentClassesResultCount");
+
+  const descriptionElement =
+    $(
+      "studentClassesResultDescription"
+    );
+
+  const resetButton =
+    $("resetClassFiltersButton");
+
+  if (countElement){
+    countElement.textContent =
+      `${count} ${
+        count === 1
+          ? "class"
+          : "classes"
+      }`;
+  }
+
+  if (descriptionElement){
+    if (keyword){
+      descriptionElement.textContent =
+        `Results for “${keyword}”`;
+    }else if (status !== "all"){
+      descriptionElement.textContent =
+        `Showing ${status} classes`;
+    }else{
+      descriptionElement.textContent =
+        "Showing all enrolled classes";
+    }
+  }
+
+  if (resetButton){
+    resetButton.hidden =
+      !keyword &&
+      status === "all" &&
+      sort === "recent";
+  }
+
+  const clearButton =
+    $("clearClassSearchButton");
+
+  if (clearButton){
+    clearButton.hidden =
+      !keyword;
+  }
+}
+
+
+function updateStudentClassViewButtons(){
+  const gridButton =
+    $("classGridViewButton");
+
+  const listButton =
+    $("classListViewButton");
+
+  const gridActive =
+    studentClassView === "grid";
+
+  gridButton?.classList.toggle(
+    "active",
+    gridActive
+  );
+
+  listButton?.classList.toggle(
+    "active",
+    !gridActive
+  );
+
+  gridButton?.setAttribute(
+    "aria-pressed",
+    String(gridActive)
+  );
+
+  listButton?.setAttribute(
+    "aria-pressed",
+    String(!gridActive)
+  );
+}
+
+
+function setStudentClassView(view){
+  studentClassView =
+    view === "list"
+      ? "list"
+      : "grid";
+
+  localStorage.setItem(
+    STUDENT_CLASS_VIEW_STORAGE_KEY,
+    studentClassView
+  );
+
+  renderClasses();
+}
+
+
+function createStudentClassCard(
+  classItem
+){
+  const classId =
+    normalizeId(
+      classItem?._id ||
+      classItem?.id
+    );
+
+  const teacher =
+    getStudentClassTeacher(
+      classItem
+    );
+
+  const cover =
+    getStudentClassCover(
+      classItem
+    );
+
+  const progress =
+    getStudentClassProgress(
+      classItem
+    );
+
+  const status =
+    getStudentClassStatus(
+      classItem
+    );
+
+  const lessons =
+    getStudentClassLessonCount(
+      classItem
+    );
+
+  const assignments =
+    getStudentClassAssignmentCount(
+      classItem
+    );
+
+  const students =
+    getStudentClassStudentCount(
+      classItem
+    );
+
+  const meetingLink =
+    String(
+      classItem?.meetingLink || ""
+    ).trim();
+
+  const classCode =
+    String(
+      classItem?.classCode || ""
+    ).trim();
+
+  const schedule =
+    String(
+      classItem?.schedule ||
+      classItem?.scheduleText ||
+      "Self-paced"
+    ).trim();
+
+  return `
+    <article
+      class="student-class-card"
+      data-class-id="${escapeHtml(
+        classId
+      )}"
+      data-class-status="${escapeHtml(
+        status
+      )}"
+    >
+
+      <div
+        class="student-class-cover"
+        style="background-image:url('${escapeHtml(
+          cover
+        )}')"
+        role="img"
+        aria-label="${escapeHtml(
+          classItem?.title ||
+          "Class cover"
+        )}"
+      >
+
+        <div
+          class="student-class-cover-gradient"
+        ></div>
+
+        <div class="student-class-top">
+
+          <span
+            class="student-class-subject"
+          >
+            ${escapeHtml(
+              classItem?.subject ||
+              "Learning program"
+            )}
+          </span>
+
+          <button
+            class="student-class-menu"
+            type="button"
+            data-class-menu="${escapeHtml(
+              classId
+            )}"
+            aria-label="Open class actions"
+            aria-expanded="false"
+          >
+            <i
+              class="fa-solid fa-ellipsis"
+              aria-hidden="true"
+            ></i>
+          </button>
+
+        </div>
+
+        <div class="student-class-bottom">
+
+          <div
+            class="student-class-progress-circle"
+            style="--class-progress:${progress}"
+          >
+
+            <svg
+              viewBox="0 0 36 36"
+              aria-hidden="true"
+            >
+
+              <path
+                class="circle-bg"
+                d="M18 2
+                   a16 16 0 0 1 0 32
+                   a16 16 0 0 1 0-32"
+              ></path>
+
+              <path
+                class="circle-fill"
+                stroke-dasharray="${progress},100"
+                d="M18 2
+                   a16 16 0 0 1 0 32
+                   a16 16 0 0 1 0-32"
+              ></path>
+
+            </svg>
+
+            <span>
+              ${progress}%
+            </span>
+
           </div>
 
-          <span class="chip ${submission ? "success" : "warning"}">
-            ${submission ? "Submitted" : "Pending"}
+        </div>
+
+      </div>
+
+
+      <div class="student-class-content">
+
+        <div class="student-class-title-row">
+
+          <div>
+
+            <span
+              class="student-class-status ${escapeHtml(
+                status
+              )}"
+            >
+              ${escapeHtml(status)}
+            </span>
+
+            <h3>
+              ${escapeHtml(
+                classItem?.title ||
+                "Untitled class"
+              )}
+            </h3>
+
+          </div>
+
+          ${
+            classCode
+              ? `
+                <span
+                  class="student-class-code"
+                  title="Class code"
+                >
+                  ${escapeHtml(
+                    classCode
+                  )}
+                </span>
+              `
+              : ""
+          }
+
+        </div>
+
+        <p class="student-class-description">
+          ${escapeHtml(
+            classItem?.description ||
+            "No class description has been added."
+          )}
+        </p>
+
+
+        <div class="student-class-teacher">
+
+          <img
+            src="${escapeHtml(
+              teacher.image
+            )}"
+            alt="${escapeHtml(
+              teacher.name
+            )}"
+            loading="lazy"
+            onerror="this.src='${escapeHtml(
+              FALLBACK_AVATAR
+            )}'"
+          >
+
+          <div>
+
+            <strong>
+              ${escapeHtml(
+                teacher.name
+              )}
+            </strong>
+
+            <span>
+              Instructor
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="student-class-schedule">
+
+          <i
+            class="fa-regular fa-calendar"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            ${escapeHtml(schedule)}
           </span>
+
         </div>
 
-        <p class="item-desc">${escapeHtml(item.instructions || item.description || "No instructions added.")}</p>
 
-        <div class="meta-row">
-          ${item.attachmentUrl ? `<a class="chip primary" href="${item.attachmentUrl}" target="_blank">Attachment</a>` : ""}
-          ${
-            submission?.grade
-              ? `<span class="chip success">Grade: ${escapeHtml(submission.grade)}</span>`
-              : ""
-          }
-          ${
-            submission?.feedback
-              ? `<span class="chip">Feedback added</span>`
-              : ""
-          }
+        <div class="student-class-stats">
+
+          <div>
+            <i
+              class="fa-solid fa-book-open"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              ${lessons}
+              ${
+                lessons === 1
+                  ? "lesson"
+                  : "lessons"
+              }
+            </span>
+          </div>
+
+          <div>
+            <i
+              class="fa-solid fa-file-lines"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              ${assignments}
+              ${
+                assignments === 1
+                  ? "assignment"
+                  : "assignments"
+              }
+            </span>
+          </div>
+
+          <div>
+            <i
+              class="fa-solid fa-users"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              ${students}
+              ${
+                students === 1
+                  ? "student"
+                  : "students"
+              }
+            </span>
+          </div>
+
         </div>
 
-        <div class="card-actions">
-          <button class="primary-btn" onclick="openSubmissionModal('${item._id}')">
-            ${submission ? "Update Submission" : "Submit Work"}
+
+        <div class="student-class-progress">
+
+          <div class="student-class-progress-info">
+
+            <span>
+              Learning progress
+            </span>
+
+            <strong>
+              ${progress}%
+            </strong>
+
+          </div>
+
+          <div class="progress-track">
+
+            <div
+              class="progress-fill"
+              style="width:${progress}%"
+            ></div>
+
+          </div>
+
+        </div>
+
+
+        <div class="student-class-actions">
+
+          <button
+            class="ghost-btn"
+            type="button"
+            data-open-class="${escapeHtml(
+              classId
+            )}"
+          >
+            <i
+              class="fa-solid fa-door-open"
+              aria-hidden="true"
+            ></i>
+
+            Open class
           </button>
+
+          ${
+            meetingLink
+              ? `
+                <a
+                  class="primary-btn"
+                  href="${escapeHtml(
+                    meetingLink
+                  )}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <i
+                    class="fa-solid fa-video"
+                    aria-hidden="true"
+                  ></i>
+
+                  Join live
+                </a>
+              `
+              : `
+                <button
+                  class="primary-btn"
+                  type="button"
+                  data-continue-class="${escapeHtml(
+                    classId
+                  )}"
+                >
+                  <i
+                    class="fa-solid fa-play"
+                    aria-hidden="true"
+                  ></i>
+
+                  Continue
+                </button>
+              `
+          }
+
         </div>
-      </article>
-    `;
-  }).join("");
+
+      </div>
+
+    </article>
+  `;
+}
+
+
+function createEmptyClassesWorkspace(){
+  return `
+    <div class="studio-widget-empty">
+
+      <div class="studio-widget-empty-icon">
+        <i
+          class="fa-solid fa-graduation-cap"
+          aria-hidden="true"
+        ></i>
+      </div>
+
+      <strong>
+        No classes assigned
+      </strong>
+
+      <p>
+        Your classes will appear here after your
+        school enrolls you in a learning program.
+      </p>
+
+      <button
+        class="primary-btn"
+        type="button"
+        data-open-studio-page="continue"
+      >
+        <i
+          class="fa-solid fa-play"
+          aria-hidden="true"
+        ></i>
+
+        Continue Learning
+      </button>
+
+    </div>
+  `;
+}
+
+
+function createNoMatchingClassesWorkspace(){
+  return `
+    <div class="studio-widget-empty">
+
+      <div class="studio-widget-empty-icon">
+        <i
+          class="fa-solid fa-magnifying-glass"
+          aria-hidden="true"
+        ></i>
+      </div>
+
+      <strong>
+        No matching classes
+      </strong>
+
+      <p>
+        Try changing the search text, status,
+        or sorting options.
+      </p>
+
+      <button
+        class="primary-btn"
+        type="button"
+        id="emptyClassesResetButton"
+      >
+        Reset filters
+      </button>
+
+    </div>
+  `;
+}
+
+function resumeStudentLearning(
+  requestedClassId = ""
+){
+  const classes =
+    typeof getStudentClasses ===
+      "function"
+      ? getStudentClasses()
+      : [];
+
+  const normalizedRequestedId =
+    normalizeId(
+      requestedClassId
+    );
+
+  const selectedClass =
+    (
+      normalizedRequestedId
+        ? classes.find(classItem =>
+            sameId(
+              classItem?._id ||
+              classItem?.id,
+              normalizedRequestedId
+            )
+          )
+        : null
+    ) ||
+    (
+      typeof getPreferredStudentClass ===
+        "function"
+        ? getPreferredStudentClass()
+        : classes[0]
+    );
+
+  if (!selectedClass){
+    navigateStudentStudio(
+      "classes"
+    );
+
+    showAlert(
+      "info",
+      "No class is currently available to continue.",
+      {
+        title:"No class available"
+      }
+    );
+
+    return;
+  }
+
+  const classId =
+    normalizeId(
+      selectedClass?._id ||
+      selectedClass?.id
+    );
+
+  if (!classId){
+    showAlert(
+      "error",
+      "This class does not have a valid class ID."
+    );
+
+    return;
+  }
+
+  openStudentClass(classId);
 }
 
 function renderSchedule(){
