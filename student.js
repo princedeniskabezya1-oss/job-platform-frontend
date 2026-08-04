@@ -1440,50 +1440,214 @@ function bindStudentStudioTopbar(){
       }
     }
   );
-
-  /*
-====================================================
-LIVE FILTERS
-====================================================
-*/
-
-$("classSearchInput")
-?.addEventListener(
-
-"input",
-
-()=>{
-
-    const clear =
-        $("clearClassSearchButton");
-
-    clear.hidden =
-        !$("classSearchInput")
-        .value;
-
-    renderClasses();
-
 }
 
-);
+/* =========================================================
+   STUDENT CLASSES CONTROLS
+========================================================= */
 
-$("classStatusFilter")
-?.addEventListener(
+let studentClassControlsInitialized =
+  false;
 
-"change",
+let studentClassSearchTimer =
+  null;
 
-renderClasses
 
-);
+function resetStudentClassFilters(){
+  const searchInput =
+    $("classSearchInput");
 
-$("classSortFilter")
-?.addEventListener(
+  const statusFilter =
+    $("classStatusFilter");
 
-"change",
+  const sortFilter =
+    $("classSortFilter");
 
-renderClasses
+  if (searchInput){
+    searchInput.value = "";
+  }
 
-);
+  if (statusFilter){
+    statusFilter.value = "all";
+  }
+
+  if (sortFilter){
+    sortFilter.value = "recent";
+  }
+
+  window.clearTimeout(
+    studentClassSearchTimer
+  );
+
+  renderClasses();
+}
+
+
+function bindStudentClassControls(){
+  if (studentClassControlsInitialized){
+    return;
+  }
+
+  const searchInput =
+    $("classSearchInput");
+
+  const statusFilter =
+    $("classStatusFilter");
+
+  const sortFilter =
+    $("classSortFilter");
+
+  const clearButton =
+    $("clearClassSearchButton");
+
+  const resetButton =
+    $("resetClassFiltersButton");
+
+  const gridButton =
+    $("classGridViewButton");
+
+  const listButton =
+    $("classListViewButton");
+
+  /*
+    The classes section may not exist on older
+    student-page builds.
+  */
+
+  if (
+    !searchInput &&
+    !statusFilter &&
+    !sortFilter
+  ){
+    return;
+  }
+
+  studentClassControlsInitialized =
+    true;
+
+
+  searchInput?.addEventListener(
+    "input",
+    () => {
+      window.clearTimeout(
+        studentClassSearchTimer
+      );
+
+      const hasValue =
+        Boolean(
+          searchInput.value.trim()
+        );
+
+      if (clearButton){
+        clearButton.hidden =
+          !hasValue;
+      }
+
+      studentClassSearchTimer =
+        window.setTimeout(
+          () => {
+            renderClasses();
+          },
+          140
+        );
+    }
+  );
+
+
+  searchInput?.addEventListener(
+    "keydown",
+    event => {
+      if (event.key === "Escape"){
+        event.preventDefault();
+
+        searchInput.value = "";
+
+        if (clearButton){
+          clearButton.hidden = true;
+        }
+
+        renderClasses();
+
+        return;
+      }
+
+      if (event.key === "Enter"){
+        event.preventDefault();
+
+        window.clearTimeout(
+          studentClassSearchTimer
+        );
+
+        renderClasses();
+      }
+    }
+  );
+
+
+  statusFilter?.addEventListener(
+    "change",
+    () => {
+      renderClasses();
+    }
+  );
+
+
+  sortFilter?.addEventListener(
+    "change",
+    () => {
+      renderClasses();
+    }
+  );
+
+
+  clearButton?.addEventListener(
+    "click",
+    event => {
+      event.preventDefault();
+
+      searchInput.value = "";
+
+      clearButton.hidden = true;
+
+      searchInput.focus();
+
+      renderClasses();
+    }
+  );
+
+
+  resetButton?.addEventListener(
+    "click",
+    event => {
+      event.preventDefault();
+
+      resetStudentClassFilters();
+    }
+  );
+
+
+  gridButton?.addEventListener(
+    "click",
+    event => {
+      event.preventDefault();
+
+      setStudentClassView(
+        "grid"
+      );
+    }
+  );
+
+
+  listButton?.addEventListener(
+    "click",
+    event => {
+      event.preventDefault();
+
+      setStudentClassView(
+        "list"
+      );
+    }
+  );
 }
 
 function bindStudentStudioQuickActions(){
@@ -1646,11 +1810,13 @@ function initializeStudentStudioShell(){
 
   bindStudentStudioNavigation();
 
-  bindStudentStudioTopbar();
+bindStudentStudioTopbar();
 
-  bindStudentStudioQuickActions();
+bindStudentClassControls();
 
-  bindStudentProfileActions();
+bindStudentStudioQuickActions();
+
+bindStudentProfileActions();
 
   const initialPage =
     restoreStudentStudioState();
@@ -1879,6 +2045,8 @@ renderActiveStudentStudioPage(
 );
 
 bindStudentStudioNavigation();
+
+bindStudentClassControls();
 
 closeStudentSearchResults({
   clear:false
