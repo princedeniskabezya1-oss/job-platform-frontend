@@ -9988,6 +9988,54 @@ let assignmentWorkspaceControlsBound =
 
 let assignmentWorkspaceSubmitting =
   false;
+let assignmentWorkspaceUploading =
+  false;
+
+let assignmentWorkspaceUploadedFiles =
+  [];
+
+let assignmentWorkspacePendingFiles =
+  [];
+
+const MAX_ASSIGNMENT_UPLOAD_FILES =
+  10;
+
+const MAX_ASSIGNMENT_FILE_SIZE =
+  50 * 1024 * 1024;
+
+const ASSIGNMENT_ALLOWED_MIME_TYPES =
+  new Set([
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
+
+    "audio/mpeg",
+    "audio/mp3",
+    "audio/wav",
+    "audio/x-wav",
+    "audio/ogg",
+    "audio/mp4",
+    "audio/aac",
+
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+    "text/plain",
+    "text/csv"
+  ]);
 
 let assignmentWorkspaceDraftTimer =
   null;
