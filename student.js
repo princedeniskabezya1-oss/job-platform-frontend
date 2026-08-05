@@ -989,9 +989,21 @@ case "progress":
 
   break;
 
-    case "resources":
-      renderResources();
-      break;
+case "resources":
+
+  bindStudentResourceControls();
+
+  hydrateStudentResourceClassFilter();
+
+  restoreStudentResourceClassSelection();
+
+  setStudentResourceView(
+    studentResourceView
+  );
+
+  renderResources();
+
+  break;
 
     case "certificates":
       renderStudentCertificates();
@@ -2142,7 +2154,10 @@ bindStudentStudioTopbar();
 bindStudentClassControls();
 
 bindStudentAssignmentControls();
+
 bindStudentAnalyticsControls();
+
+bindStudentResourceControls();
 
 bindStudentStudioQuickActions();
 
@@ -15270,9 +15285,2577 @@ function renderAttendance(){
       .join("");
 }
 
+
+/* =========================================================
+   STUDENT RESOURCE CENTER STATE
+========================================================= */
+
+const STUDENT_RESOURCE_VIEW_STORAGE_KEY =
+  "aiftStudentResourceView";
+
+const STUDENT_RESOURCE_SAVED_STORAGE_KEY =
+  "aiftStudentSavedResources";
+
+const STUDENT_RESOURCE_RECENT_STORAGE_KEY =
+  "aiftStudentRecentlyOpenedResources";
+
+
+let studentResourceView =
+  localStorage.getItem(
+    STUDENT_RESOURCE_VIEW_STORAGE_KEY
+  ) === "list"
+    ? "list"
+    : "grid";
+
+
+let studentResourceControlsBound =
+  false;
+
+
+function getStudentSavedResourceIds(){
+
+  try{
+
+    const parsed =
+      JSON.parse(
+        localStorage.getItem(
+          STUDENT_RESOURCE_SAVED_STORAGE_KEY
+        ) ||
+        "[]"
+      );
+
+    return new Set(
+      Array.isArray(parsed)
+        ? parsed.map(value =>
+            String(value)
+          )
+        : []
+    );
+
+  }catch(error){
+
+    console.warn(
+      "Saved resource storage could not be read:",
+      error
+    );
+
+    return new Set();
+
+  }
+
+}
+
+
+function saveStudentResourceIds(
+  resourceIds
+){
+
+  localStorage.setItem(
+    STUDENT_RESOURCE_SAVED_STORAGE_KEY,
+    JSON.stringify(
+      Array.from(
+        resourceIds
+      )
+    )
+  );
+
+}
+
+
+function getStudentRecentlyOpenedResources(){
+
+  try{
+
+    const parsed =
+      JSON.parse(
+        localStorage.getItem(
+          STUDENT_RESOURCE_RECENT_STORAGE_KEY
+        ) ||
+        "[]"
+      );
+
+    return Array.isArray(parsed)
+      ? parsed
+      : [];
+
+  }catch(error){
+
+    console.warn(
+      "Recent resource storage could not be read:",
+      error
+    );
+
+    return [];
+
+  }
+
+}
+
+
+function saveStudentRecentlyOpenedResources(
+  resources
+){
+
+  localStorage.setItem(
+    STUDENT_RESOURCE_RECENT_STORAGE_KEY,
+    JSON.stringify(
+      resources.slice(
+        0,
+        8
+      )
+    )
+  );
+
+}
+
+/* =========================================================
+   COLLECT STUDENT RESOURCES
+========================================================= */
+
+function buildStudentResources(){
+
+  const resources =
+    [];
+
+  const resourceKeys =
+    new Set();
+
+
+  const addResource = ({
+    id,
+    title,
+    description,
+    url,
+    originalName,
+    mimeType,
+    type,
+    classId,
+    className,
+    source,
+    createdAt,
+    thumbnail
+  } = {}) => {
+
+    const cleanUrl =
+      String(
+        url ||
+        ""
+      ).trim();
+
+    if (!cleanUrl){
+      return;
+    }
+
+
+    const cleanTitle =
+      String(
+        title ||
+        originalName ||
+        "Learning resource"
+      ).trim();
+
+
+    const resourceType =
+      getStudentResourceType({
+        type,
+        mimeType,
+        url:
+          cleanUrl,
+        originalName
+      });
+
+
+    const uniqueKey =
+      [
+        cleanUrl,
+        cleanTitle,
+        normalizeId(classId)
+      ].join("|");
+
+
+    if (
+      resourceKeys.has(
+        uniqueKey
+      )
+    ){
+      return;
+    }
+
+
+    resourceKeys.add(
+      uniqueKey
+    );
+
+
+    resources.push({
+      id:
+        String(
+          id ||
+          `resource-${
+            resources.length + 1
+          }`
+        ),
+
+      title:
+        cleanTitle,
+
+      description:
+        String(
+          description ||
+          ""
+        ).trim(),
+
+      url:
+        cleanUrl,
+
+      originalName:
+        String(
+          originalName ||
+          cleanTitle
+        ).trim(),
+
+      mimeType:
+        String(
+          mimeType ||
+          ""
+        ).trim(),
+
+      type:
+        resourceType,
+
+      classId:
+        normalizeId(
+          classId
+        ),
+
+      className:
+        String(
+          className ||
+          "General"
+        ).trim(),
+
+      source:
+        String(
+          source ||
+          "Learning resource"
+        ).trim(),
+
+      createdAt:
+        createdAt ||
+        null,
+
+      thumbnail:
+        String(
+          thumbnail ||
+          ""
+        ).trim()
+    });
+
+  };
+
+
+  /* =======================================================
+     CLASS RESOURCES
+  ======================================================= */
+
+  getStudentClasses()
+    .forEach(classItem => {
+
+      const classId =
+        normalizeId(
+          classItem?._id ||
+          classItem?.id
+        );
+
+      const className =
+        String(
+          classItem?.title ||
+          classItem?.name ||
+          classItem?.subject ||
+          "Class"
+        ).trim();
+
+
+      const classCollections =
+        [
+          classItem?.resources,
+          classItem?.materials,
+          classItem?.files,
+          classItem?.attachments
+        ];
+
+
+      classCollections
+        .forEach(collection => {
+
+          asArray(
+            collection
+          )
+            .forEach(
+              (
+                item,
+                index
+              ) => {
+
+                if (
+                  typeof item ===
+                  "string"
+                ){
+
+                  addResource({
+                    id:
+                      `class-${classId}-${index}`,
+
+                    title:
+                      "Class resource",
+
+                    url:
+                      item,
+
+                    classId,
+                    className,
+
+                    source:
+                      "Class material",
+
+                    createdAt:
+                      classItem?.updatedAt ||
+                      classItem?.createdAt
+                  });
+
+                  return;
+                }
+
+
+                addResource({
+                  id:
+                    item?._id ||
+                    item?.id ||
+                    `class-${classId}-${index}`,
+
+                  title:
+                    item?.title ||
+                    item?.name ||
+                    item?.originalName,
+
+                  description:
+                    item?.description ||
+                    item?.caption,
+
+                  url:
+                    item?.secureUrl ||
+                    item?.url ||
+                    item?.fileUrl ||
+                    item?.link,
+
+                  originalName:
+                    item?.originalName ||
+                    item?.fileName ||
+                    item?.name,
+
+                  mimeType:
+                    item?.mimeType ||
+                    item?.mimetype,
+
+                  type:
+                    item?.type ||
+                    item?.mediaType,
+
+                  classId,
+                  className,
+
+                  source:
+                    "Class material",
+
+                  createdAt:
+                    item?.uploadedAt ||
+                    item?.createdAt ||
+                    classItem?.updatedAt,
+
+                  thumbnail:
+                    item?.thumbnail ||
+                    item?.image
+                });
+
+              }
+            );
+
+        });
+
+
+      const modules =
+        asArray(
+          classItem?.modules
+        );
+
+
+      modules.forEach(
+        (
+          module,
+          moduleIndex
+        ) => {
+
+          const lessons =
+            asArray(
+              module?.lessons
+            );
+
+
+          lessons.forEach(
+            (
+              lesson,
+              lessonIndex
+            ) => {
+
+              const lessonTitle =
+                String(
+                  lesson?.title ||
+                  lesson?.name ||
+                  `Lesson ${
+                    lessonIndex + 1
+                  }`
+                ).trim();
+
+
+              const lessonCollections =
+                [
+                  lesson?.resources,
+                  lesson?.materials,
+                  lesson?.files,
+                  lesson?.attachments
+                ];
+
+
+              lessonCollections
+                .forEach(collection => {
+
+                  asArray(
+                    collection
+                  )
+                    .forEach(
+                      (
+                        item,
+                        resourceIndex
+                      ) => {
+
+                        if (
+                          typeof item ===
+                          "string"
+                        ){
+
+                          addResource({
+                            id:
+                              `lesson-${classId}-${moduleIndex}-${lessonIndex}-${resourceIndex}`,
+
+                            title:
+                              lessonTitle,
+
+                            description:
+                              module?.title ||
+                              "Lesson material",
+
+                            url:
+                              item,
+
+                            classId,
+                            className,
+
+                            source:
+                              "Lesson material",
+
+                            createdAt:
+                              lesson?.updatedAt ||
+                              lesson?.createdAt
+                          });
+
+                          return;
+                        }
+
+
+                        addResource({
+                          id:
+                            item?._id ||
+                            item?.id ||
+                            `lesson-${classId}-${moduleIndex}-${lessonIndex}-${resourceIndex}`,
+
+                          title:
+                            item?.title ||
+                            item?.name ||
+                            item?.originalName ||
+                            lessonTitle,
+
+                          description:
+                            item?.description ||
+                            lesson?.description ||
+                            module?.title,
+
+                          url:
+                            item?.secureUrl ||
+                            item?.url ||
+                            item?.fileUrl ||
+                            item?.link,
+
+                          originalName:
+                            item?.originalName ||
+                            item?.fileName ||
+                            item?.name,
+
+                          mimeType:
+                            item?.mimeType ||
+                            item?.mimetype,
+
+                          type:
+                            item?.type ||
+                            item?.mediaType,
+
+                          classId,
+                          className,
+
+                          source:
+                            "Lesson material",
+
+                          createdAt:
+                            item?.uploadedAt ||
+                            item?.createdAt ||
+                            lesson?.updatedAt,
+
+                          thumbnail:
+                            item?.thumbnail ||
+                            item?.image
+                        });
+
+                      }
+                    );
+
+                });
+
+
+              addResource({
+                id:
+                  `lesson-video-${classId}-${moduleIndex}-${lessonIndex}`,
+
+                title:
+                  lessonTitle,
+
+                description:
+                  lesson?.description ||
+                  module?.title,
+
+                url:
+                  lesson?.videoUrl ||
+                  lesson?.recordingUrl,
+
+                type:
+                  lesson?.recordingUrl
+                    ? "recording"
+                    : "video",
+
+                classId,
+                className,
+
+                source:
+                  lesson?.recordingUrl
+                    ? "Class recording"
+                    : "Lesson video",
+
+                createdAt:
+                  lesson?.updatedAt ||
+                  lesson?.createdAt,
+
+                thumbnail:
+                  lesson?.coverImage ||
+                  lesson?.thumbnail
+              });
+
+            }
+          );
+
+        }
+      );
+
+    });
+
+
+  /* =======================================================
+     ASSIGNMENT RESOURCES
+  ======================================================= */
+
+  getStudentAssignments()
+    .forEach(assignment => {
+
+      const assignmentId =
+        normalizeId(
+          assignment?._id ||
+          assignment?.id
+        );
+
+      const classId =
+        normalizeId(
+          assignment?.classId?._id ||
+          assignment?.classId
+        );
+
+      const classItem =
+        getStudentClasses()
+          .find(item =>
+            sameId(
+              item?._id,
+              classId
+            )
+          );
+
+      const className =
+        String(
+          assignment?.classId?.title ||
+          assignment?.classId?.name ||
+          classItem?.title ||
+          classItem?.name ||
+          classItem?.subject ||
+          "General"
+        ).trim();
+
+
+      const assignmentResources =
+        typeof getAssignmentWorkspaceResources ===
+        "function"
+          ? getAssignmentWorkspaceResources(
+              assignment
+            )
+          : [];
+
+
+      assignmentResources
+        .forEach(
+          (
+            resource,
+            index
+          ) => {
+
+            addResource({
+              id:
+                `assignment-${assignmentId}-${index}`,
+
+              title:
+                resource?.title ||
+                assignment?.title ||
+                "Assignment material",
+
+              description:
+                assignment?.description ||
+                assignment?.instructions,
+
+              url:
+                resource?.url,
+
+              type:
+                resource?.type ||
+                "assignment",
+
+              classId,
+              className,
+
+              source:
+                `Assignment: ${
+                  assignment?.title ||
+                  "Coursework"
+                }`,
+
+              createdAt:
+                assignment?.updatedAt ||
+                assignment?.createdAt
+            });
+
+          }
+        );
+
+
+      asArray(
+        assignment?.attachments
+      )
+        .forEach(
+          (
+            attachment,
+            index
+          ) => {
+
+            addResource({
+              id:
+                attachment?._id ||
+                `assignment-file-${assignmentId}-${index}`,
+
+              title:
+                attachment?.title ||
+                attachment?.originalName ||
+                assignment?.title,
+
+              description:
+                assignment?.description ||
+                assignment?.instructions,
+
+              url:
+                attachment?.secureUrl ||
+                attachment?.url ||
+                attachment?.fileUrl,
+
+              originalName:
+                attachment?.originalName ||
+                attachment?.fileName,
+
+              mimeType:
+                attachment?.mimeType ||
+                attachment?.mimetype,
+
+              type:
+                attachment?.attachmentType ||
+                attachment?.mediaType ||
+                "assignment",
+
+              classId,
+              className,
+
+              source:
+                `Assignment: ${
+                  assignment?.title ||
+                  "Coursework"
+                }`,
+
+              createdAt:
+                attachment?.uploadedAt ||
+                assignment?.updatedAt,
+
+              thumbnail:
+                attachment?.thumbnail
+            });
+
+          }
+        );
+
+    });
+
+
+  /* =======================================================
+     SCHOOL UPDATE RESOURCE LINKS
+  ======================================================= */
+
+  asArray(
+    state.schoolUpdates
+  )
+    .forEach(update => {
+
+      addResource({
+        id:
+          update?._id ||
+          update?.id,
+
+        title:
+          update?.title ||
+          "School resource",
+
+        description:
+          update?.description ||
+          update?.text,
+
+        url:
+          update?.resourceUrl,
+
+        type:
+          "link",
+
+        classId:
+          update?.classId?._id ||
+          update?.classId,
+
+        className:
+          update?.classId?.title ||
+          "School",
+
+        source:
+          "School update",
+
+        createdAt:
+          update?.createdAt ||
+          update?.updatedAt
+      });
+
+    });
+
+
+  /* =======================================================
+     CLASS SCHEDULE AND MEETING RECORDINGS
+  ======================================================= */
+
+  asArray(
+    state.schedules
+  )
+    .forEach(schedule => {
+
+      const classId =
+        normalizeId(
+          schedule?.classId?._id ||
+          schedule?.classId
+        );
+
+      const className =
+        String(
+          schedule?.classId?.title ||
+          schedule?.classTitle ||
+          schedule?.title ||
+          "Class"
+        ).trim();
+
+
+      addResource({
+        id:
+          `recording-${
+            normalizeId(
+              schedule?._id ||
+              schedule?.id
+            )
+          }`,
+
+        title:
+          schedule?.recordingTitle ||
+          `${className} recording`,
+
+        description:
+          schedule?.description,
+
+        url:
+          schedule?.recordingUrl ||
+          schedule?.recordingLink,
+
+        type:
+          "recording",
+
+        classId,
+        className,
+
+        source:
+          "Class recording",
+
+        createdAt:
+          schedule?.updatedAt ||
+          schedule?.createdAt ||
+          schedule?.startDate
+      });
+
+
+      addResource({
+        id:
+          `meeting-${
+            normalizeId(
+              schedule?._id ||
+              schedule?.id
+            )
+          }`,
+
+        title:
+          schedule?.title ||
+          `${className} meeting`,
+
+        description:
+          schedule?.description,
+
+        url:
+          schedule?.meetingLink ||
+          schedule?.meetingUrl,
+
+        type:
+          "link",
+
+        classId,
+        className,
+
+        source:
+          "Class meeting",
+
+        createdAt:
+          schedule?.updatedAt ||
+          schedule?.createdAt ||
+          schedule?.startDate
+      });
+
+    });
+
+
+  return resources;
+
+}
+
+/* =========================================================
+   RECENTLY OPENED STUDENT RESOURCES
+========================================================= */
+
+function renderStudentRecentlyOpenedResources(){
+
+  const container =
+    $("studentRecentlyOpenedResources");
+
+  if (!container){
+    return;
+  }
+
+
+  const recentResources =
+    getStudentRecentlyOpenedResources()
+      .slice(
+        0,
+        5
+      );
+
+
+  if (!recentResources.length){
+
+    container.innerHTML = `
+      <div class="student-resource-empty compact">
+
+        <i
+          class="fa-regular fa-clock"
+          aria-hidden="true"
+        ></i>
+
+        <span>
+          Opened resources will appear here.
+        </span>
+
+      </div>
+    `;
+
+    return;
+  }
+
+
+  container.innerHTML =
+    recentResources
+      .map(resource => `
+        <button
+          class="student-resource-recent-item"
+          type="button"
+          data-open-recent-resource="${
+            escapeHtml(
+              resource.id
+            )
+          }"
+        >
+
+          <span class="student-resource-recent-item-icon">
+
+            <i
+              class="${
+                escapeHtml(
+                  getStudentResourceIcon(
+                    resource.type
+                  )
+                )
+              }"
+              aria-hidden="true"
+            ></i>
+
+          </span>
+
+          <div>
+
+            <strong>
+              ${
+                escapeHtml(
+                  resource.title ||
+                  "Learning resource"
+                )
+              }
+            </strong>
+
+            <span>
+              ${
+                escapeHtml(
+                  resource.className ||
+                  resource.source ||
+                  "Resource"
+                )
+              }
+            </span>
+
+          </div>
+
+        </button>
+      `)
+      .join("");
+
+}
+/* =========================================================
+   RESOURCE CLASS FILTER
+========================================================= */
+
+function hydrateStudentResourceClassFilter(){
+
+  const select =
+    $("resourceClassFilter");
+
+  if (!select){
+    return;
+  }
+
+
+  const previousValue =
+    String(
+      select.value ||
+      ""
+    );
+
+
+  const classes =
+    getStudentClasses()
+      .map(classItem => ({
+        id:
+          normalizeId(
+            classItem?._id ||
+            classItem?.id
+          ),
+
+        title:
+          String(
+            classItem?.title ||
+            classItem?.name ||
+            classItem?.subject ||
+            "Class"
+          ).trim()
+      }))
+      .filter(classItem =>
+        classItem.id
+      )
+      .sort(
+        (
+          first,
+          second
+        ) =>
+          first.title.localeCompare(
+            second.title
+          )
+      );
+
+
+  select.innerHTML = `
+    <option value="">
+      All classes
+    </option>
+
+    ${
+      classes
+        .map(classItem => `
+          <option
+            value="${
+              escapeHtml(
+                classItem.id
+              )
+            }"
+          >
+            ${
+              escapeHtml(
+                classItem.title
+              )
+            }
+          </option>
+        `)
+        .join("")
+    }
+  `;
+
+
+  if (
+    previousValue &&
+    classes.some(classItem =>
+      sameId(
+        classItem.id,
+        previousValue
+      )
+    )
+  ){
+    select.value =
+      previousValue;
+  }
+
+}
+/* =========================================================
+   RESTORE SELECTED CLASS RESOURCE FILTER
+========================================================= */
+
+function restoreStudentResourceClassSelection(){
+
+  const selectedClassId =
+    String(
+      sessionStorage.getItem(
+        "aiftSelectedClassId"
+      ) ||
+      ""
+    ).trim();
+
+
+  if (!selectedClassId){
+    return;
+  }
+
+
+  const classFilter =
+    $("resourceClassFilter");
+
+
+  if (classFilter){
+
+    const optionExists =
+      Array.from(
+        classFilter.options
+      )
+        .some(option =>
+          sameId(
+            option.value,
+            selectedClassId
+          )
+        );
+
+
+    if (optionExists){
+
+      classFilter.value =
+        selectedClassId;
+
+    }
+
+  }
+
+
+  sessionStorage.removeItem(
+    "aiftSelectedClassId"
+  );
+
+}
+
+/* =========================================================
+   OPEN STUDENT RESOURCE
+========================================================= */
+
+function openStudentResource(
+  resourceId
+){
+
+  const resource =
+    buildStudentResources()
+      .find(item =>
+        String(item.id) ===
+        String(resourceId)
+      );
+
+
+  if (!resource){
+
+    notifyAIFTWarning(
+      "This resource is no longer available.",
+      {
+        title:
+          "Resource unavailable"
+      }
+    );
+
+    return;
+  }
+
+
+  const recentResources =
+    getStudentRecentlyOpenedResources()
+      .filter(item =>
+        String(item.id) !==
+        String(resource.id)
+      );
+
+
+  recentResources.unshift({
+    id:
+      resource.id,
+
+    title:
+      resource.title,
+
+    type:
+      resource.type,
+
+    className:
+      resource.className,
+
+    source:
+      resource.source,
+
+    url:
+      resource.url,
+
+    openedAt:
+      new Date()
+        .toISOString()
+  });
+
+
+  saveStudentRecentlyOpenedResources(
+    recentResources
+  );
+
+
+  renderStudentRecentlyOpenedResources();
+
+
+  const openedWindow =
+    window.open(
+      resource.url,
+      "_blank",
+      "noopener,noreferrer"
+    );
+
+
+  if (!openedWindow){
+
+    notifyAIFTWarning(
+      "Your browser blocked the resource window. Allow pop-ups for AIFT and try again.",
+      {
+        title:
+          "Resource blocked"
+      }
+    );
+
+    return;
+  }
+
+
+  notifyAIFTSuccess(
+    `${resource.title} was opened.`,
+    {
+      title:
+        "Resource opened",
+
+      duration:
+        2500
+    }
+  );
+
+}
+
+/* =========================================================
+   SAVE STUDENT RESOURCE
+========================================================= */
+
+function toggleStudentResourceSaved(
+  resourceId
+){
+
+  const cleanResourceId =
+    String(
+      resourceId ||
+      ""
+    ).trim();
+
+
+  if (!cleanResourceId){
+    return;
+  }
+
+
+  const savedIds =
+    getStudentSavedResourceIds();
+
+
+  let saved =
+    false;
+
+
+  if (
+    savedIds.has(
+      cleanResourceId
+    )
+  ){
+
+    savedIds.delete(
+      cleanResourceId
+    );
+
+  }else{
+
+    savedIds.add(
+      cleanResourceId
+    );
+
+    saved =
+      true;
+
+  }
+
+
+  saveStudentResourceIds(
+    savedIds
+  );
+
+
+  renderResources();
+
+
+  notifyAIFTSuccess(
+    saved
+      ? "The resource was added to your saved resources."
+      : "The resource was removed from your saved resources.",
+    {
+      title:
+        saved
+          ? "Resource saved"
+          : "Resource removed",
+
+      duration:
+        2500
+    }
+  );
+
+}
+
+/* =========================================================
+   RESOURCE VIEW
+========================================================= */
+
+function setStudentResourceView(
+  view
+){
+
+  studentResourceView =
+    view === "list"
+      ? "list"
+      : "grid";
+
+
+  localStorage.setItem(
+    STUDENT_RESOURCE_VIEW_STORAGE_KEY,
+    studentResourceView
+  );
+
+
+  const gridButton =
+    $("resourceGridViewButton");
+
+  const listButton =
+    $("resourceListViewButton");
+
+
+  gridButton?.classList.toggle(
+    "active",
+    studentResourceView ===
+      "grid"
+  );
+
+
+  listButton?.classList.toggle(
+    "active",
+    studentResourceView ===
+      "list"
+  );
+
+
+  gridButton?.setAttribute(
+    "aria-pressed",
+    String(
+      studentResourceView ===
+        "grid"
+    )
+  );
+
+
+  listButton?.setAttribute(
+    "aria-pressed",
+    String(
+      studentResourceView ===
+        "list"
+    )
+  );
+
+
+  renderResources();
+
+}
+
+/* =========================================================
+   RESET RESOURCE FILTERS
+========================================================= */
+
+function resetStudentResourceFilters(){
+
+  const searchInput =
+    $("resourceSearch");
+
+  const classFilter =
+    $("resourceClassFilter");
+
+  const typeFilter =
+    $("resourceTypeFilter");
+
+  const sortFilter =
+    $("resourceSortFilter");
+
+  const clearButton =
+    $("clearResourceSearchButton");
+
+
+  if (searchInput){
+    searchInput.value = "";
+  }
+
+
+  if (classFilter){
+    classFilter.value = "";
+  }
+
+
+  if (typeFilter){
+    typeFilter.value = "all";
+  }
+
+
+  if (sortFilter){
+    sortFilter.value = "recent";
+  }
+
+
+  if (clearButton){
+    clearButton.hidden = true;
+  }
+
+
+  document
+    .querySelectorAll(
+      "[data-resource-category]"
+    )
+    .forEach(button => {
+      button.classList.remove(
+        "active"
+      );
+    });
+
+
+  renderResources();
+
+}
+
+/* =========================================================
+   BIND RESOURCE CENTER CONTROLS
+========================================================= */
+
+function bindStudentResourceControls(){
+
+  if (studentResourceControlsBound){
+    return;
+  }
+
+
+  const section =
+    $("section-resources");
+
+  const searchInput =
+    $("resourceSearch");
+
+  const clearSearchButton =
+    $("clearResourceSearchButton");
+
+  const classFilter =
+    $("resourceClassFilter");
+
+  const typeFilter =
+    $("resourceTypeFilter");
+
+  const sortFilter =
+    $("resourceSortFilter");
+
+  const gridButton =
+    $("resourceGridViewButton");
+
+  const listButton =
+    $("resourceListViewButton");
+
+  const resetButton =
+    $("resetResourceFiltersButton");
+
+  const refreshButton =
+    $("resourceRefreshButton");
+
+  const retryButton =
+    $("retryStudentResourcesButton");
+
+  const uploadButton =
+    $("resourceUploadButton");
+
+  const sidebarUploadButton =
+    $("resourceSidebarUploadButton");
+
+
+  if (
+    !section ||
+    !searchInput
+  ){
+    return;
+  }
+
+
+  let searchTimer =
+    null;
+
+
+  searchInput.addEventListener(
+    "input",
+    () => {
+
+      window.clearTimeout(
+        searchTimer
+      );
+
+
+      clearSearchButton.hidden =
+        !searchInput.value.trim();
+
+
+      searchTimer =
+        window.setTimeout(
+          () => {
+            renderResources();
+          },
+          150
+        );
+
+    }
+  );
+
+
+  searchInput.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key ===
+        "Escape"
+      ){
+
+        event.preventDefault();
+
+        searchInput.value = "";
+
+        clearSearchButton.hidden =
+          true;
+
+        renderResources();
+
+      }
+
+
+      if (
+        event.key ===
+        "Enter"
+      ){
+
+        event.preventDefault();
+
+        window.clearTimeout(
+          searchTimer
+        );
+
+        renderResources();
+
+      }
+
+    }
+  );
+
+
+  clearSearchButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      searchInput.value = "";
+
+      clearSearchButton.hidden =
+        true;
+
+      searchInput.focus();
+
+      renderResources();
+
+    }
+  );
+
+
+  classFilter?.addEventListener(
+    "change",
+    () => {
+
+      document
+        .querySelectorAll(
+          "[data-resource-category]"
+        )
+        .forEach(button => {
+          button.classList.remove(
+            "active"
+          );
+        });
+
+      renderResources();
+
+    }
+  );
+
+
+  typeFilter?.addEventListener(
+    "change",
+    () => {
+
+      document
+        .querySelectorAll(
+          "[data-resource-category]"
+        )
+        .forEach(button => {
+          button.classList.remove(
+            "active"
+          );
+        });
+
+      renderResources();
+
+    }
+  );
+
+
+  sortFilter?.addEventListener(
+    "change",
+    renderResources
+  );
+
+
+  gridButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      setStudentResourceView(
+        "grid"
+      );
+
+    }
+  );
+
+
+  listButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      setStudentResourceView(
+        "list"
+      );
+
+    }
+  );
+
+
+  resetButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      resetStudentResourceFilters();
+
+    }
+  );
+
+
+  refreshButton?.addEventListener(
+    "click",
+    async event => {
+
+      event.preventDefault();
+
+
+      setDashboardButtonLoading(
+        refreshButton,
+        true,
+        "Refreshing..."
+      );
+
+
+      try{
+
+        await loadAll();
+
+        hydrateStudentResourceClassFilter();
+
+        renderResources();
+
+
+        notifyAIFTSuccess(
+          "Your learning resources are up to date.",
+          {
+            title:
+              "Resources refreshed"
+          }
+        );
+
+      }catch(error){
+
+        console.error(
+          "Student resource refresh failed:",
+          error
+        );
+
+
+        notifyAIFTError(
+          error?.message ||
+          "AIFT could not refresh your learning resources.",
+          {
+            title:
+              "Refresh failed"
+          }
+        );
+
+      }finally{
+
+        setDashboardButtonLoading(
+          refreshButton,
+          false
+        );
+
+      }
+
+    }
+  );
+
+
+  retryButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      refreshButton?.click();
+
+    }
+  );
+
+
+  const openUploadWorkspace =
+    event => {
+
+      event?.preventDefault();
+
+
+      notifyAIFTInfo(
+        "Personal note uploads will be connected in the next Resources step.",
+        {
+          title:
+            "Upload notes"
+        }
+      );
+
+    };
+
+
+  uploadButton?.addEventListener(
+    "click",
+    openUploadWorkspace
+  );
+
+
+  sidebarUploadButton?.addEventListener(
+    "click",
+    openUploadWorkspace
+  );
+
+
+  section.addEventListener(
+    "click",
+    event => {
+
+      const openButton =
+        event.target.closest(
+          "[data-open-student-resource]"
+        );
+
+
+      if (openButton){
+
+        event.preventDefault();
+
+        openStudentResource(
+          openButton.dataset
+            .openStudentResource
+        );
+
+        return;
+
+      }
+
+
+      const recentButton =
+        event.target.closest(
+          "[data-open-recent-resource]"
+        );
+
+
+      if (recentButton){
+
+        event.preventDefault();
+
+        const recentResource =
+          getStudentRecentlyOpenedResources()
+            .find(item =>
+              String(item.id) ===
+              String(
+                recentButton.dataset
+                  .openRecentResource
+              )
+            );
+
+
+        if (
+          recentResource?.url
+        ){
+
+          window.open(
+            recentResource.url,
+            "_blank",
+            "noopener,noreferrer"
+          );
+
+        }else{
+
+          openStudentResource(
+            recentButton.dataset
+              .openRecentResource
+          );
+
+        }
+
+        return;
+
+      }
+
+
+      const saveButton =
+        event.target.closest(
+          "[data-save-student-resource]"
+        );
+
+
+      if (saveButton){
+
+        event.preventDefault();
+
+        toggleStudentResourceSaved(
+          saveButton.dataset
+            .saveStudentResource
+        );
+
+        return;
+
+      }
+
+
+      const categoryButton =
+        event.target.closest(
+          "[data-resource-category]"
+        );
+
+
+      if (!categoryButton){
+        return;
+      }
+
+
+      event.preventDefault();
+
+
+      const category =
+        String(
+          categoryButton.dataset
+            .resourceCategory ||
+          ""
+        )
+          .trim()
+          .toLowerCase();
+
+
+      document
+        .querySelectorAll(
+          "[data-resource-category]"
+        )
+        .forEach(button => {
+          button.classList.toggle(
+            "active",
+            button ===
+              categoryButton
+          );
+        });
+
+
+      if (
+        category ===
+        "saved"
+      ){
+
+        const savedIds =
+          getStudentSavedResourceIds();
+
+        const allResources =
+          buildStudentResources();
+
+
+        const savedResources =
+          allResources.filter(resource =>
+            savedIds.has(
+              resource.id
+            )
+          );
+
+
+        const grid =
+          $("studentResourceGrid");
+
+
+        if (
+          grid &&
+          !savedResources.length
+        ){
+
+          grid.innerHTML = `
+            <div class="student-resource-empty">
+
+              <i
+                class="fa-regular fa-bookmark"
+                aria-hidden="true"
+              ></i>
+
+              <strong>
+                No saved resources
+              </strong>
+
+              <p>
+                Save useful learning materials to access
+                them quickly from this category.
+              </p>
+
+            </div>
+          `;
+
+        }else{
+
+          /*
+            The saved-only view will be finalized in the
+            next step using a dedicated category state.
+          */
+
+          notifyAIFTInfo(
+            "Your saved resources are shown by the active bookmark buttons.",
+            {
+              title:
+                "Saved resources"
+            }
+          );
+
+        }
+
+        return;
+
+      }
+
+
+      if (
+        category ===
+        "recent"
+      ){
+
+        if (typeFilter){
+          typeFilter.value =
+            "all";
+        }
+
+        if (sortFilter){
+          sortFilter.value =
+            "recent";
+        }
+
+        renderResources();
+
+        return;
+
+      }
+
+
+      if (
+        category ===
+        "document"
+      ){
+
+        typeFilter.value =
+          "document";
+
+      }else if (
+        category ===
+        "video"
+      ){
+
+        typeFilter.value =
+          "video";
+
+      }else if (
+        category ===
+        "link"
+      ){
+
+        typeFilter.value =
+          "link";
+
+      }
+
+
+      renderResources();
+
+    }
+  );
+
+
+  studentResourceControlsBound =
+    true;
+
+}
+
 function renderResources(){
-  // Static resources are already rendered in HTML for now.
-  // Later we can connect this to /api/resources or class materials.
+
+  const grid =
+    $("studentResourceGrid");
+
+  if (!grid){
+    return;
+  }
+
+
+  const allResources =
+    buildStudentResources();
+
+  const savedIds =
+    getStudentSavedResourceIds();
+
+
+  const searchValue =
+    String(
+      $("resourceSearch")
+        ?.value ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  const classFilter =
+    String(
+      $("resourceClassFilter")
+        ?.value ||
+      ""
+    ).trim();
+
+
+  const typeFilter =
+    String(
+      $("resourceTypeFilter")
+        ?.value ||
+      "all"
+    )
+      .trim()
+      .toLowerCase();
+
+
+  const sortFilter =
+    String(
+      $("resourceSortFilter")
+        ?.value ||
+      "recent"
+    )
+      .trim()
+      .toLowerCase();
+
+
+  let resources =
+    allResources.filter(resource => {
+
+      const matchesSearch =
+        !searchValue ||
+        [
+          resource.title,
+          resource.description,
+          resource.className,
+          resource.source,
+          resource.type,
+          resource.originalName
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(
+            searchValue
+          );
+
+
+      const matchesClass =
+        !classFilter ||
+        sameId(
+          resource.classId,
+          classFilter
+        );
+
+
+      const matchesType =
+        typeFilter === "all" ||
+        resource.type === typeFilter;
+
+
+      return (
+        matchesSearch &&
+        matchesClass &&
+        matchesType
+      );
+
+    });
+
+
+  resources.sort(
+    (
+      first,
+      second
+    ) => {
+
+      if (
+        sortFilter === "oldest"
+      ){
+        return (
+          new Date(
+            first.createdAt ||
+            0
+          ) -
+          new Date(
+            second.createdAt ||
+            0
+          )
+        );
+      }
+
+
+      if (
+        sortFilter === "name"
+      ){
+        return first.title.localeCompare(
+          second.title
+        );
+      }
+
+
+      if (
+        sortFilter === "class"
+      ){
+        return first.className.localeCompare(
+          second.className
+        );
+      }
+
+
+      if (
+        sortFilter === "type"
+      ){
+        return first.type.localeCompare(
+          second.type
+        );
+      }
+
+
+      return (
+        new Date(
+          second.createdAt ||
+          0
+        ) -
+        new Date(
+          first.createdAt ||
+          0
+        )
+      );
+
+    }
+  );
+
+
+  grid.classList.toggle(
+    "list",
+    studentResourceView ===
+      "list"
+  );
+
+
+  setText(
+    "studentResourceTotalCount",
+    allResources.length
+  );
+
+
+  const resourceClassIds =
+    new Set(
+      allResources
+        .map(resource =>
+          resource.classId
+        )
+        .filter(Boolean)
+    );
+
+
+  setText(
+    "studentResourceClassCount",
+    resourceClassIds.size
+  );
+
+
+  const sevenDaysAgo =
+    Date.now() -
+    (
+      7 *
+      24 *
+      60 *
+      60 *
+      1000
+    );
+
+
+  const recentCount =
+    allResources.filter(resource =>
+      resource.createdAt &&
+      new Date(
+        resource.createdAt
+      ).getTime() >=
+        sevenDaysAgo
+    ).length;
+
+
+  setText(
+    "studentResourceRecentCount",
+    recentCount
+  );
+
+
+  setText(
+    "studentResourceSavedCount",
+    savedIds.size
+  );
+
+
+  setText(
+    "studentRecentResourceBadge",
+    recentCount
+  );
+
+
+  setText(
+    "studentDocumentResourceBadge",
+    allResources.filter(resource =>
+      [
+        "document",
+        "pdf"
+      ].includes(
+        resource.type
+      )
+    ).length
+  );
+
+
+  setText(
+    "studentVideoResourceBadge",
+    allResources.filter(resource =>
+      [
+        "video",
+        "recording"
+      ].includes(
+        resource.type
+      )
+    ).length
+  );
+
+
+  setText(
+    "studentLinkResourceBadge",
+    allResources.filter(resource =>
+      resource.type ===
+        "link"
+    ).length
+  );
+
+
+  setText(
+    "studentSavedResourceBadge",
+    savedIds.size
+  );
+
+
+  setText(
+    "studentResourceResultCount",
+    `${
+      resources.length
+    } ${
+      resources.length === 1
+        ? "resource"
+        : "resources"
+    }`
+  );
+
+
+  const hasFilters =
+    Boolean(
+      searchValue ||
+      classFilter ||
+      typeFilter !== "all"
+    );
+
+
+  const resetButton =
+    $("resetResourceFiltersButton");
+
+  if (resetButton){
+    resetButton.hidden =
+      !hasFilters;
+  }
+
+
+  if (!resources.length){
+
+    grid.innerHTML = `
+      <div class="student-resource-empty">
+
+        <i
+          class="fa-regular fa-folder-open"
+          aria-hidden="true"
+        ></i>
+
+        <strong>
+          No resources found
+        </strong>
+
+        <p>
+          ${
+            hasFilters
+              ? "Try changing your search or resource filters."
+              : "Resources added by your teachers and school will appear here."
+          }
+        </p>
+
+      </div>
+    `;
+
+    renderStudentRecentlyOpenedResources();
+
+    return;
+  }
+
+
+  grid.innerHTML =
+    resources
+      .map(resource => {
+
+        const saved =
+          savedIds.has(
+            resource.id
+          );
+
+
+        const previewMarkup =
+          resource.type ===
+            "image" &&
+          resource.url
+            ? `
+              <img
+                src="${
+                  escapeHtml(
+                    resource.url
+                  )
+                }"
+                alt=""
+                loading="lazy"
+              >
+            `
+            : `
+              <span class="student-resource-card-icon">
+
+                <i
+                  class="${
+                    escapeHtml(
+                      getStudentResourceIcon(
+                        resource.type
+                      )
+                    )
+                  }"
+                  aria-hidden="true"
+                ></i>
+
+              </span>
+            `;
+
+
+        return `
+          <article
+            class="student-resource-card"
+            data-resource-id="${
+              escapeHtml(
+                resource.id
+              )
+            }"
+          >
+
+            <div class="student-resource-card-preview">
+
+              ${previewMarkup}
+
+            </div>
+
+
+            <div class="student-resource-card-body">
+
+              <span class="student-resource-card-type">
+                ${
+                  escapeHtml(
+                    getStudentResourceTypeLabel(
+                      resource.type
+                    )
+                  )
+                }
+              </span>
+
+              <h3 title="${
+                escapeHtml(
+                  resource.title
+                )
+              }">
+                ${
+                  escapeHtml(
+                    resource.title
+                  )
+                }
+              </h3>
+
+              <p>
+                ${
+                  escapeHtml(
+                    resource.description ||
+                    resource.source
+                  )
+                }
+              </p>
+
+              <div class="student-resource-card-meta">
+
+                <span>
+                  ${
+                    escapeHtml(
+                      resource.className
+                    )
+                  }
+                </span>
+
+                ${
+                  resource.createdAt
+                    ? `
+                      <span>
+                        •
+                        ${
+                          escapeHtml(
+                            formatDate(
+                              resource.createdAt
+                            )
+                          )
+                        }
+                      </span>
+                    `
+                    : ""
+                }
+
+              </div>
+
+            </div>
+
+
+            <div class="student-resource-card-actions">
+
+              <div class="student-resource-card-actions-left">
+
+                <button
+                  class="student-resource-card-button"
+                  type="button"
+                  data-open-student-resource="${
+                    escapeHtml(
+                      resource.id
+                    )
+                  }"
+                >
+                  <i
+                    class="fa-solid fa-arrow-up-right-from-square"
+                    aria-hidden="true"
+                  ></i>
+
+                  Open
+                </button>
+
+              </div>
+
+
+              <div class="student-resource-card-actions-right">
+
+                <button
+                  class="
+                    student-resource-bookmark
+                    ${
+                      saved
+                        ? "active"
+                        : ""
+                    }
+                  "
+                  type="button"
+                  data-save-student-resource="${
+                    escapeHtml(
+                      resource.id
+                    )
+                  }"
+                  aria-label="${
+                    saved
+                      ? "Remove from saved resources"
+                      : "Save resource"
+                  }"
+                  aria-pressed="${
+                    saved
+                      ? "true"
+                      : "false"
+                  }"
+                >
+                  <i
+                    class="${
+                      saved
+                        ? "fa-solid"
+                        : "fa-regular"
+                    } fa-bookmark"
+                    aria-hidden="true"
+                  ></i>
+                </button>
+
+              </div>
+
+            </div>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+
+  renderStudentRecentlyOpenedResources();
+
 }
 
 function renderTeachers(){
