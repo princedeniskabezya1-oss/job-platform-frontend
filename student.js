@@ -983,10 +983,15 @@ case "schedule":
 
   break;
 
-    case "progress":
-      renderProgress();
-      renderAttendance();
-      break;
+case "progress":
+
+  bindStudentAnalyticsControls();
+
+  renderProgress();
+
+  renderAttendance();
+
+  break;
 
     case "resources":
       renderResources();
@@ -2141,6 +2146,7 @@ bindStudentStudioTopbar();
 bindStudentClassControls();
 
 bindStudentAssignmentControls();
+bindStudentAnalyticsControls();
 
 bindStudentStudioQuickActions();
 
@@ -12852,6 +12858,16 @@ function renderStudentAgendaForDate(
 }
 
 /* =========================================================
+   STUDENT ANALYTICS CONTROLLER
+========================================================= */
+
+let studentAnalyticsControlsBound =
+  false;
+
+let studentAnalyticsRefreshing =
+  false;
+
+/* =========================================================
    STUDENT ANALYTICS HELPERS
 ========================================================= */
 
@@ -13301,6 +13317,363 @@ function getStudentAnalyticsStatus(
       "Your current activity shows areas that need immediate attention."
   };
 }
+
+/* =========================================================
+   REFRESH STUDENT ANALYTICS
+========================================================= */
+
+async function refreshStudentAnalytics(){
+
+  if (studentAnalyticsRefreshing){
+    return;
+  }
+
+  const refreshButton =
+    $("progressRefreshButton");
+
+  studentAnalyticsRefreshing =
+    true;
+
+  setDashboardButtonLoading(
+    refreshButton,
+    true,
+    "Refreshing..."
+  );
+
+  try{
+
+    await loadAll();
+
+    calculateMetrics();
+
+    renderProgress();
+
+    renderAttendance();
+
+    notifyAIFTSuccess(
+      "Your learning analytics are up to date.",
+      {
+        title:
+          "Analytics refreshed"
+      }
+    );
+
+  }catch(error){
+
+    console.error(
+      "Student analytics refresh failed:",
+      error
+    );
+
+    notifyAIFTError(
+      error?.message ||
+      "AIFT could not refresh your learning analytics.",
+      {
+        title:
+          "Refresh failed"
+      }
+    );
+
+  }finally{
+
+    studentAnalyticsRefreshing =
+      false;
+
+    setDashboardButtonLoading(
+      refreshButton,
+      false
+    );
+
+  }
+
+}
+
+/* =========================================================
+   EXPORT STUDENT ANALYTICS
+========================================================= */
+
+function exportStudentAnalytics(){
+
+  const classRecords =
+    getStudentAnalyticsClassRecords();
+
+  if (!classRecords.length){
+
+    notifyAIFTWarning(
+      "There is no class analytics data available to export.",
+      {
+        title:
+          "Nothing to export"
+      }
+    );
+
+    return;
+  }
+
+
+  const submissions =
+    getStudentSubmissions();
+
+  const gradeSummary =
+    getStudentAnalyticsGradeSummary();
+
+
+  const rows =
+    [
+      [
+        "Class",
+        "Teacher",
+        "Overall Progress",
+        "Lessons Completed",
+        "Lessons Total",
+        "Assignment Completed",
+        "Assignment Total",
+        "Quiz Completed",
+        "Quiz Total",
+        "Attendance Rate",
+        "Present",
+        "Late",
+        "Absent",
+        "Excused"
+      ]
+    ];
+
+
+  classRecords.forEach(item => {
+
+    const classTitle =
+      String(
+        item.classItem?.title ||
+        item.classItem?.name ||
+        item.classItem?.subject ||
+        "Class"
+      ).trim();
+
+    const teacherName =
+      String(
+        item.classItem?.teacherId?.name ||
+        item.classItem?.teacherName ||
+        ""
+      ).trim();
+
+    rows.push([
+      classTitle,
+      teacherName,
+      `${item.overall}%`,
+      item.lessons.completed,
+      item.lessons.total,
+      item.assignments.completed,
+      item.assignments.total,
+      item.quizzes.completed,
+      item.quizzes.total,
+      `${item.attendance.percentage}%`,
+      item.attendance.present,
+      item.attendance.late,
+      item.attendance.absent,
+      item.attendance.excused
+    ]);
+
+  });
+
+
+  rows.push([]);
+
+  rows.push([
+    "Analytics summary"
+  ]);
+
+  rows.push([
+    "Student",
+    String(
+      state.me?.name ||
+      state.loggedUser?.name ||
+      "Student"
+    )
+  ]);
+
+  rows.push([
+    "Exported",
+    new Date().toLocaleString()
+  ]);
+
+  rows.push([
+    "Average grade",
+    gradeSummary.average === null
+      ? "No graded work"
+      : `${gradeSummary.average}%`
+  ]);
+
+  rows.push([
+    "Total submissions",
+    submissions.length
+  ]);
+
+
+  const escapeCsvValue =
+    value => {
+
+      const text =
+        String(
+          value ?? ""
+        );
+
+      return `"${text.replace(
+        /"/g,
+        '""'
+      )}"`;
+
+    };
+
+
+  const csvContent =
+    rows
+      .map(row =>
+        row
+          .map(
+            escapeCsvValue
+          )
+          .join(",")
+      )
+      .join("\n");
+
+
+  const blob =
+    new Blob(
+      [
+        "\uFEFF",
+        csvContent
+      ],
+      {
+        type:
+          "text/csv;charset=utf-8;"
+      }
+    );
+
+
+  const downloadUrl =
+    URL.createObjectURL(
+      blob
+    );
+
+  const link =
+    document.createElement(
+      "a"
+    );
+
+  const studentName =
+    String(
+      state.me?.name ||
+      state.loggedUser?.name ||
+      "student"
+    )
+      .trim()
+      .toLowerCase()
+      .replace(
+        /[^a-z0-9]+/g,
+        "-"
+      )
+      .replace(
+        /^-+|-+$/g,
+        ""
+      ) ||
+    "student";
+
+  const exportDate =
+    new Date()
+      .toISOString()
+      .slice(
+        0,
+        10
+      );
+
+  link.href =
+    downloadUrl;
+
+  link.download =
+    `${studentName}-learning-analytics-${exportDate}.csv`;
+
+  document.body.appendChild(
+    link
+  );
+
+  link.click();
+
+  link.remove();
+
+  URL.revokeObjectURL(
+    downloadUrl
+  );
+
+
+  notifyAIFTSuccess(
+    "Your learning analytics report has been downloaded.",
+    {
+      title:
+        "Export completed"
+    }
+  );
+
+}
+
+/* =========================================================
+   BIND STUDENT ANALYTICS CONTROLS
+========================================================= */
+
+function bindStudentAnalyticsControls(){
+
+  if (studentAnalyticsControlsBound){
+    return;
+  }
+
+  const refreshButton =
+    $("progressRefreshButton");
+
+  const exportButton =
+    $("progressExportButton");
+
+
+  /*
+    The Analytics HTML may not exist in older builds.
+    Do not mark the controls as bound until the buttons exist.
+  */
+
+  if (
+    !refreshButton &&
+    !exportButton
+  ){
+    return;
+  }
+
+
+  refreshButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      refreshStudentAnalytics();
+
+    }
+  );
+
+
+  exportButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      exportStudentAnalytics();
+
+    }
+  );
+
+
+  studentAnalyticsControlsBound =
+    true;
+
+}
+
 
 function renderProgress(){
 
