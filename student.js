@@ -985,11 +985,7 @@ case "schedule":
 
 case "progress":
 
-  bindStudentAnalyticsControls();
-
-  renderProgress();
-
-  renderAttendance();
+  openStudentAnalyticsWorkspace();
 
   break;
 
@@ -13522,6 +13518,131 @@ async function loadStudentAnalyticsData(){
 
 
   calculateMetrics();
+
+}
+
+/* =========================================================
+   OPEN STUDENT ANALYTICS WORKSPACE
+========================================================= */
+
+async function openStudentAnalyticsWorkspace(){
+
+  bindStudentAnalyticsControls();
+
+
+  /*
+    If class progress was already loaded, render immediately
+    without making another backend request.
+  */
+
+  if (
+    state.classProgressLoaded &&
+    !state.classProgressLoading
+  ){
+
+    renderProgress();
+
+    renderAttendance();
+
+    return;
+  }
+
+
+  /*
+    If another request is already running, keep the skeleton
+    visible and wait for that request to finish.
+  */
+
+  if (state.classProgressLoading){
+
+    setStudentAnalyticsLoading(
+      true
+    );
+
+
+    const waitStartedAt =
+      Date.now();
+
+
+    while (
+      state.classProgressLoading &&
+      Date.now() - waitStartedAt < 15000
+    ){
+
+      await new Promise(
+        resolve =>
+          window.setTimeout(
+            resolve,
+            120
+          )
+      );
+
+    }
+
+
+    if (state.classProgressLoaded){
+
+      renderProgress();
+
+      renderAttendance();
+
+      return;
+    }
+
+  }
+
+
+  setStudentAnalyticsLoading(
+    true
+  );
+
+
+  try{
+
+    await loadStudentClassProgress({
+      force:
+        true
+    });
+
+
+    calculateMetrics();
+
+    renderProgress();
+
+    renderAttendance();
+
+  }catch(error){
+
+    console.error(
+      "Student Analytics workspace load failed:",
+      error
+    );
+
+
+    renderStudentAnalyticsError(
+      error?.message ||
+      "AIFT could not load your learning analytics."
+    );
+
+  }finally{
+
+    /*
+      The renderer replaces the skeleton markup after a
+      successful request. On failure, the error renderer
+      replaces it instead.
+    */
+
+    $("progressRefreshButton")
+      ?.removeAttribute(
+        "disabled"
+      );
+
+    $("progressExportButton")
+      ?.removeAttribute(
+        "disabled"
+      );
+
+  }
 
 }
 
