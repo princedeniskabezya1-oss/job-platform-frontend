@@ -975,10 +975,13 @@ case "classes":
       hydrateSubmissionSelect();
       break;
 
-    case "schedule":
-      renderSchedule();
-      renderCalendar();
-      break;
+case "schedule":
+
+  bindStudentCalendarControls();
+
+  renderStudentCalendarWorkspace();
+
+  break;
 
     case "progress":
       renderProgress();
@@ -9778,6 +9781,11 @@ let studentCalendarTypeFilter =
 
 let studentCalendarTeacherFilter =
   "";
+let studentCalendarControlsBound =
+  false;
+
+let studentCalendarRefreshInProgress =
+  false;
 
 
 /* =========================================================
@@ -10481,6 +10489,768 @@ function getStudentCalendarEventStatus(
   };
 }
 
+/* =========================================================
+   RENDER COMPLETE STUDENT CALENDAR
+========================================================= */
+
+function renderStudentCalendarWorkspace(){
+
+  hydrateStudentCalendarTeacherFilter();
+
+  updateStudentCalendarSummary();
+
+  updateStudentCalendarViewButtons();
+
+  renderSchedule();
+
+  renderCalendar();
+
+}
+/* =========================================================
+   CALENDAR VIEW BUTTON STATE
+========================================================= */
+
+function updateStudentCalendarViewButtons(){
+
+  document
+    .querySelectorAll(
+      "[data-calendar-view]"
+    )
+    .forEach(button => {
+
+      const view =
+        String(
+          button.dataset.calendarView ||
+          ""
+        )
+          .trim()
+          .toLowerCase();
+
+      const active =
+        view ===
+        studentCalendarView;
+
+      button.classList.toggle(
+        "active",
+        active
+      );
+
+      button.setAttribute(
+        "aria-pressed",
+        String(active)
+      );
+
+    });
+
+}
+/* =========================================================
+   CALENDAR PERIOD NAVIGATION
+========================================================= */
+
+function moveStudentCalendarPeriod(
+  direction
+){
+
+  const amount =
+    Number(direction) < 0
+      ? -1
+      : 1;
+
+  const nextDate =
+    new Date(
+      studentCalendarCurrentDate
+    );
+
+  if (
+    studentCalendarView ===
+    "week"
+  ){
+
+    nextDate.setDate(
+      nextDate.getDate() +
+      (
+        amount * 7
+      )
+    );
+
+  }else if (
+    studentCalendarView ===
+    "agenda"
+  ){
+
+    nextDate.setDate(
+      nextDate.getDate() +
+      (
+        amount * 7
+      )
+    );
+
+  }else{
+
+    nextDate.setMonth(
+      nextDate.getMonth() +
+      amount
+    );
+
+  }
+
+  studentCalendarCurrentDate =
+    nextDate;
+
+  renderStudentCalendarWorkspace();
+
+}
+
+
+function resetStudentCalendarToToday(){
+
+  studentCalendarCurrentDate =
+    new Date();
+
+  renderStudentCalendarWorkspace();
+
+}
+/* =========================================================
+   OPEN CALENDAR ASSIGNMENT
+========================================================= */
+
+function openStudentCalendarAssignment(
+  assignmentId
+){
+
+  const normalizedAssignmentId =
+    normalizeId(
+      assignmentId
+    );
+
+  if (!normalizedAssignmentId){
+
+    notifyAIFTWarning(
+      "This assignment could not be identified.",
+      {
+        title:
+          "Assignment unavailable"
+      }
+    );
+
+    return;
+  }
+
+  const assignment =
+    getStudentAssignments()
+      .find(item =>
+        sameId(
+          item?._id ||
+          item?.id,
+          normalizedAssignmentId
+        )
+      );
+
+  if (!assignment){
+
+    notifyAIFTWarning(
+      "This assignment is no longer available in your Assignment Center.",
+      {
+        title:
+          "Assignment unavailable"
+      }
+    );
+
+    return;
+  }
+
+  openSubmissionModal(
+    normalizedAssignmentId
+  );
+
+}
+/* =========================================================
+   CALENDAR EVENT ACTIONS
+========================================================= */
+
+function handleStudentCalendarEventClick(
+  event
+){
+
+  const assignmentButton =
+    event.target.closest(
+      ".student-calendar-open-assignment"
+    );
+
+  if (assignmentButton){
+
+    event.preventDefault();
+
+    openStudentCalendarAssignment(
+      assignmentButton.dataset
+        .assignmentId
+    );
+
+    return;
+  }
+
+
+  const calendarEventButton =
+    event.target.closest(
+      "[data-calendar-event-id]"
+    );
+
+  if (!calendarEventButton){
+    return;
+  }
+
+  const eventId =
+    String(
+      calendarEventButton.dataset
+        .calendarEventId ||
+      ""
+    ).trim();
+
+  const calendarEvent =
+    buildStudentCalendarEvents()
+      .find(item =>
+        item.id ===
+        eventId
+      );
+
+  if (!calendarEvent){
+    return;
+  }
+
+
+  if (
+    calendarEvent.type ===
+    "assignment"
+  ){
+
+    openStudentCalendarAssignment(
+      calendarEvent.sourceId
+    );
+
+    return;
+  }
+
+
+  if (
+    calendarEvent.meetingLink
+  ){
+
+    window.open(
+      calendarEvent.meetingLink,
+      "_blank",
+      "noopener,noreferrer"
+    );
+
+    return;
+  }
+
+
+  const scheduleCard =
+    document.querySelector(
+      `[data-schedule-id="${
+        CSS.escape(
+          calendarEvent.sourceId
+        )
+      }"]`
+    );
+
+  scheduleCard?.scrollIntoView({
+    behavior:
+      "smooth",
+
+    block:
+      "center"
+  });
+
+}
+/* =========================================================
+   REFRESH STUDENT CALENDAR DATA
+========================================================= */
+
+async function refreshStudentCalendar(){
+
+  if (
+    studentCalendarRefreshInProgress
+  ){
+    return;
+  }
+
+  const refreshButton =
+    $("refreshStudentCalendarButton");
+
+  const retryButton =
+    $("retryStudentCalendarButton");
+
+  const loading =
+    $("studentCalendarLoading");
+
+  const errorState =
+    $("studentCalendarError");
+
+  const calendarGrid =
+    $("calendarGrid");
+
+  const scheduleList =
+    $("scheduleList");
+
+
+  studentCalendarRefreshInProgress =
+    true;
+
+
+  refreshButton?.setAttribute(
+    "disabled",
+    ""
+  );
+
+  retryButton?.setAttribute(
+    "disabled",
+    ""
+  );
+
+  refreshButton
+    ?.querySelector("i")
+    ?.classList.add(
+      "fa-spin"
+    );
+
+
+  if (loading){
+
+    loading.hidden =
+      false;
+
+  }
+
+  if (errorState){
+
+    errorState.hidden =
+      true;
+
+  }
+
+  if (calendarGrid){
+
+    calendarGrid.hidden =
+      true;
+
+  }
+
+  if (scheduleList){
+
+    scheduleList.innerHTML = `
+      <div class="student-calendar-agenda-loading">
+
+        <span></span>
+        <span></span>
+        <span></span>
+
+      </div>
+    `;
+
+  }
+
+
+  try{
+
+    const schoolId =
+      normalizeId(
+        state.me?.schoolId ||
+        state.me?.linkedSchoolId ||
+        state.loggedUser?.schoolId ||
+        state.loggedUser?.linkedSchoolId ||
+        state.me?._id ||
+        state.loggedUser?._id
+      );
+
+    if (!schoolId){
+
+      throw new Error(
+        "Your school account could not be identified."
+      );
+
+    }
+
+
+    const [
+      assignments,
+      schedules
+    ] =
+      await Promise.all([
+
+        apiGet(
+          `/api/assignments?schoolId=${
+            encodeURIComponent(
+              schoolId
+            )
+          }`,
+          []
+        ),
+
+        apiGet(
+          `/api/schedules?schoolId=${
+            encodeURIComponent(
+              schoolId
+            )
+          }`,
+          []
+        )
+
+      ]);
+
+
+    state.assignments =
+      asArray(
+        assignments
+      );
+
+    state.schedules =
+      asArray(
+        schedules
+      );
+
+
+    renderStudentCalendarWorkspace();
+
+
+    notifyAIFTSuccess(
+      "Your calendar is up to date.",
+      {
+        title:
+          "Calendar refreshed"
+      }
+    );
+
+  }catch(error){
+
+    console.error(
+      "Student calendar refresh error:",
+      error
+    );
+
+
+    if (calendarGrid){
+
+      calendarGrid.innerHTML =
+        "";
+
+    }
+
+    if (errorState){
+
+      errorState.hidden =
+        false;
+
+    }
+
+    notifyAIFTError(
+      error?.message ||
+      "AIFT could not refresh your calendar."
+    );
+
+  }finally{
+
+    studentCalendarRefreshInProgress =
+      false;
+
+
+    if (loading){
+
+      loading.hidden =
+        true;
+
+    }
+
+    if (calendarGrid){
+
+      calendarGrid.hidden =
+        false;
+
+    }
+
+
+    refreshButton?.removeAttribute(
+      "disabled"
+    );
+
+    retryButton?.removeAttribute(
+      "disabled"
+    );
+
+    refreshButton
+      ?.querySelector("i")
+      ?.classList.remove(
+        "fa-spin"
+      );
+
+  }
+
+}
+/* =========================================================
+   BIND STUDENT CALENDAR CONTROLS
+========================================================= */
+
+function bindStudentCalendarControls(){
+
+  if (
+    studentCalendarControlsBound
+  ){
+    return;
+  }
+
+
+  const todayButton =
+    $("todayScheduleButton");
+
+  const previousButton =
+    $("previousScheduleButton");
+
+  const nextButton =
+    $("nextScheduleButton");
+
+  const searchInput =
+    $("scheduleSearch");
+
+  const typeFilter =
+    $("scheduleTypeFilter");
+
+  const teacherFilter =
+    $("scheduleTeacherFilter");
+
+  const refreshButton =
+    $("refreshStudentCalendarButton");
+
+  const retryButton =
+    $("retryStudentCalendarButton");
+
+  const scheduleSection =
+    $("section-schedule");
+
+
+  todayButton?.addEventListener(
+    "click",
+    () => {
+
+      resetStudentCalendarToToday();
+
+    }
+  );
+
+
+  previousButton?.addEventListener(
+    "click",
+    () => {
+
+      moveStudentCalendarPeriod(
+        -1
+      );
+
+    }
+  );
+
+
+  nextButton?.addEventListener(
+    "click",
+    () => {
+
+      moveStudentCalendarPeriod(
+        1
+      );
+
+    }
+  );
+
+
+  document
+    .querySelectorAll(
+      "[data-calendar-view]"
+    )
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const requestedView =
+            String(
+              button.dataset
+                .calendarView ||
+              "month"
+            )
+              .trim()
+              .toLowerCase();
+
+          if (
+            ![
+              "month",
+              "week",
+              "agenda"
+            ].includes(
+              requestedView
+            )
+          ){
+            return;
+          }
+
+          studentCalendarView =
+            requestedView;
+
+          renderStudentCalendarWorkspace();
+
+        }
+      );
+
+    });
+
+
+  searchInput?.addEventListener(
+    "input",
+    event => {
+
+      studentCalendarSearchQuery =
+        String(
+          event.target.value ||
+          ""
+        );
+
+      renderStudentCalendarWorkspace();
+
+    }
+  );
+
+
+  typeFilter?.addEventListener(
+    "change",
+    event => {
+
+      studentCalendarTypeFilter =
+        String(
+          event.target.value ||
+          "all"
+        );
+
+      renderStudentCalendarWorkspace();
+
+    }
+  );
+
+
+  teacherFilter?.addEventListener(
+    "change",
+    event => {
+
+      studentCalendarTeacherFilter =
+        String(
+          event.target.value ||
+          ""
+        );
+
+      renderStudentCalendarWorkspace();
+
+    }
+  );
+
+
+  refreshButton?.addEventListener(
+    "click",
+    refreshStudentCalendar
+  );
+
+
+  retryButton?.addEventListener(
+    "click",
+    refreshStudentCalendar
+  );
+
+
+  scheduleSection?.addEventListener(
+    "click",
+    handleStudentCalendarEventClick
+  );
+
+
+  /*
+    Keyboard navigation is active only while the student
+    is viewing the Schedule section.
+  */
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        activeStudentStudioPage !==
+        "schedule"
+      ){
+        return;
+      }
+
+      const target =
+        event.target;
+
+      const isTyping =
+        target instanceof
+          HTMLInputElement ||
+        target instanceof
+          HTMLTextAreaElement ||
+        target instanceof
+          HTMLSelectElement ||
+        target?.isContentEditable;
+
+      if (isTyping){
+        return;
+      }
+
+
+      if (
+        event.key ===
+        "ArrowLeft"
+      ){
+
+        event.preventDefault();
+
+        moveStudentCalendarPeriod(
+          -1
+        );
+
+        return;
+      }
+
+
+      if (
+        event.key ===
+        "ArrowRight"
+      ){
+
+        event.preventDefault();
+
+        moveStudentCalendarPeriod(
+          1
+        );
+
+        return;
+      }
+
+
+      if (
+        event.key.toLowerCase() ===
+        "t"
+      ){
+
+        event.preventDefault();
+
+        resetStudentCalendarToToday();
+
+      }
+
+    }
+  );
+
+
+  studentCalendarControlsBound =
+    true;
+
+}
 
 /* =========================================================
    CALENDAR SUMMARY
