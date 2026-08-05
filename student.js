@@ -13319,6 +13319,213 @@ function getStudentAnalyticsStatus(
 }
 
 /* =========================================================
+   STUDENT ANALYTICS LOADING STATE
+========================================================= */
+
+function setStudentAnalyticsLoading(
+  loading
+){
+
+  const progressContainer =
+    $("progressList");
+
+  const classContainer =
+    $("studentClassProgressList");
+
+  const attendanceContainer =
+    $("attendanceList");
+
+  const refreshButton =
+    $("progressRefreshButton");
+
+  const exportButton =
+    $("progressExportButton");
+
+
+  refreshButton?.toggleAttribute(
+    "disabled",
+    Boolean(loading)
+  );
+
+  exportButton?.toggleAttribute(
+    "disabled",
+    Boolean(loading)
+  );
+
+
+  if (!loading){
+    return;
+  }
+
+
+  if (progressContainer){
+
+    progressContainer.innerHTML = `
+      <div class="student-analytics-loading-grid">
+
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+
+      </div>
+    `;
+
+  }
+
+
+  if (classContainer){
+
+    classContainer.innerHTML = `
+      <div class="student-analytics-loading-grid">
+
+        <span></span>
+        <span></span>
+
+      </div>
+    `;
+
+  }
+
+
+  if (attendanceContainer){
+
+    attendanceContainer.innerHTML = `
+      <div class="student-analytics-loading-grid">
+
+        <span></span>
+        <span></span>
+
+      </div>
+    `;
+
+  }
+
+}
+
+/* =========================================================
+   LOAD STUDENT ANALYTICS DATA
+========================================================= */
+
+async function loadStudentAnalyticsData(){
+
+  const schoolId =
+    getSchoolId();
+
+  const studentId =
+    getStudentId();
+
+
+  if (!schoolId){
+
+    throw new Error(
+      "Your school account could not be identified."
+    );
+
+  }
+
+
+  if (!studentId){
+
+    throw new Error(
+      "Your student account could not be identified."
+    );
+
+  }
+
+
+  const [
+    classesResponse,
+    assignmentsResponse,
+    submissionsResponse
+  ] =
+    await Promise.all([
+
+      apiGet(
+        `/api/classes?schoolId=${
+          encodeURIComponent(
+            schoolId
+          )
+        }`,
+        null
+      ),
+
+      apiGet(
+        `/api/assignments?schoolId=${
+          encodeURIComponent(
+            schoolId
+          )
+        }`,
+        null
+      ),
+
+      apiGet(
+        `/api/submissions?schoolId=${
+          encodeURIComponent(
+            schoolId
+          )
+        }&studentId=${
+          encodeURIComponent(
+            studentId
+          )
+        }`,
+        null
+      )
+
+    ]);
+
+
+  /*
+    apiGet() returns the supplied fallback when a request
+    fails. Using null lets us detect a real API failure.
+  */
+
+  if (
+    classesResponse === null ||
+    assignmentsResponse === null ||
+    submissionsResponse === null
+  ){
+
+    throw new Error(
+      "One or more analytics requests could not be completed."
+    );
+
+  }
+
+
+  state.classes =
+    asArray(
+      classesResponse
+    );
+
+  state.assignments =
+    asArray(
+      assignmentsResponse
+    );
+
+  state.submissions =
+    asArray(
+      submissionsResponse
+    );
+
+
+  state.classProgressById.clear();
+
+  state.classProgressLoaded =
+    false;
+
+
+  await loadStudentClassProgress({
+    force:
+      true
+  });
+
+
+  calculateMetrics();
+
+}
+
+/* =========================================================
    REFRESH STUDENT ANALYTICS
 ========================================================= */
 
@@ -13328,11 +13535,23 @@ async function refreshStudentAnalytics(){
     return;
   }
 
+
   const refreshButton =
     $("progressRefreshButton");
 
+  const refreshIcon =
+    refreshButton?.querySelector(
+      "i"
+    );
+
+
   studentAnalyticsRefreshing =
     true;
+
+  setStudentAnalyticsLoading(
+    true
+  );
+
 
   setDashboardButtonLoading(
     refreshButton,
@@ -13340,15 +13559,20 @@ async function refreshStudentAnalytics(){
     "Refreshing..."
   );
 
+
+  refreshIcon?.classList.add(
+    "fa-spin"
+  );
+
+
   try{
 
-    await loadAll();
-
-    calculateMetrics();
+    await loadStudentAnalyticsData();
 
     renderProgress();
 
     renderAttendance();
+
 
     notifyAIFTSuccess(
       "Your learning analytics are up to date.",
@@ -13365,6 +13589,13 @@ async function refreshStudentAnalytics(){
       error
     );
 
+
+    renderStudentAnalyticsError(
+      error?.message ||
+      "AIFT could not refresh your learning analytics."
+    );
+
+
     notifyAIFTError(
       error?.message ||
       "AIFT could not refresh your learning analytics.",
@@ -13379,10 +13610,117 @@ async function refreshStudentAnalytics(){
     studentAnalyticsRefreshing =
       false;
 
+
     setDashboardButtonLoading(
       refreshButton,
       false
     );
+
+
+    refreshIcon?.classList.remove(
+      "fa-spin"
+    );
+
+
+    refreshButton?.removeAttribute(
+      "disabled"
+    );
+
+    $("progressExportButton")
+      ?.removeAttribute(
+        "disabled"
+      );
+
+  }
+
+}
+
+/* =========================================================
+   STUDENT ANALYTICS ERROR STATE
+========================================================= */
+
+function renderStudentAnalyticsError(
+  message
+){
+
+  const safeMessage =
+    String(
+      message ||
+      "The analytics dashboard could not be loaded."
+    ).trim();
+
+
+  const errorMarkup = `
+    <div class="student-analytics-error-state">
+
+      <span class="student-analytics-error-icon">
+
+        <i
+          class="fa-solid fa-triangle-exclamation"
+          aria-hidden="true"
+        ></i>
+
+      </span>
+
+      <strong>
+        Analytics could not be loaded
+      </strong>
+
+      <p>
+        ${
+          escapeHtml(
+            safeMessage
+          )
+        }
+      </p>
+
+      <button
+        class="ghost-btn"
+        type="button"
+        data-retry-student-analytics
+      >
+        <i
+          class="fa-solid fa-rotate"
+          aria-hidden="true"
+        ></i>
+
+        Try again
+      </button>
+
+    </div>
+  `;
+
+
+  const progressContainer =
+    $("progressList");
+
+  const classContainer =
+    $("studentClassProgressList");
+
+  const attendanceContainer =
+    $("attendanceList");
+
+
+  if (progressContainer){
+
+    progressContainer.innerHTML =
+      errorMarkup;
+
+  }
+
+
+  if (classContainer){
+
+    classContainer.innerHTML =
+      errorMarkup;
+
+  }
+
+
+  if (attendanceContainer){
+
+    attendanceContainer.innerHTML =
+      errorMarkup;
 
   }
 
@@ -13667,6 +14005,28 @@ function bindStudentAnalyticsControls(){
 
     }
   );
+
+
+  $("section-progress")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        const retryButton =
+          event.target.closest(
+            "[data-retry-student-analytics]"
+          );
+
+        if (!retryButton){
+          return;
+        }
+
+        event.preventDefault();
+
+        refreshStudentAnalytics();
+
+      }
+    );
 
 
   studentAnalyticsControlsBound =
