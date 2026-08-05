@@ -9770,6 +9770,11 @@ function renderAssignments(){
 let studentCalendarCurrentDate =
   new Date();
 
+let studentCalendarSelectedDate =
+  startOfCalendarDay(
+    new Date()
+  );
+
 let studentCalendarView =
   "month";
 
@@ -10737,11 +10742,24 @@ function moveStudentCalendarPeriod(
 
 function resetStudentCalendarToToday(){
 
+  const today =
+    startOfCalendarDay(
+      new Date()
+    );
+
   studentCalendarCurrentDate =
-    new Date();
+    new Date(
+      today
+    );
+
+  studentCalendarSelectedDate =
+    new Date(
+      today
+    );
 
   renderStudentCalendarWorkspace();
 
+  renderStudentSelectedDayAgenda();
 }
 /* =========================================================
    OPEN CALENDAR ASSIGNMENT
@@ -10804,62 +10822,15 @@ function openStudentCalendarAssignment(
 function handleStudentCalendarEventClick(
   event
 ){
-  /* -----------------------------------------
-   Click on a calendar day
------------------------------------------ */
 
-const calendarDay =
-  event.target.closest(
-    "[data-calendar-date]"
-  );
-
-if (
-  calendarDay &&
-  !event.target.closest(
-    "[data-calendar-event-id]"
-  )
-){
-
-  event.preventDefault();
-
-  document
-    .querySelectorAll(
-      ".student-calendar-day-cell.selected"
-    )
-    .forEach(cell=>{
-      cell.classList.remove(
-        "selected"
-      );
-    });
-
-  calendarDay.classList.add(
-    "selected"
-  );
-
-  const selectedDate =
-    calendarDay.dataset.calendarDate;
-
-  const events =
-    getFilteredStudentCalendarEvents()
-      .filter(item =>
-        getCalendarDateKey(
-          item.start
-        ) === selectedDate
-      );
-
-  renderStudentAgendaForDate(
-    selectedDate,
-    events
-  );
-
-  return;
-}
+  /*
+    Assignment action inside the agenda.
+  */
 
   const assignmentButton =
     event.target.closest(
       ".student-calendar-open-assignment"
     );
-
 
   if (assignmentButton){
 
@@ -10867,177 +10838,150 @@ if (
 
     event.stopPropagation();
 
-
     openStudentCalendarAssignment(
       assignmentButton.dataset
         .assignmentId
     );
 
     return;
-
   }
 
+
+  /*
+    Existing calendar event.
+  */
 
   const calendarEventButton =
     event.target.closest(
       "[data-calendar-event-id]"
     );
 
+  if (calendarEventButton){
 
-  if (!calendarEventButton){
+    event.preventDefault();
+
+    event.stopPropagation();
+
+    const eventId =
+      String(
+        calendarEventButton.dataset
+          .calendarEventId ||
+        ""
+      ).trim();
+
+    const calendarEvent =
+      buildStudentCalendarEvents()
+        .find(item =>
+          item.id ===
+          eventId
+        );
+
+    if (!calendarEvent){
+
+      notifyAIFTWarning(
+        "This calendar event is no longer available.",
+        {
+          title:
+            "Event unavailable"
+        }
+      );
+
+      return;
+    }
+
+    if (
+      calendarEvent.type ===
+      "assignment"
+    ){
+
+      openStudentCalendarAssignment(
+        calendarEvent.sourceId
+      );
+
+      return;
+    }
+
+    if (
+      calendarEvent.meetingLink
+    ){
+
+      window.open(
+        calendarEvent.meetingLink,
+        "_blank",
+        "noopener,noreferrer"
+      );
+
+      return;
+    }
+
+    /*
+      For a normal class event, select its date and display
+      all activities for that day in the agenda panel.
+    */
+
+    studentCalendarSelectedDate =
+      startOfCalendarDay(
+        calendarEvent.start
+      );
+
+    studentCalendarCurrentDate =
+      new Date(
+        studentCalendarSelectedDate
+      );
+
+    renderCalendar();
+
+    renderStudentSelectedDayAgenda();
+
     return;
   }
 
+
+  /*
+    Empty calendar day.
+  */
+
+  const dayCell =
+    event.target.closest(
+      ".student-calendar-day-cell[data-calendar-date]"
+    );
+
+  if (!dayCell){
+    return;
+  }
 
   event.preventDefault();
 
-
-  const eventId =
+  const dateKey =
     String(
-      calendarEventButton.dataset
-        .calendarEventId ||
+      dayCell.dataset.calendarDate ||
       ""
     ).trim();
 
-
-  const calendarEvent =
-    buildStudentCalendarEvents()
-      .find(
-        item =>
-          item.id ===
-          eventId
-      );
-
-
-  if (!calendarEvent){
-
-    notifyAIFTWarning(
-      "This calendar event is no longer available.",
-      {
-        title:
-          "Event unavailable"
-      }
-    );
-
+  if (!dateKey){
     return;
-
   }
 
-
-  if (
-    calendarEvent.type ===
-    "assignment"
-  ){
-
-    openStudentCalendarAssignment(
-      calendarEvent.sourceId
+  const selectedDate =
+    startOfCalendarDay(
+      `${dateKey}T00:00:00`
     );
 
+  if (!selectedDate){
     return;
-
   }
 
+  studentCalendarSelectedDate =
+    selectedDate;
 
-  if (
-    calendarEvent.meetingLink
-  ){
-
-    window.open(
-      calendarEvent.meetingLink,
-      "_blank",
-      "noopener,noreferrer"
+  studentCalendarCurrentDate =
+    new Date(
+      selectedDate
     );
 
-    return;
+  renderCalendar();
 
-  }
-
-
-  const agendaItem =
-    Array.from(
-      document.querySelectorAll(
-        "[data-calendar-event-id]"
-      )
-    )
-      .find(
-        element =>
-          String(
-            element.dataset
-              .calendarEventId ||
-            ""
-          ) ===
-          eventId &&
-          element.closest(
-            "#scheduleList"
-          )
-      );
-
-
-  if (agendaItem){
-
-    agendaItem.scrollIntoView({
-      behavior:
-        "smooth",
-
-      block:
-        "center"
-    });
-
-
-    agendaItem.animate(
-      [
-        {
-          transform:
-            "scale(1)",
-
-          boxShadow:
-            "none"
-        },
-
-        {
-          transform:
-            "scale(1.015)",
-
-          boxShadow:
-            "0 0 0 3px rgba(26,115,232,.16)"
-        },
-
-        {
-          transform:
-            "scale(1)",
-
-          boxShadow:
-            "none"
-        }
-      ],
-      {
-        duration:
-          650,
-
-        easing:
-          "ease"
-      }
-    );
-
-    return;
-
-  }
-
-
-  notifyAIFTInfo(
-    `${
-      calendarEvent.title
-    } • ${
-      formatDateTime(
-        calendarEvent.start
-      )
-    }`,
-    {
-      title:
-        "Calendar event"
-    }
-  );
-
+  renderStudentSelectedDayAgenda();
 }
 /* =========================================================
    REFRESH STUDENT CALENDAR DATA
@@ -11700,6 +11644,256 @@ function hydrateStudentCalendarTeacherFilter(){
   select.value =
     currentValue;
 }
+
+/* =========================================================
+   SELECTED CALENDAR DAY AGENDA
+========================================================= */
+
+function renderStudentSelectedDayAgenda(){
+
+  const container =
+    $("scheduleList");
+
+  if (!container){
+    return;
+  }
+
+  const selectedDate =
+    startOfCalendarDay(
+      studentCalendarSelectedDate ||
+      studentCalendarCurrentDate ||
+      new Date()
+    );
+
+  if (!selectedDate){
+    return;
+  }
+
+  const events =
+    getFilteredStudentCalendarEvents()
+      .filter(event =>
+        isSameCalendarDay(
+          event.start,
+          selectedDate
+        )
+      )
+      .sort(
+        (
+          first,
+          second
+        ) =>
+          first.start.getTime() -
+          second.start.getTime()
+      );
+
+  const agendaHeading =
+    document.querySelector(
+      ".student-calendar-agenda-header h3"
+    );
+
+  if (agendaHeading){
+    agendaHeading.textContent =
+      formatCalendarDayHeading(
+        selectedDate
+      );
+  }
+
+  if (!events.length){
+
+    container.innerHTML = `
+      <div class="student-calendar-state selected-day-empty">
+
+        <span class="student-calendar-state-icon">
+
+          <i
+            class="fa-regular fa-calendar"
+            aria-hidden="true"
+          ></i>
+
+        </span>
+
+        <strong>
+          No events on this day
+        </strong>
+
+        <p>
+          ${
+            escapeHtml(
+              selectedDate.toLocaleDateString(
+                [],
+                {
+                  weekday:"long",
+                  month:"long",
+                  day:"numeric",
+                  year:"numeric"
+                }
+              )
+            )
+          }
+        </p>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML =
+    events
+      .map(event => {
+
+        const status =
+          getStudentCalendarEventStatus(
+            event
+          );
+
+        return `
+          <article
+            class="student-calendar-agenda-item"
+            data-calendar-event-id="${
+              escapeHtml(
+                event.id
+              )
+            }"
+          >
+
+            <span
+              class="
+                student-calendar-agenda-marker
+                ${escapeHtml(event.type)}
+              "
+              aria-hidden="true"
+            ></span>
+
+            <div class="student-calendar-agenda-copy">
+
+              <strong>
+                ${
+                  escapeHtml(
+                    event.title
+                  )
+                }
+              </strong>
+
+              <span>
+                ${
+                  escapeHtml(
+                    formatCalendarTime(
+                      event.start
+                    ) ||
+                    "All day"
+                  )
+                }
+
+                ${
+                  event.teacherName
+                    ? ` • ${
+                        escapeHtml(
+                          event.teacherName
+                        )
+                      }`
+                    : ""
+                }
+              </span>
+
+              ${
+                event.description
+                  ? `
+                    <small>
+                      ${
+                        escapeHtml(
+                          event.description
+                        )
+                      }
+                    </small>
+                  `
+                  : ""
+              }
+
+              <div class="student-calendar-agenda-actions">
+
+                ${
+                  status.label
+                    ? `
+                      <span
+                        class="
+                          chip
+                          ${escapeHtml(
+                            status.className
+                          )}
+                        "
+                      >
+                        ${
+                          escapeHtml(
+                            status.label
+                          )
+                        }
+                      </span>
+                    `
+                    : ""
+                }
+
+                ${
+                  event.type ===
+                  "assignment"
+                    ? `
+                      <button
+                        class="
+                          student-calendar-agenda-action
+                          student-calendar-open-assignment
+                        "
+                        type="button"
+                        data-assignment-id="${
+                          escapeHtml(
+                            event.sourceId
+                          )
+                        }"
+                      >
+                        <i
+                          class="fa-solid fa-arrow-up-right-from-square"
+                          aria-hidden="true"
+                        ></i>
+
+                        Open assignment
+                      </button>
+                    `
+                    : ""
+                }
+
+                ${
+                  event.meetingLink
+                    ? `
+                      <a
+                        class="student-calendar-agenda-action"
+                        href="${
+                          escapeHtml(
+                            event.meetingLink
+                          )
+                        }"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <i
+                          class="fa-solid fa-video"
+                          aria-hidden="true"
+                        ></i>
+
+                        Join meeting
+                      </a>
+                    `
+                    : ""
+                }
+
+              </div>
+
+            </div>
+
+          </article>
+        `;
+      })
+      .join("");
+}
+
 
 function renderSchedule(){
 
@@ -12440,11 +12634,41 @@ if (
               ? "today"
               : ""
           }
+          ${
+            isSameCalendarDay(
+              date,
+              studentCalendarSelectedDate
+            )
+              ? "selected"
+              : ""
+          }
         "
+        role="button"
+        tabindex="0"
         data-calendar-date="${
           escapeHtml(
             getCalendarDateKey(
               date
+            )
+          )
+        }"
+        aria-label="${
+          escapeHtml(
+            date.toLocaleDateString(
+              [],
+              {
+                weekday:
+                  "long",
+
+                month:
+                  "long",
+
+                day:
+                  "numeric",
+
+                year:
+                  "numeric"
+              }
             )
           )
         }"
