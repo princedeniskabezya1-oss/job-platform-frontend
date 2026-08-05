@@ -10804,6 +10804,56 @@ function openStudentCalendarAssignment(
 function handleStudentCalendarEventClick(
   event
 ){
+  /* -----------------------------------------
+   Click on a calendar day
+----------------------------------------- */
+
+const calendarDay =
+  event.target.closest(
+    "[data-calendar-date]"
+  );
+
+if (
+  calendarDay &&
+  !event.target.closest(
+    "[data-calendar-event-id]"
+  )
+){
+
+  event.preventDefault();
+
+  document
+    .querySelectorAll(
+      ".student-calendar-day-cell.selected"
+    )
+    .forEach(cell=>{
+      cell.classList.remove(
+        "selected"
+      );
+    });
+
+  calendarDay.classList.add(
+    "selected"
+  );
+
+  const selectedDate =
+    calendarDay.dataset.calendarDate;
+
+  const events =
+    getFilteredStudentCalendarEvents()
+      .filter(item =>
+        getCalendarDateKey(
+          item.start
+        ) === selectedDate
+      );
+
+  renderStudentAgendaForDate(
+    selectedDate,
+    events
+  );
+
+  return;
+}
 
   const assignmentButton =
     event.target.closest(
@@ -12499,6 +12549,82 @@ if (
 
     </div>
   `;
+}
+
+
+function renderStudentAgendaForDate(
+  dateKey,
+  events
+){
+
+  const container =
+    $("scheduleList");
+
+  if(!container){
+    return;
+  }
+
+  if(!events.length){
+
+    container.innerHTML=`
+      <div class="student-calendar-state">
+
+        <strong>
+          ${escapeHtml(dateKey)}
+        </strong>
+
+        <p>
+          No events scheduled.
+        </p>
+
+      </div>
+    `;
+
+    return;
+  }
+
+  container.innerHTML=
+    events.map(event=>`
+
+      <article
+        class="student-calendar-agenda-item"
+        data-calendar-event-id="${escapeHtml(event.id)}"
+      >
+
+        <span
+          class="
+            student-calendar-agenda-marker
+            ${event.type}
+          "
+        ></span>
+
+        <div class="student-calendar-agenda-copy">
+
+          <strong>
+            ${escapeHtml(event.title)}
+          </strong>
+
+          <span>
+            ${escapeHtml(
+              formatDateTime(
+                event.start
+              )
+            )}
+          </span>
+
+          <small>
+            ${escapeHtml(
+              event.description ||
+              ""
+            )}
+          </small>
+
+        </div>
+
+      </article>
+
+    `).join("");
+
 }
 
 function renderProgress(){
