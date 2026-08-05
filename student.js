@@ -2238,14 +2238,91 @@ function getStudentId(){
 }
 
 function getSchoolId(){
-  return (
-    state.me?.schoolId?._id ||
-    state.me?.schoolId ||
-    state.me?.linkedSchoolId?._id ||
-    state.me?.linkedSchoolId ||
-    state.me?.companyId?._id ||
-    state.me?.companyId ||
-    ""
+
+  /*
+    First use the profile currently being displayed.
+  */
+
+  const profileSchoolId =
+    normalizeId(
+      state.me?.schoolId?._id ||
+      state.me?.schoolId ||
+      state.me?.linkedSchoolId?._id ||
+      state.me?.linkedSchoolId ||
+      state.me?.companyId?._id ||
+      state.me?.companyId
+    );
+
+  if (profileSchoolId){
+    return profileSchoolId;
+  }
+
+
+  /*
+    The public student profile may not expose schoolId.
+    Fall back to the authenticated account loaded from
+    GET /api/users/me.
+  */
+
+  const authenticatedSchoolId =
+    normalizeId(
+      state.loggedUser?.schoolId?._id ||
+      state.loggedUser?.schoolId ||
+      state.loggedUser?.linkedSchoolId?._id ||
+      state.loggedUser?.linkedSchoolId ||
+      state.loggedUser?.companyId?._id ||
+      state.loggedUser?.companyId
+    );
+
+  if (authenticatedSchoolId){
+    return authenticatedSchoolId;
+  }
+
+
+  /*
+    Classes already loaded for the student provide another
+    reliable source of the school relationship.
+  */
+
+  const classWithSchool =
+    asArray(
+      state.classes
+    ).find(classItem =>
+      normalizeId(
+        classItem?.schoolId?._id ||
+        classItem?.schoolId
+      )
+    );
+
+  const classSchoolId =
+    normalizeId(
+      classWithSchool?.schoolId?._id ||
+      classWithSchool?.schoolId
+    );
+
+  if (classSchoolId){
+    return classSchoolId;
+  }
+
+
+  /*
+    Assignment records can also identify the school when
+    the user and class objects do not contain it.
+  */
+
+  const assignmentWithSchool =
+    asArray(
+      state.assignments
+    ).find(assignment =>
+      normalizeId(
+        assignment?.schoolId?._id ||
+        assignment?.schoolId
+      )
+    );
+
+  return normalizeId(
+    assignmentWithSchool?.schoolId?._id ||
+    assignmentWithSchool?.schoolId
   );
 }
 
