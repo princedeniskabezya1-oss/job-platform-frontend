@@ -14078,37 +14078,265 @@ function renderProgress(){
 }
 
 function renderAttendance(){
-  const container = $("attendanceList");
-  if (!container) return;
 
-  const schedules = state.schedules || [];
+  const container =
+    $("attendanceList");
 
-  if (!schedules.length){
-    container.innerHTML = `<div class="empty">Attendance tracking will appear after class schedules are active.</div>`;
+  if (!container){
     return;
   }
 
-  container.innerHTML = schedules.slice(0,8).map(item => `
-    <div class="attendance-item">
-      <div class="attendance-left">
-        <div class="attendance-icon">
-          <svg viewBox="0 0 24 24">
-            <path d="M8 7V3"></path>
-            <path d="M16 7V3"></path>
-            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
-            <path d="M3 11h18"></path>
-          </svg>
-        </div>
+  const classRecords =
+    getStudentAnalyticsClassRecords();
 
-        <div>
-          <div class="attendance-title">${escapeHtml(item.title || item.classId?.title || "Class")}</div>
-          <div class="attendance-sub">${formatDate(item.date)} • ${escapeHtml(item.time || item.startTime || "No time")}</div>
-        </div>
+  const attendanceRecords =
+    classRecords
+      .filter(item =>
+        item.attendance.total > 0
+      )
+      .sort(
+        (
+          first,
+          second
+        ) =>
+          second.attendance.percentage -
+          first.attendance.percentage
+      );
+
+  if (!attendanceRecords.length){
+
+    container.innerHTML = `
+      <div class="student-analytics-empty">
+
+        <i
+          class="fa-regular fa-calendar-check"
+          aria-hidden="true"
+        ></i>
+
+        <span>
+          No attendance records are available yet.
+          Attendance will appear after your teachers begin
+          marking class sessions.
+        </span>
+
       </div>
+    `;
 
-      <span class="chip primary">Scheduled</span>
-    </div>
-  `).join("");
+    return;
+  }
+
+  container.innerHTML =
+    attendanceRecords
+      .map(item => {
+
+        const classTitle =
+          String(
+            item.classItem?.title ||
+            item.classItem?.name ||
+            item.classItem?.subject ||
+            "Class"
+          ).trim();
+
+        const teacherName =
+          String(
+            item.classItem?.teacherId?.name ||
+            item.classItem?.teacherName ||
+            "Teacher not assigned"
+          ).trim();
+
+        const attendance =
+          item.attendance;
+
+        const successful =
+          attendance.present +
+          attendance.late +
+          attendance.excused;
+
+        const status =
+          attendance.percentage >= 85
+            ? {
+                label:
+                  "Excellent",
+
+                className:
+                  "success"
+              }
+            : attendance.percentage >= 75
+              ? {
+                  label:
+                    "On track",
+
+                  className:
+                    "primary"
+                }
+              : attendance.percentage >= 60
+                ? {
+                    label:
+                      "Needs attention",
+
+                    className:
+                      "warning"
+                  }
+                : {
+                    label:
+                      "At risk",
+
+                    className:
+                      "danger"
+                  };
+
+        return `
+          <article class="student-attendance-card">
+
+            <div class="student-attendance-card-head">
+
+              <div class="student-attendance-class">
+
+                <span class="student-attendance-class-icon">
+
+                  <i
+                    class="fa-solid fa-calendar-check"
+                    aria-hidden="true"
+                  ></i>
+
+                </span>
+
+                <div>
+
+                  <strong>
+                    ${
+                      escapeHtml(
+                        classTitle
+                      )
+                    }
+                  </strong>
+
+                  <span>
+                    ${
+                      escapeHtml(
+                        teacherName
+                      )
+                    }
+                  </span>
+
+                </div>
+
+              </div>
+
+              <span
+                class="
+                  chip
+                  ${status.className}
+                "
+              >
+                ${
+                  escapeHtml(
+                    status.label
+                  )
+                }
+              </span>
+
+            </div>
+
+
+            <div class="student-attendance-main">
+
+              <div class="student-attendance-percentage">
+
+                <strong>
+                  ${attendance.percentage}%
+                </strong>
+
+                <span>
+                  Attendance rate
+                </span>
+
+              </div>
+
+              <div class="student-attendance-progress">
+
+                <div
+                  class="student-analytics-progress-track ${
+                    status.className === "primary"
+                      ? ""
+                      : status.className
+                  }"
+                  role="progressbar"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="${attendance.percentage}"
+                >
+                  <span
+                    style="width:${attendance.percentage}%;"
+                  ></span>
+                </div>
+
+                <small>
+                  ${successful} successful records out of
+                  ${attendance.total} sessions
+                </small>
+
+              </div>
+
+            </div>
+
+
+            <div class="student-attendance-breakdown">
+
+              <div class="student-attendance-stat present">
+
+                <span>
+                  Present
+                </span>
+
+                <strong>
+                  ${attendance.present}
+                </strong>
+
+              </div>
+
+              <div class="student-attendance-stat late">
+
+                <span>
+                  Late
+                </span>
+
+                <strong>
+                  ${attendance.late}
+                </strong>
+
+              </div>
+
+              <div class="student-attendance-stat absent">
+
+                <span>
+                  Absent
+                </span>
+
+                <strong>
+                  ${attendance.absent}
+                </strong>
+
+              </div>
+
+              <div class="student-attendance-stat excused">
+
+                <span>
+                  Excused
+                </span>
+
+                <strong>
+                  ${attendance.excused}
+                </strong>
+
+              </div>
+
+            </div>
+
+          </article>
+        `;
+      })
+      .join("");
 }
 
 function renderResources(){
