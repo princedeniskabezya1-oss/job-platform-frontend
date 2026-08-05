@@ -9759,73 +9759,1603 @@ function renderAssignments(){
       .join("");
 }
 
-function renderSchedule(){
-  const container = $("scheduleList");
-  if (!container) return;
 
-  const classIds = getStudentClasses().map(cls => String(cls._id));
+/* =========================================================
+   STUDENT CALENDAR CONTROLLER
+========================================================= */
 
-  const schedules = state.schedules
-    .filter(item => {
-      const classId = String(item.classId?._id || item.classId || "");
+let studentCalendarCurrentDate =
+  new Date();
 
-      return !classId || classIds.includes(classId);
-    })
-    .sort((a,b) => new Date(a.date || 0) - new Date(b.date || 0));
+let studentCalendarView =
+  "month";
 
-  if (!schedules.length){
-    container.innerHTML = `<div class="empty">No schedules yet.</div>`;
+let studentCalendarSearchQuery =
+  "";
+
+let studentCalendarTypeFilter =
+  "all";
+
+let studentCalendarTeacherFilter =
+  "";
+
+
+/* =========================================================
+   CALENDAR DATE HELPERS
+========================================================= */
+
+function startOfCalendarDay(
+  value
+){
+  const date =
+    value instanceof Date
+      ? new Date(value)
+      : new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return null;
+  }
+
+  date.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+  return date;
+}
+
+
+function endOfCalendarDay(
+  value
+){
+  const date =
+    startOfCalendarDay(
+      value
+    );
+
+  if (!date){
+    return null;
+  }
+
+  date.setHours(
+    23,
+    59,
+    59,
+    999
+  );
+
+  return date;
+}
+
+
+function isSameCalendarDay(
+  first,
+  second
+){
+  const firstDate =
+    startOfCalendarDay(
+      first
+    );
+
+  const secondDate =
+    startOfCalendarDay(
+      second
+    );
+
+  if (
+    !firstDate ||
+    !secondDate
+  ){
+    return false;
+  }
+
+  return (
+    firstDate.getTime() ===
+    secondDate.getTime()
+  );
+}
+
+
+function getCalendarDateKey(
+  value
+){
+  const date =
+    startOfCalendarDay(
+      value
+    );
+
+  if (!date){
+    return "";
+  }
+
+  const year =
+    date.getFullYear();
+
+  const month =
+    String(
+      date.getMonth() + 1
+    ).padStart(
+      2,
+      "0"
+    );
+
+  const day =
+    String(
+      date.getDate()
+    ).padStart(
+      2,
+      "0"
+    );
+
+  return `${year}-${month}-${day}`;
+}
+
+
+function formatCalendarTime(
+  value
+){
+  const date =
+    value instanceof Date
+      ? value
+      : new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return "";
+  }
+
+  return date.toLocaleTimeString(
+    [],
+    {
+      hour:
+        "numeric",
+
+      minute:
+        "2-digit"
+    }
+  );
+}
+
+
+function formatCalendarDayHeading(
+  value
+){
+  const date =
+    value instanceof Date
+      ? value
+      : new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return "";
+  }
+
+  const today =
+    startOfCalendarDay(
+      new Date()
+    );
+
+  const target =
+    startOfCalendarDay(
+      date
+    );
+
+  const tomorrow =
+    new Date(today);
+
+  tomorrow.setDate(
+    tomorrow.getDate() + 1
+  );
+
+  if (
+    target.getTime() ===
+    today.getTime()
+  ){
+    return "Today";
+  }
+
+  if (
+    target.getTime() ===
+    tomorrow.getTime()
+  ){
+    return "Tomorrow";
+  }
+
+  return date.toLocaleDateString(
+    [],
+    {
+      weekday:
+        "long",
+
+      month:
+        "short",
+
+      day:
+        "numeric"
+    }
+  );
+}
+
+
+/* =========================================================
+   SCHEDULE DATE NORMALIZATION
+========================================================= */
+
+function resolveScheduleDate(
+  schedule
+){
+  const rawDate =
+    schedule?.startDate ||
+    schedule?.startAt ||
+    schedule?.date ||
+    schedule?.scheduledAt ||
+    schedule?.startsAt ||
+    null;
+
+  if (!rawDate){
+    return null;
+  }
+
+  let date =
+    new Date(rawDate);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return null;
+  }
+
+  const timeValue =
+    String(
+      schedule?.startTime ||
+      schedule?.time ||
+      ""
+    ).trim();
+
+  /*
+    Some schedule records store the day in `date` and
+    the clock value separately in `startTime` or `time`.
+  */
+
+  if (
+    timeValue &&
+    !String(rawDate).includes("T")
+  ){
+    const timeMatch =
+      timeValue.match(
+        /^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i
+      );
+
+    if (timeMatch){
+      let hours =
+        Number(
+          timeMatch[1]
+        );
+
+      const minutes =
+        Number(
+          timeMatch[2]
+        );
+
+      const meridiem =
+        String(
+          timeMatch[3] ||
+          ""
+        ).toUpperCase();
+
+      if (
+        meridiem === "PM" &&
+        hours < 12
+      ){
+        hours += 12;
+      }
+
+      if (
+        meridiem === "AM" &&
+        hours === 12
+      ){
+        hours = 0;
+      }
+
+      date.setHours(
+        hours,
+        minutes,
+        0,
+        0
+      );
+    }
+  }
+
+  return date;
+}
+
+
+/* =========================================================
+   UNIFIED CALENDAR EVENTS
+========================================================= */
+
+function buildStudentCalendarEvents(){
+
+  const studentClasses =
+    getStudentClasses();
+
+  const classIds =
+    new Set(
+      studentClasses.map(
+        classItem =>
+          normalizeId(
+            classItem?._id ||
+            classItem?.id
+          )
+      )
+    );
+
+
+  const scheduleEvents =
+    asArray(
+      state.schedules
+    )
+      .filter(schedule => {
+        const classId =
+          normalizeId(
+            schedule?.classId?._id ||
+            schedule?.classId
+          );
+
+        return (
+          !classId ||
+          classIds.has(classId)
+        );
+      })
+      .map(schedule => {
+        const start =
+          resolveScheduleDate(
+            schedule
+          );
+
+        if (!start){
+          return null;
+        }
+
+        const classTitle =
+          String(
+            schedule?.classId?.title ||
+            schedule?.classTitle ||
+            schedule?.title ||
+            "Class"
+          ).trim();
+
+        const meetingLink =
+          String(
+            schedule?.meetingLink ||
+            schedule?.meetingUrl ||
+            schedule?.link ||
+            ""
+          ).trim();
+
+        const eventType =
+          meetingLink
+            ? "meeting"
+            : "class";
+
+        return {
+          id:
+            `schedule-${
+              normalizeId(
+                schedule?._id
+              ) ||
+              getCalendarDateKey(start)
+            }`,
+
+          sourceId:
+            normalizeId(
+              schedule?._id
+            ),
+
+          source:
+            "schedule",
+
+          type:
+            eventType,
+
+          title:
+            classTitle,
+
+          description:
+            String(
+              schedule?.notes ||
+              schedule?.description ||
+              "Class schedule"
+            ).trim(),
+
+          start,
+
+          end:
+            schedule?.endDate ||
+            schedule?.endAt
+              ? new Date(
+                  schedule.endDate ||
+                  schedule.endAt
+                )
+              : null,
+
+          classId:
+            normalizeId(
+              schedule?.classId?._id ||
+              schedule?.classId
+            ),
+
+          teacherId:
+            normalizeId(
+              schedule?.teacherId?._id ||
+              schedule?.teacherId
+            ),
+
+          teacherName:
+            String(
+              schedule?.teacherId?.name ||
+              schedule?.teacherName ||
+              ""
+            ).trim(),
+
+          meetingLink,
+
+          location:
+            String(
+              schedule?.location ||
+              schedule?.room ||
+              ""
+            ).trim(),
+
+          original:
+            schedule
+        };
+      })
+      .filter(Boolean);
+
+
+  const assignmentEvents =
+    getStudentAssignments()
+      .map(assignment => {
+        const dueDate =
+          assignment?.dueDate
+            ? new Date(
+                assignment.dueDate
+              )
+            : null;
+
+        if (
+          !dueDate ||
+          Number.isNaN(
+            dueDate.getTime()
+          )
+        ){
+          return null;
+        }
+
+        return {
+          id:
+            `assignment-${
+              normalizeId(
+                assignment?._id
+              )
+            }`,
+
+          sourceId:
+            normalizeId(
+              assignment?._id
+            ),
+
+          source:
+            "assignment",
+
+          type:
+            "assignment",
+
+          title:
+            String(
+              assignment?.title ||
+              "Assignment deadline"
+            ).trim(),
+
+          description:
+            String(
+              assignment?.instructions ||
+              assignment?.description ||
+              "Assignment due"
+            ).trim(),
+
+          start:
+            dueDate,
+
+          end:
+            null,
+
+          classId:
+            normalizeId(
+              assignment?.classId?._id ||
+              assignment?.classId
+            ),
+
+          teacherId:
+            normalizeId(
+              assignment?.teacherId?._id ||
+              assignment?.teacherId
+            ),
+
+          teacherName:
+            String(
+              assignment?.teacherId?.name ||
+              ""
+            ).trim(),
+
+          meetingLink:
+            "",
+
+          location:
+            "",
+
+          original:
+            assignment
+        };
+      })
+      .filter(Boolean);
+
+
+  return [
+    ...scheduleEvents,
+    ...assignmentEvents
+  ].sort(
+    (
+      first,
+      second
+    ) =>
+      first.start.getTime() -
+      second.start.getTime()
+  );
+}
+
+
+/* =========================================================
+   CALENDAR FILTERING
+========================================================= */
+
+function getFilteredStudentCalendarEvents(){
+
+  const searchValue =
+    String(
+      studentCalendarSearchQuery ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+  return buildStudentCalendarEvents()
+    .filter(event => {
+
+      if (
+        studentCalendarTypeFilter !==
+          "all" &&
+        event.type !==
+          studentCalendarTypeFilter
+      ){
+        return false;
+      }
+
+      if (
+        studentCalendarTeacherFilter &&
+        event.teacherId !==
+          studentCalendarTeacherFilter
+      ){
+        return false;
+      }
+
+      if (!searchValue){
+        return true;
+      }
+
+      const searchableText =
+        [
+          event.title,
+          event.description,
+          event.teacherName,
+          event.location
+        ]
+          .join(" ")
+          .toLowerCase();
+
+      return searchableText.includes(
+        searchValue
+      );
+    });
+}
+
+
+/* =========================================================
+   EVENT STATUS
+========================================================= */
+
+function getStudentCalendarEventStatus(
+  event
+){
+  const now =
+    new Date();
+
+  const eventTime =
+    event?.start instanceof Date
+      ? event.start
+      : new Date(
+          event?.start
+        );
+
+  if (
+    Number.isNaN(
+      eventTime.getTime()
+    )
+  ){
+    return {
+      label:
+        "",
+
+      className:
+        ""
+    };
+  }
+
+  const difference =
+    eventTime.getTime() -
+    now.getTime();
+
+  const minutes =
+    Math.round(
+      difference /
+      60000
+    );
+
+  if (
+    event.type ===
+      "assignment" &&
+    difference < 0
+  ){
+    return {
+      label:
+        "Past due",
+
+      className:
+        "danger"
+    };
+  }
+
+  if (
+    event.type ===
+      "meeting" &&
+    minutes >= -60 &&
+    minutes <= 15
+  ){
+    return {
+      label:
+        minutes <= 0
+          ? "Live now"
+          : `Starts in ${minutes} min`,
+
+      className:
+        "success"
+    };
+  }
+
+  if (
+    isSameCalendarDay(
+      eventTime,
+      now
+    )
+  ){
+    return {
+      label:
+        "Today",
+
+      className:
+        "primary"
+    };
+  }
+
+  return {
+    label:
+      "",
+
+    className:
+      ""
+  };
+}
+
+
+/* =========================================================
+   CALENDAR SUMMARY
+========================================================= */
+
+function updateStudentCalendarSummary(){
+
+  const events =
+    buildStudentCalendarEvents();
+
+  const now =
+    new Date();
+
+  const todayStart =
+    startOfCalendarDay(
+      now
+    );
+
+  const nextWeek =
+    new Date(
+      todayStart
+    );
+
+  nextWeek.setDate(
+    nextWeek.getDate() + 7
+  );
+
+  const todayEvents =
+    events.filter(
+      event =>
+        isSameCalendarDay(
+          event.start,
+          now
+        )
+    );
+
+  const upcomingEvents =
+    events.filter(
+      event =>
+        event.start >=
+          todayStart &&
+        event.start <
+          nextWeek
+    );
+
+  const deadlines =
+    upcomingEvents.filter(
+      event =>
+        event.type ===
+        "assignment"
+    );
+
+  const liveClasses =
+    upcomingEvents.filter(
+      event =>
+        event.type ===
+          "meeting"
+    );
+
+  setText(
+    "studentScheduleTodayCount",
+    todayEvents.length
+  );
+
+  setText(
+    "studentScheduleUpcomingCount",
+    upcomingEvents.length
+  );
+
+  setText(
+    "studentScheduleDeadlineCount",
+    deadlines.length
+  );
+
+  setText(
+    "studentScheduleLiveCount",
+    liveClasses.length
+  );
+}
+
+
+/* =========================================================
+   TEACHER FILTER OPTIONS
+========================================================= */
+
+function hydrateStudentCalendarTeacherFilter(){
+
+  const select =
+    $("scheduleTeacherFilter");
+
+  if (!select){
     return;
   }
 
-  container.innerHTML = schedules.map(item => `
-    <article
-  class="schedule-card"
-  data-schedule-id="${escapeHtml(
-    normalizeId(item._id)
-  )}"
->
-      <div class="item-head">
-        <div>
-          <h3 class="item-title">${escapeHtml(item.title || item.classId?.title || "Class Schedule")}</h3>
-          <div class="item-sub">${formatDate(item.date)} • ${escapeHtml(item.time || item.startTime || "No time")}</div>
-        </div>
+  const currentValue =
+    String(
+      select.value ||
+      studentCalendarTeacherFilter ||
+      ""
+    );
 
-        <span class="chip primary">Schedule</span>
+  const teacherMap =
+    new Map();
+
+  buildStudentCalendarEvents()
+    .forEach(event => {
+      if (
+        event.teacherId &&
+        event.teacherName
+      ){
+        teacherMap.set(
+          event.teacherId,
+          event.teacherName
+        );
+      }
+    });
+
+  select.innerHTML = `
+    <option value="">
+      All teachers
+    </option>
+
+    ${
+      Array.from(
+        teacherMap.entries()
+      )
+        .sort(
+          (
+            first,
+            second
+          ) =>
+            first[1].localeCompare(
+              second[1]
+            )
+        )
+        .map(
+          (
+            [
+              teacherId,
+              teacherName
+            ]
+          ) => `
+            <option
+              value="${
+                escapeHtml(
+                  teacherId
+                )
+              }"
+            >
+              ${
+                escapeHtml(
+                  teacherName
+                )
+              }
+            </option>
+          `
+        )
+        .join("")
+    }
+  `;
+
+  select.value =
+    currentValue;
+}
+
+function renderSchedule(){
+
+  const container =
+    $("scheduleList");
+
+  if (!container){
+    return;
+  }
+
+  hydrateStudentCalendarTeacherFilter();
+
+  updateStudentCalendarSummary();
+
+  const now =
+    new Date();
+
+  const events =
+    getFilteredStudentCalendarEvents()
+      .filter(
+        event =>
+          event.start >=
+          startOfCalendarDay(
+            now
+          )
+      )
+      .slice(
+        0,
+        20
+      );
+
+  if (!events.length){
+    container.innerHTML = `
+      <div class="student-calendar-state">
+
+        <span class="student-calendar-state-icon">
+
+          <i
+            class="fa-regular fa-calendar-check"
+            aria-hidden="true"
+          ></i>
+
+        </span>
+
+        <strong>
+          Nothing upcoming
+        </strong>
+
+        <p>
+          There are no classes, meetings, or deadlines
+          matching your current filters.
+        </p>
+
       </div>
+    `;
 
-      <p class="item-desc">${escapeHtml(item.notes || "Class schedule details.")}</p>
+    return;
+  }
 
-      <div class="meta-row">
-        ${item.meetingLink ? `<a class="chip success" href="${item.meetingLink}" target="_blank">Join Meeting</a>` : ""}
-        ${item.teacherId?.name ? `<span class="chip">${escapeHtml(item.teacherId.name)}</span>` : ""}
-      </div>
-    </article>
-  `).join("");
+  const groupedEvents =
+    new Map();
+
+  events.forEach(event => {
+    const dateKey =
+      getCalendarDateKey(
+        event.start
+      );
+
+    if (
+      !groupedEvents.has(
+        dateKey
+      )
+    ){
+      groupedEvents.set(
+        dateKey,
+        []
+      );
+    }
+
+    groupedEvents
+      .get(dateKey)
+      .push(event);
+  });
+
+
+  container.innerHTML =
+    Array.from(
+      groupedEvents.entries()
+    )
+      .map(
+        (
+          [
+            dateKey,
+            dateEvents
+          ]
+        ) => {
+
+          const groupDate =
+            dateEvents[0]
+              ?.start;
+
+          return `
+            <section
+              class="student-calendar-agenda-group"
+              data-calendar-date="${
+                escapeHtml(
+                  dateKey
+                )
+              }"
+            >
+
+              <div class="student-calendar-agenda-date">
+
+                ${
+                  escapeHtml(
+                    formatCalendarDayHeading(
+                      groupDate
+                    )
+                  )
+                }
+
+              </div>
+
+
+              ${
+                dateEvents
+                  .map(event => {
+
+                    const status =
+                      getStudentCalendarEventStatus(
+                        event
+                      );
+
+                    return `
+                      <article
+                        class="student-calendar-agenda-item"
+                        data-calendar-event-id="${
+                          escapeHtml(
+                            event.id
+                          )
+                        }"
+                      >
+
+                        <span
+                          class="
+                            student-calendar-agenda-marker
+                            ${event.type}
+                          "
+                          aria-hidden="true"
+                        ></span>
+
+
+                        <div class="student-calendar-agenda-copy">
+
+                          <strong>
+
+                            ${
+                              escapeHtml(
+                                event.title
+                              )
+                            }
+
+                          </strong>
+
+
+                          <span>
+
+                            ${
+                              escapeHtml(
+                                formatCalendarTime(
+                                  event.start
+                                ) ||
+                                "All day"
+                              )
+                            }
+
+                            ${
+                              event.teacherName
+                                ? ` • ${
+                                    escapeHtml(
+                                      event.teacherName
+                                    )
+                                  }`
+                                : ""
+                            }
+
+                          </span>
+
+
+                          ${
+                            event.location
+                              ? `
+                                <small>
+                                  ${
+                                    escapeHtml(
+                                      event.location
+                                    )
+                                  }
+                                </small>
+                              `
+                              : ""
+                          }
+
+
+                          <div class="student-calendar-agenda-actions">
+
+                            ${
+                              status.label
+                                ? `
+                                  <span
+                                    class="
+                                      chip
+                                      ${status.className}
+                                    "
+                                  >
+                                    ${
+                                      escapeHtml(
+                                        status.label
+                                      )
+                                    }
+                                  </span>
+                                `
+                                : ""
+                            }
+
+                            ${
+                              event.meetingLink
+                                ? `
+                                  <a
+                                    class="student-calendar-agenda-action"
+                                    href="${
+                                      escapeHtml(
+                                        event.meetingLink
+                                      )
+                                    }"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <i
+                                      class="fa-solid fa-video"
+                                      aria-hidden="true"
+                                    ></i>
+
+                                    Join
+                                  </a>
+                                `
+                                : ""
+                            }
+
+                            ${
+                              event.type ===
+                                "assignment"
+                                ? `
+                                  <button
+                                    class="
+                                      student-calendar-agenda-action
+                                      student-calendar-open-assignment
+                                    "
+                                    type="button"
+                                    data-assignment-id="${
+                                      escapeHtml(
+                                        event.sourceId
+                                      )
+                                    }"
+                                  >
+                                    <i
+                                      class="fa-solid fa-arrow-up-right-from-square"
+                                      aria-hidden="true"
+                                    ></i>
+
+                                    Open
+                                  </button>
+                                `
+                                : ""
+                            }
+
+                          </div>
+
+                        </div>
+
+                      </article>
+                    `;
+                  })
+                  .join("")
+              }
+
+            </section>
+          `;
+        }
+      )
+      .join("");
 }
 
 function renderCalendar(){
-  const container = $("calendarGrid");
-  if (!container) return;
 
-  const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-  const schedules = state.schedules || [];
+  const container =
+    $("calendarGrid");
 
-  container.innerHTML = days.map(day => {
-    const items = schedules.slice(0,2);
+  if (!container){
+    return;
+  }
 
-    return `
-      <div class="calendar-day">
-        <strong>${day}</strong>
+  updateStudentCalendarSummary();
+
+  const events =
+    getFilteredStudentCalendarEvents();
+
+  const referenceDate =
+    new Date(
+      studentCalendarCurrentDate
+    );
+
+  const title =
+    $("studentCalendarPeriodTitle");
+
+  const subtitle =
+    $("studentCalendarPeriodSubtitle");
+
+
+  if (
+    studentCalendarView ===
+    "agenda"
+  ){
+    if (title){
+      title.textContent =
+        "Agenda";
+    }
+
+    if (subtitle){
+      subtitle.textContent =
+        "Upcoming classes, meetings, and deadlines";
+    }
+
+    const futureEvents =
+      events
+        .filter(
+          event =>
+            event.start >=
+            startOfCalendarDay(
+              new Date()
+            )
+        )
+        .slice(
+          0,
+          40
+        );
+
+    if (!futureEvents.length){
+      container.innerHTML = `
+        <div class="student-calendar-state">
+
+          <span class="student-calendar-state-icon">
+
+            <i
+              class="fa-regular fa-calendar"
+              aria-hidden="true"
+            ></i>
+
+          </span>
+
+          <strong>
+            No upcoming events
+          </strong>
+
+          <p>
+            Your agenda is currently clear.
+          </p>
+
+        </div>
+      `;
+
+      return;
+    }
+
+    container.innerHTML = `
+      <div
+        class="student-calendar-agenda-list"
+        style="max-height:none;padding:14px;"
+      >
+
         ${
-          items.length
-            ? items.map(item => `<span>${escapeHtml(item.title || item.classId?.title || "Class")}</span>`).join("")
-            : `<span>No class</span>`
+          futureEvents
+            .map(event => `
+              <article class="student-calendar-agenda-item">
+
+                <span
+                  class="
+                    student-calendar-agenda-marker
+                    ${event.type}
+                  "
+                ></span>
+
+                <div class="student-calendar-agenda-copy">
+
+                  <strong>
+                    ${
+                      escapeHtml(
+                        event.title
+                      )
+                    }
+                  </strong>
+
+                  <span>
+                    ${
+                      escapeHtml(
+                        formatDateTime(
+                          event.start
+                        )
+                      )
+                    }
+                  </span>
+
+                  <small>
+                    ${
+                      escapeHtml(
+                        event.description ||
+                        "Calendar event"
+                      )
+                    }
+                  </small>
+
+                </div>
+
+              </article>
+            `)
+            .join("")
         }
+
       </div>
     `;
-  }).join("");
+
+    return;
+  }
+
+
+  const monthStart =
+    new Date(
+      referenceDate.getFullYear(),
+      referenceDate.getMonth(),
+      1
+    );
+
+  const monthEnd =
+    new Date(
+      referenceDate.getFullYear(),
+      referenceDate.getMonth() + 1,
+      0
+    );
+
+  if (title){
+    title.textContent =
+      referenceDate.toLocaleDateString(
+        [],
+        {
+          month:
+            "long",
+
+          year:
+            "numeric"
+        }
+      );
+  }
+
+  if (subtitle){
+    subtitle.textContent =
+      studentCalendarView ===
+        "week"
+        ? "Your seven-day learning schedule"
+        : "Classes, meetings, and deadlines";
+  }
+
+
+  let gridStart;
+
+  let cellCount;
+
+
+  if (
+    studentCalendarView ===
+    "week"
+  ){
+    gridStart =
+      startOfCalendarDay(
+        referenceDate
+      );
+
+    const weekday =
+      (
+        gridStart.getDay() +
+        6
+      ) % 7;
+
+    gridStart.setDate(
+      gridStart.getDate() -
+      weekday
+    );
+
+    cellCount =
+      7;
+  }else{
+    gridStart =
+      new Date(
+        monthStart
+      );
+
+    const startWeekday =
+      (
+        gridStart.getDay() +
+        6
+      ) % 7;
+
+    gridStart.setDate(
+      gridStart.getDate() -
+      startWeekday
+    );
+
+    cellCount =
+      42;
+  }
+
+
+  const weekdays =
+    [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+      "Sun"
+    ];
+
+
+  const cells =
+    [];
+
+
+  for (
+    let index = 0;
+    index < cellCount;
+    index += 1
+  ){
+    const date =
+      new Date(
+        gridStart
+      );
+
+    date.setDate(
+      gridStart.getDate() +
+      index
+    );
+
+    const dayEvents =
+      events.filter(
+        event =>
+          isSameCalendarDay(
+            event.start,
+            date
+          )
+      );
+
+    const visibleEvents =
+      dayEvents.slice(
+        0,
+        studentCalendarView ===
+          "week"
+          ? 8
+          : 3
+      );
+
+    const hiddenCount =
+      Math.max(
+        0,
+        dayEvents.length -
+        visibleEvents.length
+      );
+
+    const isOtherMonth =
+      studentCalendarView ===
+        "month" &&
+      date.getMonth() !==
+        referenceDate.getMonth();
+
+    cells.push(`
+      <div
+        class="
+          student-calendar-day-cell
+          ${
+            isOtherMonth
+              ? "other-month"
+              : ""
+          }
+          ${
+            isSameCalendarDay(
+              date,
+              new Date()
+            )
+              ? "today"
+              : ""
+          }
+        "
+        data-calendar-date="${
+          escapeHtml(
+            getCalendarDateKey(
+              date
+            )
+          )
+        }"
+      >
+
+        <span class="student-calendar-day-number">
+
+          ${date.getDate()}
+
+        </span>
+
+
+        <div class="student-calendar-day-events">
+
+          ${
+            visibleEvents
+              .map(event => `
+                <button
+                  class="
+                    student-calendar-event
+                    ${event.type}
+                  "
+                  type="button"
+                  data-calendar-event-id="${
+                    escapeHtml(
+                      event.id
+                    )
+                  }"
+                  title="${
+                    escapeHtml(
+                      event.title
+                    )
+                  }"
+                >
+
+                  <span>
+
+                    ${
+                      formatCalendarTime(
+                        event.start
+                      )
+                        ? `${
+                            escapeHtml(
+                              formatCalendarTime(
+                                event.start
+                              )
+                            )
+                          } `
+                        : ""
+                    }
+
+                    ${
+                      escapeHtml(
+                        event.title
+                      )
+                    }
+
+                  </span>
+
+                </button>
+              `)
+              .join("")
+          }
+
+          ${
+            hiddenCount > 0
+              ? `
+                <span class="student-calendar-more-events">
+
+                  +${hiddenCount} more
+
+                </span>
+              `
+              : ""
+          }
+
+        </div>
+
+      </div>
+    `);
+  }
+
+
+  container.innerHTML = `
+    <div class="student-calendar-weekdays">
+
+      ${
+        weekdays
+          .map(day => `
+            <div class="student-calendar-weekday">
+              ${day}
+            </div>
+          `)
+          .join("")
+      }
+
+    </div>
+
+    <div class="student-calendar-month-grid">
+
+      ${cells.join("")}
+
+    </div>
+  `;
 }
+
 function renderProgress(){
   const container = $("progressList");
   if (!container) return;
