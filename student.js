@@ -9934,6 +9934,54 @@ function formatCalendarTime(
 }
 
 
+function getSafeStudentCalendarUrl(
+  value
+){
+
+  const rawUrl =
+    String(
+      value ||
+      ""
+    ).trim();
+
+
+  if (!rawUrl){
+    return "";
+  }
+
+
+  try{
+
+    const resolvedUrl =
+      new URL(
+        rawUrl,
+        window.location.origin
+      );
+
+
+    if (
+      ![
+        "http:",
+        "https:"
+      ].includes(
+        resolvedUrl.protocol
+      )
+    ){
+      return "";
+    }
+
+
+    return resolvedUrl.href;
+
+  }catch{
+
+    return "";
+
+  }
+
+}
+
+
 function formatCalendarDayHeading(
   value
 ){
@@ -10004,6 +10052,7 @@ function formatCalendarDayHeading(
 function resolveScheduleDate(
   schedule
 ){
+
   const rawDate =
     schedule?.startDate ||
     schedule?.startAt ||
@@ -10016,8 +10065,55 @@ function resolveScheduleDate(
     return null;
   }
 
+
   let date =
-    new Date(rawDate);
+    rawDate instanceof Date
+      ? new Date(
+          rawDate.getTime()
+        )
+      : new Date(
+          rawDate
+        );
+
+
+  /*
+    A plain YYYY-MM-DD value can be interpreted as UTC by
+    some browsers. Rebuild it as a local date to prevent the
+    event from appearing one day early or late.
+  */
+
+  const plainDateMatch =
+    String(rawDate)
+      .trim()
+      .match(
+        /^(\d{4})-(\d{2})-(\d{2})$/
+      );
+
+
+  if (plainDateMatch){
+
+    date =
+      new Date(
+        Number(
+          plainDateMatch[1]
+        ),
+
+        Number(
+          plainDateMatch[2]
+        ) - 1,
+
+        Number(
+          plainDateMatch[3]
+        ),
+
+        0,
+        0,
+        0,
+        0
+      );
+
+  }
+
 
   if (
     Number.isNaN(
@@ -10027,28 +10123,28 @@ function resolveScheduleDate(
     return null;
   }
 
-  const timeValue =
+
+  const rawTime =
     String(
       schedule?.startTime ||
       schedule?.time ||
       ""
-    ).trim();
+    )
+      .trim()
+      .split("-")[0]
+      .trim();
 
-  /*
-    Some schedule records store the day in `date` and
-    the clock value separately in `startTime` or `time`.
-  */
 
-  if (
-    timeValue &&
-    !String(rawDate).includes("T")
-  ){
+  if (rawTime){
+
     const timeMatch =
-      timeValue.match(
-        /^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i
+      rawTime.match(
+        /^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i
       );
 
+
     if (timeMatch){
+
       let hours =
         Number(
           timeMatch[1]
@@ -10056,14 +10152,18 @@ function resolveScheduleDate(
 
       const minutes =
         Number(
-          timeMatch[2]
+          timeMatch[2] ||
+          0
         );
 
       const meridiem =
         String(
           timeMatch[3] ||
           ""
-        ).toUpperCase();
+        )
+          .trim()
+          .toUpperCase();
+
 
       if (
         meridiem === "PM" &&
@@ -10072,6 +10172,7 @@ function resolveScheduleDate(
         hours += 12;
       }
 
+
       if (
         meridiem === "AM" &&
         hours === 12
@@ -10079,18 +10180,31 @@ function resolveScheduleDate(
         hours = 0;
       }
 
-      date.setHours(
-        hours,
-        minutes,
-        0,
-        0
-      );
+
+      if (
+        hours >= 0 &&
+        hours <= 23 &&
+        minutes >= 0 &&
+        minutes <= 59
+      ){
+
+        date.setHours(
+          hours,
+          minutes,
+          0,
+          0
+        );
+
+      }
+
     }
+
   }
 
-  return date;
-}
 
+  return date;
+
+}
 
 /* =========================================================
    UNIFIED CALENDAR EVENTS
@@ -10147,13 +10261,13 @@ function buildStudentCalendarEvents(){
             "Class"
           ).trim();
 
-        const meetingLink =
-          String(
-            schedule?.meetingLink ||
-            schedule?.meetingUrl ||
-            schedule?.link ||
-            ""
-          ).trim();
+const meetingLink =
+  getSafeStudentCalendarUrl(
+    schedule?.meetingLink ||
+    schedule?.meetingUrl ||
+    schedule?.link ||
+    ""
+  );
 
         const eventType =
           meetingLink
@@ -10192,14 +10306,33 @@ function buildStudentCalendarEvents(){
 
           start,
 
-          end:
-            schedule?.endDate ||
-            schedule?.endAt
-              ? new Date(
-                  schedule.endDate ||
-                  schedule.endAt
-                )
-              : null,
+end:
+  (() => {
+
+    const rawEnd =
+      schedule?.endDate ||
+      schedule?.endAt ||
+      null;
+
+
+    if (!rawEnd){
+      return null;
+    }
+
+
+    const endDate =
+      new Date(
+        rawEnd
+      );
+
+
+    return Number.isNaN(
+      endDate.getTime()
+    )
+      ? null
+      : endDate;
+
+  })(),
 
           classId:
             normalizeId(
@@ -10677,9 +10810,13 @@ function handleStudentCalendarEventClick(
       ".student-calendar-open-assignment"
     );
 
+
   if (assignmentButton){
 
     event.preventDefault();
+
+    event.stopPropagation();
+
 
     openStudentCalendarAssignment(
       assignmentButton.dataset
@@ -10687,6 +10824,7 @@ function handleStudentCalendarEventClick(
     );
 
     return;
+
   }
 
 
@@ -10695,9 +10833,14 @@ function handleStudentCalendarEventClick(
       "[data-calendar-event-id]"
     );
 
+
   if (!calendarEventButton){
     return;
   }
+
+
+  event.preventDefault();
+
 
   const eventId =
     String(
@@ -10706,15 +10849,28 @@ function handleStudentCalendarEventClick(
       ""
     ).trim();
 
+
   const calendarEvent =
     buildStudentCalendarEvents()
-      .find(item =>
-        item.id ===
-        eventId
+      .find(
+        item =>
+          item.id ===
+          eventId
       );
 
+
   if (!calendarEvent){
+
+    notifyAIFTWarning(
+      "This calendar event is no longer available.",
+      {
+        title:
+          "Event unavailable"
+      }
+    );
+
     return;
+
   }
 
 
@@ -10728,6 +10884,7 @@ function handleStudentCalendarEventClick(
     );
 
     return;
+
   }
 
 
@@ -10742,25 +10899,94 @@ function handleStudentCalendarEventClick(
     );
 
     return;
+
   }
 
 
-  const scheduleCard =
-    document.querySelector(
-      `[data-schedule-id="${
-        CSS.escape(
-          calendarEvent.sourceId
-        )
-      }"]`
+  const agendaItem =
+    Array.from(
+      document.querySelectorAll(
+        "[data-calendar-event-id]"
+      )
+    )
+      .find(
+        element =>
+          String(
+            element.dataset
+              .calendarEventId ||
+            ""
+          ) ===
+          eventId &&
+          element.closest(
+            "#scheduleList"
+          )
+      );
+
+
+  if (agendaItem){
+
+    agendaItem.scrollIntoView({
+      behavior:
+        "smooth",
+
+      block:
+        "center"
+    });
+
+
+    agendaItem.animate(
+      [
+        {
+          transform:
+            "scale(1)",
+
+          boxShadow:
+            "none"
+        },
+
+        {
+          transform:
+            "scale(1.015)",
+
+          boxShadow:
+            "0 0 0 3px rgba(26,115,232,.16)"
+        },
+
+        {
+          transform:
+            "scale(1)",
+
+          boxShadow:
+            "none"
+        }
+      ],
+      {
+        duration:
+          650,
+
+        easing:
+          "ease"
+      }
     );
 
-  scheduleCard?.scrollIntoView({
-    behavior:
-      "smooth",
+    return;
 
-    block:
-      "center"
-  });
+  }
+
+
+  notifyAIFTInfo(
+    `${
+      calendarEvent.title
+    } • ${
+      formatDateTime(
+        calendarEvent.start
+      )
+    }`,
+    {
+      title:
+        "Calendar event"
+    }
+  );
 
 }
 /* =========================================================
@@ -11274,8 +11500,17 @@ function updateStudentCalendarSummary(){
       todayStart
     );
 
+  /*
+    The range comparison below uses:
+
+    event.start < nextWeek
+
+    Adding eight days includes today plus the complete
+    next seven calendar days.
+  */
+
   nextWeek.setDate(
-    nextWeek.getDate() + 7
+    nextWeek.getDate() + 8
   );
 
   const todayEvents =
@@ -11738,29 +11973,60 @@ function renderCalendar(){
     studentCalendarView ===
     "agenda"
   ){
-    if (title){
-      title.textContent =
-        "Agenda";
-    }
+if (title){
 
-    if (subtitle){
-      subtitle.textContent =
-        "Upcoming classes, meetings, and deadlines";
-    }
+  title.textContent =
+    studentCalendarCurrentDate
+      .toLocaleDateString(
+        [],
+        {
+          month:
+            "long",
 
-    const futureEvents =
-      events
-        .filter(
-          event =>
-            event.start >=
-            startOfCalendarDay(
-              new Date()
-            )
-        )
-        .slice(
-          0,
-          40
-        );
+          year:
+            "numeric"
+        }
+      );
+
+}
+
+
+if (subtitle){
+
+  subtitle.textContent =
+    "Thirty-day agenda starting from the selected date";
+
+}
+
+const agendaStart =
+  startOfCalendarDay(
+    studentCalendarCurrentDate
+  );
+
+
+const agendaEnd =
+  new Date(
+    agendaStart
+  );
+
+agendaEnd.setDate(
+  agendaEnd.getDate() + 30
+);
+
+
+const futureEvents =
+  events
+    .filter(
+      event =>
+        event.start >=
+          agendaStart &&
+        event.start <
+          agendaEnd
+    )
+    .slice(
+      0,
+      40
+    );
 
     if (!futureEvents.length){
       container.innerHTML = `
@@ -11864,7 +12130,113 @@ function renderCalendar(){
       0
     );
 
+if (
+  studentCalendarView ===
+  "week"
+){
+
+  const weekStart =
+    startOfCalendarDay(
+      referenceDate
+    );
+
+  const weekdayIndex =
+    (
+      weekStart.getDay() +
+      6
+    ) % 7;
+
+  weekStart.setDate(
+    weekStart.getDate() -
+    weekdayIndex
+  );
+
+
+  const weekEnd =
+    new Date(
+      weekStart
+    );
+
+  weekEnd.setDate(
+    weekEnd.getDate() + 6
+  );
+
+
   if (title){
+
+    const sameMonth =
+      weekStart.getMonth() ===
+        weekEnd.getMonth() &&
+      weekStart.getFullYear() ===
+        weekEnd.getFullYear();
+
+
+    title.textContent =
+      sameMonth
+        ? `${
+            weekStart.toLocaleDateString(
+              [],
+              {
+                month:
+                  "long",
+
+                day:
+                  "numeric"
+              }
+            )
+          } – ${
+            weekEnd.toLocaleDateString(
+              [],
+              {
+                day:
+                  "numeric",
+
+                year:
+                  "numeric"
+              }
+            )
+          }`
+        : `${
+            weekStart.toLocaleDateString(
+              [],
+              {
+                month:
+                  "short",
+
+                day:
+                  "numeric"
+              }
+            )
+          } – ${
+            weekEnd.toLocaleDateString(
+              [],
+              {
+                month:
+                  "short",
+
+                day:
+                  "numeric",
+
+                year:
+                  "numeric"
+              }
+            )
+          }`;
+
+  }
+
+
+  if (subtitle){
+
+    subtitle.textContent =
+      "Your seven-day learning schedule";
+
+  }
+
+}else{
+
+  if (title){
+
     title.textContent =
       referenceDate.toLocaleDateString(
         [],
@@ -11876,15 +12248,18 @@ function renderCalendar(){
             "numeric"
         }
       );
+
   }
 
+
   if (subtitle){
+
     subtitle.textContent =
-      studentCalendarView ===
-        "week"
-        ? "Your seven-day learning schedule"
-        : "Classes, meetings, and deadlines";
+      "Classes, meetings, and deadlines";
+
   }
+
+}
 
 
   let gridStart;
