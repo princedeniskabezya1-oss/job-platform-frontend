@@ -12851,61 +12851,1230 @@ function renderStudentAgendaForDate(
 
 }
 
+/* =========================================================
+   STUDENT ANALYTICS HELPERS
+========================================================= */
+
+function clampStudentAnalyticsPercentage(
+  value
+){
+  return Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(
+        Number(value) || 0
+      )
+    )
+  );
+}
+
+
+function getStudentAnalyticsClassRecords(){
+
+  return getStudentClasses()
+    .map(classItem => {
+
+      const classId =
+        normalizeId(
+          classItem?._id ||
+          classItem?.id
+        );
+
+      const progressRecord =
+        getStudentClassProgressRecord(
+          classId
+        );
+
+      const progress =
+        progressRecord?.progress ||
+        {};
+
+      return {
+        classId,
+
+        classItem,
+
+        record:
+          progressRecord,
+
+        overall:
+          clampStudentAnalyticsPercentage(
+            progress?.overall
+          ),
+
+        lessons:
+          {
+            total:
+              Number(
+                progress?.lessons?.total
+              ) || 0,
+
+            completed:
+              Number(
+                progress?.lessons?.completed
+              ) || 0,
+
+            percentage:
+              clampStudentAnalyticsPercentage(
+                progress?.lessons?.percentage
+              )
+          },
+
+        assignments:
+          {
+            total:
+              Number(
+                progress?.assignments?.total
+              ) || 0,
+
+            completed:
+              Number(
+                progress?.assignments?.completed
+              ) || 0,
+
+            percentage:
+              clampStudentAnalyticsPercentage(
+                progress?.assignments?.percentage
+              )
+          },
+
+        quizzes:
+          {
+            total:
+              Number(
+                progress?.quizzes?.total
+              ) || 0,
+
+            completed:
+              Number(
+                progress?.quizzes?.completed
+              ) || 0,
+
+            percentage:
+              clampStudentAnalyticsPercentage(
+                progress?.quizzes?.percentage
+              )
+          },
+
+        attendance:
+          {
+            total:
+              Number(
+                progress?.attendance?.total
+              ) || 0,
+
+            present:
+              Number(
+                progress?.attendance?.present
+              ) || 0,
+
+            late:
+              Number(
+                progress?.attendance?.late
+              ) || 0,
+
+            absent:
+              Number(
+                progress?.attendance?.absent
+              ) || 0,
+
+            excused:
+              Number(
+                progress?.attendance?.excused
+              ) || 0,
+
+            percentage:
+              clampStudentAnalyticsPercentage(
+                progress?.attendance?.percentage
+              )
+          },
+
+        latestActivity:
+          progressRecord?.latestActivity ||
+          null,
+
+        available:
+          Boolean(
+            progressRecord?.available
+          )
+      };
+    });
+}
+
+
+function getStudentNumericGrade(
+  submission
+){
+
+  const possibleValues =
+    [
+      submission?.grade,
+      submission?.score,
+      submission?.percentage,
+      submission?.pointsEarned
+    ];
+
+  for (
+    const value of possibleValues
+  ){
+
+    if (
+      value === null ||
+      value === undefined ||
+      value === ""
+    ){
+      continue;
+    }
+
+    const match =
+      String(value)
+        .replace(
+          /,/g,
+          ""
+        )
+        .match(
+          /-?\d+(?:\.\d+)?/
+        );
+
+    if (!match){
+      continue;
+    }
+
+    let numericValue =
+      Number(
+        match[0]
+      );
+
+    if (
+      !Number.isFinite(
+        numericValue
+      )
+    ){
+      continue;
+    }
+
+    const maximumPoints =
+      Number(
+        submission?.maxGrade ||
+        submission?.maximumPoints ||
+        submission?.pointsPossible ||
+        submission?.assignmentId?.points ||
+        submission?.assignmentId?.maxPoints ||
+        0
+      );
+
+    /*
+      Convert point-based grades into a percentage
+      when a maximum score exists.
+    */
+
+    if (
+      maximumPoints > 0 &&
+      numericValue <= maximumPoints
+    ){
+      numericValue =
+        (
+          numericValue /
+          maximumPoints
+        ) * 100;
+    }
+
+    return clampStudentAnalyticsPercentage(
+      numericValue
+    );
+  }
+
+  return null;
+}
+
+
+function getStudentAnalyticsGradeSummary(){
+
+  const gradedSubmissions =
+    getStudentSubmissions()
+      .map(submission => ({
+        submission,
+
+        numericGrade:
+          getStudentNumericGrade(
+            submission
+          )
+      }))
+      .filter(item =>
+        item.numericGrade !== null
+      );
+
+  if (!gradedSubmissions.length){
+    return {
+      average:
+        null,
+
+      count:
+        0,
+
+      items:
+        []
+    };
+  }
+
+  const total =
+    gradedSubmissions.reduce(
+      (
+        sum,
+        item
+      ) =>
+        sum +
+        item.numericGrade,
+      0
+    );
+
+  return {
+    average:
+      Math.round(
+        total /
+        gradedSubmissions.length
+      ),
+
+    count:
+      gradedSubmissions.length,
+
+    items:
+      gradedSubmissions
+  };
+}
+
+
+function getStudentAnalyticsTotals(
+  classRecords
+){
+
+  return classRecords.reduce(
+    (
+      totals,
+      item
+    ) => {
+
+      totals.lessonsTotal +=
+        item.lessons.total;
+
+      totals.lessonsCompleted +=
+        item.lessons.completed;
+
+      totals.assignmentsTotal +=
+        item.assignments.total;
+
+      totals.assignmentsCompleted +=
+        item.assignments.completed;
+
+      totals.quizzesTotal +=
+        item.quizzes.total;
+
+      totals.quizzesCompleted +=
+        item.quizzes.completed;
+
+      totals.attendanceTotal +=
+        item.attendance.total;
+
+      totals.attendancePresent +=
+        item.attendance.present;
+
+      totals.attendanceLate +=
+        item.attendance.late;
+
+      totals.attendanceAbsent +=
+        item.attendance.absent;
+
+      totals.attendanceExcused +=
+        item.attendance.excused;
+
+      totals.overallTotal +=
+        item.overall;
+
+      totals.overallRecords +=
+        item.available
+          ? 1
+          : 0;
+
+      return totals;
+    },
+    {
+      lessonsTotal:
+        0,
+
+      lessonsCompleted:
+        0,
+
+      assignmentsTotal:
+        0,
+
+      assignmentsCompleted:
+        0,
+
+      quizzesTotal:
+        0,
+
+      quizzesCompleted:
+        0,
+
+      attendanceTotal:
+        0,
+
+      attendancePresent:
+        0,
+
+      attendanceLate:
+        0,
+
+      attendanceAbsent:
+        0,
+
+      attendanceExcused:
+        0,
+
+      overallTotal:
+        0,
+
+      overallRecords:
+        0
+    }
+  );
+}
+
+
+function getStudentAnalyticsStatus(
+  percentage
+){
+
+  const score =
+    clampStudentAnalyticsPercentage(
+      percentage
+    );
+
+  if (score >= 85){
+    return {
+      label:
+        "Excellent",
+
+      className:
+        "good",
+
+      message:
+        "You are performing strongly across your current coursework."
+    };
+  }
+
+  if (score >= 70){
+    return {
+      label:
+        "On track",
+
+      className:
+        "good",
+
+      message:
+        "Your learning progress is healthy. Keep your current momentum."
+    };
+  }
+
+  if (score >= 50){
+    return {
+      label:
+        "Needs attention",
+
+      className:
+        "warning",
+
+      message:
+        "Some areas need additional focus to keep your progress on track."
+    };
+  }
+
+  return {
+    label:
+      "At risk",
+
+    className:
+      "danger",
+
+    message:
+      "Your current activity shows areas that need immediate attention."
+  };
+}
+
 function renderProgress(){
-  const container = $("progressList");
-  if (!container) return;
 
-  const submissions = getStudentSubmissions();
+  const progressContainer =
+    $("progressList");
 
-  const reviewed = submissions.filter(sub =>
-    sub.grade ||
-    sub.feedback ||
-    ["reviewed","returned"].includes(String(sub.status || "").toLowerCase())
+  const classContainer =
+    $("studentClassProgressList");
+
+  const feedbackContainer =
+    $("studentRecentFeedbackList");
+
+  const warningContainer =
+    $("studentAnalyticsWarnings");
+
+  if (
+    !progressContainer ||
+    !classContainer
+  ){
+    return;
+  }
+
+
+  const classRecords =
+    getStudentAnalyticsClassRecords();
+
+  const totals =
+    getStudentAnalyticsTotals(
+      classRecords
+    );
+
+  const assignments =
+    getStudentAssignments();
+
+  const submissions =
+    getStudentSubmissions();
+
+  const gradeSummary =
+    getStudentAnalyticsGradeSummary();
+
+
+  /* =======================================================
+     ASSIGNMENT COMPLETION
+  ======================================================= */
+
+  const submittedAssignmentIds =
+    new Set(
+      submissions.map(submission =>
+        normalizeId(
+          submission?.assignmentId?._id ||
+          submission?.assignmentId
+        )
+      )
+    );
+
+  const submittedAssignmentCount =
+    assignments.filter(assignment =>
+      submittedAssignmentIds.has(
+        normalizeId(
+          assignment?._id ||
+          assignment?.id
+        )
+      )
+    ).length;
+
+  const assignmentCompletion =
+    assignments.length
+      ? clampStudentAnalyticsPercentage(
+          (
+            submittedAssignmentCount /
+            assignments.length
+          ) * 100
+        )
+      : (
+          totals.assignmentsTotal
+            ? clampStudentAnalyticsPercentage(
+                (
+                  totals.assignmentsCompleted /
+                  totals.assignmentsTotal
+                ) * 100
+              )
+            : 0
+        );
+
+
+  /* =======================================================
+     LESSON AND QUIZ COMPLETION
+  ======================================================= */
+
+  const lessonCompletion =
+    totals.lessonsTotal
+      ? clampStudentAnalyticsPercentage(
+          (
+            totals.lessonsCompleted /
+            totals.lessonsTotal
+          ) * 100
+        )
+      : 0;
+
+  const quizCompletion =
+    totals.quizzesTotal
+      ? clampStudentAnalyticsPercentage(
+          (
+            totals.quizzesCompleted /
+            totals.quizzesTotal
+          ) * 100
+        )
+      : 0;
+
+
+  /* =======================================================
+     ATTENDANCE
+  ======================================================= */
+
+  const attendanceSuccessful =
+    totals.attendancePresent +
+    totals.attendanceLate +
+    totals.attendanceExcused;
+
+  const attendanceRate =
+    totals.attendanceTotal
+      ? clampStudentAnalyticsPercentage(
+          (
+            attendanceSuccessful /
+            totals.attendanceTotal
+          ) * 100
+        )
+      : 0;
+
+
+  /* =======================================================
+     OVERALL LEARNING SCORE
+  ======================================================= */
+
+  const metricValues =
+    [
+      assignmentCompletion,
+      lessonCompletion,
+      quizCompletion,
+      attendanceRate,
+      gradeSummary.average
+    ]
+      .filter(value =>
+        value !== null &&
+        value !== undefined &&
+        Number.isFinite(
+          Number(value)
+        )
+      );
+
+  const overallScore =
+    metricValues.length
+      ? clampStudentAnalyticsPercentage(
+          metricValues.reduce(
+            (
+              sum,
+              value
+            ) =>
+              sum +
+              Number(value),
+            0
+          ) /
+          metricValues.length
+        )
+      : (
+          totals.overallRecords
+            ? clampStudentAnalyticsPercentage(
+                totals.overallTotal /
+                totals.overallRecords
+              )
+            : 0
+        );
+
+  const learningStatus =
+    getStudentAnalyticsStatus(
+      overallScore
+    );
+
+
+  /* =======================================================
+     SUMMARY VALUES
+  ======================================================= */
+
+  setText(
+    "overallProgress",
+    `${overallScore}%`
   );
 
-  container.innerHTML = `
-    <article class="progress-card">
-      <div class="item-head">
-        <div>
-          <h3 class="item-title">Assignment Completion</h3>
-          <div class="item-sub">Based on submitted assignments</div>
-        </div>
-        <span class="chip primary">${state.metrics.completion}%</span>
+  setText(
+    "studentCompletionRate",
+    `${assignmentCompletion}%`
+  );
+
+  setText(
+    "studentAttendanceRate",
+    `${attendanceRate}%`
+  );
+
+  setText(
+    "studentAverageGrade",
+    gradeSummary.average === null
+      ? "—"
+      : `${gradeSummary.average}%`
+  );
+
+  setText(
+    "overallProgressStatus",
+    learningStatus.label
+  );
+
+  setText(
+    "studentCompletionStatus",
+    `${submittedAssignmentCount} of ${assignments.length} assignments submitted`
+  );
+
+  setText(
+    "studentAttendanceStatus",
+    totals.attendanceTotal
+      ? `${attendanceSuccessful} of ${totals.attendanceTotal} recorded sessions`
+      : "No attendance records yet"
+  );
+
+  setText(
+    "studentAverageGradeStatus",
+    gradeSummary.count
+      ? `${gradeSummary.count} graded ${
+          gradeSummary.count === 1
+            ? "submission"
+            : "submissions"
+        }`
+      : "No graded work yet"
+  );
+
+
+  /* =======================================================
+     LEARNING HEALTH
+  ======================================================= */
+
+  setText(
+    "studentLearningHealthScore",
+    overallScore
+  );
+
+  setText(
+    "studentLearningHealthMessage",
+    learningStatus.message
+  );
+
+  const healthBar =
+    $("studentLearningHealthBar");
+
+  if (healthBar){
+    healthBar.style.width =
+      `${overallScore}%`;
+  }
+
+  const healthBadge =
+    $("studentLearningHealthBadge");
+
+  if (healthBadge){
+
+    healthBadge.textContent =
+      learningStatus.label;
+
+    healthBadge.className =
+      `student-learning-health-badge ${
+        learningStatus.className
+      }`;
+  }
+
+
+  /* =======================================================
+     PERFORMANCE CARDS
+  ======================================================= */
+
+  const metrics =
+    [
+      {
+        title:
+          "Assignment completion",
+
+        description:
+          `${submittedAssignmentCount} submitted out of ${assignments.length}`,
+
+        value:
+          assignmentCompletion,
+
+        className:
+          assignmentCompletion >= 70
+            ? "success"
+            : assignmentCompletion >= 50
+              ? "warning"
+              : "danger"
+      },
+
+      {
+        title:
+          "Lesson progress",
+
+        description:
+          `${totals.lessonsCompleted} completed out of ${totals.lessonsTotal}`,
+
+        value:
+          lessonCompletion,
+
+        className:
+          lessonCompletion >= 70
+            ? "success"
+            : lessonCompletion >= 50
+              ? "warning"
+              : "danger"
+      },
+
+      {
+        title:
+          "Quiz completion",
+
+        description:
+          `${totals.quizzesCompleted} completed out of ${totals.quizzesTotal}`,
+
+        value:
+          quizCompletion,
+
+        className:
+          quizCompletion >= 70
+            ? "success"
+            : quizCompletion >= 50
+              ? "warning"
+              : "danger"
+      },
+
+      {
+        title:
+          "Attendance",
+
+        description:
+          totals.attendanceTotal
+            ? `${attendanceSuccessful} successful records out of ${totals.attendanceTotal}`
+            : "No attendance records available",
+
+        value:
+          attendanceRate,
+
+        className:
+          attendanceRate >= 80
+            ? "success"
+            : attendanceRate >= 60
+              ? "warning"
+              : "danger"
+      }
+    ];
+
+  progressContainer.innerHTML =
+    metrics
+      .map(metric => `
+        <article class="student-analytics-metric-card">
+
+          <div class="student-analytics-metric-head">
+
+            <div class="student-analytics-metric-copy">
+
+              <strong>
+                ${
+                  escapeHtml(
+                    metric.title
+                  )
+                }
+              </strong>
+
+              <span>
+                ${
+                  escapeHtml(
+                    metric.description
+                  )
+                }
+              </span>
+
+            </div>
+
+            <span class="student-analytics-metric-value">
+              ${metric.value}%
+            </span>
+
+          </div>
+
+          <div
+            class="
+              student-analytics-progress-track
+              ${metric.className}
+            "
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="${metric.value}"
+          >
+            <span
+              style="width:${metric.value}%;"
+            ></span>
+          </div>
+
+        </article>
+      `)
+      .join("");
+
+
+  /* =======================================================
+     CLASS-BY-CLASS PROGRESS
+  ======================================================= */
+
+  if (!classRecords.length){
+
+    classContainer.innerHTML = `
+      <div class="student-analytics-empty">
+
+        <i
+          class="fa-solid fa-graduation-cap"
+          aria-hidden="true"
+        ></i>
+
+        <span>
+          Your class progress will appear after you enroll
+          in a class.
+        </span>
+
       </div>
+    `;
 
-      <p class="item-desc">
-        You have submitted ${getStudentSubmissions().length} out of ${getStudentAssignments().length} assignments.
-      </p>
-    </article>
+  }else{
 
-    <article class="progress-card">
-      <div class="item-head">
-        <div>
-          <h3 class="item-title">Teacher Feedback</h3>
-          <div class="item-sub">Reviewed work and grades</div>
+    classContainer.innerHTML =
+      classRecords
+        .map(item => {
+
+          const classTitle =
+            String(
+              item.classItem?.title ||
+              item.classItem?.name ||
+              item.classItem?.subject ||
+              "Class"
+            ).trim();
+
+          const teacherName =
+            String(
+              item.classItem?.teacherId?.name ||
+              item.classItem?.teacherName ||
+              "Teacher not assigned"
+            ).trim();
+
+          return `
+            <article class="student-class-progress-item">
+
+              <div class="student-class-progress-head">
+
+                <div class="student-class-progress-copy">
+
+                  <strong>
+                    ${
+                      escapeHtml(
+                        classTitle
+                      )
+                    }
+                  </strong>
+
+                  <span>
+                    ${
+                      escapeHtml(
+                        teacherName
+                      )
+                    }
+                  </span>
+
+                </div>
+
+                <span class="student-class-progress-score">
+                  ${item.overall}%
+                </span>
+
+              </div>
+
+              <div
+                class="student-analytics-progress-track"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="${item.overall}"
+              >
+                <span
+                  style="width:${item.overall}%;"
+                ></span>
+              </div>
+
+              <div class="student-class-progress-breakdown">
+
+                <div class="student-class-progress-stat">
+
+                  <span>
+                    Lessons
+                  </span>
+
+                  <strong>
+                    ${item.lessons.completed}/${item.lessons.total}
+                  </strong>
+
+                </div>
+
+                <div class="student-class-progress-stat">
+
+                  <span>
+                    Assignments
+                  </span>
+
+                  <strong>
+                    ${item.assignments.completed}/${item.assignments.total}
+                  </strong>
+
+                </div>
+
+                <div class="student-class-progress-stat">
+
+                  <span>
+                    Quizzes
+                  </span>
+
+                  <strong>
+                    ${item.quizzes.completed}/${item.quizzes.total}
+                  </strong>
+
+                </div>
+
+                <div class="student-class-progress-stat">
+
+                  <span>
+                    Attendance
+                  </span>
+
+                  <strong>
+                    ${item.attendance.percentage}%
+                  </strong>
+
+                </div>
+
+              </div>
+
+            </article>
+          `;
+        })
+        .join("");
+  }
+
+
+  /* =======================================================
+     RECENT TEACHER FEEDBACK
+  ======================================================= */
+
+  if (feedbackContainer){
+
+    const feedbackItems =
+      submissions
+        .filter(submission =>
+          String(
+            submission?.feedback ||
+            ""
+          ).trim()
+        )
+        .sort(
+          (
+            first,
+            second
+          ) =>
+            new Date(
+              second.reviewedAt ||
+              second.updatedAt ||
+              second.createdAt ||
+              0
+            ) -
+            new Date(
+              first.reviewedAt ||
+              first.updatedAt ||
+              first.createdAt ||
+              0
+            )
+        )
+        .slice(
+          0,
+          5
+        );
+
+    if (!feedbackItems.length){
+
+      feedbackContainer.innerHTML = `
+        <div class="student-analytics-empty compact">
+
+          <i
+            class="fa-regular fa-message"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            No teacher feedback yet.
+          </span>
+
         </div>
-        <span class="chip success">${reviewed.length} Reviewed</span>
-      </div>
+      `;
 
-      <p class="item-desc">
-        Your teacher feedback and grades will appear here after review.
-      </p>
-    </article>
+    }else{
 
-    <article class="progress-card">
-      <div class="item-head">
-        <div>
-          <h3 class="item-title">Overall Learning Score</h3>
-          <div class="item-sub">Completion, engagement, attendance, and productivity</div>
+      feedbackContainer.innerHTML =
+        feedbackItems
+          .map(submission => {
+
+            const assignmentTitle =
+              String(
+                submission?.assignmentId?.title ||
+                "Assignment review"
+              ).trim();
+
+            return `
+              <article class="student-analytics-feedback-item">
+
+                <strong>
+                  ${
+                    escapeHtml(
+                      assignmentTitle
+                    )
+                  }
+                </strong>
+
+                <p>
+                  ${
+                    escapeHtml(
+                      submission.feedback
+                    )
+                  }
+                </p>
+
+                <span>
+                  ${
+                    escapeHtml(
+                      formatDate(
+                        submission.reviewedAt ||
+                        submission.updatedAt ||
+                        submission.createdAt
+                      )
+                    )
+                  }
+                </span>
+
+              </article>
+            `;
+          })
+          .join("");
+    }
+  }
+
+
+  /* =======================================================
+     LEARNING WARNINGS
+  ======================================================= */
+
+  if (warningContainer){
+
+    const warnings =
+      [];
+
+    if (
+      assignments.length &&
+      assignmentCompletion < 60
+    ){
+      warnings.push({
+        icon:
+          "fa-solid fa-list-check",
+
+        title:
+          "Assignments need attention",
+
+        message:
+          `${assignments.length - submittedAssignmentCount} assignments remain unsubmitted.`
+      });
+    }
+
+    if (
+      totals.attendanceTotal &&
+      attendanceRate < 75
+    ){
+      warnings.push({
+        icon:
+          "fa-solid fa-calendar-xmark",
+
+        title:
+          "Attendance is below target",
+
+        message:
+          `${totals.attendanceAbsent} absence records have been recorded.`
+      });
+    }
+
+    if (
+      totals.lessonsTotal &&
+      lessonCompletion < 50
+    ){
+      warnings.push({
+        icon:
+          "fa-solid fa-book-open",
+
+        title:
+          "Lesson progress is low",
+
+        message:
+          `${totals.lessonsTotal - totals.lessonsCompleted} lessons are still incomplete.`
+      });
+    }
+
+    if (!warnings.length){
+
+      warningContainer.innerHTML = `
+        <div class="student-analytics-empty compact">
+
+          <i
+            class="fa-solid fa-circle-check"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            No urgent learning risks detected.
+          </span>
+
         </div>
-        <span class="chip warning">${state.metrics.overall}%</span>
-      </div>
+      `;
 
-      <p class="item-desc">
-        This score is calculated from real class activity and will become more accurate as you use the portal.
-      </p>
-    </article>
-  `;
+    }else{
+
+      warningContainer.innerHTML =
+        warnings
+          .map(warning => `
+            <article class="student-analytics-warning-item">
+
+              <span class="student-analytics-warning-icon">
+
+                <i
+                  class="${
+                    escapeHtml(
+                      warning.icon
+                    )
+                  }"
+                  aria-hidden="true"
+                ></i>
+
+              </span>
+
+              <div>
+
+                <strong>
+                  ${
+                    escapeHtml(
+                      warning.title
+                    )
+                  }
+                </strong>
+
+                <p>
+                  ${
+                    escapeHtml(
+                      warning.message
+                    )
+                  }
+                </p>
+
+              </div>
+
+            </article>
+          `)
+          .join("");
+    }
+  }
 }
 
 function renderAttendance(){
