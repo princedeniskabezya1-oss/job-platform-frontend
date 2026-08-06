@@ -21572,41 +21572,87 @@ $("studentResourcePreviewNextButton")
   );
 
 
-    $("studentResourceImagePreview")
-    ?.addEventListener(
-      "wheel",
-      event => {
+document.addEventListener(
+  "keydown",
+  event => {
 
-        if (
-          !event.ctrlKey ||
-          !studentResourcePreviewSupportsZoom()
-        ){
-          return;
-        }
+    const modal =
+      $("studentResourcePreviewModal");
 
+    if (
+      !modal ||
+      !modal.classList.contains("show")
+    ){
+      return;
+    }
+
+    if (
+      !studentResourcePreviewSupportsZoom()
+    ){
+      return;
+    }
+
+    if (
+      event.target instanceof HTMLElement &&
+      (
+        event.target.tagName === "INPUT" ||
+        event.target.tagName === "TEXTAREA" ||
+        event.target.isContentEditable
+      )
+    ){
+      return;
+    }
+
+    if (
+      event.ctrlKey ||
+      event.metaKey
+    ){
+
+      if (
+        event.key === "+" ||
+        event.key === "="
+      ){
 
         event.preventDefault();
 
-
-        const direction =
-          event.deltaY < 0
-            ? 1
-            : -1;
-
-
         setStudentResourcePreviewZoom(
           studentResourcePreviewZoom +
-          (
-            direction *
-            STUDENT_RESOURCE_PREVIEW_ZOOM_STEP
-          )
+          STUDENT_RESOURCE_PREVIEW_ZOOM_STEP
         );
 
-      },
-      {
-        passive:false
+        return;
+
       }
-    );
+
+      if (
+        event.key === "-"
+      ){
+
+        event.preventDefault();
+
+        setStudentResourcePreviewZoom(
+          studentResourcePreviewZoom -
+          STUDENT_RESOURCE_PREVIEW_ZOOM_STEP
+        );
+
+        return;
+
+      }
+
+      if (
+        event.key === "0"
+      ){
+
+        event.preventDefault();
+
+        fitStudentResourcePreview();
+
+      }
+
+    }
+
+  }
+);
 
   studentResourceControlsBound =
     true;
