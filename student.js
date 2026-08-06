@@ -17122,6 +17122,8 @@ function clearStudentResourceSelectedFile(){
 
 }
 
+
+
 function validateStudentResourceFile(
   file
 ){
@@ -17192,6 +17194,157 @@ function validateStudentResourceFile(
     valid:true,
     message:""
   };
+
+}
+
+/* =========================================================
+   RESOURCE FILE TYPE HELPERS
+========================================================= */
+
+function getStudentResourceType({
+  mimeType = "",
+  originalName = ""
+} = {}){
+
+  const type =
+    String(mimeType)
+      .toLowerCase();
+
+  const name =
+    String(originalName)
+      .toLowerCase();
+
+
+  if (type.startsWith("image/")){
+    return "image";
+  }
+
+  if (type.startsWith("video/")){
+    return "video";
+  }
+
+  if (type.startsWith("audio/")){
+    return "audio";
+  }
+
+  if (
+    type === "application/pdf" ||
+    name.endsWith(".pdf")
+  ){
+    return "pdf";
+  }
+
+  if (
+    type.includes("word") ||
+    name.endsWith(".doc") ||
+    name.endsWith(".docx")
+  ){
+    return "document";
+  }
+
+  if (
+    type.includes("presentation") ||
+    name.endsWith(".ppt") ||
+    name.endsWith(".pptx")
+  ){
+    return "presentation";
+  }
+
+  if (
+    type.includes("excel") ||
+    type.includes("spreadsheet") ||
+    name.endsWith(".xls") ||
+    name.endsWith(".xlsx")
+  ){
+    return "spreadsheet";
+  }
+
+  if (
+    type.startsWith("text/") ||
+    name.endsWith(".txt") ||
+    name.endsWith(".csv")
+  ){
+    return "text";
+  }
+
+  return "file";
+}
+
+
+
+function getStudentResourceTypeLabel(
+  type
+){
+
+  switch(type){
+
+    case "image":
+      return "Image";
+
+    case "video":
+      return "Video";
+
+    case "audio":
+      return "Audio";
+
+    case "pdf":
+      return "PDF";
+
+    case "document":
+      return "Document";
+
+    case "presentation":
+      return "Presentation";
+
+    case "spreadsheet":
+      return "Spreadsheet";
+
+    case "text":
+      return "Text";
+
+    default:
+      return "File";
+
+  }
+
+}
+
+
+
+function getStudentResourceIcon(
+  type
+){
+
+  switch(type){
+
+    case "image":
+      return "fa-solid fa-image";
+
+    case "video":
+      return "fa-solid fa-video";
+
+    case "audio":
+      return "fa-solid fa-music";
+
+    case "pdf":
+      return "fa-solid fa-file-pdf";
+
+    case "document":
+      return "fa-solid fa-file-word";
+
+    case "presentation":
+      return "fa-solid fa-file-powerpoint";
+
+    case "spreadsheet":
+      return "fa-solid fa-file-excel";
+
+    case "text":
+      return "fa-solid fa-file-lines";
+
+    default:
+      return "fa-solid fa-file";
+
+  }
 
 }
 function selectStudentResourceFile(
