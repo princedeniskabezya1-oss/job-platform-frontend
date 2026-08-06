@@ -49,6 +49,8 @@ const state = {
   schoolUpdates:[],
   teachers:[],
 
+  studentResources:[],
+
   /*
     Student-specific progress returned by:
 
@@ -110,15 +112,47 @@ async function safeJson(res){
 }
 
 function asArray(value){
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.items)) return value.items;
-  if (Array.isArray(value?.users)) return value.users;
-  if (Array.isArray(value?.classes)) return value.classes;
-  if (Array.isArray(value?.assignments)) return value.assignments;
-  if (Array.isArray(value?.submissions)) return value.submissions;
-  if (Array.isArray(value?.schedules)) return value.schedules;
-  if (Array.isArray(value?.posts)) return value.posts;
+
+  if (Array.isArray(value)){
+    return value;
+  }
+
+  if (Array.isArray(value?.data)){
+    return value.data;
+  }
+
+  if (Array.isArray(value?.items)){
+    return value.items;
+  }
+
+  if (Array.isArray(value?.users)){
+    return value.users;
+  }
+
+  if (Array.isArray(value?.classes)){
+    return value.classes;
+  }
+
+  if (Array.isArray(value?.assignments)){
+    return value.assignments;
+  }
+
+  if (Array.isArray(value?.submissions)){
+    return value.submissions;
+  }
+
+  if (Array.isArray(value?.schedules)){
+    return value.schedules;
+  }
+
+  if (Array.isArray(value?.posts)){
+    return value.posts;
+  }
+
+  if (Array.isArray(value?.resources)){
+    return value.resources;
+  }
+
   return [];
 }
 
@@ -2658,15 +2692,76 @@ const [
   schedules,
   posts,
   schoolUpdates,
+  studentResources,
   unread
 ] = await Promise.all([
-      apiGet(`/api/classes?schoolId=${encodeURIComponent(schoolId)}`, []),
-      apiGet(`/api/assignments?schoolId=${encodeURIComponent(schoolId)}`, []),
-      apiGet(`/api/submissions?schoolId=${encodeURIComponent(schoolId)}&studentId=${encodeURIComponent(studentId)}`, []),
-      apiGet(`/api/schedules?schoolId=${encodeURIComponent(schoolId)}`, []),
-apiGet("/api/posts", []),
-apiGet(`/api/school-updates?schoolId=${encodeURIComponent(schoolId)}`, []),
-apiGet("/api/notifications/unread-count", { count:0 })
+      apiGet(
+        `/api/classes?schoolId=${
+          encodeURIComponent(
+            schoolId
+          )
+        }`,
+        []
+      ),
+
+      apiGet(
+        `/api/assignments?schoolId=${
+          encodeURIComponent(
+            schoolId
+          )
+        }`,
+        []
+      ),
+
+      apiGet(
+        `/api/submissions?schoolId=${
+          encodeURIComponent(
+            schoolId
+          )
+        }&studentId=${
+          encodeURIComponent(
+            studentId
+          )
+        }`,
+        []
+      ),
+
+      apiGet(
+        `/api/schedules?schoolId=${
+          encodeURIComponent(
+            schoolId
+          )
+        }`,
+        []
+      ),
+
+      apiGet(
+        "/api/posts",
+        []
+      ),
+
+      apiGet(
+        `/api/school-updates?schoolId=${
+          encodeURIComponent(
+            schoolId
+          )
+        }`,
+        []
+      ),
+
+      apiGet(
+        "/api/student-resources",
+        {
+          resources:[]
+        }
+      ),
+
+      apiGet(
+        "/api/notifications/unread-count",
+        {
+          count:0
+        }
+      )
     ]);
 
     state.classes =
@@ -2685,7 +2780,14 @@ apiGet("/api/notifications/unread-count", { count:0 })
       asArray(posts);
 
     state.schoolUpdates =
-      asArray(schoolUpdates);
+      asArray(
+        schoolUpdates
+      );
+
+    state.studentResources =
+      asArray(
+        studentResources
+      );
 
     state.unread =
       Number(
@@ -15552,7 +15654,71 @@ function buildStudentResources(){
     });
 
   };
+  /* =======================================================
+     PERSONAL STUDENT RESOURCES
+  ======================================================= */
 
+  asArray(
+    state.studentResources
+  )
+    .forEach(resource => {
+
+      addResource({
+        id:
+          resource?._id ||
+          resource?.id,
+
+        title:
+          resource?.title ||
+          resource?.originalName ||
+          "Personal learning resource",
+
+        description:
+          resource?.description ||
+          "",
+
+        url:
+          resource?.secureUrl ||
+          resource?.url,
+
+        originalName:
+          resource?.originalName,
+
+        mimeType:
+          resource?.mimeType,
+
+        type:
+          resource?.attachmentType ||
+          "note",
+
+        classId:
+          resource?.classId?._id ||
+          resource?.classId,
+
+        className:
+          resource?.classId?.title ||
+          resource?.classId?.name ||
+          resource?.classId?.subject ||
+          "My notes",
+
+        source:
+          "My notes",
+
+        createdAt:
+          resource?.uploadedAt ||
+          resource?.createdAt,
+
+        thumbnail:
+          resource?.attachmentType ===
+            "image"
+            ? (
+                resource?.secureUrl ||
+                resource?.url
+              )
+            : ""
+      });
+
+    });
 
   /* =======================================================
      CLASS RESOURCES
