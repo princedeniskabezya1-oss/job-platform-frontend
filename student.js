@@ -2193,6 +2193,8 @@ bindStudentAnalyticsControls();
 
 bindStudentResourceControls();
 
+bindStudentResourceUploadControls();
+
 bindStudentStudioQuickActions();
 
 bindStudentProfileActions();
@@ -16900,6 +16902,1563 @@ function resetStudentResourceFilters(){
 
 }
 
+
+/* =========================================================
+   STUDENT RESOURCE UPLOAD CONTROLLER
+========================================================= */
+
+const MAX_STUDENT_RESOURCE_FILE_SIZE =
+  20 * 1024 * 1024;
+
+
+const ALLOWED_STUDENT_RESOURCE_MIME_TYPES =
+  new Set([
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+
+    "application/pdf",
+
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+    "text/plain",
+    "text/csv"
+  ]);
+
+
+let studentResourceSelectedFile =
+  null;
+
+let studentResourceUploadInProgress =
+  false;
+
+let studentResourceUploadControlsBound =
+  false;
+
+function formatStudentResourceFileSize(
+  bytes
+){
+
+  const size =
+    Math.max(
+      0,
+      Number(bytes) ||
+      0
+    );
+
+
+  if (size < 1024){
+    return `${size} B`;
+  }
+
+
+  if (
+    size <
+    1024 * 1024
+  ){
+    return `${
+      (
+        size /
+        1024
+      ).toFixed(1)
+    } KB`;
+  }
+
+
+  return `${
+    (
+      size /
+      (
+        1024 *
+        1024
+      )
+    ).toFixed(1)
+  } MB`;
+
+}
+function setStudentResourceUploadMessage(
+  message = "",
+  type = "error"
+){
+
+  const messageElement =
+    $("studentResourceUploadMessage");
+
+
+  if (!messageElement){
+    return;
+  }
+
+
+  const cleanMessage =
+    String(
+      message ||
+      ""
+    ).trim();
+
+
+  messageElement.hidden =
+    !cleanMessage;
+
+
+  messageElement.textContent =
+    cleanMessage;
+
+
+  messageElement.classList.toggle(
+    "success",
+    type === "success"
+  );
+
+}
+
+function setStudentResourceUploadProgress({
+  visible = false,
+  percentage = 0,
+  label = "Uploading resource..."
+} = {}){
+
+  const container =
+    $("studentResourceUploadProgress");
+
+  const progressBar =
+    $("studentResourceUploadProgressBar");
+
+  const progressValue =
+    $("studentResourceUploadProgressValue");
+
+  const progressLabel =
+    $("studentResourceUploadProgressLabel");
+
+
+  const safePercentage =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          Number(percentage) ||
+          0
+        )
+      )
+    );
+
+
+  if (container){
+    container.hidden =
+      !visible;
+  }
+
+
+  if (progressBar){
+    progressBar.style.width =
+      `${safePercentage}%`;
+  }
+
+
+  if (progressValue){
+    progressValue.textContent =
+      `${safePercentage}%`;
+  }
+
+
+  if (progressLabel){
+    progressLabel.textContent =
+      String(
+        label ||
+        "Uploading resource..."
+      );
+  }
+
+}
+
+function clearStudentResourceSelectedFile(){
+
+  studentResourceSelectedFile =
+    null;
+
+
+  const fileInput =
+    $("studentResourceFileInput");
+
+  const selectedFilePanel =
+    $("studentResourceSelectedFile");
+
+  const submitButton =
+    $("submitStudentResourceUploadButton");
+
+
+  if (fileInput){
+    fileInput.value = "";
+  }
+
+
+  if (selectedFilePanel){
+    selectedFilePanel.hidden =
+      true;
+  }
+
+
+  if (submitButton){
+    submitButton.disabled =
+      true;
+  }
+
+
+  setStudentResourceUploadMessage("");
+
+  setStudentResourceUploadProgress({
+    visible:false,
+    percentage:0
+  });
+
+}
+
+function validateStudentResourceFile(
+  file
+){
+
+  if (!file){
+
+    return {
+      valid:false,
+      message:
+        "Please select a learning resource file."
+    };
+
+  }
+
+
+  const mimeType =
+    String(
+      file.type ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if (
+    !ALLOWED_STUDENT_RESOURCE_MIME_TYPES.has(
+      mimeType
+    )
+  ){
+
+    return {
+      valid:false,
+      message:
+        "The selected file must be an image, PDF, Word, PowerPoint, Excel, TXT, or CSV file."
+    };
+
+  }
+
+
+  if (
+    Number(file.size) >
+    MAX_STUDENT_RESOURCE_FILE_SIZE
+  ){
+
+    return {
+      valid:false,
+      message:
+        "The selected file is larger than the 20 MB upload limit."
+    };
+
+  }
+
+
+  if (
+    Number(file.size) <= 0
+  ){
+
+    return {
+      valid:false,
+      message:
+        "The selected file appears to be empty."
+    };
+
+  }
+
+
+  return {
+    valid:true,
+    message:""
+  };
+
+}
+function selectStudentResourceFile(
+  file
+){
+
+  const validation =
+    validateStudentResourceFile(
+      file
+    );
+
+
+  if (!validation.valid){
+
+    clearStudentResourceSelectedFile();
+
+    setStudentResourceUploadMessage(
+      validation.message
+    );
+
+    notifyAIFTWarning(
+      validation.message,
+      {
+        title:
+          "File not accepted"
+      }
+    );
+
+    return;
+  }
+
+
+  studentResourceSelectedFile =
+    file;
+
+
+  const selectedFilePanel =
+    $("studentResourceSelectedFile");
+
+  const selectedFileName =
+    $("studentResourceSelectedFileName");
+
+  const selectedFileDetails =
+    $("studentResourceSelectedFileDetails");
+
+  const selectedFileIcon =
+    $("studentResourceSelectedFileIcon");
+
+  const titleInput =
+    $("studentResourceTitleInput");
+
+  const submitButton =
+    $("submitStudentResourceUploadButton");
+
+
+  const resourceType =
+    getStudentResourceType({
+      mimeType:
+        file.type,
+
+      originalName:
+        file.name
+    });
+
+
+  if (selectedFilePanel){
+    selectedFilePanel.hidden =
+      false;
+  }
+
+
+  if (selectedFileName){
+    selectedFileName.textContent =
+      file.name ||
+      "Selected resource";
+  }
+
+
+  if (selectedFileDetails){
+
+    selectedFileDetails.textContent =
+      [
+        getStudentResourceTypeLabel(
+          resourceType
+        ),
+
+        formatStudentResourceFileSize(
+          file.size
+        )
+      ].join(" • ");
+
+  }
+
+
+  if (selectedFileIcon){
+
+    selectedFileIcon.className =
+      getStudentResourceIcon(
+        resourceType
+      );
+
+  }
+
+
+  if (
+    titleInput &&
+    !titleInput.value.trim()
+  ){
+
+    titleInput.value =
+      String(
+        file.name ||
+        "Learning resource"
+      )
+        .replace(
+          /\.[^.]+$/,
+          ""
+        )
+        .replace(
+          /[_-]+/g,
+          " "
+        )
+        .trim();
+
+  }
+
+
+  if (submitButton){
+    submitButton.disabled =
+      false;
+  }
+
+
+  setStudentResourceUploadMessage("");
+
+}
+
+function hydrateStudentResourceUploadClassSelect(){
+
+  const select =
+    $("studentResourceClassInput");
+
+
+  if (!select){
+    return;
+  }
+
+
+  const previousValue =
+    String(
+      select.value ||
+      ""
+    );
+
+
+  const classes =
+    getStudentClasses()
+      .map(classItem => ({
+        id:
+          normalizeId(
+            classItem?._id ||
+            classItem?.id
+          ),
+
+        title:
+          String(
+            classItem?.title ||
+            classItem?.name ||
+            classItem?.subject ||
+            "Class"
+          ).trim()
+      }))
+      .filter(classItem =>
+        classItem.id
+      )
+      .sort(
+        (
+          first,
+          second
+        ) =>
+          first.title.localeCompare(
+            second.title
+          )
+      );
+
+
+  select.innerHTML = `
+    <option value="">
+      General notes
+    </option>
+
+    ${
+      classes
+        .map(classItem => `
+          <option
+            value="${
+              escapeHtml(
+                classItem.id
+              )
+            }"
+          >
+            ${
+              escapeHtml(
+                classItem.title
+              )
+            }
+          </option>
+        `)
+        .join("")
+    }
+  `;
+
+
+  if (
+    previousValue &&
+    classes.some(classItem =>
+      sameId(
+        classItem.id,
+        previousValue
+      )
+    )
+  ){
+
+    select.value =
+      previousValue;
+
+  }
+
+}
+function resetStudentResourceUploadForm(){
+
+  const form =
+    $("studentResourceUploadForm");
+
+  form?.reset();
+
+
+  clearStudentResourceSelectedFile();
+
+
+  const categoryInput =
+    $("studentResourceCategoryInput");
+
+  if (categoryInput){
+    categoryInput.value =
+      "note";
+  }
+
+
+  setStudentResourceUploadMessage("");
+
+  setStudentResourceUploadProgress({
+    visible:false,
+    percentage:0
+  });
+
+}
+
+function openStudentResourceUploadModal(){
+
+  hydrateStudentResourceUploadClassSelect();
+
+  resetStudentResourceUploadForm();
+
+
+  const resourceClassFilter =
+    $("resourceClassFilter");
+
+  const uploadClassInput =
+    $("studentResourceClassInput");
+
+
+  if (
+    resourceClassFilter?.value &&
+    uploadClassInput
+  ){
+
+    const optionExists =
+      Array.from(
+        uploadClassInput.options
+      )
+        .some(option =>
+          sameId(
+            option.value,
+            resourceClassFilter.value
+          )
+        );
+
+
+    if (optionExists){
+
+      uploadClassInput.value =
+        resourceClassFilter.value;
+
+    }
+
+  }
+
+
+  openModal(
+    "studentResourceUploadModal"
+  );
+
+
+  window.setTimeout(
+    () => {
+
+      $("studentResourceDropZone")
+        ?.focus();
+
+    },
+    80
+  );
+
+}
+
+function closeStudentResourceUploadModal(){
+
+  if (studentResourceUploadInProgress){
+
+    notifyAIFTWarning(
+      "Please wait until the current upload is complete.",
+      {
+        title:
+          "Upload in progress"
+      }
+    );
+
+    return;
+  }
+
+
+  closeModal(
+    "studentResourceUploadModal"
+  );
+
+
+  resetStudentResourceUploadForm();
+
+}
+/* =========================================================
+   UPLOAD STUDENT RESOURCE FILE
+========================================================= */
+
+function uploadStudentResourceFile(
+  file,
+  onProgress
+){
+
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+
+      const request =
+        new XMLHttpRequest();
+
+      const formData =
+        new FormData();
+
+
+      formData.append(
+        "resource",
+        file
+      );
+
+
+      request.open(
+        "POST",
+        API +
+          "/api/uploads/student-resource",
+        true
+      );
+
+
+      request.setRequestHeader(
+        "Authorization",
+        "Bearer " + token
+      );
+
+
+      request.upload.addEventListener(
+        "progress",
+        event => {
+
+          if (
+            !event.lengthComputable
+          ){
+            return;
+          }
+
+
+          const percentage =
+            Math.round(
+              (
+                event.loaded /
+                event.total
+              ) *
+              75
+            );
+
+
+          if (
+            typeof onProgress ===
+            "function"
+          ){
+
+            onProgress(
+              Math.max(
+                1,
+                Math.min(
+                  75,
+                  percentage
+                )
+              )
+            );
+
+          }
+
+        }
+      );
+
+
+      request.addEventListener(
+        "load",
+        () => {
+
+          let response =
+            null;
+
+
+          try{
+
+            response =
+              JSON.parse(
+                request.responseText ||
+                "{}"
+              );
+
+          }catch(error){
+
+            reject(
+              new Error(
+                "The upload server returned an invalid response."
+              )
+            );
+
+            return;
+
+          }
+
+
+          if (
+            request.status < 200 ||
+            request.status >= 300
+          ){
+
+            reject(
+              new Error(
+                response?.message ||
+                "The selected resource could not be uploaded."
+              )
+            );
+
+            return;
+
+          }
+
+
+          resolve(
+            response
+          );
+
+        }
+      );
+
+
+      request.addEventListener(
+        "error",
+        () => {
+
+          reject(
+            new Error(
+              "A network error stopped the resource upload."
+            )
+          );
+
+        }
+      );
+
+
+      request.addEventListener(
+        "abort",
+        () => {
+
+          reject(
+            new Error(
+              "The resource upload was cancelled."
+            )
+          );
+
+        }
+      );
+
+
+      request.send(
+        formData
+      );
+
+    }
+  );
+
+}
+/* =========================================================
+   SAVE STUDENT RESOURCE RECORD
+========================================================= */
+
+async function saveStudentResourceRecord(
+  uploadedFile
+){
+
+  const title =
+    String(
+      $("studentResourceTitleInput")
+        ?.value ||
+      uploadedFile?.originalName ||
+      "Learning resource"
+    ).trim();
+
+
+  const description =
+    String(
+      $("studentResourceDescriptionInput")
+        ?.value ||
+      ""
+    ).trim();
+
+
+  const classId =
+    String(
+      $("studentResourceClassInput")
+        ?.value ||
+      ""
+    ).trim();
+
+
+  const category =
+    String(
+      $("studentResourceCategoryInput")
+        ?.value ||
+      "note"
+    )
+      .trim()
+      .toLowerCase();
+
+
+  const tags =
+    String(
+      $("studentResourceTagsInput")
+        ?.value ||
+      ""
+    )
+      .split(",")
+      .map(tag =>
+        tag
+          .trim()
+          .toLowerCase()
+      )
+      .filter(Boolean)
+      .slice(
+        0,
+        20
+      );
+
+
+  return apiSend(
+    "/api/student-resources",
+    "POST",
+    {
+      title,
+
+      description,
+
+      classId:
+        classId ||
+        null,
+
+      category,
+
+      tags,
+
+      url:
+        uploadedFile?.secureUrl ||
+        uploadedFile?.url,
+
+      secureUrl:
+        uploadedFile?.secureUrl ||
+        uploadedFile?.url,
+
+      publicId:
+        uploadedFile?.publicId ||
+        "",
+
+      originalName:
+        uploadedFile?.originalName ||
+        studentResourceSelectedFile?.name ||
+        title,
+
+      mimeType:
+        uploadedFile?.mimeType ||
+        studentResourceSelectedFile?.type ||
+        "application/octet-stream",
+
+      attachmentType:
+        uploadedFile?.attachmentType ||
+        getStudentResourceType({
+          mimeType:
+            uploadedFile?.mimeType ||
+            studentResourceSelectedFile?.type,
+
+          originalName:
+            uploadedFile?.originalName ||
+            studentResourceSelectedFile?.name
+        }),
+
+      resourceType:
+        uploadedFile?.resourceType ||
+        "raw",
+
+      size:
+        Number(
+          uploadedFile?.bytes ||
+          studentResourceSelectedFile?.size ||
+          0
+        ),
+
+      format:
+        uploadedFile?.format ||
+        "",
+
+      width:
+        uploadedFile?.width ??
+        null,
+
+      height:
+        uploadedFile?.height ??
+        null
+    }
+  );
+
+}
+/* =========================================================
+   SUBMIT STUDENT RESOURCE UPLOAD
+========================================================= */
+
+async function submitStudentResourceUpload(){
+
+  if (
+    studentResourceUploadInProgress
+  ){
+    return;
+  }
+
+
+  const file =
+    studentResourceSelectedFile;
+
+
+  const validation =
+    validateStudentResourceFile(
+      file
+    );
+
+
+  if (!validation.valid){
+
+    setStudentResourceUploadMessage(
+      validation.message
+    );
+
+    return;
+
+  }
+
+
+  const titleInput =
+    $("studentResourceTitleInput");
+
+
+  const title =
+    String(
+      titleInput?.value ||
+      ""
+    ).trim();
+
+
+  if (!title){
+
+    setStudentResourceUploadMessage(
+      "Please enter a title for this resource."
+    );
+
+
+    titleInput?.focus();
+
+    return;
+
+  }
+
+
+  const submitButton =
+    $("submitStudentResourceUploadButton");
+
+  const cancelButton =
+    $("cancelStudentResourceUploadButton");
+
+  const closeButton =
+    $("closeStudentResourceUploadModalButton");
+
+  const removeButton =
+    $("removeStudentResourceFileButton");
+
+
+  studentResourceUploadInProgress =
+    true;
+
+
+  setStudentResourceUploadMessage("");
+
+
+  setStudentResourceUploadProgress({
+    visible:
+      true,
+
+    percentage:
+      1,
+
+    label:
+      "Uploading file..."
+  });
+
+
+  setDashboardButtonLoading(
+    submitButton,
+    true,
+    "Uploading..."
+  );
+
+
+  cancelButton?.setAttribute(
+    "disabled",
+    ""
+  );
+
+  closeButton?.setAttribute(
+    "disabled",
+    ""
+  );
+
+  removeButton?.setAttribute(
+    "disabled",
+    ""
+  );
+
+
+  try{
+
+    /*
+      Stage 1:
+      Upload the original file to Cloudinary.
+    */
+
+    const uploadedFile =
+      await uploadStudentResourceFile(
+        file,
+        percentage => {
+
+          setStudentResourceUploadProgress({
+            visible:
+              true,
+
+            percentage,
+
+            label:
+              "Uploading file..."
+          });
+
+        }
+      );
+
+
+    if (
+      !uploadedFile?.url &&
+      !uploadedFile?.secureUrl
+    ){
+
+      throw new Error(
+        "The upload completed without a usable file URL."
+      );
+
+    }
+
+
+    /*
+      Stage 2:
+      Save the file information in MongoDB.
+    */
+
+    setStudentResourceUploadProgress({
+      visible:
+        true,
+
+      percentage:
+        82,
+
+      label:
+        "Saving resource..."
+    });
+
+
+    const savedResponse =
+      await saveStudentResourceRecord(
+        uploadedFile
+      );
+
+
+    const savedResource =
+      savedResponse?.resource ||
+      savedResponse?.data ||
+      null;
+
+
+    if (!savedResource){
+
+      throw new Error(
+        "The resource was uploaded, but its database record could not be confirmed."
+      );
+
+    }
+
+
+    /*
+      Update local state immediately without waiting for a
+      complete Student Studio reload.
+    */
+
+    state.studentResources =
+      asArray(
+        state.studentResources
+      )
+        .filter(resource =>
+          !sameId(
+            resource?._id ||
+            resource?.id,
+
+            savedResource?._id ||
+            savedResource?.id
+          )
+        );
+
+
+    state.studentResources.unshift(
+      savedResource
+    );
+
+
+    setStudentResourceUploadProgress({
+      visible:
+        true,
+
+      percentage:
+        100,
+
+      label:
+        "Resource saved"
+    });
+
+
+    hydrateStudentResourceClassFilter();
+
+    renderResources();
+
+
+    setStudentResourceUploadMessage(
+      "Your learning resource was uploaded successfully.",
+      "success"
+    );
+
+
+    notifyAIFTSuccess(
+      "Your personal learning resource is now available in Resources.",
+      {
+        title:
+          "Resource uploaded"
+      }
+    );
+
+
+    window.setTimeout(
+      () => {
+
+        closeModal(
+          "studentResourceUploadModal"
+        );
+
+        resetStudentResourceUploadForm();
+
+      },
+      650
+    );
+
+  }catch(error){
+
+    console.error(
+      "Student resource submission failed:",
+      error
+    );
+
+
+    setStudentResourceUploadMessage(
+      error?.message ||
+      "AIFT could not upload this learning resource."
+    );
+
+
+    notifyAIFTError(
+      error?.message ||
+      "AIFT could not upload this learning resource.",
+      {
+        title:
+          "Upload failed"
+      }
+    );
+
+  }finally{
+
+    studentResourceUploadInProgress =
+      false;
+
+
+    setDashboardButtonLoading(
+      submitButton,
+      false
+    );
+
+
+    cancelButton?.removeAttribute(
+      "disabled"
+    );
+
+    closeButton?.removeAttribute(
+      "disabled"
+    );
+
+    removeButton?.removeAttribute(
+      "disabled"
+    );
+
+
+    if (submitButton){
+
+      submitButton.disabled =
+        !studentResourceSelectedFile;
+
+    }
+
+  }
+
+}
+
+
+
+function bindStudentResourceUploadControls(){
+
+  if (
+    studentResourceUploadControlsBound
+  ){
+    return;
+  }
+
+
+  const modal =
+    $("studentResourceUploadModal");
+
+  const form =
+    $("studentResourceUploadForm");
+
+  const dropZone =
+    $("studentResourceDropZone");
+
+  const fileInput =
+    $("studentResourceFileInput");
+
+  const browseButton =
+    $("studentResourceBrowseButton");
+
+  const removeButton =
+    $("removeStudentResourceFileButton");
+
+  const closeButton =
+    $("closeStudentResourceUploadModalButton");
+
+  const cancelButton =
+    $("cancelStudentResourceUploadButton");
+
+  const submitButton =
+    $("submitStudentResourceUploadButton");
+
+
+  if (
+    !modal ||
+    !form ||
+    !dropZone ||
+    !fileInput
+  ){
+    return;
+  }
+
+
+  browseButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      event.stopPropagation();
+
+      fileInput.click();
+
+    }
+  );
+
+
+  dropZone.addEventListener(
+    "click",
+    event => {
+
+      if (
+        event.target.closest(
+          "#studentResourceBrowseButton"
+        )
+      ){
+        return;
+      }
+
+      fileInput.click();
+
+    }
+  );
+
+
+  dropZone.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key === "Enter" ||
+        event.key === " "
+      ){
+
+        event.preventDefault();
+
+        fileInput.click();
+
+      }
+
+    }
+  );
+
+
+  fileInput.addEventListener(
+    "change",
+    () => {
+
+      selectStudentResourceFile(
+        fileInput.files?.[0] ||
+        null
+      );
+
+    }
+  );
+
+
+  [
+    "dragenter",
+    "dragover"
+  ].forEach(eventName => {
+
+    dropZone.addEventListener(
+      eventName,
+      event => {
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        dropZone.classList.add(
+          "dragover"
+        );
+
+      }
+    );
+
+  });
+
+
+  [
+    "dragleave",
+    "drop"
+  ].forEach(eventName => {
+
+    dropZone.addEventListener(
+      eventName,
+      event => {
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        dropZone.classList.remove(
+          "dragover"
+        );
+
+      }
+    );
+
+  });
+
+
+  dropZone.addEventListener(
+    "drop",
+    event => {
+
+      const file =
+        event.dataTransfer
+          ?.files?.[0] ||
+        null;
+
+
+      if (file){
+
+        selectStudentResourceFile(
+          file
+        );
+
+      }
+
+    }
+  );
+
+
+  removeButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      clearStudentResourceSelectedFile();
+
+      dropZone.focus();
+
+    }
+  );
+
+
+  closeButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      closeStudentResourceUploadModal();
+
+    }
+  );
+
+
+  cancelButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      closeStudentResourceUploadModal();
+
+    }
+  );
+
+
+  form.addEventListener(
+    "submit",
+    event => {
+
+      event.preventDefault();
+
+      submitStudentResourceUpload();
+
+    }
+  );
+
+
+  submitButton?.addEventListener(
+    "click",
+    event => {
+
+      /*
+        The button belongs to the form through its form
+        attribute. This guard prevents accidental duplicate
+        submission in older browsers.
+      */
+
+      if (
+        studentResourceUploadInProgress
+      ){
+
+        event.preventDefault();
+
+      }
+
+    }
+  );
+
+
+  modal.addEventListener(
+    "click",
+    event => {
+
+      if (
+        event.target === modal
+      ){
+
+        closeStudentResourceUploadModal();
+
+      }
+
+    }
+  );
+
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key !== "Escape" ||
+        !modal.classList.contains(
+          "show"
+        )
+      ){
+        return;
+      }
+
+
+      event.preventDefault();
+
+      closeStudentResourceUploadModal();
+
+    }
+  );
+
+
+  studentResourceUploadControlsBound =
+    true;
+
+}
+
 /* =========================================================
    BIND RESOURCE CENTER CONTROLS
 ========================================================= */
@@ -17211,14 +18770,9 @@ function bindStudentResourceControls(){
 
       event?.preventDefault();
 
+      bindStudentResourceUploadControls();
 
-      notifyAIFTInfo(
-        "Personal note uploads will be connected in the next Resources step.",
-        {
-          title:
-            "Upload notes"
-        }
-      );
+      openStudentResourceUploadModal();
 
     };
 
