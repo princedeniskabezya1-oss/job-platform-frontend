@@ -19977,40 +19977,6 @@ function bindStudentResourceControls(){
 
       renderResources();
 
-        return;
-
-      }
-
-
-      if (
-        category ===
-        "document"
-      ){
-
-        typeFilter.value =
-          "document";
-
-      }else if (
-        category ===
-        "video"
-      ){
-
-        typeFilter.value =
-          "video";
-
-      }else if (
-        category ===
-        "link"
-      ){
-
-        typeFilter.value =
-          "link";
-
-      }
-
-
-      renderResources();
-
     }
   );
 
