@@ -17721,53 +17721,60 @@ function renderStudentResourcePreview(
 
       if (image){
 
-        image.onload =
-          () => {
+const finishImageLoad = () => {
 
-            showStudentResourcePreviewLoading(
-              false
-            );
+  showStudentResourcePreviewLoading(
+    false
+  );
 
-            fitStudentResourcePreview();
+  requestAnimationFrame(() => {
 
-          };
+    fitStudentResourcePreview();
 
+  });
 
-        image.onerror =
-          () => {
+};
 
-            panel.hidden =
-              true;
+image.onload = finishImageLoad;
 
-            const errorPanel =
-              $("studentResourcePreviewError");
+image.onerror = () => {
 
-            const errorMessage =
-              $("studentResourcePreviewErrorMessage");
+  panel.hidden = true;
 
+  showStudentResourcePreviewLoading(
+    false
+  );
 
-            if (errorPanel){
-              errorPanel.hidden =
-                false;
-            }
+  const errorPanel =
+    $("studentResourcePreviewError");
 
+  const errorMessage =
+    $("studentResourcePreviewErrorMessage");
 
-            if (errorMessage){
+  if (errorPanel){
+    errorPanel.hidden = false;
+  }
 
-              errorMessage.textContent =
-                "The image could not be loaded.";
+  if (errorMessage){
+    errorMessage.textContent =
+      "The image could not be loaded.";
+  }
 
-            }
+};
 
-          };
+image.src = url;
 
+image.alt =
+  resource.title ||
+  "Learning resource image";
 
-        image.src =
-          url;
-
-        image.alt =
-          resource.title ||
-          "Learning resource image";
+/* Cached images */
+if (
+  image.complete &&
+  image.naturalWidth > 0
+){
+  finishImageLoad();
+}
 
       }
 
