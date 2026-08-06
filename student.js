@@ -51,6 +51,8 @@ const state = {
 
   studentResources:[],
 
+  certificates:[],
+
   /*
     Student-specific progress returned by:
 
@@ -151,6 +153,10 @@ function asArray(value){
 
   if (Array.isArray(value?.resources)){
     return value.resources;
+  }
+
+  if (Array.isArray(value?.certificates)){
+    return value.certificates;
   }
 
   return [];
@@ -2722,6 +2728,7 @@ const [
   posts,
   schoolUpdates,
   studentResources,
+  certificates,
   unread
 ] = await Promise.all([
       apiGet(
@@ -2786,6 +2793,13 @@ const [
       ),
 
       apiGet(
+        "/api/certificates/my",
+        {
+          certificates:[]
+        }
+      ),
+
+      apiGet(
         "/api/notifications/unread-count",
         {
           count:0
@@ -2816,6 +2830,11 @@ const [
     state.studentResources =
       asArray(
         studentResources
+      );
+
+    state.certificates =
+      asArray(
+        certificates
       );
 
     state.unread =
@@ -2851,6 +2870,13 @@ renderStats();
 renderBadges();
 
 hydrateSubmissionSelect();
+
+if (
+  activeStudentStudioPage ===
+  "certificates"
+){
+  renderStudentCertificates();
+}
 
 renderStudioHome();
 
@@ -7237,6 +7263,160 @@ function bindStudentCertificateControls(){
     }
   );
 
+    $("refreshStudentCertificatesButton")
+    ?.addEventListener(
+      "click",
+      async event => {
+
+        event.preventDefault();
+
+        const button =
+          $("refreshStudentCertificatesButton");
+
+        const loadingState =
+          $("studentCertificatesLoadingState");
+
+        const errorState =
+          $("studentCertificatesErrorState");
+
+        const emptyState =
+          $("studentCertificatesEmptyState");
+
+        const grid =
+          $("studentCertificateGrid");
+
+
+        setDashboardButtonLoading(
+          button,
+          true,
+          "Refreshing..."
+        );
+
+
+        if (loadingState){
+          loadingState.hidden =
+            false;
+        }
+
+        if (errorState){
+          errorState.hidden =
+            true;
+        }
+
+        if (emptyState){
+          emptyState.hidden =
+            true;
+        }
+
+        if (grid){
+          grid.hidden =
+            true;
+        }
+
+
+        try{
+
+          const response =
+            await apiGet(
+              "/api/certificates/my",
+              null
+            );
+
+
+          if (!response){
+
+            throw new Error(
+              "The certificate server returned no response."
+            );
+
+          }
+
+
+          state.certificates =
+            asArray(
+              response
+            );
+
+
+          renderStudentCertificates();
+
+
+          notifyAIFTSuccess(
+            "Your certificates are up to date.",
+            {
+              title:
+                "Certificates refreshed"
+            }
+          );
+
+        }catch(error){
+
+          console.error(
+            "Student certificate refresh failed:",
+            error
+          );
+
+
+          if (loadingState){
+            loadingState.hidden =
+              true;
+          }
+
+          if (emptyState){
+            emptyState.hidden =
+              true;
+          }
+
+          if (grid){
+            grid.hidden =
+              true;
+          }
+
+          if (errorState){
+            errorState.hidden =
+              false;
+          }
+
+
+          setText(
+            "studentCertificatesErrorMessage",
+            error?.message ||
+            "AIFT could not retrieve your certificates."
+          );
+
+
+          notifyAIFTError(
+            error?.message ||
+            "AIFT could not refresh your certificates.",
+            {
+              title:
+                "Certificate refresh failed"
+            }
+          );
+
+        }finally{
+
+          setDashboardButtonLoading(
+            button,
+            false
+          );
+
+        }
+
+      }
+    );
+    $("retryStudentCertificatesButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        $("refreshStudentCertificatesButton")
+          ?.click();
+
+      }
+    );
 
   studentCertificateControlsBound =
     true;
