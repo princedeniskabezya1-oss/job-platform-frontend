@@ -16866,6 +16866,339 @@ function toggleStudentResourceSaved(
 
 }
 
+
+const STUDENT_RESOURCE_PREVIEW_MIN_ZOOM =
+  0.25;
+
+const STUDENT_RESOURCE_PREVIEW_MAX_ZOOM =
+  4;
+
+const STUDENT_RESOURCE_PREVIEW_ZOOM_STEP =
+  0.25;
+
+
+function studentResourcePreviewSupportsZoom(){
+
+  const type =
+    String(
+      studentResourcePreviewResource?.type ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  return type ===
+    "image";
+
+}
+
+
+function updateStudentResourcePreviewZoomControls(){
+
+  const zoomOutButton =
+    $("studentResourcePreviewZoomOutButton");
+
+  const zoomInButton =
+    $("studentResourcePreviewZoomInButton");
+
+  const zoomValueButton =
+    $("studentResourcePreviewZoomValueButton");
+
+  const fitButton =
+    $("studentResourcePreviewFitButton");
+
+
+  const supported =
+    studentResourcePreviewSupportsZoom();
+
+
+  if (zoomOutButton){
+
+    zoomOutButton.hidden =
+      !supported;
+
+    zoomOutButton.disabled =
+      !supported ||
+      studentResourcePreviewZoom <=
+        STUDENT_RESOURCE_PREVIEW_MIN_ZOOM;
+
+  }
+
+
+  if (zoomInButton){
+
+    zoomInButton.hidden =
+      !supported;
+
+    zoomInButton.disabled =
+      !supported ||
+      studentResourcePreviewZoom >=
+        STUDENT_RESOURCE_PREVIEW_MAX_ZOOM;
+
+  }
+
+
+  if (zoomValueButton){
+
+    zoomValueButton.hidden =
+      !supported;
+
+    zoomValueButton.textContent =
+      `${
+        Math.round(
+          studentResourcePreviewZoom *
+          100
+        )
+      }%`;
+
+  }
+
+
+  if (fitButton){
+
+    fitButton.hidden =
+      !supported;
+
+    fitButton.classList.toggle(
+      "active",
+      supported &&
+      studentResourcePreviewFitMode
+    );
+
+    fitButton.setAttribute(
+      "aria-pressed",
+      String(
+        supported &&
+        studentResourcePreviewFitMode
+      )
+    );
+
+  }
+
+}
+
+
+function applyStudentResourcePreviewZoom(){
+
+  const image =
+    $("studentResourcePreviewImage");
+
+  const imagePanel =
+    $("studentResourceImagePreview");
+
+
+  if (
+    !image ||
+    !imagePanel
+  ){
+    return;
+  }
+
+
+  if (
+    studentResourcePreviewFitMode
+  ){
+
+    image.style.width =
+      "";
+
+    image.style.height =
+      "";
+
+    image.style.maxWidth =
+      "100%";
+
+    image.style.maxHeight =
+      "100%";
+
+    image.style.transform =
+      "";
+
+    imagePanel.classList.remove(
+      "zoomed"
+    );
+
+  }else{
+
+    image.style.maxWidth =
+      "none";
+
+    image.style.maxHeight =
+      "none";
+
+    image.style.width =
+      `${
+        studentResourcePreviewZoom *
+        100
+      }%`;
+
+    image.style.height =
+      "auto";
+
+    image.style.transform =
+      "";
+
+    imagePanel.classList.add(
+      "zoomed"
+    );
+
+  }
+
+
+  updateStudentResourcePreviewZoomControls();
+
+}
+
+
+function setStudentResourcePreviewZoom(
+  zoom,
+  {
+    fit = false
+  } = {}
+){
+
+  const safeZoom =
+    Math.max(
+      STUDENT_RESOURCE_PREVIEW_MIN_ZOOM,
+      Math.min(
+        STUDENT_RESOURCE_PREVIEW_MAX_ZOOM,
+        Number(zoom) ||
+        1
+      )
+    );
+
+
+  studentResourcePreviewZoom =
+    safeZoom;
+
+  studentResourcePreviewFitMode =
+    Boolean(
+      fit
+    );
+
+
+  applyStudentResourcePreviewZoom();
+
+}
+
+
+function resetStudentResourcePreviewZoom(){
+
+  setStudentResourcePreviewZoom(
+    1,
+    {
+      fit:false
+    }
+  );
+
+}
+
+
+function fitStudentResourcePreview(){
+
+  setStudentResourcePreviewZoom(
+    1,
+    {
+      fit:true
+    }
+  );
+
+}
+async function toggleStudentResourcePreviewFullscreen(){
+
+  const shell =
+    document.querySelector(
+      ".student-resource-preview-shell"
+    );
+
+
+  if (!shell){
+    return;
+  }
+
+
+  try{
+
+    if (
+      document.fullscreenElement
+    ){
+
+      await document.exitFullscreen();
+
+      return;
+
+    }
+
+
+    await shell.requestFullscreen();
+
+  }catch(error){
+
+    console.error(
+      "Student resource fullscreen failed:",
+      error
+    );
+
+
+    notifyAIFTWarning(
+      "Your browser could not open the resource in fullscreen mode.",
+      {
+        title:
+          "Fullscreen unavailable"
+      }
+    );
+
+  }
+
+}
+
+
+function updateStudentResourceFullscreenButton(){
+
+  const button =
+    $("studentResourcePreviewFullscreenButton");
+
+
+  if (!button){
+    return;
+  }
+
+
+  const fullscreen =
+    Boolean(
+      document.fullscreenElement
+    );
+
+
+  button.setAttribute(
+    "aria-label",
+    fullscreen
+      ? "Exit fullscreen preview"
+      : "Open fullscreen preview"
+  );
+
+
+  button.setAttribute(
+    "title",
+    fullscreen
+      ? "Exit fullscreen"
+      : "Fullscreen"
+  );
+
+
+  button.innerHTML = `
+    <i
+      class="${
+        fullscreen
+          ? "fa-solid fa-down-left-and-up-right-to-center"
+          : "fa-solid fa-up-right-and-down-left-from-center"
+      }"
+      aria-hidden="true"
+    ></i>
+  `;
+
+}
 /* =========================================================
    STUDENT RESOURCE PREVIEW CONTROLLER
 ========================================================= */
@@ -17085,6 +17418,14 @@ function openStudentResourcePreview(
 
   studentResourcePreviewResource =
     resource;
+
+  studentResourcePreviewZoom =
+    1;
+
+  studentResourcePreviewFitMode =
+    true;
+
+  updateStudentResourcePreviewZoomControls();
 
 
   const recentResources =
@@ -17321,7 +17662,7 @@ function renderStudentResourcePreview(
     false
   );
 
-
+  updateStudentResourcePreviewZoomControls();
   const url =
     String(
       resource?.url ||
@@ -17386,6 +17727,8 @@ function renderStudentResourcePreview(
             showStudentResourcePreviewLoading(
               false
             );
+
+            fitStudentResourcePreview();
 
           };
 
@@ -18042,6 +18385,12 @@ let studentResourceEditingId =
   "";
 let studentResourcePreviewResource =
   null;
+
+let studentResourcePreviewZoom =
+  1;
+
+let studentResourcePreviewFitMode =
+  true;
 
 function formatStudentResourceFileSize(
   bytes
@@ -21117,6 +21466,147 @@ $("studentResourcePreviewNextButton")
 
   }
 );
+
+    $("studentResourcePreviewZoomOutButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        if (
+          !studentResourcePreviewSupportsZoom()
+        ){
+          return;
+        }
+
+
+        setStudentResourcePreviewZoom(
+          studentResourcePreviewZoom -
+          STUDENT_RESOURCE_PREVIEW_ZOOM_STEP
+        );
+
+      }
+    );
+
+
+  $("studentResourcePreviewZoomInButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        if (
+          !studentResourcePreviewSupportsZoom()
+        ){
+          return;
+        }
+
+
+        setStudentResourcePreviewZoom(
+          studentResourcePreviewZoom +
+          STUDENT_RESOURCE_PREVIEW_ZOOM_STEP
+        );
+
+      }
+    );
+
+
+  $("studentResourcePreviewZoomValueButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        if (
+          !studentResourcePreviewSupportsZoom()
+        ){
+          return;
+        }
+
+
+        resetStudentResourcePreviewZoom();
+
+      }
+    );
+
+
+  $("studentResourcePreviewFitButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        if (
+          !studentResourcePreviewSupportsZoom()
+        ){
+          return;
+        }
+
+
+        fitStudentResourcePreview();
+
+      }
+    );
+
+
+  $("studentResourcePreviewFullscreenButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        toggleStudentResourcePreviewFullscreen();
+
+      }
+    );
+
+
+  document.addEventListener(
+    "fullscreenchange",
+    updateStudentResourceFullscreenButton
+  );
+
+
+    $("studentResourceImagePreview")
+    ?.addEventListener(
+      "wheel",
+      event => {
+
+        if (
+          !event.ctrlKey ||
+          !studentResourcePreviewSupportsZoom()
+        ){
+          return;
+        }
+
+
+        event.preventDefault();
+
+
+        const direction =
+          event.deltaY < 0
+            ? 1
+            : -1;
+
+
+        setStudentResourcePreviewZoom(
+          studentResourcePreviewZoom +
+          (
+            direction *
+            STUDENT_RESOURCE_PREVIEW_ZOOM_STEP
+          )
+        );
+
+      },
+      {
+        passive:false
+      }
+    );
 
   studentResourceControlsBound =
     true;
