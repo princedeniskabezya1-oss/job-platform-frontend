@@ -8265,7 +8265,554 @@ const STUDENT_PORTFOLIO_STORAGE_KEY =
 
 let studentPortfolioControlsBound =
   false;
+let studentPortfolioEditorSkills =
+  [];
 
+let studentPortfolioEditorLanguages =
+  [];
+
+let studentPortfolioEditorOpened =
+  false;
+
+function renderStudentPortfolioEditorTags(
+  type
+){
+
+  const normalizedType =
+    type === "languages"
+      ? "languages"
+      : "skills";
+
+
+  const values =
+    normalizedType === "languages"
+      ? studentPortfolioEditorLanguages
+      : studentPortfolioEditorSkills;
+
+
+  const list =
+    normalizedType === "languages"
+      ? $("studentPortfolioLanguageEditorList")
+      : $("studentPortfolioSkillEditorList");
+
+
+  if (!list){
+    return;
+  }
+
+
+  if (!values.length){
+
+    list.innerHTML = `
+      <div class="student-portfolio-editor-tag-empty">
+
+        <i
+          class="${
+            normalizedType === "languages"
+              ? "fa-solid fa-language"
+              : "fa-solid fa-wand-magic-sparkles"
+          }"
+          aria-hidden="true"
+        ></i>
+
+        <span>
+          ${
+            normalizedType === "languages"
+              ? "No languages have been added yet."
+              : "No skills have been added yet."
+          }
+        </span>
+
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  list.innerHTML =
+    values
+      .map(
+        (value,index) => `
+          <span class="student-portfolio-editor-tag">
+
+            ${
+              escapeHtml(
+                value
+              )
+            }
+
+            <button
+              type="button"
+              data-remove-portfolio-tag="${
+                normalizedType
+              }"
+              data-portfolio-tag-index="${
+                index
+              }"
+              aria-label="Remove ${
+                escapeHtml(
+                  value
+                )
+              }"
+            >
+              <i
+                class="fa-solid fa-xmark"
+                aria-hidden="true"
+              ></i>
+            </button>
+
+          </span>
+        `
+      )
+      .join("");
+
+}
+function addStudentPortfolioEditorTag(
+  type,
+  rawValue
+){
+
+  const normalizedType =
+    type === "languages"
+      ? "languages"
+      : "skills";
+
+
+  const value =
+    String(
+      rawValue ||
+      ""
+    )
+      .trim()
+      .replace(
+        /\s+/g,
+        " "
+      );
+
+
+  if (!value){
+    return false;
+  }
+
+
+  const collection =
+    normalizedType === "languages"
+      ? studentPortfolioEditorLanguages
+      : studentPortfolioEditorSkills;
+
+
+  const maximum =
+    normalizedType === "languages"
+      ? 10
+      : 20;
+
+
+  if (
+    collection.length >=
+    maximum
+  ){
+
+    notifyAIFTWarning(
+      normalizedType === "languages"
+        ? "You can add up to 10 languages."
+        : "You can add up to 20 skills.",
+      {
+        title:
+          "Maximum reached"
+      }
+    );
+
+    return false;
+
+  }
+
+
+  const alreadyExists =
+    collection.some(
+      item =>
+        item.toLowerCase() ===
+        value.toLowerCase()
+    );
+
+
+  if (alreadyExists){
+
+    notifyAIFTInfo(
+      `${
+        value
+      } is already included.`,
+      {
+        title:
+          normalizedType === "languages"
+            ? "Language already added"
+            : "Skill already added"
+      }
+    );
+
+    return false;
+
+  }
+
+
+  collection.push(
+    value
+  );
+
+
+  renderStudentPortfolioEditorTags(
+    normalizedType
+  );
+
+
+  return true;
+
+}
+
+
+function removeStudentPortfolioEditorTag(
+  type,
+  index
+){
+
+  const normalizedType =
+    type === "languages"
+      ? "languages"
+      : "skills";
+
+
+  const collection =
+    normalizedType === "languages"
+      ? studentPortfolioEditorLanguages
+      : studentPortfolioEditorSkills;
+
+
+  const normalizedIndex =
+    Number(
+      index
+    );
+
+
+  if (
+    !Number.isInteger(
+      normalizedIndex
+    ) ||
+    normalizedIndex < 0 ||
+    normalizedIndex >=
+      collection.length
+  ){
+    return;
+  }
+
+
+  collection.splice(
+    normalizedIndex,
+    1
+  );
+
+
+  renderStudentPortfolioEditorTags(
+    normalizedType
+  );
+
+}
+
+function updateStudentPortfolioAboutCharacterCount(){
+
+  const input =
+    $("studentPortfolioAboutInput");
+
+  const counter =
+    $("studentPortfolioAboutCharacterCount");
+
+
+  if (
+    !input ||
+    !counter
+  ){
+    return;
+  }
+
+
+  counter.textContent =
+    `${
+      input.value.length
+    } / 2000`;
+
+}
+
+function openStudentPortfolioProfileEditor(){
+
+  const portfolio =
+    getStudentPortfolio();
+
+
+  studentPortfolioEditorSkills =
+    [
+      ...portfolio.skills
+    ];
+
+
+  studentPortfolioEditorLanguages =
+    [
+      ...portfolio.languages
+    ];
+
+
+  const storedPortfolio =
+    getStudentPortfolioStoredData();
+
+
+  const headlineInput =
+    $("studentPortfolioHeadlineInput");
+
+  const aboutInput =
+    $("studentPortfolioAboutInput");
+
+  const careerInterestInput =
+    $("studentPortfolioCareerInterestInput");
+
+  const opportunitySelect =
+    $("studentPortfolioOpportunityTypeSelect");
+
+
+  if (headlineInput){
+
+    headlineInput.value =
+      portfolio.headline ||
+      "";
+
+  }
+
+
+  if (aboutInput){
+
+    aboutInput.value =
+      portfolio.about ||
+      "";
+
+  }
+
+
+  if (careerInterestInput){
+
+    careerInterestInput.value =
+      String(
+        state.portfolio?.careerInterest ||
+        storedPortfolio.careerInterest ||
+        ""
+      );
+
+  }
+
+
+  if (opportunitySelect){
+
+    opportunitySelect.value =
+      String(
+        state.portfolio?.opportunityType ||
+        storedPortfolio.opportunityType ||
+        ""
+      );
+
+  }
+
+
+  renderStudentPortfolioEditorTags(
+    "skills"
+  );
+
+
+  renderStudentPortfolioEditorTags(
+    "languages"
+  );
+
+
+  updateStudentPortfolioAboutCharacterCount();
+
+
+  setText(
+    "studentPortfolioProfileFormStatus",
+    "Changes are saved only after selecting Save profile."
+  );
+
+
+  studentPortfolioEditorOpened =
+    true;
+
+
+  openModal(
+    "studentPortfolioProfileModal"
+  );
+
+
+  window.setTimeout(
+    () => {
+
+      headlineInput?.focus();
+
+    },
+    80
+  );
+
+}
+
+function closeStudentPortfolioProfileEditor(){
+
+  closeModal(
+    "studentPortfolioProfileModal"
+  );
+
+
+  studentPortfolioEditorOpened =
+    false;
+
+
+  studentPortfolioEditorSkills =
+    [];
+
+  studentPortfolioEditorLanguages =
+    [];
+
+}
+
+function saveStudentPortfolioProfile(){
+
+  const headline =
+    String(
+      $("studentPortfolioHeadlineInput")
+        ?.value ||
+      ""
+    )
+      .trim()
+      .replace(
+        /\s+/g,
+        " "
+      );
+
+
+  const about =
+    String(
+      $("studentPortfolioAboutInput")
+        ?.value ||
+      ""
+    ).trim();
+
+
+  const careerInterest =
+    String(
+      $("studentPortfolioCareerInterestInput")
+        ?.value ||
+      ""
+    )
+      .trim()
+      .replace(
+        /\s+/g,
+        " "
+      );
+
+
+  const opportunityType =
+    String(
+      $("studentPortfolioOpportunityTypeSelect")
+        ?.value ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if (
+    headline.length >
+    160
+  ){
+
+    notifyAIFTWarning(
+      "The professional headline cannot exceed 160 characters.",
+      {
+        title:
+          "Headline is too long"
+      }
+    );
+
+    $("studentPortfolioHeadlineInput")
+      ?.focus();
+
+    return false;
+
+  }
+
+
+  if (
+    about.length >
+    2000
+  ){
+
+    notifyAIFTWarning(
+      "The About Me section cannot exceed 2,000 characters.",
+      {
+        title:
+          "Introduction is too long"
+      }
+    );
+
+    $("studentPortfolioAboutInput")
+      ?.focus();
+
+    return false;
+
+  }
+
+
+  const currentPortfolio =
+    getStudentPortfolio();
+
+
+  state.portfolio = {
+    ...currentPortfolio,
+
+    headline,
+
+    about,
+
+    careerInterest,
+
+    opportunityType,
+
+    skills:[
+      ...studentPortfolioEditorSkills
+    ],
+
+    languages:[
+      ...studentPortfolioEditorLanguages
+    ]
+  };
+
+
+  saveStudentPortfolioStoredData(
+    state.portfolio
+  );
+
+
+  renderStudentPortfolio();
+
+
+  closeStudentPortfolioProfileEditor();
+
+
+  notifyAIFTSuccess(
+    "Your portfolio introduction was updated.",
+    {
+      title:
+        "Portfolio saved"
+    }
+  );
+
+
+  return true;
+
+}
 
 function getStudentPortfolioStoredData(){
 
@@ -9798,6 +10345,279 @@ function bindStudentPortfolioControls(){
     return;
   }
 
+    const openProfileEditor =
+    event => {
+
+      event?.preventDefault();
+
+      openStudentPortfolioProfileEditor();
+
+    };
+
+
+  $("editStudentPortfolioButton")
+    ?.addEventListener(
+      "click",
+      openProfileEditor
+    );
+
+
+  $("editStudentPortfolioProfileButton")
+    ?.addEventListener(
+      "click",
+      openProfileEditor
+    );
+
+
+  $("editStudentPortfolioAboutButton")
+    ?.addEventListener(
+      "click",
+      openProfileEditor
+    );
+
+
+  $("editStudentPortfolioSkillsButton")
+    ?.addEventListener(
+      "click",
+      openProfileEditor
+    );
+
+    $("studentPortfolioAboutInput")
+    ?.addEventListener(
+      "input",
+      updateStudentPortfolioAboutCharacterCount
+    );
+
+
+  $("studentPortfolioHeadlineInput")
+    ?.addEventListener(
+      "input",
+      event => {
+
+        const status =
+          $("studentPortfolioProfileFormStatus");
+
+
+        if (status){
+
+          status.textContent =
+            event.target.value.trim()
+              ? "Your headline will appear at the top of your public portfolio."
+              : "Add a clear headline to improve portfolio completion.";
+
+        }
+
+      }
+    );
+
+    const submitStudentPortfolioSkill =
+    () => {
+
+      const input =
+        $("studentPortfolioSkillInput");
+
+
+      if (!input){
+        return;
+      }
+
+
+      const added =
+        addStudentPortfolioEditorTag(
+          "skills",
+          input.value
+        );
+
+
+      if (added){
+
+        input.value =
+          "";
+
+        input.focus();
+
+      }
+
+    };
+
+
+  $("addStudentPortfolioSkillButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        submitStudentPortfolioSkill();
+
+      }
+    );
+
+
+  $("studentPortfolioSkillInput")
+    ?.addEventListener(
+      "keydown",
+      event => {
+
+        if (
+          event.key !==
+          "Enter"
+        ){
+          return;
+        }
+
+
+        event.preventDefault();
+
+        submitStudentPortfolioSkill();
+
+      }
+    );
+
+    const submitStudentPortfolioLanguage =
+    () => {
+
+      const input =
+        $("studentPortfolioLanguageInput");
+
+
+      if (!input){
+        return;
+      }
+
+
+      const added =
+        addStudentPortfolioEditorTag(
+          "languages",
+          input.value
+        );
+
+
+      if (added){
+
+        input.value =
+          "";
+
+        input.focus();
+
+      }
+
+    };
+
+
+  $("addStudentPortfolioLanguageButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        submitStudentPortfolioLanguage();
+
+      }
+    );
+
+
+  $("studentPortfolioLanguageInput")
+    ?.addEventListener(
+      "keydown",
+      event => {
+
+        if (
+          event.key !==
+          "Enter"
+        ){
+          return;
+        }
+
+
+        event.preventDefault();
+
+        submitStudentPortfolioLanguage();
+
+      }
+    );
+
+    $("studentPortfolioProfileModal")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        const removeButton =
+          event.target.closest(
+            "[data-remove-portfolio-tag]"
+          );
+
+
+        if (removeButton){
+
+          event.preventDefault();
+
+
+          removeStudentPortfolioEditorTag(
+            removeButton.dataset
+              .removePortfolioTag,
+
+            removeButton.dataset
+              .portfolioTagIndex
+          );
+
+
+          return;
+
+        }
+
+
+        if (
+          event.target ===
+          $("studentPortfolioProfileModal")
+        ){
+
+          closeStudentPortfolioProfileEditor();
+
+        }
+
+      }
+    );
+
+    $("studentPortfolioProfileForm")
+    ?.addEventListener(
+      "submit",
+      event => {
+
+        event.preventDefault();
+
+        saveStudentPortfolioProfile();
+
+      }
+    );
+
+
+  $("cancelStudentPortfolioProfileButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        closeStudentPortfolioProfileEditor();
+
+      }
+    );
+
+
+  $("closeStudentPortfolioProfileModalButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        closeStudentPortfolioProfileEditor();
+
+      }
+    );
+
 
   $("studentPortfolioVisibilitySelect")
     ?.addEventListener(
@@ -9994,6 +10814,38 @@ function bindStudentPortfolioControls(){
       }
     );
 
+
+    document.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key !==
+        "Escape" ||
+        !studentPortfolioEditorOpened
+      ){
+        return;
+      }
+
+
+      const activeElement =
+        document.activeElement;
+
+
+      if (
+        activeElement?.dataset
+          ?.removePortfolioTag
+      ){
+        return;
+      }
+
+
+      event.preventDefault();
+
+      closeStudentPortfolioProfileEditor();
+
+    }
+  );
 
   studentPortfolioControlsBound =
     true;
