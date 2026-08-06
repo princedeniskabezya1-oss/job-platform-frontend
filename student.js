@@ -52,6 +52,19 @@ const state = {
   studentResources:[],
 
   certificates:[],
+    portfolio:{
+    visibility:"private",
+    headline:"",
+    about:"",
+    skills:[],
+    languages:[],
+    projects:[],
+    experience:[],
+    featuredCertificateIds:[],
+    resumeUrl:"",
+    publicSlug:"",
+    views:0
+  },
 
   /*
     Student-specific progress returned by:
@@ -1047,6 +1060,10 @@ case "resources":
 
     case "certificates":
       renderStudentCertificates();
+      break;
+
+    case "portfolio":
+      renderStudentPortfolio();
       break;
 
     case "career":
@@ -8234,6 +8251,1751 @@ function bindStudentCertificateControls(){
   );
   
   studentCertificateControlsBound =
+    true;
+
+}
+
+/* =========================================================
+   STUDENT PORTFOLIO
+========================================================= */
+
+const STUDENT_PORTFOLIO_STORAGE_KEY =
+  "aiftStudentPortfolio";
+
+
+let studentPortfolioControlsBound =
+  false;
+
+
+function getStudentPortfolioStoredData(){
+
+  try{
+
+    const storedValue =
+      localStorage.getItem(
+        STUDENT_PORTFOLIO_STORAGE_KEY
+      );
+
+
+    if (!storedValue){
+      return {};
+    }
+
+
+    const parsed =
+      JSON.parse(
+        storedValue
+      );
+
+
+    return (
+      parsed &&
+      typeof parsed === "object"
+    )
+      ? parsed
+      : {};
+
+  }catch(error){
+
+    console.error(
+      "Student portfolio storage could not be read:",
+      error
+    );
+
+
+    return {};
+
+  }
+
+}
+
+
+function saveStudentPortfolioStoredData(
+  portfolio
+){
+
+  try{
+
+    localStorage.setItem(
+      STUDENT_PORTFOLIO_STORAGE_KEY,
+      JSON.stringify(
+        portfolio
+      )
+    );
+
+  }catch(error){
+
+    console.error(
+      "Student portfolio storage could not be saved:",
+      error
+    );
+
+  }
+
+}
+
+
+function normalizeStudentPortfolioSkill(
+  skill
+){
+
+  if (
+    typeof skill ===
+    "string"
+  ){
+
+    return skill.trim();
+
+  }
+
+
+  return String(
+    skill?.name ||
+    skill?.title ||
+    skill?.label ||
+    ""
+  ).trim();
+
+}
+
+
+function normalizeStudentPortfolioProject(
+  project
+){
+
+  const rawId =
+    project?._id ||
+    project?.id ||
+    project?.projectId ||
+    "";
+
+
+  return {
+    id:
+      String(
+        rawId ||
+        `local-project-${
+          Math.random()
+            .toString(36)
+            .slice(2)
+        }`
+      ),
+
+    title:
+      String(
+        project?.title ||
+        project?.name ||
+        "Untitled project"
+      ).trim(),
+
+    description:
+      String(
+        project?.description ||
+        project?.summary ||
+        ""
+      ).trim(),
+
+    category:
+      String(
+        project?.category ||
+        project?.type ||
+        "Project"
+      ).trim(),
+
+    imageUrl:
+      String(
+        project?.imageUrl ||
+        project?.thumbnailUrl ||
+        project?.coverUrl ||
+        ""
+      ).trim(),
+
+    fileUrl:
+      String(
+        project?.fileUrl ||
+        project?.url ||
+        project?.projectUrl ||
+        ""
+      ).trim(),
+
+    createdAt:
+      project?.createdAt ||
+      project?.completedAt ||
+      null,
+
+    featured:
+      project?.featured !==
+        false,
+
+    raw:
+      project
+  };
+
+}
+
+
+function normalizeStudentPortfolioExperience(
+  experience
+){
+
+  return {
+    id:
+      String(
+        experience?._id ||
+        experience?.id ||
+        `local-experience-${
+          Math.random()
+            .toString(36)
+            .slice(2)
+        }`
+      ),
+
+    title:
+      String(
+        experience?.title ||
+        experience?.position ||
+        experience?.role ||
+        "Experience"
+      ).trim(),
+
+    organization:
+      String(
+        experience?.organization ||
+        experience?.company ||
+        experience?.school ||
+        ""
+      ).trim(),
+
+    description:
+      String(
+        experience?.description ||
+        experience?.summary ||
+        ""
+      ).trim(),
+
+    type:
+      String(
+        experience?.type ||
+        experience?.category ||
+        "experience"
+      )
+        .trim()
+        .toLowerCase(),
+
+    startDate:
+      experience?.startDate ||
+      null,
+
+    endDate:
+      experience?.endDate ||
+      null,
+
+    current:
+      experience?.current ===
+        true,
+
+    raw:
+      experience
+  };
+
+}
+
+function getStudentPortfolio(){
+
+  const storedPortfolio =
+    getStudentPortfolioStoredData();
+
+
+  const statePortfolio =
+    state.portfolio &&
+    typeof state.portfolio ===
+      "object"
+      ? state.portfolio
+      : {};
+
+
+  const user =
+    state.me ||
+    state.loggedUser ||
+    {};
+
+
+  const rawSkills =
+    asArray(
+      statePortfolio.skills?.length
+        ? statePortfolio.skills
+        : (
+            storedPortfolio.skills?.length
+              ? storedPortfolio.skills
+              : (
+                  user.skills ||
+                  user.skillSet ||
+                  []
+                )
+          )
+    );
+
+
+  const rawProjects =
+    asArray(
+      statePortfolio.projects?.length
+        ? statePortfolio.projects
+        : storedPortfolio.projects
+    );
+
+
+  const rawExperience =
+    asArray(
+      statePortfolio.experience?.length
+        ? statePortfolio.experience
+        : storedPortfolio.experience
+    );
+
+
+  return {
+    visibility:
+      String(
+        statePortfolio.visibility ||
+        storedPortfolio.visibility ||
+        "private"
+      )
+        .trim()
+        .toLowerCase(),
+
+    headline:
+      String(
+        statePortfolio.headline ||
+        storedPortfolio.headline ||
+        user.headline ||
+        user.professionalHeadline ||
+        user.course ||
+        user.program ||
+        ""
+      ).trim(),
+
+    about:
+      String(
+        statePortfolio.about ||
+        storedPortfolio.about ||
+        user.bio ||
+        user.about ||
+        user.summary ||
+        ""
+      ).trim(),
+
+    skills:
+      rawSkills
+        .map(
+          normalizeStudentPortfolioSkill
+        )
+        .filter(Boolean)
+        .slice(
+          0,
+          20
+        ),
+
+    languages:
+      asArray(
+        statePortfolio.languages?.length
+          ? statePortfolio.languages
+          : storedPortfolio.languages
+      )
+        .map(
+          normalizeStudentPortfolioSkill
+        )
+        .filter(Boolean),
+
+    projects:
+      rawProjects
+        .map(
+          normalizeStudentPortfolioProject
+        )
+        .filter(project =>
+          project.featured !==
+          false
+        ),
+
+    experience:
+      rawExperience
+        .map(
+          normalizeStudentPortfolioExperience
+        ),
+
+    featuredCertificateIds:
+      asArray(
+        statePortfolio
+          .featuredCertificateIds
+          ?.length
+          ? statePortfolio
+              .featuredCertificateIds
+          : storedPortfolio
+              .featuredCertificateIds
+      )
+        .map(id =>
+          String(
+            id
+          )
+        ),
+
+    resumeUrl:
+      String(
+        statePortfolio.resumeUrl ||
+        storedPortfolio.resumeUrl ||
+        user.cvUrl ||
+        user.resumeUrl ||
+        ""
+      ).trim(),
+
+    publicSlug:
+      String(
+        statePortfolio.publicSlug ||
+        storedPortfolio.publicSlug ||
+        user.username ||
+        user.slug ||
+        user._id ||
+        ""
+      ).trim(),
+
+    views:
+      Number(
+        statePortfolio.views ||
+        storedPortfolio.views ||
+        0
+      ),
+
+    user
+  };
+
+}
+
+function getStudentPortfolioStudentName(
+  portfolio
+){
+
+  const user =
+    portfolio?.user ||
+    {};
+
+
+  return String(
+    user.name ||
+    user.fullName ||
+    [
+      user.firstName,
+      user.lastName
+    ]
+      .filter(Boolean)
+      .join(" ") ||
+    "Student"
+  ).trim();
+
+}
+
+
+function getStudentPortfolioSchoolName(
+  portfolio
+){
+
+  const user =
+    portfolio?.user ||
+    {};
+
+
+  const school =
+    user.schoolId &&
+    typeof user.schoolId ===
+      "object"
+      ? user.schoolId
+      : (
+          user.linkedSchoolId &&
+          typeof user.linkedSchoolId ===
+            "object"
+            ? user.linkedSchoolId
+            : null
+        );
+
+
+  return String(
+    school?.name ||
+    user.schoolName ||
+    user.linkedSchoolName ||
+    "AIFT Student"
+  ).trim();
+
+}
+
+
+function getStudentPortfolioProfileImage(
+  portfolio
+){
+
+  const user =
+    portfolio?.user ||
+    {};
+
+
+  return String(
+    user.profileImage ||
+    user.avatar ||
+    user.photoURL ||
+    user.image ||
+    "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+  ).trim();
+
+}
+
+function calculateStudentPortfolioCompletion(
+  portfolio,
+  certificates
+){
+
+  const checks = [
+    Boolean(
+      portfolio.headline
+    ),
+
+    Boolean(
+      portfolio.about
+    ),
+
+    portfolio.skills.length >=
+      3,
+
+    portfolio.projects.length >=
+      1,
+
+    portfolio.experience.length >=
+      1,
+
+    certificates.length >=
+      1,
+
+    Boolean(
+      portfolio.resumeUrl
+    ),
+
+    portfolio.visibility !==
+      "private"
+  ];
+
+
+  const completed =
+    checks.filter(Boolean).length;
+
+
+  const percentage =
+    Math.round(
+      (
+        completed /
+        checks.length
+      ) *
+      100
+    );
+
+
+  return {
+    percentage,
+    completed,
+    total:
+      checks.length
+  };
+
+}
+
+
+function getStudentPortfolioStrengthLabel(
+  percentage
+){
+
+  if (
+    percentage >=
+    90
+  ){
+    return "Excellent";
+  }
+
+
+  if (
+    percentage >=
+    70
+  ){
+    return "Strong";
+  }
+
+
+  if (
+    percentage >=
+    45
+  ){
+    return "Developing";
+  }
+
+
+  if (
+    percentage >=
+    20
+  ){
+    return "Getting started";
+  }
+
+
+  return "Incomplete";
+
+}
+
+function renderStudentPortfolioProjects(
+  projects
+){
+
+  const grid =
+    $("studentPortfolioProjectGrid");
+
+  const emptyState =
+    $("studentPortfolioProjectEmpty");
+
+
+  if (
+    !grid ||
+    !emptyState
+  ){
+    return;
+  }
+
+
+  if (!projects.length){
+
+    grid.hidden =
+      true;
+
+    grid.innerHTML =
+      "";
+
+    emptyState.hidden =
+      false;
+
+    return;
+
+  }
+
+
+  emptyState.hidden =
+    true;
+
+  grid.hidden =
+    false;
+
+
+  grid.innerHTML =
+    projects
+      .map(project => {
+
+        const createdDate =
+          project.createdAt
+            ? formatDate(
+                project.createdAt
+              )
+            : "No date";
+
+
+        const cover = project.imageUrl
+          ? `
+              <img
+                src="${
+                  escapeHtml(
+                    project.imageUrl
+                  )
+                }"
+                alt=""
+                loading="lazy"
+              >
+            `
+          : `
+              <i
+                class="fa-solid fa-diagram-project"
+                aria-hidden="true"
+              ></i>
+            `;
+
+
+        return `
+          <article
+            class="student-portfolio-project-card"
+            data-portfolio-project-id="${
+              escapeHtml(
+                project.id
+              )
+            }"
+          >
+
+            <div class="student-portfolio-project-cover">
+              ${cover}
+            </div>
+
+
+            <div class="student-portfolio-project-body">
+
+              <span class="chip primary">
+                ${
+                  escapeHtml(
+                    project.category
+                  )
+                }
+              </span>
+
+
+              <h4>
+                ${
+                  escapeHtml(
+                    project.title
+                  )
+                }
+              </h4>
+
+
+              <p>
+                ${
+                  escapeHtml(
+                    project.description ||
+                    "No project description has been added."
+                  )
+                }
+              </p>
+
+
+              <div class="student-portfolio-project-meta">
+
+                <span>
+                  ${
+                    escapeHtml(
+                      createdDate
+                    )
+                  }
+                </span>
+
+
+                <div class="student-portfolio-project-actions">
+
+                  ${
+                    project.fileUrl
+                      ? `
+                        <button
+                          class="student-portfolio-icon-button"
+                          type="button"
+                          data-open-portfolio-project="${
+                            escapeHtml(
+                              project.id
+                            )
+                          }"
+                          aria-label="Open project"
+                        >
+                          <i
+                            class="fa-solid fa-arrow-up-right-from-square"
+                            aria-hidden="true"
+                          ></i>
+                        </button>
+                      `
+                      : ""
+                  }
+
+
+                  <button
+                    class="student-portfolio-icon-button"
+                    type="button"
+                    data-edit-portfolio-project="${
+                      escapeHtml(
+                        project.id
+                      )
+                    }"
+                    aria-label="Edit project"
+                  >
+                    <i
+                      class="fa-solid fa-pen"
+                      aria-hidden="true"
+                    ></i>
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+}
+
+function renderStudentPortfolioExperience(
+  experienceItems
+){
+
+  const list =
+    $("studentPortfolioExperienceList");
+
+  const emptyState =
+    $("studentPortfolioExperienceEmpty");
+
+
+  if (
+    !list ||
+    !emptyState
+  ){
+    return;
+  }
+
+
+  if (!experienceItems.length){
+
+    list.hidden =
+      true;
+
+    list.innerHTML =
+      "";
+
+    emptyState.hidden =
+      false;
+
+    return;
+
+  }
+
+
+  emptyState.hidden =
+    true;
+
+  list.hidden =
+    false;
+
+
+  list.innerHTML =
+    experienceItems
+      .map(item => {
+
+        const dateText =
+          item.current
+            ? `${
+                item.startDate
+                  ? formatDate(
+                      item.startDate
+                    )
+                  : "Started"
+              } – Present`
+            : [
+                item.startDate
+                  ? formatDate(
+                      item.startDate
+                    )
+                  : "",
+                item.endDate
+                  ? formatDate(
+                      item.endDate
+                    )
+                  : ""
+              ]
+                .filter(Boolean)
+                .join(" – ");
+
+
+        return `
+          <article
+            class="student-portfolio-experience-item"
+            data-portfolio-experience-id="${
+              escapeHtml(
+                item.id
+              )
+            }"
+          >
+
+            <span class="student-portfolio-experience-icon">
+
+              <i
+                class="fa-solid fa-briefcase"
+                aria-hidden="true"
+              ></i>
+
+            </span>
+
+
+            <div class="student-portfolio-experience-copy">
+
+              <strong>
+                ${
+                  escapeHtml(
+                    item.title
+                  )
+                }
+              </strong>
+
+
+              <span>
+                ${
+                  escapeHtml(
+                    item.organization ||
+                    "Organization not specified"
+                  )
+                }
+              </span>
+
+
+              ${
+                dateText
+                  ? `
+                    <span>
+                      ${
+                        escapeHtml(
+                          dateText
+                        )
+                      }
+                    </span>
+                  `
+                  : ""
+              }
+
+
+              ${
+                item.description
+                  ? `
+                    <p>
+                      ${
+                        escapeHtml(
+                          item.description
+                        )
+                      }
+                    </p>
+                  `
+                  : ""
+              }
+
+            </div>
+
+
+            <button
+              class="student-portfolio-icon-button"
+              type="button"
+              data-edit-portfolio-experience="${
+                escapeHtml(
+                  item.id
+                )
+              }"
+              aria-label="Edit experience"
+            >
+              <i
+                class="fa-solid fa-pen"
+                aria-hidden="true"
+              ></i>
+            </button>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+}
+function renderStudentPortfolioSkills(
+  skills
+){
+
+  const skillsList =
+    $("studentPortfolioSkillsList");
+
+  const profileSkills =
+    $("studentPortfolioProfileSkills");
+
+
+  if (skillsList){
+
+    skillsList.innerHTML =
+      skills.length
+        ? skills
+            .map(skill => `
+              <span>
+                ${
+                  escapeHtml(
+                    skill
+                  )
+                }
+              </span>
+            `)
+            .join("")
+        : `
+            <div class="student-portfolio-side-empty">
+
+              <i
+                class="fa-solid fa-wand-magic-sparkles"
+                aria-hidden="true"
+              ></i>
+
+              <span>
+                Add skills to strengthen your portfolio.
+              </span>
+
+            </div>
+          `;
+
+  }
+
+
+  if (profileSkills){
+
+    profileSkills.innerHTML =
+      skills.length
+        ? skills
+            .slice(
+              0,
+              5
+            )
+            .map(skill => `
+              <span>
+                ${
+                  escapeHtml(
+                    skill
+                  )
+                }
+              </span>
+            `)
+            .join("")
+        : `
+            <span>
+              Add skills
+            </span>
+          `;
+
+  }
+
+}
+
+
+function renderStudentPortfolioCertificates(
+  certificates,
+  featuredCertificateIds
+){
+
+  const list =
+    $("studentPortfolioCertificateList");
+
+
+  if (!list){
+    return;
+  }
+
+
+  let visibleCertificates =
+    certificates.filter(certificate =>
+      certificate.status ===
+        "verified"
+    );
+
+
+  if (
+    featuredCertificateIds.length
+  ){
+
+    const featuredSet =
+      new Set(
+        featuredCertificateIds
+      );
+
+
+    visibleCertificates =
+      visibleCertificates.filter(
+        certificate =>
+          featuredSet.has(
+            String(
+              certificate.id
+            )
+          )
+      );
+
+  }
+
+
+  visibleCertificates =
+    visibleCertificates.slice(
+      0,
+      4
+    );
+
+
+  if (!visibleCertificates.length){
+
+    list.innerHTML = `
+      <div class="student-portfolio-side-empty">
+
+        <i
+          class="fa-solid fa-certificate"
+          aria-hidden="true"
+        ></i>
+
+        <span>
+          Verified certificates can be displayed here.
+        </span>
+
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  list.innerHTML =
+    visibleCertificates
+      .map(certificate => `
+        <button
+          class="student-portfolio-certificate-item"
+          type="button"
+          data-open-portfolio-certificate="${
+            escapeHtml(
+              certificate.id
+            )
+          }"
+        >
+
+          <span class="student-portfolio-certificate-icon">
+
+            <i
+              class="fa-solid fa-certificate"
+              aria-hidden="true"
+            ></i>
+
+          </span>
+
+
+          <div>
+
+            <strong>
+              ${
+                escapeHtml(
+                  certificate.title
+                )
+              }
+            </strong>
+
+            <span>
+              ${
+                escapeHtml(
+                  certificate.schoolName
+                )
+              }
+            </span>
+
+          </div>
+
+        </button>
+      `)
+      .join("");
+
+}
+
+function renderStudentPortfolio(){
+
+  const portfolio =
+    getStudentPortfolio();
+
+
+  const certificates =
+    typeof getStudentCertificates ===
+      "function"
+      ? getStudentCertificates()
+      : [];
+
+
+  const verifiedCertificates =
+    certificates.filter(
+      certificate =>
+        certificate.status ===
+        "verified"
+    );
+
+
+  const completion =
+    calculateStudentPortfolioCompletion(
+      portfolio,
+      verifiedCertificates
+    );
+
+
+  const studentName =
+    getStudentPortfolioStudentName(
+      portfolio
+    );
+
+
+  const schoolName =
+    getStudentPortfolioSchoolName(
+      portfolio
+    );
+
+
+  const profileImage =
+    getStudentPortfolioProfileImage(
+      portfolio
+    );
+
+
+  /*
+    Store the normalized state so future controls use
+    the same values currently displayed.
+  */
+
+  state.portfolio = {
+    ...portfolio
+  };
+
+
+  setText(
+    "studentPortfolioCompletionValue",
+    `${completion.percentage}%`
+  );
+
+
+  setText(
+    "studentPortfolioProjectCount",
+    portfolio.projects.length
+  );
+
+
+  setText(
+    "studentPortfolioCertificateCount",
+    verifiedCertificates.length
+  );
+
+
+  setText(
+    "studentPortfolioViewCount",
+    portfolio.views
+  );
+
+
+  setText(
+    "studentPortfolioStrengthScore",
+    completion.percentage
+  );
+
+
+  setText(
+    "studentPortfolioStrengthLabel",
+    getStudentPortfolioStrengthLabel(
+      completion.percentage
+    )
+  );
+
+
+  setText(
+    "studentPortfolioCompletionHint",
+    completion.percentage >=
+      90
+      ? "Your portfolio is ready to share"
+      : `${
+          completion.completed
+        } of ${
+          completion.total
+        } recommended areas completed`
+  );
+
+
+  const strengthBar =
+    $("studentPortfolioStrengthBar");
+
+
+  if (strengthBar){
+
+    strengthBar.style.width =
+      `${
+        completion.percentage
+      }%`;
+
+  }
+
+
+  /*
+    Profile card
+  */
+
+  const profileImageElement =
+    $("studentPortfolioProfileImage");
+
+
+  if (profileImageElement){
+
+    profileImageElement.src =
+      profileImage;
+
+    profileImageElement.alt =
+      `${studentName} profile picture`;
+
+  }
+
+
+  setText(
+    "studentPortfolioProfileName",
+    studentName
+  );
+
+
+  setText(
+    "studentPortfolioProfileHeadline",
+    portfolio.headline ||
+    "Add a professional headline"
+  );
+
+
+  setText(
+    "studentPortfolioProfileSchool",
+    schoolName
+  );
+
+
+  /*
+    Visibility
+  */
+
+  const visibilitySelect =
+    $("studentPortfolioVisibilitySelect");
+
+  const visibilityBadge =
+    $("studentPortfolioProfileVisibility");
+
+
+  if (visibilitySelect){
+
+    visibilitySelect.value =
+      [
+        "private",
+        "school",
+        "public"
+      ].includes(
+        portfolio.visibility
+      )
+        ? portfolio.visibility
+        : "private";
+
+  }
+
+
+  if (visibilityBadge){
+
+    visibilityBadge.classList.remove(
+      "private",
+      "school",
+      "public"
+    );
+
+    visibilityBadge.classList.add(
+      portfolio.visibility
+    );
+
+
+    visibilityBadge.textContent =
+      portfolio.visibility ===
+        "school"
+        ? "School only"
+        : portfolio.visibility;
+
+  }
+
+
+  setText(
+    "studentPortfolioVisibilityDescription",
+    portfolio.visibility ===
+      "public"
+      ? "Your portfolio is visible to anyone with the public link."
+      : (
+          portfolio.visibility ===
+            "school"
+            ? "Only your school and authorized staff can view this portfolio."
+            : "Your portfolio is currently private."
+        )
+  );
+
+
+  /*
+    About section
+  */
+
+  const aboutContent =
+    $("studentPortfolioAboutContent");
+
+
+  if (aboutContent){
+
+    if (portfolio.about){
+
+      aboutContent.classList.remove(
+        "student-portfolio-about-empty"
+      );
+
+
+      aboutContent.innerHTML = `
+        <div class="student-portfolio-about-copy">
+
+          <p>
+            ${
+              escapeHtml(
+                portfolio.about
+              )
+            }
+          </p>
+
+        </div>
+      `;
+
+    }else{
+
+      aboutContent.classList.add(
+        "student-portfolio-about-empty"
+      );
+
+
+      aboutContent.innerHTML = `
+        <span>
+
+          <i
+            class="fa-regular fa-user"
+            aria-hidden="true"
+          ></i>
+
+        </span>
+
+
+        <div>
+
+          <strong>
+            Tell people about yourself
+          </strong>
+
+          <p>
+            Add a professional headline, introduction,
+            interests, goals, and preferred career path.
+          </p>
+
+        </div>
+      `;
+
+    }
+
+  }
+
+
+  renderStudentPortfolioSkills(
+    portfolio.skills
+  );
+
+
+  renderStudentPortfolioProjects(
+    portfolio.projects
+  );
+
+
+  renderStudentPortfolioExperience(
+    portfolio.experience
+  );
+
+
+  renderStudentPortfolioCertificates(
+    certificates,
+    portfolio.featuredCertificateIds
+  );
+
+
+  /*
+    Resume
+  */
+
+  const resumeCard =
+    $("studentPortfolioResumeCard");
+
+
+  if (resumeCard){
+
+    if (portfolio.resumeUrl){
+
+      resumeCard.innerHTML = `
+        <span>
+
+          <i
+            class="fa-solid fa-file-lines"
+            aria-hidden="true"
+          ></i>
+
+        </span>
+
+
+        <div>
+
+          <strong>
+            Resume added
+          </strong>
+
+          <p>
+            Your resume is available from your portfolio.
+          </p>
+
+        </div>
+
+
+        <button
+          id="openStudentPortfolioResumeButton"
+          class="ghost-btn"
+          type="button"
+        >
+          <i
+            class="fa-solid fa-arrow-up-right-from-square"
+            aria-hidden="true"
+          ></i>
+
+          Open resume
+        </button>
+      `;
+
+    }
+
+  }
+
+
+  /*
+    Public sharing
+  */
+
+  const copyLinkButton =
+    $("copyStudentPortfolioLinkButton");
+
+
+  if (copyLinkButton){
+
+    copyLinkButton.disabled =
+      (
+        portfolio.visibility !==
+          "public" ||
+        !portfolio.publicSlug
+      );
+
+  }
+
+
+  bindStudentPortfolioControls();
+
+}
+
+function bindStudentPortfolioControls(){
+
+  if (
+    studentPortfolioControlsBound
+  ){
+    return;
+  }
+
+
+  const section =
+    $("section-portfolio");
+
+
+  if (!section){
+    return;
+  }
+
+
+  $("studentPortfolioVisibilitySelect")
+    ?.addEventListener(
+      "change",
+      event => {
+
+        const visibility =
+          String(
+            event.target.value ||
+            "private"
+          )
+            .trim()
+            .toLowerCase();
+
+
+        state.portfolio = {
+          ...getStudentPortfolio(),
+          visibility
+        };
+
+
+        saveStudentPortfolioStoredData(
+          state.portfolio
+        );
+
+
+        renderStudentPortfolio();
+
+
+        notifyAIFTSuccess(
+          visibility === "public"
+            ? "Your portfolio is now public."
+            : (
+                visibility === "school"
+                  ? "Your portfolio is now visible to your school."
+                  : "Your portfolio is now private."
+              ),
+          {
+            title:
+              "Visibility updated"
+          }
+        );
+
+      }
+    );
+
+
+  section.addEventListener(
+    "click",
+    event => {
+
+      const sectionButton =
+        event.target.closest(
+          "[data-portfolio-section]"
+        );
+
+
+      if (sectionButton){
+
+        event.preventDefault();
+
+
+        const target =
+          $(
+            `studentPortfolio${
+              String(
+                sectionButton.dataset
+                  .portfolioSection ||
+                ""
+              )
+                .trim()
+                .replace(
+                  /^./,
+                  character =>
+                    character.toUpperCase()
+                )
+            }Section`
+          );
+
+
+        target?.scrollIntoView({
+          behavior:"smooth",
+          block:"start"
+        });
+
+
+        return;
+
+      }
+
+
+      const projectButton =
+        event.target.closest(
+          "[data-open-portfolio-project]"
+        );
+
+
+      if (projectButton){
+
+        event.preventDefault();
+
+
+        const project =
+          getStudentPortfolio()
+            .projects
+            .find(item =>
+              sameId(
+                item.id,
+                projectButton.dataset
+                  .openPortfolioProject
+              )
+            );
+
+
+        if (project?.fileUrl){
+
+          window.open(
+            project.fileUrl,
+            "_blank",
+            "noopener,noreferrer"
+          );
+
+        }
+
+
+        return;
+
+      }
+
+
+      const certificateButton =
+        event.target.closest(
+          "[data-open-portfolio-certificate]"
+        );
+
+
+      if (certificateButton){
+
+        event.preventDefault();
+
+
+        openStudentCertificatePreview(
+          certificateButton.dataset
+            .openPortfolioCertificate
+        );
+
+
+        return;
+
+      }
+
+    }
+  );
+
+
+  $("manageStudentPortfolioCertificatesButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        openStudentStudioPage(
+          "certificates"
+        );
+
+      }
+    );
+
+
+  $("openStudentPortfolioResumeButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+
+        const resumeUrl =
+          getStudentPortfolio()
+            .resumeUrl;
+
+
+        if (resumeUrl){
+
+          window.open(
+            resumeUrl,
+            "_blank",
+            "noopener,noreferrer"
+          );
+
+        }
+
+      }
+    );
+
+
+  studentPortfolioControlsBound =
     true;
 
 }
