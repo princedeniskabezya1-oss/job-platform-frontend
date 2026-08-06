@@ -5909,7 +5909,8 @@ let studentCertificateView =
 
 let studentCertificateControlsBound =
   false;
-
+let studentCertificatePreviewCertificate =
+  null;
 
 /* =========================================================
    CERTIFICATE NORMALIZATION
@@ -6201,6 +6202,503 @@ function getStudentCertificates(){
         certificate.id
       )
     );
+
+}
+
+/* =========================================================
+   STUDENT CERTIFICATE PREVIEW CONTROLLER
+========================================================= */
+
+function getStudentCertificateStatusDescription(
+  status
+){
+
+  switch(
+    String(
+      status ||
+      ""
+    ).toLowerCase()
+  ){
+
+    case "verified":
+
+      return "This certificate is active and has been verified by the issuing institution.";
+
+    case "expired":
+
+      return "This certificate has passed its expiry date.";
+
+    case "revoked":
+
+      return "This certificate has been revoked by the issuing institution.";
+
+    default:
+
+      return "This certificate is awaiting final issue or verification.";
+
+  }
+
+}
+
+
+function closeStudentCertificatePreview(){
+
+  closeModal(
+    "studentCertificatePreviewModal"
+  );
+
+
+  studentCertificatePreviewCertificate =
+    null;
+
+}
+
+function openStudentCertificatePreview(
+  certificateId
+){
+
+  const certificate =
+    getStudentCertificates()
+      .find(item =>
+        sameId(
+          item.id,
+          certificateId
+        )
+      );
+
+
+  if (!certificate){
+
+    notifyAIFTWarning(
+      "This certificate is no longer available.",
+      {
+        title:
+          "Certificate unavailable"
+      }
+    );
+
+    return;
+
+  }
+
+
+  studentCertificatePreviewCertificate =
+    certificate;
+
+
+  const status =
+    String(
+      certificate.status ||
+      "pending"
+    ).toLowerCase();
+
+
+  const statusLabel =
+    getStudentCertificateStatusLabel(
+      status
+    );
+
+
+  const statusIcon =
+    getStudentCertificateStatusIcon(
+      status
+    );
+
+
+  const issuedDate =
+    formatDate(
+      certificate.issuedAt
+    );
+
+
+  const completedDate =
+    formatDate(
+      certificate.completedAt
+    );
+
+
+  const expiryDate =
+    certificate.expiresAt
+      ? formatDate(
+          certificate.expiresAt
+        )
+      : "";
+
+
+  /*
+    Preview heading
+  */
+
+  setText(
+    "studentCertificatePreviewTitle",
+    certificate.title
+  );
+
+
+  setText(
+    "studentCertificatePreviewDescription",
+    `${
+      certificate.programName
+    } • ${
+      certificate.schoolName
+    }`
+  );
+
+
+  /*
+    Certificate document
+  */
+
+  setText(
+    "studentCertificateDocumentSchool",
+    certificate.schoolName
+  );
+
+
+  setText(
+    "studentCertificateDocumentTitle",
+    certificate.title
+  );
+
+
+  setText(
+    "studentCertificateDocumentStudent",
+    certificate.studentName
+  );
+
+
+  setText(
+    "studentCertificateDocumentProgram",
+    certificate.programName
+  );
+
+
+  setText(
+    "studentCertificateDocumentDescription",
+    certificate.description ||
+    "This credential recognizes successful completion of the learning requirements."
+  );
+
+
+  setText(
+    "studentCertificateDocumentIssuedDate",
+    issuedDate
+  );
+
+
+  setText(
+    "studentCertificateDocumentNumber",
+    certificate.certificateNumber ||
+    "Not available"
+  );
+
+
+  setText(
+    "studentCertificateDocumentStatus",
+    statusLabel
+  );
+
+
+  const issuer =
+    certificate.raw?.issuedBy &&
+    typeof certificate.raw.issuedBy ===
+      "object"
+      ? (
+          certificate.raw.issuedBy.name ||
+          certificate.raw.issuedBy.fullName ||
+          certificate.schoolName
+        )
+      : certificate.schoolName;
+
+
+  setText(
+    "studentCertificateDocumentIssuer",
+    issuer ||
+    "Authorized issuer"
+  );
+
+
+  /*
+    Verification card
+  */
+
+  const verificationCard =
+    $("studentCertificatePreviewVerification");
+
+  const statusIconElement =
+    $("studentCertificatePreviewStatusIcon");
+
+
+  if (verificationCard){
+
+    verificationCard.classList.remove(
+      "verified",
+      "pending",
+      "expired",
+      "revoked"
+    );
+
+    verificationCard.classList.add(
+      status
+    );
+
+  }
+
+
+  if (statusIconElement){
+
+    statusIconElement.className =
+      statusIcon;
+
+  }
+
+
+  setText(
+    "studentCertificatePreviewStatus",
+    statusLabel
+  );
+
+
+  setText(
+    "studentCertificatePreviewStatusDescription",
+    getStudentCertificateStatusDescription(
+      status
+    )
+  );
+
+
+  /*
+    Sidebar details
+  */
+
+  setText(
+    "studentCertificatePreviewStudent",
+    certificate.studentName
+  );
+
+
+  setText(
+    "studentCertificatePreviewProgram",
+    certificate.programName
+  );
+
+
+  setText(
+    "studentCertificatePreviewClass",
+    certificate.className
+  );
+
+
+  setText(
+    "studentCertificatePreviewSchool",
+    certificate.schoolName
+  );
+
+
+  setText(
+    "studentCertificatePreviewIssued",
+    issuedDate
+  );
+
+
+  setText(
+    "studentCertificatePreviewCompleted",
+    completedDate
+  );
+
+
+  setText(
+    "studentCertificatePreviewNumber",
+    certificate.certificateNumber ||
+    "Not available"
+  );
+
+
+  setText(
+    "studentCertificatePreviewCode",
+    certificate.verificationCode ||
+    "Not available"
+  );
+
+
+  /*
+    Optional expiry
+  */
+
+  const expiryRow =
+    $("studentCertificatePreviewExpiryRow");
+
+
+  if (expiryRow){
+
+    expiryRow.hidden =
+      !certificate.expiresAt;
+
+  }
+
+
+  if (certificate.expiresAt){
+
+    setText(
+      "studentCertificatePreviewExpiry",
+      expiryDate
+    );
+
+  }
+
+
+  /*
+    Optional grade
+  */
+
+  const gradeRow =
+    $("studentCertificatePreviewGradeRow");
+
+
+  if (gradeRow){
+
+    gradeRow.hidden =
+      !certificate.grade;
+
+  }
+
+
+  if (certificate.grade){
+
+    setText(
+      "studentCertificatePreviewGrade",
+      certificate.grade
+    );
+
+  }
+
+
+  /*
+    Optional completed hours
+  */
+
+  const hoursRow =
+    $("studentCertificatePreviewHoursRow");
+
+
+  if (hoursRow){
+
+    hoursRow.hidden =
+      !certificate.hours;
+
+  }
+
+
+  if (certificate.hours){
+
+    setText(
+      "studentCertificatePreviewHours",
+      `${
+        certificate.hours
+      } ${
+        certificate.hours === 1
+          ? "hour"
+          : "hours"
+      }`
+    );
+
+  }
+
+
+  /*
+    Skills
+  */
+
+  const skillsPanel =
+    $("studentCertificatePreviewSkillsPanel");
+
+  const skillsWrap =
+    $("studentCertificatePreviewSkills");
+
+
+  if (skillsWrap){
+
+    skillsWrap.innerHTML =
+      certificate.skills
+        .map(skill => `
+          <span>
+            ${
+              escapeHtml(
+                skill
+              )
+            }
+          </span>
+        `)
+        .join("");
+
+  }
+
+
+  if (skillsPanel){
+
+    skillsPanel.hidden =
+      !certificate.skills.length;
+
+  }
+
+
+  /*
+    File actions
+  */
+
+  const downloadButton =
+    $("studentCertificatePreviewDownloadButton");
+
+  const openFileButton =
+    $("studentCertificatePreviewOpenFileButton");
+
+
+  if (downloadButton){
+
+    downloadButton.disabled =
+      !certificate.pdfUrl;
+
+  }
+
+
+  if (openFileButton){
+
+    openFileButton.hidden =
+      !certificate.pdfUrl;
+
+  }
+
+
+  /*
+    Verification actions
+  */
+
+  const verifyButton =
+    $("studentCertificatePreviewVerifyButton");
+
+  const copyCodeButton =
+    $("studentCertificatePreviewCopyCodeButton");
+
+
+  if (verifyButton){
+
+    verifyButton.disabled =
+      !certificate.verificationCode;
+
+  }
+
+
+  if (copyCodeButton){
+
+    copyCodeButton.disabled =
+      !certificate.verificationCode;
+
+  }
+
+
+  openModal(
+    "studentCertificatePreviewModal"
+  );
 
 }
 
@@ -7250,13 +7748,13 @@ function bindStudentCertificateControls(){
         event.preventDefault();
 
 
-        notifyAIFTInfo(
-          "The certificate preview will be connected in the next step.",
-          {
-            title:
-              "Certificate selected"
-          }
+        openStudentCertificatePreview(
+          previewButton.dataset
+            .previewStudentCertificate
         );
+
+
+        return;
 
       }
 
@@ -7418,6 +7916,323 @@ function bindStudentCertificateControls(){
       }
     );
 
+    $("closeStudentCertificatePreviewButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        closeStudentCertificatePreview();
+
+      }
+    );
+
+
+  $("studentCertificatePreviewModal")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        if (
+          event.target ===
+          $("studentCertificatePreviewModal")
+        ){
+
+          closeStudentCertificatePreview();
+
+        }
+
+      }
+    );
+
+    const openStudentCertificateFile =
+    () => {
+
+      const certificate =
+        studentCertificatePreviewCertificate;
+
+
+      if (!certificate?.pdfUrl){
+
+        notifyAIFTWarning(
+          "This certificate does not have a downloadable file yet.",
+          {
+            title:
+              "File unavailable"
+          }
+        );
+
+        return;
+
+      }
+
+
+      window.open(
+        certificate.pdfUrl,
+        "_blank",
+        "noopener,noreferrer"
+      );
+
+    };
+
+
+  $("studentCertificatePreviewDownloadButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        openStudentCertificateFile();
+
+      }
+    );
+
+
+  $("studentCertificatePreviewOpenFileButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        openStudentCertificateFile();
+
+      }
+    );
+    $("studentCertificatePreviewCopyCodeButton")
+    ?.addEventListener(
+      "click",
+      async event => {
+
+        event.preventDefault();
+
+
+        const certificate =
+          studentCertificatePreviewCertificate;
+
+
+        if (
+          !certificate?.verificationCode
+        ){
+          return;
+        }
+
+
+        try{
+
+          await navigator.clipboard.writeText(
+            certificate.verificationCode
+          );
+
+
+          notifyAIFTSuccess(
+            "The verification code was copied.",
+            {
+              title:
+                "Code copied"
+            }
+          );
+
+        }catch(error){
+
+          console.error(
+            "Certificate verification code copy failed:",
+            error
+          );
+
+
+          notifyAIFTError(
+            "AIFT could not copy the verification code.",
+            {
+              title:
+                "Copy failed"
+            }
+          );
+
+        }
+
+      }
+    );
+    $("studentCertificatePreviewVerifyButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+
+        const certificate =
+          studentCertificatePreviewCertificate;
+
+
+        if (
+          !certificate?.verificationCode
+        ){
+          return;
+        }
+
+
+        window.open(
+          `${
+            API
+          }/api/certificates/verify/${
+            encodeURIComponent(
+              certificate.verificationCode
+            )
+          }`,
+          "_blank",
+          "noopener,noreferrer"
+        );
+
+      }
+    );
+    $("studentCertificatePreviewShareButton")
+    ?.addEventListener(
+      "click",
+      async event => {
+
+        event.preventDefault();
+
+
+        const certificate =
+          studentCertificatePreviewCertificate;
+
+
+        if (!certificate){
+          return;
+        }
+
+
+        const verificationUrl =
+          certificate.verificationCode
+            ? `${
+                API
+              }/api/certificates/verify/${
+                encodeURIComponent(
+                  certificate.verificationCode
+                )
+              }`
+            : certificate.pdfUrl;
+
+
+        if (!verificationUrl){
+
+          notifyAIFTWarning(
+            "This certificate does not have a shareable link yet.",
+            {
+              title:
+                "Sharing unavailable"
+            }
+          );
+
+          return;
+
+        }
+
+
+        const shareData = {
+          title:
+            certificate.title,
+
+          text:
+            `${
+              certificate.studentName
+            } earned ${
+              certificate.title
+            } from ${
+              certificate.schoolName
+            }.`,
+
+          url:
+            verificationUrl
+        };
+
+
+        try{
+
+          if (
+            typeof navigator.share ===
+            "function"
+          ){
+
+            await navigator.share(
+              shareData
+            );
+
+            return;
+
+          }
+
+
+          await navigator.clipboard.writeText(
+            verificationUrl
+          );
+
+
+          notifyAIFTSuccess(
+            "The certificate verification link was copied.",
+            {
+              title:
+                "Share link copied"
+            }
+          );
+
+        }catch(error){
+
+          if (
+            error?.name ===
+            "AbortError"
+          ){
+            return;
+          }
+
+
+          console.error(
+            "Certificate sharing failed:",
+            error
+          );
+
+
+          notifyAIFTError(
+            "AIFT could not share this certificate.",
+            {
+              title:
+                "Sharing failed"
+            }
+          );
+
+        }
+
+      }
+    );
+
+    document.addEventListener(
+    "keydown",
+    event => {
+
+      const modal =
+        $("studentCertificatePreviewModal");
+
+
+      if (
+        event.key !== "Escape" ||
+        !modal?.classList.contains(
+          "show"
+        )
+      ){
+        return;
+      }
+
+
+      event.preventDefault();
+
+      closeStudentCertificatePreview();
+
+    }
+  );
+  
   studentCertificateControlsBound =
     true;
 
