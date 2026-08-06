@@ -5865,11 +5865,1382 @@ function openStudentClass(classId){
     )}`;
 }
 
+/* =========================================================
+   STUDENT CERTIFICATE WORKSPACE STATE
+========================================================= */
+
+const STUDENT_CERTIFICATE_VIEW_STORAGE_KEY =
+  "aiftStudentCertificateView";
+
+
+let studentCertificateView =
+  localStorage.getItem(
+    STUDENT_CERTIFICATE_VIEW_STORAGE_KEY
+  ) === "list"
+    ? "list"
+    : "grid";
+
+
+let studentCertificateControlsBound =
+  false;
+
+
+/* =========================================================
+   CERTIFICATE NORMALIZATION
+========================================================= */
+
+function normalizeStudentCertificateStatus(
+  certificate
+){
+
+  const explicitStatus =
+    String(
+      certificate?.status ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if (
+    [
+      "verified",
+      "pending",
+      "expired",
+      "revoked"
+    ].includes(
+      explicitStatus
+    )
+  ){
+    return explicitStatus;
+  }
+
+
+  if (
+    certificate?.revoked === true ||
+    certificate?.isRevoked === true
+  ){
+    return "revoked";
+  }
+
+
+  const expiryDate =
+    certificate?.expiresAt ||
+    certificate?.expiryDate ||
+    null;
+
+
+  if (
+    expiryDate &&
+    new Date(
+      expiryDate
+    ).getTime() <
+      Date.now()
+  ){
+    return "expired";
+  }
+
+
+  if (
+    certificate?.verified === true ||
+    certificate?.isVerified === true ||
+    certificate?.verificationCode ||
+    certificate?.certificateNumber
+  ){
+    return "verified";
+  }
+
+
+  return "pending";
+
+}
+
+
+function normalizeStudentCertificate(
+  certificate
+){
+
+  const classRecord =
+    certificate?.classId &&
+    typeof certificate.classId ===
+      "object"
+      ? certificate.classId
+      : null;
+
+
+  const schoolRecord =
+    certificate?.schoolId &&
+    typeof certificate.schoolId ===
+      "object"
+      ? certificate.schoolId
+      : null;
+
+
+  const programRecord =
+    certificate?.programId &&
+    typeof certificate.programId ===
+      "object"
+      ? certificate.programId
+      : null;
+
+
+  const issuedAt =
+    certificate?.issuedAt ||
+    certificate?.issueDate ||
+    certificate?.completedAt ||
+    certificate?.createdAt ||
+    null;
+
+
+  const status =
+    normalizeStudentCertificateStatus(
+      certificate
+    );
+
+
+  return {
+    id:
+      String(
+        certificate?._id ||
+        certificate?.id ||
+        certificate?.certificateId ||
+        ""
+      ).trim(),
+
+    title:
+      String(
+        certificate?.title ||
+        certificate?.certificateTitle ||
+        certificate?.courseName ||
+        certificate?.programName ||
+        classRecord?.title ||
+        programRecord?.title ||
+        "Certificate of Completion"
+      ).trim(),
+
+    description:
+      String(
+        certificate?.description ||
+        certificate?.summary ||
+        ""
+      ).trim(),
+
+    status,
+
+    classId:
+      normalizeId(
+        classRecord?._id ||
+        certificate?.classId
+      ),
+
+    className:
+      String(
+        classRecord?.title ||
+        classRecord?.name ||
+        certificate?.className ||
+        certificate?.courseName ||
+        "General program"
+      ).trim(),
+
+    programId:
+      normalizeId(
+        programRecord?._id ||
+        certificate?.programId
+      ),
+
+    programName:
+      String(
+        programRecord?.title ||
+        programRecord?.name ||
+        certificate?.programName ||
+        certificate?.courseName ||
+        classRecord?.title ||
+        "Learning program"
+      ).trim(),
+
+    schoolName:
+      String(
+        schoolRecord?.name ||
+        certificate?.schoolName ||
+        state.me?.schoolId?.name ||
+        state.me?.linkedSchoolId?.name ||
+        "AIFT Learning"
+      ).trim(),
+
+    studentName:
+      String(
+        certificate?.studentName ||
+        certificate?.recipientName ||
+        state.me?.name ||
+        state.me?.fullName ||
+        "Student"
+      ).trim(),
+
+    certificateNumber:
+      String(
+        certificate?.certificateNumber ||
+        certificate?.verificationCode ||
+        certificate?.credentialId ||
+        ""
+      ).trim(),
+
+    verificationCode:
+      String(
+        certificate?.verificationCode ||
+        certificate?.certificateNumber ||
+        certificate?.credentialId ||
+        ""
+      ).trim(),
+
+    issuedAt,
+
+    completedAt:
+      certificate?.completedAt ||
+      certificate?.completionDate ||
+      issuedAt,
+
+    expiresAt:
+      certificate?.expiresAt ||
+      certificate?.expiryDate ||
+      null,
+
+    grade:
+      String(
+        certificate?.grade ||
+        certificate?.finalGrade ||
+        certificate?.score ||
+        ""
+      ).trim(),
+
+    hours:
+      Number(
+        certificate?.hours ||
+        certificate?.completedHours ||
+        certificate?.creditHours ||
+        0
+      ),
+
+    pdfUrl:
+      String(
+        certificate?.pdfUrl ||
+        certificate?.certificateUrl ||
+        certificate?.fileUrl ||
+        certificate?.downloadUrl ||
+        ""
+      ).trim(),
+
+    previewUrl:
+      String(
+        certificate?.previewUrl ||
+        certificate?.imageUrl ||
+        certificate?.thumbnailUrl ||
+        certificate?.pdfUrl ||
+        certificate?.certificateUrl ||
+        ""
+      ).trim(),
+
+    skills:
+      asArray(
+        certificate?.skills
+      )
+        .map(skill =>
+          typeof skill ===
+            "string"
+            ? skill
+            : (
+                skill?.name ||
+                skill?.title ||
+                ""
+              )
+        )
+        .filter(Boolean),
+
+    raw:
+      certificate
+  };
+
+}
+
+
+function getStudentCertificates(){
+
+  return asArray(
+    state.certificates
+  )
+    .map(
+      normalizeStudentCertificate
+    )
+    .filter(certificate =>
+      Boolean(
+        certificate.id
+      )
+    );
+
+}
+
+/* =========================================================
+   CERTIFICATE DISPLAY HELPERS
+========================================================= */
+
+function getStudentCertificateStatusLabel(
+  status
+){
+
+  switch(
+    String(
+      status ||
+      ""
+    ).toLowerCase()
+  ){
+
+    case "verified":
+      return "Verified";
+
+    case "expired":
+      return "Expired";
+
+    case "revoked":
+      return "Revoked";
+
+    default:
+      return "Pending";
+
+  }
+
+}
+
+
+function getStudentCertificateStatusIcon(
+  status
+){
+
+  switch(
+    String(
+      status ||
+      ""
+    ).toLowerCase()
+  ){
+
+    case "verified":
+      return "fa-solid fa-circle-check";
+
+    case "expired":
+      return "fa-solid fa-calendar-xmark";
+
+    case "revoked":
+      return "fa-solid fa-circle-xmark";
+
+    default:
+      return "fa-solid fa-clock";
+
+  }
+
+}
+
+
+function getStudentCertificateIssueTime(
+  certificate
+){
+
+  const date =
+    new Date(
+      certificate?.issuedAt ||
+      certificate?.completedAt ||
+      0
+    );
+
+
+  return Number.isNaN(
+    date.getTime()
+  )
+    ? 0
+    : date.getTime();
+
+}
+/* =========================================================
+   HYDRATE CERTIFICATE CLASS FILTER
+========================================================= */
+
+function hydrateStudentCertificateClassFilter(){
+
+  const select =
+    $("studentCertificateClassFilter");
+
+
+  if (!select){
+    return;
+  }
+
+
+  const previousValue =
+    String(
+      select.value ||
+      ""
+    );
+
+
+  const classes =
+    new Map();
+
+
+  getStudentCertificates()
+    .forEach(certificate => {
+
+      if (
+        !certificate.classId ||
+        !certificate.className
+      ){
+        return;
+      }
+
+
+      classes.set(
+        certificate.classId,
+        certificate.className
+      );
+
+    });
+
+
+  select.innerHTML = `
+    <option value="">
+      All classes
+    </option>
+
+    ${
+      Array.from(
+        classes.entries()
+      )
+        .sort((a,b) =>
+          a[1].localeCompare(
+            b[1]
+          )
+        )
+        .map(
+          ([classId,className]) => `
+            <option
+              value="${
+                escapeHtml(
+                  classId
+                )
+              }"
+            >
+              ${
+                escapeHtml(
+                  className
+                )
+              }
+            </option>
+          `
+        )
+        .join("")
+    }
+  `;
+
+
+  if (
+    Array.from(
+      select.options
+    )
+      .some(option =>
+        option.value ===
+        previousValue
+      )
+  ){
+
+    select.value =
+      previousValue;
+
+  }
+
+}
+
 function renderStudentCertificates(){
-  showAlert(
-    "info",
-    "The Certificates workspace will be added in the next production module."
+
+  const loadingState =
+    $("studentCertificatesLoadingState");
+
+  const errorState =
+    $("studentCertificatesErrorState");
+
+  const emptyState =
+    $("studentCertificatesEmptyState");
+
+  const grid =
+    $("studentCertificateGrid");
+
+
+  if (!grid){
+    return;
+  }
+
+
+  bindStudentCertificateControls();
+
+  hydrateStudentCertificateClassFilter();
+
+
+  const certificates =
+    getStudentCertificates();
+
+
+  if (loadingState){
+    loadingState.hidden =
+      true;
+  }
+
+
+  if (errorState){
+    errorState.hidden =
+      true;
+  }
+
+
+  const searchValue =
+    String(
+      $("studentCertificateSearchInput")
+        ?.value ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  const statusFilter =
+    String(
+      $("studentCertificateStatusFilter")
+        ?.value ||
+      "all"
+    )
+      .trim()
+      .toLowerCase();
+
+
+  const classFilter =
+    String(
+      $("studentCertificateClassFilter")
+        ?.value ||
+      ""
+    ).trim();
+
+
+  const sortValue =
+    String(
+      $("studentCertificateSortFilter")
+        ?.value ||
+      "newest"
+    )
+      .trim()
+      .toLowerCase();
+
+
+  let filteredCertificates =
+    certificates.filter(
+      certificate => {
+
+        const searchableText =
+          [
+            certificate.title,
+            certificate.description,
+            certificate.className,
+            certificate.programName,
+            certificate.schoolName,
+            certificate.certificateNumber,
+            certificate.verificationCode,
+            certificate.grade,
+            ...certificate.skills
+          ]
+            .join(" ")
+            .toLowerCase();
+
+
+        const matchesSearch =
+          !searchValue ||
+          searchableText.includes(
+            searchValue
+          );
+
+
+        const matchesStatus =
+          statusFilter === "all" ||
+          certificate.status ===
+            statusFilter;
+
+
+        const matchesClass =
+          !classFilter ||
+          sameId(
+            certificate.classId,
+            classFilter
+          );
+
+
+        return (
+          matchesSearch &&
+          matchesStatus &&
+          matchesClass
+        );
+
+      }
+    );
+
+
+  filteredCertificates.sort(
+    (a,b) => {
+
+      if (
+        sortValue ===
+        "oldest"
+      ){
+
+        return (
+          getStudentCertificateIssueTime(a) -
+          getStudentCertificateIssueTime(b)
+        );
+
+      }
+
+
+      if (
+        sortValue ===
+        "title-asc"
+      ){
+
+        return a.title.localeCompare(
+          b.title
+        );
+
+      }
+
+
+      if (
+        sortValue ===
+        "title-desc"
+      ){
+
+        return b.title.localeCompare(
+          a.title
+        );
+
+      }
+
+
+      return (
+        getStudentCertificateIssueTime(b) -
+        getStudentCertificateIssueTime(a)
+      );
+
+    }
   );
+
+
+  const verifiedCount =
+    certificates.filter(
+      certificate =>
+        certificate.status ===
+        "verified"
+    ).length;
+
+
+  const pendingCount =
+    certificates.filter(
+      certificate =>
+        certificate.status ===
+        "pending"
+    ).length;
+
+
+  const programIds =
+    new Set(
+      certificates
+        .map(certificate =>
+          certificate.programId ||
+          certificate.classId ||
+          certificate.programName
+        )
+        .filter(Boolean)
+    );
+
+
+  setText(
+    "studentCertificateTotalCount",
+    certificates.length
+  );
+
+
+  setText(
+    "studentCertificateVerifiedCount",
+    verifiedCount
+  );
+
+
+  setText(
+    "studentCertificatePendingCount",
+    pendingCount
+  );
+
+
+  setText(
+    "studentCertificateProgramCount",
+    programIds.size
+  );
+
+
+  setText(
+    "certificateBadge",
+    certificates.length
+  );
+
+
+  const hasFilters =
+    Boolean(
+      searchValue ||
+      statusFilter !== "all" ||
+      classFilter
+    );
+
+
+  const filterStatus =
+    $("studentCertificateFilterStatus");
+
+  const filterStatusText =
+    $("studentCertificateFilterStatusText");
+
+
+  if (filterStatus){
+
+    filterStatus.hidden =
+      !hasFilters;
+
+  }
+
+
+  if (filterStatusText){
+
+    filterStatusText.textContent =
+      `${
+        filteredCertificates.length
+      } ${
+        filteredCertificates.length === 1
+          ? "certificate"
+          : "certificates"
+      } match the current filters`;
+
+  }
+
+
+  grid.classList.toggle(
+    "list-view",
+    studentCertificateView ===
+      "list"
+  );
+
+
+  if (
+    !filteredCertificates.length
+  ){
+
+    grid.hidden =
+      true;
+
+    grid.innerHTML =
+      "";
+
+
+    if (emptyState){
+
+      emptyState.hidden =
+        false;
+
+    }
+
+
+    setText(
+      "studentCertificatesEmptyTitle",
+      hasFilters
+        ? "No matching certificates"
+        : "No certificates yet"
+    );
+
+
+    setText(
+      "studentCertificatesEmptyDescription",
+      hasFilters
+        ? "Try changing your search or certificate filters."
+        : "Certificates earned through completed classes and programs will appear here."
+    );
+
+
+    return;
+
+  }
+
+
+  if (emptyState){
+    emptyState.hidden =
+      true;
+  }
+
+
+  grid.hidden =
+    false;
+
+
+  grid.innerHTML =
+    filteredCertificates
+      .map(certificate => {
+
+        const issueDate =
+          formatDate(
+            certificate.issuedAt
+          );
+
+
+        const statusLabel =
+          getStudentCertificateStatusLabel(
+            certificate.status
+          );
+
+
+        const statusIcon =
+          getStudentCertificateStatusIcon(
+            certificate.status
+          );
+
+
+        return `
+          <article
+            class="
+              student-certificate-card
+              status-${
+                escapeHtml(
+                  certificate.status
+                )
+              }
+            "
+            data-certificate-id="${
+              escapeHtml(
+                certificate.id
+              )
+            }"
+          >
+
+            <div class="student-certificate-card-banner">
+
+              <span class="student-certificate-card-seal">
+
+                <i
+                  class="fa-solid fa-award"
+                  aria-hidden="true"
+                ></i>
+
+              </span>
+
+
+              <span
+                class="
+                  student-certificate-status
+                  ${
+                    escapeHtml(
+                      certificate.status
+                    )
+                  }
+                "
+              >
+
+                <i
+                  class="${
+                    escapeHtml(
+                      statusIcon
+                    )
+                  }"
+                  aria-hidden="true"
+                ></i>
+
+                ${
+                  escapeHtml(
+                    statusLabel
+                  )
+                }
+
+              </span>
+
+            </div>
+
+
+            <div class="student-certificate-card-body">
+
+              <span class="student-certificate-card-eyebrow">
+                ${
+                  escapeHtml(
+                    certificate.programName
+                  )
+                }
+              </span>
+
+
+              <h3 class="student-certificate-card-title">
+                ${
+                  escapeHtml(
+                    certificate.title
+                  )
+                }
+              </h3>
+
+
+              <p class="student-certificate-card-school">
+
+                <i
+                  class="fa-solid fa-building-columns"
+                  aria-hidden="true"
+                ></i>
+
+                ${
+                  escapeHtml(
+                    certificate.schoolName
+                  )
+                }
+
+              </p>
+
+
+              <div class="student-certificate-card-meta">
+
+                <span>
+
+                  <i
+                    class="fa-regular fa-calendar"
+                    aria-hidden="true"
+                  ></i>
+
+                  Issued ${
+                    escapeHtml(
+                      issueDate
+                    )
+                  }
+
+                </span>
+
+
+                <span>
+
+                  <i
+                    class="fa-solid fa-book-open"
+                    aria-hidden="true"
+                  ></i>
+
+                  ${
+                    escapeHtml(
+                      certificate.className
+                    )
+                  }
+
+                </span>
+
+
+                ${
+                  certificate.certificateNumber
+                    ? `
+                      <span>
+
+                        <i
+                          class="fa-solid fa-fingerprint"
+                          aria-hidden="true"
+                        ></i>
+
+                        ${
+                          escapeHtml(
+                            certificate.certificateNumber
+                          )
+                        }
+
+                      </span>
+                    `
+                    : ""
+                }
+
+              </div>
+
+
+              <div class="student-certificate-card-actions">
+
+                <button
+                  class="primary-btn"
+                  type="button"
+                  data-preview-student-certificate="${
+                    escapeHtml(
+                      certificate.id
+                    )
+                  }"
+                >
+                  <i
+                    class="fa-regular fa-eye"
+                    aria-hidden="true"
+                  ></i>
+
+                  View
+                </button>
+
+
+                <button
+                  class="ghost-btn"
+                  type="button"
+                  data-download-student-certificate="${
+                    escapeHtml(
+                      certificate.id
+                    )
+                  }"
+                  ${
+                    certificate.pdfUrl
+                      ? ""
+                      : "disabled"
+                  }
+                >
+                  <i
+                    class="fa-solid fa-download"
+                    aria-hidden="true"
+                  ></i>
+
+                  Download
+                </button>
+
+              </div>
+
+            </div>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+}
+
+function setStudentCertificateView(
+  view
+){
+
+  studentCertificateView =
+    view === "list"
+      ? "list"
+      : "grid";
+
+
+  localStorage.setItem(
+    STUDENT_CERTIFICATE_VIEW_STORAGE_KEY,
+    studentCertificateView
+  );
+
+
+  const gridButton =
+    $("studentCertificateGridViewButton");
+
+  const listButton =
+    $("studentCertificateListViewButton");
+
+
+  gridButton?.classList.toggle(
+    "active",
+    studentCertificateView ===
+      "grid"
+  );
+
+
+  listButton?.classList.toggle(
+    "active",
+    studentCertificateView ===
+      "list"
+  );
+
+
+  gridButton?.setAttribute(
+    "aria-pressed",
+    String(
+      studentCertificateView ===
+        "grid"
+    )
+  );
+
+
+  listButton?.setAttribute(
+    "aria-pressed",
+    String(
+      studentCertificateView ===
+        "list"
+    )
+  );
+
+
+  renderStudentCertificates();
+
+}
+
+function resetStudentCertificateFilters(){
+
+  const searchInput =
+    $("studentCertificateSearchInput");
+
+  const statusFilter =
+    $("studentCertificateStatusFilter");
+
+  const classFilter =
+    $("studentCertificateClassFilter");
+
+  const sortFilter =
+    $("studentCertificateSortFilter");
+
+  const clearButton =
+    $("clearStudentCertificateSearchButton");
+
+
+  if (searchInput){
+    searchInput.value =
+      "";
+  }
+
+
+  if (statusFilter){
+    statusFilter.value =
+      "all";
+  }
+
+
+  if (classFilter){
+    classFilter.value =
+      "";
+  }
+
+
+  if (sortFilter){
+    sortFilter.value =
+      "newest";
+  }
+
+
+  if (clearButton){
+    clearButton.hidden =
+      true;
+  }
+
+
+  renderStudentCertificates();
+
+}
+
+function bindStudentCertificateControls(){
+
+  if (
+    studentCertificateControlsBound
+  ){
+    return;
+  }
+
+
+  const section =
+    $("section-certificates");
+
+  const searchInput =
+    $("studentCertificateSearchInput");
+
+  const clearButton =
+    $("clearStudentCertificateSearchButton");
+
+  const statusFilter =
+    $("studentCertificateStatusFilter");
+
+  const classFilter =
+    $("studentCertificateClassFilter");
+
+  const sortFilter =
+    $("studentCertificateSortFilter");
+
+
+  if (
+    !section ||
+    !searchInput
+  ){
+    return;
+  }
+
+
+  let searchTimer =
+    null;
+
+
+  searchInput.addEventListener(
+    "input",
+    () => {
+
+      window.clearTimeout(
+        searchTimer
+      );
+
+
+      if (clearButton){
+
+        clearButton.hidden =
+          !searchInput.value.trim();
+
+      }
+
+
+      searchTimer =
+        window.setTimeout(
+          renderStudentCertificates,
+          150
+        );
+
+    }
+  );
+
+
+  clearButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      searchInput.value =
+        "";
+
+      clearButton.hidden =
+        true;
+
+      searchInput.focus();
+
+      renderStudentCertificates();
+
+    }
+  );
+
+
+  [
+    statusFilter,
+    classFilter,
+    sortFilter
+  ].forEach(control => {
+
+    control?.addEventListener(
+      "change",
+      renderStudentCertificates
+    );
+
+  });
+
+
+  $("studentCertificateGridViewButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        setStudentCertificateView(
+          "grid"
+        );
+
+      }
+    );
+
+
+  $("studentCertificateListViewButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        setStudentCertificateView(
+          "list"
+        );
+
+      }
+    );
+
+
+  $("resetStudentCertificateFiltersButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        resetStudentCertificateFilters();
+
+      }
+    );
+
+
+  section.addEventListener(
+    "click",
+    event => {
+
+      const downloadButton =
+        event.target.closest(
+          "[data-download-student-certificate]"
+        );
+
+
+      if (downloadButton){
+
+        event.preventDefault();
+
+
+        const certificate =
+          getStudentCertificates()
+            .find(item =>
+              sameId(
+                item.id,
+                downloadButton.dataset
+                  .downloadStudentCertificate
+              )
+            );
+
+
+        if (!certificate?.pdfUrl){
+          return;
+        }
+
+
+        window.open(
+          certificate.pdfUrl,
+          "_blank",
+          "noopener,noreferrer"
+        );
+
+        return;
+
+      }
+
+
+      const previewButton =
+        event.target.closest(
+          "[data-preview-student-certificate]"
+        );
+
+
+      if (previewButton){
+
+        event.preventDefault();
+
+
+        notifyAIFTInfo(
+          "The certificate preview will be connected in the next step.",
+          {
+            title:
+              "Certificate selected"
+          }
+        );
+
+      }
+
+    }
+  );
+
+
+  studentCertificateControlsBound =
+    true;
+
 }
 
 function renderStudentCareerHub(){
