@@ -16863,6 +16863,142 @@ function toggleStudentResourceSaved(
 }
 
 /* =========================================================
+   STUDENT RESOURCE CONFIRMATION CONTROLLER
+========================================================= */
+
+let studentResourceConfirmationResolver =
+  null;
+
+
+function closeStudentResourceConfirmation(
+  approved = false
+){
+
+  const modal =
+    $("studentResourceConfirmModal");
+
+
+  modal?.classList.remove(
+    "show"
+  );
+
+
+  modal?.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+
+  document.body.classList.remove(
+    "student-studio-menu-open"
+  );
+
+
+  if (
+    typeof studentResourceConfirmationResolver ===
+    "function"
+  ){
+
+    const resolve =
+      studentResourceConfirmationResolver;
+
+
+    studentResourceConfirmationResolver =
+      null;
+
+
+    resolve(
+      Boolean(
+        approved
+      )
+    );
+
+  }
+
+}
+
+
+function confirmStudentResourceDeletion(
+  resource
+){
+
+  const modal =
+    $("studentResourceConfirmModal");
+
+  const message =
+    $("studentResourceConfirmMessage");
+
+
+  if (!modal){
+
+    return Promise.resolve(
+      false
+    );
+
+  }
+
+
+  if (
+    studentResourceConfirmationResolver
+  ){
+
+    closeStudentResourceConfirmation(
+      false
+    );
+
+  }
+
+
+  if (message){
+
+    message.textContent =
+      `"${String(
+        resource?.title ||
+        "This resource"
+      )}" will be permanently deleted. This action cannot be undone.`;
+
+  }
+
+
+  modal.classList.add(
+    "show"
+  );
+
+
+  modal.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+
+  document.body.classList.add(
+    "student-studio-menu-open"
+  );
+
+
+  window.setTimeout(
+    () => {
+
+      $("cancelStudentResourceConfirmButton")
+        ?.focus();
+
+    },
+    50
+  );
+
+
+  return new Promise(
+    resolve => {
+
+      studentResourceConfirmationResolver =
+        resolve;
+
+    }
+  );
+
+}
+
+/* =========================================================
    DELETE PERSONAL STUDENT RESOURCE
 ========================================================= */
 
@@ -16908,8 +17044,8 @@ async function deleteStudentResource(
 
 
   const confirmed =
-    window.confirm(
-      `Delete "${resource.title}"?\n\nThis action cannot be undone.`
+    await confirmStudentResourceDeletion(
+      resource
     );
 
 
@@ -17167,6 +17303,8 @@ let studentResourceUploadInProgress =
 
 let studentResourceUploadControlsBound =
   false;
+let studentResourceEditingId =
+  "";
 
 function formatStudentResourceFileSize(
   bytes
@@ -17800,6 +17938,8 @@ function hydrateStudentResourceUploadClassSelect(){
 
 }
 function resetStudentResourceUploadForm(){
+    studentResourceEditingId =
+    "";
 
   const form =
     $("studentResourceUploadForm");
@@ -17828,11 +17968,455 @@ function resetStudentResourceUploadForm(){
 
 }
 
+/* =========================================================
+   EDIT PERSONAL STUDENT RESOURCE
+========================================================= */
+
+function openStudentResourceEditModal(
+  resourceId
+){
+
+  const cleanResourceId =
+    String(
+      resourceId ||
+      ""
+    ).trim();
+
+
+  const resource =
+    buildStudentResources()
+      .find(item =>
+        String(item.id) ===
+        cleanResourceId
+      );
+
+
+  if (
+    !resource ||
+    !resource.isPersonal
+  ){
+
+    notifyAIFTWarning(
+      "Only your personal resources can be edited.",
+      {
+        title:
+          "Resource cannot be edited"
+      }
+    );
+
+    return;
+
+  }
+
+
+  studentResourceEditingId =
+    cleanResourceId;
+
+
+  hydrateStudentResourceUploadClassSelect();
+
+
+  const modal =
+    $("studentResourceUploadModal");
+
+  const dropZone =
+    $("studentResourceDropZone");
+
+  const selectedFile =
+    $("studentResourceSelectedFile");
+
+  const progress =
+    $("studentResourceUploadProgress");
+
+  const titleInput =
+    $("studentResourceTitleInput");
+
+  const descriptionInput =
+    $("studentResourceDescriptionInput");
+
+  const classInput =
+    $("studentResourceClassInput");
+
+  const categoryInput =
+    $("studentResourceCategoryInput");
+
+  const tagsInput =
+    $("studentResourceTagsInput");
+
+  const modalTitle =
+    $("studentResourceUploadTitle");
+
+  const modalDescription =
+    $("studentResourceUploadDescription");
+
+  const submitButton =
+    $("submitStudentResourceUploadButton");
+
+
+  if (dropZone){
+    dropZone.hidden =
+      true;
+  }
+
+
+  if (selectedFile){
+    selectedFile.hidden =
+      true;
+  }
+
+
+  if (progress){
+    progress.hidden =
+      true;
+  }
+
+
+  if (modalTitle){
+    modalTitle.textContent =
+      "Edit resource";
+  }
+
+
+  if (modalDescription){
+
+    modalDescription.textContent =
+      "Update the title, class, category, description, or tags for this personal resource.";
+
+  }
+
+
+  if (titleInput){
+    titleInput.value =
+      resource.title ||
+      "";
+  }
+
+
+  if (descriptionInput){
+
+    descriptionInput.value =
+      resource.description ||
+      "";
+
+  }
+
+
+  if (classInput){
+
+    classInput.value =
+      resource.classId ||
+      "";
+
+  }
+
+
+  if (categoryInput){
+
+    categoryInput.value =
+      resource.category ||
+      "note";
+
+  }
+
+
+  if (tagsInput){
+
+    tagsInput.value =
+      asArray(
+        resource.tags
+      ).join(", ");
+
+  }
+
+
+  if (submitButton){
+
+    submitButton.disabled =
+      false;
+
+    submitButton.innerHTML = `
+      <i
+        class="fa-solid fa-floppy-disk"
+        aria-hidden="true"
+      ></i>
+
+      Save changes
+    `;
+
+  }
+
+
+  openModal(
+    "studentResourceUploadModal"
+  );
+
+
+  window.setTimeout(
+    () => {
+
+      titleInput?.focus();
+
+    },
+    60
+  );
+
+}
+
+async function updateStudentResourceRecord(){
+
+  const resourceId =
+    String(
+      studentResourceEditingId ||
+      ""
+    ).trim();
+
+
+  if (!resourceId){
+    return;
+  }
+
+
+  const titleInput =
+    $("studentResourceTitleInput");
+
+
+  const title =
+    String(
+      titleInput?.value ||
+      ""
+    ).trim();
+
+
+  if (!title){
+
+    setStudentResourceUploadMessage(
+      "Please enter a title for this resource."
+    );
+
+    titleInput?.focus();
+
+    return;
+
+  }
+
+
+  const submitButton =
+    $("submitStudentResourceUploadButton");
+
+
+  setDashboardButtonLoading(
+    submitButton,
+    true,
+    "Saving..."
+  );
+
+
+  try{
+
+    const response =
+      await apiSend(
+        `/api/student-resources/${
+          encodeURIComponent(
+            resourceId
+          )
+        }`,
+        "PATCH",
+        {
+          title,
+
+          description:
+            String(
+              $("studentResourceDescriptionInput")
+                ?.value ||
+              ""
+            ).trim(),
+
+          classId:
+            String(
+              $("studentResourceClassInput")
+                ?.value ||
+              ""
+            ).trim() ||
+            null,
+
+          category:
+            String(
+              $("studentResourceCategoryInput")
+                ?.value ||
+              "note"
+            )
+              .trim()
+              .toLowerCase(),
+
+          tags:
+            String(
+              $("studentResourceTagsInput")
+                ?.value ||
+              ""
+            )
+              .split(",")
+              .map(tag =>
+                tag
+                  .trim()
+                  .toLowerCase()
+              )
+              .filter(Boolean)
+              .slice(
+                0,
+                20
+              )
+        }
+      );
+
+
+    const updatedResource =
+      response?.resource ||
+      response?.data ||
+      null;
+
+
+    if (!updatedResource){
+
+      throw new Error(
+        "The updated resource could not be confirmed."
+      );
+
+    }
+
+
+    const existingIndex =
+      state.studentResources
+        .findIndex(item =>
+          sameId(
+            item?._id ||
+            item?.id,
+            resourceId
+          )
+        );
+
+
+    if (existingIndex >= 0){
+
+      state.studentResources[
+        existingIndex
+      ] =
+        updatedResource;
+
+    }else{
+
+      state.studentResources.unshift(
+        updatedResource
+      );
+
+    }
+
+
+    renderResources();
+
+
+    notifyAIFTSuccess(
+      "Your personal resource was updated.",
+      {
+        title:
+          "Changes saved"
+      }
+    );
+
+
+    closeModal(
+      "studentResourceUploadModal"
+    );
+
+
+    resetStudentResourceUploadForm();
+
+  }catch(error){
+
+    console.error(
+      "Student resource update failed:",
+      error
+    );
+
+
+    setStudentResourceUploadMessage(
+      error?.message ||
+      "AIFT could not update this resource."
+    );
+
+
+    notifyAIFTError(
+      error?.message ||
+      "AIFT could not update this resource.",
+      {
+        title:
+          "Update failed"
+      }
+    );
+
+  }finally{
+
+    setDashboardButtonLoading(
+      submitButton,
+      false
+    );
+
+  }
+
+}
+
 function openStudentResourceUploadModal(){
+
+    studentResourceEditingId =
+    "";
 
   hydrateStudentResourceUploadClassSelect();
 
   resetStudentResourceUploadForm();
+    const dropZone =
+    $("studentResourceDropZone");
+
+  const modalTitle =
+    $("studentResourceUploadTitle");
+
+  const modalDescription =
+    $("studentResourceUploadDescription");
+
+  const submitButton =
+    $("submitStudentResourceUploadButton");
+
+
+  if (dropZone){
+    dropZone.hidden =
+      false;
+  }
+
+
+  if (modalTitle){
+    modalTitle.textContent =
+      "Upload notes";
+  }
+
+
+  if (modalDescription){
+
+    modalDescription.textContent =
+      "Add your own study notes, references, images, spreadsheets, presentations, and documents.";
+
+  }
+
+
+  if (submitButton){
+
+    submitButton.innerHTML = `
+      <i
+        class="fa-solid fa-cloud-arrow-up"
+        aria-hidden="true"
+      ></i>
+
+      Upload resource
+    `;
+
+  }
 
 
   const resourceClassFilter =
@@ -18227,6 +18811,14 @@ async function saveStudentResourceRecord(
 ========================================================= */
 
 async function submitStudentResourceUpload(){
+
+    if (studentResourceEditingId){
+
+    await updateStudentResourceRecord();
+
+    return;
+
+  }
 
   if (
     studentResourceUploadInProgress
@@ -18846,7 +19438,14 @@ function bindStudentResourceControls(){
   if (studentResourceControlsBound){
     return;
   }
+  const confirmModal =
+    $("studentResourceConfirmModal");
 
+  const cancelConfirmButton =
+    $("cancelStudentResourceConfirmButton");
+
+  const approveConfirmButton =
+    $("approveStudentResourceConfirmButton");
 
   const section =
     $("section-resources");
@@ -19255,6 +19854,27 @@ function bindStudentResourceControls(){
 
       }
 
+            const editButton =
+        event.target.closest(
+          "[data-edit-student-resource]"
+        );
+
+
+      if (editButton){
+
+        event.preventDefault();
+
+        bindStudentResourceUploadControls();
+
+        openStudentResourceEditModal(
+          editButton.dataset
+            .editStudentResource
+        );
+
+        return;
+
+      }
+
 
       const deleteButton =
         event.target.closest(
@@ -19434,6 +20054,52 @@ function bindStudentResourceControls(){
 
 
       renderResources();
+
+    }
+  );
+
+    cancelConfirmButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      closeStudentResourceConfirmation(
+        false
+      );
+
+    }
+  );
+
+
+  approveConfirmButton?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      closeStudentResourceConfirmation(
+        true
+      );
+
+    }
+  );
+
+
+  confirmModal?.addEventListener(
+    "click",
+    event => {
+
+      if (
+        event.target ===
+        confirmModal
+      ){
+
+        closeStudentResourceConfirmation(
+          false
+        );
+
+      }
 
     }
   );
