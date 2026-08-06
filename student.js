@@ -16998,6 +16998,68 @@ function showStudentResourcePreviewLoading(show=true){
   }
 
 }
+
+function getVisibleStudentResources(){
+
+  return buildStudentResources()
+    .filter(resource=>{
+
+      return !resource.hidden;
+
+    });
+
+}
+function navigateStudentResourcePreview(
+  direction
+){
+
+  if(
+    !studentResourcePreviewResource
+  ){
+    return;
+  }
+
+  const resources=
+    getVisibleStudentResources();
+
+  const currentIndex=
+    resources.findIndex(resource=>
+      sameId(
+        resource.id,
+        studentResourcePreviewResource.id
+      )
+    );
+
+  if(currentIndex===-1){
+    return;
+  }
+
+  let nextIndex=
+    currentIndex+
+    direction;
+
+  if(nextIndex<0){
+
+    nextIndex=
+      resources.length-1;
+
+  }
+
+  if(
+    nextIndex>=
+    resources.length
+  ){
+
+    nextIndex=0;
+
+  }
+
+  openStudentResourcePreview(
+    resources[nextIndex].id
+  );
+
+}
+
 function openStudentResourcePreview(
   resourceId
 ){
@@ -17224,6 +17286,24 @@ function openStudentResourcePreview(
     "studentResourcePreviewModal"
   );
 
+const visibleResources =
+  getVisibleStudentResources();
+
+const previousButton =
+  $("studentResourcePreviewPreviousButton");
+
+const nextButton =
+  $("studentResourcePreviewNextButton");
+
+const disableNavigation =
+  visibleResources.length <= 1;
+
+previousButton.disabled =
+  disableNavigation;
+
+nextButton.disabled =
+  disableNavigation;
+  
   renderStudentResourcePreview(
     resource
   );
@@ -21013,6 +21093,30 @@ function bindStudentResourceControls(){
 
     }
   );
+
+  $("studentResourcePreviewPreviousButton")
+?.addEventListener(
+  "click",
+  ()=>{
+
+    navigateStudentResourcePreview(
+      -1
+    );
+
+  }
+);
+
+$("studentResourcePreviewNextButton")
+?.addEventListener(
+  "click",
+  ()=>{
+
+    navigateStudentResourcePreview(
+      1
+    );
+
+  }
+);
 
   studentResourceControlsBound =
     true;
@@ -25158,6 +25262,34 @@ function bindAssignmentWorkspaceControls(){
     event => {
       const modal =
         $("submissionModal");
+
+      if(
+  event.key==="ArrowLeft"
+){
+
+  event.preventDefault();
+
+  navigateStudentResourcePreview(
+    -1
+  );
+
+  return;
+
+}
+
+if(
+  event.key==="ArrowRight"
+){
+
+  event.preventDefault();
+
+  navigateStudentResourcePreview(
+    1
+  );
+
+  return;
+
+}
 
       if (
         event.key !== "Escape" ||
