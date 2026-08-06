@@ -2263,14 +2263,41 @@ async function apiGet(path,fallback = null){
   }
 }
 
-async function apiSend(path,method,body){
-  const res = await fetch(API + path,{
+async function apiSend(
+  path,
+  method,
+  body
+){
+
+  const requestOptions = {
     method,
-    headers:authHeaders({
-      "Content-Type":"application/json"
-    }),
-    body:JSON.stringify(body || {})
-  });
+    headers:
+      authHeaders({
+        "Content-Type":
+          "application/json"
+      })
+  };
+
+
+  if (
+    body !== undefined &&
+    method !== "GET" &&
+    method !== "HEAD"
+  ){
+
+    requestOptions.body =
+      JSON.stringify(
+        body
+      );
+
+  }
+
+
+  const res =
+    await fetch(
+      API + path,
+      requestOptions
+    );
 
   const data = await safeJson(res);
 
@@ -16836,6 +16863,146 @@ function toggleStudentResourceSaved(
 }
 
 /* =========================================================
+   DELETE PERSONAL STUDENT RESOURCE
+========================================================= */
+
+async function deleteStudentResource(
+  resourceId
+){
+
+  const cleanResourceId =
+    String(
+      resourceId ||
+      ""
+    ).trim();
+
+
+  if (!cleanResourceId){
+    return;
+  }
+
+
+  const resource =
+    buildStudentResources()
+      .find(item =>
+        String(item.id) ===
+        cleanResourceId
+      );
+
+
+  if (
+    !resource ||
+    !resource.isPersonal
+  ){
+
+    notifyAIFTWarning(
+      "Only your personal resources can be deleted.",
+      {
+        title:
+          "Resource cannot be deleted"
+      }
+    );
+
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+      `Delete "${resource.title}"?\n\nThis action cannot be undone.`
+    );
+
+
+  if (!confirmed){
+    return;
+  }
+
+
+  try{
+
+    await apiSend(
+      `/api/student-resources/${
+        encodeURIComponent(
+          cleanResourceId
+        )
+      }`,
+      "DELETE",
+      {}
+    );
+
+
+    state.studentResources =
+      asArray(
+        state.studentResources
+      )
+        .filter(item =>
+          !sameId(
+            item?._id ||
+            item?.id,
+            cleanResourceId
+          )
+        );
+
+
+    const savedIds =
+      getStudentSavedResourceIds();
+
+    savedIds.delete(
+      cleanResourceId
+    );
+
+    saveStudentResourceIds(
+      savedIds
+    );
+
+
+    const recentResources =
+      getStudentRecentlyOpenedResources()
+        .filter(item =>
+          String(item.id) !==
+          cleanResourceId
+        );
+
+    saveStudentRecentlyOpenedResources(
+      recentResources
+    );
+
+
+    renderResources();
+
+    renderStudentRecentlyOpenedResources();
+
+
+    notifyAIFTSuccess(
+      "The personal resource was deleted.",
+      {
+        title:
+          "Resource deleted"
+      }
+    );
+
+  }catch(error){
+
+    console.error(
+      "Student resource deletion failed:",
+      error
+    );
+
+
+    notifyAIFTError(
+      error?.message ||
+      "AIFT could not delete this resource.",
+      {
+        title:
+          "Delete failed"
+      }
+    );
+
+  }
+
+}
+
+/* =========================================================
    RESOURCE VIEW
 ========================================================= */
 
@@ -19082,6 +19249,26 @@ function bindStudentResourceControls(){
         toggleStudentResourceSaved(
           saveButton.dataset
             .saveStudentResource
+        );
+
+        return;
+
+      }
+
+
+      const deleteButton =
+        event.target.closest(
+          "[data-delete-student-resource]"
+        );
+
+
+      if (deleteButton){
+
+        event.preventDefault();
+
+        deleteStudentResource(
+          deleteButton.dataset
+            .deleteStudentResource
         );
 
         return;
