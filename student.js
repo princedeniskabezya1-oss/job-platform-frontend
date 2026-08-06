@@ -15439,6 +15439,10 @@ let studentResourceView =
     : "grid";
 
 
+let studentResourceActiveCategory =
+  "all";
+
+
 let studentResourceControlsBound =
   false;
 
@@ -17246,6 +17250,10 @@ function resetStudentResourceFilters(){
   if (clearButton){
     clearButton.hidden = true;
   }
+
+
+  studentResourceActiveCategory =
+    "all";
 
 
   document
@@ -19587,6 +19595,10 @@ function bindStudentResourceControls(){
     "change",
     () => {
 
+      studentResourceActiveCategory =
+        "all";
+
+
       document
         .querySelectorAll(
           "[data-resource-category]"
@@ -19596,6 +19608,7 @@ function bindStudentResourceControls(){
             "active"
           );
         });
+
 
       renderResources();
 
@@ -19920,106 +19933,49 @@ function bindStudentResourceControls(){
           .toLowerCase();
 
 
+      const categoryAlreadyActive =
+        studentResourceActiveCategory ===
+        category;
+
+
+      studentResourceActiveCategory =
+        categoryAlreadyActive
+          ? "all"
+          : category;
+
+
       document
         .querySelectorAll(
           "[data-resource-category]"
         )
         .forEach(button => {
+
+          const buttonCategory =
+            String(
+              button.dataset
+                .resourceCategory ||
+              ""
+            )
+              .trim()
+              .toLowerCase();
+
+
           button.classList.toggle(
             "active",
-            button ===
-              categoryButton
+            studentResourceActiveCategory ===
+              buttonCategory
           );
+
         });
 
 
-      if (
-        category ===
-        "saved"
-      ){
+      /*
+        Category filtering is handled entirely by
+        renderResources(). Keep the normal type selector
+        independent so students may combine filters.
+      */
 
-        const savedIds =
-          getStudentSavedResourceIds();
-
-        const allResources =
-          buildStudentResources();
-
-
-        const savedResources =
-          allResources.filter(resource =>
-            savedIds.has(
-              resource.id
-            )
-          );
-
-
-        const grid =
-          $("studentResourceGrid");
-
-
-        if (
-          grid &&
-          !savedResources.length
-        ){
-
-          grid.innerHTML = `
-            <div class="student-resource-empty">
-
-              <i
-                class="fa-regular fa-bookmark"
-                aria-hidden="true"
-              ></i>
-
-              <strong>
-                No saved resources
-              </strong>
-
-              <p>
-                Save useful learning materials to access
-                them quickly from this category.
-              </p>
-
-            </div>
-          `;
-
-        }else{
-
-          /*
-            The saved-only view will be finalized in the
-            next step using a dedicated category state.
-          */
-
-          notifyAIFTInfo(
-            "Your saved resources are shown by the active bookmark buttons.",
-            {
-              title:
-                "Saved resources"
-            }
-          );
-
-        }
-
-        return;
-
-      }
-
-
-      if (
-        category ===
-        "recent"
-      ){
-
-        if (typeFilter){
-          typeFilter.value =
-            "all";
-        }
-
-        if (sortFilter){
-          sortFilter.value =
-            "recent";
-        }
-
-        renderResources();
+      renderResources();
 
         return;
 
@@ -20165,6 +20121,17 @@ function renderResources(){
       .toLowerCase();
 
 
+  const sevenDaysAgo =
+    Date.now() -
+    (
+      7 *
+      24 *
+      60 *
+      60 *
+      1000
+    );
+
+
   let resources =
     allResources.filter(resource => {
 
@@ -20198,10 +20165,82 @@ function renderResources(){
         resource.type === typeFilter;
 
 
+      let matchesCategory =
+        true;
+
+
+      if (
+        studentResourceActiveCategory ===
+        "saved"
+      ){
+
+        matchesCategory =
+          savedIds.has(
+            String(
+              resource.id
+            )
+          );
+
+      }else if (
+        studentResourceActiveCategory ===
+        "recent"
+      ){
+
+        matchesCategory =
+          Boolean(
+            resource.createdAt &&
+            new Date(
+              resource.createdAt
+            ).getTime() >=
+              sevenDaysAgo
+          );
+
+      }else if (
+        studentResourceActiveCategory ===
+        "document"
+      ){
+
+        matchesCategory =
+          [
+            "document",
+            "pdf",
+            "presentation",
+            "spreadsheet",
+            "text"
+          ].includes(
+            resource.type
+          );
+
+      }else if (
+        studentResourceActiveCategory ===
+        "video"
+      ){
+
+        matchesCategory =
+          [
+            "video",
+            "recording"
+          ].includes(
+            resource.type
+          );
+
+      }else if (
+        studentResourceActiveCategory ===
+        "link"
+      ){
+
+        matchesCategory =
+          resource.type ===
+          "link";
+
+      }
+
+
       return (
         matchesSearch &&
         matchesClass &&
-        matchesType
+        matchesType &&
+        matchesCategory
       );
 
     });
@@ -20300,17 +20339,6 @@ function renderResources(){
   );
 
 
-  const sevenDaysAgo =
-    Date.now() -
-    (
-      7 *
-      24 *
-      60 *
-      60 *
-      1000
-    );
-
-
   const recentCount =
     allResources.filter(resource =>
       resource.createdAt &&
@@ -20396,7 +20424,9 @@ function renderResources(){
     Boolean(
       searchValue ||
       classFilter ||
-      typeFilter !== "all"
+      typeFilter !== "all" ||
+      studentResourceActiveCategory !==
+        "all"
     );
 
 
@@ -20425,9 +20455,15 @@ function renderResources(){
 
         <p>
           ${
-            hasFilters
-              ? "Try changing your search or resource filters."
-              : "Resources added by your teachers and school will appear here."
+            studentResourceActiveCategory ===
+              "saved"
+              ? "You have not saved any resources yet."
+              : studentResourceActiveCategory ===
+                  "recent"
+                ? "No resources were added during the last seven days."
+                : hasFilters
+                  ? "Try changing your search or resource filters."
+                  : "Resources added by your teachers and school will appear here."
           }
         </p>
 
