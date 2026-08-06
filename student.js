@@ -20649,76 +20649,370 @@ function bindStudentResourceControls(){
 
     }
   );
-$("closeStudentResourcePreviewButton")
-?.addEventListener(
-  "click",
-  ()=>{
+  const openPreviewResourceExternally =
+    () => {
 
-    closeModal(
-      "studentResourcePreviewModal"
-    );
+      const resource =
+        studentResourcePreviewResource;
 
-  }
-);
 
-$("studentResourcePreviewModal")
-?.addEventListener(
-  "click",
-  event=>{
+      if (!resource?.url){
+        return;
+      }
 
-    if(
-      event.target.id===
-      "studentResourcePreviewModal"
-    ){
 
-      closeModal(
-        "studentResourcePreviewModal"
+      window.open(
+        resource.url,
+        "_blank",
+        "noopener,noreferrer"
       );
 
-    }
+    };
 
-  }
-);
+
+  const downloadPreviewResource =
+    () => {
+
+      const resource =
+        studentResourcePreviewResource;
+
+
+      if (!resource?.url){
+        return;
+      }
+
+
+      const downloadLink =
+        document.createElement(
+          "a"
+        );
+
+
+      downloadLink.href =
+        resource.url;
+
+      downloadLink.download =
+        resource.originalName ||
+        resource.title ||
+        "learning-resource";
+
+      downloadLink.target =
+        "_blank";
+
+      downloadLink.rel =
+        "noopener noreferrer";
+
+
+      document.body.appendChild(
+        downloadLink
+      );
+
+      downloadLink.click();
+
+      downloadLink.remove();
+
+    };
+
+
+  $("closeStudentResourcePreviewButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        closeStudentResourcePreview();
+
+      }
+    );
+
+
+  $("studentResourcePreviewModal")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        if (
+          event.target ===
+          $("studentResourcePreviewModal")
+        ){
+
+          closeStudentResourcePreview();
+
+        }
+
+      }
+    );
+
+
+  $("studentResourcePreviewExternalButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        openPreviewResourceExternally();
+
+      }
+    );
+
+
+  $("studentResourcePreviewOpenLinkButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        openPreviewResourceExternally();
+
+      }
+    );
+
+
+  $("studentResourceUnsupportedExternalButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        openPreviewResourceExternally();
+
+      }
+    );
+
 
   $("studentResourcePreviewDownloadButton")
-?.addEventListener(
-  "click",
-  ()=>{
+    ?.addEventListener(
+      "click",
+      event => {
 
-    if(
-      !studentResourcePreviewResource
-    ){
-      return;
-    }
+        event.preventDefault();
 
-    window.open(
-      studentResourcePreviewResource.url,
-      "_blank",
-      "noopener"
+        downloadPreviewResource();
+
+      }
     );
 
-  }
-);
 
-$("studentResourcePreviewExternalButton")
-?.addEventListener(
-  "click",
-  ()=>{
+  $("studentResourceUnsupportedDownloadButton")
+    ?.addEventListener(
+      "click",
+      event => {
 
-    if(
-      !studentResourcePreviewResource
-    ){
-      return;
-    }
+        event.preventDefault();
 
-    window.open(
-      studentResourcePreviewResource.url,
-      "_blank",
-      "noopener"
+        downloadPreviewResource();
+
+      }
     );
 
-  }
-);
+
+  $("studentResourcePreviewSaveButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+
+        const resource =
+          studentResourcePreviewResource;
+
+
+        if (!resource){
+          return;
+        }
+
+
+        toggleStudentResourceSaved(
+          resource.id
+        );
+
+
+        const refreshedResource =
+          buildStudentResources()
+            .find(item =>
+              sameId(
+                item.id,
+                resource.id
+              )
+            );
+
+
+        if (!refreshedResource){
+          return;
+        }
+
+
+        studentResourcePreviewResource =
+          refreshedResource;
+
+
+        const savedIds =
+          getStudentSavedResourceIds();
+
+        const isSaved =
+          savedIds.has(
+            String(
+              refreshedResource.id
+            )
+          );
+
+        const button =
+          $("studentResourcePreviewSaveButton");
+
+
+        if (button){
+
+          button.setAttribute(
+            "aria-pressed",
+            String(
+              isSaved
+            )
+          );
+
+
+          button.innerHTML = `
+            <i
+              class="${
+                isSaved
+                  ? "fa-solid"
+                  : "fa-regular"
+              } fa-bookmark"
+              aria-hidden="true"
+            ></i>
+
+            ${
+              isSaved
+                ? "Saved"
+                : "Save"
+            }
+          `;
+
+        }
+
+      }
+    );
+
+
+  $("studentResourcePreviewEditButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+
+        const resource =
+          studentResourcePreviewResource;
+
+
+        if (
+          !resource ||
+          !resource.isPersonal
+        ){
+          return;
+        }
+
+
+        const resourceId =
+          resource.id;
+
+
+        closeStudentResourcePreview();
+
+
+        openStudentResourceEditModal(
+          resourceId
+        );
+
+      }
+    );
+
+
+  $("studentResourcePreviewDeleteButton")
+    ?.addEventListener(
+      "click",
+      async event => {
+
+        event.preventDefault();
+
+
+        const resource =
+          studentResourcePreviewResource;
+
+
+        if (
+          !resource ||
+          !resource.isPersonal
+        ){
+          return;
+        }
+
+
+        const resourceId =
+          resource.id;
+
+
+        closeStudentResourcePreview();
+
+
+        await deleteStudentResource(
+          resourceId
+        );
+
+      }
+    );
+
+
+  $("retryStudentResourcePreviewButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+
+        if (
+          studentResourcePreviewResource
+        ){
+
+          renderStudentResourcePreview(
+            studentResourcePreviewResource
+          );
+
+        }
+
+      }
+    );
+
+    document.addEventListener(
+    "keydown",
+    event => {
+
+      const previewModal =
+        $("studentResourcePreviewModal");
+
+
+      if (
+        event.key !== "Escape" ||
+        !previewModal?.classList.contains(
+          "show"
+        )
+      ){
+        return;
+      }
+
+
+      event.preventDefault();
+
+      closeStudentResourcePreview();
+
+    }
+  );
 
   studentResourceControlsBound =
     true;
