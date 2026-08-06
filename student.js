@@ -16867,6 +16867,653 @@ function toggleStudentResourceSaved(
 }
 
 /* =========================================================
+   STUDENT RESOURCE PREVIEW CONTROLLER
+========================================================= */
+
+function clearStudentResourcePreviewMedia(){
+
+  const image =
+    $("studentResourcePreviewImage");
+
+  const frame =
+    $("studentResourcePreviewFrame");
+
+  const video =
+    $("studentResourcePreviewVideo");
+
+  const audio =
+    $("studentResourcePreviewAudio");
+
+
+  if (image){
+    image.removeAttribute(
+      "src"
+    );
+  }
+
+
+  if (frame){
+    frame.src =
+      "about:blank";
+  }
+
+
+  if (video){
+
+    try{
+      video.pause();
+    }catch(error){
+      console.warn(
+        "Resource preview video could not be paused:",
+        error
+      );
+    }
+
+    video.removeAttribute(
+      "src"
+    );
+
+    video.load();
+
+  }
+
+
+  if (audio){
+
+    try{
+      audio.pause();
+    }catch(error){
+      console.warn(
+        "Resource preview audio could not be paused:",
+        error
+      );
+    }
+
+    audio.removeAttribute(
+      "src"
+    );
+
+    audio.load();
+
+  }
+
+}
+
+function closeStudentResourcePreview(){
+
+  clearStudentResourcePreviewMedia();
+
+
+  closeModal(
+    "studentResourcePreviewModal"
+  );
+
+
+  studentResourcePreviewResource =
+    null;
+
+
+  hideStudentResourcePreviewPanels();
+
+  showStudentResourcePreviewLoading(
+    false
+  );
+
+}
+
+function hideStudentResourcePreviewPanels(){
+
+  [
+    "studentResourceImagePreview",
+    "studentResourceDocumentPreview",
+    "studentResourceVideoPreview",
+    "studentResourceAudioPreview",
+    "studentResourceLinkPreview",
+    "studentResourceUnsupportedPreview",
+    "studentResourcePreviewError"
+  ].forEach(id=>{
+
+    const element=$(id);
+
+    if(element){
+      element.hidden=true;
+    }
+
+  });
+
+}
+
+
+
+function showStudentResourcePreviewLoading(show=true){
+
+  const loading=$(
+    "studentResourcePreviewLoading"
+  );
+
+  if(loading){
+
+    loading.hidden=!show;
+
+  }
+
+}
+function openStudentResourcePreview(
+  resourceId
+){
+
+  const resource=
+    buildStudentResources()
+      .find(r=>
+        sameId(
+          r.id,
+          resourceId
+        )
+      );
+
+  if(!resource){
+
+    notifyAIFTWarning(
+      "This resource no longer exists."
+    );
+
+    return;
+
+  }
+
+  studentResourcePreviewResource =
+    resource;
+
+
+  const recentResources =
+    getStudentRecentlyOpenedResources()
+      .filter(item =>
+        String(item.id) !==
+        String(resource.id)
+      );
+
+
+  recentResources.unshift({
+    id:
+      resource.id,
+
+    title:
+      resource.title,
+
+    type:
+      resource.type,
+
+    className:
+      resource.className,
+
+    source:
+      resource.source,
+
+    url:
+      resource.url,
+
+    openedAt:
+      new Date()
+        .toISOString()
+  });
+
+
+  saveStudentRecentlyOpenedResources(
+    recentResources
+  );
+
+
+  renderStudentRecentlyOpenedResources();
+
+
+  showStudentResourcePreviewLoading(
+    true
+  );
+
+  hideStudentResourcePreviewPanels();
+
+  const previewTypeIcon =
+    $("studentResourcePreviewTypeIcon");
+
+  const previewTypeLabel =
+    $("studentResourcePreviewTypeLabel");
+
+
+  if (previewTypeIcon){
+
+    previewTypeIcon.innerHTML = `
+      <i
+        class="${
+          escapeHtml(
+            getStudentResourceIcon(
+              resource.type
+            )
+          )
+        }"
+        aria-hidden="true"
+      ></i>
+    `;
+
+  }
+
+
+  if (previewTypeLabel){
+
+    previewTypeLabel.textContent =
+      getStudentResourceTypeLabel(
+        resource.type
+      );
+
+  }
+
+
+  $("studentResourcePreviewTitle").textContent =
+    resource.title;
+
+  $("studentResourcePreviewDescription").textContent=
+    resource.description||
+    "No description available.";
+
+  $("studentResourcePreviewDetailType").textContent=
+    getStudentResourceTypeLabel(
+      resource.type
+    );
+
+  $("studentResourcePreviewDetailClass").textContent=
+    resource.className||
+    "General";
+
+  $("studentResourcePreviewDetailSource").textContent=
+    resource.source||
+    "Learning Resource";
+
+  $("studentResourcePreviewDetailDate").textContent =
+    formatDate(
+      resource.createdAt
+    );
+
+  $("studentResourcePreviewDetailFileName").textContent=
+    resource.originalName||
+    resource.title;
+
+  const tagsPanel=
+    $("studentResourcePreviewTagsPanel");
+
+  const tagsWrap=
+    $("studentResourcePreviewTags");
+
+  tagsWrap.innerHTML="";
+
+  if(
+    Array.isArray(resource.tags) &&
+    resource.tags.length
+  ){
+
+    tagsPanel.hidden=false;
+
+    resource.tags.forEach(tag=>{
+
+      const span=
+        document.createElement("span");
+
+      span.textContent=tag;
+
+      tagsWrap.appendChild(span);
+
+    });
+
+  }else{
+
+    tagsPanel.hidden=true;
+
+  }
+
+  const personalActions =
+    $("studentResourcePreviewPersonalActions");
+
+  if (personalActions){
+
+    personalActions.hidden =
+      !resource.isPersonal;
+
+  }
+
+
+  const previewSaveButton =
+    $("studentResourcePreviewSaveButton");
+
+  const savedIds =
+    getStudentSavedResourceIds();
+
+  const isSaved =
+    savedIds.has(
+      String(resource.id)
+    );
+
+
+  if (previewSaveButton){
+
+    previewSaveButton.setAttribute(
+      "aria-pressed",
+      String(
+        isSaved
+      )
+    );
+
+
+    previewSaveButton.innerHTML = `
+      <i
+        class="${
+          isSaved
+            ? "fa-solid"
+            : "fa-regular"
+        } fa-bookmark"
+        aria-hidden="true"
+      ></i>
+
+      ${
+        isSaved
+          ? "Saved"
+          : "Save"
+      }
+    `;
+
+  }
+
+  openModal(
+    "studentResourcePreviewModal"
+  );
+
+  renderStudentResourcePreview(
+    resource
+  );
+
+}
+function renderStudentResourcePreview(
+  resource
+){
+
+  clearStudentResourcePreviewMedia();
+
+  hideStudentResourcePreviewPanels();
+
+  showStudentResourcePreviewLoading(
+    false
+  );
+
+
+  const url =
+    String(
+      resource?.url ||
+      ""
+    ).trim();
+
+
+  if (!url){
+
+    const errorPanel =
+      $("studentResourcePreviewError");
+
+    const errorMessage =
+      $("studentResourcePreviewErrorMessage");
+
+
+    if (errorPanel){
+      errorPanel.hidden =
+        false;
+    }
+
+
+    if (errorMessage){
+
+      errorMessage.textContent =
+        "This resource does not contain a usable file URL.";
+
+    }
+
+    return;
+
+  }
+
+
+  switch(
+    String(
+      resource.type ||
+      ""
+    ).toLowerCase()
+  ){
+
+    case "image": {
+
+      const panel =
+        $("studentResourceImagePreview");
+
+      const image =
+        $("studentResourcePreviewImage");
+
+
+      if (panel){
+        panel.hidden =
+          false;
+      }
+
+
+      if (image){
+
+        image.onload =
+          () => {
+
+            showStudentResourcePreviewLoading(
+              false
+            );
+
+          };
+
+
+        image.onerror =
+          () => {
+
+            panel.hidden =
+              true;
+
+            const errorPanel =
+              $("studentResourcePreviewError");
+
+            const errorMessage =
+              $("studentResourcePreviewErrorMessage");
+
+
+            if (errorPanel){
+              errorPanel.hidden =
+                false;
+            }
+
+
+            if (errorMessage){
+
+              errorMessage.textContent =
+                "The image could not be loaded.";
+
+            }
+
+          };
+
+
+        image.src =
+          url;
+
+        image.alt =
+          resource.title ||
+          "Learning resource image";
+
+      }
+
+      return;
+
+    }
+
+
+    case "video":
+
+    case "recording": {
+
+      const panel =
+        $("studentResourceVideoPreview");
+
+      const video =
+        $("studentResourcePreviewVideo");
+
+
+      if (panel){
+        panel.hidden =
+          false;
+      }
+
+
+      if (video){
+        video.src =
+          url;
+      }
+
+      return;
+
+    }
+
+
+    case "audio": {
+
+      const panel =
+        $("studentResourceAudioPreview");
+
+      const audio =
+        $("studentResourcePreviewAudio");
+
+      const title =
+        $("studentResourcePreviewAudioTitle");
+
+
+      if (panel){
+        panel.hidden =
+          false;
+      }
+
+
+      if (audio){
+        audio.src =
+          url;
+      }
+
+
+      if (title){
+
+        title.textContent =
+          resource.title ||
+          "Audio resource";
+
+      }
+
+      return;
+
+    }
+
+
+    case "pdf":
+
+    case "text": {
+
+      const panel =
+        $("studentResourceDocumentPreview");
+
+      const frame =
+        $("studentResourcePreviewFrame");
+
+
+      if (panel){
+        panel.hidden =
+          false;
+      }
+
+
+      if (frame){
+        frame.src =
+          url;
+      }
+
+      return;
+
+    }
+
+
+    case "document":
+
+    case "presentation":
+
+    case "spreadsheet": {
+
+      const panel =
+        $("studentResourceDocumentPreview");
+
+      const frame =
+        $("studentResourcePreviewFrame");
+
+
+      if (panel){
+        panel.hidden =
+          false;
+      }
+
+
+      if (frame){
+
+        frame.src =
+          `https://view.officeapps.live.com/op/embed.aspx?src=${
+            encodeURIComponent(
+              url
+            )
+          }`;
+
+      }
+
+      return;
+
+    }
+
+
+    case "link": {
+
+      const panel =
+        $("studentResourceLinkPreview");
+
+
+      if (panel){
+        panel.hidden =
+          false;
+      }
+
+      return;
+
+    }
+
+
+    default: {
+
+      const panel =
+        $("studentResourceUnsupportedPreview");
+
+
+      if (panel){
+        panel.hidden =
+          false;
+      }
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
    STUDENT RESOURCE CONFIRMATION CONTROLLER
 ========================================================= */
 
@@ -17313,6 +17960,8 @@ let studentResourceUploadControlsBound =
   false;
 let studentResourceEditingId =
   "";
+let studentResourcePreviewResource =
+  null;
 
 function formatStudentResourceFileSize(
   bytes
@@ -19793,7 +20442,7 @@ function bindStudentResourceControls(){
 
         event.preventDefault();
 
-        openStudentResource(
+        openStudentResourcePreview(
           openButton.dataset
             .openStudentResource
         );
@@ -19813,35 +20462,10 @@ function bindStudentResourceControls(){
 
         event.preventDefault();
 
-        const recentResource =
-          getStudentRecentlyOpenedResources()
-            .find(item =>
-              String(item.id) ===
-              String(
-                recentButton.dataset
-                  .openRecentResource
-              )
-            );
-
-
-        if (
-          recentResource?.url
-        ){
-
-          window.open(
-            recentResource.url,
-            "_blank",
-            "noopener,noreferrer"
-          );
-
-        }else{
-
-          openStudentResource(
-            recentButton.dataset
-              .openRecentResource
-          );
-
-        }
+        openStudentResourcePreview(
+          recentButton.dataset
+            .openRecentResource
+        );
 
         return;
 
@@ -20025,7 +20649,76 @@ function bindStudentResourceControls(){
 
     }
   );
+$("closeStudentResourcePreviewButton")
+?.addEventListener(
+  "click",
+  ()=>{
 
+    closeModal(
+      "studentResourcePreviewModal"
+    );
+
+  }
+);
+
+$("studentResourcePreviewModal")
+?.addEventListener(
+  "click",
+  event=>{
+
+    if(
+      event.target.id===
+      "studentResourcePreviewModal"
+    ){
+
+      closeModal(
+        "studentResourcePreviewModal"
+      );
+
+    }
+
+  }
+);
+
+  $("studentResourcePreviewDownloadButton")
+?.addEventListener(
+  "click",
+  ()=>{
+
+    if(
+      !studentResourcePreviewResource
+    ){
+      return;
+    }
+
+    window.open(
+      studentResourcePreviewResource.url,
+      "_blank",
+      "noopener"
+    );
+
+  }
+);
+
+$("studentResourcePreviewExternalButton")
+?.addEventListener(
+  "click",
+  ()=>{
+
+    if(
+      !studentResourcePreviewResource
+    ){
+      return;
+    }
+
+    window.open(
+      studentResourcePreviewResource.url,
+      "_blank",
+      "noopener"
+    );
+
+  }
+);
 
   studentResourceControlsBound =
     true;
