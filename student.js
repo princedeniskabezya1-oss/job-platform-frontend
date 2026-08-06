@@ -15537,7 +15537,13 @@ function buildStudentResources(){
     className,
     source,
     createdAt,
-    thumbnail
+    thumbnail,
+
+    isPersonal = false,
+    category = "",
+    tags = [],
+    saved = false,
+    publicId = ""
   } = {}) => {
 
     const cleanUrl =
@@ -15652,6 +15658,37 @@ function buildStudentResources(){
         String(
           thumbnail ||
           ""
+        ).trim(),
+
+      isPersonal:
+        Boolean(
+          isPersonal
+        ),
+
+      category:
+        String(
+          category ||
+          ""
+        )
+          .trim()
+          .toLowerCase(),
+
+      tags:
+        Array.isArray(
+          tags
+        )
+          ? tags
+          : [],
+
+      saved:
+        Boolean(
+          saved
+        ),
+
+      publicId:
+        String(
+          publicId ||
+          ""
         ).trim()
     });
 
@@ -15717,7 +15754,28 @@ function buildStudentResources(){
                 resource?.secureUrl ||
                 resource?.url
               )
-            : ""
+            : "",
+
+        isPersonal:
+          true,
+
+        category:
+          resource?.category ||
+          "note",
+
+        tags:
+          asArray(
+            resource?.tags
+          ),
+
+        saved:
+          Boolean(
+            resource?.saved
+          ),
+
+        publicId:
+          resource?.publicId ||
+          ""
       });
 
     });
@@ -19679,6 +19737,49 @@ function renderResources(){
 
 
               <div class="student-resource-card-actions-right">
+
+                ${
+                  resource.isPersonal
+                    ? `
+                      <button
+                        class="student-resource-card-icon-button"
+                        type="button"
+                        data-edit-student-resource="${
+                          escapeHtml(
+                            resource.id
+                          )
+                        }"
+                        aria-label="Edit resource"
+                        title="Edit resource"
+                      >
+                        <i
+                          class="fa-solid fa-pen"
+                          aria-hidden="true"
+                        ></i>
+                      </button>
+
+                      <button
+                        class="
+                          student-resource-card-icon-button
+                          danger
+                        "
+                        type="button"
+                        data-delete-student-resource="${
+                          escapeHtml(
+                            resource.id
+                          )
+                        }"
+                        aria-label="Delete resource"
+                        title="Delete resource"
+                      >
+                        <i
+                          class="fa-regular fa-trash-can"
+                          aria-hidden="true"
+                        ></i>
+                      </button>
+                    `
+                    : ""
+                }
 
                 <button
                   class="
