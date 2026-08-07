@@ -802,6 +802,11 @@ const STUDENT_STUDIO_PAGES = Object.freeze({
     description:"View completed programs and earned achievements"
   },
 
+  portfolio:{
+    title:"Student Portfolio",
+    description:"Showcase projects, certificates, skills, experience, and career-ready achievements"
+  },
+
   career:{
     title:"Career Hub",
     description:"Build your career profile and prepare for opportunities"
@@ -834,7 +839,8 @@ const aliases = {
   dashboard:"overview",
   home:"overview",
   calendar:"schedule",
-  analytics:"progress"
+  analytics:"progress",
+  portfolio:"portfolio"
 };
 
   const normalized = aliases[requested] || requested;
