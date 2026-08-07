@@ -9558,6 +9558,27 @@ function saveStudentPortfolioStoredData(
 
 function getStudentPortfolioProjects(){
 
+  const serverProjects =
+    asArray(
+      state.portfolio?.projects
+    );
+
+
+  if (
+    serverProjects.length
+  ){
+
+    return serverProjects.map(
+      normalizeStudentPortfolioProject
+    );
+
+  }
+
+
+  /*
+    Legacy/local fallback.
+  */
+
   try{
 
     const stored =
@@ -9565,15 +9586,24 @@ function getStudentPortfolioProjects(){
         STUDENT_PROJECT_STORAGE_KEY
       );
 
-    if(!stored){
+
+    if (!stored){
       return [];
     }
 
-    const parsed =
-      JSON.parse(stored);
 
-    return Array.isArray(parsed)
-      ? parsed
+    const parsed =
+      JSON.parse(
+        stored
+      );
+
+
+    return Array.isArray(
+      parsed
+    )
+      ? parsed.map(
+          normalizeStudentPortfolioProject
+        )
       : [];
 
   }catch(error){
@@ -9582,6 +9612,7 @@ function getStudentPortfolioProjects(){
       "Project storage error:",
       error
     );
+
 
     return [];
 
@@ -10018,150 +10049,373 @@ function uploadStudentProjectFile(
 
 }
 
-function saveStudentProject(){
+async function saveStudentProject(){
 
-  const title=
-    $("studentProjectTitleInput")
-      .value
-      .trim();
+  const title =
+    String(
+      $("studentProjectTitleInput")
+        ?.value ||
+      ""
+    ).trim();
 
-  if(!title){
+
+  if (!title){
 
     notifyAIFTWarning(
-
-      "Please enter a project title."
-
+      "Please enter a project title.",
+      {
+        title:
+          "Project title required"
+      }
     );
 
-    return;
+
+    $("studentProjectTitleInput")
+      ?.focus();
+
+
+    return false;
 
   }
 
-  const projects=
-    getStudentPortfolioProjects();
 
-  const project={
+  const saveButton =
+    $("saveStudentProjectButton");
 
-    id:
-      studentProjectEditingId||
-      crypto.randomUUID(),
+
+  const imageUrl =
+    String(
+      studentProjectCoverData ||
+      ""
+    ).trim();
+
+
+  /*
+    Do not send large base64 image payloads into the
+    JSON API. We will connect project cover uploads
+    to /api/uploads separately.
+  */
+
+  const safeImageUrl =
+    imageUrl.startsWith(
+      "data:"
+    )
+      ? ""
+      : imageUrl;
+
+
+  const payload = {
 
     title,
 
     category:
-      $("studentProjectCategoryInput")
-        .value,
+      String(
+        $("studentProjectCategoryInput")
+          ?.value ||
+        "Project"
+      ).trim(),
 
     description:
-      $("studentProjectDescriptionInput")
-        .value,
+      String(
+        $("studentProjectDescriptionInput")
+          ?.value ||
+        ""
+      ).trim(),
 
     completedAt:
       $("studentProjectDateInput")
-        .value,
+        ?.value ||
+      null,
 
     featured:
       $("studentProjectFeaturedInput")
-        .checked,
+        ?.checked !==
+      false,
 
     imageUrl:
-      studentProjectCoverData,
+      safeImageUrl,
 
     fileUrl:
-      $("studentProjectFileInput")
-        .value
-        .trim()
+      String(
+        $("studentProjectFileInput")
+          ?.value ||
+        ""
+      ).trim(),
 
+    sourceType:
+      "manual"
   };
 
-  const existing=
-    projects.findIndex(
 
-      item=>
+  setDashboardButtonLoading(
+    saveButton,
+    true,
+    studentProjectEditingId
+      ? "Updating..."
+      : "Saving..."
+  );
 
-      sameId(
-        item.id,
-        project.id
-      )
 
+  try{
+
+    const isExistingServerProject =
+      studentProjectEditingId &&
+      /^[a-f\d]{24}$/i.test(
+        String(
+          studentProjectEditingId
+        )
+      );
+
+
+    const response =
+      isExistingServerProject
+        ? await apiSend(
+            `/api/student-portfolio/me/projects/${
+              encodeURIComponent(
+                studentProjectEditingId
+              )
+            }`,
+            "PATCH",
+            payload
+          )
+        : await apiSend(
+            "/api/student-portfolio/me/projects",
+            "POST",
+            payload
+          );
+
+
+    const serverPortfolio =
+      normalizeStudentPortfolioApiRecord(
+        response?.portfolio ||
+        {}
+      );
+
+
+    state.portfolio = {
+      ...getStudentPortfolio(),
+      ...serverPortfolio,
+
+      projects:
+        asArray(
+          serverPortfolio.projects
+        )
+    };
+
+
+    /*
+      Keep a local safety copy.
+    */
+
+    saveStudentPortfolioProjects(
+      state.portfolio.projects
     );
 
-  if(existing>-1){
 
-    projects[existing]=
-      project;
+    saveStudentPortfolioStoredData(
+      state.portfolio
+    );
 
-  }else{
 
-    projects.unshift(
-      project
+    renderStudentPortfolio();
+
+
+    closeStudentProjectEditor();
+
+
+    notifyAIFTSuccess(
+      isExistingServerProject
+        ? "Your project was updated."
+        : "Your project was added to your portfolio.",
+      {
+        title:
+          isExistingServerProject
+            ? "Project updated"
+            : "Project added"
+      }
+    );
+
+
+    return true;
+
+  }catch(error){
+
+    console.error(
+      "Student portfolio project save failed:",
+      error
+    );
+
+
+    notifyAIFTError(
+      error?.message ||
+      "AIFT could not save this project.",
+      {
+        title:
+          "Project save failed"
+      }
+    );
+
+
+    return false;
+
+  }finally{
+
+    setDashboardButtonLoading(
+      saveButton,
+      false
     );
 
   }
 
-  saveStudentPortfolioProjects(
-    projects
-  );
-
-  state.portfolio.projects=
-    projects;
-
-  renderStudentPortfolio();
-
-  closeStudentProjectEditor();
-
-  notifyAIFTSuccess(
-
-    "Project saved."
-
-  );
-
 }
 
-function deleteStudentProject(){
+async function deleteStudentProject(){
 
-  if(
-    !studentProjectEditingId
-  ){
-    return;
+  const projectId =
+    String(
+      studentProjectEditingId ||
+      ""
+    ).trim();
+
+
+  if (!projectId){
+    return false;
   }
 
-  const projects=
-    getStudentPortfolioProjects();
 
-  saveStudentPortfolioProjects(
+  /*
+    Older local projects may still have UUID IDs.
+    We only call MongoDB DELETE for real ObjectIds.
+  */
 
-    projects.filter(
+  const isServerProject =
+    /^[a-f\d]{24}$/i.test(
+      projectId
+    );
 
-      item=>
 
-      !sameId(
+  const deleteButton =
+    $("deleteStudentProjectButton");
 
-        item.id,
 
-        studentProjectEditingId
-
-      )
-
-    )
-
+  setDashboardButtonLoading(
+    deleteButton,
+    true,
+    "Removing..."
   );
 
-  state.portfolio.projects=
-    getStudentPortfolioProjects();
 
-  renderStudentPortfolio();
+  try{
 
-  closeStudentProjectEditor();
+    if (isServerProject){
 
-  notifyAIFTSuccess(
+      const response =
+        await apiSend(
+          `/api/student-portfolio/me/projects/${
+            encodeURIComponent(
+              projectId
+            )
+          }`,
+          "DELETE"
+        );
 
-    "Project removed."
 
-  );
+      const serverPortfolio =
+        normalizeStudentPortfolioApiRecord(
+          response?.portfolio ||
+          {}
+        );
+
+
+      state.portfolio = {
+        ...getStudentPortfolio(),
+        ...serverPortfolio,
+
+        projects:
+          asArray(
+            serverPortfolio.projects
+          )
+      };
+
+    }else{
+
+      /*
+        Legacy local-only project.
+      */
+
+      state.portfolio = {
+        ...getStudentPortfolio(),
+
+        projects:
+          getStudentPortfolioProjects()
+            .filter(project =>
+              !sameId(
+                project.id,
+                projectId
+              )
+            )
+      };
+
+    }
+
+
+    saveStudentPortfolioProjects(
+      state.portfolio.projects
+    );
+
+
+    saveStudentPortfolioStoredData(
+      state.portfolio
+    );
+
+
+    renderStudentPortfolio();
+
+
+    closeStudentProjectEditor();
+
+
+    notifyAIFTSuccess(
+      "The project was removed from your portfolio.",
+      {
+        title:
+          "Project removed"
+      }
+    );
+
+
+    return true;
+
+  }catch(error){
+
+    console.error(
+      "Student portfolio project deletion failed:",
+      error
+    );
+
+
+    notifyAIFTError(
+      error?.message ||
+      "AIFT could not remove this project.",
+      {
+        title:
+          "Project removal failed"
+      }
+    );
+
+
+    return false;
+
+  }finally{
+
+    setDashboardButtonLoading(
+      deleteButton,
+      false
+    );
+
+  }
 
 }
-
 
 function normalizeStudentPortfolioSkill(
   skill
@@ -12348,13 +12602,28 @@ e.target.files[0]
 
 $("saveStudentProjectButton")
 ?.addEventListener(
-"click",
-saveStudentProject);
+  "click",
+  async event => {
+
+    event.preventDefault();
+
+    await saveStudentProject();
+
+  }
+);
+
 
 $("deleteStudentProjectButton")
 ?.addEventListener(
-"click",
-deleteStudentProject);
+  "click",
+  async event => {
+
+    event.preventDefault();
+
+    await deleteStudentProject();
+
+  }
+);
 
 $("cancelStudentProjectButton")
 ?.addEventListener(
