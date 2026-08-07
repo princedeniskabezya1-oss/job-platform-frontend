@@ -13789,16 +13789,1597 @@ closeStudentProjectEditor);
 }
 
 function renderStudentCareerHub(){
+
   window.location.href =
     "career-hub.html";
+
 }
 
-function renderStudentAILearning(){
-  showAlert(
-    "info",
-    "The AI Learning workspace will be added in its dedicated module."
+
+/* =========================================================
+   STUDENT AI LEARNING STATE
+========================================================= */
+
+let studentAIControlsBound =
+  false;
+
+let studentAIActiveMode =
+  "ask";
+
+let studentAIConversationMessages =
+  [];
+
+let studentAISelectedClassId =
+  "";
+
+let studentAISelectedSourceType =
+  "general";
+
+let studentAISelectedSourceId =
+  "";
+
+
+/* =========================================================
+   STUDENT AI MODE CONFIGURATION
+========================================================= */
+
+const STUDENT_AI_MODES =
+  Object.freeze({
+
+    ask:{
+      title:
+        "AIFT Study Assistant",
+
+      subtitle:
+        "Ask a question about your learning",
+
+      placeholder:
+        "Ask AIFT about a lesson, assignment, resource, or topic..."
+    },
+
+    explain:{
+      title:
+        "Explain with AIFT",
+
+      subtitle:
+        "Break difficult ideas into clear steps",
+
+      placeholder:
+        "What would you like AIFT to explain?"
+    },
+
+    summary:{
+      title:
+        "AI Study Notes",
+
+      subtitle:
+        "Turn learning material into concise revision notes",
+
+      placeholder:
+        "What would you like AIFT to summarize?"
+    },
+
+    quiz:{
+      title:
+        "AI Practice Coach",
+
+      subtitle:
+        "Test your understanding with guided practice",
+
+      placeholder:
+        "What topic should AIFT create practice questions for?"
+    },
+
+    grammar:{
+      title:
+        "AI Writing Support",
+
+      subtitle:
+        "Improve grammar, clarity, and structure",
+
+      placeholder:
+        "Paste the writing you want AIFT to review..."
+    },
+
+    plan:{
+      title:
+        "AI Study Planner",
+
+      subtitle:
+        "Organize priorities, deadlines, and learning goals",
+
+      placeholder:
+        "Tell AIFT what you need help planning..."
+    }
+
+  });
+
+
+/* =========================================================
+   AI SOURCE HELPERS
+========================================================= */
+
+function getStudentAIClasses(){
+
+  return asArray(
+    getStudentClasses()
   );
+
 }
+
+
+function getStudentAIAssignments(){
+
+  return asArray(
+    getStudentAssignments()
+  );
+
+}
+
+
+function getStudentAIResources(){
+
+  return asArray(
+    state.studentResources
+  );
+
+}
+
+
+function getStudentAIClassId(
+  item
+){
+
+  return normalizeId(
+    item?.classId?._id ||
+    item?.classId ||
+    item?.class?._id ||
+    item?.class ||
+    ""
+  );
+
+}
+
+
+function getStudentAIItemTitle(
+  item
+){
+
+  return String(
+    item?.title ||
+    item?.name ||
+    item?.originalName ||
+    item?.fileName ||
+    item?.subject ||
+    "Untitled item"
+  ).trim();
+
+}
+
+
+/* =========================================================
+   HYDRATE CLASS SELECT
+========================================================= */
+
+function hydrateStudentAIClassSelect(){
+
+  const select =
+    $("studentAIClassSelect");
+
+
+  if (!select){
+    return;
+  }
+
+
+  const classes =
+    getStudentAIClasses();
+
+
+  const previousValue =
+    studentAISelectedClassId ||
+    select.value ||
+    "";
+
+
+  select.innerHTML = `
+    <option value="">
+      All classes
+    </option>
+
+    ${
+      classes
+        .map(classItem => {
+
+          const classId =
+            normalizeId(
+              classItem?._id ||
+              classItem?.id
+            );
+
+
+          const title =
+            String(
+              classItem?.title ||
+              classItem?.name ||
+              classItem?.subject ||
+              "Untitled class"
+            ).trim();
+
+
+          return `
+            <option value="${
+              escapeHtml(
+                classId
+              )
+            }">
+              ${
+                escapeHtml(
+                  title
+                )
+              }
+            </option>
+          `;
+
+        })
+        .join("")
+    }
+  `;
+
+
+  if (
+    previousValue &&
+    classes.some(classItem =>
+      sameId(
+        classItem?._id ||
+        classItem?.id,
+        previousValue
+      )
+    )
+  ){
+
+    select.value =
+      previousValue;
+
+  }else{
+
+    select.value =
+      "";
+
+  }
+
+
+  studentAISelectedClassId =
+    select.value;
+
+}
+
+
+/* =========================================================
+   AI SOURCE ITEMS
+========================================================= */
+
+function getStudentAISourceItems(){
+
+  const type =
+    studentAISelectedSourceType;
+
+
+  if (
+    type === "assignment"
+  ){
+
+    return getStudentAIAssignments()
+      .filter(item => {
+
+        if (
+          !studentAISelectedClassId
+        ){
+          return true;
+        }
+
+
+        return sameId(
+          getStudentAIClassId(
+            item
+          ),
+          studentAISelectedClassId
+        );
+
+      });
+
+  }
+
+
+  if (
+    type === "resource"
+  ){
+
+    return getStudentAIResources()
+      .filter(item => {
+
+        if (
+          !studentAISelectedClassId
+        ){
+          return true;
+        }
+
+
+        return sameId(
+          getStudentAIClassId(
+            item
+          ),
+          studentAISelectedClassId
+        );
+
+      });
+
+  }
+
+
+  /*
+    Lesson API data is not yet loaded into student.js.
+    We leave the selector available but empty until the
+    lesson endpoint is integrated.
+  */
+
+  if (
+    type === "lesson"
+  ){
+
+    return [];
+
+  }
+
+
+  return [];
+
+}
+
+
+/* =========================================================
+   HYDRATE SOURCE ITEM SELECT
+========================================================= */
+
+function hydrateStudentAISourceItemSelect(){
+
+  const field =
+    $("studentAISourceItemField");
+
+  const select =
+    $("studentAISourceItemSelect");
+
+
+  if (
+    !field ||
+    !select
+  ){
+    return;
+  }
+
+
+  if (
+    studentAISelectedSourceType ===
+    "general"
+  ){
+
+    field.hidden =
+      true;
+
+    select.innerHTML = `
+      <option value="">
+        Choose an item
+      </option>
+    `;
+
+    studentAISelectedSourceId =
+      "";
+
+    return;
+
+  }
+
+
+  field.hidden =
+    false;
+
+
+  const items =
+    getStudentAISourceItems();
+
+
+  select.innerHTML = `
+    <option value="">
+      ${
+        studentAISelectedSourceType ===
+        "lesson"
+          ? "Lesson integration coming next"
+          : "Choose an item"
+      }
+    </option>
+
+    ${
+      items
+        .map(item => {
+
+          const itemId =
+            normalizeId(
+              item?._id ||
+              item?.id
+            );
+
+
+          return `
+            <option value="${
+              escapeHtml(
+                itemId
+              )
+            }">
+              ${
+                escapeHtml(
+                  getStudentAIItemTitle(
+                    item
+                  )
+                )
+              }
+            </option>
+          `;
+
+        })
+        .join("")
+    }
+  `;
+
+
+  if (
+    studentAISelectedSourceId &&
+    items.some(item =>
+      sameId(
+        item?._id ||
+        item?.id,
+        studentAISelectedSourceId
+      )
+    )
+  ){
+
+    select.value =
+      studentAISelectedSourceId;
+
+  }else{
+
+    select.value =
+      "";
+
+    studentAISelectedSourceId =
+      "";
+
+  }
+
+}
+
+
+/* =========================================================
+   AI CONTEXT LABEL
+========================================================= */
+
+function renderStudentAIContextStatus(){
+
+  const status =
+    $("studentAIContextStatus");
+
+
+  if (!status){
+    return;
+  }
+
+
+  const classItem =
+    getStudentAIClasses()
+      .find(item =>
+        sameId(
+          item?._id ||
+          item?.id,
+          studentAISelectedClassId
+        )
+      );
+
+
+  const sourceItem =
+    getStudentAISourceItems()
+      .find(item =>
+        sameId(
+          item?._id ||
+          item?.id,
+          studentAISelectedSourceId
+        )
+      );
+
+
+  const parts =
+    [];
+
+
+  if (classItem){
+
+    parts.push(
+      String(
+        classItem.title ||
+        classItem.name ||
+        classItem.subject ||
+        "Class"
+      )
+    );
+
+  }
+
+
+  if (
+    studentAISelectedSourceType !==
+    "general"
+  ){
+
+    parts.push(
+      sourceItem
+        ? getStudentAIItemTitle(
+            sourceItem
+          )
+        : studentAISelectedSourceType
+    );
+
+  }
+
+
+  status.textContent =
+    parts.length
+      ? parts.join(
+          " · "
+        )
+      : "General learning";
+
+}
+
+
+/* =========================================================
+   SNAPSHOT
+========================================================= */
+
+function renderStudentAISnapshot(){
+
+  const classes =
+    getStudentAIClasses();
+
+
+  const assignments =
+    getStudentAIAssignments();
+
+
+  const pendingAssignments =
+    assignments.filter(
+      assignment =>
+        !getSubmissionForAssignment(
+          assignment._id
+        )
+    );
+
+
+  setText(
+    "studentAIClassCount",
+    String(
+      classes.length
+    )
+  );
+
+
+  setText(
+    "studentAIPendingCount",
+    String(
+      pendingAssignments.length
+    )
+  );
+
+
+  setText(
+    "studentAICompletionValue",
+    `${
+      Math.max(
+        0,
+        Math.min(
+          100,
+          Number(
+            state.metrics?.completion ||
+            0
+          )
+        )
+      )
+    }%`
+  );
+
+}
+
+
+/* =========================================================
+   NEXT STUDY PRIORITY
+========================================================= */
+
+function renderStudentAINextPriority(){
+
+  const container =
+    $("studentAINextPriority");
+
+
+  if (!container){
+    return;
+  }
+
+
+  const assignments =
+    getStudentAIAssignments()
+      .filter(
+        assignment =>
+          !getSubmissionForAssignment(
+            assignment._id
+          )
+      )
+      .sort(
+        (
+          first,
+          second
+        ) => {
+
+          const firstDate =
+            new Date(
+              first?.dueDate ||
+              first?.deadline ||
+              "9999-12-31"
+            ).getTime();
+
+
+          const secondDate =
+            new Date(
+              second?.dueDate ||
+              second?.deadline ||
+              "9999-12-31"
+            ).getTime();
+
+
+          return (
+            firstDate -
+            secondDate
+          );
+
+        }
+      );
+
+
+  const nextAssignment =
+    assignments[0];
+
+
+  if (!nextAssignment){
+
+    container.innerHTML = `
+      <span class="student-ai-priority-icon">
+
+        <i class="fa-solid fa-circle-check"></i>
+
+      </span>
+
+      <div>
+
+        <strong>
+          You're all caught up
+        </strong>
+
+        <p>
+          Upcoming assignments and unfinished learning
+          will appear here.
+        </p>
+
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  const classItem =
+    getStudentAIClasses()
+      .find(item =>
+        sameId(
+          item?._id ||
+          item?.id,
+          getStudentAIClassId(
+            nextAssignment
+          )
+        )
+      );
+
+
+  container.innerHTML = `
+    <span class="student-ai-priority-icon">
+
+      <i class="fa-solid fa-bullseye"></i>
+
+    </span>
+
+    <div>
+
+      <strong>
+        ${
+          escapeHtml(
+            nextAssignment.title ||
+            "Upcoming assignment"
+          )
+        }
+      </strong>
+
+      <p>
+        ${
+          classItem
+            ? `${
+                escapeHtml(
+                  classItem.title ||
+                  classItem.name ||
+                  "Class"
+                )
+              } · `
+            : ""
+        }
+
+        Due ${
+          escapeHtml(
+            formatDate(
+              nextAssignment.dueDate ||
+              nextAssignment.deadline
+            )
+          )
+        }
+      </p>
+
+    </div>
+  `;
+
+}
+
+
+/* =========================================================
+   ACTIVE AI MODE
+========================================================= */
+
+function setStudentAIActiveMode(
+  requestedMode,
+  options = {}
+){
+
+  const mode =
+    STUDENT_AI_MODES[
+      requestedMode
+    ]
+      ? requestedMode
+      : "ask";
+
+
+  studentAIActiveMode =
+    mode;
+
+
+  document
+    .querySelectorAll(
+      "[data-student-ai-mode]"
+    )
+    .forEach(button => {
+
+      const active =
+        button.dataset
+          .studentAiMode ===
+        mode;
+
+
+      button.classList.toggle(
+        "active",
+        active
+      );
+
+
+      button.setAttribute(
+        "aria-pressed",
+        String(
+          active
+        )
+      );
+
+    });
+
+
+  const configuration =
+    STUDENT_AI_MODES[
+      mode
+    ];
+
+
+  setText(
+    "studentAIChatTitle",
+    configuration.title
+  );
+
+
+  setText(
+    "studentAIChatSubtitle",
+    configuration.subtitle
+  );
+
+
+  const input =
+    $("studentAIMessageInput");
+
+
+  if (input){
+
+    input.placeholder =
+      configuration.placeholder;
+
+  }
+
+
+  if (
+    options.focus !==
+    false
+  ){
+
+    window.setTimeout(
+      () => {
+
+        input?.focus();
+
+      },
+      40
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   CHARACTER COUNT + AUTO RESIZE
+========================================================= */
+
+function updateStudentAIComposer(){
+
+  const input =
+    $("studentAIMessageInput");
+
+  const counter =
+    $("studentAICharacterCount");
+
+  const sendButton =
+    $("sendStudentAIMessageButton");
+
+
+  if (!input){
+    return;
+  }
+
+
+  input.style.height =
+    "auto";
+
+
+  input.style.height =
+    `${
+      Math.min(
+        150,
+        Math.max(
+          40,
+          input.scrollHeight
+        )
+      )
+    }px`;
+
+
+  if (counter){
+
+    counter.textContent =
+      `${
+        input.value.length
+      } / 6000`;
+
+  }
+
+
+  if (sendButton){
+
+    sendButton.disabled =
+      !input.value.trim();
+
+  }
+
+}
+
+
+/* =========================================================
+   CONVERSATION RENDERER
+========================================================= */
+
+function renderStudentAIConversation(){
+
+  const conversation =
+    $("studentAIConversation");
+
+  const welcome =
+    $("studentAIWelcomeState");
+
+
+  if (
+    !conversation ||
+    !welcome
+  ){
+    return;
+  }
+
+
+  if (
+    !studentAIConversationMessages.length
+  ){
+
+    conversation.hidden =
+      true;
+
+    conversation.innerHTML =
+      "";
+
+    welcome.hidden =
+      false;
+
+    return;
+
+  }
+
+
+  welcome.hidden =
+    true;
+
+  conversation.hidden =
+    false;
+
+
+  conversation.innerHTML =
+    studentAIConversationMessages
+      .map(message => {
+
+        const role =
+          message.role ===
+          "user"
+            ? "user"
+            : "assistant";
+
+
+        return `
+          <article class="student-ai-message ${role}">
+
+            ${
+              role === "assistant"
+                ? `
+                  <span class="student-ai-message-avatar">
+
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+
+                  </span>
+                `
+                : ""
+            }
+
+            <div class="student-ai-message-bubble">
+              ${
+                escapeHtml(
+                  message.content ||
+                  ""
+                )
+              }
+            </div>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+
+  conversation.scrollTop =
+    conversation.scrollHeight;
+
+}
+
+
+/* =========================================================
+   TEMPORARY MESSAGE SUBMISSION
+   Backend AI connection comes in the next part.
+========================================================= */
+
+async function submitStudentAIMessage(
+  message
+){
+
+  const prompt =
+    String(
+      message ||
+      ""
+    ).trim();
+
+
+  if (!prompt){
+    return;
+  }
+
+
+  studentAIConversationMessages.push({
+    role:"user",
+    content:prompt,
+    createdAt:
+      new Date().toISOString()
+  });
+
+
+  renderStudentAIConversation();
+
+
+  const input =
+    $("studentAIMessageInput");
+
+
+  if (input){
+
+    input.value =
+      "";
+
+  }
+
+
+  updateStudentAIComposer();
+
+
+  /*
+    Do not fabricate an AI response.
+
+    The real request will be connected to the backend
+    endpoint in the next implementation step.
+  */
+
+  studentAIConversationMessages.push({
+    role:"assistant",
+    content:
+      "Your question is ready. The secure AIFT AI response service still needs to be connected before I can generate the learning answer.",
+    createdAt:
+      new Date().toISOString()
+  });
+
+
+  renderStudentAIConversation();
+
+}
+
+
+/* =========================================================
+   QUICK PROMPTS
+========================================================= */
+
+function getStudentAIQuickPrompt(
+  action
+){
+
+  switch(
+    String(
+      action ||
+      ""
+    )
+      .trim()
+      .toLowerCase()
+  ){
+
+    case "flashcards":
+      return "Create useful flashcards from the material I am currently studying.";
+
+    case "practice":
+      return "Create a mock test based on the material I am currently studying.";
+
+    case "examples":
+      return "Give me additional worked examples so I can understand this topic better.";
+
+    case "simplify":
+      return "Explain the material I am currently studying using simpler language.";
+
+    default:
+      return "";
+
+  }
+
+}
+
+
+/* =========================================================
+   DASHBOARD AI ACTION HANDLER
+========================================================= */
+
+function applyStudentAIRequestedAction(
+  requestedAction
+){
+
+  const action =
+    String(
+      requestedAction ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if (!action){
+    return;
+  }
+
+
+  const mode =
+    action === "quiz"
+      ? "quiz"
+      : (
+          STUDENT_AI_MODES[
+            action
+          ]
+            ? action
+            : "ask"
+        );
+
+
+  setStudentAIActiveMode(
+    mode
+  );
+
+
+  const promptMap = {
+
+    explain:
+      "Explain the topic I am currently studying in simple, clear steps.",
+
+    quiz:
+      "Create a short practice quiz based on the topic I am currently studying.",
+
+    summary:
+      "Summarize the material I am currently studying into clear revision notes.",
+
+    grammar:
+      "Help me improve the grammar, clarity, and structure of my writing."
+
+  };
+
+
+  const input =
+    $("studentAIMessageInput");
+
+
+  if (
+    input &&
+    promptMap[
+      action
+    ]
+  ){
+
+    input.value =
+      promptMap[
+        action
+      ];
+
+
+    updateStudentAIComposer();
+
+
+    input.focus();
+
+  }
+
+}
+
+
+/* =========================================================
+   AI CONTROL BINDINGS
+========================================================= */
+
+function bindStudentAILearningControls(){
+
+  if (
+    studentAIControlsBound
+  ){
+    return;
+  }
+
+
+  const workspace =
+    $("studentAIWorkspace");
+
+
+  if (!workspace){
+    return;
+  }
+
+
+  $("studentAIClassSelect")
+    ?.addEventListener(
+      "change",
+      event => {
+
+        studentAISelectedClassId =
+          String(
+            event.currentTarget
+              .value ||
+            ""
+          );
+
+
+        studentAISelectedSourceId =
+          "";
+
+
+        hydrateStudentAISourceItemSelect();
+
+        renderStudentAIContextStatus();
+
+      }
+    );
+
+
+  $("studentAISourceTypeSelect")
+    ?.addEventListener(
+      "change",
+      event => {
+
+        studentAISelectedSourceType =
+          String(
+            event.currentTarget
+              .value ||
+            "general"
+          )
+            .trim()
+            .toLowerCase();
+
+
+        studentAISelectedSourceId =
+          "";
+
+
+        hydrateStudentAISourceItemSelect();
+
+        renderStudentAIContextStatus();
+
+      }
+    );
+
+
+  $("studentAISourceItemSelect")
+    ?.addEventListener(
+      "change",
+      event => {
+
+        studentAISelectedSourceId =
+          String(
+            event.currentTarget
+              .value ||
+            ""
+          );
+
+
+        renderStudentAIContextStatus();
+
+      }
+    );
+
+
+  workspace.addEventListener(
+    "click",
+    event => {
+
+      const modeButton =
+        event.target.closest(
+          "[data-student-ai-mode]"
+        );
+
+
+      if (modeButton){
+
+        event.preventDefault();
+
+
+        setStudentAIActiveMode(
+          modeButton.dataset
+            .studentAiMode
+        );
+
+
+        return;
+
+      }
+
+
+      const suggestion =
+        event.target.closest(
+          "[data-student-ai-prompt]"
+        );
+
+
+      if (suggestion){
+
+        event.preventDefault();
+
+
+        const input =
+          $("studentAIMessageInput");
+
+
+        if (input){
+
+          input.value =
+            suggestion.dataset
+              .studentAiPrompt ||
+            "";
+
+
+          updateStudentAIComposer();
+
+          input.focus();
+
+        }
+
+
+        return;
+
+      }
+
+
+      const quickButton =
+        event.target.closest(
+          "[data-student-ai-quick]"
+        );
+
+
+      if (quickButton){
+
+        event.preventDefault();
+
+
+        const prompt =
+          getStudentAIQuickPrompt(
+            quickButton.dataset
+              .studentAiQuick
+          );
+
+
+        const input =
+          $("studentAIMessageInput");
+
+
+        if (
+          input &&
+          prompt
+        ){
+
+          input.value =
+            prompt;
+
+
+          updateStudentAIComposer();
+
+          input.focus();
+
+        }
+
+
+        return;
+
+      }
+
+    }
+  );
+
+
+  workspace.addEventListener(
+    "student-ai-action",
+    event => {
+
+      applyStudentAIRequestedAction(
+        event.detail?.action
+      );
+
+    }
+  );
+
+
+  $("studentAIMessageInput")
+    ?.addEventListener(
+      "input",
+      updateStudentAIComposer
+    );
+
+
+  $("studentAIMessageInput")
+    ?.addEventListener(
+      "keydown",
+      event => {
+
+        if (
+          event.key !==
+          "Enter" ||
+          event.shiftKey
+        ){
+          return;
+        }
+
+
+        event.preventDefault();
+
+
+        $("studentAIComposerForm")
+          ?.requestSubmit();
+
+      }
+    );
+
+
+  $("studentAIComposerForm")
+    ?.addEventListener(
+      "submit",
+      async event => {
+
+        event.preventDefault();
+
+
+        const input =
+          $("studentAIMessageInput");
+
+
+        await submitStudentAIMessage(
+          input?.value
+        );
+
+      }
+    );
+
+
+  $("clearStudentAIConversationButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+
+        studentAIConversationMessages =
+          [];
+
+
+        renderStudentAIConversation();
+
+
+        $("studentAIMessageInput")
+          ?.focus();
+
+      }
+    );
+
+
+  $("studentAIAttachButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+
+        notifyAIFTInfo(
+          "Use Learning source to choose an assignment or resource. Direct AI attachments will be connected with the backend AI service.",
+          {
+            title:
+              "Attach learning material"
+          }
+        );
+
+      }
+    );
+
+
+  studentAIControlsBound =
+    true;
+
+}
+
+
+/* =========================================================
+   RENDER AI LEARNING
+========================================================= */
+
+function renderStudentAILearning(){
+
+  const workspace =
+    $("studentAIWorkspace");
+
+
+  if (!workspace){
+    return;
+  }
+
+
+  bindStudentAILearningControls();
+
+
+  hydrateStudentAIClassSelect();
+
+
+  const sourceTypeSelect =
+    $("studentAISourceTypeSelect");
+
+
+  if (sourceTypeSelect){
+
+    sourceTypeSelect.value =
+      studentAISelectedSourceType;
+
+  }
+
+
+  hydrateStudentAISourceItemSelect();
+
+
+  renderStudentAIContextStatus();
+
+
+  renderStudentAISnapshot();
+
+
+  renderStudentAINextPriority();
+
+
+  renderStudentAIConversation();
+
+
+  setStudentAIActiveMode(
+    studentAIActiveMode,
+    {
+      focus:false
+    }
+  );
+
+
+  updateStudentAIComposer();
+
+
+  /*
+    Dashboard buttons may have set a requested action
+    immediately before the AI page rendered.
+  */
+
+  const requestedAction =
+    String(
+      workspace.dataset
+        .requestedAction ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if (requestedAction){
+
+    applyStudentAIRequestedAction(
+      requestedAction
+    );
+
+
+    workspace.dataset
+      .requestedAction =
+      "";
+
+  }
+
+}
+
 
 function openStudentMessages(){
   window.location.href =
