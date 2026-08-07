@@ -12489,18 +12489,30 @@ $("studentResumeUploadInput")
 );
 
 
+const openStudentProjectPicker =
+  event => {
+
+    event?.preventDefault();
+
+    openModal(
+      "studentProjectPickerModal"
+    );
+
+  };
+
+
 $("openStudentProjectPickerButton")
-?.addEventListener(
-"click",
-event=>{
+  ?.addEventListener(
+    "click",
+    openStudentProjectPicker
+  );
 
-event.preventDefault();
 
-openModal(
-  "studentProjectPickerModal"
-);
-
-});
+$("addFirstStudentPortfolioProjectButton")
+  ?.addEventListener(
+    "click",
+    openStudentProjectPicker
+  );
 
 $("portfolioUploadManual")
 ?.addEventListener(
@@ -12516,6 +12528,121 @@ closeModal(
 openStudentProjectEditor();
 
 });
+
+$("portfolioImportResources")
+  ?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      closeModal(
+        "studentProjectPickerModal"
+      );
+
+
+      openStudentStudioPage(
+        "resources"
+      );
+
+
+      notifyAIFTInfo(
+        "Choose a resource you want to showcase. The Add to Portfolio action will be connected here.",
+        {
+          title:
+            "Portfolio resources"
+        }
+      );
+
+    }
+  );
+
+
+$("portfolioImportAssignments")
+  ?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      closeModal(
+        "studentProjectPickerModal"
+      );
+
+
+      openStudentStudioPage(
+        "assignments"
+      );
+
+
+      notifyAIFTInfo(
+        "Choose a completed assignment you want to showcase in your portfolio.",
+        {
+          title:
+            "Portfolio assignments"
+        }
+      );
+
+    }
+  );
+
+
+$("portfolioImportCertificates")
+  ?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      closeModal(
+        "studentProjectPickerModal"
+      );
+
+
+      openStudentStudioPage(
+        "certificates"
+      );
+
+
+      notifyAIFTInfo(
+        "Choose a verified certificate you want to feature in your portfolio.",
+        {
+          title:
+            "Portfolio certificates"
+        }
+      );
+
+    }
+  );
+
+
+$("portfolioImportAIProjects")
+  ?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      closeModal(
+        "studentProjectPickerModal"
+      );
+
+
+      openStudentStudioPage(
+        "ai"
+      );
+
+
+      notifyAIFTInfo(
+        "Choose an AI-assisted project you want to showcase in your portfolio.",
+        {
+          title:
+            "AI projects"
+        }
+      );
+
+    }
+  );
 
 
 $("closeStudentProjectPickerButton")
