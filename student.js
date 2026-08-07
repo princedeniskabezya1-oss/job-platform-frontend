@@ -8290,6 +8290,14 @@ let studentProjectCoverData =
 
 let studentProjectFileData =
   "";
+let studentPortfolioResumeData =
+  "";
+
+let studentPortfolioResumeName =
+  "";
+
+let studentPortfolioResumeType =
+  "";
 
 function renderStudentPortfolioEditorTags(
   type
@@ -8930,6 +8938,161 @@ function getStudentPortfolioProjects(){
     return [];
 
   }
+
+}
+
+function getStudentPortfolioResume(){
+
+  return {
+
+    url:
+      state.portfolio?.resumeUrl ||
+      "",
+
+    fileName:
+      state.portfolio?.resumeFileName ||
+      "",
+
+    mimeType:
+      state.portfolio?.resumeMimeType ||
+      ""
+
+  };
+
+}
+
+
+function saveStudentPortfolioResume(){
+
+  state.portfolio.resumeUrl =
+    studentPortfolioResumeData;
+
+  state.portfolio.resumeFileName =
+    studentPortfolioResumeName;
+
+  state.portfolio.resumeMimeType =
+    studentPortfolioResumeType;
+
+  saveStudentPortfolioStoredData(
+    state.portfolio
+  );
+
+}
+
+function uploadStudentResume(
+  file
+){
+
+  if(!file){
+    return;
+  }
+
+  const allowed = [
+
+    "application/pdf",
+
+    "application/msword",
+
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+  ];
+
+  if(
+    !allowed.includes(
+      file.type
+    )
+  ){
+
+    notifyAIFTWarning(
+
+      "Only PDF or Word resumes are supported."
+
+    );
+
+    return;
+
+  }
+
+  const reader =
+    new FileReader();
+
+  reader.onload =
+    e=>{
+
+      studentPortfolioResumeData =
+        e.target.result;
+
+      studentPortfolioResumeName =
+        file.name;
+
+      studentPortfolioResumeType =
+        file.type;
+
+      saveStudentPortfolioResume();
+
+      renderStudentPortfolio();
+
+      notifyAIFTSuccess(
+
+        "Resume uploaded."
+
+      );
+
+    };
+
+  reader.readAsDataURL(file);
+
+}
+
+function openStudentResume(){
+
+  const resume =
+    getStudentPortfolioResume();
+
+  if(
+    !resume.url
+  ){
+
+    notifyAIFTInfo(
+
+      "Upload a resume first."
+
+    );
+
+    return;
+
+  }
+
+  window.open(
+    resume.url,
+    "_blank",
+    "noopener"
+  );
+
+}
+
+function removeStudentResume(){
+
+  state.portfolio.resumeUrl =
+    "";
+
+  state.portfolio.resumeFileName =
+    "";
+
+  state.portfolio.resumeMimeType =
+    "";
+
+  saveStudentPortfolioStoredData(
+    state.portfolio
+  );
+
+  renderStudentPortfolio();
+
+  notifyAIFTSuccess(
+
+    "Resume removed."
+
+  );
 
 }
 
@@ -10760,6 +10923,42 @@ function bindStudentPortfolioControls(){
       "input",
       updateStudentPortfolioAboutCharacterCount
     );
+
+$("uploadStudentResumeButton")
+?.addEventListener(
+"click",
+()=>{
+
+$("studentResumeUploadInput")
+.click();
+
+});
+
+
+$("studentResumeUploadInput")
+?.addEventListener(
+"change",
+e=>{
+
+uploadStudentResume(
+
+e.target.files[0]
+
+);
+
+});
+
+
+$("openStudentPortfolioResumeButton")
+?.addEventListener(
+"click",
+openStudentResume);
+
+
+$("removeStudentResumeButton")
+?.addEventListener(
+"click",
+removeStudentResume);
 
 $("openStudentProjectPickerButton")
 ?.addEventListener(
