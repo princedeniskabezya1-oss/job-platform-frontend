@@ -8279,6 +8279,17 @@ let studentPortfolioEditorLanguages =
 
 let studentPortfolioEditorOpened =
   false;
+let studentProjectEditorOpen =
+  false;
+
+let studentProjectEditingId =
+  null;
+
+let studentProjectCoverData =
+  "";
+
+let studentProjectFileData =
+  "";
 
 function renderStudentPortfolioEditorTags(
   type
@@ -8819,6 +8830,8 @@ function saveStudentPortfolioProfile(){
   return true;
 
 }
+const STUDENT_PROJECT_STORAGE_KEY =
+  "aiftStudentPortfolioProjects";
 
 function getStudentPortfolioStoredData(){
 
@@ -8884,6 +8897,360 @@ function saveStudentPortfolioStoredData(
     );
 
   }
+
+}
+
+function getStudentPortfolioProjects(){
+
+  try{
+
+    const stored =
+      localStorage.getItem(
+        STUDENT_PROJECT_STORAGE_KEY
+      );
+
+    if(!stored){
+      return [];
+    }
+
+    const parsed =
+      JSON.parse(stored);
+
+    return Array.isArray(parsed)
+      ? parsed
+      : [];
+
+  }catch(error){
+
+    console.error(
+      "Project storage error:",
+      error
+    );
+
+    return [];
+
+  }
+
+}
+
+function saveStudentPortfolioProjects(
+  projects
+){
+
+  localStorage.setItem(
+
+    STUDENT_PROJECT_STORAGE_KEY,
+
+    JSON.stringify(projects)
+
+  );
+
+}
+
+function openStudentProjectEditor(
+  projectId=null
+){
+
+  studentProjectEditingId =
+    projectId;
+
+  studentProjectEditorOpen =
+    true;
+
+  studentProjectCoverData =
+    "";
+
+  studentProjectFileData =
+    "";
+
+  const projects =
+    getStudentPortfolioProjects();
+
+  const project =
+    projects.find(
+      item=>sameId(
+        item.id,
+        projectId
+      )
+    );
+
+  $("studentProjectForm")
+    ?.reset();
+
+  $("studentProjectCoverPreview")
+    .hidden=true;
+
+  $("deleteStudentProjectButton")
+    .hidden=!project;
+
+  if(project){
+
+    $("studentProjectModalTitle")
+      .textContent=
+      "Edit Project";
+
+    $("studentProjectId")
+      .value=
+      project.id;
+
+    $("studentProjectTitleInput")
+      .value=
+      project.title||"";
+
+    $("studentProjectCategoryInput")
+      .value=
+      project.category||"Academic Project";
+
+    $("studentProjectDescriptionInput")
+      .value=
+      project.description||"";
+
+    $("studentProjectDateInput")
+      .value=
+      project.completedAt||"";
+
+    $("studentProjectFeaturedInput")
+      .checked=
+      project.featured!==false;
+
+    $("studentProjectFileInput")
+      .value=
+      project.fileUrl||"";
+
+    studentProjectCoverData=
+      project.imageUrl||"";
+
+    studentProjectFileData=
+      project.fileUrl||"";
+
+    if(studentProjectCoverData){
+
+      const img=
+        $("studentProjectCoverPreview");
+
+      img.hidden=false;
+
+      img.src=
+        studentProjectCoverData;
+
+    }
+
+  }else{
+
+    $("studentProjectModalTitle")
+      .textContent=
+      "Add Project";
+
+  }
+
+  openModal(
+    "studentPortfolioProjectModal"
+  );
+
+}
+
+function closeStudentProjectEditor(){
+
+  closeModal(
+    "studentPortfolioProjectModal"
+  );
+
+  studentProjectEditorOpen=
+    false;
+
+  studentProjectEditingId=
+    null;
+
+}
+
+function previewStudentProjectCover(
+  file
+){
+
+  if(!file){
+    return;
+  }
+
+  const reader=
+    new FileReader();
+
+  reader.onload=e=>{
+
+    studentProjectCoverData=
+      e.target.result;
+
+    const img=
+      $("studentProjectCoverPreview");
+
+    img.src=
+      studentProjectCoverData;
+
+    img.hidden=false;
+
+  };
+
+  reader.readAsDataURL(file);
+
+}
+
+function uploadStudentProjectFile(
+  file
+){
+
+  if(!file){
+    return;
+  }
+
+  studentProjectFileData=
+    file.name;
+
+  $("studentProjectFileInput")
+    .value=
+    file.name;
+
+}
+
+function saveStudentProject(){
+
+  const title=
+    $("studentProjectTitleInput")
+      .value
+      .trim();
+
+  if(!title){
+
+    notifyAIFTWarning(
+
+      "Please enter a project title."
+
+    );
+
+    return;
+
+  }
+
+  const projects=
+    getStudentPortfolioProjects();
+
+  const project={
+
+    id:
+      studentProjectEditingId||
+      crypto.randomUUID(),
+
+    title,
+
+    category:
+      $("studentProjectCategoryInput")
+        .value,
+
+    description:
+      $("studentProjectDescriptionInput")
+        .value,
+
+    completedAt:
+      $("studentProjectDateInput")
+        .value,
+
+    featured:
+      $("studentProjectFeaturedInput")
+        .checked,
+
+    imageUrl:
+      studentProjectCoverData,
+
+    fileUrl:
+      $("studentProjectFileInput")
+        .value
+        .trim()
+
+  };
+
+  const existing=
+    projects.findIndex(
+
+      item=>
+
+      sameId(
+        item.id,
+        project.id
+      )
+
+    );
+
+  if(existing>-1){
+
+    projects[existing]=
+      project;
+
+  }else{
+
+    projects.unshift(
+      project
+    );
+
+  }
+
+  saveStudentPortfolioProjects(
+    projects
+  );
+
+  state.portfolio.projects=
+    projects;
+
+  renderStudentPortfolio();
+
+  closeStudentProjectEditor();
+
+  notifyAIFTSuccess(
+
+    "Project saved."
+
+  );
+
+}
+
+function deleteStudentProject(){
+
+  if(
+    !studentProjectEditingId
+  ){
+    return;
+  }
+
+  const projects=
+    getStudentPortfolioProjects();
+
+  saveStudentPortfolioProjects(
+
+    projects.filter(
+
+      item=>
+
+      !sameId(
+
+        item.id,
+
+        studentProjectEditingId
+
+      )
+
+    )
+
+  );
+
+  state.portfolio.projects=
+    getStudentPortfolioProjects();
+
+  renderStudentPortfolio();
+
+  closeStudentProjectEditor();
+
+  notifyAIFTSuccess(
+
+    "Project removed."
+
+  );
 
 }
 
@@ -10393,6 +10760,104 @@ function bindStudentPortfolioControls(){
       "input",
       updateStudentPortfolioAboutCharacterCount
     );
+
+  $("addStudentPortfolioProjectButton")
+?.addEventListener(
+"click",
+()=>{
+
+openStudentProjectEditor();
+
+});
+
+$("studentPortfolioProjectGrid")
+?.addEventListener(
+"click",
+event=>{
+
+const edit=
+event.target.closest(
+"[data-edit-portfolio-project]"
+);
+
+if(edit){
+
+openStudentProjectEditor(
+
+edit.dataset
+.editPortfolioProject
+
+);
+
+}
+
+});
+
+  $("uploadStudentProjectCoverButton")
+?.addEventListener(
+"click",
+()=>{
+
+$("studentProjectCoverInput")
+.click();
+
+});
+
+$("studentProjectCoverInput")
+?.addEventListener(
+"change",
+e=>{
+
+previewStudentProjectCover(
+
+e.target.files[0]
+
+);
+
+});
+
+$("browseStudentProjectFileButton")
+?.addEventListener(
+"click",
+()=>{
+
+$("studentProjectFileUpload")
+.click();
+
+});
+
+$("studentProjectFileUpload")
+?.addEventListener(
+"change",
+e=>{
+
+uploadStudentProjectFile(
+
+e.target.files[0]
+
+);
+
+});
+
+$("saveStudentProjectButton")
+?.addEventListener(
+"click",
+saveStudentProject);
+
+$("deleteStudentProjectButton")
+?.addEventListener(
+"click",
+deleteStudentProject);
+
+$("cancelStudentProjectButton")
+?.addEventListener(
+"click",
+closeStudentProjectEditor);
+
+$("closeStudentProjectModalButton")
+?.addEventListener(
+"click",
+closeStudentProjectEditor);
 
 
   $("studentPortfolioHeadlineInput")
