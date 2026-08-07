@@ -8979,68 +8979,165 @@ function saveStudentPortfolioResume(){
 
 }
 
-function uploadStudentResume(
+async function uploadStudentResume(
   file
 ){
 
-  if(!file){
+  if (!file){
     return;
   }
 
-  const allowed = [
 
+  const allowedMimeTypes = [
     "application/pdf",
-
     "application/msword",
-
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-
   ];
 
-  if(
-    !allowed.includes(
-      file.type
+
+  const allowedExtensions = [
+    "pdf",
+    "doc",
+    "docx"
+  ];
+
+
+  const extension =
+    String(
+      file.name ||
+      ""
     )
-  ){
+      .split(".")
+      .pop()
+      .toLowerCase();
+
+
+  const validType =
+    allowedMimeTypes.includes(
+      file.type
+    ) ||
+    allowedExtensions.includes(
+      extension
+    );
+
+
+  if (!validType){
 
     notifyAIFTWarning(
-
-      "Only PDF or Word resumes are supported."
-
+      "Please select a PDF, DOC, or DOCX resume.",
+      {
+        title:
+          "Unsupported resume"
+      }
     );
 
     return;
+  }
+
+
+  const maximumBytes =
+    10 * 1024 * 1024;
+
+
+  if (
+    file.size >
+    maximumBytes
+  ){
+
+    notifyAIFTWarning(
+      "Your resume must be smaller than 10 MB.",
+      {
+        title:
+          "Resume is too large"
+      }
+    );
+
+    return;
+  }
+
+
+  /*
+    Revoke the previous temporary URL when replacing
+    a resume so the browser does not retain it.
+  */
+
+  if (
+    studentPortfolioResumeData &&
+    studentPortfolioResumeData.startsWith(
+      "blob:"
+    )
+  ){
+
+    try{
+
+      URL.revokeObjectURL(
+        studentPortfolioResumeData
+      );
+
+    }catch(error){
+
+      console.warn(
+        "Previous resume URL could not be revoked:",
+        error
+      );
+
+    }
 
   }
 
-  const reader =
-    new FileReader();
 
-  reader.onload =
-    e=>{
+  studentPortfolioResumeData =
+    URL.createObjectURL(
+      file
+    );
 
-      studentPortfolioResumeData =
-        e.target.result;
 
-      studentPortfolioResumeName =
-        file.name;
+  studentPortfolioResumeName =
+    file.name;
 
-      studentPortfolioResumeType =
-        file.type;
 
-      saveStudentPortfolioResume();
+  studentPortfolioResumeType =
+    file.type ||
+    `application/${
+      extension
+    }`;
 
-      renderStudentPortfolio();
 
-      notifyAIFTSuccess(
+  state.portfolio = {
+    ...getStudentPortfolio(),
 
-        "Resume uploaded."
+    resumeUrl:
+      studentPortfolioResumeData,
 
-      );
+    resumeFileName:
+      studentPortfolioResumeName,
 
-    };
+    resumeMimeType:
+      studentPortfolioResumeType
+  };
 
-  reader.readAsDataURL(file);
+
+  /*
+    Do NOT save the blob URL permanently.
+    Blob URLs only survive for this browser session.
+
+    When we connect the backend uploader, resumeUrl
+    will become the permanent Cloudinary/S3 URL.
+  */
+
+
+  renderStudentPortfolio();
+
+
+  notifyAIFTSuccess(
+    `${
+      file.name
+    } was added to your portfolio.`,
+    {
+      title:
+        "Resume uploaded"
+    }
+  );
 
 }
 
@@ -10797,6 +10894,12 @@ function renderStudentPortfolio(){
 
     if (portfolio.resumeUrl){
 
+      const fileName =
+        portfolio.resumeFileName ||
+        state.portfolio?.resumeFileName ||
+        "Resume";
+
+
       resumeCard.innerHTML = `
         <span>
 
@@ -10811,27 +10914,105 @@ function renderStudentPortfolio(){
         <div>
 
           <strong>
-            Resume added
+            ${
+              escapeHtml(
+                fileName
+              )
+            }
           </strong>
 
           <p>
-            Your resume is available from your portfolio.
+            Your resume is attached to your portfolio.
+          </p>
+
+        </div>
+
+
+        <div class="student-portfolio-resume-actions">
+
+          <button
+            class="ghost-btn"
+            type="button"
+            data-open-student-portfolio-resume
+          >
+            <i
+              class="fa-solid fa-arrow-up-right-from-square"
+              aria-hidden="true"
+            ></i>
+
+            Open
+          </button>
+
+
+          <button
+            class="ghost-btn"
+            type="button"
+            data-replace-student-portfolio-resume
+          >
+            <i
+              class="fa-solid fa-arrow-up-from-bracket"
+              aria-hidden="true"
+            ></i>
+
+            Replace
+          </button>
+
+
+          <button
+            class="ghost-btn danger"
+            type="button"
+            data-remove-student-portfolio-resume
+          >
+            <i
+              class="fa-regular fa-trash-can"
+              aria-hidden="true"
+            ></i>
+
+            Remove
+          </button>
+
+        </div>
+
+      `;
+
+    }else{
+
+      resumeCard.innerHTML = `
+        <span>
+
+          <i
+            class="fa-regular fa-file-lines"
+            aria-hidden="true"
+          ></i>
+
+        </span>
+
+
+        <div>
+
+          <strong>
+            No resume added
+          </strong>
+
+          <p>
+            Add your resume so employers can review your
+            experience and qualifications.
           </p>
 
         </div>
 
 
         <button
-          id="openStudentPortfolioResumeButton"
+          id="addStudentPortfolioResumeButton"
           class="ghost-btn"
           type="button"
         >
           <i
-            class="fa-solid fa-arrow-up-right-from-square"
+            class="fa-solid fa-upload"
             aria-hidden="true"
           ></i>
 
-          Open resume
+          Add resume
         </button>
       `;
 
@@ -10968,28 +11149,60 @@ $("addStudentPortfolioResumeButton")
 
 $("studentResumeUploadInput")
 ?.addEventListener(
-"change",
-e=>{
+  "change",
+  async event => {
 
-uploadStudentResume(
+    const input =
+      event.currentTarget;
 
-e.target.files[0]
+    const file =
+      input?.files?.[0];
 
+    if (!file){
+      return;
+    }
+
+
+    try{
+
+      await uploadStudentResume(
+        file
+      );
+
+    }catch(error){
+
+      console.error(
+        "Student resume upload failed:",
+        error
+      );
+
+      notifyAIFTError(
+        error?.message ||
+        "AIFT could not add your resume.",
+        {
+          title:
+            "Resume upload failed"
+        }
+      );
+
+    }finally{
+
+      /*
+        Allow the same file to be selected again.
+      */
+
+      if (input){
+
+        input.value =
+          "";
+
+      }
+
+    }
+
+  }
 );
 
-});
-
-
-$("openStudentPortfolioResumeButton")
-?.addEventListener(
-"click",
-openStudentResume);
-
-
-$("removeStudentResumeButton")
-?.addEventListener(
-"click",
-removeStudentResume);
 
 $("openStudentProjectPickerButton")
 ?.addEventListener(
@@ -11403,6 +11616,95 @@ closeStudentProjectEditor);
     "click",
     event => {
 
+            const addResumeButton =
+        event.target.closest(
+          "#addStudentPortfolioResumeButton"
+        );
+
+
+      const replaceResumeButton =
+        event.target.closest(
+          "[data-replace-student-portfolio-resume]"
+        );
+
+
+      if (
+        addResumeButton ||
+        replaceResumeButton
+      ){
+
+        event.preventDefault();
+
+
+        const input =
+          $("studentResumeUploadInput");
+
+
+        if (!input){
+
+          console.error(
+            "studentResumeUploadInput was not found."
+          );
+
+
+          notifyAIFTError(
+            "The resume upload control could not be found.",
+            {
+              title:
+                "Resume upload unavailable"
+            }
+          );
+
+
+          return;
+
+        }
+
+
+        input.value =
+          "";
+
+        input.click();
+
+
+        return;
+
+      }
+
+
+      const openResumeButton =
+        event.target.closest(
+          "[data-open-student-portfolio-resume]"
+        );
+
+
+      if (openResumeButton){
+
+        event.preventDefault();
+
+        openStudentResume();
+
+        return;
+
+      }
+
+
+      const removeResumeButton =
+        event.target.closest(
+          "[data-remove-student-portfolio-resume]"
+        );
+
+
+      if (removeResumeButton){
+
+        event.preventDefault();
+
+        removeStudentResume();
+
+        return;
+
+      }
+
       const sectionButton =
         event.target.closest(
           "[data-portfolio-section]"
@@ -11517,33 +11819,6 @@ closeStudentProjectEditor);
         openStudentStudioPage(
           "certificates"
         );
-
-      }
-    );
-
-
-  $("openStudentPortfolioResumeButton")
-    ?.addEventListener(
-      "click",
-      event => {
-
-        event.preventDefault();
-
-
-        const resumeUrl =
-          getStudentPortfolio()
-            .resumeUrl;
-
-
-        if (resumeUrl){
-
-          window.open(
-            resumeUrl,
-            "_blank",
-            "noopener,noreferrer"
-          );
-
-        }
 
       }
     );
