@@ -8298,6 +8298,8 @@ let studentProjectEditorOpen =
 
 let studentProjectEditingId =
   null;
+let studentPortfolioExperienceEditingId =
+  null;
 
 let studentProjectCoverData =
   "";
@@ -10515,6 +10517,312 @@ function normalizeStudentPortfolioProject(
 
 }
 
+function openStudentPortfolioExperienceEditor(
+  experienceId = null
+){
+
+  const portfolio =
+    getStudentPortfolio();
+
+
+  const experience =
+    portfolio.experience.find(
+      item =>
+        sameId(
+          item.id,
+          experienceId
+        )
+    );
+
+
+  studentPortfolioExperienceEditingId =
+    experience?.id ||
+    null;
+
+
+  const form =
+    $("studentPortfolioExperienceForm");
+
+
+  form?.reset();
+
+
+  $("studentPortfolioExperienceModalTitle")
+    .textContent =
+      experience
+        ? "Edit experience"
+        : "Add experience";
+
+
+  $("deleteStudentPortfolioExperienceButton")
+    .hidden =
+      !experience;
+
+
+  $("studentPortfolioExperienceId")
+    .value =
+      experience?.id ||
+      "";
+
+
+  $("studentPortfolioExperienceTitleInput")
+    .value =
+      experience?.title ||
+      "";
+
+
+  $("studentPortfolioExperienceOrganizationInput")
+    .value =
+      experience?.organization ||
+      "";
+
+
+  $("studentPortfolioExperienceTypeInput")
+    .value =
+      experience?.type ||
+      "internship";
+
+
+  $("studentPortfolioExperienceStartInput")
+    .value =
+      experience?.startDate
+        ? String(
+            experience.startDate
+          ).slice(
+            0,
+            10
+          )
+        : "";
+
+
+  $("studentPortfolioExperienceEndInput")
+    .value =
+      experience?.endDate
+        ? String(
+            experience.endDate
+          ).slice(
+            0,
+            10
+          )
+        : "";
+
+
+  $("studentPortfolioExperienceCurrentInput")
+    .checked =
+      experience?.current ===
+      true;
+
+
+  $("studentPortfolioExperienceDescriptionInput")
+    .value =
+      experience?.description ||
+      "";
+
+
+  const endInput =
+    $("studentPortfolioExperienceEndInput");
+
+
+  if (endInput){
+
+    endInput.disabled =
+      experience?.current ===
+      true;
+
+  }
+
+
+  openModal(
+    "studentPortfolioExperienceModal"
+  );
+
+
+  window.setTimeout(
+    () => {
+
+      $("studentPortfolioExperienceTitleInput")
+        ?.focus();
+
+    },
+    80
+  );
+
+}
+
+
+function closeStudentPortfolioExperienceEditor(){
+
+  closeModal(
+    "studentPortfolioExperienceModal"
+  );
+
+
+  studentPortfolioExperienceEditingId =
+    null;
+
+}
+
+function saveStudentPortfolioExperience(){
+
+  const title =
+    String(
+      $("studentPortfolioExperienceTitleInput")
+        ?.value ||
+      ""
+    ).trim();
+
+
+  if (!title){
+
+    notifyAIFTWarning(
+      "Enter a role or activity before saving.",
+      {
+        title:
+          "Experience title required"
+      }
+    );
+
+
+    $("studentPortfolioExperienceTitleInput")
+      ?.focus();
+
+
+    return false;
+
+  }
+
+
+  const currentPortfolio =
+    getStudentPortfolio();
+
+
+  const experiences =
+    [
+      ...currentPortfolio.experience
+    ];
+
+
+  const current =
+    $("studentPortfolioExperienceCurrentInput")
+      ?.checked ===
+      true;
+
+
+  const experience = {
+
+    id:
+      studentPortfolioExperienceEditingId ||
+      (
+        crypto.randomUUID
+          ? crypto.randomUUID()
+          : `experience-${
+              Date.now()
+            }`
+      ),
+
+    title,
+
+    organization:
+      String(
+        $("studentPortfolioExperienceOrganizationInput")
+          ?.value ||
+        ""
+      ).trim(),
+
+    type:
+      String(
+        $("studentPortfolioExperienceTypeInput")
+          ?.value ||
+        "other"
+      )
+        .trim()
+        .toLowerCase(),
+
+    description:
+      String(
+        $("studentPortfolioExperienceDescriptionInput")
+          ?.value ||
+        ""
+      ).trim(),
+
+    startDate:
+      $("studentPortfolioExperienceStartInput")
+        ?.value ||
+      null,
+
+    endDate:
+      current
+        ? null
+        : (
+            $("studentPortfolioExperienceEndInput")
+              ?.value ||
+            null
+          ),
+
+    current
+  };
+
+
+  const existingIndex =
+    experiences.findIndex(
+      item =>
+        sameId(
+          item.id,
+          experience.id
+        )
+    );
+
+
+  if (
+    existingIndex >
+    -1
+  ){
+
+    experiences[
+      existingIndex
+    ] =
+      experience;
+
+  }else{
+
+    experiences.unshift(
+      experience
+    );
+
+  }
+
+
+  state.portfolio = {
+    ...currentPortfolio,
+    experience:
+      experiences
+  };
+
+
+  saveStudentPortfolioStoredData(
+    state.portfolio
+  );
+
+
+  renderStudentPortfolio();
+
+
+  closeStudentPortfolioExperienceEditor();
+
+
+  notifyAIFTSuccess(
+    "Your experience was added to your portfolio.",
+    {
+      title:
+        "Experience saved"
+    }
+  );
+
+
+  return true;
+
+}
+
 
 function normalizeStudentPortfolioExperience(
   experience
@@ -12331,6 +12639,99 @@ function bindStudentPortfolioControls(){
       }
     );
 
+  $("addStudentPortfolioExperienceButton")
+  ?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      openStudentPortfolioExperienceEditor();
+
+    }
+  );
+
+  $("addFirstStudentPortfolioExperienceButton")
+  ?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      openStudentPortfolioExperienceEditor();
+
+    }
+  );
+
+  $("saveStudentPortfolioExperienceButton")
+  ?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      saveStudentPortfolioExperience();
+
+    }
+  );
+
+
+$("cancelStudentPortfolioExperienceButton")
+  ?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      closeStudentPortfolioExperienceEditor();
+
+    }
+  );
+
+
+$("closeStudentPortfolioExperienceModalButton")
+  ?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      closeStudentPortfolioExperienceEditor();
+
+    }
+  );
+
+
+$("studentPortfolioExperienceCurrentInput")
+  ?.addEventListener(
+    "change",
+    event => {
+
+      const endInput =
+        $("studentPortfolioExperienceEndInput");
+
+
+      if (!endInput){
+        return;
+      }
+
+
+      endInput.disabled =
+        event.currentTarget.checked;
+
+
+      if (
+        event.currentTarget.checked
+      ){
+
+        endInput.value =
+          "";
+
+      }
+
+    }
+  );
+
 
   $("shareStudentPortfolioButton")
     ?.addEventListener(
@@ -13168,6 +13569,29 @@ closeStudentProjectEditor);
           "";
 
         input.click();
+
+
+        return;
+
+      }
+
+            const editExperienceButton =
+        event.target.closest(
+          "[data-edit-portfolio-experience]"
+        );
+
+
+      if (
+        editExperienceButton
+      ){
+
+        event.preventDefault();
+
+
+        openStudentPortfolioExperienceEditor(
+          editExperienceButton.dataset
+            .editPortfolioExperience
+        );
 
 
         return;
