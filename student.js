@@ -2740,8 +2740,22 @@ async function loadAll(){
       state.me = state.loggedUser;
     }
 
-    const schoolId = getSchoolId();
-    const studentId = getStudentId();
+    const schoolId =
+      getSchoolId();
+
+    const studentId =
+      getStudentId();
+
+
+    /*
+      Load Portfolio after the student identity exists.
+
+      This also performs the one-time localStorage
+      migration when necessary.
+    */
+
+    await loadStudentPortfolioFromServer();
+
 
 const [
   classes,
@@ -8702,7 +8716,7 @@ function closeStudentPortfolioProfileEditor(){
 
 }
 
-function saveStudentPortfolioProfile(){
+async function saveStudentPortfolioProfile(){
 
   const headline =
     String(
@@ -8815,31 +8829,665 @@ function saveStudentPortfolioProfile(){
   };
 
 
+  /*
+    Keep an immediate local backup before syncing.
+  */
+
   saveStudentPortfolioStoredData(
     state.portfolio
   );
 
 
-  renderStudentPortfolio();
+  const saveButton =
+    $("saveStudentPortfolioProfileButton");
 
 
-  closeStudentPortfolioProfileEditor();
-
-
-  notifyAIFTSuccess(
-    "Your portfolio introduction was updated.",
-    {
-      title:
-        "Portfolio saved"
-    }
+  setDashboardButtonLoading(
+    saveButton,
+    true,
+    "Saving..."
   );
 
 
-  return true;
+  try{
+
+    await saveStudentPortfolioCoreToServer(
+      state.portfolio
+    );
+
+
+    renderStudentPortfolio();
+
+
+    closeStudentPortfolioProfileEditor();
+
+
+    notifyAIFTSuccess(
+      "Your portfolio introduction was saved to AIFT.",
+      {
+        title:
+          "Portfolio saved"
+      }
+    );
+
+
+    return true;
+
+  }catch(error){
+
+    console.error(
+      "Student portfolio server save failed:",
+      error
+    );
+
+
+    /*
+      The local backup remains intact so the student's
+      work is not lost.
+    */
+
+    renderStudentPortfolio();
+
+
+    notifyAIFTError(
+      error?.message ||
+      "Your portfolio could not be synced with AIFT.",
+      {
+        title:
+          "Portfolio sync failed"
+      }
+    );
+
+
+    return false;
+
+  }finally{
+
+    setDashboardButtonLoading(
+      saveButton,
+      false
+    );
+
+  }
 
 }
 const STUDENT_PROJECT_STORAGE_KEY =
   "aiftStudentPortfolioProjects";
+
+/* =========================================================
+   STUDENT PORTFOLIO API
+========================================================= */
+
+function normalizeStudentPortfolioApiRecord(
+  rawPortfolio
+){
+
+  const portfolio =
+    rawPortfolio?.portfolio ||
+    rawPortfolio ||
+    {};
+
+
+  const resume =
+    portfolio.resume &&
+    typeof portfolio.resume ===
+      "object"
+      ? portfolio.resume
+      : {};
+
+
+  return {
+    _id:
+      String(
+        portfolio._id ||
+        ""
+      ),
+
+    studentId:
+      portfolio.studentId ||
+      null,
+
+    schoolId:
+      portfolio.schoolId ||
+      null,
+
+    visibility:
+      [
+        "private",
+        "school",
+        "public"
+      ].includes(
+        String(
+          portfolio.visibility ||
+          ""
+        ).toLowerCase()
+      )
+        ? String(
+            portfolio.visibility
+          ).toLowerCase()
+        : "private",
+
+    headline:
+      String(
+        portfolio.headline ||
+        ""
+      ).trim(),
+
+    about:
+      String(
+        portfolio.about ||
+        ""
+      ).trim(),
+
+    careerInterest:
+      String(
+        portfolio.careerInterest ||
+        ""
+      ).trim(),
+
+    opportunityType:
+      String(
+        portfolio.opportunityType ||
+        ""
+      )
+        .trim()
+        .toLowerCase(),
+
+    skills:
+      asArray(
+        portfolio.skills
+      )
+        .map(value =>
+          String(
+            value ||
+            ""
+          ).trim()
+        )
+        .filter(Boolean),
+
+    languages:
+      asArray(
+        portfolio.languages
+      )
+        .map(value =>
+          String(
+            value ||
+            ""
+          ).trim()
+        )
+        .filter(Boolean),
+
+    projects:
+      asArray(
+        portfolio.projects
+      ),
+
+    experience:
+      asArray(
+        portfolio.experience
+      ),
+
+    featuredCertificateIds:
+      asArray(
+        portfolio.featuredCertificateIds
+      )
+        .map(item =>
+          String(
+            item?._id ||
+            item ||
+            ""
+          )
+        )
+        .filter(Boolean),
+
+    resumeUrl:
+      String(
+        resume.url ||
+        portfolio.resumeUrl ||
+        ""
+      ).trim(),
+
+    resumeFileName:
+      String(
+        resume.fileName ||
+        portfolio.resumeFileName ||
+        ""
+      ).trim(),
+
+    resumeMimeType:
+      String(
+        resume.mimeType ||
+        portfolio.resumeMimeType ||
+        ""
+      ).trim(),
+
+    publicSlug:
+      String(
+        portfolio.publicSlug ||
+        ""
+      ).trim(),
+
+    views:
+      Number(
+        portfolio.viewsCount ??
+        portfolio.views ??
+        0
+      ) || 0,
+
+    createdAt:
+      portfolio.createdAt ||
+      null,
+
+    updatedAt:
+      portfolio.updatedAt ||
+      null
+  };
+
+}
+function buildStudentPortfolioCorePayload(
+  portfolio
+){
+
+  const source =
+    portfolio &&
+    typeof portfolio ===
+      "object"
+      ? portfolio
+      : getStudentPortfolio();
+
+
+  return {
+    visibility:
+      [
+        "private",
+        "school",
+        "public"
+      ].includes(
+        source.visibility
+      )
+        ? source.visibility
+        : "private",
+
+    headline:
+      String(
+        source.headline ||
+        ""
+      )
+        .trim()
+        .slice(
+          0,
+          160
+        ),
+
+    about:
+      String(
+        source.about ||
+        ""
+      )
+        .trim()
+        .slice(
+          0,
+          2000
+        ),
+
+    careerInterest:
+      String(
+        source.careerInterest ||
+        ""
+      )
+        .trim()
+        .slice(
+          0,
+          160
+        ),
+
+    opportunityType:
+      String(
+        source.opportunityType ||
+        ""
+      )
+        .trim()
+        .toLowerCase(),
+
+    skills:
+      asArray(
+        source.skills
+      )
+        .map(value =>
+          String(
+            value ||
+            ""
+          ).trim()
+        )
+        .filter(Boolean)
+        .slice(
+          0,
+          20
+        ),
+
+    languages:
+      asArray(
+        source.languages
+      )
+        .map(value =>
+          String(
+            value ||
+            ""
+          ).trim()
+        )
+        .filter(Boolean)
+        .slice(
+          0,
+          10
+        )
+  };
+
+}
+async function saveStudentPortfolioCoreToServer(
+  portfolio
+){
+
+  const payload =
+    buildStudentPortfolioCorePayload(
+      portfolio
+    );
+
+
+  const response =
+    await apiSend(
+      "/api/student-portfolio/me",
+      "PATCH",
+      payload
+    );
+
+
+  const savedPortfolio =
+    normalizeStudentPortfolioApiRecord(
+      response
+    );
+
+
+  /*
+    Preserve frontend-only values that are not yet
+    handled by the core PATCH endpoint.
+  */
+
+  state.portfolio = {
+    ...getStudentPortfolio(),
+    ...savedPortfolio,
+
+    projects:
+      savedPortfolio.projects?.length
+        ? savedPortfolio.projects
+        : getStudentPortfolio().projects,
+
+    experience:
+      savedPortfolio.experience?.length
+        ? savedPortfolio.experience
+        : getStudentPortfolio().experience,
+
+    resumeUrl:
+      savedPortfolio.resumeUrl ||
+      getStudentPortfolio().resumeUrl,
+
+    resumeFileName:
+      savedPortfolio.resumeFileName ||
+      state.portfolio?.resumeFileName ||
+      "",
+
+    resumeMimeType:
+      savedPortfolio.resumeMimeType ||
+      state.portfolio?.resumeMimeType ||
+      ""
+  };
+
+
+  saveStudentPortfolioStoredData(
+    state.portfolio
+  );
+
+
+  return state.portfolio;
+
+}
+function hasStudentPortfolioLocalCoreData(
+  portfolio
+){
+
+  if (
+    !portfolio ||
+    typeof portfolio !==
+      "object"
+  ){
+    return false;
+  }
+
+
+  return Boolean(
+    String(
+      portfolio.headline ||
+      ""
+    ).trim() ||
+
+    String(
+      portfolio.about ||
+      ""
+    ).trim() ||
+
+    String(
+      portfolio.careerInterest ||
+      ""
+    ).trim() ||
+
+    asArray(
+      portfolio.skills
+    ).length ||
+
+    asArray(
+      portfolio.languages
+    ).length ||
+
+    (
+      portfolio.visibility &&
+      portfolio.visibility !==
+        "private"
+    )
+  );
+
+}
+
+
+function isStudentPortfolioServerCoreEmpty(
+  portfolio
+){
+
+  if (
+    !portfolio ||
+    typeof portfolio !==
+      "object"
+  ){
+    return true;
+  }
+
+
+  return !(
+    String(
+      portfolio.headline ||
+      ""
+    ).trim() ||
+
+    String(
+      portfolio.about ||
+      ""
+    ).trim() ||
+
+    String(
+      portfolio.careerInterest ||
+      ""
+    ).trim() ||
+
+    asArray(
+      portfolio.skills
+    ).length ||
+
+    asArray(
+      portfolio.languages
+    ).length ||
+
+    (
+      portfolio.visibility &&
+      portfolio.visibility !==
+        "private"
+    )
+  );
+
+}
+async function loadStudentPortfolioFromServer(){
+
+  const localPortfolio =
+    getStudentPortfolioStoredData();
+
+
+  const response =
+    await apiGet(
+      "/api/student-portfolio/me",
+      null
+    );
+
+
+  if (!response){
+
+    /*
+      Backend unavailable:
+      keep using the local Portfolio.
+    */
+
+    if (
+      hasStudentPortfolioLocalCoreData(
+        localPortfolio
+      )
+    ){
+
+      state.portfolio = {
+        ...state.portfolio,
+        ...localPortfolio
+      };
+
+    }
+
+
+    return state.portfolio;
+
+  }
+
+
+  let serverPortfolio =
+    normalizeStudentPortfolioApiRecord(
+      response
+    );
+
+
+  /*
+    One-time migration.
+
+    If MongoDB has a newly created empty portfolio
+    but this browser already contains portfolio data,
+    move that existing information into MongoDB.
+  */
+
+  if (
+    isStudentPortfolioServerCoreEmpty(
+      serverPortfolio
+    ) &&
+    hasStudentPortfolioLocalCoreData(
+      localPortfolio
+    )
+  ){
+
+    try{
+
+      const migratedResponse =
+        await apiSend(
+          "/api/student-portfolio/me",
+          "PATCH",
+          buildStudentPortfolioCorePayload(
+            localPortfolio
+          )
+        );
+
+
+      serverPortfolio =
+        normalizeStudentPortfolioApiRecord(
+          migratedResponse
+        );
+
+
+      console.info(
+        "Student portfolio local data migrated to MongoDB."
+      );
+
+    }catch(error){
+
+      console.error(
+        "Student portfolio migration failed:",
+        error
+      );
+
+    }
+
+  }
+
+
+  /*
+    Backend becomes authoritative for core fields.
+
+    Keep frontend-only data that has not been
+    migrated to dedicated backend endpoints yet.
+  */
+
+  state.portfolio = {
+    ...localPortfolio,
+    ...serverPortfolio,
+
+    projects:
+      serverPortfolio.projects?.length
+        ? serverPortfolio.projects
+        : asArray(
+            localPortfolio.projects
+          ),
+
+    experience:
+      serverPortfolio.experience?.length
+        ? serverPortfolio.experience
+        : asArray(
+            localPortfolio.experience
+          ),
+
+    resumeUrl:
+      serverPortfolio.resumeUrl ||
+      localPortfolio.resumeUrl ||
+      "",
+
+    resumeFileName:
+      serverPortfolio.resumeFileName ||
+      localPortfolio.resumeFileName ||
+      "",
+
+    resumeMimeType:
+      serverPortfolio.resumeMimeType ||
+      localPortfolio.resumeMimeType ||
+      ""
+  };
+
+
+  saveStudentPortfolioStoredData(
+    state.portfolio
+  );
+
+
+  return state.portfolio;
+
+}
 
 function getStudentPortfolioStoredData(){
 
@@ -11910,14 +12558,14 @@ closeStudentProjectEditor);
       }
     );
 
-    $("studentPortfolioProfileForm")
+  $("studentPortfolioProfileForm")
     ?.addEventListener(
       "submit",
-      event => {
+      async event => {
 
         event.preventDefault();
 
-        saveStudentPortfolioProfile();
+        await saveStudentPortfolioProfile();
 
       }
     );
@@ -11952,11 +12600,20 @@ closeStudentProjectEditor);
   $("studentPortfolioVisibilitySelect")
     ?.addEventListener(
       "change",
-      event => {
+      async event => {
+
+        const select =
+          event.currentTarget;
+
+
+        const previousPortfolio = {
+          ...getStudentPortfolio()
+        };
+
 
         const visibility =
           String(
-            event.target.value ||
+            select.value ||
             "private"
           )
             .trim()
@@ -11964,10 +12621,14 @@ closeStudentProjectEditor);
 
 
         state.portfolio = {
-          ...getStudentPortfolio(),
+          ...previousPortfolio,
           visibility
         };
 
+
+        /*
+          Immediate UI update + local safety copy.
+        */
 
         saveStudentPortfolioStoredData(
           state.portfolio
@@ -11977,19 +12638,82 @@ closeStudentProjectEditor);
         renderStudentPortfolio();
 
 
-        notifyAIFTSuccess(
-          visibility === "public"
-            ? "Your portfolio is now public."
-            : (
-                visibility === "school"
-                  ? "Your portfolio is now visible to your school."
-                  : "Your portfolio is now private."
-              ),
-          {
-            title:
-              "Visibility updated"
+        select.disabled =
+          true;
+
+
+        try{
+
+          await saveStudentPortfolioCoreToServer(
+            state.portfolio
+          );
+
+
+          renderStudentPortfolio();
+
+
+          notifyAIFTSuccess(
+            visibility === "public"
+              ? "Your portfolio is now public and ready to share."
+              : (
+                  visibility === "school"
+                    ? "Your portfolio is now visible to your school."
+                    : "Your portfolio is now private."
+                ),
+            {
+              title:
+                "Visibility updated"
+            }
+          );
+
+        }catch(error){
+
+          console.error(
+            "Portfolio visibility update failed:",
+            error
+          );
+
+
+          /*
+            Restore the previous state if MongoDB rejected
+            the visibility change.
+          */
+
+          state.portfolio =
+            previousPortfolio;
+
+
+          saveStudentPortfolioStoredData(
+            previousPortfolio
+          );
+
+
+          renderStudentPortfolio();
+
+
+          notifyAIFTError(
+            error?.message ||
+            "AIFT could not update portfolio visibility.",
+            {
+              title:
+                "Visibility update failed"
+            }
+          );
+
+        }finally{
+
+          const currentSelect =
+            $("studentPortfolioVisibilitySelect");
+
+
+          if (currentSelect){
+
+            currentSelect.disabled =
+              false;
+
           }
-        );
+
+        }
 
       }
     );
