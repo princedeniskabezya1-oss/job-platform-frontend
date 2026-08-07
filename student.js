@@ -10924,15 +10924,46 @@ function bindStudentPortfolioControls(){
       updateStudentPortfolioAboutCharacterCount
     );
 
-$("uploadStudentResumeButton")
+$("addStudentPortfolioResumeButton")
 ?.addEventListener(
-"click",
-()=>{
+  "click",
+  event => {
 
-$("studentResumeUploadInput")
-.click();
+    event.preventDefault();
 
-});
+    const input =
+      $("studentResumeUploadInput");
+
+    if (!input){
+
+      console.error(
+        "studentResumeUploadInput was not found."
+      );
+
+      notifyAIFTError(
+        "The resume upload control is unavailable.",
+        {
+          title:
+            "Upload unavailable"
+        }
+      );
+
+      return;
+
+    }
+
+    /*
+      Reset the input so selecting the same file
+      twice still fires the change event.
+    */
+
+    input.value =
+      "";
+
+    input.click();
+
+  }
+);
 
 
 $("studentResumeUploadInput")
