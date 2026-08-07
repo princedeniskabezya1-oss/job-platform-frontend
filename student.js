@@ -9870,7 +9870,7 @@ function getStudentPortfolioPublicUrl(){
 
   const url =
     new URL(
-      "public-profile.html",
+      "student-public-profile.html",
       window.location.href
     );
 
