@@ -10761,12 +10761,45 @@ function bindStudentPortfolioControls(){
       updateStudentPortfolioAboutCharacterCount
     );
 
-  $("addStudentPortfolioProjectButton")
+$("openStudentProjectPickerButton")
 ?.addEventListener(
 "click",
-()=>{
+event=>{
+
+event.preventDefault();
+
+openModal(
+  "studentProjectPickerModal"
+);
+
+});
+
+$("portfolioUploadManual")
+?.addEventListener(
+"click",
+event=>{
+
+event.preventDefault();
+
+closeModal(
+  "studentProjectPickerModal"
+);
 
 openStudentProjectEditor();
+
+});
+
+
+$("closeStudentProjectPickerButton")
+?.addEventListener(
+"click",
+event=>{
+
+event.preventDefault();
+
+closeModal(
+  "studentProjectPickerModal"
+);
 
 });
 
