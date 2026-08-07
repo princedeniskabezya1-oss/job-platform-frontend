@@ -9848,6 +9848,340 @@ function getStudentPortfolio(){
 
 }
 
+function getStudentPortfolioPublicUrl(){
+
+  const portfolio =
+    getStudentPortfolio();
+
+
+  const studentId =
+    normalizeId(
+      portfolio?.user?._id ||
+      state.me?._id ||
+      state.loggedUser?._id ||
+      getStudentId()
+    );
+
+
+  if (!studentId){
+    return "";
+  }
+
+
+  const url =
+    new URL(
+      "public-profile.html",
+      window.location.href
+    );
+
+
+  url.searchParams.set(
+    "id",
+    studentId
+  );
+
+
+  url.searchParams.set(
+    "view",
+    "portfolio"
+  );
+
+
+  return url.href;
+
+}
+
+async function copyStudentPortfolioPublicLink(){
+
+  const portfolio =
+    getStudentPortfolio();
+
+
+  if (
+    portfolio.visibility !==
+    "public"
+  ){
+
+    notifyAIFTWarning(
+      "Set your portfolio visibility to Public before sharing it.",
+      {
+        title:
+          "Portfolio is private"
+      }
+    );
+
+    return false;
+
+  }
+
+
+  const url =
+    getStudentPortfolioPublicUrl();
+
+
+  if (!url){
+
+    notifyAIFTError(
+      "AIFT could not create your portfolio link.",
+      {
+        title:
+          "Link unavailable"
+      }
+    );
+
+    return false;
+
+  }
+
+
+  try{
+
+    await navigator.clipboard.writeText(
+      url
+    );
+
+
+    notifyAIFTSuccess(
+      "Portfolio link copied to your clipboard.",
+      {
+        title:
+          "Link copied"
+      }
+    );
+
+
+    return true;
+
+  }catch(error){
+
+    console.error(
+      "Portfolio clipboard copy failed:",
+      error
+    );
+
+
+    /*
+      Fallback for browsers where Clipboard API
+      is unavailable.
+    */
+
+    const textarea =
+      document.createElement(
+        "textarea"
+      );
+
+
+    textarea.value =
+      url;
+
+
+    textarea.setAttribute(
+      "readonly",
+      ""
+    );
+
+
+    textarea.style.position =
+      "fixed";
+
+    textarea.style.opacity =
+      "0";
+
+
+    document.body.appendChild(
+      textarea
+    );
+
+
+    textarea.select();
+
+
+    const copied =
+      document.execCommand(
+        "copy"
+      );
+
+
+    textarea.remove();
+
+
+    if (copied){
+
+      notifyAIFTSuccess(
+        "Portfolio link copied to your clipboard.",
+        {
+          title:
+            "Link copied"
+        }
+      );
+
+
+      return true;
+
+    }
+
+
+    notifyAIFTError(
+      "AIFT could not copy the portfolio link.",
+      {
+        title:
+          "Copy failed"
+      }
+    );
+
+
+    return false;
+
+  }
+
+}
+
+function previewStudentPortfolio(){
+
+  const url =
+    getStudentPortfolioPublicUrl();
+
+
+  if (!url){
+
+    notifyAIFTError(
+      "AIFT could not create the portfolio preview.",
+      {
+        title:
+          "Preview unavailable"
+      }
+    );
+
+    return;
+  }
+
+
+  window.open(
+    url,
+    "_blank",
+    "noopener,noreferrer"
+  );
+
+}
+
+async function shareStudentPortfolio(){
+
+  const portfolio =
+    getStudentPortfolio();
+
+
+  if (
+    portfolio.visibility !==
+    "public"
+  ){
+
+    notifyAIFTWarning(
+      "Set your portfolio visibility to Public before sharing it.",
+      {
+        title:
+          "Portfolio is private"
+      }
+    );
+
+    return;
+  }
+
+
+  const url =
+    getStudentPortfolioPublicUrl();
+
+
+  if (!url){
+
+    notifyAIFTError(
+      "AIFT could not create your portfolio link.",
+      {
+        title:
+          "Share unavailable"
+      }
+    );
+
+    return;
+  }
+
+
+  const studentName =
+    getStudentPortfolioStudentName(
+      portfolio
+    );
+
+
+  const shareData = {
+    title:
+      `${
+        studentName
+      } | AIFT Portfolio`,
+
+    text:
+      `View ${
+        studentName
+      }'s student portfolio on AIFT.`,
+
+    url
+  };
+
+
+  try{
+
+    if (
+      navigator.share
+    ){
+
+      await navigator.share(
+        shareData
+      );
+
+
+      return;
+
+    }
+
+
+    /*
+      Desktop fallback:
+      copy the URL instead.
+    */
+
+    await copyStudentPortfolioPublicLink();
+
+  }catch(error){
+
+    /*
+      AbortError means the user simply closed
+      the operating-system share sheet.
+    */
+
+    if (
+      error?.name ===
+      "AbortError"
+    ){
+      return;
+    }
+
+
+    console.error(
+      "Portfolio share failed:",
+      error
+    );
+
+
+    notifyAIFTError(
+      "AIFT could not share your portfolio.",
+      {
+        title:
+          "Share failed"
+      }
+    );
+
+  }
+
+}
+
 function getStudentPortfolioStudentName(
   portfolio
 ){
@@ -11031,12 +11365,24 @@ function renderStudentPortfolio(){
 
   if (copyLinkButton){
 
-    copyLinkButton.disabled =
+    const canShare =
       (
-        portfolio.visibility !==
-          "public" ||
-        !portfolio.publicSlug
+        portfolio.visibility ===
+          "public" &&
+        Boolean(
+          getStudentPortfolioPublicUrl()
+        )
       );
+
+
+    copyLinkButton.disabled =
+      !canShare;
+
+
+    copyLinkButton.title =
+      canShare
+        ? "Copy your public portfolio link"
+        : "Set portfolio visibility to Public to enable sharing";
 
   }
 
@@ -11070,6 +11416,43 @@ function bindStudentPortfolioControls(){
       openStudentPortfolioProfileEditor();
 
     };
+
+    $("previewStudentPortfolioButton")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        previewStudentPortfolio();
+
+      }
+    );
+
+
+  $("shareStudentPortfolioButton")
+    ?.addEventListener(
+      "click",
+      async event => {
+
+        event.preventDefault();
+
+        await shareStudentPortfolio();
+
+      }
+    );
+
+    $("copyStudentPortfolioLinkButton")
+    ?.addEventListener(
+      "click",
+      async event => {
+
+        event.preventDefault();
+
+        await copyStudentPortfolioPublicLink();
+
+      }
+    );
 
 
   $("editStudentPortfolioButton")
