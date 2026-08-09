@@ -14766,7 +14766,17 @@ function renderStudentAIConversation(){
 
 
         return `
-          <article class="student-ai-message ${role}">
+         <article
+  class="student-ai-message ${role} ${
+    message.pending
+      ? "is-thinking"
+      : ""
+  } ${
+    message.error
+      ? "is-error"
+      : ""
+  }"
+>
 
             ${
               role === "assistant"
@@ -14780,14 +14790,37 @@ function renderStudentAIConversation(){
                 : ""
             }
 
-            <div class="student-ai-message-bubble">
-              ${
-                escapeHtml(
-                  message.content ||
-                  ""
-                )
-              }
-            </div>
+<div class="student-ai-message-bubble">
+
+  ${
+    message.pending
+      ? `
+        <div class="kabezya-thinking-message">
+
+          <span>
+            ${
+              escapeHtml(
+                message.content ||
+                "Kabezya is thinking"
+              )
+            }
+          </span>
+
+          <span class="kabezya-thinking-dots">
+            <i></i>
+            <i></i>
+            <i></i>
+          </span>
+
+        </div>
+      `
+      : escapeHtml(
+          message.content ||
+          ""
+        )
+  }
+
+</div>
 
           </article>
         `;
@@ -14853,17 +14886,17 @@ async function submitStudentAIMessage(
     feedback while Gemini is generating.
   */
 
-  const pendingMessage = {
-    role:"assistant",
+const pendingMessage = {
+  role:"assistant",
 
-content:
-  "Kabezya is thinking...",
+  content:
+    "Kabezya is thinking",
 
-    pending:true,
+  pending:true,
 
-    createdAt:
-      new Date().toISOString()
-  };
+  createdAt:
+    new Date().toISOString()
+};
 
 
   studentAIConversationMessages.push(
