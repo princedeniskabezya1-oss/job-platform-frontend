@@ -13789,6 +13789,1021 @@ closeStudentProjectEditor);
 }
 
 /* =========================================================
+   STUDENT CAREER HUB
+   LIVE BACKEND STATE
+========================================================= */
+
+const studentCareerState = {
+
+  jobs:[],
+
+  applications:[],
+
+  loading:false,
+
+  loaded:false,
+
+  error:""
+
+};
+
+
+/* =========================================================
+   LOAD CAREER HUB BACKEND DATA
+========================================================= */
+
+async function loadStudentCareerHubData({
+  force = false
+} = {}){
+
+  if (
+    studentCareerState.loading
+  ){
+    return;
+  }
+
+
+  if (
+    studentCareerState.loaded &&
+    !force
+  ){
+    return;
+  }
+
+
+  studentCareerState.loading =
+    true;
+
+  studentCareerState.error =
+    "";
+
+
+  try{
+
+    const [
+      jobsResponse,
+      applicationsResponse
+    ] =
+      await Promise.all([
+
+        apiGet(
+          "/api/jobs"
+        ),
+
+        apiGet(
+          "/api/applications"
+        )
+
+      ]);
+
+
+    studentCareerState.jobs =
+      Array.isArray(
+        jobsResponse
+      )
+        ? jobsResponse
+        : Array.isArray(
+            jobsResponse?.jobs
+          )
+          ? jobsResponse.jobs
+          : Array.isArray(
+              jobsResponse?.data
+            )
+            ? jobsResponse.data
+            : [];
+
+
+    studentCareerState.applications =
+      Array.isArray(
+        applicationsResponse
+      )
+        ? applicationsResponse
+        : Array.isArray(
+            applicationsResponse
+              ?.applications
+          )
+          ? applicationsResponse
+              .applications
+          : Array.isArray(
+              applicationsResponse?.data
+            )
+            ? applicationsResponse.data
+            : [];
+
+
+    /*
+      Only show live/open opportunities
+      inside student recommendations.
+    */
+
+    studentCareerState.jobs =
+      studentCareerState.jobs
+        .filter(job => {
+
+          const status =
+            String(
+              job?.status ||
+              "active"
+            )
+              .trim()
+              .toLowerCase();
+
+
+          return ![
+            "closed",
+            "archived",
+            "draft",
+            "deleted"
+          ].includes(
+            status
+          );
+
+        });
+
+
+    studentCareerState.loaded =
+      true;
+
+  }catch(error){
+
+    console.error(
+      "Career Hub data load failed:",
+      error
+    );
+
+
+    studentCareerState.error =
+      error?.message ||
+      "Career information could not be loaded.";
+
+
+    studentCareerState.jobs =
+      [];
+
+    studentCareerState.applications =
+      [];
+
+  }finally{
+
+    studentCareerState.loading =
+      false;
+
+  }
+
+}
+
+/* =========================================================
+   CAREER APPLICATION STATUS
+========================================================= */
+
+function normalizeStudentCareerApplicationStatus(
+  value
+){
+
+  const status =
+    String(
+      value ||
+      ""
+    )
+      .trim()
+      .toLowerCase()
+      .replace(
+        /[\s_-]+/g,
+        ""
+      );
+
+
+  if (
+    [
+      "new",
+      "applied",
+      "submitted",
+      "pending"
+    ].includes(status)
+  ){
+    return "applied";
+  }
+
+
+  if (
+    [
+      "shortlisted",
+      "review",
+      "reviewing",
+      "underreview",
+      "screening"
+    ].includes(status)
+  ){
+    return "reviewing";
+  }
+
+
+  if (
+    [
+      "interview",
+      "interviewing",
+      "scheduledinterview"
+    ].includes(status)
+  ){
+    return "interview";
+  }
+
+
+  if (
+    [
+      "offer",
+      "offered"
+    ].includes(status)
+  ){
+    return "offer";
+  }
+
+
+  if (
+    [
+      "hired",
+      "accepted"
+    ].includes(status)
+  ){
+    return "hired";
+  }
+
+
+  if (
+    [
+      "rejected",
+      "declined"
+    ].includes(status)
+  ){
+    return "rejected";
+  }
+
+
+  if (
+    [
+      "withdrawn",
+      "cancelled",
+      "canceled"
+    ].includes(status)
+  ){
+    return "withdrawn";
+  }
+
+
+  return "applied";
+
+}
+
+/* =========================================================
+   STUDENT APPLICATION PIPELINE
+========================================================= */
+
+function getStudentCareerApplicationStats(){
+
+  const applications =
+    Array.isArray(
+      studentCareerState.applications
+    )
+      ? studentCareerState.applications
+      : [];
+
+
+  const grouped = {
+
+    applied:0,
+
+    reviewing:0,
+
+    interview:0,
+
+    offer:0,
+
+    hired:0,
+
+    rejected:0,
+
+    withdrawn:0
+
+  };
+
+
+  applications.forEach(
+    application => {
+
+      const status =
+        normalizeStudentCareerApplicationStatus(
+          application?.status
+        );
+
+
+      if (
+        Object.prototype.hasOwnProperty.call(
+          grouped,
+          status
+        )
+      ){
+
+        grouped[status] += 1;
+
+      }
+
+    }
+  );
+
+
+  return {
+
+    total:
+      applications.length,
+
+    ...grouped
+
+  };
+
+}
+
+/* =========================================================
+   APPLICATION LOOKUP
+========================================================= */
+
+function getStudentCareerApplicationForJob(
+  jobId
+){
+
+  const normalizedJobId =
+    normalizeId(
+      jobId
+    );
+
+
+  if (
+    !normalizedJobId
+  ){
+    return null;
+  }
+
+
+  return (
+    studentCareerState
+      .applications
+      .find(application => {
+
+        const applicationJobId =
+          normalizeId(
+            application?.jobId?._id ||
+            application?.jobId ||
+            application?.job?._id ||
+            application?.job ||
+            ""
+          );
+
+
+        return (
+          applicationJobId ===
+          normalizedJobId
+        );
+
+      }) ||
+    null
+  );
+
+}
+
+/* =========================================================
+   CAREER JOB MATCHING
+========================================================= */
+
+function getStudentCareerRecommendedJobs(){
+
+  const jobs =
+    Array.isArray(
+      studentCareerState.jobs
+    )
+      ? studentCareerState.jobs
+      : [];
+
+
+  const portfolio =
+    typeof getStudentPortfolio ===
+      "function"
+      ? getStudentPortfolio()
+      : {};
+
+
+  const studentSkills =
+    asArray(
+      portfolio.skills
+    )
+      .map(skill =>
+        String(
+          skill ||
+          ""
+        )
+          .trim()
+          .toLowerCase()
+      )
+      .filter(Boolean);
+
+
+  return jobs
+    .map(job => {
+
+      const jobSkills =
+        asArray(
+          job?.skills
+        )
+          .map(skill =>
+            String(
+              skill ||
+              ""
+            )
+              .trim()
+              .toLowerCase()
+          )
+          .filter(Boolean);
+
+
+      const matchedSkills =
+        jobSkills.filter(
+          skill =>
+            studentSkills.includes(
+              skill
+            )
+        );
+
+
+      const matchScore =
+        jobSkills.length
+          ? Math.round(
+              (
+                matchedSkills.length /
+                jobSkills.length
+              ) *
+              100
+            )
+          : 50;
+
+
+      return {
+
+        ...job,
+
+        careerMatchScore:
+          Math.max(
+            0,
+            Math.min(
+              100,
+              matchScore
+            )
+          ),
+
+        matchedSkills
+
+      };
+
+    })
+    .sort(
+      (
+        first,
+        second
+      ) =>
+        Number(
+          second.careerMatchScore ||
+          0
+        ) -
+        Number(
+          first.careerMatchScore ||
+          0
+        )
+    );
+
+}
+
+/* =========================================================
+   RENDER CAREER OPPORTUNITIES
+========================================================= */
+
+function renderStudentCareerOpportunities(){
+
+  const container =
+    $("studentCareerRecommendedJobs");
+
+
+  if (!container){
+    return;
+  }
+
+
+  const jobs =
+    getStudentCareerRecommendedJobs()
+      .slice(
+        0,
+        5
+      );
+
+
+  if (
+    studentCareerState.loading
+  ){
+
+    container.innerHTML = `
+
+      <div class="student-career-empty">
+
+        <div class="student-career-empty-icon">
+
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+
+        </div>
+
+        <strong>
+          Finding opportunities
+        </strong>
+
+        <p>
+          AIFT is checking available jobs and internships
+          for your profile.
+        </p>
+
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  if (
+    studentCareerState.error
+  ){
+
+    container.innerHTML = `
+
+      <div class="student-career-empty">
+
+        <div class="student-career-empty-icon">
+
+          <i class="fa-solid fa-triangle-exclamation"></i>
+
+        </div>
+
+        <strong>
+          Opportunities could not be loaded
+        </strong>
+
+        <p>
+          ${
+            escapeHtml(
+              studentCareerState.error
+            )
+          }
+        </p>
+
+        <button
+          type="button"
+          class="student-career-secondary-button"
+          data-career-action="refresh"
+        >
+          Try again
+        </button>
+
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  if (
+    !jobs.length
+  ){
+
+    container.innerHTML = `
+
+      <div class="student-career-empty">
+
+        <div class="student-career-empty-icon">
+
+          <i class="fa-solid fa-briefcase"></i>
+
+        </div>
+
+        <strong>
+          No open opportunities yet
+        </strong>
+
+        <p>
+          Jobs and internships published by employers
+          will appear here when they become available.
+        </p>
+
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  container.innerHTML =
+    jobs
+      .map(job => {
+
+        const id =
+          normalizeId(
+            job?._id ||
+            job?.id
+          );
+
+
+        const application =
+          getStudentCareerApplicationForJob(
+            id
+          );
+
+
+        const company =
+          String(
+            job?.company ||
+            job?.employerId
+              ?.companyName ||
+            job?.employerId
+              ?.name ||
+            job?.employer
+              ?.companyName ||
+            "Employer"
+          );
+
+
+        const location =
+          String(
+            job?.location ||
+            "Location not specified"
+          );
+
+
+        const type =
+          String(
+            job?.employmentType ||
+            job?.jobType ||
+            job?.type ||
+            "Opportunity"
+          );
+
+
+        const score =
+          Number(
+            job?.careerMatchScore ||
+            0
+          );
+
+
+        return `
+
+          <article
+            class="student-career-opportunity-item"
+            data-career-job-id="${
+              escapeHtml(id)
+            }"
+          >
+
+            <div class="student-career-opportunity-logo">
+
+              <i class="fa-solid fa-building"></i>
+
+            </div>
+
+
+            <div class="student-career-opportunity-copy">
+
+              <strong>
+                ${
+                  escapeHtml(
+                    job?.title ||
+                    "Untitled opportunity"
+                  )
+                }
+              </strong>
+
+              <span>
+                ${
+                  escapeHtml(
+                    company
+                  )
+                }
+                ·
+                ${
+                  escapeHtml(
+                    location
+                  )
+                }
+              </span>
+
+              <div class="student-career-opportunity-meta">
+
+                <span>
+                  ${
+                    escapeHtml(
+                      type
+                    )
+                  }
+                </span>
+
+                ${
+                  score > 0
+                    ? `
+                      <span>
+                        ${score}% profile match
+                      </span>
+                    `
+                    : ""
+                }
+
+              </div>
+
+            </div>
+
+
+            <div class="student-career-opportunity-actions">
+
+              ${
+                application
+                  ? `
+                    <button
+                      type="button"
+                      class="student-career-secondary-button"
+                      data-career-open-application="${
+                        escapeHtml(
+                          normalizeId(
+                            application?._id ||
+                            application?.id
+                          )
+                        )
+                      }"
+                    >
+                      ${
+                        escapeHtml(
+                          normalizeStudentCareerApplicationStatus(
+                            application?.status
+                          )
+                        )
+                      }
+                    </button>
+                  `
+                  : `
+                    <button
+                      type="button"
+                      class="student-career-primary-button"
+                      data-career-open-job="${
+                        escapeHtml(id)
+                      }"
+                    >
+                      View job
+                    </button>
+                  `
+              }
+
+            </div>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+}
+
+/* =========================================================
+   RENDER APPLICATION PIPELINE
+========================================================= */
+
+function renderStudentCareerApplications(){
+
+  const stats =
+    getStudentCareerApplicationStats();
+
+
+  setText(
+    "studentCareerApplicationsCount",
+    stats.total
+  );
+
+
+  setText(
+    "studentCareerAppliedCount",
+    stats.applied
+  );
+
+
+  setText(
+    "studentCareerReviewingCount",
+    stats.reviewing
+  );
+
+
+  setText(
+    "studentCareerPipelineInterviewCount",
+    stats.interview
+  );
+
+
+  setText(
+    "studentCareerInterviewCount",
+    stats.interview
+  );
+
+
+  setText(
+    "studentCareerOfferCount",
+    stats.offer
+  );
+
+
+  const container =
+    $("studentCareerApplicationList");
+
+
+  if (!container){
+    return;
+  }
+
+
+  const applications =
+    studentCareerState.applications
+      .slice()
+      .sort(
+        (
+          first,
+          second
+        ) => {
+
+          const firstDate =
+            new Date(
+              first?.updatedAt ||
+              first?.createdAt ||
+              0
+            )
+              .getTime();
+
+
+          const secondDate =
+            new Date(
+              second?.updatedAt ||
+              second?.createdAt ||
+              0
+            )
+              .getTime();
+
+
+          return (
+            secondDate -
+            firstDate
+          );
+
+        }
+      )
+      .slice(
+        0,
+        5
+      );
+
+
+  if (
+    !applications.length
+  ){
+
+    container.innerHTML = `
+
+      <div class="student-career-empty compact">
+
+        <strong>
+          No applications yet
+        </strong>
+
+        <p>
+          Once you apply for an opportunity,
+          its progress will appear here.
+        </p>
+
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  container.innerHTML =
+    applications
+      .map(application => {
+
+        const job =
+          application?.jobId ||
+          application?.job ||
+          {};
+
+
+        const jobTitle =
+          typeof job === "object"
+            ? (
+                job?.title ||
+                "Opportunity"
+              )
+            : (
+                application?.jobTitle ||
+                "Opportunity"
+              );
+
+
+        const company =
+          typeof job === "object"
+            ? (
+                job?.company ||
+                job?.employerId
+                  ?.companyName ||
+                "Employer"
+              )
+            : (
+                application?.company ||
+                "Employer"
+              );
+
+
+        const status =
+          normalizeStudentCareerApplicationStatus(
+            application?.status
+          );
+
+
+        return `
+
+          <button
+            type="button"
+            class="student-career-application-row"
+            data-career-open-application="${
+              escapeHtml(
+                normalizeId(
+                  application?._id ||
+                  application?.id
+                )
+              )
+            }"
+          >
+
+            <span class="student-career-application-icon">
+
+              <i class="fa-solid fa-briefcase"></i>
+
+            </span>
+
+
+            <span class="student-career-application-copy">
+
+              <strong>
+                ${
+                  escapeHtml(
+                    jobTitle
+                  )
+                }
+              </strong>
+
+              <small>
+                ${
+                  escapeHtml(
+                    company
+                  )
+                }
+              </small>
+
+            </span>
+
+
+            <span
+              class="
+                student-career-application-status
+                status-${escapeHtml(status)}
+              "
+            >
+              ${
+                escapeHtml(
+                  status
+                )
+              }
+            </span>
+
+          </button>
+
+        `;
+
+      })
+      .join("");
+
+}
+
+
+
+/* =========================================================
    STUDENT CAREER HUB STATE
 ========================================================= */
 
@@ -14067,24 +15082,56 @@ function handleStudentCareerAction(
        OPPORTUNITIES
     ========================================= */
 
-    case "opportunities":
+case "opportunities":
 
-      window.location.href =
-        "jobs.html";
+  const opportunities =
+    $("studentCareerRecommendedJobs");
 
-      break;
+
+  opportunities?.scrollIntoView({
+    behavior:"smooth",
+    block:"start"
+  });
+
+  break;
 
 
     /* =========================================
        APPLICATIONS
     ========================================= */
 
-    case "applications":
+case "applications":
 
-      window.location.href =
-        "applications.html";
+  const applications =
+    $("studentCareerApplicationList");
 
-      break;
+
+  applications?.scrollIntoView({
+    behavior:"smooth",
+    block:"start"
+  });
+
+  break;
+
+
+case "refresh":
+
+  studentCareerState.loaded =
+    false;
+
+
+  loadStudentCareerHubData({
+    force:true
+  })
+    .then(() => {
+
+      renderStudentCareerOpportunities();
+
+      renderStudentCareerApplications();
+
+    });
+
+  break;
 
 
     /* =========================================
@@ -14283,7 +15330,7 @@ function bindStudentCareerHubControls(){
 }
 
 
-function renderStudentCareerHub(){
+async function renderStudentCareerHub(){
 
   const workspace =
     $("studentCareerWorkspace");
@@ -14866,6 +15913,11 @@ function renderStudentCareerHub(){
 
 
   updateStudentCareerReadiness();
+  await loadStudentCareerHubData();
+
+renderStudentCareerOpportunities();
+
+renderStudentCareerApplications();
 
 }
 
