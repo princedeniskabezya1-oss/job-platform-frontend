@@ -1610,14 +1610,19 @@ function bindStudentStudioTopbar(){
       }
     );
 
-  $("studentSidebarHelpButton")
-    ?.addEventListener(
-      "click",
-      () => {
-        window.location.href =
-          "support.html";
-      }
-    );
+$("studentSidebarHelpButton")
+  ?.addEventListener(
+    "click",
+    () => {
+
+      activateStudentStudioPage(
+        "help"
+      );
+
+      closeStudentStudioMenus();
+
+    }
+  );
 
   document.addEventListener(
     "click",
@@ -2146,42 +2151,110 @@ function bindStudentStudioQuickActions(){
 }
 
 function bindStudentProfileActions(){
-  $("studentProfileMenu")
-    ?.querySelectorAll(
+
+  const menu =
+    $("studentProfileMenu");
+
+
+  if (!menu){
+    return;
+  }
+
+
+  menu
+    .querySelectorAll(
       "[data-profile-action]"
     )
     .forEach(button => {
+
+      /*
+        Prevent duplicate listeners if the
+        Student Studio initializer runs again.
+      */
+
+      if (
+        button.dataset
+          .studentProfileActionBound ===
+        "true"
+      ){
+        return;
+      }
+
+
+      button.dataset
+        .studentProfileActionBound =
+        "true";
+
+
       button.addEventListener(
         "click",
         () => {
+
           const action =
-            button.dataset.profileAction;
+            String(
+              button.dataset
+                .profileAction ||
+              ""
+            )
+              .trim()
+              .toLowerCase();
+
 
           closeStudentStudioMenus();
 
+
           switch(action){
 
+            /* =========================================
+               PROFILE
+            ========================================= */
+
             case "profile":
+
               window.location.href =
                 selectedStudentId
-                  ? `public-profile.html?id=${encodeURIComponent(
-                      selectedStudentId
-                    )}`
+                  ? `public-profile.html?id=${
+                      encodeURIComponent(
+                        selectedStudentId
+                      )
+                    }`
                   : "profile.html";
+
               break;
 
+
+            /* =========================================
+               SETTINGS
+            ========================================= */
+
             case "settings":
+
               activateStudentStudioPage(
                 "settings"
               );
+
               break;
+
+
+            /* =========================================
+               HELP CENTER
+            ========================================= */
 
             case "help":
-              window.location.href =
-                "support.html";
+
+              activateStudentStudioPage(
+                "help"
+              );
+
               break;
 
+
+            /* =========================================
+               LOGOUT
+            ========================================= */
+
             case "logout":
+
               [
                 "studentToken",
                 "talentToken",
@@ -2191,18 +2264,31 @@ function bindStudentProfileActions(){
                 "role",
                 "userId"
               ].forEach(key => {
+
                 localStorage.removeItem(
                   key
                 );
+
               });
+
+
+              sessionStorage.removeItem(
+                "token"
+              );
+
 
               window.location.href =
                 "login.html";
+
               break;
+
           }
+
         }
       );
+
     });
+
 }
 
 function restoreStudentStudioState(){
