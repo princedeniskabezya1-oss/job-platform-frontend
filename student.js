@@ -26700,7 +26700,75 @@ function renderStudentHelpCenter(){
 
 
       <!-- =============================================
-           SUPPORT
+           MY SUPPORT REQUESTS
+      ============================================== -->
+
+      <section
+        class="student-help-section student-support-requests-section"
+      >
+
+        <div
+          class="student-help-section-heading"
+        >
+
+          <div>
+
+            <span>
+              MY SUPPORT
+            </span>
+
+            <h3>
+              Support requests
+            </h3>
+
+            <p>
+              Track requests you sent to AIFT Support
+              after speaking with Kabezya.
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            class="student-support-refresh-button"
+            id="studentSupportRefreshTicketsButton"
+            aria-label="Refresh support requests"
+          >
+            <i
+              class="fa-solid fa-rotate"
+              aria-hidden="true"
+            ></i>
+          </button>
+
+        </div>
+
+
+        <div
+          id="studentSupportTicketsList"
+          class="student-support-ticket-list"
+        >
+
+          <div
+            class="student-support-ticket-loading"
+          >
+            <i
+              class="fa-solid fa-circle-notch fa-spin"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              Loading your support requests...
+            </span>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =============================================
+           CONTACT SUPPORT
       ============================================== -->
 
       <section
@@ -26714,11 +26782,14 @@ function renderStudentHelpCenter(){
           </span>
 
           <h3>
-            Contact AIFT Support
+            Start with Kabezya Support
           </h3>
 
           <p>
-            Report a technical issue or request additional help.
+            Kabezya will try to solve the problem first.
+            If you still need assistance, the conversation
+            can be sent to AIFT Support with your contact
+            information.
           </p>
 
         </div>
@@ -26733,7 +26804,11 @@ function renderStudentHelpCenter(){
             class="student-help-secondary-button"
             data-student-help-action="report-problem"
           >
-            <i class="fa-solid fa-bug"></i>
+            <i
+              class="fa-solid fa-bug"
+              aria-hidden="true"
+            ></i>
+
             Report a problem
           </button>
 
@@ -26743,8 +26818,12 @@ function renderStudentHelpCenter(){
             class="student-help-primary-button"
             data-student-help-action="contact-support"
           >
-            <i class="fa-regular fa-envelope"></i>
-            Contact support
+            <i
+              class="fa-solid fa-wand-magic-sparkles"
+              aria-hidden="true"
+            ></i>
+
+            Talk with Kabezya
           </button>
 
         </div>
