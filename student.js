@@ -25908,12 +25908,20 @@ async function openStudentSupportTicket(
   }
 
 
+  /* =======================================================
+     REMOVE PREVIOUS TICKET MODAL
+  ======================================================= */
+
   document
     .getElementById(
       "studentSupportTicketModal"
     )
     ?.remove();
 
+
+  /* =======================================================
+     CREATE MODAL
+  ======================================================= */
 
   const modal =
     document.createElement(
@@ -25923,7 +25931,6 @@ async function openStudentSupportTicket(
 
   modal.id =
     "studentSupportTicketModal";
-
 
   modal.className =
     "student-support-ticket-modal";
@@ -25953,18 +25960,30 @@ async function openStudentSupportTicket(
           aria-hidden="true"
         ></i>
 
-        Loading support request...
+        <span>
+          Loading support conversation...
+        </span>
 
       </div>
 
     </section>
-
   `;
 
 
   document.body.appendChild(
     modal
   );
+
+
+  /* =======================================================
+     CLOSE MODAL
+  ======================================================= */
+
+  const closeModal = () => {
+
+    modal.remove();
+
+  };
 
 
   modal
@@ -25976,18 +25995,18 @@ async function openStudentSupportTicket(
 
         button.addEventListener(
           "click",
-          () => {
-
-            modal.remove();
-
-          }
+          closeModal
         );
 
       }
     );
 
 
-  try{
+  /* =======================================================
+     LOAD + RENDER TICKET
+  ======================================================= */
+
+  async function loadAndRenderTicket(){
 
     const response =
       await apiGet(
@@ -26027,6 +26046,28 @@ async function openStudentSupportTicket(
         : [];
 
 
+    const replies =
+      Array.isArray(
+        ticket.replies
+      )
+        ? ticket.replies
+        : [];
+
+
+    const normalizedStatus =
+      String(
+        ticket.status ||
+        "open"
+      )
+        .trim()
+        .toLowerCase();
+
+
+    const isClosed =
+      normalizedStatus ===
+      "closed";
+
+
     const dialog =
       modal.querySelector(
         ".student-support-ticket-modal-dialog"
@@ -26038,26 +26079,173 @@ async function openStudentSupportTicket(
     }
 
 
+    /* =====================================================
+       HUMAN SUPPORT MESSAGES
+    ===================================================== */
+
+    const supportMessagesHtml =
+      replies.length
+        ? replies
+            .map(
+              reply => {
+
+                const senderType =
+                  String(
+                    reply.senderType ||
+                    ""
+                  )
+                    .trim()
+                    .toLowerCase();
+
+
+                const isStudent =
+                  senderType ===
+                  "student";
+
+
+                const senderName =
+                  isStudent
+                    ? "You"
+                    : "AIFT Support";
+
+
+                return `
+
+                  <article
+                    class="student-support-human-message ${
+                      isStudent
+                        ? "student"
+                        : "support"
+                    }"
+                  >
+
+                    <div
+                      class="student-support-human-message-avatar"
+                      aria-hidden="true"
+                    >
+
+                      <i
+                        class="${
+                          isStudent
+                            ? "fa-regular fa-user"
+                            : "fa-solid fa-headset"
+                        }"
+                      ></i>
+
+                    </div>
+
+
+                    <div
+                      class="student-support-human-message-content"
+                    >
+
+                      <div
+                        class="student-support-human-message-head"
+                      >
+
+                        <strong>
+                          ${escapeHtml(
+                            senderName
+                          )}
+                        </strong>
+
+
+                        ${
+                          reply.createdAt
+                            ? `
+                                <time>
+                                  ${escapeHtml(
+                                    formatDateTime(
+                                      reply.createdAt
+                                    )
+                                  )}
+                                </time>
+                              `
+                            : ""
+                        }
+
+                      </div>
+
+
+                      <p>
+                        ${escapeHtml(
+                          reply.message ||
+                          ""
+                        )}
+                      </p>
+
+                    </div>
+
+                  </article>
+
+                `;
+
+              }
+            )
+            .join("")
+        : `
+
+            <div
+              class="student-support-human-empty"
+            >
+
+              <span
+                class="student-support-human-empty-icon"
+              >
+                <i
+                  class="fa-solid fa-headset"
+                  aria-hidden="true"
+                ></i>
+              </span>
+
+
+              <div>
+
+                <strong>
+                  Your request is with AIFT Support
+                </strong>
+
+                <p>
+                  A support representative can reply here.
+                  You can also send more information while
+                  your request is being reviewed.
+                </p>
+
+              </div>
+
+            </div>
+
+          `;
+
+
+    /* =====================================================
+       RENDER MODAL
+    ===================================================== */
+
     dialog.innerHTML = `
 
       <header
         class="student-support-ticket-modal-header"
       >
 
-        <div>
+        <div
+          class="student-support-ticket-modal-heading"
+        >
 
           <span>
-            SUPPORT REQUEST
+            AIFT SUPPORT
           </span>
+
 
           <h2>
             ${
               escapeHtml(
                 ticket.ticketNumber ||
-                "AIFT Support"
+                "Support request"
               )
             }
           </h2>
+
 
           <div
             class="student-support-ticket-modal-meta"
@@ -26070,11 +26258,22 @@ async function openStudentSupportTicket(
                 )
               }"
             >
+
+              <i
+                class="${
+                  escapeHtml(
+                    status.icon
+                  )
+                }"
+                aria-hidden="true"
+              ></i>
+
               ${
                 escapeHtml(
                   status.label
                 )
               }
+
             </span>
 
 
@@ -26088,6 +26287,23 @@ async function openStudentSupportTicket(
               }
             </span>
 
+
+            ${
+              ticket.createdAt
+                ? `
+                    <span>
+                      Opened ${
+                        escapeHtml(
+                          formatStudentSupportDate(
+                            ticket.createdAt
+                          )
+                        )
+                      }
+                    </span>
+                  `
+                : ""
+            }
+
           </div>
 
         </div>
@@ -26097,12 +26313,14 @@ async function openStudentSupportTicket(
           type="button"
           class="student-support-ticket-modal-close"
           data-student-ticket-close
-          aria-label="Close"
+          aria-label="Close support request"
         >
+
           <i
             class="fa-solid fa-xmark"
             aria-hidden="true"
           ></i>
+
         </button>
 
       </header>
@@ -26112,6 +26330,10 @@ async function openStudentSupportTicket(
         class="student-support-ticket-modal-body"
       >
 
+        <!-- =============================================
+             ISSUE
+        ============================================== -->
+
         <section
           class="student-support-ticket-detail-section"
         >
@@ -26119,6 +26341,7 @@ async function openStudentSupportTicket(
           <span>
             ISSUE
           </span>
+
 
           <h3>
             ${
@@ -26147,73 +26370,268 @@ async function openStudentSupportTicket(
         </section>
 
 
+        <!-- =============================================
+             KABEZYA ESCALATION HISTORY
+        ============================================== -->
+
         ${
           conversation.length
             ? `
 
-              <section
-                class="student-support-ticket-detail-section"
-              >
-
-                <span>
-                  KABEZYA CONVERSATION
-                </span>
-
-                <div
-                  class="student-support-ticket-conversation"
+                <section
+                  class="student-support-ticket-detail-section"
                 >
 
-                  ${
-                    conversation
-                      .map(
-                        message => `
+                  <div
+                    class="student-support-ticket-section-heading"
+                  >
 
-                          <article
-                            class="student-support-ticket-message ${
-                              message.role ===
-                              "user"
-                                ? "user"
-                                : "assistant"
-                            }"
-                          >
+                    <div>
 
-                            <strong>
-                              ${
+                      <span>
+                        BEFORE ESCALATION
+                      </span>
+
+                      <h3>
+                        Kabezya conversation
+                      </h3>
+
+                    </div>
+
+
+                    <span
+                      class="student-support-ticket-history-badge"
+                    >
+                      ${
+                        conversation.length
+                      } message${
+                        conversation.length === 1
+                          ? ""
+                          : "s"
+                      }
+                    </span>
+
+                  </div>
+
+
+                  <div
+                    class="student-support-ticket-conversation"
+                  >
+
+                    ${
+                      conversation
+                        .map(
+                          message => `
+
+                            <article
+                              class="student-support-ticket-message ${
                                 message.role ===
                                 "user"
-                                  ? "You"
-                                  : "Kabezya"
-                              }
-                            </strong>
+                                  ? "user"
+                                  : "assistant"
+                              }"
+                            >
 
-                            <p>
-                              ${
-                                escapeHtml(
-                                  message.content ||
-                                  ""
-                                )
-                              }
-                            </p>
+                              <strong>
+                                ${
+                                  message.role ===
+                                  "user"
+                                    ? "You"
+                                    : "Kabezya"
+                                }
+                              </strong>
 
-                          </article>
 
-                        `
-                      )
-                      .join("")
-                  }
+                              <p>
+                                ${
+                                  escapeHtml(
+                                    message.content ||
+                                    ""
+                                  )
+                                }
+                              </p>
 
-                </div>
+                            </article>
 
-              </section>
+                          `
+                        )
+                        .join("")
+                    }
 
-            `
+                  </div>
+
+                </section>
+
+              `
             : ""
         }
 
-      </div>
 
+        <!-- =============================================
+             HUMAN SUPPORT
+        ============================================== -->
+
+        <section
+          class="student-support-ticket-detail-section student-support-human-section"
+        >
+
+          <div
+            class="student-support-ticket-section-heading"
+          >
+
+            <div>
+
+              <span>
+                HUMAN SUPPORT
+              </span>
+
+              <h3>
+                Conversation with AIFT Support
+              </h3>
+
+            </div>
+
+
+            <span
+              class="student-support-human-live-status"
+            >
+
+              <span
+                class="student-support-human-live-dot"
+              ></span>
+
+              ${
+                isClosed
+                  ? "Closed"
+                  : "Support channel"
+              }
+
+            </span>
+
+          </div>
+
+
+          <div
+            class="student-support-human-conversation"
+            id="studentSupportHumanConversation"
+          >
+
+            ${supportMessagesHtml}
+
+          </div>
+
+
+          ${
+            !isClosed
+              ? `
+
+                  <form
+                    class="student-support-reply-form"
+                    id="studentSupportReplyForm"
+                  >
+
+                    <label
+                      for="studentSupportReplyInput"
+                    >
+                      Reply to support
+                    </label>
+
+
+                    <div
+                      class="student-support-reply-composer"
+                    >
+
+                      <textarea
+                        id="studentSupportReplyInput"
+                        rows="3"
+                        maxlength="10000"
+                        placeholder="Write a message to AIFT Support..."
+                        required
+                      ></textarea>
+
+
+                      <button
+                        type="submit"
+                        class="student-support-reply-send"
+                        id="studentSupportReplySendButton"
+                      >
+
+                        <i
+                          class="fa-solid fa-paper-plane"
+                          aria-hidden="true"
+                        ></i>
+
+                        <span>
+                          Send
+                        </span>
+
+                      </button>
+
+                    </div>
+
+
+                    <div
+                      class="student-support-reply-footer"
+                    >
+
+                      <span>
+                        Replies are attached to ${
+                          escapeHtml(
+                            ticket.ticketNumber ||
+                            "this request"
+                          )
+                        }.
+                      </span>
+
+                      <span
+                        id="studentSupportReplyCharacterCount"
+                      >
+                        0 / 10000
+                      </span>
+
+                    </div>
+
+                  </form>
+
+                `
+              : `
+
+                  <div
+                    class="student-support-ticket-closed-notice"
+                  >
+
+                    <i
+                      class="fa-solid fa-lock"
+                      aria-hidden="true"
+                    ></i>
+
+
+                    <div>
+
+                      <strong>
+                        This support request is closed
+                      </strong>
+
+                      <span>
+                        New replies cannot be added to this request.
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                `
+          }
+
+        </section>
+
+      </div>
     `;
 
+
+    /* =====================================================
+       REBIND CLOSE BUTTON
+    ===================================================== */
 
     dialog
       .querySelectorAll(
@@ -26224,16 +26642,279 @@ async function openStudentSupportTicket(
 
           button.addEventListener(
             "click",
-            () => {
-
-              modal.remove();
-
-            }
+            closeModal
           );
 
         }
       );
 
+
+    /* =====================================================
+       SCROLL HUMAN CHAT TO LATEST MESSAGE
+    ===================================================== */
+
+    const humanConversation =
+      dialog.querySelector(
+        "#studentSupportHumanConversation"
+      );
+
+
+    if (humanConversation){
+
+      humanConversation.scrollTop =
+        humanConversation.scrollHeight;
+
+    }
+
+
+    /* =====================================================
+       REPLY CHARACTER COUNTER
+    ===================================================== */
+
+    const replyInput =
+      dialog.querySelector(
+        "#studentSupportReplyInput"
+      );
+
+
+    const characterCount =
+      dialog.querySelector(
+        "#studentSupportReplyCharacterCount"
+      );
+
+
+    const updateCharacterCount =
+      () => {
+
+        if (
+          !replyInput ||
+          !characterCount
+        ){
+          return;
+        }
+
+
+        characterCount.textContent =
+          `${
+            replyInput.value.length
+          } / 10000`;
+
+      };
+
+
+    replyInput?.addEventListener(
+      "input",
+      updateCharacterCount
+    );
+
+
+    updateCharacterCount();
+
+
+    /* =====================================================
+       SEND STUDENT REPLY
+    ===================================================== */
+
+    dialog
+      .querySelector(
+        "#studentSupportReplyForm"
+      )
+      ?.addEventListener(
+        "submit",
+        async event => {
+
+          event.preventDefault();
+
+
+          const input =
+            dialog.querySelector(
+              "#studentSupportReplyInput"
+            );
+
+
+          const sendButton =
+            dialog.querySelector(
+              "#studentSupportReplySendButton"
+            );
+
+
+          const message =
+            String(
+              input?.value ||
+              ""
+            ).trim();
+
+
+          if (!message){
+
+            input?.focus();
+
+            return;
+
+          }
+
+
+          if (
+            sendButton?.dataset
+              .submitting ===
+            "true"
+          ){
+            return;
+          }
+
+
+          if (sendButton){
+
+            sendButton.dataset
+              .submitting =
+              "true";
+
+            sendButton.disabled =
+              true;
+
+            sendButton.innerHTML = `
+
+              <i
+                class="fa-solid fa-circle-notch fa-spin"
+                aria-hidden="true"
+              ></i>
+
+              <span>
+                Sending...
+              </span>
+            `;
+
+          }
+
+
+          if (input){
+            input.disabled =
+              true;
+          }
+
+
+          try{
+
+            /* ===============================================
+               SEND TO NEW BACKEND ENDPOINT
+            =============================================== */
+
+            const replyResponse =
+              await apiSend(
+                `/api/support/tickets/${
+                  encodeURIComponent(
+                    normalizedId
+                  )
+                }/replies`,
+                "POST",
+                {
+                  message
+                }
+              );
+
+
+            if (
+              replyResponse?.success ===
+              false
+            ){
+
+              throw new Error(
+                replyResponse?.message ||
+                "Your reply could not be sent."
+              );
+
+            }
+
+
+            /* ===============================================
+               REFRESH SUPPORT LIST
+            =============================================== */
+
+            studentSupportTicketsLoaded =
+              false;
+
+
+            await loadStudentSupportTickets({
+              force:true
+            });
+
+
+            /* ===============================================
+               REFRESH OPEN CONVERSATION
+
+               This uses the backend response as the source
+               of truth instead of manually inserting a
+               fake local message.
+            =============================================== */
+
+            await loadAndRenderTicket();
+
+
+          }catch(error){
+
+            console.error(
+              "Student support reply failed:",
+              error
+            );
+
+
+            if (input){
+              input.disabled =
+                false;
+
+              input.focus();
+            }
+
+
+            if (sendButton){
+
+              sendButton.dataset
+                .submitting =
+                "false";
+
+              sendButton.disabled =
+                false;
+
+              sendButton.innerHTML = `
+
+                <i
+                  class="fa-solid fa-paper-plane"
+                  aria-hidden="true"
+                ></i>
+
+                <span>
+                  Send
+                </span>
+              `;
+
+            }
+
+
+            showAlert(
+              "error",
+              error?.message ||
+              "Your message could not be sent.",
+              {
+                title:
+                  "Reply not sent"
+              }
+            );
+
+          }
+
+        }
+      );
+
+  }
+
+
+  /* =======================================================
+     INITIAL LOAD
+  ======================================================= */
+
+  try{
+
+    await loadAndRenderTicket();
 
   }catch(error){
 
@@ -26249,60 +26930,58 @@ async function openStudentSupportTicket(
       );
 
 
-    if (dialog){
-
-      dialog.innerHTML = `
-
-        <div
-          class="student-support-ticket-modal-error"
-        >
-
-          <i
-            class="fa-solid fa-triangle-exclamation"
-            aria-hidden="true"
-          ></i>
-
-          <strong>
-            Could not open this support request
-          </strong>
-
-          <span>
-            ${
-              escapeHtml(
-                error?.message ||
-                "Please try again."
-              )
-            }
-          </span>
-
-
-          <button
-            type="button"
-            class="student-help-secondary-button"
-            data-student-ticket-close
-          >
-            Close
-          </button>
-
-        </div>
-
-      `;
-
-
-      dialog
-        .querySelector(
-          "[data-student-ticket-close]"
-        )
-        ?.addEventListener(
-          "click",
-          () => {
-
-            modal.remove();
-
-          }
-        );
-
+    if (!dialog){
+      return;
     }
+
+
+    dialog.innerHTML = `
+
+      <div
+        class="student-support-ticket-modal-error"
+      >
+
+        <i
+          class="fa-solid fa-triangle-exclamation"
+          aria-hidden="true"
+        ></i>
+
+
+        <strong>
+          Could not open this support request
+        </strong>
+
+
+        <span>
+          ${
+            escapeHtml(
+              error?.message ||
+              "Please try again."
+            )
+          }
+        </span>
+
+
+        <button
+          type="button"
+          class="student-help-secondary-button"
+          data-student-ticket-close
+        >
+          Close
+        </button>
+
+      </div>
+    `;
+
+
+    dialog
+      .querySelector(
+        "[data-student-ticket-close]"
+      )
+      ?.addEventListener(
+        "click",
+        closeModal
+      );
 
   }
 
