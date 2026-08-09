@@ -24331,7 +24331,24 @@ function openStudentHumanSupportForm(){
    PREPARE HUMAN SUPPORT REQUEST
 ========================================================= */
 
-function prepareStudentHumanSupportRequest(){
+async function prepareStudentHumanSupportRequest(){
+
+  const submitButton =
+    $("studentHumanSupportSubmitButton");
+
+
+  if (
+    submitButton?.dataset
+      .submitting ===
+    "true"
+  ){
+    return;
+  }
+
+
+  /* =========================================================
+     READ FORM VALUES
+  ========================================================= */
 
   const name =
     String(
@@ -24346,7 +24363,9 @@ function prepareStudentHumanSupportRequest(){
       $("studentSupportEmail")
         ?.value ||
       ""
-    ).trim();
+    )
+      .trim()
+      .toLowerCase();
 
 
   const phone =
@@ -24362,7 +24381,9 @@ function prepareStudentHumanSupportRequest(){
       $("studentSupportCategory")
         ?.value ||
       "other"
-    ).trim();
+    )
+      .trim()
+      .toLowerCase();
 
 
   const additionalInfo =
@@ -24373,16 +24394,25 @@ function prepareStudentHumanSupportRequest(){
     ).trim();
 
 
+  /* =========================================================
+     VALIDATION
+  ========================================================= */
+
   if (!name){
 
     showAlert(
       "warning",
-      "Please enter your name.",
+      "Please enter your full name.",
       {
         title:
           "Name required"
       }
     );
+
+
+    $("studentSupportName")
+      ?.focus();
+
 
     return;
 
@@ -24397,21 +24427,88 @@ function prepareStudentHumanSupportRequest(){
 
     showAlert(
       "warning",
-      "Please enter a valid email address.",
+      "Please enter a valid email address so AIFT Support can contact you.",
       {
         title:
-          "Email required"
+          "Valid email required"
       }
     );
+
+
+    $("studentSupportEmail")
+      ?.focus();
+
 
     return;
 
   }
 
 
-  const profile =
-    getStudentSupportProfile();
+  const allowedCategories =
+    new Set([
+      "student-studio",
+      "classes",
+      "assignments",
+      "portfolio",
+      "career",
+      "ai",
+      "account",
+      "technical",
+      "other"
+    ]);
 
+
+  const safeCategory =
+    allowedCategories.has(
+      category
+    )
+      ? category
+      : "other";
+
+
+  /* =========================================================
+     BUILD KABEZYA CONVERSATION
+  ========================================================= */
+
+  const conversation =
+    studentSupportConversation
+      .filter(
+        message =>
+          message &&
+          !message.pending &&
+          (
+            message.role ===
+              "user" ||
+            message.role ===
+              "assistant"
+          ) &&
+          String(
+            message.content ||
+            ""
+          ).trim()
+      )
+      .map(
+        message => ({
+          role:
+            message.role,
+
+          content:
+            String(
+              message.content ||
+              ""
+            ).trim(),
+
+          createdAt:
+            message.createdAt ||
+            new Date()
+              .toISOString()
+        })
+      );
+
+
+  /* =========================================================
+     REQUEST BODY
+  ========================================================= */
 
   const supportRequest = {
 
@@ -24421,69 +24518,369 @@ function prepareStudentHumanSupportRequest(){
 
     phone,
 
-    category,
+    category:
+      safeCategory,
 
     additionalInfo,
 
-    studentId:
-      profile.studentId,
-
-    schoolId:
-      profile.schoolId,
-
     page:
-      activeStudentStudioPage,
+      String(
+        activeStudentStudioPage ||
+        "help"
+      ),
 
     aiConversationId:
       studentSupportConversationId ||
       null,
 
-    conversation:
-      studentSupportConversation
-        .filter(
-          message =>
-            !message.pending
-        )
-        .map(
-          message => ({
-            role:
-              message.role,
-
-            content:
-              message.content,
-
-            createdAt:
-              message.createdAt
-          })
-        )
+    conversation
 
   };
 
 
-  /*
-    IMPORTANT:
+  /* =========================================================
+     SUBMIT STATE
+  ========================================================= */
 
-    We do NOT claim the support ticket was submitted yet.
+  if (submitButton){
 
-    The next backend step will POST this exact object to
-    /api/support/tickets and save it in MongoDB.
-  */
-
-  window.pendingStudentSupportRequest =
-    supportRequest;
+    submitButton.dataset
+      .submitting =
+      "true";
 
 
-  showAlert(
-    "info",
-    "Your support information is ready. The support ticket backend is the next connection step.",
-    {
-      title:
-        "Support request ready"
+    submitButton.disabled =
+      true;
+
+
+    submitButton.innerHTML = `
+
+      <i
+        class="fa-solid fa-circle-notch fa-spin"
+        aria-hidden="true"
+      ></i>
+
+      Sending...
+
+    `;
+
+  }
+
+
+  try{
+
+    /* =======================================================
+       CREATE REAL SUPPORT TICKET
+    ======================================================= */
+
+    const response =
+      await apiSend(
+        "/api/support/tickets",
+        "POST",
+        supportRequest
+      );
+
+
+    const ticket =
+      response?.ticket ||
+      null;
+
+
+    const ticketNumber =
+      String(
+        ticket?.ticketNumber ||
+        ""
+      ).trim();
+
+
+    if (
+      !response?.success ||
+      !ticketNumber
+    ){
+
+      throw new Error(
+        response?.message ||
+        "The support ticket was not created."
+      );
+
     }
-  );
+
+
+    /* =======================================================
+       REMEMBER LAST CREATED TICKET
+    ======================================================= */
+
+    window.lastStudentSupportTicket = {
+
+      id:
+        ticket.id ||
+        ticket._id ||
+        null,
+
+      ticketNumber,
+
+      status:
+        ticket.status ||
+        "open",
+
+      priority:
+        ticket.priority ||
+        "normal",
+
+      category:
+        ticket.category ||
+        safeCategory,
+
+      subject:
+        ticket.subject ||
+        "",
+
+      createdAt:
+        ticket.createdAt ||
+        new Date()
+          .toISOString()
+
+    };
+
+
+    /* =======================================================
+       REMOVE CONTACT FORM
+    ======================================================= */
+
+    $("studentHumanSupportForm")
+      ?.remove();
+
+
+    /* =======================================================
+       ADD CONFIRMATION TO KABEZYA CONVERSATION
+    ======================================================= */
+
+    studentSupportConversation.push({
+
+      role:
+        "assistant",
+
+      content:
+        `Your request has been sent to AIFT Support. Your ticket number is ${ticketNumber}. Keep this number in case you need to refer to the request later.`,
+
+      createdAt:
+        new Date()
+          .toISOString()
+
+    });
+
+
+    renderStudentSupportConversation();
+
+
+    /* =======================================================
+       REPLACE HUMAN SUPPORT PANEL WITH TICKET STATUS
+    ======================================================= */
+
+    const humanPanel =
+      document.querySelector(
+        "#studentKabezyaSupportModal .student-support-human-panel"
+      );
+
+
+    if (humanPanel){
+
+      humanPanel.innerHTML = `
+
+        <div
+          class="student-support-ticket-success"
+        >
+
+          <span
+            class="student-support-ticket-success-icon"
+          >
+            <i
+              class="fa-solid fa-circle-check"
+              aria-hidden="true"
+            ></i>
+          </span>
+
+
+          <div>
+
+            <span>
+              SUPPORT REQUEST SENT
+            </span>
+
+            <strong>
+              ${escapeHtml(
+                ticketNumber
+              )}
+            </strong>
+
+            <small>
+              Status: ${
+                escapeHtml(
+                  String(
+                    ticket.status ||
+                    "open"
+                  )
+                    .replace(
+                      /_/g,
+                      " "
+                    )
+                )
+              }
+            </small>
+
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="student-help-secondary-button"
+          id="studentSupportCopyTicketButton"
+        >
+
+          <i
+            class="fa-regular fa-copy"
+            aria-hidden="true"
+          ></i>
+
+          Copy ticket number
+
+        </button>
+
+      `;
+
+
+      $("studentSupportCopyTicketButton")
+        ?.addEventListener(
+          "click",
+          async () => {
+
+            try{
+
+              await navigator
+                .clipboard
+                .writeText(
+                  ticketNumber
+                );
+
+
+              showAlert(
+                "success",
+                "Ticket number copied.",
+                {
+                  title:
+                    ticketNumber
+                }
+              );
+
+            }catch(error){
+
+              console.warn(
+                "Could not copy support ticket number:",
+                error
+              );
+
+
+              showAlert(
+                "info",
+                ticketNumber,
+                {
+                  title:
+                    "Your support ticket"
+                }
+              );
+
+            }
+
+          }
+        );
+
+    }
+
+
+    /* =======================================================
+       SUCCESS MESSAGE
+    ======================================================= */
+
+    showAlert(
+      "success",
+      `Your support request has been submitted. Ticket: ${ticketNumber}`,
+      {
+        title:
+          "Support request sent"
+      }
+    );
+
+
+    return window
+      .lastStudentSupportTicket;
+
+  }catch(error){
+
+    console.error(
+      "Student support ticket submission failed:",
+      error
+    );
+
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Your support request could not be submitted. Please try again.",
+      {
+        title:
+          "Support request failed"
+      }
+    );
+
+
+    return null;
+
+  }finally{
+
+    if (submitButton){
+
+      submitButton.dataset
+        .submitting =
+        "false";
+
+
+      /*
+        The form may have been removed after
+        a successful submission.
+
+        Only restore the button if it still exists.
+      */
+
+      if (
+        document.body.contains(
+          submitButton
+        )
+      ){
+
+        submitButton.disabled =
+          false;
+
+
+        submitButton.innerHTML = `
+
+          <i
+            class="fa-regular fa-paper-plane"
+            aria-hidden="true"
+          ></i>
+
+          Send to support
+
+        `;
+
+      }
+
+    }
+
+  }
 
 }
-
 
 /* =========================================================
    HELP ACTION ROUTER
@@ -24987,6 +25384,931 @@ function bindStudentHelpControls(){
 
 
 /* =========================================================
+   STUDENT SUPPORT TICKETS
+========================================================= */
+
+let studentSupportTickets =
+  [];
+
+let studentSupportTicketsLoading =
+  false;
+
+let studentSupportTicketsLoaded =
+  false;
+
+
+/* =========================================================
+   SUPPORT TICKET STATUS
+========================================================= */
+
+function getStudentSupportStatusMeta(
+  status
+){
+
+  const normalizedStatus =
+    String(
+      status ||
+      "open"
+    )
+      .trim()
+      .toLowerCase();
+
+
+  const statuses = {
+
+    open:{
+      label:"Open",
+      icon:"fa-regular fa-circle",
+      className:"open"
+    },
+
+    in_progress:{
+      label:"In progress",
+      icon:"fa-solid fa-spinner",
+      className:"in-progress"
+    },
+
+    waiting_for_student:{
+      label:"Waiting for you",
+      icon:"fa-regular fa-clock",
+      className:"waiting"
+    },
+
+    resolved:{
+      label:"Resolved",
+      icon:"fa-solid fa-circle-check",
+      className:"resolved"
+    },
+
+    closed:{
+      label:"Closed",
+      icon:"fa-solid fa-lock",
+      className:"closed"
+    }
+
+  };
+
+
+  return (
+    statuses[
+      normalizedStatus
+    ] ||
+    statuses.open
+  );
+
+}
+
+
+/* =========================================================
+   SUPPORT TICKET DATE
+========================================================= */
+
+function formatStudentSupportDate(
+  value
+){
+
+  if (!value){
+    return "";
+  }
+
+
+  const date =
+    new Date(
+      value
+    );
+
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return "";
+  }
+
+
+  return date.toLocaleDateString(
+    undefined,
+    {
+      month:"short",
+      day:"numeric",
+      year:"numeric"
+    }
+  );
+
+}
+
+
+/* =========================================================
+   SUPPORT CATEGORY LABEL
+========================================================= */
+
+function getStudentSupportCategoryLabel(
+  category
+){
+
+  const labels = {
+
+    "student-studio":
+      "Student Studio",
+
+    classes:
+      "Classes & lessons",
+
+    assignments:
+      "Assignments",
+
+    portfolio:
+      "Portfolio",
+
+    career:
+      "Career Hub",
+
+    ai:
+      "Kabezya AI",
+
+    account:
+      "Account & settings",
+
+    technical:
+      "Technical problem",
+
+    other:
+      "Other"
+
+  };
+
+
+  return (
+    labels[
+      String(
+        category ||
+        ""
+      ).toLowerCase()
+    ] ||
+    "Support"
+  );
+
+}
+
+
+/* =========================================================
+   LOAD STUDENT SUPPORT TICKETS
+========================================================= */
+
+async function loadStudentSupportTickets({
+  force = false
+} = {}){
+
+  if (
+    studentSupportTicketsLoading
+  ){
+    return;
+  }
+
+
+  if (
+    studentSupportTicketsLoaded &&
+    !force
+  ){
+
+    renderStudentSupportTickets();
+
+    return;
+
+  }
+
+
+  studentSupportTicketsLoading =
+    true;
+
+
+  const container =
+    $("studentSupportTicketsList");
+
+
+  if (container){
+
+    container.innerHTML = `
+
+      <div
+        class="student-support-ticket-loading"
+      >
+
+        <i
+          class="fa-solid fa-circle-notch fa-spin"
+          aria-hidden="true"
+        ></i>
+
+        <span>
+          Loading your support requests...
+        </span>
+
+      </div>
+
+    `;
+
+  }
+
+
+  try{
+
+    const response =
+      await apiGet(
+        "/api/support/tickets",
+        null
+      );
+
+
+    studentSupportTickets =
+      Array.isArray(
+        response?.tickets
+      )
+        ? response.tickets
+        : [];
+
+
+    studentSupportTicketsLoaded =
+      true;
+
+
+    renderStudentSupportTickets();
+
+
+  }catch(error){
+
+    console.error(
+      "Student support tickets could not be loaded:",
+      error
+    );
+
+
+    if (container){
+
+      container.innerHTML = `
+
+        <div
+          class="student-support-ticket-empty"
+        >
+
+          <i
+            class="fa-solid fa-triangle-exclamation"
+            aria-hidden="true"
+          ></i>
+
+          <div>
+
+            <strong>
+              Could not load support requests
+            </strong>
+
+            <span>
+              Please refresh and try again.
+            </span>
+
+          </div>
+
+        </div>
+
+      `;
+
+    }
+
+  }finally{
+
+    studentSupportTicketsLoading =
+      false;
+
+  }
+
+}
+
+
+/* =========================================================
+   RENDER SUPPORT TICKETS
+========================================================= */
+
+function renderStudentSupportTickets(){
+
+  const container =
+    $("studentSupportTicketsList");
+
+
+  if (!container){
+    return;
+  }
+
+
+  if (
+    !studentSupportTickets.length
+  ){
+
+    container.innerHTML = `
+
+      <div
+        class="student-support-ticket-empty"
+      >
+
+        <span
+          class="student-support-ticket-empty-icon"
+        >
+          <i
+            class="fa-regular fa-life-ring"
+            aria-hidden="true"
+          ></i>
+        </span>
+
+
+        <div>
+
+          <strong>
+            No support requests yet
+          </strong>
+
+          <span>
+            If Kabezya cannot solve a problem,
+            you can send the conversation to AIFT Support.
+          </span>
+
+        </div>
+
+      </div>
+
+    `;
+
+
+    return;
+
+  }
+
+
+  container.innerHTML =
+    studentSupportTickets
+      .map(
+        ticket => {
+
+          const status =
+            getStudentSupportStatusMeta(
+              ticket.status
+            );
+
+
+          const ticketId =
+            String(
+              ticket._id ||
+              ticket.id ||
+              ""
+            );
+
+
+          return `
+
+            <button
+              type="button"
+              class="student-support-ticket-card"
+              data-student-support-ticket-id="${
+                escapeHtml(
+                  ticketId
+                )
+              }"
+            >
+
+              <span
+                class="student-support-ticket-icon"
+              >
+                <i
+                  class="fa-regular fa-life-ring"
+                  aria-hidden="true"
+                ></i>
+              </span>
+
+
+              <span
+                class="student-support-ticket-copy"
+              >
+
+                <span
+                  class="student-support-ticket-topline"
+                >
+
+                  <strong>
+                    ${
+                      escapeHtml(
+                        ticket.ticketNumber ||
+                        "Support request"
+                      )
+                    }
+                  </strong>
+
+
+                  <span
+                    class="student-support-status ${
+                      escapeHtml(
+                        status.className
+                      )
+                    }"
+                  >
+
+                    <i
+                      class="${
+                        escapeHtml(
+                          status.icon
+                        )
+                      }"
+                      aria-hidden="true"
+                    ></i>
+
+                    ${
+                      escapeHtml(
+                        status.label
+                      )
+                    }
+
+                  </span>
+
+                </span>
+
+
+                <span
+                  class="student-support-ticket-subject"
+                >
+                  ${
+                    escapeHtml(
+                      ticket.subject ||
+                      getStudentSupportCategoryLabel(
+                        ticket.category
+                      )
+                    )
+                  }
+                </span>
+
+
+                <span
+                  class="student-support-ticket-meta"
+                >
+
+                  ${
+                    escapeHtml(
+                      getStudentSupportCategoryLabel(
+                        ticket.category
+                      )
+                    )
+                  }
+
+                  ${
+                    ticket.createdAt
+                      ? ` · ${
+                          escapeHtml(
+                            formatStudentSupportDate(
+                              ticket.createdAt
+                            )
+                          )
+                        }`
+                      : ""
+                  }
+
+                </span>
+
+              </span>
+
+
+              <i
+                class="fa-solid fa-chevron-right student-support-ticket-chevron"
+                aria-hidden="true"
+              ></i>
+
+            </button>
+
+          `;
+
+        }
+      )
+      .join("");
+
+}
+
+
+/* =========================================================
+   OPEN SUPPORT TICKET DETAILS
+========================================================= */
+
+async function openStudentSupportTicket(
+  ticketId
+){
+
+  const normalizedId =
+    String(
+      ticketId ||
+      ""
+    ).trim();
+
+
+  if (!normalizedId){
+    return;
+  }
+
+
+  document
+    .getElementById(
+      "studentSupportTicketModal"
+    )
+    ?.remove();
+
+
+  const modal =
+    document.createElement(
+      "div"
+    );
+
+
+  modal.id =
+    "studentSupportTicketModal";
+
+
+  modal.className =
+    "student-support-ticket-modal";
+
+
+  modal.innerHTML = `
+
+    <div
+      class="student-support-ticket-modal-backdrop"
+      data-student-ticket-close
+    ></div>
+
+
+    <section
+      class="student-support-ticket-modal-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Support request details"
+    >
+
+      <div
+        class="student-support-ticket-modal-loading"
+      >
+
+        <i
+          class="fa-solid fa-circle-notch fa-spin"
+          aria-hidden="true"
+        ></i>
+
+        Loading support request...
+
+      </div>
+
+    </section>
+
+  `;
+
+
+  document.body.appendChild(
+    modal
+  );
+
+
+  modal
+    .querySelectorAll(
+      "[data-student-ticket-close]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            modal.remove();
+
+          }
+        );
+
+      }
+    );
+
+
+  try{
+
+    const response =
+      await apiGet(
+        `/api/support/tickets/${
+          encodeURIComponent(
+            normalizedId
+          )
+        }`,
+        null
+      );
+
+
+    const ticket =
+      response?.ticket;
+
+
+    if (!ticket){
+
+      throw new Error(
+        "Support request not found."
+      );
+
+    }
+
+
+    const status =
+      getStudentSupportStatusMeta(
+        ticket.status
+      );
+
+
+    const conversation =
+      Array.isArray(
+        ticket.conversation
+      )
+        ? ticket.conversation
+        : [];
+
+
+    const dialog =
+      modal.querySelector(
+        ".student-support-ticket-modal-dialog"
+      );
+
+
+    if (!dialog){
+      return;
+    }
+
+
+    dialog.innerHTML = `
+
+      <header
+        class="student-support-ticket-modal-header"
+      >
+
+        <div>
+
+          <span>
+            SUPPORT REQUEST
+          </span>
+
+          <h2>
+            ${
+              escapeHtml(
+                ticket.ticketNumber ||
+                "AIFT Support"
+              )
+            }
+          </h2>
+
+          <div
+            class="student-support-ticket-modal-meta"
+          >
+
+            <span
+              class="student-support-status ${
+                escapeHtml(
+                  status.className
+                )
+              }"
+            >
+              ${
+                escapeHtml(
+                  status.label
+                )
+              }
+            </span>
+
+
+            <span>
+              ${
+                escapeHtml(
+                  getStudentSupportCategoryLabel(
+                    ticket.category
+                  )
+                )
+              }
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="student-support-ticket-modal-close"
+          data-student-ticket-close
+          aria-label="Close"
+        >
+          <i
+            class="fa-solid fa-xmark"
+            aria-hidden="true"
+          ></i>
+        </button>
+
+      </header>
+
+
+      <div
+        class="student-support-ticket-modal-body"
+      >
+
+        <section
+          class="student-support-ticket-detail-section"
+        >
+
+          <span>
+            ISSUE
+          </span>
+
+          <h3>
+            ${
+              escapeHtml(
+                ticket.subject ||
+                "Support request"
+              )
+            }
+          </h3>
+
+
+          ${
+            ticket.additionalInfo
+              ? `
+                  <p>
+                    ${
+                      escapeHtml(
+                        ticket.additionalInfo
+                      )
+                    }
+                  </p>
+                `
+              : ""
+          }
+
+        </section>
+
+
+        ${
+          conversation.length
+            ? `
+
+              <section
+                class="student-support-ticket-detail-section"
+              >
+
+                <span>
+                  KABEZYA CONVERSATION
+                </span>
+
+                <div
+                  class="student-support-ticket-conversation"
+                >
+
+                  ${
+                    conversation
+                      .map(
+                        message => `
+
+                          <article
+                            class="student-support-ticket-message ${
+                              message.role ===
+                              "user"
+                                ? "user"
+                                : "assistant"
+                            }"
+                          >
+
+                            <strong>
+                              ${
+                                message.role ===
+                                "user"
+                                  ? "You"
+                                  : "Kabezya"
+                              }
+                            </strong>
+
+                            <p>
+                              ${
+                                escapeHtml(
+                                  message.content ||
+                                  ""
+                                )
+                              }
+                            </p>
+
+                          </article>
+
+                        `
+                      )
+                      .join("")
+                  }
+
+                </div>
+
+              </section>
+
+            `
+            : ""
+        }
+
+      </div>
+
+    `;
+
+
+    dialog
+      .querySelectorAll(
+        "[data-student-ticket-close]"
+      )
+      .forEach(
+        button => {
+
+          button.addEventListener(
+            "click",
+            () => {
+
+              modal.remove();
+
+            }
+          );
+
+        }
+      );
+
+
+  }catch(error){
+
+    console.error(
+      "Support ticket could not be opened:",
+      error
+    );
+
+
+    const dialog =
+      modal.querySelector(
+        ".student-support-ticket-modal-dialog"
+      );
+
+
+    if (dialog){
+
+      dialog.innerHTML = `
+
+        <div
+          class="student-support-ticket-modal-error"
+        >
+
+          <i
+            class="fa-solid fa-triangle-exclamation"
+            aria-hidden="true"
+          ></i>
+
+          <strong>
+            Could not open this support request
+          </strong>
+
+          <span>
+            ${
+              escapeHtml(
+                error?.message ||
+                "Please try again."
+              )
+            }
+          </span>
+
+
+          <button
+            type="button"
+            class="student-help-secondary-button"
+            data-student-ticket-close
+          >
+            Close
+          </button>
+
+        </div>
+
+      `;
+
+
+      dialog
+        .querySelector(
+          "[data-student-ticket-close]"
+        )
+        ?.addEventListener(
+          "click",
+          () => {
+
+            modal.remove();
+
+          }
+        );
+
+    }
+
+  }
+
+}
+
+/* =========================================================
    RENDER HELP CENTER
 ========================================================= */
 
@@ -25435,6 +26757,78 @@ function renderStudentHelpCenter(){
 
 
   bindStudentHelpControls();
+
+
+  /* =======================================================
+     SUPPORT REQUEST CONTROLS
+  ======================================================= */
+
+  $("studentSupportRefreshTicketsButton")
+    ?.addEventListener(
+      "click",
+      async event => {
+
+        const button =
+          event.currentTarget;
+
+
+        button.disabled =
+          true;
+
+
+        button.classList.add(
+          "is-refreshing"
+        );
+
+
+        try{
+
+          await loadStudentSupportTickets({
+            force:true
+          });
+
+        }finally{
+
+          button.disabled =
+            false;
+
+
+          button.classList.remove(
+            "is-refreshing"
+          );
+
+        }
+
+      }
+    );
+
+
+  $("studentSupportTicketsList")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        const ticketButton =
+          event.target.closest(
+            "[data-student-support-ticket-id]"
+          );
+
+
+        if (!ticketButton){
+          return;
+        }
+
+
+        openStudentSupportTicket(
+          ticketButton.dataset
+            .studentSupportTicketId
+        );
+
+      }
+    );
+
+
+  loadStudentSupportTickets();
 
 }
 
