@@ -13809,6 +13809,12 @@ let studentAIActiveMode =
 let studentAIConversationMessages =
   [];
 
+let studentAIConversationId =
+  "";
+
+let studentAIRequestPending =
+  false;
+
 let studentAISelectedClassId =
   "";
 
@@ -14791,10 +14797,8 @@ function renderStudentAIConversation(){
 
 }
 
-
 /* =========================================================
-   TEMPORARY MESSAGE SUBMISSION
-   Backend AI connection comes in the next part.
+   STUDENT AI MESSAGE SUBMISSION
 ========================================================= */
 
 async function submitStudentAIMessage(
@@ -14808,24 +14812,62 @@ async function submitStudentAIMessage(
     ).trim();
 
 
-  if (!prompt){
+  if (
+    !prompt ||
+    studentAIRequestPending
+  ){
     return;
   }
 
 
+  const input =
+    $("studentAIMessageInput");
+
+  const sendButton =
+    $("sendStudentAIMessageButton");
+
+
+  studentAIRequestPending =
+    true;
+
+
   studentAIConversationMessages.push({
     role:"user",
-    content:prompt,
+
+    content:
+      prompt,
+
     createdAt:
       new Date().toISOString()
   });
 
 
+  /*
+    Temporary assistant message.
+
+    This gives the student immediate visual
+    feedback while Gemini is generating.
+  */
+
+  const pendingMessage = {
+    role:"assistant",
+
+    content:
+      "AIFT is preparing your answer...",
+
+    pending:true,
+
+    createdAt:
+      new Date().toISOString()
+  };
+
+
+  studentAIConversationMessages.push(
+    pendingMessage
+  );
+
+
   renderStudentAIConversation();
-
-
-  const input =
-    $("studentAIMessageInput");
 
 
   if (input){
@@ -14833,32 +14875,268 @@ async function submitStudentAIMessage(
     input.value =
       "";
 
+    input.disabled =
+      true;
+  }
+
+
+  if (sendButton){
+
+    sendButton.disabled =
+      true;
+
+    sendButton.setAttribute(
+      "aria-busy",
+      "true"
+    );
   }
 
 
   updateStudentAIComposer();
 
 
-  /*
-    Do not fabricate an AI response.
+  try{
 
-    The real request will be connected to the backend
-    endpoint in the next implementation step.
-  */
+    const payload = {
 
-  studentAIConversationMessages.push({
-    role:"assistant",
-    content:
-      "Your question is ready. The secure AIFT AI response service still needs to be connected before I can generate the learning answer.",
-    createdAt:
-      new Date().toISOString()
-  });
+      message:
+        prompt,
+
+      mode:
+        studentAIActiveMode ||
+        "ask",
+
+      classId:
+        studentAISelectedClassId ||
+        null,
+
+      sourceType:
+        studentAISelectedSourceType ||
+        "general",
+
+      sourceId:
+        studentAISelectedSourceId ||
+        null
+    };
 
 
-  renderStudentAIConversation();
+    if (studentAIConversationId){
+
+      payload.conversationId =
+        studentAIConversationId;
+
+    }
+
+
+    /*
+      Do not send meaningless source IDs when
+      General context is selected.
+    */
+
+    if (
+      payload.sourceType ===
+      "general"
+    ){
+
+      payload.sourceId =
+        null;
+
+    }
+
+
+    const response =
+      await apiSend(
+        "/api/student-ai/chat",
+        "POST",
+        payload
+      );
+
+
+    /*
+      Remove the temporary loading response.
+    */
+
+    const pendingIndex =
+      studentAIConversationMessages
+        .indexOf(
+          pendingMessage
+        );
+
+
+    if (
+      pendingIndex !== -1
+    ){
+
+      studentAIConversationMessages.splice(
+        pendingIndex,
+        1
+      );
+
+    }
+
+
+    /*
+      Remember the server-side conversation so
+      the next message continues the same chat.
+    */
+
+    studentAIConversationId =
+      String(
+        response?.conversationId ||
+        response?.conversation?._id ||
+        studentAIConversationId ||
+        ""
+      );
+
+
+    /*
+      Accept the response shapes used by the
+      AIFT AI backend without fabricating text.
+    */
+
+    const assistantText =
+      String(
+        response?.answer ||
+        response?.message?.content ||
+        response?.assistantMessage?.content ||
+        response?.response ||
+        response?.text ||
+        ""
+      ).trim();
+
+
+    if (!assistantText){
+
+      throw new Error(
+        "AIFT received an empty AI response."
+      );
+
+    }
+
+
+    studentAIConversationMessages.push({
+
+      role:"assistant",
+
+      content:
+        assistantText,
+
+      createdAt:
+        response?.createdAt ||
+        new Date().toISOString(),
+
+      model:
+        response?.model ||
+        "",
+
+      sources:
+        Array.isArray(
+          response?.sources
+        )
+          ? response.sources
+          : []
+
+    });
+
+
+    renderStudentAIConversation();
+
+  }catch(error){
+
+    console.error(
+      "Student AI request failed:",
+      error
+    );
+
+
+    /*
+      Remove loading message if the request
+      failed before Gemini returned.
+    */
+
+    const pendingIndex =
+      studentAIConversationMessages
+        .indexOf(
+          pendingMessage
+        );
+
+
+    if (
+      pendingIndex !== -1
+    ){
+
+      studentAIConversationMessages.splice(
+        pendingIndex,
+        1
+      );
+
+    }
+
+
+    studentAIConversationMessages.push({
+
+      role:"assistant",
+
+      content:
+        error?.message ||
+        "AIFT could not generate an answer right now. Please try again.",
+
+      error:true,
+
+      createdAt:
+        new Date().toISOString()
+
+    });
+
+
+    renderStudentAIConversation();
+
+
+    notifyAIFTError(
+      error?.message ||
+      "AIFT could not generate your learning answer.",
+      {
+        title:
+          "AI request failed"
+      }
+    );
+
+  }finally{
+
+    studentAIRequestPending =
+      false;
+
+
+    if (input){
+
+      input.disabled =
+        false;
+
+    }
+
+
+    if (sendButton){
+
+      sendButton.removeAttribute(
+        "aria-busy"
+      );
+
+    }
+
+
+    updateStudentAIComposer();
+
+
+    window.setTimeout(
+      () => {
+        input?.focus();
+      },
+      40
+    );
+
+  }
 
 }
-
 
 /* =========================================================
    QUICK PROMPTS
@@ -15251,11 +15529,13 @@ function bindStudentAILearningControls(){
         event.preventDefault();
 
 
-        studentAIConversationMessages =
-          [];
+studentAIConversationMessages =
+  [];
 
+studentAIConversationId =
+  "";
 
-        renderStudentAIConversation();
+renderStudentAIConversation();
 
 
         $("studentAIMessageInput")
