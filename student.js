@@ -15114,9 +15114,9 @@ const pendingMessage = {
 
       role:"assistant",
 
-      content:
-        error?.message ||
-        "Kabezya could not generate an answer right now. Please try again.",
+content:
+  error?.message ||
+  "Kabezya couldn't complete that response. Please try again.",
 
       error:true,
 
