@@ -14525,46 +14525,52 @@ function renderStudentCareerOpportunities(){
             </div>
 
 
-            <div class="student-career-opportunity-actions">
+<div class="student-career-opportunity-actions">
 
-              ${
-                application
-                  ? `
-                    <button
-                      type="button"
-                      class="student-career-secondary-button"
-                      data-career-open-application="${
-                        escapeHtml(
-                          normalizeId(
-                            application?._id ||
-                            application?.id
-                          )
-                        )
-                      }"
-                    >
-                      ${
-                        escapeHtml(
-                          normalizeStudentCareerApplicationStatus(
-                            application?.status
-                          )
-                        )
-                      }
-                    </button>
-                  `
-                  : `
-                    <button
-                      type="button"
-                      class="student-career-primary-button"
-                      data-career-open-job="${
-                        escapeHtml(id)
-                      }"
-                    >
-                      View job
-                    </button>
-                  `
-              }
+  <button
+    type="button"
+    class="student-career-secondary-button"
+    data-career-open-job="${
+      escapeHtml(id)
+    }"
+  >
+    View job
+  </button>
 
-            </div>
+
+  ${
+    application
+      ? `
+        <button
+          type="button"
+          class="student-career-applied-button"
+          disabled
+        >
+          <i class="fa-solid fa-circle-check"></i>
+
+          ${
+            escapeHtml(
+              normalizeStudentCareerApplicationStatus(
+                application?.status
+              )
+            )
+          }
+        </button>
+      `
+      : `
+        <button
+          type="button"
+          class="student-career-primary-button"
+          data-career-apply-job="${
+            escapeHtml(id)
+          }"
+        >
+          Apply
+        </button>
+      `
+  }
+
+</div>
 
           </article>
         `;
@@ -14741,14 +14747,17 @@ function renderStudentCareerApplications(){
           <button
             type="button"
             class="student-career-application-row"
-            data-career-open-application="${
-              escapeHtml(
-                normalizeId(
-                  application?._id ||
-                  application?.id
-                )
-              )
-            }"
+data-career-open-job="${
+  escapeHtml(
+    normalizeId(
+      application?.jobId?._id ||
+      application?.jobId ||
+      application?.job?._id ||
+      application?.job ||
+      ""
+    )
+  )
+}"
           >
 
             <span class="student-career-application-icon">
@@ -15287,6 +15296,65 @@ function bindStudentCareerHubControls(){
   workspace.addEventListener(
     "click",
     event => {
+
+      /* =========================================
+   OPEN JOB
+========================================= */
+
+const jobButton =
+  event.target.closest(
+    "[data-career-open-job]"
+  );
+
+
+if (
+  jobButton &&
+  workspace.contains(
+    jobButton
+  )
+){
+
+  event.preventDefault();
+
+
+  openStudentCareerJob(
+    jobButton.dataset
+      .careerOpenJob
+  );
+
+
+  return;
+}
+
+
+/* =========================================
+   APPLY TO JOB
+========================================= */
+
+const applyButton =
+  event.target.closest(
+    "[data-career-apply-job]"
+  );
+
+
+if (
+  applyButton &&
+  workspace.contains(
+    applyButton
+  )
+){
+
+  event.preventDefault();
+
+
+  applyStudentCareerJob(
+    applyButton.dataset
+      .careerApplyJob
+  );
+
+
+  return;
+}
 
       const actionButton =
         event.target.closest(
@@ -15920,7 +15988,146 @@ renderStudentCareerOpportunities();
 renderStudentCareerApplications();
 
 }
+/* =========================================================
+   OPEN CAREER JOB
+========================================================= */
 
+function openStudentCareerJob(
+  jobId
+){
+
+  const id =
+    normalizeId(
+      jobId
+    );
+
+
+  if (!id){
+
+    notifyAIFTError(
+      "This opportunity could not be opened.",
+      {
+        title:
+          "Opportunity unavailable"
+      }
+    );
+
+    return;
+  }
+
+
+  localStorage.setItem(
+    "selectedJobId",
+    id
+  );
+
+
+  window.location.href =
+    `job-details.html?id=${
+      encodeURIComponent(
+        id
+      )
+    }`;
+
+}
+
+/* =========================================================
+   APPLY FROM CAREER HUB
+========================================================= */
+
+async function applyStudentCareerJob(
+  jobId
+){
+
+  const id =
+    normalizeId(
+      jobId
+    );
+
+
+  if (!id){
+
+    notifyAIFTError(
+      "This opportunity could not be opened.",
+      {
+        title:
+          "Opportunity unavailable"
+      }
+    );
+
+    return;
+  }
+
+
+  /*
+    If an application already exists,
+    do not let the student create another one.
+  */
+
+  const existingApplication =
+    getStudentCareerApplicationForJob(
+      id
+    );
+
+
+  if (
+    existingApplication
+  ){
+
+    notifyAIFTSuccess(
+      "You already applied for this opportunity.",
+      {
+        title:
+          "Application already submitted"
+      }
+    );
+
+    return;
+  }
+
+
+  localStorage.setItem(
+    "selectedJobId",
+    id
+  );
+
+
+  /*
+    Preserve the same apply-click analytics
+    already used by the Jobs page.
+  */
+
+  try{
+
+    await apiSend(
+      `/api/jobs/${id}/click-apply`,
+      "PATCH",
+      {}
+    );
+
+  }catch(error){
+
+    /*
+      Tracking failure must never prevent
+      the student from applying.
+    */
+
+    console.warn(
+      "Career Hub apply tracking failed:",
+      error
+    );
+
+  }
+
+
+  window.location.href =
+    `job-apply.html?jobId=${
+      encodeURIComponent(
+        id
+      )
+    }`;
+
+}
 
 /* =========================================================
    STUDENT AI LEARNING STATE
