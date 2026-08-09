@@ -13810,6 +13810,228 @@ const studentCareerState = {
 
 };
 
+/* =========================================================
+   STUDENT CAREER GOAL STATE
+========================================================= */
+
+const studentCareerGoalState = {
+
+  targetRole:"",
+
+  preferredLocation:"",
+
+  preferredWorkSetup:"",
+
+  careerDirection:""
+
+};
+
+
+/* =========================================================
+   LOAD CAREER GOAL
+========================================================= */
+
+function loadStudentCareerGoal(){
+
+  try{
+
+    const saved =
+      JSON.parse(
+        localStorage.getItem(
+          "studentCareerGoal"
+        ) ||
+        "{}"
+      );
+
+
+    studentCareerGoalState.targetRole =
+      String(
+        saved?.targetRole ||
+        ""
+      ).trim();
+
+
+    studentCareerGoalState.preferredLocation =
+      String(
+        saved?.preferredLocation ||
+        ""
+      ).trim();
+
+
+    studentCareerGoalState.preferredWorkSetup =
+      String(
+        saved?.preferredWorkSetup ||
+        ""
+      ).trim();
+
+
+    studentCareerGoalState.careerDirection =
+      String(
+        saved?.careerDirection ||
+        ""
+      ).trim();
+
+  }catch(error){
+
+    console.warn(
+      "Career goal could not be loaded:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   SAVE CAREER GOAL
+========================================================= */
+
+function saveStudentCareerGoal(){
+
+  localStorage.setItem(
+    "studentCareerGoal",
+    JSON.stringify(
+      studentCareerGoalState
+    )
+  );
+
+
+  updateStudentCareerGoalUI();
+
+
+  notifyAIFTSuccess(
+    "Your career goal has been saved.",
+    {
+      title:
+        "Career goal updated"
+    }
+  );
+
+}
+
+
+/* =========================================================
+   UPDATE CAREER GOAL UI
+========================================================= */
+
+function updateStudentCareerGoalUI(){
+
+  const targetRole =
+    String(
+      studentCareerGoalState
+        .targetRole ||
+      ""
+    ).trim();
+
+
+  setText(
+    "studentCareerGoalStatus",
+    targetRole ||
+    "Not set"
+  );
+
+
+  const container =
+    $("studentCareerNextStep");
+
+
+  if (!container){
+    return;
+  }
+
+
+  if (!targetRole){
+
+    container.innerHTML = `
+
+      <div class="student-career-next-step-icon">
+
+        <i class="fa-solid fa-location-arrow"></i>
+
+      </div>
+
+
+      <div>
+
+        <strong>
+          Set your career goal
+        </strong>
+
+        <p>
+          Tell AIFT what role or career direction
+          you want to pursue.
+        </p>
+
+        <button
+          type="button"
+          class="student-career-text-button"
+          data-career-action="set-goal"
+        >
+          Set career goal
+        </button>
+
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  container.innerHTML = `
+
+    <div class="student-career-next-step-icon">
+
+      <i class="fa-solid fa-bullseye"></i>
+
+    </div>
+
+
+    <div>
+
+      <strong>
+        ${
+          escapeHtml(
+            targetRole
+          )
+        }
+      </strong>
+
+      <p>
+        ${
+          [
+            studentCareerGoalState
+              .preferredLocation,
+
+            studentCareerGoalState
+              .preferredWorkSetup
+          ]
+            .filter(Boolean)
+            .map(
+              value =>
+                escapeHtml(
+                  value
+                )
+            )
+            .join(" · ") ||
+          "Your target career role"
+        }
+      </p>
+
+      <button
+        type="button"
+        class="student-career-text-button"
+        data-career-action="set-goal"
+      >
+        Edit goal
+      </button>
+
+    </div>
+  `;
+
+}
+
 
 /* =========================================================
    LOAD CAREER HUB BACKEND DATA
@@ -15339,6 +15561,305 @@ function updateStudentCareerReadiness(){
 
 }
 
+/* =========================================================
+   CAREER GOAL MODAL
+========================================================= */
+
+function openStudentCareerGoalModal(){
+
+  document
+    .getElementById(
+      "studentCareerGoalModal"
+    )
+    ?.remove();
+
+
+  const modal =
+    document.createElement(
+      "div"
+    );
+
+
+  modal.id =
+    "studentCareerGoalModal";
+
+
+  modal.className =
+    "student-career-goal-modal";
+
+
+  modal.innerHTML = `
+
+    <div
+      class="student-career-goal-backdrop"
+      data-career-close-goal
+    ></div>
+
+
+    <div
+      class="student-career-goal-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="studentCareerGoalTitle"
+    >
+
+      <header
+        class="student-career-goal-header"
+      >
+
+        <div>
+
+          <span>
+            CAREER DIRECTION
+          </span>
+
+          <h3
+            id="studentCareerGoalTitle"
+          >
+            Set your career goal
+          </h3>
+
+          <p>
+            Help AIFT understand what kind of
+            opportunity you want to pursue.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="student-career-goal-close"
+          data-career-close-goal
+          aria-label="Close"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+
+      </header>
+
+
+      <div class="student-career-goal-body">
+
+        <label class="student-career-goal-field">
+
+          <span>
+            Target role
+          </span>
+
+          <input
+            type="text"
+            id="studentCareerTargetRoleInput"
+            placeholder="Example: Software Engineer"
+            value="${
+              escapeHtml(
+                studentCareerGoalState
+                  .targetRole
+              )
+            }"
+          />
+
+        </label>
+
+
+        <label class="student-career-goal-field">
+
+          <span>
+            Preferred location
+          </span>
+
+          <input
+            type="text"
+            id="studentCareerLocationInput"
+            placeholder="Example: Manila"
+            value="${
+              escapeHtml(
+                studentCareerGoalState
+                  .preferredLocation
+              )
+            }"
+          />
+
+        </label>
+
+
+        <label class="student-career-goal-field">
+
+          <span>
+            Preferred work setup
+          </span>
+
+          <select
+            id="studentCareerWorkSetupInput"
+          >
+
+            <option value="">
+              No preference
+            </option>
+
+            <option value="Remote">
+              Remote
+            </option>
+
+            <option value="Hybrid">
+              Hybrid
+            </option>
+
+            <option value="On-site">
+              On-site
+            </option>
+
+          </select>
+
+        </label>
+
+
+        <label class="student-career-goal-field">
+
+          <span>
+            Career direction
+          </span>
+
+          <textarea
+            id="studentCareerDirectionInput"
+            placeholder="Tell us what you want to achieve professionally..."
+          >${
+            escapeHtml(
+              studentCareerGoalState
+                .careerDirection
+            )
+          }</textarea>
+
+        </label>
+
+      </div>
+
+
+      <footer
+        class="student-career-goal-footer"
+      >
+
+        <button
+          type="button"
+          class="student-career-secondary-button"
+          data-career-close-goal
+        >
+          Cancel
+        </button>
+
+
+        <button
+          type="button"
+          class="student-career-primary-button"
+          id="studentCareerSaveGoalButton"
+        >
+          Save goal
+        </button>
+
+      </footer>
+
+    </div>
+  `;
+
+
+  document.body.appendChild(
+    modal
+  );
+
+
+  const setupSelect =
+    $("studentCareerWorkSetupInput");
+
+
+  if (setupSelect){
+
+    setupSelect.value =
+      studentCareerGoalState
+        .preferredWorkSetup ||
+      "";
+
+  }
+
+
+  modal
+    .querySelectorAll(
+      "[data-career-close-goal]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+            modal.remove();
+          }
+        );
+
+      }
+    );
+
+
+  $("studentCareerSaveGoalButton")
+    ?.addEventListener(
+      "click",
+      () => {
+
+        studentCareerGoalState.targetRole =
+          String(
+            $("studentCareerTargetRoleInput")
+              ?.value ||
+            ""
+          ).trim();
+
+
+        studentCareerGoalState.preferredLocation =
+          String(
+            $("studentCareerLocationInput")
+              ?.value ||
+            ""
+          ).trim();
+
+
+        studentCareerGoalState.preferredWorkSetup =
+          String(
+            $("studentCareerWorkSetupInput")
+              ?.value ||
+            ""
+          ).trim();
+
+
+        studentCareerGoalState.careerDirection =
+          String(
+            $("studentCareerDirectionInput")
+              ?.value ||
+            ""
+          ).trim();
+
+
+        saveStudentCareerGoal();
+
+
+        modal.remove();
+
+
+        renderStudentCareerOpportunities();
+
+      }
+    );
+
+
+  window.setTimeout(
+    () => {
+
+      $("studentCareerTargetRoleInput")
+        ?.focus();
+
+    },
+    50
+  );
+
+}
+
 
 /* =========================================================
    CAREER HUB ACTIONS
@@ -15520,6 +16041,17 @@ case "refresh":
         },
         150
       );
+
+      break;
+
+
+    /* =========================================
+       CAREER GOAL
+    ========================================= */
+
+    case "set-goal":
+
+      openStudentCareerGoalModal();
 
       break;
 
@@ -16284,13 +16816,21 @@ async function renderStudentCareerHub(){
 
 
   updateStudentCareerReadiness();
+
+
+  loadStudentCareerGoal();
+
+  updateStudentCareerGoalUI();
+
+
   await loadStudentCareerHubData();
 
-renderStudentCareerOpportunities();
 
-renderStudentCareerApplications();
+  renderStudentCareerOpportunities();
 
-updateStudentCareerSavedCount();
+  renderStudentCareerApplications();
+
+  updateStudentCareerSavedCount();
 
 }
 /* =========================================================
