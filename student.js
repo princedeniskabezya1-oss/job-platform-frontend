@@ -22070,57 +22070,435 @@ async function renderStudentSettings(){
    STUDENT HELP CENTER
 ========================================================= */
 
-const STUDENT_HELP_TOPICS = Object.freeze([
+const STUDENT_HELP_TOPICS =
+  Object.freeze([
 
-  {
-    id:"getting-started",
-    icon:"fa-solid fa-rocket",
-    title:"Getting started",
-    description:
-      "Learn how to navigate Student Studio, classes, assignments, and your learning dashboard."
-  },
+    /* =====================================================
+       GETTING STARTED
+    ====================================================== */
 
-  {
-    id:"classes",
-    icon:"fa-solid fa-chalkboard-user",
-    title:"Classes & lessons",
-    description:
-      "Get help joining classes, opening lessons, viewing modules, and continuing your learning."
-  },
+    {
+      id:"getting-started",
 
-  {
-    id:"assignments",
-    icon:"fa-solid fa-list-check",
-    title:"Assignments",
-    description:
-      "Learn how to submit work, review deadlines, check grades, and resolve submission issues."
-  },
+      icon:
+        "fa-solid fa-rocket",
 
-  {
-    id:"portfolio",
-    icon:"fa-solid fa-folder-open",
-    title:"Portfolio & Career",
-    description:
-      "Get help with projects, experience, resume uploads, saved opportunities, and Career Hub."
-  },
+      title:
+        "Getting started",
 
-  {
-    id:"ai",
-    icon:"fa-solid fa-wand-magic-sparkles",
-    title:"Kabezya AI",
-    description:
-      "Learn how to use AI Learning for explanations, summaries, study help, quizzes, and class context."
-  },
+      description:
+        "Learn how Student Studio is organized and how to move between your learning tools.",
 
-  {
-    id:"account",
-    icon:"fa-solid fa-gear",
-    title:"Account & Settings",
-    description:
-      "Manage preferences, privacy, accessibility, account options, and Student Studio settings."
-  }
+      overview:
+        "Student Studio is your main student workspace. The left navigation gives you access to your classes, assignments, calendar, progress, resources, portfolio, career tools, Kabezya AI, messages, settings, and support.",
 
-]);
+      steps:[
+        {
+          title:
+            "Use the left navigation",
+
+          text:
+            "Choose the section you want to work in. Student Studio keeps each major tool inside the same workspace so you do not need to leave the dashboard."
+        },
+
+        {
+          title:
+            "Use Dashboard for your overview",
+
+          text:
+            "Dashboard shows the most important information first, including learning progress, upcoming work, recent activity, and shortcuts into your classes."
+        },
+
+        {
+          title:
+            "Use the search bar",
+
+          text:
+            "The search field at the top of Student Studio can help you find available content and navigate more quickly."
+        },
+
+        {
+          title:
+            "Return to a section anytime",
+
+          text:
+            "Opening another section does not remove your student information. You can return to Dashboard, Classes, Assignments, Career Hub, or another workspace from the sidebar."
+        }
+      ],
+
+      action:{
+        label:
+          "Open Dashboard",
+
+        page:
+          "overview"
+      }
+    },
+
+
+    /* =====================================================
+       CLASSES
+    ====================================================== */
+
+    {
+      id:"classes",
+
+      icon:
+        "fa-solid fa-chalkboard-user",
+
+      title:
+        "Classes & lessons",
+
+      description:
+        "Learn how to open classes, continue lessons, review modules, and access learning activities.",
+
+      overview:
+        "My Classes contains the classes connected to your student account. From there you can open a class and continue the lessons, modules, assignments, and resources provided by your school or teacher.",
+
+      steps:[
+        {
+          title:
+            "Open My Classes",
+
+          text:
+            "Choose My Classes from the Student Studio navigation. You will see classes available to your account."
+        },
+
+        {
+          title:
+            "Select a class",
+
+          text:
+            "Open the class you want to study. The class may contain lessons, modules, assignments, resources, schedules, or teacher-provided activities."
+        },
+
+        {
+          title:
+            "Continue your learning",
+
+          text:
+            "Use Continue Learning when you want to return to the class or lesson you were recently working on."
+        },
+
+        {
+          title:
+            "Check your progress",
+
+          text:
+            "Student Studio can use completed lessons, assignments, quizzes, and attendance information to help show your progress."
+        }
+      ],
+
+      tips:[
+        "If a class is missing, confirm that you are signed into the correct student account.",
+        "Your school or teacher controls which classes are assigned to you.",
+        "Refresh Student Studio if a recently assigned class does not appear immediately."
+      ],
+
+      action:{
+        label:
+          "Open My Classes",
+
+        page:
+          "classes"
+      }
+    },
+
+
+    /* =====================================================
+       ASSIGNMENTS
+    ====================================================== */
+
+    {
+      id:"assignments",
+
+      icon:
+        "fa-solid fa-list-check",
+
+      title:
+        "Assignments & submissions",
+
+      description:
+        "Learn how to find assignments, submit your work, track deadlines, and review grades.",
+
+      overview:
+        "Assignment Center collects the coursework available to your account. It helps you see what is pending, what you already submitted, and what has been reviewed by your teacher.",
+
+      steps:[
+        {
+          title:
+            "Open Assignment Center",
+
+          text:
+            "Choose Assignments from Student Studio. You can use the filters to narrow assignments by class or status."
+        },
+
+        {
+          title:
+            "Open an assignment",
+
+          text:
+            "Review the assignment instructions, deadline, class information, and any existing submission before sending your work."
+        },
+
+        {
+          title:
+            "Submit your work",
+
+          text:
+            "Enter the required response or attach the requested file, then submit it. Wait until the submission finishes before leaving the page."
+        },
+
+        {
+          title:
+            "Review your result",
+
+          text:
+            "Once your teacher reviews the submission, Student Studio can show the grade, feedback, and updated submission status."
+        }
+      ],
+
+      tips:[
+        "Always check the deadline before submitting.",
+        "Do not close the page while a file is still uploading.",
+        "If your teacher returns the work, read the feedback before submitting again."
+      ],
+
+      action:{
+        label:
+          "Open Assignments",
+
+        page:
+          "assignments"
+      }
+    },
+
+
+    /* =====================================================
+       PORTFOLIO
+    ====================================================== */
+
+    {
+      id:"portfolio",
+
+      icon:
+        "fa-solid fa-folder-open",
+
+      title:
+        "Portfolio & Career",
+
+      description:
+        "Learn how to build your portfolio, add experience, upload a resume, and use Career Hub.",
+
+      overview:
+        "Your Student Portfolio is where you build a professional record of your projects, skills, certificates, experience, and resume. Career Hub then helps you discover and prepare for opportunities.",
+
+      steps:[
+        {
+          title:
+            "Build your profile",
+
+          text:
+            "Add a professional headline, introduction, skills, languages, and the information you want employers or schools to understand about you."
+        },
+
+        {
+          title:
+            "Add projects",
+
+          text:
+            "Use Add Project to showcase work you completed. You can describe the project, your contribution, skills used, and related media or links when available."
+        },
+
+        {
+          title:
+            "Add experience",
+
+          text:
+            "Career Journey allows you to add internships, employment, volunteer work, school experience, and other relevant professional experience."
+        },
+
+        {
+          title:
+            "Upload your resume",
+
+          text:
+            "Add your resume so your latest CV can be connected to your student profile and career preparation tools."
+        },
+
+        {
+          title:
+            "Use Career Hub",
+
+          text:
+            "Career Hub helps you explore opportunities, save jobs, review career readiness information, and prepare your professional profile."
+        }
+      ],
+
+      tips:[
+        "Use real projects instead of generic examples.",
+        "Keep your resume updated when your experience changes.",
+        "Review your portfolio visibility in Settings before sharing your profile."
+      ],
+
+      action:{
+        label:
+          "Open Portfolio",
+
+        page:
+          "portfolio"
+      }
+    },
+
+
+    /* =====================================================
+       KABEZYA AI
+    ====================================================== */
+
+    {
+      id:"ai",
+
+      icon:
+        "fa-solid fa-wand-magic-sparkles",
+
+      title:
+        "Kabezya AI",
+
+      description:
+        "Learn how to ask questions, get explanations, study class material, and use Kabezya responsibly.",
+
+      overview:
+        "Kabezya is the AI learning assistant inside AIFT. It can help explain concepts, summarize information, create practice questions, improve grammar, and support study planning.",
+
+      steps:[
+        {
+          title:
+            "Open AI Learning",
+
+          text:
+            "Choose AI Learning from Student Studio to open your Kabezya workspace."
+        },
+
+        {
+          title:
+            "Ask a clear question",
+
+          text:
+            "Write what you want help with. You can ask for an explanation, summary, example, study plan, grammar help, or practice questions."
+        },
+
+        {
+          title:
+            "Use class context",
+
+          text:
+            "When class context is available, Kabezya can use relevant AIFT learning material to make the answer more useful for your studies."
+        },
+
+        {
+          title:
+            "Continue the conversation",
+
+          text:
+            "You can ask follow-up questions when the first answer is not clear enough."
+        },
+
+        {
+          title:
+            "Verify important information",
+
+          text:
+            "AI can make mistakes. Important academic instructions, deadlines, grades, and school policies should always be checked against official class material or your teacher."
+        }
+      ],
+
+      tips:[
+        "Ask specific questions for better answers.",
+        "Tell Kabezya what part you do not understand.",
+        "Use follow-up questions instead of starting over when discussing the same topic."
+      ],
+
+      action:{
+        label:
+          "Open Kabezya",
+
+        page:
+          "ai"
+      }
+    },
+
+
+    /* =====================================================
+       ACCOUNT / SETTINGS
+    ====================================================== */
+
+    {
+      id:"account",
+
+      icon:
+        "fa-solid fa-gear",
+
+      title:
+        "Account & Settings",
+
+      description:
+        "Learn how to control your Student Studio preferences, privacy, accessibility, and account options.",
+
+      overview:
+        "Settings gives you control over how Student Studio behaves for your account. It includes learning preferences, notifications, Kabezya preferences, privacy, accessibility, security, and account-data tools.",
+
+      steps:[
+        {
+          title:
+            "Learning preferences",
+
+          text:
+            "Choose how Student Studio handles reminders, continuing learning, and related learning behaviors."
+        },
+
+        {
+          title:
+            "Notifications",
+
+          text:
+            "Choose which assignment, grade, announcement, message, certificate, and career updates you want enabled."
+        },
+
+        {
+          title:
+            "Kabezya preferences",
+
+          text:
+            "Control whether Kabezya can use personalization, class context, learning history, and suggestions."
+        },
+
+        {
+          title:
+            "Privacy",
+
+          text:
+            "Control portfolio visibility, profile discovery, activity visibility, and certificate visibility."
+        },
+
+        {
+          title:
+            "Accessibility",
+
+          text:
+            "Adjust reduced motion, compact interface, high contrast, or larger text according to your needs."
+        }
+      ],
+
+      action:{
+        label:
+          "Open Settings",
+
+        page:
+          "settings"
+      }
+    }
+
+  ]);
 
 
 const STUDENT_HELP_FAQS = Object.freeze([
@@ -22282,9 +22660,1833 @@ function filterStudentHelpContent(
 
 }
 
+/* =========================================================
+   HELP TOPIC DETAILS
+========================================================= */
+
+function getStudentHelpTopic(
+  topicId
+){
+
+  const normalizedId =
+    String(
+      topicId ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  return (
+    STUDENT_HELP_TOPICS.find(
+      topic =>
+        String(
+          topic.id ||
+          ""
+        )
+          .trim()
+          .toLowerCase() ===
+        normalizedId
+    ) ||
+    null
+  );
+
+}
+
+
+function closeStudentHelpTopicModal(){
+
+  document
+    .getElementById(
+      "studentHelpTopicModal"
+    )
+    ?.remove();
+
+}
+
+
+function openStudentHelpTopicModal(
+  topicId
+){
+
+  const topic =
+    getStudentHelpTopic(
+      topicId
+    );
+
+
+  if (!topic){
+    return;
+  }
+
+
+  closeStudentHelpTopicModal();
+
+
+  const modal =
+    document.createElement(
+      "div"
+    );
+
+
+  modal.id =
+    "studentHelpTopicModal";
+
+
+  modal.className =
+    "student-help-topic-modal";
+
+
+  const steps =
+    Array.isArray(
+      topic.steps
+    )
+      ? topic.steps
+      : [];
+
+
+  const tips =
+    Array.isArray(
+      topic.tips
+    )
+      ? topic.tips
+      : [];
+
+
+  modal.innerHTML = `
+
+    <div
+      class="student-help-topic-modal-backdrop"
+      data-student-help-topic-close
+    ></div>
+
+
+    <article
+      class="student-help-topic-modal-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="studentHelpTopicModalTitle"
+    >
+
+      <header
+        class="student-help-topic-modal-header"
+      >
+
+        <div
+          class="student-help-topic-modal-heading"
+        >
+
+          <span
+            class="student-help-topic-modal-icon"
+          >
+            <i
+              class="${
+                escapeHtml(
+                  topic.icon
+                )
+              }"
+              aria-hidden="true"
+            ></i>
+          </span>
+
+
+          <div>
+
+            <span
+              class="student-help-topic-modal-eyebrow"
+            >
+              AIFT HELP GUIDE
+            </span>
+
+
+            <h2
+              id="studentHelpTopicModalTitle"
+            >
+              ${
+                escapeHtml(
+                  topic.title
+                )
+              }
+            </h2>
+
+
+            <p>
+              ${
+                escapeHtml(
+                  topic.overview ||
+                  topic.description ||
+                  ""
+                )
+              }
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="student-help-topic-modal-close"
+          data-student-help-topic-close
+          aria-label="Close help guide"
+        >
+          <i
+            class="fa-solid fa-xmark"
+            aria-hidden="true"
+          ></i>
+        </button>
+
+      </header>
+
+
+      <div
+        class="student-help-topic-modal-body"
+      >
+
+        ${
+          steps.length
+            ? `
+
+              <section
+                class="student-help-guide-section"
+              >
+
+                <div
+                  class="student-help-guide-section-title"
+                >
+
+                  <span>
+                    HOW IT WORKS
+                  </span>
+
+                  <h3>
+                    Step-by-step
+                  </h3>
+
+                </div>
+
+
+                <div
+                  class="student-help-guide-steps"
+                >
+
+                  ${
+                    steps
+                      .map(
+                        (
+                          step,
+                          index
+                        ) => `
+
+                          <article
+                            class="student-help-guide-step"
+                          >
+
+                            <span
+                              class="student-help-guide-step-number"
+                            >
+                              ${
+                                index + 1
+                              }
+                            </span>
+
+
+                            <div>
+
+                              <strong>
+                                ${
+                                  escapeHtml(
+                                    step.title
+                                  )
+                                }
+                              </strong>
+
+                              <p>
+                                ${
+                                  escapeHtml(
+                                    step.text
+                                  )
+                                }
+                              </p>
+
+                            </div>
+
+                          </article>
+
+                        `
+                      )
+                      .join("")
+                  }
+
+                </div>
+
+              </section>
+
+            `
+            : ""
+        }
+
+
+        ${
+          tips.length
+            ? `
+
+              <section
+                class="student-help-guide-section"
+              >
+
+                <div
+                  class="student-help-guide-section-title"
+                >
+
+                  <span>
+                    USEFUL TIPS
+                  </span>
+
+                  <h3>
+                    Things to remember
+                  </h3>
+
+                </div>
+
+
+                <div
+                  class="student-help-guide-tips"
+                >
+
+                  ${
+                    tips
+                      .map(
+                        tip => `
+
+                          <div
+                            class="student-help-guide-tip"
+                          >
+
+                            <i
+                              class="fa-solid fa-circle-check"
+                              aria-hidden="true"
+                            ></i>
+
+                            <span>
+                              ${
+                                escapeHtml(
+                                  tip
+                                )
+                              }
+                            </span>
+
+                          </div>
+
+                        `
+                      )
+                      .join("")
+                  }
+
+                </div>
+
+              </section>
+
+            `
+            : ""
+        }
+
+      </div>
+
+
+      <footer
+        class="student-help-topic-modal-footer"
+      >
+
+        <button
+          type="button"
+          class="student-help-secondary-button"
+          data-student-help-topic-close
+        >
+          Close
+        </button>
+
+
+        ${
+          topic.action?.page
+            ? `
+
+              <button
+                type="button"
+                class="student-help-primary-button"
+                data-student-help-open-page="${
+                  escapeHtml(
+                    topic.action.page
+                  )
+                }"
+              >
+
+                ${
+                  escapeHtml(
+                    topic.action.label ||
+                    "Open section"
+                  )
+                }
+
+                <i
+                  class="fa-solid fa-arrow-right"
+                  aria-hidden="true"
+                ></i>
+
+              </button>
+
+            `
+            : ""
+        }
+
+      </footer>
+
+    </article>
+
+  `;
+
+
+  document.body.appendChild(
+    modal
+  );
+
+
+  modal
+    .querySelectorAll(
+      "[data-student-help-topic-close]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          closeStudentHelpTopicModal
+        );
+
+      }
+    );
+
+
+  modal
+    .querySelector(
+      "[data-student-help-open-page]"
+    )
+    ?.addEventListener(
+      "click",
+      event => {
+
+        const page =
+          event.currentTarget.dataset
+            .studentHelpOpenPage;
+
+
+        closeStudentHelpTopicModal();
+
+
+        activateStudentStudioPage(
+          page
+        );
+
+      }
+    );
+
+}
+
+
+
+
+
 
 /* =========================================================
    HELP CENTER ACTIONS
+========================================================= */
+
+let studentSupportConversationId =
+  "";
+
+let studentSupportConversation =
+  [];
+
+let studentSupportRequestPending =
+  false;
+
+let studentSupportNeedsHuman =
+  false;
+
+
+/* =========================================================
+   SUPPORT PROFILE
+========================================================= */
+
+function getStudentSupportProfile(){
+
+  const user =
+    state.me ||
+    state.loggedUser ||
+    {};
+
+
+  return {
+
+    name:
+      String(
+        user.name ||
+        ""
+      ).trim(),
+
+    email:
+      String(
+        user.email ||
+        ""
+      ).trim(),
+
+    phone:
+      String(
+        user.phone ||
+        user.phoneNumber ||
+        ""
+      ).trim(),
+
+    studentId:
+      normalizeId(
+        user._id ||
+        user.id ||
+        getStudentId()
+      ),
+
+    schoolId:
+      getSchoolId()
+
+  };
+
+}
+
+
+/* =========================================================
+   SUPPORT CONVERSATION
+========================================================= */
+
+function resetStudentSupportConversation(){
+
+  studentSupportConversationId =
+    "";
+
+  studentSupportConversation =
+    [
+      {
+        role:"assistant",
+
+        content:
+          "Hi, I’m Kabezya. I’ll try to help you first before we send your issue to AIFT Support. Tell me what you’re having trouble with.",
+
+        createdAt:
+          new Date().toISOString()
+      }
+    ];
+
+  studentSupportRequestPending =
+    false;
+
+  studentSupportNeedsHuman =
+    false;
+
+}
+
+
+/* =========================================================
+   SUPPORT MODAL RENDER
+========================================================= */
+
+function renderStudentSupportConversation(){
+
+  const container =
+    $("studentSupportConversation");
+
+
+  if (!container){
+    return;
+  }
+
+
+  container.innerHTML =
+    studentSupportConversation
+      .map(message => {
+
+        const role =
+          message.role === "user"
+            ? "user"
+            : "assistant";
+
+
+        return `
+
+          <article
+            class="student-support-message ${role} ${
+              message.pending
+                ? "is-thinking"
+                : ""
+            }"
+          >
+
+            ${
+              role === "assistant"
+                ? `
+                    <span
+                      class="student-support-message-avatar"
+                      aria-hidden="true"
+                    >
+                      <i
+                        class="fa-solid fa-wand-magic-sparkles"
+                      ></i>
+                    </span>
+                  `
+                : ""
+            }
+
+
+            <div
+              class="student-support-message-content"
+            >
+
+              ${
+                role === "assistant"
+                  ? `
+                      <span
+                        class="student-support-message-name"
+                      >
+                        Kabezya Support
+                      </span>
+                    `
+                  : ""
+              }
+
+
+              <div
+                class="student-support-message-bubble"
+              >
+
+                ${
+                  message.pending
+                    ? `
+                        <span>
+                          Kabezya is checking this
+                        </span>
+
+                        <span
+                          class="student-support-thinking-dots"
+                          aria-hidden="true"
+                        >
+                          <i></i>
+                          <i></i>
+                          <i></i>
+                        </span>
+                      `
+                    : escapeHtml(
+                        message.content ||
+                        ""
+                      )
+                }
+
+              </div>
+
+            </div>
+
+          </article>
+
+        `;
+
+      })
+      .join("");
+
+
+  container.scrollTop =
+    container.scrollHeight;
+
+}
+
+
+/* =========================================================
+   SUPPORT COMPOSER STATE
+========================================================= */
+
+function updateStudentSupportComposer(){
+
+  const input =
+    $("studentSupportMessageInput");
+
+  const sendButton =
+    $("studentSupportSendButton");
+
+
+  if (!input){
+    return;
+  }
+
+
+  input.style.height =
+    "auto";
+
+
+  input.style.height =
+    `${
+      Math.min(
+        120,
+        Math.max(
+          42,
+          input.scrollHeight
+        )
+      )
+    }px`;
+
+
+  if (sendButton){
+
+    sendButton.disabled =
+      studentSupportRequestPending ||
+      !String(
+        input.value ||
+        ""
+      ).trim();
+
+  }
+
+}
+
+
+/* =========================================================
+   SEND SUPPORT QUESTION TO KABEZYA
+========================================================= */
+
+async function submitStudentSupportMessage(
+  message
+){
+
+  const prompt =
+    String(
+      message ||
+      ""
+    ).trim();
+
+
+  if (
+    !prompt ||
+    studentSupportRequestPending
+  ){
+    return;
+  }
+
+
+  const input =
+    $("studentSupportMessageInput");
+
+  const sendButton =
+    $("studentSupportSendButton");
+
+
+  studentSupportRequestPending =
+    true;
+
+
+  studentSupportConversation.push({
+    role:"user",
+
+    content:
+      prompt,
+
+    createdAt:
+      new Date().toISOString()
+  });
+
+
+  const pendingMessage = {
+    role:"assistant",
+
+    content:
+      "Kabezya is checking this",
+
+    pending:true,
+
+    createdAt:
+      new Date().toISOString()
+  };
+
+
+  studentSupportConversation.push(
+    pendingMessage
+  );
+
+
+  renderStudentSupportConversation();
+
+
+  if (input){
+
+    input.value =
+      "";
+
+    input.disabled =
+      true;
+
+  }
+
+
+  if (sendButton){
+
+    sendButton.disabled =
+      true;
+
+    sendButton.setAttribute(
+      "aria-busy",
+      "true"
+    );
+
+  }
+
+
+  try{
+
+    /*
+      We reuse the existing authenticated Kabezya AI
+      endpoint already used by Student AI Learning.
+
+      The support instructions are included directly
+      in the user message so the assistant understands
+      that this conversation is about AIFT support.
+    */
+
+    const supportInstruction = `
+You are Kabezya Support, the first-line support assistant inside AIFT Student Studio.
+
+Your job is to help the student troubleshoot how to use AIFT before a human support ticket is created.
+
+Rules:
+- Focus only on AIFT Student Studio and the problem described by the student.
+- Give clear, short, practical troubleshooting steps.
+- Never claim that you performed an action you cannot perform.
+- Never claim that a support ticket was created.
+- Never invent account information, grades, classes, deadlines, or system status.
+- If the issue requires an administrator, school, teacher, account-security change, backend correction, payment action, or human investigation, say that human support is appropriate.
+- At the end of every useful answer ask: "Did this solve the problem?"
+- If the student says it did not solve the problem, explain that they can continue to human support using the button below.
+
+Student problem:
+${prompt}
+    `.trim();
+
+
+    const payload = {
+
+      message:
+        supportInstruction,
+
+      mode:
+        "ask",
+
+      classId:
+        null,
+
+      sourceType:
+        "general",
+
+      sourceId:
+        null
+
+    };
+
+
+    if (
+      studentSupportConversationId
+    ){
+
+      payload.conversationId =
+        studentSupportConversationId;
+
+    }
+
+
+    const response =
+      await apiSend(
+        "/api/student-ai/chat",
+        "POST",
+        payload
+      );
+
+
+    const pendingIndex =
+      studentSupportConversation
+        .indexOf(
+          pendingMessage
+        );
+
+
+    if (
+      pendingIndex !==
+      -1
+    ){
+
+      studentSupportConversation.splice(
+        pendingIndex,
+        1
+      );
+
+    }
+
+
+    studentSupportConversationId =
+      String(
+        response?.conversationId ||
+        response?.conversation?._id ||
+        studentSupportConversationId ||
+        ""
+      );
+
+
+    const assistantText =
+      String(
+        response?.answer ||
+        response?.message?.content ||
+        response?.assistantMessage?.content ||
+        response?.response ||
+        response?.text ||
+        ""
+      ).trim();
+
+
+    if (!assistantText){
+
+      throw new Error(
+        "Kabezya did not return a support response."
+      );
+
+    }
+
+
+    studentSupportConversation.push({
+
+      role:"assistant",
+
+      content:
+        assistantText,
+
+      createdAt:
+        new Date().toISOString()
+
+    });
+
+
+    /*
+      If the user clearly indicates the issue
+      remains unresolved, expose human support.
+    */
+
+    const normalizedPrompt =
+      prompt.toLowerCase();
+
+
+    if (
+      [
+        "no",
+        "not solved",
+        "didn't work",
+        "did not work",
+        "still not working",
+        "still doesn't work",
+        "still does not work",
+        "need human",
+        "human support",
+        "talk to someone",
+        "contact support"
+      ].some(
+        phrase =>
+          normalizedPrompt.includes(
+            phrase
+          )
+      )
+    ){
+
+      studentSupportNeedsHuman =
+        true;
+
+    }
+
+
+    renderStudentSupportConversation();
+
+
+    const humanButton =
+      $("studentSupportHumanButton");
+
+
+    if (humanButton){
+
+      humanButton.hidden =
+        false;
+
+    }
+
+  }catch(error){
+
+    console.error(
+      "Kabezya support request failed:",
+      error
+    );
+
+
+    const pendingIndex =
+      studentSupportConversation
+        .indexOf(
+          pendingMessage
+        );
+
+
+    if (
+      pendingIndex !==
+      -1
+    ){
+
+      studentSupportConversation.splice(
+        pendingIndex,
+        1
+      );
+
+    }
+
+
+    studentSupportConversation.push({
+
+      role:"assistant",
+
+      content:
+        "I’m having trouble checking that right now. You can still continue to AIFT human support and leave your contact information.",
+
+      createdAt:
+        new Date().toISOString()
+
+    });
+
+
+    studentSupportNeedsHuman =
+      true;
+
+
+    renderStudentSupportConversation();
+
+
+    const humanButton =
+      $("studentSupportHumanButton");
+
+
+    if (humanButton){
+
+      humanButton.hidden =
+        false;
+
+    }
+
+  }finally{
+
+    studentSupportRequestPending =
+      false;
+
+
+    if (input){
+
+      input.disabled =
+        false;
+
+      input.focus();
+
+    }
+
+
+    if (sendButton){
+
+      sendButton.removeAttribute(
+        "aria-busy"
+      );
+
+    }
+
+
+    updateStudentSupportComposer();
+
+  }
+
+}
+
+
+/* =========================================================
+   OPEN KABEZYA SUPPORT
+========================================================= */
+
+function openStudentKabezyaSupport(){
+
+  document
+    .getElementById(
+      "studentKabezyaSupportModal"
+    )
+    ?.remove();
+
+
+  resetStudentSupportConversation();
+
+
+  const modal =
+    document.createElement(
+      "div"
+    );
+
+
+  modal.id =
+    "studentKabezyaSupportModal";
+
+
+  modal.className =
+    "student-support-modal";
+
+
+  modal.innerHTML = `
+
+    <div
+      class="student-support-backdrop"
+      data-student-support-close
+    ></div>
+
+
+    <section
+      class="student-support-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="studentSupportTitle"
+    >
+
+      <!-- =============================================
+           HEADER
+      ============================================== -->
+
+      <header
+        class="student-support-header"
+      >
+
+        <div
+          class="student-support-header-identity"
+        >
+
+          <span
+            class="student-support-avatar"
+          >
+            <i
+              class="fa-solid fa-wand-magic-sparkles"
+              aria-hidden="true"
+            ></i>
+
+            <span
+              class="student-support-online-dot"
+              aria-hidden="true"
+            ></span>
+          </span>
+
+
+          <div>
+
+            <span>
+              AIFT SUPPORT
+            </span>
+
+            <h2
+              id="studentSupportTitle"
+            >
+              Talk with Kabezya
+            </h2>
+
+            <p>
+              AI support first · Human support when needed
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="student-support-close"
+          data-student-support-close
+          aria-label="Close support"
+        >
+          <i
+            class="fa-solid fa-xmark"
+            aria-hidden="true"
+          ></i>
+        </button>
+
+      </header>
+
+
+      <!-- =============================================
+           SUPPORT CHAT
+      ============================================== -->
+
+      <div
+        id="studentSupportConversation"
+        class="student-support-conversation"
+        aria-live="polite"
+      ></div>
+
+
+      <!-- =============================================
+           HUMAN SUPPORT HANDOFF
+      ============================================== -->
+
+      <div
+        class="student-support-human-panel"
+      >
+
+        <div>
+
+          <strong>
+            Still need help?
+          </strong>
+
+          <span>
+            Continue to AIFT Support and leave your contact information.
+          </span>
+
+        </div>
+
+
+        <button
+          type="button"
+          id="studentSupportHumanButton"
+          class="student-help-secondary-button"
+        >
+          <i
+            class="fa-solid fa-headset"
+            aria-hidden="true"
+          ></i>
+
+          Talk to a person
+        </button>
+
+      </div>
+
+
+      <!-- =============================================
+           COMPOSER
+      ============================================== -->
+
+      <footer
+        class="student-support-composer"
+      >
+
+        <textarea
+          id="studentSupportMessageInput"
+          maxlength="4000"
+          rows="1"
+          placeholder="Describe what you need help with..."
+          aria-label="Message Kabezya Support"
+        ></textarea>
+
+
+        <button
+          type="button"
+          id="studentSupportSendButton"
+          aria-label="Send message"
+          disabled
+        >
+          <i
+            class="fa-solid fa-arrow-up"
+            aria-hidden="true"
+          ></i>
+        </button>
+
+      </footer>
+
+    </section>
+
+  `;
+
+
+  document.body.appendChild(
+    modal
+  );
+
+
+  renderStudentSupportConversation();
+
+
+  modal
+    .querySelectorAll(
+      "[data-student-support-close]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            modal.remove();
+
+          }
+        );
+
+      }
+    );
+
+
+  $("studentSupportMessageInput")
+    ?.addEventListener(
+      "input",
+      updateStudentSupportComposer
+    );
+
+
+  $("studentSupportMessageInput")
+    ?.addEventListener(
+      "keydown",
+      event => {
+
+        if (
+          event.key ===
+            "Enter" &&
+          !event.shiftKey
+        ){
+
+          event.preventDefault();
+
+
+          submitStudentSupportMessage(
+            event.currentTarget.value
+          );
+
+        }
+
+      }
+    );
+
+
+  $("studentSupportSendButton")
+    ?.addEventListener(
+      "click",
+      () => {
+
+        submitStudentSupportMessage(
+          $("studentSupportMessageInput")
+            ?.value ||
+          ""
+        );
+
+      }
+    );
+
+
+  $("studentSupportHumanButton")
+    ?.addEventListener(
+      "click",
+      () => {
+
+        openStudentHumanSupportForm();
+
+      }
+    );
+
+
+  window.setTimeout(
+    () => {
+
+      $("studentSupportMessageInput")
+        ?.focus();
+
+    },
+    40
+  );
+
+}
+
+
+/* =========================================================
+   HUMAN SUPPORT CONTACT FORM
+========================================================= */
+
+function openStudentHumanSupportForm(){
+
+  const profile =
+    getStudentSupportProfile();
+
+
+  const existingForm =
+    $("studentHumanSupportForm");
+
+
+  existingForm?.remove();
+
+
+  const form =
+    document.createElement(
+      "section"
+    );
+
+
+  form.id =
+    "studentHumanSupportForm";
+
+
+  form.className =
+    "student-human-support-form";
+
+
+  form.innerHTML = `
+
+    <div
+      class="student-human-support-form-head"
+    >
+
+      <div>
+
+        <span>
+          HUMAN SUPPORT
+        </span>
+
+        <h3>
+          Leave your information
+        </h3>
+
+        <p>
+          We’ll include your Kabezya support conversation
+          so you do not have to explain everything again.
+        </p>
+
+      </div>
+
+
+      <button
+        type="button"
+        id="studentHumanSupportFormClose"
+        aria-label="Close form"
+      >
+        <i
+          class="fa-solid fa-xmark"
+          aria-hidden="true"
+        ></i>
+      </button>
+
+    </div>
+
+
+    <div
+      class="student-human-support-fields"
+    >
+
+      <label>
+
+        <span>
+          Full name
+        </span>
+
+        <input
+          id="studentSupportName"
+          type="text"
+          maxlength="120"
+          value="${
+            escapeHtml(
+              profile.name
+            )
+          }"
+          placeholder="Your full name"
+        >
+
+      </label>
+
+
+      <label>
+
+        <span>
+          Email address
+        </span>
+
+        <input
+          id="studentSupportEmail"
+          type="email"
+          maxlength="180"
+          value="${
+            escapeHtml(
+              profile.email
+            )
+          }"
+          placeholder="name@example.com"
+        >
+
+      </label>
+
+
+      <label>
+
+        <span>
+          Phone
+          <small>
+            Optional
+          </small>
+        </span>
+
+        <input
+          id="studentSupportPhone"
+          type="tel"
+          maxlength="40"
+          value="${
+            escapeHtml(
+              profile.phone
+            )
+          }"
+          placeholder="+63..."
+        >
+
+      </label>
+
+
+      <label>
+
+        <span>
+          Issue category
+        </span>
+
+        <select
+          id="studentSupportCategory"
+        >
+          <option value="student-studio">
+            Student Studio
+          </option>
+
+          <option value="classes">
+            Classes & lessons
+          </option>
+
+          <option value="assignments">
+            Assignments
+          </option>
+
+          <option value="portfolio">
+            Portfolio
+          </option>
+
+          <option value="career">
+            Career Hub
+          </option>
+
+          <option value="ai">
+            Kabezya AI
+          </option>
+
+          <option value="account">
+            Account & settings
+          </option>
+
+          <option value="technical">
+            Technical problem
+          </option>
+
+          <option value="other">
+            Other
+          </option>
+        </select>
+
+      </label>
+
+
+      <label
+        class="student-human-support-full-field"
+      >
+
+        <span>
+          Additional information
+        </span>
+
+        <textarea
+          id="studentSupportAdditionalInfo"
+          maxlength="5000"
+          placeholder="Add anything else the support team should know..."
+        ></textarea>
+
+      </label>
+
+    </div>
+
+
+    <div
+      class="student-human-support-summary"
+    >
+
+      <i
+        class="fa-solid fa-wand-magic-sparkles"
+        aria-hidden="true"
+      ></i>
+
+      <div>
+
+        <strong>
+          Kabezya conversation included
+        </strong>
+
+        <span>
+          ${
+            studentSupportConversation
+              .filter(
+                message =>
+                  !message.pending
+              )
+              .length
+          }
+          messages will be attached to the support request.
+        </span>
+
+      </div>
+
+    </div>
+
+
+    <footer
+      class="student-human-support-footer"
+    >
+
+      <button
+        type="button"
+        class="student-help-secondary-button"
+        id="studentHumanSupportBackButton"
+      >
+        Back to Kabezya
+      </button>
+
+
+      <button
+        type="button"
+        class="student-help-primary-button"
+        id="studentHumanSupportSubmitButton"
+      >
+        <i
+          class="fa-regular fa-paper-plane"
+          aria-hidden="true"
+        ></i>
+
+        Send to support
+      </button>
+
+    </footer>
+
+  `;
+
+
+  const dialog =
+    document.querySelector(
+      "#studentKabezyaSupportModal .student-support-dialog"
+    );
+
+
+  if (!dialog){
+    return;
+  }
+
+
+  dialog.appendChild(
+    form
+  );
+
+
+  $("studentHumanSupportFormClose")
+    ?.addEventListener(
+      "click",
+      () => {
+
+        form.remove();
+
+      }
+    );
+
+
+  $("studentHumanSupportBackButton")
+    ?.addEventListener(
+      "click",
+      () => {
+
+        form.remove();
+
+
+        $("studentSupportMessageInput")
+          ?.focus();
+
+      }
+    );
+
+
+  $("studentHumanSupportSubmitButton")
+    ?.addEventListener(
+      "click",
+      prepareStudentHumanSupportRequest
+    );
+
+}
+
+
+/* =========================================================
+   PREPARE HUMAN SUPPORT REQUEST
+========================================================= */
+
+function prepareStudentHumanSupportRequest(){
+
+  const name =
+    String(
+      $("studentSupportName")
+        ?.value ||
+      ""
+    ).trim();
+
+
+  const email =
+    String(
+      $("studentSupportEmail")
+        ?.value ||
+      ""
+    ).trim();
+
+
+  const phone =
+    String(
+      $("studentSupportPhone")
+        ?.value ||
+      ""
+    ).trim();
+
+
+  const category =
+    String(
+      $("studentSupportCategory")
+        ?.value ||
+      "other"
+    ).trim();
+
+
+  const additionalInfo =
+    String(
+      $("studentSupportAdditionalInfo")
+        ?.value ||
+      ""
+    ).trim();
+
+
+  if (!name){
+
+    showAlert(
+      "warning",
+      "Please enter your name.",
+      {
+        title:
+          "Name required"
+      }
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !email ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      .test(email)
+  ){
+
+    showAlert(
+      "warning",
+      "Please enter a valid email address.",
+      {
+        title:
+          "Email required"
+      }
+    );
+
+    return;
+
+  }
+
+
+  const profile =
+    getStudentSupportProfile();
+
+
+  const supportRequest = {
+
+    name,
+
+    email,
+
+    phone,
+
+    category,
+
+    additionalInfo,
+
+    studentId:
+      profile.studentId,
+
+    schoolId:
+      profile.schoolId,
+
+    page:
+      activeStudentStudioPage,
+
+    aiConversationId:
+      studentSupportConversationId ||
+      null,
+
+    conversation:
+      studentSupportConversation
+        .filter(
+          message =>
+            !message.pending
+        )
+        .map(
+          message => ({
+            role:
+              message.role,
+
+            content:
+              message.content,
+
+            createdAt:
+              message.createdAt
+          })
+        )
+
+  };
+
+
+  /*
+    IMPORTANT:
+
+    We do NOT claim the support ticket was submitted yet.
+
+    The next backend step will POST this exact object to
+    /api/support/tickets and save it in MongoDB.
+  */
+
+  window.pendingStudentSupportRequest =
+    supportRequest;
+
+
+  showAlert(
+    "info",
+    "Your support information is ready. The support ticket backend is the next connection step.",
+    {
+      title:
+        "Support request ready"
+    }
+  );
+
+}
+
+
+/* =========================================================
+   HELP ACTION ROUTER
 ========================================================= */
 
 function handleStudentHelpAction(
@@ -22304,7 +24506,7 @@ function handleStudentHelpAction(
 
     case "classes":
 
-      openStudentStudioPage(
+      activateStudentStudioPage(
         "classes"
       );
 
@@ -22313,7 +24515,7 @@ function handleStudentHelpAction(
 
     case "assignments":
 
-      openStudentStudioPage(
+      activateStudentStudioPage(
         "assignments"
       );
 
@@ -22322,7 +24524,7 @@ function handleStudentHelpAction(
 
     case "portfolio":
 
-      openStudentStudioPage(
+      activateStudentStudioPage(
         "portfolio"
       );
 
@@ -22331,7 +24533,7 @@ function handleStudentHelpAction(
 
     case "career":
 
-      openStudentStudioPage(
+      activateStudentStudioPage(
         "career"
       );
 
@@ -22340,7 +24542,7 @@ function handleStudentHelpAction(
 
     case "ai":
 
-      openStudentStudioPage(
+      activateStudentStudioPage(
         "ai"
       );
 
@@ -22349,7 +24551,7 @@ function handleStudentHelpAction(
 
     case "settings":
 
-      openStudentStudioPage(
+      activateStudentStudioPage(
         "settings"
       );
 
@@ -22358,7 +24560,7 @@ function handleStudentHelpAction(
 
     case "messages":
 
-      openStudentStudioPage(
+      activateStudentStudioPage(
         "messages"
       );
 
@@ -22374,14 +24576,7 @@ function handleStudentHelpAction(
 
     case "contact-support":
 
-      showAlert(
-        "info",
-        "Support contact will be connected to the AIFT support backend.",
-        {
-          title:
-            "AIFT Support"
-        }
-      );
+      openStudentKabezyaSupport();
 
       break;
 
@@ -22675,6 +24870,36 @@ function bindStudentHelpControls(){
     "click",
     event => {
 
+      /* =============================================
+         HELP TOPIC
+      ============================================== */
+
+      const topicButton =
+        event.target.closest(
+          "[data-student-help-topic-id]"
+        );
+
+
+      if (topicButton){
+
+        event.preventDefault();
+
+
+        openStudentHelpTopicModal(
+          topicButton.dataset
+            .studentHelpTopicId
+        );
+
+
+        return;
+
+      }
+
+
+      /* =============================================
+         HELP ACTION
+      ============================================== */
+
       const actionButton =
         event.target.closest(
           "[data-student-help-action]"
@@ -22696,6 +24921,10 @@ function bindStudentHelpControls(){
 
       }
 
+
+      /* =============================================
+         FAQ
+      ============================================== */
 
       const faqButton =
         event.target.closest(
@@ -22859,10 +25088,16 @@ function renderStudentHelpCenter(){
               .map(
                 topic => `
 
-                  <article
-                    class="student-help-topic-card"
-                    data-student-help-topic
-                    data-student-help-search="${
+<button
+  type="button"
+  class="student-help-topic-card"
+  data-student-help-topic
+  data-student-help-topic-id="${
+    escapeHtml(
+      topic.id
+    )
+  }"
+  data-student-help-search="${
                       escapeHtml(
                         `${topic.title} ${topic.description}`
                       )
@@ -22902,7 +25137,7 @@ function renderStudentHelpCenter(){
 
                     </div>
 
-                  </article>
+                  </button>
 
                 `
               )
