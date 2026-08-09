@@ -20102,7 +20102,7 @@ function renderStudentSettingsAccount(
 
     ${studentSettingsPanelHeaderHTML({
       eyebrow:"Account",
-      title:"Your Student Studio account",
+      
       description:
         "Review your profile information and manage how your student identity appears across AIFT."
     })}
