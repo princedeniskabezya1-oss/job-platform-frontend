@@ -19123,11 +19123,2248 @@ function openStudentMessages(){
     "messages.html";
 }
 
-function renderStudentSettings(){
-  showAlert(
-    "info",
-    "The Student Settings workspace will be added in its dedicated module."
+/* =========================================================
+   STUDENT STUDIO SETTINGS
+========================================================= */
+
+const STUDENT_SETTINGS_STORAGE_KEY =
+  "aiftStudentStudioSettings";
+
+
+const DEFAULT_STUDENT_SETTINGS = Object.freeze({
+
+  learning:{
+    studyReminders:true,
+    assignmentReminders:true,
+    continueLearning:true,
+    autoplayNextLesson:false,
+    rememberLastClass:true
+  },
+
+  notifications:{
+    assignments:true,
+    grades:true,
+    announcements:true,
+    messages:true,
+    certificates:true,
+    career:true
+  },
+
+  ai:{
+    personalization:true,
+    classContext:true,
+    learningHistory:true,
+    suggestions:true
+  },
+
+  privacy:{
+    portfolioVisibility:"public",
+    profileDiscovery:true,
+    activityVisibility:false,
+    certificateVisibility:true
+  },
+
+  accessibility:{
+    reducedMotion:false,
+    compactInterface:false,
+    highContrast:false,
+    largerText:false
+  }
+
+});
+
+
+function cloneDefaultStudentSettings(){
+
+  return JSON.parse(
+    JSON.stringify(
+      DEFAULT_STUDENT_SETTINGS
+    )
   );
+
+}
+
+
+function mergeStudentSettings(
+  defaults,
+  saved
+){
+
+  if (
+    !saved ||
+    typeof saved !== "object" ||
+    Array.isArray(saved)
+  ){
+    return {
+      ...defaults
+    };
+  }
+
+
+  const output = {
+    ...defaults
+  };
+
+
+  Object.keys(defaults)
+    .forEach(key => {
+
+      const defaultValue =
+        defaults[key];
+
+      const savedValue =
+        saved[key];
+
+
+      if (
+        defaultValue &&
+        typeof defaultValue === "object" &&
+        !Array.isArray(defaultValue)
+      ){
+
+        output[key] =
+          mergeStudentSettings(
+            defaultValue,
+            savedValue
+          );
+
+        return;
+      }
+
+
+      if (
+        savedValue !== undefined
+      ){
+
+        output[key] =
+          savedValue;
+
+      }
+
+    });
+
+
+  return output;
+
+}
+
+
+function getStudentSettings(){
+
+  const defaults =
+    cloneDefaultStudentSettings();
+
+
+  try{
+
+    const saved =
+      localStorage.getItem(
+        STUDENT_SETTINGS_STORAGE_KEY
+      );
+
+
+    if (!saved){
+      return defaults;
+    }
+
+
+    const parsed =
+      JSON.parse(saved);
+
+
+    return mergeStudentSettings(
+      defaults,
+      parsed
+    );
+
+  }catch(error){
+
+    console.warn(
+      "Could not load Student Studio settings:",
+      error
+    );
+
+
+    return defaults;
+
+  }
+
+}
+
+
+function saveStudentSettings(
+  settings
+){
+
+  try{
+
+    localStorage.setItem(
+      STUDENT_SETTINGS_STORAGE_KEY,
+      JSON.stringify(settings)
+    );
+
+
+    return true;
+
+  }catch(error){
+
+    console.error(
+      "Could not save Student Studio settings:",
+      error
+    );
+
+
+    return false;
+
+  }
+
+}
+
+
+function escapeStudentSettingsHTML(
+  value
+){
+
+  return String(
+    value ?? ""
+  )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
+
+}
+
+
+function getStudentSettingsProfile(){
+
+  const me =
+    state.me || {};
+
+
+  const name =
+    String(
+      me.name ||
+      me.fullName ||
+      me.displayName ||
+      "Student"
+    ).trim();
+
+
+  const email =
+    String(
+      me.email ||
+      "Student account"
+    ).trim();
+
+
+  const course =
+    String(
+      me.course ||
+      me.program ||
+      me.profession ||
+      me.department ||
+      "Student"
+    ).trim();
+
+
+  const avatar =
+    String(
+      me.profileImage ||
+      me.avatar ||
+      me.photo ||
+      ""
+    ).trim();
+
+
+  return {
+    name,
+    email,
+    course,
+    avatar
+  };
+
+}
+
+
+function getStudentSettingsInitials(
+  name
+){
+
+  return String(
+    name || "Student"
+  )
+    .trim()
+    .split(/\s+/)
+    .slice(0,2)
+    .map(part =>
+      part.charAt(0)
+        .toUpperCase()
+    )
+    .join("") || "S";
+
+}
+
+
+function studentSettingsToggleHTML({
+  id,
+  title,
+  description,
+  checked = false,
+  path
+}){
+
+  return `
+    <label
+      class="student-setting-row"
+      for="${escapeStudentSettingsHTML(id)}"
+    >
+
+      <span class="student-setting-row-copy">
+
+        <strong>
+          ${escapeStudentSettingsHTML(title)}
+        </strong>
+
+        <small>
+          ${escapeStudentSettingsHTML(description)}
+        </small>
+
+      </span>
+
+
+      <span class="student-setting-switch">
+
+        <input
+          id="${escapeStudentSettingsHTML(id)}"
+          type="checkbox"
+          data-student-setting-path="${escapeStudentSettingsHTML(path)}"
+          ${checked ? "checked" : ""}
+        >
+
+        <span
+          class="student-setting-switch-track"
+          aria-hidden="true"
+        >
+
+          <span
+            class="student-setting-switch-thumb"
+          ></span>
+
+        </span>
+
+      </span>
+
+    </label>
+  `;
+
+}
+
+
+function studentSettingsPanelHeaderHTML({
+  eyebrow,
+  title,
+  description
+}){
+
+  return `
+    <header
+      class="student-settings-panel-header"
+    >
+
+      <span
+        class="student-settings-panel-eyebrow"
+      >
+        ${escapeStudentSettingsHTML(eyebrow)}
+      </span>
+
+      <h2>
+        ${escapeStudentSettingsHTML(title)}
+      </h2>
+
+      <p>
+        ${escapeStudentSettingsHTML(description)}
+      </p>
+
+    </header>
+  `;
+
+}
+
+
+function studentSettingsNavButtonHTML({
+  id,
+  icon,
+  title,
+  description,
+  active = false
+}){
+
+  return `
+    <button
+      class="student-settings-nav-button${active ? " active" : ""}"
+      type="button"
+      data-student-settings-page="${escapeStudentSettingsHTML(id)}"
+      aria-current="${active ? "page" : "false"}"
+    >
+
+      <span
+        class="student-settings-nav-icon"
+        aria-hidden="true"
+      >
+        <i class="${escapeStudentSettingsHTML(icon)}"></i>
+      </span>
+
+      <span
+        class="student-settings-nav-copy"
+      >
+
+        <strong>
+          ${escapeStudentSettingsHTML(title)}
+        </strong>
+
+        <small>
+          ${escapeStudentSettingsHTML(description)}
+        </small>
+
+      </span>
+
+      <i
+        class="fa-solid fa-chevron-right student-settings-nav-arrow"
+        aria-hidden="true"
+      ></i>
+
+    </button>
+  `;
+
+}
+
+
+function renderStudentSettingsAccount(
+  profile
+){
+
+  const initials =
+    getStudentSettingsInitials(
+      profile.name
+    );
+
+
+  const avatarHTML =
+    profile.avatar
+      ? `
+          <img
+            src="${escapeStudentSettingsHTML(profile.avatar)}"
+            alt="${escapeStudentSettingsHTML(profile.name)}"
+            class="student-settings-profile-avatar"
+          >
+        `
+      : `
+          <div
+            class="student-settings-profile-avatar student-settings-profile-avatar-fallback"
+            aria-hidden="true"
+          >
+            ${escapeStudentSettingsHTML(initials)}
+          </div>
+        `;
+
+
+  return `
+
+    ${studentSettingsPanelHeaderHTML({
+      eyebrow:"Account",
+      title:"Your Student Studio account",
+      description:
+        "Review your profile information and manage how your student identity appears across AIFT."
+    })}
+
+
+    <section
+      class="student-settings-card student-settings-profile-card"
+    >
+
+      <div
+        class="student-settings-profile-main"
+      >
+
+        ${avatarHTML}
+
+
+        <div
+          class="student-settings-profile-copy"
+        >
+
+          <span>
+            Student profile
+          </span>
+
+          <h3>
+            ${escapeStudentSettingsHTML(profile.name)}
+          </h3>
+
+          <p>
+            ${escapeStudentSettingsHTML(profile.email)}
+          </p>
+
+          <small>
+            ${escapeStudentSettingsHTML(profile.course)}
+          </small>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="student-settings-profile-actions"
+      >
+
+        <button
+          type="button"
+          class="student-settings-button secondary"
+          data-student-settings-action="portfolio"
+        >
+          <i class="fa-regular fa-id-card"></i>
+          View portfolio
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <section
+      class="student-settings-card"
+    >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            ACCOUNT INFORMATION
+          </span>
+
+          <h3>
+            Personal information
+          </h3>
+
+          <p>
+            Your core student information is connected to your AIFT account.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="student-settings-info-list"
+      >
+
+        <div
+          class="student-settings-info-row"
+        >
+
+          <span
+            class="student-settings-info-icon"
+          >
+            <i class="fa-regular fa-user"></i>
+          </span>
+
+          <div>
+
+            <small>
+              Name
+            </small>
+
+            <strong>
+              ${escapeStudentSettingsHTML(profile.name)}
+            </strong>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="student-settings-info-row"
+        >
+
+          <span
+            class="student-settings-info-icon"
+          >
+            <i class="fa-regular fa-envelope"></i>
+          </span>
+
+          <div>
+
+            <small>
+              Email
+            </small>
+
+            <strong>
+              ${escapeStudentSettingsHTML(profile.email)}
+            </strong>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="student-settings-info-row"
+        >
+
+          <span
+            class="student-settings-info-icon"
+          >
+            <i class="fa-solid fa-graduation-cap"></i>
+          </span>
+
+          <div>
+
+            <small>
+              Program
+            </small>
+
+            <strong>
+              ${escapeStudentSettingsHTML(profile.course)}
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  `;
+
+}
+
+
+function renderStudentSettingsLearning(
+  settings
+){
+
+  return `
+
+    ${studentSettingsPanelHeaderHTML({
+      eyebrow:"Learning preferences",
+      title:"Personalize your learning workspace",
+      description:
+        "Control reminders and how Student Studio helps you continue your coursework."
+    })}
+
+
+    <section
+      class="student-settings-card"
+    >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            STUDY EXPERIENCE
+          </span>
+
+          <h3>
+            Learning assistance
+          </h3>
+
+          <p>
+            Choose how AIFT helps you stay organized and continue learning.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="student-settings-list"
+      >
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingStudyReminders",
+          title:"Study reminders",
+          description:
+            "Receive helpful reminders to continue active classes and learning plans.",
+          checked:
+            settings.learning.studyReminders,
+          path:"learning.studyReminders"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingAssignmentReminders",
+          title:"Assignment reminders",
+          description:
+            "Highlight upcoming coursework and assignment deadlines.",
+          checked:
+            settings.learning.assignmentReminders,
+          path:"learning.assignmentReminders"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingContinueLearning",
+          title:"Continue Learning recommendations",
+          description:
+            "Show suggested lessons and classes based on where you stopped.",
+          checked:
+            settings.learning.continueLearning,
+          path:"learning.continueLearning"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingAutoplay",
+          title:"Automatically continue to the next lesson",
+          description:
+            "Move to the next available lesson after completing the current lesson.",
+          checked:
+            settings.learning.autoplayNextLesson,
+          path:"learning.autoplayNextLesson"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingRememberClass",
+          title:"Remember my last class",
+          description:
+            "Use your most recently opened class when returning to Student Studio.",
+          checked:
+            settings.learning.rememberLastClass,
+          path:"learning.rememberLastClass"
+        })}
+
+      </div>
+
+    </section>
+
+  `;
+
+}
+
+
+function renderStudentSettingsNotifications(
+  settings
+){
+
+  return `
+
+    ${studentSettingsPanelHeaderHTML({
+      eyebrow:"Notifications",
+      title:"Choose what deserves your attention",
+      description:
+        "Control the Student Studio updates you want to receive."
+    })}
+
+
+    <section
+      class="student-settings-card"
+    >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            LEARNING
+          </span>
+
+          <h3>
+            Academic notifications
+          </h3>
+
+          <p>
+            Stay informed about coursework, grades, and class activity.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="student-settings-list"
+      >
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingNotificationAssignments",
+          title:"Assignments and deadlines",
+          description:
+            "Notify me about new assignments, approaching deadlines, and important coursework.",
+          checked:
+            settings.notifications.assignments,
+          path:"notifications.assignments"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingNotificationGrades",
+          title:"Grades and feedback",
+          description:
+            "Notify me when teachers review, grade, or return submitted work.",
+          checked:
+            settings.notifications.grades,
+          path:"notifications.grades"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingNotificationAnnouncements",
+          title:"Class announcements",
+          description:
+            "Notify me about important announcements from teachers and schools.",
+          checked:
+            settings.notifications.announcements,
+          path:"notifications.announcements"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingNotificationMessages",
+          title:"Messages",
+          description:
+            "Notify me when I receive new messages in AIFT.",
+          checked:
+            settings.notifications.messages,
+          path:"notifications.messages"
+        })}
+
+      </div>
+
+    </section>
+
+
+    <section
+      class="student-settings-card"
+    >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            ACHIEVEMENTS & CAREER
+          </span>
+
+          <h3>
+            Development notifications
+          </h3>
+
+          <p>
+            Control updates outside your normal coursework.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="student-settings-list"
+      >
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingNotificationCertificates",
+          title:"Certificates and achievements",
+          description:
+            "Notify me when new certificates or learning achievements become available.",
+          checked:
+            settings.notifications.certificates,
+          path:"notifications.certificates"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingNotificationCareer",
+          title:"Career Hub updates",
+          description:
+            "Receive relevant career preparation and opportunity updates.",
+          checked:
+            settings.notifications.career,
+          path:"notifications.career"
+        })}
+
+      </div>
+
+    </section>
+
+  `;
+
+}
+
+
+function renderStudentSettingsAI(
+  settings
+){
+
+  return `
+
+    ${studentSettingsPanelHeaderHTML({
+      eyebrow:"Kabezya AI",
+      title:"Control your AI learning experience",
+      description:
+        "Choose how Kabezya AI can use your Student Studio learning context to provide relevant support."
+    })}
+
+
+    <section
+      class="student-settings-card"
+    >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            PERSONALIZATION
+          </span>
+
+          <h3>
+            AI learning preferences
+          </h3>
+
+          <p>
+            These controls determine how your AI learning workspace can personalize assistance.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="student-settings-list"
+      >
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingAIPersonalization",
+          title:"Personalized learning assistance",
+          description:
+            "Allow Kabezya AI to adapt explanations and study support to your learning activity.",
+          checked:
+            settings.ai.personalization,
+          path:"ai.personalization"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingAIClassContext",
+          title:"Use class context",
+          description:
+            "Allow Kabezya AI to use selected class, assignment, and resource context when assisting you.",
+          checked:
+            settings.ai.classContext,
+          path:"ai.classContext"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingAIHistory",
+          title:"Use learning history",
+          description:
+            "Use previous Student Studio learning activity to improve continuity.",
+          checked:
+            settings.ai.learningHistory,
+          path:"ai.learningHistory"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingAISuggestions",
+          title:"AI study suggestions",
+          description:
+            "Allow Kabezya AI to recommend explanations, practice, summaries, and next learning actions.",
+          checked:
+            settings.ai.suggestions,
+          path:"ai.suggestions"
+        })}
+
+      </div>
+
+    </section>
+
+
+    <section
+      class="student-settings-callout"
+    >
+
+      <span
+        class="student-settings-callout-icon"
+      >
+        <i class="fa-solid fa-shield-halved"></i>
+      </span>
+
+
+      <div>
+
+        <strong>
+          Your learning controls
+        </strong>
+
+        <p>
+          These preferences control the Student Studio experience.
+          Server-side AI permissions and school policies remain enforced separately.
+        </p>
+
+      </div>
+
+    </section>
+
+  `;
+
+}
+
+
+function renderStudentSettingsPrivacy(
+  settings
+){
+
+  return `
+
+    ${studentSettingsPanelHeaderHTML({
+      eyebrow:"Privacy",
+      title:"Manage your Student Studio visibility",
+      description:
+        "Control what other people can discover or see from your student experience."
+    })}
+
+
+    <section
+      class="student-settings-card"
+    >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            PORTFOLIO
+          </span>
+
+          <h3>
+            Portfolio visibility
+          </h3>
+
+          <p>
+            Choose who can access your Student Portfolio.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <label
+        class="student-settings-select-field"
+      >
+
+        <span>
+          Who can view my portfolio?
+        </span>
+
+        <select
+          id="studentSettingPortfolioVisibility"
+          data-student-setting-path="privacy.portfolioVisibility"
+        >
+
+          <option
+            value="public"
+            ${
+              settings.privacy.portfolioVisibility ===
+              "public"
+                ? "selected"
+                : ""
+            }
+          >
+            Public
+          </option>
+
+          <option
+            value="connections"
+            ${
+              settings.privacy.portfolioVisibility ===
+              "connections"
+                ? "selected"
+                : ""
+            }
+          >
+            Connections only
+          </option>
+
+          <option
+            value="private"
+            ${
+              settings.privacy.portfolioVisibility ===
+              "private"
+                ? "selected"
+                : ""
+            }
+          >
+            Only me
+          </option>
+
+        </select>
+
+      </label>
+
+    </section>
+
+
+    <section
+      class="student-settings-card"
+    >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            DISCOVERY
+          </span>
+
+          <h3>
+            Profile and activity
+          </h3>
+
+          <p>
+            Manage visibility of your student identity and achievements.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="student-settings-list"
+      >
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingProfileDiscovery",
+          title:"Profile discovery",
+          description:
+            "Allow eligible AIFT users to discover your student profile.",
+          checked:
+            settings.privacy.profileDiscovery,
+          path:"privacy.profileDiscovery"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingActivityVisibility",
+          title:"Learning activity visibility",
+          description:
+            "Allow supported profile areas to display selected learning activity.",
+          checked:
+            settings.privacy.activityVisibility,
+          path:"privacy.activityVisibility"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingCertificateVisibility",
+          title:"Show earned certificates",
+          description:
+            "Allow earned certificates to appear on supported public profile and portfolio areas.",
+          checked:
+            settings.privacy.certificateVisibility,
+          path:"privacy.certificateVisibility"
+        })}
+
+      </div>
+
+    </section>
+
+  `;
+
+}
+
+
+function renderStudentSettingsAccessibility(
+  settings
+){
+
+  return `
+
+    ${studentSettingsPanelHeaderHTML({
+      eyebrow:"Accessibility",
+      title:"Make Student Studio comfortable for you",
+      description:
+        "Adjust visual and interaction preferences for your learning workspace."
+    })}
+
+
+    <section
+      class="student-settings-card"
+    >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            INTERFACE
+          </span>
+
+          <h3>
+            Display and motion
+          </h3>
+
+          <p>
+            Personalize how Student Studio looks and behaves on this device.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="student-settings-list"
+      >
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingReducedMotion",
+          title:"Reduce motion",
+          description:
+            "Reduce non-essential interface animations and movement.",
+          checked:
+            settings.accessibility.reducedMotion,
+          path:"accessibility.reducedMotion"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingCompactInterface",
+          title:"Compact interface",
+          description:
+            "Reduce spacing so more learning information fits on screen.",
+          checked:
+            settings.accessibility.compactInterface,
+          path:"accessibility.compactInterface"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingHighContrast",
+          title:"Higher contrast",
+          description:
+            "Increase visual separation between text, controls, and surfaces.",
+          checked:
+            settings.accessibility.highContrast,
+          path:"accessibility.highContrast"
+        })}
+
+
+        ${studentSettingsToggleHTML({
+          id:"studentSettingLargerText",
+          title:"Larger interface text",
+          description:
+            "Increase supported Student Studio interface text for easier reading.",
+          checked:
+            settings.accessibility.largerText,
+          path:"accessibility.largerText"
+        })}
+
+      </div>
+
+    </section>
+
+  `;
+
+}
+
+
+function renderStudentSettingsSecurity(){
+
+  return `
+
+    ${studentSettingsPanelHeaderHTML({
+      eyebrow:"Security",
+      title:"Protect your AIFT account",
+      description:
+        "Review account security options and important sign-in controls."
+    })}
+
+
+    <section
+      class="student-settings-card"
+    >
+
+      <div
+        class="student-settings-action-row"
+      >
+
+        <span
+          class="student-settings-action-icon"
+        >
+          <i class="fa-solid fa-key"></i>
+        </span>
+
+
+        <div
+          class="student-settings-action-copy"
+        >
+
+          <strong>
+            Password
+          </strong>
+
+          <p>
+            Update the password used to access your AIFT account.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="student-settings-button secondary"
+          data-student-settings-action="password"
+        >
+          Change password
+        </button>
+
+      </div>
+
+
+      <div
+        class="student-settings-action-row"
+      >
+
+        <span
+          class="student-settings-action-icon"
+        >
+          <i class="fa-solid fa-laptop"></i>
+        </span>
+
+
+        <div
+          class="student-settings-action-copy"
+        >
+
+          <strong>
+            Active sessions
+          </strong>
+
+          <p>
+            Review devices and sessions currently connected to your account.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="student-settings-button secondary"
+          data-student-settings-action="sessions"
+        >
+          Review
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <section
+      class="student-settings-callout"
+    >
+
+      <span
+        class="student-settings-callout-icon"
+      >
+        <i class="fa-solid fa-lock"></i>
+      </span>
+
+      <div>
+
+        <strong>
+          Security-sensitive actions
+        </strong>
+
+        <p>
+          Password and session management should use authenticated backend
+          endpoints. The interface will not pretend these actions succeeded
+          until those endpoints are connected.
+        </p>
+
+      </div>
+
+    </section>
+
+  `;
+
+}
+
+
+function renderStudentSettingsData(){
+
+  return `
+
+    ${studentSettingsPanelHeaderHTML({
+      eyebrow:"Data & account",
+      title:"Manage your Student Studio data",
+      description:
+        "Review data-related actions and account-level controls."
+    })}
+
+
+    <section
+      class="student-settings-card"
+    >
+
+      <div
+        class="student-settings-action-row"
+      >
+
+        <span
+          class="student-settings-action-icon"
+        >
+          <i class="fa-solid fa-download"></i>
+        </span>
+
+
+        <div
+          class="student-settings-action-copy"
+        >
+
+          <strong>
+            Download my data
+          </strong>
+
+          <p>
+            Request a copy of supported Student Studio account and learning data.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="student-settings-button secondary"
+          data-student-settings-action="download-data"
+        >
+          Request data
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <section
+      class="student-settings-card student-settings-danger-card"
+    >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            ACCOUNT
+          </span>
+
+          <h3>
+            Account actions
+          </h3>
+
+          <p>
+            These actions can affect access to your AIFT account.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="student-settings-action-row"
+      >
+
+        <span
+          class="student-settings-action-icon danger"
+        >
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </span>
+
+
+        <div
+          class="student-settings-action-copy"
+        >
+
+          <strong>
+            Sign out
+          </strong>
+
+          <p>
+            Sign out of Student Studio on this browser.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="student-settings-button danger"
+          data-student-settings-action="logout"
+        >
+          Sign out
+        </button>
+
+      </div>
+
+    </section>
+
+  `;
+
+}
+
+
+function setStudentSettingByPath(
+  settings,
+  path,
+  value
+){
+
+  const parts =
+    String(path || "")
+      .split(".")
+      .filter(Boolean);
+
+
+  if (!parts.length){
+    return;
+  }
+
+
+  let target =
+    settings;
+
+
+  for (
+    let index = 0;
+    index < parts.length - 1;
+    index += 1
+  ){
+
+    const key =
+      parts[index];
+
+
+    if (
+      !target[key] ||
+      typeof target[key] !== "object"
+    ){
+
+      target[key] = {};
+
+    }
+
+
+    target =
+      target[key];
+
+  }
+
+
+  target[
+    parts[
+      parts.length - 1
+    ]
+  ] = value;
+
+}
+
+
+function applyStudentAccessibilitySettings(
+  settings
+){
+
+  const accessibility =
+    settings?.accessibility || {};
+
+
+  document.body.classList.toggle(
+    "student-preference-reduced-motion",
+    Boolean(
+      accessibility.reducedMotion
+    )
+  );
+
+
+  document.body.classList.toggle(
+    "student-preference-compact",
+    Boolean(
+      accessibility.compactInterface
+    )
+  );
+
+
+  document.body.classList.toggle(
+    "student-preference-high-contrast",
+    Boolean(
+      accessibility.highContrast
+    )
+  );
+
+
+  document.body.classList.toggle(
+    "student-preference-large-text",
+    Boolean(
+      accessibility.largerText
+    )
+  );
+
+}
+
+
+function bindStudentSettingsControls(){
+
+  const workspace =
+    $("studentSettingsWorkspace");
+
+
+  if (
+    !workspace ||
+    workspace.dataset.settingsBound ===
+      "true"
+  ){
+    return;
+  }
+
+
+  workspace.dataset.settingsBound =
+    "true";
+
+
+  workspace.addEventListener(
+    "click",
+    event => {
+
+      const navigationButton =
+        event.target.closest(
+          "[data-student-settings-page]"
+        );
+
+
+      if (navigationButton){
+
+        event.preventDefault();
+
+
+        const page =
+          navigationButton.dataset
+            .studentSettingsPage;
+
+
+        setStudentSettingsPage(
+          page
+        );
+
+
+        return;
+
+      }
+
+
+      const actionButton =
+        event.target.closest(
+          "[data-student-settings-action]"
+        );
+
+
+      if (!actionButton){
+        return;
+      }
+
+
+      event.preventDefault();
+
+
+      const action =
+        actionButton.dataset
+          .studentSettingsAction;
+
+
+      switch(action){
+
+        case "portfolio":
+
+          openStudentStudioPage(
+            "portfolio"
+          );
+
+          break;
+
+
+        case "logout":
+
+          if (
+            typeof logout ===
+            "function"
+          ){
+
+            logout();
+
+            return;
+          }
+
+
+          localStorage.removeItem(
+            "token"
+          );
+
+          sessionStorage.removeItem(
+            "token"
+          );
+
+          window.location.href =
+            "login.html";
+
+          break;
+
+
+        case "password":
+
+          showAlert(
+            "info",
+            "Password management will use the authenticated account-security endpoint."
+          );
+
+          break;
+
+
+        case "sessions":
+
+          showAlert(
+            "info",
+            "Active session management will be connected to the account-security backend."
+          );
+
+          break;
+
+
+        case "download-data":
+
+          showAlert(
+            "info",
+            "Data export will be connected to the authenticated account-data endpoint."
+          );
+
+          break;
+
+      }
+
+    }
+  );
+
+
+  workspace.addEventListener(
+    "change",
+    event => {
+
+      const control =
+        event.target.closest(
+          "[data-student-setting-path]"
+        );
+
+
+      if (!control){
+        return;
+      }
+
+
+      const path =
+        control.dataset
+          .studentSettingPath;
+
+
+      const settings =
+        getStudentSettings();
+
+
+      const value =
+        control.type === "checkbox"
+          ? control.checked
+          : control.value;
+
+
+      setStudentSettingByPath(
+        settings,
+        path,
+        value
+      );
+
+
+      const saved =
+        saveStudentSettings(
+          settings
+        );
+
+
+      if (!saved){
+
+        showAlert(
+          "error",
+          "Your Student Studio preference could not be saved."
+        );
+
+        return;
+
+      }
+
+
+      applyStudentAccessibilitySettings(
+        settings
+      );
+
+
+      const row =
+        control.closest(
+          ".student-setting-row"
+        );
+
+
+      if (row){
+
+        row.classList.add(
+          "saved"
+        );
+
+
+        window.setTimeout(
+          () => {
+
+            row.classList.remove(
+              "saved"
+            );
+
+          },
+          650
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+let activeStudentSettingsPage =
+  "account";
+
+
+function setStudentSettingsPage(
+  requestedPage
+){
+
+  const allowedPages =
+    new Set([
+      "account",
+      "learning",
+      "notifications",
+      "ai",
+      "privacy",
+      "accessibility",
+      "security",
+      "data"
+    ]);
+
+
+  const page =
+    allowedPages.has(
+      String(
+        requestedPage || ""
+      ).toLowerCase()
+    )
+      ? String(
+          requestedPage
+        ).toLowerCase()
+      : "account";
+
+
+  activeStudentSettingsPage =
+    page;
+
+
+  document
+    .querySelectorAll(
+      "[data-student-settings-page]"
+    )
+    .forEach(button => {
+
+      const active =
+        button.dataset
+          .studentSettingsPage ===
+        page;
+
+
+      button.classList.toggle(
+        "active",
+        active
+      );
+
+
+      button.setAttribute(
+        "aria-current",
+        active
+          ? "page"
+          : "false"
+      );
+
+    });
+
+
+  document
+    .querySelectorAll(
+      "[data-student-settings-panel]"
+    )
+    .forEach(panel => {
+
+      const active =
+        panel.dataset
+          .studentSettingsPanel ===
+        page;
+
+
+      panel.hidden =
+        !active;
+
+
+      panel.classList.toggle(
+        "active",
+        active
+      );
+
+
+      panel.setAttribute(
+        "aria-hidden",
+        String(!active)
+      );
+
+    });
+
+
+  const workspace =
+    $("studentSettingsWorkspace");
+
+
+  if (workspace){
+
+    workspace.dataset
+      .activeSettingsPage =
+      page;
+
+  }
+
+}
+
+
+function renderStudentSettings(){
+
+  const workspace =
+    $("studentSettingsWorkspace");
+
+
+  if (!workspace){
+    return;
+  }
+
+
+  const settings =
+    getStudentSettings();
+
+
+  const profile =
+    getStudentSettingsProfile();
+
+
+  workspace.innerHTML = `
+
+    <div
+      class="student-settings-shell"
+    >
+
+      <!-- =============================================
+           SETTINGS SIDEBAR
+      ============================================== -->
+
+      <aside
+        class="student-settings-sidebar"
+        aria-label="Student settings"
+      >
+
+        <div
+          class="student-settings-sidebar-header"
+        >
+
+          <span
+            class="student-settings-sidebar-eyebrow"
+          >
+            CONTROL CENTER
+          </span>
+
+          <h2>
+            Settings
+          </h2>
+
+          <p>
+            Manage your Student Studio experience.
+          </p>
+
+        </div>
+
+
+        <nav
+          class="student-settings-navigation"
+          aria-label="Settings categories"
+        >
+
+          ${studentSettingsNavButtonHTML({
+            id:"account",
+            icon:"fa-regular fa-user",
+            title:"Account",
+            description:"Profile and account",
+            active:
+              activeStudentSettingsPage ===
+              "account"
+          })}
+
+
+          ${studentSettingsNavButtonHTML({
+            id:"learning",
+            icon:"fa-solid fa-book-open",
+            title:"Learning",
+            description:"Study preferences",
+            active:
+              activeStudentSettingsPage ===
+              "learning"
+          })}
+
+
+          ${studentSettingsNavButtonHTML({
+            id:"notifications",
+            icon:"fa-regular fa-bell",
+            title:"Notifications",
+            description:"Alerts and updates",
+            active:
+              activeStudentSettingsPage ===
+              "notifications"
+          })}
+
+
+          ${studentSettingsNavButtonHTML({
+            id:"ai",
+            icon:"fa-solid fa-wand-magic-sparkles",
+            title:"Kabezya AI",
+            description:"AI preferences",
+            active:
+              activeStudentSettingsPage ===
+              "ai"
+          })}
+
+
+          ${studentSettingsNavButtonHTML({
+            id:"privacy",
+            icon:"fa-solid fa-shield-halved",
+            title:"Privacy",
+            description:"Visibility controls",
+            active:
+              activeStudentSettingsPage ===
+              "privacy"
+          })}
+
+
+          ${studentSettingsNavButtonHTML({
+            id:"accessibility",
+            icon:"fa-solid fa-universal-access",
+            title:"Accessibility",
+            description:"Display and motion",
+            active:
+              activeStudentSettingsPage ===
+              "accessibility"
+          })}
+
+
+          ${studentSettingsNavButtonHTML({
+            id:"security",
+            icon:"fa-solid fa-lock",
+            title:"Security",
+            description:"Password and sessions",
+            active:
+              activeStudentSettingsPage ===
+              "security"
+          })}
+
+
+          ${studentSettingsNavButtonHTML({
+            id:"data",
+            icon:"fa-solid fa-database",
+            title:"Data & account",
+            description:"Data and sign out",
+            active:
+              activeStudentSettingsPage ===
+              "data"
+          })}
+
+        </nav>
+
+      </aside>
+
+
+      <!-- =============================================
+           SETTINGS CONTENT
+      ============================================== -->
+
+      <main
+        class="student-settings-content"
+      >
+
+        <div
+          class="student-settings-panel"
+          data-student-settings-panel="account"
+        >
+          ${renderStudentSettingsAccount(
+            profile
+          )}
+        </div>
+
+
+        <div
+          class="student-settings-panel"
+          data-student-settings-panel="learning"
+          hidden
+        >
+          ${renderStudentSettingsLearning(
+            settings
+          )}
+        </div>
+
+
+        <div
+          class="student-settings-panel"
+          data-student-settings-panel="notifications"
+          hidden
+        >
+          ${renderStudentSettingsNotifications(
+            settings
+          )}
+        </div>
+
+
+        <div
+          class="student-settings-panel"
+          data-student-settings-panel="ai"
+          hidden
+        >
+          ${renderStudentSettingsAI(
+            settings
+          )}
+        </div>
+
+
+        <div
+          class="student-settings-panel"
+          data-student-settings-panel="privacy"
+          hidden
+        >
+          ${renderStudentSettingsPrivacy(
+            settings
+          )}
+        </div>
+
+
+        <div
+          class="student-settings-panel"
+          data-student-settings-panel="accessibility"
+          hidden
+        >
+          ${renderStudentSettingsAccessibility(
+            settings
+          )}
+        </div>
+
+
+        <div
+          class="student-settings-panel"
+          data-student-settings-panel="security"
+          hidden
+        >
+          ${renderStudentSettingsSecurity()}
+        </div>
+
+
+        <div
+          class="student-settings-panel"
+          data-student-settings-panel="data"
+          hidden
+        >
+          ${renderStudentSettingsData()}
+        </div>
+
+      </main>
+
+    </div>
+
+  `;
+
+
+  bindStudentSettingsControls();
+
+
+  setStudentSettingsPage(
+    activeStudentSettingsPage
+  );
+
+
+  applyStudentAccessibilitySettings(
+    settings
+  );
+
 }
 
 function calculateMetrics(){
