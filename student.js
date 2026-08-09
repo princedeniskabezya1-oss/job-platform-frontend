@@ -762,6 +762,7 @@ function closeModal(id){
 ========================================================= */
 
 const STUDENT_STUDIO_PAGES = Object.freeze({
+
   overview:{
     title:"Dashboard",
     description:"Your learning workspace"
@@ -825,7 +826,13 @@ const STUDENT_STUDIO_PAGES = Object.freeze({
   settings:{
     title:"Settings",
     description:"Manage your Student Studio preferences"
+  },
+
+  help:{
+    title:"Help Center",
+    description:"Find answers, troubleshooting guides, and support"
   }
+
 });
 
 let activeStudentStudioPage = "overview";
@@ -1014,84 +1021,131 @@ function setStudentStudioActiveMobileNavigation(page){
     });
 }
 
+
 function renderActiveStudentStudioPage(page){
+
   switch(page){
 
-case "overview":
-  renderStudioHome();
-  break;
+    case "overview":
 
-case "continue":
-  renderContinueLearningWorkspace();
-  break;
+      renderStudioHome();
 
-case "classes":
-  renderClasses();
-  break;
+      break;
+
+
+    case "continue":
+
+      renderContinueLearningWorkspace();
+
+      break;
+
+
+    case "classes":
+
+      renderClasses();
+
+      break;
+
 
     case "assignments":
+
       renderAssignments();
+
       hydrateSubmissionSelect();
+
       break;
 
-case "schedule":
 
-  bindStudentCalendarControls();
+    case "schedule":
 
-  renderStudentCalendarWorkspace();
+      bindStudentCalendarControls();
 
-  break;
+      renderStudentCalendarWorkspace();
 
-case "progress":
+      break;
 
-  openStudentAnalyticsWorkspace();
 
-  break;
+    case "progress":
 
-case "resources":
+      openStudentAnalyticsWorkspace();
 
-  bindStudentResourceControls();
+      break;
 
-  hydrateStudentResourceClassFilter();
 
-  restoreStudentResourceClassSelection();
+    case "resources":
 
-  setStudentResourceView(
-    studentResourceView
-  );
+      bindStudentResourceControls();
 
-  renderResources();
+      hydrateStudentResourceClassFilter();
 
-  break;
+      restoreStudentResourceClassSelection();
+
+      setStudentResourceView(
+        studentResourceView
+      );
+
+      renderResources();
+
+      break;
+
 
     case "certificates":
+
       renderStudentCertificates();
+
       break;
+
 
     case "portfolio":
+
       renderStudentPortfolio();
+
       break;
+
 
     case "career":
+
       renderStudentCareerHub();
+
       break;
+
 
     case "ai":
+
       renderStudentAILearning();
+
       break;
+
 
     case "messages":
+
       openStudentMessages();
+
       break;
+
 
     case "settings":
+
       renderStudentSettings();
+
       break;
 
-    default:
-      renderStudioHome();
+
+    case "help":
+
+      renderStudentHelpCenter();
+
       break;
+
+
+    default:
+
+      renderStudioHome();
+
+      break;
+
   }
+
 }
 
 function openStudentStudioPage(
@@ -21922,6 +21976,1144 @@ async function renderStudentSettings(){
   applyStudentAccessibilitySettings(
     settings
   );
+
+}
+
+
+/* =========================================================
+   STUDENT HELP CENTER
+========================================================= */
+
+const STUDENT_HELP_TOPICS = Object.freeze([
+
+  {
+    id:"getting-started",
+    icon:"fa-solid fa-rocket",
+    title:"Getting started",
+    description:
+      "Learn how to navigate Student Studio, classes, assignments, and your learning dashboard."
+  },
+
+  {
+    id:"classes",
+    icon:"fa-solid fa-chalkboard-user",
+    title:"Classes & lessons",
+    description:
+      "Get help joining classes, opening lessons, viewing modules, and continuing your learning."
+  },
+
+  {
+    id:"assignments",
+    icon:"fa-solid fa-list-check",
+    title:"Assignments",
+    description:
+      "Learn how to submit work, review deadlines, check grades, and resolve submission issues."
+  },
+
+  {
+    id:"portfolio",
+    icon:"fa-solid fa-folder-open",
+    title:"Portfolio & Career",
+    description:
+      "Get help with projects, experience, resume uploads, saved opportunities, and Career Hub."
+  },
+
+  {
+    id:"ai",
+    icon:"fa-solid fa-wand-magic-sparkles",
+    title:"Kabezya AI",
+    description:
+      "Learn how to use AI Learning for explanations, summaries, study help, quizzes, and class context."
+  },
+
+  {
+    id:"account",
+    icon:"fa-solid fa-gear",
+    title:"Account & Settings",
+    description:
+      "Manage preferences, privacy, accessibility, account options, and Student Studio settings."
+  }
+
+]);
+
+
+const STUDENT_HELP_FAQS = Object.freeze([
+
+  {
+    id:"faq-class",
+    question:
+      "Why can’t I open one of my classes?",
+    answer:
+      "Make sure the class belongs to your school account and that your enrollment is still active. If the class appears in My Classes but will not open, refresh Student Studio and try again."
+  },
+
+  {
+    id:"faq-assignment",
+    question:
+      "Why is my assignment submission not showing?",
+    answer:
+      "Check that the submission finished successfully and that you are viewing the correct class and assignment. If you uploaded a file, wait for the upload to finish before leaving the page."
+  },
+
+  {
+    id:"faq-resume",
+    question:
+      "Why is my resume not appearing in my Portfolio?",
+    answer:
+      "Make sure the resume upload completed successfully. After uploading, reopen Portfolio or refresh Student Studio so the latest portfolio information can load."
+  },
+
+  {
+    id:"faq-ai",
+    question:
+      "Why is Kabezya AI not answering?",
+    answer:
+      "Kabezya may temporarily be unavailable if the AI provider or backend is experiencing an issue. Retry the message after a moment and make sure your internet connection is active."
+  },
+
+  {
+    id:"faq-career",
+    question:
+      "Why did a saved opportunity disappear?",
+    answer:
+      "Saved opportunities are connected to your authenticated account. If a job was closed or removed by the employer, it may no longer appear even if it was previously saved."
+  },
+
+  {
+    id:"faq-settings",
+    question:
+      "Why did one of my settings change back?",
+    answer:
+      "Student Studio settings are saved to your account. If a save request fails because of a network or server issue, the previous saved setting may be restored."
+  }
+
+]);
+
+
+/* =========================================================
+   HELP CENTER SEARCH
+========================================================= */
+
+function filterStudentHelpContent(
+  query
+){
+
+  const normalizedQuery =
+    String(
+      query ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  document
+    .querySelectorAll(
+      "[data-student-help-topic]"
+    )
+    .forEach(
+      card => {
+
+        const searchable =
+          String(
+            card.dataset
+              .studentHelpSearch ||
+            ""
+          )
+            .toLowerCase();
+
+
+        const visible =
+          !normalizedQuery ||
+          searchable.includes(
+            normalizedQuery
+          );
+
+
+        card.hidden =
+          !visible;
+
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-student-help-faq]"
+    )
+    .forEach(
+      item => {
+
+        const searchable =
+          String(
+            item.dataset
+              .studentHelpSearch ||
+            ""
+          )
+            .toLowerCase();
+
+
+        const visible =
+          !normalizedQuery ||
+          searchable.includes(
+            normalizedQuery
+          );
+
+
+        item.hidden =
+          !visible;
+
+      }
+    );
+
+
+  const emptyState =
+    $("studentHelpSearchEmpty");
+
+
+  if (emptyState){
+
+    const visibleTopics =
+      document.querySelectorAll(
+        "[data-student-help-topic]:not([hidden])"
+      ).length;
+
+
+    const visibleFaqs =
+      document.querySelectorAll(
+        "[data-student-help-faq]:not([hidden])"
+      ).length;
+
+
+    emptyState.hidden =
+      Boolean(
+        visibleTopics ||
+        visibleFaqs ||
+        !normalizedQuery
+      );
+
+  }
+
+}
+
+
+/* =========================================================
+   HELP CENTER ACTIONS
+========================================================= */
+
+function handleStudentHelpAction(
+  action
+){
+
+  const normalizedAction =
+    String(
+      action ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  switch(normalizedAction){
+
+    case "classes":
+
+      openStudentStudioPage(
+        "classes"
+      );
+
+      break;
+
+
+    case "assignments":
+
+      openStudentStudioPage(
+        "assignments"
+      );
+
+      break;
+
+
+    case "portfolio":
+
+      openStudentStudioPage(
+        "portfolio"
+      );
+
+      break;
+
+
+    case "career":
+
+      openStudentStudioPage(
+        "career"
+      );
+
+      break;
+
+
+    case "ai":
+
+      openStudentStudioPage(
+        "ai"
+      );
+
+      break;
+
+
+    case "settings":
+
+      openStudentStudioPage(
+        "settings"
+      );
+
+      break;
+
+
+    case "messages":
+
+      openStudentStudioPage(
+        "messages"
+      );
+
+      break;
+
+
+    case "report-problem":
+
+      openStudentHelpReportModal();
+
+      break;
+
+
+    case "contact-support":
+
+      showAlert(
+        "info",
+        "Support contact will be connected to the AIFT support backend.",
+        {
+          title:
+            "AIFT Support"
+        }
+      );
+
+      break;
+
+  }
+
+}
+
+
+/* =========================================================
+   HELP CENTER REPORT MODAL
+========================================================= */
+
+function openStudentHelpReportModal(){
+
+  document
+    .getElementById(
+      "studentHelpReportModal"
+    )
+    ?.remove();
+
+
+  const modal =
+    document.createElement(
+      "div"
+    );
+
+
+  modal.id =
+    "studentHelpReportModal";
+
+
+  modal.className =
+    "student-help-report-modal";
+
+
+  modal.innerHTML = `
+
+    <div
+      class="student-help-report-backdrop"
+      data-student-help-close-report
+    ></div>
+
+
+    <div
+      class="student-help-report-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="studentHelpReportTitle"
+    >
+
+      <header
+        class="student-help-report-header"
+      >
+
+        <div>
+
+          <span>
+            SUPPORT
+          </span>
+
+          <h3
+            id="studentHelpReportTitle"
+          >
+            Report a problem
+          </h3>
+
+          <p>
+            Tell us what happened so the issue can be reviewed.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="student-help-report-close"
+          data-student-help-close-report
+          aria-label="Close"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+
+      </header>
+
+
+      <div
+        class="student-help-report-body"
+      >
+
+        <label
+          class="student-help-report-field"
+        >
+
+          <span>
+            Area
+          </span>
+
+          <select
+            id="studentHelpReportArea"
+          >
+            <option value="student-studio">
+              Student Studio
+            </option>
+
+            <option value="classes">
+              Classes
+            </option>
+
+            <option value="assignments">
+              Assignments
+            </option>
+
+            <option value="portfolio">
+              Portfolio
+            </option>
+
+            <option value="career">
+              Career Hub
+            </option>
+
+            <option value="ai">
+              Kabezya AI
+            </option>
+
+            <option value="settings">
+              Settings
+            </option>
+          </select>
+
+        </label>
+
+
+        <label
+          class="student-help-report-field"
+        >
+
+          <span>
+            What happened?
+          </span>
+
+          <textarea
+            id="studentHelpReportMessage"
+            placeholder="Describe the issue, what you were trying to do, and what happened instead."
+          ></textarea>
+
+        </label>
+
+      </div>
+
+
+      <footer
+        class="student-help-report-footer"
+      >
+
+        <button
+          type="button"
+          class="student-help-secondary-button"
+          data-student-help-close-report
+        >
+          Cancel
+        </button>
+
+
+        <button
+          type="button"
+          class="student-help-primary-button"
+          id="studentHelpSubmitReportButton"
+        >
+          Submit report
+        </button>
+
+      </footer>
+
+    </div>
+  `;
+
+
+  document.body.appendChild(
+    modal
+  );
+
+
+  modal
+    .querySelectorAll(
+      "[data-student-help-close-report]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            modal.remove();
+
+          }
+        );
+
+      }
+    );
+
+
+  $("studentHelpSubmitReportButton")
+    ?.addEventListener(
+      "click",
+      () => {
+
+        const message =
+          String(
+            $("studentHelpReportMessage")
+              ?.value ||
+            ""
+          ).trim();
+
+
+        if (!message){
+
+          showAlert(
+            "warning",
+            "Please describe the problem before submitting.",
+            {
+              title:
+                "Description required"
+            }
+          );
+
+          return;
+
+        }
+
+
+        /*
+          Backend support-ticket integration will be
+          added separately. Do not pretend a ticket was
+          created until that backend exists.
+        */
+
+        modal.remove();
+
+
+        showAlert(
+          "info",
+          "Your report form is ready. The support-ticket backend will be connected next.",
+          {
+            title:
+              "Support report"
+          }
+        );
+
+      }
+    );
+
+
+  window.setTimeout(
+    () => {
+
+      $("studentHelpReportMessage")
+        ?.focus();
+
+    },
+    40
+  );
+
+}
+
+
+/* =========================================================
+   HELP CENTER CONTROLS
+========================================================= */
+
+function bindStudentHelpControls(){
+
+  const workspace =
+    $("studentHelpWorkspace");
+
+
+  if (
+    !workspace ||
+    workspace.dataset.helpBound ===
+      "true"
+  ){
+    return;
+  }
+
+
+  workspace.dataset.helpBound =
+    "true";
+
+
+  workspace.addEventListener(
+    "click",
+    event => {
+
+      const actionButton =
+        event.target.closest(
+          "[data-student-help-action]"
+        );
+
+
+      if (actionButton){
+
+        event.preventDefault();
+
+
+        handleStudentHelpAction(
+          actionButton.dataset
+            .studentHelpAction
+        );
+
+
+        return;
+
+      }
+
+
+      const faqButton =
+        event.target.closest(
+          "[data-student-help-faq-toggle]"
+        );
+
+
+      if (!faqButton){
+        return;
+      }
+
+
+      event.preventDefault();
+
+
+      const faqItem =
+        faqButton.closest(
+          "[data-student-help-faq]"
+        );
+
+
+      if (!faqItem){
+        return;
+      }
+
+
+      const expanded =
+        faqItem.classList.toggle(
+          "expanded"
+        );
+
+
+      faqButton.setAttribute(
+        "aria-expanded",
+        String(
+          expanded
+        )
+      );
+
+    }
+  );
+
+
+  const searchInput =
+    $("studentHelpSearchInput");
+
+
+  searchInput?.addEventListener(
+    "input",
+    () => {
+
+      filterStudentHelpContent(
+        searchInput.value
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   RENDER HELP CENTER
+========================================================= */
+
+function renderStudentHelpCenter(){
+
+  const workspace =
+    $("studentHelpWorkspace");
+
+
+  if (!workspace){
+    return;
+  }
+
+
+  workspace.innerHTML = `
+
+    <div
+      class="student-help-shell"
+    >
+
+      <!-- =============================================
+           HERO
+      ============================================== -->
+
+      <section
+        class="student-help-hero"
+      >
+
+        <span
+          class="student-help-eyebrow"
+        >
+          AIFT HELP CENTER
+        </span>
+
+        <h2>
+          How can we help?
+        </h2>
+
+        <p>
+          Find answers, troubleshoot Student Studio,
+          or contact support when you need more help.
+        </p>
+
+
+        <div
+          class="student-help-search"
+        >
+
+          <i
+            class="fa-solid fa-magnifying-glass"
+            aria-hidden="true"
+          ></i>
+
+          <input
+            id="studentHelpSearchInput"
+            type="search"
+            placeholder="Search classes, assignments, portfolio, AI, settings..."
+            autocomplete="off"
+          >
+
+        </div>
+
+      </section>
+
+
+      <!-- =============================================
+           QUICK HELP
+      ============================================== -->
+
+      <section
+        class="student-help-section"
+      >
+
+        <div
+          class="student-help-section-heading"
+        >
+
+          <div>
+
+            <span>
+              QUICK HELP
+            </span>
+
+            <h3>
+              Browse help topics
+            </h3>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="student-help-topic-grid"
+        >
+
+          ${
+            STUDENT_HELP_TOPICS
+              .map(
+                topic => `
+
+                  <article
+                    class="student-help-topic-card"
+                    data-student-help-topic
+                    data-student-help-search="${
+                      escapeHtml(
+                        `${topic.title} ${topic.description}`
+                      )
+                    }"
+                  >
+
+                    <span
+                      class="student-help-topic-icon"
+                    >
+                      <i
+                        class="${
+                          escapeHtml(
+                            topic.icon
+                          )
+                        }"
+                      ></i>
+                    </span>
+
+
+                    <div>
+
+                      <strong>
+                        ${
+                          escapeHtml(
+                            topic.title
+                          )
+                        }
+                      </strong>
+
+                      <p>
+                        ${
+                          escapeHtml(
+                            topic.description
+                          )
+                        }
+                      </p>
+
+                    </div>
+
+                  </article>
+
+                `
+              )
+              .join("")
+          }
+
+        </div>
+
+      </section>
+
+
+      <!-- =============================================
+           TROUBLESHOOTING
+      ============================================== -->
+
+      <section
+        class="student-help-section"
+      >
+
+        <div
+          class="student-help-section-heading"
+        >
+
+          <div>
+
+            <span>
+              TROUBLESHOOTING
+            </span>
+
+            <h3>
+              Common actions
+            </h3>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="student-help-actions-grid"
+        >
+
+          <button
+            type="button"
+            class="student-help-action-card"
+            data-student-help-action="classes"
+          >
+
+            <i class="fa-solid fa-chalkboard-user"></i>
+
+            <strong>
+              Open My Classes
+            </strong>
+
+            <span>
+              Review your active classes and learning access.
+            </span>
+
+          </button>
+
+
+          <button
+            type="button"
+            class="student-help-action-card"
+            data-student-help-action="assignments"
+          >
+
+            <i class="fa-solid fa-list-check"></i>
+
+            <strong>
+              Check Assignments
+            </strong>
+
+            <span>
+              Review deadlines, submissions, and grades.
+            </span>
+
+          </button>
+
+
+          <button
+            type="button"
+            class="student-help-action-card"
+            data-student-help-action="portfolio"
+          >
+
+            <i class="fa-solid fa-folder-open"></i>
+
+            <strong>
+              Open Portfolio
+            </strong>
+
+            <span>
+              Manage projects, resume, experience, and skills.
+            </span>
+
+          </button>
+
+
+          <button
+            type="button"
+            class="student-help-action-card"
+            data-student-help-action="ai"
+          >
+
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+
+            <strong>
+              Open Kabezya AI
+            </strong>
+
+            <span>
+              Return to AI Learning and retry your question.
+            </span>
+
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- =============================================
+           FAQ
+      ============================================== -->
+
+      <section
+        class="student-help-section"
+      >
+
+        <div
+          class="student-help-section-heading"
+        >
+
+          <div>
+
+            <span>
+              FREQUENTLY ASKED QUESTIONS
+            </span>
+
+            <h3>
+              Popular questions
+            </h3>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="student-help-faq-list"
+        >
+
+          ${
+            STUDENT_HELP_FAQS
+              .map(
+                faq => `
+
+                  <article
+                    class="student-help-faq-item"
+                    data-student-help-faq
+                    data-student-help-search="${
+                      escapeHtml(
+                        `${faq.question} ${faq.answer}`
+                      )
+                    }"
+                  >
+
+                    <button
+                      type="button"
+                      class="student-help-faq-button"
+                      data-student-help-faq-toggle
+                      aria-expanded="false"
+                    >
+
+                      <strong>
+                        ${
+                          escapeHtml(
+                            faq.question
+                          )
+                        }
+                      </strong>
+
+                      <i
+                        class="fa-solid fa-chevron-down"
+                      ></i>
+
+                    </button>
+
+
+                    <div
+                      class="student-help-faq-answer"
+                    >
+
+                      <p>
+                        ${
+                          escapeHtml(
+                            faq.answer
+                          )
+                        }
+                      </p>
+
+                    </div>
+
+                  </article>
+
+                `
+              )
+              .join("")
+          }
+
+        </div>
+
+      </section>
+
+
+      <!-- =============================================
+           SEARCH EMPTY STATE
+      ============================================== -->
+
+      <div
+        id="studentHelpSearchEmpty"
+        class="student-help-empty"
+        hidden
+      >
+
+        <i class="fa-regular fa-circle-question"></i>
+
+        <strong>
+          No matching help topic
+        </strong>
+
+        <p>
+          Try a different search or contact AIFT Support.
+        </p>
+
+      </div>
+
+
+      <!-- =============================================
+           SUPPORT
+      ============================================== -->
+
+      <section
+        class="student-help-support-card"
+      >
+
+        <div>
+
+          <span>
+            STILL NEED HELP?
+          </span>
+
+          <h3>
+            Contact AIFT Support
+          </h3>
+
+          <p>
+            Report a technical issue or request additional help.
+          </p>
+
+        </div>
+
+
+        <div
+          class="student-help-support-actions"
+        >
+
+          <button
+            type="button"
+            class="student-help-secondary-button"
+            data-student-help-action="report-problem"
+          >
+            <i class="fa-solid fa-bug"></i>
+            Report a problem
+          </button>
+
+
+          <button
+            type="button"
+            class="student-help-primary-button"
+            data-student-help-action="contact-support"
+          >
+            <i class="fa-regular fa-envelope"></i>
+            Contact support
+          </button>
+
+        </div>
+
+      </section>
+
+    </div>
+
+  `;
+
+
+  bindStudentHelpControls();
 
 }
 
