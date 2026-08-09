@@ -13790,8 +13790,581 @@ closeStudentProjectEditor);
 
 function renderStudentCareerHub(){
 
-  window.location.href =
-    "career-hub.html";
+  const workspace =
+    $("studentCareerWorkspace");
+
+  if (!workspace){
+    console.warn(
+      "studentCareerWorkspace was not found."
+    );
+
+    return;
+  }
+
+  workspace.innerHTML = `
+    <div class="student-career-shell">
+
+      <section class="student-career-hero">
+
+        <div class="student-career-hero-copy">
+
+          <span class="student-career-eyebrow">
+            CAREER COMMAND CENTER
+          </span>
+
+          <h2>
+            Turn your learning into your next opportunity
+          </h2>
+
+          <p>
+            Build your professional readiness, discover opportunities,
+            track applications, prepare for interviews, and understand
+            what skills to develop next.
+          </p>
+
+          <div class="student-career-hero-actions">
+
+            <button
+              type="button"
+              class="student-career-primary-button"
+              data-career-action="opportunities"
+            >
+              <i class="fa-solid fa-magnifying-glass"></i>
+
+              <span>
+                Find opportunities
+              </span>
+            </button>
+
+            <button
+              type="button"
+              class="student-career-secondary-button"
+              data-career-action="portfolio"
+            >
+              <i class="fa-solid fa-briefcase"></i>
+
+              <span>
+                View career profile
+              </span>
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <div class="student-career-readiness-card">
+
+          <div class="student-career-readiness-head">
+
+            <div>
+              <span>
+                CAREER READINESS
+              </span>
+
+              <strong>
+                Your professional progress
+              </strong>
+            </div>
+
+            <div
+              class="student-career-readiness-score"
+              id="studentCareerReadinessScore"
+            >
+              0%
+            </div>
+
+          </div>
+
+
+          <div class="student-career-readiness-track">
+
+            <div
+              id="studentCareerReadinessBar"
+              class="student-career-readiness-value"
+              style="width:0%"
+            ></div>
+
+          </div>
+
+
+          <div class="student-career-readiness-checks">
+
+            <div>
+              <i class="fa-regular fa-circle-check"></i>
+
+              <span>
+                Career profile
+              </span>
+
+              <strong id="studentCareerProfileStatus">
+                Not ready
+              </strong>
+            </div>
+
+
+            <div>
+              <i class="fa-regular fa-circle-check"></i>
+
+              <span>
+                Resume
+              </span>
+
+              <strong id="studentCareerResumeStatus">
+                Not added
+              </strong>
+            </div>
+
+
+            <div>
+              <i class="fa-regular fa-circle-check"></i>
+
+              <span>
+                Portfolio
+              </span>
+
+              <strong id="studentCareerPortfolioStatus">
+                Not ready
+              </strong>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <section class="student-career-metrics">
+
+        <article>
+
+          <div class="student-career-metric-icon blue">
+            <i class="fa-solid fa-paper-plane"></i>
+          </div>
+
+          <div>
+            <span>
+              Applications
+            </span>
+
+            <strong id="studentCareerApplicationsCount">
+              0
+            </strong>
+
+            <small>
+              Total submitted
+            </small>
+          </div>
+
+        </article>
+
+
+        <article>
+
+          <div class="student-career-metric-icon purple">
+            <i class="fa-solid fa-bookmark"></i>
+          </div>
+
+          <div>
+            <span>
+              Saved
+            </span>
+
+            <strong id="studentCareerSavedCount">
+              0
+            </strong>
+
+            <small>
+              Opportunities
+            </small>
+          </div>
+
+        </article>
+
+
+        <article>
+
+          <div class="student-career-metric-icon green">
+            <i class="fa-solid fa-comments"></i>
+          </div>
+
+          <div>
+            <span>
+              Interviews
+            </span>
+
+            <strong id="studentCareerInterviewCount">
+              0
+            </strong>
+
+            <small>
+              Interview activity
+            </small>
+          </div>
+
+        </article>
+
+
+        <article>
+
+          <div class="student-career-metric-icon amber">
+            <i class="fa-solid fa-bullseye"></i>
+          </div>
+
+          <div>
+            <span>
+              Career goal
+            </span>
+
+            <strong id="studentCareerGoalStatus">
+              Not set
+            </strong>
+
+            <small>
+              Target role
+            </small>
+          </div>
+
+        </article>
+
+      </section>
+
+
+      <div class="student-career-layout">
+
+        <main class="student-career-main">
+
+
+          <section class="student-career-card">
+
+            <header class="student-career-card-header">
+
+              <div>
+
+                <span>
+                  OPPORTUNITIES
+                </span>
+
+                <h3>
+                  Recommended for you
+                </h3>
+
+                <p>
+                  Jobs and internships matched to your
+                  learning and professional profile.
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                class="student-career-text-button"
+                data-career-action="opportunities"
+              >
+                View all
+              </button>
+
+            </header>
+
+
+            <div
+              id="studentCareerRecommendedJobs"
+              class="student-career-opportunity-list"
+            >
+
+              <div class="student-career-empty">
+
+                <div class="student-career-empty-icon">
+                  <i class="fa-solid fa-briefcase"></i>
+                </div>
+
+                <strong>
+                  Building your recommendations
+                </strong>
+
+                <p>
+                  Complete your career profile and portfolio
+                  to improve your opportunity matches.
+                </p>
+
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <section class="student-career-card">
+
+            <header class="student-career-card-header">
+
+              <div>
+
+                <span>
+                  APPLICATION PIPELINE
+                </span>
+
+                <h3>
+                  Your applications
+                </h3>
+
+              </div>
+
+              <button
+                type="button"
+                class="student-career-text-button"
+                data-career-action="applications"
+              >
+                View applications
+              </button>
+
+            </header>
+
+
+            <div class="student-career-pipeline">
+
+              <div>
+                <span>Applied</span>
+
+                <strong id="studentCareerAppliedCount">
+                  0
+                </strong>
+              </div>
+
+              <div>
+                <span>Reviewing</span>
+
+                <strong id="studentCareerReviewingCount">
+                  0
+                </strong>
+              </div>
+
+              <div>
+                <span>Interview</span>
+
+                <strong id="studentCareerPipelineInterviewCount">
+                  0
+                </strong>
+              </div>
+
+              <div>
+                <span>Offer</span>
+
+                <strong id="studentCareerOfferCount">
+                  0
+                </strong>
+              </div>
+
+            </div>
+
+
+            <div
+              id="studentCareerApplicationList"
+              class="student-career-application-list"
+            >
+
+              <div class="student-career-empty compact">
+
+                <strong>
+                  No applications yet
+                </strong>
+
+                <p>
+                  Opportunities you apply for will appear
+                  here automatically.
+                </p>
+
+              </div>
+
+            </div>
+
+          </section>
+
+        </main>
+
+
+        <aside class="student-career-sidebar">
+
+
+          <section class="student-career-card">
+
+            <header class="student-career-card-header compact">
+
+              <div>
+
+                <span>
+                  CAREER PROFILE
+                </span>
+
+                <h3>
+                  Professional readiness
+                </h3>
+
+              </div>
+
+            </header>
+
+
+            <div class="student-career-profile-checklist">
+
+              <button
+                type="button"
+                data-career-action="portfolio"
+              >
+                <i class="fa-solid fa-user"></i>
+
+                <span>
+                  <strong>
+                    Portfolio
+                  </strong>
+
+                  <small>
+                    Projects, skills and experience
+                  </small>
+                </span>
+
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+
+
+              <button
+                type="button"
+                data-career-action="resume"
+              >
+                <i class="fa-regular fa-file-lines"></i>
+
+                <span>
+                  <strong>
+                    Resume
+                  </strong>
+
+                  <small>
+                    Keep your CV ready
+                  </small>
+                </span>
+
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+
+
+              <button
+                type="button"
+                data-career-action="certificates"
+              >
+                <i class="fa-solid fa-certificate"></i>
+
+                <span>
+                  <strong>
+                    Certificates
+                  </strong>
+
+                  <small>
+                    Show verified achievements
+                  </small>
+                </span>
+
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+
+            </div>
+
+          </section>
+
+
+          <section class="student-career-card">
+
+            <header class="student-career-card-header compact">
+
+              <div>
+
+                <span>
+                  KABEZYA CAREER
+                </span>
+
+                <h3>
+                  Career Coach
+                </h3>
+
+              </div>
+
+            </header>
+
+
+            <div class="student-career-kabezya">
+
+              <div class="student-career-kabezya-icon">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+              </div>
+
+              <p>
+                Get help preparing for interviews,
+                improving your CV, understanding roles,
+                and planning your next career step.
+              </p>
+
+              <button
+                type="button"
+                class="student-career-secondary-button full"
+                data-career-action="career-ai"
+              >
+                Ask Kabezya
+              </button>
+
+            </div>
+
+          </section>
+
+
+          <section class="student-career-card">
+
+            <header class="student-career-card-header compact">
+
+              <div>
+
+                <span>
+                  NEXT STEP
+                </span>
+
+                <h3>
+                  Career journey
+                </h3>
+
+              </div>
+
+            </header>
+
+
+            <div
+              id="studentCareerNextStep"
+              class="student-career-next-step"
+            >
+
+              <div class="student-career-next-step-icon">
+                <i class="fa-solid fa-location-arrow"></i>
+              </div>
+
+              <div>
+                <strong>
+                  Set your career goal
+                </strong>
+
+                <p>
+                  Tell AIFT what role or career direction
+                  you want to pursue.
+                </p>
+              </div>
+
+            </div>
+
+          </section>
+
+        </aside>
+
+      </div>
+
+    </div>
+  `;
 
 }
 
