@@ -13788,6 +13788,501 @@ closeStudentProjectEditor);
 
 }
 
+/* =========================================================
+   STUDENT CAREER HUB STATE
+========================================================= */
+
+let studentCareerControlsBound =
+  false;
+
+
+/* =========================================================
+   CAREER READINESS
+========================================================= */
+
+function getStudentCareerReadiness(){
+
+  const portfolio =
+    typeof getStudentPortfolio === "function"
+      ? getStudentPortfolio()
+      : {};
+
+  const certificates =
+    typeof getStudentCertificates === "function"
+      ? getStudentCertificates()
+      : [];
+
+  const projects =
+    Array.isArray(
+      portfolio.projects
+    )
+      ? portfolio.projects
+      : [];
+
+  const experience =
+    Array.isArray(
+      portfolio.experience
+    )
+      ? portfolio.experience
+      : [];
+
+  const skills =
+    Array.isArray(
+      portfolio.skills
+    )
+      ? portfolio.skills
+      : [];
+
+  const resumeUrl =
+    String(
+      portfolio.resumeUrl ||
+      ""
+    ).trim();
+
+  const headline =
+    String(
+      portfolio.headline ||
+      ""
+    ).trim();
+
+  const bio =
+    String(
+      portfolio.bio ||
+      portfolio.about ||
+      ""
+    ).trim();
+
+
+  const checks = {
+
+    profile:
+      Boolean(
+        headline ||
+        bio
+      ),
+
+    resume:
+      Boolean(
+        resumeUrl
+      ),
+
+    skills:
+      skills.length >= 3,
+
+    projects:
+      projects.length >= 1,
+
+    experience:
+      experience.length >= 1,
+
+    certificates:
+      certificates.length >= 1
+
+  };
+
+
+  /*
+    Weighted readiness model.
+
+    Profile      15%
+    Resume       20%
+    Skills       20%
+    Projects     20%
+    Experience   15%
+    Certificates 10%
+
+    Total       100%
+  */
+
+  let score = 0;
+
+
+  if (checks.profile){
+    score += 15;
+  }
+
+
+  if (checks.resume){
+    score += 20;
+  }
+
+
+  if (checks.skills){
+    score += 20;
+  }
+
+
+  if (checks.projects){
+    score += 20;
+  }
+
+
+  if (checks.experience){
+    score += 15;
+  }
+
+
+  if (checks.certificates){
+    score += 10;
+  }
+
+
+  return {
+
+    score,
+
+    checks,
+
+    portfolio,
+
+    certificates,
+
+    projects,
+
+    experience,
+
+    skills,
+
+    resumeUrl
+
+  };
+
+}
+
+
+/* =========================================================
+   CAREER READINESS UI
+========================================================= */
+
+function updateStudentCareerReadiness(){
+
+  const readiness =
+    getStudentCareerReadiness();
+
+
+  const score =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Number(
+          readiness.score ||
+          0
+        )
+      )
+    );
+
+
+  setText(
+    "studentCareerReadinessScore",
+    `${score}%`
+  );
+
+
+  const bar =
+    $("studentCareerReadinessBar");
+
+
+  if (bar){
+
+    bar.style.width =
+      `${score}%`;
+
+  }
+
+
+  const scoreCircle =
+    $("studentCareerReadinessScore");
+
+
+  if (scoreCircle){
+
+    const degrees =
+      Math.round(
+        score * 3.6
+      );
+
+
+    scoreCircle.style.background =
+      `
+        conic-gradient(
+          var(--career-blue) 0deg,
+          var(--career-blue) ${degrees}deg,
+          #edf2f7 ${degrees}deg,
+          #edf2f7 360deg
+        )
+      `;
+
+  }
+
+
+  setText(
+    "studentCareerProfileStatus",
+    readiness.checks.profile
+      ? "Ready"
+      : "Incomplete"
+  );
+
+
+  setText(
+    "studentCareerResumeStatus",
+    readiness.checks.resume
+      ? "Added"
+      : "Not added"
+  );
+
+
+  setText(
+    "studentCareerPortfolioStatus",
+    readiness.checks.projects ||
+    readiness.checks.skills
+      ? "In progress"
+      : "Not ready"
+  );
+
+}
+
+
+/* =========================================================
+   CAREER HUB ACTIONS
+========================================================= */
+
+function handleStudentCareerAction(
+  action
+){
+
+  const normalizedAction =
+    String(
+      action ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  switch(normalizedAction){
+
+
+    /* =========================================
+       OPPORTUNITIES
+    ========================================= */
+
+    case "opportunities":
+
+      window.location.href =
+        "jobs.html";
+
+      break;
+
+
+    /* =========================================
+       APPLICATIONS
+    ========================================= */
+
+    case "applications":
+
+      window.location.href =
+        "applications.html";
+
+      break;
+
+
+    /* =========================================
+       PORTFOLIO
+    ========================================= */
+
+    case "portfolio":
+
+      openStudentStudioPage(
+        "portfolio"
+      );
+
+      break;
+
+
+    /* =========================================
+       RESUME
+    ========================================= */
+
+    case "resume":
+
+      openStudentStudioPage(
+        "portfolio"
+      );
+
+
+      window.setTimeout(
+        () => {
+
+          const resumeSection =
+            document.getElementById(
+              "studentPortfolioResume"
+            ) ||
+            document.querySelector(
+              "[data-portfolio-section='resume']"
+            );
+
+
+          if (resumeSection){
+
+            resumeSection.scrollIntoView({
+              behavior:"smooth",
+              block:"center"
+            });
+
+          }
+
+        },
+        150
+      );
+
+      break;
+
+
+    /* =========================================
+       CERTIFICATES
+    ========================================= */
+
+    case "certificates":
+
+      openStudentStudioPage(
+        "certificates"
+      );
+
+      break;
+
+
+    /* =========================================
+       KABEZYA CAREER COACH
+    ========================================= */
+
+    case "career-ai":
+
+      openStudentStudioPage(
+        "ai"
+      );
+
+
+      window.setTimeout(
+        () => {
+
+          const workspace =
+            $("studentAIWorkspace");
+
+
+          if (workspace){
+
+            workspace.dataset.requestedAction =
+              "career";
+
+          }
+
+
+          const input =
+            $("studentAIInput");
+
+
+          if (input){
+
+            input.focus();
+
+          }
+
+        },
+        150
+      );
+
+      break;
+
+
+    default:
+
+      console.warn(
+        "Unknown Career Hub action:",
+        normalizedAction
+      );
+
+      break;
+
+  }
+
+}
+
+/* =========================================================
+   CAREER HUB EVENT BINDINGS
+========================================================= */
+
+function bindStudentCareerHubControls(){
+
+  const workspace =
+    $("studentCareerWorkspace");
+
+
+  if (!workspace){
+    return;
+  }
+
+
+  /*
+    The Career Hub HTML is rebuilt when the section
+    renders, so delegation is used instead of binding
+    every button individually.
+  */
+
+  if (
+    workspace.dataset.controlsBound ===
+    "true"
+  ){
+    return;
+  }
+
+
+  workspace.addEventListener(
+    "click",
+    event => {
+
+      const actionButton =
+        event.target.closest(
+          "[data-career-action]"
+        );
+
+
+      if (
+        !actionButton ||
+        !workspace.contains(
+          actionButton
+        )
+      ){
+        return;
+      }
+
+
+      event.preventDefault();
+
+
+      const action =
+        actionButton.dataset
+          .careerAction;
+
+
+      handleStudentCareerAction(
+        action
+      );
+
+    }
+  );
+
+
+  workspace.dataset.controlsBound =
+    "true";
+
+
+  studentCareerControlsBound =
+    true;
+
+}
+
+
 function renderStudentCareerHub(){
 
   const workspace =
@@ -14365,6 +14860,12 @@ function renderStudentCareerHub(){
 
     </div>
   `;
+
+
+  bindStudentCareerHubControls();
+
+
+  updateStudentCareerReadiness();
 
 }
 
