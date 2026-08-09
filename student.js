@@ -19249,50 +19249,43 @@ function mergeStudentSettings(
 }
 
 
+let studentSettingsState =
+  cloneDefaultStudentSettings();
+
+let studentSettingsLoaded =
+  false;
+
+let studentSettingsLoadingPromise =
+  null;
+
+let studentSettingsSaveTimer =
+  null;
+
+let studentSettingsSaveSequence =
+  0;
+
+
+/* =========================================================
+   GET CURRENT SETTINGS STATE
+========================================================= */
+
 function getStudentSettings(){
 
-  const defaults =
-    cloneDefaultStudentSettings();
-
-
-  try{
-
-    const saved =
-      localStorage.getItem(
-        STUDENT_SETTINGS_STORAGE_KEY
-      );
-
-
-    if (!saved){
-      return defaults;
-    }
-
-
-    const parsed =
-      JSON.parse(saved);
-
-
-    return mergeStudentSettings(
-      defaults,
-      parsed
-    );
-
-  }catch(error){
-
-    console.warn(
-      "Could not load Student Studio settings:",
-      error
-    );
-
-
-    return defaults;
-
-  }
+  return mergeStudentSettings(
+    cloneDefaultStudentSettings(),
+    studentSettingsState
+  );
 
 }
 
 
-function saveStudentSettings(
+/* =========================================================
+   CACHE SETTINGS LOCALLY
+   Local storage is now fallback/cache only.
+   MongoDB remains the source of truth.
+========================================================= */
+
+function cacheStudentSettings(
   settings
 ){
 
@@ -19303,8 +19296,295 @@ function saveStudentSettings(
       JSON.stringify(settings)
     );
 
+  }catch(error){
 
-    return true;
+    console.warn(
+      "Could not cache Student Studio settings:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   READ SETTINGS CACHE
+========================================================= */
+
+function getCachedStudentSettings(){
+
+  const defaults =
+    cloneDefaultStudentSettings();
+
+  try{
+
+    const saved =
+      localStorage.getItem(
+        STUDENT_SETTINGS_STORAGE_KEY
+      );
+
+    if (!saved){
+      return defaults;
+    }
+
+    const parsed =
+      JSON.parse(saved);
+
+    return mergeStudentSettings(
+      defaults,
+      parsed
+    );
+
+  }catch(error){
+
+    console.warn(
+      "Could not read cached Student Studio settings:",
+      error
+    );
+
+    return defaults;
+
+  }
+
+}
+
+
+/* =========================================================
+   LOAD SETTINGS FROM BACKEND
+========================================================= */
+
+async function loadStudentSettingsFromServer({
+  force = false
+} = {}){
+
+  if (
+    studentSettingsLoaded &&
+    !force
+  ){
+    return getStudentSettings();
+  }
+
+
+  if (
+    studentSettingsLoadingPromise &&
+    !force
+  ){
+    return studentSettingsLoadingPromise;
+  }
+
+
+  studentSettingsLoadingPromise =
+    (async () => {
+
+      const defaults =
+        cloneDefaultStudentSettings();
+
+      /*
+        Give the interface an immediate fallback while
+        the authenticated server request is running.
+      */
+
+      studentSettingsState =
+        mergeStudentSettings(
+          defaults,
+          getCachedStudentSettings()
+        );
+
+
+      try{
+
+        const response =
+          await apiGet(
+            "/api/users/me/student-studio-settings",
+            null
+          );
+
+
+        if (!response){
+
+          console.warn(
+            "Student Studio settings endpoint returned no data. Using cached preferences."
+          );
+
+          return getStudentSettings();
+
+        }
+
+
+        const serverSettings =
+          response.settings ||
+          response.studentStudioSettings ||
+          response.data?.settings ||
+          response.data ||
+          null;
+
+
+        if (
+          serverSettings &&
+          typeof serverSettings === "object" &&
+          !Array.isArray(serverSettings)
+        ){
+
+          studentSettingsState =
+            mergeStudentSettings(
+              defaults,
+              serverSettings
+            );
+
+
+          cacheStudentSettings(
+            studentSettingsState
+          );
+
+        }
+
+
+        studentSettingsLoaded =
+          true;
+
+
+        return getStudentSettings();
+
+      }catch(error){
+
+        console.error(
+          "Could not load Student Studio settings from server:",
+          error
+        );
+
+
+        /*
+          Do not destroy the student's interface if the
+          network is temporarily unavailable.
+        */
+
+        studentSettingsState =
+          mergeStudentSettings(
+            defaults,
+            getCachedStudentSettings()
+          );
+
+
+        return getStudentSettings();
+
+      }finally{
+
+        studentSettingsLoadingPromise =
+          null;
+
+      }
+
+    })();
+
+
+  return studentSettingsLoadingPromise;
+
+}
+
+
+/* =========================================================
+   SAVE SETTINGS TO BACKEND
+========================================================= */
+
+async function saveStudentSettings(
+  settings,
+  {
+    silent = false
+  } = {}
+){
+
+  const normalizedSettings =
+    mergeStudentSettings(
+      cloneDefaultStudentSettings(),
+      settings
+    );
+
+
+  /*
+    Update memory immediately so the interface feels instant.
+  */
+
+  studentSettingsState =
+    normalizedSettings;
+
+
+  /*
+    Keep a browser cache, but this is no longer the
+    permanent database.
+  */
+
+  cacheStudentSettings(
+    normalizedSettings
+  );
+
+
+  const saveSequence =
+    ++studentSettingsSaveSequence;
+
+
+  try{
+
+    const response =
+      await apiSend(
+        "/api/users/me/student-studio-settings",
+        "PATCH",
+        normalizedSettings
+      );
+
+
+    /*
+      Ignore an older response if another settings save
+      was started after this request.
+    */
+
+    if (
+      saveSequence !==
+      studentSettingsSaveSequence
+    ){
+      return {
+        success:true,
+        stale:true,
+        settings:getStudentSettings()
+      };
+    }
+
+
+    const serverSettings =
+      response?.settings ||
+      response?.studentStudioSettings ||
+      response?.data?.settings ||
+      null;
+
+
+    if (
+      serverSettings &&
+      typeof serverSettings === "object" &&
+      !Array.isArray(serverSettings)
+    ){
+
+      studentSettingsState =
+        mergeStudentSettings(
+          cloneDefaultStudentSettings(),
+          serverSettings
+        );
+
+
+      cacheStudentSettings(
+        studentSettingsState
+      );
+
+    }
+
+
+    studentSettingsLoaded =
+      true;
+
+
+    return {
+      success:true,
+      settings:getStudentSettings()
+    };
 
   }catch(error){
 
@@ -19314,9 +19594,102 @@ function saveStudentSettings(
     );
 
 
-    return false;
+    if (!silent){
+
+      showAlert(
+        "error",
+        error?.message ||
+        "Your Student Studio preference could not be saved.",
+        {
+          title:"Settings not saved"
+        }
+      );
+
+    }
+
+
+    return {
+      success:false,
+      error,
+      settings:getStudentSettings()
+    };
 
   }
+
+}
+
+
+/* =========================================================
+   QUEUED SETTINGS SAVE
+========================================================= */
+
+function queueStudentSettingsSave(
+  settings,
+  {
+    delay = 180,
+    onSuccess = null,
+    onError = null
+  } = {}
+){
+
+  window.clearTimeout(
+    studentSettingsSaveTimer
+  );
+
+
+  studentSettingsSaveTimer =
+    window.setTimeout(
+      async () => {
+
+        const result =
+          await saveStudentSettings(
+            settings,
+            {
+              silent:true
+            }
+          );
+
+
+        if (result.success){
+
+          if (
+            typeof onSuccess ===
+            "function"
+          ){
+            onSuccess(
+              result.settings
+            );
+          }
+
+          return;
+
+        }
+
+
+        if (
+          typeof onError ===
+          "function"
+        ){
+          onError(
+            result.error
+          );
+
+          return;
+        }
+
+
+        showAlert(
+          "error",
+          result.error?.message ||
+          "Your Student Studio preference could not be saved.",
+          {
+            title:"Settings not saved"
+          }
+        );
+
+      },
+      delay
+    );
 
 }
 
@@ -20780,6 +21153,10 @@ function bindStudentSettingsControls(){
     "true";
 
 
+  /* =========================================================
+     SETTINGS NAVIGATION + ACTION BUTTONS
+  ========================================================= */
+
   workspace.addEventListener(
     "click",
     event => {
@@ -20850,16 +21227,33 @@ function bindStudentSettingsControls(){
             logout();
 
             return;
+
           }
 
 
-          localStorage.removeItem(
-            "token"
+          [
+            "studentToken",
+            "talentToken",
+            "schoolToken",
+            "adminToken",
+            "token",
+            "role",
+            "userId"
+          ].forEach(
+            key => {
+
+              localStorage.removeItem(
+                key
+              );
+
+            }
           );
+
 
           sessionStorage.removeItem(
             "token"
           );
+
 
           window.location.href =
             "login.html";
@@ -20902,9 +21296,13 @@ function bindStudentSettingsControls(){
   );
 
 
+  /* =========================================================
+     SETTINGS VALUE CHANGES
+  ========================================================= */
+
   workspace.addEventListener(
     "change",
-    event => {
+    async event => {
 
       const control =
         event.target.closest(
@@ -20920,6 +21318,11 @@ function bindStudentSettingsControls(){
       const path =
         control.dataset
           .studentSettingPath;
+
+
+      if (!path){
+        return;
+      }
 
 
       const settings =
@@ -20939,26 +21342,22 @@ function bindStudentSettingsControls(){
       );
 
 
-      const saved =
-        saveStudentSettings(
+      /*
+        Update the current in-memory settings immediately.
+
+        This makes accessibility and interface preferences
+        feel instant while the backend save happens.
+      */
+
+      studentSettingsState =
+        mergeStudentSettings(
+          cloneDefaultStudentSettings(),
           settings
         );
 
 
-      if (!saved){
-
-        showAlert(
-          "error",
-          "Your Student Studio preference could not be saved."
-        );
-
-        return;
-
-      }
-
-
       applyStudentAccessibilitySettings(
-        settings
+        studentSettingsState
       );
 
 
@@ -20970,23 +21369,121 @@ function bindStudentSettingsControls(){
 
       if (row){
 
-        row.classList.add(
-          "saved"
+        row.classList.remove(
+          "saved",
+          "save-error"
         );
 
-
-        window.setTimeout(
-          () => {
-
-            row.classList.remove(
-              "saved"
-            );
-
-          },
-          650
+        row.classList.add(
+          "saving"
         );
 
       }
+
+
+      /*
+        Save the preference to the authenticated backend.
+
+        queueStudentSettingsSave groups rapid changes
+        so multiple fast switch clicks do not create
+        unnecessary requests.
+      */
+
+      queueStudentSettingsSave(
+        studentSettingsState,
+        {
+          delay:180,
+
+
+          onSuccess:(
+            savedSettings
+          ) => {
+
+            if (row){
+
+              row.classList.remove(
+                "saving",
+                "save-error"
+              );
+
+
+              row.classList.add(
+                "saved"
+              );
+
+
+              window.setTimeout(
+                () => {
+
+                  row.classList.remove(
+                    "saved"
+                  );
+
+                },
+                650
+              );
+
+            }
+
+
+            applyStudentAccessibilitySettings(
+              savedSettings
+            );
+
+          },
+
+
+          onError:(
+            error
+          ) => {
+
+            console.error(
+              "Student settings save failed:",
+              error
+            );
+
+
+            if (row){
+
+              row.classList.remove(
+                "saving",
+                "saved"
+              );
+
+
+              row.classList.add(
+                "save-error"
+              );
+
+
+              window.setTimeout(
+                () => {
+
+                  row.classList.remove(
+                    "save-error"
+                  );
+
+                },
+                1200
+              );
+
+            }
+
+
+            showAlert(
+              "error",
+              error?.message ||
+              "Your Student Studio preference could not be saved.",
+              {
+                title:
+                  "Settings not saved"
+              }
+            );
+
+          }
+
+        }
+      );
 
     }
   );
@@ -21104,7 +21601,7 @@ function setStudentSettingsPage(
 }
 
 
-function renderStudentSettings(){
+async function renderStudentSettings(){
 
   const workspace =
     $("studentSettingsWorkspace");
@@ -21115,12 +21612,59 @@ function renderStudentSettings(){
   }
 
 
-  const settings =
+  /*
+    Start with the current cached/default settings so
+    Student Studio always has a safe state.
+  */
+
+  let settings =
     getStudentSettings();
 
 
   const profile =
     getStudentSettingsProfile();
+
+
+  /*
+    Load the authenticated student's authoritative
+    settings from MongoDB.
+
+    If Render/network is temporarily unavailable,
+    loadStudentSettingsFromServer() safely returns
+    the cached/default state instead.
+  */
+
+  try{
+
+    settings =
+      await loadStudentSettingsFromServer();
+
+  }catch(error){
+
+    console.error(
+      "Student Studio settings could not be loaded:",
+      error
+    );
+
+
+    settings =
+      getStudentSettings();
+
+  }
+
+
+  /*
+    Make sure this render is still relevant.
+
+    The user may have navigated away while the
+    network request was running.
+  */
+
+  if (
+    !$("studentSettingsWorkspace")
+  ){
+    return;
+  }
 
 
   workspace.innerHTML = `
@@ -21353,13 +21897,27 @@ function renderStudentSettings(){
   `;
 
 
+  /*
+    Bind controls after the HTML exists.
+  */
+
   bindStudentSettingsControls();
 
+
+  /*
+    Restore whichever Settings section the student
+    was viewing before the re-render.
+  */
 
   setStudentSettingsPage(
     activeStudentSettingsPage
   );
 
+
+  /*
+    Apply accessibility preferences loaded from
+    the authenticated student's account.
+  */
 
   applyStudentAccessibilitySettings(
     settings
