@@ -13799,6 +13799,9 @@ const studentCareerState = {
 
   applications:[],
 
+  savedJobIds:
+    new Set(),
+
   loading:false,
 
   loaded:false,
@@ -13889,6 +13892,52 @@ async function loadStudentCareerHubData({
             )
             ? applicationsResponse.data
             : [];
+
+    /* =========================================================
+   SAVED OPPORTUNITIES
+========================================================= */
+
+const savedIds = new Set();
+
+
+for (
+  const job
+  of studentCareerState.jobs
+){
+
+  const id =
+    normalizeId(
+      job?._id ||
+      job?.id
+    );
+
+
+  if (!id){
+    continue;
+  }
+
+
+  const saved =
+    Boolean(
+      job?.saved ||
+      job?.isSaved ||
+      job?.savedByCurrentUser
+    );
+
+
+  if (saved){
+
+    savedIds.add(
+      id
+    );
+
+  }
+
+}
+
+
+studentCareerState.savedJobIds =
+  savedIds;
 
 
     /*
@@ -14279,6 +14328,187 @@ function getStudentCareerRecommendedJobs(){
 
 }
 
+
+/* =========================================================
+   SAVE / UNSAVE CAREER JOB
+========================================================= */
+
+async function toggleStudentCareerSavedJob(
+  jobId
+){
+
+  const id =
+    normalizeId(
+      jobId
+    );
+
+
+  if (!id){
+
+    notifyAIFTError(
+      "This opportunity could not be saved.",
+      {
+        title:
+          "Opportunity unavailable"
+      }
+    );
+
+    return;
+  }
+
+
+  const wasSaved =
+    studentCareerState
+      .savedJobIds
+      .has(
+        id
+      );
+
+
+  /*
+    Optimistic UI update.
+  */
+
+  if (wasSaved){
+
+    studentCareerState
+      .savedJobIds
+      .delete(
+        id
+      );
+
+  }else{
+
+    studentCareerState
+      .savedJobIds
+      .add(
+        id
+      );
+
+  }
+
+
+  renderStudentCareerOpportunities();
+
+  updateStudentCareerSavedCount();
+
+
+  try{
+
+    const response =
+      await apiSend(
+        `/api/jobs/${id}/save`,
+        "PATCH",
+        {}
+      );
+
+
+    const saved =
+      Boolean(
+        response?.saved
+      );
+
+
+    if (saved){
+
+      studentCareerState
+        .savedJobIds
+        .add(
+          id
+        );
+
+    }else{
+
+      studentCareerState
+        .savedJobIds
+        .delete(
+          id
+        );
+
+    }
+
+
+    renderStudentCareerOpportunities();
+
+    updateStudentCareerSavedCount();
+
+
+    notifyAIFTSuccess(
+      saved
+        ? "Opportunity saved."
+        : "Opportunity removed from saved jobs.",
+      {
+        title:
+          saved
+            ? "Saved"
+            : "Removed"
+      }
+    );
+
+  }catch(error){
+
+    /*
+      Roll back optimistic update.
+    */
+
+    if (wasSaved){
+
+      studentCareerState
+        .savedJobIds
+        .add(
+          id
+        );
+
+    }else{
+
+      studentCareerState
+        .savedJobIds
+        .delete(
+          id
+        );
+
+    }
+
+
+    renderStudentCareerOpportunities();
+
+    updateStudentCareerSavedCount();
+
+
+    console.error(
+      "Career Hub save job failed:",
+      error
+    );
+
+
+    notifyAIFTError(
+      error?.message ||
+      "The opportunity could not be saved.",
+      {
+        title:
+          "Save failed"
+      }
+    );
+
+  }
+
+}
+
+/* =========================================================
+   SAVED OPPORTUNITY METRIC
+========================================================= */
+
+function updateStudentCareerSavedCount(){
+
+  setText(
+    "studentCareerSavedCount",
+    studentCareerState
+      .savedJobIds
+      .size
+  );
+
+}
+
 /* =========================================================
    RENDER CAREER OPPORTUNITIES
 ========================================================= */
@@ -14526,6 +14756,49 @@ function renderStudentCareerOpportunities(){
 
 
 <div class="student-career-opportunity-actions">
+
+<button
+  type="button"
+  class="
+    student-career-save-button
+    ${
+      studentCareerState
+        .savedJobIds
+        .has(id)
+          ? "is-saved"
+          : ""
+    }
+  "
+  data-career-save-job="${
+    escapeHtml(id)
+  }"
+  aria-label="${
+    studentCareerState
+      .savedJobIds
+      .has(id)
+        ? "Remove saved job"
+        : "Save job"
+  }"
+  title="${
+    studentCareerState
+      .savedJobIds
+      .has(id)
+        ? "Remove from saved"
+        : "Save opportunity"
+  }"
+>
+
+  <i
+    class="${
+      studentCareerState
+        .savedJobIds
+        .has(id)
+          ? "fa-solid"
+          : "fa-regular"
+    } fa-bookmark"
+  ></i>
+
+</button>
 
   <button
     type="button"
@@ -15356,6 +15629,36 @@ if (
   return;
 }
 
+
+/* =========================================
+   SAVE JOB
+========================================= */
+
+const saveButton =
+  event.target.closest(
+    "[data-career-save-job]"
+  );
+
+
+if (
+  saveButton &&
+  workspace.contains(
+    saveButton
+  )
+){
+
+  event.preventDefault();
+
+
+  toggleStudentCareerSavedJob(
+    saveButton.dataset
+      .careerSaveJob
+  );
+
+
+  return;
+}
+
       const actionButton =
         event.target.closest(
           "[data-career-action]"
@@ -15986,6 +16289,8 @@ async function renderStudentCareerHub(){
 renderStudentCareerOpportunities();
 
 renderStudentCareerApplications();
+
+updateStudentCareerSavedCount();
 
 }
 /* =========================================================
