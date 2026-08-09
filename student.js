@@ -14067,7 +14067,8 @@ async function loadStudentCareerHubData({
 
     const [
       jobsResponse,
-      applicationsResponse
+      applicationsResponse,
+      savedResponse
     ] =
       await Promise.all([
 
@@ -14077,6 +14078,10 @@ async function loadStudentCareerHubData({
 
         apiGet(
           "/api/applications"
+        ),
+
+        apiGet(
+          "/api/saved?type=job"
         )
 
       ]);
@@ -14116,50 +14121,74 @@ async function loadStudentCareerHubData({
             : [];
 
     /* =========================================================
-   SAVED OPPORTUNITIES
-========================================================= */
+       SAVED OPPORTUNITIES
+       LOAD FROM REAL SAVEDITEM BACKEND
+    ========================================================= */
 
-const savedIds = new Set();
-
-
-for (
-  const job
-  of studentCareerState.jobs
-){
-
-  const id =
-    normalizeId(
-      job?._id ||
-      job?.id
-    );
+    const savedRows =
+      Array.isArray(
+        savedResponse
+      )
+        ? savedResponse
+        : Array.isArray(
+            savedResponse?.saved
+          )
+          ? savedResponse.saved
+          : [];
 
 
-  if (!id){
-    continue;
-  }
+    const savedIds =
+      new Set();
 
 
-  const saved =
-    Boolean(
-      job?.saved ||
-      job?.isSaved ||
-      job?.savedByCurrentUser
-    );
+    for (
+      const savedItem
+      of savedRows
+    ){
+
+      const itemType =
+        String(
+          savedItem?.itemType ||
+          savedItem?.type ||
+          ""
+        )
+          .trim()
+          .toLowerCase();
 
 
-  if (saved){
-
-    savedIds.add(
-      id
-    );
-
-  }
-
-}
+      if (
+        itemType &&
+        itemType !== "job"
+      ){
+        continue;
+      }
 
 
-studentCareerState.savedJobIds =
-  savedIds;
+      const jobId =
+        normalizeId(
+          savedItem?.itemId?._id ||
+          savedItem?.itemId ||
+          savedItem?.item?._id ||
+          savedItem?.item?.id ||
+          ""
+        );
+
+
+      if (
+        jobId
+      ){
+
+        savedIds.add(
+          jobId
+        );
+
+      }
+
+    }
+
+
+    studentCareerState.savedJobIds =
+      savedIds;
 
 
     /*
@@ -14715,6 +14744,219 @@ async function toggleStudentCareerSavedJob(
   }
 
 }
+
+/* =========================================================
+   SAVE / UNSAVE CAREER JOB
+   REAL SAVEDITEM BACKEND
+========================================================= */
+
+async function toggleStudentCareerSavedJob(
+  jobId
+){
+
+  const id =
+    normalizeId(
+      jobId
+    );
+
+
+  if (!id){
+
+    notifyAIFTError(
+      "This opportunity could not be saved.",
+      {
+        title:
+          "Opportunity unavailable"
+      }
+    );
+
+    return;
+  }
+
+
+  const wasSaved =
+    studentCareerState
+      .savedJobIds
+      .has(
+        id
+      );
+
+
+  /*
+    Optimistic UI.
+
+    The student sees the result immediately while
+    the backend request completes.
+  */
+
+  if (wasSaved){
+
+    studentCareerState
+      .savedJobIds
+      .delete(
+        id
+      );
+
+  }else{
+
+    studentCareerState
+      .savedJobIds
+      .add(
+        id
+      );
+
+  }
+
+
+  renderStudentCareerOpportunities();
+
+  updateStudentCareerSavedCount();
+
+
+  try{
+
+    if (wasSaved){
+
+      /*
+        Remove the SavedItem belonging to this student.
+      */
+
+      await apiSend(
+        `/api/saved/by-item/job/${
+          encodeURIComponent(
+            id
+          )
+        }`,
+        "DELETE"
+      );
+
+    }else{
+
+      /*
+        Create account-specific SavedItem.
+      */
+
+      await apiSend(
+        "/api/saved",
+        "POST",
+        {
+          itemType:
+            "job",
+
+          itemId:
+            id
+        }
+      );
+
+    }
+
+
+    /*
+      Reload saved jobs from MongoDB.
+
+      This makes backend state the source of truth.
+    */
+
+    const savedResponse =
+      await apiGet(
+        "/api/saved?type=job"
+      );
+
+
+    const savedRows =
+      Array.isArray(
+        savedResponse
+      )
+        ? savedResponse
+        : Array.isArray(
+            savedResponse?.saved
+          )
+          ? savedResponse.saved
+          : [];
+
+
+    studentCareerState.savedJobIds =
+      new Set(
+        savedRows
+          .map(
+            savedItem =>
+              normalizeId(
+                savedItem?.itemId?._id ||
+                savedItem?.itemId ||
+                savedItem?.item?._id ||
+                ""
+              )
+          )
+          .filter(Boolean)
+      );
+
+
+    renderStudentCareerOpportunities();
+
+    updateStudentCareerSavedCount();
+
+
+    notifyAIFTSuccess(
+      wasSaved
+        ? "Opportunity removed from saved jobs."
+        : "Opportunity saved.",
+      {
+        title:
+          wasSaved
+            ? "Removed"
+            : "Saved"
+      }
+    );
+
+  }catch(error){
+
+    /*
+      Restore previous state if MongoDB request fails.
+    */
+
+    if (wasSaved){
+
+      studentCareerState
+        .savedJobIds
+        .add(
+          id
+        );
+
+    }else{
+
+      studentCareerState
+        .savedJobIds
+        .delete(
+          id
+        );
+
+    }
+
+
+    renderStudentCareerOpportunities();
+
+    updateStudentCareerSavedCount();
+
+
+    console.error(
+      "Career Hub save job failed:",
+      error
+    );
+
+
+    notifyAIFTError(
+      error?.message ||
+      "The opportunity could not be saved.",
+      {
+        title:
+          "Save failed"
+      }
+    );
+
+  }
+
+}
+
 
 /* =========================================================
    SAVED OPPORTUNITY METRIC
