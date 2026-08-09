@@ -20284,7 +20284,7 @@ function renderStudentSettingsLearning(
 
     ${studentSettingsPanelHeaderHTML({
       eyebrow:"Learning preferences",
-      title:"Personalize your learning workspace",
+      
       description:
         "Control reminders and how Student Studio helps you continue your coursework."
     })}
@@ -20392,7 +20392,7 @@ function renderStudentSettingsNotifications(
 
     ${studentSettingsPanelHeaderHTML({
       eyebrow:"Notifications",
-      title:"Choose what deserves your attention",
+      
       description:
         "Control the Student Studio updates you want to receive."
     })}
@@ -20546,7 +20546,7 @@ function renderStudentSettingsAI(
 
     ${studentSettingsPanelHeaderHTML({
       eyebrow:"Kabezya AI",
-      title:"Control your AI learning experience",
+      
       description:
         "Choose how Kabezya AI can use your Student Studio learning context to provide relevant support."
     })}
@@ -20670,7 +20670,7 @@ function renderStudentSettingsPrivacy(
 
     ${studentSettingsPanelHeaderHTML({
       eyebrow:"Privacy",
-      title:"Manage your Student Studio visibility",
+      
       description:
         "Control what other people can discover or see from your student experience."
     })}
@@ -20839,7 +20839,7 @@ function renderStudentSettingsAccessibility(
 
     ${studentSettingsPanelHeaderHTML({
       eyebrow:"Accessibility",
-      title:"Make Student Studio comfortable for you",
+     
       description:
         "Adjust visual and interaction preferences for your learning workspace."
     })}
@@ -20934,7 +20934,7 @@ function renderStudentSettingsSecurity(){
 
     ${studentSettingsPanelHeaderHTML({
       eyebrow:"Security",
-      title:"Protect your AIFT account",
+      
       description:
         "Review account security options and important sign-in controls."
     })}
@@ -21057,7 +21057,7 @@ function renderStudentSettingsData(){
 
     ${studentSettingsPanelHeaderHTML({
       eyebrow:"Data & account",
-      title:"Manage your Student Studio data",
+     
       description:
         "Review data-related actions and account-level controls."
     })}
