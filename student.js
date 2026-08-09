@@ -13829,73 +13829,77 @@ let studentAISelectedSourceId =
    STUDENT AI MODE CONFIGURATION
 ========================================================= */
 
+const STUDENT_AI_NAME =
+  "Kabezya";
+
+
 const STUDENT_AI_MODES =
   Object.freeze({
 
     ask:{
       title:
-        "AIFT Study Assistant",
+        "Kabezya",
 
       subtitle:
-        "Ask a question about your learning",
+        "Your intelligent learning companion",
 
       placeholder:
-        "Ask AIFT about a lesson, assignment, resource, or topic..."
+        "Ask Kabezya anything about a class, lesson, assignment, resource, or topic..."
     },
 
     explain:{
       title:
-        "Explain with AIFT",
+        "Kabezya · Explain",
 
       subtitle:
-        "Break difficult ideas into clear steps",
+        "Turn difficult ideas into clear understanding",
 
       placeholder:
-        "What would you like AIFT to explain?"
+        "What would you like Kabezya to explain?"
     },
 
     summary:{
       title:
-        "AI Study Notes",
+        "Kabezya · Study Notes",
 
       subtitle:
-        "Turn learning material into concise revision notes",
+        "Transform learning material into clear revision notes",
 
       placeholder:
-        "What would you like AIFT to summarize?"
+        "What would you like Kabezya to summarize?"
     },
 
     quiz:{
       title:
-        "AI Practice Coach",
+        "Kabezya · Practice",
 
       subtitle:
-        "Test your understanding with guided practice",
+        "Test your knowledge with intelligent practice",
 
       placeholder:
-        "What topic should AIFT create practice questions for?"
+        "What should Kabezya quiz you about?"
     },
 
     grammar:{
       title:
-        "AI Writing Support",
+        "Kabezya · Writing",
 
       subtitle:
-        "Improve grammar, clarity, and structure",
+        "Improve grammar, clarity, structure, and expression",
 
       placeholder:
-        "Paste the writing you want AIFT to review..."
+        "Paste the writing you want Kabezya to review..."
     },
 
     plan:{
       title:
-        "AI Study Planner",
+        "Kabezya · Study Plan",
 
       subtitle:
-        "Organize priorities, deadlines, and learning goals",
+        "Organize your learning priorities intelligently",
 
       placeholder:
-        "Tell AIFT what you need help planning..."
+        "Tell Kabezya what you need help planning..."
     }
 
   });
@@ -14852,8 +14856,8 @@ async function submitStudentAIMessage(
   const pendingMessage = {
     role:"assistant",
 
-    content:
-      "AIFT is preparing your answer...",
+content:
+  "Kabezya is thinking...",
 
     pending:true,
 
@@ -15008,7 +15012,7 @@ async function submitStudentAIMessage(
     if (!assistantText){
 
       throw new Error(
-        "AIFT received an empty AI response."
+        "Kabezya received an empty AI response."
       );
 
     }
@@ -15079,7 +15083,7 @@ async function submitStudentAIMessage(
 
       content:
         error?.message ||
-        "AIFT could not generate an answer right now. Please try again.",
+        "Kabezya could not generate an answer right now. Please try again.",
 
       error:true,
 
@@ -15094,7 +15098,7 @@ async function submitStudentAIMessage(
 
     notifyAIFTError(
       error?.message ||
-      "AIFT could not generate your learning answer.",
+      "Kabezya could not generate your learning answer.",
       {
         title:
           "AI request failed"
