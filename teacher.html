@@ -1,2623 +1,3027 @@
-<!DOCTYPE html>
+from pathlib import Path
+
+html = r'''<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-
-<title>AIFT | Teacher Portal</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-
-<style>
-:root{
-  --primary:#2557a7;
-  --primary-dark:#16437f;
-  --primary-soft:#eef4ff;
-  --green:#15803d;
-  --green-soft:#ecfdf5;
-  --warning:#d97706;
-  --warning-soft:#fffbeb;
-  --danger:#dc2626;
-  --danger-soft:#fef2f2;
-  --bg:#f4f7fb;
-  --card:#ffffff;
-  --text:#111827;
-  --muted:#667085;
-  --border:#e5e7eb;
-  --shadow:0 10px 28px rgba(15,23,42,.07);
-  --shadow-soft:0 6px 18px rgba(15,23,42,.045);
-  --max:1380px;
-}
-
-*{
-  box-sizing:border-box;
-}
-
-body{
-  margin:0;
-  font-family:Inter,Arial,sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  font-size:14px;
-  line-height:1.45;
-}
-
-a{
-  color:inherit;
-  text-decoration:none;
-}
-
-button,
-input,
-select,
-textarea{
-  font:inherit;
-}
-
-button{
-  cursor:pointer;
-}
-
-img{
-  max-width:100%;
-  display:block;
-}
-
-.hidden{
-  display:none!important;
-}
-
-.container{
-  width:min(var(--max),calc(100% - 24px));
-  margin:0 auto;
-}
-
-/* TOPBAR */
-
-.topbar{
-  position:sticky;
-  top:0;
-  z-index:1000;
-  background:rgba(255,255,255,.94);
-  backdrop-filter:blur(14px);
-  border-bottom:1px solid rgba(229,231,235,.9);
-}
-
-.topbar-inner{
-  min-height:70px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:16px;
-}
-
-.brand-wrap{
-  display:flex;
-  align-items:center;
-  gap:13px;
-  min-width:0;
-}
-
-.brand{
-  width:42px;
-  height:42px;
-  border-radius:14px;
-  background:linear-gradient(135deg,var(--primary),#4d83d8);
-  display:grid;
-  place-items:center;
-  color:#fff;
-  font-weight:800;
-  box-shadow:0 8px 18px rgba(37,87,167,.22);
-  flex-shrink:0;
-}
-
-.brand-title{
-  font-size:1rem;
-  font-weight:800;
-  line-height:1.1;
-  letter-spacing:-.02em;
-}
-
-.brand-sub{
-  color:var(--muted);
-  font-size:.8rem;
-  margin-top:3px;
-}
-
-.top-actions{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex:1;
-  justify-content:flex-end;
-}
-
-.search{
-  position:relative;
-  width:min(420px,100%);
-  flex:1;
-  max-width:420px;
-}
-
-.search input{
-  width:100%;
-  height:42px;
-  border-radius:999px;
-  border:1px solid var(--border);
-  background:#fff;
-  padding:0 15px 0 42px;
-  outline:none;
-}
-
-.search svg{
-  position:absolute;
-  left:14px;
-  top:50%;
-  transform:translateY(-50%);
-  width:17px;
-  height:17px;
-  stroke:var(--muted);
-  fill:none;
-  stroke-width:2;
-}
-
-.icon-btn,
-.primary-btn,
-.ghost-btn,
-.danger-btn,
-.success-btn{
-  border:none;
-  cursor:pointer;
-  transition:.18s ease;
-  white-space:nowrap;
-}
-
-.icon-btn{
-  width:42px;
-  height:42px;
-  border-radius:14px;
-  display:grid;
-  place-items:center;
-  background:#fff;
-  border:1px solid var(--border);
-  color:#111827;
-  position:relative;
-}
-
-.icon-btn svg{
-  width:19px;
-  height:19px;
-  stroke:currentColor;
-  fill:none;
-  stroke-width:2;
-}
-
-.primary-btn{
-  padding:10px 15px;
-  border-radius:999px;
-  background:var(--primary);
-  color:#fff;
-  font-weight:700;
-  font-size:.86rem;
-}
-
-.ghost-btn{
-  padding:10px 14px;
-  border-radius:12px;
-  background:#fff;
-  border:1px solid var(--border);
-  color:#111827;
-  font-weight:700;
-  font-size:.86rem;
-}
-
-.success-btn{
-  padding:10px 14px;
-  border-radius:12px;
-  background:var(--green-soft);
-  border:1px solid #bbf7d0;
-  color:#166534;
-  font-weight:700;
-  font-size:.86rem;
-}
-
-.danger-btn{
-  padding:10px 14px;
-  border-radius:12px;
-  background:var(--danger-soft);
-  border:1px solid #fecaca;
-  color:#b91c1c;
-  font-weight:700;
-  font-size:.86rem;
-}
-
-.avatar{
-  width:42px;
-  height:42px;
-  border-radius:14px;
-  object-fit:cover;
-  border:1px solid var(--border);
-}
-
-.badge{
-  position:absolute;
-  top:5px;
-  right:5px;
-  min-width:18px;
-  height:18px;
-  padding:0 5px;
-  border-radius:999px;
-  background:var(--danger);
-  color:#fff;
-  font-size:.65rem;
-  font-weight:800;
-  display:none;
-  place-items:center;
-  border:2px solid #fff;
-}
-  /* LAYOUT */
-
-.page{
-  padding:22px 0 34px;
-}
-
-.teacher-shell{
-  display:grid;
-  grid-template-columns:300px minmax(0,1fr) 320px;
-  gap:18px;
-  align-items:start;
-}
-
-.left-col,
-.right-col{
-  position:sticky;
-  top:90px;
-}
-
-.center-col{
-  min-width:0;
-}
-
-.card{
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:22px;
-  box-shadow:var(--shadow-soft);
-  overflow:hidden;
-}
-
-.card-pad{
-  padding:20px;
-}
-
-.card-title{
-  font-size:1rem;
-  font-weight:800;
-  letter-spacing:-.02em;
-  margin:0 0 15px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-}
-
-.small-link{
-  color:var(--primary);
-  font-weight:700;
-  font-size:.84rem;
-  background:none;
-  border:0;
-}
-
-/* HERO */
-
-.teacher-hero{
-  margin-top:20px;
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:24px;
-  box-shadow:var(--shadow);
-  overflow:hidden;
-}
-
-.teacher-cover{
-  min-height:160px;
-  background:url("https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1600&q=80") center/cover no-repeat;
-}
-
-.teacher-main{
-  padding:0 26px 24px;
-}
-
-.teacher-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-end;
-  gap:18px;
-  flex-wrap:wrap;
-}
-
-.teacher-meta{
-  display:flex;
-  align-items:flex-end;
-  gap:16px;
-  margin-top:-52px;
-}
-
-.teacher-avatar{
-  width:108px;
-  height:108px;
-  border-radius:26px;
-  border:5px solid #fff;
-  object-fit:cover;
-  background:#fff;
-  box-shadow:0 12px 28px rgba(15,23,42,.16);
-}
-
-.teacher-name{
-  margin:0;
-  font-size:1.55rem;
-  line-height:1.15;
-  letter-spacing:-.03em;
-  font-weight:800;
-}
-
-.teacher-sub{
-  margin-top:6px;
-  color:var(--muted);
-  font-size:.88rem;
-}
-
-.teacher-actions{
-  display:flex;
-  gap:9px;
-  flex-wrap:wrap;
-  padding-bottom:8px;
-}
-
-.stat-grid{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:14px;
-  margin-top:22px;
-}
-
-.stat-card{
-  background:#f8fbff;
-  border:1px solid #e7eefb;
-  border-radius:18px;
-  padding:16px;
-}
-
-.stat-label{
-  font-size:.8rem;
-  color:var(--muted);
-  margin-bottom:7px;
-  font-weight:700;
-}
-
-.stat-value{
-  font-size:1.35rem;
-  font-weight:800;
-  line-height:1;
-}
-
-.stat-note{
-  margin-top:6px;
-  color:var(--muted);
-  font-size:.76rem;
-}
-
-/* TABS */
-
-.tabs{
-  margin-top:18px;
-  display:flex;
-  gap:9px;
-  flex-wrap:wrap;
-}
-
-.tab-btn{
-  border:1px solid var(--border);
-  background:#fff;
-  color:#111827;
-  padding:10px 14px;
-  border-radius:999px;
-  font-weight:700;
-  font-size:.86rem;
-}
-
-.tab-btn.active{
-  background:var(--primary);
-  color:#fff;
-  border-color:var(--primary);
-}
-
-/* COMMON */
-
-.section{
-  display:none;
-}
-
-.section.active{
-  display:block;
-}
-
-.loading{
-  padding:22px;
-  color:var(--muted);
-  font-size:.9rem;
-}
-
-.empty{
-  padding:22px;
-  color:var(--muted);
-  text-align:center;
-  border:1px dashed var(--border);
-  border-radius:18px;
-  background:#fff;
-  font-size:.9rem;
-}
-
-.chip{
-  padding:7px 10px;
-  border-radius:999px;
-  background:#f3f4f6;
-  color:#374151;
-  font-size:.76rem;
-  font-weight:700;
-  display:inline-flex;
-  align-items:center;
-  gap:5px;
-}
-
-.chip.primary{
-  background:var(--primary-soft);
-  color:var(--primary-dark);
-}
-
-.chip.success{
-  background:var(--green-soft);
-  color:#166534;
-}
-
-.chip.warning{
-  background:var(--warning-soft);
-  color:#92400e;
-}
-
-.chip.danger{
-  background:var(--danger-soft);
-  color:#991b1b;
-}
-
-/* ACTIONS */
-
-.quick-list{
-  display:grid;
-  gap:12px;
-}
-
-.quick-item{
-  display:flex;
-  gap:12px;
-  align-items:flex-start;
-  padding:14px;
-  border:1px solid var(--border);
-  border-radius:18px;
-  background:#fff;
-  transition:.18s ease;
-  text-align:left;
-  width:100%;
-}
-
-.quick-item:hover{
-  transform:translateY(-1px);
-  border-color:#bfd3ff;
-  box-shadow:0 10px 22px rgba(15,23,42,.045);
-}
-
-.quick-icon{
-  width:40px;
-  height:40px;
-  border-radius:14px;
-  background:var(--primary-soft);
-  color:var(--primary);
-  display:grid;
-  place-items:center;
-  flex-shrink:0;
-}
-
-.quick-icon svg{
-  width:19px;
-  height:19px;
-  stroke:currentColor;
-  fill:none;
-  stroke-width:2;
-}
-
-.quick-item h4{
-  margin:0 0 4px;
-  font-size:.9rem;
-  font-weight:800;
-}
-
-.quick-item p{
-  margin:0;
-  color:var(--muted);
-  font-size:.82rem;
-  line-height:1.45;
-}
-
-/* CONTENT CARDS */
-
-.grid-2{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:15px;
-}
-
-.list{
-  display:grid;
-  gap:14px;
-}
-
-.class-card,
-.assignment-card,
-.student-card,
-.submission-card,
-.lesson-card,
-.metric-card{
-  border:1px solid var(--border);
-  border-radius:20px;
-  padding:17px;
-  background:#fff;
-  transition:.18s ease;
-}
-
-.class-card:hover,
-.assignment-card:hover,
-.student-card:hover,
-.submission-card:hover,
-.lesson-card:hover,
-.metric-card:hover{
-  transform:translateY(-1px);
-  box-shadow:0 12px 24px rgba(15,23,42,.055);
-}
-
-.class-cover{
-  height:130px;
-  border-radius:16px;
-  margin-bottom:14px;
-  border:1px solid var(--border);
-  background:url("https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80") center/cover no-repeat;
-}
-  .teacher-feed-media{
-  width:100%;
-  border-radius:18px;
-  overflow:hidden;
-  border:1px solid var(--border);
-  margin:14px 0;
-  background:#fff;
-}
-
-.teacher-feed-media img,
-.teacher-feed-media video{
-  width:100%;
-  display:block;
-  object-fit:cover;
-  max-height:520px;
-}
-
-.teacher-feed-media img{
-  height:auto;
-}
-
-.teacher-feed-post{
-  padding:20px;
-}
-
-.teacher-feed-post .item-desc{
-  font-size:.93rem;
-  line-height:1.7;
-  margin-bottom:0;
-}
-
-.item-head{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:12px;
-}
-
-.item-title{
-  font-size:.98rem;
-  font-weight:800;
-  margin:0;
-  line-height:1.35;
-  letter-spacing:-.015em;
-}
-
-.item-sub{
-  margin-top:5px;
-  color:var(--muted);
-  font-size:.82rem;
-}
-
-.item-desc{
-  margin:0 0 14px;
-  color:#4b5563;
-  line-height:1.58;
-  font-size:.88rem;
-}
-
-.meta-row{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-}
-
-.card-actions{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  margin-top:14px;
-}
-
-/* STUDENT */
-
-.student-card{
-  display:flex;
-  gap:14px;
-  align-items:flex-start;
-}
-
-.student-avatar{
-  width:58px;
-  height:58px;
-  border-radius:18px;
-  object-fit:cover;
-  border:1px solid var(--border);
-}
-
-.student-body{
-  min-width:0;
-  flex:1;
-}
-
-.student-body h3{
-  margin:0 0 4px;
-  font-size:.95rem;
-  font-weight:800;
-}
-
-.student-body p{
-  margin:0 0 10px;
-  color:var(--muted);
-  font-size:.84rem;
-}
-
-/* PROGRESS */
-
-.progress-wrap{
-  display:grid;
-  gap:14px;
-}
-
-.progress-item{
-  display:grid;
-  gap:8px;
-}
-
-.progress-head{
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  font-size:.86rem;
-  color:#374151;
-  font-weight:700;
-}
-
-.progress-bar{
-  width:100%;
-  height:9px;
-  border-radius:999px;
-  background:#edf2f7;
-  overflow:hidden;
-  margin-top:8px;
-}
-
-.progress-fill{
-  height:100%;
-  border-radius:999px;
-  background:linear-gradient(90deg,var(--primary),#5a94f7);
-  transition:width .6s ease;
-}
-
-/* MODAL */
-
-.modal{
-  position:fixed;
-  inset:0;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  background:rgba(15,23,42,.45);
-  z-index:2000;
-  padding:18px;
-}
-
-.modal.show{
-  display:flex;
-}
-
-.modal-box{
-  width:min(780px,100%);
-  max-height:92vh;
-  overflow:auto;
-  background:#fff;
-  border-radius:24px;
-  border:1px solid var(--border);
-  box-shadow:0 30px 70px rgba(15,23,42,.18);
-}
-
-.modal-head{
-  padding:20px 22px;
-  border-bottom:1px solid var(--border);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  position:sticky;
-  top:0;
-  background:#fff;
-  z-index:2;
-}
-
-.modal-title{
-  font-size:1.05rem;
-  font-weight:800;
-}
-
-.modal-body{
-  padding:22px;
-  display:grid;
-  gap:14px;
-}
-
-.input-grid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;
-}
-
-.field{
-  display:grid;
-  gap:8px;
-}
-
-.field label{
-  font-size:.84rem;
-  color:#374151;
-  font-weight:700;
-}
-
-.field input,
-.field select,
-.field textarea{
-  width:100%;
-  padding:12px 13px;
-  border-radius:14px;
-  border:1px solid var(--border);
-  background:#fff;
-  outline:none;
-  font-size:.9rem;
-}
-
-.field textarea{
-  min-height:110px;
-  resize:vertical;
-}
-
-.modal-actions{
-  display:flex;
-  justify-content:flex-end;
-  gap:10px;
-  flex-wrap:wrap;
-  padding:0 22px 22px;
-}
-
-.alert{
-  display:none;
-  margin-bottom:16px;
-  padding:14px 16px;
-  border-radius:16px;
-  font-weight:700;
-  font-size:.9rem;
-}
-
-.alert.success{
-  display:block;
-  background:#ecfdf5;
-  color:#166534;
-  border:1px solid #bbf7d0;
-}
-
-.alert.error{
-  display:block;
-  background:#fef2f2;
-  color:#991b1b;
-  border:1px solid #fecaca;
-}
-
-.alert.info{
-  display:block;
-  background:#eff6ff;
-  color:#1d4ed8;
-  border:1px solid #bfdbfe;
-}
-  /* RESPONSIVE */
-
-@media(max-width:1200px){
-  .teacher-shell{
-    grid-template-columns:280px minmax(0,1fr);
-  }
-
-  .right-col{
-    display:none;
-  }
-}
-
-@media(max-width:920px){
-  .topbar-inner{
-    min-height:auto;
-    padding:12px 0;
-    flex-wrap:wrap;
-  }
-
-  .top-actions{
-    width:100%;
-  }
-
-  .search{
-    order:2;
-    flex-basis:100%;
-    max-width:none;
-  }
-
-  .teacher-shell{
-    grid-template-columns:1fr;
-  }
-
-  .left-col,
-  .right-col{
-    position:static;
-    display:block;
-  }
-
-  .teacher-main{
-    padding:0 18px 20px;
-  }
-
-  .teacher-avatar{
-    width:92px;
-    height:92px;
-    border-radius:22px;
-  }
-
-  .teacher-name{
-    font-size:1.35rem;
-  }
-
-  .stat-grid,
-  .grid-2{
-    grid-template-columns:1fr 1fr;
-  }
-}
-
-@media(max-width:640px){
-  .container{
-    width:min(100%,calc(100% - 14px));
-  }
-
-  .brand-sub{
-    display:none;
-  }
-
-  .teacher-actions{
-    width:100%;
-  }
-
-  .teacher-actions button{
-    flex:1 1 100%;
-  }
-
-  .stat-grid,
-  .grid-2{
-    grid-template-columns:1fr;
-  }
-
-  .tabs{
-    overflow:auto;
-    flex-wrap:nowrap;
-    padding-bottom:4px;
-  }
-
-  .tabs::-webkit-scrollbar{
-    display:none;
-  }
-
-  .input-grid{
-    grid-template-columns:1fr;
-  }
-
-  .modal{
-    padding:10px;
-  }
-
-  .modal-actions{
-    flex-direction:column;
-  }
-
-  .modal-actions button{
-    width:100%;
-  }
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <title>AIFT Teacher Studio</title>
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  />
+
+  <style>
+    :root{
+      --teacher-primary:#1a73e8;
+      --teacher-primary-hover:#1557b0;
+      --teacher-primary-soft:#eaf3ff;
+      --teacher-text-strong:#172033;
+      --teacher-text:#344054;
+      --teacher-muted:#667085;
+      --teacher-subtle:#98a2b3;
+      --teacher-border:#dfe5ec;
+      --teacher-border-soft:#edf0f4;
+      --teacher-surface:#ffffff;
+      --teacher-surface-muted:#f7f9fc;
+      --teacher-page:#f4f6f9;
+      --teacher-success:#137c41;
+      --teacher-success-soft:#eaf7ef;
+      --teacher-warning:#b25d00;
+      --teacher-warning-soft:#fff4df;
+      --teacher-danger:#b42318;
+      --teacher-danger-soft:#fff0ee;
+      --teacher-sidebar-width:250px;
+      --teacher-topbar-height:58px;
+      --teacher-radius:14px;
+      --teacher-shadow:0 1px 2px rgba(16,24,40,.04), 0 8px 24px rgba(16,24,40,.04);
+      --teacher-focus:0 0 0 3px rgba(26,115,232,.14);
+    }
+
+    *{box-sizing:border-box}
+
+    html,body{
+      margin:0;
+      min-height:100%;
+      background:var(--teacher-page);
+      color:var(--teacher-text);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+
+    body{
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+
+    button,input,select,textarea{
+      font:inherit;
+    }
+
+    button{
+      cursor:pointer;
+    }
+
+    .teacher-app{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns:var(--teacher-sidebar-width) minmax(0,1fr);
+      grid-template-rows:var(--teacher-topbar-height) minmax(0,1fr);
+    }
+
+    .teacher-topbar{
+      position:fixed;
+      inset:0 0 auto 0;
+      height:var(--teacher-topbar-height);
+      z-index:2000;
+      display:grid;
+      grid-template-columns:var(--teacher-sidebar-width) minmax(0,1fr);
+      border-bottom:1px solid var(--teacher-border);
+      background:#fff;
+    }
+
+    .teacher-brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:0 18px;
+      border-right:1px solid var(--teacher-border-soft);
+      color:var(--teacher-text-strong);
+      font-weight:800;
+      letter-spacing:-.02em;
+    }
+
+    .teacher-brand-mark{
+      width:30px;
+      height:30px;
+      display:grid;
+      place-items:center;
+      border-radius:9px;
+      background:linear-gradient(135deg,#1a73e8,#5b5df5);
+      color:#fff;
+      font-size:13px;
+      box-shadow:0 6px 18px rgba(26,115,232,.18);
+    }
+
+    .teacher-brand-copy{
+      display:grid;
+      line-height:1.05;
+    }
+
+    .teacher-brand-copy strong{
+      font-size:13px;
+    }
+
+    .teacher-brand-copy span{
+      margin-top:3px;
+      color:var(--teacher-muted);
+      font-size:7px;
+      font-weight:700;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .teacher-topbar-main{
+      min-width:0;
+      padding:0 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+
+    .teacher-mobile-menu{
+      display:none;
+      width:36px;
+      height:36px;
+      border:1px solid var(--teacher-border);
+      border-radius:9px;
+      background:#fff;
+      color:var(--teacher-text);
+    }
+
+    .teacher-search{
+      width:min(640px,100%);
+      position:relative;
+    }
+
+    .teacher-search i{
+      position:absolute;
+      left:12px;
+      top:50%;
+      transform:translateY(-50%);
+      color:var(--teacher-subtle);
+      font-size:11px;
+      pointer-events:none;
+    }
+
+    .teacher-search input{
+      width:100%;
+      height:38px;
+      padding:0 14px 0 34px;
+      border:1px solid var(--teacher-border);
+      border-radius:10px;
+      outline:none;
+      background:var(--teacher-surface-muted);
+      color:var(--teacher-text-strong);
+      font-size:9px;
+      transition:.16s ease;
+    }
+
+    .teacher-search input:focus{
+      border-color:var(--teacher-primary);
+      background:#fff;
+      box-shadow:var(--teacher-focus);
+    }
+
+    .teacher-account{
+      flex:0 0 auto;
+      display:flex;
+      align-items:center;
+      gap:9px;
+    }
+
+    .teacher-account-avatar{
+      width:32px;
+      height:32px;
+      overflow:hidden;
+      display:grid;
+      place-items:center;
+      border-radius:50%;
+      background:var(--teacher-primary-soft);
+      color:var(--teacher-primary);
+      font-size:10px;
+      font-weight:800;
+    }
+
+    .teacher-account-avatar img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    .teacher-account-copy{
+      max-width:150px;
+      display:grid;
+      line-height:1.15;
+    }
+
+    .teacher-account-copy strong{
+      overflow:hidden;
+      color:var(--teacher-text-strong);
+      font-size:8px;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+    }
+
+    .teacher-account-copy span{
+      margin-top:2px;
+      color:var(--teacher-muted);
+      font-size:7px;
+    }
+
+    .teacher-sidebar{
+      position:fixed;
+      top:var(--teacher-topbar-height);
+      bottom:0;
+      left:0;
+      z-index:1800;
+      width:var(--teacher-sidebar-width);
+      display:flex;
+      flex-direction:column;
+      border-right:1px solid var(--teacher-border);
+      background:#fff;
+    }
+
+    .teacher-sidebar-scroll{
+      min-height:0;
+      flex:1 1 auto;
+      overflow-y:auto;
+      padding:14px 10px 18px;
+    }
+
+    .teacher-nav-group{
+      display:grid;
+      gap:3px;
+    }
+
+    .teacher-nav-label{
+      padding:10px 10px 5px;
+      color:var(--teacher-subtle);
+      font-size:6.5px;
+      line-height:1;
+      font-weight:800;
+      letter-spacing:.09em;
+      text-transform:uppercase;
+    }
+
+    .teacher-nav-button{
+      width:100%;
+      min-height:38px;
+      padding:0 10px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      border:0;
+      border-radius:9px;
+      background:transparent;
+      color:var(--teacher-text);
+      text-align:left;
+      font-size:8px;
+      font-weight:600;
+      transition:.14s ease;
+    }
+
+    .teacher-nav-button i{
+      width:18px;
+      color:var(--teacher-muted);
+      font-size:11px;
+      text-align:center;
+    }
+
+    .teacher-nav-button:hover{
+      background:var(--teacher-surface-muted);
+      color:var(--teacher-text-strong);
+    }
+
+    .teacher-nav-button.active{
+      background:var(--teacher-primary-soft);
+      color:var(--teacher-primary);
+    }
+
+    .teacher-nav-button.active i{
+      color:var(--teacher-primary);
+    }
+
+    .teacher-sidebar-footer{
+      padding:10px;
+      border-top:1px solid var(--teacher-border-soft);
+      display:grid;
+      gap:3px;
+    }
+
+    .teacher-main{
+      grid-column:2;
+      grid-row:2;
+      min-width:0;
+      margin-top:var(--teacher-topbar-height);
+      padding:22px 24px 40px;
+    }
+
+    .teacher-section{
+      display:none;
+      max-width:1280px;
+      margin:0 auto;
+    }
+
+    .teacher-section.active{
+      display:block;
+    }
+
+    .teacher-page-head{
+      margin-bottom:18px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+    }
+
+    .teacher-page-head-copy{
+      min-width:0;
+    }
+
+    .teacher-eyebrow{
+      color:var(--teacher-primary);
+      font-size:6.5px;
+      font-weight:800;
+      letter-spacing:.1em;
+      text-transform:uppercase;
+    }
+
+    .teacher-page-head h1{
+      margin:5px 0 0;
+      color:var(--teacher-text-strong);
+      font-size:24px;
+      line-height:1.2;
+      letter-spacing:-.035em;
+    }
+
+    .teacher-page-head p{
+      max-width:760px;
+      margin:6px 0 0;
+      color:var(--teacher-muted);
+      font-size:9px;
+      line-height:1.55;
+    }
+
+    .teacher-actions{
+      flex:0 0 auto;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .teacher-button{
+      min-height:36px;
+      padding:0 12px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      border-radius:9px;
+      font-size:8px;
+      font-weight:700;
+      text-decoration:none;
+      transition:.15s ease;
+    }
+
+    .teacher-button.primary{
+      border:1px solid var(--teacher-primary);
+      background:var(--teacher-primary);
+      color:#fff;
+      box-shadow:0 4px 12px rgba(26,115,232,.14);
+    }
+
+    .teacher-button.primary:hover{
+      background:var(--teacher-primary-hover);
+      border-color:var(--teacher-primary-hover);
+    }
+
+    .teacher-button.secondary{
+      border:1px solid var(--teacher-border);
+      background:#fff;
+      color:var(--teacher-text);
+    }
+
+    .teacher-button.secondary:hover{
+      background:var(--teacher-surface-muted);
+    }
+
+    .teacher-stats-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:16px;
+    }
+
+    .teacher-stat-card,
+    .teacher-card{
+      border:1px solid var(--teacher-border);
+      border-radius:var(--teacher-radius);
+      background:#fff;
+      box-shadow:var(--teacher-shadow);
+    }
+
+    .teacher-stat-card{
+      min-width:0;
+      padding:14px;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 36px;
+      gap:10px;
+      align-items:start;
+    }
+
+    .teacher-stat-label{
+      color:var(--teacher-muted);
+      font-size:7px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+    }
+
+    .teacher-stat-value{
+      margin-top:5px;
+      color:var(--teacher-text-strong);
+      font-size:22px;
+      line-height:1;
+      font-weight:800;
+      letter-spacing:-.04em;
+    }
+
+    .teacher-stat-note{
+      margin-top:5px;
+      color:var(--teacher-subtle);
+      font-size:7px;
+      line-height:1.4;
+    }
+
+    .teacher-stat-icon{
+      width:36px;
+      height:36px;
+      display:grid;
+      place-items:center;
+      border-radius:10px;
+      background:var(--teacher-primary-soft);
+      color:var(--teacher-primary);
+      font-size:11px;
+    }
+
+    .teacher-dashboard-grid{
+      display:grid;
+      grid-template-columns:minmax(0,1.55fr) minmax(300px,.85fr);
+      gap:14px;
+    }
+
+    .teacher-card{
+      min-width:0;
+      overflow:hidden;
+    }
+
+    .teacher-card-head{
+      min-height:54px;
+      padding:12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      border-bottom:1px solid var(--teacher-border-soft);
+    }
+
+    .teacher-card-head-copy{
+      min-width:0;
+    }
+
+    .teacher-card-head h2,
+    .teacher-card-head h3{
+      margin:0;
+      color:var(--teacher-text-strong);
+      font-size:11px;
+      line-height:1.3;
+    }
+
+    .teacher-card-head p{
+      margin:3px 0 0;
+      color:var(--teacher-muted);
+      font-size:7px;
+      line-height:1.45;
+    }
+
+    .teacher-card-body{
+      padding:14px;
+    }
+
+    .teacher-list{
+      display:grid;
+      gap:8px;
+    }
+
+    .teacher-list-row{
+      min-width:0;
+      padding:10px 11px;
+      display:grid;
+      grid-template-columns:34px minmax(0,1fr) auto;
+      align-items:center;
+      gap:10px;
+      border:1px solid var(--teacher-border-soft);
+      border-radius:10px;
+      background:#fff;
+    }
+
+    .teacher-list-icon{
+      width:34px;
+      height:34px;
+      display:grid;
+      place-items:center;
+      border-radius:9px;
+      background:var(--teacher-primary-soft);
+      color:var(--teacher-primary);
+      font-size:10px;
+    }
+
+    .teacher-list-copy{
+      min-width:0;
+      display:grid;
+      gap:3px;
+    }
+
+    .teacher-list-copy strong{
+      overflow:hidden;
+      color:var(--teacher-text-strong);
+      font-size:8.5px;
+      line-height:1.3;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+    }
+
+    .teacher-list-copy span{
+      overflow:hidden;
+      color:var(--teacher-muted);
+      font-size:7px;
+      line-height:1.4;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+    }
+
+    .teacher-badge{
+      min-height:22px;
+      padding:0 7px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      background:var(--teacher-surface-muted);
+      color:var(--teacher-muted);
+      font-size:6.5px;
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .teacher-badge.success{
+      background:var(--teacher-success-soft);
+      color:var(--teacher-success);
+    }
+
+    .teacher-badge.warning{
+      background:var(--teacher-warning-soft);
+      color:var(--teacher-warning);
+    }
+
+    .teacher-badge.primary{
+      background:var(--teacher-primary-soft);
+      color:var(--teacher-primary);
+    }
+
+    .teacher-class-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:13px;
+    }
+
+    .teacher-class-card{
+      min-width:0;
+      overflow:hidden;
+      border:1px solid var(--teacher-border);
+      border-radius:14px;
+      background:#fff;
+      box-shadow:var(--teacher-shadow);
+    }
+
+    .teacher-class-cover{
+      height:92px;
+      padding:14px;
+      display:flex;
+      align-items:flex-end;
+      background:
+        radial-gradient(circle at 80% 0%,rgba(255,255,255,.25),transparent 35%),
+        linear-gradient(135deg,#1a73e8,#5965e8);
+      color:#fff;
+    }
+
+    .teacher-class-cover strong{
+      max-width:85%;
+      font-size:13px;
+      line-height:1.25;
+    }
+
+    .teacher-class-body{
+      padding:13px;
+    }
+
+    .teacher-class-meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-bottom:10px;
+    }
+
+    .teacher-class-description{
+      min-height:34px;
+      margin:0 0 12px;
+      color:var(--teacher-muted);
+      font-size:7.5px;
+      line-height:1.5;
+    }
+
+    .teacher-class-footer{
+      padding-top:10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      border-top:1px solid var(--teacher-border-soft);
+    }
+
+    .teacher-class-students{
+      color:var(--teacher-muted);
+      font-size:7px;
+    }
+
+    .teacher-filterbar{
+      margin-bottom:14px;
+      padding:10px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid var(--teacher-border);
+      border-radius:12px;
+      background:#fff;
+    }
+
+    .teacher-filterbar input,
+    .teacher-filterbar select{
+      height:34px;
+      border:1px solid var(--teacher-border);
+      border-radius:8px;
+      background:#fff;
+      color:var(--teacher-text);
+      outline:none;
+      font-size:8px;
+    }
+
+    .teacher-filterbar input{
+      flex:1 1 auto;
+      min-width:140px;
+      padding:0 10px;
+    }
+
+    .teacher-filterbar select{
+      flex:0 0 auto;
+      min-width:160px;
+      padding:0 28px 0 9px;
+    }
+
+    .teacher-table-wrap{
+      overflow:auto;
+      border:1px solid var(--teacher-border);
+      border-radius:13px;
+      background:#fff;
+      box-shadow:var(--teacher-shadow);
+    }
+
+    .teacher-table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:760px;
+    }
+
+    .teacher-table th,
+    .teacher-table td{
+      padding:10px 12px;
+      border-bottom:1px solid var(--teacher-border-soft);
+      text-align:left;
+      vertical-align:middle;
+      font-size:7.5px;
+    }
+
+    .teacher-table th{
+      background:#fafbfd;
+      color:var(--teacher-muted);
+      font-size:6.5px;
+      font-weight:800;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+    }
+
+    .teacher-table td{
+      color:var(--teacher-text);
+    }
+
+    .teacher-table tbody tr:last-child td{
+      border-bottom:0;
+    }
+
+    .teacher-person{
+      min-width:0;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .teacher-person-avatar{
+      width:30px;
+      height:30px;
+      flex:0 0 auto;
+      overflow:hidden;
+      display:grid;
+      place-items:center;
+      border-radius:50%;
+      background:var(--teacher-primary-soft);
+      color:var(--teacher-primary);
+      font-size:8px;
+      font-weight:800;
+    }
+
+    .teacher-person-avatar img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    .teacher-person-copy{
+      min-width:0;
+      display:grid;
+      gap:2px;
+    }
+
+    .teacher-person-copy strong{
+      overflow:hidden;
+      color:var(--teacher-text-strong);
+      font-size:8px;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+    }
+
+    .teacher-person-copy span{
+      overflow:hidden;
+      color:var(--teacher-muted);
+      font-size:6.8px;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+    }
+
+    .teacher-empty,
+    .teacher-loading,
+    .teacher-error{
+      min-height:150px;
+      padding:22px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      text-align:center;
+      color:var(--teacher-muted);
+    }
+
+    .teacher-empty i,
+    .teacher-loading i,
+    .teacher-error i{
+      font-size:18px;
+      color:var(--teacher-primary);
+    }
+
+    .teacher-error i{
+      color:var(--teacher-danger);
+    }
+
+    .teacher-empty strong,
+    .teacher-error strong{
+      color:var(--teacher-text-strong);
+      font-size:9px;
+    }
+
+    .teacher-empty span,
+    .teacher-error span{
+      max-width:460px;
+      font-size:7.5px;
+      line-height:1.5;
+    }
+
+    .teacher-quick-actions{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
+    }
+
+    .teacher-quick-action{
+      min-height:78px;
+      padding:11px;
+      display:grid;
+      grid-template-columns:32px minmax(0,1fr);
+      align-items:start;
+      gap:9px;
+      border:1px solid var(--teacher-border-soft);
+      border-radius:10px;
+      background:#fff;
+      color:var(--teacher-text);
+      text-align:left;
+    }
+
+    .teacher-quick-action:hover{
+      border-color:#cddcf0;
+      background:#fbfdff;
+    }
+
+    .teacher-quick-action-icon{
+      width:32px;
+      height:32px;
+      display:grid;
+      place-items:center;
+      border-radius:9px;
+      background:var(--teacher-primary-soft);
+      color:var(--teacher-primary);
+      font-size:10px;
+    }
+
+    .teacher-quick-action-copy{
+      min-width:0;
+      display:grid;
+      gap:3px;
+    }
+
+    .teacher-quick-action-copy strong{
+      color:var(--teacher-text-strong);
+      font-size:8px;
+    }
+
+    .teacher-quick-action-copy span{
+      color:var(--teacher-muted);
+      font-size:6.8px;
+      line-height:1.45;
+    }
+
+    .teacher-notice{
+      margin-bottom:14px;
+      padding:11px 12px;
+      display:grid;
+      grid-template-columns:28px minmax(0,1fr);
+      align-items:start;
+      gap:9px;
+      border:1px solid #d9e8fb;
+      border-radius:11px;
+      background:#f7fbff;
+    }
+
+    .teacher-notice i{
+      width:28px;
+      height:28px;
+      display:grid;
+      place-items:center;
+      border-radius:8px;
+      background:var(--teacher-primary-soft);
+      color:var(--teacher-primary);
+      font-size:9px;
+    }
+
+    .teacher-notice strong{
+      display:block;
+      color:var(--teacher-text-strong);
+      font-size:8px;
+    }
+
+    .teacher-notice span{
+      display:block;
+      margin-top:2px;
+      color:var(--teacher-muted);
+      font-size:7px;
+      line-height:1.5;
+    }
+
+    .teacher-overlay{
+      position:fixed;
+      inset:0;
+      z-index:1700;
+      background:rgba(15,23,42,.28);
+      opacity:0;
+      pointer-events:none;
+      transition:.16s ease;
+    }
+
+    .teacher-overlay.active{
+      opacity:1;
+      pointer-events:auto;
+    }
+
+    .hidden{display:none!important}
+
+    @media(max-width:1120px){
+      .teacher-stats-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+
+      .teacher-class-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+
+      .teacher-dashboard-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media(max-width:760px){
+      :root{
+        --teacher-sidebar-width:260px;
+        --teacher-topbar-height:56px;
+      }
+
+      .teacher-app{
+        display:block;
+      }
+
+      .teacher-topbar{
+        grid-template-columns:1fr;
+      }
+
+      .teacher-brand{
+        display:none;
+      }
+
+      .teacher-topbar-main{
+        height:var(--teacher-topbar-height);
+        padding:0 12px;
+      }
+
+      .teacher-mobile-menu{
+        display:grid;
+        place-items:center;
+        flex:0 0 auto;
+      }
+
+      .teacher-search{
+        flex:1 1 auto;
+      }
+
+      .teacher-account-copy{
+        display:none;
+      }
+
+      .teacher-sidebar{
+        transform:translateX(-101%);
+        transition:transform .2s ease;
+        box-shadow:16px 0 40px rgba(15,23,42,.12);
+      }
+
+      .teacher-sidebar.open{
+        transform:translateX(0);
+      }
+
+      .teacher-main{
+        margin-top:var(--teacher-topbar-height);
+        padding:16px 0 32px;
+      }
+
+      .teacher-section{
+        max-width:none;
+      }
+
+      .teacher-page-head{
+        padding:0 14px;
+      }
+
+      .teacher-page-head h1{
+        font-size:20px;
+      }
+
+      .teacher-stats-grid,
+      .teacher-dashboard-grid,
+      .teacher-class-grid{
+        padding-left:12px;
+        padding-right:12px;
+      }
+
+      .teacher-stats-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+
+      .teacher-class-grid{
+        grid-template-columns:1fr;
+      }
+
+      .teacher-filterbar{
+        margin-left:12px;
+        margin-right:12px;
+        align-items:stretch;
+        flex-direction:column;
+      }
+
+      .teacher-filterbar select{
+        width:100%;
+      }
+
+      .teacher-table-wrap,
+      .teacher-card{
+        border-left:0;
+        border-right:0;
+        border-radius:0;
+      }
+
+      .teacher-actions{
+        display:none;
+      }
+    }
+
+    @media(max-width:470px){
+      .teacher-stats-grid{
+        grid-template-columns:1fr 1fr;
+        gap:8px;
+      }
+
+      .teacher-stat-card{
+        grid-template-columns:1fr;
+      }
+
+      .teacher-stat-icon{
+        display:none;
+      }
+
+      .teacher-quick-actions{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
 </head>
 
 <body>
+  <div class="teacher-app">
 
-<header class="topbar">
-  <div class="container topbar-inner">
+    <header class="teacher-topbar">
+      <div class="teacher-brand">
+        <div class="teacher-brand-mark">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
 
-    <div class="brand-wrap">
-      <a class="brand" href="home.html">A</a>
-
-      <div>
-        <div class="brand-title">AIFT Teacher Portal</div>
-        <div class="brand-sub">Classes, assignments, submissions, attendance, and student progress</div>
+        <div class="teacher-brand-copy">
+          <strong>AIFT</strong>
+          <span>Teacher Studio</span>
+        </div>
       </div>
-    </div>
 
-    <div class="top-actions">
-      <div class="search">
-        <svg viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="M20 20l-3.5-3.5"></path>
-        </svg>
-
-        <input
-          id="globalSearch"
-          type="search"
-          placeholder="Search classes, students, assignments..."
+      <div class="teacher-topbar-main">
+        <button
+          id="teacherMobileMenu"
+          class="teacher-mobile-menu"
+          type="button"
+          aria-label="Open navigation"
         >
-      </div>
-
-      <button class="icon-btn" onclick="goNotifications()" title="Notifications">
-        <svg viewBox="0 0 24 24">
-          <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
-          <path d="M10 21a2 2 0 0 0 4 0"></path>
-        </svg>
-
-        <span class="badge" id="notificationBadge">0</span>
-      </button>
-
-      <button class="primary-btn" onclick="openModal('assignmentModal')">
-        Create Assignment
-      </button>
-
-      <img
-        id="topAvatar"
-        class="avatar"
-        src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-        alt="Teacher"
-      >
-    </div>
-
-  </div>
-</header>
-
-<section class="container teacher-hero">
-
-  <div class="teacher-cover" id="teacherCover"></div>
-
-  <div class="teacher-main">
-
-    <div class="teacher-row">
-
-      <div class="teacher-meta">
-
-        <img
-          id="teacherAvatar"
-          class="teacher-avatar"
-          src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-          alt="Teacher"
-        >
-
-        <div>
-          <h1 id="teacherName" class="teacher-name">Loading teacher...</h1>
-
-          <div id="teacherSub" class="teacher-sub">
-            Teacher workspace
-          </div>
-        </div>
-
-      </div>
-
-      <div class="teacher-actions">
-        <button class="primary-btn" onclick="openModal('assignmentModal')">
-          New Assignment
+          <i class="fa-solid fa-bars"></i>
         </button>
 
-        <button class="ghost-btn" onclick="openModal('announcementModal')">
-          Announcement
-        </button>
+        <label class="teacher-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input
+            id="teacherGlobalSearch"
+            type="search"
+            placeholder="Search classes, students, assignments..."
+            autocomplete="off"
+          />
+        </label>
 
-        <button class="ghost-btn" onclick="openTab('gradebook')">
-          Gradebook
-        </button>
+        <div class="teacher-account">
+          <div id="teacherAvatar" class="teacher-account-avatar">
+            T
+          </div>
+
+          <div class="teacher-account-copy">
+            <strong id="teacherAccountName">Teacher</strong>
+            <span id="teacherAccountRole">Teacher Studio</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <aside id="teacherSidebar" class="teacher-sidebar">
+      <div class="teacher-sidebar-scroll">
+
+        <nav class="teacher-nav-group" aria-label="Teacher Studio navigation">
+          <div class="teacher-nav-label">Workspace</div>
+
+          <button class="teacher-nav-button active" data-section="overview" type="button">
+            <i class="fa-solid fa-house"></i>
+            <span>Overview</span>
+          </button>
+
+          <button class="teacher-nav-button" data-section="classes" type="button">
+            <i class="fa-solid fa-chalkboard"></i>
+            <span>My Classes</span>
+          </button>
+
+          <button class="teacher-nav-button" data-section="students" type="button">
+            <i class="fa-solid fa-user-graduate"></i>
+            <span>Students</span>
+          </button>
+
+          <div class="teacher-nav-label">Teaching</div>
+
+          <button class="teacher-nav-button" data-section="assignments" type="button">
+            <i class="fa-solid fa-file-pen"></i>
+            <span>Assignments</span>
+          </button>
+
+          <button class="teacher-nav-button" data-section="quizzes" type="button">
+            <i class="fa-solid fa-circle-question"></i>
+            <span>Quizzes</span>
+          </button>
+
+          <button class="teacher-nav-button" data-section="attendance" type="button">
+            <i class="fa-solid fa-calendar-check"></i>
+            <span>Attendance</span>
+          </button>
+
+          <button class="teacher-nav-button" data-section="grading" type="button">
+            <i class="fa-solid fa-marker"></i>
+            <span>Submissions & Grading</span>
+          </button>
+
+          <button class="teacher-nav-button" data-section="schedule" type="button">
+            <i class="fa-regular fa-calendar"></i>
+            <span>Schedule</span>
+          </button>
+
+          <div class="teacher-nav-label">Insights</div>
+
+          <button class="teacher-nav-button" data-section="analytics" type="button">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Analytics</span>
+          </button>
+
+          <button class="teacher-nav-button" data-section="messages" type="button">
+            <i class="fa-regular fa-message"></i>
+            <span>Messages</span>
+          </button>
+        </nav>
       </div>
 
-    </div>
+      <div class="teacher-sidebar-footer">
+        <button class="teacher-nav-button" data-section="settings" type="button">
+          <i class="fa-solid fa-gear"></i>
+          <span>Settings</span>
+        </button>
 
-    <div class="stat-grid">
-
-      <article class="stat-card">
-        <div class="stat-label">Classes</div>
-        <div class="stat-value" id="statClasses">0</div>
-        <div class="stat-note">Assigned classes</div>
-      </article>
-
-      <article class="stat-card">
-        <div class="stat-label">Students</div>
-        <div class="stat-value" id="statStudents">0</div>
-        <div class="stat-note">Learners in your classes</div>
-      </article>
-
-      <article class="stat-card">
-        <div class="stat-label">Assignments</div>
-        <div class="stat-value" id="statAssignments">0</div>
-        <div class="stat-note">Published tasks</div>
-      </article>
-
-      <article class="stat-card">
-        <div class="stat-label">Submissions</div>
-        <div class="stat-value" id="statSubmissions">0</div>
-        <div class="stat-note">Student work received</div>
-      </article>
-
-    </div>
-
-  </div>
-
-</section>
-
-<div class="container">
-  <div class="tabs">
-
-    <button class="tab-btn active" data-tab="overview" onclick="openTab('overview')">
-      Overview
-    </button>
-
-    <button class="tab-btn" data-tab="classes" onclick="openTab('classes')">
-      My Classes
-    </button>
-
-    <button class="tab-btn" data-tab="assignments" onclick="openTab('assignments')">
-      Assignments
-    </button>
-
-    <button class="tab-btn" data-tab="submissions" onclick="openTab('submissions')">
-      Submissions
-    </button>
-
-    <button class="tab-btn" data-tab="students" onclick="openTab('students')">
-      Students
-    </button>
-
-    <button class="tab-btn" data-tab="attendance" onclick="openTab('attendance')">
-      Attendance
-    </button>
-
-    <button class="tab-btn" data-tab="gradebook" onclick="openTab('gradebook')">
-      Gradebook
-    </button>
-
-  </div>
-</div>
-
-<main class="page">
-  <div class="container teacher-shell">
-
-    <!-- LEFT SIDEBAR -->
-
-    <aside class="left-col">
-
-      <article class="card card-pad">
-        <h2 class="card-title">Teacher Actions</h2>
-
-        <div class="quick-list">
-
-          <button class="quick-item" onclick="openModal('assignmentModal')">
-            <div class="quick-icon">
-              <svg viewBox="0 0 24 24">
-                <path d="M9 11l3 3L22 4"></path>
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-              </svg>
-            </div>
-
-            <div>
-              <h4>Create Assignment</h4>
-              <p>Publish work for your students and track submissions.</p>
-            </div>
-          </button>
-
-          <button class="quick-item" onclick="openModal('announcementModal')">
-            <div class="quick-icon">
-              <svg viewBox="0 0 24 24">
-                <path d="M3 11l18-5v12L3 13v-2z"></path>
-                <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path>
-              </svg>
-            </div>
-
-            <div>
-              <h4>Class Announcement</h4>
-              <p>Send a class update or reminder.</p>
-            </div>
-          </button>
-
-          <button class="quick-item" onclick="openTab('submissions')">
-            <div class="quick-icon">
-              <svg viewBox="0 0 24 24">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <path d="M7 10l5 5 5-5"></path>
-                <path d="M12 15V3"></path>
-              </svg>
-            </div>
-
-            <div>
-              <h4>Review Submissions</h4>
-              <p>Grade student work and give feedback.</p>
-            </div>
-          </button>
-
-          <button class="quick-item" onclick="openTab('attendance')">
-            <div class="quick-icon">
-              <svg viewBox="0 0 24 24">
-                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                <path d="M16 2v4"></path>
-                <path d="M8 2v4"></path>
-                <path d="M3 10h18"></path>
-              </svg>
-            </div>
-
-            <div>
-              <h4>Attendance</h4>
-              <p>Prepare attendance tracking for live classes.</p>
-            </div>
-          </button>
-
-        </div>
-      </article>
-
-      <article class="card card-pad" style="margin-top:18px;">
-        <h2 class="card-title">Today</h2>
-
-        <div class="info-list">
-          <div class="info-row">
-            <div class="info-label">Upcoming classes</div>
-            <div class="info-value" id="todayClasses">0</div>
-          </div>
-
-          <div class="info-row">
-            <div class="info-label">Due assignments</div>
-            <div class="info-value" id="todayDue">0</div>
-          </div>
-
-          <div class="info-row">
-            <div class="info-label">Pending reviews</div>
-            <div class="info-value" id="pendingReviews">0</div>
-          </div>
-        </div>
-      </article>
-
+        <button class="teacher-nav-button" data-section="help" type="button">
+          <i class="fa-regular fa-circle-question"></i>
+          <span>Help & Support</span>
+        </button>
+      </div>
     </aside>
-        <!-- CENTER -->
 
-    <section class="center-col">
+    <div id="teacherOverlay" class="teacher-overlay"></div>
+
+    <main class="teacher-main">
 
       <!-- OVERVIEW -->
+      <section id="section-overview" class="teacher-section active">
+        <div class="teacher-page-head">
+          <div class="teacher-page-head-copy">
+            <span class="teacher-eyebrow">Teacher Studio</span>
+            <h1 id="teacherWelcomeTitle">Good morning</h1>
+            <p>
+              Manage your assigned classes, students, assessments, attendance and grading
+              from one teaching workspace.
+            </p>
+          </div>
 
-      <section id="section-overview" class="section active">
-
-        <article class="card card-pad">
-
-          <h2 class="card-title">
-            Teacher Feed
-
-            <button class="small-link" onclick="openModal('announcementModal')">
-              New announcement
+          <div class="teacher-actions">
+            <button class="teacher-button secondary" type="button" data-open-section="schedule">
+              <i class="fa-regular fa-calendar"></i>
+              Schedule
             </button>
-          </h2>
-
-          <div class="list" id="teacherFeed">
-
-            <div class="loading">
-              Loading updates...
-            </div>
-
-          </div>
-
-        </article>
-
-      </section>
-
-      <!-- CLASSES -->
-
-      <section id="section-classes" class="section">
-
-        <article class="card card-pad">
-
-          <h2 class="card-title">
-            My Classes
-          </h2>
-
-          <div class="grid-2" id="classesList">
-
-            <div class="loading">
-              Loading classes...
-            </div>
-
-          </div>
-
-        </article>
-
-      </section>
-
-      <!-- ASSIGNMENTS -->
-
-      <section id="section-assignments" class="section">
-
-        <article class="card card-pad">
-
-          <h2 class="card-title">
-
-            Assignments
-
-            <button class="small-link" onclick="openModal('assignmentModal')">
-              Create assignment
+            <button class="teacher-button primary" type="button" data-open-section="classes">
+              <i class="fa-solid fa-chalkboard"></i>
+              Open class
             </button>
+          </div>
+        </div>
 
-          </h2>
+        <div class="teacher-stats-grid">
+          <article class="teacher-stat-card">
+            <div>
+              <div class="teacher-stat-label">Assigned classes</div>
+              <div id="statClasses" class="teacher-stat-value">0</div>
+              <div class="teacher-stat-note">Classes currently assigned to you</div>
+            </div>
+            <div class="teacher-stat-icon"><i class="fa-solid fa-chalkboard"></i></div>
+          </article>
 
-          <div class="list" id="assignmentsList">
+          <article class="teacher-stat-card">
+            <div>
+              <div class="teacher-stat-label">Students</div>
+              <div id="statStudents" class="teacher-stat-value">0</div>
+              <div class="teacher-stat-note">Unique students in your classes</div>
+            </div>
+            <div class="teacher-stat-icon"><i class="fa-solid fa-user-graduate"></i></div>
+          </article>
 
-            <div class="loading">
-              Loading assignments...
+          <article class="teacher-stat-card">
+            <div>
+              <div class="teacher-stat-label">Pending grading</div>
+              <div id="statPendingGrading" class="teacher-stat-value">0</div>
+              <div class="teacher-stat-note">Submitted work awaiting review</div>
+            </div>
+            <div class="teacher-stat-icon"><i class="fa-solid fa-marker"></i></div>
+          </article>
+
+          <article class="teacher-stat-card">
+            <div>
+              <div class="teacher-stat-label">Upcoming sessions</div>
+              <div id="statSchedules" class="teacher-stat-value">0</div>
+              <div class="teacher-stat-note">Scheduled class sessions</div>
+            </div>
+            <div class="teacher-stat-icon"><i class="fa-regular fa-calendar"></i></div>
+          </article>
+        </div>
+
+        <div class="teacher-dashboard-grid">
+          <section class="teacher-card">
+            <div class="teacher-card-head">
+              <div class="teacher-card-head-copy">
+                <h2>My classes</h2>
+                <p>Open the same Class Builder used by the school for your assigned classes.</p>
+              </div>
+
+              <button class="teacher-button secondary" type="button" data-open-section="classes">
+                View all
+              </button>
             </div>
 
-          </div>
+            <div id="overviewClassList" class="teacher-card-body">
+              <div class="teacher-loading">
+                <i class="fa-solid fa-circle-notch fa-spin"></i>
+                <span>Loading classes...</span>
+              </div>
+            </div>
+          </section>
 
-        </article>
+          <section class="teacher-card">
+            <div class="teacher-card-head">
+              <div class="teacher-card-head-copy">
+                <h2>Quick actions</h2>
+                <p>Jump directly into teaching tasks.</p>
+              </div>
+            </div>
 
+            <div class="teacher-card-body">
+              <div class="teacher-quick-actions">
+                <button class="teacher-quick-action" type="button" data-open-section="classes">
+                  <span class="teacher-quick-action-icon"><i class="fa-solid fa-pen-ruler"></i></span>
+                  <span class="teacher-quick-action-copy">
+                    <strong>Class Builder</strong>
+                    <span>Edit lessons, content, quizzes and learning materials.</span>
+                  </span>
+                </button>
+
+                <button class="teacher-quick-action" type="button" data-open-section="grading">
+                  <span class="teacher-quick-action-icon"><i class="fa-solid fa-marker"></i></span>
+                  <span class="teacher-quick-action-copy">
+                    <strong>Grade work</strong>
+                    <span>Review submissions and provide feedback.</span>
+                  </span>
+                </button>
+
+                <button class="teacher-quick-action" type="button" data-open-section="attendance">
+                  <span class="teacher-quick-action-icon"><i class="fa-solid fa-user-check"></i></span>
+                  <span class="teacher-quick-action-copy">
+                    <strong>Attendance</strong>
+                    <span>Review attendance and open a class to mark a session.</span>
+                  </span>
+                </button>
+
+                <button class="teacher-quick-action" type="button" data-open-section="schedule">
+                  <span class="teacher-quick-action-icon"><i class="fa-regular fa-calendar-plus"></i></span>
+                  <span class="teacher-quick-action-copy">
+                    <strong>Schedule</strong>
+                    <span>Review upcoming class sessions and meeting links.</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
       </section>
 
-      <!-- SUBMISSIONS -->
-
-      <section id="section-submissions" class="section">
-
-        <article class="card card-pad">
-
-          <h2 class="card-title">
-            Student Submissions
-          </h2>
-
-          <div class="list" id="submissionsList">
-
-            <div class="loading">
-              Loading submissions...
-            </div>
-
+      <!-- MY CLASSES -->
+      <section id="section-classes" class="teacher-section">
+        <div class="teacher-page-head">
+          <div class="teacher-page-head-copy">
+            <span class="teacher-eyebrow">Teaching</span>
+            <h1>My Classes</h1>
+            <p>
+              Only classes currently assigned to your teacher account are shown here.
+              Open a class to work in the shared Class Builder.
+            </p>
           </div>
+        </div>
 
-        </article>
+        <div class="teacher-filterbar">
+          <input id="classSearch" type="search" placeholder="Search assigned classes..." />
+          <select id="classStatusFilter">
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="draft">Draft</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
 
+        <div id="teacherClassGrid" class="teacher-class-grid"></div>
       </section>
 
       <!-- STUDENTS -->
-
-      <section id="section-students" class="section">
-
-        <article class="card card-pad">
-
-          <h2 class="card-title">
-            Students
-          </h2>
-
-          <div class="grid-2" id="studentsList">
-
-            <div class="loading">
-              Loading students...
-            </div>
-
+      <section id="section-students" class="teacher-section">
+        <div class="teacher-page-head">
+          <div class="teacher-page-head-copy">
+            <span class="teacher-eyebrow">Class roster</span>
+            <h1>Students</h1>
+            <p>Students enrolled across your assigned classes.</p>
           </div>
+        </div>
 
-        </article>
+        <div class="teacher-filterbar">
+          <input id="studentSearch" type="search" placeholder="Search students..." />
+          <select id="studentClassFilter">
+            <option value="all">All assigned classes</option>
+          </select>
+        </div>
 
+        <div class="teacher-table-wrap">
+          <table class="teacher-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Class</th>
+                <th>Course</th>
+                <th>Email</th>
+              </tr>
+            </thead>
+            <tbody id="teacherStudentsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ASSIGNMENTS -->
+      <section id="section-assignments" class="teacher-section">
+        <div class="teacher-page-head">
+          <div class="teacher-page-head-copy">
+            <span class="teacher-eyebrow">Assessment</span>
+            <h1>Assignments</h1>
+            <p>Create assignment content from Class Builder and monitor assigned-class work here.</p>
+          </div>
+        </div>
+
+        <div class="teacher-notice">
+          <i class="fa-solid fa-circle-info"></i>
+          <div>
+            <strong>Create and edit assignments inside Class Builder.</strong>
+            <span>This page gives you a teacher-wide view across all assigned classes.</span>
+          </div>
+        </div>
+
+        <div id="teacherAssignmentsCard" class="teacher-card"></div>
+      </section>
+
+      <!-- QUIZZES -->
+      <section id="section-quizzes" class="teacher-section">
+        <div class="teacher-page-head">
+          <div class="teacher-page-head-copy">
+            <span class="teacher-eyebrow">Assessment</span>
+            <h1>Quizzes</h1>
+            <p>Monitor quizzes across assigned classes and open Class Builder to create or edit them.</p>
+          </div>
+        </div>
+
+        <div id="teacherQuizzesCard" class="teacher-card"></div>
       </section>
 
       <!-- ATTENDANCE -->
-
-      <section id="section-attendance" class="section">
-
-        <article class="card card-pad">
-
-          <h2 class="card-title">
-            Attendance Workspace
-          </h2>
-
-          <div class="grid-2">
-
-            <div class="metric-card">
-
-              <div class="item-head">
-
-                <div>
-                  <h3 class="item-title">
-                    Live attendance
-                  </h3>
-
-                  <div class="item-sub">
-                    Teacher attendance tools
-                  </div>
-                </div>
-
-                <span class="chip primary">
-                  Live
-                </span>
-
-              </div>
-
-              <p class="item-desc">
-                Teachers will be able to mark attendance,
-                late students, absences, and participation.
-              </p>
-
-            </div>
-
-            <div class="metric-card">
-
-              <div class="item-head">
-
-                <div>
-                  <h3 class="item-title">
-                    Student participation
-                  </h3>
-
-                  <div class="item-sub">
-                    Activity tracking
-                  </div>
-                </div>
-
-                <span class="chip success">
-                  Progress
-                </span>
-
-              </div>
-
-              <p class="item-desc">
-                Future analytics will monitor attendance,
-                assignment completion, and classroom engagement.
-              </p>
-
-            </div>
-
+      <section id="section-attendance" class="teacher-section">
+        <div class="teacher-page-head">
+          <div class="teacher-page-head-copy">
+            <span class="teacher-eyebrow">Class operations</span>
+            <h1>Attendance</h1>
+            <p>Review attendance summaries for the classes assigned to you.</p>
           </div>
+        </div>
 
-        </article>
-
+        <div id="teacherAttendanceGrid" class="teacher-class-grid"></div>
       </section>
 
-      <!-- GRADEBOOK -->
-
-      <section id="section-gradebook" class="section">
-
-        <article class="card card-pad">
-
-          <h2 class="card-title">
-            Gradebook
-          </h2>
-
-          <div class="grid-2">
-
-            <div class="metric-card">
-
-              <div class="item-head">
-
-                <div>
-                  <h3 class="item-title">
-                    Automatic scoring
-                  </h3>
-
-                  <div class="item-sub">
-                    AI-ready grading system
-                  </div>
-                </div>
-
-                <span class="chip warning">
-                  Beta
-                </span>
-
-              </div>
-
-              <p class="item-desc">
-                Student performance will eventually generate
-                automatic progress insights and scoring.
-              </p>
-
-            </div>
-
-            <div class="metric-card">
-
-              <div class="item-head">
-
-                <div>
-                  <h3 class="item-title">
-                    Teacher feedback
-                  </h3>
-
-                  <div class="item-sub">
-                    Personalized learning
-                  </div>
-                </div>
-
-                <span class="chip primary">
-                  Feedback
-                </span>
-
-              </div>
-
-              <p class="item-desc">
-                Teachers can review student performance
-                and provide detailed learning feedback.
-              </p>
-
-            </div>
-
+      <!-- GRADING -->
+      <section id="section-grading" class="teacher-section">
+        <div class="teacher-page-head">
+          <div class="teacher-page-head-copy">
+            <span class="teacher-eyebrow">Assessment</span>
+            <h1>Submissions & Grading</h1>
+            <p>Review student submissions from classes currently assigned to your account.</p>
           </div>
+        </div>
 
-        </article>
-
+        <div id="teacherSubmissionsCard" class="teacher-card"></div>
       </section>
 
-    </section>
-
-    <!-- RIGHT SIDEBAR -->
-
-    <aside class="right-col">
-
-      <article class="card card-pad">
-
-        <h2 class="card-title">
-          Teacher Performance
-        </h2>
-
-        <div class="progress-wrap">
-
-          <div class="progress-item">
-
-            <div class="progress-head">
-              <span>Assignment Completion</span>
-              <span id="completionPercent">0%</span>
-            </div>
-
-            <div class="progress-bar">
-              <div class="progress-fill" id="completionBar"></div>
-            </div>
-
+      <!-- SCHEDULE -->
+      <section id="section-schedule" class="teacher-section">
+        <div class="teacher-page-head">
+          <div class="teacher-page-head-copy">
+            <span class="teacher-eyebrow">Calendar</span>
+            <h1>Schedule</h1>
+            <p>Upcoming sessions connected to your assigned classes.</p>
           </div>
-
-          <div class="progress-item">
-
-            <div class="progress-head">
-              <span>Student Engagement</span>
-              <span id="engagementPercent">0%</span>
-            </div>
-
-            <div class="progress-bar">
-              <div class="progress-fill" id="engagementBar"></div>
-            </div>
-
-          </div>
-
-          <div class="progress-item">
-
-            <div class="progress-head">
-              <span>Submission Rate</span>
-              <span id="submissionPercent">0%</span>
-            </div>
-
-            <div class="progress-bar">
-              <div class="progress-fill" id="submissionBar"></div>
-            </div>
-
-          </div>
-
         </div>
 
-      </article>
+        <div id="teacherSchedulesCard" class="teacher-card"></div>
+      </section>
 
-      <article class="card card-pad" style="margin-top:18px;">
+      <!-- ANALYTICS -->
+      <section id="section-analytics" class="teacher-section">
+        <div class="teacher-page-head">
+          <div class="teacher-page-head-copy">
+            <span class="teacher-eyebrow">Insights</span>
+            <h1>Analytics</h1>
+            <p>Teaching-level indicators generated from your live class, submission and attendance data.</p>
+          </div>
+        </div>
 
-        <h2 class="card-title">
-          Teaching Workspace
-        </h2>
-
-        <div class="list">
-
-          <div class="lesson-card">
-
-            <div class="item-head">
-
-              <div>
-                <h3 class="item-title">
-                  Classroom management
-                </h3>
-
-                <div class="item-sub">
-                  Production-ready teacher tools
-                </div>
-              </div>
-
-              <span class="chip primary">
-                Teacher
-              </span>
-
+        <div class="teacher-stats-grid">
+          <article class="teacher-stat-card">
+            <div>
+              <div class="teacher-stat-label">Class load</div>
+              <div id="analyticsClasses" class="teacher-stat-value">0</div>
+              <div class="teacher-stat-note">Assigned classes</div>
             </div>
+            <div class="teacher-stat-icon"><i class="fa-solid fa-chalkboard"></i></div>
+          </article>
 
-            <p class="item-desc">
-              Manage students, assignments, schedules,
-              attendance, grading, and announcements.
+          <article class="teacher-stat-card">
+            <div>
+              <div class="teacher-stat-label">Student reach</div>
+              <div id="analyticsStudents" class="teacher-stat-value">0</div>
+              <div class="teacher-stat-note">Unique enrolled students</div>
+            </div>
+            <div class="teacher-stat-icon"><i class="fa-solid fa-user-graduate"></i></div>
+          </article>
+
+          <article class="teacher-stat-card">
+            <div>
+              <div class="teacher-stat-label">Submitted work</div>
+              <div id="analyticsSubmissions" class="teacher-stat-value">0</div>
+              <div class="teacher-stat-note">Loaded submissions</div>
+            </div>
+            <div class="teacher-stat-icon"><i class="fa-solid fa-file-circle-check"></i></div>
+          </article>
+
+          <article class="teacher-stat-card">
+            <div>
+              <div class="teacher-stat-label">Pending review</div>
+              <div id="analyticsPending" class="teacher-stat-value">0</div>
+              <div class="teacher-stat-note">Work needing attention</div>
+            </div>
+            <div class="teacher-stat-icon"><i class="fa-solid fa-clock"></i></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- MESSAGES -->
+      <section id="section-messages" class="teacher-section">
+        <div class="teacher-page-head">
+          <div class="teacher-page-head-copy">
+            <span class="teacher-eyebrow">Communication</span>
+            <h1>Messages</h1>
+            <p>
+              Class communication belongs to the same teacher/student ecosystem.
+              This workspace is ready to connect to your existing conversation route without duplicating chat data.
             </p>
-
           </div>
+        </div>
 
-          <div class="lesson-card">
+        <div class="teacher-card">
+          <div class="teacher-empty">
+            <i class="fa-regular fa-message"></i>
+            <strong>Messaging connection ready</strong>
+            <span>
+              Connect this section to the existing AIFT conversation endpoint when we wire the next frontend step.
+              No fake messages are displayed.
+            </span>
+          </div>
+        </div>
+      </section>
 
-            <div class="item-head">
+      <!-- SETTINGS -->
+      <section id="section-settings" class="teacher-section">
+        <div class="teacher-page-head">
+          <div class="teacher-page-head-copy">
+            <span class="teacher-eyebrow">Account</span>
+            <h1>Settings</h1>
+            <p>Teacher Studio account information and safe workspace preferences.</p>
+          </div>
+        </div>
 
-              <div>
-                <h3 class="item-title">
-                  Student analytics
-                </h3>
-
-                <div class="item-sub">
-                  Real learning data
-                </div>
-              </div>
-
-              <span class="chip success">
-                Analytics
-              </span>
-
+        <div class="teacher-card">
+          <div class="teacher-card-head">
+            <div class="teacher-card-head-copy">
+              <h2>Teacher account</h2>
+              <p>Loaded from your authenticated account.</p>
             </div>
-
-            <p class="item-desc">
-              Track participation, assignment completion,
-              engagement, and learning progress.
-            </p>
-
           </div>
 
+          <div id="teacherSettingsBody" class="teacher-card-body"></div>
+        </div>
+      </section>
+
+      <!-- HELP -->
+      <section id="section-help" class="teacher-section">
+        <div class="teacher-page-head">
+          <div class="teacher-page-head-copy">
+            <span class="teacher-eyebrow">AIFT Support</span>
+            <h1>Help & Support</h1>
+            <p>Guidance for using Teacher Studio and Class Builder.</p>
+          </div>
         </div>
 
-      </article>
+        <div class="teacher-class-grid">
+          <article class="teacher-card">
+            <div class="teacher-card-body">
+              <div class="teacher-list-icon"><i class="fa-solid fa-chalkboard"></i></div>
+              <h3 style="font-size:10px;color:var(--teacher-text-strong);margin:10px 0 5px;">Class Builder</h3>
+              <p style="font-size:7.5px;color:var(--teacher-muted);line-height:1.55;margin:0;">
+                Open My Classes, choose an assigned class, then select Open Class Builder.
+                Lesson, quiz, assignment and content tools remain class-scoped.
+              </p>
+            </div>
+          </article>
 
-    </aside>
+          <article class="teacher-card">
+            <div class="teacher-card-body">
+              <div class="teacher-list-icon"><i class="fa-solid fa-marker"></i></div>
+              <h3 style="font-size:10px;color:var(--teacher-text-strong);margin:10px 0 5px;">Grading</h3>
+              <p style="font-size:7.5px;color:var(--teacher-muted);line-height:1.55;margin:0;">
+                Open Submissions & Grading to see work from your assigned classes.
+                Open the relevant class for the complete rubric and assessment workflow.
+              </p>
+            </div>
+          </article>
 
+          <article class="teacher-card">
+            <div class="teacher-card-body">
+              <div class="teacher-list-icon"><i class="fa-solid fa-user-check"></i></div>
+              <h3 style="font-size:10px;color:var(--teacher-text-strong);margin:10px 0 5px;">Attendance</h3>
+              <p style="font-size:7.5px;color:var(--teacher-muted);line-height:1.55;margin:0;">
+                Teacher Studio only requests attendance for classes assigned to the authenticated teacher.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+    </main>
   </div>
-</main>
-<!-- ASSIGNMENT MODAL -->
-<div class="modal" id="assignmentModal">
-  <div class="modal-box">
-    <div class="modal-head">
-      <div class="modal-title">Create Assignment</div>
-      <button class="ghost-btn" onclick="closeModal('assignmentModal')">Close</button>
-    </div>
 
-    <div class="modal-body">
-      <div class="input-grid">
-        <div class="field">
-          <label>Assignment Title</label>
-          <input id="assignmentTitle" type="text" placeholder="Assignment title">
-        </div>
+  <script>
+    (() => {
+      "use strict";
 
-        <div class="field">
-          <label>Class</label>
-          <select id="assignmentClassId">
-            <option value="">Select class</option>
-          </select>
-        </div>
+      const DEFAULT_API_ROOT =
+        "https://backend-1-9b6f.onrender.com/api";
 
-        <div class="field">
-          <label>Due Date</label>
-          <input id="assignmentDueDate" type="date">
-        </div>
+      const API_ROOT =
+        String(
+          window.AIFT_API_BASE ||
+          window.API_BASE ||
+          DEFAULT_API_ROOT
+        ).replace(/\/+$/, "");
 
-        <div class="field">
-          <label>Attachment URL</label>
-          <input id="assignmentAttachmentUrl" type="url" placeholder="Optional file or resource link">
-        </div>
-      </div>
+      const state = {
+        user:null,
+        classes:[],
+        students:[],
+        assignments:[],
+        quizzes:[],
+        submissions:[],
+        schedules:[],
+        attendanceSummaries:new Map(),
+        loaded:{
+          assignments:false,
+          quizzes:false,
+          submissions:false,
+          schedules:false,
+          attendance:false
+        }
+      };
 
-      <div class="field">
-        <label>Instructions</label>
-        <textarea id="assignmentInstructions" placeholder="Write instructions for students"></textarea>
-      </div>
-    </div>
+      const $ =
+        (selector, root = document) =>
+          root.querySelector(selector);
 
-    <div class="modal-actions">
-      <button class="ghost-btn" onclick="closeModal('assignmentModal')">Cancel</button>
-      <button class="primary-btn" onclick="submitAssignment()">Publish Assignment</button>
-    </div>
-  </div>
-</div>
+      const $$ =
+        (selector, root = document) =>
+          Array.from(root.querySelectorAll(selector));
 
-<!-- ANNOUNCEMENT MODAL -->
-<div class="modal" id="announcementModal">
-  <div class="modal-box">
-    <div class="modal-head">
-      <div class="modal-title">Class Announcement</div>
-      <button class="ghost-btn" onclick="closeModal('announcementModal')">Close</button>
-    </div>
-
-    <div class="modal-body">
-      <div class="field">
-        <label>Announcement</label>
-        <textarea id="announcementText" placeholder="Share class update, reminder, or instruction"></textarea>
-      </div>
-
-      <div class="field">
-        <label>Media URL</label>
-        <input id="announcementMediaUrl" type="url" placeholder="Optional media/resource URL">
-      </div>
-    </div>
-
-    <div class="modal-actions">
-      <button class="ghost-btn" onclick="closeModal('announcementModal')">Cancel</button>
-      <button class="primary-btn" onclick="submitAnnouncement()">Publish</button>
-    </div>
-  </div>
-</div>
-
-<!-- REVIEW SUBMISSION MODAL -->
-<div class="modal" id="reviewModal">
-  <div class="modal-box">
-    <div class="modal-head">
-      <div class="modal-title">Review Submission</div>
-      <button class="ghost-btn" onclick="closeModal('reviewModal')">Close</button>
-    </div>
-
-    <div class="modal-body">
-      <input id="reviewSubmissionId" type="hidden">
-
-      <div class="input-grid">
-        <div class="field">
-          <label>Grade</label>
-          <input id="reviewGrade" type="text" placeholder="A, 95, Passed...">
-        </div>
-
-        <div class="field">
-          <label>Status</label>
-          <select id="reviewStatus">
-            <option value="reviewed">Reviewed</option>
-            <option value="returned">Returned for revision</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="field">
-        <label>Feedback</label>
-        <textarea id="reviewFeedback" placeholder="Write teacher feedback"></textarea>
-      </div>
-    </div>
-
-    <div class="modal-actions">
-      <button class="ghost-btn" onclick="closeModal('reviewModal')">Cancel</button>
-      <button class="primary-btn" onclick="submitReview()">Save Review</button>
-    </div>
-  </div>
-</div>
-
-<div class="footer" style="padding:8px 0 28px;text-align:center;color:var(--muted);font-size:.86rem;">
-  © 2026 AIFT Teacher Portal
-</div>
-<script>
-const API = "https://backend-1-9b6f.onrender.com";
-
-const token =
-  localStorage.getItem("teacherToken") ||
-  localStorage.getItem("schoolToken") ||
-  localStorage.getItem("adminToken") ||
-  localStorage.getItem("token");
-
-const urlParams = new URLSearchParams(window.location.search);
-const selectedTeacherId = urlParams.get("teacherId");
-
-const role = String(localStorage.getItem("role") || "").toLowerCase();
-
-if (!token) {
-  window.location.href = "login.html";
-}
-
-if (
-  role &&
-  ![
-    "teacher",
-    "instructor",
-    "faculty",
-    "school",
-    "admin"
-  ].includes(role)
-){
-  window.location.href = "home.html";
-}
-
-const FALLBACK_AVATAR =
-  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
-const FALLBACK_COVER =
-  "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1600&q=80";
-
-const state = {
-  me:null,
-  classes:[],
-  assignments:[],
-  submissions:[],
-  posts:[],
-  schoolUpdates:[],
-  students:[]
-};
-
-function $(id){
-  return document.getElementById(id);
-}
-
-function authHeaders(extra = {}){
-  return {
-    Authorization:"Bearer " + token,
-    ...extra
-  };
-}
-
-function escapeHtml(value){
-  return String(value ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
-}
-
-async function safeJson(res){
-  try{
-    return await res.json();
-  }catch{
-    return null;
-  }
-}
-
-function asArray(value){
-  if (Array.isArray(value)) return value;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.items)) return value.items;
-  return [];
-}
-
-function setText(id,value){
-  const el = $(id);
-  if (el) el.innerText = value;
-}
-
-function formatDate(value){
-  if (!value) return "No date";
-
-  const d = new Date(value);
-
-  if (Number.isNaN(d.getTime())) {
-    return "No date";
-  }
-
-  return d.toLocaleDateString([],{
-    month:"short",
-    day:"numeric",
-    year:"numeric"
-  });
-}
-
-function formatDateTime(value){
-  if (!value) return "No date";
-
-  const d = new Date(value);
-
-  if (Number.isNaN(d.getTime())) {
-    return "No date";
-  }
-
-  return d.toLocaleString([],{
-    month:"short",
-    day:"numeric",
-    hour:"2-digit",
-    minute:"2-digit"
-  });
-}
-
-function showAlert(type,message){
-  alert(message);
-}
-
-function openModal(id){
-  $(id)?.classList.add("show");
-}
-
-function closeModal(id){
-  $(id)?.classList.remove("show");
-}
-
-function openTab(tab){
-  document.querySelectorAll(".tab-btn").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.tab === tab);
-  });
-
-  document.querySelectorAll(".section").forEach(section => {
-    section.classList.toggle(
-      "active",
-      section.id === `section-${tab}`
-    );
-  });
-
-  window.scrollTo({
-    top:0,
-    behavior:"smooth"
-  });
-}
-
-async function apiGet(path,fallback = null){
-  try{
-    const res = await fetch(API + path,{
-      headers:authHeaders()
-    });
-
-    if (res.status === 401){
-      localStorage.removeItem("teacherToken");
-      localStorage.removeItem("token");
-      window.location.href = "login.html";
-      return fallback;
-    }
-
-    if (!res.ok){
-      return fallback;
-    }
-
-    return await safeJson(res);
-
-  }catch(err){
-    console.warn(err);
-    return fallback;
-  }
-}
-
-async function apiSend(path,method,body){
-  const res = await fetch(API + path,{
-    method,
-    headers:authHeaders({
-      "Content-Type":"application/json"
-    }),
-    body:JSON.stringify(body || {})
-  });
-
-  const data = await safeJson(res);
-
-  if (!res.ok){
-    throw new Error(
-      data?.message ||
-      data?.error ||
-      "Request failed."
-    );
-  }
-
-  return data;
-}
-
-function getTeacherClasses(){
-  const id = state.me?._id;
-
-  return state.classes.filter(item => {
-    return String(item.teacherId?._id || item.teacherId) === String(id);
-  });
-}
-
-function getTeacherStudents(){
-  const classIds = getTeacherClasses().map(item => String(item._id));
-
-  const map = new Map();
-
-  getTeacherClasses().forEach(cls => {
-    (cls.studentIds || []).forEach(student => {
-      const id = String(student._id || student);
-
-      if (!map.has(id)){
-        map.set(id,student);
+      function escapeHtml(value){
+        return String(value ?? "")
+          .replace(/&/g,"&amp;")
+          .replace(/</g,"&lt;")
+          .replace(/>/g,"&gt;")
+          .replace(/"/g,"&quot;")
+          .replace(/'/g,"&#039;");
       }
-    });
-  });
 
-  return Array.from(map.values());
-}
-  function getTeacherSchoolId(){
-  return (
-    state.me?.schoolId?._id ||
-    state.me?.schoolId ||
-    state.me?.linkedSchoolId?._id ||
-    state.me?.linkedSchoolId ||
-    state.me?.companyId?._id ||
-    state.me?.companyId ||
-    ""
-  );
-}
+      function normalizeId(value){
+        if (!value) return "";
 
-async function loadAll(){
-  try{
-    const meRes = await apiGet("/api/users/me",null);
+        if (
+          typeof value === "object"
+        ){
+          return String(
+            value._id ||
+            value.id ||
+            ""
+          );
+        }
 
-   const loggedUser = meRes?.user || meRes;
+        return String(value);
+      }
 
-if (selectedTeacherId) {
-  const teacherRes = await apiGet(`/api/users/${selectedTeacherId}/public`, null);
-  state.me = teacherRes?.user || teacherRes;
-} else {
-  state.me = loggedUser;
-}
+      function getAuthToken(){
+        return (
+          localStorage.getItem("token") ||
+          localStorage.getItem("authToken") ||
+          localStorage.getItem("aiftToken") ||
+          sessionStorage.getItem("token") ||
+          ""
+        );
+      }
 
-    if (!state.me){
-      showAlert("error","Could not load teacher profile.");
-      return;
-    }
+      async function apiRequest(path, options = {}){
+        const token =
+          getAuthToken();
 
-    const teacherId = selectedTeacherId || state.me._id;
+        if (!token){
+          throw new Error(
+            "Your login session was not found. Please sign in again."
+          );
+        }
 
-const schoolId = getTeacherSchoolId();
+        const response =
+          await fetch(
+            `${API_ROOT}${path}`,
+            {
+              ...options,
+              headers:{
+                "Content-Type":"application/json",
+                Authorization:`Bearer ${token}`,
+                ...(options.headers || {})
+              }
+            }
+          );
 
-const [
-  classes,
-  assignments,
-  submissions,
-  posts,
-  schoolUpdates,
-  unread
-] = await Promise.all([
-  apiGet("/api/classes",[]),
-  apiGet(`/api/assignments?teacherId=${teacherId}`,[]),
-  apiGet(`/api/submissions?teacherId=${teacherId}`,[]),
-  apiGet("/api/posts",[]),
-  apiGet(`/api/school-updates?schoolId=${encodeURIComponent(schoolId)}`,[]),
-  apiGet("/api/notifications/unread-count",{ count:0 })
-]);
+        let body = null;
 
-    state.classes = asArray(classes);
-    state.assignments = asArray(assignments);
-    state.submissions = asArray(submissions);
-    state.posts = asArray(posts);
-state.schoolUpdates = asArray(schoolUpdates);
+        try{
+          body =
+            await response.json();
+        }catch(_error){
+          body = null;
+        }
 
-    renderProfile();
-    renderStats();
-    renderFeed();
-    renderClasses();
-    renderAssignments();
-    renderStudents();
-    renderSubmissions();
-    renderAnalytics();
-    hydrateSelects();
+        if (!response.ok){
+          const error =
+            new Error(
+              body?.message ||
+              `Request failed (${response.status})`
+            );
 
-    const badge = $("notificationBadge");
+          error.status =
+            response.status;
 
-    if (badge && Number(unread?.count || 0) > 0){
-      badge.innerText = unread.count;
-      badge.style.display = "grid";
-    }
+          throw error;
+        }
 
-  }catch(err){
-    console.error(err);
-    showAlert("error","Teacher portal failed to load.");
-  }
-}
+        return body;
+      }
 
-function renderProfile(){
-  const me = state.me || {};
+      function openSection(sectionName){
+        $$(".teacher-section").forEach(section => {
+          const active =
+            section.id ===
+            `section-${sectionName}`;
 
-  const avatar =
-    me.profileImage ||
-    me.avatar ||
-    FALLBACK_AVATAR;
+          section.classList.toggle(
+            "active",
+            active
+          );
+        });
 
-  const cover =
-    me.coverImage ||
-    me.bannerImage ||
-    FALLBACK_COVER;
+        $$(".teacher-nav-button[data-section]").forEach(button => {
+          button.classList.toggle(
+            "active",
+            button.dataset.section === sectionName
+          );
+        });
 
-  $("teacherAvatar").src = avatar;
-  $("topAvatar").src = avatar;
+        closeMobileNav();
 
-  $("teacherCover").style.backgroundImage =
-    `url("${cover}")`;
+        if (sectionName === "assignments"){
+          loadAssignments();
+        }
 
-  setText(
-    "teacherName",
-    me.name || "Teacher"
-  );
+        if (sectionName === "quizzes"){
+          loadQuizzes();
+        }
 
-  setText(
-    "teacherSub",
-    me.subject ||
-    me.department ||
-    "Teacher workspace"
-  );
-}
+        if (sectionName === "grading"){
+          loadSubmissions();
+        }
 
-function renderStats(){
-  const classes = getTeacherClasses();
-  const students = getTeacherStudents();
+        if (sectionName === "schedule"){
+          loadSchedules();
+        }
 
-  setText("statClasses", classes.length);
-  setText("statStudents", students.length);
-  setText("statAssignments", state.assignments.length);
-  setText("statSubmissions", state.submissions.length);
+        if (sectionName === "attendance"){
+          loadAttendance();
+        }
+      }
 
-  setText("todayClasses", classes.length);
+      function openMobileNav(){
+        $("#teacherSidebar")?.classList.add("open");
+        $("#teacherOverlay")?.classList.add("active");
+      }
 
-  const due = state.assignments.filter(item => {
-    return item.dueDate &&
-      new Date(item.dueDate) > new Date();
-  });
+      function closeMobileNav(){
+        $("#teacherSidebar")?.classList.remove("open");
+        $("#teacherOverlay")?.classList.remove("active");
+      }
 
-  setText("todayDue", due.length);
-  setText("pendingReviews", state.submissions.length);
-}
+      function classBuilderUrl(classId){
+        return `class-builder.html?classId=${encodeURIComponent(classId)}`;
+      }
 
-function renderFeed(){
-  const feed = $("teacherFeed");
-  if (!feed) return;
+      function openClassBuilder(classId){
+        const normalized =
+          normalizeId(classId);
 
-  const classIds = getTeacherClasses().map(item => String(item._id));
-  const teacherId = String(state.me?._id || "");
+        if (!normalized){
+          return;
+        }
 
-  const items = state.schoolUpdates
-    .filter(update => {
-      const audience = String(update.audience || "all").toLowerCase();
-      const updateClassId = String(update.classId?._id || update.classId || "");
+        window.location.href =
+          classBuilderUrl(normalized);
+      }
 
-      return (
-        audience === "all" ||
-        audience === "teachers" ||
-        update.teacherIds?.some(t => String(t._id || t) === teacherId) ||
-        (audience === "class" && classIds.includes(updateClassId))
-      );
-    })
-    .sort((a,b) => {
-      const pinnedDiff = Number(b.pinned || false) - Number(a.pinned || false);
-      if (pinnedDiff) return pinnedDiff;
-      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-    });
+      function teacherOwnsClass(classDoc){
+        const teacherId =
+          normalizeId(
+            classDoc?.teacherId
+          );
 
-  if (!items.length){
-    feed.innerHTML = `<div class="empty">No teacher announcements yet.</div>`;
-    return;
-  }
+        const userId =
+          normalizeId(
+            state.user
+          );
 
-  feed.innerHTML = items.map(update => {
-    const media =
-      update.mediaUrl
-        ? (
-            update.mediaType === "video"
-              ? `
-                <div class="teacher-feed-media">
-                  <video src="${update.mediaUrl}" controls></video>
-                </div>
-              `
-              : `
-                <div class="teacher-feed-media">
-                  <img src="${update.mediaUrl}" alt="Announcement media">
-                </div>
-              `
-          )
-        : "";
+        return (
+          Boolean(teacherId) &&
+          Boolean(userId) &&
+          teacherId === userId
+        );
+      }
 
-    return `
-      <article class="assignment-card teacher-feed-post">
-        <div class="item-head">
-          <div>
-            <h3 class="item-title">${escapeHtml(update.title || "School Update")}</h3>
-            <div class="item-sub">
-              ${formatDateTime(update.createdAt)}
-              ${update.classId?.title ? " • " + escapeHtml(update.classId.title) : ""}
+      function uniqueStudentsFromClasses(classes){
+        const map =
+          new Map();
+
+        classes.forEach(classDoc => {
+          const classId =
+            normalizeId(classDoc);
+
+          const classTitle =
+            classDoc?.title ||
+            classDoc?.subject ||
+            "Class";
+
+          const students =
+            Array.isArray(classDoc?.studentIds)
+              ? classDoc.studentIds
+              : [];
+
+          students.forEach(student => {
+            const studentId =
+              normalizeId(student);
+
+            if (!studentId){
+              return;
+            }
+
+            if (!map.has(studentId)){
+              map.set(studentId,{
+                ...student,
+                classes:[]
+              });
+            }
+
+            map.get(studentId)
+              .classes
+              .push({
+                id:classId,
+                title:classTitle
+              });
+          });
+        });
+
+        return Array.from(map.values());
+      }
+
+      function initials(value){
+        const text =
+          String(value || "Teacher")
+            .trim();
+
+        const parts =
+          text.split(/\s+/)
+            .filter(Boolean);
+
+        return (
+          parts
+            .slice(0,2)
+            .map(item => item[0])
+            .join("")
+            .toUpperCase() ||
+          "T"
+        );
+      }
+
+      function renderAccount(){
+        const user =
+          state.user || {};
+
+        $("#teacherAccountName").textContent =
+          user.name ||
+          "Teacher";
+
+        $("#teacherAccountRole").textContent =
+          "Teacher Studio";
+
+        $("#teacherWelcomeTitle").textContent =
+          `Welcome, ${
+            String(user.name || "Teacher")
+              .split(/\s+/)[0]
+          }`;
+
+        const avatar =
+          $("#teacherAvatar");
+
+        const image =
+          user.profileImage ||
+          user.avatar ||
+          user.profilePicture ||
+          "";
+
+        if (image){
+          avatar.innerHTML =
+            `<img src="${escapeHtml(image)}" alt="">`;
+        }else{
+          avatar.textContent =
+            initials(user.name);
+        }
+
+        $("#teacherSettingsBody").innerHTML = `
+          <div class="teacher-list">
+            <div class="teacher-list-row">
+              <div class="teacher-list-icon"><i class="fa-regular fa-user"></i></div>
+              <div class="teacher-list-copy">
+                <strong>${escapeHtml(user.name || "Teacher")}</strong>
+                <span>${escapeHtml(user.email || "")}</span>
+              </div>
+              <span class="teacher-badge primary">Teacher</span>
             </div>
           </div>
+        `;
+      }
 
-          <span class="chip ${update.type === "urgent" ? "warning" : "primary"}">
-            ${escapeHtml(update.type || "announcement")}
-          </span>
-        </div>
+      function renderStats(){
+        const uniqueStudentCount =
+          state.students.length;
 
-        ${update.message ? `<p class="item-desc">${escapeHtml(update.message)}</p>` : ""}
+        const pending =
+          state.submissions.filter(item => {
+            const status =
+              String(
+                item?.status ||
+                "submitted"
+              ).toLowerCase();
 
-        ${media}
+            return [
+              "submitted",
+              "pending",
+              "returned"
+            ].includes(status);
+          }).length;
 
-        <div class="meta-row">
-          ${update.pinned ? `<span class="chip warning">Pinned</span>` : ""}
-          ${update.dueDate ? `<span class="chip success">Due ${formatDate(update.dueDate)}</span>` : ""}
-          ${update.resourceUrl ? `<a class="chip primary" href="${update.resourceUrl}" target="_blank">Resource</a>` : ""}
-        </div>
-      </article>
-    `;
-  }).join("");
-}
+        const upcomingSchedules =
+          state.schedules.filter(item => {
+            if (!item?.date){
+              return true;
+            }
 
-function renderClasses(){
-  const list = $("classesList");
+            const date =
+              new Date(item.date);
 
-  const classes = getTeacherClasses();
+            return (
+              !Number.isNaN(date.getTime()) &&
+              date >= new Date(new Date().setHours(0,0,0,0))
+            );
+          }).length;
 
-  if (!classes.length){
-    list.innerHTML = `
-      <div class="empty">
-        No assigned classes yet.
-      </div>
-    `;
-    return;
-  }
+        $("#statClasses").textContent =
+          state.classes.length;
 
-  list.innerHTML = classes.map(item => `
-    <article class="class-card">
+        $("#statStudents").textContent =
+          uniqueStudentCount;
 
-      <div
-        class="class-cover"
-        style="background-image:url('${item.coverImage || FALLBACK_COVER}')"
-      ></div>
+        $("#statPendingGrading").textContent =
+          pending;
 
-      <div class="item-head">
+        $("#statSchedules").textContent =
+          upcomingSchedules;
 
-        <div>
-          <h3 class="item-title">
-            ${escapeHtml(item.title || "Class")}
-          </h3>
+        $("#analyticsClasses").textContent =
+          state.classes.length;
 
-          <div class="item-sub">
-            ${escapeHtml(item.subject || "No subject")}
+        $("#analyticsStudents").textContent =
+          uniqueStudentCount;
+
+        $("#analyticsSubmissions").textContent =
+          state.submissions.length;
+
+        $("#analyticsPending").textContent =
+          pending;
+      }
+
+      function renderOverviewClasses(){
+        const target =
+          $("#overviewClassList");
+
+        if (!state.classes.length){
+          target.innerHTML = `
+            <div class="teacher-empty">
+              <i class="fa-solid fa-chalkboard"></i>
+              <strong>No assigned classes</strong>
+              <span>Your school must assign your teacher account to a class before it appears here.</span>
+            </div>
+          `;
+          return;
+        }
+
+        target.innerHTML = `
+          <div class="teacher-list">
+            ${state.classes.slice(0,5).map(classDoc => {
+              const students =
+                Array.isArray(classDoc.studentIds)
+                  ? classDoc.studentIds.length
+                  : 0;
+
+              return `
+                <div class="teacher-list-row">
+                  <div class="teacher-list-icon">
+                    <i class="fa-solid fa-chalkboard"></i>
+                  </div>
+
+                  <div class="teacher-list-copy">
+                    <strong>${escapeHtml(classDoc.title || classDoc.subject || "Class")}</strong>
+                    <span>
+                      ${escapeHtml(classDoc.subject || "No subject")}
+                      · ${students} student${students === 1 ? "" : "s"}
+                    </span>
+                  </div>
+
+                  <button
+                    class="teacher-button primary"
+                    type="button"
+                    data-open-builder="${escapeHtml(normalizeId(classDoc))}"
+                  >
+                    Open
+                  </button>
+                </div>
+              `;
+            }).join("")}
           </div>
-        </div>
+        `;
+      }
 
-        <span class="chip primary">
-          Class
-        </span>
+      function renderClasses(){
+        const search =
+          String(
+            $("#classSearch")?.value ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
 
-      </div>
+        const statusFilter =
+          $("#classStatusFilter")?.value ||
+          "all";
 
-      <p class="item-desc">
-        ${escapeHtml(item.description || "No class description added.")}
-      </p>
+        const filtered =
+          state.classes.filter(classDoc => {
+            const haystack =
+              [
+                classDoc.title,
+                classDoc.subject,
+                classDoc.classCode,
+                classDoc.description
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
 
-      <div class="meta-row">
-        ${
-          item.schedule
-            ? `<span class="chip">${escapeHtml(item.schedule)}</span>`
-            : ""
+            const matchesSearch =
+              !search ||
+              haystack.includes(search);
+
+            const status =
+              String(
+                classDoc.status ||
+                "active"
+              ).toLowerCase();
+
+            const matchesStatus =
+              statusFilter === "all" ||
+              status === statusFilter;
+
+            return (
+              matchesSearch &&
+              matchesStatus
+            );
+          });
+
+        const grid =
+          $("#teacherClassGrid");
+
+        if (!filtered.length){
+          grid.innerHTML = `
+            <div class="teacher-card" style="grid-column:1/-1;">
+              <div class="teacher-empty">
+                <i class="fa-solid fa-chalkboard"></i>
+                <strong>No classes found</strong>
+                <span>No assigned class matches the current filter.</span>
+              </div>
+            </div>
+          `;
+          return;
         }
 
-        ${
-          item.classCode
-            ? `<span class="chip success">${escapeHtml(item.classCode)}</span>`
-            : ""
-        }
-      </div>
+        grid.innerHTML =
+          filtered.map(classDoc => {
+            const students =
+              Array.isArray(classDoc.studentIds)
+                ? classDoc.studentIds.length
+                : 0;
 
-      <div class="card-actions">
+            const status =
+              String(
+                classDoc.status ||
+                "active"
+              );
 
-        ${
-          item.meetingLink
-            ? `
-              <a
-                class="primary-btn"
-                href="${item.meetingLink}"
-                target="_blank"
-              >
-                Open Class
-              </a>
-            `
-            : ""
-        }
+            return `
+              <article class="teacher-class-card">
+                <div class="teacher-class-cover">
+                  <strong>${escapeHtml(classDoc.title || "Untitled class")}</strong>
+                </div>
 
-      </div>
+                <div class="teacher-class-body">
+                  <div class="teacher-class-meta">
+                    <span class="teacher-badge primary">${escapeHtml(classDoc.subject || "Class")}</span>
+                    <span class="teacher-badge">${escapeHtml(status)}</span>
+                    ${
+                      classDoc.classCode
+                        ? `<span class="teacher-badge">${escapeHtml(classDoc.classCode)}</span>`
+                        : ""
+                    }
+                  </div>
 
-    </article>
-  `).join("");
-}
+                  <p class="teacher-class-description">
+                    ${escapeHtml(classDoc.description || "Open Class Builder to manage this class's lessons, content and assessments.")}
+                  </p>
 
-function renderAssignments(){
-  const list = $("assignmentsList");
+                  <div class="teacher-class-footer">
+                    <span class="teacher-class-students">
+                      <i class="fa-solid fa-user-graduate"></i>
+                      ${students} student${students === 1 ? "" : "s"}
+                    </span>
 
-  if (!state.assignments.length){
-    list.innerHTML = `
-      <div class="empty">
-        No assignments yet.
-      </div>
-    `;
-    return;
-  }
+                    <button
+                      class="teacher-button primary"
+                      type="button"
+                      data-open-builder="${escapeHtml(normalizeId(classDoc))}"
+                    >
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                      Open Class Builder
+                    </button>
+                  </div>
+                </div>
+              </article>
+            `;
+          }).join("");
+      }
 
-  list.innerHTML = state.assignments.map(item => `
-    <article class="assignment-card">
+      function renderStudentClassFilter(){
+        const select =
+          $("#studentClassFilter");
 
-      <div class="item-head">
+        select.innerHTML =
+          `<option value="all">All assigned classes</option>` +
+          state.classes.map(classDoc => `
+            <option value="${escapeHtml(normalizeId(classDoc))}">
+              ${escapeHtml(classDoc.title || classDoc.subject || "Class")}
+            </option>
+          `).join("");
+      }
 
-        <div>
-          <h3 class="item-title">
-            ${escapeHtml(item.title || "Assignment")}
-          </h3>
+      function renderStudents(){
+        const search =
+          String(
+            $("#studentSearch")?.value ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
 
-          <div class="item-sub">
-            Due ${formatDate(item.dueDate)}
-          </div>
-        </div>
+        const classFilter =
+          $("#studentClassFilter")?.value ||
+          "all";
 
-        <span class="chip warning">
-          Assignment
-        </span>
+        const rows = [];
 
-      </div>
+        state.classes.forEach(classDoc => {
+          const classId =
+            normalizeId(classDoc);
 
-      <p class="item-desc">
-        ${escapeHtml(item.instructions || "No instructions")}
-      </p>
-
-      <div class="meta-row">
-        ${
-          item.attachmentUrl
-            ? `
-              <a
-                class="chip primary"
-                href="${item.attachmentUrl}"
-                target="_blank"
-              >
-                Attachment
-              </a>
-            `
-            : ""
-        }
-      </div>
-
-    </article>
-  `).join("");
-}
-
-function renderStudents(){
-  const list = $("studentsList");
-
-  const students = getTeacherStudents();
-
-  if (!students.length){
-    list.innerHTML = `
-      <div class="empty">
-        No students yet.
-      </div>
-    `;
-    return;
-  }
-
-  list.innerHTML = students.map(student => `
-    <article class="student-card">
-
-      <img
-        class="student-avatar"
-        src="${student.profileImage || FALLBACK_AVATAR}"
-      >
-
-      <div class="student-body">
-
-        <h3>
-          ${escapeHtml(student.name || "Student")}
-        </h3>
-
-        <p>
-          ${escapeHtml(student.email || "")}
-        </p>
-
-        <div class="meta-row">
-
-          ${
-            student.course
-              ? `<span class="chip primary">${escapeHtml(student.course)}</span>`
-              : ""
+          if (
+            classFilter !== "all" &&
+            classFilter !== classId
+          ){
+            return;
           }
 
-        </div>
+          const students =
+            Array.isArray(classDoc.studentIds)
+              ? classDoc.studentIds
+              : [];
 
-      </div>
+          students.forEach(student => {
+            const haystack =
+              [
+                student.name,
+                student.email,
+                student.course,
+                classDoc.title,
+                classDoc.subject
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
 
-    </article>
-  `).join("");
-}
+            if (
+              search &&
+              !haystack.includes(search)
+            ){
+              return;
+            }
 
-function renderSubmissions(){
-  const list = $("submissionsList");
+            rows.push({
+              student,
+              classDoc
+            });
+          });
+        });
 
-  if (!state.submissions.length){
-    list.innerHTML = `
-      <div class="empty">
-        No submissions yet.
-      </div>
-    `;
-    return;
-  }
+        const body =
+          $("#teacherStudentsBody");
 
-  list.innerHTML = state.submissions.map(item => `
-    <article class="submission-card">
+        if (!rows.length){
+          body.innerHTML = `
+            <tr>
+              <td colspan="4">
+                <div class="teacher-empty">
+                  <i class="fa-solid fa-user-graduate"></i>
+                  <strong>No students found</strong>
+                  <span>No enrolled student matches the current filter.</span>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
 
-      <div class="item-head">
+        body.innerHTML =
+          rows.map(({student,classDoc}) => {
+            const image =
+              student.profileImage ||
+              student.avatar ||
+              "";
 
-        <div>
-          <h3 class="item-title">
-            ${escapeHtml(item.studentName || item.student?.name || "Student")}
-          </h3>
+            return `
+              <tr>
+                <td>
+                  <div class="teacher-person">
+                    <div class="teacher-person-avatar">
+                      ${
+                        image
+                          ? `<img src="${escapeHtml(image)}" alt="">`
+                          : escapeHtml(initials(student.name))
+                      }
+                    </div>
+                    <div class="teacher-person-copy">
+                      <strong>${escapeHtml(student.name || "Student")}</strong>
+                      <span>${escapeHtml(student.email || "")}</span>
+                    </div>
+                  </div>
+                </td>
 
-          <div class="item-sub">
-            ${formatDateTime(item.createdAt)}
+                <td>${escapeHtml(classDoc.title || classDoc.subject || "Class")}</td>
+                <td>${escapeHtml(student.course || "—")}</td>
+                <td>${escapeHtml(student.email || "—")}</td>
+              </tr>
+            `;
+          }).join("");
+      }
+
+      function renderCollectionCard(targetSelector, title, subtitle, items, renderer){
+        const target =
+          $(targetSelector);
+
+        target.innerHTML = `
+          <div class="teacher-card-head">
+            <div class="teacher-card-head-copy">
+              <h2>${escapeHtml(title)}</h2>
+              <p>${escapeHtml(subtitle)}</p>
+            </div>
           </div>
-        </div>
 
-        <span class="chip success">
-          Submission
-        </span>
+          <div class="teacher-card-body">
+            ${
+              items.length
+                ? `<div class="teacher-list">${items.map(renderer).join("")}</div>`
+                : `
+                  <div class="teacher-empty">
+                    <i class="fa-solid fa-inbox"></i>
+                    <strong>No records found</strong>
+                    <span>Nothing from your assigned classes is available here yet.</span>
+                  </div>
+                `
+            }
+          </div>
+        `;
+      }
 
-      </div>
+      function assignmentRow(item){
+        const classTitle =
+          item?.classId?.title ||
+          item?.classId?.subject ||
+          "Class";
 
-      <p class="item-desc">
-        ${escapeHtml(item.text || item.content || "Student work submitted")}
-      </p>
+        const status =
+          String(
+            item.status ||
+            "active"
+          );
 
-      <div class="card-actions">
+        return `
+          <div class="teacher-list-row">
+            <div class="teacher-list-icon"><i class="fa-solid fa-file-pen"></i></div>
+            <div class="teacher-list-copy">
+              <strong>${escapeHtml(item.title || "Assignment")}</strong>
+              <span>${escapeHtml(classTitle)}${item.dueDate ? ` · Due ${escapeHtml(formatDate(item.dueDate))}` : ""}</span>
+            </div>
+            <span class="teacher-badge primary">${escapeHtml(status)}</span>
+          </div>
+        `;
+      }
 
-        <button
-          class="primary-btn"
-          onclick="openReview('${item._id}')"
-        >
-          Review
-        </button>
+      function quizRow(item){
+        const classTitle =
+          item?.classId?.title ||
+          item?.classId?.subject ||
+          "Class";
 
-      </div>
+        return `
+          <div class="teacher-list-row">
+            <div class="teacher-list-icon"><i class="fa-solid fa-circle-question"></i></div>
+            <div class="teacher-list-copy">
+              <strong>${escapeHtml(item.title || "Quiz")}</strong>
+              <span>${escapeHtml(classTitle)} · ${Array.isArray(item.questions) ? item.questions.length : 0} question(s)</span>
+            </div>
+            <span class="teacher-badge">${escapeHtml(item.status || "draft")}</span>
+          </div>
+        `;
+      }
 
-    </article>
-  `).join("");
-}
+      function submissionRow(item){
+        const studentName =
+          item?.studentId?.name ||
+          "Student";
 
-function setProgress(textId,barId,value){
-  setText(textId,value + "%");
+        const assignmentTitle =
+          item?.assignmentId?.title ||
+          "Assignment";
 
-  const bar = $(barId);
+        const status =
+          String(
+            item.status ||
+            "submitted"
+          );
 
-  if (bar){
-    bar.style.width = value + "%";
-  }
-}
+        return `
+          <div class="teacher-list-row">
+            <div class="teacher-list-icon"><i class="fa-solid fa-file-circle-check"></i></div>
+            <div class="teacher-list-copy">
+              <strong>${escapeHtml(studentName)} · ${escapeHtml(assignmentTitle)}</strong>
+              <span>${escapeHtml(item?.classId?.title || item?.classId?.subject || "Class")}${item.submittedAt ? ` · ${escapeHtml(formatDate(item.submittedAt))}` : ""}</span>
+            </div>
+            <span class="teacher-badge ${["submitted","pending"].includes(status.toLowerCase()) ? "warning" : "success"}">${escapeHtml(status)}</span>
+          </div>
+        `;
+      }
 
-function renderAnalytics(){
-  const completion = Math.min(
-    100,
-    state.submissions.length * 8
-  );
+      function scheduleRow(item){
+        const classTitle =
+          item?.classId?.title ||
+          item?.classId?.subject ||
+          item.title ||
+          "Class session";
 
-  const engagement = Math.min(
-    100,
-    getTeacherStudents().length * 5
-  );
+        return `
+          <div class="teacher-list-row">
+            <div class="teacher-list-icon"><i class="fa-regular fa-calendar"></i></div>
+            <div class="teacher-list-copy">
+              <strong>${escapeHtml(classTitle)}</strong>
+              <span>${escapeHtml(formatDate(item.date))}${item.startTime || item.time ? ` · ${escapeHtml(item.startTime || item.time)}` : ""}</span>
+            </div>
+            ${
+              item.meetingLink
+                ? `<a class="teacher-button primary" href="${escapeHtml(item.meetingLink)}" target="_blank" rel="noopener noreferrer">Join</a>`
+                : `<span class="teacher-badge">${escapeHtml(item.status || "scheduled")}</span>`
+            }
+          </div>
+        `;
+      }
 
-  const submission = Math.min(
-    100,
-    state.submissions.length * 6
-  );
+      function formatDate(value){
+        if (!value){
+          return "No date";
+        }
 
-  setProgress(
-    "completionPercent",
-    "completionBar",
-    completion
-  );
+        const date =
+          new Date(value);
 
-  setProgress(
-    "engagementPercent",
-    "engagementBar",
-    engagement
-  );
+        if (Number.isNaN(date.getTime())){
+          return String(value);
+        }
 
-  setProgress(
-    "submissionPercent",
-    "submissionBar",
-    submission
-  );
-}
+        return date.toLocaleDateString(
+          undefined,
+          {
+            year:"numeric",
+            month:"short",
+            day:"numeric"
+          }
+        );
+      }
 
-function hydrateSelects(){
-  const classes = getTeacherClasses();
+      async function loadCurrentUser(){
+        const user =
+          await apiRequest(
+            "/auth/me"
+          );
 
-  $("assignmentClassId").innerHTML =
-    `<option value="">Select class</option>` +
-    classes.map(item => `
-      <option value="${item._id}">
-        ${escapeHtml(item.title || "Class")}
-      </option>
-    `).join("");
-}
+        const role =
+          String(
+            user?.role ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
 
-async function submitAssignment(){
-  try{
-    await apiSend("/api/assignments","POST",{
-      teacherId:state.me._id,
-      schoolId:state.me.schoolId || state.me.linkedSchoolId,
-      classId:$("assignmentClassId").value,
-      title:$("assignmentTitle").value.trim(),
-      dueDate:$("assignmentDueDate").value,
-      instructions:$("assignmentInstructions").value.trim(),
-      attachmentUrl:$("assignmentAttachmentUrl").value.trim()
-    });
+        if (role !== "teacher"){
+          throw new Error(
+            "This page is available to teacher accounts only."
+          );
+        }
 
-    closeModal("assignmentModal");
+        state.user =
+          user;
 
-    showAlert(
-      "success",
-      "Assignment published."
-    );
+        renderAccount();
+      }
 
-    await loadAll();
+      async function loadClasses(){
+        const response =
+          await apiRequest(
+            "/classes"
+          );
 
-  }catch(err){
-    showAlert("error",err.message);
-  }
-}
+        const classes =
+          Array.isArray(response)
+            ? response
+            : Array.isArray(response?.classes)
+              ? response.classes
+              : [];
 
-async function submitAnnouncement(){
-  try{
-    await apiSend("/api/school-updates","POST",{
-      schoolId:getTeacherSchoolId(),
-      authorId:state.me._id,
-      title:"Class Announcement",
-      message:$("announcementText").value.trim(),
-      resourceUrl:$("announcementMediaUrl").value.trim(),
-      audience:"class",
-      classId:$("assignmentClassId")?.value || null,
-      type:"announcement"
-    });
+        /*
+          IMPORTANT:
+          The current backend GET /api/classes may still return
+          same-school classes. The teacher page performs a second
+          defensive filter and only displays classes explicitly
+          assigned to the authenticated teacher.
+        */
 
-    closeModal("announcementModal");
-    showAlert("success","Announcement published.");
-    await loadAll();
+        state.classes =
+          classes.filter(
+            teacherOwnsClass
+          );
 
-  }catch(err){
-    showAlert("error",err.message);
-  }
-}
+        state.students =
+          uniqueStudentsFromClasses(
+            state.classes
+          );
 
-function openReview(id){
-  $("reviewSubmissionId").value = id;
-  openModal("reviewModal");
-}
+        renderStats();
+        renderOverviewClasses();
+        renderClasses();
+        renderStudentClassFilter();
+        renderStudents();
+      }
 
-async function submitReview(){
-  const id = $("reviewSubmissionId").value;
+      async function loadAssignments(force = false){
+        if (
+          state.loaded.assignments &&
+          !force
+        ){
+          return;
+        }
 
-  try{
-    await apiSend(`/api/submissions/${id}/review`,"PATCH",{
-      grade:$("reviewGrade").value.trim(),
-      feedback:$("reviewFeedback").value.trim(),
-      status:$("reviewStatus").value
-    });
+        const target =
+          $("#teacherAssignmentsCard");
 
-    closeModal("reviewModal");
+        target.innerHTML = `
+          <div class="teacher-loading">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <span>Loading assignments...</span>
+          </div>
+        `;
 
-    showAlert(
-      "success",
-      "Submission reviewed."
-    );
+        try{
+          const response =
+            await apiRequest(
+              "/assignments"
+            );
 
-    await loadAll();
+          const allowedClassIds =
+            new Set(
+              state.classes.map(
+                normalizeId
+              )
+            );
 
-  }catch(err){
-    showAlert("error",err.message);
-  }
-}
+          state.assignments =
+            (
+              Array.isArray(response)
+                ? response
+                : response?.assignments || []
+            ).filter(item => {
+              const classId =
+                normalizeId(
+                  item.classId
+                );
 
-function goNotifications(){
-  window.location.href = "notifications.html";
-}
+              return (
+                !classId ||
+                allowedClassIds.has(classId)
+              );
+            });
 
-function initSearch(){
-  const input = $("globalSearch");
+          state.loaded.assignments =
+            true;
 
-  if (!input) return;
+          renderCollectionCard(
+            "#teacherAssignmentsCard",
+            "Assignments",
+            "Assignments connected to your teaching workload.",
+            state.assignments,
+            assignmentRow
+          );
+        }catch(error){
+          renderErrorCard(
+            target,
+            error,
+            "Assignments could not be loaded."
+          );
+        }
+      }
 
-  input.addEventListener("input",() => {
-    const q = input.value.trim().toLowerCase();
+      async function loadQuizzes(force = false){
+        if (
+          state.loaded.quizzes &&
+          !force
+        ){
+          return;
+        }
 
-    document
-      .querySelectorAll(
-        ".class-card,.assignment-card,.student-card,.submission-card,.lesson-card,.metric-card"
-      )
-      .forEach(card => {
-        card.style.display =
-          !q ||
-          card.innerText.toLowerCase().includes(q)
-            ? ""
-            : "none";
-      });
-  });
-}
+        const target =
+          $("#teacherQuizzesCard");
 
-function initSocket(){
-  if (typeof io === "undefined") return;
+        target.innerHTML = `
+          <div class="teacher-loading">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <span>Loading quizzes...</span>
+          </div>
+        `;
 
-  try{
-    const socket = io(API,{
-      transports:["websocket","polling"],
-      auth:{ token }
-    });
+        try{
+          const results =
+            await Promise.all(
+              state.classes.map(classDoc =>
+                apiRequest(
+                  `/quizzes?classId=${encodeURIComponent(normalizeId(classDoc))}`
+                ).catch(() => [])
+              )
+            );
 
-    socket.on("connect",() => {
-      socket.emit("join",{
-        userId:state.me?._id,
-        role:"teacher"
-      });
-    });
+          state.quizzes =
+            results.flatMap(result =>
+              Array.isArray(result)
+                ? result
+                : result?.quizzes || []
+            );
 
-    [
-      "assignment:new",
-      "submission:new",
-      "post:new",
-      "class:update"
-    ].forEach(event => {
-      socket.on(event,loadAll);
-    });
+          state.loaded.quizzes =
+            true;
 
-  }catch(err){
-    console.warn(err);
-  }
-}
+          renderCollectionCard(
+            "#teacherQuizzesCard",
+            "Quizzes",
+            "Quizzes from classes assigned to you.",
+            state.quizzes,
+            quizRow
+          );
+        }catch(error){
+          renderErrorCard(
+            target,
+            error,
+            "Quizzes could not be loaded."
+          );
+        }
+      }
 
-document.querySelectorAll(".modal").forEach(modal => {
-  modal.addEventListener("click",e => {
-    if (e.target === modal){
-      modal.classList.remove("show");
-    }
-  });
-});
+      async function loadSubmissions(force = false){
+        if (
+          state.loaded.submissions &&
+          !force
+        ){
+          renderStats();
+          return;
+        }
 
-document.addEventListener("keydown",e => {
-  if (e.key === "Escape"){
-    document.querySelectorAll(".modal").forEach(modal => {
-      modal.classList.remove("show");
-    });
-  }
-});
+        const target =
+          $("#teacherSubmissionsCard");
 
-document.addEventListener("DOMContentLoaded",async () => {
-  initSearch();
-  await loadAll();
-  initSocket();
-});
-</script>
+        target.innerHTML = `
+          <div class="teacher-loading">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <span>Loading submissions...</span>
+          </div>
+        `;
 
+        try{
+          const response =
+            await apiRequest(
+              "/submissions"
+            );
+
+          state.submissions =
+            Array.isArray(response)
+              ? response
+              : response?.submissions || [];
+
+          state.loaded.submissions =
+            true;
+
+          renderCollectionCard(
+            "#teacherSubmissionsCard",
+            "Student submissions",
+            "Review work from your assigned classes.",
+            state.submissions,
+            submissionRow
+          );
+
+          renderStats();
+        }catch(error){
+          renderErrorCard(
+            target,
+            error,
+            "Submissions could not be loaded."
+          );
+        }
+      }
+
+      async function loadSchedules(force = false){
+        if (
+          state.loaded.schedules &&
+          !force
+        ){
+          renderStats();
+          return;
+        }
+
+        const target =
+          $("#teacherSchedulesCard");
+
+        target.innerHTML = `
+          <div class="teacher-loading">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <span>Loading schedule...</span>
+          </div>
+        `;
+
+        try{
+          const response =
+            await apiRequest(
+              "/schedules"
+            );
+
+          state.schedules =
+            Array.isArray(response)
+              ? response
+              : response?.schedules || [];
+
+          state.loaded.schedules =
+            true;
+
+          renderCollectionCard(
+            "#teacherSchedulesCard",
+            "Upcoming sessions",
+            "Class sessions from your assigned teaching schedule.",
+            state.schedules,
+            scheduleRow
+          );
+
+          renderStats();
+        }catch(error){
+          renderErrorCard(
+            target,
+            error,
+            "Schedules could not be loaded."
+          );
+        }
+      }
+
+      async function loadAttendance(force = false){
+        if (
+          state.loaded.attendance &&
+          !force
+        ){
+          return;
+        }
+
+        const target =
+          $("#teacherAttendanceGrid");
+
+        target.innerHTML = `
+          <div class="teacher-card" style="grid-column:1/-1;">
+            <div class="teacher-loading">
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+              <span>Loading attendance summaries...</span>
+            </div>
+          </div>
+        `;
+
+        try{
+          const results =
+            await Promise.all(
+              state.classes.map(async classDoc => {
+                const classId =
+                  normalizeId(classDoc);
+
+                const summary =
+                  await apiRequest(
+                    `/attendance/summary?classId=${encodeURIComponent(classId)}`
+                  ).catch(error => ({
+                    __error:
+                      error.message
+                  }));
+
+                return {
+                  classDoc,
+                  summary
+                };
+              })
+            );
+
+          results.forEach(({classDoc,summary}) => {
+            state.attendanceSummaries.set(
+              normalizeId(classDoc),
+              summary
+            );
+          });
+
+          state.loaded.attendance =
+            true;
+
+          if (!results.length){
+            target.innerHTML = `
+              <div class="teacher-card" style="grid-column:1/-1;">
+                <div class="teacher-empty">
+                  <i class="fa-solid fa-calendar-check"></i>
+                  <strong>No assigned classes</strong>
+                  <span>Attendance becomes available after a class is assigned to you.</span>
+                </div>
+              </div>
+            `;
+            return;
+          }
+
+          target.innerHTML =
+            results.map(({classDoc,summary}) => {
+              const total =
+                Number(
+                  summary?.total ||
+                  summary?.totalRecords ||
+                  summary?.count ||
+                  0
+                );
+
+              const present =
+                Number(
+                  summary?.present ||
+                  summary?.counts?.present ||
+                  0
+                );
+
+              const attendanceRate =
+                Number(
+                  summary?.attendanceRate ||
+                  summary?.rate ||
+                  (
+                    total
+                      ? Math.round((present / total) * 100)
+                      : 0
+                  )
+                );
+
+              return `
+                <article class="teacher-class-card">
+                  <div class="teacher-class-cover">
+                    <strong>${escapeHtml(classDoc.title || classDoc.subject || "Class")}</strong>
+                  </div>
+
+                  <div class="teacher-class-body">
+                    ${
+                      summary?.__error
+                        ? `
+                          <div class="teacher-notice">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <div>
+                              <strong>Summary unavailable</strong>
+                              <span>${escapeHtml(summary.__error)}</span>
+                            </div>
+                          </div>
+                        `
+                        : `
+                          <div class="teacher-class-meta">
+                            <span class="teacher-badge success">${attendanceRate}% attendance</span>
+                            <span class="teacher-badge">${total} record${total === 1 ? "" : "s"}</span>
+                          </div>
+                        `
+                    }
+
+                    <p class="teacher-class-description">
+                      Open the class to use the complete attendance workflow for enrolled students.
+                    </p>
+
+                    <div class="teacher-class-footer">
+                      <span class="teacher-class-students">Assigned class</span>
+                      <button class="teacher-button primary" type="button" data-open-builder="${escapeHtml(normalizeId(classDoc))}">
+                        Open class
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              `;
+            }).join("");
+        }catch(error){
+          target.innerHTML = `
+            <div class="teacher-card" style="grid-column:1/-1;">
+              <div class="teacher-error">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <strong>Attendance could not be loaded</strong>
+                <span>${escapeHtml(error.message || "Please try again.")}</span>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      function renderErrorCard(target, error, fallback){
+        target.innerHTML = `
+          <div class="teacher-error">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <strong>${escapeHtml(fallback)}</strong>
+            <span>${escapeHtml(error?.message || "Please try again.")}</span>
+          </div>
+        `;
+      }
+
+      function handleGlobalSearch(){
+        const value =
+          String(
+            $("#teacherGlobalSearch")?.value ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
+
+        if (!value){
+          return;
+        }
+
+        const matchingClass =
+          state.classes.find(classDoc =>
+            [
+              classDoc.title,
+              classDoc.subject,
+              classDoc.classCode
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase()
+              .includes(value)
+          );
+
+        if (matchingClass){
+          openSection("classes");
+          $("#classSearch").value =
+            value;
+          renderClasses();
+          return;
+        }
+
+        const matchingStudent =
+          state.students.find(student =>
+            [
+              student.name,
+              student.email,
+              student.course
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase()
+              .includes(value)
+          );
+
+        if (matchingStudent){
+          openSection("students");
+          $("#studentSearch").value =
+            value;
+          renderStudents();
+        }
+      }
+
+      function bindEvents(){
+        $$(".teacher-nav-button[data-section]").forEach(button => {
+          button.addEventListener(
+            "click",
+            () =>
+              openSection(
+                button.dataset.section
+              )
+          );
+        });
+
+        $$("[data-open-section]").forEach(button => {
+          button.addEventListener(
+            "click",
+            () =>
+              openSection(
+                button.dataset.openSection
+              )
+          );
+        });
+
+        document.addEventListener(
+          "click",
+          event => {
+            const button =
+              event.target.closest(
+                "[data-open-builder]"
+              );
+
+            if (!button){
+              return;
+            }
+
+            openClassBuilder(
+              button.dataset.openBuilder
+            );
+          }
+        );
+
+        $("#teacherMobileMenu")?.addEventListener(
+          "click",
+          openMobileNav
+        );
+
+        $("#teacherOverlay")?.addEventListener(
+          "click",
+          closeMobileNav
+        );
+
+        $("#classSearch")?.addEventListener(
+          "input",
+          renderClasses
+        );
+
+        $("#classStatusFilter")?.addEventListener(
+          "change",
+          renderClasses
+        );
+
+        $("#studentSearch")?.addEventListener(
+          "input",
+          renderStudents
+        );
+
+        $("#studentClassFilter")?.addEventListener(
+          "change",
+          renderStudents
+        );
+
+        $("#teacherGlobalSearch")?.addEventListener(
+          "keydown",
+          event => {
+            if (event.key === "Enter"){
+              event.preventDefault();
+              handleGlobalSearch();
+            }
+          }
+        );
+      }
+
+      async function init(){
+        bindEvents();
+
+        try{
+          await loadCurrentUser();
+          await loadClasses();
+
+          /*
+            Load lightweight overview information without blocking
+            the page if one secondary endpoint fails.
+          */
+          await Promise.allSettled([
+            loadSubmissions(),
+            loadSchedules()
+          ]);
+
+          renderStats();
+        }catch(error){
+          console.error(
+            "Teacher Studio initialization failed:",
+            error
+          );
+
+          document.querySelector(".teacher-main").innerHTML = `
+            <section class="teacher-section active">
+              <div class="teacher-card">
+                <div class="teacher-error" style="min-height:360px;">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  <strong>Teacher Studio could not start</strong>
+                  <span>${escapeHtml(error.message || "Please sign in again and retry.")}</span>
+                </div>
+              </div>
+            </section>
+          `;
+        }
+      }
+
+      document.addEventListener(
+        "DOMContentLoaded",
+        init
+      );
+    })();
+  </script>
 </body>
 </html>
+'''
+
+path = Path("/mnt/data/teacher.html")
+path.write_text(html, encoding="utf-8")
+
+print(f"Created {path} ({path.stat().st_size:,} bytes)")
