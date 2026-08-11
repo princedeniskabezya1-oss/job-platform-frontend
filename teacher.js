@@ -54240,13 +54240,28 @@ case "schedule-next-month":
       return openTeacherAnalyticsKabezya();
 
 
-    /* =====================================================
-       KABEZYA
-    ===================================================== */
+/* =====================================================
+   KABEZYA
+===================================================== */
 
-    case "kabezya-mode":
+case "dashboard-lesson-assistant":
 
-      return setTeacherKabezyaMode(
+  setTeacherKabezyaMode(
+    "lesson-plan"
+  );
+
+
+  await activateTeacherStudioPage(
+    "ai"
+  );
+
+
+  return true;
+
+
+case "kabezya-mode":
+
+  return setTeacherKabezyaMode(
         safeString(
           element.dataset
             .kabezyaMode
@@ -58447,9 +58462,10 @@ function auditTeacherStudioRuntime(){
       "refresh-analytics",
       "analytics-open-student",
       "analytics-open-assignment",
-      "analytics-ask-kabezya",
+"analytics-ask-kabezya",
 
-      "kabezya-mode",
+"dashboard-lesson-assistant",
+"kabezya-mode",
       "kabezya-quick-prompt",
       "kabezya-clear-context",
       "kabezya-new-conversation",
