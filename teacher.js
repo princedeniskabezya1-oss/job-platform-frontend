@@ -53696,15 +53696,70 @@ async function dispatchTeacherStudioAction(
       );
 
 
-    /* =====================================================
-       ASSIGNMENTS
-    ===================================================== */
+/* =====================================================
+   ASSIGNMENTS
+===================================================== */
 
-    case "create-assignment":
+case "open-assignment":{
 
-      return callTeacherActionFunction(
-        "openTeacherAssignmentEditor"
-      );
+  const assignmentId =
+    getAssignmentIdFromAction(
+      element
+    );
+
+
+  if (
+    !assignmentId
+  ){
+
+    return false;
+
+  }
+
+
+  state.selectedAssignmentId =
+    assignmentId;
+
+
+  if (
+    typeof teacherAssignmentWorkspaceState ===
+      "object"
+  ){
+
+    teacherAssignmentWorkspaceState
+      .selectedAssignmentId =
+      assignmentId;
+
+  }
+
+
+  await activateTeacherStudioPage(
+    "assignments"
+  );
+
+
+  if (
+    typeof openTeacherAssignmentEditor ===
+      "function"
+  ){
+
+    openTeacherAssignmentEditor(
+      assignmentId
+    );
+
+  }
+
+
+  return true;
+
+}
+
+
+case "create-assignment":
+
+  return callTeacherActionFunction(
+    "openTeacherAssignmentEditor"
+  );
 
 
     case "edit-assignment":
@@ -53889,6 +53944,74 @@ case "schedule-next-month":
     "changeTeacherScheduleMonth",
     1
   );
+
+   case "open-schedule":{
+
+  const scheduleId =
+    getTeacherActionDataId(
+      element,
+      [
+        "scheduleId"
+      ]
+    );
+
+
+  const classId =
+    getClassIdFromAction(
+      element
+    );
+
+
+  if (
+    typeof teacherScheduleWorkspaceState ===
+      "object"
+  ){
+
+    if (
+      scheduleId
+    ){
+
+      teacherScheduleWorkspaceState
+        .selectedScheduleId =
+        scheduleId;
+
+    }
+
+
+    if (
+      classId
+    ){
+
+      teacherScheduleWorkspaceState
+        .classId =
+        classId;
+
+    }
+
+  }
+
+
+  await activateTeacherStudioPage(
+    "schedule"
+  );
+
+
+  if (
+    scheduleId &&
+    typeof openTeacherScheduleEditor ===
+      "function"
+  ){
+
+    openTeacherScheduleEditor(
+      scheduleId
+    );
+
+  }
+
+
+  return true;
+
+}
 
     case "create-schedule":
 
@@ -58268,7 +58391,7 @@ function auditTeacherStudioRuntime(){
 "refresh-students",
        "schedule-prev-month",
 "schedule-next-month",
-
+      "open-assignment",
       "create-assignment",
       "edit-assignment",
       "assignment-submissions",
@@ -58291,7 +58414,7 @@ function auditTeacherStudioRuntime(){
       "attendance-absent",
       "attendance-excused",
       "refresh-attendance",
-
+      "open-schedule",
       "create-schedule",
       "edit-schedule",
       "delete-schedule",
