@@ -53500,16 +53500,45 @@ async function dispatchTeacherStudioAction(
       );
 
 
-    case "class-assignments":
+case "class-assignments":
 
-      return openTeacherClassAssignments(
-        getClassIdFromAction(
-          element
-        )
-      );
+  return openTeacherClassAssignments(
+    getClassIdFromAction(
+      element
+    )
+  );
 
 
-    case "class-attendance":
+case "class-grading":{
+
+  const classId =
+    getClassIdFromAction(
+      element
+    );
+
+
+  if (
+    !prepareTeacherGradingClass(
+      classId
+    )
+  ){
+
+    return false;
+
+  }
+
+
+  await activateTeacherStudioPage(
+    "grading"
+  );
+
+
+  return true;
+
+}
+
+
+case "class-attendance":
 
       return openTeacherClassAttendance(
         getClassIdFromAction(
@@ -57757,18 +57786,30 @@ function renderTeacherStudioShell(){
 
 function initializeTeacherStudioWorkspaces(){
 
-  const initializers = [
+const initializers = [
 
-    {
-      name:
-        "Settings",
+  {
+    name:
+      "Classes",
 
-      fn:
-        typeof initializeTeacherSettingsWorkspace ===
-          "function"
-          ? initializeTeacherSettingsWorkspace
-          : null
-    },
+    fn:
+      typeof initializeTeacherClassesWorkspace ===
+        "function"
+        ? initializeTeacherClassesWorkspace
+        : null
+  },
+
+
+  {
+    name:
+      "Settings",
+
+    fn:
+      typeof initializeTeacherSettingsWorkspace ===
+        "function"
+        ? initializeTeacherSettingsWorkspace
+        : null
+  },
 
 
     {
@@ -58387,8 +58428,9 @@ function auditTeacherStudioRuntime(){
 
       "open-class",
       "class-students",
-      "class-assignments",
-      "class-attendance",
+"class-assignments",
+"class-grading",
+"class-attendance",
       "class-quizzes",
       "class-schedule",
       "class-analytics",
