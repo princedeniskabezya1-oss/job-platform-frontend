@@ -53638,6 +53638,56 @@ async function dispatchTeacherStudioAction(
 
     }
 
+   case "clear-student-filters":
+
+  teacherStudentWorkspaceState
+    .search =
+    "";
+
+  teacherStudentWorkspaceState
+    .classId =
+    "";
+
+  teacherStudentWorkspaceState
+    .progress =
+    "";
+
+
+  if (
+    $("teacherStudentSearch")
+  ){
+
+    $("teacherStudentSearch").value =
+      "";
+
+  }
+
+
+  if (
+    $("teacherStudentClassFilter")
+  ){
+
+    $("teacherStudentClassFilter").value =
+      "";
+
+  }
+
+
+  if (
+    $("teacherStudentProgressFilter")
+  ){
+
+    $("teacherStudentProgressFilter").value =
+      "";
+
+  }
+
+
+  renderTeacherStudentsWorkspace();
+
+
+  return true;
+
 
     case "refresh-students":
 
@@ -58198,7 +58248,8 @@ function auditTeacherStudioRuntime(){
       "student-kabezya",
       "message-student",
       "student-class",
-      "refresh-students",
+      "clear-student-filters",
+"refresh-students",
 
       "create-assignment",
       "edit-assignment",
