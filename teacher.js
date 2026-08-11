@@ -53874,6 +53874,22 @@ async function dispatchTeacherStudioAction(
        SCHEDULE
     ===================================================== */
 
+
+   case "schedule-prev-month":
+
+  return callTeacherActionFunction(
+    "changeTeacherScheduleMonth",
+    -1
+  );
+
+
+case "schedule-next-month":
+
+  return callTeacherActionFunction(
+    "changeTeacherScheduleMonth",
+    1
+  );
+
     case "create-schedule":
 
       return callTeacherActionFunction(
@@ -58250,6 +58266,8 @@ function auditTeacherStudioRuntime(){
       "student-class",
       "clear-student-filters",
 "refresh-students",
+       "schedule-prev-month",
+"schedule-next-month",
 
       "create-assignment",
       "edit-assignment",
