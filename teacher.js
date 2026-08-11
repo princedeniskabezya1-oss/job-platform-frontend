@@ -4279,10 +4279,77 @@ async function apiSend(
 }
 
 
-
 /* =========================================================
-   TEACHER STUDIO NAVIGATION CONTROLLER
+   RENDER TEACHER STUDIO HOME
 ========================================================= */
+
+function renderStudioHome(){
+
+  /*
+    Keep the Overview renderer centralized.
+
+    The individual render functions already own their
+    respective dashboard components. This function simply
+    refreshes the complete Teacher Studio Overview whenever
+    the teacher returns to Dashboard.
+  */
+
+  if (
+    typeof renderTeacherOverviewHeader ===
+    "function"
+  ){
+    renderTeacherOverviewHeader();
+  }
+
+
+  if (
+    typeof renderTeacherOverviewMetrics ===
+    "function"
+  ){
+    renderTeacherOverviewMetrics();
+  }
+
+
+  if (
+    typeof renderTeacherOverviewClasses ===
+    "function"
+  ){
+    renderTeacherOverviewClasses();
+  }
+
+
+  if (
+    typeof renderTeacherOverviewSchedule ===
+    "function"
+  ){
+    renderTeacherOverviewSchedule();
+  }
+
+
+  if (
+    typeof renderTeacherOverviewAssignments ===
+    "function"
+  ){
+    renderTeacherOverviewAssignments();
+  }
+
+
+  if (
+    typeof renderTeacherOverviewActivity ===
+    "function"
+  ){
+    renderTeacherOverviewActivity();
+  }
+
+
+  if (
+    typeof renderTeacherOverviewKabezya ===
+    "function"
+  ){
+    renderTeacherOverviewKabezya();
+  }
+
+}
 
 
 function initializeTeacherOverview(){
