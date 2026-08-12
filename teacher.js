@@ -30114,9 +30114,18 @@ const teacherQuizWorkspaceState = {
   saving:
     false,
 
+  /*
+    Unsaved questions currently being edited.
+
+    These are intentionally separate from state.quizzes so
+    editing a quiz cannot mutate the saved quiz before Save.
+  */
+
+  draftQuestions:
+    [],
+
   initialized:
     false
-
 };
 
 
@@ -32935,6 +32944,2111 @@ function removeTeacherQuizFromState(
 
 
   return true;
+
+}
+
+/* =========================================================
+   QUIZ EDITOR
+   PRODUCTION CREATE / EDIT / SAVE / DELETE
+========================================================= */
+
+
+/* =========================================================
+   QUIZ EDITOR QUESTION SEQUENCE
+========================================================= */
+
+let teacherQuizEditorQuestionSequence =
+  0;
+
+
+/* =========================================================
+   NORMALIZE QUIZ EDITOR QUESTION
+========================================================= */
+
+function normalizeTeacherQuizEditorQuestion(
+  question = {}
+){
+
+  teacherQuizEditorQuestionSequence +=
+    1;
+
+
+  const type =
+    safeString(
+      question?.type,
+      "multiple_choice"
+    )
+      .toLowerCase();
+
+
+  const allowedTypes =
+    new Set([
+      "multiple_choice",
+      "true_false",
+      "short_answer"
+    ]);
+
+
+  return {
+
+    editorId:
+      safeString(
+        question?.editorId
+      ) ||
+      `teacher-quiz-question-${Date.now()}-${teacherQuizEditorQuestionSequence}`,
+
+    questionBankId:
+      normalizeId(
+        question?.questionBankId
+      ),
+
+    question:
+      safeString(
+        question?.question
+      ),
+
+    type:
+      allowedTypes.has(
+        type
+      )
+        ? type
+        : "multiple_choice",
+
+    options:
+      Array.isArray(
+        question?.options
+      )
+        ? question.options
+            .map(
+              option =>
+                safeString(
+                  typeof option ===
+                    "object"
+                    ? (
+                        option?.text ||
+                        option?.label ||
+                        option?.value
+                      )
+                    : option
+                )
+            )
+            .filter(
+              Boolean
+            )
+        : [],
+
+    correctAnswer:
+      question?.correctAnswer ??
+      "",
+
+    explanation:
+      safeString(
+        question?.explanation
+      ),
+
+    points:
+      Math.max(
+        0,
+        safeNumber(
+          question?.points,
+          1
+        )
+      )
+
+  };
+
+}
+
+
+/* =========================================================
+   EDITOR QUESTIONS
+========================================================= */
+
+function getTeacherQuizDraftQuestions(){
+
+  return Array.isArray(
+    teacherQuizWorkspaceState
+      .draftQuestions
+  )
+    ? teacherQuizWorkspaceState
+        .draftQuestions
+    : [];
+
+}
+
+
+/* =========================================================
+   SET EDITOR QUESTIONS
+========================================================= */
+
+function setTeacherQuizDraftQuestions(
+  questions
+){
+
+  teacherQuizWorkspaceState
+    .draftQuestions =
+    asArray(
+      questions
+    )
+      .map(
+        question =>
+          normalizeTeacherQuizEditorQuestion(
+            question
+          )
+      );
+
+
+  return teacherQuizWorkspaceState
+    .draftQuestions;
+
+}
+
+
+/* =========================================================
+   QUIZ EDITOR HOST
+========================================================= */
+
+function getTeacherQuizEditorHost(){
+
+  return (
+    $(
+      "teacherQuizEditor"
+    ) ||
+    $(
+      "quizEditorWorkspace"
+    ) ||
+    null
+  );
+
+}
+
+
+/* =========================================================
+   QUIZ EDITOR CLASS OPTIONS
+========================================================= */
+
+function renderTeacherQuizEditorClassOptions(
+  selectedClassId =
+    ""
+){
+
+  return getTeacherClasses()
+    .map(
+      classItem => {
+
+        const classId =
+          normalizeId(
+            classItem?._id ||
+            classItem?.id
+          );
+
+
+        return `
+          <option
+            value="${escapeAttribute(
+              classId
+            )}"
+            ${
+              sameId(
+                classId,
+                selectedClassId
+              )
+                ? "selected"
+                : ""
+            }
+          >
+            ${escapeHtml(
+              getTeacherClassTitle(
+                classItem
+              )
+            )}
+          </option>
+        `;
+
+      }
+    )
+    .join(
+      ""
+    );
+
+}
+
+
+/* =========================================================
+   CREATE QUESTION EDITOR ROW
+========================================================= */
+
+function createTeacherQuizEditorQuestionMarkup(
+  question,
+  index
+){
+
+  const editorId =
+    safeString(
+      question?.editorId
+    );
+
+
+  const type =
+    safeString(
+      question?.type,
+      "multiple_choice"
+    );
+
+
+  const options =
+    asArray(
+      question?.options
+    );
+
+
+  return `
+    <article
+      class="teacher-quiz-question-editor"
+      data-quiz-question-editor-id="${escapeAttribute(
+        editorId
+      )}"
+    >
+
+      <div
+        class="teacher-quiz-question-editor-head"
+      >
+
+        <div>
+          <span>
+            Question ${index + 1}
+          </span>
+
+          <strong>
+            ${
+              safeString(
+                question?.question
+              )
+                ? escapeHtml(
+                    question.question
+                  )
+                : "New question"
+            }
+          </strong>
+        </div>
+
+
+        <button
+          type="button"
+          class="teacher-icon-button"
+          data-quiz-question-remove="${escapeAttribute(
+            editorId
+          )}"
+          aria-label="Remove question"
+        >
+          <i
+            class="fa-regular fa-trash-can"
+            aria-hidden="true"
+          ></i>
+        </button>
+
+      </div>
+
+
+      <div
+        class="teacher-quiz-question-editor-grid"
+      >
+
+        <label
+          class="teacher-form-field teacher-form-field-full"
+        >
+
+          <span>
+            Question
+          </span>
+
+          <textarea
+            class="teacher-quiz-question-text"
+            rows="3"
+            maxlength="2000"
+            placeholder="Enter the question..."
+          >${escapeHtml(
+            question?.question ||
+            ""
+          )}</textarea>
+
+        </label>
+
+
+        <label
+          class="teacher-form-field"
+        >
+
+          <span>
+            Question type
+          </span>
+
+          <select
+            class="teacher-quiz-question-type"
+          >
+
+            <option
+              value="multiple_choice"
+              ${
+                type ===
+                "multiple_choice"
+                  ? "selected"
+                  : ""
+              }
+            >
+              Multiple choice
+            </option>
+
+            <option
+              value="true_false"
+              ${
+                type ===
+                "true_false"
+                  ? "selected"
+                  : ""
+              }
+            >
+              True / False
+            </option>
+
+            <option
+              value="short_answer"
+              ${
+                type ===
+                "short_answer"
+                  ? "selected"
+                  : ""
+              }
+            >
+              Short answer
+            </option>
+
+          </select>
+
+        </label>
+
+
+        <label
+          class="teacher-form-field"
+        >
+
+          <span>
+            Points
+          </span>
+
+          <input
+            class="teacher-quiz-question-points"
+            type="number"
+            min="0"
+            step="1"
+            value="${escapeAttribute(
+              question?.points ??
+              1
+            )}"
+          />
+
+        </label>
+
+
+        ${
+          type ===
+          "multiple_choice"
+            ? `
+                <label
+                  class="teacher-form-field teacher-form-field-full"
+                >
+
+                  <span>
+                    Answer options
+                  </span>
+
+                  <textarea
+                    class="teacher-quiz-question-options"
+                    rows="5"
+                    placeholder="Enter one option per line..."
+                  >${escapeHtml(
+                    options.join(
+                      "\n"
+                    )
+                  )}</textarea>
+
+                  <small>
+                    Enter one answer option per line.
+                  </small>
+
+                </label>
+
+
+                <label
+                  class="teacher-form-field teacher-form-field-full"
+                >
+
+                  <span>
+                    Correct answer
+                  </span>
+
+                  <input
+                    class="teacher-quiz-question-answer"
+                    type="text"
+                    value="${escapeAttribute(
+                      question?.correctAnswer ??
+                      ""
+                    )}"
+                    placeholder="Enter the correct option or option index"
+                  />
+
+                </label>
+              `
+            : ""
+        }
+
+
+        ${
+          type ===
+          "true_false"
+            ? `
+                <label
+                  class="teacher-form-field teacher-form-field-full"
+                >
+
+                  <span>
+                    Correct answer
+                  </span>
+
+                  <select
+                    class="teacher-quiz-question-answer"
+                  >
+                    <option
+                      value="true"
+                      ${
+                        String(
+                          question?.correctAnswer
+                        ) ===
+                        "true"
+                          ? "selected"
+                          : ""
+                      }
+                    >
+                      True
+                    </option>
+
+                    <option
+                      value="false"
+                      ${
+                        String(
+                          question?.correctAnswer
+                        ) ===
+                        "false"
+                          ? "selected"
+                          : ""
+                      }
+                    >
+                      False
+                    </option>
+                  </select>
+
+                </label>
+              `
+            : ""
+        }
+
+
+        ${
+          type ===
+          "short_answer"
+            ? `
+                <label
+                  class="teacher-form-field teacher-form-field-full"
+                >
+
+                  <span>
+                    Expected answer
+                  </span>
+
+                  <input
+                    class="teacher-quiz-question-answer"
+                    type="text"
+                    value="${escapeAttribute(
+                      question?.correctAnswer ??
+                      ""
+                    )}"
+                    placeholder="Enter the expected answer"
+                  />
+
+                </label>
+              `
+            : ""
+        }
+
+
+        <label
+          class="teacher-form-field teacher-form-field-full"
+        >
+
+          <span>
+            Explanation
+          </span>
+
+          <textarea
+            class="teacher-quiz-question-explanation"
+            rows="3"
+            maxlength="3000"
+            placeholder="Optional answer explanation..."
+          >${escapeHtml(
+            question?.explanation ||
+            ""
+          )}</textarea>
+
+        </label>
+
+      </div>
+
+    </article>
+  `;
+
+}
+
+
+/* =========================================================
+   READ QUESTIONS FROM EDITOR DOM
+========================================================= */
+
+function getTeacherQuizEditorQuestions(){
+
+  const host =
+    getTeacherQuizEditorHost();
+
+
+  if (
+    !host
+  ){
+
+    return [];
+
+  }
+
+
+  return Array.from(
+    host.querySelectorAll(
+      "[data-quiz-question-editor-id]"
+    )
+  )
+    .map(
+      questionElement => {
+
+        const type =
+          safeString(
+            questionElement
+              .querySelector(
+                ".teacher-quiz-question-type"
+              )
+              ?.value,
+            "multiple_choice"
+          );
+
+
+        const question =
+          safeString(
+            questionElement
+              .querySelector(
+                ".teacher-quiz-question-text"
+              )
+              ?.value
+          );
+
+
+        const points =
+          Math.max(
+            0,
+            safeNumber(
+              questionElement
+                .querySelector(
+                  ".teacher-quiz-question-points"
+                )
+                ?.value,
+              1
+            )
+          );
+
+
+        const options =
+          type ===
+          "multiple_choice"
+            ? safeString(
+                questionElement
+                  .querySelector(
+                    ".teacher-quiz-question-options"
+                  )
+                  ?.value
+              )
+                .split(
+                  "\n"
+                )
+                .map(
+                  option =>
+                    option.trim()
+                )
+                .filter(
+                  Boolean
+                )
+            : (
+                type ===
+                "true_false"
+                  ? [
+                      "True",
+                      "False"
+                    ]
+                  : []
+              );
+
+
+        let correctAnswer =
+          questionElement
+            .querySelector(
+              ".teacher-quiz-question-answer"
+            )
+            ?.value ??
+          "";
+
+
+        if (
+          type ===
+          "true_false"
+        ){
+
+          correctAnswer =
+            String(
+              correctAnswer
+            ) ===
+            "true";
+
+        }
+
+
+        return {
+
+          question,
+
+          type,
+
+          points,
+
+          options,
+
+          correctAnswer,
+
+          explanation:
+            safeString(
+              questionElement
+                .querySelector(
+                  ".teacher-quiz-question-explanation"
+                )
+                ?.value
+            )
+
+        };
+
+      }
+    )
+    .filter(
+      item =>
+        Boolean(
+          item.question
+        )
+    );
+
+}
+
+
+/* =========================================================
+   RENDER QUIZ QUESTION EDITOR
+========================================================= */
+
+function renderTeacherQuizEditorQuestions(){
+
+  const container =
+    $(
+      "teacherQuizEditorQuestions"
+    );
+
+
+  if (
+    !container
+  ){
+
+    return false;
+
+  }
+
+
+  const questions =
+    getTeacherQuizDraftQuestions();
+
+
+  if (
+    !questions.length
+  ){
+
+    container.innerHTML = `
+      <div
+        class="teacher-inline-empty"
+      >
+        No questions yet. Add your first question.
+      </div>
+    `;
+
+
+    return true;
+
+  }
+
+
+  container.innerHTML =
+    questions
+      .map(
+        (
+          question,
+          index
+        ) =>
+          createTeacherQuizEditorQuestionMarkup(
+            question,
+            index
+          )
+      )
+      .join(
+        ""
+      );
+
+
+  bindTeacherQuizEditorQuestionControls();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   SYNC CURRENT DOM QUESTIONS BEFORE STRUCTURAL CHANGE
+========================================================= */
+
+function syncTeacherQuizDraftQuestionsFromDom(){
+
+  const host =
+    getTeacherQuizEditorHost();
+
+
+  if (
+    !host ||
+    !host.querySelector(
+      "[data-quiz-question-editor-id]"
+    )
+  ){
+
+    return;
+
+  }
+
+
+  const domQuestions =
+    getTeacherQuizEditorQuestions();
+
+
+  setTeacherQuizDraftQuestions(
+    domQuestions
+  );
+
+}
+
+
+/* =========================================================
+   ADD QUIZ QUESTION
+========================================================= */
+
+function addTeacherQuizEditorQuestion(
+  question = {}
+){
+
+  syncTeacherQuizDraftQuestionsFromDom();
+
+
+  const questions =
+    getTeacherQuizDraftQuestions();
+
+
+  questions.push(
+    normalizeTeacherQuizEditorQuestion({
+
+      type:
+        "multiple_choice",
+
+      points:
+        1,
+
+      options:[
+        "Option A",
+        "Option B"
+      ],
+
+      correctAnswer:
+        0,
+
+      ...question
+
+    })
+  );
+
+
+  teacherQuizWorkspaceState
+    .draftQuestions =
+    questions;
+
+
+  renderTeacherQuizEditorQuestions();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   REMOVE QUIZ QUESTION
+========================================================= */
+
+function removeTeacherQuizEditorQuestion(
+  editorId
+){
+
+  syncTeacherQuizDraftQuestionsFromDom();
+
+
+  teacherQuizWorkspaceState
+    .draftQuestions =
+    getTeacherQuizDraftQuestions()
+      .filter(
+        question =>
+          safeString(
+            question?.editorId
+          ) !==
+          safeString(
+            editorId
+          )
+      );
+
+
+  renderTeacherQuizEditorQuestions();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   CHANGE QUESTION TYPE
+========================================================= */
+
+function changeTeacherQuizQuestionType(
+  editorId,
+  type
+){
+
+  syncTeacherQuizDraftQuestionsFromDom();
+
+
+  const question =
+    getTeacherQuizDraftQuestions()
+      .find(
+        item =>
+          safeString(
+            item?.editorId
+          ) ===
+          safeString(
+            editorId
+          )
+      );
+
+
+  if (
+    !question
+  ){
+
+    return false;
+
+  }
+
+
+  question.type =
+    safeString(
+      type,
+      "multiple_choice"
+    );
+
+
+  if (
+    question.type ===
+    "multiple_choice" &&
+    !question.options.length
+  ){
+
+    question.options = [
+      "Option A",
+      "Option B"
+    ];
+
+    question.correctAnswer =
+      0;
+
+  }
+
+
+  if (
+    question.type ===
+    "true_false"
+  ){
+
+    question.options = [
+      "True",
+      "False"
+    ];
+
+    question.correctAnswer =
+      true;
+
+  }
+
+
+  if (
+    question.type ===
+    "short_answer"
+  ){
+
+    question.options =
+      [];
+
+    question.correctAnswer =
+      "";
+
+  }
+
+
+  renderTeacherQuizEditorQuestions();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   BIND QUESTION CONTROLS
+========================================================= */
+
+function bindTeacherQuizEditorQuestionControls(){
+
+  const container =
+    $(
+      "teacherQuizEditorQuestions"
+    );
+
+
+  if (
+    !container
+  ){
+
+    return;
+
+  }
+
+
+  container
+    .querySelectorAll(
+      "[data-quiz-question-remove]"
+    )
+    .forEach(
+      button => {
+
+        button.onclick =
+          () => {
+
+            removeTeacherQuizEditorQuestion(
+              button.dataset
+                .quizQuestionRemove
+            );
+
+          };
+
+      }
+    );
+
+
+  container
+    .querySelectorAll(
+      ".teacher-quiz-question-type"
+    )
+    .forEach(
+      select => {
+
+        select.onchange =
+          () => {
+
+            const item =
+              select.closest(
+                "[data-quiz-question-editor-id]"
+              );
+
+
+            changeTeacherQuizQuestionType(
+              item?.dataset
+                ?.quizQuestionEditorId,
+              select.value
+            );
+
+          };
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   OPEN QUIZ EDITOR
+========================================================= */
+
+function openTeacherQuizEditor(
+  quizId =
+    ""
+){
+
+  const host =
+    getTeacherQuizEditorHost();
+
+
+  if (
+    !host
+  ){
+
+    notifyAIFTError(
+      "The Quiz editor container is missing from teacher.html.",
+      {
+        title:
+          "Quiz editor unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const normalizedQuizId =
+    normalizeId(
+      quizId
+    );
+
+
+  const quiz =
+    normalizedQuizId
+      ? getTeacherQuizById(
+          normalizedQuizId
+        )
+      : null;
+
+
+  if (
+    normalizedQuizId &&
+    !quiz
+  ){
+
+    notifyAIFTError(
+      "The selected quiz is no longer available.",
+      {
+        title:
+          "Quiz unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const editing =
+    Boolean(
+      quiz
+    );
+
+
+  const selectedClassId =
+    normalizeId(
+      quiz?.classId?._id ||
+      quiz?.classId ||
+      teacherQuizWorkspaceState
+        .classId ||
+      state.selectedClassId
+    );
+
+
+  teacherQuizWorkspaceState
+    .editingQuizId =
+    normalizedQuizId;
+
+
+  setTeacherQuizDraftQuestions(
+    quiz
+      ? getTeacherQuizQuestions(
+          quiz
+        )
+      : []
+  );
+
+
+  host.hidden =
+    false;
+
+
+  host.innerHTML = `
+    <section
+      class="teacher-quiz-editor-panel"
+    >
+
+      <header
+        class="teacher-quiz-editor-header"
+      >
+
+        <div>
+          <span>
+            ${
+              editing
+                ? "Edit quiz"
+                : "New quiz"
+            }
+          </span>
+
+          <h2>
+            ${
+              editing
+                ? escapeHtml(
+                    getTeacherQuizTitle(
+                      quiz
+                    )
+                  )
+                : "Create Quiz"
+            }
+          </h2>
+        </div>
+
+
+        <button
+          type="button"
+          class="teacher-icon-button"
+          data-teacher-action="close-quiz-editor"
+          aria-label="Close quiz editor"
+        >
+          <i
+            class="fa-solid fa-xmark"
+            aria-hidden="true"
+          ></i>
+        </button>
+
+      </header>
+
+
+      <div
+        class="teacher-quiz-editor-body"
+      >
+
+        <div
+          class="teacher-quiz-editor-settings"
+        >
+
+          <label
+            class="teacher-form-field"
+          >
+            <span>
+              Class
+            </span>
+
+            <select
+              id="teacherQuizClassId"
+              required
+            >
+              <option value="">
+                Select class
+              </option>
+
+              ${renderTeacherQuizEditorClassOptions(
+                selectedClassId
+              )}
+            </select>
+          </label>
+
+
+          <label
+            class="teacher-form-field"
+          >
+            <span>
+              Quiz title
+            </span>
+
+            <input
+              id="teacherQuizTitle"
+              type="text"
+              maxlength="160"
+              autocomplete="off"
+              placeholder="Enter quiz title"
+              value="${escapeAttribute(
+                quiz?.title ||
+                ""
+              )}"
+            />
+          </label>
+
+
+          <label
+            class="teacher-form-field teacher-form-field-full"
+          >
+            <span>
+              Instructions
+            </span>
+
+            <textarea
+              id="teacherQuizDescription"
+              rows="4"
+              maxlength="5000"
+              placeholder="Add instructions for students..."
+            >${escapeHtml(
+              getTeacherQuizInstructions(
+                quiz ||
+                {}
+              )
+            )}</textarea>
+          </label>
+
+
+          <label
+            class="teacher-form-field"
+          >
+            <span>
+              Status
+            </span>
+
+            <select
+              id="teacherQuizStatus"
+            >
+              <option
+                value="draft"
+                ${
+                  getTeacherQuizStatus(
+                    quiz ||
+                    {}
+                  ) ===
+                  "draft"
+                    ? "selected"
+                    : ""
+                }
+              >
+                Draft
+              </option>
+
+              <option
+                value="published"
+                ${
+                  getTeacherQuizStatus(
+                    quiz ||
+                    {}
+                  ) ===
+                  "published"
+                    ? "selected"
+                    : ""
+                }
+              >
+                Published
+              </option>
+
+              <option
+                value="closed"
+                ${
+                  getTeacherQuizStatus(
+                    quiz ||
+                    {}
+                  ) ===
+                  "closed"
+                    ? "selected"
+                    : ""
+                }
+              >
+                Closed
+              </option>
+            </select>
+          </label>
+
+
+          <label
+            class="teacher-form-field"
+          >
+            <span>
+              Time limit
+            </span>
+
+            <div
+              class="teacher-input-suffix"
+            >
+              <input
+                id="teacherQuizTimeLimit"
+                type="number"
+                min="0"
+                max="1440"
+                value="${escapeAttribute(
+                  getTeacherQuizTimeLimit(
+                    quiz ||
+                    {}
+                  )
+                )}"
+              />
+
+              <span>
+                minutes
+              </span>
+            </div>
+          </label>
+
+        </div>
+
+
+        <div
+          class="teacher-quiz-editor-question-head"
+        >
+
+          <div>
+            <span>
+              QUESTIONS
+            </span>
+
+            <h3>
+              Quiz Questions
+            </h3>
+          </div>
+
+
+          <button
+            type="button"
+            id="teacherQuizAddQuestionButton"
+            class="teacher-secondary-button"
+          >
+            <i
+              class="fa-solid fa-plus"
+              aria-hidden="true"
+            ></i>
+
+            Add question
+          </button>
+
+        </div>
+
+
+        <div
+          id="teacherQuizEditorQuestions"
+          class="teacher-quiz-editor-questions"
+        ></div>
+
+      </div>
+
+
+      <footer
+        class="teacher-quiz-editor-footer"
+      >
+
+        ${
+          editing
+            ? `
+                <button
+                  type="button"
+                  class="teacher-danger-button"
+                  data-teacher-action="delete-quiz"
+                  data-quiz-id="${escapeAttribute(
+                    normalizedQuizId
+                  )}"
+                >
+                  <i
+                    class="fa-regular fa-trash-can"
+                    aria-hidden="true"
+                  ></i>
+
+                  Delete quiz
+                </button>
+              `
+            : `<span></span>`
+        }
+
+
+        <div
+          class="teacher-quiz-editor-footer-actions"
+        >
+
+          <button
+            type="button"
+            class="teacher-secondary-button"
+            data-teacher-action="close-quiz-editor"
+          >
+            Cancel
+          </button>
+
+
+          <button
+            type="button"
+            id="teacherQuizSaveButton"
+            class="teacher-primary-button"
+            data-teacher-action="save-quiz"
+          >
+            <i
+              class="fa-solid fa-floppy-disk"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              ${
+                editing
+                  ? "Save Changes"
+                  : "Create Quiz"
+              }
+            </span>
+          </button>
+
+        </div>
+
+      </footer>
+
+    </section>
+  `;
+
+
+  renderTeacherQuizEditorQuestions();
+
+
+  $(
+    "teacherQuizAddQuestionButton"
+  )
+    ?.addEventListener(
+      "click",
+      () => {
+
+        addTeacherQuizEditorQuestion();
+
+      }
+    );
+
+
+  /*
+    New quizzes should not open as an empty unusable form.
+  */
+
+  if (
+    !editing &&
+    !getTeacherQuizDraftQuestions()
+      .length
+  ){
+
+    addTeacherQuizEditorQuestion();
+
+  }
+
+
+  window.requestAnimationFrame(
+    () => {
+
+      host.scrollIntoView({
+        behavior:
+          "smooth",
+
+        block:
+          "start"
+      });
+
+    }
+  );
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   CLOSE QUIZ EDITOR
+========================================================= */
+
+function closeTeacherQuizEditor(){
+
+  teacherQuizWorkspaceState
+    .editingQuizId =
+    "";
+
+
+  teacherQuizWorkspaceState
+    .draftQuestions =
+    [];
+
+
+  teacherQuizWorkspaceState
+    .saving =
+    false;
+
+
+  const host =
+    getTeacherQuizEditorHost();
+
+
+  if (
+    host
+  ){
+
+    host.hidden =
+      true;
+
+    host.innerHTML =
+      "";
+
+  }
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   BUILD QUIZ PAYLOAD
+========================================================= */
+
+function getTeacherQuizFormPayload(){
+
+  const classId =
+    normalizeId(
+      $(
+        "teacherQuizClassId"
+      )?.value
+    );
+
+
+  const title =
+    safeString(
+      $(
+        "teacherQuizTitle"
+      )?.value
+    );
+
+
+  const description =
+    safeString(
+      $(
+        "teacherQuizDescription"
+      )?.value
+    );
+
+
+  const status =
+    getTeacherQuizBackendStatus(
+      $(
+        "teacherQuizStatus"
+      )?.value
+    );
+
+
+  const durationMinutes =
+    Math.max(
+      0,
+      safeInteger(
+        $(
+          "teacherQuizTimeLimit"
+        )?.value,
+        0
+      )
+    );
+
+
+  return {
+
+    schoolId:
+      getSchoolId(),
+
+    classId,
+
+    teacherId:
+      getTeacherId(),
+
+    title,
+
+    description,
+
+    instructions:
+      description,
+
+    status,
+
+    durationMinutes,
+
+    timeLimit:
+      durationMinutes,
+
+    timeLimitMinutes:
+      durationMinutes,
+
+    questions:
+      getTeacherQuizEditorQuestions()
+
+  };
+
+}
+
+
+/* =========================================================
+   SAVE QUIZ
+========================================================= */
+
+async function saveTeacherQuiz(){
+
+  if (
+    teacherQuizWorkspaceState
+      .saving
+  ){
+
+    return false;
+
+  }
+
+
+  const payload =
+    getTeacherQuizFormPayload();
+
+
+  if (
+    !payload.classId
+  ){
+
+    notifyAIFTWarning(
+      "Please select a class.",
+      {
+        title:
+          "Class required"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  if (
+    !getTeacherClassById(
+      payload.classId
+    )
+  ){
+
+    notifyAIFTError(
+      "You do not have access to the selected class.",
+      {
+        title:
+          "Class unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  if (
+    !payload.title
+  ){
+
+    notifyAIFTWarning(
+      "Quiz title is required.",
+      {
+        title:
+          "Title required"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  if (
+    !payload.questions.length
+  ){
+
+    notifyAIFTWarning(
+      "Add at least one question before saving the quiz.",
+      {
+        title:
+          "Question required"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const invalidMultipleChoice =
+    payload.questions
+      .findIndex(
+        question =>
+          question.type ===
+            "multiple_choice" &&
+          (
+            question.options.length <
+              2 ||
+            (
+              question.correctAnswer ===
+                "" ||
+              question.correctAnswer ===
+                null ||
+              question.correctAnswer ===
+                undefined
+            )
+          )
+      );
+
+
+  if (
+    invalidMultipleChoice >=
+    0
+  ){
+
+    notifyAIFTWarning(
+      `Question ${
+        invalidMultipleChoice + 1
+      } needs at least two options and a correct answer.`,
+      {
+        title:
+          "Incomplete question"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const quizId =
+    normalizeId(
+      teacherQuizWorkspaceState
+        .editingQuizId
+    );
+
+
+  const saveButton =
+    $(
+      "teacherQuizSaveButton"
+    );
+
+
+  teacherQuizWorkspaceState
+    .saving =
+    true;
+
+
+  if (
+    saveButton
+  ){
+
+    saveButton.disabled =
+      true;
+
+    saveButton.setAttribute(
+      "aria-busy",
+      "true"
+    );
+
+    saveButton.innerHTML = `
+      <i
+        class="fa-solid fa-spinner fa-spin"
+        aria-hidden="true"
+      ></i>
+
+      <span>
+        Saving...
+      </span>
+    `;
+
+  }
+
+
+  try{
+
+    const response =
+      quizId
+        ? await apiPatch(
+            `/api/quizzes/${
+              encodeURIComponent(
+                quizId
+              )
+            }`,
+            payload
+          )
+        : await apiPost(
+            "/api/quizzes",
+            payload
+          );
+
+
+    const savedQuiz =
+      response?.quiz ||
+      response?.data ||
+      response;
+
+
+    if (
+      savedQuiz &&
+      typeof savedQuiz ===
+        "object"
+    ){
+
+      replaceTeacherQuizInState(
+        savedQuiz
+      );
+
+    }else{
+
+      await loadTeacherQuizzes();
+
+    }
+
+
+    /*
+      Always reload quizzes after a mutation.
+
+      This keeps Teacher Studio synchronized with whatever the
+      backend normalized or populated.
+    */
+
+    await loadTeacherQuizzes();
+
+
+    finalizeTeacherLoadedData();
+
+
+    closeTeacherQuizEditor();
+
+
+    renderTeacherQuizzesWorkspace();
+
+
+    notifyAIFTSuccess(
+      quizId
+        ? "Quiz updated successfully."
+        : "Quiz created successfully.",
+      {
+        title:
+          quizId
+            ? "Quiz updated"
+            : "Quiz created"
+      }
+    );
+
+
+    return true;
+
+  }catch(
+    error
+  ){
+
+    console.error(
+      "saveTeacherQuiz failed:",
+      error
+    );
+
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "AIFT could not save this quiz."
+      ),
+      {
+        title:
+          "Quiz not saved"
+      }
+    );
+
+
+    return false;
+
+  }finally{
+
+    teacherQuizWorkspaceState
+      .saving =
+      false;
+
+
+    if (
+      $(
+        "teacherQuizSaveButton"
+      )
+    ){
+
+      const button =
+        $(
+          "teacherQuizSaveButton"
+        );
+
+
+      button.disabled =
+        false;
+
+      button.setAttribute(
+        "aria-busy",
+        "false"
+      );
+
+      button.innerHTML = `
+        <i
+          class="fa-solid fa-floppy-disk"
+          aria-hidden="true"
+        ></i>
+
+        <span>
+          ${
+            quizId
+              ? "Save Changes"
+              : "Create Quiz"
+          }
+        </span>
+      `;
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   DELETE QUIZ
+========================================================= */
+
+async function deleteTeacherQuiz(
+  quizId
+){
+
+  const normalizedQuizId =
+    normalizeId(
+      quizId ||
+      teacherQuizWorkspaceState
+        .editingQuizId
+  );
+
+
+  const quiz =
+    getTeacherQuizById(
+      normalizedQuizId
+    );
+
+
+  if (
+    !quiz
+  ){
+
+    notifyAIFTError(
+      "The selected quiz is no longer available.",
+      {
+        title:
+          "Quiz unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const confirmed =
+    window.confirm(
+      `Delete "${getTeacherQuizTitle(
+        quiz
+      )}"?\n\nThis action cannot be undone.`
+    );
+
+
+  if (
+    !confirmed
+  ){
+
+    return false;
+
+  }
+
+
+  try{
+
+    await apiDelete(
+      `/api/quizzes/${
+        encodeURIComponent(
+          normalizedQuizId
+        )
+      }`
+    );
+
+
+    removeTeacherQuizFromState(
+      normalizedQuizId
+    );
+
+
+    closeTeacherQuizEditor();
+
+
+    renderTeacherQuizzesWorkspace();
+
+
+    notifyAIFTSuccess(
+      "Quiz deleted successfully.",
+      {
+        title:
+          "Quiz deleted"
+      }
+    );
+
+
+    return true;
+
+  }catch(
+    error
+  ){
+
+    console.error(
+      "deleteTeacherQuiz failed:",
+      error
+    );
+
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "AIFT could not delete the quiz."
+      ),
+      {
+        title:
+          "Quiz not deleted"
+      }
+    );
+
+
+    return false;
+
+  }
 
 }
 
