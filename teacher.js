@@ -59009,6 +59009,15 @@ function initializeTeacherStudioWorkspaces(){
 
     {
       name:
+        "Student Work",
+
+      fn:
+        initializeTeacherSubmissionsWorkspace
+    },
+
+
+    {
+      name:
         "Grading",
 
       fn:
