@@ -15977,9 +15977,264 @@ function initializeTeacherAssignmentsWorkspace(){
 
 }
 
+
 /* =========================================================
    ASSIGNMENT EDITOR / CRUD
+   DEVICE FILE UPLOAD ENABLED
 ========================================================= */
+
+
+/* =========================================================
+   ASSIGNMENT FILE CONFIG
+========================================================= */
+
+const TEACHER_ASSIGNMENT_FILE_LIMIT =
+  100 * 1024 * 1024;
+
+
+const TEACHER_ASSIGNMENT_ALLOWED_EXTENSIONS =
+  new Set([
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+    "webp",
+
+    "mp4",
+    "webm",
+    "mov",
+    "m4v",
+
+    "mp3",
+    "wav",
+    "m4a",
+    "ogg",
+
+    "pdf",
+
+    "doc",
+    "docx",
+
+    "ppt",
+    "pptx",
+
+    "xls",
+    "xlsx",
+
+    "csv",
+    "txt",
+    "rtf",
+
+    "zip"
+  ]);
+
+
+/* =========================================================
+   FILE EXTENSION
+========================================================= */
+
+function getTeacherAssignmentFileExtension(
+  fileName
+){
+
+  const value =
+    safeString(
+      fileName
+    )
+      .toLowerCase();
+
+
+  if (
+    !value.includes(
+      "."
+    )
+  ){
+
+    return "";
+
+  }
+
+
+  return value
+    .split(
+      "."
+    )
+    .pop()
+    .trim();
+
+}
+
+
+/* =========================================================
+   VALIDATE ASSIGNMENT FILE
+========================================================= */
+
+function validateTeacherAssignmentFile(
+  file
+){
+
+  if (
+    !file
+  ){
+
+    return true;
+
+  }
+
+
+  if (
+    file.size >
+    TEACHER_ASSIGNMENT_FILE_LIMIT
+  ){
+
+    throw new AIFTApiError(
+      "The attachment is too large. The maximum file size is 100 MB.",
+      {
+        code:
+          "ASSIGNMENT_FILE_TOO_LARGE"
+      }
+    );
+
+  }
+
+
+  const extension =
+    getTeacherAssignmentFileExtension(
+      file.name
+    );
+
+
+  if (
+    !TEACHER_ASSIGNMENT_ALLOWED_EXTENSIONS
+      .has(
+        extension
+      )
+  ){
+
+    throw new AIFTApiError(
+      "This file type is not supported for assignments.",
+      {
+        code:
+          "ASSIGNMENT_FILE_TYPE_NOT_SUPPORTED"
+      }
+    );
+
+  }
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   HUMAN FILE SIZE
+========================================================= */
+
+function formatTeacherAssignmentFileSize(
+  bytes
+){
+
+  const size =
+    Number(
+      bytes
+    ) ||
+    0;
+
+
+  if (
+    size <
+    1024
+  ){
+
+    return `${size} B`;
+
+  }
+
+
+  if (
+    size <
+    1024 * 1024
+  ){
+
+    return `${
+      (
+        size /
+        1024
+      ).toFixed(
+        1
+      )
+    } KB`;
+
+  }
+
+
+  return `${
+    (
+      size /
+      (
+        1024 *
+        1024
+      )
+    ).toFixed(
+      1
+    )
+  } MB`;
+
+}
+
+
+/* =========================================================
+   ASSIGNMENT ATTACHMENT NAME
+========================================================= */
+
+function getTeacherAssignmentAttachmentName(
+  assignment
+){
+
+  const url =
+    safeString(
+      assignment?.attachmentUrl
+    );
+
+
+  if (
+    !url
+  ){
+
+    return "";
+
+  }
+
+
+  try{
+
+    const pathname =
+      new URL(
+        url
+      )
+        .pathname;
+
+
+    return decodeURIComponent(
+      pathname
+        .split(
+          "/"
+        )
+        .filter(
+          Boolean
+        )
+        .pop() ||
+      "Current attachment"
+    );
+
+  }catch{
+
+    return "Current attachment";
+
+  }
+
+}
 
 
 /* =========================================================
@@ -16091,6 +16346,13 @@ function renderTeacherAssignmentEditor(
     );
 
 
+  const assignmentId =
+    normalizeId(
+      assignment?._id ||
+      assignment?.id
+    );
+
+
   const classes =
     getTeacherClasses();
 
@@ -16105,15 +16367,10 @@ function renderTeacherAssignmentEditor(
       assignment
         ?.classId ||
 
-      state.selectedClassId ||
+      teacherAssignmentWorkspaceState
+        .classId ||
 
-      (
-        teacherAssignmentWorkspaceState
-          .classId
-          ? teacherAssignmentWorkspaceState
-              .classId
-          : ""
-      )
+      state.selectedClassId
 
     );
 
@@ -16155,17 +16412,22 @@ function renderTeacherAssignmentEditor(
       : "";
 
 
-  const assignmentId =
-    normalizeId(
-      assignment?._id ||
-      assignment?.id
+  const attachmentUrl =
+    safeString(
+      assignment?.attachmentUrl
+    );
+
+
+  const attachmentName =
+    getTeacherAssignmentAttachmentName(
+      assignment
     );
 
 
   teacherAssignmentWorkspaceState
     .editingAssignmentId =
     assignmentId ||
-    null;
+    "";
 
 
   container.hidden =
@@ -16226,14 +16488,21 @@ function renderTeacherAssignmentEditor(
       <form
         id="teacherAssignmentForm"
         class="teacher-assignment-form"
+        enctype="multipart/form-data"
       >
 
         <input
           type="hidden"
           id="teacherAssignmentId"
-          value="${escapeAttribute(assignmentId)}"
+          value="${escapeAttribute(
+            assignmentId
+          )}"
         />
 
+
+        <!-- ===============================================
+             CLASS
+        ================================================ -->
 
         <label
           class="teacher-form-field"
@@ -16267,7 +16536,9 @@ function renderTeacherAssignmentEditor(
 
                     return `
                       <option
-                        value="${escapeAttribute(classId)}"
+                        value="${escapeAttribute(
+                          classId
+                        )}"
                         ${
                           sameId(
                             classId,
@@ -16297,6 +16568,10 @@ function renderTeacherAssignmentEditor(
         </label>
 
 
+        <!-- ===============================================
+             TITLE
+        ================================================ -->
+
         <label
           class="teacher-form-field"
         >
@@ -16322,6 +16597,10 @@ function renderTeacherAssignmentEditor(
         </label>
 
 
+        <!-- ===============================================
+             INSTRUCTIONS
+        ================================================ -->
+
         <label
           class="teacher-form-field"
         >
@@ -16344,6 +16623,10 @@ function renderTeacherAssignmentEditor(
 
         </label>
 
+
+        <!-- ===============================================
+             DATE + STATUS
+        ================================================ -->
 
         <div
           class="teacher-form-grid"
@@ -16427,28 +16710,177 @@ function renderTeacherAssignmentEditor(
         </div>
 
 
-        <label
+        <!-- ===============================================
+             DEVICE ATTACHMENT
+        ================================================ -->
+
+        <div
           class="teacher-form-field"
         >
 
           <span>
-            Attachment URL
+            Assignment attachment
           </span>
 
 
-          <input
-            id="teacherAssignmentAttachmentUrl"
-            type="url"
-            maxlength="2000"
-            placeholder="https://..."
-            value="${escapeAttribute(
-              assignment?.attachmentUrl ||
-              ""
-            )}"
-          />
+          <div
+            class="teacher-assignment-file-upload"
+          >
 
-        </label>
+            <input
+              id="teacherAssignmentAttachment"
+              type="file"
+              hidden
+              accept="
+                image/*,
+                video/*,
+                audio/*,
+                application/pdf,
+                .doc,
+                .docx,
+                .ppt,
+                .pptx,
+                .xls,
+                .xlsx,
+                .csv,
+                .txt,
+                .rtf,
+                .zip
+              "
+            />
 
+
+            <button
+              id="teacherAssignmentChooseFile"
+              type="button"
+              class="teacher-assignment-file-picker"
+            >
+
+              <span
+                class="teacher-assignment-file-picker-icon"
+              >
+                <i
+                  class="fa-solid fa-cloud-arrow-up"
+                  aria-hidden="true"
+                ></i>
+              </span>
+
+
+              <span
+                class="teacher-assignment-file-picker-copy"
+              >
+
+                <strong>
+                  Choose a file from your device
+                </strong>
+
+                <small>
+                  Photos, video, audio, PDF, Word, PowerPoint,
+                  Excel, text or ZIP · maximum 100 MB
+                </small>
+
+              </span>
+
+            </button>
+
+
+            <div
+              id="teacherAssignmentSelectedFile"
+              class="teacher-assignment-selected-file"
+              hidden
+            ></div>
+
+
+            ${
+              attachmentUrl
+                ? `
+                  <div
+                    id="teacherAssignmentExistingAttachment"
+                    class="teacher-assignment-existing-file"
+                  >
+
+                    <span
+                      class="teacher-assignment-existing-file-icon"
+                    >
+                      <i
+                        class="fa-solid fa-paperclip"
+                        aria-hidden="true"
+                      ></i>
+                    </span>
+
+
+                    <span
+                      class="teacher-assignment-existing-file-copy"
+                    >
+
+                      <strong>
+                        ${escapeHtml(
+                          attachmentName ||
+                          "Current attachment"
+                        )}
+                      </strong>
+
+                      <small>
+                        Existing assignment attachment
+                      </small>
+
+                    </span>
+
+
+                    <a
+                      href="${escapeAttribute(
+                        attachmentUrl
+                      )}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="teacher-icon-button"
+                      aria-label="Open current attachment"
+                    >
+                      <i
+                        class="fa-solid fa-up-right-from-square"
+                        aria-hidden="true"
+                      ></i>
+                    </a>
+
+
+                    <button
+                      type="button"
+                      id="teacherAssignmentRemoveExistingFile"
+                      class="teacher-icon-button"
+                      aria-label="Remove current attachment"
+                    >
+                      <i
+                        class="fa-regular fa-trash-can"
+                        aria-hidden="true"
+                      ></i>
+                    </button>
+
+                  </div>
+
+
+                  <input
+                    id="teacherAssignmentRemoveAttachment"
+                    type="hidden"
+                    value="false"
+                  />
+                `
+                : `
+                  <input
+                    id="teacherAssignmentRemoveAttachment"
+                    type="hidden"
+                    value="false"
+                  />
+                `
+            }
+
+          </div>
+
+        </div>
+
+
+        <!-- ===============================================
+             ACTIONS
+        ================================================ -->
 
         <div
           class="teacher-assignment-editor-actions"
@@ -16457,27 +16889,27 @@ function renderTeacherAssignmentEditor(
           ${
             editing
               ? `
-                  <button
-                    type="button"
-                    class="
-                      teacher-secondary-button
-                      teacher-assignment-editor-delete
-                    "
-                    data-teacher-action="delete-assignment"
-                    data-assignment-id="${escapeAttribute(
-                      assignmentId
-                    )}"
-                  >
+                <button
+                  type="button"
+                  class="
+                    teacher-secondary-button
+                    teacher-assignment-editor-delete
+                  "
+                  data-teacher-action="delete-assignment"
+                  data-assignment-id="${escapeAttribute(
+                    assignmentId
+                  )}"
+                >
 
-                    <i
-                      class="fa-regular fa-trash-can"
-                      aria-hidden="true"
-                    ></i>
+                  <i
+                    class="fa-regular fa-trash-can"
+                    aria-hidden="true"
+                  ></i>
 
-                    Delete
+                  Delete
 
-                  </button>
-                `
+                </button>
+              `
               : ""
           }
 
@@ -16502,11 +16934,13 @@ function renderTeacherAssignmentEditor(
               aria-hidden="true"
             ></i>
 
-            ${
-              editing
-                ? "Save Changes"
-                : "Create Assignment"
-            }
+            <span>
+              ${
+                editing
+                  ? "Save Changes"
+                  : "Create Assignment"
+              }
+            </span>
 
           </button>
 
@@ -16518,10 +16952,101 @@ function renderTeacherAssignmentEditor(
   `;
 
 
+  bindTeacherAssignmentEditorControls();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   ASSIGNMENT EDITOR CONTROLS
+========================================================= */
+
+function bindTeacherAssignmentEditorControls(){
+
   const form =
     $(
       "teacherAssignmentForm"
     );
+
+
+  const fileInput =
+    $(
+      "teacherAssignmentAttachment"
+    );
+
+
+  const chooseButton =
+    $(
+      "teacherAssignmentChooseFile"
+    );
+
+
+  const removeExistingButton =
+    $(
+      "teacherAssignmentRemoveExistingFile"
+    );
+
+
+  chooseButton?.addEventListener(
+    "click",
+    () => {
+
+      fileInput?.click();
+
+    }
+  );
+
+
+  fileInput?.addEventListener(
+    "change",
+    () => {
+
+      renderTeacherAssignmentSelectedFile();
+
+    }
+  );
+
+
+  removeExistingButton?.addEventListener(
+    "click",
+    () => {
+
+      const removeField =
+        $(
+          "teacherAssignmentRemoveAttachment"
+        );
+
+
+      const existing =
+        $(
+          "teacherAssignmentExistingAttachment"
+        );
+
+
+      if (
+        removeField
+      ){
+
+        removeField.value =
+          "true";
+
+      }
+
+
+      if (
+        existing
+      ){
+
+        existing.hidden =
+          true;
+
+      }
+
+    }
+  );
 
 
   form?.addEventListener(
@@ -16532,15 +17057,261 @@ function renderTeacherAssignmentEditor(
 
       saveTeacherAssignment();
 
-    },
-    {
-      once:
-        false
     }
   );
 
+}
 
-  return true;
+
+/* =========================================================
+   SELECTED FILE PREVIEW
+========================================================= */
+
+function renderTeacherAssignmentSelectedFile(){
+
+  const input =
+    $(
+      "teacherAssignmentAttachment"
+    );
+
+
+  const container =
+    $(
+      "teacherAssignmentSelectedFile"
+    );
+
+
+  if (
+    !container
+  ){
+
+    return;
+
+  }
+
+
+  const file =
+    input?.files?.[0] ||
+    null;
+
+
+  if (
+    !file
+  ){
+
+    container.hidden =
+      true;
+
+    container.innerHTML =
+      "";
+
+    return;
+
+  }
+
+
+  try{
+
+    validateTeacherAssignmentFile(
+      file
+    );
+
+  }catch(
+    error
+  ){
+
+    if (
+      input
+    ){
+
+      input.value =
+        "";
+
+    }
+
+
+    container.hidden =
+      true;
+
+    container.innerHTML =
+      "";
+
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "This file cannot be attached."
+      ),
+      {
+        title:
+          "Attachment not accepted"
+      }
+    );
+
+
+    return;
+
+  }
+
+
+  const extension =
+    getTeacherAssignmentFileExtension(
+      file.name
+    );
+
+
+  let icon =
+    "fa-solid fa-file";
+
+
+  if (
+    file.type.startsWith(
+      "image/"
+    )
+  ){
+
+    icon =
+      "fa-solid fa-image";
+
+  }else if (
+    file.type.startsWith(
+      "video/"
+    )
+  ){
+
+    icon =
+      "fa-solid fa-circle-play";
+
+  }else if (
+    file.type.startsWith(
+      "audio/"
+    )
+  ){
+
+    icon =
+      "fa-solid fa-headphones";
+
+  }else if (
+    extension ===
+    "pdf"
+  ){
+
+    icon =
+      "fa-solid fa-file-pdf";
+
+  }else if (
+    [
+      "doc",
+      "docx",
+      "rtf",
+      "txt"
+    ].includes(
+      extension
+    )
+  ){
+
+    icon =
+      "fa-solid fa-file-lines";
+
+  }else if (
+    [
+      "xls",
+      "xlsx",
+      "csv"
+    ].includes(
+      extension
+    )
+  ){
+
+    icon =
+      "fa-solid fa-file-excel";
+
+  }else if (
+    [
+      "ppt",
+      "pptx"
+    ].includes(
+      extension
+    )
+  ){
+
+    icon =
+      "fa-solid fa-file-powerpoint";
+
+  }
+
+
+  container.hidden =
+    false;
+
+
+  container.innerHTML = `
+    <span
+      class="teacher-assignment-selected-file-icon"
+    >
+      <i
+        class="${escapeAttribute(
+          icon
+        )}"
+        aria-hidden="true"
+      ></i>
+    </span>
+
+
+    <span
+      class="teacher-assignment-selected-file-copy"
+    >
+      <strong>
+        ${escapeHtml(
+          file.name
+        )}
+      </strong>
+
+      <small>
+        ${escapeHtml(
+          formatTeacherAssignmentFileSize(
+            file.size
+          )
+        )}
+      </small>
+    </span>
+
+
+    <button
+      type="button"
+      id="teacherAssignmentClearSelectedFile"
+      class="teacher-icon-button"
+      aria-label="Remove selected file"
+    >
+      <i
+        class="fa-solid fa-xmark"
+        aria-hidden="true"
+      ></i>
+    </button>
+  `;
+
+
+  $(
+    "teacherAssignmentClearSelectedFile"
+  )
+    ?.addEventListener(
+      "click",
+      () => {
+
+        if (
+          input
+        ){
+
+          input.value =
+            "";
+
+        }
+
+
+        renderTeacherAssignmentSelectedFile();
+
+      }
+    );
 
 }
 
@@ -16553,7 +17324,12 @@ function closeTeacherAssignmentEditor(){
 
   teacherAssignmentWorkspaceState
     .editingAssignmentId =
-    null;
+    "";
+
+
+  teacherAssignmentWorkspaceState
+    .saving =
+    false;
 
 
   const container =
@@ -16581,10 +17357,10 @@ function closeTeacherAssignmentEditor(){
 
 
 /* =========================================================
-   ASSIGNMENT FORM PAYLOAD
+   BUILD ASSIGNMENT FORM DATA
 ========================================================= */
 
-function getTeacherAssignmentFormPayload(){
+function buildTeacherAssignmentFormData(){
 
   const classId =
     normalizeId(
@@ -16618,14 +17394,6 @@ function getTeacherAssignmentFormPayload(){
     );
 
 
-  const attachmentUrl =
-    safeString(
-      $(
-        "teacherAssignmentAttachmentUrl"
-      )?.value
-    );
-
-
   const status =
     safeString(
       $(
@@ -16635,8 +17403,82 @@ function getTeacherAssignmentFormPayload(){
     );
 
 
-  let dueDate =
+  const file =
+    $(
+      "teacherAssignmentAttachment"
+    )
+      ?.files
+      ?.[0] ||
     null;
+
+
+  const removeAttachment =
+    $(
+      "teacherAssignmentRemoveAttachment"
+    )?.value ===
+    "true";
+
+
+  if (
+    !classId
+  ){
+
+    throw new AIFTApiError(
+      "Please select a class.",
+      {
+        code:
+          "ASSIGNMENT_CLASS_REQUIRED"
+      }
+    );
+
+  }
+
+
+  if (
+    !title
+  ){
+
+    throw new AIFTApiError(
+      "Assignment title is required.",
+      {
+        code:
+          "ASSIGNMENT_TITLE_REQUIRED"
+      }
+    );
+
+  }
+
+
+  if (
+    !getTeacherClassById(
+      classId
+    )
+  ){
+
+    throw new AIFTApiError(
+      "You do not have access to the selected class.",
+      {
+        code:
+          "ASSIGNMENT_CLASS_FORBIDDEN"
+      }
+    );
+
+  }
+
+
+  if (
+    file
+  ){
+
+    validateTeacherAssignmentFile(
+      file
+    );
+
+  }
+
+
+  let dueDate =
+    "";
 
 
   if (
@@ -16655,8 +17497,12 @@ function getTeacherAssignmentFormPayload(){
       )
     ){
 
-      throw new Error(
-        "Please enter a valid assignment due date."
+      throw new AIFTApiError(
+        "Please enter a valid due date.",
+        {
+          code:
+            "ASSIGNMENT_DUE_DATE_INVALID"
+        }
       );
 
     }
@@ -16668,32 +17514,142 @@ function getTeacherAssignmentFormPayload(){
   }
 
 
-  return {
+  const formData =
+    new FormData();
 
-    classId,
 
-    teacherId:
-      getTeacherId(),
+  formData.append(
+    "classId",
+    classId
+  );
 
-    schoolId:
-      getSchoolId(),
 
-    title,
+  formData.append(
+    "title",
+    title
+  );
 
-    instructions,
 
-    description:
-      instructions,
+  formData.append(
+    "instructions",
+    instructions
+  );
 
-    dueDate,
 
-    attachmentUrl:
-      attachmentUrl ||
-      null,
+  formData.append(
+    "description",
+    instructions
+  );
 
+
+  formData.append(
+    "dueDate",
+    dueDate
+  );
+
+
+  formData.append(
+    "status",
     status
+  );
 
-  };
+
+  formData.append(
+    "removeAttachment",
+    removeAttachment
+      ? "true"
+      : "false"
+  );
+
+
+  if (
+    file
+  ){
+
+    formData.append(
+      "attachment",
+      file,
+      file.name
+    );
+
+  }
+
+
+  return formData;
+
+}
+
+
+/* =========================================================
+   SET ASSIGNMENT SAVE BUTTON
+========================================================= */
+
+function setTeacherAssignmentSaveButtonState(
+  saving
+){
+
+  const button =
+    $(
+      "teacherAssignmentSaveButton"
+    );
+
+
+  if (
+    !button
+  ){
+
+    return;
+
+  }
+
+
+  const editing =
+    Boolean(
+      teacherAssignmentWorkspaceState
+        .editingAssignmentId
+    );
+
+
+  button.disabled =
+    Boolean(
+      saving
+    );
+
+
+  button.setAttribute(
+    "aria-busy",
+    saving
+      ? "true"
+      : "false"
+  );
+
+
+  button.innerHTML =
+    saving
+      ? `
+          <i
+            class="fa-solid fa-spinner fa-spin"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Uploading & Saving...
+          </span>
+        `
+      : `
+          <i
+            class="fa-solid fa-floppy-disk"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            ${
+              editing
+                ? "Save Changes"
+                : "Create Assignment"
+            }
+          </span>
+        `;
 
 }
 
@@ -16714,23 +17670,26 @@ async function saveTeacherAssignment(){
   }
 
 
-  let payload;
+  let formData;
 
 
   try{
 
-    payload =
-      getTeacherAssignmentFormPayload();
+    formData =
+      buildTeacherAssignmentFormData();
 
   }catch(
     error
   ){
 
     notifyAIFTError(
-      error.message,
+      getErrorMessage(
+        error,
+        "Please check the assignment details."
+      ),
       {
         title:
-          "Check assignment"
+          "Assignment incomplete"
       }
     );
 
@@ -16740,71 +17699,10 @@ async function saveTeacherAssignment(){
   }
 
 
-  if (
-    !payload.classId
-  ){
-
-    notifyAIFTWarning(
-      "Please select a class.",
-      {
-        title:
-          "Class required"
-      }
-    );
-
-
-    return false;
-
-  }
-
-
-  if (
-    !payload.title
-  ){
-
-    notifyAIFTWarning(
-      "Assignment title is required.",
-      {
-        title:
-          "Title required"
-      }
-    );
-
-
-    return false;
-
-  }
-
-
-  /*
-    Frontend scope validation.
-
-    Backend remains authoritative.
-  */
-
-  if (
-    !getTeacherClassById(
-      payload.classId
-    )
-  ){
-
-    notifyAIFTError(
-      "You do not have access to the selected class.",
-      {
-        title:
-          "Class unavailable"
-      }
-    );
-
-
-    return false;
-
-  }
-
-
-  const saveButton =
-    $(
-      "teacherAssignmentSaveButton"
+  const assignmentId =
+    normalizeId(
+      teacherAssignmentWorkspaceState
+        .editingAssignmentId
     );
 
 
@@ -16813,54 +17711,43 @@ async function saveTeacherAssignment(){
     true;
 
 
-  if (
-    saveButton
-  ){
-
-    saveButton.disabled =
-      true;
-
-    saveButton.setAttribute(
-      "aria-busy",
-      "true"
-    );
-
-    saveButton.innerHTML = `
-      <i
-        class="fa-solid fa-spinner fa-spin"
-        aria-hidden="true"
-      ></i>
-
-      Saving...
-    `;
-
-  }
+  setTeacherAssignmentSaveButtonState(
+    true
+  );
 
 
   try{
 
-    const assignmentId =
-      normalizeId(
-        teacherAssignmentWorkspaceState
-          .editingAssignmentId
-      );
+    /*
+      IMPORTANT:
 
+      apiSend() DOES NOT EXIST in the production API client.
+
+      apiPost() and apiPatch() are the authoritative helpers,
+      and apiRequest() already supports FormData.
+    */
 
     const response =
       assignmentId
-        ? await apiSend(
+        ? await apiPatch(
             `/api/assignments/${
               encodeURIComponent(
                 assignmentId
               )
             }`,
-            "PATCH",
-            payload
+            formData,
+            {
+              timeout:
+                120000
+            }
           )
-        : await apiSend(
+        : await apiPost(
             "/api/assignments",
-            "POST",
-            payload
+            formData,
+            {
+              timeout:
+                120000
+            }
           );
 
 
@@ -16870,40 +17757,36 @@ async function saveTeacherAssignment(){
       response;
 
 
-    if (
-      savedAssignment &&
+    const savedId =
       normalizeId(
         savedAssignment?._id ||
         savedAssignment?.id
-      )
+      );
+
+
+    if (
+      savedId
     ){
 
-      const savedId =
-        normalizeId(
-          savedAssignment?._id ||
-          savedAssignment?.id
-        );
-
-
-      const existingIndex =
+      const index =
         state.assignments
           .findIndex(
-            item =>
+            assignment =>
               sameId(
-                item?._id ||
-                item?.id,
+                assignment?._id ||
+                assignment?.id,
                 savedId
               )
           );
 
 
       if (
-        existingIndex >=
+        index >=
         0
       ){
 
         state.assignments[
-          existingIndex
+          index
         ] =
           savedAssignment;
 
@@ -16963,7 +17846,7 @@ async function saveTeacherAssignment(){
     notifyAIFTError(
       getErrorMessage(
         error,
-        "AIFT could not save the assignment."
+        "AIFT could not save this assignment."
       ),
       {
         title:
@@ -16981,19 +17864,20 @@ async function saveTeacherAssignment(){
       false;
 
 
+    /*
+      If save succeeded, the editor has already been removed.
+      If it failed, restore the button instead of leaving the
+      spinner on-screen.
+    */
+
     if (
-      saveButton &&
-      document.body.contains(
-        saveButton
+      $(
+        "teacherAssignmentSaveButton"
       )
     ){
 
-      saveButton.disabled =
-        false;
-
-      saveButton.setAttribute(
-        "aria-busy",
-        "false"
+      setTeacherAssignmentSaveButtonState(
+        false
       );
 
     }
@@ -55041,58 +55925,194 @@ case "create-assignment":
       );
 
 
-    /* =====================================================
-       SUBMISSIONS / GRADING
-    ===================================================== */
-
-    case "review-submission":
-
-      return openTeacherSubmissionReview(
-        getSubmissionIdFromAction(
-          element
-        )
-      );
+/* =====================================================
+   SUBMISSIONS / GRADING
+===================================================== */
 
 
-    case "save-submission-review":
+/* -----------------------------------------------------
+   OPEN SUBMISSION FROM STUDENT WORK
+----------------------------------------------------- */
 
-      return callTeacherActionFunction(
-        "saveTeacherSubmissionReview"
-      );
+case "review-submission":{
 
-
-    case "close-submission-viewer":
-
-      return callTeacherActionFunction(
-        "closeTeacherSubmissionViewer"
-      );
+  const submissionId =
+    getSubmissionIdFromAction(
+      element
+    );
 
 
-    case "submission-kabezya":
+  if (
+    !submissionId
+  ){
 
-      return openTeacherSubmissionKabezya(
-        getSubmissionIdFromAction(
-          element
-        ) ||
-        normalizeId(
-          teacherGradingWorkspaceState
-            ?.selectedSubmissionId
-        )
-      );
+    return false;
+
+  }
 
 
-    case "refresh-grading":
+  /*
+    prepareTeacherGradingSubmission() also synchronizes
+    classId + assignmentId + selectedSubmissionId.
+  */
 
-      return callTeacherActionFunction(
-        "refreshTeacherGradingWorkspace"
-      );
+  if (
+    typeof prepareTeacherGradingSubmission ===
+      "function"
+  ){
+
+    if (
+      !prepareTeacherGradingSubmission(
+        submissionId
+      )
+    ){
+
+      return false;
+
+    }
+
+  }else{
+
+    teacherGradingWorkspaceState
+      .selectedSubmissionId =
+      submissionId;
+
+  }
 
 
-    case "refresh-submissions":
+  state.selectedSubmissionId =
+    submissionId;
 
-      return callTeacherActionFunction(
-        "refreshTeacherSubmissionsWorkspace"
-      );
+
+  await activateTeacherStudioPage(
+    "grading"
+  );
+
+
+  renderTeacherGradingWorkspace();
+
+
+  return true;
+
+}
+
+
+/* -----------------------------------------------------
+   SELECT ITEM INSIDE GRADING QUEUE
+----------------------------------------------------- */
+
+case "select-grading-submission":{
+
+  const submissionId =
+    getSubmissionIdFromAction(
+      element
+    );
+
+
+  if (
+    !submissionId
+  ){
+
+    return false;
+
+  }
+
+
+  return selectTeacherGradingSubmission(
+    submissionId
+  );
+
+}
+
+
+/* -----------------------------------------------------
+   SAVE TEACHER ASSESSMENT
+----------------------------------------------------- */
+
+case "save-submission-review":
+
+  return saveTeacherSubmissionReview();
+
+
+/* -----------------------------------------------------
+   CLOSE VIEWER / CLEAR SELECTION
+----------------------------------------------------- */
+
+case "close-submission-viewer":
+
+  teacherGradingWorkspaceState
+    .selectedSubmissionId =
+    "";
+
+
+  state.selectedSubmissionId =
+    "";
+
+
+  renderTeacherGradingSubmissionList();
+
+  renderTeacherSubmissionViewer();
+
+
+  return true;
+
+
+/* -----------------------------------------------------
+   KABEZYA — CANONICAL ACTION
+----------------------------------------------------- */
+
+case "submission-kabezya":
+
+  return openTeacherSubmissionKabezya(
+    getSubmissionIdFromAction(
+      element
+    ) ||
+    normalizeId(
+      teacherGradingWorkspaceState
+        .selectedSubmissionId
+    )
+  );
+
+
+/* -----------------------------------------------------
+   KABEZYA — BACKWARD COMPATIBILITY
+
+   Existing Grading viewer currently emits:
+   kabezya-review-submission
+
+   Keep this alias so the current renderer works while
+   preserving submission-kabezya as the canonical action.
+----------------------------------------------------- */
+
+case "kabezya-review-submission":
+
+  return openTeacherSubmissionKabezya(
+    getSubmissionIdFromAction(
+      element
+    ) ||
+    normalizeId(
+      teacherGradingWorkspaceState
+        .selectedSubmissionId
+    )
+  );
+
+
+/* -----------------------------------------------------
+   REFRESH GRADING
+----------------------------------------------------- */
+
+case "refresh-grading":
+
+  return refreshTeacherGradingWorkspace();
+
+
+/* -----------------------------------------------------
+   REFRESH STUDENT WORK
+----------------------------------------------------- */
+
+case "refresh-submissions":
+
+  return refreshTeacherSubmissionsWorkspace();
 
 
     /* =====================================================
@@ -59700,12 +60720,14 @@ function auditTeacherStudioRuntime(){
       "close-assignment-editor",
       "refresh-assignments",
 
-      "review-submission",
-      "save-submission-review",
-      "close-submission-viewer",
-      "submission-kabezya",
-      "refresh-grading",
-      "refresh-submissions",
+"review-submission",
+"select-grading-submission",
+"save-submission-review",
+"close-submission-viewer",
+"submission-kabezya",
+"kabezya-review-submission",
+"refresh-grading",
+"refresh-submissions",
 
       "save-attendance",
       "attendance-present",
