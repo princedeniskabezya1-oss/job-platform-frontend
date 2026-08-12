@@ -8722,12 +8722,22 @@ function getTeacherAssignmentDueDate(
   assignment
 ){
 
-  return toValidDate(
-    assignment?.dueDate
+  if (
+    !assignment
+  ){
+
+    return null;
+
+  }
+
+
+  return (
+    assignment.dueDate ||
+    assignment.deadline ||
+    null
   );
 
 }
-
 
 /* =========================================================
    RECENT ASSIGNMENT ROW
@@ -16389,27 +16399,22 @@ function renderTeacherAssignmentEditor(
       : rawStatus;
 
 
-  const dueDate =
-    toValidDate(
-      getTeacherAssignmentDueDate(
-        assignment
+const dueDate =
+  getTeacherAssignmentDueDate(
+    assignment
+  );
+
+
+const dueInputValue =
+  dueDate
+    ? String(
+        dueDate
       )
-    );
-
-
-  const dueInputValue =
-    dueDate
-      ? new Date(
-          dueDate.getTime() -
-          dueDate.getTimezoneOffset() *
-          60000
+        .slice(
+          0,
+          10
         )
-          .toISOString()
-          .slice(
-            0,
-            16
-          )
-      : "";
+    : "";
 
 
   const attachmentUrl =
@@ -16641,13 +16646,13 @@ function renderTeacherAssignmentEditor(
             </span>
 
 
-            <input
-              id="teacherAssignmentDueDate"
-              type="datetime-local"
-              value="${escapeAttribute(
-                dueInputValue
-              )}"
-            />
+<input
+  id="teacherAssignmentDueDate"
+  type="date"
+  value="${escapeAttribute(
+    dueInputValue
+  )}"
+/>
 
           </label>
 
@@ -17477,41 +17482,43 @@ function buildTeacherAssignmentFormData(){
   }
 
 
-  let dueDate =
-    "";
+let dueDate =
+  "";
 
+
+if (
+  dueValue
+){
+
+  /*
+    Keep assignment deadlines consistent with school.html.
+
+    The School dashboard sends YYYY-MM-DD directly to the
+    Assignment API and that is the established working
+    contract for assignment deadlines.
+  */
 
   if (
-    dueValue
+    !/^\d{4}-\d{2}-\d{2}$/.test(
+      dueValue
+    )
   ){
 
-    const parsed =
-      new Date(
-        dueValue
-      );
-
-
-    if (
-      Number.isNaN(
-        parsed.getTime()
-      )
-    ){
-
-      throw new AIFTApiError(
-        "Please enter a valid due date.",
-        {
-          code:
-            "ASSIGNMENT_DUE_DATE_INVALID"
-        }
-      );
-
-    }
-
-
-    dueDate =
-      parsed.toISOString();
+    throw new AIFTApiError(
+      "Please enter a valid assignment due date.",
+      {
+        code:
+          "ASSIGNMENT_DUE_DATE_INVALID"
+      }
+    );
 
   }
+
+
+  dueDate =
+    dueValue;
+
+}
 
 
   const formData =
