@@ -10646,20 +10646,15 @@ function createTeacherClassCard(
       classId
     ).length;
 
-  const pendingCount =
-    getTeacherClassPendingCount(
-      classItem
-    );
+const pendingCount =
+  getTeacherClassPendingCount(
+    classItem
+  );
 
-  const quizCount =
-    getTeacherClassQuizRecords(
-      classId
-    ).length;
-
-  const reviewRate =
-    getTeacherClassReviewRate(
-      classId
-    );
+const reviewRate =
+  getTeacherClassReviewRate(
+    classId
+  );
 
   const nextSchedule =
     getTeacherClassNextSchedule(
@@ -10978,22 +10973,19 @@ function createTeacherClassCard(
           </button>
 
 
-          <button
-            type="button"
-            class="teacher-class-tool"
-            data-teacher-action="class-quizzes"
-            data-class-id="${escapeAttribute(classId)}"
-            title="Quizzes"
-          >
-            <i
-              class="fa-solid fa-list-check"
-              aria-hidden="true"
-            ></i>
-
-            <span>
-              ${quizCount}
-            </span>
-          </button>
+<button
+  type="button"
+  class="teacher-class-tool"
+  data-teacher-action="open-selected-class-builder"
+  data-class-id="${escapeAttribute(classId)}"
+  title="Class Builder"
+  aria-label="Open Class Builder"
+>
+  <i
+    class="fa-solid fa-layer-group"
+    aria-hidden="true"
+  ></i>
+</button>
 
 
           <button
@@ -50538,8 +50530,18 @@ function renderTeacherKabezyaResponseActions(){
   }
 
 
-  const actions = [];
+  const actions =
+    [];
 
+
+  /* =====================================================
+     GENERATED TEACHING / QUIZ CONTENT
+
+     Teacher Studio no longer owns a separate Quiz editor.
+
+     The teacher continues authoring inside the real
+     class-specific Class Builder.
+  ===================================================== */
 
   if (
     Array.isArray(
@@ -50552,19 +50554,25 @@ function renderTeacherKabezyaResponseActions(){
       <button
         type="button"
         class="teacher-primary-button"
-        data-teacher-action="kabezya-use-quiz"
+        data-teacher-action="open-class-builder"
       >
+
         <i
-          class="fa-solid fa-list-check"
+          class="fa-solid fa-layer-group"
           aria-hidden="true"
         ></i>
 
-        Use in quiz editor
+        Open Class Builder
+
       </button>
     `);
 
   }
 
+
+  /* =====================================================
+     GRADING FEEDBACK
+  ===================================================== */
 
   if (
     response.feedback
@@ -50576,17 +50584,23 @@ function renderTeacherKabezyaResponseActions(){
         class="teacher-secondary-button"
         data-teacher-action="kabezya-use-feedback"
       >
+
         <i
           class="fa-solid fa-pen"
           aria-hidden="true"
         ></i>
 
         Use feedback
+
       </button>
     `);
 
   }
 
+
+  /* =====================================================
+     NEW CONVERSATION
+  ===================================================== */
 
   actions.push(`
     <button
@@ -50594,12 +50608,14 @@ function renderTeacherKabezyaResponseActions(){
       class="teacher-secondary-button"
       data-teacher-action="kabezya-new-conversation"
     >
+
       <i
         class="fa-solid fa-rotate"
         aria-hidden="true"
       ></i>
 
       New conversation
+
     </button>
   `);
 
@@ -50613,7 +50629,6 @@ function renderTeacherKabezyaResponseActions(){
   `;
 
 }
-
 
 /* =========================================================
    CLEAR KABEZYA CONVERSATION
@@ -51092,106 +51107,6 @@ function prepareTeacherKabezyaAssignmentGeneration(
 
 
   syncTeacherKabezyaState();
-
-
-  return true;
-
-}
-
-
-/* =========================================================
-   USE KABEZYA QUIZ SUGGESTION
-
-   IMPORTANT:
-   Generated questions are copied into the quiz editor.
-
-   They are NOT automatically saved or published.
-========================================================= */
-
-function useTeacherKabezyaQuizSuggestion(){
-
-  const response =
-    teacherKabezyaWorkspaceState
-      .response;
-
-
-  if (
-    !response ||
-    !Array.isArray(
-      response.questions
-    ) ||
-    !response.questions.length
-  ){
-
-    notifyAIFTInfo(
-      "Kabezya has not generated quiz questions yet.",
-      {
-        title:
-          "No quiz draft"
-      }
-    );
-
-
-    return false;
-
-  }
-
-
-  activateStudentStudioPage(
-    "quizzes"
-  );
-
-
-  window.requestAnimationFrame(
-    () => {
-
-      renderTeacherQuizEditor(
-        null
-      );
-
-
-      window.requestAnimationFrame(
-        () => {
-
-          response.questions
-            .forEach(
-              question => {
-
-                addTeacherQuizEditorQuestion({
-
-                  question:
-                    question.question,
-
-                  type:
-                    question.type,
-
-                  options:
-                    asArray(
-                      question.options
-                    ),
-
-                  correctAnswer:
-                    question.correctAnswer,
-
-                  explanation:
-                    question.explanation,
-
-                  points:
-                    safeNumber(
-                      question.points,
-                      1
-                    )
-
-                });
-
-              }
-            );
-
-        }
-      );
-
-    }
-  );
 
 
   return true;
@@ -56599,30 +56514,20 @@ const TEACHER_STUDIO_PAGES =
         "Grading Center"
     },
 
-    attendance:{
-      title:
-        "Attendance"
-    },
+attendance:{
+  title:
+    "Attendance"
+},
 
-    quizzes:{
-      title:
-        "Quizzes"
-    },
+schedule:{
+  title:
+    "Schedule"
+},
 
-    schedule:{
-      title:
-        "Schedule"
-    },
-
-    questionbank:{
-      title:
-        "Question Bank"
-    },
-
-    resources:{
-      title:
-        "Resources"
-    },
+resources:{
+  title:
+    "Resources"
+},
 
     analytics:{
       title:
@@ -56695,32 +56600,45 @@ const TEACHER_STUDIO_PAGE_ALIASES =
     grades:
       "grading",
 
-    grade:
-      "grading",
+grades:
+  "grading",
 
-    assessment:
-      "quizzes",
+grade:
+  "grading",
 
-    assessments:
-      "quizzes",
+/*
+  Legacy assessment URLs now fall back to Classes.
 
-    quiz:
-      "quizzes",
+  Quiz and Question Bank authoring belongs in the
+  class-specific Class Builder.
+*/
 
-    calendar:
-      "schedule",
+assessment:
+  "classes",
 
-    questionbank:
-      "questionbank",
+assessments:
+  "classes",
 
-    "question-bank":
-      "questionbank",
+quiz:
+  "classes",
 
-    questions:
-      "questionbank",
+quizzes:
+  "classes",
 
-    progress:
-      "analytics",
+questionbank:
+  "classes",
+
+"question-bank":
+  "classes",
+
+questions:
+  "classes",
+
+calendar:
+  "schedule",
+
+progress:
+  "analytics",
 
     performance:
       "analytics",
@@ -57257,39 +57175,25 @@ function getTeacherStudioRenderer(
         : null,
 
 
-    attendance:
-      typeof renderTeacherAttendanceWorkspace ===
-        "function"
-        ? renderTeacherAttendanceWorkspace
-        : null,
+attendance:
+  typeof renderTeacherAttendanceWorkspace ===
+    "function"
+    ? renderTeacherAttendanceWorkspace
+    : null,
 
 
-    quizzes:
-      typeof renderTeacherQuizzesWorkspace ===
-        "function"
-        ? renderTeacherQuizzesWorkspace
-        : null,
+schedule:
+  typeof renderTeacherScheduleWorkspace ===
+    "function"
+    ? renderTeacherScheduleWorkspace
+    : null,
 
 
-    schedule:
-      typeof renderTeacherScheduleWorkspace ===
-        "function"
-        ? renderTeacherScheduleWorkspace
-        : null,
-
-
-    questionbank:
-      typeof renderTeacherQuestionBankWorkspace ===
-        "function"
-        ? renderTeacherQuestionBankWorkspace
-        : null,
-
-
-    resources:
-      typeof renderTeacherResourcesWorkspace ===
-        "function"
-        ? renderTeacherResourcesWorkspace
-        : null,
+resources:
+  typeof renderTeacherResourcesWorkspace ===
+    "function"
+    ? renderTeacherResourcesWorkspace
+    : null,
 
 
     analytics:
@@ -58237,17 +58141,113 @@ async function openTeacherClassAttendance(
 
 
 /* =========================================================
-   CLASS -> QUIZZES
+   CLASS BUILDER
 ========================================================= */
 
-async function openTeacherClassQuizzes(
+
+/* =========================================================
+   BUILD CLASS BUILDER URL
+========================================================= */
+
+function getTeacherClassBuilderUrl(
   classId
 ){
 
-  if (
-    !prepareTeacherQuizzesClass(
+  const normalizedClassId =
+    normalizeId(
       classId
+    );
+
+
+  if (
+    !normalizedClassId
+  ){
+
+    return "";
+
+  }
+
+
+  return `class-builder.html?classId=${
+    encodeURIComponent(
+      normalizedClassId
     )
+  }`;
+
+}
+
+
+/* =========================================================
+   OPEN CLASS BUILDER FOR ONE CLASS
+========================================================= */
+
+function openTeacherClassBuilderForClass(
+  classId
+){
+
+  const normalizedClassId =
+    normalizeId(
+      classId
+    );
+
+
+  if (
+    !normalizedClassId
+  ){
+
+    notifyAIFTWarning(
+      "Select a class before opening Class Builder.",
+      {
+        title:
+          "Class required"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const classItem =
+    getTeacherClassById(
+      normalizedClassId
+    );
+
+
+  /*
+    Frontend validation is UX only.
+
+    routes/classes.js remains authoritative for the actual
+    teacher/school/admin Class Builder permission.
+  */
+
+  if (
+    !classItem
+  ){
+
+    notifyAIFTError(
+      "This class is not available to your teacher account.",
+      {
+        title:
+          "Class unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const url =
+    getTeacherClassBuilderUrl(
+      normalizedClassId
+    );
+
+
+  if (
+    !url
   ){
 
     return false;
@@ -58255,8 +58255,76 @@ async function openTeacherClassQuizzes(
   }
 
 
+  window.location.href =
+    url;
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   OPEN CLASS BUILDER FROM SIDEBAR / DASHBOARD
+
+   One assigned class:
+     open immediately.
+
+   Multiple assigned classes:
+     open My Classes so the teacher can choose the correct
+     Class Builder button.
+
+   This prevents accidentally opening the wrong class.
+========================================================= */
+
+async function openTeacherClassBuilder(){
+
+  const classes =
+    getTeacherClasses();
+
+
+  if (
+    !classes.length
+  ){
+
+    notifyAIFTInfo(
+      "You do not currently have an assigned class.",
+      {
+        title:
+          "No assigned classes"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  if (
+    classes.length ===
+    1
+  ){
+
+    return openTeacherClassBuilderForClass(
+      classes[0]?._id ||
+      classes[0]?.id
+    );
+
+  }
+
+
+  notifyAIFTInfo(
+    "Choose the class you want to open in Class Builder.",
+    {
+      title:
+        "Select a class"
+    }
+  );
+
+
   await activateTeacherStudioPage(
-    "quizzes"
+    "classes"
   );
 
 
@@ -58751,23 +58819,14 @@ case "class-grading":{
 
 case "class-attendance":
 
-      return openTeacherClassAttendance(
-        getClassIdFromAction(
-          element
-        )
-      );
+  return openTeacherClassAttendance(
+    getClassIdFromAction(
+      element
+    )
+  );
 
 
-    case "class-quizzes":
-
-      return openTeacherClassQuizzes(
-        getClassIdFromAction(
-          element
-        )
-      );
-
-
-    case "class-schedule":
+case "class-schedule":
 
       return openTeacherClassSchedule(
         getClassIdFromAction(
@@ -59477,122 +59536,31 @@ case "schedule-next-month":
       );
 
 
-    /* =====================================================
-       QUIZZES
-    ===================================================== */
+/* =====================================================
+   CLASS BUILDER
+===================================================== */
 
-    case "refresh-quizzes":
+case "open-class-builder":
 
-      return refreshTeacherQuizzesWorkspace();
-
-
-    case "create-quiz":
-
-      return callTeacherActionFunction(
-        "openTeacherQuizEditor"
-      );
+  return openTeacherClassBuilder();
 
 
-    case "edit-quiz":
+case "open-selected-class-builder":
 
-      return callTeacherActionFunction(
-        "openTeacherQuizEditor",
-        getQuizIdFromAction(
-          element
-        )
-      );
-
-
-    case "quiz-results":
-
-      return openTeacherQuizResults(
-        getQuizIdFromAction(
-          element
-        )
-      );
+  return openTeacherClassBuilderForClass(
+    getClassIdFromAction(
+      element
+    )
+  );
 
 
-    case "close-quiz-results":
+/* =====================================================
+   RESOURCES
+===================================================== */
 
-      return closeTeacherQuizResults();
+case "refresh-resources":
 
-
-    case "save-quiz":
-
-      return callTeacherActionFunction(
-        "saveTeacherQuiz"
-      );
-
-
-    case "delete-quiz":
-
-      return callTeacherActionFunction(
-        "deleteTeacherQuiz",
-        getQuizIdFromAction(
-          element
-        )
-      );
-
-
-    case "close-quiz-editor":
-
-      return callTeacherActionFunction(
-        "closeTeacherQuizEditor"
-      );
-
-
-    /* =====================================================
-       QUESTION BANK
-    ===================================================== */
-
-    case "create-question":
-
-      return openTeacherQuestionEditor();
-
-
-    case "edit-question":
-
-      return openTeacherQuestionEditor(
-        getQuestionIdFromAction(
-          element
-        )
-      );
-
-
-    case "delete-question":
-
-      return deleteTeacherQuestion(
-        getQuestionIdFromAction(
-          element
-        )
-      );
-
-
-    case "close-question-editor":
-
-      return closeTeacherQuestionEditor();
-
-
-    case "add-question-option":
-
-      return addTeacherQuestionOption();
-
-
-    case "remove-question-option":
-
-      return removeTeacherQuestionOption(
-        element
-      );
-
-
-    case "save-question":
-
-      return saveTeacherQuestion();
-
-
-    case "refresh-question-bank":
-
-      return refreshTeacherQuestionBankWorkspace();
+  return refreshTeacherResources();
 
 
     /* =====================================================
@@ -59658,41 +59626,36 @@ case "dashboard-lesson-assistant":
 case "kabezya-mode":
 
   return setTeacherKabezyaMode(
-        safeString(
-          element.dataset
-            .kabezyaMode
-        )
-      );
+    safeString(
+      element.dataset
+        .kabezyaMode
+    )
+  );
 
 
-    case "kabezya-quick-prompt":
+case "kabezya-quick-prompt":
 
-      return runTeacherKabezyaQuickPrompt(
-        safeString(
-          element.dataset
-            .kabezyaPrompt
-        )
-      );
-
-
-    case "kabezya-clear-context":
-
-      return clearTeacherKabezyaContext();
+  return runTeacherKabezyaQuickPrompt(
+    safeString(
+      element.dataset
+        .kabezyaPrompt
+    )
+  );
 
 
-    case "kabezya-new-conversation":
+case "kabezya-clear-context":
 
-      return clearTeacherKabezyaConversation();
-
-
-    case "kabezya-use-quiz":
-
-      return useTeacherKabezyaQuizSuggestion();
+  return clearTeacherKabezyaContext();
 
 
-    case "kabezya-use-feedback":
+case "kabezya-new-conversation":
 
-      return useTeacherKabezyaFeedbackSuggestion();
+  return clearTeacherKabezyaConversation();
+
+
+case "kabezya-use-feedback":
+
+  return useTeacherKabezyaFeedbackSuggestion();
 
 
     /* =====================================================
@@ -63640,23 +63603,17 @@ function getTeacherStudioRequiredPageIds(){
     submissions:
       "teacherPageSubmissions",
 
-    grading:
-      "teacherPageGrading",
+grading:
+  "teacherPageGrading",
 
-    attendance:
-      "teacherPageAttendance",
+attendance:
+  "teacherPageAttendance",
 
-    quizzes:
-      "teacherPageQuizzes",
+schedule:
+  "teacherPageSchedule",
 
-    schedule:
-      "teacherPageSchedule",
-
-    questionbank:
-      "teacherPageQuestionBank",
-
-    resources:
-      "teacherPageResources",
+resources:
+  "teacherPageResources",
 
     analytics:
       "teacherPageAnalytics",
@@ -63839,116 +63796,165 @@ function auditTeacherStudioRuntime(){
      This audit uses a static list of Part 18-supported actions.
   ------------------------------------------------------- */
 
-  const supportedActions =
-    new Set([
+const supportedActions =
+  new Set([
 
-      "navigate",
+    /* =====================================================
+       GLOBAL
+    ===================================================== */
 
-      "open-class",
-      "class-students",
-"class-assignments",
-"class-grading",
-"class-attendance",
-      "class-quizzes",
-      "class-schedule",
-      "class-analytics",
-      "refresh-classes",
+    "navigate",
 
-      "open-student",
-      "close-student-detail",
-      "student-work",
-      "student-grading",
-      "student-attendance",
-      "student-kabezya",
-      "message-student",
-      "student-class",
-      "clear-student-filters",
-"refresh-students",
-       "schedule-prev-month",
-"schedule-next-month",
-      "open-assignment",
-      "create-assignment",
-      "edit-assignment",
-      "assignment-submissions",
-      "assignment-grading",
-      "delete-assignment",
-      "save-assignment",
-      "close-assignment-editor",
-      "refresh-assignments",
 
-"review-submission",
-"select-grading-submission",
-"save-submission-review",
-"close-submission-viewer",
-"submission-kabezya",
-"kabezya-review-submission",
-"refresh-grading",
-"refresh-submissions",
+    /* =====================================================
+       CLASSES
+    ===================================================== */
 
-      "save-attendance",
-      "attendance-present",
-      "attendance-late",
-      "attendance-absent",
-      "attendance-excused",
-      "refresh-attendance",
-      "open-schedule",
-      "create-schedule",
-      "edit-schedule",
-      "delete-schedule",
-      "save-schedule",
-      "close-schedule-editor",
-      "refresh-schedule",
-      "join-schedule",
-      "open-schedule-meeting",
+    "open-class",
+    "class-students",
+    "class-assignments",
+    "class-grading",
+    "class-attendance",
+    "class-schedule",
+    "class-analytics",
+    "refresh-classes",
 
-      "refresh-quizzes",
-      "create-quiz",
-      "edit-quiz",
-      "quiz-results",
-      "close-quiz-results",
-      "save-quiz",
-      "delete-quiz",
-      "close-quiz-editor",
+    "open-class-builder",
+    "open-selected-class-builder",
 
-      "create-question",
-      "edit-question",
-      "delete-question",
-      "close-question-editor",
-      "add-question-option",
-      "remove-question-option",
-      "save-question",
-      "refresh-question-bank",
 
-      "refresh-resources",
+    /* =====================================================
+       STUDENTS
+    ===================================================== */
 
-      "refresh-analytics",
-      "analytics-open-student",
-      "analytics-open-assignment",
-"analytics-ask-kabezya",
+    "open-student",
+    "close-student-detail",
+    "student-work",
+    "student-grading",
+    "student-attendance",
+    "student-kabezya",
+    "message-student",
+    "student-class",
+    "clear-student-filters",
+    "refresh-students",
 
-"dashboard-lesson-assistant",
-"kabezya-mode",
-      "kabezya-quick-prompt",
-      "kabezya-clear-context",
-      "kabezya-new-conversation",
-      "kabezya-use-quiz",
-      "kabezya-use-feedback",
 
-      "open-full-messages",
-      "open-message-thread",
-      "refresh-messages",
-      "clear-message-search",
+    /* =====================================================
+       ASSIGNMENTS
+    ===================================================== */
 
-      "save-teacher-settings",
-      "reset-teacher-settings",
+    "open-assignment",
+    "create-assignment",
+    "edit-assignment",
+    "assignment-submissions",
+    "assignment-grading",
+    "delete-assignment",
+    "save-assignment",
+    "close-assignment-editor",
+    "refresh-assignments",
 
-      "open-help-topic",
-      "close-help-topic",
-      "support-talk-kabezya",
-      "open-support-request",
-      "close-support-request"
 
-    ]);
+    /* =====================================================
+       STUDENT WORK / GRADING
+    ===================================================== */
+
+    "review-submission",
+    "select-grading-submission",
+    "save-submission-review",
+    "close-submission-viewer",
+    "submission-kabezya",
+    "kabezya-review-submission",
+    "refresh-grading",
+    "refresh-submissions",
+
+
+    /* =====================================================
+       ATTENDANCE
+    ===================================================== */
+
+    "save-attendance",
+    "attendance-present",
+    "attendance-late",
+    "attendance-absent",
+    "attendance-excused",
+    "refresh-attendance",
+
+
+    /* =====================================================
+       SCHEDULE
+    ===================================================== */
+
+    "schedule-prev-month",
+    "schedule-next-month",
+    "open-schedule",
+    "create-schedule",
+    "edit-schedule",
+    "delete-schedule",
+    "save-schedule",
+    "close-schedule-editor",
+    "refresh-schedule",
+    "join-schedule",
+    "open-schedule-meeting",
+
+
+    /* =====================================================
+       RESOURCES
+    ===================================================== */
+
+    "refresh-resources",
+
+
+    /* =====================================================
+       ANALYTICS
+    ===================================================== */
+
+    "refresh-analytics",
+    "analytics-open-student",
+    "analytics-open-assignment",
+    "analytics-ask-kabezya",
+
+
+    /* =====================================================
+       KABEZYA
+    ===================================================== */
+
+    "dashboard-lesson-assistant",
+    "kabezya-mode",
+    "kabezya-quick-prompt",
+    "kabezya-clear-context",
+    "kabezya-new-conversation",
+    "kabezya-use-feedback",
+
+
+    /* =====================================================
+       MESSAGES
+    ===================================================== */
+
+    "open-full-messages",
+    "open-message-thread",
+    "refresh-messages",
+    "clear-message-search",
+
+
+    /* =====================================================
+       SETTINGS
+    ===================================================== */
+
+    "save-teacher-settings",
+    "reset-teacher-settings",
+
+
+    /* =====================================================
+       SUPPORT
+    ===================================================== */
+
+    "open-help-topic",
+    "close-help-topic",
+    "support-talk-kabezya",
+    "open-support-request",
+    "close-support-request"
+
+  ]);
 
 
   document
