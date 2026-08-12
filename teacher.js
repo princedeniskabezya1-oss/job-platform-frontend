@@ -5387,7 +5387,9 @@ async function loadTeacherSchedules(){
 ========================================================= */
 
 async function loadTeacherAttendanceForClass(
-  classId
+  classId,
+  date =
+    ""
 ){
 
   const normalizedClassId =
@@ -5405,14 +5407,35 @@ async function loadTeacherAttendanceForClass(
   }
 
 
+  const normalizedDate =
+    normalizeTeacherAttendanceDate(
+      date
+    );
+
+
+  const query = {
+
+    classId:
+      normalizedClassId
+
+  };
+
+
+  if (
+    normalizedDate
+  ){
+
+    query.date =
+      normalizedDate;
+
+  }
+
+
   const response =
     await apiGet(
       "/api/attendance",
       {
-        query:{
-          classId:
-            normalizedClassId
-        }
+        query
       }
     );
 
@@ -26605,14 +26628,46 @@ async function saveTeacherBulkAttendance(
     );
 
 
+  const classId =
+    normalizeId(
+      teacherAttendanceWorkspaceState
+        .classId
+    );
+
+
+  const date =
+    normalizeTeacherAttendanceDate(
+      teacherAttendanceWorkspaceState
+        .date
+    );
+
+
   if (
-    !normalizedStatus
+    !normalizedStatus ||
+    !classId ||
+    !date
   ){
+
+    notifyAIFTWarning(
+      "Select a class and attendance date before using bulk attendance.",
+      {
+        title:
+          "Attendance context required"
+      }
+    );
+
 
     return false;
 
   }
 
+
+  /*
+    Preserve your current useful behavior:
+
+    Bulk attendance affects the currently visible roster,
+    so search can intentionally narrow the target students.
+  */
 
   const students =
     getTeacherAttendanceRoster();
@@ -26636,6 +26691,58 @@ async function saveTeacherBulkAttendance(
   }
 
 
+  const records =
+    students
+      .map(
+        student => {
+
+          const studentId =
+            normalizeId(
+              student?._id ||
+              student?.id
+            );
+
+
+          if (
+            !studentId
+          ){
+
+            return null;
+
+          }
+
+
+          return {
+
+            studentId,
+
+            status:
+              normalizedStatus,
+
+            participationScore:
+              0,
+
+            notes:
+              ""
+
+          };
+
+        }
+      )
+      .filter(
+        Boolean
+      );
+
+
+  if (
+    !records.length
+  ){
+
+    return false;
+
+  }
+
+
   teacherAttendanceWorkspaceState
     .bulkSaving =
     true;
@@ -26643,133 +26750,88 @@ async function saveTeacherBulkAttendance(
 
   renderTeacherAttendanceBulkActions();
 
+  renderTeacherAttendanceRoster();
+
 
   try{
 
-    /*
-      Sequentially process reasonable chunks instead of
-      launching an uncontrolled request burst for large
-      rosters.
-    */
-
-    const batchSize =
-      8;
-
-    const failures =
-      [];
-
-
-    for (
-      let index = 0;
-      index < students.length;
-      index += batchSize
-    ){
-
-      const batch =
-        students.slice(
-          index,
-          index +
-          batchSize
-        );
-
-
-      const results =
-        await Promise.allSettled(
-          batch.map(
-            student =>
-              saveTeacherAttendanceRecord(
-                student?._id ||
-                student?.id,
-                normalizedStatus
-              )
-          )
-        );
-
-
-      results.forEach(
-        (
-          result,
-          resultIndex
-        ) => {
-
-          if (
-            result.status ===
-            "rejected"
-          ){
-
-            failures.push({
-              student:
-                batch[
-                  resultIndex
-                ],
-
-              error:
-                result.reason
-            });
-
-          }
-
-        }
-      );
-
-    }
-
-
-    /*
-      One authoritative reload ensures our complete attendance
-      state is synchronized after a bulk operation.
-    */
-
-    await loadTeacherAttendance();
-
-    finalizeTeacherLoadedData();
-
-
-    renderTeacherAttendanceWorkspace();
-
-    renderTeacherDashboardStats();
-
-
-    if (
-      failures.length
-    ){
-
-      notifyAIFTWarning(
-        `${failures.length} attendance ${
-          failures.length === 1
-            ? "record"
-            : "records"
-        } could not be saved.`,
+    const response =
+      await apiPost(
+        "/api/attendance/bulk",
         {
-          title:
-            "Attendance partially saved"
+          classId,
+
+          date,
+
+          records
+        },
+        {
+          timeout:
+            120000
         }
       );
 
 
-      failures.forEach(
-        failure => {
+    const savedRecords =
+      asArray(
+        response?.records
+      );
 
-          reportOptionalRequestError(
-            `Attendance for ${
-              getTeacherAttendanceStudentName(
-                failure.student
-              )
-            }`,
-            failure.error
+
+    /*
+      Merge authoritative saved records immediately.
+    */
+
+    savedRecords
+      .forEach(
+        record => {
+
+          replaceTeacherAttendanceRecordInState(
+            record
           );
 
         }
       );
 
 
-      return false;
+    /*
+      Then reload this date once from the server so there is
+      no possibility of stale local state.
+    */
+
+    await loadTeacherSelectedClassAttendance();
+
+
+    finalizeTeacherLoadedData();
+
+
+    renderTeacherAttendanceSummary();
+
+    renderTeacherAttendanceRoster();
+
+    renderTeacherDashboardStats();
+
+
+    if (
+      teacherAttendanceWorkspaceState
+        .selectedStudentId
+    ){
+
+      renderTeacherAttendanceStudentHistory(
+        teacherAttendanceWorkspaceState
+          .selectedStudentId
+      );
 
     }
 
 
     notifyAIFTSuccess(
-      `All visible students were marked ${getTeacherAttendanceStatusLabel(
+      `${records.length} student${
+        records.length ===
+          1
+          ? ""
+          : "s"
+      } marked ${getTeacherAttendanceStatusLabel(
         normalizedStatus
       ).toLowerCase()}.`,
       {
@@ -26785,10 +26847,16 @@ async function saveTeacherBulkAttendance(
     error
   ){
 
+    console.error(
+      "Bulk attendance failed:",
+      error
+    );
+
+
     notifyAIFTError(
       getErrorMessage(
         error,
-        "AIFT could not save attendance."
+        "AIFT could not save bulk attendance."
       ),
       {
         title:
@@ -26807,6 +26875,8 @@ async function saveTeacherBulkAttendance(
 
 
     renderTeacherAttendanceBulkActions();
+
+    renderTeacherAttendanceRoster();
 
   }
 
@@ -26829,6 +26899,13 @@ async function loadTeacherSelectedClassAttendance(){
     );
 
 
+  const date =
+    normalizeTeacherAttendanceDate(
+      teacherAttendanceWorkspaceState
+        .date
+    );
+
+
   if (
     !classId
   ){
@@ -26838,29 +26915,59 @@ async function loadTeacherSelectedClassAttendance(){
   }
 
 
+  if (
+    !date
+  ){
+
+    return [];
+
+  }
+
+
   const records =
     await loadTeacherAttendanceForClass(
-      classId
+      classId,
+      date
     );
 
 
   /*
-    Replace only this class's attendance records while
-    preserving records already loaded for other classes.
+    Remove only records for this exact class + date.
+
+    Do NOT wipe historical attendance for the same class.
   */
 
   state.attendance =
     state.attendance
       .filter(
-        record =>
-          !sameId(
-            record
-              ?.classId
-              ?._id ||
-            record
-              ?.classId,
-            classId
-          )
+        record => {
+
+          const recordClassId =
+            normalizeId(
+              record
+                ?.classId
+                ?._id ||
+              record
+                ?.classId
+            );
+
+
+          const recordDate =
+            getTeacherAttendanceRecordDateKey(
+              record
+            );
+
+
+          return !(
+            sameId(
+              recordClassId,
+              classId
+            ) &&
+            recordDate ===
+              date
+          );
+
+        }
       );
 
 
@@ -26884,7 +26991,6 @@ async function loadTeacherSelectedClassAttendance(){
 
 }
 
-
 /* =========================================================
    ATTENDANCE TOOLBAR CONTROLS
 
@@ -26904,16 +27010,22 @@ function bindTeacherAttendanceToolbarControls(){
       "teacherAttendanceClassFilter"
     );
 
+
   const dateInput =
     $(
       "teacherAttendanceDate"
     );
+
 
   const searchInput =
     $(
       "teacherAttendanceSearch"
     );
 
+
+  /* =====================================================
+     CLASS
+  ===================================================== */
 
   if (
     classFilter
@@ -26932,18 +27044,20 @@ function bindTeacherAttendanceToolbarControls(){
           .classId =
           classId;
 
+
         teacherAttendanceWorkspaceState
           .selectedStudentId =
           "";
 
 
+        teacherAttendanceWorkspaceState
+          .search =
+          "";
+
+
         renderTeacherAttendanceHeader();
 
-        renderTeacherAttendanceSummary();
-
         renderTeacherAttendanceBulkActions();
-
-        renderTeacherAttendanceRoster();
 
         renderTeacherAttendanceStudentHistory(
           ""
@@ -26954,9 +27068,23 @@ function bindTeacherAttendanceToolbarControls(){
           !classId
         ){
 
+          renderTeacherAttendanceSummary();
+
+          renderTeacherAttendanceRoster();
+
           return;
 
         }
+
+
+        teacherAttendanceWorkspaceState
+          .loading =
+          true;
+
+
+        renderTeacherAttendanceToolbar();
+
+        renderTeacherAttendanceRoster();
 
 
         try{
@@ -26968,9 +27096,17 @@ function bindTeacherAttendanceToolbarControls(){
 
           renderTeacherAttendanceRoster();
 
+          renderTeacherDashboardStats();
+
         }catch(
           error
         ){
+
+          console.error(
+            "Attendance class load failed:",
+            error
+          );
+
 
           notifyAIFTError(
             getErrorMessage(
@@ -26983,6 +27119,15 @@ function bindTeacherAttendanceToolbarControls(){
             }
           );
 
+        }finally{
+
+          teacherAttendanceWorkspaceState
+            .loading =
+            false;
+
+
+          renderTeacherAttendanceToolbar();
+
         }
 
       };
@@ -26990,12 +27135,16 @@ function bindTeacherAttendanceToolbarControls(){
   }
 
 
+  /* =====================================================
+     DATE
+  ===================================================== */
+
   if (
     dateInput
   ){
 
     dateInput.onchange =
-      event => {
+      async event => {
 
         const date =
           normalizeTeacherAttendanceDate(
@@ -27031,14 +27180,93 @@ function bindTeacherAttendanceToolbarControls(){
           date;
 
 
-        renderTeacherAttendanceSummary();
+        teacherAttendanceWorkspaceState
+          .selectedStudentId =
+          "";
+
+
+        renderTeacherAttendanceStudentHistory(
+          ""
+        );
+
+
+        /*
+          No class = nothing authoritative to load yet.
+        */
+
+        if (
+          !teacherAttendanceWorkspaceState
+            .classId
+        ){
+
+          renderTeacherAttendanceSummary();
+
+          renderTeacherAttendanceRoster();
+
+          return;
+
+        }
+
+
+        teacherAttendanceWorkspaceState
+          .loading =
+          true;
+
+
+        renderTeacherAttendanceToolbar();
 
         renderTeacherAttendanceRoster();
+
+
+        try{
+
+          await loadTeacherSelectedClassAttendance();
+
+
+          renderTeacherAttendanceSummary();
+
+          renderTeacherAttendanceRoster();
+
+        }catch(
+          error
+        ){
+
+          console.error(
+            "Attendance date load failed:",
+            error
+          );
+
+
+          notifyAIFTError(
+            getErrorMessage(
+              error,
+              "Attendance for this date could not be loaded."
+            ),
+            {
+              title:
+                "Attendance unavailable"
+            }
+          );
+
+        }finally{
+
+          teacherAttendanceWorkspaceState
+            .loading =
+            false;
+
+
+          renderTeacherAttendanceToolbar();
+
+        }
 
       };
 
   }
 
+
+  /* =====================================================
+     SEARCH
+  ===================================================== */
 
   if (
     searchInput
@@ -27067,18 +27295,94 @@ function bindTeacherAttendanceToolbarControls(){
    ATTENDANCE TODAY
 ========================================================= */
 
-function setTeacherAttendanceToToday(){
+async function setTeacherAttendanceToToday(){
+
+  const today =
+    getTeacherLocalDateInputValue();
+
 
   teacherAttendanceWorkspaceState
     .date =
-    getTeacherLocalDateInputValue();
+    today;
+
+
+  teacherAttendanceWorkspaceState
+    .selectedStudentId =
+    "";
+
+
+  renderTeacherAttendanceStudentHistory(
+    ""
+  );
 
 
   renderTeacherAttendanceToolbar();
 
-  renderTeacherAttendanceSummary();
+
+  if (
+    !teacherAttendanceWorkspaceState
+      .classId
+  ){
+
+    renderTeacherAttendanceSummary();
+
+    renderTeacherAttendanceRoster();
+
+    return true;
+
+  }
+
+
+  teacherAttendanceWorkspaceState
+    .loading =
+    true;
+
+
+  renderTeacherAttendanceToolbar();
 
   renderTeacherAttendanceRoster();
+
+
+  try{
+
+    await loadTeacherSelectedClassAttendance();
+
+
+    renderTeacherAttendanceSummary();
+
+    renderTeacherAttendanceRoster();
+
+
+    return true;
+
+  }catch(
+    error
+  ){
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "Today's attendance could not be loaded."
+      ),
+      {
+        title:
+          "Attendance unavailable"
+      }
+    );
+
+
+    return false;
+
+  }finally{
+
+    teacherAttendanceWorkspaceState
+      .loading =
+      false;
+
+
+    renderTeacherAttendanceToolbar();
+
+  }
 
 }
 
