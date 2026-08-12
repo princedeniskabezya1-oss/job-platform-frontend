@@ -20306,12 +20306,23 @@ function getTeacherGradingAssignments(){
 
 }
 
-
 /* =========================================================
-   FILTER GRADING SUBMISSIONS
+   GRADING SUBMISSION FILTER ENGINE
 ========================================================= */
 
-function getTeacherFilteredGradingSubmissions(){
+
+/* =========================================================
+   GET GRADING SCOPE SUBMISSIONS
+
+   Scope filters:
+   - class
+   - assignment
+
+   Status/search are intentionally applied separately so the
+   summary can still show meaningful lifecycle counts.
+========================================================= */
+
+function getTeacherGradingScopeSubmissions(){
 
   const classId =
     normalizeId(
@@ -20319,34 +20330,23 @@ function getTeacherFilteredGradingSubmissions(){
         .classId
     );
 
+
   const assignmentId =
     normalizeId(
       teacherGradingWorkspaceState
         .assignmentId
     );
 
-  const status =
-    safeString(
-      teacherGradingWorkspaceState
-        .status
-    );
 
-  const search =
-    safeString(
-      teacherGradingWorkspaceState
-        .search
-    )
-      .toLowerCase();
+  let submissions =
+    [
+      ...getTeacherSubmissions()
+    ];
 
 
-  let submissions = [
-    ...getTeacherSubmissions()
-  ];
-
-
-  /* -------------------------------------------------------
-     CLASS FILTER
-  ------------------------------------------------------- */
+  /* =====================================================
+     CLASS SCOPE
+  ===================================================== */
 
   if (
     classId
@@ -20366,9 +20366,9 @@ function getTeacherFilteredGradingSubmissions(){
   }
 
 
-  /* -------------------------------------------------------
-     ASSIGNMENT FILTER
-  ------------------------------------------------------- */
+  /* =====================================================
+     ASSIGNMENT SCOPE
+  ===================================================== */
 
   if (
     assignmentId
@@ -20388,14 +20388,152 @@ function getTeacherFilteredGradingSubmissions(){
   }
 
 
-  /* -------------------------------------------------------
-     REVIEW STATUS
-  ------------------------------------------------------- */
+  return submissions;
+
+}
+
+
+/* =========================================================
+   SEARCH MATCH
+========================================================= */
+
+function teacherGradingSubmissionMatchesSearch(
+  submission,
+  searchValue
+){
+
+  const search =
+    safeString(
+      searchValue
+    )
+      .toLowerCase();
+
+
+  if (
+    !search
+  ){
+
+    return true;
+
+  }
+
+
+  const student =
+    getTeacherSubmissionStudent(
+      submission
+    );
+
+
+  const assignment =
+    getTeacherSubmissionAssignment(
+      submission
+    );
+
+
+  const classItem =
+    getTeacherSubmissionClass(
+      submission
+    );
+
+
+  const studentName =
+    safeString(
+
+      student?.name ||
+      student?.fullName ||
+      student?.displayName
+
+    );
+
+
+  const studentEmail =
+    safeString(
+      student?.email
+    );
+
+
+  const assignmentTitle =
+    getTeacherAssignmentTitle(
+      assignment ||
+      {}
+    );
+
+
+  const classTitle =
+    getTeacherClassTitle(
+      classItem ||
+      {}
+    );
+
+
+  const submissionText =
+    safeString(
+
+      submission?.text ||
+      submission?.answer ||
+      submission?.response
+
+    );
+
+
+  const haystack =
+    [
+      studentName,
+      studentEmail,
+      assignmentTitle,
+      classTitle,
+      submissionText
+    ]
+      .filter(
+        Boolean
+      )
+      .join(
+        " "
+      )
+      .toLowerCase();
+
+
+  return haystack.includes(
+    search
+  );
+
+}
+
+
+/* =========================================================
+   FILTER GRADING SUBMISSIONS
+========================================================= */
+
+function getTeacherFilteredGradingSubmissions(){
+
+  const status =
+    safeString(
+      teacherGradingWorkspaceState
+        .status,
+      "submitted"
+    )
+      .toLowerCase();
+
+
+  const search =
+    safeString(
+      teacherGradingWorkspaceState
+        .search
+    );
+
+
+  let submissions =
+    getTeacherGradingScopeSubmissions();
+
+
+  /* =====================================================
+     STATUS
+  ===================================================== */
 
   if (
     status &&
     status !==
-    "all"
+      "all"
   ){
 
     submissions =
@@ -20410,9 +20548,9 @@ function getTeacherFilteredGradingSubmissions(){
   }
 
 
-  /* -------------------------------------------------------
+  /* =====================================================
      SEARCH
-  ------------------------------------------------------- */
+  ===================================================== */
 
   if (
     search
@@ -20420,67 +20558,25 @@ function getTeacherFilteredGradingSubmissions(){
 
     submissions =
       submissions.filter(
-        submission => {
-
-          const student =
-            getTeacherSubmissionStudent(
-              submission
-            );
-
-          const assignment =
-            getTeacherSubmissionAssignment(
-              submission
-            );
-
-          const classItem =
-            getTeacherSubmissionClass(
-              submission
-            );
-
-
-          const haystack =
-            [
-
-              student?.name,
-              student?.fullName,
-              student?.displayName,
-              student?.email,
-
-              assignment?.title,
-
-              getTeacherClassTitle(
-                classItem ||
-                {}
-              )
-
-            ]
-              .filter(
-                Boolean
-              )
-              .join(
-                " "
-              )
-              .toLowerCase();
-
-
-          return haystack.includes(
+        submission =>
+          teacherGradingSubmissionMatchesSearch(
+            submission,
             search
-          );
-
-        }
+          )
       );
 
   }
 
 
-  /* -------------------------------------------------------
-     QUEUE ORDER
+  /* =====================================================
+     ORDER
 
-     Needs-review work should feel chronological:
-     oldest submitted work first.
+     Needs review:
+       oldest first — teacher works through queue.
 
-     Reviewed/returned views show newest first.
-  ------------------------------------------------------- */
+     Reviewed / returned / all:
+       newest first.
+  ===================================================== */
 
   submissions.sort(
     (
@@ -20493,6 +20589,7 @@ function getTeacherFilteredGradingSubmissions(){
           first
         )?.getTime() ||
         0;
+
 
       const secondTime =
         getTeacherSubmissionDate(
@@ -20530,12 +20627,53 @@ function getTeacherFilteredGradingSubmissions(){
 
 /* =========================================================
    GRADING SUMMARY
+
+   IMPORTANT:
+   Summary respects class + assignment scope,
+   but intentionally does NOT respect the selected status.
+
+   Example:
+   selecting one class still shows:
+     total
+     needs review
+     reviewed
+     returned
 ========================================================= */
 
 function getTeacherGradingSummary(){
 
   const submissions =
-    getTeacherSubmissions();
+    getTeacherGradingScopeSubmissions();
+
+
+  const submitted =
+    submissions.filter(
+      submission =>
+        getTeacherGradingSubmissionStatus(
+          submission
+        ) ===
+        "submitted"
+    ).length;
+
+
+  const reviewed =
+    submissions.filter(
+      submission =>
+        getTeacherGradingSubmissionStatus(
+          submission
+        ) ===
+        "reviewed"
+    ).length;
+
+
+  const returned =
+    submissions.filter(
+      submission =>
+        getTeacherGradingSubmissionStatus(
+          submission
+        ) ===
+        "returned"
+    ).length;
 
 
   return {
@@ -20543,37 +20681,130 @@ function getTeacherGradingSummary(){
     total:
       submissions.length,
 
-    submitted:
-      submissions.filter(
-        submission =>
-          getTeacherGradingSubmissionStatus(
-            submission
-          ) ===
-          "submitted"
-      ).length,
+    submitted,
 
-    reviewed:
-      submissions.filter(
-        submission =>
-          getTeacherGradingSubmissionStatus(
-            submission
-          ) ===
-          "reviewed"
-      ).length,
+    reviewed,
 
-    returned:
-      submissions.filter(
-        submission =>
-          getTeacherGradingSubmissionStatus(
-            submission
-          ) ===
-          "returned"
-      ).length
+    returned
 
   };
 
 }
 
+
+/* =========================================================
+   FIRST AVAILABLE GRADING SUBMISSION
+========================================================= */
+
+function getFirstTeacherGradingSubmission(){
+
+  return (
+    getTeacherFilteredGradingSubmissions()[
+      0
+    ] ||
+    null
+  );
+
+}
+
+
+/* =========================================================
+   ENSURE VALID GRADING SELECTION
+
+   Automatically selects the first matching submission.
+
+   This prevents the right-side viewer from appearing blank
+   every time a filter changes.
+========================================================= */
+
+function ensureTeacherGradingSelection(){
+
+  const submissions =
+    getTeacherFilteredGradingSubmissions();
+
+
+  if (
+    !submissions.length
+  ){
+
+    teacherGradingWorkspaceState
+      .selectedSubmissionId =
+      "";
+
+
+    state.selectedSubmissionId =
+      "";
+
+
+    return null;
+
+  }
+
+
+  const selectedId =
+    normalizeId(
+      teacherGradingWorkspaceState
+        .selectedSubmissionId
+    );
+
+
+  const selectedStillVisible =
+    submissions.some(
+      submission =>
+        sameId(
+          getTeacherSubmissionId(
+            submission
+          ),
+          selectedId
+        )
+    );
+
+
+  if (
+    selectedStillVisible
+  ){
+
+    return getTeacherSubmissionById(
+      selectedId
+    );
+
+  }
+
+
+  const firstSubmission =
+    submissions[
+      0
+    ];
+
+
+  const firstId =
+    getTeacherSubmissionId(
+      firstSubmission
+    );
+
+
+  teacherGradingWorkspaceState
+    .selectedSubmissionId =
+    firstId;
+
+
+  state.selectedSubmissionId =
+    firstId;
+
+
+  teacherGradingWorkspaceState
+    .kabezyaSuggestion =
+    null;
+
+
+  teacherGradingWorkspaceState
+    .kabezyaLoading =
+    false;
+
+
+  return firstSubmission;
+
+}
 
 /* =========================================================
    GRADING HEADER
@@ -21170,7 +21401,7 @@ function renderTeacherGradingSubmissionList(){
     !container
   ){
 
-    return;
+    return false;
 
   }
 
@@ -21179,41 +21410,28 @@ function renderTeacherGradingSubmissionList(){
     getTeacherFilteredGradingSubmissions();
 
 
-  /*
-    If selected work disappeared because a filter changed,
-    clear the selection rather than leaving stale details.
-  */
+  /* =====================================================
+     EMPTY
+  ===================================================== */
 
   if (
-    teacherGradingWorkspaceState
-      .selectedSubmissionId &&
-    !submissions.some(
-      submission =>
-        sameId(
-          getTeacherSubmissionId(
-            submission
-          ),
-          teacherGradingWorkspaceState
-            .selectedSubmissionId
-        )
-    )
+    !submissions.length
   ){
 
     teacherGradingWorkspaceState
       .selectedSubmissionId =
       "";
 
-  }
 
+    state.selectedSubmissionId =
+      "";
 
-  if (
-    !submissions.length
-  ){
 
     container.innerHTML = `
       <div
-        class="teacher-workspace-empty"
+        class="teacher-workspace-empty teacher-grading-queue-empty"
       >
+
         <div
           class="teacher-workspace-empty-icon"
         >
@@ -21223,23 +21441,67 @@ function renderTeacherGradingSubmissionList(){
           ></i>
         </div>
 
+
         <h3>
           No submissions found
         </h3>
 
+
         <p>
-          Student submissions matching your current filters will appear here.
+          ${
+            teacherGradingWorkspaceState
+              .status ===
+            "submitted"
+
+              ? "There is currently no student work waiting for review."
+
+              : "No student submissions match the current filters."
+          }
         </p>
+
+
+        ${
+          teacherGradingWorkspaceState
+            .status ===
+          "submitted"
+
+            ? `
+                <button
+                  type="button"
+                  class="teacher-secondary-button"
+                  data-teacher-action="grading-show-all"
+                >
+                  <i
+                    class="fa-solid fa-list"
+                    aria-hidden="true"
+                  ></i>
+
+                  View all submissions
+                </button>
+              `
+
+            : ""
+        }
+
       </div>
     `;
 
 
-    renderTeacherSubmissionViewer();
-
-    return;
+    return true;
 
   }
 
+
+  /* =====================================================
+     VALID SELECTION
+  ===================================================== */
+
+  ensureTeacherGradingSelection();
+
+
+  /* =====================================================
+     QUEUE ITEMS
+  ===================================================== */
 
   container.innerHTML =
     submissions
@@ -21251,9 +21513,13 @@ function renderTeacherGradingSubmissionList(){
       );
 
 
+  /* =====================================================
+     FALLBACK AVATARS
+  ===================================================== */
+
   container
     .querySelectorAll(
-      "img"
+      ".teacher-submission-list-item img"
     )
     .forEach(
       image => {
@@ -21264,6 +21530,7 @@ function renderTeacherGradingSubmissionList(){
             image.onerror =
               null;
 
+
             image.src =
               FALLBACK_AVATAR;
 
@@ -21271,6 +21538,9 @@ function renderTeacherGradingSubmissionList(){
 
       }
     );
+
+
+  return true;
 
 }
 
@@ -22342,16 +22612,25 @@ function selectTeacherGradingSubmission(
   }
 
 
-  teacherGradingWorkspaceState
-    .selectedSubmissionId =
+  const normalizedId =
     getTeacherSubmissionId(
       submission
     );
 
 
   teacherGradingWorkspaceState
+    .selectedSubmissionId =
+    normalizedId;
+
+
+  state.selectedSubmissionId =
+    normalizedId;
+
+
+  teacherGradingWorkspaceState
     .kabezyaSuggestion =
     null;
+
 
   teacherGradingWorkspaceState
     .kabezyaLoading =
@@ -22361,6 +22640,36 @@ function selectTeacherGradingSubmission(
   renderTeacherGradingSubmissionList();
 
   renderTeacherSubmissionViewer();
+
+
+  /*
+    On smaller screens the queue and viewer stack vertically.
+    Move the teacher directly to the selected work.
+  */
+
+  if (
+    window.innerWidth <=
+    860
+  ){
+
+    window.requestAnimationFrame(
+      () => {
+
+        $(
+          "teacherSubmissionViewer"
+        )
+          ?.scrollIntoView({
+            behavior:
+              "smooth",
+
+            block:
+              "start"
+          });
+
+      }
+    );
+
+  }
 
 
   return true;
@@ -22812,21 +23121,74 @@ function bindTeacherGradingFilterControls(){
       "teacherGradingClassFilter"
     );
 
+
   const assignmentFilter =
     $(
       "teacherGradingAssignmentFilter"
     );
+
 
   const statusFilter =
     $(
       "teacherGradingStatusFilter"
     );
 
+
   const search =
     $(
       "teacherGradingSearch"
     );
 
+
+  /* =====================================================
+     SHARED REFRESH AFTER FILTER
+  ===================================================== */
+
+  const refreshFilteredGradingView =
+    ({
+      toolbar =
+        false,
+
+      summary =
+        true
+    } = {}) => {
+
+
+      /*
+        If class changes, assignment choices also change.
+      */
+
+      if (
+        toolbar
+      ){
+
+        renderTeacherGradingToolbar();
+
+      }
+
+
+      ensureTeacherGradingSelection();
+
+
+      if (
+        summary
+      ){
+
+        renderTeacherGradingSummary();
+
+      }
+
+
+      renderTeacherGradingSubmissionList();
+
+      renderTeacherSubmissionViewer();
+
+  };
+
+
+  /* =====================================================
+     CLASS
+  ===================================================== */
 
   if (
     classFilter
@@ -22843,7 +23205,8 @@ function bindTeacherGradingFilterControls(){
 
 
         /*
-          Assignment options depend on class.
+          Assignment must reset because its previous value may
+          not belong to the newly selected class.
         */
 
         teacherGradingWorkspaceState
@@ -22856,16 +23219,27 @@ function bindTeacherGradingFilterControls(){
           "";
 
 
-        renderTeacherGradingToolbar();
+        teacherGradingWorkspaceState
+          .kabezyaSuggestion =
+          null;
 
-        renderTeacherGradingSubmissionList();
 
-        renderTeacherSubmissionViewer();
+        refreshFilteredGradingView({
+          toolbar:
+            true,
+
+          summary:
+            true
+        });
 
       };
 
   }
 
+
+  /* =====================================================
+     ASSIGNMENT
+  ===================================================== */
 
   if (
     assignmentFilter
@@ -22886,14 +23260,24 @@ function bindTeacherGradingFilterControls(){
           "";
 
 
-        renderTeacherGradingSubmissionList();
+        teacherGradingWorkspaceState
+          .kabezyaSuggestion =
+          null;
 
-        renderTeacherSubmissionViewer();
+
+        refreshFilteredGradingView({
+          summary:
+            true
+        });
 
       };
 
   }
 
+
+  /* =====================================================
+     STATUS
+  ===================================================== */
 
   if (
     statusFilter
@@ -22902,12 +23286,26 @@ function bindTeacherGradingFilterControls(){
     statusFilter.onchange =
       event => {
 
-        teacherGradingWorkspaceState
-          .status =
+        const requested =
           safeString(
             event.target.value,
-            "all"
-          );
+            "submitted"
+          )
+            .toLowerCase();
+
+
+        teacherGradingWorkspaceState
+          .status =
+          [
+            "all",
+            "submitted",
+            "reviewed",
+            "returned"
+          ].includes(
+            requested
+          )
+            ? requested
+            : "submitted";
 
 
         teacherGradingWorkspaceState
@@ -22915,14 +23313,24 @@ function bindTeacherGradingFilterControls(){
           "";
 
 
-        renderTeacherGradingSubmissionList();
+        teacherGradingWorkspaceState
+          .kabezyaSuggestion =
+          null;
 
-        renderTeacherSubmissionViewer();
+
+        refreshFilteredGradingView({
+          summary:
+            false
+        });
 
       };
 
   }
 
+
+  /* =====================================================
+     SEARCH
+  ===================================================== */
 
   if (
     search
@@ -22938,7 +23346,18 @@ function bindTeacherGradingFilterControls(){
           );
 
 
+        /*
+          Do not force-clear the selected submission.
+
+          ensureTeacherGradingSelection() retains it if it still
+          matches, otherwise moves to the first matching result.
+        */
+
+        ensureTeacherGradingSelection();
+
         renderTeacherGradingSubmissionList();
+
+        renderTeacherSubmissionViewer();
 
       };
 
@@ -23250,9 +23669,21 @@ function renderTeacherGradingWorkspace(){
 
   renderTeacherGradingSummary();
 
+
+  /*
+    Keep a real submission selected whenever the current
+    filters contain work.
+  */
+
+  ensureTeacherGradingSelection();
+
+
   renderTeacherGradingSubmissionList();
 
   renderTeacherSubmissionViewer();
+
+
+  return true;
 
 }
 
@@ -56387,7 +56818,27 @@ case "kabezya-review-submission":
 /* -----------------------------------------------------
    REFRESH GRADING
 ----------------------------------------------------- */
+case "grading-show-all":
 
+  teacherGradingWorkspaceState
+    .status =
+    "all";
+
+
+  teacherGradingWorkspaceState
+    .selectedSubmissionId =
+    "";
+
+
+  ensureTeacherGradingSelection();
+
+
+  renderTeacherGradingWorkspace();
+
+
+  return true;
+
+        
 case "refresh-grading":
 
   return refreshTeacherGradingWorkspace();
