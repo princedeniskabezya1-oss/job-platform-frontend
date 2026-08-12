@@ -57784,55 +57784,80 @@ function renderTeacherStudioShell(){
    needed.
 ========================================================= */
 
+
 function initializeTeacherStudioWorkspaces(){
 
-const initializers = [
-
-  {
-    name:
-      "Classes",
-
-    fn:
-      typeof initializeTeacherClassesWorkspace ===
-        "function"
-        ? initializeTeacherClassesWorkspace
-        : null
-  },
-
-
-  {
-    name:
-      "Settings",
-
-    fn:
-      typeof initializeTeacherSettingsWorkspace ===
-        "function"
-        ? initializeTeacherSettingsWorkspace
-        : null
-  },
-
+  const initializers = [
 
     {
       name:
-        "Support",
+        "Classes",
 
       fn:
-        typeof initializeTeacherSupportWorkspace ===
-          "function"
-          ? initializeTeacherSupportWorkspace
-          : null
+        initializeTeacherClassesWorkspace
     },
 
 
     {
       name:
-        "Kabezya",
+        "Students",
 
       fn:
-        typeof initializeTeacherKabezyaWorkspace ===
-          "function"
-          ? initializeTeacherKabezyaWorkspace
-          : null
+        initializeTeacherStudentsWorkspace
+    },
+
+
+    {
+      name:
+        "Assignments",
+
+      fn:
+        initializeTeacherAssignmentsWorkspace
+    },
+
+
+    {
+      name:
+        "Grading",
+
+      fn:
+        initializeTeacherGradingWorkspace
+    },
+
+
+    {
+      name:
+        "Attendance",
+
+      fn:
+        initializeTeacherAttendanceWorkspace
+    },
+
+
+    {
+      name:
+        "Quizzes",
+
+      fn:
+        initializeTeacherQuizzesWorkspace
+    },
+
+
+    {
+      name:
+        "Schedule",
+
+      fn:
+        initializeTeacherScheduleWorkspace
+    },
+
+
+    {
+      name:
+        "Resources",
+
+      fn:
+        initializeTeacherResourcesWorkspace
     },
 
 
@@ -57841,10 +57866,34 @@ const initializers = [
         "Analytics",
 
       fn:
-        typeof initializeTeacherAnalyticsWorkspace ===
-          "function"
-          ? initializeTeacherAnalyticsWorkspace
-          : null
+        initializeTeacherAnalyticsWorkspace
+    },
+
+
+    {
+      name:
+        "Kabezya",
+
+      fn:
+        initializeTeacherKabezyaWorkspace
+    },
+
+
+    {
+      name:
+        "Settings",
+
+      fn:
+        initializeTeacherSettingsWorkspace
+    },
+
+
+    {
+      name:
+        "Support",
+
+      fn:
+        initializeTeacherSupportWorkspace
     }
 
   ];
@@ -57852,16 +57901,6 @@ const initializers = [
 
   initializers.forEach(
     item => {
-
-      if (
-        typeof item.fn !==
-        "function"
-      ){
-
-        return;
-
-      }
-
 
       try{
 
@@ -57871,10 +57910,13 @@ const initializers = [
         error
       ){
 
-        console.warn(
+        console.error(
           `${item.name} workspace initialization failed:`,
           error
         );
+
+
+        throw error;
 
       }
 
