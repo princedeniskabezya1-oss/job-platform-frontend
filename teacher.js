@@ -17670,6 +17670,10 @@ async function saveTeacherAssignment(){
   }
 
 
+  /* =====================================================
+     BUILD FORM DATA
+  ===================================================== */
+
   let formData;
 
 
@@ -17699,12 +17703,67 @@ async function saveTeacherAssignment(){
   }
 
 
+  /* =====================================================
+     CURRENT EDITING ID
+  ===================================================== */
+
   const assignmentId =
     normalizeId(
       teacherAssignmentWorkspaceState
         .editingAssignmentId
     );
 
+
+  /*
+    Keep the exact submitted values.
+
+    We use these for immediate local reconciliation while the
+    authoritative GET request refreshes the collection.
+  */
+
+  const submittedDueDate =
+    safeString(
+      formData.get(
+        "dueDate"
+      )
+    );
+
+
+  const submittedTitle =
+    safeString(
+      formData.get(
+        "title"
+      )
+    );
+
+
+  const submittedInstructions =
+    safeString(
+      formData.get(
+        "instructions"
+      )
+    );
+
+
+  const submittedStatus =
+    safeString(
+      formData.get(
+        "status"
+      )
+    );
+
+
+  const submittedClassId =
+    normalizeId(
+      formData.get(
+        "classId"
+      )
+    );
+
+
+  /* =====================================================
+     SAVING STATE
+  ===================================================== */
 
   teacherAssignmentWorkspaceState
     .saving =
@@ -17718,14 +17777,9 @@ async function saveTeacherAssignment(){
 
   try{
 
-    /*
-      IMPORTANT:
-
-      apiSend() DOES NOT EXIST in the production API client.
-
-      apiPost() and apiPatch() are the authoritative helpers,
-      and apiRequest() already supports FormData.
-    */
+    /* ===================================================
+       SAVE TO BACKEND
+    =================================================== */
 
     const response =
       assignmentId
@@ -17751,62 +17805,261 @@ async function saveTeacherAssignment(){
           );
 
 
-    const savedAssignment =
+    const responseAssignment =
       response?.assignment ||
       response?.data ||
       response;
 
 
-    const savedId =
+    const responseId =
       normalizeId(
-        savedAssignment?._id ||
-        savedAssignment?.id
+        responseAssignment?._id ||
+        responseAssignment?.id
       );
 
 
+    const savedAssignmentId =
+      responseId ||
+      assignmentId;
+
+
+    /* ===================================================
+       IMMEDIATE LOCAL RECONCILIATION
+
+       This prevents an old card from remaining red while
+       the authoritative collection reload is happening.
+    =================================================== */
+
     if (
-      savedId
+      savedAssignmentId
     ){
 
-      const index =
+      const existingIndex =
         state.assignments
           .findIndex(
-            assignment =>
+            item =>
               sameId(
-                assignment?._id ||
-                assignment?.id,
-                savedId
+                item?._id ||
+                item?.id,
+                savedAssignmentId
+              )
+          );
+
+
+      const currentAssignment =
+        existingIndex >=
+          0
+          ? state.assignments[
+              existingIndex
+            ]
+          : null;
+
+
+      /*
+        IMPORTANT:
+
+        Do not blindly trust only the PATCH response for the
+        editable fields.
+
+        The submitted values are known to be what the teacher
+        just saved.
+      */
+
+      const reconciledAssignment = {
+
+        ...(
+          currentAssignment ||
+          {}
+        ),
+
+        ...(
+          responseAssignment &&
+          typeof responseAssignment ===
+            "object"
+            ? responseAssignment
+            : {}
+        ),
+
+        _id:
+          responseId ||
+          normalizeId(
+            currentAssignment?._id ||
+            currentAssignment?.id
+          ) ||
+          savedAssignmentId,
+
+        title:
+          submittedTitle ||
+          responseAssignment?.title ||
+          currentAssignment?.title ||
+          "",
+
+        instructions:
+          submittedInstructions,
+
+        description:
+          submittedInstructions,
+
+        dueDate:
+          submittedDueDate ||
+          null,
+
+        status:
+          submittedStatus ||
+          responseAssignment?.status ||
+          currentAssignment?.status ||
+          "draft",
+
+        classId:
+          responseAssignment?.classId ||
+          getTeacherClassById(
+            submittedClassId
+          ) ||
+          submittedClassId
+
+      };
+
+
+      if (
+        existingIndex >=
+        0
+      ){
+
+        state.assignments[
+          existingIndex
+        ] =
+          reconciledAssignment;
+
+      }else{
+
+        state.assignments.unshift(
+          reconciledAssignment
+        );
+
+      }
+
+
+      /*
+        Render immediately so the teacher does not continue
+        seeing the old due date.
+      */
+
+      finalizeTeacherLoadedData();
+
+      renderTeacherAssignmentsWorkspace();
+
+      renderTeacherOverviewAssignments();
+
+      renderTeacherDashboardStats();
+
+    }
+
+
+    /* ===================================================
+       AUTHORITATIVE DATABASE REFRESH
+
+       THIS IS THE IMPORTANT FIX.
+
+       Always reload after POST/PATCH instead of trusting the
+       mutation response as the final Teacher Studio state.
+    =================================================== */
+
+    await loadTeacherAssignments();
+
+
+    finalizeTeacherLoadedData();
+
+
+    /* ===================================================
+       VERIFY UPDATED RECORD EXISTS
+    =================================================== */
+
+    if (
+      savedAssignmentId
+    ){
+
+      const canonicalAssignment =
+        getTeacherAssignments()
+          .find(
+            item =>
+              sameId(
+                item?._id ||
+                item?.id,
+                savedAssignmentId
               )
           );
 
 
       if (
-        index >=
-        0
+        !canonicalAssignment
       ){
 
-        state.assignments[
-          index
-        ] =
-          savedAssignment;
+        console.warn(
+          "Saved assignment was not found after refresh:",
+          savedAssignmentId
+        );
 
       }else{
 
-        state.assignments.unshift(
-          savedAssignment
-        );
+        /*
+          Helpful production diagnostic.
+
+          If the backend ever accepts the PATCH but fails to
+          persist the due date, this makes the mismatch visible
+          immediately in the console.
+        */
+
+        const canonicalDueDate =
+          getTeacherAssignmentDueDate(
+            canonicalAssignment
+          );
+
+
+        if (
+          submittedDueDate
+        ){
+
+          const submittedDate =
+            toValidDate(
+              submittedDueDate
+            );
+
+
+          if (
+            submittedDate &&
+            canonicalDueDate &&
+            submittedDate.getTime() !==
+              canonicalDueDate.getTime()
+          ){
+
+            console.warn(
+              "Assignment due-date mismatch after save:",
+              {
+                assignmentId:
+                  savedAssignmentId,
+
+                submitted:
+                  submittedDate
+                    .toISOString(),
+
+                backend:
+                  canonicalDueDate
+                    .toISOString()
+              }
+            );
+
+          }
+
+        }
 
       }
-
-    }else{
-
-      await loadTeacherAssignments();
 
     }
 
 
-    finalizeTeacherLoadedData();
-
+    /* ===================================================
+       FINAL RENDER FROM DATABASE STATE
+    =================================================== */
 
     closeTeacherAssignmentEditor();
 
@@ -17817,6 +18070,40 @@ async function saveTeacherAssignment(){
 
     renderTeacherDashboardStats();
 
+
+    /*
+      Due dates also affect late/submission calculations.
+
+      Refresh dependent UI from the newly loaded assignment
+      collection.
+    */
+
+    if (
+      typeof renderTeacherSubmissionsWorkspace ===
+        "function"
+    ){
+
+      renderTeacherSubmissionsWorkspace();
+
+    }
+
+
+    if (
+      typeof renderTeacherGradingWorkspace ===
+        "function" &&
+      isTeacherStudioPageActive(
+        "grading"
+      )
+    ){
+
+      renderTeacherGradingWorkspace();
+
+    }
+
+
+    /* ===================================================
+       SUCCESS
+    =================================================== */
 
     notifyAIFTSuccess(
       assignmentId
@@ -17864,12 +18151,6 @@ async function saveTeacherAssignment(){
       false;
 
 
-    /*
-      If save succeeded, the editor has already been removed.
-      If it failed, restore the button instead of leaving the
-      spinner on-screen.
-    */
-
     if (
       $(
         "teacherAssignmentSaveButton"
@@ -17885,7 +18166,6 @@ async function saveTeacherAssignment(){
   }
 
 }
-
 
 /* =========================================================
    DELETE ASSIGNMENT
