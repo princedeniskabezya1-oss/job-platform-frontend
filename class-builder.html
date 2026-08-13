@@ -93435,15 +93435,19 @@ async function saveQuestionBankItem(
 
   try{
 
-    const payload = {
+const payload = {
 
-      schoolId:
-        state.schoolId,
+  schoolId:
+    state.schoolId,
 
-      createdBy:
-        getQuestionBankActorId(),
+  /*
+    createdBy is intentionally NOT sent.
 
-      title,
+    The authenticated backend assigns:
+      createdBy = req.user._id
+  */
+
+  title,
 
       question,
 
@@ -93801,15 +93805,16 @@ async function duplicateQuestionBankItem(
       await apiSend(
         "/api/question-bank",
         "POST",
-        {
-          schoolId:
-            state.schoolId,
+{
+  schoolId:
+    state.schoolId,
 
-          createdBy:
-            getQuestionBankActorId(),
+  /*
+    Ownership comes from the authenticated backend.
+  */
 
-          title:
-            `${original.title} (Copy)`,
+  title:
+    `${original.title} (Copy)`,
 
           question:
             original.question,
