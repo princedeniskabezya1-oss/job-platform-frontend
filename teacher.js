@@ -29243,9 +29243,38 @@ function renderTeacherScheduleOperationalNotice(
 
 }
 
-
 /* =========================================================
-   CREATE SCHEDULE CARD
+   CREATE TEACHER SCHEDULE CARD
+   PRODUCTION SESSION LIFECYCLE
+
+   LIFECYCLE
+   ---------------------------------------------------------
+
+   scheduled / rescheduled
+     -> Start Session
+
+   started
+     -> Join Meeting
+     -> Complete Session
+
+   completed
+     -> Historical record
+
+   missed
+     -> Historical accountability record
+
+   cancelled
+     -> Historical / editable cancellation record
+
+   IMPORTANT
+   ---------------------------------------------------------
+
+   Opening a meeting link is NOT considered a Teacher start.
+
+   The Teacher must first trigger:
+     POST /api/schedules/:id/start
+
+   This gives the School a real backend attendance trail.
 ========================================================= */
 
 function createTeacherScheduleCard(
@@ -29327,17 +29356,36 @@ function createTeacherScheduleCard(
     );
 
 
+  const startAllowed =
+    [
+      "scheduled",
+      "rescheduled"
+    ].includes(
+      status
+    );
+
+
+  const completeAllowed =
+    status ===
+    "started";
+
+
   const joinAllowed =
     Boolean(
       meetingLink &&
-      canTeacherJoinSchedule(
-        schedule
-      )
+      status ===
+      "started"
     );
 
 
   const editAllowed =
     canTeacherEditSchedule(
+      schedule
+    );
+
+
+  const historical =
+    isTeacherScheduleHistorical(
       schedule
     );
 
@@ -29419,7 +29467,7 @@ function createTeacherScheduleCard(
 
 
       <!-- ===============================================
-           MAIN
+           MAIN CONTENT
       ================================================ -->
 
       <div
@@ -29471,6 +29519,10 @@ function createTeacherScheduleCard(
         </div>
 
 
+        <!-- =============================================
+             TIME
+        ============================================== -->
+
         <div
           class="teacher-schedule-time"
         >
@@ -29486,6 +29538,7 @@ function createTeacherScheduleCard(
               )
             )}
           </span>
+
 
           ${
             date
@@ -29507,8 +29560,32 @@ function createTeacherScheduleCard(
               `
               : ""
           }
+
+
+          ${
+            status ===
+            "started"
+              ? `
+                <span
+                  class="teacher-schedule-live-indicator"
+                >
+                  <span
+                    class="teacher-schedule-live-dot"
+                    aria-hidden="true"
+                  ></span>
+
+                  Session active
+                </span>
+              `
+              : ""
+          }
+
         </div>
 
+
+        <!-- =============================================
+             NOTES
+        ============================================== -->
 
         ${
           notes
@@ -29523,6 +29600,10 @@ function createTeacherScheduleCard(
         }
 
 
+        <!-- =============================================
+             OPERATIONAL NOTICE
+        ============================================== -->
+
         ${operationalNotice}
 
       </div>
@@ -29536,12 +29617,51 @@ function createTeacherScheduleCard(
         class="teacher-schedule-actions"
       >
 
+        <!-- =============================================
+             START SESSION
+        ============================================== -->
+
+        ${
+          startAllowed
+            ? `
+              <button
+                type="button"
+                class="
+                  teacher-schedule-action
+                  teacher-schedule-action-start
+                  primary
+                "
+                data-teacher-action="start-schedule"
+                data-schedule-id="${escapeAttribute(scheduleId)}"
+              >
+                <i
+                  class="fa-solid fa-play"
+                  aria-hidden="true"
+                ></i>
+
+                Start Session
+              </button>
+            `
+            : ""
+        }
+
+
+        <!-- =============================================
+             JOIN ONLINE MEETING
+
+             Only available AFTER session has officially
+             started in the backend.
+        ============================================== -->
+
         ${
           joinAllowed
             ? `
               <button
                 type="button"
-                class="teacher-schedule-action primary"
+                class="
+                  teacher-schedule-action
+                  teacher-schedule-action-join
+                "
                 data-teacher-action="open-schedule-meeting"
                 data-schedule-id="${escapeAttribute(scheduleId)}"
               >
@@ -29550,15 +29670,49 @@ function createTeacherScheduleCard(
                   aria-hidden="true"
                 ></i>
 
-                Join
+                Join Meeting
               </button>
             `
             : ""
         }
 
 
+        <!-- =============================================
+             COMPLETE SESSION
+        ============================================== -->
+
         ${
-          editAllowed
+          completeAllowed
+            ? `
+              <button
+                type="button"
+                class="
+                  teacher-schedule-action
+                  teacher-schedule-action-complete
+                "
+                data-teacher-action="complete-schedule"
+                data-schedule-id="${escapeAttribute(scheduleId)}"
+              >
+                <i
+                  class="fa-solid fa-check"
+                  aria-hidden="true"
+                ></i>
+
+                Complete
+              </button>
+            `
+            : ""
+        }
+
+
+        <!-- =============================================
+             EDIT
+        ============================================== -->
+
+        ${
+          editAllowed &&
+          status !==
+          "started"
             ? `
               <button
                 type="button"
@@ -29574,9 +29728,21 @@ function createTeacherScheduleCard(
                 Edit
               </button>
             `
-            : `
+            : ""
+        }
+
+
+        <!-- =============================================
+             HISTORY
+        ============================================== -->
+
+        ${
+          historical &&
+          !editAllowed
+            ? `
               <span
                 class="teacher-schedule-history-label"
+                title="This session is retained as teaching history."
               >
                 <i
                   class="fa-solid fa-lock"
@@ -29586,6 +29752,7 @@ function createTeacherScheduleCard(
                 History
               </span>
             `
+            : ""
         }
 
       </div>
@@ -32823,22 +32990,283 @@ async function deleteTeacherSchedule(
 
 }
 
-
 /* =========================================================
-   OPEN SCHEDULE MEETING
+   TEACHER SCHEDULE SESSION LIFECYCLE
+
+   BACKEND ENDPOINTS
+   ---------------------------------------------------------
+
+   POST /api/schedules/:id/start
+   POST /api/schedules/:id/complete
+
+   These backend actions are authoritative.
+
+   Frontend state is replaced only with the Schedule returned
+   by the server.
 ========================================================= */
 
-function openTeacherScheduleMeeting(
+
+/* =========================================================
+   LIFECYCLE REQUEST LOCK
+
+   Prevents:
+     double click
+     double POST
+     duplicate Attendance initialization
+     duplicate completion requests
+========================================================= */
+
+const teacherScheduleLifecyclePendingIds =
+  new Set();
+
+
+/* =========================================================
+   IS LIFECYCLE REQUEST PENDING
+========================================================= */
+
+function isTeacherScheduleLifecyclePending(
   scheduleId
 ){
 
-  const schedule =
-    getTeacherScheduleById(
+  const id =
+    normalizeId(
       scheduleId
     );
 
 
-  if(
+  return Boolean(
+    id &&
+    teacherScheduleLifecyclePendingIds
+      .has(
+        id
+      )
+  );
+
+}
+
+
+/* =========================================================
+   SET LIFECYCLE REQUEST STATE
+========================================================= */
+
+function setTeacherScheduleLifecyclePending(
+  scheduleId,
+  pending
+){
+
+  const id =
+    normalizeId(
+      scheduleId
+    );
+
+
+  if (
+    !id
+  ){
+
+    return;
+
+  }
+
+
+  if (
+    pending
+  ){
+
+    teacherScheduleLifecyclePendingIds
+      .add(
+        id
+      );
+
+  } else {
+
+    teacherScheduleLifecyclePendingIds
+      .delete(
+        id
+      );
+
+  }
+
+
+  /* =====================================================
+     DISABLE MATCHING CARD ACTIONS
+  ===================================================== */
+
+  $all(
+    `[data-schedule-id="${CSS.escape(id)}"]`
+  )
+    .forEach(
+      element => {
+
+        if (
+          !(
+            element instanceof
+            HTMLButtonElement
+          )
+        ){
+
+          return;
+
+        }
+
+
+        element.disabled =
+          Boolean(
+            pending
+          );
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   NORMALIZE SCHEDULE API RESPONSE
+========================================================= */
+
+function getTeacherScheduleFromApiResponse(
+  response
+){
+
+  const schedule =
+    response?.schedule ||
+    response?.data ||
+    response;
+
+
+  if (
+    !schedule ||
+    typeof schedule !==
+      "object"
+  ){
+
+    return null;
+
+  }
+
+
+  if (
+    !getTeacherScheduleId(
+      schedule
+    )
+  ){
+
+    return null;
+
+  }
+
+
+  return schedule;
+
+}
+
+
+/* =========================================================
+   SYNCHRONIZE SCHEDULE AFTER LIFECYCLE CHANGE
+========================================================= */
+
+function synchronizeTeacherScheduleLifecycleState(
+  schedule
+){
+
+  if (
+    !schedule ||
+    typeof schedule !==
+      "object"
+  ){
+
+    return false;
+
+  }
+
+
+  replaceTeacherScheduleInState(
+    schedule
+  );
+
+
+  renderTeacherScheduleWorkspace();
+
+
+  /*
+    Dashboard contains Schedule preview, therefore keep it
+    synchronized with lifecycle changes.
+  */
+
+  if (
+    typeof renderTeacherOverviewSchedule ===
+    "function"
+  ){
+
+    renderTeacherOverviewSchedule();
+
+  }
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   START TEACHING SESSION
+
+   This is the Teacher accountability event.
+
+   It records the session start through the backend and also
+   triggers Schedule -> Attendance initialization.
+
+   Students are initialized as PENDING, never automatically
+   PRESENT.
+========================================================= */
+
+async function startTeacherScheduleSession(
+  scheduleId
+){
+
+  const normalizedScheduleId =
+    normalizeId(
+      scheduleId
+    );
+
+
+  if (
+    !normalizedScheduleId
+  ){
+
+    notifyAIFTError(
+      "A valid schedule could not be identified.",
+      {
+        title:
+          "Unable to start session"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  if (
+    isTeacherScheduleLifecyclePending(
+      normalizedScheduleId
+    )
+  ){
+
+    return false;
+
+  }
+
+
+  const schedule =
+    getTeacherScheduleById(
+      normalizedScheduleId
+    );
+
+
+  if (
     !schedule
   ){
 
@@ -32856,13 +33284,523 @@ function openTeacherScheduleMeeting(
   }
 
 
+  const currentStatus =
+    getTeacherScheduleStatus(
+      schedule
+    );
+
+
+  /* =====================================================
+     ALREADY STARTED
+  ===================================================== */
+
+  if (
+    currentStatus ===
+    "started"
+  ){
+
+    notifyAIFTWarning(
+      "This teaching session is already in progress.",
+      {
+        title:
+          "Session already started"
+      }
+    );
+
+
+    return schedule;
+
+  }
+
+
+  /* =====================================================
+     INVALID HISTORICAL STATE
+  ===================================================== */
+
+  if (
+    ![
+      "scheduled",
+      "rescheduled"
+    ].includes(
+      currentStatus
+    )
+  ){
+
+    notifyAIFTWarning(
+      `This session cannot be started because its current status is ${getTeacherScheduleStatusLabel(
+        schedule
+      ).toLowerCase()}.`,
+      {
+        title:
+          "Session cannot be started"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  setTeacherScheduleLifecyclePending(
+    normalizedScheduleId,
+    true
+  );
+
+
+  try{
+
+    const response =
+      await apiPost(
+        `/api/schedules/${
+          encodeURIComponent(
+            normalizedScheduleId
+          )
+        }/start`,
+        {}
+      );
+
+
+    const startedSchedule =
+      getTeacherScheduleFromApiResponse(
+        response
+      );
+
+
+    if (
+      !startedSchedule
+    ){
+
+      throw new Error(
+        "The server did not return the started Schedule."
+      );
+
+    }
+
+
+    synchronizeTeacherScheduleLifecycleState(
+      startedSchedule
+    );
+
+
+    notifyAIFTSuccess(
+      "The teaching session has started and student attendance is now open.",
+      {
+        title:
+          "Session started"
+      }
+    );
+
+
+    return startedSchedule;
+
+  }catch(
+    error
+  ){
+
+    console.error(
+      "startTeacherScheduleSession error:",
+      error
+    );
+
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "The teaching session could not be started."
+      ),
+      {
+        title:
+          "Unable to start session"
+      }
+    );
+
+
+    return false;
+
+  }finally{
+
+    setTeacherScheduleLifecyclePending(
+      normalizedScheduleId,
+      false
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   COMPLETE TEACHING SESSION
+
+   Backend completion:
+     - records actual end
+     - records Teacher duration
+     - finalizes Schedule lifecycle
+     - converts remaining student Attendance:
+           pending -> absent
+     - preserves:
+           present
+           late
+           excused
+           absent
+========================================================= */
+
+async function completeTeacherScheduleSession(
+  scheduleId
+){
+
+  const normalizedScheduleId =
+    normalizeId(
+      scheduleId
+    );
+
+
+  if (
+    !normalizedScheduleId
+  ){
+
+    notifyAIFTError(
+      "A valid schedule could not be identified.",
+      {
+        title:
+          "Unable to complete session"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  if (
+    isTeacherScheduleLifecyclePending(
+      normalizedScheduleId
+    )
+  ){
+
+    return false;
+
+  }
+
+
+  const schedule =
+    getTeacherScheduleById(
+      normalizedScheduleId
+    );
+
+
+  if (
+    !schedule
+  ){
+
+    notifyAIFTError(
+      "The selected schedule is no longer available.",
+      {
+        title:
+          "Schedule unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const status =
+    getTeacherScheduleStatus(
+      schedule
+    );
+
+
+  if (
+    status ===
+    "completed"
+  ){
+
+    notifyAIFTWarning(
+      "This teaching session has already been completed.",
+      {
+        title:
+          "Session already completed"
+      }
+    );
+
+
+    return schedule;
+
+  }
+
+
+  if (
+    status !==
+    "started"
+  ){
+
+    notifyAIFTWarning(
+      "Only an active teaching session can be completed.",
+      {
+        title:
+          "Session is not active"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  /* =====================================================
+     CONFIRMATION
+
+     Completion finalizes pending Attendance as absent, so
+     Teacher must explicitly confirm.
+  ===================================================== */
+
+  const confirmed =
+    window.confirm(
+      [
+        `Complete "${getTeacherScheduleTitle(
+          schedule
+        )}"?`,
+        "",
+        "Attendance will be finalized.",
+        "Any student still marked Pending will be recorded as Absent.",
+        "",
+        "Continue?"
+      ].join(
+        "\n"
+      )
+    );
+
+
+  if (
+    !confirmed
+  ){
+
+    return false;
+
+  }
+
+
+  setTeacherScheduleLifecyclePending(
+    normalizedScheduleId,
+    true
+  );
+
+
+  try{
+
+    const response =
+      await apiPost(
+        `/api/schedules/${
+          encodeURIComponent(
+            normalizedScheduleId
+          )
+        }/complete`,
+        {}
+      );
+
+
+    const completedSchedule =
+      getTeacherScheduleFromApiResponse(
+        response
+      );
+
+
+    if (
+      !completedSchedule
+    ){
+
+      throw new Error(
+        "The server did not return the completed Schedule."
+      );
+
+    }
+
+
+    synchronizeTeacherScheduleLifecycleState(
+      completedSchedule
+    );
+
+
+    /* =====================================================
+       ATTENDANCE MAY HAVE BEEN FINALIZED BY BACKEND
+
+       Reload Teacher Attendance so switching to Attendance
+       immediately shows the authoritative records.
+    ===================================================== */
+
+    if (
+      typeof loadTeacherAttendanceForClass ===
+      "function"
+    ){
+
+      const classId =
+        getTeacherScheduleClassId(
+          completedSchedule
+        );
+
+
+      if (
+        classId
+      ){
+
+        try{
+
+          await loadTeacherAttendanceForClass(
+            classId
+          );
+
+        }catch(
+          attendanceError
+        ){
+
+          /*
+            Schedule completion succeeded already.
+            Attendance refresh failure must not make the user
+            believe completion failed.
+          */
+
+          console.warn(
+            "Attendance refresh after Schedule completion failed:",
+            attendanceError
+          );
+
+        }
+
+      }
+
+    }
+
+
+    notifyAIFTSuccess(
+      "The teaching session was completed and attendance was finalized.",
+      {
+        title:
+          "Session completed"
+      }
+    );
+
+
+    return completedSchedule;
+
+  }catch(
+    error
+  ){
+
+    console.error(
+      "completeTeacherScheduleSession error:",
+      error
+    );
+
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "The teaching session could not be completed."
+      ),
+      {
+        title:
+          "Unable to complete session"
+      }
+    );
+
+
+    return false;
+
+  }finally{
+
+    setTeacherScheduleLifecyclePending(
+      normalizedScheduleId,
+      false
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   OPEN SCHEDULE MEETING
+
+   IMPORTANT:
+   The meeting link can be opened only after the Schedule has
+   officially entered "started".
+
+   This prevents Join from silently bypassing Teacher session
+   tracking.
+========================================================= */
+
+function openTeacherScheduleMeeting(
+  scheduleId
+){
+
+  const normalizedScheduleId =
+    normalizeId(
+      scheduleId
+    );
+
+
+  const schedule =
+    getTeacherScheduleById(
+      normalizedScheduleId
+    );
+
+
+  if (
+    !schedule
+  ){
+
+    notifyAIFTError(
+      "The selected schedule is no longer available.",
+      {
+        title:
+          "Schedule unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const status =
+    getTeacherScheduleStatus(
+      schedule
+    );
+
+
+  if (
+    status !==
+    "started"
+  ){
+
+    notifyAIFTWarning(
+      "Start the teaching session before opening its meeting link.",
+      {
+        title:
+          "Start session first"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
   const meetingLink =
     getTeacherScheduleMeetingLink(
       schedule
     );
 
 
-  if(
+  if (
     !meetingLink
   ){
 
@@ -32880,11 +33818,30 @@ function openTeacherScheduleMeeting(
   }
 
 
-  window.open(
-    meetingLink,
-    "_blank",
-    "noopener,noreferrer"
-  );
+  const meetingWindow =
+    window.open(
+      meetingLink,
+      "_blank",
+      "noopener,noreferrer"
+    );
+
+
+  if (
+    !meetingWindow
+  ){
+
+    notifyAIFTWarning(
+      "Your browser blocked the meeting window. Allow pop-ups for AIFT and try again.",
+      {
+        title:
+          "Meeting window blocked"
+      }
+    );
+
+
+    return false;
+
+  }
 
 
   return true;
@@ -32952,8 +33909,15 @@ function initializeTeacherScheduleCrud(){
 /* =========================================================
    EXPORT TO CENTRAL ACTION CONTROLLER
 
-   callTeacherActionFunction() resolves functions through:
+/* =========================================================
+   EXPORT SCHEDULE CONTROLLERS
+
+   Central action controller resolves named handlers through:
+
      window[functionName]
+
+   Therefore every action referenced by
+   callTeacherActionFunction() must be exported here.
 ========================================================= */
 
 window.openTeacherScheduleEditor =
@@ -32970,6 +33934,16 @@ window.saveTeacherSchedule =
 
 window.deleteTeacherSchedule =
   deleteTeacherSchedule;
+
+
+/* SESSION LIFECYCLE */
+
+window.startTeacherScheduleSession =
+  startTeacherScheduleSession;
+
+
+window.completeTeacherScheduleSession =
+  completeTeacherScheduleSession;
 
 
 window.openTeacherScheduleMeeting =
@@ -62748,72 +63722,128 @@ case "schedule-next-month":
 
 }
 
-    case "create-schedule":
+/* =====================================================
+   SCHEDULE
+===================================================== */
 
-      return callTeacherActionFunction(
-        "openTeacherScheduleEditor"
-      );
+case "create-schedule":
 
-
-    case "edit-schedule":
-
-      return callTeacherActionFunction(
-        "openTeacherScheduleEditor",
-        getTeacherActionDataId(
-          element,
-          [
-            "scheduleId"
-          ]
-        )
-      );
+  return callTeacherActionFunction(
+    "openTeacherScheduleEditor"
+  );
 
 
-    case "delete-schedule":
+case "edit-schedule":
 
-      return callTeacherActionFunction(
-        "deleteTeacherSchedule",
-        getTeacherActionDataId(
-          element,
-          [
-            "scheduleId"
-          ]
-        )
-      );
-
-
-    case "save-schedule":
-
-      return callTeacherActionFunction(
-        "saveTeacherSchedule"
-      );
+  return callTeacherActionFunction(
+    "openTeacherScheduleEditor",
+    getTeacherActionDataId(
+      element,
+      [
+        "scheduleId"
+      ]
+    )
+  );
 
 
-    case "close-schedule-editor":
+case "delete-schedule":
 
-      return callTeacherActionFunction(
-        "closeTeacherScheduleEditor"
-      );
+  return callTeacherActionFunction(
+    "deleteTeacherSchedule",
+    getTeacherActionDataId(
+      element,
+      [
+        "scheduleId"
+      ]
+    )
+  );
 
 
-    case "refresh-schedule":
+case "save-schedule":
 
-      return callTeacherActionFunction(
-        "refreshTeacherScheduleWorkspace"
-      );
+  return callTeacherActionFunction(
+    "saveTeacherSchedule"
+  );
 
 
-    case "join-schedule":
-    case "open-schedule-meeting":
+case "close-schedule-editor":
 
-      return callTeacherActionFunction(
-        "openTeacherScheduleMeeting",
-        getTeacherActionDataId(
-          element,
-          [
-            "scheduleId"
-          ]
-        )
-      );
+  return callTeacherActionFunction(
+    "closeTeacherScheduleEditor"
+  );
+
+
+case "refresh-schedule":
+
+  return callTeacherActionFunction(
+    "refreshTeacherScheduleWorkspace"
+  );
+
+
+/* =====================================================
+   START SESSION
+
+   Calls:
+     POST /api/schedules/:id/start
+
+   Attendance records are initialized by the backend.
+===================================================== */
+
+case "start-schedule":
+case "start-schedule-session":
+
+  return callTeacherActionFunction(
+    "startTeacherScheduleSession",
+    getTeacherActionDataId(
+      element,
+      [
+        "scheduleId"
+      ]
+    )
+  );
+
+
+/* =====================================================
+   OPEN MEETING
+
+   Only works after sessionStatus = started.
+===================================================== */
+
+case "join-schedule":
+case "open-schedule-meeting":
+
+  return callTeacherActionFunction(
+    "openTeacherScheduleMeeting",
+    getTeacherActionDataId(
+      element,
+      [
+        "scheduleId"
+      ]
+    )
+  );
+
+
+/* =====================================================
+   COMPLETE SESSION
+
+   Calls:
+     POST /api/schedules/:id/complete
+
+   Backend finalizes student Attendance.
+===================================================== */
+
+case "complete-schedule":
+case "complete-schedule-session":
+
+  return callTeacherActionFunction(
+    "completeTeacherScheduleSession",
+    getTeacherActionDataId(
+      element,
+      [
+        "scheduleId"
+      ]
+    )
+  );
 
 
 /* =====================================================
