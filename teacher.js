@@ -28044,6 +28044,40 @@ function getTeacherScheduleLocalDateTime(
 }
 
 
+
+/* =========================================================
+   TEACHER SCHEDULE OPERATIONAL ENGINE
+
+   AUTHORITATIVE STATUS
+   ---------------------------------------------------------
+
+   sessionStatus:
+     scheduled
+     started
+     completed
+     missed
+     cancelled
+     rescheduled
+
+   Legacy schedule.status is fallback only.
+
+   IMPORTANT
+   ---------------------------------------------------------
+
+   The frontend does NOT invent "completed" simply because
+   the scheduled time has passed.
+
+   Backend /api/schedules now determines whether an expired
+   session is actually:
+
+     completed
+     missed
+     cancelled
+
+   This prevents missed classes from appearing completed.
+========================================================= */
+
+
 /* =========================================================
    SCHEDULE STATUS
 ========================================================= */
@@ -28052,9 +28086,53 @@ function getTeacherScheduleStatus(
   schedule
 ){
 
-  const explicitStatus =
+  if (
+    !schedule ||
+    typeof schedule !==
+      "object"
+  ){
+
+    return "scheduled";
+
+  }
+
+
+  const sessionStatus =
     safeString(
-      schedule?.status
+      schedule.sessionStatus
+    )
+      .toLowerCase();
+
+
+  const allowedSessionStatuses =
+    new Set([
+      "scheduled",
+      "started",
+      "completed",
+      "missed",
+      "cancelled",
+      "rescheduled"
+    ]);
+
+
+  if (
+    allowedSessionStatuses.has(
+      sessionStatus
+    )
+  ){
+
+    return sessionStatus;
+
+  }
+
+
+  /* =====================================================
+     LEGACY BACKEND COMPATIBILITY
+  ===================================================== */
+
+  const legacyStatus =
+    safeString(
+      schedule.status
     )
       .toLowerCase();
 
@@ -28064,7 +28142,7 @@ function getTeacherScheduleStatus(
       "cancelled",
       "canceled"
     ].includes(
-      explicitStatus
+      legacyStatus
     )
   ){
 
@@ -28078,7 +28156,7 @@ function getTeacherScheduleStatus(
       "completed",
       "closed"
     ].includes(
-      explicitStatus
+      legacyStatus
     )
   ){
 
@@ -28087,77 +28165,7 @@ function getTeacherScheduleStatus(
   }
 
 
-  const dateString =
-    getTeacherScheduleDateString(
-      schedule
-    );
-
-
-  if (
-    !dateString
-  ){
-
-    return "upcoming";
-
-  }
-
-
-  const today =
-    getTeacherLocalDateInputValue();
-
-
-  if (
-    dateString ===
-    today
-  ){
-
-    const end =
-      getTeacherScheduleLocalDateTime(
-        schedule,
-        {
-          useEndTime:
-            true
-        }
-      );
-
-
-    if (
-      end &&
-      getTeacherScheduleEndTime(
-        schedule
-      ) &&
-      end.getTime() <
-        Date.now()
-    ){
-
-      return "completed";
-
-    }
-
-
-    return "today";
-
-  }
-
-
-  const start =
-    getTeacherScheduleLocalDateTime(
-      schedule
-    );
-
-
-  if (
-    start &&
-    start.getTime() <
-      Date.now()
-  ){
-
-    return "completed";
-
-  }
-
-
-  return "upcoming";
+  return "scheduled";
 
 }
 
@@ -28170,29 +28178,344 @@ function getTeacherScheduleStatusLabel(
   schedule
 ){
 
-  switch(
+  switch (
     getTeacherScheduleStatus(
       schedule
     )
   ){
 
-    case "today":
+    case "started":
 
-      return "Today";
+      return "In progress";
+
 
     case "completed":
 
       return "Completed";
 
+
+    case "missed":
+
+      return "Missed";
+
+
     case "cancelled":
 
       return "Cancelled";
 
+
+    case "rescheduled":
+
+      return "Rescheduled";
+
+
+    case "scheduled":
     default:
 
-      return "Upcoming";
+      return "Scheduled";
 
   }
+
+}
+
+
+/* =========================================================
+   SCHEDULE STATUS ICON
+========================================================= */
+
+function getTeacherScheduleStatusIcon(
+  schedule
+){
+
+  switch (
+    getTeacherScheduleStatus(
+      schedule
+    )
+  ){
+
+    case "started":
+
+      return "fa-solid fa-circle-play";
+
+
+    case "completed":
+
+      return "fa-solid fa-circle-check";
+
+
+    case "missed":
+
+      return "fa-solid fa-circle-exclamation";
+
+
+    case "cancelled":
+
+      return "fa-solid fa-ban";
+
+
+    case "rescheduled":
+
+      return "fa-solid fa-calendar-arrow-down";
+
+
+    case "scheduled":
+    default:
+
+      return "fa-regular fa-clock";
+
+  }
+
+}
+
+
+/* =========================================================
+   TEACHER ATTENDANCE STATUS
+========================================================= */
+
+function getTeacherScheduleAttendanceStatus(
+  schedule
+){
+
+  const status =
+    safeString(
+      schedule?.teacherAttendanceStatus,
+      "pending"
+    )
+      .toLowerCase();
+
+
+  const allowed =
+    new Set([
+      "pending",
+      "present",
+      "late",
+      "missed",
+      "excused"
+    ]);
+
+
+  return allowed.has(
+    status
+  )
+    ? status
+    : "pending";
+
+}
+
+
+/* =========================================================
+   TEACHER ATTENDANCE LABEL
+========================================================= */
+
+function getTeacherScheduleAttendanceLabel(
+  schedule
+){
+
+  switch (
+    getTeacherScheduleAttendanceStatus(
+      schedule
+    )
+  ){
+
+    case "present":
+
+      return "Teacher present";
+
+
+    case "late":
+
+      return "Teacher started late";
+
+
+    case "missed":
+
+      return "Teacher missed session";
+
+
+    case "excused":
+
+      return "Teacher excused";
+
+
+    case "pending":
+    default:
+
+      return "Awaiting session";
+
+  }
+
+}
+
+
+/* =========================================================
+   LATE MINUTES
+========================================================= */
+
+function getTeacherScheduleLateMinutes(
+  schedule
+){
+
+  const value =
+    Number(
+      schedule?.teacherLateMinutes ||
+      0
+    );
+
+
+  if (
+    !Number.isFinite(
+      value
+    )
+  ){
+
+    return 0;
+
+  }
+
+
+  return Math.max(
+    0,
+    Math.round(
+      value
+    )
+  );
+
+}
+
+
+/* =========================================================
+   SCHEDULE REVIEW FLAG
+========================================================= */
+
+function teacherScheduleRequiresReview(
+  schedule
+){
+
+  return Boolean(
+    schedule?.requiresReview
+  );
+
+}
+
+
+/* =========================================================
+   MISSED REASON
+========================================================= */
+
+function getTeacherScheduleMissedReason(
+  schedule
+){
+
+  return safeString(
+    schedule?.missedReason
+  );
+
+}
+
+
+/* =========================================================
+   CANCELLATION REASON
+========================================================= */
+
+function getTeacherScheduleCancelReason(
+  schedule
+){
+
+  return safeString(
+    schedule?.cancelReason
+  );
+
+}
+
+
+/* =========================================================
+   RESCHEDULE REASON
+========================================================= */
+
+function getTeacherScheduleRescheduleReason(
+  schedule
+){
+
+  return safeString(
+    schedule?.rescheduleReason
+  );
+
+}
+
+
+/* =========================================================
+   SESSION CAN JOIN
+========================================================= */
+
+function canTeacherJoinSchedule(
+  schedule
+){
+
+  const status =
+    getTeacherScheduleStatus(
+      schedule
+    );
+
+
+  return [
+    "scheduled",
+    "started",
+    "rescheduled"
+  ].includes(
+    status
+  );
+
+}
+
+
+/* =========================================================
+   SESSION CAN EDIT
+========================================================= */
+
+function canTeacherEditSchedule(
+  schedule
+){
+
+  const status =
+    getTeacherScheduleStatus(
+      schedule
+    );
+
+
+  /*
+    Historical accountability should not be silently changed
+    from the normal editor.
+
+    Backend permissions remain authoritative.
+  */
+
+  return ![
+    "missed",
+    "completed"
+  ].includes(
+    status
+  );
+
+}
+
+
+/* =========================================================
+   HISTORICAL STATUS
+========================================================= */
+
+function isTeacherScheduleHistorical(
+  schedule
+){
+
+  return [
+    "completed",
+    "missed",
+    "cancelled"
+  ].includes(
+    getTeacherScheduleStatus(
+      schedule
+    )
+  );
 
 }
 
@@ -28239,6 +28562,7 @@ function formatTeacherScheduleClockTime(
     Number(
       match[1]
     );
+
 
   const minute =
     Number(
@@ -28298,6 +28622,7 @@ function getTeacherScheduleTimeRange(
     getTeacherScheduleStartTime(
       schedule
     );
+
 
   const end =
     getTeacherScheduleEndTime(
@@ -28411,6 +28736,7 @@ function getFilteredTeacherScheduleRecords(){
           first
         );
 
+
       const secondDate =
         getTeacherScheduleLocalDateTime(
           second
@@ -28440,10 +28766,18 @@ function getFilteredTeacherScheduleRecords(){
 /* =========================================================
    LIST SCHEDULES
 
-   Upcoming and today are shown first.
+   ACTIVE:
+     started
+     scheduled
+     rescheduled
 
-   Recent completed sessions remain visible below them instead
-   of silently disappearing.
+   HISTORY:
+     missed
+     cancelled
+     completed
+
+   Historical entries remain visible so Teacher accountability
+   is never hidden simply because the meeting date passed.
 ========================================================= */
 
 function getTeacherScheduleListRecords(){
@@ -28453,26 +28787,47 @@ function getTeacherScheduleListRecords(){
 
 
   const active =
-    schedules.filter(
-      schedule =>
-        [
-          "today",
-          "upcoming"
-        ].includes(
-          getTeacherScheduleStatus(
-            schedule
-          )
-        )
-    );
-
-
-  const completed =
     schedules
       .filter(
         schedule =>
           [
-            "completed",
-            "cancelled"
+            "started",
+            "scheduled",
+            "rescheduled"
+          ].includes(
+            getTeacherScheduleStatus(
+              schedule
+            )
+          )
+      )
+      .sort(
+        (
+          first,
+          second
+        ) =>
+          (
+            getTeacherScheduleLocalDateTime(
+              first
+            )?.getTime() ||
+            0
+          ) -
+          (
+            getTeacherScheduleLocalDateTime(
+              second
+            )?.getTime() ||
+            0
+          )
+      );
+
+
+  const history =
+    schedules
+      .filter(
+        schedule =>
+          [
+            "missed",
+            "cancelled",
+            "completed"
           ].includes(
             getTeacherScheduleStatus(
               schedule
@@ -28499,13 +28854,13 @@ function getTeacherScheduleListRecords(){
       )
       .slice(
         0,
-        10
+        20
       );
 
 
   return [
     ...active,
-    ...completed
+    ...history
   ];
 
 }
@@ -28588,6 +28943,7 @@ function renderTeacherScheduleClassFilter(){
       .classId =
       "";
 
+
     select.value =
       "";
 
@@ -28656,6 +29012,239 @@ function renderTeacherScheduleViewButtons(){
 
 
 /* =========================================================
+   ACCOUNTABILITY / SESSION NOTICE
+========================================================= */
+
+function renderTeacherScheduleOperationalNotice(
+  schedule
+){
+
+  const status =
+    getTeacherScheduleStatus(
+      schedule
+    );
+
+
+  const teacherAttendanceStatus =
+    getTeacherScheduleAttendanceStatus(
+      schedule
+    );
+
+
+  /* =====================================================
+     MISSED
+  ===================================================== */
+
+  if (
+    status ===
+    "missed"
+  ){
+
+    const reason =
+      getTeacherScheduleMissedReason(
+        schedule
+      ) ||
+      "The scheduled teaching session ended without a recorded Teacher start.";
+
+
+    return `
+      <div
+        class="teacher-schedule-notice missed"
+      >
+        <span
+          class="teacher-schedule-notice-icon"
+        >
+          <i
+            class="fa-solid fa-circle-exclamation"
+            aria-hidden="true"
+          ></i>
+        </span>
+
+        <div>
+          <strong>
+            Missed teaching session
+          </strong>
+
+          <span>
+            ${escapeHtml(reason)}
+          </span>
+
+          ${
+            teacherScheduleRequiresReview(
+              schedule
+            )
+              ? `
+                <small>
+                  This session has been flagged for School review.
+                </small>
+              `
+              : ""
+          }
+        </div>
+      </div>
+    `;
+
+  }
+
+
+  /* =====================================================
+     TEACHER LATE
+  ===================================================== */
+
+  if (
+    teacherAttendanceStatus ===
+    "late"
+  ){
+
+    const minutes =
+      getTeacherScheduleLateMinutes(
+        schedule
+      );
+
+
+    return `
+      <div
+        class="teacher-schedule-notice late"
+      >
+        <span
+          class="teacher-schedule-notice-icon"
+        >
+          <i
+            class="fa-regular fa-clock"
+            aria-hidden="true"
+          ></i>
+        </span>
+
+        <div>
+          <strong>
+            Late start recorded
+          </strong>
+
+          <span>
+            ${
+              minutes
+                ? `Session started ${escapeHtml(
+                    String(
+                      minutes
+                    )
+                  )} minute${
+                    minutes ===
+                    1
+                      ? ""
+                      : "s"
+                  } after the scheduled start.`
+                : "This session was recorded as a late Teacher start."
+            }
+          </span>
+        </div>
+      </div>
+    `;
+
+  }
+
+
+  /* =====================================================
+     CANCELLED
+  ===================================================== */
+
+  if (
+    status ===
+    "cancelled"
+  ){
+
+    const reason =
+      getTeacherScheduleCancelReason(
+        schedule
+      );
+
+
+    return `
+      <div
+        class="teacher-schedule-notice cancelled"
+      >
+        <span
+          class="teacher-schedule-notice-icon"
+        >
+          <i
+            class="fa-solid fa-ban"
+            aria-hidden="true"
+          ></i>
+        </span>
+
+        <div>
+          <strong>
+            Session cancelled
+          </strong>
+
+          <span>
+            ${
+              escapeHtml(
+                reason ||
+                "This teaching session was cancelled."
+              )
+            }
+          </span>
+        </div>
+      </div>
+    `;
+
+  }
+
+
+  /* =====================================================
+     RESCHEDULED
+  ===================================================== */
+
+  if (
+    status ===
+    "rescheduled"
+  ){
+
+    const reason =
+      getTeacherScheduleRescheduleReason(
+        schedule
+      );
+
+
+    return `
+      <div
+        class="teacher-schedule-notice rescheduled"
+      >
+        <span
+          class="teacher-schedule-notice-icon"
+        >
+          <i
+            class="fa-solid fa-calendar-arrow-down"
+            aria-hidden="true"
+          ></i>
+        </span>
+
+        <div>
+          <strong>
+            Session rescheduled
+          </strong>
+
+          <span>
+            ${
+              escapeHtml(
+                reason ||
+                "This teaching session has a revised schedule."
+              )
+            }
+          </span>
+        </div>
+      </div>
+    `;
+
+  }
+
+
+  return "";
+
+}
+
+
+/* =========================================================
    CREATE SCHEDULE CARD
 ========================================================= */
 
@@ -28668,15 +29257,18 @@ function createTeacherScheduleCard(
       schedule
     );
 
+
   const classItem =
     getTeacherScheduleClass(
       schedule
     );
 
+
   const title =
     getTeacherScheduleTitle(
       schedule
     );
+
 
   const classTitle =
     getTeacherClassTitle(
@@ -28684,10 +29276,12 @@ function createTeacherScheduleCard(
       {}
     );
 
+
   const dateString =
     getTeacherScheduleDateString(
       schedule
     );
+
 
   const date =
     dateString
@@ -28696,15 +29290,30 @@ function createTeacherScheduleCard(
         )
       : null;
 
+
   const status =
     getTeacherScheduleStatus(
       schedule
     );
 
+
+  const statusLabel =
+    getTeacherScheduleStatusLabel(
+      schedule
+    );
+
+
+  const statusIcon =
+    getTeacherScheduleStatusIcon(
+      schedule
+    );
+
+
   const notes =
     getTeacherScheduleNotes(
       schedule
     );
+
 
   const meetingLink =
     getTeacherScheduleMeetingLink(
@@ -28712,10 +29321,35 @@ function createTeacherScheduleCard(
     );
 
 
+  const operationalNotice =
+    renderTeacherScheduleOperationalNotice(
+      schedule
+    );
+
+
+  const joinAllowed =
+    Boolean(
+      meetingLink &&
+      canTeacherJoinSchedule(
+        schedule
+      )
+    );
+
+
+  const editAllowed =
+    canTeacherEditSchedule(
+      schedule
+    );
+
+
   return `
     <article
-      class="teacher-schedule-card"
+      class="
+        teacher-schedule-card
+        teacher-schedule-card-${escapeAttribute(status)}
+      "
       data-schedule-id="${escapeAttribute(scheduleId)}"
+      data-schedule-status="${escapeAttribute(status)}"
     >
 
       <!-- ===============================================
@@ -28726,7 +29360,9 @@ function createTeacherScheduleCard(
         class="teacher-schedule-date"
       >
 
-        <strong>
+        <strong
+          class="teacher-schedule-date-day"
+        >
           ${
             date
               ? escapeHtml(
@@ -28741,7 +29377,10 @@ function createTeacherScheduleCard(
           }
         </strong>
 
-        <span>
+
+        <span
+          class="teacher-schedule-date-month"
+        >
           ${
             date
               ? escapeHtml(
@@ -28757,62 +29396,90 @@ function createTeacherScheduleCard(
           }
         </span>
 
+
+        <span
+          class="teacher-schedule-date-weekday"
+        >
+          ${
+            date
+              ? escapeHtml(
+                  date.toLocaleDateString(
+                    [],
+                    {
+                      weekday:
+                        "short"
+                    }
+                  )
+                )
+              : ""
+          }
+        </span>
+
       </div>
 
 
       <!-- ===============================================
-           CONTENT
+           MAIN
       ================================================ -->
 
       <div
-        class="teacher-schedule-content"
+        class="teacher-schedule-main"
       >
 
         <div
-          class="teacher-schedule-title-row"
+          class="teacher-schedule-card-head"
         >
 
-          <h3>
-            ${escapeHtml(title)}
-          </h3>
+          <div
+            class="teacher-schedule-heading-copy"
+          >
+
+            <h3
+              class="teacher-schedule-title"
+            >
+              ${escapeHtml(title)}
+            </h3>
+
+
+            <div
+              class="teacher-schedule-class"
+            >
+              <i
+                class="fa-solid fa-chalkboard-user"
+                aria-hidden="true"
+              ></i>
+
+              <span>
+                ${escapeHtml(classTitle)}
+              </span>
+            </div>
+
+          </div>
+
 
           <span
             class="teacher-schedule-status ${escapeAttribute(status)}"
           >
-            ${escapeHtml(
-              getTeacherScheduleStatusLabel(
-                schedule
-              )
-            )}
+            <i
+              class="${escapeAttribute(statusIcon)}"
+              aria-hidden="true"
+            ></i>
+
+            ${escapeHtml(statusLabel)}
           </span>
 
         </div>
 
 
         <div
-          class="teacher-schedule-class"
+          class="teacher-schedule-time"
         >
           <i
-            class="fa-solid fa-chalkboard-user"
+            class="fa-regular fa-clock"
             aria-hidden="true"
           ></i>
 
           <span>
-            ${escapeHtml(classTitle)}
-          </span>
-        </div>
-
-
-        <div
-          class="teacher-schedule-meta"
-        >
-
-          <span>
-            <i
-              class="fa-regular fa-clock"
-              aria-hidden="true"
-            ></i>
-
             ${escapeHtml(
               getTeacherScheduleTimeRange(
                 schedule
@@ -28820,16 +29487,17 @@ function createTeacherScheduleCard(
             )}
           </span>
 
-
           ${
             date
               ? `
-                <span>
-                  <i
-                    class="fa-regular fa-calendar"
-                    aria-hidden="true"
-                  ></i>
+                <span
+                  class="teacher-schedule-meta-divider"
+                  aria-hidden="true"
+                >
+                  •
+                </span>
 
+                <span>
                   ${escapeHtml(
                     formatDate(
                       date
@@ -28839,7 +29507,6 @@ function createTeacherScheduleCard(
               `
               : ""
           }
-
         </div>
 
 
@@ -28855,6 +29522,9 @@ function createTeacherScheduleCard(
             : ""
         }
 
+
+        ${operationalNotice}
+
       </div>
 
 
@@ -28867,19 +29537,13 @@ function createTeacherScheduleCard(
       >
 
         ${
-          meetingLink &&
-          ![
-            "completed",
-            "cancelled"
-          ].includes(
-            status
-          )
+          joinAllowed
             ? `
-              <a
-                href="${escapeAttribute(meetingLink)}"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
                 class="teacher-schedule-action primary"
+                data-teacher-action="open-schedule-meeting"
+                data-schedule-id="${escapeAttribute(scheduleId)}"
               >
                 <i
                   class="fa-solid fa-video"
@@ -28887,25 +29551,42 @@ function createTeacherScheduleCard(
                 ></i>
 
                 Join
-              </a>
+              </button>
             `
             : ""
         }
 
 
-        <button
-          type="button"
-          class="teacher-schedule-action"
-          data-teacher-action="edit-schedule"
-          data-schedule-id="${escapeAttribute(scheduleId)}"
-        >
-          <i
-            class="fa-regular fa-pen-to-square"
-            aria-hidden="true"
-          ></i>
+        ${
+          editAllowed
+            ? `
+              <button
+                type="button"
+                class="teacher-schedule-action"
+                data-teacher-action="edit-schedule"
+                data-schedule-id="${escapeAttribute(scheduleId)}"
+              >
+                <i
+                  class="fa-regular fa-pen-to-square"
+                  aria-hidden="true"
+                ></i>
 
-          Edit
-        </button>
+                Edit
+              </button>
+            `
+            : `
+              <span
+                class="teacher-schedule-history-label"
+              >
+                <i
+                  class="fa-solid fa-lock"
+                  aria-hidden="true"
+                ></i>
+
+                History
+              </span>
+            `
+        }
 
       </div>
 
