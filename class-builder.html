@@ -49653,55 +49653,249 @@ const builderSearchParams =
   );
 
 const state = {
+
+  /* =====================================================
+     CLASS CONTEXT
+  ===================================================== */
+
   classId:
-    builderSearchParams.get("classId") ||
-    builderSearchParams.get("id") ||
+    builderSearchParams.get(
+      "classId"
+    ) ||
+    builderSearchParams.get(
+      "id"
+    ) ||
     "",
 
-  schoolId:null,
-  classData:null,
+  schoolId:
+    null,
 
-  /*
-    The lesson currently opened inside the drag-and-drop builder.
-  */
-  activeLessonId:null,
+  classData:
+    null,
 
-  modules:[],
-  lessons:[],
-quizzes:[],
-quizSubmissions:[],
-assignments:[],
-submissions:[],
-  attendance: [],
-  progress: [],
 
-analytics:{},
-activeTab:"overview",
-isLoading:false,
-isSaving:false,
+  /* =====================================================
+     SERVER-AUTHORITATIVE PERMISSIONS
 
-settings:{
-  activePanel:"general",
-  dirty:false,
-  initialized:false,
-  isRendering:false,
-  originalSnapshot:"",
-  lastSavedAt:null
-},
+     Never manufacture these permissions in the frontend.
 
-mediaLibrary:{
-    items:[],
-    folders:[],
-    search:"",
-    type:"all",
-    sort:"newest",
-    page:1,
-    limit:100,
-    total:0,
-    isLoading:false,
-    isUploading:false,
-    loaded:false
+     They are returned by:
+       GET /api/classes/:id/builder
+  ===================================================== */
+
+  permissions:{
+
+    role:
+      "",
+
+    canViewBuilder:
+      false,
+
+    canManageInstruction:
+      false,
+
+    canManageModules:
+      false,
+
+    canManageLessons:
+      false,
+
+    canManageAssignments:
+      false,
+
+    canManageQuizzes:
+      false,
+
+    canManagePresentations:
+      false,
+
+    canManageMedia:
+      false,
+
+    canManageProjectCanvas:
+      false,
+
+    canManageContentBlocks:
+      false,
+
+    canViewStudents:
+      false,
+
+    canViewSubmissions:
+      false,
+
+    canViewAttendance:
+      false,
+
+    canViewProgress:
+      false,
+
+    canViewAnalytics:
+      false,
+
+    canGradeStudents:
+      false,
+
+    canManageAttendance:
+      false,
+
+    canEditClassIdentity:
+      false,
+
+    canAssignTeacher:
+      false,
+
+    canManageEnrollment:
+      false,
+
+    canManagePublishing:
+      false,
+
+    canPublishClass:
+      false,
+
+    canArchiveClass:
+      false,
+
+    canDeleteClass:
+      false,
+
+    canManageAppearance:
+      false,
+
+    canManageNotificationSettings:
+      false,
+
+    canManageAdvancedSettings:
+      false,
+
+    canTransferOwnership:
+      false,
+
+    isAdmin:
+      false,
+
+    isSchool:
+      false,
+
+    isTeacher:
+      false
+
+  },
+
+
+  /* =====================================================
+     WORKSPACE
+  ===================================================== */
+
+  activeLessonId:
+    null,
+
+  modules:
+    [],
+
+  lessons:
+    [],
+
+  quizzes:
+    [],
+
+  quizSubmissions:
+    [],
+
+  assignments:
+    [],
+
+  submissions:
+    [],
+
+  attendance:
+    [],
+
+  progress:
+    [],
+
+  analytics:
+    {},
+
+  activeTab:
+    "overview",
+
+  isLoading:
+    false,
+
+  isSaving:
+    false,
+
+
+  /* =====================================================
+     SETTINGS
+  ===================================================== */
+
+  settings:{
+
+    activePanel:
+      "general",
+
+    dirty:
+      false,
+
+    initialized:
+      false,
+
+    isRendering:
+      false,
+
+    originalSnapshot:
+      "",
+
+    lastSavedAt:
+      null
+
+  },
+
+
+  /* =====================================================
+     MEDIA LIBRARY
+  ===================================================== */
+
+  mediaLibrary:{
+
+    items:
+      [],
+
+    folders:
+      [],
+
+    search:
+      "",
+
+    type:
+      "all",
+
+    sort:
+      "newest",
+
+    page:
+      1,
+
+    limit:
+      100,
+
+    total:
+      0,
+
+    isLoading:
+      false,
+
+    isUploading:
+      false,
+
+    loaded:
+      false
+
   }
+
 };
 
 
@@ -79216,95 +79410,656 @@ function statusChipClass(){
 }
 
 /* =====================================================
+   CLASS BUILDER PERMISSIONS
+===================================================== */
+
+function hasBuilderPermission(
+  permissionName
+){
+
+  return Boolean(
+    state.permissions &&
+    state.permissions[
+      permissionName
+    ] === true
+  );
+
+}
+
+
+/* =====================================================
+   CURRENT BUILDER ROLE
+===================================================== */
+
+function getBuilderPermissionRole(){
+
+  return String(
+    state.permissions?.role ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
+
+}
+
+
+/* =====================================================
+   IS ASSIGNED TEACHER
+===================================================== */
+
+function isTeacherBuilderSession(){
+
+  return (
+    getBuilderPermissionRole() ===
+      "teacher" &&
+    state.permissions?.isTeacher ===
+      true
+  );
+
+}
+
+
+/* =====================================================
+   SET ELEMENT PERMISSION VISIBILITY
+===================================================== */
+
+function setBuilderPermissionVisibility(
+  selector,
+  visible
+){
+
+  document
+    .querySelectorAll(
+      selector
+    )
+    .forEach(
+      element => {
+
+        element.hidden =
+          !visible;
+
+
+        element.setAttribute(
+          "aria-hidden",
+          String(
+            !visible
+          )
+        );
+
+
+        if (
+          !visible
+        ){
+
+          element.style.display =
+            "none";
+
+        }else{
+
+          element.style.removeProperty(
+            "display"
+          );
+
+        }
+
+      }
+    );
+
+}
+
+
+/* =====================================================
+   APPLY CLASS BUILDER PERMISSIONS
+
+   This is presentation/UX enforcement.
+
+   The backend remains authoritative.
+===================================================== */
+
+function applyClassBuilderPermissions(){
+
+  const permissions =
+    state.permissions ||
+    {};
+
+
+  const teacherSession =
+    isTeacherBuilderSession();
+
+
+  /* ===================================================
+     CLASS-LEVEL PUBLISHING
+  =================================================== */
+
+  setBuilderPermissionVisibility(
+    "#studioPublishButton",
+    permissions.canPublishClass ===
+      true
+  );
+
+
+  /*
+    Overview Archive button.
+
+    Do NOT hide Assignment/Quiz publish controls.
+    Teachers are allowed to publish instructional content.
+  */
+
+  setBuilderPermissionVisibility(
+    '.studio-header-action[onclick="archiveClass()"]',
+    permissions.canArchiveClass ===
+      true
+  );
+
+
+  /* ===================================================
+     SETTINGS — SCHOOL ONLY
+  =================================================== */
+
+  const schoolOnlySettings = [
+
+    {
+      tab:
+        "#settingsTabGeneral",
+
+      panel:
+        "#settingsPanelGeneral",
+
+      permission:
+        "canEditClassIdentity"
+    },
+
+    {
+      tab:
+        "#settingsTabAppearance",
+
+      panel:
+        "#settingsPanelAppearance",
+
+      permission:
+        "canManageAppearance"
+    },
+
+    {
+      tab:
+        "#settingsTabEnrollment",
+
+      panel:
+        "#settingsPanelEnrollment",
+
+      permission:
+        "canManageEnrollment"
+    },
+
+    {
+      tab:
+        "#settingsTabPublishing",
+
+      panel:
+        "#settingsPanelPublishing",
+
+      permission:
+        "canManagePublishing"
+    },
+
+    {
+      tab:
+        "#settingsTabNotifications",
+
+      panel:
+        "#settingsPanelNotifications",
+
+      permission:
+        "canManageNotificationSettings"
+    },
+
+    {
+      tab:
+        "#settingsTabAdvanced",
+
+      panel:
+        "#settingsPanelAdvanced",
+
+      permission:
+        "canManageAdvancedSettings"
+    },
+
+    {
+      tab:
+        "#settingsTabDanger",
+
+      panel:
+        "#settingsPanelDanger",
+
+      permission:
+        "canArchiveClass"
+    }
+
+  ];
+
+
+  schoolOnlySettings
+    .forEach(
+      config => {
+
+        const allowed =
+          Boolean(
+            permissions[
+              config.permission
+            ]
+          );
+
+
+        setBuilderPermissionVisibility(
+          config.tab,
+          allowed
+        );
+
+
+        setBuilderPermissionVisibility(
+          config.panel,
+          allowed
+        );
+
+      }
+    );
+
+
+  /* ===================================================
+     TEACHER-AVAILABLE SETTINGS
+
+     Learning + Assessment remain available.
+  =================================================== */
+
+  setBuilderPermissionVisibility(
+    "#settingsTabLearning",
+    permissions.canManageInstruction ===
+      true
+  );
+
+
+  setBuilderPermissionVisibility(
+    "#settingsPanelLearning",
+    permissions.canManageInstruction ===
+      true
+  );
+
+
+  setBuilderPermissionVisibility(
+    "#settingsTabAssessment",
+    permissions.canManageInstruction ===
+      true
+  );
+
+
+  setBuilderPermissionVisibility(
+    "#settingsPanelAssessment",
+    permissions.canManageInstruction ===
+      true
+  );
+
+
+  /* ===================================================
+     DANGER CONTROLS
+  =================================================== */
+
+  setBuilderPermissionVisibility(
+    "#settingsArchiveClassButton",
+    permissions.canArchiveClass ===
+      true
+  );
+
+
+  /*
+    Any transfer-ownership control inside Danger Zone becomes
+    inaccessible to normal teachers.
+  */
+
+  document
+    .querySelectorAll(
+      [
+        "[data-transfer-ownership]",
+        "#settingsTransferOwnershipButton",
+        "[onclick*='transferOwnership']"
+      ].join(",")
+    )
+    .forEach(
+      element => {
+
+        const allowed =
+          permissions
+            .canTransferOwnership ===
+          true;
+
+
+        element.hidden =
+          !allowed;
+
+
+        if (
+          !allowed
+        ){
+
+          element.style.display =
+            "none";
+
+        }
+
+      }
+    );
+
+
+  /* ===================================================
+     STUDENTS
+  =================================================== */
+
+  if (
+    permissions.canViewStudents !==
+      true
+  ){
+
+    document
+      .querySelectorAll(
+        [
+          '[data-tab="students"]',
+          '[data-page="students"]',
+          '#section-students'
+        ].join(",")
+      )
+      .forEach(
+        element => {
+
+          element.hidden =
+            true;
+
+          element.style.display =
+            "none";
+
+        }
+      );
+
+  }
+
+
+  /* ===================================================
+     ANALYTICS
+  =================================================== */
+
+  if (
+    permissions.canViewAnalytics !==
+      true
+  ){
+
+    document
+      .querySelectorAll(
+        [
+          '[data-tab="analytics"]',
+          '[data-page="analytics"]',
+          '#section-analytics'
+        ].join(",")
+      )
+      .forEach(
+        element => {
+
+          element.hidden =
+            true;
+
+          element.style.display =
+            "none";
+
+        }
+      );
+
+  }
+
+
+  /* ===================================================
+     ROLE MARKER
+
+     Useful for CSS and future Builder components.
+  =================================================== */
+
+  document.body.dataset.builderRole =
+    getBuilderPermissionRole();
+
+
+  document.body.classList.toggle(
+    "builder-teacher-session",
+    teacherSession
+  );
+
+
+  document.body.classList.toggle(
+    "builder-school-session",
+    permissions.isSchool ===
+      true
+  );
+
+
+  document.body.classList.toggle(
+    "builder-admin-session",
+    permissions.isAdmin ===
+      true
+  );
+
+
+  /* ===================================================
+     SETTINGS DEFAULT PANEL
+
+     Teacher cannot remain on General because General is
+     School-managed.
+  =================================================== */
+
+  if (
+    teacherSession &&
+    !hasBuilderPermission(
+      "canEditClassIdentity"
+    )
+  ){
+
+    state.settings.activePanel =
+      "learning";
+
+  }
+
+
+  return true;
+
+}
+
+
+/* =====================================================
    LOAD BUILDER DATA
 ===================================================== */
+
 async function loadBuilder(){
-  if(state.isLoading){
+
+  if(
+    state.isLoading
+  ){
+
     return;
+
   }
+
 
   state.isLoading =
     true;
 
+
   try{
-    if(!state.classId){
+
+    if(
+      !state.classId
+    ){
+
       throw new Error(
         "Missing class ID. Open this builder from a class card."
       );
+
     }
 
-    if(!getToken()){
+
+    if(
+      !getToken()
+    ){
+
       throw new Error(
         "Your login session is unavailable. Please sign in again."
       );
+
     }
+
 
     setBuilderBootMessage(
       "Loading lessons, modules, students, and assignments..."
     );
 
+
     const data =
       await apiGet(
-        `/api/classes/${encodeURIComponent(state.classId)}/builder`
+        `/api/classes/${
+          encodeURIComponent(
+            state.classId
+          )
+        }/builder`
       );
+
 
     if(
       !data ||
-      typeof data !== "object"
+      typeof data !==
+        "object"
     ){
+
       throw new Error(
         "The server returned an invalid class-builder response."
       );
+
     }
+
+
+    /* ===================================================
+       CLASS
+    =================================================== */
 
     state.classData =
       data.class ||
       null;
+
 
     state.schoolId =
       data.schoolId ||
       state.classData?.schoolId ||
       null;
 
+
+    /* ===================================================
+       AUTHORITATIVE PERMISSIONS
+    =================================================== */
+
+    if(
+      !data.permissions ||
+      typeof data.permissions !==
+        "object"
+    ){
+
+      throw new Error(
+        "Class Builder permissions were not returned by the server."
+      );
+
+    }
+
+
+    state.permissions = {
+
+      ...state.permissions,
+
+      ...data.permissions
+
+    };
+
+
+    if(
+      state.permissions
+        .canViewBuilder !==
+      true
+    ){
+
+      throw new Error(
+        "You do not have permission to access this Class Builder."
+      );
+
+    }
+
+
+    /* ===================================================
+       BUILDER DATA
+    =================================================== */
+
     state.modules =
-      Array.isArray(data.modules)
+      Array.isArray(
+        data.modules
+      )
         ? data.modules
         : [];
 
-state.lessons =
-  Array.isArray(data.lessons)
-    ? data.lessons
-    : [];
 
-state.quizzes =
-  Array.isArray(data.quizzes)
-    ? data.quizzes
-    : [];
+    state.lessons =
+      Array.isArray(
+        data.lessons
+      )
+        ? data.lessons
+        : [];
 
-state.quizSubmissions =
-  Array.isArray(data.quizSubmissions)
-    ? data.quizSubmissions
-    : [];
 
-state.assignments =
-  Array.isArray(data.assignments)
-    ? data.assignments
-    : [];
+    state.quizzes =
+      Array.isArray(
+        data.quizzes
+      )
+        ? data.quizzes
+        : [];
+
+
+    state.quizSubmissions =
+      Array.isArray(
+        data.quizSubmissions
+      )
+        ? data.quizSubmissions
+        : [];
+
+
+    state.assignments =
+      Array.isArray(
+        data.assignments
+      )
+        ? data.assignments
+        : [];
+
 
     state.submissions =
-      Array.isArray(data.submissions)
+      Array.isArray(
+        data.submissions
+      )
         ? data.submissions
         : [];
 
+
     state.attendance =
-      Array.isArray(data.attendance)
+      Array.isArray(
+        data.attendance
+      )
         ? data.attendance
         : [];
 
+
     state.progress =
-      Array.isArray(data.progress)
+      Array.isArray(
+        data.progress
+      )
         ? data.progress
         : [];
+
 
     state.analytics =
       data.analytics &&
@@ -79313,18 +80068,26 @@ state.assignments =
         ? data.analytics
         : {};
 
+
     setBuilderBootMessage(
       "Building your workspace..."
     );
 
+
     renderAll();
 
+
     return data;
-  }catch(error){
+
+  }catch(
+    error
+  ){
+
     console.error(
       "loadBuilder error:",
       error
     );
+
 
     showAlert(
       "error",
@@ -79332,38 +80095,81 @@ state.assignments =
       "Failed to load the class builder."
     );
 
+
     throw error;
+
   }finally{
+
     state.isLoading =
       false;
+
   }
+
 }
 
+
+/* =====================================================
+   RENDER ALL
+===================================================== */
+
 function renderAll(){
+
   renderHero();
+
   renderStats();
+
   renderOverview();
+
   renderSettingsForm();
+
   hydrateSelects();
 
+
   renderModules();
+
   renderLessons();
+
   renderQuizzes();
+
   renderBuilderAssignments();
+
   renderStudents();
+
   renderAnalytics();
+
   renderPreview();
+
+
+  /*
+    Apply permissions AFTER the renderers because some
+    renderers rebuild DOM nodes.
+  */
+
+  applyClassBuilderPermissions();
+
 
   /*
     Initialize the same-page Elementor builder.
   */
-  loadElementorContent();
-  renderElementorLessonSelector();
+
+  if(
+    hasBuilderPermission(
+      "canManageInstruction"
+    )
+  ){
+
+    loadElementorContent();
+
+    renderElementorLessonSelector();
+
+  }
+
 
   setBuilderSaveState(
     "",
     "Saved"
   );
+
 }
 
 /* =====================================================
@@ -80443,6 +81249,124 @@ const CLASS_SETTINGS_PANELS =
 
 
 /* =========================================================
+   SETTINGS PANEL PERMISSION
+========================================================= */
+
+function canOpenBuilderSettingsPanel(
+  panel
+){
+
+  switch(
+    panel
+  ){
+
+    case "general":
+
+      return hasBuilderPermission(
+        "canEditClassIdentity"
+      );
+
+
+    case "appearance":
+
+      return hasBuilderPermission(
+        "canManageAppearance"
+      );
+
+
+    case "enrollment":
+
+      return hasBuilderPermission(
+        "canManageEnrollment"
+      );
+
+
+    case "learning":
+
+      return hasBuilderPermission(
+        "canManageInstruction"
+      );
+
+
+    case "assessment":
+
+      return hasBuilderPermission(
+        "canManageInstruction"
+      );
+
+
+    case "publishing":
+
+      return hasBuilderPermission(
+        "canManagePublishing"
+      );
+
+
+    case "notifications":
+
+      return hasBuilderPermission(
+        "canManageNotificationSettings"
+      );
+
+
+    case "advanced":
+
+      return hasBuilderPermission(
+        "canManageAdvancedSettings"
+      );
+
+
+    case "danger":
+
+      return (
+        hasBuilderPermission(
+          "canArchiveClass"
+        ) ||
+        hasBuilderPermission(
+          "canTransferOwnership"
+        )
+      );
+
+
+    default:
+
+      return false;
+
+  }
+
+}
+
+
+/* =========================================================
+   FIRST AVAILABLE SETTINGS PANEL
+========================================================= */
+
+function getFirstAllowedBuilderSettingsPanel(){
+
+  const preferredOrder = [
+    "general",
+    "learning",
+    "assessment",
+    "appearance",
+    "enrollment",
+    "publishing",
+    "notifications",
+    "advanced",
+    "danger"
+  ];
+
+
+  return (
+    preferredOrder.find(
+      canOpenBuilderSettingsPanel
+    ) ||
+    null
+  );
+
+}
+
+
+/* =========================================================
    SETTINGS VALUE HELPERS
 ========================================================= */
 
@@ -80659,17 +81583,62 @@ function getSettingsNumber(
 ========================================================= */
 
 function openSettingsPanel(
-  requestedPanel = "general"
+  requestedPanel = ""
 ){
-  const panel =
-    CLASS_SETTINGS_PANELS.has(
-      requestedPanel
+
+  let panel =
+    String(
+      requestedPanel ||
+      ""
     )
-      ? requestedPanel
-      : "general";
+      .trim()
+      .toLowerCase();
+
+
+  /* =====================================================
+     VALIDATE REQUESTED PANEL + PERMISSION
+  ===================================================== */
+
+  if(
+    !CLASS_SETTINGS_PANELS.has(
+      panel
+    ) ||
+    !canOpenBuilderSettingsPanel(
+      panel
+    )
+  ){
+
+    panel =
+      getFirstAllowedBuilderSettingsPanel();
+
+  }
+
+
+  /* =====================================================
+     NO SETTINGS AVAILABLE
+  ===================================================== */
+
+  if(
+    !panel
+  ){
+
+    showAlert(
+      "warning",
+      "No Class Settings are available for your account."
+    );
+
+    return false;
+
+  }
+
 
   state.settings.activePanel =
     panel;
+
+
+  /* =====================================================
+     SETTINGS PANELS
+  ===================================================== */
 
   document
     .querySelectorAll(
@@ -80677,25 +81646,74 @@ function openSettingsPanel(
     )
     .forEach(
       section => {
+
+        const sectionPanel =
+          String(
+            section.dataset
+              .settingsPanel ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
+
+
+        const allowed =
+          canOpenBuilderSettingsPanel(
+            sectionPanel
+          );
+
+
         const isActive =
-          section.dataset
-            .settingsPanel ===
-          panel;
+          allowed &&
+          sectionPanel ===
+            panel;
+
+
+        section.hidden =
+          !isActive;
+
 
         section.classList.toggle(
           "active",
           isActive
         );
 
-        section.hidden =
-          !isActive;
 
         section.setAttribute(
           "aria-hidden",
-          String(!isActive)
+          String(
+            !isActive
+          )
         );
+
+
+        /*
+          Permission-hidden panels must not remain visible
+          because of legacy CSS.
+        */
+
+        if(
+          !allowed
+        ){
+
+          section.style.display =
+            "none";
+
+        }else{
+
+          section.style.removeProperty(
+            "display"
+          );
+
+        }
+
       }
     );
+
+
+  /* =====================================================
+     SETTINGS NAVIGATION BUTTONS
+  ===================================================== */
 
   document
     .querySelectorAll(
@@ -80703,20 +81721,66 @@ function openSettingsPanel(
     )
     .forEach(
       button => {
+
+        const buttonPanel =
+          String(
+            button.dataset
+              .settingsTab ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
+
+
+        const allowed =
+          canOpenBuilderSettingsPanel(
+            buttonPanel
+          );
+
+
         const isActive =
-          button.dataset
-            .settingsTab ===
-          panel;
+          allowed &&
+          buttonPanel ===
+            panel;
+
+
+        /*
+          Completely hide unauthorized settings tabs.
+        */
+
+        button.hidden =
+          !allowed;
+
+
+        if(
+          !allowed
+        ){
+
+          button.style.display =
+            "none";
+
+        }else{
+
+          button.style.removeProperty(
+            "display"
+          );
+
+        }
+
 
         button.classList.toggle(
           "active",
           isActive
         );
 
+
         button.setAttribute(
           "aria-selected",
-          String(isActive)
+          String(
+            isActive
+          )
         );
+
 
         button.setAttribute(
           "tabindex",
@@ -80724,10 +81788,14 @@ function openSettingsPanel(
             ? "0"
             : "-1"
         );
+
       }
     );
-}
 
+
+  return true;
+
+}
 
 /* =========================================================
    SETTINGS SAVE-STATE PRESENTATION
@@ -84225,227 +85293,179 @@ function validateSettingsForm(){
 
 
 function buildClassSettingsPayload(){
-  const learningOutcomes =
-    getValue(
-      "classOutcomesInput"
+
+  const payload =
+    {};
+
+
+  /* =====================================================
+     SCHOOL / ADMIN — CLASS IDENTITY
+  ===================================================== */
+
+  if(
+    hasBuilderPermission(
+      "canEditClassIdentity"
     )
-      .split("\n")
-      .map(
-        item =>
-          item.trim()
-      )
-      .filter(Boolean);
+  ){
 
-  return {
-    /* ============================================
-       GENERAL
-    ============================================ */
-
-    title:
+    payload.title =
       getValue(
         "classTitleInput"
-      ).trim(),
+      ).trim();
 
-    subtitle:
+
+    payload.subtitle =
       normalizeSettingsTextValue(
         getValue(
           "classSubtitleInput"
         )
-      ),
+      );
 
-    subject:
+
+    payload.subject =
       normalizeSettingsTextValue(
         getValue(
           "classSubjectInput"
         )
-      ),
+      );
 
-    category:
+
+    payload.category =
       normalizeSettingsTextValue(
         getValue(
           "classCategoryInput"
         )
-      ),
+      );
 
-    level:
+
+    payload.level =
       normalizeSettingsTextValue(
         getValue(
           "classLevelInput"
         )
-      ),
+      );
 
-    language:
+
+    payload.language =
       normalizeSettingsTextValue(
         getValue(
           "classLanguageInput"
         )
-      ),
+      );
 
-    estimatedDurationMinutes:
+
+    payload.estimatedDurationMinutes =
       normalizeSettingsInteger(
         getValue(
           "classEstimatedDurationInput"
         ),
         {
-          fallback:0,
-          minimum:0,
-          maximum:1000000
+          fallback:
+            0,
+
+          minimum:
+            0,
+
+          maximum:
+            1000000
         }
-      ),
+      );
 
-    teacherId:
-      normalizeSettingsTextValue(
-        getValue(
-          "classTeacherInput"
-        )
-      ),
 
-    schedule:
+    payload.schedule =
       normalizeSettingsTextValue(
         getValue(
           "classScheduleInput"
         )
-      ),
+      );
 
-    meetingLink:
+
+    payload.meetingLink =
       normalizeSettingsTextValue(
         getValue(
           "classMeetingInput"
         )
-      ),
+      );
 
-    description:
+
+    payload.description =
       normalizeSettingsTextValue(
         getValue(
           "classDescriptionInput"
         )
-      ),
+      );
 
-    welcomeContent:
+  }
+
+
+  /* =====================================================
+     SCHOOL / ADMIN — INSTRUCTOR
+  ===================================================== */
+
+  if(
+    hasBuilderPermission(
+      "canAssignTeacher"
+    )
+  ){
+
+    payload.teacherId =
+      normalizeSettingsTextValue(
+        getValue(
+          "classTeacherInput"
+        )
+      );
+
+  }
+
+
+  /* =====================================================
+     INSTRUCTIONAL CONTENT
+
+     School/Admin/assigned teacher.
+  ===================================================== */
+
+  if(
+    hasBuilderPermission(
+      "canManageInstruction"
+    )
+  ){
+
+    /*
+      General instructional content may still be saved if those
+      controls exist, even when the General Settings tab itself
+      is School-only.
+    */
+
+    payload.welcomeContent =
       normalizeSettingsTextValue(
         getValue(
           "classWelcomeInput"
         )
-      ),
+      );
 
-    learningOutcomes,
 
-    /* ============================================
-       APPEARANCE
-    ============================================ */
-
-    coverImage:
-      normalizeSettingsTextValue(
-        getValue(
-          "classCoverInput"
+    payload.learningOutcomes =
+      getValue(
+        "classOutcomesInput"
+      )
+        .split(
+          "\n"
         )
-      ),
-
-    bannerImage:
-      normalizeSettingsTextValue(
-        getValue(
-          "classBannerInput"
+        .map(
+          item =>
+            item.trim()
         )
-      ),
+        .filter(
+          Boolean
+        );
 
-    appearanceSettings:{
-      accentColor:
-        getValue(
-          "settingsAccentColorInput"
-        )
-          .trim()
-          .toLowerCase(),
 
-      theme:
-        getValue(
-          "settingsThemeInput"
-        ) ||
-        "light",
+    /* ===================================================
+       LEARNING SETTINGS
+    =================================================== */
 
-      thumbnailImage:
-        normalizeSettingsTextValue(
-          getValue(
-            "settingsThumbnailImageInput"
-          )
-        ),
+    payload.learningSettings = {
 
-      logoImage:
-        normalizeSettingsTextValue(
-          getValue(
-            "settingsLogoImageInput"
-          )
-        ),
-
-      showInstructor:
-        getSettingsCheckbox(
-          "settingsShowInstructorInput",
-          true
-        ),
-
-      showProgress:
-        getSettingsCheckbox(
-          "settingsShowProgressInput",
-          true
-        )
-    },
-
-    /* ============================================
-       ENROLLMENT
-    ============================================ */
-
-    enrollmentSettings:{
-      accessType:
-        getSettingsRadioValue(
-          "settingsAccessType",
-          "private"
-        ),
-
-      allowJoinCode:
-        getSettingsCheckbox(
-          "settingsAllowJoinCodeInput",
-          true
-        ),
-
-      autoApprove:
-        getSettingsCheckbox(
-          "settingsAutoApproveInput",
-          false
-        ),
-
-      maximumStudents:
-        normalizeSettingsInteger(
-          getValue(
-            "settingsMaximumStudentsInput"
-          ),
-          {
-            fallback:0,
-            minimum:0,
-            maximum:100000
-          }
-        ),
-
-      waitingListEnabled:
-        getSettingsCheckbox(
-          "settingsWaitingListInput",
-          false
-        ),
-
-      enrollmentOpensAt:
-        normalizeSettingsDatePayload(
-          "settingsEnrollmentOpensInput"
-        ),
-
-      enrollmentClosesAt:
-        normalizeSettingsDatePayload(
-          "settingsEnrollmentClosesInput"
-        )
-    },
-
-    /* ============================================
-       LEARNING
-    ============================================ */
-
-    learningSettings:{
       sequentialLessons:
         getSettingsCheckbox(
           "settingsSequentialLessonsInput",
@@ -84518,18 +85538,26 @@ function buildClassSettingsPayload(){
             "settingsCompletionPercentageInput"
           ),
           {
-            fallback:100,
-            minimum:1,
-            maximum:100
+            fallback:
+              100,
+
+            minimum:
+              1,
+
+            maximum:
+              100
           }
         )
-    },
 
-    /* ============================================
-       ASSESSMENT
-    ============================================ */
+    };
 
-    assessmentSettings:{
+
+    /* ===================================================
+       ASSESSMENT SETTINGS
+    =================================================== */
+
+    payload.assessmentSettings = {
+
       assignmentsEnabled:
         getSettingsCheckbox(
           "settingsAssignmentsEnabledInput",
@@ -84554,9 +85582,14 @@ function buildClassSettingsPayload(){
             "settingsDefaultQuizAttemptsInput"
           ),
           {
-            fallback:1,
-            minimum:1,
-            maximum:100
+            fallback:
+              1,
+
+            minimum:
+              1,
+
+            maximum:
+              100
           }
         ),
 
@@ -84566,9 +85599,14 @@ function buildClassSettingsPayload(){
             "settingsDefaultPassingScoreInput"
           ),
           {
-            fallback:70,
-            minimum:0,
-            maximum:100
+            fallback:
+              70,
+
+            minimum:
+              0,
+
+            maximum:
+              100
           }
         ),
 
@@ -84601,13 +85639,164 @@ function buildClassSettingsPayload(){
           "settingsPeerReviewEnabledInput",
           false
         )
-    },
 
-    /* ============================================
-       PUBLISHING
-    ============================================ */
+    };
 
-    publishingSettings:{
+  }
+
+
+  /* =====================================================
+     SCHOOL / ADMIN — APPEARANCE
+  ===================================================== */
+
+  if(
+    hasBuilderPermission(
+      "canManageAppearance"
+    )
+  ){
+
+    payload.coverImage =
+      normalizeSettingsTextValue(
+        getValue(
+          "classCoverInput"
+        )
+      );
+
+
+    payload.bannerImage =
+      normalizeSettingsTextValue(
+        getValue(
+          "classBannerInput"
+        )
+      );
+
+
+    payload.appearanceSettings = {
+
+      accentColor:
+        getValue(
+          "settingsAccentColorInput"
+        )
+          .trim()
+          .toLowerCase(),
+
+      theme:
+        getValue(
+          "settingsThemeInput"
+        ) ||
+        "light",
+
+      thumbnailImage:
+        normalizeSettingsTextValue(
+          getValue(
+            "settingsThumbnailImageInput"
+          )
+        ),
+
+      logoImage:
+        normalizeSettingsTextValue(
+          getValue(
+            "settingsLogoImageInput"
+          )
+        ),
+
+      showInstructor:
+        getSettingsCheckbox(
+          "settingsShowInstructorInput",
+          true
+        ),
+
+      showProgress:
+        getSettingsCheckbox(
+          "settingsShowProgressInput",
+          true
+        )
+
+    };
+
+  }
+
+
+  /* =====================================================
+     SCHOOL / ADMIN — ENROLLMENT
+  ===================================================== */
+
+  if(
+    hasBuilderPermission(
+      "canManageEnrollment"
+    )
+  ){
+
+    payload.enrollmentSettings = {
+
+      accessType:
+        getSettingsRadioValue(
+          "settingsAccessType",
+          "private"
+        ),
+
+      allowJoinCode:
+        getSettingsCheckbox(
+          "settingsAllowJoinCodeInput",
+          true
+        ),
+
+      autoApprove:
+        getSettingsCheckbox(
+          "settingsAutoApproveInput",
+          false
+        ),
+
+      maximumStudents:
+        normalizeSettingsInteger(
+          getValue(
+            "settingsMaximumStudentsInput"
+          ),
+          {
+            fallback:
+              0,
+
+            minimum:
+              0,
+
+            maximum:
+              100000
+          }
+        ),
+
+      waitingListEnabled:
+        getSettingsCheckbox(
+          "settingsWaitingListInput",
+          false
+        ),
+
+      enrollmentOpensAt:
+        normalizeSettingsDatePayload(
+          "settingsEnrollmentOpensInput"
+        ),
+
+      enrollmentClosesAt:
+        normalizeSettingsDatePayload(
+          "settingsEnrollmentClosesInput"
+        )
+
+    };
+
+  }
+
+
+  /* =====================================================
+     SCHOOL / ADMIN — PUBLISHING
+  ===================================================== */
+
+  if(
+    hasBuilderPermission(
+      "canManagePublishing"
+    )
+  ){
+
+    payload.publishingSettings = {
+
       visibility:
         getSettingsRadioValue(
           "settingsPublishingVisibility",
@@ -84644,13 +85833,24 @@ function buildClassSettingsPayload(){
             "settingsMetaDescriptionInput"
           )
         )
-    },
 
-    /* ============================================
-       NOTIFICATIONS
-    ============================================ */
+    };
 
-    notificationSettings:{
+  }
+
+
+  /* =====================================================
+     SCHOOL / ADMIN — NOTIFICATIONS
+  ===================================================== */
+
+  if(
+    hasBuilderPermission(
+      "canManageNotificationSettings"
+    )
+  ){
+
+    payload.notificationSettings = {
+
       notifyStudentsNewLesson:
         getSettingsCheckbox(
           "settingsNotifyStudentsNewLessonInput",
@@ -84675,9 +85875,14 @@ function buildClassSettingsPayload(){
             "settingsDueDateReminderHoursInput"
           ),
           {
-            fallback:24,
-            minimum:1,
-            maximum:720
+            fallback:
+              24,
+
+            minimum:
+              1,
+
+            maximum:
+              720
           }
         ),
 
@@ -84705,13 +85910,24 @@ function buildClassSettingsPayload(){
             "settingsInactivityReminderDaysInput"
           ),
           {
-            fallback:7,
-            minimum:1,
-            maximum:365
+            fallback:
+              7,
+
+            minimum:
+              1,
+
+            maximum:
+              365
           }
         )
-    }
-  };
+
+    };
+
+  }
+
+
+  return payload;
+
 }
 
 async function saveClassProfile(
