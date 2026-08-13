@@ -5376,20 +5376,42 @@ async function loadTeacherSchedules(){
 
 }
 
-
 /* =========================================================
-   LOAD ATTENDANCE FOR ONE CLASS
+   LOAD ATTENDANCE FOR ONE CLASS / SESSION
 
-   Attendance is deliberately loaded class-by-class.
+   AUTHORIZATION
+   ---------------------------------------------------------
 
-   This matches the backend's strongest authorization path:
-   /api/attendance?classId=<authorized class>
+   Backend remains authoritative.
+
+   Teacher can only query Attendance for a class actually
+   assigned to the authenticated Teacher.
+
+   SESSION MODE
+   ---------------------------------------------------------
+
+   When scheduleId is supplied:
+
+     GET /api/attendance
+       ?classId=<class>
+       &scheduleId=<schedule>
+
+   Date may also be supplied for presentation/reporting, but
+   scheduleId is the authoritative session identity.
+
+   MANUAL MODE
+   ---------------------------------------------------------
+
+   Without scheduleId:
+
+     classId + date
+
 ========================================================= */
 
 async function loadTeacherAttendanceForClass(
   classId,
-  date =
-    ""
+  date = "",
+  scheduleId = ""
 ){
 
   const normalizedClassId =
@@ -5398,11 +5420,45 @@ async function loadTeacherAttendanceForClass(
     );
 
 
+  const normalizedScheduleId =
+    normalizeId(
+      scheduleId
+    );
+
+
   if (
     !normalizedClassId
   ){
 
     return [];
+
+  }
+
+
+  /* =====================================================
+     VERIFY CLASS EXISTS IN TEACHER STATE
+
+     This is frontend protection only.
+     Backend authorization remains authoritative.
+  ===================================================== */
+
+  const classItem =
+    getTeacherClassById(
+      normalizedClassId
+    );
+
+
+  if (
+    !classItem
+  ){
+
+    throw new AIFTApiError(
+      "The selected class is not available to this Teacher.",
+      {
+        code:
+          "ATTENDANCE_CLASS_UNAVAILABLE"
+      }
+    );
 
   }
 
@@ -5420,6 +5476,69 @@ async function loadTeacherAttendanceForClass(
 
   };
 
+
+  /* =====================================================
+     SCHEDULE IDENTITY
+  ===================================================== */
+
+  if (
+    normalizedScheduleId
+  ){
+
+    const schedule =
+      getTeacherScheduleById(
+        normalizedScheduleId
+      );
+
+
+    if (
+      !schedule
+    ){
+
+      throw new AIFTApiError(
+        "The selected teaching session is no longer available.",
+        {
+          code:
+            "ATTENDANCE_SCHEDULE_UNAVAILABLE"
+        }
+      );
+
+    }
+
+
+    if (
+      !sameId(
+        getTeacherScheduleClassId(
+          schedule
+        ),
+        normalizedClassId
+      )
+    ){
+
+      throw new AIFTApiError(
+        "The selected Schedule does not belong to this class.",
+        {
+          code:
+            "ATTENDANCE_SCHEDULE_CLASS_MISMATCH"
+        }
+      );
+
+    }
+
+
+    query.scheduleId =
+      normalizedScheduleId;
+
+  }
+
+
+  /* =====================================================
+     DATE FILTER
+
+     In scheduled mode this is secondary.
+
+     In manual mode this is the attendance identity date.
+  ===================================================== */
 
   if (
     normalizedDate
@@ -23846,6 +23965,22 @@ function refreshTeacherGradingFromCurrentState(){
 
 /* =========================================================
    ATTENDANCE WORKSPACE STATE
+   PRODUCTION SESSION-AWARE VERSION
+
+   classId
+     identifies the authorized Teacher class.
+
+   date
+     remains useful for manual/non-scheduled attendance.
+
+   scheduleId
+     identifies one exact scheduled teaching session.
+
+   When scheduleId exists:
+     Attendance identity = schedule + student.
+
+   When scheduleId is empty:
+     Attendance identity = class + student + date.
 ========================================================= */
 
 const teacherAttendanceWorkspaceState = {
@@ -23853,28 +23988,102 @@ const teacherAttendanceWorkspaceState = {
   classId:
     "",
 
+
+  scheduleId:
+    "",
+
+
   date:
     getTeacherLocalDateInputValue(),
+
 
   search:
     "",
 
+
   selectedStudentId:
     "",
+
 
   savingStudentIds:
     new Set(),
 
+
   bulkSaving:
     false,
 
+
   loading:
     false,
+
 
   initialized:
     false
 
 };
+
+
+/* =========================================================
+   ACTIVE ATTENDANCE SCHEDULE
+========================================================= */
+
+function getTeacherAttendanceSelectedSchedule(){
+
+  const scheduleId =
+    normalizeId(
+      teacherAttendanceWorkspaceState
+        .scheduleId
+    );
+
+
+  if (
+    !scheduleId
+  ){
+
+    return null;
+
+  }
+
+
+  return (
+    getTeacherScheduleById(
+      scheduleId
+    ) ||
+    null
+  );
+
+}
+
+
+/* =========================================================
+   ATTENDANCE IS SCHEDULE-BOUND
+========================================================= */
+
+function isTeacherScheduledAttendance(){
+
+  return Boolean(
+    normalizeId(
+      teacherAttendanceWorkspaceState
+        .scheduleId
+    )
+  );
+
+}
+
+
+/* =========================================================
+   CLEAR SCHEDULE CONTEXT
+
+   Used when Teacher manually switches to another class/date.
+========================================================= */
+
+function clearTeacherAttendanceScheduleContext(){
+
+  teacherAttendanceWorkspaceState
+    .scheduleId =
+    "";
+
+}
 
 
 /* =========================================================
@@ -24430,15 +24639,24 @@ function getTeacherAttendanceRecordDateKey(
 
 }
 
-
 /* =========================================================
    GET ATTENDANCE RECORD
+   SESSION-AWARE IDENTITY
+
+   Scheduled:
+     scheduleId + studentId
+
+   Manual:
+     classId + studentId + date
 ========================================================= */
 
 function getTeacherAttendanceRecord(
   classId,
   studentId,
-  date
+  date,
+  scheduleId =
+    teacherAttendanceWorkspaceState
+      .scheduleId
 ){
 
   const normalizedClassId =
@@ -24446,10 +24664,12 @@ function getTeacherAttendanceRecord(
       classId
     );
 
+
   const normalizedStudentId =
     normalizeId(
       studentId
     );
+
 
   const normalizedDate =
     normalizeTeacherAttendanceDate(
@@ -24457,9 +24677,93 @@ function getTeacherAttendanceRecord(
     );
 
 
+  const normalizedScheduleId =
+    normalizeId(
+      scheduleId
+    );
+
+
   if (
     !normalizedClassId ||
-    !normalizedStudentId ||
+    !normalizedStudentId
+  ){
+
+    return null;
+
+  }
+
+
+  /* =====================================================
+     SCHEDULED ATTENDANCE
+  ===================================================== */
+
+  if (
+    normalizedScheduleId
+  ){
+
+    return (
+      getTeacherAttendance()
+        .find(
+          record => {
+
+            const recordClassId =
+              normalizeId(
+                record
+                  ?.classId
+                  ?._id ||
+                record
+                  ?.classId
+              );
+
+
+            const recordStudentId =
+              normalizeId(
+                record
+                  ?.studentId
+                  ?._id ||
+                record
+                  ?.studentId
+              );
+
+
+            const recordScheduleId =
+              normalizeId(
+                record
+                  ?.scheduleId
+                  ?._id ||
+                record
+                  ?.scheduleId
+              );
+
+
+            return (
+              sameId(
+                recordClassId,
+                normalizedClassId
+              ) &&
+              sameId(
+                recordStudentId,
+                normalizedStudentId
+              ) &&
+              sameId(
+                recordScheduleId,
+                normalizedScheduleId
+              )
+            );
+
+          }
+        ) ||
+      null
+    );
+
+  }
+
+
+  /* =====================================================
+     MANUAL ATTENDANCE
+  ===================================================== */
+
+  if (
     !normalizedDate
   ){
 
@@ -24482,6 +24786,7 @@ function getTeacherAttendanceRecord(
                 ?.classId
             );
 
+
           const recordStudentId =
             normalizeId(
               record
@@ -24492,6 +24797,21 @@ function getTeacherAttendanceRecord(
             );
 
 
+          const recordScheduleId =
+            normalizeId(
+              record
+                ?.scheduleId
+                ?._id ||
+              record
+                ?.scheduleId
+            );
+
+
+          /*
+            Manual mode must not accidentally grab an Attendance
+            record belonging to a scheduled session.
+          */
+
           return (
             sameId(
               recordClassId,
@@ -24501,10 +24821,11 @@ function getTeacherAttendanceRecord(
               recordStudentId,
               normalizedStudentId
             ) &&
+            !recordScheduleId &&
             getTeacherAttendanceRecordDateKey(
               record
             ) ===
-            normalizedDate
+              normalizedDate
           );
 
         }
@@ -24540,15 +24861,24 @@ function getTeacherAttendanceStudentRecords(
 
   return getTeacherAttendance()
     .filter(
-      record =>
-        sameId(
-          record
-            ?.studentId
-            ?._id ||
-          record
-            ?.studentId,
+      record => {
+
+        const recordStudentId =
+          normalizeId(
+            record
+              ?.studentId
+              ?._id ||
+            record
+              ?.studentId
+          );
+
+
+        return sameId(
+          recordStudentId,
           normalizedStudentId
-        )
+        );
+
+      }
     )
     .sort(
       (
@@ -24573,1531 +24903,26 @@ function getTeacherAttendanceStudentRecords(
 
 
 /* =========================================================
-   ATTENDANCE SUMMARY FOR SELECTED DATE
-========================================================= */
-
-function getTeacherAttendanceSummary(){
-
-  const classId =
-    normalizeId(
-      teacherAttendanceWorkspaceState
-        .classId
-    );
-
-  const date =
-    normalizeTeacherAttendanceDate(
-      teacherAttendanceWorkspaceState
-        .date
-    );
-
-
-  if (
-    !classId ||
-    !date
-  ){
-
-    return {
-
-      total:
-        0,
-
-      recorded:
-        0,
-
-      present:
-        0,
-
-      late:
-        0,
-
-      absent:
-        0,
-
-      excused:
-        0,
-
-      attendanceRate:
-        0
-
-    };
-
-  }
-
-
-  const students =
-    getTeacherAttendanceClassStudents(
-      classId
-    );
-
-
-  const summary = {
-
-    total:
-      students.length,
-
-    recorded:
-      0,
-
-    present:
-      0,
-
-    late:
-      0,
-
-    absent:
-      0,
-
-    excused:
-      0,
-
-    attendanceRate:
-      0
-
-  };
-
-
-  students.forEach(
-    student => {
-
-      const studentId =
-        normalizeId(
-          student?._id ||
-          student?.id
-        );
-
-
-      const record =
-        getTeacherAttendanceRecord(
-          classId,
-          studentId,
-          date
-        );
-
-
-      if (
-        !record
-      ){
-
-        return;
-
-      }
-
-
-      const status =
-        normalizeTeacherAttendanceStatus(
-          record.status
-        );
-
-
-      if (
-        !status
-      ){
-
-        return;
-
-      }
-
-
-      summary.recorded +=
-        1;
-
-
-      if (
-        Object.prototype
-          .hasOwnProperty
-          .call(
-            summary,
-            status
-          )
-      ){
-
-        summary[
-          status
-        ] +=
-          1;
-
-      }
-
-    }
-  );
-
-
-  const attended =
-    summary.present +
-    summary.late;
-
-
-  summary.attendanceRate =
-    summary.recorded
-      ? clampPercentage(
-          (
-            attended /
-            summary.recorded
-          ) *
-          100
-        )
-      : 0;
-
-
-  return summary;
-
-}
-
-
-/* =========================================================
-   ATTENDANCE HEADER
-========================================================= */
-
-function renderTeacherAttendanceHeader(){
-
-  const container =
-    $(
-      "teacherAttendanceHeader"
-    );
-
-
-  if (
-    !container
-  ){
-
-    return;
-
-  }
-
-
-  const selectedClass =
-    getTeacherAttendanceSelectedClass();
-
-
-  container.innerHTML = `
-    <div
-      class="teacher-workspace-heading"
-    >
-
-      <div>
-
-        <span
-          class="teacher-workspace-eyebrow"
-        >
-          Teacher Studio
-        </span>
-
-        <h1>
-          Attendance
-        </h1>
-
-        <p>
-          ${
-            selectedClass
-              ? `Record and review attendance for ${escapeHtml(
-                  getTeacherClassTitle(
-                    selectedClass
-                  )
-                )}.`
-              : "Select one of your assigned classes to record and review student attendance."
-          }
-        </p>
-
-      </div>
-
-    </div>
-  `;
-
-}
-
-
-/* =========================================================
-   ATTENDANCE TOOLBAR
-========================================================= */
-
-function renderTeacherAttendanceToolbar(){
-
-  const container =
-    $(
-      "teacherAttendanceToolbar"
-    );
-
-
-  if (
-    !container
-  ){
-
-    return;
-
-  }
-
-
-  container.innerHTML = `
-
-    <select
-      id="teacherAttendanceClassFilter"
-      class="teacher-workspace-select"
-      aria-label="Select attendance class"
-    >
-
-      <option value="">
-        Select class
-      </option>
-
-      ${
-        getTeacherClasses()
-          .map(
-            classItem => {
-
-              const classId =
-                normalizeId(
-                  classItem?._id ||
-                  classItem?.id
-                );
-
-
-              return `
-                <option
-                  value="${escapeAttribute(classId)}"
-                  ${
-                    sameId(
-                      teacherAttendanceWorkspaceState
-                        .classId,
-                      classId
-                    )
-                      ? "selected"
-                      : ""
-                  }
-                >
-                  ${escapeHtml(
-                    getTeacherClassTitle(
-                      classItem
-                    )
-                  )}
-                </option>
-              `;
-
-            }
-          )
-          .join(
-            ""
-          )
-      }
-
-    </select>
-
-
-    <label
-      class="teacher-attendance-date-control"
-    >
-
-      <span>
-        Date
-      </span>
-
-      <input
-        id="teacherAttendanceDate"
-        type="date"
-        value="${escapeAttribute(
-          teacherAttendanceWorkspaceState
-            .date
-        )}"
-      />
-
-    </label>
-
-
-    <div
-      class="teacher-attendance-search"
-    >
-
-      <i
-        class="fa-solid fa-magnifying-glass"
-        aria-hidden="true"
-      ></i>
-
-      <input
-        id="teacherAttendanceSearch"
-        type="search"
-        placeholder="Search student..."
-        autocomplete="off"
-        value="${escapeAttribute(
-          teacherAttendanceWorkspaceState
-            .search
-        )}"
-      />
-
-    </div>
-
-
-    <button
-      type="button"
-      class="teacher-secondary-button"
-      data-teacher-action="attendance-today"
-    >
-      Today
-    </button>
-
-
-    <button
-      type="button"
-      class="teacher-secondary-button"
-      data-teacher-action="refresh-attendance"
-      ${
-        teacherAttendanceWorkspaceState
-          .loading
-          ? "disabled"
-          : ""
-      }
-    >
-      <i
-        class="fa-solid ${
-          teacherAttendanceWorkspaceState
-            .loading
-            ? "fa-spinner fa-spin"
-            : "fa-rotate"
-        }"
-        aria-hidden="true"
-      ></i>
-
-      <span>
-        ${
-          teacherAttendanceWorkspaceState
-            .loading
-            ? "Refreshing..."
-            : "Refresh"
-        }
-      </span>
-    </button>
-  `;
-
-
-  bindTeacherAttendanceToolbarControls();
-
-}
-
-
-/* =========================================================
-   ATTENDANCE SUMMARY
-========================================================= */
-
-function renderTeacherAttendanceSummary(){
-
-  const container =
-    $(
-      "teacherAttendanceSummary"
-    );
-
-
-  if (
-    !container
-  ){
-
-    return;
-
-  }
-
-
-  const summary =
-    getTeacherAttendanceSummary();
-
-
-  container.innerHTML = `
-
-    <article
-      class="teacher-attendance-summary-card"
-    >
-      <i
-        class="fa-solid fa-users"
-        aria-hidden="true"
-      ></i>
-
-      <span>
-        <strong>
-          ${summary.total}
-        </strong>
-
-        <small>
-          Students
-        </small>
-      </span>
-    </article>
-
-
-    <article
-      class="teacher-attendance-summary-card is-present"
-    >
-      <i
-        class="fa-solid fa-check"
-        aria-hidden="true"
-      ></i>
-
-      <span>
-        <strong>
-          ${summary.present}
-        </strong>
-
-        <small>
-          Present
-        </small>
-      </span>
-    </article>
-
-
-    <article
-      class="teacher-attendance-summary-card is-late"
-    >
-      <i
-        class="fa-regular fa-clock"
-        aria-hidden="true"
-      ></i>
-
-      <span>
-        <strong>
-          ${summary.late}
-        </strong>
-
-        <small>
-          Late
-        </small>
-      </span>
-    </article>
-
-
-    <article
-      class="teacher-attendance-summary-card is-absent"
-    >
-      <i
-        class="fa-solid fa-xmark"
-        aria-hidden="true"
-      ></i>
-
-      <span>
-        <strong>
-          ${summary.absent}
-        </strong>
-
-        <small>
-          Absent
-        </small>
-      </span>
-    </article>
-
-
-    <article
-      class="teacher-attendance-summary-card"
-    >
-      <i
-        class="fa-solid fa-chart-line"
-        aria-hidden="true"
-      ></i>
-
-      <span>
-        <strong>
-          ${
-            summary.recorded
-              ? `${summary.attendanceRate}%`
-              : "—"
-          }
-        </strong>
-
-        <small>
-          Attendance
-        </small>
-      </span>
-    </article>
-  `;
-
-}
-
-
-/* =========================================================
-   BULK ACTIONS
-========================================================= */
-
-function renderTeacherAttendanceBulkActions(){
-
-  const container =
-    $(
-      "teacherAttendanceBulkActions"
-    );
-
-
-  if (
-    !container
-  ){
-
-    return;
-
-  }
-
-
-  const hasClass =
-    Boolean(
-      getTeacherAttendanceSelectedClass()
-    );
-
-  const disabled =
-    !hasClass ||
-    teacherAttendanceWorkspaceState
-      .bulkSaving;
-
-
-  container.innerHTML = `
-
-    <div
-      class="teacher-attendance-bulk-copy"
-    >
-
-      <strong>
-        Quick attendance
-      </strong>
-
-      <span>
-        Apply one status to the full visible roster.
-      </span>
-
-    </div>
-
-
-    <div
-      class="teacher-attendance-bulk-buttons"
-    >
-
-      <button
-        type="button"
-        class="teacher-attendance-bulk-button is-present"
-        data-teacher-action="bulk-attendance"
-        data-attendance-status="present"
-        ${
-          disabled
-            ? "disabled"
-            : ""
-        }
-      >
-        <i
-          class="fa-solid fa-check"
-          aria-hidden="true"
-        ></i>
-
-        All present
-      </button>
-
-
-      <button
-        type="button"
-        class="teacher-attendance-bulk-button is-late"
-        data-teacher-action="bulk-attendance"
-        data-attendance-status="late"
-        ${
-          disabled
-            ? "disabled"
-            : ""
-        }
-      >
-        <i
-          class="fa-regular fa-clock"
-          aria-hidden="true"
-        ></i>
-
-        All late
-      </button>
-
-
-      <button
-        type="button"
-        class="teacher-attendance-bulk-button is-absent"
-        data-teacher-action="bulk-attendance"
-        data-attendance-status="absent"
-        ${
-          disabled
-            ? "disabled"
-            : ""
-        }
-      >
-        <i
-          class="fa-solid fa-xmark"
-          aria-hidden="true"
-        ></i>
-
-        All absent
-      </button>
-
-    </div>
-  `;
-
-}
-
-
-/* =========================================================
-   STUDENT NAME
-========================================================= */
-
-function getTeacherAttendanceStudentName(
-  student
-){
-
-  return safeString(
-
-    student?.name ||
-    student?.fullName ||
-    student?.displayName,
-
-    "Student"
-
-  );
-
-}
-
-
-/* =========================================================
-   STUDENT AVATAR
-========================================================= */
-
-function getTeacherAttendanceStudentAvatar(
-  student
-){
-
-  return getSafeImageUrl(
-
-    student?.profileImage ||
-    student?.avatar ||
-    student?.photoURL,
-
-    FALLBACK_AVATAR
-
-  );
-
-}
-
-
-/* =========================================================
-   STATUS BUTTON
-========================================================= */
-
-function createTeacherAttendanceStatusButton(
-  {
-    studentId,
-    status,
-    activeStatus,
-    saving
-  }
-){
-
-  const active =
-    status ===
-    activeStatus;
-
-
-  return `
-    <button
-      type="button"
-      class="
-        teacher-attendance-status-button
-        is-${escapeAttribute(status)}
-        ${
-          active
-            ? "active"
-            : ""
-        }
-      "
-      data-teacher-action="set-attendance-status"
-      data-student-id="${escapeAttribute(studentId)}"
-      data-attendance-status="${escapeAttribute(status)}"
-      aria-pressed="${active ? "true" : "false"}"
-      ${
-        saving
-          ? "disabled"
-          : ""
-      }
-    >
-      <i
-        class="${escapeAttribute(
-          getTeacherAttendanceStatusIcon(
-            status
-          )
-        )}"
-        aria-hidden="true"
-      ></i>
-
-      ${escapeHtml(
-        getTeacherAttendanceStatusLabel(
-          status
-        )
-      )}
-    </button>
-  `;
-
-}
-
-
-/* =========================================================
-   ATTENDANCE STUDENT ROW
-========================================================= */
-
-function createTeacherAttendanceStudentRow(
-  student
-){
-
-  const classId =
-    normalizeId(
-      teacherAttendanceWorkspaceState
-        .classId
-    );
-
-  const studentId =
-    normalizeId(
-      student?._id ||
-      student?.id
-    );
-
-  const date =
-    teacherAttendanceWorkspaceState
-      .date;
-
-  const record =
-    getTeacherAttendanceRecord(
-      classId,
-      studentId,
-      date
-    );
-
-  const currentStatus =
-    normalizeTeacherAttendanceStatus(
-      record?.status
-    );
-
-  const name =
-    getTeacherAttendanceStudentName(
-      student
-    );
-
-  const email =
-    safeString(
-      student?.email,
-      "Student"
-    );
-
-  const avatar =
-    getTeacherAttendanceStudentAvatar(
-      student
-    );
-
-  const saving =
-    teacherAttendanceWorkspaceState
-      .savingStudentIds
-      .has(
-        studentId
-      );
-
-
-  return `
-    <div
-      class="teacher-attendance-student-row"
-      data-student-id="${escapeAttribute(studentId)}"
-    >
-
-      <!-- ===============================================
-           STUDENT
-      ================================================ -->
-
-      <button
-        type="button"
-        class="teacher-attendance-student-main"
-        data-teacher-action="attendance-student-history"
-        data-student-id="${escapeAttribute(studentId)}"
-      >
-
-        <img
-          src="${escapeAttribute(avatar)}"
-          alt=""
-          loading="lazy"
-          referrerpolicy="no-referrer"
-        />
-
-        <span>
-
-          <strong>
-            ${escapeHtml(name)}
-          </strong>
-
-          <small>
-            ${escapeHtml(email)}
-          </small>
-
-        </span>
-
-      </button>
-
-
-      <!-- ===============================================
-           STATUS
-      ================================================ -->
-
-      <div
-        class="teacher-attendance-status-options"
-      >
-
-        ${createTeacherAttendanceStatusButton({
-          studentId,
-          status:
-            "present",
-          activeStatus:
-            currentStatus,
-          saving
-        })}
-
-        ${createTeacherAttendanceStatusButton({
-          studentId,
-          status:
-            "late",
-          activeStatus:
-            currentStatus,
-          saving
-        })}
-
-        ${createTeacherAttendanceStatusButton({
-          studentId,
-          status:
-            "absent",
-          activeStatus:
-            currentStatus,
-          saving
-        })}
-
-        ${createTeacherAttendanceStatusButton({
-          studentId,
-          status:
-            "excused",
-          activeStatus:
-            currentStatus,
-          saving
-        })}
-
-      </div>
-
-
-      <!-- ===============================================
-           CURRENT RECORD
-      ================================================ -->
-
-      <div
-        class="teacher-attendance-record-meta"
-      >
-
-        <span>
-          ${
-            currentStatus
-              ? escapeHtml(
-                  getTeacherAttendanceStatusLabel(
-                    currentStatus
-                  )
-                )
-              : "Not marked"
-          }
-        </span>
-
-        <small>
-          ${
-            record?.updatedAt ||
-            record?.createdAt
-              ? escapeHtml(
-                  formatRelativeDate(
-                    record.updatedAt ||
-                    record.createdAt
-                  )
-                )
-              : "No record"
-          }
-        </small>
-
-      </div>
-
-    </div>
-  `;
-
-}
-
-
-/* =========================================================
-   ATTENDANCE ROSTER
-========================================================= */
-
-function renderTeacherAttendanceRoster(){
-
-  const container =
-    $(
-      "teacherAttendanceRoster"
-    );
-
-
-  if (
-    !container
-  ){
-
-    return;
-
-  }
-
-
-  const classItem =
-    getTeacherAttendanceSelectedClass();
-
-
-  if (
-    !classItem
-  ){
-
-    container.innerHTML = `
-      <div
-        class="teacher-loading-state"
-      >
-        <i
-          class="fa-solid fa-chalkboard-user"
-          aria-hidden="true"
-        ></i>
-
-        <span>
-          Select a class to load attendance.
-        </span>
-      </div>
-    `;
-
-
-    renderTeacherAttendanceStudentHistory(
-      ""
-    );
-
-
-    return;
-
-  }
-
-
-  const students =
-    getTeacherAttendanceRoster();
-
-
-  if (
-    !students.length
-  ){
-
-    container.innerHTML = `
-      <div
-        class="teacher-workspace-empty"
-      >
-
-        <div
-          class="teacher-workspace-empty-icon"
-        >
-          <i
-            class="fa-solid fa-users"
-            aria-hidden="true"
-          ></i>
-        </div>
-
-        <h3>
-          No students found
-        </h3>
-
-        <p>
-          ${
-            teacherAttendanceWorkspaceState
-              .search
-              ? "No student matches the current search."
-              : "This class does not currently have students in its roster."
-          }
-        </p>
-
-      </div>
-    `;
-
-
-    return;
-
-  }
-
-
-  container.innerHTML = `
-
-    <div
-      class="teacher-attendance-roster-head"
-      aria-hidden="true"
-    >
-      <span>
-        Student
-      </span>
-
-      <span>
-        Attendance status
-      </span>
-
-      <span>
-        Record
-      </span>
-    </div>
-
-
-    <div
-      class="teacher-attendance-roster-body"
-    >
-      ${
-        students
-          .map(
-            createTeacherAttendanceStudentRow
-          )
-          .join(
-            ""
-          )
-      }
-    </div>
-  `;
-
-
-  container
-    .querySelectorAll(
-      ".teacher-attendance-student-main img"
-    )
-    .forEach(
-      image => {
-
-        image.onerror =
-          () => {
-
-            image.onerror =
-              null;
-
-            image.src =
-              FALLBACK_AVATAR;
-
-          };
-
-      }
-    );
-
-}
-
-
-/* =========================================================
-   STUDENT ATTENDANCE HISTORY SUMMARY
-========================================================= */
-
-function getTeacherAttendanceStudentHistorySummary(
-  studentId
-){
-
-  const records =
-    getTeacherAttendanceStudentRecords(
-      studentId
-    );
-
-
-  const summary = {
-
-    total:
-      records.length,
-
-    present:
-      0,
-
-    late:
-      0,
-
-    absent:
-      0,
-
-    excused:
-      0,
-
-    rate:
-      0
-
-  };
-
-
-  records.forEach(
-    record => {
-
-      const status =
-        normalizeTeacherAttendanceStatus(
-          record?.status
-        );
-
-
-      if (
-        status &&
-        Object.prototype
-          .hasOwnProperty
-          .call(
-            summary,
-            status
-          )
-      ){
-
-        summary[
-          status
-        ] +=
-          1;
-
-      }
-
-    }
-  );
-
-
-  const considered =
-    summary.present +
-    summary.late +
-    summary.absent +
-    summary.excused;
-
-
-  summary.rate =
-    considered
-      ? clampPercentage(
-          (
-            (
-              summary.present +
-              summary.late
-            ) /
-            considered
-          ) *
-          100
-        )
-      : 0;
-
-
-  return summary;
-
-}
-
-
-/* =========================================================
-   STUDENT HISTORY
-========================================================= */
-
-function renderTeacherAttendanceStudentHistory(
-  studentId =
-    teacherAttendanceWorkspaceState
-      .selectedStudentId
-){
-
-  const container =
-    $(
-      "teacherAttendanceStudentHistory"
-    );
-
-
-  if (
-    !container
-  ){
-
-    return;
-
-  }
-
-
-  const normalizedStudentId =
-    normalizeId(
-      studentId
-    );
-
-
-  if (
-    !normalizedStudentId
-  ){
-
-    teacherAttendanceWorkspaceState
-      .selectedStudentId =
-      "";
-
-    container.hidden =
-      true;
-
-    container.innerHTML =
-      "";
-
-    return;
-
-  }
-
-
-  const studentRecord =
-    getTeacherStudentById(
-      normalizedStudentId
-    );
-
-  const student =
-    studentRecord
-      ?.student ||
-    getTeacherAttendanceClassStudents(
-      teacherAttendanceWorkspaceState
-        .classId
-    )
-      .find(
-        item =>
-          sameId(
-            item?._id ||
-            item?.id,
-            normalizedStudentId
-          )
-      );
-
-
-  if (
-    !student
-  ){
-
-    container.hidden =
-      true;
-
-    container.innerHTML =
-      "";
-
-    return;
-
-  }
-
-
-  teacherAttendanceWorkspaceState
-    .selectedStudentId =
-    normalizedStudentId;
-
-
-  const records =
-    getTeacherAttendanceStudentRecords(
-      normalizedStudentId
-    );
-
-  const summary =
-    getTeacherAttendanceStudentHistorySummary(
-      normalizedStudentId
-    );
-
-  const name =
-    getTeacherAttendanceStudentName(
-      student
-    );
-
-  const avatar =
-    getTeacherAttendanceStudentAvatar(
-      student
-    );
-
-
-  container.hidden =
-    false;
-
-
-  container.innerHTML = `
-    <section
-      class="teacher-attendance-history-panel"
-    >
-
-      <header
-        class="teacher-attendance-history-header"
-      >
-
-        <button
-          type="button"
-          class="teacher-icon-button"
-          data-teacher-action="close-attendance-history"
-          aria-label="Close attendance history"
-        >
-          <i
-            class="fa-solid fa-xmark"
-            aria-hidden="true"
-          ></i>
-        </button>
-
-
-        <img
-          src="${escapeAttribute(avatar)}"
-          alt=""
-          loading="lazy"
-          referrerpolicy="no-referrer"
-        />
-
-
-        <div>
-
-          <span>
-            Student attendance
-          </span>
-
-          <strong>
-            ${escapeHtml(name)}
-          </strong>
-
-          <small>
-            ${
-              summary.total
-                ? `${summary.rate}% attendance`
-                : "No attendance history yet"
-            }
-          </small>
-
-        </div>
-
-      </header>
-
-
-      <div
-        class="teacher-attendance-history-summary"
-      >
-
-        <div>
-          <strong>
-            ${summary.present}
-          </strong>
-
-          <span>
-            Present
-          </span>
-        </div>
-
-
-        <div>
-          <strong>
-            ${summary.late}
-          </strong>
-
-          <span>
-            Late
-          </span>
-        </div>
-
-
-        <div>
-          <strong>
-            ${summary.absent}
-          </strong>
-
-          <span>
-            Absent
-          </span>
-        </div>
-
-      </div>
-
-
-      <div
-        class="teacher-attendance-history-list"
-      >
-
-        ${
-          records.length
-            ? records
-                .slice(
-                  0,
-                  30
-                )
-                .map(
-                  record => {
-
-                    const status =
-                      normalizeTeacherAttendanceStatus(
-                        record.status
-                      );
-
-
-                    return `
-                      <article
-                        class="teacher-attendance-history-item"
-                      >
-
-                        <div>
-                          <strong>
-                            ${escapeHtml(
-                              formatDate(
-                                record.date
-                              )
-                            )}
-                          </strong>
-
-                          ${
-                            record?.notes
-                              ? `
-                                <span
-                                  class="teacher-attendance-note"
-                                >
-                                  ${escapeHtml(
-                                    record.notes
-                                  )}
-                                </span>
-                              `
-                              : ""
-                          }
-                        </div>
-
-
-                        <span
-                          class="teacher-attendance-history-status is-${escapeAttribute(status)}"
-                        >
-                          ${escapeHtml(
-                            getTeacherAttendanceStatusLabel(
-                              status
-                            )
-                          )}
-                        </span>
-
-                      </article>
-                    `;
-
-                  }
-                )
-                .join(
-                  ""
-                )
-            : `
-                <div
-                  class="teacher-inline-empty"
-                >
-                  No attendance records are available for this student yet.
-                </div>
-              `
-        }
-
-      </div>
-
-    </section>
-  `;
-
-
-  const image =
-    container.querySelector(
-      ".teacher-attendance-history-header > img"
-    );
-
-
-  if (
-    image
-  ){
-
-    image.onerror =
-      () => {
-
-        image.onerror =
-          null;
-
-        image.src =
-          FALLBACK_AVATAR;
-
-      };
-
-  }
-
-}
-
-
-/* =========================================================
    BUILD ATTENDANCE WRITE PAYLOAD
 
-   IMPORTANT SECURITY IMPROVEMENT:
+   SECURITY
+   ---------------------------------------------------------
 
-   We do NOT send:
+   Frontend DOES NOT send:
+
      schoolId
      teacherId
      markedBy
 
-   The current backend derives those authoritatively.
+   Backend derives them from authenticated Teacher + Class.
 
-   Browser supplies only the actual attendance information.
+   SESSION MODE
+   ---------------------------------------------------------
+
+   We DO send scheduleId because it identifies which authorized
+   class session the attendance belongs to.
+
+   Backend validates the Schedule/Class relationship.
 ========================================================= */
 
 function buildTeacherAttendancePayload(
@@ -26111,15 +24936,25 @@ function buildTeacherAttendancePayload(
         .classId
     );
 
+
+  const scheduleId =
+    normalizeId(
+      teacherAttendanceWorkspaceState
+        .scheduleId
+    );
+
+
   const normalizedStudentId =
     normalizeId(
       studentId
     );
 
+
   const normalizedStatus =
     normalizeTeacherAttendanceStatus(
       status
     );
+
 
   const date =
     getTeacherAttendanceApiDate(
@@ -26154,7 +24989,7 @@ function buildTeacherAttendancePayload(
   ){
 
     throw new AIFTApiError(
-      "The selected class is not available to this teacher.",
+      "The selected class is not available to this Teacher.",
       {
         code:
           "ATTENDANCE_CLASS_UNAVAILABLE"
@@ -26238,25 +25073,86 @@ function buildTeacherAttendancePayload(
   }
 
 
+  /* =====================================================
+     VALIDATE SCHEDULE CONTEXT LOCALLY
+  ===================================================== */
+
+  if (
+    scheduleId
+  ){
+
+    const schedule =
+      getTeacherScheduleById(
+        scheduleId
+      );
+
+
+    if (
+      !schedule
+    ){
+
+      throw new AIFTApiError(
+        "The selected teaching session is no longer available.",
+        {
+          code:
+            "ATTENDANCE_SCHEDULE_UNAVAILABLE"
+        }
+      );
+
+    }
+
+
+    if (
+      !sameId(
+        getTeacherScheduleClassId(
+          schedule
+        ),
+        classId
+      )
+    ){
+
+      throw new AIFTApiError(
+        "This Schedule does not belong to the selected class.",
+        {
+          code:
+            "ATTENDANCE_SCHEDULE_CLASS_MISMATCH"
+        }
+      );
+
+    }
+
+  }
+
+
   return {
 
     classId,
 
+
     studentId:
       normalizedStudentId,
 
+
+    scheduleId:
+      scheduleId ||
+      null,
+
+
     date,
+
 
     status:
       normalizedStatus,
 
+
     source:
-      "manual"
+      scheduleId
+        ? "schedule"
+        : "manual"
 
   };
 
 }
-
 
 /* =========================================================
    REPLACE ATTENDANCE RECORD IN STATE
@@ -62049,24 +60945,57 @@ async function openTeacherClassAssignments(
 
 
 /* =========================================================
-   CLASS -> ATTENDANCE
+   CLASS / SCHEDULE -> ATTENDANCE
+
+   Supports:
+
+     openTeacherClassAttendance(classId)
+       manual/class attendance
+
+     openTeacherScheduleAttendance(scheduleId)
+       exact scheduled session attendance
+
+   The Schedule path binds:
+     classId
+     scheduleId
+     date
+
+   before opening Attendance.
+========================================================= */
+
+
+/* =========================================================
+   CLASS -> MANUAL ATTENDANCE
 ========================================================= */
 
 async function openTeacherClassAttendance(
   classId
 ){
 
-  const normalized =
+  const normalizedClassId =
     normalizeId(
       classId
     );
 
 
+  const classItem =
+    getTeacherClassById(
+      normalizedClassId
+    );
+
+
   if (
-    !getTeacherClassById(
-      normalized
-    )
+    !classItem
   ){
+
+    notifyAIFTWarning(
+      "Select one of your assigned classes before opening Attendance.",
+      {
+        title:
+          "Class required"
+      }
+    );
+
 
     return false;
 
@@ -62075,7 +61004,27 @@ async function openTeacherClassAttendance(
 
   teacherAttendanceWorkspaceState
     .classId =
-    normalized;
+    normalizedClassId;
+
+
+  /*
+    Class navigation means manual/date-based Attendance,
+    therefore clear a previously selected scheduled session.
+  */
+
+  teacherAttendanceWorkspaceState
+    .scheduleId =
+    "";
+
+
+  teacherAttendanceWorkspaceState
+    .selectedStudentId =
+    "";
+
+
+  teacherAttendanceWorkspaceState
+    .search =
+    "";
 
 
   await activateTeacherStudioPage(
@@ -62086,6 +61035,308 @@ async function openTeacherClassAttendance(
   return true;
 
 }
+
+
+/* =========================================================
+   SCHEDULE -> EXACT SESSION ATTENDANCE
+========================================================= */
+
+async function openTeacherScheduleAttendance(
+  scheduleId
+){
+
+  const normalizedScheduleId =
+    normalizeId(
+      scheduleId
+    );
+
+
+  if (
+    !normalizedScheduleId
+  ){
+
+    notifyAIFTError(
+      "The selected Schedule could not be identified.",
+      {
+        title:
+          "Attendance unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const schedule =
+    getTeacherScheduleById(
+      normalizedScheduleId
+    );
+
+
+  if (
+    !schedule
+  ){
+
+    notifyAIFTError(
+      "The selected teaching session is no longer available.",
+      {
+        title:
+          "Schedule unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const status =
+    getTeacherScheduleStatus(
+      schedule
+    );
+
+
+  if (
+    ![
+      "started",
+      "completed"
+    ].includes(
+      status
+    )
+  ){
+
+    notifyAIFTWarning(
+      status ===
+        "scheduled" ||
+      status ===
+        "rescheduled"
+        ? "Start this teaching session before taking Attendance."
+        : "Attendance cannot be opened for this session in its current state.",
+      {
+        title:
+          "Attendance not available"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const classId =
+    normalizeId(
+      getTeacherScheduleClassId(
+        schedule
+      )
+    );
+
+
+  if (
+    !classId ||
+    !getTeacherClassById(
+      classId
+    )
+  ){
+
+    notifyAIFTError(
+      "The class linked to this Schedule is not available to this Teacher.",
+      {
+        title:
+          "Class unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const scheduleDate =
+    normalizeTeacherAttendanceDate(
+      getTeacherScheduleDateString(
+        schedule
+      )
+    );
+
+
+  if (
+    !scheduleDate
+  ){
+
+    notifyAIFTError(
+      "This Schedule does not contain a valid Attendance date.",
+      {
+        title:
+          "Schedule date unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  /* =====================================================
+     BIND EXACT SESSION
+  ===================================================== */
+
+  teacherAttendanceWorkspaceState
+    .classId =
+    classId;
+
+
+  teacherAttendanceWorkspaceState
+    .scheduleId =
+    normalizedScheduleId;
+
+
+  teacherAttendanceWorkspaceState
+    .date =
+    scheduleDate;
+
+
+  teacherAttendanceWorkspaceState
+    .selectedStudentId =
+    "";
+
+
+  teacherAttendanceWorkspaceState
+    .search =
+    "";
+
+
+  teacherAttendanceWorkspaceState
+    .loading =
+    true;
+
+
+  /* =====================================================
+     OPEN ATTENDANCE PAGE
+  ===================================================== */
+
+  await activateTeacherStudioPage(
+    "attendance"
+  );
+
+
+  try{
+
+    const records =
+      await loadTeacherAttendanceForClass(
+        classId,
+        scheduleDate,
+        normalizedScheduleId
+      );
+
+
+    /*
+      Remove only Attendance belonging to this exact Schedule
+      before merging authoritative server records.
+    */
+
+    state.attendance =
+      state.attendance
+        .filter(
+          record => {
+
+            const recordScheduleId =
+              normalizeId(
+                record
+                  ?.scheduleId
+                  ?._id ||
+                record
+                  ?.scheduleId
+              );
+
+
+            return !sameId(
+              recordScheduleId,
+              normalizedScheduleId
+            );
+
+          }
+        );
+
+
+    state.attendance.push(
+      ...asArray(
+        records
+      )
+    );
+
+
+    state.attendance =
+      uniqueById(
+        state.attendance
+      );
+
+
+    finalizeTeacherLoadedData();
+
+
+    teacherAttendanceWorkspaceState
+      .loading =
+      false;
+
+
+    renderTeacherAttendanceWorkspace();
+
+
+    return true;
+
+  }catch(
+    error
+  ){
+
+    teacherAttendanceWorkspaceState
+      .loading =
+      false;
+
+
+    console.error(
+      "openTeacherScheduleAttendance error:",
+      error
+    );
+
+
+    renderTeacherAttendanceWorkspace();
+
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "Attendance for this teaching session could not be loaded."
+      ),
+      {
+        title:
+          "Attendance unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+}
+
+
+/* =========================================================
+   EXPORT ATTENDANCE NAVIGATION
+========================================================= */
+
+window.openTeacherClassAttendance =
+  openTeacherClassAttendance;
+
+
+window.openTeacherScheduleAttendance =
+  openTeacherScheduleAttendance;
 
 /* =========================================================
    CLASS BUILDER ACCESS CONTROL
