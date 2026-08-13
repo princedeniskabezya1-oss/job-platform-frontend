@@ -30037,6 +30037,2299 @@ function refreshTeacherScheduleFromCurrentState(){
    once the editor is reconciled with the final centralized
    action/controller architecture.
 ========================================================= */
+
+/* =========================================================
+   AIFT TEACHER STUDIO
+   PART 9B
+
+   SCHEDULE CRUD + PRODUCTION EDITOR
+   ---------------------------------------------------------
+
+   Backend contract:
+
+     GET
+       /api/schedules
+
+     POST
+       /api/schedules
+
+     PATCH
+       /api/schedules/:id
+
+     DELETE
+       /api/schedules/:id
+
+   SECURITY:
+
+   Backend remains authoritative.
+
+   Teacher:
+     only schedules for explicitly assigned classes.
+
+   School/Admin:
+     broader access according to routes/schedules.js.
+
+   The frontend never invents:
+     schoolId
+     teacher ownership
+========================================================= */
+
+
+/* =========================================================
+   SCHEDULE EDITOR STATE
+========================================================= */
+
+const teacherScheduleEditorState = {
+
+  open:
+    false,
+
+  scheduleId:
+    "",
+
+  saving:
+    false,
+
+  deleting:
+    false,
+
+  initialized:
+    false
+
+};
+
+
+/* =========================================================
+   SCHEDULE EDITOR HOST
+========================================================= */
+
+function getTeacherScheduleEditor(){
+
+  return $(
+    "teacherScheduleEditor"
+  );
+
+}
+
+
+/* =========================================================
+   CREATE EDITOR HOST
+========================================================= */
+
+function ensureTeacherScheduleEditor(){
+
+  let editor =
+    getTeacherScheduleEditor();
+
+
+  if(
+    editor
+  ){
+
+    return editor;
+
+  }
+
+
+  editor =
+    document.createElement(
+      "div"
+    );
+
+
+  editor.id =
+    "teacherScheduleEditor";
+
+
+  editor.className =
+    "teacher-schedule-editor";
+
+
+  editor.hidden =
+    true;
+
+
+  editor.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+
+  document.body.appendChild(
+    editor
+  );
+
+
+  return editor;
+
+}
+
+
+/* =========================================================
+   SCHEDULE FORM CLASS OPTIONS
+========================================================= */
+
+function buildTeacherScheduleClassOptions(
+  selectedClassId =
+    ""
+){
+
+  const selected =
+    normalizeId(
+      selectedClassId
+    );
+
+
+  return getTeacherClasses()
+    .map(
+      classItem => {
+
+        const classId =
+          normalizeId(
+            classItem?._id ||
+            classItem?.id
+          );
+
+
+        const title =
+          getTeacherClassTitle(
+            classItem
+          );
+
+
+        const subject =
+          safeString(
+            classItem?.subject
+          );
+
+
+        return `
+          <option
+            value="${escapeAttribute(classId)}"
+            ${
+              sameId(
+                classId,
+                selected
+              )
+                ? "selected"
+                : ""
+            }
+          >
+            ${escapeHtml(title)}${
+              subject
+                ? ` · ${escapeHtml(subject)}`
+                : ""
+            }
+          </option>
+        `;
+
+      }
+    )
+    .join(
+      ""
+    );
+
+}
+
+
+/* =========================================================
+   EDITOR DATE
+========================================================= */
+
+function getTeacherScheduleEditorDateValue(
+  schedule
+){
+
+  return getTeacherScheduleDateString(
+    schedule
+  );
+
+}
+
+
+/* =========================================================
+   RENDER SCHEDULE EDITOR
+========================================================= */
+
+function renderTeacherScheduleEditor(){
+
+  const editor =
+    ensureTeacherScheduleEditor();
+
+
+  if(
+    !teacherScheduleEditorState
+      .open
+  ){
+
+    editor.hidden =
+      true;
+
+
+    editor.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+
+    editor.innerHTML =
+      "";
+
+
+    return;
+
+  }
+
+
+  const scheduleId =
+    normalizeId(
+      teacherScheduleEditorState
+        .scheduleId
+    );
+
+
+  const schedule =
+    scheduleId
+      ? getTeacherScheduleById(
+          scheduleId
+        )
+      : null;
+
+
+  const editing =
+    Boolean(
+      schedule
+    );
+
+
+  const selectedClassId =
+    normalizeId(
+
+      schedule
+        ? getTeacherScheduleClassId(
+            schedule
+          )
+        : (
+            teacherScheduleWorkspaceState
+              .classId ||
+            ""
+          )
+
+    );
+
+
+  const classItem =
+    selectedClassId
+      ? getTeacherClassById(
+          selectedClassId
+        )
+      : null;
+
+
+  const defaultTitle =
+    editing
+      ? getTeacherScheduleTitle(
+          schedule
+        )
+      : (
+          classItem
+            ? getTeacherClassTitle(
+                classItem
+              )
+            : ""
+        );
+
+
+  const title =
+    safeString(
+      schedule?.title,
+      defaultTitle
+    );
+
+
+  const date =
+    editing
+      ? getTeacherScheduleEditorDateValue(
+          schedule
+        )
+      : getTeacherLocalDateInputValue();
+
+
+  const startTime =
+    safeString(
+      schedule?.startTime ||
+      schedule?.time
+    );
+
+
+  const endTime =
+    safeString(
+      schedule?.endTime
+    );
+
+
+  const meetingLink =
+    safeString(
+      schedule?.meetingLink
+    );
+
+
+  const notes =
+    safeString(
+      schedule?.notes
+    );
+
+
+  const status =
+    safeString(
+      schedule?.status,
+      "scheduled"
+    )
+      .toLowerCase();
+
+
+  editor.hidden =
+    false;
+
+
+  editor.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+
+  editor.innerHTML = `
+
+    <div
+      class="teacher-schedule-editor-overlay"
+      data-teacher-action="close-schedule-editor"
+      aria-hidden="true"
+    ></div>
+
+
+    <aside
+      class="teacher-schedule-editor-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="teacherScheduleEditorTitle"
+    >
+
+      <!-- =============================================
+           HEADER
+      ============================================== -->
+
+      <header
+        class="teacher-schedule-editor-header"
+      >
+
+        <div
+          class="teacher-schedule-editor-header-copy"
+        >
+
+          <span
+            class="teacher-schedule-editor-eyebrow"
+          >
+            ${
+              editing
+                ? "EDIT TEACHING SESSION"
+                : "NEW TEACHING SESSION"
+            }
+          </span>
+
+          <h2
+            id="teacherScheduleEditorTitle"
+          >
+            ${
+              editing
+                ? "Edit Schedule"
+                : "Add Schedule"
+            }
+          </h2>
+
+          <p>
+            ${
+              editing
+                ? "Update the date, time, meeting details, or session status."
+                : "Schedule a teaching session for one of your assigned classes."
+            }
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="teacher-schedule-editor-close"
+          data-teacher-action="close-schedule-editor"
+          aria-label="Close schedule editor"
+        >
+          <i
+            class="fa-solid fa-xmark"
+            aria-hidden="true"
+          ></i>
+        </button>
+
+      </header>
+
+
+      <!-- =============================================
+           BODY
+      ============================================== -->
+
+      <div
+        class="teacher-schedule-editor-body"
+      >
+
+        <!-- ===========================================
+             CLASS + SESSION
+        ============================================ -->
+
+        <section
+          class="teacher-schedule-editor-section"
+        >
+
+          <div
+            class="teacher-schedule-editor-section-header"
+          >
+            <strong>
+              Session details
+            </strong>
+
+            <span>
+              Choose the class and give this session a clear title.
+            </span>
+          </div>
+
+
+          <div
+            class="teacher-schedule-editor-grid"
+          >
+
+            <label
+              class="teacher-form-field teacher-form-field-full"
+            >
+
+              <span>
+                Class
+                <span
+                  class="teacher-schedule-required"
+                >
+                  *
+                </span>
+              </span>
+
+              <select
+                id="teacherScheduleClassInput"
+                ${
+                  editing
+                    ? "disabled"
+                    : ""
+                }
+              >
+
+                <option value="">
+                  Select class
+                </option>
+
+                ${buildTeacherScheduleClassOptions(
+                  selectedClassId
+                )}
+
+              </select>
+
+              <small>
+                ${
+                  editing
+                    ? "A saved schedule cannot be moved to another class. Create a new schedule instead."
+                    : "Only classes available to this Teacher Studio session are shown."
+                }
+              </small>
+
+            </label>
+
+
+            <label
+              class="teacher-form-field teacher-form-field-full"
+            >
+
+              <span>
+                Session title
+                <span
+                  class="teacher-schedule-required"
+                >
+                  *
+                </span>
+              </span>
+
+              <input
+                id="teacherScheduleTitleInput"
+                type="text"
+                maxlength="140"
+                value="${escapeAttribute(title)}"
+                placeholder="e.g. Mathematics – Week 4"
+                autocomplete="off"
+              />
+
+            </label>
+
+          </div>
+
+        </section>
+
+
+        <!-- ===========================================
+             DATE AND TIME
+        ============================================ -->
+
+        <section
+          class="teacher-schedule-editor-section"
+        >
+
+          <div
+            class="teacher-schedule-editor-section-header"
+          >
+
+            <strong>
+              Date & time
+            </strong>
+
+            <span>
+              Set when the teaching session will take place.
+            </span>
+
+          </div>
+
+
+          <div
+            class="teacher-schedule-editor-grid"
+          >
+
+            <label
+              class="teacher-form-field teacher-form-field-full"
+            >
+
+              <span>
+                Date
+                <span
+                  class="teacher-schedule-required"
+                >
+                  *
+                </span>
+              </span>
+
+              <input
+                id="teacherScheduleDateInput"
+                type="date"
+                value="${escapeAttribute(date)}"
+              />
+
+            </label>
+
+
+            <label
+              class="teacher-form-field"
+            >
+
+              <span>
+                Start time
+                <span
+                  class="teacher-schedule-required"
+                >
+                  *
+                </span>
+              </span>
+
+              <input
+                id="teacherScheduleStartTimeInput"
+                type="time"
+                value="${escapeAttribute(startTime)}"
+              />
+
+            </label>
+
+
+            <label
+              class="teacher-form-field"
+            >
+
+              <span>
+                End time
+              </span>
+
+              <input
+                id="teacherScheduleEndTimeInput"
+                type="time"
+                value="${escapeAttribute(endTime)}"
+              />
+
+            </label>
+
+          </div>
+
+        </section>
+
+
+        <!-- ===========================================
+             MEETING
+        ============================================ -->
+
+        <section
+          class="teacher-schedule-editor-section"
+        >
+
+          <div
+            class="teacher-schedule-editor-section-header"
+          >
+
+            <strong>
+              Class access
+            </strong>
+
+            <span>
+              Add the online meeting link students and teachers will use.
+            </span>
+
+          </div>
+
+
+          <div
+            class="teacher-schedule-editor-grid"
+          >
+
+            <label
+              class="teacher-form-field teacher-form-field-full"
+            >
+
+              <span>
+                Meeting link
+              </span>
+
+              <input
+                id="teacherScheduleMeetingLinkInput"
+                type="url"
+                maxlength="500"
+                value="${escapeAttribute(meetingLink)}"
+                placeholder="https://meet.google.com/..."
+                autocomplete="off"
+              />
+
+              <small>
+                Leave blank for an in-person class or if no online meeting is needed.
+              </small>
+
+            </label>
+
+          </div>
+
+        </section>
+
+
+        <!-- ===========================================
+             NOTES
+        ============================================ -->
+
+        <section
+          class="teacher-schedule-editor-section"
+        >
+
+          <div
+            class="teacher-schedule-editor-section-header"
+          >
+
+            <strong>
+              Teaching notes
+            </strong>
+
+            <span>
+              Optional notes about the lesson, location, activity, or preparation.
+            </span>
+
+          </div>
+
+
+          <label
+            class="teacher-form-field"
+          >
+
+            <span>
+              Notes
+            </span>
+
+            <textarea
+              id="teacherScheduleNotesInput"
+              maxlength="3000"
+              rows="5"
+              placeholder="Add session notes..."
+            >${escapeHtml(notes)}</textarea>
+
+          </label>
+
+        </section>
+
+
+        ${
+          editing
+            ? `
+
+              <!-- =====================================
+                   STATUS
+              ====================================== -->
+
+              <section
+                class="teacher-schedule-editor-section"
+              >
+
+                <div
+                  class="teacher-schedule-editor-section-header"
+                >
+
+                  <strong>
+                    Session status
+                  </strong>
+
+                  <span>
+                    Update the lifecycle of this scheduled class.
+                  </span>
+
+                </div>
+
+
+                <label
+                  class="teacher-form-field"
+                >
+
+                  <span>
+                    Status
+                  </span>
+
+                  <select
+                    id="teacherScheduleStatusInput"
+                  >
+
+                    <option
+                      value="scheduled"
+                      ${
+                        status ===
+                        "scheduled"
+                          ? "selected"
+                          : ""
+                      }
+                    >
+                      Scheduled
+                    </option>
+
+                    <option
+                      value="completed"
+                      ${
+                        status ===
+                        "completed"
+                          ? "selected"
+                          : ""
+                      }
+                    >
+                      Completed
+                    </option>
+
+                    <option
+                      value="cancelled"
+                      ${
+                        status ===
+                        "cancelled"
+                          ? "selected"
+                          : ""
+                      }
+                    >
+                      Cancelled
+                    </option>
+
+                  </select>
+
+                </label>
+
+
+                <div
+                  class="teacher-schedule-status-help"
+                >
+                  <i
+                    class="fa-solid fa-circle-info"
+                    aria-hidden="true"
+                  ></i>
+
+                  <span>
+                    Completed sessions remain available in schedule history. Cancelled sessions are preserved until deleted.
+                  </span>
+                </div>
+
+              </section>
+
+            `
+            : ""
+        }
+
+      </div>
+
+
+      <!-- =============================================
+           ERROR
+      ============================================== -->
+
+      <div
+        id="teacherScheduleEditorError"
+        class="teacher-schedule-editor-error"
+        hidden
+      >
+
+        <i
+          class="fa-solid fa-circle-exclamation"
+          aria-hidden="true"
+        ></i>
+
+        <span
+          id="teacherScheduleEditorErrorText"
+        ></span>
+
+      </div>
+
+
+      <!-- =============================================
+           FOOTER
+      ============================================== -->
+
+      <footer
+        class="teacher-schedule-editor-footer"
+      >
+
+        <div
+          class="teacher-schedule-editor-footer-left"
+        >
+
+          ${
+            editing
+              ? `
+                <button
+                  type="button"
+                  class="teacher-secondary-button teacher-schedule-delete-button"
+                  data-teacher-action="delete-schedule"
+                  data-schedule-id="${escapeAttribute(scheduleId)}"
+                  ${
+                    teacherScheduleEditorState.deleting
+                      ? "disabled"
+                      : ""
+                  }
+                >
+                  <i
+                    class="fa-regular fa-trash-can"
+                    aria-hidden="true"
+                  ></i>
+
+                  Delete
+                </button>
+              `
+              : ""
+          }
+
+        </div>
+
+
+        <div
+          class="teacher-schedule-editor-footer-right"
+        >
+
+          <button
+            type="button"
+            class="teacher-secondary-button"
+            data-teacher-action="close-schedule-editor"
+            ${
+              teacherScheduleEditorState.saving ||
+              teacherScheduleEditorState.deleting
+                ? "disabled"
+                : ""
+            }
+          >
+            Cancel
+          </button>
+
+
+          <button
+            type="button"
+            id="teacherScheduleSaveButton"
+            class="teacher-primary-button"
+            data-teacher-action="save-schedule"
+            ${
+              teacherScheduleEditorState.saving ||
+              teacherScheduleEditorState.deleting
+                ? "disabled"
+                : ""
+            }
+          >
+
+            ${
+              teacherScheduleEditorState.saving
+                ? `
+                  <span
+                    class="teacher-schedule-save-spinner"
+                  ></span>
+
+                  Saving...
+                `
+                : `
+                  <i
+                    class="fa-regular fa-floppy-disk"
+                    aria-hidden="true"
+                  ></i>
+
+                  ${
+                    editing
+                      ? "Save changes"
+                      : "Create schedule"
+                  }
+                `
+            }
+
+          </button>
+
+        </div>
+
+      </footer>
+
+    </aside>
+  `;
+
+
+  /*
+    Focus the first useful field.
+  */
+
+  window.setTimeout(
+    () => {
+
+      const target =
+        editing
+          ? $(
+              "teacherScheduleTitleInput"
+            )
+          : $(
+              "teacherScheduleClassInput"
+            );
+
+
+      target?.focus();
+
+    },
+    50
+  );
+
+}
+
+
+/* =========================================================
+   EDITOR ERROR
+========================================================= */
+
+function setTeacherScheduleEditorError(
+  message =
+    ""
+){
+
+  const box =
+    $(
+      "teacherScheduleEditorError"
+    );
+
+
+  const text =
+    $(
+      "teacherScheduleEditorErrorText"
+    );
+
+
+  if(
+    !box ||
+    !text
+  ){
+
+    return;
+
+  }
+
+
+  const normalized =
+    safeString(
+      message
+    );
+
+
+  box.hidden =
+    !normalized;
+
+
+  text.textContent =
+    normalized;
+
+}
+
+
+/* =========================================================
+   OPEN SCHEDULE EDITOR
+========================================================= */
+
+function openTeacherScheduleEditor(
+  scheduleId =
+    ""
+){
+
+  const normalizedId =
+    normalizeId(
+      scheduleId
+    );
+
+
+  if(
+    normalizedId
+  ){
+
+    const schedule =
+      getTeacherScheduleById(
+        normalizedId
+      );
+
+
+    if(
+      !schedule
+    ){
+
+      notifyAIFTError(
+        "The selected schedule could not be found.",
+        {
+          title:
+            "Schedule unavailable"
+        }
+      );
+
+
+      return false;
+
+    }
+
+
+    teacherScheduleEditorState
+      .scheduleId =
+      normalizedId;
+
+
+    teacherScheduleWorkspaceState
+      .selectedScheduleId =
+      normalizedId;
+
+  }else{
+
+    const availableClasses =
+      getTeacherClasses();
+
+
+    if(
+      !availableClasses.length
+    ){
+
+      notifyAIFTWarning(
+        "No available class was found. A schedule must belong to a class you are allowed to manage.",
+        {
+          title:
+            "No class available"
+        }
+      );
+
+
+      return false;
+
+    }
+
+
+    /*
+      Respect class selected from Schedule filter/class shortcut.
+    */
+
+    const selectedClassId =
+      normalizeId(
+        teacherScheduleWorkspaceState
+          .classId
+      );
+
+
+    if(
+      selectedClassId &&
+      !getTeacherClassById(
+        selectedClassId
+      )
+    ){
+
+      teacherScheduleWorkspaceState
+        .classId =
+        "";
+
+    }
+
+
+    teacherScheduleEditorState
+      .scheduleId =
+      "";
+
+  }
+
+
+  teacherScheduleEditorState
+    .saving =
+    false;
+
+
+  teacherScheduleEditorState
+    .deleting =
+    false;
+
+
+  teacherScheduleEditorState
+    .open =
+    true;
+
+
+  /*
+    Prevent the page behind the editor from scrolling.
+  */
+
+  document.body.dataset
+    .scheduleEditorPreviousOverflow =
+    document.body.style
+      .overflow ||
+    "";
+
+
+  document.body.style.overflow =
+    "hidden";
+
+
+  renderTeacherScheduleEditor();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   CLOSE SCHEDULE EDITOR
+========================================================= */
+
+function closeTeacherScheduleEditor(){
+
+  if(
+    teacherScheduleEditorState
+      .saving ||
+    teacherScheduleEditorState
+      .deleting
+  ){
+
+    return false;
+
+  }
+
+
+  teacherScheduleEditorState
+    .open =
+    false;
+
+
+  teacherScheduleEditorState
+    .scheduleId =
+    "";
+
+
+  teacherScheduleWorkspaceState
+    .selectedScheduleId =
+    "";
+
+
+  const editor =
+    getTeacherScheduleEditor();
+
+
+  if(
+    editor
+  ){
+
+    editor.hidden =
+      true;
+
+
+    editor.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+
+    editor.innerHTML =
+      "";
+
+  }
+
+
+  const previousOverflow =
+    document.body.dataset
+      .scheduleEditorPreviousOverflow;
+
+
+  document.body.style.overflow =
+    previousOverflow ||
+    "";
+
+
+  delete document.body.dataset
+    .scheduleEditorPreviousOverflow;
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   NORMALIZE SCHEDULE URL
+========================================================= */
+
+function normalizeTeacherScheduleMeetingUrl(
+  value
+){
+
+  const raw =
+    safeString(
+      value
+    );
+
+
+  if(
+    !raw
+  ){
+
+    return "";
+
+  }
+
+
+  const normalized =
+    normalizeHttpUrl(
+      raw
+    );
+
+
+  return normalized;
+
+}
+
+
+/* =========================================================
+   BUILD SCHEDULE PAYLOAD
+========================================================= */
+
+function buildTeacherSchedulePayload(){
+
+  const editingScheduleId =
+    normalizeId(
+      teacherScheduleEditorState
+        .scheduleId
+    );
+
+
+  const existingSchedule =
+    editingScheduleId
+      ? getTeacherScheduleById(
+          editingScheduleId
+        )
+      : null;
+
+
+  const classId =
+    editingScheduleId
+      ? getTeacherScheduleClassId(
+          existingSchedule
+        )
+      : normalizeId(
+          $(
+            "teacherScheduleClassInput"
+          )?.value
+        );
+
+
+  const title =
+    safeString(
+      $(
+        "teacherScheduleTitleInput"
+      )?.value
+    );
+
+
+  const date =
+    safeString(
+      $(
+        "teacherScheduleDateInput"
+      )?.value
+    );
+
+
+  const startTime =
+    safeString(
+      $(
+        "teacherScheduleStartTimeInput"
+      )?.value
+    );
+
+
+  const endTime =
+    safeString(
+      $(
+        "teacherScheduleEndTimeInput"
+      )?.value
+    );
+
+
+  const meetingLinkRaw =
+    safeString(
+      $(
+        "teacherScheduleMeetingLinkInput"
+      )?.value
+    );
+
+
+  const notes =
+    safeString(
+      $(
+        "teacherScheduleNotesInput"
+      )?.value
+    );
+
+
+  const status =
+    editingScheduleId
+      ? safeString(
+          $(
+            "teacherScheduleStatusInput"
+          )?.value,
+          "scheduled"
+        )
+          .toLowerCase()
+      : "scheduled";
+
+
+  return {
+
+    classId,
+
+    title,
+
+    date,
+
+    /*
+      Backend currently maintains both legacy "time" and
+      canonical "startTime".
+
+      Send both consistently.
+    */
+
+    time:
+      startTime,
+
+    startTime,
+
+    endTime:
+      endTime ||
+      null,
+
+    meetingLink:
+      meetingLinkRaw,
+
+    notes:
+      notes ||
+      null,
+
+    status
+
+  };
+
+}
+
+
+/* =========================================================
+   VALIDATE SCHEDULE PAYLOAD
+========================================================= */
+
+function validateTeacherSchedulePayload(
+  payload,
+  {
+    editing =
+      false
+  } = {}
+){
+
+  if(
+    !payload.classId
+  ){
+
+    return {
+      valid:
+        false,
+
+      message:
+        "Select a class for this schedule."
+    };
+
+  }
+
+
+  const classItem =
+    getTeacherClassById(
+      payload.classId
+    );
+
+
+  if(
+    !classItem
+  ){
+
+    return {
+      valid:
+        false,
+
+      message:
+        "The selected class is not available to this Teacher Studio session."
+    };
+
+  }
+
+
+  if(
+    !payload.title
+  ){
+
+    return {
+      valid:
+        false,
+
+      message:
+        "Enter a title for the teaching session."
+    };
+
+  }
+
+
+  if(
+    payload.title.length >
+    140
+  ){
+
+    return {
+      valid:
+        false,
+
+      message:
+        "Schedule title cannot exceed 140 characters."
+    };
+
+  }
+
+
+  if(
+    !payload.date
+  ){
+
+    return {
+      valid:
+        false,
+
+      message:
+        "Select a date for the teaching session."
+    };
+
+  }
+
+
+  if(
+    !/^\d{4}-\d{2}-\d{2}$/.test(
+      payload.date
+    )
+  ){
+
+    return {
+      valid:
+        false,
+
+      message:
+        "The schedule date is invalid."
+    };
+
+  }
+
+
+  if(
+    !payload.startTime
+  ){
+
+    return {
+      valid:
+        false,
+
+      message:
+        "Select a start time."
+    };
+
+  }
+
+
+  if(
+    !/^\d{2}:\d{2}$/.test(
+      payload.startTime
+    )
+  ){
+
+    return {
+      valid:
+        false,
+
+      message:
+        "The start time is invalid."
+    };
+
+  }
+
+
+  if(
+    payload.endTime &&
+    !/^\d{2}:\d{2}$/.test(
+      payload.endTime
+    )
+  ){
+
+    return {
+      valid:
+        false,
+
+      message:
+        "The end time is invalid."
+    };
+
+  }
+
+
+  if(
+    payload.endTime &&
+    payload.endTime <=
+      payload.startTime
+  ){
+
+    return {
+      valid:
+        false,
+
+      message:
+        "End time must be later than the start time."
+    };
+
+  }
+
+
+  if(
+    payload.meetingLink
+  ){
+
+    const normalizedUrl =
+      normalizeTeacherScheduleMeetingUrl(
+        payload.meetingLink
+      );
+
+
+    if(
+      !normalizedUrl
+    ){
+
+      return {
+        valid:
+          false,
+
+        message:
+          "Enter a valid HTTP or HTTPS meeting link."
+      };
+
+    }
+
+
+    payload.meetingLink =
+      normalizedUrl;
+
+  }else{
+
+    payload.meetingLink =
+      null;
+
+  }
+
+
+  if(
+    payload.notes &&
+    payload.notes.length >
+    3000
+  ){
+
+    return {
+      valid:
+        false,
+
+      message:
+        "Schedule notes cannot exceed 3,000 characters."
+    };
+
+  }
+
+
+  if(
+    editing &&
+    ![
+      "scheduled",
+      "completed",
+      "cancelled"
+    ].includes(
+      payload.status
+    )
+  ){
+
+    return {
+      valid:
+        false,
+
+      message:
+        "The selected schedule status is invalid."
+    };
+
+  }
+
+
+  return {
+    valid:
+      true,
+
+    message:
+      ""
+  };
+
+}
+
+
+/* =========================================================
+   SAVE SCHEDULE
+========================================================= */
+
+async function saveTeacherSchedule(){
+
+  if(
+    teacherScheduleEditorState
+      .saving ||
+    teacherScheduleEditorState
+      .deleting
+  ){
+
+    return false;
+
+  }
+
+
+  const scheduleId =
+    normalizeId(
+      teacherScheduleEditorState
+        .scheduleId
+    );
+
+
+  const editing =
+    Boolean(
+      scheduleId
+    );
+
+
+  const payload =
+    buildTeacherSchedulePayload();
+
+
+  const validation =
+    validateTeacherSchedulePayload(
+      payload,
+      {
+        editing
+      }
+    );
+
+
+  if(
+    !validation.valid
+  ){
+
+    setTeacherScheduleEditorError(
+      validation.message
+    );
+
+
+    return false;
+
+  }
+
+
+  /*
+    classId must not be sent when PATCHing because the backend
+    intentionally prevents transfer to a different class.
+  */
+
+  const requestPayload =
+    editing
+      ? {
+          title:
+            payload.title,
+
+          date:
+            payload.date,
+
+          time:
+            payload.startTime,
+
+          startTime:
+            payload.startTime,
+
+          endTime:
+            payload.endTime,
+
+          meetingLink:
+            payload.meetingLink,
+
+          notes:
+            payload.notes,
+
+          status:
+            payload.status
+        }
+      : {
+          classId:
+            payload.classId,
+
+          title:
+            payload.title,
+
+          date:
+            payload.date,
+
+          time:
+            payload.startTime,
+
+          startTime:
+            payload.startTime,
+
+          endTime:
+            payload.endTime,
+
+          meetingLink:
+            payload.meetingLink,
+
+          notes:
+            payload.notes
+        };
+
+
+  teacherScheduleEditorState
+    .saving =
+    true;
+
+
+  setTeacherScheduleEditorError(
+    ""
+  );
+
+
+  renderTeacherScheduleEditor();
+
+
+  try{
+
+    const response =
+      editing
+        ? await apiPatch(
+            `/api/schedules/${
+              encodeURIComponent(
+                scheduleId
+              )
+            }`,
+            requestPayload
+          )
+        : await apiPost(
+            "/api/schedules",
+            requestPayload
+          );
+
+
+    const savedSchedule =
+      response?.schedule ||
+      response?.data ||
+      response;
+
+
+    if(
+      !savedSchedule ||
+      typeof savedSchedule !==
+        "object" ||
+      !getTeacherScheduleId(
+        savedSchedule
+      )
+    ){
+
+      throw new Error(
+        "The server did not return the saved schedule."
+      );
+
+    }
+
+
+    replaceTeacherScheduleInState(
+      savedSchedule
+    );
+
+
+    teacherScheduleWorkspaceState
+      .classId =
+      getTeacherScheduleClassId(
+        savedSchedule
+      ) ||
+      teacherScheduleWorkspaceState
+        .classId;
+
+
+    teacherScheduleEditorState
+      .saving =
+      false;
+
+
+    closeTeacherScheduleEditor();
+
+
+    renderTeacherScheduleWorkspace();
+
+
+    /*
+      Keep Dashboard schedule preview synchronized.
+    */
+
+    if(
+      typeof renderTeacherOverviewSchedule ===
+      "function"
+    ){
+
+      renderTeacherOverviewSchedule();
+
+    }
+
+
+    notifyAIFTSuccess(
+      editing
+        ? "Schedule updated successfully."
+        : "Schedule created successfully.",
+      {
+        title:
+          editing
+            ? "Schedule updated"
+            : "Schedule created"
+      }
+    );
+
+
+    return savedSchedule;
+
+  }catch(
+    error
+  ){
+
+    teacherScheduleEditorState
+      .saving =
+      false;
+
+
+    console.error(
+      "saveTeacherSchedule error:",
+      error
+    );
+
+
+    /*
+      Re-render first because the previous saving render replaced
+      the form DOM.
+    */
+
+    renderTeacherScheduleEditor();
+
+
+    setTeacherScheduleEditorError(
+      getErrorMessage(
+        error,
+        editing
+          ? "The schedule could not be updated."
+          : "The schedule could not be created."
+      )
+    );
+
+
+    return false;
+
+  }
+
+}
+
+
+/* =========================================================
+   DELETE SCHEDULE
+========================================================= */
+
+async function deleteTeacherSchedule(
+  scheduleId =
+    ""
+){
+
+  if(
+    teacherScheduleEditorState
+      .saving ||
+    teacherScheduleEditorState
+      .deleting
+  ){
+
+    return false;
+
+  }
+
+
+  const normalizedScheduleId =
+    normalizeId(
+      scheduleId ||
+      teacherScheduleEditorState
+        .scheduleId
+    );
+
+
+  const schedule =
+    getTeacherScheduleById(
+      normalizedScheduleId
+    );
+
+
+  if(
+    !schedule
+  ){
+
+    notifyAIFTError(
+      "The selected schedule is no longer available.",
+      {
+        title:
+          "Schedule unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const confirmed =
+    window.confirm(
+      `Delete "${getTeacherScheduleTitle(
+        schedule
+      )}"?\n\nThis schedule will be permanently removed. This action cannot be undone.`
+    );
+
+
+  if(
+    !confirmed
+  ){
+
+    return false;
+
+  }
+
+
+  teacherScheduleEditorState
+    .deleting =
+    true;
+
+
+  renderTeacherScheduleEditor();
+
+
+  try{
+
+    await apiDelete(
+      `/api/schedules/${
+        encodeURIComponent(
+          normalizedScheduleId
+        )
+      }`
+    );
+
+
+    removeTeacherScheduleFromState(
+      normalizedScheduleId
+    );
+
+
+    teacherScheduleEditorState
+      .deleting =
+      false;
+
+
+    closeTeacherScheduleEditor();
+
+
+    renderTeacherScheduleWorkspace();
+
+
+    if(
+      typeof renderTeacherOverviewSchedule ===
+      "function"
+    ){
+
+      renderTeacherOverviewSchedule();
+
+    }
+
+
+    notifyAIFTSuccess(
+      "The schedule was deleted.",
+      {
+        title:
+          "Schedule deleted"
+      }
+    );
+
+
+    return true;
+
+  }catch(
+    error
+  ){
+
+    teacherScheduleEditorState
+      .deleting =
+      false;
+
+
+    console.error(
+      "deleteTeacherSchedule error:",
+      error
+    );
+
+
+    renderTeacherScheduleEditor();
+
+
+    setTeacherScheduleEditorError(
+      getErrorMessage(
+        error,
+        "The schedule could not be deleted."
+      )
+    );
+
+
+    return false;
+
+  }
+
+}
+
+
+/* =========================================================
+   OPEN SCHEDULE MEETING
+========================================================= */
+
+function openTeacherScheduleMeeting(
+  scheduleId
+){
+
+  const schedule =
+    getTeacherScheduleById(
+      scheduleId
+    );
+
+
+  if(
+    !schedule
+  ){
+
+    notifyAIFTError(
+      "The selected schedule is no longer available.",
+      {
+        title:
+          "Schedule unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const meetingLink =
+    getTeacherScheduleMeetingLink(
+      schedule
+    );
+
+
+  if(
+    !meetingLink
+  ){
+
+    notifyAIFTWarning(
+      "No meeting link has been added to this schedule.",
+      {
+        title:
+          "Meeting link unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  window.open(
+    meetingLink,
+    "_blank",
+    "noopener,noreferrer"
+  );
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   ESCAPE KEY
+========================================================= */
+
+function handleTeacherScheduleEditorKeydown(
+  event
+){
+
+  if(
+    event.key !==
+      "Escape" ||
+    !teacherScheduleEditorState
+      .open
+  ){
+
+    return;
+
+  }
+
+
+  closeTeacherScheduleEditor();
+
+}
+
+
+/* =========================================================
+   INITIALIZE SCHEDULE CRUD
+========================================================= */
+
+function initializeTeacherScheduleCrud(){
+
+  if(
+    teacherScheduleEditorState
+      .initialized
+  ){
+
+    return;
+
+  }
+
+
+  teacherScheduleEditorState
+    .initialized =
+    true;
+
+
+  ensureTeacherScheduleEditor();
+
+
+  document.addEventListener(
+    "keydown",
+    handleTeacherScheduleEditorKeydown
+  );
+
+}
+
+
+/* =========================================================
+   EXPORT TO CENTRAL ACTION CONTROLLER
+
+   callTeacherActionFunction() resolves functions through:
+     window[functionName]
+========================================================= */
+
+window.openTeacherScheduleEditor =
+  openTeacherScheduleEditor;
+
+
+window.closeTeacherScheduleEditor =
+  closeTeacherScheduleEditor;
+
+
+window.saveTeacherSchedule =
+  saveTeacherSchedule;
+
+
+window.deleteTeacherSchedule =
+  deleteTeacherSchedule;
+
+
+window.openTeacherScheduleMeeting =
+  openTeacherScheduleMeeting;
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+initializeTeacherScheduleCrud();
+
+
+/* =========================================================
+   PART 9B COMPLETE
+
+   SCHEDULE NOW SUPPORTS:
+
+   - real assigned-class dropdown
+   - create schedule
+   - edit schedule
+   - date
+   - start time
+   - end time
+   - meeting URL
+   - teaching notes
+   - status update
+   - delete
+   - Join meeting
+   - local state reconciliation
+   - Schedule workspace refresh
+   - Dashboard Schedule synchronization
+   - server-side permission enforcement
+========================================================= */
+
+
+
+
+
+
+
 /* =========================================================
    AIFT TEACHER STUDIO
    PRODUCTION REPLACEMENT
