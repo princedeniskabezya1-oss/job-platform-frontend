@@ -27540,6 +27540,496 @@ a.teacher-icon-button{
       }
 
     }
+
+
+    /* =========================================================
+   TEACHER SCHEDULE EDITOR
+   Production side-panel editor
+========================================================= */
+
+.teacher-schedule-editor{
+  position:fixed;
+  inset:0;
+  z-index:7600;
+}
+
+.teacher-schedule-editor[hidden]{
+  display:none!important;
+}
+
+
+/* =========================================================
+   OVERLAY
+========================================================= */
+
+.teacher-schedule-editor-overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(15,23,42,.38);
+  backdrop-filter:blur(3px);
+}
+
+
+/* =========================================================
+   PANEL
+========================================================= */
+
+.teacher-schedule-editor-panel{
+  position:absolute;
+  top:0;
+  right:0;
+
+  display:flex;
+  flex-direction:column;
+
+  width:min(
+    620px,
+    calc(100vw - 24px)
+  );
+
+  height:100%;
+
+  overflow:hidden;
+
+  border-left:
+    1px solid
+    var(--teacher-border);
+
+  background:#ffffff;
+
+  box-shadow:
+    -20px 0 50px
+    rgba(15,23,42,.18);
+
+  animation:
+    teacherScheduleEditorIn
+    180ms ease;
+}
+
+
+@keyframes teacherScheduleEditorIn{
+
+  from{
+    opacity:.65;
+    transform:translateX(18px);
+  }
+
+  to{
+    opacity:1;
+    transform:none;
+  }
+
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.teacher-schedule-editor-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+
+  gap:16px;
+
+  padding:18px 18px 16px;
+
+  border-bottom:
+    1px solid
+    var(--teacher-border);
+
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff,
+      #fbfdff
+    );
+}
+
+
+.teacher-schedule-editor-header-copy{
+  min-width:0;
+}
+
+
+.teacher-schedule-editor-eyebrow{
+  display:block;
+
+  margin-bottom:4px;
+
+  color:
+    var(--teacher-primary);
+
+  font-size:9px;
+  font-weight:800;
+
+  letter-spacing:.075em;
+
+  text-transform:uppercase;
+}
+
+
+.teacher-schedule-editor-header h2{
+  margin:0;
+
+  color:
+    var(--teacher-text);
+
+  font-size:19px;
+  font-weight:800;
+
+  letter-spacing:-.025em;
+}
+
+
+.teacher-schedule-editor-header p{
+  max-width:450px;
+
+  margin-top:5px;
+
+  color:
+    var(--teacher-muted);
+
+  font-size:11px;
+  line-height:1.5;
+}
+
+
+/* =========================================================
+   CLOSE BUTTON
+========================================================= */
+
+.teacher-schedule-editor-close{
+  display:grid;
+  place-items:center;
+
+  flex:0 0 auto;
+
+  width:36px;
+  height:36px;
+
+  padding:0;
+
+  border:
+    1px solid
+    var(--teacher-border);
+
+  border-radius:9px;
+
+  background:#ffffff;
+
+  color:
+    var(--teacher-text-secondary);
+
+  font-size:14px;
+}
+
+
+.teacher-schedule-editor-close:hover{
+  border-color:
+    var(--teacher-border-strong);
+
+  background:
+    var(--teacher-surface-hover);
+
+  color:
+    var(--teacher-primary);
+}
+
+
+/* =========================================================
+   BODY
+========================================================= */
+
+.teacher-schedule-editor-body{
+  flex:1;
+
+  min-height:0;
+
+  overflow-y:auto;
+
+  padding:18px;
+}
+
+
+/* =========================================================
+   SECTION
+========================================================= */
+
+.teacher-schedule-editor-section{
+  margin-bottom:20px;
+
+  padding-bottom:20px;
+
+  border-bottom:
+    1px solid
+    var(--teacher-border);
+}
+
+
+.teacher-schedule-editor-section:last-child{
+  margin-bottom:0;
+  padding-bottom:0;
+  border-bottom:0;
+}
+
+
+.teacher-schedule-editor-section-header{
+  margin-bottom:12px;
+}
+
+
+.teacher-schedule-editor-section-header strong{
+  display:block;
+
+  color:
+    var(--teacher-text);
+
+  font-size:12px;
+  font-weight:750;
+}
+
+
+.teacher-schedule-editor-section-header span{
+  display:block;
+
+  margin-top:2px;
+
+  color:
+    var(--teacher-muted);
+
+  font-size:10px;
+}
+
+
+/* =========================================================
+   FORM GRID
+========================================================= */
+
+.teacher-schedule-editor-grid{
+  display:grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0,1fr)
+    );
+
+  gap:13px;
+}
+
+
+.teacher-schedule-editor-grid
+.teacher-form-field-full{
+  grid-column:
+    1 / -1;
+}
+
+
+/* =========================================================
+   REQUIRED
+========================================================= */
+
+.teacher-schedule-required{
+  color:
+    var(--teacher-danger);
+}
+
+
+/* =========================================================
+   STATUS HELP
+========================================================= */
+
+.teacher-schedule-status-help{
+  display:flex;
+  align-items:flex-start;
+
+  gap:8px;
+
+  margin-top:7px;
+
+  padding:9px 10px;
+
+  border:
+    1px solid
+    var(--teacher-border);
+
+  border-radius:8px;
+
+  background:
+    var(--teacher-surface-soft);
+
+  color:
+    var(--teacher-muted);
+
+  font-size:10px;
+  line-height:1.45;
+}
+
+
+.teacher-schedule-status-help i{
+  margin-top:1px;
+
+  color:
+    var(--teacher-primary);
+}
+
+
+/* =========================================================
+   SAVE ERROR
+========================================================= */
+
+.teacher-schedule-editor-error{
+  display:flex;
+  align-items:flex-start;
+
+  gap:8px;
+
+  margin:0 18px 14px;
+
+  padding:10px 12px;
+
+  border:
+    1px solid #fecaca;
+
+  border-radius:9px;
+
+  background:
+    var(--teacher-danger-soft);
+
+  color:
+    var(--teacher-danger);
+
+  font-size:11px;
+  line-height:1.45;
+}
+
+
+.teacher-schedule-editor-error[hidden]{
+  display:none!important;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.teacher-schedule-editor-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  gap:10px;
+
+  padding:14px 18px;
+
+  border-top:
+    1px solid
+    var(--teacher-border);
+
+  background:#ffffff;
+}
+
+
+.teacher-schedule-editor-footer-left,
+.teacher-schedule-editor-footer-right{
+  display:flex;
+  align-items:center;
+
+  gap:8px;
+}
+
+
+.teacher-schedule-delete-button{
+  border-color:#fecaca!important;
+
+  background:#fffafa!important;
+
+  color:#b91c1c!important;
+}
+
+
+.teacher-schedule-delete-button:hover{
+  background:#fef2f2!important;
+}
+
+
+/* =========================================================
+   SAVE SPINNER
+========================================================= */
+
+.teacher-schedule-save-spinner{
+  width:13px;
+  height:13px;
+
+  border:
+    2px solid
+    rgba(255,255,255,.38);
+
+  border-top-color:
+    #ffffff;
+
+  border-radius:50%;
+
+  animation:
+    teacherScheduleSpin
+    .7s linear infinite;
+}
+
+
+@keyframes teacherScheduleSpin{
+
+  to{
+    transform:rotate(360deg);
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media(
+  max-width:700px
+){
+
+  .teacher-schedule-editor-panel{
+    width:100%;
+  }
+
+
+  .teacher-schedule-editor-grid{
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .teacher-schedule-editor-grid
+  .teacher-form-field-full{
+    grid-column:auto;
+  }
+
+
+  .teacher-schedule-editor-footer{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+
+  .teacher-schedule-editor-footer-left,
+  .teacher-schedule-editor-footer-right{
+    width:100%;
+  }
+
+
+  .teacher-schedule-editor-footer
+  button{
+    flex:1;
+  }
+
+}
     
   </style>
 
