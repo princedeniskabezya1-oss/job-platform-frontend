@@ -58139,10 +58139,303 @@ async function openTeacherClassAttendance(
 
 }
 
+/* =========================================================
+   CLASS BUILDER ACCESS CONTROL
+========================================================= */
+
 
 /* =========================================================
-   CLASS BUILDER
+   CLASS BUILDER ROLE
 ========================================================= */
+
+function getTeacherClassBuilderRole(){
+
+  return normalizeRole(
+    getAuthenticatedRole()
+  );
+
+}
+
+
+/* =========================================================
+   CLASS SCHOOL ID
+========================================================= */
+
+function getTeacherClassBuilderSchoolId(
+  classItem
+){
+
+  return normalizeId(
+
+    classItem?.schoolId?._id ||
+
+    classItem?.schoolId ||
+
+    classItem?.school?._id ||
+
+    classItem?.school ||
+
+    ""
+
+  );
+
+}
+
+
+/* =========================================================
+   CLASS ASSIGNED TEACHER ID
+========================================================= */
+
+function getTeacherClassBuilderTeacherId(
+  classItem
+){
+
+  return normalizeId(
+
+    classItem?.teacherId?._id ||
+
+    classItem?.teacherId ||
+
+    classItem?.teacher?._id ||
+
+    classItem?.teacher ||
+
+    ""
+
+  );
+
+}
+
+
+/* =========================================================
+   CAN CURRENT USER OPEN THIS CLASS BUILDER
+
+   SECURITY MODEL
+   ---------------------------------------------------------
+
+   ADMIN:
+     Can open classes available to the authenticated admin.
+
+   SCHOOL:
+     Can only open classes belonging to that School.
+
+   TEACHER:
+     Must be explicitly assigned as class.teacherId.
+
+   Frontend checks are UX + defense in depth only.
+
+   /api/classes/:classId/builder MUST independently enforce
+   these rules on the backend.
+========================================================= */
+
+function canOpenTeacherClassBuilder(
+  classItem
+){
+
+  if (
+    !classItem
+  ){
+
+    return false;
+
+  }
+
+
+  const role =
+    getTeacherClassBuilderRole();
+
+
+  const authenticatedUserId =
+    normalizeId(
+      getAuthenticatedUserId()
+    );
+
+
+  const teacherId =
+    normalizeId(
+      getTeacherId()
+    );
+
+
+  const currentSchoolId =
+    normalizeId(
+      getSchoolId()
+    );
+
+
+  const classTeacherId =
+    getTeacherClassBuilderTeacherId(
+      classItem
+    );
+
+
+  const classSchoolId =
+    getTeacherClassBuilderSchoolId(
+      classItem
+    );
+
+
+  /* =====================================================
+     ADMIN
+  ===================================================== */
+
+  if (
+    role ===
+    "admin"
+  ){
+
+    return true;
+
+  }
+
+
+  /* =====================================================
+     SCHOOL
+  ===================================================== */
+
+  if (
+    role ===
+    "school"
+  ){
+
+    return Boolean(
+      currentSchoolId &&
+      classSchoolId &&
+      sameId(
+        currentSchoolId,
+        classSchoolId
+      )
+    );
+
+  }
+
+
+  /* =====================================================
+     TEACHER
+  ===================================================== */
+
+  if (
+    role ===
+    "teacher"
+  ){
+
+    const effectiveTeacherId =
+      teacherId ||
+      authenticatedUserId;
+
+
+    if (
+      !effectiveTeacherId ||
+      !classTeacherId
+    ){
+
+      return false;
+
+    }
+
+
+    /*
+      Teacher must be the assigned instructor.
+    */
+
+    if (
+      !sameId(
+        effectiveTeacherId,
+        classTeacherId
+      )
+    ){
+
+      return false;
+
+    }
+
+
+    /*
+      If both School IDs are available, they must also match.
+
+      This protects against malformed or stale class data.
+    */
+
+    if (
+      currentSchoolId &&
+      classSchoolId &&
+      !sameId(
+        currentSchoolId,
+        classSchoolId
+      )
+    ){
+
+      return false;
+
+    }
+
+
+    return true;
+
+  }
+
+
+  return false;
+
+}
+
+
+/* =========================================================
+   GET CLASSES AVAILABLE TO CLASS BUILDER
+========================================================= */
+
+function getTeacherClassBuilderClasses(){
+
+  return asArray(
+    state.classes
+  )
+    .filter(
+      classItem =>
+        canOpenTeacherClassBuilder(
+          classItem
+        )
+    );
+
+}
+
+
+/* =========================================================
+   FIND AN AUTHORIZED CLASS
+========================================================= */
+
+function getAuthorizedTeacherClassBuilderClass(
+  classId
+){
+
+  const normalizedClassId =
+    normalizeId(
+      classId
+    );
+
+
+  if (
+    !normalizedClassId
+  ){
+
+    return null;
+
+  }
+
+
+  return (
+    getTeacherClassBuilderClasses()
+      .find(
+        classItem =>
+          sameId(
+            classItem?._id ||
+            classItem?.id,
+            normalizedClassId
+          )
+      ) ||
+    null
+  );
+
+}
 
 
 /* =========================================================
@@ -58209,28 +58502,30 @@ function openTeacherClassBuilderForClass(
   }
 
 
+  /*
+    IMPORTANT:
+
+    Do NOT accept an arbitrary classId merely because it exists
+    in the URL or came from a clicked element.
+
+    Resolve it again through the authorized Builder collection.
+  */
+
   const classItem =
-    getTeacherClassById(
+    getAuthorizedTeacherClassBuilderClass(
       normalizedClassId
     );
 
-
-  /*
-    Frontend validation is UX only.
-
-    routes/classes.js remains authoritative for the actual
-    teacher/school/admin Class Builder permission.
-  */
 
   if (
     !classItem
   ){
 
     notifyAIFTError(
-      "This class is not available to your teacher account.",
+      "You do not have permission to open Class Builder for this class.",
       {
         title:
-          "Class unavailable"
+          "Class Builder access denied"
       }
     );
 
@@ -58266,32 +58561,30 @@ function openTeacherClassBuilderForClass(
 
 /* =========================================================
    OPEN CLASS BUILDER FROM SIDEBAR / DASHBOARD
-
-   One assigned class:
-     open immediately.
-
-   Multiple assigned classes:
-     open My Classes so the teacher can choose the correct
-     Class Builder button.
-
-   This prevents accidentally opening the wrong class.
 ========================================================= */
 
 async function openTeacherClassBuilder(){
 
   const classes =
-    getTeacherClasses();
+    getTeacherClassBuilderClasses();
 
+
+  /* =====================================================
+     NO AUTHORIZED CLASSES
+  ===================================================== */
 
   if (
     !classes.length
   ){
 
     notifyAIFTInfo(
-      "You do not currently have an assigned class.",
+      getTeacherClassBuilderRole() ===
+        "teacher"
+        ? "You are not currently assigned to a class that you can open in Class Builder."
+        : "There are no classes available for Class Builder.",
       {
         title:
-          "No assigned classes"
+          "No Class Builder access"
       }
     );
 
@@ -58301,24 +58594,38 @@ async function openTeacherClassBuilder(){
   }
 
 
+  /* =====================================================
+     EXACTLY ONE CLASS
+  ===================================================== */
+
   if (
     classes.length ===
     1
   ){
 
     return openTeacherClassBuilderForClass(
+
       classes[0]?._id ||
+
       classes[0]?.id
+
     );
 
   }
 
 
+  /* =====================================================
+     MULTIPLE CLASSES
+
+     Send the teacher to My Classes where each class card
+     individually applies the same authorization check.
+  ===================================================== */
+
   notifyAIFTInfo(
     "Choose the class you want to open in Class Builder.",
     {
       title:
-        "Select a class"
+        "Select an authorized class"
     }
   );
 
@@ -58331,7 +58638,6 @@ async function openTeacherClassBuilder(){
   return true;
 
 }
-
 
 /* =========================================================
    CLASS -> SCHEDULE
