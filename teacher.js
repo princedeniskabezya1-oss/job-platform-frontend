@@ -69757,33 +69757,54 @@ const supportedActions =
     "close-support-request"
 
   ]);
-    .forEach(
-      element => {
 
-        const action =
-          safeString(
-            element.dataset
-              .teacherAction
+
+/* =========================================================
+   AUDIT DATA-TEACHER-ACTION REFERENCES
+
+   Every element using:
+
+     data-teacher-action="..."
+
+   must either:
+
+     1. have a real central action-controller handler
+     2. be listed in supportedActions
+
+   Unknown actions are surfaced by the runtime audit.
+========================================================= */
+
+document
+  .querySelectorAll(
+    "[data-teacher-action]"
+  )
+  .forEach(
+    element => {
+
+      const action =
+        safeString(
+          element.dataset
+            .teacherAction
+        );
+
+
+      if (
+        action &&
+        !supportedActions.has(
+          action
+        )
+      ){
+
+        report
+          .unresolvedActions
+          .push(
+            action
           );
 
-
-        if (
-          action &&
-          !supportedActions.has(
-            action
-          )
-        ){
-
-          report
-            .unresolvedActions
-            .push(
-              action
-            );
-
-        }
-
       }
-    );
+
+    }
+  );
 
 
   report.unresolvedActions =
