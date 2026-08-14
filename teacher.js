@@ -57755,8 +57755,7 @@ function getTeacherAnalyticsAssignmentRecords(){
 ========================================================= */
 
 function renderTeacherAnalyticsAssignmentPerformance(
-  targetId =
-    "teacherAnalyticsAssignments"
+  targetId
 ){
 
   const container =
@@ -57786,11 +57785,32 @@ function renderTeacherAnalyticsAssignmentPerformance(
       <section
         class="teacher-analytics-table-card"
       >
+
+        <div
+          class="teacher-selected-section-head"
+        >
+
+          <div>
+
+            <h3>
+              Assignment performance
+            </h3>
+
+            <p>
+              Submission completion, grading progress and current deadlines.
+            </p>
+
+          </div>
+
+        </div>
+
+
         <div
           class="teacher-inline-empty"
         >
           No assignments are available in the current analytics scope.
         </div>
+
       </section>
     `;
 
@@ -57825,131 +57845,281 @@ function renderTeacherAnalyticsAssignmentPerformance(
 
 
       <div
-        class="teacher-analytics-assignment-list"
+        class="teacher-analytics-assignment-scroll"
       >
 
-        ${
-          assignments
-            .slice(
-              0,
-              40
-            )
-            .map(
-              item => `
-                <button
-                  type="button"
-                  class="
-                    teacher-analytics-assignment-row
-                    ${
-                      item.overdue
-                        ? "needs-attention"
-                        : ""
-                    }
-                  "
-                  data-teacher-action="analytics-open-assignment"
-                  data-assignment-id="${escapeAttribute(item.assignmentId)}"
-                >
+        <div
+          class="teacher-analytics-assignment-header"
+          aria-hidden="true"
+        >
 
-                  <span
-                    class="teacher-analytics-assignment-title"
-                  >
+          <span>
+            Assignment
+          </span>
 
-                    <strong>
-                      ${escapeHtml(
+          <span>
+            Submitted
+          </span>
+
+          <span>
+            Completion
+          </span>
+
+          <span>
+            Pending
+          </span>
+
+          <span>
+            Avg. grade
+          </span>
+
+          <span>
+            Status
+          </span>
+
+          <span></span>
+
+        </div>
+
+
+        <div
+          class="teacher-analytics-assignment-list"
+        >
+
+          ${
+            assignments
+              .slice(
+                0,
+                40
+              )
+              .map(
+                item => {
+
+                  const hasExpectedStudents =
+                    item.expected >
+                    0;
+
+                  const completionLabel =
+                    hasExpectedStudents
+                      ? `${item.completion}%`
+                      : "—";
+
+                  const submittedLabel =
+                    hasExpectedStudents
+                      ? `${item.submitted}/${item.expected}`
+                      : "—";
+
+                  const gradeLabel =
+                    item.averageGrade ===
+                    null
+                      ? "—"
+                      : `${item.averageGrade}%`;
+
+
+                  let statusLabel =
+                    "Open";
+
+                  let statusClass =
+                    "";
+
+
+                  if (
+                    !hasExpectedStudents
+                  ){
+
+                    statusLabel =
+                      "No students";
+
+                    statusClass =
+                      "is-empty";
+
+                  }else if (
+                    item.overdue
+                  ){
+
+                    statusLabel =
+                      "Overdue";
+
+                    statusClass =
+                      "is-overdue";
+
+                  }else if (
+                    item.completion >=
+                      100 &&
+                    item.pending ===
+                      0
+                  ){
+
+                    statusLabel =
+                      "Complete";
+
+                    statusClass =
+                      "is-complete";
+
+                  }else if (
+                    item.pending >
+                    0
+                  ){
+
+                    statusLabel =
+                      "Grading";
+
+                  }
+
+
+                  return `
+                    <button
+                      type="button"
+                      class="
+                        teacher-analytics-assignment-row
+                        ${
+                          item.overdue
+                            ? "needs-attention"
+                            : ""
+                        }
+                      "
+                      data-teacher-action="analytics-open-assignment"
+                      data-assignment-id="${escapeAttribute(item.assignmentId)}"
+                      aria-label="Open ${escapeAttribute(
                         getTeacherAssignmentTitle(
                           item.assignment
                         )
-                      )}
-                    </strong>
+                      )}"
+                    >
 
-                    <small>
-                      ${escapeHtml(
-                        getTeacherClassTitle(
-                          item.classItem ||
-                          {}
-                        )
-                      )}
-                    </small>
+                      <span
+                        class="teacher-analytics-assignment-title"
+                      >
 
-                  </span>
+                        <strong>
+                          ${escapeHtml(
+                            getTeacherAssignmentTitle(
+                              item.assignment
+                            )
+                          )}
+                        </strong>
 
+                        <small>
+                          ${escapeHtml(
+                            getTeacherClassTitle(
+                              item.classItem ||
+                              {}
+                            )
+                          )}
+                        </small>
 
-                  <span>
-                    <strong>
-                      ${item.submitted}/${item.expected}
-                    </strong>
-
-                    <small>
-                      Submitted
-                    </small>
-                  </span>
-
-
-                  <span>
-                    <strong>
-                      ${item.completion}%
-                    </strong>
-
-                    <small>
-                      Completion
-                    </small>
-                  </span>
+                      </span>
 
 
-                  <span>
-                    <strong>
-                      ${item.pending}
-                    </strong>
+                      <span
+                        class="teacher-analytics-assignment-metric"
+                      >
 
-                    <small>
-                      Pending
-                    </small>
-                  </span>
+                        <strong>
+                          ${submittedLabel}
+                        </strong>
 
+                        <small>
+                          Submitted
+                        </small>
 
-                  <span>
-                    <strong>
-                      ${
-                        item.averageGrade ===
-                        null
-                          ? "—"
-                          : `${item.averageGrade}%`
-                      }
-                    </strong>
-
-                    <small>
-                      Avg. grade
-                    </small>
-                  </span>
+                      </span>
 
 
-                  <span
-                    class="${
-                      item.overdue
-                        ? "metric-warning"
-                        : ""
-                    }"
-                  >
-                    ${
-                      item.overdue
-                        ? "Overdue"
-                        : "Open"
-                    }
-                  </span>
+                      <span
+                        class="
+                          teacher-analytics-assignment-metric
+                          teacher-analytics-assignment-completion
+                        "
+                      >
+
+                        <strong>
+                          ${completionLabel}
+                        </strong>
+
+                        ${
+                          hasExpectedStudents
+                            ? `
+                              <span
+                                class="teacher-analytics-assignment-progress"
+                                aria-hidden="true"
+                              >
+                                <span
+                                  style="width:${clampPercentage(
+                                    item.completion
+                                  )}%"
+                                ></span>
+                              </span>
+                            `
+                            : ""
+                        }
+
+                      </span>
 
 
-                  <i
-                    class="fa-solid fa-chevron-right"
-                    aria-hidden="true"
-                  ></i>
+                      <span
+                        class="teacher-analytics-assignment-metric"
+                      >
 
-                </button>
-              `
-            )
-            .join(
-              ""
-            )
-        }
+                        <strong
+                          class="${
+                            item.pending >
+                            0
+                              ? "metric-warning"
+                              : ""
+                          }"
+                        >
+                          ${item.pending}
+                        </strong>
+
+                        <small>
+                          Pending
+                        </small>
+
+                      </span>
+
+
+                      <span
+                        class="teacher-analytics-assignment-metric"
+                      >
+
+                        <strong>
+                          ${gradeLabel}
+                        </strong>
+
+                        <small>
+                          Average grade
+                        </small>
+
+                      </span>
+
+
+                      <span
+                        class="
+                          teacher-analytics-assignment-status
+                          ${statusClass}
+                        "
+                      >
+                        ${statusLabel}
+                      </span>
+
+
+                      <i
+                        class="fa-solid fa-chevron-right"
+                        aria-hidden="true"
+                      ></i>
+
+                    </button>
+                  `;
+
+                }
+              )
+              .join(
+                ""
+              )
+          }
+
+        </div>
 
       </div>
 
