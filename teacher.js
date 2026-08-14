@@ -44370,9 +44370,22 @@ function createTeacherLessonVideoResource(
 
 }
 
-
 /* =========================================================
-   BUILD RESOURCE COLLECTION
+   BUILD TEACHER RESOURCE COLLECTION
+   PRODUCTION PERMISSION-AWARE VERSION
+
+   SECURITY / OWNERSHIP MODEL
+   ---------------------------------------------------------
+
+   Teacher Studio may only build Resources from Classes that
+   belong to the currently selected/authenticated Teacher.
+
+   The browser filtering below is UX/data isolation only.
+   Backend authorization must remain authoritative.
+
+   School/Admin management pages may have broader visibility,
+   but this Teacher Studio workspace remains scoped to the
+   Teacher represented by getTeacherId().
 ========================================================= */
 
 function buildTeacherResourcesFromLessons(){
@@ -44381,55 +44394,184 @@ function buildTeacherResourcesFromLessons(){
     [];
 
 
-  asArray(
-    state.classLessons
-  )
-    .forEach(
-      lesson => {
+  /* =====================================================
+     AUTHORITATIVE TEACHER CLASS SCOPE
+  ===================================================== */
 
-        asArray(
-          lesson?.resources
+  const allowedClassIds =
+    new Set(
+      getTeacherClassIds()
+        .map(
+          normalizeId
         )
-          .forEach(
-            (
-              resource,
-              index
-            ) => {
-
-              const normalized =
-                normalizeTeacherLessonResource(
-                  resource,
-                  lesson,
-                  index
-                );
+        .filter(
+          Boolean
+        )
+    );
 
 
-              if (
-                normalized
-              ){
+  if(
+    !allowedClassIds.size
+  ){
 
-                resources.push(
-                  normalized
-                );
+    return [];
 
-              }
+  }
+
+
+  /* =====================================================
+     ONLY LESSONS FROM ASSIGNED CLASSES
+  ===================================================== */
+
+  const teacherLessons =
+    asArray(
+      state.classLessons
+    )
+      .filter(
+        lesson => {
+
+          const classId =
+            normalizeId(
+              lesson?.classId?._id ||
+              lesson?.classId
+            );
+
+
+          return Boolean(
+            classId &&
+            allowedClassIds.has(
+              classId
+            )
+          );
+
+        }
+      );
+
+
+  /* =====================================================
+     BUILD RESOURCE RECORDS
+  ===================================================== */
+
+  teacherLessons.forEach(
+    lesson => {
+
+      const lessonClassId =
+        normalizeId(
+          lesson?.classId?._id ||
+          lesson?.classId
+        );
+
+
+      /*
+        Defensive second check.
+
+        A malformed lesson record must never be allowed to
+        create an unscoped Resource.
+      */
+
+      if(
+        !lessonClassId ||
+        !allowedClassIds.has(
+          lessonClassId
+        )
+      ){
+
+        return;
+
+      }
+
+
+      /* ===================================================
+         NORMAL LESSON RESOURCES
+      =================================================== */
+
+      asArray(
+        lesson?.resources
+      )
+        .forEach(
+          (
+            resource,
+            index
+          ) => {
+
+            const normalized =
+              normalizeTeacherLessonResource(
+                resource,
+                lesson,
+                index
+              );
+
+
+            if(
+              !normalized
+            ){
+
+              return;
 
             }
+
+
+            const resourceClassId =
+              normalizeId(
+                normalized.classId
+              );
+
+
+            /*
+              Never trust the child Resource class reference
+              over the owning Lesson.
+
+              Both must resolve to the Teacher's authorized
+              class scope.
+            */
+
+            if(
+              !resourceClassId ||
+              !allowedClassIds.has(
+                resourceClassId
+              )
+            ){
+
+              return;
+
+            }
+
+
+            resources.push(
+              normalized
+            );
+
+          }
+        );
+
+
+      /* ===================================================
+         LESSON VIDEO
+
+         videoUrl is also a reusable Resource.
+      =================================================== */
+
+      const lessonVideo =
+        createTeacherLessonVideoResource(
+          lesson
+        );
+
+
+      if(
+        lessonVideo
+      ){
+
+        const videoClassId =
+          normalizeId(
+            lessonVideo.classId
           );
 
 
-        /*
-          videoUrl is also a reusable learning resource.
-        */
-
-        const lessonVideo =
-          createTeacherLessonVideoResource(
-            lesson
-          );
-
-
-        if (
-          lessonVideo
+        if(
+          videoClassId &&
+          allowedClassIds.has(
+            videoClassId
+          )
         ){
 
           resources.push(
@@ -44439,8 +44581,17 @@ function buildTeacherResourcesFromLessons(){
         }
 
       }
-    );
 
+    }
+  );
+
+
+  /* =====================================================
+     DEDUPLICATE
+
+     Identity:
+       lessonId + resource URL
+  ===================================================== */
 
   const seen =
     new Set();
@@ -44449,11 +44600,35 @@ function buildTeacherResourcesFromLessons(){
   return resources.filter(
     resource => {
 
+      const resourceClassId =
+        normalizeId(
+          resource?.classId
+        );
+
+
+      /*
+        Final authorization gate before anything enters the
+        Teacher Resources workspace.
+      */
+
+      if(
+        !resourceClassId ||
+        !allowedClassIds.has(
+          resourceClassId
+        )
+      ){
+
+        return false;
+
+      }
+
+
       const key =
         [
           normalizeId(
             resource.lessonId
           ),
+
           getTeacherResourceUrl(
             resource
           )
@@ -44464,7 +44639,8 @@ function buildTeacherResourcesFromLessons(){
           .toLowerCase();
 
 
-      if (
+      if(
+        !key ||
         seen.has(
           key
         )
@@ -45716,21 +45892,37 @@ function openTeacherResourceLesson(
 
 }
 
-
 /* =========================================================
-   LOAD RESOURCE DATA
+   LOAD TEACHER LEARNING RESOURCES
+   PRODUCTION PERMISSION-AWARE VERSION
 
-   Uses the authoritative lesson loader whenever available.
+   IMPORTANT
+   ---------------------------------------------------------
+
+   Teacher Studio never intentionally requests School-wide
+   lesson data as a Resources fallback.
+
+   The shared class-learning loader may still be used because
+   it is already part of the Teacher Studio architecture.
+
+   After loading, every lesson is immediately reduced to the
+   Teacher's assigned-class scope before Resource aggregation.
+
+   Backend authorization remains mandatory.
 ========================================================= */
 
 async function loadTeacherLearningResources(){
 
-  if (
+  if(
     teacherResourcesWorkspaceState
       .loading
   ){
 
-    return;
+    return (
+      teacherResourcesWorkspaceState
+        .resources
+    );
+
   }
 
 
@@ -45741,58 +45933,116 @@ async function loadTeacherLearningResources(){
 
   try{
 
-    /*
-      Prefer the shared lesson loader from the class-learning
-      workspace so teacher.js keeps one authoritative cache.
-    */
+    /* =====================================================
+       TEACHER CLASS SCOPE
+    ===================================================== */
 
-    if (
+    const allowedClassIds =
+      new Set(
+        getTeacherClassIds()
+          .map(
+            normalizeId
+          )
+          .filter(
+            Boolean
+          )
+      );
+
+
+    if(
+      !allowedClassIds.size
+    ){
+
+      state.classLessons =
+        [];
+
+
+      teacherResourcesWorkspaceState
+        .resources =
+        [];
+
+
+      teacherResourcesWorkspaceState
+        .loaded =
+        true;
+
+
+      return [];
+
+    }
+
+
+    /* =====================================================
+       LOAD THROUGH EXISTING CLASS-LEARNING ARCHITECTURE
+
+       Do not invent another Resources endpoint.
+    ===================================================== */
+
+    if(
       typeof loadTeacherClassLessons ===
       "function"
     ){
 
       await loadTeacherClassLessons();
 
-    }else if (
-      !asArray(
-        state.classLessons
-      ).length
-    ){
-
-      const schoolId =
-        getSchoolId();
-
-
-      if (
-        schoolId
-      ){
-
-        const response =
-          await apiGet(
-            "/api/class-lessons",
-            {
-              query:{
-                schoolId
-              }
-            }
-          );
-
-
-        state.classLessons =
-          asArray(
-            response?.lessons ||
-            response?.data ||
-            response
-          );
-
-      }
-
     }
 
+
+    /* =====================================================
+       DEFENSIVE LESSON SCOPE
+
+       Even if a shared loader returned more than expected,
+       Teacher Studio retains only lessons belonging to this
+       Teacher's assigned classes.
+
+       This protects every later Resources renderer/helper.
+    ===================================================== */
+
+    state.classLessons =
+      asArray(
+        state.classLessons
+      )
+        .filter(
+          lesson => {
+
+            const classId =
+              normalizeId(
+                lesson?.classId?._id ||
+                lesson?.classId
+              );
+
+
+            return Boolean(
+              classId &&
+              allowedClassIds.has(
+                classId
+              )
+            );
+
+          }
+        );
+
+
+    /* =====================================================
+       BUILD RESOURCE LIBRARY
+    ===================================================== */
 
     teacherResourcesWorkspaceState
       .resources =
       buildTeacherResourcesFromLessons();
+
+
+    /*
+      Keep the legacy global collection synchronized because
+      state.resources already exists in Teacher Studio's
+      central state.
+    */
+
+    state.resources =
+      [
+        ...teacherResourcesWorkspaceState
+          .resources
+      ];
 
 
     teacherResourcesWorkspaceState
@@ -45800,12 +46050,15 @@ async function loadTeacherLearningResources(){
       true;
 
 
+    return teacherResourcesWorkspaceState
+      .resources;
+
   }catch(
     error
   ){
 
     console.error(
-      "loadTeacherResources failed:",
+      "loadTeacherLearningResources failed:",
       error
     );
 
@@ -45815,12 +46068,28 @@ async function loadTeacherLearningResources(){
       [];
 
 
-    showAlert(
-      "error",
-      error?.message ||
-      "AIFT could not load your learning resources."
+    state.resources =
+      [];
+
+
+    teacherResourcesWorkspaceState
+      .loaded =
+      false;
+
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "AIFT could not load your learning resources."
+      ),
+      {
+        title:
+          "Resources unavailable"
+      }
     );
 
+
+    return [];
 
   }finally{
 
