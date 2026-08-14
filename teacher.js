@@ -44705,8 +44705,23 @@ function getTeacherResourceClassName(
 }
 
 
+
 /* =========================================================
-   FILTERED RESOURCES
+   FILTERED TEACHER RESOURCES
+   PRODUCTION PERMISSION + FILTER ENGINE
+
+   IMPORTANT
+   ---------------------------------------------------------
+
+   Even though Resources are already scoped while loading and
+   building, this function applies one final class-ownership
+   gate before anything reaches the UI.
+
+   This protects against:
+     stale frontend state
+     malformed cached records
+     accidental state contamination
+     future loader changes
 ========================================================= */
 
 function getFilteredTeacherResources(){
@@ -44716,34 +44731,94 @@ function getFilteredTeacherResources(){
       teacherResourcesWorkspaceState
         .search
     )
+      .trim()
       .toLowerCase();
 
-  const classId =
+
+  const selectedClassId =
     normalizeId(
       teacherResourcesWorkspaceState
         .classId
     );
 
-  const type =
+
+  const selectedType =
     safeString(
       teacherResourcesWorkspaceState
         .type,
       "all"
     )
+      .trim()
       .toLowerCase();
 
 
-  let resources = [
-    ...asArray(
+  const sort =
+    safeString(
+      teacherResourcesWorkspaceState
+        .sort,
+      "recent"
+    )
+      .trim()
+      .toLowerCase();
+
+
+  /* =====================================================
+     AUTHORITATIVE FRONTEND CLASS SCOPE
+  ===================================================== */
+
+  const allowedClassIds =
+    new Set(
+      getTeacherClassIds()
+        .map(
+          normalizeId
+        )
+        .filter(
+          Boolean
+        )
+    );
+
+
+  if(
+    !allowedClassIds.size
+  ){
+
+    return [];
+
+  }
+
+
+  let resources =
+    asArray(
       teacherResourcesWorkspaceState
         .resources
     )
-  ];
+      .filter(
+        resource => {
+
+          const classId =
+            normalizeId(
+              resource?.classId
+            );
 
 
-  if (
-    classId &&
-    classId !==
+          return Boolean(
+            classId &&
+            allowedClassIds.has(
+              classId
+            )
+          );
+
+        }
+      );
+
+
+  /* =====================================================
+     CLASS FILTER
+  ===================================================== */
+
+  if(
+    selectedClassId &&
+    selectedClassId !==
       "all"
   ){
 
@@ -44752,16 +44827,20 @@ function getFilteredTeacherResources(){
         resource =>
           sameId(
             resource?.classId,
-            classId
+            selectedClassId
           )
       );
 
   }
 
 
-  if (
-    type !==
-    "all"
+  /* =====================================================
+     TYPE FILTER
+  ===================================================== */
+
+  if(
+    selectedType !==
+      "all"
   ){
 
     resources =
@@ -44773,13 +44852,17 @@ function getFilteredTeacherResources(){
               resource
             )
           ) ===
-          type
+          selectedType
       );
 
   }
 
 
-  if (
+  /* =====================================================
+     SEARCH
+  ===================================================== */
+
+  if(
     search
   ){
 
@@ -44787,9 +44870,8 @@ function getFilteredTeacherResources(){
       resources.filter(
         resource => {
 
-          const haystack =
+          const searchableText =
             [
-
               getTeacherResourceTitle(
                 resource
               ),
@@ -44808,8 +44890,11 @@ function getFilteredTeacherResources(){
 
               getTeacherResourceTypeLabel(
                 resource
-              )
+              ),
 
+              safeString(
+                resource?.url
+              )
             ]
               .filter(
                 Boolean
@@ -44820,7 +44905,7 @@ function getFilteredTeacherResources(){
               .toLowerCase();
 
 
-          return haystack.includes(
+          return searchableText.includes(
             search
           );
 
@@ -44830,59 +44915,137 @@ function getFilteredTeacherResources(){
   }
 
 
+  /* =====================================================
+     SORT
+  ===================================================== */
+
   resources.sort(
     (
       first,
       second
     ) => {
 
-      switch(
-        teacherResourcesWorkspaceState
-          .sort
+      if(
+        sort ===
+        "title"
       ){
 
-        case "title":
+        return getTeacherResourceTitle(
+          first
+        )
+          .localeCompare(
+            getTeacherResourceTitle(
+              second
+            ),
+            undefined,
+            {
+              sensitivity:
+                "base"
+            }
+          );
 
-          return getTeacherResourceTitle(
-            first
-          )
-            .localeCompare(
-              getTeacherResourceTitle(
-                second
-              )
-            );
+      }
 
 
-        case "class":
+      if(
+        sort ===
+        "class"
+      ){
 
-          return getTeacherResourceClassName(
+        const classComparison =
+          getTeacherResourceClassName(
             first
           )
             .localeCompare(
               getTeacherResourceClassName(
                 second
-              )
+              ),
+              undefined,
+              {
+                sensitivity:
+                  "base"
+              }
             );
 
 
-        default:
+        if(
+          classComparison !==
+          0
+        ){
 
-          return (
-            toValidDate(
-              second?.updatedAt ||
-              second?.createdAt
-            )?.getTime() ||
-            0
-          ) -
-          (
-            toValidDate(
-              first?.updatedAt ||
-              first?.createdAt
-            )?.getTime() ||
-            0
+          return classComparison;
+
+        }
+
+
+        return getTeacherResourceTitle(
+          first
+        )
+          .localeCompare(
+            getTeacherResourceTitle(
+              second
+            ),
+            undefined,
+            {
+              sensitivity:
+                "base"
+            }
           );
 
       }
+
+
+      /* ===================================================
+         RECENT
+
+         updatedAt wins over createdAt.
+
+         Stable title fallback prevents Resource cards from
+         randomly jumping when timestamps are equal.
+      =================================================== */
+
+      const firstTimestamp =
+        toValidDate(
+          first?.updatedAt ||
+          first?.createdAt
+        )?.getTime() ||
+        0;
+
+
+      const secondTimestamp =
+        toValidDate(
+          second?.updatedAt ||
+          second?.createdAt
+        )?.getTime() ||
+        0;
+
+
+      if(
+        secondTimestamp !==
+        firstTimestamp
+      ){
+
+        return (
+          secondTimestamp -
+          firstTimestamp
+        );
+
+      }
+
+
+      return getTeacherResourceTitle(
+        first
+      )
+        .localeCompare(
+          getTeacherResourceTitle(
+            second
+          ),
+          undefined,
+          {
+            sensitivity:
+              "base"
+          }
+        );
 
     }
   );
@@ -44891,7 +45054,6 @@ function getFilteredTeacherResources(){
   return resources;
 
 }
-
 
 /* =========================================================
    RESOURCE SUMMARY
@@ -45360,9 +45522,16 @@ const select =
 
 }
 
-
 /* =========================================================
    RESOURCE CARD
+   PRODUCTION RESOURCE LIBRARY VIEW
+
+   Resource ownership remains attached to:
+     Class
+       -> Lesson
+         -> Resource
+
+   Teacher Studio does not create a parallel resource owner.
 ========================================================= */
 
 function createTeacherResourceCard(
@@ -45374,35 +45543,49 @@ function createTeacherResourceCard(
       resource
     );
 
+
   const title =
     getTeacherResourceTitle(
       resource
     );
+
 
   const description =
     safeString(
       resource?.description
     );
 
+
   const url =
     getTeacherResourceUrl(
       resource
     );
+
+
+  const type =
+    normalizeTeacherResourceType(
+      resource?.type,
+      url
+    );
+
 
   const typeLabel =
     getTeacherResourceTypeLabel(
       resource
     );
 
+
   const icon =
     getTeacherResourceIcon(
       resource
     );
 
+
   const className =
     getTeacherResourceClassName(
       resource
     );
+
 
   const lessonTitle =
     safeString(
@@ -45411,25 +45594,82 @@ function createTeacherResourceCard(
     );
 
 
+  const lastUpdatedDate =
+    toValidDate(
+      resource?.updatedAt ||
+      resource?.createdAt
+    );
+
+
+  let resourceHost =
+    "";
+
+
+  if(
+    url
+  ){
+
+    try{
+
+      const parsed =
+        new URL(
+          url,
+          window.location.origin
+        );
+
+
+      resourceHost =
+        parsed.hostname
+          .replace(
+            /^www\./i,
+            ""
+          );
+
+    }catch(
+      error
+    ){
+
+      resourceHost =
+        "";
+
+    }
+
+  }
+
+
   return `
 
     <article
-      class="teacher-resource-card"
+      class="
+        teacher-resource-card
+        teacher-resource-card-${escapeAttribute(type)}
+      "
       data-resource-id="${escapeAttribute(
         resourceId
       )}"
     >
 
+      <!-- ===============================================
+           RESOURCE ICON
+      ================================================ -->
+
       <div
         class="teacher-resource-card-icon"
+        aria-hidden="true"
       >
+
         <i
           class="${escapeAttribute(
             icon
           )}"
         ></i>
+
       </div>
 
+
+      <!-- ===============================================
+           CONTENT
+      ================================================ -->
 
       <div
         class="teacher-resource-card-content"
@@ -45449,6 +45689,7 @@ function createTeacherResourceCard(
               )}
             </span>
 
+
             <h3>
               ${escapeHtml(
                 title
@@ -45463,7 +45704,9 @@ function createTeacherResourceCard(
         ${
           description
             ? `
-              <p>
+              <p
+                class="teacher-resource-description"
+              >
                 ${escapeHtml(
                   description
                 )}
@@ -45473,13 +45716,20 @@ function createTeacherResourceCard(
         }
 
 
+        <!-- =============================================
+             OWNERSHIP CONTEXT
+        ============================================== -->
+
         <div
           class="teacher-resource-meta"
         >
 
-          <span>
+          <span
+            title="Assigned class"
+          >
             <i
-              class="fa-solid fa-graduation-cap"
+              class="fa-solid fa-chalkboard-user"
+              aria-hidden="true"
             ></i>
 
             ${escapeHtml(
@@ -45488,9 +45738,12 @@ function createTeacherResourceCard(
           </span>
 
 
-          <span>
+          <span
+            title="Owning lesson"
+          >
             <i
               class="fa-solid fa-book-open"
+              aria-hidden="true"
             ></i>
 
             ${escapeHtml(
@@ -45498,8 +45751,54 @@ function createTeacherResourceCard(
             )}
           </span>
 
+
+          ${
+            resourceHost
+              ? `
+                <span
+                  title="Resource source"
+                >
+                  <i
+                    class="fa-solid fa-link"
+                    aria-hidden="true"
+                  ></i>
+
+                  ${escapeHtml(
+                    resourceHost
+                  )}
+                </span>
+              `
+              : ""
+          }
+
+
+          ${
+            lastUpdatedDate
+              ? `
+                <span
+                  title="Last updated"
+                >
+                  <i
+                    class="fa-regular fa-clock"
+                    aria-hidden="true"
+                  ></i>
+
+                  ${escapeHtml(
+                    formatDate(
+                      lastUpdatedDate
+                    )
+                  )}
+                </span>
+              `
+              : ""
+          }
+
         </div>
 
+
+        <!-- =============================================
+             ACTIONS
+        ============================================== -->
 
         <div
           class="teacher-resource-actions"
@@ -45518,9 +45817,10 @@ function createTeacherResourceCard(
                 >
                   <i
                     class="fa-solid fa-arrow-up-right-from-square"
+                    aria-hidden="true"
                   ></i>
 
-                  Open resource
+                  Open
                 </button>
               `
               : ""
@@ -45540,6 +45840,7 @@ function createTeacherResourceCard(
                 >
                   <i
                     class="fa-solid fa-book-open"
+                    aria-hidden="true"
                   ></i>
 
                   View lesson
@@ -45557,7 +45858,6 @@ function createTeacherResourceCard(
   `;
 
 }
-
 
 /* =========================================================
    RENDER RESOURCES
@@ -45892,23 +46192,33 @@ function openTeacherResourceLesson(
 
 }
 
+
 /* =========================================================
    LOAD TEACHER LEARNING RESOURCES
-   PRODUCTION PERMISSION-AWARE VERSION
+   AUTHENTICATED / PERMISSION-AWARE VERSION
 
-   IMPORTANT
+   BACKEND CONTRACT
    ---------------------------------------------------------
 
-   Teacher Studio never intentionally requests School-wide
-   lesson data as a Resources fallback.
+   GET /api/class-lessons
 
-   The shared class-learning loader may still be used because
-   it is already part of the Teacher Studio architecture.
+   Backend permissions:
 
-   After loading, every lesson is immediately reduced to the
-   Teacher's assigned-class scope before Resource aggregation.
+   Teacher
+     -> lessons from assigned classes only
 
-   Backend authorization remains mandatory.
+   School
+     -> lessons belonging to the School
+
+   Admin
+     -> broader authorized access
+
+   Student
+     -> enrolled classes + published lessons only
+
+   Teacher Studio does not send schoolId or teacherId here.
+
+   Authentication determines the permitted scope.
 ========================================================= */
 
 async function loadTeacherLearningResources(){
@@ -45918,10 +46228,8 @@ async function loadTeacherLearningResources(){
       .loading
   ){
 
-    return (
-      teacherResourcesWorkspaceState
-        .resources
-    );
+    return teacherResourcesWorkspaceState
+      .resources;
 
   }
 
@@ -45933,9 +46241,9 @@ async function loadTeacherLearningResources(){
 
   try{
 
-    /* =====================================================
-       TEACHER CLASS SCOPE
-    ===================================================== */
+    const teacherId =
+      getTeacherId();
+
 
     const allowedClassIds =
       new Set(
@@ -45949,11 +46257,20 @@ async function loadTeacherLearningResources(){
       );
 
 
+    /* =====================================================
+       NO ASSIGNED CLASSES
+    ===================================================== */
+
     if(
+      !teacherId ||
       !allowedClassIds.size
     ){
 
       state.classLessons =
+        [];
+
+
+      state.resources =
         [];
 
 
@@ -45973,35 +46290,41 @@ async function loadTeacherLearningResources(){
 
 
     /* =====================================================
-       LOAD THROUGH EXISTING CLASS-LEARNING ARCHITECTURE
+       AUTHORITATIVE BACKEND REQUEST
 
-       Do not invent another Resources endpoint.
+       Do NOT send:
+
+         schoolId
+         teacherId
+
+       Backend uses req.user to determine Teacher scope.
     ===================================================== */
 
-    if(
-      typeof loadTeacherClassLessons ===
-      "function"
-    ){
+    const response =
+      await apiGet(
+        "/api/class-lessons"
+      );
 
-      await loadTeacherClassLessons();
 
-    }
+    const returnedLessons =
+      asArray(
+        response?.lessons ||
+        response?.data ||
+        response
+      );
 
 
     /* =====================================================
-       DEFENSIVE LESSON SCOPE
+       FRONTEND DEFENSIVE FILTER
 
-       Even if a shared loader returned more than expected,
-       Teacher Studio retains only lessons belonging to this
-       Teacher's assigned classes.
+       Backend is authoritative.
 
-       This protects every later Resources renderer/helper.
+       This second filter protects the Teacher UI from stale,
+       malformed or unexpectedly broad cached responses.
     ===================================================== */
 
     state.classLessons =
-      asArray(
-        state.classLessons
-      )
+      returnedLessons
         .filter(
           lesson => {
 
@@ -46024,19 +46347,13 @@ async function loadTeacherLearningResources(){
 
 
     /* =====================================================
-       BUILD RESOURCE LIBRARY
+       BUILD RESOURCE COLLECTION
     ===================================================== */
 
     teacherResourcesWorkspaceState
       .resources =
       buildTeacherResourcesFromLessons();
 
-
-    /*
-      Keep the legacy global collection synchronized because
-      state.resources already exists in Teacher Studio's
-      central state.
-    */
 
     state.resources =
       [
@@ -46063,12 +46380,16 @@ async function loadTeacherLearningResources(){
     );
 
 
-    teacherResourcesWorkspaceState
-      .resources =
+    state.classLessons =
       [];
 
 
     state.resources =
+      [];
+
+
+    teacherResourcesWorkspaceState
+      .resources =
       [];
 
 
@@ -46100,7 +46421,6 @@ async function loadTeacherLearningResources(){
   }
 
 }
-
 
 /* =========================================================
    RENDER RESOURCES WORKSPACE
