@@ -58372,13 +58372,15 @@ function renderTeacherAnalyticsAttendanceSection(){
 
 }
 
-
 /* =========================================================
-   ANALYTICS KABEZYA PLACEHOLDER
+   ANALYTICS — KABEZYA TEACHING INSIGHTS
 
-   Part 15 will connect the real AI architecture.
+   Production analytics handoff.
 
-   No unverified AI endpoint is called here.
+   Kabezya remains advisory:
+   - no automatic grading
+   - no automatic attendance changes
+   - no automatic student record changes
 ========================================================= */
 
 function renderTeacherAnalyticsKabezya(){
@@ -58389,7 +58391,7 @@ function renderTeacherAnalyticsKabezya(){
     );
 
 
-  if (
+  if(
     !container
   ){
 
@@ -58402,70 +58404,438 @@ function renderTeacherAnalyticsKabezya(){
     getTeacherAnalyticsSummary();
 
 
+  const students =
+    Math.max(
+      0,
+      Number(
+        summary?.students ||
+        0
+      )
+    );
+
+
+  const pendingReviews =
+    Math.max(
+      0,
+      Number(
+        summary?.pendingReviews ||
+        0
+      )
+    );
+
+
+  const overdueAssignments =
+    Math.max(
+      0,
+      Number(
+        summary?.overdueAssignments ||
+        0
+      )
+    );
+
+
+  const attentionCount =
+    pendingReviews +
+    overdueAssignments;
+
+
+  const selectedClassId =
+    normalizeId(
+      teacherAnalyticsWorkspaceState
+        ?.classId
+    );
+
+
+  const selectedClass =
+    selectedClassId
+      ? getTeacherClassById(
+          selectedClassId
+        )
+      : null;
+
+
+  const scopeLabel =
+    selectedClass
+      ? getTeacherClassTitle(
+          selectedClass
+        )
+      : "All assigned classes";
+
+
+  const rangeLabel =
+    getTeacherAnalyticsRangeLabel
+      ? getTeacherAnalyticsRangeLabel()
+      : "Current analytics period";
+
+
+  let insightTitle =
+    "No urgent teaching indicators";
+
+
+  let insightText =
+    "No pending reviews or overdue assignments were detected in the current analytics scope.";
+
+
+  let insightTone =
+    "positive";
+
+
+  if(
+    overdueAssignments > 0
+  ){
+
+    insightTitle =
+      `${overdueAssignments} overdue ${
+        overdueAssignments === 1
+          ? "assignment"
+          : "assignments"
+      } need attention`;
+
+
+    insightText =
+      "Kabezya can help review the current class context, identify patterns and suggest practical next steps.";
+
+
+    insightTone =
+      "attention";
+
+  }else if(
+    pendingReviews > 0
+  ){
+
+    insightTitle =
+      `${pendingReviews} ${
+        pendingReviews === 1
+          ? "submission is"
+          : "submissions are"
+      } waiting for review`;
+
+
+    insightText =
+      "Kabezya can help summarize the current workload and support your review process while keeping final academic decisions with you.";
+
+
+    insightTone =
+      "attention";
+
+  }else if(
+    students === 0
+  ){
+
+    insightTitle =
+      "No students in the current analytics scope";
+
+
+    insightText =
+      "Select a class with enrolled students or expand the analytics scope before requesting a class analysis.";
+
+
+    insightTone =
+      "neutral";
+
+  }
+
+
   container.innerHTML = `
     <section
-      class="teacher-analytics-kabezya-card"
+      class="
+        teacher-analytics-kabezya-card
+        teacher-analytics-kabezya-production
+      "
     >
 
       <div
-        class="teacher-analytics-kabezya-icon"
-        aria-hidden="true"
+        class="teacher-analytics-kabezya-top"
       >
-        <i
-          class="fa-solid fa-wand-magic-sparkles"
-        ></i>
+
+        <div
+          class="teacher-analytics-kabezya-head"
+        >
+
+          <div
+            class="teacher-analytics-kabezya-icon"
+            aria-hidden="true"
+          >
+            <i
+              class="fa-solid fa-wand-magic-sparkles"
+            ></i>
+          </div>
+
+
+          <div
+            class="teacher-analytics-kabezya-heading"
+          >
+
+            <span>
+              Kabezya teaching insights
+            </span>
+
+            <h3>
+              Teaching intelligence
+            </h3>
+
+            <p>
+              AI-assisted interpretation of your current analytics scope.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="
+            teacher-primary-button
+            teacher-analytics-kabezya-action
+          "
+          data-teacher-action="analytics-ask-kabezya"
+          ${
+            students === 0
+              ? `aria-label="Open Kabezya teaching assistant"`
+              : `aria-label="Analyze current teaching analytics with Kabezya"`
+          }
+        >
+
+          <i
+            class="fa-solid fa-wand-magic-sparkles"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            ${
+              students === 0
+                ? "Ask Kabezya"
+                : "Analyze class"
+            }
+          </span>
+
+          <i
+            class="fa-solid fa-arrow-right"
+            aria-hidden="true"
+          ></i>
+
+        </button>
+
       </div>
 
 
-      <div>
+      <div
+        class="teacher-analytics-kabezya-scope"
+      >
 
-        <span
-          class="teacher-page-eyebrow"
-        >
-          KABEZYA
+        <span>
+          <i
+            class="fa-solid fa-layer-group"
+            aria-hidden="true"
+          ></i>
+
+          ${escapeHtml(
+            scopeLabel
+          )}
         </span>
 
-        <h3>
-          Analyze these teaching indicators
-        </h3>
 
-        <p>
-          Kabezya can help interpret patterns such as attendance,
-          missing work and pending reviews. AI analysis remains advisory.
-        </p>
+        <span>
+          <i
+            class="fa-regular fa-calendar"
+            aria-hidden="true"
+          ></i>
 
+          ${escapeHtml(
+            rangeLabel
+          )}
+        </span>
+
+      </div>
+
+
+      <div
+        class="teacher-analytics-kabezya-stats"
+      >
+
+        <article>
+
+          <div
+            class="
+              teacher-analytics-kabezya-stat-icon
+              students
+            "
+            aria-hidden="true"
+          >
+            <i
+              class="fa-solid fa-user-graduate"
+            ></i>
+          </div>
+
+          <div>
+
+            <strong>
+              ${students}
+            </strong>
+
+            <span>
+              Students
+            </span>
+
+          </div>
+
+        </article>
+
+
+        <article>
+
+          <div
+            class="
+              teacher-analytics-kabezya-stat-icon
+              reviews
+            "
+            aria-hidden="true"
+          >
+            <i
+              class="fa-solid fa-list-check"
+            ></i>
+          </div>
+
+          <div>
+
+            <strong>
+              ${pendingReviews}
+            </strong>
+
+            <span>
+              Pending reviews
+            </span>
+
+          </div>
+
+        </article>
+
+
+        <article>
+
+          <div
+            class="
+              teacher-analytics-kabezya-stat-icon
+              overdue
+            "
+            aria-hidden="true"
+          >
+            <i
+              class="fa-regular fa-clock"
+            ></i>
+          </div>
+
+          <div>
+
+            <strong>
+              ${overdueAssignments}
+            </strong>
+
+            <span>
+              Overdue work
+            </span>
+
+          </div>
+
+        </article>
+
+
+        <article>
+
+          <div
+            class="
+              teacher-analytics-kabezya-stat-icon
+              attention
+            "
+            aria-hidden="true"
+          >
+            <i
+              class="fa-solid fa-chart-line"
+            ></i>
+          </div>
+
+          <div>
+
+            <strong>
+              ${attentionCount}
+            </strong>
+
+            <span>
+              Needs attention
+            </span>
+
+          </div>
+
+        </article>
+
+      </div>
+
+
+      <div
+        class="
+          teacher-analytics-kabezya-insight
+          ${insightTone}
+        "
+      >
 
         <div
-          class="teacher-analytics-kabezya-context"
+          class="teacher-analytics-kabezya-insight-icon"
+          aria-hidden="true"
         >
-          <span>
-            ${summary.students} students
-          </span>
 
-          <span>
-            ${summary.pendingReviews} pending reviews
-          </span>
+          <i
+            class="${
+              insightTone === "positive"
+                ? "fa-solid fa-circle-check"
+                : insightTone === "attention"
+                  ? "fa-solid fa-triangle-exclamation"
+                  : "fa-solid fa-circle-info"
+            }"
+          ></i>
 
-          <span>
-            ${summary.overdueAssignments} overdue assignments
-          </span>
+        </div>
+
+
+        <div>
+
+          <strong>
+            ${escapeHtml(
+              insightTitle
+            )}
+          </strong>
+
+          <p>
+            ${escapeHtml(
+              insightText
+            )}
+          </p>
+
         </div>
 
       </div>
 
 
-      <button
-        type="button"
-        class="teacher-primary-button"
-        data-teacher-action="analytics-ask-kabezya"
+      <div
+        class="teacher-analytics-kabezya-footer"
       >
-        <i
-          class="fa-solid fa-wand-magic-sparkles"
-          aria-hidden="true"
-        ></i>
 
-        Ask Kabezya
-      </button>
+        <span>
+          <i
+            class="fa-solid fa-shield-halved"
+            aria-hidden="true"
+          ></i>
+
+          Advisory only
+        </span>
+
+
+        <p>
+          Kabezya does not automatically change grades,
+          attendance or student records.
+        </p>
+
+      </div>
 
     </section>
   `;
