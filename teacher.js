@@ -45724,21 +45724,22 @@ function getTeacherResourceSummary(){
 
 /* =========================================================
    RENDER RESOURCE SUMMARY
+   PRODUCTION RESOURCES DESIGN
 ========================================================= */
 
 function renderTeacherResourcesSummary(){
 
-const container =
-  $(
-    "teacherResourcesSummary"
-  );
+  const container =
+    $(
+      "teacherResourcesSummary"
+    );
 
 
-  if (
+  if(
     !container
   ){
 
-    return;
+    return false;
 
   }
 
@@ -45749,101 +45750,307 @@ const container =
 
   container.innerHTML = `
 
+    <!-- ===================================================
+         TOTAL RESOURCES
+    ==================================================== -->
+
     <article
-      class="teacher-summary-card"
+      class="teacher-resource-summary-card"
     >
-      <div
-        class="teacher-summary-icon"
-      >
-        <i
-          class="fa-solid fa-folder-open"
-        ></i>
-      </div>
+
+      <i
+        class="fa-solid fa-folder-open"
+        aria-hidden="true"
+      ></i>
+
 
       <div>
-        <span>
+
+        <strong>
+          ${Number(
+            summary?.total ||
+            0
+          )}
+        </strong>
+
+        <small>
           Resources
-        </span>
+        </small>
 
-        <strong>
-          ${summary.total}
-        </strong>
       </div>
+
     </article>
 
 
+    <!-- ===================================================
+         LESSONS
+    ==================================================== -->
+
     <article
-      class="teacher-summary-card"
+      class="teacher-resource-summary-card"
     >
-      <div
-        class="teacher-summary-icon"
-      >
-        <i
-          class="fa-solid fa-book-open"
-        ></i>
-      </div>
+
+      <i
+        class="fa-solid fa-book-open"
+        aria-hidden="true"
+      ></i>
+
 
       <div>
-        <span>
+
+        <strong>
+          ${Number(
+            summary?.lessons ||
+            0
+          )}
+        </strong>
+
+        <small>
           Lessons
-        </span>
+        </small>
 
-        <strong>
-          ${summary.lessons}
-        </strong>
       </div>
+
     </article>
 
 
+    <!-- ===================================================
+         DOCUMENTS
+    ==================================================== -->
+
     <article
-      class="teacher-summary-card"
+      class="teacher-resource-summary-card"
     >
-      <div
-        class="teacher-summary-icon"
-      >
-        <i
-          class="fa-solid fa-file-lines"
-        ></i>
-      </div>
+
+      <i
+        class="fa-solid fa-file-lines"
+        aria-hidden="true"
+      ></i>
+
 
       <div>
-        <span>
+
+        <strong>
+          ${Number(
+            summary?.documents ||
+            0
+          )}
+        </strong>
+
+        <small>
           Documents
-        </span>
+        </small>
 
-        <strong>
-          ${summary.documents}
-        </strong>
       </div>
+
     </article>
 
 
+    <!-- ===================================================
+         MEDIA
+    ==================================================== -->
+
     <article
-      class="teacher-summary-card"
+      class="teacher-resource-summary-card"
     >
-      <div
-        class="teacher-summary-icon"
-      >
-        <i
-          class="fa-solid fa-circle-play"
-        ></i>
-      </div>
+
+      <i
+        class="fa-solid fa-circle-play"
+        aria-hidden="true"
+      ></i>
+
 
       <div>
-        <span>
-          Media
-        </span>
 
         <strong>
-          ${summary.media}
+          ${Number(
+            summary?.media ||
+            0
+          )}
         </strong>
+
+        <small>
+          Media
+        </small>
+
       </div>
+
     </article>
 
   `;
 
+
+  return true;
+
 }
 
+/* =========================================================
+   RENDER RESOURCES TOOLBAR
+   PRODUCTION LIBRARY CONTROLS
+========================================================= */
+
+function renderTeacherResourcesToolbar(){
+
+  const container =
+    $(
+      "teacherResourcesToolbar"
+    );
+
+
+  if(
+    !container
+  ){
+
+    return false;
+
+  }
+
+
+  container.innerHTML = `
+
+    <!-- ===================================================
+         SEARCH
+    ==================================================== -->
+
+    <div
+      class="teacher-resource-search"
+    >
+
+      <i
+        class="fa-solid fa-magnifying-glass"
+        aria-hidden="true"
+      ></i>
+
+
+      <input
+        id="teacherResourceSearch"
+        type="search"
+        autocomplete="off"
+        placeholder="Search resources, lessons, classes..."
+        value="${escapeAttribute(
+          teacherResourcesWorkspaceState
+            .search ||
+          ""
+        )}"
+        aria-label="Search teaching resources"
+      />
+
+    </div>
+
+
+    <!-- ===================================================
+         CLASS FILTER
+    ==================================================== -->
+
+    <select
+      id="teacherResourceClassFilter"
+      class="teacher-workspace-select"
+      aria-label="Filter resources by class"
+    >
+
+      <option value="all">
+        All classes
+      </option>
+
+    </select>
+
+
+    <!-- ===================================================
+         TYPE FILTER
+    ==================================================== -->
+
+    <select
+      id="teacherResourceTypeFilter"
+      class="teacher-workspace-select"
+      aria-label="Filter resources by type"
+    >
+
+      <option value="all">
+        All types
+      </option>
+
+    </select>
+
+
+    <!-- ===================================================
+         SORT
+    ==================================================== -->
+
+    <select
+      id="teacherResourceSort"
+      class="teacher-workspace-select"
+      aria-label="Sort resources"
+    >
+
+      <option
+        value="recent"
+        ${
+          teacherResourcesWorkspaceState
+            .sort ===
+          "recent"
+            ? "selected"
+            : ""
+        }
+      >
+        Recently updated
+      </option>
+
+
+      <option
+        value="title"
+        ${
+          teacherResourcesWorkspaceState
+            .sort ===
+          "title"
+            ? "selected"
+            : ""
+        }
+      >
+        Resource name
+      </option>
+
+
+      <option
+        value="class"
+        ${
+          teacherResourcesWorkspaceState
+            .sort ===
+          "class"
+            ? "selected"
+            : ""
+        }
+      >
+        Class
+      </option>
+
+    </select>
+
+
+    <!-- ===================================================
+         REFRESH
+    ==================================================== -->
+
+    <button
+      type="button"
+      class="teacher-icon-button"
+      data-teacher-action="refresh-resources"
+      aria-label="Refresh resources"
+      title="Refresh resources"
+    >
+
+      <i
+        class="fa-solid fa-rotate"
+        aria-hidden="true"
+      ></i>
+
+    </button>
+
+  `;
+
+
+  return true;
+
+}
 
 /* =========================================================
    RESOURCE CLASS FILTER OPTIONS
@@ -46452,22 +46659,23 @@ function createTeacherResourceCard(
 }
 
 /* =========================================================
-   RENDER RESOURCES
+   RENDER RESOURCES GRID
+   PRODUCTION RESOURCE LIBRARY
 ========================================================= */
 
 function renderTeacherResourcesGrid(){
 
-const container =
-  $(
-    "teacherResourcesGrid"
-  );
+  const container =
+    $(
+      "teacherResourcesGrid"
+    );
 
 
-  if (
+  if(
     !container
   ){
 
-    return;
+    return false;
 
   }
 
@@ -46476,74 +46684,139 @@ const container =
     getFilteredTeacherResources();
 
 
-  if (
-    !resources.length
-  ){
-
-    const hasAnyResources =
+  const hasAnyResources =
+    asArray(
       teacherResourcesWorkspaceState
         .resources
-        .length >
-      0;
+    ).length >
+    0;
 
+
+  /* =====================================================
+     EMPTY / FILTERED STATE
+  ===================================================== */
+
+  if(
+    !resources.length
+  ){
 
     container.innerHTML = `
 
       <div
-        class="teacher-empty-state"
+        class="teacher-workspace-empty"
       >
 
         <div
-          class="teacher-empty-state-icon"
+          class="teacher-workspace-empty-icon"
         >
+
           <i
             class="${
               hasAnyResources
                 ? "fa-solid fa-magnifying-glass"
                 : "fa-solid fa-folder-open"
             }"
+            aria-hidden="true"
           ></i>
+
         </div>
 
 
         <h3>
+
           ${
             hasAnyResources
               ? "No matching resources"
-              : "No learning resources yet"
+              : "Your resource library is empty"
           }
+
         </h3>
 
 
         <p>
+
           ${
             hasAnyResources
-              ? "Try changing your search or resource filters."
-              : "Resources attached to your class lessons will appear here automatically."
+              ? `
+                No resources match the filters you selected.
+                Change the search, class or resource type to see more results.
+              `
+              : `
+                Add teaching files, videos, documents and links to lessons
+                in your assigned classes. They will stay connected to the
+                class and lesson where they belong.
+              `
           }
+
         </p>
+
+
+        ${
+          hasAnyResources
+            ? `
+              <button
+                type="button"
+                class="teacher-secondary-button"
+                data-teacher-resource-action="clear-filters"
+              >
+
+                <i
+                  class="fa-solid fa-filter-circle-xmark"
+                  aria-hidden="true"
+                ></i>
+
+                Clear filters
+
+              </button>
+            `
+            : `
+              <button
+                type="button"
+                class="teacher-primary-button"
+                data-teacher-resource-action="create"
+              >
+
+                <i
+                  class="fa-solid fa-plus"
+                  aria-hidden="true"
+                ></i>
+
+                Add Resource
+
+              </button>
+            `
+        }
 
       </div>
 
     `;
 
 
-    return;
+    return true;
 
   }
 
 
+  /* =====================================================
+     RESOURCE CARDS
+  ===================================================== */
+
   container.innerHTML =
     resources
       .map(
-        createTeacherResourceCard
+        resource =>
+          createTeacherResourceCard(
+            resource
+          )
       )
       .join(
         ""
       );
 
-}
 
+  return true;
+
+}
 
 /* =========================================================
    RESOURCE BY ID
@@ -48830,9 +49103,14 @@ async function saveTeacherLearningResource(){
 
 /* =========================================================
    RENDER RESOURCES WORKSPACE
+   AUTHORITATIVE PRODUCTION RENDERER
 ========================================================= */
 
 async function renderTeacherResourcesWorkspace(){
+
+  /* =====================================================
+     LOAD DATA
+  ===================================================== */
 
   if(
     !teacherResourcesWorkspaceState
@@ -48848,7 +49126,14 @@ async function renderTeacherResourcesWorkspace(){
      HEADER
   ===================================================== */
 
-  renderTeacherResourcesHeader();
+  if(
+    typeof renderTeacherResourcesHeader ===
+    "function"
+  ){
+
+    renderTeacherResourcesHeader();
+
+  }
 
 
   /* =====================================================
@@ -48859,11 +49144,20 @@ async function renderTeacherResourcesWorkspace(){
 
 
   /* =====================================================
-     FILTERS
+     BUILD TOOLBAR FIRST
+
+     The class/type helper functions require their <select>
+     elements to already exist.
+  ===================================================== */
+
+  renderTeacherResourcesToolbar();
+
+
+  /* =====================================================
+     TOOLBAR OPTIONS
   ===================================================== */
 
   renderTeacherResourceClassFilter();
-
 
   renderTeacherResourceTypeFilter();
 
@@ -48876,20 +49170,23 @@ async function renderTeacherResourcesWorkspace(){
 
 
   /* =====================================================
-     EDITOR
-
-     Do not close an active upload editor when Resources
-     rerender for unrelated reasons.
+     ACTIVE EDITOR
   ===================================================== */
 
   if(
-    teacherResourceEditorState
-      .open
+    typeof teacherResourceEditorState !==
+      "undefined" &&
+    teacherResourceEditorState?.open &&
+    typeof renderTeacherResourceEditor ===
+      "function"
   ){
 
     renderTeacherResourceEditor();
 
   }
+
+
+  return true;
 
 }
 
