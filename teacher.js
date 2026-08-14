@@ -47042,59 +47042,83 @@ function createTeacherResourceCard(
         </div>
 
 
-        <div
-          class="teacher-resource-card-actions-right"
+<div
+  class="teacher-resource-card-actions-right"
+>
+
+  ${
+    resource?.resourceId &&
+    resource?.lessonId
+      ? `
+        <button
+          type="button"
+          class="teacher-resource-card-icon-button"
+          data-teacher-resource-action="edit"
+          data-resource-id="${escapeAttribute(
+            resourceId
+          )}"
+          aria-label="Edit resource"
+          title="Edit resource"
         >
-
-          ${
-            resource?.lessonId
-              ? `
-                <button
-                  type="button"
-                  class="teacher-resource-card-icon-button"
-                  data-teacher-resource-action="lesson"
-                  data-resource-id="${escapeAttribute(
-                    resourceId
-                  )}"
-                  aria-label="View lesson"
-                  title="View lesson"
-                >
-                  <i
-                    class="fa-solid fa-book-open"
-                    aria-hidden="true"
-                  ></i>
-                </button>
-              `
-              : ""
-          }
+          <i
+            class="fa-solid fa-pen"
+            aria-hidden="true"
+          ></i>
+        </button>
+      `
+      : ""
+  }
 
 
-          ${
-            resource?.resourceId
-              ? `
-                <button
-                  type="button"
-                  class="
-                    teacher-resource-card-icon-button
-                    danger
-                  "
-                  data-teacher-resource-action="delete"
-                  data-resource-id="${escapeAttribute(
-                    resourceId
-                  )}"
-                  aria-label="Remove resource"
-                  title="Remove resource"
-                >
-                  <i
-                    class="fa-regular fa-trash-can"
-                    aria-hidden="true"
-                  ></i>
-                </button>
-              `
-              : ""
-          }
+  ${
+    resource?.lessonId
+      ? `
+        <button
+          type="button"
+          class="teacher-resource-card-icon-button"
+          data-teacher-resource-action="lesson"
+          data-resource-id="${escapeAttribute(
+            resourceId
+          )}"
+          aria-label="View lesson"
+          title="View lesson"
+        >
+          <i
+            class="fa-solid fa-book-open"
+            aria-hidden="true"
+          ></i>
+        </button>
+      `
+      : ""
+  }
 
-        </div>
+
+  ${
+    resource?.resourceId
+      ? `
+        <button
+          type="button"
+          class="
+            teacher-resource-card-icon-button
+            danger
+          "
+          data-teacher-resource-action="delete"
+          data-resource-id="${escapeAttribute(
+            resourceId
+          )}"
+          aria-label="Remove resource"
+          title="Remove resource"
+        >
+          <i
+            class="fa-regular fa-trash-can"
+            aria-hidden="true"
+          ></i>
+        </button>
+      `
+      : ""
+  }
+
+</div>
 
       </div>
 
