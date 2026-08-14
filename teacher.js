@@ -51370,6 +51370,237 @@ function bindTeacherResourceControls(){
 
 
 /* =========================================================
+   RESOURCE PREVIEW CONTROLS
+========================================================= */
+
+let teacherResourcePreviewControlsBound =
+  false;
+
+
+function bindTeacherResourcePreviewControls(){
+
+  if(
+    teacherResourcePreviewControlsBound
+  ){
+
+    return;
+
+  }
+
+
+  teacherResourcePreviewControlsBound =
+    true;
+
+
+  document.addEventListener(
+    "click",
+    async event => {
+
+      const button =
+        event.target.closest(
+          "[data-teacher-resource-preview-action]"
+        );
+
+
+      if(
+        !button
+      ){
+
+        return;
+
+      }
+
+
+      event.preventDefault();
+
+
+      const action =
+        safeString(
+          button.dataset
+            .teacherResourcePreviewAction
+        )
+          .trim()
+          .toLowerCase();
+
+
+      switch(
+        action
+      ){
+
+        case "close":
+
+          closeTeacherResourcePreview();
+
+          return;
+
+
+        case "previous":
+
+          navigateTeacherResourcePreview(
+            -1
+          );
+
+          return;
+
+
+        case "next":
+
+          navigateTeacherResourcePreview(
+            1
+          );
+
+          return;
+
+
+        case "external":
+
+          openTeacherResourceExternally();
+
+          return;
+
+
+        case "lesson":
+
+          if(
+            teacherResourcePreviewResource
+          ){
+
+            const resource =
+              teacherResourcePreviewResource;
+
+
+            closeTeacherResourcePreview();
+
+
+            openTeacherResourceLesson(
+              resource
+            );
+
+          }
+
+
+          return;
+
+
+        case "delete":
+
+          if(
+            teacherResourcePreviewResource
+          ){
+
+            const resource =
+              teacherResourcePreviewResource;
+
+
+            closeTeacherResourcePreview();
+
+
+            await deleteTeacherLearningResource(
+              resource
+            );
+
+          }
+
+
+          return;
+
+
+        case "retry":
+
+          if(
+            teacherResourcePreviewResource
+          ){
+
+            renderTeacherResourcePreview(
+              teacherResourcePreviewResource
+            );
+
+          }
+
+
+          return;
+
+      }
+
+    }
+  );
+
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      const modal =
+        $(
+          "teacherResourcePreviewModal"
+        );
+
+
+      if(
+        !modal ||
+        modal.hidden
+      ){
+
+        return;
+
+      }
+
+
+      if(
+        event.key ===
+        "Escape"
+      ){
+
+        event.preventDefault();
+
+
+        closeTeacherResourcePreview();
+
+
+        return;
+
+      }
+
+
+      if(
+        event.key ===
+        "ArrowLeft"
+      ){
+
+        event.preventDefault();
+
+
+        navigateTeacherResourcePreview(
+          -1
+        );
+
+
+        return;
+
+      }
+
+
+      if(
+        event.key ===
+        "ArrowRight"
+      ){
+
+        event.preventDefault();
+
+
+        navigateTeacherResourcePreview(
+          1
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+/* =========================================================
    INITIALIZE RESOURCES WORKSPACE
 ========================================================= */
 
