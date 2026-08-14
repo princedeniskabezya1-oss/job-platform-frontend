@@ -16776,12 +16776,18 @@ body.aift-dialog-open{
           </select>
         </div>
 
-        <div class="field">
-          <label>Schedule</label>
-          <select id="attendanceScheduleId">
-            <option value="">Optional schedule</option>
-          </select>
-        </div>
+<div class="field">
+  <label>Schedule</label>
+
+  <select
+    id="attendanceScheduleId"
+    onchange="handleSchoolAttendanceScheduleChange()"
+  >
+    <option value="">
+      Optional schedule
+    </option>
+  </select>
+</div>
 
         <div class="field">
           <label>Date</label>
@@ -22961,6 +22967,199 @@ function isSafeScheduleMeetingLink(value){
   }
 }
 
+/* =========================================================
+   SCHOOL SCHEDULE LIFECYCLE HELPERS
+
+   The backend Schedule lifecycle is authoritative.
+
+   Date period remains useful for grouping, but it must not
+   replace the actual teaching-session status.
+========================================================= */
+
+function getSchoolScheduleLifecycleStatus(
+  schedule
+){
+
+  const status =
+    String(
+      schedule?.sessionStatus ||
+      schedule?.status ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if(
+    [
+      "scheduled",
+      "rescheduled",
+      "started",
+      "completed",
+      "missed",
+      "cancelled"
+    ].includes(status)
+  ){
+    return status;
+  }
+
+
+  /*
+    Older Schedule documents may not yet contain the newer
+    lifecycle state.
+
+    Keep them compatible using the date only as fallback.
+  */
+
+  const date =
+    new Date(
+      schedule?.date ||
+      schedule?.startDate ||
+      ""
+    );
+
+
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return "scheduled";
+  }
+
+
+  return date.getTime() <
+    Date.now()
+      ? "scheduled"
+      : "scheduled";
+
+}
+
+
+function getSchoolScheduleLifecycleLabel(
+  schedule
+){
+
+  switch(
+    getSchoolScheduleLifecycleStatus(
+      schedule
+    )
+  ){
+
+    case "rescheduled":
+      return "Rescheduled";
+
+    case "started":
+      return "In progress";
+
+    case "completed":
+      return "Completed";
+
+    case "missed":
+      return "Missed";
+
+    case "cancelled":
+      return "Cancelled";
+
+    default:
+      return "Scheduled";
+  }
+
+}
+
+
+function getSchoolScheduleLifecycleIcon(
+  schedule
+){
+
+  switch(
+    getSchoolScheduleLifecycleStatus(
+      schedule
+    )
+  ){
+
+    case "started":
+      return "●";
+
+    case "completed":
+      return "✓";
+
+    case "missed":
+      return "!";
+
+    case "cancelled":
+      return "×";
+
+    case "rescheduled":
+      return "↻";
+
+    default:
+      return "○";
+  }
+
+}
+
+
+function isSchoolScheduleHistorical(
+  schedule
+){
+
+  return [
+    "completed",
+    "missed",
+    "cancelled"
+  ].includes(
+    getSchoolScheduleLifecycleStatus(
+      schedule
+    )
+  );
+
+}
+
+
+function canSchoolEditSchedule(
+  schedule
+){
+
+  return [
+    "scheduled",
+    "rescheduled"
+  ].includes(
+    getSchoolScheduleLifecycleStatus(
+      schedule
+    )
+  );
+
+}
+
+
+function canSchoolRemoveSchedule(
+  schedule
+){
+
+  /*
+    Do not permanently delete operational history after the
+    session has started.
+
+    Historical sessions should remain available for school
+    accountability, Attendance, and analytics.
+  */
+
+  return [
+    "scheduled",
+    "rescheduled",
+    "cancelled"
+  ].includes(
+    getSchoolScheduleLifecycleStatus(
+      schedule
+    )
+  );
+
+}
+
+
+  
+
 function renderSchedule(){
   const allSchedules =
     Array.isArray(state.schedules)
@@ -23231,10 +23430,40 @@ function renderSchedule(){
                   )
                 );
 
-              const statusLabel =
-                getScheduleStatusLabel(
-                  period
-                );
+ const lifecycleStatus =
+  getSchoolScheduleLifecycleStatus(
+    schedule
+  );
+
+
+const statusLabel =
+  getSchoolScheduleLifecycleLabel(
+    schedule
+  );
+
+
+const lifecycleIcon =
+  getSchoolScheduleLifecycleIcon(
+    schedule
+  );
+
+
+const historical =
+  isSchoolScheduleHistorical(
+    schedule
+  );
+
+
+const allowEdit =
+  canSchoolEditSchedule(
+    schedule
+  );
+
+
+const allowDelete =
+  canSchoolRemoveSchedule(
+    schedule
+  );
 
               const safeScheduleId =
                 escapeHtml(
@@ -23281,10 +23510,17 @@ function renderSchedule(){
                       </h3>
 
                       <span
-                        class="schedule-studio-status ${escapeHtml(period)}"
-                      >
-                        ${escapeHtml(statusLabel)}
-                      </span>
+<span
+  class="schedule-studio-status ${escapeHtml(lifecycleStatus)}"
+>
+  <span
+    aria-hidden="true"
+  >
+    ${escapeHtml(lifecycleIcon)}
+  </span>
+
+  ${escapeHtml(statusLabel)}
+</span>
 
                     </div>
 
@@ -28575,6 +28811,231 @@ function hydrateAttendanceScheduleSelect(){
     }).join("");
 }
 
+/* =========================================================
+   SCHOOL ATTENDANCE -> SCHEDULE BINDING
+
+   When the School selects a Schedule, the Schedule becomes
+   authoritative for:
+
+     Class
+     Teacher
+     Date
+
+   Student remains selectable because attendance is still
+   being recorded for one specific student.
+========================================================= */
+
+function handleSchoolAttendanceScheduleChange(){
+
+  const scheduleSelect =
+    $("attendanceScheduleId");
+
+
+  const scheduleId =
+    String(
+      scheduleSelect?.value ||
+      ""
+    ).trim();
+
+
+  const classSelect =
+    $("attendanceClassId");
+
+
+  const teacherSelect =
+    $("attendanceTeacherId");
+
+
+  const dateInput =
+    $("attendanceDate");
+
+
+  /* =====================================================
+     MANUAL ATTENDANCE MODE
+  ===================================================== */
+
+  if(!scheduleId){
+
+    if(classSelect){
+      classSelect.disabled =
+        false;
+    }
+
+
+    if(teacherSelect){
+      teacherSelect.disabled =
+        false;
+    }
+
+
+    if(dateInput){
+      dateInput.disabled =
+        false;
+    }
+
+
+    return;
+  }
+
+
+  /* =====================================================
+     FIND THE SELECTED SCHEDULE
+  ===================================================== */
+
+  const schedule =
+    state.schedules.find(
+      item =>
+        sameId(
+          item?._id ||
+          item?.id,
+          scheduleId
+        )
+    );
+
+
+  if(!schedule){
+
+    showAiftToast({
+      type:"error",
+
+      title:
+        "Schedule unavailable",
+
+      message:
+        "The selected schedule could not be found."
+    });
+
+
+    scheduleSelect.value =
+      "";
+
+
+    if(classSelect){
+      classSelect.disabled =
+        false;
+    }
+
+
+    if(teacherSelect){
+      teacherSelect.disabled =
+        false;
+    }
+
+
+    if(dateInput){
+      dateInput.disabled =
+        false;
+    }
+
+
+    return;
+  }
+
+
+  /* =====================================================
+     RESOLVE AUTHORITATIVE IDS
+  ===================================================== */
+
+  const classId =
+    getRecordId(
+      schedule.classId
+    );
+
+
+  const teacherId =
+    getRecordId(
+      schedule.teacherId
+    );
+
+
+  const scheduleDate =
+    normalizeScheduleDateKey(
+      schedule.date ||
+      schedule.startDate
+    );
+
+
+  /* =====================================================
+     SET CLASS
+  ===================================================== */
+
+  if(
+    classSelect &&
+    classId
+  ){
+
+    classSelect.value =
+      classId;
+
+
+    /*
+      Refresh student options because the student dropdown
+      depends on the selected Class.
+    */
+
+    hydrateAttendanceStudentSelect();
+
+  }
+
+
+  /* =====================================================
+     SET TEACHER
+  ===================================================== */
+
+  if(
+    teacherSelect &&
+    teacherId
+  ){
+
+    teacherSelect.value =
+      teacherId;
+
+  }
+
+
+  /* =====================================================
+     SET DATE
+  ===================================================== */
+
+  if(
+    dateInput &&
+    scheduleDate
+  ){
+
+    dateInput.value =
+      scheduleDate;
+
+  }
+
+
+  /* =====================================================
+     LOCK SCHEDULE-OWNED FIELDS
+
+     The School can still choose the Student, Status,
+     Participation Score and Notes.
+
+     Class / Teacher / Date belong to the Schedule itself.
+  ===================================================== */
+
+  if(classSelect){
+    classSelect.disabled =
+      true;
+  }
+
+
+  if(teacherSelect){
+    teacherSelect.disabled =
+      true;
+  }
+
+
+  if(dateInput){
+    dateInput.disabled =
+      true;
+  }
+
+}
+
 function setDefaultAttendanceDate(){
   const input = $("attendanceDate");
   if (!input || input.value) return;
@@ -28713,20 +29174,47 @@ async function submitAttendance(){
     return;
   }
 
-  const payload = {
-    schoolId:
-      getSchoolId(),
+const payload = {
 
-    classId,
-    teacherId,
-    studentId,
-    scheduleId,
-    date,
-    status,
-    participationScore,
-    notes,
-    source:"manual"
-  };
+  schoolId:
+    getSchoolId(),
+
+
+  classId,
+
+
+  teacherId,
+
+
+  studentId,
+
+
+  scheduleId,
+
+
+  date,
+
+
+  status,
+
+
+  participationScore,
+
+
+  notes,
+
+
+  /*
+    Scheduled Attendance is identified separately from a
+    manually created Attendance record.
+  */
+
+  source:
+    scheduleId
+      ? "schedule"
+      : "manual"
+
+};
 
   try{
     await apiSend(
