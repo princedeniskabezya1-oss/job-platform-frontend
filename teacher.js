@@ -47494,12 +47494,394 @@ async function deleteTeacherLearningResource(
 
 
 /* =========================================================
-   SAFE EXTERNAL RESOURCE OPEN
+   TEACHER RESOURCE PREVIEW CONTROLLER
+   Student-style viewer
 ========================================================= */
 
-function openTeacherResource(
+let teacherResourcePreviewResource =
+  null;
+
+
+/* =========================================================
+   CLEAR PREVIEW MEDIA
+========================================================= */
+
+function clearTeacherResourcePreviewMedia(){
+
+  const image =
+    $(
+      "teacherResourcePreviewImage"
+    );
+
+
+  const frame =
+    $(
+      "teacherResourcePreviewFrame"
+    );
+
+
+  const video =
+    $(
+      "teacherResourcePreviewVideo"
+    );
+
+
+  const audio =
+    $(
+      "teacherResourcePreviewAudio"
+    );
+
+
+  if(
+    image
+  ){
+
+    image.onload =
+      null;
+
+
+    image.onerror =
+      null;
+
+
+    image.removeAttribute(
+      "src"
+    );
+
+  }
+
+
+  if(
+    frame
+  ){
+
+    frame.src =
+      "about:blank";
+
+  }
+
+
+  if(
+    video
+  ){
+
+    try{
+
+      video.pause();
+
+    }catch(
+      error
+    ){
+
+      console.warn(
+        "Teacher resource preview video could not be paused:",
+        error
+      );
+
+    }
+
+
+    video.removeAttribute(
+      "src"
+    );
+
+
+    video.load();
+
+  }
+
+
+  if(
+    audio
+  ){
+
+    try{
+
+      audio.pause();
+
+    }catch(
+      error
+    ){
+
+      console.warn(
+        "Teacher resource preview audio could not be paused:",
+        error
+      );
+
+    }
+
+
+    audio.removeAttribute(
+      "src"
+    );
+
+
+    audio.load();
+
+  }
+
+}
+
+
+/* =========================================================
+   HIDE ALL PREVIEW PANELS
+========================================================= */
+
+function hideTeacherResourcePreviewPanels(){
+
+  [
+    "teacherResourceImagePreview",
+    "teacherResourceDocumentPreview",
+    "teacherResourceVideoPreview",
+    "teacherResourceAudioPreview",
+    "teacherResourceLinkPreview",
+    "teacherResourceUnsupportedPreview",
+    "teacherResourcePreviewError"
+  ]
+    .forEach(
+      id => {
+
+        const element =
+          $(
+            id
+          );
+
+
+        if(
+          element
+        ){
+
+          element.hidden =
+            true;
+
+        }
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   PREVIEW LOADING STATE
+========================================================= */
+
+function showTeacherResourcePreviewLoading(
+  show =
+    true
+){
+
+  const loading =
+    $(
+      "teacherResourcePreviewLoading"
+    );
+
+
+  if(
+    loading
+  ){
+
+    loading.hidden =
+      !show;
+
+  }
+
+}
+
+
+/* =========================================================
+   CLOSE RESOURCE PREVIEW
+========================================================= */
+
+function closeTeacherResourcePreview(){
+
+  clearTeacherResourcePreviewMedia();
+
+
+  hideTeacherResourcePreviewPanels();
+
+
+  showTeacherResourcePreviewLoading(
+    false
+  );
+
+
+  teacherResourcePreviewResource =
+    null;
+
+
+  const modal =
+    $(
+      "teacherResourcePreviewModal"
+    );
+
+
+  if(
+    modal
+  ){
+
+    modal.hidden =
+      true;
+
+
+    modal.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+  }
+
+
+  document.body.classList.remove(
+    "teacher-resource-preview-open"
+  );
+
+}
+
+
+/* =========================================================
+   VISIBLE TEACHER RESOURCES
+
+   Uses the current filters so Previous/Next navigation stays
+   consistent with what the Teacher can actually see.
+========================================================= */
+
+function getVisibleTeacherResources(){
+
+  return getFilteredTeacherResources();
+
+}
+
+
+/* =========================================================
+   NAVIGATE PREVIEW
+========================================================= */
+
+function navigateTeacherResourcePreview(
+  direction
+){
+
+  if(
+    !teacherResourcePreviewResource
+  ){
+
+    return false;
+
+  }
+
+
+  const resources =
+    getVisibleTeacherResources();
+
+
+  if(
+    resources.length <=
+    1
+  ){
+
+    return false;
+
+  }
+
+
+  const currentId =
+    getTeacherResourceId(
+      teacherResourcePreviewResource
+    );
+
+
+  const currentIndex =
+    resources.findIndex(
+      resource =>
+        getTeacherResourceId(
+          resource
+        ) ===
+        currentId
+    );
+
+
+  if(
+    currentIndex <
+    0
+  ){
+
+    return false;
+
+  }
+
+
+  let nextIndex =
+    currentIndex +
+    Number(
+      direction ||
+      0
+    );
+
+
+  if(
+    nextIndex <
+    0
+  ){
+
+    nextIndex =
+      resources.length -
+      1;
+
+  }
+
+
+  if(
+    nextIndex >=
+    resources.length
+  ){
+
+    nextIndex =
+      0;
+
+  }
+
+
+  openTeacherResourcePreview(
+    getTeacherResourceId(
+      resources[
+        nextIndex
+      ]
+    )
+  );
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   RENDER RESOURCE PREVIEW
+========================================================= */
+
+function renderTeacherResourcePreview(
   resource
 ){
+
+  clearTeacherResourcePreviewMedia();
+
+
+  hideTeacherResourcePreviewPanels();
+
+
+  showTeacherResourcePreviewLoading(
+    false
+  );
+
+
+  if(
+    !resource
+  ){
+
+    return false;
+
+  }
+
 
   const url =
     getTeacherResourceUrl(
@@ -47507,13 +47889,781 @@ function openTeacherResource(
     );
 
 
-  if (
+  const type =
+    normalizeTeacherResourceType(
+      resource?.type,
+      url
+    );
+
+
+  const errorPanel =
+    $(
+      "teacherResourcePreviewError"
+    );
+
+
+  const errorMessage =
+    $(
+      "teacherResourcePreviewErrorMessage"
+    );
+
+
+  if(
     !url
   ){
 
-    showAlert(
-      "error",
-      "This resource does not have a valid URL."
+    if(
+      errorPanel
+    ){
+
+      errorPanel.hidden =
+        false;
+
+    }
+
+
+    if(
+      errorMessage
+    ){
+
+      errorMessage.textContent =
+        "This resource does not contain a usable file URL.";
+
+    }
+
+
+    return false;
+
+  }
+
+
+  /* =====================================================
+     IMAGE
+  ===================================================== */
+
+  if(
+    type ===
+    "image"
+  ){
+
+    const panel =
+      $(
+        "teacherResourceImagePreview"
+      );
+
+
+    const image =
+      $(
+        "teacherResourcePreviewImage"
+      );
+
+
+    if(
+      panel
+    ){
+
+      panel.hidden =
+        false;
+
+    }
+
+
+    if(
+      image
+    ){
+
+      showTeacherResourcePreviewLoading(
+        true
+      );
+
+
+      image.onload =
+        () => {
+
+          showTeacherResourcePreviewLoading(
+            false
+          );
+
+        };
+
+
+      image.onerror =
+        () => {
+
+          showTeacherResourcePreviewLoading(
+            false
+          );
+
+
+          if(
+            panel
+          ){
+
+            panel.hidden =
+              true;
+
+          }
+
+
+          if(
+            errorPanel
+          ){
+
+            errorPanel.hidden =
+              false;
+
+          }
+
+
+          if(
+            errorMessage
+          ){
+
+            errorMessage.textContent =
+              "The image could not be loaded.";
+
+          }
+
+        };
+
+
+      image.src =
+        url;
+
+
+      image.alt =
+        getTeacherResourceTitle(
+          resource
+        );
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* =====================================================
+     VIDEO
+  ===================================================== */
+
+  if(
+    type ===
+    "video"
+  ){
+
+    const panel =
+      $(
+        "teacherResourceVideoPreview"
+      );
+
+
+    const video =
+      $(
+        "teacherResourcePreviewVideo"
+      );
+
+
+    if(
+      panel
+    ){
+
+      panel.hidden =
+        false;
+
+    }
+
+
+    if(
+      video
+    ){
+
+      video.src =
+        url;
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* =====================================================
+     AUDIO
+  ===================================================== */
+
+  if(
+    type ===
+    "audio"
+  ){
+
+    const panel =
+      $(
+        "teacherResourceAudioPreview"
+      );
+
+
+    const audio =
+      $(
+        "teacherResourcePreviewAudio"
+      );
+
+
+    if(
+      panel
+    ){
+
+      panel.hidden =
+        false;
+
+    }
+
+
+    if(
+      audio
+    ){
+
+      audio.src =
+        url;
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* =====================================================
+     DOCUMENT / PDF
+
+     Match Student behavior by keeping supported documents
+     inside the AIFT preview shell.
+  ===================================================== */
+
+  if(
+    [
+      "pdf",
+      "document"
+    ].includes(
+      type
+    )
+  ){
+
+    const panel =
+      $(
+        "teacherResourceDocumentPreview"
+      );
+
+
+    const frame =
+      $(
+        "teacherResourcePreviewFrame"
+      );
+
+
+    if(
+      panel
+    ){
+
+      panel.hidden =
+        false;
+
+    }
+
+
+    if(
+      frame
+    ){
+
+      frame.src =
+        url;
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* =====================================================
+     LINK
+  ===================================================== */
+
+  if(
+    type ===
+    "link"
+  ){
+
+    const panel =
+      $(
+        "teacherResourceLinkPreview"
+      );
+
+
+    if(
+      panel
+    ){
+
+      panel.hidden =
+        false;
+
+    }
+
+
+    return true;
+
+  }
+
+
+  /* =====================================================
+     OTHER FILE TYPES
+  ===================================================== */
+
+  const unsupportedPanel =
+    $(
+      "teacherResourceUnsupportedPreview"
+    );
+
+
+  if(
+    unsupportedPanel
+  ){
+
+    unsupportedPanel.hidden =
+      false;
+
+  }
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   OPEN RESOURCE PREVIEW
+========================================================= */
+
+function openTeacherResourcePreview(
+  resourceOrId
+){
+
+  const resource =
+    typeof resourceOrId ===
+      "object"
+      ? resourceOrId
+      : getTeacherResourceById(
+          resourceOrId
+        );
+
+
+  if(
+    !resource
+  ){
+
+    notifyAIFTWarning(
+      "This resource is no longer available.",
+      {
+        title:
+          "Resource unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  teacherResourcePreviewResource =
+    resource;
+
+
+  const modal =
+    $(
+      "teacherResourcePreviewModal"
+    );
+
+
+  if(
+    !modal
+  ){
+
+    notifyAIFTError(
+      "The Resource Preview interface is missing from teacher.html.",
+      {
+        title:
+          "Preview unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const title =
+    getTeacherResourceTitle(
+      resource
+    );
+
+
+  const type =
+    normalizeTeacherResourceType(
+      resource?.type,
+      getTeacherResourceUrl(
+        resource
+      )
+    );
+
+
+  const typeLabel =
+    getTeacherResourceTypeLabel(
+      resource
+    );
+
+
+  const icon =
+    getTeacherResourceIcon(
+      resource
+    );
+
+
+  /* =====================================================
+     HEADER
+  ===================================================== */
+
+  const titleElement =
+    $(
+      "teacherResourcePreviewTitle"
+    );
+
+
+  if(
+    titleElement
+  ){
+
+    titleElement.textContent =
+      title;
+
+  }
+
+
+  const typeLabelElement =
+    $(
+      "teacherResourcePreviewTypeLabel"
+    );
+
+
+  if(
+    typeLabelElement
+  ){
+
+    typeLabelElement.textContent =
+      typeLabel;
+
+  }
+
+
+  const typeIconElement =
+    $(
+      "teacherResourcePreviewTypeIcon"
+    );
+
+
+  if(
+    typeIconElement
+  ){
+
+    typeIconElement.innerHTML = `
+      <i
+        class="${escapeAttribute(
+          icon
+        )}"
+        aria-hidden="true"
+      ></i>
+    `;
+
+  }
+
+
+  /* =====================================================
+     DETAILS
+  ===================================================== */
+
+  const description =
+    $(
+      "teacherResourcePreviewDescription"
+    );
+
+
+  if(
+    description
+  ){
+
+    description.textContent =
+      safeString(
+        resource?.description,
+        "No description available."
+      );
+
+  }
+
+
+  const detailType =
+    $(
+      "teacherResourcePreviewDetailType"
+    );
+
+
+  if(
+    detailType
+  ){
+
+    detailType.textContent =
+      typeLabel;
+
+  }
+
+
+  const detailClass =
+    $(
+      "teacherResourcePreviewDetailClass"
+    );
+
+
+  if(
+    detailClass
+  ){
+
+    detailClass.textContent =
+      getTeacherResourceClassName(
+        resource
+      );
+
+  }
+
+
+  const detailLesson =
+    $(
+      "teacherResourcePreviewDetailLesson"
+    );
+
+
+  if(
+    detailLesson
+  ){
+
+    detailLesson.textContent =
+      safeString(
+        resource?.lessonTitle,
+        "Lesson"
+      );
+
+  }
+
+
+  const detailDate =
+    $(
+      "teacherResourcePreviewDetailDate"
+    );
+
+
+  if(
+    detailDate
+  ){
+
+    const date =
+      resource?.uploadedAt ||
+      resource?.createdAt ||
+      resource?.updatedAt;
+
+
+    detailDate.textContent =
+      date
+        ? formatDate(
+            date
+          )
+        : "No date";
+
+  }
+
+
+  const detailFileName =
+    $(
+      "teacherResourcePreviewDetailFileName"
+    );
+
+
+  if(
+    detailFileName
+  ){
+
+    detailFileName.textContent =
+      safeString(
+        resource?.originalName,
+        title
+      );
+
+  }
+
+
+  /* =====================================================
+     LESSON / DELETE AVAILABILITY
+  ===================================================== */
+
+  const lessonButton =
+    $(
+      "teacherResourcePreviewLessonButton"
+    );
+
+
+  if(
+    lessonButton
+  ){
+
+    lessonButton.hidden =
+      !normalizeId(
+        resource?.lessonId
+      );
+
+  }
+
+
+  const deleteButton =
+    $(
+      "teacherResourcePreviewDeleteButton"
+    );
+
+
+  if(
+    deleteButton
+  ){
+
+    deleteButton.hidden =
+      !normalizeId(
+        resource?.resourceId
+      );
+
+  }
+
+
+  /* =====================================================
+     NAVIGATION
+  ===================================================== */
+
+  const resources =
+    getVisibleTeacherResources();
+
+
+  const disableNavigation =
+    resources.length <=
+    1;
+
+
+  const previousButton =
+    $(
+      "teacherResourcePreviewPreviousButton"
+    );
+
+
+  const nextButton =
+    $(
+      "teacherResourcePreviewNextButton"
+    );
+
+
+  if(
+    previousButton
+  ){
+
+    previousButton.disabled =
+      disableNavigation;
+
+  }
+
+
+  if(
+    nextButton
+  ){
+
+    nextButton.disabled =
+      disableNavigation;
+
+  }
+
+
+  /* =====================================================
+     OPEN MODAL
+  ===================================================== */
+
+  modal.hidden =
+    false;
+
+
+  modal.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+
+  document.body.classList.add(
+    "teacher-resource-preview-open"
+  );
+
+
+  renderTeacherResourcePreview(
+    resource
+  );
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   EXTERNAL OPEN
+
+   Used only when Teacher explicitly chooses Open in new tab
+   from inside the preview.
+========================================================= */
+
+function openTeacherResourceExternally(
+  resource =
+    teacherResourcePreviewResource
+){
+
+  if(
+    !resource
+  ){
+
+    return false;
+
+  }
+
+
+  const url =
+    getTeacherResourceUrl(
+      resource
+    );
+
+
+  if(
+    !url
+  ){
+
+    notifyAIFTError(
+      "This resource does not have a valid URL.",
+      {
+        title:
+          "Resource unavailable"
+      }
     );
 
 
@@ -47533,13 +48683,14 @@ function openTeacherResource(
         window.location.origin
       );
 
-  }catch(
-    error
-  ){
+  }catch{
 
-    showAlert(
-      "error",
-      "This resource URL is invalid."
+    notifyAIFTError(
+      "This resource URL is invalid.",
+      {
+        title:
+          "Invalid resource"
+      }
     );
 
 
@@ -47548,7 +48699,7 @@ function openTeacherResource(
   }
 
 
-  if (
+  if(
     ![
       "http:",
       "https:"
@@ -47557,9 +48708,12 @@ function openTeacherResource(
     )
   ){
 
-    showAlert(
-      "error",
-      "This resource uses an unsupported link type."
+    notifyAIFTError(
+      "Only HTTP and HTTPS resources can be opened.",
+      {
+        title:
+          "Unsupported resource"
+      }
     );
 
 
@@ -47568,16 +48722,54 @@ function openTeacherResource(
   }
 
 
-  window.open(
-    parsedUrl.href,
-    "_blank",
-    "noopener,noreferrer"
-  );
+  const openedWindow =
+    window.open(
+      parsedUrl.href,
+      "_blank",
+      "noopener,noreferrer"
+    );
+
+
+  if(
+    !openedWindow
+  ){
+
+    notifyAIFTWarning(
+      "Your browser blocked the resource window. Allow pop-ups for AIFT and try again.",
+      {
+        title:
+          "Resource blocked"
+      }
+    );
+
+
+    return false;
+
+  }
 
 
   return true;
 
 }
+
+
+/* =========================================================
+   BACKWARD-COMPATIBLE RESOURCE OPEN
+
+   Existing Resource cards already call openTeacherResource().
+   Keep the function name but route it into the preview.
+========================================================= */
+
+function openTeacherResource(
+  resource
+){
+
+  return openTeacherResourcePreview(
+    resource
+  );
+
+}
+
 
 
 /* =========================================================
@@ -50183,10 +51375,14 @@ function bindTeacherResourceControls(){
 
 function initializeTeacherResourcesWorkspace(){
 
-  if (
+  if(
     teacherResourcesWorkspaceState
       .initialized
   ){
+
+    bindTeacherResourceControls();
+
+    bindTeacherResourcePreviewControls();
 
     return;
 
@@ -50199,6 +51395,9 @@ function initializeTeacherResourcesWorkspace(){
 
 
   bindTeacherResourceControls();
+
+
+  bindTeacherResourcePreviewControls();
 
 }
 
