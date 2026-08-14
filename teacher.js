@@ -46299,15 +46299,351 @@ const select =
 }
 
 /* =========================================================
+   RESOURCE PREVIEW
+   Production media-style preview
+
+   Supported:
+     image
+     video
+     audio
+     PDF
+
+   Other files receive a professional file placeholder.
+
+   IMPORTANT
+   ---------------------------------------------------------
+
+   The preview is read-only.
+
+   Resource actions continue using the authoritative Resource
+   record and backend permissions.
+========================================================= */
+
+function createTeacherResourcePreview(
+  resource
+){
+
+  const url =
+    getTeacherResourceUrl(
+      resource
+    );
+
+
+  const type =
+    normalizeTeacherResourceType(
+      resource?.type,
+      url
+    );
+
+
+  const title =
+    getTeacherResourceTitle(
+      resource
+    );
+
+
+  const icon =
+    getTeacherResourceIcon(
+      resource
+    );
+
+
+  if(
+    !url
+  ){
+
+    return `
+      <div
+        class="
+          teacher-resource-preview
+          teacher-resource-preview-placeholder
+        "
+      >
+
+        <div
+          class="teacher-resource-preview-placeholder-icon"
+        >
+          <i
+            class="${escapeAttribute(
+              icon
+            )}"
+            aria-hidden="true"
+          ></i>
+        </div>
+
+        <span>
+          Preview unavailable
+        </span>
+
+      </div>
+    `;
+
+  }
+
+
+  /* =====================================================
+     IMAGE
+  ===================================================== */
+
+  if(
+    type ===
+    "image"
+  ){
+
+    return `
+      <button
+        type="button"
+        class="
+          teacher-resource-preview
+          teacher-resource-preview-image
+        "
+        data-teacher-resource-action="open"
+        data-resource-id="${escapeAttribute(
+          getTeacherResourceId(
+            resource
+          )
+        )}"
+        aria-label="Open ${escapeAttribute(
+          title
+        )}"
+        title="Open image"
+      >
+
+        <img
+          src="${escapeAttribute(
+            url
+          )}"
+          alt="${escapeAttribute(
+            title
+          )}"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+        />
+
+        <span
+          class="teacher-resource-preview-overlay"
+          aria-hidden="true"
+        >
+          <i
+            class="fa-solid fa-up-right-from-square"
+          ></i>
+
+          Open
+        </span>
+
+      </button>
+    `;
+
+  }
+
+
+  /* =====================================================
+     VIDEO
+  ===================================================== */
+
+  if(
+    type ===
+    "video"
+  ){
+
+    return `
+      <div
+        class="
+          teacher-resource-preview
+          teacher-resource-preview-video
+        "
+      >
+
+        <video
+          src="${escapeAttribute(
+            url
+          )}"
+          controls
+          preload="metadata"
+          playsinline
+        >
+          Your browser does not support video playback.
+        </video>
+
+      </div>
+    `;
+
+  }
+
+
+  /* =====================================================
+     AUDIO
+  ===================================================== */
+
+  if(
+    type ===
+    "audio"
+  ){
+
+    return `
+      <div
+        class="
+          teacher-resource-preview
+          teacher-resource-preview-audio
+        "
+      >
+
+        <div
+          class="teacher-resource-preview-audio-icon"
+        >
+          <i
+            class="fa-solid fa-headphones"
+            aria-hidden="true"
+          ></i>
+        </div>
+
+
+        <audio
+          src="${escapeAttribute(
+            url
+          )}"
+          controls
+          preload="metadata"
+        >
+          Your browser does not support audio playback.
+        </audio>
+
+      </div>
+    `;
+
+  }
+
+
+  /* =====================================================
+     PDF
+  ===================================================== */
+
+  if(
+    type ===
+    "pdf"
+  ){
+
+    return `
+      <div
+        class="
+          teacher-resource-preview
+          teacher-resource-preview-document
+        "
+      >
+
+        <iframe
+          src="${escapeAttribute(
+            url
+          )}#toolbar=0&navpanes=0"
+          title="${escapeAttribute(
+            title
+          )}"
+          loading="lazy"
+        ></iframe>
+
+
+        <button
+          type="button"
+          class="teacher-resource-preview-document-open"
+          data-teacher-resource-action="open"
+          data-resource-id="${escapeAttribute(
+            getTeacherResourceId(
+              resource
+            )
+          )}"
+        >
+          <i
+            class="fa-solid fa-arrow-up-right-from-square"
+            aria-hidden="true"
+          ></i>
+
+          Open PDF
+        </button>
+
+      </div>
+    `;
+
+  }
+
+
+  /* =====================================================
+     PRESENTATION / SPREADSHEET / DOCUMENT / ZIP / OTHER
+  ===================================================== */
+
+  return `
+    <div
+      class="
+        teacher-resource-preview
+        teacher-resource-preview-placeholder
+        teacher-resource-preview-placeholder-${escapeAttribute(
+          type
+        )}
+      "
+    >
+
+      <div
+        class="teacher-resource-preview-placeholder-icon"
+      >
+        <i
+          class="${escapeAttribute(
+            icon
+          )}"
+          aria-hidden="true"
+        ></i>
+      </div>
+
+
+      <strong>
+        ${escapeHtml(
+          safeString(
+            resource?.originalName,
+            title
+          )
+        )}
+      </strong>
+
+
+      ${
+        resource?.size
+          ? `
+            <span>
+              ${escapeHtml(
+                formatTeacherResourceFileSize(
+                  resource.size
+                )
+              )}
+            </span>
+          `
+          : ""
+      }
+
+
+      <button
+        type="button"
+        class="teacher-resource-preview-file-open"
+        data-teacher-resource-action="open"
+        data-resource-id="${escapeAttribute(
+          getTeacherResourceId(
+            resource
+          )
+        )}"
+      >
+        <i
+          class="fa-solid fa-arrow-up-right-from-square"
+          aria-hidden="true"
+        ></i>
+
+        Open file
+      </button>
+
+    </div>
+  `;
+
+}
+
+/* =========================================================
    RESOURCE CARD
-   PRODUCTION RESOURCE LIBRARY VIEW
-
-   Resource ownership remains attached to:
-     Class
-       -> Lesson
-         -> Resource
-
-   Teacher Studio does not create a parallel resource owner.
+   MEDIA-PREVIEW RESOURCE LIBRARY
 ========================================================= */
 
 function createTeacherResourceCard(
@@ -46351,12 +46687,6 @@ function createTeacherResourceCard(
     );
 
 
-  const icon =
-    getTeacherResourceIcon(
-      resource
-    );
-
-
   const className =
     getTeacherResourceClassName(
       resource
@@ -46373,6 +46703,7 @@ function createTeacherResourceCard(
   const lastUpdatedDate =
     toValidDate(
       resource?.updatedAt ||
+      resource?.uploadedAt ||
       resource?.createdAt
     );
 
@@ -46401,9 +46732,7 @@ function createTeacherResourceCard(
             ""
           );
 
-    }catch(
-      error
-    ){
+    }catch{
 
       resourceHost =
         "";
@@ -46418,7 +46747,9 @@ function createTeacherResourceCard(
     <article
       class="
         teacher-resource-card
-        teacher-resource-card-${escapeAttribute(type)}
+        teacher-resource-card-${escapeAttribute(
+          type
+        )}
       "
       data-resource-id="${escapeAttribute(
         resourceId
@@ -46426,21 +46757,12 @@ function createTeacherResourceCard(
     >
 
       <!-- ===============================================
-           RESOURCE ICON
+           PREVIEW
       ================================================ -->
 
-      <div
-        class="teacher-resource-card-icon"
-        aria-hidden="true"
-      >
-
-        <i
-          class="${escapeAttribute(
-            icon
-          )}"
-        ></i>
-
-      </div>
+      ${createTeacherResourcePreview(
+        resource
+      )}
 
 
       <!-- ===============================================
@@ -46493,7 +46815,7 @@ function createTeacherResourceCard(
 
 
         <!-- =============================================
-             OWNERSHIP CONTEXT
+             RESOURCE CONTEXT
         ============================================== -->
 
         <div
@@ -46515,7 +46837,7 @@ function createTeacherResourceCard(
 
 
           <span
-            title="Owning lesson"
+            title="Lesson"
           >
             <i
               class="fa-solid fa-book-open"
@@ -46532,7 +46854,7 @@ function createTeacherResourceCard(
             resourceHost
               ? `
                 <span
-                  title="Resource source"
+                  title="Storage or resource source"
                 >
                   <i
                     class="fa-solid fa-link"
@@ -46625,28 +46947,29 @@ function createTeacherResourceCard(
               : ""
           }
 
-          ${
-  resource?.resourceId
-    ? `
-      <button
-        type="button"
-        class="teacher-secondary-button danger"
-        data-teacher-resource-action="delete"
-        data-resource-id="${escapeAttribute(
-          resourceId
-        )}"
-        title="Remove this resource from the lesson"
-      >
-        <i
-          class="fa-regular fa-trash-can"
-          aria-hidden="true"
-        ></i>
 
-        Remove
-      </button>
-    `
-    : ""
-}
+          ${
+            resource?.resourceId
+              ? `
+                <button
+                  type="button"
+                  class="teacher-secondary-button danger"
+                  data-teacher-resource-action="delete"
+                  data-resource-id="${escapeAttribute(
+                    resourceId
+                  )}"
+                  title="Remove this resource from the lesson"
+                >
+                  <i
+                    class="fa-regular fa-trash-can"
+                    aria-hidden="true"
+                  ></i>
+
+                  Remove
+                </button>
+              `
+              : ""
+          }
 
         </div>
 
