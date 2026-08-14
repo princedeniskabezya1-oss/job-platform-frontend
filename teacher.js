@@ -46641,9 +46641,20 @@ function createTeacherResourcePreview(
 
 }
 
+
 /* =========================================================
    RESOURCE CARD
-   MEDIA-PREVIEW RESOURCE LIBRARY
+   STUDENT-STYLE PREVIEW DESIGN
+
+   Visual structure intentionally matches Student Resources:
+
+     Preview
+       ↓
+     Resource information
+       ↓
+     Actions
+
+   Teacher-only management actions remain available.
 ========================================================= */
 
 function createTeacherResourceCard(
@@ -46687,6 +46698,12 @@ function createTeacherResourceCard(
     );
 
 
+  const icon =
+    getTeacherResourceIcon(
+      resource
+    );
+
+
   const className =
     getTeacherResourceClassName(
       resource
@@ -46708,36 +46725,174 @@ function createTeacherResourceCard(
     );
 
 
-  let resourceHost =
-    "";
+  /* =====================================================
+     PREVIEW
+
+     Matches Student Resources:
+       image -> thumbnail
+       other -> centered resource icon
+  ===================================================== */
+
+  let previewMarkup =
+    `
+      <div
+        class="teacher-resource-card-preview"
+      >
+
+        <span
+          class="teacher-resource-card-preview-icon"
+          aria-hidden="true"
+        >
+          <i
+            class="${escapeAttribute(
+              icon
+            )}"
+          ></i>
+        </span>
+
+      </div>
+    `;
 
 
   if(
+    type ===
+      "image" &&
     url
   ){
 
-    try{
+    previewMarkup = `
 
-      const parsed =
-        new URL(
-          url,
-          window.location.origin
-        );
+      <button
+        type="button"
+        class="
+          teacher-resource-card-preview
+          teacher-resource-card-preview-button
+        "
+        data-teacher-resource-action="open"
+        data-resource-id="${escapeAttribute(
+          resourceId
+        )}"
+        aria-label="Open ${escapeAttribute(
+          title
+        )}"
+      >
+
+        <img
+          src="${escapeAttribute(
+            url
+          )}"
+          alt="${escapeAttribute(
+            title
+          )}"
+          loading="lazy"
+        />
+
+      </button>
+
+    `;
+
+  }
 
 
-      resourceHost =
-        parsed.hostname
-          .replace(
-            /^www\./i,
-            ""
-          );
+  /* =====================================================
+     VIDEO THUMBNAIL / PREVIEW
 
-    }catch{
+     Student cards use the same preview slot concept.
+     Teacher Studio can safely render the actual media.
+  ===================================================== */
 
-      resourceHost =
-        "";
+  else if(
+    type ===
+      "video" &&
+    url
+  ){
 
-    }
+    previewMarkup = `
+
+      <div
+        class="
+          teacher-resource-card-preview
+          teacher-resource-card-preview-video
+        "
+      >
+
+        <video
+          src="${escapeAttribute(
+            url
+          )}"
+          preload="metadata"
+          muted
+          playsinline
+        ></video>
+
+
+        <button
+          type="button"
+          class="teacher-resource-card-preview-play"
+          data-teacher-resource-action="open"
+          data-resource-id="${escapeAttribute(
+            resourceId
+          )}"
+          aria-label="Open ${escapeAttribute(
+            title
+          )}"
+        >
+          <i
+            class="fa-solid fa-play"
+            aria-hidden="true"
+          ></i>
+        </button>
+
+      </div>
+
+    `;
+
+  }
+
+
+  /* =====================================================
+     PDF
+  ===================================================== */
+
+  else if(
+    type ===
+      "pdf" &&
+    url
+  ){
+
+    previewMarkup = `
+
+      <button
+        type="button"
+        class="
+          teacher-resource-card-preview
+          teacher-resource-card-preview-button
+          teacher-resource-card-preview-document
+        "
+        data-teacher-resource-action="open"
+        data-resource-id="${escapeAttribute(
+          resourceId
+        )}"
+        aria-label="Open ${escapeAttribute(
+          title
+        )}"
+      >
+
+        <span
+          class="
+            teacher-resource-card-preview-icon
+            document
+          "
+        >
+          <i
+            class="fa-solid fa-file-pdf"
+            aria-hidden="true"
+          ></i>
+        </span>
+
+      </button>
+
+    `;
 
   }
 
@@ -46757,54 +46912,44 @@ function createTeacherResourceCard(
     >
 
       <!-- ===============================================
-           PREVIEW
+           STUDENT-STYLE PREVIEW
       ================================================ -->
 
-      ${createTeacherResourcePreview(
-        resource
-      )}
+      ${previewMarkup}
 
 
       <!-- ===============================================
-           CONTENT
+           RESOURCE BODY
       ================================================ -->
 
       <div
-        class="teacher-resource-card-content"
+        class="teacher-resource-card-body"
       >
 
-        <div
-          class="teacher-resource-card-heading"
+        <span
+          class="teacher-resource-card-type"
         >
-
-          <div>
-
-            <span
-              class="teacher-resource-type"
-            >
-              ${escapeHtml(
-                typeLabel
-              )}
-            </span>
+          ${escapeHtml(
+            typeLabel
+          )}
+        </span>
 
 
-            <h3>
-              ${escapeHtml(
-                title
-              )}
-            </h3>
-
-          </div>
-
-        </div>
+        <h3
+          title="${escapeAttribute(
+            title
+          )}"
+        >
+          ${escapeHtml(
+            title
+          )}
+        </h3>
 
 
         ${
           description
             ? `
-              <p
-                class="teacher-resource-description"
-              >
+              <p>
                 ${escapeHtml(
                   description
                 )}
@@ -46814,36 +46959,23 @@ function createTeacherResourceCard(
         }
 
 
-        <!-- =============================================
-             RESOURCE CONTEXT
-        ============================================== -->
-
         <div
-          class="teacher-resource-meta"
+          class="teacher-resource-card-meta"
         >
 
-          <span
-            title="Assigned class"
-          >
-            <i
-              class="fa-solid fa-chalkboard-user"
-              aria-hidden="true"
-            ></i>
-
+          <span>
             ${escapeHtml(
               className
             )}
           </span>
 
 
-          <span
-            title="Lesson"
-          >
-            <i
-              class="fa-solid fa-book-open"
-              aria-hidden="true"
-            ></i>
+          <span>
+            •
+          </span>
 
+
+          <span>
             ${escapeHtml(
               lessonTitle
             )}
@@ -46851,36 +46983,13 @@ function createTeacherResourceCard(
 
 
           ${
-            resourceHost
-              ? `
-                <span
-                  title="Storage or resource source"
-                >
-                  <i
-                    class="fa-solid fa-link"
-                    aria-hidden="true"
-                  ></i>
-
-                  ${escapeHtml(
-                    resourceHost
-                  )}
-                </span>
-              `
-              : ""
-          }
-
-
-          ${
             lastUpdatedDate
               ? `
-                <span
-                  title="Last updated"
-                >
-                  <i
-                    class="fa-regular fa-clock"
-                    aria-hidden="true"
-                  ></i>
+                <span>
+                  •
+                </span>
 
+                <span>
                   ${escapeHtml(
                     formatDate(
                       lastUpdatedDate
@@ -46893,13 +47002,19 @@ function createTeacherResourceCard(
 
         </div>
 
+      </div>
 
-        <!-- =============================================
-             ACTIONS
-        ============================================== -->
+
+      <!-- ===============================================
+           ACTION FOOTER
+      ================================================ -->
+
+      <div
+        class="teacher-resource-card-actions"
+      >
 
         <div
-          class="teacher-resource-actions"
+          class="teacher-resource-card-actions-left"
         >
 
           ${
@@ -46907,7 +47022,7 @@ function createTeacherResourceCard(
               ? `
                 <button
                   type="button"
-                  class="teacher-primary-button"
+                  class="teacher-resource-card-button"
                   data-teacher-resource-action="open"
                   data-resource-id="${escapeAttribute(
                     resourceId
@@ -46924,24 +47039,30 @@ function createTeacherResourceCard(
               : ""
           }
 
+        </div>
+
+
+        <div
+          class="teacher-resource-card-actions-right"
+        >
 
           ${
             resource?.lessonId
               ? `
                 <button
                   type="button"
-                  class="teacher-secondary-button"
+                  class="teacher-resource-card-icon-button"
                   data-teacher-resource-action="lesson"
                   data-resource-id="${escapeAttribute(
                     resourceId
                   )}"
+                  aria-label="View lesson"
+                  title="View lesson"
                 >
                   <i
                     class="fa-solid fa-book-open"
                     aria-hidden="true"
                   ></i>
-
-                  View lesson
                 </button>
               `
               : ""
@@ -46953,19 +47074,21 @@ function createTeacherResourceCard(
               ? `
                 <button
                   type="button"
-                  class="teacher-secondary-button danger"
+                  class="
+                    teacher-resource-card-icon-button
+                    danger
+                  "
                   data-teacher-resource-action="delete"
                   data-resource-id="${escapeAttribute(
                     resourceId
                   )}"
-                  title="Remove this resource from the lesson"
+                  aria-label="Remove resource"
+                  title="Remove resource"
                 >
                   <i
                     class="fa-regular fa-trash-can"
                     aria-hidden="true"
                   ></i>
-
-                  Remove
                 </button>
               `
               : ""
@@ -46980,7 +47103,6 @@ function createTeacherResourceCard(
   `;
 
 }
-
 /* =========================================================
    RENDER RESOURCES GRID
    PRODUCTION RESOURCE LIBRARY
