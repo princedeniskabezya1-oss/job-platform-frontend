@@ -43842,8 +43842,21 @@ function getTeacherResourceId(
   resource
 ){
 
+  /*
+    New ClassLesson resources have a real MongoDB nested _id.
+
+    Always prefer that ID because backend mutation endpoints use:
+
+      /api/class-lessons/:lessonId/resources/:resourceId
+
+    Legacy resources can still fall back to the older synthetic
+    identity.
+  */
+
   return safeString(
 
+    resource?.resourceId ||
+    resource?._id ||
     resource?.id,
 
     [
@@ -44157,9 +44170,22 @@ function getTeacherResourceIcon(
 
 }
 
-
 /* =========================================================
    LESSON RESOURCE NORMALIZER
+   PRODUCTION UPLOAD-AWARE VERSION
+
+   Supports:
+     legacy URL-string resources
+     old { title, url, type } resources
+     new uploaded ClassLesson resources
+
+   IMPORTANT
+   ---------------------------------------------------------
+
+   resourceId preserves the actual nested MongoDB _id.
+
+   That ID is required for:
+     DELETE /api/class-lessons/:lessonId/resources/:resourceId
 ========================================================= */
 
 function normalizeTeacherLessonResource(
@@ -44168,7 +44194,7 @@ function normalizeTeacherLessonResource(
   index
 ){
 
-  if (
+  if(
     !resource
   ){
 
@@ -44177,9 +44203,9 @@ function normalizeTeacherLessonResource(
   }
 
 
-  /*
-    Some older lesson data may store resources as URL strings.
-  */
+  /* =====================================================
+     LEGACY STRING RESOURCE
+  ===================================================== */
 
   const source =
     typeof resource ===
@@ -44191,15 +44217,20 @@ function normalizeTeacherLessonResource(
       : resource;
 
 
+  /* =====================================================
+     URL
+  ===================================================== */
+
   const url =
     safeString(
+      source?.secureUrl ||
       source?.url ||
       source?.fileUrl ||
       source?.href
     );
 
 
-  if (
+  if(
     !url
   ){
 
@@ -44208,17 +44239,23 @@ function normalizeTeacherLessonResource(
   }
 
 
+  /* =====================================================
+     OWNERSHIP
+  ===================================================== */
+
   const lessonId =
     normalizeId(
       lesson?._id ||
       lesson?.id
     );
 
+
   const classId =
     normalizeId(
       lesson?.classId?._id ||
       lesson?.classId
     );
+
 
   const moduleId =
     normalizeId(
@@ -44227,9 +44264,57 @@ function normalizeTeacherLessonResource(
     );
 
 
+  if(
+    !lessonId ||
+    !classId
+  ){
+
+    return null;
+
+  }
+
+
+  /* =====================================================
+     REAL NESTED RESOURCE ID
+
+     New resources stored in ClassLesson.resources[] receive
+     their own Mongoose ObjectId automatically.
+  ===================================================== */
+
+  const resourceId =
+    normalizeId(
+      source?._id ||
+      source?.resourceId
+    );
+
+
+  /* =====================================================
+     TYPE
+  ===================================================== */
+
+  const type =
+    normalizeTeacherResourceType(
+      source?.type,
+      url
+    );
+
+
+  /* =====================================================
+     RETURN NORMALIZED RESOURCE
+  ===================================================== */
+
   return {
 
+    /*
+      UI identity.
+
+      Prefer the real nested MongoDB resource ID.
+
+      Legacy resources retain a deterministic synthetic ID.
+    */
+
     id:
+      resourceId ||
       [
         lessonId,
         index,
@@ -44239,27 +44324,58 @@ function normalizeTeacherLessonResource(
           "::"
         ),
 
+
+    resourceId:
+      resourceId ||
+      "",
+
+
+    lessonId,
+
+
+    classId,
+
+
+    moduleId,
+
+
     title:
       safeString(
         source?.title ||
-        source?.name,
+        source?.name ||
+        source?.originalName,
         `Resource ${index + 1}`
       ),
+
 
     description:
       safeString(
         source?.description
       ),
 
+
     url,
 
-    type:
-      normalizeTeacherResourceType(
-        source?.type,
+
+    secureUrl:
+      safeString(
+        source?.secureUrl,
         url
       ),
 
-    lessonId,
+
+    type,
+
+
+    source:
+      safeString(
+        source?.source,
+        resourceId
+          ? "upload"
+          : "link"
+      )
+        .toLowerCase(),
+
 
     lessonTitle:
       safeString(
@@ -44267,17 +44383,110 @@ function normalizeTeacherLessonResource(
         "Lesson"
       ),
 
-    classId,
 
-    moduleId,
+    /* ===================================================
+       FILE METADATA
+    =================================================== */
+
+    originalName:
+      safeString(
+        source?.originalName
+      ),
+
+
+    mimeType:
+      safeString(
+        source?.mimeType
+      ),
+
+
+    size:
+      Math.max(
+        0,
+        Number(
+          source?.size ||
+          0
+        ) ||
+        0
+      ),
+
+
+    format:
+      safeString(
+        source?.format
+      ),
+
+
+    publicId:
+      safeString(
+        source?.publicId
+      ),
+
+
+    resourceType:
+      safeString(
+        source?.resourceType
+      ),
+
+
+    width:
+      Number.isFinite(
+        Number(
+          source?.width
+        )
+      )
+        ? Number(
+            source.width
+          )
+        : null,
+
+
+    height:
+      Number.isFinite(
+        Number(
+          source?.height
+        )
+      )
+        ? Number(
+            source.height
+          )
+        : null,
+
+
+    duration:
+      Number.isFinite(
+        Number(
+          source?.duration
+        )
+      )
+        ? Number(
+            source.duration
+          )
+        : null,
+
+
+    uploadedBy:
+      normalizeId(
+        source?.uploadedBy?._id ||
+        source?.uploadedBy
+      ),
+
+
+    uploadedAt:
+      source?.uploadedAt ||
+      null,
+
 
     createdAt:
       source?.createdAt ||
+      source?.uploadedAt ||
       lesson?.createdAt ||
       null,
 
+
     updatedAt:
       source?.updatedAt ||
+      source?.uploadedAt ||
       lesson?.updatedAt ||
       null
 
@@ -45849,6 +46058,29 @@ function createTeacherResourceCard(
               : ""
           }
 
+          ${
+  resource?.resourceId
+    ? `
+      <button
+        type="button"
+        class="teacher-secondary-button danger"
+        data-teacher-resource-action="delete"
+        data-resource-id="${escapeAttribute(
+          resourceId
+        )}"
+        title="Remove this resource from the lesson"
+      >
+        <i
+          class="fa-regular fa-trash-can"
+          aria-hidden="true"
+        ></i>
+
+        Remove
+      </button>
+    `
+    : ""
+}
+
         </div>
 
       </div>
@@ -45988,6 +46220,173 @@ function getTeacherResourceById(
       ) ||
     null
   );
+
+}
+
+
+
+/* =========================================================
+   DELETE TEACHER RESOURCE
+
+   BACKEND:
+     DELETE
+     /api/class-lessons/:lessonId/resources/:resourceId
+
+   SECURITY
+   ---------------------------------------------------------
+
+   Frontend only initiates the request.
+
+   Backend remains authoritative and verifies that the
+   authenticated Teacher is currently assigned to the Class.
+========================================================= */
+
+async function deleteTeacherLearningResource(
+  resource
+){
+
+  if(
+    !resource
+  ){
+
+    return false;
+
+  }
+
+
+  const lessonId =
+    normalizeId(
+      resource?.lessonId
+    );
+
+
+  const resourceId =
+    normalizeId(
+      resource?.resourceId ||
+      resource?._id
+    );
+
+
+  if(
+    !lessonId ||
+    !resourceId
+  ){
+
+    notifyAIFTWarning(
+      "This older resource cannot be removed directly from the Resource Library. Open its lesson to manage it.",
+      {
+        title:
+          "Resource cannot be deleted here"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const title =
+    getTeacherResourceTitle(
+      resource
+    );
+
+
+  const confirmed =
+    window.confirm(
+      [
+        `Remove "${title}"?`,
+        "",
+        "The resource will be removed from this lesson.",
+        "",
+        "Uploaded files will also be removed from storage when possible.",
+        "",
+        "Continue?"
+      ]
+        .join(
+          "\n"
+        )
+    );
+
+
+  if(
+    !confirmed
+  ){
+
+    return false;
+
+  }
+
+
+  try{
+
+    await apiDelete(
+      `/api/class-lessons/${
+        encodeURIComponent(
+          lessonId
+        )
+      }/resources/${
+        encodeURIComponent(
+          resourceId
+        )
+      }`
+    );
+
+
+    /* =====================================================
+       AUTHORITATIVE REFRESH
+
+       Do not manually mutate only the Resource grid because
+       state.classLessons is the owning source of truth.
+    ===================================================== */
+
+    teacherResourcesWorkspaceState
+      .loaded =
+      false;
+
+
+    await loadTeacherLearningResources();
+
+
+    await renderTeacherResourcesWorkspace();
+
+
+    notifyAIFTSuccess(
+      "The resource was removed from the lesson.",
+      {
+        title:
+          "Resource removed"
+      }
+    );
+
+
+    return true;
+
+  }catch(
+    error
+  ){
+
+    console.error(
+      "deleteTeacherLearningResource error:",
+      error
+    );
+
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "The resource could not be removed."
+      ),
+      {
+        title:
+          "Unable to remove resource"
+      }
+    );
+
+
+    return false;
+
+  }
 
 }
 
@@ -46646,28 +47045,37 @@ function bindTeacherResourceControls(){
       }
 
 
-      switch(
-        action
-      ){
+switch(
+  action
+){
 
-        case "open":
+  case "open":
 
-          openTeacherResource(
-            resource
-          );
+    openTeacherResource(
+      resource
+    );
 
-          break;
+    break;
 
 
-        case "lesson":
+  case "lesson":
 
-          openTeacherResourceLesson(
-            resource
-          );
+    openTeacherResourceLesson(
+      resource
+    );
 
-          break;
+    break;
 
-      }
+
+  case "delete":
+
+    await deleteTeacherLearningResource(
+      resource
+    );
+
+    break;
+
+}
 
     }
   );
