@@ -52589,6 +52589,8 @@ function getTeacherAnalyticsPendingReviewCount(){
 }
 
 
+
+
 /* =========================================================
    ANALYTICS OVERDUE ASSIGNMENTS
 ========================================================= */
@@ -52603,6 +52605,218 @@ function getTeacherAnalyticsOverdueAssignmentCount(){
 
 }
 
+/* =========================================================
+   ANALYTICS SCHEDULES IN CURRENT SCOPE
+========================================================= */
+
+function getTeacherAnalyticsSchedules(
+  {
+    withinRange =
+      true
+  } = {}
+){
+
+  const selectedClassId =
+    normalizeId(
+      teacherAnalyticsWorkspaceState
+        .classId
+    );
+
+
+  const startDate =
+    withinRange
+      ? getTeacherAnalyticsStartDate()
+      : null;
+
+
+  return getTeacherSchedules()
+    .filter(
+      schedule => {
+
+        const classId =
+          getTeacherScheduleClassId(
+            schedule
+          );
+
+
+        /* ===============================================
+           CLASS SCOPE
+        =============================================== */
+
+        if(
+          selectedClassId &&
+          !sameId(
+            classId,
+            selectedClassId
+          )
+        ){
+
+          return false;
+
+        }
+
+
+        /* ===============================================
+           DATE RANGE
+        =============================================== */
+
+        if(
+          startDate
+        ){
+
+          const scheduleDate =
+            toValidDate(
+              schedule?.date ||
+              schedule?.startDate ||
+              schedule?.createdAt
+            );
+
+
+          if(
+            !scheduleDate ||
+            scheduleDate <
+              startDate
+          ){
+
+            return false;
+
+          }
+
+        }
+
+
+        return true;
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   ANALYTICS COMPLETED SESSIONS
+========================================================= */
+
+function getTeacherAnalyticsCompletedSessionCount(){
+
+  return getTeacherAnalyticsSchedules()
+    .filter(
+      schedule =>
+        getTeacherScheduleStatus(
+          schedule
+        ) ===
+        "completed"
+    )
+    .length;
+
+}
+
+
+/* =========================================================
+   ANALYTICS MISSED SESSIONS
+========================================================= */
+
+function getTeacherAnalyticsMissedSessionCount(){
+
+  return getTeacherAnalyticsSchedules()
+    .filter(
+      schedule =>
+        getTeacherScheduleStatus(
+          schedule
+        ) ===
+        "missed"
+    )
+    .length;
+
+}
+
+
+/* =========================================================
+   ANALYTICS STARTED / IN-PROGRESS SESSIONS
+========================================================= */
+
+function getTeacherAnalyticsStartedSessionCount(){
+
+  return getTeacherAnalyticsSchedules()
+    .filter(
+      schedule =>
+        getTeacherScheduleStatus(
+          schedule
+        ) ===
+        "started"
+    )
+    .length;
+
+}
+
+
+/* =========================================================
+   ANALYTICS SCHEDULED SESSION COUNT
+========================================================= */
+
+function getTeacherAnalyticsScheduledSessionCount(){
+
+  return getTeacherAnalyticsSchedules()
+    .filter(
+      schedule =>
+        [
+          "scheduled",
+          "rescheduled"
+        ].includes(
+          getTeacherScheduleStatus(
+            schedule
+          )
+        )
+    )
+    .length;
+
+}
+
+
+/* =========================================================
+   ANALYTICS SESSION COMPLETION RATE
+
+   Only completed + missed sessions are considered resolved
+   historical teaching obligations.
+
+   Cancelled sessions are deliberately excluded because a
+   cancellation should not reduce Teacher completion rate.
+========================================================= */
+
+function getTeacherAnalyticsSessionCompletionRate(){
+
+  const completed =
+    getTeacherAnalyticsCompletedSessionCount();
+
+
+  const missed =
+    getTeacherAnalyticsMissedSessionCount();
+
+
+  const resolved =
+    completed +
+    missed;
+
+
+  if(
+    !resolved
+  ){
+
+    return 0;
+
+  }
+
+
+  return clampPercentage(
+    (
+      completed /
+      resolved
+    ) *
+    100
+  );
+
+}
+
 
 /* =========================================================
    ANALYTICS SUMMARY
@@ -52613,8 +52827,10 @@ function getTeacherAnalyticsSummary(){
   const students =
     getTeacherAnalyticsStudents();
 
+
   const classes =
     getTeacherAnalyticsClasses();
+
 
   const submissionsInRange =
     getTeacherAnalyticsSubmissions({
@@ -52623,38 +52839,95 @@ function getTeacherAnalyticsSummary(){
     });
 
 
+  const completedSessions =
+    getTeacherAnalyticsCompletedSessionCount();
+
+
+  const missedSessions =
+    getTeacherAnalyticsMissedSessionCount();
+
+
+  const startedSessions =
+    getTeacherAnalyticsStartedSessionCount();
+
+
+  const scheduledSessions =
+    getTeacherAnalyticsScheduledSessionCount();
+
+
   return {
+
+    /* =====================================================
+       CORE SCOPE
+    ===================================================== */
 
     students:
       students.length,
 
+
     classes:
       classes.length,
+
 
     assignments:
       getTeacherAnalyticsAssignments()
         .length,
 
+
     submissions:
       submissionsInRange.length,
+
+
+    /* =====================================================
+       LEARNING PERFORMANCE
+    ===================================================== */
 
     attendanceRate:
       getTeacherAnalyticsAttendanceRate(),
 
+
     submissionRate:
       getTeacherAnalyticsSubmissionRate(),
+
 
     reviewRate:
       getTeacherAnalyticsReviewRate(),
 
+
     quizAverage:
       getTeacherAnalyticsQuizAverage(),
+
+
+    /* =====================================================
+       WORKLOAD
+    ===================================================== */
 
     pendingReviews:
       getTeacherAnalyticsPendingReviewCount(),
 
+
     overdueAssignments:
-      getTeacherAnalyticsOverdueAssignmentCount()
+      getTeacherAnalyticsOverdueAssignmentCount(),
+
+
+    /* =====================================================
+       TEACHING SESSION ACCOUNTABILITY
+    ===================================================== */
+
+    completedSessions,
+
+
+    missedSessions,
+
+
+    startedSessions,
+
+
+    scheduledSessions,
+
+
+    sessionCompletionRate:
+      getTeacherAnalyticsSessionCompletionRate()
 
   };
 
@@ -53629,7 +53902,7 @@ function renderTeacherAnalyticsSummary(){
     );
 
 
-  if (
+  if(
     !container
   ){
 
@@ -53645,6 +53918,7 @@ function renderTeacherAnalyticsSummary(){
   container.innerHTML = `
 
     ${createTeacherAnalyticsSummaryCard({
+
       icon:
         "fa-solid fa-user-graduate",
 
@@ -53663,10 +53937,12 @@ function renderTeacherAnalyticsSummary(){
             ? "class"
             : "classes"
         }`
+
     })}
 
 
     ${createTeacherAnalyticsSummaryCard({
+
       icon:
         "fa-solid fa-user-check",
 
@@ -53678,10 +53954,12 @@ function renderTeacherAnalyticsSummary(){
 
       description:
         getTeacherAnalyticsRangeLabel()
+
     })}
 
 
     ${createTeacherAnalyticsSummaryCard({
+
       icon:
         "fa-solid fa-file-circle-check",
 
@@ -53693,10 +53971,12 @@ function renderTeacherAnalyticsSummary(){
 
       description:
         "Assignment completion"
+
     })}
 
 
     ${createTeacherAnalyticsSummaryCard({
+
       icon:
         "fa-solid fa-pen-to-square",
 
@@ -53707,11 +53987,18 @@ function renderTeacherAnalyticsSummary(){
         `${summary.reviewRate}%`,
 
       description:
-        `${summary.pendingReviews} pending review`
+        `${summary.pendingReviews} pending review${
+          summary.pendingReviews ===
+          1
+            ? ""
+            : "s"
+        }`
+
     })}
 
 
     ${createTeacherAnalyticsSummaryCard({
+
       icon:
         "fa-solid fa-list-check",
 
@@ -53723,6 +54010,28 @@ function renderTeacherAnalyticsSummary(){
 
       description:
         getTeacherAnalyticsRangeLabel()
+
+    })}
+
+
+    ${createTeacherAnalyticsSummaryCard({
+
+      icon:
+        summary.missedSessions
+          ? "fa-solid fa-triangle-exclamation"
+          : "fa-solid fa-calendar-check",
+
+      label:
+        "Teaching sessions",
+
+      value:
+        `${summary.sessionCompletionRate}%`,
+
+      description:
+        summary.missedSessions
+          ? `${summary.completedSessions} completed · ${summary.missedSessions} missed`
+          : `${summary.completedSessions} completed · ${summary.startedSessions} active`
+
     })}
 
   `;
