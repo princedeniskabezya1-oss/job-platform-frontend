@@ -7364,39 +7364,34 @@ body.aift-dialog-open{
 
 
 /* =========================================================
-   HISTORICAL RECORD LOCK
-
-   Used when a completed/missed teaching session should remain
-   visible for accountability instead of exposing destructive
-   edit/remove actions.
+   HISTORICAL SCHEDULE RECORD
 ========================================================= */
 
 .schedule-studio-history-lock{
 
   display:inline-flex;
-
   align-items:center;
   justify-content:center;
 
-  gap:5px;
+  gap:6px;
 
   min-height:34px;
 
   padding:
-    0 9px;
+    0 10px;
 
   border:
     1px solid
-    #e2e8f0;
+    #dfe5ec;
 
   border-radius:
-    8px;
+    9px;
 
   background:
     #f8fafc;
 
   color:
-    #64748b;
+    #667085;
 
   font-size:
     9px;
@@ -7412,6 +7407,35 @@ body.aift-dialog-open{
 
   cursor:
     default;
+
+}
+
+
+.schedule-studio-history-lock svg{
+
+  width:
+    14px;
+
+  height:
+    14px;
+
+  flex-shrink:
+    0;
+
+  fill:
+    none;
+
+  stroke:
+    currentColor;
+
+  stroke-width:
+    1.8;
+
+  stroke-linecap:
+    round;
+
+  stroke-linejoin:
+    round;
 
 }
 
@@ -23570,18 +23594,115 @@ function renderSchedule(){
           searchValue
         );
 
-      let matchesPeriod =
-        true;
+let matchesPeriod =
+  true;
 
-      if(periodFilter === "upcoming"){
-        matchesPeriod =
-          row.period === "upcoming" ||
-          row.period === "today";
-      }else if(periodFilter !== "all"){
-        matchesPeriod =
-          row.period ===
-          periodFilter;
-      }
+
+const lifecycleStatus =
+  getSchoolScheduleLifecycleStatus(
+    row.schedule
+  );
+
+
+/* =====================================================
+   ACTIVE / UPCOMING
+
+   Keep operational sessions visible even if the clock has
+   passed their original date/time.
+
+   Includes:
+     scheduled
+     rescheduled
+     started
+
+   Excludes:
+     completed
+     missed
+     cancelled
+===================================================== */
+
+if(
+  periodFilter ===
+  "upcoming"
+){
+
+  matchesPeriod =
+    [
+      "scheduled",
+      "rescheduled",
+      "started"
+    ].includes(
+      lifecycleStatus
+    ) &&
+    (
+      row.period ===
+        "upcoming" ||
+      row.period ===
+        "today" ||
+      lifecycleStatus ===
+        "started"
+    );
+
+}
+
+
+/* =====================================================
+   PREVIOUS / HISTORY
+
+   Historical teaching records stay out of the everyday
+   Schedule workspace but remain available for audit.
+===================================================== */
+
+else if(
+  periodFilter ===
+  "past"
+){
+
+  matchesPeriod =
+    [
+      "completed",
+      "missed",
+      "cancelled"
+    ].includes(
+      lifecycleStatus
+    ) ||
+    row.period ===
+      "past";
+
+}
+
+
+/* =====================================================
+   TODAY
+===================================================== */
+
+else if(
+  periodFilter ===
+  "today"
+){
+
+  matchesPeriod =
+    row.period ===
+    "today";
+
+}
+
+
+/* =====================================================
+   ALL
+
+   No filtering.
+===================================================== */
+
+else if(
+  periodFilter ===
+  "all"
+){
+
+  matchesPeriod =
+    true;
+
+}
 
       return (
         matchesSearch &&
@@ -23894,15 +24015,25 @@ ${
         </svg>
       </button>
     `
-    : `
-      <span
-        class="schedule-studio-history-lock"
-        title="Historical teaching records are retained for accountability."
-      >
-        🔒
-        History
-      </span>
-    `
+: `
+  <span
+    class="schedule-studio-history-lock"
+    title="This session is retained as a historical teaching record."
+  >
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+      <path d="M3 4v6h6"></path>
+      <path d="M12 7v5l3 2"></path>
+    </svg>
+
+    <span>
+      Historical
+    </span>
+  </span>
+`
 }
 
                   </div>
