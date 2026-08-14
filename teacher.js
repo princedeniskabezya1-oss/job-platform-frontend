@@ -51026,21 +51026,17 @@ const editingResourceId =
 
     try{
 
-      await apiSend(
-        `/api/class-lessons/${
-          encodeURIComponent(
-            lessonId
-          )
-        }`,
-        {
-          method:
-            "PATCH",
-
-          body:{
-            resources
-          }
-        }
-      );
+await apiSend(
+  `/api/class-lessons/${
+    encodeURIComponent(
+      lessonId
+    )
+  }`,
+  "PATCH",
+  {
+    resources
+  }
+);
 
 
       teacherResourcesWorkspaceState
