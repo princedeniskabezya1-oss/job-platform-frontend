@@ -50771,6 +50771,19 @@ async function saveTeacherLearningResource(){
     teacherResourceEditorState
       .mode;
 
+   const editing =
+  Boolean(
+    teacherResourceEditorState
+      .editing
+  );
+
+
+const editingResourceId =
+  normalizeId(
+    teacherResourceEditorState
+      .editingResourceId
+  );
+
 
   /* =====================================================
      CLASS VALIDATION
@@ -50838,7 +50851,263 @@ async function saveTeacherLearningResource(){
 
 
   /* =====================================================
+     EDIT EXISTING RESOURCE
+
+     Uses existing:
+       PATCH /api/class-lessons/:id
+
+     Backend already allows:
+       resources
+  ===================================================== */
+
+  if(
+    editing
+  ){
+
+    const originalLesson =
+      getTeacherResourceLessonById(
+        lessonId
+      );
+
+
+    if(
+      !originalLesson ||
+      !canTeacherUseResourceLesson(
+        originalLesson
+      )
+    ){
+
+      notifyAIFTError(
+        "The lesson containing this resource is no longer available.",
+        {
+          title:
+            "Unable to save resource"
+        }
+      );
+
+
+      return false;
+
+    }
+
+
+    const resources =
+      asArray(
+        originalLesson?.resources
+      )
+        .map(
+          item => {
+
+            const itemId =
+              normalizeId(
+                item?._id ||
+                item?.id
+              );
+
+
+            if(
+              !sameId(
+                itemId,
+                editingResourceId
+              )
+            ){
+
+              return item;
+
+            }
+
+
+            const updated = {
+              ...item,
+
+              title:
+                title,
+
+              description:
+                description
+            };
+
+
+            /* ===============================================
+               LINK RESOURCE
+            ================================================ */
+
+            if(
+              mode ===
+              "link"
+            ){
+
+              const rawUrl =
+                safeString(
+                  $(
+                    "teacherResourceEditorUrl"
+                  )?.value
+                )
+                  .trim();
+
+
+              const normalizedUrl =
+                normalizeHttpUrl(
+                  rawUrl
+                );
+
+
+              if(
+                !normalizedUrl
+              ){
+
+                throw new Error(
+                  "Enter a valid HTTP or HTTPS resource URL."
+                );
+
+              }
+
+
+              updated.url =
+                normalizedUrl;
+
+
+              updated.secureUrl =
+                normalizedUrl;
+
+
+              updated.source =
+                "link";
+
+
+              updated.type =
+                "link";
+
+            }
+
+
+            return updated;
+
+          }
+        );
+
+
+    const found =
+      resources.some(
+        item =>
+          sameId(
+            item?._id ||
+            item?.id,
+            editingResourceId
+          )
+      );
+
+
+    if(
+      !found
+    ){
+
+      notifyAIFTError(
+        "The resource could not be found inside the selected lesson.",
+        {
+          title:
+            "Unable to save resource"
+        }
+      );
+
+
+      return false;
+
+    }
+
+
+    teacherResourceEditorState
+      .saving =
+      true;
+
+
+    renderTeacherResourceEditor();
+
+
+    try{
+
+      await apiSend(
+        `/api/class-lessons/${
+          encodeURIComponent(
+            lessonId
+          )
+        }`,
+        {
+          method:
+            "PATCH",
+
+          body:{
+            resources
+          }
+        }
+      );
+
+
+      teacherResourcesWorkspaceState
+        .loaded =
+        false;
+
+
+      await loadTeacherLearningResources();
+
+
+      closeTeacherResourceEditor();
+
+
+      await renderTeacherResourcesWorkspace();
+
+
+      notifyAIFTSuccess(
+        "Resource changes were saved.",
+        {
+          title:
+            "Resource updated"
+        }
+      );
+
+
+      return true;
+
+    }catch(
+      error
+    ){
+
+      console.error(
+        "updateTeacherLearningResource error:",
+        error
+      );
+
+
+      teacherResourceEditorState
+        .saving =
+        false;
+
+
+      renderTeacherResourceEditor();
+
+
+      notifyAIFTError(
+        getErrorMessage(
+          error,
+          "The resource could not be updated."
+        ),
+        {
+          title:
+            "Unable to update resource"
+        }
+      );
+
+
+      return false;
+
+    }
+
+  }
+
+
+  /* =====================================================
      SOURCE VALIDATION
+     CREATE MODE ONLY
   ===================================================== */
 
   const formData =
