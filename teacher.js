@@ -43834,6 +43834,366 @@ const teacherResourcesWorkspaceState = {
 };
 
 
+
+/* =========================================================
+   RESOURCE EDITOR STATE
+
+   One editor only.
+
+   Resources remain owned by:
+
+     Class
+       -> Lesson
+         -> Resource
+
+   The editor only creates a Resource inside an existing
+   Lesson. It does not create a second Resource database.
+========================================================= */
+
+const teacherResourceEditorState = {
+
+  open:
+    false,
+
+  classId:
+    "",
+
+  lessonId:
+    "",
+
+  mode:
+    "upload",
+
+  file:
+    null,
+
+  saving:
+    false
+
+};
+
+
+/* =========================================================
+   RESOURCE MAX FILE SIZE
+========================================================= */
+
+const TEACHER_RESOURCE_MAX_FILE_SIZE =
+  100 * 1024 * 1024;
+
+
+/* =========================================================
+   FORMAT RESOURCE FILE SIZE
+========================================================= */
+
+function formatTeacherResourceFileSize(
+  bytes
+){
+
+  const size =
+    Math.max(
+      0,
+      Number(
+        bytes ||
+        0
+      ) ||
+      0
+    );
+
+
+  if(
+    size <
+    1024
+  ){
+
+    return `${size} B`;
+
+  }
+
+
+  if(
+    size <
+    1024 * 1024
+  ){
+
+    return `${(
+      size /
+      1024
+    ).toFixed(
+      1
+    )} KB`;
+
+  }
+
+
+  if(
+    size <
+    1024 * 1024 * 1024
+  ){
+
+    return `${(
+      size /
+      (
+        1024 *
+        1024
+      )
+    ).toFixed(
+      1
+    )} MB`;
+
+  }
+
+
+  return `${(
+    size /
+    (
+      1024 *
+      1024 *
+      1024
+    )
+  ).toFixed(
+    1
+  )} GB`;
+
+}
+
+
+/* =========================================================
+   RESOURCE LESSON CLASS ID
+========================================================= */
+
+function getTeacherResourceLessonClassId(
+  lesson
+){
+
+  return normalizeId(
+    lesson?.classId?._id ||
+    lesson?.classId
+  );
+
+}
+
+
+/* =========================================================
+   RESOURCE LESSONS FOR CLASS
+
+   Only lessons from an assigned Teacher class are returned.
+========================================================= */
+
+function getTeacherResourceLessonsForClass(
+  classId
+){
+
+  const normalizedClassId =
+    normalizeId(
+      classId
+    );
+
+
+  if(
+    !normalizedClassId
+  ){
+
+    return [];
+
+  }
+
+
+  const allowedClassIds =
+    new Set(
+      getTeacherClassIds()
+    );
+
+
+  if(
+    !allowedClassIds.has(
+      normalizedClassId
+    )
+  ){
+
+    return [];
+
+  }
+
+
+  return asArray(
+    state.classLessons
+  )
+    .filter(
+      lesson =>
+        sameId(
+          getTeacherResourceLessonClassId(
+            lesson
+          ),
+          normalizedClassId
+        )
+    )
+    .sort(
+      (
+        first,
+        second
+      ) => {
+
+        const firstOrder =
+          Number(
+            first?.order ||
+            0
+          );
+
+
+        const secondOrder =
+          Number(
+            second?.order ||
+            0
+          );
+
+
+        if(
+          firstOrder !==
+          secondOrder
+        ){
+
+          return (
+            firstOrder -
+            secondOrder
+          );
+
+        }
+
+
+        return safeString(
+          first?.title
+        )
+          .localeCompare(
+            safeString(
+              second?.title
+            ),
+            undefined,
+            {
+              sensitivity:
+                "base"
+            }
+          );
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   RESOURCE LESSON BY ID
+========================================================= */
+
+function getTeacherResourceLessonById(
+  lessonId
+){
+
+  const normalizedLessonId =
+    normalizeId(
+      lessonId
+    );
+
+
+  if(
+    !normalizedLessonId
+  ){
+
+    return null;
+
+  }
+
+
+  return (
+    asArray(
+      state.classLessons
+    )
+      .find(
+        lesson =>
+          sameId(
+            lesson?._id ||
+            lesson?.id,
+            normalizedLessonId
+          )
+      ) ||
+    null
+  );
+
+}
+
+
+/* =========================================================
+   VALIDATE RESOURCE LESSON OWNERSHIP
+========================================================= */
+
+function canTeacherUseResourceLesson(
+  lesson
+){
+
+  if(
+    !lesson
+  ){
+
+    return false;
+
+  }
+
+
+  const classId =
+    getTeacherResourceLessonClassId(
+      lesson
+    );
+
+
+  return getTeacherClassIds()
+    .some(
+      allowedClassId =>
+        sameId(
+          allowedClassId,
+          classId
+        )
+    );
+
+}
+
+
+/* =========================================================
+   RESET RESOURCE EDITOR
+========================================================= */
+
+function resetTeacherResourceEditorState(){
+
+  teacherResourceEditorState
+    .open =
+    false;
+
+
+  teacherResourceEditorState
+    .classId =
+    "";
+
+
+  teacherResourceEditorState
+    .lessonId =
+    "";
+
+
+  teacherResourceEditorState
+    .mode =
+    "upload";
+
+
+  teacherResourceEditorState
+    .file =
+    null;
+
+
+  teacherResourceEditorState
+    .saving =
+    false;
+
+}
+
+
 /* =========================================================
    RESOURCE ID
 ========================================================= */
@@ -46822,12 +47182,1659 @@ async function loadTeacherLearningResources(){
 }
 
 /* =========================================================
+   RESOURCES HEADER
+========================================================= */
+
+function renderTeacherResourcesHeader(){
+
+  const container =
+    $(
+      "teacherResourcesHeader"
+    );
+
+
+  if(
+    !container
+  ){
+
+    return false;
+
+  }
+
+
+  container.innerHTML = `
+
+    <div
+      class="teacher-workspace-heading"
+    >
+
+      <div>
+
+        <span
+          class="teacher-workspace-eyebrow"
+        >
+          Teacher Studio
+        </span>
+
+
+        <h1>
+          Resources
+        </h1>
+
+
+        <p>
+          Manage teaching files and links attached to lessons in your assigned classes.
+        </p>
+
+      </div>
+
+
+      <div
+        class="teacher-workspace-heading-actions"
+      >
+
+        <button
+          type="button"
+          class="teacher-primary-button"
+          data-teacher-resource-action="create"
+        >
+
+          <i
+            class="fa-solid fa-plus"
+            aria-hidden="true"
+          ></i>
+
+          Add Resource
+
+        </button>
+
+      </div>
+
+    </div>
+
+  `;
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   OPEN RESOURCE EDITOR
+========================================================= */
+
+async function openTeacherResourceEditor(
+  {
+    classId =
+      "",
+    lessonId =
+      ""
+  } = {}
+){
+
+  /*
+    Resources require lesson data.
+
+    If the workspace was entered before Lessons finished
+    loading, refresh the authoritative Resource/Lesson cache.
+  */
+
+  if(
+    !asArray(
+      state.classLessons
+    ).length
+  ){
+
+    teacherResourcesWorkspaceState
+      .loaded =
+      false;
+
+
+    await loadTeacherLearningResources();
+
+  }
+
+
+  const requestedClassId =
+    normalizeId(
+      classId
+    );
+
+
+  const requestedLessonId =
+    normalizeId(
+      lessonId
+    );
+
+
+  let finalClassId =
+    requestedClassId;
+
+
+  let finalLessonId =
+    requestedLessonId;
+
+
+  /* =====================================================
+     LESSON PROVIDED
+  ===================================================== */
+
+  if(
+    finalLessonId
+  ){
+
+    const lesson =
+      getTeacherResourceLessonById(
+        finalLessonId
+      );
+
+
+    if(
+      !lesson ||
+      !canTeacherUseResourceLesson(
+        lesson
+      )
+    ){
+
+      notifyAIFTError(
+        "The selected lesson is not available in one of your assigned classes.",
+        {
+          title:
+            "Lesson unavailable"
+        }
+      );
+
+
+      return false;
+
+    }
+
+
+    finalClassId =
+      getTeacherResourceLessonClassId(
+        lesson
+      );
+
+  }
+
+
+  /* =====================================================
+     CLASS FALLBACK
+
+     Prefer the current Resource class filter when it points
+     to one real class.
+  ===================================================== */
+
+  if(
+    !finalClassId &&
+    teacherResourcesWorkspaceState
+      .classId !==
+      "all"
+  ){
+
+    finalClassId =
+      normalizeId(
+        teacherResourcesWorkspaceState
+          .classId
+      );
+
+  }
+
+
+  /* =====================================================
+     VERIFY CLASS
+  ===================================================== */
+
+  if(
+    finalClassId &&
+    !getTeacherClassById(
+      finalClassId
+    )
+  ){
+
+    finalClassId =
+      "";
+
+  }
+
+
+  teacherResourceEditorState
+    .open =
+    true;
+
+
+  teacherResourceEditorState
+    .classId =
+    finalClassId;
+
+
+  teacherResourceEditorState
+    .lessonId =
+    finalLessonId;
+
+
+  teacherResourceEditorState
+    .mode =
+    "upload";
+
+
+  teacherResourceEditorState
+    .file =
+    null;
+
+
+  teacherResourceEditorState
+    .saving =
+    false;
+
+
+  renderTeacherResourceEditor();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   CLOSE RESOURCE EDITOR
+========================================================= */
+
+function closeTeacherResourceEditor(){
+
+  resetTeacherResourceEditorState();
+
+
+  const container =
+    $(
+      "teacherResourceEditor"
+    );
+
+
+  if(
+    container
+  ){
+
+    container.hidden =
+      true;
+
+
+    container.innerHTML =
+      "";
+
+  }
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   RESOURCE EDITOR LESSON OPTIONS
+========================================================= */
+
+function getTeacherResourceEditorLessonOptions(){
+
+  const classId =
+    normalizeId(
+      teacherResourceEditorState
+        .classId
+    );
+
+
+  if(
+    !classId
+  ){
+
+    return `
+      <option value="">
+        Select a class first
+      </option>
+    `;
+
+  }
+
+
+  const lessons =
+    getTeacherResourceLessonsForClass(
+      classId
+    );
+
+
+  if(
+    !lessons.length
+  ){
+
+    return `
+      <option value="">
+        No lessons available in this class
+      </option>
+    `;
+
+  }
+
+
+  return `
+    <option value="">
+      Select lesson
+    </option>
+
+    ${
+      lessons
+        .map(
+          lesson => {
+
+            const lessonId =
+              normalizeId(
+                lesson?._id ||
+                lesson?.id
+              );
+
+
+            return `
+              <option
+                value="${escapeAttribute(
+                  lessonId
+                )}"
+                ${
+                  sameId(
+                    teacherResourceEditorState
+                      .lessonId,
+                    lessonId
+                  )
+                    ? "selected"
+                    : ""
+                }
+              >
+                ${escapeHtml(
+                  safeString(
+                    lesson?.title,
+                    "Lesson"
+                  )
+                )}
+              </option>
+            `;
+
+          }
+        )
+        .join(
+          ""
+        )
+    }
+  `;
+
+}
+
+
+/* =========================================================
+   RESOURCE EDITOR SELECTED FILE
+========================================================= */
+
+function renderTeacherResourceSelectedFile(){
+
+  const container =
+    $(
+      "teacherResourceSelectedFile"
+    );
+
+
+  if(
+    !container
+  ){
+
+    return false;
+
+  }
+
+
+  const file =
+    teacherResourceEditorState
+      .file;
+
+
+  if(
+    !file
+  ){
+
+    container.hidden =
+      true;
+
+
+    container.innerHTML =
+      "";
+
+
+    return true;
+
+  }
+
+
+  container.hidden =
+    false;
+
+
+  container.innerHTML = `
+
+    <div
+      class="teacher-resource-selected-file-icon"
+    >
+      <i
+        class="fa-solid fa-file"
+        aria-hidden="true"
+      ></i>
+    </div>
+
+
+    <div
+      class="teacher-resource-selected-file-copy"
+    >
+
+      <strong>
+        ${escapeHtml(
+          file.name ||
+          "Selected file"
+        )}
+      </strong>
+
+
+      <span>
+        ${escapeHtml(
+          formatTeacherResourceFileSize(
+            file.size
+          )
+        )}
+
+        ${
+          file.type
+            ? ` · ${escapeHtml(
+                file.type
+              )}`
+            : ""
+        }
+      </span>
+
+    </div>
+
+
+    <button
+      type="button"
+      class="teacher-resource-file-remove"
+      data-teacher-resource-action="remove-selected-file"
+      aria-label="Remove selected file"
+      title="Remove selected file"
+    >
+
+      <i
+        class="fa-solid fa-xmark"
+        aria-hidden="true"
+      ></i>
+
+    </button>
+
+  `;
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   SET RESOURCE EDITOR MODE
+========================================================= */
+
+function setTeacherResourceEditorMode(
+  mode
+){
+
+  const normalizedMode =
+    mode ===
+    "link"
+      ? "link"
+      : "upload";
+
+
+  teacherResourceEditorState
+    .mode =
+    normalizedMode;
+
+
+  if(
+    normalizedMode ===
+    "link"
+  ){
+
+    teacherResourceEditorState
+      .file =
+      null;
+
+  }
+
+
+  renderTeacherResourceEditor();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   RENDER RESOURCE EDITOR
+========================================================= */
+
+function renderTeacherResourceEditor(){
+
+  const container =
+    $(
+      "teacherResourceEditor"
+    );
+
+
+  if(
+    !container
+  ){
+
+    return false;
+
+  }
+
+
+  if(
+    !teacherResourceEditorState
+      .open
+  ){
+
+    container.hidden =
+      true;
+
+
+    container.innerHTML =
+      "";
+
+
+    return true;
+
+  }
+
+
+  const classes =
+    getTeacherClasses();
+
+
+  const mode =
+    teacherResourceEditorState
+      .mode;
+
+
+  const saving =
+    teacherResourceEditorState
+      .saving;
+
+
+  container.hidden =
+    false;
+
+
+  container.innerHTML = `
+
+    <div
+      class="teacher-resource-editor-backdrop"
+      data-teacher-resource-action="close-editor"
+    ></div>
+
+
+    <section
+      class="teacher-resource-editor-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="teacherResourceEditorTitle"
+    >
+
+      <!-- ===============================================
+           HEADER
+      ================================================ -->
+
+      <header
+        class="teacher-resource-editor-header"
+      >
+
+        <div>
+
+          <span
+            class="teacher-page-eyebrow"
+          >
+            LESSON RESOURCE
+          </span>
+
+
+          <h2
+            id="teacherResourceEditorTitle"
+          >
+            Add Resource
+          </h2>
+
+
+          <p>
+            Add a file from your device or attach a trusted external link to one of your lessons.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="teacher-icon-button"
+          data-teacher-resource-action="close-editor"
+          aria-label="Close resource editor"
+          ${
+            saving
+              ? "disabled"
+              : ""
+          }
+        >
+
+          <i
+            class="fa-solid fa-xmark"
+            aria-hidden="true"
+          ></i>
+
+        </button>
+
+      </header>
+
+
+      <!-- ===============================================
+           BODY
+      ================================================ -->
+
+      <div
+        class="teacher-resource-editor-body"
+      >
+
+        <!-- =============================================
+             DESTINATION
+        ============================================== -->
+
+        <section
+          class="teacher-resource-editor-section"
+        >
+
+          <div
+            class="teacher-resource-editor-section-heading"
+          >
+
+            <div
+              class="teacher-resource-editor-section-icon"
+            >
+              <i
+                class="fa-solid fa-book-open"
+                aria-hidden="true"
+              ></i>
+            </div>
+
+
+            <div>
+
+              <strong>
+                Destination
+              </strong>
+
+              <span>
+                Resources must belong to a lesson inside one of your assigned classes.
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div
+            class="teacher-resource-editor-grid"
+          >
+
+            <label
+              class="teacher-form-field"
+            >
+
+              <span>
+                Class
+              </span>
+
+
+              <select
+                id="teacherResourceEditorClassId"
+                ${
+                  saving
+                    ? "disabled"
+                    : ""
+                }
+              >
+
+                <option value="">
+                  Select class
+                </option>
+
+
+                ${
+                  classes
+                    .map(
+                      classItem => {
+
+                        const classId =
+                          normalizeId(
+                            classItem?._id ||
+                            classItem?.id
+                          );
+
+
+                        return `
+                          <option
+                            value="${escapeAttribute(
+                              classId
+                            )}"
+                            ${
+                              sameId(
+                                teacherResourceEditorState
+                                  .classId,
+                                classId
+                              )
+                                ? "selected"
+                                : ""
+                            }
+                          >
+                            ${escapeHtml(
+                              getTeacherClassTitle(
+                                classItem
+                              )
+                            )}
+                          </option>
+                        `;
+
+                      }
+                    )
+                    .join(
+                      ""
+                    )
+                }
+
+              </select>
+
+            </label>
+
+
+            <label
+              class="teacher-form-field"
+            >
+
+              <span>
+                Lesson
+              </span>
+
+
+              <select
+                id="teacherResourceEditorLessonId"
+                ${
+                  !teacherResourceEditorState
+                    .classId ||
+                  saving
+                    ? "disabled"
+                    : ""
+                }
+              >
+                ${getTeacherResourceEditorLessonOptions()}
+              </select>
+
+            </label>
+
+          </div>
+
+        </section>
+
+
+        <!-- =============================================
+             RESOURCE DETAILS
+        ============================================== -->
+
+        <section
+          class="teacher-resource-editor-section"
+        >
+
+          <div
+            class="teacher-resource-editor-section-heading"
+          >
+
+            <div
+              class="teacher-resource-editor-section-icon"
+            >
+              <i
+                class="fa-solid fa-file-circle-plus"
+                aria-hidden="true"
+              ></i>
+            </div>
+
+
+            <div>
+
+              <strong>
+                Resource details
+              </strong>
+
+              <span>
+                Give students and teachers a clear name for this resource.
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <label
+            class="teacher-form-field"
+          >
+
+            <span>
+              Resource title
+            </span>
+
+
+            <input
+              id="teacherResourceEditorTitleInput"
+              type="text"
+              maxlength="255"
+              autocomplete="off"
+              placeholder="Example: Week 3 lecture slides"
+              ${
+                saving
+                  ? "disabled"
+                  : ""
+              }
+            />
+
+          </label>
+
+
+          <label
+            class="teacher-form-field"
+          >
+
+            <span>
+              Description
+              <small>
+                Optional
+              </small>
+            </span>
+
+
+            <textarea
+              id="teacherResourceEditorDescription"
+              rows="4"
+              maxlength="2000"
+              placeholder="Briefly explain what this resource contains..."
+              ${
+                saving
+                  ? "disabled"
+                  : ""
+              }
+            ></textarea>
+
+          </label>
+
+        </section>
+
+
+        <!-- =============================================
+             SOURCE TYPE
+        ============================================== -->
+
+        <section
+          class="teacher-resource-editor-section"
+        >
+
+          <div
+            class="teacher-resource-mode-tabs"
+          >
+
+            <button
+              type="button"
+              class="
+                teacher-resource-mode-button
+                ${
+                  mode ===
+                  "upload"
+                    ? "active"
+                    : ""
+                }
+              "
+              data-teacher-resource-action="mode-upload"
+              ${
+                saving
+                  ? "disabled"
+                  : ""
+              }
+            >
+
+              <i
+                class="fa-solid fa-cloud-arrow-up"
+                aria-hidden="true"
+              ></i>
+
+              Upload file
+
+            </button>
+
+
+            <button
+              type="button"
+              class="
+                teacher-resource-mode-button
+                ${
+                  mode ===
+                  "link"
+                    ? "active"
+                    : ""
+                }
+              "
+              data-teacher-resource-action="mode-link"
+              ${
+                saving
+                  ? "disabled"
+                  : ""
+              }
+            >
+
+              <i
+                class="fa-solid fa-link"
+                aria-hidden="true"
+              ></i>
+
+              External link
+
+            </button>
+
+          </div>
+
+
+          ${
+            mode ===
+            "upload"
+              ? `
+
+                <!-- =======================================
+                     DEVICE FILE
+                ======================================== -->
+
+                <div
+                  class="teacher-resource-upload-area"
+                >
+
+                  <input
+                    id="teacherResourceEditorFile"
+                    type="file"
+                    hidden
+                    accept="
+                      image/*,
+                      video/*,
+                      audio/*,
+                      application/pdf,
+                      .doc,
+                      .docx,
+                      .ppt,
+                      .pptx,
+                      .xls,
+                      .xlsx,
+                      .csv,
+                      .txt,
+                      .rtf,
+                      .zip
+                    "
+                  />
+
+
+                  <button
+                    type="button"
+                    class="teacher-resource-upload-picker"
+                    data-teacher-resource-action="choose-file"
+                    ${
+                      saving
+                        ? "disabled"
+                        : ""
+                    }
+                  >
+
+                    <span
+                      class="teacher-resource-upload-icon"
+                    >
+                      <i
+                        class="fa-solid fa-cloud-arrow-up"
+                        aria-hidden="true"
+                      ></i>
+                    </span>
+
+
+                    <span
+                      class="teacher-resource-upload-copy"
+                    >
+
+                      <strong>
+                        Choose a file from your device
+                      </strong>
+
+
+                      <small>
+                        Photos, videos, audio, PDF, Word, PowerPoint, Excel, text and ZIP · maximum 100 MB
+                      </small>
+
+                    </span>
+
+                  </button>
+
+
+                  <div
+                    id="teacherResourceSelectedFile"
+                    class="teacher-resource-selected-file"
+                    hidden
+                  ></div>
+
+                </div>
+
+              `
+              : `
+
+                <!-- =======================================
+                     EXTERNAL LINK
+                ======================================== -->
+
+                <label
+                  class="teacher-form-field"
+                >
+
+                  <span>
+                    Resource URL
+                  </span>
+
+
+                  <input
+                    id="teacherResourceEditorUrl"
+                    type="url"
+                    maxlength="1500"
+                    autocomplete="off"
+                    placeholder="https://example.com/resource"
+                    ${
+                      saving
+                        ? "disabled"
+                        : ""
+                    }
+                  />
+
+                  <small>
+                    Only HTTP and HTTPS links are accepted.
+                  </small>
+
+                </label>
+
+              `
+          }
+
+        </section>
+
+      </div>
+
+
+      <!-- ===============================================
+           FOOTER
+      ================================================ -->
+
+      <footer
+        class="teacher-resource-editor-footer"
+      >
+
+        <button
+          type="button"
+          class="teacher-secondary-button"
+          data-teacher-resource-action="close-editor"
+          ${
+            saving
+              ? "disabled"
+              : ""
+          }
+        >
+          Cancel
+        </button>
+
+
+        <button
+          type="button"
+          class="teacher-primary-button"
+          data-teacher-resource-action="save-resource"
+          ${
+            saving
+              ? "disabled"
+              : ""
+          }
+        >
+
+          <i
+            class="fa-solid ${
+              saving
+                ? "fa-spinner fa-spin"
+                : "fa-cloud-arrow-up"
+            }"
+            aria-hidden="true"
+          ></i>
+
+
+          <span>
+            ${
+              saving
+                ? "Uploading..."
+                : "Add Resource"
+            }
+          </span>
+
+        </button>
+
+      </footer>
+
+    </section>
+
+  `;
+
+
+  renderTeacherResourceSelectedFile();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   RESOURCE FILE SELECTION
+========================================================= */
+
+function handleTeacherResourceFileSelection(
+  file
+){
+
+  if(
+    !file
+  ){
+
+    teacherResourceEditorState
+      .file =
+      null;
+
+
+    renderTeacherResourceSelectedFile();
+
+
+    return false;
+
+  }
+
+
+  if(
+    Number(
+      file.size ||
+      0
+    ) >
+    TEACHER_RESOURCE_MAX_FILE_SIZE
+  ){
+
+    notifyAIFTError(
+      "The selected resource exceeds the 100 MB upload limit.",
+      {
+        title:
+          "File too large"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  teacherResourceEditorState
+    .file =
+    file;
+
+
+  /*
+    If the Teacher has not entered a title yet, use the
+    filename without its extension as a convenient default.
+  */
+
+  const titleInput =
+    $(
+      "teacherResourceEditorTitleInput"
+    );
+
+
+  if(
+    titleInput &&
+    !safeString(
+      titleInput.value
+    )
+  ){
+
+    titleInput.value =
+      safeString(
+        file.name
+      )
+        .replace(
+          /\.[^/.]+$/,
+          ""
+        );
+
+  }
+
+
+  renderTeacherResourceSelectedFile();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   SAVE RESOURCE
+========================================================= */
+
+async function saveTeacherLearningResource(){
+
+  if(
+    teacherResourceEditorState
+      .saving
+  ){
+
+    return false;
+
+  }
+
+
+  const classId =
+    normalizeId(
+      $(
+        "teacherResourceEditorClassId"
+      )?.value
+    );
+
+
+  const lessonId =
+    normalizeId(
+      $(
+        "teacherResourceEditorLessonId"
+      )?.value
+    );
+
+
+  const title =
+    safeString(
+      $(
+        "teacherResourceEditorTitleInput"
+      )?.value
+    )
+      .trim();
+
+
+  const description =
+    safeString(
+      $(
+        "teacherResourceEditorDescription"
+      )?.value
+    )
+      .trim();
+
+
+  const mode =
+    teacherResourceEditorState
+      .mode;
+
+
+  /* =====================================================
+     CLASS VALIDATION
+  ===================================================== */
+
+  const classItem =
+    getTeacherClassById(
+      classId
+    );
+
+
+  if(
+    !classItem
+  ){
+
+    notifyAIFTWarning(
+      "Select one of your assigned classes.",
+      {
+        title:
+          "Class required"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  /* =====================================================
+     LESSON VALIDATION
+  ===================================================== */
+
+  const lesson =
+    getTeacherResourceLessonById(
+      lessonId
+    );
+
+
+  if(
+    !lesson ||
+    !canTeacherUseResourceLesson(
+      lesson
+    ) ||
+    !sameId(
+      getTeacherResourceLessonClassId(
+        lesson
+      ),
+      classId
+    )
+  ){
+
+    notifyAIFTWarning(
+      "Select a lesson from the selected class.",
+      {
+        title:
+          "Lesson required"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  /* =====================================================
+     SOURCE VALIDATION
+  ===================================================== */
+
+  const formData =
+    new FormData();
+
+
+  if(
+    mode ===
+    "upload"
+  ){
+
+    const file =
+      teacherResourceEditorState
+        .file;
+
+
+    if(
+      !file
+    ){
+
+      notifyAIFTWarning(
+        "Choose a file from your device.",
+        {
+          title:
+            "File required"
+        }
+      );
+
+
+      return false;
+
+    }
+
+
+    if(
+      Number(
+        file.size ||
+        0
+      ) >
+      TEACHER_RESOURCE_MAX_FILE_SIZE
+    ){
+
+      notifyAIFTError(
+        "The selected resource exceeds the 100 MB upload limit.",
+        {
+          title:
+            "File too large"
+        }
+      );
+
+
+      return false;
+
+    }
+
+
+    formData.append(
+      "file",
+      file,
+      file.name
+    );
+
+  }else{
+
+    const url =
+      safeString(
+        $(
+          "teacherResourceEditorUrl"
+        )?.value
+      )
+        .trim();
+
+
+    if(
+      !url
+    ){
+
+      notifyAIFTWarning(
+        "Enter a valid resource URL.",
+        {
+          title:
+            "Link required"
+        }
+      );
+
+
+      return false;
+
+    }
+
+
+    let parsedUrl;
+
+
+    try{
+
+      parsedUrl =
+        new URL(
+          url
+        );
+
+    }catch{
+
+      notifyAIFTError(
+        "Enter a valid HTTP or HTTPS URL.",
+        {
+          title:
+            "Invalid URL"
+        }
+      );
+
+
+      return false;
+
+    }
+
+
+    if(
+      ![
+        "http:",
+        "https:"
+      ].includes(
+        parsedUrl.protocol
+      )
+    ){
+
+      notifyAIFTError(
+        "Only HTTP and HTTPS resource links are supported.",
+        {
+          title:
+            "Unsupported URL"
+        }
+      );
+
+
+      return false;
+
+    }
+
+
+    formData.append(
+      "url",
+      parsedUrl.href
+    );
+
+  }
+
+
+  formData.append(
+    "title",
+    title
+  );
+
+
+  formData.append(
+    "description",
+    description
+  );
+
+
+  /* =====================================================
+     SAVE STATE
+  ===================================================== */
+
+  teacherResourceEditorState
+    .saving =
+    true;
+
+
+  renderTeacherResourceEditor();
+
+
+  try{
+
+    const response =
+      await apiPost(
+        `/api/class-lessons/${
+          encodeURIComponent(
+            lessonId
+          )
+        }/resources`,
+        formData,
+        {
+          timeout:
+            120000
+        }
+      );
+
+
+    const savedResource =
+      response?.resource ||
+      response?.data?.resource ||
+      null;
+
+
+    /* =====================================================
+       REFRESH AUTHORITATIVE LESSON/RESOURCE DATA
+    ===================================================== */
+
+    teacherResourcesWorkspaceState
+      .loaded =
+      false;
+
+
+    await loadTeacherLearningResources();
+
+
+    closeTeacherResourceEditor();
+
+
+    await renderTeacherResourcesWorkspace();
+
+
+    notifyAIFTSuccess(
+      savedResource
+        ? `"${getTeacherResourceTitle(
+            savedResource
+          )}" was added to the lesson.`
+        : "The resource was added to the lesson.",
+      {
+        title:
+          "Resource added"
+      }
+    );
+
+
+    return true;
+
+  }catch(
+    error
+  ){
+
+    console.error(
+      "saveTeacherLearningResource error:",
+      error
+    );
+
+
+    teacherResourceEditorState
+      .saving =
+      false;
+
+
+    renderTeacherResourceEditor();
+
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "The resource could not be uploaded."
+      ),
+      {
+        title:
+          "Resource upload failed"
+      }
+    );
+
+
+    return false;
+
+  }
+
+}
+
+
+/* =========================================================
    RENDER RESOURCES WORKSPACE
 ========================================================= */
 
 async function renderTeacherResourcesWorkspace(){
 
-  if (
+  if(
     !teacherResourcesWorkspaceState
       .loaded
   ){
@@ -46837,16 +48844,54 @@ async function renderTeacherResourcesWorkspace(){
   }
 
 
+  /* =====================================================
+     HEADER
+  ===================================================== */
+
+  renderTeacherResourcesHeader();
+
+
+  /* =====================================================
+     SUMMARY
+  ===================================================== */
+
   renderTeacherResourcesSummary();
+
+
+  /* =====================================================
+     FILTERS
+  ===================================================== */
 
   renderTeacherResourceClassFilter();
 
+
   renderTeacherResourceTypeFilter();
+
+
+  /* =====================================================
+     RESOURCE GRID
+  ===================================================== */
 
   renderTeacherResourcesGrid();
 
-}
 
+  /* =====================================================
+     EDITOR
+
+     Do not close an active upload editor when Resources
+     rerender for unrelated reasons.
+  ===================================================== */
+
+  if(
+    teacherResourceEditorState
+      .open
+  ){
+
+    renderTeacherResourceEditor();
+
+  }
+
+}
 
 /* =========================================================
    REFRESH RESOURCES
@@ -46879,10 +48924,9 @@ async function refreshTeacherResources(){
 let teacherResourceControlsBound =
   false;
 
-
 function bindTeacherResourceControls(){
 
-  if (
+  if(
     teacherResourceControlsBound
   ){
 
@@ -46895,15 +48939,15 @@ function bindTeacherResourceControls(){
     true;
 
 
-  /* -------------------------------------------------------
+  /* =====================================================
      SEARCH
-  ------------------------------------------------------- */
+  ===================================================== */
 
   document.addEventListener(
     "input",
     event => {
 
-      if (
+      if(
         event.target?.id !==
         "teacherResourceSearch"
       ){
@@ -46925,15 +48969,19 @@ function bindTeacherResourceControls(){
   );
 
 
-  /* -------------------------------------------------------
-     FILTERS
-  ------------------------------------------------------- */
+  /* =====================================================
+     FILTERS + EDITOR SELECTS
+  ===================================================== */
 
   document.addEventListener(
     "change",
     event => {
 
-      if (
+      /* -------------------------------------------------
+         RESOURCE CLASS FILTER
+      ------------------------------------------------- */
+
+      if(
         event.target?.id ===
         "teacherResourceClassFilter"
       ){
@@ -46952,7 +49000,11 @@ function bindTeacherResourceControls(){
       }
 
 
-      if (
+      /* -------------------------------------------------
+         RESOURCE TYPE FILTER
+      ------------------------------------------------- */
+
+      if(
         event.target?.id ===
         "teacherResourceTypeFilter"
       ){
@@ -46971,7 +49023,11 @@ function bindTeacherResourceControls(){
       }
 
 
-      if (
+      /* -------------------------------------------------
+         RESOURCE SORT
+      ------------------------------------------------- */
+
+      if(
         event.target?.id ===
         "teacherResourceSort"
       ){
@@ -46984,15 +49040,95 @@ function bindTeacherResourceControls(){
 
         renderTeacherResourcesGrid();
 
+
+        return;
+
+      }
+
+
+      /* -------------------------------------------------
+         EDITOR CLASS
+      ------------------------------------------------- */
+
+      if(
+        event.target?.id ===
+        "teacherResourceEditorClassId"
+      ){
+
+        teacherResourceEditorState
+          .classId =
+          normalizeId(
+            event.target.value
+          );
+
+
+        teacherResourceEditorState
+          .lessonId =
+          "";
+
+
+        teacherResourceEditorState
+          .file =
+          null;
+
+
+        renderTeacherResourceEditor();
+
+
+        return;
+
+      }
+
+
+      /* -------------------------------------------------
+         EDITOR LESSON
+      ------------------------------------------------- */
+
+      if(
+        event.target?.id ===
+        "teacherResourceEditorLessonId"
+      ){
+
+        teacherResourceEditorState
+          .lessonId =
+          normalizeId(
+            event.target.value
+          );
+
+
+        return;
+
+      }
+
+
+      /* -------------------------------------------------
+         DEVICE FILE
+      ------------------------------------------------- */
+
+      if(
+        event.target?.id ===
+        "teacherResourceEditorFile"
+      ){
+
+        const file =
+          event.target
+            .files?.[0] ||
+          null;
+
+
+        handleTeacherResourceFileSelection(
+          file
+        );
+
       }
 
     }
   );
 
 
-  /* -------------------------------------------------------
-     RESOURCE ACTIONS
-  ------------------------------------------------------- */
+  /* =====================================================
+     ALL RESOURCE ACTIONS
+  ===================================================== */
 
   document.addEventListener(
     "click",
@@ -47004,7 +49140,7 @@ function bindTeacherResourceControls(){
         );
 
 
-      if (
+      if(
         !button
       ){
 
@@ -47023,20 +49159,62 @@ function bindTeacherResourceControls(){
         )
           .toLowerCase();
 
-      const resource =
-        getTeacherResourceById(
-          button.dataset
-            .resourceId
-        );
 
+      /* =================================================
+         CREATE
+      ================================================= */
 
-      if (
-        !resource
+      if(
+        action ===
+        "create"
       ){
 
-        showAlert(
-          "error",
-          "This resource is no longer available."
+        await openTeacherResourceEditor();
+
+
+        return;
+
+      }
+
+
+      /* =================================================
+         CLOSE EDITOR
+      ================================================= */
+
+      if(
+        action ===
+        "close-editor"
+      ){
+
+        if(
+          teacherResourceEditorState
+            .saving
+        ){
+
+          return;
+
+        }
+
+
+        closeTeacherResourceEditor();
+
+
+        return;
+
+      }
+
+
+      /* =================================================
+         MODE
+      ================================================= */
+
+      if(
+        action ===
+        "mode-upload"
+      ){
+
+        setTeacherResourceEditorMode(
+          "upload"
         );
 
 
@@ -47045,45 +49223,163 @@ function bindTeacherResourceControls(){
       }
 
 
-switch(
-  action
-){
+      if(
+        action ===
+        "mode-link"
+      ){
 
-  case "open":
-
-    openTeacherResource(
-      resource
-    );
-
-    break;
+        setTeacherResourceEditorMode(
+          "link"
+        );
 
 
-  case "lesson":
+        return;
 
-    openTeacherResourceLesson(
-      resource
-    );
-
-    break;
+      }
 
 
-  case "delete":
+      /* =================================================
+         CHOOSE FILE
+      ================================================= */
 
-    await deleteTeacherLearningResource(
-      resource
-    );
+      if(
+        action ===
+        "choose-file"
+      ){
 
-    break;
+        $(
+          "teacherResourceEditorFile"
+        )?.click();
 
-}
+
+        return;
+
+      }
+
+
+      /* =================================================
+         REMOVE SELECTED FILE
+      ================================================= */
+
+      if(
+        action ===
+        "remove-selected-file"
+      ){
+
+        teacherResourceEditorState
+          .file =
+          null;
+
+
+        const input =
+          $(
+            "teacherResourceEditorFile"
+          );
+
+
+        if(
+          input
+        ){
+
+          input.value =
+            "";
+
+        }
+
+
+        renderTeacherResourceSelectedFile();
+
+
+        return;
+
+      }
+
+
+      /* =================================================
+         SAVE
+      ================================================= */
+
+      if(
+        action ===
+        "save-resource"
+      ){
+
+        await saveTeacherLearningResource();
+
+
+        return;
+
+      }
+
+
+      /* =================================================
+         RESOURCE CARD ACTIONS
+      ================================================= */
+
+      const resource =
+        getTeacherResourceById(
+          button.dataset
+            .resourceId
+        );
+
+
+      if(
+        !resource
+      ){
+
+        notifyAIFTError(
+          "This resource is no longer available.",
+          {
+            title:
+              "Resource unavailable"
+          }
+        );
+
+
+        return;
+
+      }
+
+
+      switch(
+        action
+      ){
+
+        case "open":
+
+          openTeacherResource(
+            resource
+          );
+
+          return;
+
+
+        case "lesson":
+
+          openTeacherResourceLesson(
+            resource
+          );
+
+          return;
+
+
+        case "delete":
+
+          await deleteTeacherLearningResource(
+            resource
+          );
+
+          return;
+
+      }
 
     }
   );
 
 
-  /* -------------------------------------------------------
+  /* =====================================================
      REFRESH
-  ------------------------------------------------------- */
+  ===================================================== */
 
   document.addEventListener(
     "click",
@@ -47095,7 +49391,7 @@ switch(
         );
 
 
-      if (
+      if(
         !button
       ){
 
