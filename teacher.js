@@ -43868,7 +43868,20 @@ const teacherResourceEditorState = {
     null,
 
   saving:
-    false
+    false,
+
+  /* =====================================================
+     EDIT MODE
+  ===================================================== */
+
+  editing:
+    false,
+
+  editingResourceId:
+    "",
+
+  originalResource:
+    null
 
 };
 
@@ -44190,6 +44203,21 @@ function resetTeacherResourceEditorState(){
   teacherResourceEditorState
     .saving =
     false;
+
+
+  teacherResourceEditorState
+    .editing =
+    false;
+
+
+  teacherResourceEditorState
+    .editingResourceId =
+    "";
+
+
+  teacherResourceEditorState
+    .originalResource =
+    null;
 
 }
 
@@ -49193,6 +49221,293 @@ function renderTeacherResourcesHeader(){
 
 }
 
+/* =========================================================
+   OPEN RESOURCE EDITOR FOR EXISTING RESOURCE
+
+   Uses the same editor UI.
+
+   No new backend endpoint is required.
+
+   The owning lesson remains the source of truth.
+========================================================= */
+
+async function openTeacherResourceEditorForEdit(
+  resource
+){
+
+  if(
+    !resource
+  ){
+
+    notifyAIFTError(
+      "The selected resource could not be found.",
+      {
+        title:
+          "Resource unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const lessonId =
+    normalizeId(
+      resource?.lessonId
+    );
+
+
+  const resourceId =
+    normalizeId(
+      resource?.resourceId ||
+      resource?._id
+    );
+
+
+  if(
+    !lessonId ||
+    !resourceId
+  ){
+
+    notifyAIFTWarning(
+      "This resource does not have a complete lesson identity and cannot be edited here.",
+      {
+        title:
+          "Resource cannot be edited"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  /* =====================================================
+     ENSURE AUTHORITATIVE LESSON DATA EXISTS
+  ===================================================== */
+
+  if(
+    !asArray(
+      state.classLessons
+    ).length
+  ){
+
+    teacherResourcesWorkspaceState
+      .loaded =
+      false;
+
+
+    await loadTeacherLearningResources();
+
+  }
+
+
+  const lesson =
+    getTeacherResourceLessonById(
+      lessonId
+    );
+
+
+  if(
+    !lesson ||
+    !canTeacherUseResourceLesson(
+      lesson
+    )
+  ){
+
+    notifyAIFTError(
+      "The lesson containing this resource is not available in one of your assigned classes.",
+      {
+        title:
+          "Lesson unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  const classId =
+    getTeacherResourceLessonClassId(
+      lesson
+    );
+
+
+  /* =====================================================
+     FIND REAL NESTED RESOURCE
+  ===================================================== */
+
+  const lessonResources =
+    asArray(
+      lesson?.resources
+    );
+
+
+  const originalResource =
+    lessonResources.find(
+      item =>
+        sameId(
+          item?._id ||
+          item?.id,
+          resourceId
+        )
+    );
+
+
+  if(
+    !originalResource
+  ){
+
+    notifyAIFTError(
+      "The original resource could not be found inside this lesson.",
+      {
+        title:
+          "Resource unavailable"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  /* =====================================================
+     SET EDITOR STATE
+  ===================================================== */
+
+  teacherResourceEditorState
+    .open =
+    true;
+
+
+  teacherResourceEditorState
+    .classId =
+    classId;
+
+
+  teacherResourceEditorState
+    .lessonId =
+    lessonId;
+
+
+  teacherResourceEditorState
+    .editing =
+    true;
+
+
+  teacherResourceEditorState
+    .editingResourceId =
+    resourceId;
+
+
+  teacherResourceEditorState
+    .originalResource =
+    {
+      ...originalResource
+    };
+
+
+  teacherResourceEditorState
+    .file =
+    null;
+
+
+  teacherResourceEditorState
+    .saving =
+    false;
+
+
+  /*
+    Uploaded resources remain upload mode.
+
+    External links remain link mode.
+  */
+
+  teacherResourceEditorState
+    .mode =
+    safeString(
+      originalResource?.source
+    ).toLowerCase() ===
+    "link"
+      ? "link"
+      : "upload";
+
+
+  renderTeacherResourceEditor();
+
+
+  /* =====================================================
+     PREFILL FORM AFTER RENDER
+  ===================================================== */
+
+  const titleInput =
+    $(
+      "teacherResourceEditorTitleInput"
+    );
+
+
+  if(
+    titleInput
+  ){
+
+    titleInput.value =
+      safeString(
+        originalResource?.title
+      );
+
+  }
+
+
+  const descriptionInput =
+    $(
+      "teacherResourceEditorDescription"
+    );
+
+
+  if(
+    descriptionInput
+  ){
+
+    descriptionInput.value =
+      safeString(
+        originalResource?.description
+      );
+
+  }
+
+
+  const urlInput =
+    $(
+      "teacherResourceEditorUrl"
+    );
+
+
+  if(
+    urlInput &&
+    teacherResourceEditorState
+      .mode ===
+      "link"
+  ){
+
+    urlInput.value =
+      safeString(
+        originalResource?.url ||
+        originalResource?.secureUrl
+      );
+
+  }
+
+
+  return true;
+
+}
+
 
 /* =========================================================
    OPEN RESOURCE EDITOR
@@ -51299,37 +51614,46 @@ function bindTeacherResourceControls(){
       }
 
 
-      switch(
-        action
-      ){
+switch(
+  action
+){
 
-        case "open":
+  case "open":
 
-          openTeacherResource(
-            resource
-          );
+    openTeacherResource(
+      resource
+    );
 
-          return;
-
-
-        case "lesson":
-
-          openTeacherResourceLesson(
-            resource
-          );
-
-          return;
+    return;
 
 
-        case "delete":
+  case "edit":
 
-          await deleteTeacherLearningResource(
-            resource
-          );
+    await openTeacherResourceEditorForEdit(
+      resource
+    );
 
-          return;
+    return;
 
-      }
+
+  case "lesson":
+
+    openTeacherResourceLesson(
+      resource
+    );
+
+    return;
+
+
+  case "delete":
+
+    await deleteTeacherLearningResource(
+      resource
+    );
+
+    return;
+
+}
 
     }
   );
