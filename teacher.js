@@ -50023,6 +50023,13 @@ function renderTeacherResourceEditor(){
       .saving;
 
 
+  const editing =
+    Boolean(
+      teacherResourceEditorState
+        .editing
+    );
+
+
   container.hidden =
     false;
 
@@ -50062,12 +50069,20 @@ function renderTeacherResourceEditor(){
           <h2
             id="teacherResourceEditorTitle"
           >
-            Add Resource
+            ${
+              editing
+                ? "Edit Resource"
+                : "Add Resource"
+            }
           </h2>
 
 
           <p>
-            Add a file from your device or attach a trusted external link to one of your lessons.
+            ${
+              editing
+                ? "Update this resource's information while keeping it attached to its current lesson."
+                : "Add a file from your device or attach a trusted external link to one of your lessons."
+            }
           </p>
 
         </div>
@@ -50569,7 +50584,11 @@ function renderTeacherResourceEditor(){
             class="fa-solid ${
               saving
                 ? "fa-spinner fa-spin"
-                : "fa-cloud-arrow-up"
+                : (
+                    editing
+                      ? "fa-floppy-disk"
+                      : "fa-cloud-arrow-up"
+                  )
             }"
             aria-hidden="true"
           ></i>
@@ -50578,8 +50597,16 @@ function renderTeacherResourceEditor(){
           <span>
             ${
               saving
-                ? "Uploading..."
-                : "Add Resource"
+                ? (
+                    editing
+                      ? "Saving..."
+                      : "Uploading..."
+                  )
+                : (
+                    editing
+                      ? "Save Changes"
+                      : "Add Resource"
+                  )
             }
           </span>
 
