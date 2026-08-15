@@ -65854,15 +65854,12 @@ function renderTeacherKabezyaComposer(){
 
    Production request lifecycle.
 
-   Backend receives authoritative IDs separately from the
-   display/context snapshot.
-
-   The backend remains responsible for:
-   - authorization
-   - loading real MongoDB records
-   - verifying teacher access
-   - integrity comparison
-   - AI analysis
+   IMPORTANT:
+   - one user message is added only once
+   - temporary 429/503/502/504 responses are retried
+   - Kabezya remains visually "thinking" during retries
+   - temporary provider errors are NOT inserted into chat
+   - only a genuine AI response becomes an assistant turn
 ========================================================= */
 
 async function askTeacherKabezya(
@@ -65895,7 +65892,8 @@ async function askTeacherKabezya(
       inputElement?.value ??
       teacherKabezyaWorkspaceState
         .prompt
-    );
+    )
+      .trim();
 
 
   if(
@@ -65920,13 +65918,17 @@ async function askTeacherKabezya(
 
 
   /* =====================================================
-     VALIDATE MODE-SPECIFIC CONTEXT
+     MODE
   ===================================================== */
 
   const mode =
     teacherKabezyaWorkspaceState
       .mode;
 
+
+  /* =====================================================
+     MODE-SPECIFIC CONTEXT VALIDATION
+  ===================================================== */
 
   if(
     mode ===
@@ -65977,6 +65979,7 @@ async function askTeacherKabezya(
       mode ===
         TEACHER_KABEZYA_MODES
           .SUBMISSION_REVIEW ||
+
       mode ===
         TEACHER_KABEZYA_MODES
           .FEEDBACK
@@ -66000,11 +66003,7 @@ async function askTeacherKabezya(
 
 
   /* =====================================================
-     BUILD DISPLAY CONTEXT
-
-     This gives Kabezya useful UI context.
-
-     Backend does NOT trust these records as authority.
+     DISPLAY CONTEXT
   ===================================================== */
 
   const context =
@@ -66012,9 +66011,11 @@ async function askTeacherKabezya(
 
 
   /* =====================================================
-     BUILD REQUEST HISTORY
+     CONVERSATION HISTORY
 
-     Send only recent user/assistant messages.
+     IMPORTANT:
+     Build history BEFORE adding the current user message,
+     otherwise Gemini receives the same user turn twice.
   ===================================================== */
 
   const history =
@@ -66024,10 +66025,14 @@ async function askTeacherKabezya(
     )
       .filter(
         message =>
-          message?.role ===
-            "user" ||
-          message?.role ===
-            "assistant"
+          (
+            message?.role ===
+              "user" ||
+
+            message?.role ===
+              "assistant"
+          ) &&
+          !message?.error
       )
       .slice(
         -12
@@ -66052,14 +66057,14 @@ async function askTeacherKabezya(
       )
       .filter(
         message =>
-          message.content
+          Boolean(
+            message.content
+          )
       );
 
 
   /* =====================================================
-     BUILD AUTHORITATIVE ID PAYLOAD
-
-     This is the important connection to the new backend.
+     REQUEST PAYLOAD
   ===================================================== */
 
   const requestBody = {
@@ -66107,7 +66112,7 @@ async function askTeacherKabezya(
 
 
   /* =====================================================
-     STORE USER MESSAGE
+     STORE USER MESSAGE ONCE
   ===================================================== */
 
   teacherKabezyaWorkspaceState
@@ -66134,7 +66139,7 @@ async function askTeacherKabezya(
 
 
   /* =====================================================
-     KEEP CLIENT HISTORY BOUNDED
+     KEEP LOCAL CONVERSATION BOUNDED
   ===================================================== */
 
   if(
@@ -66155,6 +66160,10 @@ async function askTeacherKabezya(
   }
 
 
+  /* =====================================================
+     ENTER THINKING STATE
+  ===================================================== */
+
   teacherKabezyaWorkspaceState
     .loading =
     true;
@@ -66165,6 +66174,26 @@ async function askTeacherKabezya(
     null;
 
 
+  if(
+    !state.kabezya ||
+    typeof state.kabezya !==
+      "object"
+  ){
+
+    state.kabezya =
+      {};
+
+  }
+
+
+  state.kabezya.loading =
+    true;
+
+
+  state.kabezya.error =
+    null;
+
+
   renderTeacherKabezyaConversation();
 
   renderTeacherKabezyaComposer();
@@ -66172,132 +66201,271 @@ async function askTeacherKabezya(
   renderTeacherKabezyaResponseActions();
 
 
+  /* =====================================================
+     RETRY CONFIGURATION
+
+     These retries are only for TEMPORARY server/provider
+     conditions.
+
+     400/401/403/404 etc. are not retried.
+  ===================================================== */
+
+  const retryDelays = [
+    2500,
+    5000,
+    10000,
+    18000
+  ];
+
+
+  const retryableStatuses =
+    new Set([
+      429,
+      502,
+      503,
+      504
+    ]);
+
+
+  const sleep =
+    milliseconds =>
+      new Promise(
+        resolve =>
+          window.setTimeout(
+            resolve,
+            milliseconds
+          )
+      );
+
+
+  let lastError =
+    null;
+
+
   try{
 
     /* ===================================================
-       REQUEST
+       REQUEST + TRANSIENT RETRY LOOP
     =================================================== */
 
-    const response =
-      await apiSend(
-        getTeacherKabezyaEndpoint(),
-        "POST",
-        requestBody
-      );
-
-
-    const normalized =
-      normalizeTeacherKabezyaResponse(
-        response
-      );
-
-
-    /* ===================================================
-       EMPTY RESPONSE PROTECTION
-    =================================================== */
-
-    const hasUsefulResponse =
-      Boolean(
-
-        getTeacherKabezyaResponseText(
-          normalized
-        ) ||
-
-        normalized.feedback ||
-
-        normalized.integrity ||
-
-        normalized.inspection ||
-
-        normalized.questions
-          ?.length ||
-
-        normalized.assignment ||
-
-        normalized.lessonPlan
-
-      );
-
-
-    if(
-      !hasUsefulResponse
+    for(
+      let attempt = 0;
+      attempt <=
+        retryDelays.length;
+      attempt += 1
     ){
 
-      throw new Error(
-        "Kabezya returned an empty response."
-      );
+      try{
+
+        const response =
+          await apiSend(
+            getTeacherKabezyaEndpoint(),
+            "POST",
+            requestBody
+          );
+
+
+        const normalized =
+          normalizeTeacherKabezyaResponse(
+            response
+          );
+
+
+        /* =================================================
+           VALID RESPONSE
+        ================================================= */
+
+        const hasUsefulResponse =
+          Boolean(
+
+            getTeacherKabezyaResponseText(
+              normalized
+            ) ||
+
+            normalized.feedback ||
+
+            normalized.integrity ||
+
+            normalized.inspection ||
+
+            normalized.questions
+              ?.length ||
+
+            normalized.assignment ||
+
+            normalized.lessonPlan
+
+          );
+
+
+        if(
+          !hasUsefulResponse
+        ){
+
+          throw new AIFTApiError(
+            "Kabezya returned an empty response.",
+            {
+              status:
+                502,
+
+              code:
+                "KABEZYA_EMPTY_RESPONSE"
+            }
+          );
+
+        }
+
+
+        /* =================================================
+           STORE REAL ASSISTANT RESPONSE
+
+           This is the ONLY place where an assistant message
+           should be added after a normal request.
+        ================================================= */
+
+        teacherKabezyaWorkspaceState
+          .response =
+          normalized;
+
+
+        teacherKabezyaWorkspaceState
+          .conversation
+          .push({
+
+            role:
+              "assistant",
+
+            content:
+              normalized,
+
+            createdAt:
+              new Date(),
+
+            mode
+
+          });
+
+
+        /* =================================================
+           SHARED STATE
+        ================================================= */
+
+        state.kabezya.analysis =
+          normalized;
+
+
+        state.kabezya.error =
+          null;
+
+
+        state.kabezya.ready =
+          true;
+
+
+        /* =================================================
+           CLEAR PROMPT AFTER SUCCESS
+        ================================================= */
+
+        teacherKabezyaWorkspaceState
+          .prompt =
+          "";
+
+
+        return normalized;
+
+      }catch(
+        error
+      ){
+
+        lastError =
+          error;
+
+
+        const status =
+          safeInteger(
+            error?.status,
+            0
+          );
+
+
+        const retryable =
+          retryableStatuses.has(
+            status
+          );
+
+
+        const hasAnotherAttempt =
+          attempt <
+          retryDelays.length;
+
+
+        /* =================================================
+           NON-RETRYABLE FAILURE
+        ================================================= */
+
+        if(
+          !retryable ||
+          !hasAnotherAttempt
+        ){
+
+          throw error;
+
+        }
+
+
+        /* =================================================
+           TEMPORARY FAILURE
+
+           Do NOT add an error to conversation.
+
+           Keep:
+           - user question visible
+           - Kabezya thinking indicator visible
+           - composer locked
+        ================================================= */
+
+        const delay =
+          retryDelays[
+            attempt
+          ];
+
+
+        console.warn(
+          "Kabezya temporary request failure; retrying.",
+          {
+            status,
+            attempt:
+              attempt + 1,
+
+            retryInMs:
+              delay
+          }
+        );
+
+
+        /*
+          Re-render ensures the thinking indicator remains
+          on screen during the backoff period.
+        */
+
+        renderTeacherKabezyaConversation();
+
+
+        await sleep(
+          delay
+        );
+
+      }
 
     }
 
 
-    /* ===================================================
-       STORE RESPONSE
-    =================================================== */
-
-    teacherKabezyaWorkspaceState
-      .response =
-      normalized;
-
-
-    teacherKabezyaWorkspaceState
-      .conversation
-      .push({
-
-        role:
-          "assistant",
-
-        content:
-          normalized,
-
-        createdAt:
-          new Date(),
-
-        mode
-
-      });
-
-
-    /* ===================================================
-       SYNC SHARED STATE
-
-       Lets other Teacher Studio workspaces inspect the most
-       recent Kabezya result if needed.
-    =================================================== */
-
-    if(
-      !state.kabezya ||
-      typeof state.kabezya !==
-        "object"
-    ){
-
-      state.kabezya =
-        {};
-
-    }
-
-
-    state.kabezya.analysis =
-      normalized;
-
-
-    state.kabezya.error =
-      null;
-
-
-    state.kabezya.ready =
-      true;
-
-
-    /* ===================================================
-       CLEAR COMPOSER AFTER SUCCESS
-    =================================================== */
-
-    teacherKabezyaWorkspaceState
-      .prompt =
-      "";
-
-
-    return normalized;
+    throw (
+      lastError ||
+      new Error(
+        "Kabezya could not complete the request."
+      )
+    );
 
   }catch(
     error
@@ -66317,9 +66485,7 @@ async function askTeacherKabezya(
 
 
     /* ===================================================
-       RETAIN FAILED PROMPT
-
-       Teacher may adjust and retry.
+       PRESERVE PROMPT FOR RETRY
     =================================================== */
 
     teacherKabezyaWorkspaceState
@@ -66327,57 +66493,26 @@ async function askTeacherKabezya(
       input;
 
 
-    /* ===================================================
-       ERROR MESSAGE IN CONVERSATION
-    =================================================== */
-
-    teacherKabezyaWorkspaceState
-      .conversation
-      .push({
-
-        role:
-          "assistant",
-
-        content:{
-          message:
-            `I could not complete that request. ${message}`,
-
-          error:
-            true
-        },
-
-        createdAt:
-          new Date(),
-
-        mode,
-
-        error:
-          true
-
-      });
-
-
-    if(
-      !state.kabezya ||
-      typeof state.kabezya !==
-        "object"
-    ){
-
-      state.kabezya =
-        {};
-
-    }
-
-
     state.kabezya.error =
       message;
+
+
+    /*
+      IMPORTANT:
+
+      Do NOT push an assistant error bubble into the
+      conversation.
+
+      Errors belong in the notification system, not as
+      fake Kabezya responses.
+    */
 
 
     notifyAIFTError(
       message,
       {
         title:
-          "Kabezya request failed"
+          "Kabezya is temporarily unavailable"
       }
     );
 
@@ -66388,6 +66523,10 @@ async function askTeacherKabezya(
 
     teacherKabezyaWorkspaceState
       .loading =
+      false;
+
+
+    state.kabezya.loading =
       false;
 
 
