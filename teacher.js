@@ -62958,22 +62958,41 @@ function renderTeacherKabezyaQuickPrompts(){
 
 /* =========================================================
    FORMAT KABEZYA MESSAGE
+   SAFE CHATGPT-STYLE MARKDOWN RENDERER
 
-   Do not inject raw AI HTML into the page.
+   Supported:
+   - paragraphs
+   - headings
+   - bold
+   - italic
+   - inline code
+   - unordered lists
+   - ordered lists
+   - blockquotes
+   - horizontal rules
+   - simple markdown tables
+
+   SECURITY:
+   Raw AI HTML is escaped BEFORE formatting.
 ========================================================= */
 
 function formatTeacherKabezyaMessage(
   value
 ){
 
-  const text =
+  const source =
     safeString(
       value
-    );
+    )
+      .replace(
+        /\r\n?/g,
+        "\n"
+      )
+      .trim();
 
 
-  if (
-    !text
+  if(
+    !source
   ){
 
     return "";
@@ -62981,13 +63000,791 @@ function formatTeacherKabezyaMessage(
   }
 
 
-  return escapeHtml(
-    text
-  )
-    .replace(
-      /\n/g,
-      "<br>"
+  /* =====================================================
+     INLINE MARKDOWN
+
+     Text is escaped first so Kabezya cannot inject HTML.
+  ===================================================== */
+
+  const renderInline =
+    rawValue => {
+
+      let text =
+        escapeHtml(
+          safeString(
+            rawValue
+          )
+        );
+
+
+      /*
+        Inline code first so later formatting does not
+        interfere with it.
+      */
+
+      text =
+        text.replace(
+          /`([^`\n]+)`/g,
+          '<code class="teacher-kabezya-inline-code">$1</code>'
+        );
+
+
+      /*
+        Bold
+        **text**
+      */
+
+      text =
+        text.replace(
+          /\*\*([^*\n]+)\*\*/g,
+          "<strong>$1</strong>"
+        );
+
+
+      /*
+        Also tolerate __bold__.
+      */
+
+      text =
+        text.replace(
+          /__([^_\n]+)__/g,
+          "<strong>$1</strong>"
+        );
+
+
+      /*
+        Italic
+
+        Keep this conservative so multiplication signs,
+        filenames and ordinary underscores are not damaged.
+      */
+
+      text =
+        text.replace(
+          /(^|[\s(])\*([^*\n]+)\*(?=$|[\s).,!?;:])/g,
+          "$1<em>$2</em>"
+        );
+
+
+      text =
+        text.replace(
+          /(^|[\s(])_([^_\n]+)_(?=$|[\s).,!?;:])/g,
+          "$1<em>$2</em>"
+        );
+
+
+      /*
+        Markdown link:
+        [label](https://example.com)
+
+        The URL is already HTML-escaped and is then passed
+        through normalizeHttpUrl().
+      */
+
+      text =
+        text.replace(
+          /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+          (
+            match,
+            label,
+            url
+          ) => {
+
+            const normalizedUrl =
+              normalizeHttpUrl(
+                url
+                  .replace(
+                    /&amp;/g,
+                    "&"
+                  )
+              );
+
+
+            if(
+              !normalizedUrl
+            ){
+
+              return label;
+
+            }
+
+
+            return `
+              <a
+                class="teacher-kabezya-message-link"
+                href="${escapeAttribute(
+                  normalizedUrl
+                )}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                ${label}
+              </a>
+            `;
+
+          }
+        );
+
+
+      return text;
+
+    };
+
+
+  /* =====================================================
+     TABLE DETECTION
+  ===================================================== */
+
+  const isTableDivider =
+    line => {
+
+      const trimmed =
+        safeString(
+          line
+        )
+          .trim();
+
+
+      if(
+        !trimmed.includes(
+          "|"
+        )
+      ){
+
+        return false;
+
+      }
+
+
+      const cells =
+        trimmed
+          .replace(
+            /^\||\|$/g,
+            ""
+          )
+          .split(
+            "|"
+          )
+          .map(
+            cell =>
+              cell.trim()
+          );
+
+
+      return (
+        cells.length >=
+          2 &&
+        cells.every(
+          cell =>
+            /^:?-{3,}:?$/.test(
+              cell
+            )
+        )
+      );
+
+    };
+
+
+  const splitTableRow =
+    line =>
+      safeString(
+        line
+      )
+        .trim()
+        .replace(
+          /^\||\|$/g,
+          ""
+        )
+        .split(
+          "|"
+        )
+        .map(
+          cell =>
+            cell.trim()
+        );
+
+
+  /* =====================================================
+     LINES
+  ===================================================== */
+
+  const lines =
+    source.split(
+      "\n"
     );
+
+
+  const output =
+    [];
+
+
+  let paragraph =
+    [];
+
+
+  let listType =
+    null;
+
+
+  let listItems =
+    [];
+
+
+  /* =====================================================
+     FLUSH PARAGRAPH
+  ===================================================== */
+
+  const flushParagraph =
+    () => {
+
+      if(
+        !paragraph.length
+      ){
+
+        return;
+
+      }
+
+
+      const content =
+        paragraph
+          .map(
+            line =>
+              renderInline(
+                line.trim()
+              )
+          )
+          .filter(
+            Boolean
+          )
+          .join(
+            " "
+          );
+
+
+      if(
+        content
+      ){
+
+        output.push(
+          `
+            <p class="teacher-kabezya-prose-paragraph">
+              ${content}
+            </p>
+          `
+        );
+
+      }
+
+
+      paragraph =
+        [];
+
+    };
+
+
+  /* =====================================================
+     FLUSH LIST
+  ===================================================== */
+
+  const flushList =
+    () => {
+
+      if(
+        !listType ||
+        !listItems.length
+      ){
+
+        listType =
+          null;
+
+        listItems =
+          [];
+
+        return;
+
+      }
+
+
+      const tag =
+        listType ===
+          "ordered"
+          ? "ol"
+          : "ul";
+
+
+      output.push(
+        `
+          <${tag}
+            class="
+              teacher-kabezya-prose-list
+              ${
+                listType ===
+                  "ordered"
+                  ? "is-ordered"
+                  : "is-unordered"
+              }
+            "
+          >
+            ${
+              listItems
+                .map(
+                  item => `
+                    <li>
+                      ${renderInline(
+                        item
+                      )}
+                    </li>
+                  `
+                )
+                .join(
+                  ""
+                )
+            }
+          </${tag}>
+        `
+      );
+
+
+      listType =
+        null;
+
+      listItems =
+        [];
+
+    };
+
+
+  /* =====================================================
+     PROCESS
+  ===================================================== */
+
+  for(
+    let index = 0;
+    index < lines.length;
+    index += 1
+  ){
+
+    const line =
+      lines[
+        index
+      ];
+
+
+    const trimmed =
+      line.trim();
+
+
+    /* ===================================================
+       BLANK LINE
+    =================================================== */
+
+    if(
+      !trimmed
+    ){
+
+      flushParagraph();
+
+      flushList();
+
+      continue;
+
+    }
+
+
+    /* ===================================================
+       MARKDOWN TABLE
+    =================================================== */
+
+    const nextLine =
+      lines[
+        index + 1
+      ];
+
+
+    if(
+      trimmed.includes(
+        "|"
+      ) &&
+      nextLine &&
+      isTableDivider(
+        nextLine
+      )
+    ){
+
+      flushParagraph();
+
+      flushList();
+
+
+      const headers =
+        splitTableRow(
+          trimmed
+        );
+
+
+      const bodyRows =
+        [];
+
+
+      index +=
+        2;
+
+
+      while(
+        index <
+        lines.length
+      ){
+
+        const rowLine =
+          lines[
+            index
+          ]
+            ?.trim();
+
+
+        if(
+          !rowLine ||
+          !rowLine.includes(
+            "|"
+          )
+        ){
+
+          index -=
+            1;
+
+          break;
+
+        }
+
+
+        bodyRows.push(
+          splitTableRow(
+            rowLine
+          )
+        );
+
+
+        index +=
+          1;
+
+      }
+
+
+      output.push(`
+        <div
+          class="teacher-kabezya-table-wrap"
+        >
+          <table
+            class="teacher-kabezya-prose-table"
+          >
+
+            <thead>
+              <tr>
+                ${
+                  headers
+                    .map(
+                      header => `
+                        <th>
+                          ${renderInline(
+                            header
+                          )}
+                        </th>
+                      `
+                    )
+                    .join(
+                      ""
+                    )
+                }
+              </tr>
+            </thead>
+
+
+            <tbody>
+              ${
+                bodyRows
+                  .map(
+                    row => `
+                      <tr>
+                        ${
+                          headers
+                            .map(
+                              (
+                                header,
+                                cellIndex
+                              ) => `
+                                <td>
+                                  ${renderInline(
+                                    row[
+                                      cellIndex
+                                    ] ||
+                                    ""
+                                  )}
+                                </td>
+                              `
+                            )
+                            .join(
+                              ""
+                            )
+                        }
+                      </tr>
+                    `
+                  )
+                  .join(
+                    ""
+                  )
+              }
+            </tbody>
+
+          </table>
+        </div>
+      `);
+
+
+      continue;
+
+    }
+
+
+    /* ===================================================
+       HORIZONTAL RULE
+    =================================================== */
+
+    if(
+      /^([-*_])\1\1+$/.test(
+        trimmed.replace(
+          /\s+/g,
+          ""
+        )
+      )
+    ){
+
+      flushParagraph();
+
+      flushList();
+
+
+      output.push(
+        '<hr class="teacher-kabezya-prose-rule">'
+      );
+
+
+      continue;
+
+    }
+
+
+    /* ===================================================
+       HEADINGS
+
+       Markdown symbols disappear and become actual styled
+       headings.
+    =================================================== */
+
+    const headingMatch =
+      trimmed.match(
+        /^(#{1,6})\s+(.+)$/
+      );
+
+
+    if(
+      headingMatch
+    ){
+
+      flushParagraph();
+
+      flushList();
+
+
+      const level =
+        Math.min(
+          4,
+          Math.max(
+            2,
+            headingMatch[
+              1
+            ].length +
+            1
+          )
+        );
+
+
+      output.push(
+        `
+          <h${level}
+            class="
+              teacher-kabezya-prose-heading
+              is-level-${level}
+            "
+          >
+            ${renderInline(
+              headingMatch[
+                2
+              ]
+            )}
+          </h${level}>
+        `
+      );
+
+
+      continue;
+
+    }
+
+
+    /* ===================================================
+       BLOCKQUOTE
+    =================================================== */
+
+    const quoteMatch =
+      trimmed.match(
+        /^>\s?(.*)$/
+      );
+
+
+    if(
+      quoteMatch
+    ){
+
+      flushParagraph();
+
+      flushList();
+
+
+      output.push(
+        `
+          <blockquote
+            class="teacher-kabezya-prose-quote"
+          >
+            ${renderInline(
+              quoteMatch[
+                1
+              ]
+            )}
+          </blockquote>
+        `
+      );
+
+
+      continue;
+
+    }
+
+
+    /* ===================================================
+       UNORDERED LIST
+    =================================================== */
+
+    const unorderedMatch =
+      trimmed.match(
+        /^[-*+]\s+(.+)$/
+      );
+
+
+    if(
+      unorderedMatch
+    ){
+
+      flushParagraph();
+
+
+      if(
+        listType &&
+        listType !==
+          "unordered"
+      ){
+
+        flushList();
+
+      }
+
+
+      listType =
+        "unordered";
+
+
+      listItems.push(
+        unorderedMatch[
+          1
+        ]
+      );
+
+
+      continue;
+
+    }
+
+
+    /* ===================================================
+       ORDERED LIST
+    =================================================== */
+
+    const orderedMatch =
+      trimmed.match(
+        /^\d+[.)]\s+(.+)$/
+      );
+
+
+    if(
+      orderedMatch
+    ){
+
+      flushParagraph();
+
+
+      if(
+        listType &&
+        listType !==
+          "ordered"
+      ){
+
+        flushList();
+
+      }
+
+
+      listType =
+        "ordered";
+
+
+      listItems.push(
+        orderedMatch[
+          1
+        ]
+      );
+
+
+      continue;
+
+    }
+
+
+    /* ===================================================
+       NORMAL PARAGRAPH
+    =================================================== */
+
+    flushList();
+
+
+    paragraph.push(
+      trimmed
+    );
+
+  }
+
+
+  flushParagraph();
+
+  flushList();
+
+
+  return `
+    <div
+      class="teacher-kabezya-prose"
+    >
+      ${output.join("")}
+    </div>
+  `;
 
 }
 
