@@ -65160,9 +65160,20 @@ function renderTeacherKabezyaWorkInspector(
 
 }
 
-
 /* =========================================================
    RENDER KABEZYA CONVERSATION
+   ChatGPT-style conversation presentation
+
+   USER
+   ---------------------------------------------------------
+   Compact bubble aligned right.
+
+   KABEZYA
+   ---------------------------------------------------------
+   Clean assistant prose with no surrounding chat card,
+   speaker title or timestamp header.
+
+   Structured Work Inspector remains supported.
 ========================================================= */
 
 function renderTeacherKabezyaConversation(){
@@ -65173,7 +65184,7 @@ function renderTeacherKabezyaConversation(){
     );
 
 
-  if (
+  if(
     !container
   ){
 
@@ -65183,61 +65194,59 @@ function renderTeacherKabezyaConversation(){
 
 
   const messages =
-    teacherKabezyaWorkspaceState
-      .conversation;
+    asArray(
+      teacherKabezyaWorkspaceState
+        .conversation
+    );
 
 
-  if (
+  const loading =
+    Boolean(
+      teacherKabezyaWorkspaceState
+        .loading
+    );
+
+
+  /* =====================================================
+     EMPTY CONVERSATION
+  ===================================================== */
+
+  if(
     !messages.length &&
-    !teacherKabezyaWorkspaceState
-      .loading
+    !loading
   ){
 
     container.innerHTML = `
       <div
-        class="teacher-kabezya-empty"
+        class="teacher-kabezya-chat-empty"
       >
 
         <div
-          class="teacher-kabezya-empty-icon"
+          class="teacher-kabezya-chat-empty-mark"
+          aria-hidden="true"
         >
           <i
             class="fa-solid fa-wand-magic-sparkles"
-            aria-hidden="true"
           ></i>
         </div>
 
 
-        <h3>
-          How can Kabezya help?
-        </h3>
+        <h2>
+          How can I help?
+        </h2>
 
 
         <p>
-          Choose a teaching tool above or ask about your classes,
-          students, assignments, quizzes or teaching workflow.
+          Ask Kabezya about your classes, students,
+          assessments, lesson planning or teaching workflow.
         </p>
-
-
-        <div
-          class="teacher-kabezya-safety-note"
-        >
-
-          <i
-            class="fa-solid fa-shield-halved"
-            aria-hidden="true"
-          ></i>
-
-          <span>
-            Kabezya provides suggestions only. Grades,
-            attendance and academic decisions remain under
-            teacher control.
-          </span>
-
-        </div>
 
       </div>
     `;
+
+
+    container.scrollTop =
+      0;
 
 
     return;
@@ -65245,203 +65254,192 @@ function renderTeacherKabezyaConversation(){
   }
 
 
-  container.innerHTML = `
+  /* =====================================================
+     MESSAGES
+  ===================================================== */
 
-    ${
-      messages
-        .map(
-          message => {
+  const conversationMarkup =
+    messages
+      .map(
+        message => {
 
-            const role =
-              message.role ===
+          const role =
+            message?.role ===
               "assistant"
-                ? "assistant"
-                : "user";
+              ? "assistant"
+              : "user";
 
 
-const assistantResponse =
-  role ===
-    "assistant" &&
-  message.content &&
-  typeof message.content ===
-    "object"
-    ? message.content
-    : null;
+          /* =================================================
+             USER MESSAGE
+          ================================================= */
+
+          if(
+            role ===
+            "user"
+          ){
+
+            const text =
+              safeString(
+                message?.content
+              );
 
 
-const inspectorMarkup =
-  assistantResponse
-    ? renderTeacherKabezyaWorkInspector(
-        assistantResponse
-      )
-    : "";
+            if(
+              !text
+            ){
 
+              return "";
 
-const content =
-  role ===
-  "assistant"
-    ? getTeacherKabezyaResponseText(
-        message.content
-      )
-    : safeString(
-        message.content
-      );
+            }
 
 
             return `
-              <article
+              <div
                 class="
-                  teacher-kabezya-message
-                  is-${role}
+                  teacher-kabezya-turn
+                  is-user
                 "
               >
 
                 <div
-                  class="teacher-kabezya-message-avatar"
-                  aria-hidden="true"
+                  class="teacher-kabezya-user-bubble"
                 >
-
-                  ${
-                    role ===
-                    "assistant"
-                      ? `
-                          <i
-                            class="fa-solid fa-wand-magic-sparkles"
-                          ></i>
-                        `
-                      : `
-                          <i
-                            class="fa-solid fa-user"
-                          ></i>
-                        `
-                  }
-
+                  ${escapeHtml(
+                    text
+                  )}
                 </div>
 
-
-                <div
-                  class="teacher-kabezya-message-content"
-                >
-
-                  <div
-                    class="teacher-kabezya-message-head"
-                  >
-
-                    <strong>
-                      ${
-                        role ===
-                        "assistant"
-                          ? "Kabezya"
-                          : "You"
-                      }
-                    </strong>
-
-
-                    ${
-                      message.createdAt
-                        ? `
-                            <span>
-                              ${escapeHtml(
-                                formatTeacherRelativeTime(
-                                  message.createdAt
-                                )
-                              )}
-                            </span>
-                          `
-                        : ""
-                    }
-
-                  </div>
-
-
-<div
-  class="teacher-kabezya-message-body"
->
-
-  ${
-    content
-      ? `
-          <div
-            class="teacher-kabezya-answer-text"
-          >
-            ${formatTeacherKabezyaMessage(
-              content
-            )}
-          </div>
-        `
-      : ""
-  }
-
-
-  ${inspectorMarkup}
-
-</div>
-
-                </div>
-
-              </article>
+              </div>
             `;
 
           }
-        )
-        .join(
-          ""
-        )
-    }
 
 
-    ${
-      teacherKabezyaWorkspaceState
-        .loading
-        ? `
-            <article
+          /* =================================================
+             ASSISTANT MESSAGE
+          ================================================= */
+
+          const response =
+            message?.content &&
+            typeof message.content ===
+              "object"
+              ? message.content
+              : null;
+
+
+          const text =
+            getTeacherKabezyaResponseText(
+              message?.content
+            );
+
+
+          const inspectorMarkup =
+            response
+              ? renderTeacherKabezyaWorkInspector(
+                  response
+                )
+              : "";
+
+
+          if(
+            !text &&
+            !inspectorMarkup
+          ){
+
+            return "";
+
+          }
+
+
+          return `
+            <div
               class="
-                teacher-kabezya-message
+                teacher-kabezya-turn
                 is-assistant
-                is-loading
               "
             >
 
               <div
-                class="teacher-kabezya-message-avatar"
-                aria-hidden="true"
-              >
-                <i
-                  class="fa-solid fa-wand-magic-sparkles"
-                ></i>
-              </div>
-
-
-              <div
-                class="teacher-kabezya-message-content"
+                class="teacher-kabezya-assistant-response"
               >
 
-                <div
-                  class="teacher-kabezya-message-head"
-                >
-                  <strong>
-                    Kabezya
-                  </strong>
-                </div>
+                ${
+                  text
+                    ? `
+                        <div
+                          class="teacher-kabezya-answer-text"
+                        >
+                          ${formatTeacherKabezyaMessage(
+                            text
+                          )}
+                        </div>
+                      `
+                    : ""
+                }
 
 
-                <div
-                  class="teacher-kabezya-thinking"
-                  aria-label="Kabezya is working"
-                >
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
+                ${inspectorMarkup}
 
               </div>
 
-            </article>
-          `
-        : ""
-    }
+            </div>
+          `;
+
+        }
+      )
+      .filter(
+        Boolean
+      )
+      .join(
+        ""
+      );
+
+
+  /* =====================================================
+     THINKING STATE
+  ===================================================== */
+
+  const loadingMarkup =
+    loading
+      ? `
+          <div
+            class="
+              teacher-kabezya-turn
+              is-assistant
+              is-loading
+            "
+          >
+
+            <div
+              class="teacher-kabezya-thinking"
+              aria-label="Kabezya is thinking"
+            >
+
+              <span></span>
+              <span></span>
+              <span></span>
+
+            </div>
+
+          </div>
+        `
+      : "";
+
+
+  container.innerHTML = `
+    <div
+      class="teacher-kabezya-chat-thread"
+    >
+      ${conversationMarkup}
+      ${loadingMarkup}
+    </div>
   `;
 
+
+  /* =====================================================
+     SCROLL TO LATEST MESSAGE
+  ===================================================== */
 
   window.requestAnimationFrame(
     () => {
