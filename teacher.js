@@ -62140,6 +62140,1378 @@ function formatTeacherKabezyaMessage(
 
 
 /* =========================================================
+   KABEZYA WORK INSPECTOR
+
+   Structured teacher-facing academic integrity report.
+
+   IMPORTANT:
+   - Kabezya is advisory only.
+   - Similarity is evidence, not proof of misconduct.
+   - Writing variation is not AI-authorship detection.
+   - Teacher retains the final academic decision.
+========================================================= */
+
+function renderTeacherKabezyaWorkInspector(
+  response
+){
+
+  if(
+    !response ||
+    typeof response !==
+      "object"
+  ){
+
+    return "";
+
+  }
+
+
+  const integrity =
+    response.integrity &&
+    typeof response.integrity ===
+      "object"
+      ? response.integrity
+      : null;
+
+
+  const inspection =
+    response.inspection &&
+    typeof response.inspection ===
+      "object"
+      ? response.inspection
+      : null;
+
+
+  const writingConsistency =
+    response.writingConsistency &&
+    typeof response.writingConsistency ===
+      "object"
+      ? response.writingConsistency
+      : null;
+
+
+  const citations =
+    asArray(
+      response.citationReview
+    );
+
+
+  const strengths =
+    asArray(
+      response.strengths
+    );
+
+
+  const concerns =
+    asArray(
+      response.concerns
+    );
+
+
+  const teacherActions =
+    asArray(
+      response
+        .recommendedTeacherActions
+    );
+
+
+  const feedback =
+    safeString(
+      response.feedback
+    );
+
+
+  const hasInspectionData =
+    Boolean(
+      integrity ||
+      inspection ||
+      writingConsistency ||
+      citations.length ||
+      strengths.length ||
+      concerns.length ||
+      teacherActions.length
+    );
+
+
+  if(
+    !hasInspectionData
+  ){
+
+    return "";
+
+  }
+
+
+  /* =====================================================
+     STATUS
+  ===================================================== */
+
+  const rawStatus =
+    safeString(
+      integrity?.status ||
+      inspection?.status ||
+      "clear"
+    )
+      .toLowerCase();
+
+
+  let statusClass =
+    "clear";
+
+
+  let statusLabel =
+    "No major concerns";
+
+
+  let statusIcon =
+    "fa-circle-check";
+
+
+  if(
+    [
+      "review",
+      "needs_review",
+      "flagged",
+      "warning",
+      "moderate"
+    ].includes(
+      rawStatus
+    )
+  ){
+
+    statusClass =
+      "review";
+
+    statusLabel =
+      "Needs review";
+
+    statusIcon =
+      "fa-triangle-exclamation";
+
+  }
+
+
+  if(
+    [
+      "high",
+      "high_risk",
+      "serious",
+      "critical"
+    ].includes(
+      rawStatus
+    )
+  ){
+
+    statusClass =
+      "high";
+
+    statusLabel =
+      "High review priority";
+
+    statusIcon =
+      "fa-circle-exclamation";
+
+  }
+
+
+  if(
+    [
+      "insufficient_evidence",
+      "unknown",
+      "not_checked"
+    ].includes(
+      rawStatus
+    )
+  ){
+
+    statusClass =
+      "neutral";
+
+    statusLabel =
+      "Insufficient evidence";
+
+    statusIcon =
+      "fa-circle-info";
+
+  }
+
+
+  const reviewScore =
+    clampPercentage(
+      integrity?.reviewScore ??
+      inspection?.reviewScore ??
+      0
+    );
+
+
+  /* =====================================================
+     INTERNAL SIMILARITY
+  ===================================================== */
+
+  const internal =
+    integrity
+      ?.internalSimilarity &&
+    typeof integrity
+      .internalSimilarity ===
+      "object"
+      ? integrity
+          .internalSimilarity
+      : null;
+
+
+  const internalChecked =
+    Boolean(
+      internal?.checked
+    );
+
+
+  const comparedCount =
+    Math.max(
+      0,
+      safeInteger(
+        internal
+          ?.comparedSubmissionCount,
+        0
+      )
+    );
+
+
+  const highestInternal =
+    clampPercentage(
+      internal
+        ?.highestSimilarity
+    );
+
+
+  const internalMatches =
+    asArray(
+      internal?.matches
+    );
+
+
+  /* =====================================================
+     COURSE MATERIAL
+  ===================================================== */
+
+  const courseMaterial =
+    integrity
+      ?.courseMaterialSimilarity &&
+    typeof integrity
+      .courseMaterialSimilarity ===
+      "object"
+      ? integrity
+          .courseMaterialSimilarity
+      : null;
+
+
+  const courseChecked =
+    Boolean(
+      courseMaterial?.checked
+    );
+
+
+  const courseHighest =
+    clampPercentage(
+      courseMaterial
+        ?.highestSimilarity
+    );
+
+
+  const courseMatches =
+    asArray(
+      courseMaterial?.matches
+    );
+
+
+  /* =====================================================
+     WEB REVIEW
+  ===================================================== */
+
+  const webReview =
+    integrity
+      ?.webReview &&
+    typeof integrity.webReview ===
+      "object"
+      ? integrity.webReview
+      : null;
+
+
+  const webChecked =
+    Boolean(
+      webReview?.checked
+    );
+
+
+  const webMatches =
+    asArray(
+      webReview?.matches
+    );
+
+
+  /* =====================================================
+     WRITING CONSISTENCY
+  ===================================================== */
+
+  const writingStatus =
+    safeString(
+      writingConsistency?.status,
+      "insufficient_evidence"
+    );
+
+
+  const writingVariation =
+    clampPercentage(
+      writingConsistency
+        ?.variationScore
+    );
+
+
+  const writingObservations =
+    asArray(
+      writingConsistency
+        ?.observations
+    );
+
+
+  /* =====================================================
+     MATCH EVIDENCE
+  ===================================================== */
+
+  const renderInternalMatches =
+    () => {
+
+      if(
+        !internalMatches.length
+      ){
+
+        return `
+          <div class="teacher-kabezya-inspector-empty-row">
+            <i
+              class="fa-regular fa-file-lines"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              ${
+                internalChecked
+                  ? "No meaningful internal overlap was identified."
+                  : "Internal submission comparison was not performed."
+              }
+            </span>
+          </div>
+        `;
+
+      }
+
+
+      return internalMatches
+        .slice(
+          0,
+          8
+        )
+        .map(
+          (
+            match,
+            index
+          ) => {
+
+            const similarity =
+              clampPercentage(
+                match
+                  ?.similarityPercent ??
+                (
+                  safeNumber(
+                    match?.similarity,
+                    0
+                  ) *
+                  100
+                )
+              );
+
+
+            const submittedText =
+              safeString(
+                match?.submittedText
+              );
+
+
+            const matchedText =
+              safeString(
+                match?.matchedText
+              );
+
+
+            const sourceTitle =
+              safeString(
+                match?.sourceTitle,
+                `Comparison ${index + 1}`
+              );
+
+
+            const evidenceType =
+              safeString(
+                match?.evidenceType,
+                "similarity"
+              )
+                .replace(
+                  /_/g,
+                  " "
+                );
+
+
+            return `
+              <article
+                class="teacher-kabezya-evidence-card"
+              >
+
+                <div
+                  class="teacher-kabezya-evidence-head"
+                >
+
+                  <div>
+                    <span
+                      class="teacher-kabezya-evidence-label"
+                    >
+                      Match ${index + 1}
+                    </span>
+
+                    <strong>
+                      ${escapeHtml(
+                        sourceTitle
+                      )}
+                    </strong>
+                  </div>
+
+
+                  <span
+                    class="
+                      teacher-kabezya-similarity-badge
+                      ${
+                        similarity >= 75
+                          ? "is-high"
+                          : similarity >= 45
+                            ? "is-medium"
+                            : "is-low"
+                      }
+                    "
+                  >
+                    ${similarity}% similarity
+                  </span>
+
+                </div>
+
+
+                ${
+                  submittedText
+                    ? `
+                        <div
+                          class="teacher-kabezya-evidence-text"
+                        >
+                          <span>
+                            Student passage
+                          </span>
+
+                          <p>
+                            ${escapeHtml(
+                              submittedText
+                            )}
+                          </p>
+                        </div>
+                      `
+                    : ""
+                }
+
+
+                ${
+                  matchedText
+                    ? `
+                        <div
+                          class="teacher-kabezya-evidence-text is-match"
+                        >
+                          <span>
+                            Matching passage
+                          </span>
+
+                          <p>
+                            ${escapeHtml(
+                              matchedText
+                            )}
+                          </p>
+                        </div>
+                      `
+                    : ""
+                }
+
+
+                <div
+                  class="teacher-kabezya-evidence-foot"
+                >
+                  <span>
+                    <i
+                      class="fa-solid fa-code-compare"
+                      aria-hidden="true"
+                    ></i>
+
+                    ${escapeHtml(
+                      evidenceType
+                    )}
+                  </span>
+
+                  ${
+                    match?.verified
+                      ? `
+                          <span>
+                            <i
+                              class="fa-solid fa-circle-check"
+                              aria-hidden="true"
+                            ></i>
+
+                            Verified comparison
+                          </span>
+                        `
+                      : ""
+                  }
+                </div>
+
+              </article>
+            `;
+
+          }
+        )
+        .join(
+          ""
+        );
+
+    };
+
+
+  /* =====================================================
+     WRITING OBSERVATIONS
+  ===================================================== */
+
+  const renderWritingObservations =
+    () => {
+
+      if(
+        !writingObservations.length
+      ){
+
+        return `
+          <div
+            class="teacher-kabezya-inspector-empty-row"
+          >
+            <i
+              class="fa-solid fa-pen-nib"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              No specific writing-pattern observations were returned.
+            </span>
+          </div>
+        `;
+
+      }
+
+
+      return `
+        <div
+          class="teacher-kabezya-observation-list"
+        >
+          ${
+            writingObservations
+              .slice(
+                0,
+                10
+              )
+              .map(
+                observation => {
+
+                  const severity =
+                    safeString(
+                      observation?.severity,
+                      "low"
+                    )
+                      .toLowerCase();
+
+
+                  return `
+                    <div
+                      class="
+                        teacher-kabezya-observation
+                        is-${escapeAttribute(
+                          severity
+                        )}
+                      "
+                    >
+
+                      <div
+                        class="teacher-kabezya-observation-icon"
+                        aria-hidden="true"
+                      >
+                        <i
+                          class="fa-solid fa-wave-square"
+                        ></i>
+                      </div>
+
+
+                      <div>
+                        <strong>
+                          ${escapeHtml(
+                            safeString(
+                              observation?.title,
+                              "Writing observation"
+                            )
+                          )}
+                        </strong>
+
+                        ${
+                          observation?.explanation
+                            ? `
+                                <p>
+                                  ${escapeHtml(
+                                    observation
+                                      .explanation
+                                  )}
+                                </p>
+                              `
+                            : ""
+                        }
+
+                        ${
+                          observation?.excerpt
+                            ? `
+                                <blockquote>
+                                  ${escapeHtml(
+                                    observation
+                                      .excerpt
+                                  )}
+                                </blockquote>
+                              `
+                            : ""
+                        }
+                      </div>
+
+                    </div>
+                  `;
+
+                }
+              )
+              .join(
+                ""
+              )
+          }
+        </div>
+      `;
+
+    };
+
+
+  /* =====================================================
+     CITATIONS
+  ===================================================== */
+
+  const renderCitations =
+    () => {
+
+      if(
+        !citations.length
+      ){
+
+        return `
+          <div
+            class="teacher-kabezya-inspector-empty-row"
+          >
+            <i
+              class="fa-solid fa-quote-right"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              No citation issues were returned for this inspection.
+            </span>
+          </div>
+        `;
+
+      }
+
+
+      return `
+        <div
+          class="teacher-kabezya-citation-list"
+        >
+          ${
+            citations
+              .slice(
+                0,
+                10
+              )
+              .map(
+                citation => {
+
+                  const citationStatus =
+                    safeString(
+                      citation?.status,
+                      "not_checked"
+                    )
+                      .toLowerCase();
+
+
+                  const sourceUrl =
+                    normalizeHttpUrl(
+                      citation?.sourceUrl
+                    );
+
+
+                  return `
+                    <article
+                      class="teacher-kabezya-citation-item"
+                    >
+
+                      <div
+                        class="teacher-kabezya-citation-main"
+                      >
+
+                        <strong>
+                          ${escapeHtml(
+                            safeString(
+                              citation?.citation,
+                              "Citation"
+                            )
+                          )}
+                        </strong>
+
+                        ${
+                          citation?.explanation
+                            ? `
+                                <p>
+                                  ${escapeHtml(
+                                    citation
+                                      .explanation
+                                  )}
+                                </p>
+                              `
+                            : ""
+                        }
+
+                      </div>
+
+
+                      <div
+                        class="teacher-kabezya-citation-side"
+                      >
+
+                        <span
+                          class="
+                            teacher-kabezya-citation-status
+                            is-${escapeAttribute(
+                              citationStatus
+                            )}
+                          "
+                        >
+                          ${escapeHtml(
+                            citationStatus
+                              .replace(
+                                /_/g,
+                                " "
+                              )
+                          )}
+                        </span>
+
+
+                        ${
+                          sourceUrl
+                            ? `
+                                <a
+                                  href="${escapeAttribute(
+                                    sourceUrl
+                                  )}"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  class="teacher-kabezya-source-link"
+                                >
+                                  Source
+
+                                  <i
+                                    class="fa-solid fa-arrow-up-right-from-square"
+                                    aria-hidden="true"
+                                  ></i>
+                                </a>
+                              `
+                            : ""
+                        }
+
+                      </div>
+
+                    </article>
+                  `;
+
+                }
+              )
+              .join(
+                ""
+              )
+          }
+        </div>
+      `;
+
+    };
+
+
+  /* =====================================================
+     TEXT LIST
+  ===================================================== */
+
+  const renderTextList =
+    (
+      items,
+      icon
+    ) => {
+
+      const normalized =
+        asArray(
+          items
+        )
+          .map(
+            item =>
+              safeString(
+                typeof item ===
+                "string"
+                  ? item
+                  : item?.text ||
+                    item?.message ||
+                    item?.title
+              )
+          )
+          .filter(
+            Boolean
+          );
+
+
+      if(
+        !normalized.length
+      ){
+
+        return `
+          <div
+            class="teacher-kabezya-inspector-empty-row"
+          >
+            <i
+              class="fa-solid fa-minus"
+              aria-hidden="true"
+            ></i>
+
+            <span>
+              Nothing was identified in this category.
+            </span>
+          </div>
+        `;
+
+      }
+
+
+      return `
+        <ul
+          class="teacher-kabezya-inspector-list"
+        >
+          ${
+            normalized
+              .slice(
+                0,
+                12
+              )
+              .map(
+                item => `
+                  <li>
+                    <i
+                      class="fa-solid ${icon}"
+                      aria-hidden="true"
+                    ></i>
+
+                    <span>
+                      ${escapeHtml(
+                        item
+                      )}
+                    </span>
+                  </li>
+                `
+              )
+              .join(
+                ""
+              )
+          }
+        </ul>
+      `;
+
+    };
+
+
+  /* =====================================================
+     OUTPUT
+  ===================================================== */
+
+  return `
+    <section
+      class="teacher-kabezya-inspector"
+      aria-label="Kabezya student work inspection"
+    >
+
+      <header
+        class="teacher-kabezya-inspector-header"
+      >
+
+        <div
+          class="teacher-kabezya-inspector-heading"
+        >
+
+          <div
+            class="teacher-kabezya-inspector-mark"
+            aria-hidden="true"
+          >
+            <i
+              class="fa-solid fa-shield-halved"
+            ></i>
+          </div>
+
+
+          <div>
+            <span>
+              Kabezya Work Inspector
+            </span>
+
+            <h3>
+              Academic integrity review
+            </h3>
+
+            <p>
+              Evidence for teacher review, not an automatic misconduct decision.
+            </p>
+          </div>
+
+        </div>
+
+
+        <div
+          class="
+            teacher-kabezya-inspector-status
+            is-${statusClass}
+          "
+        >
+          <i
+            class="fa-solid ${statusIcon}"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            ${escapeHtml(
+              statusLabel
+            )}
+          </span>
+        </div>
+
+      </header>
+
+
+      <div
+        class="teacher-kabezya-inspector-metrics"
+      >
+
+        <div
+          class="teacher-kabezya-inspector-metric"
+        >
+          <span>
+            Review score
+          </span>
+
+          <strong>
+            ${reviewScore}%
+          </strong>
+
+          <small>
+            Review priority indicator
+          </small>
+        </div>
+
+
+        <div
+          class="teacher-kabezya-inspector-metric"
+        >
+          <span>
+            Internal overlap
+          </span>
+
+          <strong>
+            ${
+              internalChecked
+                ? `${highestInternal}%`
+                : "Not checked"
+            }
+          </strong>
+
+          <small>
+            ${
+              internalChecked
+                ? `${comparedCount} submission${comparedCount === 1 ? "" : "s"} compared`
+                : "No internal comparison available"
+            }
+          </small>
+        </div>
+
+
+        <div
+          class="teacher-kabezya-inspector-metric"
+        >
+          <span>
+            Course material
+          </span>
+
+          <strong>
+            ${
+              courseChecked
+                ? `${courseHighest}%`
+                : "Not checked"
+            }
+          </strong>
+
+          <small>
+            ${
+              courseChecked
+                ? `${courseMatches.length} possible match${courseMatches.length === 1 ? "" : "es"}`
+                : "Course comparison unavailable"
+            }
+          </small>
+        </div>
+
+
+        <div
+          class="teacher-kabezya-inspector-metric"
+        >
+          <span>
+            Public web
+          </span>
+
+          <strong>
+            ${
+              webChecked
+                ? `${webMatches.length} match${webMatches.length === 1 ? "" : "es"}`
+                : "Not checked"
+            }
+          </strong>
+
+          <small>
+            ${
+              webChecked
+                ? "External source review completed"
+                : "No web-source claim is being made"
+            }
+          </small>
+        </div>
+
+      </div>
+
+
+      <section
+        class="teacher-kabezya-inspector-section"
+      >
+
+        <div
+          class="teacher-kabezya-inspector-section-head"
+        >
+          <div>
+            <span>
+              Originality indicators
+            </span>
+
+            <h4>
+              Internal submission comparison
+            </h4>
+          </div>
+
+          ${
+            internalChecked
+              ? `
+                  <span
+                    class="teacher-kabezya-inspector-count"
+                  >
+                    ${internalMatches.length}
+                    match${internalMatches.length === 1 ? "" : "es"}
+                  </span>
+                `
+              : ""
+          }
+        </div>
+
+
+        <div
+          class="teacher-kabezya-evidence-list"
+        >
+          ${renderInternalMatches()}
+        </div>
+
+      </section>
+
+
+      <section
+        class="teacher-kabezya-inspector-section"
+      >
+
+        <div
+          class="teacher-kabezya-inspector-section-head"
+        >
+          <div>
+            <span>
+              Writing consistency
+            </span>
+
+            <h4>
+              Pattern observations
+            </h4>
+          </div>
+
+
+          ${
+            writingConsistency
+              ? `
+                  <div
+                    class="teacher-kabezya-writing-score"
+                  >
+                    <strong>
+                      ${writingVariation}%
+                    </strong>
+
+                    <span>
+                      variation
+                    </span>
+                  </div>
+                `
+              : ""
+          }
+
+        </div>
+
+
+        ${
+          writingConsistency
+            ? `
+                <div
+                  class="teacher-kabezya-writing-summary"
+                >
+                  <i
+                    class="fa-solid fa-pen-nib"
+                    aria-hidden="true"
+                  ></i>
+
+                  <span>
+                    Status:
+                    <strong>
+                      ${escapeHtml(
+                        writingStatus
+                          .replace(
+                            /_/g,
+                            " "
+                          )
+                      )}
+                    </strong>
+                  </span>
+                </div>
+              `
+            : ""
+        }
+
+
+        ${renderWritingObservations()}
+
+
+        <div
+          class="teacher-kabezya-inspector-disclaimer"
+        >
+          <i
+            class="fa-solid fa-circle-info"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Writing variation can have many legitimate causes.
+            This section does not determine whether AI was used.
+          </span>
+        </div>
+
+      </section>
+
+
+      <section
+        class="teacher-kabezya-inspector-section"
+      >
+
+        <div
+          class="teacher-kabezya-inspector-section-head"
+        >
+          <div>
+            <span>
+              Source review
+            </span>
+
+            <h4>
+              Citations and references
+            </h4>
+          </div>
+
+          <span
+            class="teacher-kabezya-inspector-count"
+          >
+            ${citations.length}
+          </span>
+        </div>
+
+
+        ${renderCitations()}
+
+      </section>
+
+
+      <div
+        class="teacher-kabezya-inspector-review-grid"
+      >
+
+        <section
+          class="teacher-kabezya-inspector-section is-compact"
+        >
+          <div
+            class="teacher-kabezya-inspector-section-head"
+          >
+            <div>
+              <span>
+                Academic review
+              </span>
+
+              <h4>
+                Strengths
+              </h4>
+            </div>
+          </div>
+
+          ${renderTextList(
+            strengths,
+            "fa-circle-check"
+          )}
+        </section>
+
+
+        <section
+          class="teacher-kabezya-inspector-section is-compact"
+        >
+          <div
+            class="teacher-kabezya-inspector-section-head"
+          >
+            <div>
+              <span>
+                Academic review
+              </span>
+
+              <h4>
+                Concerns
+              </h4>
+            </div>
+          </div>
+
+          ${renderTextList(
+            concerns,
+            "fa-triangle-exclamation"
+          )}
+        </section>
+
+      </div>
+
+
+      <section
+        class="teacher-kabezya-inspector-section"
+      >
+
+        <div
+          class="teacher-kabezya-inspector-section-head"
+        >
+          <div>
+            <span>
+              Teacher control
+            </span>
+
+            <h4>
+              Recommended next actions
+            </h4>
+          </div>
+        </div>
+
+
+        ${renderTextList(
+          teacherActions,
+          "fa-arrow-right"
+        )}
+
+      </section>
+
+
+      ${
+        feedback
+          ? `
+              <section
+                class="
+                  teacher-kabezya-inspector-section
+                  teacher-kabezya-feedback-preview
+                "
+              >
+
+                <div
+                  class="teacher-kabezya-inspector-section-head"
+                >
+                  <div>
+                    <span>
+                      Suggested draft
+                    </span>
+
+                    <h4>
+                      Student feedback
+                    </h4>
+                  </div>
+                </div>
+
+
+                <p>
+                  ${escapeHtml(
+                    feedback
+                  )}
+                </p>
+
+
+                <small>
+                  Review and edit this feedback before using it.
+                </small>
+
+              </section>
+            `
+          : ""
+      }
+
+
+      <footer
+        class="teacher-kabezya-inspector-footer"
+      >
+        <i
+          class="fa-solid fa-user-shield"
+          aria-hidden="true"
+        ></i>
+
+        <span>
+          Final grading, integrity findings and academic decisions remain with the teacher.
+        </span>
+      </footer>
+
+    </section>
+  `;
+
+}
+
+
+/* =========================================================
    RENDER KABEZYA CONVERSATION
 ========================================================= */
 
@@ -62237,15 +63609,33 @@ function renderTeacherKabezyaConversation(){
                 : "user";
 
 
-            const content =
-              role ===
-              "assistant"
-                ? getTeacherKabezyaResponseText(
-                    message.content
-                  )
-                : safeString(
-                    message.content
-                  );
+const assistantResponse =
+  role ===
+    "assistant" &&
+  message.content &&
+  typeof message.content ===
+    "object"
+    ? message.content
+    : null;
+
+
+const inspectorMarkup =
+  assistantResponse
+    ? renderTeacherKabezyaWorkInspector(
+        assistantResponse
+      )
+    : "";
+
+
+const content =
+  role ===
+  "assistant"
+    ? getTeacherKabezyaResponseText(
+        message.content
+      )
+    : safeString(
+        message.content
+      );
 
 
             return `
@@ -62314,13 +63704,28 @@ function renderTeacherKabezyaConversation(){
                   </div>
 
 
-                  <div
-                    class="teacher-kabezya-message-body"
-                  >
-                    ${formatTeacherKabezyaMessage(
-                      content
-                    )}
-                  </div>
+<div
+  class="teacher-kabezya-message-body"
+>
+
+  ${
+    content
+      ? `
+          <div
+            class="teacher-kabezya-answer-text"
+          >
+            ${formatTeacherKabezyaMessage(
+              content
+            )}
+          </div>
+        `
+      : ""
+  }
+
+
+  ${inspectorMarkup}
+
+</div>
 
                 </div>
 
