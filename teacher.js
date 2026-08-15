@@ -60703,9 +60703,19 @@ function normalizeTeacherKabezyaQuestions(
 
 }
 
-
 /* =========================================================
    NORMALIZE KABEZYA RESPONSE
+
+   Production normalization supports:
+   - general assistant responses
+   - class/student analysis
+   - submission integrity inspection
+   - writing consistency
+   - citation review
+   - generated quiz questions
+   - generated assignments
+   - generated lesson plans
+   - teacher-reviewable feedback
 ========================================================= */
 
 function normalizeTeacherKabezyaResponse(
@@ -60720,7 +60730,11 @@ function normalizeTeacherKabezyaResponse(
       : response || {};
 
 
-  if (
+  /* =====================================================
+     SIMPLE STRING RESPONSE
+  ===================================================== */
+
+  if(
     typeof source ===
     "string"
   ){
@@ -60746,12 +60760,40 @@ function normalizeTeacherKabezyaResponse(
         null,
 
       lessonPlan:
-        null
+        null,
+
+      strengths:
+        [],
+
+      concerns:
+        [],
+
+      recommendedTeacherActions:
+        [],
+
+      integrityAssessment:
+        null,
+
+      integrity:
+        null,
+
+      inspection:
+        null,
+
+      writingConsistency:
+        null,
+
+      citationReview:
+        []
 
     };
 
   }
 
+
+  /* =====================================================
+     MAIN MESSAGE
+  ===================================================== */
 
   const message =
     safeString(
@@ -60764,11 +60806,19 @@ function normalizeTeacherKabezyaResponse(
     );
 
 
+  /* =====================================================
+     SUGGESTED SCORE
+
+     Advisory only.
+     Does not save a grade.
+  ===================================================== */
+
   const rawScore =
     source.score ??
     source.suggestedScore ??
     source.suggestedGrade ??
     null;
+
 
   const numericScore =
     rawScore ===
@@ -60783,6 +60833,451 @@ function normalizeTeacherKabezyaResponse(
         );
 
 
+  /* =====================================================
+     STRING ARRAY NORMALIZER
+  ===================================================== */
+
+  const normalizeTextList =
+    value =>
+      asArray(
+        value
+      )
+        .map(
+          item =>
+            safeString(
+              typeof item ===
+              "string"
+                ? item
+                : item?.text ||
+                  item?.message ||
+                  item?.title
+            )
+        )
+        .filter(
+          Boolean
+        )
+        .slice(
+          0,
+          50
+        );
+
+
+  /* =====================================================
+     INTEGRITY
+  ===================================================== */
+
+  const rawIntegrity =
+    source.integrity &&
+    typeof source.integrity ===
+      "object"
+      ? source.integrity
+      : null;
+
+
+  const internalSimilarity =
+    rawIntegrity
+      ?.internalSimilarity &&
+    typeof rawIntegrity
+      .internalSimilarity ===
+      "object"
+      ? {
+
+          checked:
+            Boolean(
+              rawIntegrity
+                .internalSimilarity
+                .checked
+            ),
+
+          comparedSubmissionCount:
+            Math.max(
+              0,
+              safeNumber(
+                rawIntegrity
+                  .internalSimilarity
+                  .comparedSubmissionCount,
+                0
+              )
+            ),
+
+          highestSimilarity:
+            clampPercentage(
+              rawIntegrity
+                .internalSimilarity
+                .highestSimilarity
+            ),
+
+          matches:
+            asArray(
+              rawIntegrity
+                .internalSimilarity
+                .matches
+            )
+              .map(
+                match => ({
+
+                  sourceType:
+                    safeString(
+                      match?.sourceType,
+                      "submission"
+                    ),
+
+                  sourceTitle:
+                    safeString(
+                      match?.sourceTitle,
+                      "Comparison submission"
+                    ),
+
+                  submittedText:
+                    safeString(
+                      match?.submittedText
+                    ),
+
+                  matchedText:
+                    safeString(
+                      match?.matchedText
+                    ),
+
+                  similarity:
+                    Math.max(
+                      0,
+                      Math.min(
+                        1,
+                        safeNumber(
+                          match?.similarity,
+                          0
+                        )
+                      )
+                    ),
+
+                  similarityPercent:
+                    clampPercentage(
+                      match?.similarityPercent
+                    ),
+
+                  evidenceType:
+                    safeString(
+                      match?.evidenceType,
+                      "other"
+                    ),
+
+                  verified:
+                    Boolean(
+                      match?.verified
+                    )
+
+                })
+              )
+              .slice(
+                0,
+                30
+              )
+
+        }
+      : {
+
+          checked:
+            false,
+
+          comparedSubmissionCount:
+            0,
+
+          highestSimilarity:
+            0,
+
+          matches:
+            []
+
+        };
+
+
+  const courseMaterialSimilarity =
+    rawIntegrity
+      ?.courseMaterialSimilarity &&
+    typeof rawIntegrity
+      .courseMaterialSimilarity ===
+      "object"
+      ? {
+
+          checked:
+            Boolean(
+              rawIntegrity
+                .courseMaterialSimilarity
+                .checked
+            ),
+
+          highestSimilarity:
+            clampPercentage(
+              rawIntegrity
+                .courseMaterialSimilarity
+                .highestSimilarity
+            ),
+
+          matches:
+            asArray(
+              rawIntegrity
+                .courseMaterialSimilarity
+                .matches
+            )
+
+        }
+      : {
+
+          checked:
+            false,
+
+          highestSimilarity:
+            0,
+
+          matches:
+            []
+
+        };
+
+
+  const webReview =
+    rawIntegrity
+      ?.webReview &&
+    typeof rawIntegrity
+      .webReview ===
+      "object"
+      ? {
+
+          checked:
+            Boolean(
+              rawIntegrity
+                .webReview
+                .checked
+            ),
+
+          provider:
+            safeString(
+              rawIntegrity
+                .webReview
+                .provider
+            ),
+
+          checkedAt:
+            rawIntegrity
+              .webReview
+              .checkedAt ||
+            null,
+
+          matches:
+            asArray(
+              rawIntegrity
+                .webReview
+                .matches
+            )
+
+        }
+      : {
+
+          checked:
+            false,
+
+          provider:
+            "",
+
+          checkedAt:
+            null,
+
+          matches:
+            []
+
+        };
+
+
+  const integrity =
+    rawIntegrity
+      ? {
+
+          status:
+            safeString(
+              rawIntegrity.status,
+              "clear"
+            ),
+
+          reviewScore:
+            clampPercentage(
+              rawIntegrity.reviewScore
+            ),
+
+          internalSimilarity,
+
+          courseMaterialSimilarity,
+
+          webReview
+
+        }
+      : null;
+
+
+  /* =====================================================
+     WRITING CONSISTENCY
+
+     This is NOT AI-authorship detection.
+  ===================================================== */
+
+  const rawWritingConsistency =
+    source.writingConsistency &&
+    typeof source.writingConsistency ===
+      "object"
+      ? source.writingConsistency
+      : source.inspection
+          ?.writingConsistency &&
+        typeof source.inspection
+          .writingConsistency ===
+          "object"
+          ? source.inspection
+              .writingConsistency
+          : null;
+
+
+  const writingConsistency =
+    rawWritingConsistency
+      ? {
+
+          status:
+            safeString(
+              rawWritingConsistency
+                .status,
+              "insufficient_evidence"
+            ),
+
+          variationScore:
+            clampPercentage(
+              rawWritingConsistency
+                .variationScore
+            ),
+
+          observations:
+            asArray(
+              rawWritingConsistency
+                .observations
+            )
+              .map(
+                observation => ({
+
+                  type:
+                    safeString(
+                      observation?.type,
+                      "other"
+                    ),
+
+                  severity:
+                    safeString(
+                      observation?.severity,
+                      "low"
+                    ),
+
+                  title:
+                    safeString(
+                      observation?.title,
+                      "Writing observation"
+                    ),
+
+                  explanation:
+                    safeString(
+                      observation
+                        ?.explanation
+                    ),
+
+                  excerpt:
+                    safeString(
+                      observation?.excerpt
+                    )
+
+                })
+              )
+              .slice(
+                0,
+                30
+              )
+
+        }
+      : null;
+
+
+  /* =====================================================
+     CITATION REVIEW
+  ===================================================== */
+
+  const citationReview =
+    asArray(
+      source.citationReview ||
+      source.inspection
+        ?.citationReview
+    )
+      .map(
+        citation => ({
+
+          citation:
+            safeString(
+              citation?.citation
+            ),
+
+          status:
+            safeString(
+              citation?.status,
+              "not_checked"
+            ),
+
+          explanation:
+            safeString(
+              citation?.explanation
+            ),
+
+          sourceUrl:
+            normalizeHttpUrl(
+              citation?.sourceUrl
+            )
+
+        })
+      )
+      .slice(
+        0,
+        30
+      );
+
+
+  /* =====================================================
+     INSPECTION RECORD
+  ===================================================== */
+
+  const inspection =
+    source.inspection &&
+    typeof source.inspection ===
+      "object"
+      ? {
+
+          ...source.inspection,
+
+          id:
+            normalizeId(
+              source.inspection.id ||
+              source.inspection._id
+            ),
+
+          status:
+            safeString(
+              source.inspection.status
+            ),
+
+          reviewScore:
+            clampPercentage(
+              source.inspection
+                .reviewScore
+            )
+
+        }
+      : null;
+
+
+  /* =====================================================
+     FINAL NORMALIZED RESPONSE
+  ===================================================== */
+
   return {
 
     message,
@@ -60793,7 +61288,9 @@ function normalizeTeacherKabezyaResponse(
     feedback:
       safeString(
         source.feedback ||
-        source.suggestedFeedback
+        source.suggestedFeedback ||
+        source.aiAnalysis
+          ?.suggestedFeedback
       ),
 
     score:
@@ -60819,7 +61316,43 @@ function normalizeTeacherKabezyaResponse(
     lessonPlan:
       source.lessonPlan ||
       source.lesson ||
-      null
+      null,
+
+    strengths:
+      normalizeTextList(
+        source.strengths ||
+        source.aiAnalysis
+          ?.strengths
+      ),
+
+    concerns:
+      normalizeTextList(
+        source.concerns ||
+        source.aiAnalysis
+          ?.concerns
+      ),
+
+    recommendedTeacherActions:
+      normalizeTextList(
+        source.recommendedTeacherActions ||
+        source.aiAnalysis
+          ?.recommendedTeacherActions
+      ),
+
+    integrityAssessment:
+      source.integrityAssessment &&
+      typeof source.integrityAssessment ===
+        "object"
+        ? source.integrityAssessment
+        : null,
+
+    integrity,
+
+    inspection,
+
+    writingConsistency,
+
+    citationReview
 
   };
 
@@ -62046,16 +62579,31 @@ function renderTeacherKabezyaComposer(){
 
 }
 
-
 /* =========================================================
    SEND KABEZYA REQUEST
+
+   Production request lifecycle.
+
+   Backend receives authoritative IDs separately from the
+   display/context snapshot.
+
+   The backend remains responsible for:
+   - authorization
+   - loading real MongoDB records
+   - verifying teacher access
+   - integrity comparison
+   - AI analysis
 ========================================================= */
 
 async function askTeacherKabezya(
   prompt = null
 ){
 
-  if (
+  /* =====================================================
+     DUPLICATE REQUEST PROTECTION
+  ===================================================== */
+
+  if(
     teacherKabezyaWorkspaceState
       .loading
   ){
@@ -62080,7 +62628,7 @@ async function askTeacherKabezya(
     );
 
 
-  if (
+  if(
     !input
   ){
 
@@ -62101,6 +62649,197 @@ async function askTeacherKabezya(
   }
 
 
+  /* =====================================================
+     VALIDATE MODE-SPECIFIC CONTEXT
+  ===================================================== */
+
+  const mode =
+    teacherKabezyaWorkspaceState
+      .mode;
+
+
+  if(
+    mode ===
+      TEACHER_KABEZYA_MODES
+        .CLASS_ANALYSIS &&
+    !teacherKabezyaWorkspaceState
+      .classId
+  ){
+
+    notifyAIFTWarning(
+      "Select a class before asking Kabezya to analyze class performance.",
+      {
+        title:
+          "Class required"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  if(
+    mode ===
+      TEACHER_KABEZYA_MODES
+        .STUDENT_ANALYSIS &&
+    !teacherKabezyaWorkspaceState
+      .studentId
+  ){
+
+    notifyAIFTWarning(
+      "Select a student before asking Kabezya to analyze learning progress.",
+      {
+        title:
+          "Student required"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  if(
+    (
+      mode ===
+        TEACHER_KABEZYA_MODES
+          .SUBMISSION_REVIEW ||
+      mode ===
+        TEACHER_KABEZYA_MODES
+          .FEEDBACK
+    ) &&
+    !teacherKabezyaWorkspaceState
+      .submissionId
+  ){
+
+    notifyAIFTWarning(
+      "Select a student submission before asking Kabezya to inspect the work.",
+      {
+        title:
+          "Submission required"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  /* =====================================================
+     BUILD DISPLAY CONTEXT
+
+     This gives Kabezya useful UI context.
+
+     Backend does NOT trust these records as authority.
+  ===================================================== */
+
+  const context =
+    buildTeacherKabezyaContext();
+
+
+  /* =====================================================
+     BUILD REQUEST HISTORY
+
+     Send only recent user/assistant messages.
+  ===================================================== */
+
+  const history =
+    asArray(
+      teacherKabezyaWorkspaceState
+        .conversation
+    )
+      .filter(
+        message =>
+          message?.role ===
+            "user" ||
+          message?.role ===
+            "assistant"
+      )
+      .slice(
+        -12
+      )
+      .map(
+        message => ({
+
+          role:
+            message.role,
+
+          content:
+            message.role ===
+              "assistant"
+              ? getTeacherKabezyaResponseText(
+                  message.content
+                )
+              : safeString(
+                  message.content
+                )
+
+        })
+      )
+      .filter(
+        message =>
+          message.content
+      );
+
+
+  /* =====================================================
+     BUILD AUTHORITATIVE ID PAYLOAD
+
+     This is the important connection to the new backend.
+  ===================================================== */
+
+  const requestBody = {
+
+    prompt:
+      input,
+
+    mode,
+
+    classId:
+      normalizeId(
+        teacherKabezyaWorkspaceState
+          .classId
+      ),
+
+    studentId:
+      normalizeId(
+        teacherKabezyaWorkspaceState
+          .studentId
+      ),
+
+    assignmentId:
+      normalizeId(
+        teacherKabezyaWorkspaceState
+          .assignmentId
+      ),
+
+    submissionId:
+      normalizeId(
+        teacherKabezyaWorkspaceState
+          .submissionId
+      ),
+
+    quizId:
+      normalizeId(
+        teacherKabezyaWorkspaceState
+          .quizId
+      ),
+
+    context,
+
+    history
+
+  };
+
+
+  /* =====================================================
+     STORE USER MESSAGE
+  ===================================================== */
+
   teacherKabezyaWorkspaceState
     .prompt =
     input;
@@ -62117,9 +62856,33 @@ async function askTeacherKabezya(
         input,
 
       createdAt:
-        new Date()
+        new Date(),
+
+      mode
 
     });
+
+
+  /* =====================================================
+     KEEP CLIENT HISTORY BOUNDED
+  ===================================================== */
+
+  if(
+    teacherKabezyaWorkspaceState
+      .conversation
+      .length >
+    100
+  ){
+
+    teacherKabezyaWorkspaceState
+      .conversation =
+      teacherKabezyaWorkspaceState
+        .conversation
+        .slice(
+          -100
+        );
+
+  }
 
 
   teacherKabezyaWorkspaceState
@@ -62141,24 +62904,15 @@ async function askTeacherKabezya(
 
   try{
 
-    const context =
-      buildTeacherKabezyaContext();
-
+    /* ===================================================
+       REQUEST
+    =================================================== */
 
     const response =
       await apiSend(
         getTeacherKabezyaEndpoint(),
         "POST",
-        {
-          prompt:
-            input,
-
-          mode:
-            teacherKabezyaWorkspaceState
-              .mode,
-
-          context
-        }
+        requestBody
       );
 
 
@@ -62167,6 +62921,48 @@ async function askTeacherKabezya(
         response
       );
 
+
+    /* ===================================================
+       EMPTY RESPONSE PROTECTION
+    =================================================== */
+
+    const hasUsefulResponse =
+      Boolean(
+
+        getTeacherKabezyaResponseText(
+          normalized
+        ) ||
+
+        normalized.feedback ||
+
+        normalized.integrity ||
+
+        normalized.inspection ||
+
+        normalized.questions
+          ?.length ||
+
+        normalized.assignment ||
+
+        normalized.lessonPlan
+
+      );
+
+
+    if(
+      !hasUsefulResponse
+    ){
+
+      throw new Error(
+        "Kabezya returned an empty response."
+      );
+
+    }
+
+
+    /* ===================================================
+       STORE RESPONSE
+    =================================================== */
 
     teacherKabezyaWorkspaceState
       .response =
@@ -62184,10 +62980,47 @@ async function askTeacherKabezya(
           normalized,
 
         createdAt:
-          new Date()
+          new Date(),
+
+        mode
 
       });
 
+
+    /* ===================================================
+       SYNC SHARED STATE
+
+       Lets other Teacher Studio workspaces inspect the most
+       recent Kabezya result if needed.
+    =================================================== */
+
+    if(
+      !state.kabezya ||
+      typeof state.kabezya !==
+        "object"
+    ){
+
+      state.kabezya =
+        {};
+
+    }
+
+
+    state.kabezya.analysis =
+      normalized;
+
+
+    state.kabezya.error =
+      null;
+
+
+    state.kabezya.ready =
+      true;
+
+
+    /* ===================================================
+       CLEAR COMPOSER AFTER SUCCESS
+    =================================================== */
 
     teacherKabezyaWorkspaceState
       .prompt =
@@ -62213,6 +63046,21 @@ async function askTeacherKabezya(
       );
 
 
+    /* ===================================================
+       RETAIN FAILED PROMPT
+
+       Teacher may adjust and retry.
+    =================================================== */
+
+    teacherKabezyaWorkspaceState
+      .prompt =
+      input;
+
+
+    /* ===================================================
+       ERROR MESSAGE IN CONVERSATION
+    =================================================== */
+
     teacherKabezyaWorkspaceState
       .conversation
       .push({
@@ -62220,16 +63068,39 @@ async function askTeacherKabezya(
         role:
           "assistant",
 
-        content:
-          {
-            message:
-              `I could not complete that request. ${message}`
-          },
+        content:{
+          message:
+            `I could not complete that request. ${message}`,
+
+          error:
+            true
+        },
 
         createdAt:
-          new Date()
+          new Date(),
+
+        mode,
+
+        error:
+          true
 
       });
+
+
+    if(
+      !state.kabezya ||
+      typeof state.kabezya !==
+        "object"
+    ){
+
+      state.kabezya =
+        {};
+
+    }
+
+
+    state.kabezya.error =
+      message;
 
 
     notifyAIFTError(
@@ -62259,7 +63130,6 @@ async function askTeacherKabezya(
   }
 
 }
-
 
 /* =========================================================
    KABEZYA RESPONSE ACTIONS
