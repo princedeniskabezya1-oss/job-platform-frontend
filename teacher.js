@@ -61625,9 +61625,16 @@ function getTeacherKabezyaContextItems(){
 
 }
 
-
 /* =========================================================
    KABEZYA CONTEXT BAR
+   Production Context Selector
+
+   Teachers can explicitly choose:
+   - Class
+   - Student
+   - Submission
+
+   The backend remains authoritative for permissions.
 ========================================================= */
 
 function renderTeacherKabezyaContextBar(){
@@ -61638,7 +61645,7 @@ function renderTeacherKabezyaContextBar(){
     );
 
 
-  if (
+  if(
     !container
   ){
 
@@ -61647,93 +61654,939 @@ function renderTeacherKabezyaContextBar(){
   }
 
 
+  /* =====================================================
+     TEACHER-SCOPED DATA
+  ===================================================== */
+
+  const classes =
+    getTeacherClasses();
+
+
+  const selectedClassId =
+    normalizeId(
+      teacherKabezyaWorkspaceState
+        .classId
+    );
+
+
+  /* =====================================================
+     STUDENTS
+
+     If a class is selected, only expose students related
+     to that class.
+
+     Otherwise expose the teacher-scoped student collection.
+  ===================================================== */
+
+  const allStudentRecords =
+    getTeacherStudents();
+
+
+  const students =
+    selectedClassId
+      ? allStudentRecords
+          .filter(
+            record =>
+              asArray(
+                record?.classes
+              )
+                .some(
+                  classItem =>
+                    sameId(
+                      classItem?.id,
+                      selectedClassId
+                    )
+                )
+          )
+      : allStudentRecords;
+
+
+  const selectedStudentId =
+    normalizeId(
+      teacherKabezyaWorkspaceState
+        .studentId
+    );
+
+
+  /* =====================================================
+     SUBMISSIONS
+
+     Narrow based on selected class/student.
+  ===================================================== */
+
+  const submissions =
+    getTeacherSubmissions()
+      .filter(
+        submission => {
+
+          const submissionClassId =
+            normalizeId(
+              submission
+                ?.classId
+                ?._id ||
+              submission
+                ?.classId
+            );
+
+
+          const submissionStudentId =
+            normalizeId(
+              submission
+                ?.studentId
+                ?._id ||
+              submission
+                ?.studentId
+            );
+
+
+          if(
+            selectedClassId &&
+            !sameId(
+              submissionClassId,
+              selectedClassId
+            )
+          ){
+
+            return false;
+
+          }
+
+
+          if(
+            selectedStudentId &&
+            !sameId(
+              submissionStudentId,
+              selectedStudentId
+            )
+          ){
+
+            return false;
+
+          }
+
+
+          return true;
+
+        }
+      );
+
+
+  const selectedSubmissionId =
+    normalizeId(
+      teacherKabezyaWorkspaceState
+        .submissionId
+    );
+
+
+  /* =====================================================
+     CURRENT CONTEXT CHIPS
+  ===================================================== */
+
   const items =
     getTeacherKabezyaContextItems();
 
 
-  if (
-    !items.length
-  ){
+  /* =====================================================
+     MODE REQUIREMENTS
+  ===================================================== */
 
-    container.innerHTML = `
-      <div
-        class="teacher-kabezya-context-empty"
-      >
-        <i
-          class="fa-solid fa-circle-info"
-          aria-hidden="true"
-        ></i>
-
-        <span>
-          No specific class, student or assessment is selected.
-          Kabezya will answer from the general teacher-assistant context.
-        </span>
-      </div>
-    `;
+  const mode =
+    teacherKabezyaWorkspaceState
+      .mode;
 
 
-    return;
+  const needsClass =
+    mode ===
+      TEACHER_KABEZYA_MODES
+        .CLASS_ANALYSIS;
 
-  }
 
+  const needsStudent =
+    mode ===
+      TEACHER_KABEZYA_MODES
+        .STUDENT_ANALYSIS;
+
+
+  const needsSubmission =
+    mode ===
+      TEACHER_KABEZYA_MODES
+        .SUBMISSION_REVIEW ||
+    mode ===
+      TEACHER_KABEZYA_MODES
+        .FEEDBACK;
+
+
+  /* =====================================================
+     SELECTOR UI
+  ===================================================== */
 
   container.innerHTML = `
-    <div
-      class="teacher-kabezya-context-bar"
+    <section
+      class="teacher-kabezya-context-workspace"
     >
 
-      <span
-        class="teacher-kabezya-context-label"
-      >
-        Working context
-      </span>
-
-
       <div
-        class="teacher-kabezya-context-items"
+        class="teacher-kabezya-context-workspace-head"
       >
+
+        <div>
+
+          <span
+            class="teacher-kabezya-context-label"
+          >
+            Working context
+          </span>
+
+          <strong>
+            Choose what Kabezya should work with
+          </strong>
+
+          <p>
+            Only classes, students and submissions available
+            to this Teacher Studio account are shown.
+          </p>
+
+        </div>
+
 
         ${
-          items
-            .map(
-              item => `
-                <div
-                  class="teacher-kabezya-context-chip"
+          items.length
+            ? `
+                <button
+                  type="button"
+                  class="teacher-text-button"
+                  data-teacher-action="kabezya-clear-context"
                 >
-
                   <i
-                    class="${escapeAttribute(item.icon)}"
+                    class="fa-solid fa-xmark"
                     aria-hidden="true"
                   ></i>
 
-                  <span>
-
-                    <small>
-                      ${escapeHtml(
-                        item.label
-                      )}
-                    </small>
-
-                    <strong>
-                      ${escapeHtml(
-                        item.value
-                      )}
-                    </strong>
-
-                  </span>
-
-                </div>
+                  Clear
+                </button>
               `
-            )
-            .join(
-              ""
-            )
+            : ""
         }
 
       </div>
 
-    </div>
+
+      <div
+        class="teacher-kabezya-context-selectors"
+      >
+
+        <!-- ===============================================
+             CLASS
+        ================================================ -->
+
+        <label
+          class="
+            teacher-kabezya-context-field
+            ${
+              needsClass &&
+              !selectedClassId
+                ? "is-required"
+                : ""
+            }
+          "
+        >
+
+          <span>
+            <i
+              class="fa-solid fa-chalkboard"
+              aria-hidden="true"
+            ></i>
+
+            Class
+
+            ${
+              needsClass
+                ? `
+                    <small>
+                      Required
+                    </small>
+                  `
+                : ""
+            }
+          </span>
+
+
+          <select
+            id="teacherKabezyaClassSelect"
+            ${
+              classes.length
+                ? ""
+                : "disabled"
+            }
+          >
+
+            <option value="">
+              ${
+                classes.length
+                  ? "Select a class"
+                  : "No assigned classes"
+              }
+            </option>
+
+
+            ${
+              classes
+                .map(
+                  classItem => {
+
+                    const id =
+                      normalizeId(
+                        classItem?._id ||
+                        classItem?.id
+                      );
+
+
+                    const title =
+                      safeString(
+                        classItem?.title ||
+                        classItem?.subject ||
+                        classItem?.name,
+                        "Class"
+                      );
+
+
+                    return `
+                      <option
+                        value="${escapeAttribute(
+                          id
+                        )}"
+                        ${
+                          sameId(
+                            id,
+                            selectedClassId
+                          )
+                            ? "selected"
+                            : ""
+                        }
+                      >
+                        ${escapeHtml(
+                          title
+                        )}
+                      </option>
+                    `;
+
+                  }
+                )
+                .join(
+                  ""
+                )
+            }
+
+          </select>
+
+        </label>
+
+
+        <!-- ===============================================
+             STUDENT
+        ================================================ -->
+
+        <label
+          class="
+            teacher-kabezya-context-field
+            ${
+              needsStudent &&
+              !selectedStudentId
+                ? "is-required"
+                : ""
+            }
+          "
+        >
+
+          <span>
+            <i
+              class="fa-solid fa-user-graduate"
+              aria-hidden="true"
+            ></i>
+
+            Student
+
+            ${
+              needsStudent
+                ? `
+                    <small>
+                      Required
+                    </small>
+                  `
+                : ""
+            }
+          </span>
+
+
+          <select
+            id="teacherKabezyaStudentSelect"
+            ${
+              students.length
+                ? ""
+                : "disabled"
+            }
+          >
+
+            <option value="">
+              ${
+                selectedClassId
+                  ? (
+                      students.length
+                        ? "Select a student"
+                        : "No students in this class"
+                    )
+                  : (
+                      students.length
+                        ? "Select a student"
+                        : "No students available"
+                    )
+              }
+            </option>
+
+
+            ${
+              students
+                .map(
+                  record => {
+
+                    const student =
+                      record?.student ||
+                      record;
+
+
+                    const id =
+                      normalizeId(
+                        record?.id ||
+                        student?._id ||
+                        student?.id
+                      );
+
+
+                    const name =
+                      getTeacherStudentDisplayName(
+                        student
+                      );
+
+
+                    return `
+                      <option
+                        value="${escapeAttribute(
+                          id
+                        )}"
+                        ${
+                          sameId(
+                            id,
+                            selectedStudentId
+                          )
+                            ? "selected"
+                            : ""
+                        }
+                      >
+                        ${escapeHtml(
+                          name
+                        )}
+                      </option>
+                    `;
+
+                  }
+                )
+                .join(
+                  ""
+                )
+            }
+
+          </select>
+
+        </label>
+
+
+        <!-- ===============================================
+             SUBMISSION
+        ================================================ -->
+
+        <label
+          class="
+            teacher-kabezya-context-field
+            ${
+              needsSubmission &&
+              !selectedSubmissionId
+                ? "is-required"
+                : ""
+            }
+          "
+        >
+
+          <span>
+            <i
+              class="fa-solid fa-file-circle-check"
+              aria-hidden="true"
+            ></i>
+
+            Submission
+
+            ${
+              needsSubmission
+                ? `
+                    <small>
+                      Required
+                    </small>
+                  `
+                : ""
+            }
+          </span>
+
+
+          <select
+            id="teacherKabezyaSubmissionSelect"
+            ${
+              submissions.length
+                ? ""
+                : "disabled"
+            }
+          >
+
+            <option value="">
+              ${
+                submissions.length
+                  ? "Select submitted work"
+                  : "No submissions available"
+              }
+            </option>
+
+
+            ${
+              submissions
+                .slice(
+                  0,
+                  250
+                )
+                .map(
+                  submission => {
+
+                    const id =
+                      normalizeId(
+                        submission?._id ||
+                        submission?.id
+                      );
+
+
+                    const student =
+                      submission?.studentId &&
+                      typeof submission.studentId ===
+                        "object"
+                        ? submission.studentId
+                        : getTeacherStudentRecordById(
+                            normalizeId(
+                              submission
+                                ?.studentId
+                            )
+                          )
+                            ?.student;
+
+
+                    const studentName =
+                      student
+                        ? getTeacherStudentDisplayName(
+                            student
+                          )
+                        : "Student";
+
+
+                    const assignment =
+                      getTeacherAssignmentById(
+                        normalizeId(
+                          submission
+                            ?.assignmentId
+                            ?._id ||
+                          submission
+                            ?.assignmentId
+                        )
+                      );
+
+
+                    const assignmentTitle =
+                      assignment
+                        ? getTeacherAssignmentTitle(
+                            assignment
+                          )
+                        : "Assignment";
+
+
+                    return `
+                      <option
+                        value="${escapeAttribute(
+                          id
+                        )}"
+                        ${
+                          sameId(
+                            id,
+                            selectedSubmissionId
+                          )
+                            ? "selected"
+                            : ""
+                        }
+                      >
+                        ${escapeHtml(
+                          `${studentName} — ${assignmentTitle}`
+                        )}
+                      </option>
+                    `;
+
+                  }
+                )
+                .join(
+                  ""
+                )
+            }
+
+          </select>
+
+        </label>
+
+      </div>
+
+
+      ${
+        items.length
+          ? `
+              <div
+                class="teacher-kabezya-active-context"
+              >
+
+                ${
+                  items
+                    .map(
+                      item => `
+                        <div
+                          class="teacher-kabezya-context-chip"
+                        >
+
+                          <i
+                            class="${escapeAttribute(
+                              item.icon
+                            )}"
+                            aria-hidden="true"
+                          ></i>
+
+                          <span>
+
+                            <small>
+                              ${escapeHtml(
+                                item.label
+                              )}
+                            </small>
+
+                            <strong>
+                              ${escapeHtml(
+                                item.value
+                              )}
+                            </strong>
+
+                          </span>
+
+                        </div>
+                      `
+                    )
+                    .join(
+                      ""
+                    )
+                }
+
+              </div>
+            `
+          : `
+              <div
+                class="teacher-kabezya-context-empty"
+              >
+                <i
+                  class="fa-solid fa-circle-info"
+                  aria-hidden="true"
+                ></i>
+
+                <span>
+                  Select context above when you want Kabezya
+                  to analyze a specific class, student or submission.
+                  General Assistant mode can work without a selection.
+                </span>
+              </div>
+            `
+      }
+
+    </section>
   `;
+
+
+  /* =====================================================
+     CLASS CHANGE
+  ===================================================== */
+
+  const classSelect =
+    $(
+      "teacherKabezyaClassSelect"
+    );
+
+
+  if(
+    classSelect
+  ){
+
+    classSelect.onchange =
+      () => {
+
+        const classId =
+          normalizeId(
+            classSelect.value
+          );
+
+
+        teacherKabezyaWorkspaceState
+          .classId =
+          classId;
+
+
+        /*
+          Changing class invalidates more specific context.
+        */
+
+        teacherKabezyaWorkspaceState
+          .studentId =
+          "";
+
+
+        teacherKabezyaWorkspaceState
+          .assignmentId =
+          "";
+
+
+        teacherKabezyaWorkspaceState
+          .submissionId =
+          "";
+
+
+        teacherKabezyaWorkspaceState
+          .quizId =
+          "";
+
+
+        if(
+          !state.kabezya ||
+          typeof state.kabezya !==
+            "object"
+        ){
+
+          state.kabezya =
+            {};
+
+        }
+
+
+        state.kabezya.classId =
+          classId;
+
+
+        state.kabezya.studentId =
+          "";
+
+
+        state.kabezya.assignmentId =
+          "";
+
+
+        state.kabezya.submissionId =
+          "";
+
+
+        renderTeacherKabezyaContextBar();
+
+      };
+
+  }
+
+
+  /* =====================================================
+     STUDENT CHANGE
+  ===================================================== */
+
+  const studentSelect =
+    $(
+      "teacherKabezyaStudentSelect"
+    );
+
+
+  if(
+    studentSelect
+  ){
+
+    studentSelect.onchange =
+      () => {
+
+        const studentId =
+          normalizeId(
+            studentSelect.value
+          );
+
+
+        teacherKabezyaWorkspaceState
+          .studentId =
+          studentId;
+
+
+        teacherKabezyaWorkspaceState
+          .assignmentId =
+          "";
+
+
+        teacherKabezyaWorkspaceState
+          .submissionId =
+          "";
+
+
+        if(
+          !state.kabezya ||
+          typeof state.kabezya !==
+            "object"
+        ){
+
+          state.kabezya =
+            {};
+
+        }
+
+
+        state.kabezya.studentId =
+          studentId;
+
+
+        state.kabezya.assignmentId =
+          "";
+
+
+        state.kabezya.submissionId =
+          "";
+
+
+        renderTeacherKabezyaContextBar();
+
+      };
+
+  }
+
+
+  /* =====================================================
+     SUBMISSION CHANGE
+  ===================================================== */
+
+  const submissionSelect =
+    $(
+      "teacherKabezyaSubmissionSelect"
+    );
+
+
+  if(
+    submissionSelect
+  ){
+
+    submissionSelect.onchange =
+      () => {
+
+        const submissionId =
+          normalizeId(
+            submissionSelect.value
+          );
+
+
+        const submission =
+          getTeacherSubmissionById(
+            submissionId
+          );
+
+
+        teacherKabezyaWorkspaceState
+          .submissionId =
+          submissionId;
+
+
+        if(
+          submission
+        ){
+
+          teacherKabezyaWorkspaceState
+            .classId =
+            normalizeId(
+              submission
+                ?.classId
+                ?._id ||
+              submission
+                ?.classId
+            );
+
+
+          teacherKabezyaWorkspaceState
+            .studentId =
+            normalizeId(
+              submission
+                ?.studentId
+                ?._id ||
+              submission
+                ?.studentId
+            );
+
+
+          teacherKabezyaWorkspaceState
+            .assignmentId =
+            normalizeId(
+              submission
+                ?.assignmentId
+                ?._id ||
+              submission
+                ?.assignmentId
+            );
+
+        }else{
+
+          teacherKabezyaWorkspaceState
+            .assignmentId =
+            "";
+
+        }
+
+
+        if(
+          !state.kabezya ||
+          typeof state.kabezya !==
+            "object"
+        ){
+
+          state.kabezya =
+            {};
+
+        }
+
+
+        state.kabezya.classId =
+          teacherKabezyaWorkspaceState
+            .classId;
+
+
+        state.kabezya.studentId =
+          teacherKabezyaWorkspaceState
+            .studentId;
+
+
+        state.kabezya.assignmentId =
+          teacherKabezyaWorkspaceState
+            .assignmentId;
+
+
+        state.kabezya.submissionId =
+          submissionId;
+
+
+        renderTeacherKabezyaContextBar();
+
+      };
+
+  }
 
 }
 
