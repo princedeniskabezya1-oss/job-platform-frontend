@@ -64657,6 +64657,223 @@ const content =
 
 }
 
+/* =========================================================
+   TEACHER RELATIVE TIME FORMATTER
+
+   Used by:
+   - Kabezya conversation messages
+   - Teacher message conversation timestamps
+
+   Examples:
+   - Just now
+   - 5 min ago
+   - 2 hr ago
+   - Yesterday
+   - 4 days ago
+   - Aug 12
+========================================================= */
+
+function formatTeacherRelativeTime(
+  value
+){
+
+  if(
+    !value
+  ){
+
+    return "";
+
+  }
+
+
+  const date =
+    value instanceof Date
+      ? value
+      : new Date(
+          value
+        );
+
+
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+
+    return "";
+
+  }
+
+
+  const now =
+    new Date();
+
+
+  const differenceMs =
+    now.getTime() -
+    date.getTime();
+
+
+  /*
+    Future timestamps can happen because of minor
+    client/server clock differences.
+  */
+
+  if(
+    differenceMs <
+    0
+  ){
+
+    const futureSeconds =
+      Math.abs(
+        differenceMs
+      ) /
+      1000;
+
+
+    if(
+      futureSeconds <
+      60
+    ){
+
+      return "Just now";
+
+    }
+
+  }
+
+
+  const seconds =
+    Math.floor(
+      Math.max(
+        0,
+        differenceMs
+      ) /
+      1000
+    );
+
+
+  if(
+    seconds <
+    45
+  ){
+
+    return "Just now";
+
+  }
+
+
+  const minutes =
+    Math.floor(
+      seconds /
+      60
+    );
+
+
+  if(
+    minutes <
+    60
+  ){
+
+    return `${
+      minutes
+    } min ago`;
+
+  }
+
+
+  const hours =
+    Math.floor(
+      minutes /
+      60
+    );
+
+
+  if(
+    hours <
+    24
+  ){
+
+    return `${
+      hours
+    } hr${
+      hours === 1
+        ? ""
+        : "s"
+    } ago`;
+
+  }
+
+
+  const days =
+    Math.floor(
+      hours /
+      24
+    );
+
+
+  if(
+    days ===
+    1
+  ){
+
+    return "Yesterday";
+
+  }
+
+
+  if(
+    days <
+    7
+  ){
+
+    return `${
+      days
+    } days ago`;
+
+  }
+
+
+  const sameYear =
+    date.getFullYear() ===
+    now.getFullYear();
+
+
+  try{
+
+    return new Intl.DateTimeFormat(
+      undefined,
+      {
+        month:
+          "short",
+
+        day:
+          "numeric",
+
+        ...(
+          sameYear
+            ? {}
+            : {
+                year:
+                  "numeric"
+              }
+        )
+      }
+    ).format(
+      date
+    );
+
+  }catch(
+    error
+  ){
+
+    return date
+      .toLocaleDateString();
+
+  }
+
+}
+
 
 /* =========================================================
    KABEZYA COMPOSER
