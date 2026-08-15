@@ -65161,22 +65161,1162 @@ function renderTeacherKabezyaWorkInspector(
 }
 
 /* =========================================================
+   KABEZYA CONVERSATION UI + PERSISTENCE
+
+   Production frontend conversation layer.
+
+   Supports:
+   - recent conversations
+   - reopen conversation
+   - continue conversation
+   - new conversation
+   - copy user messages
+   - copy Kabezya responses
+   - inline edit teacher messages
+   - ChatGPT-style edit branching
+========================================================= */
+
+
+/* =========================================================
+   ENSURE CONVERSATION STATE
+========================================================= */
+
+function ensureTeacherKabezyaConversationState(){
+
+  if(
+    !Array.isArray(
+      teacherKabezyaWorkspaceState
+        .recentConversations
+    )
+  ){
+
+    teacherKabezyaWorkspaceState
+      .recentConversations =
+      [];
+
+  }
+
+
+  if(
+    typeof teacherKabezyaWorkspaceState
+      .conversationId !==
+      "string"
+  ){
+
+    teacherKabezyaWorkspaceState
+      .conversationId =
+      "";
+
+  }
+
+
+  if(
+    typeof teacherKabezyaWorkspaceState
+      .editingMessageId !==
+      "string"
+  ){
+
+    teacherKabezyaWorkspaceState
+      .editingMessageId =
+      "";
+
+  }
+
+
+  if(
+    typeof teacherKabezyaWorkspaceState
+      .editingDraft !==
+      "string"
+  ){
+
+    teacherKabezyaWorkspaceState
+      .editingDraft =
+      "";
+
+  }
+
+
+  if(
+    typeof teacherKabezyaWorkspaceState
+      .recentLoading !==
+      "boolean"
+  ){
+
+    teacherKabezyaWorkspaceState
+      .recentLoading =
+      false;
+
+  }
+
+}
+
+
+/* =========================================================
+   NORMALIZE STORED CONVERSATION
+========================================================= */
+
+function normalizeTeacherKabezyaStoredConversation(
+  value
+){
+
+  const source =
+    value?.conversation &&
+    typeof value.conversation ===
+      "object"
+      ? value.conversation
+      : value;
+
+
+  if(
+    !source ||
+    typeof source !==
+      "object"
+  ){
+
+    return null;
+
+  }
+
+
+  return {
+
+    id:
+      normalizeId(
+        source?.id ||
+        source?._id
+      ),
+
+    title:
+      safeString(
+        source?.title,
+        "New conversation"
+      ),
+
+    mode:
+      normalizeTeacherKabezyaMode(
+        source?.mode
+      ),
+
+    classId:
+      normalizeId(
+        source?.classId
+      ),
+
+    studentId:
+      normalizeId(
+        source?.studentId
+      ),
+
+    assignmentId:
+      normalizeId(
+        source?.assignmentId
+      ),
+
+    submissionId:
+      normalizeId(
+        source?.submissionId
+      ),
+
+    quizId:
+      normalizeId(
+        source?.quizId
+      ),
+
+    messageCount:
+      Math.max(
+        0,
+        safeInteger(
+          source?.messageCount,
+          0
+        )
+      ),
+
+    lastMessageAt:
+      source?.lastMessageAt ||
+      source?.updatedAt ||
+      source?.createdAt ||
+      null,
+
+    createdAt:
+      source?.createdAt ||
+      null,
+
+    updatedAt:
+      source?.updatedAt ||
+      null,
+
+    messages:
+      asArray(
+        source?.messages
+      )
+
+  };
+
+}
+
+
+/* =========================================================
+   NORMALIZE STORED MESSAGE
+========================================================= */
+
+function normalizeTeacherKabezyaStoredMessage(
+  value
+){
+
+  if(
+    !value ||
+    typeof value !==
+      "object"
+  ){
+
+    return null;
+
+  }
+
+
+  const role =
+    value?.role ===
+      "assistant"
+      ? "assistant"
+      : "user";
+
+
+  const snapshot =
+    value?.responseSnapshot &&
+    typeof value.responseSnapshot ===
+      "object"
+      ? value.responseSnapshot
+      : null;
+
+
+  const content =
+    role ===
+      "assistant" &&
+    snapshot
+      ? snapshot
+      : safeString(
+          value?.content
+        );
+
+
+  return {
+
+    id:
+      normalizeId(
+        value?.id ||
+        value?._id
+      ),
+
+    role,
+
+    content,
+
+    createdAt:
+      value?.createdAt ||
+      null,
+
+    edited:
+      Boolean(
+        value?.edited
+      ),
+
+    editedAt:
+      value?.editedAt ||
+      null,
+
+    mode:
+      normalizeTeacherKabezyaMode(
+        value?.mode
+      )
+
+  };
+
+}
+
+
+/* =========================================================
+   LOAD RECENT CONVERSATIONS
+========================================================= */
+
+async function loadTeacherKabezyaRecentConversations(){
+
+  ensureTeacherKabezyaConversationState();
+
+
+  if(
+    teacherKabezyaWorkspaceState
+      .recentLoading
+  ){
+
+    return false;
+
+  }
+
+
+  teacherKabezyaWorkspaceState
+    .recentLoading =
+    true;
+
+
+  renderTeacherKabezyaRecentConversations();
+
+
+  try{
+
+    const response =
+      await apiGet(
+        "/api/kabezya/teacher/conversations",
+        {
+          query:{
+            limit:
+              40
+          }
+        }
+      );
+
+
+    teacherKabezyaWorkspaceState
+      .recentConversations =
+      asArray(
+        response?.conversations
+      )
+        .map(
+          normalizeTeacherKabezyaStoredConversation
+        )
+        .filter(
+          conversation =>
+            Boolean(
+              conversation?.id
+            )
+        );
+
+
+    return true;
+
+  }catch(
+    error
+  ){
+
+    console.error(
+      "loadTeacherKabezyaRecentConversations error:",
+      error
+    );
+
+
+    teacherKabezyaWorkspaceState
+      .recentConversations =
+      [];
+
+
+    return false;
+
+  }finally{
+
+    teacherKabezyaWorkspaceState
+      .recentLoading =
+      false;
+
+
+    renderTeacherKabezyaRecentConversations();
+
+  }
+
+}
+
+
+/* =========================================================
+   RENDER RECENT CONVERSATIONS
+========================================================= */
+
+function renderTeacherKabezyaRecentConversations(){
+
+  ensureTeacherKabezyaConversationState();
+
+
+  const container =
+    $(
+      "teacherKabezyaRecentConversations"
+    );
+
+
+  if(
+    !container
+  ){
+
+    return;
+
+  }
+
+
+  if(
+    teacherKabezyaWorkspaceState
+      .recentLoading
+  ){
+
+    container.innerHTML = `
+      <div
+        class="teacher-kabezya-recent-empty"
+      >
+        Loading conversations...
+      </div>
+    `;
+
+
+    return;
+
+  }
+
+
+  const conversations =
+    asArray(
+      teacherKabezyaWorkspaceState
+        .recentConversations
+    );
+
+
+  if(
+    !conversations.length
+  ){
+
+    container.innerHTML = `
+      <div
+        class="teacher-kabezya-recent-empty"
+      >
+        Your Kabezya conversations will appear here.
+      </div>
+    `;
+
+
+    return;
+
+  }
+
+
+  const currentConversationId =
+    normalizeId(
+      teacherKabezyaWorkspaceState
+        .conversationId
+    );
+
+
+  container.innerHTML =
+    conversations
+      .map(
+        conversation => {
+
+          const id =
+            normalizeId(
+              conversation?.id
+            );
+
+
+          const title =
+            safeString(
+              conversation?.title,
+              "New conversation"
+            );
+
+
+          const time =
+            conversation?.lastMessageAt
+              ? formatTeacherRelativeTime(
+                  conversation
+                    .lastMessageAt
+                )
+              : "";
+
+
+          const active =
+            sameId(
+              id,
+              currentConversationId
+            );
+
+
+          return `
+            <button
+              type="button"
+              class="
+                teacher-kabezya-recent-item
+                ${
+                  active
+                    ? "is-active"
+                    : ""
+                }
+              "
+              data-teacher-action="kabezya-open-conversation"
+              data-kabezya-conversation-id="${escapeAttribute(
+                id
+              )}"
+              title="${escapeAttribute(
+                title
+              )}"
+            >
+
+              <strong>
+                ${escapeHtml(
+                  title
+                )}
+              </strong>
+
+
+              <span>
+                ${
+                  time
+                    ? escapeHtml(
+                        time
+                      )
+                    : "Recent conversation"
+                }
+              </span>
+
+            </button>
+          `;
+
+        }
+      )
+      .join(
+        ""
+      );
+
+}
+
+
+/* =========================================================
+   OPEN SAVED CONVERSATION
+========================================================= */
+
+async function openTeacherKabezyaConversation(
+  conversationId
+){
+
+  ensureTeacherKabezyaConversationState();
+
+
+  const id =
+    normalizeId(
+      conversationId
+    );
+
+
+  if(
+    !id
+  ){
+
+    return false;
+
+  }
+
+
+  if(
+    teacherKabezyaWorkspaceState
+      .loading
+  ){
+
+    return false;
+
+  }
+
+
+  try{
+
+    const response =
+      await apiGet(
+        `/api/kabezya/teacher/conversations/${
+          encodeURIComponent(
+            id
+          )
+        }`
+      );
+
+
+    const conversation =
+      normalizeTeacherKabezyaStoredConversation(
+        response
+      );
+
+
+    if(
+      !conversation?.id
+    ){
+
+      throw new Error(
+        "The conversation could not be loaded."
+      );
+
+    }
+
+
+    teacherKabezyaWorkspaceState
+      .conversationId =
+      conversation.id;
+
+
+    teacherKabezyaWorkspaceState
+      .mode =
+      conversation.mode;
+
+
+    teacherKabezyaWorkspaceState
+      .classId =
+      conversation.classId;
+
+
+    teacherKabezyaWorkspaceState
+      .studentId =
+      conversation.studentId;
+
+
+    teacherKabezyaWorkspaceState
+      .assignmentId =
+      conversation.assignmentId;
+
+
+    teacherKabezyaWorkspaceState
+      .submissionId =
+      conversation.submissionId;
+
+
+    teacherKabezyaWorkspaceState
+      .quizId =
+      conversation.quizId;
+
+
+    teacherKabezyaWorkspaceState
+      .conversation =
+      conversation.messages
+        .map(
+          normalizeTeacherKabezyaStoredMessage
+        )
+        .filter(
+          Boolean
+        );
+
+
+    teacherKabezyaWorkspaceState
+      .response =
+      null;
+
+
+    teacherKabezyaWorkspaceState
+      .prompt =
+      "";
+
+
+    teacherKabezyaWorkspaceState
+      .editingMessageId =
+      "";
+
+
+    teacherKabezyaWorkspaceState
+      .editingDraft =
+      "";
+
+
+    /*
+      Restore the most recent assistant structured response.
+    */
+
+    const lastAssistant =
+      [
+        ...teacherKabezyaWorkspaceState
+          .conversation
+      ]
+        .reverse()
+        .find(
+          message =>
+            message?.role ===
+            "assistant"
+        );
+
+
+    if(
+      lastAssistant?.content &&
+      typeof lastAssistant.content ===
+        "object"
+    ){
+
+      teacherKabezyaWorkspaceState
+        .response =
+        lastAssistant.content;
+
+    }
+
+
+    if(
+      !state.kabezya ||
+      typeof state.kabezya !==
+        "object"
+    ){
+
+      state.kabezya =
+        {};
+
+    }
+
+
+    state.kabezya.mode =
+      conversation.mode;
+
+
+    renderKabezyaTeacherHeader();
+
+    renderTeacherKabezyaContextBar();
+
+    renderTeacherKabezyaTools();
+
+    renderTeacherKabezyaQuickPrompts();
+
+    renderTeacherKabezyaConversation();
+
+    renderTeacherKabezyaComposer();
+
+    renderTeacherKabezyaResponseActions();
+
+    renderTeacherKabezyaRecentConversations();
+
+
+    return true;
+
+  }catch(
+    error
+  ){
+
+    console.error(
+      "openTeacherKabezyaConversation error:",
+      error
+    );
+
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "The conversation could not be opened."
+      ),
+      {
+        title:
+          "Unable to open conversation"
+      }
+    );
+
+
+    return false;
+
+  }
+
+}
+
+
+/* =========================================================
+   START NEW CONVERSATION
+========================================================= */
+
+function startNewTeacherKabezyaConversation(){
+
+  ensureTeacherKabezyaConversationState();
+
+
+  teacherKabezyaWorkspaceState
+    .conversationId =
+    "";
+
+
+  teacherKabezyaWorkspaceState
+    .conversation =
+    [];
+
+
+  teacherKabezyaWorkspaceState
+    .response =
+    null;
+
+
+  teacherKabezyaWorkspaceState
+    .prompt =
+    "";
+
+
+  teacherKabezyaWorkspaceState
+    .editingMessageId =
+    "";
+
+
+  teacherKabezyaWorkspaceState
+    .editingDraft =
+    "";
+
+
+  renderTeacherKabezyaConversation();
+
+  renderTeacherKabezyaComposer();
+
+  renderTeacherKabezyaResponseActions();
+
+  renderTeacherKabezyaRecentConversations();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   COPY MESSAGE
+========================================================= */
+
+async function copyTeacherKabezyaMessage(
+  messageId
+){
+
+  const id =
+    normalizeId(
+      messageId
+    );
+
+
+  const message =
+    asArray(
+      teacherKabezyaWorkspaceState
+        .conversation
+    )
+      .find(
+        item =>
+          sameId(
+            item?.id,
+            id
+          )
+      );
+
+
+  if(
+    !message
+  ){
+
+    return false;
+
+  }
+
+
+  const text =
+    message.role ===
+      "assistant"
+      ? getTeacherKabezyaResponseText(
+          message.content
+        )
+      : safeString(
+          message.content
+        );
+
+
+  if(
+    !text
+  ){
+
+    return false;
+
+  }
+
+
+  try{
+
+    await copyTextToTeacherClipboard(
+      text
+    );
+
+
+    notifyAIFTSuccess(
+      "Copied to clipboard.",
+      {
+        title:
+          "Copied"
+      }
+    );
+
+
+    return true;
+
+  }catch(
+    error
+  ){
+
+    console.error(
+      "copyTeacherKabezyaMessage error:",
+      error
+    );
+
+
+    notifyAIFTError(
+      "The message could not be copied.",
+      {
+        title:
+          "Copy failed"
+      }
+    );
+
+
+    return false;
+
+  }
+
+}
+
+
+/* =========================================================
+   BEGIN EDIT MESSAGE
+========================================================= */
+
+function beginTeacherKabezyaMessageEdit(
+  messageId
+){
+
+  const id =
+    normalizeId(
+      messageId
+    );
+
+
+  const message =
+    asArray(
+      teacherKabezyaWorkspaceState
+        .conversation
+    )
+      .find(
+        item =>
+          sameId(
+            item?.id,
+            id
+          )
+      );
+
+
+  if(
+    !message ||
+    message.role !==
+      "user"
+  ){
+
+    return false;
+
+  }
+
+
+  teacherKabezyaWorkspaceState
+    .editingMessageId =
+    id;
+
+
+  teacherKabezyaWorkspaceState
+    .editingDraft =
+    safeString(
+      message.content
+    );
+
+
+  renderTeacherKabezyaConversation();
+
+
+  window.requestAnimationFrame(
+    () => {
+
+      $(
+        "teacherKabezyaMessageEditInput"
+      )?.focus();
+
+    }
+  );
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   CANCEL MESSAGE EDIT
+========================================================= */
+
+function cancelTeacherKabezyaMessageEdit(){
+
+  teacherKabezyaWorkspaceState
+    .editingMessageId =
+    "";
+
+
+  teacherKabezyaWorkspaceState
+    .editingDraft =
+    "";
+
+
+  renderTeacherKabezyaConversation();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   SAVE EDITED MESSAGE
+
+   Backend truncates every later message.
+
+   After saving, the edited prompt is resent so Kabezya
+   creates a new branch from that point.
+========================================================= */
+
+async function saveTeacherKabezyaMessageEdit(
+  messageId
+){
+
+  const conversationId =
+    normalizeId(
+      teacherKabezyaWorkspaceState
+        .conversationId
+    );
+
+
+  const id =
+    normalizeId(
+      messageId
+    );
+
+
+  const input =
+    $(
+      "teacherKabezyaMessageEditInput"
+    );
+
+
+  const content =
+    safeString(
+      input?.value ||
+      teacherKabezyaWorkspaceState
+        .editingDraft
+    )
+      .trim();
+
+
+  if(
+    !conversationId ||
+    !id ||
+    !content
+  ){
+
+    return false;
+
+  }
+
+
+  try{
+
+    const response =
+      await apiSend(
+        `/api/kabezya/teacher/conversations/${
+          encodeURIComponent(
+            conversationId
+          )
+        }/messages/${
+          encodeURIComponent(
+            id
+          )
+        }`,
+        "PATCH",
+        {
+          content
+        }
+      );
+
+
+    const conversation =
+      normalizeTeacherKabezyaStoredConversation(
+        response
+      );
+
+
+    if(
+      conversation?.messages
+    ){
+
+      teacherKabezyaWorkspaceState
+        .conversation =
+        conversation.messages
+          .map(
+            normalizeTeacherKabezyaStoredMessage
+          )
+          .filter(
+            Boolean
+          );
+
+    }
+
+
+    teacherKabezyaWorkspaceState
+      .editingMessageId =
+      "";
+
+
+    teacherKabezyaWorkspaceState
+      .editingDraft =
+      "";
+
+
+    renderTeacherKabezyaConversation();
+
+
+    await loadTeacherKabezyaRecentConversations();
+
+
+    /*
+      Remove the edited user message locally before sending,
+      because askTeacherKabezya() itself adds the new user
+      message.
+
+      The backend already retained the edited message.
+      We will connect branch regeneration to persistent
+      messages in the next request integration step.
+    */
+
+
+    return true;
+
+  }catch(
+    error
+  ){
+
+    console.error(
+      "saveTeacherKabezyaMessageEdit error:",
+      error
+    );
+
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "The message could not be edited."
+      ),
+      {
+        title:
+          "Unable to edit message"
+      }
+    );
+
+
+    return false;
+
+  }
+
+}
+
+
+/* =========================================================
    RENDER KABEZYA CONVERSATION
-   ChatGPT-style conversation presentation
-
-   USER
-   ---------------------------------------------------------
-   Compact bubble aligned right.
-
-   KABEZYA
-   ---------------------------------------------------------
-   Clean assistant prose with no surrounding chat card,
-   speaker title or timestamp header.
-
-   Structured Work Inspector remains supported.
+   ChatGPT-style message presentation
 ========================================================= */
 
 function renderTeacherKabezyaConversation(){
+
+  ensureTeacherKabezyaConversationState();
+
 
   const container =
     $(
@@ -65207,8 +66347,15 @@ function renderTeacherKabezyaConversation(){
     );
 
 
+  const editingMessageId =
+    normalizeId(
+      teacherKabezyaWorkspaceState
+        .editingMessageId
+    );
+
+
   /* =====================================================
-     EMPTY CONVERSATION
+     EMPTY
   ===================================================== */
 
   if(
@@ -65255,13 +66402,16 @@ function renderTeacherKabezyaConversation(){
 
 
   /* =====================================================
-     MESSAGES
+     MESSAGE TURNS
   ===================================================== */
 
   const conversationMarkup =
     messages
       .map(
-        message => {
+        (
+          message,
+          index
+        ) => {
 
           const role =
             message?.role ===
@@ -65270,8 +66420,15 @@ function renderTeacherKabezyaConversation(){
               : "user";
 
 
+          const messageId =
+            normalizeId(
+              message?.id
+            ) ||
+            `local-${index}`;
+
+
           /* =================================================
-             USER MESSAGE
+             USER TURN
           ================================================= */
 
           if(
@@ -65294,20 +66451,129 @@ function renderTeacherKabezyaConversation(){
             }
 
 
+            const editing =
+              sameId(
+                editingMessageId,
+                messageId
+              );
+
+
             return `
               <div
                 class="
                   teacher-kabezya-turn
                   is-user
                 "
+                data-kabezya-message-id="${escapeAttribute(
+                  messageId
+                )}"
               >
 
                 <div
-                  class="teacher-kabezya-user-bubble"
+                  class="teacher-kabezya-user-message-wrap"
                 >
-                  ${escapeHtml(
-                    text
-                  )}
+
+                  ${
+                    editing
+                      ? `
+                          <div
+                            class="teacher-kabezya-message-editor"
+                          >
+
+                            <textarea
+                              id="teacherKabezyaMessageEditInput"
+                              rows="3"
+                              maxlength="6000"
+                            >${escapeHtml(
+                              teacherKabezyaWorkspaceState
+                                .editingDraft ||
+                              text
+                            )}</textarea>
+
+
+                            <div
+                              class="teacher-kabezya-message-editor-actions"
+                            >
+
+                              <button
+                                type="button"
+                                class="teacher-text-button"
+                                data-teacher-action="kabezya-cancel-message-edit"
+                              >
+                                Cancel
+                              </button>
+
+
+                              <button
+                                type="button"
+                                class="teacher-primary-button"
+                                data-teacher-action="kabezya-save-message-edit"
+                                data-kabezya-message-id="${escapeAttribute(
+                                  messageId
+                                )}"
+                              >
+                                Save
+                              </button>
+
+                            </div>
+
+                          </div>
+                        `
+                      : `
+                          <div
+                            class="teacher-kabezya-user-bubble"
+                          >
+                            ${escapeHtml(
+                              text
+                            )}
+                          </div>
+
+
+                          <div
+                            class="teacher-kabezya-message-actions"
+                          >
+
+                            <button
+                              type="button"
+                              data-teacher-action="kabezya-copy-message"
+                              data-kabezya-message-id="${escapeAttribute(
+                                messageId
+                              )}"
+                              aria-label="Copy message"
+                              title="Copy"
+                            >
+                              <i
+                                class="fa-regular fa-copy"
+                                aria-hidden="true"
+                              ></i>
+                            </button>
+
+
+                            ${
+                              message?.id
+                                ? `
+                                    <button
+                                      type="button"
+                                      data-teacher-action="kabezya-edit-message"
+                                      data-kabezya-message-id="${escapeAttribute(
+                                        messageId
+                                      )}"
+                                      aria-label="Edit message"
+                                      title="Edit"
+                                    >
+                                      <i
+                                        class="fa-regular fa-pen-to-square"
+                                        aria-hidden="true"
+                                      ></i>
+                                    </button>
+                                  `
+                                : ""
+                            }
+
+                          </div>
+                        `
+                  }
+
                 </div>
 
               </div>
@@ -65317,7 +66583,7 @@ function renderTeacherKabezyaConversation(){
 
 
           /* =================================================
-             ASSISTANT MESSAGE
+             ASSISTANT TURN
           ================================================= */
 
           const response =
@@ -65358,6 +66624,9 @@ function renderTeacherKabezyaConversation(){
                 teacher-kabezya-turn
                 is-assistant
               "
+              data-kabezya-message-id="${escapeAttribute(
+                messageId
+              )}"
             >
 
               <div
@@ -65380,6 +66649,37 @@ function renderTeacherKabezyaConversation(){
 
 
                 ${inspectorMarkup}
+
+
+                ${
+                  text
+                    ? `
+                        <div
+                          class="
+                            teacher-kabezya-message-actions
+                            is-assistant
+                          "
+                        >
+
+                          <button
+                            type="button"
+                            data-teacher-action="kabezya-copy-message"
+                            data-kabezya-message-id="${escapeAttribute(
+                              messageId
+                            )}"
+                            aria-label="Copy Kabezya response"
+                            title="Copy"
+                          >
+                            <i
+                              class="fa-regular fa-copy"
+                              aria-hidden="true"
+                            ></i>
+                          </button>
+
+                        </div>
+                      `
+                    : ""
+                }
 
               </div>
 
@@ -65415,11 +66715,9 @@ function renderTeacherKabezyaConversation(){
               class="teacher-kabezya-thinking"
               aria-label="Kabezya is thinking"
             >
-
               <span></span>
               <span></span>
               <span></span>
-
             </div>
 
           </div>
@@ -65438,19 +66736,26 @@ function renderTeacherKabezyaConversation(){
 
 
   /* =====================================================
-     SCROLL TO LATEST MESSAGE
+     SCROLL
   ===================================================== */
 
-  window.requestAnimationFrame(
-    () => {
+  if(
+    !editingMessageId
+  ){
 
-      container.scrollTop =
-        container.scrollHeight;
+    window.requestAnimationFrame(
+      () => {
 
-    }
-  );
+        container.scrollTop =
+          container.scrollHeight;
+
+      }
+    );
+
+  }
 
 }
+
 
 /* =========================================================
    TEACHER RELATIVE TIME FORMATTER
@@ -66794,31 +68099,20 @@ function renderTeacherKabezyaResponseActions(){
 }
 
 /* =========================================================
-   CLEAR KABEZYA CONVERSATION
+   CLEAR / START NEW KABEZYA CONVERSATION
+
+   Backward-compatible wrapper.
+
+   Older parts of Teacher Studio may still call:
+     clearTeacherKabezyaConversation()
+
+   The real implementation now lives in:
+     startNewTeacherKabezyaConversation()
 ========================================================= */
 
 function clearTeacherKabezyaConversation(){
 
-  teacherKabezyaWorkspaceState
-    .conversation =
-    [];
-
-
-  teacherKabezyaWorkspaceState
-    .response =
-    null;
-
-
-  teacherKabezyaWorkspaceState
-    .prompt =
-    "";
-
-
-  renderTeacherKabezyaConversation();
-
-  renderTeacherKabezyaComposer();
-
-  renderTeacherKabezyaResponseActions();
+  return startNewTeacherKabezyaConversation();
 
 }
 
@@ -67483,29 +68777,111 @@ function renderKabezyaTeacherAssistant(){
    INITIALIZE KABEZYA
 ========================================================= */
 
-function initializeTeacherKabezyaWorkspace(){
+/* =========================================================
+   INITIALIZE KABEZYA
+   Production persistent conversation initialization
+
+   Responsibilities:
+   - hydrate normal Kabezya state
+   - initialize conversation state
+   - render immediately
+   - load recent conversations from MongoDB
+   - avoid blocking Teacher Studio if history fails
+========================================================= */
+
+async function initializeTeacherKabezyaWorkspace(){
+
+  /* =====================================================
+     CORE STATE
+  ===================================================== */
 
   syncTeacherKabezyaState();
 
 
-  if (
+  ensureTeacherKabezyaConversationState();
+
+
+  /* =====================================================
+     ALREADY INITIALIZED
+  ===================================================== */
+
+  if(
     teacherKabezyaWorkspaceState
       .initialized
   ){
 
     renderKabezyaTeacherAssistant();
 
-    return;
+
+    renderTeacherKabezyaRecentConversations();
+
+
+    /*
+      Refresh recent history whenever the teacher returns
+      to Kabezya.
+
+      This keeps multiple browser sessions reasonably
+      synchronized without blocking the page.
+    */
+
+    await loadTeacherKabezyaRecentConversations();
+
+
+    return true;
 
   }
 
+
+  /* =====================================================
+     FIRST INITIALIZATION
+  ===================================================== */
 
   teacherKabezyaWorkspaceState
     .initialized =
     true;
 
 
+  /* =====================================================
+     INITIAL UI
+
+     Render first so Kabezya appears immediately instead of
+     waiting for the history API.
+  ===================================================== */
+
   renderKabezyaTeacherAssistant();
+
+
+  renderTeacherKabezyaRecentConversations();
+
+
+  /* =====================================================
+     LOAD RECENT CONVERSATIONS
+  ===================================================== */
+
+  try{
+
+    await loadTeacherKabezyaRecentConversations();
+
+  }catch(
+    error
+  ){
+
+    /*
+      Recent history is useful but non-critical.
+
+      A history failure must never prevent the teacher from
+      using a fresh Kabezya conversation.
+    */
+
+    console.error(
+      "Kabezya recent conversation initialization failed:",
+      error
+    );
+
+  }
+
+
+  return true;
 
 }
 
@@ -76656,6 +78032,9 @@ case "refresh-resources":
 
 case "dashboard-lesson-assistant":
 
+  startNewTeacherKabezyaConversation();
+
+
   setTeacherKabezyaMode(
     "lesson-plan"
   );
@@ -76669,6 +78048,10 @@ case "dashboard-lesson-assistant":
   return true;
 
 
+/* =====================================================
+   CHANGE MODE
+===================================================== */
+
 case "kabezya-mode":
 
   return setTeacherKabezyaMode(
@@ -76678,6 +78061,10 @@ case "kabezya-mode":
     )
   );
 
+
+/* =====================================================
+   QUICK PROMPT
+===================================================== */
 
 case "kabezya-quick-prompt":
 
@@ -76689,15 +78076,92 @@ case "kabezya-quick-prompt":
   );
 
 
+/* =====================================================
+   CLEAR CONTEXT
+===================================================== */
+
 case "kabezya-clear-context":
 
   return clearTeacherKabezyaContext();
 
 
+/* =====================================================
+   NEW CONVERSATION
+===================================================== */
+
 case "kabezya-new-conversation":
 
-  return clearTeacherKabezyaConversation();
+  return startNewTeacherKabezyaConversation();
 
+
+/* =====================================================
+   OPEN RECENT CONVERSATION
+===================================================== */
+
+case "kabezya-open-conversation":
+
+  return openTeacherKabezyaConversation(
+    normalizeId(
+      element.dataset
+        .kabezyaConversationId
+    )
+  );
+
+
+/* =====================================================
+   COPY MESSAGE
+===================================================== */
+
+case "kabezya-copy-message":
+
+  return copyTeacherKabezyaMessage(
+    normalizeId(
+      element.dataset
+        .kabezyaMessageId
+    )
+  );
+
+
+/* =====================================================
+   EDIT TEACHER MESSAGE
+===================================================== */
+
+case "kabezya-edit-message":
+
+  return beginTeacherKabezyaMessageEdit(
+    normalizeId(
+      element.dataset
+        .kabezyaMessageId
+    )
+  );
+
+
+/* =====================================================
+   CANCEL MESSAGE EDIT
+===================================================== */
+
+case "kabezya-cancel-message-edit":
+
+  return cancelTeacherKabezyaMessageEdit();
+
+
+/* =====================================================
+   SAVE MESSAGE EDIT
+===================================================== */
+
+case "kabezya-save-message-edit":
+
+  return saveTeacherKabezyaMessageEdit(
+    normalizeId(
+      element.dataset
+        .kabezyaMessageId
+    )
+  );
+
+
+/* =====================================================
+   USE GENERATED FEEDBACK
+===================================================== */
 
 case "kabezya-use-feedback":
 
@@ -81055,17 +82519,22 @@ const supportedActions =
        KABEZYA
     ===================================================== */
 
-    "dashboard-lesson-assistant",
+"dashboard-lesson-assistant",
 
-    "kabezya-mode",
+"kabezya-mode",
+"kabezya-quick-prompt",
+"kabezya-clear-context",
 
-    "kabezya-quick-prompt",
+"kabezya-new-conversation",
+"kabezya-open-conversation",
 
-    "kabezya-clear-context",
+"kabezya-copy-message",
 
-    "kabezya-new-conversation",
+"kabezya-edit-message",
+"kabezya-save-message-edit",
+"kabezya-cancel-message-edit",
 
-    "kabezya-use-feedback",
+"kabezya-use-feedback",
 
 
     /* =====================================================
