@@ -65927,7 +65927,7 @@ async function askTeacherKabezya(
 
 
   /* =====================================================
-     MODE-SPECIFIC CONTEXT VALIDATION
+     REQUIRED CONTEXT VALIDATION
   ===================================================== */
 
   if(
@@ -66003,7 +66003,7 @@ async function askTeacherKabezya(
 
 
   /* =====================================================
-     DISPLAY CONTEXT
+     VERIFIED DISPLAY CONTEXT
   ===================================================== */
 
   const context =
@@ -66011,11 +66011,14 @@ async function askTeacherKabezya(
 
 
   /* =====================================================
-     CONVERSATION HISTORY
+     HISTORY
 
-     IMPORTANT:
-     Build history BEFORE adding the current user message,
-     otherwise Gemini receives the same user turn twice.
+     Build this BEFORE adding the new user message.
+
+     This prevents the current prompt from being duplicated
+     in both:
+       - history
+       - prompt
   ===================================================== */
 
   const history =
@@ -66112,13 +66115,10 @@ async function askTeacherKabezya(
 
 
   /* =====================================================
-     STORE USER MESSAGE ONCE
+     ADD USER MESSAGE
+
+     Add exactly once.
   ===================================================== */
-
-  teacherKabezyaWorkspaceState
-    .prompt =
-    input;
-
 
   teacherKabezyaWorkspaceState
     .conversation
@@ -66139,7 +66139,7 @@ async function askTeacherKabezya(
 
 
   /* =====================================================
-     KEEP LOCAL CONVERSATION BOUNDED
+     LIMIT CLIENT-SIDE HISTORY
   ===================================================== */
 
   if(
@@ -66161,7 +66161,7 @@ async function askTeacherKabezya(
 
 
   /* =====================================================
-     ENTER THINKING STATE
+     LOADING STATE
   ===================================================== */
 
   teacherKabezyaWorkspaceState
@@ -66172,6 +66172,11 @@ async function askTeacherKabezya(
   teacherKabezyaWorkspaceState
     .response =
     null;
+
+
+  teacherKabezyaWorkspaceState
+    .prompt =
+    "";
 
 
   if(
@@ -66202,30 +66207,8 @@ async function askTeacherKabezya(
 
 
   /* =====================================================
-     RETRY CONFIGURATION
-
-     These retries are only for TEMPORARY server/provider
-     conditions.
-
-     400/401/403/404 etc. are not retried.
+     SLEEP HELPER
   ===================================================== */
-
-  const retryDelays = [
-    2500,
-    5000,
-    10000,
-    18000
-  ];
-
-
-  const retryableStatuses =
-    new Set([
-      429,
-      502,
-      503,
-      504
-    ]);
-
 
   const sleep =
     milliseconds =>
@@ -66238,24 +66221,55 @@ async function askTeacherKabezya(
       );
 
 
-  let lastError =
-    null;
+  /* =====================================================
+     RETRY POLICY
+
+     Provider/server temporary problems:
+       - 502
+       - 503
+       - 504
+
+     Account rate limiting:
+       - 429
+
+     429 uses the backend's exact retryAfterMs.
+
+     We NEVER blindly hammer the server.
+  ===================================================== */
+
+  const transientRetryDelays = [
+    2500,
+    5000
+  ];
+
+
+  const transientStatuses =
+    new Set([
+      502,
+      503,
+      504
+    ]);
+
+
+  const maximumInlineRateLimitWait =
+    30000;
+
+
+  let transientAttempt =
+    0;
 
 
   try{
 
-    /* ===================================================
-       REQUEST + TRANSIENT RETRY LOOP
-    =================================================== */
-
-    for(
-      let attempt = 0;
-      attempt <=
-        retryDelays.length;
-      attempt += 1
+    while(
+      true
     ){
 
       try{
+
+        /* =================================================
+           API REQUEST
+        ================================================= */
 
         const response =
           await apiSend(
@@ -66272,7 +66286,7 @@ async function askTeacherKabezya(
 
 
         /* =================================================
-           VALID RESPONSE
+           RESPONSE VALIDATION
         ================================================= */
 
         const hasUsefulResponse =
@@ -66317,10 +66331,7 @@ async function askTeacherKabezya(
 
 
         /* =================================================
-           STORE REAL ASSISTANT RESPONSE
-
-           This is the ONLY place where an assistant message
-           should be added after a normal request.
+           STORE ACTUAL AI RESPONSE
         ================================================= */
 
         teacherKabezyaWorkspaceState
@@ -66347,7 +66358,7 @@ async function askTeacherKabezya(
 
 
         /* =================================================
-           SHARED STATE
+           SHARED KABEZYA STATE
         ================================================= */
 
         state.kabezya.analysis =
@@ -66362,24 +66373,11 @@ async function askTeacherKabezya(
           true;
 
 
-        /* =================================================
-           CLEAR PROMPT AFTER SUCCESS
-        ================================================= */
-
-        teacherKabezyaWorkspaceState
-          .prompt =
-          "";
-
-
         return normalized;
 
       }catch(
         error
       ){
-
-        lastError =
-          error;
-
 
         const status =
           safeInteger(
@@ -66388,84 +66386,194 @@ async function askTeacherKabezya(
           );
 
 
-        const retryable =
-          retryableStatuses.has(
+        /* =================================================
+           ACCOUNT RATE LIMIT — 429
+        ================================================= */
+
+        if(
+          status ===
+          429
+        ){
+
+          const retryAfterMs =
+            Math.max(
+              0,
+              safeInteger(
+                error?.data
+                  ?.retryAfterMs,
+                0
+              )
+            );
+
+
+          const retryAfterSeconds =
+            Math.max(
+              0,
+              safeInteger(
+                error?.data
+                  ?.retryAfterSeconds,
+                0
+              )
+            );
+
+
+          /*
+            If the backend says the account can try again
+            shortly, keep Kabezya visibly thinking.
+          */
+
+          if(
+            retryAfterMs >
+              0 &&
+            retryAfterMs <=
+              maximumInlineRateLimitWait
+          ){
+
+            console.warn(
+              "Kabezya rate limited; waiting for the available request slot.",
+              {
+                retryAfterMs,
+                retryAfterSeconds
+              }
+            );
+
+
+            renderTeacherKabezyaConversation();
+
+
+            await sleep(
+              retryAfterMs
+            );
+
+
+            /*
+              Retry ONCE after the precise server-provided
+              cooldown.
+
+              Do not increment transientAttempt because this
+              is a different retry category.
+            */
+
+            continue;
+
+          }
+
+
+          /*
+            If the rate-limit wait is long, do not leave
+            Kabezya pretending to think indefinitely.
+
+            Surface the temporary availability condition
+            outside the conversation.
+          */
+
+          const readableWait =
+            retryAfterSeconds >
+              0
+              ? retryAfterSeconds >=
+                  60
+                ? `${
+                    Math.ceil(
+                      retryAfterSeconds /
+                      60
+                    )
+                  } minute${
+                    Math.ceil(
+                      retryAfterSeconds /
+                      60
+                    ) === 1
+                      ? ""
+                      : "s"
+                  }`
+                : `${
+                    retryAfterSeconds
+                  } seconds`
+              : "a short while";
+
+
+          const rateLimitError =
+            new AIFTApiError(
+              `Kabezya has reached the temporary request limit. Please try again in ${readableWait}.`,
+              {
+                status:
+                  429,
+
+                code:
+                  error?.code ||
+                  "TEACHER_AI_RATE_LIMITED",
+
+                data:
+                  error?.data
+              }
+            );
+
+
+          throw rateLimitError;
+
+        }
+
+
+        /* =================================================
+           TEMPORARY PROVIDER / SERVER FAILURE
+        ================================================= */
+
+        if(
+          transientStatuses.has(
             status
+          ) &&
+          transientAttempt <
+            transientRetryDelays.length
+        ){
+
+          const delay =
+            transientRetryDelays[
+              transientAttempt
+            ];
+
+
+          transientAttempt +=
+            1;
+
+
+          console.warn(
+            "Kabezya temporary provider failure; retrying.",
+            {
+              status,
+              attempt:
+                transientAttempt,
+
+              retryInMs:
+                delay
+            }
           );
 
 
-        const hasAnotherAttempt =
-          attempt <
-          retryDelays.length;
+          /*
+            Keep the thinking indicator visible.
+          */
+
+          renderTeacherKabezyaConversation();
+
+
+          await sleep(
+            delay
+          );
+
+
+          continue;
+
+        }
 
 
         /* =================================================
            NON-RETRYABLE FAILURE
         ================================================= */
 
-        if(
-          !retryable ||
-          !hasAnotherAttempt
-        ){
-
-          throw error;
-
-        }
-
-
-        /* =================================================
-           TEMPORARY FAILURE
-
-           Do NOT add an error to conversation.
-
-           Keep:
-           - user question visible
-           - Kabezya thinking indicator visible
-           - composer locked
-        ================================================= */
-
-        const delay =
-          retryDelays[
-            attempt
-          ];
-
-
-        console.warn(
-          "Kabezya temporary request failure; retrying.",
-          {
-            status,
-            attempt:
-              attempt + 1,
-
-            retryInMs:
-              delay
-          }
-        );
-
-
-        /*
-          Re-render ensures the thinking indicator remains
-          on screen during the backoff period.
-        */
-
-        renderTeacherKabezyaConversation();
-
-
-        await sleep(
-          delay
-        );
+        throw error;
 
       }
 
     }
-
-
-    throw (
-      lastError ||
-      new Error(
-        "Kabezya could not complete the request."
-      )
-    );
 
   }catch(
     error
@@ -66486,6 +66594,10 @@ async function askTeacherKabezya(
 
     /* ===================================================
        PRESERVE PROMPT FOR RETRY
+
+       The teacher's sent message stays in conversation,
+       while the composer is restored with the text so it
+       can be edited or retried.
     =================================================== */
 
     teacherKabezyaWorkspaceState
@@ -66500,11 +66612,10 @@ async function askTeacherKabezya(
     /*
       IMPORTANT:
 
-      Do NOT push an assistant error bubble into the
-      conversation.
+      Do not insert a fake assistant error response.
 
-      Errors belong in the notification system, not as
-      fake Kabezya responses.
+      A network/provider/rate-limit error is application
+      state, not something Kabezya actually said.
     */
 
 
@@ -66520,6 +66631,10 @@ async function askTeacherKabezya(
     return false;
 
   }finally{
+
+    /* ===================================================
+       EXIT LOADING STATE
+    =================================================== */
 
     teacherKabezyaWorkspaceState
       .loading =
