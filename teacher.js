@@ -66154,19 +66154,30 @@ function cancelTeacherKabezyaMessageEdit(){
 
 }
 
-
 /* =========================================================
-   SAVE EDITED MESSAGE
+   SAVE EDITED KABEZYA MESSAGE
+   ChatGPT-style conversation branching
 
-   Backend truncates every later message.
+   Editing a teacher message:
 
-   After saving, the edited prompt is resent so Kabezya
-   creates a new branch from that point.
+   1. saves the new teacher message
+   2. backend removes all later messages
+   3. frontend loads that truncated conversation
+   4. Kabezya regenerates from the edited point
+   5. the new assistant response is persisted
+
+   IMPORTANT:
+   We do NOT call askTeacherKabezya() here because the
+   edited teacher message already exists in MongoDB.
+   Calling the normal send function would duplicate it.
 ========================================================= */
 
 async function saveTeacherKabezyaMessageEdit(
   messageId
 ){
+
+  ensureTeacherKabezyaConversationState();
+
 
   const conversationId =
     normalizeId(
@@ -66189,17 +66200,77 @@ async function saveTeacherKabezyaMessageEdit(
 
   const content =
     safeString(
-      input?.value ||
+      input?.value ??
       teacherKabezyaWorkspaceState
         .editingDraft
     )
       .trim();
 
 
+  /* =====================================================
+     VALIDATION
+  ===================================================== */
+
   if(
-    !conversationId ||
-    !id ||
+    !conversationId
+  ){
+
+    notifyAIFTError(
+      "This conversation is no longer available.",
+      {
+        title:
+          "Unable to edit message"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  if(
+    !id
+  ){
+
+    notifyAIFTError(
+      "The message could not be identified.",
+      {
+        title:
+          "Unable to edit message"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  if(
     !content
+  ){
+
+    notifyAIFTWarning(
+      "The edited message cannot be empty.",
+      {
+        title:
+          "Message required"
+      }
+    );
+
+
+    input?.focus();
+
+
+    return false;
+
+  }
+
+
+  if(
+    teacherKabezyaWorkspaceState
+      .loading
   ){
 
     return false;
@@ -66207,7 +66278,32 @@ async function saveTeacherKabezyaMessageEdit(
   }
 
 
+  /* =====================================================
+     ENTER EDIT-SAVE STATE
+  ===================================================== */
+
+  teacherKabezyaWorkspaceState
+    .editingDraft =
+    content;
+
+
+  if(
+    input
+  ){
+
+    input.disabled =
+      true;
+
+  }
+
+
   try{
+
+    /* ===================================================
+       UPDATE MESSAGE IN MONGODB
+
+       Backend also removes all messages after this turn.
+    =================================================== */
 
     const response =
       await apiSend(
@@ -66234,20 +66330,89 @@ async function saveTeacherKabezyaMessageEdit(
 
 
     if(
-      conversation?.messages
+      !conversation?.id
     ){
 
-      teacherKabezyaWorkspaceState
-        .conversation =
-        conversation.messages
-          .map(
-            normalizeTeacherKabezyaStoredMessage
-          )
-          .filter(
-            Boolean
-          );
+      throw new Error(
+        "The updated conversation could not be loaded."
+      );
 
     }
+
+
+    /* ===================================================
+       RESTORE SERVER CONVERSATION
+
+       This now ends exactly at the edited teacher message.
+    =================================================== */
+
+    teacherKabezyaWorkspaceState
+      .conversationId =
+      conversation.id;
+
+
+    teacherKabezyaWorkspaceState
+      .conversation =
+      asArray(
+        conversation.messages
+      )
+        .map(
+          normalizeTeacherKabezyaStoredMessage
+        )
+        .filter(
+          Boolean
+        );
+
+
+    /* ===================================================
+       RESTORE CONVERSATION MODE + CONTEXT
+    =================================================== */
+
+    teacherKabezyaWorkspaceState
+      .mode =
+      normalizeTeacherKabezyaMode(
+        conversation.mode
+      );
+
+
+    teacherKabezyaWorkspaceState
+      .classId =
+      normalizeId(
+        conversation.classId
+      );
+
+
+    teacherKabezyaWorkspaceState
+      .studentId =
+      normalizeId(
+        conversation.studentId
+      );
+
+
+    teacherKabezyaWorkspaceState
+      .assignmentId =
+      normalizeId(
+        conversation.assignmentId
+      );
+
+
+    teacherKabezyaWorkspaceState
+      .submissionId =
+      normalizeId(
+        conversation.submissionId
+      );
+
+
+    teacherKabezyaWorkspaceState
+      .quizId =
+      normalizeId(
+        conversation.quizId
+      );
+
+
+    teacherKabezyaWorkspaceState
+      .response =
+      null;
 
 
     teacherKabezyaWorkspaceState
@@ -66260,24 +66425,32 @@ async function saveTeacherKabezyaMessageEdit(
       "";
 
 
+    /* ===================================================
+       SHOW TRUNCATED CONVERSATION IMMEDIATELY
+    =================================================== */
+
     renderTeacherKabezyaConversation();
 
+    renderTeacherKabezyaResponseActions();
 
-    await loadTeacherKabezyaRecentConversations();
-
-
-    /*
-      Remove the edited user message locally before sending,
-      because askTeacherKabezya() itself adds the new user
-      message.
-
-      The backend already retained the edited message.
-      We will connect branch regeneration to persistent
-      messages in the next request integration step.
-    */
+    renderTeacherKabezyaRecentConversations();
 
 
-    return true;
+    /* ===================================================
+       GENERATE NEW RESPONSE FROM EDITED MESSAGE
+    =================================================== */
+
+    const regenerated =
+      await regenerateTeacherKabezyaAfterEdit({
+        conversationId:
+          conversation.id,
+
+        prompt:
+          content
+      });
+
+
+    return regenerated;
 
   }catch(
     error
@@ -66287,6 +66460,21 @@ async function saveTeacherKabezyaMessageEdit(
       "saveTeacherKabezyaMessageEdit error:",
       error
     );
+
+
+    teacherKabezyaWorkspaceState
+      .editingDraft =
+      content;
+
+
+    if(
+      input
+    ){
+
+      input.disabled =
+        false;
+
+    }
 
 
     notifyAIFTError(
@@ -66302,6 +66490,447 @@ async function saveTeacherKabezyaMessageEdit(
 
 
     return false;
+
+  }
+
+}
+
+
+/* =========================================================
+   REGENERATE KABEZYA AFTER MESSAGE EDIT
+
+   The edited user message ALREADY EXISTS in MongoDB.
+
+   Therefore this function:
+   - does NOT create another user message
+   - sends the edited message only as the current prompt
+   - sends earlier conversation turns as history
+   - saves only the new assistant response
+========================================================= */
+
+async function regenerateTeacherKabezyaAfterEdit({
+  conversationId,
+  prompt
+} = {}){
+
+  ensureTeacherKabezyaConversationState();
+
+
+  const activeConversationId =
+    normalizeId(
+      conversationId ||
+      teacherKabezyaWorkspaceState
+        .conversationId
+    );
+
+
+  const input =
+    safeString(
+      prompt
+    )
+      .trim();
+
+
+  if(
+    !activeConversationId ||
+    !input
+  ){
+
+    return false;
+
+  }
+
+
+  /* =====================================================
+     HISTORY
+
+     The edited teacher message is now the LAST stored turn.
+
+     Remove that final turn from history because it is sent
+     separately as `prompt`.
+  ===================================================== */
+
+  const storedMessages =
+    asArray(
+      teacherKabezyaWorkspaceState
+        .conversation
+    );
+
+
+  const historySource =
+    storedMessages.length
+      ? storedMessages.slice(
+          0,
+          -1
+        )
+      : [];
+
+
+  const history =
+    historySource
+      .filter(
+        message =>
+          (
+            message?.role ===
+              "user" ||
+            message?.role ===
+              "assistant"
+          ) &&
+          !message?.error
+      )
+      .slice(
+        -12
+      )
+      .map(
+        message => {
+
+          const content =
+            message?.role ===
+              "assistant"
+              ? getTeacherKabezyaResponseText(
+                  message?.content
+                )
+              : safeString(
+                  message?.content
+                );
+
+
+          return {
+
+            role:
+              message.role,
+
+            content
+
+          };
+
+        }
+      )
+      .filter(
+        message =>
+          Boolean(
+            message.content
+          )
+      );
+
+
+  /* =====================================================
+     MODE + CONTEXT
+  ===================================================== */
+
+  const mode =
+    teacherKabezyaWorkspaceState
+      .mode;
+
+
+  const activeContext = {
+
+    mode,
+
+    classId:
+      normalizeId(
+        teacherKabezyaWorkspaceState
+          .classId
+      ),
+
+    studentId:
+      normalizeId(
+        teacherKabezyaWorkspaceState
+          .studentId
+      ),
+
+    assignmentId:
+      normalizeId(
+        teacherKabezyaWorkspaceState
+          .assignmentId
+      ),
+
+    submissionId:
+      normalizeId(
+        teacherKabezyaWorkspaceState
+          .submissionId
+      ),
+
+    quizId:
+      normalizeId(
+        teacherKabezyaWorkspaceState
+          .quizId
+      )
+
+  };
+
+
+  const context =
+    buildTeacherKabezyaContext();
+
+
+  const requestBody = {
+
+    prompt:
+      input,
+
+    ...activeContext,
+
+    context,
+
+    history
+
+  };
+
+
+  /* =====================================================
+     THINKING STATE
+  ===================================================== */
+
+  teacherKabezyaWorkspaceState
+    .loading =
+    true;
+
+
+  teacherKabezyaWorkspaceState
+    .response =
+    null;
+
+
+  if(
+    !state.kabezya ||
+    typeof state.kabezya !==
+      "object"
+  ){
+
+    state.kabezya =
+      {};
+
+  }
+
+
+  state.kabezya.loading =
+    true;
+
+
+  state.kabezya.error =
+    null;
+
+
+  renderTeacherKabezyaConversation();
+
+  renderTeacherKabezyaComposer();
+
+  renderTeacherKabezyaResponseActions();
+
+
+  try{
+
+    /* ===================================================
+       AI REQUEST
+    =================================================== */
+
+    const response =
+      await apiSend(
+        getTeacherKabezyaEndpoint(),
+        "POST",
+        requestBody
+      );
+
+
+    const normalized =
+      normalizeTeacherKabezyaResponse(
+        response
+      );
+
+
+    /* ===================================================
+       VALID RESPONSE
+    =================================================== */
+
+    const hasUsefulResponse =
+      Boolean(
+
+        getTeacherKabezyaResponseText(
+          normalized
+        ) ||
+
+        normalized?.feedback ||
+
+        normalized?.integrity ||
+
+        normalized?.inspection ||
+
+        normalized?.questions
+          ?.length ||
+
+        normalized?.assignment ||
+
+        normalized?.lessonPlan
+
+      );
+
+
+    if(
+      !hasUsefulResponse
+    ){
+
+      throw new AIFTApiError(
+        "Kabezya returned an empty response.",
+        {
+          status:
+            502,
+
+          code:
+            "KABEZYA_EMPTY_RESPONSE"
+        }
+      );
+
+    }
+
+
+    /* ===================================================
+       SAVE ONLY ASSISTANT RESPONSE
+
+       The edited user turn was already saved by PATCH.
+    =================================================== */
+
+    const responseText =
+      getTeacherKabezyaResponseText(
+        normalized
+      );
+
+
+    const savedResponse =
+      await apiSend(
+        `/api/kabezya/teacher/conversations/${
+          encodeURIComponent(
+            activeConversationId
+          )
+        }/messages`,
+        "POST",
+        {
+
+          role:
+            "assistant",
+
+          content:
+            responseText,
+
+          responseSnapshot:
+            normalized,
+
+          ...activeContext
+
+        }
+      );
+
+
+    const storedAssistantMessage =
+      normalizeTeacherKabezyaStoredMessage(
+        savedResponse?.message
+      );
+
+
+    if(
+      !storedAssistantMessage
+    ){
+
+      throw new Error(
+        "The regenerated Kabezya response could not be saved."
+      );
+
+    }
+
+
+    /* ===================================================
+       ADD NEW BRANCH RESPONSE
+    =================================================== */
+
+    teacherKabezyaWorkspaceState
+      .response =
+      normalized;
+
+
+    teacherKabezyaWorkspaceState
+      .conversation
+      .push(
+        storedAssistantMessage
+      );
+
+
+    state.kabezya.analysis =
+      normalized;
+
+
+    state.kabezya.error =
+      null;
+
+
+    state.kabezya.ready =
+      true;
+
+
+    /* ===================================================
+       REFRESH RECENTS
+    =================================================== */
+
+    await loadTeacherKabezyaRecentConversations();
+
+
+    return normalized;
+
+  }catch(
+    error
+  ){
+
+    console.error(
+      "regenerateTeacherKabezyaAfterEdit error:",
+      error
+    );
+
+
+    const message =
+      getErrorMessage(
+        error,
+        "Kabezya could not regenerate the response."
+      );
+
+
+    state.kabezya.error =
+      message;
+
+
+    /*
+      Keep the successfully edited teacher message.
+
+      Do NOT create a fake assistant response.
+    */
+
+    notifyAIFTError(
+      message,
+      {
+        title:
+          "Unable to regenerate response"
+      }
+    );
+
+
+    return false;
+
+  }finally{
+
+    teacherKabezyaWorkspaceState
+      .loading =
+      false;
+
+
+    state.kabezya.loading =
+      false;
+
+
+    renderTeacherKabezyaConversation();
+
+    renderTeacherKabezyaComposer();
+
+    renderTeacherKabezyaResponseActions();
+
+    renderTeacherKabezyaRecentConversations();
 
   }
 
