@@ -21049,16 +21049,6 @@ function renderTeacherGradingHeader(){
 
       <div>
 
-        <span
-          class="teacher-workspace-eyebrow"
-        >
-          Teacher Studio
-        </span>
-
-        <h1>
-          Grading Center
-        </h1>
-
         <p>
           Review student work, provide feedback and manage grades across your assigned classes.
         </p>
