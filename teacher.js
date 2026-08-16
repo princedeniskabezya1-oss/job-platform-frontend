@@ -49151,17 +49151,6 @@ function renderTeacherResourcesHeader(){
 
       <div>
 
-        <span
-          class="teacher-workspace-eyebrow"
-        >
-          Teacher Studio
-        </span>
-
-
-        <h1>
-          Resources
-        </h1>
-
 
         <p>
           Manage teaching files and links attached to lessons in your assigned classes.
@@ -59505,9 +59494,6 @@ function getTeacherKabezyaModeConfig(
   const configs = {
 
     [TEACHER_KABEZYA_MODES.ASSISTANT]: {
-
-      title:
-        "Teacher Assistant",
 
       description:
         "Ask Kabezya about your teaching workflow, classes, students and learning activities.",
@@ -71612,17 +71598,6 @@ function renderTeacherSettingsHeader(){
     >
 
       <div>
-
-        <span
-          class="teacher-workspace-eyebrow"
-        >
-          Teacher Studio
-        </span>
-
-
-        <h1>
-          Settings
-        </h1>
 
 
         <p>
