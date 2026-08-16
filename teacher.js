@@ -68115,14 +68115,16 @@ function renderTeacherKabezyaComposer(){
    5. Send request to Kabezya
    6. Persist genuine Kabezya response
    7. Refresh Recent Conversations
-   8. Never store API errors as fake assistant messages
+   8. Show account/service notices inside the conversation
+   9. Never save system notices as AI conversation history
 
    RATE LIMIT
    ---------------------------------------------------------
    - respects backend retryAfterMs
-   - briefly waits when the server says a slot will reopen
-   - does not hammer 429 endpoints
+   - briefly waits when a request slot will reopen soon
+   - does not repeatedly hammer a 429 endpoint
    - retries temporary 502/503/504 failures
+   - displays a professional in-chat limit notice
 ========================================================= */
 
 async function askTeacherKabezya(
@@ -68280,11 +68282,10 @@ async function askTeacherKabezya(
      HISTORY
 
      IMPORTANT:
-     Build history BEFORE storing the current prompt.
 
-     The current prompt is supplied separately as `prompt`,
-     so including it in history would duplicate the same
-     teacher turn for the AI provider.
+     - Current prompt is sent separately.
+     - System notices are NEVER sent back to the AI.
+     - Failed/error messages are never sent either.
   ===================================================== */
 
   const history =
@@ -68301,7 +68302,10 @@ async function askTeacherKabezya(
             message?.role ===
               "assistant"
           ) &&
-          !message?.error
+
+          !message?.error &&
+
+          !message?.systemNotice
       )
       .slice(
         -12
@@ -68415,14 +68419,6 @@ async function askTeacherKabezya(
       !conversationId
     ){
 
-      /*
-        Create the conversation shell WITHOUT an initial
-        message.
-
-        The user turn is stored through the dedicated
-        /messages endpoint below so there is only one copy.
-      */
-
       const createResponse =
         await apiSend(
           "/api/kabezya/teacher/conversations",
@@ -68486,10 +68482,7 @@ async function askTeacherKabezya(
 
 
     /* ===================================================
-       SAVE USER MESSAGE FIRST
-
-       The persisted MongoDB message ID is important because
-       Copy/Edit controls operate on real message IDs.
+       SAVE USER MESSAGE
     =================================================== */
 
     const savedUserResponse =
@@ -68535,22 +68528,12 @@ async function askTeacherKabezya(
     }
 
 
-    /* ===================================================
-       ADD PERSISTED USER MESSAGE TO UI
-
-       Do not create a second temporary copy.
-    =================================================== */
-
     teacherKabezyaWorkspaceState
       .conversation
       .push(
         savedUserMessage
       );
 
-
-    /* ===================================================
-       KEEP LOCAL MEMORY BOUNDED
-    =================================================== */
 
     if(
       teacherKabezyaWorkspaceState
@@ -68569,13 +68552,6 @@ async function askTeacherKabezya(
 
     }
 
-
-    /*
-      User message is now safe in MongoDB.
-
-      Refresh the Recent list immediately so a newly-created
-      conversation appears even while Kabezya is thinking.
-    */
 
     await loadTeacherKabezyaRecentConversations();
 
@@ -68674,13 +68650,6 @@ async function askTeacherKabezya(
       );
 
 
-  /*
-    502 / 503 / 504 normally represent temporary provider
-    or backend availability conditions.
-
-    Keep retries deliberately small.
-  */
-
   const transientStatuses =
     new Set([
       502,
@@ -68695,15 +68664,6 @@ async function askTeacherKabezya(
   ];
 
 
-  /*
-    If our own AIFT limiter says a request slot will become
-    available within 30 seconds, waiting inline creates the
-    natural "Kabezya is thinking" experience.
-
-    Longer waits should be surfaced instead of showing an
-    indefinite spinner.
-  */
-
   const maximumInlineRateLimitWait =
     30000;
 
@@ -68716,6 +68676,172 @@ async function askTeacherKabezya(
     false;
 
 
+  /* =====================================================
+     RATE-LIMIT NOTICE HELPER
+
+     This notice exists only in the UI.
+
+     It is intentionally NOT written to the persistent AI
+     message history and is excluded from future AI context.
+  ===================================================== */
+
+  const addRateLimitNotice =
+    ({
+      retryAfterSeconds = 0,
+      providerLimited = false
+    } = {}) => {
+
+      const existingMessages =
+        asArray(
+          teacherKabezyaWorkspaceState
+            .conversation
+        );
+
+
+      /*
+        Do not stack duplicate notices when a teacher presses
+        Send repeatedly while the same limit is active.
+      */
+
+      const latestMessage =
+        existingMessages[
+          existingMessages.length -
+          1
+        ];
+
+
+      if(
+        latestMessage
+          ?.systemNotice ===
+        "usage-limit"
+      ){
+
+        return false;
+
+      }
+
+
+      const seconds =
+        Math.max(
+          0,
+          safeInteger(
+            retryAfterSeconds,
+            0
+          )
+        );
+
+
+      let waitText =
+        "";
+
+
+      if(
+        seconds >
+        0
+      ){
+
+        if(
+          seconds >=
+          60
+        ){
+
+          const minutes =
+            Math.max(
+              1,
+              Math.ceil(
+                seconds /
+                60
+              )
+            );
+
+
+          waitText =
+            ` You can try again in approximately ${minutes} minute${
+              minutes ===
+                1
+                ? ""
+                : "s"
+            }.`;
+
+        }else{
+
+          waitText =
+            ` You can try again in approximately ${seconds} seconds.`;
+
+        }
+
+      }
+
+
+      const limitExplanation =
+        providerLimited
+          ? "Kabezya's AI service is currently handling more requests than it can accept."
+          : "You have reached the temporary Kabezya usage limit for this period.";
+
+
+      const content =
+        [
+          "Kabezya usage limit reached",
+          "",
+          `${limitExplanation}${waitText}`,
+          "",
+          "Your conversation has been saved. You can continue from the same chat when Kabezya becomes available again.",
+          "",
+          "What you can do:",
+          "• Wait for the usage window to reset, then send your message again.",
+          "• You can edit or copy your previous messages while you wait.",
+          "• Starting another conversation will not bypass the usage limit.",
+          "",
+          "Higher-capacity Kabezya plans are not available yet. When upgraded AI access becomes available, this notice can offer an option to upgrade for higher limits and priority access."
+        ]
+          .join(
+            "\n"
+          );
+
+
+      teacherKabezyaWorkspaceState
+        .conversation
+        .push({
+
+          id:
+            `kabezya-limit-${
+              Date.now()
+            }`,
+
+          role:
+            "assistant",
+
+          content,
+
+          createdAt:
+            new Date(),
+
+          mode,
+
+          systemNotice:
+            "usage-limit",
+
+          error:
+            false,
+
+          temporary:
+            true
+
+        });
+
+
+      renderTeacherKabezyaConversation();
+
+
+      return true;
+
+    };
+
+
+  /* =====================================================
+     AI REQUEST LOOP
+  ===================================================== */
+
   try{
 
     while(
@@ -68723,10 +68849,6 @@ async function askTeacherKabezya(
     ){
 
       try{
-
-        /* =================================================
-           SEND REAL KABEZYA REQUEST
-        ================================================= */
 
         const response =
           await apiSend(
@@ -68789,13 +68911,6 @@ async function askTeacherKabezya(
 
         /* =================================================
            SAVE REAL ASSISTANT RESPONSE
-
-           Store both:
-           - readable content
-           - full structured response snapshot
-
-           This allows Work Inspector, quizzes, assignments,
-           lesson plans, etc. to reopen later.
         ================================================= */
 
         const responseText =
@@ -68845,13 +68960,6 @@ async function askTeacherKabezya(
           persistenceError
         ){
 
-          /*
-            The teacher already received a valid AI answer.
-
-            Do not throw away a useful answer simply because
-            history persistence failed after generation.
-          */
-
           console.error(
             "Kabezya assistant response history save failed:",
             persistenceError
@@ -68870,13 +68978,7 @@ async function askTeacherKabezya(
 
 
         /* =================================================
-           DISPLAY RESPONSE
-
-           Prefer the persisted version because it contains
-           the MongoDB message ID.
-
-           Fall back to the live AI result if persistence
-           failed.
+           DISPLAY REAL AI RESPONSE
         ================================================= */
 
         const assistantMessage =
@@ -68912,10 +69014,6 @@ async function askTeacherKabezya(
           );
 
 
-        /* =================================================
-           SHARED STATE
-        ================================================= */
-
         state.kabezya.analysis =
           normalized;
 
@@ -68927,12 +69025,6 @@ async function askTeacherKabezya(
         state.kabezya.ready =
           true;
 
-
-        /* =================================================
-           UPDATE RECENT HISTORY
-
-           This moves the active conversation to the top.
-        ================================================= */
 
         await loadTeacherKabezyaRecentConversations();
 
@@ -68988,16 +69080,20 @@ async function askTeacherKabezya(
             );
 
 
-          /*
-            Our own AIFT rate limiter now returns an exact
-            retry delay.
+          const isAIFTRateLimit =
+            rateLimitCode ===
+            "TEACHER_AI_RATE_LIMITED";
 
-            Retry at most ONCE after that exact delay.
-          */
+
+          /* =================================================
+             SHORT AIFT RATE LIMIT
+
+             If the account is going to become available very
+             shortly, keep thinking and retry once.
+          ================================================= */
 
           if(
-            rateLimitCode ===
-              "TEACHER_AI_RATE_LIMITED" &&
+            isAIFTRateLimit &&
             retryAfterMs >
               0 &&
             retryAfterMs <=
@@ -69031,10 +69127,23 @@ async function askTeacherKabezya(
           }
 
 
-          /*
-            Long account limits or provider-side quota limits
-            should not pretend to be active generation.
-          */
+          /* =================================================
+             FINAL RATE LIMIT
+
+             Stop pretending the AI is generating.
+
+             Add a useful message directly into the chat.
+          ================================================= */
+
+          addRateLimitNotice({
+
+            retryAfterSeconds,
+
+            providerLimited:
+              !isAIFTRateLimit
+
+          });
+
 
           const readableWait =
             retryAfterSeconds >
@@ -69075,7 +69184,10 @@ async function askTeacherKabezya(
                 "KABEZYA_RATE_LIMITED",
 
               data:
-                error?.data
+                error?.data,
+
+              chatNoticeAdded:
+                true
             }
           );
 
@@ -69118,11 +69230,6 @@ async function askTeacherKabezya(
           );
 
 
-          /*
-            Nothing is added to the conversation while we
-            retry. The thinking animation simply remains.
-          */
-
           renderTeacherKabezyaConversation();
 
 
@@ -69159,13 +69266,9 @@ async function askTeacherKabezya(
       );
 
 
-    /*
-      Restore the original prompt in the composer so the
-      teacher can retry or edit it.
-
-      The sent user message remains in conversation history
-      because it was genuinely sent and persisted.
-    */
+    /* ===================================================
+       RESTORE PROMPT
+    =================================================== */
 
     teacherKabezyaWorkspaceState
       .prompt =
@@ -69176,25 +69279,34 @@ async function askTeacherKabezya(
       message;
 
 
+    const status =
+      safeInteger(
+        error?.status,
+        0
+      );
+
+
     /*
-      CRITICAL:
+      A 429 already has a detailed in-chat explanation.
 
-      Do NOT push a fake assistant message such as:
-
-      "I could not complete that request..."
-
-      A provider/network/rate-limit error is application
-      state, not something Kabezya actually said.
+      Do not show a second large error popup for the same
+      condition.
     */
 
+    if(
+      status !==
+      429
+    ){
 
-    notifyAIFTError(
-      message,
-      {
-        title:
-          "Kabezya is temporarily unavailable"
-      }
-    );
+      notifyAIFTError(
+        message,
+        {
+          title:
+            "Kabezya is temporarily unavailable"
+        }
+      );
+
+    }
 
 
     return false;
@@ -69225,7 +69337,6 @@ async function askTeacherKabezya(
   }
 
 }
-
 
 
 /* =========================================================
