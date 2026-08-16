@@ -61923,21 +61923,6 @@ function renderTeacherKabezyaContextBar(){
 
         <div>
 
-          <span
-            class="teacher-kabezya-context-label"
-          >
-            Working context
-          </span>
-
-          <strong>
-            Choose what Kabezya should work with
-          </strong>
-
-          <p>
-            Only classes, students and submissions available
-            to this Teacher Studio account are shown.
-          </p>
-
         </div>
 
 
