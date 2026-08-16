@@ -70891,22 +70891,36 @@ async function initializeTeacherKabezyaWorkspace(){
 ========================================================= */
 
 
+
+
 /* =========================================================
-   SETTINGS STORAGE
+   TEACHER SETTINGS
+   Production Settings Control Center
 
-   Only non-sensitive UI preferences are stored here.
+   CURRENT PERSISTENCE
+   ---------------------------------------------------------
+   Safe interface preferences remain device-local until
+   the account-preferences backend contract is connected.
 
-   DO NOT store:
+   Sensitive or academic data is NEVER stored here.
+
+   DO NOT STORE:
    - access tokens
+   - passwords
    - grades
    - student data
-   - attendance
+   - attendance records
    - messages
    - academic content
 ========================================================= */
 
+
+/* =========================================================
+   SETTINGS STORAGE
+========================================================= */
+
 const TEACHER_SETTINGS_STORAGE_KEY =
-  "aift.teacherStudio.preferences.v1";
+  "aift.teacherStudio.preferences.v2";
 
 
 /* =========================================================
@@ -70928,10 +70942,157 @@ const TEACHER_SETTINGS_DEFAULTS =
     attendanceReminders:
       true,
 
+    messageNotifications:
+      true,
+
+    scheduleReminders:
+      true,
+
     compactMode:
-      false
+      false,
+
+    reducedMotion:
+      false,
+
+    largerText:
+      false,
+
+    kabezyaClassContext:
+      true,
+
+    kabezyaConversationHistory:
+      true
 
   });
+
+
+/* =========================================================
+   SETTINGS NAVIGATION
+========================================================= */
+
+const TEACHER_SETTINGS_PAGES =
+  Object.freeze([
+
+    {
+      id:
+        "account",
+
+      title:
+        "Account",
+
+      description:
+        "Profile and teacher identity",
+
+      icon:
+        "fa-regular fa-user"
+    },
+
+
+    {
+      id:
+        "teaching",
+
+      title:
+        "Teaching",
+
+      description:
+        "Classroom preferences",
+
+      icon:
+        "fa-solid fa-chalkboard-user"
+    },
+
+
+    {
+      id:
+        "notifications",
+
+      title:
+        "Notifications",
+
+      description:
+        "Alerts and reminders",
+
+      icon:
+        "fa-regular fa-bell"
+    },
+
+
+    {
+      id:
+        "ai",
+
+      title:
+        "Kabezya AI",
+
+      description:
+        "AI assistance preferences",
+
+      icon:
+        "fa-solid fa-wand-magic-sparkles"
+    },
+
+
+    {
+      id:
+        "accessibility",
+
+      title:
+        "Accessibility",
+
+      description:
+        "Display and motion",
+
+      icon:
+        "fa-solid fa-universal-access"
+    },
+
+
+    {
+      id:
+        "privacy",
+
+      title:
+        "Privacy",
+
+      description:
+        "Teacher visibility controls",
+
+      icon:
+        "fa-solid fa-shield-halved"
+    },
+
+
+    {
+      id:
+        "security",
+
+      title:
+        "Security",
+
+      description:
+        "Password and sessions",
+
+      icon:
+        "fa-solid fa-lock"
+    },
+
+
+    {
+      id:
+        "data",
+
+      title:
+        "Data & account",
+
+      description:
+        "Data and account actions",
+
+      icon:
+        "fa-solid fa-database"
+    }
+
+  ]);
 
 
 /* =========================================================
@@ -70941,6 +71102,9 @@ const TEACHER_SETTINGS_DEFAULTS =
 const teacherSettingsWorkspaceState = {
 
   ...TEACHER_SETTINGS_DEFAULTS,
+
+  activePage:
+    "account",
 
   saving:
     false,
@@ -70964,7 +71128,7 @@ function getTeacherPreferenceBoolean(
   fallback
 ){
 
-  if (
+  if(
     source &&
     typeof source ===
       "object" &&
@@ -70984,10 +71148,6 @@ function getTeacherPreferenceBoolean(
 
 /* =========================================================
    READ DEVICE SETTINGS
-
-   localStorage failures are non-fatal.
-
-   Browsers can block storage in private/restricted contexts.
 ========================================================= */
 
 function readTeacherDevicePreferences(){
@@ -71001,7 +71161,7 @@ function readTeacherDevicePreferences(){
         );
 
 
-    if (
+    if(
       !raw
     ){
 
@@ -71016,7 +71176,7 @@ function readTeacherDevicePreferences(){
       );
 
 
-    if (
+    if(
       !parsed ||
       typeof parsed !==
         "object" ||
@@ -71089,23 +71249,11 @@ function writeTeacherDevicePreferences(
 
 /* =========================================================
    HYDRATE SETTINGS
-
-   Priority:
-   ---------------------------------------------------------
-   defaults
-       ↓
-   server-loaded user.preferences, when already present
-       ↓
-   device-local Teacher Studio preferences
-
-   We read server preferences if they already exist in
-   state.me, but Part 16 does not invent an API for changing
-   them.
 ========================================================= */
 
 function hydrateTeacherSettingsFromUser(){
 
-  if (
+  if(
     teacherSettingsWorkspaceState
       .hydrated
   ){
@@ -71120,6 +71268,7 @@ function hydrateTeacherSettingsFromUser(){
     state.loggedUser ||
     {};
 
+
   const serverPreferences =
     user?.preferences &&
     typeof user.preferences ===
@@ -71127,98 +71276,38 @@ function hydrateTeacherSettingsFromUser(){
       ? user.preferences
       : {};
 
+
   const devicePreferences =
     readTeacherDevicePreferences() ||
     {};
 
 
-  teacherSettingsWorkspaceState
-    .notifications =
-    getTeacherPreferenceBoolean(
+  Object.keys(
+    TEACHER_SETTINGS_DEFAULTS
+  )
+    .forEach(
+      key => {
 
-      devicePreferences,
+        teacherSettingsWorkspaceState[
+          key
+        ] =
+          getTeacherPreferenceBoolean(
 
-      "notifications",
+            devicePreferences,
 
-      getTeacherPreferenceBoolean(
-        serverPreferences,
-        "notifications",
-        TEACHER_SETTINGS_DEFAULTS
-          .notifications
-      )
+            key,
 
-    );
+            getTeacherPreferenceBoolean(
+              serverPreferences,
+              key,
+              TEACHER_SETTINGS_DEFAULTS[
+                key
+              ]
+            )
 
+          );
 
-  teacherSettingsWorkspaceState
-    .emailNotifications =
-    getTeacherPreferenceBoolean(
-
-      devicePreferences,
-
-      "emailNotifications",
-
-      getTeacherPreferenceBoolean(
-        serverPreferences,
-        "emailNotifications",
-        TEACHER_SETTINGS_DEFAULTS
-          .emailNotifications
-      )
-
-    );
-
-
-  teacherSettingsWorkspaceState
-    .gradingReminders =
-    getTeacherPreferenceBoolean(
-
-      devicePreferences,
-
-      "gradingReminders",
-
-      getTeacherPreferenceBoolean(
-        serverPreferences,
-        "gradingReminders",
-        TEACHER_SETTINGS_DEFAULTS
-          .gradingReminders
-      )
-
-    );
-
-
-  teacherSettingsWorkspaceState
-    .attendanceReminders =
-    getTeacherPreferenceBoolean(
-
-      devicePreferences,
-
-      "attendanceReminders",
-
-      getTeacherPreferenceBoolean(
-        serverPreferences,
-        "attendanceReminders",
-        TEACHER_SETTINGS_DEFAULTS
-          .attendanceReminders
-      )
-
-    );
-
-
-  teacherSettingsWorkspaceState
-    .compactMode =
-    getTeacherPreferenceBoolean(
-
-      devicePreferences,
-
-      "compactMode",
-
-      getTeacherPreferenceBoolean(
-        serverPreferences,
-        "compactMode",
-        TEACHER_SETTINGS_DEFAULTS
-          .compactMode
-      )
-
+      }
     );
 
 
@@ -71235,39 +71324,27 @@ function hydrateTeacherSettingsFromUser(){
 
 function getTeacherSettingsSnapshot(){
 
-  return {
+  const snapshot = {};
 
-    notifications:
-      Boolean(
-        teacherSettingsWorkspaceState
-          .notifications
-      ),
 
-    emailNotifications:
-      Boolean(
-        teacherSettingsWorkspaceState
-          .emailNotifications
-      ),
+  Object.keys(
+    TEACHER_SETTINGS_DEFAULTS
+  )
+    .forEach(
+      key => {
 
-    gradingReminders:
-      Boolean(
-        teacherSettingsWorkspaceState
-          .gradingReminders
-      ),
+        snapshot[key] =
+          Boolean(
+            teacherSettingsWorkspaceState[
+              key
+            ]
+          );
 
-    attendanceReminders:
-      Boolean(
-        teacherSettingsWorkspaceState
-          .attendanceReminders
-      ),
+      }
+    );
 
-    compactMode:
-      Boolean(
-        teacherSettingsWorkspaceState
-          .compactMode
-      )
 
-  };
+  return snapshot;
 
 }
 
@@ -71284,7 +71361,7 @@ function renderTeacherSettingsHeader(){
     );
 
 
-  if (
+  if(
     !container
   ){
 
@@ -71306,13 +71383,15 @@ function renderTeacherSettingsHeader(){
           Teacher Studio
         </span>
 
+
         <h1>
           Settings
         </h1>
 
+
         <p>
-          Manage your Teacher Studio interface,
-          notifications and workspace preferences.
+          Manage your teacher account, notifications,
+          classroom preferences, Kabezya AI and Studio experience.
         </p>
 
       </div>
@@ -71324,35 +71403,177 @@ function renderTeacherSettingsHeader(){
 
 
 /* =========================================================
-   SETTINGS PROFILE
+   SETTINGS NAV BUTTON
 ========================================================= */
 
-function renderTeacherSettingsProfile(){
+function renderTeacherSettingsNavButton(
+  item
+){
 
-  const container =
-    $(
-      "teacherSettingsProfile"
-    );
+  const active =
+    teacherSettingsWorkspaceState
+      .activePage ===
+    item.id;
 
 
-  if (
-    !container
-  ){
+  return `
+    <button
+      type="button"
+      class="
+        teacher-settings-nav-item
+        ${
+          active
+            ? "is-active"
+            : ""
+        }
+      "
+      data-teacher-action="settings-page"
+      data-settings-page="${escapeAttribute(
+        item.id
+      )}"
+    >
 
-    return;
+      <span
+        class="teacher-settings-nav-icon"
+      >
+        <i
+          class="${escapeAttribute(
+            item.icon
+          )}"
+          aria-hidden="true"
+        ></i>
+      </span>
 
-  }
 
+      <span
+        class="teacher-settings-nav-copy"
+      >
+
+        <strong>
+          ${escapeHtml(
+            item.title
+          )}
+        </strong>
+
+
+        <small>
+          ${escapeHtml(
+            item.description
+          )}
+        </small>
+
+      </span>
+
+    </button>
+  `;
+
+}
+
+
+/* =========================================================
+   SETTINGS TOGGLE ROW
+========================================================= */
+
+function createTeacherSettingRow({
+  id,
+  title,
+  description,
+  checked,
+  note = ""
+}){
+
+  return `
+    <label
+      class="teacher-setting-row"
+    >
+
+      <span
+        class="teacher-setting-copy"
+      >
+
+        <strong>
+          ${escapeHtml(
+            title
+          )}
+        </strong>
+
+
+        <small>
+          ${escapeHtml(
+            description
+          )}
+        </small>
+
+
+        ${
+          note
+            ? `
+                <small
+                  class="teacher-setting-note"
+                >
+                  ${escapeHtml(
+                    note
+                  )}
+                </small>
+              `
+            : ""
+        }
+
+      </span>
+
+
+      <span
+        class="teacher-setting-switch"
+      >
+
+        <input
+          id="${escapeAttribute(
+            id
+          )}"
+          type="checkbox"
+          ${
+            checked
+              ? "checked"
+              : ""
+          }
+          ${
+            teacherSettingsWorkspaceState
+              .saving
+              ? "disabled"
+              : ""
+          }
+        />
+
+
+        <span
+          aria-hidden="true"
+        ></span>
+
+      </span>
+
+    </label>
+  `;
+
+}
+
+
+/* =========================================================
+   ACCOUNT PAGE
+========================================================= */
+
+function renderTeacherSettingsAccount(){
 
   const teacher =
     state.me ||
     state.loggedUser ||
     {};
 
+
   const name =
     getTeacherDisplayName(
       teacher
     );
+
 
   const avatar =
     getSafeImageUrl(
@@ -71365,10 +71586,19 @@ function renderTeacherSettingsProfile(){
 
     );
 
+
   const email =
     safeString(
       teacher?.email
     );
+
+
+  const phone =
+    safeString(
+      teacher?.phone ||
+      teacher?.phoneNumber
+    );
+
 
   const subject =
     safeString(
@@ -71380,6 +71610,7 @@ function renderTeacherSettingsProfile(){
 
     );
 
+
   const schoolName =
     safeString(
 
@@ -71390,23 +71621,31 @@ function renderTeacherSettingsProfile(){
     );
 
 
-  container.innerHTML = `
+  return `
     <section
-      class="teacher-settings-card"
+      class="teacher-settings-panel"
     >
 
       <div
-        class="teacher-settings-card-head"
+        class="teacher-settings-panel-head"
       >
 
         <div>
 
-          <h3>
+          <span
+            class="teacher-page-eyebrow"
+          >
+            ACCOUNT
+          </span>
+
+
+          <h2>
             Teacher profile
-          </h3>
+          </h2>
+
 
           <p>
-            Account information connected to your Teacher Studio.
+            Review the identity connected to your Teacher Studio account.
           </p>
 
         </div>
@@ -71415,44 +71654,44 @@ function renderTeacherSettingsProfile(){
 
 
       <div
-        class="teacher-settings-profile"
+        class="teacher-settings-profile-card"
       >
 
         <img
-          src="${escapeAttribute(avatar)}"
+          src="${escapeAttribute(
+            avatar
+          )}"
           alt=""
           loading="lazy"
           referrerpolicy="no-referrer"
         />
 
 
-        <div>
+        <div
+          class="teacher-settings-profile-main"
+        >
 
           <strong>
-            ${escapeHtml(name)}
+            ${escapeHtml(
+              name
+            )}
           </strong>
 
-          ${
-            email
-              ? `
-                  <span>
-                    ${escapeHtml(email)}
-                  </span>
-                `
-              : ""
-          }
 
-
-          <small>
-            ${escapeHtml(subject)}
-          </small>
+          <span>
+            ${escapeHtml(
+              subject
+            )}
+          </span>
 
 
           ${
             schoolName
               ? `
                   <small>
-                    ${escapeHtml(schoolName)}
+                    ${escapeHtml(
+                      schoolName
+                    )}
                   </small>
                 `
               : ""
@@ -71464,19 +71703,107 @@ function renderTeacherSettingsProfile(){
 
 
       <div
-        class="teacher-settings-profile-actions"
+        class="teacher-settings-info-grid"
+      >
+
+        <div
+          class="teacher-settings-info-item"
+        >
+
+          <span>
+            Email address
+          </span>
+
+          <strong>
+            ${
+              email
+                ? escapeHtml(
+                    email
+                  )
+                : "Not available"
+            }
+          </strong>
+
+        </div>
+
+
+        <div
+          class="teacher-settings-info-item"
+        >
+
+          <span>
+            Phone number
+          </span>
+
+          <strong>
+            ${
+              phone
+                ? escapeHtml(
+                    phone
+                  )
+                : "Not added"
+            }
+          </strong>
+
+        </div>
+
+
+        <div
+          class="teacher-settings-info-item"
+        >
+
+          <span>
+            Teaching area
+          </span>
+
+          <strong>
+            ${escapeHtml(
+              subject
+            )}
+          </strong>
+
+        </div>
+
+
+        <div
+          class="teacher-settings-info-item"
+        >
+
+          <span>
+            School
+          </span>
+
+          <strong>
+            ${
+              schoolName
+                ? escapeHtml(
+                    schoolName
+                  )
+                : "Not linked"
+            }
+          </strong>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="teacher-settings-panel-actions"
       >
 
         <a
           href="profile.html"
           class="teacher-secondary-button"
         >
+
           <i
             class="fa-regular fa-user"
             aria-hidden="true"
           ></i>
 
           View profile
+
         </a>
 
       </div>
@@ -71484,133 +71811,143 @@ function renderTeacherSettingsProfile(){
     </section>
   `;
 
-
-  const image =
-    container.querySelector(
-      ".teacher-settings-profile img"
-    );
-
-
-  if (
-    image
-  ){
-
-    image.onerror =
-      () => {
-
-        image.onerror =
-          null;
-
-        image.src =
-          FALLBACK_AVATAR;
-
-      };
-
-  }
-
 }
 
 
 /* =========================================================
-   SETTINGS TOGGLE ROW
+   TEACHING PAGE
 ========================================================= */
 
-function createTeacherSettingRow(
-  {
-    id,
-    title,
-    description,
-    checked,
-    note = ""
-  }
-){
+function renderTeacherSettingsTeaching(){
 
   return `
-    <label
-      class="teacher-setting-row"
+    <section
+      class="teacher-settings-panel"
     >
 
-      <span>
+      <div
+        class="teacher-settings-panel-head"
+      >
 
-        <strong>
-          ${escapeHtml(title)}
-        </strong>
+        <div>
 
-        <small>
-          ${escapeHtml(description)}
-        </small>
-
-        ${
-          note
-            ? `
-                <small
-                  class="teacher-setting-note"
-                >
-                  ${escapeHtml(note)}
-                </small>
-              `
-            : ""
-        }
-
-      </span>
+          <span
+            class="teacher-page-eyebrow"
+          >
+            TEACHING
+          </span>
 
 
-      <input
-        id="${escapeAttribute(id)}"
-        type="checkbox"
-        ${checked ? "checked" : ""}
-        ${
-          teacherSettingsWorkspaceState
-            .saving
-            ? "disabled"
-            : ""
-        }
-      />
+          <h2>
+            Teaching preferences
+          </h2>
 
-    </label>
+
+          <p>
+            Control teaching reminders and how dense your workspace feels.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="teacher-settings-list"
+      >
+
+        ${createTeacherSettingRow({
+
+          id:
+            "teacherSettingGradingReminders",
+
+          title:
+            "Grading reminders",
+
+          description:
+            "Highlight submissions that are waiting for your review.",
+
+          checked:
+            teacherSettingsWorkspaceState
+              .gradingReminders
+
+        })}
+
+
+        ${createTeacherSettingRow({
+
+          id:
+            "teacherSettingAttendanceReminders",
+
+          title:
+            "Attendance reminders",
+
+          description:
+            "Highlight scheduled classes that may still require attendance.",
+
+          checked:
+            teacherSettingsWorkspaceState
+              .attendanceReminders
+
+        })}
+
+
+        ${createTeacherSettingRow({
+
+          id:
+            "teacherSettingCompactMode",
+
+          title:
+            "Compact workspace",
+
+          description:
+            "Reduce spacing in supported Teacher Studio lists and cards.",
+
+          checked:
+            teacherSettingsWorkspaceState
+              .compactMode
+
+        })}
+
+      </div>
+
+    </section>
   `;
 
 }
 
 
 /* =========================================================
-   SETTINGS PREFERENCES
+   NOTIFICATIONS PAGE
 ========================================================= */
 
-function renderTeacherSettingsPreferences(){
+function renderTeacherSettingsNotifications(){
 
-  const container =
-    $(
-      "teacherSettingsPreferences"
-    );
-
-
-  if (
-    !container
-  ){
-
-    return;
-
-  }
-
-
-  container.innerHTML = `
+  return `
     <section
-      class="teacher-settings-card"
+      class="teacher-settings-panel"
     >
 
       <div
-        class="teacher-settings-card-head"
+        class="teacher-settings-panel-head"
       >
 
         <div>
 
-          <h3>
-            Preferences
-          </h3>
+          <span
+            class="teacher-page-eyebrow"
+          >
+            NOTIFICATIONS
+          </span>
+
+
+          <h2>
+            Notifications
+          </h2>
+
 
           <p>
-            Choose how Teacher Studio should behave on this device.
+            Choose which Teacher Studio activity should get your attention.
           </p>
 
         </div>
@@ -71631,7 +71968,7 @@ function renderTeacherSettingsPreferences(){
             "Studio notifications",
 
           description:
-            "Show Teacher Studio notification indicators and alerts.",
+            "Show notification indicators and important Teacher Studio alerts.",
 
           checked:
             teacherSettingsWorkspaceState
@@ -71646,7 +71983,7 @@ function renderTeacherSettingsPreferences(){
             "teacherSettingEmailNotifications",
 
           title:
-            "Email notification preference",
+            "Email notifications",
 
           description:
             "Remember that you prefer important teaching updates by email.",
@@ -71656,7 +71993,7 @@ function renderTeacherSettingsPreferences(){
               .emailNotifications,
 
           note:
-            "This setting is currently device-local until the verified account-preference backend is connected."
+            "Delivery remains dependent on the verified notification backend."
 
         })}
 
@@ -71664,17 +72001,17 @@ function renderTeacherSettingsPreferences(){
         ${createTeacherSettingRow({
 
           id:
-            "teacherSettingGradingReminders",
+            "teacherSettingMessageNotifications",
 
           title:
-            "Grading reminders",
+            "Message alerts",
 
           description:
-            "Highlight work that is still waiting for teacher review.",
+            "Notify you when students or school staff send new messages.",
 
           checked:
             teacherSettingsWorkspaceState
-              .gradingReminders
+              .messageNotifications
 
         })}
 
@@ -71682,17 +72019,84 @@ function renderTeacherSettingsPreferences(){
         ${createTeacherSettingRow({
 
           id:
-            "teacherSettingAttendanceReminders",
+            "teacherSettingScheduleReminders",
 
           title:
-            "Attendance reminders",
+            "Schedule reminders",
 
           description:
-            "Highlight scheduled classes that may still need attendance.",
+            "Highlight upcoming teaching sessions and schedule activity.",
 
           checked:
             teacherSettingsWorkspaceState
-              .attendanceReminders
+              .scheduleReminders
+
+        })}
+
+      </div>
+
+    </section>
+  `;
+
+}
+
+
+/* =========================================================
+   KABEZYA AI PAGE
+========================================================= */
+
+function renderTeacherSettingsAI(){
+
+  return `
+    <section
+      class="teacher-settings-panel"
+    >
+
+      <div
+        class="teacher-settings-panel-head"
+      >
+
+        <div>
+
+          <span
+            class="teacher-page-eyebrow"
+          >
+            KABEZYA AI
+          </span>
+
+
+          <h2>
+            AI preferences
+          </h2>
+
+
+          <p>
+            Control how Kabezya uses your selected teaching context.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="teacher-settings-list"
+      >
+
+        ${createTeacherSettingRow({
+
+          id:
+            "teacherSettingKabezyaClassContext",
+
+          title:
+            "Use selected class context",
+
+          description:
+            "Allow Kabezya to use the class, student or submission you explicitly select.",
+
+          checked:
+            teacherSettingsWorkspaceState
+              .kabezyaClassContext
 
         })}
 
@@ -71700,17 +72104,17 @@ function renderTeacherSettingsPreferences(){
         ${createTeacherSettingRow({
 
           id:
-            "teacherSettingCompactMode",
+            "teacherSettingKabezyaConversationHistory",
 
           title:
-            "Compact workspace",
+            "Conversation history",
 
           description:
-            "Reduce spacing in compatible Teacher Studio lists and cards.",
+            "Keep recent Kabezya conversations available so you can continue them later.",
 
           checked:
             teacherSettingsWorkspaceState
-              .compactMode
+              .kabezyaConversationHistory
 
         })}
 
@@ -71718,71 +72122,337 @@ function renderTeacherSettingsPreferences(){
 
 
       <div
-        class="teacher-settings-storage-note"
+        class="teacher-settings-info-banner"
       >
 
         <i
-          class="fa-solid fa-circle-info"
+          class="fa-solid fa-shield-halved"
           aria-hidden="true"
         ></i>
 
-        <span>
-          These interface preferences are stored on this device.
-          Academic records and student information are never stored
-          in this preference storage.
-        </span>
+
+        <div>
+
+          <strong>
+            Teacher remains in control
+          </strong>
+
+          <p>
+            Kabezya can assist with teaching work, but final academic
+            decisions remain with the teacher.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+  `;
+
+}
+
+
+/* =========================================================
+   ACCESSIBILITY PAGE
+========================================================= */
+
+function renderTeacherSettingsAccessibility(){
+
+  return `
+    <section
+      class="teacher-settings-panel"
+    >
+
+      <div
+        class="teacher-settings-panel-head"
+      >
+
+        <div>
+
+          <span
+            class="teacher-page-eyebrow"
+          >
+            ACCESSIBILITY
+          </span>
+
+
+          <h2>
+            Accessibility
+          </h2>
+
+
+          <p>
+            Adjust Teacher Studio for a more comfortable working experience.
+          </p>
+
+        </div>
 
       </div>
 
 
       <div
-        class="teacher-settings-actions"
+        class="teacher-settings-list"
+      >
+
+        ${createTeacherSettingRow({
+
+          id:
+            "teacherSettingReducedMotion",
+
+          title:
+            "Reduce motion",
+
+          description:
+            "Reduce supported interface animations and motion effects.",
+
+          checked:
+            teacherSettingsWorkspaceState
+              .reducedMotion
+
+        })}
+
+
+        ${createTeacherSettingRow({
+
+          id:
+            "teacherSettingLargerText",
+
+          title:
+            "Larger interface text",
+
+          description:
+            "Increase text size in supported Teacher Studio workspaces.",
+
+          checked:
+            teacherSettingsWorkspaceState
+              .largerText
+
+        })}
+
+      </div>
+
+    </section>
+  `;
+
+}
+
+
+/* =========================================================
+   PRIVACY PAGE
+========================================================= */
+
+function renderTeacherSettingsPrivacy(){
+
+  return `
+    <section
+      class="teacher-settings-panel"
+    >
+
+      <div
+        class="teacher-settings-panel-head"
+      >
+
+        <div>
+
+          <span
+            class="teacher-page-eyebrow"
+          >
+            PRIVACY
+          </span>
+
+
+          <h2>
+            Privacy
+          </h2>
+
+
+          <p>
+            Review how Teacher Studio handles local preferences and teaching data.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="teacher-settings-information-card"
+      >
+
+        <i
+          class="fa-solid fa-shield-halved"
+          aria-hidden="true"
+        ></i>
+
+
+        <div>
+
+          <strong>
+            Device preferences only
+          </strong>
+
+          <p>
+            This settings storage contains only non-sensitive interface
+            preferences. Student records, grades, messages, attendance,
+            academic submissions and authentication credentials are not
+            written to this browser preference store.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+  `;
+
+}
+
+
+/* =========================================================
+   SECURITY PAGE
+========================================================= */
+
+function renderTeacherSettingsSecurity(){
+
+  return `
+    <section
+      class="teacher-settings-panel"
+    >
+
+      <div
+        class="teacher-settings-panel-head"
+      >
+
+        <div>
+
+          <span
+            class="teacher-page-eyebrow"
+          >
+            SECURITY
+          </span>
+
+
+          <h2>
+            Security
+          </h2>
+
+
+          <p>
+            Manage security-sensitive account actions from verified account tools.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="teacher-settings-information-card"
+      >
+
+        <i
+          class="fa-solid fa-lock"
+          aria-hidden="true"
+        ></i>
+
+
+        <div>
+
+          <strong>
+            Account security
+          </strong>
+
+          <p>
+            Password changes and active-session management should use the
+            authenticated account backend. Teacher Studio does not store
+            password or session credentials in these local settings.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+  `;
+
+}
+
+
+/* =========================================================
+   DATA & ACCOUNT PAGE
+========================================================= */
+
+function renderTeacherSettingsData(){
+
+  return `
+    <section
+      class="teacher-settings-panel"
+    >
+
+      <div
+        class="teacher-settings-panel-head"
+      >
+
+        <div>
+
+          <span
+            class="teacher-page-eyebrow"
+          >
+            DATA & ACCOUNT
+          </span>
+
+
+          <h2>
+            Data & account
+          </h2>
+
+
+          <p>
+            Review local Teacher Studio preference storage and account actions.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="teacher-settings-information-card"
+      >
+
+        <i
+          class="fa-solid fa-database"
+          aria-hidden="true"
+        ></i>
+
+
+        <div>
+
+          <strong>
+            Local preference data
+          </strong>
+
+          <p>
+            Resetting preferences removes this device's Teacher Studio
+            interface choices. It does not delete your account, classes,
+            assignments, submissions or school records.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="teacher-settings-panel-actions"
       >
 
         <button
           type="button"
           class="teacher-secondary-button"
           data-teacher-action="reset-teacher-settings"
-          ${
-            teacherSettingsWorkspaceState
-              .saving
-              ? "disabled"
-              : ""
-          }
         >
-          Reset
-        </button>
-
-
-        <button
-          type="button"
-          class="teacher-primary-button"
-          data-teacher-action="save-teacher-settings"
-          ${
-            teacherSettingsWorkspaceState
-              .saving
-              ? "disabled"
-              : ""
-          }
-        >
-
-          <i
-            class="fa-solid ${
-              teacherSettingsWorkspaceState
-                .saving
-                ? "fa-spinner fa-spin"
-                : "fa-floppy-disk"
-            }"
-            aria-hidden="true"
-          ></i>
-
-          ${
-            teacherSettingsWorkspaceState
-              .saving
-              ? "Saving..."
-              : "Save preferences"
-          }
-
+          Reset local preferences
         </button>
 
       </div>
@@ -71794,10 +72464,263 @@ function renderTeacherSettingsPreferences(){
 
 
 /* =========================================================
-   APPLY COMPACT MODE
+   ACTIVE SETTINGS PAGE
 ========================================================= */
 
-function applyTeacherCompactMode(){
+function renderTeacherSettingsActivePage(){
+
+  switch(
+    teacherSettingsWorkspaceState
+      .activePage
+  ){
+
+    case "teaching":
+      return renderTeacherSettingsTeaching();
+
+
+    case "notifications":
+      return renderTeacherSettingsNotifications();
+
+
+    case "ai":
+      return renderTeacherSettingsAI();
+
+
+    case "accessibility":
+      return renderTeacherSettingsAccessibility();
+
+
+    case "privacy":
+      return renderTeacherSettingsPrivacy();
+
+
+    case "security":
+      return renderTeacherSettingsSecurity();
+
+
+    case "data":
+      return renderTeacherSettingsData();
+
+
+    case "account":
+    default:
+      return renderTeacherSettingsAccount();
+
+  }
+
+}
+
+
+/* =========================================================
+   SETTINGS MAIN WORKSPACE
+========================================================= */
+
+function renderTeacherSettingsProfile(){
+
+  const container =
+    $(
+      "teacherSettingsProfile"
+    );
+
+
+  if(
+    !container
+  ){
+
+    return;
+
+  }
+
+
+  container.innerHTML = `
+    <aside
+      class="teacher-settings-sidebar"
+    >
+
+      <div
+        class="teacher-settings-sidebar-head"
+      >
+
+        <span
+          class="teacher-page-eyebrow"
+        >
+          CONTROL CENTER
+        </span>
+
+
+        <strong>
+          Settings
+        </strong>
+
+
+        <p>
+          Manage your Teacher Studio experience.
+        </p>
+
+      </div>
+
+
+      <nav
+        class="teacher-settings-navigation"
+        aria-label="Teacher settings"
+      >
+
+        ${
+          TEACHER_SETTINGS_PAGES
+            .map(
+              renderTeacherSettingsNavButton
+            )
+            .join(
+              ""
+            )
+        }
+
+      </nav>
+
+    </aside>
+  `;
+
+}
+
+
+/* =========================================================
+   SETTINGS CONTENT
+========================================================= */
+
+function renderTeacherSettingsPreferences(){
+
+  const container =
+    $(
+      "teacherSettingsPreferences"
+    );
+
+
+  if(
+    !container
+  ){
+
+    return;
+
+  }
+
+
+  container.innerHTML = `
+    <div
+      class="teacher-settings-content"
+    >
+
+      ${renderTeacherSettingsActivePage()}
+
+
+      ${
+        [
+          "teaching",
+          "notifications",
+          "ai",
+          "accessibility"
+        ]
+          .includes(
+            teacherSettingsWorkspaceState
+              .activePage
+          )
+          ? `
+              <div
+                class="teacher-settings-save-bar"
+              >
+
+                <span>
+                  Preferences on this page are stored on this device.
+                </span>
+
+
+                <button
+                  type="button"
+                  class="teacher-primary-button"
+                  data-teacher-action="save-teacher-settings"
+                  ${
+                    teacherSettingsWorkspaceState
+                      .saving
+                      ? "disabled"
+                      : ""
+                  }
+                >
+
+                  <i
+                    class="fa-solid ${
+                      teacherSettingsWorkspaceState
+                        .saving
+                        ? "fa-spinner fa-spin"
+                        : "fa-floppy-disk"
+                    }"
+                    aria-hidden="true"
+                  ></i>
+
+
+                  ${
+                    teacherSettingsWorkspaceState
+                      .saving
+                      ? "Saving..."
+                      : "Save changes"
+                  }
+
+                </button>
+
+              </div>
+            `
+          : ""
+      }
+
+    </div>
+  `;
+
+}
+
+
+/* =========================================================
+   CHANGE SETTINGS PAGE
+========================================================= */
+
+function setTeacherSettingsPage(
+  page
+){
+
+  const normalized =
+    safeString(
+      page
+    );
+
+
+  const exists =
+    TEACHER_SETTINGS_PAGES
+      .some(
+        item =>
+          item.id ===
+          normalized
+      );
+
+
+  teacherSettingsWorkspaceState
+    .activePage =
+    exists
+      ? normalized
+      : "account";
+
+
+  renderTeacherSettingsProfile();
+
+  renderTeacherSettingsPreferences();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   APPLY INTERFACE SETTINGS
+========================================================= */
+
+function applyTeacherSettingsInterface(){
 
   document.body
     .classList
@@ -71812,6 +72735,34 @@ function applyTeacherCompactMode(){
 
     );
 
+
+  document.body
+    .classList
+    .toggle(
+
+      "teacher-reduced-motion",
+
+      Boolean(
+        teacherSettingsWorkspaceState
+          .reducedMotion
+      )
+
+    );
+
+
+  document.body
+    .classList
+    .toggle(
+
+      "teacher-larger-text",
+
+      Boolean(
+        teacherSettingsWorkspaceState
+          .largerText
+      )
+
+    );
+
 }
 
 
@@ -71821,59 +72772,90 @@ function applyTeacherCompactMode(){
 
 function readTeacherSettingsForm(){
 
-  return {
+  const current =
+    getTeacherSettingsSnapshot();
+
+
+  const checkboxMap = {
 
     notifications:
-      Boolean(
-        $(
-          "teacherSettingNotifications"
-        )?.checked
-      ),
+      "teacherSettingNotifications",
 
     emailNotifications:
-      Boolean(
-        $(
-          "teacherSettingEmailNotifications"
-        )?.checked
-      ),
+      "teacherSettingEmailNotifications",
 
     gradingReminders:
-      Boolean(
-        $(
-          "teacherSettingGradingReminders"
-        )?.checked
-      ),
+      "teacherSettingGradingReminders",
 
     attendanceReminders:
-      Boolean(
-        $(
-          "teacherSettingAttendanceReminders"
-        )?.checked
-      ),
+      "teacherSettingAttendanceReminders",
+
+    messageNotifications:
+      "teacherSettingMessageNotifications",
+
+    scheduleReminders:
+      "teacherSettingScheduleReminders",
 
     compactMode:
-      Boolean(
-        $(
-          "teacherSettingCompactMode"
-        )?.checked
-      )
+      "teacherSettingCompactMode",
+
+    reducedMotion:
+      "teacherSettingReducedMotion",
+
+    largerText:
+      "teacherSettingLargerText",
+
+    kabezyaClassContext:
+      "teacherSettingKabezyaClassContext",
+
+    kabezyaConversationHistory:
+      "teacherSettingKabezyaConversationHistory"
 
   };
+
+
+  Object.entries(
+    checkboxMap
+  )
+    .forEach(
+      ([
+        key,
+        id
+      ]) => {
+
+        const input =
+          $(
+            id
+          );
+
+
+        if(
+          input
+        ){
+
+          current[key] =
+            Boolean(
+              input.checked
+            );
+
+        }
+
+      }
+    );
+
+
+  return current;
 
 }
 
 
 /* =========================================================
    SAVE SETTINGS
-
-   This intentionally does not make an API call because the
-   old /api/users/me/preferences endpoint has not been
-   established as a verified current backend contract.
 ========================================================= */
 
 async function saveTeacherSettings(){
 
-  if (
+  if(
     teacherSettingsWorkspaceState
       .saving
   ){
@@ -71883,13 +72865,13 @@ async function saveTeacherSettings(){
   }
 
 
+  const preferences =
+    readTeacherSettingsForm();
+
+
   teacherSettingsWorkspaceState
     .saving =
     true;
-
-
-  const preferences =
-    readTeacherSettingsForm();
 
 
   Object.assign(
@@ -71909,7 +72891,7 @@ async function saveTeacherSettings(){
       );
 
 
-    if (
+    if(
       !saved
     ){
 
@@ -71920,12 +72902,7 @@ async function saveTeacherSettings(){
     }
 
 
-    /*
-      Keep already-loaded state.me in sync for the current
-      browser session without claiming the server was changed.
-    */
-
-    if (
+    if(
       state.me
     ){
 
@@ -71940,11 +72917,11 @@ async function saveTeacherSettings(){
     }
 
 
-    applyTeacherCompactMode();
+    applyTeacherSettingsInterface();
 
 
     notifyAIFTSuccess(
-      "Teacher Studio preferences were saved on this device.",
+      "Teacher Studio preferences were saved.",
       {
         title:
           "Settings saved"
@@ -71998,7 +72975,7 @@ function resetTeacherSettings(){
     );
 
 
-  if (
+  if(
     !confirmed
   ){
 
@@ -72032,7 +73009,9 @@ function resetTeacherSettings(){
   }
 
 
-  applyTeacherCompactMode();
+  applyTeacherSettingsInterface();
+
+  renderTeacherSettingsProfile();
 
   renderTeacherSettingsPreferences();
 
@@ -72065,7 +73044,7 @@ function renderTeacherSettingsWorkspace(){
 
   renderTeacherSettingsPreferences();
 
-  applyTeacherCompactMode();
+  applyTeacherSettingsInterface();
 
 }
 
@@ -72087,14 +73066,14 @@ function renderTeacherSettings(){
 
 function initializeTeacherSettingsWorkspace(){
 
-  if (
+  if(
     teacherSettingsWorkspaceState
       .initialized
   ){
 
     renderTeacherSettingsWorkspace();
 
-    return;
+    return true;
 
   }
 
@@ -72106,9 +73085,12 @@ function initializeTeacherSettingsWorkspace(){
 
   hydrateTeacherSettingsFromUser();
 
-  applyTeacherCompactMode();
+  applyTeacherSettingsInterface();
 
   renderTeacherSettingsWorkspace();
+
+
+  return true;
 
 }
 
@@ -80037,18 +81019,41 @@ case "kabezya-use-feedback":
       return clearTeacherMessageSearch();
 
 
-    /* =====================================================
-       SETTINGS
-    ===================================================== */
-
-    case "save-teacher-settings":
-
-      return saveTeacherSettings();
+/* =====================================================
+   SETTINGS
+===================================================== */
 
 
-    case "reset-teacher-settings":
+/* =====================================================
+   SETTINGS NAVIGATION
+===================================================== */
 
-      return resetTeacherSettings();
+case "settings-page":
+
+  return setTeacherSettingsPage(
+    safeString(
+      element.dataset
+        .settingsPage
+    )
+  );
+
+
+/* =====================================================
+   SAVE SETTINGS
+===================================================== */
+
+case "save-teacher-settings":
+
+  return saveTeacherSettings();
+
+
+/* =====================================================
+   RESET SETTINGS
+===================================================== */
+
+case "reset-teacher-settings":
+
+  return resetTeacherSettings();
 
 
     /* =====================================================
@@ -84391,13 +85396,13 @@ const supportedActions =
     "clear-message-search",
 
 
-    /* =====================================================
-       SETTINGS
-    ===================================================== */
+/* =====================================================
+   SETTINGS
+===================================================== */
 
-    "save-teacher-settings",
-
-    "reset-teacher-settings",
+"settings-page",
+"save-teacher-settings",
+"reset-teacher-settings",
 
 
     /* =====================================================
