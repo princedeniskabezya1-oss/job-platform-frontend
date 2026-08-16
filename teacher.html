@@ -31297,22 +31297,19 @@ select:disabled{
 
 }
 
-
 /* =========================================================
    USER MESSAGE
-   Compact adaptive bubble — ChatGPT-style
+   ChatGPT-style adaptive message bubble
+
+   Layout rules:
+   - entire turn owns the available conversation width
+   - wrapper aligns content to the right
+   - bubble width is controlled ONLY by its text
+   - short text stays compact
+   - long text grows to a readable maximum
 ========================================================= */
 
 .teacher-kabezya-turn.is-user{
-
-  display:
-    flex;
-
-  justify-content:
-    flex-end;
-
-  align-items:
-    flex-start;
 
   width:
     100%;
@@ -31320,19 +31317,77 @@ select:disabled{
   min-width:
     0;
 
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  justify-content:
+    flex-end;
+
+  padding:
+    0;
+
+  margin:
+    0;
+
 }
 
 
-.teacher-kabezya-user-bubble{
+.teacher-kabezya-user-message-wrap{
+
+  width:
+    100%;
+
+  min-width:
+    0;
 
   display:
-    inline-flex;
+    flex;
+
+  flex-direction:
+    column;
 
   align-items:
-    center;
+    flex-end;
 
   justify-content:
     flex-start;
+
+  gap:
+    3px;
+
+  margin:
+    0;
+
+  padding:
+    0;
+
+}
+
+
+/* =========================================================
+   ACTUAL USER BUBBLE
+========================================================= */
+
+.teacher-kabezya-user-bubble{
+
+  /*
+    Content-driven sizing.
+
+    Short:
+      "hi" -> tiny bubble
+
+    Medium:
+      "Can you help me?" -> medium bubble
+
+    Long:
+      grows until 68% of the thread, then wraps.
+  */
+
+  display:
+    block;
 
   width:
     fit-content;
@@ -31341,19 +31396,19 @@ select:disabled{
     0;
 
   max-width:
-    100%;
-
-  min-height:
-    0;
+    68%;
 
   height:
     auto;
+
+  min-height:
+    0;
 
   margin:
     0;
 
   padding:
-    8px 12px;
+    8px 13px;
 
   border:
     0;
@@ -31371,22 +31426,32 @@ select:disabled{
     inherit;
 
   font-size:
-    12px;
-
-  line-height:
-    1.4;
+    12.5px;
 
   font-weight:
     400;
 
+  line-height:
+    1.42;
+
   text-align:
     left;
+
+  /*
+    IMPORTANT:
+
+    The JS renderer will preserve intentional user-entered
+    line breaks.
+
+    There must be NO formatting whitespace surrounding
+    the actual text node in the generated HTML.
+  */
 
   white-space:
     pre-wrap;
 
   overflow-wrap:
-    break-word;
+    anywhere;
 
   word-break:
     normal;
@@ -31394,10 +31459,26 @@ select:disabled{
   box-sizing:
     border-box;
 
-  flex:
-    0 1 auto;
+}
+
+
+/* =========================================================
+   USER MESSAGE ACTIONS
+
+   Actions remain outside the gray bubble.
+========================================================= */
+
+.teacher-kabezya-user-message-wrap
+.teacher-kabezya-message-actions{
+
+  align-self:
+    flex-end;
+
+  margin:
+    1px 3px 0 0;
 
 }
+
 
 
 /* =========================================================
@@ -33160,47 +33241,6 @@ textarea:disabled{
 
   text-align:
     center;
-
-}
-
-/* =========================================================
-   USER MESSAGE WRAPPER
-========================================================= */
-
-.teacher-kabezya-user-message-wrap{
-
-  display:
-    inline-flex;
-
-  flex-direction:
-    column;
-
-  align-items:
-    flex-end;
-
-  width:
-    auto;
-
-  min-width:
-    0;
-
-  max-width:
-    min(
-      70%,
-      560px
-    );
-
-  margin:
-    0;
-
-  padding:
-    0;
-
-  gap:
-    4px;
-
-  flex:
-    0 1 auto;
 
 }
 
