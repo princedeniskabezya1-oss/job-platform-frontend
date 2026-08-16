@@ -67468,59 +67468,58 @@ function renderTeacherKabezyaConversation(){
 
                           </div>
                         `
-                      : `
-                          <div
-                            class="teacher-kabezya-user-bubble"
-                          >
-                            ${escapeHtml(
-                              text
-                            )}
-                          </div>
+: `
+    <div class="teacher-kabezya-user-bubble">${escapeHtml(
+      text
+    )}</div>
+
+    <div
+      class="teacher-kabezya-message-actions"
+    >
+
+      <button
+        type="button"
+        data-teacher-action="kabezya-copy-message"
+        data-kabezya-message-id="${escapeAttribute(
+          messageId
+        )}"
+        aria-label="Copy message"
+        title="Copy"
+      >
+
+        <i
+          class="fa-regular fa-copy"
+          aria-hidden="true"
+        ></i>
+
+      </button>
 
 
-                          <div
-                            class="teacher-kabezya-message-actions"
-                          >
+      ${
+        message?.id
+          ? `
+              <button
+                type="button"
+                data-teacher-action="kabezya-edit-message"
+                data-kabezya-message-id="${escapeAttribute(
+                  messageId
+                )}"
+                aria-label="Edit message"
+                title="Edit"
+              >
 
-                            <button
-                              type="button"
-                              data-teacher-action="kabezya-copy-message"
-                              data-kabezya-message-id="${escapeAttribute(
-                                messageId
-                              )}"
-                              aria-label="Copy message"
-                              title="Copy"
-                            >
-                              <i
-                                class="fa-regular fa-copy"
-                                aria-hidden="true"
-                              ></i>
-                            </button>
+                <i
+                  class="fa-regular fa-pen-to-square"
+                  aria-hidden="true"
+                ></i>
 
+              </button>
+            `
+          : ""
+      }
 
-                            ${
-                              message?.id
-                                ? `
-                                    <button
-                                      type="button"
-                                      data-teacher-action="kabezya-edit-message"
-                                      data-kabezya-message-id="${escapeAttribute(
-                                        messageId
-                                      )}"
-                                      aria-label="Edit message"
-                                      title="Edit"
-                                    >
-                                      <i
-                                        class="fa-regular fa-pen-to-square"
-                                        aria-hidden="true"
-                                      ></i>
-                                    </button>
-                                  `
-                                : ""
-                            }
-
-                          </div>
-                        `
+    </div>
+  `
                   }
 
                 </div>
