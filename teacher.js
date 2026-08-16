@@ -60464,18 +60464,156 @@ function buildTeacherKabezyaAnalyticsContext(){
 
 /* =========================================================
    COMPLETE KABEZYA CONTEXT
+   Settings-aware production context policy
+
+   KABEZYA CLASS CONTEXT SETTING
+   ---------------------------------------------------------
+   ON:
+     Kabezya may receive the teacher-selected teaching
+     context.
+
+   OFF:
+     General Assistant mode receives no attached academic
+     context.
+
+   IMPORTANT:
+   Explicit academic tools such as:
+     - Class Analysis
+     - Student Analysis
+     - Submission Review
+     - Feedback
+     - Quiz Generation
+     - Assignment Generation
+     - Lesson Planning
+
+   still receive their explicitly selected target because
+   those tools cannot operate without the teacher-requested
+   academic context.
+
+   This prevents the setting from accidentally breaking
+   dedicated analysis tools while still giving teachers
+   control over automatic context in normal Assistant mode.
 ========================================================= */
 
 function buildTeacherKabezyaContext(){
+
+  const mode =
+    teacherKabezyaWorkspaceState
+      .mode;
+
+
+  const settingsAvailable =
+    typeof teacherSettingsWorkspaceState ===
+      "object" &&
+    teacherSettingsWorkspaceState !==
+      null;
+
+
+  const allowAutomaticContext =
+    settingsAvailable
+      ? teacherSettingsWorkspaceState
+          .kabezyaClassContext !==
+        false
+      : true;
+
+
+  /* =====================================================
+     EXPLICIT TOOL MODES
+
+     These modes represent a direct teacher request to use
+     the selected academic target.
+  ===================================================== */
+
+  const explicitContextModes =
+    new Set([
+
+      TEACHER_KABEZYA_MODES
+        .CLASS_ANALYSIS,
+
+      TEACHER_KABEZYA_MODES
+        .STUDENT_ANALYSIS,
+
+      TEACHER_KABEZYA_MODES
+        .SUBMISSION_REVIEW,
+
+      TEACHER_KABEZYA_MODES
+        .FEEDBACK,
+
+      TEACHER_KABEZYA_MODES
+        .GENERATE_QUIZ,
+
+      TEACHER_KABEZYA_MODES
+        .GENERATE_ASSIGNMENT,
+
+      TEACHER_KABEZYA_MODES
+        .LESSON_PLAN
+
+    ]);
+
+
+  const useSelectedContext =
+    allowAutomaticContext ||
+    explicitContextModes.has(
+      mode
+    );
+
+
+  /* =====================================================
+     CONTEXT DISABLED FOR GENERAL ASSISTANT
+  ===================================================== */
+
+  if(
+    !useSelectedContext
+  ){
+
+    return {
+
+      source:
+        "teacher-studio",
+
+      mode,
+
+      contextPolicy:
+        "manual-context-disabled",
+
+      class:
+        null,
+
+      student:
+        null,
+
+      assignment:
+        null,
+
+      submission:
+        null,
+
+      quiz:
+        null,
+
+      analytics:
+        null
+
+    };
+
+  }
+
+
+  /* =====================================================
+     FULL EXPLICIT CONTEXT
+  ===================================================== */
 
   return {
 
     source:
       "teacher-studio",
 
-    mode:
-      teacherKabezyaWorkspaceState
-        .mode,
+    mode,
+
+    contextPolicy:
+      allowAutomaticContext
+        ? "selected-context-enabled"
+        : "explicit-tool-context",
 
     class:
       buildTeacherKabezyaClassContext(),
@@ -60493,8 +60631,7 @@ function buildTeacherKabezyaContext(){
       buildTeacherKabezyaQuizContext(),
 
     analytics:
-      teacherKabezyaWorkspaceState
-        .mode ===
+      mode ===
         TEACHER_KABEZYA_MODES
           .CLASS_ANALYSIS
           ? buildTeacherKabezyaAnalyticsContext()
@@ -65435,13 +65572,75 @@ function normalizeTeacherKabezyaStoredMessage(
 
 
 /* =========================================================
-   LOAD RECENT CONVERSATIONS
+   LOAD RECENT KABEZYA CONVERSATIONS
+   Settings-aware conversation-history policy
+
+   When conversation history is OFF:
+   - do not request saved conversations
+   - clear the Recent Conversations UI
+   - do not expose previously saved history in the panel
+
+   IMPORTANT:
+   This setting currently controls Teacher Studio history
+   presentation and future request context.
+
+   Existing MongoDB conversations are NOT deleted merely by
+   turning this preference off.
 ========================================================= */
 
 async function loadTeacherKabezyaRecentConversations(){
 
   ensureTeacherKabezyaConversationState();
 
+
+  /* =====================================================
+     HISTORY PREFERENCE
+  ===================================================== */
+
+  const settingsAvailable =
+    typeof teacherSettingsWorkspaceState ===
+      "object" &&
+    teacherSettingsWorkspaceState !==
+      null;
+
+
+  const historyEnabled =
+    settingsAvailable
+      ? teacherSettingsWorkspaceState
+          .kabezyaConversationHistory !==
+        false
+      : true;
+
+
+  /* =====================================================
+     HISTORY DISABLED
+  ===================================================== */
+
+  if(
+    !historyEnabled
+  ){
+
+    teacherKabezyaWorkspaceState
+      .recentLoading =
+      false;
+
+
+    teacherKabezyaWorkspaceState
+      .recentConversations =
+      [];
+
+
+    renderTeacherKabezyaRecentConversations();
+
+
+    return true;
+
+  }
+
+
+  /* =====================================================
+     DUPLICATE LOAD PROTECTION
+  ===================================================== */
 
   if(
     teacherKabezyaWorkspaceState
@@ -65525,7 +65724,8 @@ async function loadTeacherKabezyaRecentConversations(){
 
 
 /* =========================================================
-   RENDER RECENT CONVERSATIONS
+   RENDER RECENT KABEZYA CONVERSATIONS
+   Settings-aware history presentation
 ========================================================= */
 
 function renderTeacherKabezyaRecentConversations(){
@@ -65547,6 +65747,65 @@ function renderTeacherKabezyaRecentConversations(){
 
   }
 
+
+  /* =====================================================
+     HISTORY PREFERENCE
+  ===================================================== */
+
+  const settingsAvailable =
+    typeof teacherSettingsWorkspaceState ===
+      "object" &&
+    teacherSettingsWorkspaceState !==
+      null;
+
+
+  const historyEnabled =
+    settingsAvailable
+      ? teacherSettingsWorkspaceState
+          .kabezyaConversationHistory !==
+        false
+      : true;
+
+
+  /* =====================================================
+     HISTORY DISABLED
+  ===================================================== */
+
+  if(
+    !historyEnabled
+  ){
+
+    container.innerHTML = `
+      <div
+        class="teacher-kabezya-recent-empty"
+      >
+
+        <i
+          class="fa-solid fa-clock-rotate-left"
+          aria-hidden="true"
+        ></i>
+
+        <strong>
+          Conversation history is off
+        </strong>
+
+        <span>
+          Turn on Conversation history in
+          Settings → Kabezya AI to show recent chats here.
+        </span>
+
+      </div>
+    `;
+
+
+    return;
+
+  }
+
+
+  /* =====================================================
+     LOADING
+  ===================================================== */
 
   if(
     teacherKabezyaWorkspaceState
@@ -65574,6 +65833,10 @@ function renderTeacherKabezyaRecentConversations(){
     );
 
 
+  /* =====================================================
+     EMPTY
+  ===================================================== */
+
   if(
     !conversations.length
   ){
@@ -65598,6 +65861,10 @@ function renderTeacherKabezyaRecentConversations(){
         .conversationId
     );
 
+
+  /* =====================================================
+     LIST
+  ===================================================== */
 
   container.innerHTML =
     conversations
