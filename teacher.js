@@ -65959,9 +65959,21 @@ function startNewTeacherKabezyaConversation(){
 
 }
 
-
 /* =========================================================
-   COPY MESSAGE
+   COPY KABEZYA MESSAGE
+   Clean human-readable clipboard output
+
+   IMPORTANT:
+   Kabezya responses may contain Markdown such as:
+
+     **bold**
+     * bullet
+     # heading
+     `code`
+
+   The chat renderer understands that formatting, but when
+   teachers copy a response we want normal readable text,
+   not Markdown syntax characters.
 ========================================================= */
 
 async function copyTeacherKabezyaMessage(
@@ -65997,7 +66009,11 @@ async function copyTeacherKabezyaMessage(
   }
 
 
-  const text =
+  /* =====================================================
+     SOURCE TEXT
+  ===================================================== */
+
+  const sourceText =
     message.role ===
       "assistant"
       ? getTeacherKabezyaResponseText(
@@ -66009,7 +66025,7 @@ async function copyTeacherKabezyaMessage(
 
 
   if(
-    !text
+    !sourceText
   ){
 
     return false;
@@ -66017,10 +66033,211 @@ async function copyTeacherKabezyaMessage(
   }
 
 
+  /* =====================================================
+     MARKDOWN -> CLEAN PLAIN TEXT
+
+     Preserve useful structure:
+     - paragraphs
+     - bullets
+     - numbered lists
+     - intentional line breaks
+
+     Remove formatting syntax:
+     - bold / italics markers
+     - headings
+     - inline code markers
+     - Markdown links
+  ===================================================== */
+
+  const cleanText =
+    String(
+      sourceText
+    )
+
+      /* -----------------------------------------------
+         Normalize line endings
+      ------------------------------------------------ */
+
+      .replace(
+        /\r\n?/g,
+        "\n"
+      )
+
+
+      /* -----------------------------------------------
+         Fenced code blocks
+
+         Keep the actual content, remove ``` markers.
+      ------------------------------------------------ */
+
+      .replace(
+        /```(?:[a-zA-Z0-9_-]+)?\n?([\s\S]*?)```/g,
+        "$1"
+      )
+
+
+      /* -----------------------------------------------
+         Markdown headings
+
+         ### Heading
+           ->
+         Heading
+      ------------------------------------------------ */
+
+      .replace(
+        /^[ \t]{0,3}#{1,6}[ \t]+/gm,
+        ""
+      )
+
+
+      /* -----------------------------------------------
+         Blockquote marker
+      ------------------------------------------------ */
+
+      .replace(
+        /^[ \t]*>[ \t]?/gm,
+        ""
+      )
+
+
+      /* -----------------------------------------------
+         Bold / italic Markdown
+      ------------------------------------------------ */
+
+      .replace(
+        /\*\*\*([^*]+)\*\*\*/g,
+        "$1"
+      )
+
+      .replace(
+        /___([^_]+)___/g,
+        "$1"
+      )
+
+      .replace(
+        /\*\*([^*]+)\*\*/g,
+        "$1"
+      )
+
+      .replace(
+        /__([^_]+)__/g,
+        "$1"
+      )
+
+      .replace(
+        /\*([^*\n]+)\*/g,
+        "$1"
+      )
+
+      .replace(
+        /_([^_\n]+)_/g,
+        "$1"
+      )
+
+
+      /* -----------------------------------------------
+         Inline code
+      ------------------------------------------------ */
+
+      .replace(
+        /`([^`\n]+)`/g,
+        "$1"
+      )
+
+
+      /* -----------------------------------------------
+         Markdown links
+
+         [Open AIFT](https://...)
+           ->
+         Open AIFT
+      ------------------------------------------------ */
+
+      .replace(
+        /\[([^\]]+)\]\((?:[^)]+)\)/g,
+        "$1"
+      )
+
+
+      /* -----------------------------------------------
+         Markdown images
+
+         ![description](url)
+           ->
+         description
+      ------------------------------------------------ */
+
+      .replace(
+        /!\[([^\]]*)\]\((?:[^)]+)\)/g,
+        "$1"
+      )
+
+
+      /* -----------------------------------------------
+         Horizontal rules
+      ------------------------------------------------ */
+
+      .replace(
+        /^[ \t]*(?:-{3,}|\*{3,}|_{3,})[ \t]*$/gm,
+        ""
+      )
+
+
+      /* -----------------------------------------------
+         Clean list markers while preserving bullets
+
+         * item
+         - item
+
+           ->
+         • item
+      ------------------------------------------------ */
+
+      .replace(
+        /^[ \t]*[-*+][ \t]+/gm,
+        "• "
+      )
+
+
+      /* -----------------------------------------------
+         Remove accidental trailing spaces
+      ------------------------------------------------ */
+
+      .replace(
+        /[ \t]+$/gm,
+        ""
+      )
+
+
+      /* -----------------------------------------------
+         Do not allow giant blank areas
+      ------------------------------------------------ */
+
+      .replace(
+        /\n{3,}/g,
+        "\n\n"
+      )
+
+      .trim();
+
+
+  if(
+    !cleanText
+  ){
+
+    return false;
+
+  }
+
+
+  /* =====================================================
+     COPY
+  ===================================================== */
+
   try{
 
     await copyTextToTeacherClipboard(
-      text
+      cleanText
     );
 
 
@@ -67259,7 +67476,24 @@ async function regenerateTeacherKabezyaAfterEdit({
 
 /* =========================================================
    RENDER KABEZYA CONVERSATION
-   ChatGPT-style message presentation
+   ChatGPT-style production conversation renderer
+
+   MESSAGE TYPES
+   ---------------------------------------------------------
+   user
+     Teacher message shown right-aligned.
+
+   assistant
+     Genuine Kabezya AI response shown as clean prose.
+
+   system
+     Application information such as:
+     - usage limit
+     - temporary availability
+     - account information
+
+   System notices are visually distinct and are never
+   presented as something Kabezya generated.
 ========================================================= */
 
 function renderTeacherKabezyaConversation(){
@@ -67304,7 +67538,7 @@ function renderTeacherKabezyaConversation(){
 
 
   /* =====================================================
-     EMPTY
+     EMPTY CONVERSATION
   ===================================================== */
 
   if(
@@ -67362,18 +67596,162 @@ function renderTeacherKabezyaConversation(){
           index
         ) => {
 
-          const role =
-            message?.role ===
-              "assistant"
-              ? "assistant"
-              : "user";
-
-
           const messageId =
             normalizeId(
               message?.id
             ) ||
             `local-${index}`;
+
+
+          /* =================================================
+             SYSTEM NOTICE
+
+             Supports our usage-limit notice without pretending
+             it is an AI response.
+          ================================================= */
+
+          if(
+            message?.systemNotice
+          ){
+
+            const systemText =
+              safeString(
+                message?.content
+              );
+
+
+            if(
+              !systemText
+            ){
+
+              return "";
+
+            }
+
+
+            const noticeType =
+              safeString(
+                message?.systemNotice
+              );
+
+
+            const title =
+              noticeType ===
+                "usage-limit"
+                ? "Kabezya usage limit reached"
+                : "Kabezya notice";
+
+
+            const lines =
+              systemText
+                .split(
+                  "\n"
+                )
+                .map(
+                  line =>
+                    line.trim()
+                );
+
+
+            /*
+              The stored usage notice currently begins with its
+              title. Remove the duplicate title from body output.
+            */
+
+            if(
+              lines[0] ===
+              title
+            ){
+
+              lines.shift();
+
+            }
+
+
+            const bodyText =
+              lines
+                .join(
+                  "\n"
+                )
+                .trim();
+
+
+            return `
+              <div
+                class="
+                  teacher-kabezya-turn
+                  is-system
+                "
+                data-kabezya-message-id="${escapeAttribute(
+                  messageId
+                )}"
+              >
+
+                <div
+                  class="
+                    teacher-kabezya-system-notice
+                    ${
+                      noticeType ===
+                        "usage-limit"
+                        ? "is-limit"
+                        : ""
+                    }
+                  "
+                >
+
+                  <div
+                    class="teacher-kabezya-system-notice-icon"
+                    aria-hidden="true"
+                  >
+                    <i
+                      class="${
+                        noticeType ===
+                          "usage-limit"
+                          ? "fa-solid fa-hourglass-half"
+                          : "fa-solid fa-circle-info"
+                      }"
+                    ></i>
+                  </div>
+
+
+                  <div
+                    class="teacher-kabezya-system-notice-content"
+                  >
+
+                    <strong>
+                      ${escapeHtml(
+                        title
+                      )}
+                    </strong>
+
+
+                    <div
+                      class="teacher-kabezya-system-notice-text"
+                    >
+                      ${formatTeacherKabezyaMessage(
+                        bodyText
+                      )}
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+            `;
+
+          }
+
+
+          /* =================================================
+             ROLE
+          ================================================= */
+
+          const role =
+            message?.role ===
+              "assistant"
+              ? "assistant"
+              : "user";
 
 
           /* =================================================
@@ -67468,58 +67846,59 @@ function renderTeacherKabezyaConversation(){
 
                           </div>
                         `
-: `
-    <div class="teacher-kabezya-user-bubble">${escapeHtml(
-      text
-    )}</div>
-
-    <div
-      class="teacher-kabezya-message-actions"
-    >
-
-      <button
-        type="button"
-        data-teacher-action="kabezya-copy-message"
-        data-kabezya-message-id="${escapeAttribute(
-          messageId
-        )}"
-        aria-label="Copy message"
-        title="Copy"
-      >
-
-        <i
-          class="fa-regular fa-copy"
-          aria-hidden="true"
-        ></i>
-
-      </button>
+                      : `
+                          <div class="teacher-kabezya-user-bubble">${escapeHtml(
+                            text
+                          )}</div>
 
 
-      ${
-        message?.id
-          ? `
-              <button
-                type="button"
-                data-teacher-action="kabezya-edit-message"
-                data-kabezya-message-id="${escapeAttribute(
-                  messageId
-                )}"
-                aria-label="Edit message"
-                title="Edit"
-              >
+                          <div
+                            class="teacher-kabezya-message-actions"
+                          >
 
-                <i
-                  class="fa-regular fa-pen-to-square"
-                  aria-hidden="true"
-                ></i>
+                            <button
+                              type="button"
+                              data-teacher-action="kabezya-copy-message"
+                              data-kabezya-message-id="${escapeAttribute(
+                                messageId
+                              )}"
+                              aria-label="Copy message"
+                              title="Copy"
+                            >
 
-              </button>
-            `
-          : ""
-      }
+                              <i
+                                class="fa-regular fa-copy"
+                                aria-hidden="true"
+                              ></i>
 
-    </div>
-  `
+                            </button>
+
+
+                            ${
+                              message?.id
+                                ? `
+                                    <button
+                                      type="button"
+                                      data-teacher-action="kabezya-edit-message"
+                                      data-kabezya-message-id="${escapeAttribute(
+                                        messageId
+                                      )}"
+                                      aria-label="Edit message"
+                                      title="Edit"
+                                    >
+
+                                      <i
+                                        class="fa-regular fa-pen-to-square"
+                                        aria-hidden="true"
+                                      ></i>
+
+                                    </button>
+                                  `
+                                : ""
+                            }
+
+                          </div>
+                        `
                   }
 
                 </div>
@@ -67618,10 +67997,12 @@ function renderTeacherKabezyaConversation(){
                             aria-label="Copy Kabezya response"
                             title="Copy"
                           >
+
                             <i
                               class="fa-regular fa-copy"
                               aria-hidden="true"
                             ></i>
+
                           </button>
 
                         </div>
@@ -67646,6 +68027,9 @@ function renderTeacherKabezyaConversation(){
 
   /* =====================================================
      THINKING STATE
+
+     The thinking indicator belongs INSIDE the conversation.
+     It should never create text below/outside the chat box.
   ===================================================== */
 
   const loadingMarkup =
@@ -67663,9 +68047,11 @@ function renderTeacherKabezyaConversation(){
               class="teacher-kabezya-thinking"
               aria-label="Kabezya is thinking"
             >
+
               <span></span>
               <span></span>
               <span></span>
+
             </div>
 
           </div>
@@ -70072,22 +70458,29 @@ function useTeacherKabezyaFeedbackSuggestion(){
 
 }
 
-
 /* =========================================================
    KABEZYA QUICK PROMPT ACTION
+
+   Quick prompts behave like ChatGPT suggestion buttons:
+
+   - clicking a suggestion sends it immediately
+   - it becomes a normal user conversation turn
+   - it does NOT remain inside the composer
+   - composer remains available for the teacher's next input
 ========================================================= */
 
-function runTeacherKabezyaQuickPrompt(
+async function runTeacherKabezyaQuickPrompt(
   prompt
 ){
 
   const normalized =
     safeString(
       prompt
-    );
+    )
+      .trim();
 
 
-  if (
+  if(
     !normalized
   ){
 
@@ -70096,9 +70489,28 @@ function runTeacherKabezyaQuickPrompt(
   }
 
 
+  if(
+    teacherKabezyaWorkspaceState
+      .loading
+  ){
+
+    return false;
+
+  }
+
+
+  /* =====================================================
+     CLEAR COMPOSER BEFORE SENDING
+
+     The actual prompt will appear in the conversation as
+     the persisted user turn.
+
+     It should NOT simultaneously remain in the textarea.
+  ===================================================== */
+
   teacherKabezyaWorkspaceState
     .prompt =
-    normalized;
+    "";
 
 
   const input =
@@ -70107,22 +70519,72 @@ function runTeacherKabezyaQuickPrompt(
     );
 
 
-  if (
+  if(
     input
   ){
 
     input.value =
-      normalized;
+      "";
+
+
+    input.style.height =
+      "auto";
 
   }
 
 
-  askTeacherKabezya(
-    normalized
-  );
+  /* =====================================================
+     SEND
+  ===================================================== */
+
+  const result =
+    await askTeacherKabezya(
+      normalized
+    );
 
 
-  return true;
+  /*
+    askTeacherKabezya may restore the original prompt after
+    an actual error so the teacher can retry.
+
+    On success, however, the composer must remain empty.
+  */
+
+  if(
+    result
+  ){
+
+    teacherKabezyaWorkspaceState
+      .prompt =
+      "";
+
+
+    const refreshedInput =
+      $(
+        "teacherKabezyaPrompt"
+      );
+
+
+    if(
+      refreshedInput
+    ){
+
+      refreshedInput.value =
+        "";
+
+
+      refreshedInput.style.height =
+        "auto";
+
+    }
+
+
+    renderTeacherKabezyaComposer();
+
+  }
+
+
+  return result;
 
 }
 
