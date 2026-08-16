@@ -66498,14 +66498,14 @@ async function saveTeacherKabezyaMessageEdit(
 
 /* =========================================================
    REGENERATE KABEZYA AFTER MESSAGE EDIT
+   Production resilient regeneration lifecycle
 
-   The edited user message ALREADY EXISTS in MongoDB.
-
-   Therefore this function:
-   - does NOT create another user message
-   - sends the edited message only as the current prompt
-   - sends earlier conversation turns as history
-   - saves only the new assistant response
+   IMPORTANT:
+   - the edited user message already exists in MongoDB
+   - this function saves ONLY the new assistant response
+   - transient 502 / 503 / 504 failures are retried
+   - 429 respects backend retry timing
+   - no fake assistant error message is inserted
 ========================================================= */
 
 async function regenerateTeacherKabezyaAfterEdit({
@@ -66541,13 +66541,24 @@ async function regenerateTeacherKabezyaAfterEdit({
   }
 
 
+  if(
+    teacherKabezyaWorkspaceState
+      .loading
+  ){
+
+    return false;
+
+  }
+
+
   /* =====================================================
      HISTORY
 
-     The edited teacher message is now the LAST stored turn.
+     The edited teacher message is already the last stored
+     message.
 
-     Remove that final turn from history because it is sent
-     separately as `prompt`.
+     Remove it from history because it is sent separately
+     as the current prompt.
   ===================================================== */
 
   const storedMessages =
@@ -66557,22 +66568,21 @@ async function regenerateTeacherKabezyaAfterEdit({
     );
 
 
-  const historySource =
-    storedMessages.length
-      ? storedMessages.slice(
-          0,
-          -1
-        )
-      : [];
-
-
   const history =
-    historySource
+    (
+      storedMessages.length
+        ? storedMessages.slice(
+            0,
+            -1
+          )
+        : []
+    )
       .filter(
         message =>
           (
             message?.role ===
               "user" ||
+
             message?.role ===
               "assistant"
           ) &&
@@ -66719,161 +66729,471 @@ async function regenerateTeacherKabezyaAfterEdit({
   renderTeacherKabezyaResponseActions();
 
 
+  /* =====================================================
+     RETRY POLICY
+
+     Gemini recommends exponential backoff for transient
+     429 and 5xx errors.
+
+     We keep this intentionally bounded.
+  ===================================================== */
+
+  const transientStatuses =
+    new Set([
+      502,
+      503,
+      504
+    ]);
+
+
+  const retryDelays = [
+    1500,
+    3500,
+    7000
+  ];
+
+
+  const maximumInlineRateLimitWait =
+    30000;
+
+
+  const sleep =
+    milliseconds =>
+      new Promise(
+        resolve =>
+          window.setTimeout(
+            resolve,
+            milliseconds
+          )
+      );
+
+
+  const jitter =
+    milliseconds => {
+
+      const extra =
+        Math.floor(
+          Math.random() *
+          Math.max(
+            250,
+            milliseconds *
+            .20
+          )
+        );
+
+
+      return milliseconds +
+        extra;
+
+    };
+
+
+  let transientAttempt =
+    0;
+
+
+  let rateLimitRetryUsed =
+    false;
+
+
   try{
 
-    /* ===================================================
-       AI REQUEST
-    =================================================== */
-
-    const response =
-      await apiSend(
-        getTeacherKabezyaEndpoint(),
-        "POST",
-        requestBody
-      );
-
-
-    const normalized =
-      normalizeTeacherKabezyaResponse(
-        response
-      );
-
-
-    /* ===================================================
-       VALID RESPONSE
-    =================================================== */
-
-    const hasUsefulResponse =
-      Boolean(
-
-        getTeacherKabezyaResponseText(
-          normalized
-        ) ||
-
-        normalized?.feedback ||
-
-        normalized?.integrity ||
-
-        normalized?.inspection ||
-
-        normalized?.questions
-          ?.length ||
-
-        normalized?.assignment ||
-
-        normalized?.lessonPlan
-
-      );
-
-
-    if(
-      !hasUsefulResponse
+    while(
+      true
     ){
 
-      throw new AIFTApiError(
-        "Kabezya returned an empty response.",
-        {
-          status:
-            502,
+      try{
 
-          code:
-            "KABEZYA_EMPTY_RESPONSE"
+        /* =================================================
+           GENERATE RESPONSE
+        ================================================= */
+
+        const response =
+          await apiSend(
+            getTeacherKabezyaEndpoint(),
+            "POST",
+            requestBody
+          );
+
+
+        const normalized =
+          normalizeTeacherKabezyaResponse(
+            response
+          );
+
+
+        const hasUsefulResponse =
+          Boolean(
+
+            getTeacherKabezyaResponseText(
+              normalized
+            ) ||
+
+            normalized?.feedback ||
+
+            normalized?.integrity ||
+
+            normalized?.inspection ||
+
+            normalized?.questions
+              ?.length ||
+
+            normalized?.assignment ||
+
+            normalized?.lessonPlan
+
+          );
+
+
+        if(
+          !hasUsefulResponse
+        ){
+
+          throw new AIFTApiError(
+            "Kabezya returned an empty response.",
+            {
+              status:
+                502,
+
+              code:
+                "KABEZYA_EMPTY_RESPONSE"
+            }
+          );
+
         }
-      );
+
+
+        /* =================================================
+           SAVE ONLY ASSISTANT RESPONSE
+        ================================================= */
+
+        const responseText =
+          getTeacherKabezyaResponseText(
+            normalized
+          );
+
+
+        let storedAssistantMessage =
+          null;
+
+
+        try{
+
+          const savedResponse =
+            await apiSend(
+              `/api/kabezya/teacher/conversations/${
+                encodeURIComponent(
+                  activeConversationId
+                )
+              }/messages`,
+              "POST",
+              {
+
+                role:
+                  "assistant",
+
+                content:
+                  responseText,
+
+                responseSnapshot:
+                  normalized,
+
+                ...activeContext
+
+              }
+            );
+
+
+          storedAssistantMessage =
+            normalizeTeacherKabezyaStoredMessage(
+              savedResponse?.message
+            );
+
+        }catch(
+          persistenceError
+        ){
+
+          console.error(
+            "Kabezya regenerated response history save failed:",
+            persistenceError
+          );
+
+
+          /*
+            The AI response is valid.
+
+            Do not discard it only because conversation
+            persistence failed.
+          */
+
+          notifyAIFTWarning(
+            "Kabezya answered, but this response could not be added to conversation history.",
+            {
+              title:
+                "History not saved"
+            }
+          );
+
+        }
+
+
+        /* =================================================
+           DISPLAY RESPONSE
+        ================================================= */
+
+        const assistantMessage =
+          storedAssistantMessage ||
+          {
+
+            id:
+              "",
+
+            role:
+              "assistant",
+
+            content:
+              normalized,
+
+            createdAt:
+              new Date(),
+
+            mode
+
+          };
+
+
+        teacherKabezyaWorkspaceState
+          .response =
+          normalized;
+
+
+        teacherKabezyaWorkspaceState
+          .conversation
+          .push(
+            assistantMessage
+          );
+
+
+        state.kabezya.analysis =
+          normalized;
+
+
+        state.kabezya.error =
+          null;
+
+
+        state.kabezya.ready =
+          true;
+
+
+        await loadTeacherKabezyaRecentConversations();
+
+
+        return normalized;
+
+      }catch(
+        error
+      ){
+
+        const status =
+          safeInteger(
+            error?.status,
+            0
+          );
+
+
+        /* =================================================
+           429
+        ================================================= */
+
+        if(
+          status ===
+          429
+        ){
+
+          const retryAfterMs =
+            Math.max(
+              0,
+              safeInteger(
+                error?.data
+                  ?.retryAfterMs,
+                0
+              )
+            );
+
+
+          const retryAfterSeconds =
+            Math.max(
+              0,
+              safeInteger(
+                error?.data
+                  ?.retryAfterSeconds,
+                0
+              )
+            );
+
+
+          const rateLimitCode =
+            safeString(
+              error?.code ||
+              error?.data?.code
+            );
+
+
+          if(
+            rateLimitCode ===
+              "TEACHER_AI_RATE_LIMITED" &&
+            retryAfterMs >
+              0 &&
+            retryAfterMs <=
+              maximumInlineRateLimitWait &&
+            !rateLimitRetryUsed
+          ){
+
+            rateLimitRetryUsed =
+              true;
+
+
+            const delay =
+              jitter(
+                retryAfterMs
+              );
+
+
+            console.warn(
+              "Kabezya edit regeneration rate limited; retrying.",
+              {
+                retryAfterMs:
+                  delay
+              }
+            );
+
+
+            renderTeacherKabezyaConversation();
+
+
+            await sleep(
+              delay
+            );
+
+
+            continue;
+
+          }
+
+
+          const readableWait =
+            retryAfterSeconds >
+              0
+              ? retryAfterSeconds >=
+                  60
+                ? `${
+                    Math.ceil(
+                      retryAfterSeconds /
+                      60
+                    )
+                  } minute${
+                    Math.ceil(
+                      retryAfterSeconds /
+                      60
+                    ) ===
+                    1
+                      ? ""
+                      : "s"
+                  }`
+                : `${
+                    retryAfterSeconds
+                  } seconds`
+              : "a short while";
+
+
+          throw new AIFTApiError(
+            retryAfterSeconds >
+              0
+              ? `Kabezya has reached the temporary request limit. Please try again in ${readableWait}.`
+              : "Kabezya is temporarily handling too many requests. Please try again shortly.",
+            {
+              status:
+                429,
+
+              code:
+                rateLimitCode ||
+                "KABEZYA_RATE_LIMITED",
+
+              data:
+                error?.data
+            }
+          );
+
+        }
+
+
+        /* =================================================
+           502 / 503 / 504
+        ================================================= */
+
+        if(
+          transientStatuses.has(
+            status
+          ) &&
+          transientAttempt <
+            retryDelays.length
+        ){
+
+          const baseDelay =
+            retryDelays[
+              transientAttempt
+            ];
+
+
+          transientAttempt +=
+            1;
+
+
+          const delay =
+            jitter(
+              baseDelay
+            );
+
+
+          console.warn(
+            "Kabezya edit regeneration temporarily unavailable; retrying.",
+            {
+              status,
+
+              attempt:
+                transientAttempt,
+
+              retryInMs:
+                delay
+            }
+          );
+
+
+          /*
+            Keep the thinking animation active.
+
+            Do not insert an error message into the chat.
+          */
+
+          renderTeacherKabezyaConversation();
+
+
+          await sleep(
+            delay
+          );
+
+
+          continue;
+
+        }
+
+
+        throw error;
+
+      }
 
     }
-
-
-    /* ===================================================
-       SAVE ONLY ASSISTANT RESPONSE
-
-       The edited user turn was already saved by PATCH.
-    =================================================== */
-
-    const responseText =
-      getTeacherKabezyaResponseText(
-        normalized
-      );
-
-
-    const savedResponse =
-      await apiSend(
-        `/api/kabezya/teacher/conversations/${
-          encodeURIComponent(
-            activeConversationId
-          )
-        }/messages`,
-        "POST",
-        {
-
-          role:
-            "assistant",
-
-          content:
-            responseText,
-
-          responseSnapshot:
-            normalized,
-
-          ...activeContext
-
-        }
-      );
-
-
-    const storedAssistantMessage =
-      normalizeTeacherKabezyaStoredMessage(
-        savedResponse?.message
-      );
-
-
-    if(
-      !storedAssistantMessage
-    ){
-
-      throw new Error(
-        "The regenerated Kabezya response could not be saved."
-      );
-
-    }
-
-
-    /* ===================================================
-       ADD NEW BRANCH RESPONSE
-    =================================================== */
-
-    teacherKabezyaWorkspaceState
-      .response =
-      normalized;
-
-
-    teacherKabezyaWorkspaceState
-      .conversation
-      .push(
-        storedAssistantMessage
-      );
-
-
-    state.kabezya.analysis =
-      normalized;
-
-
-    state.kabezya.error =
-      null;
-
-
-    state.kabezya.ready =
-      true;
-
-
-    /* ===================================================
-       REFRESH RECENTS
-    =================================================== */
-
-    await loadTeacherKabezyaRecentConversations();
-
-
-    return normalized;
 
   }catch(
     error
@@ -66897,9 +67217,9 @@ async function regenerateTeacherKabezyaAfterEdit({
 
 
     /*
-      Keep the successfully edited teacher message.
+      The edited teacher message remains saved.
 
-      Do NOT create a fake assistant response.
+      We intentionally do not add a fake Kabezya reply.
     */
 
     notifyAIFTError(
