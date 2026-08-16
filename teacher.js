@@ -25373,17 +25373,6 @@ function renderTeacherAttendanceHeader(){
 
       <div>
 
-        <span
-          class="teacher-workspace-eyebrow"
-        >
-          Teacher Studio
-        </span>
-
-
-        <h1>
-          Attendance
-        </h1>
-
 
         <p>
           ${
@@ -56251,16 +56240,6 @@ function renderTeacherAnalyticsHeader(){
 
       <div>
 
-        <span
-          class="teacher-workspace-eyebrow"
-        >
-          Teacher Studio
-        </span>
-
-        <h1>
-          Class Analytics
-        </h1>
-
         <p>
           ${
             selectedClass
@@ -73798,16 +73777,6 @@ function renderTeacherSupportHeader(){
     >
 
       <div>
-
-        <span
-          class="teacher-workspace-eyebrow"
-        >
-          Teacher Studio
-        </span>
-
-        <h1>
-          Help & Support
-        </h1>
 
         <p>
           Browse Teacher Studio guidance, troubleshoot common
