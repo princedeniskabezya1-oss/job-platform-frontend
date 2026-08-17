@@ -60896,10 +60896,10 @@ function getTeacherKabezyaEndpoint(){
        lesson-plan mode in the request body.
     ===================================================== */
 
-    case TEACHER_KABEZYA_MODES
-      .LESSON_PLAN:
+case TEACHER_KABEZYA_MODES
+  .LESSON_PLAN:
 
-      return "/api/kabezya/teacher/assistant";
+  return "/api/kabezya/teacher/lesson-plan";
 
 
     /* =====================================================
