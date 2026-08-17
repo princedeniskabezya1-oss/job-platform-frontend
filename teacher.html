@@ -46924,6 +46924,833 @@ tbody tr:last-child td{
 
       }
 
+      /* ===================================================
+         KABEZYA MOBILE WORKSPACE CONTROLLER
+      ==================================================== */
+
+      const TEACHER_KABEZYA_MOBILE_BREAKPOINT =
+        760;
+
+
+      let teacherKabezyaRecentsOriginalParent =
+        null;
+
+
+      let teacherKabezyaRecentsOriginalNextSibling =
+        null;
+
+
+      let teacherKabezyaMobileControllerBound =
+        false;
+
+
+      /* ===================================================
+         MOBILE CHECK
+      ==================================================== */
+
+      function isTeacherKabezyaMobile(){
+
+        return (
+          window.innerWidth <=
+          TEACHER_KABEZYA_MOBILE_BREAKPOINT
+        );
+
+      }
+
+
+      /* ===================================================
+         MOBILE ELEMENTS
+      ==================================================== */
+
+      function getTeacherKabezyaMobileElements(){
+
+        return {
+
+          toolsButton:
+            teacherEl(
+              "teacherKabezyaMobileToolsButton"
+            ),
+
+          recentsButton:
+            teacherEl(
+              "teacherKabezyaMobileRecentsButton"
+            ),
+
+          toolsPanel:
+            teacherEl(
+              "teacherKabezyaMobileToolsPanel"
+            ),
+
+          recentsPanel:
+            teacherEl(
+              "teacherKabezyaMobileRecentsPanel"
+            ),
+
+          recentsHost:
+            teacherEl(
+              "teacherKabezyaMobileRecentsHost"
+            ),
+
+          recentsCard:
+            teacherEl(
+              "teacherKabezyaRecentsCard"
+            ),
+
+          backdrop:
+            teacherEl(
+              "teacherKabezyaMobileBackdrop"
+            )
+
+        };
+
+      }
+
+
+      /* ===================================================
+         REMEMBER DESKTOP RECENTS LOCATION
+      ==================================================== */
+
+      function rememberTeacherKabezyaRecentsLocation(){
+
+        const {
+          recentsCard
+        } =
+          getTeacherKabezyaMobileElements();
+
+
+        if (
+          !recentsCard
+        ){
+          return;
+        }
+
+
+        if (
+          !teacherKabezyaRecentsOriginalParent
+        ){
+
+          teacherKabezyaRecentsOriginalParent =
+            recentsCard.parentNode;
+
+
+          teacherKabezyaRecentsOriginalNextSibling =
+            recentsCard.nextSibling;
+
+        }
+
+      }
+
+
+      /* ===================================================
+         MOVE RECENTS TO MOBILE SHEET
+      ==================================================== */
+
+      function moveTeacherKabezyaRecentsToMobile(){
+
+        if (
+          !isTeacherKabezyaMobile()
+        ){
+          return;
+        }
+
+
+        const {
+          recentsHost,
+          recentsCard
+        } =
+          getTeacherKabezyaMobileElements();
+
+
+        if (
+          !recentsHost ||
+          !recentsCard
+        ){
+          return;
+        }
+
+
+        rememberTeacherKabezyaRecentsLocation();
+
+
+        if (
+          recentsCard.parentNode !==
+          recentsHost
+        ){
+
+          recentsHost.appendChild(
+            recentsCard
+          );
+
+        }
+
+      }
+
+
+      /* ===================================================
+         RESTORE RECENTS TO DESKTOP
+      ==================================================== */
+
+      function restoreTeacherKabezyaRecentsToDesktop(){
+
+        const {
+          recentsCard
+        } =
+          getTeacherKabezyaMobileElements();
+
+
+        if (
+          !recentsCard ||
+          !teacherKabezyaRecentsOriginalParent
+        ){
+          return;
+        }
+
+
+        if (
+          recentsCard.parentNode ===
+          teacherKabezyaRecentsOriginalParent
+        ){
+          return;
+        }
+
+
+        if (
+          teacherKabezyaRecentsOriginalNextSibling &&
+          teacherKabezyaRecentsOriginalNextSibling
+            .parentNode ===
+          teacherKabezyaRecentsOriginalParent
+        ){
+
+          teacherKabezyaRecentsOriginalParent
+            .insertBefore(
+              recentsCard,
+              teacherKabezyaRecentsOriginalNextSibling
+            );
+
+        }else{
+
+          teacherKabezyaRecentsOriginalParent
+            .appendChild(
+              recentsCard
+            );
+
+        }
+
+      }
+
+
+      /* ===================================================
+         UPDATE MOBILE BUTTON STATE
+      ==================================================== */
+
+      function syncTeacherKabezyaMobileButtons(
+        activePanel = null
+      ){
+
+        const {
+          toolsButton,
+          recentsButton
+        } =
+          getTeacherKabezyaMobileElements();
+
+
+        toolsButton?.setAttribute(
+          "aria-expanded",
+          activePanel ===
+            "tools"
+            ? "true"
+            : "false"
+        );
+
+
+        recentsButton?.setAttribute(
+          "aria-expanded",
+          activePanel ===
+            "recents"
+            ? "true"
+            : "false"
+        );
+
+      }
+
+
+      /* ===================================================
+         CLOSE MOBILE KABEZYA SHEETS
+      ==================================================== */
+
+      function closeTeacherKabezyaMobileSheets(){
+
+        const {
+          toolsPanel,
+          recentsPanel,
+          backdrop
+        } =
+          getTeacherKabezyaMobileElements();
+
+
+        if (
+          toolsPanel
+        ){
+
+          toolsPanel.hidden =
+            true;
+
+        }
+
+
+        if (
+          recentsPanel
+        ){
+
+          recentsPanel.hidden =
+            true;
+
+        }
+
+
+        if (
+          backdrop
+        ){
+
+          backdrop.hidden =
+            true;
+
+        }
+
+
+        syncTeacherKabezyaMobileButtons(
+          null
+        );
+
+
+        document.body.classList.remove(
+          "teacher-kabezya-mobile-sheet-open"
+        );
+
+      }
+
+
+      /* ===================================================
+         OPEN MOBILE KABEZYA SHEET
+      ==================================================== */
+
+      function openTeacherKabezyaMobileSheet(
+        type
+      ){
+
+        if (
+          !isTeacherKabezyaMobile()
+        ){
+          return;
+        }
+
+
+        const {
+          toolsPanel,
+          recentsPanel,
+          backdrop
+        } =
+          getTeacherKabezyaMobileElements();
+
+
+        const openingTools =
+          type ===
+          "tools";
+
+
+        const openingRecents =
+          type ===
+          "recents";
+
+
+        if (
+          !openingTools &&
+          !openingRecents
+        ){
+          return;
+        }
+
+
+        /*
+          Recent conversations use the SAME real card
+          that desktop uses.
+
+          We move it rather than clone it so:
+          - IDs remain unique
+          - active conversation state remains correct
+          - existing click handlers continue working
+          - conversation updates remain live
+        */
+
+        if (
+          openingRecents
+        ){
+
+          moveTeacherKabezyaRecentsToMobile();
+
+        }
+
+
+        if (
+          toolsPanel
+        ){
+
+          toolsPanel.hidden =
+            !openingTools;
+
+        }
+
+
+        if (
+          recentsPanel
+        ){
+
+          recentsPanel.hidden =
+            !openingRecents;
+
+        }
+
+
+        if (
+          backdrop
+        ){
+
+          backdrop.hidden =
+            false;
+
+        }
+
+
+        syncTeacherKabezyaMobileButtons(
+          type
+        );
+
+
+        document.body.classList.add(
+          "teacher-kabezya-mobile-sheet-open"
+        );
+
+
+        const activePanel =
+          openingTools
+            ? toolsPanel
+            : recentsPanel;
+
+
+        window.requestAnimationFrame(
+          () => {
+
+            activePanel
+              ?.querySelector(
+                "select, button, [href]"
+              )
+              ?.focus?.(
+                {
+                  preventScroll:
+                    true
+                }
+              );
+
+          }
+        );
+
+      }
+
+
+      /* ===================================================
+         TOGGLE MOBILE SHEET
+      ==================================================== */
+
+      function toggleTeacherKabezyaMobileSheet(
+        type
+      ){
+
+        if (
+          !isTeacherKabezyaMobile()
+        ){
+          return;
+        }
+
+
+        const {
+          toolsPanel,
+          recentsPanel
+        } =
+          getTeacherKabezyaMobileElements();
+
+
+        const panel =
+          type ===
+            "tools"
+            ? toolsPanel
+            : recentsPanel;
+
+
+        if (
+          !panel
+        ){
+          return;
+        }
+
+
+        const currentlyOpen =
+          !panel.hidden;
+
+
+        if (
+          currentlyOpen
+        ){
+
+          closeTeacherKabezyaMobileSheets();
+
+          return;
+
+        }
+
+
+        openTeacherKabezyaMobileSheet(
+          type
+        );
+
+      }
+
+
+      /* ===================================================
+         SYNC MOBILE / DESKTOP LAYOUT
+      ==================================================== */
+
+      function syncTeacherKabezyaResponsiveLayout(){
+
+        if (
+          isTeacherKabezyaMobile()
+        ){
+
+          moveTeacherKabezyaRecentsToMobile();
+
+          return;
+
+        }
+
+
+        closeTeacherKabezyaMobileSheets();
+
+        restoreTeacherKabezyaRecentsToDesktop();
+
+      }
+
+
+      /* ===================================================
+         KABEZYA MOBILE CLICK HANDLER
+      ==================================================== */
+
+      function handleTeacherKabezyaMobileClick(
+        event
+      ){
+
+        const target =
+          event.target;
+
+
+        if (
+          !target
+        ){
+          return;
+        }
+
+
+        const {
+          toolsButton,
+          recentsButton,
+          toolsPanel,
+          recentsPanel,
+          backdrop
+        } =
+          getTeacherKabezyaMobileElements();
+
+
+        /* =================================================
+           OPEN CONTEXT & TOOLS
+        ================================================= */
+
+        if (
+          toolsButton &&
+          (
+            target ===
+              toolsButton ||
+            toolsButton.contains(
+              target
+            )
+          )
+        ){
+
+          event.preventDefault();
+
+
+          toggleTeacherKabezyaMobileSheet(
+            "tools"
+          );
+
+
+          return;
+
+        }
+
+
+        /* =================================================
+           OPEN RECENT CHATS
+        ================================================= */
+
+        if (
+          recentsButton &&
+          (
+            target ===
+              recentsButton ||
+            recentsButton.contains(
+              target
+            )
+          )
+        ){
+
+          event.preventDefault();
+
+
+          toggleTeacherKabezyaMobileSheet(
+            "recents"
+          );
+
+
+          return;
+
+        }
+
+
+        /* =================================================
+           BACKDROP
+        ================================================= */
+
+        if (
+          backdrop &&
+          target ===
+            backdrop
+        ){
+
+          event.preventDefault();
+
+
+          closeTeacherKabezyaMobileSheets();
+
+
+          return;
+
+        }
+
+
+        /* =================================================
+           EXPLICIT CLOSE BUTTON
+        ================================================= */
+
+        const closeButton =
+          target.closest?.(
+            "[data-kabezya-mobile-close]"
+          );
+
+
+        if (
+          closeButton
+        ){
+
+          event.preventDefault();
+
+
+          closeTeacherKabezyaMobileSheets();
+
+
+          return;
+
+        }
+
+
+        /* =================================================
+           TOOL / QUICK PROMPT SELECTION
+
+           Allow the existing Kabezya handler to process the
+           click first, then close the mobile sheet.
+
+           We intentionally do not stop propagation.
+        ================================================= */
+
+        if (
+          toolsPanel &&
+          !toolsPanel.hidden &&
+          toolsPanel.contains(
+            target
+          )
+        ){
+
+          const selectedTool =
+            target.closest?.(
+              ".teacher-kabezya-tool"
+            );
+
+
+          const selectedQuickPrompt =
+            target.closest?.(
+              ".teacher-kabezya-quick-list button"
+            );
+
+
+          if (
+            selectedTool ||
+            selectedQuickPrompt
+          ){
+
+            window.setTimeout(
+              () => {
+
+                closeTeacherKabezyaMobileSheets();
+
+              },
+              0
+            );
+
+          }
+
+
+          return;
+
+        }
+
+
+        /* =================================================
+           RECENT CONVERSATION / NEW CHAT
+
+           Existing Teacher Kabezya logic still owns the
+           actual conversation action.
+        ================================================= */
+
+        if (
+          recentsPanel &&
+          !recentsPanel.hidden &&
+          recentsPanel.contains(
+            target
+          )
+        ){
+
+          const selectedConversation =
+            target.closest?.(
+              ".teacher-kabezya-recent-item"
+            );
+
+
+          const newConversation =
+            target.closest?.(
+              ".teacher-kabezya-new-chat-button"
+            );
+
+
+          if (
+            selectedConversation ||
+            newConversation
+          ){
+
+            window.setTimeout(
+              () => {
+
+                closeTeacherKabezyaMobileSheets();
+
+              },
+              0
+            );
+
+          }
+
+        }
+
+      }
+
+
+      /* ===================================================
+         KABEZYA MOBILE KEYBOARD
+      ==================================================== */
+
+      function handleTeacherKabezyaMobileKeydown(
+        event
+      ){
+
+        if (
+          event.key !==
+          "Escape"
+        ){
+          return;
+        }
+
+
+        const {
+          toolsPanel,
+          recentsPanel
+        } =
+          getTeacherKabezyaMobileElements();
+
+
+        const sheetOpen =
+          (
+            toolsPanel &&
+            !toolsPanel.hidden
+          ) ||
+          (
+            recentsPanel &&
+            !recentsPanel.hidden
+          );
+
+
+        if (
+          !sheetOpen
+        ){
+          return;
+        }
+
+
+        closeTeacherKabezyaMobileSheets();
+
+      }
+
+
+      /* ===================================================
+         INITIALIZE MOBILE KABEZYA CONTROLLER
+      ==================================================== */
+
+      function initializeTeacherKabezyaMobileController(){
+
+        if (
+          teacherKabezyaMobileControllerBound
+        ){
+          return;
+        }
+
+
+        teacherKabezyaMobileControllerBound =
+          true;
+
+
+        rememberTeacherKabezyaRecentsLocation();
+
+
+        document.addEventListener(
+          "click",
+          handleTeacherKabezyaMobileClick
+        );
+
+
+        document.addEventListener(
+          "keydown",
+          handleTeacherKabezyaMobileKeydown
+        );
+
+
+        syncTeacherKabezyaResponsiveLayout();
+
+      }
+
 
       /* ===================================================
          RESPONSIVE SAFETY
@@ -46939,6 +47766,14 @@ tbody tr:last-child td{
           closeTeacherMobileNav();
 
         }
+
+
+        /*
+          Kabezya uses 760px because its dedicated mobile
+          application CSS uses the same breakpoint.
+        */
+
+        syncTeacherKabezyaResponsiveLayout();
 
       }
 
@@ -47005,9 +47840,6 @@ tbody tr:last-child td{
         );
 
 
-
-
-
         document.addEventListener(
           "click",
           handleTeacherOutsideClick
@@ -47024,6 +47856,15 @@ tbody tr:last-child td{
           "resize",
           handleTeacherResize
         );
+
+
+        /*
+          Kabezya mobile controller belongs to the Teacher
+          Studio shell because its buttons and sheets are
+          declared directly inside teacher.html.
+        */
+
+        initializeTeacherKabezyaMobileController();
 
       }
 
