@@ -68601,8 +68601,7 @@ function renderTeacherKabezyaConversation(){
 
 
         <p>
-          Ask Kabezya about your classes, students,
-          assessments, lesson planning or teaching workflow.
+          Ask Kabezya about
         </p>
 
       </div>
