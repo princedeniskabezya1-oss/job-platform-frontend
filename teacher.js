@@ -2590,14 +2590,24 @@ function authHeaders(
 
 
 /* =========================================================
-   SAFE JSON RESPONSE PARSER
+   SAFE API RESPONSE PARSER
+   Production JSON + Text + HTML Protection
+
+   IMPORTANT:
+   Backend proxies/frameworks can sometimes return HTML for:
+   - missing routes
+   - deployment errors
+   - reverse-proxy errors
+   - platform-generated 404/500 pages
+
+   Raw HTML must NEVER be displayed inside Teacher Studio.
 ========================================================= */
 
 async function safeJson(
   response
 ){
 
-  if (
+  if(
     !response
   ){
 
@@ -2613,55 +2623,248 @@ async function safeJson(
           "content-type"
         ) ||
       ""
-    ).toLowerCase();
+    )
+      .trim()
+      .toLowerCase();
 
 
-  try{
+  /* =====================================================
+     JSON RESPONSE
+  ===================================================== */
 
-    if (
-      contentType.includes(
-        "application/json"
-      )
-    ){
-
-      return await response.json();
-
-    }
-
-
-    const text =
-      await response.text();
-
-
-    if (
-      !text
-    ){
-
-      return null;
-
-    }
-
+  if(
+    contentType.includes(
+      "application/json"
+    )
+  ){
 
     try{
 
-      return JSON.parse(
-        text
+      return await response.json();
+
+    }catch(
+      error
+    ){
+
+      console.warn(
+        "AIFT received an invalid JSON response:",
+        error
       );
 
-    }catch{
 
       return {
         message:
-          text
+          response.ok
+            ? "The server returned an invalid response."
+            : `The server could not complete the request.`
       };
 
     }
 
-  }catch{
+  }
+
+
+  /* =====================================================
+     TEXT RESPONSE
+  ===================================================== */
+
+  let text =
+    "";
+
+
+  try{
+
+    text =
+      String(
+        await response.text()
+      )
+        .trim();
+
+  }catch(
+    error
+  ){
+
+    console.warn(
+      "AIFT could not read the server response:",
+      error
+    );
+
 
     return null;
 
   }
+
+
+  if(
+    !text
+  ){
+
+    return null;
+
+  }
+
+
+  /* =====================================================
+     JSON STORED AS TEXT
+  ===================================================== */
+
+  try{
+
+    return JSON.parse(
+      text
+    );
+
+  }catch{
+
+    /*
+      Continue with text normalization.
+    */
+
+  }
+
+
+  /* =====================================================
+     HTML RESPONSE PROTECTION
+
+     Never expose:
+       <!DOCTYPE html>
+       <html>
+       <head>
+       <body>
+       framework error documents
+
+     to teachers.
+  ===================================================== */
+
+  const looksLikeHtml =
+    /<!doctype\s+html/i.test(
+      text
+    ) ||
+    /<html[\s>]/i.test(
+      text
+    ) ||
+    /<head[\s>]/i.test(
+      text
+    ) ||
+    /<body[\s>]/i.test(
+      text
+    );
+
+
+  if(
+    looksLikeHtml
+  ){
+
+    /* ===================================================
+       EXPRESS MISSING POST ROUTE
+    =================================================== */
+
+    const cannotPostMatch =
+      text.match(
+        /Cannot\s+POST\s+([^<\s]+)/i
+      );
+
+
+    if(
+      cannotPostMatch
+    ){
+
+      return {
+
+        message:
+          "This Kabezya feature is not available on the current server version.",
+
+        code:
+          "API_ROUTE_NOT_AVAILABLE",
+
+        route:
+          safeString(
+            cannotPostMatch[1]
+          )
+
+      };
+
+    }
+
+
+    /* ===================================================
+       EXPRESS MISSING GET ROUTE
+    =================================================== */
+
+    const cannotGetMatch =
+      text.match(
+        /Cannot\s+GET\s+([^<\s]+)/i
+      );
+
+
+    if(
+      cannotGetMatch
+    ){
+
+      return {
+
+        message:
+          "This AIFT feature is not available on the current server version.",
+
+        code:
+          "API_ROUTE_NOT_AVAILABLE",
+
+        route:
+          safeString(
+            cannotGetMatch[1]
+          )
+
+      };
+
+    }
+
+
+    /* ===================================================
+       GENERIC HTML SERVER FAILURE
+    =================================================== */
+
+    return {
+
+      message:
+        response.ok
+          ? "The server returned an unexpected response."
+          : "AIFT could not complete this request because the server returned an unexpected response.",
+
+      code:
+        "UNEXPECTED_HTML_RESPONSE"
+
+    };
+
+  }
+
+
+  /* =====================================================
+     SAFE PLAIN TEXT
+
+     Keep ordinary API text messages, but prevent huge server
+     pages or dumps from entering notifications.
+  ===================================================== */
+
+  const maximumLength =
+    1000;
+
+
+  const normalizedText =
+    text.length >
+      maximumLength
+      ? `${text.slice(
+          0,
+          maximumLength
+        )}…`
+      : text;
+
+
+  return {
+
+    message:
+      normalizedText
+
+  };
 
 }
 
@@ -60603,16 +60806,37 @@ function buildTeacherKabezyaContext(){
 /* =========================================================
    KABEZYA ENDPOINT BY MODE
 
-   These preserve the endpoint architecture already present
-   in the existing Teacher Studio implementation.
+   IMPORTANT:
+   Lesson Plan currently uses the working Teacher Assistant
+   endpoint because the deployed backend does not expose:
+
+     POST /api/kabezya/teacher/generate-lesson-plan
+
+   The request still includes:
+     mode: "lesson-plan"
+     selected class context
+     teacher prompt
+
+   so Kabezya can still generate lesson-plan responses.
+
+   When a dedicated backend lesson-plan endpoint is deployed,
+   this mapping can be changed back safely.
 ========================================================= */
 
 function getTeacherKabezyaEndpoint(){
 
-  switch(
+  const mode =
     teacherKabezyaWorkspaceState
-      .mode
+      .mode;
+
+
+  switch(
+    mode
   ){
+
+    /* =====================================================
+       CLASS ANALYSIS
+    ===================================================== */
 
     case TEACHER_KABEZYA_MODES
       .CLASS_ANALYSIS:
@@ -60620,11 +60844,19 @@ function getTeacherKabezyaEndpoint(){
       return "/api/kabezya/teacher/analyze-class";
 
 
+    /* =====================================================
+       STUDENT ANALYSIS
+    ===================================================== */
+
     case TEACHER_KABEZYA_MODES
       .STUDENT_ANALYSIS:
 
       return "/api/kabezya/teacher/analyze-student";
 
+
+    /* =====================================================
+       SUBMISSION REVIEW / FEEDBACK
+    ===================================================== */
 
     case TEACHER_KABEZYA_MODES
       .SUBMISSION_REVIEW:
@@ -60635,11 +60867,19 @@ function getTeacherKabezyaEndpoint(){
       return "/api/kabezya/teacher/inspect-submission";
 
 
+    /* =====================================================
+       QUIZ GENERATION
+    ===================================================== */
+
     case TEACHER_KABEZYA_MODES
       .GENERATE_QUIZ:
 
       return "/api/kabezya/teacher/generate-quiz";
 
+
+    /* =====================================================
+       ASSIGNMENT GENERATION
+    ===================================================== */
 
     case TEACHER_KABEZYA_MODES
       .GENERATE_ASSIGNMENT:
@@ -60647,11 +60887,24 @@ function getTeacherKabezyaEndpoint(){
       return "/api/kabezya/teacher/generate-assignment";
 
 
+    /* =====================================================
+       LESSON PLAN
+
+       Dedicated route is not currently deployed.
+
+       Use the production Assistant endpoint and preserve the
+       lesson-plan mode in the request body.
+    ===================================================== */
+
     case TEACHER_KABEZYA_MODES
       .LESSON_PLAN:
 
-      return "/api/kabezya/teacher/generate-lesson-plan";
+      return "/api/kabezya/teacher/assistant";
 
+
+    /* =====================================================
+       GENERAL ASSISTANT
+    ===================================================== */
 
     case TEACHER_KABEZYA_MODES
       .ASSISTANT:
