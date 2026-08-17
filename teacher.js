@@ -62105,13 +62105,129 @@ function renderTeacherKabezyaContextBar(){
     "";
 
 
+  const contextValidation =
+    teacherKabezyaWorkspaceState
+      .contextValidation &&
+    typeof teacherKabezyaWorkspaceState
+      .contextValidation ===
+      "object"
+      ? teacherKabezyaWorkspaceState
+          .contextValidation
+      : null;
+
+
+  /* =====================================================
+     ACTIVE VALIDATION MESSAGE
+  ===================================================== */
+
   if(
+    contextValidation
+  ){
+
+    const validationIcon =
+      safeString(
+        contextValidation.icon
+      ) ||
+      "fa-solid fa-circle-info";
+
+
+    const validationTitle =
+      safeString(
+        contextValidation.title
+      ) ||
+      "Context required";
+
+
+    const validationMessage =
+      safeString(
+        contextValidation.message
+      );
+
+
+    const validationHint =
+      safeString(
+        contextValidation.hint
+      );
+
+
+    contextStateMarkup = `
+      <div
+        class="
+          teacher-kabezya-context-status
+          is-context-required
+        "
+      >
+
+        <div
+          class="teacher-kabezya-context-status-icon"
+          aria-hidden="true"
+        >
+          <i
+            class="${escapeAttribute(
+              validationIcon
+            )}"
+          ></i>
+        </div>
+
+
+        <div
+          class="teacher-kabezya-context-status-copy"
+        >
+
+          <strong>
+            ${escapeHtml(
+              validationTitle
+            )}
+          </strong>
+
+
+          ${
+            validationMessage
+              ? `
+                  <p>
+                    ${escapeHtml(
+                      validationMessage
+                    )}
+                  </p>
+                `
+              : ""
+          }
+
+
+          ${
+            validationHint
+              ? `
+                  <small>
+                    ${escapeHtml(
+                      validationHint
+                    )}
+                  </small>
+                `
+              : ""
+          }
+
+        </div>
+
+      </div>
+    `;
+
+  }
+
+
+  /* =====================================================
+     NO SUBMISSION AVAILABLE
+  ===================================================== */
+
+  else if(
     showNoSubmissionState
   ){
 
     contextStateMarkup = `
       <div
-        class="teacher-kabezya-context-status is-empty-submission"
+        class="
+          teacher-kabezya-context-status
+          is-empty-submission
+        "
       >
 
         <div
@@ -62149,7 +62265,14 @@ function renderTeacherKabezyaContextBar(){
       </div>
     `;
 
-  }else if(
+  }
+
+
+  /* =====================================================
+     SELECTED CONTEXT
+  ===================================================== */
+
+  else if(
     items.length
   ){
 
@@ -62202,7 +62325,14 @@ function renderTeacherKabezyaContextBar(){
       </div>
     `;
 
-  }else{
+  }
+
+
+  /* =====================================================
+     GENERAL ASSISTANT CONTEXT
+  ===================================================== */
+
+  else{
 
     contextStateMarkup = `
       <div
@@ -62225,7 +62355,6 @@ function renderTeacherKabezyaContextBar(){
     `;
 
   }
-
 
   /* =====================================================
      RENDER
@@ -68854,6 +68983,31 @@ async function askTeacherKabezya(
 
   /* =====================================================
      MODE-SPECIFIC CONTEXT VALIDATION
+
+     IMPORTANT:
+     Kabezya context requirements are shown INSIDE the
+     Kabezya workspace.
+
+     Do not use the global AIFT alert/toast for these normal
+     validation states.
+
+     This keeps desktop and mobile consistent and prevents
+     large unstyled warnings from appearing underneath the
+     Teacher Studio workspace.
+  ===================================================== */
+
+
+  /* =====================================================
+     RESET PREVIOUS CONTEXT VALIDATION
+  ===================================================== */
+
+  teacherKabezyaWorkspaceState
+    .contextValidation =
+    null;
+
+
+  /* =====================================================
+     CLASS ANALYSIS
   ===================================================== */
 
   if(
@@ -68864,19 +69018,38 @@ async function askTeacherKabezya(
       .classId
   ){
 
-    notifyAIFTWarning(
-      "Select a class before asking Kabezya to analyze class performance.",
-      {
+    teacherKabezyaWorkspaceState
+      .contextValidation = {
+
+        type:
+          "class",
+
+        icon:
+          "fa-solid fa-chalkboard",
+
         title:
-          "Class required"
-      }
-    );
+          "Select a class",
+
+        message:
+          "Choose one of your assigned classes before asking Kabezya to analyze class performance.",
+
+        hint:
+          "Use the Class selector above, then ask Kabezya again."
+
+      };
+
+
+    renderTeacherKabezyaContextBar();
 
 
     return false;
 
   }
 
+
+  /* =====================================================
+     STUDENT ANALYSIS
+  ===================================================== */
 
   if(
     mode ===
@@ -68886,19 +69059,41 @@ async function askTeacherKabezya(
       .studentId
   ){
 
-    notifyAIFTWarning(
-      "Select a student before asking Kabezya to analyze learning progress.",
-      {
+    teacherKabezyaWorkspaceState
+      .contextValidation = {
+
+        type:
+          "student",
+
+        icon:
+          "fa-solid fa-user-graduate",
+
         title:
-          "Student required"
-      }
-    );
+          "Select a student",
+
+        message:
+          "Choose a student before asking Kabezya to analyze learning progress.",
+
+        hint:
+          teacherKabezyaWorkspaceState
+            .classId
+            ? "Use the Student selector above, then ask Kabezya again."
+            : "Select a class first if you want to narrow the available students."
+
+      };
+
+
+    renderTeacherKabezyaContextBar();
 
 
     return false;
 
   }
 
+
+  /* =====================================================
+     SUBMISSION REVIEW / FEEDBACK
+  ===================================================== */
 
   if(
     (
@@ -68914,18 +69109,124 @@ async function askTeacherKabezya(
       .submissionId
   ){
 
-    notifyAIFTWarning(
-      "Select a student submission before asking Kabezya to inspect the work.",
-      {
+    const availableSubmissions =
+      getTeacherSubmissions()
+        .filter(
+          submission => {
+
+            const selectedClassId =
+              normalizeId(
+                teacherKabezyaWorkspaceState
+                  .classId
+              );
+
+
+            const selectedStudentId =
+              normalizeId(
+                teacherKabezyaWorkspaceState
+                  .studentId
+              );
+
+
+            const submissionClassId =
+              normalizeId(
+                submission
+                  ?.classId
+                  ?._id ||
+                submission
+                  ?.classId
+              );
+
+
+            const submissionStudentId =
+              normalizeId(
+                submission
+                  ?.studentId
+                  ?._id ||
+                submission
+                  ?.studentId
+              );
+
+
+            if(
+              selectedClassId &&
+              !sameId(
+                selectedClassId,
+                submissionClassId
+              )
+            ){
+
+              return false;
+
+            }
+
+
+            if(
+              selectedStudentId &&
+              !sameId(
+                selectedStudentId,
+                submissionStudentId
+              )
+            ){
+
+              return false;
+
+            }
+
+
+            return true;
+
+          }
+        );
+
+
+    const noSubmittedWork =
+      availableSubmissions.length ===
+      0;
+
+
+    teacherKabezyaWorkspaceState
+      .contextValidation = {
+
+        type:
+          "submission",
+
+        icon:
+          "fa-regular fa-file-lines",
+
         title:
-          "Submission required"
-      }
-    );
+          noSubmittedWork
+            ? "No submitted work yet"
+            : "Select a submission",
+
+        message:
+          noSubmittedWork
+            ? "Kabezya cannot inspect student work because no submitted assignment is available for the selected class or student."
+            : "Choose a submitted assignment before asking Kabezya to inspect student work.",
+
+        hint:
+          noSubmittedWork
+            ? "You can select another class or student, or return after a student submits work."
+            : "Use the Submission selector above, then ask Kabezya again."
+
+      };
+
+
+    renderTeacherKabezyaContextBar();
 
 
     return false;
 
   }
+
+
+  /* =====================================================
+     VALID CONTEXT
+  ===================================================== */
+
+  teacherKabezyaWorkspaceState
+    .contextValidation =
+    null;
 
 
   /* =====================================================
