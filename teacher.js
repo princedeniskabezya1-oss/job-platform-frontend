@@ -59698,12 +59698,6 @@ function getTeacherKabezyaModeConfig(
 
     [TEACHER_KABEZYA_MODES.ASSISTANT]: {
 
-      title:
-        "Teacher Assistant",
-
-      description:
-        "Ask Kabezya",
-
       icon:
         "fa-solid fa-wand-magic-sparkles"
 
