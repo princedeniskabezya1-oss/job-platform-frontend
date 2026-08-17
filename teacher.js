@@ -59702,7 +59702,7 @@ function getTeacherKabezyaModeConfig(
         "Teacher Assistant",
 
       description:
-        "Ask Kabezya about your teaching workflow, classes, students and learning activities.",
+        "Ask Kabezya",
 
       icon:
         "fa-solid fa-wand-magic-sparkles"
