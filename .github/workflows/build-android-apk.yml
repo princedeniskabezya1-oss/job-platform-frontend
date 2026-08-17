@@ -1,0 +1,66 @@
+name: Build AIFT Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android-apk:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: mobile-build
+
+    steps:
+      - name: Checkout AIFT frontend
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install mobile dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build AIFT web assets
+        run: npm run build:web
+
+      - name: Create Capacitor Android project
+        run: npx cap add android
+
+      - name: Sync AIFT web assets to Android
+        run: npx cap sync android
+
+      - name: Build Android debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Prepare AIFT APK artifact
+        run: |
+          mkdir -p artifact
+          cp android/app/build/outputs/apk/debug/app-debug.apk artifact/AIFT.apk
+
+      - name: Upload AIFT APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AIFT-Android-APK
+          path: mobile-build/artifact/AIFT.apk
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a66c2">
+  <meta name="color-scheme" content="light">
+  <title>AIFT</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --aift-primary: #0a66c2;
+      --aift-background: #ffffff;
+      --aift-text: #172033;
+      --aift-muted: #64748b;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      background: var(--aift-background);
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color: var(--aift-text);
+    }
+
+    .launcher {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .logo {
+      width: 96px;
+      height: 96px;
+      object-fit: contain;
+      border-radius: 24px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--aift-muted);
+    }
+
+    .loader {
+      width: 34px;
+      height: 34px;
+      border: 3px solid #dbeafe;
+      border-top-color: var(--aift-primary);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <main class="launcher" aria-live="polite">
+    <img class="logo" src="images/aift-logo.png" alt="AIFT">
+    <h1>AIFT</h1>
+    <div class="loader" aria-hidden="true"></div>
+    <p>Opening your workspace...</p>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const TOKEN_KEYS = [
+        "token",
+        "studentToken",
+        "teacherToken",
+        "schoolToken",
+        "employerToken",
+        "talentToken",
+        "agentToken",
+        "adminToken"
+      ];
+
+      function role() {
+        return String(localStorage.getItem("role") || "").trim().toLowerCase();
+      }
+
+      function storedToken() {
+        const currentRole = role();
+        const roleKey = currentRole ? currentRole + "Token" : "";
+
+        if (roleKey) {
+          const value = localStorage.getItem(roleKey);
+          if (value) return value;
+        }
+
+        for (const key of TOKEN_KEYS) {
+          const value = localStorage.getItem(key);
+          if (value) return value;
+        }
+
+        return "";
+      }
+
+      function decodePayload(token) {
+        try {
+          const parts = String(token).split(".");
+          if (parts.length !== 3) return null;
+
+          let payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+          const remainder = payload.length % 4;
+          if (remainder) payload += "=".repeat(4 - remainder);
+
+          return JSON.parse(atob(payload));
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function tokenIsLocallyUsable(token) {
+        if (!token) return false;
+        const payload = decodePayload(token);
+        if (!payload) return false;
+
+        if (payload.exp) {
+          const expiresAt = Number(payload.exp) * 1000;
+          if (!Number.isFinite(expiresAt) || Date.now() >= expiresAt) return false;
+        }
+
+        return true;
+      }
+
+      function clearAuth() {
+        TOKEN_KEYS.forEach(function (key) {
+          localStorage.removeItem(key);
+        });
+        localStorage.removeItem("userId");
+        localStorage.removeItem("role");
+      }
+
+      function openApp() {
+        const token = storedToken();
+
+        if (!tokenIsLocallyUsable(token)) {
+          if (token) clearAuth();
+          window.location.replace("login.html");
+          return;
+        }
+
+        if (role() === "admin") {
+          window.location.replace("admin.html");
+          return;
+        }
+
+        window.location.replace("home.html");
+      }
+
+      requestAnimationFrame(function () {
+        requestAnimationFrame(openApp);
+      });
+    })();
+  </script>
+</body>
+</html>
