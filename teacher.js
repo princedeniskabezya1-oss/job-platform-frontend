@@ -68599,11 +68599,6 @@ function renderTeacherKabezyaConversation(){
           How can I help?
         </h2>
 
-
-        <p>
-          Ask Kabezya about
-        </p>
-
       </div>
     `;
 
