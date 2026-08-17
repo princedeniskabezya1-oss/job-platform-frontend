@@ -59495,6 +59495,9 @@ function getTeacherKabezyaModeConfig(
 
     [TEACHER_KABEZYA_MODES.ASSISTANT]: {
 
+      title:
+        "Teacher Assistant",
+
       description:
         "Ask Kabezya about your teaching workflow, classes, students and learning activities.",
 
