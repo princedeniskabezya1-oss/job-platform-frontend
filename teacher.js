@@ -60805,22 +60805,7 @@ function buildTeacherKabezyaContext(){
 
 /* =========================================================
    KABEZYA ENDPOINT BY MODE
-
-   IMPORTANT:
-   Lesson Plan currently uses the working Teacher Assistant
-   endpoint because the deployed backend does not expose:
-
-     POST /api/kabezya/teacher/generate-lesson-plan
-
-   The request still includes:
-     mode: "lesson-plan"
-     selected class context
-     teacher prompt
-
-   so Kabezya can still generate lesson-plan responses.
-
-   When a dedicated backend lesson-plan endpoint is deployed,
-   this mapping can be changed back safely.
+   Must match routes/teacherKabezya.js exactly
 ========================================================= */
 
 function getTeacherKabezyaEndpoint(){
@@ -60889,17 +60874,12 @@ function getTeacherKabezyaEndpoint(){
 
     /* =====================================================
        LESSON PLAN
-
-       Dedicated route is not currently deployed.
-
-       Use the production Assistant endpoint and preserve the
-       lesson-plan mode in the request body.
     ===================================================== */
 
-case TEACHER_KABEZYA_MODES
-  .LESSON_PLAN:
+    case TEACHER_KABEZYA_MODES
+      .LESSON_PLAN:
 
-  return "/api/kabezya/teacher/lesson-plan";
+      return "/api/kabezya/teacher/lesson-plan";
 
 
     /* =====================================================
