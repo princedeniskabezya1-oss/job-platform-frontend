@@ -59698,6 +59698,12 @@ function getTeacherKabezyaModeConfig(
 
     [TEACHER_KABEZYA_MODES.ASSISTANT]: {
 
+      title:
+        "Teacher Assistant",
+
+      description:
+        "Ask Kabezya",
+
       icon:
         "fa-solid fa-wand-magic-sparkles"
 
@@ -68592,6 +68598,11 @@ function renderTeacherKabezyaConversation(){
         <h2>
           How can I help?
         </h2>
+
+
+        <p>
+          Ask Kabezya about
+        </p>
 
       </div>
     `;
