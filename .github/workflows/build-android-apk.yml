@@ -69,17 +69,16 @@ jobs:
 
       - name: Verify Android camera and microphone permissions
         run: |
-          grep -Fq 'android.permission.CAMERA' android/app/src/main/AndroidManifest.xml
-          grep -Fq 'android.permission.RECORD_AUDIO' android/app/src/main/AndroidManifest.xml
-          grep -Fq 'android.permission.MODIFY_AUDIO_SETTINGS' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.CAMERA' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.RECORD_AUDIO' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.MODIFY_AUDIO_SETTINGS' android/app/src/main/AndroidManifest.xml
 
-      - name: Verify true Android edge-to-edge configuration
+      - name: Verify immersive Android fullscreen configuration
         run: |
           grep -Fq 'WindowCompat.setDecorFitsSystemWindows(window, false);' android/app/src/main/java/com/aift/app/MainActivity.java
-          grep -Fq 'window.setStatusBarColor(Color.TRANSPARENT);' android/app/src/main/java/com/aift/app/MainActivity.java
-          grep -Fq 'window.setNavigationBarColor(Color.TRANSPARENT);' android/app/src/main/java/com/aift/app/MainActivity.java
-          grep -Fq '<item name="android:statusBarColor">@android:color/transparent</item>' android/app/src/main/res/values/styles.xml
-          grep -Fq '<item name="android:navigationBarColor">@android:color/transparent</item>' android/app/src/main/res/values/styles.xml
+          grep -Fq 'controller.hide(WindowInsetsCompat.Type.systemBars());' android/app/src/main/java/com/aift/app/MainActivity.java
+          grep -Fq 'BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE' android/app/src/main/java/com/aift/app/MainActivity.java
+          grep -Fq 'applyImmersiveMode();' android/app/src/main/java/com/aift/app/MainActivity.java
 
       - name: Build Android debug APK
         run: |
