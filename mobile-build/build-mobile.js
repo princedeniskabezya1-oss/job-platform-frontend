@@ -7,6 +7,9 @@ const MOBILE_ROOT = __dirname;
 const PROJECT_ROOT = path.resolve(MOBILE_ROOT, "..");
 const OUTPUT_DIR = path.join(MOBILE_ROOT, "www");
 const MOBILE_ENTRY_FILE = path.join(MOBILE_ROOT, "launcher", "index.html");
+const NATIVE_BRIDGE_SOURCE = path.join(MOBILE_ROOT, "native", "aift-native.js");
+const NATIVE_BRIDGE_OUTPUT = path.join(OUTPUT_DIR, "aift-native.js");
+const NATIVE_BRIDGE_TAG = '<script src="aift-native.js"></script>';
 
 const EXCLUDED_ROOT_DIRECTORIES = new Set([
   ".git",
@@ -105,14 +108,67 @@ function validateSource() {
   if (!fs.existsSync(MOBILE_ENTRY_FILE)) {
     throw new Error("Required Android launcher is missing: mobile-build/launcher/index.html");
   }
+
+  if (!fs.existsSync(NATIVE_BRIDGE_SOURCE)) {
+    throw new Error("Required Android native bridge is missing: mobile-build/native/aift-native.js");
+  }
+}
+
+function walkHtmlFiles(directoryPath, output = []) {
+  const entries = fs.readdirSync(directoryPath, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const entryPath = path.join(directoryPath, entry.name);
+
+    if (entry.isDirectory()) {
+      walkHtmlFiles(entryPath, output);
+      continue;
+    }
+
+    if (entry.isFile() && /\.html?$/i.test(entry.name)) {
+      output.push(entryPath);
+    }
+  }
+
+  return output;
+}
+
+function injectNativeBridgeIntoHtml() {
+  const htmlFiles = walkHtmlFiles(OUTPUT_DIR);
+
+  for (const htmlFile of htmlFiles) {
+    let html = fs.readFileSync(htmlFile, "utf8");
+
+    if (html.includes(NATIVE_BRIDGE_TAG)) {
+      continue;
+    }
+
+    if (/<\/body>/i.test(html)) {
+      html = html.replace(/<\/body>/i, `  ${NATIVE_BRIDGE_TAG}\n</body>`);
+    } else {
+      html += `\n${NATIVE_BRIDGE_TAG}\n`;
+    }
+
+    fs.writeFileSync(htmlFile, html, "utf8");
+  }
 }
 
 function validateOutput() {
-  for (const relativePath of ["index.html", "login.html", "home.html"]) {
+  for (const relativePath of ["index.html", "login.html", "home.html", "aift-native.js"]) {
     const filePath = path.join(OUTPUT_DIR, relativePath);
     if (!fs.existsSync(filePath)) {
       throw new Error(`Mobile build output is missing: ${relativePath}`);
     }
+  }
+
+  const htmlFiles = walkHtmlFiles(OUTPUT_DIR);
+  const missingBridge = htmlFiles.filter(filePath => {
+    const html = fs.readFileSync(filePath, "utf8");
+    return !html.includes(NATIVE_BRIDGE_TAG);
+  });
+
+  if (missingBridge.length) {
+    throw new Error(`Native bridge injection failed for ${missingBridge.length} HTML file(s).`);
   }
 }
 
@@ -121,8 +177,12 @@ function build() {
   validateSource();
   removeDirectory(OUTPUT_DIR);
   ensureDirectory(OUTPUT_DIR);
+
   copyDirectory(PROJECT_ROOT);
   copyFile(MOBILE_ENTRY_FILE, path.join(OUTPUT_DIR, "index.html"));
+  copyFile(NATIVE_BRIDGE_SOURCE, NATIVE_BRIDGE_OUTPUT);
+  injectNativeBridgeIntoHtml();
+
   validateOutput();
   console.log(`[AIFT Mobile] Web build ready: ${OUTPUT_DIR}`);
 }
