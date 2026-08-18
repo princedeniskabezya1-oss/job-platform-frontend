@@ -84,10 +84,8 @@ function configureAndroidSystemBars() {
   if (!fs.existsSync(ANDROID_STYLES)) return;
   let styles = fs.readFileSync(ANDROID_STYLES, "utf8");
   const items = [
-    ["android:windowBackground", "@android:color/white"],
-    ["android:colorAccent", "#0A66C2"],
-    ["android:statusBarColor", "@android:color/white"],
-    ["android:navigationBarColor", "@android:color/white"],
+    ["android:statusBarColor", "@android:color/transparent"],
+    ["android:navigationBarColor", "@android:color/transparent"],
     ["android:windowLightStatusBar", "true"],
     ["android:windowLightNavigationBar", "true"],
     ["android:windowDrawsSystemBarBackgrounds", "true"]
@@ -99,8 +97,11 @@ function configureAndroidSystemBars() {
     if (!match) return false;
     let body = match[2];
     for (const [name, value] of items) {
-      if (!body.includes(`name="${name}"`)) body += `\n        <item name="${name}">${value}</item>`;
+      const itemRegex = new RegExp(`<item\\s+name="${name.replace(/:/g, "\\:")}"[^>]*>[\\s\\S]*?<\\/item>`, "i");
+      if (itemRegex.test(body)) body = body.replace(itemRegex, `<item name="${name}">${value}</item>`);
+      else body += `\n        <item name="${name}">${value}</item>`;
     }
+    body = body.replace(/\s*<item\s+name="android:windowBackground"[^>]*>[\s\S]*?<\/item>/gi, "");
     styles = styles.replace(regex, `${match[1]}${body}\n    ${match[3]}`);
     return true;
   }
@@ -111,7 +112,7 @@ function configureAndroidSystemBars() {
     return;
   }
   fs.writeFileSync(ANDROID_STYLES, styles, "utf8");
-  console.log("[AIFT Mobile] Android status/navigation bars configured for a light AIFT shell.");
+  console.log("[AIFT Mobile] Android system bars configured transparent for edge-to-edge layout.");
 }
 function validateOutput() {
   for (const relativePath of ["index.html", "login.html", "home.html", "aift-native.js"]) {
