@@ -43,6 +43,9 @@ jobs:
       - name: Create Capacitor Android project
         run: npx cap add android
 
+      - name: Apply Android permissions and rebuild packaged web assets
+        run: npm run build:web
+
       - name: Prepare AIFT branding source
         run: |
           test -f aift-icon.png
@@ -63,6 +66,12 @@ jobs:
 
       - name: Sync AIFT web assets and native plugins to Android
         run: npx cap sync android
+
+      - name: Verify Android camera and microphone permissions
+        run: |
+          grep -q 'android.permission.CAMERA' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.RECORD_AUDIO' android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.MODIFY_AUDIO_SETTINGS' android/app/src/main/AndroidManifest.xml
 
       - name: Build Android debug APK
         run: |
