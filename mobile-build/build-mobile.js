@@ -11,6 +11,7 @@ const NATIVE_BRIDGE_SOURCE = path.join(MOBILE_ROOT, "native", "aift-native.js");
 const NATIVE_BRIDGE_OUTPUT = path.join(OUTPUT_DIR, "aift-native.js");
 const NATIVE_BRIDGE_TAG = '<script src="aift-native.js"></script>';
 const ANDROID_MANIFEST = path.join(MOBILE_ROOT, "android", "app", "src", "main", "AndroidManifest.xml");
+const ANDROID_STYLES = path.join(MOBILE_ROOT, "android", "app", "src", "main", "res", "values", "styles.xml");
 
 const EXCLUDED_ROOT_DIRECTORIES = new Set([
   ".git",
@@ -140,6 +141,49 @@ function configureAndroidManifest() {
   console.log("[AIFT Mobile] Android camera/microphone permissions configured.");
 }
 
+function configureAndroidSystemBars() {
+  if (!fs.existsSync(ANDROID_STYLES)) return;
+
+  let styles = fs.readFileSync(ANDROID_STYLES, "utf8");
+  const items = [
+    ['android:windowBackground', '@android:color/white'],
+    ['android:colorAccent', '#0A66C2'],
+    ['android:statusBarColor', '@android:color/white'],
+    ['android:navigationBarColor', '@android:color/white'],
+    ['android:windowLightStatusBar', 'true'],
+    ['android:windowLightNavigationBar', 'true'],
+    ['android:windowNavigationBarContrastEnforced', 'false'],
+    ['android:windowDrawsSystemBarBackgrounds', 'true']
+  ];
+
+  function applyToStyle(styleName) {
+    const escaped = styleName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(<style\\s+name="${escaped}"[^>]*>)([\\s\\S]*?)(<\\/style>)`, "m");
+    const match = styles.match(regex);
+    if (!match) return false;
+
+    let body = match[2];
+    for (const [name, value] of items) {
+      const itemRegex = new RegExp(`<item\\s+name="${name.replace(/:/g, "\\:")}"[^>]*>`, "i");
+      if (!itemRegex.test(body)) body += `\n        <item name="${name}">${value}</item>`;
+    }
+
+    styles = styles.replace(regex, `${match[1]}${body}\n    ${match[3]}`);
+    return true;
+  }
+
+  const updatedMain = applyToStyle("AppTheme.NoActionBar");
+  applyToStyle("AppTheme.NoActionBarLaunch");
+
+  if (!updatedMain) {
+    console.warn("[AIFT Mobile] AppTheme.NoActionBar was not found; system bar theme was not changed.");
+    return;
+  }
+
+  fs.writeFileSync(ANDROID_STYLES, styles, "utf8");
+  console.log("[AIFT Mobile] Android status/navigation bars configured for a light AIFT shell.");
+}
+
 function validateOutput() {
   for (const relativePath of ["index.html", "login.html", "home.html", "aift-native.js"]) {
     const filePath = path.join(OUTPUT_DIR, relativePath);
@@ -160,6 +204,7 @@ function build() {
   copyFile(NATIVE_BRIDGE_SOURCE, NATIVE_BRIDGE_OUTPUT);
   injectNativeBridgeIntoHtml();
   configureAndroidManifest();
+  configureAndroidSystemBars();
   validateOutput();
   console.log(`[AIFT Mobile] Web build ready: ${OUTPUT_DIR}`);
 }
