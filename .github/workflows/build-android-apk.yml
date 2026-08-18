@@ -43,7 +43,7 @@ jobs:
       - name: Create Capacitor Android project
         run: npx cap add android
 
-      - name: Apply Android permissions and rebuild packaged web assets
+      - name: Apply Android native configuration and rebuild packaged web assets
         run: npm run build:web
 
       - name: Prepare AIFT branding source
@@ -73,12 +73,13 @@ jobs:
           grep -q 'android.permission.RECORD_AUDIO' android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.MODIFY_AUDIO_SETTINGS' android/app/src/main/AndroidManifest.xml
 
-      - name: Verify light Android system bars
+      - name: Verify true Android edge-to-edge configuration
         run: |
+          grep -q 'WindowCompat.setDecorFitsSystemWindows(getWindow(), false)' android/app/src/main/java/com/aift/app/MainActivity.java
+          grep -q 'setStatusBarColor(Color.TRANSPARENT)' android/app/src/main/java/com/aift/app/MainActivity.java
+          grep -q 'setNavigationBarColor(Color.TRANSPARENT)' android/app/src/main/java/com/aift/app/MainActivity.java
           grep -q 'android:statusBarColor' android/app/src/main/res/values/styles.xml
           grep -q 'android:navigationBarColor' android/app/src/main/res/values/styles.xml
-          grep -q 'android:windowLightStatusBar' android/app/src/main/res/values/styles.xml
-          grep -q 'android:windowLightNavigationBar' android/app/src/main/res/values/styles.xml
 
       - name: Build Android debug APK
         run: |
