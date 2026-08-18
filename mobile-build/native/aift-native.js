@@ -106,20 +106,82 @@
 
   function installSafeAreaStyles() {
     if (document.getElementById("aift-native-safe-area")) return;
+
     const style = document.createElement("style");
     style.id = "aift-native-safe-area";
     style.textContent = `
-      html.aift-native-app { background:#fff; }
+      html.aift-native-app,
+      html.aift-native-app body {
+        min-height:100%;
+        background-color:#fff;
+      }
+
       html.aift-native-app body {
         min-height:100dvh;
-        padding-bottom:env(safe-area-inset-bottom, 0px);
+        margin-bottom:0!important;
       }
-      html.aift-native-app .aift-native-safe-top { padding-top:env(safe-area-inset-top, 0px)!important; }
-      html.aift-native-app .aift-native-safe-bottom { padding-bottom:env(safe-area-inset-bottom, 0px)!important; }
+
+      html.aift-native-app .aift-native-safe-top {
+        padding-top:env(safe-area-inset-top, 0px)!important;
+      }
+
+      html.aift-native-app .aift-native-safe-bottom {
+        padding-bottom:env(safe-area-inset-bottom, 0px)!important;
+      }
+
       html.aift-native-app input,
       html.aift-native-app textarea,
-      html.aift-native-app select { font-size:max(16px, 1em); }
+      html.aift-native-app select {
+        font-size:max(16px, 1em);
+      }
+
+      /* Android comments use the whole available WebView instead of
+         exposing the dark sheet backdrop when the keyboard resizes it. */
+      html.aift-native-app body:has(#aiftCommentsSheet.open) #aiftSheetBackdrop,
+      html.aift-native-app body:has(#aiftCommentsSheet.open) .aift-sheet-backdrop {
+        background:#fff!important;
+        opacity:1!important;
+      }
+
+      html.aift-native-app #aiftCommentsSheet.open {
+        left:0!important;
+        right:0!important;
+        top:0!important;
+        bottom:0!important;
+        width:100%!important;
+        max-width:none!important;
+        height:100dvh!important;
+        max-height:100dvh!important;
+        border-radius:0!important;
+        transform:none!important;
+        background:#fff!important;
+        box-shadow:none!important;
+      }
+
+      html.aift-native-app #aiftCommentsSheet.open #aiftCommentsBody {
+        min-height:0!important;
+        flex:1 1 auto!important;
+        overflow-y:auto!important;
+        background:#fff!important;
+      }
+
+      html.aift-native-app #aiftCommentsSheet.open .aift-comment-footer {
+        flex:0 0 auto!important;
+        margin:0!important;
+        background:#fff!important;
+        padding-bottom:max(10px, env(safe-area-inset-bottom, 0px))!important;
+      }
+
+      html.aift-native-app.aift-keyboard-open #aiftCommentsSheet.open {
+        height:100dvh!important;
+        max-height:100dvh!important;
+      }
+
+      html.aift-native-app.aift-keyboard-open #aiftCommentsSheet.open .aift-comment-footer {
+        padding-bottom:8px!important;
+      }
     `;
+
     document.head.appendChild(style);
   }
 
@@ -135,11 +197,13 @@
 
   function installKeyboardEvents() {
     if (!Keyboard || typeof Keyboard.addListener !== "function") return;
+
     Keyboard.addListener("keyboardWillShow", function (info) {
       document.documentElement.classList.add("aift-keyboard-open");
       document.documentElement.style.setProperty("--aift-keyboard-height", `${Number(info?.keyboardHeight || 0)}px`);
       window.dispatchEvent(new CustomEvent("aift:native-keyboard", { detail: { visible: true, ...info } }));
     });
+
     Keyboard.addListener("keyboardWillHide", function () {
       document.documentElement.classList.remove("aift-keyboard-open");
       document.documentElement.style.setProperty("--aift-keyboard-height", "0px");
