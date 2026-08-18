@@ -7,7 +7,6 @@
   const Capacitor = window.Capacitor || null;
   const Plugins = Capacitor && Capacitor.Plugins ? Capacitor.Plugins : {};
   const App = Plugins.App || null;
-  const Keyboard = Plugins.Keyboard || null;
   const Network = Plugins.Network || null;
   const Share = Plugins.Share || null;
   const StatusBar = Plugins.StatusBar || null;
@@ -63,15 +62,18 @@
         window.closeChatPicker();
         return true;
       }
+
       if (element.id === "attachmentMenu") {
         element.classList.add("hidden");
         return true;
       }
+
       if (element.id === "newChatPanel" && typeof window.closeNewChatMode === "function") {
         window.closeNewChatMode();
         return true;
       }
     }
+
     return false;
   }
 
@@ -86,47 +88,46 @@
   async function handleBackButton(event) {
     if (closeVisibleUiLayer()) return;
     if (isRootPage()) return minimizeApp();
+
     if ((event && event.canGoBack) || window.history.length > 1) {
       window.history.back();
       return;
     }
+
     window.location.replace("home.html");
   }
 
   async function configureStatusBar() {
     if (!StatusBar) return;
+
     try {
-      if (typeof StatusBar.setOverlaysWebView === "function") await StatusBar.setOverlaysWebView({ overlay: false });
-      if (typeof StatusBar.setBackgroundColor === "function") await StatusBar.setBackgroundColor({ color: "#FFFFFF" });
-      if (typeof StatusBar.setStyle === "function") await StatusBar.setStyle({ style: "LIGHT" });
+      if (typeof StatusBar.setOverlaysWebView === "function") {
+        await StatusBar.setOverlaysWebView({ overlay: true });
+      }
+
+      if (typeof StatusBar.setStyle === "function") {
+        await StatusBar.setStyle({ style: "LIGHT" });
+      }
     } catch (error) {
       console.warn("[AIFT Native] Status bar configuration failed:", error);
     }
   }
 
-  function installSafeAreaStyles() {
-    if (document.getElementById("aift-native-safe-area")) return;
+  function installNativeViewportStyles() {
+    if (document.getElementById("aift-native-viewport")) return;
 
     const style = document.createElement("style");
-    style.id = "aift-native-safe-area";
+    style.id = "aift-native-viewport";
     style.textContent = `
       html.aift-native-app,
       html.aift-native-app body {
+        width:100%;
         min-height:100%;
-        background-color:#fff;
+        margin:0;
       }
 
       html.aift-native-app body {
         min-height:100dvh;
-        margin-bottom:0!important;
-      }
-
-      html.aift-native-app .aift-native-safe-top {
-        padding-top:env(safe-area-inset-top, 0px)!important;
-      }
-
-      html.aift-native-app .aift-native-safe-bottom {
-        padding-bottom:env(safe-area-inset-bottom, 0px)!important;
       }
 
       html.aift-native-app input,
@@ -134,91 +135,22 @@
       html.aift-native-app select {
         font-size:max(16px, 1em);
       }
-
-      /* Android comments use the whole available WebView instead of
-         exposing the dark sheet backdrop when the keyboard resizes it. */
-      html.aift-native-app body:has(#aiftCommentsSheet.open) #aiftSheetBackdrop,
-      html.aift-native-app body:has(#aiftCommentsSheet.open) .aift-sheet-backdrop {
-        background:#fff!important;
-        opacity:1!important;
-      }
-
-      html.aift-native-app #aiftCommentsSheet.open {
-        left:0!important;
-        right:0!important;
-        top:0!important;
-        bottom:0!important;
-        width:100%!important;
-        max-width:none!important;
-        height:100dvh!important;
-        max-height:100dvh!important;
-        border-radius:0!important;
-        transform:none!important;
-        background:#fff!important;
-        box-shadow:none!important;
-      }
-
-      html.aift-native-app #aiftCommentsSheet.open #aiftCommentsBody {
-        min-height:0!important;
-        flex:1 1 auto!important;
-        overflow-y:auto!important;
-        background:#fff!important;
-      }
-
-      html.aift-native-app #aiftCommentsSheet.open .aift-comment-footer {
-        flex:0 0 auto!important;
-        margin:0!important;
-        background:#fff!important;
-        padding-bottom:max(10px, env(safe-area-inset-bottom, 0px))!important;
-      }
-
-      html.aift-native-app.aift-keyboard-open #aiftCommentsSheet.open {
-        height:100dvh!important;
-        max-height:100dvh!important;
-      }
-
-      html.aift-native-app.aift-keyboard-open #aiftCommentsSheet.open .aift-comment-footer {
-        padding-bottom:8px!important;
-      }
     `;
 
     document.head.appendChild(style);
   }
 
-  async function configureKeyboard() {
-    if (!Keyboard) return;
-    try {
-      if (typeof Keyboard.setResizeMode === "function") await Keyboard.setResizeMode({ mode: "native" });
-      if (typeof Keyboard.setScroll === "function") await Keyboard.setScroll({ isDisabled: false });
-    } catch (error) {
-      console.warn("[AIFT Native] Keyboard configuration failed:", error);
-    }
-  }
-
-  function installKeyboardEvents() {
-    if (!Keyboard || typeof Keyboard.addListener !== "function") return;
-
-    Keyboard.addListener("keyboardWillShow", function (info) {
-      document.documentElement.classList.add("aift-keyboard-open");
-      document.documentElement.style.setProperty("--aift-keyboard-height", `${Number(info?.keyboardHeight || 0)}px`);
-      window.dispatchEvent(new CustomEvent("aift:native-keyboard", { detail: { visible: true, ...info } }));
-    });
-
-    Keyboard.addListener("keyboardWillHide", function () {
-      document.documentElement.classList.remove("aift-keyboard-open");
-      document.documentElement.style.setProperty("--aift-keyboard-height", "0px");
-      window.dispatchEvent(new CustomEvent("aift:native-keyboard", { detail: { visible: false, keyboardHeight: 0 } }));
-    });
-  }
-
   async function initializeNetwork() {
     if (!Network) return;
+
     try {
       const status = typeof Network.getStatus === "function" ? await Network.getStatus() : null;
+
       if (status) {
         document.documentElement.dataset.aiftConnection = status.connected ? "online" : "offline";
         window.dispatchEvent(new CustomEvent("aift:native-network", { detail: status }));
       }
+
       if (typeof Network.addListener === "function") {
         Network.addListener("networkStatusChange", function (nextStatus) {
           document.documentElement.dataset.aiftConnection = nextStatus.connected ? "online" : "offline";
@@ -232,9 +164,11 @@
 
   function initializeLifecycle() {
     if (!App || typeof App.addListener !== "function") return;
+
     App.addListener("appStateChange", function (state) {
       window.dispatchEvent(new CustomEvent("aift:native-app-state", { detail: state }));
     });
+
     App.addListener("appUrlOpen", function (event) {
       window.dispatchEvent(new CustomEvent("aift:native-deep-link", { detail: event || {} }));
     });
@@ -242,6 +176,7 @@
 
   function initializeBackButton() {
     if (!App || typeof App.addListener !== "function") return;
+
     App.addListener("backButton", function (event) {
       handleBackButton(event || {}).catch(function (error) {
         console.error("[AIFT Native] Back button handler failed:", error);
@@ -258,6 +193,7 @@
 
   function initializeFileInputObserver() {
     enhanceFileInputs();
+
     const observer = new MutationObserver(function (mutations) {
       for (const mutation of mutations) {
         for (const node of mutation.addedNodes || []) {
@@ -267,6 +203,7 @@
         }
       }
     });
+
     observer.observe(document.documentElement, { childList: true, subtree: true });
   }
 
@@ -275,7 +212,10 @@
   }
 
   async function requestMedia(options) {
-    if (!mediaDevicesAvailable()) throw new Error("Camera or microphone is unavailable on this device.");
+    if (!mediaDevicesAvailable()) {
+      throw new Error("Camera or microphone is unavailable on this device.");
+    }
+
     return navigator.mediaDevices.getUserMedia(options || { audio: true, video: false });
   }
 
@@ -286,10 +226,13 @@
 
   async function download(url, fileName) {
     if (!url) throw new Error("A download URL is required.");
+
     const response = await fetch(url, { credentials: "omit" });
     if (!response.ok) throw new Error(`Download failed (${response.status}).`);
+
     const blob = await response.blob();
     const objectUrl = URL.createObjectURL(blob);
+
     try {
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
@@ -300,41 +243,52 @@
       anchor.click();
       anchor.remove();
     } finally {
-      window.setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 1500);
+      window.setTimeout(function () {
+        URL.revokeObjectURL(objectUrl);
+      }, 1500);
     }
   }
 
   window.AIFTNative = Object.freeze({
     isNative: true,
     platform: "android",
+
     async share(options) {
       if (!Share || typeof Share.share !== "function") {
         if (navigator.share) return navigator.share(options || {});
         throw new Error("Native sharing is unavailable on this device.");
       }
+
       return Share.share(options || {});
     },
+
     async networkStatus() {
-      if (Network && typeof Network.getStatus === "function") return Network.getStatus();
+      if (Network && typeof Network.getStatus === "function") {
+        return Network.getStatus();
+      }
+
       return { connected: navigator.onLine, connectionType: "unknown" };
     },
+
     requestMedia,
     download,
     minimize: minimizeApp
   });
 
   async function initializeNativeBridge() {
-    installSafeAreaStyles();
+    installNativeViewportStyles();
     initializeBackButton();
     initializeLifecycle();
-    installKeyboardEvents();
     initializeFileInputObserver();
+
     await Promise.allSettled([
       configureStatusBar(),
-      configureKeyboard(),
       initializeNetwork()
     ]);
-    window.dispatchEvent(new CustomEvent("aift:native-ready", { detail: { platform: "android" } }));
+
+    window.dispatchEvent(new CustomEvent("aift:native-ready", {
+      detail: { platform: "android" }
+    }));
   }
 
   if (document.readyState === "loading") {
