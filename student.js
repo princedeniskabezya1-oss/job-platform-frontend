@@ -49102,16 +49102,64 @@ document.addEventListener("keydown",e => {
 document.addEventListener(
   "DOMContentLoaded",
   async () => {
+
+    /*
+      =========================================================
+      STUDENT STUDIO SHELL
+      =========================================================
+
+      Initialize the shared Student Studio shell first.
+
+      This binds:
+      - mobile hamburger
+      - mobile sidebar overlay
+      - sidebar navigation
+      - profile/topbar actions
+      - responsive sidebar behavior
+      - Student Studio route controls
+    */
+
+    initializeStudentStudioShell();
+
+
+    /*
+      =========================================================
+      GLOBAL SEARCH
+      =========================================================
+    */
+
     initSearch();
+
+
+    /*
+      =========================================================
+      DELEGATED WORKSPACE ACTIONS
+      =========================================================
+    */
 
     bindStudentStudioDelegatedActions();
 
+
+    /*
+      =========================================================
+      LOAD STUDENT DATA
+      =========================================================
+    */
+
     await loadAll();
+
+
+    /*
+      =========================================================
+      RESTORE REQUESTED PAGE
+      =========================================================
+    */
 
     const requestedPage =
       new URLSearchParams(
         window.location.search
       ).get("section");
+
 
     openStudentStudioPage(
       requestedPage || "overview",
@@ -49122,6 +49170,14 @@ document.addEventListener(
       }
     );
 
+
+    /*
+      =========================================================
+      REALTIME CONNECTION
+      =========================================================
+    */
+
     initSocket();
+
   }
 );
