@@ -12,18 +12,7 @@ const NATIVE_BRIDGE_OUTPUT = path.join(OUTPUT_DIR, "aift-native.js");
 const NATIVE_BRIDGE_TAG = '<script src="aift-native.js"></script>';
 const ANDROID_MANIFEST = path.join(MOBILE_ROOT, "android", "app", "src", "main", "AndroidManifest.xml");
 const ANDROID_STYLES = path.join(MOBILE_ROOT, "android", "app", "src", "main", "res", "values", "styles.xml");
-const ANDROID_MAIN_ACTIVITY = path.join(
-  MOBILE_ROOT,
-  "android",
-  "app",
-  "src",
-  "main",
-  "java",
-  "com",
-  "aift",
-  "app",
-  "MainActivity.java"
-);
+const ANDROID_MAIN_ACTIVITY = path.join(MOBILE_ROOT, "android", "app", "src", "main", "java", "com", "aift", "app", "MainActivity.java");
 
 const EXCLUDED_ROOT_DIRECTORIES = new Set([".git", ".github", ".idea", ".vscode", "mobile-build", "node_modules"]);
 const EXCLUDED_ROOT_FILES = new Set([".DS_Store", ".gitignore", "package.json", "package-lock.json", "capacitor.config.json", "capacitor.config.ts", "README", "README.md"]);
@@ -104,15 +93,11 @@ function forceViewportFitCover(html) {
       .filter(part => !/^viewport-fit\s*=/i.test(part));
 
     parts.push("viewport-fit=cover");
-    const replacement = `<meta name="viewport" content="${parts.join(",")}" />`;
-    return html.replace(viewportRegex, replacement);
+    return html.replace(viewportRegex, `<meta name="viewport" content="${parts.join(",")}" />`);
   }
 
   const viewport = '<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />';
-  if (/<head\b[^>]*>/i.test(html)) {
-    return html.replace(/<head\b[^>]*>/i, matchHead => `${matchHead}\n${viewport}`);
-  }
-
+  if (/<head\b[^>]*>/i.test(html)) return html.replace(/<head\b[^>]*>/i, head => `${head}\n${viewport}`);
   return `${viewport}\n${html}`;
 }
 
@@ -141,25 +126,16 @@ function configureAndroidManifest() {
 
   for (const permission of permissions) {
     if (!manifest.includes(`android:name="${permission}"`)) {
-      manifest = manifest.replace(
-        /<application\b/i,
-        `    <uses-permission android:name="${permission}" />\n\n    <application`
-      );
+      manifest = manifest.replace(/<application\b/i, `    <uses-permission android:name="${permission}" />\n\n    <application`);
     }
   }
 
   if (!manifest.includes("android.hardware.camera.any")) {
-    manifest = manifest.replace(
-      /<application\b/i,
-      '    <uses-feature android:name="android.hardware.camera.any" android:required="false" />\n\n    <application'
-    );
+    manifest = manifest.replace(/<application\b/i, '    <uses-feature android:name="android.hardware.camera.any" android:required="false" />\n\n    <application');
   }
 
   if (!manifest.includes("android.hardware.microphone")) {
-    manifest = manifest.replace(
-      /<application\b/i,
-      '    <uses-feature android:name="android.hardware.microphone" android:required="false" />\n\n    <application'
-    );
+    manifest = manifest.replace(/<application\b/i, '    <uses-feature android:name="android.hardware.microphone" android:required="false" />\n\n    <application');
   }
 
   fs.writeFileSync(ANDROID_MANIFEST, manifest, "utf8");
@@ -171,9 +147,10 @@ function configureAndroidSystemBars() {
 
   let styles = fs.readFileSync(ANDROID_STYLES, "utf8");
   const items = [
-    ["android:windowFullscreen", "true"],
+    ["android:windowFullscreen", "false"],
     ["android:statusBarColor", "@android:color/transparent"],
     ["android:navigationBarColor", "@android:color/transparent"],
+    ["android:windowLightStatusBar", "true"],
     ["android:windowDrawsSystemBarBackgrounds", "true"],
     ["android:windowActionModeOverlay", "true"],
     ["android:windowNoTitle", "true"]
@@ -192,9 +169,7 @@ function configureAndroidSystemBars() {
       else body += `\n        <item name="${name}">${value}</item>`;
     }
 
-    body = body.replace(/\s*<item\s+name="android:windowLightStatusBar"[^>]*>[\s\S]*?<\/item>/gi, "");
     body = body.replace(/\s*<item\s+name="android:windowLightNavigationBar"[^>]*>[\s\S]*?<\/item>/gi, "");
-
     styles = styles.replace(regex, `${match[1]}${body}\n    ${match[3]}`);
     return true;
   }
@@ -202,19 +177,19 @@ function configureAndroidSystemBars() {
   applyToStyle("AppTheme.NoActionBar");
   applyToStyle("AppTheme.NoActionBarLaunch");
   fs.writeFileSync(ANDROID_STYLES, styles, "utf8");
-  console.log("[AIFT Mobile] Android theme configured for borderless fullscreen.");
+  console.log("[AIFT Mobile] Android theme configured for transparent status overlay and hidden bottom navigation.");
 }
 
 function configureAndroidMainActivity() {
   if (!fs.existsSync(ANDROID_MAIN_ACTIVITY)) {
-    console.warn("[AIFT Mobile] MainActivity.java not found; immersive activity patch skipped.");
+    console.warn("[AIFT Mobile] MainActivity.java not found; native system-bar patch skipped.");
     return;
   }
 
-  const java = `package com.aift.app;\n\nimport android.graphics.Color;\nimport android.os.Build;\nimport android.os.Bundle;\nimport android.view.View;\nimport android.view.Window;\nimport android.view.WindowManager;\n\nimport androidx.core.view.WindowCompat;\nimport androidx.core.view.WindowInsetsCompat;\nimport androidx.core.view.WindowInsetsControllerCompat;\n\nimport com.getcapacitor.BridgeActivity;\n\npublic class MainActivity extends BridgeActivity {\n    @Override\n    protected void onCreate(Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        applyImmersiveMode();\n    }\n\n    @Override\n    public void onResume() {\n        super.onResume();\n        applyImmersiveMode();\n    }\n\n    @Override\n    public void onWindowFocusChanged(boolean hasFocus) {\n        super.onWindowFocusChanged(hasFocus);\n        if (hasFocus) applyImmersiveMode();\n    }\n\n    private void applyImmersiveMode() {\n        final Window window = getWindow();\n\n        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);\n        window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);\n        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);\n        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);\n        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);\n\n        WindowCompat.setDecorFitsSystemWindows(window, false);\n        window.setStatusBarColor(Color.TRANSPARENT);\n        window.setNavigationBarColor(Color.TRANSPARENT);\n\n        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {\n            WindowManager.LayoutParams attributes = window.getAttributes();\n            attributes.layoutInDisplayCutoutMode =\n                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.R\n                            ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS\n                            : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;\n            window.setAttributes(attributes);\n            window.setNavigationBarDividerColor(Color.TRANSPARENT);\n        }\n\n        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {\n            window.setStatusBarContrastEnforced(false);\n            window.setNavigationBarContrastEnforced(false);\n        }\n\n        window.getDecorView().setSystemUiVisibility(\n                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY\n                        | View.SYSTEM_UI_FLAG_FULLSCREEN\n                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION\n                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE\n                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN\n                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION\n        );\n\n        WindowInsetsControllerCompat controller =\n                WindowCompat.getInsetsController(window, window.getDecorView());\n\n        controller.setSystemBarsBehavior(\n                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE\n        );\n        controller.hide(WindowInsetsCompat.Type.statusBars());\n        controller.hide(WindowInsetsCompat.Type.navigationBars());\n    }\n}\n`;
+  const java = `package com.aift.app;\n\nimport android.graphics.Color;\nimport android.os.Build;\nimport android.os.Bundle;\nimport android.view.View;\nimport android.view.Window;\nimport android.view.WindowManager;\n\nimport androidx.core.view.WindowCompat;\nimport androidx.core.view.WindowInsetsCompat;\nimport androidx.core.view.WindowInsetsControllerCompat;\n\nimport com.getcapacitor.BridgeActivity;\n\npublic class MainActivity extends BridgeActivity {\n    @Override\n    protected void onCreate(Bundle savedInstanceState) {\n        super.onCreate(savedInstanceState);\n        applyAiftSystemBars();\n    }\n\n    @Override\n    public void onResume() {\n        super.onResume();\n        applyAiftSystemBars();\n    }\n\n    @Override\n    public void onWindowFocusChanged(boolean hasFocus) {\n        super.onWindowFocusChanged(hasFocus);\n        if (hasFocus) applyAiftSystemBars();\n    }\n\n    private void applyAiftSystemBars() {\n        final Window window = getWindow();\n\n        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);\n        window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);\n        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);\n        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);\n        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);\n\n        WindowCompat.setDecorFitsSystemWindows(window, false);\n        window.setStatusBarColor(Color.TRANSPARENT);\n        window.setNavigationBarColor(Color.TRANSPARENT);\n\n        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {\n            WindowManager.LayoutParams attributes = window.getAttributes();\n            attributes.layoutInDisplayCutoutMode =\n                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.R\n                            ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS\n                            : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;\n            window.setAttributes(attributes);\n            window.setNavigationBarDividerColor(Color.TRANSPARENT);\n        }\n\n        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {\n            window.setStatusBarContrastEnforced(false);\n            window.setNavigationBarContrastEnforced(false);\n        }\n\n        window.getDecorView().setSystemUiVisibility(\n                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY\n                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION\n                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE\n                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN\n                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION\n                        | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR\n        );\n\n        WindowInsetsControllerCompat controller =\n                WindowCompat.getInsetsController(window, window.getDecorView());\n\n        controller.setAppearanceLightStatusBars(true);\n        controller.setSystemBarsBehavior(\n                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE\n        );\n        controller.show(WindowInsetsCompat.Type.statusBars());\n        controller.hide(WindowInsetsCompat.Type.navigationBars());\n    }\n}\n`;
 
   fs.writeFileSync(ANDROID_MAIN_ACTIVITY, java, "utf8");
-  console.log("[AIFT Mobile] MainActivity configured for complete top-and-bottom immersive fullscreen.");
+  console.log("[AIFT Mobile] MainActivity configured to show time/network/battery over AIFT and hide only bottom navigation.");
 }
 
 function validateOutput() {
@@ -225,20 +200,11 @@ function validateOutput() {
   }
 
   const htmlFiles = walkHtmlFiles(OUTPUT_DIR);
-  const missingBridge = htmlFiles.filter(
-    filePath => !fs.readFileSync(filePath, "utf8").includes(NATIVE_BRIDGE_TAG)
-  );
-  const missingViewportCover = htmlFiles.filter(
-    filePath => !/viewport-fit\s*=\s*cover/i.test(fs.readFileSync(filePath, "utf8"))
-  );
+  const missingBridge = htmlFiles.filter(filePath => !fs.readFileSync(filePath, "utf8").includes(NATIVE_BRIDGE_TAG));
+  const missingViewportCover = htmlFiles.filter(filePath => !/viewport-fit\s*=\s*cover/i.test(fs.readFileSync(filePath, "utf8")));
 
-  if (missingBridge.length) {
-    throw new Error(`Native bridge injection failed for ${missingBridge.length} HTML file(s).`);
-  }
-
-  if (missingViewportCover.length) {
-    throw new Error(`Android viewport-fit=cover injection failed for ${missingViewportCover.length} HTML file(s).`);
-  }
+  if (missingBridge.length) throw new Error(`Native bridge injection failed for ${missingBridge.length} HTML file(s).`);
+  if (missingViewportCover.length) throw new Error(`Android viewport-fit=cover injection failed for ${missingViewportCover.length} HTML file(s).`);
 }
 
 function build() {
