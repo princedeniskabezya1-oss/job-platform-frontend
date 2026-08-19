@@ -1294,162 +1294,923 @@ img{
   stroke-width:2;
 }
 
-/* RESPONSIVE */
+/* =========================================================
+   SCHOOL STUDIO
+   RESPONSIVE APPLICATION SHELL
+========================================================= */
+
+
+/* =========================================================
+   MOBILE SIDEBAR TOGGLE
+   Hidden on desktop
+========================================================= */
+
+.school-sidebar-toggle{
+  display:none;
+
+  width:40px;
+  height:40px;
+  min-width:40px;
+  flex:0 0 40px;
+
+  padding:0;
+
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:4px;
+
+  border:0;
+  border-radius:10px;
+
+  background:transparent;
+  color:#172033;
+
+  cursor:pointer;
+
+  -webkit-tap-highlight-color:transparent;
+
+  transition:
+    background .18s ease;
+}
+
+.school-sidebar-toggle:hover{
+  background:#f2f4f7;
+}
+
+.school-sidebar-toggle:focus-visible{
+  outline:2px solid #0a66c2;
+  outline-offset:2px;
+}
+
+.school-sidebar-toggle span{
+  display:block;
+
+  width:19px;
+  height:2px;
+
+  border-radius:999px;
+
+  background:currentColor;
+
+  transition:
+    transform .18s ease,
+    opacity .18s ease;
+}
+
+body.school-sidebar-mobile-open
+.school-sidebar-toggle span:nth-child(1){
+  transform:
+    translateY(6px)
+    rotate(45deg);
+}
+
+body.school-sidebar-mobile-open
+.school-sidebar-toggle span:nth-child(2){
+  opacity:0;
+}
+
+body.school-sidebar-mobile-open
+.school-sidebar-toggle span:nth-child(3){
+  transform:
+    translateY(-6px)
+    rotate(-45deg);
+}
+
+
+/* =========================================================
+   MOBILE SIDEBAR OVERLAY
+========================================================= */
+
+.school-sidebar-overlay{
+  position:fixed;
+
+  top:58px;
+  right:0;
+  bottom:0;
+  left:0;
+
+  z-index:4800;
+
+  display:none;
+
+  background:
+    rgba(15,23,42,.38);
+
+  opacity:0;
+  pointer-events:none;
+
+  transition:
+    opacity .18s ease;
+}
+
+body.school-sidebar-mobile-open
+.school-sidebar-overlay{
+  opacity:1;
+  pointer-events:auto;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
 
 @media(max-width:1200px){
 
-  .main-grid{
-    grid-template-columns:280px minmax(0,1fr);
+  .stat-grid{
+    grid-template-columns:
+      repeat(2,minmax(0,1fr));
   }
 
-  .right-col{
-    display:none;
-  }
 }
 
-@media(max-width:920px){
+
+/* =========================================================
+   SCHOOL MOBILE APPLICATION
+========================================================= */
+
+@media(max-width:760px){
+
+  :root{
+    --school-mobile-topbar-height:58px;
+  }
+
+
+  html,
+  body{
+    width:100%;
+    max-width:100%;
+
+    overflow-x:hidden;
+  }
+
+
+  body{
+    padding-top:
+      var(--school-mobile-topbar-height);
+
+    padding-bottom:0;
+
+    background:#f5f7fa;
+  }
+
+
+  body.school-sidebar-mobile-open{
+    overflow:hidden;
+  }
+
+
+  /* =======================================================
+     TOPBAR
+  ======================================================= */
+
+  .topbar{
+    position:fixed;
+
+    top:0;
+    right:0;
+    left:0;
+
+    z-index:5000;
+
+    height:
+      var(--school-mobile-topbar-height);
+
+    background:
+      rgba(255,255,255,.98);
+
+    border-bottom:
+      1px solid #e4e7ec;
+
+    backdrop-filter:
+      blur(14px);
+
+    -webkit-backdrop-filter:
+      blur(14px);
+  }
+
 
   .topbar-inner{
-    min-height:auto;
-    padding:12px 0;
-    flex-wrap:wrap;
+    width:100%;
+    max-width:none;
+
+    min-height:
+      var(--school-mobile-topbar-height);
+
+    height:
+      var(--school-mobile-topbar-height);
+
+    margin:0;
+
+    padding:
+      0
+      max(
+        8px,
+        env(safe-area-inset-right)
+      )
+      0
+      max(
+        8px,
+        env(safe-area-inset-left)
+      );
+
+    display:grid;
+
+    grid-template-columns:
+      42px
+      minmax(0,1fr)
+      40px;
+
+    align-items:center;
+
+    gap:7px;
   }
+
+
+  /* =======================================================
+     TOP LEFT
+  ======================================================= */
+
+  .school-topbar-left{
+    width:42px;
+    min-width:42px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+
+  .school-sidebar-toggle{
+    display:flex;
+
+    width:38px;
+    height:38px;
+    min-width:38px;
+
+    flex-basis:38px;
+
+    border-radius:9px;
+  }
+
+
+  .school-sidebar-toggle span{
+    width:18px;
+  }
+
+
+  /* Desktop AIFT logo is hidden on mobile.
+     The left slot is reserved for navigation. */
+
+  .school-topbar-left .brand-wrap{
+    display:none;
+  }
+
+
+  /* =======================================================
+     TOPBAR ACTION CONTAINER
+
+     display:contents places search and avatar directly
+     into the topbar's middle/right grid cells.
+  ======================================================= */
 
   .top-actions{
-    width:100%;
-    justify-content:space-between;
+    display:contents;
   }
+
+
+  /* =======================================================
+     SEARCH
+  ======================================================= */
 
   .search{
+    position:relative;
+
+    width:100%;
     max-width:none;
-    order:2;
-    flex-basis:100%;
+    min-width:0;
+
+    margin:0;
+
+    grid-column:2;
+    grid-row:1;
   }
 
-  .cover{
-    min-height:148px;
+
+  .search input{
+    width:100%;
+    height:38px;
+
+    padding:
+      0
+      12px
+      0
+      37px;
+
+    border:
+      1px solid #d0d5dd;
+
+    border-radius:10px;
+
+    background:#f8fafc;
+
+    color:#172033;
+
+    font-size:12px;
+
+    outline:none;
   }
 
-  .hero-main{
-    padding:0 18px 20px;
+
+  .search input::placeholder{
+    color:#98a2b3;
+
+    text-overflow:ellipsis;
   }
 
-  .school-meta{
-    margin-top:-48px;
+
+  .search input:focus{
+    background:#fff;
+
+    border-color:#84b9ea;
+
+    box-shadow:
+      0 0 0 3px
+      rgba(10,102,194,.10);
   }
 
-  .school-logo{
-    width:94px;
-    height:94px;
-    border-radius:22px;
+
+  .search svg{
+    left:12px;
+
+    width:16px;
+    height:16px;
   }
 
-  .school-name{
-    font-size:1.35rem;
+
+  /* =======================================================
+     HIDE DESKTOP TOPBAR ACTIONS
+  ======================================================= */
+
+  .top-actions > .icon-btn,
+  .top-actions > .pill-btn,
+  .top-actions > .primary-btn{
+    display:none!important;
   }
 
-  .stat-grid{
-    grid-template-columns:repeat(2,minmax(0,1fr));
+
+  /* =======================================================
+     SCHOOL AVATAR
+  ======================================================= */
+
+  #topAvatar{
+    grid-column:3;
+    grid-row:1;
+
+    width:36px;
+    height:36px;
+
+    justify-self:end;
+
+    border-radius:50%;
+
+    border:
+      1px solid #e4e7ec;
+
+    background:#eef4ff;
+
+    object-fit:cover;
   }
 
-  .main-grid{
-    grid-template-columns:1fr;
+
+  /* =======================================================
+     OFF-CANVAS SCHOOL SIDEBAR
+  ======================================================= */
+
+  .school-sidebar{
+    position:fixed;
+
+    top:
+      var(--school-mobile-topbar-height);
+
+    bottom:0;
+    left:0;
+
+    z-index:4900;
+
+    width:
+      min(
+        286px,
+        calc(100vw - 44px)
+      );
+
+    height:
+      calc(
+        100dvh -
+        var(--school-mobile-topbar-height)
+      );
+
+    padding:
+      16px
+      12px
+      calc(
+        24px +
+        env(safe-area-inset-bottom)
+      );
+
+    overflow-x:hidden;
+    overflow-y:auto;
+
+    overscroll-behavior:contain;
+
+    background:#fff;
+
+    border-right:
+      1px solid #e4e7ec;
+
+    box-shadow:
+      12px 0 34px
+      rgba(15,23,42,.15);
+
+    transform:
+      translateX(-105%);
+
+    visibility:hidden;
+
+    transition:
+      transform .22s ease,
+      visibility .22s ease;
+
+    -webkit-overflow-scrolling:touch;
   }
 
-  .left-col,
-  .right-col{
-    position:static;
+
+  body.school-sidebar-mobile-open
+  .school-sidebar{
+    transform:
+      translateX(0);
+
+    visibility:visible;
+  }
+
+
+  .school-sidebar-label{
+    margin:
+      2px
+      10px
+      12px;
+
+    color:#98a2b3;
+
+    font-size:10px;
+    line-height:1.2;
+
+    font-weight:800;
+
+    letter-spacing:.08em;
+
+    text-transform:uppercase;
+  }
+
+
+  /* =======================================================
+     MOBILE SIDEBAR NAVIGATION
+  ======================================================= */
+
+  .school-sidebar .tabs{
+    width:100%;
+
+    margin:0;
+    padding:0;
+
+    display:flex;
+    flex-direction:column;
+    flex-wrap:nowrap;
+
+    gap:4px;
+
+    overflow:visible;
+  }
+
+
+  .school-sidebar .tabs::-webkit-scrollbar{
+    display:initial;
+  }
+
+
+  .school-sidebar .tab-btn{
+    width:100%;
+    min-height:43px;
+
+    padding:
+      0
+      11px;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:flex-start;
+
+    gap:11px;
+
+    flex:0 0 auto;
+
+    border:0;
+    border-radius:10px;
+
+    background:transparent;
+
+    color:#344054;
+
+    text-align:left;
+
+    font-size:13px;
+    line-height:1.2;
+
+    font-weight:700;
+
+    white-space:nowrap;
+
+    box-shadow:none;
+
+    transform:none;
+  }
+
+
+  .school-sidebar .tab-btn svg{
+    width:19px;
+    height:19px;
+
+    min-width:19px;
+
+    flex:0 0 19px;
+
+    fill:none;
+
+    stroke:currentColor;
+
+    stroke-width:1.9;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+
+
+  .school-sidebar .tab-btn:hover{
+    transform:none;
+
+    background:#f5f7fa;
+
+    color:#172033;
+  }
+
+
+  .school-sidebar .tab-btn.active{
+    background:#edf6ff;
+
+    color:#0a66c2;
+
+    border:0;
+
+    box-shadow:
+      inset 3px 0 0
+      #0a66c2;
+  }
+
+
+  .school-sidebar-divider{
+    width:
+      calc(100% - 18px);
+
+    height:1px;
+
+    margin:
+      8px
+      auto;
+
+    background:#eef2f6;
+  }
+
+
+  .school-sidebar-overlay{
     display:block;
   }
 
-  .left-col{
-    order:2;
+
+  /* =======================================================
+     REMOVE OLD DESKTOP / LEGACY COLUMNS
+  ======================================================= */
+
+  .hero-wrap,
+  .hero,
+  .cover,
+  .cover-overlay,
+  .hero-main,
+  .hero-top,
+  .school-meta,
+  .school-logo,
+  .school-info,
+  .school-name-row,
+  .school-name,
+  .school-mini-meta,
+  .hero-actions{
+    display:none!important;
   }
+
+
+  .page{
+    width:100%;
+    min-height:
+      calc(
+        100dvh -
+        var(--school-mobile-topbar-height)
+      );
+
+    margin:0;
+
+    padding:
+      14px
+      0
+      calc(
+        30px +
+        env(safe-area-inset-bottom)
+      );
+
+    background:#f5f7fa;
+  }
+
+
+  .page > .container{
+    width:100%;
+    max-width:none;
+
+    margin:0;
+
+    padding:
+      0
+      12px;
+  }
+
+
+  .main-grid{
+    width:100%;
+
+    display:grid;
+
+    grid-template-columns:
+      minmax(0,1fr);
+
+    gap:0;
+  }
+
+
+  /*
+    Teacher and Student Studio behavior:
+    mobile is one workspace column.
+
+    The old Quick Actions / information side columns
+    must not sit above or below the main section.
+  */
+
+  .left-col,
+  .right-col{
+    display:none!important;
+  }
+
 
   .center-col{
     order:1;
+
+    width:100%;
+    max-width:none;
+    min-width:0;
   }
 
+
+  /* =======================================================
+     SECTIONS
+  ======================================================= */
+
+  .section{
+    width:100%;
+    min-width:0;
+  }
+
+
+  .workspace-section-header{
+    width:100%;
+
+    min-height:0;
+
+    margin-bottom:12px;
+
+    padding:
+      16px;
+
+    display:flex;
+
+    align-items:flex-start;
+
+    flex-direction:column;
+
+    gap:14px;
+
+    border:
+      1px solid #e4e7ec;
+
+    border-radius:14px;
+
+    background:#fff;
+
+    box-shadow:
+      0 1px 3px
+      rgba(16,24,40,.05);
+  }
+
+
+  .workspace-eyebrow{
+    margin-bottom:5px;
+
+    font-size:10px;
+  }
+
+
+  .workspace-section-header h1{
+    font-size:20px;
+    line-height:1.2;
+  }
+
+
+  .workspace-section-header p{
+    margin-top:6px;
+
+    font-size:12px;
+    line-height:1.5;
+  }
+
+
+  .workspace-header-actions{
+    width:100%;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:flex-start;
+
+    gap:8px;
+
+    flex-wrap:wrap;
+  }
+
+
+  .workspace-header-actions
+  .primary-btn,
+  .workspace-header-actions
+  .ghost-btn{
+    min-height:38px;
+
+    padding:
+      8px
+      12px;
+
+    border-radius:10px;
+
+    font-size:12px;
+  }
+
+
+  /* =======================================================
+     COMMON CARDS
+  ======================================================= */
+
+  .card{
+    border-radius:14px;
+
+    box-shadow:
+      0 1px 3px
+      rgba(16,24,40,.05);
+  }
+
+
+  .card-pad{
+    padding:15px;
+  }
+
+
+  .card-title{
+    margin-bottom:12px;
+
+    font-size:15px;
+  }
+
+
+  .stat-grid,
   .program-grid,
   .student-grid,
   .analytics-grid,
   .settings-grid{
-    grid-template-columns:1fr;
-  }
-}
-
-@media(max-width:640px){
-
-  body{
-    padding-bottom:84px;
+    grid-template-columns:
+      minmax(0,1fr);
   }
 
-  .container{
-    width:min(100%,calc(100% - 14px));
+
+  .overview-studio-metric-grid{
+    grid-template-columns:
+      minmax(0,1fr)!important;
+
+    gap:10px!important;
   }
 
-  .brand-sub{
-    display:none;
+
+  .overview-studio-metric-card{
+    min-width:0;
   }
 
-  .pill-btn{
-    display:none;
+
+  .mini-metric-grid{
+    grid-template-columns:
+      repeat(2,minmax(0,1fr));
   }
 
-  .school-meta{
-    align-items:flex-end;
-  }
 
-  .hero-actions{
-    width:100%;
-  }
-
-  .hero-actions .primary-btn,
-  .hero-actions .ghost-btn{
-    flex:1 1 100%;
-  }
-
-  .stat-grid{
-    grid-template-columns:1fr 1fr;
-  }
-
-  .tabs{
-    overflow:auto;
-    flex-wrap:nowrap;
-    padding-bottom:4px;
-  }
-
-  .tabs::-webkit-scrollbar{
-    display:none;
-  }
-
-  .card-pad{
-    padding:18px;
-  }
-
-  .mobile-nav{
-    display:block;
-  }
+  /* =======================================================
+     FORMS / MODALS
+  ======================================================= */
 
   .input-grid{
     grid-template-columns:1fr;
   }
 
+
   .modal{
-    padding:10px;
+    padding:
+      max(
+        8px,
+        env(safe-area-inset-top)
+      )
+      8px
+      max(
+        8px,
+        env(safe-area-inset-bottom)
+      );
   }
+
 
   .modal-box{
-    border-radius:20px;
+    width:100%;
+
+    max-height:
+      calc(
+        100dvh -
+        16px
+      );
+
+    border-radius:16px;
   }
 
+
+  .modal-head{
+    padding:16px;
+  }
+
+
+  .modal-body{
+    padding:16px;
+  }
+
+
   .modal-actions{
+    padding:
+      0
+      16px
+      16px;
+
     flex-direction:column;
   }
+
 
   .modal-actions button{
     width:100%;
   }
+
+
+  /* =======================================================
+     OLD BOTTOM NAVIGATION MUST NEVER DISPLAY
+  ======================================================= */
+
+  .mobile-nav{
+    display:none!important;
+  }
+
+
+  .footer{
+    padding-bottom:
+      calc(
+        20px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
 }
 
   /* STUDENTS TAB — FULL WIDTH 4-COLUMN PREMIUM GRID */
@@ -11106,79 +11867,157 @@ body.aift-dialog-open{
 
 <body>
 
-<header class="topbar">
+<header
+  class="topbar"
+  id="schoolStudioTopbar"
+>
 
   <div class="container topbar-inner">
 
-<a
-  class="brand-wrap"
-  href="home.html"
-  aria-label="Go to AIFT home"
->
-  <img
-    class="brand-logo-img"
-    src="images/aift-logo.png"
-    alt="AIFT logo"
-  >
 
-  <div class="brand-text">
-    <div class="brand-sub">
-      School workspace
+    <!-- =====================================================
+         LEFT
+         Desktop logo + mobile navigation
+    ====================================================== -->
+
+    <div class="school-topbar-left">
+
+      <button
+        id="schoolSidebarToggle"
+        class="school-sidebar-toggle"
+        type="button"
+        aria-label="Open School Studio navigation"
+        aria-controls="schoolSidebar"
+        aria-expanded="false"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+
+      <a
+        class="brand-wrap"
+        href="home.html"
+        aria-label="Go to AIFT home"
+      >
+
+        <img
+          class="brand-logo-img"
+          src="images/aift-logo.png"
+          alt="AIFT logo"
+        >
+
+        <div class="brand-text">
+          <div class="brand-sub">
+            School workspace
+          </div>
+        </div>
+
+      </a>
+
     </div>
-  </div>
-</a>
+
+
+    <!-- =====================================================
+         CENTER + RIGHT
+    ====================================================== -->
 
     <div class="top-actions">
 
+
+      <!-- GLOBAL SEARCH -->
+
       <div class="search">
 
-        <svg viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="M20 20l-3.5-3.5"></path>
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <circle
+            cx="11"
+            cy="11"
+            r="7"
+          ></circle>
+
+          <path
+            d="M20 20l-3.5-3.5"
+          ></path>
         </svg>
 
         <input
           type="search"
           id="globalSearch"
           placeholder="Search classes, teachers, students..."
+          autocomplete="off"
+          aria-label="Search School Studio"
         >
 
       </div>
 
+
+      <!-- NOTIFICATIONS -->
+
       <button
         class="icon-btn"
+        type="button"
         onclick="goNotifications()"
         title="Notifications"
+        aria-label="Open notifications"
       >
 
-        <svg viewBox="0 0 24 24">
-          <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
-          <path d="M10 21a2 2 0 0 0 4 0"></path>
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"
+          ></path>
+
+          <path
+            d="M10 21a2 2 0 0 0 4 0"
+          ></path>
         </svg>
 
-        <span class="badge" id="notificationBadge">0</span>
+        <span
+          class="badge"
+          id="notificationBadge"
+        >
+          0
+        </span>
 
       </button>
 
+
+      <!-- PUBLIC PAGE -->
+
       <button
         class="pill-btn"
+        type="button"
         onclick="openPublicPage()"
       >
         View Public Page
       </button>
 
-<button
-  class="primary-btn"
-  onclick="openModal('postModal')"
->
-  School Update
-</button>
+
+      <!-- CREATE UPDATE -->
+
+      <button
+        class="primary-btn"
+        type="button"
+        onclick="openModal('postModal')"
+      >
+        School Update
+      </button>
+
+
+      <!-- SCHOOL PROFILE -->
 
       <img
         id="topAvatar"
         class="avatar"
         src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-        alt="School"
+        alt="School profile"
       >
 
     </div>
@@ -16759,35 +17598,15 @@ body.aift-dialog-open{
   </div>
 
 </main>
-<!-- MOBILE NAV -->
-<nav class="mobile-nav">
-  <div class="mobile-nav-inner">
-    <button class="active" onclick="openTab('overview')">
-      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path></svg>
-      Home
-    </button>
+<!-- =========================================================
+     SCHOOL MOBILE SIDEBAR OVERLAY
+========================================================= -->
 
-    <button onclick="openTab('classes')">
-      <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"></path></svg>
-      Classes
-    </button>
-
-    <button onclick="openTab('students')">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"></circle><path d="M5.5 21a6.5 6.5 0 0 1 13 0"></path></svg>
-      Students
-    </button>
-
-    <button onclick="openTab('teachers')">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"></circle><path d="M5.5 21a6.5 6.5 0 0 1 13 0"></path></svg>
-      Teachers
-    </button>
-
-    <button onclick="openTab('portal')">
-      <svg viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-7"></path></svg>
-      Portal
-    </button>
-  </div>
-</nav>
+<div
+  id="schoolSidebarOverlay"
+  class="school-sidebar-overlay"
+  aria-hidden="true"
+></div>
 
 <!-- CLASS MODAL -->
 <div class="modal" id="classModal">
@@ -18465,6 +19284,203 @@ function getSchoolPosts(){
   });
 }
 
+
+/* =========================================================
+   SCHOOL STUDIO MOBILE SIDEBAR CONTROLLER
+========================================================= */
+
+function isSchoolStudioMobile(){
+
+  return window.matchMedia(
+    "(max-width:760px)"
+  ).matches;
+
+}
+
+
+/* =========================================================
+   OPEN / CLOSE MOBILE SIDEBAR
+========================================================= */
+
+function setSchoolSidebarMobileOpen(open){
+
+  const shouldOpen =
+    Boolean(open) &&
+    isSchoolStudioMobile();
+
+
+  document.body.classList.toggle(
+    "school-sidebar-mobile-open",
+    shouldOpen
+  );
+
+
+  const toggle =
+    document.getElementById(
+      "schoolSidebarToggle"
+    );
+
+
+  const overlay =
+    document.getElementById(
+      "schoolSidebarOverlay"
+    );
+
+
+  if(toggle){
+
+    toggle.setAttribute(
+      "aria-expanded",
+      String(shouldOpen)
+    );
+
+
+    toggle.setAttribute(
+      "aria-label",
+      shouldOpen
+        ? "Close School Studio navigation"
+        : "Open School Studio navigation"
+    );
+
+  }
+
+
+  if(overlay){
+
+    overlay.setAttribute(
+      "aria-hidden",
+      String(!shouldOpen)
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   TOGGLE MOBILE SIDEBAR
+========================================================= */
+
+function toggleSchoolStudioSidebar(){
+
+  setSchoolSidebarMobileOpen(
+    !document.body.classList.contains(
+      "school-sidebar-mobile-open"
+    )
+  );
+
+}
+
+
+/* =========================================================
+   INITIALIZE SCHOOL MOBILE SHELL
+========================================================= */
+
+function initializeSchoolStudioMobileShell(){
+
+  const toggle =
+    document.getElementById(
+      "schoolSidebarToggle"
+    );
+
+
+  const overlay =
+    document.getElementById(
+      "schoolSidebarOverlay"
+    );
+
+
+  if(
+    toggle &&
+    toggle.dataset.schoolSidebarBound !==
+      "true"
+  ){
+
+    toggle.dataset.schoolSidebarBound =
+      "true";
+
+
+    toggle.addEventListener(
+      "click",
+      event => {
+
+        event.preventDefault();
+
+        event.stopPropagation();
+
+        toggleSchoolStudioSidebar();
+
+      }
+    );
+
+  }
+
+
+  if(
+    overlay &&
+    overlay.dataset.schoolSidebarBound !==
+      "true"
+  ){
+
+    overlay.dataset.schoolSidebarBound =
+      "true";
+
+
+    overlay.addEventListener(
+      "click",
+      () => {
+
+        setSchoolSidebarMobileOpen(
+          false
+        );
+
+      }
+    );
+
+  }
+
+
+  window.addEventListener(
+    "resize",
+    () => {
+
+      if(
+        !isSchoolStudioMobile()
+      ){
+
+        setSchoolSidebarMobileOpen(
+          false
+        );
+
+      }
+
+    }
+  );
+
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if(
+        event.key === "Escape" &&
+        document.body.classList.contains(
+          "school-sidebar-mobile-open"
+        )
+      ){
+
+        setSchoolSidebarMobileOpen(
+          false
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
 function openTab(tab){
 
   document.querySelectorAll(".section").forEach(section => {
@@ -18484,9 +19500,17 @@ function openTab(tab){
     );
   });
 
-  document.querySelectorAll(".mobile-nav button").forEach(button => {
-    button.classList.remove("active");
-  });
+  /*
+    Mobile uses the same full School Studio sidebar.
+
+    After navigation, close the drawer automatically,
+    matching Teacher Studio and Student Studio.
+  */
+
+  setSchoolSidebarMobileOpen(
+    false
+  );
+
 
   document.body.classList.toggle(
     "focus-students",
@@ -33097,12 +34121,35 @@ document.addEventListener("keydown",e => {
   }
 });
 
-document.addEventListener("DOMContentLoaded",async () => {
-  previewUploads();
-  initSearch();
-  initSocket();
-  await loadAll();
-});
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
+
+    /*
+      Initialize the responsive School Studio shell first.
+
+      This provides:
+      - mobile hamburger
+      - sidebar drawer
+      - overlay
+      - outside-click closing
+      - Escape closing
+      - responsive cleanup
+    */
+
+    initializeSchoolStudioMobileShell();
+
+
+    previewUploads();
+
+    initSearch();
+
+    initSocket();
+
+    await loadAll();
+
+  }
+);
 </script>
 
 </body>
