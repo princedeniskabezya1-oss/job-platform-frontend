@@ -20246,6 +20246,7 @@ renderCareerHub();
 renderSettings();
 hydrateSelects();
 hydrateProfileForm();
+renderOverview();
 
 /*
   Render operational insights from the records already loaded.
@@ -21918,7 +21919,518 @@ function renderOverviewTodayActivity(){
 
 }
 
+/* =========================================================
+   SCHOOL OVERVIEW
+   REQUIRES ATTENTION
+========================================================= */
+
+function renderOverviewAttention(){
+
+  const container =
+    document.getElementById(
+      "overviewAttentionList"
+    );
+
+  const description =
+    document.getElementById(
+      "overviewAttentionDescription"
+    );
+
+
+  if(!container){
+    return;
+  }
+
+
+  const issues = [];
+
+
+  const students =
+    typeof getStudents === "function"
+      ? getStudents()
+      : [];
+
+
+  const teachers =
+    typeof getTeachers === "function"
+      ? getTeachers()
+      : [];
+
+
+  const classes =
+    Array.isArray(state.classes)
+      ? state.classes
+      : [];
+
+
+  const assignments =
+    Array.isArray(state.assignments)
+      ? state.assignments
+      : [];
+
+
+  const submissions =
+    Array.isArray(state.submissions)
+      ? state.submissions
+      : [];
+
+
+  const schedules =
+    Array.isArray(state.schedules)
+      ? state.schedules
+      : [];
+
+
+  const attendanceRecords =
+    Array.isArray(state.attendance)
+      ? state.attendance
+      : [];
+
+
+  /* =======================================================
+     PENDING SUBMISSION REVIEWS
+  ======================================================= */
+
+  const reviewedSubmissions =
+    submissions.filter(submission => {
+
+      const status =
+        String(
+          submission.status ||
+          ""
+        )
+          .trim()
+          .toLowerCase();
+
+
+      return Boolean(
+        submission.grade ||
+        submission.feedback ||
+        status === "reviewed" ||
+        status === "returned"
+      );
+
+    }).length;
+
+
+  const pendingReviews =
+    Math.max(
+      0,
+      submissions.length -
+      reviewedSubmissions
+    );
+
+
+  if(pendingReviews > 0){
+
+    issues.push({
+
+      level:
+        pendingReviews >= 10
+          ? "poor"
+          : "warning",
+
+      title:
+        pendingReviews === 1
+          ? "1 submission needs review"
+          : `${pendingReviews} submissions need review`,
+
+      detail:
+        "Submitted student work is still waiting for teacher or school review.",
+
+      actionLabel:
+        "Review",
+
+      action:
+        "openTab('analytics')"
+
+    });
+
+  }
+
+
+  /* =======================================================
+     OVERDUE ASSIGNMENTS
+  ======================================================= */
+
+  const now =
+    new Date();
+
+
+  const todayStart =
+    new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    ).getTime();
+
+
+  const overdueAssignments =
+    assignments.filter(assignment => {
+
+      const dueValue =
+        assignment.dueDate ||
+        assignment.deadline ||
+        "";
+
+
+      if(!dueValue){
+        return false;
+      }
+
+
+      const dueDate =
+        new Date(dueValue);
+
+
+      if(
+        Number.isNaN(
+          dueDate.getTime()
+        )
+      ){
+        return false;
+      }
+
+
+      const dueDay =
+        new Date(
+          dueDate.getFullYear(),
+          dueDate.getMonth(),
+          dueDate.getDate()
+        ).getTime();
+
+
+      return dueDay < todayStart;
+
+    });
+
+
+  if(overdueAssignments.length > 0){
+
+    issues.push({
+
+      level:
+        overdueAssignments.length >= 5
+          ? "poor"
+          : "warning",
+
+      title:
+        overdueAssignments.length === 1
+          ? "1 assignment is past its deadline"
+          : `${overdueAssignments.length} assignments are past their deadlines`,
+
+      detail:
+        "Review overdue coursework and determine whether deadlines or submission statuses need updating.",
+
+      actionLabel:
+        "Classes",
+
+      action:
+        "openTab('classes')"
+
+    });
+
+  }
+
+
+  /* =======================================================
+     SCHOOL SETUP / OPERATIONS
+  ======================================================= */
+
+  if(teachers.length === 0){
+
+    issues.push({
+
+      level:"poor",
+
+      title:
+        "No teachers connected",
+
+      detail:
+        "The school currently has no teacher accounts available for classes and academic operations.",
+
+      actionLabel:
+        "Add teacher",
+
+      action:
+        "openModal('teacherModal')"
+
+    });
+
+  }
+
+
+  if(students.length === 0){
+
+    issues.push({
+
+      level:"warning",
+
+      title:
+        "No students connected",
+
+      detail:
+        "Add students so enrollment, attendance, assignments, and progress can be monitored.",
+
+      actionLabel:
+        "Add student",
+
+      action:
+        "openModal('studentModal')"
+
+    });
+
+  }
+
+
+  if(classes.length === 0){
+
+    issues.push({
+
+      level:"warning",
+
+      title:
+        "No active classes available",
+
+      detail:
+        "Create a class workspace and connect teachers and students.",
+
+      actionLabel:
+        "Create class",
+
+      action:
+        "openModal('classModal')"
+
+    });
+
+  }
+
+
+  if(
+    classes.length > 0 &&
+    schedules.length === 0
+  ){
+
+    issues.push({
+
+      level:"warning",
+
+      title:
+        "No class sessions scheduled",
+
+      detail:
+        "Classes exist, but no schedule records are available for attendance and session tracking.",
+
+      actionLabel:
+        "Add schedule",
+
+      action:
+        "openModal('scheduleModal')"
+
+    });
+
+  }
+
+
+  /* =======================================================
+     ATTENDANCE HEALTH
+
+     Only flag this when actual attendance records exist.
+     We do not treat missing data as poor attendance.
+  ======================================================= */
+
+  if(
+    attendanceRecords.length > 0 &&
+    typeof attendanceStats ===
+      "function"
+  ){
+
+    const stats =
+      attendanceStats(
+        attendanceRecords
+      ) || {};
+
+
+    const rate =
+      Math.max(
+        0,
+        Math.min(
+          100,
+          Number(
+            stats.attendanceRate
+          ) || 0
+        )
+      );
+
+
+    if(rate < 70){
+
+      issues.push({
+
+        level:
+          rate < 50
+            ? "poor"
+            : "warning",
+
+        title:
+          `Attendance is ${Math.round(rate)}%`,
+
+        detail:
+          "Verified attendance records indicate a level that should be reviewed.",
+
+        actionLabel:
+          "Attendance",
+
+        action:
+          "openTab('attendance')"
+
+      });
+
+    }
+
+  }
+
+
+  /* =======================================================
+     HEALTHY STATE
+  ======================================================= */
+
+  if(!issues.length){
+
+    if(description){
+
+      description.textContent =
+        "No verified operational issues currently require immediate review.";
+
+    }
+
+
+    container.innerHTML = `
+      <article
+        class="overview-attention-item excellent"
+      >
+
+        <span
+          class="overview-attention-marker"
+          aria-hidden="true"
+        ></span>
+
+
+        <div class="overview-attention-copy">
+
+          <strong>
+            School operations look stable
+          </strong>
+
+          <span>
+            No overdue operational issues,
+            review backlog, or verified
+            attendance concerns were found.
+          </span>
+
+        </div>
+
+      </article>
+    `;
+
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     DESCRIPTION
+  ======================================================= */
+
+  if(description){
+
+    description.textContent =
+      issues.length === 1
+        ? "1 verified operational issue requires review."
+        : `${issues.length} verified operational issues require review.`;
+
+  }
+
+
+  /* =======================================================
+     RENDER ISSUES
+  ======================================================= */
+
+  container.innerHTML =
+    issues
+      .slice(
+        0,
+        6
+      )
+      .map(issue => {
+
+        return `
+          <article
+            class="overview-attention-item ${escapeHtml(
+              issue.level
+            )}"
+          >
+
+            <span
+              class="overview-attention-marker"
+              aria-hidden="true"
+            ></span>
+
+
+            <div class="overview-attention-copy">
+
+              <strong>
+                ${escapeHtml(
+                  issue.title
+                )}
+              </strong>
+
+              <span>
+                ${escapeHtml(
+                  issue.detail
+                )}
+              </span>
+
+            </div>
+
+
+            <button
+              type="button"
+              class="overview-attention-action"
+              onclick="${issue.action}"
+            >
+              ${escapeHtml(
+                issue.actionLabel
+              )}
+            </button>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+}
+
 function renderOverview(){
+
+  /*
+    =========================================================
+    OVERVIEW LIVE CONTENT
+    =========================================================
+
+    These two renderers must run every time Overview refreshes.
+
+    They use records already loaded into state and replace
+    the initial HTML loading placeholders.
+  */
+
+  renderOverviewTodayActivity();
+
+  renderOverviewAttention();
+
+
   const summary =
     state.analytics?.summary &&
     typeof state.analytics.summary ===
