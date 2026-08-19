@@ -73,14 +73,18 @@ jobs:
           grep -q 'android.permission.RECORD_AUDIO' android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.MODIFY_AUDIO_SETTINGS' android/app/src/main/AndroidManifest.xml
 
-      - name: Verify immersive Android fullscreen configuration
+      - name: Verify complete Android fullscreen packaging
         run: |
           grep -Fq 'WindowCompat.setDecorFitsSystemWindows(window, false);' android/app/src/main/java/com/aift/app/MainActivity.java
           grep -Fq 'window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);' android/app/src/main/java/com/aift/app/MainActivity.java
-          grep -Fq 'LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES' android/app/src/main/java/com/aift/app/MainActivity.java
+          grep -Fq 'LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS' android/app/src/main/java/com/aift/app/MainActivity.java
           grep -Fq 'controller.hide(WindowInsetsCompat.Type.statusBars());' android/app/src/main/java/com/aift/app/MainActivity.java
           grep -Fq 'controller.hide(WindowInsetsCompat.Type.navigationBars());' android/app/src/main/java/com/aift/app/MainActivity.java
           grep -Fq 'BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE' android/app/src/main/java/com/aift/app/MainActivity.java
+          grep -Eq 'viewport-fit[[:space:]]*=[[:space:]]*cover' www/home.html
+          grep -Fq '"adjustMarginsForEdgeToEdge": "disable"' capacitor.config.json
+          grep -Fq '"hidden": true' capacitor.config.json
+          grep -Fq '"insetsHandling": "disable"' capacitor.config.json
 
       - name: Build Android debug APK
         run: |
