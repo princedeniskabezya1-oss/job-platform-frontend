@@ -21472,6 +21472,452 @@ function setOverviewProgress(id,value){
     );
 }
 
+/* =========================================================
+   SCHOOL OVERVIEW
+   TODAY ACTIVITY
+========================================================= */
+
+function renderOverviewTodayActivity(){
+
+  const container =
+    document.getElementById(
+      "overviewTodayList"
+    );
+
+
+  if(!container){
+    return;
+  }
+
+
+  const todayKey =
+    typeof getLocalTodayKey === "function"
+      ? getLocalTodayKey()
+      : new Date()
+          .toLocaleDateString(
+            "en-CA"
+          );
+
+
+  const activities = [];
+
+
+  /* =======================================================
+     TODAY'S CLASS SESSIONS
+  ======================================================= */
+
+  const schedules =
+    Array.isArray(state.schedules)
+      ? state.schedules
+      : [];
+
+
+  schedules.forEach(schedule => {
+
+    const period =
+      typeof getSchedulePeriod === "function"
+        ? getSchedulePeriod(schedule)
+        : "";
+
+
+    if(period !== "today"){
+      return;
+    }
+
+
+    const className =
+      typeof getScheduleClassName === "function"
+        ? getScheduleClassName(schedule)
+        : (
+            schedule.classId?.title ||
+            schedule.classId?.name ||
+            schedule.title ||
+            "Class session"
+          );
+
+
+    const teacherName =
+      typeof getScheduleTeacherName === "function"
+        ? getScheduleTeacherName(schedule)
+        : (
+            schedule.teacherId?.name ||
+            schedule.teacher?.name ||
+            "School session"
+          );
+
+
+    const rawTime =
+      typeof getScheduleTimeValue === "function"
+        ? getScheduleTimeValue(schedule)
+        : (
+            schedule.time ||
+            schedule.startTime ||
+            ""
+          );
+
+
+    const timeLabel =
+      typeof formatScheduleTime === "function"
+        ? formatScheduleTime(rawTime)
+        : (
+            rawTime ||
+            "Today"
+          );
+
+
+    let sortTime = 0;
+
+
+    if(
+      typeof parseScheduleDateTime ===
+        "function"
+    ){
+
+      const parsed =
+        parseScheduleDateTime(
+          schedule
+        );
+
+
+      if(
+        parsed instanceof Date &&
+        !Number.isNaN(
+          parsed.getTime()
+        )
+      ){
+
+        sortTime =
+          parsed.getTime();
+
+      }
+
+    }
+
+
+    activities.push({
+
+      type:
+        "session",
+
+      time:
+        timeLabel,
+
+      title:
+        className ||
+        "Class session",
+
+      subtitle:
+        teacherName
+          ? `Teacher: ${teacherName}`
+          : "Scheduled class session",
+
+      status:
+        "Session",
+
+      sortTime
+
+    });
+
+  });
+
+
+  /* =======================================================
+     ASSIGNMENTS DUE TODAY
+  ======================================================= */
+
+  const assignments =
+    Array.isArray(state.assignments)
+      ? state.assignments
+      : [];
+
+
+  assignments.forEach(assignment => {
+
+    const dueDate =
+      assignment.dueDate ||
+      assignment.deadline ||
+      "";
+
+
+    if(!dueDate){
+      return;
+    }
+
+
+    let dueKey = "";
+
+
+    if(
+      typeof normalizeScheduleDateKey ===
+        "function"
+    ){
+
+      dueKey =
+        normalizeScheduleDateKey(
+          dueDate
+        );
+
+    }else{
+
+      const parsed =
+        new Date(dueDate);
+
+
+      if(
+        !Number.isNaN(
+          parsed.getTime()
+        )
+      ){
+
+        dueKey =
+          parsed.toLocaleDateString(
+            "en-CA"
+          );
+
+      }
+
+    }
+
+
+    if(dueKey !== todayKey){
+      return;
+    }
+
+
+    const classId =
+      assignment.classId?._id ||
+      assignment.classId ||
+      "";
+
+
+    const matchingClass =
+      (
+        Array.isArray(state.classes)
+          ? state.classes
+          : []
+      ).find(item =>
+        sameId(
+          item?._id ||
+          item?.id,
+          classId
+        )
+      );
+
+
+    const className =
+      assignment.classId?.title ||
+      assignment.classId?.name ||
+      matchingClass?.title ||
+      matchingClass?.name ||
+      "School assignment";
+
+
+    const title =
+      assignment.title ||
+      "Assignment";
+
+
+    let sortTime =
+      Number.MAX_SAFE_INTEGER;
+
+
+    const parsedDueDate =
+      new Date(dueDate);
+
+
+    if(
+      !Number.isNaN(
+        parsedDueDate.getTime()
+      )
+    ){
+
+      sortTime =
+        parsedDueDate.getTime();
+
+    }
+
+
+    activities.push({
+
+      type:
+        "assignment",
+
+      time:
+        "Due",
+
+      title,
+
+      subtitle:
+        className,
+
+      status:
+        "Deadline",
+
+      sortTime
+
+    });
+
+  });
+
+
+  /* =======================================================
+     SORT
+  ======================================================= */
+
+  activities.sort(
+    (first,second) =>
+      first.sortTime -
+      second.sortTime
+  );
+
+
+  /* =======================================================
+     EMPTY STATE
+  ======================================================= */
+
+  if(!activities.length){
+
+    container.innerHTML = `
+      <div class="overview-empty-state">
+        No sessions or assignment deadlines scheduled for today.
+      </div>
+    `;
+
+    const description =
+      document.getElementById(
+        "overviewTodayDescription"
+      );
+
+
+    if(description){
+
+      description.textContent =
+        "Your school has no scheduled activity requiring attention today.";
+
+    }
+
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     DESCRIPTION
+  ======================================================= */
+
+  const description =
+    document.getElementById(
+      "overviewTodayDescription"
+    );
+
+
+  if(description){
+
+    const sessionCount =
+      activities.filter(
+        item =>
+          item.type ===
+          "session"
+      ).length;
+
+
+    const deadlineCount =
+      activities.filter(
+        item =>
+          item.type ===
+          "assignment"
+      ).length;
+
+
+    const parts = [];
+
+
+    if(sessionCount){
+
+      parts.push(
+        `${sessionCount} ${
+          sessionCount === 1
+            ? "session"
+            : "sessions"
+        }`
+      );
+
+    }
+
+
+    if(deadlineCount){
+
+      parts.push(
+        `${deadlineCount} ${
+          deadlineCount === 1
+            ? "deadline"
+            : "deadlines"
+        }`
+      );
+
+    }
+
+
+    description.textContent =
+      `${parts.join(" and ")} scheduled for today.`;
+
+  }
+
+
+  /* =======================================================
+     RENDER
+  ======================================================= */
+
+  container.innerHTML =
+    activities
+      .slice(
+        0,
+        8
+      )
+      .map(activity => {
+
+        return `
+          <article class="overview-today-item">
+
+            <div class="overview-today-time">
+              ${escapeHtml(
+                activity.time
+              )}
+            </div>
+
+
+            <div class="overview-today-copy">
+
+              <strong>
+                ${escapeHtml(
+                  activity.title
+                )}
+              </strong>
+
+              <span>
+                ${escapeHtml(
+                  activity.subtitle
+                )}
+              </span>
+
+            </div>
+
+
+            <span class="overview-today-status">
+              ${escapeHtml(
+                activity.status
+              )}
+            </span>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+}
+
 function renderOverview(){
   const summary =
     state.analytics?.summary &&
