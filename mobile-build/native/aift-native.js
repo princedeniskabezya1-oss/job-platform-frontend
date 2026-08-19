@@ -9,7 +9,6 @@
   const App = Plugins.App || null;
   const Network = Plugins.Network || null;
   const Share = Plugins.Share || null;
-  const StatusBar = Plugins.StatusBar || null;
 
   function isNative() {
     return !!(Capacitor && typeof Capacitor.isNativePlatform === "function" && Capacitor.isNativePlatform());
@@ -95,22 +94,6 @@
     }
 
     window.location.replace("home.html");
-  }
-
-  async function configureStatusBar() {
-    if (!StatusBar) return;
-
-    try {
-      if (typeof StatusBar.setOverlaysWebView === "function") {
-        await StatusBar.setOverlaysWebView({ overlay: true });
-      }
-
-      if (typeof StatusBar.setStyle === "function") {
-        await StatusBar.setStyle({ style: "LIGHT" });
-      }
-    } catch (error) {
-      console.warn("[AIFT Native] Status bar configuration failed:", error);
-    }
   }
 
   function installNativeViewportStyles() {
@@ -263,10 +246,7 @@
     },
 
     async networkStatus() {
-      if (Network && typeof Network.getStatus === "function") {
-        return Network.getStatus();
-      }
-
+      if (Network && typeof Network.getStatus === "function") return Network.getStatus();
       return { connected: navigator.onLine, connectionType: "unknown" };
     },
 
@@ -280,11 +260,7 @@
     initializeBackButton();
     initializeLifecycle();
     initializeFileInputObserver();
-
-    await Promise.allSettled([
-      configureStatusBar(),
-      initializeNetwork()
-    ]);
+    await Promise.allSettled([initializeNetwork()]);
 
     window.dispatchEvent(new CustomEvent("aift:native-ready", {
       detail: { platform: "android" }
