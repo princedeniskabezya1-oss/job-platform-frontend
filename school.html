@@ -43962,6 +43962,469 @@ setText(
 );
 }
 
+
+/* =========================================================
+   SCHOOL STUDIO SETTINGS API
+========================================================= */
+
+let schoolStudioSettingsCache = null;
+
+let schoolStudioSettingsLoadingPromise = null;
+
+let schoolStudioSettingsSaveTimer = null;
+
+let schoolStudioSettingsSavePromise =
+  Promise.resolve();
+
+
+/* =========================================================
+   NORMALIZE SERVER RESPONSE
+========================================================= */
+
+function normalizeSchoolStudioSettingsResponse(
+  payload
+){
+
+  if(
+    payload &&
+    typeof payload === "object" &&
+    payload.settings &&
+    typeof payload.settings === "object"
+  ){
+
+    return payload.settings;
+
+  }
+
+
+  if(
+    payload &&
+    typeof payload === "object"
+  ){
+
+    return payload;
+
+  }
+
+
+  return null;
+
+}
+
+
+/* =========================================================
+   LOAD SETTINGS FROM SERVER
+========================================================= */
+
+async function loadSchoolStudioSettingsFromServer({
+  force = false
+} = {}){
+
+  if(
+    schoolStudioSettingsCache &&
+    !force
+  ){
+
+    return schoolStudioSettingsCache;
+
+  }
+
+
+  if(
+    schoolStudioSettingsLoadingPromise &&
+    !force
+  ){
+
+    return schoolStudioSettingsLoadingPromise;
+
+  }
+
+
+  schoolStudioSettingsLoadingPromise =
+    (async () => {
+
+      try{
+
+        const payload =
+          await apiGet(
+            "/api/users/me/school-studio-settings"
+          );
+
+
+        const settings =
+          normalizeSchoolStudioSettingsResponse(
+            payload
+          );
+
+
+        if(
+          !settings ||
+          typeof settings !== "object"
+        ){
+
+          throw new Error(
+            "Invalid School Studio settings response."
+          );
+
+        }
+
+
+        schoolStudioSettingsCache =
+          settings;
+
+
+        applyServerSchoolStudioSettings(
+          settings
+        );
+
+
+        return settings;
+
+      }catch(error){
+
+        console.error(
+          "LOAD SCHOOL STUDIO SETTINGS ERROR:",
+          error
+        );
+
+
+        /*
+          Do not destroy the locally stored theme if
+          the server is temporarily unavailable.
+        */
+
+        return null;
+
+      }finally{
+
+        schoolStudioSettingsLoadingPromise =
+          null;
+
+      }
+
+    })();
+
+
+  return schoolStudioSettingsLoadingPromise;
+
+}
+
+
+/* =========================================================
+   SAVE SETTINGS TO SERVER
+========================================================= */
+
+function saveSchoolStudioSettingsToServer(
+  patch
+){
+
+  if(
+    !patch ||
+    typeof patch !== "object"
+  ){
+
+    return Promise.resolve(
+      null
+    );
+
+  }
+
+
+  /*
+    Serialize saves.
+
+    This prevents two fast toggle changes from
+    overwriting one another out of order.
+  */
+
+  schoolStudioSettingsSavePromise =
+    schoolStudioSettingsSavePromise
+      .catch(() => null)
+      .then(
+        async () => {
+
+          try{
+
+            const response =
+              await apiPatch(
+                "/api/users/me/school-studio-settings",
+                {
+                  settings:
+                    patch
+                }
+              );
+
+
+            const settings =
+              normalizeSchoolStudioSettingsResponse(
+                response
+              );
+
+
+            if(settings){
+
+              schoolStudioSettingsCache =
+                settings;
+
+
+              applyServerSchoolStudioSettings(
+                settings
+              );
+
+            }
+
+
+            return settings;
+
+          }catch(error){
+
+            console.error(
+              "SAVE SCHOOL STUDIO SETTINGS ERROR:",
+              error
+            );
+
+
+            throw error;
+
+          }
+
+        }
+      );
+
+
+  return schoolStudioSettingsSavePromise;
+
+}
+
+
+/* =========================================================
+   DEBOUNCED SAVE
+
+   Useful for ordinary preference changes.
+========================================================= */
+
+function queueSchoolStudioSettingsSave(
+  patch
+){
+
+  window.clearTimeout(
+    schoolStudioSettingsSaveTimer
+  );
+
+
+  schoolStudioSettingsSaveTimer =
+    window.setTimeout(
+      () => {
+
+        saveSchoolStudioSettingsToServer(
+          patch
+        ).catch(
+          error => {
+
+            console.error(
+              "QUEUED SCHOOL SETTINGS SAVE FAILED:",
+              error
+            );
+
+          }
+        );
+
+      },
+      250
+    );
+
+}
+
+
+/* =========================================================
+   APPLY SERVER SETTINGS
+========================================================= */
+
+function applyServerSchoolStudioSettings(
+  settings
+){
+
+  if(
+    !settings ||
+    typeof settings !== "object"
+  ){
+    return;
+  }
+
+
+  const general =
+    settings.general &&
+    typeof settings.general === "object"
+      ? settings.general
+      : {};
+
+
+  const appearance =
+    settings.appearance &&
+    typeof settings.appearance === "object"
+      ? settings.appearance
+      : {};
+
+
+  const accessibility =
+    settings.accessibility &&
+    typeof settings.accessibility === "object"
+      ? settings.accessibility
+      : {};
+
+
+  /*
+    Merge server-backed appearance settings into
+    the existing fast local device preferences.
+  */
+
+  const deviceSettings =
+    getSchoolDeviceSettings();
+
+
+  if(
+    typeof general.language ===
+    "string"
+  ){
+
+    deviceSettings.language =
+      general.language;
+
+  }
+
+
+  if(
+    typeof general.timezone ===
+    "string"
+  ){
+
+    deviceSettings.timezone =
+      general.timezone;
+
+  }
+
+
+  if(
+    typeof general.weekStart ===
+    "string"
+  ){
+
+    deviceSettings.weekStart =
+      general.weekStart;
+
+  }
+
+
+  if(
+    typeof appearance.theme ===
+    "string"
+  ){
+
+    deviceSettings.theme =
+      appearance.theme;
+
+  }
+
+
+  if(
+    typeof appearance.compactInterface ===
+    "boolean"
+  ){
+
+    deviceSettings.compact =
+      appearance.compactInterface;
+
+  }
+
+
+  if(
+    typeof appearance.rememberSidebar ===
+    "boolean"
+  ){
+
+    deviceSettings.rememberSidebar =
+      appearance.rememberSidebar;
+
+  }
+
+
+  if(
+    typeof accessibility.reducedMotion ===
+    "boolean"
+  ){
+
+    deviceSettings.reduceMotion =
+      accessibility.reducedMotion;
+
+  }
+
+
+  if(
+    typeof accessibility.highContrast ===
+    "boolean"
+  ){
+
+    deviceSettings.highContrast =
+      accessibility.highContrast;
+
+  }
+
+
+  if(
+    typeof accessibility.largerText ===
+    "boolean"
+  ){
+
+    deviceSettings.largeText =
+      accessibility.largerText;
+
+  }
+
+
+  /*
+    Store the synchronized version locally so
+    theme/accessibility can be restored before
+    the next API request finishes.
+  */
+
+  try{
+
+    localStorage.setItem(
+      SCHOOL_DEVICE_SETTINGS_KEY,
+      JSON.stringify(
+        normalizeSchoolDeviceSettings(
+          deviceSettings
+        )
+      )
+    );
+
+  }catch(error){
+
+    console.warn(
+      "Could not cache School Studio settings:",
+      error
+    );
+
+  }
+
+
+  applySchoolDeviceSettings(
+    deviceSettings
+  );
+
+
+  syncSchoolSettingsControls(
+    deviceSettings
+  );
+
+
+  syncSchoolServerSettingsControls(
+    settings
+  );
+
+}
+
+
 /* =========================================================
    SCHOOL STUDIO
    SETTINGS CONTROLLER
@@ -44286,17 +44749,64 @@ function setSchoolTheme(
   theme
 ){
 
+  const allowedThemes =
+    new Set([
+      "light",
+      "dark",
+      "system"
+    ]);
+
+
+  const cleanTheme =
+    String(
+      theme ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if(
+    !allowedThemes.has(
+      cleanTheme
+    )
+  ){
+    return;
+  }
+
+
+  /*
+    Apply instantly on this device.
+  */
+
   const current =
     getSchoolDeviceSettings();
 
 
   current.theme =
-    theme;
+    cleanTheme;
 
 
   setSchoolDeviceSettings(
     current
   );
+
+
+  /*
+    Then persist to the account so the preference
+    follows the school to another device.
+  */
+
+  queueSchoolStudioSettingsSave({
+
+    appearance: {
+
+      theme:
+        cleanTheme
+
+    }
+
+  });
 
 }
 
@@ -44304,6 +44814,257 @@ function setSchoolTheme(
 /* =========================================================
    SAVE FORM-BASED DEVICE SETTINGS
 ========================================================= */
+
+
+/* =========================================================
+   SYNC SERVER-BACKED CONTROLS
+========================================================= */
+
+function syncSchoolServerSettingsControls(
+  settings
+){
+
+  if(
+    !settings ||
+    typeof settings !== "object"
+  ){
+    return;
+  }
+
+
+  const notifications =
+    settings.notifications || {};
+
+
+  const privacy =
+    settings.privacy || {};
+
+
+  const assignChecked =
+    (
+      id,
+      value
+    ) => {
+
+      const input =
+        document.getElementById(
+          id
+        );
+
+
+      if(
+        input &&
+        typeof value === "boolean"
+      ){
+
+        input.checked =
+          value;
+
+      }
+
+    };
+
+
+  /* =======================================================
+     NOTIFICATIONS
+  ======================================================= */
+
+  assignChecked(
+    "schoolNotifyAssignments",
+    notifications.assignments
+  );
+
+
+  assignChecked(
+    "schoolNotifyAttendance",
+    notifications.attendance
+  );
+
+
+  assignChecked(
+    "schoolNotifyMessages",
+    notifications.messages
+  );
+
+
+  assignChecked(
+    "schoolNotifyCareer",
+    notifications.career
+  );
+
+
+  assignChecked(
+    "schoolNotifySecurity",
+    notifications.security
+  );
+
+
+  /* =======================================================
+     PRIVACY
+  ======================================================= */
+
+  assignChecked(
+    "schoolPrivacyPublicProfile",
+    privacy.publicProfile
+  );
+
+
+  assignChecked(
+    "schoolPrivacyDiscoverable",
+    privacy.discoverable
+  );
+
+
+  assignChecked(
+    "schoolPrivacyLocation",
+    privacy.showLocation
+  );
+
+
+  assignChecked(
+    "schoolPrivacyWebsite",
+    privacy.showWebsite
+  );
+
+
+  assignChecked(
+    "schoolPrivacyStatistics",
+    privacy.showStatistics
+  );
+
+
+  assignChecked(
+    "schoolPrivacyPrograms",
+    privacy.showPrograms
+  );
+
+
+  assignChecked(
+    "schoolPrivacyTeacherPerformance",
+    privacy.teacherPerformanceRestricted
+  );
+
+
+  assignChecked(
+    "schoolPrivacyStudentAnalytics",
+    privacy.studentAnalyticsRestricted
+  );
+
+}
+
+/* =========================================================
+   SERVER SETTINGS CHANGE HANDLER
+========================================================= */
+
+function initializeSchoolServerSettingsControls(){
+
+  document
+    .querySelectorAll(
+      "[data-server-setting]"
+    )
+    .forEach(input => {
+
+      if(
+        input.dataset.schoolSettingBound ===
+        "true"
+      ){
+        return;
+      }
+
+
+      input.dataset.schoolSettingBound =
+        "true";
+
+
+      input.addEventListener(
+        "change",
+        async event => {
+
+          const control =
+            event.currentTarget;
+
+
+          const path =
+            String(
+              control.dataset.serverSetting ||
+              ""
+            ).trim();
+
+
+          if(!path){
+            return;
+          }
+
+
+          const [
+            group,
+            field
+          ] =
+            path.split(".");
+
+
+          if(
+            !group ||
+            !field
+          ){
+            return;
+          }
+
+
+          const previousValue =
+            !control.checked;
+
+
+          control.disabled =
+            true;
+
+
+          try{
+
+            await saveSchoolStudioSettingsToServer({
+
+              [group]: {
+
+                [field]:
+                  Boolean(
+                    control.checked
+                  )
+
+              }
+
+            });
+
+          }catch(error){
+
+            /*
+              Restore the switch if the server
+              rejected the change.
+            */
+
+            control.checked =
+              previousValue;
+
+
+            console.error(
+              "SCHOOL SETTING CHANGE FAILED:",
+              path,
+              error
+            );
+
+          }finally{
+
+            control.disabled =
+              false;
+
+          }
+
+        }
+      );
+
+    });
+
+}
+
 
 function saveSchoolDeviceSettings(){
 
@@ -44360,26 +45121,34 @@ function saveSchoolDeviceSettings(){
 
 
   if(language){
+
     current.language =
       language.value;
+
   }
 
 
   if(timezone){
+
     current.timezone =
       timezone.value;
+
   }
 
 
   if(weekStart){
+
     current.weekStart =
       weekStart.value;
+
   }
 
 
   if(compact){
+
     current.compact =
       compact.checked;
+
   }
 
 
@@ -44415,9 +45184,61 @@ function saveSchoolDeviceSettings(){
   }
 
 
-  setSchoolDeviceSettings(
-    current
-  );
+  /*
+    Immediate local update.
+  */
+
+  const normalized =
+    setSchoolDeviceSettings(
+      current
+    );
+
+
+  /*
+    Account-level persistence.
+  */
+
+  queueSchoolStudioSettingsSave({
+
+    general: {
+
+      language:
+        normalized.language,
+
+      timezone:
+        normalized.timezone,
+
+      weekStart:
+        normalized.weekStart
+
+    },
+
+
+    appearance: {
+
+      compactInterface:
+        normalized.compact,
+
+      rememberSidebar:
+        normalized.rememberSidebar
+
+    },
+
+
+    accessibility: {
+
+      reducedMotion:
+        normalized.reduceMotion,
+
+      highContrast:
+        normalized.highContrast,
+
+      largerText:
+        normalized.largeText
+
+    }
+
+  });
 
 }
 
@@ -44499,137 +45320,57 @@ function openSchoolSettingsPanel(
    HYDRATE CONTROLS
 ========================================================= */
 
-function initializeSchoolSettings(){
+async function initializeSchoolSettings(){
 
-  const settings =
+  /*
+    Apply cached device settings immediately.
+    This prevents theme flashing while waiting
+    for Render/backend.
+  */
+
+  const localSettings =
     getSchoolDeviceSettings();
 
 
-  const assignValue =
-    (
-      id,
-      value
-    ) => {
-
-      const element =
-        document.getElementById(id);
-
-
-      if(element){
-        element.value = value;
-      }
-
-    };
-
-
-  const assignChecked =
-    (
-      id,
-      checked
-    ) => {
-
-      const element =
-        document.getElementById(id);
-
-
-      if(element){
-        element.checked =
-          Boolean(checked);
-      }
-
-    };
-
-
-  assignValue(
-    "schoolSettingLanguage",
-    settings.language
-  );
-
-
-  assignValue(
-    "schoolSettingTimezone",
-    settings.timezone
-  );
-
-
-  assignValue(
-    "schoolSettingWeekStart",
-    settings.weekStart
-  );
-
-
-  assignChecked(
-    "schoolSettingCompact",
-    settings.compact
-  );
-
-
-  assignChecked(
-    "schoolSettingRememberSidebar",
-    settings.rememberSidebar
-  );
-
-
-  assignChecked(
-    "schoolSettingReduceMotion",
-    settings.reduceMotion
-  );
-
-
-  assignChecked(
-    "schoolSettingHighContrast",
-    settings.highContrast
-  );
-
-
-  assignChecked(
-    "schoolSettingLargeText",
-    settings.largeText
+  syncSchoolSettingsControls(
+    localSettings
   );
 
 
   applySchoolDeviceSettings(
-    settings
+    localSettings
   );
 
-}
+
+  initializeSchoolServerSettingsControls();
 
 
-/* =========================================================
-   SYSTEM THEME CHANGE
-========================================================= */
+  /*
+    Start on General if no Settings subpage
+    has been activated.
+  */
 
-if(
-  window.matchMedia
-){
-
-  const schoolColorSchemeQuery =
-    window.matchMedia(
-      "(prefers-color-scheme: dark)"
+  const activePanel =
+    document.querySelector(
+      ".school-settings-panel.active"
     );
 
 
-  schoolColorSchemeQuery.addEventListener(
-    "change",
-    () => {
+  if(!activePanel){
 
-      const settings =
-        getSchoolDeviceSettings();
+    openSchoolSettingsPanel(
+      "general"
+    );
+
+  }
 
 
-      if(
-        settings.theme ===
-        "system"
-      ){
+  /*
+    Then synchronize with the authoritative
+    server settings.
+  */
 
-        applySchoolDeviceSettings(
-          settings
-        );
-
-      }
-
-    }
-  );
+  await loadSchoolStudioSettingsFromServer();
 
 }
 
