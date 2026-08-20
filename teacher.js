@@ -78144,6 +78144,518 @@ function initializeTeacherMessagesWorkspace(){
 ========================================================= */
 
 
+
+/* =========================================================
+   TEACHER STUDIO
+   SCHOOL UPDATES
+========================================================= */
+
+
+/* =========================================================
+   UPDATE SIDEBAR BADGE
+========================================================= */
+
+function updateTeacherSchoolUpdatesBadge(){
+
+  const badge =
+    document.getElementById(
+      "teacherSchoolUpdatesBadge"
+    );
+
+
+  if(!badge){
+    return;
+  }
+
+
+  const count =
+    Array.isArray(state.schoolUpdates)
+      ? state.schoolUpdates.length
+      : 0;
+
+
+  badge.textContent =
+    count > 99
+      ? "99+"
+      : String(count);
+
+
+  badge.hidden =
+    count === 0;
+
+}
+
+
+/* =========================================================
+   SCHOOL UPDATE MEDIA
+========================================================= */
+
+function renderTeacherSchoolUpdateMedia(
+  update
+){
+
+  const mediaUrl =
+    normalizeHttpUrl(
+      update?.mediaUrl
+    );
+
+
+  if(!mediaUrl){
+    return "";
+  }
+
+
+  const mediaType =
+    String(
+      update?.mediaType ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if(mediaType === "image"){
+
+    return `
+      <div class="teacher-update-media">
+
+        <img
+          src="${escapeAttribute(mediaUrl)}"
+          alt="School update media"
+          loading="lazy"
+        >
+
+      </div>
+    `;
+
+  }
+
+
+  if(mediaType === "video"){
+
+    return `
+      <div class="teacher-update-media">
+
+        <video
+          src="${escapeAttribute(mediaUrl)}"
+          controls
+          preload="metadata"
+        ></video>
+
+      </div>
+    `;
+
+  }
+
+
+  return "";
+
+}
+
+
+/* =========================================================
+   RENDER SCHOOL UPDATES
+========================================================= */
+
+function renderTeacherSchoolUpdates(){
+
+  const container =
+    document.getElementById(
+      "teacherSchoolUpdatesList"
+    );
+
+
+  if(!container){
+    return false;
+  }
+
+
+  const updates =
+    [...asArray(state.schoolUpdates)]
+      .sort(
+        (first,second) => {
+
+          const pinnedDifference =
+            Number(
+              Boolean(
+                second?.pinned
+              )
+            ) -
+            Number(
+              Boolean(
+                first?.pinned
+              )
+            );
+
+
+          if(pinnedDifference){
+            return pinnedDifference;
+          }
+
+
+          const secondDate =
+            toValidDate(
+              second?.createdAt ||
+              second?.updatedAt
+            );
+
+
+          const firstDate =
+            toValidDate(
+              first?.createdAt ||
+              first?.updatedAt
+            );
+
+
+          return (
+            (
+              secondDate
+                ? secondDate.getTime()
+                : 0
+            ) -
+            (
+              firstDate
+                ? firstDate.getTime()
+                : 0
+            )
+          );
+
+        }
+      );
+
+
+  updateTeacherSchoolUpdatesBadge();
+
+
+  /* =======================================================
+     EMPTY STATE
+  ======================================================= */
+
+  if(!updates.length){
+
+    container.innerHTML = `
+      <div class="teacher-updates-empty">
+
+        <span
+          class="teacher-updates-empty-icon"
+        >
+          <i
+            class="fa-regular fa-bell"
+            aria-hidden="true"
+          ></i>
+        </span>
+
+
+        <strong>
+          No school updates yet
+        </strong>
+
+
+        <p>
+          Announcements, notices, deadlines,
+          and important information from your
+          school will appear here.
+        </p>
+
+      </div>
+    `;
+
+
+    return true;
+
+  }
+
+
+  /* =======================================================
+     UPDATE FEED
+  ======================================================= */
+
+  container.innerHTML =
+    updates
+      .map(update => {
+
+        const title =
+          safeString(
+            update?.title,
+            "School Update"
+          );
+
+
+        const message =
+          safeString(
+            update?.message ||
+            update?.text,
+            ""
+          );
+
+
+        const type =
+          safeString(
+            update?.type,
+            "announcement"
+          );
+
+
+        const audience =
+          safeString(
+            update?.audience,
+            ""
+          );
+
+
+        const classTitle =
+          safeString(
+            update?.classId?.title ||
+            update?.classId?.name,
+            ""
+          );
+
+
+        const resourceUrl =
+          normalizeHttpUrl(
+            update?.resourceUrl
+          );
+
+
+        const updateDate =
+          update?.createdAt ||
+          update?.updatedAt;
+
+
+        return `
+          <article
+            class="teacher-update-item"
+          >
+
+
+            <!-- ===========================================
+                 HEADER
+            ============================================ -->
+
+            <div
+              class="teacher-update-head"
+            >
+
+              <div
+                class="teacher-update-heading"
+              >
+
+
+                <span
+                  class="teacher-update-icon"
+                >
+                  <i
+                    class="fa-solid fa-bullhorn"
+                    aria-hidden="true"
+                  ></i>
+                </span>
+
+
+                <div
+                  class="teacher-update-heading-copy"
+                >
+
+
+                  <div
+                    class="teacher-update-title-row"
+                  >
+
+                    <h2>
+                      ${escapeHtml(title)}
+                    </h2>
+
+
+                    ${
+                      update?.pinned
+                        ? `
+                            <span
+                              class="teacher-update-pinned"
+                            >
+                              <i
+                                class="fa-solid fa-thumbtack"
+                                aria-hidden="true"
+                              ></i>
+
+                              Pinned
+                            </span>
+                          `
+                        : ""
+                    }
+
+                  </div>
+
+
+                  <div
+                    class="teacher-update-meta"
+                  >
+
+                    <span>
+                      ${escapeHtml(
+                        formatDateTime(
+                          updateDate
+                        )
+                      )}
+                    </span>
+
+
+                    ${
+                      classTitle
+                        ? `
+                            <span>
+                              ${escapeHtml(
+                                classTitle
+                              )}
+                            </span>
+                          `
+                        : ""
+                    }
+
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              <span
+                class="teacher-update-type ${
+                  type.toLowerCase() ===
+                  "urgent"
+                    ? "urgent"
+                    : ""
+                }"
+              >
+                ${escapeHtml(type)}
+              </span>
+
+            </div>
+
+
+            <!-- ===========================================
+                 MESSAGE
+            ============================================ -->
+
+            ${
+              message
+                ? `
+                    <div
+                      class="teacher-update-message"
+                    >
+                      ${escapeHtml(message)}
+                    </div>
+                  `
+                : ""
+            }
+
+
+            <!-- ===========================================
+                 MEDIA
+            ============================================ -->
+
+            ${renderTeacherSchoolUpdateMedia(
+              update
+            )}
+
+
+            <!-- ===========================================
+                 FOOTER
+            ============================================ -->
+
+            <div
+              class="teacher-update-footer"
+            >
+
+
+              <div
+                class="teacher-update-tags"
+              >
+
+
+                ${
+                  audience
+                    ? `
+                        <span
+                          class="teacher-update-tag"
+                        >
+                          <i
+                            class="fa-solid fa-users"
+                            aria-hidden="true"
+                          ></i>
+
+                          ${escapeHtml(
+                            audience
+                          )}
+                        </span>
+                      `
+                    : ""
+                }
+
+
+                ${
+                  update?.dueDate
+                    ? `
+                        <span
+                          class="teacher-update-tag due"
+                        >
+                          <i
+                            class="fa-regular fa-calendar"
+                            aria-hidden="true"
+                          ></i>
+
+                          Due ${escapeHtml(
+                            formatDate(
+                              update.dueDate
+                            )
+                          )}
+                        </span>
+                      `
+                    : ""
+                }
+
+              </div>
+
+
+              ${
+                resourceUrl
+                  ? `
+                      <a
+                        class="teacher-update-resource"
+                        href="${
+                          escapeAttribute(
+                            resourceUrl
+                          )
+                        }"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+
+                        <i
+                          class="fa-solid fa-arrow-up-right-from-square"
+                          aria-hidden="true"
+                        ></i>
+
+                        <span>
+                          Open resource
+                        </span>
+
+                      </a>
+                    `
+                  : ""
+              }
+
+            </div>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+
+  return true;
+
+}
+
 /* =========================================================
    CANONICAL TEACHER STUDIO PAGES
 ========================================================= */
@@ -78806,6 +79318,13 @@ function getTeacherStudioRenderer(
       typeof renderStudioHome ===
         "function"
         ? renderStudioHome
+        : null,
+
+
+    updates:
+      typeof renderTeacherSchoolUpdates ===
+        "function"
+        ? renderTeacherSchoolUpdates
         : null,
 
 
@@ -86258,6 +86777,9 @@ function getTeacherStudioRequiredPageIds(){
 
     overview:
       "teacherPageOverview",
+
+    updates:
+      "teacherPageUpdates",
 
     classes:
       "teacherPageClasses",
