@@ -768,6 +768,11 @@ const STUDENT_STUDIO_PAGES = Object.freeze({
     description:"Your learning workspace"
   },
 
+  updates:{
+    title:"School Updates",
+    description:"Announcements, notices, deadlines, and information from your school"
+  },
+
   continue:{
     title:"Continue Learning",
     description:"Resume lessons, track class progress, and continue where you stopped"
