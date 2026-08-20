@@ -46449,15 +46449,16 @@ async function submitSchoolPasswordChange(
 
   try{
 
-    const response =
-      await apiPatch(
-        "/api/auth/change-password",
-        {
-          currentPassword,
-          newPassword,
-          confirmPassword
-        }
-      );
+const response =
+  await apiSend(
+    "/api/auth/change-password",
+    "PATCH",
+    {
+      currentPassword,
+      newPassword,
+      confirmPassword
+    }
+  );
 
 
     showSchoolPasswordMessage(
@@ -46527,11 +46528,19 @@ async function submitSchoolPasswordChange(
 
 function signOutAfterSchoolPasswordChange(){
 
-  [
+  const authKeys = [
+
+    "schoolToken",
+    "adminToken",
     "token",
     "authToken",
-    "aiftToken"
-  ].forEach(
+    "aiftToken",
+    "role"
+
+  ];
+
+
+  authKeys.forEach(
     key => {
 
       try{
@@ -46540,7 +46549,15 @@ function signOutAfterSchoolPasswordChange(){
           key
         );
 
-      }catch(_){}
+      }catch(error){
+
+        console.warn(
+          "Could not clear local auth key:",
+          key,
+          error
+        );
+
+      }
 
 
       try{
@@ -46549,14 +46566,51 @@ function signOutAfterSchoolPasswordChange(){
           key
         );
 
-      }catch(_){}
+      }catch(error){
+
+        console.warn(
+          "Could not clear session auth key:",
+          key,
+          error
+        );
+
+      }
 
     }
   );
 
 
-  window.location.href =
-    "login.html";
+  /*
+    Clear locally cached School Studio settings.
+
+    The server remains authoritative and the settings
+    will be loaded again after the next successful login.
+  */
+
+  try{
+
+    localStorage.removeItem(
+      SCHOOL_DEVICE_SETTINGS_KEY
+    );
+
+  }catch(error){
+
+    console.warn(
+      "Could not clear cached School Studio settings:",
+      error
+    );
+
+  }
+
+
+  /*
+    Prevent navigating back into an authenticated
+    dashboard using the browser history.
+  */
+
+  window.location.replace(
+    "login.html"
+  );
 
 }
 
