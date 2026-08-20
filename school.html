@@ -23857,6 +23857,263 @@ body.focus-teachers .center-col{
   }
 
 }
+
+/* =========================================================
+   SCHOOL SETTINGS
+   PASSWORD SECURITY
+========================================================= */
+
+.school-password-intro{
+  padding:
+    11px
+    12px;
+
+  border:
+    1px solid
+    var(--studio-border-soft);
+
+  border-radius:10px;
+
+  background:
+    var(--studio-surface-soft);
+}
+
+
+.school-password-intro strong{
+  display:block;
+
+  color:
+    var(--studio-text);
+
+  font-size:11px;
+  font-weight:700;
+}
+
+
+.school-password-intro p{
+  margin:
+    4px
+    0
+    0;
+
+  color:
+    var(--studio-muted);
+
+  font-size:9px;
+  line-height:1.5;
+}
+
+
+.school-password-field{
+  position:relative;
+
+  width:100%;
+}
+
+
+.school-password-field input{
+  padding-right:62px;
+}
+
+
+.school-password-toggle{
+  position:absolute;
+
+  top:50%;
+  right:7px;
+
+  min-width:46px;
+  height:30px;
+
+  padding:
+    0
+    7px;
+
+  transform:
+    translateY(-50%);
+
+  border:0;
+
+  border-radius:7px;
+
+  background:transparent;
+
+  color:
+    var(--studio-primary);
+
+  font-size:9px;
+  font-weight:700;
+}
+
+
+.school-password-toggle:hover{
+  background:
+    var(--studio-primary-soft);
+}
+
+
+/* =========================================================
+   STRENGTH
+========================================================= */
+
+.school-password-strength{
+  margin-top:7px;
+}
+
+
+.school-password-strength-track{
+  width:100%;
+  height:5px;
+
+  overflow:hidden;
+
+  border-radius:999px;
+
+  background:#e8eaed;
+}
+
+
+.school-password-strength-fill{
+  display:block;
+
+  width:0;
+  height:100%;
+
+  border-radius:999px;
+
+  background:
+    var(--studio-subtle);
+
+  transition:
+    width .2s ease,
+    background .2s ease;
+}
+
+
+.school-password-strength-fill.poor{
+  background:
+    var(--studio-danger);
+}
+
+
+.school-password-strength-fill.warning{
+  background:
+    var(--studio-warning);
+}
+
+
+.school-password-strength-fill.good{
+  background:
+    var(--studio-primary);
+}
+
+
+.school-password-strength-fill.excellent{
+  background:
+    var(--studio-success);
+}
+
+
+.school-password-strength small{
+  display:block;
+
+  margin-top:5px;
+
+  color:
+    var(--studio-muted);
+
+  font-size:8px;
+  line-height:1.4;
+}
+
+
+/* =========================================================
+   MESSAGES
+========================================================= */
+
+.school-password-message{
+  padding:
+    9px
+    10px;
+
+  border-radius:8px;
+
+  font-size:9px;
+  line-height:1.45;
+}
+
+
+.school-password-message.error{
+  border:
+    1px solid
+    #f6aea9;
+
+  background:
+    var(--studio-danger-soft);
+
+  color:
+    var(--studio-danger);
+}
+
+
+.school-password-message.success{
+  border:
+    1px solid
+    #a8dab5;
+
+  background:
+    var(--studio-success-soft);
+
+  color:
+    var(--studio-success);
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media(max-width:760px){
+
+  .school-password-intro{
+    padding:
+      9px
+      10px;
+  }
+
+
+  .school-password-intro strong{
+    font-size:9px;
+  }
+
+
+  .school-password-intro p{
+    font-size:7px;
+  }
+
+
+  .school-password-field input{
+    padding-right:55px;
+  }
+
+
+  .school-password-toggle{
+    right:5px;
+
+    min-width:42px;
+    height:28px;
+
+    font-size:8px;
+  }
+
+
+  .school-password-message{
+    font-size:8px;
+  }
+
+}
+
+
   
   
 </style>
@@ -30280,12 +30537,12 @@ body.focus-teachers .center-col{
               </span>
             </div>
 
-            <button
-              type="button"
-              data-server-action="change-password"
-            >
-              Change password
-            </button>
+<button
+  type="button"
+  onclick="openSchoolPasswordModal()"
+>
+  Change password
+</button>
 
           </div>
 
@@ -31209,6 +31466,237 @@ body.focus-teachers .center-col{
     </div>
   </div>
 </div>
+
+<!-- =========================================================
+     CHANGE PASSWORD MODAL
+========================================================= -->
+
+<div
+  id="changePasswordModal"
+  class="modal"
+  aria-hidden="true"
+>
+
+  <div
+    class="modal-box"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="changePasswordModalTitle"
+  >
+
+    <!-- HEADER -->
+
+    <div class="modal-head">
+
+      <div
+        id="changePasswordModalTitle"
+        class="modal-title"
+      >
+        Change Password
+      </div>
+
+      <button
+        type="button"
+        class="ghost-btn"
+        onclick="closeModal('changePasswordModal')"
+      >
+        Close
+      </button>
+
+    </div>
+
+
+    <!-- BODY -->
+
+    <form
+      id="changePasswordForm"
+      class="modal-body"
+      onsubmit="submitSchoolPasswordChange(event)"
+    >
+
+      <div class="school-password-intro">
+
+        <strong>
+          Protect your school account
+        </strong>
+
+        <p>
+          Enter your current password, then choose a new
+          password with at least 8 characters including
+          a letter and a number.
+        </p>
+
+      </div>
+
+
+      <!-- CURRENT PASSWORD -->
+
+      <div class="field">
+
+        <label for="schoolCurrentPassword">
+          Current Password
+        </label>
+
+        <div class="school-password-field">
+
+          <input
+            id="schoolCurrentPassword"
+            type="password"
+            autocomplete="current-password"
+            required
+          >
+
+          <button
+            type="button"
+            class="school-password-toggle"
+            aria-label="Show current password"
+            onclick="toggleSchoolPasswordVisibility('schoolCurrentPassword', this)"
+          >
+            Show
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- NEW PASSWORD -->
+
+      <div class="field">
+
+        <label for="schoolNewPassword">
+          New Password
+        </label>
+
+        <div class="school-password-field">
+
+          <input
+            id="schoolNewPassword"
+            type="password"
+            autocomplete="new-password"
+            minlength="8"
+            maxlength="128"
+            required
+            oninput="updateSchoolPasswordStrength()"
+          >
+
+          <button
+            type="button"
+            class="school-password-toggle"
+            aria-label="Show new password"
+            onclick="toggleSchoolPasswordVisibility('schoolNewPassword', this)"
+          >
+            Show
+          </button>
+
+        </div>
+
+
+        <div
+          class="school-password-strength"
+          aria-live="polite"
+        >
+
+          <div class="school-password-strength-track">
+
+            <span
+              id="schoolPasswordStrengthFill"
+              class="school-password-strength-fill"
+            ></span>
+
+          </div>
+
+          <small id="schoolPasswordStrengthText">
+            Use at least 8 characters with a letter and number.
+          </small>
+
+        </div>
+
+      </div>
+
+
+      <!-- CONFIRM PASSWORD -->
+
+      <div class="field">
+
+        <label for="schoolConfirmPassword">
+          Confirm New Password
+        </label>
+
+        <div class="school-password-field">
+
+          <input
+            id="schoolConfirmPassword"
+            type="password"
+            autocomplete="new-password"
+            minlength="8"
+            maxlength="128"
+            required
+          >
+
+          <button
+            type="button"
+            class="school-password-toggle"
+            aria-label="Show confirmed password"
+            onclick="toggleSchoolPasswordVisibility('schoolConfirmPassword', this)"
+          >
+            Show
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- ERROR -->
+
+      <div
+        id="schoolPasswordError"
+        class="school-password-message error"
+        role="alert"
+        hidden
+      ></div>
+
+
+      <!-- SUCCESS -->
+
+      <div
+        id="schoolPasswordSuccess"
+        class="school-password-message success"
+        role="status"
+        hidden
+      ></div>
+
+    </form>
+
+
+    <!-- ACTIONS -->
+
+    <div class="modal-actions">
+
+      <button
+        type="button"
+        class="ghost-btn"
+        onclick="closeModal('changePasswordModal')"
+      >
+        Cancel
+      </button>
+
+      <button
+        id="schoolPasswordSubmitButton"
+        type="submit"
+        form="changePasswordForm"
+        class="primary-btn"
+      >
+        Change Password
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
 <!-- OPPORTUNITY MODAL -->
 <div class="modal" id="opportunityModal">
   <div class="modal-box">
@@ -45380,6 +45868,699 @@ async function initializeSchoolSettings(){
 ========================================================= */
 
 applySchoolDeviceSettings();
+
+
+/* =========================================================
+   SCHOOL STUDIO
+   PASSWORD SECURITY
+========================================================= */
+
+
+/* =========================================================
+   OPEN PASSWORD MODAL
+========================================================= */
+
+function openSchoolPasswordModal(){
+
+  const form =
+    document.getElementById(
+      "changePasswordForm"
+    );
+
+
+  if(form){
+    form.reset();
+  }
+
+
+  hideSchoolPasswordMessage(
+    "schoolPasswordError"
+  );
+
+
+  hideSchoolPasswordMessage(
+    "schoolPasswordSuccess"
+  );
+
+
+  resetSchoolPasswordStrength();
+
+
+  const submitButton =
+    document.getElementById(
+      "schoolPasswordSubmitButton"
+    );
+
+
+  if(submitButton){
+
+    submitButton.disabled =
+      false;
+
+
+    submitButton.textContent =
+      "Change Password";
+
+  }
+
+
+  openModal(
+    "changePasswordModal"
+  );
+
+
+  window.setTimeout(
+    () => {
+
+      document
+        .getElementById(
+          "schoolCurrentPassword"
+        )
+        ?.focus();
+
+    },
+    80
+  );
+
+}
+
+
+/* =========================================================
+   PASSWORD VISIBILITY
+========================================================= */
+
+function toggleSchoolPasswordVisibility(
+  inputId,
+  button
+){
+
+  const input =
+    document.getElementById(
+      inputId
+    );
+
+
+  if(!input){
+    return;
+  }
+
+
+  const showing =
+    input.type ===
+    "text";
+
+
+  input.type =
+    showing
+      ? "password"
+      : "text";
+
+
+  if(button){
+
+    button.textContent =
+      showing
+        ? "Show"
+        : "Hide";
+
+
+    button.setAttribute(
+      "aria-label",
+      showing
+        ? "Show password"
+        : "Hide password"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   PASSWORD STRENGTH
+========================================================= */
+
+function getSchoolPasswordStrength(
+  password
+){
+
+  const value =
+    String(
+      password ||
+      ""
+    );
+
+
+  let score =
+    0;
+
+
+  if(value.length >= 8){
+    score += 1;
+  }
+
+
+  if(value.length >= 12){
+    score += 1;
+  }
+
+
+  if(/[A-Za-z]/.test(value)){
+    score += 1;
+  }
+
+
+  if(/\d/.test(value)){
+    score += 1;
+  }
+
+
+  if(
+    /[^A-Za-z0-9]/.test(
+      value
+    )
+  ){
+    score += 1;
+  }
+
+
+  return Math.min(
+    4,
+    score
+  );
+
+}
+
+
+/* =========================================================
+   UPDATE STRENGTH DISPLAY
+========================================================= */
+
+function updateSchoolPasswordStrength(){
+
+  const input =
+    document.getElementById(
+      "schoolNewPassword"
+    );
+
+
+  const fill =
+    document.getElementById(
+      "schoolPasswordStrengthFill"
+    );
+
+
+  const text =
+    document.getElementById(
+      "schoolPasswordStrengthText"
+    );
+
+
+  if(
+    !input ||
+    !fill ||
+    !text
+  ){
+    return;
+  }
+
+
+  const password =
+    input.value;
+
+
+  if(!password){
+
+    resetSchoolPasswordStrength();
+
+    return;
+
+  }
+
+
+  const score =
+    getSchoolPasswordStrength(
+      password
+    );
+
+
+  const states = [
+
+    {
+      width:"20%",
+      label:"Very weak",
+      className:"poor"
+    },
+
+    {
+      width:"40%",
+      label:"Weak",
+      className:"poor"
+    },
+
+    {
+      width:"60%",
+      label:"Fair",
+      className:"warning"
+    },
+
+    {
+      width:"80%",
+      label:"Good",
+      className:"good"
+    },
+
+    {
+      width:"100%",
+      label:"Strong",
+      className:"excellent"
+    }
+
+  ];
+
+
+  const state =
+    states[
+      Math.max(
+        0,
+        Math.min(
+          states.length - 1,
+          score
+        )
+      )
+    ];
+
+
+  fill.style.width =
+    state.width;
+
+
+  fill.className =
+    `school-password-strength-fill ${state.className}`;
+
+
+  text.textContent =
+    state.label;
+
+}
+
+
+/* =========================================================
+   RESET PASSWORD STRENGTH
+========================================================= */
+
+function resetSchoolPasswordStrength(){
+
+  const fill =
+    document.getElementById(
+      "schoolPasswordStrengthFill"
+    );
+
+
+  const text =
+    document.getElementById(
+      "schoolPasswordStrengthText"
+    );
+
+
+  if(fill){
+
+    fill.style.width =
+      "0";
+
+
+    fill.className =
+      "school-password-strength-fill";
+
+  }
+
+
+  if(text){
+
+    text.textContent =
+      "Use at least 8 characters with a letter and number.";
+
+  }
+
+}
+
+
+/* =========================================================
+   PASSWORD MESSAGES
+========================================================= */
+
+function showSchoolPasswordMessage(
+  id,
+  message
+){
+
+  const element =
+    document.getElementById(
+      id
+    );
+
+
+  if(!element){
+    return;
+  }
+
+
+  element.textContent =
+    String(
+      message ||
+      ""
+    );
+
+
+  element.hidden =
+    false;
+
+}
+
+
+function hideSchoolPasswordMessage(
+  id
+){
+
+  const element =
+    document.getElementById(
+      id
+    );
+
+
+  if(!element){
+    return;
+  }
+
+
+  element.textContent =
+    "";
+
+
+  element.hidden =
+    true;
+
+}
+
+
+/* =========================================================
+   VALIDATE PASSWORD CHANGE
+========================================================= */
+
+function validateSchoolPasswordChange(
+  currentPassword,
+  newPassword,
+  confirmPassword
+){
+
+  if(!currentPassword){
+
+    return "Enter your current password.";
+
+  }
+
+
+  if(!newPassword){
+
+    return "Enter a new password.";
+
+  }
+
+
+  if(newPassword.length < 8){
+
+    return "New password must be at least 8 characters.";
+
+  }
+
+
+  if(newPassword.length > 128){
+
+    return "New password is too long.";
+
+  }
+
+
+  if(
+    !/[A-Za-z]/.test(
+      newPassword
+    )
+  ){
+
+    return "New password must contain at least one letter.";
+
+  }
+
+
+  if(
+    !/\d/.test(
+      newPassword
+    )
+  ){
+
+    return "New password must contain at least one number.";
+
+  }
+
+
+  if(
+    currentPassword ===
+    newPassword
+  ){
+
+    return "New password must be different from your current password.";
+
+  }
+
+
+  if(
+    newPassword !==
+    confirmPassword
+  ){
+
+    return "New password and confirmation do not match.";
+
+  }
+
+
+  return null;
+
+}
+
+
+/* =========================================================
+   SUBMIT PASSWORD CHANGE
+========================================================= */
+
+async function submitSchoolPasswordChange(
+  event
+){
+
+  event.preventDefault();
+
+
+  const currentInput =
+    document.getElementById(
+      "schoolCurrentPassword"
+    );
+
+
+  const newInput =
+    document.getElementById(
+      "schoolNewPassword"
+    );
+
+
+  const confirmInput =
+    document.getElementById(
+      "schoolConfirmPassword"
+    );
+
+
+  const submitButton =
+    document.getElementById(
+      "schoolPasswordSubmitButton"
+    );
+
+
+  if(
+    !currentInput ||
+    !newInput ||
+    !confirmInput
+  ){
+    return;
+  }
+
+
+  const currentPassword =
+    currentInput.value;
+
+
+  const newPassword =
+    newInput.value;
+
+
+  const confirmPassword =
+    confirmInput.value;
+
+
+  hideSchoolPasswordMessage(
+    "schoolPasswordError"
+  );
+
+
+  hideSchoolPasswordMessage(
+    "schoolPasswordSuccess"
+  );
+
+
+  const validationError =
+    validateSchoolPasswordChange(
+      currentPassword,
+      newPassword,
+      confirmPassword
+    );
+
+
+  if(validationError){
+
+    showSchoolPasswordMessage(
+      "schoolPasswordError",
+      validationError
+    );
+
+
+    return;
+
+  }
+
+
+  if(submitButton){
+
+    submitButton.disabled =
+      true;
+
+
+    submitButton.textContent =
+      "Changing...";
+
+  }
+
+
+  try{
+
+    const response =
+      await apiPatch(
+        "/api/auth/change-password",
+        {
+          currentPassword,
+          newPassword,
+          confirmPassword
+        }
+      );
+
+
+    showSchoolPasswordMessage(
+      "schoolPasswordSuccess",
+      response?.message ||
+      "Password changed successfully."
+    );
+
+
+    currentInput.value =
+      "";
+
+
+    newInput.value =
+      "";
+
+
+    confirmInput.value =
+      "";
+
+
+    resetSchoolPasswordStrength();
+
+
+    window.setTimeout(
+      () => {
+
+        signOutAfterSchoolPasswordChange();
+
+      },
+      1100
+    );
+
+
+  }catch(error){
+
+    const message =
+      error?.message ||
+      "Failed to change password.";
+
+
+    showSchoolPasswordMessage(
+      "schoolPasswordError",
+      message
+    );
+
+
+    if(submitButton){
+
+      submitButton.disabled =
+        false;
+
+
+      submitButton.textContent =
+        "Change Password";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   SIGN OUT AFTER PASSWORD CHANGE
+========================================================= */
+
+function signOutAfterSchoolPasswordChange(){
+
+  [
+    "token",
+    "authToken",
+    "aiftToken"
+  ].forEach(
+    key => {
+
+      try{
+
+        localStorage.removeItem(
+          key
+        );
+
+      }catch(_){}
+
+
+      try{
+
+        sessionStorage.removeItem(
+          key
+        );
+
+      }catch(_){}
+
+    }
+  );
+
+
+  window.location.href =
+    "login.html";
+
+}
+
+  
 
 function renderSettings(){
   const students = getStudents();
