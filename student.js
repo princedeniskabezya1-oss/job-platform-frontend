@@ -1038,7 +1038,20 @@ function renderActiveStudentStudioPage(page){
       break;
 
 
+    case "updates":
+
+      renderAnnouncements();
+
+      updateStudentSchoolUpdatesBadge();
+
+      break;
+
+
     case "continue":
+
+      renderContinueLearningWorkspace();
+
+      break;
 
       renderContinueLearningWorkspace();
 
@@ -3008,6 +3021,7 @@ const [
       asArray(
         schoolUpdates
       );
+    updateStudentSchoolUpdatesBadge();
 
     state.studentResources =
       asArray(
@@ -28088,6 +28102,41 @@ function renderBadges(){
   } else {
     badge.style.display = "none";
   }
+}
+
+/* =========================================================
+   STUDENT STUDIO
+   SCHOOL UPDATE BADGE
+========================================================= */
+
+function updateStudentSchoolUpdatesBadge(){
+
+  const badge =
+    document.getElementById(
+      "schoolUpdatesBadge"
+    );
+
+
+  if(!badge){
+    return;
+  }
+
+
+  const count =
+    Array.isArray(state.schoolUpdates)
+      ? state.schoolUpdates.length
+      : 0;
+
+
+  badge.textContent =
+    count > 99
+      ? "99+"
+      : String(count);
+
+
+  badge.hidden =
+    count === 0;
+
 }
 
 function renderAnnouncements(){
