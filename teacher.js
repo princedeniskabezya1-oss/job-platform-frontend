@@ -6318,6 +6318,117 @@ async function loadTeacherQuestionBankWhenAvailable(){
    workspace parts.
 ========================================================= */
 
+/* =========================================================
+   LOAD SCHOOL UPDATES
+   Teacher Studio read-only school communication
+========================================================= */
+
+async function loadTeacherSchoolUpdates(){
+
+  const schoolId =
+    getSchoolId();
+
+
+  if(!schoolId){
+
+    state.schoolUpdates = [];
+
+    return state.schoolUpdates;
+
+  }
+
+
+  try{
+
+    const response =
+      await apiGet(
+        `/api/school-updates?schoolId=${
+          encodeURIComponent(
+            schoolId
+          )
+        }`
+      );
+
+
+    /*
+      Support both the direct-array response used by the
+      current endpoint and common API envelope formats.
+    */
+
+    const updates =
+      Array.isArray(response)
+        ? response
+        : Array.isArray(
+            response?.schoolUpdates
+          )
+          ? response.schoolUpdates
+          : Array.isArray(
+              response?.updates
+            )
+            ? response.updates
+            : asArray(response);
+
+
+    state.schoolUpdates =
+      [...updates]
+        .sort(
+          (first,second) => {
+
+            const pinnedDifference =
+              Number(
+                Boolean(second?.pinned)
+              ) -
+              Number(
+                Boolean(first?.pinned)
+              );
+
+
+            if(pinnedDifference){
+              return pinnedDifference;
+            }
+
+
+            return (
+              new Date(
+                second?.createdAt ||
+                second?.updatedAt ||
+                0
+              ).getTime() -
+              new Date(
+                first?.createdAt ||
+                first?.updatedAt ||
+                0
+              ).getTime()
+            );
+
+          }
+        );
+
+
+    updateTeacherSchoolUpdatesBadge();
+
+
+    return state.schoolUpdates;
+
+  }catch(error){
+
+    console.warn(
+      "Teacher school updates could not be loaded:",
+      error
+    );
+
+
+    state.schoolUpdates = [];
+
+    updateTeacherSchoolUpdatesBadge();
+
+
+    return state.schoolUpdates;
+
+  }
+
+}
+
 async function loadTeacherResources(){
 
   return state.resources;
@@ -7071,6 +7182,16 @@ async function loadTeacherOptionalData(){
       run:
         loadTeacherResources
     },
+
+
+    {
+      name:
+        "School updates",
+
+      run:
+        loadTeacherSchoolUpdates
+    },
+
 
     {
       name:
@@ -78034,6 +78155,13 @@ const TEACHER_STUDIO_PAGES =
       title:
         "Overview"
     },
+
+
+    updates:{
+      title:
+        "School Updates"
+    },
+
 
     classes:{
       title:
