@@ -72823,7 +72823,21 @@ function getTeacherSettingsSnapshot(){
 
 
 /* =========================================================
-   HYDRATE SETTINGS
+   HYDRATE TEACHER SETTINGS
+
+   INITIAL FAST HYDRATION
+   ---------------------------------------------------------
+   This runs synchronously so Teacher Studio does not flash
+   default settings while waiting for the network.
+
+   Priority for this first paint:
+
+   1. teacherStudioSettings already loaded with /api/users/me
+   2. local device cache
+   3. defaults
+
+   The dedicated backend loader then refreshes the state
+   using the authoritative server contract.
 ========================================================= */
 
 function hydrateTeacherSettingsFromUser(){
@@ -72848,16 +72862,13 @@ function hydrateTeacherSettingsFromUser(){
     (
       user?.teacherStudioSettings &&
       typeof user.teacherStudioSettings ===
-        "object"
+        "object" &&
+      !Array.isArray(
+        user.teacherStudioSettings
+      )
     )
       ? user.teacherStudioSettings
-      : (
-          user?.preferences &&
-          typeof user.preferences ===
-            "object"
-            ? user.preferences
-            : {}
-        );
+      : {};
 
 
   const devicePreferences =
@@ -72877,36 +72888,66 @@ function hydrateTeacherSettingsFromUser(){
           ];
 
 
-        const deviceValue =
-          devicePreferences[
-            key
-          ];
+        const serverHasValue =
+          Object.prototype
+            .hasOwnProperty
+            .call(
+              serverPreferences,
+              key
+            );
 
 
-        const serverValue =
-          serverPreferences[
-            key
-          ];
+        const deviceHasValue =
+          Object.prototype
+            .hasOwnProperty
+            .call(
+              devicePreferences,
+              key
+            );
 
 
-        /* STRING */
+        let candidate;
+
+
+        /*
+          When /api/users/me already contains the new
+          teacherStudioSettings object, prefer it.
+
+          Otherwise use the device cache for the immediate
+          first paint while the dedicated settings endpoint
+          loads in the background.
+        */
+
+        if(serverHasValue){
+
+          candidate =
+            serverPreferences[
+              key
+            ];
+
+        }else if(deviceHasValue){
+
+          candidate =
+            devicePreferences[
+              key
+            ];
+
+        }else{
+
+          candidate =
+            fallback;
+
+        }
+
+
+        /* =================================================
+           STRING SETTINGS
+        ================================================= */
 
         if(
           typeof fallback ===
           "string"
         ){
-
-          const candidate =
-            typeof deviceValue ===
-            "string"
-              ? deviceValue
-              : (
-                  typeof serverValue ===
-                  "string"
-                    ? serverValue
-                    : fallback
-                );
-
 
           teacherSettingsWorkspaceState[
             key
@@ -72917,7 +72958,7 @@ function hydrateTeacherSettingsFromUser(){
                   candidate
                 )
               : String(
-                  candidate ||
+                  candidate ??
                   fallback
                 )
                   .trim();
@@ -72928,26 +72969,19 @@ function hydrateTeacherSettingsFromUser(){
         }
 
 
-        /* BOOLEAN */
+        /* =================================================
+           BOOLEAN SETTINGS
+        ================================================= */
 
         teacherSettingsWorkspaceState[
           key
         ] =
-          getTeacherPreferenceBoolean(
-
-            devicePreferences,
-
-            key,
-
-            getTeacherPreferenceBoolean(
-              serverPreferences,
-              key,
-              Boolean(
+          typeof candidate ===
+          "boolean"
+            ? candidate
+            : Boolean(
                 fallback
-              )
-            )
-
-          );
+              );
 
       }
     );
@@ -72956,6 +72990,347 @@ function hydrateTeacherSettingsFromUser(){
   teacherSettingsWorkspaceState
     .loaded =
     true;
+
+
+  /*
+    Cache the normalized first-paint state.
+
+    No server request is made here because this function is
+    deliberately synchronous.
+  */
+
+  writeTeacherDevicePreferences(
+    getTeacherSettingsSnapshot()
+  );
+
+}
+
+
+/* =========================================================
+   TEACHER SETTINGS
+   AUTHORITATIVE SERVER LOADER
+========================================================= */
+
+let teacherSettingsServerLoadPromise =
+  null;
+
+let teacherSettingsServerLoaded =
+  false;
+
+
+/* =========================================================
+   APPLY SERVER SETTINGS SAFELY
+========================================================= */
+
+function applyTeacherServerSettings(
+  settings
+){
+
+  if(
+    !settings ||
+    typeof settings !==
+      "object" ||
+    Array.isArray(
+      settings
+    )
+  ){
+
+    return false;
+
+  }
+
+
+  Object.keys(
+    TEACHER_SETTINGS_DEFAULTS
+  )
+    .forEach(
+      key => {
+
+        if(
+          !Object.prototype
+            .hasOwnProperty
+            .call(
+              settings,
+              key
+            )
+        ){
+
+          return;
+
+        }
+
+
+        const fallback =
+          TEACHER_SETTINGS_DEFAULTS[
+            key
+          ];
+
+
+        const incoming =
+          settings[
+            key
+          ];
+
+
+        /* =================================================
+           STRING SETTINGS
+        ================================================= */
+
+        if(
+          typeof fallback ===
+          "string"
+        ){
+
+          if(
+            typeof incoming !==
+            "string"
+          ){
+
+            return;
+
+          }
+
+
+          teacherSettingsWorkspaceState[
+            key
+          ] =
+            key ===
+            "theme"
+              ? normalizeTeacherTheme(
+                  incoming
+                )
+              : incoming.trim();
+
+
+          return;
+
+        }
+
+
+        /* =================================================
+           BOOLEAN SETTINGS
+        ================================================= */
+
+        if(
+          typeof incoming ===
+          "boolean"
+        ){
+
+          teacherSettingsWorkspaceState[
+            key
+          ] =
+            incoming;
+
+        }
+
+      }
+    );
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   LOAD TEACHER SETTINGS FROM SERVER
+========================================================= */
+
+async function loadTeacherSettingsFromServer({
+  force = false,
+  rerender = true
+} = {}){
+
+  if(
+    teacherSettingsServerLoadPromise &&
+    !force
+  ){
+
+    return teacherSettingsServerLoadPromise;
+
+  }
+
+
+  if(
+    teacherSettingsServerLoaded &&
+    !force
+  ){
+
+    return getTeacherSettingsSnapshot();
+
+  }
+
+
+  /*
+    Capture the current local mutation version.
+
+    If the user changes a switch while this GET request is
+    still running, the old GET response must NOT overwrite
+    their newer choice.
+  */
+
+  const requestVersion =
+    teacherSettingsOperationVersion;
+
+
+  const request =
+    (
+      async () => {
+
+        try{
+
+          const response =
+            await apiGet(
+              "/api/users/me/teacher-studio-settings"
+            );
+
+
+          const settings =
+            response?.settings;
+
+
+          if(
+            !settings ||
+            typeof settings !==
+              "object" ||
+            Array.isArray(
+              settings
+            )
+          ){
+
+            throw new Error(
+              "Teacher Studio settings response is invalid."
+            );
+
+          }
+
+
+          teacherSettingsServerLoaded =
+            true;
+
+
+          /*
+            A switch/theme was changed after this request
+            started.
+
+            Do NOT allow this older GET response to visually
+            reverse that newer optimistic state.
+          */
+
+          if(
+            requestVersion !==
+            teacherSettingsOperationVersion
+          ){
+
+            return getTeacherSettingsSnapshot();
+
+          }
+
+
+          applyTeacherServerSettings(
+            settings
+          );
+
+
+          const snapshot =
+            getTeacherSettingsSnapshot();
+
+
+          writeTeacherDevicePreferences(
+            snapshot
+          );
+
+
+          /* ===============================================
+             KEEP CURRENT USER STATE SYNCHRONIZED
+          =============================================== */
+
+          if(
+            state.me
+          ){
+
+            state.me
+              .teacherStudioSettings =
+              {
+                ...snapshot
+              };
+
+          }
+
+
+          if(
+            state.loggedUser
+          ){
+
+            state.loggedUser
+              .teacherStudioSettings =
+              {
+                ...snapshot
+              };
+
+          }
+
+
+          applyTeacherSettingsInterface();
+
+
+          if(
+            rerender &&
+            teacherSettingsWorkspaceState
+              .initialized
+          ){
+
+            renderTeacherSettingsProfile();
+
+            renderTeacherSettingsPreferences();
+
+          }
+
+
+          return snapshot;
+
+
+        }catch(error){
+
+          console.error(
+            "LOAD TEACHER STUDIO SETTINGS ERROR:",
+            error
+          );
+
+
+          /*
+            Keep the valid local cache active when the
+            network is temporarily unavailable.
+
+            Settings must not become unusable simply because
+            a request fails.
+          */
+
+          return getTeacherSettingsSnapshot();
+
+        }finally{
+
+          if(
+            teacherSettingsServerLoadPromise ===
+            request
+          ){
+
+            teacherSettingsServerLoadPromise =
+              null;
+
+          }
+
+        }
+
+      }
+    )();
+
+
+  teacherSettingsServerLoadPromise =
+    request;
+
+
+  return request;
 
 }
 
@@ -75127,23 +75502,78 @@ function setTeacherSettingsPage(
 
 
 /* =========================================================
-   SAVE SETTINGS
+   SAVE TEACHER SETTINGS
+   SERVER + DEVICE CACHE
 
-   The UI is optimistic. Local persistence runs after each
-   change and never blocks the physical switch movement.
+   PRODUCTION BEHAVIOR
+   ---------------------------------------------------------
+   - switches move immediately
+   - local cache writes immediately
+   - server persistence runs asynchronously
+   - server response is accepted only when it still matches
+     the latest local operation version
+   - stale responses never visually undo newer changes
 ========================================================= */
 
 async function saveTeacherSettings(){
 
+  const operationVersion =
+    teacherSettingsOperationVersion;
+
+
+  const snapshot =
+    getTeacherSettingsSnapshot();
+
+
+  /*
+    Always write the local cache first.
+
+    This makes the interface fast and protects the selected
+    theme/preferences across a refresh even while the network
+    request is still running.
+  */
+
+  writeTeacherDevicePreferences(
+    snapshot
+  );
+
+
+  /* =======================================================
+     SYNCHRONIZE LOCAL USER STATE IMMEDIATELY
+  ======================================================== */
+
   if(
-    teacherSettingsWorkspaceState
-      .saving
+    state.me
   ){
 
-    return false;
+    state.me
+      .teacherStudioSettings =
+      {
+        ...snapshot
+      };
 
   }
 
+
+  if(
+    state.loggedUser
+  ){
+
+    state.loggedUser
+      .teacherStudioSettings =
+      {
+        ...snapshot
+      };
+
+  }
+
+
+  /*
+    Do not globally lock all switches while saving.
+
+    That was the cause of the sluggish toggle behavior we
+    specifically wanted to avoid.
+  */
 
   teacherSettingsWorkspaceState
     .saving =
@@ -75152,36 +75582,104 @@ async function saveTeacherSettings(){
 
   try{
 
-    const preferences =
-      getTeacherSettingsSnapshot();
-
-
-    const saved =
-      writeTeacherDevicePreferences(
-        preferences
+    const response =
+      await apiSend(
+        "/api/users/me/teacher-studio-settings",
+        "PATCH",
+        snapshot
       );
 
 
-    if(!saved){
+    const savedSettings =
+      response?.settings;
+
+
+    if(
+      !savedSettings ||
+      typeof savedSettings !==
+        "object" ||
+      Array.isArray(
+        savedSettings
+      )
+    ){
 
       throw new Error(
-        "Browser preference storage is unavailable."
+        "Teacher Studio returned an invalid settings response."
       );
 
     }
+
+
+    teacherSettingsServerLoaded =
+      true;
+
+
+    /*
+      CRITICAL RACE PROTECTION
+
+      Example:
+
+      click OFF
+        request A starts
+
+      click ON
+        request B starts
+
+      request A finishes after B
+
+      Without this check request A could visually turn the
+      switch OFF again.
+
+      We therefore ignore old responses when a newer local
+      operation exists.
+    */
+
+    if(
+      operationVersion !==
+      teacherSettingsOperationVersion
+    ){
+
+      return true;
+
+    }
+
+
+    applyTeacherServerSettings(
+      savedSettings
+    );
+
+
+    const authoritativeSnapshot =
+      getTeacherSettingsSnapshot();
+
+
+    writeTeacherDevicePreferences(
+      authoritativeSnapshot
+    );
 
 
     if(
       state.me
     ){
 
-      state.me.preferences = {
+      state.me
+        .teacherStudioSettings =
+        {
+          ...authoritativeSnapshot
+        };
 
-        ...(state.me.preferences || {}),
+    }
 
-        ...preferences
 
-      };
+    if(
+      state.loggedUser
+    ){
+
+      state.loggedUser
+        .teacherStudioSettings =
+        {
+          ...authoritativeSnapshot
+        };
 
     }
 
@@ -75192,20 +75690,38 @@ async function saveTeacherSettings(){
     return true;
 
 
-  }catch(
-    error
-  ){
+  }catch(error){
 
-    notifyAIFTError(
-      getErrorMessage(
-        error,
-        "Teacher Studio could not save this preference."
-      ),
-      {
-        title:
-          "Settings not saved"
-      }
+    console.error(
+      "SAVE TEACHER STUDIO SETTINGS ERROR:",
+      error
     );
+
+
+    /*
+      We deliberately do not snap the switch backward.
+
+      The local choice stays visible and cached. A later
+      change/save can retry server synchronization.
+    */
+
+    if(
+      operationVersion ===
+      teacherSettingsOperationVersion
+    ){
+
+      notifyAIFTError(
+        getErrorMessage(
+          error,
+          "Teacher Studio could not sync this setting to your account."
+        ),
+        {
+          title:
+            "Setting not synced"
+        }
+      );
+
+    }
 
 
     return false;
@@ -75213,9 +75729,16 @@ async function saveTeacherSettings(){
 
   }finally{
 
-    teacherSettingsWorkspaceState
-      .saving =
-      false;
+    if(
+      operationVersion ===
+      teacherSettingsOperationVersion
+    ){
+
+      teacherSettingsWorkspaceState
+        .saving =
+        false;
+
+    }
 
   }
 
@@ -75223,7 +75746,13 @@ async function saveTeacherSettings(){
 
 
 /* =========================================================
-   QUEUE SETTINGS SAVE
+   QUEUE TEACHER SETTINGS SAVE
+
+   Rapid switch changes collapse into one final server write.
+
+   220ms is short enough to feel instantaneous while avoiding
+   unnecessary PATCH requests when a control is toggled several
+   times quickly.
 ========================================================= */
 
 function queueTeacherSettingsSave(){
@@ -75233,43 +75762,34 @@ function queueTeacherSettingsSave(){
   );
 
 
-  const operationVersion =
-    ++teacherSettingsOperationVersion;
+  teacherSettingsOperationVersion +=
+    1;
+
+
+  /*
+    Cache the optimistic state immediately.
+  */
+
+  writeTeacherDevicePreferences(
+    getTeacherSettingsSnapshot()
+  );
 
 
   teacherSettingsSaveTimer =
     window.setTimeout(
-      async () => {
+      () => {
 
-        const saved =
-          await saveTeacherSettings();
-
-
-        if(
-          operationVersion !==
-          teacherSettingsOperationVersion
-        ){
-
-          return;
-
-        }
-
-
-        if(!saved){
-
-          return;
-
-        }
+        saveTeacherSettings();
 
       },
-      150
+      220
     );
 
 }
 
 
 /* =========================================================
-   SET BOOLEAN PREFERENCE
+   SET BOOLEAN TEACHER PREFERENCE
 ========================================================= */
 
 function setTeacherBooleanPreference(
@@ -75303,15 +75823,42 @@ function setTeacherBooleanPreference(
   }
 
 
-  teacherSettingsWorkspaceState[
-    key
-  ] =
+  const nextValue =
     Boolean(
       value
     );
 
 
+  if(
+    teacherSettingsWorkspaceState[
+      key
+    ] ===
+    nextValue
+  ){
+
+    return true;
+
+  }
+
+
+  /* =======================================================
+     OPTIMISTIC STATE
+
+     Change the UI/state immediately.
+  ======================================================== */
+
+  teacherSettingsWorkspaceState[
+    key
+  ] =
+    nextValue;
+
+
   applyTeacherSettingsInterface();
+
+
+  /* =======================================================
+     SAVE IN BACKGROUND
+  ======================================================== */
 
   queueTeacherSettingsSave();
 
@@ -75322,25 +75869,60 @@ function setTeacherBooleanPreference(
 
 
 /* =========================================================
-   SET THEME
+   SET TEACHER THEME
 ========================================================= */
 
 function setTeacherThemePreference(
   value
 ){
 
-  teacherSettingsWorkspaceState
-    .theme =
+  const nextTheme =
     normalizeTeacherTheme(
       value
     );
 
 
+  if(
+    teacherSettingsWorkspaceState
+      .theme ===
+    nextTheme
+  ){
+
+    return true;
+
+  }
+
+
+  teacherSettingsWorkspaceState
+    .theme =
+    nextTheme;
+
+
+  /*
+    Apply before touching the server so Dark/Light/System
+    responds instantly.
+  */
+
   applyTeacherSettingsInterface();
+
 
   queueTeacherSettingsSave();
 
-  renderTeacherSettingsPreferences();
+
+  /*
+    Only the Appearance panel needs rerendering so its active
+    check moves to the selected theme card.
+  */
+
+  if(
+    teacherSettingsWorkspaceState
+      .activePage ===
+    "appearance"
+  ){
+
+    renderTeacherSettingsPreferences();
+
+  }
 
 
   return true;
@@ -76541,7 +77123,7 @@ function renderTeacherSettings(){
 
 
 /* =========================================================
-   INITIALIZE SETTINGS
+   INITIALIZE TEACHER SETTINGS WORKSPACE
 ========================================================= */
 
 function initializeTeacherSettingsWorkspace(){
@@ -76553,6 +77135,17 @@ function initializeTeacherSettingsWorkspace(){
 
     renderTeacherSettingsWorkspace();
 
+
+    /*
+      Refresh from the authoritative account state without
+      delaying the page render.
+    */
+
+    loadTeacherSettingsFromServer({
+      rerender:true
+    });
+
+
     return true;
 
   }
@@ -76563,19 +77156,39 @@ function initializeTeacherSettingsWorkspace(){
     true;
 
 
+  /*
+    FIRST PAINT
+    ---------------------------------------------------------
+    Use /me data or local cache immediately.
+  */
+
   hydrateTeacherSettingsFromUser();
+
 
   bindTeacherSystemThemeWatcher();
 
+
   applyTeacherSettingsInterface();
 
+
   renderTeacherSettingsWorkspace();
+
+
+  /*
+    AUTHORITATIVE ACCOUNT SYNC
+    ---------------------------------------------------------
+    This happens after rendering and therefore does not make
+    Settings feel slow.
+  */
+
+  loadTeacherSettingsFromServer({
+    rerender:true
+  });
 
 
   return true;
 
 }
-
 
 /* =========================================================
    HELP & SUPPORT STATE
