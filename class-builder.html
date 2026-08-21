@@ -25582,51 +25582,67 @@ svg{
   }
 
 
-  /* =======================================================
-     MOBILE DRAWER BACKDROP
-  ======================================================== */
+/* =======================================================
+   CONTENT STUDIO MOBILE DRAWER BACKDROP
+======================================================= */
 
-  .elementor-builder::after{
-    content:"";
+.elementor-mobile-drawer-backdrop{
+  position:fixed;
 
-    position:fixed;
+  top:
+    var(--aift-topbar-height);
 
-    top:
-      var(--aift-topbar-height);
+  right:0;
+  bottom:0;
+  left:0;
 
-    right:0;
-    bottom:0;
-    left:0;
+  z-index:14000;
 
-    z-index:14000;
+  width:auto;
+  height:auto;
 
-    display:block;
+  margin:0;
+  padding:0;
 
-    background:
-      rgba(15,23,42,.44);
+  display:block;
 
-    opacity:0;
+  border:0;
+  border-radius:0;
 
-    visibility:hidden;
+  outline:0;
 
-    pointer-events:none;
+  background:
+    rgba(
+      15,
+      23,
+      42,
+      .44
+    );
 
-    transition:
-      opacity .2s ease,
-      visibility .2s ease;
-  }
+  opacity:0;
+
+  visibility:hidden;
+
+  pointer-events:none;
+
+  cursor:default;
+
+  transition:
+    opacity .2s ease,
+    visibility .2s ease;
+}
 
 
-  body.content-mobile-elements-open
-  .elementor-builder::after,
-  body.content-mobile-settings-open
-  .elementor-builder::after{
-    opacity:1;
+body.content-mobile-elements-open
+.elementor-mobile-drawer-backdrop,
+body.content-mobile-settings-open
+.elementor-mobile-drawer-backdrop{
+  opacity:1;
 
-    visibility:visible;
+  visibility:visible;
 
-    pointer-events:auto;
-  }
+  pointer-events:auto;
+}
 
 
   /* =======================================================
@@ -40333,6 +40349,24 @@ body.studio-mobile-sidebar-open
   class="section"
   aria-labelledby="contentBuilderHeading"
 >
+
+  <!-- ====================================================
+       CONTENT STUDIO MOBILE DRAWER BACKDROP
+  ===================================================== -->
+
+  <button
+    type="button"
+    id="elementorMobileDrawerBackdrop"
+    class="elementor-mobile-drawer-backdrop"
+    aria-label="Close Content Studio tools"
+    tabindex="-1"
+    onclick="closeElementorMobilePanels()"
+  ></button>
+
+
+  <!-- ====================================================
+       CONTENT STUDIO EDITOR
+  ===================================================== -->
 
   <div
     class="elementor-builder"
@@ -66743,6 +66777,7 @@ function markElementorDirty(){
 }
 
 function addContentBlock(type){
+
   const allowedTypes =
     new Set([
       "heading",
@@ -66759,35 +66794,89 @@ function addContentBlock(type){
       "presentation"
     ]);
 
-  if(!allowedTypes.has(type)){
-    return;
+
+  if(
+    !allowedTypes.has(
+      type
+    )
+  ){
+
+    return false;
+
   }
+
 
   pushElementorHistory();
 
-  const block =
-    createElementorBlock(type);
 
-  elementorEditor.blocks.push(block);
+  const block =
+    createElementorBlock(
+      type
+    );
+
+
+  elementorEditor.blocks.push(
+    block
+  );
+
+
   elementorEditor.selectedBlockId =
     block.id;
 
+
   markElementorDirty();
+
+
   renderElementorBuilder();
 
-  window.requestAnimationFrame(() => {
-    const element =
-      document.querySelector(
-        `[data-elementor-block-id="${CSS.escape(block.id)}"]`
+
+  /*
+    MOBILE EXPERIENCE
+
+    Once an element is chosen from the Elements drawer,
+    immediately return the user to the canvas.
+
+    Do not automatically cover the newly inserted block
+    with Settings. The teacher should first see what was
+    added.
+  */
+
+  if(
+    typeof isElementorMobileViewport ===
+      "function" &&
+    isElementorMobileViewport()
+  ){
+
+    closeElementorMobilePanels();
+
+  }
+
+
+  window.requestAnimationFrame(
+    () => {
+
+      const element =
+        document.querySelector(
+          `[data-elementor-block-id="${CSS.escape(block.id)}"]`
+        );
+
+
+      element?.scrollIntoView({
+        behavior:"smooth",
+        block:"center"
+      });
+
+
+      focusElementorBlock(
+        block.id
       );
 
-    element?.scrollIntoView({
-      behavior:"smooth",
-      block:"center"
-    });
+    }
+  );
 
-    focusElementorBlock(block.id);
-  });
+
+  return block;
+
 }
 
 function removeElementorBlock(blockId){
@@ -66913,41 +67002,104 @@ function normalizeElementorOrder(){
 }
 
 function selectElementorBlock(blockId){
+
   elementorEditor.selectedBlockId =
     blockId;
+
 
   document
     .querySelectorAll(
       ".lesson-content-block.selected"
     )
-    .forEach(element => {
-      element.classList.remove(
-        "selected"
-      );
-    });
+    .forEach(
+      element => {
+
+        element.classList.remove(
+          "selected"
+        );
+
+      }
+    );
+
 
   const element =
     document.querySelector(
       `[data-elementor-block-id="${CSS.escape(String(blockId))}"]`
     );
 
+
   element?.classList.add(
     "selected"
   );
 
+
   renderElementorInspector();
+
+
+  /*
+    MOBILE EXPERIENCE
+
+    Selecting an existing element means the teacher is
+    intentionally trying to edit it.
+
+    Open Settings automatically instead of forcing a
+    second tap on the Settings button.
+  */
+
+  if(
+    typeof isElementorMobileViewport ===
+      "function" &&
+    isElementorMobileViewport()
+  ){
+
+    document.body.classList.remove(
+      "content-mobile-elements-open"
+    );
+
+
+    document.body.classList.add(
+      "content-mobile-settings-open"
+    );
+
+
+    syncElementorMobilePanelButtons();
+
+  }
+
+
+  return true;
+
 }
 
 function handleElementorCanvasClick(event){
+
   if(
-    event.target ===
+    event.target !==
     event.currentTarget
   ){
-    elementorEditor.selectedBlockId =
-      null;
 
-    renderElementorBuilder();
+    return;
+
   }
+
+
+  elementorEditor.selectedBlockId =
+    null;
+
+
+  if(
+    typeof isElementorMobileViewport ===
+      "function" &&
+    isElementorMobileViewport()
+  ){
+
+    closeElementorMobilePanels();
+
+  }
+
+
+  renderElementorBuilder();
+
 }
 
 function renderElementorBuilder(){
