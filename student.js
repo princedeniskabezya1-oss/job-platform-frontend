@@ -22230,6 +22230,337 @@ function applyStudentAccessibilitySettings(
 
 }
 
+
+/* =========================================================
+   STUDENT SETTINGS
+   PRODUCTION CONTROL BINDING
+========================================================= */
+
+let studentSettingsControlsController =
+  null;
+
+
+/* =========================================================
+   UPDATE BOOLEAN SETTING
+========================================================= */
+
+function updateStudentBooleanSetting(
+  toggleButton
+){
+
+  if(
+    !toggleButton ||
+    toggleButton.disabled
+  ){
+
+    return;
+
+  }
+
+
+  const path =
+    String(
+      toggleButton.dataset
+        .studentSettingPath ||
+      ""
+    )
+      .trim();
+
+
+  if(!path){
+
+    console.error(
+      "STUDENT SETTINGS TOGGLE ERROR: Missing setting path."
+    );
+
+    return;
+
+  }
+
+
+  const currentValue =
+    toggleButton.getAttribute(
+      "aria-checked"
+    ) ===
+    "true";
+
+
+  const nextValue =
+    !currentValue;
+
+
+  /* =========================================================
+     OPTIMISTIC UI
+
+     The visual control changes immediately.
+  ========================================================= */
+
+  toggleButton.setAttribute(
+    "aria-checked",
+    nextValue
+      ? "true"
+      : "false"
+  );
+
+
+  const settings =
+    getStudentSettings();
+
+
+  setStudentSettingByPath(
+    settings,
+    path,
+    nextValue
+  );
+
+
+  studentSettingsState =
+    mergeStudentSettings(
+      cloneDefaultStudentSettings(),
+      settings
+    );
+
+
+  cacheStudentSettings(
+    studentSettingsState
+  );
+
+
+  /*
+    Appearance and Accessibility preferences need
+    immediate application to the interface.
+  */
+
+  applyStudentAccessibilitySettings(
+    studentSettingsState
+  );
+
+
+  const row =
+    toggleButton.closest(
+      ".student-setting-row"
+    );
+
+
+  const operationVersion =
+    Number(
+      toggleButton.dataset
+        .studentSettingVersion ||
+      0
+    ) + 1;
+
+
+  toggleButton.dataset
+    .studentSettingVersion =
+    String(
+      operationVersion
+    );
+
+
+  if(row){
+
+    row.classList.remove(
+      "saved",
+      "save-error"
+    );
+
+
+    row.classList.add(
+      "saving"
+    );
+
+  }
+
+
+  /* =========================================================
+     SERVER PERSISTENCE
+  ========================================================= */
+
+  queueStudentSettingsSave(
+    studentSettingsState,
+    {
+
+      delay:180,
+
+
+      onSuccess:() => {
+
+        /*
+          Ignore an old completion when the student has
+          changed this same switch again since this save
+          started.
+        */
+
+        if(
+          Number(
+            toggleButton.dataset
+              .studentSettingVersion ||
+            0
+          ) !==
+          operationVersion
+        ){
+
+          return;
+
+        }
+
+
+        if(row){
+
+          row.classList.remove(
+            "saving",
+            "save-error"
+          );
+
+
+          row.classList.add(
+            "saved"
+          );
+
+
+          window.setTimeout(
+            () => {
+
+              if(
+                Number(
+                  toggleButton.dataset
+                    .studentSettingVersion ||
+                  0
+                ) ===
+                operationVersion
+              ){
+
+                row.classList.remove(
+                  "saved"
+                );
+
+              }
+
+            },
+            650
+          );
+
+        }
+
+      },
+
+
+      onError:error => {
+
+        /*
+          Never allow an old failed request to roll back
+          a newer user choice.
+        */
+
+        if(
+          Number(
+            toggleButton.dataset
+              .studentSettingVersion ||
+            0
+          ) !==
+          operationVersion
+        ){
+
+          return;
+
+        }
+
+
+        console.error(
+          "STUDENT SETTING SAVE ERROR:",
+          error
+        );
+
+
+        /* =====================================================
+           ROLLBACK
+        ====================================================== */
+
+        toggleButton.setAttribute(
+          "aria-checked",
+          currentValue
+            ? "true"
+            : "false"
+        );
+
+
+        const rollbackSettings =
+          getStudentSettings();
+
+
+        setStudentSettingByPath(
+          rollbackSettings,
+          path,
+          currentValue
+        );
+
+
+        studentSettingsState =
+          mergeStudentSettings(
+            cloneDefaultStudentSettings(),
+            rollbackSettings
+          );
+
+
+        cacheStudentSettings(
+          studentSettingsState
+        );
+
+
+        applyStudentAccessibilitySettings(
+          studentSettingsState
+        );
+
+
+        if(row){
+
+          row.classList.remove(
+            "saving",
+            "saved"
+          );
+
+
+          row.classList.add(
+            "save-error"
+          );
+
+
+          window.setTimeout(
+            () => {
+
+              row.classList.remove(
+                "save-error"
+              );
+
+            },
+            1200
+          );
+
+        }
+
+
+        showAlert(
+          "error",
+          error?.message ||
+          "Your Student Studio preference could not be saved.",
+          {
+            title:
+              "Settings not saved"
+          }
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   BIND STUDENT SETTINGS CONTROLS
+========================================================= */
+
 function bindStudentSettingsControls(){
 
   const workspace =
@@ -22246,610 +22577,345 @@ function bindStudentSettingsControls(){
 
 
   /*
-    Event delegation is attached once to the persistent
-    Settings workspace.
+    Settings is dynamically rendered.
 
-    renderStudentSettings() may replace its innerHTML,
-    but this parent remains the same DOM element.
+    Abort every listener belonging to the previous
+    Settings render before attaching listeners to the
+    current controls.
+
+    This prevents:
+      - dead listeners
+      - duplicate listeners
+      - stale DOM references
+      - double saves
   */
 
   if(
-    workspace.dataset.settingsBound ===
-    "true"
+    studentSettingsControlsController
   ){
 
-    return;
+    studentSettingsControlsController
+      .abort();
 
   }
 
 
-  workspace.dataset.settingsBound =
-    "true";
+  studentSettingsControlsController =
+    new AbortController();
+
+
+  const signal =
+    studentSettingsControlsController
+      .signal;
 
 
   /* =========================================================
-     CLICK CONTROLLER
+     SETTINGS NAVIGATION
   ========================================================= */
 
-  workspace.addEventListener(
-    "click",
-    event => {
+  workspace
+    .querySelectorAll(
+      "[data-student-settings-page]"
+    )
+    .forEach(
+      button => {
 
-      /* =====================================================
-         SETTINGS NAVIGATION
-      ====================================================== */
+        button.addEventListener(
+          "click",
+          event => {
 
-      const navigationButton =
-        event.target.closest(
-          "[data-student-settings-page]"
-        );
+            event.preventDefault();
 
 
-      if(navigationButton){
+            setStudentSettingsPage(
+              button.dataset
+                .studentSettingsPage
+            );
 
-        event.preventDefault();
-
-
-        setStudentSettingsPage(
-          navigationButton.dataset
-            .studentSettingsPage
-        );
-
-
-        return;
-
-      }
-
-
-      /* =====================================================
-         THEME
-      ====================================================== */
-
-      const themeButton =
-        event.target.closest(
-          "[data-student-theme]"
-        );
-
-
-      if(themeButton){
-
-        event.preventDefault();
-
-
-        setStudentTheme(
-          themeButton.dataset
-            .studentTheme
-        );
-
-
-        return;
-
-      }
-
-
-      /* =====================================================
-         BOOLEAN SETTING SWITCH
-      ====================================================== */
-
-      const toggleButton =
-        event.target.closest(
-          "[data-student-setting-toggle]"
-        );
-
-
-      if(toggleButton){
-
-        event.preventDefault();
-
-
-        if(
-          toggleButton.disabled
-        ){
-
-          return;
-
-        }
-
-
-        const path =
-          String(
-            toggleButton.dataset
-              .studentSettingPath ||
-            ""
-          )
-            .trim();
-
-
-        if(!path){
-
-          return;
-
-        }
-
-
-        const currentlyEnabled =
-          toggleButton.getAttribute(
-            "aria-checked"
-          ) ===
-          "true";
-
-
-        const nextValue =
-          !currentlyEnabled;
-
-
-        /*
-          UI changes immediately.
-        */
-
-        toggleButton.setAttribute(
-          "aria-checked",
-          nextValue
-            ? "true"
-            : "false"
-        );
-
-
-        const settings =
-          getStudentSettings();
-
-
-        setStudentSettingByPath(
-          settings,
-          path,
-          nextValue
-        );
-
-
-        studentSettingsState =
-          mergeStudentSettings(
-            cloneDefaultStudentSettings(),
-            settings
-          );
-
-
-        cacheStudentSettings(
-          studentSettingsState
-        );
-
-
-        /*
-          Apply Appearance and Accessibility immediately.
-        */
-
-        applyStudentAccessibilitySettings(
-          studentSettingsState
-        );
-
-
-        const row =
-          toggleButton.closest(
-            ".student-setting-row"
-          );
-
-
-        const requestVersion =
-          Number(
-            toggleButton.dataset
-              .studentSettingVersion ||
-            0
-          ) + 1;
-
-
-        toggleButton.dataset
-          .studentSettingVersion =
-          String(
-            requestVersion
-          );
-
-
-        if(row){
-
-          row.classList.remove(
-            "saved",
-            "save-error"
-          );
-
-
-          row.classList.add(
-            "saving"
-          );
-
-        }
-
-
-        /*
-          Backend save happens after the visual state
-          has already changed.
-
-          Rapid clicks are grouped by the existing
-          Student Settings save queue.
-        */
-
-        queueStudentSettingsSave(
-          studentSettingsState,
+          },
           {
+            signal
+          }
+        );
 
-            delay:180,
-
-
-            onSuccess:() => {
-
-              const latestVersion =
-                Number(
-                  toggleButton.dataset
-                    .studentSettingVersion ||
-                  0
-                );
+      }
+    );
 
 
-              if(
-                latestVersion !==
-                requestVersion
-              ){
+  /* =========================================================
+     THEME BUTTONS
+  ========================================================= */
 
-                return;
+  workspace
+    .querySelectorAll(
+      "[data-student-theme]"
+    )
+    .forEach(
+      button => {
 
-              }
+        button.addEventListener(
+          "click",
+          event => {
 
-
-              if(row){
-
-                row.classList.remove(
-                  "saving",
-                  "save-error"
-                );
-
-
-                row.classList.add(
-                  "saved"
-                );
+            event.preventDefault();
 
 
-                window.setTimeout(
-                  () => {
+            setStudentTheme(
+              button.dataset
+                .studentTheme
+            );
 
-                    if(
-                      Number(
-                        toggleButton.dataset
-                          .studentSettingVersion ||
-                        0
-                      ) ===
-                      requestVersion
-                    ){
+          },
+          {
+            signal
+          }
+        );
 
-                      row.classList.remove(
-                        "saved"
-                      );
-
-                    }
-
-                  },
-                  650
-                );
-
-              }
-
-            },
+      }
+    );
 
 
-            onError:error => {
+  /* =========================================================
+     BOOLEAN SWITCHES
+  ========================================================= */
 
-              const latestVersion =
-                Number(
-                  toggleButton.dataset
-                    .studentSettingVersion ||
-                  0
-                );
+  workspace
+    .querySelectorAll(
+      "[data-student-setting-toggle]"
+    )
+    .forEach(
+      toggleButton => {
 
+        toggleButton.addEventListener(
+          "click",
+          event => {
 
-              if(
-                latestVersion !==
-                requestVersion
-              ){
-
-                return;
-
-              }
-
-
-              /*
-                Only revert if this failed request still
-                represents the latest user action.
-              */
-
-              toggleButton.setAttribute(
-                "aria-checked",
-                currentlyEnabled
-                  ? "true"
-                  : "false"
-              );
+            event.preventDefault();
+            event.stopPropagation();
 
 
-              const rollbackSettings =
-                getStudentSettings();
+            updateStudentBooleanSetting(
+              toggleButton
+            );
+
+          },
+          {
+            signal
+          }
+        );
 
 
-              setStudentSettingByPath(
-                rollbackSettings,
-                path,
-                currentlyEnabled
-              );
+        /*
+          Enter and Space are already handled natively by
+          <button>, so we deliberately do not duplicate
+          keyboard activation here.
+        */
+
+      }
+    );
 
 
-              studentSettingsState =
-                mergeStudentSettings(
-                  cloneDefaultStudentSettings(),
-                  rollbackSettings
-                );
+  /* =========================================================
+     SELECT / TEXT SETTINGS
+  ========================================================= */
+
+  workspace
+    .querySelectorAll(
+      `
+        select[data-student-setting-path],
+        textarea[data-student-setting-path],
+        input[data-student-setting-path]
+      `
+    )
+    .forEach(
+      control => {
+
+        control.addEventListener(
+          "change",
+          () => {
+
+            const path =
+              String(
+                control.dataset
+                  .studentSettingPath ||
+                ""
+              )
+                .trim();
 
 
-              cacheStudentSettings(
-                studentSettingsState
-              );
+            if(!path){
 
-
-              applyStudentAccessibilitySettings(
-                studentSettingsState
-              );
-
-
-              if(row){
-
-                row.classList.remove(
-                  "saving",
-                  "saved"
-                );
-
-
-                row.classList.add(
-                  "save-error"
-                );
-
-
-                window.setTimeout(
-                  () => {
-
-                    row.classList.remove(
-                      "save-error"
-                    );
-
-                  },
-                  1200
-                );
-
-              }
-
-
-              showAlert(
-                "error",
-                error?.message ||
-                "Your Student Studio preference could not be saved.",
-                {
-                  title:
-                    "Settings not saved"
-                }
-              );
+              return;
 
             }
 
-          }
-        );
+
+            const settings =
+              getStudentSettings();
 
 
-        return;
-
-      }
-
-
-      /* =====================================================
-         SETTINGS ACTION BUTTONS
-      ====================================================== */
-
-      const actionButton =
-        event.target.closest(
-          "[data-student-settings-action]"
-        );
+            const value =
+              control.type ===
+              "checkbox"
+                ? control.checked
+                : control.value;
 
 
-      if(!actionButton){
-
-        return;
-
-      }
-
-
-      event.preventDefault();
+            setStudentSettingByPath(
+              settings,
+              path,
+              value
+            );
 
 
-      const action =
-        actionButton.dataset
-          .studentSettingsAction;
+            studentSettingsState =
+              mergeStudentSettings(
+                cloneDefaultStudentSettings(),
+                settings
+              );
 
 
-      switch(action){
-
-        case "portfolio":
-
-          openStudentStudioPage(
-            "portfolio"
-          );
-
-          break;
+            cacheStudentSettings(
+              studentSettingsState
+            );
 
 
-        case "logout":
-
-          if(
-            typeof logout ===
-            "function"
-          ){
-
-            logout();
-
-            return;
-
-          }
+            applyStudentAccessibilitySettings(
+              studentSettingsState
+            );
 
 
-          [
-            "studentToken",
-            "talentToken",
-            "schoolToken",
-            "adminToken",
-            "token",
-            "role",
-            "userId"
-          ]
-            .forEach(
-              key => {
+            queueStudentSettingsSave(
+              studentSettingsState,
+              {
 
-                localStorage.removeItem(
-                  key
-                );
+                delay:180,
+
+
+                onError:error => {
+
+                  console.error(
+                    "STUDENT SETTINGS SAVE ERROR:",
+                    error
+                  );
+
+
+                  showAlert(
+                    "error",
+                    error?.message ||
+                    "Your Student Studio preference could not be saved.",
+                    {
+                      title:
+                        "Settings not saved"
+                    }
+                  );
+
+                }
 
               }
             );
 
-
-          sessionStorage.removeItem(
-            "token"
-          );
-
-
-          window.location.href =
-            "login.html";
-
-          break;
-
-
-        case "password":
-
-          showAlert(
-            "info",
-            "Password management will use the authenticated account-security endpoint."
-          );
-
-          break;
-
-
-        case "sessions":
-
-          showAlert(
-            "info",
-            "Active session management will be connected to the account-security backend."
-          );
-
-          break;
-
-
-        case "download-data":
-
-          showAlert(
-            "info",
-            "Data export will use the authenticated account-data endpoint."
-          );
-
-          break;
+          },
+          {
+            signal
+          }
+        );
 
       }
-
-    }
-  );
+    );
 
 
   /* =========================================================
-     SELECT / NON-BOOLEAN SETTINGS
+     SETTINGS ACTIONS
   ========================================================= */
 
-  workspace.addEventListener(
-    "change",
-    event => {
+  workspace
+    .querySelectorAll(
+      "[data-student-settings-action]"
+    )
+    .forEach(
+      button => {
 
-      const control =
-        event.target.closest(
-          "select[data-student-setting-path], textarea[data-student-setting-path], input:not([type='checkbox'])[data-student-setting-path]"
-        );
+        button.addEventListener(
+          "click",
+          event => {
 
-
-      if(!control){
-
-        return;
-
-      }
+            event.preventDefault();
 
 
-      const path =
-        String(
-          control.dataset
-            .studentSettingPath ||
-          ""
-        )
-          .trim();
+            const action =
+              String(
+                button.dataset
+                  .studentSettingsAction ||
+                ""
+              )
+                .trim();
 
 
-      if(!path){
+            switch(action){
 
-        return;
+              case "portfolio":
 
-      }
+                openStudentStudioPage(
+                  "portfolio"
+                );
 
-
-      const settings =
-        getStudentSettings();
-
-
-      setStudentSettingByPath(
-        settings,
-        path,
-        control.value
-      );
+                break;
 
 
-      studentSettingsState =
-        mergeStudentSettings(
-          cloneDefaultStudentSettings(),
-          settings
-        );
+              case "logout":
+
+                if(
+                  typeof logout ===
+                  "function"
+                ){
+
+                  logout();
+
+                }
+
+                break;
 
 
-      cacheStudentSettings(
-        studentSettingsState
-      );
+              case "password":
+
+                showAlert(
+                  "info",
+                  "Password management will use the authenticated account-security endpoint."
+                );
+
+                break;
 
 
-      queueStudentSettingsSave(
-        studentSettingsState,
-        {
+              case "sessions":
 
-          delay:180,
+                showAlert(
+                  "info",
+                  "Active session management will use the account-security backend."
+                );
 
-
-          onError:error => {
-
-            console.error(
-              "STUDENT SETTING SAVE FAILED:",
-              error
-            );
+                break;
 
 
-            showAlert(
-              "error",
-              error?.message ||
-              "Your Student Studio preference could not be saved.",
-              {
-                title:
-                  "Settings not saved"
-              }
-            );
+              case "download-data":
 
+                showAlert(
+                  "info",
+                  "Data export will use the authenticated account-data endpoint."
+                );
+
+                break;
+
+            }
+
+          },
+          {
+            signal
           }
+        );
 
-        }
-      );
-
-    }
-  );
+      }
+    );
 
 }
 
