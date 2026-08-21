@@ -23395,6 +23395,820 @@ function bindStudentPasswordModal(){
 
 }
 
+/* =========================================================
+   STUDENT SECURITY
+   ACTIVE SESSIONS
+========================================================= */
+
+let studentAuthSessionsCache =
+  null;
+
+let studentAuthSessionsLoading =
+  false;
+
+let studentAuthSessionsController =
+  null;
+
+
+/* =========================================================
+   SESSION MESSAGE
+========================================================= */
+
+function showStudentSessionMessage(
+  message,
+  type = "info"
+){
+
+  const element =
+    $(
+      "studentAuthSessionsMessage"
+    );
+
+
+  if(!element){
+
+    return;
+
+  }
+
+
+  element.textContent =
+    String(
+      message ||
+      ""
+    );
+
+
+  element.hidden =
+    !message;
+
+
+  element.classList.remove(
+    "info",
+    "success",
+    "error"
+  );
+
+
+  if(message){
+
+    element.classList.add(
+      type
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   SESSION DATE
+========================================================= */
+
+function formatStudentSessionDate(
+  value
+){
+
+  if(!value){
+
+    return "Unknown";
+
+  }
+
+
+  const date =
+    new Date(
+      value
+    );
+
+
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+
+    return "Unknown";
+
+  }
+
+
+  return date.toLocaleString(
+    undefined,
+    {
+      dateStyle:"medium",
+      timeStyle:"short"
+    }
+  );
+
+}
+
+
+/* =========================================================
+   SESSION DEVICE ICON
+========================================================= */
+
+function getStudentSessionDeviceIcon(
+  session
+){
+
+  const type =
+    String(
+      session?.deviceType ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if(
+    type ===
+    "mobile"
+  ){
+
+    return "fa-solid fa-mobile-screen-button";
+
+  }
+
+
+  if(
+    type ===
+    "tablet"
+  ){
+
+    return "fa-solid fa-tablet-screen-button";
+
+  }
+
+
+  return "fa-solid fa-laptop";
+
+}
+
+
+/* =========================================================
+   RENDER ACTIVE SESSIONS
+========================================================= */
+
+function renderStudentAuthSessions(
+  sessions
+){
+
+  const container =
+    $(
+      "studentAuthSessionsList"
+    );
+
+
+  if(!container){
+
+    return;
+
+  }
+
+
+  const normalizedSessions =
+    Array.isArray(
+      sessions
+    )
+      ? sessions
+      : [];
+
+
+  if(
+    !normalizedSessions.length
+  ){
+
+    container.innerHTML = `
+
+      <div
+        class="student-security-session-empty"
+      >
+
+        <span
+          aria-hidden="true"
+        >
+          <i class="fa-solid fa-laptop"></i>
+        </span>
+
+
+        <div>
+
+          <strong>
+            No active sessions found
+          </strong>
+
+          <p>
+            AIFT could not find any currently active
+            devices for this account.
+          </p>
+
+        </div>
+
+      </div>
+
+    `;
+
+
+    const logoutOthersButton =
+      $(
+        "studentLogoutOtherSessionsButton"
+      );
+
+
+    if(logoutOthersButton){
+
+      logoutOthersButton.disabled =
+        true;
+
+    }
+
+
+    return;
+
+  }
+
+
+  const sortedSessions =
+    [
+      ...normalizedSessions
+    ]
+      .sort(
+        (
+          first,
+          second
+        ) => {
+
+          if(
+            first?.current ===
+            true
+          ){
+
+            return -1;
+
+          }
+
+
+          if(
+            second?.current ===
+            true
+          ){
+
+            return 1;
+
+          }
+
+
+          return (
+            new Date(
+              second?.lastActiveAt ||
+              second?.createdAt ||
+              0
+            ).getTime() -
+            new Date(
+              first?.lastActiveAt ||
+              first?.createdAt ||
+              0
+            ).getTime()
+          );
+
+        }
+      );
+
+
+  container.innerHTML =
+    sortedSessions
+      .map(
+        session => {
+
+          const sessionId =
+            String(
+              session?.sessionId ||
+              session?.id ||
+              ""
+            );
+
+
+          const current =
+            session?.current ===
+            true;
+
+
+          const deviceName =
+            String(
+              session?.deviceName ||
+              "Unknown device"
+            );
+
+
+          const browser =
+            String(
+              session?.browser ||
+              "Unknown browser"
+            );
+
+
+          const operatingSystem =
+            String(
+              session?.operatingSystem ||
+              "Unknown OS"
+            );
+
+
+          const maskedIp =
+            String(
+              session?.maskedIp ||
+              session?.ipAddress ||
+              ""
+            );
+
+
+          return `
+
+            <article
+              class="student-security-session-item${current ? " current" : ""}"
+              data-student-session-id="${escapeStudentSettingsHTML(sessionId)}"
+            >
+
+              <span
+                class="student-security-session-device"
+                aria-hidden="true"
+              >
+                <i
+                  class="${getStudentSessionDeviceIcon(session)}"
+                ></i>
+              </span>
+
+
+              <div
+                class="student-security-session-copy"
+              >
+
+                <div
+                  class="student-security-session-title"
+                >
+
+                  <strong>
+                    ${escapeStudentSettingsHTML(deviceName)}
+                  </strong>
+
+
+                  ${
+                    current
+                      ? `
+                          <span
+                            class="student-security-current-badge"
+                          >
+                            Current device
+                          </span>
+                        `
+                      : ""
+                  }
+
+                </div>
+
+
+                <p>
+                  ${escapeStudentSettingsHTML(browser)}
+                  ·
+                  ${escapeStudentSettingsHTML(operatingSystem)}
+                </p>
+
+
+                <div
+                  class="student-security-session-meta"
+                >
+
+                  <span>
+                    Last active:
+                    ${escapeStudentSettingsHTML(
+                      formatStudentSessionDate(
+                        session?.lastActiveAt ||
+                        session?.createdAt
+                      )
+                    )}
+                  </span>
+
+
+                  ${
+                    maskedIp
+                      ? `
+                          <span>
+                            IP:
+                            ${escapeStudentSettingsHTML(maskedIp)}
+                          </span>
+                        `
+                      : ""
+                  }
+
+                </div>
+
+              </div>
+
+
+              <button
+                type="button"
+                class="student-security-session-action ${current ? "current" : "danger"}"
+                data-student-session-action="${current ? "signout-current" : "remove"}"
+                data-student-session-id="${escapeStudentSettingsHTML(sessionId)}"
+              >
+                ${
+                  current
+                    ? "Sign out"
+                    : "Remove"
+                }
+              </button>
+
+            </article>
+
+          `;
+
+        }
+      )
+      .join("");
+
+
+  const hasOtherSessions =
+    normalizedSessions.some(
+      session =>
+        session?.current !==
+        true
+    );
+
+
+  const logoutOthersButton =
+    $(
+      "studentLogoutOtherSessionsButton"
+    );
+
+
+  if(logoutOthersButton){
+
+    logoutOthersButton.disabled =
+      !hasOtherSessions;
+
+  }
+
+
+  bindStudentSessionActionButtons();
+
+}
+
+
+/* =========================================================
+   SESSION LOADING STATE
+========================================================= */
+
+function renderStudentAuthSessionsLoading(){
+
+  const container =
+    $(
+      "studentAuthSessionsList"
+    );
+
+
+  if(!container){
+
+    return;
+
+  }
+
+
+  container.innerHTML = `
+
+    <div
+      class="student-security-session-loading"
+    >
+
+      <span
+        class="student-security-session-loading-icon"
+        aria-hidden="true"
+      >
+        <i
+          class="fa-solid fa-circle-notch fa-spin"
+        ></i>
+      </span>
+
+
+      <div>
+
+        <strong>
+          Checking active sessions
+        </strong>
+
+        <p>
+          Securely loading devices connected to this account.
+        </p>
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   LOAD ACTIVE SESSIONS
+========================================================= */
+
+async function loadStudentAuthSessions({
+  force = false
+} = {}){
+
+  if(
+    studentAuthSessionsLoading
+  ){
+
+    return studentAuthSessionsCache;
+
+  }
+
+
+  if(
+    !force &&
+    Array.isArray(
+      studentAuthSessionsCache
+    )
+  ){
+
+    renderStudentAuthSessions(
+      studentAuthSessionsCache
+    );
+
+
+    return studentAuthSessionsCache;
+
+  }
+
+
+  studentAuthSessionsLoading =
+    true;
+
+
+  renderStudentAuthSessionsLoading();
+
+
+  showStudentSessionMessage(
+    ""
+  );
+
+
+  const refreshButton =
+    $(
+      "studentRefreshSessionsButton"
+    );
+
+
+  if(refreshButton){
+
+    refreshButton.disabled =
+      true;
+
+  }
+
+
+  try{
+
+    const response =
+      await apiGet(
+        "/api/auth/sessions",
+        {
+          sessions:[]
+        }
+      );
+
+
+    const sessions =
+      Array.isArray(
+        response?.sessions
+      )
+        ? response.sessions
+        : [];
+
+
+    studentAuthSessionsCache =
+      sessions;
+
+
+    renderStudentAuthSessions(
+      sessions
+    );
+
+
+    return sessions;
+
+
+  }catch(error){
+
+    console.error(
+      "LOAD STUDENT AUTH SESSIONS ERROR:",
+      error
+    );
+
+
+    studentAuthSessionsCache =
+      null;
+
+
+    showStudentSessionMessage(
+      error?.message ||
+      "Active sessions could not be loaded.",
+      "error"
+    );
+
+
+    const container =
+      $(
+        "studentAuthSessionsList"
+      );
+
+
+    if(container){
+
+      container.innerHTML = `
+
+        <div
+          class="student-security-session-empty error"
+        >
+
+          <span
+            aria-hidden="true"
+          >
+            <i
+              class="fa-solid fa-triangle-exclamation"
+            ></i>
+          </span>
+
+
+          <div>
+
+            <strong>
+              Sessions unavailable
+            </strong>
+
+            <p>
+              AIFT could not load your active devices.
+              Try refreshing the session list.
+            </p>
+
+          </div>
+
+        </div>
+
+      `;
+
+    }
+
+
+    return [];
+
+
+  }finally{
+
+    studentAuthSessionsLoading =
+      false;
+
+
+    if(refreshButton){
+
+      refreshButton.disabled =
+        false;
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   REFRESH ACTIVE SESSIONS
+========================================================= */
+
+async function refreshStudentAuthSessions(){
+
+  studentAuthSessionsCache =
+    null;
+
+
+  await loadStudentAuthSessions({
+    force:true
+  });
+
+}
+
+
+/* =========================================================
+   SESSION ACTION BINDING
+
+   Destructive operations are intentionally routed through
+   the AIFT confirmation controller in the next step.
+========================================================= */
+
+function bindStudentSessionActionButtons(){
+
+  const container =
+    $(
+      "studentAuthSessionsList"
+    );
+
+
+  if(!container){
+
+    return;
+
+  }
+
+
+  if(
+    studentAuthSessionsController
+  ){
+
+    studentAuthSessionsController
+      .abort();
+
+  }
+
+
+  studentAuthSessionsController =
+    new AbortController();
+
+
+  const signal =
+    studentAuthSessionsController
+      .signal;
+
+
+  container
+    .querySelectorAll(
+      "[data-student-session-action]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          event => {
+
+            event.preventDefault();
+
+
+            const sessionId =
+              String(
+                button.dataset
+                  .studentSessionId ||
+                ""
+              )
+                .trim();
+
+
+            const action =
+              String(
+                button.dataset
+                  .studentSessionAction ||
+                ""
+              )
+                .trim();
+
+
+            if(
+              !sessionId ||
+              !action
+            ){
+
+              return;
+
+            }
+
+
+            /*
+              Do not use window.confirm() here.
+
+              The next production step connects these
+              actions to the AIFT security confirmation
+              dialog.
+            */
+
+            openStudentSessionSecurityConfirmation(
+              {
+                sessionId,
+                action
+              }
+            );
+
+          },
+          {
+            signal
+          }
+        );
+
+      }
+    );
+
+}
+
 
 function bindStudentSettingsControls(){
 
@@ -23719,14 +24533,31 @@ case "password":
   break;
 
 
-              case "sessions":
+case "sessions":
 
-                showAlert(
-                  "info",
-                  "Active session management will use the account-security backend."
-                );
+  loadStudentAuthSessions({
+    force:true
+  });
 
-                break;
+  break;
+
+case "refresh-sessions":
+
+  refreshStudentAuthSessions();
+
+  break;
+
+case "logout-others":
+
+  openStudentSessionSecurityConfirmation(
+    {
+      action:
+        "logout-others"
+    }
+  );
+
+  break;
+                
 
 
               case "download-data":
@@ -23871,6 +24702,15 @@ function setStudentSettingsPage(
       );
 
     });
+
+  if(
+  page ===
+  "security"
+){
+
+  loadStudentAuthSessions();
+
+}
 
 
   /* =========================================================
