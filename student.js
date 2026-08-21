@@ -2502,93 +2502,149 @@ function getStudentId(){
   return selectedStudentId || state.me?._id || localStorage.getItem("userId") || "";
 }
 
+
+
 function getSchoolId(){
 
-  /*
-    First use the profile currently being displayed.
-  */
+  /* =========================================================
+     CURRENT PROFILE
+  ========================================================= */
 
   const profileSchoolId =
     normalizeId(
+
       state.me?.schoolId?._id ||
       state.me?.schoolId ||
+
       state.me?.linkedSchoolId?._id ||
       state.me?.linkedSchoolId ||
+
+      state.me?.createdBySchool?._id ||
+      state.me?.createdBySchool ||
+
       state.me?.companyId?._id ||
       state.me?.companyId
+
     );
 
-  if (profileSchoolId){
+
+  if(profileSchoolId){
+
     return profileSchoolId;
+
   }
 
 
-  /*
-    The public student profile may not expose schoolId.
-    Fall back to the authenticated account loaded from
-    GET /api/users/me.
-  */
+  /* =========================================================
+     AUTHENTICATED ACCOUNT
+
+     AIFT school-created student accounts may use
+     createdBySchool as their authoritative school link.
+  ========================================================= */
 
   const authenticatedSchoolId =
     normalizeId(
+
       state.loggedUser?.schoolId?._id ||
       state.loggedUser?.schoolId ||
+
       state.loggedUser?.linkedSchoolId?._id ||
       state.loggedUser?.linkedSchoolId ||
+
+      state.loggedUser?.createdBySchool?._id ||
+      state.loggedUser?.createdBySchool ||
+
       state.loggedUser?.companyId?._id ||
       state.loggedUser?.companyId
+
     );
 
-  if (authenticatedSchoolId){
+
+  if(authenticatedSchoolId){
+
     return authenticatedSchoolId;
+
   }
 
 
-  /*
-    Classes already loaded for the student provide another
-    reliable source of the school relationship.
-  */
+  /* =========================================================
+     LOADED CLASS FALLBACK
+  ========================================================= */
 
   const classWithSchool =
     asArray(
       state.classes
-    ).find(classItem =>
-      normalizeId(
-        classItem?.schoolId?._id ||
-        classItem?.schoolId
-      )
-    );
+    )
+      .find(
+        classItem => {
+
+          return Boolean(
+            normalizeId(
+              classItem?.schoolId?._id ||
+              classItem?.schoolId
+            )
+          );
+
+        }
+      );
+
 
   const classSchoolId =
     normalizeId(
+
       classWithSchool?.schoolId?._id ||
       classWithSchool?.schoolId
+
     );
 
-  if (classSchoolId){
+
+  if(classSchoolId){
+
     return classSchoolId;
+
   }
 
 
-  /*
-    Assignment records can also identify the school when
-    the user and class objects do not contain it.
-  */
+  /* =========================================================
+     LOADED ASSIGNMENT FALLBACK
+  ========================================================= */
 
   const assignmentWithSchool =
     asArray(
       state.assignments
-    ).find(assignment =>
-      normalizeId(
-        assignment?.schoolId?._id ||
-        assignment?.schoolId
-      )
+    )
+      .find(
+        assignment => {
+
+          return Boolean(
+            normalizeId(
+              assignment?.schoolId?._id ||
+              assignment?.schoolId
+            )
+          );
+
+        }
+      );
+
+
+  const assignmentSchoolId =
+    normalizeId(
+
+      assignmentWithSchool?.schoolId?._id ||
+      assignmentWithSchool?.schoolId
+
     );
 
-  return normalizeId(
-    assignmentWithSchool?.schoolId?._id ||
-    assignmentWithSchool?.schoolId
-  );
+
+  if(assignmentSchoolId){
+
+    return assignmentSchoolId;
+
+  }
+
+
+  return "";
+
 }
 
 /* =========================================================
@@ -2882,156 +2938,291 @@ function getTeacherMap(){
 }
 
 async function loadAll(){
+
   try{
-    const meRes = await apiGet("/api/users/me", null);
-    state.loggedUser = meRes?.user || meRes;
 
-    if (!state.loggedUser){
-      showAlert("error","Unable to load student profile.");
+    /* =========================================================
+       AUTHENTICATED STUDENT
+    ========================================================= */
+
+    const meRes =
+      await apiGet(
+        "/api/users/me",
+        null
+      );
+
+
+    state.loggedUser =
+      meRes?.user ||
+      meRes;
+
+
+    if(!state.loggedUser){
+
+      showAlert(
+        "error",
+        "Unable to load student profile."
+      );
+
+
       return;
+
     }
 
-    if (selectedStudentId) {
-      const publicRes = await apiGet(`/api/users/${selectedStudentId}/public`, null);
-      state.me = publicRes?.user || publicRes || state.loggedUser;
-    } else {
-      state.me = state.loggedUser;
+
+    /* =========================================================
+       PROFILE BEING DISPLAYED
+    ========================================================= */
+
+    if(selectedStudentId){
+
+      const publicRes =
+        await apiGet(
+          `/api/users/${encodeURIComponent(
+            selectedStudentId
+          )}/public`,
+          null
+        );
+
+
+      state.me =
+        publicRes?.user ||
+        publicRes ||
+        state.loggedUser;
+
+
+    }else{
+
+      state.me =
+        state.loggedUser;
+
     }
 
-    const schoolId =
-      getSchoolId();
 
     const studentId =
       getStudentId();
 
 
-    /*
-      Load Portfolio after the student identity exists.
+    const schoolId =
+      getSchoolId();
 
-      This also performs the one-time localStorage
-      migration when necessary.
-    */
+
+    /* =========================================================
+       PORTFOLIO
+    ========================================================= */
 
     await loadStudentPortfolioFromServer();
 
 
-const [
-  classes,
-  assignments,
-  submissions,
-  schedules,
-  posts,
-  schoolUpdates,
-  studentResources,
-  certificates,
-  unread
-] = await Promise.all([
-      apiGet(
-        `/api/classes?schoolId=${
-          encodeURIComponent(
-            schoolId
+    /* =========================================================
+       NON-SCHOOL-SCOPED REQUESTS
+
+       These are safe even when the student does not currently
+       have a resolved school relationship.
+    ========================================================= */
+
+    const [
+
+      posts,
+      studentResources,
+      certificates,
+      unread
+
+    ] =
+      await Promise.all([
+
+        apiGet(
+          "/api/posts",
+          []
+        ),
+
+        apiGet(
+          "/api/student-resources",
+          {
+            resources:[]
+          }
+        ),
+
+        apiGet(
+          "/api/certificates/my",
+          {
+            certificates:[]
+          }
+        ),
+
+        apiGet(
+          "/api/notifications/unread-count",
+          {
+            count:0
+          }
+        )
+
+      ]);
+
+
+    /* =========================================================
+       SCHOOL-SCOPED DATA
+    ========================================================= */
+
+    let classes =
+      [];
+
+
+    let assignments =
+      [];
+
+
+    let submissions =
+      [];
+
+
+    let schedules =
+      [];
+
+
+    let schoolUpdates =
+      [];
+
+
+    if(schoolId){
+
+      [
+
+        classes,
+        assignments,
+        submissions,
+        schedules,
+        schoolUpdates
+
+      ] =
+        await Promise.all([
+
+          apiGet(
+            `/api/classes?schoolId=${
+              encodeURIComponent(
+                schoolId
+              )
+            }`,
+            []
+          ),
+
+          apiGet(
+            `/api/assignments?schoolId=${
+              encodeURIComponent(
+                schoolId
+              )
+            }`,
+            []
+          ),
+
+          studentId
+            ? apiGet(
+                `/api/submissions?schoolId=${
+                  encodeURIComponent(
+                    schoolId
+                  )
+                }&studentId=${
+                  encodeURIComponent(
+                    studentId
+                  )
+                }`,
+                []
+              )
+            : Promise.resolve(
+                []
+              ),
+
+          apiGet(
+            `/api/schedules?schoolId=${
+              encodeURIComponent(
+                schoolId
+              )
+            }`,
+            []
+          ),
+
+          apiGet(
+            `/api/school-updates?schoolId=${
+              encodeURIComponent(
+                schoolId
+              )
+            }`,
+            []
           )
-        }`,
-        []
-      ),
 
-      apiGet(
-        `/api/assignments?schoolId=${
-          encodeURIComponent(
-            schoolId
-          )
-        }`,
-        []
-      ),
+        ]);
 
-      apiGet(
-        `/api/submissions?schoolId=${
-          encodeURIComponent(
-            schoolId
-          )
-        }&studentId=${
-          encodeURIComponent(
-            studentId
-          )
-        }`,
-        []
-      ),
 
-      apiGet(
-        `/api/schedules?schoolId=${
-          encodeURIComponent(
-            schoolId
-          )
-        }`,
-        []
-      ),
+    }else{
 
-      apiGet(
-        "/api/posts",
-        []
-      ),
+      /*
+        IMPORTANT:
 
-      apiGet(
-        `/api/school-updates?schoolId=${
-          encodeURIComponent(
-            schoolId
-          )
-        }`,
-        []
-      ),
+        Never send:
+          ?schoolId=
 
-      apiGet(
-        "/api/student-resources",
-        {
-          resources:[]
-        }
-      ),
+        A student without a resolved school relationship
+        may still use account-level Student Studio features.
+      */
 
-      apiGet(
-        "/api/certificates/my",
-        {
-          certificates:[]
-        }
-      ),
+      console.warn(
+        "Student school relationship is not currently available. School-scoped data was not requested."
+      );
 
-      apiGet(
-        "/api/notifications/unread-count",
-        {
-          count:0
-        }
-      )
-    ]);
+    }
+
+
+    /* =========================================================
+       NORMALIZE STATE
+    ========================================================= */
 
     state.classes =
-      asArray(classes);
+      asArray(
+        classes
+      );
+
 
     state.assignments =
-      asArray(assignments);
+      asArray(
+        assignments
+      );
+
 
     state.submissions =
-      asArray(submissions);
+      asArray(
+        submissions
+      );
+
 
     state.schedules =
-      asArray(schedules);
+      asArray(
+        schedules
+      );
+
 
     state.posts =
-      asArray(posts);
+      asArray(
+        posts
+      );
+
 
     state.schoolUpdates =
       asArray(
         schoolUpdates
       );
-    updateStudentSchoolUpdatesBadge();
+
 
     state.studentResources =
       asArray(
         studentResources
       );
 
+
     state.certificates =
       asArray(
         certificates
       );
+
 
     state.unread =
       Number(
@@ -3040,61 +3231,100 @@ const [
         0
       );
 
+
     state.teachers =
       getTeacherMap();
 
-    /*
-      Clear stale progress before loading the current
-      student's class-specific results.
-    */
+
+    /* =========================================================
+       STUDENT PROGRESS
+    ========================================================= */
 
     state.classProgressById.clear();
+
 
     state.classProgressLoaded =
       false;
 
-    await loadStudentClassProgress({
-      force:true
-    });
+
+    if(
+      state.classes.length
+    ){
+
+      await loadStudentClassProgress({
+        force:true
+      });
+
+    }else{
+
+      state.classProgressLoaded =
+        true;
+
+    }
+
 
     calculateMetrics();
 
-renderProfile();
 
-renderStats();
+    /* =========================================================
+       RENDER
+    ========================================================= */
 
-renderBadges();
+    renderProfile();
 
-hydrateSubmissionSelect();
+    renderStats();
 
-if (
-  activeStudentStudioPage ===
-  "certificates"
-){
-  renderStudentCertificates();
-}
+    renderBadges();
 
-renderStudioHome();
+    hydrateSubmissionSelect();
 
-renderActiveStudentStudioPage(
-  activeStudentStudioPage ||
-  "overview"
-);
 
-bindStudentStudioNavigation();
+    if(
+      activeStudentStudioPage ===
+      "certificates"
+    ){
 
-bindStudentClassControls();
+      renderStudentCertificates();
 
-bindStudentAssignmentControls();
+    }
 
-closeStudentSearchResults({
-  clear:false
-});
 
-  }catch(err){
-    console.error(err);
-    showAlert("error","Student portal failed to load.");
+    renderStudioHome();
+
+
+    renderActiveStudentStudioPage(
+      activeStudentStudioPage ||
+      "overview"
+    );
+
+
+    bindStudentStudioNavigation();
+
+    bindStudentClassControls();
+
+    bindStudentAssignmentControls();
+
+
+    closeStudentSearchResults({
+      clear:false
+    });
+
+
+  }catch(error){
+
+    console.error(
+      "STUDENT PORTAL LOAD ERROR:",
+      error
+    );
+
+
+    showAlert(
+      "error",
+      "Student portal failed to load."
+    );
+
   }
+
 }
 
 /* =========================================================
