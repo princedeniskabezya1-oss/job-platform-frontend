@@ -21497,22 +21497,60 @@ function renderStudentSettingsAccessibility(
 
 }
 
+/* =========================================================
+   STUDENT SETTINGS
+   SECURITY
+========================================================= */
 
 function renderStudentSettingsSecurity(){
 
   return `
 
     ${studentSettingsPanelHeaderHTML({
-      eyebrow:"Security",
-      
+
+      eyebrow:
+        "Security",
+
+      title:
+        "Account security",
+
       description:
-        "Review account security options and important sign-in controls."
+        "Manage your password, active devices, and signed-in sessions."
+
     })}
 
+
+    <!-- =====================================================
+         PASSWORD
+    ====================================================== -->
 
     <section
       class="student-settings-card"
     >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            PASSWORD
+          </span>
+
+          <h3>
+            Password security
+          </h3>
+
+          <p>
+            Keep your AIFT account protected with a strong,
+            unique password.
+          </p>
+
+        </div>
+
+      </div>
+
 
       <div
         class="student-settings-action-row"
@@ -21520,6 +21558,7 @@ function renderStudentSettingsSecurity(){
 
         <span
           class="student-settings-action-icon"
+          aria-hidden="true"
         >
           <i class="fa-solid fa-key"></i>
         </span>
@@ -21530,17 +21569,19 @@ function renderStudentSettingsSecurity(){
         >
 
           <strong>
-            Password
+            Change password
           </strong>
 
           <p>
-            Update the password used to access your AIFT account.
+            Update the password you use to sign in to your
+            AIFT Student account.
           </p>
 
         </div>
 
 
         <button
+          id="studentChangePasswordButton"
           type="button"
           class="student-settings-button secondary"
           data-student-settings-action="password"
@@ -21550,39 +21591,132 @@ function renderStudentSettingsSecurity(){
 
       </div>
 
+    </section>
+
+
+    <!-- =====================================================
+         ACTIVE SESSIONS
+    ====================================================== -->
+
+    <section
+      class="student-settings-card student-security-sessions-card"
+    >
 
       <div
-        class="student-settings-action-row"
+        class="student-settings-card-heading student-security-sessions-heading"
       >
 
-        <span
-          class="student-settings-action-icon"
-        >
-          <i class="fa-solid fa-laptop"></i>
-        </span>
+        <div>
 
+          <span>
+            DEVICES & SESSIONS
+          </span>
 
-        <div
-          class="student-settings-action-copy"
-        >
-
-          <strong>
+          <h3>
             Active sessions
-          </strong>
+          </h3>
 
           <p>
-            Review devices and sessions currently connected to your account.
+            Review devices currently signed in to your AIFT
+            account and remove access you no longer recognize.
           </p>
 
         </div>
 
 
         <button
+          id="studentRefreshSessionsButton"
           type="button"
           class="student-settings-button secondary"
-          data-student-settings-action="sessions"
+          data-student-settings-action="refresh-sessions"
         >
-          Review
+          <i
+            class="fa-solid fa-rotate"
+            aria-hidden="true"
+          ></i>
+
+          Refresh
+        </button>
+
+      </div>
+
+
+      <!-- SESSION STATUS -->
+
+      <div
+        id="studentAuthSessionsMessage"
+        class="student-security-session-message"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></div>
+
+
+      <!-- SESSION LIST -->
+
+      <div
+        id="studentAuthSessionsList"
+        class="student-security-session-list"
+      >
+
+        <div
+          class="student-security-session-loading"
+        >
+
+          <span
+            class="student-security-session-loading-icon"
+            aria-hidden="true"
+          >
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+          </span>
+
+
+          <div>
+
+            <strong>
+              Checking active sessions
+            </strong>
+
+            <p>
+              Securely loading devices connected to this
+              account.
+            </p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- LOG OUT OTHER DEVICES -->
+
+      <div
+        class="student-security-session-footer"
+      >
+
+        <div>
+
+          <strong>
+            Don't recognize a device?
+          </strong>
+
+          <p>
+            Sign out all other sessions while keeping this
+            device connected.
+          </p>
+
+        </div>
+
+
+        <button
+          id="studentLogoutOtherSessionsButton"
+          type="button"
+          class="student-settings-button danger"
+          data-student-settings-action="logout-others"
+          disabled
+        >
+          Sign out other devices
         </button>
 
       </div>
@@ -21590,26 +21724,31 @@ function renderStudentSettingsSecurity(){
     </section>
 
 
+    <!-- =====================================================
+         SECURITY GUIDANCE
+    ====================================================== -->
+
     <section
       class="student-settings-callout"
     >
 
       <span
         class="student-settings-callout-icon"
+        aria-hidden="true"
       >
-        <i class="fa-solid fa-lock"></i>
+        <i class="fa-solid fa-shield-halved"></i>
       </span>
+
 
       <div>
 
         <strong>
-          Security-sensitive actions
+          Protect your account
         </strong>
 
         <p>
-          Password and session management should use authenticated backend
-          endpoints. The interface will not pretend these actions succeeded
-          until those endpoints are connected.
+          If you see a session you do not recognize, remove it
+          immediately and change your password.
         </p>
 
       </div>
