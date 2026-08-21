@@ -36286,50 +36286,60 @@ body[data-builder-section="presentations"]
   }
 
 
-  /* =======================================================
-     MOBILE DRAWER BACKDROP
+/* =======================================================
+   MOBILE SIDEBAR BACKDROP
+======================================================= */
 
-     The backdrop belongs to the shell and sits underneath
-     the sidebar but above the workspace.
-  ======================================================== */
+.studio-mobile-sidebar-backdrop{
+  position:fixed;
 
-  .studio-app-shell::before{
-    content:"";
+  top:
+    var(--aift-topbar-height);
 
-    position:fixed;
+  right:0;
+  bottom:0;
+  left:0;
 
-    top:
-      var(--aift-topbar-height);
+  z-index:6400;
 
-    right:0;
-    bottom:0;
-    left:0;
+  width:auto;
+  height:auto;
 
-    z-index:6400;
+  margin:0;
+  padding:0;
 
-    background:
-      rgba(15,23,42,.42);
+  display:block;
 
-    opacity:0;
+  border:0;
+  border-radius:0;
 
-    visibility:hidden;
+  outline:0;
 
-    pointer-events:none;
+  background:
+    rgba(15,23,42,.42);
 
-    transition:
-      opacity .2s ease,
-      visibility .2s ease;
-  }
+  opacity:0;
+
+  visibility:hidden;
+
+  pointer-events:none;
+
+  cursor:default;
+
+  transition:
+    opacity .2s ease,
+    visibility .2s ease;
+}
 
 
-  body.studio-mobile-sidebar-open
-  .studio-app-shell::before{
-    opacity:1;
+body.studio-mobile-sidebar-open
+.studio-mobile-sidebar-backdrop{
+  opacity:1;
 
-    visibility:visible;
+  visibility:visible;
 
-    pointer-events:auto;
-  }
+  pointer-events:auto;
+}
 
 
   /* =======================================================
@@ -37102,6 +37112,19 @@ body[data-builder-section="presentations"]
   class="studio-app-shell"
   id="studioAppShell"
 >
+<!-- ======================================================
+     MOBILE CLASS BUILDER NAVIGATION BACKDROP
+====================================================== -->
+
+<button
+  id="studioMobileSidebarBackdrop"
+  type="button"
+  class="studio-mobile-sidebar-backdrop"
+  aria-label="Close Class Builder navigation"
+  tabindex="-1"
+  onclick="closeBuilderMobileSidebar()"
+></button>
+   
 <div
   class="studio-boot-screen"
   id="studioBootScreen"
@@ -64472,64 +64495,181 @@ function openVisualEditor(scope, ownerId = null){
 }
 
 /* =========================================================
-   BUILDER STUDIO SHELL
+   BUILDER SIDEBAR CONTROLLER
+========================================================= */
+
+
+/* =========================================================
+   DETECT MOBILE BUILDER
+========================================================= */
+
+function isBuilderMobileViewport(){
+
+  return window.matchMedia(
+    "(max-width:760px)"
+  ).matches;
+
+}
+
+
+/* =========================================================
+   OPEN MOBILE SIDEBAR
+========================================================= */
+
+function openBuilderMobileSidebar(){
+
+  if(
+    !isBuilderMobileViewport()
+  ){
+
+    return false;
+
+  }
+
+
+  document.body.classList.add(
+    "studio-mobile-sidebar-open"
+  );
+
+
+  byId(
+    "studioSidebarToggle"
+  )?.setAttribute(
+    "aria-expanded",
+    "true"
+  );
+
+
+  byId(
+    "studioMobileSidebarBackdrop"
+  )?.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   CLOSE MOBILE SIDEBAR
+========================================================= */
+
+function closeBuilderMobileSidebar(){
+
+  document.body.classList.remove(
+    "studio-mobile-sidebar-open"
+  );
+
+
+  byId(
+    "studioSidebarToggle"
+  )?.setAttribute(
+    "aria-expanded",
+    "false"
+  );
+
+
+  byId(
+    "studioMobileSidebarBackdrop"
+  )?.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   TOGGLE BUILDER SIDEBAR
+
+   Mobile:
+   off-canvas navigation.
+
+   Desktop:
+   compact / expanded persistent sidebar.
 ========================================================= */
 
 function toggleBuilderSidebar(){
-  const isMobile =
-    window.matchMedia(
-      "(max-width:760px)"
-    ).matches;
 
-  if(isMobile){
-    const nextState =
-      !document.body.classList.contains(
+  if(
+    isBuilderMobileViewport()
+  ){
+
+    const currentlyOpen =
+      document.body.classList.contains(
         "studio-mobile-sidebar-open"
       );
 
-    document.body.classList.toggle(
-      "studio-mobile-sidebar-open",
-      nextState
-    );
 
-    byId("studioSidebarToggle")
-      ?.setAttribute(
-        "aria-expanded",
-        String(nextState)
-      );
+    if(currentlyOpen){
+
+      closeBuilderMobileSidebar();
+
+    }else{
+
+      openBuilderMobileSidebar();
+
+    }
+
 
     return;
+
   }
+
+
+  /* =======================================================
+     DESKTOP SIDEBAR
+  ======================================================== */
 
   const nextState =
     !document.body.classList.contains(
       "studio-sidebar-collapsed"
     );
 
+
   document.body.classList.toggle(
     "studio-sidebar-collapsed",
     nextState
   );
 
-  byId("studioSidebarToggle")
-    ?.setAttribute(
-      "aria-expanded",
-      String(!nextState)
-    );
+
+  byId(
+    "studioSidebarToggle"
+  )?.setAttribute(
+    "aria-expanded",
+    String(
+      !nextState
+    )
+  );
+
 
   try{
+
     localStorage.setItem(
       "aiftClassBuilderSidebarCollapsed",
       nextState
         ? "1"
         : "0"
     );
+
   }catch(error){
+
     /*
       Storage may be unavailable.
+      Sidebar behavior must continue normally.
     */
+
   }
+
 }
+
+
 
 function restoreBuilderSidebarState(){
   if(
@@ -82341,21 +82481,13 @@ if(tab === "presentations"){
   }
 }
 
-  if(
-    window.matchMedia(
-      "(max-width:760px)"
-    ).matches
-  ){
-    document.body.classList.remove(
-      "studio-mobile-sidebar-open"
-    );
+if(
+  isBuilderMobileViewport()
+){
 
-    byId("studioSidebarToggle")
-      ?.setAttribute(
-        "aria-expanded",
-        "false"
-      );
-  }
+  closeBuilderMobileSidebar();
+
+}
 
   window.scrollTo({
     top:0,
