@@ -25086,22 +25086,33 @@ function bindStudentSessionSecurityConfirmation(){
 
   /* CONFIRM */
 
-  $(
-    "studentSecurityConfirmSubmitButton"
-  )?.addEventListener(
-    "click",
-    event => {
+$(
+  "studentSecurityConfirmSubmitButton"
+)?.addEventListener(
+  "click",
+  async event => {
 
-      event.preventDefault();
+    event.preventDefault();
 
 
-      executeStudentSessionSecurityAction();
+    const handled =
+      await executeStudentAccountConfirmationAction();
 
-    },
-    {
-      signal
+
+    if(handled){
+
+      return;
+
     }
-  );
+
+
+    executeStudentSessionSecurityAction();
+
+  },
+  {
+    signal
+  }
+);
 
 
   /* ESCAPE */
@@ -25143,6 +25154,1398 @@ function bindStudentSessionSecurityConfirmation(){
 
 
       closeStudentSessionSecurityConfirmation();
+
+    },
+    {
+      signal
+    }
+  );
+
+}
+
+/* =========================================================
+   STUDENT DATA & ACCOUNT
+   PRODUCTION CONTROLLER
+========================================================= */
+
+let studentAccountLifecycleController =
+  null;
+
+let studentDataExportPending =
+  false;
+
+
+/* =========================================================
+   CLEAR AUTHENTICATION
+========================================================= */
+
+function clearStudentAuthentication(){
+
+  [
+    "studentToken",
+    "talentToken",
+    "schoolToken",
+    "adminToken",
+    "token",
+    "role",
+    "userId"
+  ]
+    .forEach(
+      key => {
+
+        localStorage.removeItem(
+          key
+        );
+
+      }
+    );
+
+
+  sessionStorage.removeItem(
+    "token"
+  );
+
+}
+
+
+/* =========================================================
+   REDIRECT TO LOGIN
+========================================================= */
+
+function redirectStudentToLogin(){
+
+  clearStudentAuthentication();
+
+
+  window.location.href =
+    "login.html";
+
+}
+
+
+/* =========================================================
+   GENERIC ACCOUNT FORM MESSAGE
+========================================================= */
+
+function setStudentAccountFormMessage(
+  elementId,
+  message,
+  type = "error"
+){
+
+  const element =
+    $(
+      elementId
+    );
+
+
+  if(!element){
+
+    return;
+
+  }
+
+
+  element.textContent =
+    String(
+      message ||
+      ""
+    );
+
+
+  element.hidden =
+    !message;
+
+
+  element.classList.remove(
+    "error",
+    "success",
+    "info"
+  );
+
+
+  if(message){
+
+    element.classList.add(
+      type
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   DATA EXPORT REQUEST
+========================================================= */
+
+async function requestStudentDataExport(){
+
+  if(
+    studentDataExportPending
+  ){
+
+    return;
+
+  }
+
+
+  const button =
+    $(
+      "studentRequestDataExportButton"
+    );
+
+
+  studentDataExportPending =
+    true;
+
+
+  if(button){
+
+    button.disabled =
+      true;
+
+
+    button.dataset.originalText =
+      button.textContent;
+
+
+    button.textContent =
+      "Requesting...";
+
+  }
+
+
+  try{
+
+    const response =
+      await apiSend(
+        "/api/users/me/data-export-request",
+        "POST",
+        {}
+      );
+
+
+    notifyAIFTSuccess(
+      response?.message ||
+      "Your data export request has been received.",
+      {
+        title:
+          "Data export requested"
+      }
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "STUDENT DATA EXPORT ERROR:",
+      error
+    );
+
+
+    notifyAIFTError(
+      error?.message ||
+      "Your data export request could not be submitted.",
+      {
+        title:
+          "Export request failed"
+      }
+    );
+
+
+  }finally{
+
+    studentDataExportPending =
+      false;
+
+
+    if(button){
+
+      button.disabled =
+        false;
+
+
+      button.textContent =
+        button.dataset
+          .originalText ||
+        "Request data";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   OPEN DEACTIVATE MODAL
+========================================================= */
+
+function openStudentDeactivateAccountModal(){
+
+  const form =
+    $(
+      "studentDeactivateAccountForm"
+    );
+
+
+  form?.reset();
+
+
+  setStudentAccountFormMessage(
+    "studentDeactivateAccountMessage",
+    ""
+  );
+
+
+  const submitButton =
+    $(
+      "studentDeactivateAccountSubmitButton"
+    );
+
+
+  if(submitButton){
+
+    submitButton.disabled =
+      false;
+
+
+    submitButton.textContent =
+      "Deactivate account";
+
+  }
+
+
+  openModal(
+    "studentDeactivateAccountModal"
+  );
+
+
+  window.setTimeout(
+    () => {
+
+      $(
+        "studentDeactivatePassword"
+      )?.focus();
+
+    },
+    80
+  );
+
+}
+
+
+/* =========================================================
+   CLOSE DEACTIVATE MODAL
+========================================================= */
+
+function closeStudentDeactivateAccountModal(){
+
+  closeModal(
+    "studentDeactivateAccountModal"
+  );
+
+
+  $(
+    "studentDeactivateAccountForm"
+  )?.reset();
+
+
+  setStudentAccountFormMessage(
+    "studentDeactivateAccountMessage",
+    ""
+  );
+
+}
+
+
+/* =========================================================
+   SUBMIT ACCOUNT DEACTIVATION
+========================================================= */
+
+async function submitStudentDeactivateAccount(
+  event
+){
+
+  event?.preventDefault();
+
+
+  const password =
+    String(
+      $(
+        "studentDeactivatePassword"
+      )?.value ||
+      ""
+    );
+
+
+  const reason =
+    String(
+      $(
+        "studentDeactivateReason"
+      )?.value ||
+      ""
+    )
+      .trim();
+
+
+  if(!password){
+
+    setStudentAccountFormMessage(
+      "studentDeactivateAccountMessage",
+      "Enter your current password.",
+      "error"
+    );
+
+
+    $(
+      "studentDeactivatePassword"
+    )?.focus();
+
+
+    return;
+
+  }
+
+
+  const submitButton =
+    $(
+      "studentDeactivateAccountSubmitButton"
+    );
+
+
+  if(
+    submitButton?.disabled
+  ){
+
+    return;
+
+  }
+
+
+  if(submitButton){
+
+    submitButton.disabled =
+      true;
+
+
+    submitButton.textContent =
+      "Deactivating...";
+
+  }
+
+
+  setStudentAccountFormMessage(
+    "studentDeactivateAccountMessage",
+    "Securely deactivating your account...",
+    "info"
+  );
+
+
+  try{
+
+    const response =
+      await apiSend(
+        "/api/users/me/deactivate",
+        "POST",
+        {
+          password,
+          reason
+        }
+      );
+
+
+    setStudentAccountFormMessage(
+      "studentDeactivateAccountMessage",
+      response?.message ||
+      "Account deactivated successfully.",
+      "success"
+    );
+
+
+    notifyAIFTSuccess(
+      response?.message ||
+      "Your account has been deactivated.",
+      {
+        title:
+          "Account deactivated"
+      }
+    );
+
+
+    /*
+      The backend revokes all sessions after
+      deactivation succeeds.
+
+      Remove local credentials and return to login.
+    */
+
+    window.setTimeout(
+      () => {
+
+        redirectStudentToLogin();
+
+      },
+      800
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "STUDENT ACCOUNT DEACTIVATION ERROR:",
+      error
+    );
+
+
+    setStudentAccountFormMessage(
+      "studentDeactivateAccountMessage",
+      error?.message ||
+      "Your account could not be deactivated.",
+      "error"
+    );
+
+
+    notifyAIFTError(
+      error?.message ||
+      "Your account could not be deactivated.",
+      {
+        title:
+          "Deactivation failed"
+      }
+    );
+
+
+    if(submitButton){
+
+      submitButton.disabled =
+        false;
+
+
+      submitButton.textContent =
+        "Deactivate account";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   GET DELETE CONFIRMATION NAME
+========================================================= */
+
+function getStudentDeleteConfirmationName(){
+
+  const profile =
+    getStudentSettingsProfile();
+
+
+  return String(
+    profile?.name ||
+    state.loggedUser?.name ||
+    state.me?.name ||
+    ""
+  )
+    .trim();
+
+}
+
+
+/* =========================================================
+   UPDATE DELETE BUTTON STATE
+========================================================= */
+
+function updateStudentDeleteButtonState(){
+
+  const acknowledgement =
+    $(
+      "studentDeleteAccountAcknowledgement"
+    );
+
+
+  const confirmationInput =
+    $(
+      "studentDeleteAccountConfirmation"
+    );
+
+
+  const submitButton =
+    $(
+      "studentDeleteAccountSubmitButton"
+    );
+
+
+  if(
+    !submitButton
+  ){
+
+    return;
+
+  }
+
+
+  const expectedName =
+    getStudentDeleteConfirmationName();
+
+
+  const suppliedName =
+    String(
+      confirmationInput?.value ||
+      ""
+    )
+      .trim();
+
+
+  const confirmationMatches =
+    Boolean(
+      expectedName &&
+      suppliedName ===
+      expectedName
+    );
+
+
+  const acknowledged =
+    Boolean(
+      acknowledgement?.checked
+    );
+
+
+  submitButton.disabled =
+    !(
+      confirmationMatches &&
+      acknowledged
+    );
+
+}
+
+
+/* =========================================================
+   OPEN DELETE MODAL
+========================================================= */
+
+function openStudentDeleteAccountModal(){
+
+  const form =
+    $(
+      "studentDeleteAccountForm"
+    );
+
+
+  form?.reset();
+
+
+  const expectedName =
+    getStudentDeleteConfirmationName();
+
+
+  const display =
+    $(
+      "studentDeleteRequiredAccountName"
+    );
+
+
+  if(display){
+
+    display.textContent =
+      expectedName ||
+      "your account name";
+
+  }
+
+
+  setStudentAccountFormMessage(
+    "studentDeleteAccountMessage",
+    ""
+  );
+
+
+  const submitButton =
+    $(
+      "studentDeleteAccountSubmitButton"
+    );
+
+
+  if(submitButton){
+
+    submitButton.disabled =
+      true;
+
+
+    submitButton.textContent =
+      "Request deletion";
+
+  }
+
+
+  openModal(
+    "studentDeleteAccountModal"
+  );
+
+
+  window.setTimeout(
+    () => {
+
+      $(
+        "studentDeleteAccountPassword"
+      )?.focus();
+
+    },
+    80
+  );
+
+}
+
+
+/* =========================================================
+   CLOSE DELETE MODAL
+========================================================= */
+
+function closeStudentDeleteAccountModal(){
+
+  closeModal(
+    "studentDeleteAccountModal"
+  );
+
+
+  $(
+    "studentDeleteAccountForm"
+  )?.reset();
+
+
+  setStudentAccountFormMessage(
+    "studentDeleteAccountMessage",
+    ""
+  );
+
+
+  updateStudentDeleteButtonState();
+
+}
+
+
+/* =========================================================
+   SUBMIT DELETE REQUEST
+========================================================= */
+
+async function submitStudentDeleteAccount(
+  event
+){
+
+  event?.preventDefault();
+
+
+  const password =
+    String(
+      $(
+        "studentDeleteAccountPassword"
+      )?.value ||
+      ""
+    );
+
+
+  const confirmation =
+    String(
+      $(
+        "studentDeleteAccountConfirmation"
+      )?.value ||
+      ""
+    )
+      .trim();
+
+
+  const expectedName =
+    getStudentDeleteConfirmationName();
+
+
+  const acknowledged =
+    Boolean(
+      $(
+        "studentDeleteAccountAcknowledgement"
+      )?.checked
+    );
+
+
+  if(!password){
+
+    setStudentAccountFormMessage(
+      "studentDeleteAccountMessage",
+      "Enter your current password.",
+      "error"
+    );
+
+
+    $(
+      "studentDeleteAccountPassword"
+    )?.focus();
+
+
+    return;
+
+  }
+
+
+  if(
+    !expectedName ||
+    confirmation !==
+    expectedName
+  ){
+
+    setStudentAccountFormMessage(
+      "studentDeleteAccountMessage",
+      "The confirmation must exactly match your account name.",
+      "error"
+    );
+
+
+    $(
+      "studentDeleteAccountConfirmation"
+    )?.focus();
+
+
+    return;
+
+  }
+
+
+  if(!acknowledged){
+
+    setStudentAccountFormMessage(
+      "studentDeleteAccountMessage",
+      "Confirm that you understand the account deletion process.",
+      "error"
+    );
+
+
+    return;
+
+  }
+
+
+  const submitButton =
+    $(
+      "studentDeleteAccountSubmitButton"
+    );
+
+
+  if(
+    submitButton?.disabled
+  ){
+
+    return;
+
+  }
+
+
+  submitButton.disabled =
+    true;
+
+
+  submitButton.textContent =
+    "Submitting...";
+
+
+  setStudentAccountFormMessage(
+    "studentDeleteAccountMessage",
+    "Securely submitting your deletion request...",
+    "info"
+  );
+
+
+  try{
+
+    const response =
+      await apiSend(
+        "/api/users/me/delete-account-request",
+        "POST",
+        {
+          password,
+          confirmation
+        }
+      );
+
+
+    setStudentAccountFormMessage(
+      "studentDeleteAccountMessage",
+      response?.message ||
+      "Account deletion requested successfully.",
+      "success"
+    );
+
+
+    const scheduledFor =
+      response?.scheduledFor
+        ? formatStudentSessionDate(
+            response.scheduledFor
+          )
+        : "";
+
+
+    notifyAIFTSuccess(
+      scheduledFor
+        ? `Your account deletion request was accepted. Scheduled deletion: ${scheduledFor}.`
+        : (
+            response?.message ||
+            "Your account deletion request was accepted."
+          ),
+      {
+        title:
+          "Deletion requested"
+      }
+    );
+
+
+    /*
+      Backend disables the account and revokes all
+      active sessions immediately after an accepted
+      deletion request.
+    */
+
+    window.setTimeout(
+      () => {
+
+        redirectStudentToLogin();
+
+      },
+      900
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "STUDENT DELETE ACCOUNT ERROR:",
+      error
+    );
+
+
+    setStudentAccountFormMessage(
+      "studentDeleteAccountMessage",
+      error?.message ||
+      "Your deletion request could not be submitted.",
+      "error"
+    );
+
+
+    notifyAIFTError(
+      error?.message ||
+      "Your deletion request could not be submitted.",
+      {
+        title:
+          "Deletion request failed"
+      }
+    );
+
+
+    updateStudentDeleteButtonState();
+
+  }
+
+}
+
+
+/* =========================================================
+   SIGN OUT CURRENT STUDENT SESSION
+========================================================= */
+
+async function signOutStudentCurrentSession(){
+
+  try{
+
+    /*
+      Make sure the latest server session list is available.
+    */
+
+    const sessions =
+      await loadStudentAuthSessions({
+        force:true
+      });
+
+
+    const currentSession =
+      Array.isArray(
+        sessions
+      )
+        ? sessions.find(
+            session =>
+              session?.current ===
+              true
+          )
+        : null;
+
+
+    const sessionId =
+      String(
+        currentSession?.sessionId ||
+        ""
+      )
+        .trim();
+
+
+    /*
+      If the authenticated session exists, revoke it on
+      the backend before clearing browser credentials.
+    */
+
+    if(sessionId){
+
+      await apiSend(
+        `/api/auth/sessions/${
+          encodeURIComponent(
+            sessionId
+          )
+        }`,
+        "DELETE"
+      );
+
+    }
+
+
+  }catch(error){
+
+    /*
+      Local sign-out must still be possible if the
+      session revocation request is unavailable.
+
+      Do not trap the user inside the account.
+    */
+
+    console.warn(
+      "SERVER SESSION SIGN OUT FAILED:",
+      error
+    );
+
+  }
+
+
+  redirectStudentToLogin();
+
+}
+
+
+/* =========================================================
+   DATA & ACCOUNT AIFT CONFIRMATION
+========================================================= */
+
+function openStudentDataAccountConfirmation(
+  action
+){
+
+  const normalizedAction =
+    String(
+      action ||
+      ""
+    )
+      .trim();
+
+
+  /*
+    Reuse the existing AIFT Security confirmation modal.
+
+    The execution function below intercepts these account
+    actions before the session-only controller receives them.
+  */
+
+  if(
+    normalizedAction ===
+    "logout"
+  ){
+
+    studentSessionSecurityAction = {
+      action:
+        "account-logout",
+      sessionId:""
+    };
+
+
+    $(
+      "studentSecurityConfirmTitle"
+    ).textContent =
+      "Sign out of AIFT?";
+
+
+    $(
+      "studentSecurityConfirmSubtitle"
+    ).textContent =
+      "Your current Student Studio session will end.";
+
+
+    $(
+      "studentSecurityConfirmHeading"
+    ).textContent =
+      "Sign out this device";
+
+
+    $(
+      "studentSecurityConfirmMessage"
+    ).textContent =
+      "You will need to sign in again before using Student Studio.";
+
+
+    $(
+      "studentSecurityConfirmSubmitButton"
+    ).textContent =
+      "Sign out";
+
+
+    setStudentSessionConfirmStatus(
+      ""
+    );
+
+
+    openModal(
+      "studentSecurityConfirmModal"
+    );
+
+
+    return;
+
+  }
+
+
+  if(
+    normalizedAction ===
+    "download-data"
+  ){
+
+    studentSessionSecurityAction = {
+      action:
+        "account-data-export",
+      sessionId:""
+    };
+
+
+    $(
+      "studentSecurityConfirmTitle"
+    ).textContent =
+      "Request your data?";
+
+
+    $(
+      "studentSecurityConfirmSubtitle"
+    ).textContent =
+      "AIFT will record a new data export request.";
+
+
+    $(
+      "studentSecurityConfirmHeading"
+    ).textContent =
+      "Request account data export";
+
+
+    $(
+      "studentSecurityConfirmMessage"
+    ).textContent =
+      "AIFT will prepare supported Student account and learning data through the account export process.";
+
+
+    $(
+      "studentSecurityConfirmSubmitButton"
+    ).textContent =
+      "Request data";
+
+
+    setStudentSessionConfirmStatus(
+      ""
+    );
+
+
+    openModal(
+      "studentSecurityConfirmModal"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   EXECUTE ACCOUNT CONFIRMATION ACTION
+========================================================= */
+
+async function executeStudentAccountConfirmationAction(){
+
+  const operation =
+    studentSessionSecurityAction;
+
+
+  if(!operation){
+
+    return false;
+
+  }
+
+
+  if(
+    operation.action ===
+    "account-logout"
+  ){
+
+    closeStudentSessionSecurityConfirmation();
+
+
+    await signOutStudentCurrentSession();
+
+
+    return true;
+
+  }
+
+
+  if(
+    operation.action ===
+    "account-data-export"
+  ){
+
+    closeStudentSessionSecurityConfirmation();
+
+
+    await requestStudentDataExport();
+
+
+    return true;
+
+  }
+
+
+  return false;
+
+}
+
+
+/* =========================================================
+   BIND ACCOUNT LIFECYCLE MODALS
+========================================================= */
+
+function bindStudentAccountLifecycleControls(){
+
+  if(
+    studentAccountLifecycleController
+  ){
+
+    studentAccountLifecycleController
+      .abort();
+
+  }
+
+
+  studentAccountLifecycleController =
+    new AbortController();
+
+
+  const signal =
+    studentAccountLifecycleController
+      .signal;
+
+
+  /* =======================================================
+     DEACTIVATE
+  ======================================================== */
+
+  $(
+    "studentDeactivateAccountCloseButton"
+  )?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+
+      closeStudentDeactivateAccountModal();
+
+    },
+    {
+      signal
+    }
+  );
+
+
+  $(
+    "studentDeactivateAccountCancelButton"
+  )?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+
+      closeStudentDeactivateAccountModal();
+
+    },
+    {
+      signal
+    }
+  );
+
+
+  $(
+    "studentDeactivateAccountForm"
+  )?.addEventListener(
+    "submit",
+    submitStudentDeactivateAccount,
+    {
+      signal
+    }
+  );
+
+
+  /* =======================================================
+     DELETE
+  ======================================================== */
+
+  $(
+    "studentDeleteAccountCloseButton"
+  )?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+
+      closeStudentDeleteAccountModal();
+
+    },
+    {
+      signal
+    }
+  );
+
+
+  $(
+    "studentDeleteAccountCancelButton"
+  )?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+
+      closeStudentDeleteAccountModal();
+
+    },
+    {
+      signal
+    }
+  );
+
+
+  $(
+    "studentDeleteAccountForm"
+  )?.addEventListener(
+    "submit",
+    submitStudentDeleteAccount,
+    {
+      signal
+    }
+  );
+
+
+  $(
+    "studentDeleteAccountConfirmation"
+  )?.addEventListener(
+    "input",
+    updateStudentDeleteButtonState,
+    {
+      signal
+    }
+  );
+
+
+  $(
+    "studentDeleteAccountAcknowledgement"
+  )?.addEventListener(
+    "change",
+    updateStudentDeleteButtonState,
+    {
+      signal
+    }
+  );
+
+
+  /* =======================================================
+     PASSWORD VISIBILITY
+  ======================================================== */
+
+  document
+    .querySelectorAll(
+      `
+        #studentDeactivateAccountModal
+        [data-student-password-toggle],
+
+        #studentDeleteAccountModal
+        [data-student-password-toggle]
+      `
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          event => {
+
+            event.preventDefault();
+
+
+            toggleStudentPasswordVisibility(
+              button
+            );
+
+          },
+          {
+            signal
+          }
+        );
+
+      }
+    );
+
+
+  /* =======================================================
+     ESCAPE
+  ======================================================== */
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if(
+        event.key !==
+        "Escape"
+      ){
+
+        return;
+
+      }
+
+
+      if(
+        $(
+          "studentDeactivateAccountModal"
+        )?.classList.contains(
+          "show"
+        )
+      ){
+
+        closeStudentDeactivateAccountModal();
+
+        return;
+
+      }
+
+
+      if(
+        $(
+          "studentDeleteAccountModal"
+        )?.classList.contains(
+          "show"
+        )
+      ){
+
+        closeStudentDeleteAccountModal();
+
+      }
 
     },
     {
@@ -25455,18 +26858,13 @@ function bindStudentSettingsControls(){
                 break;
 
 
-              case "logout":
+case "logout":
 
-                if(
-                  typeof logout ===
-                  "function"
-                ){
+  openStudentDataAccountConfirmation(
+    "logout"
+  );
 
-                  logout();
-
-                }
-
-                break;
+  break;
 
 
 case "password":
@@ -25503,14 +26901,26 @@ case "logout-others":
                 
 
 
-              case "download-data":
+case "download-data":
 
-                showAlert(
-                  "info",
-                  "Data export will use the authenticated account-data endpoint."
-                );
+  openStudentDataAccountConfirmation(
+    "download-data"
+  );
 
-                break;
+  break;
+
+case "deactivate-account":
+
+  openStudentDeactivateAccountModal();
+
+  break;
+
+
+case "delete-account":
+
+  openStudentDeleteAccountModal();
+
+  break;
 
             }
 
@@ -26160,6 +27570,7 @@ async function renderStudentSettings(){
   bindStudentSettingsControls();
   bindStudentPasswordModal();
   bindStudentSessionSecurityConfirmation();
+  bindStudentAccountLifecycleControls();
 
 
   /*
