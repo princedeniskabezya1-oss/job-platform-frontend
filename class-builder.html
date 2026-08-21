@@ -24255,7 +24255,21 @@ body.elementor-settings-collapsed
 }
 
 /* =========================================================
-   RESPONSIVE SAFETY
+   CONTENT STUDIO
+   RESPONSIVE TABLET + MOBILE EXPERIENCE
+
+   MOBILE PRINCIPLE
+   ---------------------------------------------------------
+   The canvas is always the primary workspace.
+
+   Elements and Element Settings become off-canvas drawers
+   so the teacher is never overwhelmed by three columns on
+   a phone screen.
+========================================================= */
+
+
+/* =========================================================
+   COMPACT DESKTOP / TABLET
 ========================================================= */
 
 @media(max-width:1180px){
@@ -24265,64 +24279,752 @@ body.elementor-settings-collapsed
     --elementor-inspector-width:250px;
   }
 
+
   .elementor-canvas-title > span,
   #elementorLessonTitle{
     display:none;
   }
 
+
   .elementor-viewport-select{
     width:102px;
   }
+
 }
+
+
+/* =========================================================
+   MOBILE CONTENT STUDIO
+========================================================= */
 
 @media(max-width:900px){
 
+  /* =======================================================
+     PAGE
+  ======================================================== */
+
+  body[data-builder-section="content"]{
+    overflow:hidden;
+  }
+
+
+  body[data-builder-section="content"]
+  .studio-main{
+    overflow:hidden!important;
+  }
+
+
   body[data-builder-section="content"]
   .studio-workspace{
-    overflow:auto!important;
+    padding:0!important;
+
+    overflow:hidden!important;
   }
+
 
   #section-content{
-    height:auto;
-    min-height:
+    position:relative;
+
+    width:100%;
+    height:
       calc(
-        100vh -
+        100dvh -
         var(--aift-topbar-height)
       );
+
+    min-height:0;
+
+    overflow:hidden;
   }
+
+
+  /* =======================================================
+     BUILDER SHELL
+
+     One visible column only: the canvas.
+  ======================================================== */
 
   .elementor-builder{
-    height:auto;
-    min-height:720px;
+    position:relative;
 
-    grid-template-columns:1fr;
+    width:100%;
+    height:100%;
+    min-height:0;
+
+    display:block;
+
+    overflow:hidden;
+
+    border:0;
+    border-radius:0;
+
+    background:#eef1f5;
+
+    box-shadow:none;
   }
 
-  .elementor-elements-panel,
-  .elementor-settings-panel{
-    display:none;
-  }
+
+  /* =======================================================
+     CANVAS COLUMN
+  ======================================================== */
 
   .elementor-canvas-column{
-    min-height:720px;
+    position:relative;
+
+    width:100%;
+    height:100%;
+    min-height:0;
+
+    display:flex;
+    flex-direction:column;
+
+    overflow:hidden;
+
+    background:#eef1f5;
   }
 
+
+  /* =======================================================
+     CANVAS TOOLBAR
+  ======================================================== */
+
   .elementor-canvas-toolbar{
+    flex:
+      0
+      0
+      auto;
+
     min-height:auto;
-    padding:10px;
+
+    padding:
+      8px
+      9px;
+
+    display:flex;
 
     align-items:stretch;
     flex-direction:column;
+
+    gap:7px;
+
+    border-bottom:
+      1px solid
+      #e2e6eb;
+
+    background:
+      rgba(255,255,255,.98);
+
+    backdrop-filter:
+      blur(10px);
+
+    -webkit-backdrop-filter:
+      blur(10px);
   }
+
+
+  /* =======================================================
+     LESSON SELECTOR
+  ======================================================== */
+
+  .elementor-canvas-title{
+    width:100%;
+
+    display:block;
+  }
+
+
+  .elementor-canvas-title > span,
+  #elementorLessonTitle{
+    display:none;
+  }
+
+
+  .elementor-title-row{
+    width:100%;
+
+    display:block;
+  }
+
+
+  #elementorLessonSelector{
+    width:100%;
+    max-width:none;
+
+    height:40px;
+
+    font-size:16px;
+  }
+
+
+  /* =======================================================
+     TOOLBAR ACTIONS
+
+     Keep only essential controls visible and allow
+     horizontal scrolling instead of wrapping into a very
+     tall toolbar.
+  ======================================================== */
 
   .elementor-toolbar-actions{
+    width:100%;
+
+    display:flex;
+
+    align-items:center;
     justify-content:flex-start;
-    flex-wrap:wrap;
+
+    flex-wrap:nowrap;
+
+    gap:6px;
+
+    overflow-x:auto;
+    overflow-y:hidden;
+
+    padding-bottom:2px;
+
+    scrollbar-width:none;
+
+    overscroll-behavior-x:contain;
+
+    -webkit-overflow-scrolling:touch;
   }
 
-  .elementor-canvas-scroll{
-    min-height:620px;
+
+  .elementor-toolbar-actions::-webkit-scrollbar{
+    display:none;
   }
+
+
+  .elementor-toolbar-group{
+    flex:
+      0
+      0
+      auto;
+  }
+
+
+  .elementor-toolbar-button{
+    min-height:38px;
+  }
+
+
+  .elementor-viewport-select,
+  .elementor-zoom-select{
+    height:38px;
+
+    font-size:14px;
+  }
+
+
+  /*
+    Page-size presets are still available, but the control
+    is compact on mobile.
+  */
+
+  .elementor-viewport-select{
+    width:94px;
+  }
+
+
+  .elementor-zoom-select{
+    width:78px;
+  }
+
+
+  /* =======================================================
+     CANVAS
+  ======================================================== */
+
+  .elementor-canvas-scroll{
+    position:relative;
+
+    width:100%;
+
+    min-height:0;
+
+    flex:
+      1
+      1
+      auto;
+
+    overflow:auto;
+
+    overscroll-behavior:contain;
+
+    -webkit-overflow-scrolling:touch;
+  }
+
+
+  .elementor-canvas-stage{
+    width:100%;
+
+    min-width:100%;
+
+    min-height:100%;
+
+    padding:
+      10px;
+  }
+
+
+  /*
+    On an actual phone, Fluid editing should use the full
+    available width rather than emulate a desktop page.
+  */
+
+  .elementor-builder[data-canvas-preset="fluid"]
+  .elementor-canvas{
+    width:100%!important;
+    min-width:100%!important;
+
+    margin:0;
+
+    border:0!important;
+    border-radius:8px!important;
+
+    box-shadow:none!important;
+  }
+
+
+  /* =======================================================
+     CANVAS EMPTY STATE
+  ======================================================== */
+
+  .elementor-canvas-empty{
+    min-height:
+      340px;
+
+    padding:
+      28px
+      18px;
+  }
+
+
+  .elementor-canvas-empty h3{
+    font-size:16px;
+  }
+
+
+  .elementor-canvas-empty p{
+    max-width:320px;
+
+    font-size:10px;
+  }
+
+
+  .elementor-canvas-empty button{
+    min-height:42px;
+
+    padding:
+      0
+      14px;
+  }
+
+
+  /* =======================================================
+     CANVAS FOOTER
+  ======================================================== */
+
+  .elementor-canvas-footer{
+    flex:
+      0
+      0
+      auto;
+
+    min-height:38px;
+
+    padding:
+      7px
+      10px;
+
+    gap:8px;
+
+    font-size:8px;
+  }
+
+
+  /* =======================================================
+     LEFT ELEMENT PANEL — MOBILE DRAWER
+  ======================================================== */
+
+  .elementor-elements-panel{
+    position:fixed;
+
+    top:
+      var(--aift-topbar-height);
+
+    bottom:0;
+    left:0;
+
+    z-index:15000;
+
+    width:
+      min(
+        88vw,
+        340px
+      );
+
+    height:
+      calc(
+        100dvh -
+        var(--aift-topbar-height)
+      );
+
+    display:flex;
+
+    flex-direction:column;
+
+    overflow:hidden;
+
+    border:0;
+    border-right:
+      1px solid
+      #e2e6eb;
+
+    background:#fff;
+
+    box-shadow:
+      18px
+      0
+      40px
+      rgba(15,23,42,.20);
+
+    transform:
+      translate3d(-105%,0,0);
+
+    visibility:hidden;
+
+    pointer-events:none;
+
+    transition:
+      transform .2s ease,
+      visibility .2s ease;
+  }
+
+
+  body.content-mobile-elements-open
+  .elementor-elements-panel{
+    transform:
+      translate3d(0,0,0);
+
+    visibility:visible;
+
+    pointer-events:auto;
+  }
+
+
+  .elementor-panel-header{
+    flex:
+      0
+      0
+      auto;
+
+    min-height:60px;
+
+    padding:
+      10px
+      12px;
+  }
+
+
+  .elementor-search{
+    flex:
+      0
+      0
+      auto;
+
+    margin:
+      0
+      10px
+      10px;
+  }
+
+
+  .elementor-search input{
+    height:42px;
+
+    font-size:16px;
+  }
+
+
+  .elementor-panel-scroll{
+    min-height:0;
+
+    max-height:none;
+
+    flex:
+      1
+      1
+      auto;
+
+    overflow-y:auto;
+
+    padding:
+      0
+      10px
+      calc(
+        16px +
+        env(safe-area-inset-bottom)
+      );
+
+    -webkit-overflow-scrolling:touch;
+  }
+
+
+  .elementor-element-grid{
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0,1fr)
+      );
+
+    gap:7px;
+  }
+
+
+  .elementor-element{
+    min-height:76px;
+
+    padding:10px;
+  }
+
+
+  /* =======================================================
+     RIGHT SETTINGS PANEL — MOBILE DRAWER
+  ======================================================== */
+
+  .elementor-settings-panel{
+    position:fixed;
+
+    top:
+      var(--aift-topbar-height);
+
+    right:0;
+    bottom:0;
+
+    z-index:15000;
+
+    width:
+      min(
+        90vw,
+        360px
+      );
+
+    height:
+      calc(
+        100dvh -
+        var(--aift-topbar-height)
+      );
+
+    display:flex;
+
+    flex-direction:column;
+
+    overflow:hidden;
+
+    border:0;
+    border-left:
+      1px solid
+      #e2e6eb;
+
+    background:#fff;
+
+    box-shadow:
+      -18px
+      0
+      40px
+      rgba(15,23,42,.20);
+
+    transform:
+      translate3d(105%,0,0);
+
+    visibility:hidden;
+
+    pointer-events:none;
+
+    transition:
+      transform .2s ease,
+      visibility .2s ease;
+  }
+
+
+  body.content-mobile-settings-open
+  .elementor-settings-panel{
+    transform:
+      translate3d(0,0,0);
+
+    visibility:visible;
+
+    pointer-events:auto;
+  }
+
+
+  .elementor-settings-header{
+    flex:
+      0
+      0
+      auto;
+
+    min-height:60px;
+
+    padding:
+      10px
+      12px;
+  }
+
+
+  .elementor-settings-content{
+    min-height:0;
+
+    flex:
+      1
+      1
+      auto;
+
+    overflow-x:hidden;
+    overflow-y:auto;
+
+    padding-bottom:
+      calc(
+        16px +
+        env(safe-area-inset-bottom)
+      );
+
+    -webkit-overflow-scrolling:touch;
+  }
+
+
+  /* =======================================================
+     MOBILE DRAWER BACKDROP
+  ======================================================== */
+
+  .elementor-builder::after{
+    content:"";
+
+    position:fixed;
+
+    top:
+      var(--aift-topbar-height);
+
+    right:0;
+    bottom:0;
+    left:0;
+
+    z-index:14000;
+
+    display:block;
+
+    background:
+      rgba(15,23,42,.44);
+
+    opacity:0;
+
+    visibility:hidden;
+
+    pointer-events:none;
+
+    transition:
+      opacity .2s ease,
+      visibility .2s ease;
+  }
+
+
+  body.content-mobile-elements-open
+  .elementor-builder::after,
+  body.content-mobile-settings-open
+  .elementor-builder::after{
+    opacity:1;
+
+    visibility:visible;
+
+    pointer-events:auto;
+  }
+
+
+  /* =======================================================
+     IGNORE DESKTOP COLLAPSE WIDTHS ON MOBILE
+  ======================================================== */
+
+  body.elementor-panel-collapsed
+  .elementor-builder,
+  body.elementor-settings-collapsed
+  .elementor-builder{
+    --elementor-panel-width:auto;
+    --elementor-inspector-width:auto;
+  }
+
+
+  body.elementor-panel-collapsed
+  .elementor-elements-panel,
+  body.elementor-settings-collapsed
+  .elementor-settings-panel{
+    width:
+      min(
+        88vw,
+        340px
+      );
+  }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media(max-width:480px){
+
+  .elementor-canvas-toolbar{
+    padding:
+      7px;
+  }
+
+
+  .elementor-canvas-stage{
+    padding:
+      7px;
+  }
+
+
+  .elementor-elements-panel{
+    width:
+      min(
+        92vw,
+        330px
+      );
+  }
+
+
+  .elementor-settings-panel{
+    width:
+      min(
+        94vw,
+        350px
+      );
+  }
+
+
+  .elementor-element-grid{
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0,1fr)
+      );
+
+    gap:6px;
+  }
+
+
+  .elementor-element{
+    min-height:72px;
+  }
+
+
+  .elementor-canvas-footer{
+    padding:
+      6px
+      8px;
+  }
+
 }
 
 /* =========================================================
