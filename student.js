@@ -24209,6 +24209,751 @@ function bindStudentSessionActionButtons(){
 
 }
 
+/* =========================================================
+   STUDENT SECURITY
+   SESSION CONFIRMATION
+========================================================= */
+
+let studentSessionSecurityAction =
+  null;
+
+let studentSessionConfirmationController =
+  null;
+
+
+/* =========================================================
+   SIGN OUT CURRENT ACCOUNT LOCALLY
+========================================================= */
+
+function signOutStudentAfterSessionRevocation(){
+
+  [
+    "studentToken",
+    "talentToken",
+    "schoolToken",
+    "adminToken",
+    "token",
+    "role",
+    "userId"
+  ]
+    .forEach(
+      key => {
+
+        localStorage.removeItem(
+          key
+        );
+
+      }
+    );
+
+
+  sessionStorage.removeItem(
+    "token"
+  );
+
+
+  window.location.href =
+    "login.html";
+
+}
+
+
+/* =========================================================
+   CONFIRMATION MESSAGE
+========================================================= */
+
+function setStudentSessionConfirmStatus(
+  message,
+  type = "error"
+){
+
+  const element =
+    $(
+      "studentSecurityConfirmStatus"
+    );
+
+
+  if(!element){
+
+    return;
+
+  }
+
+
+  element.textContent =
+    String(
+      message ||
+      ""
+    );
+
+
+  element.hidden =
+    !message;
+
+
+  element.classList.remove(
+    "error",
+    "success",
+    "info"
+  );
+
+
+  if(message){
+
+    element.classList.add(
+      type
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   OPEN SECURITY CONFIRMATION
+========================================================= */
+
+function openStudentSessionSecurityConfirmation({
+  sessionId = "",
+  action = ""
+} = {}){
+
+  const normalizedAction =
+    String(
+      action ||
+      ""
+    )
+      .trim();
+
+
+  const normalizedSessionId =
+    String(
+      sessionId ||
+      ""
+    )
+      .trim();
+
+
+  if(
+    !normalizedAction
+  ){
+
+    return;
+
+  }
+
+
+  studentSessionSecurityAction = {
+
+    action:
+      normalizedAction,
+
+    sessionId:
+      normalizedSessionId
+
+  };
+
+
+  const title =
+    $(
+      "studentSecurityConfirmTitle"
+    );
+
+
+  const subtitle =
+    $(
+      "studentSecurityConfirmSubtitle"
+    );
+
+
+  const heading =
+    $(
+      "studentSecurityConfirmHeading"
+    );
+
+
+  const message =
+    $(
+      "studentSecurityConfirmMessage"
+    );
+
+
+  const icon =
+    $(
+      "studentSecurityConfirmIcon"
+    );
+
+
+  const submitButton =
+    $(
+      "studentSecurityConfirmSubmitButton"
+    );
+
+
+  if(
+    !title ||
+    !heading ||
+    !message ||
+    !submitButton
+  ){
+
+    return;
+
+  }
+
+
+  icon?.classList.remove(
+    "warning",
+    "danger"
+  );
+
+
+  /* =========================================================
+     CURRENT SESSION
+  ========================================================= */
+
+  if(
+    normalizedAction ===
+    "signout-current"
+  ){
+
+    title.textContent =
+      "Sign out this device?";
+
+
+    subtitle.textContent =
+      "Your current AIFT session will end.";
+
+
+    heading.textContent =
+      "You will be signed out immediately";
+
+
+    message.textContent =
+      "You will need to sign in again before using Student Studio on this device.";
+
+
+    submitButton.textContent =
+      "Sign out";
+
+
+    icon?.classList.add(
+      "warning"
+    );
+
+  }
+
+
+  /* =========================================================
+     REMOVE OTHER SESSION
+  ========================================================= */
+
+  else if(
+    normalizedAction ===
+    "remove"
+  ){
+
+    title.textContent =
+      "Remove this device?";
+
+
+    subtitle.textContent =
+      "The selected session will lose access.";
+
+
+    heading.textContent =
+      "Remove account access";
+
+
+    message.textContent =
+      "This device will be signed out from your AIFT account. It can sign in again later with valid credentials.";
+
+
+    submitButton.textContent =
+      "Remove device";
+
+
+    icon?.classList.add(
+      "danger"
+    );
+
+  }
+
+
+  /* =========================================================
+     LOGOUT OTHER DEVICES
+  ========================================================= */
+
+  else if(
+    normalizedAction ===
+    "logout-others"
+  ){
+
+    title.textContent =
+      "Sign out other devices?";
+
+
+    subtitle.textContent =
+      "This device will remain signed in.";
+
+
+    heading.textContent =
+      "End all other active sessions";
+
+
+    message.textContent =
+      "Every other active AIFT session connected to this account will be signed out.";
+
+
+    submitButton.textContent =
+      "Sign out other devices";
+
+
+    icon?.classList.add(
+      "warning"
+    );
+
+  }
+
+
+  else{
+
+    studentSessionSecurityAction =
+      null;
+
+
+    return;
+
+  }
+
+
+  submitButton.disabled =
+    false;
+
+
+  setStudentSessionConfirmStatus(
+    ""
+  );
+
+
+  openModal(
+    "studentSecurityConfirmModal"
+  );
+
+}
+
+
+/* =========================================================
+   CLOSE SECURITY CONFIRMATION
+========================================================= */
+
+function closeStudentSessionSecurityConfirmation(){
+
+  closeModal(
+    "studentSecurityConfirmModal"
+  );
+
+
+  studentSessionSecurityAction =
+    null;
+
+
+  setStudentSessionConfirmStatus(
+    ""
+  );
+
+
+  const submitButton =
+    $(
+      "studentSecurityConfirmSubmitButton"
+    );
+
+
+  if(submitButton){
+
+    submitButton.disabled =
+      false;
+
+  }
+
+}
+
+
+/* =========================================================
+   EXECUTE SESSION SECURITY ACTION
+========================================================= */
+
+async function executeStudentSessionSecurityAction(){
+
+  const operation =
+    studentSessionSecurityAction;
+
+
+  if(!operation){
+
+    return;
+
+  }
+
+
+  const submitButton =
+    $(
+      "studentSecurityConfirmSubmitButton"
+    );
+
+
+  if(
+    submitButton?.disabled
+  ){
+
+    return;
+
+  }
+
+
+  if(submitButton){
+
+    submitButton.disabled =
+      true;
+
+
+    submitButton.dataset.originalText =
+      submitButton.textContent;
+
+
+    submitButton.textContent =
+      "Processing...";
+
+  }
+
+
+  setStudentSessionConfirmStatus(
+    "Securely processing your request...",
+    "info"
+  );
+
+
+  try{
+
+    /* =======================================================
+       SIGN OUT ALL OTHER DEVICES
+    ======================================================== */
+
+    if(
+      operation.action ===
+      "logout-others"
+    ){
+
+      const response =
+        await apiSend(
+          "/api/auth/sessions/logout-others",
+          "POST",
+          {}
+        );
+
+
+      studentAuthSessionsCache =
+        null;
+
+
+      closeStudentSessionSecurityConfirmation();
+
+
+      notifyAIFTSuccess(
+        Number(
+          response?.revokedCount ||
+          0
+        ) > 0
+          ? `${response.revokedCount} other session${
+              response.revokedCount === 1
+                ? ""
+                : "s"
+            } signed out successfully.`
+          : "There were no other active devices to sign out.",
+        {
+          title:
+            "Other devices signed out"
+        }
+      );
+
+
+      await loadStudentAuthSessions({
+        force:true
+      });
+
+
+      return;
+
+    }
+
+
+    /* =======================================================
+       REVOKE ONE SESSION
+    ======================================================== */
+
+    if(
+      (
+        operation.action ===
+        "remove" ||
+        operation.action ===
+        "signout-current"
+      ) &&
+      operation.sessionId
+    ){
+
+      const response =
+        await apiSend(
+          `/api/auth/sessions/${
+            encodeURIComponent(
+              operation.sessionId
+            )
+          }`,
+          "DELETE"
+        );
+
+
+      /* =====================================================
+         CURRENT DEVICE
+      ====================================================== */
+
+      if(
+        response?.currentSessionRevoked ||
+        operation.action ===
+        "signout-current"
+      ){
+
+        closeStudentSessionSecurityConfirmation();
+
+
+        notifyAIFTSuccess(
+          "This device has been signed out successfully.",
+          {
+            title:
+              "Signed out"
+          }
+        );
+
+
+        window.setTimeout(
+          () => {
+
+            signOutStudentAfterSessionRevocation();
+
+          },
+          650
+        );
+
+
+        return;
+
+      }
+
+
+      /* =====================================================
+         OTHER DEVICE
+      ====================================================== */
+
+      studentAuthSessionsCache =
+        null;
+
+
+      closeStudentSessionSecurityConfirmation();
+
+
+      notifyAIFTSuccess(
+        response?.message ||
+        "The selected device has been removed.",
+        {
+          title:
+            "Device removed"
+        }
+      );
+
+
+      await loadStudentAuthSessions({
+        force:true
+      });
+
+
+      return;
+
+    }
+
+
+    throw new Error(
+      "Invalid security action."
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "STUDENT SESSION SECURITY ACTION ERROR:",
+      error
+    );
+
+
+    setStudentSessionConfirmStatus(
+      error?.message ||
+      "This security action could not be completed.",
+      "error"
+    );
+
+
+    notifyAIFTError(
+      error?.message ||
+      "This security action could not be completed.",
+      {
+        title:
+          "Security action failed"
+      }
+    );
+
+
+    if(submitButton){
+
+      submitButton.disabled =
+        false;
+
+
+      submitButton.textContent =
+        submitButton.dataset
+          .originalText ||
+        "Continue";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   BIND SECURITY CONFIRMATION MODAL
+========================================================= */
+
+function bindStudentSessionSecurityConfirmation(){
+
+  const modal =
+    $(
+      "studentSecurityConfirmModal"
+    );
+
+
+  if(!modal){
+
+    return;
+
+  }
+
+
+  if(
+    studentSessionConfirmationController
+  ){
+
+    studentSessionConfirmationController
+      .abort();
+
+  }
+
+
+  studentSessionConfirmationController =
+    new AbortController();
+
+
+  const signal =
+    studentSessionConfirmationController
+      .signal;
+
+
+  /* CANCEL */
+
+  $(
+    "studentSecurityConfirmCancelButton"
+  )?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+
+      closeStudentSessionSecurityConfirmation();
+
+    },
+    {
+      signal
+    }
+  );
+
+
+  /* CONFIRM */
+
+  $(
+    "studentSecurityConfirmSubmitButton"
+  )?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+
+      executeStudentSessionSecurityAction();
+
+    },
+    {
+      signal
+    }
+  );
+
+
+  /* ESCAPE */
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if(
+        event.key !==
+        "Escape"
+      ){
+
+        return;
+
+      }
+
+
+      if(
+        !modal.classList.contains(
+          "show"
+        )
+      ){
+
+        return;
+
+      }
+
+
+      if(
+        $(
+          "studentSecurityConfirmSubmitButton"
+        )?.disabled
+      ){
+
+        return;
+
+      }
+
+
+      closeStudentSessionSecurityConfirmation();
+
+    },
+    {
+      signal
+    }
+  );
+
+}
+
 
 function bindStudentSettingsControls(){
 
@@ -25216,6 +25961,7 @@ async function renderStudentSettings(){
 
   bindStudentSettingsControls();
   bindStudentPasswordModal();
+  bindStudentSessionSecurityConfirmation();
 
 
   /*
