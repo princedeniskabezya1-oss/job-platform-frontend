@@ -47487,8 +47487,10 @@ function saveSchoolStudioSettingsToServer(
 
 
   /*
-    Serialize saves so rapid toggle changes
-    cannot overwrite one another out of order.
+    Saves remain serialized.
+
+    This protects MongoDB from receiving rapid
+    settings changes out of order.
   */
 
   schoolStudioSettingsSavePromise =
@@ -47518,15 +47520,38 @@ function saveSchoolStudioSettingsToServer(
               );
 
 
+            /*
+              IMPORTANT:
+
+              Never re-render switch controls from a PATCH
+              response.
+
+              The browser already contains the user's newest
+              requested value.
+
+              A response may belong to an older click while
+              the user has already changed the switch again.
+
+              Re-applying that response here caused:
+
+                  ON
+                  ↓
+                  OFF
+                  ↓
+                  server response → ON again
+                  ↓
+                  next response → OFF again
+
+              We only update the server cache here.
+
+              Full UI synchronization happens when Settings
+              are initially loaded from the server.
+            */
+
             if(settings){
 
               schoolStudioSettingsCache =
                 settings;
-
-
-              applyServerSchoolStudioSettings(
-                settings
-              );
 
             }
 
@@ -50037,21 +50062,76 @@ async function revokeSchoolAuthSession(
 
 
   if(!cleanSessionId){
+
     return;
+
   }
 
 
+  /* =========================================================
+     AIFT CONFIRMATION
+  ========================================================= */
+
   const confirmed =
-    window.confirm(
-      current
-        ? "Sign out this device?"
-        : "Remove access for this device?"
-    );
+    await confirmAiftAction({
+
+      type:
+        current
+          ? "warning"
+          : "danger",
+
+      eyebrow:
+        "Account security",
+
+      title:
+        current
+          ? "Sign out this device?"
+          : "Remove this device?",
+
+      message:
+        current
+          ? "Your current AIFT session will be signed out."
+          : "This device will immediately lose access to your school account.",
+
+      details:
+        current
+          ? `
+              <strong>You will need to sign in again.</strong>
+              Any unsaved work on this device should be completed
+              before continuing.
+            `
+          : `
+              <strong>The selected session will be revoked.</strong>
+              If this device belongs to you, you can sign in again
+              later with your account credentials.
+            `,
+
+      confirmText:
+        current
+          ? "Sign out"
+          : "Remove device",
+
+      cancelText:
+        "Cancel",
+
+      loadingText:
+        current
+          ? "Signing out..."
+          : "Removing..."
+
+    });
 
 
   if(!confirmed){
+
     return;
+
   }
+
+
+  setAiftConfirmLoading(
+    true
+  );
 
 
   showSchoolSessionMessage(
@@ -50073,6 +50153,25 @@ async function revokeSchoolAuthSession(
       );
 
 
+    /*
+      The AIFT confirmation dialog cannot close while
+      loading=true, so always release loading first.
+    */
+
+    setAiftConfirmLoading(
+      false
+    );
+
+
+    closeAiftConfirm(
+      true
+    );
+
+
+    /* =========================================================
+       CURRENT DEVICE
+    ========================================================= */
+
     if(
       response?.currentSessionRevoked ||
       current
@@ -50084,13 +50183,27 @@ async function revokeSchoolAuthSession(
       );
 
 
+      showAiftToast({
+
+        type:
+          "success",
+
+        title:
+          "Signed out",
+
+        message:
+          "This device has been signed out successfully."
+
+      });
+
+
       window.setTimeout(
         () => {
 
           signOutAfterSchoolPasswordChange();
 
         },
-        500
+        700
       );
 
 
@@ -50098,6 +50211,10 @@ async function revokeSchoolAuthSession(
 
     }
 
+
+    /* =========================================================
+       OTHER DEVICE
+    ========================================================= */
 
     schoolAuthSessionsCache =
       null;
@@ -50108,6 +50225,21 @@ async function revokeSchoolAuthSession(
       "Device access removed.",
       "success"
     );
+
+
+    showAiftToast({
+
+      type:
+        "success",
+
+      title:
+        "Device removed",
+
+      message:
+        response?.message ||
+        "The selected device no longer has access to this account."
+
+    });
 
 
     await loadSchoolAuthSessions({
@@ -50123,11 +50255,42 @@ async function revokeSchoolAuthSession(
     );
 
 
+    setAiftConfirmLoading(
+      false
+    );
+
+
+    closeAiftConfirm(
+      false
+    );
+
+
     showSchoolSessionMessage(
       error?.message ||
       "Could not remove this session.",
       "error"
     );
+
+
+    showAiftToast({
+
+      type:
+        "error",
+
+      title:
+        current
+          ? "Sign out failed"
+          : "Device removal failed",
+
+      message:
+        error?.message ||
+        (
+          current
+            ? "This device could not be signed out."
+            : "The selected device could not be removed."
+        )
+
+    });
 
   }
 
