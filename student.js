@@ -22700,6 +22700,702 @@ function updateStudentBooleanSetting(
    BIND STUDENT SETTINGS CONTROLS
 ========================================================= */
 
+
+/* =========================================================
+   STUDENT SECURITY
+   CHANGE PASSWORD CONTROLLER
+========================================================= */
+
+
+/* =========================================================
+   PASSWORD MESSAGE
+========================================================= */
+
+function setStudentPasswordMessage(
+  message,
+  type = "error"
+){
+
+  const element =
+    $(
+      "studentChangePasswordMessage"
+    );
+
+
+  if(!element){
+
+    return;
+
+  }
+
+
+  element.textContent =
+    String(
+      message ||
+      ""
+    );
+
+
+  element.hidden =
+    !message;
+
+
+  element.classList.remove(
+    "error",
+    "success",
+    "info"
+  );
+
+
+  if(message){
+
+    element.classList.add(
+      type
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   OPEN PASSWORD MODAL
+========================================================= */
+
+function openStudentChangePasswordModal(){
+
+  const form =
+    $(
+      "studentChangePasswordForm"
+    );
+
+
+  if(form){
+
+    form.reset();
+
+  }
+
+
+  setStudentPasswordMessage(
+    ""
+  );
+
+
+  const submitButton =
+    $(
+      "studentChangePasswordSubmitButton"
+    );
+
+
+  if(submitButton){
+
+    submitButton.disabled =
+      false;
+
+
+    submitButton.textContent =
+      "Change Password";
+
+  }
+
+
+  openModal(
+    "studentChangePasswordModal"
+  );
+
+
+  window.setTimeout(
+    () => {
+
+      $(
+        "studentCurrentPassword"
+      )?.focus();
+
+    },
+    80
+  );
+
+}
+
+
+/* =========================================================
+   CLOSE PASSWORD MODAL
+========================================================= */
+
+function closeStudentChangePasswordModal(){
+
+  closeModal(
+    "studentChangePasswordModal"
+  );
+
+
+  const form =
+    $(
+      "studentChangePasswordForm"
+    );
+
+
+  if(form){
+
+    form.reset();
+
+  }
+
+
+  setStudentPasswordMessage(
+    ""
+  );
+
+}
+
+
+/* =========================================================
+   PASSWORD VISIBILITY
+========================================================= */
+
+function toggleStudentPasswordVisibility(
+  button
+){
+
+  if(!button){
+
+    return;
+
+  }
+
+
+  const inputId =
+    String(
+      button.dataset
+        .studentPasswordToggle ||
+      ""
+    )
+      .trim();
+
+
+  if(!inputId){
+
+    return;
+
+  }
+
+
+  const input =
+    $(
+      inputId
+    );
+
+
+  if(!input){
+
+    return;
+
+  }
+
+
+  const showing =
+    input.type ===
+    "text";
+
+
+  input.type =
+    showing
+      ? "password"
+      : "text";
+
+
+  button.setAttribute(
+    "aria-label",
+    showing
+      ? "Show password"
+      : "Hide password"
+  );
+
+
+  const icon =
+    button.querySelector(
+      "i"
+    );
+
+
+  if(icon){
+
+    icon.classList.toggle(
+      "fa-eye",
+      showing
+    );
+
+
+    icon.classList.toggle(
+      "fa-eye-slash",
+      !showing
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   PASSWORD VALIDATION
+========================================================= */
+
+function validateStudentPasswordChange({
+
+  currentPassword,
+  newPassword,
+  confirmPassword
+
+}){
+
+  if(!currentPassword){
+
+    return {
+      valid:false,
+      message:
+        "Enter your current password.",
+      field:
+        "studentCurrentPassword"
+    };
+
+  }
+
+
+  if(!newPassword){
+
+    return {
+      valid:false,
+      message:
+        "Enter a new password.",
+      field:
+        "studentNewPassword"
+    };
+
+  }
+
+
+  if(
+    newPassword.length <
+    8
+  ){
+
+    return {
+      valid:false,
+      message:
+        "Your new password must be at least 8 characters.",
+      field:
+        "studentNewPassword"
+    };
+
+  }
+
+
+  if(
+    newPassword ===
+    currentPassword
+  ){
+
+    return {
+      valid:false,
+      message:
+        "Your new password must be different from your current password.",
+      field:
+        "studentNewPassword"
+    };
+
+  }
+
+
+  if(!confirmPassword){
+
+    return {
+      valid:false,
+      message:
+        "Confirm your new password.",
+      field:
+        "studentConfirmPassword"
+    };
+
+  }
+
+
+  if(
+    newPassword !==
+    confirmPassword
+  ){
+
+    return {
+      valid:false,
+      message:
+        "New password and confirmation do not match.",
+      field:
+        "studentConfirmPassword"
+    };
+
+  }
+
+
+  return {
+    valid:true
+  };
+
+}
+
+
+/* =========================================================
+   SUBMIT PASSWORD CHANGE
+========================================================= */
+
+async function submitStudentPasswordChange(
+  event
+){
+
+  event?.preventDefault();
+
+
+  const currentPassword =
+    String(
+      $(
+        "studentCurrentPassword"
+      )?.value ||
+      ""
+    );
+
+
+  const newPassword =
+    String(
+      $(
+        "studentNewPassword"
+      )?.value ||
+      ""
+    );
+
+
+  const confirmPassword =
+    String(
+      $(
+        "studentConfirmPassword"
+      )?.value ||
+      ""
+    );
+
+
+  const validation =
+    validateStudentPasswordChange({
+
+      currentPassword,
+      newPassword,
+      confirmPassword
+
+    });
+
+
+  if(
+    !validation.valid
+  ){
+
+    setStudentPasswordMessage(
+      validation.message,
+      "error"
+    );
+
+
+    if(
+      validation.field
+    ){
+
+      $(
+        validation.field
+      )?.focus();
+
+    }
+
+
+    return;
+
+  }
+
+
+  const submitButton =
+    $(
+      "studentChangePasswordSubmitButton"
+    );
+
+
+  if(
+    submitButton?.disabled
+  ){
+
+    return;
+
+  }
+
+
+  if(submitButton){
+
+    submitButton.disabled =
+      true;
+
+
+    submitButton.textContent =
+      "Updating...";
+
+  }
+
+
+  setStudentPasswordMessage(
+    "Securely updating your password...",
+    "info"
+  );
+
+
+  try{
+
+    const response =
+      await apiSend(
+        "/api/auth/change-password",
+        "PATCH",
+        {
+          currentPassword,
+          newPassword,
+          confirmPassword
+        }
+      );
+
+
+    setStudentPasswordMessage(
+      response?.message ||
+      "Password changed successfully.",
+      "success"
+    );
+
+
+    notifyAIFTSuccess(
+      response?.message ||
+      "Your password has been changed successfully.",
+      {
+        title:
+          "Password updated"
+      }
+    );
+
+
+    /*
+      Give the success state a short moment to display
+      before closing the modal.
+    */
+
+    window.setTimeout(
+      () => {
+
+        closeStudentChangePasswordModal();
+
+      },
+      700
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "STUDENT CHANGE PASSWORD ERROR:",
+      error
+    );
+
+
+    setStudentPasswordMessage(
+      error?.message ||
+      "Your password could not be changed.",
+      "error"
+    );
+
+
+    notifyAIFTError(
+      error?.message ||
+      "Your password could not be changed.",
+      {
+        title:
+          "Password change failed"
+      }
+    );
+
+
+    if(submitButton){
+
+      submitButton.disabled =
+        false;
+
+
+      submitButton.textContent =
+        "Change Password";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   BIND PASSWORD MODAL
+========================================================= */
+
+let studentPasswordModalController =
+  null;
+
+
+function bindStudentPasswordModal(){
+
+  const modal =
+    $(
+      "studentChangePasswordModal"
+    );
+
+
+  if(!modal){
+
+    return;
+
+  }
+
+
+  if(
+    studentPasswordModalController
+  ){
+
+    studentPasswordModalController
+      .abort();
+
+  }
+
+
+  studentPasswordModalController =
+    new AbortController();
+
+
+  const signal =
+    studentPasswordModalController
+      .signal;
+
+
+  /* CLOSE */
+
+  $(
+    "studentChangePasswordCloseButton"
+  )?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      closeStudentChangePasswordModal();
+
+    },
+    {
+      signal
+    }
+  );
+
+
+  $(
+    "studentChangePasswordCancelButton"
+  )?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      closeStudentChangePasswordModal();
+
+    },
+    {
+      signal
+    }
+  );
+
+
+  /* FORM */
+
+  $(
+    "studentChangePasswordForm"
+  )?.addEventListener(
+    "submit",
+    submitStudentPasswordChange,
+    {
+      signal
+    }
+  );
+
+
+  /* PASSWORD VISIBILITY */
+
+  modal
+    .querySelectorAll(
+      "[data-student-password-toggle]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          event => {
+
+            event.preventDefault();
+
+
+            toggleStudentPasswordVisibility(
+              button
+            );
+
+          },
+          {
+            signal
+          }
+        );
+
+      }
+    );
+
+
+  /* ESCAPE */
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if(
+        event.key !==
+        "Escape"
+      ){
+
+        return;
+
+      }
+
+
+      if(
+        !modal.classList.contains(
+          "show"
+        )
+      ){
+
+        return;
+
+      }
+
+
+      closeStudentChangePasswordModal();
+
+    },
+    {
+      signal
+    }
+  );
+
+}
+
+
 function bindStudentSettingsControls(){
 
   const workspace =
@@ -23016,14 +23712,11 @@ function bindStudentSettingsControls(){
                 break;
 
 
-              case "password":
+case "password":
 
-                showAlert(
-                  "info",
-                  "Password management will use the authenticated account-security endpoint."
-                );
+  openStudentChangePasswordModal();
 
-                break;
+  break;
 
 
               case "sessions":
@@ -23682,6 +24375,7 @@ async function renderStudentSettings(){
   */
 
   bindStudentSettingsControls();
+  bindStudentPasswordModal();
 
 
   /*
