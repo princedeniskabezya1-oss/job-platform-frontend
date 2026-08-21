@@ -32578,142 +32578,260 @@ body.focus-teachers .center-col{
     </div>
 
 
-    <!-- ==================================================
-         DATA + ACCOUNT
-    =================================================== -->
+<!-- ==================================================
+     DATA & ACCOUNT
+=================================================== -->
 
-    <div
-      class="school-settings-panel"
-      data-settings-content="data"
-      hidden
-    >
+<div
+  class="school-settings-panel"
+  data-settings-content="data"
+  hidden
+>
 
-      <article class="school-settings-card">
+  <!-- ===============================================
+       YOUR DATA
+  ================================================ -->
 
-        <div class="school-settings-card-head">
+  <article class="school-settings-card">
 
-          <div>
-            <h2>Your data</h2>
+    <div class="school-settings-card-head">
 
-            <p>
-              Manage school data, account sessions and retention.
-            </p>
-          </div>
+      <div>
 
-        </div>
+        <h2>
+          Your data
+        </h2>
 
+        <p>
+          Manage copies of your school account data and
+          information stored by AIFT.
+        </p>
 
-        <div class="school-settings-action-list">
-
-          <div class="school-settings-action-row">
-
-            <div>
-              <strong>Download school data</strong>
-
-              <span>
-                Request an export of data associated with the
-                school account.
-              </span>
-            </div>
-
-            <button
-              type="button"
-              data-server-action="export-data"
-            >
-              Request export
-            </button>
-
-          </div>
-
-
-          <div class="school-settings-action-row">
-
-            <div>
-              <strong>Sign out all other devices</strong>
-
-              <span>
-                End active sessions except this device.
-              </span>
-            </div>
-
-            <button
-              type="button"
-              data-server-action="logout-other-sessions"
-            >
-              Sign out
-            </button>
-
-          </div>
-
-        </div>
-
-      </article>
-
-
-      <article class="school-settings-card danger">
-
-        <div class="school-settings-card-head">
-
-          <div>
-            <h2>Danger zone</h2>
-
-            <p>
-              Permanent or high-impact account actions.
-            </p>
-          </div>
-
-        </div>
-
-
-        <div class="school-settings-action-list">
-
-          <div class="school-settings-action-row danger">
-
-            <div>
-              <strong>Deactivate school account</strong>
-
-              <span>
-                Temporarily disable access to the school account.
-              </span>
-            </div>
-
-            <button
-              type="button"
-              class="danger"
-              data-server-action="deactivate-account"
-            >
-              Deactivate
-            </button>
-
-          </div>
-
-
-          <div class="school-settings-action-row danger">
-
-            <div>
-              <strong>Delete school account</strong>
-
-              <span>
-                Permanently delete the school account and
-                associated data according to retention rules.
-              </span>
-            </div>
-
-            <button
-              type="button"
-              class="danger"
-              data-server-action="delete-account"
-            >
-              Delete account
-            </button>
-
-          </div>
-
-        </div>
-
-      </article>
+      </div>
 
     </div>
+
+
+    <div class="school-settings-action-list">
+
+      <!-- EXPORT DATA -->
+
+      <div class="school-settings-action-row">
+
+        <div>
+
+          <strong>
+            Download your data
+          </strong>
+
+          <span>
+            Request an export of your school account data.
+            We will prepare the information associated with
+            this school account.
+          </span>
+
+        </div>
+
+
+        <button
+          id="schoolRequestDataExportButton"
+          type="button"
+          onclick="requestSchoolDataExport()"
+        >
+          Request export
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <div
+      id="schoolDataExportMessage"
+      class="school-settings-inline-message"
+      role="status"
+      aria-live="polite"
+      hidden
+    ></div>
+
+  </article>
+
+
+  <!-- ===============================================
+       ACCOUNT SESSIONS
+  ================================================ -->
+
+  <article class="school-settings-card">
+
+    <div class="school-settings-card-head">
+
+      <div>
+
+        <h2>
+          Account sessions
+        </h2>
+
+        <p>
+          Control access to your school account across
+          other signed-in devices.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="school-settings-action-list">
+
+      <div class="school-settings-action-row">
+
+        <div>
+
+          <strong>
+            Sign out other devices
+          </strong>
+
+          <span>
+            Sign out every other active session while
+            keeping this device signed in.
+          </span>
+
+        </div>
+
+
+        <button
+          id="schoolDataLogoutOthersButton"
+          type="button"
+          onclick="logoutOtherSchoolSessions()"
+        >
+          Sign out others
+        </button>
+
+      </div>
+
+    </div>
+
+  </article>
+
+
+  <!-- ===============================================
+       DEACTIVATE ACCOUNT
+  ================================================ -->
+
+  <article class="school-settings-card">
+
+    <div class="school-settings-card-head">
+
+      <div>
+
+        <h2>
+          Deactivate account
+        </h2>
+
+        <p>
+          Temporarily disable access to this school account.
+          Your stored school information is not immediately
+          deleted.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="school-settings-action-list">
+
+      <div class="school-settings-action-row">
+
+        <div>
+
+          <strong>
+            Deactivate this school
+          </strong>
+
+          <span>
+            You will be signed out from all devices after
+            the account is deactivated.
+          </span>
+
+        </div>
+
+
+        <button
+          id="schoolDeactivateAccountButton"
+          type="button"
+          class="school-settings-warning-button"
+          onclick="openSchoolDeactivateAccountModal()"
+        >
+          Deactivate
+        </button>
+
+      </div>
+
+    </div>
+
+  </article>
+
+
+  <!-- ===============================================
+       DANGER ZONE
+  ================================================ -->
+
+  <article class="school-settings-card school-settings-danger-card">
+
+    <div class="school-settings-card-head">
+
+      <div>
+
+        <h2>
+          Danger zone
+        </h2>
+
+        <p>
+          Actions in this section can restrict or permanently
+          remove access to your school account.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="school-settings-action-list">
+
+      <div class="school-settings-action-row">
+
+        <div>
+
+          <strong>
+            Delete school account
+          </strong>
+
+          <span>
+            Request permanent deletion of this school account.
+            You will lose access immediately and the account
+            will enter the deletion process.
+          </span>
+
+        </div>
+
+
+        <button
+          id="schoolDeleteAccountButton"
+          type="button"
+          class="school-settings-danger-button"
+          onclick="openSchoolDeleteAccountModal()"
+        >
+          Delete account
+        </button>
+
+      </div>
+
+    </div>
+
+  </article>
+
+</div>
 
   </div>
 
@@ -33580,6 +33698,274 @@ body.focus-teachers .center-col{
       </button>
 
     </div>
+
+  </div>
+
+</div>
+
+<!-- ==================================================
+     DEACTIVATE SCHOOL ACCOUNT MODAL
+=================================================== -->
+
+<div
+  id="schoolDeactivateAccountModal"
+  class="school-settings-modal"
+  hidden
+>
+
+  <div
+    class="school-settings-modal-backdrop"
+    onclick="closeSchoolDeactivateAccountModal()"
+  ></div>
+
+
+  <div
+    class="school-settings-modal-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="schoolDeactivateAccountTitle"
+  >
+
+    <div class="school-settings-modal-head">
+
+      <div>
+
+        <h2 id="schoolDeactivateAccountTitle">
+          Deactivate school account
+        </h2>
+
+        <p>
+          This will disable access to the school account
+          and sign out all active sessions.
+        </p>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="school-settings-modal-close"
+        onclick="closeSchoolDeactivateAccountModal()"
+        aria-label="Close"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <form
+      id="schoolDeactivateAccountForm"
+      onsubmit="submitSchoolAccountDeactivation(event)"
+    >
+
+      <div class="school-settings-field">
+
+        <label for="schoolDeactivateReason">
+          Reason
+          <span class="school-settings-optional">
+            Optional
+          </span>
+        </label>
+
+        <textarea
+          id="schoolDeactivateReason"
+          maxlength="500"
+          rows="4"
+          placeholder="Tell us why you are deactivating this school account."
+        ></textarea>
+
+      </div>
+
+
+      <div class="school-settings-field">
+
+        <label for="schoolDeactivatePassword">
+          Confirm your password
+        </label>
+
+        <input
+          id="schoolDeactivatePassword"
+          type="password"
+          autocomplete="current-password"
+          required
+          placeholder="Enter your password"
+        >
+
+      </div>
+
+
+      <div
+        id="schoolDeactivateAccountMessage"
+        class="school-settings-inline-message"
+        role="alert"
+        aria-live="assertive"
+        hidden
+      ></div>
+
+
+      <div class="school-settings-modal-actions">
+
+        <button
+          type="button"
+          onclick="closeSchoolDeactivateAccountModal()"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          id="schoolConfirmDeactivateButton"
+          type="submit"
+          class="school-settings-warning-button"
+        >
+          Deactivate account
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+  <!-- ==================================================
+     DELETE SCHOOL ACCOUNT MODAL
+=================================================== -->
+
+<div
+  id="schoolDeleteAccountModal"
+  class="school-settings-modal"
+  hidden
+>
+
+  <div
+    class="school-settings-modal-backdrop"
+    onclick="closeSchoolDeleteAccountModal()"
+  ></div>
+
+
+  <div
+    class="school-settings-modal-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="schoolDeleteAccountTitle"
+  >
+
+    <div class="school-settings-modal-head">
+
+      <div>
+
+        <h2 id="schoolDeleteAccountTitle">
+          Delete school account
+        </h2>
+
+        <p>
+          This is a serious account action. Access will be
+          disabled immediately after the deletion request
+          is accepted.
+        </p>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="school-settings-modal-close"
+        onclick="closeSchoolDeleteAccountModal()"
+        aria-label="Close"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <form
+      id="schoolDeleteAccountForm"
+      onsubmit="submitSchoolAccountDeletion(event)"
+    >
+
+      <div class="school-settings-danger-notice">
+
+        <strong>
+          Before continuing
+        </strong>
+
+        <p>
+          Download any information you need before requesting
+          deletion. You will be signed out when the request
+          succeeds.
+        </p>
+
+      </div>
+
+
+      <div class="school-settings-field">
+
+        <label for="schoolDeleteConfirmation">
+          Enter the exact school name
+        </label>
+
+        <input
+          id="schoolDeleteConfirmation"
+          type="text"
+          autocomplete="off"
+          required
+          placeholder="School name"
+        >
+
+      </div>
+
+
+      <div class="school-settings-field">
+
+        <label for="schoolDeletePassword">
+          Confirm your password
+        </label>
+
+        <input
+          id="schoolDeletePassword"
+          type="password"
+          autocomplete="current-password"
+          required
+          placeholder="Enter your password"
+        >
+
+      </div>
+
+
+      <div
+        id="schoolDeleteAccountMessage"
+        class="school-settings-inline-message"
+        role="alert"
+        aria-live="assertive"
+        hidden
+      ></div>
+
+
+      <div class="school-settings-modal-actions">
+
+        <button
+          type="button"
+          onclick="closeSchoolDeleteAccountModal()"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          id="schoolConfirmDeleteButton"
+          type="submit"
+          class="school-settings-danger-button"
+        >
+          Request deletion
+        </button>
+
+      </div>
+
+    </form>
 
   </div>
 
