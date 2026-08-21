@@ -46590,23 +46590,24 @@ function saveSchoolStudioSettingsToServer(
 
 
   /*
-    Serialize saves.
-
-    This prevents two fast toggle changes from
-    overwriting one another out of order.
+    Serialize saves so rapid toggle changes
+    cannot overwrite one another out of order.
   */
 
   schoolStudioSettingsSavePromise =
     schoolStudioSettingsSavePromise
-      .catch(() => null)
+      .catch(
+        () => null
+      )
       .then(
         async () => {
 
           try{
 
             const response =
-              await apiPatch(
+              await apiSend(
                 "/api/users/me/school-studio-settings",
+                "PATCH",
                 {
                   settings:
                     patch
@@ -46634,6 +46635,7 @@ function saveSchoolStudioSettingsToServer(
 
 
             return settings;
+
 
           }catch(error){
 
