@@ -19290,47 +19290,98 @@ const STUDENT_SETTINGS_STORAGE_KEY =
   "aiftStudentStudioSettings";
 
 
-const DEFAULT_STUDENT_SETTINGS = Object.freeze({
+const DEFAULT_STUDENT_SETTINGS =
+  Object.freeze({
 
-  learning:{
-    studyReminders:true,
-    assignmentReminders:true,
-    continueLearning:true,
-    autoplayNextLesson:false,
-    rememberLastClass:true
-  },
+    appearance:{
 
-  notifications:{
-    assignments:true,
-    grades:true,
-    announcements:true,
-    messages:true,
-    certificates:true,
-    career:true
-  },
+      /*
+        Light is the production default.
 
-  ai:{
-    personalization:true,
-    classContext:true,
-    learningHistory:true,
-    suggestions:true
-  },
+        System remains available only when the
+        student explicitly chooses it.
+      */
 
-  privacy:{
-    portfolioVisibility:"public",
-    profileDiscovery:true,
-    activityVisibility:false,
-    certificateVisibility:true
-  },
+      theme:"light",
 
-  accessibility:{
-    reducedMotion:false,
-    compactInterface:false,
-    highContrast:false,
-    largerText:false
-  }
+      compactInterface:false,
 
-});
+      rememberSidebar:true
+
+    },
+
+
+    learning:{
+
+      studyReminders:true,
+
+      assignmentReminders:true,
+
+      continueLearning:true,
+
+      autoplayNextLesson:false,
+
+      rememberLastClass:true
+
+    },
+
+
+    notifications:{
+
+      assignments:true,
+
+      grades:true,
+
+      announcements:true,
+
+      messages:true,
+
+      certificates:true,
+
+      career:true
+
+    },
+
+
+    ai:{
+
+      personalization:true,
+
+      classContext:true,
+
+      learningHistory:true,
+
+      suggestions:true
+
+    },
+
+
+    privacy:{
+
+      portfolioVisibility:"public",
+
+      profileDiscovery:true,
+
+      activityVisibility:false,
+
+      certificateVisibility:true
+
+    },
+
+
+    accessibility:{
+
+      reducedMotion:false,
+
+      compactInterface:false,
+
+      highContrast:false,
+
+      largerText:false
+
+    }
+
+  });
 
 
 function cloneDefaultStudentSettings(){
@@ -20285,6 +20336,249 @@ function renderStudentSettingsAccount(
           </div>
 
         </div>
+
+      </div>
+
+    </section>
+
+  `;
+
+}
+
+/* =========================================================
+   STUDENT SETTINGS
+   APPEARANCE
+========================================================= */
+
+function renderStudentSettingsAppearance(
+  settings
+){
+
+  const appearance =
+    settings?.appearance || {};
+
+
+  const currentTheme =
+    String(
+      appearance.theme ||
+      "light"
+    )
+      .trim()
+      .toLowerCase();
+
+
+  const themeOptionHTML =
+    (
+      value,
+      icon,
+      title,
+      description
+    ) => {
+
+      const active =
+        currentTheme ===
+        value;
+
+
+      return `
+
+        <button
+          type="button"
+          class="student-settings-theme-option${active ? " active" : ""}"
+          data-student-theme="${escapeStudentSettingsHTML(value)}"
+          aria-pressed="${active ? "true" : "false"}"
+        >
+
+          <span
+            class="student-settings-theme-icon"
+            aria-hidden="true"
+          >
+            <i class="${escapeStudentSettingsHTML(icon)}"></i>
+          </span>
+
+
+          <span class="student-settings-theme-copy">
+
+            <strong>
+              ${escapeStudentSettingsHTML(title)}
+            </strong>
+
+            <small>
+              ${escapeStudentSettingsHTML(description)}
+            </small>
+
+          </span>
+
+
+          <span
+            class="student-settings-theme-check"
+            aria-hidden="true"
+          >
+            <i class="fa-solid fa-check"></i>
+          </span>
+
+        </button>
+
+      `;
+
+    };
+
+
+  return `
+
+    ${studentSettingsPanelHeaderHTML({
+
+      eyebrow:
+        "Appearance",
+
+      title:
+        "Interface appearance",
+
+      description:
+        "Choose how Student Studio looks and behaves on this account."
+
+    })}
+
+
+    <!-- =====================================================
+         THEME
+    ====================================================== -->
+
+    <section
+      class="student-settings-card"
+    >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            THEME
+          </span>
+
+          <h3>
+            Choose your theme
+          </h3>
+
+          <p>
+            Select Light, Dark, or follow your device appearance.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="student-settings-theme-grid"
+        role="group"
+        aria-label="Student Studio theme"
+      >
+
+        ${themeOptionHTML(
+          "light",
+          "fa-regular fa-sun",
+          "Light",
+          "Use the standard bright Student Studio interface."
+        )}
+
+
+        ${themeOptionHTML(
+          "dark",
+          "fa-regular fa-moon",
+          "Dark",
+          "Use a darker interface designed for low-light environments."
+        )}
+
+
+        ${themeOptionHTML(
+          "system",
+          "fa-solid fa-laptop",
+          "System",
+          "Automatically follow your device light or dark appearance."
+        )}
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         INTERFACE
+    ====================================================== -->
+
+    <section
+      class="student-settings-card"
+    >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            INTERFACE
+          </span>
+
+          <h3>
+            Workspace preferences
+          </h3>
+
+          <p>
+            Control how Student Studio uses space and remembers your navigation.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="student-settings-list">
+
+        ${studentSettingsToggleHTML({
+
+          id:
+            "studentSettingAppearanceCompact",
+
+          title:
+            "Compact interface",
+
+          description:
+            "Reduce spacing in Student Studio to display more information at once.",
+
+          checked:
+            Boolean(
+              appearance.compactInterface
+            ),
+
+          path:
+            "appearance.compactInterface"
+
+        })}
+
+
+        ${studentSettingsToggleHTML({
+
+          id:
+            "studentSettingAppearanceRememberSidebar",
+
+          title:
+            "Remember sidebar state",
+
+          description:
+            "Remember whether your Student Studio navigation was expanded or collapsed.",
+
+          checked:
+            appearance.rememberSidebar !==
+            false,
+
+          path:
+            "appearance.rememberSidebar"
+
+        })}
 
       </div>
 
@@ -21660,32 +21954,52 @@ function setStudentSettingsPage(
 
   const allowedPages =
     new Set([
+
       "account",
+
+      "appearance",
+
       "learning",
+
       "notifications",
+
       "ai",
+
       "privacy",
+
       "accessibility",
+
       "security",
+
       "data"
+
     ]);
+
+
+  const requested =
+    String(
+      requestedPage ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
 
 
   const page =
     allowedPages.has(
-      String(
-        requestedPage || ""
-      ).toLowerCase()
+      requested
     )
-      ? String(
-          requestedPage
-        ).toLowerCase()
+      ? requested
       : "account";
 
 
   activeStudentSettingsPage =
     page;
 
+
+  /* =========================================================
+     NAVIGATION
+  ========================================================= */
 
   document
     .querySelectorAll(
@@ -21715,6 +22029,10 @@ function setStudentSettingsPage(
     });
 
 
+  /* =========================================================
+     CONTENT PANELS
+  ========================================================= */
+
   document
     .querySelectorAll(
       "[data-student-settings-panel]"
@@ -21739,17 +22057,25 @@ function setStudentSettingsPage(
 
       panel.setAttribute(
         "aria-hidden",
-        String(!active)
+        String(
+          !active
+        )
       );
 
     });
 
 
+  /* =========================================================
+     WORKSPACE STATE
+  ========================================================= */
+
   const workspace =
-    $("studentSettingsWorkspace");
+    $(
+      "studentSettingsWorkspace"
+    );
 
 
-  if (workspace){
+  if(workspace){
 
     workspace.dataset
       .activeSettingsPage =
@@ -21763,17 +22089,21 @@ function setStudentSettingsPage(
 async function renderStudentSettings(){
 
   const workspace =
-    $("studentSettingsWorkspace");
+    $(
+      "studentSettingsWorkspace"
+    );
 
 
-  if (!workspace){
+  if(!workspace){
+
     return;
+
   }
 
 
   /*
-    Start with the current cached/default settings so
-    Student Studio always has a safe state.
+    Start with the current cached/default settings
+    so Student Studio always has a safe immediate state.
   */
 
   let settings =
@@ -21786,17 +22116,18 @@ async function renderStudentSettings(){
 
   /*
     Load the authenticated student's authoritative
-    settings from MongoDB.
+    account settings from MongoDB.
 
-    If Render/network is temporarily unavailable,
-    loadStudentSettingsFromServer() safely returns
-    the cached/default state instead.
+    If the backend or network is temporarily unavailable,
+    loadStudentSettingsFromServer() safely falls back to
+    the cached/default state.
   */
 
   try{
 
     settings =
       await loadStudentSettingsFromServer();
+
 
   }catch(error){
 
@@ -21813,20 +22144,26 @@ async function renderStudentSettings(){
 
 
   /*
-    Make sure this render is still relevant.
+    Ensure the Settings workspace still exists.
 
-    The user may have navigated away while the
-    network request was running.
+    The student may have navigated to another Student
+    Studio section while the network request was running.
   */
 
-  if (
-    !$("studentSettingsWorkspace")
-  ){
+  const currentWorkspace =
+    $(
+      "studentSettingsWorkspace"
+    );
+
+
+  if(!currentWorkspace){
+
     return;
+
   }
 
 
-  workspace.innerHTML = `
+  currentWorkspace.innerHTML = `
 
     <div
       class="student-settings-shell"
@@ -21856,7 +22193,8 @@ async function renderStudentSettings(){
           </h2>
 
           <p>
-            Manage your Student Studio experience.
+            Manage your Student Studio experience,
+            privacy, security, and account preferences.
           </p>
 
         </div>
@@ -21867,91 +22205,210 @@ async function renderStudentSettings(){
           aria-label="Settings categories"
         >
 
+          <!-- ACCOUNT -->
+
           ${studentSettingsNavButtonHTML({
-            id:"account",
-            icon:"fa-regular fa-user",
-            title:"Account",
-            description:"Profile and account",
+
+            id:
+              "account",
+
+            icon:
+              "fa-regular fa-user",
+
+            title:
+              "Account",
+
+            description:
+              "Profile and account",
+
             active:
               activeStudentSettingsPage ===
               "account"
+
           })}
 
 
+          <!-- APPEARANCE -->
+
           ${studentSettingsNavButtonHTML({
-            id:"learning",
-            icon:"fa-solid fa-book-open",
-            title:"Learning",
-            description:"Study preferences",
+
+            id:
+              "appearance",
+
+            icon:
+              "fa-regular fa-sun",
+
+            title:
+              "Appearance",
+
+            description:
+              "Theme and interface",
+
+            active:
+              activeStudentSettingsPage ===
+              "appearance"
+
+          })}
+
+
+          <!-- LEARNING -->
+
+          ${studentSettingsNavButtonHTML({
+
+            id:
+              "learning",
+
+            icon:
+              "fa-solid fa-book-open",
+
+            title:
+              "Learning",
+
+            description:
+              "Study preferences",
+
             active:
               activeStudentSettingsPage ===
               "learning"
+
           })}
 
 
+          <!-- NOTIFICATIONS -->
+
           ${studentSettingsNavButtonHTML({
-            id:"notifications",
-            icon:"fa-regular fa-bell",
-            title:"Notifications",
-            description:"Alerts and updates",
+
+            id:
+              "notifications",
+
+            icon:
+              "fa-regular fa-bell",
+
+            title:
+              "Notifications",
+
+            description:
+              "Alerts and updates",
+
             active:
               activeStudentSettingsPage ===
               "notifications"
+
           })}
 
 
+          <!-- KABEZYA AI -->
+
           ${studentSettingsNavButtonHTML({
-            id:"ai",
-            icon:"fa-solid fa-wand-magic-sparkles",
-            title:"Kabezya AI",
-            description:"AI preferences",
+
+            id:
+              "ai",
+
+            icon:
+              "fa-solid fa-wand-magic-sparkles",
+
+            title:
+              "Kabezya AI",
+
+            description:
+              "AI preferences",
+
             active:
               activeStudentSettingsPage ===
               "ai"
+
           })}
 
 
+          <!-- PRIVACY -->
+
           ${studentSettingsNavButtonHTML({
-            id:"privacy",
-            icon:"fa-solid fa-shield-halved",
-            title:"Privacy",
-            description:"Visibility controls",
+
+            id:
+              "privacy",
+
+            icon:
+              "fa-solid fa-shield-halved",
+
+            title:
+              "Privacy",
+
+            description:
+              "Visibility controls",
+
             active:
               activeStudentSettingsPage ===
               "privacy"
+
           })}
 
 
+          <!-- ACCESSIBILITY -->
+
           ${studentSettingsNavButtonHTML({
-            id:"accessibility",
-            icon:"fa-solid fa-universal-access",
-            title:"Accessibility",
-            description:"Display and motion",
+
+            id:
+              "accessibility",
+
+            icon:
+              "fa-solid fa-universal-access",
+
+            title:
+              "Accessibility",
+
+            description:
+              "Display and motion",
+
             active:
               activeStudentSettingsPage ===
               "accessibility"
+
           })}
 
 
+          <!-- SECURITY -->
+
           ${studentSettingsNavButtonHTML({
-            id:"security",
-            icon:"fa-solid fa-lock",
-            title:"Security",
-            description:"Password and sessions",
+
+            id:
+              "security",
+
+            icon:
+              "fa-solid fa-lock",
+
+            title:
+              "Security",
+
+            description:
+              "Password and sessions",
+
             active:
               activeStudentSettingsPage ===
               "security"
+
           })}
 
 
+          <!-- DATA & ACCOUNT -->
+
           ${studentSettingsNavButtonHTML({
-            id:"data",
-            icon:"fa-solid fa-database",
-            title:"Data & account",
-            description:"Data and sign out",
+
+            id:
+              "data",
+
+            icon:
+              "fa-solid fa-database",
+
+            title:
+              "Data & account",
+
+            description:
+              "Data and account access",
+
             active:
               activeStudentSettingsPage ===
               "data"
+
           })}
 
         </nav>
@@ -21967,86 +22424,134 @@ async function renderStudentSettings(){
         class="student-settings-content"
       >
 
+        <!-- ACCOUNT -->
+
         <div
           class="student-settings-panel"
           data-student-settings-panel="account"
+          ${activeStudentSettingsPage === "account" ? "" : "hidden"}
         >
+
           ${renderStudentSettingsAccount(
             profile
           )}
+
         </div>
 
+
+        <!-- APPEARANCE -->
+
+        <div
+          class="student-settings-panel"
+          data-student-settings-panel="appearance"
+          ${activeStudentSettingsPage === "appearance" ? "" : "hidden"}
+        >
+
+          ${renderStudentSettingsAppearance(
+            settings
+          )}
+
+        </div>
+
+
+        <!-- LEARNING -->
 
         <div
           class="student-settings-panel"
           data-student-settings-panel="learning"
-          hidden
+          ${activeStudentSettingsPage === "learning" ? "" : "hidden"}
         >
+
           ${renderStudentSettingsLearning(
             settings
           )}
+
         </div>
 
+
+        <!-- NOTIFICATIONS -->
 
         <div
           class="student-settings-panel"
           data-student-settings-panel="notifications"
-          hidden
+          ${activeStudentSettingsPage === "notifications" ? "" : "hidden"}
         >
+
           ${renderStudentSettingsNotifications(
             settings
           )}
+
         </div>
 
+
+        <!-- KABEZYA AI -->
 
         <div
           class="student-settings-panel"
           data-student-settings-panel="ai"
-          hidden
+          ${activeStudentSettingsPage === "ai" ? "" : "hidden"}
         >
+
           ${renderStudentSettingsAI(
             settings
           )}
+
         </div>
 
+
+        <!-- PRIVACY -->
 
         <div
           class="student-settings-panel"
           data-student-settings-panel="privacy"
-          hidden
+          ${activeStudentSettingsPage === "privacy" ? "" : "hidden"}
         >
+
           ${renderStudentSettingsPrivacy(
             settings
           )}
+
         </div>
 
+
+        <!-- ACCESSIBILITY -->
 
         <div
           class="student-settings-panel"
           data-student-settings-panel="accessibility"
-          hidden
+          ${activeStudentSettingsPage === "accessibility" ? "" : "hidden"}
         >
+
           ${renderStudentSettingsAccessibility(
             settings
           )}
+
         </div>
 
+
+        <!-- SECURITY -->
 
         <div
           class="student-settings-panel"
           data-student-settings-panel="security"
-          hidden
+          ${activeStudentSettingsPage === "security" ? "" : "hidden"}
         >
+
           ${renderStudentSettingsSecurity()}
+
         </div>
 
+
+        <!-- DATA & ACCOUNT -->
 
         <div
           class="student-settings-panel"
           data-student-settings-panel="data"
-          hidden
+          ${activeStudentSettingsPage === "data" ? "" : "hidden"}
         >
+
           ${renderStudentSettingsData()}
+
         </div>
 
       </main>
@@ -22057,15 +22562,16 @@ async function renderStudentSettings(){
 
 
   /*
-    Bind controls after the HTML exists.
+    Bind Settings navigation, actions, theme controls,
+    and preference controls after the HTML exists.
   */
 
   bindStudentSettingsControls();
 
 
   /*
-    Restore whichever Settings section the student
-    was viewing before the re-render.
+    Restore whichever Settings subsection the student
+    was viewing before this render.
   */
 
   setStudentSettingsPage(
@@ -22074,8 +22580,8 @@ async function renderStudentSettings(){
 
 
   /*
-    Apply accessibility preferences loaded from
-    the authenticated student's account.
+    Apply the student's saved accessibility settings
+    immediately to the Student Studio shell.
   */
 
   applyStudentAccessibilitySettings(
