@@ -35338,20 +35338,103 @@ async function apiGet(path,fallback = null){
   }
 }
 
-async function apiSend(path,method,body){
-  const res = await fetch(API + path, {
-    method,
-    headers:authHeaders({ "Content-Type":"application/json" }),
-    body:JSON.stringify(body || {})
-  });
+async function apiSend(
+  path,
+  method = "GET",
+  body = undefined
+){
 
-  const data = await safeJson(res);
+  const normalizedMethod =
+    String(
+      method ||
+      "GET"
+    )
+      .trim()
+      .toUpperCase();
 
-  if (!res.ok){
-    throw new Error(data?.message || data?.error || `Request failed: ${res.status}`);
+
+  const options = {
+
+    method:
+      normalizedMethod,
+
+    headers:
+      authHeaders({
+        "Content-Type":
+          "application/json"
+      })
+
+  };
+
+
+  /*
+    GET and HEAD requests must never contain
+    a request body.
+
+    POST / PATCH / PUT / DELETE may contain one.
+  */
+
+  if(
+    normalizedMethod !==
+      "GET" &&
+    normalizedMethod !==
+      "HEAD" &&
+    body !== undefined
+  ){
+
+    options.body =
+      JSON.stringify(
+        body
+      );
+
   }
 
+
+  const res =
+    await fetch(
+      API + path,
+      options
+    );
+
+
+  const data =
+    await safeJson(
+      res
+    );
+
+
+  if(
+    !res.ok
+  ){
+
+    const error =
+      new Error(
+        data?.message ||
+        data?.error ||
+        `Request failed: ${res.status}`
+      );
+
+
+    error.status =
+      res.status;
+
+
+    error.code =
+      data?.code ||
+      null;
+
+
+    error.data =
+      data;
+
+
+    throw error;
+
+  }
+
+
   return data;
+
 }
 
 async function apiUpload(path,formData){
