@@ -20030,10 +20030,17 @@ function studentSettingsToggleHTML({
   path
 }){
 
+  const enabled =
+    Boolean(
+      checked
+    );
+
+
   return `
-    <label
+
+    <div
       class="student-setting-row"
-      for="${escapeStudentSettingsHTML(id)}"
+      data-student-setting-row="${escapeStudentSettingsHTML(path)}"
     >
 
       <span class="student-setting-row-copy">
@@ -20049,14 +20056,16 @@ function studentSettingsToggleHTML({
       </span>
 
 
-      <span class="student-setting-switch">
-
-        <input
-          id="${escapeStudentSettingsHTML(id)}"
-          type="checkbox"
-          data-student-setting-path="${escapeStudentSettingsHTML(path)}"
-          ${checked ? "checked" : ""}
-        >
+      <button
+        id="${escapeStudentSettingsHTML(id)}"
+        class="student-setting-switch"
+        type="button"
+        role="switch"
+        aria-checked="${enabled ? "true" : "false"}"
+        aria-label="${escapeStudentSettingsHTML(title)}"
+        data-student-setting-toggle
+        data-student-setting-path="${escapeStudentSettingsHTML(path)}"
+      >
 
         <span
           class="student-setting-switch-track"
@@ -20069,9 +20078,10 @@ function studentSettingsToggleHTML({
 
         </span>
 
-      </span>
+      </button>
 
-    </label>
+    </div>
+
   `;
 
 }
