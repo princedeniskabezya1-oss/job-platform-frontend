@@ -50147,16 +50147,48 @@ async function revokeSchoolAuthSession(
 
 async function logoutOtherSchoolSessions(){
 
-  const button =
+  const securityButton =
     document.getElementById(
       "schoolLogoutOtherSessionsButton"
     );
 
 
-  const confirmed =
-    window.confirm(
-      "Sign out all other devices? This device will remain signed in."
+  const dataButton =
+    document.getElementById(
+      "schoolDataLogoutOthersButton"
     );
+
+
+  const confirmed =
+    await confirmAiftAction({
+
+      type:"warning",
+
+      eyebrow:
+        "Account security",
+
+      title:
+        "Sign out other devices?",
+
+      message:
+        "Every other active AIFT session for this school account will be signed out.",
+
+      details:`
+        <strong>This device will stay signed in.</strong>
+        You may need to sign in again on your phone,
+        tablet, or other computers.
+      `,
+
+      confirmText:
+        "Sign out devices",
+
+      cancelText:
+        "Keep sessions",
+
+      loadingText:
+        "Signing out..."
+
+    });
 
 
   if(!confirmed){
@@ -50164,22 +50196,25 @@ async function logoutOtherSchoolSessions(){
   }
 
 
-  if(button){
+  setAiftConfirmLoading(
+    true
+  );
 
-    button.disabled =
+
+  if(securityButton){
+
+    securityButton.disabled =
       true;
-
-
-    button.textContent =
-      "Signing out...";
 
   }
 
 
-  showSchoolSessionMessage(
-    "Signing out other devices...",
-    "info"
-  );
+  if(dataButton){
+
+    dataButton.disabled =
+      true;
+
+  }
 
 
   try{
@@ -50196,17 +50231,41 @@ async function logoutOtherSchoolSessions(){
       null;
 
 
-    showSchoolSessionMessage(
-      response?.revokedCount
-        ? `${response.revokedCount} other session${response.revokedCount === 1 ? "" : "s"} signed out.`
-        : "No other active sessions were found.",
-      "success"
+    /*
+      Important:
+      Reset AIFT loading BEFORE closing because
+      closeAiftConfirm() intentionally refuses to
+      close while isLoading === true.
+    */
+
+    setAiftConfirmLoading(
+      false
     );
 
 
-await loadSchoolAuthSessions({
-  force:true
-});
+    closeAiftConfirm(
+      true
+    );
+
+
+    showAiftToast({
+
+      type:"success",
+
+      title:
+        "Other devices signed out",
+
+      message:
+        response?.revokedCount
+          ? `${response.revokedCount} other session${response.revokedCount === 1 ? "" : "s"} were signed out successfully.`
+          : "There were no other active sessions to sign out."
+
+    });
+
+
+    await loadSchoolAuthSessions({
+      force:true
+    });
 
 
   }catch(error){
@@ -50217,40 +50276,54 @@ await loadSchoolAuthSessions({
     );
 
 
-    showSchoolSessionMessage(
-      error?.message ||
-      "Could not sign out other devices.",
-      "error"
+    setAiftConfirmLoading(
+      false
     );
 
 
+    closeAiftConfirm(
+      false
+    );
+
+
+    showAiftToast({
+
+      type:"error",
+
+      title:
+        "Sign out failed",
+
+      message:
+        error?.message ||
+        "Other devices could not be signed out."
+
+    });
+
   }finally{
 
-    if(button){
+    if(securityButton){
 
-      button.textContent =
-        "Sign out other devices";
-
-
-      if(
+      const hasOtherSessions =
         Array.isArray(
           schoolAuthSessionsCache
-        )
-      ){
-
-        const hasOthers =
-          schoolAuthSessionsCache
-            .some(
-              session =>
-                session?.current !==
-                true
-            );
+        ) &&
+        schoolAuthSessionsCache.some(
+          session =>
+            session?.current !==
+            true
+        );
 
 
-        button.disabled =
-          !hasOthers;
+      securityButton.disabled =
+        !hasOtherSessions;
 
-      }
+    }
+
+
+    if(dataButton){
+
+      dataButton.disabled =
+        false;
 
     }
 
@@ -50534,7 +50607,7 @@ async function submitSchoolAccountDeactivation(
     );
 
 
-  const button =
+  const submitButton =
     document.getElementById(
       "schoolConfirmDeactivateButton"
     );
@@ -50564,6 +50637,19 @@ async function submitSchoolAccountDeactivation(
     );
 
 
+    showAiftToast({
+
+      type:"error",
+
+      title:
+        "Password required",
+
+      message:
+        "Enter your current password before deactivating this school account."
+
+    });
+
+
     passwordInput?.focus();
 
 
@@ -50572,34 +50658,73 @@ async function submitSchoolAccountDeactivation(
   }
 
 
+  /*
+    Close the form modal first.
+
+    We do not want the account modal and AIFT
+    confirmation overlay fighting for focus.
+  */
+
+  closeModal(
+    "schoolDeactivateAccountModal"
+  );
+
+
   const confirmed =
-    window.confirm(
-      "Deactivate this school account? You will be signed out from all devices."
-    );
+    await confirmAiftAction({
+
+      type:"warning",
+
+      eyebrow:
+        "Account access",
+
+      title:
+        `Deactivate ${getSchoolName()}?`,
+
+      message:
+        "This school account will immediately lose access to AIFT.",
+
+      details:`
+        <strong>What happens next:</strong>
+        all active sessions will be signed out.
+        School information is not immediately deleted.
+      `,
+
+      confirmText:
+        "Deactivate account",
+
+      cancelText:
+        "Keep account active",
+
+      loadingText:
+        "Deactivating..."
+
+    });
 
 
   if(!confirmed){
+
+    openModal(
+      "schoolDeactivateAccountModal"
+    );
+
+
     return;
+
   }
 
 
-  if(button){
+  setAiftConfirmLoading(
+    true
+  );
 
-    button.disabled =
+
+  if(submitButton){
+
+    submitButton.disabled =
       true;
 
-
-    button.textContent =
-      "Deactivating...";
-
   }
-
-
-  setSchoolAccountMessage(
-    "schoolDeactivateAccountMessage",
-    "",
-    "info"
-  );
 
 
   try{
@@ -50615,20 +50740,29 @@ async function submitSchoolAccountDeactivation(
       );
 
 
-    setSchoolAccountMessage(
-      "schoolDeactivateAccountMessage",
-      response?.message ||
-      "School account deactivated successfully.",
-      "success"
+    setAiftConfirmLoading(
+      false
     );
 
 
-    /*
-      Backend revokes every active session.
+    closeAiftConfirm(
+      true
+    );
 
-      Give the success message a short moment to render,
-      then remove local authentication and return to login.
-    */
+
+    showAiftToast({
+
+      type:"success",
+
+      title:
+        "Account deactivated",
+
+      message:
+        response?.message ||
+        "The school account was deactivated successfully."
+
+    });
+
 
     window.setTimeout(
       () => {
@@ -50648,24 +50782,46 @@ async function submitSchoolAccountDeactivation(
     );
 
 
-    setSchoolAccountMessage(
-      "schoolDeactivateAccountMessage",
-      error?.message ||
-      "Could not deactivate this school account.",
-      "error"
+    setAiftConfirmLoading(
+      false
     );
 
 
-    if(button){
+    closeAiftConfirm(
+      false
+    );
 
-      button.disabled =
+
+    showAiftToast({
+
+      type:"error",
+
+      title:
+        "Deactivation failed",
+
+      message:
+        error?.message ||
+        "The school account could not be deactivated."
+
+    });
+
+
+    if(submitButton){
+
+      submitButton.disabled =
         false;
 
-
-      button.textContent =
-        "Deactivate Account";
-
     }
+
+
+    /*
+      Re-open the password form so the user
+      can correct their password/reason.
+    */
+
+    openModal(
+      "schoolDeactivateAccountModal"
+    );
 
   }
 
@@ -50806,7 +50962,7 @@ async function submitSchoolAccountDeletion(
     );
 
 
-  const button =
+  const submitButton =
     document.getElementById(
       "schoolConfirmDeleteButton"
     );
@@ -50835,33 +50991,32 @@ async function submitSchoolAccountDeletion(
       .trim();
 
 
-  if(!confirmation){
-
-    setSchoolAccountMessage(
-      "schoolDeleteAccountMessage",
-      "Enter the exact school name.",
-      "error"
-    );
-
-
-    confirmationInput?.focus();
-
-
-    return;
-
-  }
-
-
   if(
     confirmation !==
     expectedSchoolName
   ){
 
+    const message =
+      `Enter the school name exactly as: ${expectedSchoolName}`;
+
+
     setSchoolAccountMessage(
       "schoolDeleteAccountMessage",
-      `Enter the school name exactly as: ${expectedSchoolName}`,
+      message,
       "error"
     );
+
+
+    showAiftToast({
+
+      type:"error",
+
+      title:
+        "School name does not match",
+
+      message
+
+    });
 
 
     confirmationInput?.focus();
@@ -50881,6 +51036,19 @@ async function submitSchoolAccountDeletion(
     );
 
 
+    showAiftToast({
+
+      type:"error",
+
+      title:
+        "Password required",
+
+      message:
+        "Enter your current password before requesting account deletion."
+
+    });
+
+
     passwordInput?.focus();
 
 
@@ -50889,34 +51057,66 @@ async function submitSchoolAccountDeletion(
   }
 
 
+  closeModal(
+    "schoolDeleteAccountModal"
+  );
+
+
   const confirmed =
-    window.confirm(
-      "Request deletion of this school account? Access will be disabled immediately."
-    );
+    await confirmAiftAction({
+
+      type:"danger",
+
+      eyebrow:
+        "Account deletion",
+
+      title:
+        `Delete ${expectedSchoolName}?`,
+
+      message:
+        "This will start the deletion process and immediately disable access to this school account.",
+
+      details:`
+        <strong>Important:</strong>
+        all signed-in devices will be disconnected.
+        The account will enter the scheduled deletion period.
+      `,
+
+      confirmText:
+        "Request deletion",
+
+      cancelText:
+        "Keep my account",
+
+      loadingText:
+        "Submitting request..."
+
+    });
 
 
   if(!confirmed){
+
+    openModal(
+      "schoolDeleteAccountModal"
+    );
+
+
     return;
+
   }
 
 
-  if(button){
+  setAiftConfirmLoading(
+    true
+  );
 
-    button.disabled =
+
+  if(submitButton){
+
+    submitButton.disabled =
       true;
 
-
-    button.textContent =
-      "Submitting...";
-
   }
-
-
-  setSchoolAccountMessage(
-    "schoolDeleteAccountMessage",
-    "",
-    "info"
-  );
 
 
   try{
@@ -50932,16 +51132,26 @@ async function submitSchoolAccountDeletion(
       );
 
 
+    setAiftConfirmLoading(
+      false
+    );
+
+
+    closeAiftConfirm(
+      true
+    );
+
+
     let message =
       response?.message ||
-      "School account deletion requested successfully.";
+      "School account deletion was requested successfully.";
 
 
     if(
       response?.scheduledFor
     ){
 
-      const scheduledDate =
+      const date =
         new Date(
           response.scheduledFor
         );
@@ -50949,29 +51159,29 @@ async function submitSchoolAccountDeletion(
 
       if(
         !Number.isNaN(
-          scheduledDate.getTime()
+          date.getTime()
         )
       ){
 
         message +=
-          ` Scheduled deletion: ${scheduledDate.toLocaleDateString()}.`;
+          ` Scheduled deletion date: ${date.toLocaleDateString()}.`;
 
       }
 
     }
 
 
-    setSchoolAccountMessage(
-      "schoolDeleteAccountMessage",
-      message,
-      "success"
-    );
+    showAiftToast({
 
+      type:"success",
 
-    /*
-      The backend changes the account to deactivated
-      and revokes all server sessions.
-    */
+      title:
+        "Deletion requested",
+
+      message
+
+    });
+
 
     window.setTimeout(
       () => {
@@ -50979,7 +51189,7 @@ async function submitSchoolAccountDeletion(
         signOutAfterSchoolPasswordChange();
 
       },
-      1100
+      1200
     );
 
 
@@ -50991,24 +51201,41 @@ async function submitSchoolAccountDeletion(
     );
 
 
-    setSchoolAccountMessage(
-      "schoolDeleteAccountMessage",
-      error?.message ||
-      "Could not request deletion of this school account.",
-      "error"
+    setAiftConfirmLoading(
+      false
     );
 
 
-    if(button){
+    closeAiftConfirm(
+      false
+    );
 
-      button.disabled =
+
+    showAiftToast({
+
+      type:"error",
+
+      title:
+        "Deletion request failed",
+
+      message:
+        error?.message ||
+        "The account deletion request could not be submitted."
+
+    });
+
+
+    if(submitButton){
+
+      submitButton.disabled =
         false;
 
-
-      button.textContent =
-        "Request Deletion";
-
     }
+
+
+    openModal(
+      "schoolDeleteAccountModal"
+    );
 
   }
 
