@@ -75156,6 +75156,10 @@ function renderTeacherSettingsSessionsHTML(){
    DATA & ACCOUNT PAGE
 ========================================================= */
 
+/* =========================================================
+   DATA & ACCOUNT PAGE
+========================================================= */
+
 function renderTeacherSettingsData(){
 
   return `
@@ -75172,95 +75176,304 @@ function renderTeacherSettingsData(){
           "Your data and account",
 
         description:
-          "Manage account access and review supported account-data actions."
+          "Manage your Teacher account data, current access and account lifecycle."
 
       })}
 
 
+      <!-- ==================================================
+           YOUR DATA
+      =================================================== -->
+
       <div
-        class="teacher-settings-action-list"
+        class="teacher-settings-data-group"
       >
 
         <div
-          class="teacher-settings-action-row"
+          class="teacher-settings-data-group-head"
         >
 
-          <span
-            class="teacher-settings-action-icon"
-            aria-hidden="true"
-          >
-            <i class="fa-solid fa-download"></i>
+          <span>
+            YOUR DATA
           </span>
 
+          <strong>
+            Data controls
+          </strong>
 
-          <div
-            class="teacher-settings-action-copy"
-          >
-
-            <strong>
-              Download my data
-            </strong>
-
-            <p>
-              Request an export of supported Teacher account information.
-            </p>
-
-          </div>
-
-
-          <button
-            type="button"
-            class="teacher-secondary-button"
-            data-teacher-settings-local-action="request-data-export"
-            disabled
-          >
-            Request data
-          </button>
+          <p>
+            Request a copy of supported information connected
+            to your AIFT Teacher account.
+          </p>
 
         </div>
 
 
         <div
-          class="teacher-settings-action-row"
+          class="teacher-settings-action-list"
         >
 
-          <span
-            class="teacher-settings-action-icon"
-            aria-hidden="true"
-          >
-            <i
-              class="fa-solid fa-right-from-bracket"
-            ></i>
-          </span>
-
-
           <div
-            class="teacher-settings-action-copy"
+            class="teacher-settings-action-row"
           >
 
-            <strong>
-              Sign out
-            </strong>
+            <span
+              class="teacher-settings-action-icon"
+              aria-hidden="true"
+            >
+              <i
+                class="fa-solid fa-download"
+              ></i>
+            </span>
 
-            <p>
-              End the current Teacher Studio session on this device.
-            </p>
+
+            <div
+              class="teacher-settings-action-copy"
+            >
+
+              <strong>
+                Download my data
+              </strong>
+
+              <p>
+                Request an export of supported Teacher profile,
+                account and teaching information.
+              </p>
+
+            </div>
+
+
+            <button
+              id="teacherRequestDataExportButton"
+              type="button"
+              class="teacher-secondary-button"
+              data-teacher-settings-local-action="request-data-export"
+            >
+              Request data
+            </button>
 
           </div>
-
-
-          <button
-            type="button"
-            class="teacher-secondary-button"
-            data-teacher-settings-local-action="signout"
-          >
-            Sign out
-          </button>
 
         </div>
 
       </div>
 
+
+      <!-- ==================================================
+           ACCOUNT ACCESS
+      =================================================== -->
+
+      <div
+        class="teacher-settings-data-group"
+      >
+
+        <div
+          class="teacher-settings-data-group-head"
+        >
+
+          <span>
+            ACCOUNT ACCESS
+          </span>
+
+          <strong>
+            Sign-in access
+          </strong>
+
+          <p>
+            Control access to the Teacher account currently
+            signed in on this device.
+          </p>
+
+        </div>
+
+
+        <div
+          class="teacher-settings-action-list"
+        >
+
+          <div
+            class="teacher-settings-action-row"
+          >
+
+            <span
+              class="teacher-settings-action-icon"
+              aria-hidden="true"
+            >
+              <i
+                class="fa-solid fa-right-from-bracket"
+              ></i>
+            </span>
+
+
+            <div
+              class="teacher-settings-action-copy"
+            >
+
+              <strong>
+                Sign out
+              </strong>
+
+              <p>
+                End your current Teacher Studio session on
+                this device.
+              </p>
+
+            </div>
+
+
+            <button
+              id="teacherSettingsLogoutButton"
+              type="button"
+              class="teacher-secondary-button"
+              data-teacher-settings-local-action="signout"
+            >
+              Sign out
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ==================================================
+           ACCOUNT LIFECYCLE
+      =================================================== -->
+
+      <div
+        class="
+          teacher-settings-data-group
+          teacher-settings-danger-group
+        "
+      >
+
+        <div
+          class="teacher-settings-data-group-head"
+        >
+
+          <span>
+            ACCOUNT LIFECYCLE
+          </span>
+
+          <strong>
+            Account actions
+          </strong>
+
+          <p>
+            Deactivation and deletion affect access to AIFT
+            and should only be used when necessary.
+          </p>
+
+        </div>
+
+
+        <div
+          class="teacher-settings-action-list"
+        >
+
+          <!-- DEACTIVATE -->
+
+          <div
+            class="teacher-settings-action-row"
+          >
+
+            <span
+              class="
+                teacher-settings-action-icon
+                warning
+              "
+              aria-hidden="true"
+            >
+              <i
+                class="fa-solid fa-user-clock"
+              ></i>
+            </span>
+
+
+            <div
+              class="teacher-settings-action-copy"
+            >
+
+              <strong>
+                Deactivate account
+              </strong>
+
+              <p>
+                Disable access to your Teacher account without
+                immediately deleting stored account information.
+              </p>
+
+            </div>
+
+
+            <button
+              id="teacherDeactivateAccountButton"
+              type="button"
+              class="teacher-danger-button"
+              data-teacher-settings-local-action="deactivate-account"
+            >
+              Deactivate
+            </button>
+
+          </div>
+
+
+          <!-- DELETE -->
+
+          <div
+            class="teacher-settings-action-row"
+          >
+
+            <span
+              class="
+                teacher-settings-action-icon
+                danger
+              "
+              aria-hidden="true"
+            >
+              <i
+                class="fa-solid fa-trash-can"
+              ></i>
+            </span>
+
+
+            <div
+              class="teacher-settings-action-copy"
+            >
+
+              <strong>
+                Delete account
+              </strong>
+
+              <p>
+                Request permanent deletion of your AIFT
+                Teacher account through the controlled
+                account-deletion process.
+              </p>
+
+            </div>
+
+
+            <button
+              id="teacherDeleteAccountButton"
+              type="button"
+              class="teacher-danger-button"
+              data-teacher-settings-local-action="delete-account"
+            >
+              Delete account
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ==================================================
+           NOTICE
+      =================================================== -->
 
       <div
         class="teacher-settings-information-card"
@@ -75275,14 +75488,13 @@ function renderTeacherSettingsData(){
         <div>
 
           <strong>
-            Teacher account lifecycle
+            Before leaving AIFT
           </strong>
 
           <p>
-            Data export, account deactivation and account deletion
-            will only be enabled after the authenticated Teacher
-            account-lifecycle backend is connected. Teacher Studio
-            will not pretend a destructive account action succeeded.
+            Consider requesting a copy of your data before
+            deactivating or requesting deletion of your
+            Teacher account.
           </p>
 
         </div>
@@ -76766,9 +76978,2026 @@ async function signOutTeacherSettingsAccount(){
 
 }
 
+/* =========================================================
+   TEACHER DATA & ACCOUNT
+   PRODUCTION ACCOUNT LIFECYCLE CONTROLLER
+========================================================= */
+
+let teacherAccountActionState =
+  null;
+
+let teacherAccountLifecycleBusy =
+  false;
+
 
 /* =========================================================
-   LOCAL SETTINGS ACTION
+   TEACHER ACCOUNT NAME
+========================================================= */
+
+function getTeacherAccountConfirmationName(){
+
+  const user =
+    state.me ||
+    state.loggedUser ||
+    {};
+
+
+  return String(
+    user?.name ||
+    ""
+  )
+    .trim();
+
+}
+
+
+/* =========================================================
+   ENSURE ACCOUNT CONFIRMATION MODAL
+========================================================= */
+
+function ensureTeacherAccountConfirmModal(){
+
+  let modal =
+    $(
+      "teacherAccountConfirmModal"
+    );
+
+
+  if(modal){
+
+    return modal;
+
+  }
+
+
+  modal =
+    document.createElement(
+      "div"
+    );
+
+
+  modal.id =
+    "teacherAccountConfirmModal";
+
+
+  modal.className =
+    "modal";
+
+
+  modal.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+
+  modal.innerHTML = `
+    <div
+      class="
+        modal-box
+        teacher-account-confirm-modal
+      "
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="teacherAccountConfirmTitle"
+    >
+
+      <div
+        class="modal-head"
+      >
+
+        <div>
+
+          <div
+            id="teacherAccountConfirmTitle"
+            class="modal-title"
+          >
+            Confirm action
+          </div>
+
+
+          <p
+            id="teacherAccountConfirmSubtitle"
+            class="teacher-account-modal-subtitle"
+          >
+            Review this action before continuing.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        class="modal-body"
+      >
+
+        <div
+          class="teacher-account-confirm-content"
+        >
+
+          <span
+            id="teacherAccountConfirmIcon"
+            class="teacher-account-confirm-icon"
+            aria-hidden="true"
+          >
+            <i
+              class="fa-solid fa-shield-halved"
+            ></i>
+          </span>
+
+
+          <div>
+
+            <strong
+              id="teacherAccountConfirmHeading"
+            >
+              Confirm account action
+            </strong>
+
+
+            <p
+              id="teacherAccountConfirmMessage"
+            >
+              Confirm that you want to continue.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="teacherAccountConfirmStatus"
+          class="teacher-settings-form-message"
+          role="alert"
+          aria-live="assertive"
+          hidden
+        ></div>
+
+      </div>
+
+
+      <div
+        class="modal-actions"
+      >
+
+        <button
+          id="teacherAccountConfirmCancelButton"
+          type="button"
+          class="teacher-secondary-button"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          id="teacherAccountConfirmSubmitButton"
+          type="button"
+          class="teacher-primary-button"
+        >
+          Continue
+        </button>
+
+      </div>
+
+    </div>
+  `;
+
+
+  document.body
+    .appendChild(
+      modal
+    );
+
+
+  $(
+    "teacherAccountConfirmCancelButton"
+  )?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      closeTeacherAccountConfirmation();
+
+    }
+  );
+
+
+  $(
+    "teacherAccountConfirmSubmitButton"
+  )?.addEventListener(
+    "click",
+    event => {
+
+      event.preventDefault();
+
+      executeTeacherAccountConfirmation();
+
+    }
+  );
+
+
+  return modal;
+
+}
+
+
+/* =========================================================
+   CONFIRM MODAL STATUS
+========================================================= */
+
+function setTeacherAccountConfirmStatus(
+  message,
+  type = "error"
+){
+
+  const element =
+    $(
+      "teacherAccountConfirmStatus"
+    );
+
+
+  if(!element){
+
+    return;
+
+  }
+
+
+  element.textContent =
+    String(
+      message ||
+      ""
+    );
+
+
+  element.hidden =
+    !message;
+
+
+  element.dataset.type =
+    type;
+
+}
+
+
+/* =========================================================
+   OPEN ACCOUNT CONFIRMATION
+========================================================= */
+
+function openTeacherAccountConfirmation(
+  action
+){
+
+  ensureTeacherAccountConfirmModal();
+
+
+  const normalizedAction =
+    String(
+      action ||
+      ""
+    )
+      .trim();
+
+
+  teacherAccountActionState = {
+
+    action:
+      normalizedAction
+
+  };
+
+
+  const title =
+    $(
+      "teacherAccountConfirmTitle"
+    );
+
+
+  const subtitle =
+    $(
+      "teacherAccountConfirmSubtitle"
+    );
+
+
+  const heading =
+    $(
+      "teacherAccountConfirmHeading"
+    );
+
+
+  const message =
+    $(
+      "teacherAccountConfirmMessage"
+    );
+
+
+  const submitButton =
+    $(
+      "teacherAccountConfirmSubmitButton"
+    );
+
+
+  if(
+    !title ||
+    !heading ||
+    !message ||
+    !submitButton
+  ){
+
+    teacherAccountActionState =
+      null;
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     DATA EXPORT
+  ======================================================== */
+
+  if(
+    normalizedAction ===
+    "request-data-export"
+  ){
+
+    title.textContent =
+      "Request your data?";
+
+
+    subtitle.textContent =
+      "AIFT will record a new Teacher account data-export request.";
+
+
+    heading.textContent =
+      "Request Teacher account data";
+
+
+    message.textContent =
+      "AIFT will record your request for supported Teacher account and teaching information.";
+
+
+    submitButton.textContent =
+      "Request data";
+
+  }
+
+
+  /* =======================================================
+     SIGN OUT
+  ======================================================== */
+
+  else if(
+    normalizedAction ===
+    "signout"
+  ){
+
+    title.textContent =
+      "Sign out of AIFT?";
+
+
+    subtitle.textContent =
+      "Your current Teacher Studio session will end.";
+
+
+    heading.textContent =
+      "Sign out this device";
+
+
+    message.textContent =
+      "You will need to sign in again before using Teacher Studio on this device.";
+
+
+    submitButton.textContent =
+      "Sign out";
+
+  }
+
+
+  else{
+
+    teacherAccountActionState =
+      null;
+
+    return;
+
+  }
+
+
+  submitButton.disabled =
+    false;
+
+
+  setTeacherAccountConfirmStatus(
+    ""
+  );
+
+
+  openModal(
+    "teacherAccountConfirmModal"
+  );
+
+}
+
+
+/* =========================================================
+   CLOSE ACCOUNT CONFIRMATION
+========================================================= */
+
+function closeTeacherAccountConfirmation(){
+
+  closeModal(
+    "teacherAccountConfirmModal"
+  );
+
+
+  teacherAccountActionState =
+    null;
+
+
+  setTeacherAccountConfirmStatus(
+    ""
+  );
+
+}
+
+
+/* =========================================================
+   DATA EXPORT
+========================================================= */
+
+async function requestTeacherDataExport(){
+
+  const button =
+    $(
+      "teacherRequestDataExportButton"
+    );
+
+
+  if(
+    button?.disabled
+  ){
+
+    return false;
+
+  }
+
+
+  if(button){
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Requesting...";
+
+  }
+
+
+  try{
+
+    const response =
+      await apiSend(
+        "/api/users/me/data-export-request",
+        "POST",
+        {}
+      );
+
+
+    notifyAIFTSuccess(
+
+      response?.message ||
+      "Your Teacher data export request has been received.",
+
+      {
+        title:
+          "Data export requested"
+      }
+
+    );
+
+
+    return true;
+
+
+  }catch(error){
+
+    notifyAIFTError(
+
+      getErrorMessage(
+        error,
+        "Your data export request could not be submitted."
+      ),
+
+      {
+        title:
+          "Export request failed"
+      }
+
+    );
+
+
+    return false;
+
+
+  }finally{
+
+    if(button){
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Request data";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   ENSURE DEACTIVATE MODAL
+========================================================= */
+
+function ensureTeacherDeactivateAccountModal(){
+
+  let modal =
+    $(
+      "teacherDeactivateAccountModal"
+    );
+
+
+  if(modal){
+
+    return modal;
+
+  }
+
+
+  modal =
+    document.createElement(
+      "div"
+    );
+
+
+  modal.id =
+    "teacherDeactivateAccountModal";
+
+
+  modal.className =
+    "modal";
+
+
+  modal.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+
+  modal.innerHTML = `
+    <div
+      class="
+        modal-box
+        teacher-account-danger-modal
+      "
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="teacherDeactivateAccountTitle"
+    >
+
+      <div
+        class="modal-head"
+      >
+
+        <div>
+
+          <div
+            id="teacherDeactivateAccountTitle"
+            class="modal-title"
+          >
+            Deactivate account
+          </div>
+
+
+          <p
+            class="teacher-account-modal-subtitle"
+          >
+            Temporarily disable access to your AIFT
+            Teacher account.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="teacher-secondary-button"
+          data-teacher-deactivate-close
+        >
+          Close
+        </button>
+
+      </div>
+
+
+      <form
+        id="teacherDeactivateAccountForm"
+        class="modal-body"
+        novalidate
+      >
+
+        <div
+          class="
+            teacher-account-warning-panel
+            warning
+          "
+        >
+
+          <span
+            aria-hidden="true"
+          >
+            <i
+              class="fa-solid fa-user-clock"
+            ></i>
+          </span>
+
+
+          <div>
+
+            <strong>
+              Your Teacher account will become unavailable
+            </strong>
+
+
+            <p>
+              All active AIFT sessions will be revoked
+              after deactivation succeeds. Your account
+              data is not immediately deleted.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="field"
+        >
+
+          <label
+            for="teacherDeactivatePassword"
+          >
+            Current password
+          </label>
+
+
+          <input
+            id="teacherDeactivatePassword"
+            type="password"
+            autocomplete="current-password"
+            required
+            placeholder="Enter your current password"
+          >
+
+        </div>
+
+
+        <div
+          class="field"
+        >
+
+          <label
+            for="teacherDeactivateReason"
+          >
+            Reason
+            <small>
+              Optional
+            </small>
+          </label>
+
+
+          <textarea
+            id="teacherDeactivateReason"
+            rows="4"
+            maxlength="500"
+            placeholder="Tell us why you're deactivating your account"
+          ></textarea>
+
+        </div>
+
+
+        <div
+          id="teacherDeactivateAccountMessage"
+          class="teacher-settings-form-message"
+          role="alert"
+          aria-live="assertive"
+          hidden
+        ></div>
+
+      </form>
+
+
+      <div
+        class="modal-actions"
+      >
+
+        <button
+          type="button"
+          class="teacher-secondary-button"
+          data-teacher-deactivate-close
+        >
+          Cancel
+        </button>
+
+
+        <button
+          id="teacherDeactivateAccountSubmitButton"
+          type="submit"
+          form="teacherDeactivateAccountForm"
+          class="teacher-danger-button"
+        >
+          Deactivate account
+        </button>
+
+      </div>
+
+    </div>
+  `;
+
+
+  document.body
+    .appendChild(
+      modal
+    );
+
+
+  modal
+    .querySelectorAll(
+      "[data-teacher-deactivate-close]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          event => {
+
+            event.preventDefault();
+
+            closeTeacherDeactivateAccountModal();
+
+          }
+        );
+
+      }
+    );
+
+
+  $(
+    "teacherDeactivateAccountForm"
+  )?.addEventListener(
+    "submit",
+    submitTeacherDeactivateAccount
+  );
+
+
+  return modal;
+
+}
+
+
+/* =========================================================
+   DEACTIVATE MESSAGE
+========================================================= */
+
+function setTeacherDeactivateMessage(
+  message,
+  type = "error"
+){
+
+  const element =
+    $(
+      "teacherDeactivateAccountMessage"
+    );
+
+
+  if(!element){
+
+    return;
+
+  }
+
+
+  element.textContent =
+    String(
+      message ||
+      ""
+    );
+
+
+  element.hidden =
+    !message;
+
+
+  element.dataset.type =
+    type;
+
+}
+
+
+/* =========================================================
+   OPEN DEACTIVATE
+========================================================= */
+
+function openTeacherDeactivateAccountModal(){
+
+  ensureTeacherDeactivateAccountModal();
+
+
+  $(
+    "teacherDeactivateAccountForm"
+  )?.reset();
+
+
+  setTeacherDeactivateMessage(
+    ""
+  );
+
+
+  const button =
+    $(
+      "teacherDeactivateAccountSubmitButton"
+    );
+
+
+  if(button){
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Deactivate account";
+
+  }
+
+
+  openModal(
+    "teacherDeactivateAccountModal"
+  );
+
+
+  window.setTimeout(
+    () => {
+
+      $(
+        "teacherDeactivatePassword"
+      )?.focus();
+
+    },
+    70
+  );
+
+}
+
+
+/* =========================================================
+   CLOSE DEACTIVATE
+========================================================= */
+
+function closeTeacherDeactivateAccountModal(){
+
+  if(
+    teacherAccountLifecycleBusy
+  ){
+
+    return;
+
+  }
+
+
+  closeModal(
+    "teacherDeactivateAccountModal"
+  );
+
+
+  $(
+    "teacherDeactivateAccountForm"
+  )?.reset();
+
+
+  setTeacherDeactivateMessage(
+    ""
+  );
+
+}
+
+
+/* =========================================================
+   SUBMIT DEACTIVATION
+========================================================= */
+
+async function submitTeacherDeactivateAccount(
+  event
+){
+
+  event?.preventDefault();
+
+
+  if(
+    teacherAccountLifecycleBusy
+  ){
+
+    return false;
+
+  }
+
+
+  const password =
+    String(
+      $(
+        "teacherDeactivatePassword"
+      )?.value ||
+      ""
+    );
+
+
+  const reason =
+    String(
+      $(
+        "teacherDeactivateReason"
+      )?.value ||
+      ""
+    )
+      .trim();
+
+
+  if(!password){
+
+    setTeacherDeactivateMessage(
+      "Enter your current password."
+    );
+
+
+    $(
+      "teacherDeactivatePassword"
+    )?.focus();
+
+
+    return false;
+
+  }
+
+
+  const button =
+    $(
+      "teacherDeactivateAccountSubmitButton"
+    );
+
+
+  teacherAccountLifecycleBusy =
+    true;
+
+
+  if(button){
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Deactivating...";
+
+  }
+
+
+  setTeacherDeactivateMessage(
+    "Securely deactivating your Teacher account...",
+    "info"
+  );
+
+
+  try{
+
+    const response =
+      await apiSend(
+        "/api/users/me/deactivate",
+        "POST",
+        {
+          password,
+          reason
+        }
+      );
+
+
+    setTeacherDeactivateMessage(
+
+      response?.message ||
+      "Teacher account deactivated successfully.",
+
+      "success"
+
+    );
+
+
+    notifyAIFTSuccess(
+
+      response?.message ||
+      "Your Teacher account has been deactivated.",
+
+      {
+        title:
+          "Account deactivated"
+      }
+
+    );
+
+
+    window.setTimeout(
+      () => {
+
+        clearTeacherAuthentication();
+
+
+        window.location.href =
+          AIFT_TEACHER_CONFIG
+            .loginPage;
+
+      },
+      800
+    );
+
+
+    return true;
+
+
+  }catch(error){
+
+    setTeacherDeactivateMessage(
+
+      getErrorMessage(
+        error,
+        "Your Teacher account could not be deactivated."
+      ),
+
+      "error"
+
+    );
+
+
+    notifyAIFTError(
+
+      getErrorMessage(
+        error,
+        "Your Teacher account could not be deactivated."
+      ),
+
+      {
+        title:
+          "Deactivation failed"
+      }
+
+    );
+
+
+    return false;
+
+
+  }finally{
+
+    teacherAccountLifecycleBusy =
+      false;
+
+
+    if(button){
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Deactivate account";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   ENSURE DELETE ACCOUNT MODAL
+========================================================= */
+
+function ensureTeacherDeleteAccountModal(){
+
+  let modal =
+    $(
+      "teacherDeleteAccountModal"
+    );
+
+
+  if(modal){
+
+    return modal;
+
+  }
+
+
+  modal =
+    document.createElement(
+      "div"
+    );
+
+
+  modal.id =
+    "teacherDeleteAccountModal";
+
+
+  modal.className =
+    "modal";
+
+
+  modal.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+
+  modal.innerHTML = `
+    <div
+      class="
+        modal-box
+        teacher-account-danger-modal
+        teacher-account-delete-modal
+      "
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="teacherDeleteAccountTitle"
+    >
+
+      <div
+        class="modal-head"
+      >
+
+        <div>
+
+          <div
+            id="teacherDeleteAccountTitle"
+            class="modal-title"
+          >
+            Delete account
+          </div>
+
+
+          <p
+            class="teacher-account-modal-subtitle"
+          >
+            Request permanent deletion of your
+            AIFT Teacher account.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="teacher-secondary-button"
+          data-teacher-delete-close
+        >
+          Close
+        </button>
+
+      </div>
+
+
+      <form
+        id="teacherDeleteAccountForm"
+        class="modal-body"
+        novalidate
+      >
+
+        <div
+          class="
+            teacher-account-warning-panel
+            danger
+          "
+        >
+
+          <span
+            aria-hidden="true"
+          >
+            <i
+              class="fa-solid fa-triangle-exclamation"
+            ></i>
+          </span>
+
+
+          <div>
+
+            <strong>
+              This is a serious account action
+            </strong>
+
+
+            <p>
+              Your Teacher account will be disabled
+              immediately and all active sessions will
+              be revoked. Permanent deletion is scheduled
+              through AIFT's controlled deletion process.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="teacher-account-delete-checklist"
+        >
+
+          <strong>
+            Before continuing
+          </strong>
+
+
+          <ul>
+
+            <li>
+              Request your account data if you need a copy.
+            </li>
+
+            <li>
+              Save any teaching information you are
+              authorized to retain.
+            </li>
+
+            <li>
+              You will be signed out when the request
+              succeeds.
+            </li>
+
+          </ul>
+
+        </div>
+
+
+        <div
+          class="field"
+        >
+
+          <label
+            for="teacherDeleteAccountPassword"
+          >
+            Current password
+          </label>
+
+
+          <input
+            id="teacherDeleteAccountPassword"
+            type="password"
+            autocomplete="current-password"
+            required
+            placeholder="Enter your current password"
+          >
+
+        </div>
+
+
+        <div
+          class="field"
+        >
+
+          <label
+            for="teacherDeleteAccountConfirmation"
+          >
+            Confirm your account name
+          </label>
+
+
+          <p
+            class="teacher-account-confirm-instruction"
+          >
+            Type
+            <strong
+              id="teacherDeleteRequiredAccountName"
+            >
+              your account name
+            </strong>
+            exactly as shown.
+          </p>
+
+
+          <input
+            id="teacherDeleteAccountConfirmation"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            required
+            placeholder="Type your account name"
+          >
+
+        </div>
+
+
+        <label
+          class="teacher-account-delete-acknowledgement"
+        >
+
+          <input
+            id="teacherDeleteAccountAcknowledgement"
+            type="checkbox"
+          >
+
+
+          <span>
+            I understand that this request disables
+            my account and begins the controlled
+            account-deletion process.
+          </span>
+
+        </label>
+
+
+        <div
+          id="teacherDeleteAccountMessage"
+          class="teacher-settings-form-message"
+          role="alert"
+          aria-live="assertive"
+          hidden
+        ></div>
+
+      </form>
+
+
+      <div
+        class="modal-actions"
+      >
+
+        <button
+          type="button"
+          class="teacher-secondary-button"
+          data-teacher-delete-close
+        >
+          Cancel
+        </button>
+
+
+        <button
+          id="teacherDeleteAccountSubmitButton"
+          type="submit"
+          form="teacherDeleteAccountForm"
+          class="teacher-danger-button"
+          disabled
+        >
+          Request deletion
+        </button>
+
+      </div>
+
+    </div>
+  `;
+
+
+  document.body
+    .appendChild(
+      modal
+    );
+
+
+  modal
+    .querySelectorAll(
+      "[data-teacher-delete-close]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          event => {
+
+            event.preventDefault();
+
+            closeTeacherDeleteAccountModal();
+
+          }
+        );
+
+      }
+    );
+
+
+  $(
+    "teacherDeleteAccountConfirmation"
+  )?.addEventListener(
+    "input",
+    updateTeacherDeleteAccountButton
+  );
+
+
+  $(
+    "teacherDeleteAccountAcknowledgement"
+  )?.addEventListener(
+    "change",
+    updateTeacherDeleteAccountButton
+  );
+
+
+  $(
+    "teacherDeleteAccountForm"
+  )?.addEventListener(
+    "submit",
+    submitTeacherDeleteAccount
+  );
+
+
+  return modal;
+
+}
+
+
+/* =========================================================
+   DELETE MESSAGE
+========================================================= */
+
+function setTeacherDeleteAccountMessage(
+  message,
+  type = "error"
+){
+
+  const element =
+    $(
+      "teacherDeleteAccountMessage"
+    );
+
+
+  if(!element){
+
+    return;
+
+  }
+
+
+  element.textContent =
+    String(
+      message ||
+      ""
+    );
+
+
+  element.hidden =
+    !message;
+
+
+  element.dataset.type =
+    type;
+
+}
+
+
+/* =========================================================
+   DELETE BUTTON STATE
+========================================================= */
+
+function updateTeacherDeleteAccountButton(){
+
+  const button =
+    $(
+      "teacherDeleteAccountSubmitButton"
+    );
+
+
+  if(!button){
+
+    return;
+
+  }
+
+
+  if(
+    teacherAccountLifecycleBusy
+  ){
+
+    button.disabled =
+      true;
+
+    return;
+
+  }
+
+
+  const expected =
+    getTeacherAccountConfirmationName();
+
+
+  const supplied =
+    String(
+      $(
+        "teacherDeleteAccountConfirmation"
+      )?.value ||
+      ""
+    )
+      .trim();
+
+
+  const acknowledged =
+    Boolean(
+      $(
+        "teacherDeleteAccountAcknowledgement"
+      )?.checked
+    );
+
+
+  button.disabled =
+    !(
+      expected &&
+      supplied ===
+      expected &&
+      acknowledged
+    );
+
+}
+
+
+/* =========================================================
+   OPEN DELETE ACCOUNT
+========================================================= */
+
+function openTeacherDeleteAccountModal(){
+
+  ensureTeacherDeleteAccountModal();
+
+
+  $(
+    "teacherDeleteAccountForm"
+  )?.reset();
+
+
+  const requiredName =
+    getTeacherAccountConfirmationName();
+
+
+  const display =
+    $(
+      "teacherDeleteRequiredAccountName"
+    );
+
+
+  if(display){
+
+    display.textContent =
+      requiredName ||
+      "your account name";
+
+  }
+
+
+  setTeacherDeleteAccountMessage(
+    ""
+  );
+
+
+  updateTeacherDeleteAccountButton();
+
+
+  openModal(
+    "teacherDeleteAccountModal"
+  );
+
+
+  window.setTimeout(
+    () => {
+
+      $(
+        "teacherDeleteAccountPassword"
+      )?.focus();
+
+    },
+    70
+  );
+
+}
+
+
+/* =========================================================
+   CLOSE DELETE ACCOUNT
+========================================================= */
+
+function closeTeacherDeleteAccountModal(){
+
+  if(
+    teacherAccountLifecycleBusy
+  ){
+
+    return;
+
+  }
+
+
+  closeModal(
+    "teacherDeleteAccountModal"
+  );
+
+
+  $(
+    "teacherDeleteAccountForm"
+  )?.reset();
+
+
+  setTeacherDeleteAccountMessage(
+    ""
+  );
+
+}
+
+
+/* =========================================================
+   SUBMIT DELETE ACCOUNT
+========================================================= */
+
+async function submitTeacherDeleteAccount(
+  event
+){
+
+  event?.preventDefault();
+
+
+  if(
+    teacherAccountLifecycleBusy
+  ){
+
+    return false;
+
+  }
+
+
+  const password =
+    String(
+      $(
+        "teacherDeleteAccountPassword"
+      )?.value ||
+      ""
+    );
+
+
+  const confirmation =
+    String(
+      $(
+        "teacherDeleteAccountConfirmation"
+      )?.value ||
+      ""
+    )
+      .trim();
+
+
+  const expected =
+    getTeacherAccountConfirmationName();
+
+
+  const acknowledged =
+    Boolean(
+      $(
+        "teacherDeleteAccountAcknowledgement"
+      )?.checked
+    );
+
+
+  if(!password){
+
+    setTeacherDeleteAccountMessage(
+      "Enter your current password."
+    );
+
+
+    $(
+      "teacherDeleteAccountPassword"
+    )?.focus();
+
+
+    return false;
+
+  }
+
+
+  if(
+    !expected ||
+    confirmation !==
+    expected
+  ){
+
+    setTeacherDeleteAccountMessage(
+      "The confirmation must exactly match your Teacher account name."
+    );
+
+
+    $(
+      "teacherDeleteAccountConfirmation"
+    )?.focus();
+
+
+    return false;
+
+  }
+
+
+  if(!acknowledged){
+
+    setTeacherDeleteAccountMessage(
+      "Confirm that you understand the account deletion process."
+    );
+
+
+    return false;
+
+  }
+
+
+  const button =
+    $(
+      "teacherDeleteAccountSubmitButton"
+    );
+
+
+  teacherAccountLifecycleBusy =
+    true;
+
+
+  if(button){
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Submitting...";
+
+  }
+
+
+  setTeacherDeleteAccountMessage(
+    "Securely submitting your account deletion request...",
+    "info"
+  );
+
+
+  try{
+
+    const response =
+      await apiSend(
+        "/api/users/me/delete-account-request",
+        "POST",
+        {
+          password,
+          confirmation
+        }
+      );
+
+
+    const scheduledFor =
+      response?.scheduledFor
+        ? formatDateTime(
+            response.scheduledFor,
+            ""
+          )
+        : "";
+
+
+    setTeacherDeleteAccountMessage(
+
+      response?.message ||
+      "Account deletion requested successfully.",
+
+      "success"
+
+    );
+
+
+    notifyAIFTSuccess(
+
+      scheduledFor
+        ? `Your Teacher account deletion request was accepted. Scheduled deletion: ${scheduledFor}.`
+        : (
+            response?.message ||
+            "Your Teacher account deletion request was accepted."
+          ),
+
+      {
+        title:
+          "Deletion requested"
+      }
+
+    );
+
+
+    window.setTimeout(
+      () => {
+
+        clearTeacherAuthentication();
+
+
+        window.location.href =
+          AIFT_TEACHER_CONFIG
+            .loginPage;
+
+      },
+      900
+    );
+
+
+    return true;
+
+
+  }catch(error){
+
+    setTeacherDeleteAccountMessage(
+
+      getErrorMessage(
+        error,
+        "Your Teacher account deletion request could not be submitted."
+      ),
+
+      "error"
+
+    );
+
+
+    notifyAIFTError(
+
+      getErrorMessage(
+        error,
+        "Your Teacher account deletion request could not be submitted."
+      ),
+
+      {
+        title:
+          "Deletion request failed"
+      }
+
+    );
+
+
+    return false;
+
+
+  }finally{
+
+    teacherAccountLifecycleBusy =
+      false;
+
+
+    updateTeacherDeleteAccountButton();
+
+  }
+
+}
+
+
+/* =========================================================
+   EXECUTE ACCOUNT CONFIRMATION
+========================================================= */
+
+async function executeTeacherAccountConfirmation(){
+
+  const operation =
+    teacherAccountActionState;
+
+
+  if(
+    !operation ||
+    teacherAccountLifecycleBusy
+  ){
+
+    return false;
+
+  }
+
+
+  const button =
+    $(
+      "teacherAccountConfirmSubmitButton"
+    );
+
+
+  teacherAccountLifecycleBusy =
+    true;
+
+
+  if(button){
+
+    button.disabled =
+      true;
+
+    button.dataset.originalText =
+      button.textContent;
+
+    button.textContent =
+      "Processing...";
+
+  }
+
+
+  setTeacherAccountConfirmStatus(
+    "Securely processing your request...",
+    "info"
+  );
+
+
+  try{
+
+    /* DATA EXPORT */
+
+    if(
+      operation.action ===
+      "request-data-export"
+    ){
+
+      closeModal(
+        "teacherAccountConfirmModal"
+      );
+
+
+      teacherAccountActionState =
+        null;
+
+
+      await requestTeacherDataExport();
+
+
+      return true;
+
+    }
+
+
+    /* SIGN OUT */
+
+    if(
+      operation.action ===
+      "signout"
+    ){
+
+      closeModal(
+        "teacherAccountConfirmModal"
+      );
+
+
+      teacherAccountActionState =
+        null;
+
+
+      await signOutTeacherSettingsAccount();
+
+
+      return true;
+
+    }
+
+
+    throw new Error(
+      "Invalid Teacher account action."
+    );
+
+
+  }catch(error){
+
+    setTeacherAccountConfirmStatus(
+
+      getErrorMessage(
+        error,
+        "This account action could not be completed."
+      ),
+
+      "error"
+
+    );
+
+
+    return false;
+
+
+  }finally{
+
+    teacherAccountLifecycleBusy =
+      false;
+
+
+    if(button){
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        button.dataset.originalText ||
+        "Continue";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   TEACHER SETTINGS LOCAL ACTION ROUTER
 ========================================================= */
 
 async function handleTeacherSettingsLocalAction(
@@ -76783,6 +79012,10 @@ async function handleTeacherSettingsLocalAction(
 
 
   switch(action){
+
+    /* =====================================================
+       SECURITY
+    ===================================================== */
 
     case "change-password":
 
@@ -76810,9 +79043,40 @@ async function handleTeacherSettingsLocalAction(
       );
 
 
+    /* =====================================================
+       DATA & ACCOUNT
+    ===================================================== */
+
+    case "request-data-export":
+
+      openTeacherAccountConfirmation(
+        "request-data-export"
+      );
+
+      return true;
+
+
     case "signout":
 
-      return signOutTeacherSettingsAccount();
+      openTeacherAccountConfirmation(
+        "signout"
+      );
+
+      return true;
+
+
+    case "deactivate-account":
+
+      openTeacherDeactivateAccountModal();
+
+      return true;
+
+
+    case "delete-account":
+
+      openTeacherDeleteAccountModal();
+
+      return true;
 
 
     default:
