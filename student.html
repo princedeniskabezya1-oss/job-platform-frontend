@@ -25324,47 +25324,89 @@ button{
   line-height:1.45;
 }
 
-
 /* =========================================================
    TOGGLE SWITCH
+   PRODUCTION CONTROL
 ========================================================= */
 
 #section-settings .student-setting-switch{
   position:relative;
 
-  width:34px;
-  height:20px;
+  width:36px;
+  height:22px;
 
-  flex:0 0 34px;
+  flex:
+    0
+    0
+    36px;
+
+  display:inline-block;
 }
 
 
-#section-settings .student-setting-switch input{
-  position:absolute;
+/* =========================================================
+   REAL CHECKBOX HIT AREA
 
-  width:1px;
-  height:1px;
+   The native checkbox covers the entire visible switch.
+   It remains visually hidden but fully interactive for
+   mouse, touch, keyboard, and accessibility.
+========================================================= */
 
-  opacity:0;
-
-  pointer-events:none;
-}
-
-
-#section-settings .student-setting-switch-track{
+#section-settings
+.student-setting-switch input{
   position:absolute;
 
   inset:0;
 
+  z-index:3;
+
+  width:100%;
+  height:100%;
+
+  margin:0;
+  padding:0;
+
+  opacity:0;
+
+  cursor:pointer;
+
+  pointer-events:auto;
+
+  appearance:none;
+  -webkit-appearance:none;
+}
+
+
+/* =========================================================
+   SWITCH TRACK
+========================================================= */
+
+#section-settings
+.student-setting-switch-track{
+  position:absolute;
+
+  inset:0;
+
+  z-index:1;
+
   display:block;
 
-  border:1px solid #d0d5dd;
+  border:
+    1px solid
+    var(
+      --student-studio-border,
+      #d0d5dd
+    );
 
   border-radius:999px;
 
-  background:#e4e7ec;
+  background:
+    var(
+      --student-studio-surface-muted,
+      #e4e7ec
+    );
 
-  cursor:pointer;
+  pointer-events:none;
 
   transition:
     background .18s ease,
@@ -25373,34 +25415,57 @@ button{
 }
 
 
-#section-settings .student-setting-switch-thumb{
+/* =========================================================
+   SWITCH THUMB
+========================================================= */
+
+#section-settings
+.student-setting-switch-thumb{
   position:absolute;
 
-  top:2px;
-  left:2px;
+  top:3px;
+  left:3px;
 
   width:14px;
   height:14px;
 
   border-radius:50%;
 
-  background:#fff;
+  background:#ffffff;
 
   box-shadow:
-    0 1px 3px rgba(16,24,40,.22);
+    0
+    1px
+    3px
+    rgba(16,24,40,.22);
+
+  pointer-events:none;
 
   transition:
-    transform .18s ease;
+    transform .18s ease,
+    background .18s ease;
 }
 
+
+/* =========================================================
+   CHECKED
+========================================================= */
 
 #section-settings
 .student-setting-switch
 input:checked +
 .student-setting-switch-track{
-  border-color:#1a73e8;
+  border-color:
+    var(
+      --student-studio-primary,
+      #1a73e8
+    );
 
-  background:#1a73e8;
+  background:
+    var(
+      --student-studio-primary,
+      #1a73e8
+    );
 }
 
 
@@ -25409,16 +25474,159 @@ input:checked +
 input:checked +
 .student-setting-switch-track
 .student-setting-switch-thumb{
-  transform:translateX(14px);
+  transform:
+    translateX(
+      14px
+    );
 }
 
+
+/* =========================================================
+   KEYBOARD FOCUS
+========================================================= */
 
 #section-settings
 .student-setting-switch
 input:focus-visible +
 .student-setting-switch-track{
+  border-color:
+    var(
+      --student-studio-primary,
+      #1a73e8
+    );
+
   box-shadow:
-    0 0 0 3px rgba(26,115,232,.14);
+    0
+    0
+    0
+    3px
+    color-mix(
+      in srgb,
+      var(
+        --student-studio-primary,
+        #1a73e8
+      ) 18%,
+      transparent
+    );
+}
+
+
+/* =========================================================
+   HOVER
+========================================================= */
+
+#section-settings
+.student-setting-row:hover
+.student-setting-switch-track{
+  border-color:
+    color-mix(
+      in srgb,
+      var(
+        --student-studio-primary,
+        #1a73e8
+      ) 38%,
+      var(
+        --student-studio-border,
+        #d0d5dd
+      )
+    );
+}
+
+
+/* =========================================================
+   DISABLED
+========================================================= */
+
+#section-settings
+.student-setting-switch
+input:disabled{
+  cursor:not-allowed;
+}
+
+
+#section-settings
+.student-setting-switch
+input:disabled +
+.student-setting-switch-track{
+  opacity:.55;
+}
+
+
+/* =========================================================
+   DARK THEME
+========================================================= */
+
+html[data-student-theme="dark"]
+#section-settings
+.student-setting-switch-track{
+  border-color:
+    var(
+      --student-studio-border
+    );
+
+  background:
+    var(
+      --student-studio-surface-muted
+    );
+}
+
+
+html[data-student-theme="dark"]
+#section-settings
+.student-setting-switch-thumb{
+  background:#ffffff;
+
+  box-shadow:
+    0
+    1px
+    4px
+    rgba(0,0,0,.4);
+}
+
+
+html[data-student-theme="dark"]
+#section-settings
+.student-setting-switch
+input:checked +
+.student-setting-switch-track{
+  border-color:
+    var(
+      --student-studio-primary
+    );
+
+  background:
+    var(
+      --student-studio-primary
+    );
+}
+
+
+/* =========================================================
+   TOUCH DEVICES
+========================================================= */
+
+@media(max-width:760px){
+
+  #section-settings
+  .student-setting-switch{
+    width:38px;
+    height:22px;
+
+    flex-basis:38px;
+  }
+
+
+  #section-settings
+  .student-setting-switch
+  input:checked +
+  .student-setting-switch-track
+  .student-setting-switch-thumb{
+    transform:
+      translateX(
+        16px
+      );
+  }
+
 }
 
 
