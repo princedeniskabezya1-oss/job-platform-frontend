@@ -3888,9 +3888,11 @@ body[data-builder-section]:not(
   stroke-linejoin:round;
 }
 
+
 /* =========================================================
    RESPONSIVE OVERVIEW
    PRODUCTION TABLET + MOBILE
+   PROGRESSIVE DISCLOSURE EXPERIENCE
 ========================================================= */
 
 
@@ -3918,7 +3920,7 @@ body[data-builder-section]:not(
   }
 
 
-  .project-overview-metric:nth-child(2){
+  .project-overview-metric:nth-child(2n){
     border-right:0;
   }
 
@@ -3938,14 +3940,23 @@ body[data-builder-section]:not(
 
 @media(max-width:900px){
 
+  /* -------------------------------------------------------
+     WORKSPACE
+  ------------------------------------------------------- */
+
   .project-overview{
     width:100%;
     max-width:none;
+
+    gap:18px;
   }
 
 
-  .project-overview-header,
-  .project-overview-editor-head{
+  /* -------------------------------------------------------
+     HEADER
+  ------------------------------------------------------- */
+
+  .project-overview-header{
     width:100%;
 
     align-items:stretch;
@@ -3967,10 +3978,22 @@ body[data-builder-section]:not(
   }
 
 
-  .project-overview-editor-grid{
-    grid-template-columns:1fr;
+  /* -------------------------------------------------------
+     SUMMARY
+  ------------------------------------------------------- */
+
+  .project-overview-summary{
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0,1fr)
+      );
   }
 
+
+  /* -------------------------------------------------------
+     CONTINUE BUILDING
+  ------------------------------------------------------- */
 
   .project-overview-tools{
     grid-template-columns:
@@ -3978,6 +4001,37 @@ body[data-builder-section]:not(
         2,
         minmax(0,1fr)
       );
+  }
+
+
+  /* -------------------------------------------------------
+     STUDENT EXPERIENCE
+  ------------------------------------------------------- */
+
+  .project-overview-editor-head{
+    width:100%;
+
+    align-items:stretch;
+    flex-direction:column;
+
+    gap:14px;
+  }
+
+
+  .project-overview-editor-grid{
+    grid-template-columns:1fr;
+  }
+
+
+  .project-overview-editor-actions{
+    width:100%;
+
+    display:flex;
+
+    align-items:center;
+    flex-wrap:wrap;
+
+    gap:8px;
   }
 
 }
@@ -3989,22 +4043,30 @@ body[data-builder-section]:not(
 
 @media(max-width:640px){
 
+  /* =======================================================
+     OVERVIEW WORKSPACE
+  ======================================================== */
+
   .project-overview{
-    gap:14px;
+    width:100%;
+
+    gap:13px;
   }
 
 
-  /* -------------------------------------------------------
+  /* =======================================================
      PAGE HEADER
-  ------------------------------------------------------- */
+  ======================================================== */
 
   .project-overview-header{
+    width:100%;
+
     padding:
       2px
       1px
       0;
 
-    gap:12px;
+    gap:11px;
   }
 
 
@@ -4018,7 +4080,9 @@ body[data-builder-section]:not(
 
   .project-overview-header h2{
     font-size:21px;
+
     line-height:1.25;
+
     letter-spacing:-.025em;
   }
 
@@ -4029,15 +4093,18 @@ body[data-builder-section]:not(
     margin-top:6px;
 
     font-size:10px;
+
     line-height:1.55;
   }
 
 
-  /* -------------------------------------------------------
-     HEADER ACTIONS
-  ------------------------------------------------------- */
+  /* =======================================================
+     MAIN HEADER ACTIONS
+  ======================================================== */
 
   .project-overview-header-actions{
+    width:100%;
+
     display:grid;
 
     grid-template-columns:
@@ -4060,6 +4127,8 @@ body[data-builder-section]:not(
       10px;
 
     font-size:9px;
+
+    white-space:normal;
   }
 
 
@@ -4069,11 +4138,22 @@ body[data-builder-section]:not(
   }
 
 
-  /* -------------------------------------------------------
-     SUMMARY
-  ------------------------------------------------------- */
+  /* =======================================================
+     SUMMARY SHELL
+  ======================================================== */
+
+  .project-overview-summary-shell{
+    width:100%;
+
+    display:grid;
+
+    gap:7px;
+  }
+
 
   .project-overview-summary{
+    width:100%;
+
     grid-template-columns:
       repeat(
         2,
@@ -4084,19 +4164,31 @@ body[data-builder-section]:not(
   }
 
 
-  .project-overview-metric{
-    min-height:102px;
+  .project-overview-summary-primary,
+  .project-overview-summary-secondary{
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0,1fr)
+      );
+  }
 
-    padding:
-      13px;
+
+  /* =======================================================
+     SUMMARY CARDS
+  ======================================================== */
+
+  .project-overview-metric{
+    min-width:0;
+    min-height:92px;
+
+    padding:12px;
 
     border-right:
       1px solid
       var(--aift-border-soft);
 
-    border-bottom:
-      1px solid
-      var(--aift-border-soft);
+    border-bottom:0;
   }
 
 
@@ -4105,86 +4197,453 @@ body[data-builder-section]:not(
   }
 
 
-  .project-overview-metric:nth-last-child(-n+2){
-    border-bottom:0;
+  /*
+    Desktop descriptions provide context.
+
+    Mobile labels already communicate the same information,
+    so descriptions are removed from the first-glance view.
+  */
+
+  .project-overview-metric p{
+    display:none;
   }
 
 
-  /* -------------------------------------------------------
-     QUICK TOOLS
-  ------------------------------------------------------- */
-
-  .project-overview-tools{
-    grid-template-columns:1fr;
-
-    gap:9px;
+  .project-overview-metric-head{
+    gap:8px;
   }
 
 
-  /* -------------------------------------------------------
-     PANELS
-  ------------------------------------------------------- */
+  .project-overview-metric-label{
+    font-size:9px;
+
+    line-height:1.35;
+  }
+
+
+  .project-overview-metric-value{
+    margin-top:8px;
+
+    font-size:23px;
+  }
+
+
+  .project-overview-metric-value.status{
+    font-size:18px;
+  }
+
+
+  .project-overview-metric-icon{
+    width:34px;
+    height:34px;
+
+    border-radius:9px;
+  }
+
+
+  .project-overview-metric-icon svg{
+    width:17px;
+    height:17px;
+  }
+
+
+  .project-overview-progress{
+    height:6px;
+
+    margin-top:11px;
+  }
+
+
+  /* =======================================================
+     SECONDARY SUMMARY DISCLOSURE
+  ======================================================== */
+
+  .project-overview-summary-secondary.is-mobile-collapsed{
+    display:none;
+  }
+
+
+  .overview-summary-details-toggle{
+    width:100%;
+    min-height:40px;
+
+    padding:
+      0
+      12px;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:space-between;
+
+    gap:10px;
+
+    border:
+      1px solid
+      var(--aift-border);
+
+    border-radius:9px;
+
+    background:#fff;
+
+    color:var(--aift-text);
+
+    font-size:9px;
+    line-height:1;
+    font-weight:600;
+
+    text-align:left;
+  }
+
+
+  .overview-summary-details-toggle:hover,
+  .overview-summary-details-toggle:active{
+    background:
+      var(--aift-surface-muted);
+  }
+
+
+  .overview-summary-details-chevron{
+    width:24px;
+    height:24px;
+
+    display:grid;
+
+    place-items:center;
+
+    flex:0 0 auto;
+  }
+
+
+  .overview-summary-details-chevron svg{
+    width:16px;
+    height:16px;
+
+    fill:none;
+    stroke:currentColor;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+
+    transition:
+      transform
+      var(--aift-transition-fast);
+  }
+
+
+  .overview-summary-details-toggle[aria-expanded="true"]
+  .overview-summary-details-chevron svg{
+    transform:
+      rotate(180deg);
+  }
+
+
+  /* =======================================================
+     SHARED OVERVIEW PANELS
+  ======================================================== */
 
   .project-overview-panel,
   .project-overview-editor{
+    width:100%;
+
     padding:13px;
 
     border-radius:10px;
   }
 
 
-  .project-overview-panel-heading,
+  .project-overview-panel-head,
   .project-overview-editor-head{
+    width:100%;
+
     margin-bottom:12px;
+
+    align-items:stretch;
+    flex-direction:column;
+
+    gap:10px;
   }
 
 
-  .project-overview-panel-heading h3,
+  .project-overview-panel-head h3,
   .project-overview-editor-head h3{
     font-size:14px;
+
+    line-height:1.35;
   }
 
 
-  .project-overview-panel-heading p,
+  .project-overview-panel-head p,
   .project-overview-editor-head p{
+    max-width:none;
+
+    margin-top:4px;
+
     font-size:9px;
+
     line-height:1.5;
   }
 
 
-  /* -------------------------------------------------------
-     EDITOR FORM
-  ------------------------------------------------------- */
+  /* =======================================================
+     CONTINUE BUILDING
 
-  .project-overview-editor-grid{
-    gap:12px;
+     Mobile uses compact navigation rows instead of large
+     desktop dashboard cards.
+  ======================================================== */
+
+  .project-overview-tools{
+    width:100%;
+
+    grid-template-columns:1fr;
+
+    gap:6px;
   }
 
+
+  .project-overview-tool{
+    width:100%;
+    min-height:64px;
+
+    padding:
+      10px
+      11px;
+
+    grid-template-columns:
+      36px
+      minmax(0,1fr)
+      18px;
+
+    align-items:center;
+
+    gap:10px;
+
+    border-radius:9px;
+  }
+
+
+  .project-overview-tool:hover{
+    transform:none;
+  }
+
+
+  .project-overview-tool-icon{
+    width:36px;
+    height:36px;
+
+    border-radius:9px;
+  }
+
+
+  .project-overview-tool-icon svg{
+    width:18px;
+    height:18px;
+  }
+
+
+  .project-overview-tool-copy{
+    gap:2px;
+  }
+
+
+  .project-overview-tool-copy strong{
+    font-size:10px;
+
+    line-height:1.35;
+  }
+
+
+  .project-overview-tool-copy small{
+    display:-webkit-box;
+
+    overflow:hidden;
+
+    font-size:8px;
+
+    line-height:1.4;
+
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:1;
+  }
+
+
+  .project-overview-tool-arrow{
+    width:18px;
+    height:36px;
+  }
+
+
+  .project-overview-tool-arrow svg{
+    width:15px;
+    height:15px;
+  }
+
+
+  /* =======================================================
+     STUDENT EXPERIENCE HEADER ACTIONS
+  ======================================================== */
+
+  .project-overview-editor-actions{
+    width:100%;
+
+    display:grid;
+
+    grid-template-columns:1fr;
+
+    gap:7px;
+  }
+
+
+  .overview-mobile-editor-toggle{
+    width:100%;
+    min-height:42px;
+
+    display:flex;
+  }
+
+
+  .overview-editor-preview-button{
+    width:100%;
+    min-height:40px;
+  }
+
+
+  /* =======================================================
+     STUDENT EXPERIENCE COLLAPSIBLE BODY
+  ======================================================== */
+
+  .overview-introduction-editor-body{
+    width:100%;
+
+    display:block;
+  }
+
+
+  .overview-introduction-editor-body.is-mobile-collapsed{
+    display:none;
+  }
+
+
+  .overview-mobile-editor-toggle-icon{
+    display:inline-grid;
+
+    place-items:center;
+  }
+
+
+  .overview-mobile-editor-toggle-icon svg{
+    width:16px;
+    height:16px;
+
+    transition:
+      transform
+      var(--aift-transition-fast);
+  }
+
+
+  .overview-mobile-editor-toggle[aria-expanded="true"]
+  .overview-mobile-editor-toggle-icon svg{
+    transform:
+      rotate(45deg);
+  }
+
+
+  /* =======================================================
+     STUDENT EXPERIENCE GRID
+  ======================================================== */
+
+  .project-overview-editor-grid{
+    width:100%;
+
+    grid-template-columns:1fr;
+
+    gap:9px;
+  }
+
+
+  .project-overview-edit-card{
+    min-width:0;
+    min-height:0;
+
+    padding:12px;
+
+    border-radius:9px;
+  }
+
+
+  .project-overview-edit-card-head{
+    margin-bottom:12px;
+  }
+
+
+  .project-overview-edit-card-head p{
+    display:-webkit-box;
+
+    overflow:hidden;
+
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+  }
+
+
+  /* =======================================================
+     OVERVIEW FORM
+  ======================================================== */
 
   .overview-field{
     min-width:0;
   }
 
 
-  .overview-field label{
+  .overview-field label,
+  .project-overview-field-label{
     font-size:9px;
   }
 
 
   .overview-field input,
-  .overview-field textarea{
+  .overview-field textarea,
+  .project-overview-textarea{
     width:100%;
+    min-width:0;
 
     /*
-      Prevent automatic Safari form zoom.
+      16px prevents mobile Safari from zooming into
+      form controls automatically.
     */
+
     font-size:16px;
   }
 
 
-  /* -------------------------------------------------------
+  .project-overview-textarea{
+    min-height:130px;
+  }
+
+
+  .project-overview-field-help{
+    align-items:flex-start;
+
+    flex-direction:column;
+
+    gap:5px;
+  }
+
+
+  .project-overview-field-help strong{
+    align-self:flex-end;
+  }
+
+
+  /* =======================================================
      LEARNING OUTCOMES
-  ------------------------------------------------------- */
+  ======================================================== */
+
+  .project-overview-outcomes,
+  .overview-outcome-editor{
+    gap:7px;
+  }
+
 
   .overview-outcome-row{
     width:100%;
@@ -4201,12 +4660,15 @@ body[data-builder-section]:not(
   .overview-outcome-number{
     width:28px;
     height:28px;
+
+    font-size:9px;
   }
 
 
   .overview-outcome-input{
     width:100%;
     min-width:0;
+    min-height:42px;
 
     font-size:16px;
   }
@@ -4220,167 +4682,13 @@ body[data-builder-section]:not(
 
   .project-overview-add-outcome,
   .overview-add-outcome{
+    width:100%;
     min-height:40px;
+
+    margin-top:8px;
 
     font-size:9px;
   }
-
-   /* -------------------------------------------------------
-   STUDENT EXPERIENCE — MOBILE DISCLOSURE
-------------------------------------------------------- */
-
-.project-overview-editor-head{
-  width:100%;
-
-  align-items:stretch;
-  flex-direction:column;
-
-  gap:12px;
-}
-
-
-.project-overview-editor-actions{
-  width:100%;
-
-  display:grid;
-
-  grid-template-columns:1fr;
-
-  gap:7px;
-}
-
-
-.overview-mobile-editor-toggle{
-  width:100%;
-  min-height:42px;
-
-  display:flex;
-}
-
-
-.overview-editor-preview-button{
-  width:100%;
-  min-height:40px;
-}
-
-
-/* -------------------------------------------------------
-   COLLAPSIBLE EDITOR BODY
-------------------------------------------------------- */
-
-.overview-introduction-editor-body{
-  width:100%;
-
-  display:block;
-}
-
-
-.overview-introduction-editor-body.is-mobile-collapsed{
-  display:none;
-}
-
-
-/* -------------------------------------------------------
-   TOGGLE ICON
-------------------------------------------------------- */
-
-.overview-mobile-editor-toggle-icon{
-  display:inline-grid;
-
-  place-items:center;
-}
-
-
-.overview-mobile-editor-toggle-icon svg{
-  width:16px;
-  height:16px;
-
-  transition:
-    transform
-    var(--aift-transition-fast);
-}
-
-
-.overview-mobile-editor-toggle[aria-expanded="true"]
-.overview-mobile-editor-toggle-icon svg{
-  transform:
-    rotate(45deg);
-}
-
-
-/* -------------------------------------------------------
-   EDITOR CONTAINER
-------------------------------------------------------- */
-
-.project-overview-editor{
-  padding:13px;
-}
-
-
-.project-overview-editor-grid{
-  grid-template-columns:1fr;
-
-  gap:10px;
-}
-
-
-/* -------------------------------------------------------
-   EDITOR CARDS
-------------------------------------------------------- */
-
-.project-overview-edit-card{
-  min-height:0;
-
-  padding:12px;
-
-  border-radius:9px;
-}
-
-
-.project-overview-edit-card-head{
-  margin-bottom:12px;
-}
-
-
-.project-overview-edit-card-head p{
-  display:-webkit-box;
-
-  overflow:hidden;
-
-  -webkit-box-orient:vertical;
-  -webkit-line-clamp:2;
-}
-
-
-/* -------------------------------------------------------
-   WELCOME MESSAGE
-------------------------------------------------------- */
-
-.project-overview-textarea{
-  width:100%;
-
-  min-height:130px;
-
-  font-size:16px;
-}
-
-
-/* -------------------------------------------------------
-   FIELD HELP
-------------------------------------------------------- */
-
-.project-overview-field-help{
-  align-items:flex-start;
-
-  flex-direction:column;
-
-  gap:5px;
-}
-
-
-.project-overview-field-help strong{
-  align-self:flex-end;
-}
 
 }
 
@@ -4391,37 +4699,125 @@ body[data-builder-section]:not(
 
 @media(max-width:430px){
 
+  /* =======================================================
+     HEADER
+  ======================================================== */
+
   .project-overview-header-actions{
     grid-template-columns:1fr;
   }
 
 
-  .project-overview-summary{
+  /* =======================================================
+     KEEP SUMMARY COMPACT
+
+     Even on small phones two small metrics fit better than
+     four long vertical cards.
+  ======================================================== */
+
+  .project-overview-summary,
+  .project-overview-summary-primary,
+  .project-overview-summary-secondary{
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0,1fr)
+      );
+  }
+
+
+  .project-overview-metric{
+    min-height:86px;
+
+    padding:10px;
+  }
+
+
+  .project-overview-metric-icon{
+    width:30px;
+    height:30px;
+  }
+
+
+  .project-overview-metric-icon svg{
+    width:15px;
+    height:15px;
+  }
+
+
+  .project-overview-metric-label{
+    font-size:8px;
+  }
+
+
+  .project-overview-metric-value{
+    font-size:20px;
+  }
+
+
+  .project-overview-metric-value.status{
+    font-size:16px;
+  }
+
+
+  /* =======================================================
+     PANELS
+  ======================================================== */
+
+  .project-overview-panel,
+  .project-overview-editor{
+    padding:11px;
+  }
+
+
+  /* =======================================================
+     CONTINUE BUILDING
+  ======================================================== */
+
+  .project-overview-tool{
+    min-height:60px;
+
+    padding:
+      9px
+      10px;
+
+    grid-template-columns:
+      34px
+      minmax(0,1fr)
+      16px;
+
+    gap:8px;
+  }
+
+
+  .project-overview-tool-icon{
+    width:34px;
+    height:34px;
+  }
+
+
+  /* =======================================================
+     EDITOR
+  ======================================================== */
+
+  .project-overview-editor-actions{
     grid-template-columns:1fr;
   }
 
 
-  .project-overview-metric,
-  .project-overview-metric:nth-child(2n),
-  .project-overview-metric:nth-last-child(-n+2){
-    border-right:0;
-
-    border-bottom:
-      1px solid
-      var(--aift-border-soft);
+  .project-overview-edit-card{
+    padding:10px;
   }
 
 
-  .project-overview-metric:last-child{
-    border-bottom:0;
+  .project-overview-textarea{
+    min-height:120px;
   }
 
 
-  .project-overview-panel,
-  .project-overview-editor{
-    padding:12px;
-  }
-
+  /* =======================================================
+     OUTCOMES
+  ======================================================== */
 
   .overview-outcome-row{
     grid-template-columns:
@@ -4443,20 +4839,6 @@ body[data-builder-section]:not(
     width:36px;
     height:36px;
   }
-
-   .project-overview-editor-actions{
-  grid-template-columns:1fr;
-}
-
-
-.project-overview-edit-card{
-  padding:11px;
-}
-
-
-.project-overview-textarea{
-  min-height:120px;
-}
 
 }
 
@@ -37930,165 +38312,283 @@ body.studio-mobile-sidebar-open
 
     </header>
 
+<!-- ================================================
+     PROJECT SUMMARY
+     MOBILE PROGRESSIVE DISCLOSURE
+================================================= -->
 
-    <!-- ================================================
-         PROJECT SUMMARY
-    ================================================= -->
+<section
+  class="project-overview-summary-shell"
+  aria-label="Class summary"
+>
 
-    <section
-      class="project-overview-summary"
-      aria-label="Class summary"
+  <!-- ============================================
+       PRIMARY SUMMARY
+       Always visible
+  ============================================= -->
+
+  <div class="project-overview-summary project-overview-summary-primary">
+
+    <!-- CLASS STATUS -->
+
+    <article class="project-overview-metric">
+
+      <div class="project-overview-metric-head">
+
+        <div>
+
+          <span class="project-overview-metric-label">
+            Class status
+          </span>
+
+          <strong
+            class="project-overview-metric-value status"
+            id="overviewStatus"
+          >
+            Draft
+          </strong>
+
+        </div>
+
+
+        <span class="project-overview-metric-icon">
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+            ></circle>
+
+            <path
+              d="M8.5 12l2.25 2.25L16 9"
+            ></path>
+          </svg>
+
+        </span>
+
+      </div>
+
+
+      <p>
+        Current publishing state for this class.
+      </p>
+
+    </article>
+
+
+    <!-- STUDENTS -->
+
+    <article class="project-overview-metric">
+
+      <div class="project-overview-metric-head">
+
+        <div>
+
+          <span class="project-overview-metric-label">
+            Students enrolled
+          </span>
+
+          <strong
+            class="project-overview-metric-value"
+            id="overviewStudents"
+          >
+            0
+          </strong>
+
+        </div>
+
+
+        <span class="project-overview-metric-icon">
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <circle
+              cx="9"
+              cy="8"
+              r="3"
+            ></circle>
+
+            <path
+              d="M3 20a6 6 0 0 1 12 0"
+            ></path>
+
+            <path
+              d="M17 8h4"
+            ></path>
+
+            <path
+              d="M19 6v4"
+            ></path>
+          </svg>
+
+        </span>
+
+      </div>
+
+
+      <p>
+        Learners currently connected to this class.
+      </p>
+
+    </article>
+
+  </div>
+
+
+  <!-- ============================================
+       MOBILE DETAILS TOGGLE
+  ============================================= -->
+
+  <button
+    id="overviewSummaryDetailsToggle"
+    type="button"
+    class="overview-summary-details-toggle"
+    aria-expanded="false"
+    aria-controls="overviewSecondarySummary"
+    onclick="toggleOverviewSummaryDetails()"
+  >
+
+    <span>
+      More class details
+    </span>
+
+
+    <span
+      class="overview-summary-details-chevron"
+      aria-hidden="true"
     >
+      <svg viewBox="0 0 24 24">
+        <path d="M6 9l6 6 6-6"></path>
+      </svg>
+    </span>
 
-      <article class="project-overview-metric">
+  </button>
 
-        <div class="project-overview-metric-head">
 
-          <div>
-            <span class="project-overview-metric-label">
-              Class status
-            </span>
+  <!-- ============================================
+       SECONDARY SUMMARY
+       Collapsed initially on mobile
+  ============================================= -->
 
-            <strong
-              class="project-overview-metric-value status"
-              id="overviewStatus"
-            >
-              Draft
-            </strong>
-          </div>
+  <div
+    id="overviewSecondarySummary"
+    class="
+      project-overview-summary
+      project-overview-summary-secondary
+    "
+  >
 
-          <span class="project-overview-metric-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="9"></circle>
-              <path d="M8.5 12l2.25 2.25L16 9"></path>
-            </svg>
+    <!-- LEARNING MATERIALS -->
+
+    <article class="project-overview-metric">
+
+      <div class="project-overview-metric-head">
+
+        <div>
+
+          <span class="project-overview-metric-label">
+            Learning materials
           </span>
+
+          <strong
+            class="project-overview-metric-value"
+            id="overviewMaterials"
+          >
+            0
+          </strong>
 
         </div>
 
-        <p>
-          Current publishing state for this class.
-        </p>
 
-      </article>
+        <span class="project-overview-metric-icon">
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M5 3h10l4 4v14H5z"></path>
+            <path d="M14 3v5h5"></path>
+            <path d="M8 13h8"></path>
+            <path d="M8 17h6"></path>
+          </svg>
+
+        </span>
+
+      </div>
 
 
-      <article class="project-overview-metric">
+      <p>
+        Files and reusable resources available to students.
+      </p>
 
-        <div class="project-overview-metric-head">
+    </article>
 
-          <div>
-            <span class="project-overview-metric-label">
-              Students enrolled
-            </span>
 
-            <strong
-              class="project-overview-metric-value"
-              id="overviewStudents"
-            >
-              0
-            </strong>
-          </div>
+    <!-- AVERAGE PROGRESS -->
 
-          <span class="project-overview-metric-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="9" cy="8" r="3"></circle>
-              <path d="M3 20a6 6 0 0 1 12 0"></path>
-              <path d="M17 8h4"></path>
-              <path d="M19 6v4"></path>
-            </svg>
+    <article class="project-overview-metric">
+
+      <div class="project-overview-metric-head">
+
+        <div>
+
+          <span class="project-overview-metric-label">
+            Average progress
           </span>
+
+          <strong
+            class="project-overview-metric-value"
+            id="overviewProgress"
+          >
+            0%
+          </strong>
 
         </div>
 
-        <p>
-          Learners currently connected to this class.
-        </p>
 
-      </article>
+        <span class="project-overview-metric-icon">
 
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M4 20V10"></path>
+            <path d="M10 20V4"></path>
+            <path d="M16 20v-7"></path>
+            <path d="M22 20V7"></path>
+          </svg>
 
-      <article class="project-overview-metric">
+        </span>
 
-        <div class="project-overview-metric-head">
-
-          <div>
-            <span class="project-overview-metric-label">
-              Learning materials
-            </span>
-
-            <strong
-              class="project-overview-metric-value"
-              id="overviewMaterials"
-            >
-              0
-            </strong>
-          </div>
-
-          <span class="project-overview-metric-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 3h10l4 4v14H5z"></path>
-              <path d="M14 3v5h5"></path>
-              <path d="M8 13h8"></path>
-              <path d="M8 17h6"></path>
-            </svg>
-          </span>
-
-        </div>
-
-        <p>
-          Files and reusable resources available to students.
-        </p>
-
-      </article>
+      </div>
 
 
-      <article class="project-overview-metric">
-
-        <div class="project-overview-metric-head">
-
-          <div>
-            <span class="project-overview-metric-label">
-              Average progress
-            </span>
-
-            <strong
-              class="project-overview-metric-value"
-              id="overviewProgress"
-            >
-              0%
-            </strong>
-          </div>
-
-          <span class="project-overview-metric-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 20V10"></path>
-              <path d="M10 20V4"></path>
-              <path d="M16 20v-7"></path>
-              <path d="M22 20V7"></path>
-            </svg>
-          </span>
-
-        </div>
-
+      <div
+        class="project-overview-progress"
+        aria-label="Average student progress"
+      >
         <div
-          class="project-overview-progress"
-          aria-label="Average student progress"
-        >
-          <div
-            class="project-overview-progress-fill"
-            id="overviewProgressBar"
-          ></div>
-        </div>
+          class="project-overview-progress-fill"
+          id="overviewProgressBar"
+        ></div>
+      </div>
 
-        <p>
-          Average completion across enrolled students.
-        </p>
 
-      </article>
+      <p>
+        Average completion across enrolled students.
+      </p>
 
-    </section>
+    </article>
 
+  </div>
+
+</section>
 
     <!-- ================================================
          PROJECT NAVIGATION
@@ -84258,13 +84758,31 @@ if(
   ).matches
 ){
 
+  /*
+    Mobile starts focused and uncluttered.
+  */
+
   toggleOverviewMobileEditor(
+    false
+  );
+
+
+  toggleOverviewSummaryDetails(
     false
   );
 
 }else{
 
+  /*
+    Desktop keeps the complete dashboard visible.
+  */
+
   toggleOverviewMobileEditor(
+    true
+  );
+
+
+  toggleOverviewSummaryDetails(
     true
   );
 
@@ -84332,6 +84850,113 @@ function setOverviewSaveState(
   }
 }
 
+/* =========================================================
+   MOBILE OVERVIEW SUMMARY DETAILS
+========================================================= */
+
+function toggleOverviewSummaryDetails(
+  forceOpen = null
+){
+
+  const details =
+    byId(
+      "overviewSecondarySummary"
+    );
+
+
+  const button =
+    byId(
+      "overviewSummaryDetailsToggle"
+    );
+
+
+  if(
+    !details ||
+    !button
+  ){
+
+    return false;
+
+  }
+
+
+  const isMobile =
+    window.matchMedia(
+      "(max-width:640px)"
+    ).matches;
+
+
+  /*
+    Desktop and tablet always show the complete summary.
+  */
+
+  if(
+    !isMobile
+  ){
+
+    details.classList.remove(
+      "is-mobile-collapsed"
+    );
+
+
+    button.setAttribute(
+      "aria-expanded",
+      "true"
+    );
+
+
+    return true;
+
+  }
+
+
+  const currentlyOpen =
+    !details.classList.contains(
+      "is-mobile-collapsed"
+    );
+
+
+  const nextOpen =
+    typeof forceOpen ===
+      "boolean"
+      ? forceOpen
+      : !currentlyOpen;
+
+
+  details.classList.toggle(
+    "is-mobile-collapsed",
+    !nextOpen
+  );
+
+
+  button.setAttribute(
+    "aria-expanded",
+    String(
+      nextOpen
+    )
+  );
+
+
+  const label =
+    button.querySelector(
+      "span:first-child"
+    );
+
+
+  if(label){
+
+    label.textContent =
+      nextOpen
+        ? "Hide class details"
+        : "More class details";
+
+  }
+
+
+  return nextOpen;
+
+}
+   
 /* =========================================================
    MOBILE OVERVIEW INTRODUCTION EDITOR
 ========================================================= */
