@@ -1467,6 +1467,851 @@ body.studio-sidebar-collapsed
 }
 
 /* =========================================================
+   AIFT CLASS BUILDER
+   PRODUCTION MOBILE APPLICATION SHELL
+========================================================= */
+
+@media(max-width:760px){
+
+  :root{
+    --aift-topbar-height:58px;
+    --aift-mobile-page-gutter:12px;
+    --aift-mobile-sidebar-width:min(86vw,320px);
+  }
+
+
+  /* =======================================================
+     PAGE
+  ======================================================== */
+
+  html,
+  body{
+    width:100%;
+    max-width:100%;
+
+    overflow-x:hidden;
+  }
+
+
+  body{
+    min-width:320px;
+
+    background:var(--aift-page);
+  }
+
+
+  /* =======================================================
+     TOP BAR
+  ======================================================== */
+
+  .studio-topbar{
+    position:fixed;
+    inset:
+      0
+      0
+      auto
+      0;
+
+    z-index:7000;
+
+    width:100%;
+    height:var(--aift-topbar-height);
+    padding:
+      0
+      10px;
+
+    display:grid;
+
+    grid-template-columns:
+      42px
+      minmax(0,1fr)
+      auto;
+
+    align-items:center;
+
+    gap:8px;
+
+    border-bottom:
+      1px solid
+      var(--aift-border);
+
+    background:
+      rgba(255,255,255,.98);
+
+    box-shadow:
+      0
+      1px
+      3px
+      rgba(15,23,42,.06);
+
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+  }
+
+
+  /* =======================================================
+     BRAND AREA
+
+     On mobile the first column is reserved for the menu
+     button. The large desktop logo is removed because it
+     wastes horizontal workspace.
+  ======================================================== */
+
+  .studio-topbar-brand{
+    min-width:0;
+
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+  }
+
+
+  .studio-brand-link{
+    display:none;
+  }
+
+
+  /* =======================================================
+     MOBILE SEARCH
+  ======================================================== */
+
+  .studio-topbar-class{
+    width:100%;
+    min-width:0;
+
+    display:block;
+  }
+
+
+  .builder-global-search{
+    width:100%;
+    min-width:0;
+  }
+
+
+  .builder-global-search input{
+    width:100%;
+    height:38px;
+
+    padding:
+      0
+      38px
+      0
+      38px;
+
+    border-radius:10px;
+
+    font-size:16px;
+
+    /*
+      16px prevents automatic zoom on iPhone Safari.
+    */
+  }
+
+
+  .builder-global-search-icon{
+    left:12px;
+
+    width:17px;
+    height:17px;
+  }
+
+
+  .builder-global-search-shortcut{
+    display:none;
+  }
+
+
+  .builder-global-search-clear{
+    right:5px;
+
+    width:30px;
+    height:30px;
+  }
+
+
+  .builder-global-search-results{
+    position:fixed;
+
+    top:
+      calc(
+        var(--aift-topbar-height) +
+        6px
+      );
+
+    right:8px;
+    left:8px;
+
+    width:auto;
+
+    max-height:
+      calc(
+        100dvh -
+        var(--aift-topbar-height) -
+        18px
+      );
+
+    border-radius:12px;
+  }
+
+
+  /* =======================================================
+     TOP BAR ACTIONS
+  ======================================================== */
+
+  .studio-topbar-actions{
+    min-width:0;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:flex-end;
+
+    gap:6px;
+  }
+
+
+  /*
+    Mobile keeps Publish available as the primary
+    class-level action.
+
+    Other commands remain available inside their actual
+    workspaces and do not consume the entire top bar.
+  */
+
+  .studio-topbar-actions
+  .studio-topbar-button:not(.publish){
+    display:none;
+  }
+
+
+  .studio-topbar-button.publish{
+    min-height:36px;
+
+    padding:
+      0
+      11px;
+
+    border-radius:8px;
+
+    font-size:8px;
+  }
+
+
+  /* =======================================================
+     APPLICATION SHELL
+  ======================================================== */
+
+  .studio-app-shell{
+    width:100%;
+    min-width:0;
+    min-height:100dvh;
+
+    padding-top:
+      var(--aift-topbar-height);
+  }
+
+
+  /* =======================================================
+     MOBILE SIDEBAR
+  ======================================================== */
+
+  .studio-sidebar{
+    position:fixed;
+
+    top:
+      var(--aift-topbar-height);
+
+    bottom:0;
+    left:0;
+
+    z-index:6500;
+
+    width:
+      var(--aift-mobile-sidebar-width);
+
+    max-width:
+      320px;
+
+    height:
+      calc(
+        100dvh -
+        var(--aift-topbar-height)
+      );
+
+    overflow:hidden;
+
+    border-right:
+      1px solid
+      var(--aift-border);
+
+    background:#fff;
+
+    box-shadow:
+      16px
+      0
+      36px
+      rgba(15,23,42,.16);
+
+    transform:
+      translate3d(-105%,0,0);
+
+    visibility:hidden;
+
+    transition:
+      transform .2s ease,
+      visibility .2s ease;
+  }
+
+
+  body.studio-mobile-sidebar-open
+  .studio-sidebar{
+    transform:
+      translate3d(0,0,0);
+
+    visibility:visible;
+  }
+
+
+  /* =======================================================
+     SIDEBAR SCROLL AREA
+  ======================================================== */
+
+  .studio-sidebar-scroll{
+    height:100%;
+
+    padding:
+      10px
+      9px
+      18px;
+
+    overflow-x:hidden;
+    overflow-y:auto;
+
+    overscroll-behavior:contain;
+
+    -webkit-overflow-scrolling:touch;
+  }
+
+
+  .studio-sidebar-class{
+    margin-bottom:10px;
+
+    padding:11px;
+  }
+
+
+  .studio-builder-nav{
+    gap:14px;
+  }
+
+
+  .studio-builder-nav button{
+    min-height:44px;
+
+    padding:
+      0
+      11px;
+
+    grid-template-columns:
+      20px
+      minmax(0,1fr)
+      auto;
+
+    gap:10px;
+
+    border-radius:8px;
+  }
+
+
+  .studio-builder-nav button > span{
+    font-size:10px;
+  }
+
+
+  .studio-sidebar-footer{
+    padding:
+      8px
+      9px
+      max(
+        10px,
+        env(safe-area-inset-bottom)
+      );
+  }
+
+
+  /* =======================================================
+     MOBILE SIDEBAR BACKDROP
+  ======================================================== */
+
+  .studio-app-shell::before{
+    content:"";
+
+    position:fixed;
+
+    top:
+      var(--aift-topbar-height);
+
+    right:0;
+    bottom:0;
+    left:0;
+
+    z-index:6400;
+
+    display:block;
+
+    background:
+      rgba(15,23,42,.42);
+
+    opacity:0;
+
+    visibility:hidden;
+
+    pointer-events:none;
+
+    transition:
+      opacity .2s ease,
+      visibility .2s ease;
+  }
+
+
+  body.studio-mobile-sidebar-open
+  .studio-app-shell::before{
+    opacity:1;
+
+    visibility:visible;
+
+    pointer-events:auto;
+  }
+
+
+  /* =======================================================
+     DISABLE DESKTOP COLLAPSED-SIDEBAR MODE ON MOBILE
+  ======================================================== */
+
+  body.studio-sidebar-collapsed{
+    --studio-sidebar-width:
+      var(--aift-sidebar-width);
+  }
+
+
+  body.studio-sidebar-collapsed
+  .studio-sidebar-class,
+  body.studio-sidebar-collapsed
+  .studio-nav-label,
+  body.studio-sidebar-collapsed
+  .studio-builder-nav button > span,
+  body.studio-sidebar-collapsed
+  .studio-builder-nav button > small,
+  body.studio-sidebar-collapsed
+  .studio-sidebar-footer button > span{
+    display:initial;
+  }
+
+
+  body.studio-sidebar-collapsed
+  .studio-builder-nav button{
+    padding:
+      0
+      11px;
+
+    grid-template-columns:
+      20px
+      minmax(0,1fr)
+      auto;
+
+    place-items:initial;
+
+    align-items:center;
+  }
+
+
+  /* =======================================================
+     MAIN WORKSPACE
+  ======================================================== */
+
+  .studio-main{
+    width:100%;
+
+    min-width:0;
+    min-height:
+      calc(
+        100dvh -
+        var(--aift-topbar-height)
+      );
+
+    margin:0;
+
+    overflow:visible;
+
+    background:
+      var(--aift-page);
+  }
+
+
+  .studio-workspace{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+
+    min-height:
+      calc(
+        100dvh -
+        var(--aift-topbar-height)
+      );
+
+    margin:0;
+
+    padding:
+      14px
+      var(--aift-mobile-page-gutter)
+      calc(
+        30px +
+        env(safe-area-inset-bottom)
+      );
+
+    overflow:visible;
+
+    background:
+      var(--aift-page);
+  }
+
+
+  /* =======================================================
+     ACTIVE SECTIONS
+  ======================================================== */
+
+  .studio-workspace
+  > .section{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+
+    margin:0;
+  }
+
+
+  .studio-workspace
+  > .section.active{
+    min-height:
+      calc(
+        100dvh -
+        var(--aift-topbar-height) -
+        28px
+      );
+  }
+
+
+  /* =======================================================
+     GENERIC SECTION HEADERS
+  ======================================================== */
+
+  .studio-section-header{
+    width:100%;
+
+    align-items:flex-start;
+    flex-direction:column;
+
+    gap:10px;
+
+    padding:
+      0
+      1px
+      4px;
+  }
+
+
+  .studio-section-header h2{
+    font-size:18px;
+
+    line-height:1.25;
+  }
+
+
+  .studio-section-header p{
+    width:100%;
+    max-width:none;
+
+    margin-top:5px;
+
+    font-size:9px;
+  }
+
+
+  /* =======================================================
+     CLASS HEADER
+  ======================================================== */
+
+  .studio-class-header{
+    margin-bottom:14px;
+
+    padding:14px;
+
+    border-radius:10px;
+  }
+
+
+  .studio-class-header-main{
+    align-items:flex-start;
+    flex-direction:column;
+
+    gap:12px;
+  }
+
+
+  .studio-class-header h1{
+    font-size:18px;
+  }
+
+
+  .studio-class-header-actions{
+    width:100%;
+
+    justify-content:flex-start;
+  }
+
+
+  .studio-header-action{
+    min-height:36px;
+
+    flex:
+      1
+      1
+      calc(50% - 4px);
+
+    padding:
+      0
+      10px;
+  }
+
+
+  /* =======================================================
+     CLASS STATISTICS
+  ======================================================== */
+
+  .studio-class-stat-grid,
+  .stat-grid{
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0,1fr)
+      );
+
+    gap:8px;
+
+    margin-top:13px;
+  }
+
+
+  .studio-class-stat,
+  .stat-card{
+    min-height:80px;
+
+    padding:
+      11px
+      12px;
+  }
+
+
+  .studio-class-stat > strong,
+  .stat-value{
+    margin-top:7px;
+
+    font-size:18px;
+  }
+
+
+  /* =======================================================
+     GENERIC CARDS
+  ======================================================== */
+
+  .card{
+    border-radius:10px;
+  }
+
+
+  .card-pad{
+    padding:14px;
+  }
+
+
+  .studio-card-heading{
+    margin-bottom:13px;
+
+    align-items:flex-start;
+    flex-direction:column;
+
+    gap:8px;
+  }
+
+
+  /* =======================================================
+     GENERIC FORMS
+  ======================================================== */
+
+  .input-grid{
+    grid-template-columns:1fr;
+
+    gap:12px;
+  }
+
+
+  .field.full{
+    grid-column:auto;
+  }
+
+
+  .field input,
+  .field select,
+  .field textarea{
+    width:100%;
+
+    font-size:16px;
+  }
+
+
+  /* =======================================================
+     GENERIC ACTION ROWS
+  ======================================================== */
+
+  .form-actions,
+  .builder-item-actions{
+    width:100%;
+
+    align-items:stretch;
+
+    flex-direction:column;
+  }
+
+
+  .form-actions
+  > button,
+  .form-actions
+  > a{
+    width:100%;
+  }
+
+
+  /* =======================================================
+     GENERIC ITEMS
+  ======================================================== */
+
+  .builder-item{
+    padding:13px;
+
+    border-radius:10px;
+  }
+
+
+  .builder-item-head{
+    align-items:flex-start;
+    flex-direction:column;
+
+    gap:8px;
+  }
+
+
+  /* =======================================================
+     GLOBAL ALERTS
+  ======================================================== */
+
+  .studio-alert-region{
+    top:
+      calc(
+        var(--aift-topbar-height) +
+        8px
+      );
+
+    right:8px;
+    left:8px;
+
+    width:auto;
+
+    max-width:none;
+  }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media(max-width:430px){
+
+  :root{
+    --aift-mobile-page-gutter:9px;
+  }
+
+
+  .studio-topbar{
+    padding:
+      0
+      7px;
+
+    grid-template-columns:
+      40px
+      minmax(0,1fr)
+      auto;
+
+    gap:5px;
+  }
+
+
+  .studio-sidebar-toggle{
+    width:38px;
+    height:38px;
+    min-width:38px;
+  }
+
+
+  .studio-topbar-button.publish{
+    min-width:62px;
+
+    padding:
+      0
+      8px;
+  }
+
+
+  .studio-workspace{
+    padding-top:10px;
+  }
+
+
+  .studio-class-header{
+    padding:12px;
+  }
+
+
+  .studio-class-stat-grid,
+  .stat-grid{
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0,1fr)
+      );
+
+    gap:6px;
+  }
+
+
+  .studio-class-stat,
+  .stat-card{
+    min-height:74px;
+
+    padding:
+      10px;
+  }
+
+
+  .card-pad{
+    padding:12px;
+  }
+
+}
+
+/* =========================================================
    CLASS WORKSPACE HEADER
 ========================================================= */
 
@@ -26691,14 +27536,75 @@ input[type="color"]::-moz-color-swatch{
   object-position:left center;
 }
 
-/*
-  Permanently retire the hamburger toggle and the old
-  AIFT Studio / Class Builder copy.
-*/
+/* =========================================================
+   RESPONSIVE BUILDER BRAND + SIDEBAR TOGGLE
 
-.studio-sidebar-toggle,
+   Desktop:
+   - sidebar stays visible
+   - hamburger remains hidden
+
+   Mobile:
+   - sidebar becomes an off-canvas drawer
+   - hamburger becomes the drawer controller
+========================================================= */
+
 .studio-brand-copy{
-  display:none!important;
+  display:none;
+}
+
+
+.studio-sidebar-toggle{
+  display:none;
+}
+
+
+/* =========================================================
+   MOBILE SIDEBAR TOGGLE
+========================================================= */
+
+@media(max-width:760px){
+
+  .studio-sidebar-toggle{
+    width:40px;
+    height:40px;
+    min-width:40px;
+    padding:0;
+
+    display:grid;
+
+    place-items:center;
+
+    border:0;
+    border-radius:50%;
+
+    background:transparent;
+    color:var(--aift-text);
+
+    cursor:pointer;
+
+    transition:
+      background var(--aift-transition-fast),
+      color var(--aift-transition-fast);
+  }
+
+
+  .studio-sidebar-toggle:hover,
+  .studio-sidebar-toggle:active{
+    background:var(--aift-surface-muted);
+  }
+
+
+  .studio-sidebar-toggle svg{
+    width:20px;
+    height:20px;
+
+    fill:none;
+    stroke:currentColor;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+
 }
 
 /* =========================================================
