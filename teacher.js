@@ -4612,6 +4612,270 @@ function reportCriticalTeacherStudioError(
 
 
 /* =========================================================
+   AIFT TEACHER STUDIO
+   PRODUCTION MODAL CONTROLLER
+
+   GUARANTEES
+   ---------------------------------------------------------
+   - one modal at a time
+   - modal is mounted directly under document.body
+   - hidden dialogs are removed from layout
+   - body scroll is locked only while a modal is open
+   - Escape closes the active modal
+   - background clicks close non-busy dialogs
+   - focus moves into the dialog
+   - focus returns to the opener
+========================================================= */
+
+let teacherActiveModalId =
+  "";
+
+let teacherModalTriggerElement =
+  null;
+
+let teacherModalEscapeBound =
+  false;
+
+
+/* =========================================================
+   GET OPEN MODALS
+========================================================= */
+
+function getOpenTeacherModals(){
+
+  return Array.from(
+    document.querySelectorAll(
+      ".modal.show"
+    )
+  );
+
+}
+
+
+/* =========================================================
+   UPDATE BODY MODAL STATE
+========================================================= */
+
+function syncTeacherModalBodyState(){
+
+  const hasOpenModal =
+    getOpenTeacherModals()
+      .length >
+    0;
+
+
+  document.body
+    .classList
+    .toggle(
+      "teacher-studio-modal-open",
+      hasOpenModal
+    );
+
+}
+
+
+/* =========================================================
+   FORCE CLOSE MODAL
+
+   Internal helper.
+
+   This does not check lifecycle-busy state because it is
+   also used to clean up stale/duplicate dialogs before
+   opening a new one.
+========================================================= */
+
+function forceCloseTeacherModal(
+  modal
+){
+
+  if(!modal){
+
+    return false;
+
+  }
+
+
+  modal.classList.remove(
+    "show"
+  );
+
+
+  modal.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+
+  modal.hidden =
+    true;
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   CLOSE OTHER OPEN MODALS
+========================================================= */
+
+function closeOtherTeacherModals(
+  exceptId = ""
+){
+
+  getOpenTeacherModals()
+    .forEach(
+      modal => {
+
+        if(
+          exceptId &&
+          modal.id ===
+          exceptId
+        ){
+
+          return;
+
+        }
+
+
+        forceCloseTeacherModal(
+          modal
+        );
+
+      }
+    );
+
+
+  syncTeacherModalBodyState();
+
+}
+
+
+/* =========================================================
+   FOCUS FIRST MODAL CONTROL
+========================================================= */
+
+function focusTeacherModal(
+  modal
+){
+
+  if(!modal){
+
+    return;
+
+  }
+
+
+  const focusTarget =
+    modal.querySelector(
+      [
+        "[autofocus]",
+        "input:not([disabled])",
+        "textarea:not([disabled])",
+        "select:not([disabled])",
+        "button:not([disabled])",
+        "[href]",
+        '[tabindex]:not([tabindex="-1"])'
+      ].join(",")
+    );
+
+
+  window.requestAnimationFrame(
+    () => {
+
+      focusTarget?.focus?.({
+        preventScroll:
+          true
+      });
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   GLOBAL ESCAPE HANDLER
+========================================================= */
+
+function bindTeacherModalEscapeHandler(){
+
+  if(
+    teacherModalEscapeBound
+  ){
+
+    return;
+
+  }
+
+
+  teacherModalEscapeBound =
+    true;
+
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if(
+        event.key !==
+        "Escape"
+      ){
+
+        return;
+
+      }
+
+
+      const openModals =
+        getOpenTeacherModals();
+
+
+      const activeModal =
+        openModals[
+          openModals.length -
+          1
+        ];
+
+
+      if(!activeModal){
+
+        return;
+
+      }
+
+
+      /*
+        Do not allow a destructive account request to be
+        visually dismissed while its backend operation is
+        still running.
+      */
+
+      if(
+        typeof teacherAccountLifecycleBusy !==
+          "undefined" &&
+        teacherAccountLifecycleBusy
+      ){
+
+        return;
+
+      }
+
+
+      event.preventDefault();
+
+
+      closeModal(
+        activeModal.id
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
    MODAL OPEN
 ========================================================= */
 
@@ -4625,21 +4889,59 @@ function openModal(
     );
 
 
-  if (
-    !modal
-  ){
+  if(!modal){
 
     return false;
 
   }
 
 
-  modal.classList.add(
-    "show"
+  /*
+    All dynamically generated AIFT dialogs must belong
+    directly to body.
+
+    This prevents parent transforms, grids, overflow rules,
+    Settings containers, or mobile workspaces from changing
+    the dialog's positioning context.
+  */
+
+  if(
+    modal.parentElement !==
+    document.body
+  ){
+
+    document.body
+      .appendChild(
+        modal
+      );
+
+  }
+
+
+  /*
+    Production rule:
+    only one Teacher Studio modal can be active at once.
+  */
+
+  closeOtherTeacherModals(
+    id
   );
+
+
+  teacherModalTriggerElement =
+    document.activeElement instanceof
+      HTMLElement
+      ? document.activeElement
+      : null;
+
+
+  teacherActiveModalId =
+    id;
+
 
   modal.hidden =
     false;
+
 
   modal.setAttribute(
     "aria-hidden",
@@ -4647,8 +4949,73 @@ function openModal(
   );
 
 
-  document.body.classList.add(
-    "teacher-studio-modal-open"
+  modal.classList.add(
+    "show"
+  );
+
+
+  document.body
+    .classList
+    .add(
+      "teacher-studio-modal-open"
+    );
+
+
+  /*
+    Add backdrop click behavior only once per modal.
+  */
+
+  if(
+    modal.dataset
+      .teacherBackdropBound !==
+    "true"
+  ){
+
+    modal.dataset
+      .teacherBackdropBound =
+      "true";
+
+
+    modal.addEventListener(
+      "mousedown",
+      event => {
+
+        if(
+          event.target !==
+          modal
+        ){
+
+          return;
+
+        }
+
+
+        if(
+          typeof teacherAccountLifecycleBusy !==
+            "undefined" &&
+          teacherAccountLifecycleBusy
+        ){
+
+          return;
+
+        }
+
+
+        closeModal(
+          modal.id
+        );
+
+      }
+    );
+
+  }
+
+
+  bindTeacherModalEscapeHandler();
+
+
+  focusTeacherModal(
+    modal
   );
 
 
@@ -4671,33 +5038,61 @@ function closeModal(
     );
 
 
-  if (
-    !modal
-  ){
+  if(!modal){
 
     return false;
 
   }
 
 
-  modal.classList.remove(
-    "show"
-  );
-
-  modal.setAttribute(
-    "aria-hidden",
-    "true"
+  forceCloseTeacherModal(
+    modal
   );
 
 
-  if (
-    !document.querySelector(
-      ".modal.show, [role='dialog'].show"
-    )
+  if(
+    teacherActiveModalId ===
+    id
   ){
 
-    document.body.classList.remove(
-      "teacher-studio-modal-open"
+    teacherActiveModalId =
+      "";
+
+  }
+
+
+  syncTeacherModalBodyState();
+
+
+  /*
+    Return keyboard focus to the control that opened the
+    dialog when there is no replacement modal active.
+  */
+
+  if(
+    !getOpenTeacherModals()
+      .length &&
+    teacherModalTriggerElement
+      ?.isConnected
+  ){
+
+    const trigger =
+      teacherModalTriggerElement;
+
+
+    teacherModalTriggerElement =
+      null;
+
+
+    window.requestAnimationFrame(
+      () => {
+
+        trigger.focus?.({
+          preventScroll:
+            true
+        });
+
+      }
     );
 
   }
