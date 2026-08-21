@@ -72217,27 +72217,43 @@ async function initializeTeacherKabezyaWorkspace(){
 ========================================================= */
 
 
-
-
 /* =========================================================
-   TEACHER SETTINGS
-   Production Settings Control Center
+   AIFT TEACHER STUDIO
+   PRODUCTION SETTINGS CONTROL CENTER
 
-   CURRENT PERSISTENCE
+   IMPORTANT
    ---------------------------------------------------------
-   Safe interface preferences remain device-local until
-   the account-preferences backend contract is connected.
+   This block owns:
 
-   Sensitive or academic data is NEVER stored here.
+   - Account
+   - Appearance
+   - Teaching
+   - Notifications
+   - Kabezya AI
+   - Privacy
+   - Accessibility
+   - Security
+   - Data & account
 
-   DO NOT STORE:
-   - access tokens
+   SAFE PERSISTENCE
+   ---------------------------------------------------------
+   Device preferences are cached locally.
+
+   Account-sensitive operations never store:
    - passwords
+   - access tokens
    - grades
-   - student data
-   - attendance records
+   - attendance
+   - student records
+   - submissions
    - messages
    - academic content
+
+   Password and session operations use the authenticated
+   security backend.
+
+   Teacher account-lifecycle backend support will be wired
+   separately before destructive account buttons are enabled.
 ========================================================= */
 
 
@@ -72246,26 +72262,49 @@ async function initializeTeacherKabezyaWorkspace(){
 ========================================================= */
 
 const TEACHER_SETTINGS_STORAGE_KEY =
-  "aift.teacherStudio.preferences.v2";
+  "aift.teacherStudio.preferences.v3";
 
 
 /* =========================================================
-   DEFAULT SETTINGS
+   SETTINGS DEFAULTS
 ========================================================= */
 
 const TEACHER_SETTINGS_DEFAULTS =
   Object.freeze({
 
-    notifications:
+    /* -----------------------------------------------------
+       APPEARANCE
+    ----------------------------------------------------- */
+
+    theme:
+      "light",
+
+    compactMode:
+      false,
+
+    rememberSidebar:
       true,
 
-    emailNotifications:
-      true,
+
+    /* -----------------------------------------------------
+       TEACHING
+    ----------------------------------------------------- */
 
     gradingReminders:
       true,
 
     attendanceReminders:
+      true,
+
+
+    /* -----------------------------------------------------
+       NOTIFICATIONS
+    ----------------------------------------------------- */
+
+    notifications:
+      true,
+
+    emailNotifications:
       true,
 
     messageNotifications:
@@ -72274,20 +72313,44 @@ const TEACHER_SETTINGS_DEFAULTS =
     scheduleReminders:
       true,
 
-    compactMode:
-      false,
 
-    reducedMotion:
-      false,
-
-    largerText:
-      false,
+    /* -----------------------------------------------------
+       KABEZYA AI
+    ----------------------------------------------------- */
 
     kabezyaClassContext:
       true,
 
     kabezyaConversationHistory:
-      true
+      true,
+
+
+    /* -----------------------------------------------------
+       PRIVACY
+    ----------------------------------------------------- */
+
+    profileDiscovery:
+      true,
+
+    activityVisibility:
+      false,
+
+    teachingActivityVisibility:
+      false,
+
+
+    /* -----------------------------------------------------
+       ACCESSIBILITY
+    ----------------------------------------------------- */
+
+    reducedMotion:
+      false,
+
+    highContrast:
+      false,
+
+    largerText:
+      false
 
   });
 
@@ -72311,6 +72374,21 @@ const TEACHER_SETTINGS_PAGES =
 
       icon:
         "fa-regular fa-user"
+    },
+
+
+    {
+      id:
+        "appearance",
+
+      title:
+        "Appearance",
+
+      description:
+        "Theme and interface",
+
+      icon:
+        "fa-solid fa-palette"
     },
 
 
@@ -72361,21 +72439,6 @@ const TEACHER_SETTINGS_PAGES =
 
     {
       id:
-        "accessibility",
-
-      title:
-        "Accessibility",
-
-      description:
-        "Display and motion",
-
-      icon:
-        "fa-solid fa-universal-access"
-    },
-
-
-    {
-      id:
         "privacy",
 
       title:
@@ -72386,6 +72449,21 @@ const TEACHER_SETTINGS_PAGES =
 
       icon:
         "fa-solid fa-shield-halved"
+    },
+
+
+    {
+      id:
+        "accessibility",
+
+      title:
+        "Accessibility",
+
+      description:
+        "Display and motion",
+
+      icon:
+        "fa-solid fa-universal-access"
     },
 
 
@@ -72435,13 +72513,120 @@ const teacherSettingsWorkspaceState = {
   saving:
     false,
 
-  hydrated:
+  loaded:
     false,
 
   initialized:
+    false,
+
+  sessions:
+    [],
+
+  sessionsLoaded:
+    false,
+
+  sessionsLoading:
     false
 
 };
+
+
+/* =========================================================
+   SETTINGS CONTROLLER STATE
+========================================================= */
+
+let teacherSettingsControlsController =
+  null;
+
+let teacherSettingsSaveTimer =
+  null;
+
+let teacherSettingsOperationVersion =
+  0;
+
+
+/* =========================================================
+   NORMALIZE THEME
+========================================================= */
+
+function normalizeTeacherTheme(
+  value
+){
+
+  const normalized =
+    String(
+      value ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if(
+    normalized ===
+    "dark" ||
+    normalized ===
+    "system"
+  ){
+
+    return normalized;
+
+  }
+
+
+  return "light";
+
+}
+
+
+/* =========================================================
+   RESOLVE THEME
+========================================================= */
+
+function resolveTeacherTheme(
+  preference
+){
+
+  const normalized =
+    normalizeTeacherTheme(
+      preference
+    );
+
+
+  if(
+    normalized ===
+    "dark"
+  ){
+
+    return "dark";
+
+  }
+
+
+  if(
+    normalized ===
+    "system"
+  ){
+
+    const prefersDark =
+      Boolean(
+        window.matchMedia &&
+        window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches
+      );
+
+
+    return prefersDark
+      ? "dark"
+      : "light";
+
+  }
+
+
+  return "light";
+
+}
 
 
 /* =========================================================
@@ -72487,9 +72672,7 @@ function readTeacherDevicePreferences(){
         );
 
 
-    if(
-      !raw
-    ){
+    if(!raw){
 
       return null;
 
@@ -72517,6 +72700,7 @@ function readTeacherDevicePreferences(){
 
 
     return parsed;
+
 
   }catch(
     error
@@ -72556,12 +72740,13 @@ function writeTeacherDevicePreferences(
 
     return true;
 
+
   }catch(
     error
   ){
 
     console.warn(
-      "Teacher Studio preferences could not be saved:",
+      "Teacher Studio preferences could not be cached:",
       error
     );
 
@@ -72574,6 +72759,70 @@ function writeTeacherDevicePreferences(
 
 
 /* =========================================================
+   SETTINGS SNAPSHOT
+========================================================= */
+
+function getTeacherSettingsSnapshot(){
+
+  const snapshot =
+    {};
+
+
+  Object.keys(
+    TEACHER_SETTINGS_DEFAULTS
+  )
+    .forEach(
+      key => {
+
+        const fallback =
+          TEACHER_SETTINGS_DEFAULTS[
+            key
+          ];
+
+
+        const currentValue =
+          teacherSettingsWorkspaceState[
+            key
+          ];
+
+
+        if(
+          typeof fallback ===
+          "string"
+        ){
+
+          snapshot[
+            key
+          ] =
+            String(
+              currentValue ||
+              fallback
+            )
+              .trim();
+
+
+          return;
+
+        }
+
+
+        snapshot[
+          key
+        ] =
+          Boolean(
+            currentValue
+          );
+
+      }
+    );
+
+
+  return snapshot;
+
+}
+
+
+/* =========================================================
    HYDRATE SETTINGS
 ========================================================= */
 
@@ -72581,7 +72830,7 @@ function hydrateTeacherSettingsFromUser(){
 
   if(
     teacherSettingsWorkspaceState
-      .hydrated
+      .loaded
   ){
 
     return;
@@ -72596,11 +72845,19 @@ function hydrateTeacherSettingsFromUser(){
 
 
   const serverPreferences =
-    user?.preferences &&
-    typeof user.preferences ===
-      "object"
-      ? user.preferences
-      : {};
+    (
+      user?.teacherStudioSettings &&
+      typeof user.teacherStudioSettings ===
+        "object"
+    )
+      ? user.teacherStudioSettings
+      : (
+          user?.preferences &&
+          typeof user.preferences ===
+            "object"
+            ? user.preferences
+            : {}
+        );
 
 
   const devicePreferences =
@@ -72614,6 +72871,65 @@ function hydrateTeacherSettingsFromUser(){
     .forEach(
       key => {
 
+        const fallback =
+          TEACHER_SETTINGS_DEFAULTS[
+            key
+          ];
+
+
+        const deviceValue =
+          devicePreferences[
+            key
+          ];
+
+
+        const serverValue =
+          serverPreferences[
+            key
+          ];
+
+
+        /* STRING */
+
+        if(
+          typeof fallback ===
+          "string"
+        ){
+
+          const candidate =
+            typeof deviceValue ===
+            "string"
+              ? deviceValue
+              : (
+                  typeof serverValue ===
+                  "string"
+                    ? serverValue
+                    : fallback
+                );
+
+
+          teacherSettingsWorkspaceState[
+            key
+          ] =
+            key ===
+            "theme"
+              ? normalizeTeacherTheme(
+                  candidate
+                )
+              : String(
+                  candidate ||
+                  fallback
+                )
+                  .trim();
+
+
+          return;
+
+        }
+
+
+        /* BOOLEAN */
+
         teacherSettingsWorkspaceState[
           key
         ] =
@@ -72626,9 +72942,9 @@ function hydrateTeacherSettingsFromUser(){
             getTeacherPreferenceBoolean(
               serverPreferences,
               key,
-              TEACHER_SETTINGS_DEFAULTS[
-                key
-              ]
+              Boolean(
+                fallback
+              )
             )
 
           );
@@ -72638,39 +72954,154 @@ function hydrateTeacherSettingsFromUser(){
 
 
   teacherSettingsWorkspaceState
-    .hydrated =
+    .loaded =
     true;
 
 }
 
 
 /* =========================================================
-   CURRENT SETTINGS SNAPSHOT
+   APPLY SETTINGS TO INTERFACE
 ========================================================= */
 
-function getTeacherSettingsSnapshot(){
+function applyTeacherSettingsInterface(){
 
-  const snapshot = {};
+  const themePreference =
+    normalizeTeacherTheme(
+      teacherSettingsWorkspaceState
+        .theme
+    );
 
 
-  Object.keys(
-    TEACHER_SETTINGS_DEFAULTS
-  )
-    .forEach(
-      key => {
+  const resolvedTheme =
+    resolveTeacherTheme(
+      themePreference
+    );
 
-        snapshot[key] =
-          Boolean(
-            teacherSettingsWorkspaceState[
-              key
-            ]
-          );
+
+  document.documentElement
+    .dataset
+    .teacherTheme =
+    resolvedTheme;
+
+
+  document.documentElement
+    .dataset
+    .teacherThemePreference =
+    themePreference;
+
+
+  document.body
+    .classList
+    .toggle(
+
+      "teacher-compact-mode",
+
+      Boolean(
+        teacherSettingsWorkspaceState
+          .compactMode
+      )
+
+    );
+
+
+  document.body
+    .classList
+    .toggle(
+
+      "teacher-reduced-motion",
+
+      Boolean(
+        teacherSettingsWorkspaceState
+          .reducedMotion
+      )
+
+    );
+
+
+  document.body
+    .classList
+    .toggle(
+
+      "teacher-high-contrast",
+
+      Boolean(
+        teacherSettingsWorkspaceState
+          .highContrast
+      )
+
+    );
+
+
+  document.body
+    .classList
+    .toggle(
+
+      "teacher-larger-text",
+
+      Boolean(
+        teacherSettingsWorkspaceState
+          .largerText
+      )
+
+    );
+
+}
+
+
+/* =========================================================
+   SYSTEM THEME WATCHER
+========================================================= */
+
+let teacherSystemThemeMedia =
+  null;
+
+let teacherSystemThemeListenerBound =
+  false;
+
+
+function bindTeacherSystemThemeWatcher(){
+
+  if(
+    teacherSystemThemeListenerBound ||
+    !window.matchMedia
+  ){
+
+    return;
+
+  }
+
+
+  teacherSystemThemeMedia =
+    window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    );
+
+
+  teacherSystemThemeMedia
+    .addEventListener?.(
+      "change",
+      () => {
+
+        if(
+          teacherSettingsWorkspaceState
+            .theme !==
+          "system"
+        ){
+
+          return;
+
+        }
+
+
+        applyTeacherSettingsInterface();
 
       }
     );
 
 
-  return snapshot;
+  teacherSystemThemeListenerBound =
+    true;
 
 }
 
@@ -72687,9 +73118,7 @@ function renderTeacherSettingsHeader(){
     );
 
 
-  if(
-    !container
-  ){
+  if(!container){
 
     return;
 
@@ -72703,10 +73132,10 @@ function renderTeacherSettingsHeader(){
 
       <div>
 
-
         <p>
-          Manage your teacher account, notifications,
-          classroom preferences, Kabezya AI and Studio experience.
+          Manage your teacher account, appearance, teaching
+          preferences, notifications, privacy, security and
+          account controls.
         </p>
 
       </div>
@@ -72718,7 +73147,7 @@ function renderTeacherSettingsHeader(){
 
 
 /* =========================================================
-   SETTINGS NAV BUTTON
+   SETTINGS NAVIGATION BUTTON
 ========================================================= */
 
 function renderTeacherSettingsNavButton(
@@ -72736,27 +73165,26 @@ function renderTeacherSettingsNavButton(
       type="button"
       class="
         teacher-settings-nav-item
-        ${
-          active
-            ? "is-active"
-            : ""
-        }
+        ${active ? "is-active" : ""}
       "
       data-teacher-action="settings-page"
       data-settings-page="${escapeAttribute(
         item.id
       )}"
+      aria-current="${active ? "page" : "false"}"
     >
 
       <span
         class="teacher-settings-nav-icon"
+        aria-hidden="true"
       >
+
         <i
           class="${escapeAttribute(
             item.icon
           )}"
-          aria-hidden="true"
         ></i>
+
       </span>
 
 
@@ -72786,7 +73214,55 @@ function renderTeacherSettingsNavButton(
 
 
 /* =========================================================
-   SETTINGS TOGGLE ROW
+   SETTINGS PANEL HEADER
+========================================================= */
+
+function teacherSettingsPanelHeaderHTML({
+  eyebrow,
+  title,
+  description
+}){
+
+  return `
+    <div
+      class="teacher-settings-panel-head"
+    >
+
+      <div>
+
+        <span
+          class="teacher-page-eyebrow"
+        >
+          ${escapeHtml(
+            eyebrow
+          )}
+        </span>
+
+
+        <h2>
+          ${escapeHtml(
+            title
+          )}
+        </h2>
+
+
+        <p>
+          ${escapeHtml(
+            description
+          )}
+        </p>
+
+      </div>
+
+    </div>
+  `;
+
+}
+
+
+/* =========================================================
+   SETTINGS TOGGLE
+   REAL BUTTON SWITCH
 ========================================================= */
 
 function createTeacherSettingRow({
@@ -72794,12 +73270,23 @@ function createTeacherSettingRow({
   title,
   description,
   checked,
+  setting,
   note = ""
 }){
 
+  const enabled =
+    Boolean(
+      checked
+    );
+
+
   return `
-    <label
+    <div
       class="teacher-setting-row"
+      data-teacher-setting-row="${escapeAttribute(
+        setting ||
+        ""
+      )}"
     >
 
       <span
@@ -72837,36 +73324,38 @@ function createTeacherSettingRow({
       </span>
 
 
-      <span
+      <button
+        id="${escapeAttribute(
+          id
+        )}"
+        type="button"
         class="teacher-setting-switch"
+        role="switch"
+        aria-checked="${enabled ? "true" : "false"}"
+        data-teacher-setting-toggle
+        data-teacher-setting-key="${escapeAttribute(
+          setting ||
+          ""
+        )}"
+        aria-label="${escapeAttribute(
+          title
+        )}"
       >
 
-        <input
-          id="${escapeAttribute(
-            id
-          )}"
-          type="checkbox"
-          ${
-            checked
-              ? "checked"
-              : ""
-          }
-          ${
-            teacherSettingsWorkspaceState
-              .saving
-              ? "disabled"
-              : ""
-          }
-        />
-
-
         <span
+          class="teacher-setting-switch-track"
           aria-hidden="true"
-        ></span>
+        >
 
-      </span>
+          <span
+            class="teacher-setting-switch-thumb"
+          ></span>
 
-    </label>
+        </span>
+
+      </button>
+
+    </div>
   `;
 
 }
@@ -72931,6 +73420,8 @@ function renderTeacherSettingsAccount(){
 
       teacher?.schoolName ||
       teacher?.school?.name ||
+      teacher?.schoolId?.name ||
+      teacher?.schoolId?.schoolName ||
       state.school?.name
 
     );
@@ -72941,31 +73432,18 @@ function renderTeacherSettingsAccount(){
       class="teacher-settings-panel"
     >
 
-      <div
-        class="teacher-settings-panel-head"
-      >
+      ${teacherSettingsPanelHeaderHTML({
 
-        <div>
+        eyebrow:
+          "Account",
 
-          <span
-            class="teacher-page-eyebrow"
-          >
-            ACCOUNT
-          </span>
+        title:
+          "Teacher profile",
 
+        description:
+          "Review the identity connected to your Teacher Studio account."
 
-          <h2>
-            Teacher profile
-          </h2>
-
-
-          <p>
-            Review the identity connected to your Teacher Studio account.
-          </p>
-
-        </div>
-
-      </div>
+      })}
 
 
       <div
@@ -73130,37 +73608,154 @@ function renderTeacherSettingsAccount(){
 
 
 /* =========================================================
-   TEACHING PAGE
+   APPEARANCE PAGE
 ========================================================= */
 
-function renderTeacherSettingsTeaching(){
+function renderTeacherSettingsAppearance(){
+
+  const currentTheme =
+    normalizeTeacherTheme(
+      teacherSettingsWorkspaceState
+        .theme
+    );
+
+
+  const renderThemeOption =
+    (
+      value,
+      icon,
+      title,
+      description
+    ) => {
+
+      const active =
+        currentTheme ===
+        value;
+
+
+      return `
+        <button
+          type="button"
+          class="
+            teacher-settings-theme-option
+            ${active ? "is-active" : ""}
+          "
+          data-teacher-theme="${escapeAttribute(
+            value
+          )}"
+          aria-pressed="${active ? "true" : "false"}"
+        >
+
+          <span
+            class="teacher-settings-theme-icon"
+            aria-hidden="true"
+          >
+            <i
+              class="${escapeAttribute(
+                icon
+              )}"
+            ></i>
+          </span>
+
+
+          <span
+            class="teacher-settings-theme-copy"
+          >
+
+            <strong>
+              ${escapeHtml(
+                title
+              )}
+            </strong>
+
+            <small>
+              ${escapeHtml(
+                description
+              )}
+            </small>
+
+          </span>
+
+
+          <span
+            class="teacher-settings-theme-check"
+            aria-hidden="true"
+          >
+            <i
+              class="fa-solid fa-check"
+            ></i>
+          </span>
+
+        </button>
+      `;
+
+    };
+
 
   return `
     <section
       class="teacher-settings-panel"
     >
 
+      ${teacherSettingsPanelHeaderHTML({
+
+        eyebrow:
+          "Appearance",
+
+        title:
+          "Interface appearance",
+
+        description:
+          "Choose how Teacher Studio looks and behaves on this account."
+
+      })}
+
+
       <div
-        class="teacher-settings-panel-head"
+        class="teacher-settings-subsection"
       >
 
-        <div>
+        <div
+          class="teacher-settings-subsection-head"
+        >
 
-          <span
-            class="teacher-page-eyebrow"
-          >
-            TEACHING
-          </span>
-
-
-          <h2>
-            Teaching preferences
-          </h2>
-
+          <strong>
+            Theme
+          </strong>
 
           <p>
-            Control teaching reminders and how dense your workspace feels.
+            Select a light, dark or system-controlled interface.
           </p>
+
+        </div>
+
+
+        <div
+          class="teacher-settings-theme-grid"
+        >
+
+          ${renderThemeOption(
+            "light",
+            "fa-regular fa-sun",
+            "Light",
+            "Always use the light Teacher Studio theme."
+          )}
+
+
+          ${renderThemeOption(
+            "dark",
+            "fa-regular fa-moon",
+            "Dark",
+            "Use the dark Teacher Studio interface."
+          )}
+
+
+          ${renderThemeOption(
+            "system",
+            "fa-solid fa-display",
+            "System",
+            "Follow your device appearance preference."
+          )}
 
         </div>
 
@@ -73174,7 +73769,88 @@ function renderTeacherSettingsTeaching(){
         ${createTeacherSettingRow({
 
           id:
+            "teacherSettingCompactMode",
+
+          setting:
+            "compactMode",
+
+          title:
+            "Compact workspace",
+
+          description:
+            "Reduce spacing in supported Teacher Studio lists and cards.",
+
+          checked:
+            teacherSettingsWorkspaceState
+              .compactMode
+
+        })}
+
+
+        ${createTeacherSettingRow({
+
+          id:
+            "teacherSettingRememberSidebar",
+
+          setting:
+            "rememberSidebar",
+
+          title:
+            "Remember sidebar state",
+
+          description:
+            "Remember whether the Teacher Studio sidebar is expanded or collapsed.",
+
+          checked:
+            teacherSettingsWorkspaceState
+              .rememberSidebar
+
+        })}
+
+      </div>
+
+    </section>
+  `;
+
+}
+
+
+/* =========================================================
+   TEACHING PAGE
+========================================================= */
+
+function renderTeacherSettingsTeaching(){
+
+  return `
+    <section
+      class="teacher-settings-panel"
+    >
+
+      ${teacherSettingsPanelHeaderHTML({
+
+        eyebrow:
+          "Teaching",
+
+        title:
+          "Teaching preferences",
+
+        description:
+          "Control reminders related to your classroom workflow."
+
+      })}
+
+
+      <div
+        class="teacher-settings-list"
+      >
+
+        ${createTeacherSettingRow({
+
+          id:
             "teacherSettingGradingReminders",
+
+          setting:
+            "gradingReminders",
 
           title:
             "Grading reminders",
@@ -73194,6 +73870,9 @@ function renderTeacherSettingsTeaching(){
           id:
             "teacherSettingAttendanceReminders",
 
+          setting:
+            "attendanceReminders",
+
           title:
             "Attendance reminders",
 
@@ -73203,24 +73882,6 @@ function renderTeacherSettingsTeaching(){
           checked:
             teacherSettingsWorkspaceState
               .attendanceReminders
-
-        })}
-
-
-        ${createTeacherSettingRow({
-
-          id:
-            "teacherSettingCompactMode",
-
-          title:
-            "Compact workspace",
-
-          description:
-            "Reduce spacing in supported Teacher Studio lists and cards.",
-
-          checked:
-            teacherSettingsWorkspaceState
-              .compactMode
 
         })}
 
@@ -73243,31 +73904,18 @@ function renderTeacherSettingsNotifications(){
       class="teacher-settings-panel"
     >
 
-      <div
-        class="teacher-settings-panel-head"
-      >
+      ${teacherSettingsPanelHeaderHTML({
 
-        <div>
+        eyebrow:
+          "Notifications",
 
-          <span
-            class="teacher-page-eyebrow"
-          >
-            NOTIFICATIONS
-          </span>
+        title:
+          "Notification preferences",
 
+        description:
+          "Choose which Teacher Studio activity should get your attention."
 
-          <h2>
-            Notifications
-          </h2>
-
-
-          <p>
-            Choose which Teacher Studio activity should get your attention.
-          </p>
-
-        </div>
-
-      </div>
+      })}
 
 
       <div
@@ -73278,6 +73926,9 @@ function renderTeacherSettingsNotifications(){
 
           id:
             "teacherSettingNotifications",
+
+          setting:
+            "notifications",
 
           title:
             "Studio notifications",
@@ -73297,6 +73948,9 @@ function renderTeacherSettingsNotifications(){
           id:
             "teacherSettingEmailNotifications",
 
+          setting:
+            "emailNotifications",
+
           title:
             "Email notifications",
 
@@ -73308,7 +73962,7 @@ function renderTeacherSettingsNotifications(){
               .emailNotifications,
 
           note:
-            "Delivery remains dependent on the verified notification backend."
+            "Actual email delivery remains controlled by AIFT notification services."
 
         })}
 
@@ -73317,6 +73971,9 @@ function renderTeacherSettingsNotifications(){
 
           id:
             "teacherSettingMessageNotifications",
+
+          setting:
+            "messageNotifications",
 
           title:
             "Message alerts",
@@ -73335,6 +73992,9 @@ function renderTeacherSettingsNotifications(){
 
           id:
             "teacherSettingScheduleReminders",
+
+          setting:
+            "scheduleReminders",
 
           title:
             "Schedule reminders",
@@ -73367,31 +74027,18 @@ function renderTeacherSettingsAI(){
       class="teacher-settings-panel"
     >
 
-      <div
-        class="teacher-settings-panel-head"
-      >
+      ${teacherSettingsPanelHeaderHTML({
 
-        <div>
+        eyebrow:
+          "Kabezya AI",
 
-          <span
-            class="teacher-page-eyebrow"
-          >
-            KABEZYA AI
-          </span>
+        title:
+          "AI preferences",
 
+        description:
+          "Control how Kabezya uses selected teaching context in Teacher Studio."
 
-          <h2>
-            AI preferences
-          </h2>
-
-
-          <p>
-            Control how Kabezya uses your selected teaching context.
-          </p>
-
-        </div>
-
-      </div>
+      })}
 
 
       <div
@@ -73403,11 +74050,14 @@ function renderTeacherSettingsAI(){
           id:
             "teacherSettingKabezyaClassContext",
 
+          setting:
+            "kabezyaClassContext",
+
           title:
             "Use selected class context",
 
           description:
-            "Allow Kabezya to use the class, student or submission you explicitly select.",
+            "Allow Kabezya to use the class, student, assignment or submission you explicitly select.",
 
           checked:
             teacherSettingsWorkspaceState
@@ -73421,11 +74071,14 @@ function renderTeacherSettingsAI(){
           id:
             "teacherSettingKabezyaConversationHistory",
 
+          setting:
+            "kabezyaConversationHistory",
+
           title:
             "Conversation history",
 
           description:
-            "Keep recent Kabezya conversations available so you can continue them later.",
+            "Keep recent Kabezya Teacher conversations available so you can continue them later.",
 
           checked:
             teacherSettingsWorkspaceState
@@ -73453,8 +74106,135 @@ function renderTeacherSettingsAI(){
           </strong>
 
           <p>
-            Kabezya can assist with teaching work, but final academic
-            decisions remain with the teacher.
+            Kabezya may assist with teaching work, but final
+            grading, attendance and academic decisions remain
+            with the teacher.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+  `;
+
+}
+
+
+/* =========================================================
+   PRIVACY PAGE
+========================================================= */
+
+function renderTeacherSettingsPrivacy(){
+
+  return `
+    <section
+      class="teacher-settings-panel"
+    >
+
+      ${teacherSettingsPanelHeaderHTML({
+
+        eyebrow:
+          "Privacy",
+
+        title:
+          "Teacher privacy",
+
+        description:
+          "Control supported profile and activity visibility preferences."
+
+      })}
+
+
+      <div
+        class="teacher-settings-list"
+      >
+
+        ${createTeacherSettingRow({
+
+          id:
+            "teacherSettingProfileDiscovery",
+
+          setting:
+            "profileDiscovery",
+
+          title:
+            "Profile discovery",
+
+          description:
+            "Allow supported AIFT discovery surfaces to show your teacher profile.",
+
+          checked:
+            teacherSettingsWorkspaceState
+              .profileDiscovery
+
+        })}
+
+
+        ${createTeacherSettingRow({
+
+          id:
+            "teacherSettingActivityVisibility",
+
+          setting:
+            "activityVisibility",
+
+          title:
+            "Activity visibility",
+
+          description:
+            "Allow supported Teacher Studio activity indicators to be visible where permitted.",
+
+          checked:
+            teacherSettingsWorkspaceState
+              .activityVisibility
+
+        })}
+
+
+        ${createTeacherSettingRow({
+
+          id:
+            "teacherSettingTeachingActivityVisibility",
+
+          setting:
+            "teachingActivityVisibility",
+
+          title:
+            "Teaching activity visibility",
+
+          description:
+            "Allow supported teaching activity information to appear on permitted AIFT surfaces.",
+
+          checked:
+            teacherSettingsWorkspaceState
+              .teachingActivityVisibility
+
+        })}
+
+      </div>
+
+
+      <div
+        class="teacher-settings-information-card"
+      >
+
+        <i
+          class="fa-solid fa-shield-halved"
+          aria-hidden="true"
+        ></i>
+
+
+        <div>
+
+          <strong>
+            Academic data remains protected
+          </strong>
+
+          <p>
+            These controls do not publish grades, attendance,
+            student records, submissions, private messages or
+            authentication information.
           </p>
 
         </div>
@@ -73478,31 +74258,18 @@ function renderTeacherSettingsAccessibility(){
       class="teacher-settings-panel"
     >
 
-      <div
-        class="teacher-settings-panel-head"
-      >
+      ${teacherSettingsPanelHeaderHTML({
 
-        <div>
+        eyebrow:
+          "Accessibility",
 
-          <span
-            class="teacher-page-eyebrow"
-          >
-            ACCESSIBILITY
-          </span>
+        title:
+          "Accessibility",
 
+        description:
+          "Adjust Teacher Studio for a more comfortable working experience."
 
-          <h2>
-            Accessibility
-          </h2>
-
-
-          <p>
-            Adjust Teacher Studio for a more comfortable working experience.
-          </p>
-
-        </div>
-
-      </div>
+      })}
 
 
       <div
@@ -73513,6 +74280,9 @@ function renderTeacherSettingsAccessibility(){
 
           id:
             "teacherSettingReducedMotion",
+
+          setting:
+            "reducedMotion",
 
           title:
             "Reduce motion",
@@ -73530,7 +74300,31 @@ function renderTeacherSettingsAccessibility(){
         ${createTeacherSettingRow({
 
           id:
+            "teacherSettingHighContrast",
+
+          setting:
+            "highContrast",
+
+          title:
+            "High contrast",
+
+          description:
+            "Increase contrast on supported Teacher Studio controls and surfaces.",
+
+          checked:
+            teacherSettingsWorkspaceState
+              .highContrast
+
+        })}
+
+
+        ${createTeacherSettingRow({
+
+          id:
             "teacherSettingLargerText",
+
+          setting:
+            "largerText",
 
           title:
             "Larger interface text",
@@ -73553,37 +74347,130 @@ function renderTeacherSettingsAccessibility(){
 
 
 /* =========================================================
-   PRIVACY PAGE
+   SECURITY PAGE
 ========================================================= */
 
-function renderTeacherSettingsPrivacy(){
+function renderTeacherSettingsSecurity(){
+
+  const sessionHTML =
+    teacherSettingsWorkspaceState
+      .sessionsLoading
+
+      ? `
+          <div
+            class="teacher-settings-session-loading"
+          >
+
+            <i
+              class="fa-solid fa-circle-notch fa-spin"
+              aria-hidden="true"
+            ></i>
+
+            <div>
+
+              <strong>
+                Checking active sessions
+              </strong>
+
+              <p>
+                Securely loading devices connected to your AIFT account.
+              </p>
+
+            </div>
+
+          </div>
+        `
+
+      : (
+          teacherSettingsWorkspaceState
+            .sessionsLoaded
+
+            ? renderTeacherSettingsSessionsHTML()
+
+            : `
+                <div
+                  class="teacher-settings-session-loading"
+                >
+
+                  <i
+                    class="fa-solid fa-shield-halved"
+                    aria-hidden="true"
+                  ></i>
+
+                  <div>
+
+                    <strong>
+                      Active sessions
+                    </strong>
+
+                    <p>
+                      Open Security to review devices signed in to this account.
+                    </p>
+
+                  </div>
+
+                </div>
+              `
+        );
+
 
   return `
     <section
       class="teacher-settings-panel"
     >
 
+      ${teacherSettingsPanelHeaderHTML({
+
+        eyebrow:
+          "Security",
+
+        title:
+          "Account security",
+
+        description:
+          "Manage your password and review devices currently signed in to AIFT."
+
+      })}
+
+
       <div
-        class="teacher-settings-panel-head"
+        class="teacher-settings-action-list"
       >
 
-        <div>
+        <div
+          class="teacher-settings-action-row"
+        >
 
           <span
-            class="teacher-page-eyebrow"
+            class="teacher-settings-action-icon"
+            aria-hidden="true"
           >
-            PRIVACY
+            <i class="fa-solid fa-key"></i>
           </span>
 
 
-          <h2>
-            Privacy
-          </h2>
+          <div
+            class="teacher-settings-action-copy"
+          >
+
+            <strong>
+              Change password
+            </strong>
+
+            <p>
+              Update the password used to access your AIFT account.
+            </p>
+
+          </div>
 
 
-          <p>
-            Review how Teacher Studio handles local preferences and teaching data.
-          </p>
+          <button
+            type="button"
+            class="teacher-secondary-button"
+            data-teacher-settings-local-action="change-password"
+          >
+            Change password
+          </button>
 
         </div>
 
@@ -73591,27 +74478,48 @@ function renderTeacherSettingsPrivacy(){
 
 
       <div
-        class="teacher-settings-information-card"
+        class="teacher-settings-security-section"
       >
 
-        <i
-          class="fa-solid fa-shield-halved"
-          aria-hidden="true"
-        ></i>
+        <div
+          class="teacher-settings-security-head"
+        >
+
+          <div>
+
+            <strong>
+              Active sessions
+            </strong>
+
+            <p>
+              Review devices currently signed in to your AIFT account.
+            </p>
+
+          </div>
 
 
-        <div>
+          <button
+            type="button"
+            class="teacher-secondary-button"
+            data-teacher-settings-local-action="refresh-sessions"
+          >
+            <i
+              class="fa-solid fa-rotate"
+              aria-hidden="true"
+            ></i>
 
-          <strong>
-            Device preferences only
-          </strong>
+            Refresh
+          </button>
 
-          <p>
-            This settings storage contains only non-sensitive interface
-            preferences. Student records, grades, messages, attendance,
-            academic submissions and authentication credentials are not
-            written to this browser preference store.
-          </p>
+        </div>
+
+
+        <div
+          id="teacherSettingsSessionList"
+          class="teacher-settings-session-list"
+        >
+
+          ${sessionHTML}
 
         </div>
 
@@ -73624,49 +74532,30 @@ function renderTeacherSettingsPrivacy(){
 
 
 /* =========================================================
-   SECURITY PAGE
+   RENDER SECURITY SESSIONS
 ========================================================= */
 
-function renderTeacherSettingsSecurity(){
+function renderTeacherSettingsSessionsHTML(){
 
-  return `
-    <section
-      class="teacher-settings-panel"
-    >
+  const sessions =
+    Array.isArray(
+      teacherSettingsWorkspaceState
+        .sessions
+    )
+      ? teacherSettingsWorkspaceState
+          .sessions
+      : [];
 
+
+  if(!sessions.length){
+
+    return `
       <div
-        class="teacher-settings-panel-head"
-      >
-
-        <div>
-
-          <span
-            class="teacher-page-eyebrow"
-          >
-            SECURITY
-          </span>
-
-
-          <h2>
-            Security
-          </h2>
-
-
-          <p>
-            Manage security-sensitive account actions from verified account tools.
-          </p>
-
-        </div>
-
-      </div>
-
-
-      <div
-        class="teacher-settings-information-card"
+        class="teacher-settings-session-empty"
       >
 
         <i
-          class="fa-solid fa-lock"
+          class="fa-solid fa-laptop"
           aria-hidden="true"
         ></i>
 
@@ -73674,21 +74563,216 @@ function renderTeacherSettingsSecurity(){
         <div>
 
           <strong>
-            Account security
+            No active sessions found
           </strong>
 
           <p>
-            Password changes and active-session management should use the
-            authenticated account backend. Teacher Studio does not store
-            password or session credentials in these local settings.
+            AIFT did not return any active sessions for this account.
           </p>
 
         </div>
 
       </div>
+    `;
 
-    </section>
-  `;
+  }
+
+
+  return [
+    ...sessions
+  ]
+    .sort(
+      (
+        first,
+        second
+      ) => {
+
+        if(
+          first?.current ===
+          true
+        ){
+
+          return -1;
+
+        }
+
+
+        if(
+          second?.current ===
+          true
+        ){
+
+          return 1;
+
+        }
+
+
+        return (
+          new Date(
+            second?.lastActiveAt ||
+            second?.createdAt ||
+            0
+          ).getTime() -
+          new Date(
+            first?.lastActiveAt ||
+            first?.createdAt ||
+            0
+          ).getTime()
+        );
+
+      }
+    )
+    .map(
+      session => {
+
+        const current =
+          session?.current ===
+          true;
+
+
+        const sessionId =
+          safeString(
+            session?.sessionId ||
+            session?.id
+          );
+
+
+        const deviceName =
+          safeString(
+            session?.deviceName,
+            "Unknown device"
+          );
+
+
+        const browser =
+          safeString(
+            session?.browser,
+            "Unknown browser"
+          );
+
+
+        const operatingSystem =
+          safeString(
+            session?.operatingSystem,
+            "Unknown OS"
+          );
+
+
+        const lastActive =
+          formatDateTime(
+            session?.lastActiveAt ||
+            session?.createdAt,
+            "Unknown"
+          );
+
+
+        return `
+          <article
+            class="
+              teacher-settings-session-item
+              ${current ? "is-current" : ""}
+            "
+          >
+
+            <span
+              class="teacher-settings-session-device"
+              aria-hidden="true"
+            >
+              <i
+                class="fa-solid ${
+                  safeString(
+                    session?.deviceType
+                  ).toLowerCase() ===
+                  "mobile"
+                    ? "fa-mobile-screen-button"
+                    : "fa-laptop"
+                }"
+              ></i>
+            </span>
+
+
+            <div
+              class="teacher-settings-session-copy"
+            >
+
+              <div
+                class="teacher-settings-session-title"
+              >
+
+                <strong>
+                  ${escapeHtml(
+                    deviceName
+                  )}
+                </strong>
+
+
+                ${
+                  current
+                    ? `
+                        <span
+                          class="teacher-settings-current-session"
+                        >
+                          Current device
+                        </span>
+                      `
+                    : ""
+                }
+
+              </div>
+
+
+              <p>
+                ${escapeHtml(
+                  browser
+                )}
+                ·
+                ${escapeHtml(
+                  operatingSystem
+                )}
+              </p>
+
+
+              <small>
+                Last active:
+                ${escapeHtml(
+                  lastActive
+                )}
+              </small>
+
+            </div>
+
+
+            ${
+              sessionId
+                ? `
+                    <button
+                      type="button"
+                      class="teacher-danger-button"
+                      data-teacher-settings-local-action="${
+                        current
+                          ? "signout-current-session"
+                          : "remove-session"
+                      }"
+                      data-session-id="${escapeAttribute(
+                        sessionId
+                      )}"
+                    >
+                      ${
+                        current
+                          ? "Sign out"
+                          : "Remove"
+                      }
+                    </button>
+                  `
+                : ""
+            }
+
+          </article>
+        `;
+
+      }
+    )
+    .join("");
 
 }
 
@@ -73704,27 +74788,99 @@ function renderTeacherSettingsData(){
       class="teacher-settings-panel"
     >
 
+      ${teacherSettingsPanelHeaderHTML({
+
+        eyebrow:
+          "Data & account",
+
+        title:
+          "Your data and account",
+
+        description:
+          "Manage account access and review supported account-data actions."
+
+      })}
+
+
       <div
-        class="teacher-settings-panel-head"
+        class="teacher-settings-action-list"
       >
 
-        <div>
+        <div
+          class="teacher-settings-action-row"
+        >
 
           <span
-            class="teacher-page-eyebrow"
+            class="teacher-settings-action-icon"
+            aria-hidden="true"
           >
-            DATA & ACCOUNT
+            <i class="fa-solid fa-download"></i>
           </span>
 
 
-          <h2>
-            Data & account
-          </h2>
+          <div
+            class="teacher-settings-action-copy"
+          >
+
+            <strong>
+              Download my data
+            </strong>
+
+            <p>
+              Request an export of supported Teacher account information.
+            </p>
+
+          </div>
 
 
-          <p>
-            Review local Teacher Studio preference storage and account actions.
-          </p>
+          <button
+            type="button"
+            class="teacher-secondary-button"
+            data-teacher-settings-local-action="request-data-export"
+            disabled
+          >
+            Request data
+          </button>
+
+        </div>
+
+
+        <div
+          class="teacher-settings-action-row"
+        >
+
+          <span
+            class="teacher-settings-action-icon"
+            aria-hidden="true"
+          >
+            <i
+              class="fa-solid fa-right-from-bracket"
+            ></i>
+          </span>
+
+
+          <div
+            class="teacher-settings-action-copy"
+          >
+
+            <strong>
+              Sign out
+            </strong>
+
+            <p>
+              End the current Teacher Studio session on this device.
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            class="teacher-secondary-button"
+            data-teacher-settings-local-action="signout"
+          >
+            Sign out
+          </button>
 
         </div>
 
@@ -73736,7 +74892,7 @@ function renderTeacherSettingsData(){
       >
 
         <i
-          class="fa-solid fa-database"
+          class="fa-solid fa-circle-info"
           aria-hidden="true"
         ></i>
 
@@ -73744,31 +74900,17 @@ function renderTeacherSettingsData(){
         <div>
 
           <strong>
-            Local preference data
+            Teacher account lifecycle
           </strong>
 
           <p>
-            Resetting preferences removes this device's Teacher Studio
-            interface choices. It does not delete your account, classes,
-            assignments, submissions or school records.
+            Data export, account deactivation and account deletion
+            will only be enabled after the authenticated Teacher
+            account-lifecycle backend is connected. Teacher Studio
+            will not pretend a destructive account action succeeded.
           </p>
 
         </div>
-
-      </div>
-
-
-      <div
-        class="teacher-settings-panel-actions"
-      >
-
-        <button
-          type="button"
-          class="teacher-secondary-button"
-          data-teacher-action="reset-teacher-settings"
-        >
-          Reset local preferences
-        </button>
 
       </div>
 
@@ -73789,6 +74931,10 @@ function renderTeacherSettingsActivePage(){
       .activePage
   ){
 
+    case "appearance":
+      return renderTeacherSettingsAppearance();
+
+
     case "teaching":
       return renderTeacherSettingsTeaching();
 
@@ -73801,12 +74947,12 @@ function renderTeacherSettingsActivePage(){
       return renderTeacherSettingsAI();
 
 
-    case "accessibility":
-      return renderTeacherSettingsAccessibility();
-
-
     case "privacy":
       return renderTeacherSettingsPrivacy();
+
+
+    case "accessibility":
+      return renderTeacherSettingsAccessibility();
 
 
     case "security":
@@ -73827,7 +74973,7 @@ function renderTeacherSettingsActivePage(){
 
 
 /* =========================================================
-   SETTINGS MAIN WORKSPACE
+   SETTINGS SIDEBAR
 ========================================================= */
 
 function renderTeacherSettingsProfile(){
@@ -73838,9 +74984,7 @@ function renderTeacherSettingsProfile(){
     );
 
 
-  if(
-    !container
-  ){
+  if(!container){
 
     return;
 
@@ -73885,9 +75029,7 @@ function renderTeacherSettingsProfile(){
             .map(
               renderTeacherSettingsNavButton
             )
-            .join(
-              ""
-            )
+            .join("")
         }
 
       </nav>
@@ -73910,9 +75052,7 @@ function renderTeacherSettingsPreferences(){
     );
 
 
-  if(
-    !container
-  ){
+  if(!container){
 
     return;
 
@@ -73926,73 +75066,17 @@ function renderTeacherSettingsPreferences(){
 
       ${renderTeacherSettingsActivePage()}
 
-
-      ${
-        [
-          "teaching",
-          "notifications",
-          "ai",
-          "accessibility"
-        ]
-          .includes(
-            teacherSettingsWorkspaceState
-              .activePage
-          )
-          ? `
-              <div
-                class="teacher-settings-save-bar"
-              >
-
-                <span>
-                  Preferences on this page are stored on this device.
-                </span>
-
-
-                <button
-                  type="button"
-                  class="teacher-primary-button"
-                  data-teacher-action="save-teacher-settings"
-                  ${
-                    teacherSettingsWorkspaceState
-                      .saving
-                      ? "disabled"
-                      : ""
-                  }
-                >
-
-                  <i
-                    class="fa-solid ${
-                      teacherSettingsWorkspaceState
-                        .saving
-                        ? "fa-spinner fa-spin"
-                        : "fa-floppy-disk"
-                    }"
-                    aria-hidden="true"
-                  ></i>
-
-
-                  ${
-                    teacherSettingsWorkspaceState
-                      .saving
-                      ? "Saving..."
-                      : "Save changes"
-                  }
-
-                </button>
-
-              </div>
-            `
-          : ""
-      }
-
     </div>
   `;
+
+
+  bindTeacherSettingsLocalControls();
 
 }
 
 
 /* =========================================================
-   CHANGE SETTINGS PAGE
+   SETTINGS PAGE CHANGE
 ========================================================= */
 
 function setTeacherSettingsPage(
@@ -74026,146 +75110,27 @@ function setTeacherSettingsPage(
   renderTeacherSettingsPreferences();
 
 
+  if(
+    teacherSettingsWorkspaceState
+      .activePage ===
+    "security"
+  ){
+
+    loadTeacherSettingsSessions();
+
+  }
+
+
   return true;
 
 }
 
 
 /* =========================================================
-   APPLY INTERFACE SETTINGS
-========================================================= */
-
-function applyTeacherSettingsInterface(){
-
-  document.body
-    .classList
-    .toggle(
-
-      "teacher-compact-mode",
-
-      Boolean(
-        teacherSettingsWorkspaceState
-          .compactMode
-      )
-
-    );
-
-
-  document.body
-    .classList
-    .toggle(
-
-      "teacher-reduced-motion",
-
-      Boolean(
-        teacherSettingsWorkspaceState
-          .reducedMotion
-      )
-
-    );
-
-
-  document.body
-    .classList
-    .toggle(
-
-      "teacher-larger-text",
-
-      Boolean(
-        teacherSettingsWorkspaceState
-          .largerText
-      )
-
-    );
-
-}
-
-
-/* =========================================================
-   READ SETTINGS FORM
-========================================================= */
-
-function readTeacherSettingsForm(){
-
-  const current =
-    getTeacherSettingsSnapshot();
-
-
-  const checkboxMap = {
-
-    notifications:
-      "teacherSettingNotifications",
-
-    emailNotifications:
-      "teacherSettingEmailNotifications",
-
-    gradingReminders:
-      "teacherSettingGradingReminders",
-
-    attendanceReminders:
-      "teacherSettingAttendanceReminders",
-
-    messageNotifications:
-      "teacherSettingMessageNotifications",
-
-    scheduleReminders:
-      "teacherSettingScheduleReminders",
-
-    compactMode:
-      "teacherSettingCompactMode",
-
-    reducedMotion:
-      "teacherSettingReducedMotion",
-
-    largerText:
-      "teacherSettingLargerText",
-
-    kabezyaClassContext:
-      "teacherSettingKabezyaClassContext",
-
-    kabezyaConversationHistory:
-      "teacherSettingKabezyaConversationHistory"
-
-  };
-
-
-  Object.entries(
-    checkboxMap
-  )
-    .forEach(
-      ([
-        key,
-        id
-      ]) => {
-
-        const input =
-          $(
-            id
-          );
-
-
-        if(
-          input
-        ){
-
-          current[key] =
-            Boolean(
-              input.checked
-            );
-
-        }
-
-      }
-    );
-
-
-  return current;
-
-}
-
-
-/* =========================================================
    SAVE SETTINGS
+
+   The UI is optimistic. Local persistence runs after each
+   change and never blocks the physical switch movement.
 ========================================================= */
 
 async function saveTeacherSettings(){
@@ -74180,25 +75145,16 @@ async function saveTeacherSettings(){
   }
 
 
-  const preferences =
-    readTeacherSettingsForm();
-
-
   teacherSettingsWorkspaceState
     .saving =
     true;
 
 
-  Object.assign(
-    teacherSettingsWorkspaceState,
-    preferences
-  );
-
-
-  renderTeacherSettingsPreferences();
-
-
   try{
+
+    const preferences =
+      getTeacherSettingsSnapshot();
+
 
     const saved =
       writeTeacherDevicePreferences(
@@ -74206,12 +75162,10 @@ async function saveTeacherSettings(){
       );
 
 
-    if(
-      !saved
-    ){
+    if(!saved){
 
       throw new Error(
-        "Browser storage is unavailable."
+        "Browser preference storage is unavailable."
       );
 
     }
@@ -74235,16 +75189,8 @@ async function saveTeacherSettings(){
     applyTeacherSettingsInterface();
 
 
-    notifyAIFTSuccess(
-      "Teacher Studio preferences were saved.",
-      {
-        title:
-          "Settings saved"
-      }
-    );
-
-
     return true;
+
 
   }catch(
     error
@@ -74253,7 +75199,7 @@ async function saveTeacherSettings(){
     notifyAIFTError(
       getErrorMessage(
         error,
-        "Teacher Studio could not save these preferences."
+        "Teacher Studio could not save this preference."
       ),
       {
         title:
@@ -74264,14 +75210,12 @@ async function saveTeacherSettings(){
 
     return false;
 
+
   }finally{
 
     teacherSettingsWorkspaceState
       .saving =
       false;
-
-
-    renderTeacherSettingsPreferences();
 
   }
 
@@ -74279,19 +75223,67 @@ async function saveTeacherSettings(){
 
 
 /* =========================================================
-   RESET SETTINGS
+   QUEUE SETTINGS SAVE
 ========================================================= */
 
-function resetTeacherSettings(){
+function queueTeacherSettingsSave(){
 
-  const confirmed =
-    window.confirm(
-      "Reset Teacher Studio interface preferences on this device?"
+  window.clearTimeout(
+    teacherSettingsSaveTimer
+  );
+
+
+  const operationVersion =
+    ++teacherSettingsOperationVersion;
+
+
+  teacherSettingsSaveTimer =
+    window.setTimeout(
+      async () => {
+
+        const saved =
+          await saveTeacherSettings();
+
+
+        if(
+          operationVersion !==
+          teacherSettingsOperationVersion
+        ){
+
+          return;
+
+        }
+
+
+        if(!saved){
+
+          return;
+
+        }
+
+      },
+      150
     );
 
+}
+
+
+/* =========================================================
+   SET BOOLEAN PREFERENCE
+========================================================= */
+
+function setTeacherBooleanPreference(
+  key,
+  value
+){
 
   if(
-    !confirmed
+    !Object.prototype
+      .hasOwnProperty
+      .call(
+        TEACHER_SETTINGS_DEFAULTS,
+        key
+      )
   ){
 
     return false;
@@ -74299,10 +75291,1172 @@ function resetTeacherSettings(){
   }
 
 
-  Object.assign(
-    teacherSettingsWorkspaceState,
-    TEACHER_SETTINGS_DEFAULTS
+  if(
+    typeof TEACHER_SETTINGS_DEFAULTS[
+      key
+    ] !==
+    "boolean"
+  ){
+
+    return false;
+
+  }
+
+
+  teacherSettingsWorkspaceState[
+    key
+  ] =
+    Boolean(
+      value
+    );
+
+
+  applyTeacherSettingsInterface();
+
+  queueTeacherSettingsSave();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   SET THEME
+========================================================= */
+
+function setTeacherThemePreference(
+  value
+){
+
+  teacherSettingsWorkspaceState
+    .theme =
+    normalizeTeacherTheme(
+      value
+    );
+
+
+  applyTeacherSettingsInterface();
+
+  queueTeacherSettingsSave();
+
+  renderTeacherSettingsPreferences();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   PASSWORD MODAL
+   BUILT USING EXISTING GENERIC MODAL UTILITY
+========================================================= */
+
+function ensureTeacherPasswordModal(){
+
+  let modal =
+    $(
+      "teacherChangePasswordModal"
+    );
+
+
+  if(modal){
+
+    return modal;
+
+  }
+
+
+  modal =
+    document.createElement(
+      "div"
+    );
+
+
+  modal.id =
+    "teacherChangePasswordModal";
+
+
+  modal.className =
+    "modal";
+
+
+  modal.setAttribute(
+    "aria-hidden",
+    "true"
   );
+
+
+  modal.innerHTML = `
+    <div
+      class="modal-box teacher-settings-password-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="teacherChangePasswordTitle"
+    >
+
+      <div class="modal-head">
+
+        <div>
+
+          <div
+            id="teacherChangePasswordTitle"
+            class="modal-title"
+          >
+            Change password
+          </div>
+
+          <p>
+            Update the password used to access your AIFT account.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="teacher-secondary-button"
+          data-teacher-password-action="close"
+        >
+          Close
+        </button>
+
+      </div>
+
+
+      <form
+        id="teacherChangePasswordForm"
+        class="modal-body"
+        novalidate
+      >
+
+        <div class="field">
+
+          <label for="teacherCurrentPassword">
+            Current password
+          </label>
+
+          <input
+            id="teacherCurrentPassword"
+            type="password"
+            autocomplete="current-password"
+            required
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label for="teacherNewPassword">
+            New password
+          </label>
+
+          <input
+            id="teacherNewPassword"
+            type="password"
+            autocomplete="new-password"
+            minlength="8"
+            required
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label for="teacherConfirmPassword">
+            Confirm new password
+          </label>
+
+          <input
+            id="teacherConfirmPassword"
+            type="password"
+            autocomplete="new-password"
+            minlength="8"
+            required
+          >
+
+        </div>
+
+
+        <div
+          id="teacherChangePasswordMessage"
+          class="teacher-settings-form-message"
+          role="alert"
+          hidden
+        ></div>
+
+      </form>
+
+
+      <div class="modal-actions">
+
+        <button
+          type="button"
+          class="teacher-secondary-button"
+          data-teacher-password-action="close"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          id="teacherChangePasswordSubmitButton"
+          type="submit"
+          form="teacherChangePasswordForm"
+          class="teacher-primary-button"
+        >
+          Change password
+        </button>
+
+      </div>
+
+    </div>
+  `;
+
+
+  document.body
+    .appendChild(
+      modal
+    );
+
+
+  modal
+    .querySelectorAll(
+      '[data-teacher-password-action="close"]'
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            closeModal(
+              "teacherChangePasswordModal"
+            );
+
+          }
+        );
+
+      }
+    );
+
+
+  $(
+    "teacherChangePasswordForm"
+  )?.addEventListener(
+    "submit",
+    submitTeacherPasswordChange
+  );
+
+
+  return modal;
+
+}
+
+
+/* =========================================================
+   PASSWORD MESSAGE
+========================================================= */
+
+function setTeacherPasswordMessage(
+  message,
+  type =
+    "error"
+){
+
+  const element =
+    $(
+      "teacherChangePasswordMessage"
+    );
+
+
+  if(!element){
+
+    return;
+
+  }
+
+
+  element.textContent =
+    safeString(
+      message
+    );
+
+
+  element.hidden =
+    !message;
+
+
+  element.dataset
+    .type =
+    type;
+
+}
+
+
+/* =========================================================
+   OPEN CHANGE PASSWORD
+========================================================= */
+
+function openTeacherChangePasswordModal(){
+
+  ensureTeacherPasswordModal();
+
+
+  $(
+    "teacherChangePasswordForm"
+  )?.reset();
+
+
+  setTeacherPasswordMessage(
+    ""
+  );
+
+
+  openModal(
+    "teacherChangePasswordModal"
+  );
+
+
+  window.setTimeout(
+    () => {
+
+      $(
+        "teacherCurrentPassword"
+      )?.focus();
+
+    },
+    60
+  );
+
+}
+
+
+/* =========================================================
+   SUBMIT PASSWORD CHANGE
+========================================================= */
+
+async function submitTeacherPasswordChange(
+  event
+){
+
+  event?.preventDefault();
+
+
+  const currentPassword =
+    String(
+      $(
+        "teacherCurrentPassword"
+      )?.value ||
+      ""
+    );
+
+
+  const newPassword =
+    String(
+      $(
+        "teacherNewPassword"
+      )?.value ||
+      ""
+    );
+
+
+  const confirmPassword =
+    String(
+      $(
+        "teacherConfirmPassword"
+      )?.value ||
+      ""
+    );
+
+
+  if(!currentPassword){
+
+    setTeacherPasswordMessage(
+      "Enter your current password."
+    );
+
+    return false;
+
+  }
+
+
+  if(
+    newPassword.length <
+    8
+  ){
+
+    setTeacherPasswordMessage(
+      "Your new password must contain at least 8 characters."
+    );
+
+    return false;
+
+  }
+
+
+  if(
+    newPassword !==
+    confirmPassword
+  ){
+
+    setTeacherPasswordMessage(
+      "New password and confirmation do not match."
+    );
+
+    return false;
+
+  }
+
+
+  const submitButton =
+    $(
+      "teacherChangePasswordSubmitButton"
+    );
+
+
+  if(
+    submitButton?.disabled
+  ){
+
+    return false;
+
+  }
+
+
+  if(submitButton){
+
+    submitButton.disabled =
+      true;
+
+    submitButton.textContent =
+      "Updating...";
+
+  }
+
+
+  setTeacherPasswordMessage(
+    "Securely updating your password...",
+    "info"
+  );
+
+
+  try{
+
+    const response =
+      await apiSend(
+        "/api/auth/change-password",
+        "PATCH",
+        {
+          currentPassword,
+          newPassword,
+          confirmPassword
+        }
+      );
+
+
+    setTeacherPasswordMessage(
+      response?.message ||
+      "Password changed successfully.",
+      "success"
+    );
+
+
+    notifyAIFTSuccess(
+      response?.message ||
+      "Your password has been changed successfully.",
+      {
+        title:
+          "Password updated"
+      }
+    );
+
+
+    window.setTimeout(
+      () => {
+
+        closeModal(
+          "teacherChangePasswordModal"
+        );
+
+      },
+      650
+    );
+
+
+    return true;
+
+
+  }catch(
+    error
+  ){
+
+    setTeacherPasswordMessage(
+      getErrorMessage(
+        error,
+        "Your password could not be changed."
+      )
+    );
+
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "Your password could not be changed."
+      ),
+      {
+        title:
+          "Password change failed"
+      }
+    );
+
+
+    return false;
+
+
+  }finally{
+
+    if(submitButton){
+
+      submitButton.disabled =
+        false;
+
+      submitButton.textContent =
+        "Change password";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   LOAD ACTIVE SESSIONS
+========================================================= */
+
+async function loadTeacherSettingsSessions({
+  force =
+    false
+} = {}){
+
+  if(
+    teacherSettingsWorkspaceState
+      .sessionsLoading
+  ){
+
+    return teacherSettingsWorkspaceState
+      .sessions;
+
+  }
+
+
+  if(
+    teacherSettingsWorkspaceState
+      .sessionsLoaded &&
+    !force
+  ){
+
+    return teacherSettingsWorkspaceState
+      .sessions;
+
+  }
+
+
+  teacherSettingsWorkspaceState
+    .sessionsLoading =
+    true;
+
+
+  if(
+    teacherSettingsWorkspaceState
+      .activePage ===
+    "security"
+  ){
+
+    renderTeacherSettingsPreferences();
+
+  }
+
+
+  try{
+
+    const response =
+      await apiGet(
+        "/api/auth/sessions",
+        {
+          sessions:[]
+        }
+      );
+
+
+    teacherSettingsWorkspaceState
+      .sessions =
+      Array.isArray(
+        response?.sessions
+      )
+        ? response.sessions
+        : [];
+
+
+    teacherSettingsWorkspaceState
+      .sessionsLoaded =
+      true;
+
+
+    return teacherSettingsWorkspaceState
+      .sessions;
+
+
+  }catch(
+    error
+  ){
+
+    teacherSettingsWorkspaceState
+      .sessions =
+      [];
+
+
+    teacherSettingsWorkspaceState
+      .sessionsLoaded =
+      false;
+
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "Active sessions could not be loaded."
+      ),
+      {
+        title:
+          "Sessions unavailable"
+      }
+    );
+
+
+    return [];
+
+
+  }finally{
+
+    teacherSettingsWorkspaceState
+      .sessionsLoading =
+      false;
+
+
+    if(
+      teacherSettingsWorkspaceState
+        .activePage ===
+      "security"
+    ){
+
+      renderTeacherSettingsPreferences();
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   REVOKE ONE SESSION
+========================================================= */
+
+async function removeTeacherAuthSession(
+  sessionId
+){
+
+  const normalizedId =
+    safeString(
+      sessionId
+    );
+
+
+  if(!normalizedId){
+
+    return false;
+
+  }
+
+
+  try{
+
+    const response =
+      await apiSend(
+
+        `/api/auth/sessions/${
+          encodeURIComponent(
+            normalizedId
+          )
+        }`,
+
+        "DELETE"
+
+      );
+
+
+    if(
+      response?.currentSessionRevoked
+    ){
+
+      clearTeacherAuthentication();
+
+      window.location.href =
+        AIFT_TEACHER_CONFIG
+          .loginPage;
+
+
+      return true;
+
+    }
+
+
+    teacherSettingsWorkspaceState
+      .sessionsLoaded =
+      false;
+
+
+    await loadTeacherSettingsSessions({
+      force:true
+    });
+
+
+    notifyAIFTSuccess(
+      response?.message ||
+      "The selected device was removed.",
+      {
+        title:
+          "Device removed"
+      }
+    );
+
+
+    return true;
+
+
+  }catch(
+    error
+  ){
+
+    notifyAIFTError(
+      getErrorMessage(
+        error,
+        "The selected device could not be removed."
+      ),
+      {
+        title:
+          "Session removal failed"
+      }
+    );
+
+
+    return false;
+
+  }
+
+}
+
+
+/* =========================================================
+   CLEAR TEACHER AUTHENTICATION
+========================================================= */
+
+function clearTeacherAuthentication(){
+
+  const keys = [
+
+    AIFT_TEACHER_CONFIG
+      .storageKeys
+      .teacherToken,
+
+    AIFT_TEACHER_CONFIG
+      .storageKeys
+      .schoolToken,
+
+    AIFT_TEACHER_CONFIG
+      .storageKeys
+      .adminToken,
+
+    AIFT_TEACHER_CONFIG
+      .storageKeys
+      .genericToken,
+
+    AIFT_TEACHER_CONFIG
+      .storageKeys
+      .role,
+
+    AIFT_TEACHER_CONFIG
+      .storageKeys
+      .userId
+
+  ];
+
+
+  keys.forEach(
+    key => {
+
+      localStorage.removeItem(
+        key
+      );
+
+      sessionStorage.removeItem(
+        key
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   SIGN OUT
+========================================================= */
+
+async function signOutTeacherSettingsAccount(){
+
+  try{
+
+    const sessions =
+      await loadTeacherSettingsSessions({
+        force:true
+      });
+
+
+    const current =
+      sessions.find(
+        session =>
+          session?.current ===
+          true
+      );
+
+
+    const currentSessionId =
+      safeString(
+        current?.sessionId ||
+        current?.id
+      );
+
+
+    if(currentSessionId){
+
+      await apiSend(
+
+        `/api/auth/sessions/${
+          encodeURIComponent(
+            currentSessionId
+          )
+        }`,
+
+        "DELETE"
+
+      );
+
+    }
+
+
+  }catch(
+    error
+  ){
+
+    console.warn(
+      "Teacher server session could not be revoked before local sign out:",
+      error
+    );
+
+  }
+
+
+  clearTeacherAuthentication();
+
+
+  window.location.href =
+    AIFT_TEACHER_CONFIG
+      .loginPage;
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   LOCAL SETTINGS ACTION
+========================================================= */
+
+async function handleTeacherSettingsLocalAction(
+  button
+){
+
+  const action =
+    safeString(
+      button?.dataset
+        ?.teacherSettingsLocalAction
+    );
+
+
+  switch(action){
+
+    case "change-password":
+
+      openTeacherChangePasswordModal();
+
+      return true;
+
+
+    case "refresh-sessions":
+
+      await loadTeacherSettingsSessions({
+        force:true
+      });
+
+      return true;
+
+
+    case "remove-session":
+
+    case "signout-current-session":
+
+      return removeTeacherAuthSession(
+        button.dataset
+          .sessionId
+      );
+
+
+    case "signout":
+
+      return signOutTeacherSettingsAccount();
+
+
+    default:
+
+      return false;
+
+  }
+
+}
+
+
+/* =========================================================
+   BIND SETTINGS CONTROLS
+
+   This listener is scoped ONLY to the dynamically rendered
+   settings content. It does not create another document-wide
+   Teacher Studio action controller.
+========================================================= */
+
+function bindTeacherSettingsLocalControls(){
+
+  const container =
+    $(
+      "teacherSettingsPreferences"
+    );
+
+
+  if(!container){
+
+    return;
+
+  }
+
+
+  if(
+    teacherSettingsControlsController
+  ){
+
+    teacherSettingsControlsController
+      .abort();
+
+  }
+
+
+  teacherSettingsControlsController =
+    new AbortController();
+
+
+  const signal =
+    teacherSettingsControlsController
+      .signal;
+
+
+  /* -------------------------------------------------------
+     BOOLEAN SETTINGS
+  ------------------------------------------------------- */
+
+  container
+    .querySelectorAll(
+      "[data-teacher-setting-toggle]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          event => {
+
+            event.preventDefault();
+
+
+            const key =
+              safeString(
+                button.dataset
+                  .teacherSettingKey
+              );
+
+
+            if(!key){
+
+              return;
+
+            }
+
+
+            const current =
+              button.getAttribute(
+                "aria-checked"
+              ) ===
+              "true";
+
+
+            const next =
+              !current;
+
+
+            button.setAttribute(
+              "aria-checked",
+              next
+                ? "true"
+                : "false"
+            );
+
+
+            setTeacherBooleanPreference(
+              key,
+              next
+            );
+
+          },
+          {
+            signal
+          }
+        );
+
+      }
+    );
+
+
+  /* -------------------------------------------------------
+     THEME
+  ------------------------------------------------------- */
+
+  container
+    .querySelectorAll(
+      "[data-teacher-theme]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          event => {
+
+            event.preventDefault();
+
+
+            setTeacherThemePreference(
+              button.dataset
+                .teacherTheme
+            );
+
+          },
+          {
+            signal
+          }
+        );
+
+      }
+    );
+
+
+  /* -------------------------------------------------------
+     SECURITY / ACCOUNT LOCAL ACTIONS
+  ------------------------------------------------------- */
+
+  container
+    .querySelectorAll(
+      "[data-teacher-settings-local-action]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          event => {
+
+            event.preventDefault();
+
+
+            handleTeacherSettingsLocalAction(
+              button
+            );
+
+          },
+          {
+            signal
+          }
+        );
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   READ SETTINGS FORM
+   COMPATIBILITY
+
+   Existing central action code may still call this helper.
+========================================================= */
+
+function readTeacherSettingsForm(){
+
+  return getTeacherSettingsSnapshot();
+
+}
+
+
+/* =========================================================
+   RESET SETTINGS
+   NO BROWSER CONFIRM HERE
+
+   AIFT confirmation will replace destructive confirmation
+   behavior when the Teacher account lifecycle controller is
+   connected.
+========================================================= */
+
+function resetTeacherSettings(){
+
+  Object.keys(
+    TEACHER_SETTINGS_DEFAULTS
+  )
+    .forEach(
+      key => {
+
+        teacherSettingsWorkspaceState[
+          key
+        ] =
+          TEACHER_SETTINGS_DEFAULTS[
+            key
+          ];
+
+      }
+    );
 
 
   try{
@@ -74361,6 +76515,17 @@ function renderTeacherSettingsWorkspace(){
 
   applyTeacherSettingsInterface();
 
+
+  if(
+    teacherSettingsWorkspaceState
+      .activePage ===
+    "security"
+  ){
+
+    loadTeacherSettingsSessions();
+
+  }
+
 }
 
 
@@ -74399,6 +76564,8 @@ function initializeTeacherSettingsWorkspace(){
 
 
   hydrateTeacherSettingsFromUser();
+
+  bindTeacherSystemThemeWatcher();
 
   applyTeacherSettingsInterface();
 
