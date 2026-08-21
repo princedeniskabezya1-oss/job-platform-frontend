@@ -19712,17 +19712,16 @@ async function saveStudentSettings(
 
 
   /*
-    Update memory immediately so the interface feels instant.
+    The browser state is updated immediately.
+
+    MongoDB remains the authoritative persisted source,
+    but a PATCH response must never visually overwrite a
+    newer preference the student has already selected.
   */
 
   studentSettingsState =
     normalizedSettings;
 
-
-  /*
-    Keep a browser cache, but this is no longer the
-    permanent database.
-  */
 
   cacheStudentSettings(
     normalizedSettings
@@ -19744,57 +19743,64 @@ async function saveStudentSettings(
 
 
     /*
-      Ignore an older response if another settings save
-      was started after this request.
+      A newer Settings save started while this request
+      was running.
+
+      This response is now stale and must never modify
+      the current interface state.
     */
 
-    if (
+    if(
       saveSequence !==
       studentSettingsSaveSequence
     ){
+
       return {
+
         success:true,
+
         stale:true,
-        settings:getStudentSettings()
+
+        settings:
+          getStudentSettings(),
+
+        response
+
       };
-    }
-
-
-    const serverSettings =
-      response?.settings ||
-      response?.studentStudioSettings ||
-      response?.data?.settings ||
-      null;
-
-
-    if (
-      serverSettings &&
-      typeof serverSettings === "object" &&
-      !Array.isArray(serverSettings)
-    ){
-
-      studentSettingsState =
-        mergeStudentSettings(
-          cloneDefaultStudentSettings(),
-          serverSettings
-        );
-
-
-      cacheStudentSettings(
-        studentSettingsState
-      );
 
     }
 
+
+    /*
+      IMPORTANT:
+
+      Do not replace studentSettingsState using the PATCH
+      response.
+
+      The browser already contains the student's latest
+      intended preferences.
+
+      Server state is re-hydrated authoritatively when
+      Settings is loaded again with GET.
+    */
 
     studentSettingsLoaded =
       true;
 
 
     return {
+
       success:true,
-      settings:getStudentSettings()
+
+      stale:false,
+
+      settings:
+        getStudentSettings(),
+
+      response
+
     };
+
 
   }catch(error){
 
@@ -19804,14 +19810,20 @@ async function saveStudentSettings(
     );
 
 
-    if (!silent){
+    /*
+      Only display this notification when the caller
+      has not requested a silent background save.
+    */
+
+    if(!silent){
 
       showAlert(
         "error",
         error?.message ||
         "Your Student Studio preference could not be saved.",
         {
-          title:"Settings not saved"
+          title:
+            "Settings not saved"
         }
       );
 
@@ -19819,9 +19831,14 @@ async function saveStudentSettings(
 
 
     return {
+
       success:false,
+
       error,
-      settings:getStudentSettings()
+
+      settings:
+        getStudentSettings()
+
     };
 
   }
@@ -21544,6 +21561,383 @@ function setStudentSettingByPath(
 
 }
 
+/* =========================================================
+   STUDENT STUDIO
+   APPEARANCE CONTROLLER
+========================================================= */
+
+
+/* =========================================================
+   NORMALIZE THEME
+========================================================= */
+
+function normalizeStudentTheme(
+  value
+){
+
+  const theme =
+    String(
+      value ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if(
+    theme === "dark" ||
+    theme === "system"
+  ){
+
+    return theme;
+
+  }
+
+
+  /*
+    Light is the production fallback.
+
+    A missing preference must never automatically make
+    Student Studio dark.
+  */
+
+  return "light";
+
+}
+
+
+/* =========================================================
+   RESOLVE SYSTEM THEME
+========================================================= */
+
+function resolveStudentTheme(
+  preference
+){
+
+  const theme =
+    normalizeStudentTheme(
+      preference
+    );
+
+
+  if(
+    theme ===
+    "dark"
+  ){
+
+    return "dark";
+
+  }
+
+
+  if(
+    theme ===
+    "system"
+  ){
+
+    const prefersDark =
+      Boolean(
+        window.matchMedia &&
+        window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches
+      );
+
+
+    return prefersDark
+      ? "dark"
+      : "light";
+
+  }
+
+
+  return "light";
+
+}
+
+
+/* =========================================================
+   APPLY APPEARANCE
+========================================================= */
+
+function applyStudentAppearanceSettings(
+  settings
+){
+
+  const appearance =
+    settings?.appearance || {};
+
+
+  const preferredTheme =
+    normalizeStudentTheme(
+      appearance.theme
+    );
+
+
+  const resolvedTheme =
+    resolveStudentTheme(
+      preferredTheme
+    );
+
+
+  /*
+    Theme attributes belong on <html> so every Student
+    Studio surface can inherit the selected palette.
+  */
+
+  document.documentElement.dataset.studentTheme =
+    resolvedTheme;
+
+
+  document.documentElement.dataset.studentThemePreference =
+    preferredTheme;
+
+
+  /*
+    Appearance-level compact mode.
+
+    Keep this separate from Accessibility so the two
+    settings do not overwrite one another.
+  */
+
+  document.body.classList.toggle(
+    "student-appearance-compact",
+    Boolean(
+      appearance.compactInterface
+    )
+  );
+
+
+  /*
+    Keep the theme selector visually synchronized.
+  */
+
+  document
+    .querySelectorAll(
+      "[data-student-theme]"
+    )
+    .forEach(button => {
+
+      const active =
+        String(
+          button.dataset.studentTheme ||
+          ""
+        ) ===
+        preferredTheme;
+
+
+      button.classList.toggle(
+        "active",
+        active
+      );
+
+
+      button.setAttribute(
+        "aria-pressed",
+        active
+          ? "true"
+          : "false"
+      );
+
+    });
+
+}
+
+
+/* =========================================================
+   SET STUDENT THEME
+========================================================= */
+
+function setStudentTheme(
+  requestedTheme
+){
+
+  const theme =
+    normalizeStudentTheme(
+      requestedTheme
+    );
+
+
+  const settings =
+    getStudentSettings();
+
+
+  settings.appearance =
+    settings.appearance &&
+    typeof settings.appearance ===
+      "object"
+      ? settings.appearance
+      : {};
+
+
+  settings.appearance.theme =
+    theme;
+
+
+  /*
+    Update memory immediately.
+  */
+
+  studentSettingsState =
+    mergeStudentSettings(
+      cloneDefaultStudentSettings(),
+      settings
+    );
+
+
+  /*
+    Update browser fallback/cache immediately.
+  */
+
+  cacheStudentSettings(
+    studentSettingsState
+  );
+
+
+  /*
+    Apply immediately.
+
+    The student should never wait for Render/MongoDB
+    before seeing their selected theme.
+  */
+
+  applyStudentAppearanceSettings(
+    studentSettingsState
+  );
+
+
+  /*
+    Persist in the background.
+  */
+
+  queueStudentSettingsSave(
+    studentSettingsState,
+    {
+      delay:180,
+
+      onError:error => {
+
+        console.error(
+          "STUDENT THEME SAVE FAILED:",
+          error
+        );
+
+
+        showAlert(
+          "error",
+          error?.message ||
+          "Your theme preference could not be saved.",
+          {
+            title:
+              "Theme not saved"
+          }
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   SYSTEM THEME CHANGE LISTENER
+========================================================= */
+
+let studentSystemThemeMediaQuery =
+  null;
+
+
+function initializeStudentSystemThemeListener(){
+
+  if(
+    !window.matchMedia
+  ){
+
+    return;
+
+  }
+
+
+  if(
+    studentSystemThemeMediaQuery
+  ){
+
+    return;
+
+  }
+
+
+  studentSystemThemeMediaQuery =
+    window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    );
+
+
+  const handleSystemThemeChange =
+    () => {
+
+      const settings =
+        getStudentSettings();
+
+
+      const preference =
+        normalizeStudentTheme(
+          settings?.appearance?.theme
+        );
+
+
+      /*
+        Ignore operating-system changes unless the
+        student explicitly selected System.
+      */
+
+      if(
+        preference !==
+        "system"
+      ){
+
+        return;
+
+      }
+
+
+      applyStudentAppearanceSettings(
+        settings
+      );
+
+    };
+
+
+  if(
+    typeof studentSystemThemeMediaQuery.addEventListener ===
+    "function"
+  ){
+
+    studentSystemThemeMediaQuery.addEventListener(
+      "change",
+      handleSystemThemeChange
+    );
+
+
+  }else if(
+    typeof studentSystemThemeMediaQuery.addListener ===
+    "function"
+  ){
+
+    /*
+      Older Safari fallback.
+    */
+
+    studentSystemThemeMediaQuery.addListener(
+      handleSystemThemeChange
+    );
+
+  }
+
+}
+
 
 function applyStudentAccessibilitySettings(
   settings
@@ -21584,6 +21978,16 @@ function applyStudentAccessibilitySettings(
     )
   );
 
+
+  /*
+    Appearance and Accessibility are applied together,
+    but remain separate settings domains.
+  */
+
+  applyStudentAppearanceSettings(
+    settings
+  );
+
 }
 
 
@@ -21620,27 +22024,57 @@ function bindStudentSettingsControls(){
         );
 
 
-      if (navigationButton){
+if(navigationButton){
 
-        event.preventDefault();
-
-
-        const page =
-          navigationButton.dataset
-            .studentSettingsPage;
+  event.preventDefault();
 
 
-        setStudentSettingsPage(
-          page
-        );
+  const page =
+    navigationButton.dataset
+      .studentSettingsPage;
 
 
-        return;
+  setStudentSettingsPage(
+    page
+  );
 
-      }
+
+  return;
+
+}
 
 
-      const actionButton =
+/* =========================================================
+   APPEARANCE THEME
+========================================================= */
+
+const themeButton =
+  event.target.closest(
+    "[data-student-theme]"
+  );
+
+
+if(themeButton){
+
+  event.preventDefault();
+
+
+  const theme =
+    themeButton.dataset
+      .studentTheme;
+
+
+  setStudentTheme(
+    theme
+  );
+
+
+  return;
+
+}
+
+
+const actionButton =
         event.target.closest(
           "[data-student-settings-action]"
         );
