@@ -47636,7 +47636,7 @@ function initializeSchoolServerSettingsControls(){
 
       control.addEventListener(
         "change",
-        async event => {
+        event => {
 
           const input =
             event.currentTarget;
@@ -47674,47 +47674,219 @@ function initializeSchoolServerSettingsControls(){
           }
 
 
-          const previousValue =
-            !input.checked;
+          /*
+            OPTIMISTIC UI
+
+            The browser has already changed the checkbox
+            visually at this point.
+
+            Do NOT disable it while the network request
+            is running. This keeps Notifications and
+            Privacy feeling immediate.
+          */
+
+          const requestedValue =
+            Boolean(
+              input.checked
+            );
 
 
-          input.disabled =
-            true;
+          /*
+            Track the value this request represents.
+
+            If the user toggles the same switch again
+            before this save finishes, an older failed
+            request must not undo the newer user choice.
+          */
+
+          const requestVersion =
+            Number(
+              input.dataset.schoolSettingVersion ||
+              0
+            ) + 1;
 
 
-          try{
+          input.dataset.schoolSettingVersion =
+            String(
+              requestVersion
+            );
 
-            await saveSchoolStudioSettingsToServer({
 
-              [group]: {
+          input.classList.add(
+            "school-setting-saving"
+          );
 
-                [field]:
-                  Boolean(
-                    input.checked
-                  )
+
+          saveSchoolStudioSettingsToServer({
+
+            [group]: {
+
+              [field]:
+                requestedValue
+
+            }
+
+          })
+            .then(() => {
+
+              /*
+                Only update the visual save state if
+                this is still the newest request made
+                by this control.
+              */
+
+              const latestVersion =
+                Number(
+                  input.dataset.schoolSettingVersion ||
+                  0
+                );
+
+
+              if(
+                latestVersion !==
+                requestVersion
+              ){
+
+                return;
 
               }
 
+
+              input.classList.remove(
+                "school-setting-saving"
+              );
+
+
+              input.classList.remove(
+                "school-setting-save-error"
+              );
+
+
+              input.classList.add(
+                "school-setting-saved"
+              );
+
+
+              window.setTimeout(
+                () => {
+
+                  /*
+                    Do not clear the state if the user
+                    changed the control again meanwhile.
+                  */
+
+                  const currentVersion =
+                    Number(
+                      input.dataset.schoolSettingVersion ||
+                      0
+                    );
+
+
+                  if(
+                    currentVersion ===
+                    requestVersion
+                  ){
+
+                    input.classList.remove(
+                      "school-setting-saved"
+                    );
+
+                  }
+
+                },
+                700
+              );
+
+            })
+            .catch(error => {
+
+              const latestVersion =
+                Number(
+                  input.dataset.schoolSettingVersion ||
+                  0
+                );
+
+
+              /*
+                If a newer toggle has already happened,
+                this failed older request must not revert
+                the newer UI state.
+              */
+
+              if(
+                latestVersion !==
+                requestVersion
+              ){
+
+                console.warn(
+                  "OLDER SCHOOL SETTING SAVE FAILED:",
+                  path,
+                  error
+                );
+
+
+                return;
+
+              }
+
+
+              /*
+                This request is still the latest value,
+                so revert only this failed change.
+              */
+
+              input.checked =
+                !requestedValue;
+
+
+              input.classList.remove(
+                "school-setting-saving"
+              );
+
+
+              input.classList.remove(
+                "school-setting-saved"
+              );
+
+
+              input.classList.add(
+                "school-setting-save-error"
+              );
+
+
+              console.error(
+                "SCHOOL SETTING CHANGE FAILED:",
+                path,
+                error
+              );
+
+
+              window.setTimeout(
+                () => {
+
+                  const currentVersion =
+                    Number(
+                      input.dataset.schoolSettingVersion ||
+                      0
+                    );
+
+
+                  if(
+                    currentVersion ===
+                    requestVersion
+                  ){
+
+                    input.classList.remove(
+                      "school-setting-save-error"
+                    );
+
+                  }
+
+                },
+                1600
+              );
+
             });
-
-          }catch(error){
-
-            input.checked =
-              previousValue;
-
-
-            console.error(
-              "SCHOOL SETTING CHANGE FAILED:",
-              path,
-              error
-            );
-
-          }finally{
-
-            input.disabled =
-              false;
-
-          }
 
         }
       );
