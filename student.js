@@ -21760,21 +21760,60 @@ function renderStudentSettingsSecurity(){
 }
 
 
+/* =========================================================
+   STUDENT SETTINGS
+   DATA & ACCOUNT
+========================================================= */
+
 function renderStudentSettingsData(){
 
   return `
 
     ${studentSettingsPanelHeaderHTML({
-      eyebrow:"Data & account",
-     
+
+      eyebrow:
+        "Data & account",
+
+      title:
+        "Your data and account",
+
       description:
-        "Review data-related actions and account-level controls."
+        "Manage your Student Studio data, account access, and account lifecycle."
+
     })}
 
+
+    <!-- =====================================================
+         YOUR DATA
+    ====================================================== -->
 
     <section
       class="student-settings-card"
     >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            YOUR DATA
+          </span>
+
+          <h3>
+            Data controls
+          </h3>
+
+          <p>
+            Request a copy of supported information associated
+            with your AIFT Student account.
+          </p>
+
+        </div>
+
+      </div>
+
 
       <div
         class="student-settings-action-row"
@@ -21782,6 +21821,7 @@ function renderStudentSettingsData(){
 
         <span
           class="student-settings-action-icon"
+          aria-hidden="true"
         >
           <i class="fa-solid fa-download"></i>
         </span>
@@ -21796,13 +21836,15 @@ function renderStudentSettingsData(){
           </strong>
 
           <p>
-            Request a copy of supported Student Studio account and learning data.
+            Request an export of supported profile, learning,
+            portfolio, certificate, and account information.
           </p>
 
         </div>
 
 
         <button
+          id="studentRequestDataExportButton"
           type="button"
           class="student-settings-button secondary"
           data-student-settings-action="download-data"
@@ -21815,8 +21857,12 @@ function renderStudentSettingsData(){
     </section>
 
 
+    <!-- =====================================================
+         ACCOUNT ACCESS
+    ====================================================== -->
+
     <section
-      class="student-settings-card student-settings-danger-card"
+      class="student-settings-card"
     >
 
       <div
@@ -21826,15 +21872,15 @@ function renderStudentSettingsData(){
         <div>
 
           <span>
-            ACCOUNT
+            ACCOUNT ACCESS
           </span>
 
           <h3>
-            Account actions
+            Sign-in access
           </h3>
 
           <p>
-            These actions can affect access to your AIFT account.
+            Control access to this Student Studio account.
           </p>
 
         </div>
@@ -21847,7 +21893,8 @@ function renderStudentSettingsData(){
       >
 
         <span
-          class="student-settings-action-icon danger"
+          class="student-settings-action-icon"
+          aria-hidden="true"
         >
           <i class="fa-solid fa-right-from-bracket"></i>
         </span>
@@ -21862,19 +21909,170 @@ function renderStudentSettingsData(){
           </strong>
 
           <p>
-            Sign out of Student Studio on this browser.
+            End your current AIFT session on this device.
           </p>
 
         </div>
 
 
         <button
+          id="studentSettingsLogoutButton"
           type="button"
-          class="student-settings-button danger"
+          class="student-settings-button secondary"
           data-student-settings-action="logout"
         >
           Sign out
         </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         ACCOUNT LIFECYCLE
+    ====================================================== -->
+
+    <section
+      class="student-settings-card student-settings-danger-card"
+    >
+
+      <div
+        class="student-settings-card-heading"
+      >
+
+        <div>
+
+          <span>
+            ACCOUNT LIFECYCLE
+          </span>
+
+          <h3>
+            Account actions
+          </h3>
+
+          <p>
+            Deactivation and deletion affect your access to
+            AIFT and should only be used when necessary.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <!-- DEACTIVATE -->
+
+      <div
+        class="student-settings-action-row"
+      >
+
+        <span
+          class="student-settings-action-icon warning"
+          aria-hidden="true"
+        >
+          <i class="fa-solid fa-user-clock"></i>
+        </span>
+
+
+        <div
+          class="student-settings-action-copy"
+        >
+
+          <strong>
+            Deactivate account
+          </strong>
+
+          <p>
+            Disable access to your Student account without
+            immediately deleting your stored information.
+          </p>
+
+        </div>
+
+
+        <button
+          id="studentDeactivateAccountButton"
+          type="button"
+          class="student-settings-button danger"
+          data-student-settings-action="deactivate-account"
+        >
+          Deactivate
+        </button>
+
+      </div>
+
+
+      <!-- DELETE -->
+
+      <div
+        class="student-settings-action-row"
+      >
+
+        <span
+          class="student-settings-action-icon danger"
+          aria-hidden="true"
+        >
+          <i class="fa-solid fa-trash-can"></i>
+        </span>
+
+
+        <div
+          class="student-settings-action-copy"
+        >
+
+          <strong>
+            Delete account
+          </strong>
+
+          <p>
+            Request permanent deletion of your AIFT Student
+            account and supported personal data.
+          </p>
+
+        </div>
+
+
+        <button
+          id="studentDeleteAccountButton"
+          type="button"
+          class="student-settings-button danger"
+          data-student-settings-action="delete-account"
+        >
+          Delete account
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         ACCOUNT NOTICE
+    ====================================================== -->
+
+    <section
+      class="student-settings-callout"
+    >
+
+      <span
+        class="student-settings-callout-icon"
+        aria-hidden="true"
+      >
+        <i class="fa-solid fa-circle-info"></i>
+      </span>
+
+
+      <div>
+
+        <strong>
+          Before leaving AIFT
+        </strong>
+
+        <p>
+          Consider requesting a copy of your data before
+          deactivating or requesting deletion of your account.
+        </p>
 
       </div>
 
