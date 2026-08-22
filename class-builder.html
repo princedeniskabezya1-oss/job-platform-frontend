@@ -24984,61 +24984,104 @@ svg{
 
 /* =========================================================
    MOBILE CONTENT STUDIO
+   CANVAS-STYLE MOBILE EDITOR
 ========================================================= */
 
 @media(max-width:900px){
 
   /* =======================================================
-     PAGE
+     MOBILE CONTENT STUDIO TOKENS
   ======================================================== */
 
   body[data-builder-section="content"]{
+    --content-mobile-toolbar-bg:
+      rgba(255,255,255,.98);
+
+    --content-mobile-dock-height:
+      66px;
+
+    --content-mobile-drawer-radius:
+      22px;
+
+    --content-mobile-canvas-gap:
+      10px;
+
     overflow:hidden;
   }
 
 
+  /* =======================================================
+     CONTENT STUDIO PAGE
+
+     Mobile only.
+
+     The Class Builder topbar remains outside this workspace.
+     Content Studio occupies the remaining viewport.
+  ======================================================== */
+
   body[data-builder-section="content"]
   .studio-main{
+    min-height:
+      calc(
+        100dvh -
+        var(--aift-topbar-height)
+      );
+
     overflow:hidden!important;
   }
 
 
   body[data-builder-section="content"]
   .studio-workspace{
+    width:100%;
+    min-width:0;
+
     padding:0!important;
 
     overflow:hidden!important;
+
+    background:#eef1f5;
   }
 
 
-  #section-content{
+  body[data-builder-section="content"]
+  .studio-workspace
+  > #section-content.active{
     position:relative;
 
     width:100%;
+
     height:
       calc(
         100dvh -
         var(--aift-topbar-height)
-      );
+      )!important;
 
-    min-height:0;
+    min-height:0!important;
+
+    margin:0;
+    padding:0;
 
     overflow:hidden;
   }
 
 
   /* =======================================================
-     BUILDER SHELL
+     BUILDER ROOT
 
-     One visible column only: the canvas.
+     Mobile becomes one editor column.
+
+     The desktop left/right columns are preserved in the
+     normal desktop CSS and are only detached visually here.
   ======================================================== */
 
+  body[data-builder-section="content"]
   .elementor-builder{
     position:relative;
 
     width:100%;
-    height:100%;
-    min-height:0;
+    height:100%!important;
+    min-height:0!important;
 
     display:block;
 
@@ -25053,18 +25096,37 @@ svg{
   }
 
 
+  /* Ignore desktop panel-collapse widths on mobile. */
+
+  body[data-builder-section="content"]
+  .elementor-builder{
+    --elementor-panel-width:auto;
+    --elementor-inspector-width:auto;
+  }
+
+
+  body[data-builder-section="content"].elementor-panel-collapsed
+  .elementor-builder,
+  body[data-builder-section="content"].elementor-settings-collapsed
+  .elementor-builder{
+    --elementor-panel-width:auto;
+    --elementor-inspector-width:auto;
+  }
+
+
   /* =======================================================
-     CANVAS COLUMN
+     CENTER EDITING COLUMN
   ======================================================== */
 
+  body[data-builder-section="content"]
   .elementor-canvas-column{
     position:relative;
 
     width:100%;
-    height:100%;
-    min-height:0;
+    height:100%!important;
+    min-height:0!important;
 
-    display:flex;
+    display:flex!important;
     flex-direction:column;
 
     overflow:hidden;
@@ -25074,40 +25136,65 @@ svg{
 
 
   /* =======================================================
-     CANVAS TOOLBAR
+     TOP EDITOR TOOLBAR
+
+     Mockup:
+     ---------------------------------------
+     lesson selector
+     ---------------------------------------
+     undo / redo / zoom / preview / save
+     ---------------------------------------
+
+     Elements and Settings no longer consume toolbar space.
+     They become the persistent bottom dock.
   ======================================================== */
 
+  body[data-builder-section="content"]
   .elementor-canvas-toolbar{
+    position:relative;
+    z-index:40;
+
+    width:100%;
+    min-width:0;
+    min-height:0;
+
     flex:
       0
       0
       auto;
 
-    min-height:auto;
-
     padding:
+      7px
       8px
-      9px;
+      8px;
 
-    display:flex;
+    display:grid;
 
-    align-items:stretch;
-    flex-direction:column;
+    grid-template-columns:
+      minmax(0,1fr);
 
     gap:7px;
 
+    border:0;
+
     border-bottom:
       1px solid
-      #e2e6eb;
+      #e1e5ea;
 
     background:
-      rgba(255,255,255,.98);
+      var(--content-mobile-toolbar-bg);
+
+    box-shadow:
+      0
+      1px
+      4px
+      rgba(15,23,42,.05);
 
     backdrop-filter:
-      blur(10px);
+      blur(14px);
 
     -webkit-backdrop-filter:
-      blur(10px);
+      blur(14px);
   }
 
 
@@ -25115,46 +25202,96 @@ svg{
      LESSON SELECTOR
   ======================================================== */
 
+  body[data-builder-section="content"]
   .elementor-canvas-title{
     width:100%;
+    min-width:0;
+    max-width:none;
 
-    display:block;
+    margin:0;
   }
 
 
-  .elementor-canvas-title > span,
+  body[data-builder-section="content"]
+  .elementor-canvas-title
+  > span,
+  body[data-builder-section="content"]
   #elementorLessonTitle{
     display:none;
   }
 
 
+  body[data-builder-section="content"]
   .elementor-title-row{
     width:100%;
+    min-width:0;
 
     display:block;
   }
 
 
+  body[data-builder-section="content"]
   #elementorLessonSelector{
     width:100%;
     max-width:none;
 
-    height:40px;
+    height:42px;
 
+    padding:
+      0
+      38px
+      0
+      12px;
+
+    border:
+      1px solid
+      #dfe3e8;
+
+    border-radius:10px;
+
+    outline:0;
+
+    background:#fff;
+
+    color:#202124;
+
+    /*
+      Required for iOS Safari:
+      prevents automatic page zoom when focused.
+    */
     font-size:16px;
+    line-height:1;
+    font-weight:600;
+
+    text-overflow:ellipsis;
+  }
+
+
+  body[data-builder-section="content"]
+  #elementorLessonSelector:focus{
+    border-color:
+      var(--aift-primary);
+
+    box-shadow:
+      0
+      0
+      0
+      3px
+      rgba(26,115,232,.12);
   }
 
 
   /* =======================================================
-     TOOLBAR ACTIONS
+     SECONDARY EDITOR CONTROL STRIP
 
-     Keep only essential controls visible and allow
-     horizontal scrolling instead of wrapping into a very
-     tall toolbar.
+     Compact, horizontal and swipeable exactly like a
+     mobile canvas editor.
   ======================================================== */
 
+  body[data-builder-section="content"]
   .elementor-toolbar-actions{
     width:100%;
+    min-width:0;
 
     display:flex;
 
@@ -25168,7 +25305,10 @@ svg{
     overflow-x:auto;
     overflow-y:hidden;
 
-    padding-bottom:2px;
+    padding:
+      0
+      0
+      1px;
 
     scrollbar-width:none;
 
@@ -25178,222 +25318,583 @@ svg{
   }
 
 
+  body[data-builder-section="content"]
   .elementor-toolbar-actions::-webkit-scrollbar{
     display:none;
   }
 
 
+  body[data-builder-section="content"]
   .elementor-toolbar-group{
+    min-height:38px;
+
+    padding:2px;
+
+    display:inline-flex;
+
+    align-items:center;
+
+    gap:2px;
+
     flex:
       0
       0
       auto;
+
+    border:
+      1px solid
+      #e1e5ea;
+
+    border-radius:9px;
+
+    background:#fff;
   }
 
 
+  body[data-builder-section="content"]
   .elementor-toolbar-button{
-    min-height:38px;
+    min-width:34px;
+    height:34px;
+    min-height:34px;
+
+    padding:
+      0
+      9px;
+
+    border:0;
+
+    border-radius:7px;
+
+    background:transparent;
+
+    color:#3c4043;
+
+    box-shadow:none;
   }
 
 
+  body[data-builder-section="content"]
+  .elementor-toolbar-button:active{
+    background:#f1f3f4;
+
+    transform:none;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-button.text{
+    display:inline-flex;
+  }
+
+
+  body[data-builder-section="content"]
   .elementor-viewport-select,
+  body[data-builder-section="content"]
   .elementor-zoom-select{
-    height:38px;
+    height:34px;
 
-    font-size:14px;
+    border:0;
+
+    background:#fff;
+
+    /*
+      Keep selects touch-friendly without causing iOS zoom.
+    */
+    font-size:16px;
   }
 
 
-  /*
-    Page-size presets are still available, but the control
-    is compact on mobile.
-  */
-
+  body[data-builder-section="content"]
   .elementor-viewport-select{
-    width:94px;
+    width:96px;
   }
 
 
+  body[data-builder-section="content"]
   .elementor-zoom-select{
     width:78px;
   }
 
 
+  body[data-builder-section="content"]
+  #saveElementorContentButton{
+    min-width:58px;
+
+    padding-inline:11px;
+
+    background:
+      var(--aift-primary);
+
+    color:#fff;
+  }
+
+
   /* =======================================================
-     CANVAS
+     CANVAS VIEWPORT
+
+     This is now the dominant mobile surface.
   ======================================================== */
 
+  body[data-builder-section="content"]
   .elementor-canvas-scroll{
     position:relative;
 
     width:100%;
+    min-width:0;
 
-    min-height:0;
+    height:auto!important;
+    min-height:0!important;
 
     flex:
       1
       1
       auto;
 
-    overflow:auto;
+    padding:
+      var(--content-mobile-canvas-gap)
+      var(--content-mobile-canvas-gap)
+      calc(
+        var(--content-mobile-dock-height) +
+        env(safe-area-inset-bottom) +
+        12px
+      )!important;
 
-    overscroll-behavior:contain;
+    overflow-x:auto!important;
+    overflow-y:auto!important;
+
+    overscroll-behavior:auto;
 
     -webkit-overflow-scrolling:touch;
-  }
 
+    touch-action:
+      pan-x
+      pan-y;
 
-  .elementor-canvas-stage{
-    width:100%;
+    background-color:#eef1f5;
 
-    min-width:100%;
+    background-image:
+      radial-gradient(
+        circle at 1px 1px,
+        rgba(128,134,139,.18)
+        1px,
+        transparent
+        0
+      );
 
-    min-height:100%;
-
-    padding:
-      10px;
-  }
-
-
-  /*
-    On an actual phone, Fluid editing should use the full
-    available width rather than emulate a desktop page.
-  */
-
-  .elementor-builder[data-canvas-preset="fluid"]
-  .elementor-canvas{
-    width:100%!important;
-    min-width:100%!important;
-
-    margin:0;
-
-    border:0!important;
-    border-radius:8px!important;
-
-    box-shadow:none!important;
-  }
-
-
-  /* =======================================================
-     CANVAS EMPTY STATE
-  ======================================================== */
-
-  .elementor-canvas-empty{
-    min-height:
-      340px;
-
-    padding:
-      28px
+    background-size:
+      18px
       18px;
   }
 
 
-  .elementor-canvas-empty h3{
-    font-size:16px;
-  }
-
-
-  .elementor-canvas-empty p{
-    max-width:320px;
-
-    font-size:10px;
-  }
-
-
-  .elementor-canvas-empty button{
-    min-height:42px;
-
-    padding:
-      0
-      14px;
+  body[data-builder-section="content"]
+  .elementor-canvas-scroll::-webkit-scrollbar{
+    width:0;
+    height:0;
   }
 
 
   /* =======================================================
-     CANVAS FOOTER
+     CANVAS STAGE
   ======================================================== */
 
-  .elementor-canvas-footer{
+  body[data-builder-section="content"]
+  .elementor-canvas-stage{
+    position:relative;
+
+    width:max-content!important;
+
+    min-width:100%!important;
+    min-height:100%!important;
+
+    height:auto!important;
+
+    padding:0!important;
+
+    display:flex!important;
+
+    align-items:flex-start!important;
+    justify-content:center!important;
+
+    transform-origin:
+      top
+      center;
+  }
+
+
+  /* =======================================================
+     FLUID CANVAS
+
+     Fluid mode behaves like the mockup:
+     the editing page fits the phone rather than pretending
+     to be a desktop canvas.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-builder[data-canvas-preset="fluid"]
+  .elementor-canvas-stage{
+    width:100%!important;
+    min-width:100%!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-builder[data-canvas-preset="fluid"]
+  .elementor-canvas{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+
+    height:auto!important;
+
+    min-height:
+      max(
+        420px,
+        calc(
+          100dvh -
+          var(--aift-topbar-height) -
+          132px -
+          var(--content-mobile-dock-height)
+        )
+      )!important;
+
+    margin:0!important;
+
+    padding:
+      clamp(
+        14px,
+        4vw,
+        22px
+      );
+
     flex:
       0
       0
-      auto;
+      auto!important;
 
-    min-height:38px;
+    border:
+      1px solid
+      #d9dee5!important;
 
-    padding:
-      7px
-      10px;
+    border-radius:5px!important;
 
-    gap:8px;
+    background:#fff!important;
 
-    font-size:8px;
+    box-shadow:
+      0
+      2px
+      8px
+      rgba(15,23,42,.07)!important;
+
+    transform-origin:
+      top
+      center;
   }
 
 
   /* =======================================================
-     LEFT ELEMENT PANEL — MOBILE DRAWER
+     FIXED-SIZE CANVAS PRESETS
+
+     Desktop / tablet / A4 / presentation remain available.
+     They can naturally scroll horizontally.
   ======================================================== */
 
-  .elementor-elements-panel{
-    position:fixed;
+  body[data-builder-section="content"]
+  .elementor-builder:not(
+    [data-canvas-preset="fluid"]
+  )
+  .elementor-canvas-stage{
+    justify-content:flex-start!important;
+  }
 
-    top:
-      var(--aift-topbar-height);
 
-    bottom:0;
-    left:0;
+  body[data-builder-section="content"]
+  .elementor-builder:not(
+    [data-canvas-preset="fluid"]
+  )
+  .elementor-canvas{
+    flex:
+      0
+      0
+      auto!important;
 
-    z-index:15000;
+    margin:
+      0
+      auto!important;
+  }
 
-    width:
-      min(
-        88vw,
-        340px
-      );
 
-    height:
-      calc(
-        100dvh -
-        var(--aift-topbar-height)
-      );
+  /* =======================================================
+     EMPTY CANVAS
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-canvas-empty{
+    min-height:360px;
+
+    padding:
+      32px
+      18px;
 
     display:flex;
 
+    align-items:center;
+    justify-content:center;
+
     flex-direction:column;
 
-    overflow:hidden;
+    text-align:center;
+  }
 
-    border:0;
-    border-right:
+
+  body[data-builder-section="content"]
+  .elementor-canvas-empty h3{
+    margin:
+      14px
+      0
+      6px;
+
+    font-size:17px;
+    line-height:1.35;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-canvas-empty p{
+    max-width:300px;
+
+    margin:
+      0
+      auto
+      16px;
+
+    font-size:11px;
+    line-height:1.5;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-canvas-empty button{
+    min-height:44px;
+
+    padding:
+      0
+      15px;
+
+    touch-action:manipulation;
+  }
+
+
+  /* =======================================================
+     CONTENT BLOCK MOBILE INTERACTION
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .lesson-content-block{
+    position:relative;
+
+    max-width:100%;
+
+    touch-action:manipulation;
+  }
+
+
+  body[data-builder-section="content"]
+  .lesson-content-block.selected{
+    box-shadow:
+      inset
+      0
+      0
+      0
+      2px
+      var(--aift-primary);
+  }
+
+
+  /* =======================================================
+     HIDE DESKTOP FOOTER ON MOBILE
+
+     Save/status remains available through the main toolbar.
+     This gives the canvas more usable height.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-canvas-footer{
+    display:none!important;
+  }
+
+
+  /* =======================================================
+     MOBILE BOTTOM DOCK
+
+     The existing Elements + Settings HTML is reused.
+     We reposition it instead of duplicating controls.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-mobile-panel-actions{
+    position:fixed;
+
+    right:0;
+    bottom:0;
+    left:0;
+
+    z-index:16020;
+
+    width:100%;
+    height:
+      calc(
+        var(--content-mobile-dock-height) +
+        env(safe-area-inset-bottom)
+      );
+
+    padding:
+      7px
+      max(
+        10px,
+        env(safe-area-inset-right)
+      )
+      calc(
+        7px +
+        env(safe-area-inset-bottom)
+      )
+      max(
+        10px,
+        env(safe-area-inset-left)
+      );
+
+    display:grid!important;
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0,1fr)
+      );
+
+    align-items:start;
+
+    gap:8px;
+
+    border-top:
       1px solid
-      #e2e6eb;
+      #dde2e8;
 
-    background:#fff;
+    background:
+      rgba(255,255,255,.98);
 
     box-shadow:
-      18px
       0
-      40px
-      rgba(15,23,42,.20);
+      -5px
+      18px
+      rgba(15,23,42,.08);
 
-    transform:
-      translate3d(-105%,0,0);
+    backdrop-filter:
+      blur(16px);
+
+    -webkit-backdrop-filter:
+      blur(16px);
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-panel-actions
+  .elementor-toolbar-button{
+    width:100%;
+    height:50px;
+    min-height:50px;
+
+    padding:
+      4px
+      8px;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:center;
+
+    flex-direction:column;
+
+    gap:3px;
+
+    border:0;
+    border-radius:10px;
+
+    background:transparent;
+
+    color:#5f6368;
+
+    font-size:10px;
+    line-height:1.1;
+    font-weight:600;
+
+    box-shadow:none;
+
+    touch-action:manipulation;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-panel-actions
+  .elementor-toolbar-button
+  svg{
+    width:20px;
+    height:20px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-panel-actions
+  .elementor-toolbar-button[
+    aria-expanded="true"
+  ]{
+    background:
+      #eef3ff;
+
+    color:
+      var(--aift-primary);
+  }
+
+
+  /* =======================================================
+     MOBILE DRAWER BACKDROP
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-builder::after{
+    content:"";
+
+    position:fixed;
+
+    inset:
+      var(--aift-topbar-height)
+      0
+      0
+      0;
+
+    z-index:15900;
+
+    background:
+      rgba(15,23,42,.42);
+
+    opacity:0;
 
     visibility:hidden;
 
     pointer-events:none;
 
     transition:
-      transform .2s ease,
-      visibility .2s ease;
+      opacity
+      .2s ease,
+      visibility
+      .2s ease;
   }
 
 
-  body.content-mobile-elements-open
-  .elementor-elements-panel{
-    transform:
-      translate3d(0,0,0);
+  body[data-builder-section="content"].content-mobile-elements-open
+  .elementor-builder::after,
+  body[data-builder-section="content"].content-mobile-settings-open
+  .elementor-builder::after{
+    opacity:1;
 
     visibility:visible;
 
@@ -25401,20 +25902,182 @@ svg{
   }
 
 
-  .elementor-panel-header{
+  /* =======================================================
+     ELEMENTS — BOTTOM SHEET
+
+     Replaces the old left-side drawer.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-elements-panel{
+    position:fixed!important;
+
+    top:auto!important;
+    right:0!important;
+    bottom:0!important;
+    left:0!important;
+
+    z-index:16010;
+
+    width:100%!important;
+    max-width:none!important;
+
+    height:auto!important;
+
+    max-height:
+      min(
+        72dvh,
+        640px
+      );
+
+    min-height:260px;
+
+    display:flex!important;
+
+    flex-direction:column;
+
+    overflow:hidden;
+
+    border:0!important;
+
+    border-radius:
+      var(--content-mobile-drawer-radius)
+      var(--content-mobile-drawer-radius)
+      0
+      0!important;
+
+    background:#fff;
+
+    box-shadow:
+      0
+      -18px
+      50px
+      rgba(15,23,42,.20);
+
+    transform:
+      translate3d(
+        0,
+        calc(100% + 24px),
+        0
+      )!important;
+
+    visibility:hidden;
+
+    opacity:1;
+
+    pointer-events:none;
+
+    transition:
+      transform
+      .24s
+      cubic-bezier(.2,.8,.2,1),
+      visibility
+      .24s ease!important;
+
+    will-change:transform;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-elements-panel::before{
+    content:"";
+
+    width:40px;
+    height:4px;
+
+    margin:
+      8px
+      auto
+      0;
+
     flex:
       0
       0
       auto;
 
-    min-height:60px;
+    border-radius:999px;
 
-    padding:
-      10px
-      12px;
+    background:#d5d9de;
   }
 
 
+  body[data-builder-section="content"].content-mobile-elements-open
+  .elementor-elements-panel{
+    transform:
+      translate3d(
+        0,
+        0,
+        0
+      )!important;
+
+    visibility:visible;
+
+    pointer-events:auto;
+  }
+
+
+  /* =======================================================
+     ELEMENT DRAWER HEADER
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-panel-header{
+    min-height:54px;
+
+    padding:
+      8px
+      14px
+      7px;
+
+    flex:
+      0
+      0
+      auto;
+
+    border-bottom:
+      1px solid
+      #edf0f3;
+
+    background:#fff;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-panel-header h2{
+    font-size:16px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-panel-eyebrow{
+    display:none;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-panel-icon-button{
+    width:40px;
+    height:40px;
+    min-width:40px;
+
+    border-radius:50%;
+  }
+
+
+  /* Existing collapse arrow functions as drawer close button. */
+
+  body[data-builder-section="content"]
+  .elementor-panel-icon-button svg{
+    transform:
+      rotate(-90deg);
+  }
+
+
+  /* =======================================================
+     ELEMENT SEARCH
+  ======================================================== */
+
+  body[data-builder-section="content"]
   .elementor-search{
     flex:
       0
@@ -25422,22 +26085,30 @@ svg{
       auto;
 
     margin:
-      0
-      10px
+      4px
+      12px
       10px;
   }
 
 
+  body[data-builder-section="content"]
   .elementor-search input{
-    height:42px;
+    width:100%;
+    height:44px;
 
     font-size:16px;
+
+    border-radius:10px;
   }
 
 
+  /* =======================================================
+     ELEMENT LIBRARY
+  ======================================================== */
+
+  body[data-builder-section="content"]
   .elementor-panel-scroll{
     min-height:0;
-
     max-height:none;
 
     flex:
@@ -25445,101 +26116,176 @@ svg{
       1
       auto;
 
+    overflow-x:hidden;
     overflow-y:auto;
 
     padding:
       0
-      10px
+      12px
       calc(
-        16px +
-        env(safe-area-inset-bottom)
+        var(--content-mobile-dock-height) +
+        env(safe-area-inset-bottom) +
+        14px
       );
+
+    overscroll-behavior:contain;
 
     -webkit-overflow-scrolling:touch;
   }
 
 
-  .elementor-element-grid{
-    grid-template-columns:
-      repeat(
-        2,
-        minmax(0,1fr)
-      );
-
-    gap:7px;
+  body[data-builder-section="content"]
+  .elementor-element-group{
+    margin-bottom:16px;
   }
 
 
-  .elementor-element{
-    min-height:76px;
+  body[data-builder-section="content"]
+  .elementor-element-grid{
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(0,1fr)
+      );
 
-    padding:10px;
+    gap:8px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-element{
+    min-width:0;
+    min-height:82px;
+
+    padding:
+      10px
+      6px;
+
+    border:
+      1px solid
+      #e4e7eb;
+
+    border-radius:10px;
+
+    background:#fff;
+
+    touch-action:manipulation;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-element:active{
+    background:#f5f7fa;
   }
 
 
   /* =======================================================
-     RIGHT SETTINGS PANEL — MOBILE DRAWER
+     SETTINGS — BOTTOM SHEET
+
+     Replaces the old right-side drawer.
   ======================================================== */
 
+  body[data-builder-section="content"]
   .elementor-settings-panel{
-    position:fixed;
+    position:fixed!important;
 
-    top:
-      var(--aift-topbar-height);
+    top:auto!important;
+    right:0!important;
+    bottom:0!important;
+    left:0!important;
 
-    right:0;
-    bottom:0;
+    z-index:16010;
 
-    z-index:15000;
+    width:100%!important;
+    max-width:none!important;
 
-    width:
+    height:auto!important;
+
+    max-height:
       min(
-        90vw,
-        360px
+        76dvh,
+        680px
       );
 
-    height:
-      calc(
-        100dvh -
-        var(--aift-topbar-height)
-      );
+    min-height:260px;
 
-    display:flex;
+    display:flex!important;
 
     flex-direction:column;
 
     overflow:hidden;
 
-    border:0;
-    border-left:
-      1px solid
-      #e2e6eb;
+    border:0!important;
+
+    border-radius:
+      var(--content-mobile-drawer-radius)
+      var(--content-mobile-drawer-radius)
+      0
+      0!important;
 
     background:#fff;
 
     box-shadow:
-      -18px
       0
-      40px
+      -18px
+      50px
       rgba(15,23,42,.20);
 
     transform:
-      translate3d(105%,0,0);
+      translate3d(
+        0,
+        calc(100% + 24px),
+        0
+      )!important;
 
     visibility:hidden;
+
+    opacity:1;
 
     pointer-events:none;
 
     transition:
-      transform .2s ease,
-      visibility .2s ease;
+      transform
+      .24s
+      cubic-bezier(.2,.8,.2,1),
+      visibility
+      .24s ease!important;
+
+    will-change:transform;
   }
 
 
-  body.content-mobile-settings-open
+  body[data-builder-section="content"]
+  .elementor-settings-panel::before{
+    content:"";
+
+    width:40px;
+    height:4px;
+
+    margin:
+      8px
+      auto
+      0;
+
+    flex:
+      0
+      0
+      auto;
+
+    border-radius:999px;
+
+    background:#d5d9de;
+  }
+
+
+  body[data-builder-section="content"].content-mobile-settings-open
   .elementor-settings-panel{
     transform:
-      translate3d(0,0,0);
+      translate3d(
+        0,
+        0,
+        0
+      )!important;
 
     visibility:visible;
 
@@ -25547,20 +26293,70 @@ svg{
   }
 
 
+  /* =======================================================
+     SETTINGS HEADER
+  ======================================================== */
+
+  body[data-builder-section="content"]
   .elementor-settings-header{
+    min-height:54px;
+
+    padding:
+      8px
+      14px
+      7px;
+
     flex:
       0
       0
       auto;
 
-    min-height:60px;
+    border-bottom:
+      1px solid
+      #edf0f3;
 
-    padding:
-      10px
-      12px;
+    background:#fff;
   }
 
 
+  body[data-builder-section="content"]
+  .elementor-settings-header span{
+    display:none;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-settings-header strong{
+    max-width:
+      calc(100vw - 78px);
+
+    font-size:15px;
+    line-height:1.35;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-settings-toggle{
+    width:40px;
+    height:40px;
+    min-width:40px;
+
+    border-radius:50%;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-settings-toggle svg{
+    transform:
+      rotate(90deg);
+  }
+
+
+  /* =======================================================
+     SETTINGS CONTENT
+  ======================================================== */
+
+  body[data-builder-section="content"]
   .elementor-settings-content{
     min-height:0;
 
@@ -25574,83 +26370,66 @@ svg{
 
     padding-bottom:
       calc(
-        16px +
-        env(safe-area-inset-bottom)
+        var(--content-mobile-dock-height) +
+        env(safe-area-inset-bottom) +
+        16px
       );
+
+    overscroll-behavior:contain;
 
     -webkit-overflow-scrolling:touch;
   }
 
 
   /* =======================================================
-     MOBILE DRAWER BACKDROP
+     MOBILE FORM SAFETY
+
+     Inspector fields must never trigger unwanted iOS zoom.
   ======================================================== */
 
-  .elementor-builder::after{
-    content:"";
-
-    position:fixed;
-
-    top:
-      var(--aift-topbar-height);
-
-    right:0;
-    bottom:0;
-    left:0;
-
-    z-index:14000;
-
-    display:block;
-
-    background:
-      rgba(15,23,42,.44);
-
-    opacity:0;
-
-    visibility:hidden;
-
-    pointer-events:none;
-
-    transition:
-      opacity .2s ease,
-      visibility .2s ease;
-  }
-
-
-  body.content-mobile-elements-open
-  .elementor-builder::after,
-  body.content-mobile-settings-open
-  .elementor-builder::after{
-    opacity:1;
-
-    visibility:visible;
-
-    pointer-events:auto;
+  body[data-builder-section="content"]
+  .elementor-settings-panel input,
+  body[data-builder-section="content"]
+  .elementor-settings-panel select,
+  body[data-builder-section="content"]
+  .elementor-settings-panel textarea,
+  body[data-builder-section="content"]
+  .elementor-elements-panel input{
+    font-size:16px;
   }
 
 
   /* =======================================================
-     IGNORE DESKTOP COLLAPSE WIDTHS ON MOBILE
+     DRAWER OPEN STATE
+
+     Prevent canvas gestures underneath a drawer.
   ======================================================== */
 
-  body.elementor-panel-collapsed
-  .elementor-builder,
-  body.elementor-settings-collapsed
-  .elementor-builder{
-    --elementor-panel-width:auto;
-    --elementor-inspector-width:auto;
+  body[data-builder-section="content"].content-mobile-elements-open
+  .elementor-canvas-scroll,
+  body[data-builder-section="content"].content-mobile-settings-open
+  .elementor-canvas-scroll{
+    overflow:hidden!important;
+
+    touch-action:none;
   }
 
 
-  body.elementor-panel-collapsed
-  .elementor-elements-panel,
-  body.elementor-settings-collapsed
-  .elementor-settings-panel{
-    width:
-      min(
-        88vw,
-        340px
-      );
+  /* =======================================================
+     ACCESSIBILITY / MOTION
+  ======================================================== */
+
+  @media(prefers-reduced-motion:reduce){
+
+    body[data-builder-section="content"]
+    .elementor-elements-panel,
+    body[data-builder-section="content"]
+    .elementor-settings-panel,
+    body[data-builder-section="content"]
+    .elementor-builder::after{
+      transition:none!important;
+    }
+
   }
 
 }
@@ -25662,40 +26441,86 @@ svg{
 
 @media(max-width:480px){
 
+  body[data-builder-section="content"]{
+    --content-mobile-canvas-gap:
+      7px;
+
+    --content-mobile-dock-height:
+      64px;
+  }
+
+
+  body[data-builder-section="content"]
   .elementor-canvas-toolbar{
     padding:
+      6px
+      7px
       7px;
+
+    gap:6px;
   }
 
 
-  .elementor-canvas-stage{
+  body[data-builder-section="content"]
+  #elementorLessonSelector{
+    height:40px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-actions{
+    gap:5px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-group{
+    min-height:36px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-button{
+    min-width:32px;
+    height:32px;
+    min-height:32px;
+
+    padding-inline:8px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-viewport-select,
+  body[data-builder-section="content"]
+  .elementor-zoom-select{
+    height:32px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-builder[data-canvas-preset="fluid"]
+  .elementor-canvas{
     padding:
-      7px;
+      14px;
+
+    min-height:
+      max(
+        400px,
+        calc(
+          100dvh -
+          var(--aift-topbar-height) -
+          126px -
+          var(--content-mobile-dock-height)
+        )
+      )!important;
   }
 
 
-  .elementor-elements-panel{
-    width:
-      min(
-        92vw,
-        330px
-      );
-  }
-
-
-  .elementor-settings-panel{
-    width:
-      min(
-        94vw,
-        350px
-      );
-  }
-
-
+  body[data-builder-section="content"]
   .elementor-element-grid{
     grid-template-columns:
       repeat(
-        2,
+        3,
         minmax(0,1fr)
       );
 
@@ -25703,15 +26528,25 @@ svg{
   }
 
 
+  body[data-builder-section="content"]
   .elementor-element{
-    min-height:72px;
+    min-height:76px;
+
+    padding:
+      8px
+      5px;
   }
 
 
-  .elementor-canvas-footer{
-    padding:
-      6px
-      8px;
+  body[data-builder-section="content"]
+  .elementor-elements-panel,
+  body[data-builder-section="content"]
+  .elementor-settings-panel{
+    border-radius:
+      20px
+      20px
+      0
+      0!important;
   }
 
 }
