@@ -27935,30 +27935,91 @@ body[data-builder-section="content"]
 }
 
 /* =========================================================
-   CONTENT STUDIO — MOBILE BOTTOM DOCK
-   FINAL STRUCTURAL VERSION
+   CONTENT STUDIO — MOBILE MAIN BOTTOM NAVIGATION
+   LESSON | VIEW | ELEMENTS | SETTINGS
    DESKTOP UNCHANGED
 ========================================================= */
 
 @media(max-width:900px){
 
   body[data-builder-section="content"]{
-    --content-mobile-dock-height:66px;
+    --content-mobile-dock-height:64px;
   }
 
 
   /* =======================================================
-     FIXED PHONE BOTTOM DOCK
+     REMOVE LESSON + VIEW FROM TOP
 
-     This element now lives OUTSIDE #elementorBuilder,
-     therefore it attaches directly to the mobile viewport.
+     They still exist for desktop.
+     They simply move conceptually into the mobile nav.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-canvas-title{
+    display:none!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-group[
+    aria-label="Canvas viewport"
+  ]{
+    display:none!important;
+  }
+
+
+  /* =======================================================
+     TOP TOOLBAR NOW HAS ONLY:
+
+     History | Zoom | Preview/Save
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-canvas-toolbar{
+    display:block!important;
+
+    padding:
+      5px
+      6px!important;
+
+    min-height:0!important;
+
+    border-bottom:
+      1px solid
+      #e5e7eb!important;
+
+    background:
+      rgba(255,255,255,.98)!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-actions{
+    width:100%!important;
+
+    display:grid!important;
+
+    grid-template-columns:
+      54px
+      minmax(108px,1fr)
+      76px!important;
+
+    align-items:center!important;
+
+    gap:3px!important;
+
+    overflow:hidden!important;
+  }
+
+
+  /* =======================================================
+     BOTTOM MAIN NAV
   ======================================================== */
 
   body[data-builder-section="content"]
   .elementor-mobile-panel-actions{
     position:fixed!important;
 
-    top:auto!important;
     right:0!important;
     bottom:0!important;
     left:0!important;
@@ -27973,28 +28034,18 @@ body[data-builder-section="content"]
         env(safe-area-inset-bottom)
       )!important;
 
-    min-height:
-      calc(
-        var(--content-mobile-dock-height) +
-        env(safe-area-inset-bottom)
-      )!important;
-
-    max-height:none!important;
-
-    margin:0!important;
-
     padding:
-      6px
+      5px
       max(
-        10px,
+        6px,
         env(safe-area-inset-right)
       )
       calc(
-        6px +
+        5px +
         env(safe-area-inset-bottom)
       )
       max(
-        10px,
+        6px,
         env(safe-area-inset-left)
       )!important;
 
@@ -28002,53 +28053,46 @@ body[data-builder-section="content"]
 
     grid-template-columns:
       repeat(
-        2,
+        4,
         minmax(0,1fr)
       )!important;
 
-    grid-template-rows:
-      1fr!important;
-
     align-items:center!important;
 
-    gap:8px!important;
-
-    overflow:hidden!important;
-
-    border:0!important;
+    gap:2px!important;
 
     border-top:
       1px solid
-      #dfe3e8!important;
-
-    border-radius:0!important;
+      #dde2e8!important;
 
     background:
-      rgba(
-        255,
-        255,
-        255,
-        .98
-      )!important;
+      rgba(255,255,255,.97)!important;
 
     box-shadow:
       0
       -4px
       18px
-      rgba(
-        15,
-        23,
-        42,
-        .10
+      rgba(15,23,42,.10)!important;
+
+    transform:
+      translate3d(
+        0,
+        0,
+        0
       )!important;
 
-    transform:none!important;
-
     opacity:1!important;
-
     visibility:visible!important;
 
-    pointer-events:auto!important;
+    transition:
+      transform
+      .22s
+      cubic-bezier(.2,.8,.2,1),
+      opacity
+      .18s ease!important;
+
+    will-change:
+      transform;
 
     backdrop-filter:
       blur(16px);
@@ -28059,24 +28103,41 @@ body[data-builder-section="content"]
 
 
   /* =======================================================
-     ELEMENTS / SETTINGS
+     AUTO-HIDE WHILE SCROLLING DOWN
   ======================================================== */
 
   body[data-builder-section="content"]
-  .elementor-mobile-panel-actions
-  .elementor-toolbar-button{
-    position:relative!important;
+  .elementor-mobile-panel-actions.is-scroll-hidden{
+    transform:
+      translate3d(
+        0,
+        calc(
+          100% +
+          env(safe-area-inset-bottom)
+        ),
+        0
+      )!important;
 
+    opacity:0!important;
+
+    pointer-events:none!important;
+  }
+
+
+  /* =======================================================
+     MAIN NAV BUTTON
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-mobile-main-action{
     width:100%!important;
 
     height:52px!important;
     min-height:52px!important;
 
-    margin:0!important;
-
     padding:
-      4px
-      8px!important;
+      3px
+      2px!important;
 
     display:flex!important;
 
@@ -28085,88 +28146,60 @@ body[data-builder-section="content"]
     align-items:center!important;
     justify-content:center!important;
 
-    gap:4px!important;
+    gap:3px!important;
 
     border:0!important;
-
-    border-radius:9px!important;
+    border-radius:8px!important;
 
     background:transparent!important;
 
     color:#5f6368!important;
 
-    box-shadow:none!important;
-
-    font-size:10px!important;
+    font-size:9px!important;
     line-height:1!important;
     font-weight:600!important;
+
+    box-shadow:none!important;
 
     touch-action:manipulation;
   }
 
 
-  /* =======================================================
-     ICONS
-  ======================================================== */
-
   body[data-builder-section="content"]
-  .elementor-mobile-panel-actions
-  .elementor-toolbar-button
+  .elementor-mobile-main-action
   svg{
-    width:21px!important;
-    height:21px!important;
-
-    display:block!important;
-
-    flex:
-      0
-      0
-      auto!important;
+    width:20px!important;
+    height:20px!important;
 
     fill:none!important;
 
     stroke:currentColor!important;
 
     stroke-width:1.8!important;
-
     stroke-linecap:round!important;
     stroke-linejoin:round!important;
   }
 
 
-  /* =======================================================
-     LABELS
-  ======================================================== */
-
   body[data-builder-section="content"]
-  .elementor-mobile-panel-actions
-  .elementor-toolbar-button
+  .elementor-mobile-main-action
   span{
     display:block!important;
 
-    margin:0!important;
+    max-width:100%!important;
 
-    overflow:visible!important;
+    overflow:hidden!important;
 
-    color:inherit!important;
-
-    font-size:10px!important;
+    font-size:9px!important;
     line-height:1!important;
-    font-weight:600!important;
 
-    text-overflow:clip!important;
-
+    text-overflow:ellipsis!important;
     white-space:nowrap!important;
   }
 
 
-  /* =======================================================
-     ACTIVE ITEM
-  ======================================================== */
-
   body[data-builder-section="content"]
-  .elementor-mobile-panel-actions
-  .elementor-toolbar-button[
+  .elementor-mobile-main-action[
     aria-expanded="true"
   ]{
     background:
@@ -28178,46 +28211,305 @@ body[data-builder-section="content"]
 
 
   /* =======================================================
-     TOP TOOLBAR
-
-     The dock has been physically removed from this header,
-     therefore only these remain:
-
-       Lesson
-       Fluid / viewport
-       Undo
-       Redo
-       Zoom
-       Fit
-       Preview
-       Save
+     LESSON / VIEW BOTTOM SHEETS
   ======================================================== */
 
   body[data-builder-section="content"]
-  .elementor-canvas-toolbar{
-    grid-template-rows:
+  .elementor-mobile-utility-sheet{
+    position:fixed!important;
+
+    right:0!important;
+    bottom:0!important;
+    left:0!important;
+
+    z-index:20020!important;
+
+    width:100%!important;
+
+    max-height:
+      min(
+        70dvh,
+        620px
+      )!important;
+
+    overflow:hidden!important;
+
+    border:
+      1px solid
+      #e1e5ea!important;
+
+    border-bottom:0!important;
+
+    border-radius:
+      20px
+      20px
+      0
+      0!important;
+
+    background:#fff!important;
+
+    box-shadow:
+      0
+      -18px
+      48px
+      rgba(15,23,42,.20)!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-sheet[
+    hidden
+  ]{
+    display:none!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-sheet::before{
+    content:"";
+
+    display:block;
+
+    width:38px;
+    height:4px;
+
+    margin:
+      8px
       auto
-      auto!important;
+      1px;
+
+    border-radius:999px;
+
+    background:#d5d9de;
+  }
+
+
+  /* =======================================================
+     SHEET HEADER
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-sheet-header{
+    min-height:58px;
+
+    padding:
+      8px
+      14px;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:space-between;
+
+    gap:12px;
+
+    border-bottom:
+      1px solid
+      #edf0f3;
   }
 
 
   body[data-builder-section="content"]
-  .elementor-canvas-title{
-    grid-row:1!important;
+  .elementor-mobile-utility-sheet-header
+  > div{
+    min-width:0;
+
+    display:grid;
+
+    gap:2px;
   }
 
 
   body[data-builder-section="content"]
-  .elementor-toolbar-actions{
-    grid-row:2!important;
+  .elementor-mobile-utility-sheet-header
+  small{
+    color:
+      var(--aift-primary);
+
+    font-size:8px;
+    font-weight:700;
+
+    text-transform:uppercase;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-sheet-header
+  strong{
+    color:#202124;
+
+    font-size:15px;
+    font-weight:600;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-sheet-header
+  > button{
+    width:38px;
+    height:38px;
+
+    display:grid;
+    place-items:center;
+
+    border:0;
+    border-radius:50%;
+
+    background:#f1f3f4;
+
+    color:#5f6368;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-sheet-header
+  > button
+  svg{
+    width:18px;
+    height:18px;
+
+    fill:none;
+    stroke:currentColor;
+
+    stroke-width:1.9;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+
+
+  /* =======================================================
+     SHEET OPTIONS
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-options{
+    max-height:
+      calc(
+        70dvh -
+        72px
+      );
+
+    padding:
+      8px
+      10px
+      calc(
+        14px +
+        env(safe-area-inset-bottom)
+      );
+
+    display:grid;
+
+    gap:4px;
+
+    overflow-x:hidden;
+    overflow-y:auto;
+
+    -webkit-overflow-scrolling:touch;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-options
+  > button{
+    width:100%;
+
+    min-height:52px;
+
+    padding:
+      7px
+      10px;
+
+    display:grid;
+
+    grid-template-columns:
+      36px
+      minmax(0,1fr);
+
+    align-items:center;
+
+    gap:10px;
+
+    border:0;
+    border-radius:9px;
+
+    background:transparent;
+
+    color:#202124;
+
+    text-align:left;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-options
+  > button:active{
+    background:#f1f3f4;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-options
+  > button.active{
+    background:
+      var(--aift-primary-soft);
+
+    color:
+      var(--aift-primary);
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-options
+  > button
+  > svg{
+    width:21px;
+    height:21px;
+
+    justify-self:center;
+
+    fill:none;
+    stroke:currentColor;
+
+    stroke-width:1.8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-options
+  > button
+  > span{
+    min-width:0;
+
+    display:grid;
+
+    gap:2px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-options
+  > button
+  strong{
+    font-size:12px;
+    font-weight:600;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-utility-options
+  > button
+  small{
+    color:#80868b;
+
+    font-size:8px;
+    line-height:1.4;
   }
 
 
   /* =======================================================
      CANVAS CLEARANCE
-
-     Prevent lesson content from disappearing underneath
-     the fixed bottom dock.
   ======================================================== */
 
   body[data-builder-section="content"]
@@ -28226,65 +28518,42 @@ body[data-builder-section="content"]
       calc(
         var(--content-mobile-dock-height) +
         env(safe-area-inset-bottom) +
-        16px
+        14px
       )!important;
-
-    scroll-padding-bottom:
-      calc(
-        var(--content-mobile-dock-height) +
-        env(safe-area-inset-bottom) +
-        20px
-      )!important;
-  }
-
-
-  /* =======================================================
-     MOBILE BOTTOM SHEETS
-
-     Drawers appear above the dock.
-  ======================================================== */
-
-  body[data-builder-section="content"]
-  .elementor-elements-panel,
-
-  body[data-builder-section="content"]
-  .elementor-settings-panel{
-    z-index:20010!important;
   }
 
 }
 
 
 /* =========================================================
-   CONTENT STUDIO — SMALL PHONE BOTTOM DOCK
+   CONTENT STUDIO — VERY SMALL PHONE
 ========================================================= */
 
-@media(max-width:480px){
+@media(max-width:390px){
 
-  body[data-builder-section="content"]{
-    --content-mobile-dock-height:64px;
+  body[data-builder-section="content"]
+  .elementor-toolbar-actions{
+    grid-template-columns:
+      52px
+      minmax(104px,1fr)
+      72px!important;
+
+    gap:2px!important;
   }
 
 
   body[data-builder-section="content"]
-  .elementor-mobile-panel-actions{
-    padding:
-      5px
-      8px
-      calc(
-        5px +
-        env(safe-area-inset-bottom)
-      )!important;
-
-    gap:6px!important;
-  }
-
-
-  body[data-builder-section="content"]
-  .elementor-mobile-panel-actions
-  .elementor-toolbar-button{
+  .elementor-mobile-main-action{
     height:50px!important;
     min-height:50px!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-main-action
+  svg{
+    width:19px!important;
+    height:19px!important;
   }
 
 }
@@ -43404,106 +43673,320 @@ body.studio-mobile-sidebar-open
 
   </div>
 
+<!-- ====================================================
+     CONTENT STUDIO MOBILE MAIN NAVIGATION
+     MOBILE ONLY
+===================================================== -->
 
-  <!-- ====================================================
-       CONTENT STUDIO MOBILE BOTTOM DOCK
-       MOBILE ONLY
-  ===================================================== -->
+<nav
+  class="elementor-mobile-panel-actions"
+  id="elementorMobileMainDock"
+  aria-label="Content Studio mobile navigation"
+>
 
-  <div
-    class="elementor-mobile-panel-actions"
-    aria-label="Content Studio mobile tools"
+  <!-- ================================================
+       LESSON
+  ================================================= -->
+
+  <button
+    type="button"
+    class="elementor-mobile-main-action"
+    id="elementorMobileLessonButton"
+    onclick="toggleElementorMobileLessonSheet()"
+    aria-controls="elementorMobileLessonSheet"
+    aria-expanded="false"
   >
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22z"></path>
+      <path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22z"></path>
+    </svg>
 
-    <!-- ================================================
-         ELEMENTS
-    ================================================= -->
+    <span>
+      Lesson
+    </span>
+  </button>
+
+
+  <!-- ================================================
+       VIEW
+  ================================================= -->
+
+  <button
+    type="button"
+    class="elementor-mobile-main-action"
+    id="elementorMobileViewButton"
+    onclick="toggleElementorMobileViewSheet()"
+    aria-controls="elementorMobileViewSheet"
+    aria-expanded="false"
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="14" rx="2"></rect>
+      <path d="M8 21h8"></path>
+      <path d="M12 18v3"></path>
+    </svg>
+
+    <span>
+      View
+    </span>
+  </button>
+
+
+  <!-- ================================================
+       ELEMENTS
+  ================================================= -->
+
+  <button
+    type="button"
+    class="elementor-mobile-main-action"
+    id="elementorMobileElementsButton"
+    onclick="
+      closeElementorMobileUtilitySheets();
+      toggleElementorPanel();
+    "
+    aria-controls="elementorBuilder"
+    aria-expanded="false"
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="4" y="4" width="6" height="6" rx="1"></rect>
+      <rect x="14" y="4" width="6" height="6" rx="1"></rect>
+      <rect x="4" y="14" width="6" height="6" rx="1"></rect>
+      <rect x="14" y="14" width="6" height="6" rx="1"></rect>
+    </svg>
+
+    <span>
+      Elements
+    </span>
+  </button>
+
+
+  <!-- ================================================
+       SETTINGS
+  ================================================= -->
+
+  <button
+    type="button"
+    class="elementor-mobile-main-action"
+    id="elementorMobileSettingsButton"
+    onclick="
+      closeElementorMobileUtilitySheets();
+      toggleElementorSettingsPanel();
+    "
+    aria-controls="elementorSettingsPanel"
+    aria-expanded="false"
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="3"></circle>
+
+      <path
+        d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1L7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9A1.7 1.7 0 0 0 21 10h.1v4H21a1.7 1.7 0 0 0-1.6 1z"
+      ></path>
+    </svg>
+
+    <span>
+      Settings
+    </span>
+  </button>
+
+</nav>
+
+
+<!-- ====================================================
+     MOBILE LESSON PICKER
+===================================================== -->
+
+<section
+  class="elementor-mobile-utility-sheet"
+  id="elementorMobileLessonSheet"
+  aria-label="Choose lesson"
+  hidden
+>
+
+  <header class="elementor-mobile-utility-sheet-header">
+
+    <div>
+      <small>
+        Content Studio
+      </small>
+
+      <strong>
+        Choose lesson
+      </strong>
+    </div>
 
     <button
       type="button"
-      class="elementor-toolbar-button text"
-      id="elementorMobileElementsButton"
-      onclick="toggleElementorPanel()"
-      aria-controls="elementorBuilder"
-      aria-expanded="false"
+      onclick="closeElementorMobileUtilitySheets()"
+      aria-label="Close lesson selector"
     >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 6l12 12"></path>
+        <path d="M18 6L6 18"></path>
+      </svg>
+    </button>
 
-      <svg
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <rect
-          x="4"
-          y="4"
-          width="6"
-          height="6"
-          rx="1"
-        ></rect>
+  </header>
 
-        <rect
-          x="14"
-          y="4"
-          width="6"
-          height="6"
-          rx="1"
-        ></rect>
+  <div
+    class="elementor-mobile-utility-options"
+    id="elementorMobileLessonOptions"
+  ></div>
 
-        <rect
-          x="4"
-          y="14"
-          width="6"
-          height="6"
-          rx="1"
-        ></rect>
+</section>
 
-        <rect
-          x="14"
-          y="14"
-          width="6"
-          height="6"
-          rx="1"
-        ></rect>
+
+<!-- ====================================================
+     MOBILE VIEW PICKER
+===================================================== -->
+
+<section
+  class="elementor-mobile-utility-sheet"
+  id="elementorMobileViewSheet"
+  aria-label="Canvas view"
+  hidden
+>
+
+  <header class="elementor-mobile-utility-sheet-header">
+
+    <div>
+      <small>
+        Canvas
+      </small>
+
+      <strong>
+        View as
+      </strong>
+    </div>
+
+    <button
+      type="button"
+      onclick="closeElementorMobileUtilitySheets()"
+      aria-label="Close canvas view selector"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 6l12 12"></path>
+        <path d="M18 6L6 18"></path>
+      </svg>
+    </button>
+
+  </header>
+
+
+  <div class="elementor-mobile-utility-options">
+
+    <button
+      type="button"
+      data-elementor-mobile-preset="fluid"
+      onclick="selectElementorMobileView('fluid')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 5h16v14H4z"></path>
+        <path d="M8 9h8"></path>
       </svg>
 
       <span>
-        Elements
+        <strong>Fluid</strong>
+        <small>Fit to available workspace</small>
       </span>
-
     </button>
 
 
-    <!-- ================================================
-         SETTINGS
-    ================================================= -->
-
     <button
       type="button"
-      class="elementor-toolbar-button text"
-      id="elementorMobileSettingsButton"
-      onclick="toggleElementorSettingsPanel()"
-      aria-controls="elementorSettingsPanel"
-      aria-expanded="false"
+      data-elementor-mobile-preset="desktop"
+      onclick="selectElementorMobileView('desktop')"
     >
-
-      <svg
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="3"
-        ></circle>
-
-        <path
-          d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1L7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9A1.7 1.7 0 0 0 21 10h.1v4H21a1.7 1.7 0 0 0-1.6 1z"
-        ></path>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="14" rx="2"></rect>
+        <path d="M8 21h8"></path>
       </svg>
 
       <span>
-        Settings
+        <strong>Desktop</strong>
+        <small>1100px desktop canvas</small>
       </span>
+    </button>
 
+
+    <button
+      type="button"
+      data-elementor-mobile-preset="tablet"
+      onclick="selectElementorMobileView('tablet')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="6" y="2" width="12" height="20" rx="2"></rect>
+      </svg>
+
+      <span>
+        <strong>Tablet</strong>
+        <small>Tablet preview</small>
+      </span>
+    </button>
+
+
+    <button
+      type="button"
+      data-elementor-mobile-preset="mobile"
+      onclick="selectElementorMobileView('mobile')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="7" y="2" width="10" height="20" rx="2"></rect>
+        <path d="M11 18h2"></path>
+      </svg>
+
+      <span>
+        <strong>Mobile</strong>
+        <small>390px phone canvas</small>
+      </span>
+    </button>
+
+
+    <button
+      type="button"
+      data-elementor-mobile-preset="a4"
+      onclick="selectElementorMobileView('a4')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 2h9l3 3v17H6z"></path>
+        <path d="M15 2v4h4"></path>
+      </svg>
+
+      <span>
+        <strong>A4</strong>
+        <small>Document page</small>
+      </span>
+    </button>
+
+
+    <button
+      type="button"
+      data-elementor-mobile-preset="letter"
+      onclick="selectElementorMobileView('letter')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 2h12v20H6z"></path>
+      </svg>
+
+      <span>
+        <strong>Letter</strong>
+        <small>US Letter page</small>
+      </span>
+    </button>
+
+
+    <button
+      type="button"
+      data-elementor-mobile-preset="presentation"
+      onclick="selectElementorMobileView('presentation')"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="13" rx="2"></rect>
+        <path d="M8 21l4-4 4 4"></path>
+      </svg>
+
+      <span>
+        <strong>Presentation</strong>
+        <small>16:9 canvas</small>
+      </span>
     </button>
 
   </div>
@@ -72033,6 +72516,550 @@ function isElementorMobileViewport(){
   return window.matchMedia(
     "(max-width:900px)"
   ).matches;
+
+}
+
+/* =========================================================
+   MOBILE CONTENT STUDIO MAIN NAVIGATION
+========================================================= */
+
+function closeElementorMobileUtilitySheets(){
+
+  const lessonSheet =
+    byId(
+      "elementorMobileLessonSheet"
+    );
+
+
+  const viewSheet =
+    byId(
+      "elementorMobileViewSheet"
+    );
+
+
+  if(lessonSheet){
+    lessonSheet.hidden =
+      true;
+  }
+
+
+  if(viewSheet){
+    viewSheet.hidden =
+      true;
+  }
+
+
+  byId(
+    "elementorMobileLessonButton"
+  )?.setAttribute(
+    "aria-expanded",
+    "false"
+  );
+
+
+  byId(
+    "elementorMobileViewButton"
+  )?.setAttribute(
+    "aria-expanded",
+    "false"
+  );
+
+}
+
+
+/* =========================================================
+   CLOSE ALL MOBILE CONTENT PANELS
+========================================================= */
+
+function closeAllElementorMobileTools(){
+
+  closeElementorMobileUtilitySheets();
+
+
+  document.body.classList.remove(
+    "content-mobile-elements-open",
+    "content-mobile-settings-open"
+  );
+
+
+  if(
+    typeof syncElementorMobilePanelButtons ===
+      "function"
+  ){
+    syncElementorMobilePanelButtons();
+  }
+
+}
+
+
+/* =========================================================
+   LESSON SHEET
+========================================================= */
+
+function renderElementorMobileLessonOptions(){
+
+  const source =
+    byId(
+      "elementorLessonSelector"
+    );
+
+
+  const target =
+    byId(
+      "elementorMobileLessonOptions"
+    );
+
+
+  if(
+    !source ||
+    !target
+  ){
+    return;
+  }
+
+
+  const currentValue =
+    String(
+      source.value ||
+      ""
+    );
+
+
+  target.innerHTML =
+    Array.from(
+      source.options
+    )
+      .map(
+        option => {
+
+          const value =
+            String(
+              option.value ||
+              ""
+            );
+
+
+          const active =
+            value ===
+            currentValue;
+
+
+          return `
+            <button
+              type="button"
+              class="${active ? "active" : ""}"
+              onclick="selectElementorMobileLesson(
+                '${escapeHtml(value)}'
+              )"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22z"></path>
+                <path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22z"></path>
+              </svg>
+
+              <span>
+                <strong>
+                  ${escapeHtml(
+                    option.textContent.trim()
+                  )}
+                </strong>
+
+                <small>
+                  ${
+                    value
+                      ? "Edit this lesson"
+                      : "Edit class landing content"
+                  }
+                </small>
+              </span>
+            </button>
+          `;
+
+        }
+      )
+      .join("");
+
+}
+
+
+function toggleElementorMobileLessonSheet(){
+
+  if(
+    !isElementorMobileViewport()
+  ){
+    return;
+  }
+
+
+  const sheet =
+    byId(
+      "elementorMobileLessonSheet"
+    );
+
+
+  if(!sheet){
+    return;
+  }
+
+
+  const opening =
+    sheet.hidden;
+
+
+  closeAllElementorMobileTools();
+
+
+  if(!opening){
+    return;
+  }
+
+
+  renderElementorMobileLessonOptions();
+
+
+  sheet.hidden =
+    false;
+
+
+  byId(
+    "elementorMobileLessonButton"
+  )?.setAttribute(
+    "aria-expanded",
+    "true"
+  );
+
+
+  showElementorMobileDock();
+
+}
+
+
+function selectElementorMobileLesson(
+  lessonId
+){
+
+  const selector =
+    byId(
+      "elementorLessonSelector"
+    );
+
+
+  if(selector){
+    selector.value =
+      String(
+        lessonId ||
+        ""
+      );
+  }
+
+
+  changeElementorLesson(
+    lessonId
+  );
+
+
+  closeElementorMobileUtilitySheets();
+
+}
+
+
+/* =========================================================
+   VIEW SHEET
+========================================================= */
+
+function toggleElementorMobileViewSheet(){
+
+  if(
+    !isElementorMobileViewport()
+  ){
+    return;
+  }
+
+
+  const sheet =
+    byId(
+      "elementorMobileViewSheet"
+    );
+
+
+  if(!sheet){
+    return;
+  }
+
+
+  const opening =
+    sheet.hidden;
+
+
+  closeAllElementorMobileTools();
+
+
+  if(!opening){
+    return;
+  }
+
+
+  syncElementorMobileViewOptions();
+
+
+  sheet.hidden =
+    false;
+
+
+  byId(
+    "elementorMobileViewButton"
+  )?.setAttribute(
+    "aria-expanded",
+    "true"
+  );
+
+
+  showElementorMobileDock();
+
+}
+
+
+function syncElementorMobileViewOptions(){
+
+  document
+    .querySelectorAll(
+      "[data-elementor-mobile-preset]"
+    )
+    .forEach(
+      button => {
+
+        button.classList.toggle(
+          "active",
+          button.dataset.elementorMobilePreset ===
+            elementorEditor.canvasPreset
+        );
+
+      }
+    );
+
+}
+
+
+function selectElementorMobileView(
+  preset
+){
+
+  setElementorCanvasPreset(
+    preset
+  );
+
+
+  /*
+    After changing a fixed page size, immediately make it
+    fit the phone.
+  */
+
+  window.requestAnimationFrame(
+    () => {
+
+      fitElementorCanvas();
+
+    }
+  );
+
+
+  closeElementorMobileUtilitySheets();
+
+}
+
+
+/* =========================================================
+   MOBILE MAIN DOCK AUTO-HIDE
+========================================================= */
+
+let elementorMobileDockLastScrollTop =
+  0;
+
+
+let elementorMobileDockScrollTimer =
+  null;
+
+
+function showElementorMobileDock(){
+
+  byId(
+    "elementorMobileMainDock"
+  )?.classList.remove(
+    "is-scroll-hidden"
+  );
+
+}
+
+
+function hideElementorMobileDock(){
+
+  /*
+    Never hide while a Content Studio tool is open.
+  */
+
+  const toolOpen =
+    !byId(
+      "elementorMobileLessonSheet"
+    )?.hidden ||
+    !byId(
+      "elementorMobileViewSheet"
+    )?.hidden ||
+    document.body.classList.contains(
+      "content-mobile-elements-open"
+    ) ||
+    document.body.classList.contains(
+      "content-mobile-settings-open"
+    );
+
+
+  if(toolOpen){
+    return;
+  }
+
+
+  byId(
+    "elementorMobileMainDock"
+  )?.classList.add(
+    "is-scroll-hidden"
+  );
+
+}
+
+
+function handleElementorMobileCanvasScroll(){
+
+  if(
+    !isElementorMobileViewport()
+  ){
+    return;
+  }
+
+
+  const scrollArea =
+    byId(
+      "elementorCanvasScroll"
+    );
+
+
+  if(!scrollArea){
+    return;
+  }
+
+
+  const currentTop =
+    Math.max(
+      0,
+      scrollArea.scrollTop
+    );
+
+
+  const difference =
+    currentTop -
+    elementorMobileDockLastScrollTop;
+
+
+  /*
+    Near the top:
+    always show navigation.
+  */
+
+  if(
+    currentTop <=
+    24
+  ){
+
+    showElementorMobileDock();
+
+  }else if(
+    difference >
+    7
+  ){
+
+    /*
+      Scrolling downward.
+    */
+
+    hideElementorMobileDock();
+
+  }else if(
+    difference <
+    -5
+  ){
+
+    /*
+      Scrolling upward.
+    */
+
+    showElementorMobileDock();
+
+  }
+
+
+  elementorMobileDockLastScrollTop =
+    currentTop;
+
+
+  window.clearTimeout(
+    elementorMobileDockScrollTimer
+  );
+
+
+  /*
+    When scrolling stops, bring the main navigation back
+    after a short pause.
+  */
+
+  elementorMobileDockScrollTimer =
+    window.setTimeout(
+      () => {
+
+        showElementorMobileDock();
+
+      },
+      900
+    );
+
+}
+
+
+/* =========================================================
+   INITIALIZE MOBILE MAIN NAVIGATION
+========================================================= */
+
+function initializeElementorMobileMainNavigation(){
+
+  const scrollArea =
+    byId(
+      "elementorCanvasScroll"
+    );
+
+
+  if(
+    !scrollArea ||
+    scrollArea.dataset.mobileDockBound ===
+      "true"
+  ){
+    return;
+  }
+
+
+  scrollArea.dataset.mobileDockBound =
+    "true";
+
+
+  scrollArea.addEventListener(
+    "scroll",
+    handleElementorMobileCanvasScroll,
+    {
+      passive:true
+    }
+  );
+
+
+  showElementorMobileDock();
 
 }
 
