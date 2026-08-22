@@ -67576,8 +67576,8 @@ function markElementorDirty(){
     "Unsaved"
   );
 }
-
 function addContentBlock(type){
+
   const allowedTypes =
     new Set([
       "heading",
@@ -67594,35 +67594,113 @@ function addContentBlock(type){
       "presentation"
     ]);
 
-  if(!allowedTypes.has(type)){
+
+  if(
+    !allowedTypes.has(
+      type
+    )
+  ){
     return;
   }
 
+
   pushElementorHistory();
 
-  const block =
-    createElementorBlock(type);
 
-  elementorEditor.blocks.push(block);
+  const block =
+    createElementorBlock(
+      type
+    );
+
+
+  elementorEditor.blocks.push(
+    block
+  );
+
+
   elementorEditor.selectedBlockId =
     block.id;
 
+
   markElementorDirty();
+
+
   renderElementorBuilder();
 
-  window.requestAnimationFrame(() => {
-    const element =
-      document.querySelector(
-        `[data-elementor-block-id="${CSS.escape(block.id)}"]`
+
+  /*
+    MOBILE CANVAS WORKFLOW
+
+    An element chosen from the Elements sheet should:
+
+    1. be added
+    2. close the Elements sheet
+    3. return the teacher to the canvas
+
+    Do not automatically open Settings here.
+
+    This matches the mobile canvas workflow where adding
+    content and editing content are separate actions.
+  */
+
+  if(
+    typeof isElementorMobileViewport ===
+      "function" &&
+    isElementorMobileViewport()
+  ){
+
+    document.body.classList.remove(
+      "content-mobile-elements-open",
+      "content-mobile-settings-open"
+    );
+
+
+    if(
+      typeof syncElementorMobilePanelButtons ===
+      "function"
+    ){
+      syncElementorMobilePanelButtons();
+    }
+
+  }
+
+
+  window.requestAnimationFrame(
+    () => {
+
+      const element =
+        document.querySelector(
+          `[data-elementor-block-id="${CSS.escape(
+            String(
+              block.id
+            )
+          )}"]`
+        );
+
+
+      if(element){
+
+        element.scrollIntoView({
+          behavior:
+            "smooth",
+
+          block:
+            "center",
+
+          inline:
+            "nearest"
+        });
+
+      }
+
+
+      focusElementorBlock(
+        block.id
       );
 
-    element?.scrollIntoView({
-      behavior:"smooth",
-      block:"center"
-    });
+    }
+  );
 
-    focusElementorBlock(block.id);
-  });
 }
 
 function removeElementorBlock(blockId){
@@ -67748,41 +67826,138 @@ function normalizeElementorOrder(){
 }
 
 function selectElementorBlock(blockId){
+
   elementorEditor.selectedBlockId =
     blockId;
+
 
   document
     .querySelectorAll(
       ".lesson-content-block.selected"
     )
-    .forEach(element => {
-      element.classList.remove(
-        "selected"
-      );
-    });
+    .forEach(
+      element => {
+
+        element.classList.remove(
+          "selected"
+        );
+
+      }
+    );
+
 
   const element =
     document.querySelector(
-      `[data-elementor-block-id="${CSS.escape(String(blockId))}"]`
+      `[data-elementor-block-id="${CSS.escape(
+        String(
+          blockId
+        )
+      )}"]`
     );
+
 
   element?.classList.add(
     "selected"
   );
 
+
   renderElementorInspector();
+
+
+  /*
+    MOBILE CANVAS WORKFLOW
+
+    On desktop:
+    the inspector already exists beside the canvas.
+
+    On mobile:
+    selecting an existing element opens the Settings
+    bottom sheet automatically.
+
+    The Elements drawer is always closed first so only
+    one mobile panel can ever be active.
+  */
+
+  if(
+    typeof isElementorMobileViewport ===
+      "function" &&
+    isElementorMobileViewport()
+  ){
+
+    document.body.classList.remove(
+      "content-mobile-elements-open"
+    );
+
+
+    document.body.classList.add(
+      "content-mobile-settings-open"
+    );
+
+
+    if(
+      typeof syncElementorMobilePanelButtons ===
+      "function"
+    ){
+      syncElementorMobilePanelButtons();
+    }
+
+  }
+
 }
 
 function handleElementorCanvasClick(event){
+
+  /*
+    Only treat a click directly on the canvas background
+    as an empty-canvas click.
+
+    Clicking an element must continue through that element's
+    own selection logic.
+  */
+
   if(
-    event.target ===
+    event.target !==
     event.currentTarget
   ){
-    elementorEditor.selectedBlockId =
-      null;
-
-    renderElementorBuilder();
+    return;
   }
+
+
+  elementorEditor.selectedBlockId =
+    null;
+
+
+  /*
+    Close mobile editing sheets when the teacher taps
+    empty canvas space.
+
+    Desktop remains untouched.
+  */
+
+  if(
+    typeof isElementorMobileViewport ===
+      "function" &&
+    isElementorMobileViewport()
+  ){
+
+    document.body.classList.remove(
+      "content-mobile-elements-open",
+      "content-mobile-settings-open"
+    );
+
+
+    if(
+      typeof syncElementorMobilePanelButtons ===
+      "function"
+    ){
+      syncElementorMobilePanelButtons();
+    }
+
+  }
+
+
+  renderElementorBuilder();
+
 }
 
 function renderElementorBuilder(){
