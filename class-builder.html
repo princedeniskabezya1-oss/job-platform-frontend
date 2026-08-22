@@ -70496,6 +70496,128 @@ function closeElementorMobilePanels(){
 
 
 /* =========================================================
+   MOBILE CONTENT STUDIO BACKDROP
+========================================================= */
+
+function handleElementorMobileBackdropClick(
+  event
+){
+
+  if(
+    typeof isElementorMobileViewport !==
+      "function" ||
+    !isElementorMobileViewport()
+  ){
+    return;
+  }
+
+
+  const mobilePanelOpen =
+    document.body.classList.contains(
+      "content-mobile-elements-open"
+    ) ||
+    document.body.classList.contains(
+      "content-mobile-settings-open"
+    );
+
+
+  if(
+    !mobilePanelOpen
+  ){
+    return;
+  }
+
+
+  const builder =
+    byId(
+      "elementorBuilder"
+    );
+
+
+  if(
+    !builder
+  ){
+    return;
+  }
+
+
+  /*
+    The dark mobile backdrop is rendered by:
+
+    .elementor-builder::after
+
+    A pointer event originating from that pseudo-element is
+    reported against the real builder element.
+
+    Therefore only a direct builder hit is treated as a
+    backdrop tap.
+  */
+
+  if(
+    event.target !==
+      builder
+  ){
+    return;
+  }
+
+
+  event.preventDefault();
+
+  event.stopPropagation();
+
+
+  closeElementorMobilePanels();
+
+}
+
+
+/* =========================================================
+   MOBILE CONTENT STUDIO KEYBOARD CLOSE
+========================================================= */
+
+function handleElementorMobileEscape(
+  event
+){
+
+  if(
+    event.key !==
+      "Escape"
+  ){
+    return;
+  }
+
+
+  if(
+    typeof isElementorMobileViewport !==
+      "function" ||
+    !isElementorMobileViewport()
+  ){
+    return;
+  }
+
+
+  const mobilePanelOpen =
+    document.body.classList.contains(
+      "content-mobile-elements-open"
+    ) ||
+    document.body.classList.contains(
+      "content-mobile-settings-open"
+    );
+
+
+  if(
+    !mobilePanelOpen
+  ){
+    return;
+  }
+
+
+  closeElementorMobilePanels();
+
+}
+
+
+/* =========================================================
    ELEMENT PANEL
 ========================================================= */
 
@@ -112192,6 +112314,31 @@ await loadBuilder();
   (canvas size, zoom, collapsed panels, etc.)
 */
 initializeElementorWorkspacePreferences();
+
+/* =========================================================
+   MOBILE CONTENT STUDIO INTERACTIONS
+========================================================= */
+
+const elementorMobileBuilder =
+  byId(
+    "elementorBuilder"
+  );
+
+
+if(elementorMobileBuilder){
+
+  elementorMobileBuilder.addEventListener(
+    "click",
+    handleElementorMobileBackdropClick
+  );
+
+}
+
+
+document.addEventListener(
+  "keydown",
+  handleElementorMobileEscape
+);
 
 /*
   Renderers may change classes or state, so enforce a
