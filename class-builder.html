@@ -27126,70 +27126,58 @@ body[data-builder-section="content"]
   background:#fff!important;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-   
 /* =========================================================
-   CONTENT STUDIO — MOBILE TOOLBAR FINAL CORRECTION
-   MOBILE ONLY — DESKTOP UNCHANGED
+   CONTENT STUDIO — CLEAN MOBILE EDITOR
+   PHONE-FIT CANVAS + SINGLE-LINE TOOLBAR
+   DESKTOP UNCHANGED
 ========================================================= */
 
 @media(max-width:900px){
 
-  /* =======================================================
-     MOBILE CENTER COLUMN
-
-     The global desktop safeguard below the main Content
-     Studio CSS forces this column back into a fixed
-     58px toolbar grid.
-
-     Mobile must use a flexible column instead so the
-     complete editing toolbar can use its natural height.
-  ======================================================== */
-
-  body[data-builder-section="content"]
-  .elementor-canvas-column{
-    display:flex!important;
-
-    flex-direction:column!important;
-
-    width:100%!important;
-
-    height:100%!important;
-    min-height:0!important;
-
-    overflow:hidden!important;
-
-    background:#eef1f5;
+  body[data-builder-section="content"]{
+    --content-mobile-toolbar-gap:3px;
+    --content-mobile-canvas-side-gap:8px;
   }
 
 
   /* =======================================================
-     COMPLETE MOBILE TOOLBAR
+     CENTER EDITOR COLUMN
+  ======================================================== */
 
-     Natural height:
-       row 1 = lesson
-       row 2+ = editor controls
+  body[data-builder-section="content"]
+  .elementor-canvas-column{
+    width:100%!important;
+    min-width:0!important;
+
+    height:100%!important;
+    min-height:0!important;
+
+    display:flex!important;
+    flex-direction:column!important;
+
+    overflow:hidden!important;
+
+    background:#eef1f5!important;
+  }
+
+
+  /* =======================================================
+     MOBILE TOOLBAR
+
+     Row 1:
+     Lesson selector
+
+     Row 2:
+     ALL editor controls on one single line
   ======================================================== */
 
   body[data-builder-section="content"]
   .elementor-canvas-toolbar{
     position:relative!important;
-
     z-index:50!important;
 
     width:100%!important;
+    min-width:0!important;
 
     height:auto!important;
     min-height:0!important;
@@ -27201,9 +27189,8 @@ body[data-builder-section="content"]
       auto!important;
 
     padding:
-      7px
-      8px
-      8px!important;
+      6px
+      7px!important;
 
     display:grid!important;
 
@@ -27214,47 +27201,32 @@ body[data-builder-section="content"]
       auto
       auto!important;
 
-    align-items:stretch!important;
+    gap:5px!important;
 
-    justify-content:stretch!important;
+    overflow:hidden!important;
 
-    gap:7px!important;
-
-    overflow:visible!important;
-
+    border:0!important;
     border-bottom:
       1px solid
       #e1e5ea!important;
 
     background:
-      rgba(
-        255,
-        255,
-        255,
-        .98
-      )!important;
+      rgba(255,255,255,.99)!important;
 
     box-shadow:
       0
       1px
-      4px
-      rgba(15,23,42,.06)!important;
-
-    backdrop-filter:
-      blur(14px);
-
-    -webkit-backdrop-filter:
-      blur(14px);
+      3px
+      rgba(15,23,42,.05)!important;
   }
 
 
   /* =======================================================
-     LESSON SELECTOR ROW
+     LESSON SELECTOR
   ======================================================== */
 
   body[data-builder-section="content"]
   .elementor-canvas-title{
-    grid-column:1!important;
     grid-row:1!important;
 
     width:100%!important;
@@ -27273,29 +27245,6 @@ body[data-builder-section="content"]
 
 
   body[data-builder-section="content"]
-  #elementorLessonSelector{
-    width:100%!important;
-    max-width:none!important;
-
-    height:40px!important;
-
-    padding:
-      0
-      38px
-      0
-      12px!important;
-
-    font-size:16px!important;
-  }
-
-
-  /*
-    We already know what is being edited from the selector,
-    so the desktop "Editing" title does not need to consume
-    mobile space.
-  */
-
-  body[data-builder-section="content"]
   .elementor-canvas-title
   > span,
 
@@ -27305,109 +27254,152 @@ body[data-builder-section="content"]
   }
 
 
+  body[data-builder-section="content"]
+  #elementorLessonSelector{
+    width:100%!important;
+    max-width:none!important;
+
+    height:38px!important;
+
+    padding:
+      0
+      34px
+      0
+      11px!important;
+
+    border:
+      1px solid
+      #dfe3e8!important;
+
+    border-radius:9px!important;
+
+    background:#fff!important;
+
+    color:#202124!important;
+
+    /*
+      Keep 16px to prevent iPhone Safari input zoom.
+    */
+    font-size:16px!important;
+    font-weight:600!important;
+  }
+
+
   /* =======================================================
-     EDITOR ACTIONS
-
-     Do NOT use a hidden horizontal strip here.
-
-     Wrap the real existing desktop controls so every
-     function remains visible on the phone:
-       Canvas size
-       Zoom
-       Undo
-       Redo
-       Preview
-       Save
+     SINGLE-LINE EDITOR CONTROLS
   ======================================================== */
 
   body[data-builder-section="content"]
   .elementor-toolbar-actions{
-    grid-column:1!important;
     grid-row:2!important;
 
     width:100%!important;
     min-width:0!important;
 
-    display:flex!important;
+    display:grid!important;
+
+    /*
+      Four existing groups:
+      1. viewport
+      2. undo / redo
+      3. zoom
+      4. preview / save
+
+      Each group receives only the width it needs.
+    */
+    grid-template-columns:
+      minmax(56px,.85fr)
+      auto
+      minmax(116px,1.35fr)
+      auto!important;
 
     align-items:center!important;
-    justify-content:flex-start!important;
 
-    flex-wrap:wrap!important;
-
-    gap:5px!important;
+    gap:
+      var(--content-mobile-toolbar-gap)!important;
 
     padding:0!important;
+    margin:0!important;
 
-    overflow:visible!important;
+    overflow:hidden!important;
   }
 
 
   /* =======================================================
      TOOLBAR GROUPS
 
-     Keep the same real controls and functions used by
-     desktop. Only their mobile dimensions change.
+     Remove the desktop card-like bulk on mobile.
   ======================================================== */
 
   body[data-builder-section="content"]
   .elementor-toolbar-group{
+    width:auto!important;
     min-width:0!important;
 
-    min-height:36px!important;
+    height:30px!important;
+    min-height:30px!important;
 
-    height:36px!important;
+    margin:0!important;
 
-    padding:2px!important;
+    padding:
+      1px!important;
 
-    display:inline-flex!important;
+    display:flex!important;
 
     align-items:center!important;
+    justify-content:center!important;
 
-    flex:
-      0
-      0
-      auto!important;
+    gap:1px!important;
 
-    gap:2px!important;
+    overflow:hidden!important;
 
     border:
       1px solid
-      #e1e5ea!important;
+      #e2e5e9!important;
 
-    border-radius:8px!important;
+    border-radius:7px!important;
 
     background:#fff!important;
+
+    box-shadow:none!important;
   }
 
 
   /* =======================================================
-     UNDO / REDO / OTHER BUTTONS
+     GENERIC TOOLBAR BUTTON
   ======================================================== */
 
   body[data-builder-section="content"]
   .elementor-toolbar-button{
-    min-width:32px!important;
+    width:27px!important;
+    min-width:27px!important;
 
-    height:32px!important;
-    min-height:32px!important;
+    height:27px!important;
+    min-height:27px!important;
 
-    padding:
-      0
-      8px!important;
+    padding:0!important;
 
     display:inline-flex!important;
 
     align-items:center!important;
     justify-content:center!important;
 
+    flex:
+      0
+      0
+      27px!important;
+
     border:0!important;
 
-    border-radius:6px!important;
+    border-radius:5px!important;
 
-    background:transparent;
+    background:transparent!important;
 
-    color:#3c4043;
+    color:#3c4043!important;
+
+    font-size:9px!important;
+    line-height:1!important;
+    font-weight:600!important;
 
     box-shadow:none!important;
 
@@ -27417,16 +27409,193 @@ body[data-builder-section="content"]
 
   body[data-builder-section="content"]
   .elementor-toolbar-button svg{
-    width:17px!important;
-    height:17px!important;
+    width:14px!important;
+    height:14px!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-button:active{
+    background:#f1f3f4!important;
   }
 
 
   /* =======================================================
-     PREVIEW TEXT BUTTON
+     CANVAS PRESET SELECT
 
-     It must stay visible on mobile.
+     "Fluid", "Mobile", etc.
   ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-viewport-select{
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+
+    height:27px!important;
+
+    padding:
+      0
+      3px!important;
+
+    border:0!important;
+
+    outline:0!important;
+
+    background:#fff!important;
+
+    color:#3c4043!important;
+
+    /*
+      Select remains 16px to avoid Safari focus zoom,
+      but the control itself stays physically compact.
+    */
+    font-size:16px!important;
+
+    text-overflow:ellipsis!important;
+  }
+
+
+  /* =======================================================
+     HISTORY — UNDO / REDO
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-group[
+    aria-label="History controls"
+  ]{
+    width:58px!important;
+
+    flex:
+      0
+      0
+      58px!important;
+  }
+
+
+  /* =======================================================
+     ZOOM
+
+     Keep:
+       minus
+       percentage
+       plus
+       Fit
+
+     but make all four fit cleanly.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-group[
+    aria-label="Zoom controls"
+  ]{
+    min-width:116px!important;
+
+    display:grid!important;
+
+    grid-template-columns:
+      23px
+      minmax(46px,1fr)
+      23px
+      28px!important;
+
+    gap:0!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-group[
+    aria-label="Zoom controls"
+  ]
+  .elementor-toolbar-button{
+    width:23px!important;
+    min-width:23px!important;
+
+    height:27px!important;
+
+    flex-basis:23px!important;
+
+    font-size:10px!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-group[
+    aria-label="Zoom controls"
+  ]
+  .elementor-toolbar-button:last-child{
+    width:28px!important;
+    min-width:28px!important;
+
+    font-size:8px!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-zoom-select{
+    width:100%!important;
+    min-width:0!important;
+
+    height:27px!important;
+
+    padding:
+      0
+      1px!important;
+
+    border:0!important;
+
+    background:#fff!important;
+
+    color:#3c4043!important;
+
+    font-size:16px!important;
+
+    text-align:center!important;
+  }
+
+
+  /* =======================================================
+     PREVIEW / SAVE
+
+     Short but still readable.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-actions
+  .elementor-toolbar-group:last-child{
+    width:auto!important;
+
+    min-width:76px!important;
+
+    display:grid!important;
+
+    grid-template-columns:
+      minmax(37px,1fr)
+      minmax(35px,1fr)!important;
+
+    gap:1px!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-actions
+  .elementor-toolbar-group:last-child
+  .elementor-toolbar-button{
+    width:100%!important;
+    min-width:0!important;
+
+    padding:
+      0
+      3px!important;
+
+    flex:
+      1
+      1
+      auto!important;
+
+    font-size:8px!important;
+  }
+
 
   body[data-builder-section="content"]
   .elementor-toolbar-button.text{
@@ -27434,91 +27603,40 @@ body[data-builder-section="content"]
   }
 
 
-  /* =======================================================
-     CANVAS SIZE
-  ======================================================== */
-
-  body[data-builder-section="content"]
-  .elementor-viewport-select{
-    width:86px!important;
-
-    height:32px!important;
-
-    padding:
-      0
-      7px!important;
-
-    border:0!important;
-
-    background:#fff!important;
-
-    color:#3c4043;
-
-    font-size:16px!important;
-  }
-
-
-  /* =======================================================
-     ZOOM
-  ======================================================== */
-
-  body[data-builder-section="content"]
-  .elementor-zoom-select{
-    width:70px!important;
-
-    height:32px!important;
-
-    padding:
-      0
-      6px!important;
-
-    border:0!important;
-
-    background:#fff!important;
-
-    color:#3c4043;
-
-    font-size:16px!important;
-  }
-
-
-  /* =======================================================
-     PREVIEW + SAVE GROUP
-
-     Keep these especially easy to identify.
-  ======================================================== */
-
   body[data-builder-section="content"]
   #saveElementorContentButton{
-    min-width:54px!important;
+    width:100%!important;
+    min-width:0!important;
 
-    height:32px!important;
+    height:27px!important;
+    min-height:27px!important;
 
     padding:
       0
-      10px!important;
+      4px!important;
 
     background:
       var(--aift-primary)!important;
 
     color:#fff!important;
+
+    font-size:8px!important;
+    font-weight:700!important;
   }
 
 
   /* =======================================================
-     CANVAS
+     CANVAS SCROLL VIEWPORT
 
-     The canvas receives whatever height remains after the
-     now-visible toolbar.
+     Absolutely no horizontal page overflow in Fluid mode.
   ======================================================== */
 
   body[data-builder-section="content"]
   .elementor-canvas-scroll{
     position:relative!important;
 
-    grid-row:auto!important;
-
     width:100%!important;
+    min-width:0!important;
 
     height:auto!important;
     min-height:0!important;
@@ -27528,16 +27646,155 @@ body[data-builder-section="content"]
       1
       auto!important;
 
-    overflow-x:auto!important;
+    /*
+      Equal phone-safe spacing.
+    */
+    padding:
+      8px
+      var(--content-mobile-canvas-side-gap)
+      calc(
+        var(--content-mobile-dock-height) +
+        env(safe-area-inset-bottom) +
+        14px
+      )!important;
+
+    overflow-x:hidden!important;
     overflow-y:auto!important;
+
+    overscroll-behavior:contain!important;
+
+    -webkit-overflow-scrolling:touch;
+
+    background:#eef1f5!important;
   }
 
 
   /* =======================================================
-     FOOTER
+     CANVAS STAGE — PHONE WIDTH
 
-     We already moved Save into the visible toolbar, so the
-     desktop footer remains hidden on mobile.
+     Critical fix:
+     do not use max-content on mobile.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-canvas-stage{
+    position:relative!important;
+
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+
+    height:auto!important;
+    min-height:100%!important;
+
+    margin:0!important;
+    padding:0!important;
+
+    display:flex!important;
+
+    align-items:flex-start!important;
+    justify-content:center!important;
+
+    overflow:visible!important;
+
+    transform:none!important;
+  }
+
+
+  /* =======================================================
+     FLUID CANVAS
+
+     Must always match the usable phone viewport exactly.
+
+     No minimum 320px desktop legacy width.
+     No extra right-side overflow.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-builder[
+    data-canvas-preset="fluid"
+  ]
+  .elementor-canvas{
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+
+    margin:
+      0
+      auto!important;
+
+    flex:
+      0
+      0
+      100%!important;
+
+    /*
+      Fluid mode is already phone-sized, therefore it should
+      never be visually scaled.
+    */
+    transform:none!important;
+
+    transform-origin:
+      top
+      center!important;
+
+    border:
+      1px solid
+      #d8dde3!important;
+
+    border-radius:5px!important;
+
+    background:#fff!important;
+
+    box-shadow:
+      0
+      2px
+      8px
+      rgba(15,23,42,.07)!important;
+  }
+
+
+  /* =======================================================
+     FIXED PAGE PRESETS
+
+     Desktop / Tablet / Mobile / A4 / Letter / Presentation
+     are allowed to use zoom, but the visual result is kept
+     centered inside the phone.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-builder:not(
+    [data-canvas-preset="fluid"]
+  )
+  .elementor-canvas-stage{
+    width:100%!important;
+    min-width:0!important;
+
+    justify-content:center!important;
+
+    overflow:visible!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-builder:not(
+    [data-canvas-preset="fluid"]
+  )
+  .elementor-canvas{
+    margin:
+      0
+      auto!important;
+
+    transform-origin:
+      top
+      center!important;
+  }
+
+
+  /* =======================================================
+     MOBILE FOOTER
+
+     Save already exists above.
   ======================================================== */
 
   body[data-builder-section="content"]
@@ -27549,81 +27806,130 @@ body[data-builder-section="content"]
 
 
 /* =========================================================
-   CONTENT STUDIO — SMALL PHONE TOOLBAR
+   CONTENT STUDIO — NARROW PHONE CLEANUP
 ========================================================= */
 
-@media(max-width:480px){
+@media(max-width:390px){
+
+  body[data-builder-section="content"]{
+    --content-mobile-toolbar-gap:2px;
+    --content-mobile-canvas-side-gap:6px;
+  }
+
 
   body[data-builder-section="content"]
   .elementor-canvas-toolbar{
     padding:
+      5px
       6px!important;
+  }
 
-    gap:6px!important;
+
+  body[data-builder-section="content"]
+  #elementorLessonSelector{
+    height:36px!important;
   }
 
 
   body[data-builder-section="content"]
   .elementor-toolbar-actions{
-    gap:4px!important;
+    grid-template-columns:
+      minmax(50px,.8fr)
+      54px
+      minmax(108px,1.3fr)
+      72px!important;
+
+    gap:2px!important;
   }
 
 
   body[data-builder-section="content"]
-  .elementor-toolbar-group{
-    height:34px!important;
-
-    min-height:34px!important;
+  .elementor-toolbar-group[
+    aria-label="History controls"
+  ]{
+    width:54px!important;
   }
 
 
   body[data-builder-section="content"]
   .elementor-toolbar-button{
-    min-width:30px!important;
+    width:25px!important;
+    min-width:25px!important;
 
-    width:auto!important;
+    height:25px!important;
+    min-height:25px!important;
 
-    height:30px!important;
-    min-height:30px!important;
-
-    padding:
-      0
-      7px!important;
+    flex-basis:25px!important;
   }
 
 
   body[data-builder-section="content"]
-  .elementor-toolbar-button svg{
-    width:16px!important;
-    height:16px!important;
+  .elementor-toolbar-group{
+    height:28px!important;
+    min-height:28px!important;
   }
 
 
   body[data-builder-section="content"]
-  .elementor-viewport-select{
-    width:78px!important;
+  .elementor-toolbar-group[
+    aria-label="Zoom controls"
+  ]{
+    min-width:108px!important;
 
-    height:30px!important;
+    grid-template-columns:
+      21px
+      minmax(43px,1fr)
+      21px
+      26px!important;
   }
 
 
   body[data-builder-section="content"]
-  .elementor-zoom-select{
-    width:64px!important;
+  .elementor-toolbar-group[
+    aria-label="Zoom controls"
+  ]
+  .elementor-toolbar-button{
+    width:21px!important;
+    min-width:21px!important;
 
-    height:30px!important;
+    height:25px!important;
+
+    flex-basis:21px!important;
   }
 
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-group[
+    aria-label="Zoom controls"
+  ]
+  .elementor-toolbar-button:last-child{
+    width:26px!important;
+    min-width:26px!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-actions
+  .elementor-toolbar-group:last-child{
+    min-width:72px!important;
+
+    grid-template-columns:
+      37px
+      33px!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-actions
+  .elementor-toolbar-group:last-child
+  .elementor-toolbar-button,
 
   body[data-builder-section="content"]
   #saveElementorContentButton{
-    height:30px!important;
+    height:25px!important;
+    min-height:25px!important;
 
-    min-width:50px!important;
-
-    padding:
-      0
-      8px!important;
+    font-size:7px!important;
   }
 
 }
@@ -72259,20 +72565,44 @@ function getElementorPresetWidth(){
 }
 
 function fitElementorCanvas(){
+
   const scrollArea =
     byId(
       "elementorCanvasScroll"
     );
 
+
   if(!scrollArea){
     return;
   }
+
+
+  const isMobile =
+    typeof isElementorMobileViewport ===
+      "function" &&
+    isElementorMobileViewport();
+
+
+  /*
+    =========================================================
+    FLUID CANVAS
+    =========================================================
+
+    Fluid mode on mobile is already sized directly to the
+    phone viewport by CSS.
+
+    It must not inherit an old saved zoom percentage.
+  */
 
   if(
     elementorEditor.canvasPreset ===
     "fluid"
   ){
-    setElementorZoom(100);
+
+    setElementorZoom(
+      100
+    );
+
 
     scrollArea.scrollTo({
       top:0,
@@ -72280,26 +72610,71 @@ function fitElementorCanvas(){
       behavior:"smooth"
     });
 
+
     return;
   }
+
 
   const canvasWidth =
     getElementorPresetWidth();
 
+
   if(!canvasWidth){
-    setElementorZoom(100);
+
+    setElementorZoom(
+      100
+    );
+
     return;
   }
 
+
+  /*
+    =========================================================
+    AVAILABLE WIDTH
+    =========================================================
+
+    Desktop retains its original spacing.
+
+    Mobile uses the actual phone viewport and only a small
+    safety margin.
+  */
+
+  const horizontalSafetySpace =
+    isMobile
+      ? 16
+      : 48;
+
+
   const availableWidth =
     Math.max(
-      320,
-      scrollArea.clientWidth - 48
+      isMobile
+        ? 1
+        : 320,
+
+      scrollArea.clientWidth -
+        horizontalSafetySpace
     );
+
+
+  /*
+    =========================================================
+    FITTED ZOOM
+    =========================================================
+
+    On desktop we preserve the existing 40% minimum.
+
+    On mobile the canvas is allowed to shrink further so even
+    a 1100px desktop preset fits inside a narrow phone.
+
+    Example:
+      350px usable / 1100px canvas ≈ 31%
+  */
 
   const fittedZoom =
     Math.min(
       100,
+
       Math.floor(
         availableWidth /
         canvasWidth *
@@ -72307,18 +72682,38 @@ function fitElementorCanvas(){
       )
     );
 
+
+  const minimumZoom =
+    isMobile
+      ? 20
+      : 40;
+
+
   setElementorZoom(
     Math.max(
-      40,
+      minimumZoom,
       fittedZoom
     )
   );
 
-  scrollArea.scrollTo({
-    top:0,
-    left:0,
-    behavior:"smooth"
-  });
+
+  /*
+    Wait until refreshElementorCanvasViewport() has applied
+    the new visual stage dimensions before resetting scroll.
+  */
+
+  window.requestAnimationFrame(
+    () => {
+
+      scrollArea.scrollTo({
+        top:0,
+        left:0,
+        behavior:"smooth"
+      });
+
+    }
+  );
+
 }
 
 function refreshElementorCanvasViewport(){
@@ -72370,59 +72765,144 @@ function refreshElementorCanvasViewport(){
     );
 
 if(isFluid){
+
+  const isMobile =
+    typeof isElementorMobileViewport ===
+      "function" &&
+    isElementorMobileViewport();
+
+
   /*
-    Fluid mode keeps the same gap on the top, right, bottom,
-    and left sides of the white lesson canvas.
+    Mobile CSS already provides the canvas side padding.
+
+    Desktop retains the existing 20px workspace gap.
   */
+
   const canvasGap =
-    20;
+    isMobile
+      ? 0
+      : 20;
+
 
   const availableWidth =
     Math.max(
-      320,
+      isMobile
+        ? 1
+        : 320,
+
       viewportWidth -
-      canvasGap * 2
+        canvasGap * 2
     );
+
 
   const availableHeight =
     Math.max(
-      420,
+      isMobile
+        ? 1
+        : 420,
+
       viewportHeight -
-      canvasGap * 2
+        canvasGap * 2
     );
 
+
   /*
-    The canvas is transformed by zoom, so calculate its
-    unscaled dimensions before applying the transform.
+    Fluid mobile canvas must be 1:1 with its viewport.
+
+    We intentionally ignore saved zoom here because scaling a
+    fluid phone canvas would create fake horizontal overflow.
   */
+
+  if(isMobile){
+
+    canvas.style.width =
+      "100%";
+
+    canvas.style.minWidth =
+      "0";
+
+    canvas.style.maxWidth =
+      "100%";
+
+    canvas.style.minHeight =
+      `${availableHeight}px`;
+
+
+    stage.style.width =
+      "100%";
+
+    stage.style.minWidth =
+      "0";
+
+    stage.style.maxWidth =
+      "100%";
+
+    stage.style.height =
+      `${availableHeight}px`;
+
+    stage.style.minHeight =
+      `${availableHeight}px`;
+
+
+    return;
+
+  }
+
+
+  /*
+    Desktop fluid behavior remains unchanged.
+  */
+
   const requiredCanvasWidth =
-    availableWidth / zoom;
+    availableWidth /
+    zoom;
+
 
   const requiredCanvasHeight =
-    availableHeight / zoom;
+    availableHeight /
+    zoom;
+
 
   canvas.style.width =
     `${requiredCanvasWidth}px`;
 
+
   canvas.style.minWidth =
     `${requiredCanvasWidth}px`;
+
+
+  canvas.style.removeProperty(
+    "max-width"
+  );
+
 
   canvas.style.minHeight =
     `${requiredCanvasHeight}px`;
 
+
   stage.style.width =
     `${availableWidth}px`;
+
 
   stage.style.minWidth =
     `${availableWidth}px`;
 
+
+  stage.style.removeProperty(
+    "max-width"
+  );
+
+
   stage.style.height =
     `${availableHeight}px`;
+
 
   stage.style.minHeight =
     `${availableHeight}px`;
 
+
   return;
+
 }
 
   /*
