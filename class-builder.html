@@ -25716,93 +25716,90 @@ svg{
 
 }
 
+
 /* =========================================================
-   CONTENT STUDIO — FULL VIEWPORT CANVAS CORRECTION
+   AIFT CONTENT STUDIO
+   MOBILE CANVAS WORKSPACE
+
+   MOBILE EXPERIENCE
+   ---------------------------------------------------------
+   - Canvas owns the main screen.
+   - Lesson selector remains available at the top.
+   - Elements + Settings live in a bottom action dock.
+   - Secondary editor controls sit above the action dock.
+   - Canvas scrolls independently.
+   - Fluid canvas fits the available phone width.
+   - Desktop behavior remains unchanged.
+========================================================= */
+
+
+/* =========================================================
+   CONTENT STUDIO DESKTOP VIEWPORT
 ========================================================= */
 
 body[data-builder-section="content"]{
   overflow:hidden;
 }
 
+
 body[data-builder-section="content"]
-.studio-workspace > #section-content.active{
+.studio-workspace{
+  padding:0!important;
+
+  overflow:hidden!important;
+}
+
+
+body[data-builder-section="content"]
+.studio-main{
+  overflow:hidden!important;
+}
+
+
+body[data-builder-section="content"]
+.studio-workspace
+> #section-content.active{
+  width:100%;
+
   min-height:0!important;
+
   height:
     calc(
       100vh -
       var(--aift-topbar-height)
     )!important;
+
+  overflow:hidden;
 }
+
 
 body[data-builder-section="content"]
 .elementor-builder{
+  width:100%;
+
   height:100%!important;
   min-height:0!important;
 }
+
 
 body[data-builder-section="content"]
 .elementor-canvas-column{
   height:100%;
   min-height:0;
+
+  overflow:hidden;
 }
+
 
 body[data-builder-section="content"]
 .elementor-canvas-scroll{
-  position:relative;
-
-  width:100%;
-  height:100%;
+  min-width:0;
   min-height:0;
 
   overflow:auto;
 }
 
-/*
-  The stage must have an actual height so that the fluid
-  canvas can resolve its percentage height correctly.
-*/
-body[data-builder-section="content"]
-.elementor-canvas-stage{
-  width:100%;
-  min-width:100%;
-  height:100%;
-  min-height:100%;
-}
 
-/*
-  Fluid mode fills the entire available editing viewport.
-*/
-body[data-builder-section="content"]
-.elementor-builder[data-canvas-preset="fluid"]
-.elementor-canvas{
-  width:100%!important;
-  min-width:100%!important;
-  height:auto;
-  min-height:100%!important;
-
-  margin:0;
-
-  border:0!important;
-  border-radius:0!important;
-
-  background:#fff;
-
-  box-shadow:none!important;
-}
-
-/*
-  Make the editor background visible only outside fixed-size
-  page presets.
-*/
-body[data-builder-section="content"]
-.elementor-builder[data-canvas-preset="fluid"]
-.elementor-canvas-stage{
-  display:block;
-}
-
-/*
-  The right panel must remain within the editor grid.
-*/
 body[data-builder-section="content"]
 .elementor-settings-panel{
   height:100%;
@@ -25811,159 +25808,1218 @@ body[data-builder-section="content"]
   overflow:hidden;
 }
 
+
 body[data-builder-section="content"]
 .elementor-settings-content{
   min-height:0;
-  flex:1 1 auto;
+
+  flex:
+    1
+    1
+    auto;
 
   overflow-x:hidden;
   overflow-y:auto;
 }
 
-/*
-  Footer must remain the final row in the center column.
-*/
-body[data-builder-section="content"]
-.elementor-canvas-footer{
-  position:relative;
-  z-index:20;
-
-  grid-row:3;
-
-  min-height:
-    var(
-      --elementor-footer-height
-    );
-}
 
 /* =========================================================
-   CONTENT STUDIO — BALANCED FLUID CANVAS SPACING
+   MOBILE CONTENT STUDIO
 ========================================================= */
 
-body[data-builder-section="content"]
-.elementor-builder{
-  --elementor-canvas-gap:20px;
+@media(max-width:900px){
+
+  /* =======================================================
+     MOBILE CONTENT STUDIO VARIABLES
+  ======================================================== */
+
+  body[data-builder-section="content"]{
+    --content-mobile-lesson-height:58px;
+    --content-mobile-tools-height:48px;
+    --content-mobile-dock-height:58px;
+
+    overflow:hidden;
+  }
+
+
+  /* =======================================================
+     COMPLETE CONTENT STUDIO VIEWPORT
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .studio-main{
+    width:100%;
+
+    height:
+      calc(
+        100dvh -
+        var(--aift-topbar-height)
+      );
+
+    min-height:0;
+
+    margin:0;
+
+    overflow:hidden!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .studio-workspace{
+    width:100%;
+
+    height:100%;
+
+    min-height:0;
+
+    padding:0!important;
+
+    overflow:hidden!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .studio-workspace
+  > #section-content.active{
+    position:relative;
+
+    width:100%;
+
+    height:100%!important;
+    min-height:0!important;
+
+    margin:0;
+    padding:0;
+
+    overflow:hidden;
+  }
+
+
+  /* =======================================================
+     EDITOR ROOT
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-builder{
+    --elementor-panel-width:auto;
+    --elementor-inspector-width:auto;
+
+    /*
+      Prevent the desktop canvas minimum height from
+      producing the huge white page seen on the phone.
+    */
+
+    --elementor-canvas-min-height:0;
+
+    position:relative;
+
+    width:100%;
+
+    height:100%!important;
+    min-height:0!important;
+
+    display:block;
+
+    overflow:hidden;
+
+    border:0;
+    border-radius:0;
+
+    background:#eef1f5;
+
+    box-shadow:none;
+  }
+
+
+  /* =======================================================
+     CANVAS COLUMN
+
+     The canvas column fills the available phone viewport.
+     It reserves only:
+       - lesson selector at the top
+       - secondary tool row at bottom
+       - primary action dock at bottom
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-canvas-column{
+    position:absolute;
+
+    inset:0;
+
+    width:100%;
+    height:100%;
+
+    min-width:0;
+    min-height:0;
+
+    display:grid!important;
+
+    grid-template-columns:1fr;
+
+    grid-template-rows:
+      var(--content-mobile-lesson-height)
+      minmax(0,1fr)
+      var(--elementor-footer-height);
+
+    overflow:hidden;
+
+    background:#eef1f5;
+  }
+
+
+  /* =======================================================
+     TOOLBAR CONTAINER
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-canvas-toolbar{
+    position:relative;
+
+    grid-row:1;
+
+    z-index:100;
+
+    width:100%;
+    height:
+      var(--content-mobile-lesson-height);
+
+    min-height:0;
+
+    padding:
+      7px
+      9px;
+
+    display:block;
+
+    border:0;
+
+    border-bottom:
+      1px solid
+      #dfe3e8;
+
+    background:
+      rgba(
+        255,
+        255,
+        255,
+        .98
+      );
+
+    box-shadow:
+      0
+      1px
+      3px
+      rgba(
+        15,
+        23,
+        42,
+        .05
+      );
+
+    backdrop-filter:
+      blur(12px);
+
+    -webkit-backdrop-filter:
+      blur(12px);
+  }
+
+
+  /* =======================================================
+     LESSON SELECTOR
+
+     This is the only permanent top toolbar control.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-canvas-title{
+    width:100%;
+    height:100%;
+
+    min-width:0;
+    max-width:none;
+
+    margin:0;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-canvas-title
+  > span,
+  body[data-builder-section="content"]
+  #elementorLessonTitle{
+    display:none;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-title-row{
+    width:100%;
+    height:100%;
+
+    display:block;
+  }
+
+
+  body[data-builder-section="content"]
+  #elementorLessonSelector{
+    width:100%;
+    height:44px;
+
+    max-width:none;
+
+    margin:0;
+
+    padding:
+      0
+      38px
+      0
+      12px;
+
+    border:
+      1px solid
+      #d7dce3;
+
+    border-radius:10px;
+
+    background:#fff;
+
+    color:#202124;
+
+    font-size:16px;
+    line-height:1;
+    font-weight:600;
+
+    box-shadow:none;
+  }
+
+
+  /* =======================================================
+     CANVAS SCROLL AREA
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-canvas-scroll{
+    position:relative;
+
+    grid-row:2;
+
+    width:100%;
+    height:100%;
+
+    min-width:0;
+    min-height:0;
+
+    /*
+      Bottom padding keeps lesson content away from the
+      fixed mobile editing controls.
+    */
+
+    padding:
+      10px
+      10px
+      calc(
+        var(--content-mobile-tools-height) +
+        var(--content-mobile-dock-height) +
+        18px
+      );
+
+    overflow-x:auto;
+    overflow-y:auto;
+
+    background:
+      radial-gradient(
+        circle,
+        rgba(
+          125,
+          132,
+          145,
+          .20
+        )
+        1px,
+        transparent
+        1px
+      );
+
+    background-size:
+      18px
+      18px;
+
+    background-color:
+      #eef1f5;
+
+    overscroll-behavior:contain;
+
+    scrollbar-width:none;
+
+    -webkit-overflow-scrolling:touch;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-canvas-scroll::-webkit-scrollbar{
+    display:none;
+  }
+
+
+  /* =======================================================
+     CANVAS STAGE
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-canvas-stage{
+    position:relative;
+
+    width:100%!important;
+    min-width:100%!important;
+
+    /*
+      Do NOT force 100% height here.
+
+      That was one of the causes of the huge locked mobile
+      canvas.
+    */
+
+    height:auto!important;
+    min-height:100%!important;
+
+    padding:0;
+
+    display:flex!important;
+
+    align-items:flex-start!important;
+    justify-content:center!important;
+
+    transform-origin:
+      top
+      center;
+  }
+
+
+  /* =======================================================
+     FLUID MOBILE CANVAS
+
+     Canva-style responsive page:
+     width follows the phone instead of retaining desktop
+     document dimensions.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-builder[data-canvas-preset="fluid"]
+  .elementor-canvas{
+    position:relative;
+
+    width:100%!important;
+
+    max-width:
+      100%!important;
+
+    min-width:0!important;
+
+    /*
+      The empty canvas fills the editing viewport but no
+      longer becomes a giant fixed-height page.
+    */
+
+    min-height:
+      calc(
+        100dvh -
+        var(--aift-topbar-height) -
+        var(--content-mobile-lesson-height) -
+        var(--content-mobile-tools-height) -
+        var(--content-mobile-dock-height) -
+        var(--elementor-footer-height) -
+        30px
+      )!important;
+
+    height:auto!important;
+
+    margin:0!important;
+
+    flex:
+      0
+      0
+      auto!important;
+
+    transform:none!important;
+
+    border:
+      1px solid
+      #d8dde3!important;
+
+    border-radius:
+      8px!important;
+
+    background:#fff!important;
+
+    box-shadow:
+      0
+      2px
+      8px
+      rgba(
+        32,
+        33,
+        36,
+        .08
+      )!important;
+  }
+
+
+  /* =======================================================
+     FIXED PAGE PRESETS
+
+     Desktop, tablet, A4, etc. remain usable.
+
+     If they are wider than the phone, the canvas area
+     scrolls horizontally rather than breaking the page.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-builder:not(
+    [data-canvas-preset="fluid"]
+  )
+  .elementor-canvas{
+    flex:
+      0
+      0
+      auto;
+
+    max-width:none;
+
+    transform-origin:
+      top
+      center;
+  }
+
+
+  /* =======================================================
+     MOBILE EMPTY CANVAS
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-canvas-empty{
+    width:100%;
+
+    min-height:
+      min(
+        52vh,
+        420px
+      );
+
+    padding:
+      28px
+      18px;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:center;
+
+    flex-direction:column;
+
+    text-align:center;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-canvas-empty
+  h3{
+    margin-top:12px;
+
+    font-size:16px;
+    line-height:1.35;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-canvas-empty
+  p{
+    max-width:290px;
+
+    margin-top:7px;
+
+    font-size:10px;
+    line-height:1.55;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-canvas-empty
+  button{
+    min-height:42px;
+
+    margin-top:14px;
+
+    padding:
+      0
+      14px;
+
+    border-radius:9px;
+  }
+
+
+  /* =======================================================
+     CANVAS FOOTER
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-canvas-footer{
+    position:relative;
+
+    grid-row:3;
+
+    z-index:80;
+
+    width:100%;
+    min-height:
+      var(--elementor-footer-height);
+
+    padding:
+      0
+      9px;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:space-between;
+
+    gap:8px;
+
+    border-top:
+      1px solid
+      #e2e6eb;
+
+    background:#fff;
+
+    font-size:8px;
+  }
+
+
+  /* =======================================================
+     MOBILE PRIMARY ACTION DOCK
+
+     Canva-style controls at the bottom.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-mobile-panel-actions{
+    position:fixed;
+
+    right:0;
+    bottom:0;
+    left:0;
+
+    z-index:13000;
+
+    width:100%;
+
+    height:
+      calc(
+        var(--content-mobile-dock-height) +
+        env(
+          safe-area-inset-bottom
+        )
+      );
+
+    padding:
+      6px
+      8px
+      max(
+        6px,
+        env(
+          safe-area-inset-bottom
+        )
+      );
+
+    display:grid;
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+
+    gap:6px;
+
+    border-top:
+      1px solid
+      #dfe3e8;
+
+    background:
+      rgba(
+        255,
+        255,
+        255,
+        .98
+      );
+
+    box-shadow:
+      0
+      -4px
+      18px
+      rgba(
+        15,
+        23,
+        42,
+        .08
+      );
+
+    backdrop-filter:
+      blur(14px);
+
+    -webkit-backdrop-filter:
+      blur(14px);
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-panel-actions
+  .elementor-toolbar-button{
+    width:100%;
+    height:44px;
+
+    min-width:0;
+
+    padding:
+      0
+      12px;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:center;
+
+    gap:7px;
+
+    border:
+      1px solid
+      #dfe3e8;
+
+    border-radius:10px;
+
+    background:#f8f9fa;
+
+    color:#3c4043;
+
+    font-size:9px;
+    font-weight:650;
+
+    box-shadow:none;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-panel-actions
+  .elementor-toolbar-button
+  svg{
+    width:18px;
+    height:18px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-mobile-panel-actions
+  .elementor-toolbar-button[
+    aria-expanded="true"
+  ]{
+    border-color:
+      #aecbfa;
+
+    background:
+      var(--aift-primary-soft);
+
+    color:
+      var(--aift-primary);
+  }
+
+
+  /* =======================================================
+     SECONDARY MOBILE TOOL ROW
+
+     Undo, redo, viewport, zoom, preview and save remain
+     available, but they no longer consume the top of the
+     editor.
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-actions{
+    position:fixed;
+
+    right:0;
+
+    bottom:
+      calc(
+        var(--content-mobile-dock-height) +
+        env(
+          safe-area-inset-bottom
+        )
+      );
+
+    left:0;
+
+    z-index:12900;
+
+    width:100%;
+
+    height:
+      var(--content-mobile-tools-height);
+
+    min-width:0;
+
+    padding:
+      5px
+      7px;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:flex-start;
+
+    flex-wrap:nowrap;
+
+    gap:5px;
+
+    overflow-x:auto;
+    overflow-y:hidden;
+
+    border-top:
+      1px solid
+      #e4e7ec;
+
+    background:
+      rgba(
+        255,
+        255,
+        255,
+        .96
+      );
+
+    scrollbar-width:none;
+
+    overscroll-behavior-x:contain;
+
+    -webkit-overflow-scrolling:touch;
+
+    backdrop-filter:
+      blur(12px);
+
+    -webkit-backdrop-filter:
+      blur(12px);
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-actions::-webkit-scrollbar{
+    display:none;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-group{
+    min-height:36px;
+
+    padding:2px;
+
+    flex:
+      0
+      0
+      auto;
+
+    border-radius:8px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-toolbar-button{
+    height:32px;
+    min-width:34px;
+
+    padding:
+      0
+      9px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-viewport-select,
+  body[data-builder-section="content"]
+  .elementor-zoom-select{
+    height:32px;
+
+    font-size:10px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-viewport-select{
+    width:92px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-zoom-select{
+    width:70px;
+  }
+
+
+  body[data-builder-section="content"]
+  #saveElementorContentButton{
+    min-width:62px;
+
+    background:
+      var(--aift-primary);
+
+    color:#fff;
+  }
+
+
+  /* =======================================================
+     ELEMENTS DRAWER
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-elements-panel{
+    position:fixed;
+
+    top:
+      var(--aift-topbar-height);
+
+    bottom:0;
+    left:0;
+
+    z-index:15000;
+
+    width:
+      min(
+        90vw,
+        340px
+      );
+
+    height:
+      calc(
+        100dvh -
+        var(--aift-topbar-height)
+      );
+
+    display:flex;
+
+    flex-direction:column;
+
+    overflow:hidden;
+
+    border:0;
+
+    border-right:
+      1px solid
+      #dfe3e8;
+
+    background:#fff;
+
+    box-shadow:
+      18px
+      0
+      42px
+      rgba(
+        15,
+        23,
+        42,
+        .20
+      );
+
+    transform:
+      translate3d(
+        -105%,
+        0,
+        0
+      );
+
+    visibility:hidden;
+
+    pointer-events:none;
+
+    transition:
+      transform .2s ease,
+      visibility .2s ease;
+  }
+
+
+  body.content-mobile-elements-open
+  .elementor-elements-panel{
+    transform:
+      translate3d(
+        0,
+        0,
+        0
+      );
+
+    visibility:visible;
+
+    pointer-events:auto;
+  }
+
+
+  /* =======================================================
+     SETTINGS DRAWER
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-settings-panel{
+    position:fixed;
+
+    top:
+      var(--aift-topbar-height);
+
+    right:0;
+    bottom:0;
+
+    z-index:15000;
+
+    width:
+      min(
+        92vw,
+        360px
+      );
+
+    height:
+      calc(
+        100dvh -
+        var(--aift-topbar-height)
+      );
+
+    display:flex;
+
+    flex-direction:column;
+
+    overflow:hidden;
+
+    border:0;
+
+    border-left:
+      1px solid
+      #dfe3e8;
+
+    background:#fff;
+
+    box-shadow:
+      -18px
+      0
+      42px
+      rgba(
+        15,
+        23,
+        42,
+        .20
+      );
+
+    transform:
+      translate3d(
+        105%,
+        0,
+        0
+      );
+
+    visibility:hidden;
+
+    pointer-events:none;
+
+    transition:
+      transform .2s ease,
+      visibility .2s ease;
+  }
+
+
+  body.content-mobile-settings-open
+  .elementor-settings-panel{
+    transform:
+      translate3d(
+        0,
+        0,
+        0
+      );
+
+    visibility:visible;
+
+    pointer-events:auto;
+  }
+
+
+  /* =======================================================
+     PANEL CONTENT
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-panel-scroll,
+  body[data-builder-section="content"]
+  .elementor-settings-content{
+    min-height:0;
+
+    max-height:none;
+
+    flex:
+      1
+      1
+      auto;
+
+    overflow-y:auto;
+
+    padding-bottom:
+      calc(
+        20px +
+        env(
+          safe-area-inset-bottom
+        )
+      );
+
+    -webkit-overflow-scrolling:touch;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-element-grid{
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(
+          0,
+          1fr
+        )
+      );
+
+    gap:7px;
+  }
+
+
+  /* =======================================================
+     DRAWER BACKDROP
+  ======================================================== */
+
+  body[data-builder-section="content"]
+  .elementor-mobile-drawer-backdrop{
+    position:fixed;
+
+    top:
+      var(--aift-topbar-height);
+
+    right:0;
+    bottom:0;
+    left:0;
+
+    z-index:14000;
+
+    width:auto;
+    height:auto;
+
+    margin:0;
+    padding:0;
+
+    display:block;
+
+    border:0;
+
+    background:
+      rgba(
+        15,
+        23,
+        42,
+        .46
+      );
+
+    opacity:0;
+
+    visibility:hidden;
+
+    pointer-events:none;
+
+    transition:
+      opacity .2s ease,
+      visibility .2s ease;
+  }
+
+
+  body.content-mobile-elements-open
+  .elementor-mobile-drawer-backdrop,
+  body.content-mobile-settings-open
+  .elementor-mobile-drawer-backdrop{
+    opacity:1;
+
+    visibility:visible;
+
+    pointer-events:auto;
+  }
+
 }
 
-/*
-  Keep equal spacing around the complete white canvas.
-*/
-body[data-builder-section="content"]
-.elementor-canvas-scroll{
-  padding:
-    var(--elementor-canvas-gap)!important;
-
-  background-color:#eef1f5;
-}
-
-/*
-  Fluid mode must no longer remove the canvas spacing.
-*/
-body[data-builder-section="content"]
-.elementor-builder[data-canvas-preset="fluid"]
-.elementor-canvas-scroll{
-  padding:
-    var(--elementor-canvas-gap)!important;
-}
-
-/*
-  Center the canvas horizontally and vertically whenever its
-  content is smaller than the available editing viewport.
-*/
-body[data-builder-section="content"]
-.elementor-canvas-stage{
-  display:flex!important;
-  align-items:flex-start!important;
-  justify-content:center!important;
-
-  width:100%;
-  min-width:100%;
-
-  height:auto;
-  min-height:100%;
-}
-
-/*
-  Fluid canvas keeps a clean white page with equal surrounding
-  space instead of touching the workspace edges.
-*/
-body[data-builder-section="content"]
-.elementor-builder[data-canvas-preset="fluid"]
-.elementor-canvas{
-  flex:0 0 auto;
-
-  border:1px solid #d8dde3!important;
-  border-radius:4px!important;
-
-  background:#fff;
-
-  box-shadow:
-    0 2px 8px rgba(32,33,36,.08),
-    0 12px 30px rgba(32,33,36,.06)!important;
-}
 
 /* =========================================================
-   CONTENT STUDIO — FINAL CANVAS STRUCTURE SAFEGUARD
+   SMALL MOBILE
 ========================================================= */
 
-body[data-builder-section="content"]
-.elementor-canvas-column{
-  display:grid!important;
+@media(max-width:480px){
 
-  grid-template-rows:
-    var(--elementor-toolbar-height)
-    minmax(0,1fr)
-    var(--elementor-footer-height)!important;
+  body[data-builder-section="content"]{
+    --content-mobile-lesson-height:56px;
+    --content-mobile-tools-height:46px;
+    --content-mobile-dock-height:56px;
+  }
 
-  height:100%!important;
-  min-height:0!important;
-}
 
-body[data-builder-section="content"]
-.elementor-canvas-scroll{
-  grid-row:2!important;
+  body[data-builder-section="content"]
+  .elementor-canvas-toolbar{
+    padding:
+      6px
+      7px;
+  }
 
-  width:100%!important;
-  height:100%!important;
-  min-width:0!important;
-  min-height:0!important;
 
-  padding:
-    var(
-      --elementor-canvas-gap,
-      20px
-    )!important;
+  body[data-builder-section="content"]
+  #elementorLessonSelector{
+    height:42px;
+  }
 
-  overflow:auto!important;
-}
 
-body[data-builder-section="content"]
-.elementor-canvas-stage{
-  width:100%!important;
-  min-width:100%!important;
-  min-height:100%!important;
+  body[data-builder-section="content"]
+  .elementor-canvas-scroll{
+    padding:
+      7px
+      7px
+      calc(
+        var(--content-mobile-tools-height) +
+        var(--content-mobile-dock-height) +
+        14px
+      );
+  }
 
-  display:flex!important;
-  align-items:flex-start!important;
-  justify-content:center!important;
-}
 
-body[data-builder-section="content"]
-.elementor-canvas-footer{
-  grid-row:3!important;
-}
+  body[data-builder-section="content"]
+  .elementor-mobile-panel-actions{
+    padding-left:6px;
+    padding-right:6px;
 
-body[data-builder-section="content"]
-.elementor-builder[data-canvas-preset="fluid"]
-.elementor-canvas{
-  margin:0!important;
+    gap:5px;
+  }
 
-  flex:0 0 auto!important;
 
-  border:1px solid #d8dde3!important;
-  border-radius:4px!important;
+  body[data-builder-section="content"]
+  .elementor-toolbar-actions{
+    padding-left:5px;
+    padding-right:5px;
+  }
 
-  background:#fff!important;
+
+  body[data-builder-section="content"]
+  .elementor-elements-panel{
+    width:94vw;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-settings-panel{
+    width:96vw;
+  }
+
 }
 
 /* =========================================================
