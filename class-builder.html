@@ -27625,134 +27625,187 @@ body[data-builder-section="content"]
   }
 
 
-  /* =======================================================
-     CANVAS SCROLL VIEWPORT
 
-     Absolutely no horizontal page overflow in Fluid mode.
-  ======================================================== */
+/* =======================================================
+   CANVAS SCROLL VIEWPORT
+   MOBILE FLUID CANVAS — CONTENT HEIGHT
+======================================================== */
 
-  body[data-builder-section="content"]
-  .elementor-canvas-scroll{
-    position:relative!important;
+body[data-builder-section="content"]
+.elementor-canvas-scroll{
+  position:relative!important;
 
-    width:100%!important;
-    min-width:0!important;
+  width:100%!important;
+  min-width:0!important;
 
-    height:auto!important;
-    min-height:0!important;
+  height:auto!important;
+  min-height:0!important;
 
-    flex:
-      1
-      1
-      auto!important;
+  flex:
+    1
+    1
+    auto!important;
 
-    /*
-      Equal phone-safe spacing.
-    */
-    padding:
-      8px
-      var(--content-mobile-canvas-side-gap)
-      calc(
-        var(--content-mobile-dock-height) +
-        env(safe-area-inset-bottom) +
-        14px
-      )!important;
+  padding:
+    8px
+    var(--content-mobile-canvas-side-gap)
+    calc(
+      var(--content-mobile-dock-height) +
+      env(safe-area-inset-bottom) +
+      24px
+    )!important;
 
-    overflow-x:hidden!important;
-    overflow-y:auto!important;
+  scroll-padding-bottom:
+    calc(
+      var(--content-mobile-dock-height) +
+      env(safe-area-inset-bottom) +
+      28px
+    )!important;
 
-    overscroll-behavior:contain!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
 
-    -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain!important;
 
-    background:#eef1f5!important;
-  }
+  -webkit-overflow-scrolling:touch;
 
-
-  /* =======================================================
-     CANVAS STAGE — PHONE WIDTH
-
-     Critical fix:
-     do not use max-content on mobile.
-  ======================================================== */
-
-  body[data-builder-section="content"]
-  .elementor-canvas-stage{
-    position:relative!important;
-
-    width:100%!important;
-    min-width:0!important;
-    max-width:100%!important;
-
-    height:auto!important;
-    min-height:100%!important;
-
-    margin:0!important;
-    padding:0!important;
-
-    display:flex!important;
-
-    align-items:flex-start!important;
-    justify-content:center!important;
-
-    overflow:visible!important;
-
-    transform:none!important;
-  }
+  background:#eef1f5!important;
+}
 
 
-  /* =======================================================
-     FLUID CANVAS
+/* =======================================================
+   CANVAS STAGE
 
-     Must always match the usable phone viewport exactly.
+   Width follows the phone.
 
-     No minimum 320px desktop legacy width.
-     No extra right-side overflow.
-  ======================================================== */
+   Height follows the actual lesson instead of being forced
+   to 100% of the editing viewport.
+======================================================== */
 
-  body[data-builder-section="content"]
-  .elementor-builder[
-    data-canvas-preset="fluid"
-  ]
-  .elementor-canvas{
-    width:100%!important;
-    max-width:100%!important;
-    min-width:0!important;
+body[data-builder-section="content"]
+.elementor-canvas-stage{
+  position:relative!important;
 
-    margin:
-      0
-      auto!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
 
-    flex:
-      0
-      0
-      100%!important;
+  height:auto!important;
+  min-height:0!important;
 
-    /*
-      Fluid mode is already phone-sized, therefore it should
-      never be visually scaled.
-    */
-    transform:none!important;
+  margin:0!important;
+  padding:0!important;
 
-    transform-origin:
-      top
-      center!important;
+  display:flex!important;
 
-    border:
-      1px solid
-      #d8dde3!important;
+  align-items:flex-start!important;
+  justify-content:center!important;
 
-    border-radius:5px!important;
+  overflow:visible!important;
 
-    background:#fff!important;
+  transform:none!important;
+}
 
-    box-shadow:
-      0
-      2px
-      8px
-      rgba(15,23,42,.07)!important;
-  }
 
+/* =======================================================
+   FLUID CANVAS
+
+   Fluid mode:
+   - always fits phone width
+   - does not receive a fake full-screen minimum height
+   - grows naturally when lesson elements are added
+======================================================== */
+
+body[data-builder-section="content"]
+.elementor-builder[
+  data-canvas-preset="fluid"
+]
+.elementor-canvas{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+
+  height:auto!important;
+  min-height:0!important;
+
+  margin:
+    0
+    auto!important;
+
+  padding:
+    14px!important;
+
+  flex:
+    0
+    0
+    auto!important;
+
+  transform:none!important;
+
+  transform-origin:
+    top
+    center!important;
+
+  border:
+    1px solid
+    #d8dde3!important;
+
+  border-radius:6px!important;
+
+  background:#fff!important;
+
+  box-shadow:
+    0
+    2px
+    8px
+    rgba(15,23,42,.07)!important;
+}
+
+
+/* =======================================================
+   EMPTY FLUID CANVAS
+
+   A completely empty lesson still needs enough room to work
+   in, but it should not become an unnecessarily long page.
+======================================================== */
+
+body[data-builder-section="content"]
+.elementor-builder[
+  data-canvas-preset="fluid"
+]
+.elementor-canvas-empty{
+  width:100%!important;
+
+  min-height:
+    clamp(
+      250px,
+      40dvh,
+      330px
+    )!important;
+
+  padding:
+    28px
+    18px!important;
+}
+
+
+/* =======================================================
+   FLUID CANVAS WITH REAL CONTENT
+
+   Once blocks exist, their content controls the page height.
+======================================================== */
+
+body[data-builder-section="content"]
+.elementor-builder[
+  data-canvas-preset="fluid"
+]
+.elementor-canvas:
+has(.lesson-content-block){
+  min-height:0!important;
+
+  padding-bottom:
+    20px!important;
+}
 
   /* =======================================================
      FIXED PAGE PRESETS
@@ -27930,6 +27983,35 @@ body[data-builder-section="content"]
     min-height:25px!important;
 
     font-size:7px!important;
+  }
+
+     body[data-builder-section="content"]{
+    --content-mobile-toolbar-gap:2px;
+    --content-mobile-canvas-side-gap:6px;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-builder[
+    data-canvas-preset="fluid"
+  ]
+  .elementor-canvas{
+    padding:
+      12px!important;
+  }
+
+
+  body[data-builder-section="content"]
+  .elementor-builder[
+    data-canvas-preset="fluid"
+  ]
+  .elementor-canvas-empty{
+    min-height:
+      clamp(
+        225px,
+        36dvh,
+        290px
+      )!important;
   }
 
 }
@@ -72956,14 +73038,31 @@ function handleElementorMobileCanvasScroll(){
     );
 
 
+  const viewportHeight =
+    scrollArea.clientHeight;
+
+
+  const fullHeight =
+    scrollArea.scrollHeight;
+
+
+  const distanceFromBottom =
+    fullHeight -
+    (
+      currentTop +
+      viewportHeight
+    );
+
+
   const difference =
     currentTop -
     elementorMobileDockLastScrollTop;
 
 
   /*
-    Near the top:
-    always show navigation.
+    =========================================================
+    ALWAYS SHOW NEAR TOP
+    =========================================================
   */
 
   if(
@@ -72973,25 +73072,54 @@ function handleElementorMobileCanvasScroll(){
 
     showElementorMobileDock();
 
-  }else if(
+  }
+
+
+  /*
+    =========================================================
+    ALWAYS SHOW NEAR BOTTOM
+
+    This prevents the user from reaching the bottom of the
+    lesson with the navigation still hidden.
+    =========================================================
+  */
+
+  else if(
+    distanceFromBottom <=
+    70
+  ){
+
+    showElementorMobileDock();
+
+  }
+
+
+  /*
+    =========================================================
+    SCROLLING DOWN
+    =========================================================
+  */
+
+  else if(
     difference >
     7
   ){
 
-    /*
-      Scrolling downward.
-    */
-
     hideElementorMobileDock();
 
-  }else if(
+  }
+
+
+  /*
+    =========================================================
+    SCROLLING UP
+    =========================================================
+  */
+
+  else if(
     difference <
     -5
   ){
-
-    /*
-      Scrolling upward.
-    */
 
     showElementorMobileDock();
 
@@ -73008,8 +73136,8 @@ function handleElementorMobileCanvasScroll(){
 
 
   /*
-    When scrolling stops, bring the main navigation back
-    after a short pause.
+    Even if the user stops halfway down the lesson,
+    restore the navigation automatically.
   */
 
   elementorMobileDockScrollTimer =
@@ -73019,7 +73147,7 @@ function handleElementorMobileCanvasScroll(){
         showElementorMobileDock();
 
       },
-      900
+      650
     );
 
 }
@@ -73840,40 +73968,70 @@ if(isFluid){
     fluid phone canvas would create fake horizontal overflow.
   */
 
-  if(isMobile){
+if(isMobile){
 
-    canvas.style.width =
-      "100%";
+  /*
+    =========================================================
+    MOBILE FLUID CANVAS
 
-    canvas.style.minWidth =
-      "0";
+    Width is controlled by the phone viewport.
 
-    canvas.style.maxWidth =
-      "100%";
+    Height must NOT be written inline.
+    The actual lesson content determines height.
+    =========================================================
+  */
 
-    canvas.style.minHeight =
-      `${availableHeight}px`;
-
-
-    stage.style.width =
-      "100%";
-
-    stage.style.minWidth =
-      "0";
-
-    stage.style.maxWidth =
-      "100%";
-
-    stage.style.height =
-      `${availableHeight}px`;
-
-    stage.style.minHeight =
-      `${availableHeight}px`;
+  canvas.style.width =
+    "100%";
 
 
-    return;
+  canvas.style.minWidth =
+    "0";
 
-  }
+
+  canvas.style.maxWidth =
+    "100%";
+
+
+  /*
+    Remove old viewport-height values.
+  */
+
+  canvas.style.removeProperty(
+    "height"
+  );
+
+
+  canvas.style.removeProperty(
+    "min-height"
+  );
+
+
+  stage.style.width =
+    "100%";
+
+
+  stage.style.minWidth =
+    "0";
+
+
+  stage.style.maxWidth =
+    "100%";
+
+
+  stage.style.removeProperty(
+    "height"
+  );
+
+
+  stage.style.removeProperty(
+    "min-height"
+  );
+
+
+  return;
+
+}
 
 
   /*
