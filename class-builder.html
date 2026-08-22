@@ -27629,29 +27629,26 @@ body[data-builder-section="content"]
 }
 
 /* =========================================================
-   CONTENT STUDIO — MOBILE BOTTOM NAV FINAL AUTHORITY
-   ELEMENTS + SETTINGS ONLY
+   CONTENT STUDIO — MOBILE BOTTOM DOCK
+   FINAL STRUCTURAL VERSION
    DESKTOP UNCHANGED
 ========================================================= */
 
 @media(max-width:900px){
 
   body[data-builder-section="content"]{
-    --content-mobile-dock-height:64px;
+    --content-mobile-dock-height:66px;
   }
 
 
   /* =======================================================
-     REMOVE ELEMENTS / SETTINGS FROM TOP TOOLBAR FLOW
+     FIXED PHONE BOTTOM DOCK
 
-     The HTML stays exactly where it is.
-
-     position:fixed removes this container from the toolbar
-     layout and places it permanently at the bottom.
+     This element now lives OUTSIDE #elementorBuilder,
+     therefore it attaches directly to the mobile viewport.
   ======================================================== */
 
   body[data-builder-section="content"]
-  .elementor-canvas-toolbar
   .elementor-mobile-panel-actions{
     position:fixed!important;
 
@@ -27660,10 +27657,7 @@ body[data-builder-section="content"]
     bottom:0!important;
     left:0!important;
 
-    z-index:16020!important;
-
-    grid-column:auto!important;
-    grid-row:auto!important;
+    z-index:20000!important;
 
     width:100%!important;
 
@@ -27673,7 +27667,12 @@ body[data-builder-section="content"]
         env(safe-area-inset-bottom)
       )!important;
 
-    min-height:0!important;
+    min-height:
+      calc(
+        var(--content-mobile-dock-height) +
+        env(safe-area-inset-bottom)
+      )!important;
+
     max-height:none!important;
 
     margin:0!important;
@@ -27701,16 +27700,17 @@ body[data-builder-section="content"]
         minmax(0,1fr)
       )!important;
 
+    grid-template-rows:
+      1fr!important;
+
     align-items:center!important;
-    justify-content:stretch!important;
 
     gap:8px!important;
 
-    overflow:visible!important;
-
-    transform:none!important;
+    overflow:hidden!important;
 
     border:0!important;
+
     border-top:
       1px solid
       #dfe3e8!important;
@@ -27736,6 +27736,14 @@ body[data-builder-section="content"]
         .10
       )!important;
 
+    transform:none!important;
+
+    opacity:1!important;
+
+    visibility:visible!important;
+
+    pointer-events:auto!important;
+
     backdrop-filter:
       blur(16px);
 
@@ -27745,24 +27753,18 @@ body[data-builder-section="content"]
 
 
   /* =======================================================
-     ELEMENTS + SETTINGS BUTTONS
-
-     Bottom-navigation appearance.
+     ELEMENTS / SETTINGS
   ======================================================== */
 
   body[data-builder-section="content"]
   .elementor-mobile-panel-actions
-  #elementorMobileElementsButton,
-
-  body[data-builder-section="content"]
-  .elementor-mobile-panel-actions
-  #elementorMobileSettingsButton{
+  .elementor-toolbar-button{
     position:relative!important;
 
     width:100%!important;
 
-    height:50px!important;
-    min-height:50px!important;
+    height:52px!important;
+    min-height:52px!important;
 
     margin:0!important;
 
@@ -27772,12 +27774,12 @@ body[data-builder-section="content"]
 
     display:flex!important;
 
+    flex-direction:column!important;
+
     align-items:center!important;
     justify-content:center!important;
 
-    flex-direction:column!important;
-
-    gap:3px!important;
+    gap:4px!important;
 
     border:0!important;
 
@@ -27798,72 +27800,67 @@ body[data-builder-section="content"]
 
 
   /* =======================================================
-     BOTTOM NAV ICONS
+     ICONS
   ======================================================== */
 
   body[data-builder-section="content"]
   .elementor-mobile-panel-actions
-  #elementorMobileElementsButton
-  svg,
-
-  body[data-builder-section="content"]
-  .elementor-mobile-panel-actions
-  #elementorMobileSettingsButton
+  .elementor-toolbar-button
   svg{
-    width:20px!important;
-    height:20px!important;
+    width:21px!important;
+    height:21px!important;
+
+    display:block!important;
 
     flex:
       0
       0
-      auto;
+      auto!important;
 
-    fill:none;
+    fill:none!important;
 
-    stroke:currentColor;
+    stroke:currentColor!important;
 
-    stroke-width:1.8;
-    stroke-linecap:round;
-    stroke-linejoin:round;
+    stroke-width:1.8!important;
+
+    stroke-linecap:round!important;
+    stroke-linejoin:round!important;
   }
 
 
-  body[data-builder-section="content"]
-  .elementor-mobile-panel-actions
-  #elementorMobileElementsButton
-  span,
+  /* =======================================================
+     LABELS
+  ======================================================== */
 
   body[data-builder-section="content"]
   .elementor-mobile-panel-actions
-  #elementorMobileSettingsButton
+  .elementor-toolbar-button
   span{
     display:block!important;
 
+    margin:0!important;
+
     overflow:visible!important;
 
-    color:inherit;
+    color:inherit!important;
 
     font-size:10px!important;
     line-height:1!important;
     font-weight:600!important;
+
+    text-overflow:clip!important;
 
     white-space:nowrap!important;
   }
 
 
   /* =======================================================
-     ACTIVE BOTTOM NAV ITEM
+     ACTIVE ITEM
   ======================================================== */
 
   body[data-builder-section="content"]
   .elementor-mobile-panel-actions
-  #elementorMobileElementsButton[
-    aria-expanded="true"
-  ],
-
-  body[data-builder-section="content"]
-  .elementor-mobile-panel-actions
-  #elementorMobileSettingsButton[
+  .elementor-toolbar-button[
     aria-expanded="true"
   ]{
     background:
@@ -27877,10 +27874,17 @@ body[data-builder-section="content"]
   /* =======================================================
      TOP TOOLBAR
 
-     Only lesson selector + editor controls remain here.
+     The dock has been physically removed from this header,
+     therefore only these remain:
 
-     Elements / Settings are fixed and no longer contribute
-     to the toolbar's grid.
+       Lesson
+       Fluid / viewport
+       Undo
+       Redo
+       Zoom
+       Fit
+       Preview
+       Save
   ======================================================== */
 
   body[data-builder-section="content"]
@@ -27904,10 +27908,10 @@ body[data-builder-section="content"]
 
 
   /* =======================================================
-     CANVAS BOTTOM CLEARANCE
+     CANVAS CLEARANCE
 
-     Prevent the fixed navigation from covering the end of
-     the lesson canvas.
+     Prevent lesson content from disappearing underneath
+     the fixed bottom dock.
   ======================================================== */
 
   body[data-builder-section="content"]
@@ -27916,7 +27920,7 @@ body[data-builder-section="content"]
       calc(
         var(--content-mobile-dock-height) +
         env(safe-area-inset-bottom) +
-        14px
+        16px
       )!important;
 
     scroll-padding-bottom:
@@ -27924,14 +27928,14 @@ body[data-builder-section="content"]
         var(--content-mobile-dock-height) +
         env(safe-area-inset-bottom) +
         20px
-      );
+      )!important;
   }
 
 
   /* =======================================================
-     DRAWERS
+     MOBILE BOTTOM SHEETS
 
-     Elements / Settings sheet stays above bottom navigation.
+     Drawers appear above the dock.
   ======================================================== */
 
   body[data-builder-section="content"]
@@ -27939,25 +27943,20 @@ body[data-builder-section="content"]
 
   body[data-builder-section="content"]
   .elementor-settings-panel{
-    z-index:16030!important;
-
-    padding-bottom:
-      env(
-        safe-area-inset-bottom
-      );
+    z-index:20010!important;
   }
 
 }
 
 
 /* =========================================================
-   SMALL PHONE BOTTOM NAV
+   CONTENT STUDIO — SMALL PHONE BOTTOM DOCK
 ========================================================= */
 
 @media(max-width:480px){
 
   body[data-builder-section="content"]{
-    --content-mobile-dock-height:62px;
+    --content-mobile-dock-height:64px;
   }
 
 
@@ -27977,13 +27976,9 @@ body[data-builder-section="content"]
 
   body[data-builder-section="content"]
   .elementor-mobile-panel-actions
-  #elementorMobileElementsButton,
-
-  body[data-builder-section="content"]
-  .elementor-mobile-panel-actions
-  #elementorMobileSettingsButton{
-    height:48px!important;
-    min-height:48px!important;
+  .elementor-toolbar-button{
+    height:50px!important;
+    min-height:50px!important;
   }
 
 }
@@ -42749,97 +42744,6 @@ body.studio-mobile-sidebar-open
 
 
   <!-- ====================================================
-       MOBILE PRIMARY CONTROLS
-  ===================================================== -->
-
-  <div
-    class="elementor-mobile-panel-actions"
-    aria-label="Content Studio mobile tools"
-  >
-
-    <button
-      type="button"
-      class="elementor-toolbar-button text"
-      id="elementorMobileElementsButton"
-      onclick="toggleElementorPanel()"
-      aria-controls="elementorBuilder"
-      aria-expanded="false"
-    >
-      <svg
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <rect
-          x="4"
-          y="4"
-          width="6"
-          height="6"
-          rx="1"
-        ></rect>
-
-        <rect
-          x="14"
-          y="4"
-          width="6"
-          height="6"
-          rx="1"
-        ></rect>
-
-        <rect
-          x="4"
-          y="14"
-          width="6"
-          height="6"
-          rx="1"
-        ></rect>
-
-        <rect
-          x="14"
-          y="14"
-          width="6"
-          height="6"
-          rx="1"
-        ></rect>
-      </svg>
-
-      <span>
-        Elements
-      </span>
-    </button>
-
-
-    <button
-      type="button"
-      class="elementor-toolbar-button text"
-      id="elementorMobileSettingsButton"
-      onclick="toggleElementorSettingsPanel()"
-      aria-controls="elementorSettingsPanel"
-      aria-expanded="false"
-    >
-      <svg
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="3"
-        ></circle>
-
-        <path
-          d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1L7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9A1.7 1.7 0 0 0 21 10h.1v4H21a1.7 1.7 0 0 0-1.6 1z"
-        ></path>
-      </svg>
-
-      <span>
-        Settings
-      </span>
-    </button>
-
-  </div>
-
-
-  <!-- ====================================================
        EDITOR CONTROLS
   ===================================================== -->
 
@@ -43191,6 +43095,110 @@ body.studio-mobile-sidebar-open
       </div>
 
     </aside>
+
+  </div>
+
+
+  <!-- ====================================================
+       CONTENT STUDIO MOBILE BOTTOM DOCK
+       MOBILE ONLY
+  ===================================================== -->
+
+  <div
+    class="elementor-mobile-panel-actions"
+    aria-label="Content Studio mobile tools"
+  >
+
+    <!-- ================================================
+         ELEMENTS
+    ================================================= -->
+
+    <button
+      type="button"
+      class="elementor-toolbar-button text"
+      id="elementorMobileElementsButton"
+      onclick="toggleElementorPanel()"
+      aria-controls="elementorBuilder"
+      aria-expanded="false"
+    >
+
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <rect
+          x="4"
+          y="4"
+          width="6"
+          height="6"
+          rx="1"
+        ></rect>
+
+        <rect
+          x="14"
+          y="4"
+          width="6"
+          height="6"
+          rx="1"
+        ></rect>
+
+        <rect
+          x="4"
+          y="14"
+          width="6"
+          height="6"
+          rx="1"
+        ></rect>
+
+        <rect
+          x="14"
+          y="14"
+          width="6"
+          height="6"
+          rx="1"
+        ></rect>
+      </svg>
+
+      <span>
+        Elements
+      </span>
+
+    </button>
+
+
+    <!-- ================================================
+         SETTINGS
+    ================================================= -->
+
+    <button
+      type="button"
+      class="elementor-toolbar-button text"
+      id="elementorMobileSettingsButton"
+      onclick="toggleElementorSettingsPanel()"
+      aria-controls="elementorSettingsPanel"
+      aria-expanded="false"
+    >
+
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="3"
+        ></circle>
+
+        <path
+          d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21h-4v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1L7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V3h4v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9A1.7 1.7 0 0 0 21 10h.1v4H21a1.7 1.7 0 0 0-1.6 1z"
+        ></path>
+      </svg>
+
+      <span>
+        Settings
+      </span>
+
+    </button>
 
   </div>
 
