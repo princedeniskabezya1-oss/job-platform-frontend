@@ -2456,32 +2456,13 @@ body[data-builder-section]:not(
 
 .studio-alert-region{
   position:fixed;
-
-  top:
-    calc(
-      var(--aift-topbar-height) +
-      18px
-    );
-
+  top:calc(var(--aift-topbar-height) + 18px);
   right:22px;
+  z-index:100000;
 
-  /*
-    Alerts must remain above full-screen AIFT surfaces,
-    including Presentation mode.
-  */
-  z-index:1000001;
-
-  width:
-    min(
-      430px,
-      calc(
-        100vw -
-        32px
-      )
-    );
+  width:min(430px,calc(100vw - 32px));
 
   display:grid;
-
   gap:10px;
 
   pointer-events:none;
@@ -43229,6 +43210,29 @@ body.studio-mobile-sidebar-open
     </small>
   </span>
 </button>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect
+          x="3"
+          y="4"
+          width="18"
+          height="14"
+          rx="2"
+        ></rect>
+
+        <path d="M10 8l6 3-6 3z"></path>
+      </svg>
+
+      <span>
+        <strong>
+          Preview presentation
+        </strong>
+
+        <small>
+          View the presentation full screen
+        </small>
+      </span>
+    </button>
+
 
     <!-- ================================================
          SAVE
@@ -68641,82 +68645,43 @@ function createAiftPresentationPlayer(){
 
 
 function presentAiftPresentation(){
-
-  /* =========================================================
-     VALIDATE PRESENTATION
-  ========================================================= */
-
   if(
     !Array.isArray(
       presentationStudio.slides
     ) ||
     !presentationStudio.slides.length
   ){
-
     showAlert(
       "info",
-      "Add at least one slide before starting the presentation.",
-      {
-        title:
-          "Presentation unavailable"
-      }
+      "Add a slide before starting the presentation."
     );
 
-
     return;
-
   }
 
-
-  /* =========================================================
-     CREATE THE DEDICATED AIFT PLAYER
-  ========================================================= */
-
   createAiftPresentationPlayer();
-
 
   const player =
     byId(
       "aiftPresentationPlayer"
     );
 
-
   const stage =
     byId(
       "aiftPresentationPlayerStage"
     );
 
-
   if(
     !player ||
     !stage
   ){
-
     showAlert(
       "error",
-      "The presentation player could not be opened.",
-      {
-        title:
-          "Could not start presentation"
-      }
+      "The presentation player could not be opened."
     );
 
-
     return;
-
   }
-
-
-  /* =========================================================
-     RENDER SLIDES
-
-     Only presentation slides are rendered inside this player.
-
-     No Class Builder sidebar.
-     No topbar.
-     No editing toolbar.
-     No Pages filmstrip.
-  ========================================================= */
 
   stage.innerHTML =
     presentationStudio.slides
@@ -68736,19 +68701,12 @@ function presentAiftPresentation(){
       )
       .join("");
 
-
-  /* =========================================================
-     START FROM CURRENT EDITOR SLIDE
-  ========================================================= */
-
   aiftPresentationPlayerIndex =
     Math.max(
       0,
       presentationStudio.slides.findIndex(
         slide =>
-          String(
-            slide.id
-          ) ===
+          String(slide.id) ===
           String(
             currentSlide?.id ||
             ""
@@ -68756,53 +68714,41 @@ function presentAiftPresentation(){
       )
     );
 
-
-  /* =========================================================
-     OPEN PRESENTATION PLAYER
-
-     The player itself is already position:fixed and fills
-     the browser viewport.
-
-     IMPORTANT:
-     We deliberately DO NOT call requestFullscreen().
-
-     Browser fullscreen notifications such as
-     "Press Esc to exit full screen" are browser UI and
-     cannot be styled by AIFT.
-
-     By keeping presentation mode inside our own player,
-     the interface remains fully controlled by AIFT.
-  ========================================================= */
-
   player.classList.add(
     "active"
   );
-
 
   document.body.classList.add(
     "modal-open"
   );
 
-
   renderAiftPresentationPlayerPage();
 
+  /*
+    This fullscreen request runs directly from the Present
+    button click, so browsers are more likely to allow it.
+  */
+  const fullscreenPromise =
+    player.requestFullscreen?.();
 
-  /* =========================================================
-     AIFT PRESENTATION NOTICE
-  ========================================================= */
-
-  showAlert(
-    "info",
-    "Use the presentation controls to move between slides. Select Exit to leave presentation mode; on desktop you can also press Esc.",
-    {
-      title:
-        "Presentation mode",
-
-      duration:
-        5000
-    }
-  );
-
+  if(
+    fullscreenPromise &&
+    typeof fullscreenPromise.catch ===
+    "function"
+  ){
+    fullscreenPromise.catch(
+      error => {
+        /*
+          The player still fills the complete browser viewport
+          even when browser-level fullscreen is declined.
+        */
+        console.info(
+          "Browser fullscreen was not granted:",
+          error
+        );
+      }
+    );
+  }
 }
 
 
