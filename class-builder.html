@@ -2775,6 +2775,353 @@ body[data-builder-section]:not(
 }
 
 /* =========================================================
+   AIFT CONFIRMATION SYSTEM
+========================================================= */
+
+.aift-confirm-backdrop{
+  position:fixed;
+
+  inset:0;
+
+  z-index:110000;
+
+  padding:20px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  background:
+    rgba(
+      15,
+      23,
+      42,
+      .42
+    );
+
+  backdrop-filter:
+    blur(3px);
+
+  -webkit-backdrop-filter:
+    blur(3px);
+}
+
+
+.aift-confirm-backdrop[hidden]{
+  display:none!important;
+}
+
+
+.aift-confirm-dialog{
+  width:
+    min(
+      430px,
+      100%
+    );
+
+  margin:0;
+
+  padding:
+    20px;
+
+  display:grid;
+
+  grid-template-columns:
+    44px
+    minmax(0,1fr);
+
+  gap:
+    14px
+    13px;
+
+  border:
+    1px solid
+    var(--aift-border);
+
+  border-radius:
+    16px;
+
+  background:#fff;
+
+  color:
+    var(--aift-text);
+
+  box-shadow:
+    0
+    24px
+    70px
+    rgba(15,23,42,.24),
+    0
+    6px
+    18px
+    rgba(15,23,42,.10);
+
+  animation:
+    aiftConfirmEnter
+    .18s ease-out
+    both;
+}
+
+
+/* =========================================================
+   ICON
+========================================================= */
+
+.aift-confirm-icon{
+  width:44px;
+  height:44px;
+
+  display:grid;
+
+  place-items:center;
+
+  border-radius:12px;
+
+  background:
+    var(--aift-danger-soft);
+
+  color:
+    var(--aift-danger);
+}
+
+
+.aift-confirm-icon svg{
+  width:22px;
+  height:22px;
+
+  fill:none;
+
+  stroke:currentColor;
+
+  stroke-width:1.9;
+
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+
+/* =========================================================
+   COPY
+========================================================= */
+
+.aift-confirm-copy{
+  min-width:0;
+}
+
+
+.aift-confirm-title{
+  display:block;
+
+  margin:1px 0 0;
+
+  color:
+    var(--aift-text-strong);
+
+  font-size:14px;
+  line-height:1.35;
+  font-weight:700;
+}
+
+
+.aift-confirm-message{
+  margin:
+    5px
+    0
+    0;
+
+  color:
+    var(--aift-muted);
+
+  font-size:10px;
+  line-height:1.55;
+  font-weight:500;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.aift-confirm-actions{
+  grid-column:
+    1 / -1;
+
+  margin-top:4px;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:flex-end;
+
+  gap:8px;
+}
+
+
+.aift-confirm-actions
+button{
+  min-height:38px;
+
+  padding:
+    0
+    14px;
+
+  display:inline-flex;
+
+  align-items:center;
+  justify-content:center;
+
+  border-radius:8px;
+
+  font-size:9px;
+  line-height:1;
+  font-weight:600;
+}
+
+
+.aift-confirm-cancel{
+  border:
+    1px solid
+    var(--aift-border-strong);
+
+  background:#fff;
+
+  color:
+    var(--aift-text-strong);
+}
+
+
+.aift-confirm-cancel:hover{
+  background:
+    var(--aift-surface-muted);
+}
+
+
+.aift-confirm-primary{
+  border:
+    1px solid
+    var(--aift-danger);
+
+  background:
+    var(--aift-danger);
+
+  color:#fff;
+}
+
+
+.aift-confirm-primary:hover{
+  border-color:
+    var(--aift-danger-hover);
+
+  background:
+    var(--aift-danger-hover);
+}
+
+
+/* =========================================================
+   WARNING VARIANT
+========================================================= */
+
+.aift-confirm-dialog[
+  data-tone="warning"
+]
+.aift-confirm-icon{
+  background:
+    var(--aift-warning-soft);
+
+  color:
+    var(--aift-warning);
+}
+
+
+.aift-confirm-dialog[
+  data-tone="warning"
+]
+.aift-confirm-primary{
+  border-color:
+    var(--aift-warning);
+
+  background:
+    var(--aift-warning);
+
+  color:#fff;
+}
+
+
+/* =========================================================
+   ANIMATION
+========================================================= */
+
+@keyframes aiftConfirmEnter{
+
+  from{
+    opacity:0;
+
+    transform:
+      translateY(8px)
+      scale(.98);
+  }
+
+  to{
+    opacity:1;
+
+    transform:none;
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media(max-width:640px){
+
+  .aift-confirm-backdrop{
+    padding:
+      12px;
+  }
+
+
+  .aift-confirm-dialog{
+    width:100%;
+
+    padding:
+      17px;
+
+    grid-template-columns:
+      40px
+      minmax(0,1fr);
+
+    gap:
+      12px;
+  }
+
+
+  .aift-confirm-icon{
+    width:40px;
+    height:40px;
+  }
+
+
+  .aift-confirm-actions{
+    margin-top:6px;
+  }
+
+
+  .aift-confirm-actions
+  button{
+    min-height:40px;
+
+    flex:
+      1
+      1
+      0;
+  }
+
+}
+
+/* =========================================================
    BUILDER BOOT SCREEN
 ========================================================= */
 
@@ -30948,12 +31295,14 @@ body.presentation-notes-open
 /* =========================================================
    PRESENTATION MOBILE-ONLY COMPONENTS
 
-   Hidden by default so desktop never renders mobile controls.
+   These controls exist in shared Presentation markup but
+   must never appear in the desktop Presentation Studio.
 ========================================================= */
 
 .presentation-mobile-tools,
 .presentation-mobile-sheet-backdrop,
-.presentation-mobile-lesson-sheet{
+.presentation-mobile-lesson-sheet,
+.presentation-mobile-present-button{
   display:none;
 }
 
@@ -42516,6 +42865,94 @@ body.studio-mobile-sidebar-open
   ></div>
 </div>
 
+<!-- ======================================================
+     AIFT CONFIRMATION DIALOG
+====================================================== -->
+
+<div
+  class="aift-confirm-backdrop"
+  id="aiftConfirmBackdrop"
+  hidden
+  onclick="
+    if(event.target === this){
+      closeAiftConfirm(false);
+    }
+  "
+>
+
+  <section
+    class="aift-confirm-dialog"
+    id="aiftConfirmDialog"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="aiftConfirmTitle"
+    aria-describedby="aiftConfirmMessage"
+  >
+
+    <div
+      class="aift-confirm-icon"
+      id="aiftConfirmIcon"
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 24 24">
+        <path
+          d="M10.3 4.3 2.7 18a2 2 0 0 0 1.8 3h15a2 2 0 0 0 1.8-3L13.7 4.3a2 2 0 0 0-3.4 0z"
+        ></path>
+
+        <path
+          d="M12 9v4"
+        ></path>
+
+        <path
+          d="M12 17h.01"
+        ></path>
+      </svg>
+    </div>
+
+
+    <div class="aift-confirm-copy">
+
+      <strong
+        class="aift-confirm-title"
+        id="aiftConfirmTitle"
+      >
+        Confirm action
+      </strong>
+
+      <p
+        class="aift-confirm-message"
+        id="aiftConfirmMessage"
+      ></p>
+
+    </div>
+
+
+    <div class="aift-confirm-actions">
+
+      <button
+        type="button"
+        class="aift-confirm-cancel"
+        id="aiftConfirmCancelButton"
+        onclick="closeAiftConfirm(false)"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        class="aift-confirm-primary"
+        id="aiftConfirmPrimaryButton"
+        onclick="closeAiftConfirm(true)"
+      >
+        Confirm
+      </button>
+
+    </div>
+
+  </section>
+
+</div>
+
 
 <!-- ======================================================
      BUILDER APPLICATION
@@ -46542,13 +46979,49 @@ body.studio-mobile-sidebar-open
             Notes
           </button>
 
-          <button
-            type="button"
-            class="presentation-toolbar-button present"
-            onclick="startPresentationMode()"
-          >
-            Present
-          </button>
+<!-- ====================================================
+     MOBILE PRESENT ACTION
+     Uses the same AIFT player as the main desktop button.
+     Hidden on desktop.
+===================================================== -->
+
+<button
+  type="button"
+  class="
+    presentation-toolbar-button
+    presentation-mobile-present-button
+  "
+  onclick="presentAiftPresentation()"
+  aria-label="Present presentation in full screen"
+  title="Present full screen"
+>
+
+  <svg
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
+    <rect
+      x="3"
+      y="4"
+      width="18"
+      height="13"
+      rx="2"
+    ></rect>
+
+    <path
+      d="m10 8 5 3-5 3Z"
+    ></path>
+
+    <path
+      d="M12 17v3"
+    ></path>
+  </svg>
+
+  <span>
+    Present
+  </span>
+
+</button>
 
           <button
             type="button"
@@ -65737,35 +66210,72 @@ function duplicateCurrentPresentationSlide(){
   schedulePresentationAutosave();
 }
 
-function clearCurrentPresentationSlide(){
+async function clearCurrentPresentationSlide(){
+
   if(!currentSlide){
-    return;
+    return false;
   }
+
 
   const confirmed =
-    window.confirm(
-      "Clear all objects and text from this slide?"
-    );
+    await showAiftConfirm({
+      title:
+        "Clear this slide?",
+
+      message:
+        "All text and objects on this slide will be removed. The slide itself will remain in the presentation.",
+
+      confirmLabel:
+        "Clear slide",
+
+      cancelLabel:
+        "Cancel",
+
+      tone:
+        "warning"
+    });
+
 
   if(!confirmed){
-    return;
+    return false;
   }
+
 
   currentSlide.title =
     "";
 
+
   currentSlide.subtitle =
     "";
+
 
   currentSlide.objects =
     [];
 
+
   selectedObjectId =
     null;
 
+
   renderPresentationCanvas();
+
   renderPresentationProperties();
+
   schedulePresentationAutosave();
+
+
+  showAlert(
+    "success",
+    "All content was removed from the slide.",
+    {
+      title:
+        "Slide cleared"
+    }
+  );
+
+
+  return true;
+
 }
 
 function deleteCurrentPresentationSlide(){
@@ -71077,6 +71587,271 @@ function showAlert(
 
 }
 
+/* =========================================================
+   AIFT CONFIRMATION SYSTEM
+========================================================= */
+
+let aiftConfirmResolver =
+  null;
+
+
+let aiftConfirmPreviousFocus =
+  null;
+
+
+let aiftConfirmKeyHandler =
+  null;
+
+
+/* =========================================================
+   CLOSE CONFIRMATION
+========================================================= */
+
+function closeAiftConfirm(
+  confirmed = false
+){
+
+  const backdrop =
+    byId(
+      "aiftConfirmBackdrop"
+    );
+
+
+  if(!backdrop){
+    return;
+  }
+
+
+  if(
+    aiftConfirmKeyHandler
+  ){
+
+    document.removeEventListener(
+      "keydown",
+      aiftConfirmKeyHandler
+    );
+
+
+    aiftConfirmKeyHandler =
+      null;
+
+  }
+
+
+  backdrop.hidden =
+    true;
+
+
+  const resolver =
+    aiftConfirmResolver;
+
+
+  aiftConfirmResolver =
+    null;
+
+
+  if(
+    aiftConfirmPreviousFocus &&
+    typeof aiftConfirmPreviousFocus.focus ===
+      "function"
+  ){
+
+    aiftConfirmPreviousFocus.focus({
+      preventScroll:true
+    });
+
+  }
+
+
+  aiftConfirmPreviousFocus =
+    null;
+
+
+  if(resolver){
+
+    resolver(
+      Boolean(
+        confirmed
+      )
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   OPEN CONFIRMATION
+========================================================= */
+
+function showAiftConfirm(
+  {
+    title = "Confirm action",
+    message = "",
+    confirmLabel = "Confirm",
+    cancelLabel = "Cancel",
+    tone = "danger"
+  } = {}
+){
+
+  const backdrop =
+    byId(
+      "aiftConfirmBackdrop"
+    );
+
+
+  const dialog =
+    byId(
+      "aiftConfirmDialog"
+    );
+
+
+  const titleNode =
+    byId(
+      "aiftConfirmTitle"
+    );
+
+
+  const messageNode =
+    byId(
+      "aiftConfirmMessage"
+    );
+
+
+  const confirmButton =
+    byId(
+      "aiftConfirmPrimaryButton"
+    );
+
+
+  const cancelButton =
+    byId(
+      "aiftConfirmCancelButton"
+    );
+
+
+  if(
+    !backdrop ||
+    !dialog ||
+    !titleNode ||
+    !messageNode ||
+    !confirmButton ||
+    !cancelButton
+  ){
+
+    console.error(
+      "AIFT confirmation UI is unavailable."
+    );
+
+
+    return Promise.resolve(
+      false
+    );
+
+  }
+
+
+  /*
+    Resolve any previous confirmation before opening a new one.
+  */
+
+  if(aiftConfirmResolver){
+
+    closeAiftConfirm(
+      false
+    );
+
+  }
+
+
+  aiftConfirmPreviousFocus =
+    document.activeElement;
+
+
+  titleNode.textContent =
+    String(
+      title ||
+      "Confirm action"
+    );
+
+
+  messageNode.textContent =
+    String(
+      message ||
+      ""
+    );
+
+
+  confirmButton.textContent =
+    String(
+      confirmLabel ||
+      "Confirm"
+    );
+
+
+  cancelButton.textContent =
+    String(
+      cancelLabel ||
+      "Cancel"
+    );
+
+
+  dialog.dataset.tone =
+    tone === "warning"
+      ? "warning"
+      : "danger";
+
+
+  backdrop.hidden =
+    false;
+
+
+  aiftConfirmKeyHandler =
+    event => {
+
+      if(
+        event.key ===
+        "Escape"
+      ){
+
+        event.preventDefault();
+
+        closeAiftConfirm(
+          false
+        );
+
+      }
+
+    };
+
+
+  document.addEventListener(
+    "keydown",
+    aiftConfirmKeyHandler
+  );
+
+
+  window.requestAnimationFrame(
+    () => {
+
+      confirmButton.focus({
+        preventScroll:true
+      });
+
+    }
+  );
+
+
+  return new Promise(
+    resolve => {
+
+      aiftConfirmResolver =
+        resolve;
+
+    }
+  );
+
+}
 
 /*
   Compatibility helper.
@@ -78567,74 +79342,144 @@ function handlePresentationSlideKeydown(
   );
 }
 
-function deletePresentationSlide(
+async function deletePresentationSlide(
   slideId
 ){
+
   const normalizedId =
     String(
       slideId ||
       ""
     );
 
+
   const index =
     presentationStudio.slides.findIndex(
       slide =>
-        String(slide.id) ===
+        String(
+          slide.id
+        ) ===
         normalizedId
     );
 
-  if(index < 0){
-    return;
-  }
 
-  const confirmed =
-    window.confirm(
-      "Delete this slide? This action cannot be undone after the presentation is saved."
+  if(index < 0){
+
+    showAlert(
+      "error",
+      "The selected slide could not be found.",
+      {
+        title:
+          "Slide unavailable"
+      }
     );
 
-  if(!confirmed){
-    return;
+
+    return false;
+
   }
+
+
+  const slide =
+    presentationStudio.slides[
+      index
+    ];
+
+
+  const confirmed =
+    await showAiftConfirm({
+      title:
+        "Delete slide?",
+
+      message:
+        slide?.title
+          ? `Delete "${slide.title}" from this presentation? This change cannot be recovered after the presentation is saved.`
+          : "Delete this slide from the presentation? This change cannot be recovered after the presentation is saved.",
+
+      confirmLabel:
+        "Delete slide",
+
+      cancelLabel:
+        "Keep slide",
+
+      tone:
+        "danger"
+    });
+
+
+  if(!confirmed){
+    return false;
+  }
+
 
   presentationStudio.slides.splice(
     index,
     1
   );
 
+
   selectedObjectId =
     null;
+
 
   if(
     presentationStudio.slides.length ===
     0
   ){
+
     currentSlide =
       null;
 
+
     presentationStudio.currentSlideId =
       null;
+
   }else{
+
     const replacement =
       presentationStudio.slides[
         Math.min(
           index,
-          presentationStudio.slides.length - 1
+          presentationStudio.slides.length -
+            1
         )
       ];
+
 
     currentSlide =
       replacement;
 
+
     presentationStudio.currentSlideId =
       replacement.id;
+
   }
 
+
   renderPresentationSlides();
+
   renderPresentationCanvas();
+
   renderPresentationProperties();
+
   renderPresentationNotes();
 
+
   schedulePresentationAutosave();
+
+
+  showAlert(
+    "success",
+    "The slide was removed from the presentation.",
+    {
+      title:
+        "Slide deleted"
+    }
+  );
+
+
+  return true;
+
 }
 
 let draggedPresentationSlideId =
