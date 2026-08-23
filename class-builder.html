@@ -86356,6 +86356,7 @@ const CLASS_BUILDER_SECTIONS = new Set([
 function synchronizeAiftPresentationTopbar(
   requestedTab
 ){
+
   const tab =
     String(
       requestedTab ||
@@ -86364,88 +86365,162 @@ function synchronizeAiftPresentationTopbar(
       .trim()
       .toLowerCase();
 
+
   const isPresentationSection =
     tab ===
     "presentations";
 
-/*
-  The top-center area now contains one permanent global search.
-  Presentation Studio must not replace or hide it.
-*/
 
-  const presentButton =
-    byId(
-      "studioTopbarPresentButton"
-    );
+  /* =======================================================
+     GET THE REAL CURRENT TOPBAR CONTROLS
+  ======================================================== */
 
-  const downloadShell =
+  const backButton =
     byId(
-      "studioTopbarDownloadShell"
+      "studioBackToSchoolButton"
     );
 
 
+  const presentationActionsShell =
+    byId(
+      "presentationTopbarActionsShell"
+    );
 
-  /*
-    Present and Download belong beside Back to school and
-    must never appear in another builder section.
-  */
-  if(presentButton){
-    presentButton.hidden =
-      !isPresentationSection;
+
+  const normalPreviewButton =
+    byId(
+      "studioTopbarPreviewButton"
+    );
+
+
+  const normalSaveButton =
+    byId(
+      "studioPrimarySaveButton"
+    );
+
+
+  const normalPublishButton =
+    byId(
+      "studioPublishButton"
+    );
+
+
+  /* =======================================================
+     BACK TO SCHOOL
+
+     Visible everywhere except Presentation Studio.
+  ======================================================== */
+
+  if(backButton){
+
+    backButton.hidden =
+      isPresentationSection;
+
   }
 
-  if(downloadShell){
-    downloadShell.hidden =
+
+  /* =======================================================
+     PRESENTATION ACTIONS
+
+     Show the single Actions dropdown ONLY on the
+     Presentation Studio page.
+  ======================================================== */
+
+  if(presentationActionsShell){
+
+    presentationActionsShell.hidden =
       !isPresentationSection;
+
   }
 
-  /*
-    Remove the retired secondary command bar if an older
-    render left it in the page.
-  */
+
+  /* =======================================================
+     NORMAL TOPBAR ACTIONS
+
+     Preview / Save / Publish normally belong to the main
+     Class Builder topbar.
+
+     Presentation Studio already has these commands inside
+     its Actions dropdown, so hide the duplicates there.
+  ======================================================== */
+
+  if(normalPreviewButton){
+
+    normalPreviewButton.hidden =
+      isPresentationSection;
+
+  }
+
+
+  if(normalSaveButton){
+
+    normalSaveButton.hidden =
+      isPresentationSection;
+
+  }
+
+
+  if(normalPublishButton){
+
+    normalPublishButton.hidden =
+      isPresentationSection;
+
+  }
+
+
+  /* =======================================================
+     LEAVING PRESENTATION STUDIO
+
+     Always close the dropdown before another workspace
+     becomes active.
+  ======================================================== */
+
+  if(
+    !isPresentationSection
+  ){
+
+    closePresentationTopbarActions();
+
+  }
+
+
+  /* =======================================================
+     RETIRED PRESENTATION COMMAND BAR
+
+     Remove it if an older render somehow left one behind.
+  ======================================================== */
+
   byId(
     "aiftPresentationCommandBar"
   )?.remove();
 
-  if(!isPresentationSection){
-    const searchInput =
-      byId(
-        "aiftPresentationSearchInput"
-      );
 
-    if(
-      searchInput &&
-      searchInput.value
-    ){
-      searchInput.value =
-        "";
+  /* =======================================================
+     RETIRED DOWNLOAD MENU CLEANUP
 
-      searchInput.dispatchEvent(
-        new Event(
-          "input",
-          {
-            bubbles:true
-          }
-        )
-      );
-    }
+     These no longer control the main Presentation UI,
+     but cleaning them makes migration safe if legacy markup
+     remains during development.
+  ======================================================== */
 
+  byId(
+    "aiftPresentationDownloadMenu"
+  )?.classList.remove(
+    "show"
+  );
+
+
+  const oldDownloadButton =
     byId(
-      "aiftPresentationDownloadMenu"
-    )?.classList.remove(
-      "show"
+      "aiftPresentationDownloadButton"
     );
 
-    const downloadButton =
-      byId(
-        "aiftPresentationDownloadButton"
-      );
 
-    downloadButton?.setAttribute(
-      "aria-expanded",
-      "false"
-    );
-  }
+  oldDownloadButton?.setAttribute(
+    "aria-expanded",
+    "false"
+  );
+
 }
 
 /* =========================================================
