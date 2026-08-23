@@ -33671,7 +33671,52 @@ body[data-builder-section="presentations"]
   display:none!important;
 }
 
+/* =========================================================
+   PRESENTATION DESKTOP PRESENT BUTTON
+========================================================= */
 
+.presentation-desktop-present-button{
+  display:inline-flex;
+
+  align-items:center;
+  justify-content:center;
+
+  gap:7px;
+}
+
+
+.presentation-desktop-present-button[hidden]{
+  display:none!important;
+}
+
+
+.presentation-desktop-present-button
+svg{
+  width:16px;
+  height:16px;
+
+  fill:none;
+  stroke:currentColor;
+
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+
+/* =========================================================
+   MOBILE PRESENT MENU ITEM
+
+   On desktop Present has its own topbar button,
+   therefore the duplicate menu item stays hidden.
+========================================================= */
+
+.presentation-topbar-actions-menu
+.presentation-mobile-menu-present{
+  display:none!important;
+}
+
+   
 /* =========================================================
    ACTIONS TRIGGER
 ========================================================= */
@@ -33951,16 +33996,34 @@ small{
 }
 
 
-/* =========================================================
-   MOBILE
-========================================================= */
-
 @media(max-width:640px){
+
+  /* =======================================================
+     PRESENTATION ACTIONS — MOBILE
+  ======================================================== */
 
   .presentation-topbar-actions-shell{
     min-width:0;
   }
 
+
+  /* =======================================================
+     DESKTOP PRESENT BUTTON
+
+     Desktop gets its own Present button beside Actions.
+
+     On mobile it must disappear because Present lives inside
+     the Actions dropdown instead.
+  ======================================================== */
+
+  .presentation-desktop-present-button{
+    display:none!important;
+  }
+
+
+  /* =======================================================
+     ACTIONS BUTTON
+  ======================================================== */
 
   .presentation-topbar-actions-trigger{
     min-width:72px;
@@ -33983,6 +34046,25 @@ small{
     height:13px;
   }
 
+
+  /* =======================================================
+     MOBILE PRESENT MENU ITEM
+
+     Hidden on desktop.
+     Visible only inside the mobile Actions dropdown.
+  ======================================================== */
+
+  .presentation-topbar-actions-menu
+  .presentation-mobile-menu-present{
+    display:grid!important;
+  }
+
+
+  /* =======================================================
+     MOBILE ACTIONS MENU
+
+     Use almost the full phone width.
+  ======================================================== */
 
   .presentation-topbar-actions-menu{
     position:fixed;
@@ -43012,6 +43094,41 @@ body.studio-mobile-sidebar-open
 
 
 <!-- ====================================================
+     PRESENTATION DESKTOP PRESENT
+     Desktop only
+===================================================== -->
+
+<button
+  type="button"
+  class="studio-topbar-button secondary presentation-desktop-present-button"
+  id="presentationDesktopPresentButton"
+  onclick="presentAiftPresentation()"
+  hidden
+>
+  <svg
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
+    <rect
+      x="3"
+      y="4"
+      width="18"
+      height="14"
+      rx="2"
+    ></rect>
+
+    <path
+      d="M10 8l6 3-6 3z"
+    ></path>
+  </svg>
+
+  <span>
+    Present
+  </span>
+</button>
+
+
+<!-- ====================================================
      PRESENTATION ACTIONS
      Visible only inside Presentation Studio
 ===================================================== -->
@@ -43052,18 +43169,47 @@ body.studio-mobile-sidebar-open
     hidden
   >
 
-    <!-- ================================================
-         PREVIEW
-    ================================================= -->
+<!-- ================================================
+     PRESENT
+     Mobile only
+================================================= -->
 
-    <button
-      type="button"
-      role="menuitem"
-      onclick="
-        closePresentationTopbarActions();
-        startPresentationMode();
-      "
-    >
+<button
+  type="button"
+  role="menuitem"
+  class="presentation-mobile-menu-present"
+  onclick="
+    closePresentationTopbarActions();
+    presentAiftPresentation();
+  "
+>
+  <svg
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
+    <rect
+      x="3"
+      y="4"
+      width="18"
+      height="14"
+      rx="2"
+    ></rect>
+
+    <path
+      d="M10 8l6 3-6 3z"
+    ></path>
+  </svg>
+
+  <span>
+    <strong>
+      Present
+    </strong>
+
+    <small>
+      Present slides full screen
+    </small>
+  </span>
+</button>
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect
           x="3"
@@ -86353,6 +86499,7 @@ const CLASS_BUILDER_SECTIONS = new Set([
   "settings"
 ]);
 
+
 function synchronizeAiftPresentationTopbar(
   requestedTab
 ){
@@ -86372,12 +86519,18 @@ function synchronizeAiftPresentationTopbar(
 
 
   /* =======================================================
-     GET THE REAL CURRENT TOPBAR CONTROLS
+     CURRENT TOPBAR CONTROLS
   ======================================================== */
 
   const backButton =
     byId(
       "studioBackToSchoolButton"
+    );
+
+
+  const desktopPresentButton =
+    byId(
+      "presentationDesktopPresentButton"
     );
 
 
@@ -86408,7 +86561,7 @@ function synchronizeAiftPresentationTopbar(
   /* =======================================================
      BACK TO SCHOOL
 
-     Visible everywhere except Presentation Studio.
+     Hidden only while editing presentations.
   ======================================================== */
 
   if(backButton){
@@ -86420,10 +86573,22 @@ function synchronizeAiftPresentationTopbar(
 
 
   /* =======================================================
-     PRESENTATION ACTIONS
+     DESKTOP PRESENT
 
-     Show the single Actions dropdown ONLY on the
-     Presentation Studio page.
+     CSS hides this button on mobile.
+     JS controls whether Presentation Studio is active.
+  ======================================================== */
+
+  if(desktopPresentButton){
+
+    desktopPresentButton.hidden =
+      !isPresentationSection;
+
+  }
+
+
+  /* =======================================================
+     PRESENTATION ACTIONS
   ======================================================== */
 
   if(presentationActionsShell){
@@ -86435,13 +86600,10 @@ function synchronizeAiftPresentationTopbar(
 
 
   /* =======================================================
-     NORMAL TOPBAR ACTIONS
+     STANDARD CLASS BUILDER ACTIONS
 
-     Preview / Save / Publish normally belong to the main
-     Class Builder topbar.
-
-     Presentation Studio already has these commands inside
-     its Actions dropdown, so hide the duplicates there.
+     Presentation Studio has its own Actions menu,
+     therefore hide these duplicates there.
   ======================================================== */
 
   if(normalPreviewButton){
@@ -86469,10 +86631,7 @@ function synchronizeAiftPresentationTopbar(
 
 
   /* =======================================================
-     LEAVING PRESENTATION STUDIO
-
-     Always close the dropdown before another workspace
-     becomes active.
+     LEAVING PRESENTATION
   ======================================================== */
 
   if(
@@ -86485,9 +86644,7 @@ function synchronizeAiftPresentationTopbar(
 
 
   /* =======================================================
-     RETIRED PRESENTATION COMMAND BAR
-
-     Remove it if an older render somehow left one behind.
+     RETIRED COMMAND BAR
   ======================================================== */
 
   byId(
@@ -86496,11 +86653,7 @@ function synchronizeAiftPresentationTopbar(
 
 
   /* =======================================================
-     RETIRED DOWNLOAD MENU CLEANUP
-
-     These no longer control the main Presentation UI,
-     but cleaning them makes migration safe if legacy markup
-     remains during development.
+     RETIRED DOWNLOAD UI CLEANUP
   ======================================================== */
 
   byId(
@@ -86510,13 +86663,9 @@ function synchronizeAiftPresentationTopbar(
   );
 
 
-  const oldDownloadButton =
-    byId(
-      "aiftPresentationDownloadButton"
-    );
-
-
-  oldDownloadButton?.setAttribute(
+  byId(
+    "aiftPresentationDownloadButton"
+  )?.setAttribute(
     "aria-expanded",
     "false"
   );
