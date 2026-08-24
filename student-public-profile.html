@@ -2517,55 +2517,6 @@ function toggleHeadlineMore(){
   btn.textContent = expanded ? "view less" : "view more...";
 }
 
-function setupOwnerControls(user,viewer){
-  const viewerId =
-    viewer?._id ||
-    viewer?.id ||
-    localStorage.getItem("userId");
-
-  const profileUserId =
-    user?._id ||
-    user?.id;
-
-  const isOwner =
-    viewerId &&
-    profileUserId &&
-    String(viewerId) === String(profileUserId);
-
-  if(!isOwner) return;
-
-document.getElementById("editProfileBtn").classList.remove("hidden");
-
-if(["agent","talent"].includes(String(user.role || "").toLowerCase())){
-  document.getElementById("dashboardBtn").classList.remove("hidden");
-}else{
-  document.getElementById("dashboardBtn").classList.add("hidden");
-}
-
-  document.getElementById("followAgentBtn").classList.add("hidden");
-  document.getElementById("messageAgentBtn").classList.add("hidden");
-
-  document.getElementById("editProfileBtn").onclick = () => {
-    location.href = "profile.html";
-  };
-
-document.getElementById("dashboardBtn").onclick = () => {
-  const r = String(user.role || "").toLowerCase();
-
-  if(r === "talent"){
-    location.href = "talent.html";
-    return;
-  }
-
-  if(r === "agent"){
-    location.href = "agent.html";
-    return;
-  }
-
-  location.href = "home.html";
-};
-}
-
 function renderStats(user,stats){
   const completed =
     Number(stats.completedTasks ?? user.completedTasks ?? 0);
