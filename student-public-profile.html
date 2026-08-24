@@ -2372,92 +2372,163 @@ function setupStudentProfileActions(){
   }
 
 
-  /* =======================================================
-     OWNER
-  ======================================================== */
+/* =======================================================
+   PROFILE ACTION VISIBILITY
+========================================================= */
 
-  if(isOwner){
+if(isOwner){
 
-    if(isMobile){
+  /*
+    OWNER
+    Desktop:
+      Edit
+      Share Profile
+      Dashboard
 
-      editBtn?.classList.remove(
-        "hidden"
-      );
-
-
-      moreBtn?.classList.remove(
-        "hidden"
-      );
-
-
-      dashboardBtn?.classList.remove(
-        "hidden"
-      );
-
-
-      logoutBtn?.classList.remove(
-        "hidden"
-      );
-
-    }else{
-
-      desktopEditBtn?.classList.remove(
-        "hidden"
-      );
-
-
-      desktopShareBtn?.classList.remove(
-        "hidden"
-      );
-
-
-      desktopDashboardBtn?.classList.remove(
-        "hidden"
-      );
-
-    }
-
-
-    return;
-
-  }
-
-
-  /* =======================================================
-     NON-OWNER
-  ======================================================== */
+    Mobile:
+      Edit
+      More menu
+        - Share Profile
+        - Dashboard
+        - Logout
+  */
 
   if(isMobile){
+
+    editBtn?.classList.remove(
+      "hidden"
+    );
+
 
     moreBtn?.classList.remove(
       "hidden"
     );
 
 
-    if(isLoggedIn){
+    dashboardBtn?.classList.remove(
+      "hidden"
+    );
 
-      messageBtn?.classList.remove(
-        "hidden"
-      );
 
-    }
+    logoutBtn?.classList.remove(
+      "hidden"
+    );
 
   }else{
+
+    desktopEditBtn?.classList.remove(
+      "hidden"
+    );
+
 
     desktopShareBtn?.classList.remove(
       "hidden"
     );
 
 
-    if(isLoggedIn){
-
-      desktopMessageBtn?.classList.remove(
-        "hidden"
-      );
-
-    }
+    desktopDashboardBtn?.classList.remove(
+      "hidden"
+    );
 
   }
+
+
+  /*
+    Owner must never see Message or Follow
+    on their own profile.
+  */
+
+  messageBtn?.classList.add(
+    "hidden"
+  );
+
+
+  followBtn?.classList.add(
+    "hidden"
+  );
+
+
+  desktopMessageBtn?.classList.add(
+    "hidden"
+  );
+
+
+  desktopFollowBtn?.classList.add(
+    "hidden"
+  );
+
+
+  return;
+}
+
+
+/* =======================================================
+   NON OWNER
+========================================================= */
+
+/*
+  Share is available when viewing somebody else's profile.
+*/
+
+if(isMobile){
+
+  moreBtn?.classList.remove(
+    "hidden"
+  );
+
+
+  /*
+    Dashboard and Logout belong only to the owner.
+  */
+
+  dashboardBtn?.classList.add(
+    "hidden"
+  );
+
+
+  logoutBtn?.classList.add(
+    "hidden"
+  );
+
+
+  if(isLoggedIn){
+
+    messageBtn?.classList.remove(
+      "hidden"
+    );
+
+  }
+
+}else{
+
+  desktopShareBtn?.classList.remove(
+    "hidden"
+  );
+
+
+  /*
+    Never expose owner actions to another viewer.
+  */
+
+  desktopEditBtn?.classList.add(
+    "hidden"
+  );
+
+
+  desktopDashboardBtn?.classList.add(
+    "hidden"
+  );
+
+
+  if(isLoggedIn){
+
+    desktopMessageBtn?.classList.remove(
+      "hidden"
+    );
+
+  }
+
+}
 
 
   /* =======================================================
