@@ -6119,19 +6119,33 @@ if (viewAssignmentButton){
           return;
         }
 
-        if (
-          typeof openStudentClass ===
-          "function"
-        ){
-          openStudentClass(classId);
-        }else{
-          window.location.href =
-            `student-class.html?classId=${encodeURIComponent(
-              classId
-            )}`;
-        }
+if (
+  typeof openStudentClass ===
+  "function"
+){
+  openStudentClass(classId);
+}else{
+  const url =
+    new URL(
+      "class-view.html",
+      window.location.href
+    );
 
-        return;
+  url.searchParams.set(
+    "classId",
+    classId
+  );
+
+  url.searchParams.set(
+    "from",
+    "student"
+  );
+
+  window.location.href =
+    url.href;
+}
+
+return;
       }
 
       /*
