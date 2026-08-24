@@ -85346,62 +85346,130 @@ async function callTeacherActionFunction(
 
 /* =========================================================
    OPEN CLASS
+   Production Class Learning Experience
+
+   Teacher Studio class actions must open the shared
+   class-view.html learning experience.
+
+   Class Builder remains a separate management action.
 ========================================================= */
 
-function openTeacherClassFromAction(
+function openTeacherClass(
   classId
 ){
 
-  const normalized =
+  const normalizedClassId =
     normalizeId(
       classId
     );
 
 
   if (
-    !normalized
+    !normalizedClassId
   ){
+
+    notifyAIFTWarning(
+      "Select a class before opening the learning experience.",
+      {
+        title:
+          "Class required"
+      }
+    );
+
 
     return false;
 
   }
 
 
+  /*
+    Keep the selected class synchronized with Teacher Studio.
+  */
+
   state.selectedClassId =
-    normalized;
+    normalizedClassId;
 
 
   /*
-    Use current class-detail renderer when available.
+    Build the shared production learning-view URL.
+
+    "from=teacher" allows class-view.html to return the
+    teacher to Teacher Studio instead of Student Studio.
   */
 
-  if (
-    typeof openTeacherClass ===
-    "function"
-  ){
-
-    return openTeacherClass(
-      normalized
+  const url =
+    new URL(
+      "class-view.html",
+      window.location.href
     );
 
-  }
+
+  url.searchParams.set(
+    "classId",
+    normalizedClassId
+  );
 
 
-  if (
-    typeof renderTeacherSelectedClass ===
-    "function"
-  ){
-
-    return renderTeacherSelectedClass(
-      normalized
-    );
-
-  }
+  url.searchParams.set(
+    "from",
+    "teacher"
+  );
 
 
-  return false;
+  /*
+    Navigate in the current tab.
+
+    Do not use window.open() because this is normal
+    application navigation, not a preview window.
+  */
+
+  window.location.href =
+    url.href;
+
+
+  return true;
 
 }
+
+
+/* =========================================================
+   OPEN CLASS FROM TEACHER ACTION CONTROLLER
+========================================================= */
+
+function openTeacherClassFromAction(
+  classId
+){
+
+  const normalizedClassId =
+    normalizeId(
+      classId
+    );
+
+
+  if (
+    !normalizedClassId
+  ){
+
+    notifyAIFTWarning(
+      "Select a class before opening it.",
+      {
+        title:
+          "Class required"
+      }
+    );
+
+
+    return false;
+
+  }
+
+
+  return openTeacherClass(
+    normalizedClassId
+  );
+
+}
+
 
 
 /* =========================================================
