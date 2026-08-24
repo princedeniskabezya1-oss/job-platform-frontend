@@ -2297,6 +2297,15 @@ and
           Dashboard
         </button>
 
+        <button
+          id="mobileSchoolLogoutBtn"
+          class="hidden profile-logout-action"
+          type="button"
+          onclick="logoutSchoolAccount()"
+        >
+          Logout
+        </button>
+
       </div>
 
     </div>
@@ -3179,6 +3188,42 @@ function openMyProfile(){
 function openDashboard(){
 
   window.location.href = "school.html";
+}
+
+
+/* =========================
+   LOGOUT
+========================= */
+
+function logoutSchoolAccount(){
+
+  const confirmed =
+    window.confirm(
+      "Are you sure you want to log out of AIFT?"
+    );
+
+  if(!confirmed){
+    return;
+  }
+
+  const authKeys = [
+    "token",
+    "studentToken",
+    "talentToken",
+    "employerToken",
+    "schoolToken",
+    "adminToken",
+    "agentToken",
+    "userId",
+    "role"
+  ];
+
+  authKeys.forEach(key => {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  });
+
+  window.location.replace("login.html");
 }
 
 /* =========================================================
@@ -4971,6 +5016,10 @@ function setupOwnerButtons(){
 
   const desktopFollowBtn =
     document.getElementById("desktopSchoolFollowBtn");
+  const mobileLogoutBtn =
+  document.getElementById(
+    "mobileSchoolLogoutBtn"
+  );
 
   [
     mobileEditBtn,
@@ -4994,12 +5043,14 @@ function setupOwnerButtons(){
       mobileEditBtn?.classList.remove("hidden");
       mobileMoreBtn?.classList.remove("hidden");
       mobileDashboardBtn?.classList.remove("hidden");
+      mobileLogoutBtn?.classList.remove("hidden");
 
     }else{
 
       desktopEditBtn?.classList.remove("hidden");
       desktopShareBtn?.classList.remove("hidden");
       desktopDashboardBtn?.classList.remove("hidden");
+      mobileLogoutBtn?.classList.add("hidden");
     }
 
     return;
