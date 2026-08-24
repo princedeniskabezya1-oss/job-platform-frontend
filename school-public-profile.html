@@ -136,40 +136,221 @@ img{display:block;max-width:100%}
   min-width:0;
 }
 
+/* =========================================================
+   SCHOOL PUBLIC PROFILE SEARCH
+========================================================= */
+
 .search{
   position:relative;
-  width:280px;
-  max-width:40vw;
-  flex:0 1 280px;
+
+  width:min(440px,38vw);
+  max-width:440px;
+
+  flex:
+    1
+    1
+    360px;
+
+  min-width:220px;
+
+  display:flex;
+  align-items:center;
 }
+
+
+/* =========================================================
+   SEARCH INPUT
+========================================================= */
 
 .search input{
   width:100%;
-  height:34px;
-  border:1px solid #cfd8e3;
-  background:var(--soft);
-  border-radius:6px;
-  padding:0 12px 0 36px;
+  height:42px;
+
+  padding:
+    0
+    46px
+    0
+    42px;
+
+  border:
+    1px solid
+    #d5dce5;
+
+  border-radius:999px;
+
   outline:none;
-  box-shadow:none;
+
+  background:#f6f8fa;
+
+  color:#172033;
+
+  font-size:13px;
+  font-weight:500;
+
+  line-height:1;
+
+  box-shadow:
+    0
+    1px
+    2px
+    rgba(15,23,42,.03);
+
+  appearance:none;
+  -webkit-appearance:none;
+
+  transition:
+    border-color .16s ease,
+    background .16s ease,
+    box-shadow .16s ease;
 }
+
+
+.search input::placeholder{
+  color:#7d8795;
+
+  font-weight:450;
+}
+
+
+.search input:hover{
+  border-color:#bdc7d3;
+
+  background:#fff;
+}
+
 
 .search input:focus{
-  border-color:#9cc3ea;
+  border-color:
+    #5d9ddd;
+
   background:#fff;
-  box-shadow:none;
+
+  box-shadow:
+    0
+    0
+    0
+    3px
+    rgba(10,102,194,.10);
 }
 
-.search svg{
+
+/*
+  Chrome adds its own native X to type="search".
+  AIFT uses its own clear button instead.
+*/
+
+.search input::-webkit-search-cancel-button{
+  display:none;
+  appearance:none;
+}
+
+
+/* =========================================================
+   SEARCH ICON
+========================================================= */
+
+.search
+.search-icon{
   position:absolute;
-  left:11px;
+
+  left:15px;
   top:50%;
-  transform:translateY(-50%);
-  width:16px;
-  height:16px;
-  stroke:#64748b;
+
+  width:18px;
+  height:18px;
+
+  transform:
+    translateY(-50%);
+
+  z-index:2;
+
+  pointer-events:none;
+
   fill:none;
+
+  stroke:#64748b;
+
+  stroke-width:1.9;
+
+  stroke-linecap:round;
+  stroke-linejoin:round;
+
+  transition:
+    stroke .16s ease;
+}
+
+
+.search:focus-within
+.search-icon{
+  stroke:
+    var(--primary);
+}
+
+
+/* =========================================================
+   CLEAR BUTTON
+========================================================= */
+
+.search-clear{
+  position:absolute;
+
+  top:50%;
+  right:7px;
+
+  width:28px;
+  height:28px;
+
+  transform:
+    translateY(-50%);
+
+  display:grid;
+  place-items:center;
+
+  padding:0;
+
+  border:0;
+  border-radius:50%;
+
+  background:transparent;
+
+  color:#64748b;
+
+  cursor:pointer;
+
+  transition:
+    background .16s ease,
+    color .16s ease;
+}
+
+
+.search-clear[hidden]{
+  display:none!important;
+}
+
+
+.search-clear:hover{
+  background:#e9eef4;
+
+  color:#334155;
+}
+
+
+.search-clear svg{
+  position:static;
+
+  width:14px;
+  height:14px;
+
+  transform:none;
+
+  fill:none;
+
+  stroke:currentColor;
+
   stroke-width:2;
+
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 
 .icon-btn{
@@ -2528,13 +2709,56 @@ and
       <img src="images/aift-logo.png" alt="AIFT" class="brand-logo-img">
     </a>
 
-    <div class="search">
-      <svg viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="7"></circle>
-        <path d="M20 20l-3.5-3.5"></path>
-      </svg>
-      <input type="search" id="globalSearch" placeholder="Search AIFT">
-    </div>
+<div
+  class="search"
+  id="schoolPublicSearch"
+  role="search"
+>
+
+  <svg
+    class="search-icon"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
+    <circle
+      cx="11"
+      cy="11"
+      r="7"
+    ></circle>
+
+    <path
+      d="M20 20l-3.5-3.5"
+    ></path>
+  </svg>
+
+
+  <input
+    type="search"
+    id="globalSearch"
+    placeholder="Search this school profile"
+    autocomplete="off"
+    spellcheck="false"
+    aria-label="Search this school profile"
+  >
+
+
+  <button
+    type="button"
+    class="search-clear"
+    id="schoolPublicSearchClear"
+    aria-label="Clear search"
+    hidden
+  >
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path d="M7 7l10 10"></path>
+      <path d="M17 7L7 17"></path>
+    </svg>
+  </button>
+
+</div>
 
     <nav class="top-nav">
       <button class="top-link active" onclick="goHome()">
@@ -6617,34 +6841,179 @@ bannerPreview.style.display =
 function setupSearch(){
 
   const input =
-    document.getElementById("globalSearch");
+    document.getElementById(
+      "globalSearch"
+    );
 
-  if(!input) return;
 
-  input.addEventListener("input", () => {
+  const clearButton =
+    document.getElementById(
+      "schoolPublicSearchClear"
+    );
+
+
+  const searchShell =
+    document.getElementById(
+      "schoolPublicSearch"
+    );
+
+
+  if(
+    !input ||
+    !searchShell
+  ){
+    return;
+  }
+
+
+  /*
+    Avoid accidental duplicate binding if initialization
+    is ever executed again.
+  */
+
+  if(
+    input.dataset.searchBound ===
+    "true"
+  ){
+    return;
+  }
+
+
+  input.dataset.searchBound =
+    "true";
+
+
+  const searchableSelector =
+    [
+      ".student-card",
+      ".program-card",
+      ".partner-card",
+      ".job-item",
+      ".feature-card",
+      ".outcome-card"
+    ]
+      .join(",");
+
+
+  function applySchoolProfileSearch(){
 
     const term =
       input.value
-        .toLowerCase()
-        .trim();
+        .trim()
+        .toLowerCase();
+
+
+    /*
+      Show the clear button only when the user has entered
+      something.
+    */
+
+    if(clearButton){
+
+      clearButton.hidden =
+        !term;
+
+    }
+
 
     const searchable =
       document.querySelectorAll(
-        ".student-card,.program-card,.partner-card,.job-item,.feature-card"
+        searchableSelector
       );
 
-    searchable.forEach(item => {
 
-      const text =
-        item.innerText.toLowerCase();
+    searchable.forEach(
+      item => {
 
-      item.style.display =
-        text.includes(term)
-          ? ""
-          : "none";
-    });
+        const searchableText =
+          String(
+            item.textContent ||
+            ""
+          )
+            .toLowerCase();
 
-  });
+
+        const matches =
+          !term ||
+          searchableText.includes(
+            term
+          );
+
+
+        item.hidden =
+          !matches;
+
+      }
+    );
+
+
+    searchShell.classList.toggle(
+      "has-value",
+      Boolean(term)
+    );
+
+  }
+
+
+  input.addEventListener(
+    "input",
+    applySchoolProfileSearch
+  );
+
+
+  input.addEventListener(
+    "search",
+    applySchoolProfileSearch
+  );
+
+
+  clearButton?.addEventListener(
+    "click",
+    () => {
+
+      input.value =
+        "";
+
+
+      applySchoolProfileSearch();
+
+
+      input.focus();
+
+    }
+  );
+
+
+  /*
+    Escape clears the active search without affecting
+    the rest of the page.
+  */
+
+  input.addEventListener(
+    "keydown",
+    event => {
+
+      if(
+        event.key !==
+        "Escape" ||
+        !input.value
+      ){
+        return;
+      }
+
+
+      event.preventDefault();
+
+
+      input.value =
+        "";
+
+
+      applySchoolProfileSearch();
+
+    }
+  );
+
 }
 
 /* =========================
