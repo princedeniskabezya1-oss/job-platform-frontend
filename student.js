@@ -5271,61 +5271,93 @@ async function refreshStudentDashboard(
   }
 }
 
-function resumeStudentLearning(){
-  const selectedClass =
-    typeof getPreferredStudentClass ===
+function resumeStudentLearning(
+  requestedClassId = ""
+){
+
+  const requestedId =
+    normalizeId(
+      requestedClassId
+    );
+
+  const classes =
+    typeof getStudentClasses ===
     "function"
-      ? getPreferredStudentClass()
+      ? getStudentClasses()
       : (
-          typeof getStudentClasses ===
-          "function"
-            ? getStudentClasses()[0]
-            : null
+          Array.isArray(state.classes)
+            ? state.classes
+            : []
         );
 
-  if (!selectedClass){
-    navigateStudentStudio(
-      "classes"
-    );
-
-    if (
-      typeof showAlert ===
+  const selectedClass =
+    (
+      requestedId
+        ? classes.find(
+            item =>
+              normalizeId(
+                item?._id ||
+                item?.id
+              ) ===
+              requestedId
+          )
+        : null
+    ) ||
+    (
+      typeof getPreferredStudentClass ===
       "function"
-    ){
-      showAlert(
-        "info",
-        "No class is currently available to resume."
-      );
-    }
+        ? getPreferredStudentClass()
+        : null
+    ) ||
+    classes[0] ||
+    null;
 
-    return;
-  }
+  const selectedClassId =
+    requestedId ||
+    normalizeId(
+      selectedClass?._id ||
+      selectedClass?.id
+    );
 
-  const classId =
-    selectedClass._id ||
-    selectedClass.id;
+  if(!selectedClassId){
 
-  if (!classId){
-    navigateStudentStudio(
+    navigateStudentStudio?.(
       "classes"
+    );
+
+    showAlert?.(
+      "info",
+      "No class is available yet."
     );
 
     return;
   }
 
-  if (
-    typeof openStudentClass ===
-    "function"
-  ){
-    openStudentClass(classId);
+  const classProgress =
+    state.classProgressById instanceof Map
+      ? state.classProgressById.get(
+          String(
+            selectedClassId
+          )
+        )
+      : null;
 
-    return;
-  }
+  const lessonId =
+    classProgress
+      ?.latestActivity
+      ?.type ===
+      "lesson"
+        ? normalizeId(
+            classProgress
+              .latestActivity
+              .id
+          )
+        : "";
 
-  window.location.href =
-    `student-class.html?classId=${encodeURIComponent(
-      classId
-    )}`;
+  openStudentClass(
+    selectedClassId,
+    lessonId
+  );
 }
 
 function handleStudentAIAction(action){
@@ -6306,15 +6338,50 @@ if (viewAssignmentButton){
   );
 }
 
-function openStudentClass(classId){
-  if(!classId){
+function openStudentClass(
+  classId,
+  lessonId = ""
+){
+
+  const normalizedClassId =
+    normalizeId(classId);
+
+  if(!normalizedClassId){
+    showAlert?.(
+      "error",
+      "Unable to open class."
+    );
     return;
   }
 
+  const url =
+    new URL(
+      "class-view.html",
+      window.location.href
+    );
+
+  url.searchParams.set(
+    "classId",
+    normalizedClassId
+  );
+
+  url.searchParams.set(
+    "from",
+    "student"
+  );
+
+  const normalizedLessonId =
+    normalizeId(lessonId);
+
+  if(normalizedLessonId){
+    url.searchParams.set(
+      "lessonId",
+      normalizedLessonId
+    );
+  }
+
   window.location.href =
-    `student-class.html?classId=${encodeURIComponent(
-      classId
-    )}`;
+    url.href;
 }
 
 /* =========================================================
