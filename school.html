@@ -41838,13 +41838,130 @@ function renderClasses(){
     }).join("");
 
 }
-  
-  function openClassBuilder(classId){
-  if (!classId){
-    return showAlert("error","Class ID missing.");
+
+
+/* =========================================================
+   OPEN CLASS LEARNING EXPERIENCE
+   School View
+========================================================= */
+
+function openClassWorkspace(
+  classId
+){
+
+  const normalizedClassId =
+    String(
+      classId ||
+      ""
+    ).trim();
+
+
+  if(!normalizedClassId){
+
+    showAiftToast({
+      type:
+        "error",
+
+      title:
+        "Class unavailable",
+
+      message:
+        "The selected class could not be found."
+    });
+
+    return false;
+
   }
 
-  window.location.href = `class-builder.html?classId=${encodeURIComponent(classId)}`;
+
+  /*
+    School uses the same production learning experience
+    as students and teachers.
+
+    from=school tells class-view.html that the viewer
+    entered from School Studio.
+  */
+
+  const url =
+    new URL(
+      "class-view.html",
+      window.location.href
+    );
+
+
+  url.searchParams.set(
+    "classId",
+    normalizedClassId
+  );
+
+
+  url.searchParams.set(
+    "from",
+    "school"
+  );
+
+
+  window.location.href =
+    url.href;
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   OPEN CLASS BUILDER
+========================================================= */
+
+function openClassBuilder(
+  classId
+){
+
+  const normalizedClassId =
+    String(
+      classId ||
+      ""
+    ).trim();
+
+
+  if(!normalizedClassId){
+
+    showAiftToast({
+      type:
+        "error",
+
+      title:
+        "Class unavailable",
+
+      message:
+        "The selected class could not be found."
+    });
+
+    return false;
+
+  }
+
+
+  const url =
+    new URL(
+      "class-builder.html",
+      window.location.href
+    );
+
+
+  url.searchParams.set(
+    "classId",
+    normalizedClassId
+  );
+
+
+  window.location.href =
+    url.href;
+
+
+  return true;
+
 }
 
 async function deleteClass(id){
