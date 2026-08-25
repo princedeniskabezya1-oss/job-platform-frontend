@@ -14265,12 +14265,37 @@ closeStudentProjectEditor);
 
 const studentCareerState = {
 
+  /* =======================================================
+     EMPLOYMENT
+  ======================================================== */
+
   jobs:[],
 
   applications:[],
 
   savedJobIds:
     new Set(),
+
+
+  /* =======================================================
+     AIFT VENTURES
+  ======================================================== */
+
+  ventures:[],
+
+  savedVentureIds:
+    new Set(),
+
+  venturesLoading:false,
+
+  venturesLoaded:false,
+
+  venturesError:"",
+
+
+  /* =======================================================
+     CAREER HUB
+  ======================================================== */
 
   loading:false,
 
@@ -14511,14 +14536,14 @@ async function loadStudentCareerHubData({
   force = false
 } = {}){
 
-  if (
+  if(
     studentCareerState.loading
   ){
     return;
   }
 
 
-  if (
+  if(
     studentCareerState.loaded &&
     !force
   ){
@@ -14529,18 +14554,33 @@ async function loadStudentCareerHubData({
   studentCareerState.loading =
     true;
 
+
   studentCareerState.error =
+    "";
+
+
+  studentCareerState.venturesError =
     "";
 
 
   try{
 
+    /* =====================================================
+       LOAD CAREER HUB SOURCES
+
+       Ventures are intentionally requested separately
+       through their own API but participate in the same
+       Career Hub load cycle.
+    ====================================================== */
+
     const [
-      jobsResponse,
-      applicationsResponse,
-      savedResponse
+      jobsResult,
+      applicationsResult,
+      savedJobsResult,
+      venturesResult,
+      savedVenturesResult
     ] =
-      await Promise.all([
+      await Promise.allSettled([
 
         apiGet(
           "/api/jobs"
@@ -14552,119 +14592,195 @@ async function loadStudentCareerHubData({
 
         apiGet(
           "/api/saved?type=job"
+        ),
+
+        apiGet(
+          "/api/ventures"
+        ),
+
+        apiGet(
+          "/api/ventures/saved"
         )
 
       ]);
 
 
-    studentCareerState.jobs =
-      Array.isArray(
-        jobsResponse
-      )
-        ? jobsResponse
-        : Array.isArray(
-            jobsResponse?.jobs
-          )
-          ? jobsResponse.jobs
+    /* =====================================================
+       JOBS
+    ====================================================== */
+
+    if(
+      jobsResult.status ===
+      "fulfilled"
+    ){
+
+      const jobsResponse =
+        jobsResult.value;
+
+
+      studentCareerState.jobs =
+        Array.isArray(
+          jobsResponse
+        )
+          ? jobsResponse
           : Array.isArray(
-              jobsResponse?.data
+              jobsResponse?.jobs
             )
-            ? jobsResponse.data
-            : [];
+            ? jobsResponse.jobs
+            : Array.isArray(
+                jobsResponse?.data
+              )
+              ? jobsResponse.data
+              : [];
+
+    }else{
+
+      console.error(
+        "Career Hub jobs load failed:",
+        jobsResult.reason
+      );
 
 
-    studentCareerState.applications =
-      Array.isArray(
-        applicationsResponse
-      )
-        ? applicationsResponse
-        : Array.isArray(
-            applicationsResponse
-              ?.applications
-          )
+      studentCareerState.jobs =
+        [];
+
+    }
+
+
+    /* =====================================================
+       APPLICATIONS
+    ====================================================== */
+
+    if(
+      applicationsResult.status ===
+      "fulfilled"
+    ){
+
+      const applicationsResponse =
+        applicationsResult.value;
+
+
+      studentCareerState.applications =
+        Array.isArray(
+          applicationsResponse
+        )
           ? applicationsResponse
-              .applications
           : Array.isArray(
-              applicationsResponse?.data
+              applicationsResponse
+                ?.applications
             )
-            ? applicationsResponse.data
-            : [];
+            ? applicationsResponse
+                .applications
+            : Array.isArray(
+                applicationsResponse?.data
+              )
+              ? applicationsResponse.data
+              : [];
 
-    /* =========================================================
-       SAVED OPPORTUNITIES
-       LOAD FROM REAL SAVEDITEM BACKEND
-    ========================================================= */
+    }else{
 
-    const savedRows =
-      Array.isArray(
-        savedResponse
-      )
-        ? savedResponse
-        : Array.isArray(
-            savedResponse?.saved
-          )
-          ? savedResponse.saved
-          : [];
+      console.error(
+        "Career Hub applications load failed:",
+        applicationsResult.reason
+      );
 
 
-    const savedIds =
+      studentCareerState.applications =
+        [];
+
+    }
+
+
+    /* =====================================================
+       SAVED JOBS
+    ====================================================== */
+
+    const savedJobIds =
       new Set();
 
 
-    for (
-      const savedItem
-      of savedRows
+    if(
+      savedJobsResult.status ===
+      "fulfilled"
     ){
 
-      const itemType =
-        String(
-          savedItem?.itemType ||
-          savedItem?.type ||
-          ""
+      const savedResponse =
+        savedJobsResult.value;
+
+
+      const savedRows =
+        Array.isArray(
+          savedResponse
         )
-          .trim()
-          .toLowerCase();
+          ? savedResponse
+          : Array.isArray(
+              savedResponse?.saved
+            )
+            ? savedResponse.saved
+            : [];
 
 
-      if (
-        itemType &&
-        itemType !== "job"
-      ){
-        continue;
-      }
-
-
-      const jobId =
-        normalizeId(
-          savedItem?.itemId?._id ||
-          savedItem?.itemId ||
-          savedItem?.item?._id ||
-          savedItem?.item?.id ||
-          ""
-        );
-
-
-      if (
-        jobId
+      for(
+        const savedItem
+        of savedRows
       ){
 
-        savedIds.add(
-          jobId
-        );
+        const itemType =
+          String(
+            savedItem?.itemType ||
+            savedItem?.type ||
+            ""
+          )
+            .trim()
+            .toLowerCase();
+
+
+        if(
+          itemType &&
+          itemType !==
+            "job"
+        ){
+          continue;
+        }
+
+
+        const jobId =
+          normalizeId(
+            savedItem?.itemId?._id ||
+            savedItem?.itemId ||
+            savedItem?.item?._id ||
+            savedItem?.item?.id ||
+            ""
+          );
+
+
+        if(jobId){
+
+          savedJobIds.add(
+            jobId
+          );
+
+        }
 
       }
+
+    }else{
+
+      console.warn(
+        "Career Hub saved jobs load failed:",
+        savedJobsResult.reason
+      );
 
     }
 
 
     studentCareerState.savedJobIds =
-      savedIds;
+      savedJobIds;
 
 
-    /*
-      Only show live/open opportunities
-      inside student recommendations.
-    */
+    /* =====================================================
+       LIVE JOB FILTER
+    ====================================================== */
 
     studentCareerState.jobs =
       studentCareerState.jobs
@@ -14683,7 +14799,9 @@ async function loadStudentCareerHubData({
             "closed",
             "archived",
             "draft",
-            "deleted"
+            "deleted",
+            "rejected",
+            "suspended"
           ].includes(
             status
           );
@@ -14691,8 +14809,147 @@ async function loadStudentCareerHubData({
         });
 
 
+    /* =====================================================
+       AIFT VENTURES
+    ====================================================== */
+
+    if(
+      venturesResult.status ===
+      "fulfilled"
+    ){
+
+      const venturesResponse =
+        venturesResult.value;
+
+
+      studentCareerState.ventures =
+        Array.isArray(
+          venturesResponse
+        )
+          ? venturesResponse
+          : Array.isArray(
+              venturesResponse
+                ?.ventures
+            )
+            ? venturesResponse
+                .ventures
+            : Array.isArray(
+                venturesResponse?.data
+              )
+              ? venturesResponse.data
+              : [];
+
+
+      studentCareerState.venturesLoaded =
+        true;
+
+
+      studentCareerState.venturesError =
+        "";
+
+    }else{
+
+      console.error(
+        "Career Hub ventures load failed:",
+        venturesResult.reason
+      );
+
+
+      studentCareerState.ventures =
+        [];
+
+
+      studentCareerState.venturesLoaded =
+        false;
+
+
+      studentCareerState.venturesError =
+        venturesResult
+          .reason
+          ?.message ||
+        "Ventures could not be loaded.";
+
+    }
+
+
+    /* =====================================================
+       SAVED VENTURES
+    ====================================================== */
+
+    const savedVentureIds =
+      new Set();
+
+
+    if(
+      savedVenturesResult.status ===
+      "fulfilled"
+    ){
+
+      const savedVenturesResponse =
+        savedVenturesResult.value;
+
+
+      const savedVentures =
+        Array.isArray(
+          savedVenturesResponse
+        )
+          ? savedVenturesResponse
+          : Array.isArray(
+              savedVenturesResponse
+                ?.ventures
+            )
+            ? savedVenturesResponse
+                .ventures
+            : [];
+
+
+      savedVentures.forEach(
+        venture => {
+
+          const ventureId =
+            normalizeId(
+              venture?._id ||
+              venture?.id ||
+              ""
+            );
+
+
+          if(ventureId){
+
+            savedVentureIds.add(
+              ventureId
+            );
+
+          }
+
+        }
+      );
+
+    }else{
+
+      /*
+        Saved Ventures requires authentication.
+
+        Do not make the whole Career Hub fail merely because
+        the visitor has no session or the saved endpoint
+        cannot be reached.
+      */
+
+      console.warn(
+        "Career Hub saved ventures load skipped:",
+        savedVenturesResult.reason
+      );
+
+    }
+
+
+    studentCareerState.savedVentureIds =
+      savedVentureIds;
+
+
     studentCareerState.loaded =
       true;
+
 
   }catch(error){
 
@@ -14710,12 +14967,22 @@ async function loadStudentCareerHubData({
     studentCareerState.jobs =
       [];
 
+
     studentCareerState.applications =
       [];
+
+
+    studentCareerState.ventures =
+      [];
+
 
   }finally{
 
     studentCareerState.loading =
+      false;
+
+
+    studentCareerState.venturesLoading =
       false;
 
   }
@@ -15442,6 +15709,746 @@ function updateStudentCareerSavedCount(){
   );
 
 }
+
+/* =========================================================
+   SAVE / UNSAVE AIFT VENTURE
+========================================================= */
+
+async function toggleStudentCareerSavedVenture(
+  ventureId
+){
+
+  const id =
+    normalizeId(
+      ventureId
+    );
+
+
+  if(!id){
+
+    notifyAIFTError(
+      "This venture could not be saved.",
+      {
+        title:
+          "Venture unavailable"
+      }
+    );
+
+    return;
+
+  }
+
+
+  const wasSaved =
+    studentCareerState
+      .savedVentureIds
+      .has(
+        id
+      );
+
+
+  /* =======================================================
+     OPTIMISTIC UI
+  ======================================================== */
+
+  if(wasSaved){
+
+    studentCareerState
+      .savedVentureIds
+      .delete(
+        id
+      );
+
+  }else{
+
+    studentCareerState
+      .savedVentureIds
+      .add(
+        id
+      );
+
+  }
+
+
+  renderStudentCareerVentures();
+
+
+  try{
+
+    const response =
+      await apiSend(
+        `/api/ventures/${
+          encodeURIComponent(
+            id
+          )
+        }/save`,
+        "PATCH",
+        {}
+      );
+
+
+    const saved =
+      Boolean(
+        response?.saved
+      );
+
+
+    if(saved){
+
+      studentCareerState
+        .savedVentureIds
+        .add(
+          id
+        );
+
+    }else{
+
+      studentCareerState
+        .savedVentureIds
+        .delete(
+          id
+        );
+
+    }
+
+
+    renderStudentCareerVentures();
+
+
+    notifyAIFTSuccess(
+      saved
+        ? "Venture saved."
+        : "Venture removed from saved.",
+      {
+        title:
+          saved
+            ? "Saved"
+            : "Removed"
+      }
+    );
+
+
+  }catch(error){
+
+    /*
+      Roll back the optimistic state.
+    */
+
+    if(wasSaved){
+
+      studentCareerState
+        .savedVentureIds
+        .add(
+          id
+        );
+
+    }else{
+
+      studentCareerState
+        .savedVentureIds
+        .delete(
+          id
+        );
+
+    }
+
+
+    renderStudentCareerVentures();
+
+
+    console.error(
+      "Career Hub venture save failed:",
+      error
+    );
+
+
+    notifyAIFTError(
+      error?.message ||
+      "The venture could not be saved.",
+      {
+        title:
+          "Save failed"
+      }
+    );
+
+  }
+
+}
+
+/* =========================================================
+   RENDER AIFT VENTURES
+========================================================= */
+
+function renderStudentCareerVentures(){
+
+  const container =
+    document.getElementById(
+      "studentCareerVentureList"
+    );
+
+
+  const countElement =
+    document.getElementById(
+      "studentCareerVentureCount"
+    );
+
+
+  const ventures =
+    Array.isArray(
+      studentCareerState.ventures
+    )
+      ? studentCareerState.ventures
+      : [];
+
+
+  if(countElement){
+
+    countElement.textContent =
+      String(
+        ventures.length
+      );
+
+  }
+
+
+  if(!container){
+    return;
+  }
+
+
+  /* =======================================================
+     LOADING
+  ======================================================== */
+
+  if(
+    studentCareerState
+      .venturesLoading
+  ){
+
+    container.innerHTML = `
+
+      <div class="student-career-empty">
+
+        <div class="student-career-empty-icon">
+
+          <i
+            class="fa-solid fa-circle-notch fa-spin"
+          ></i>
+
+        </div>
+
+        <strong>
+          Discovering ventures
+        </strong>
+
+        <p>
+          AIFT is finding student projects, startups and
+          businesses seeking support.
+        </p>
+
+      </div>
+    `;
+
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     ERROR
+  ======================================================== */
+
+  if(
+    studentCareerState
+      .venturesError
+  ){
+
+    container.innerHTML = `
+
+      <div class="student-career-empty">
+
+        <div
+          class="student-career-empty-icon"
+          style="
+            background:var(--career-purple-soft);
+            color:var(--career-purple);
+          "
+        >
+
+          <i
+            class="fa-solid fa-triangle-exclamation"
+          ></i>
+
+        </div>
+
+        <strong>
+          Ventures could not be loaded
+        </strong>
+
+        <p>
+          ${
+            escapeHtml(
+              studentCareerState
+                .venturesError
+            )
+          }
+        </p>
+
+      </div>
+    `;
+
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     EMPTY MARKETPLACE
+  ======================================================== */
+
+  if(
+    !ventures.length
+  ){
+
+    container.innerHTML = `
+
+      <div class="student-career-empty">
+
+        <div
+          class="student-career-empty-icon"
+          style="
+            background:var(--career-purple-soft);
+            color:var(--career-purple);
+          "
+        >
+
+          <i
+            class="fa-solid fa-rocket"
+          ></i>
+
+        </div>
+
+        <strong>
+          Be among the first AIFT founders
+        </strong>
+
+        <p>
+          Student projects, startups and businesses seeking
+          grants, sponsorship, mentorship, pilots or investor
+          introductions will appear here.
+        </p>
+
+      </div>
+    `;
+
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     FEATURED / LATEST
+  ======================================================== */
+
+  const visibleVentures =
+    ventures
+      .slice()
+      .sort(
+        (
+          first,
+          second
+        ) => {
+
+          const featuredDifference =
+            Number(
+              Boolean(
+                second?.featured
+              )
+            ) -
+            Number(
+              Boolean(
+                first?.featured
+              )
+            );
+
+
+          if(
+            featuredDifference
+          ){
+
+            return featuredDifference;
+
+          }
+
+
+          return (
+            new Date(
+              second?.createdAt ||
+              0
+            )
+              .getTime() -
+            new Date(
+              first?.createdAt ||
+              0
+            )
+              .getTime()
+          );
+
+        }
+      )
+      .slice(
+        0,
+        4
+      );
+
+
+  container.innerHTML =
+    visibleVentures
+      .map(
+        venture => {
+
+          const ventureId =
+            normalizeId(
+              venture?._id ||
+              venture?.id ||
+              ""
+            );
+
+
+          const title =
+            String(
+              venture?.title ||
+              "Untitled venture"
+            );
+
+
+          const tagline =
+            String(
+              venture?.tagline ||
+              venture?.description ||
+              "AIFT Venture"
+            );
+
+
+          const ventureType =
+            String(
+              venture?.ventureType ||
+              "student-project"
+            )
+              .replace(
+                /-/g,
+                " "
+              );
+
+
+          const stage =
+            String(
+              venture?.stage ||
+              "idea"
+            )
+              .replace(
+                /-/g,
+                " "
+              );
+
+
+          const ownerName =
+            String(
+              venture?.ownerId?.name ||
+              venture?.owner?.name ||
+              "AIFT Founder"
+            );
+
+
+          const schoolName =
+            String(
+              venture?.schoolId
+                ?.schoolName ||
+              venture?.schoolId
+                ?.name ||
+              ""
+            );
+
+
+          const fundingGoal =
+            Math.max(
+              0,
+              Number(
+                venture?.fundingGoal
+              ) ||
+              0
+            );
+
+
+          const currency =
+            String(
+              venture?.currency ||
+              "PHP"
+            )
+              .toUpperCase();
+
+
+          const fundingLabel =
+            fundingGoal > 0
+              ? new Intl
+                  .NumberFormat(
+                    "en-PH",
+                    {
+                      style:
+                        "currency",
+
+                      currency:
+                        currency ===
+                        "PHP"
+                          ? "PHP"
+                          : currency,
+
+                      maximumFractionDigits:
+                        0
+                    }
+                  )
+                  .format(
+                    fundingGoal
+                  )
+              : "";
+
+
+          const fundingTypes =
+            Array.isArray(
+              venture?.fundingTypes
+            )
+              ? venture
+                  .fundingTypes
+                  .slice(
+                    0,
+                    3
+                  )
+              : [];
+
+
+          const saved =
+            studentCareerState
+              .savedVentureIds
+              .has(
+                ventureId
+              );
+
+
+          return `
+
+            <article
+              class="
+                student-career-opportunity-item
+                student-career-venture-item
+              "
+              data-career-venture-id="${
+                escapeHtml(
+                  ventureId
+                )
+              }"
+            >
+
+              <div
+                class="student-career-opportunity-logo"
+                style="
+                  background:var(--career-purple-soft);
+                  color:var(--career-purple);
+                "
+              >
+
+                <i
+                  class="fa-solid fa-rocket"
+                ></i>
+
+              </div>
+
+
+              <div class="student-career-opportunity-copy">
+
+                <strong>
+                  ${
+                    escapeHtml(
+                      title
+                    )
+                  }
+                </strong>
+
+
+                <span>
+                  ${
+                    escapeHtml(
+                      ownerName
+                    )
+                  }
+
+                  ${
+                    schoolName
+                      ? `
+                        ·
+                        ${escapeHtml(
+                          schoolName
+                        )}
+                      `
+                      : ""
+                  }
+                </span>
+
+
+                <div class="student-career-opportunity-meta">
+
+                  <span>
+                    ${
+                      escapeHtml(
+                        ventureType
+                      )
+                    }
+                  </span>
+
+
+                  <span>
+                    ${
+                      escapeHtml(
+                        stage
+                      )
+                    }
+                  </span>
+
+
+                  ${
+                    fundingLabel
+                      ? `
+                        <span>
+                          Seeking
+                          ${escapeHtml(
+                            fundingLabel
+                          )}
+                        </span>
+                      `
+                      : ""
+                  }
+
+                </div>
+
+
+                ${
+                  fundingTypes.length
+                    ? `
+                      <div class="student-career-venture-tags">
+
+                        ${
+                          fundingTypes
+                            .map(
+                              type => `
+
+                                <span>
+                                  ${
+                                    escapeHtml(
+                                      String(
+                                        type
+                                      )
+                                        .replace(
+                                          /-/g,
+                                          " "
+                                        )
+                                    )
+                                  }
+                                </span>
+
+                              `
+                            )
+                            .join("")
+                        }
+
+                      </div>
+                    `
+                    : ""
+                }
+
+
+                ${
+                  tagline
+                    ? `
+                      <small class="student-career-venture-tagline">
+                        ${
+                          escapeHtml(
+                            tagline
+                          )
+                        }
+                      </small>
+                    `
+                    : ""
+                }
+
+              </div>
+
+
+              <div class="student-career-opportunity-actions">
+
+                <button
+                  type="button"
+                  class="
+                    student-career-save-button
+                    ${
+                      saved
+                        ? "is-saved"
+                        : ""
+                    }
+                  "
+                  data-career-save-venture="${
+                    escapeHtml(
+                      ventureId
+                    )
+                  }"
+                  aria-label="${
+                    saved
+                      ? "Remove saved venture"
+                      : "Save venture"
+                  }"
+                  title="${
+                    saved
+                      ? "Remove from saved"
+                      : "Save venture"
+                  }"
+                >
+
+                  <i
+                    class="${
+                      saved
+                        ? "fa-solid"
+                        : "fa-regular"
+                    } fa-bookmark"
+                  ></i>
+
+                </button>
+
+
+                <button
+                  type="button"
+                  class="student-career-primary-button"
+                  data-career-open-venture="${
+                    escapeHtml(
+                      ventureId
+                    )
+                  }"
+                >
+                  View Pitch
+                </button>
+
+              </div>
+
+            </article>
+          `;
+
+        }
+      )
+      .join("");
+
+}
+
+
 
 /* =========================================================
    RENDER CAREER OPPORTUNITIES
@@ -17074,6 +18081,93 @@ if (
   return;
 }
 
+      /* =========================================
+   OPEN VENTURE
+========================================= */
+
+const ventureButton =
+  event.target.closest(
+    "[data-career-open-venture]"
+  );
+
+
+if(
+  ventureButton &&
+  workspace.contains(
+    ventureButton
+  )
+){
+
+  event.preventDefault();
+
+
+  const ventureId =
+    ventureButton.dataset
+      .careerOpenVenture;
+
+
+  if(!ventureId){
+    return;
+  }
+
+
+  /*
+    Pitch Room page will be created next.
+
+    For now preserve the selected venture so the
+    future page can load it directly.
+  */
+
+  localStorage.setItem(
+    "selectedVentureId",
+    ventureId
+  );
+
+
+  window.location.href =
+    `venture.html?id=${
+      encodeURIComponent(
+        ventureId
+      )
+    }`;
+
+
+  return;
+
+}
+
+
+/* =========================================
+   SAVE VENTURE
+========================================= */
+
+const saveVentureButton =
+  event.target.closest(
+    "[data-career-save-venture]"
+  );
+
+
+if(
+  saveVentureButton &&
+  workspace.contains(
+    saveVentureButton
+  )
+){
+
+  event.preventDefault();
+
+
+  toggleStudentCareerSavedVenture(
+    saveVentureButton.dataset
+      .careerSaveVenture
+  );
+
+
+  return;
+
+}
+      
+
       const actionButton =
         event.target.closest(
           "[data-career-action]"
@@ -18017,6 +19111,41 @@ async function renderStudentCareerHub(){
             </div>
 
 
+            <div
+  id="studentCareerVentureList"
+  class="student-career-opportunity-list"
+>
+
+  <div class="student-career-empty">
+
+    <div
+      class="student-career-empty-icon"
+      style="
+        background:var(--career-purple-soft);
+        color:var(--career-purple);
+      "
+    >
+
+      <i
+        class="fa-solid fa-circle-notch fa-spin"
+      ></i>
+
+    </div>
+
+    <strong>
+      Loading AIFT Ventures
+    </strong>
+
+    <p>
+      Discovering projects, startups and businesses
+      seeking support.
+    </p>
+
+  </div>
+
+</div>
+
+
             <div class="student-career-kabezya">
 
               <div class="student-career-kabezya-icon">
@@ -18670,16 +19799,19 @@ async function renderStudentCareerHub(){
      LIVE BACKEND DATA
   ======================================================== */
 
-  await loadStudentCareerHubData();
+await loadStudentCareerHubData();
 
 
-  renderStudentCareerOpportunities();
+renderStudentCareerOpportunities();
 
 
-  renderStudentCareerApplications();
+renderStudentCareerVentures();
 
 
-  updateStudentCareerSavedCount();
+renderStudentCareerApplications();
+
+
+updateStudentCareerSavedCount();
 
 }
 /* =========================================================
