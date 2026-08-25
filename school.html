@@ -65324,58 +65324,2989 @@ async function deleteOpportunity(id){
 
 }
 
-
 /* =========================================================
-   NEW CAREER HUB COMPOSER ENTRY POINTS
-
-   These functions intentionally route to the appropriate
-   Career Hub module without inventing records client-side.
-
-   Once each backend create form is connected, its modal
-   can be opened directly from these entry points.
+   AIFT CAREER HUB
+   PRODUCTION COMPOSER + CRUD ENGINE
 ========================================================= */
 
-function openCareerScholarshipComposer(){
 
-  openCareerHubView(
-    "scholarships"
+/* =========================================================
+   COMPOSER CONSTANTS
+========================================================= */
+
+const CAREER_COMPOSER_TYPES =
+  new Set([
+    "scholarship",
+    "partnership",
+    "event"
+  ]);
+
+
+const CAREER_EVENT_TRANSITIONS = {
+
+  draft:[
+    "draft",
+    "published",
+    "registration_open",
+    "cancelled",
+    "archived"
+  ],
+
+  published:[
+    "published",
+    "registration_open",
+    "registration_closed",
+    "ongoing",
+    "cancelled",
+    "archived"
+  ],
+
+  registration_open:[
+    "registration_open",
+    "registration_closed",
+    "ongoing",
+    "cancelled",
+    "archived"
+  ],
+
+  registration_closed:[
+    "registration_closed",
+    "registration_open",
+    "ongoing",
+    "cancelled",
+    "archived"
+  ],
+
+  ongoing:[
+    "ongoing",
+    "completed",
+    "cancelled"
+  ],
+
+  completed:[
+    "completed",
+    "archived"
+  ],
+
+  cancelled:[
+    "cancelled",
+    "archived"
+  ],
+
+  archived:[
+    "archived"
+  ]
+
+};
+
+
+/* =========================================================
+   GENERIC COMPOSER HELPERS
+========================================================= */
+
+function careerComposerForm(type){
+
+  if (
+    type ===
+    "scholarship"
+  ){
+    return $(
+      "careerScholarshipForm"
+    );
+  }
+
+
+  if (
+    type ===
+    "partnership"
+  ){
+    return $(
+      "careerPartnershipForm"
+    );
+  }
+
+
+  if (
+    type ===
+    "event"
+  ){
+    return $(
+      "careerEventForm"
+    );
+  }
+
+
+  return null;
+
+}
+
+
+function careerHideComposerForms(){
+
+  [
+    "careerScholarshipForm",
+    "careerPartnershipForm",
+    "careerEventForm"
+  ]
+    .forEach(id => {
+
+      const form =
+        $(id);
+
+      if (form){
+
+        form.classList.add(
+          "hidden"
+        );
+
+      }
+
+    });
+
+}
+
+
+function careerSetComposerHeader({
+  eyebrow = "Career Hub",
+  title = "Create",
+  subtitle = "Create and publish a Career Hub resource.",
+  icon = "+"
+} = {}){
+
+  setText(
+    "careerComposerEyebrow",
+    eyebrow
   );
 
-  showAlert(
-    "info",
-    "Scholarship creation requires the Scholarship backend form."
+  setText(
+    "careerComposerTitle",
+    title
+  );
+
+  setText(
+    "careerComposerSubtitle",
+    subtitle
+  );
+
+  setText(
+    "careerComposerIcon",
+    icon
   );
 
 }
 
 
-function openCareerPartnershipComposer(){
+function openCareerComposer(
+  type
+){
 
-  openCareerHubView(
-    "partnerships"
+  if (
+    !CAREER_COMPOSER_TYPES
+      .has(type)
+  ){
+    return;
+  }
+
+
+  const overlay =
+    $("careerComposerOverlay");
+
+
+  if (!overlay){
+
+    showAlert(
+      "error",
+      "Career Hub composer could not be opened."
+    );
+
+    return;
+
+  }
+
+
+  careerHideComposerForms();
+
+
+  const form =
+    careerComposerForm(
+      type
+    );
+
+
+  if (form){
+
+    form.classList.remove(
+      "hidden"
+    );
+
+  }
+
+
+  overlay.classList.remove(
+    "hidden"
   );
 
-  showAlert(
-    "info",
-    "Partnership creation requires the Partnership backend form."
+
+  overlay.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+
+  overlay.dataset.composerType =
+    type;
+
+
+  document.body.classList.add(
+    "career-composer-open"
   );
 
 }
 
 
-function openCareerEventComposer(){
+function closeCareerComposer(event){
 
-  openCareerHubView(
-    "events"
+  if (
+    event &&
+    event.target !==
+      event.currentTarget
+  ){
+    return;
+  }
+
+
+  const overlay =
+    $("careerComposerOverlay");
+
+
+  if (overlay){
+
+    overlay.classList.add(
+      "hidden"
+    );
+
+    overlay.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+    delete overlay.dataset
+      .composerType;
+
+  }
+
+
+  document.body.classList.remove(
+    "career-composer-open"
   );
 
-  showAlert(
-    "info",
-    "Career event creation requires the Event backend form."
+
+  careerSetComposerBusy(
+    "scholarship",
+    false
+  );
+
+  careerSetComposerBusy(
+    "partnership",
+    false
+  );
+
+  careerSetComposerBusy(
+    "event",
+    false
   );
 
 }
 
+
+function careerSetComposerBusy(
+  type,
+  busy
+){
+
+  const buttonMap = {
+
+    scholarship:
+      "careerScholarshipSubmit",
+
+    partnership:
+      "careerPartnershipSubmit",
+
+    event:
+      "careerEventSubmit"
+
+  };
+
+
+  const button =
+    $(
+      buttonMap[type]
+    );
+
+
+  if (!button){
+    return;
+  }
+
+
+  button.disabled =
+    Boolean(busy);
+
+
+  button.classList.toggle(
+    "loading",
+    Boolean(busy)
+  );
+
+
+  button.setAttribute(
+    "aria-busy",
+    busy
+      ? "true"
+      : "false"
+  );
+
+}
+
+
+function careerValue(id){
+
+  return String(
+    $(id)?.value ||
+    ""
+  ).trim();
+
+}
+
+
+function careerBooleanValue(id){
+
+  return (
+    String(
+      $(id)?.value ||
+      ""
+    ).toLowerCase() ===
+    "true"
+  );
+
+}
+
+
+function careerNumberValue(id){
+
+  const raw =
+    String(
+      $(id)?.value ||
+      ""
+    )
+      .replace(
+        /[^0-9.-]/g,
+        ""
+      )
+      .trim();
+
+
+  if (!raw){
+    return null;
+  }
+
+
+  const value =
+    Number(raw);
+
+
+  return Number.isFinite(
+    value
+  )
+    ? value
+    : null;
+
+}
+
+
+function careerDateInputValue(value){
+
+  if (!value){
+    return "";
+  }
+
+
+  const date =
+    new Date(value);
+
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return "";
+  }
+
+
+  const pad =
+    number =>
+      String(number)
+        .padStart(
+          2,
+          "0"
+        );
+
+
+  return [
+    date.getFullYear(),
+    "-",
+    pad(
+      date.getMonth() +
+      1
+    ),
+    "-",
+    pad(
+      date.getDate()
+    ),
+    "T",
+    pad(
+      date.getHours()
+    ),
+    ":",
+    pad(
+      date.getMinutes()
+    )
+  ].join("");
+
+}
+
+
+function careerDateOnlyInputValue(
+  value
+){
+
+  if (!value){
+    return "";
+  }
+
+
+  const date =
+    new Date(value);
+
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return "";
+  }
+
+
+  const pad =
+    number =>
+      String(number)
+        .padStart(
+          2,
+          "0"
+        );
+
+
+  return [
+    date.getFullYear(),
+    "-",
+    pad(
+      date.getMonth() +
+      1
+    ),
+    "-",
+    pad(
+      date.getDate()
+    )
+  ].join("");
+
+}
+
+
+async function careerRefreshAfterSave(
+  view
+){
+
+  await loadSchoolCareerHub({
+    force:true,
+    silent:true
+  });
+
+
+  openCareerHubView(
+    view
+  );
+
+}
+
+
+/* =========================================================
+   COMPANY OPTIONS FOR PARTNERSHIPS
+========================================================= */
+
+function getCareerCompanyCandidates(){
+
+  const companies =
+    new Map();
+
+
+  /*
+    state.users comes from the School Network loader.
+
+    Add employer/company users when available.
+  */
+
+  (
+    state.users ||
+    []
+  )
+    .forEach(user => {
+
+      const role =
+        careerLower(
+          user?.role
+        );
+
+
+      if (
+        ![
+          "employer",
+          "company"
+        ].includes(role)
+      ){
+        return;
+      }
+
+
+      const id =
+        normalizeId(
+          user?._id ||
+          user?.id
+        );
+
+
+      if (!id){
+        return;
+      }
+
+
+      companies.set(
+        id,
+        user
+      );
+
+    });
+
+
+  /*
+    Existing partnerships may contain populated company
+    records that are not currently in Network.
+  */
+
+  (
+    state.careerHub
+      ?.partnerships ||
+    []
+  )
+    .forEach(partnership => {
+
+      const company =
+        partnership?.companyId;
+
+
+      if (
+        !company ||
+        typeof company !==
+        "object"
+      ){
+        return;
+      }
+
+
+      const id =
+        normalizeId(
+          company._id ||
+          company.id
+        );
+
+
+      if (!id){
+        return;
+      }
+
+
+      companies.set(
+        id,
+        company
+      );
+
+    });
+
+
+  return [
+    ...companies.values()
+  ]
+    .sort(
+      (a,b) =>
+        careerGetCompanyName({
+          companyId:a
+        })
+          .localeCompare(
+            careerGetCompanyName({
+              companyId:b
+            })
+          )
+    );
+
+}
+
+
+function hydrateCareerPartnershipCompanies(
+  selectedId = ""
+){
+
+  const select =
+    $(
+      "careerPartnershipCompanyId"
+    );
+
+
+  if (!select){
+    return;
+  }
+
+
+  const companies =
+    getCareerCompanyCandidates();
+
+
+  select.innerHTML = `
+    <option value="">
+      Select a company
+    </option>
+
+    ${
+      companies
+        .map(company => {
+
+          const id =
+            normalizeId(
+              company._id ||
+              company.id
+            );
+
+
+          const name =
+            company.companyName ||
+            company.name ||
+            company.businessName ||
+            company.email ||
+            "Company";
+
+
+          return `
+            <option
+              value="${escapeHtml(id)}"
+              ${
+                sameId(
+                  id,
+                  selectedId
+                )
+                  ? "selected"
+                  : ""
+              }
+            >
+              ${escapeHtml(name)}
+            </option>
+          `;
+
+        })
+        .join("")
+    }
+  `;
+
+}
+
+
+/* =========================================================
+   SCHOLARSHIP COMPOSER
+========================================================= */
+
+function resetCareerScholarshipForm(){
+
+  const form =
+    $(
+      "careerScholarshipForm"
+    );
+
+
+  if (form){
+
+    form.reset();
+
+  }
+
+
+  setVal(
+    "careerScholarshipId",
+    ""
+  );
+
+
+  setVal(
+    "careerScholarshipStatus",
+    "draft"
+  );
+
+
+  setVal(
+    "careerScholarshipLevel",
+    ""
+  );
+
+}
+
+
+function openCareerScholarshipComposer(
+  id = null
+){
+
+  resetCareerScholarshipForm();
+
+
+  if (id){
+
+    const scholarship =
+      (
+        state.careerHub
+          ?.scholarships ||
+        []
+      )
+        .find(
+          item =>
+            sameId(
+              careerId(item),
+              id
+            )
+        );
+
+
+    if (!scholarship){
+
+      showAlert(
+        "error",
+        "Scholarship could not be found."
+      );
+
+      return;
+
+    }
+
+
+    setVal(
+      "careerScholarshipId",
+      careerId(
+        scholarship
+      )
+    );
+
+
+    setVal(
+      "careerScholarshipTitle",
+      scholarship.title ||
+      scholarship.name ||
+      ""
+    );
+
+
+    setVal(
+      "careerScholarshipProvider",
+      scholarship.sponsor
+        ?.name ||
+      ""
+    );
+
+
+    setVal(
+      "careerScholarshipStatus",
+      scholarship.status ||
+      "draft"
+    );
+
+
+    setVal(
+      "careerScholarshipAmount",
+      scholarship.funding
+        ?.amount ??
+      ""
+    );
+
+
+    setVal(
+      "careerScholarshipDeadline",
+      careerDateOnlyInputValue(
+        scholarship.deadline
+      )
+    );
+
+
+    const criteria =
+      scholarship.eligibility
+        ?.otherCriteria ||
+      [];
+
+
+    setVal(
+      "careerScholarshipEligibility",
+      criteria.join(
+        "\n"
+      )
+    );
+
+
+    setVal(
+      "careerScholarshipDescription",
+      scholarship.description ||
+      ""
+    );
+
+
+    setVal(
+      "careerScholarshipSlots",
+      scholarship.numberOfAwards ??
+      ""
+    );
+
+
+    setVal(
+      "careerScholarshipLevel",
+      scholarship.eligibility
+        ?.yearLevels
+        ?.[0] ||
+      ""
+    );
+
+
+    setVal(
+      "careerScholarshipInstructions",
+      scholarship.applicationInstructions ||
+      ""
+    );
+
+
+    careerSetComposerHeader({
+      eyebrow:
+        "Scholarships",
+
+      title:
+        "Edit scholarship",
+
+      subtitle:
+        "Update funding, eligibility, deadlines and publication status.",
+
+      icon:
+        "S"
+    });
+
+  }else{
+
+    careerSetComposerHeader({
+      eyebrow:
+        "Scholarships",
+
+      title:
+        "Create scholarship",
+
+      subtitle:
+        "Publish a funding opportunity for students through Career Hub.",
+
+      icon:
+        "S"
+    });
+
+  }
+
+
+  openCareerComposer(
+    "scholarship"
+  );
+
+}
+
+
+function editCareerScholarship(id){
+
+  openCareerScholarshipComposer(
+    id
+  );
+
+}
+
+
+async function saveCareerScholarship(
+  event
+){
+
+  event?.preventDefault();
+
+
+  if (
+    $(
+      "careerScholarshipSubmit"
+    )?.disabled
+  ){
+    return;
+  }
+
+
+  const id =
+    careerValue(
+      "careerScholarshipId"
+    );
+
+
+  const title =
+    careerValue(
+      "careerScholarshipTitle"
+    );
+
+
+  if (!title){
+
+    showAlert(
+      "error",
+      "Scholarship title is required."
+    );
+
+    return;
+
+  }
+
+
+  const amount =
+    careerNumberValue(
+      "careerScholarshipAmount"
+    );
+
+
+  const slots =
+    careerNumberValue(
+      "careerScholarshipSlots"
+    );
+
+
+  if (
+    slots !== null &&
+    slots < 1
+  ){
+
+    showAlert(
+      "error",
+      "Scholarship slots must be at least 1."
+    );
+
+    return;
+
+  }
+
+
+  const eligibilityText =
+    careerValue(
+      "careerScholarshipEligibility"
+    );
+
+
+  const level =
+    careerValue(
+      "careerScholarshipLevel"
+    );
+
+
+  const description =
+    careerValue(
+      "careerScholarshipDescription"
+    );
+
+
+  const provider =
+    careerValue(
+      "careerScholarshipProvider"
+    );
+
+
+  const desiredStatus =
+    careerValue(
+      "careerScholarshipStatus"
+    ) ||
+    "draft";
+
+
+  const payload = {
+
+    schoolId:
+      getSchoolId(),
+
+    title,
+
+    summary:
+      description
+        .slice(
+          0,
+          1000
+        ),
+
+    description,
+
+    type:
+      "academic",
+
+    visibility:
+      "school",
+
+    sponsor:{
+      name:
+        provider ||
+        getSchoolName(),
+
+      type:
+        provider
+          ? "organization"
+          : "school"
+    },
+
+    funding:{
+      type:
+        amount !== null
+          ? "fixed_amount"
+          : "partial",
+
+      amount,
+
+      currency:
+        "PHP"
+    },
+
+    numberOfAwards:
+      slots,
+
+    eligibility:{
+      yearLevels:
+        level
+          ? [level]
+          : [],
+
+      otherCriteria:
+        eligibilityText
+          ? eligibilityText
+              .split(
+                /\n+/g
+              )
+              .map(
+                value =>
+                  value.trim()
+              )
+              .filter(Boolean)
+          : []
+    },
+
+    applicationInstructions:
+      careerValue(
+        "careerScholarshipInstructions"
+      ),
+
+    deadline:
+      careerValue(
+        "careerScholarshipDeadline"
+      ) ||
+      null,
+
+    allowInternalApplications:
+      true
+
+  };
+
+
+  careerSetComposerBusy(
+    "scholarship",
+    true
+  );
+
+
+  try{
+
+    if (id){
+
+      await apiSend(
+        `/api/scholarships/${encodeURIComponent(
+          id
+        )}`,
+        "PATCH",
+        {
+          ...payload,
+          status:
+            desiredStatus
+        }
+      );
+
+    }else{
+
+      /*
+        Scholarship creation intentionally starts as draft
+        in the backend.
+
+        Create first, then perform the requested publication
+        transition through the PATCH route.
+      */
+
+      const created =
+        await apiSend(
+          "/api/scholarships",
+          "POST",
+          payload
+        );
+
+
+      const scholarship =
+        created?.scholarship ||
+        created?.item ||
+        created;
+
+
+      const createdId =
+        careerId(
+          scholarship
+        );
+
+
+      if (
+        createdId &&
+        desiredStatus !==
+          "draft"
+      ){
+
+        await apiSend(
+          `/api/scholarships/${encodeURIComponent(
+            createdId
+          )}`,
+          "PATCH",
+          {
+            status:
+              desiredStatus
+          }
+        );
+
+      }
+
+    }
+
+
+    closeCareerComposer();
+
+
+    showAlert(
+      "success",
+      id
+        ? "Scholarship updated."
+        : (
+            desiredStatus ===
+              "draft"
+              ? "Scholarship saved as draft."
+              : "Scholarship published."
+          )
+    );
+
+
+    await careerRefreshAfterSave(
+      "scholarships"
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "SAVE CAREER SCHOLARSHIP ERROR:",
+      error
+    );
+
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Scholarship could not be saved."
+    );
+
+
+  }finally{
+
+    careerSetComposerBusy(
+      "scholarship",
+      false
+    );
+
+  }
+
+}
+
+
+async function updateCareerScholarshipStatus(
+  id,
+  status
+){
+
+  try{
+
+    await apiSend(
+      `/api/scholarships/${encodeURIComponent(
+        id
+      )}`,
+      "PATCH",
+      {
+        status
+      }
+    );
+
+
+    showAlert(
+      "success",
+      `Scholarship moved to ${careerStatusLabel(
+        status
+      )}.`
+    );
+
+
+    await careerRefreshAfterSave(
+      "scholarships"
+    );
+
+
+  }catch(error){
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Scholarship status could not be updated."
+    );
+
+  }
+
+}
+
+
+async function deleteCareerScholarship(
+  id
+){
+
+  const scholarship =
+    (
+      state.careerHub
+        ?.scholarships ||
+      []
+    )
+      .find(
+        item =>
+          sameId(
+            careerId(item),
+            id
+          )
+      );
+
+
+  if (!scholarship){
+    return;
+  }
+
+
+  if (
+    careerLower(
+      scholarship.status
+    ) !==
+    "draft"
+  ){
+
+    showAlert(
+      "error",
+      "Only unused scholarship drafts can be permanently deleted. Close or archive published scholarships instead."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !confirm(
+      `Delete "${scholarship.title || "this scholarship"}"?`
+    )
+  ){
+    return;
+  }
+
+
+  try{
+
+    await apiSend(
+      `/api/scholarships/${encodeURIComponent(
+        id
+      )}`,
+      "DELETE"
+    );
+
+
+    showAlert(
+      "success",
+      "Scholarship draft deleted."
+    );
+
+
+    await careerRefreshAfterSave(
+      "scholarships"
+    );
+
+
+  }catch(error){
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Scholarship could not be deleted."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   PARTNERSHIP COMPOSER
+========================================================= */
+
+function resetCareerPartnershipForm(){
+
+  const form =
+    $(
+      "careerPartnershipForm"
+    );
+
+
+  if (form){
+
+    form.reset();
+
+  }
+
+
+  setVal(
+    "careerPartnershipId",
+    ""
+  );
+
+
+  setVal(
+    "careerPartnershipType",
+    "internship_partnership"
+  );
+
+
+  setVal(
+    "careerPartnershipStatus",
+    "pending"
+  );
+
+
+  const companySelect =
+    $(
+      "careerPartnershipCompanyId"
+    );
+
+
+  if (companySelect){
+
+    companySelect.disabled =
+      false;
+
+  }
+
+
+  hydrateCareerPartnershipCompanies();
+
+}
+
+
+function openCareerPartnershipComposer(
+  id = null
+){
+
+  resetCareerPartnershipForm();
+
+
+  if (id){
+
+    const partnership =
+      (
+        state.careerHub
+          ?.partnerships ||
+        []
+      )
+        .find(
+          item =>
+            sameId(
+              careerId(item),
+              id
+            )
+        );
+
+
+    if (!partnership){
+
+      showAlert(
+        "error",
+        "Partnership could not be found."
+      );
+
+      return;
+
+    }
+
+
+    const companyId =
+      normalizeId(
+        partnership.companyId
+      );
+
+
+    hydrateCareerPartnershipCompanies(
+      companyId
+    );
+
+
+    setVal(
+      "careerPartnershipId",
+      careerId(
+        partnership
+      )
+    );
+
+
+    setVal(
+      "careerPartnershipCompanyId",
+      companyId
+    );
+
+
+    setVal(
+      "careerPartnershipType",
+      partnership.type ||
+      partnership.partnershipType ||
+      "internship_partnership"
+    );
+
+
+    setVal(
+      "careerPartnershipStatus",
+      partnership.status ||
+      "pending"
+    );
+
+
+    setVal(
+      "careerPartnershipMessage",
+      partnership.message ||
+      ""
+    );
+
+
+    const companySelect =
+      $(
+        "careerPartnershipCompanyId"
+      );
+
+
+    if (companySelect){
+
+      /*
+        The current partnership backend supports updating
+        status/type/message but does not change companyId.
+      */
+
+      companySelect.disabled =
+        true;
+
+    }
+
+
+    careerSetComposerHeader({
+      eyebrow:
+        "Partnerships",
+
+      title:
+        "Manage partnership",
+
+      subtitle:
+        "Update partnership type, message and relationship status.",
+
+      icon:
+        "P"
+    });
+
+  }else{
+
+    careerSetComposerHeader({
+      eyebrow:
+        "Partnerships",
+
+      title:
+        "Create partnership",
+
+      subtitle:
+        "Start a formal Career Hub relationship with a company.",
+
+      icon:
+        "P"
+    });
+
+  }
+
+
+  openCareerComposer(
+    "partnership"
+  );
+
+}
+
+
+function editCareerPartnership(id){
+
+  openCareerPartnershipComposer(
+    id
+  );
+
+}
+
+
+async function saveCareerPartnership(
+  event
+){
+
+  event?.preventDefault();
+
+
+  const id =
+    careerValue(
+      "careerPartnershipId"
+    );
+
+
+  const companyId =
+    careerValue(
+      "careerPartnershipCompanyId"
+    );
+
+
+  if (
+    !id &&
+    !companyId
+  ){
+
+    showAlert(
+      "error",
+      "Please select a company. If no company appears here, connect with one through Company Hub first."
+    );
+
+    return;
+
+  }
+
+
+  const partnershipType =
+    careerValue(
+      "careerPartnershipType"
+    ) ||
+    "internship_partnership";
+
+
+  const desiredStatus =
+    careerValue(
+      "careerPartnershipStatus"
+    ) ||
+    "pending";
+
+
+  const companies =
+    getCareerCompanyCandidates();
+
+
+  const company =
+    companies.find(
+      item =>
+        sameId(
+          item._id ||
+          item.id,
+          companyId
+        )
+    );
+
+
+  const companyName =
+    company?.companyName ||
+    company?.name ||
+    company?.businessName ||
+    "";
+
+
+  careerSetComposerBusy(
+    "partnership",
+    true
+  );
+
+
+  try{
+
+    if (id){
+
+      await apiSend(
+        `/api/school-company-partnerships/${encodeURIComponent(
+          id
+        )}`,
+        "PATCH",
+        {
+          type:
+            partnershipType,
+
+          partnershipType,
+
+          status:
+            desiredStatus,
+
+          message:
+            careerValue(
+              "careerPartnershipMessage"
+            ),
+
+          companyName
+        }
+      );
+
+    }else{
+
+      /*
+        New partnership requests begin pending in the current
+        backend. If the school intentionally selected a later
+        status, perform that change only after creation.
+      */
+
+      const created =
+        await apiSend(
+          "/api/school-company-partnerships",
+          "POST",
+          {
+            schoolId:
+              getSchoolId(),
+
+            companyId,
+
+            companyName,
+
+            type:
+              partnershipType,
+
+            partnershipType,
+
+            message:
+              careerValue(
+                "careerPartnershipMessage"
+              ),
+
+            requestedBy:
+              "school"
+          }
+        );
+
+
+      const partnership =
+        created?.partnership ||
+        created?.item ||
+        created;
+
+
+      const createdId =
+        careerId(
+          partnership
+        );
+
+
+      if (
+        createdId &&
+        desiredStatus !==
+          "pending"
+      ){
+
+        await apiSend(
+          `/api/school-company-partnerships/${encodeURIComponent(
+            createdId
+          )}`,
+          "PATCH",
+          {
+            status:
+              desiredStatus
+          }
+        );
+
+      }
+
+    }
+
+
+    closeCareerComposer();
+
+
+    showAlert(
+      "success",
+      id
+        ? "Partnership updated."
+        : "Partnership request created."
+    );
+
+
+    await careerRefreshAfterSave(
+      "partnerships"
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "SAVE CAREER PARTNERSHIP ERROR:",
+      error
+    );
+
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Partnership could not be saved."
+    );
+
+
+  }finally{
+
+    careerSetComposerBusy(
+      "partnership",
+      false
+    );
+
+  }
+
+}
+
+
+async function updateCareerPartnershipStatus(
+  id,
+  status
+){
+
+  try{
+
+    await apiSend(
+      `/api/school-company-partnerships/${encodeURIComponent(
+        id
+      )}`,
+      "PATCH",
+      {
+        status
+      }
+    );
+
+
+    showAlert(
+      "success",
+      "Partnership status updated."
+    );
+
+
+    await careerRefreshAfterSave(
+      "partnerships"
+    );
+
+
+  }catch(error){
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Partnership status could not be updated."
+    );
+
+  }
+
+}
+
+
+async function deleteCareerPartnership(
+  id
+){
+
+  const partnership =
+    (
+      state.careerHub
+        ?.partnerships ||
+      []
+    )
+      .find(
+        item =>
+          sameId(
+            careerId(item),
+            id
+          )
+      );
+
+
+  if (!partnership){
+    return;
+  }
+
+
+  if (
+    !confirm(
+      `Delete the partnership with "${careerGetCompanyName(
+        partnership
+      )}"?`
+    )
+  ){
+    return;
+  }
+
+
+  try{
+
+    await apiSend(
+      `/api/school-company-partnerships/${encodeURIComponent(
+        id
+      )}`,
+      "DELETE"
+    );
+
+
+    showAlert(
+      "success",
+      "Partnership deleted."
+    );
+
+
+    await careerRefreshAfterSave(
+      "partnerships"
+    );
+
+
+  }catch(error){
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Partnership could not be deleted."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   EVENT HELPERS
+========================================================= */
+
+function normalizeCareerEventType(
+  value
+){
+
+  const type =
+    careerLower(value);
+
+
+  /*
+    The frontend composer originally used employer_talk.
+    The production backend uses company_talk.
+  */
+
+  if (
+    type ===
+    "employer_talk"
+  ){
+    return "company_talk";
+  }
+
+
+  return (
+    type ||
+    "career_fair"
+  );
+
+}
+
+
+function normalizeCareerEventFormat(
+  value
+){
+
+  const format =
+    careerLower(value);
+
+
+  /*
+    Composer wording uses on-site.
+    Backend enum uses physical.
+  */
+
+  if (
+    format ===
+      "onsite" ||
+    format ===
+      "on_site"
+  ){
+    return "physical";
+  }
+
+
+  if (
+    [
+      "physical",
+      "online",
+      "hybrid"
+    ].includes(format)
+  ){
+    return format;
+  }
+
+
+  return "physical";
+
+}
+
+
+function normalizeCareerEventStatus(
+  value
+){
+
+  const status =
+    careerLower(value);
+
+
+  /*
+    The first HTML composer used "scheduled".
+    Backend terminology is "published".
+  */
+
+  if (
+    status ===
+    "scheduled"
+  ){
+    return "published";
+  }
+
+
+  return (
+    status ||
+    "draft"
+  );
+
+}
+
+
+function resetCareerEventForm(){
+
+  const form =
+    $(
+      "careerEventForm"
+    );
+
+
+  if (form){
+
+    form.reset();
+
+  }
+
+
+  setVal(
+    "careerEventId",
+    ""
+  );
+
+
+  setVal(
+    "careerEventType",
+    "career_fair"
+  );
+
+
+  setVal(
+    "careerEventStatus",
+    "draft"
+  );
+
+
+  setVal(
+    "careerEventMode",
+    "onsite"
+  );
+
+
+  setVal(
+    "careerEventRegistrationRequired",
+    "true"
+  );
+
+
+  configureCareerEventStatusOptions(
+    null
+  );
+
+}
+
+
+function configureCareerEventStatusOptions(
+  currentStatus
+){
+
+  const select =
+    $(
+      "careerEventStatus"
+    );
+
+
+  if (!select){
+    return;
+  }
+
+
+  const options =
+    [
+      ...select.options
+    ];
+
+
+  if (!currentStatus){
+
+    /*
+      Backend only permits these initial states.
+
+      scheduled is retained in the HTML but normalized to
+      published for compatibility.
+    */
+
+    options.forEach(
+      option => {
+
+        const normalized =
+          normalizeCareerEventStatus(
+            option.value
+          );
+
+
+        option.disabled =
+          ![
+            "draft",
+            "published",
+            "registration_open"
+          ].includes(
+            normalized
+          );
+
+      }
+    );
+
+
+    return;
+
+  }
+
+
+  const allowed =
+    CAREER_EVENT_TRANSITIONS[
+      currentStatus
+    ] ||
+    [
+      currentStatus
+    ];
+
+
+  options.forEach(
+    option => {
+
+      option.disabled =
+        !allowed.includes(
+          normalizeCareerEventStatus(
+            option.value
+          )
+        );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   EVENT COMPOSER
+========================================================= */
+
+function openCareerEventComposer(
+  id = null
+){
+
+  resetCareerEventForm();
+
+
+  if (id){
+
+    const item =
+      (
+        state.careerHub
+          ?.events ||
+        []
+      )
+        .find(
+          event =>
+            sameId(
+              careerId(event),
+              id
+            )
+        );
+
+
+    if (!item){
+
+      showAlert(
+        "error",
+        "Career event could not be found."
+      );
+
+      return;
+
+    }
+
+
+    setVal(
+      "careerEventId",
+      careerId(item)
+    );
+
+
+    setVal(
+      "careerEventTitle",
+      item.title ||
+      ""
+    );
+
+
+    let eventType =
+      item.eventType ||
+      "career_fair";
+
+
+    /*
+      Match existing HTML option naming.
+    */
+
+    if (
+      eventType ===
+      "company_talk"
+    ){
+      eventType =
+        "employer_talk";
+    }
+
+
+    setVal(
+      "careerEventType",
+      eventType
+    );
+
+
+    let status =
+      item.status ||
+      "draft";
+
+
+    if (
+      status ===
+      "published"
+    ){
+
+      /*
+        Current composer contains the older "scheduled"
+        label. Keep the UI compatible while the payload
+        continues using backend status "published".
+      */
+
+      const hasPublishedOption =
+        [
+          ...(
+            $("careerEventStatus")
+              ?.options ||
+            []
+          )
+        ]
+          .some(
+            option =>
+              option.value ===
+              "published"
+          );
+
+
+      status =
+        hasPublishedOption
+          ? "published"
+          : "scheduled";
+
+    }
+
+
+    setVal(
+      "careerEventStatus",
+      status
+    );
+
+
+    setVal(
+      "careerEventDescription",
+      item.description ||
+      ""
+    );
+
+
+    setVal(
+      "careerEventStartDate",
+      careerDateInputValue(
+        item.startAt
+      )
+    );
+
+
+    setVal(
+      "careerEventEndDate",
+      careerDateInputValue(
+        item.endAt
+      )
+    );
+
+
+    let format =
+      item.format ||
+      "physical";
+
+
+    if (
+      format ===
+      "physical"
+    ){
+
+      format =
+        "onsite";
+
+    }
+
+
+    setVal(
+      "careerEventMode",
+      format
+    );
+
+
+    setVal(
+      "careerEventCapacity",
+      item.capacity ??
+      ""
+    );
+
+
+    setVal(
+      "careerEventLocation",
+      item.location
+        ?.venueName ||
+      item.location
+        ?.address ||
+      ""
+    );
+
+
+    setVal(
+      "careerEventMeetingUrl",
+      item.meetingUrl ||
+      ""
+    );
+
+
+    setVal(
+      "careerEventRegistrationDeadline",
+      careerDateInputValue(
+        item.registrationDeadline
+      )
+    );
+
+
+    setVal(
+      "careerEventRegistrationRequired",
+      item.registrationRequired ===
+        false
+        ? "false"
+        : "true"
+    );
+
+
+    setVal(
+      "careerEventInstructions",
+      item.meetingInstructions ||
+      ""
+    );
+
+
+    configureCareerEventStatusOptions(
+      careerLower(
+        item.status
+      )
+    );
+
+
+    careerSetComposerHeader({
+      eyebrow:
+        "Career events",
+
+      title:
+        "Edit event",
+
+      subtitle:
+        "Manage the event schedule, registration, delivery and status.",
+
+      icon:
+        "E"
+    });
+
+  }else{
+
+    careerSetComposerHeader({
+      eyebrow:
+        "Career events",
+
+      title:
+        "Create event",
+
+      subtitle:
+        "Create a career fair, workshop, recruitment activity or employer event.",
+
+      icon:
+        "E"
+    });
+
+  }
+
+
+  openCareerComposer(
+    "event"
+  );
+
+}
+
+
+function editCareerEvent(id){
+
+  openCareerEventComposer(
+    id
+  );
+
+}
+
+
+/* =========================================================
+   SAVE EVENT
+========================================================= */
+
+async function saveCareerEvent(
+  event
+){
+
+  event?.preventDefault();
+
+
+  const id =
+    careerValue(
+      "careerEventId"
+    );
+
+
+  const title =
+    careerValue(
+      "careerEventTitle"
+    );
+
+
+  const startAt =
+    careerValue(
+      "careerEventStartDate"
+    );
+
+
+  const endAt =
+    careerValue(
+      "careerEventEndDate"
+    );
+
+
+  if (!title){
+
+    showAlert(
+      "error",
+      "Event title is required."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !startAt ||
+    !endAt
+  ){
+
+    showAlert(
+      "error",
+      "Event start and end time are required."
+    );
+
+    return;
+
+  }
+
+
+  const startDate =
+    new Date(startAt);
+
+
+  const endDate =
+    new Date(endAt);
+
+
+  if (
+    Number.isNaN(
+      startDate.getTime()
+    ) ||
+    Number.isNaN(
+      endDate.getTime()
+    )
+  ){
+
+    showAlert(
+      "error",
+      "Please enter valid event dates."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    endDate <=
+    startDate
+  ){
+
+    showAlert(
+      "error",
+      "Event end time must be after the start time."
+    );
+
+    return;
+
+  }
+
+
+  const registrationDeadline =
+    careerValue(
+      "careerEventRegistrationDeadline"
+    );
+
+
+  if (
+    registrationDeadline &&
+    new Date(
+      registrationDeadline
+    ) >
+    startDate
+  ){
+
+    showAlert(
+      "error",
+      "Registration deadline cannot be after the event starts."
+    );
+
+    return;
+
+  }
+
+
+  const desiredStatus =
+    normalizeCareerEventStatus(
+      careerValue(
+        "careerEventStatus"
+      )
+    );
+
+
+  if (
+    !id &&
+    ![
+      "draft",
+      "published",
+      "registration_open"
+    ].includes(
+      desiredStatus
+    )
+  ){
+
+    showAlert(
+      "error",
+      "New events can start as Draft, Published, or Registration Open."
+    );
+
+    return;
+
+  }
+
+
+  const capacity =
+    careerNumberValue(
+      "careerEventCapacity"
+    );
+
+
+  if (
+    capacity !== null &&
+    capacity < 1
+  ){
+
+    showAlert(
+      "error",
+      "Event capacity must be at least 1."
+    );
+
+    return;
+
+  }
+
+
+  const locationText =
+    careerValue(
+      "careerEventLocation"
+    );
+
+
+  const description =
+    careerValue(
+      "careerEventDescription"
+    );
+
+
+  const payload = {
+
+    schoolId:
+      getSchoolId(),
+
+    title,
+
+    shortDescription:
+      description.slice(
+        0,
+        1000
+      ),
+
+    description,
+
+    eventType:
+      normalizeCareerEventType(
+        careerValue(
+          "careerEventType"
+        )
+      ),
+
+    format:
+      normalizeCareerEventFormat(
+        careerValue(
+          "careerEventMode"
+        )
+      ),
+
+    location:{
+      venueName:
+        locationText,
+
+      address:
+        ""
+    },
+
+    meetingUrl:
+      careerValue(
+        "careerEventMeetingUrl"
+      ),
+
+    meetingInstructions:
+      careerValue(
+        "careerEventInstructions"
+      ),
+
+    startAt:
+      startDate.toISOString(),
+
+    endAt:
+      endDate.toISOString(),
+
+    timezone:
+      "Asia/Manila",
+
+    registrationDeadline:
+      registrationDeadline
+        ? new Date(
+            registrationDeadline
+          ).toISOString()
+        : null,
+
+    registrationRequired:
+      careerBooleanValue(
+        "careerEventRegistrationRequired"
+      ),
+
+    capacity,
+
+    waitlistEnabled:
+      true,
+
+    audience:[
+      "students"
+    ],
+
+    visibility:
+      "school",
+
+    organizerName:
+      getSchoolName(),
+
+    organizerEmail:
+      state.me?.email ||
+      "",
+
+    organizerPhone:
+      state.me?.phone ||
+      state.me?.contactNumber ||
+      "",
+
+    status:
+      desiredStatus
+
+  };
+
+
+  careerSetComposerBusy(
+    "event",
+    true
+  );
+
+
+  try{
+
+    await apiSend(
+      id
+        ? `/api/career-events/${encodeURIComponent(
+            id
+          )}`
+        : "/api/career-events",
+
+      id
+        ? "PATCH"
+        : "POST",
+
+      payload
+    );
+
+
+    closeCareerComposer();
+
+
+    showAlert(
+      "success",
+      id
+        ? "Career event updated."
+        : (
+            desiredStatus ===
+              "draft"
+              ? "Career event saved as draft."
+              : "Career event created."
+          )
+    );
+
+
+    await careerRefreshAfterSave(
+      "events"
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "SAVE CAREER EVENT ERROR:",
+      error
+    );
+
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Career event could not be saved."
+    );
+
+
+  }finally{
+
+    careerSetComposerBusy(
+      "event",
+      false
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   EVENT STATUS
+========================================================= */
+
+async function updateCareerEventStatus(
+  id,
+  status
+){
+
+  const nextStatus =
+    normalizeCareerEventStatus(
+      status
+    );
+
+
+  try{
+
+    await apiSend(
+      `/api/career-events/${encodeURIComponent(
+        id
+      )}`,
+      "PATCH",
+      {
+        status:
+          nextStatus
+      }
+    );
+
+
+    showAlert(
+      "success",
+      `Event moved to ${careerStatusLabel(
+        nextStatus
+      )}.`
+    );
+
+
+    await careerRefreshAfterSave(
+      "events"
+    );
+
+
+  }catch(error){
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Event status could not be updated."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   EVENT DELETE
+
+   Production backend only permits permanent deletion of
+   unused drafts. Published events remain historical records.
+========================================================= */
+
+async function deleteCareerEvent(
+  id
+){
+
+  const event =
+    (
+      state.careerHub
+        ?.events ||
+      []
+    )
+      .find(
+        item =>
+          sameId(
+            careerId(item),
+            id
+          )
+      );
+
+
+  if (!event){
+    return;
+  }
+
+
+  if (
+    careerLower(
+      event.status
+    ) !==
+    "draft"
+  ){
+
+    showAlert(
+      "error",
+      "Only unused event drafts can be permanently deleted. Published events should be cancelled or archived."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    Number(
+      event.registeredCount ||
+      0
+    ) >
+    0
+  ){
+
+    showAlert(
+      "error",
+      "This event already has registrations and cannot be permanently deleted."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !confirm(
+      `Delete "${event.title || "this event"}"?`
+    )
+  ){
+    return;
+  }
+
+
+  try{
+
+    await apiSend(
+      `/api/career-events/${encodeURIComponent(
+        id
+      )}`,
+      "DELETE"
+    );
+
+
+    showAlert(
+      "success",
+      "Career event draft deleted."
+    );
+
+
+    await careerRefreshAfterSave(
+      "events"
+    );
+
+
+  }catch(error){
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Career event could not be deleted."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   EVENT ATTENDEE LOADER
+
+   Event registrations are intentionally loaded per event,
+   not globally with Career Hub.
+========================================================= */
+
+async function loadCareerEventRegistrations(
+  eventId
+){
+
+  if (!eventId){
+
+    return [];
+
+  }
+
+
+  try{
+
+    const result =
+      await apiGet(
+        `/api/career-event-registrations?eventId=${encodeURIComponent(
+          eventId
+        )}`,
+        []
+      );
+
+
+    const registrations =
+      careerArray(
+        result,
+        [
+          "registrations",
+          "items"
+        ]
+      );
+
+
+    state.careerHub
+      .eventRegistrations =
+        registrations;
+
+
+    return registrations;
+
+
+  }catch(error){
+
+    console.error(
+      "LOAD EVENT REGISTRATIONS ERROR:",
+      error
+    );
+
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Event registrations could not be loaded."
+    );
+
+
+    return [];
+
+  }
+
+}
 
 /* =========================================================
    ESCAPE / KEYBOARD SUPPORT
