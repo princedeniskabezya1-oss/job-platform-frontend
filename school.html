@@ -43063,9 +43063,73 @@ function openTab(tab){
     renderStudents();
   }
 
-  if(tab === "portal"){
-    renderCareerHub();
+if(
+  tab ===
+  "portal"
+){
+
+  /*
+    Render immediately using anything already in memory.
+    This prevents the tab from feeling blank while APIs load.
+  */
+
+  renderCareerHub();
+
+
+  const hub =
+    state.careerHub;
+
+
+  const lastLoadedAt =
+    hub?.lastLoadedAt
+      ? new Date(
+          hub.lastLoadedAt
+        ).getTime()
+      : 0;
+
+
+  const age =
+    lastLoadedAt
+      ? (
+          Date.now() -
+          lastLoadedAt
+        )
+      : Infinity;
+
+
+  /*
+    Reload when:
+      - Career Hub has never been loaded
+      - data is older than 5 minutes
+
+    This prevents repeated API calls every time the school
+    switches between dashboard sections.
+  */
+
+  const shouldReload =
+    !hub?.loaded ||
+    !lastLoadedAt ||
+    age >
+      5 * 60 * 1000;
+
+
+  if (shouldReload){
+
+    loadSchoolCareerHub({
+      force:true,
+      silent:false
+    }).catch(error => {
+
+      console.error(
+        "Career Hub initialization failed:",
+        error
+      );
+
+    });
+
   }
+
+}
 
   if(tab === "attendance"){
     renderAttendance();
@@ -43403,16 +43467,65 @@ const unread =
     }
   );
 
-state.posts = asArray(posts);
-state.schoolUpdates = asArray(schoolUpdates);
-state.users = asArray(users);
-    state.classes = asArray(classes);
-    state.assignments = asArray(assignments);
-    state.submissions = asArray(submissions);
-    state.opportunities = asArray(opportunities);
-    state.schedules = asArray(schedules);
-    state.attendance = asArray(attendance);
+state.posts =
+  asArray(posts);
 
+state.schoolUpdates =
+  asArray(schoolUpdates);
+
+state.users =
+  asArray(users);
+
+state.classes =
+  asArray(classes);
+
+state.assignments =
+  asArray(assignments);
+
+state.submissions =
+  asArray(submissions);
+
+state.opportunities =
+  asArray(opportunities);
+
+state.schedules =
+  asArray(schedules);
+
+state.attendance =
+  asArray(attendance);
+
+
+/* =========================================================
+   CAREER HUB INITIALIZATION
+
+   loadAll() only retrieves the lightweight opportunities
+   dataset.
+
+   Full Career Hub data is lazy-loaded when Career Hub opens.
+========================================================= */
+
+if (
+  state.careerHub
+){
+
+  state.careerHub.loaded =
+    false;
+
+  state.careerHub.loading =
+    false;
+
+  state.careerHub.error =
+    null;
+
+  state.careerHub.lastLoadedAt =
+    null;
+
+}
+
+
+/* =========================================================
+   CONTINUE SCHOOL DASHBOARD RENDERING
+========================================================= */
 
 renderProfile();
 
@@ -61117,21 +61230,50 @@ function careerGetApplicationStatus(item){
 
 function careerGetApplicationSource(item){
 
-  const source =
+  /*
+    The loader explicitly marks each application source.
+
+    This avoids guessing from fields that may mean something
+    else in InternshipApplication or ScholarshipApplication.
+  */
+
+  const explicitSource =
     careerLower(
-      item?.source ||
-      item?.type ||
-      item?.applicationType ||
-      item?.opportunityType
+      item?._careerApplicationSource
     );
 
+
   if (
-    source.includes(
+    explicitSource ===
+      "scholarship" ||
+    explicitSource ===
+      "internship"
+  ){
+
+    return explicitSource;
+
+  }
+
+
+  const inferredSource =
+    careerLower(
+      item?.source ||
+      item?.applicationType ||
+      item?.opportunityType ||
+      item?.type
+    );
+
+
+  if (
+    inferredSource.includes(
       "scholar"
     )
   ){
+
     return "scholarship";
+
   }
+
 
   return "internship";
 
@@ -61422,15 +61564,28 @@ async function loadSchoolCareerHub({
   const hub =
     state.careerHub;
 
+
   if (!hub){
     return;
   }
 
-  if (
-    hub.loading
-  ){
+
+  /* =========================================================
+     PREVENT DUPLICATE REQUESTS
+  ========================================================= */
+
+  if (hub.loading){
     return;
   }
+
+
+  /*
+    Career Hub is lazy loaded.
+
+    If the full Career Hub data has already been loaded,
+    reopening the tab should render immediately instead of
+    downloading every dataset again.
+  */
 
   if (
     hub.loaded &&
@@ -61438,9 +61593,33 @@ async function loadSchoolCareerHub({
   ){
 
     renderCareerHub();
-    return;
 
+    renderCareerHubView(
+      hub.activeView ||
+      "overview"
+    );
+
+    return;
   }
+
+
+  const schoolId =
+    getSchoolId();
+
+
+  if (!schoolId){
+
+    hub.error =
+      "School account could not be identified.";
+
+    setCareerHubSystemState(
+      "error",
+      hub.error
+    );
+
+    return;
+  }
+
 
   hub.loading =
     true;
@@ -61448,8 +61627,14 @@ async function loadSchoolCareerHub({
   hub.error =
     null;
 
+
+  /* =========================================================
+     REFRESH BUTTON STATE
+  ========================================================= */
+
   const refreshButton =
     $("careerHubRefreshButton");
+
 
   if (refreshButton){
 
@@ -61460,78 +61645,146 @@ async function loadSchoolCareerHub({
       "loading"
     );
 
+    refreshButton.setAttribute(
+      "aria-busy",
+      "true"
+    );
+
   }
+
+
+  /* =========================================================
+     SYSTEM LOADING STATE
+  ========================================================= */
 
   if (!silent){
 
     setCareerHubSystemState(
       "loading",
-      "Loading opportunities, applications, scholarships, partnerships, events and ventures."
+      "Loading opportunities, applications, scholarships, partnerships, events and student ventures."
     );
 
   }
 
+
   try{
 
-    const schoolId =
-      getSchoolId();
+    /* =======================================================
+       CAREER HUB REQUESTS
 
-    /*
-      Each request is independent.
+       Important:
+       These paths match the production backend routes.
 
-      apiGet() already returns the supplied fallback
-      when an endpoint is unavailable, so one Career
-      Hub service cannot take down the school dashboard.
-    */
+       Event registrations are NOT fetched here.
+
+       Organizer registration access requires eventId, so
+       attendees are loaded only when a school opens a
+       specific event.
+    ======================================================= */
 
     const requests = [
 
+      /* -----------------------------------------------------
+         0. JOBS / INTERNSHIPS
+      ----------------------------------------------------- */
+
       apiGet(
-        `/api/opportunities?schoolId=${encodeURIComponent(schoolId)}`,
+        `/api/opportunities?schoolId=${encodeURIComponent(
+          schoolId
+        )}&limit=100`,
         []
       ),
 
+
+      /* -----------------------------------------------------
+         1. INTERNSHIP APPLICATIONS
+      ----------------------------------------------------- */
+
       apiGet(
-        `/api/applications?schoolId=${encodeURIComponent(schoolId)}`,
+        `/api/internship-applications?schoolId=${encodeURIComponent(
+          schoolId
+        )}`,
         []
       ),
 
+
+      /* -----------------------------------------------------
+         2. SCHOLARSHIPS
+      ----------------------------------------------------- */
+
       apiGet(
-        `/api/scholarships?schoolId=${encodeURIComponent(schoolId)}`,
+        `/api/scholarships?schoolId=${encodeURIComponent(
+          schoolId
+        )}`,
         []
       ),
 
+
+      /* -----------------------------------------------------
+         3. SCHOLARSHIP APPLICATIONS
+      ----------------------------------------------------- */
+
       apiGet(
-        `/api/scholarship-applications?schoolId=${encodeURIComponent(schoolId)}`,
+        `/api/scholarship-applications?schoolId=${encodeURIComponent(
+          schoolId
+        )}`,
         []
       ),
 
+
+      /* -----------------------------------------------------
+         4. SCHOOL / COMPANY PARTNERSHIPS
+      ----------------------------------------------------- */
+
       apiGet(
-        `/api/partnerships?schoolId=${encodeURIComponent(schoolId)}`,
+        `/api/school-company-partnerships?schoolId=${encodeURIComponent(
+          schoolId
+        )}`,
         []
       ),
 
+
+      /* -----------------------------------------------------
+         5. CAREER EVENTS
+      ----------------------------------------------------- */
+
       apiGet(
-        `/api/career-events?schoolId=${encodeURIComponent(schoolId)}`,
+        `/api/career-events?schoolId=${encodeURIComponent(
+          schoolId
+        )}&limit=100`,
         []
       ),
 
-      apiGet(
-        `/api/event-registrations?schoolId=${encodeURIComponent(schoolId)}`,
-        []
-      ),
+
+      /* -----------------------------------------------------
+         6. STUDENT VENTURES
+
+         The backend remains responsible for determining
+         which ventures this school may view.
+      ----------------------------------------------------- */
 
       apiGet(
-        `/api/ventures?schoolId=${encodeURIComponent(schoolId)}`,
+        `/api/ventures?schoolId=${encodeURIComponent(
+          schoolId
+        )}`,
         []
       )
 
     ];
 
+
+    /* =======================================================
+       RUN REQUESTS INDEPENDENTLY
+
+       A failure in one module must not destroy the entire
+       Career Hub.
+    ======================================================= */
+
     const results =
       await Promise.allSettled(
         requests
       );
+
 
     const resultValue = (
       index,
@@ -61540,6 +61793,7 @@ async function loadSchoolCareerHub({
 
       const result =
         results[index];
+
 
       if (
         result?.status ===
@@ -61553,122 +61807,224 @@ async function loadSchoolCareerHub({
 
       }
 
+
       console.warn(
         "Career Hub request failed:",
         result?.reason
       );
+
 
       return fallback;
 
     };
 
 
+    /* =======================================================
+       NORMALIZE OPPORTUNITIES
+    ======================================================= */
+
     const opportunities =
       careerArray(
-        resultValue(0),
+        resultValue(
+          0,
+          []
+        ),
         [
-          "opportunities"
+          "opportunities",
+          "items"
         ]
       );
 
-    const applications =
+
+    /* =======================================================
+       NORMALIZE INTERNSHIP APPLICATIONS
+    ======================================================= */
+
+    const internshipApplications =
       careerArray(
-        resultValue(1),
+        resultValue(
+          1,
+          []
+        ),
         [
-          "applications"
+          "applications",
+          "items"
         ]
-      );
+      )
+      .map(item => ({
+        ...item,
+
+        /*
+          Used by the unified Applications workspace.
+        */
+
+        _careerApplicationSource:
+          "internship"
+      }));
+
+
+    /* =======================================================
+       NORMALIZE SCHOLARSHIPS
+    ======================================================= */
 
     const scholarships =
       careerArray(
-        resultValue(2),
+        resultValue(
+          2,
+          []
+        ),
         [
           "scholarships",
+          "items",
           "programs"
         ]
       );
 
+
+    /* =======================================================
+       NORMALIZE SCHOLARSHIP APPLICATIONS
+    ======================================================= */
+
     const scholarshipApplications =
       careerArray(
-        resultValue(3),
+        resultValue(
+          3,
+          []
+        ),
         [
           "applications",
-          "scholarshipApplications"
+          "scholarshipApplications",
+          "items"
         ]
-      );
+      )
+      .map(item => ({
+        ...item,
+
+        _careerApplicationSource:
+          "scholarship"
+      }));
+
+
+    /* =======================================================
+       UNIFIED APPLICATION PIPELINE
+
+       Internship and scholarship applications belong in one
+       School Career Hub operations workspace, while retaining
+       their source.
+    ======================================================= */
+
+    const applications = [
+
+      ...internshipApplications,
+
+      ...scholarshipApplications
+
+    ];
+
+
+    /* =======================================================
+       NORMALIZE PARTNERSHIPS
+    ======================================================= */
 
     const partnerships =
       careerArray(
-        resultValue(4),
+        resultValue(
+          4,
+          []
+        ),
         [
           "partnerships",
+          "items",
           "requests"
         ]
       );
 
+
+    /* =======================================================
+       NORMALIZE EVENTS
+    ======================================================= */
+
     const events =
       careerArray(
-        resultValue(5),
+        resultValue(
+          5,
+          []
+        ),
         [
           "events",
+          "items",
           "careerEvents"
         ]
       );
 
-    const eventRegistrations =
-      careerArray(
-        resultValue(6),
-        [
-          "registrations",
-          "eventRegistrations"
-        ]
-      );
+
+    /* =======================================================
+       NORMALIZE VENTURES
+    ======================================================= */
 
     const ventures =
       careerArray(
-        resultValue(7),
+        resultValue(
+          6,
+          []
+        ),
         [
-          "ventures"
+          "ventures",
+          "items"
         ]
       );
 
 
-    /*
-      Opportunities are also part of the original school
-      dashboard state. Keep both references synchronized.
-    */
+    /* =======================================================
+       STORE DATA
+    ======================================================= */
 
-    if (
-      opportunities.length ||
-      !state.opportunities.length
-    ){
-
-      state.opportunities =
-        opportunities;
-
-    }
+    state.opportunities =
+      opportunities;
 
 
     hub.applications =
       applications;
 
+
     hub.scholarships =
       scholarships;
+
 
     hub.scholarshipApplications =
       scholarshipApplications;
 
+
     hub.partnerships =
       partnerships;
+
 
     hub.events =
       events;
 
-    hub.eventRegistrations =
-      eventRegistrations;
+
+    /*
+      Event registrations are intentionally event-scoped.
+
+      Do not overwrite records that may already have been
+      loaded for an event currently being managed.
+    */
+
+    if (
+      !Array.isArray(
+        hub.eventRegistrations
+      )
+    ){
+
+      hub.eventRegistrations =
+        [];
+
+    }
+
 
     hub.ventures =
       ventures;
+
 
     hub.loaded =
       true;
@@ -61676,9 +62032,25 @@ async function loadSchoolCareerHub({
     hub.error =
       null;
 
+    hub.lastLoadedAt =
+      new Date();
+
+
+    /* =======================================================
+       RENDER COMPLETE CAREER HUB
+    ======================================================= */
+
     renderCareerHub();
 
+
+    renderCareerHubView(
+      hub.activeView ||
+      "overview"
+    );
+
+
     setCareerHubSystemState();
+
 
   }catch(error){
 
@@ -61687,25 +62059,31 @@ async function loadSchoolCareerHub({
       error
     );
 
+
     hub.error =
       error?.message ||
       "Career Hub could not be loaded.";
+
 
     setCareerHubSystemState(
       "error",
       hub.error
     );
 
+
     /*
-      Existing dashboard records should still render.
+      Keep the lightweight dashboard data visible even if
+      additional Career Hub resources fail.
     */
 
     renderCareerHub();
+
 
   }finally{
 
     hub.loading =
       false;
+
 
     if (refreshButton){
 
@@ -61714,6 +62092,11 @@ async function loadSchoolCareerHub({
 
       refreshButton.classList.remove(
         "loading"
+      );
+
+      refreshButton.setAttribute(
+        "aria-busy",
+        "false"
       );
 
     }
