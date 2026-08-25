@@ -17193,163 +17193,349 @@ async function renderStudentCareerHub(){
 
 
       <!-- ===================================================
-           OPPORTUNITY CATEGORIES
+           OPPORTUNITY MARKETPLACE
       ==================================================== -->
 
-      <section class="student-career-card">
+      <section
+        class="student-career-discovery"
+        aria-labelledby="studentCareerDiscoveryTitle"
+      >
 
-        <header class="student-career-card-header">
+        <div class="student-career-discovery-head">
 
           <div>
 
             <span>
-              EXPLORE
+              EXPLORE AIFT
             </span>
 
-            <h3>
-              Find your next opportunity
+            <h3 id="studentCareerDiscoveryTitle">
+              What opportunity are you looking for?
             </h3>
 
             <p>
-              Career Hub brings education, employment,
-              scholarships, partnerships and entrepreneurship
-              together in one AIFT marketplace.
+              Explore opportunities across education,
+              employment, industry and entrepreneurship.
             </p>
 
           </div>
 
-        </header>
+        </div>
 
 
-        <div class="student-career-metrics">
+        <div class="student-career-category-grid">
 
 
-          <!-- INTERNSHIPS -->
+          <!-- =============================================
+               INTERNSHIPS
+          ============================================== -->
 
-          <article>
+          <button
+            type="button"
+            class="
+              student-career-category-card
+              internship
+            "
+            data-career-action="internships"
+          >
 
-            <div class="student-career-metric-icon blue">
+            <span class="student-career-category-icon">
 
               <i
                 class="fa-solid fa-briefcase"
                 aria-hidden="true"
               ></i>
 
-            </div>
+            </span>
 
-            <div>
 
-              <span>
+            <span class="student-career-category-copy">
+
+              <strong>
                 Internships
-              </span>
-
-              <strong id="studentCareerInternshipCount">
-                ${escapeHtml(currentJobCount)}
               </strong>
 
               <small>
-                Build real experience
+                Build experience with real companies
               </small>
 
-            </div>
-
-          </article>
+            </span>
 
 
-          <!-- JOBS -->
+            <span class="student-career-category-meta">
 
-          <article>
+              <b id="studentCareerInternshipCount">
+                ${escapeHtml(currentJobCount)}
+              </b>
 
-            <div class="student-career-metric-icon purple">
+              <i
+                class="fa-solid fa-arrow-right"
+                aria-hidden="true"
+              ></i>
+
+            </span>
+
+          </button>
+
+
+          <!-- =============================================
+               JOBS
+          ============================================== -->
+
+          <button
+            type="button"
+            class="
+              student-career-category-card
+              jobs
+            "
+            data-career-action="jobs"
+          >
+
+            <span class="student-career-category-icon">
 
               <i
                 class="fa-solid fa-building"
                 aria-hidden="true"
               ></i>
 
-            </div>
+            </span>
 
-            <div>
 
-              <span>
+            <span class="student-career-category-copy">
+
+              <strong>
                 Jobs
-              </span>
-
-              <strong id="studentCareerJobCount">
-                ${escapeHtml(currentJobCount)}
               </strong>
 
               <small>
-                Start your career
+                Find graduate and entry-level roles
               </small>
 
-            </div>
-
-          </article>
+            </span>
 
 
-          <!-- SCHOLARSHIPS -->
+            <span class="student-career-category-meta">
 
-          <article>
+              <b id="studentCareerJobCount">
+                ${escapeHtml(currentJobCount)}
+              </b>
 
-            <div class="student-career-metric-icon green">
+              <i
+                class="fa-solid fa-arrow-right"
+                aria-hidden="true"
+              ></i>
+
+            </span>
+
+          </button>
+
+
+          <!-- =============================================
+               SCHOLARSHIPS
+          ============================================== -->
+
+          <button
+            type="button"
+            class="
+              student-career-category-card
+              scholarships
+            "
+            data-career-action="scholarships"
+          >
+
+            <span class="student-career-category-icon">
 
               <i
                 class="fa-solid fa-graduation-cap"
                 aria-hidden="true"
               ></i>
 
-            </div>
+            </span>
 
-            <div>
 
-              <span>
+            <span class="student-career-category-copy">
+
+              <strong>
                 Scholarships
-              </span>
-
-              <strong id="studentCareerScholarshipCount">
-                0
               </strong>
 
               <small>
-                Fund your education
+                Find support for your education
               </small>
 
-            </div>
-
-          </article>
+            </span>
 
 
-          <!-- FUNDING / VENTURES -->
+            <span class="student-career-category-meta">
 
-          <article>
+              <b id="studentCareerScholarshipCount">
+                0
+              </b>
 
-            <div class="student-career-metric-icon amber">
+              <i
+                class="fa-solid fa-arrow-right"
+                aria-hidden="true"
+              ></i>
+
+            </span>
+
+          </button>
+
+
+          <!-- =============================================
+               PARTNERSHIPS
+          ============================================== -->
+
+          <button
+            type="button"
+            class="
+              student-career-category-card
+              partnerships
+            "
+            data-career-action="partnerships"
+          >
+
+            <span class="student-career-category-icon">
+
+              <i
+                class="fa-solid fa-handshake"
+                aria-hidden="true"
+              ></i>
+
+            </span>
+
+
+            <span class="student-career-category-copy">
+
+              <strong>
+                Partnerships
+              </strong>
+
+              <small>
+                School and industry opportunities
+              </small>
+
+            </span>
+
+
+            <span class="student-career-category-meta">
+
+              <b id="studentCareerPartnershipCount">
+                0
+              </b>
+
+              <i
+                class="fa-solid fa-arrow-right"
+                aria-hidden="true"
+              ></i>
+
+            </span>
+
+          </button>
+
+
+          <!-- =============================================
+               AIFT VENTURES
+          ============================================== -->
+
+          <button
+            type="button"
+            class="
+              student-career-category-card
+              ventures
+            "
+            data-career-action="ventures"
+          >
+
+            <span class="student-career-category-icon">
 
               <i
                 class="fa-solid fa-rocket"
                 aria-hidden="true"
               ></i>
 
-            </div>
+            </span>
 
-            <div>
 
-              <span>
-                Ventures
-              </span>
+            <span class="student-career-category-copy">
 
-              <strong id="studentCareerVentureCount">
-                0
+              <strong>
+                AIFT Ventures
               </strong>
 
               <small>
-                Build and fund ideas
+                Build, fund and grow your ideas
               </small>
 
-            </div>
+            </span>
 
-          </article>
+
+            <span class="student-career-category-meta">
+
+              <b id="studentCareerVentureCount">
+                0
+              </b>
+
+              <i
+                class="fa-solid fa-arrow-right"
+                aria-hidden="true"
+              ></i>
+
+            </span>
+
+          </button>
+
+
+          <!-- =============================================
+               EVENTS
+          ============================================== -->
+
+          <button
+            type="button"
+            class="
+              student-career-category-card
+              events
+            "
+            data-career-action="events"
+          >
+
+            <span class="student-career-category-icon">
+
+              <i
+                class="fa-solid fa-calendar-star"
+                aria-hidden="true"
+              ></i>
+
+            </span>
+
+
+            <span class="student-career-category-copy">
+
+              <strong>
+                Events
+              </strong>
+
+              <small>
+                Career fairs, Demo Days and workshops
+              </small>
+
+            </span>
+
+
+            <span class="student-career-category-meta">
+
+              <b id="studentCareerEventCount">
+                0
+              </b>
+
+              <i
+                class="fa-solid fa-arrow-right"
+                aria-hidden="true"
+              ></i>
+
+            </span>
+
+          </button>
 
         </div>
 
