@@ -14456,3 +14456,2847 @@
 
        After that we will close the JavaScript cleanly.
     ====================================================== */
+
+          /* =====================================================
+       AIFT CREATE VENTURE
+       PART 7 — REAL CLOUDINARY MEDIA UPLOADS
+    ====================================================== */
+
+
+    /* =====================================================
+       UPLOAD LIMITS
+
+       These match routes/uploads.js.
+    ====================================================== */
+
+    const VENTURE_CREATE_MAX_IMAGE_SIZE =
+      8 * 1024 * 1024;
+
+
+    const VENTURE_CREATE_MAX_DOCUMENT_SIZE =
+      20 * 1024 * 1024;
+
+
+    const VENTURE_CREATE_MAX_DOCUMENTS =
+      10;
+
+
+    const VENTURE_CREATE_IMAGE_TYPES =
+      new Set([
+
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp"
+
+      ]);
+
+
+    const VENTURE_CREATE_DOCUMENT_TYPES =
+      new Set([
+
+        /* Images */
+
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+
+
+        /* PDF */
+
+        "application/pdf",
+
+
+        /* Word */
+
+        "application/msword",
+
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+
+
+        /* PowerPoint */
+
+        "application/vnd.ms-powerpoint",
+
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+
+
+        /* Excel */
+
+        "application/vnd.ms-excel",
+
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+
+        /* Text / CSV */
+
+        "text/plain",
+        "text/csv",
+        "application/csv"
+
+      ]);
+
+
+    /* =====================================================
+       UPLOAD STATE
+
+       Do not replace ventureCreateState.
+
+       These properties extend the state created in the
+       earlier builder parts.
+    ====================================================== */
+
+    ventureCreateState.pendingLogoFile =
+      ventureCreateState.pendingLogoFile ||
+      null;
+
+
+    ventureCreateState.pendingCoverFile =
+      ventureCreateState.pendingCoverFile ||
+      null;
+
+
+    ventureCreateState.pendingDocumentFiles =
+      Array.isArray(
+        ventureCreateState.pendingDocumentFiles
+      )
+        ? ventureCreateState.pendingDocumentFiles
+        : [];
+
+
+    ventureCreateState.uploading =
+      false;
+
+
+    ventureCreateState.logoUploading =
+      false;
+
+
+    ventureCreateState.coverUploading =
+      false;
+
+
+    ventureCreateState.documentsUploading =
+      false;
+
+
+    /* =====================================================
+       SAFE FILE NAME
+    ====================================================== */
+
+    function getVentureCreateFileName(
+      file
+    ){
+
+      return ventureCreateString(
+        file?.name,
+        "Selected file"
+      );
+
+    }
+
+
+    /* =====================================================
+       FILE SIZE FORMATTER
+    ====================================================== */
+
+    function formatVentureCreateFileSize(
+      bytes
+    ){
+
+      const size =
+        Number(
+          bytes
+        ) ||
+        0;
+
+
+      if(
+        size <
+        1024
+      ){
+
+        return `${size} B`;
+
+      }
+
+
+      if(
+        size <
+        1024 * 1024
+      ){
+
+        return `${
+          (
+            size /
+            1024
+          ).toFixed(1)
+        } KB`;
+
+      }
+
+
+      return `${
+        (
+          size /
+          (
+            1024 *
+            1024
+          )
+        ).toFixed(1)
+      } MB`;
+
+    }
+
+
+    /* =====================================================
+       FILE EXTENSION
+    ====================================================== */
+
+    function getVentureCreateFileExtension(
+      fileName
+    ){
+
+      const name =
+        ventureCreateString(
+          fileName
+        );
+
+
+      const index =
+        name.lastIndexOf(
+          "."
+        );
+
+
+      if(
+        index === -1 ||
+        index ===
+          name.length - 1
+      ){
+
+        return "";
+
+      }
+
+
+      return name
+        .slice(
+          index + 1
+        )
+        .toLowerCase();
+
+    }
+
+
+    /* =====================================================
+       DOCUMENT ICON
+    ====================================================== */
+
+    function getVentureCreateDocumentIcon(
+      document
+    ){
+
+      const mimeType =
+        ventureCreateString(
+          document?.mimeType
+        )
+          .toLowerCase();
+
+
+      const extension =
+        getVentureCreateFileExtension(
+          document?.originalName ||
+          document?.name
+        );
+
+
+      if(
+        mimeType.startsWith(
+          "image/"
+        )
+      ){
+
+        return "fa-regular fa-image";
+
+      }
+
+
+      if(
+        mimeType ===
+          "application/pdf" ||
+        extension ===
+          "pdf"
+      ){
+
+        return "fa-regular fa-file-pdf";
+
+      }
+
+
+      if(
+        mimeType.includes(
+          "word"
+        ) ||
+        extension ===
+          "doc" ||
+        extension ===
+          "docx"
+      ){
+
+        return "fa-regular fa-file-word";
+
+      }
+
+
+      if(
+        mimeType.includes(
+          "presentation"
+        ) ||
+        mimeType.includes(
+          "powerpoint"
+        ) ||
+        extension ===
+          "ppt" ||
+        extension ===
+          "pptx"
+      ){
+
+        return "fa-regular fa-file-powerpoint";
+
+      }
+
+
+      if(
+        mimeType.includes(
+          "spreadsheet"
+        ) ||
+        mimeType.includes(
+          "excel"
+        ) ||
+        extension ===
+          "xls" ||
+        extension ===
+          "xlsx" ||
+        extension ===
+          "csv"
+      ){
+
+        return "fa-regular fa-file-excel";
+
+      }
+
+
+      if(
+        mimeType.startsWith(
+          "text/"
+        ) ||
+        extension ===
+          "txt"
+      ){
+
+        return "fa-regular fa-file-lines";
+
+      }
+
+
+      return "fa-regular fa-file";
+
+    }
+
+
+    /* =====================================================
+       DOCUMENT CATEGORY
+
+       Matches Venture.documents.type.
+    ====================================================== */
+
+    function getVentureCreateDocumentType(
+      file
+    ){
+
+      const name =
+        getVentureCreateFileName(
+          file
+        )
+          .toLowerCase();
+
+
+      if(
+        name.includes(
+          "pitch"
+        ) ||
+        name.includes(
+          "deck"
+        )
+      ){
+
+        return "pitch-deck";
+
+      }
+
+
+      if(
+        name.includes(
+          "business plan"
+        ) ||
+        name.includes(
+          "business-plan"
+        )
+      ){
+
+        return "business-plan";
+
+      }
+
+
+      if(
+        name.includes(
+          "financial"
+        ) ||
+        name.includes(
+          "budget"
+        ) ||
+        name.includes(
+          "projection"
+        )
+      ){
+
+        return "financials";
+
+      }
+
+
+      if(
+        name.includes(
+          "research"
+        ) ||
+        name.includes(
+          "study"
+        )
+      ){
+
+        return "research";
+
+      }
+
+
+      if(
+        name.includes(
+          "prototype"
+        ) ||
+        name.includes(
+          "demo"
+        )
+      ){
+
+        return "prototype";
+
+      }
+
+
+      return "other";
+
+    }
+
+
+    /* =====================================================
+       IMAGE VALIDATION
+    ====================================================== */
+
+    function validateVentureCreateImageFile(
+      file
+    ){
+
+      if(!file){
+
+        return {
+          valid:false,
+          message:
+            "Please select an image."
+        };
+
+      }
+
+
+      const mimeType =
+        ventureCreateString(
+          file.type
+        )
+          .toLowerCase();
+
+
+      if(
+        !VENTURE_CREATE_IMAGE_TYPES.has(
+          mimeType
+        )
+      ){
+
+        return {
+          valid:false,
+          message:
+            "Please use a JPG, PNG, or WEBP image."
+        };
+
+      }
+
+
+      if(
+        Number(
+          file.size ||
+          0
+        ) >
+        VENTURE_CREATE_MAX_IMAGE_SIZE
+      ){
+
+        return {
+          valid:false,
+          message:
+            "Venture images must be 8 MB or smaller."
+        };
+
+      }
+
+
+      return {
+        valid:true,
+        message:""
+      };
+
+    }
+
+
+    /* =====================================================
+       DOCUMENT VALIDATION
+    ====================================================== */
+
+    function validateVentureCreateDocumentFile(
+      file
+    ){
+
+      if(!file){
+
+        return {
+          valid:false,
+          message:
+            "A selected document could not be read."
+        };
+
+      }
+
+
+      const mimeType =
+        ventureCreateString(
+          file.type
+        )
+          .toLowerCase();
+
+
+      if(
+        !VENTURE_CREATE_DOCUMENT_TYPES.has(
+          mimeType
+        )
+      ){
+
+        return {
+          valid:false,
+
+          message:
+            `${
+              getVentureCreateFileName(
+                file
+              )
+            } is not a supported document type.`
+        };
+
+      }
+
+
+      if(
+        Number(
+          file.size ||
+          0
+        ) >
+        VENTURE_CREATE_MAX_DOCUMENT_SIZE
+      ){
+
+        return {
+          valid:false,
+
+          message:
+            `${
+              getVentureCreateFileName(
+                file
+              )
+            } must be 20 MB or smaller.`
+        };
+
+      }
+
+
+      return {
+        valid:true,
+        message:""
+      };
+
+    }
+
+
+    /* =====================================================
+       OBJECT URL CLEANUP
+    ====================================================== */
+
+    function revokeVentureCreateObjectUrl(
+      url
+    ){
+
+      if(
+        typeof url !==
+          "string" ||
+        !url.startsWith(
+          "blob:"
+        )
+      ){
+
+        return;
+
+      }
+
+
+      try{
+
+        URL.revokeObjectURL(
+          url
+        );
+
+      }catch(error){
+
+        console.warn(
+          "Could not revoke Venture preview URL:",
+          error
+        );
+
+      }
+
+    }
+
+
+    /* =====================================================
+       IMAGE PREVIEW
+    ====================================================== */
+
+    function showVentureCreateLocalImagePreview(
+      file,
+      {
+        previewContainerId,
+        previewImageId,
+        fileNameId
+      }
+    ){
+
+      if(!file){
+        return;
+      }
+
+
+      const container =
+        ventureCreateElement(
+          previewContainerId
+        );
+
+
+      const image =
+        ventureCreateElement(
+          previewImageId
+        );
+
+
+      const fileName =
+        ventureCreateElement(
+          fileNameId
+        );
+
+
+      if(
+        !container ||
+        !image
+      ){
+
+        return;
+
+      }
+
+
+      revokeVentureCreateObjectUrl(
+        image.dataset
+          .ventureObjectUrl
+      );
+
+
+      const objectUrl =
+        URL.createObjectURL(
+          file
+        );
+
+
+      image.src =
+        objectUrl;
+
+
+      image.dataset
+        .ventureObjectUrl =
+          objectUrl;
+
+
+      container.hidden =
+        false;
+
+
+      if(fileName){
+
+        fileName.textContent =
+          `${
+            getVentureCreateFileName(
+              file
+            )
+          } · ${
+            formatVentureCreateFileSize(
+              file.size
+            )
+          }`;
+
+      }
+
+    }
+
+
+    /* =====================================================
+       MULTIPART REQUEST
+
+       Do NOT manually set Content-Type for FormData.
+       The browser must generate the multipart boundary.
+    ====================================================== */
+
+    async function ventureCreateUploadRequest(
+      endpoint,
+      formData
+    ){
+
+      const token =
+        getVentureCreateToken();
+
+
+      const headers = {
+        Accept:
+          "application/json"
+      };
+
+
+      if(token){
+
+        headers.Authorization =
+          `Bearer ${token}`;
+
+      }
+
+
+      let response;
+
+
+      try{
+
+        response =
+          await fetch(
+            endpoint,
+            {
+              method:
+                "POST",
+
+              headers,
+
+              body:
+                formData
+            }
+          );
+
+      }catch(error){
+
+        console.error(
+          "AIFT Venture upload network error:",
+          error
+        );
+
+
+        throw new Error(
+          "AIFT could not connect to the upload server."
+        );
+
+      }
+
+
+      const payload =
+        await parseVentureCreateResponse(
+          response
+        );
+
+
+      if(
+        !response.ok
+      ){
+
+        const error =
+          new Error(
+            getVentureCreateApiError(
+              payload,
+              `Upload failed (${response.status}).`
+            )
+          );
+
+
+        error.status =
+          response.status;
+
+
+        error.payload =
+          payload;
+
+
+        throw error;
+
+      }
+
+
+      return payload;
+
+    }
+
+
+    /* =====================================================
+       UPLOAD ONE IMAGE
+    ====================================================== */
+
+    async function uploadVentureCreateImage(
+      file,
+      type
+    ){
+
+      if(!file){
+        return null;
+      }
+
+
+      const validation =
+        validateVentureCreateImageFile(
+          file
+        );
+
+
+      if(
+        !validation.valid
+      ){
+
+        throw new Error(
+          validation.message
+        );
+
+      }
+
+
+      const endpoint =
+        type ===
+          "logo"
+          ? `${
+              ventureCreateUploadEndpoint
+            }/venture-logo`
+          : `${
+              ventureCreateUploadEndpoint
+            }/venture-cover`;
+
+
+      const formData =
+        new FormData();
+
+
+      /*
+        Backend:
+        upload.single("file")
+      */
+
+      formData.append(
+        "file",
+        file,
+        file.name
+      );
+
+
+      const response =
+        await ventureCreateUploadRequest(
+          endpoint,
+          formData
+        );
+
+
+      const url =
+        ventureCreateString(
+          response?.secureUrl ||
+          response?.url
+        );
+
+
+      if(!url){
+
+        throw new Error(
+          `AIFT uploaded the Venture ${
+            type
+          }, but the server did not return its URL.`
+        );
+
+      }
+
+
+      return {
+        ...response,
+        url,
+        secureUrl:url
+      };
+
+    }
+
+
+    /* =====================================================
+       UPLOAD LOGO
+    ====================================================== */
+
+    async function uploadVentureCreateLogo(){
+
+      const file =
+        ventureCreateState
+          .pendingLogoFile;
+
+
+      if(!file){
+
+        return ventureCreateState
+          .uploadedLogoUrl ||
+          "";
+
+      }
+
+
+      if(
+        ventureCreateState
+          .logoUploading
+      ){
+
+        throw new Error(
+          "The Venture logo is already uploading."
+        );
+
+      }
+
+
+      ventureCreateState
+        .logoUploading =
+          true;
+
+
+      try{
+
+        const result =
+          await uploadVentureCreateImage(
+            file,
+            "logo"
+          );
+
+
+        ventureCreateState
+          .uploadedLogoUrl =
+            result.url;
+
+
+        ventureCreateState
+          .uploadedLogoAsset =
+            result;
+
+
+        ventureCreateState
+          .pendingLogoFile =
+            null;
+
+
+        const image =
+          ventureCreateElement(
+            "ventureCreateLogoPreviewImage"
+          );
+
+
+        if(image){
+
+          revokeVentureCreateObjectUrl(
+            image.dataset
+              .ventureObjectUrl
+          );
+
+
+          delete image.dataset
+            .ventureObjectUrl;
+
+
+          image.src =
+            result.url;
+
+        }
+
+
+        const fileName =
+          ventureCreateElement(
+            "ventureCreateLogoFileName"
+          );
+
+
+        if(fileName){
+
+          fileName.textContent =
+            result.originalName ||
+            "Venture logo uploaded";
+
+        }
+
+
+        return result.url;
+
+
+      }finally{
+
+        ventureCreateState
+          .logoUploading =
+            false;
+
+      }
+
+    }
+
+
+    /* =====================================================
+       UPLOAD COVER
+    ====================================================== */
+
+    async function uploadVentureCreateCover(){
+
+      const file =
+        ventureCreateState
+          .pendingCoverFile;
+
+
+      if(!file){
+
+        return ventureCreateState
+          .uploadedCoverUrl ||
+          "";
+
+      }
+
+
+      if(
+        ventureCreateState
+          .coverUploading
+      ){
+
+        throw new Error(
+          "The Pitch Room banner is already uploading."
+        );
+
+      }
+
+
+      ventureCreateState
+        .coverUploading =
+          true;
+
+
+      try{
+
+        const result =
+          await uploadVentureCreateImage(
+            file,
+            "cover"
+          );
+
+
+        ventureCreateState
+          .uploadedCoverUrl =
+            result.url;
+
+
+        ventureCreateState
+          .uploadedCoverAsset =
+            result;
+
+
+        ventureCreateState
+          .pendingCoverFile =
+            null;
+
+
+        const image =
+          ventureCreateElement(
+            "ventureCreateCoverPreviewImage"
+          );
+
+
+        if(image){
+
+          revokeVentureCreateObjectUrl(
+            image.dataset
+              .ventureObjectUrl
+          );
+
+
+          delete image.dataset
+            .ventureObjectUrl;
+
+
+          image.src =
+            result.url;
+
+        }
+
+
+        const fileName =
+          ventureCreateElement(
+            "ventureCreateCoverFileName"
+          );
+
+
+        if(fileName){
+
+          fileName.textContent =
+            result.originalName ||
+            "Pitch Room banner uploaded";
+
+        }
+
+
+        return result.url;
+
+
+      }finally{
+
+        ventureCreateState
+          .coverUploading =
+            false;
+
+      }
+
+    }
+
+
+    /* =====================================================
+       DOCUMENT UPLOAD
+
+       Backend expects:
+       upload.array("files", 10)
+    ====================================================== */
+
+    async function uploadVentureCreateDocuments(){
+
+      const pending =
+        Array.isArray(
+          ventureCreateState
+            .pendingDocumentFiles
+        )
+          ? [
+              ...ventureCreateState
+                .pendingDocumentFiles
+            ]
+          : [];
+
+
+      if(!pending.length){
+
+        return ventureCreateState
+          .uploadedDocuments;
+
+      }
+
+
+      if(
+        ventureCreateState
+          .documentsUploading
+      ){
+
+        throw new Error(
+          "Venture documents are already uploading."
+        );
+
+      }
+
+
+      const currentDocuments =
+        Array.isArray(
+          ventureCreateState
+            .uploadedDocuments
+        )
+          ? ventureCreateState
+              .uploadedDocuments
+          : [];
+
+
+      if(
+        currentDocuments.length +
+        pending.length >
+        VENTURE_CREATE_MAX_DOCUMENTS
+      ){
+
+        throw new Error(
+          `You can attach up to ${
+            VENTURE_CREATE_MAX_DOCUMENTS
+          } Venture documents.`
+        );
+
+      }
+
+
+      pending.forEach(
+        file => {
+
+          const validation =
+            validateVentureCreateDocumentFile(
+              file
+            );
+
+
+          if(
+            !validation.valid
+          ){
+
+            throw new Error(
+              validation.message
+            );
+
+          }
+
+        }
+      );
+
+
+      ventureCreateState
+        .documentsUploading =
+          true;
+
+
+      try{
+
+        const formData =
+          new FormData();
+
+
+        pending.forEach(
+          file => {
+
+            formData.append(
+              "files",
+              file,
+              file.name
+            );
+
+          }
+        );
+
+
+        const response =
+          await ventureCreateUploadRequest(
+            `${
+              ventureCreateUploadEndpoint
+            }/venture-documents`,
+            formData
+          );
+
+
+        const uploaded =
+          Array.isArray(
+            response?.documents
+          )
+            ? response.documents
+            : [];
+
+
+        if(
+          uploaded.length !==
+          pending.length
+        ){
+
+          throw new Error(
+            "AIFT did not return all uploaded Venture documents."
+          );
+
+        }
+
+
+        const normalized =
+          uploaded.map(
+            (
+              document,
+              index
+            ) => {
+
+              const originalFile =
+                pending[index];
+
+
+              const url =
+                ventureCreateString(
+                  document?.secureUrl ||
+                  document?.url
+                );
+
+
+              if(!url){
+
+                throw new Error(
+                  `${
+                    getVentureCreateFileName(
+                      originalFile
+                    )
+                  } uploaded without a usable URL.`
+                );
+
+              }
+
+
+              return {
+
+                ...document,
+
+                name:
+                  ventureCreateString(
+                    document.originalName,
+                    getVentureCreateFileName(
+                      originalFile
+                    )
+                  ),
+
+                originalName:
+                  ventureCreateString(
+                    document.originalName,
+                    getVentureCreateFileName(
+                      originalFile
+                    )
+                  ),
+
+                type:
+                  getVentureCreateDocumentType(
+                    originalFile
+                  ),
+
+                url,
+
+                secureUrl:
+                  url,
+
+                visibility:
+                  "public",
+
+                mimeType:
+                  ventureCreateString(
+                    document.mimeType,
+                    originalFile.type
+                  ),
+
+                size:
+                  Number(
+                    document.size ||
+                    originalFile.size ||
+                    0
+                  )
+
+              };
+
+            }
+          );
+
+
+        ventureCreateState
+          .uploadedDocuments =
+            [
+              ...currentDocuments,
+              ...normalized
+            ];
+
+
+        ventureCreateState
+          .pendingDocumentFiles =
+            [];
+
+
+        renderVentureCreateDocuments();
+
+
+        return ventureCreateState
+          .uploadedDocuments;
+
+
+      }finally{
+
+        ventureCreateState
+          .documentsUploading =
+            false;
+
+      }
+
+    }
+
+
+    /* =====================================================
+       MASTER UPLOAD SYNC
+
+       Part 6 calls this before:
+       - Save Draft
+       - Preview
+       - Publish
+    ====================================================== */
+
+    async function syncVentureCreateUploads(){
+
+      if(
+        ventureCreateState.uploading
+      ){
+
+        throw new Error(
+          "Your Venture files are already uploading. Please wait a moment."
+        );
+
+      }
+
+
+      const hasLogo =
+        Boolean(
+          ventureCreateState
+            .pendingLogoFile
+        );
+
+
+      const hasCover =
+        Boolean(
+          ventureCreateState
+            .pendingCoverFile
+        );
+
+
+      const hasDocuments =
+        Boolean(
+          ventureCreateState
+            .pendingDocumentFiles
+            ?.length
+        );
+
+
+      if(
+        !hasLogo &&
+        !hasCover &&
+        !hasDocuments
+      ){
+
+        return;
+
+      }
+
+
+      ventureCreateState.uploading =
+        true;
+
+
+      const saveStatus =
+        ventureCreateElement(
+          "ventureCreateSaveStatus"
+        );
+
+
+      if(saveStatus){
+
+        saveStatus.innerHTML = `
+
+          <i
+            class="fa-solid fa-cloud-arrow-up"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Uploading files...
+          </span>
+        `;
+
+      }
+
+
+      try{
+
+        /*
+          Logo and cover are independent uploads.
+          Uploading them concurrently reduces wait time.
+        */
+
+        const imageUploads = [];
+
+
+        if(hasLogo){
+
+          imageUploads.push(
+            uploadVentureCreateLogo()
+          );
+
+        }
+
+
+        if(hasCover){
+
+          imageUploads.push(
+            uploadVentureCreateCover()
+          );
+
+        }
+
+
+        if(
+          imageUploads.length
+        ){
+
+          await Promise.all(
+            imageUploads
+          );
+
+        }
+
+
+        /*
+          Documents use their own multi-file backend route.
+        */
+
+        if(hasDocuments){
+
+          await uploadVentureCreateDocuments();
+
+        }
+
+
+      }catch(error){
+
+        console.error(
+          "AIFT Venture media synchronization error:",
+          error
+        );
+
+
+        showVentureCreateAlert(
+          error?.message ||
+          "AIFT could not upload one or more Venture files.",
+          {
+            title:
+              "Upload failed",
+
+            type:
+              "error"
+          }
+        );
+
+
+        throw error;
+
+
+      }finally{
+
+        ventureCreateState.uploading =
+          false;
+
+      }
+
+    }
+
+
+    /* =====================================================
+       LOGO INPUT
+    ====================================================== */
+
+    function initializeVentureCreateLogoUpload(){
+
+      const input =
+        ventureCreateElement(
+          "ventureCreateLogoInput"
+        );
+
+
+      if(!input){
+        return;
+      }
+
+
+      input.addEventListener(
+        "change",
+        () => {
+
+          const file =
+            input.files?.[0];
+
+
+          if(!file){
+            return;
+          }
+
+
+          const validation =
+            validateVentureCreateImageFile(
+              file
+            );
+
+
+          if(
+            !validation.valid
+          ){
+
+            input.value =
+              "";
+
+
+            showVentureCreateAlert(
+              validation.message,
+              {
+                title:
+                  "Logo not selected",
+
+                type:
+                  "warning"
+              }
+            );
+
+
+            return;
+
+          }
+
+
+          ventureCreateState
+            .pendingLogoFile =
+              file;
+
+
+          showVentureCreateLocalImagePreview(
+            file,
+            {
+              previewContainerId:
+                "ventureCreateLogoPreview",
+
+              previewImageId:
+                "ventureCreateLogoPreviewImage",
+
+              fileNameId:
+                "ventureCreateLogoFileName"
+            }
+          );
+
+
+          markVentureCreateDirty();
+
+
+          updateVentureCreateCompletion();
+
+        }
+      );
+
+    }
+
+
+    /* =====================================================
+       COVER INPUT
+    ====================================================== */
+
+    function initializeVentureCreateCoverUpload(){
+
+      const input =
+        ventureCreateElement(
+          "ventureCreateCoverInput"
+        );
+
+
+      if(!input){
+        return;
+      }
+
+
+      input.addEventListener(
+        "change",
+        () => {
+
+          const file =
+            input.files?.[0];
+
+
+          if(!file){
+            return;
+          }
+
+
+          const validation =
+            validateVentureCreateImageFile(
+              file
+            );
+
+
+          if(
+            !validation.valid
+          ){
+
+            input.value =
+              "";
+
+
+            showVentureCreateAlert(
+              validation.message,
+              {
+                title:
+                  "Banner not selected",
+
+                type:
+                  "warning"
+              }
+            );
+
+
+            return;
+
+          }
+
+
+          ventureCreateState
+            .pendingCoverFile =
+              file;
+
+
+          showVentureCreateLocalImagePreview(
+            file,
+            {
+              previewContainerId:
+                "ventureCreateCoverPreview",
+
+              previewImageId:
+                "ventureCreateCoverPreviewImage",
+
+              fileNameId:
+                "ventureCreateCoverFileName"
+            }
+          );
+
+
+          markVentureCreateDirty();
+
+
+          updateVentureCreateCompletion();
+
+        }
+      );
+
+    }
+
+
+    /* =====================================================
+       DOCUMENT INPUT
+    ====================================================== */
+
+    function initializeVentureCreateDocumentUpload(){
+
+      const input =
+        ventureCreateElement(
+          "ventureCreateDocumentInput"
+        );
+
+
+      if(!input){
+        return;
+      }
+
+
+      input.addEventListener(
+        "change",
+        () => {
+
+          const selectedFiles =
+            Array.from(
+              input.files ||
+              []
+            );
+
+
+          if(
+            !selectedFiles.length
+          ){
+
+            return;
+
+          }
+
+
+          const uploadedCount =
+            ventureCreateState
+              .uploadedDocuments
+              ?.length ||
+            0;
+
+
+          const pendingCount =
+            ventureCreateState
+              .pendingDocumentFiles
+              ?.length ||
+            0;
+
+
+          if(
+            uploadedCount +
+            pendingCount +
+            selectedFiles.length >
+            VENTURE_CREATE_MAX_DOCUMENTS
+          ){
+
+            input.value =
+              "";
+
+
+            showVentureCreateAlert(
+              `You can attach up to ${
+                VENTURE_CREATE_MAX_DOCUMENTS
+              } Venture documents.`,
+              {
+                title:
+                  "Too many documents",
+
+                type:
+                  "warning"
+              }
+            );
+
+
+            return;
+
+          }
+
+
+          for(
+            const file of
+            selectedFiles
+          ){
+
+            const validation =
+              validateVentureCreateDocumentFile(
+                file
+              );
+
+
+            if(
+              !validation.valid
+            ){
+
+              input.value =
+                "";
+
+
+              showVentureCreateAlert(
+                validation.message,
+                {
+                  title:
+                    "Document not selected",
+
+                  type:
+                    "warning"
+                }
+              );
+
+
+              return;
+
+            }
+
+          }
+
+
+          /*
+            Avoid selecting the exact same local file twice.
+          */
+
+          const existingKeys =
+            new Set(
+              ventureCreateState
+                .pendingDocumentFiles
+                .map(
+                  file =>
+                    [
+                      file.name,
+                      file.size,
+                      file.lastModified
+                    ].join(
+                      "::"
+                    )
+                )
+            );
+
+
+          selectedFiles.forEach(
+            file => {
+
+              const key =
+                [
+                  file.name,
+                  file.size,
+                  file.lastModified
+                ].join(
+                  "::"
+                );
+
+
+              if(
+                !existingKeys.has(
+                  key
+                )
+              ){
+
+                ventureCreateState
+                  .pendingDocumentFiles
+                  .push(
+                    file
+                  );
+
+
+                existingKeys.add(
+                  key
+                );
+
+              }
+
+            }
+          );
+
+
+          /*
+            Reset input so selecting the same file later after
+            removal still triggers the change event.
+          */
+
+          input.value =
+            "";
+
+
+          renderVentureCreateDocuments();
+
+
+          markVentureCreateDirty();
+
+
+          updateVentureCreateCompletion();
+
+        }
+      );
+
+    }
+
+
+    /* =====================================================
+       DOCUMENT RENDER TARGET
+
+       Supports several likely IDs from the builder markup.
+       We do not create duplicate containers if your existing
+       HTML already has one.
+    ====================================================== */
+
+    function getVentureCreateDocumentListElement(){
+
+      return (
+        ventureCreateElement(
+          "ventureCreateDocumentList"
+        ) ||
+        ventureCreateElement(
+          "ventureCreateDocumentsList"
+        ) ||
+        ventureCreateElement(
+          "ventureCreateUploadedDocuments"
+        )
+      );
+
+    }
+
+
+    /* =====================================================
+       DOCUMENT DISPLAY NAME
+    ====================================================== */
+
+    function getVentureCreateDocumentDisplayName(
+      document
+    ){
+
+      if(
+        document instanceof
+        File
+      ){
+
+        return getVentureCreateFileName(
+          document
+        );
+
+      }
+
+
+      return ventureCreateString(
+        document?.name ||
+        document?.originalName,
+        "Venture document"
+      );
+
+    }
+
+
+    /* =====================================================
+       RENDER DOCUMENTS
+    ====================================================== */
+
+    function renderVentureCreateDocuments(){
+
+      const list =
+        getVentureCreateDocumentListElement();
+
+
+      if(!list){
+
+        return;
+
+      }
+
+
+      const uploaded =
+        Array.isArray(
+          ventureCreateState
+            .uploadedDocuments
+        )
+          ? ventureCreateState
+              .uploadedDocuments
+          : [];
+
+
+      const pending =
+        Array.isArray(
+          ventureCreateState
+            .pendingDocumentFiles
+        )
+          ? ventureCreateState
+              .pendingDocumentFiles
+          : [];
+
+
+      const items = [
+
+        ...uploaded.map(
+          (
+            document,
+            index
+          ) => ({
+
+            source:
+              "uploaded",
+
+            index,
+
+            document
+
+          })
+        ),
+
+        ...pending.map(
+          (
+            document,
+            index
+          ) => ({
+
+            source:
+              "pending",
+
+            index,
+
+            document
+
+          })
+        )
+
+      ];
+
+
+      if(
+        !items.length
+      ){
+
+        list.innerHTML =
+          "";
+
+
+        list.hidden =
+          true;
+
+
+        return;
+
+      }
+
+
+      list.hidden =
+        false;
+
+
+      list.innerHTML =
+        items
+          .map(
+            item => {
+
+              const document =
+                item.document;
+
+
+              const name =
+                getVentureCreateDocumentDisplayName(
+                  document
+                );
+
+
+              const mimeType =
+                document instanceof
+                  File
+                  ? document.type
+                  : document.mimeType;
+
+
+              const size =
+                document instanceof
+                  File
+                  ? document.size
+                  : document.size;
+
+
+              const icon =
+                getVentureCreateDocumentIcon({
+                  ...(
+                    document instanceof
+                      File
+                      ? {}
+                      : document
+                  ),
+
+                  mimeType,
+
+                  name
+                });
+
+
+              const status =
+                item.source ===
+                  "pending"
+                  ? "Waiting to upload"
+                  : "Uploaded";
+
+
+              return `
+
+                <div
+                  class="venture-create-document-item"
+                  data-venture-document-source="${item.source}"
+                  data-venture-document-index="${item.index}"
+                >
+
+                  <div
+                    class="venture-create-document-icon"
+                    aria-hidden="true"
+                  >
+
+                    <i
+                      class="${icon}"
+                    ></i>
+
+                  </div>
+
+
+                  <div
+                    class="venture-create-document-info"
+                  >
+
+                    <strong>
+                      ${escapeVentureCreateHtml(
+                        name
+                      )}
+                    </strong>
+
+                    <span>
+
+                      ${escapeVentureCreateHtml(
+                        status
+                      )}
+
+                      ${
+                        size
+                          ? ` · ${
+                              escapeVentureCreateHtml(
+                                formatVentureCreateFileSize(
+                                  size
+                                )
+                              )
+                            }`
+                          : ""
+                      }
+
+                    </span>
+
+                  </div>
+
+
+                  <button
+                    type="button"
+                    class="venture-create-document-remove"
+                    data-venture-remove-document
+                    data-source="${item.source}"
+                    data-index="${item.index}"
+                    aria-label="Remove ${escapeVentureCreateHtml(
+                      name
+                    )}"
+                    title="Remove document"
+                  >
+
+                    <i
+                      class="fa-solid fa-xmark"
+                      aria-hidden="true"
+                    ></i>
+
+                  </button>
+
+                </div>
+              `;
+
+            }
+          )
+          .join(
+            ""
+          );
+
+
+      list
+        .querySelectorAll(
+          "[data-venture-remove-document]"
+        )
+        .forEach(
+          button => {
+
+            button.addEventListener(
+              "click",
+              () => {
+
+                removeVentureCreateDocument(
+                  button.dataset.source,
+                  Number(
+                    button.dataset.index
+                  )
+                );
+
+              }
+            );
+
+          }
+        );
+
+    }
+
+
+    /* =====================================================
+       REMOVE DOCUMENT
+
+       Removing an already-uploaded document removes it from
+       the Venture record on the next Save.
+
+       It does not delete the Cloudinary object itself because
+       your backend currently has no Venture asset-destroy
+       endpoint. We should not invent one in frontend code.
+    ====================================================== */
+
+    function removeVentureCreateDocument(
+      source,
+      index
+    ){
+
+      if(
+        !Number.isInteger(
+          index
+        ) ||
+        index <
+          0
+      ){
+
+        return;
+
+      }
+
+
+      if(
+        source ===
+          "pending"
+      ){
+
+        ventureCreateState
+          .pendingDocumentFiles
+          .splice(
+            index,
+            1
+          );
+
+      }else{
+
+        ventureCreateState
+          .uploadedDocuments
+          .splice(
+            index,
+            1
+          );
+
+      }
+
+
+      renderVentureCreateDocuments();
+
+
+      markVentureCreateDirty();
+
+
+      updateVentureCreateCompletion();
+
+    }
+
+
+    /* =====================================================
+       REMOVE LOGO
+    ====================================================== */
+
+    function removeVentureCreateLogo(){
+
+      const image =
+        ventureCreateElement(
+          "ventureCreateLogoPreviewImage"
+        );
+
+
+      if(image){
+
+        revokeVentureCreateObjectUrl(
+          image.dataset
+            .ventureObjectUrl
+        );
+
+
+        delete image.dataset
+          .ventureObjectUrl;
+
+
+        image.removeAttribute(
+          "src"
+        );
+
+      }
+
+
+      ventureCreateState
+        .pendingLogoFile =
+          null;
+
+
+      ventureCreateState
+        .uploadedLogoUrl =
+          "";
+
+
+      ventureCreateState
+        .uploadedLogoAsset =
+          null;
+
+
+      const input =
+        ventureCreateElement(
+          "ventureCreateLogoInput"
+        );
+
+
+      if(input){
+
+        input.value =
+          "";
+
+      }
+
+
+      const preview =
+        ventureCreateElement(
+          "ventureCreateLogoPreview"
+        );
+
+
+      if(preview){
+
+        preview.hidden =
+          true;
+
+      }
+
+
+      const fileName =
+        ventureCreateElement(
+          "ventureCreateLogoFileName"
+        );
+
+
+      if(fileName){
+
+        fileName.textContent =
+          "";
+
+      }
+
+
+      markVentureCreateDirty();
+
+
+      updateVentureCreateCompletion();
+
+    }
+
+
+    /* =====================================================
+       REMOVE COVER
+    ====================================================== */
+
+    function removeVentureCreateCover(){
+
+      const image =
+        ventureCreateElement(
+          "ventureCreateCoverPreviewImage"
+        );
+
+
+      if(image){
+
+        revokeVentureCreateObjectUrl(
+          image.dataset
+            .ventureObjectUrl
+        );
+
+
+        delete image.dataset
+          .ventureObjectUrl;
+
+
+        image.removeAttribute(
+          "src"
+        );
+
+      }
+
+
+      ventureCreateState
+        .pendingCoverFile =
+          null;
+
+
+      ventureCreateState
+        .uploadedCoverUrl =
+          "";
+
+
+      ventureCreateState
+        .uploadedCoverAsset =
+          null;
+
+
+      const input =
+        ventureCreateElement(
+          "ventureCreateCoverInput"
+        );
+
+
+      if(input){
+
+        input.value =
+          "";
+
+      }
+
+
+      const preview =
+        ventureCreateElement(
+          "ventureCreateCoverPreview"
+        );
+
+
+      if(preview){
+
+        preview.hidden =
+          true;
+
+      }
+
+
+      const fileName =
+        ventureCreateElement(
+          "ventureCreateCoverFileName"
+        );
+
+
+      if(fileName){
+
+        fileName.textContent =
+          "";
+
+      }
+
+
+      markVentureCreateDirty();
+
+
+      updateVentureCreateCompletion();
+
+    }
+
+
+    /* =====================================================
+       REMOVE BUTTONS
+    ====================================================== */
+
+    function initializeVentureCreateMediaRemoveActions(){
+
+      ventureCreateQueryAll(
+        [
+          "[data-venture-remove-logo]",
+          "#ventureCreateRemoveLogo"
+        ].join(",")
+      )
+        .forEach(
+          button => {
+
+            button.addEventListener(
+              "click",
+              removeVentureCreateLogo
+            );
+
+          }
+        );
+
+
+      ventureCreateQueryAll(
+        [
+          "[data-venture-remove-cover]",
+          "#ventureCreateRemoveCover"
+        ].join(",")
+      )
+        .forEach(
+          button => {
+
+            button.addEventListener(
+              "click",
+              removeVentureCreateCover
+            );
+
+          }
+        );
+
+    }
+
+
+    /* =====================================================
+       DRAG & DROP HELPERS
+    ====================================================== */
+
+    function initializeVentureCreateFileDropZone(
+      {
+        zoneId,
+        inputId
+      }
+    ){
+
+      const zone =
+        ventureCreateElement(
+          zoneId
+        );
+
+
+      const input =
+        ventureCreateElement(
+          inputId
+        );
+
+
+      if(
+        !zone ||
+        !input
+      ){
+
+        return;
+
+      }
+
+
+      [
+        "dragenter",
+        "dragover"
+      ]
+        .forEach(
+          eventName => {
+
+            zone.addEventListener(
+              eventName,
+              event => {
+
+                event.preventDefault();
+
+                event.stopPropagation();
+
+
+                zone.classList.add(
+                  "is-dragging"
+                );
+
+              }
+            );
+
+          }
+        );
+
+
+      [
+        "dragleave",
+        "drop"
+      ]
+        .forEach(
+          eventName => {
+
+            zone.addEventListener(
+              eventName,
+              event => {
+
+                event.preventDefault();
+
+                event.stopPropagation();
+
+
+                zone.classList.remove(
+                  "is-dragging"
+                );
+
+              }
+            );
+
+          }
+        );
+
+
+      zone.addEventListener(
+        "drop",
+        event => {
+
+          const files =
+            event.dataTransfer
+              ?.files;
+
+
+          if(
+            !files ||
+            !files.length
+          ){
+
+            return;
+
+          }
+
+
+          try{
+
+            const transfer =
+              new DataTransfer();
+
+
+            Array.from(
+              files
+            )
+              .forEach(
+                file => {
+
+                  transfer.items.add(
+                    file
+                  );
+
+                }
+              );
+
+
+            input.files =
+              transfer.files;
+
+
+            input.dispatchEvent(
+              new Event(
+                "change",
+                {
+                  bubbles:true
+                }
+              )
+            );
+
+          }catch(error){
+
+            console.warn(
+              "Browser could not transfer dropped Venture files:",
+              error
+            );
+
+          }
+
+        }
+      );
+
+    }
+
+
+    /* =====================================================
+       MEDIA INITIALIZER
+    ====================================================== */
+
+    function initializeVentureCreateMediaUploads(){
+
+      initializeVentureCreateLogoUpload();
+
+
+      initializeVentureCreateCoverUpload();
+
+
+      initializeVentureCreateDocumentUpload();
+
+
+      initializeVentureCreateMediaRemoveActions();
+
+
+      initializeVentureCreateFileDropZone({
+        zoneId:
+          "ventureCreateLogoDropzone",
+
+        inputId:
+          "ventureCreateLogoInput"
+      });
+
+
+      initializeVentureCreateFileDropZone({
+        zoneId:
+          "ventureCreateCoverDropzone",
+
+        inputId:
+          "ventureCreateCoverInput"
+      });
+
+
+      initializeVentureCreateFileDropZone({
+        zoneId:
+          "ventureCreateDocumentDropzone",
+
+        inputId:
+          "ventureCreateDocumentInput"
+      });
+
+
+      renderVentureCreateDocuments();
+
+    }
+
+
+    /* =====================================================
+       IMPORTANT INITIALIZER EXTENSION
+
+       Part 6 has already defined initializeVentureCreatePage.
+
+       Instead of creating another DOMContentLoaded listener,
+       extend the existing initializer once.
+    ====================================================== */
+
+    const initializeVentureCreatePagePart6 =
+      initializeVentureCreatePage;
+
+
+    initializeVentureCreatePage =
+      async function(){
+
+        /*
+          Part 7 listeners must exist before Part 6 can load
+          an existing Venture and render its media.
+        */
+
+        initializeVentureCreateMediaUploads();
+
+
+        await initializeVentureCreatePagePart6();
+
+
+        /*
+          Existing documents may have been loaded from the
+          backend during Part 6.
+        */
+
+        renderVentureCreateDocuments();
+
+    };
+
+
+    /* =====================================================
+       CLEAN LOCAL PREVIEW URLS
+    ====================================================== */
+
+    window.addEventListener(
+      "pagehide",
+      () => {
+
+        const logoImage =
+          ventureCreateElement(
+            "ventureCreateLogoPreviewImage"
+          );
+
+
+        const coverImage =
+          ventureCreateElement(
+            "ventureCreateCoverPreviewImage"
+          );
+
+
+        revokeVentureCreateObjectUrl(
+          logoImage?.dataset
+            ?.ventureObjectUrl
+        );
+
+
+        revokeVentureCreateObjectUrl(
+          coverImage?.dataset
+            ?.ventureObjectUrl
+        );
+
+      }
+    );
+
+
+    /* =====================================================
+       PART 7 COMPLETE
+
+       IMPORTANT:
+       Keep the current  open.
+
+       NEXT:
+       PART 8 will finish the Venture Builder integration:
+
+       - fix draft preview in venture.html
+       - owner preview uses GET /api/ventures/:id/manage
+       - public visitors continue using GET /api/ventures/:id
+       - active/public Pitch Rooms remain public
+       - draft/private Ventures remain protected
+       - final error handling
+       - final integration check
+       - then close 
+    ====================================================== */
