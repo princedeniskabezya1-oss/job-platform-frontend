@@ -63502,6 +63502,20 @@ function renderCareerScholarships(){
       ?.scholarshipApplications ||
     [];
 
+
+  const getScholarshipApplications =
+    scholarshipId =>
+      applications.filter(
+        application =>
+          sameId(
+            application.scholarshipId
+              ?._id ||
+            application.scholarshipId,
+            scholarshipId
+          )
+      );
+
+
   const open =
     scholarships.filter(
       item =>
@@ -63516,14 +63530,13 @@ function renderCareerScholarships(){
         )
     );
 
+
   const closingSoon =
     scholarships.filter(item => {
 
       const days =
         careerDaysUntil(
-          item.deadline ||
-          item.applicationDeadline ||
-          item.closingDate
+          item.deadline
         );
 
       return (
@@ -63584,23 +63597,47 @@ function renderCareerScholarships(){
           "draft"
         );
 
+      const sponsorName =
+        item.sponsor?.name ||
+        item.provider ||
+        item.organization ||
+        getSchoolName();
+
+      const eligibility =
+        [
+          ...(
+            item.eligibility
+              ?.otherCriteria ||
+            []
+          ),
+          ...(
+            item.eligibility
+              ?.yearLevels ||
+            []
+          ),
+          ...(
+            item.eligibility
+              ?.programs ||
+            []
+          )
+        ]
+          .join(" ");
+
       const haystack =
         careerSearchText(
           item.title,
           item.name,
-          item.provider,
-          item.organization,
+          sponsorName,
           item.description,
-          item.eligibility,
+          item.summary,
+          eligibility,
           itemStatus
         );
 
       return (
         (
-          status ===
-            "all" ||
-          itemStatus ===
-            status
+          status === "all" ||
+          itemStatus === status
         ) &&
         (
           !search ||
@@ -63626,81 +63663,309 @@ function renderCareerScholarships(){
       );
 
     return;
-
   }
 
 
   box.innerHTML =
     filtered
-      .map(item => `
-        <article class="career-module-row">
+      .map(item => {
 
-          <div class="career-module-row-main">
+        const id =
+          careerId(item);
 
-            <div class="career-module-row-title">
+        const itemStatus =
+          careerLower(
+            item.status ||
+            "draft"
+          );
 
-              <span class="career-status-pill">
+        const sponsorName =
+          item.sponsor?.name ||
+          item.provider ||
+          item.organization ||
+          getSchoolName();
+
+        const scholarshipApplications =
+          getScholarshipApplications(
+            id
+          );
+
+        const amount =
+          item.funding?.amount;
+
+        const currency =
+          item.funding?.currency ||
+          "PHP";
+
+        const fundingLabel =
+          amount !== null &&
+          amount !== undefined &&
+          amount !== ""
+            ? new Intl.NumberFormat(
+                "en-PH",
+                {
+                  style:"currency",
+                  currency,
+                  maximumFractionDigits:0
+                }
+              ).format(
+                Number(amount) || 0
+              )
+            : careerStatusLabel(
+                item.funding?.type ||
+                "Funding"
+              );
+
+        const canPublish =
+          [
+            "draft",
+            "closed"
+          ].includes(
+            itemStatus
+          );
+
+        const canClose =
+          [
+            "open",
+            "published",
+            "active"
+          ].includes(
+            itemStatus
+          );
+
+        const canDelete =
+          itemStatus ===
+          "draft";
+
+        return `
+          <article
+            class="career-module-row career-management-row"
+            data-career-scholarship-id="${escapeHtml(id)}"
+          >
+
+            <div class="career-module-row-main">
+
+              <div class="career-module-row-title">
+
+                <span
+                  class="career-status-pill"
+                  data-status="${escapeHtml(itemStatus)}"
+                >
+                  ${escapeHtml(
+                    careerStatusLabel(
+                      itemStatus
+                    )
+                  )}
+                </span>
+
+                <h3>
+                  ${escapeHtml(
+                    item.title ||
+                    item.name ||
+                    "Scholarship"
+                  )}
+                </h3>
+
+              </div>
+
+
+              <p>
                 ${escapeHtml(
-                  careerStatusLabel(
-                    item.status ||
-                    "draft"
-                  )
+                  sponsorName
                 )}
-              </span>
+              </p>
 
-              <h3>
-                ${escapeHtml(
-                  item.title ||
-                  item.name ||
-                  "Scholarship"
-                )}
-              </h3>
+
+              <div class="career-module-row-meta">
+
+                <span>
+                  Deadline:
+                  ${escapeHtml(
+                    careerFormatDate(
+                      item.deadline
+                    )
+                  )}
+                </span>
+
+                <span>
+                  ${escapeHtml(
+                    fundingLabel
+                  )}
+                </span>
+
+                ${
+                  item.numberOfAwards
+                    ? `
+                      <span>
+                        ${escapeHtml(
+                          String(
+                            item.numberOfAwards
+                          )
+                        )}
+                        award${
+                          Number(
+                            item.numberOfAwards
+                          ) === 1
+                            ? ""
+                            : "s"
+                        }
+                      </span>
+                    `
+                    : ""
+                }
+
+                <span>
+                  ${scholarshipApplications.length}
+                  applicant${
+                    scholarshipApplications.length === 1
+                      ? ""
+                      : "s"
+                  }
+                </span>
+
+              </div>
 
             </div>
 
-            <p>
-              ${escapeHtml(
-                item.provider ||
-                item.organization ||
-                item.sponsor ||
-                getSchoolName()
-              )}
-            </p>
 
-            <div class="career-module-row-meta">
+            <div class="career-management-actions">
 
-              <span>
-                Deadline:
-                ${escapeHtml(
-                  careerFormatDate(
-                    item.deadline ||
-                    item.applicationDeadline ||
-                    item.closingDate
-                  )
-                )}
-              </span>
+              <button
+                type="button"
+                class="career-row-action career-row-action-primary"
+                onclick="editCareerScholarship('${escapeHtml(id)}')"
+              >
+                Edit
+              </button>
 
               ${
-                item.amount
+                canPublish
                   ? `
-                    <span>
-                      ${escapeHtml(
-                        String(
-                          item.amount
-                        )
-                      )}
-                    </span>
+                    <button
+                      type="button"
+                      class="career-row-action"
+                      onclick="updateCareerScholarshipStatus('${escapeHtml(id)}','published')"
+                    >
+                      Publish
+                    </button>
+                  `
+                  : ""
+              }
+
+              ${
+                canClose
+                  ? `
+                    <button
+                      type="button"
+                      class="career-row-action"
+                      onclick="updateCareerScholarshipStatus('${escapeHtml(id)}','closed')"
+                    >
+                      Close
+                    </button>
+                  `
+                  : ""
+              }
+
+              ${
+                itemStatus === "closed"
+                  ? `
+                    <button
+                      type="button"
+                      class="career-row-action"
+                      onclick="updateCareerScholarshipStatus('${escapeHtml(id)}','archived')"
+                    >
+                      Archive
+                    </button>
+                  `
+                  : ""
+              }
+
+              ${
+                canDelete
+                  ? `
+                    <button
+                      type="button"
+                      class="career-row-action career-row-action-danger"
+                      onclick="deleteCareerScholarship('${escapeHtml(id)}')"
+                    >
+                      Delete
+                    </button>
+                  `
+                  : ""
+              }
+
+              ${
+                scholarshipApplications.length
+                  ? `
+                    <button
+                      type="button"
+                      class="career-row-action"
+                      onclick="openCareerScholarshipApplications('${escapeHtml(id)}')"
+                    >
+                      Applicants
+                      <span class="career-action-count">
+                        ${scholarshipApplications.length}
+                      </span>
+                    </button>
                   `
                   : ""
               }
 
             </div>
 
-          </div>
+          </article>
+        `;
 
-        </article>
-      `)
+      })
       .join("");
+
+}
+
+function openCareerScholarshipApplications(
+  scholarshipId
+){
+
+  if (!state.careerHub){
+    return;
+  }
+
+
+  state.careerHub.applicationFilter = {
+    source:
+      "scholarship",
+
+    scholarshipId
+  };
+
+
+  const applicationSearch =
+    $("careerApplicationSearch");
+
+  if (applicationSearch){
+
+    applicationSearch.value =
+      "";
+
+  }
+
+
+  const sourceFilter =
+    $("careerApplicationSourceFilter");
+
+  if (sourceFilter){
+
+    sourceFilter.value =
+      "scholarship";
+
+  }
+
+
+  openCareerHubView(
+    "applications"
+  );
+
+
+  renderCareerApplications();
 
 }
 
@@ -63723,14 +63988,14 @@ function renderCareerPartnerships(){
     [];
 
 
-  const statusCount = status =>
-    partnerships.filter(
-      item =>
-        careerLower(
-          item.status
-        ) ===
-        status
-    ).length;
+  const statusCount =
+    status =>
+      partnerships.filter(
+        item =>
+          careerLower(
+            item.status
+          ) === status
+      ).length;
 
 
   const active =
@@ -63754,17 +64019,23 @@ function renderCareerPartnerships(){
 
   setText(
     "careerPartnershipMetricPending",
-    statusCount("pending")
+    statusCount(
+      "pending"
+    )
   );
 
   setText(
     "careerPartnershipMetricReview",
-    statusCount("review")
+    statusCount(
+      "review"
+    )
   );
 
   setText(
     "careerPartnershipMetricCompleted",
-    statusCount("completed")
+    statusCount(
+      "completed"
+    )
   );
 
 
@@ -63780,7 +64051,6 @@ function renderCareerPartnerships(){
           careerStatusLabel(
             item.type ||
             item.partnershipType ||
-            item.category ||
             "General"
           );
 
@@ -63788,8 +64058,7 @@ function renderCareerPartnerships(){
           (
             categories[type] ||
             0
-          ) +
-          1;
+          ) + 1;
 
       });
 
@@ -63814,8 +64083,7 @@ function renderCareerPartnerships(){
         )
           .sort(
             (a,b) =>
-              b[1] -
-              a[1]
+              b[1] - a[1]
           )
           .map(
             ([name,count]) => `
@@ -63872,17 +64140,15 @@ function renderCareerPartnerships(){
           careerGetCompanyName(item),
           item.type,
           item.partnershipType,
-          item.description,
-          item.notes,
+          item.companyName,
+          item.message,
           itemStatus
         );
 
       return (
         (
-          status ===
-            "all" ||
-          itemStatus ===
-            status
+          status === "all" ||
+          itemStatus === status
         ) &&
         (
           !search ||
@@ -63904,70 +64170,281 @@ function renderCareerPartnerships(){
           : "No partnerships yet",
         partnerships.length
           ? "Try changing your search or status filter."
-          : "Employer relationships will appear here."
+          : "Start a relationship with a company through Career Hub."
       );
 
     return;
-
   }
 
 
   box.innerHTML =
     filtered
-      .map(item => `
-        <article class="career-module-row">
+      .map(item => {
 
-          <div class="career-module-row-main">
+        const id =
+          careerId(item);
 
-            <div class="career-module-row-title">
+        const itemStatus =
+          careerLower(
+            item.status ||
+            "pending"
+          );
 
-              <span class="career-status-pill">
+        const companyName =
+          careerGetCompanyName(
+            item
+          );
+
+        const companyId =
+          normalizeId(
+            item.companyId
+          );
+
+        const type =
+          item.type ||
+          item.partnershipType ||
+          "internship_partnership";
+
+        const isPending =
+          itemStatus ===
+          "pending";
+
+        const isReview =
+          itemStatus ===
+          "review";
+
+        const isApproved =
+          itemStatus ===
+          "approved";
+
+        const isActive =
+          itemStatus ===
+          "active";
+
+        return `
+          <article
+            class="career-module-row career-management-row"
+            data-career-partnership-id="${escapeHtml(id)}"
+          >
+
+            <div class="career-module-row-main">
+
+              <div class="career-module-row-title">
+
+                <span
+                  class="career-status-pill"
+                  data-status="${escapeHtml(itemStatus)}"
+                >
+                  ${escapeHtml(
+                    careerStatusLabel(
+                      itemStatus
+                    )
+                  )}
+                </span>
+
+                <h3>
+                  ${escapeHtml(
+                    companyName
+                  )}
+                </h3>
+
+              </div>
+
+
+              <p>
                 ${escapeHtml(
                   careerStatusLabel(
-                    item.status ||
-                    "pending"
+                    type
                   )
                 )}
-              </span>
+              </p>
 
-              <h3>
-                ${escapeHtml(
-                  careerGetCompanyName(
-                    item
-                  )
-                )}
-              </h3>
+
+              <div class="career-module-row-meta">
+
+                <span>
+                  Created:
+                  ${escapeHtml(
+                    careerFormatDate(
+                      item.createdAt
+                    )
+                  )}
+                </span>
+
+                ${
+                  item.requestedBy
+                    ? `
+                      <span>
+                        Requested by:
+                        ${escapeHtml(
+                          careerStatusLabel(
+                            item.requestedBy
+                          )
+                        )}
+                      </span>
+                    `
+                    : ""
+                }
+
+              </div>
+
+
+              ${
+                item.message
+                  ? `
+                    <div class="career-row-note">
+                      ${escapeHtml(
+                        item.message
+                      )}
+                    </div>
+                  `
+                  : ""
+              }
 
             </div>
 
-            <p>
-              ${escapeHtml(
-                careerStatusLabel(
-                  item.type ||
-                  item.partnershipType ||
-                  "Partnership"
-                )
-              )}
-            </p>
 
-            <div class="career-module-row-meta">
+            <div class="career-management-actions">
 
-              <span>
-                Created:
-                ${escapeHtml(
-                  careerFormatDate(
-                    item.createdAt
-                  )
-                )}
-              </span>
+              <button
+                type="button"
+                class="career-row-action career-row-action-primary"
+                onclick="editCareerPartnership('${escapeHtml(id)}')"
+              >
+                Manage
+              </button>
+
+              ${
+                isPending
+                  ? `
+                    <button
+                      type="button"
+                      class="career-row-action"
+                      onclick="updateCareerPartnershipStatus('${escapeHtml(id)}','review')"
+                    >
+                      Review
+                    </button>
+
+                    <button
+                      type="button"
+                      class="career-row-action career-row-action-success"
+                      onclick="updateCareerPartnershipStatus('${escapeHtml(id)}','approved')"
+                    >
+                      Approve
+                    </button>
+
+                    <button
+                      type="button"
+                      class="career-row-action career-row-action-danger"
+                      onclick="updateCareerPartnershipStatus('${escapeHtml(id)}','rejected')"
+                    >
+                      Reject
+                    </button>
+                  `
+                  : ""
+              }
+
+              ${
+                isReview
+                  ? `
+                    <button
+                      type="button"
+                      class="career-row-action career-row-action-success"
+                      onclick="updateCareerPartnershipStatus('${escapeHtml(id)}','approved')"
+                    >
+                      Approve
+                    </button>
+
+                    <button
+                      type="button"
+                      class="career-row-action career-row-action-danger"
+                      onclick="updateCareerPartnershipStatus('${escapeHtml(id)}','rejected')"
+                    >
+                      Reject
+                    </button>
+                  `
+                  : ""
+              }
+
+              ${
+                isApproved
+                  ? `
+                    <button
+                      type="button"
+                      class="career-row-action career-row-action-success"
+                      onclick="updateCareerPartnershipStatus('${escapeHtml(id)}','active')"
+                    >
+                      Activate
+                    </button>
+                  `
+                  : ""
+              }
+
+              ${
+                isActive
+                  ? `
+                    <button
+                      type="button"
+                      class="career-row-action"
+                      onclick="updateCareerPartnershipStatus('${escapeHtml(id)}','completed')"
+                    >
+                      Complete
+                    </button>
+                  `
+                  : ""
+              }
+
+              ${
+                companyId
+                  ? `
+                    <button
+                      type="button"
+                      class="career-row-action"
+                      onclick="openCareerPartnerCompany('${escapeHtml(companyId)}')"
+                    >
+                      Company
+                    </button>
+                  `
+                  : ""
+              }
+
+              <button
+                type="button"
+                class="career-row-action career-row-action-danger"
+                onclick="deleteCareerPartnership('${escapeHtml(id)}')"
+              >
+                Delete
+              </button>
 
             </div>
 
-          </div>
+          </article>
+        `;
 
-        </article>
-      `)
+      })
       .join("");
+
+}
+
+function openCareerPartnerCompany(
+  companyId
+){
+
+  if (!companyId){
+
+    showAlert(
+      "error",
+      "Company profile could not be identified."
+    );
+
+    return;
+  }
+
+
+  window.location.href =
+    `employer-public-profile.html?id=${encodeURIComponent(
+      companyId
+    )}`;
 
 }
 
@@ -63975,7 +64452,6 @@ function renderCareerPartnerships(){
 /* =========================================================
    EVENTS
 ========================================================= */
-
 function renderCareerEvents(){
 
   const box =
@@ -63986,30 +64462,27 @@ function renderCareerEvents(){
       ?.events ||
     [];
 
-  const registrations =
-    state.careerHub
-      ?.eventRegistrations ||
-    [];
-
 
   const upcoming =
     events.filter(item => {
 
       const date =
         careerDate(
-          item.startDate ||
-          item.date ||
-          item.eventDate ||
-          item.startsAt
+          item.startAt
         );
 
       return (
         date &&
         date.getTime() >=
           Date.now() &&
-        careerLower(
-          item.status
-        ) !== "cancelled"
+        ![
+          "cancelled",
+          "archived"
+        ].includes(
+          careerLower(
+            item.status
+          )
+        )
       );
 
     });
@@ -64035,6 +64508,18 @@ function renderCareerEvents(){
     );
 
 
+  const totalRegistrations =
+    events.reduce(
+      (total,item) =>
+        total +
+        Number(
+          item.registeredCount ||
+          0
+        ),
+      0
+    );
+
+
   setText(
     "careerEventMetricUpcoming",
     upcoming.length
@@ -64047,7 +64532,7 @@ function renderCareerEvents(){
 
   setText(
     "careerEventMetricRegistrations",
-    registrations.length
+    totalRegistrations
   );
 
   setText(
@@ -64087,8 +64572,8 @@ function renderCareerEvents(){
 
       const itemType =
         careerLower(
-          item.type ||
-          item.eventType
+          item.eventType ||
+          item.type
         );
 
       const itemStatus =
@@ -64097,29 +64582,37 @@ function renderCareerEvents(){
           "draft"
         );
 
+      const locationText =
+        [
+          item.location
+            ?.venueName,
+          item.location
+            ?.address,
+          item.location
+            ?.city
+        ]
+          .filter(Boolean)
+          .join(" ");
+
       const haystack =
         careerSearchText(
           item.title,
           item.name,
           item.description,
-          item.location,
-          item.venue,
+          item.shortDescription,
+          locationText,
           itemType,
           itemStatus
         );
 
       return (
         (
-          type ===
-            "all" ||
-          itemType ===
-            type
+          type === "all" ||
+          itemType === type
         ) &&
         (
-          status ===
-            "all" ||
-          itemStatus ===
-            status
+          status === "all" ||
+          itemStatus === status
         ) &&
         (
           !search ||
@@ -64145,7 +64638,6 @@ function renderCareerEvents(){
       );
 
     return;
-
   }
 
 
@@ -64153,88 +64645,361 @@ function renderCareerEvents(){
     filtered
       .map(item => {
 
+        const id =
+          careerId(item);
+
+        const itemStatus =
+          careerLower(
+            item.status ||
+            "draft"
+          );
+
         const date =
-          item.startDate ||
-          item.date ||
-          item.eventDate ||
-          item.startsAt;
+          careerDate(
+            item.startAt
+          );
+
+        const locationText =
+          item.location
+            ?.venueName ||
+          item.location
+            ?.address ||
+          (
+            item.format ===
+            "online"
+              ? "Online event"
+              : "Location not specified"
+          );
+
+        const registeredCount =
+          Number(
+            item.registeredCount ||
+            0
+          );
+
+        const capacity =
+          Number(
+            item.capacity ||
+            0
+          );
+
+        const canPublish =
+          itemStatus ===
+          "draft";
+
+        const canOpenRegistration =
+          [
+            "draft",
+            "published",
+            "registration_closed"
+          ].includes(
+            itemStatus
+          );
+
+        const canCloseRegistration =
+          itemStatus ===
+          "registration_open";
+
+        const canStart =
+          [
+            "published",
+            "registration_open",
+            "registration_closed"
+          ].includes(
+            itemStatus
+          );
+
+        const canComplete =
+          itemStatus ===
+          "ongoing";
+
+        const canCancel =
+          ![
+            "completed",
+            "cancelled",
+            "archived"
+          ].includes(
+            itemStatus
+          );
+
+        const canArchive =
+          [
+            "completed",
+            "cancelled"
+          ].includes(
+            itemStatus
+          );
+
+        const canDelete =
+          itemStatus ===
+            "draft" &&
+          registeredCount ===
+            0;
 
         return `
-          <article class="career-event-card">
+          <article
+            class="career-event-card career-event-management-card"
+            data-career-event-id="${escapeHtml(id)}"
+          >
 
             <div class="career-event-card-date">
 
               <strong>
                 ${
-                  careerDate(date)
-                    ? careerDate(date)
-                        .getDate()
+                  date
+                    ? date.getDate()
                     : "—"
                 }
               </strong>
 
               <span>
                 ${
-                  careerDate(date)
-                    ? careerDate(date)
-                        .toLocaleDateString(
+                  date
+                    ? escapeHtml(
+                        date.toLocaleDateString(
                           [],
                           {
                             month:"short"
                           }
                         )
+                      )
                     : "Date"
                 }
               </span>
 
             </div>
 
+
             <div class="career-event-card-content">
 
-              <span class="career-status-pill">
-                ${escapeHtml(
-                  careerStatusLabel(
-                    item.status ||
-                    "draft"
-                  )
-                )}
-              </span>
+              <div class="career-event-management-heading">
 
-              <h3>
-                ${escapeHtml(
-                  item.title ||
-                  item.name ||
-                  "Career event"
-                )}
-              </h3>
-
-              <p>
-                ${escapeHtml(
-                  item.description ||
-                  item.summary ||
-                  "No event description added."
-                )}
-              </p>
-
-              <div class="career-module-row-meta">
-
-                <span>
+                <span
+                  class="career-status-pill"
+                  data-status="${escapeHtml(itemStatus)}"
+                >
                   ${escapeHtml(
                     careerStatusLabel(
-                      item.type ||
+                      itemStatus
+                    )
+                  )}
+                </span>
+
+                <span class="career-event-type-badge">
+                  ${escapeHtml(
+                    careerStatusLabel(
                       item.eventType ||
                       "Event"
                     )
                   )}
                 </span>
 
+              </div>
+
+
+              <h3>
+                ${escapeHtml(
+                  item.title ||
+                  "Career event"
+                )}
+              </h3>
+
+
+              <p>
+                ${escapeHtml(
+                  item.shortDescription ||
+                  item.description ||
+                  "No event description added."
+                )}
+              </p>
+
+
+              <div class="career-module-row-meta">
+
                 <span>
                   ${escapeHtml(
-                    item.location ||
-                    item.venue ||
-                    "Location not specified"
+                    careerFormatDate(
+                      item.startAt
+                    )
                   )}
                 </span>
+
+                <span>
+                  ${escapeHtml(
+                    careerStatusLabel(
+                      item.format ||
+                      "physical"
+                    )
+                  )}
+                </span>
+
+                <span>
+                  ${escapeHtml(
+                    locationText
+                  )}
+                </span>
+
+                <span>
+                  ${registeredCount}
+                  registered
+                  ${
+                    capacity
+                      ? `/ ${capacity}`
+                      : ""
+                  }
+                </span>
+
+              </div>
+
+
+              <div class="career-management-actions career-event-management-actions">
+
+                <button
+                  type="button"
+                  class="career-row-action career-row-action-primary"
+                  onclick="editCareerEvent('${escapeHtml(id)}')"
+                >
+                  Edit
+                </button>
+
+
+                <button
+                  type="button"
+                  class="career-row-action"
+                  onclick="openCareerEventAttendees('${escapeHtml(id)}')"
+                >
+                  Attendees
+
+                  ${
+                    registeredCount
+                      ? `
+                        <span class="career-action-count">
+                          ${registeredCount}
+                        </span>
+                      `
+                      : ""
+                  }
+                </button>
+
+
+                ${
+                  canPublish
+                    ? `
+                      <button
+                        type="button"
+                        class="career-row-action"
+                        onclick="updateCareerEventStatus('${escapeHtml(id)}','published')"
+                      >
+                        Publish
+                      </button>
+                    `
+                    : ""
+                }
+
+
+                ${
+                  canOpenRegistration
+                    ? `
+                      <button
+                        type="button"
+                        class="career-row-action career-row-action-success"
+                        onclick="updateCareerEventStatus('${escapeHtml(id)}','registration_open')"
+                      >
+                        Open registration
+                      </button>
+                    `
+                    : ""
+                }
+
+
+                ${
+                  canCloseRegistration
+                    ? `
+                      <button
+                        type="button"
+                        class="career-row-action"
+                        onclick="updateCareerEventStatus('${escapeHtml(id)}','registration_closed')"
+                      >
+                        Close registration
+                      </button>
+                    `
+                    : ""
+                }
+
+
+                ${
+                  canStart
+                    ? `
+                      <button
+                        type="button"
+                        class="career-row-action career-row-action-success"
+                        onclick="updateCareerEventStatus('${escapeHtml(id)}','ongoing')"
+                      >
+                        Start event
+                      </button>
+                    `
+                    : ""
+                }
+
+
+                ${
+                  canComplete
+                    ? `
+                      <button
+                        type="button"
+                        class="career-row-action career-row-action-success"
+                        onclick="updateCareerEventStatus('${escapeHtml(id)}','completed')"
+                      >
+                        Complete
+                      </button>
+                    `
+                    : ""
+                }
+
+
+                ${
+                  canCancel
+                    ? `
+                      <button
+                        type="button"
+                        class="career-row-action career-row-action-danger"
+                        onclick="updateCareerEventStatus('${escapeHtml(id)}','cancelled')"
+                      >
+                        Cancel
+                      </button>
+                    `
+                    : ""
+                }
+
+
+                ${
+                  canArchive
+                    ? `
+                      <button
+                        type="button"
+                        class="career-row-action"
+                        onclick="updateCareerEventStatus('${escapeHtml(id)}','archived')"
+                      >
+                        Archive
+                      </button>
+                    `
+                    : ""
+                }
+
+
+                ${
+                  canDelete
+                    ? `
+                      <button
+                        type="button"
+                        class="career-row-action career-row-action-danger"
+                        onclick="deleteCareerEvent('${escapeHtml(id)}')"
+                      >
+                        Delete draft
+                      </button>
+                    `
+                    : ""
+                }
 
               </div>
 
@@ -64245,6 +65010,395 @@ function renderCareerEvents(){
 
       })
       .join("");
+
+}
+  async function openCareerEventAttendees(
+  eventId
+){
+
+  const event =
+    (
+      state.careerHub
+        ?.events ||
+      []
+    )
+      .find(
+        item =>
+          sameId(
+            careerId(item),
+            eventId
+          )
+      );
+
+
+  if (!event){
+
+    showAlert(
+      "error",
+      "Career event could not be found."
+    );
+
+    return;
+  }
+
+
+  const registrations =
+    await loadCareerEventRegistrations(
+      eventId
+    );
+
+
+  openCareerEventAttendeePanel(
+    event,
+    registrations
+  );
+
+}
+
+
+function openCareerEventAttendeePanel(
+  event,
+  registrations = []
+){
+
+  let overlay =
+    $("careerEventAttendeeOverlay");
+
+
+  if (!overlay){
+
+    overlay =
+      document.createElement(
+        "div"
+      );
+
+    overlay.id =
+      "careerEventAttendeeOverlay";
+
+    overlay.className =
+      "career-attendee-overlay hidden";
+
+    overlay.innerHTML = `
+      <section
+        class="career-attendee-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="careerAttendeeTitle"
+      >
+
+        <header class="career-attendee-header">
+
+          <div>
+            <span>
+              Career Hub · Events
+            </span>
+
+            <h2 id="careerAttendeeTitle">
+              Event attendees
+            </h2>
+
+            <p id="careerAttendeeSubtitle"></p>
+          </div>
+
+          <button
+            type="button"
+            class="career-composer-close"
+            onclick="closeCareerEventAttendeePanel()"
+            aria-label="Close attendee manager"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M6 6l12 12"></path>
+              <path d="M18 6L6 18"></path>
+            </svg>
+          </button>
+
+        </header>
+
+
+        <div class="career-attendee-toolbar">
+
+          <div class="career-attendee-search">
+            <input
+              type="search"
+              id="careerAttendeeSearch"
+              placeholder="Search students..."
+              oninput="filterCareerEventAttendees()"
+            >
+          </div>
+
+          <span id="careerAttendeeCount">
+            0 registrations
+          </span>
+
+        </div>
+
+
+        <div
+          class="career-attendee-list"
+          id="careerAttendeeList"
+        ></div>
+
+      </section>
+    `;
+
+
+    overlay.addEventListener(
+      "click",
+      event => {
+
+        if (
+          event.target ===
+          overlay
+        ){
+
+          closeCareerEventAttendeePanel();
+
+        }
+
+      }
+    );
+
+
+    document.body.appendChild(
+      overlay
+    );
+
+  }
+
+
+  overlay.dataset.eventId =
+    careerId(event);
+
+
+  overlay.classList.remove(
+    "hidden"
+  );
+
+
+  document.body.classList.add(
+    "career-attendee-open"
+  );
+
+
+  setText(
+    "careerAttendeeTitle",
+    event.title ||
+    "Event attendees"
+  );
+
+
+  setText(
+    "careerAttendeeSubtitle",
+    `${careerFormatDate(
+      event.startAt
+    )} · ${
+      careerStatusLabel(
+        event.status ||
+        "draft"
+      )
+    }`
+  );
+
+
+  renderCareerEventAttendeeRows(
+    registrations
+  );
+
+}
+
+
+function closeCareerEventAttendeePanel(){
+
+  const overlay =
+    $(
+      "careerEventAttendeeOverlay"
+    );
+
+
+  if (overlay){
+
+    overlay.classList.add(
+      "hidden"
+    );
+
+  }
+
+
+  document.body.classList.remove(
+    "career-attendee-open"
+  );
+
+}
+
+
+function renderCareerEventAttendeeRows(
+  registrations = null
+){
+
+  const box =
+    $("careerAttendeeList");
+
+
+  if (!box){
+    return;
+  }
+
+
+  const source =
+    registrations ||
+    state.careerHub
+      ?.eventRegistrations ||
+    [];
+
+
+  const search =
+    careerLower(
+      $("careerAttendeeSearch")
+        ?.value
+    );
+
+
+  const filtered =
+    source.filter(
+      registration => {
+
+        const student =
+          registration.studentId ||
+          registration.student ||
+          registration.userId ||
+          {};
+
+        const haystack =
+          careerSearchText(
+            student.name,
+            student.fullName,
+            student.email,
+            student.course,
+            student.program,
+            registration.status,
+            registration.attendanceStatus
+          );
+
+        return (
+          !search ||
+          haystack.includes(
+            search
+          )
+        );
+
+      }
+    );
+
+
+  setText(
+    "careerAttendeeCount",
+    `${source.length} registration${
+      source.length === 1
+        ? ""
+        : "s"
+    }`
+  );
+
+
+  if (!filtered.length){
+
+    box.innerHTML =
+      careerCompactEmpty(
+        source.length
+          ? "No matching attendees"
+          : "No registrations yet",
+        source.length
+          ? "Try another student name or email."
+          : "Student registrations for this event will appear here."
+      );
+
+    return;
+  }
+
+
+  box.innerHTML =
+    filtered
+      .map(registration => {
+
+        const student =
+          registration.studentId ||
+          registration.student ||
+          registration.userId ||
+          {};
+
+        const studentName =
+          student.fullName ||
+          student.name ||
+          student.email ||
+          "Student";
+
+        const status =
+          registration.status ||
+          registration.attendanceStatus ||
+          "registered";
+
+        return `
+          <article class="career-attendee-row">
+
+            <div class="career-attendee-avatar">
+              ${
+                escapeHtml(
+                  String(
+                    studentName
+                  )
+                    .charAt(0)
+                    .toUpperCase()
+                )
+              }
+            </div>
+
+            <div class="career-attendee-main">
+
+              <strong>
+                ${escapeHtml(
+                  studentName
+                )}
+              </strong>
+
+              <span>
+                ${escapeHtml(
+                  student.email ||
+                  student.course ||
+                  student.program ||
+                  "Student"
+                )}
+              </span>
+
+            </div>
+
+            <span
+              class="career-status-pill"
+              data-status="${escapeHtml(
+                careerLower(status)
+              )}"
+            >
+              ${escapeHtml(
+                careerStatusLabel(
+                  status
+                )
+              )}
+            </span>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+}
+
+
+function filterCareerEventAttendees(){
+
+  renderCareerEventAttendeeRows();
 
 }
 
