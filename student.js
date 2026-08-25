@@ -16944,40 +16944,85 @@ if (
 
 }
 
-
 async function renderStudentCareerHub(){
 
   const workspace =
     $("studentCareerWorkspace");
 
+
   if (!workspace){
+
     console.warn(
       "studentCareerWorkspace was not found."
     );
 
     return;
+
   }
 
+
+  /* =======================================================
+     LIVE VALUES AVAILABLE BEFORE API REFRESH
+  ======================================================== */
+
+  const currentApplicationStats =
+    typeof getStudentCareerApplicationStats ===
+      "function"
+      ? getStudentCareerApplicationStats()
+      : {
+          total:0,
+          applied:0,
+          reviewing:0,
+          interview:0,
+          offer:0
+        };
+
+
+  const currentSavedCount =
+    studentCareerState?.savedJobIds
+      instanceof Set
+      ? studentCareerState.savedJobIds.size
+      : 0;
+
+
+  const currentJobCount =
+    Array.isArray(
+      studentCareerState?.jobs
+    )
+      ? studentCareerState.jobs.length
+      : 0;
+
+
   workspace.innerHTML = `
+
     <div class="student-career-shell">
+
+
+      <!-- ===================================================
+           AIFT CAREER HUB HERO
+      ==================================================== -->
 
       <section class="student-career-hero">
 
         <div class="student-career-hero-copy">
 
           <span class="student-career-eyebrow">
-            CAREER COMMAND CENTER
+            AIFT CAREER HUB
           </span>
 
+
           <h2>
-            Turn your learning into your next opportunity
+            Turn potential into opportunity
           </h2>
 
+
           <p>
-            Build your professional readiness, discover opportunities,
-            track applications, prepare for interviews, and understand
-            what skills to develop next.
+            Discover internships, jobs, scholarships,
+            partnerships, startup funding, events and
+            opportunities designed to help you move from
+            education into the real world.
           </p>
+
 
           <div class="student-career-hero-actions">
 
@@ -16986,23 +17031,34 @@ async function renderStudentCareerHub(){
               class="student-career-primary-button"
               data-career-action="opportunities"
             >
-              <i class="fa-solid fa-magnifying-glass"></i>
+
+              <i
+                class="fa-solid fa-magnifying-glass"
+                aria-hidden="true"
+              ></i>
 
               <span>
-                Find opportunities
+                Explore opportunities
               </span>
+
             </button>
+
 
             <button
               type="button"
               class="student-career-secondary-button"
-              data-career-action="portfolio"
+              data-career-action="set-goal"
             >
-              <i class="fa-solid fa-briefcase"></i>
+
+              <i
+                class="fa-solid fa-bullseye"
+                aria-hidden="true"
+              ></i>
 
               <span>
-                View career profile
+                Set career goal
               </span>
+
             </button>
 
           </div>
@@ -17010,19 +17066,26 @@ async function renderStudentCareerHub(){
         </div>
 
 
+        <!-- ===============================================
+             CAREER READINESS
+        ================================================ -->
+
         <div class="student-career-readiness-card">
 
           <div class="student-career-readiness-head">
 
             <div>
+
               <span>
                 CAREER READINESS
               </span>
 
               <strong>
-                Your professional progress
+                Your opportunity profile
               </strong>
+
             </div>
+
 
             <div
               class="student-career-readiness-score"
@@ -17048,150 +17111,268 @@ async function renderStudentCareerHub(){
           <div class="student-career-readiness-checks">
 
             <div>
-              <i class="fa-regular fa-circle-check"></i>
+
+              <i
+                class="fa-regular fa-circle-check"
+                aria-hidden="true"
+              ></i>
 
               <span>
                 Career profile
               </span>
 
-              <strong id="studentCareerProfileStatus">
+              <strong
+                id="studentCareerProfileStatus"
+              >
                 Not ready
               </strong>
+
             </div>
 
 
             <div>
-              <i class="fa-regular fa-circle-check"></i>
+
+              <i
+                class="fa-regular fa-circle-check"
+                aria-hidden="true"
+              ></i>
 
               <span>
                 Resume
               </span>
 
-              <strong id="studentCareerResumeStatus">
+              <strong
+                id="studentCareerResumeStatus"
+              >
                 Not added
               </strong>
+
             </div>
 
 
             <div>
-              <i class="fa-regular fa-circle-check"></i>
+
+              <i
+                class="fa-regular fa-circle-check"
+                aria-hidden="true"
+              ></i>
 
               <span>
                 Portfolio
               </span>
 
-              <strong id="studentCareerPortfolioStatus">
+              <strong
+                id="studentCareerPortfolioStatus"
+              >
                 Not ready
               </strong>
+
             </div>
 
           </div>
+
+
+          <button
+            type="button"
+            class="student-career-primary-button"
+            data-career-action="portfolio"
+          >
+
+            <i
+              class="fa-solid fa-arrow-trend-up"
+              aria-hidden="true"
+            ></i>
+
+            Improve my profile
+
+          </button>
 
         </div>
 
       </section>
 
 
-      <section class="student-career-metrics">
+      <!-- ===================================================
+           OPPORTUNITY CATEGORIES
+      ==================================================== -->
 
-        <article>
+      <section class="student-career-card">
 
-          <div class="student-career-metric-icon blue">
-            <i class="fa-solid fa-paper-plane"></i>
-          </div>
-
-          <div>
-            <span>
-              Applications
-            </span>
-
-            <strong id="studentCareerApplicationsCount">
-              0
-            </strong>
-
-            <small>
-              Total submitted
-            </small>
-          </div>
-
-        </article>
-
-
-        <article>
-
-          <div class="student-career-metric-icon purple">
-            <i class="fa-solid fa-bookmark"></i>
-          </div>
+        <header class="student-career-card-header">
 
           <div>
+
             <span>
-              Saved
+              EXPLORE
             </span>
 
-            <strong id="studentCareerSavedCount">
-              0
-            </strong>
+            <h3>
+              Find your next opportunity
+            </h3>
 
-            <small>
-              Opportunities
-            </small>
+            <p>
+              Career Hub brings education, employment,
+              scholarships, partnerships and entrepreneurship
+              together in one AIFT marketplace.
+            </p>
+
           </div>
 
-        </article>
+        </header>
 
 
-        <article>
-
-          <div class="student-career-metric-icon green">
-            <i class="fa-solid fa-comments"></i>
-          </div>
-
-          <div>
-            <span>
-              Interviews
-            </span>
-
-            <strong id="studentCareerInterviewCount">
-              0
-            </strong>
-
-            <small>
-              Interview activity
-            </small>
-          </div>
-
-        </article>
+        <div class="student-career-metrics">
 
 
-        <article>
+          <!-- INTERNSHIPS -->
 
-          <div class="student-career-metric-icon amber">
-            <i class="fa-solid fa-bullseye"></i>
-          </div>
+          <article>
 
-          <div>
-            <span>
-              Career goal
-            </span>
+            <div class="student-career-metric-icon blue">
 
-            <strong id="studentCareerGoalStatus">
-              Not set
-            </strong>
+              <i
+                class="fa-solid fa-briefcase"
+                aria-hidden="true"
+              ></i>
 
-            <small>
-              Target role
-            </small>
-          </div>
+            </div>
 
-        </article>
+            <div>
+
+              <span>
+                Internships
+              </span>
+
+              <strong id="studentCareerInternshipCount">
+                ${escapeHtml(currentJobCount)}
+              </strong>
+
+              <small>
+                Build real experience
+              </small>
+
+            </div>
+
+          </article>
+
+
+          <!-- JOBS -->
+
+          <article>
+
+            <div class="student-career-metric-icon purple">
+
+              <i
+                class="fa-solid fa-building"
+                aria-hidden="true"
+              ></i>
+
+            </div>
+
+            <div>
+
+              <span>
+                Jobs
+              </span>
+
+              <strong id="studentCareerJobCount">
+                ${escapeHtml(currentJobCount)}
+              </strong>
+
+              <small>
+                Start your career
+              </small>
+
+            </div>
+
+          </article>
+
+
+          <!-- SCHOLARSHIPS -->
+
+          <article>
+
+            <div class="student-career-metric-icon green">
+
+              <i
+                class="fa-solid fa-graduation-cap"
+                aria-hidden="true"
+              ></i>
+
+            </div>
+
+            <div>
+
+              <span>
+                Scholarships
+              </span>
+
+              <strong id="studentCareerScholarshipCount">
+                0
+              </strong>
+
+              <small>
+                Fund your education
+              </small>
+
+            </div>
+
+          </article>
+
+
+          <!-- FUNDING / VENTURES -->
+
+          <article>
+
+            <div class="student-career-metric-icon amber">
+
+              <i
+                class="fa-solid fa-rocket"
+                aria-hidden="true"
+              ></i>
+
+            </div>
+
+            <div>
+
+              <span>
+                Ventures
+              </span>
+
+              <strong id="studentCareerVentureCount">
+                0
+              </strong>
+
+              <small>
+                Build and fund ideas
+              </small>
+
+            </div>
+
+          </article>
+
+        </div>
 
       </section>
 
 
+      <!-- ===================================================
+           MAIN CAREER HUB
+      ==================================================== -->
+
       <div class="student-career-layout">
+
+
+        <!-- =================================================
+             MAIN COLUMN
+        ================================================== -->
 
         <main class="student-career-main">
 
+
+          <!-- ===============================================
+               RECOMMENDED FOR YOU
+          ================================================ -->
 
           <section class="student-career-card">
 
@@ -17200,19 +17381,21 @@ async function renderStudentCareerHub(){
               <div>
 
                 <span>
-                  OPPORTUNITIES
+                  FOR YOU
                 </span>
 
                 <h3>
-                  Recommended for you
+                  Recommended opportunities
                 </h3>
 
                 <p>
-                  Jobs and internships matched to your
-                  learning and professional profile.
+                  AIFT uses your profile, skills and career
+                  direction to help surface relevant jobs and
+                  internships.
                 </p>
 
               </div>
+
 
               <button
                 type="button"
@@ -17233,16 +17416,21 @@ async function renderStudentCareerHub(){
               <div class="student-career-empty">
 
                 <div class="student-career-empty-icon">
-                  <i class="fa-solid fa-briefcase"></i>
+
+                  <i
+                    class="fa-solid fa-wand-magic-sparkles"
+                    aria-hidden="true"
+                  ></i>
+
                 </div>
 
                 <strong>
-                  Building your recommendations
+                  Finding opportunities for you
                 </strong>
 
                 <p>
-                  Complete your career profile and portfolio
-                  to improve your opportunity matches.
+                  Complete your profile, skills and career
+                  preferences to improve your recommendations.
                 </p>
 
               </div>
@@ -17252,6 +17440,10 @@ async function renderStudentCareerHub(){
           </section>
 
 
+          <!-- ===============================================
+               SCHOLARSHIPS
+          ================================================ -->
+
           <section class="student-career-card">
 
             <header class="student-career-card-header">
@@ -17259,14 +17451,283 @@ async function renderStudentCareerHub(){
               <div>
 
                 <span>
-                  APPLICATION PIPELINE
+                  SCHOLARSHIPS
                 </span>
 
                 <h3>
-                  Your applications
+                  Education should not stop because of funding
                 </h3>
 
+                <p>
+                  Discover scholarships, grants and sponsored
+                  education opportunities that can support your
+                  studies.
+                </p>
+
               </div>
+
+            </header>
+
+
+            <div class="student-career-opportunity-list">
+
+              <div class="student-career-empty">
+
+                <div
+                  class="student-career-empty-icon"
+                  style="
+                    background:var(--career-green-soft);
+                    color:var(--career-green);
+                  "
+                >
+
+                  <i
+                    class="fa-solid fa-graduation-cap"
+                    aria-hidden="true"
+                  ></i>
+
+                </div>
+
+                <strong>
+                  Scholarship marketplace coming online
+                </strong>
+
+                <p>
+                  Scholarship providers, schools and sponsors
+                  will be able to publish verified funding
+                  opportunities here.
+                </p>
+
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <!-- ===============================================
+               AIFT VENTURES
+          ================================================ -->
+
+          <section class="student-career-card">
+
+            <header class="student-career-card-header">
+
+              <div>
+
+                <span>
+                  AIFT VENTURES
+                </span>
+
+                <h3>
+                  Build something bigger than a résumé
+                </h3>
+
+                <p>
+                  Turn projects and business ideas into
+                  fundable opportunities through grants,
+                  sponsorship, mentorship, pilots and investor
+                  introductions.
+                </p>
+
+              </div>
+
+            </header>
+
+
+            <div class="student-career-metrics">
+
+
+              <article>
+
+                <div class="student-career-metric-icon purple">
+
+                  <i
+                    class="fa-solid fa-lightbulb"
+                    aria-hidden="true"
+                  ></i>
+
+                </div>
+
+                <div>
+
+                  <span>
+                    Student projects
+                  </span>
+
+                  <strong>
+                    Build
+                  </strong>
+
+                  <small>
+                    Turn ideas into real projects
+                  </small>
+
+                </div>
+
+              </article>
+
+
+              <article>
+
+                <div class="student-career-metric-icon amber">
+
+                  <i
+                    class="fa-solid fa-coins"
+                    aria-hidden="true"
+                  ></i>
+
+                </div>
+
+                <div>
+
+                  <span>
+                    Raise funding
+                  </span>
+
+                  <strong>
+                    Fund
+                  </strong>
+
+                  <small>
+                    Grants and sponsorship
+                  </small>
+
+                </div>
+
+              </article>
+
+
+              <article>
+
+                <div class="student-career-metric-icon green">
+
+                  <i
+                    class="fa-solid fa-handshake"
+                    aria-hidden="true"
+                  ></i>
+
+                </div>
+
+                <div>
+
+                  <span>
+                    Mentors
+                  </span>
+
+                  <strong>
+                    Connect
+                  </strong>
+
+                  <small>
+                    Learn from professionals
+                  </small>
+
+                </div>
+
+              </article>
+
+
+              <article>
+
+                <div class="student-career-metric-icon blue">
+
+                  <i
+                    class="fa-solid fa-chart-line"
+                    aria-hidden="true"
+                  ></i>
+
+                </div>
+
+                <div>
+
+                  <span>
+                    Investors
+                  </span>
+
+                  <strong>
+                    Pitch
+                  </strong>
+
+                  <small>
+                    Meet interested backers
+                  </small>
+
+                </div>
+
+              </article>
+
+            </div>
+
+
+            <div class="student-career-kabezya">
+
+              <div class="student-career-kabezya-icon">
+
+                <i
+                  class="fa-solid fa-rocket"
+                  aria-hidden="true"
+                ></i>
+
+              </div>
+
+
+              <div>
+
+                <strong
+                  style="
+                    display:block;
+                    margin-bottom:5px;
+                    color:var(--career-heading);
+                    font-size:13px;
+                  "
+                >
+                  Have an idea worth building?
+                </strong>
+
+                <p>
+                  Soon you will be able to create an AIFT
+                  Pitch Room, show your problem, solution,
+                  team, traction and funding needs, then
+                  connect with sponsors, mentors and
+                  interested investors.
+                </p>
+
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <!-- ===============================================
+               APPLICATION PIPELINE
+          ================================================ -->
+
+          <section
+            id="studentCareerApplicationsSection"
+            class="student-career-card"
+          >
+
+            <header class="student-career-card-header">
+
+              <div>
+
+                <span>
+                  APPLICATIONS
+                </span>
+
+                <h3>
+                  Your opportunity pipeline
+                </h3>
+
+                <p>
+                  Follow each application from submission
+                  through review, interview and offer.
+                </p>
+
+              </div>
+
 
               <button
                 type="button"
@@ -17282,35 +17743,70 @@ async function renderStudentCareerHub(){
             <div class="student-career-pipeline">
 
               <div>
-                <span>Applied</span>
 
-                <strong id="studentCareerAppliedCount">
-                  0
+                <span>
+                  Applied
+                </span>
+
+                <strong
+                  id="studentCareerAppliedCount"
+                >
+                  ${escapeHtml(
+                    currentApplicationStats.applied || 0
+                  )}
                 </strong>
+
               </div>
 
-              <div>
-                <span>Reviewing</span>
 
-                <strong id="studentCareerReviewingCount">
-                  0
+              <div>
+
+                <span>
+                  Reviewing
+                </span>
+
+                <strong
+                  id="studentCareerReviewingCount"
+                >
+                  ${escapeHtml(
+                    currentApplicationStats.reviewing || 0
+                  )}
                 </strong>
+
               </div>
 
-              <div>
-                <span>Interview</span>
 
-                <strong id="studentCareerPipelineInterviewCount">
-                  0
+              <div>
+
+                <span>
+                  Interview
+                </span>
+
+                <strong
+                  id="studentCareerPipelineInterviewCount"
+                >
+                  ${escapeHtml(
+                    currentApplicationStats.interview || 0
+                  )}
                 </strong>
+
               </div>
 
-              <div>
-                <span>Offer</span>
 
-                <strong id="studentCareerOfferCount">
-                  0
+              <div>
+
+                <span>
+                  Offer
+                </span>
+
+                <strong
+                  id="studentCareerOfferCount"
+                >
+                  ${escapeHtml(
+                    currentApplicationStats.offer || 0
+                  )}
                 </strong>
+
               </div>
 
             </div>
@@ -17341,21 +17837,31 @@ async function renderStudentCareerHub(){
         </main>
 
 
+        <!-- =================================================
+             RIGHT COLUMN
+        ================================================== -->
+
         <aside class="student-career-sidebar">
 
 
+          <!-- ===============================================
+               YOUR ACTIVITY
+          ================================================ -->
+
           <section class="student-career-card">
 
-            <header class="student-career-card-header compact">
+            <header
+              class="student-career-card-header compact"
+            >
 
               <div>
 
                 <span>
-                  CAREER PROFILE
+                  YOUR ACTIVITY
                 </span>
 
                 <h3>
-                  Professional readiness
+                  Career snapshot
                 </h3>
 
               </div>
@@ -17365,63 +17871,101 @@ async function renderStudentCareerHub(){
 
             <div class="student-career-profile-checklist">
 
+
               <button
                 type="button"
-                data-career-action="portfolio"
+                data-career-action="applications"
               >
-                <i class="fa-solid fa-user"></i>
+
+                <i
+                  class="fa-solid fa-paper-plane"
+                  aria-hidden="true"
+                ></i>
 
                 <span>
+
                   <strong>
-                    Portfolio
+                    Applications
                   </strong>
 
                   <small>
-                    Projects, skills and experience
+                    Track your submitted opportunities
                   </small>
+
                 </span>
 
-                <i class="fa-solid fa-chevron-right"></i>
+                <strong
+                  id="studentCareerApplicationsCount"
+                >
+                  ${escapeHtml(
+                    currentApplicationStats.total || 0
+                  )}
+                </strong>
+
               </button>
 
 
               <button
                 type="button"
-                data-career-action="resume"
+                data-career-action="opportunities"
               >
-                <i class="fa-regular fa-file-lines"></i>
+
+                <i
+                  class="fa-solid fa-bookmark"
+                  aria-hidden="true"
+                ></i>
 
                 <span>
+
                   <strong>
-                    Resume
+                    Saved opportunities
                   </strong>
 
                   <small>
-                    Keep your CV ready
+                    Jobs and internships you saved
                   </small>
+
                 </span>
 
-                <i class="fa-solid fa-chevron-right"></i>
+                <strong
+                  id="studentCareerSavedCount"
+                >
+                  ${escapeHtml(currentSavedCount)}
+                </strong>
+
               </button>
 
 
               <button
                 type="button"
-                data-career-action="certificates"
+                data-career-action="applications"
               >
-                <i class="fa-solid fa-certificate"></i>
+
+                <i
+                  class="fa-solid fa-comments"
+                  aria-hidden="true"
+                ></i>
 
                 <span>
+
                   <strong>
-                    Certificates
+                    Interviews
                   </strong>
 
                   <small>
-                    Show verified achievements
+                    Interview-stage applications
                   </small>
+
                 </span>
 
-                <i class="fa-solid fa-chevron-right"></i>
+                <strong
+                  id="studentCareerInterviewCount"
+                >
+                  ${escapeHtml(
+                    currentApplicationStats.interview || 0
+                  )}
+                </strong>
+
               </button>
 
             </div>
@@ -17429,18 +17973,278 @@ async function renderStudentCareerHub(){
           </section>
 
 
+          <!-- ===============================================
+               CAREER PROFILE
+          ================================================ -->
+
           <section class="student-career-card">
 
-            <header class="student-career-card-header compact">
+            <header
+              class="student-career-card-header compact"
+            >
 
               <div>
 
                 <span>
-                  KABEZYA CAREER
+                  CAREER PROFILE
                 </span>
 
                 <h3>
-                  Career Coach
+                  Become opportunity-ready
+                </h3>
+
+              </div>
+
+            </header>
+
+
+            <div class="student-career-profile-checklist">
+
+
+              <button
+                type="button"
+                data-career-action="portfolio"
+              >
+
+                <i
+                  class="fa-solid fa-user"
+                  aria-hidden="true"
+                ></i>
+
+                <span>
+
+                  <strong>
+                    Portfolio
+                  </strong>
+
+                  <small>
+                    Projects, skills and experience
+                  </small>
+
+                </span>
+
+                <i
+                  class="fa-solid fa-chevron-right"
+                  aria-hidden="true"
+                ></i>
+
+              </button>
+
+
+              <button
+                type="button"
+                data-career-action="resume"
+              >
+
+                <i
+                  class="fa-regular fa-file-lines"
+                  aria-hidden="true"
+                ></i>
+
+                <span>
+
+                  <strong>
+                    Resume
+                  </strong>
+
+                  <small>
+                    Keep your CV employer-ready
+                  </small>
+
+                </span>
+
+                <i
+                  class="fa-solid fa-chevron-right"
+                  aria-hidden="true"
+                ></i>
+
+              </button>
+
+
+              <button
+                type="button"
+                data-career-action="certificates"
+              >
+
+                <i
+                  class="fa-solid fa-certificate"
+                  aria-hidden="true"
+                ></i>
+
+                <span>
+
+                  <strong>
+                    Certificates
+                  </strong>
+
+                  <small>
+                    Show verified achievements
+                  </small>
+
+                </span>
+
+                <i
+                  class="fa-solid fa-chevron-right"
+                  aria-hidden="true"
+                ></i>
+
+              </button>
+
+            </div>
+
+          </section>
+
+
+          <!-- ===============================================
+               PARTNERSHIPS
+          ================================================ -->
+
+          <section class="student-career-card">
+
+            <header
+              class="student-career-card-header compact"
+            >
+
+              <div>
+
+                <span>
+                  AIFT NETWORK
+                </span>
+
+                <h3>
+                  School × Company
+                </h3>
+
+              </div>
+
+            </header>
+
+
+            <div class="student-career-next-step">
+
+              <div
+                class="student-career-next-step-icon"
+              >
+
+                <i
+                  class="fa-solid fa-handshake"
+                  aria-hidden="true"
+                ></i>
+
+              </div>
+
+
+              <div>
+
+                <strong>
+                  Industry partnerships
+                </strong>
+
+                <p>
+                  Schools and employers can partner for
+                  internship placements, graduate hiring,
+                  scholarships, training and sponsored
+                  programs.
+                </p>
+
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <!-- ===============================================
+               CAREER GOAL
+          ================================================ -->
+
+          <section class="student-career-card">
+
+            <header
+              class="student-career-card-header compact"
+            >
+
+              <div>
+
+                <span>
+                  YOUR PATH
+                </span>
+
+                <h3>
+                  Career goal
+                </h3>
+
+              </div>
+
+            </header>
+
+
+            <div
+              id="studentCareerNextStep"
+              class="student-career-next-step"
+            >
+
+              <div
+                class="student-career-next-step-icon"
+              >
+
+                <i
+                  class="fa-solid fa-location-arrow"
+                  aria-hidden="true"
+                ></i>
+
+              </div>
+
+
+              <div>
+
+                <strong>
+                  Set your career goal
+                </strong>
+
+                <p>
+                  Tell AIFT what role or career direction
+                  you want to pursue.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div style="padding:0 15px 15px;">
+
+              <button
+                type="button"
+                class="student-career-secondary-button full"
+                data-career-action="set-goal"
+              >
+                Set career goal
+              </button>
+
+            </div>
+
+          </section>
+
+
+          <!-- ===============================================
+               KABEZYA CAREER COACH
+          ================================================ -->
+
+          <section class="student-career-card">
+
+            <header
+              class="student-career-card-header compact"
+            >
+
+              <div>
+
+                <span>
+                  KABEZYA
+                </span>
+
+                <h3>
+                  AI Career Coach
                 </h3>
 
               </div>
@@ -17450,15 +18254,24 @@ async function renderStudentCareerHub(){
 
             <div class="student-career-kabezya">
 
-              <div class="student-career-kabezya-icon">
-                <i class="fa-solid fa-wand-magic-sparkles"></i>
+              <div
+                class="student-career-kabezya-icon"
+              >
+
+                <i
+                  class="fa-solid fa-brain"
+                  aria-hidden="true"
+                ></i>
+
               </div>
 
+
               <p>
-                Get help preparing for interviews,
-                improving your CV, understanding roles,
-                and planning your next career step.
+                Prepare for interviews, strengthen your CV,
+                understand careers and identify the skills
+                you should develop next.
               </p>
+
 
               <button
                 type="button"
@@ -17472,50 +18285,6 @@ async function renderStudentCareerHub(){
 
           </section>
 
-
-          <section class="student-career-card">
-
-            <header class="student-career-card-header compact">
-
-              <div>
-
-                <span>
-                  NEXT STEP
-                </span>
-
-                <h3>
-                  Career journey
-                </h3>
-
-              </div>
-
-            </header>
-
-
-            <div
-              id="studentCareerNextStep"
-              class="student-career-next-step"
-            >
-
-              <div class="student-career-next-step-icon">
-                <i class="fa-solid fa-location-arrow"></i>
-              </div>
-
-              <div>
-                <strong>
-                  Set your career goal
-                </strong>
-
-                <p>
-                  Tell AIFT what role or career direction
-                  you want to pursue.
-                </p>
-              </div>
-
-            </div>
-
-          </section>
-
         </aside>
 
       </div>
@@ -17523,6 +18292,10 @@ async function renderStudentCareerHub(){
     </div>
   `;
 
+
+  /* =======================================================
+     EXISTING CAREER HUB CONTROLLERS
+  ======================================================== */
 
   bindStudentCareerHubControls();
 
@@ -17532,15 +18305,22 @@ async function renderStudentCareerHub(){
 
   loadStudentCareerGoal();
 
+
   updateStudentCareerGoalUI();
 
+
+  /* =======================================================
+     LIVE BACKEND DATA
+  ======================================================== */
 
   await loadStudentCareerHubData();
 
 
   renderStudentCareerOpportunities();
 
+
   renderStudentCareerApplications();
+
 
   updateStudentCareerSavedCount();
 
