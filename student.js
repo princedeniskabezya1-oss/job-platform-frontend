@@ -18766,10 +18766,10 @@ async function renderStudentCareerHub(){
 
             <span class="student-career-category-icon">
 
-              <i
-                class="fa-solid fa-calendar-star"
-                aria-hidden="true"
-              ></i>
+<i
+  class="fa-solid fa-calendar-days"
+  aria-hidden="true"
+></i>
 
             </span>
 
