@@ -14949,20 +14949,1149 @@ async function trackVentureView(){
     initializeVentureInterestControls();
 
 
+
     /* =====================================================
        PART 7 COMPLETE
-
-       Do not close the script tag.
-
-       Part 8 finishes venture.html with:
-
-
     ====================================================== */
-          /* =====================================================
+
+
+    /* =====================================================
+       AIFT VENTURE PITCH ROOM
+       PART 8 — FINAL OWNER / DRAFT / PRIVATE INTEGRATION
+    ====================================================== */
+
+
+    /* =====================================================
+       PREVIEW MODE DETECTION
+
+       create-venture.html may explicitly send preview=1.
+
+       This does NOT grant access by itself.
+       Backend authorization remains authoritative.
+    ====================================================== */
+
+    function ventureIsPreviewRequest(){
+
+      const params =
+        new URLSearchParams(
+          window.location.search
+        );
+
+
+      const value =
+        ventureSafeString(
+          params.get(
+            "preview"
+          )
+        )
+          .toLowerCase();
+
+
+      return (
+        value === "1" ||
+        value === "true" ||
+        value === "yes" ||
+        value === "owner"
+      );
+
+    }
+
+
+    /* =====================================================
+       MANAGE RESPONSE NORMALIZATION
+
+       Keep this separate because /manage may eventually
+       return additional owner-only metadata around Venture.
+    ====================================================== */
+
+    function normalizeManagedVentureResponse(
+      response
+    ){
+
+      if(
+        !response ||
+        typeof response !==
+          "object"
+      ){
+
+        return null;
+
+      }
+
+
+      return normalizeVentureResponse(
+        response
+      );
+
+    }
+
+
+    /* =====================================================
+       MANAGE ENDPOINT
+
+       IMPORTANT:
+       This endpoint is authenticated and should only succeed
+       when the backend authorizes the current account to
+       manage the Venture.
+    ====================================================== */
+
+    function ventureManageEndpoint(
+      identifier
+    ){
+
+      return `/api/ventures/${
+        encodeURIComponent(
+          identifier
+        )
+      }/manage`;
+
+    }
+
+
+    /* =====================================================
+       PUBLIC ENDPOINT
+    ====================================================== */
+
+    function venturePublicEndpoint(
+      identifier
+    ){
+
+      return `/api/ventures/${
+        encodeURIComponent(
+          identifier
+        )
+      }`;
+
+    }
+
+
+    /* =====================================================
+       OWNER / MANAGER LOAD
+
+       We do not decide ownership in frontend code.
+
+       The backend decides whether the authenticated user may
+       access /manage.
+
+       401 / 403 / 404 means:
+       fall back to the normal public endpoint.
+    ====================================================== */
+
+    async function tryLoadManagedVenture(
+      identifier
+    ){
+
+      if(
+        !ventureIsLoggedIn()
+      ){
+
+        return {
+          venture:null,
+          response:null,
+          managed:false,
+          error:null
+        };
+
+      }
+
+
+      try{
+
+        const response =
+          await ventureApiGet(
+            ventureManageEndpoint(
+              identifier
+            )
+          );
+
+
+        const venture =
+          normalizeManagedVentureResponse(
+            response
+          );
+
+
+        if(
+          !venture ||
+          !ventureNormalizeId(
+            venture?._id ||
+            venture?.id
+          )
+        ){
+
+          throw new Error(
+            "The Venture management API returned an invalid venture."
+          );
+
+        }
+
+
+        return {
+          venture,
+          response,
+          managed:true,
+          error:null
+        };
+
+
+      }catch(error){
+
+        /*
+          These statuses simply mean that this viewer cannot
+          use the owner/manager representation.
+
+          We deliberately continue to the public endpoint.
+        */
+
+        if(
+          error?.status === 401 ||
+          error?.status === 403 ||
+          error?.status === 404
+        ){
+
+          return {
+            venture:null,
+            response:null,
+            managed:false,
+            error
+          };
+
+        }
+
+
+        /*
+          A server/network failure on /manage should also not
+          destroy access to an otherwise public Venture.
+
+          Try public loading next.
+        */
+
+        console.warn(
+          "Managed Venture load unavailable. Falling back to public Venture:",
+          error
+        );
+
+
+        return {
+          venture:null,
+          response:null,
+          managed:false,
+          error
+        };
+
+      }
+
+    }
+
+
+    /* =====================================================
+       PUBLIC LOAD
+    ====================================================== */
+
+    async function loadPublicVenture(
+      identifier
+    ){
+
+      const response =
+        await ventureApiGet(
+          venturePublicEndpoint(
+            identifier
+          )
+        );
+
+
+      const venture =
+        normalizeVentureResponse(
+          response
+        );
+
+
+      if(
+        !venture ||
+        !ventureNormalizeId(
+          venture?._id ||
+          venture?.id
+        )
+      ){
+
+        throw new Error(
+          "The Venture API returned an invalid venture."
+        );
+
+      }
+
+
+      return {
+        venture,
+        response,
+        managed:false
+      };
+
+    }
+
+
+    /* =====================================================
+       RESOLVE VENTURE ACCESS
+
+       LOGGED-IN VIEWER:
+         1. Try /manage.
+         2. If backend rejects management access,
+            use the public endpoint.
+
+       LOGGED-OUT VIEWER:
+         - Public endpoint only.
+
+       This allows:
+         - founders to preview drafts/private Ventures
+         - managers to access authorized Ventures
+         - normal visitors to see public Ventures
+         - backend privacy rules to remain authoritative
+    ====================================================== */
+
+    async function resolveVentureForPitchRoom(
+      identifier
+    ){
+
+      if(
+        ventureIsLoggedIn()
+      ){
+
+        const managed =
+          await tryLoadManagedVenture(
+            identifier
+          );
+
+
+        if(
+          managed.venture
+        ){
+
+          return managed;
+
+        }
+
+      }
+
+
+      return await loadPublicVenture(
+        identifier
+      );
+
+    }
+
+
+    /* =====================================================
+       VIEWER ID FROM TOKEN
+
+       Existing public responses may not always include
+       viewer/currentUser.
+
+       For owner UI we can safely read the JWT payload for
+       display decisions.
+
+       SECURITY NOTE:
+       This does NOT authorize anything.
+       Backend routes remain responsible for authorization.
+    ====================================================== */
+
+    function ventureTokenViewerId(){
+
+      const token =
+        ventureToken();
+
+
+      if(!token){
+        return "";
+      }
+
+
+      try{
+
+        const parts =
+          token.split(
+            "."
+          );
+
+
+        if(
+          parts.length <
+          2
+        ){
+
+          return "";
+
+        }
+
+
+        let payload =
+          parts[1]
+            .replace(
+              /-/g,
+              "+"
+            )
+            .replace(
+              /_/g,
+              "/"
+            );
+
+
+        while(
+          payload.length %
+          4
+        ){
+
+          payload +=
+            "=";
+
+        }
+
+
+        const decoded =
+          JSON.parse(
+            decodeURIComponent(
+              Array.prototype
+                .map
+                .call(
+                  atob(
+                    payload
+                  ),
+                  character => {
+
+                    return `%${
+                      (
+                        "00" +
+                        character
+                          .charCodeAt(
+                            0
+                          )
+                          .toString(
+                            16
+                          )
+                      )
+                        .slice(
+                          -2
+                        )
+                    }`;
+
+                  }
+                )
+                .join(
+                  ""
+                )
+            )
+          );
+
+
+        return ventureNormalizeId(
+          decoded?.id ||
+          decoded?._id ||
+          decoded?.userId ||
+          decoded?.sub ||
+          ""
+        );
+
+
+      }catch(error){
+
+        return "";
+
+      }
+
+    }
+
+
+    /* =====================================================
+       VIEWER ID
+    ====================================================== */
+
+    function ventureViewerId(){
+
+      return ventureNormalizeId(
+
+        ventureState.venture
+          ?.viewer?._id ||
+
+        ventureState.venture
+          ?.viewer?.id ||
+
+        ventureState.venture
+          ?.currentUser?._id ||
+
+        ventureState.venture
+          ?.currentUser?.id ||
+
+        ventureState.venture
+          ?.viewerId ||
+
+        ventureTokenViewerId() ||
+
+        ""
+
+      );
+
+    }
+
+
+    /* =====================================================
+       OWNER ID
+    ====================================================== */
+
+    function ventureOwnerId(){
+
+      return ventureNormalizeId(
+
+        ventureState.venture
+          ?.ownerId?._id ||
+
+        ventureState.venture
+          ?.ownerId?.id ||
+
+        ventureState.venture
+          ?.ownerId ||
+
+        ventureState.venture
+          ?.owner?._id ||
+
+        ventureState.venture
+          ?.owner?.id ||
+
+        ventureState.venture
+          ?.createdBy?._id ||
+
+        ventureState.venture
+          ?.createdBy?.id ||
+
+        ventureState.venture
+          ?.createdBy ||
+
+        ""
+
+      );
+
+    }
+
+
+    /* =====================================================
+       OWNER CHECK
+
+       A successful /manage response is itself sufficient for
+       owner/manager presentation.
+
+       Again, this affects UI only.
+    ====================================================== */
+
+    function ventureCurrentViewerCanManage(){
+
+      if(
+        ventureState.managed ===
+          true
+      ){
+
+        return true;
+
+      }
+
+
+      const viewerId =
+        ventureViewerId();
+
+
+      const ownerId =
+        ventureOwnerId();
+
+
+      return Boolean(
+        viewerId &&
+        ownerId &&
+        viewerId ===
+          ownerId
+      );
+
+    }
+
+
+    /* =====================================================
+       STATUS HELPERS
+    ====================================================== */
+
+    function venturePublicationStatus(){
+
+      return ventureSafeString(
+
+        ventureState.venture
+          ?.status ||
+
+        ventureState.venture
+          ?.publicationStatus ||
+
+        ventureState.venture
+          ?.visibilityStatus ||
+
+        ""
+
+      )
+        .toLowerCase();
+
+    }
+
+
+    function ventureIsDraft(){
+
+      return (
+        venturePublicationStatus() ===
+          "draft"
+      );
+
+    }
+
+
+    function ventureIsPrivate(){
+
+      const venture =
+        ventureState.venture;
+
+
+      if(!venture){
+        return false;
+      }
+
+
+      const visibility =
+        ventureSafeString(
+          venture.visibility
+        )
+          .toLowerCase();
+
+
+      return (
+        visibility === "private" ||
+        venture.isPrivate === true ||
+        venture.public === false ||
+        venture.isPublic === false
+      );
+
+    }
+
+
+    /* =====================================================
+       OWNER PREVIEW BANNER
+
+       Created dynamically so you do NOT need another HTML
+       replacement higher in the file.
+    ====================================================== */
+
+    function ensureVenturePreviewBanner(){
+
+      let banner =
+        ventureElement(
+          "ventureOwnerPreviewBanner"
+        );
+
+
+      if(banner){
+        return banner;
+      }
+
+
+      banner =
+        document.createElement(
+          "div"
+        );
+
+
+      banner.id =
+        "ventureOwnerPreviewBanner";
+
+
+      banner.hidden =
+        true;
+
+
+      banner.setAttribute(
+        "role",
+        "status"
+      );
+
+
+      banner.style.cssText = `
+
+        width:
+          min(
+            var(--venture-max),
+            calc(100% - 32px)
+          );
+
+        min-height:
+          46px;
+
+        margin:
+          14px
+          auto
+          -8px;
+
+        padding:
+          9px
+          12px;
+
+        display:
+          flex;
+
+        align-items:
+          center;
+
+        justify-content:
+          space-between;
+
+        gap:
+          12px;
+
+        border:
+          1px solid
+          #d8c8ff;
+
+        border-radius:
+          12px;
+
+        background:
+          linear-gradient(
+            135deg,
+            #f7f2ff,
+            #eef5ff
+          );
+
+        box-shadow:
+          0
+          6px
+          20px
+          rgba(76,58,150,.06);
+
+        color:
+          #43268a;
+
+      `;
+
+
+      const loadingState =
+        ventureElement(
+          "ventureLoadingState"
+        );
+
+
+      const page =
+        ventureElement(
+          "venturePage"
+        ) ||
+        document.querySelector(
+          ".venture-page"
+        );
+
+
+      if(
+        page &&
+        page.parentNode
+      ){
+
+        page.parentNode
+          .insertBefore(
+            banner,
+            page
+          );
+
+      }else if(
+        loadingState &&
+        loadingState.parentNode
+      ){
+
+        loadingState.parentNode
+          .insertBefore(
+            banner,
+            loadingState
+              .nextSibling
+          );
+
+      }else{
+
+        document.body
+          .prepend(
+            banner
+          );
+
+      }
+
+
+      return banner;
+
+    }
+
+
+    /* =====================================================
+       RENDER OWNER PREVIEW BANNER
+    ====================================================== */
+
+    function renderVentureOwnerPreviewBanner(){
+
+      const banner =
+        ensureVenturePreviewBanner();
+
+
+      if(!banner){
+        return;
+      }
+
+
+      const canManage =
+        ventureCurrentViewerCanManage();
+
+
+      const draft =
+        ventureIsDraft();
+
+
+      const privateVenture =
+        ventureIsPrivate();
+
+
+      const preview =
+        ventureIsPreviewRequest();
+
+
+      if(
+        !canManage ||
+        (
+          !draft &&
+          !privateVenture &&
+          !preview
+        )
+      ){
+
+        banner.hidden =
+          true;
+
+        return;
+
+      }
+
+
+      let label =
+        "Owner preview";
+
+
+      let message =
+        "You are viewing this Venture as its owner or manager.";
+
+
+      if(draft){
+
+        label =
+          "Draft preview";
+
+
+        message =
+          "This Venture is still a draft. Other AIFT users cannot access this Pitch Room until it is published.";
+
+      }else if(
+        privateVenture
+      ){
+
+        label =
+          "Private Venture";
+
+
+        message =
+          "This Pitch Room is currently private and is only available to authorized accounts.";
+
+      }else if(preview){
+
+        label =
+          "Preview mode";
+
+
+        message =
+          "You are previewing how this Venture Pitch Room will appear on AIFT.";
+
+      }
+
+
+      banner.innerHTML = `
+
+        <div
+          style="
+            min-width:0;
+            display:flex;
+            align-items:center;
+            gap:10px;
+          "
+        >
+
+          <span
+            style="
+              width:30px;
+              height:30px;
+              flex:0 0 30px;
+              display:grid;
+              place-items:center;
+              border-radius:9px;
+              background:#7c3aed;
+              color:#fff;
+              font-size:10px;
+            "
+          >
+
+            <i
+              class="fa-solid fa-eye"
+              aria-hidden="true"
+            ></i>
+
+          </span>
+
+
+          <div
+            style="
+              min-width:0;
+              display:grid;
+              gap:1px;
+            "
+          >
+
+            <strong
+              style="
+                color:#35166f;
+                font-size:9px;
+                font-weight:800;
+              "
+            >
+              ${
+                ventureEscapeHtml(
+                  label
+                )
+              }
+            </strong>
+
+            <span
+              style="
+                color:#6d5a92;
+                font-size:7px;
+                line-height:1.45;
+              "
+            >
+              ${
+                ventureEscapeHtml(
+                  message
+                )
+              }
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          id="venturePreviewEditButton"
+          style="
+            min-height:31px;
+            padding:0 11px;
+            flex:0 0 auto;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            gap:5px;
+            border:1px solid #cbb7ff;
+            border-radius:8px;
+            background:#fff;
+            color:#6d28d9;
+            font-size:7px;
+            font-weight:750;
+          "
+        >
+
+          <i
+            class="fa-solid fa-pen"
+            aria-hidden="true"
+          ></i>
+
+          Edit Venture
+
+        </button>
+      `;
+
+
+      banner.hidden =
+        false;
+
+
+      ventureElement(
+        "venturePreviewEditButton"
+      )
+        ?.addEventListener(
+          "click",
+          () => {
+
+            const id =
+              ventureState.ventureId;
+
+
+            if(!id){
+              return;
+            }
+
+
+            window.location.href =
+              `create-venture.html?id=${
+                encodeURIComponent(
+                  id
+                )
+              }`;
+
+          },
+          {
+            once:true
+          }
+        );
+
+    }
+
+
+    /* =====================================================
+       OWNER-SAFE SUPPORT UI
+
+       Owners/managers should never be able to submit an
+       investment/grant/sponsorship interest to themselves.
+    ====================================================== */
+
+    function updateVentureOwnerActions(){
+
+      const isManager =
+        ventureCurrentViewerCanManage();
+
+
+      const primaryButton =
+        ventureElement(
+          "venturePrimaryInterestButton"
+        );
+
+
+      const supportCard =
+        ventureElement(
+          "ventureSupportOptions"
+        )
+          ?.closest(
+            ".venture-support-card"
+          );
+
+
+      if(isManager){
+
+        if(primaryButton){
+
+          primaryButton.hidden =
+            true;
+
+        }
+
+
+        if(supportCard){
+
+          supportCard.hidden =
+            true;
+
+        }
+
+
+        return;
+
+      }
+
+
+      /*
+        Restore visitor actions when this page is reused from
+        browser history/cache.
+      */
+
+      if(primaryButton){
+
+        primaryButton.hidden =
+          false;
+
+      }
+
+
+      if(supportCard){
+
+        supportCard.hidden =
+          false;
+
+      }
+
+    }
+
+
+    /* =====================================================
+       OWNER-SAFE SAVE BUTTONS
+
+       Saving/bookmarking your own Venture is unnecessary.
+    ====================================================== */
+
+    function updateVentureSaveActions(){
+
+      const isManager =
+        ventureCurrentViewerCanManage();
+
+
+      [
+        ventureElement(
+          "ventureSaveButton"
+        ),
+
+        ventureElement(
+          "ventureTopSaveButton"
+        )
+
+      ]
+        .filter(
+          Boolean
+        )
+        .forEach(
+          button => {
+
+            button.hidden =
+              isManager;
+
+          }
+        );
+
+    }
+
+
+    /* =====================================================
        SAVED STATE DETECTION
     ====================================================== */
 
     async function loadCurrentVentureSavedState(){
+
+      /*
+        Owner/manager does not need saved-state loading.
+      */
+
+      if(
+        ventureCurrentViewerCanManage()
+      ){
+
+        ventureState.saved =
+          false;
+
+
+        renderVentureSavedState();
+
+
+        updateVentureSaveActions();
+
+
+        return;
+
+      }
+
 
       if(
         !ventureIsLoggedIn() ||
@@ -14994,14 +16123,17 @@ async function trackVentureView(){
             response
           )
             ? response
+
             : Array.isArray(
                 response?.ventures
               )
               ? response.ventures
+
               : Array.isArray(
                   response?.data
                 )
                 ? response.data
+
                 : [];
 
 
@@ -15010,11 +16142,13 @@ async function trackVentureView(){
             venture => {
 
               return (
+
                 ventureNormalizeId(
                   venture?._id ||
                   venture?.id
                 ) ===
                 ventureState.ventureId
+
               );
 
             }
@@ -15027,8 +16161,7 @@ async function trackVentureView(){
       }catch(error){
 
         /*
-          Saved-state failure should never block
-          the public Venture Pitch Room.
+          Saved-state failure must never block the Pitch Room.
         */
 
         console.warn(
@@ -15076,10 +16209,6 @@ async function trackVentureView(){
 
     /* =====================================================
        GLOBAL SEARCH
-
-       The Venture page does not duplicate the complete
-       Career Hub search engine. It forwards the query back
-       to the relevant Career Hub.
     ====================================================== */
 
     function submitVentureGlobalSearch(){
@@ -15138,35 +16267,50 @@ async function trackVentureView(){
         );
 
 
-      input
-        ?.addEventListener(
-          "keydown",
-          event => {
+      if(
+        !input ||
+        input.dataset
+          .ventureSearchReady ===
+          "true"
+      ){
 
-            if(
-              event.key !==
+        return;
+
+      }
+
+
+      input.dataset
+        .ventureSearchReady =
+          "true";
+
+
+      input.addEventListener(
+        "keydown",
+        event => {
+
+          if(
+            event.key !==
               "Enter"
-            ){
-              return;
-            }
+          ){
 
-
-            event.preventDefault();
-
-
-            submitVentureGlobalSearch();
+            return;
 
           }
-        );
+
+
+          event.preventDefault();
+
+
+          submitVentureGlobalSearch();
+
+        }
+      );
 
     }
 
 
     /* =====================================================
        LOGO FALLBACK
-
-       If assets/aift-logo.png is unavailable, do not leave
-       a broken-image icon in the header.
     ====================================================== */
 
     function initializeVentureBrandLogo(){
@@ -15177,9 +16321,21 @@ async function trackVentureView(){
         );
 
 
-      if(!logo){
+      if(
+        !logo ||
+        logo.dataset
+          .ventureLogoReady ===
+          "true"
+      ){
+
         return;
+
       }
+
+
+      logo.dataset
+        .ventureLogoReady =
+          "true";
 
 
       logo.addEventListener(
@@ -15188,49 +16344,6 @@ async function trackVentureView(){
 
           logo.style.display =
             "none";
-
-
-          const brand =
-            logo.closest(
-              ".venture-brand-link"
-            );
-
-
-          if(
-            brand &&
-            !brand.querySelector(
-              ".venture-brand-text-fallback"
-            )
-          ){
-
-            const fallback =
-              document.createElement(
-                "span"
-              );
-
-
-            fallback.className =
-              "venture-brand-text-fallback";
-
-
-            fallback.textContent =
-              "AIFT";
-
-
-            fallback.style.cssText = `
-              color:#146ef5;
-              font-size:20px;
-              font-weight:850;
-              letter-spacing:-.05em;
-            `;
-
-
-            brand.insertBefore(
-              fallback,
-              brand.firstChild
-            );
-
-          }
 
         },
         {
@@ -15242,29 +16355,31 @@ async function trackVentureView(){
 
 
     /* =====================================================
-       IMAGE ERROR HANDLING
+       IMAGE SAFETY
+
+       Prevent broken external founder/Venture images from
+       leaving broken-image UI.
     ====================================================== */
 
     function initializeVentureImageSafety(){
 
-      ventureElement(
-        "ventureHeroCover"
-      )
-        ?.addEventListener(
-          "error",
-          event => {
+      if(
+        document.documentElement
+          .dataset
+          .ventureImageSafetyReady ===
+          "true"
+      ){
 
-            event.currentTarget.hidden =
-              true;
+        return;
 
-          }
-        );
+      }
 
 
-      /*
-        Team and logo images are generated dynamically.
-        A delegated listener handles failed images.
-      */
+      document.documentElement
+        .dataset
+        .ventureImageSafetyReady =
+          "true";
+
 
       document.addEventListener(
         "error",
@@ -15279,50 +16394,76 @@ async function trackVentureView(){
             image.tagName !==
               "IMG"
           ){
+
             return;
+
           }
 
 
           if(
-            image.closest(
-              ".venture-team-avatar"
-            )
+            image.id ===
+              "ventureBrandLogo"
           ){
 
-            const avatar =
-              image.closest(
-                ".venture-team-avatar"
-              );
-
-
-            const memberName =
-              image.alt ||
-              "AIFT";
-
-
-            avatar.innerHTML = `
-
-              <span>
-                ${ventureEscapeHtml(
-                  ventureInitials(
-                    memberName
-                  )
-                )}
-              </span>
-            `;
+            return;
 
           }
 
 
           if(
+            image.dataset
+              .ventureImageFailed ===
+              "true"
+          ){
+
+            return;
+
+          }
+
+
+          image.dataset
+            .ventureImageFailed =
+              "true";
+
+
+          /*
+            Cover image:
+            remove it and let the gradient remain visible.
+          */
+
+          if(
+            image.classList.contains(
+              "venture-hero-cover"
+            ) ||
+            image.id ===
+              "ventureHeroCover"
+          ){
+
+            image.hidden =
+              true;
+
+            return;
+
+          }
+
+
+          /*
+            Logo:
+            restore the rocket fallback.
+          */
+
+          if(
             image.closest(
-              "#ventureLogoFrame"
+              ".venture-logo-frame"
             )
           ){
 
             const logoFrame =
               ventureElement(
                 "ventureLogoFrame"
+              ) ||
+              image.closest(
+                ".venture-logo-frame"
               );
 
 
@@ -15338,7 +16479,19 @@ async function trackVentureView(){
 
             }
 
+
+            return;
+
           }
+
+
+          /*
+            Other dynamic images can simply disappear rather
+            than showing the browser broken-image symbol.
+          */
+
+          image.hidden =
+            true;
 
         },
         true
@@ -15348,101 +16501,314 @@ async function trackVentureView(){
 
 
     /* =====================================================
-       OWNER-SAFE SUPPORT UI
+       APPLY LOADED VENTURE
 
-       The backend prevents a founder from expressing
-       interest in their own Venture.
-
-       If the public response later contains viewer/owner
-       identity information, hide the support buttons
-       immediately rather than waiting for a 400 response.
+       Shared by public and owner/manage responses.
     ====================================================== */
 
-    function ventureViewerId(){
-
-      return ventureNormalizeId(
-        ventureState.venture
-          ?.viewer?._id ||
-        ventureState.venture
-          ?.viewer?.id ||
-        ventureState.venture
-          ?.currentUser?._id ||
-        ventureState.venture
-          ?.currentUser?.id ||
-        ventureState.venture
-          ?.viewerId ||
-        ""
-      );
-
-    }
-
-
-    function ventureOwnerId(){
-
-      return ventureNormalizeId(
-        ventureState.venture
-          ?.ownerId?._id ||
-        ventureState.venture
-          ?.ownerId ||
-        ""
-      );
-
-    }
-
-
-    function updateVentureOwnerActions(){
-
-      const viewerId =
-        ventureViewerId();
-
-
-      const ownerId =
-        ventureOwnerId();
-
-
-      if(
-        !viewerId ||
-        !ownerId ||
-        viewerId !== ownerId
-      ){
-
-        return;
-
+    function applyLoadedVenture(
+      {
+        venture,
+        response,
+        managed
       }
+    ){
+
+      ventureState.venture =
+        venture;
 
 
-      ventureElement(
-        "venturePrimaryInterestButton"
-      )
-        ?.setAttribute(
-          "hidden",
-          ""
+      ventureState.ventureId =
+        ventureNormalizeId(
+          venture?._id ||
+          venture?.id
         );
 
 
-      const supportCard =
-        ventureElement(
-          "ventureSupportOptions"
-        )
-          ?.closest(
-            ".venture-support-card"
-          );
+      ventureState.managed =
+        managed === true;
 
 
-      if(supportCard){
+      ventureState.saved =
+        Boolean(
+          response?.saved ??
+          venture?.saved ??
+          venture?.isSaved ??
+          false
+        );
 
-        supportCard.hidden =
-          true;
+
+      ventureState.loaded =
+        true;
+
+
+      ventureState.error =
+        "";
+
+
+      renderVentureCore(
+        venture
+      );
+
+
+      if(
+        typeof renderVentureDetails ===
+          "function"
+      ){
+
+        renderVentureDetails(
+          venture
+        );
 
       }
+
+
+      if(
+        typeof renderVentureSavedState ===
+          "function"
+      ){
+
+        renderVentureSavedState();
+
+      }
+
+
+      updateVentureOwnerActions();
+
+
+      updateVentureSaveActions();
+
+
+      renderVentureOwnerPreviewBanner();
+
+
+      showVenturePage();
 
     }
 
 
     /* =====================================================
-       FINAL PAGE RENDER HOOK
+       VIEW TRACKING POLICY
 
-       Called only after the Venture has loaded.
+       Public Venture views should count normally.
+
+       Owner/manager preview loads should NOT artificially
+       inflate Venture views.
+    ====================================================== */
+
+    function shouldTrackCurrentVentureView(){
+
+      if(
+        ventureState.managed ===
+          true
+      ){
+
+        return false;
+
+      }
+
+
+      if(
+        ventureCurrentViewerCanManage()
+      ){
+
+        return false;
+
+      }
+
+
+      return true;
+
+    }
+
+
+    /* =====================================================
+       FINAL CORE VENTURE LOADER
+
+       This REPLACES the old Part 4 public-only behavior.
+
+       It is intentionally defined here after every rendering
+       function exists.
+    ====================================================== */
+
+    loadVenturePitchRoom =
+      async function(){
+
+        if(
+          ventureState.loading
+        ){
+
+          return;
+
+        }
+
+
+        const identifier =
+          getVentureIdentifier();
+
+
+        if(!identifier){
+
+          ventureState.error =
+            "No venture was selected.";
+
+
+          showVentureError(
+            "Venture not selected",
+            "Open a venture from AIFT Career Hub to view its Pitch Room."
+          );
+
+
+          return;
+
+        }
+
+
+        ventureState.ventureId =
+          identifier;
+
+
+        ventureState.loading =
+          true;
+
+
+        ventureState.loaded =
+          false;
+
+
+        ventureState.error =
+          "";
+
+
+        ventureState.managed =
+          false;
+
+
+        showVentureLoading();
+
+
+        try{
+
+          const result =
+            await resolveVentureForPitchRoom(
+              identifier
+            );
+
+
+          applyLoadedVenture(
+            result
+          );
+
+
+          await finalizeLoadedVenture();
+
+
+          /*
+            Only genuine visitor/public views are tracked.
+          */
+
+          if(
+            shouldTrackCurrentVentureView() &&
+            typeof trackVentureView ===
+              "function"
+          ){
+
+            try{
+
+              await trackVentureView();
+
+            }catch(error){
+
+              /*
+                Analytics must never break the Pitch Room.
+              */
+
+              console.warn(
+                "Venture view tracking failed:",
+                error
+              );
+
+            }
+
+          }
+
+
+        }catch(error){
+
+          console.error(
+            "Venture Pitch Room load failed:",
+            error
+          );
+
+
+          ventureState.loaded =
+            false;
+
+
+          ventureState.managed =
+            false;
+
+
+          ventureState.error =
+            error?.message ||
+            "The Venture Pitch Room could not be loaded.";
+
+
+          if(
+            error?.status ===
+              401
+          ){
+
+            showVentureError(
+              "Sign in required",
+              "Sign in to AIFT to access this Venture Pitch Room."
+            );
+
+
+          }else if(
+            error?.status ===
+              404
+          ){
+
+            showVentureError(
+              "Venture not found",
+              "This Venture may have been removed, unpublished, private, or is no longer available."
+            );
+
+
+          }else if(
+            error?.status ===
+              403
+          ){
+
+            showVentureError(
+              "Venture unavailable",
+              "You do not currently have access to this Venture Pitch Room."
+            );
+
+
+          }else{
+
+            showVentureError(
+              "Could not load Venture",
+              ventureState.error
+            );
+
+          }
+
+
+        }finally{
+
+          ventureState.loading =
+            false;
+
+        }
+
+      };
+
+
+    /* =====================================================
+       FINAL PAGE RENDER HOOK
     ====================================================== */
 
     async function finalizeLoadedVenture(){
@@ -15451,6 +16817,12 @@ async function trackVentureView(){
 
 
       updateVentureOwnerActions();
+
+
+      updateVentureSaveActions();
+
+
+      renderVentureOwnerPreviewBanner();
 
 
       await loadCurrentVentureSavedState();
@@ -15462,40 +16834,10 @@ async function trackVentureView(){
 
 
     /* =====================================================
-       WRAP THE ORIGINAL CORE LOADER
-
-       Part 4 already created loadVenturePitchRoom().
-       We preserve it and add the final post-load tasks.
-    ====================================================== */
-
-    const baseLoadVenturePitchRoom =
-      loadVenturePitchRoom;
-
-
-    loadVenturePitchRoom =
-      async function(){
-
-        await baseLoadVenturePitchRoom();
-
-
-        if(
-          ventureState.loaded &&
-          ventureState.venture
-        ){
-
-          await finalizeLoadedVenture();
-
-        }
-
-      };
-
-
-    /* =====================================================
        PAGE VISIBILITY / HISTORY
 
-       If the user returns to this page through browser
-       back-forward cache, refresh active tabs without
-       unnecessarily re-requesting the Venture.
+       Browser back/forward cache can restore an already
+       rendered Pitch Room without another API request.
     ====================================================== */
 
     window.addEventListener(
@@ -15506,6 +16848,15 @@ async function trackVentureView(){
           event.persisted &&
           ventureState.loaded
         ){
+
+          updateVentureOwnerActions();
+
+
+          updateVentureSaveActions();
+
+
+          renderVentureOwnerPreviewBanner();
+
 
           scheduleVentureSectionUpdate();
 
@@ -15520,6 +16871,8 @@ async function trackVentureView(){
 
     /* =====================================================
        FINAL INITIALIZATION
+
+       All functions now exist before the first API request.
     ====================================================== */
 
     async function initializeVenturePitchRoom(){
@@ -15541,16 +16894,24 @@ async function trackVentureView(){
       }catch(error){
 
         /*
-          This is the final safety boundary. Individual
-          functions already handle expected failures, but
-          no unexpected exception should leave the visitor
-          staring at a permanent spinner.
+          Final safety boundary.
+
+          No unexpected exception should leave AIFT stuck on
+          the loading spinner.
         */
 
         console.error(
           "AIFT Venture initialization failed:",
           error
         );
+
+
+        ventureState.loading =
+          false;
+
+
+        ventureState.loaded =
+          false;
 
 
         showVentureError(
@@ -15566,11 +16927,13 @@ async function trackVentureView(){
 
     /* =====================================================
        DOM READY
+
+       Only one final initialization is allowed.
     ====================================================== */
 
     if(
       document.readyState ===
-      "loading"
+        "loading"
     ){
 
       document.addEventListener(
@@ -15590,11 +16953,11 @@ async function trackVentureView(){
 
     /* =====================================================
        AIFT VENTURE PITCH ROOM
-       COMPLETE
+       PART 8 COMPLETE
+       FULL PAGE COMPLETE
     ====================================================== */
 
   </script>
 
 </body>
-
 </html>
