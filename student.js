@@ -19146,7 +19146,14 @@ async function renderStudentCareerHub(){
 </div>
 
 
-            <div class="student-career-kabezya">
+            <!-- ===============================================
+                 AIFT VENTURE CREATOR CTA
+            ================================================ -->
+
+            <div
+              class="student-career-kabezya"
+              id="studentCareerVentureCreator"
+            >
 
               <div class="student-career-kabezya-icon">
 
@@ -19158,7 +19165,28 @@ async function renderStudentCareerHub(){
               </div>
 
 
-              <div>
+              <div
+                style="
+                  min-width:0;
+                  flex:1;
+                "
+              >
+
+                <span
+                  style="
+                    display:block;
+                    margin-bottom:4px;
+                    color:var(--career-purple);
+                    font-size:8px;
+                    line-height:1;
+                    font-weight:800;
+                    letter-spacing:.08em;
+                    text-transform:uppercase;
+                  "
+                >
+                  AIFT Venture Builder
+                </span>
+
 
                 <strong
                   style="
@@ -19166,18 +19194,95 @@ async function renderStudentCareerHub(){
                     margin-bottom:5px;
                     color:var(--career-heading);
                     font-size:13px;
+                    line-height:1.35;
                   "
                 >
                   Have an idea worth building?
                 </strong>
 
-                <p>
-                  Soon you will be able to create an AIFT
-                  Pitch Room, show your problem, solution,
-                  team, traction and funding needs, then
-                  connect with sponsors, mentors and
-                  interested investors.
+
+                <p
+                  style="
+                    max-width:760px;
+                    margin:0;
+                  "
+                >
+                  Create your own AIFT Pitch Room, explain the
+                  problem you are solving, present your solution,
+                  build your team, show traction and tell
+                  investors, sponsors, schools and mentors what
+                  support you need.
                 </p>
+
+
+                <div
+                  style="
+                    margin-top:14px;
+                    display:flex;
+                    align-items:center;
+                    gap:8px;
+                    flex-wrap:wrap;
+                  "
+                >
+
+                  <button
+                    type="button"
+                    id="studentCareerCreateVentureButton"
+                    style="
+                      min-height:36px;
+                      padding:0 14px;
+                      display:inline-flex;
+                      align-items:center;
+                      justify-content:center;
+                      gap:7px;
+                      border:1px solid #7c3aed;
+                      border-radius:9px;
+                      background:#7c3aed;
+                      color:#fff;
+                      font-size:9px;
+                      line-height:1;
+                      font-weight:750;
+                      cursor:pointer;
+                      box-shadow:
+                        0 5px 14px
+                        rgba(124,58,237,.16);
+                    "
+                    onclick="
+                      window.location.href='create-venture.html';
+                    "
+                  >
+
+                    <i
+                      class="fa-solid fa-plus"
+                      aria-hidden="true"
+                    ></i>
+
+                    Create Venture
+
+                  </button>
+
+
+                  <span
+                    style="
+                      display:inline-flex;
+                      align-items:center;
+                      gap:5px;
+                      color:var(--career-muted);
+                      font-size:8px;
+                      font-weight:600;
+                    "
+                  >
+
+                    <i
+                      class="fa-solid fa-shield-halved"
+                      aria-hidden="true"
+                    ></i>
+
+                    Start as a private draft
+
+                  </span>
+
+                </div>
 
               </div>
 
