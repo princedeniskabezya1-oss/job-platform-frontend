@@ -193,6 +193,12 @@
    MEDIA
 ========================================================= */
 
+
+.lesson-media.hidden{
+  display:none !important;
+}
+  
+
 .lesson-media{
   position:relative;
 
@@ -823,7 +829,177 @@ function renderViewer(){const v=state.viewer||{},name=v.name||v.schoolName||"AIF
 function renderClass(){const d=state.classData||{};$("classTitle").textContent=d.title||d.name||"Untitled class";$("classDescription").textContent=d.description||d.welcomeContent||d.subtitle||"No class description has been added.";$("classSubject").textContent=d.subject||d.category||"Subject unavailable";$("classLevel").textContent=d.level||d.difficulty||"Level unavailable";$("classLanguage").textContent=d.language||"Language unavailable";$("classStatus").textContent=state.permissions.canManage?"Instructor class view":"Published class";const cover=String(d.bannerImage||d.coverImage||d.coverUrl||"").trim();if(cover)$("hero").style.backgroundImage=`linear-gradient(90deg,rgba(8,20,43,.98),rgba(8,20,43,.88) 43%,rgba(8,20,43,.52)),url("${cover.replace(/"/g,'\\"')}")`}
 function renderProgress(){const p=overall(),done=state.lessons.filter(l=>completed(id(l))).length;$("progressPercent").textContent=state.permissions.canTrackProgress?`${p}%`:"View";$("progressFill").style.width=state.permissions.canTrackProgress?`${p}%`:"0%";$("progressLabel").textContent=state.permissions.canTrackProgress?"Class progress":"Class learning view";$("brandSub").textContent=state.permissions.canTrackProgress?`${done} of ${state.lessons.length} Lessons complete`:`${state.lessons.length} Lessons`;$("continueLabel").textContent=p>=100&&state.lessons.length?"Review class":done?"Continue learning":"Start learning"}
 function renderCurriculum(){const c=$("curriculumList");$("curriculumCount").textContent=`${state.lessons.length} ${state.lessons.length===1?"Lesson":"Lessons"}`;if(!state.lessons.length){c.innerHTML=`<div class="side-empty">No published Lessons are available.</div>`;return}const groups=[];state.modules.forEach(m=>{const ls=moduleLessons(id(m));if(ls.length)groups.push({module:m,moduleId:id(m),lessons:ls})});const un=state.lessons.filter(l=>!lessonModule(l)||!state.modules.some(m=>id(m)===lessonModule(l)));if(un.length)groups.push({module:null,moduleId:"unassigned",lessons:un});if(!state.expanded.size&&groups.length)state.expanded.add(groups[0].moduleId);const s=selected();if(s&&lessonModule(s))state.expanded.add(lessonModule(s));let n=0;c.innerHTML=groups.map((g,i)=>{const exp=state.expanded.has(g.moduleId),active=g.lessons.some(l=>id(l)===state.selectedLessonId),unlock=g.moduleId==="unassigned"||moduleUnlocked(g.moduleId);const rows=g.lessons.map(l=>{n++;const lid=id(l),sel=lid===state.selectedLessonId,done=completed(lid),open=unlock&&lessonUnlocked(l);return`<button class="lesson-row ${sel?"active":""} ${done?"completed":""}" data-lesson="${esc(lid)}" ${open?"":"disabled"}><span class="lesson-index">${done?I.check:!open?I.lock:n}</span><span class="lesson-copy"><strong>${esc(`${n}. ${l.title||l.name||"Untitled Lesson"}`)}</strong><span>${done?"Completed":!open?"Locked":"Available"}</span></span><small class="lesson-time">${esc(duration(l))}</small></button>`}).join("");return`<article class="module ${active?"active":""}"><button class="module-btn" data-module="${esc(g.moduleId)}" ${unlock?"":"disabled"}><span class="module-state">${unlock?`<svg viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></svg>`:I.lock}</span><span class="module-copy"><strong>${g.module?`Module ${i+1} — ${esc(g.module.title||g.module.name||"Class module")}`:"Class Lessons"}</strong><span>${g.lessons.length} ${g.lessons.length===1?"Lesson":"Lessons"}</span></span><svg class="chev" viewBox="0 0 24 24"><path d="${exp?"m6 15 6-6 6 6":"m6 9 6 6 6-6"}"/></svg></button><div class="lessons ${exp?"":"hidden"}">${rows}</div></article>`}).join("");c.querySelectorAll("[data-module]").forEach(b=>b.onclick=()=>{const x=b.dataset.module;state.expanded.has(x)?state.expanded.delete(x):state.expanded.add(x);renderCurriculum()});c.querySelectorAll("[data-lesson]").forEach(b=>b.onclick=()=>openLesson(b.dataset.lesson))}
-function renderMedia(l){const c=$("lessonMedia"),m=media(l);if(!m){c.innerHTML=`<div class="media-empty"><span class="media-icon">${I.play}</span><strong>Lesson media</strong><span>${l?"Video and visual Lesson content will appear here when available.":"Select a Lesson to begin learning."}</span></div>`;return}c.innerHTML=m.type==="iframe"?`<iframe src="${esc(m.url)}" title="${esc(l.title||"Lesson video")}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`:m.type==="video"?`<video src="${esc(m.url)}" controls playsinline preload="metadata"></video>`:`<img src="${esc(m.url)}" alt="${esc(l.title||"Lesson visual")}">`}
+
+  
+function renderMedia(lesson){
+
+  const mediaBox =
+    $("lessonMedia");
+
+
+  if(!mediaBox){
+    return;
+  }
+
+
+  /* =======================================================
+     NO LESSON
+  ======================================================= */
+
+  if(!lesson){
+
+    mediaBox.classList.add(
+      "hidden"
+    );
+
+    mediaBox.innerHTML =
+      "";
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     FIND LESSON MEDIA
+  ======================================================= */
+
+  const mediaUrl =
+    String(
+      lesson.mediaUrl ||
+      lesson.videoUrl ||
+      lesson.video ||
+      lesson.media?.url ||
+      lesson.visualUrl ||
+      ""
+    ).trim();
+
+
+  const mediaType =
+    String(
+      lesson.mediaType ||
+      lesson.media?.type ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  /*
+    No media exists.
+
+    Hide the entire media area instead of displaying
+    an empty dark placeholder.
+  */
+
+  if(!mediaUrl){
+
+    mediaBox.classList.add(
+      "hidden"
+    );
+
+    mediaBox.innerHTML =
+      "";
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     MEDIA EXISTS
+  ======================================================= */
+
+  mediaBox.classList.remove(
+    "hidden"
+  );
+
+
+  const safeUrl =
+    esc(
+      mediaUrl
+    );
+
+
+  /* =======================================================
+     IMAGE
+  ======================================================= */
+
+  const isImage =
+    mediaType === "image" ||
+    /\.(jpg|jpeg|png|webp|gif|avif)(\?.*)?$/i.test(
+      mediaUrl
+    );
+
+
+  if(isImage){
+
+    mediaBox.innerHTML = `
+      <img
+        src="${safeUrl}"
+        alt="Lesson media"
+        loading="lazy"
+      >
+    `;
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     DIRECT VIDEO
+  ======================================================= */
+
+  const isVideo =
+    mediaType === "video" ||
+    /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(
+      mediaUrl
+    );
+
+
+  if(isVideo){
+
+    mediaBox.innerHTML = `
+      <video
+        controls
+        playsinline
+        preload="metadata"
+      >
+        <source
+          src="${safeUrl}"
+        >
+
+        Your browser does not support this video.
+      </video>
+    `;
+
+    return;
+
+  }
+
+
+  /* =======================================================
+     EMBED / OTHER VISUAL MEDIA
+  ======================================================= */
+
+  mediaBox.innerHTML = `
+    <iframe
+      src="${safeUrl}"
+      title="Lesson media"
+      loading="lazy"
+      allow="
+        autoplay;
+        encrypted-media;
+        picture-in-picture;
+        fullscreen
+      "
+      allowfullscreen
+    ></iframe>
+  `;
+
+}
+  
 function itemHtml(type,item){const isQ=type==="quiz";return`<button class="item" data-assessment-type="${type}" data-assessment-id="${esc(id(item))}"><span class="item-icon">${isQ?I.quiz:I.assignment}</span><span class="item-copy"><strong>${esc(item.title||item.name||(isQ?"Quiz":"Assignment"))}</strong><span>${isQ?`${Array.isArray(item.questions)?item.questions.length:0} Questions`:item.dueDate?`Due ${esc(new Date(item.dueDate).toLocaleDateString())}`:"Written submission"}</span></span><span class="item-arrow">${I.arrow}</span></button>`}
 function bindAssessments(root){root.querySelectorAll("[data-assessment-type]").forEach(b=>b.onclick=()=>openAssessment(b.dataset.assessmentType,b.dataset.assessmentId))}
 function renderSides(l){const rs=resources(l),qs=lessonQuizzes(l),as=lessonAssignments(l);$("resourceCount").textContent=rs.length;$("quizCount").textContent=qs.length;$("assignmentCount").textContent=as.length;$("resourceList").innerHTML=rs.length?rs.slice(0,6).map(r=>`<button class="item" data-resource="${esc(r.url)}"><span class="item-icon">${I.file}</span><span class="item-copy"><strong>${esc(r.title)}</strong><span>${esc(r.description)}</span></span><span class="item-arrow">${I.arrow}</span></button>`).join(""):`<div class="side-empty">No resources are attached to this Lesson.</div>`;$("resourceList").querySelectorAll("[data-resource]").forEach(b=>b.onclick=()=>window.open(b.dataset.resource,"_blank","noopener,noreferrer"));$("assessmentList").innerHTML=(qs.length||as.length)?[...qs.map(q=>itemHtml("quiz",q)),...as.map(a=>itemHtml("assignment",a))].join(""):`<div class="side-empty">No assessments are attached to this Lesson.</div>`;bindAssessments($("assessmentList"))}
