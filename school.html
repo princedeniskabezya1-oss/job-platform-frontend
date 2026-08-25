@@ -40040,8 +40040,11 @@ ${
   `).join("");
 }
 
+
+
 /* =========================================================
    CLASS STUDENT ENROLLMENT
+   Production Manage Students
 ========================================================= */
 
 const classEnrollmentState = {
@@ -40049,16 +40052,36 @@ const classEnrollmentState = {
   classId:
     "",
 
-  selectedStudentIds:
+  enrolledStudentIds:
     new Set(),
 
-  originalStudentIds:
-    new Set(),
-
-  saving:
-    false
+  savingStudentIds:
+    new Set()
 
 };
+
+
+/* =========================================================
+   NORMALIZE STUDENT ID
+========================================================= */
+
+function getClassEnrollmentStudentId(
+  student
+){
+
+  if(!student){
+    return "";
+  }
+
+
+  return String(
+    student?._id ||
+    student?.id ||
+    student ||
+    ""
+  ).trim();
+
+}
 
 
 /* =========================================================
@@ -40079,25 +40102,23 @@ function getClassEnrollmentIds(
       classItem.studentIds
     )
       ? classItem.studentIds
+
       : Array.isArray(
           classItem.students
         )
       ? classItem.students
+
       : Array.isArray(
           classItem.enrolledStudents
         )
       ? classItem.enrolledStudents
+
       : [];
 
 
   return students
-    .map(student =>
-      String(
-        student?._id ||
-        student?.id ||
-        student ||
-        ""
-      )
+    .map(
+      getClassEnrollmentStudentId
     )
     .filter(Boolean);
 
@@ -40105,7 +40126,169 @@ function getClassEnrollmentIds(
 
 
 /* =========================================================
-   OPEN ENROLLMENT
+   GET CURRENT ENROLLMENT CLASS
+========================================================= */
+
+function getCurrentEnrollmentClass(){
+
+  const classId =
+    String(
+      classEnrollmentState.classId ||
+      ""
+    );
+
+
+  if(!classId){
+    return null;
+  }
+
+
+  return (
+    state.classes.find(item =>
+      sameId(
+        item?._id ||
+        item?.id,
+        classId
+      )
+    ) ||
+    null
+  );
+
+}
+
+
+/* =========================================================
+   GET SCHOOL STUDENT BY ID
+========================================================= */
+
+function getClassEnrollmentStudentById(
+  studentId
+){
+
+  const normalizedId =
+    String(
+      studentId ||
+      ""
+    );
+
+
+  if(!normalizedId){
+    return null;
+  }
+
+
+  return (
+    getStudents().find(student =>
+      sameId(
+        student?._id ||
+        student?.id,
+        normalizedId
+      )
+    ) ||
+    null
+  );
+
+}
+
+
+/* =========================================================
+   GET STUDENT DISPLAY INFORMATION
+========================================================= */
+
+function getClassEnrollmentStudentInfo(
+  student
+){
+
+  const studentId =
+    getClassEnrollmentStudentId(
+      student
+    );
+
+
+  const directoryStudent =
+    getClassEnrollmentStudentById(
+      studentId
+    );
+
+
+  const source =
+    (
+      directoryStudent &&
+      typeof directoryStudent === "object"
+    )
+      ? directoryStudent
+      : (
+          student &&
+          typeof student === "object"
+        )
+      ? student
+      : {};
+
+
+  return {
+
+    id:
+      studentId,
+
+    name:
+      source.name ||
+      source.fullName ||
+      source.email ||
+      "Student",
+
+    email:
+      source.email ||
+      "No email available",
+
+    course:
+      source.course ||
+      source.program ||
+      source.department ||
+      "No course information",
+
+    avatar:
+      source.profileImage ||
+      source.avatar ||
+      source.photo ||
+      FALLBACK_AVATAR
+
+  };
+
+}
+
+
+/* =========================================================
+   UPDATE ENROLLMENT COUNTS
+========================================================= */
+
+function updateClassEnrollmentCount(){
+
+  const count =
+    classEnrollmentState
+      .enrolledStudentIds
+      .size;
+
+
+  setText(
+    "classEnrollmentCount",
+    `${count} ${
+      count === 1
+        ? "student"
+        : "students"
+    }`
+  );
+
+
+  setText(
+    "classEnrolledStudentsBadge",
+    count
+  );
+
+}
+
+
+/* =========================================================
+   OPEN MANAGE STUDENTS
 ========================================================= */
 
 function openClassEnrollment(
@@ -40165,26 +40348,20 @@ function openClassEnrollment(
   }
 
 
-  const enrolledIds =
-    getClassEnrollmentIds(
-      classItem
-    );
-
-
   classEnrollmentState.classId =
     normalizedClassId;
 
 
-  classEnrollmentState.selectedStudentIds =
+  classEnrollmentState.enrolledStudentIds =
     new Set(
-      enrolledIds
+      getClassEnrollmentIds(
+        classItem
+      )
     );
 
 
-  classEnrollmentState.originalStudentIds =
-    new Set(
-      enrolledIds
-    );
+  classEnrollmentState.savingStudentIds =
+    new Set();
 
 
   const classTitle =
@@ -40199,13 +40376,13 @@ function openClassEnrollment(
   );
 
 
-  const search =
+  const searchInput =
     $("classEnrollmentSearch");
 
 
-  if(search){
+  if(searchInput){
 
-    search.value =
+    searchInput.value =
       "";
 
   }
@@ -40213,7 +40390,9 @@ function openClassEnrollment(
 
   updateClassEnrollmentCount();
 
-  renderClassEnrollmentStudents();
+  renderClassEnrolledStudents();
+
+  renderClassEnrollmentSearchResults();
 
 
   openModal(
@@ -40224,14 +40403,27 @@ function openClassEnrollment(
 
 
 /* =========================================================
-   CLOSE ENROLLMENT
+   CLOSE MANAGE STUDENTS
 ========================================================= */
 
 function closeClassEnrollmentModal(){
 
   if(
-    classEnrollmentState.saving
+    classEnrollmentState
+      .savingStudentIds
+      .size
   ){
+
+    showAiftToast({
+      type:
+        "info",
+
+      title:
+        "Updating enrollment",
+
+      message:
+        "Please wait while the current enrollment change finishes."
+    });
 
     return;
 
@@ -40247,48 +40439,36 @@ function closeClassEnrollmentModal(){
     "";
 
 
-  classEnrollmentState.selectedStudentIds =
+  classEnrollmentState.enrolledStudentIds =
     new Set();
 
 
-  classEnrollmentState.originalStudentIds =
+  classEnrollmentState.savingStudentIds =
     new Set();
+
+
+  const searchInput =
+    $("classEnrollmentSearch");
+
+
+  if(searchInput){
+
+    searchInput.value =
+      "";
+
+  }
 
 }
 
 
 /* =========================================================
-   UPDATE COUNT
+   RENDER ENROLLED STUDENTS
 ========================================================= */
 
-function updateClassEnrollmentCount(){
-
-  const count =
-    classEnrollmentState
-      .selectedStudentIds
-      .size;
-
-
-  setText(
-    "classEnrollmentCount",
-    `${count} ${
-      count === 1
-        ? "student"
-        : "students"
-    }`
-  );
-
-}
-
-
-/* =========================================================
-   RENDER SCHOOL STUDENTS
-========================================================= */
-
-function renderClassEnrollmentStudents(){
+function renderClassEnrolledStudents(){
 
   const container =
-    $("classEnrollmentList");
+    $("classEnrolledStudentsList");
 
 
   if(!container){
@@ -40296,96 +40476,309 @@ function renderClassEnrollmentStudents(){
   }
 
 
-  const students =
-    getStudents();
+  const classItem =
+    getCurrentEnrollmentClass();
 
 
-  const searchValue =
-    String(
-      $("classEnrollmentSearch")
-        ?.value ||
-      ""
-    )
-      .trim()
-      .toLowerCase();
-
-
-  const filteredStudents =
-    students.filter(student => {
-
-      const searchableText = [
-
-        student.name,
-
-        student.fullName,
-
-        student.email,
-
-        student.course,
-
-        student.program
-
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-
-      return (
-        !searchValue ||
-        searchableText.includes(
-          searchValue
-        )
-      );
-
-    });
-
-
-  if(!students.length){
+  if(!classItem){
 
     container.innerHTML = `
-
-      <div class="student-studio-empty">
-
-        No students are currently linked to this school.
-
-        <div style="margin-top:12px;">
-
-          <button
-            type="button"
-            class="primary-btn"
-            onclick="
-              closeClassEnrollmentModal();
-              openModal('studentModal');
-            "
-          >
-            Add student
-          </button>
-
-        </div>
-
+      <div class="class-enrollment-list-empty">
+        Class enrollment is unavailable.
       </div>
-
     `;
-
 
     return;
 
   }
 
 
-  if(!filteredStudents.length){
+  const classStudents =
+    Array.isArray(
+      classItem.studentIds
+    )
+      ? classItem.studentIds
+
+      : Array.isArray(
+          classItem.students
+        )
+      ? classItem.students
+
+      : Array.isArray(
+          classItem.enrolledStudents
+        )
+      ? classItem.enrolledStudents
+
+      : [];
+
+
+  const enrolledIds =
+    Array.from(
+      classEnrollmentState
+        .enrolledStudentIds
+    );
+
+
+  if(!enrolledIds.length){
+
+    container.innerHTML = `
+      <div class="class-enrollment-list-empty">
+        No students are enrolled in this class yet.
+      </div>
+    `;
+
+    updateClassEnrollmentCount();
+
+    return;
+
+  }
+
+
+  const students =
+    enrolledIds
+      .map(studentId => {
+
+        const populatedStudent =
+          classStudents.find(student =>
+            sameId(
+              getClassEnrollmentStudentId(
+                student
+              ),
+              studentId
+            )
+          );
+
+
+        return getClassEnrollmentStudentInfo(
+          populatedStudent ||
+          studentId
+        );
+
+      })
+      .filter(student =>
+        Boolean(student.id)
+      );
+
+
+  container.innerHTML =
+    students
+      .map(student => {
+
+        const saving =
+          classEnrollmentState
+            .savingStudentIds
+            .has(
+              student.id
+            );
+
+
+        return `
+
+          <div class="class-enrollment-person">
+
+            <img
+              class="class-enrollment-person-avatar"
+              src="${escapeHtml(student.avatar)}"
+              alt=""
+              loading="lazy"
+              onerror="
+                this.onerror=null;
+                this.src='${escapeHtml(FALLBACK_AVATAR)}';
+              "
+            >
+
+
+            <div class="class-enrollment-person-copy">
+
+              <strong>
+                ${escapeHtml(student.name)}
+              </strong>
+
+              <span>
+                ${escapeHtml(student.email)}
+              </span>
+
+              <small>
+                ${escapeHtml(student.course)}
+              </small>
+
+            </div>
+
+
+            <button
+              type="button"
+              class="
+                class-enrollment-person-action
+                remove
+              "
+              onclick="
+                removeStudentFromClass(
+                  '${escapeHtml(student.id)}'
+                )
+              "
+              ${saving ? "disabled" : ""}
+            >
+              ${
+                saving
+                  ? "Removing..."
+                  : "Remove"
+              }
+            </button>
+
+          </div>
+
+        `;
+
+      })
+      .join("");
+
+
+  updateClassEnrollmentCount();
+
+}
+
+
+/* =========================================================
+   RENDER STUDENT SEARCH RESULTS
+========================================================= */
+
+function renderClassEnrollmentSearchResults(){
+
+  const container =
+    $("classEnrollmentSearchResults");
+
+
+  if(!container){
+    return;
+  }
+
+
+  const searchInput =
+    $("classEnrollmentSearch");
+
+
+  const query =
+    String(
+      searchInput?.value ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  /*
+    Keep this area completely clean until the school
+    actually searches for somebody.
+  */
+
+  if(!query){
 
     container.innerHTML = `
 
-      <div class="student-studio-empty">
+      <div class="class-enrollment-search-empty">
 
-        No students match your search.
+        Start typing to search students in your school.
 
       </div>
 
     `;
 
+    return;
+
+  }
+
+
+  const students =
+    getStudents();
+
+
+  if(!students.length){
+
+    container.innerHTML = `
+
+      <div class="class-enrollment-search-empty">
+
+        No students are currently linked to this school.
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  const results =
+    students
+      .filter(student => {
+
+        const studentId =
+          getClassEnrollmentStudentId(
+            student
+          );
+
+
+        /*
+          Do not show students already enrolled.
+        */
+
+        if(
+          !studentId ||
+          classEnrollmentState
+            .enrolledStudentIds
+            .has(
+              studentId
+            )
+        ){
+
+          return false;
+
+        }
+
+
+        const searchableText = [
+
+          student.name,
+
+          student.fullName,
+
+          student.email,
+
+          student.course,
+
+          student.program,
+
+          student.department
+
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+
+        return searchableText.includes(
+          query
+        );
+
+      })
+      .slice(
+        0,
+        30
+      );
+
+
+  if(!results.length){
+
+    container.innerHTML = `
+
+      <div class="class-enrollment-search-empty">
+
+        No available students match your search.
+
+      </div>
+
+    `;
 
     return;
 
@@ -40393,126 +40786,77 @@ function renderClassEnrollmentStudents(){
 
 
   container.innerHTML =
-    filteredStudents
+    results
       .map(student => {
 
-        const studentId =
-          String(
-            student._id ||
-            student.id ||
-            ""
+        const info =
+          getClassEnrollmentStudentInfo(
+            student
           );
 
 
-        const checked =
+        const saving =
           classEnrollmentState
-            .selectedStudentIds
+            .savingStudentIds
             .has(
-              studentId
+              info.id
             );
-
-
-        const name =
-          student.name ||
-          student.fullName ||
-          student.email ||
-          "Student";
-
-
-        const email =
-          student.email ||
-          "No email";
-
-
-        const course =
-          student.course ||
-          student.program ||
-          "No course";
-
-
-        const avatar =
-          student.profileImage ||
-          student.avatar ||
-          student.photo ||
-          FALLBACK_AVATAR;
 
 
         return `
 
-          <label
-            class="
-              class-enrollment-student
-              ${
-                checked
-                  ? "selected"
-                  : ""
-              }
-            "
-          >
+          <div class="class-enrollment-person">
 
-            <input
-              type="checkbox"
-              value="${escapeHtml(studentId)}"
-              ${
-                checked
-                  ? "checked"
-                  : ""
-              }
-              onchange="
-                toggleClassEnrollmentStudent(
-                  '${escapeHtml(studentId)}',
-                  this.checked
-                )
+            <img
+              class="class-enrollment-person-avatar"
+              src="${escapeHtml(info.avatar)}"
+              alt=""
+              loading="lazy"
+              onerror="
+                this.onerror=null;
+                this.src='${escapeHtml(FALLBACK_AVATAR)}';
               "
             >
 
 
-            <img
-              src="${escapeHtml(avatar)}"
-              alt=""
-              loading="lazy"
-            >
-
-
-            <span
-              class="class-enrollment-student-copy"
-            >
+            <div class="class-enrollment-person-copy">
 
               <strong>
-                ${escapeHtml(name)}
+                ${escapeHtml(info.name)}
               </strong>
 
               <span>
-                ${escapeHtml(email)}
+                ${escapeHtml(info.email)}
               </span>
 
               <small>
-                ${escapeHtml(course)}
+                ${escapeHtml(info.course)}
               </small>
 
-            </span>
+            </div>
 
 
-            <span
+            <button
+              type="button"
               class="
-                class-enrollment-status
-                ${
-                  checked
-                    ? "enrolled"
-                    : ""
-                }
+                class-enrollment-person-action
+                add
               "
+              onclick="
+                addStudentToClass(
+                  '${escapeHtml(info.id)}'
+                )
+              "
+              ${saving ? "disabled" : ""}
             >
-
               ${
-                checked
-                  ? "Enrolled"
-                  : "Not enrolled"
+                saving
+                  ? "Adding..."
+                  : "Add"
               }
+            </button>
 
-            </span>
-
-          </label>
+          </div>
 
         `;
 
@@ -40523,141 +40867,163 @@ function renderClassEnrollmentStudents(){
 
 
 /* =========================================================
-   TOGGLE ONE STUDENT
+   UPDATE LOCAL CLASS ENROLLMENT
 ========================================================= */
 
-function toggleClassEnrollmentStudent(
-  studentId,
-  checked
+function updateLocalClassEnrollment(
+  classId,
+  classData,
+  studentIds
 ){
 
-  const id =
+  const index =
+    state.classes.findIndex(item =>
+      sameId(
+        item?._id ||
+        item?.id,
+        classId
+      )
+    );
+
+
+  if(index < 0){
+    return;
+  }
+
+
+  /*
+    Prefer the class returned by the backend because
+    studentIds may already be populated with user records.
+  */
+
+  if(
+    classData &&
+    typeof classData === "object"
+  ){
+
+    state.classes[index] =
+      classData;
+
+  }else{
+
+    state.classes[index] = {
+      ...state.classes[index],
+
+      studentIds:
+        studentIds
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+   SAVE STUDENT IDS TO CLASS
+========================================================= */
+
+async function persistClassEnrollment(
+  studentIds
+){
+
+  const classId =
     String(
-      studentId ||
+      classEnrollmentState.classId ||
       ""
     );
 
 
-  if(!id){
-    return;
-  }
-
-
-  if(checked){
-
-    classEnrollmentState
-      .selectedStudentIds
-      .add(
-        id
-      );
-
-  }else{
-
-    classEnrollmentState
-      .selectedStudentIds
-      .delete(
-        id
-      );
-
-  }
-
-
-  updateClassEnrollmentCount();
-
-  renderClassEnrollmentStudents();
-
-}
-
-
-/* =========================================================
-   SELECT ALL
-========================================================= */
-
-function selectAllClassStudents(){
-
-  getStudents()
-    .forEach(student => {
-
-      const id =
-        String(
-          student._id ||
-          student.id ||
-          ""
-        );
-
-
-      if(id){
-
-        classEnrollmentState
-          .selectedStudentIds
-          .add(
-            id
-          );
-
-      }
-
-    });
-
-
-  updateClassEnrollmentCount();
-
-  renderClassEnrollmentStudents();
-
-}
-
-
-/* =========================================================
-   CLEAR ALL
-========================================================= */
-
-function clearAllClassStudents(){
-
-  classEnrollmentState
-    .selectedStudentIds
-    .clear();
-
-
-  updateClassEnrollmentCount();
-
-  renderClassEnrollmentStudents();
-
-}
-
-
-/* =========================================================
-   SAVE ENROLLMENT
-========================================================= */
-
-async function saveClassEnrollment(){
-
-  const classId =
-    classEnrollmentState.classId;
-
-
   if(!classId){
 
-    showAiftToast({
-      type:
-        "error",
-
-      title:
-        "Class unavailable",
-
-      message:
-        "The selected class could not be found."
-    });
-
-    return;
+    throw new Error(
+      "The selected class could not be found."
+    );
 
   }
 
 
-  const button =
-    $("saveClassEnrollmentButton");
+  const response =
+    await fetch(
+      `${API}/api/classes/${encodeURIComponent(classId)}`,
+      {
+        method:
+          "PATCH",
+
+        headers:{
+          ...authHeaders(),
+
+          "Content-Type":
+            "application/json"
+        },
+
+        body:
+          JSON.stringify({
+            studentIds
+          })
+      }
+    );
+
+
+  const data =
+    await safeJson(
+      response
+    );
+
+
+  if(!response.ok){
+
+    throw new Error(
+      data?.message ||
+      "Class enrollment could not be updated."
+    );
+
+  }
+
+
+  const returnedClass =
+    (
+      data?.class &&
+      typeof data.class === "object"
+    )
+      ? data.class
+      : (
+          data &&
+          typeof data === "object"
+        )
+      ? data
+      : null;
+
+
+  updateLocalClassEnrollment(
+    classId,
+    returnedClass,
+    studentIds
+  );
+
+
+  return returnedClass;
+
+}
+
+
+/* =========================================================
+   ADD STUDENT TO CLASS
+========================================================= */
+
+async function addStudentToClass(
+  studentId
+){
+
+  const normalizedStudentId =
+    String(
+      studentId ||
+      ""
+    ).trim();
 
 
   if(
-    classEnrollmentState.saving
+    !normalizedStudentId ||
+    !classEnrollmentState.classId
   ){
 
     return;
@@ -40665,105 +41031,116 @@ async function saveClassEnrollment(){
   }
 
 
-  classEnrollmentState.saving =
-    true;
+  if(
+    classEnrollmentState
+      .enrolledStudentIds
+      .has(
+        normalizedStudentId
+      )
+  ){
 
-
-  if(button){
-
-    button.disabled =
-      true;
-
-    button.textContent =
-      "Saving...";
+    return;
 
   }
 
 
-  const studentIds =
+  if(
+    classEnrollmentState
+      .savingStudentIds
+      .has(
+        normalizedStudentId
+      )
+  ){
+
+    return;
+
+  }
+
+
+  const student =
+    getClassEnrollmentStudentById(
+      normalizedStudentId
+    );
+
+
+  const studentName =
+    student?.name ||
+    student?.fullName ||
+    student?.email ||
+    "Student";
+
+
+  classEnrollmentState
+    .savingStudentIds
+    .add(
+      normalizedStudentId
+    );
+
+
+  renderClassEnrollmentSearchResults();
+
+
+  const nextStudentIds =
     Array.from(
-      classEnrollmentState
-        .selectedStudentIds
+      new Set([
+        ...classEnrollmentState
+          .enrolledStudentIds,
+
+        normalizedStudentId
+      ])
     );
 
 
   try{
 
-    const response =
-      await fetch(
-        `${API}/api/classes/${encodeURIComponent(classId)}`,
-        {
-          method:
-            "PATCH",
-
-          headers:{
-            ...authHeaders(),
-
-            "Content-Type":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-              studentIds
-            })
-        }
+    const returnedClass =
+      await persistClassEnrollment(
+        nextStudentIds
       );
 
 
-    const data =
-      await safeJson(
-        response
+    /*
+      Rebuild enrollment from the backend response when
+      possible. Otherwise use our requested IDs.
+    */
+
+    const returnedIds =
+      getClassEnrollmentIds(
+        returnedClass
       );
 
 
-    if(!response.ok){
-
-      throw new Error(
-        data?.message ||
-        "Class enrollment could not be updated."
+    classEnrollmentState.enrolledStudentIds =
+      new Set(
+        returnedIds.length
+          ? returnedIds
+          : nextStudentIds
       );
+
+
+    /*
+      Clear search after successful enrollment.
+    */
+
+    const searchInput =
+      $("classEnrollmentSearch");
+
+
+    if(searchInput){
+
+      searchInput.value =
+        "";
 
     }
 
 
-    const index =
-      state.classes.findIndex(item =>
-        sameId(
-          item?._id ||
-          item?.id,
-          classId
-        )
-      );
+    updateClassEnrollmentCount();
 
+    renderClassEnrolledStudents();
 
-    if(index >= 0){
+    renderClassEnrollmentSearchResults();
 
-      state.classes[index] =
-        data?.class ||
-        data ||
-        state.classes[index];
-
-    }
-
-
-    closeModal(
-      "classEnrollmentModal"
-    );
-
-
-    classEnrollmentState.classId =
-      "";
-
-
-    classEnrollmentState
-      .selectedStudentIds =
-      new Set();
-
-
-    classEnrollmentState
-      .originalStudentIds =
-      new Set();
+    renderClasses();
 
 
     showAiftToast({
@@ -40771,25 +41148,11 @@ async function saveClassEnrollment(){
         "success",
 
       title:
-        "Enrollment updated",
+        "Student enrolled",
 
       message:
-        `${
-          studentIds.length
-        } ${
-          studentIds.length === 1
-            ? "student is"
-            : "students are"
-        } now enrolled in this class.`
+        `${studentName} now has access to this class.`
     });
-
-
-    await loadAll();
-
-
-    openTab(
-      "classes"
-    );
 
   }catch(error){
 
@@ -40798,28 +41161,191 @@ async function saveClassEnrollment(){
         "error",
 
       title:
-        "Enrollment update failed",
+        "Enrollment failed",
 
       message:
         error?.message ||
-        "The class enrollment could not be saved."
+        "The student could not be enrolled."
     });
 
   }finally{
 
-    classEnrollmentState.saving =
-      false;
+    classEnrollmentState
+      .savingStudentIds
+      .delete(
+        normalizedStudentId
+      );
 
 
-    if(button){
+    renderClassEnrolledStudents();
 
-      button.disabled =
-        false;
+    renderClassEnrollmentSearchResults();
 
-      button.textContent =
-        "Save enrollment";
+  }
 
-    }
+}
+
+
+/* =========================================================
+   REMOVE STUDENT FROM CLASS
+========================================================= */
+
+async function removeStudentFromClass(
+  studentId
+){
+
+  const normalizedStudentId =
+    String(
+      studentId ||
+      ""
+    ).trim();
+
+
+  if(
+    !normalizedStudentId ||
+    !classEnrollmentState.classId
+  ){
+
+    return;
+
+  }
+
+
+  if(
+    !classEnrollmentState
+      .enrolledStudentIds
+      .has(
+        normalizedStudentId
+      )
+  ){
+
+    return;
+
+  }
+
+
+  if(
+    classEnrollmentState
+      .savingStudentIds
+      .has(
+        normalizedStudentId
+      )
+  ){
+
+    return;
+
+  }
+
+
+  const student =
+    getClassEnrollmentStudentById(
+      normalizedStudentId
+    );
+
+
+  const studentName =
+    student?.name ||
+    student?.fullName ||
+    student?.email ||
+    "Student";
+
+
+  classEnrollmentState
+    .savingStudentIds
+    .add(
+      normalizedStudentId
+    );
+
+
+  renderClassEnrolledStudents();
+
+
+  const nextStudentIds =
+    Array.from(
+      classEnrollmentState
+        .enrolledStudentIds
+    )
+      .filter(id =>
+        !sameId(
+          id,
+          normalizedStudentId
+        )
+      );
+
+
+  try{
+
+    const returnedClass =
+      await persistClassEnrollment(
+        nextStudentIds
+      );
+
+
+    const returnedIds =
+      getClassEnrollmentIds(
+        returnedClass
+      );
+
+
+    /*
+      When removing the last student, returnedIds is
+      intentionally empty, so use nextStudentIds directly.
+    */
+
+    classEnrollmentState.enrolledStudentIds =
+      new Set(
+        returnedClass
+          ? returnedIds
+          : nextStudentIds
+      );
+
+
+    updateClassEnrollmentCount();
+
+    renderClassEnrolledStudents();
+
+    renderClassEnrollmentSearchResults();
+
+    renderClasses();
+
+
+    showAiftToast({
+      type:
+        "success",
+
+      title:
+        "Student removed",
+
+      message:
+        `${studentName} no longer has access to this class.`
+    });
+
+  }catch(error){
+
+    showAiftToast({
+      type:
+        "error",
+
+      title:
+        "Removal failed",
+
+      message:
+        error?.message ||
+        "The student could not be removed from this class."
+    });
+
+  }finally{
+
+    classEnrollmentState
+      .savingStudentIds
+      .delete(
+        normalizedStudentId
+      );
+
+
+    renderClassEnrolledStudents();
+
+    renderClassEnrollmentSearchResults();
 
   }
 
