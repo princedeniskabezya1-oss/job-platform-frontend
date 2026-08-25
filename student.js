@@ -16590,63 +16590,240 @@ function handleStudentCareerAction(
       .toLowerCase();
 
 
+  const scrollToCareerElement =
+    id => {
+
+      const element =
+        document.getElementById(
+          id
+        );
+
+
+      if (!element){
+        return false;
+      }
+
+
+      element.scrollIntoView({
+        behavior:"smooth",
+        block:"start"
+      });
+
+
+      return true;
+
+    };
+
+
   switch(normalizedAction){
 
 
     /* =========================================
-       OPPORTUNITIES
+       ALL OPPORTUNITIES
     ========================================= */
 
-case "opportunities":
+    case "opportunities":
 
-  const opportunities =
-    $("studentCareerRecommendedJobs");
+      scrollToCareerElement(
+        "studentCareerRecommendedJobs"
+      );
+
+      break;
 
 
-  opportunities?.scrollIntoView({
-    behavior:"smooth",
-    block:"start"
-  });
+    /* =========================================
+       INTERNSHIPS
+    ========================================= */
 
-  break;
+    case "internships":
+
+      scrollToCareerElement(
+        "studentCareerRecommendedJobs"
+      );
+
+
+      notifyAIFTInfo(
+        "Showing available career opportunities. Dedicated internship filtering will be connected to the Career Hub marketplace.",
+        {
+          title:
+            "Internships"
+        }
+      );
+
+      break;
+
+
+    /* =========================================
+       JOBS
+    ========================================= */
+
+    case "jobs":
+
+      scrollToCareerElement(
+        "studentCareerRecommendedJobs"
+      );
+
+
+      notifyAIFTInfo(
+        "Showing available jobs and employment opportunities.",
+        {
+          title:
+            "Jobs"
+        }
+      );
+
+      break;
+
+
+    /* =========================================
+       SCHOLARSHIPS
+    ========================================= */
+
+    case "scholarships":{
+
+      const scholarshipHeading =
+        Array.from(
+          document.querySelectorAll(
+            "#section-career .student-career-card"
+          )
+        )
+          .find(
+            card =>
+              card
+                .textContent
+                ?.includes(
+                  "Education should not stop because of funding"
+                )
+          );
+
+
+      scholarshipHeading
+        ?.scrollIntoView({
+          behavior:"smooth",
+          block:"start"
+        });
+
+
+      notifyAIFTInfo(
+        "The Scholarship marketplace is being prepared for verified scholarship, grant and sponsored-education opportunities.",
+        {
+          title:
+            "AIFT Scholarships"
+        }
+      );
+
+      break;
+
+    }
+
+
+    /* =========================================
+       PARTNERSHIPS
+    ========================================= */
+
+    case "partnerships":
+
+      notifyAIFTInfo(
+        "AIFT Partnerships will connect schools and companies for internships, graduate hiring, scholarships, training and sponsored programs.",
+        {
+          title:
+            "AIFT Partnerships"
+        }
+      );
+
+      break;
+
+
+    /* =========================================
+       VENTURES
+    ========================================= */
+
+    case "ventures":{
+
+      const ventureCard =
+        Array.from(
+          document.querySelectorAll(
+            "#section-career .student-career-card"
+          )
+        )
+          .find(
+            card =>
+              card
+                .textContent
+                ?.includes(
+                  "Build something bigger than a résumé"
+                )
+          );
+
+
+      ventureCard
+        ?.scrollIntoView({
+          behavior:"smooth",
+          block:"start"
+        });
+
+
+      break;
+
+    }
+
+
+    /* =========================================
+       EVENTS
+    ========================================= */
+
+    case "events":
+
+      notifyAIFTInfo(
+        "Career fairs, workshops, recruitment events and AIFT Demo Days will appear here as the Events marketplace is connected.",
+        {
+          title:
+            "Career Events"
+        }
+      );
+
+      break;
 
 
     /* =========================================
        APPLICATIONS
     ========================================= */
 
-case "applications":
+    case "applications":
 
-  const applications =
-    $("studentCareerApplicationList");
+      scrollToCareerElement(
+        "studentCareerApplicationsSection"
+      );
 
-
-  applications?.scrollIntoView({
-    behavior:"smooth",
-    block:"start"
-  });
-
-  break;
+      break;
 
 
-case "refresh":
+    /* =========================================
+       REFRESH
+    ========================================= */
 
-  studentCareerState.loaded =
-    false;
+    case "refresh":
+
+      studentCareerState.loaded =
+        false;
 
 
-  loadStudentCareerHubData({
-    force:true
-  })
-    .then(() => {
+      loadStudentCareerHubData({
+        force:true
+      })
+        .then(
+          () => {
 
-      renderStudentCareerOpportunities();
+            renderStudentCareerOpportunities();
 
-      renderStudentCareerApplications();
+            renderStudentCareerApplications();
 
-    });
+            updateStudentCareerSavedCount();
 
-  break;
+          }
+        );
+
+      break;
 
 
     /* =========================================
@@ -16685,14 +16862,11 @@ case "refresh":
             );
 
 
-          if (resumeSection){
-
-            resumeSection.scrollIntoView({
+          resumeSection
+            ?.scrollIntoView({
               behavior:"smooth",
               block:"center"
             });
-
-          }
 
         },
         150
@@ -16734,8 +16908,9 @@ case "refresh":
 
           if (workspace){
 
-            workspace.dataset.requestedAction =
-              "career";
+            workspace.dataset
+              .requestedAction =
+                "career";
 
           }
 
@@ -16744,11 +16919,7 @@ case "refresh":
             $("studentAIInput");
 
 
-          if (input){
-
-            input.focus();
-
-          }
+          input?.focus();
 
         },
         150
