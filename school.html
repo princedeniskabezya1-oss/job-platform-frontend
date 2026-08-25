@@ -41606,6 +41606,26 @@ const state = {
 
   opportunities: [],
 
+  /* ==========================
+     CAREER HUB
+  ========================== */
+
+  careerHub: {
+    loaded: false,
+    loading: false,
+    error: null,
+    activeView: "overview",
+    applicationStatus: "all",
+
+    applications: [],
+    scholarships: [],
+    scholarshipApplications: [],
+    partnerships: [],
+    events: [],
+    eventRegistrations: [],
+    ventures: []
+  },
+
   attendance: [],
 
   schedules: [],
@@ -60693,7 +60713,13 @@ function renderSettings(){
     btn.setAttribute("onclick", action);
   }
 }
-  const CAREER_STATUSES = [
+
+/* =========================================================
+   AIFT SCHOOL CAREER HUB
+   Production Career Operations Engine
+========================================================= */
+
+const CAREER_STATUSES = [
   "open",
   "pending",
   "review",
@@ -60705,317 +60731,4300 @@ function renderSettings(){
   "closed"
 ];
 
-function opportunityId(item){
-  return String(item?._id || item?.id || "");
-}
+const CAREER_APPLICATION_STATUSES = [
+  "pending",
+  "review",
+  "interview",
+  "approved",
+  "active",
+  "completed"
+];
 
-function getOpportunityType(item){
-  return String(item.type || item.category || item.opportunityType || "").toLowerCase();
-}
 
-function getOpportunityStatus(item){
-  return String(item.status || "open").toLowerCase();
-}
+/* =========================================================
+   GENERIC CAREER HUB HELPERS
+========================================================= */
 
-function isCompanyRequest(item){
-  const type = getOpportunityType(item);
-  return ["company_request","company-request","collaboration","request","intern_request"].includes(type);
-}
+function careerArray(value, keys = []){
 
-function renderCareerHub(){
-  const opportunities = state.opportunities || [];
-  const students = getStudents();
-
-  const internships = opportunities.filter(o => getOpportunityType(o).includes("intern")).length;
-  const jobs = opportunities.filter(o => getOpportunityType(o) === "job" || getOpportunityType(o).includes("job")).length;
-  const companyRequests = opportunities.filter(isCompanyRequest).length;
-  const placements = opportunities.filter(o => ["approved","active","completed"].includes(getOpportunityStatus(o))).length;
-
-  setText("careerTotalValue", opportunities.length);
-  setText("careerInternshipValue", internships);
-  setText("careerJobValue", jobs);
-  setText("careerRequestValue", companyRequests);
-  setText("careerPlacementValue", placements);
-
-  renderCareerPipeline(opportunities);
-  renderCareerRecent(opportunities);
-  renderCareerCompanyRequests(opportunities);
-  renderCareerReadiness(students);
-}
-
-function renderCareerPipeline(opportunities){
-  const board = $("careerPipelineBoard");
-  if (!board) return;
-
-  if (!opportunities.length){
-    board.innerHTML = `<div class="empty" style="grid-column:1/-1;">No opportunities yet.</div>`;
-    return;
+  if (Array.isArray(value)){
+    return value;
   }
 
-  board.innerHTML = CAREER_STATUSES.map(status => {
-    const items = opportunities.filter(o => getOpportunityStatus(o) === status);
+  for (const key of keys){
 
-    return `
-      <div class="career-column">
-        <div class="career-column-head">
-          <span>${escapeHtml(status.toUpperCase())}</span>
-          <span class="chip primary">${items.length}</span>
-        </div>
+    if (Array.isArray(value?.[key])){
+      return value[key];
+    }
 
-        ${
-          items.length
-            ? items.map(renderOpportunityMiniCard).join("")
-            : `<div class="empty">No ${escapeHtml(status)} items.</div>`
-        }
-      </div>
-    `;
-  }).join("");
-}
-
-function renderOpportunityMiniCard(item){
-  const id = opportunityId(item);
-  const title = item.title || item.name || "Untitled opportunity";
-  const company = item.company || item.companyName || item.employerName || "Company not added";
-  const type = getOpportunityType(item) || "opportunity";
-
-  return `
-    <div class="career-mini-card">
-      <h4>${escapeHtml(title)}</h4>
-      <p>${escapeHtml(company)} · ${escapeHtml(type)}</p>
-
-      <div class="career-actions">
-        <button class="ghost-btn" onclick="editOpportunity('${id}')">Edit</button>
-        <button class="success-btn" onclick="quickUpdateOpportunityStatus('${id}','approved')">Approve</button>
-        <button class="ghost-btn" onclick="quickUpdateOpportunityStatus('${id}','active')">Active</button>
-        <button class="danger-btn" onclick="deleteOpportunity('${id}')">Delete</button>
-      </div>
-    </div>
-  `;
-}
-
-function renderCareerRecent(opportunities){
-  const box = $("careerRecentList");
-  if (!box) return;
-
-  if (!opportunities.length){
-    box.innerHTML = `<div class="empty">No opportunities yet.</div>`;
-    return;
   }
 
-  box.innerHTML = opportunities.slice(0,8).map(item => {
-    const id = opportunityId(item);
-    return `
-      <article class="job-card">
-        <div class="job-head">
-          <div>
-            <h3 class="job-title">${escapeHtml(item.title || item.name || "Untitled opportunity")}</h3>
-            <div class="job-company">${escapeHtml(item.company || item.companyName || "Company not added")}</div>
-          </div>
-          <span class="chip primary">${escapeHtml(getOpportunityStatus(item))}</span>
-        </div>
-
-        <p class="job-desc">${escapeHtml(item.description || item.summary || "No description added.")}</p>
-
-        <div class="program-meta">
-          <span class="chip">${escapeHtml(getOpportunityType(item) || "opportunity")}</span>
-          <span class="chip">${escapeHtml(item.location || item.workSetup || "Location not added")}</span>
-        </div>
-
-        <div class="ops-actions">
-          <button class="ghost-btn" onclick="editOpportunity('${id}')">Edit</button>
-          <button class="danger-btn" onclick="deleteOpportunity('${id}')">Delete</button>
-        </div>
-      </article>
-    `;
-  }).join("");
-}
-
-function renderCareerCompanyRequests(opportunities){
-  const box = $("careerCompanyRequests");
-  if (!box) return;
-
-  const requests = opportunities.filter(isCompanyRequest);
-
-  if (!requests.length){
-    box.innerHTML = `<div class="empty">No company requests yet.</div>`;
-    return;
+  if (Array.isArray(value?.data)){
+    return value.data;
   }
 
-  box.innerHTML = requests.slice(0,6).map(item => `
-    <article class="job-card">
-      <div class="job-head">
-        <div>
-          <h3 class="job-title">${escapeHtml(item.title || item.name || "Company request")}</h3>
-          <div class="job-company">${escapeHtml(item.company || item.companyName || "Company not added")}</div>
-        </div>
-        <span class="chip warning">${escapeHtml(getOpportunityStatus(item))}</span>
-      </div>
-      <p class="job-desc">${escapeHtml(item.description || item.summary || "No request details added.")}</p>
-    </article>
-  `).join("");
-}
-
-function renderCareerReadiness(students){
-  const box = $("careerReadinessList");
-  if (!box) return;
-
-  if (!students.length){
-    box.innerHTML = `<div class="empty">No students found.</div>`;
-    return;
+  if (Array.isArray(value?.items)){
+    return value.items;
   }
 
-  box.innerHTML = students.map(student => {
-    const sid = student._id;
-    const studentSubmissions = state.submissions.filter(sub =>
-      sameId(sub.studentId?._id || sub.studentId, sid)
+  if (Array.isArray(value?.results)){
+    return value.results;
+  }
+
+  return [];
+}
+
+
+function careerId(item){
+
+  return String(
+    item?._id ||
+    item?.id ||
+    ""
+  );
+
+}
+
+
+function careerLower(value){
+
+  return String(
+    value ??
+    ""
+  )
+    .trim()
+    .toLowerCase();
+
+}
+
+
+function careerSearchText(...values){
+
+  return values
+    .flat(Infinity)
+    .filter(Boolean)
+    .map(value => {
+
+      if (
+        typeof value ===
+        "object"
+      ){
+
+        return Object.values(value)
+          .filter(item =>
+            typeof item ===
+            "string"
+          )
+          .join(" ");
+
+      }
+
+      return String(value);
+
+    })
+    .join(" ")
+    .toLowerCase();
+
+}
+
+
+function careerDate(value){
+
+  if (!value){
+    return null;
+  }
+
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return null;
+  }
+
+  return date;
+
+}
+
+
+function careerFormatDate(value){
+
+  const date =
+    careerDate(value);
+
+  if (!date){
+    return "No date";
+  }
+
+  return date.toLocaleDateString(
+    [],
+    {
+      month:"short",
+      day:"numeric",
+      year:"numeric"
+    }
+  );
+
+}
+
+
+function careerFormatDateTime(value){
+
+  const date =
+    careerDate(value);
+
+  if (!date){
+    return "No date";
+  }
+
+  return date.toLocaleString(
+    [],
+    {
+      month:"short",
+      day:"numeric",
+      year:"numeric",
+      hour:"numeric",
+      minute:"2-digit"
+    }
+  );
+
+}
+
+
+function careerDaysUntil(value){
+
+  const date =
+    careerDate(value);
+
+  if (!date){
+    return null;
+  }
+
+  const now =
+    new Date();
+
+  const today =
+    new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
     );
 
-    const enrolledClasses = state.classes.filter(cls => {
-      const ids = [
-        ...(cls.students || []),
-        ...(cls.studentIds || [])
-      ].map(x => String(x?._id || x));
-      return ids.includes(String(sid));
+  const target =
+    new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+
+  return Math.ceil(
+    (
+      target.getTime() -
+      today.getTime()
+    ) /
+    86400000
+  );
+
+}
+
+
+function careerStatusLabel(value){
+
+  const status =
+    String(
+      value ||
+      "unknown"
+    )
+      .replace(/_/g," ")
+      .replace(/-/g," ");
+
+  return status.replace(
+    /\b\w/g,
+    char =>
+      char.toUpperCase()
+  );
+
+}
+
+
+function careerEmpty(
+  title,
+  text = ""
+){
+
+  return `
+    <div class="career-hub-empty">
+      <strong>
+        ${escapeHtml(title)}
+      </strong>
+
+      ${
+        text
+          ? `
+            <span>
+              ${escapeHtml(text)}
+            </span>
+          `
+          : ""
+      }
+    </div>
+  `;
+
+}
+
+
+function careerCompactEmpty(
+  title,
+  text = ""
+){
+
+  return `
+    <div class="career-hub-empty compact">
+      <strong>
+        ${escapeHtml(title)}
+      </strong>
+
+      ${
+        text
+          ? `
+            <span>
+              ${escapeHtml(text)}
+            </span>
+          `
+          : ""
+      }
+    </div>
+  `;
+
+}
+
+
+function careerGetStudentName(item){
+
+  const student =
+    item?.student ||
+    item?.studentId ||
+    item?.applicant ||
+    item?.user ||
+    {};
+
+  if (
+    typeof student ===
+    "string"
+  ){
+    return (
+      item?.studentName ||
+      item?.applicantName ||
+      "Student"
+    );
+  }
+
+  return (
+    student?.name ||
+    student?.fullName ||
+    student?.displayName ||
+    item?.studentName ||
+    item?.applicantName ||
+    item?.name ||
+    "Student"
+  );
+
+}
+
+
+function careerGetCompanyName(item){
+
+  const company =
+    item?.company ||
+    item?.companyId ||
+    item?.employer ||
+    item?.employerId ||
+    item?.partnerCompany ||
+    {};
+
+  if (
+    typeof company ===
+    "string"
+  ){
+
+    return (
+      item?.companyName ||
+      item?.employerName ||
+      company ||
+      "Company"
+    );
+
+  }
+
+  return (
+    company?.companyName ||
+    company?.name ||
+    company?.businessName ||
+    item?.companyName ||
+    item?.employerName ||
+    "Company"
+  );
+
+}
+
+
+function careerGetOpportunityName(item){
+
+  const opportunity =
+    item?.opportunity ||
+    item?.opportunityId ||
+    item?.internship ||
+    item?.job ||
+    {};
+
+  if (
+    typeof opportunity ===
+    "string"
+  ){
+
+    return (
+      item?.opportunityTitle ||
+      item?.title ||
+      "Opportunity"
+    );
+
+  }
+
+  return (
+    opportunity?.title ||
+    opportunity?.name ||
+    item?.opportunityTitle ||
+    item?.title ||
+    "Opportunity"
+  );
+
+}
+
+
+function careerGetApplicationStatus(item){
+
+  return careerLower(
+    item?.status ||
+    item?.applicationStatus ||
+    "pending"
+  );
+
+}
+
+
+function careerGetApplicationSource(item){
+
+  const source =
+    careerLower(
+      item?.source ||
+      item?.type ||
+      item?.applicationType ||
+      item?.opportunityType
+    );
+
+  if (
+    source.includes(
+      "scholar"
+    )
+  ){
+    return "scholarship";
+  }
+
+  return "internship";
+
+}
+
+
+/* =========================================================
+   OPPORTUNITY HELPERS
+========================================================= */
+
+function opportunityId(item){
+
+  return careerId(item);
+
+}
+
+
+function getOpportunityType(item){
+
+  return careerLower(
+    item?.type ||
+    item?.category ||
+    item?.opportunityType
+  );
+
+}
+
+
+function getOpportunityStatus(item){
+
+  return careerLower(
+    item?.status ||
+    "open"
+  );
+
+}
+
+
+function isCompanyRequest(item){
+
+  const type =
+    getOpportunityType(item);
+
+  return [
+    "company_request",
+    "company-request",
+    "collaboration",
+    "request",
+    "intern_request"
+  ].includes(type);
+
+}
+
+
+/* =========================================================
+   CAREER HUB SYSTEM STATE
+========================================================= */
+
+function setCareerHubSystemState(
+  type = "",
+  message = ""
+){
+
+  const box =
+    $("careerHubSystemState");
+
+  if (!box){
+    return;
+  }
+
+  if (
+    !type ||
+    !message
+  ){
+
+    box.classList.add(
+      "hidden"
+    );
+
+    box.innerHTML =
+      "";
+
+    return;
+  }
+
+  box.classList.remove(
+    "hidden"
+  );
+
+  box.dataset.state =
+    type;
+
+  box.innerHTML = `
+    <strong>
+      ${
+        type === "error"
+          ? "Career Hub needs attention"
+          : "Loading Career Hub"
+      }
+    </strong>
+
+    <span>
+      ${escapeHtml(message)}
+    </span>
+  `;
+
+}
+
+
+/* =========================================================
+   CAREER HUB NAVIGATION
+========================================================= */
+
+function openCareerHubView(
+  view = "overview",
+  button = null
+){
+
+  const allowed =
+    [
+      "overview",
+      "opportunities",
+      "applications",
+      "scholarships",
+      "partnerships",
+      "events",
+      "talent",
+      "ventures"
+    ];
+
+  const nextView =
+    allowed.includes(view)
+      ? view
+      : "overview";
+
+  if (state.careerHub){
+    state.careerHub.activeView =
+      nextView;
+  }
+
+  document
+    .querySelectorAll(
+      "[data-career-panel]"
+    )
+    .forEach(panel => {
+
+      panel.classList.toggle(
+        "active",
+        panel.dataset
+          .careerPanel ===
+          nextView
+      );
+
     });
 
-    const completionScore = state.assignments.length
-      ? Math.round((studentSubmissions.length / state.assignments.length) * 100)
-      : 0;
+  document
+    .querySelectorAll(
+      "[data-career-view]"
+    )
+    .forEach(nav => {
 
-    const classScore = enrolledClasses.length ? 30 : 0;
-    const readiness = Math.min(100, Math.round((completionScore * .7) + classScore));
+      nav.classList.toggle(
+        "active",
+        nav.dataset
+          .careerView ===
+          nextView
+      );
 
-    return `
-      <article class="career-readiness-card">
-        <h3>${escapeHtml(student.name || student.fullName || student.email || "Student")}</h3>
-        <p>${escapeHtml(student.email || "No email added")}</p>
+    });
 
-        <div class="progress-head">
-          <span>Readiness</span>
-          <strong>${readiness}%</strong>
-        </div>
+  if (button){
 
-        <div class="progress-bar">
-          <div class="progress-fill" style="width:${readiness}%"></div>
-        </div>
+    button.classList.add(
+      "active"
+    );
 
-        <div class="student-premium-stats">
-          <div class="student-premium-stat">
-            <span>Classes</span>
-            <strong>${enrolledClasses.length}</strong>
-          </div>
-          <div class="student-premium-stat">
-            <span>Submissions</span>
-            <strong>${studentSubmissions.length}</strong>
-          </div>
-        </div>
-      </article>
-    `;
-  }).join("");
+  }
+
+  renderCareerHubView(
+    nextView
+  );
+
 }
 
-function openOpportunityModal(){
-  window.editingOpportunityId = null;
 
-  setText("opportunityModalTitle","Add Opportunity");
+function renderCareerHubView(view){
 
-  ["opportunityTitle","opportunityCompany","opportunityDeadline","opportunityLocation","opportunityDescription"].forEach(id => {
-    if ($(id)) $(id).value = "";
-  });
+  switch(view){
 
-  if ($("opportunityType")) $("opportunityType").value = "internship";
-  if ($("opportunityStatus")) $("opportunityStatus").value = "open";
+    case "opportunities":
+      renderCareerOpportunities();
+      break;
 
-  openModal("opportunityModal");
+    case "applications":
+      renderCareerApplications();
+      break;
+
+    case "scholarships":
+      renderCareerScholarships();
+      break;
+
+    case "partnerships":
+      renderCareerPartnerships();
+      break;
+
+    case "events":
+      renderCareerEvents();
+      break;
+
+    case "talent":
+      renderCareerTalent();
+      break;
+
+    case "ventures":
+      renderCareerVentures();
+      break;
+
+    default:
+      renderCareerOverview();
+      break;
+
+  }
+
 }
 
-function editOpportunity(id){
-  const item = (state.opportunities || []).find(o => String(o._id) === String(id));
-  if (!item) return showAlert("error","Opportunity not found.");
 
-  window.editingOpportunityId = id;
+/* =========================================================
+   CREATE MENU
+========================================================= */
 
-  setText("opportunityModalTitle","Edit Opportunity");
+function openCareerCreateMenu(){
 
-  $("opportunityTitle").value = item.title || item.name || "";
-  $("opportunityCompany").value = item.company || item.companyName || item.employerName || "";
-  $("opportunityType").value = getOpportunityType(item) || "internship";
-  $("opportunityStatus").value = getOpportunityStatus(item) || "open";
-  $("opportunityDeadline").value = item.deadline ? String(item.deadline).slice(0,10) : "";
-  $("opportunityLocation").value = item.location || item.workSetup || "";
-  $("opportunityDescription").value = item.description || item.summary || "";
+  const overlay =
+    $("careerCreateMenuOverlay");
 
-  openModal("opportunityModal");
+  if (!overlay){
+    return;
+  }
+
+  overlay.classList.remove(
+    "hidden"
+  );
+
+  document.body.classList.add(
+    "career-create-menu-open"
+  );
+
 }
 
-async function saveOpportunity(){
+
+function closeCareerCreateMenu(event){
+
+  if (
+    event &&
+    event.target !==
+      event.currentTarget
+  ){
+    return;
+  }
+
+  const overlay =
+    $("careerCreateMenuOverlay");
+
+  if (overlay){
+
+    overlay.classList.add(
+      "hidden"
+    );
+
+  }
+
+  document.body.classList.remove(
+    "career-create-menu-open"
+  );
+
+}
+
+
+/* =========================================================
+   CAREER HUB BACKEND LOADER
+========================================================= */
+
+async function loadSchoolCareerHub({
+  force = false,
+  silent = false
+} = {}){
+
+  const hub =
+    state.careerHub;
+
+  if (!hub){
+    return;
+  }
+
+  if (
+    hub.loading
+  ){
+    return;
+  }
+
+  if (
+    hub.loaded &&
+    !force
+  ){
+
+    renderCareerHub();
+    return;
+
+  }
+
+  hub.loading =
+    true;
+
+  hub.error =
+    null;
+
+  const refreshButton =
+    $("careerHubRefreshButton");
+
+  if (refreshButton){
+
+    refreshButton.disabled =
+      true;
+
+    refreshButton.classList.add(
+      "loading"
+    );
+
+  }
+
+  if (!silent){
+
+    setCareerHubSystemState(
+      "loading",
+      "Loading opportunities, applications, scholarships, partnerships, events and ventures."
+    );
+
+  }
+
   try{
-    const payload = {
-      schoolId:getSchoolId(),
-      title:$("opportunityTitle").value.trim(),
-      company:$("opportunityCompany").value.trim(),
-      companyName:$("opportunityCompany").value.trim(),
-      type:$("opportunityType").value,
-      status:$("opportunityStatus").value,
-      deadline:$("opportunityDeadline").value || null,
-      location:$("opportunityLocation").value.trim(),
-      description:$("opportunityDescription").value.trim()
+
+    const schoolId =
+      getSchoolId();
+
+    /*
+      Each request is independent.
+
+      apiGet() already returns the supplied fallback
+      when an endpoint is unavailable, so one Career
+      Hub service cannot take down the school dashboard.
+    */
+
+    const requests = [
+
+      apiGet(
+        `/api/opportunities?schoolId=${encodeURIComponent(schoolId)}`,
+        []
+      ),
+
+      apiGet(
+        `/api/applications?schoolId=${encodeURIComponent(schoolId)}`,
+        []
+      ),
+
+      apiGet(
+        `/api/scholarships?schoolId=${encodeURIComponent(schoolId)}`,
+        []
+      ),
+
+      apiGet(
+        `/api/scholarship-applications?schoolId=${encodeURIComponent(schoolId)}`,
+        []
+      ),
+
+      apiGet(
+        `/api/partnerships?schoolId=${encodeURIComponent(schoolId)}`,
+        []
+      ),
+
+      apiGet(
+        `/api/career-events?schoolId=${encodeURIComponent(schoolId)}`,
+        []
+      ),
+
+      apiGet(
+        `/api/event-registrations?schoolId=${encodeURIComponent(schoolId)}`,
+        []
+      ),
+
+      apiGet(
+        `/api/ventures?schoolId=${encodeURIComponent(schoolId)}`,
+        []
+      )
+
+    ];
+
+    const results =
+      await Promise.allSettled(
+        requests
+      );
+
+    const resultValue = (
+      index,
+      fallback = []
+    ) => {
+
+      const result =
+        results[index];
+
+      if (
+        result?.status ===
+        "fulfilled"
+      ){
+
+        return (
+          result.value ??
+          fallback
+        );
+
+      }
+
+      console.warn(
+        "Career Hub request failed:",
+        result?.reason
+      );
+
+      return fallback;
+
     };
 
-    if (!payload.title){
-      return showAlert("error","Opportunity title is required.");
+
+    const opportunities =
+      careerArray(
+        resultValue(0),
+        [
+          "opportunities"
+        ]
+      );
+
+    const applications =
+      careerArray(
+        resultValue(1),
+        [
+          "applications"
+        ]
+      );
+
+    const scholarships =
+      careerArray(
+        resultValue(2),
+        [
+          "scholarships",
+          "programs"
+        ]
+      );
+
+    const scholarshipApplications =
+      careerArray(
+        resultValue(3),
+        [
+          "applications",
+          "scholarshipApplications"
+        ]
+      );
+
+    const partnerships =
+      careerArray(
+        resultValue(4),
+        [
+          "partnerships",
+          "requests"
+        ]
+      );
+
+    const events =
+      careerArray(
+        resultValue(5),
+        [
+          "events",
+          "careerEvents"
+        ]
+      );
+
+    const eventRegistrations =
+      careerArray(
+        resultValue(6),
+        [
+          "registrations",
+          "eventRegistrations"
+        ]
+      );
+
+    const ventures =
+      careerArray(
+        resultValue(7),
+        [
+          "ventures"
+        ]
+      );
+
+
+    /*
+      Opportunities are also part of the original school
+      dashboard state. Keep both references synchronized.
+    */
+
+    if (
+      opportunities.length ||
+      !state.opportunities.length
+    ){
+
+      state.opportunities =
+        opportunities;
+
     }
 
-    const id = window.editingOpportunityId;
-    const path = id ? `/api/opportunities/${id}` : "/api/opportunities";
-    const method = id ? "PATCH" : "POST";
 
-    await apiSend(path, method, payload);
+    hub.applications =
+      applications;
 
-    window.editingOpportunityId = null;
-    closeModal("opportunityModal");
+    hub.scholarships =
+      scholarships;
 
-    showAlert("success", id ? "Opportunity updated." : "Opportunity created.");
-    await loadAll();
+    hub.scholarshipApplications =
+      scholarshipApplications;
+
+    hub.partnerships =
+      partnerships;
+
+    hub.events =
+      events;
+
+    hub.eventRegistrations =
+      eventRegistrations;
+
+    hub.ventures =
+      ventures;
+
+    hub.loaded =
+      true;
+
+    hub.error =
+      null;
+
     renderCareerHub();
-  }catch(err){
-    showAlert("error", err.message || "Opportunity save failed.");
+
+    setCareerHubSystemState();
+
+  }catch(error){
+
+    console.error(
+      "CAREER HUB LOAD ERROR:",
+      error
+    );
+
+    hub.error =
+      error?.message ||
+      "Career Hub could not be loaded.";
+
+    setCareerHubSystemState(
+      "error",
+      hub.error
+    );
+
+    /*
+      Existing dashboard records should still render.
+    */
+
+    renderCareerHub();
+
+  }finally{
+
+    hub.loading =
+      false;
+
+    if (refreshButton){
+
+      refreshButton.disabled =
+        false;
+
+      refreshButton.classList.remove(
+        "loading"
+      );
+
+    }
+
   }
+
 }
 
-async function quickUpdateOpportunityStatus(id,status){
-  try{
-    await apiSend(`/api/opportunities/${id}`, "PATCH", { status });
-    showAlert("success","Opportunity status updated.");
-    await loadAll();
-    renderCareerHub();
-  }catch(err){
-    showAlert("error", err.message || "Status update failed.");
-  }
+
+async function refreshSchoolCareerHub(){
+
+  await loadSchoolCareerHub({
+    force:true,
+    silent:false
+  });
+
 }
 
-async function deleteOpportunity(id){
-  if (!confirm("Delete this opportunity?")) return;
 
-  try{
-    const res = await fetch(API + `/api/opportunities/${id}`, {
-      method:"DELETE",
-      headers:authHeaders()
+/* =========================================================
+   MASTER CAREER HUB RENDER
+========================================================= */
+
+function renderCareerHub(){
+
+  if (!state.careerHub){
+    return;
+  }
+
+  renderCareerHubCounts();
+  renderCareerOverview();
+  renderCareerOpportunities();
+  renderCareerApplications();
+  renderCareerScholarships();
+  renderCareerPartnerships();
+  renderCareerEvents();
+  renderCareerTalent();
+  renderCareerVentures();
+
+}
+
+
+/* =========================================================
+   GLOBAL COUNTERS
+========================================================= */
+
+function renderCareerHubCounts(){
+
+  const hub =
+    state.careerHub;
+
+  const opportunities =
+    state.opportunities ||
+    [];
+
+  const applications =
+    hub.applications ||
+    [];
+
+  const scholarships =
+    hub.scholarships ||
+    [];
+
+  const partnerships =
+    hub.partnerships ||
+    [];
+
+  const events =
+    hub.events ||
+    [];
+
+  const ventures =
+    hub.ventures ||
+    [];
+
+  const students =
+    getStudents();
+
+  const activeOpportunities =
+    opportunities.filter(item =>
+      [
+        "open",
+        "active",
+        "approved",
+        "published"
+      ].includes(
+        getOpportunityStatus(item)
+      )
+    );
+
+  const activePartners =
+    partnerships.filter(item =>
+      [
+        "active",
+        "approved"
+      ].includes(
+        careerLower(
+          item.status
+        )
+      )
+    );
+
+  const upcomingEvents =
+    events.filter(item => {
+
+      const date =
+        careerDate(
+          item.startDate ||
+          item.date ||
+          item.eventDate ||
+          item.startsAt
+        );
+
+      return (
+        date &&
+        date.getTime() >=
+          Date.now() &&
+        careerLower(
+          item.status
+        ) !== "cancelled"
+      );
+
     });
 
-    const data = await safeJson(res);
 
-    if (!res.ok){
-      throw new Error(data?.message || data?.error || "Delete failed.");
+  setText(
+    "careerHeroPartnerCount",
+    activePartners.length
+  );
+
+  setText(
+    "careerHeroOpportunityCount",
+    activeOpportunities.length
+  );
+
+  setText(
+    "careerHeroStudentCount",
+    students.length
+  );
+
+
+  setText(
+    "careerNavOpportunityCount",
+    opportunities.length
+  );
+
+  setText(
+    "careerNavApplicationCount",
+    applications.length
+  );
+
+  setText(
+    "careerNavScholarshipCount",
+    scholarships.length
+  );
+
+  setText(
+    "careerNavPartnershipCount",
+    partnerships.length
+  );
+
+  setText(
+    "careerNavEventCount",
+    events.length
+  );
+
+  setText(
+    "careerNavVentureCount",
+    ventures.length
+  );
+
+
+  setText(
+    "careerOverviewOpportunityCount",
+    activeOpportunities.length
+  );
+
+  setText(
+    "careerOverviewApplicationCount",
+    applications.length
+  );
+
+  setText(
+    "careerOverviewPartnerCount",
+    activePartners.length
+  );
+
+  setText(
+    "careerOverviewEventCount",
+    upcomingEvents.length
+  );
+
+}
+
+
+/* =========================================================
+   OVERVIEW
+========================================================= */
+
+function renderCareerOverview(){
+
+  renderCareerOverviewActivity();
+  renderCareerOverviewPipeline();
+  renderCareerOverviewOpportunities();
+  renderCareerComingUp();
+  renderCareerPartnerPreview();
+
+}
+
+
+function renderCareerOverviewActivity(){
+
+  const box =
+    $("careerOverviewActivity");
+
+  if (!box){
+    return;
+  }
+
+  const hub =
+    state.careerHub;
+
+  const activities =
+    [];
+
+
+  (hub.applications || [])
+    .forEach(item => {
+
+      activities.push({
+        type:"Application",
+        title:
+          careerGetStudentName(item),
+        text:
+          `${careerStatusLabel(
+            careerGetApplicationStatus(item)
+          )} · ${careerGetOpportunityName(item)}`,
+        date:
+          item.updatedAt ||
+          item.createdAt ||
+          item.appliedAt ||
+          item.submittedAt
+      });
+
+    });
+
+
+  (state.opportunities || [])
+    .forEach(item => {
+
+      activities.push({
+        type:"Opportunity",
+        title:
+          item.title ||
+          item.name ||
+          "Opportunity",
+        text:
+          `${careerStatusLabel(
+            getOpportunityStatus(item)
+          )} · ${
+            careerGetCompanyName(item)
+          }`,
+        date:
+          item.updatedAt ||
+          item.createdAt ||
+          item.publishedAt
+      });
+
+    });
+
+
+  (hub.partnerships || [])
+    .forEach(item => {
+
+      activities.push({
+        type:"Partnership",
+        title:
+          careerGetCompanyName(item),
+        text:
+          careerStatusLabel(
+            item.status ||
+            "pending"
+          ),
+        date:
+          item.updatedAt ||
+          item.createdAt
+      });
+
+    });
+
+
+  (hub.events || [])
+    .forEach(item => {
+
+      activities.push({
+        type:"Event",
+        title:
+          item.title ||
+          item.name ||
+          "Career event",
+        text:
+          careerStatusLabel(
+            item.status ||
+            "scheduled"
+          ),
+        date:
+          item.updatedAt ||
+          item.createdAt ||
+          item.date
+      });
+
+    });
+
+
+  activities.sort(
+    (a,b) =>
+      (
+        careerDate(b.date)?.getTime() ||
+        0
+      ) -
+      (
+        careerDate(a.date)?.getTime() ||
+        0
+      )
+  );
+
+
+  if (!activities.length){
+
+    box.innerHTML =
+      careerCompactEmpty(
+        "No Career Hub activity yet",
+        "New opportunities, applications and employer activity will appear here."
+      );
+
+    return;
+
+  }
+
+
+  box.innerHTML =
+    activities
+      .slice(0,8)
+      .map(item => `
+        <article class="career-activity-item">
+
+          <span class="career-activity-dot"></span>
+
+          <div class="career-activity-copy">
+
+            <strong>
+              ${escapeHtml(item.title)}
+            </strong>
+
+            <span>
+              ${escapeHtml(item.text)}
+            </span>
+
+            <small>
+              ${escapeHtml(item.type)}
+              ·
+              ${escapeHtml(
+                careerFormatDateTime(
+                  item.date
+                )
+              )}
+            </small>
+
+          </div>
+
+        </article>
+      `)
+      .join("");
+
+}
+
+
+function renderCareerOverviewPipeline(){
+
+  const applications =
+    state.careerHub
+      ?.applications ||
+    [];
+
+  const counts = {};
+
+  CAREER_APPLICATION_STATUSES
+    .forEach(status => {
+
+      counts[status] =
+        applications.filter(
+          item =>
+            careerGetApplicationStatus(
+              item
+            ) ===
+            status
+        ).length;
+
+    });
+
+
+  const maximum =
+    Math.max(
+      1,
+      ...Object.values(
+        counts
+      )
+    );
+
+
+  const mapping = {
+
+    pending:[
+      "careerPipelinePendingCount",
+      "careerPipelinePendingBar"
+    ],
+
+    review:[
+      "careerPipelineReviewCount",
+      "careerPipelineReviewBar"
+    ],
+
+    interview:[
+      "careerPipelineInterviewCount",
+      "careerPipelineInterviewBar"
+    ],
+
+    approved:[
+      "careerPipelineApprovedCount",
+      "careerPipelineApprovedBar"
+    ],
+
+    active:[
+      "careerPipelineActiveCount",
+      "careerPipelineActiveBar"
+    ],
+
+    completed:[
+      "careerPipelineCompletedCount",
+      "careerPipelineCompletedBar"
+    ]
+
+  };
+
+
+  Object.entries(mapping)
+    .forEach(
+      ([status, ids]) => {
+
+        const count =
+          counts[status] ||
+          0;
+
+        setText(
+          ids[0],
+          count
+        );
+
+        const bar =
+          $(ids[1]);
+
+        if (bar){
+
+          bar.style.width =
+            `${Math.round(
+              (
+                count /
+                maximum
+              ) *
+              100
+            )}%`;
+
+        }
+
+      }
+    );
+
+}
+
+
+function renderCareerOverviewOpportunities(){
+
+  const box =
+    $("careerOverviewOpportunities");
+
+  if (!box){
+    return;
+  }
+
+  const opportunities =
+    [...(
+      state.opportunities ||
+      []
+    )]
+      .sort(
+        (a,b) =>
+          (
+            careerDate(
+              b.publishedAt ||
+              b.createdAt
+            )?.getTime() ||
+            0
+          ) -
+          (
+            careerDate(
+              a.publishedAt ||
+              a.createdAt
+            )?.getTime() ||
+            0
+          )
+      )
+      .slice(0,4);
+
+
+  if (!opportunities.length){
+
+    box.innerHTML =
+      careerCompactEmpty(
+        "No opportunities yet",
+        "Published jobs and internships will appear here."
+      );
+
+    return;
+
+  }
+
+
+  box.innerHTML =
+    opportunities
+      .map(item => {
+
+        const id =
+          opportunityId(item);
+
+        return `
+          <article class="career-overview-opportunity-card">
+
+            <div class="career-opportunity-card-head">
+
+              <div>
+                <span class="career-status-pill">
+                  ${escapeHtml(
+                    careerStatusLabel(
+                      getOpportunityStatus(
+                        item
+                      )
+                    )
+                  )}
+                </span>
+
+                <h3>
+                  ${escapeHtml(
+                    item.title ||
+                    item.name ||
+                    "Untitled opportunity"
+                  )}
+                </h3>
+              </div>
+
+            </div>
+
+            <p>
+              ${escapeHtml(
+                careerGetCompanyName(
+                  item
+                )
+              )}
+            </p>
+
+            <div class="career-opportunity-meta">
+
+              <span>
+                ${escapeHtml(
+                  careerStatusLabel(
+                    getOpportunityType(
+                      item
+                    ) ||
+                    "opportunity"
+                  )
+                )}
+              </span>
+
+              <span>
+                ${escapeHtml(
+                  item.location ||
+                  item.workSetup ||
+                  "Location not specified"
+                )}
+              </span>
+
+            </div>
+
+            <button
+              type="button"
+              class="career-card-text-button"
+              onclick="editOpportunity('${id}')"
+            >
+              Manage
+            </button>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+}
+
+
+function renderCareerComingUp(){
+
+  const box =
+    $("careerComingUpList");
+
+  if (!box){
+    return;
+  }
+
+  const upcoming =
+    [];
+
+
+  (state.careerHub.events || [])
+    .forEach(item => {
+
+      const date =
+        careerDate(
+          item.startDate ||
+          item.date ||
+          item.eventDate ||
+          item.startsAt
+        );
+
+      if (
+        date &&
+        date.getTime() >=
+          Date.now() &&
+        careerLower(
+          item.status
+        ) !== "cancelled"
+      ){
+
+        upcoming.push({
+          type:"Event",
+          title:
+            item.title ||
+            item.name ||
+            "Career event",
+          date
+        });
+
+      }
+
+    });
+
+
+  (state.opportunities || [])
+    .forEach(item => {
+
+      const date =
+        careerDate(
+          item.deadline ||
+          item.applicationDeadline ||
+          item.closingDate
+        );
+
+      if (
+        date &&
+        date.getTime() >=
+          Date.now()
+      ){
+
+        upcoming.push({
+          type:"Deadline",
+          title:
+            item.title ||
+            item.name ||
+            "Opportunity",
+          date
+        });
+
+      }
+
+    });
+
+
+  (state.careerHub.scholarships || [])
+    .forEach(item => {
+
+      const date =
+        careerDate(
+          item.deadline ||
+          item.applicationDeadline ||
+          item.closingDate
+        );
+
+      if (
+        date &&
+        date.getTime() >=
+          Date.now()
+      ){
+
+        upcoming.push({
+          type:"Scholarship",
+          title:
+            item.title ||
+            item.name ||
+            "Scholarship",
+          date
+        });
+
+      }
+
+    });
+
+
+  upcoming.sort(
+    (a,b) =>
+      a.date.getTime() -
+      b.date.getTime()
+  );
+
+
+  if (!upcoming.length){
+
+    box.innerHTML =
+      careerCompactEmpty(
+        "No upcoming activity",
+        "Career events and deadlines will appear here."
+      );
+
+    return;
+
+  }
+
+
+  box.innerHTML =
+    upcoming
+      .slice(0,6)
+      .map(item => `
+        <article class="career-coming-up-item">
+
+          <div>
+
+            <span>
+              ${escapeHtml(item.type)}
+            </span>
+
+            <strong>
+              ${escapeHtml(item.title)}
+            </strong>
+
+          </div>
+
+          <time>
+            ${escapeHtml(
+              careerFormatDate(
+                item.date
+              )
+            )}
+          </time>
+
+        </article>
+      `)
+      .join("");
+
+}
+
+
+function renderCareerPartnerPreview(){
+
+  const box =
+    $("careerPartnerPreview");
+
+  if (!box){
+    return;
+  }
+
+  const partners =
+    (
+      state.careerHub
+        ?.partnerships ||
+      []
+    )
+      .filter(item =>
+        [
+          "active",
+          "approved"
+        ].includes(
+          careerLower(
+            item.status
+          )
+        )
+      )
+      .slice(0,5);
+
+
+  if (!partners.length){
+
+    box.innerHTML =
+      careerCompactEmpty(
+        "No active partners",
+        "Employer partnerships will appear here."
+      );
+
+    return;
+
+  }
+
+
+  box.innerHTML =
+    partners
+      .map(item => `
+        <article class="career-partner-preview-item">
+
+          <div class="career-partner-preview-avatar">
+            ${escapeHtml(
+              careerGetCompanyName(item)
+                .slice(0,1)
+                .toUpperCase()
+            )}
+          </div>
+
+          <div>
+
+            <strong>
+              ${escapeHtml(
+                careerGetCompanyName(
+                  item
+                )
+              )}
+            </strong>
+
+            <span>
+              ${escapeHtml(
+                careerStatusLabel(
+                  item.status ||
+                  "active"
+                )
+              )}
+            </span>
+
+          </div>
+
+        </article>
+      `)
+      .join("");
+
+}
+
+
+/* =========================================================
+   OPPORTUNITIES
+========================================================= */
+
+function renderCareerOpportunities(){
+
+  const box =
+    $("careerOpportunityList");
+
+  const opportunities =
+    state.opportunities ||
+    [];
+
+  const internships =
+    opportunities.filter(
+      item =>
+        getOpportunityType(item)
+          .includes("intern")
+    );
+
+  const jobs =
+    opportunities.filter(
+      item =>
+        getOpportunityType(item)
+          .includes("job")
+    );
+
+  const open =
+    opportunities.filter(
+      item =>
+        [
+          "open",
+          "active",
+          "approved",
+          "published"
+        ].includes(
+          getOpportunityStatus(
+            item
+          )
+        )
+    );
+
+
+  setText(
+    "careerOpportunityMetricTotal",
+    opportunities.length
+  );
+
+  setText(
+    "careerOpportunityMetricInternships",
+    internships.length
+  );
+
+  setText(
+    "careerOpportunityMetricJobs",
+    jobs.length
+  );
+
+  setText(
+    "careerOpportunityMetricOpen",
+    open.length
+  );
+
+
+  if (!box){
+    return;
+  }
+
+
+  const search =
+    careerLower(
+      $("careerOpportunitySearch")
+        ?.value
+    );
+
+  const typeFilter =
+    careerLower(
+      $("careerTypeFilter")
+        ?.value ||
+      "all"
+    );
+
+  const statusFilter =
+    careerLower(
+      $("careerStatusFilter")
+        ?.value ||
+      "all"
+    );
+
+
+  const filtered =
+    opportunities.filter(item => {
+
+      const type =
+        getOpportunityType(item);
+
+      const status =
+        getOpportunityStatus(item);
+
+      const haystack =
+        careerSearchText(
+          item.title,
+          item.name,
+          item.description,
+          item.summary,
+          item.company,
+          item.companyName,
+          item.employerName,
+          item.location,
+          item.workSetup,
+          type,
+          status
+        );
+
+      const searchMatch =
+        !search ||
+        haystack.includes(
+          search
+        );
+
+      const typeMatch =
+        typeFilter === "all" ||
+        type.includes(
+          typeFilter
+        );
+
+      const statusMatch =
+        statusFilter === "all" ||
+        status ===
+          statusFilter;
+
+      return (
+        searchMatch &&
+        typeMatch &&
+        statusMatch
+      );
+
+    });
+
+
+  if (!filtered.length){
+
+    box.innerHTML =
+      careerEmpty(
+        opportunities.length
+          ? "No matching opportunities"
+          : "No opportunities yet",
+        opportunities.length
+          ? "Try changing your search or filters."
+          : "Create a job or internship to begin."
+      );
+
+    return;
+
+  }
+
+
+  box.innerHTML =
+    filtered
+      .map(item => {
+
+        const id =
+          opportunityId(item);
+
+        const status =
+          getOpportunityStatus(
+            item
+          );
+
+        return `
+          <article class="career-module-row">
+
+            <div class="career-module-row-main">
+
+              <div class="career-module-row-title">
+
+                <span class="career-status-pill">
+                  ${escapeHtml(
+                    careerStatusLabel(
+                      status
+                    )
+                  )}
+                </span>
+
+                <h3>
+                  ${escapeHtml(
+                    item.title ||
+                    item.name ||
+                    "Untitled opportunity"
+                  )}
+                </h3>
+
+              </div>
+
+              <p>
+                ${escapeHtml(
+                  careerGetCompanyName(
+                    item
+                  )
+                )}
+                ·
+                ${escapeHtml(
+                  careerStatusLabel(
+                    getOpportunityType(
+                      item
+                    ) ||
+                    "opportunity"
+                  )
+                )}
+              </p>
+
+              <div class="career-module-row-meta">
+
+                <span>
+                  ${escapeHtml(
+                    item.location ||
+                    item.workSetup ||
+                    "Location not specified"
+                  )}
+                </span>
+
+                <span>
+                  Deadline:
+                  ${escapeHtml(
+                    careerFormatDate(
+                      item.deadline ||
+                      item.applicationDeadline
+                    )
+                  )}
+                </span>
+
+              </div>
+
+            </div>
+
+            <div class="career-module-row-actions">
+
+              <button
+                type="button"
+                class="career-module-secondary-button"
+                onclick="editOpportunity('${id}')"
+              >
+                Edit
+              </button>
+
+              ${
+                status !== "active"
+                  ? `
+                    <button
+                      type="button"
+                      class="career-module-secondary-button"
+                      onclick="quickUpdateOpportunityStatus('${id}','active')"
+                    >
+                      Activate
+                    </button>
+                  `
+                  : ""
+              }
+
+              <button
+                type="button"
+                class="career-module-danger-button"
+                onclick="deleteOpportunity('${id}')"
+              >
+                Delete
+              </button>
+
+            </div>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+}
+
+
+/* =========================================================
+   APPLICATIONS
+========================================================= */
+
+function setCareerApplicationFilter(
+  status = "all",
+  button = null
+){
+
+  state.careerHub
+    .applicationStatus =
+      status;
+
+
+  document
+    .querySelectorAll(
+      "[data-application-status]"
+    )
+    .forEach(item => {
+
+      item.classList.toggle(
+        "active",
+        item.dataset
+          .applicationStatus ===
+          status
+      );
+
+    });
+
+
+  if (button){
+
+    button.classList.add(
+      "active"
+    );
+
+  }
+
+  renderCareerApplications();
+
+}
+
+
+function renderCareerApplications(){
+
+  const box =
+    $("careerApplicationList");
+
+  const applications =
+    state.careerHub
+      ?.applications ||
+    [];
+
+
+  setText(
+    "careerApplicationAllCount",
+    applications.length
+  );
+
+
+  CAREER_APPLICATION_STATUSES
+    .forEach(status => {
+
+      const id =
+        `careerApplication${
+          status
+            .charAt(0)
+            .toUpperCase() +
+          status.slice(1)
+        }Count`;
+
+      setText(
+        id,
+        applications.filter(
+          item =>
+            careerGetApplicationStatus(
+              item
+            ) ===
+            status
+        ).length
+      );
+
+    });
+
+
+  if (!box){
+    return;
+  }
+
+
+  const activeStatus =
+    state.careerHub
+      .applicationStatus ||
+    "all";
+
+  const search =
+    careerLower(
+      $("careerApplicationSearch")
+        ?.value
+    );
+
+  const source =
+    careerLower(
+      $("careerApplicationSourceFilter")
+        ?.value ||
+      "all"
+    );
+
+
+  const filtered =
+    applications.filter(item => {
+
+      const status =
+        careerGetApplicationStatus(
+          item
+        );
+
+      const applicationSource =
+        careerGetApplicationSource(
+          item
+        );
+
+      const haystack =
+        careerSearchText(
+          careerGetStudentName(item),
+          careerGetCompanyName(item),
+          careerGetOpportunityName(item),
+          item.email,
+          status,
+          applicationSource
+        );
+
+      return (
+        (
+          activeStatus ===
+            "all" ||
+          status ===
+            activeStatus
+        ) &&
+        (
+          source ===
+            "all" ||
+          applicationSource ===
+            source
+        ) &&
+        (
+          !search ||
+          haystack.includes(
+            search
+          )
+        )
+      );
+
+    });
+
+
+  if (!filtered.length){
+
+    box.innerHTML =
+      careerEmpty(
+        applications.length
+          ? "No matching applications"
+          : "No applications yet",
+        applications.length
+          ? "Change the pipeline status, source or search."
+          : "Student applications will appear here when received."
+      );
+
+    return;
+
+  }
+
+
+  box.innerHTML =
+    filtered
+      .map(item => {
+
+        const status =
+          careerGetApplicationStatus(
+            item
+          );
+
+        return `
+          <article class="career-module-row">
+
+            <div class="career-module-row-main">
+
+              <div class="career-module-row-title">
+
+                <span class="career-status-pill">
+                  ${escapeHtml(
+                    careerStatusLabel(
+                      status
+                    )
+                  )}
+                </span>
+
+                <h3>
+                  ${escapeHtml(
+                    careerGetStudentName(
+                      item
+                    )
+                  )}
+                </h3>
+
+              </div>
+
+              <p>
+                ${escapeHtml(
+                  careerGetOpportunityName(
+                    item
+                  )
+                )}
+                ·
+                ${escapeHtml(
+                  careerGetCompanyName(
+                    item
+                  )
+                )}
+              </p>
+
+              <div class="career-module-row-meta">
+
+                <span>
+                  ${escapeHtml(
+                    careerStatusLabel(
+                      careerGetApplicationSource(
+                        item
+                      )
+                    )
+                  )}
+                </span>
+
+                <span>
+                  Applied:
+                  ${escapeHtml(
+                    careerFormatDate(
+                      item.appliedAt ||
+                      item.submittedAt ||
+                      item.createdAt
+                    )
+                  )}
+                </span>
+
+              </div>
+
+            </div>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+}
+
+
+/* =========================================================
+   SCHOLARSHIPS
+========================================================= */
+
+function renderCareerScholarships(){
+
+  const box =
+    $("careerScholarshipList");
+
+  const scholarships =
+    state.careerHub
+      ?.scholarships ||
+    [];
+
+  const applications =
+    state.careerHub
+      ?.scholarshipApplications ||
+    [];
+
+  const open =
+    scholarships.filter(
+      item =>
+        [
+          "open",
+          "published",
+          "active"
+        ].includes(
+          careerLower(
+            item.status
+          )
+        )
+    );
+
+  const closingSoon =
+    scholarships.filter(item => {
+
+      const days =
+        careerDaysUntil(
+          item.deadline ||
+          item.applicationDeadline ||
+          item.closingDate
+        );
+
+      return (
+        days !== null &&
+        days >= 0 &&
+        days <= 14
+      );
+
+    });
+
+
+  setText(
+    "careerScholarshipMetricTotal",
+    scholarships.length
+  );
+
+  setText(
+    "careerScholarshipMetricOpen",
+    open.length
+  );
+
+  setText(
+    "careerScholarshipMetricApplications",
+    applications.length
+  );
+
+  setText(
+    "careerScholarshipMetricClosing",
+    closingSoon.length
+  );
+
+
+  if (!box){
+    return;
+  }
+
+
+  const search =
+    careerLower(
+      $("careerScholarshipSearch")
+        ?.value
+    );
+
+  const status =
+    careerLower(
+      $("careerScholarshipStatusFilter")
+        ?.value ||
+      "all"
+    );
+
+
+  const filtered =
+    scholarships.filter(item => {
+
+      const itemStatus =
+        careerLower(
+          item.status ||
+          "draft"
+        );
+
+      const haystack =
+        careerSearchText(
+          item.title,
+          item.name,
+          item.provider,
+          item.organization,
+          item.description,
+          item.eligibility,
+          itemStatus
+        );
+
+      return (
+        (
+          status ===
+            "all" ||
+          itemStatus ===
+            status
+        ) &&
+        (
+          !search ||
+          haystack.includes(
+            search
+          )
+        )
+      );
+
+    });
+
+
+  if (!filtered.length){
+
+    box.innerHTML =
+      careerEmpty(
+        scholarships.length
+          ? "No matching scholarships"
+          : "No scholarships yet",
+        scholarships.length
+          ? "Try changing your search or status filter."
+          : "Create a scholarship program to make funding opportunities available."
+      );
+
+    return;
+
+  }
+
+
+  box.innerHTML =
+    filtered
+      .map(item => `
+        <article class="career-module-row">
+
+          <div class="career-module-row-main">
+
+            <div class="career-module-row-title">
+
+              <span class="career-status-pill">
+                ${escapeHtml(
+                  careerStatusLabel(
+                    item.status ||
+                    "draft"
+                  )
+                )}
+              </span>
+
+              <h3>
+                ${escapeHtml(
+                  item.title ||
+                  item.name ||
+                  "Scholarship"
+                )}
+              </h3>
+
+            </div>
+
+            <p>
+              ${escapeHtml(
+                item.provider ||
+                item.organization ||
+                item.sponsor ||
+                getSchoolName()
+              )}
+            </p>
+
+            <div class="career-module-row-meta">
+
+              <span>
+                Deadline:
+                ${escapeHtml(
+                  careerFormatDate(
+                    item.deadline ||
+                    item.applicationDeadline ||
+                    item.closingDate
+                  )
+                )}
+              </span>
+
+              ${
+                item.amount
+                  ? `
+                    <span>
+                      ${escapeHtml(
+                        String(
+                          item.amount
+                        )
+                      )}
+                    </span>
+                  `
+                  : ""
+              }
+
+            </div>
+
+          </div>
+
+        </article>
+      `)
+      .join("");
+
+}
+
+
+/* =========================================================
+   PARTNERSHIPS
+========================================================= */
+
+function renderCareerPartnerships(){
+
+  const box =
+    $("careerPartnershipList");
+
+  const mix =
+    $("careerPartnershipMix");
+
+  const partnerships =
+    state.careerHub
+      ?.partnerships ||
+    [];
+
+
+  const statusCount = status =>
+    partnerships.filter(
+      item =>
+        careerLower(
+          item.status
+        ) ===
+        status
+    ).length;
+
+
+  const active =
+    partnerships.filter(
+      item =>
+        [
+          "active",
+          "approved"
+        ].includes(
+          careerLower(
+            item.status
+          )
+        )
+    ).length;
+
+
+  setText(
+    "careerPartnershipMetricActive",
+    active
+  );
+
+  setText(
+    "careerPartnershipMetricPending",
+    statusCount("pending")
+  );
+
+  setText(
+    "careerPartnershipMetricReview",
+    statusCount("review")
+  );
+
+  setText(
+    "careerPartnershipMetricCompleted",
+    statusCount("completed")
+  );
+
+
+  if (mix){
+
+    const categories =
+      {};
+
+    partnerships
+      .forEach(item => {
+
+        const type =
+          careerStatusLabel(
+            item.type ||
+            item.partnershipType ||
+            item.category ||
+            "General"
+          );
+
+        categories[type] =
+          (
+            categories[type] ||
+            0
+          ) +
+          1;
+
+      });
+
+
+    if (
+      !Object.keys(
+        categories
+      ).length
+    ){
+
+      mix.innerHTML =
+        careerCompactEmpty(
+          "No partnership data",
+          "Partnership categories will appear here."
+        );
+
+    }else{
+
+      mix.innerHTML =
+        Object.entries(
+          categories
+        )
+          .sort(
+            (a,b) =>
+              b[1] -
+              a[1]
+          )
+          .map(
+            ([name,count]) => `
+              <div class="career-partnership-mix-row">
+
+                <span>
+                  ${escapeHtml(name)}
+                </span>
+
+                <strong>
+                  ${count}
+                </strong>
+
+              </div>
+            `
+          )
+          .join("");
+
     }
 
-    showAlert("success","Opportunity deleted.");
-    await loadAll();
-    renderCareerHub();
-  }catch(err){
-    showAlert("error", err.message || "Could not delete opportunity.");
   }
+
+
+  if (!box){
+    return;
+  }
+
+
+  const search =
+    careerLower(
+      $("careerPartnershipSearch")
+        ?.value
+    );
+
+  const status =
+    careerLower(
+      $("careerPartnershipStatusFilter")
+        ?.value ||
+      "all"
+    );
+
+
+  const filtered =
+    partnerships.filter(item => {
+
+      const itemStatus =
+        careerLower(
+          item.status ||
+          "pending"
+        );
+
+      const haystack =
+        careerSearchText(
+          careerGetCompanyName(item),
+          item.type,
+          item.partnershipType,
+          item.description,
+          item.notes,
+          itemStatus
+        );
+
+      return (
+        (
+          status ===
+            "all" ||
+          itemStatus ===
+            status
+        ) &&
+        (
+          !search ||
+          haystack.includes(
+            search
+          )
+        )
+      );
+
+    });
+
+
+  if (!filtered.length){
+
+    box.innerHTML =
+      careerEmpty(
+        partnerships.length
+          ? "No matching partnerships"
+          : "No partnerships yet",
+        partnerships.length
+          ? "Try changing your search or status filter."
+          : "Employer relationships will appear here."
+      );
+
+    return;
+
+  }
+
+
+  box.innerHTML =
+    filtered
+      .map(item => `
+        <article class="career-module-row">
+
+          <div class="career-module-row-main">
+
+            <div class="career-module-row-title">
+
+              <span class="career-status-pill">
+                ${escapeHtml(
+                  careerStatusLabel(
+                    item.status ||
+                    "pending"
+                  )
+                )}
+              </span>
+
+              <h3>
+                ${escapeHtml(
+                  careerGetCompanyName(
+                    item
+                  )
+                )}
+              </h3>
+
+            </div>
+
+            <p>
+              ${escapeHtml(
+                careerStatusLabel(
+                  item.type ||
+                  item.partnershipType ||
+                  "Partnership"
+                )
+              )}
+            </p>
+
+            <div class="career-module-row-meta">
+
+              <span>
+                Created:
+                ${escapeHtml(
+                  careerFormatDate(
+                    item.createdAt
+                  )
+                )}
+              </span>
+
+            </div>
+
+          </div>
+
+        </article>
+      `)
+      .join("");
+
 }
+
+
+/* =========================================================
+   EVENTS
+========================================================= */
+
+function renderCareerEvents(){
+
+  const box =
+    $("careerEventList");
+
+  const events =
+    state.careerHub
+      ?.events ||
+    [];
+
+  const registrations =
+    state.careerHub
+      ?.eventRegistrations ||
+    [];
+
+
+  const upcoming =
+    events.filter(item => {
+
+      const date =
+        careerDate(
+          item.startDate ||
+          item.date ||
+          item.eventDate ||
+          item.startsAt
+        );
+
+      return (
+        date &&
+        date.getTime() >=
+          Date.now() &&
+        careerLower(
+          item.status
+        ) !== "cancelled"
+      );
+
+    });
+
+
+  const registrationOpen =
+    events.filter(
+      item =>
+        careerLower(
+          item.status
+        ) ===
+        "registration_open"
+    );
+
+
+  const completed =
+    events.filter(
+      item =>
+        careerLower(
+          item.status
+        ) ===
+        "completed"
+    );
+
+
+  setText(
+    "careerEventMetricUpcoming",
+    upcoming.length
+  );
+
+  setText(
+    "careerEventMetricRegistration",
+    registrationOpen.length
+  );
+
+  setText(
+    "careerEventMetricRegistrations",
+    registrations.length
+  );
+
+  setText(
+    "careerEventMetricCompleted",
+    completed.length
+  );
+
+
+  if (!box){
+    return;
+  }
+
+
+  const search =
+    careerLower(
+      $("careerEventSearch")
+        ?.value
+    );
+
+  const type =
+    careerLower(
+      $("careerEventTypeFilter")
+        ?.value ||
+      "all"
+    );
+
+  const status =
+    careerLower(
+      $("careerEventStatusFilter")
+        ?.value ||
+      "all"
+    );
+
+
+  const filtered =
+    events.filter(item => {
+
+      const itemType =
+        careerLower(
+          item.type ||
+          item.eventType
+        );
+
+      const itemStatus =
+        careerLower(
+          item.status ||
+          "draft"
+        );
+
+      const haystack =
+        careerSearchText(
+          item.title,
+          item.name,
+          item.description,
+          item.location,
+          item.venue,
+          itemType,
+          itemStatus
+        );
+
+      return (
+        (
+          type ===
+            "all" ||
+          itemType ===
+            type
+        ) &&
+        (
+          status ===
+            "all" ||
+          itemStatus ===
+            status
+        ) &&
+        (
+          !search ||
+          haystack.includes(
+            search
+          )
+        )
+      );
+
+    });
+
+
+  if (!filtered.length){
+
+    box.innerHTML =
+      careerEmpty(
+        events.length
+          ? "No matching events"
+          : "No career events yet",
+        events.length
+          ? "Try changing your search or filters."
+          : "Create a career fair, workshop, webinar or employer activity."
+      );
+
+    return;
+
+  }
+
+
+  box.innerHTML =
+    filtered
+      .map(item => {
+
+        const date =
+          item.startDate ||
+          item.date ||
+          item.eventDate ||
+          item.startsAt;
+
+        return `
+          <article class="career-event-card">
+
+            <div class="career-event-card-date">
+
+              <strong>
+                ${
+                  careerDate(date)
+                    ? careerDate(date)
+                        .getDate()
+                    : "—"
+                }
+              </strong>
+
+              <span>
+                ${
+                  careerDate(date)
+                    ? careerDate(date)
+                        .toLocaleDateString(
+                          [],
+                          {
+                            month:"short"
+                          }
+                        )
+                    : "Date"
+                }
+              </span>
+
+            </div>
+
+            <div class="career-event-card-content">
+
+              <span class="career-status-pill">
+                ${escapeHtml(
+                  careerStatusLabel(
+                    item.status ||
+                    "draft"
+                  )
+                )}
+              </span>
+
+              <h3>
+                ${escapeHtml(
+                  item.title ||
+                  item.name ||
+                  "Career event"
+                )}
+              </h3>
+
+              <p>
+                ${escapeHtml(
+                  item.description ||
+                  item.summary ||
+                  "No event description added."
+                )}
+              </p>
+
+              <div class="career-module-row-meta">
+
+                <span>
+                  ${escapeHtml(
+                    careerStatusLabel(
+                      item.type ||
+                      item.eventType ||
+                      "Event"
+                    )
+                  )}
+                </span>
+
+                <span>
+                  ${escapeHtml(
+                    item.location ||
+                    item.venue ||
+                    "Location not specified"
+                  )}
+                </span>
+
+              </div>
+
+            </div>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+}
+
+
+/* =========================================================
+   STUDENT TALENT
+========================================================= */
+
+function getCareerReadiness(student){
+
+  const studentId =
+    student?._id ||
+    student?.id;
+
+  const submissions =
+    (
+      state.submissions ||
+      []
+    )
+      .filter(submission =>
+        sameId(
+          submission
+            ?.studentId
+            ?._id ||
+          submission
+            ?.studentId,
+          studentId
+        )
+      );
+
+
+  const enrolledClasses =
+    (
+      state.classes ||
+      []
+    )
+      .filter(cls => {
+
+        const students =
+          [
+            ...(
+              cls.students ||
+              []
+            ),
+            ...(
+              cls.studentIds ||
+              []
+            )
+          ];
+
+        return students.some(
+          item =>
+            sameId(
+              item?._id ||
+              item,
+              studentId
+            )
+        );
+
+      });
+
+
+  const assignmentCount =
+    (
+      state.assignments ||
+      []
+    ).length;
+
+
+  const completionScore =
+    assignmentCount
+      ? Math.min(
+          100,
+          Math.round(
+            (
+              submissions.length /
+              assignmentCount
+            ) *
+            100
+          )
+        )
+      : 0;
+
+
+  const classScore =
+    enrolledClasses.length
+      ? 30
+      : 0;
+
+
+  const score =
+    Math.min(
+      100,
+      Math.round(
+        (
+          completionScore *
+          0.7
+        ) +
+        classScore
+      )
+    );
+
+
+  let level =
+    "poor";
+
+  if (score >= 80){
+
+    level =
+      "excellent";
+
+  }else if (score >= 60){
+
+    level =
+      "good";
+
+  }else if (score >= 35){
+
+    level =
+      "warning";
+
+  }
+
+
+  return {
+    score,
+    level,
+    submissions:
+      submissions.length,
+    classes:
+      enrolledClasses.length
+  };
+
+}
+
+
+function renderCareerTalent(){
+
+  const box =
+    $("careerTalentList");
+
+  const students =
+    getStudents();
+
+  const talent =
+    students.map(student => ({
+      student,
+      readiness:
+        getCareerReadiness(
+          student
+        )
+    }));
+
+
+  const ready =
+    talent.filter(
+      item =>
+        item.readiness.level ===
+        "excellent"
+    ).length;
+
+  const track =
+    talent.filter(
+      item =>
+        item.readiness.level ===
+        "good"
+    ).length;
+
+  const support =
+    talent.filter(
+      item =>
+        [
+          "warning",
+          "poor"
+        ].includes(
+          item.readiness.level
+        )
+    ).length;
+
+
+  setText(
+    "careerTalentMetricStudents",
+    students.length
+  );
+
+  setText(
+    "careerTalentMetricReady",
+    ready
+  );
+
+  setText(
+    "careerTalentMetricTrack",
+    track
+  );
+
+  setText(
+    "careerTalentMetricSupport",
+    support
+  );
+
+
+  if (!box){
+    return;
+  }
+
+
+  const search =
+    careerLower(
+      $("careerTalentSearch")
+        ?.value
+    );
+
+  const readinessFilter =
+    careerLower(
+      $("careerReadinessFilter")
+        ?.value ||
+      "all"
+    );
+
+
+  const filtered =
+    talent.filter(item => {
+
+      const student =
+        item.student;
+
+      const haystack =
+        careerSearchText(
+          student.name,
+          student.fullName,
+          student.email,
+          student.course,
+          student.program,
+          student.major
+        );
+
+      return (
+        (
+          readinessFilter ===
+            "all" ||
+          item.readiness.level ===
+            readinessFilter
+        ) &&
+        (
+          !search ||
+          haystack.includes(
+            search
+          )
+        )
+      );
+
+    });
+
+
+  if (!filtered.length){
+
+    box.innerHTML =
+      careerEmpty(
+        students.length
+          ? "No matching students"
+          : "No students connected",
+        students.length
+          ? "Try changing the search or readiness filter."
+          : "Connected students will appear here."
+      );
+
+    return;
+
+  }
+
+
+  box.innerHTML =
+    filtered
+      .map(item => {
+
+        const student =
+          item.student;
+
+        const readiness =
+          item.readiness;
+
+        return `
+          <article class="career-talent-card">
+
+            <div class="career-talent-card-head">
+
+              <div class="career-talent-avatar">
+
+                ${
+                  student.profileImage ||
+                  student.avatar
+                    ? `
+                      <img
+                        src="${escapeHtml(
+                          student.profileImage ||
+                          student.avatar
+                        )}"
+                        alt=""
+                      >
+                    `
+                    : escapeHtml(
+                        (
+                          student.name ||
+                          student.email ||
+                          "S"
+                        )
+                          .slice(0,1)
+                          .toUpperCase()
+                      )
+                }
+
+              </div>
+
+              <div>
+
+                <h3>
+                  ${escapeHtml(
+                    student.name ||
+                    student.fullName ||
+                    student.email ||
+                    "Student"
+                  )}
+                </h3>
+
+                <p>
+                  ${escapeHtml(
+                    student.course ||
+                    student.program ||
+                    student.email ||
+                    "Student"
+                  )}
+                </p>
+
+              </div>
+
+            </div>
+
+            <div class="career-talent-readiness">
+
+              <div>
+
+                <span>
+                  Career readiness
+                </span>
+
+                <strong>
+                  ${readiness.score}%
+                </strong>
+
+              </div>
+
+              <div class="career-talent-progress">
+
+                <span
+                  style="width:${readiness.score}%"
+                ></span>
+
+              </div>
+
+            </div>
+
+            <div class="career-talent-stats">
+
+              <span>
+                <strong>
+                  ${readiness.classes}
+                </strong>
+                Classes
+              </span>
+
+              <span>
+                <strong>
+                  ${readiness.submissions}
+                </strong>
+                Submissions
+              </span>
+
+            </div>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+}
+
+
+/* =========================================================
+   STUDENT VENTURES
+========================================================= */
+
+function renderCareerVentures(){
+
+  const box =
+    $("careerVentureList");
+
+  const ventures =
+    state.careerHub
+      ?.ventures ||
+    [];
+
+
+  const published =
+    ventures.filter(
+      item =>
+        careerLower(
+          item.status
+        ) ===
+        "published"
+    );
+
+  const drafts =
+    ventures.filter(
+      item =>
+        careerLower(
+          item.status
+        ) ===
+        "draft"
+    );
+
+
+  const founderIds =
+    new Set();
+
+
+  ventures.forEach(item => {
+
+    const founders =
+      item.founders ||
+      item.founderIds ||
+      (
+        item.founder
+          ? [item.founder]
+          : []
+      );
+
+    founders.forEach(
+      founder => {
+
+        const id =
+          normalizeId(
+            founder?._id ||
+            founder
+          );
+
+        if (id){
+          founderIds.add(id);
+        }
+
+      }
+    );
+
+  });
+
+
+  setText(
+    "careerVentureMetricTotal",
+    ventures.length
+  );
+
+  setText(
+    "careerVentureMetricPublished",
+    published.length
+  );
+
+  setText(
+    "careerVentureMetricDraft",
+    drafts.length
+  );
+
+  setText(
+    "careerVentureMetricFounders",
+    founderIds.size
+  );
+
+
+  if (!box){
+    return;
+  }
+
+
+  const search =
+    careerLower(
+      $("careerVentureSearch")
+        ?.value
+    );
+
+  const status =
+    careerLower(
+      $("careerVentureStatusFilter")
+        ?.value ||
+      "all"
+    );
+
+
+  const filtered =
+    ventures.filter(item => {
+
+      const itemStatus =
+        careerLower(
+          item.status ||
+          "draft"
+        );
+
+      const haystack =
+        careerSearchText(
+          item.name,
+          item.title,
+          item.description,
+          item.industry,
+          item.category,
+          item.founderName,
+          item.founders,
+          itemStatus
+        );
+
+      return (
+        (
+          status ===
+            "all" ||
+          itemStatus ===
+            status
+        ) &&
+        (
+          !search ||
+          haystack.includes(
+            search
+          )
+        )
+      );
+
+    });
+
+
+  if (!filtered.length){
+
+    box.innerHTML =
+      careerEmpty(
+        ventures.length
+          ? "No matching ventures"
+          : "No student ventures yet",
+        ventures.length
+          ? "Try changing your search or status filter."
+          : "Student entrepreneurship projects will appear here."
+      );
+
+    return;
+
+  }
+
+
+  box.innerHTML =
+    filtered
+      .map(item => {
+
+        const founders =
+          item.founders ||
+          [];
+
+        const founderText =
+          item.founderName ||
+          founders
+            .map(founder =>
+              typeof founder ===
+                "string"
+                ? founder
+                : (
+                    founder.name ||
+                    founder.fullName ||
+                    ""
+                  )
+            )
+            .filter(Boolean)
+            .join(", ") ||
+          "Student founder";
+
+        return `
+          <article class="career-venture-card">
+
+            <div>
+
+              <span class="career-status-pill">
+                ${escapeHtml(
+                  careerStatusLabel(
+                    item.status ||
+                    "draft"
+                  )
+                )}
+              </span>
+
+              <h3>
+                ${escapeHtml(
+                  item.name ||
+                  item.title ||
+                  "Student venture"
+                )}
+              </h3>
+
+              <p>
+                ${escapeHtml(
+                  item.description ||
+                  item.summary ||
+                  "No venture description added."
+                )}
+              </p>
+
+            </div>
+
+            <div class="career-venture-card-meta">
+
+              <span>
+                ${escapeHtml(
+                  founderText
+                )}
+              </span>
+
+              <span>
+                ${escapeHtml(
+                  item.industry ||
+                  item.category ||
+                  "Industry not specified"
+                )}
+              </span>
+
+            </div>
+
+          </article>
+        `;
+
+      })
+      .join("");
+
+}
+
+
+/* =========================================================
+   OPPORTUNITY COMPOSER COMPATIBILITY
+========================================================= */
+
+function openCareerOpportunityComposer(
+  type = "internship"
+){
+
+  openOpportunityModal();
+
+  const typeInput =
+    $("opportunityType");
+
+  if (typeInput){
+
+    typeInput.value =
+      type;
+
+  }
+
+}
+
+
+function openOpportunityModal(){
+
+  window.editingOpportunityId =
+    null;
+
+  setText(
+    "opportunityModalTitle",
+    "Add Opportunity"
+  );
+
+
+  [
+    "opportunityTitle",
+    "opportunityCompany",
+    "opportunityDeadline",
+    "opportunityLocation",
+    "opportunityDescription"
+  ].forEach(id => {
+
+    if ($(id)){
+      $(id).value = "";
+    }
+
+  });
+
+
+  if ($("opportunityType")){
+
+    $("opportunityType").value =
+      "internship";
+
+  }
+
+
+  if ($("opportunityStatus")){
+
+    $("opportunityStatus").value =
+      "open";
+
+  }
+
+
+  openModal(
+    "opportunityModal"
+  );
+
+}
+
+
+function editOpportunity(id){
+
+  const item =
+    (
+      state.opportunities ||
+      []
+    )
+      .find(
+        opportunity =>
+          String(
+            opportunity._id ||
+            opportunity.id
+          ) ===
+          String(id)
+      );
+
+
+  if (!item){
+
+    return showAlert(
+      "error",
+      "Opportunity not found."
+    );
+
+  }
+
+
+  window.editingOpportunityId =
+    id;
+
+
+  setText(
+    "opportunityModalTitle",
+    "Edit Opportunity"
+  );
+
+
+  if ($("opportunityTitle")){
+
+    $("opportunityTitle").value =
+      item.title ||
+      item.name ||
+      "";
+
+  }
+
+
+  if ($("opportunityCompany")){
+
+    $("opportunityCompany").value =
+      item.company ||
+      item.companyName ||
+      item.employerName ||
+      "";
+
+  }
+
+
+  if ($("opportunityType")){
+
+    $("opportunityType").value =
+      getOpportunityType(item) ||
+      "internship";
+
+  }
+
+
+  if ($("opportunityStatus")){
+
+    $("opportunityStatus").value =
+      getOpportunityStatus(item) ||
+      "open";
+
+  }
+
+
+  if ($("opportunityDeadline")){
+
+    $("opportunityDeadline").value =
+      item.deadline
+        ? String(
+            item.deadline
+          ).slice(0,10)
+        : "";
+
+  }
+
+
+  if ($("opportunityLocation")){
+
+    $("opportunityLocation").value =
+      item.location ||
+      item.workSetup ||
+      "";
+
+  }
+
+
+  if ($("opportunityDescription")){
+
+    $("opportunityDescription").value =
+      item.description ||
+      item.summary ||
+      "";
+
+  }
+
+
+  openModal(
+    "opportunityModal"
+  );
+
+}
+
+
+async function saveOpportunity(){
+
+  try{
+
+    const payload = {
+
+      schoolId:
+        getSchoolId(),
+
+      title:
+        $("opportunityTitle")
+          ?.value
+          ?.trim() ||
+        "",
+
+      company:
+        $("opportunityCompany")
+          ?.value
+          ?.trim() ||
+        "",
+
+      companyName:
+        $("opportunityCompany")
+          ?.value
+          ?.trim() ||
+        "",
+
+      type:
+        $("opportunityType")
+          ?.value ||
+        "internship",
+
+      status:
+        $("opportunityStatus")
+          ?.value ||
+        "open",
+
+      deadline:
+        $("opportunityDeadline")
+          ?.value ||
+        null,
+
+      location:
+        $("opportunityLocation")
+          ?.value
+          ?.trim() ||
+        "",
+
+      description:
+        $("opportunityDescription")
+          ?.value
+          ?.trim() ||
+        ""
+
+    };
+
+
+    if (!payload.title){
+
+      return showAlert(
+        "error",
+        "Opportunity title is required."
+      );
+
+    }
+
+
+    const id =
+      window.editingOpportunityId;
+
+
+    const path =
+      id
+        ? `/api/opportunities/${id}`
+        : "/api/opportunities";
+
+
+    const method =
+      id
+        ? "PATCH"
+        : "POST";
+
+
+    await apiSend(
+      path,
+      method,
+      payload
+    );
+
+
+    window.editingOpportunityId =
+      null;
+
+
+    closeModal(
+      "opportunityModal"
+    );
+
+
+    showAlert(
+      "success",
+      id
+        ? "Opportunity updated."
+        : "Opportunity created."
+    );
+
+
+    /*
+      Refresh only Career Hub instead of reloading
+      the complete school dashboard.
+    */
+
+    await loadSchoolCareerHub({
+      force:true,
+      silent:true
+    });
+
+
+  }catch(error){
+
+    console.error(
+      "SAVE OPPORTUNITY ERROR:",
+      error
+    );
+
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Opportunity save failed."
+    );
+
+  }
+
+}
+
+
+async function quickUpdateOpportunityStatus(
+  id,
+  status
+){
+
+  try{
+
+    await apiSend(
+      `/api/opportunities/${id}`,
+      "PATCH",
+      {
+        status
+      }
+    );
+
+
+    showAlert(
+      "success",
+      "Opportunity status updated."
+    );
+
+
+    await loadSchoolCareerHub({
+      force:true,
+      silent:true
+    });
+
+
+  }catch(error){
+
+    console.error(
+      "UPDATE OPPORTUNITY STATUS ERROR:",
+      error
+    );
+
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Status update failed."
+    );
+
+  }
+
+}
+
+
+async function deleteOpportunity(id){
+
+  if (
+    !confirm(
+      "Delete this opportunity?"
+    )
+  ){
+    return;
+  }
+
+
+  try{
+
+    const response =
+      await fetch(
+        API +
+        `/api/opportunities/${id}`,
+        {
+          method:"DELETE",
+          headers:
+            authHeaders()
+        }
+      );
+
+
+    const data =
+      await safeJson(
+        response
+      );
+
+
+    if (!response.ok){
+
+      throw new Error(
+        data?.message ||
+        data?.error ||
+        "Delete failed."
+      );
+
+    }
+
+
+    showAlert(
+      "success",
+      "Opportunity deleted."
+    );
+
+
+    await loadSchoolCareerHub({
+      force:true,
+      silent:true
+    });
+
+
+  }catch(error){
+
+    console.error(
+      "DELETE OPPORTUNITY ERROR:",
+      error
+    );
+
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Could not delete opportunity."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   NEW CAREER HUB COMPOSER ENTRY POINTS
+
+   These functions intentionally route to the appropriate
+   Career Hub module without inventing records client-side.
+
+   Once each backend create form is connected, its modal
+   can be opened directly from these entry points.
+========================================================= */
+
+function openCareerScholarshipComposer(){
+
+  openCareerHubView(
+    "scholarships"
+  );
+
+  showAlert(
+    "info",
+    "Scholarship creation requires the Scholarship backend form."
+  );
+
+}
+
+
+function openCareerPartnershipComposer(){
+
+  openCareerHubView(
+    "partnerships"
+  );
+
+  showAlert(
+    "info",
+    "Partnership creation requires the Partnership backend form."
+  );
+
+}
+
+
+function openCareerEventComposer(){
+
+  openCareerHubView(
+    "events"
+  );
+
+  showAlert(
+    "info",
+    "Career event creation requires the Event backend form."
+  );
+
+}
+
+
+/* =========================================================
+   ESCAPE / KEYBOARD SUPPORT
+========================================================= */
+
+document.addEventListener(
+  "keydown",
+  event => {
+
+    if (
+      event.key ===
+      "Escape"
+    ){
+
+      const overlay =
+        $("careerCreateMenuOverlay");
+
+      if (
+        overlay &&
+        !overlay.classList.contains(
+          "hidden"
+        )
+      ){
+
+        closeCareerCreateMenu();
+
+      }
+
+    }
+
+  }
+);
 
 function hydrateSelects(){
   const teachers = getTeachers();
