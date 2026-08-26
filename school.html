@@ -40891,11 +40891,11 @@ html[data-school-theme="dark"]
         <small>Student ventures</small>
       </article>
 
-      <article>
-        <span>Published</span>
-        <strong id="careerVentureMetricPublished">0</strong>
-        <small>Visible ventures</small>
-      </article>
+<article>
+  <span>Active / Funded</span>
+  <strong id="careerVentureMetricPublished">0</strong>
+  <small>Visible ventures</small>
+</article>
 
       <article>
         <span>Draft</span>
@@ -40933,14 +40933,19 @@ html[data-school-theme="dark"]
         </label>
 
 
-        <select
-          id="careerVentureStatusFilter"
-          onchange="renderCareerVentures()"
-        >
-          <option value="all">All ventures</option>
-          <option value="published">Published</option>
-          <option value="draft">Draft</option>
-        </select>
+<select
+  id="careerVentureStatusFilter"
+  onchange="renderCareerVentures()"
+>
+  <option value="all">All ventures</option>
+  <option value="draft">Draft</option>
+  <option value="submitted">Submitted</option>
+  <option value="active">Active</option>
+  <option value="paused">Paused</option>
+  <option value="funded">Funded</option>
+  <option value="closed">Closed</option>
+  <option value="rejected">Rejected</option>
+</select>
 
       </div>
 
@@ -69243,6 +69248,162 @@ function setCareerApplicationFilter(
 
 }
 
+/* =========================================================
+   CAREER HUB — APPLICATION MANAGEMENT
+========================================================= */
+
+const CAREER_INTERNSHIP_WORKFLOW = {
+  pending:[
+    "review",
+    "shortlisted",
+    "interview",
+    "approved",
+    "rejected"
+  ],
+
+  review:[
+    "shortlisted",
+    "interview",
+    "approved",
+    "rejected"
+  ],
+
+  shortlisted:[
+    "interview",
+    "approved",
+    "rejected"
+  ],
+
+  interview:[
+    "approved",
+    "rejected"
+  ],
+
+  approved:[
+    "active",
+    "rejected"
+  ],
+
+  active:[
+    "completed"
+  ],
+
+  completed:[],
+  rejected:[]
+};
+
+
+const CAREER_SCHOLARSHIP_WORKFLOW = {
+  draft:[
+    "submitted"
+  ],
+
+  submitted:[
+    "review",
+    "shortlisted",
+    "approved",
+    "rejected"
+  ],
+
+  review:[
+    "shortlisted",
+    "approved",
+    "rejected"
+  ],
+
+  shortlisted:[
+    "approved",
+    "rejected"
+  ],
+
+  approved:[
+    "awarded",
+    "rejected"
+  ],
+
+  awarded:[],
+  rejected:[],
+  withdrawn:[]
+};
+
+
+function careerApplicationWorkflow(item){
+
+  const source =
+    careerGetApplicationSource(
+      item
+    );
+
+  return source ===
+    "scholarship"
+      ? CAREER_SCHOLARSHIP_WORKFLOW
+      : CAREER_INTERNSHIP_WORKFLOW;
+
+}
+
+
+function careerApplicationNextStatuses(item){
+
+  const status =
+    careerGetApplicationStatus(
+      item
+    );
+
+  const workflow =
+    careerApplicationWorkflow(
+      item
+    );
+
+  return workflow[status] || [];
+
+}
+
+
+function careerApplicationActionLabel(status){
+
+  const labels = {
+    pending:"Set pending",
+    submitted:"Mark submitted",
+    review:"Start review",
+    shortlisted:"Shortlist",
+    interview:"Move to interview",
+    approved:"Approve",
+    active:"Start placement",
+    completed:"Mark completed",
+    awarded:"Award scholarship",
+    rejected:"Reject",
+    withdrawn:"Withdraw"
+  };
+
+  return (
+    labels[status] ||
+    careerStatusLabel(status)
+  );
+
+}
+
+
+function careerApplicationActionClass(status){
+
+  if (
+    status === "rejected" ||
+    status === "withdrawn"
+  ){
+    return "danger";
+  }
+
+  if (
+    status === "approved" ||
+    status === "awarded" ||
+    status === "completed"
+  ){
+    return "success";
+  }
+
+  return "default";
+
+}
+
 
 function renderCareerApplications(){
 
@@ -69256,14 +69417,7 @@ function renderCareerApplications(){
 
 
   /* =======================================================
-     OPTIONAL CONTEXT FILTER
-
-     Normally the Applications workspace shows the entire
-     unified Internship + Scholarship pipeline.
-
-     When the School clicks "Applicants" from one specific
-     scholarship, applicationFilter.scholarshipId limits the
-     workspace to that scholarship only.
+     SCHOLARSHIP-SPECIFIC CONTEXT
   ======================================================= */
 
   const applicationFilter =
@@ -69297,7 +69451,7 @@ function renderCareerApplications(){
           }
 
 
-          const applicationScholarshipId =
+          const scholarshipId =
             normalizeId(
               item.scholarshipId
                 ?._id ||
@@ -69312,7 +69466,7 @@ function renderCareerApplications(){
 
 
           return sameId(
-            applicationScholarshipId,
+            scholarshipId,
             scopedScholarshipId
           );
 
@@ -69321,10 +69475,10 @@ function renderCareerApplications(){
 
 
   /* =======================================================
-     PIPELINE COUNTS
+     COUNTS
 
-     Counts respect the selected scholarship when the
-     workspace was opened from a Scholarship card.
+     Existing page has the original six pipeline counters.
+     Scholarship-only statuses are still shown in each row.
   ======================================================= */
 
   setText(
@@ -69333,7 +69487,14 @@ function renderCareerApplications(){
   );
 
 
-  CAREER_APPLICATION_STATUSES
+  [
+    "pending",
+    "review",
+    "interview",
+    "approved",
+    "active",
+    "completed"
+  ]
     .forEach(status => {
 
       const id =
@@ -69366,7 +69527,7 @@ function renderCareerApplications(){
 
   const activeStatus =
     state.careerHub
-      .applicationStatus ||
+      ?.applicationStatus ||
     "all";
 
 
@@ -69406,6 +69567,9 @@ function renderCareerApplications(){
           careerGetCompanyName(item),
           careerGetOpportunityName(item),
           item.email,
+          item.studentId?.email,
+          item.studentId?.course,
+          item.studentId?.program,
           status,
           applicationSource
         );
@@ -69426,9 +69590,7 @@ function renderCareerApplications(){
         ) &&
         (
           !search ||
-          haystack.includes(
-            search
-          )
+          haystack.includes(search)
         )
       );
 
@@ -69436,14 +69598,10 @@ function renderCareerApplications(){
 
 
   /* =======================================================
-     CONTEXT HEADER
-
-     Add a small context banner only when the user entered
-     Applications from one specific Scholarship.
+     SCHOLARSHIP CONTEXT HEADER
   ======================================================= */
 
-  let contextHtml =
-    "";
+  let contextHtml = "";
 
 
   if (scopedScholarshipId){
@@ -69481,7 +69639,7 @@ function renderCareerApplications(){
           </strong>
 
           <small>
-            Showing applications connected only to this scholarship.
+            Reviewing applications connected only to this scholarship.
           </small>
 
         </div>
@@ -69511,6 +69669,7 @@ function renderCareerApplications(){
                 ? "No applicants for this scholarship yet"
                 : "No applications yet"
             ),
+
         scopeApplications.length
           ? "Change the pipeline status, source or search."
           : (
@@ -69529,14 +69688,84 @@ function renderCareerApplications(){
     filtered
       .map(item => {
 
+        const id =
+          careerId(item);
+
+
         const status =
           careerGetApplicationStatus(
             item
           );
 
 
+        const applicationSource =
+          careerGetApplicationSource(
+            item
+          );
+
+
+        const student =
+          item.studentId ||
+          item.student ||
+          {};
+
+
+        const nextStatuses =
+          careerApplicationNextStatuses(
+            item
+          );
+
+
+        const workflowHtml =
+          nextStatuses.length
+            ? `
+              <div class="career-application-actions">
+
+                ${nextStatuses
+                  .map(nextStatus => {
+
+                    const actionClass =
+                      careerApplicationActionClass(
+                        nextStatus
+                      );
+
+                    return `
+                      <button
+                        type="button"
+                        class="career-application-action ${escapeHtml(
+                          actionClass
+                        )}"
+                        onclick="updateCareerApplicationStatus(
+                          '${escapeHtml(id)}',
+                          '${escapeHtml(applicationSource)}',
+                          '${escapeHtml(nextStatus)}'
+                        )"
+                      >
+                        ${escapeHtml(
+                          careerApplicationActionLabel(
+                            nextStatus
+                          )
+                        )}
+                      </button>
+                    `;
+
+                  })
+                  .join("")}
+
+              </div>
+            `
+            : `
+              <div class="career-application-terminal">
+                Workflow complete
+              </div>
+            `;
+
+
         return `
-          <article class="career-module-row">
+          <article
+            class="career-module-row career-application-management-row"
+            data-application-id="${escapeHtml(id)}"
+          >
 
             <div class="career-module-row-main">
 
@@ -69549,9 +69778,21 @@ function renderCareerApplications(){
                   )}"
                 >
                   ${escapeHtml(
-                    careerStatusLabel(
-                      status
-                    )
+                    careerStatusLabel(status)
+                  )}
+                </span>
+
+                <span
+                  class="career-application-source-badge"
+                  data-source="${escapeHtml(
+                    applicationSource
+                  )}"
+                >
+                  ${escapeHtml(
+                    applicationSource ===
+                      "scholarship"
+                        ? "Scholarship"
+                        : "Internship"
                   )}
                 </span>
 
@@ -69573,27 +69814,49 @@ function renderCareerApplications(){
                   )
                 )}
 
-                ·
-
-                ${escapeHtml(
-                  careerGetCompanyName(
-                    item
-                  )
-                )}
+                ${
+                  applicationSource ===
+                    "internship"
+                    ? `
+                      ·
+                      ${escapeHtml(
+                        careerGetCompanyName(
+                          item
+                        )
+                      )}
+                    `
+                    : ""
+                }
               </p>
 
 
               <div class="career-module-row-meta">
 
-                <span>
-                  ${escapeHtml(
-                    careerStatusLabel(
-                      careerGetApplicationSource(
-                        item
-                      )
-                    )
-                  )}
-                </span>
+                ${
+                  student.email
+                    ? `
+                      <span>
+                        ${escapeHtml(
+                          student.email
+                        )}
+                      </span>
+                    `
+                    : ""
+                }
+
+                ${
+                  student.course ||
+                  student.program
+                    ? `
+                      <span>
+                        ${escapeHtml(
+                          student.course ||
+                          student.program
+                        )}
+                      </span>
+                    `
+                    : ""
+                }
 
                 <span>
                   Applied:
@@ -69610,6 +69873,9 @@ function renderCareerApplications(){
 
             </div>
 
+
+            ${workflowHtml}
+
           </article>
         `;
 
@@ -69617,6 +69883,122 @@ function renderCareerApplications(){
       .join("");
 
 }
+
+
+async function updateCareerApplicationStatus(
+  applicationId,
+  source,
+  status
+){
+
+  if (
+    !applicationId ||
+    !source ||
+    !status
+  ){
+    return;
+  }
+
+
+  const normalizedSource =
+    careerLower(source);
+
+
+  const normalizedStatus =
+    careerLower(status);
+
+
+  const destructive =
+    [
+      "rejected",
+      "withdrawn"
+    ].includes(
+      normalizedStatus
+    );
+
+
+  if (destructive){
+
+    const confirmed =
+      window.confirm(
+        normalizedStatus ===
+          "rejected"
+            ? "Reject this application?"
+            : "Withdraw this application?"
+      );
+
+
+    if (!confirmed){
+      return;
+    }
+
+  }
+
+
+  try{
+
+    const endpoint =
+      normalizedSource ===
+        "scholarship"
+          ? `/api/scholarship-applications/${encodeURIComponent(
+              applicationId
+            )}`
+          : `/api/internship-applications/${encodeURIComponent(
+              applicationId
+            )}`;
+
+
+    await apiSend(
+      endpoint,
+      "PATCH",
+      {
+        status:
+          normalizedStatus
+      }
+    );
+
+
+    showAlert(
+      "success",
+      `Application moved to ${careerStatusLabel(
+        normalizedStatus
+      )}.`
+    );
+
+
+    /*
+      Reload Career Hub because both the unified application
+      collection and the source-specific application collection
+      need to remain synchronized.
+    */
+
+    await loadSchoolCareerHub({
+      force:true,
+      silent:true
+    });
+
+
+    renderCareerApplications();
+
+
+  }catch(error){
+
+    console.error(
+      "UPDATE CAREER APPLICATION STATUS ERROR:",
+      error
+    );
+
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Application status could not be updated."
+    );
+
+  }
+
+}
+
 
 function clearCareerApplicationContext(){
 
@@ -69637,8 +70019,7 @@ function clearCareerApplicationContext(){
     $("careerApplicationSearch");
 
   if (search){
-    search.value =
-      "";
+    search.value = "";
   }
 
 
@@ -69646,8 +70027,7 @@ function clearCareerApplicationContext(){
     $("careerApplicationSourceFilter");
 
   if (sourceFilter){
-    sourceFilter.value =
-      "all";
+    sourceFilter.value = "all";
   }
 
 
@@ -71406,6 +71786,66 @@ function closeCareerEventAttendeePanel(){
 
 }
 
+/* =========================================================
+   CAREER EVENT — ATTENDEE MANAGEMENT
+========================================================= */
+
+const CAREER_EVENT_REGISTRATION_ACTIONS = {
+
+  registered:[
+    "confirmed",
+    "checked_in",
+    "attended",
+    "no_show",
+    "cancelled"
+  ],
+
+  waitlisted:[
+    "registered",
+    "cancelled"
+  ],
+
+  confirmed:[
+    "checked_in",
+    "attended",
+    "no_show",
+    "cancelled"
+  ],
+
+  checked_in:[
+    "attended",
+    "no_show"
+  ],
+
+  attended:[],
+  no_show:[],
+  cancelled:[]
+
+};
+
+
+function careerEventRegistrationActionLabel(
+  status
+){
+
+  const labels = {
+    registered:"Register",
+    waitlisted:"Waitlist",
+    confirmed:"Confirm",
+    checked_in:"Check in",
+    attended:"Mark attended",
+    no_show:"Mark no-show",
+    cancelled:"Cancel registration"
+  };
+
+
+  return (
+    labels[status] ||
+    careerStatusLabel(status)
+  );
+
+}
+
 
 function renderCareerEventAttendeeRows(
   registrations = null
@@ -71435,35 +71875,33 @@ function renderCareerEventAttendeeRows(
 
 
   const filtered =
-    source.filter(
-      registration => {
+    source.filter(registration => {
 
-        const student =
-          registration.studentId ||
-          registration.student ||
-          registration.userId ||
-          {};
+      const student =
+        registration.studentId ||
+        registration.student ||
+        registration.userId ||
+        {};
 
-        const haystack =
-          careerSearchText(
-            student.name,
-            student.fullName,
-            student.email,
-            student.course,
-            student.program,
-            registration.status,
-            registration.attendanceStatus
-          );
 
-        return (
-          !search ||
-          haystack.includes(
-            search
-          )
+      const haystack =
+        careerSearchText(
+          student.name,
+          student.fullName,
+          student.email,
+          student.course,
+          student.program,
+          registration.status,
+          registration.attendanceStatus
         );
 
-      }
-    );
+
+      return (
+        !search ||
+        haystack.includes(search)
+      );
+
+    });
 
 
   setText(
@@ -71483,6 +71921,7 @@ function renderCareerEventAttendeeRows(
         source.length
           ? "No matching attendees"
           : "No registrations yet",
+
         source.length
           ? "Try another student name or email."
           : "Student registrations for this event will appear here."
@@ -71496,11 +71935,18 @@ function renderCareerEventAttendeeRows(
     filtered
       .map(registration => {
 
+        const id =
+          careerId(
+            registration
+          );
+
+
         const student =
           registration.studentId ||
           registration.student ||
           registration.userId ||
           {};
+
 
         const studentName =
           student.fullName ||
@@ -71508,25 +71954,85 @@ function renderCareerEventAttendeeRows(
           student.email ||
           "Student";
 
+
         const status =
-          registration.status ||
-          registration.attendanceStatus ||
-          "registered";
+          careerLower(
+            registration.status ||
+            registration.attendanceStatus ||
+            "registered"
+          );
+
+
+        const nextStatuses =
+          CAREER_EVENT_REGISTRATION_ACTIONS[
+            status
+          ] ||
+          [];
+
+
+        const actionsHtml =
+          nextStatuses.length
+            ? `
+              <div class="career-attendee-actions">
+
+                ${nextStatuses
+                  .map(nextStatus => `
+                    <button
+                      type="button"
+                      class="career-attendee-action ${
+                        [
+                          "cancelled",
+                          "no_show"
+                        ].includes(
+                          nextStatus
+                        )
+                          ? "danger"
+                          : (
+                              nextStatus ===
+                                "attended"
+                                ? "success"
+                                : ""
+                            )
+                      }"
+                      onclick="updateCareerEventRegistrationStatus(
+                        '${escapeHtml(id)}',
+                        '${escapeHtml(nextStatus)}'
+                      )"
+                    >
+                      ${escapeHtml(
+                        careerEventRegistrationActionLabel(
+                          nextStatus
+                        )
+                      )}
+                    </button>
+                  `)
+                  .join("")}
+
+              </div>
+            `
+            : `
+              <span class="career-attendee-final-state">
+                Final status
+              </span>
+            `;
+
 
         return `
-          <article class="career-attendee-row">
+          <article
+            class="career-attendee-row career-attendee-management-row"
+            data-registration-id="${escapeHtml(id)}"
+          >
 
             <div class="career-attendee-avatar">
-              ${
-                escapeHtml(
-                  String(
-                    studentName
-                  )
-                    .charAt(0)
-                    .toUpperCase()
+              ${escapeHtml(
+                String(
+                  studentName
                 )
-              }
+                  .charAt(0)
+                  .toUpperCase()
+              )}
             </div>
+
 
             <div class="career-attendee-main">
 
@@ -71547,10 +72053,11 @@ function renderCareerEventAttendeeRows(
 
             </div>
 
+
             <span
               class="career-status-pill"
               data-status="${escapeHtml(
-                careerLower(status)
+                status
               )}"
             >
               ${escapeHtml(
@@ -71559,6 +72066,9 @@ function renderCareerEventAttendeeRows(
                 )
               )}
             </span>
+
+
+            ${actionsHtml}
 
           </article>
         `;
@@ -71572,6 +72082,150 @@ function renderCareerEventAttendeeRows(
 function filterCareerEventAttendees(){
 
   renderCareerEventAttendeeRows();
+
+}
+
+
+async function updateCareerEventRegistrationStatus(
+  registrationId,
+  status
+){
+
+  if (
+    !registrationId ||
+    !status
+  ){
+    return;
+  }
+
+
+  const normalizedStatus =
+    careerLower(status);
+
+
+  if (
+    [
+      "cancelled",
+      "no_show"
+    ].includes(
+      normalizedStatus
+    )
+  ){
+
+    const confirmed =
+      window.confirm(
+        normalizedStatus ===
+          "cancelled"
+            ? "Cancel this student's event registration?"
+            : "Mark this student as a no-show?"
+      );
+
+
+    if (!confirmed){
+      return;
+    }
+
+  }
+
+
+  try{
+
+    await apiSend(
+      `/api/career-event-registrations/${encodeURIComponent(
+        registrationId
+      )}`,
+      "PATCH",
+      {
+        status:
+          normalizedStatus
+      }
+    );
+
+
+    showAlert(
+      "success",
+      `Registration updated to ${careerStatusLabel(
+        normalizedStatus
+      )}.`
+    );
+
+
+    /*
+      The current attendee drawer stores the event being viewed
+      in Career Hub state. Use that event to reload registrations.
+    */
+
+    const eventId =
+      state.careerHub
+        ?.activeEventRegistrationId ||
+      state.careerHub
+        ?.activeEventId ||
+      null;
+
+
+    if (eventId){
+
+      const registrations =
+        await loadCareerEventRegistrations(
+          eventId
+        );
+
+
+      renderCareerEventAttendeeRows(
+        registrations
+      );
+
+    }else{
+
+      /*
+        Defensive fallback: update the local registration so the
+        UI never appears stale even if the active event identifier
+        was not stored by an older build.
+      */
+
+      const registration =
+        (
+          state.careerHub
+            ?.eventRegistrations ||
+          []
+        )
+          .find(item =>
+            sameId(
+              careerId(item),
+              registrationId
+            )
+          );
+
+
+      if (registration){
+        registration.status =
+          normalizedStatus;
+      }
+
+
+      renderCareerEventAttendeeRows();
+
+    }
+
+
+    renderCareerEvents();
+
+
+  }catch(error){
+
+    console.error(
+      "UPDATE EVENT REGISTRATION STATUS ERROR:",
+      error
+    );
+
+
+    showAlert(
+      "error",
+      error?.message ||
+      "Event registration could not be updated."
+    );
+
+  }
 
 }
 
@@ -71969,20 +72623,39 @@ function renderCareerVentures(){
   const box =
     $("careerVentureList");
 
+
   const ventures =
     state.careerHub
       ?.ventures ||
     [];
 
 
-  const published =
-    ventures.filter(
-      item =>
+  /*
+    Backend Venture statuses:
+
+    draft
+    submitted
+    active
+    paused
+    funded
+    closed
+    rejected
+
+    "Published" is NOT a Venture backend status.
+  */
+
+  const visibleVentures =
+    ventures.filter(item =>
+      [
+        "active",
+        "funded"
+      ].includes(
         careerLower(
           item.status
-        ) ===
-        "published"
+        )
+      )
     );
+
 
   const drafts =
     ventures.filter(
@@ -71994,36 +72667,67 @@ function renderCareerVentures(){
     );
 
 
+  /* =======================================================
+     UNIQUE FOUNDERS
+
+     ownerId is the primary venture creator.
+
+     teamMembers may contain additional students involved in
+     the venture. We count unique people rather than adding
+     array lengths, which prevents duplicate founder totals.
+  ======================================================= */
+
   const founderIds =
     new Set();
 
 
   ventures.forEach(item => {
 
-    const founders =
-      item.founders ||
-      item.founderIds ||
-      (
-        item.founder
-          ? [item.founder]
-          : []
+    const owner =
+      item.ownerId ||
+      item.owner ||
+      item.studentId ||
+      null;
+
+
+    const ownerId =
+      normalizeId(
+        owner?._id ||
+        owner
       );
 
-    founders.forEach(
-      founder => {
 
-        const id =
-          normalizeId(
-            founder?._id ||
-            founder
-          );
+    if (ownerId){
+      founderIds.add(ownerId);
+    }
 
-        if (id){
-          founderIds.add(id);
-        }
 
+    const teamMembers =
+      Array.isArray(
+        item.teamMembers
+      )
+        ? item.teamMembers
+        : [];
+
+
+    teamMembers.forEach(member => {
+
+      const memberId =
+        normalizeId(
+          member?.userId?._id ||
+          member?.userId ||
+          member?.studentId?._id ||
+          member?.studentId ||
+          member?._id ||
+          ""
+        );
+
+
+      if (memberId){
+        founderIds.add(memberId);
       }
-    );
+
+    });
 
   });
 
@@ -72033,15 +72737,18 @@ function renderCareerVentures(){
     ventures.length
   );
 
+
   setText(
     "careerVentureMetricPublished",
-    published.length
+    visibleVentures.length
   );
+
 
   setText(
     "careerVentureMetricDraft",
     drafts.length
   );
+
 
   setText(
     "careerVentureMetricFounders",
@@ -72060,6 +72767,7 @@ function renderCareerVentures(){
         ?.value
     );
 
+
   const status =
     careerLower(
       $("careerVentureStatusFilter")
@@ -72077,30 +72785,64 @@ function renderCareerVentures(){
           "draft"
         );
 
+
+      const owner =
+        item.ownerId ||
+        item.owner ||
+        item.studentId ||
+        {};
+
+
+      const ownerName =
+        owner.fullName ||
+        owner.name ||
+        owner.email ||
+        item.founderName ||
+        "";
+
+
+      const teamText =
+        (
+          Array.isArray(
+            item.teamMembers
+          )
+            ? item.teamMembers
+            : []
+        )
+          .map(member =>
+            member?.name ||
+            member?.fullName ||
+            member?.userId?.name ||
+            member?.userId?.fullName ||
+            member?.studentId?.name ||
+            ""
+          )
+          .filter(Boolean)
+          .join(" ");
+
+
       const haystack =
         careerSearchText(
           item.name,
           item.title,
           item.description,
+          item.summary,
           item.industry,
           item.category,
-          item.founderName,
-          item.founders,
+          ownerName,
+          teamText,
           itemStatus
         );
 
+
       return (
         (
-          status ===
-            "all" ||
-          itemStatus ===
-            status
+          status === "all" ||
+          itemStatus === status
         ) &&
         (
           !search ||
-          haystack.includes(
-            search
-          )
+          haystack.includes(search)
         )
       );
 
@@ -72114,13 +72856,13 @@ function renderCareerVentures(){
         ventures.length
           ? "No matching ventures"
           : "No student ventures yet",
+
         ventures.length
           ? "Try changing your search or status filter."
           : "Student entrepreneurship projects will appear here."
       );
 
     return;
-
   }
 
 
@@ -72128,40 +72870,68 @@ function renderCareerVentures(){
     filtered
       .map(item => {
 
-        const founders =
-          item.founders ||
-          [];
+        const owner =
+          item.ownerId ||
+          item.owner ||
+          item.studentId ||
+          {};
+
+
+        const founderName =
+          owner.fullName ||
+          owner.name ||
+          owner.email ||
+          item.founderName ||
+          "Student founder";
+
+
+        const teamMembers =
+          Array.isArray(
+            item.teamMembers
+          )
+            ? item.teamMembers
+            : [];
+
+
+        const additionalMembers =
+          teamMembers.length;
+
 
         const founderText =
-          item.founderName ||
-          founders
-            .map(founder =>
-              typeof founder ===
-                "string"
-                ? founder
-                : (
-                    founder.name ||
-                    founder.fullName ||
-                    ""
-                  )
-            )
-            .filter(Boolean)
-            .join(", ") ||
-          "Student founder";
+          additionalMembers
+            ? `${founderName} + ${additionalMembers} team member${
+                additionalMembers === 1
+                  ? ""
+                  : "s"
+              }`
+            : founderName;
+
+
+        const itemStatus =
+          careerLower(
+            item.status ||
+            "draft"
+          );
+
 
         return `
           <article class="career-venture-card">
 
             <div>
 
-              <span class="career-status-pill">
+              <span
+                class="career-status-pill"
+                data-status="${escapeHtml(
+                  itemStatus
+                )}"
+              >
                 ${escapeHtml(
                   careerStatusLabel(
-                    item.status ||
-                    "draft"
+                    itemStatus
                   )
                 )}
               </span>
+
 
               <h3>
                 ${escapeHtml(
@@ -72170,6 +72940,7 @@ function renderCareerVentures(){
                   "Student venture"
                 )}
               </h3>
+
 
               <p>
                 ${escapeHtml(
@@ -72180,6 +72951,7 @@ function renderCareerVentures(){
               </p>
 
             </div>
+
 
             <div class="career-venture-card-meta">
 
