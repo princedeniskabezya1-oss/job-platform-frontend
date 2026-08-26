@@ -72914,8 +72914,31 @@ function renderCareerVentures(){
           );
 
 
-        return `
-          <article class="career-venture-card">
+const ventureId =
+  careerId(item);
+
+
+return `
+          <article
+            class="career-venture-card"
+            role="link"
+            tabindex="0"
+            aria-label="Open ${escapeHtml(
+              item.name ||
+              item.title ||
+              "student venture"
+            )}"
+            onclick="openCareerVenture('${escapeHtml(ventureId)}')"
+            onkeydown="
+              if(
+                event.key === 'Enter' ||
+                event.key === ' '
+              ){
+                event.preventDefault();
+                openCareerVenture('${escapeHtml(ventureId)}');
+              }
+            "
+          >
 
             <div>
 
@@ -72979,6 +73002,36 @@ function renderCareerVentures(){
 
 }
 
+  /* =========================================================
+   OPEN OFFICIAL STUDENT VENTURE PAGE
+========================================================= */
+
+function openCareerVenture(
+  ventureId
+){
+
+  const id =
+    normalizeId(
+      ventureId
+    );
+
+
+  if (!id){
+
+    showAlert(
+      "error",
+      "This venture could not be opened."
+    );
+
+    return;
+
+  }
+
+
+  window.location.href =
+    `venture.html?id=${encodeURIComponent(id)}`;
+
+}
 
 /* =========================================================
    OPPORTUNITY COMPOSER COMPATIBILITY
