@@ -8315,25 +8315,19 @@ function careerFormatDate(value){
    DATA NORMALIZATION
 ========================================================= */
 
+/* =========================================================
+   EMPLOYER CAREER HUB — REAL BACKEND INTEGRATION
+========================================================= */
+
 function syncEmployerCareerHubData(){
 
   const hub = state.careerHub;
 
-
   /*
-   * Reuse existing employer data wherever the current
-   * employer dashboard already owns the source of truth.
-   *
-   * Dedicated Career Hub APIs will replace/extend these
-   * collections during backend integration.
+   * Talent continues to reuse the Employer Job Seeker
+   * directory because that system is already the authoritative
+   * talent-discovery source in employer.html.
    */
-
-
-  hub.careerApplications =
-    careerArray(
-      state.applications
-    );
-
 
   hub.talent =
     careerArray(
@@ -8342,8 +8336,11 @@ function syncEmployerCareerHubData(){
 
 
   /*
-   * Do not fabricate programs, partnerships, events,
-   * campaigns or ventures from unrelated data.
+   * Career Hub collections are loaded independently from
+   * their dedicated backend APIs.
+   *
+   * Never replace successfully loaded Career Hub data with
+   * unrelated dashboard collections.
    */
 
   hub.programs =
@@ -8351,29 +8348,733 @@ function syncEmployerCareerHubData(){
       hub.programs
     );
 
+  hub.careerApplications =
+    careerArray(
+      hub.careerApplications
+    );
 
   hub.partnerships =
     careerArray(
       hub.partnerships
     );
 
-
   hub.campusCampaigns =
     careerArray(
       hub.campusCampaigns
     );
-
 
   hub.events =
     careerArray(
       hub.events
     );
 
-
   hub.ventures =
     careerArray(
       hub.ventures
     );
+
+}
+
+
+/* =========================================================
+   NORMALIZE CAREER HUB API COLLECTIONS
+========================================================= */
+
+function employerCareerExtractCollection(
+  payload,
+  keys = []
+){
+
+  if(Array.isArray(payload)){
+    return payload;
+  }
+
+  if(!payload || typeof payload !== "object"){
+    return [];
+  }
+
+
+  /*
+   * Support the response shapes already used throughout AIFT:
+   *
+   * {
+   *   items:[]
+   * }
+   *
+   * {
+   *   data:[]
+   * }
+   *
+   * {
+   *   opportunities:[]
+   * }
+   *
+   * etc.
+   */
+
+  for(const key of keys){
+
+    if(Array.isArray(payload[key])){
+      return payload[key];
+    }
+
+  }
+
+
+  if(Array.isArray(payload.items)){
+    return payload.items;
+  }
+
+
+  if(Array.isArray(payload.data)){
+    return payload.data;
+  }
+
+
+  if(
+    payload.data &&
+    typeof payload.data === "object"
+  ){
+
+    for(const key of keys){
+
+      if(Array.isArray(payload.data[key])){
+        return payload.data[key];
+      }
+
+    }
+
+
+    if(Array.isArray(payload.data.items)){
+      return payload.data.items;
+    }
+
+  }
+
+
+  if(Array.isArray(payload.results)){
+    return payload.results;
+  }
+
+
+  return [];
+
+}
+
+
+/* =========================================================
+   CAREER HUB AUTHENTICATED GET
+========================================================= */
+
+async function employerCareerApiGet(
+  path,
+  options = {}
+){
+
+  const response =
+    await fetch(
+      `${API}${path}`,
+      {
+        method:"GET",
+
+        headers:
+          authHeaders({
+            Accept:"application/json"
+          }),
+
+        signal:
+          options.signal
+      }
+    );
+
+
+  const payload =
+    await safeJson(response);
+
+
+  if(!response.ok){
+
+    const error =
+      new Error(
+        payload?.message ||
+        payload?.error ||
+        `Career Hub request failed (${response.status})`
+      );
+
+
+    error.status =
+      response.status;
+
+
+    error.payload =
+      payload;
+
+
+    throw error;
+
+  }
+
+
+  return payload;
+
+}
+
+
+/* =========================================================
+   LOAD ONE CAREER HUB RESOURCE SAFELY
+========================================================= */
+
+async function employerCareerLoadResource({
+  name,
+  path,
+  keys,
+  signal
+}){
+
+  try{
+
+    const payload =
+      await employerCareerApiGet(
+        path,
+        {
+          signal
+        }
+      );
+
+
+    return {
+      ok:true,
+
+      name,
+
+      items:
+        employerCareerExtractCollection(
+          payload,
+          keys
+        ),
+
+      payload
+    };
+
+  }catch(error){
+
+    /*
+     * Abort is expected when a newer Career Hub refresh
+     * replaces an older request.
+     */
+
+    if(error?.name === "AbortError"){
+      throw error;
+    }
+
+
+    console.error(
+      `Employer Career Hub ${name} load failed:`,
+      error
+    );
+
+
+    return {
+      ok:false,
+      name,
+      items:[],
+      error
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+   DERIVE CAMPUS RECRUITMENT FROM REAL CAREER HUB RECORDS
+
+   There is currently no separate CareerCampaign model/route.
+
+   Therefore Campus Recruitment is a workspace view composed
+   from real opportunities and career events instead of fake
+   frontend campaign objects.
+========================================================= */
+
+function buildEmployerCareerCampusRecords(
+  programs,
+  events
+){
+
+  const programRecords =
+    careerArray(programs)
+      .filter(item => {
+
+        const type =
+          careerLower(
+            item.type ||
+            item.opportunityType ||
+            item.category
+          );
+
+
+        const title =
+          careerLower(
+            item.title ||
+            item.name
+          );
+
+
+        return (
+          type.includes("intern") ||
+          type.includes("graduate") ||
+          type.includes("placement") ||
+          type.includes("campus") ||
+          type.includes("project") ||
+          title.includes("campus") ||
+          title.includes("graduate") ||
+          title.includes("intern")
+        );
+
+      })
+      .map(item => ({
+        ...item,
+
+        careerHubSource:
+          "opportunity",
+
+        careerHubRecordType:
+          "Campus Opportunity"
+      }));
+
+
+  const eventRecords =
+    careerArray(events)
+      .filter(item => {
+
+        const type =
+          careerLower(
+            item.type ||
+            item.eventType ||
+            item.category
+          );
+
+
+        const title =
+          careerLower(
+            item.title ||
+            item.name
+          );
+
+
+        return (
+          type.includes("career") ||
+          type.includes("campus") ||
+          type.includes("recruit") ||
+          type.includes("hiring") ||
+          type.includes("job") ||
+          title.includes("career") ||
+          title.includes("campus") ||
+          title.includes("recruit") ||
+          title.includes("hiring")
+        );
+
+      })
+      .map(item => ({
+        ...item,
+
+        careerHubSource:
+          "event",
+
+        careerHubRecordType:
+          "Campus Event"
+      }));
+
+
+  return [
+    ...programRecords,
+    ...eventRecords
+  ];
+
+}
+
+
+/* =========================================================
+   CAREER HUB REQUEST STATE
+========================================================= */
+
+let employerCareerHubAbortController =
+  null;
+
+
+let employerCareerHubLoadPromise =
+  null;
+
+
+/* =========================================================
+   LOAD EMPLOYER CAREER HUB
+========================================================= */
+
+async function loadEmployerCareerHub(
+  options = {}
+){
+
+  const hub =
+    state.careerHub;
+
+
+  if(!hub){
+    return;
+  }
+
+
+  /*
+   * Prevent duplicate simultaneous initial loads.
+   */
+
+  if(
+    employerCareerHubLoadPromise &&
+    options.force !== true
+  ){
+    return employerCareerHubLoadPromise;
+  }
+
+
+  /*
+   * A forced refresh cancels the previous Career Hub request
+   * group before starting a new one.
+   */
+
+  if(employerCareerHubAbortController){
+
+    employerCareerHubAbortController
+      .abort();
+
+  }
+
+
+  const controller =
+    new AbortController();
+
+
+  employerCareerHubAbortController =
+    controller;
+
+
+  hub.loading =
+    true;
+
+
+  hub.loadError =
+    "";
+
+
+  const run =
+    (async () => {
+
+      try{
+
+        /*
+         * These routes are already mounted in server.js:
+         *
+         * /api/opportunities
+         * /api/internship-applications
+         * /api/school-company-partnerships
+         * /api/career-events
+         * /api/career-event-registrations
+         * /api/ventures
+         *
+         * The first five collections below are enough for the
+         * current Employer Career Hub views.
+         */
+
+        const [
+          opportunitiesResult,
+          applicationsResult,
+          partnershipsResult,
+          eventsResult,
+          venturesResult
+        ] =
+          await Promise.all([
+
+            employerCareerLoadResource({
+              name:"opportunities",
+              path:"/api/opportunities?limit=100",
+              keys:[
+                "opportunities",
+                "items",
+                "results"
+              ],
+              signal:
+                controller.signal
+            }),
+
+
+            employerCareerLoadResource({
+              name:"applications",
+              path:"/api/internship-applications",
+              keys:[
+                "applications",
+                "internshipApplications",
+                "items",
+                "results"
+              ],
+              signal:
+                controller.signal
+            }),
+
+
+            employerCareerLoadResource({
+              name:"partnerships",
+              path:"/api/school-company-partnerships",
+              keys:[
+                "partnerships",
+                "schoolCompanyPartnerships",
+                "items",
+                "results"
+              ],
+              signal:
+                controller.signal
+            }),
+
+
+            employerCareerLoadResource({
+              name:"events",
+              path:"/api/career-events",
+              keys:[
+                "events",
+                "careerEvents",
+                "items",
+                "results"
+              ],
+              signal:
+                controller.signal
+            }),
+
+
+            employerCareerLoadResource({
+              name:"ventures",
+              path:"/api/ventures",
+              keys:[
+                "ventures",
+                "items",
+                "results"
+              ],
+              signal:
+                controller.signal
+            })
+
+          ]);
+
+
+        /*
+         * Do not destroy previously loaded data merely because
+         * one endpoint temporarily failed.
+         */
+
+        if(opportunitiesResult.ok){
+
+          hub.programs =
+            opportunitiesResult.items;
+
+        }
+
+
+        if(applicationsResult.ok){
+
+          hub.careerApplications =
+            applicationsResult.items;
+
+        }
+
+
+        if(partnershipsResult.ok){
+
+          hub.partnerships =
+            partnershipsResult.items;
+
+        }
+
+
+        if(eventsResult.ok){
+
+          hub.events =
+            eventsResult.items;
+
+        }
+
+
+        if(venturesResult.ok){
+
+          hub.ventures =
+            venturesResult.items;
+
+        }
+
+
+        /*
+         * Job seekers remain the authoritative talent source
+         * already loaded by employer.html.
+         */
+
+        hub.talent =
+          careerArray(
+            state.jobSeekers
+          );
+
+
+        /*
+         * Campus Recruitment currently has no dedicated backend
+         * collection. Build that workspace from genuine Career
+         * Hub opportunities + events.
+         */
+
+        hub.campusCampaigns =
+          buildEmployerCareerCampusRecords(
+            hub.programs,
+            hub.events
+          );
+
+
+        hub.loadedAt =
+          new Date().toISOString();
+
+
+        const failed =
+          [
+            opportunitiesResult,
+            applicationsResult,
+            partnershipsResult,
+            eventsResult,
+            venturesResult
+          ]
+            .filter(result => !result.ok);
+
+
+        hub.partialFailure =
+          failed.length > 0;
+
+
+        hub.failedResources =
+          failed.map(
+            result => result.name
+          );
+
+
+        if(failed.length){
+
+          console.warn(
+            "Employer Career Hub loaded with partial API failures:",
+            hub.failedResources
+          );
+
+        }
+
+
+        /*
+         * Rebuild every visible Career Hub component with the
+         * authoritative backend data.
+         */
+
+        syncEmployerCareerHubData();
+
+        renderEmployerCareerMetrics();
+
+        renderEmployerCareerHubView(
+          hub.activeView ||
+          "overview"
+        );
+
+
+        return {
+          success:
+            failed.length === 0,
+
+          partial:
+            failed.length > 0,
+
+          failedResources:
+            hub.failedResources
+        };
+
+      }catch(error){
+
+        if(error?.name === "AbortError"){
+          return;
+        }
+
+
+        console.error(
+          "Employer Career Hub load failed:",
+          error
+        );
+
+
+        hub.loadError =
+          error?.message ||
+          "Career Hub could not be loaded.";
+
+
+        throw error;
+
+      }finally{
+
+        if(
+          employerCareerHubAbortController ===
+          controller
+        ){
+
+          employerCareerHubAbortController =
+            null;
+
+        }
+
+
+        hub.loading =
+          false;
+
+
+        employerCareerHubLoadPromise =
+          null;
+
+      }
+
+    })();
+
+
+  employerCareerHubLoadPromise =
+    run;
+
+
+  return run;
+
+}
+
+
+/* =========================================================
+   REFRESH EMPLOYER CAREER HUB
+========================================================= */
+
+async function refreshEmployerCareerHub(){
+
+  try{
+
+    await loadEmployerCareerHub({
+      force:true
+    });
+
+
+    showToast(
+      "Career Hub",
+      "Career Hub data refreshed.",
+      "success"
+    );
+
+  }catch(error){
+
+    showToast(
+      "Career Hub",
+      error?.message ||
+      "Career Hub could not be refreshed.",
+      "error"
+    );
+
+  }
 
 }
 
@@ -10864,6 +11565,10 @@ function buildEmployerCareerHub(){
   }
 
 
+  const hub =
+    state.careerHub;
+
+
   syncEmployerCareerHubData();
 
   wireEmployerCareerHub();
@@ -10871,13 +11576,34 @@ function buildEmployerCareerHub(){
   renderEmployerCareerMetrics();
 
   renderEmployerCareerHubView(
-    state.careerHub.activeView ||
+    hub.activeView ||
     "overview"
   );
 
 
-  state.careerHub.initialized =
-    true;
+  /*
+   * Mark the UI controller as initialized immediately.
+   * Backend loading happens asynchronously and will trigger
+   * another render when authoritative data arrives.
+   */
+
+  if(!hub.initialized){
+
+    hub.initialized =
+      true;
+
+
+    loadEmployerCareerHub()
+      .catch(error => {
+
+        console.error(
+          "Initial Employer Career Hub integration failed:",
+          error
+        );
+
+      });
+
+  }
 
 }
 
