@@ -29106,11 +29106,12 @@ function buildNetwork(){
                   "
                   data-user-id="${escapeHtml(userId)}"
                   data-following="${isFollowing ? "true" : "false"}"
-                  onclick="
-                    toggleFollow(
-                      '${userId}'
-                    )
-                  "
+onclick="
+  toggleFollow(
+    '${userId}',
+    this
+  )
+"
                 >
 
                   ${
@@ -29219,6 +29220,554 @@ function buildNetwork(){
   }
 
 }
+
+/* =========================================================
+   NETWORK FOLLOW / UNFOLLOW
+   Real backend integration
+
+   PATCH /api/users/:id/follow
+========================================================= */
+
+async function toggleFollow(
+  userId,
+  triggerButton = null
+){
+
+  const targetId =
+    String(
+      userId ||
+      ""
+    ).trim();
+
+
+  /* =====================================================
+     VALIDATE TARGET
+  ===================================================== */
+
+  if (!targetId) {
+
+    showToast(
+      "Follow unavailable",
+      "This profile does not have a valid user ID.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  /* =====================================================
+     PREVENT DOUBLE REQUESTS
+  ===================================================== */
+
+  if (
+    triggerButton?.dataset
+      ?.followPending ===
+    "true"
+  ) {
+
+    return;
+  }
+
+
+  const wasFollowing =
+    Boolean(
+      triggerButton
+        ?.classList
+        ?.contains(
+          "is-following"
+        )
+    );
+
+
+  const originalHtml =
+    triggerButton
+      ? triggerButton.innerHTML
+      : "";
+
+
+  try {
+
+    /* ===================================================
+       LOADING STATE
+
+       IMPORTANT:
+       Do not visually change Follow -> Following before
+       the backend confirms the relationship.
+    =================================================== */
+
+    if (triggerButton) {
+
+      triggerButton.dataset.followPending =
+        "true";
+
+      triggerButton.disabled =
+        true;
+
+      triggerButton.classList.add(
+        "is-loading"
+      );
+
+      triggerButton.setAttribute(
+        "aria-busy",
+        "true"
+      );
+
+
+      triggerButton.innerHTML =
+        `
+          <span>
+            ${
+              wasFollowing
+                ? "Updating"
+                : "Following"
+            }
+          </span>
+        `;
+
+    }
+
+
+    /* ===================================================
+       REAL FOLLOW / UNFOLLOW REQUEST
+    =================================================== */
+
+    const response =
+      await fetch(
+        `${API}/api/users/${encodeURIComponent(targetId)}/follow`,
+        {
+          method:"PATCH",
+
+          headers:
+            authHeaders({
+              Accept:
+                "application/json"
+            })
+        }
+      );
+
+
+    /* ===================================================
+       PARSE RESPONSE
+    =================================================== */
+
+    let data =
+      null;
+
+
+    try {
+
+      data =
+        await response.json();
+
+    } catch (parseError) {
+
+      data =
+        null;
+
+    }
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        data?.message ||
+        data?.error ||
+        `Follow request failed (${response.status}).`
+      );
+
+    }
+
+
+    /* ===================================================
+       REQUIRE AUTHORITATIVE BACKEND STATE
+    =================================================== */
+
+    if (
+      typeof data?.following !==
+      "boolean"
+    ) {
+
+      throw new Error(
+        "The server did not return a valid follow state."
+      );
+
+    }
+
+
+    const nowFollowing =
+      data.following;
+
+
+    /* ===================================================
+       NORMALIZE CURRENT USER FOLLOWING ARRAY
+
+       state.me.following may contain:
+       - Mongo IDs
+       - populated user objects
+
+       Preserve both shapes safely.
+    =================================================== */
+
+    if (!state.me) {
+
+      state.me = {};
+
+    }
+
+
+    if (
+      !Array.isArray(
+        state.me.following
+      )
+    ) {
+
+      state.me.following = [];
+
+    }
+
+
+    const currentFollowingIds =
+      state.me.following.map(
+        item =>
+          String(
+            item?._id ||
+            item ||
+            ""
+          )
+      );
+
+
+    if (nowFollowing) {
+
+      if (
+        !currentFollowingIds.includes(
+          targetId
+        )
+      ) {
+
+        state.me.following.push(
+          targetId
+        );
+
+      }
+
+    } else {
+
+      state.me.following =
+        state.me.following.filter(
+          item =>
+            String(
+              item?._id ||
+              item ||
+              ""
+            ) !== targetId
+        );
+
+    }
+
+
+    /* ===================================================
+       KEEP TARGET USER RELATIONSHIP DATA IN SYNC
+
+       This allows Network mutual/relationship text to
+       immediately reflect the backend result.
+    =================================================== */
+
+    const targetUser =
+      (state.people || []).find(
+        user =>
+          String(
+            user?._id ||
+            ""
+          ) === targetId
+      );
+
+
+    const currentEmployerId =
+      String(
+        state.me?._id ||
+        localStorage.getItem(
+          "userId"
+        ) ||
+        ""
+      );
+
+
+    if (targetUser) {
+
+      if (
+        !Array.isArray(
+          targetUser.followers
+        )
+      ) {
+
+        targetUser.followers = [];
+
+      }
+
+
+      const targetFollowerIds =
+        targetUser.followers.map(
+          item =>
+            String(
+              item?._id ||
+              item ||
+              ""
+            )
+        );
+
+
+      if (nowFollowing) {
+
+        if (
+          currentEmployerId &&
+          !targetFollowerIds.includes(
+            currentEmployerId
+          )
+        ) {
+
+          targetUser.followers.push(
+            currentEmployerId
+          );
+
+        }
+
+      } else {
+
+        targetUser.followers =
+          targetUser.followers.filter(
+            item =>
+              String(
+                item?._id ||
+                item ||
+                ""
+              ) !== currentEmployerId
+          );
+
+      }
+
+
+      /*
+        Backend returns the authoritative follower count.
+
+        Store it separately without replacing the follower
+        ID array required by the existing Network logic.
+      */
+
+      if (
+        Number.isFinite(
+          Number(
+            data.followers
+          )
+        )
+      ) {
+
+        targetUser.followersCount =
+          Number(
+            data.followers
+          );
+
+      }
+
+    }
+
+
+    /* ===================================================
+       SUCCESS BUTTON STATE
+
+       This runs only AFTER response.ok and after the
+       backend returned data.following.
+    =================================================== */
+
+    if (triggerButton) {
+
+      triggerButton.disabled =
+        false;
+
+      triggerButton.classList.remove(
+        "is-loading"
+      );
+
+      triggerButton.classList.toggle(
+        "is-following",
+        nowFollowing
+      );
+
+      triggerButton.classList.add(
+        "is-success"
+      );
+
+      triggerButton.removeAttribute(
+        "aria-busy"
+      );
+
+      triggerButton.dataset.followPending =
+        "false";
+
+      triggerButton.dataset.following =
+        nowFollowing
+          ? "true"
+          : "false";
+
+
+      triggerButton.innerHTML =
+        nowFollowing
+          ? `
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="m5 12 4 4L19 6"
+                ></path>
+              </svg>
+
+              <span>
+                Following
+              </span>
+            `
+          : `
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 5v14"
+                ></path>
+
+                <path
+                  d="M5 12h14"
+                ></path>
+              </svg>
+
+              <span>
+                Follow
+              </span>
+            `;
+
+
+      window.setTimeout(
+        () => {
+
+          triggerButton
+            ?.classList
+            ?.remove(
+              "is-success"
+            );
+
+        },
+        450
+      );
+
+    }
+
+
+    /* ===================================================
+       UPDATE REAL WORKSPACE METRICS
+
+       This refreshes:
+       - Connections
+       - Talent
+       - Organizations
+       - Following
+    =================================================== */
+
+    if (
+      typeof updateEmployerWorkspaceMetrics ===
+      "function"
+    ) {
+
+      updateEmployerWorkspaceMetrics();
+
+    }
+
+
+    /* ===================================================
+       SUCCESS MESSAGE
+    =================================================== */
+
+    showToast(
+      nowFollowing
+        ? "Following"
+        : "Unfollowed",
+
+      nowFollowing
+        ? "You are now following this profile."
+        : "You are no longer following this profile.",
+
+      "success"
+    );
+
+
+    /* ===================================================
+       REBUILD NETWORK AFTER SHORT SUCCESS FEEDBACK
+
+       IMPORTANT:
+       A user who no longer has any connection relationship
+       may correctly disappear from Your Network after
+       unfollowing.
+    =================================================== */
+
+    window.setTimeout(
+      () => {
+
+        buildNetwork();
+
+      },
+      350
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "NETWORK FOLLOW ERROR:",
+      error
+    );
+
+
+    /* ===================================================
+       RESTORE ORIGINAL BUTTON
+
+       API failure must never visually show success.
+    =================================================== */
+
+    if (triggerButton) {
+
+      triggerButton.disabled =
+        false;
+
+      triggerButton.classList.remove(
+        "is-loading",
+        "is-success"
+      );
+
+      triggerButton.removeAttribute(
+        "aria-busy"
+      );
+
+      triggerButton.dataset.followPending =
+        "false";
+
+      triggerButton.innerHTML =
+        originalHtml;
+
+    }
+
+
+    showToast(
+      "Follow failed",
+      error?.message ||
+      "The follow request could not be completed.",
+      "error"
+    );
+
+  }
+
+}
+
+
     function loadMoreNetwork(){
   state.networkVisibleCount = (state.networkVisibleCount || 9) + 9;
   buildNetwork();
