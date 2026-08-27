@@ -22287,7 +22287,7 @@ function renderEmployerCareerCampusConnectedOpportunities(
    OPEN OPERATIONS
 ========================================================= */
 
-function openEmployerCareerCampusOperations(
+async function openEmployerCareerCampusOperations(
   campaignId
 ){
 
@@ -22300,6 +22300,21 @@ function openEmployerCareerCampusOperations(
   if(!campaign){
     return;
   }
+
+
+  /*
+   * Load authoritative campaign analytics from the backend
+   * before rendering the operations workspace.
+   *
+   * loadEmployerCareerCampusMetrics() updates this same
+   * campaign object in state.careerHub.campusCampaigns,
+   * therefore the code below can continue reading
+   * campaign.metrics normally.
+   */
+
+  await loadEmployerCareerCampusMetrics(
+    campaignId
+  );
 
 
   const school =
@@ -22438,6 +22453,15 @@ function openEmployerCareerCampusOperations(
   );
 
 
+  /*
+   * Refresh the Campus Recruitment campaign cards so the
+   * applications / hires displayed on the card immediately
+   * reflect the same authoritative metrics loaded above.
+   */
+
+  renderEmployerCareerCampus();
+
+
   const manager =
     document.getElementById(
       "employerCareerCampusOperations"
@@ -22477,6 +22501,125 @@ function closeEmployerCareerCampusOperations(){
 
 }
 
+/* =========================================================
+   LOAD REAL CAMPUS CAMPAIGN METRICS
+========================================================= */
+
+async function loadEmployerCareerCampusMetrics(
+  campaignId
+){
+
+  const id =
+    careerText(
+      campaignId
+    );
+
+
+  if(!id){
+    return null;
+  }
+
+
+  try{
+
+    const payload =
+      await employerCareerApiGet(
+        `/api/campus-recruitment-campaigns/${encodeURIComponent(id)}/metrics`
+      );
+
+
+    const metrics =
+      payload?.metrics &&
+      typeof payload.metrics === "object"
+        ? payload.metrics
+        : {};
+
+
+    const conversion =
+      payload?.conversion &&
+      typeof payload.conversion === "object"
+        ? payload.conversion
+        : {};
+
+
+    /*
+     * The campaign remains the main Career Hub record.
+     * We only replace its analytics snapshot in memory with
+     * authoritative server-calculated values.
+     */
+
+    const campaign =
+      employerCareerCampusById(
+        id
+      );
+
+
+    if(campaign){
+
+      campaign.metrics = {
+        ...(campaign.metrics || {}),
+        ...metrics
+      };
+
+
+      campaign.careerHubMetrics = {
+        metrics,
+        conversion,
+
+        opportunityCount:
+          Number(
+            payload?.opportunityCount ||
+            0
+          ),
+
+        targetHires:
+          Number(
+            payload?.targetHires ||
+            campaign.targetHires ||
+            0
+          ),
+
+        generatedAt:
+          payload?.generatedAt ||
+          null
+      };
+
+    }
+
+
+    return {
+      metrics,
+      conversion,
+      payload
+    };
+
+
+  }catch(error){
+
+    console.error(
+      "LOAD CAMPUS CAMPAIGN METRICS ERROR:",
+      error
+    );
+
+
+    /*
+     * Do not destroy the operations panel if analytics fail.
+     * Existing campaign data can remain visible.
+     */
+
+    showToast(
+      "Campus recruitment",
+      error?.message ||
+      "Unable to load live campaign metrics.",
+      "error"
+    );
+
+
+    return null;
+
+  }
+
+}
 
 /* =========================================================
    CHANGE STATUS
