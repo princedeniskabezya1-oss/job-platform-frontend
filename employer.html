@@ -30087,56 +30087,65 @@ if (triggerButton) {
     /* ===================================================
        SUCCESS MESSAGE
     =================================================== */
+showToast(
+  nowFollowing
+    ? "Following"
+    : "Unfollowed",
 
-    showToast(
-      nowFollowing
-        ? "Following"
-        : "Unfollowed",
+  nowFollowing
+    ? "You are now following this profile."
+    : "You are no longer following this profile.",
 
-      nowFollowing
-        ? "You are now following this profile."
-        : "You are no longer following this profile.",
+  "success"
+);
 
-      "success"
+
+} catch (error) {
+
+  console.error(
+    "NETWORK FOLLOW ERROR:",
+    error
+  );
+
+
+  /* ===================================================
+     RESTORE ORIGINAL BUTTON
+
+     API failure must never visually show success.
+  =================================================== */
+
+  if (triggerButton) {
+
+    triggerButton.disabled =
+      false;
+
+    triggerButton.classList.remove(
+      "is-loading",
+      "is-follow-success",
+      "is-unfollow-success"
     );
 
-    /* ===================================================
-       RESTORE ORIGINAL BUTTON
-
-       API failure must never visually show success.
-    =================================================== */
-
-    if (triggerButton) {
-
-      triggerButton.disabled =
-        false;
-
-      triggerButton.classList.remove(
-        "is-loading",
-        "is-success"
-      );
-
-      triggerButton.removeAttribute(
-        "aria-busy"
-      );
-
-      triggerButton.dataset.followPending =
-        "false";
-
-      triggerButton.innerHTML =
-        originalHtml;
-
-    }
-
-
-    showToast(
-      "Follow failed",
-      error?.message ||
-      "The follow request could not be completed.",
-      "error"
+    triggerButton.removeAttribute(
+      "aria-busy"
     );
+
+    triggerButton.dataset.followPending =
+      "false";
+
+    triggerButton.innerHTML =
+      originalHtml;
 
   }
+
+
+  showToast(
+    "Follow failed",
+    error?.message ||
+    "The follow request could not be completed.",
+    "error"
+  );
+
+}
 
 }
 
