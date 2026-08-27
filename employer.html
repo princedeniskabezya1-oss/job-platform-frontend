@@ -28188,12 +28188,48 @@ async function openPipelineCandidateMessage(
     );
 
 
-    /* ===================================================
-       NAVIGATE TO THE SPECIFIC CONVERSATION
-    =================================================== */
+/* ===================================================
+   RESTORE BUTTON BEFORE NAVIGATION
 
-    window.location.href =
-      `messages.html?${params.toString()}`;
+   IMPORTANT:
+   Browsers may keep employer.html inside the
+   back/forward cache.
+
+   If we navigate away while this button is still
+   disabled / loading, that visual state can be
+   restored when the employer returns to this page.
+
+   Restore the DOM first, then navigate.
+=================================================== */
+
+if (triggerButton) {
+
+  triggerButton.disabled =
+    false;
+
+  triggerButton.classList.remove(
+    "is-loading"
+  );
+
+  triggerButton.removeAttribute(
+    "aria-busy"
+  );
+
+  triggerButton.dataset.conversationPending =
+    "false";
+
+  triggerButton.innerHTML =
+    originalHtml;
+
+}
+
+
+/* ===================================================
+   NAVIGATE TO THE SPECIFIC CONVERSATION
+=================================================== */
+
+window.location.href =
+  `messages.html?${params.toString()}`;
 
 
   } catch (error) {
@@ -28239,6 +28275,54 @@ async function openPipelineCandidateMessage(
 
 }
 
+/* =========================================================
+   RESET STALE PIPELINE MESSAGE BUTTONS
+
+   Browsers can restore employer.html from the
+   back/forward cache instead of rebuilding the page.
+
+   Never allow an old pending Message state to survive.
+========================================================= */
+
+function resetPipelineMessageButtons(){
+
+  document
+    .querySelectorAll(
+      "#section-pipeline .emp-pipeline-message-btn"
+    )
+    .forEach(button => {
+
+      button.disabled =
+        false;
+
+      button.classList.remove(
+        "is-loading"
+      );
+
+      button.removeAttribute(
+        "aria-busy"
+      );
+
+      button.dataset.conversationPending =
+        "false";
+
+    });
+
+}
+
+
+/* =========================================================
+   BACK / FORWARD CACHE RECOVERY
+========================================================= */
+
+window.addEventListener(
+  "pageshow",
+  () => {
+
+    resetPipelineMessageButtons();
+
+  }
+);
 
 /* =========================================================
    RECRUITMENT WORKSPACE CONTROLS
