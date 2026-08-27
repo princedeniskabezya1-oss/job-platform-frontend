@@ -29599,6 +29599,78 @@ async function toggleFollow(
 
 
   /* =====================================================
+   RAPID FOLLOW / UNFOLLOW PROTECTION
+
+   Instagram-style relationship controls should not send
+   two competing relationship transactions while the
+   previous visual/backend transition is completing.
+
+   If the user taps again immediately, queue the action
+   instead of showing an error.
+===================================================== */
+
+if (triggerButton) {
+
+  const transitionUntil =
+    Number(
+      triggerButton.dataset
+        .followTransitionUntil ||
+      0
+    );
+
+
+  const remaining =
+    transitionUntil -
+    Date.now();
+
+
+  if (remaining > 0) {
+
+    /*
+      Avoid creating several queued clicks if the user
+      taps repeatedly during the same transition.
+    */
+
+    if (
+      triggerButton.dataset
+        .followQueued ===
+      "true"
+    ) {
+
+      return;
+
+    }
+
+
+    triggerButton.dataset.followQueued =
+      "true";
+
+
+    window.setTimeout(
+      () => {
+
+        triggerButton.dataset.followQueued =
+          "false";
+
+
+        toggleFollow(
+          targetId,
+          triggerButton
+        );
+
+      },
+      remaining + 30
+    );
+
+
+    return;
+
+  }
+
+}
+
+
+  /* =====================================================
      VALIDATE TARGET
   ===================================================== */
 
@@ -29967,6 +30039,19 @@ if (triggerButton) {
       ? "true"
       : "false";
 
+  /*
+  Give the completed MongoDB relationship update and the
+  button animation a very short settling window.
+
+  A tap during this window is queued by toggleFollow()
+  instead of creating a competing API request.
+*/
+
+triggerButton.dataset.followTransitionUntil =
+  String(
+    Date.now() + 430
+  );
+
 
   /* =================================================
      FOLLOW SUCCESS
@@ -30049,17 +30134,22 @@ if (triggerButton) {
      REMOVE TEMPORARY ANIMATION CLASS
   ================================================= */
 
-  window.setTimeout(
-    () => {
+window.setTimeout(
+  () => {
 
-      triggerButton.classList.remove(
-        "is-follow-success",
-        "is-unfollow-success"
-      );
+    triggerButton.classList.remove(
+      "is-follow-success",
+      "is-unfollow-success"
+    );
 
-    },
-    420
-  );
+
+    triggerButton.dataset
+      .followTransitionUntil =
+      "0";
+
+  },
+  420
+);
 
 }
 
