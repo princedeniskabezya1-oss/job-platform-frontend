@@ -13482,83 +13482,98 @@ async function loadEmployerCareerHub(
          * current Employer Career Hub views.
          */
 
-        const [
-          opportunitiesResult,
-          applicationsResult,
-          partnershipsResult,
-          eventsResult,
-          venturesResult
-        ] =
-          await Promise.all([
+const [
+  opportunitiesResult,
+  applicationsResult,
+  partnershipsResult,
+  campusCampaignsResult,
+  eventsResult,
+  venturesResult
+] =
+  await Promise.all([
 
-            employerCareerLoadResource({
-              name:"opportunities",
-              path:"/api/opportunities?limit=100",
-              keys:[
-                "opportunities",
-                "items",
-                "results"
-              ],
-              signal:
-                controller.signal
-            }),
-
-
-            employerCareerLoadResource({
-              name:"applications",
-              path:"/api/internship-applications",
-              keys:[
-                "applications",
-                "internshipApplications",
-                "items",
-                "results"
-              ],
-              signal:
-                controller.signal
-            }),
+    employerCareerLoadResource({
+      name:"opportunities",
+      path:"/api/opportunities?limit=100",
+      keys:[
+        "opportunities",
+        "items",
+        "results"
+      ],
+      signal:
+        controller.signal
+    }),
 
 
-            employerCareerLoadResource({
-              name:"partnerships",
-              path:"/api/school-company-partnerships",
-              keys:[
-                "partnerships",
-                "schoolCompanyPartnerships",
-                "items",
-                "results"
-              ],
-              signal:
-                controller.signal
-            }),
+    employerCareerLoadResource({
+      name:"applications",
+      path:"/api/internship-applications",
+      keys:[
+        "applications",
+        "internshipApplications",
+        "items",
+        "results"
+      ],
+      signal:
+        controller.signal
+    }),
 
 
-            employerCareerLoadResource({
-              name:"events",
-              path:"/api/career-events",
-              keys:[
-                "events",
-                "careerEvents",
-                "items",
-                "results"
-              ],
-              signal:
-                controller.signal
-            }),
+    employerCareerLoadResource({
+      name:"partnerships",
+      path:"/api/school-company-partnerships",
+      keys:[
+        "partnerships",
+        "schoolCompanyPartnerships",
+        "items",
+        "results"
+      ],
+      signal:
+        controller.signal
+    }),
 
 
-            employerCareerLoadResource({
-              name:"ventures",
-              path:"/api/ventures",
-              keys:[
-                "ventures",
-                "items",
-                "results"
-              ],
-              signal:
-                controller.signal
-            })
+    employerCareerLoadResource({
+      name:"campus recruitment campaigns",
+      path:"/api/campus-recruitment-campaigns",
+      keys:[
+        "campaigns",
+        "campusCampaigns",
+        "items",
+        "results"
+      ],
+      signal:
+        controller.signal
+    }),
 
-          ]);
+
+    employerCareerLoadResource({
+      name:"events",
+      path:"/api/career-events",
+      keys:[
+        "events",
+        "careerEvents",
+        "items",
+        "results"
+      ],
+      signal:
+        controller.signal
+    }),
+
+
+    employerCareerLoadResource({
+      name:"ventures",
+      path:"/api/ventures",
+      keys:[
+        "ventures",
+        "items",
+        "results"
+      ],
+      signal:
+        controller.signal
+    })
+
+  ]);
 
 
         /*
@@ -13582,20 +13597,28 @@ async function loadEmployerCareerHub(
         }
 
 
-        if(partnershipsResult.ok){
+if(partnershipsResult.ok){
 
-          hub.partnerships =
-            partnershipsResult.items;
+  hub.partnerships =
+    partnershipsResult.items;
 
-        }
+}
 
 
-        if(eventsResult.ok){
+if(campusCampaignsResult.ok){
 
-          hub.events =
-            eventsResult.items;
+  hub.campusCampaigns =
+    campusCampaignsResult.items;
 
-        }
+}
+
+
+if(eventsResult.ok){
+
+  hub.events =
+    eventsResult.items;
+
+}
 
 
         if(venturesResult.ok){
@@ -13617,32 +13640,22 @@ async function loadEmployerCareerHub(
           );
 
 
-        /*
-         * Campus Recruitment currently has no dedicated backend
-         * collection. Build that workspace from genuine Career
-         * Hub opportunities + events.
-         */
-
-        hub.campusCampaigns =
-          buildEmployerCareerCampusRecords(
-            hub.programs,
-            hub.events
-          );
 
 
         hub.loadedAt =
           new Date().toISOString();
 
 
-        const failed =
-          [
-            opportunitiesResult,
-            applicationsResult,
-            partnershipsResult,
-            eventsResult,
-            venturesResult
-          ]
-            .filter(result => !result.ok);
+const failed =
+  [
+    opportunitiesResult,
+    applicationsResult,
+    partnershipsResult,
+    campusCampaignsResult,
+    eventsResult,
+    venturesResult
+  ]
+    .filter(result => !result.ok);
 
 
         hub.partialFailure =
