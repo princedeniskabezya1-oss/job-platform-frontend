@@ -9702,7 +9702,7 @@ body.compact-workspace .right-col{
   
 </style>
 <link rel="stylesheet" href="feed.css">
-<link rel="stylesheet" href="employer-dashboard-mobile.css">
+
 </head>
 <body>
 <div class="topbar">
@@ -21756,33 +21756,151 @@ function wireSearch(){
 }
 
 function wireButtons(){
-  const openJobsBtn = document.getElementById("openJobsBtn");
-  if (openJobsBtn) openJobsBtn.onclick = () => openModal("jobModal");
 
-  const heroPostJobBtn = document.getElementById("heroPostJobBtn");
-  if (heroPostJobBtn) heroPostJobBtn.onclick = () => openModal("jobModal");
+  /* =========================================================
+     LEFT WORKSPACE NAVIGATION
+  ========================================================= */
 
-  const openFeedBtn = document.getElementById("openFeedBtn");
-  if (openFeedBtn) openFeedBtn.onclick = () => openTab("feed");
+  document.querySelectorAll(".tab-btn").forEach((button) => {
 
-  const shareBtn = document.getElementById("shareCompanyBtn");
-  if (shareBtn) shareBtn.onclick = () => openShareProfileModal();
+    button.onclick = (event) => {
 
-  const visitBtn = document.getElementById("visitWebsiteBtn");
-  if (visitBtn) {
-    visitBtn.onclick = () => {
-      const finalUrl = normalizeWebsiteUrl(state.me?.website || "");
-      if (!finalUrl) {
-        showToast("No website", "Please add your company website first in Edit Profile.", "error");
-        openModal("profileModal");
+      event.preventDefault();
+
+      const tab = String(
+        button.dataset.tab || ""
+      ).trim();
+
+      if (!tab) {
+        console.warn(
+          "AIFT Employer: sidebar button has no data-tab.",
+          button
+        );
         return;
       }
-      window.open(finalUrl, "_blank", "noopener,noreferrer");
+
+      const section =
+        document.getElementById(
+          `section-${tab}`
+        );
+
+      if (!section) {
+        console.error(
+          `AIFT Employer: section-${tab} does not exist.`
+        );
+        return;
+      }
+
+      openTab(tab);
+    };
+
+  });
+
+
+  /* =========================================================
+     JOB BUTTONS
+  ========================================================= */
+
+  const openJobsBtn =
+    document.getElementById("openJobsBtn");
+
+  if (openJobsBtn) {
+    openJobsBtn.onclick = () =>
+      openModal("jobModal");
+  }
+
+
+  const heroPostJobBtn =
+    document.getElementById("heroPostJobBtn");
+
+  if (heroPostJobBtn) {
+    heroPostJobBtn.onclick = () =>
+      openModal("jobModal");
+  }
+
+
+  /* =========================================================
+     FEED
+  ========================================================= */
+
+  const openFeedBtn =
+    document.getElementById("openFeedBtn");
+
+  if (openFeedBtn) {
+    openFeedBtn.onclick = () =>
+      openTab("feed");
+  }
+
+
+  /* =========================================================
+     SHARE COMPANY
+  ========================================================= */
+
+  const shareBtn =
+    document.getElementById(
+      "shareCompanyBtn"
+    );
+
+  if (shareBtn) {
+    shareBtn.onclick = () =>
+      openShareProfileModal();
+  }
+
+
+  /* =========================================================
+     COMPANY WEBSITE
+  ========================================================= */
+
+  const visitBtn =
+    document.getElementById(
+      "visitWebsiteBtn"
+    );
+
+  if (visitBtn) {
+
+    visitBtn.onclick = () => {
+
+      const finalUrl =
+        normalizeWebsiteUrl(
+          state.me?.website || ""
+        );
+
+      if (!finalUrl) {
+
+        showToast(
+          "No website",
+          "Please add your company website first in Edit Profile.",
+          "error"
+        );
+
+        openModal("profileModal");
+
+        return;
+      }
+
+      window.open(
+        finalUrl,
+        "_blank",
+        "noopener,noreferrer"
+      );
     };
   }
 
-  const publicBtn = document.getElementById("openPublicEmployerBtn");
-  if (publicBtn) publicBtn.onclick = () => openEmployerPublicProfile();
+
+  /* =========================================================
+     PUBLIC EMPLOYER PROFILE
+  ========================================================= */
+
+  const publicBtn =
+    document.getElementById(
+      "openPublicEmployerBtn"
+    );
+
+  if (publicBtn) {
+    publicBtn.onclick = () =>
+      openEmployerPublicProfile();
+  }
+
 }
 
 function getEmployerPublicProfileUrl() {
