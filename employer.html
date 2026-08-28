@@ -3,6 +3,109 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<script>
+  /*
+    =========================================================
+    AIFT EMPLOYER — EARLY APPEARANCE BOOT
+
+    Runs before CSS paints so returning dark-mode users
+    do not receive a bright light-theme flash.
+    =========================================================
+  */
+
+  (() => {
+
+    const SETTINGS_KEY =
+      "aiftEmployerStudioDeviceSettings";
+
+
+    try{
+
+      const stored =
+        JSON.parse(
+          localStorage.getItem(
+            SETTINGS_KEY
+          ) ||
+          "{}"
+        );
+
+
+      const preference =
+        ["light","dark","system"]
+          .includes(
+            String(
+              stored.theme ||
+              ""
+            )
+          )
+            ? String(
+                stored.theme
+              )
+            : "system";
+
+
+      let resolved =
+        preference;
+
+
+      if(
+        preference ===
+        "system"
+      ){
+
+        resolved =
+          window
+            .matchMedia(
+              "(prefers-color-scheme: dark)"
+            )
+            .matches
+              ? "dark"
+              : "light";
+
+      }
+
+
+      document
+        .documentElement
+        .setAttribute(
+          "data-employer-theme",
+          resolved
+        );
+
+
+      document
+        .documentElement
+        .setAttribute(
+          "data-employer-theme-preference",
+          preference
+        );
+
+
+      document
+        .documentElement
+        .style
+        .colorScheme =
+          resolved;
+
+    }catch(error){
+
+      /*
+        Safe fallback.
+      */
+
+      document
+        .documentElement
+        .setAttribute(
+          "data-employer-theme",
+          "light"
+        );
+
+    }
+
+  })();
+</script>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -16752,7 +16855,7 @@ input:checked
   display:grid;
 
   grid-template-columns:
-    repeat(2,minmax(0,1fr));
+    repeat(3,minmax(0,1fr));
 
   gap:10px;
 }
@@ -16825,6 +16928,13 @@ input:checked
 }
 
 
+.employer-theme-preview.dark{
+  border-color:#344054;
+
+  background:#101828;
+}
+
+
 .employer-theme-preview.system{
   background:
     linear-gradient(
@@ -16832,6 +16942,21 @@ input:checked
       #f5f7fa 0 50%,
       #101828 50% 100%
     );
+}
+
+
+/* dark preview internal surfaces */
+
+.employer-theme-preview.dark::before,
+.employer-theme-preview.dark::after{
+  background:#1d2939;
+}
+
+
+.employer-theme-preview.dark::after{
+  box-shadow:
+    0 26px 0 #1d2939,
+    0 52px 0 #1d2939;
 }
 
 
@@ -16872,14 +16997,604 @@ input:checked
     0 52px 0 #fff;
 }
 
+/* =========================================================
+   AIFT EMPLOYER — DARK THEME
+   AUTHORITATIVE PRODUCTION THEME
+
+   Applied through:
+   html[data-employer-theme="dark"]
+========================================================= */
+
+
+/* =========================================================
+   DARK DESIGN TOKENS
+========================================================= */
+
+html[data-employer-theme="dark"]{
+
+  color-scheme:dark;
+
+  --bg:#0b1120;
+
+  --card:#111827;
+
+  --text:#e5e7eb;
+
+  --muted:#98a2b3;
+
+  --border:#273449;
+
+  --soft-border:#1f2a3d;
+
+  --primary-soft:#102a46;
+
+  --green-soft:#0d2d20;
+
+  --red-soft:#35131d;
+
+  --shadow:
+    0 10px 28px
+    rgba(0,0,0,.24);
+
+  --shadow-hover:
+    0 18px 42px
+    rgba(0,0,0,.34);
+}
+
+
+/* =========================================================
+   ROOT PAGE
+========================================================= */
+
+html[data-employer-theme="dark"],
+html[data-employer-theme="dark"] body{
+  background:#0b1120;
+
+  color:#e5e7eb;
+}
+
+
+html[data-employer-theme="dark"] body{
+  color-scheme:dark;
+}
+
+
+/* =========================================================
+   MAIN APPLICATION SURFACES
+========================================================= */
+
+html[data-employer-theme="dark"] .topbar,
+html[data-employer-theme="dark"] .tabs,
+html[data-employer-theme="dark"] .employer-sidebar,
+html[data-employer-theme="dark"] .employer-sidebar-brand,
+
+html[data-employer-theme="dark"] .card,
+
+html[data-employer-theme="dark"] .panel-card,
+html[data-employer-theme="dark"] .analytics-card,
+html[data-employer-theme="dark"] .trend-card,
+html[data-employer-theme="dark"] .person-card,
+
+html[data-employer-theme="dark"] .filter-panel,
+html[data-employer-theme="dark"] .announce-item,
+
+html[data-employer-theme="dark"] .table-wrap,
+html[data-employer-theme="dark"] .agent-live-table-wrap,
+html[data-employer-theme="dark"] .agent-live-card,
+
+html[data-employer-theme="dark"] .employer-settings-header,
+html[data-employer-theme="dark"] .employer-settings-nav,
+html[data-employer-theme="dark"] .employer-settings-card,
+
+html[data-employer-theme="dark"] .modal-box,
+html[data-employer-theme="dark"] .modal-head,
+
+html[data-employer-theme="dark"] .linkedin-profile-card,
+html[data-employer-theme="dark"] .upwork-network-card,
+
+html[data-employer-theme="dark"] .emp-workspace-panel{
+  background:#111827;
+
+  border-color:#273449;
+
+  color:#e5e7eb;
+}
+
+
+/* =========================================================
+   TOP BAR
+========================================================= */
+
+html[data-employer-theme="dark"] .topbar{
+  border-bottom-color:#273449;
+}
+
+
+html[data-employer-theme="dark"] .brand-title{
+  color:#f8fafc;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+html[data-employer-theme="dark"] .tabs,
+html[data-employer-theme="dark"] .employer-sidebar,
+html[data-employer-theme="dark"] .employer-sidebar-brand{
+  border-color:#273449;
+}
+
+
+html[data-employer-theme="dark"] .tab-btn,
+html[data-employer-theme="dark"] .sidebar-system-btn{
+  color:#cbd5e1;
+}
+
+
+html[data-employer-theme="dark"] .tab-btn:hover,
+html[data-employer-theme="dark"] .sidebar-system-btn:hover{
+  background:#172033;
+
+  color:#f8fafc;
+}
+
+
+html[data-employer-theme="dark"] .tab-btn.active{
+  border-color:#315f8d;
+
+  background:#102a46;
+
+  color:#69b1ff;
+
+  box-shadow:
+    inset 3px 0 0
+    #3b82f6;
+}
+
+
+html[data-employer-theme="dark"] .sidebar-icon{
+  color:#94a3b8;
+}
+
+
+html[data-employer-theme="dark"]
+.tab-btn.active
+.sidebar-icon{
+  color:#69b1ff;
+}
+
+
+html[data-employer-theme="dark"]
+.employer-sidebar-footer{
+  border-top-color:#273449;
+}
+
+
+/* =========================================================
+   TEXT
+========================================================= */
+
+html[data-employer-theme="dark"] h1,
+html[data-employer-theme="dark"] h2,
+html[data-employer-theme="dark"] h3,
+html[data-employer-theme="dark"] h4,
+
+html[data-employer-theme="dark"] .card-title,
+html[data-employer-theme="dark"] .panel-card h3,
+html[data-employer-theme="dark"] .analytics-card h3,
+
+html[data-employer-theme="dark"] .candidate-name,
+html[data-employer-theme="dark"] .linkedin-profile-body h3,
+
+html[data-employer-theme="dark"]
+.employer-settings-card-head h2,
+
+html[data-employer-theme="dark"]
+.employer-settings-info strong,
+
+html[data-employer-theme="dark"]
+.employer-settings-control-copy strong,
+
+html[data-employer-theme="dark"]
+.employer-settings-toggle-row
+> span:first-child strong,
+
+html[data-employer-theme="dark"]
+.employer-settings-action-row
+> div strong{
+  color:#f1f5f9;
+}
+
+
+html[data-employer-theme="dark"] p,
+html[data-employer-theme="dark"] small,
+html[data-employer-theme="dark"] .muted{
+  color:#98a2b3;
+}
+
+
+/* =========================================================
+   SEARCH + INPUTS
+========================================================= */
+
+html[data-employer-theme="dark"] input,
+html[data-employer-theme="dark"] select,
+html[data-employer-theme="dark"] textarea,
+
+html[data-employer-theme="dark"] .search input,
+html[data-employer-theme="dark"] .field input,
+html[data-employer-theme="dark"] .field select,
+html[data-employer-theme="dark"] .field textarea,
+
+html[data-employer-theme="dark"]
+.employer-settings-control select{
+  border-color:#344054;
+
+  background:#182230;
+
+  color:#f1f5f9;
+}
+
+
+html[data-employer-theme="dark"]
+input::placeholder,
+
+html[data-employer-theme="dark"]
+textarea::placeholder{
+  color:#667085;
+}
+
+
+html[data-employer-theme="dark"] input:focus,
+html[data-employer-theme="dark"] select:focus,
+html[data-employer-theme="dark"] textarea:focus{
+  border-color:#528bca;
+
+  background:#182230;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(82,139,202,.15);
+}
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+html[data-employer-theme="dark"] .ghost-btn,
+html[data-employer-theme="dark"] .pill-btn,
+html[data-employer-theme="dark"] .icon-btn,
+html[data-employer-theme="dark"] .light-btn,
+
+html[data-employer-theme="dark"]
+.employer-settings-text-button,
+
+html[data-employer-theme="dark"]
+.employer-settings-action-row button{
+  border-color:#344054;
+
+  background:#182230;
+
+  color:#d0d5dd;
+}
+
+
+html[data-employer-theme="dark"] .ghost-btn:hover,
+html[data-employer-theme="dark"] .pill-btn:hover,
+html[data-employer-theme="dark"] .icon-btn:hover,
+
+html[data-employer-theme="dark"]
+.employer-settings-action-row button:hover{
+  border-color:#528bca;
+
+  background:#1d2939;
+
+  color:#69b1ff;
+}
+
+
+/* =========================================================
+   SETTINGS NAVIGATION
+========================================================= */
+
+html[data-employer-theme="dark"]
+.employer-settings-nav-button{
+  color:#98a2b3;
+}
+
+
+html[data-employer-theme="dark"]
+.employer-settings-nav-button:hover{
+  background:#182230;
+
+  color:#e5e7eb;
+}
+
+
+html[data-employer-theme="dark"]
+.employer-settings-nav-button.active{
+  background:#102a46;
+
+  color:#69b1ff;
+
+  box-shadow:
+    inset 0 0 0 1px
+    #315f8d;
+}
+
+
+/* =========================================================
+   SETTINGS INFORMATION CARDS
+========================================================= */
+
+html[data-employer-theme="dark"]
+.employer-settings-info,
+
+html[data-employer-theme="dark"]
+.employer-settings-account-grid article{
+  border-color:#273449;
+
+  background:#182230;
+}
+
+
+html[data-employer-theme="dark"]
+.employer-settings-info span,
+
+html[data-employer-theme="dark"]
+.employer-settings-account-grid span,
+
+html[data-employer-theme="dark"]
+.employer-settings-account-grid small{
+  color:#98a2b3;
+}
+
+
+/* =========================================================
+   SETTINGS ROW DIVIDERS
+========================================================= */
+
+html[data-employer-theme="dark"]
+.employer-settings-control,
+
+html[data-employer-theme="dark"]
+.employer-settings-toggle-row,
+
+html[data-employer-theme="dark"]
+.employer-settings-action-row{
+  border-bottom-color:#273449;
+}
+
+
+/* =========================================================
+   THEME CARDS
+========================================================= */
+
+html[data-employer-theme="dark"]
+.employer-theme-option{
+  border-color:#344054;
+
+  background:#182230;
+
+  color:#f1f5f9;
+}
+
+
+html[data-employer-theme="dark"]
+.employer-theme-option small{
+  color:#98a2b3;
+}
+
+
+html[data-employer-theme="dark"]
+.employer-theme-option.active{
+  border-color:#528bca;
+
+  background:#102a46;
+
+  box-shadow:
+    0 0 0 2px
+    rgba(82,139,202,.10);
+}
+
+
+/* =========================================================
+   TABLES
+========================================================= */
+
+html[data-employer-theme="dark"] table{
+  color:#d0d5dd;
+}
+
+
+html[data-employer-theme="dark"] th{
+  border-color:#273449;
+
+  background:#182230;
+
+  color:#98a2b3;
+}
+
+
+html[data-employer-theme="dark"] td{
+  border-color:#273449;
+}
+
+
+html[data-employer-theme="dark"] tbody tr:hover{
+  background:#172033;
+}
+
+
+/* =========================================================
+   SECONDARY CARDS
+========================================================= */
+
+html[data-employer-theme="dark"] .info-row,
+html[data-employer-theme="dark"] .progress-item,
+html[data-employer-theme="dark"] .mini-stat,
+
+html[data-employer-theme="dark"]
+.linkedin-profile-actions button:last-child,
+
+html[data-employer-theme="dark"]
+.employer-career-panel{
+  border-color:#273449;
+
+  background:#182230;
+}
+
+
+/* =========================================================
+   NETWORK / TALENT
+========================================================= */
+
+html[data-employer-theme="dark"]
+.linkedin-profile-cover.empty,
+
+html[data-employer-theme="dark"]
+.jobseeker-cover.empty{
+  background:#1d2939;
+}
+
+
+html[data-employer-theme="dark"]
+.linkedin-profile-avatar,
+
+html[data-employer-theme="dark"]
+.upwork-avatar{
+  border-color:#111827 !important;
+
+  background:#182230;
+}
+
+
+/* =========================================================
+   MODALS
+========================================================= */
+
+html[data-employer-theme="dark"] .modal{
+  background:
+    rgba(2,6,23,.72);
+}
+
+
+html[data-employer-theme="dark"] .modal-head{
+  border-bottom-color:#273449;
+}
+
+
+html[data-employer-theme="dark"] .modal-actions{
+  border-top-color:#273449;
+
+  background:#111827;
+}
+
+
+/* =========================================================
+   LOADING / EMPTY STATES
+========================================================= */
+
+html[data-employer-theme="dark"] .loading,
+html[data-employer-theme="dark"] .empty{
+  border-color:#344054;
+
+  background:#111827;
+
+  color:#98a2b3;
+}
+
+
+/* =========================================================
+   SCROLLBARS
+========================================================= */
+
+html[data-employer-theme="dark"]{
+  scrollbar-color:
+    #475467
+    #111827;
+}
+
+
+html[data-employer-theme="dark"]
+::-webkit-scrollbar-track{
+  background:#111827;
+}
+
+
+html[data-employer-theme="dark"]
+::-webkit-scrollbar-thumb{
+  background:#475467;
+
+  border-radius:999px;
+}
+
+
+/* =========================================================
+   SELECTION
+========================================================= */
+
+html[data-employer-theme="dark"]
+::selection{
+  background:#175cd3;
+
+  color:#fff;
+}
 
 /* =========================================================
    ACCESSIBILITY
 ========================================================= */
 
-body.employer-studio-large-text
-#section-settings{
+body.employer-studio-large-text{
   font-size:16px;
+}
+
+
+body.employer-studio-large-text .tab-btn,
+body.employer-studio-large-text .sidebar-system-btn{
+  font-size:13px;
+}
+
+
+body.employer-studio-large-text
+.employer-settings-nav-button{
+  font-size:10px;
+}
+
+
+body.employer-studio-large-text
+.employer-settings-card-head h2{
+  font-size:15px;
+}
+
+
+body.employer-studio-large-text
+.employer-settings-control-copy strong,
+
+body.employer-studio-large-text
+.employer-settings-toggle-row
+> span:first-child strong,
+
+body.employer-studio-large-text
+.employer-settings-action-row
+> div strong{
+  font-size:10px;
+}
+
+
+body.employer-studio-large-text
+.employer-settings-control-copy span,
+
+body.employer-studio-large-text
+.employer-settings-toggle-row
+> span:first-child small,
+
+body.employer-studio-large-text
+.employer-settings-action-row
+> div span{
+  font-size:8px;
 }
 
 
@@ -29820,50 +30535,76 @@ input:focus{
         </div>
 
 
-        <div class="employer-theme-options">
+<div class="employer-theme-options">
 
 
-          <button
-            type="button"
-            class="employer-theme-option active"
-            data-employer-theme="light"
-            onclick="setEmployerStudioTheme('light')"
-          >
+  <!-- LIGHT -->
 
-            <span class="employer-theme-preview light"></span>
+  <button
+    type="button"
+    class="employer-theme-option active"
+    data-employer-theme="light"
+    onclick="setEmployerStudioTheme('light')"
+  >
 
-            <strong>
-              Light
-            </strong>
+    <span class="employer-theme-preview light"></span>
 
-            <small>
-              Always use the light interface.
-            </small>
+    <strong>
+      Light
+    </strong>
 
-          </button>
+    <small>
+      Bright interface for daytime use.
+    </small>
 
-
-          <button
-            type="button"
-            class="employer-theme-option"
-            data-employer-theme="system"
-            onclick="setEmployerStudioTheme('system')"
-          >
-
-            <span class="employer-theme-preview system"></span>
-
-            <strong>
-              System
-            </strong>
-
-            <small>
-              Follow your computer preference.
-            </small>
-
-          </button>
+  </button>
 
 
-        </div>
+  <!-- DARK -->
+
+  <button
+    type="button"
+    class="employer-theme-option"
+    data-employer-theme="dark"
+    onclick="setEmployerStudioTheme('dark')"
+  >
+
+    <span class="employer-theme-preview dark"></span>
+
+    <strong>
+      Dark
+    </strong>
+
+    <small>
+      Reduce screen glare in darker environments.
+    </small>
+
+  </button>
+
+
+  <!-- SYSTEM -->
+
+  <button
+    type="button"
+    class="employer-theme-option"
+    data-employer-theme="system"
+    onclick="setEmployerStudioTheme('system')"
+  >
+
+    <span class="employer-theme-preview system"></span>
+
+    <strong>
+      System
+    </strong>
+
+    <small>
+      Follow your computer's appearance automatically.
+    </small>
+
+  </button>
+
+
+</div>
 
       </article>
 
@@ -40076,12 +40817,29 @@ function applyEmployerLocalSettings(){
 }
 
 /* =========================================================
-   EMPLOYER STUDIO DEVICE SETTINGS
+   AIFT EMPLOYER STUDIO
+   PRODUCTION DEVICE SETTINGS
 ========================================================= */
 
-function getEmployerStudioDeviceSettings(){
+const EMPLOYER_STUDIO_SETTINGS_KEY =
+  "aiftEmployerStudioDeviceSettings";
 
-  const defaults = {
+
+let employerSystemThemeMedia =
+  null;
+
+
+let employerSystemThemeListener =
+  null;
+
+
+/* =========================================================
+   DEFAULTS
+========================================================= */
+
+function getEmployerStudioDefaultSettings(){
+
+  return {
 
     language:
       "en",
@@ -40092,8 +40850,13 @@ function getEmployerStudioDeviceSettings(){
     weekStart:
       "monday",
 
+    /*
+      light
+      dark
+      system
+    */
     theme:
-      "light",
+      "system",
 
     compact:
       false,
@@ -40106,22 +40869,142 @@ function getEmployerStudioDeviceSettings(){
 
   };
 
+}
+
+
+/* =========================================================
+   SANITIZE SETTINGS
+========================================================= */
+
+function sanitizeEmployerStudioSettings(
+  rawSettings
+){
+
+  const defaults =
+    getEmployerStudioDefaultSettings();
+
+
+  const raw =
+    rawSettings &&
+    typeof rawSettings === "object"
+      ? rawSettings
+      : {};
+
+
+  const allowedThemes =
+    new Set([
+      "light",
+      "dark",
+      "system"
+    ]);
+
+
+  const allowedLanguages =
+    new Set([
+      "en"
+    ]);
+
+
+  const allowedWeekStarts =
+    new Set([
+      "monday",
+      "sunday"
+    ]);
+
+
+  return {
+
+    language:
+      allowedLanguages.has(
+        String(
+          raw.language ||
+          ""
+        )
+      )
+        ? String(raw.language)
+        : defaults.language,
+
+    timezone:
+      String(
+        raw.timezone ||
+        defaults.timezone
+      ).trim() ||
+      defaults.timezone,
+
+    weekStart:
+      allowedWeekStarts.has(
+        String(
+          raw.weekStart ||
+          ""
+        )
+      )
+        ? String(raw.weekStart)
+        : defaults.weekStart,
+
+    theme:
+      allowedThemes.has(
+        String(
+          raw.theme ||
+          ""
+        )
+      )
+        ? String(raw.theme)
+        : defaults.theme,
+
+    compact:
+      Boolean(
+        raw.compact
+      ),
+
+    largeText:
+      Boolean(
+        raw.largeText
+      ),
+
+    reduceMotion:
+      Boolean(
+        raw.reduceMotion
+      )
+
+  };
+
+}
+
+
+/* =========================================================
+   READ SETTINGS
+========================================================= */
+
+function getEmployerStudioDeviceSettings(){
+
+  const defaults =
+    getEmployerStudioDefaultSettings();
+
 
   try{
 
-    const stored =
-      JSON.parse(
-        localStorage.getItem(
-          "aiftEmployerStudioDeviceSettings"
-        ) ||
-        "{}"
+    const storedRaw =
+      localStorage.getItem(
+        EMPLOYER_STUDIO_SETTINGS_KEY
       );
 
 
-    return {
-      ...defaults,
-      ...stored
-    };
+    if(!storedRaw){
+
+      return defaults;
+
+    }
+
+
+    const parsed =
+      JSON.parse(
+        storedRaw
+      );
+
+
+    return sanitizeEmployerStudioSettings(
+      parsed
+    );
 
   }catch(error){
 
@@ -40139,7 +41022,315 @@ function getEmployerStudioDeviceSettings(){
 
 
 /* =========================================================
-   APPLY
+   WRITE SETTINGS
+========================================================= */
+
+function writeEmployerStudioDeviceSettings(
+  settings
+){
+
+  const safeSettings =
+    sanitizeEmployerStudioSettings(
+      settings
+    );
+
+
+  try{
+
+    localStorage.setItem(
+      EMPLOYER_STUDIO_SETTINGS_KEY,
+      JSON.stringify(
+        safeSettings
+      )
+    );
+
+
+    return true;
+
+  }catch(error){
+
+    console.error(
+      "Could not save Employer Studio settings:",
+      error
+    );
+
+
+    return false;
+
+  }
+
+}
+
+
+/* =========================================================
+   RESOLVE SYSTEM THEME
+========================================================= */
+
+function resolveEmployerStudioTheme(
+  themePreference
+){
+
+  const requested =
+    String(
+      themePreference ||
+      "system"
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if(
+    requested ===
+    "light"
+  ){
+
+    return "light";
+
+  }
+
+
+  if(
+    requested ===
+    "dark"
+  ){
+
+    return "dark";
+
+  }
+
+
+  /*
+    System mode follows the operating-system/browser
+    prefers-color-scheme setting.
+  */
+
+  try{
+
+    return window
+      .matchMedia(
+        "(prefers-color-scheme: dark)"
+      )
+      .matches
+        ? "dark"
+        : "light";
+
+  }catch(error){
+
+    return "light";
+
+  }
+
+}
+
+
+/* =========================================================
+   APPLY THEME
+========================================================= */
+
+function applyEmployerStudioTheme(
+  themePreference
+){
+
+  const preference =
+    ["light","dark","system"]
+      .includes(
+        String(
+          themePreference ||
+          ""
+        )
+      )
+        ? String(
+            themePreference
+          )
+        : "system";
+
+
+  const resolvedTheme =
+    resolveEmployerStudioTheme(
+      preference
+    );
+
+
+  /*
+    data-employer-theme controls the complete theme CSS.
+    We apply it on <html> so it can style body, modals,
+    sidebars and all application surfaces.
+  */
+
+  document
+    .documentElement
+    .setAttribute(
+      "data-employer-theme",
+      resolvedTheme
+    );
+
+
+  document
+    .documentElement
+    .setAttribute(
+      "data-employer-theme-preference",
+      preference
+    );
+
+
+  /*
+    Helps browser-native controls use the correct palette.
+  */
+
+  document
+    .documentElement
+    .style
+    .colorScheme =
+      resolvedTheme;
+
+
+  if(document.body){
+
+    document.body.classList.toggle(
+      "employer-theme-dark",
+      resolvedTheme ===
+        "dark"
+    );
+
+
+    document.body.classList.toggle(
+      "employer-theme-light",
+      resolvedTheme ===
+        "light"
+    );
+
+  }
+
+
+  /*
+    Keep appearance buttons synchronized with the
+    preference, not merely the resolved OS value.
+
+    Example:
+    System + dark OS → System button remains selected.
+  */
+
+  document
+    .querySelectorAll(
+      "[data-employer-theme]"
+    )
+    .forEach(button => {
+
+      button.classList.toggle(
+        "active",
+        button.dataset.employerTheme ===
+          preference
+      );
+
+    });
+
+
+  return resolvedTheme;
+
+}
+
+
+/* =========================================================
+   SYSTEM THEME CHANGE LISTENER
+========================================================= */
+
+function bindEmployerSystemThemeListener(){
+
+  try{
+
+    if(
+      !employerSystemThemeMedia
+    ){
+
+      employerSystemThemeMedia =
+        window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        );
+
+    }
+
+
+    if(
+      employerSystemThemeListener
+    ){
+
+      return;
+
+    }
+
+
+    employerSystemThemeListener =
+      () => {
+
+        const settings =
+          getEmployerStudioDeviceSettings();
+
+
+        /*
+          OS changes should affect AIFT only when
+          System appearance is selected.
+        */
+
+        if(
+          settings.theme !==
+          "system"
+        ){
+
+          return;
+
+        }
+
+
+        applyEmployerStudioTheme(
+          "system"
+        );
+
+      };
+
+
+    if(
+      typeof employerSystemThemeMedia
+        .addEventListener ===
+      "function"
+    ){
+
+      employerSystemThemeMedia
+        .addEventListener(
+          "change",
+          employerSystemThemeListener
+        );
+
+    }else if(
+      typeof employerSystemThemeMedia
+        .addListener ===
+      "function"
+    ){
+
+      /*
+        Safari compatibility.
+      */
+
+      employerSystemThemeMedia
+        .addListener(
+          employerSystemThemeListener
+        );
+
+    }
+
+  }catch(error){
+
+    console.warn(
+      "Could not bind Employer system-theme listener:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   APPLY ALL DEVICE SETTINGS
 ========================================================= */
 
 function applyEmployerStudioDeviceSettings(){
@@ -40148,21 +41339,61 @@ function applyEmployerStudioDeviceSettings(){
     getEmployerStudioDeviceSettings();
 
 
-  document.body.classList.toggle(
-    "employer-studio-large-text",
-    Boolean(
-      settings.largeText
-    )
+  /* -------------------------------------------------------
+     APPEARANCE
+  ------------------------------------------------------- */
+
+  applyEmployerStudioTheme(
+    settings.theme
   );
 
 
-  document.body.classList.toggle(
-    "employer-studio-reduce-motion",
-    Boolean(
-      settings.reduceMotion
-    )
-  );
+  bindEmployerSystemThemeListener();
 
+
+  /* -------------------------------------------------------
+     COMPACT WORKSPACE
+  ------------------------------------------------------- */
+
+  if(document.body){
+
+    document.body.classList.toggle(
+      "compact-workspace",
+      Boolean(
+        settings.compact
+      )
+    );
+
+  }
+
+
+  /* -------------------------------------------------------
+     ACCESSIBILITY
+  ------------------------------------------------------- */
+
+  if(document.body){
+
+    document.body.classList.toggle(
+      "employer-studio-large-text",
+      Boolean(
+        settings.largeText
+      )
+    );
+
+
+    document.body.classList.toggle(
+      "employer-studio-reduce-motion",
+      Boolean(
+        settings.reduceMotion
+      )
+    );
+
+  }
+
+
+  /* -------------------------------------------------------
+     SELECT CONTROLS
+  ------------------------------------------------------- */
 
   const controls = {
 
@@ -40180,7 +41411,8 @@ function applyEmployerStudioDeviceSettings(){
 
   Object.entries(
     controls
-  ).forEach(
+  )
+  .forEach(
     ([id,value]) => {
 
       const element =
@@ -40194,14 +41426,38 @@ function applyEmployerStudioDeviceSettings(){
         value != null
       ){
 
-        element.value =
-          value;
+        /*
+          Only assign if an option exists.
+        */
+
+        const validOption =
+          Array.from(
+            element.options ||
+            []
+          )
+          .some(
+            option =>
+              option.value ===
+              value
+          );
+
+
+        if(validOption){
+
+          element.value =
+            value;
+
+        }
 
       }
 
     }
   );
 
+
+  /* -------------------------------------------------------
+     CHECKBOX CONTROLS
+  ------------------------------------------------------- */
 
   const booleanControls = {
 
@@ -40219,7 +41475,8 @@ function applyEmployerStudioDeviceSettings(){
 
   Object.entries(
     booleanControls
-  ).forEach(
+  )
+  .forEach(
     ([id,value]) => {
 
       const element =
@@ -40231,7 +41488,9 @@ function applyEmployerStudioDeviceSettings(){
       if(element){
 
         element.checked =
-          Boolean(value);
+          Boolean(
+            value
+          );
 
       }
 
@@ -40239,25 +41498,13 @@ function applyEmployerStudioDeviceSettings(){
   );
 
 
-  document
-    .querySelectorAll(
-      "[data-employer-theme]"
-    )
-    .forEach(button => {
-
-      button.classList.toggle(
-        "active",
-        button.dataset.employerTheme ===
-          settings.theme
-      );
-
-    });
+  return settings;
 
 }
 
 
 /* =========================================================
-   SAVE
+   SAVE DEVICE SETTINGS FROM CONTROLS
 ========================================================= */
 
 function saveEmployerStudioDeviceSettings(){
@@ -40266,118 +41513,203 @@ function saveEmployerStudioDeviceSettings(){
     getEmployerStudioDeviceSettings();
 
 
-  const settings = {
+  const languageControl =
+    document.getElementById(
+      "employerSettingLanguage"
+    );
+
+
+  const timezoneControl =
+    document.getElementById(
+      "employerSettingTimezone"
+    );
+
+
+  const weekStartControl =
+    document.getElementById(
+      "employerSettingWeekStart"
+    );
+
+
+  const compactControl =
+    document.getElementById(
+      "employerSettingCompact"
+    );
+
+
+  const largeTextControl =
+    document.getElementById(
+      "employerSettingLargeText"
+    );
+
+
+  const reduceMotionControl =
+    document.getElementById(
+      "employerSettingReduceMotion"
+    );
+
+
+  const nextSettings = {
 
     ...current,
 
     language:
-      document.getElementById(
-        "employerSettingLanguage"
-      )?.value ||
+      languageControl?.value ||
       current.language,
 
     timezone:
-      document.getElementById(
-        "employerSettingTimezone"
-      )?.value ||
+      timezoneControl?.value ||
       current.timezone,
 
     weekStart:
-      document.getElementById(
-        "employerSettingWeekStart"
-      )?.value ||
+      weekStartControl?.value ||
       current.weekStart,
 
     compact:
-      Boolean(
-        document.getElementById(
-          "employerSettingCompact"
-        )?.checked
-      ),
+      compactControl
+        ? Boolean(
+            compactControl.checked
+          )
+        : current.compact,
 
     largeText:
-      Boolean(
-        document.getElementById(
-          "employerSettingLargeText"
-        )?.checked
-      ),
+      largeTextControl
+        ? Boolean(
+            largeTextControl.checked
+          )
+        : current.largeText,
 
     reduceMotion:
-      Boolean(
-        document.getElementById(
-          "employerSettingReduceMotion"
-        )?.checked
-      )
+      reduceMotionControl
+        ? Boolean(
+            reduceMotionControl.checked
+          )
+        : current.reduceMotion
 
   };
 
 
-  try{
-
-    localStorage.setItem(
-      "aiftEmployerStudioDeviceSettings",
-      JSON.stringify(
-        settings
-      )
+  const saved =
+    writeEmployerStudioDeviceSettings(
+      nextSettings
     );
 
 
-    applyEmployerStudioDeviceSettings();
-
+  if(!saved){
 
     showToast(
-      "Settings saved",
-      "Employer Studio preferences were updated.",
-      "success"
+      "Settings unavailable",
+      "Your browser could not save this preference.",
+      "error"
     );
 
-  }catch(error){
 
-    console.error(
-      "SAVE EMPLOYER STUDIO DEVICE SETTINGS ERROR:",
-      error
-    );
+    return;
 
   }
+
+
+  applyEmployerStudioDeviceSettings();
+
+
+  showToast(
+    "Settings saved",
+    "Your Employer Studio preferences were updated.",
+    "success"
+  );
 
 }
 
 
 /* =========================================================
-   THEME PREFERENCE
-
-   Stored safely now. We are not forcing a full-workspace dark
-   theme until the entire Employer UI has production dark CSS.
+   SET APPEARANCE
 ========================================================= */
 
 function setEmployerStudioTheme(
   theme
 ){
 
-  const safeTheme =
-    ["light","system"]
-      .includes(theme)
-        ? theme
-        : "light";
+  const requested =
+    String(
+      theme ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if(
+    ![
+      "light",
+      "dark",
+      "system"
+    ].includes(
+      requested
+    )
+  ){
+
+    console.warn(
+      "Unsupported Employer Studio theme:",
+      theme
+    );
+
+
+    return;
+
+  }
 
 
   const settings =
     getEmployerStudioDeviceSettings();
 
 
-  settings.theme =
-    safeTheme;
+  const nextSettings = {
+
+    ...settings,
+
+    theme:
+      requested
+
+  };
 
 
-  localStorage.setItem(
-    "aiftEmployerStudioDeviceSettings",
-    JSON.stringify(
-      settings
-    )
+  const saved =
+    writeEmployerStudioDeviceSettings(
+      nextSettings
+    );
+
+
+  if(!saved){
+
+    showToast(
+      "Appearance unavailable",
+      "Your browser could not save the appearance preference.",
+      "error"
+    );
+
+
+    return;
+
+  }
+
+
+  const resolvedTheme =
+    applyEmployerStudioTheme(
+      requested
+    );
+
+
+  showToast(
+    "Appearance updated",
+
+    requested === "system"
+      ? `AIFT is following your system appearance and is currently using ${resolvedTheme} mode.`
+      : requested === "dark"
+        ? "Dark mode is now active."
+        : "Light mode is now active.",
+
+    "success"
   );
-
-
-  applyEmployerStudioDeviceSettings();
 
 }
 
@@ -53623,6 +54955,9 @@ async function reloadOperationsLive(){
 async function init(){
 
   try {
+
+    applyEmployerStudioDeviceSettings();
+
 
     const results =
       await Promise.allSettled([
