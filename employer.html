@@ -31135,15 +31135,249 @@ input:focus{
 
 </div>
 
-    <!-- =====================================================
-         SECURITY
-    ====================================================== -->
+<!-- =====================================================
+     SECURITY
+====================================================== -->
+
+<div
+  class="employer-settings-panel"
+  data-settings-content="security"
+  hidden
+>
+
+  <!-- =====================================================
+       PASSWORD
+  ====================================================== -->
+
+  <article class="employer-settings-card">
+
+    <div class="employer-settings-card-head">
+
+      <div>
+
+        <h2>
+          Password
+        </h2>
+
+        <p>
+          Update the password used to sign in to your
+          employer account.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="employer-settings-action-list">
+
+      <div class="employer-settings-action-row">
+
+        <div>
+
+          <strong>
+            Change password
+          </strong>
+
+          <span>
+            Use a strong password you do not use on
+            another service.
+          </span>
+
+        </div>
+
+
+        <button
+          type="button"
+          onclick="openEmployerPasswordModal()"
+        >
+          Change password
+        </button>
+
+      </div>
+
+    </div>
+
+  </article>
+
+
+  <!-- =====================================================
+       TWO-FACTOR AUTHENTICATION
+  ====================================================== -->
+
+  <article class="employer-settings-card">
+
+    <div class="employer-settings-card-head">
+
+      <div>
+
+        <h2>
+          Two-factor authentication
+        </h2>
+
+        <p>
+          Add another layer of protection to your employer
+          account.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="employer-settings-action-list">
+
+      <div class="employer-settings-action-row">
+
+        <div>
+
+          <strong>
+            Two-factor authentication
+          </strong>
+
+          <span>
+            Two-factor authentication is not yet available
+            for this account.
+          </span>
+
+        </div>
+
+
+        <button
+          type="button"
+          disabled
+          aria-disabled="true"
+        >
+          Coming soon
+        </button>
+
+      </div>
+
+    </div>
+
+  </article>
+
+
+  <!-- =====================================================
+       ACTIVE SESSIONS
+  ====================================================== -->
+
+  <article class="employer-settings-card">
+
+    <div class="employer-settings-card-head">
+
+      <div>
+
+        <h2>
+          Active sessions & devices
+        </h2>
+
+        <p>
+          Review devices currently signed in to your employer
+          account and remove access when necessary.
+        </p>
+
+      </div>
+
+
+      <button
+        type="button"
+        onclick="loadEmployerSecuritySessions(true)"
+      >
+        Refresh
+      </button>
+
+    </div>
+
+
+    <div class="employer-settings-account-grid">
+
+      <div class="employer-settings-info">
+
+        <span>
+          Active devices
+        </span>
+
+        <strong
+          id="employerActiveSessionCount"
+        >
+          —
+        </strong>
+
+      </div>
+
+
+      <div class="employer-settings-info">
+
+        <span>
+          Current session
+        </span>
+
+        <strong
+          id="employerCurrentSessionLabel"
+        >
+          Loading…
+        </strong>
+
+      </div>
+
+    </div>
+
+
+    <div class="employer-settings-action-list">
+
+      <div class="employer-settings-action-row">
+
+        <div>
+
+          <strong>
+            Sign out other devices
+          </strong>
+
+          <span>
+            End every active session except the device
+            you are currently using.
+          </span>
+
+        </div>
+
+
+        <button
+          id="employerLogoutOtherSessionsButton"
+          type="button"
+          onclick="logoutOtherEmployerSessions()"
+        >
+          Sign out others
+        </button>
+
+      </div>
+
+    </div>
+
 
     <div
-      class="employer-settings-panel"
-      data-settings-content="security"
+      id="employerSecuritySessionsMessage"
+      class="employer-settings-inline-message"
+      role="status"
+      aria-live="polite"
       hidden
+    ></div>
+
+
+    <div
+      id="employerSecuritySessionsList"
+      class="employer-security-session-list"
     >
+
+      <div class="employer-security-session-empty">
+        Loading active sessions…
+      </div>
+
+    </div>
+
+  </article>
+
+</div>
 
       <article class="employer-settings-card">
 
@@ -40882,6 +41116,21 @@ function openEmployerStudioPanel(
 
     });
 
+    /* =====================================================
+     LOAD SECURITY SESSIONS
+  ===================================================== */
+
+  if(
+    safePanel ===
+    "security"
+  ){
+
+    loadEmployerSecuritySessions(
+      false
+    );
+
+  }
+
 }
 
 
@@ -42655,6 +42904,1058 @@ async function saveEmployerPrivacySettings(){
   }
 
 }
+
+/* =========================================================
+   EMPLOYER SECURITY
+========================================================= */
+
+
+/* =========================================================
+   SECURITY ENDPOINTS
+========================================================= */
+
+const EMPLOYER_SECURITY_ENDPOINTS = {
+
+  password:
+    `${API}/api/auth/change-password`,
+
+  sessions:
+    `${API}/api/auth/sessions`,
+
+  logoutOthers:
+    `${API}/api/auth/sessions/logout-others`
+
+};
+
+
+/* =========================================================
+   SECURITY SESSION STATE
+========================================================= */
+
+let employerSecuritySessions =
+  [];
+
+let employerSecuritySessionsLoading =
+  false;
+
+
+/* =========================================================
+   INLINE MESSAGE
+========================================================= */
+
+function setEmployerSecurityMessage(
+  elementId,
+  message,
+  type = "info"
+){
+
+  const element =
+    document.getElementById(
+      elementId
+    );
+
+
+  if(!element){
+    return;
+  }
+
+
+  if(!message){
+
+    element.hidden =
+      true;
+
+    element.textContent =
+      "";
+
+    element.removeAttribute(
+      "data-type"
+    );
+
+    return;
+
+  }
+
+
+  element.hidden =
+    false;
+
+  element.textContent =
+    String(message);
+
+  element.dataset.type =
+    type;
+
+}
+
+
+/* =========================================================
+   PASSWORD MODAL
+========================================================= */
+
+function openEmployerPasswordModal(){
+
+  const modal =
+    document.getElementById(
+      "employerPasswordModal"
+    );
+
+
+  if(!modal){
+    return;
+  }
+
+
+  const form =
+    document.getElementById(
+      "employerPasswordForm"
+    );
+
+
+  if(form){
+    form.reset();
+  }
+
+
+  setEmployerSecurityMessage(
+    "employerPasswordMessage",
+    ""
+  );
+
+
+  modal.hidden =
+    false;
+
+
+  document.body.classList.add(
+    "employer-security-modal-open"
+  );
+
+
+  window.setTimeout(
+    () => {
+
+      document
+        .getElementById(
+          "employerCurrentPassword"
+        )
+        ?.focus();
+
+    },
+    30
+  );
+
+}
+
+
+function closeEmployerPasswordModal(){
+
+  const modal =
+    document.getElementById(
+      "employerPasswordModal"
+    );
+
+
+  if(modal){
+
+    modal.hidden =
+      true;
+
+  }
+
+
+  document.body.classList.remove(
+    "employer-security-modal-open"
+  );
+
+}
+
+
+/* =========================================================
+   CHANGE PASSWORD
+========================================================= */
+
+async function submitEmployerPasswordChange(
+  event
+){
+
+  event?.preventDefault();
+
+
+  const currentPassword =
+    document
+      .getElementById(
+        "employerCurrentPassword"
+      )
+      ?.value ||
+    "";
+
+
+  const newPassword =
+    document
+      .getElementById(
+        "employerNewPassword"
+      )
+      ?.value ||
+    "";
+
+
+  const confirmPassword =
+    document
+      .getElementById(
+        "employerConfirmPassword"
+      )
+      ?.value ||
+    "";
+
+
+  const submitButton =
+    document.getElementById(
+      "employerPasswordSubmitButton"
+    );
+
+
+  setEmployerSecurityMessage(
+    "employerPasswordMessage",
+    ""
+  );
+
+
+  if(
+    !currentPassword ||
+    !newPassword ||
+    !confirmPassword
+  ){
+
+    setEmployerSecurityMessage(
+      "employerPasswordMessage",
+      "Please complete all password fields.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  if(
+    newPassword !==
+    confirmPassword
+  ){
+
+    setEmployerSecurityMessage(
+      "employerPasswordMessage",
+      "New password and confirmation do not match.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  if(
+    newPassword.length < 8
+  ){
+
+    setEmployerSecurityMessage(
+      "employerPasswordMessage",
+      "New password must be at least 8 characters.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  if(
+    !/[A-Za-z]/.test(
+      newPassword
+    ) ||
+    !/\d/.test(
+      newPassword
+    )
+  ){
+
+    setEmployerSecurityMessage(
+      "employerPasswordMessage",
+      "New password must contain at least one letter and one number.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  if(submitButton){
+
+    submitButton.disabled =
+      true;
+
+    submitButton.textContent =
+      "Changing…";
+
+  }
+
+
+  try{
+
+    const response =
+      await fetchJSON(
+        EMPLOYER_SECURITY_ENDPOINTS
+          .password,
+        {
+
+          method:
+            "PATCH",
+
+          headers:
+            authHeaders({
+              "Content-Type":
+                "application/json"
+            }),
+
+          body:
+            JSON.stringify({
+
+              currentPassword,
+
+              newPassword,
+
+              confirmPassword
+
+            })
+
+        }
+      );
+
+
+    setEmployerSecurityMessage(
+      "employerPasswordMessage",
+      response?.message ||
+        "Password changed successfully.",
+      "success"
+    );
+
+
+    /*
+      Backend revokes every server-side session after a
+      password change, including this current one.
+
+      Remove local credentials and send the user back to
+      login so the browser does not continue operating with
+      a revoked JWT.
+    */
+
+    window.setTimeout(
+      () => {
+
+        localStorage.removeItem(
+          "employerToken"
+        );
+
+        localStorage.removeItem(
+          "token"
+        );
+
+        localStorage.removeItem(
+          "authToken"
+        );
+
+        localStorage.removeItem(
+          "aiftToken"
+        );
+
+        localStorage.removeItem(
+          "role"
+        );
+
+
+        window.location.href =
+          "login.html";
+
+      },
+      1200
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "EMPLOYER CHANGE PASSWORD ERROR:",
+      error
+    );
+
+
+    setEmployerSecurityMessage(
+      "employerPasswordMessage",
+      error?.message ||
+        "Password could not be changed.",
+      "error"
+    );
+
+
+    if(submitButton){
+
+      submitButton.disabled =
+        false;
+
+      submitButton.textContent =
+        "Change password";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   FORMAT SECURITY DATE
+========================================================= */
+
+function formatEmployerSecurityDate(
+  value
+){
+
+  if(!value){
+    return "Unknown";
+  }
+
+
+  const date =
+    new Date(value);
+
+
+  if(
+    Number.isNaN(
+      date.getTime()
+    )
+  ){
+    return "Unknown";
+  }
+
+
+  return date.toLocaleString(
+    undefined,
+    {
+      dateStyle:
+        "medium",
+
+      timeStyle:
+        "short"
+    }
+  );
+
+}
+
+
+/* =========================================================
+   ESCAPE SECURITY TEXT
+========================================================= */
+
+function escapeEmployerSecurityText(
+  value
+){
+
+  return String(
+    value ??
+    ""
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+
+}
+
+
+/* =========================================================
+   RENDER ACTIVE SESSIONS
+========================================================= */
+
+function renderEmployerSecuritySessions(){
+
+  const container =
+    document.getElementById(
+      "employerSecuritySessionsList"
+    );
+
+
+  const countElement =
+    document.getElementById(
+      "employerActiveSessionCount"
+    );
+
+
+  const currentLabel =
+    document.getElementById(
+      "employerCurrentSessionLabel"
+    );
+
+
+  const logoutOthersButton =
+    document.getElementById(
+      "employerLogoutOtherSessionsButton"
+    );
+
+
+  if(countElement){
+
+    countElement.textContent =
+      String(
+        employerSecuritySessions
+          .length
+      );
+
+  }
+
+
+  const currentSession =
+    employerSecuritySessions
+      .find(
+        session =>
+          session.current ===
+          true
+      );
+
+
+  if(currentLabel){
+
+    currentLabel.textContent =
+      currentSession
+        ? "This device"
+        : "Not detected";
+
+  }
+
+
+  if(logoutOthersButton){
+
+    const otherSessions =
+      employerSecuritySessions
+        .filter(
+          session =>
+            !session.current
+        )
+        .length;
+
+
+    logoutOthersButton.disabled =
+      otherSessions === 0;
+
+  }
+
+
+  if(!container){
+    return;
+  }
+
+
+  if(
+    employerSecuritySessions
+      .length === 0
+  ){
+
+    container.innerHTML = `
+      <div class="employer-security-session-empty">
+        No active sessions were found.
+      </div>
+    `;
+
+    return;
+
+  }
+
+
+  container.innerHTML =
+    employerSecuritySessions
+      .map(
+        session => {
+
+          const sessionId =
+            escapeEmployerSecurityText(
+              session.sessionId
+            );
+
+
+          const deviceName =
+            escapeEmployerSecurityText(
+              session.deviceName ||
+              "Unknown device"
+            );
+
+
+          const browser =
+            escapeEmployerSecurityText(
+              session.browser ||
+              "Unknown browser"
+            );
+
+
+          const operatingSystem =
+            escapeEmployerSecurityText(
+              session.operatingSystem ||
+              "Unknown OS"
+            );
+
+
+          const maskedIp =
+            escapeEmployerSecurityText(
+              session.maskedIp ||
+              "Hidden"
+            );
+
+
+          const lastActive =
+            escapeEmployerSecurityText(
+              formatEmployerSecurityDate(
+                session.lastActiveAt
+              )
+            );
+
+
+          const createdAt =
+            escapeEmployerSecurityText(
+              formatEmployerSecurityDate(
+                session.createdAt
+              )
+            );
+
+
+          const expiresAt =
+            escapeEmployerSecurityText(
+              formatEmployerSecurityDate(
+                session.expiresAt
+              )
+            );
+
+
+          const current =
+            session.current ===
+            true;
+
+
+          return `
+            <article class="employer-security-session-card">
+
+              <div class="employer-security-session-main">
+
+                <div class="employer-security-session-title">
+
+                  <strong>
+                    ${deviceName}
+                  </strong>
+
+                  ${
+                    current
+                      ? `
+                        <span class="employer-security-current-badge">
+                          This device
+                        </span>
+                      `
+                      : ""
+                  }
+
+                </div>
+
+
+                <div class="employer-security-session-meta">
+
+                  <span>
+                    ${browser}
+                  </span>
+
+                  <span>
+                    ${operatingSystem}
+                  </span>
+
+                  <span>
+                    IP ${maskedIp}
+                  </span>
+
+                </div>
+
+
+                <div class="employer-security-session-details">
+
+                  <span>
+                    <strong>Last active:</strong>
+                    ${lastActive}
+                  </span>
+
+                  <span>
+                    <strong>Signed in:</strong>
+                    ${createdAt}
+                  </span>
+
+                  <span>
+                    <strong>Session expires:</strong>
+                    ${expiresAt}
+                  </span>
+
+                </div>
+
+              </div>
+
+
+              <div class="employer-security-session-actions">
+
+                <button
+                  type="button"
+                  onclick="revokeEmployerSecuritySession('${sessionId}', ${current})"
+                >
+                  ${
+                    current
+                      ? "Sign out"
+                      : "Remove"
+                  }
+                </button>
+
+              </div>
+
+            </article>
+          `;
+
+        }
+      )
+      .join("");
+
+}
+
+
+/* =========================================================
+   LOAD ACTIVE SESSIONS
+========================================================= */
+
+async function loadEmployerSecuritySessions(
+  showFeedback = false
+){
+
+  if(
+    employerSecuritySessionsLoading
+  ){
+    return;
+  }
+
+
+  employerSecuritySessionsLoading =
+    true;
+
+
+  if(showFeedback){
+
+    setEmployerSecurityMessage(
+      "employerSecuritySessionsMessage",
+      "Refreshing active sessions…",
+      "info"
+    );
+
+  }
+
+
+  try{
+
+    const response =
+      await fetchJSON(
+        EMPLOYER_SECURITY_ENDPOINTS
+          .sessions,
+        {
+          headers:
+            authHeaders()
+        }
+      );
+
+
+    employerSecuritySessions =
+      Array.isArray(
+        response?.sessions
+      )
+        ? response.sessions
+        : [];
+
+
+    renderEmployerSecuritySessions();
+
+
+    if(showFeedback){
+
+      setEmployerSecurityMessage(
+        "employerSecuritySessionsMessage",
+        "Active sessions refreshed.",
+        "success"
+      );
+
+    }
+
+
+  }catch(error){
+
+    console.error(
+      "LOAD EMPLOYER SECURITY SESSIONS ERROR:",
+      error
+    );
+
+
+    employerSecuritySessions =
+      [];
+
+
+    renderEmployerSecuritySessions();
+
+
+    setEmployerSecurityMessage(
+      "employerSecuritySessionsMessage",
+      error?.message ||
+        "Active sessions could not be loaded.",
+      "error"
+    );
+
+  }finally{
+
+    employerSecuritySessionsLoading =
+      false;
+
+  }
+
+}
+
+
+/* =========================================================
+   REVOKE ONE SESSION
+========================================================= */
+
+async function revokeEmployerSecuritySession(
+  sessionId,
+  current = false
+){
+
+  const safeSessionId =
+    String(
+      sessionId ||
+      ""
+    )
+      .trim();
+
+
+  if(!safeSessionId){
+    return;
+  }
+
+
+  const confirmed =
+    window.confirm(
+      current
+        ? "Sign out this device?"
+        : "Remove this device from your active sessions?"
+    );
+
+
+  if(!confirmed){
+    return;
+  }
+
+
+  try{
+
+    const response =
+      await fetchJSON(
+        `${EMPLOYER_SECURITY_ENDPOINTS.sessions}/${encodeURIComponent(safeSessionId)}`,
+        {
+
+          method:
+            "DELETE",
+
+          headers:
+            authHeaders()
+
+        }
+      );
+
+
+    if(
+      response
+        ?.currentSessionRevoked ===
+      true ||
+      current
+    ){
+
+      localStorage.removeItem(
+        "employerToken"
+      );
+
+      localStorage.removeItem(
+        "token"
+      );
+
+      localStorage.removeItem(
+        "authToken"
+      );
+
+      localStorage.removeItem(
+        "aiftToken"
+      );
+
+      localStorage.removeItem(
+        "role"
+      );
+
+
+      window.location.href =
+        "login.html";
+
+      return;
+
+    }
+
+
+    showToast(
+      "Device removed",
+      response?.message ||
+        "The device was signed out.",
+      "success"
+    );
+
+
+    await loadEmployerSecuritySessions(
+      false
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "REVOKE EMPLOYER SESSION ERROR:",
+      error
+    );
+
+
+    showToast(
+      "Could not remove device",
+      error?.message ||
+        "The session could not be removed.",
+      "error"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   SIGN OUT OTHER DEVICES
+========================================================= */
+
+async function logoutOtherEmployerSessions(){
+
+  const button =
+    document.getElementById(
+      "employerLogoutOtherSessionsButton"
+    );
+
+
+  const confirmed =
+    window.confirm(
+      "Sign out every other device currently using this employer account?"
+    );
+
+
+  if(!confirmed){
+    return;
+  }
+
+
+  if(button){
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Signing out…";
+
+  }
+
+
+  try{
+
+    const response =
+      await fetchJSON(
+        EMPLOYER_SECURITY_ENDPOINTS
+          .logoutOthers,
+        {
+
+          method:
+            "POST",
+
+          headers:
+            authHeaders()
+
+        }
+      );
+
+
+    showToast(
+      "Other devices signed out",
+      response?.message ||
+        "Other active sessions were removed.",
+      "success"
+    );
+
+
+    await loadEmployerSecuritySessions(
+      false
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "LOGOUT OTHER EMPLOYER SESSIONS ERROR:",
+      error
+    );
+
+
+    showToast(
+      "Sign out failed",
+      error?.message ||
+        "Other devices could not be signed out.",
+      "error"
+    );
+
+
+  }finally{
+
+    if(button){
+
+      button.textContent =
+        "Sign out others";
+
+    }
+
+
+    renderEmployerSecuritySessions();
+
+  }
+
+}    
     
 
 function buildEmployerSettings(){
@@ -56105,5 +57406,155 @@ init();
   });
 })();
 </script>
+
+<!-- =========================================================
+     EMPLOYER CHANGE PASSWORD MODAL
+========================================================= -->
+
+<div
+  class="employer-security-modal"
+  id="employerPasswordModal"
+  hidden
+>
+
+  <div
+    class="employer-security-modal-backdrop"
+    onclick="closeEmployerPasswordModal()"
+  ></div>
+
+
+  <div
+    class="employer-security-modal-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="employerPasswordModalTitle"
+  >
+
+    <div class="employer-security-modal-head">
+
+      <div>
+
+        <h2
+          id="employerPasswordModalTitle"
+        >
+          Change password
+        </h2>
+
+        <p>
+          After changing your password, all currently active
+          sessions will be signed out for security.
+        </p>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="employer-security-modal-close"
+        onclick="closeEmployerPasswordModal()"
+        aria-label="Close"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <form
+      id="employerPasswordForm"
+      onsubmit="submitEmployerPasswordChange(event)"
+    >
+
+      <label class="employer-security-field">
+
+        <span>
+          Current password
+        </span>
+
+        <input
+          id="employerCurrentPassword"
+          type="password"
+          autocomplete="current-password"
+          required
+        >
+
+      </label>
+
+
+      <label class="employer-security-field">
+
+        <span>
+          New password
+        </span>
+
+        <input
+          id="employerNewPassword"
+          type="password"
+          autocomplete="new-password"
+          minlength="8"
+          maxlength="128"
+          required
+        >
+
+        <small>
+          Minimum 8 characters with at least one letter
+          and one number.
+        </small>
+
+      </label>
+
+
+      <label class="employer-security-field">
+
+        <span>
+          Confirm new password
+        </span>
+
+        <input
+          id="employerConfirmPassword"
+          type="password"
+          autocomplete="new-password"
+          minlength="8"
+          maxlength="128"
+          required
+        >
+
+      </label>
+
+
+      <div
+        id="employerPasswordMessage"
+        class="employer-settings-inline-message"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></div>
+
+
+      <div class="employer-security-modal-actions">
+
+        <button
+          type="button"
+          onclick="closeEmployerPasswordModal()"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          id="employerPasswordSubmitButton"
+          type="submit"
+        >
+          Change password
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+  
 </body>
 </html>
