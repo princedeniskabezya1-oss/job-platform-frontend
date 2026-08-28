@@ -34626,7 +34626,579 @@ input:focus{
   </div>
 </div>
 
+<style>
 
+/* =========================================================
+   AIFT EMPLOYER — SEND POST MODAL
+   Authoritative production styles
+========================================================= */
+
+
+/* =========================================================
+   BACKDROP
+========================================================= */
+
+#sendPostModal.send-modal-backdrop{
+  position:fixed;
+  inset:0;
+
+  z-index:100000;
+
+  display:none;
+  align-items:center;
+  justify-content:center;
+
+  padding:24px;
+
+  background:rgba(15,23,42,.48);
+
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+}
+
+
+/* The modal exists in the DOM at all times.
+   It must NEVER display until explicitly opened. */
+
+#sendPostModal.send-modal-backdrop:not(.show){
+  display:none !important;
+}
+
+
+#sendPostModal.send-modal-backdrop.show{
+  display:flex !important;
+}
+
+
+/* =========================================================
+   DIALOG
+========================================================= */
+
+#sendPostModal .send-modal{
+  width:min(100%,520px);
+  max-height:min(720px,calc(100vh - 48px));
+
+  display:flex;
+  flex-direction:column;
+
+  overflow:hidden;
+
+  border:1px solid #e4e7ec;
+  border-radius:14px;
+
+  background:#ffffff;
+
+  box-shadow:
+    0 24px 64px rgba(15,23,42,.18),
+    0 4px 14px rgba(15,23,42,.08);
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+#sendPostModal .send-modal-head{
+  flex:0 0 auto;
+
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+
+  gap:16px;
+
+  padding:18px 20px 15px;
+
+  border-bottom:1px solid #eaecf0;
+}
+
+
+#sendPostModal .send-modal-heading{
+  min-width:0;
+}
+
+
+#sendPostModal .send-modal-heading h3{
+  margin:0;
+
+  color:#101828;
+
+  font-size:17px;
+  line-height:1.3;
+  font-weight:800;
+
+  letter-spacing:-.015em;
+}
+
+
+#sendPostModal .send-modal-heading p{
+  margin:4px 0 0;
+
+  color:#667085;
+
+  font-size:11px;
+  line-height:1.5;
+}
+
+
+#sendPostModal .send-modal-close{
+  width:32px;
+  height:32px;
+
+  flex:0 0 32px;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  padding:0;
+
+  border:1px solid #e4e7ec;
+  border-radius:8px;
+
+  background:#ffffff;
+  color:#475467;
+
+  font-family:inherit;
+  font-size:21px;
+  line-height:1;
+
+  cursor:pointer;
+
+  transition:
+    background .15s ease,
+    color .15s ease,
+    border-color .15s ease;
+}
+
+
+#sendPostModal .send-modal-close:hover{
+  border-color:#d0d5dd;
+
+  background:#f9fafb;
+  color:#101828;
+}
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+#sendPostModal .send-search{
+  position:relative;
+
+  flex:0 0 auto;
+
+  padding:14px 16px 12px;
+}
+
+
+#sendPostModal .send-search svg{
+  position:absolute;
+  top:50%;
+  left:29px;
+
+  width:15px;
+  height:15px;
+
+  transform:translateY(-50%);
+
+  fill:none;
+  stroke:#667085;
+
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+
+  pointer-events:none;
+}
+
+
+#sendPostModal .send-search input{
+  width:100%;
+  height:39px;
+
+  padding:0 13px 0 37px;
+
+  border:1px solid #d0d5dd;
+  border-radius:9px;
+
+  outline:none;
+
+  background:#ffffff;
+  color:#101828;
+
+  font-family:inherit;
+  font-size:12px;
+
+  transition:
+    border-color .15s ease,
+    box-shadow .15s ease;
+}
+
+
+#sendPostModal .send-search input::placeholder{
+  color:#98a2b3;
+}
+
+
+#sendPostModal .send-search input:focus{
+  border-color:#84adff;
+
+  box-shadow:
+    0 0 0 3px rgba(21,112,239,.10);
+}
+
+
+/* =========================================================
+   PEOPLE LIST
+========================================================= */
+
+#sendPostModal .send-list{
+  min-height:120px;
+  max-height:390px;
+
+  flex:1 1 auto;
+
+  overflow-x:hidden;
+  overflow-y:auto;
+
+  padding:2px 10px 10px;
+}
+
+
+/* =========================================================
+   PERSON ROW
+========================================================= */
+
+#sendPostModal .send-person{
+  width:100%;
+  min-width:0;
+  min-height:62px;
+
+  display:grid;
+
+  grid-template-columns:
+    42px
+    minmax(0,1fr)
+    22px;
+
+  align-items:center;
+
+  gap:11px;
+
+  padding:9px 10px;
+
+  border-radius:9px;
+
+  cursor:pointer;
+
+  transition:
+    background .14s ease;
+}
+
+
+#sendPostModal .send-person:hover{
+  background:#f8fafc;
+}
+
+
+/* THIS IS THE IMPORTANT FIX.
+
+   The old modal had no size rule for this image,
+   allowing profile images to expand across the page.
+*/
+
+#sendPostModal .send-person > img{
+  width:42px !important;
+  height:42px !important;
+
+  min-width:42px !important;
+  max-width:42px !important;
+
+  min-height:42px !important;
+  max-height:42px !important;
+
+  display:block !important;
+
+  margin:0 !important;
+
+  border:1px solid #eaecf0;
+  border-radius:50%;
+
+  background:#f2f4f7;
+
+  object-fit:cover !important;
+  object-position:center !important;
+}
+
+
+/* =========================================================
+   PERSON INFORMATION
+========================================================= */
+
+#sendPostModal .send-person-main{
+  min-width:0;
+
+  display:flex;
+  flex-direction:column;
+
+  gap:2px;
+}
+
+
+#sendPostModal .send-person-main b{
+  display:block;
+
+  overflow:hidden;
+
+  color:#101828;
+
+  font-size:12px;
+  line-height:1.35;
+  font-weight:750;
+
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
+
+#sendPostModal .send-person-main span{
+  display:block;
+
+  overflow:hidden;
+
+  color:#667085;
+
+  font-size:10px;
+  line-height:1.4;
+
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
+
+/* =========================================================
+   CHECKBOX
+========================================================= */
+
+#sendPostModal .send-check{
+  width:17px;
+  height:17px;
+
+  margin:0;
+
+  accent-color:#1570ef;
+
+  cursor:pointer;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+#sendPostModal .send-list > .empty{
+  min-height:120px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  padding:24px;
+
+  color:#667085;
+
+  font-size:11px;
+  text-align:center;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+#sendPostModal .send-modal-footer{
+  flex:0 0 auto;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  gap:10px;
+
+  padding:13px 16px;
+
+  border-top:1px solid #eaecf0;
+
+  background:#ffffff;
+}
+
+
+#sendPostModal .send-modal-footer button{
+  min-height:36px;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  padding:0 14px;
+
+  border-radius:8px;
+
+  font-family:inherit;
+  font-size:11px;
+  font-weight:750;
+
+  cursor:pointer;
+}
+
+
+#sendPostModal .send-copy-link-btn{
+  border:1px solid #d0d5dd;
+
+  background:#ffffff;
+  color:#344054;
+}
+
+
+#sendPostModal .send-copy-link-btn:hover{
+  background:#f9fafb;
+}
+
+
+#sendPostModal .send-submit-btn{
+  min-width:88px;
+
+  border:1px solid #1570ef;
+
+  background:#1570ef;
+  color:#ffffff;
+}
+
+
+#sendPostModal .send-submit-btn:hover{
+  border-color:#175cd3;
+
+  background:#175cd3;
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+html[data-employer-theme="dark"]
+#sendPostModal.send-modal-backdrop{
+  background:rgba(2,6,23,.70);
+}
+
+
+html[data-employer-theme="dark"]
+#sendPostModal .send-modal{
+  border-color:#344054;
+
+  background:#101828;
+}
+
+
+html[data-employer-theme="dark"]
+#sendPostModal .send-modal-head,
+html[data-employer-theme="dark"]
+#sendPostModal .send-modal-footer{
+  border-color:#344054;
+
+  background:#101828;
+}
+
+
+html[data-employer-theme="dark"]
+#sendPostModal .send-modal-heading h3,
+html[data-employer-theme="dark"]
+#sendPostModal .send-person-main b{
+  color:#f9fafb;
+}
+
+
+html[data-employer-theme="dark"]
+#sendPostModal .send-modal-heading p,
+html[data-employer-theme="dark"]
+#sendPostModal .send-person-main span{
+  color:#98a2b3;
+}
+
+
+html[data-employer-theme="dark"]
+#sendPostModal .send-person:hover{
+  background:#1d2939;
+}
+
+
+html[data-employer-theme="dark"]
+#sendPostModal .send-search input{
+  border-color:#344054;
+
+  background:#1d2939;
+  color:#f9fafb;
+}
+
+
+html[data-employer-theme="dark"]
+#sendPostModal .send-modal-close,
+html[data-employer-theme="dark"]
+#sendPostModal .send-copy-link-btn{
+  border-color:#344054;
+
+  background:#1d2939;
+  color:#eaecf0;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media(max-width:760px){
+
+  #sendPostModal.send-modal-backdrop{
+    align-items:flex-end;
+
+    padding:0;
+  }
+
+
+  #sendPostModal .send-modal{
+    width:100%;
+    max-height:88vh;
+
+    border-right:0;
+    border-bottom:0;
+    border-left:0;
+
+    border-radius:
+      16px
+      16px
+      0
+      0;
+  }
+
+
+  #sendPostModal .send-list{
+    max-height:55vh;
+  }
+
+
+  #sendPostModal .send-modal-footer{
+    padding-bottom:
+      calc(
+        13px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+}
+
+</style>
   
   <link rel="stylesheet" href="feed.css">
 <script src="feed.js"></script>
@@ -61077,19 +61649,82 @@ function setEmployerFeedMode(mode){
 let selectedSendPeople = new Set();
 
 function openSendPostModal(postId){
-  activeSendPostId = postId;
-  selectedSendPeople = new Set();
-  const modal = document.getElementById("sendPostModal");
-  const input = document.getElementById("sendPostSearch");
-  if(input) input.value = "";
+
+  activeSendPostId =
+    String(postId || "").trim();
+
+  selectedSendPeople =
+    new Set();
+
+
+  const modal =
+    document.getElementById(
+      "sendPostModal"
+    );
+
+  const input =
+    document.getElementById(
+      "sendPostSearch"
+    );
+
+
+  if(input){
+    input.value = "";
+  }
+
+
   renderSendPeopleList();
-  modal?.classList.add("show");
+
+
+  if(modal){
+
+    modal.classList.add(
+      "show"
+    );
+
+    modal.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+
+  }
+
+
+  requestAnimationFrame(() => {
+    input?.focus();
+  });
+
 }
 
+
 function closeSendPostModal(){
-  document.getElementById("sendPostModal")?.classList.remove("show");
-  activeSendPostId = null;
-  selectedSendPeople = new Set();
+
+  const modal =
+    document.getElementById(
+      "sendPostModal"
+    );
+
+
+  if(modal){
+
+    modal.classList.remove(
+      "show"
+    );
+
+    modal.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+  }
+
+
+  activeSendPostId =
+    null;
+
+  selectedSendPeople =
+    new Set();
+
 }
 
 function renderSendPeopleList(){
