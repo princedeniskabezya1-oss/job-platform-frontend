@@ -47193,101 +47193,156 @@ async function revokeEmployerSecuritySession(
   }
 
 
-  const confirmed =
-    window.confirm(
+  openEmployerConfirm({
+
+    type:
+      current
+        ? "warning"
+        : "danger",
+
+    title:
       current
         ? "Sign out this device?"
-        : "Remove this device from your active sessions?"
-    );
+        : "Remove this device?",
+
+    message:
+      current
+        ? "This will sign out the current device from your AIFT Employer account."
+        : "This will immediately end the selected device session and remove it from your active devices.",
+
+    warning:
+      current
+        ? "You will be redirected to the login page and will need to sign in again."
+        : "If someone is currently using AIFT on that device, they will lose access to this account immediately.",
+
+    confirmText:
+      current
+        ? "Sign out this device"
+        : "Remove device",
+
+    cancelText:
+      "Cancel",
 
 
-  if(!confirmed){
-    return;
-  }
+    onConfirm:
+      async () => {
+
+        try{
+
+          const response =
+            await fetchJSON(
+              `${EMPLOYER_SECURITY_ENDPOINTS.sessions}/${encodeURIComponent(safeSessionId)}`,
+              {
+
+                method:
+                  "DELETE",
+
+                headers:
+                  authHeaders()
+
+              }
+            );
 
 
-  try{
+          /*
+            CURRENT DEVICE
 
-    const response =
-      await fetchJSON(
-        `${EMPLOYER_SECURITY_ENDPOINTS.sessions}/${encodeURIComponent(safeSessionId)}`,
-        {
+            If the backend confirms that the currently
+            authenticated session was revoked, remove every
+            known Employer auth token and return to login.
+          */
 
-          method:
-            "DELETE",
+          if(
+            response
+              ?.currentSessionRevoked ===
+            true ||
+            current
+          ){
 
-          headers:
-            authHeaders()
+            localStorage.removeItem(
+              "employerToken"
+            );
+
+            localStorage.removeItem(
+              "token"
+            );
+
+            localStorage.removeItem(
+              "authToken"
+            );
+
+            localStorage.removeItem(
+              "aiftToken"
+            );
+
+            localStorage.removeItem(
+              "role"
+            );
+
+            localStorage.removeItem(
+              "userId"
+            );
+
+            localStorage.removeItem(
+              "employerOpenTab"
+            );
+
+
+            sessionStorage.clear();
+
+
+            window.location.replace(
+              "login.html"
+            );
+
+            return;
+
+          }
+
+
+          /*
+            OTHER DEVICE
+          */
+
+          showToast(
+            "Device removed",
+            response?.message ||
+              "The selected device was signed out successfully.",
+            "success"
+          );
+
+
+          await loadEmployerSecuritySessions(
+            false
+          );
+
+
+          renderEmployerSecuritySessions();
+
+
+        }catch(error){
+
+          console.error(
+            "REVOKE EMPLOYER SESSION ERROR:",
+            error
+          );
+
+
+          /*
+            Re-throw so the AIFT confirmation modal
+            displays the failure inside the dialog.
+          */
+
+          throw new Error(
+            error?.message ||
+            "The device session could not be removed."
+          );
 
         }
-      );
 
+      }
 
-    if(
-      response
-        ?.currentSessionRevoked ===
-      true ||
-      current
-    ){
-
-      localStorage.removeItem(
-        "employerToken"
-      );
-
-      localStorage.removeItem(
-        "token"
-      );
-
-      localStorage.removeItem(
-        "authToken"
-      );
-
-      localStorage.removeItem(
-        "aiftToken"
-      );
-
-      localStorage.removeItem(
-        "role"
-      );
-
-
-      window.location.href =
-        "login.html";
-
-      return;
-
-    }
-
-
-    showToast(
-      "Device removed",
-      response?.message ||
-        "The device was signed out.",
-      "success"
-    );
-
-
-    await loadEmployerSecuritySessions(
-      false
-    );
-
-
-  }catch(error){
-
-    console.error(
-      "REVOKE EMPLOYER SESSION ERROR:",
-      error
-    );
-
-
-    showToast(
-      "Could not remove device",
-      error?.message ||
-        "The session could not be removed.",
-      "error"
-    );
-
-  }
+  });
 
 }
 
