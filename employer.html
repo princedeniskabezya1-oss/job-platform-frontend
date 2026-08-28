@@ -53875,6 +53875,69 @@ function toggleEmployerHelpFaq(
 
 }
 
+/* =========================================================
+   AIFT EMPLOYER HELP CENTER
+   REAL SUPPORT TICKET INTEGRATION
+
+   Backend:
+   POST /api/support/tickets
+========================================================= */
+
+const EMPLOYER_SUPPORT_ENDPOINT =
+  `${API}/api/support/tickets`;
+
+
+/* =========================================================
+   EMPLOYER SUPPORT CATEGORIES
+========================================================= */
+
+const EMPLOYER_SUPPORT_CATEGORIES = [
+  {
+    value:"employer-studio",
+    label:"Employer Studio"
+  },
+  {
+    value:"jobs",
+    label:"Jobs"
+  },
+  {
+    value:"candidates",
+    label:"Candidates"
+  },
+  {
+    value:"pipeline",
+    label:"Candidates & Pipeline"
+  },
+  {
+    value:"messages",
+    label:"Messages"
+  },
+  {
+    value:"career-hub",
+    label:"Career Hub"
+  },
+  {
+    value:"account",
+    label:"Account & Profile"
+  },
+  {
+    value:"security",
+    label:"Security & Access"
+  },
+  {
+    value:"technical",
+    label:"Technical Problem"
+  },
+  {
+    value:"billing",
+    label:"Billing"
+  },
+  {
+    value:"other",
+    label:"Other"
+  }
+];
+
 
 /* =========================================================
    SUPPORT REQUEST
@@ -53884,13 +53947,16 @@ function openEmployerSupportRequest(){
 
   openEmployerHelpForm({
 
-    type: "support",
+    type:"support",
 
     title:
       "Contact AIFT Support",
 
     description:
-      "Tell us what you need help with. Include enough information for the support team to understand the issue.",
+      "Tell us what you need help with. Your request will be sent securely to AIFT Support and you will receive a ticket number.",
+
+    category:
+      "employer-studio",
 
     subjectLabel:
       "What do you need help with?",
@@ -53920,13 +53986,16 @@ function openEmployerProblemReport(){
 
   openEmployerHelpForm({
 
-    type: "problem",
+    type:"problem",
 
     title:
       "Report a problem",
 
     description:
-      "Report a technical problem affecting your AIFT Employer workspace.",
+      "Report a technical problem affecting your AIFT Employer workspace. Basic system diagnostics will be attached automatically.",
+
+    category:
+      "technical",
 
     subjectLabel:
       "Problem",
@@ -53938,12 +54007,55 @@ function openEmployerProblemReport(){
       "What happened?",
 
     messagePlaceholder:
-      "Tell us which page you were using, what you clicked, and what happened.",
+      "Tell us which page you were using, what you clicked, what happened, and what you expected to happen.",
 
     submitText:
-      "Submit report"
+      "Submit problem report"
 
   });
+
+}
+
+
+/* =========================================================
+   SUPPORT CATEGORY OPTIONS
+========================================================= */
+
+function buildEmployerSupportCategoryOptions(
+  selectedCategory = "employer-studio"
+){
+
+  const safeSelected =
+    EMPLOYER_SUPPORT_CATEGORIES
+      .some(
+        item =>
+          item.value ===
+          selectedCategory
+      )
+        ? selectedCategory
+        : "other";
+
+
+  return EMPLOYER_SUPPORT_CATEGORIES
+    .map(item => {
+
+      const selected =
+        item.value === safeSelected
+          ? " selected"
+          : "";
+
+
+      return `
+        <option
+          value="${escapeHtml(item.value)}"
+          ${selected}
+        >
+          ${escapeHtml(item.label)}
+        </option>
+      `;
+
+    })
+    .join("");
 
 }
 
@@ -53977,6 +54089,17 @@ function openEmployerHelpForm(
     options.type === "problem"
       ? "problem"
       : "support";
+
+
+  const defaultCategory =
+    String(
+      options.category ||
+      (
+        type === "problem"
+          ? "technical"
+          : "employer-studio"
+      )
+    );
 
 
   overlay.innerHTML = `
@@ -54038,14 +54161,35 @@ function openEmployerHelpForm(
         <label class="emp-help-form-field">
 
           <span>
+            Support category
+          </span>
+
+          <select
+            id="employerHelpRequestCategory"
+            required
+          >
+            ${
+              buildEmployerSupportCategoryOptions(
+                defaultCategory
+              )
+            }
+          </select>
+
+        </label>
+
+
+        <label class="emp-help-form-field">
+
+          <span>
             ${escapeHtml(options.subjectLabel || "Subject")}
           </span>
 
           <input
             id="employerHelpRequestSubject"
             type="text"
-            maxlength="160"
+            maxlength="200"
             required
+            autocomplete="off"
             placeholder="${escapeHtml(options.subjectPlaceholder || "")}"
           >
 
@@ -54061,7 +54205,7 @@ function openEmployerHelpForm(
           <textarea
             id="employerHelpRequestMessage"
             rows="7"
-            maxlength="4000"
+            maxlength="5000"
             required
             placeholder="${escapeHtml(options.messagePlaceholder || "")}"
           ></textarea>
@@ -54075,15 +54219,15 @@ function openEmployerHelpForm(
         >
 
           <strong>
-            Workspace information
+            Request will be submitted as
           </strong>
 
           <span>
             ${
               escapeHtml(
                 [
-                  state?.me?.name ||
                   state?.me?.companyName ||
+                  state?.me?.name ||
                   "Employer account",
 
                   state?.me?.email ||
@@ -54096,6 +54240,25 @@ function openEmployerHelpForm(
           </span>
 
         </div>
+
+
+        ${
+          type === "problem"
+            ? `
+              <div class="emp-help-form-context">
+
+                <strong>
+                  System diagnostics
+                </strong>
+
+                <span>
+                  Browser, device, workspace and connection information will be attached to help AIFT investigate this problem. Authentication tokens are never included.
+                </span>
+
+              </div>
+            `
+            : ""
+        }
 
 
         <div
@@ -54200,15 +54363,166 @@ function closeEmployerHelpForm(){
 
 
 /* =========================================================
-   SUBMIT SUPPORT REQUEST
+   FORM MESSAGE
 ========================================================= */
 
-async function submitEmployerHelpRequest(
-  event
+function setEmployerHelpRequestMessage(
+  message = "",
+  type = "error"
 ){
 
-  event.preventDefault();
+  const box =
+    document.getElementById(
+      "employerHelpRequestMessageBox"
+    );
 
+
+  if(!box){
+    return;
+  }
+
+
+  const text =
+    String(
+      message ||
+      ""
+    ).trim();
+
+
+  if(!text){
+
+    box.hidden =
+      true;
+
+    box.textContent =
+      "";
+
+    box.removeAttribute(
+      "data-type"
+    );
+
+    return;
+
+  }
+
+
+  box.hidden =
+    false;
+
+  box.textContent =
+    text;
+
+  box.dataset.type =
+    type;
+
+}
+
+
+/* =========================================================
+   DETECT CURRENT HELP PAGE
+========================================================= */
+
+function getEmployerHelpCurrentPage(){
+
+  try{
+
+    const url =
+      new URL(
+        window.location.href
+      );
+
+
+    return String(
+      url.pathname ||
+      "employer.html"
+    )
+      .slice(
+        0,
+        100
+      );
+
+  }catch(error){
+
+    return "employer.html";
+
+  }
+
+}
+
+
+/* =========================================================
+   BUILD SAFE SUPPORT METADATA
+
+   IMPORTANT:
+   The backend only accepts safe diagnostic metadata.
+   Tokens and credentials are never included.
+========================================================= */
+
+function buildEmployerSupportMetadata(){
+
+  const diagnostics =
+    collectEmployerHelpDiagnostics();
+
+
+  return {
+
+    browser:
+      String(
+        navigator.userAgent ||
+        ""
+      ).slice(
+        0,
+        300
+      ),
+
+    platform:
+      String(
+        diagnostics.platform ||
+        ""
+      ).slice(
+        0,
+        300
+      ),
+
+    viewport:
+      String(
+        diagnostics.viewport ||
+        ""
+      ).slice(
+        0,
+        300
+      ),
+
+    language:
+      String(
+        diagnostics.language ||
+        ""
+      ).slice(
+        0,
+        300
+      ),
+
+    online:
+      diagnostics.online === true
+        ? "true"
+        : "false",
+
+    route:
+      getEmployerHelpCurrentPage(),
+
+    workspace:
+      "employer"
+
+  };
+
+}
+
+
+/* =========================================================
+   BUILD SUPPORT PAYLOAD
+========================================================= */
+
+function buildEmployerSupportPayload(){
 
   const type =
     document
@@ -54217,6 +54531,19 @@ async function submitEmployerHelpRequest(
       )
       ?.value ||
     "support";
+
+
+  const category =
+    document
+      .getElementById(
+        "employerHelpRequestCategory"
+      )
+      ?.value ||
+    (
+      type === "problem"
+        ? "technical"
+        : "employer-studio"
+    );
 
 
   const subject =
@@ -54239,146 +54566,589 @@ async function submitEmployerHelpRequest(
     "";
 
 
+  if(!subject){
+
+    throw new Error(
+      "Please enter a subject."
+    );
+
+  }
+
+
+  if(!message){
+
+    throw new Error(
+      "Please describe what you need help with."
+    );
+
+  }
+
+
+  if(
+    !EMPLOYER_SUPPORT_CATEGORIES
+      .some(
+        item =>
+          item.value ===
+          category
+      )
+  ){
+
+    throw new Error(
+      "Please select a valid support category."
+    );
+
+  }
+
+
+  const employerName =
+    String(
+      state?.me?.companyName ||
+      state?.me?.name ||
+      ""
+    ).trim();
+
+
+  const employerEmail =
+    String(
+      state?.me?.email ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if(!employerName){
+
+    throw new Error(
+      "Your Employer account information has not finished loading. Please try again."
+    );
+
+  }
+
+
+  if(!employerEmail){
+
+    throw new Error(
+      "Your Employer account does not contain an email address."
+    );
+
+  }
+
+
+  return {
+
+    name:
+      employerName,
+
+    email:
+      employerEmail,
+
+    phone:
+      String(
+        state?.me?.phone ||
+        state?.me?.phoneNumber ||
+        ""
+      )
+        .trim()
+        .slice(
+          0,
+          40
+        ),
+
+    category,
+
+    subject,
+
+    additionalInfo:
+      message,
+
+    page:
+      getEmployerHelpCurrentPage(),
+
+    metadata:
+      buildEmployerSupportMetadata()
+
+  };
+
+}
+
+
+/* =========================================================
+   SUBMIT REAL SUPPORT REQUEST
+
+   POST /api/support/tickets
+========================================================= */
+
+async function submitEmployerHelpRequest(
+  event
+){
+
+  event.preventDefault();
+
+
+  const type =
+    document
+      .getElementById(
+        "employerHelpRequestType"
+      )
+      ?.value ||
+    "support";
+
+
   const submitButton =
     document.getElementById(
       "employerHelpRequestSubmitButton"
     );
 
 
-  const messageBox =
-    document.getElementById(
-      "employerHelpRequestMessageBox"
+  const originalButtonText =
+    submitButton?.textContent?.trim() ||
+    (
+      type === "problem"
+        ? "Submit problem report"
+        : "Create support request"
     );
 
 
-  if(
-    !subject ||
-    !message
-  ){
-
-    if(messageBox){
-
-      messageBox.hidden =
-        false;
-
-      messageBox.textContent =
-        "Please complete the subject and description.";
-
-    }
-
-    return;
-
-  }
-
-
-  if(submitButton){
-
-    submitButton.disabled =
-      true;
-
-    submitButton.textContent =
-      "Preparing request…";
-
-  }
+  setEmployerHelpRequestMessage();
 
 
   try{
 
-    /*
-      IMPORTANT:
-      We are not inventing a backend support endpoint.
+    if(!token){
 
-      Until the AIFT support-ticket backend is added,
-      this safely prepares the request in the frontend
-      instead of pretending that it was stored.
-    */
+      throw new Error(
+        "Your Employer session is no longer available. Please sign in again."
+      );
 
-    const supportRequest = {
-
-      type,
-
-      subject,
-
-      message,
-
-      createdAt:
-        new Date().toISOString(),
-
-      employer: {
-
-        id:
-          state?.me?._id ||
-          state?.me?.id ||
-          null,
-
-        name:
-          state?.me?.companyName ||
-          state?.me?.name ||
-          "",
-
-        email:
-          state?.me?.email ||
-          ""
-
-      },
-
-      diagnostics:
-        collectEmployerHelpDiagnostics()
-
-    };
+    }
 
 
-    console.info(
-      "AIFT EMPLOYER SUPPORT REQUEST:",
-      supportRequest
-    );
+    const payload =
+      buildEmployerSupportPayload();
+
+
+    if(submitButton){
+
+      submitButton.disabled =
+        true;
+
+      submitButton.textContent =
+        type === "problem"
+          ? "Submitting report…"
+          : "Creating ticket…";
+
+    }
+
+
+    const response =
+      await fetch(
+        EMPLOYER_SUPPORT_ENDPOINT,
+        {
+          method:"POST",
+
+          headers:
+            authHeaders({
+              "Content-Type":
+                "application/json",
+
+              Accept:
+                "application/json"
+            }),
+
+          body:
+            JSON.stringify(
+              payload
+            )
+        }
+      );
+
+
+    const data =
+      await safeJson(
+        response
+      );
+
+
+    if(!response.ok){
+
+      if(
+        response.status ===
+        401
+      ){
+
+        throw new Error(
+          "Your session has expired. Please sign in again."
+        );
+
+      }
+
+
+      if(
+        response.status ===
+        403
+      ){
+
+        throw new Error(
+          data?.message ||
+          "Your account is not allowed to create this support request."
+        );
+
+      }
+
+
+      throw new Error(
+        data?.message ||
+        `Support request failed (${response.status}).`
+      );
+
+    }
+
+
+    const ticket =
+      data?.ticket ||
+      {};
+
+
+    const ticketNumber =
+      String(
+        ticket.ticketNumber ||
+        ""
+      ).trim();
+
+
+    if(!ticketNumber){
+
+      throw new Error(
+        "AIFT created the request but did not return a ticket number."
+      );
+
+    }
 
 
     closeEmployerHelpForm();
 
 
+    showEmployerSupportSuccess({
+      type,
+      ticket
+    });
+
+
+  }catch(error){
+
+    console.error(
+      "EMPLOYER SUPPORT TICKET ERROR:",
+      error
+    );
+
+
+    setEmployerHelpRequestMessage(
+      error?.message ||
+      "The support request could not be submitted.",
+      "error"
+    );
+
+
+  }finally{
+
+    if(
+      submitButton &&
+      document.body.contains(
+        submitButton
+      )
+    ){
+
+      submitButton.disabled =
+        false;
+
+      submitButton.textContent =
+        originalButtonText;
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   SUPPORT SUCCESS DIALOG
+========================================================= */
+
+function showEmployerSupportSuccess(
+  {
+    type = "support",
+    ticket = {}
+  } = {}
+){
+
+  closeEmployerSupportSuccess();
+
+
+  const ticketNumber =
+    String(
+      ticket.ticketNumber ||
+      ""
+    ).trim();
+
+
+  const overlay =
+    document.createElement(
+      "div"
+    );
+
+
+  overlay.id =
+    "employerSupportSuccessModal";
+
+
+  overlay.className =
+    "emp-help-form-backdrop";
+
+
+  overlay.innerHTML = `
+
+    <div
+      class="emp-help-form-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="employerSupportSuccessTitle"
+    >
+
+      <div class="emp-help-form-head">
+
+        <div>
+
+          <span class="emp-help-section-kicker">
+            TICKET CREATED
+          </span>
+
+          <h2 id="employerSupportSuccessTitle">
+            ${
+              type === "problem"
+                ? "Problem report submitted"
+                : "Support request submitted"
+            }
+          </h2>
+
+          <p>
+            Your request has been sent to AIFT Support.
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="emp-help-guide-viewer-close"
+          aria-label="Close"
+          onclick="closeEmployerSupportSuccess()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="emp-help-form-context">
+
+        <strong>
+          AIFT ticket number
+        </strong>
+
+        <span
+          style="
+            font-size:15px;
+            font-weight:800;
+            letter-spacing:.03em;
+            color:#0a66c2;
+          "
+        >
+          ${escapeHtml(ticketNumber)}
+        </span>
+
+      </div>
+
+
+      <div
+        class="emp-help-form-context"
+        style="margin-top:12px;"
+      >
+
+        <strong>
+          Status
+        </strong>
+
+        <span>
+          ${
+            escapeHtml(
+              String(
+                ticket.status ||
+                "open"
+              )
+                .replaceAll(
+                  "_",
+                  " "
+                )
+            )
+          }
+        </span>
+
+      </div>
+
+
+      <div class="emp-help-form-actions">
+
+        <button
+          type="button"
+          class="emp-help-secondary-action"
+          onclick="copyEmployerSupportTicketNumber('${escapeHtml(ticketNumber)}')"
+        >
+          Copy ticket number
+        </button>
+
+
+        <button
+          type="button"
+          class="emp-help-primary-action"
+          onclick="closeEmployerSupportSuccess()"
+        >
+          Done
+        </button>
+
+      </div>
+
+    </div>
+
+  `;
+
+
+  overlay.addEventListener(
+    "click",
+    event => {
+
+      if(
+        event.target ===
+        overlay
+      ){
+
+        closeEmployerSupportSuccess();
+
+      }
+
+    }
+  );
+
+
+  document.body.appendChild(
+    overlay
+  );
+
+
+  document.body.classList.add(
+    "employer-help-modal-open"
+  );
+
+
+  showToast(
+    "Support ticket created",
+    ticketNumber
+      ? `Ticket ${ticketNumber} was created successfully.`
+      : "Your support request was created successfully.",
+    "success"
+  );
+
+}
+
+
+/* =========================================================
+   CLOSE SUPPORT SUCCESS
+========================================================= */
+
+function closeEmployerSupportSuccess(){
+
+  const modal =
+    document.getElementById(
+      "employerSupportSuccessModal"
+    );
+
+
+  if(modal){
+    modal.remove();
+  }
+
+
+  if(
+    !document.getElementById(
+      "employerHelpFormModal"
+    ) &&
+    !document.getElementById(
+      "employerDiagnosticsViewer"
+    ) &&
+    !document.getElementById(
+      "employerHelpGuideViewer"
+    )
+  ){
+
+    document.body.classList.remove(
+      "employer-help-modal-open"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   COPY SUPPORT TICKET NUMBER
+========================================================= */
+
+async function copyEmployerSupportTicketNumber(
+  ticketNumber
+){
+
+  const value =
+    String(
+      ticketNumber ||
+      ""
+    ).trim();
+
+
+  if(!value){
+    return;
+  }
+
+
+  try{
+
+    await navigator
+      .clipboard
+      .writeText(
+        value
+      );
+
+
     showToast(
-      type === "problem"
-        ? "Problem report prepared"
-        : "Support request prepared",
-      "The Help Center is ready. We will connect this form to the AIFT support backend next.",
-      "info"
+      "Ticket number copied",
+      value,
+      "success"
     );
 
 
   }catch(error){
 
     console.error(
-      "EMPLOYER HELP REQUEST ERROR:",
+      "COPY SUPPORT TICKET NUMBER ERROR:",
       error
     );
 
 
-    if(messageBox){
-
-      messageBox.hidden =
-        false;
-
-      messageBox.textContent =
-        error?.message ||
-        "The support request could not be prepared.";
-
-    }
-
-
-  }finally{
-
-    if(submitButton){
-
-      submitButton.disabled =
-        false;
-
-      submitButton.textContent =
-        type === "problem"
-          ? "Submit report"
-          : "Create support request";
-
-    }
+    showToast(
+      "Ticket number",
+      value,
+      "info"
+    );
 
   }
 
