@@ -39400,11 +39400,139 @@ function mediaUrl(value){
   return value;
 }
 
-function getUserBannerImage(user){
-  return mediaUrl(
-    user.bannerImage ||
-    user.schoolBanner ||
-    user.companyBanner ||
+/* =========================================================
+   AUTHORITATIVE USER BANNER RESOLVER
+
+   IMPORTANT:
+   - Respect intentionally removed banners.
+   - Do not resurrect stale legacy cover images.
+   - Maintain compatibility with genuinely older accounts.
+========================================================= */
+
+function getUserBannerImage(
+  user = {}
+){
+
+  if(
+    !user ||
+    typeof user !== "object"
+  ){
+    return "";
+  }
+
+
+  const role =
+    String(
+      user.role ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  /* =======================================================
+     1. MODERN AUTHORITATIVE FIELD
+
+     If bannerImage exists on the user object at all,
+     including bannerImage:"", it is authoritative.
+
+     An empty value means:
+     "The user intentionally has no banner."
+  ======================================================= */
+
+  if(
+    Object.prototype.hasOwnProperty.call(
+      user,
+      "bannerImage"
+    )
+  ){
+
+    return mediaUrl(
+      user.bannerImage ||
+      ""
+    );
+
+  }
+
+
+  /* =======================================================
+     2. ROLE-SPECIFIC MODERN FIELDS
+
+     Respect empty values here as well.
+  ======================================================= */
+
+  if(
+    role === "school" &&
+    Object.prototype.hasOwnProperty.call(
+      user,
+      "schoolBanner"
+    )
+  ){
+
+    return mediaUrl(
+      user.schoolBanner ||
+      ""
+    );
+
+  }
+
+
+  if(
+    (
+      role === "employer" ||
+      role === "company"
+    ) &&
+    Object.prototype.hasOwnProperty.call(
+      user,
+      "companyBanner"
+    )
+  ){
+
+    return mediaUrl(
+      user.companyBanner ||
+      ""
+    );
+
+  }
+
+
+  /* =======================================================
+     3. PROFILE OBJECT
+
+     Some newer API responses may keep the canonical banner
+     inside profile.bannerImage.
+
+     Again: if the property exists but is empty, respect it.
+  ======================================================= */
+
+  if(
+    user.profile &&
+    typeof user.profile === "object" &&
+    Object.prototype.hasOwnProperty.call(
+      user.profile,
+      "bannerImage"
+    )
+  ){
+
+    return mediaUrl(
+      user.profile.bannerImage ||
+      ""
+    );
+
+  }
+
+
+  /* =======================================================
+     4. LEGACY ACCOUNT COMPATIBILITY
+
+     Only reach this point when the user did NOT receive any
+     modern banner field at all.
+
+     This supports old accounts without allowing old fields
+     to override a deliberately removed modern banner.
+  ======================================================= */
+
+  const legacyBanner =
     user.coverImage ||
     user.coverPhoto ||
     user.backgroundImage ||
@@ -39413,10 +39541,14 @@ function getUserBannerImage(user){
     user.cover ||
     user.banner ||
     user.headerImage ||
-    user?.profile?.bannerImage ||
     user?.profile?.coverImage ||
-    ""
+    "";
+
+
+  return mediaUrl(
+    legacyBanner
   );
+
 }
 function mergeJobSeekerWithNetworkUser(user){
   const sameUser = (state.people || []).find(p => String(p._id) === String(user._id));
@@ -43311,52 +43443,161 @@ async function submitTask(){
 }
 
 async function deleteSchedule(scheduleId){
-  if (!scheduleId) return;
 
-  if (!confirm("Delete this schedule?")) return;
-
-  try {
-    await fetchJSON(`${API}/api/schedules/${scheduleId}`, {
-      method: "DELETE",
-      headers: authHeaders()
-    });
-
-    await loadSchedules();
-    await loadAgentLogs();
-
-    if (typeof buildOps === "function") buildOps();
-    if (typeof buildAnalytics === "function") buildAnalytics();
-    refreshAllUI();
-
-    showToast("Schedule deleted", "The schedule was removed.");
-  } catch (err) {
-    showToast("Delete failed", err.message, "error");
+  if(!scheduleId){
+    return;
   }
+
+  openEmployerConfirm({
+
+    type:
+      "danger",
+
+    title:
+      "Delete schedule?",
+
+    message:
+      "This schedule will be permanently removed from the Employer workspace.",
+
+    warning:
+      "Any team member relying on this schedule will no longer see it.",
+
+    confirmText:
+      "Delete schedule",
+
+    cancelText:
+      "Keep schedule",
+
+    onConfirm:
+      async () => {
+
+        await fetchJSON(
+          `${API}/api/schedules/${scheduleId}`,
+          {
+            method:
+              "DELETE",
+
+            headers:
+              authHeaders()
+          }
+        );
+
+
+        await loadSchedules();
+        await loadAgentLogs();
+
+
+        if(
+          typeof buildOps ===
+          "function"
+        ){
+          buildOps();
+        }
+
+
+        if(
+          typeof buildAnalytics ===
+          "function"
+        ){
+          buildAnalytics();
+        }
+
+
+        refreshAllUI();
+
+
+        showToast(
+          "Schedule deleted",
+          "The schedule was removed.",
+          "success"
+        );
+
+      }
+
+  });
+
 }
+
 
 async function deleteTask(taskId){
-  if (!taskId) return;
 
-  if (!confirm("Delete this task?")) return;
-
-  try {
-    await fetchJSON(`${API}/api/work-tasks/${taskId}`, {
-      method: "DELETE",
-      headers: authHeaders()
-    });
-
-    await loadTasks();
-
-    if (typeof buildOps === "function") buildOps();
-    if (typeof buildAnalytics === "function") buildAnalytics();
-    refreshAllUI();
-
-    showToast("Task deleted", "The task was removed.");
-  } catch (err) {
-    showToast("Delete failed", err.message, "error");
+  if(!taskId){
+    return;
   }
+
+
+  openEmployerConfirm({
+
+    type:
+      "danger",
+
+    title:
+      "Delete task?",
+
+    message:
+      "This task will be permanently removed from the Employer workspace.",
+
+    warning:
+      "Task information and its current workspace assignment will no longer be available.",
+
+    confirmText:
+      "Delete task",
+
+    cancelText:
+      "Keep task",
+
+    onConfirm:
+      async () => {
+
+        await fetchJSON(
+          `${API}/api/work-tasks/${taskId}`,
+          {
+            method:
+              "DELETE",
+
+            headers:
+              authHeaders()
+          }
+        );
+
+
+        await loadTasks();
+
+
+        if(
+          typeof buildOps ===
+          "function"
+        ){
+          buildOps();
+        }
+
+
+        if(
+          typeof buildAnalytics ===
+          "function"
+        ){
+          buildAnalytics();
+        }
+
+
+        refreshAllUI();
+
+
+        showToast(
+          "Task deleted",
+          "The task was removed.",
+          "success"
+        );
+
+      }
+
+  });
+
 }
-    async function updateTaskStatus(taskId, status){
+
+    
+
+async function updateTaskStatus(taskId, status){
   try {
     await fetchJSON(`${API}/api/work-tasks/${taskId}`, {
       method: "PATCH",
@@ -48180,45 +48421,53 @@ function openEmployerHelp(){
 
 function logoutEmployer(){
 
-  const confirmed =
-    window.confirm(
-      "Log out of your AIFT Employer account?"
-    );
+  openEmployerConfirm({
+
+    type:
+      "warning",
+
+    title:
+      "Log out of AIFT?",
+
+    message:
+      "You will be signed out of this Employer workspace on this device.",
+
+    confirmText:
+      "Log out",
+
+    cancelText:
+      "Stay signed in",
+
+    onConfirm:
+      async () => {
+
+        localStorage.removeItem(
+          "employerToken"
+        );
+
+        localStorage.removeItem(
+          "role"
+        );
+
+        localStorage.removeItem(
+          "userId"
+        );
+
+        localStorage.removeItem(
+          "employerOpenTab"
+        );
 
 
-  if (!confirmed) {
-    return;
-  }
+        sessionStorage.clear();
 
 
-  /*
-    Remove Employer authentication/session state only.
-    Do not wipe unrelated browser settings.
-  */
+        window.location.replace(
+          "login.html"
+        );
 
-  localStorage.removeItem(
-    "employerToken"
-  );
+      }
 
-  localStorage.removeItem(
-    "role"
-  );
-
-  localStorage.removeItem(
-    "userId"
-  );
-
-  localStorage.removeItem(
-    "employerOpenTab"
-  );
-
-
-  sessionStorage.clear();
-
-
-  window.location.replace(
-    "login.html"
-  );
+  });
 
 }
     
