@@ -36538,6 +36538,69 @@ html[data-school-theme="dark"]
   <span>Settings</span>
 </button>
 
+    <div class="school-sidebar-divider"></div>
+
+
+<!-- =====================================================
+     HELP & SUPPORT
+====================================================== -->
+
+<button
+  type="button"
+  class="tab-btn school-system-action"
+  onclick="openSchoolHelp()"
+>
+  <svg
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="9"
+    ></circle>
+
+    <path
+      d="
+        M9.8 9a2.4 2.4 0 0 1
+        4.6 1c0 1.8-2.4 2.1-2.4 3.6
+      "
+    ></path>
+
+    <path d="M12 17h.01"></path>
+  </svg>
+
+  <span>
+    Help & Support
+  </span>
+</button>
+
+
+<!-- =====================================================
+     LOG OUT
+====================================================== -->
+
+<button
+  type="button"
+  class="tab-btn school-system-action school-logout-action"
+  onclick="logoutSchool()"
+>
+  <svg
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
+    <path d="M10 17l5-5-5-5"></path>
+
+    <path d="M15 12H3"></path>
+
+    <path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"></path>
+  </svg>
+
+  <span>
+    Log Out
+  </span>
+</button>
+
   </nav>
 
 </aside>
@@ -80505,6 +80568,212 @@ document.addEventListener("keydown",e => {
     });
   }
 });
+
+
+  /* =========================================================
+   SCHOOL — HELP & SUPPORT
+========================================================= */
+
+function openSchoolHelp(){
+
+  /*
+    For now this opens a clean support message without
+    depending on any missing support page.
+
+    Later, if you create help.html or a support center,
+    we can change this function to navigate there.
+  */
+
+  if(
+    typeof showAiftToast ===
+    "function"
+  ){
+
+    showAiftToast({
+
+      type:
+        "info",
+
+      title:
+        "Help & Support",
+
+      message:
+        "AIFT School Help & Support is available from your workspace. Additional support tools can be connected here."
+
+    });
+
+    return;
+  }
+
+
+  if(
+    typeof showToast ===
+    "function"
+  ){
+
+    showToast(
+      "Help & Support",
+      "AIFT School Help & Support is available from your workspace.",
+      "info"
+    );
+
+    return;
+  }
+
+
+  window.alert(
+    "AIFT School Help & Support"
+  );
+
+}
+
+
+/* =========================================================
+   SCHOOL — LOG OUT
+========================================================= */
+
+async function logoutSchool(){
+
+  let confirmed =
+    false;
+
+
+  /* =====================================================
+     USE EXISTING AIFT CONFIRMATION UI WHEN AVAILABLE
+  ===================================================== */
+
+  if(
+    typeof confirmAiftAction ===
+    "function"
+  ){
+
+    try{
+
+      confirmed =
+        await confirmAiftAction({
+
+          type:
+            "warning",
+
+          eyebrow:
+            "School account",
+
+          title:
+            "Log out of AIFT?",
+
+          message:
+            "You will be signed out of the School Workspace on this device.",
+
+          confirmText:
+            "Log out",
+
+          cancelText:
+            "Stay signed in",
+
+          loadingText:
+            "Signing out..."
+
+        });
+
+    }catch(error){
+
+      console.warn(
+        "School logout confirmation failed:",
+        error
+      );
+
+
+      confirmed =
+        window.confirm(
+          "Log out of your AIFT School account?"
+        );
+
+    }
+
+  }else{
+
+    confirmed =
+      window.confirm(
+        "Log out of your AIFT School account?"
+      );
+
+  }
+
+
+  if(!confirmed){
+    return;
+  }
+
+
+  /* =====================================================
+     AUTH KEYS USED BY SCHOOL.HTML
+
+     These match the authentication keys already used
+     throughout the School workspace.
+  ===================================================== */
+
+  const authKeys = [
+
+    "schoolToken",
+    "adminToken",
+    "token",
+    "authToken",
+    "aiftToken",
+    "role",
+    "userId"
+
+  ];
+
+
+  authKeys.forEach(
+    key => {
+
+      try{
+
+        localStorage.removeItem(
+          key
+        );
+
+      }catch(error){
+
+        console.warn(
+          `Could not clear ${key}:`,
+          error
+        );
+
+      }
+
+    }
+  );
+
+
+  /* =====================================================
+     CLEAR SCHOOL-SPECIFIC SESSION STATE
+  ===================================================== */
+
+  try{
+
+    sessionStorage.clear();
+
+  }catch(error){
+
+    console.warn(
+      "Could not clear School session storage:",
+      error
+    );
+
+  }
+
+
+  /* =====================================================
+     RETURN TO LOGIN
+  ===================================================== */
+
+  window.location.replace(
+    "login.html"
+  );
+
+}
 
 document.addEventListener(
   "DOMContentLoaded",
