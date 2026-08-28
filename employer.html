@@ -10289,12 +10289,12 @@ span:last-child{
   display:flex;
   align-items:center;
 
-  gap:2px;
+  gap:3px;
 
-  min-height:45px;
+  min-height:50px;
 
   padding:
-    4px 5px;
+    5px 6px;
 
   overflow-x:auto;
 
@@ -10316,19 +10316,19 @@ span:last-child{
 .employer-career-tab{
   flex:0 0 auto;
 
-  height:34px;
+  height:38px;
 
   display:inline-flex;
   align-items:center;
   justify-content:center;
 
-  gap:5px;
+  gap:7px;
 
   padding:
-    0 9px;
+    0 11px;
 
   border:1px solid transparent;
-  border-radius:7px;
+  border-radius:8px;
 
   background:transparent;
 
@@ -10336,26 +10336,35 @@ span:last-child{
 
   font-family:inherit;
 
-  font-size:6.8px;
+  font-size:10px;
+  line-height:1;
 
-  font-weight:750;
+  font-weight:700;
 
   white-space:nowrap;
 
   cursor:pointer;
+
+  transition:
+    background .15s ease,
+    border-color .15s ease,
+    color .15s ease,
+    box-shadow .15s ease;
 }
 
 
 #section-career
 .employer-career-tab svg{
-  width:11px;
-  height:11px;
+  width:14px;
+  height:14px;
+
+  flex:0 0 14px;
 
   fill:none;
 
   stroke:currentColor;
 
-  stroke-width:1.7;
+  stroke-width:1.8;
   stroke-linecap:round;
   stroke-linejoin:round;
 }
@@ -10377,7 +10386,11 @@ span:last-child{
 
   color:#175cd3;
 
-  font-weight:850;
+  font-weight:800;
+
+  box-shadow:
+    0 1px 2px
+    rgba(21,112,239,.06);
 }
 
 
@@ -10393,8 +10406,10 @@ span:last-child{
 
 #section-career
 .employer-career-refresh-btn{
-  width:32px;
-  height:32px;
+  width:36px;
+  height:36px;
+
+  flex:0 0 36px;
 
   flex:0 0 32px;
 
@@ -10418,8 +10433,8 @@ span:last-child{
 
 #section-career
 .employer-career-refresh-btn svg{
-  width:12px;
-  height:12px;
+  width:14px;
+  height:14px;
 
   fill:none;
 
@@ -10433,20 +10448,20 @@ span:last-child{
 
 #section-career
 .employer-career-nav-create{
-  height:32px;
+  height:36px;
 
   display:inline-flex;
   align-items:center;
   justify-content:center;
 
-  gap:5px;
+  gap:6px;
 
   padding:
-    0 11px;
+    0 14px;
 
   border:1px solid #1570ef;
 
-  border-radius:7px;
+  border-radius:8px;
 
   background:#1570ef;
 
@@ -10454,18 +10469,28 @@ span:last-child{
 
   font-family:inherit;
 
-  font-size:7px;
+  font-size:9px;
+  line-height:1;
 
-  font-weight:850;
+  font-weight:800;
 
   cursor:pointer;
+
+  box-shadow:
+    0 3px 8px
+    rgba(21,112,239,.14);
+
+  transition:
+    background .15s ease,
+    border-color .15s ease,
+    transform .15s ease;
 }
 
 
 #section-career
 .employer-career-nav-create svg{
-  width:11px;
-  height:11px;
+width:13px;
+height:13px;
 
   fill:none;
 
@@ -40704,8 +40729,15 @@ function renderEmployerCareerHubView(
 
 function getEmployerCareerMetrics(){
 
-  const hub = state.careerHub;
+  const hub =
+    state.careerHub || {};
 
+
+  /* =====================================================
+     SCHOOL PARTNERS
+
+     Count active / usable partnerships only.
+  ===================================================== */
 
   const activePartners =
     careerArray(
@@ -40726,30 +40758,90 @@ function getEmployerCareerMetrics(){
     });
 
 
+  /* =====================================================
+     PROGRAMS
+  ===================================================== */
+
+  const programs =
+    careerArray(
+      hub.programs
+    );
+
+
+  /* =====================================================
+     TALENT
+
+     Career Hub talent is synchronized from the real
+     Employer Job Seeker directory.
+
+     This is the correct value for the visible
+     "Candidates" / talent-pool counter.
+
+     Career applications are a different metric.
+  ===================================================== */
+
+  const talent =
+    careerArray(
+      hub.talent
+    );
+
+
+  /* =====================================================
+     APPLICATIONS
+  ===================================================== */
+
+  const applications =
+    careerArray(
+      hub.careerApplications
+    );
+
+
+  /* =====================================================
+     EVENTS
+  ===================================================== */
+
+  const events =
+    careerArray(
+      hub.events
+    );
+
+
+  /* =====================================================
+     VENTURES
+  ===================================================== */
+
+  const ventures =
+    careerArray(
+      hub.ventures
+    );
+
+
   return {
 
     schools:
       activePartners.length,
 
     programs:
-      careerArray(
-        hub.programs
-      ).length,
+      programs.length,
 
+    /*
+      Candidate pool available to the employer.
+    */
     candidates:
-      careerArray(
-        hub.careerApplications
-      ).length,
+      talent.length,
+
+    /*
+      Keep this available for Overview and future
+      Application-specific statistics.
+    */
+    applications:
+      applications.length,
 
     events:
-      careerArray(
-        hub.events
-      ).length,
+      events.length,
 
     ventures:
-      careerArray(
-        hub.ventures
-      ).length
+      ventures.length
 
   };
 
