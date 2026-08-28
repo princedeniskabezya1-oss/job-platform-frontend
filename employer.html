@@ -31776,9 +31776,12 @@ input:focus{
   invites:[],
   jobSeekers:[],
       jobSeekersVisibleCount: 9,
-  employerStats:null,
-  postAnalytics:null,
-  agentLogs:[],
+employerStats:null,
+postAnalytics:null,
+
+employerPrivacy:null,
+
+agentLogs:[],
   activeTab:"overview",
   searchTerm:"",
   lastScrollY:window.scrollY,
@@ -42106,6 +42109,552 @@ function setEmployerStudioTheme(
 
 }
 
+/* =========================================================
+   EMPLOYER PRIVACY
+   PRODUCTION API CONTROLLER
+========================================================= */
+
+const EMPLOYER_PRIVACY_ENDPOINT =
+  `${API}/api/users/employer/settings/privacy`;
+
+
+/* =========================================================
+   DEFAULTS
+========================================================= */
+
+function getEmployerPrivacyDefaults(){
+
+  return {
+
+    isPublic:true,
+
+    allowProfileIndexing:true,
+
+    showLocationPublicly:true,
+
+    showWebsitePublicly:true,
+
+    showCompanyStatistics:false,
+
+    showActiveJobs:true,
+
+    candidateAnalyticsVisibility:true,
+
+    teamActivityVisibility:true
+
+  };
+
+}
+
+
+/* =========================================================
+   NORMALIZE API RESPONSE
+========================================================= */
+
+function normalizeEmployerPrivacy(
+  value
+){
+
+  const defaults =
+    getEmployerPrivacyDefaults();
+
+
+  const source =
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+      ? value
+      : {};
+
+
+  return {
+
+    isPublic:
+      typeof source.isPublic === "boolean"
+        ? source.isPublic
+        : defaults.isPublic,
+
+    allowProfileIndexing:
+      typeof source.allowProfileIndexing === "boolean"
+        ? source.allowProfileIndexing
+        : defaults.allowProfileIndexing,
+
+    showLocationPublicly:
+      typeof source.showLocationPublicly === "boolean"
+        ? source.showLocationPublicly
+        : defaults.showLocationPublicly,
+
+    showWebsitePublicly:
+      typeof source.showWebsitePublicly === "boolean"
+        ? source.showWebsitePublicly
+        : defaults.showWebsitePublicly,
+
+    showCompanyStatistics:
+      typeof source.showCompanyStatistics === "boolean"
+        ? source.showCompanyStatistics
+        : defaults.showCompanyStatistics,
+
+    showActiveJobs:
+      typeof source.showActiveJobs === "boolean"
+        ? source.showActiveJobs
+        : defaults.showActiveJobs,
+
+    candidateAnalyticsVisibility:
+      typeof source.candidateAnalyticsVisibility === "boolean"
+        ? source.candidateAnalyticsVisibility
+        : defaults.candidateAnalyticsVisibility,
+
+    teamActivityVisibility:
+      typeof source.teamActivityVisibility === "boolean"
+        ? source.teamActivityVisibility
+        : defaults.teamActivityVisibility
+
+  };
+
+}
+
+
+/* =========================================================
+   APPLY PRIVACY TO SETTINGS UI
+========================================================= */
+
+function applyEmployerPrivacySettings(
+  privacyValue = state.employerPrivacy
+){
+
+  const privacy =
+    normalizeEmployerPrivacy(
+      privacyValue
+    );
+
+
+  const controls = {
+
+    settingPublicEmployerProfile:
+      privacy.isPublic,
+
+    settingDiscoverableInSearch:
+      privacy.allowProfileIndexing,
+
+    settingShowLocationPublicly:
+      privacy.showLocationPublicly,
+
+    settingShowWebsitePublicly:
+      privacy.showWebsitePublicly,
+
+    settingShowCompanyStatistics:
+      privacy.showCompanyStatistics,
+
+    settingShowActiveJobs:
+      privacy.showActiveJobs,
+
+    settingCandidateAnalyticsVisibility:
+      privacy.candidateAnalyticsVisibility,
+
+    settingTeamActivityVisibility:
+      privacy.teamActivityVisibility
+
+  };
+
+
+  Object.entries(
+    controls
+  ).forEach(
+    ([id,value]) => {
+
+      const input =
+        document.getElementById(id);
+
+
+      if(input){
+
+        input.checked =
+          Boolean(value);
+
+      }
+
+    }
+  );
+
+
+  return privacy;
+
+}
+
+
+/* =========================================================
+   LOAD PRIVACY FROM MONGODB
+========================================================= */
+
+async function loadEmployerPrivacySettings(){
+
+  try{
+
+    const response =
+      await fetchJSON(
+        EMPLOYER_PRIVACY_ENDPOINT,
+        {
+          headers:
+            authHeaders()
+        }
+      );
+
+
+    state.employerPrivacy =
+      normalizeEmployerPrivacy(
+        response?.privacy
+      );
+
+
+    applyEmployerPrivacySettings(
+      state.employerPrivacy
+    );
+
+
+    return state.employerPrivacy;
+
+  }catch(error){
+
+    console.error(
+      "LOAD EMPLOYER PRIVACY ERROR:",
+      error
+    );
+
+
+    /*
+      Do not overwrite MongoDB settings with defaults if
+      loading fails.
+
+      We only use defaults to keep the UI safe during
+      the current session.
+    */
+
+    if(
+      !state.employerPrivacy
+    ){
+
+      state.employerPrivacy =
+        getEmployerPrivacyDefaults();
+
+    }
+
+
+    applyEmployerPrivacySettings(
+      state.employerPrivacy
+    );
+
+
+    throw error;
+
+  }
+
+}
+
+
+/* =========================================================
+   READ PRIVACY CONTROLS
+========================================================= */
+
+function collectEmployerPrivacySettings(){
+
+  const current =
+    normalizeEmployerPrivacy(
+      state.employerPrivacy
+    );
+
+
+  function readBoolean(
+    id,
+    fallback
+  ){
+
+    const element =
+      document.getElementById(id);
+
+
+    return element
+      ? Boolean(element.checked)
+      : Boolean(fallback);
+
+  }
+
+
+  return {
+
+    isPublic:
+      readBoolean(
+        "settingPublicEmployerProfile",
+        current.isPublic
+      ),
+
+    allowProfileIndexing:
+      readBoolean(
+        "settingDiscoverableInSearch",
+        current.allowProfileIndexing
+      ),
+
+    showLocationPublicly:
+      readBoolean(
+        "settingShowLocationPublicly",
+        current.showLocationPublicly
+      ),
+
+    showWebsitePublicly:
+      readBoolean(
+        "settingShowWebsitePublicly",
+        current.showWebsitePublicly
+      ),
+
+    showCompanyStatistics:
+      readBoolean(
+        "settingShowCompanyStatistics",
+        current.showCompanyStatistics
+      ),
+
+    showActiveJobs:
+      readBoolean(
+        "settingShowActiveJobs",
+        current.showActiveJobs
+      ),
+
+    candidateAnalyticsVisibility:
+      readBoolean(
+        "settingCandidateAnalyticsVisibility",
+        current.candidateAnalyticsVisibility
+      ),
+
+    teamActivityVisibility:
+      readBoolean(
+        "settingTeamActivityVisibility",
+        current.teamActivityVisibility
+      )
+
+  };
+
+}
+
+
+/* =========================================================
+   DISABLE / ENABLE PRIVACY CONTROLS
+========================================================= */
+
+function setEmployerPrivacyControlsBusy(
+  busy
+){
+
+  const ids = [
+
+    "settingPublicEmployerProfile",
+
+    "settingDiscoverableInSearch",
+
+    "settingShowLocationPublicly",
+
+    "settingShowWebsitePublicly",
+
+    "settingShowCompanyStatistics",
+
+    "settingShowActiveJobs",
+
+    "settingCandidateAnalyticsVisibility",
+
+    "settingTeamActivityVisibility"
+
+  ];
+
+
+  ids.forEach(id => {
+
+    const input =
+      document.getElementById(id);
+
+
+    if(input){
+
+      input.disabled =
+        Boolean(busy);
+
+    }
+
+  });
+
+}
+
+
+/* =========================================================
+   SAVE PRIVACY TO MONGODB
+========================================================= */
+
+let employerPrivacySaving =
+  false;
+
+
+async function saveEmployerPrivacySettings(){
+
+  if(
+    employerPrivacySaving
+  ){
+
+    return;
+
+  }
+
+
+  const previous =
+    normalizeEmployerPrivacy(
+      state.employerPrivacy
+    );
+
+
+  const payload =
+    collectEmployerPrivacySettings();
+
+
+  employerPrivacySaving =
+    true;
+
+
+  setEmployerPrivacyControlsBusy(
+    true
+  );
+
+
+  try{
+
+    const response =
+      await fetchJSON(
+        EMPLOYER_PRIVACY_ENDPOINT,
+        {
+          method:
+            "PATCH",
+
+          headers:
+            authHeaders({
+              "Content-Type":
+                "application/json"
+            }),
+
+          body:
+            JSON.stringify(
+              payload
+            )
+        }
+      );
+
+
+    state.employerPrivacy =
+      normalizeEmployerPrivacy(
+        response?.privacy ||
+        payload
+      );
+
+
+    applyEmployerPrivacySettings(
+      state.employerPrivacy
+    );
+
+
+    /*
+      Keep state.me synchronized because two of these
+      preferences are existing User fields.
+    */
+
+    if(
+      state.me &&
+      typeof state.me === "object"
+    ){
+
+      state.me.isPublic =
+        state.employerPrivacy
+          .isPublic;
+
+      state.me.allowProfileIndexing =
+        state.employerPrivacy
+          .allowProfileIndexing;
+
+      state.me.employerPrivacySettings = {
+
+        ...(state.me
+          .employerPrivacySettings ||
+          {}),
+
+        showLocationPublicly:
+          state.employerPrivacy
+            .showLocationPublicly,
+
+        showWebsitePublicly:
+          state.employerPrivacy
+            .showWebsitePublicly,
+
+        showCompanyStatistics:
+          state.employerPrivacy
+            .showCompanyStatistics,
+
+        showActiveJobs:
+          state.employerPrivacy
+            .showActiveJobs,
+
+        candidateAnalyticsVisibility:
+          state.employerPrivacy
+            .candidateAnalyticsVisibility,
+
+        teamActivityVisibility:
+          state.employerPrivacy
+            .teamActivityVisibility
+
+      };
+
+    }
+
+
+    showToast(
+      "Privacy updated",
+      "Your employer privacy preferences were saved.",
+      "success"
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "SAVE EMPLOYER PRIVACY ERROR:",
+      error
+    );
+
+
+    /*
+      Restore the last confirmed server state.
+    */
+
+    state.employerPrivacy =
+      previous;
+
+
+    applyEmployerPrivacySettings(
+      previous
+    );
+
+
+    showToast(
+      "Privacy update failed",
+      error?.message ||
+        "Your privacy preference could not be saved.",
+      "error"
+    );
+
+  }finally{
+
+    employerPrivacySaving =
+      false;
+
+
+    setEmployerPrivacyControlsBusy(
+      false
+    );
+
+  }
+
+}
     
 
 function buildEmployerSettings(){
@@ -55355,6 +55904,7 @@ async function init(){
     const results =
       await Promise.allSettled([
         loadProfile(),
+        loadEmployerPrivacySettings(),
         loadJobs(),
         loadApplications(),
         loadPeople(),
