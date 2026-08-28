@@ -46153,24 +46153,109 @@ function openEmployerDeactivateAccountModal(){
     String(
       state.me?.companyName ||
       state.me?.name ||
-      "this employer account"
-    )
-      .trim();
+      "Employer account"
+    ).trim();
 
 
-  const confirmed =
-    window.confirm(
-      `Deactivate ${companyName}?\n\n` +
-      "You will be signed out and access to this Employer account will be disabled."
-    );
+  openEmployerConfirm({
+
+    type:
+      "warning",
+
+    title:
+      "Deactivate Employer account?",
+
+    message:
+      `${companyName} will no longer be accessible after deactivation.`,
+
+    warning:
+      "Your account data will remain stored, but all active sessions will be signed out immediately.",
+
+    confirmText:
+      "Deactivate account",
+
+    cancelText:
+      "Keep account",
+
+    requirePassword:
+      true,
+
+    onConfirm:
+      async ({
+        password
+      }) => {
+
+        const response =
+          await fetchJSON(
+            EMPLOYER_ACCOUNT_ENDPOINTS
+              .deactivate,
+            {
+
+              method:
+                "POST",
+
+              headers:
+                authHeaders({
+                  "Content-Type":
+                    "application/json"
+                }),
+
+              body:
+                JSON.stringify({
+
+                  password,
+
+                  reason:
+                    "Employer account deactivated from Employer Workspace settings."
+
+                })
+
+            }
+          );
 
 
-  if(!confirmed){
-    return;
-  }
+        showToast(
+          "Account deactivated",
+          response?.message ||
+            "Your Employer account has been deactivated.",
+          "success"
+        );
 
 
-  deactivateEmployerAccount();
+        window.setTimeout(
+          () => {
+
+            localStorage.removeItem(
+              "employerToken"
+            );
+
+            localStorage.removeItem(
+              "token"
+            );
+
+            localStorage.removeItem(
+              "authToken"
+            );
+
+            localStorage.removeItem(
+              "aiftToken"
+            );
+
+            localStorage.removeItem(
+              "role"
+            );
+
+
+            window.location.href =
+              "login.html";
+
+          },
+          700
+        );
+
+      }
+
+  });
 
 }
 
@@ -46331,7 +46416,7 @@ async function deactivateEmployerAccount(){
 
 function openEmployerDeleteAccountModal(){
 
-  const companyName =
+  const confirmationName =
     String(
       state.me?.companyName ||
       state.me?.name ||
@@ -46340,36 +46425,11 @@ function openEmployerDeleteAccountModal(){
       .trim();
 
 
-  const confirmationLabel =
-    companyName ||
-    "DELETE";
-
-
-  const confirmation =
-    window.prompt(
-      "This will request permanent deletion of your Employer account.\n\n" +
-      `To continue, type exactly:\n${confirmationLabel}`
-    );
-
-
-  if(
-    confirmation ===
-    null
-  ){
-    return;
-  }
-
-
-  if(
-    String(
-      confirmation
-    ).trim() !==
-    confirmationLabel
-  ){
+  if(!confirmationName){
 
     showToast(
-      "Confirmation did not match",
-      "The Employer account was not scheduled for deletion.",
+      "Account name unavailable",
+      "We could not determine the Employer account name required for deletion confirmation.",
       "error"
     );
 
@@ -46378,9 +46438,108 @@ function openEmployerDeleteAccountModal(){
   }
 
 
-  requestEmployerAccountDeletion(
-    confirmationLabel
-  );
+  openEmployerConfirm({
+
+    type:
+      "danger",
+
+    title:
+      "Delete Employer account?",
+
+    message:
+      "This starts the permanent deletion process for your Employer account.",
+
+    warning:
+      "Your Employer Workspace will be disabled immediately. Permanent deletion is scheduled after the controlled deletion period.",
+
+    confirmText:
+      "Delete account",
+
+    cancelText:
+      "Keep account",
+
+    requirePassword:
+      true,
+
+    requireText:
+      confirmationName,
+
+    onConfirm:
+      async ({
+        password,
+        confirmation
+      }) => {
+
+        const response =
+          await fetchJSON(
+            EMPLOYER_ACCOUNT_ENDPOINTS
+              .deleteAccount,
+            {
+
+              method:
+                "POST",
+
+              headers:
+                authHeaders({
+                  "Content-Type":
+                    "application/json"
+                }),
+
+              body:
+                JSON.stringify({
+
+                  password,
+
+                  confirmation
+
+                })
+
+            }
+          );
+
+
+        showToast(
+          "Deletion requested",
+          response?.message ||
+            "Your Employer account deletion request was accepted.",
+          "success"
+        );
+
+
+        window.setTimeout(
+          () => {
+
+            localStorage.removeItem(
+              "employerToken"
+            );
+
+            localStorage.removeItem(
+              "token"
+            );
+
+            localStorage.removeItem(
+              "authToken"
+            );
+
+            localStorage.removeItem(
+              "aiftToken"
+            );
+
+            localStorage.removeItem(
+              "role"
+            );
+
+
+            window.location.href =
+              "login.html";
+
+          },
+          800
+        );
+
+      }
+
+  });
 
 }
 
@@ -46546,6 +46705,708 @@ async function requestEmployerAccountDeletion(
    BUILD EMPLOYER SETTINGS
 ========================================================= */
 
+/* =========================================================
+   AIFT EMPLOYER CONFIRMATION MODAL
+   Reusable confirmation system
+========================================================= */
+
+
+let employerConfirmState = {
+
+  type:
+    "danger",
+
+  title:
+    "Confirm action",
+
+  message:
+    "",
+
+  warning:
+    "",
+
+  confirmText:
+    "Confirm",
+
+  cancelText:
+    "Cancel",
+
+  requireText:
+    "",
+
+  requirePassword:
+    false,
+
+  onConfirm:
+    null,
+
+  busy:
+    false
+
+};
+
+
+/* =========================================================
+   OPEN CONFIRMATION MODAL
+========================================================= */
+
+function openEmployerConfirm(
+  options = {}
+){
+
+  const modal =
+    document.getElementById(
+      "employerConfirmModal"
+    );
+
+
+  if(!modal){
+    return;
+  }
+
+
+  const type =
+    [
+      "danger",
+      "warning",
+      "info"
+    ].includes(
+      String(
+        options.type ||
+        ""
+      ).toLowerCase()
+    )
+      ? String(
+          options.type
+        ).toLowerCase()
+      : "danger";
+
+
+  employerConfirmState = {
+
+    type,
+
+    title:
+      String(
+        options.title ||
+        "Confirm action"
+      ),
+
+    message:
+      String(
+        options.message ||
+        "Please confirm that you want to continue."
+      ),
+
+    warning:
+      String(
+        options.warning ||
+        ""
+      ),
+
+    confirmText:
+      String(
+        options.confirmText ||
+        "Confirm"
+      ),
+
+    cancelText:
+      String(
+        options.cancelText ||
+        "Cancel"
+      ),
+
+    requireText:
+      String(
+        options.requireText ||
+        ""
+      ).trim(),
+
+    requirePassword:
+      Boolean(
+        options.requirePassword
+      ),
+
+    onConfirm:
+      typeof options.onConfirm ===
+      "function"
+        ? options.onConfirm
+        : null,
+
+    busy:
+      false
+
+  };
+
+
+  const title =
+    document.getElementById(
+      "employerConfirmTitle"
+    );
+
+  const message =
+    document.getElementById(
+      "employerConfirmMessage"
+    );
+
+  const warning =
+    document.getElementById(
+      "employerConfirmWarning"
+    );
+
+  const icon =
+    document.getElementById(
+      "employerConfirmIcon"
+    );
+
+  const passwordWrap =
+    document.getElementById(
+      "employerConfirmPasswordWrap"
+    );
+
+  const passwordInput =
+    document.getElementById(
+      "employerConfirmPasswordInput"
+    );
+
+  const textWrap =
+    document.getElementById(
+      "employerConfirmTextWrap"
+    );
+
+  const textInput =
+    document.getElementById(
+      "employerConfirmTextInput"
+    );
+
+  const textHelp =
+    document.getElementById(
+      "employerConfirmTextHelp"
+    );
+
+  const cancelButton =
+    document.getElementById(
+      "employerConfirmCancelButton"
+    );
+
+  const actionButton =
+    document.getElementById(
+      "employerConfirmActionButton"
+    );
+
+  const inlineMessage =
+    document.getElementById(
+      "employerConfirmInlineMessage"
+    );
+
+
+  if(title){
+    title.textContent =
+      employerConfirmState.title;
+  }
+
+
+  if(message){
+    message.textContent =
+      employerConfirmState.message;
+  }
+
+
+  if(icon){
+    icon.className =
+      `employer-confirm-icon ${type}`;
+  }
+
+
+  if(warning){
+
+    warning.hidden =
+      !employerConfirmState.warning;
+
+    warning.textContent =
+      employerConfirmState.warning;
+
+  }
+
+
+  if(passwordWrap){
+
+    passwordWrap.hidden =
+      !employerConfirmState
+        .requirePassword;
+
+  }
+
+
+  if(passwordInput){
+
+    passwordInput.value =
+      "";
+
+    passwordInput.disabled =
+      false;
+
+  }
+
+
+  if(textWrap){
+
+    textWrap.hidden =
+      !employerConfirmState
+        .requireText;
+
+  }
+
+
+  if(textInput){
+
+    textInput.value =
+      "";
+
+    textInput.disabled =
+      false;
+
+  }
+
+
+  if(textHelp){
+
+    textHelp.textContent =
+      employerConfirmState
+        .requireText
+        ? `Type "${employerConfirmState.requireText}" to continue.`
+        : "";
+
+  }
+
+
+  if(cancelButton){
+
+    cancelButton.textContent =
+      employerConfirmState
+        .cancelText;
+
+    cancelButton.disabled =
+      false;
+
+  }
+
+
+  if(actionButton){
+
+    actionButton.textContent =
+      employerConfirmState
+        .confirmText;
+
+    actionButton.className =
+      `employer-confirm-action ${type}`;
+
+  }
+
+
+  if(inlineMessage){
+
+    inlineMessage.hidden =
+      true;
+
+    inlineMessage.textContent =
+      "";
+
+    inlineMessage.removeAttribute(
+      "data-type"
+    );
+
+  }
+
+
+  modal.hidden =
+    false;
+
+
+  document.body.classList.add(
+    "employer-security-modal-open"
+  );
+
+
+  syncEmployerConfirmButtonState();
+
+
+  window.setTimeout(
+    () => {
+
+      if(
+        employerConfirmState
+          .requirePassword
+      ){
+
+        passwordInput?.focus();
+
+      }else if(
+        employerConfirmState
+          .requireText
+      ){
+
+        textInput?.focus();
+
+      }else{
+
+        actionButton?.focus();
+
+      }
+
+    },
+    30
+  );
+
+}
+
+
+/* =========================================================
+   CLOSE CONFIRMATION MODAL
+========================================================= */
+
+function closeEmployerConfirmModal(){
+
+  if(
+    employerConfirmState
+      .busy
+  ){
+    return;
+  }
+
+
+  const modal =
+    document.getElementById(
+      "employerConfirmModal"
+    );
+
+
+  if(modal){
+    modal.hidden =
+      true;
+  }
+
+
+  document.body.classList.remove(
+    "employer-security-modal-open"
+  );
+
+
+  employerConfirmState = {
+
+    type:
+      "danger",
+
+    title:
+      "Confirm action",
+
+    message:
+      "",
+
+    warning:
+      "",
+
+    confirmText:
+      "Confirm",
+
+    cancelText:
+      "Cancel",
+
+    requireText:
+      "",
+
+    requirePassword:
+      false,
+
+    onConfirm:
+      null,
+
+    busy:
+      false
+
+  };
+
+}
+
+
+/* =========================================================
+   ENABLE / DISABLE CONFIRM BUTTON
+========================================================= */
+
+function syncEmployerConfirmButtonState(){
+
+  const button =
+    document.getElementById(
+      "employerConfirmActionButton"
+    );
+
+  const passwordInput =
+    document.getElementById(
+      "employerConfirmPasswordInput"
+    );
+
+  const textInput =
+    document.getElementById(
+      "employerConfirmTextInput"
+    );
+
+
+  if(!button){
+    return;
+  }
+
+
+  if(
+    employerConfirmState
+      .busy
+  ){
+
+    button.disabled =
+      true;
+
+    return;
+
+  }
+
+
+  const passwordOkay =
+    !employerConfirmState
+      .requirePassword ||
+    Boolean(
+      String(
+        passwordInput?.value ||
+        ""
+      ).trim()
+    );
+
+
+  const textOkay =
+    !employerConfirmState
+      .requireText ||
+    String(
+      textInput?.value ||
+      ""
+    ).trim() ===
+    employerConfirmState
+      .requireText;
+
+
+  button.disabled =
+    !passwordOkay ||
+    !textOkay;
+
+}
+
+
+/* =========================================================
+   SUBMIT CONFIRMATION
+========================================================= */
+
+async function submitEmployerConfirmation(){
+
+  if(
+    employerConfirmState
+      .busy
+  ){
+    return;
+  }
+
+
+  const action =
+    employerConfirmState
+      .onConfirm;
+
+
+  if(
+    typeof action !==
+    "function"
+  ){
+
+    closeEmployerConfirmModal();
+
+    return;
+
+  }
+
+
+  const actionButton =
+    document.getElementById(
+      "employerConfirmActionButton"
+    );
+
+  const cancelButton =
+    document.getElementById(
+      "employerConfirmCancelButton"
+    );
+
+  const passwordInput =
+    document.getElementById(
+      "employerConfirmPasswordInput"
+    );
+
+  const textInput =
+    document.getElementById(
+      "employerConfirmTextInput"
+    );
+
+  const message =
+    document.getElementById(
+      "employerConfirmInlineMessage"
+    );
+
+
+  const values = {
+
+    password:
+      String(
+        passwordInput?.value ||
+        ""
+      ),
+
+    confirmation:
+      String(
+        textInput?.value ||
+        ""
+      ).trim()
+
+  };
+
+
+  employerConfirmState.busy =
+    true;
+
+
+  if(actionButton){
+
+    actionButton.disabled =
+      true;
+
+    actionButton.textContent =
+      "Please wait…";
+
+  }
+
+
+  if(cancelButton){
+    cancelButton.disabled =
+      true;
+  }
+
+
+  if(passwordInput){
+    passwordInput.disabled =
+      true;
+  }
+
+
+  if(textInput){
+    textInput.disabled =
+      true;
+  }
+
+
+  if(message){
+
+    message.hidden =
+      true;
+
+    message.textContent =
+      "";
+
+    message.removeAttribute(
+      "data-type"
+    );
+
+  }
+
+
+  try{
+
+    await action(
+      values
+    );
+
+
+    const modal =
+      document.getElementById(
+        "employerConfirmModal"
+      );
+
+
+    if(modal){
+      modal.hidden =
+        true;
+    }
+
+
+    document.body.classList.remove(
+      "employer-security-modal-open"
+    );
+
+
+    employerConfirmState.busy =
+      false;
+
+
+  }catch(error){
+
+    console.error(
+      "EMPLOYER CONFIRM ACTION ERROR:",
+      error
+    );
+
+
+    employerConfirmState.busy =
+      false;
+
+
+    if(message){
+
+      message.hidden =
+        false;
+
+      message.dataset.type =
+        "error";
+
+      message.textContent =
+        error?.message ||
+        "The action could not be completed.";
+
+    }
+
+
+    if(actionButton){
+
+      actionButton.textContent =
+        employerConfirmState
+          .confirmText;
+
+    }
+
+
+    if(cancelButton){
+      cancelButton.disabled =
+        false;
+    }
+
+
+    if(passwordInput){
+      passwordInput.disabled =
+        false;
+    }
+
+
+    if(textInput){
+      textInput.disabled =
+        false;
+    }
+
+
+    syncEmployerConfirmButtonState();
+
+  }
+
+}
 function buildEmployerSettings(){
   const me =
     state.me || {};
@@ -60142,6 +61003,210 @@ init();
   </div>
 
 </div>
-  
+
+
+<!-- =========================================================
+     AIFT EMPLOYER CONFIRMATION MODAL
+     Reusable for destructive / sensitive actions
+========================================================= -->
+
+<div
+  class="employer-security-modal"
+  id="employerConfirmModal"
+  hidden
+>
+
+  <div
+    class="employer-security-modal-backdrop"
+    onclick="closeEmployerConfirmModal()"
+  ></div>
+
+
+  <div
+    class="employer-security-modal-dialog employer-confirm-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="employerConfirmTitle"
+    aria-describedby="employerConfirmMessage"
+  >
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <div class="employer-security-modal-head">
+
+      <div>
+
+        <div
+          id="employerConfirmIcon"
+          class="employer-confirm-icon danger"
+          aria-hidden="true"
+        >
+
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M12 8v4"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+
+            <path
+              d="M12 16h.01"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+            />
+
+            <path
+              d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+
+        </div>
+
+
+        <h2 id="employerConfirmTitle">
+          Confirm action
+        </h2>
+
+        <p id="employerConfirmMessage">
+          Please confirm that you want to continue.
+        </p>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="employer-security-modal-close"
+        onclick="closeEmployerConfirmModal()"
+        aria-label="Close"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <!-- =====================================================
+         BODY
+    ====================================================== -->
+
+    <div class="employer-confirm-body">
+
+      <!-- OPTIONAL WARNING -->
+
+      <div
+        id="employerConfirmWarning"
+        class="employer-confirm-warning"
+        hidden
+      ></div>
+
+
+      <!-- OPTIONAL PASSWORD CONFIRMATION -->
+
+      <label
+        id="employerConfirmPasswordWrap"
+        class="employer-security-field employer-confirm-password-wrap"
+        hidden
+      >
+
+        <span>
+          Current password
+        </span>
+
+        <input
+          id="employerConfirmPasswordInput"
+          type="password"
+          autocomplete="current-password"
+          oninput="syncEmployerConfirmButtonState()"
+        >
+
+        <small>
+          Enter your current password to confirm this action.
+        </small>
+
+      </label>
+
+
+      <!-- OPTIONAL TYPED CONFIRMATION -->
+
+      <label
+        id="employerConfirmTextWrap"
+        class="employer-security-field employer-confirm-text-wrap"
+        hidden
+      >
+
+        <span id="employerConfirmTextLabel">
+          Type the confirmation text
+        </span>
+
+        <input
+          id="employerConfirmTextInput"
+          type="text"
+          autocomplete="off"
+          spellcheck="false"
+          oninput="syncEmployerConfirmButtonState()"
+        >
+
+        <small id="employerConfirmTextHelp"></small>
+
+      </label>
+
+
+      <!-- INLINE MESSAGE -->
+
+      <div
+        id="employerConfirmInlineMessage"
+        class="employer-settings-inline-message"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></div>
+
+
+      <!-- ===================================================
+           ACTIONS
+      ==================================================== -->
+
+      <div class="employer-security-modal-actions">
+
+        <button
+          id="employerConfirmCancelButton"
+          type="button"
+          onclick="closeEmployerConfirmModal()"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          id="employerConfirmActionButton"
+          type="button"
+          class="employer-confirm-action danger"
+          onclick="submitEmployerConfirmation()"
+        >
+          Confirm
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
 </body>
 </html>
