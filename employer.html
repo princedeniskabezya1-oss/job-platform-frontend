@@ -47304,88 +47304,114 @@ async function logoutOtherEmployerSessions(){
     );
 
 
-  const confirmed =
-    window.confirm(
-      "Sign out every other device currently using this employer account?"
-    );
+  openEmployerConfirm({
+
+    type:
+      "warning",
+
+    title:
+      "Sign out other devices?",
+
+    message:
+      "This will sign out every other device currently using your AIFT Employer account.",
+
+    warning:
+      "Your current device will remain signed in. Any other active browser, computer, or mobile session will need to log in again.",
+
+    confirmText:
+      "Sign out others",
+
+    cancelText:
+      "Keep devices signed in",
 
 
-  if(!confirmed){
-    return;
-  }
+    onConfirm:
+      async () => {
 
+        if(button){
 
-  if(button){
+          button.disabled =
+            true;
 
-    button.disabled =
-      true;
-
-    button.textContent =
-      "Signing out…";
-
-  }
-
-
-  try{
-
-    const response =
-      await fetchJSON(
-        EMPLOYER_SECURITY_ENDPOINTS
-          .logoutOthers,
-        {
-
-          method:
-            "POST",
-
-          headers:
-            authHeaders()
+          button.textContent =
+            "Signing out…";
 
         }
-      );
 
 
-    showToast(
-      "Other devices signed out",
-      response?.message ||
-        "Other active sessions were removed.",
-      "success"
-    );
+        try{
+
+          const response =
+            await fetchJSON(
+              EMPLOYER_SECURITY_ENDPOINTS
+                .logoutOthers,
+              {
+
+                method:
+                  "POST",
+
+                headers:
+                  authHeaders()
+
+              }
+            );
 
 
-    await loadEmployerSecuritySessions(
-      false
-    );
+          showToast(
+            "Other devices signed out",
+            response?.message ||
+              "All other active sessions were signed out.",
+            "success"
+          );
 
 
-  }catch(error){
-
-    console.error(
-      "LOGOUT OTHER EMPLOYER SESSIONS ERROR:",
-      error
-    );
+          await loadEmployerSecuritySessions(
+            false
+          );
 
 
-    showToast(
-      "Sign out failed",
-      error?.message ||
-        "Other devices could not be signed out.",
-      "error"
-    );
+          renderEmployerSecuritySessions();
 
 
-  }finally{
+        }catch(error){
 
-    if(button){
-
-      button.textContent =
-        "Sign out others";
-
-    }
+          console.error(
+            "LOGOUT OTHER EMPLOYER SESSIONS ERROR:",
+            error
+          );
 
 
-    renderEmployerSecuritySessions();
+          /*
+            Throw the error again.
 
-  }
+            openEmployerConfirm() already has its own
+            production error handling and will show the
+            message directly inside the AIFT modal.
+          */
+
+          throw new Error(
+            error?.message ||
+            "Other devices could not be signed out."
+          );
+
+
+        }finally{
+
+          if(button){
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              "Sign out others";
+
+          }
+
+        }
+
+      }
+
+  });
 
 }
 
