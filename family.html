@@ -18489,6 +18489,215 @@
         Array.from(root.querySelectorAll(selector));
 
 
+
+            /* =======================================================
+         FAMILY PROFILE
+      ======================================================== */
+
+      function updateFamilyAccountHeader(){
+
+        const profile =
+          familyState.profile;
+
+
+        if(!profile){
+          return;
+        }
+
+
+        const user =
+          profile.user || {};
+
+
+        const familyProfile =
+          profile.familyProfile || {};
+
+
+        const nameNode =
+          $("#familyAccountName");
+
+        const roleNode =
+          $("#familyAccountRole");
+
+        const avatarNode =
+          $("#familyAccountAvatar");
+
+
+        const accountName =
+          user.name ||
+          "Family Account";
+
+
+        if(nameNode){
+
+          nameNode.textContent =
+            accountName;
+
+        }
+
+
+        if(roleNode){
+
+          roleNode.textContent =
+            familyProfile
+              .investorEnabled
+              ? "Family & Investor"
+              : "Family";
+
+        }
+
+
+        if(avatarNode){
+
+          const profileImage =
+            user.profileImage || "";
+
+
+          if(profileImage){
+
+            avatarNode.src =
+              profileImage;
+
+          }else{
+
+            avatarNode.src =
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                accountName
+              )}&background=e8eef8&color=183153`;
+
+          }
+
+
+          avatarNode.alt =
+            accountName;
+
+        }
+
+      }
+
+
+      function updateInvestorModeAvailability(){
+
+        const investorButton =
+          $("#investorModeButton");
+
+
+        if(!investorButton){
+          return;
+        }
+
+
+        const enabled =
+          familyState
+            .investorEnabled ===
+          true;
+
+
+        investorButton.dataset
+          .investorEnabled =
+            String(enabled);
+
+
+        investorButton.setAttribute(
+          "aria-disabled",
+          enabled
+            ? "false"
+            : "true"
+        );
+
+
+        investorButton.title =
+          enabled
+            ? "Open Investor Mode"
+            : "Investor Mode is not enabled for this Family account";
+
+      }
+
+
+      async function loadFamilyProfile(){
+
+        if(
+          familyState
+            .loadingProfile
+        ){
+          return familyState.profile;
+        }
+
+
+        familyState.loadingProfile =
+          true;
+
+
+        try{
+
+          const data =
+            await familyApiFetch(
+              "/api/family/profile"
+            );
+
+
+          familyState.profile =
+            data;
+
+
+          familyState.investorEnabled =
+            data
+              ?.familyProfile
+              ?.investorEnabled ===
+            true;
+
+
+          updateFamilyAccountHeader();
+
+          updateInvestorModeAvailability();
+
+
+          return data;
+
+
+        }catch(error){
+
+          console.error(
+            "AIFT Family profile load failed:",
+            error
+          );
+
+
+          familyState.profile =
+            null;
+
+
+          familyState.investorEnabled =
+            false;
+
+
+          updateInvestorModeAvailability();
+
+
+          if(
+            error.status ===
+            401
+          ){
+
+            window.location.href =
+              "login.html";
+
+          }
+
+
+          return null;
+
+
+        }finally{
+
+          familyState.loadingProfile =
+            false;
+
+        }
+
+      }
+
+      
       /* =======================================================
          OPEN PAGE
       ======================================================== */
@@ -18552,30 +18761,89 @@
           mode !== "family" &&
           mode !== "investor"
         ){
+
           return false;
+
         }
 
 
-        familyState.mode = mode;
+        /*
+          Investor Mode is a capability of a Family
+          account, not a separate User role.
 
+          The backend remains the authority for whether
+          Investor Mode is enabled.
+        */
 
-        $$(".family-mode-btn").forEach(button => {
+        if(
+          mode ===
+            "investor" &&
+          familyState
+            .investorEnabled !==
+            true
+        ){
 
-          button.classList.toggle(
-            "active",
-            button.dataset.mode === mode
+          console.warn(
+            "Investor Mode is not enabled for this Family account."
           );
 
-        });
+
+          familyState.mode =
+            "family";
 
 
-        if(mode === "family"){
+          $$(".family-mode-btn")
+            .forEach(button => {
 
-          openFamilyPage("overview");
+              button.classList.toggle(
+                "active",
+                button.dataset.mode ===
+                  "family"
+              );
+
+            });
+
+
+          openFamilyPage(
+            "overview"
+          );
+
+
+          return false;
+
+        }
+
+
+        familyState.mode =
+          mode;
+
+
+        $$(".family-mode-btn")
+          .forEach(button => {
+
+            button.classList.toggle(
+              "active",
+              button.dataset.mode ===
+                mode
+            );
+
+          });
+
+
+        if(
+          mode ===
+          "family"
+        ){
+
+          openFamilyPage(
+            "overview"
+          );
 
         }else{
 
-          openFamilyPage("investor-discover");
+          openFamilyPage(
+            "investor-discover"
+          );
 
         }
 
@@ -24756,7 +25024,7 @@
          INITIALIZE
       ======================================================== */
 
-      function initFamilyApp(){
+      async function initFamilyApp(){
 
         bindFamilyNavigation();
 
@@ -24786,7 +25054,18 @@
 
         bindFamilyNotifications();
 
-        setFamilyMode("family");
+
+        /*
+          Load the authenticated Family account before
+          deciding which capabilities are available.
+        */
+
+        await loadFamilyProfile();
+
+
+        setFamilyMode(
+          "family"
+        );
 
       }
 
