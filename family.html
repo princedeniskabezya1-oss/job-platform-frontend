@@ -18192,16 +18192,290 @@
 
 
       /* =======================================================
-         STATE
+         AIFT API
+      ======================================================== */
+
+      const API =
+        "https://backend-1-9b6f.onrender.com";
+
+
+      /* =======================================================
+         GLOBAL FAMILY STATE
       ======================================================== */
 
       const familyState = {
 
-        mode:"family",
+        mode:
+          "family",
 
-        page:"overview"
+        page:
+          "overview",
+
+        profile:
+          null,
+
+        children:
+          [],
+
+        investorEnabled:
+          false,
+
+        loadingProfile:
+          false
 
       };
+
+
+      /* =======================================================
+         AUTH TOKEN
+      ======================================================== */
+
+      function getFamilyToken(){
+
+        return (
+          localStorage.getItem(
+            "token"
+          ) ||
+          ""
+        );
+
+      }
+
+
+      /* =======================================================
+         AUTH HEADERS
+      ======================================================== */
+
+      function familyAuthHeaders(
+        extra = {}
+      ){
+
+        const token =
+          getFamilyToken();
+
+
+        return {
+
+          ...(
+            token
+              ? {
+                  Authorization:
+                    `Bearer ${token}`
+                }
+              : {}
+          ),
+
+          ...extra
+
+        };
+
+      }
+
+
+      /* =======================================================
+         FAMILY API REQUEST
+      ======================================================== */
+
+      async function familyApiFetch(
+        path,
+        options = {}
+      ){
+
+        const token =
+          getFamilyToken();
+
+
+        if(!token){
+
+          const error =
+            new Error(
+              "Please sign in to continue."
+            );
+
+          error.status =
+            401;
+
+          throw error;
+
+        }
+
+
+        const requestOptions = {
+
+          ...options,
+
+          headers:
+            familyAuthHeaders(
+              options.headers || {}
+            )
+
+        };
+
+
+        let response;
+
+
+        try{
+
+          response =
+            await fetch(
+              `${API}${path}`,
+              requestOptions
+            );
+
+        }catch(error){
+
+          const networkError =
+            new Error(
+              "Could not connect to AIFT. Please check your connection and try again."
+            );
+
+          networkError.cause =
+            error;
+
+          throw networkError;
+
+        }
+
+
+        let data =
+          null;
+
+
+        const contentType =
+          response.headers
+            .get(
+              "content-type"
+            ) || "";
+
+
+        try{
+
+          if(
+            contentType.includes(
+              "application/json"
+            )
+          ){
+
+            data =
+              await response.json();
+
+          }else{
+
+            const text =
+              await response.text();
+
+            data =
+              text
+                ? {
+                    message:
+                      text
+                  }
+                : null;
+
+          }
+
+        }catch(error){
+
+          data =
+            null;
+
+        }
+
+
+        if(
+          !response.ok
+        ){
+
+          const error =
+            new Error(
+              data?.message ||
+              data?.msg ||
+              `AIFT request failed (${response.status})`
+            );
+
+
+          error.status =
+            response.status;
+
+          error.data =
+            data;
+
+
+          if(
+            response.status ===
+            401
+          ){
+
+            /*
+              The existing AIFT login system stores
+              the primary token under "token".
+
+              We do not delete authentication here
+              automatically because a temporary
+              backend failure must not destroy the
+              user's local session.
+            */
+
+            console.warn(
+              "AIFT Family authentication required."
+            );
+
+          }
+
+
+          throw error;
+
+        }
+
+
+        return data;
+
+      }
+
+
+      /* =======================================================
+         JSON REQUEST HELPER
+      ======================================================== */
+
+      async function familyApiJson(
+        path,
+        {
+          method = "GET",
+          body = undefined
+        } = {}
+      ){
+
+        const options = {
+          method
+        };
+
+
+        if(
+          body !==
+          undefined
+        ){
+
+          options.headers = {
+            "Content-Type":
+              "application/json"
+          };
+
+
+          options.body =
+            JSON.stringify(
+              body
+            );
+
+        }
+
+
+        return familyApiFetch(
+          path,
+          options
+        );
+
+      }
 
 
       /* =======================================================
