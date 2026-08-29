@@ -1,0 +1,53 @@
+name: Family Production Hotfix
+
+on:
+  push:
+    branches:
+      - family-production-hotfix
+
+permissions:
+  contents: write
+
+jobs:
+  patch-family:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: family-production-hotfix
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Patch existing scholarship draft save
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('family-production.js')
+          text = path.read_text()
+          old = '''        const update = { ...payload };
+        delete update.scholarshipId;
+        delete update.childId;
+        await api(`/api/scholarship-applications/${encodeURIComponent(applicationId)}`,{
+'''
+          new = '''        const update = { ...payload };
+        delete update.scholarshipId;
+        delete update.childId;
+        if(status === "draft"){
+          delete update.status;
+        }
+        await api(`/api/scholarship-applications/${encodeURIComponent(applicationId)}`,{
+'''
+          if old not in text:
+              raise SystemExit('Expected scholarship draft block was not found')
+          path.write_text(text.replace(old,new,1))
+          PY
+          node --check family-production.js
+      - name: Remove temporary workflow and commit hotfix
+        run: |
+          rm .github/workflows/family-hotfix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add family-production.js .github/workflows/family-hotfix.yml
+          git commit -m "Fix saving edits to existing scholarship drafts"
+          git push origin HEAD:family-production-hotfix
