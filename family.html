@@ -1,0 +1,3126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="AIFT Family & Investor — education, scholarships, opportunities, projects and investment discovery."
+  >
+
+  <title>AIFT Family & Investor</title>
+
+  <!-- =========================================================
+       AIFT FAMILY & INVESTOR
+       Production Frontend Foundation
+  ========================================================== -->
+
+  <style>
+
+    /* =========================================================
+       1. DESIGN TOKENS
+    ========================================================== */
+
+    :root{
+      --aift-primary:#0a66c2;
+      --aift-primary-dark:#084f9b;
+      --aift-primary-deep:#082b61;
+      --aift-primary-soft:#eaf3ff;
+
+      --aift-green:#16a56b;
+      --aift-green-soft:#e9faf3;
+
+      --aift-purple:#7454e8;
+      --aift-purple-soft:#f1edff;
+
+      --aift-orange:#e99a1a;
+      --aift-orange-soft:#fff6df;
+
+      --aift-red:#dc3545;
+
+      --aift-text:#172033;
+      --aift-text-strong:#0f1d3b;
+      --aift-muted:#667085;
+      --aift-muted-light:#98a2b3;
+
+      --aift-bg:#f5f8fc;
+      --aift-surface:#ffffff;
+      --aift-border:#e1e7ef;
+      --aift-border-soft:#edf1f6;
+
+      --aift-sidebar:#082a60;
+      --aift-sidebar-2:#061f49;
+
+      --aift-shadow:
+        0 4px 18px rgba(15,23,42,.055);
+
+      --aift-shadow-lg:
+        0 16px 40px rgba(15,23,42,.10);
+
+      --aift-radius-sm:8px;
+      --aift-radius:12px;
+      --aift-radius-lg:16px;
+
+      --header-height:64px;
+      --sidebar-width:236px;
+      --right-panel-width:280px;
+    }
+
+
+    /* =========================================================
+       2. RESET
+    ========================================================== */
+
+    *,
+    *::before,
+    *::after{
+      box-sizing:border-box;
+    }
+
+    html{
+      scroll-behavior:smooth;
+    }
+
+    html,
+    body{
+      margin:0;
+      min-height:100%;
+    }
+
+    body{
+      min-height:100vh;
+      font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Helvetica,
+        Arial,
+        sans-serif;
+
+      background:var(--aift-bg);
+      color:var(--aift-text);
+      -webkit-font-smoothing:antialiased;
+      text-rendering:optimizeLegibility;
+    }
+
+    button,
+    input,
+    select,
+    textarea{
+      font:inherit;
+    }
+
+    button{
+      cursor:pointer;
+    }
+
+    a{
+      color:inherit;
+      text-decoration:none;
+    }
+
+    img{
+      display:block;
+      max-width:100%;
+    }
+
+    .hidden{
+      display:none !important;
+    }
+
+
+    /* =========================================================
+       3. ICON SYSTEM
+    ========================================================== */
+
+    .aift-icon{
+      width:20px;
+      height:20px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      flex:0 0 auto;
+    }
+
+    .aift-icon svg{
+      width:100%;
+      height:100%;
+      display:block;
+      stroke:currentColor;
+    }
+
+
+    /* =========================================================
+       4. TOP HEADER
+    ========================================================== */
+
+    .family-topbar{
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      z-index:1000;
+
+      height:var(--header-height);
+
+      display:grid;
+      grid-template-columns:
+        var(--sidebar-width)
+        minmax(300px,1fr)
+        auto;
+
+      align-items:center;
+
+      background:#fff;
+      border-bottom:1px solid var(--aift-border);
+    }
+
+    .family-brand{
+      height:100%;
+      display:flex;
+      align-items:center;
+      gap:10px;
+
+      padding:0 22px;
+    }
+
+    .family-brand-logo{
+      display:flex;
+      align-items:center;
+      gap:8px;
+
+      color:#124db6;
+      font-size:24px;
+      font-weight:800;
+      letter-spacing:-1px;
+    }
+
+    .family-brand-mark{
+      position:relative;
+
+      width:34px;
+      height:34px;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      color:#6fbe44;
+      font-weight:900;
+      font-size:25px;
+    }
+
+    .family-brand-title{
+      display:flex;
+      align-items:center;
+      gap:8px;
+
+      font-size:13px;
+      font-weight:700;
+      color:#123f9d;
+    }
+
+    .family-search-wrap{
+      display:flex;
+      justify-content:center;
+      padding:0 30px;
+    }
+
+    .family-search{
+      width:min(570px,100%);
+      height:40px;
+
+      display:flex;
+      align-items:center;
+      gap:10px;
+
+      padding:0 14px;
+
+      border:1px solid #d7deea;
+      border-radius:20px;
+      background:#fff;
+
+      transition:
+        border-color .2s ease,
+        box-shadow .2s ease;
+    }
+
+    .family-search:focus-within{
+      border-color:#8db9f5;
+      box-shadow:0 0 0 3px rgba(10,102,194,.09);
+    }
+
+    .family-search input{
+      width:100%;
+      min-width:0;
+
+      border:0;
+      outline:0;
+      background:transparent;
+
+      color:var(--aift-text);
+      font-size:13px;
+    }
+
+    .family-search input::placeholder{
+      color:#8a94a6;
+    }
+
+    .family-top-actions{
+      height:100%;
+      display:flex;
+      align-items:center;
+      gap:8px;
+
+      padding:0 20px 0 8px;
+    }
+
+    .family-header-button{
+      position:relative;
+
+      width:38px;
+      height:38px;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      border:0;
+      border-radius:50%;
+      background:transparent;
+
+      color:#1e335d;
+
+      transition:background .18s ease;
+    }
+
+    .family-header-button:hover{
+      background:#f1f5fb;
+    }
+
+    .family-notification-count{
+      position:absolute;
+      top:1px;
+      right:1px;
+
+      min-width:16px;
+      height:16px;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      padding:0 4px;
+
+      border:2px solid #fff;
+      border-radius:10px;
+
+      background:#e11d48;
+      color:#fff;
+
+      font-size:9px;
+      font-weight:800;
+    }
+
+    .family-account{
+      display:flex;
+      align-items:center;
+      gap:10px;
+
+      min-width:165px;
+
+      margin-left:5px;
+      padding-left:13px;
+
+      border-left:1px solid var(--aift-border);
+    }
+
+    .family-account-avatar{
+      width:36px;
+      height:36px;
+
+      border-radius:50%;
+      object-fit:cover;
+
+      background:#e6edf7;
+      border:1px solid #d8e0eb;
+    }
+
+    .family-account-copy{
+      min-width:0;
+      line-height:1.25;
+    }
+
+    .family-account-name{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+
+      color:#101c38;
+      font-size:12px;
+      font-weight:750;
+    }
+
+    .family-account-role{
+      margin-top:2px;
+
+      color:var(--aift-muted);
+      font-size:10px;
+    }
+
+
+    /* =========================================================
+       5. SIDEBAR
+    ========================================================== */
+
+    .family-sidebar{
+      position:fixed;
+      top:var(--header-height);
+      bottom:0;
+      left:0;
+      z-index:900;
+
+      width:var(--sidebar-width);
+
+      display:flex;
+      flex-direction:column;
+
+      overflow-y:auto;
+
+      padding:18px 14px 22px;
+
+      color:#fff;
+
+      background:
+        linear-gradient(
+          180deg,
+          var(--aift-sidebar) 0%,
+          var(--aift-sidebar-2) 100%
+        );
+    }
+
+    .family-sidebar::-webkit-scrollbar{
+      width:5px;
+    }
+
+    .family-sidebar::-webkit-scrollbar-thumb{
+      border-radius:10px;
+      background:rgba(255,255,255,.15);
+    }
+
+    .family-sidebar-head{
+      padding:0 8px 14px;
+    }
+
+    .family-sidebar-name{
+      margin:0;
+
+      font-size:20px;
+      line-height:1.1;
+      font-weight:800;
+      letter-spacing:-.4px;
+    }
+
+    .family-sidebar-subtitle{
+      margin-top:5px;
+
+      color:rgba(255,255,255,.82);
+      font-size:12px;
+      font-weight:600;
+    }
+
+
+    /* =========================================================
+       6. FAMILY / INVESTOR MODE SWITCH
+    ========================================================== */
+
+    .family-mode-switch{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:3px;
+
+      margin:2px 0 19px;
+      padding:3px;
+
+      border:1px solid rgba(100,174,255,.85);
+      border-radius:20px;
+
+      background:rgba(2,21,52,.34);
+    }
+
+    .family-mode-btn{
+      min-height:30px;
+
+      border:0;
+      border-radius:16px;
+
+      background:transparent;
+      color:rgba(255,255,255,.82);
+
+      font-size:11px;
+      font-weight:750;
+
+      transition:
+        background .2s ease,
+        color .2s ease,
+        box-shadow .2s ease;
+    }
+
+    .family-mode-btn.active{
+      color:#fff;
+      background:#0c73ed;
+      box-shadow:0 3px 10px rgba(0,0,0,.16);
+    }
+
+
+    /* =========================================================
+       7. SIDEBAR NAVIGATION
+    ========================================================== */
+
+    .family-nav-group{
+      margin-bottom:12px;
+    }
+
+    .family-nav-label{
+      margin:0 10px 7px;
+
+      color:rgba(255,255,255,.72);
+
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.5px;
+      text-transform:uppercase;
+    }
+
+    .family-nav-list{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+    }
+
+    .family-nav-item{
+      width:100%;
+      min-height:39px;
+
+      display:flex;
+      align-items:center;
+      gap:11px;
+
+      padding:8px 11px;
+
+      border:0;
+      border-radius:8px;
+
+      background:transparent;
+      color:rgba(255,255,255,.88);
+
+      text-align:left;
+      font-size:12px;
+      font-weight:500;
+
+      transition:
+        background .16s ease,
+        color .16s ease,
+        transform .16s ease;
+    }
+
+    .family-nav-item:hover{
+      color:#fff;
+      background:rgba(255,255,255,.08);
+    }
+
+    .family-nav-item.active{
+      color:#fff;
+      background:#0a66d8;
+      font-weight:700;
+    }
+
+    .family-nav-item .aift-icon{
+      width:18px;
+      height:18px;
+    }
+
+    .family-nav-divider{
+      height:1px;
+
+      margin:11px 7px 15px;
+
+      background:rgba(255,255,255,.14);
+    }
+
+    .family-sidebar-footer{
+      margin-top:auto;
+    }
+
+    .family-nav-badge{
+      margin-left:auto;
+
+      min-width:18px;
+      height:18px;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      padding:0 5px;
+
+      border-radius:10px;
+
+      background:#e11d48;
+      color:#fff;
+
+      font-size:9px;
+      font-weight:800;
+    }
+
+
+    /* =========================================================
+       8. MAIN APP SHELL
+    ========================================================== */
+
+    .family-app{
+      min-height:100vh;
+      padding-top:var(--header-height);
+      padding-left:var(--sidebar-width);
+    }
+
+    .family-workspace{
+      width:100%;
+      min-height:calc(100vh - var(--header-height));
+
+      padding:18px 18px 30px;
+    }
+
+    .family-page{
+      display:none;
+    }
+
+    .family-page.active{
+      display:block;
+    }
+
+    .family-overview-grid{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) var(--right-panel-width);
+      gap:18px;
+
+      align-items:start;
+    }
+
+    .family-main-column{
+      min-width:0;
+    }
+
+    .family-right-column{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+
+    /* =========================================================
+       9. HERO
+    ========================================================== */
+
+    .family-hero{
+      position:relative;
+
+      min-height:194px;
+
+      display:flex;
+      align-items:center;
+
+      overflow:hidden;
+
+      padding:30px 40% 30px 36px;
+
+      border-radius:14px;
+
+      color:#fff;
+
+      background:
+        radial-gradient(
+          circle at 72% 40%,
+          rgba(61,149,255,.55),
+          transparent 30%
+        ),
+        linear-gradient(
+          110deg,
+          #09285d 0%,
+          #0b45a8 50%,
+          #1268e5 100%
+        );
+
+      box-shadow:var(--aift-shadow);
+    }
+
+    .family-hero::before{
+      content:"";
+
+      position:absolute;
+      width:370px;
+      height:370px;
+
+      top:-210px;
+      right:220px;
+
+      border-radius:50%;
+      border:1px solid rgba(255,255,255,.14);
+    }
+
+    .family-hero::after{
+      content:"";
+
+      position:absolute;
+      inset:0;
+
+      pointer-events:none;
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(4,24,61,.25),
+          transparent 55%
+        );
+    }
+
+    .family-hero-content{
+      position:relative;
+      z-index:3;
+
+      max-width:560px;
+    }
+
+    .family-hero-title{
+      margin:0;
+
+      font-size:31px;
+      line-height:1.12;
+      letter-spacing:-.7px;
+      font-weight:800;
+    }
+
+    .family-hero-subtitle{
+      margin:7px 0 0;
+
+      font-size:16px;
+      font-weight:650;
+    }
+
+    .family-hero-description{
+      max-width:520px;
+
+      margin:17px 0 0;
+
+      color:rgba(255,255,255,.9);
+
+      font-size:13px;
+      line-height:1.55;
+    }
+
+    .family-hero-visual{
+      position:absolute;
+      z-index:2;
+
+      right:0;
+      bottom:0;
+
+      width:43%;
+      height:100%;
+
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+
+      pointer-events:none;
+    }
+
+    .family-hero-visual img{
+      width:100%;
+      height:100%;
+
+      object-fit:cover;
+      object-position:center;
+
+      opacity:.98;
+
+      -webkit-mask-image:
+        linear-gradient(
+          90deg,
+          transparent 0%,
+          #000 24%,
+          #000 100%
+        );
+
+      mask-image:
+        linear-gradient(
+          90deg,
+          transparent 0%,
+          #000 24%,
+          #000 100%
+        );
+    }
+
+
+    /* =========================================================
+       10. SECTION HEADERS
+    ========================================================== */
+
+    .family-section{
+      margin-top:18px;
+    }
+
+    .family-section-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+
+      margin-bottom:11px;
+    }
+
+    .family-section-title{
+      margin:0;
+
+      color:#101b3b;
+
+      font-size:18px;
+      line-height:1.25;
+      font-weight:800;
+      letter-spacing:-.3px;
+    }
+
+    .family-section-link{
+      border:0;
+      background:transparent;
+
+      color:#075dcc;
+
+      font-size:11px;
+      font-weight:750;
+    }
+
+    .family-section-link:hover{
+      text-decoration:underline;
+    }
+
+
+    /* =========================================================
+       11. QUICK ACTION CARDS
+    ========================================================== */
+
+    .family-action-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:13px;
+    }
+
+    .family-action-card{
+      position:relative;
+
+      min-height:183px;
+
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+
+      padding:20px 15px 14px;
+
+      border:1px solid;
+      border-radius:12px;
+
+      text-align:center;
+
+      transition:
+        transform .18s ease,
+        box-shadow .18s ease;
+    }
+
+    .family-action-card:hover{
+      transform:translateY(-2px);
+      box-shadow:0 10px 24px rgba(15,23,42,.08);
+    }
+
+    .family-action-card.school{
+      border-color:#8db9ff;
+      background:linear-gradient(180deg,#f6faff,#eef5ff);
+    }
+
+    .family-action-card.scholarship{
+      border-color:#efc565;
+      background:linear-gradient(180deg,#fffaf0,#fff6e5);
+    }
+
+    .family-action-card.funding{
+      border-color:#7edbc2;
+      background:linear-gradient(180deg,#f1fffa,#e9fbf5);
+    }
+
+    .family-action-card.opportunities{
+      border-color:#bea7ff;
+      background:linear-gradient(180deg,#fbf9ff,#f4f0ff);
+    }
+
+    .family-action-icon{
+      width:48px;
+      height:48px;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      margin-bottom:12px;
+
+      border-radius:50%;
+    }
+
+    .family-action-icon .aift-icon{
+      width:27px;
+      height:27px;
+    }
+
+    .school .family-action-icon{
+      color:#075bd8;
+      background:#dbeaff;
+    }
+
+    .scholarship .family-action-icon{
+      color:#d58200;
+      background:#ffe9b7;
+    }
+
+    .funding .family-action-icon{
+      color:#0b8f69;
+      background:#c8f3e6;
+    }
+
+    .opportunities .family-action-icon{
+      color:#6133dc;
+      background:#e7ddff;
+    }
+
+    .family-action-title{
+      margin:0;
+
+      color:#10172b;
+
+      font-size:14px;
+      line-height:1.25;
+      font-weight:800;
+    }
+
+    .family-action-description{
+      margin:7px 0 12px;
+
+      color:#42506a;
+
+      font-size:11px;
+      line-height:1.45;
+    }
+
+    .family-action-arrow{
+      width:31px;
+      height:31px;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      margin-top:auto;
+
+      border:0;
+      border-radius:50%;
+
+      transition:transform .18s ease;
+    }
+
+    .family-action-card:hover .family-action-arrow{
+      transform:translateX(2px);
+    }
+
+    .school .family-action-arrow{
+      color:#075bd8;
+      background:#dbeaff;
+    }
+
+    .scholarship .family-action-arrow{
+      color:#d58200;
+      background:#ffe9b7;
+    }
+
+    .funding .family-action-arrow{
+      color:#0b8f69;
+      background:#c8f3e6;
+    }
+
+    .opportunities .family-action-arrow{
+      color:#6133dc;
+      background:#e7ddff;
+    }
+
+
+    /* =========================================================
+       12. RIGHT PANEL CARDS
+    ========================================================== */
+
+    .family-side-card{
+      padding:18px;
+
+      border:1px solid var(--aift-border);
+      border-radius:12px;
+
+      background:#fff;
+      box-shadow:var(--aift-shadow);
+    }
+
+    .family-side-card-title{
+      display:flex;
+      align-items:center;
+      gap:8px;
+
+      margin:0 0 15px;
+
+      color:#101b3b;
+
+      font-size:14px;
+      font-weight:800;
+    }
+
+    .family-summary-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+    }
+
+    .family-summary-item{
+      min-height:72px;
+
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+
+      padding:9px;
+
+      text-align:center;
+    }
+
+    .family-summary-item:nth-child(odd){
+      border-right:1px solid var(--aift-border);
+    }
+
+    .family-summary-item:nth-child(-n+2){
+      border-bottom:1px solid var(--aift-border);
+    }
+
+    .family-summary-value{
+      color:#10172b;
+
+      font-size:23px;
+      line-height:1;
+      font-weight:850;
+    }
+
+    .family-summary-label{
+      margin-top:7px;
+
+      color:#34435e;
+
+      font-size:9px;
+      line-height:1.25;
+    }
+
+
+    /* =========================================================
+       13. KABEZYA CARD
+    ========================================================== */
+
+    .family-kabezya-card{
+      padding:20px;
+
+      border:1px solid #c9dcff;
+      border-radius:12px;
+
+      background:
+        linear-gradient(
+          145deg,
+          #f1f7ff 0%,
+          #e5f1ff 100%
+        );
+
+      box-shadow:var(--aift-shadow);
+    }
+
+    .family-kabezya-title{
+      display:flex;
+      align-items:center;
+      gap:9px;
+
+      margin:0;
+
+      color:#10245a;
+
+      font-size:17px;
+      font-weight:800;
+    }
+
+    .family-kabezya-title .aift-icon{
+      color:#175ee8;
+    }
+
+    .family-kabezya-copy{
+      margin:12px 0 16px;
+
+      color:#314365;
+
+      font-size:11px;
+      line-height:1.5;
+    }
+
+    .family-primary-btn{
+      width:100%;
+      min-height:40px;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+
+      border:0;
+      border-radius:8px;
+
+      background:#0d6efd;
+      color:#fff;
+
+      font-size:12px;
+      font-weight:750;
+
+      box-shadow:0 6px 16px rgba(13,110,253,.18);
+
+      transition:
+        background .18s ease,
+        transform .18s ease;
+    }
+
+    .family-primary-btn:hover{
+      background:#075fdc;
+      transform:translateY(-1px);
+    }
+
+
+    /* =========================================================
+       14. BENEFITS
+    ========================================================== */
+
+    .family-benefit-list{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .family-benefit{
+      display:flex;
+      align-items:flex-start;
+      gap:9px;
+
+      color:#34435e;
+
+      font-size:10px;
+      line-height:1.35;
+    }
+
+    .family-benefit-check{
+      width:17px;
+      height:17px;
+
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      flex:0 0 auto;
+
+      border-radius:50%;
+
+      background:#11a36b;
+      color:#fff;
+    }
+
+    .family-benefit-check svg{
+      width:11px;
+      height:11px;
+    }
+
+
+    /* =========================================================
+       15. TRUST METRICS
+    ========================================================== */
+
+    .family-trust-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .family-trust-item{
+      min-height:78px;
+
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+
+      padding:10px;
+
+      border-radius:8px;
+
+      text-align:center;
+
+      background:#f6f8fc;
+    }
+
+    .family-trust-icon{
+      margin-bottom:6px;
+      color:#173d98;
+    }
+
+    .family-trust-value{
+      color:#111d3c;
+
+      font-size:15px;
+      font-weight:850;
+    }
+
+    .family-trust-label{
+      margin-top:3px;
+
+      color:#526079;
+
+      font-size:9px;
+      line-height:1.2;
+    }
+
+
+    /* =========================================================
+       16. PLACEHOLDER PAGES
+       We will replace these with full production sections.
+    ========================================================== */
+
+    .family-placeholder-page{
+      min-height:500px;
+
+      padding:32px;
+
+      border:1px solid var(--aift-border);
+      border-radius:14px;
+
+      background:#fff;
+      box-shadow:var(--aift-shadow);
+    }
+
+    .family-placeholder-page h1{
+      margin:0;
+
+      color:#111d3c;
+
+      font-size:26px;
+    }
+
+    .family-placeholder-page p{
+      max-width:680px;
+
+      margin:10px 0 0;
+
+      color:var(--aift-muted);
+
+      line-height:1.6;
+    }
+
+
+    /* =========================================================
+       17. RESPONSIVE FOUNDATION
+       Desktop is authoritative for now.
+    ========================================================== */
+
+    @media(max-width:1180px){
+
+      :root{
+        --right-panel-width:245px;
+      }
+
+      .family-action-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+
+      .family-hero{
+        padding-right:36%;
+      }
+
+    }
+
+    @media(max-width:960px){
+
+      .family-overview-grid{
+        grid-template-columns:1fr;
+      }
+
+      .family-right-column{
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+      }
+
+    }
+
+  </style>
+</head>
+
+
+<body>
+
+  <!-- =========================================================
+       ICON SPRITE
+  ========================================================== -->
+
+  <svg
+    width="0"
+    height="0"
+    style="position:absolute"
+    aria-hidden="true"
+  >
+
+    <symbol id="icon-home" viewBox="0 0 24 24">
+      <path d="M3 11.5 12 4l9 7.5"/>
+      <path d="M5.5 10.5V20h13v-9.5"/>
+      <path d="M9.5 20v-6h5v6"/>
+    </symbol>
+
+    <symbol id="icon-school" viewBox="0 0 24 24">
+      <path d="M4 20V9h16v11"/>
+      <path d="M8 20v-5h3v5"/>
+      <path d="M14 20v-5h3v5"/>
+      <path d="M7 9V5l5-2 5 2v4"/>
+      <path d="M2 20h20"/>
+    </symbol>
+
+    <symbol id="icon-cap" viewBox="0 0 24 24">
+      <path d="m2 9 10-5 10 5-10 5L2 9Z"/>
+      <path d="M6 11.5V16c3 2.5 9 2.5 12 0v-4.5"/>
+      <path d="M22 9v6"/>
+    </symbol>
+
+    <symbol id="icon-briefcase" viewBox="0 0 24 24">
+      <rect x="3" y="7" width="18" height="13" rx="2"/>
+      <path d="M8 7V5h8v2"/>
+      <path d="M3 12h18"/>
+    </symbol>
+
+    <symbol id="icon-bulb" viewBox="0 0 24 24">
+      <path d="M9 18h6"/>
+      <path d="M10 22h4"/>
+      <path d="M8.5 15.5C6.9 14.4 6 12.5 6 10.5a6 6 0 1 1 12 0c0 2-.9 3.9-2.5 5"/>
+      <path d="M12 2V0"/>
+    </symbol>
+
+    <symbol id="icon-document" viewBox="0 0 24 24">
+      <path d="M6 3h8l4 4v14H6z"/>
+      <path d="M14 3v5h5"/>
+      <path d="M9 13h6"/>
+      <path d="M9 17h6"/>
+    </symbol>
+
+    <symbol id="icon-search" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="7"/>
+      <path d="m16.5 16.5 5 5"/>
+    </symbol>
+
+    <symbol id="icon-heart" viewBox="0 0 24 24">
+      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>
+    </symbol>
+
+    <symbol id="icon-user" viewBox="0 0 24 24">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 21c.7-5 3.4-7 8-7s7.3 2 8 7"/>
+    </symbol>
+
+    <symbol id="icon-users" viewBox="0 0 24 24">
+      <circle cx="9" cy="8" r="3"/>
+      <circle cx="17" cy="9" r="2.5"/>
+      <path d="M3 20c.5-4 2.5-6 6-6s5.5 2 6 6"/>
+      <path d="M15 14c3.5 0 5.5 1.8 6 5"/>
+    </symbol>
+
+    <symbol id="icon-message" viewBox="0 0 24 24">
+      <path d="M4 4h16v12H8l-4 4z"/>
+    </symbol>
+
+    <symbol id="icon-bell" viewBox="0 0 24 24">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+      <path d="M10 21h4"/>
+    </symbol>
+
+    <symbol id="icon-settings" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/>
+    </symbol>
+
+    <symbol id="icon-help" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M9.8 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.3.9-1.3 1.7"/>
+      <path d="M12 17h.01"/>
+    </symbol>
+
+    <symbol id="icon-logout" viewBox="0 0 24 24">
+      <path d="M10 4H4v16h6"/>
+      <path d="m14 8 4 4-4 4"/>
+      <path d="M18 12H8"/>
+    </symbol>
+
+    <symbol id="icon-arrow" viewBox="0 0 24 24">
+      <path d="M5 12h14"/>
+      <path d="m14 7 5 5-5 5"/>
+    </symbol>
+
+    <symbol id="icon-sparkles" viewBox="0 0 24 24">
+      <path d="m12 2 1.2 4.2L17 8l-3.8 1.8L12 14l-1.2-4.2L7 8l3.8-1.8Z"/>
+      <path d="m19 14 .7 2.3L22 17l-2.3.7L19 20l-.7-2.3L16 17l2.3-.7Z"/>
+      <path d="m5 14 .6 1.8L7.5 17l-1.9.6L5 19.5l-.6-1.9L2.5 17l1.9-.6Z"/>
+    </symbol>
+
+    <symbol id="icon-chart" viewBox="0 0 24 24">
+      <path d="M4 20V10h4v10"/>
+      <path d="M10 20V4h4v16"/>
+      <path d="M16 20v-7h4v7"/>
+    </symbol>
+
+    <symbol id="icon-check" viewBox="0 0 24 24">
+      <path d="m5 12 4 4L19 6"/>
+    </symbol>
+
+  </svg>
+
+
+  <!-- =========================================================
+       TOP HEADER
+  ========================================================== -->
+
+  <header class="family-topbar">
+
+    <div class="family-brand">
+
+      <div class="family-brand-logo">
+        <span class="family-brand-mark">✦</span>
+        <span>AIFT</span>
+      </div>
+
+      <div class="family-brand-title">
+        Family & Investor
+      </div>
+
+    </div>
+
+
+    <div class="family-search-wrap">
+
+      <label class="family-search">
+
+        <span class="aift-icon">
+          <svg>
+            <use href="#icon-search"></use>
+          </svg>
+        </span>
+
+        <input
+          type="search"
+          id="familyGlobalSearch"
+          placeholder="Search schools, scholarships, opportunities, projects..."
+          autocomplete="off"
+        >
+
+      </label>
+
+    </div>
+
+
+    <div class="family-top-actions">
+
+      <button
+        type="button"
+        class="family-header-button"
+        aria-label="Notifications"
+      >
+
+        <span class="aift-icon">
+          <svg>
+            <use href="#icon-bell"></use>
+          </svg>
+        </span>
+
+        <span class="family-notification-count">
+          3
+        </span>
+
+      </button>
+
+
+      <button
+        type="button"
+        class="family-header-button"
+        aria-label="Messages"
+      >
+
+        <span class="aift-icon">
+          <svg>
+            <use href="#icon-message"></use>
+          </svg>
+        </span>
+
+      </button>
+
+
+      <div class="family-account">
+
+        <!--
+          Replace this image later with the authenticated
+          user's real profile image.
+        -->
+        <img
+          class="family-account-avatar"
+          src="https://ui-avatars.com/api/?name=Maria+Santos&background=e8eef8&color=183153"
+          alt="Maria Santos"
+          id="familyAccountAvatar"
+        >
+
+        <div class="family-account-copy">
+
+          <div
+            class="family-account-name"
+            id="familyAccountName"
+          >
+            Maria Santos
+          </div>
+
+          <div
+            class="family-account-role"
+            id="familyAccountRole"
+          >
+            Family & Investor
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <!-- =========================================================
+       SIDEBAR
+  ========================================================== -->
+
+  <aside class="family-sidebar">
+
+    <div class="family-sidebar-head">
+
+      <h1 class="family-sidebar-name">
+        AIFT
+      </h1>
+
+      <div class="family-sidebar-subtitle">
+        Family & Investor
+      </div>
+
+    </div>
+
+
+    <div
+      class="family-mode-switch"
+      role="tablist"
+      aria-label="Account mode"
+    >
+
+      <button
+        type="button"
+        class="family-mode-btn active"
+        id="familyModeButton"
+        data-mode="family"
+      >
+        Family Mode
+      </button>
+
+      <button
+        type="button"
+        class="family-mode-btn"
+        id="investorModeButton"
+        data-mode="investor"
+      >
+        Investor Mode
+      </button>
+
+    </div>
+
+
+    <!-- FAMILY NAVIGATION -->
+
+    <div
+      class="family-nav-group"
+      id="familyNavigationGroup"
+    >
+
+      <div class="family-nav-label">
+        Family
+      </div>
+
+      <nav class="family-nav-list">
+
+        <button
+          type="button"
+          class="family-nav-item active"
+          data-family-page="overview"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-home"></use></svg>
+          </span>
+          Overview
+        </button>
+
+
+        <button
+          type="button"
+          class="family-nav-item"
+          data-family-page="schools"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-school"></use></svg>
+          </span>
+          Find the Best School
+        </button>
+
+
+        <button
+          type="button"
+          class="family-nav-item"
+          data-family-page="scholarships"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-cap"></use></svg>
+          </span>
+          Scholarship Requests
+        </button>
+
+
+        <button
+          type="button"
+          class="family-nav-item"
+          data-family-page="opportunities"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-briefcase"></use></svg>
+          </span>
+          Education Opportunities
+        </button>
+
+
+        <button
+          type="button"
+          class="family-nav-item"
+          data-family-page="funding"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-bulb"></use></svg>
+          </span>
+          Project Funding
+        </button>
+
+
+        <button
+          type="button"
+          class="family-nav-item"
+          data-family-page="requests"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-document"></use></svg>
+          </span>
+          My Requests
+        </button>
+
+      </nav>
+
+    </div>
+
+
+    <div class="family-nav-divider"></div>
+
+
+    <!-- INVESTOR NAVIGATION -->
+
+    <div
+      class="family-nav-group"
+      id="investorNavigationGroup"
+    >
+
+      <div class="family-nav-label">
+        Investor
+      </div>
+
+      <nav class="family-nav-list">
+
+        <button
+          type="button"
+          class="family-nav-item"
+          data-family-page="investor-discover"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-search"></use></svg>
+          </span>
+          Discover Opportunities
+        </button>
+
+
+        <button
+          type="button"
+          class="family-nav-item"
+          data-family-page="investor-saved"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-heart"></use></svg>
+          </span>
+          Saved Opportunities
+        </button>
+
+
+        <button
+          type="button"
+          class="family-nav-item"
+          data-family-page="investor-interested"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-chart"></use></svg>
+          </span>
+          Interested Opportunities
+        </button>
+
+      </nav>
+
+    </div>
+
+
+    <div class="family-nav-divider"></div>
+
+
+    <div class="family-sidebar-footer">
+
+      <nav class="family-nav-list">
+
+        <button
+          type="button"
+          class="family-nav-item"
+          data-family-page="children"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-users"></use></svg>
+          </span>
+          My Children
+        </button>
+
+
+        <button
+          type="button"
+          class="family-nav-item"
+          data-family-page="messages"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-message"></use></svg>
+          </span>
+
+          Messages
+
+          <span class="family-nav-badge">
+            2
+          </span>
+        </button>
+
+
+        <button
+          type="button"
+          class="family-nav-item"
+          data-family-page="notifications"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-bell"></use></svg>
+          </span>
+
+          Notifications
+
+          <span class="family-nav-badge">
+            3
+          </span>
+        </button>
+
+
+        <button
+          type="button"
+          class="family-nav-item"
+          data-family-page="settings"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-settings"></use></svg>
+          </span>
+          Settings
+        </button>
+
+
+        <button
+          type="button"
+          class="family-nav-item"
+          data-family-page="help"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-help"></use></svg>
+          </span>
+          Help & Support
+        </button>
+
+
+        <button
+          type="button"
+          class="family-nav-item"
+          id="familyLogoutButton"
+        >
+          <span class="aift-icon">
+            <svg><use href="#icon-logout"></use></svg>
+          </span>
+          Logout
+        </button>
+
+      </nav>
+
+    </div>
+
+  </aside>
+
+
+  <!-- =========================================================
+       MAIN APPLICATION
+  ========================================================== -->
+
+  <main class="family-app">
+
+    <div class="family-workspace">
+
+
+      <!-- =====================================================
+           OVERVIEW PAGE
+      ====================================================== -->
+
+      <section
+        class="family-page active"
+        id="familyPage-overview"
+        data-page="overview"
+      >
+
+        <div class="family-overview-grid">
+
+
+          <!-- MAIN COLUMN -->
+
+          <div class="family-main-column">
+
+
+            <!-- HERO -->
+
+            <section class="family-hero">
+
+              <div class="family-hero-content">
+
+                <h2 class="family-hero-title">
+                  Welcome back,
+                  <span id="familyWelcomeName">Maria</span>!
+                </h2>
+
+                <p class="family-hero-subtitle">
+                  Let's build a better future for your family.
+                </p>
+
+                <p class="family-hero-description">
+                  Find the best schools, access scholarships,
+                  discover opportunities, and support meaningful
+                  projects — all in one place.
+                </p>
+
+              </div>
+
+
+              <!--
+                PHOTO ASSET:
+
+                For now the page works without a hero photo.
+                In the next part I will give you the final image
+                folder structure and local image references so
+                we do NOT depend on random external URLs.
+              -->
+
+            </section>
+
+
+            <!-- QUICK ACTIONS -->
+
+            <section class="family-section">
+
+              <div class="family-section-head">
+
+                <h2 class="family-section-title">
+                  What would you like to do today?
+                </h2>
+
+              </div>
+
+
+              <div class="family-action-grid">
+
+
+                <!-- FIND SCHOOL -->
+
+                <article class="family-action-card school">
+
+                  <div class="family-action-icon">
+                    <span class="aift-icon">
+                      <svg>
+                        <use href="#icon-school"></use>
+                      </svg>
+                    </span>
+                  </div>
+
+                  <h3 class="family-action-title">
+                    Find the Best School
+                  </h3>
+
+                  <p class="family-action-description">
+                    Discover top performing schools based on
+                    real data and outcomes.
+                  </p>
+
+                  <button
+                    type="button"
+                    class="family-action-arrow"
+                    data-family-open="schools"
+                    aria-label="Find the best school"
+                  >
+                    <span class="aift-icon">
+                      <svg>
+                        <use href="#icon-arrow"></use>
+                      </svg>
+                    </span>
+                  </button>
+
+                </article>
+
+
+                <!-- SCHOLARSHIP -->
+
+                <article class="family-action-card scholarship">
+
+                  <div class="family-action-icon">
+                    <span class="aift-icon">
+                      <svg>
+                        <use href="#icon-cap"></use>
+                      </svg>
+                    </span>
+                  </div>
+
+                  <h3 class="family-action-title">
+                    Request a Scholarship
+                  </h3>
+
+                  <p class="family-action-description">
+                    Get financial support for your child's
+                    education.
+                  </p>
+
+                  <button
+                    type="button"
+                    class="family-action-arrow"
+                    data-family-open="scholarships"
+                    aria-label="Request a scholarship"
+                  >
+                    <span class="aift-icon">
+                      <svg>
+                        <use href="#icon-arrow"></use>
+                      </svg>
+                    </span>
+                  </button>
+
+                </article>
+
+
+                <!-- PROJECT FUNDING -->
+
+                <article class="family-action-card funding">
+
+                  <div class="family-action-icon">
+                    <span class="aift-icon">
+                      <svg>
+                        <use href="#icon-bulb"></use>
+                      </svg>
+                    </span>
+                  </div>
+
+                  <h3 class="family-action-title">
+                    Request Project Funding
+                  </h3>
+
+                  <p class="family-action-description">
+                    Seek investment or partnership for your
+                    business or child's project.
+                  </p>
+
+                  <button
+                    type="button"
+                    class="family-action-arrow"
+                    data-family-open="funding"
+                    aria-label="Request project funding"
+                  >
+                    <span class="aift-icon">
+                      <svg>
+                        <use href="#icon-arrow"></use>
+                      </svg>
+                    </span>
+                  </button>
+
+                </article>
+
+
+                <!-- OPPORTUNITIES -->
+
+                <article class="family-action-card opportunities">
+
+                  <div class="family-action-icon">
+                    <span class="aift-icon">
+                      <svg>
+                        <use href="#icon-briefcase"></use>
+                      </svg>
+                    </span>
+                  </div>
+
+                  <h3 class="family-action-title">
+                    Explore Opportunities
+                  </h3>
+
+                  <p class="family-action-description">
+                    Find scholarships, programs, events and
+                    important opportunities for your family.
+                  </p>
+
+                  <button
+                    type="button"
+                    class="family-action-arrow"
+                    data-family-open="opportunities"
+                    aria-label="Explore opportunities"
+                  >
+                    <span class="aift-icon">
+                      <svg>
+                        <use href="#icon-arrow"></use>
+                      </svg>
+                    </span>
+                  </button>
+
+                </article>
+
+
+              </div>
+
+            </section>
+
+
+            <!--
+              MY CHILDREN and MY REQUESTS will be inserted
+              HERE in Part 2.
+            -->
+
+            <section
+              class="family-section"
+              id="familyOverviewChildrenSection"
+            >
+
+              <div class="family-section-head">
+
+                <h2 class="family-section-title">
+                  My Children
+                </h2>
+
+                <button
+                  type="button"
+                  class="family-section-link"
+                  data-family-open="children"
+                >
+                  Manage Children
+                </button>
+
+              </div>
+
+
+              <div
+                style="
+                  min-height:120px;
+                  display:flex;
+                  align-items:center;
+                  justify-content:center;
+                  border:1px dashed #d7deea;
+                  border-radius:12px;
+                  background:#fff;
+                  color:#667085;
+                  font-size:12px;
+                "
+              >
+                Child profiles will be added in Part 2.
+              </div>
+
+            </section>
+
+
+            <!--
+              RECOMMENDATIONS will also be inserted in Part 2.
+            -->
+
+            <section
+              class="family-section"
+              id="familyOverviewRecommendationsSection"
+            >
+
+              <div class="family-section-head">
+
+                <h2 class="family-section-title">
+                  Recommended for Your Family
+                </h2>
+
+                <button
+                  type="button"
+                  class="family-section-link"
+                  data-family-open="opportunities"
+                >
+                  View All
+                </button>
+
+              </div>
+
+
+              <div
+                style="
+                  min-height:150px;
+                  display:flex;
+                  align-items:center;
+                  justify-content:center;
+                  border:1px dashed #d7deea;
+                  border-radius:12px;
+                  background:#fff;
+                  color:#667085;
+                  font-size:12px;
+                "
+              >
+                School, scholarship and project recommendations
+                will be added in Part 2.
+              </div>
+
+            </section>
+
+
+          </div>
+
+
+          <!-- =================================================
+               RIGHT COLUMN
+          ================================================== -->
+
+          <aside class="family-right-column">
+
+
+            <!-- SUMMARY -->
+
+            <section class="family-side-card">
+
+              <h3 class="family-side-card-title">
+
+                <span class="aift-icon">
+                  <svg>
+                    <use href="#icon-chart"></use>
+                  </svg>
+                </span>
+
+                Overview
+
+              </h3>
+
+
+              <div class="family-summary-grid">
+
+                <div class="family-summary-item">
+
+                  <div
+                    class="family-summary-value"
+                    id="familySummaryRequests"
+                  >
+                    3
+                  </div>
+
+                  <div class="family-summary-label">
+                    Total Requests
+                  </div>
+
+                </div>
+
+
+                <div class="family-summary-item">
+
+                  <div
+                    class="family-summary-value"
+                    id="familySummaryOpportunities"
+                  >
+                    2
+                  </div>
+
+                  <div class="family-summary-label">
+                    Active Opportunities
+                  </div>
+
+                </div>
+
+
+                <div class="family-summary-item">
+
+                  <div
+                    class="family-summary-value"
+                    id="familySummarySaved"
+                  >
+                    12
+                  </div>
+
+                  <div class="family-summary-label">
+                    Saved Programs
+                  </div>
+
+                </div>
+
+
+                <div class="family-summary-item">
+
+                  <div
+                    class="family-summary-value"
+                    id="familySummaryInterested"
+                  >
+                    5
+                  </div>
+
+                  <div class="family-summary-label">
+                    Interested Projects
+                  </div>
+
+                </div>
+
+              </div>
+
+            </section>
+
+
+            <!-- KABEZYA -->
+
+            <section class="family-kabezya-card">
+
+              <h3 class="family-kabezya-title">
+
+                <span class="aift-icon">
+                  <svg>
+                    <use href="#icon-sparkles"></use>
+                  </svg>
+                </span>
+
+                Ask Kabezya AI
+
+              </h3>
+
+
+              <p class="family-kabezya-copy">
+                Get smart recommendations for schools,
+                scholarships and investment opportunities.
+              </p>
+
+
+              <button
+                type="button"
+                class="family-primary-btn"
+                id="familyAskKabezyaButton"
+              >
+
+                Ask Kabezya AI
+
+                <span class="aift-icon">
+                  <svg>
+                    <use href="#icon-arrow"></use>
+                  </svg>
+                </span>
+
+              </button>
+
+            </section>
+
+
+            <!-- WHY AIFT -->
+
+            <section class="family-side-card">
+
+              <h3 class="family-side-card-title">
+                Why AIFT Family & Investor?
+              </h3>
+
+
+              <div class="family-benefit-list">
+
+
+                <div class="family-benefit">
+
+                  <span class="family-benefit-check">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                    >
+                      <use href="#icon-check"></use>
+                    </svg>
+                  </span>
+
+                  <span>
+                    Data-driven school recommendations
+                  </span>
+
+                </div>
+
+
+                <div class="family-benefit">
+
+                  <span class="family-benefit-check">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                    >
+                      <use href="#icon-check"></use>
+                    </svg>
+                  </span>
+
+                  <span>
+                    Access to scholarships and opportunities
+                  </span>
+
+                </div>
+
+
+                <div class="family-benefit">
+
+                  <span class="family-benefit-check">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                    >
+                      <use href="#icon-check"></use>
+                    </svg>
+                  </span>
+
+                  <span>
+                    Direct project funding and investment access
+                  </span>
+
+                </div>
+
+
+                <div class="family-benefit">
+
+                  <span class="family-benefit-check">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                    >
+                      <use href="#icon-check"></use>
+                    </svg>
+                  </span>
+
+                  <span>
+                    One account for the whole family
+                  </span>
+
+                </div>
+
+
+              </div>
+
+            </section>
+
+
+            <!-- TRUST -->
+
+            <section class="family-side-card">
+
+              <h3 class="family-side-card-title">
+                AIFT Network
+              </h3>
+
+
+              <div class="family-trust-grid">
+
+
+                <div class="family-trust-item">
+
+                  <span class="family-trust-icon aift-icon">
+                    <svg>
+                      <use href="#icon-users"></use>
+                    </svg>
+                  </span>
+
+                  <strong class="family-trust-value">
+                    10,000+
+                  </strong>
+
+                  <span class="family-trust-label">
+                    Families
+                  </span>
+
+                </div>
+
+
+                <div class="family-trust-item">
+
+                  <span class="family-trust-icon aift-icon">
+                    <svg>
+                      <use href="#icon-school"></use>
+                    </svg>
+                  </span>
+
+                  <strong class="family-trust-value">
+                    2,000+
+                  </strong>
+
+                  <span class="family-trust-label">
+                    Partner Schools
+                  </span>
+
+                </div>
+
+
+                <div class="family-trust-item">
+
+                  <span class="family-trust-icon aift-icon">
+                    <svg>
+                      <use href="#icon-cap"></use>
+                    </svg>
+                  </span>
+
+                  <strong class="family-trust-value">
+                    500+
+                  </strong>
+
+                  <span class="family-trust-label">
+                    Scholarship Programs
+                  </span>
+
+                </div>
+
+
+                <div class="family-trust-item">
+
+                  <span class="family-trust-icon aift-icon">
+                    <svg>
+                      <use href="#icon-bulb"></use>
+                    </svg>
+                  </span>
+
+                  <strong class="family-trust-value">
+                    300+
+                  </strong>
+
+                  <span class="family-trust-label">
+                    Venture Projects
+                  </span>
+
+                </div>
+
+
+              </div>
+
+            </section>
+
+
+          </aside>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           FIND SCHOOL PAGE
+      ====================================================== -->
+
+      <section
+        class="family-page"
+        id="familyPage-schools"
+        data-page="schools"
+      >
+
+        <div class="family-placeholder-page">
+
+          <h1>
+            Find the Best School
+          </h1>
+
+          <p>
+            This section will rank and recommend schools using
+            actual AIFT school performance information rather
+            than simple advertisements.
+          </p>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           SCHOLARSHIP PAGE
+      ====================================================== -->
+
+      <section
+        class="family-page"
+        id="familyPage-scholarships"
+        data-page="scholarships"
+      >
+
+        <div class="family-placeholder-page">
+
+          <h1>
+            Scholarship Requests
+          </h1>
+
+          <p>
+            Families will be able to create, submit and track
+            scholarship support requests here.
+          </p>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           OPPORTUNITIES PAGE
+      ====================================================== -->
+
+      <section
+        class="family-page"
+        id="familyPage-opportunities"
+        data-page="opportunities"
+      >
+
+        <div class="family-placeholder-page">
+
+          <h1>
+            Education Opportunities
+          </h1>
+
+          <p>
+            Scholarships, programs, events and relevant
+            educational opportunities will appear here.
+          </p>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           FUNDING PAGE
+      ====================================================== -->
+
+      <section
+        class="family-page"
+        id="familyPage-funding"
+        data-page="funding"
+      >
+
+        <div class="family-placeholder-page">
+
+          <h1>
+            Project Funding
+          </h1>
+
+          <p>
+            Families will submit project and business funding
+            requests through the AIFT venture ecosystem here.
+          </p>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           REQUESTS PAGE
+      ====================================================== -->
+
+      <section
+        class="family-page"
+        id="familyPage-requests"
+        data-page="requests"
+      >
+
+        <div class="family-placeholder-page">
+
+          <h1>
+            My Requests
+          </h1>
+
+          <p>
+            Scholarship requests, project funding requests and
+            other family submissions will be tracked here.
+          </p>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           INVESTOR DISCOVERY
+      ====================================================== -->
+
+      <section
+        class="family-page"
+        id="familyPage-investor-discover"
+        data-page="investor-discover"
+      >
+
+        <div class="family-placeholder-page">
+
+          <h1>
+            Discover Opportunities
+          </h1>
+
+          <p>
+            Investor Mode will surface eligible venture,
+            scholarship, school, student, employer and family
+            requests from the existing AIFT ecosystem.
+          </p>
+
+        </div>
+
+      </section>
+
+
+      <section
+        class="family-page"
+        id="familyPage-investor-saved"
+        data-page="investor-saved"
+      >
+
+        <div class="family-placeholder-page">
+
+          <h1>
+            Saved Opportunities
+          </h1>
+
+          <p>
+            Investment and support opportunities saved by this
+            user will appear here.
+          </p>
+
+        </div>
+
+      </section>
+
+
+      <section
+        class="family-page"
+        id="familyPage-investor-interested"
+        data-page="investor-interested"
+      >
+
+        <div class="family-placeholder-page">
+
+          <h1>
+            Interested Opportunities
+          </h1>
+
+          <p>
+            Requests where the investor has expressed interest
+            will be managed here.
+          </p>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           SHARED PAGES
+      ====================================================== -->
+
+      <section
+        class="family-page"
+        id="familyPage-children"
+        data-page="children"
+      >
+        <div class="family-placeholder-page">
+          <h1>My Children</h1>
+          <p>
+            Family child profiles and account linking will be
+            implemented here.
+          </p>
+        </div>
+      </section>
+
+
+      <section
+        class="family-page"
+        id="familyPage-messages"
+        data-page="messages"
+      >
+        <div class="family-placeholder-page">
+          <h1>Messages</h1>
+          <p>
+            Family conversations will appear here.
+          </p>
+        </div>
+      </section>
+
+
+      <section
+        class="family-page"
+        id="familyPage-notifications"
+        data-page="notifications"
+      >
+        <div class="family-placeholder-page">
+          <h1>Notifications</h1>
+          <p>
+            Important request and opportunity notifications
+            will appear here.
+          </p>
+        </div>
+      </section>
+
+
+      <section
+        class="family-page"
+        id="familyPage-settings"
+        data-page="settings"
+      >
+        <div class="family-placeholder-page">
+          <h1>Settings</h1>
+          <p>
+            Family and Investor account preferences will appear
+            here.
+          </p>
+        </div>
+      </section>
+
+
+      <section
+        class="family-page"
+        id="familyPage-help"
+        data-page="help"
+      >
+        <div class="family-placeholder-page">
+          <h1>Help & Support</h1>
+          <p>
+            Support resources will appear here.
+          </p>
+        </div>
+      </section>
+
+
+    </div>
+
+  </main>
+
+
+  <!-- =========================================================
+       CORE PAGE JAVASCRIPT
+  ========================================================== -->
+
+  <script>
+
+    (() => {
+
+      "use strict";
+
+
+      /* =======================================================
+         STATE
+      ======================================================== */
+
+      const familyState = {
+
+        mode:"family",
+
+        page:"overview"
+
+      };
+
+
+      /* =======================================================
+         ELEMENT HELPERS
+      ======================================================== */
+
+      const $ = (selector, root = document) =>
+        root.querySelector(selector);
+
+      const $$ = (selector, root = document) =>
+        Array.from(root.querySelectorAll(selector));
+
+
+      /* =======================================================
+         OPEN PAGE
+      ======================================================== */
+
+      function openFamilyPage(pageName){
+
+        const targetPage =
+          document.querySelector(
+            `.family-page[data-page="${pageName}"]`
+          );
+
+        if(!targetPage){
+          console.warn(
+            "AIFT Family page not found:",
+            pageName
+          );
+          return false;
+        }
+
+
+        $$(".family-page").forEach(page => {
+          page.classList.remove("active");
+        });
+
+
+        targetPage.classList.add("active");
+
+
+        $$(".family-nav-item[data-family-page]")
+          .forEach(button => {
+
+            button.classList.toggle(
+              "active",
+              button.dataset.familyPage === pageName
+            );
+
+          });
+
+
+        familyState.page = pageName;
+
+
+        window.scrollTo({
+          top:0,
+          behavior:"smooth"
+        });
+
+
+        return true;
+
+      }
+
+
+      /* =======================================================
+         MODE SWITCH
+      ======================================================== */
+
+      function setFamilyMode(mode){
+
+        if(
+          mode !== "family" &&
+          mode !== "investor"
+        ){
+          return false;
+        }
+
+
+        familyState.mode = mode;
+
+
+        $$(".family-mode-btn").forEach(button => {
+
+          button.classList.toggle(
+            "active",
+            button.dataset.mode === mode
+          );
+
+        });
+
+
+        if(mode === "family"){
+
+          openFamilyPage("overview");
+
+        }else{
+
+          openFamilyPage("investor-discover");
+
+        }
+
+
+        return true;
+
+      }
+
+
+      /* =======================================================
+         EVENT BINDINGS
+      ======================================================== */
+
+      function bindFamilyNavigation(){
+
+
+        $$(".family-nav-item[data-family-page]")
+          .forEach(button => {
+
+            button.addEventListener(
+              "click",
+              () => {
+
+                openFamilyPage(
+                  button.dataset.familyPage
+                );
+
+              }
+            );
+
+          });
+
+
+        $$("[data-family-open]")
+          .forEach(button => {
+
+            button.addEventListener(
+              "click",
+              () => {
+
+                openFamilyPage(
+                  button.dataset.familyOpen
+                );
+
+              }
+            );
+
+          });
+
+
+        $$(".family-mode-btn")
+          .forEach(button => {
+
+            button.addEventListener(
+              "click",
+              () => {
+
+                setFamilyMode(
+                  button.dataset.mode
+                );
+
+              }
+            );
+
+          });
+
+      }
+
+
+      /* =======================================================
+         SEARCH FOUNDATION
+      ======================================================== */
+
+      function bindFamilySearch(){
+
+        const searchInput =
+          $("#familyGlobalSearch");
+
+        if(!searchInput){
+          return;
+        }
+
+
+        searchInput.addEventListener(
+          "keydown",
+          event => {
+
+            if(event.key !== "Enter"){
+              return;
+            }
+
+
+            const query =
+              searchInput.value
+                .trim();
+
+
+            if(!query){
+              return;
+            }
+
+
+            /*
+              Production search API will be connected later.
+
+              For now we route the user to the relevant
+              discovery page instead of pretending that
+              fake search results exist.
+            */
+
+            if(familyState.mode === "investor"){
+
+              openFamilyPage(
+                "investor-discover"
+              );
+
+            }else{
+
+              openFamilyPage(
+                "opportunities"
+              );
+
+            }
+
+          }
+        );
+
+      }
+
+
+      /* =======================================================
+         KABEZYA FOUNDATION
+      ======================================================== */
+
+      function bindFamilyKabezya(){
+
+        const button =
+          $("#familyAskKabezyaButton");
+
+        if(!button){
+          return;
+        }
+
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            /*
+              We will connect this to the existing Kabezya
+              architecture after the Family backend exists.
+
+              No fake API call is being created here.
+            */
+
+            console.info(
+              "AIFT Family Kabezya integration pending backend connection."
+            );
+
+          }
+        );
+
+      }
+
+
+      /* =======================================================
+         LOGOUT FOUNDATION
+      ======================================================== */
+
+      function bindFamilyLogout(){
+
+        const logoutButton =
+          $("#familyLogoutButton");
+
+        if(!logoutButton){
+          return;
+        }
+
+
+        logoutButton.addEventListener(
+          "click",
+          () => {
+
+            /*
+              Do not remove authentication tokens here yet.
+
+              We will connect this to the same authenticated
+              logout flow already used by your existing AIFT
+              account pages once we inspect that code.
+            */
+
+            console.info(
+              "Family logout will use the existing AIFT auth flow."
+            );
+
+          }
+        );
+
+      }
+
+
+      /* =======================================================
+         INITIALIZE
+      ======================================================== */
+
+      function initFamilyApp(){
+
+        bindFamilyNavigation();
+
+        bindFamilySearch();
+
+        bindFamilyKabezya();
+
+        bindFamilyLogout();
+
+        setFamilyMode("family");
+
+      }
+
+
+      if(document.readyState === "loading"){
+
+        document.addEventListener(
+          "DOMContentLoaded",
+          initFamilyApp,
+          { once:true }
+        );
+
+      }else{
+
+        initFamilyApp();
+
+      }
+
+
+      /* =======================================================
+         PUBLIC METHODS
+      ======================================================== */
+
+      window.openFamilyPage =
+        openFamilyPage;
+
+      window.setFamilyMode =
+        setFamilyMode;
+
+    })();
+
+  </script>
+
+</body>
+</html>
