@@ -16110,16 +16110,24 @@
                 All Statuses
               </option>
 
-              <option value="sent">
-                Interest Sent
+              <option value="awaiting">
+                Awaiting Response
               </option>
 
-              <option value="reviewing">
-                Under Review
+              <option value="accepted">
+                Accepted
               </option>
 
-              <option value="responded">
-                Responded
+              <option value="declined">
+                Declined
+              </option>
+
+              <option value="withdrawn">
+                Withdrawn
+              </option>
+
+              <option value="closed">
+                Closed
               </option>
 
             </select>
@@ -18737,7 +18745,44 @@
           });
 
 
-        familyState.page = pageName;
+        familyState.page =
+          pageName;
+
+
+        /*
+          Investor management pages load from their own
+          authenticated APIs.
+
+          They no longer depend on whether Discover was
+          opened first.
+        */
+
+        if(
+          familyState
+            .investorEnabled ===
+            true
+        ){
+
+          if(
+            pageName ===
+            "investor-saved"
+          ){
+
+            loadFamilyInvestorSaved();
+
+          }
+
+
+          if(
+            pageName ===
+            "investor-interested"
+          ){
+
+            loadFamilyInvestorInterested();
+
+          }
+
+        }
 
 
         window.scrollTo({
@@ -20412,6 +20457,34 @@
 
         loaded:
           false,
+
+
+        /*
+          Dedicated Investor management data.
+
+          These are loaded from the backend and do not
+          depend on whichever cards happen to be visible
+          on the Discover page.
+        */
+
+        savedVentures:
+          [],
+
+        interestedVentures:
+          [],
+
+        loadingSaved:
+          false,
+
+        loadingInterested:
+          false,
+
+        savedLoaded:
+          false,
+
+        interestedLoaded:
+          false,
+
 
         pagination:{
           page:1,
@@ -22527,6 +22600,15 @@
           }
 
 
+                    /*
+            The dedicated Saved endpoint must be reloaded
+            next time its page is opened.
+          */
+
+          familyInvestorState.savedLoaded =
+            false;
+
+
           const venture =
             familyInvestorState
               .ventures
@@ -22681,6 +22763,13 @@
           familyInvestorState
             .interestedIds
             .add(id);
+                    /*
+            Force the Interested page to refresh from the
+            authoritative backend record next time it opens.
+          */
+
+          familyInvestorState.interestedLoaded =
+            false;
 
 
           familyInvestorState
@@ -23024,86 +23113,132 @@
 
       }
 
-            /* =======================================================
+
+      /* =======================================================
          INVESTOR — SAVED + INTERESTED MANAGEMENT
+         REAL BACKEND DATA
       ======================================================== */
 
-      function getInvestorCardData(card){
 
-        if(!card){
+      /* =======================================================
+         NORMALIZE MANAGEMENT VENTURE
+      ======================================================== */
+
+      function getInvestorManagementData(
+        venture
+      ){
+
+        if(!venture){
           return null;
         }
 
 
-        const type =
-          card.dataset.investorType || "";
-
-        const title =
-          card.dataset.investorTitle || "";
-
-        const source =
-          card.dataset.investorSource || "";
-
-        const industry =
-          card.dataset.investorIndustry || "";
-
-        const amount =
-          Number(
-            card.dataset.investorAmount || 0
-          );
-
-
-        const description =
-          card.querySelector(
-            ".family-investor-card-description"
-          )?.textContent.trim() || "";
-
-
-        const image =
-          card.querySelector(
-            ".family-investor-card-media img"
-          )?.src || "";
+        const investorState =
+          venture.investorState ||
+          {};
 
 
         return {
 
           id:
-            getFamilyInvestorCardId(card),
+            String(
+              venture._id ||
+              ""
+            ),
 
-          type,
+          type:
+            familyInvestorCategoryFromVenture(
+              venture
+            ),
 
-          title,
+          title:
+            venture.title ||
+            "Untitled Venture",
 
-          source,
+          source:
+            familyInvestorSourceFromVenture(
+              venture
+            ),
 
-          industry,
+          industry:
+            normalizeFamilyInvestorIndustry(
+              venture.industry
+            ),
 
-          amount,
+          amount:
+            getFamilyInvestorAmount(
+              venture
+            ),
 
-          description,
+          description:
+            venture.description ||
+            venture.tagline ||
+            "No description has been provided yet.",
 
-          image
+          image:
+            getFamilyInvestorImage(
+              venture
+            ),
+
+          stage:
+            venture.stage ||
+            "",
+
+          location:
+            venture.location ||
+            "",
+
+          verified:
+            isFamilyInvestorVerified(
+              venture
+            ),
+
+          requester:
+            getFamilyInvestorRequesterName(
+              venture
+            ),
+
+          saved:
+            investorState.saved ===
+            true,
+
+          interested:
+            investorState.interested ===
+            true,
+
+          interestStatus:
+            investorState
+              .interestStatus ||
+            null,
+
+          investmentInterest:
+            investorState
+              .investmentInterest ||
+            null,
+
+          raw:
+            venture
 
         };
 
       }
 
 
-      function getInvestorTypeLabel(type){
+      /* =======================================================
+         TYPE LABELS
+      ======================================================== */
+
+      function getInvestorTypeLabel(
+        type
+      ){
 
         const labels = {
-
-          scholarship:
-            "Scholarship",
 
           business:
             "Business",
 
           project:
             "Project",
-
-          investment:
-            "Business",
 
           education:
             "Education"
@@ -23119,27 +23254,147 @@
       }
 
 
-      function getInvestorTypeClass(type){
-
-        if(type === "scholarship"){
-          return "scholarship";
-        }
+      function getInvestorTypeClass(
+        type
+      ){
 
         if(
-          type === "business" ||
-          type === "investment"
+          type ===
+          "business"
         ){
+
           return "business";
+
         }
 
-        if(type === "project"){
+
+        if(
+          type ===
+          "project"
+        ){
+
           return "project";
+
         }
+
 
         return "education";
 
       }
 
+
+      /* =======================================================
+         REAL INTEREST STATUS
+      ======================================================== */
+
+      function normalizeInvestorInterestGroup(
+        status
+      ){
+
+        const value =
+          String(
+            status || ""
+          )
+            .trim()
+            .toLowerCase();
+
+
+        if(
+          [
+            "pending",
+            "active"
+          ].includes(
+            value
+          )
+        ){
+
+          return "awaiting";
+
+        }
+
+
+        return value;
+
+      }
+
+
+      function getInvestorInterestStatusLabel(
+        status
+      ){
+
+        const labels = {
+
+          pending:
+            "Interest Sent",
+
+          active:
+            "Awaiting Response",
+
+          accepted:
+            "Accepted",
+
+          declined:
+            "Declined",
+
+          withdrawn:
+            "Withdrawn",
+
+          closed:
+            "Closed"
+
+        };
+
+
+        return (
+          labels[status] ||
+          "Interest Sent"
+        );
+
+      }
+
+
+      function getInvestorInterestStatusClass(
+        status
+      ){
+
+        const value =
+          normalizeInvestorInterestGroup(
+            status
+          );
+
+
+        if(
+          value ===
+          "accepted"
+        ){
+
+          return "responded";
+
+        }
+
+
+        if(
+          value ===
+            "declined" ||
+          value ===
+            "withdrawn" ||
+          value ===
+            "closed"
+        ){
+
+          return "responded";
+
+        }
+
+
+        return "sent";
+
+      }
+
+
+      /* =======================================================
+         CREATE MANAGEMENT CARD
+      ======================================================== */
 
       function createInvestorManagementCard(
         data,
@@ -23163,6 +23418,10 @@
           data.type;
 
 
+        /* -----------------------------------------------
+           IMAGE
+        ------------------------------------------------ */
+
         const image =
           document.createElement(
             "div"
@@ -23183,9 +23442,18 @@
         img.alt =
           data.title;
 
+        img.loading =
+          "lazy";
 
-        image.appendChild(img);
 
+        image.appendChild(
+          img
+        );
+
+
+        /* -----------------------------------------------
+           MAIN
+        ------------------------------------------------ */
 
         const main =
           document.createElement(
@@ -23196,56 +23464,130 @@
           "family-investor-management-main";
 
 
-        const typeClass =
-          getInvestorTypeClass(
+        const topline =
+          document.createElement(
+            "div"
+          );
+
+        topline.className =
+          "family-investor-management-topline";
+
+
+        const type =
+          document.createElement(
+            "span"
+          );
+
+        type.className =
+          `family-investor-management-type ${getInvestorTypeClass(
+            data.type
+          )}`;
+
+        type.textContent =
+          getInvestorTypeLabel(
             data.type
           );
 
 
-        main.innerHTML = `
+        const source =
+          document.createElement(
+            "span"
+          );
 
-          <div class="family-investor-management-topline">
+        source.className =
+          "family-investor-management-source";
 
-            <span class="family-investor-management-type ${typeClass}">
-              ${getInvestorTypeLabel(data.type)}
-            </span>
-
-            <span class="family-investor-management-source">
-              ${familyFundingDisplayLabel(data.source)}
-            </span>
-
-          </div>
-
-          <h3 class="family-investor-management-name"></h3>
-
-          <div class="family-investor-management-description"></div>
-
-          <div class="family-investor-management-meta">
-
-            <span class="family-investor-management-chip">
-              ${familyFundingDisplayLabel(data.industry)}
-            </span>
-
-            <span class="family-investor-management-chip">
-              ${familyFundingDisplayLabel(data.source)}
-            </span>
-
-          </div>
-
-        `;
+        source.textContent =
+          familyInvestorSourceLabel(
+            data.source
+          );
 
 
-        main.querySelector(
-          ".family-investor-management-name"
-        ).textContent =
+        topline.append(
+          type,
+          source
+        );
+
+
+        const title =
+          document.createElement(
+            "h3"
+          );
+
+        title.className =
+          "family-investor-management-name";
+
+        title.textContent =
           data.title;
 
 
-        main.querySelector(
-          ".family-investor-management-description"
-        ).textContent =
+        const description =
+          document.createElement(
+            "div"
+          );
+
+        description.className =
+          "family-investor-management-description";
+
+        description.textContent =
           data.description;
 
+
+        const meta =
+          document.createElement(
+            "div"
+          );
+
+        meta.className =
+          "family-investor-management-meta";
+
+
+        [
+          familyInvestorIndustryLabel(
+            data.industry
+          ),
+
+          familyInvestorStageLabel(
+            data.stage
+          ),
+
+          data.location ||
+            familyInvestorSourceLabel(
+              data.source
+            )
+
+        ].forEach(value => {
+
+          const chip =
+            document.createElement(
+              "span"
+            );
+
+          chip.className =
+            "family-investor-management-chip";
+
+          chip.textContent =
+            value;
+
+
+          meta.appendChild(
+            chip
+          );
+
+        });
+
+
+        main.append(
+          topline,
+          title,
+          description,
+          meta
+        );
+
+
+        /* -----------------------------------------------
+           SIDE
+        ------------------------------------------------ */
 
         const side =
           document.createElement(
@@ -23270,10 +23612,19 @@
           );
 
 
-        side.appendChild(amount);
+        side.appendChild(
+          amount
+        );
 
 
-        if(mode === "saved"){
+        /* -----------------------------------------------
+           SAVED MODE
+        ------------------------------------------------ */
+
+        if(
+          mode ===
+          "saved"
+        ){
 
           const status =
             document.createElement(
@@ -23310,6 +23661,10 @@
           view.textContent =
             "View";
 
+          view.dataset
+            .managementView =
+              data.id;
+
 
           const remove =
             document.createElement(
@@ -23325,60 +23680,9 @@
           remove.textContent =
             "Remove";
 
-
-          remove.addEventListener(
-            "click",
-            () => {
-
-              const discoverCard =
-                getFamilyInvestorCards()
-                  .find(card =>
-                    getFamilyInvestorCardId(card) ===
-                    data.id
-                  );
-
-
-              if(discoverCard){
-
-                discoverCard.dataset
-                  .investorSaved =
-                    "false";
-
-
-                const saveButton =
-                  discoverCard.querySelector(
-                    "[data-investor-save]"
-                  );
-
-
-                if(saveButton){
-
-                  saveButton.textContent =
-                    "Save";
-
-                  saveButton.classList
-                    .remove(
-                      "saved"
-                    );
-
-                }
-
-              }
-
-
-              familyInvestorState
-                .savedIds
-                .delete(
-                  data.id
-                );
-
-
-              renderFamilyInvestorSaved();
-
-              updateFamilyInvestorManagementCounts();
-
-            }
-          );
+          remove.dataset
+            .managementRemoveSaved =
+              data.id;
 
 
           actions.append(
@@ -23394,12 +23698,13 @@
 
         }else{
 
+          /* ---------------------------------------------
+             INTERESTED MODE
+          ---------------------------------------------- */
 
-          const interestStatus =
-            familyInvestorState
-              .interestStatus
-              .get(data.id) ||
-            "sent";
+          const rawStatus =
+            data.interestStatus ||
+            "pending";
 
 
           const status =
@@ -23407,30 +23712,15 @@
               "span"
             );
 
-
           status.className =
-            `family-investor-management-status ${interestStatus}`;
-
-
-          const labels = {
-
-            sent:
-              "Interest Sent",
-
-            reviewing:
-              "Under Review",
-
-            responded:
-              "Responded"
-
-          };
-
+            `family-investor-management-status ${getInvestorInterestStatusClass(
+              rawStatus
+            )}`;
 
           status.textContent =
-            labels[
-              interestStatus
-            ] ||
-            "Interest Sent";
+            getInvestorInterestStatusLabel(
+              rawStatus
+            );
 
 
           const timeline =
@@ -23440,6 +23730,25 @@
 
           timeline.className =
             "family-investor-interest-timeline";
+
+
+          const awaiting =
+            [
+              "pending",
+              "active"
+            ].includes(
+              rawStatus
+            );
+
+
+          const responded =
+            [
+              "accepted",
+              "declined",
+              "closed"
+            ].includes(
+              rawStatus
+            );
 
 
           timeline.innerHTML = `
@@ -23453,10 +23762,9 @@
             </div>
 
             <div class="family-investor-interest-step ${
-              interestStatus === "reviewing" ||
-              interestStatus === "responded"
-                ? "complete"
-                : "active"
+              awaiting
+                ? "active"
+                : "complete"
             }">
 
               <span class="family-investor-interest-dot"></span>
@@ -23466,7 +23774,7 @@
             </div>
 
             <div class="family-investor-interest-step ${
-              interestStatus === "responded"
+              responded
                 ? "complete"
                 : ""
             }">
@@ -23503,28 +23811,23 @@
           view.textContent =
             "View Request";
 
-
-          const contact =
-            document.createElement(
-              "button"
-            );
-
-          contact.type =
-            "button";
-
-          contact.className =
-            "family-investor-small-btn";
-
-          contact.textContent =
-            interestStatus === "responded"
-              ? "Message"
-              : "Details";
+          view.dataset
+            .managementView =
+              data.id;
 
 
-          actions.append(
-            view,
-            contact
+          actions.appendChild(
+            view
           );
+
+
+          /*
+            We intentionally do not create a fake Message
+            or Contact action here.
+
+            That will be connected only when the real
+            conversation/introduction route is wired.
+          */
 
 
           side.append(
@@ -23548,6 +23851,297 @@
       }
 
 
+      /* =======================================================
+         LOAD SAVED FROM BACKEND
+      ======================================================== */
+
+      async function loadFamilyInvestorSaved(
+        {
+          force = false
+        } = {}
+      ){
+
+        if(
+          familyState
+            .investorEnabled !==
+            true
+        ){
+
+          return;
+
+        }
+
+
+        if(
+          familyInvestorState
+            .loadingSaved
+        ){
+
+          return;
+
+        }
+
+
+        if(
+          familyInvestorState
+            .savedLoaded &&
+          !force
+        ){
+
+          renderFamilyInvestorSaved();
+
+          return;
+
+        }
+
+
+        familyInvestorState.loadingSaved =
+          true;
+
+
+        try{
+
+          const data =
+            await familyApiFetch(
+              "/api/ventures/investor/saved"
+            );
+
+
+          familyInvestorState.savedVentures =
+            Array.isArray(
+              data?.ventures
+            )
+              ? data.ventures
+              : [];
+
+
+          familyInvestorState.savedLoaded =
+            true;
+
+
+          /*
+            Keep Discover state consistent when the same
+            venture is present there too.
+          */
+
+          familyInvestorState
+            .savedIds
+            .clear();
+
+
+          familyInvestorState
+            .savedVentures
+            .forEach(venture => {
+
+              const id =
+                String(
+                  venture?._id ||
+                  ""
+                );
+
+
+              if(id){
+
+                familyInvestorState
+                  .savedIds
+                  .add(id);
+
+              }
+
+            });
+
+
+          renderFamilyInvestorSaved();
+
+          updateFamilyInvestorManagementCounts();
+
+
+        }catch(error){
+
+          console.error(
+            "AIFT Investor saved load failed:",
+            error
+          );
+
+
+          familyInvestorState.savedVentures =
+            [];
+
+
+          familyInvestorState.savedLoaded =
+            false;
+
+
+          renderFamilyInvestorSaved();
+
+
+        }finally{
+
+          familyInvestorState.loadingSaved =
+            false;
+
+        }
+
+      }
+
+
+      /* =======================================================
+         LOAD INTERESTED FROM BACKEND
+      ======================================================== */
+
+      async function loadFamilyInvestorInterested(
+        {
+          force = false
+        } = {}
+      ){
+
+        if(
+          familyState
+            .investorEnabled !==
+            true
+        ){
+
+          return;
+
+        }
+
+
+        if(
+          familyInvestorState
+            .loadingInterested
+        ){
+
+          return;
+
+        }
+
+
+        if(
+          familyInvestorState
+            .interestedLoaded &&
+          !force
+        ){
+
+          renderFamilyInvestorInterested();
+
+          return;
+
+        }
+
+
+        familyInvestorState.loadingInterested =
+          true;
+
+
+        try{
+
+          const data =
+            await familyApiFetch(
+              "/api/ventures/investor/interested"
+            );
+
+
+          familyInvestorState.interestedVentures =
+            Array.isArray(
+              data?.ventures
+            )
+              ? data.ventures
+              : [];
+
+
+          familyInvestorState.interestedLoaded =
+            true;
+
+
+          familyInvestorState
+            .interestedIds
+            .clear();
+
+
+          familyInvestorState
+            .interestStatus
+            .clear();
+
+
+          familyInvestorState
+            .interestedVentures
+            .forEach(venture => {
+
+              const id =
+                String(
+                  venture?._id ||
+                  ""
+                );
+
+
+              if(!id){
+                return;
+              }
+
+
+              familyInvestorState
+                .interestedIds
+                .add(id);
+
+
+              const status =
+                venture
+                  ?.investorState
+                  ?.interestStatus;
+
+
+              if(status){
+
+                familyInvestorState
+                  .interestStatus
+                  .set(
+                    id,
+                    status
+                  );
+
+              }
+
+            });
+
+
+          renderFamilyInvestorInterested();
+
+          updateFamilyInvestorManagementCounts();
+
+
+        }catch(error){
+
+          console.error(
+            "AIFT Investor interested load failed:",
+            error
+          );
+
+
+          familyInvestorState.interestedVentures =
+            [];
+
+
+          familyInvestorState.interestedLoaded =
+            false;
+
+
+          renderFamilyInvestorInterested();
+
+
+        }finally{
+
+          familyInvestorState.loadingInterested =
+            false;
+
+        }
+
+      }
+
+
+      /* =======================================================
+         RENDER SAVED
+      ======================================================== */
+
       function renderFamilyInvestorSaved(){
 
         const list =
@@ -23556,100 +24150,118 @@
         const empty =
           $("#familyInvestorSavedEmpty");
 
+
         if(!list){
           return;
         }
 
 
-        list.innerHTML = "";
+        list.innerHTML =
+          "";
 
 
         const search =
           $("#familyInvestorSavedSearch")
-            ?.value.trim()
-            .toLowerCase() || "";
+            ?.value
+            .trim()
+            .toLowerCase() ||
+          "";
 
 
         const type =
           $("#familyInvestorSavedType")
-            ?.value || "";
+            ?.value ||
+          "";
 
 
-        const savedCards =
-          getFamilyInvestorCards()
-            .filter(card =>
-              card.dataset
-                .investorSaved ===
-              "true"
+        let visibleCount =
+          0;
+
+
+        familyInvestorState
+          .savedVentures
+          .forEach(venture => {
+
+            const data =
+              getInvestorManagementData(
+                venture
+              );
+
+
+            if(!data){
+              return;
+            }
+
+
+            const matchesSearch =
+              !search ||
+              data.title
+                .toLowerCase()
+                .includes(
+                  search
+                ) ||
+              data.description
+                .toLowerCase()
+                .includes(
+                  search
+                );
+
+
+            /*
+              Scholarship records are not Venture records yet,
+              so this real Saved endpoint contains ventures only.
+            */
+
+            const matchesType =
+              !type ||
+              (
+                type !==
+                  "scholarship" &&
+                data.type ===
+                  type
+              );
+
+
+            if(
+              !matchesSearch ||
+              !matchesType
+            ){
+
+              return;
+
+            }
+
+
+            list.appendChild(
+              createInvestorManagementCard(
+                data,
+                "saved"
+              )
             );
 
 
-        let visibleCount = 0;
+            visibleCount +=
+              1;
 
-
-        savedCards.forEach(card => {
-
-          const data =
-            getInvestorCardData(card);
-
-          if(!data){
-            return;
-          }
-
-
-          const matchesSearch =
-            !search ||
-            data.title
-              .toLowerCase()
-              .includes(search) ||
-            data.description
-              .toLowerCase()
-              .includes(search);
-
-
-          const normalizedType =
-            data.type === "investment"
-              ? "business"
-              : data.type;
-
-
-          const matchesType =
-            !type ||
-            normalizedType === type;
-
-
-          if(
-            !matchesSearch ||
-            !matchesType
-          ){
-            return;
-          }
-
-
-          list.appendChild(
-            createInvestorManagementCard(
-              data,
-              "saved"
-            )
-          );
-
-
-          visibleCount += 1;
-
-        });
+          });
 
 
         if(empty){
 
           empty.classList.toggle(
             "active",
-            visibleCount === 0
+            visibleCount ===
+              0
           );
 
         }
 
       }
 
+
+      /* =======================================================
+         RENDER INTERESTED
+      ======================================================== */
 
       function renderFamilyInvestorInterested(){
 
@@ -23659,95 +24271,116 @@
         const empty =
           $("#familyInvestorInterestedEmpty");
 
+
         if(!list){
           return;
         }
 
 
-        list.innerHTML = "";
+        list.innerHTML =
+          "";
 
 
         const search =
           $("#familyInvestorInterestedSearch")
-            ?.value.trim()
-            .toLowerCase() || "";
+            ?.value
+            .trim()
+            .toLowerCase() ||
+          "";
 
 
         const statusFilter =
           $("#familyInvestorInterestedStatus")
-            ?.value || "";
+            ?.value ||
+          "";
 
 
-        const cards =
-          getFamilyInvestorCards()
-            .filter(card =>
-              card.dataset
-                .investorInterested ===
-              "true"
+        let visibleCount =
+          0;
+
+
+        familyInvestorState
+          .interestedVentures
+          .forEach(venture => {
+
+            const data =
+              getInvestorManagementData(
+                venture
+              );
+
+
+            if(!data){
+              return;
+            }
+
+
+            const rawStatus =
+              data.interestStatus ||
+              "pending";
+
+
+            const groupedStatus =
+              normalizeInvestorInterestGroup(
+                rawStatus
+              );
+
+
+            const matchesSearch =
+              !search ||
+              data.title
+                .toLowerCase()
+                .includes(
+                  search
+                ) ||
+              data.description
+                .toLowerCase()
+                .includes(
+                  search
+                );
+
+
+            const matchesStatus =
+              !statusFilter ||
+              (
+                statusFilter ===
+                  "awaiting"
+                  ? groupedStatus ===
+                    "awaiting"
+                  : rawStatus ===
+                    statusFilter
+              );
+
+
+            if(
+              !matchesSearch ||
+              !matchesStatus
+            ){
+
+              return;
+
+            }
+
+
+            list.appendChild(
+              createInvestorManagementCard(
+                data,
+                "interested"
+              )
             );
 
 
-        let visibleCount = 0;
+            visibleCount +=
+              1;
 
-
-        cards.forEach(card => {
-
-          const data =
-            getInvestorCardData(card);
-
-          if(!data){
-            return;
-          }
-
-
-          const status =
-            familyInvestorState
-              .interestStatus
-              .get(data.id) ||
-            "sent";
-
-
-          const matchesSearch =
-            !search ||
-            data.title
-              .toLowerCase()
-              .includes(search) ||
-            data.description
-              .toLowerCase()
-              .includes(search);
-
-
-          const matchesStatus =
-            !statusFilter ||
-            status === statusFilter;
-
-
-          if(
-            !matchesSearch ||
-            !matchesStatus
-          ){
-            return;
-          }
-
-
-          list.appendChild(
-            createInvestorManagementCard(
-              data,
-              "interested"
-            )
-          );
-
-
-          visibleCount += 1;
-
-        });
+          });
 
 
         if(empty){
 
           empty.classList.toggle(
             "active",
-            visibleCount === 0
+            visibleCount ===
+              0
           );
 
         }
@@ -23755,51 +24388,276 @@
       }
 
 
+      /* =======================================================
+         REMOVE SAVED — REAL BACKEND
+      ======================================================== */
+
+      async function removeFamilyInvestorSaved(
+        ventureId,
+        button
+      ){
+
+        if(
+          !ventureId ||
+          button?.disabled
+        ){
+
+          return;
+
+        }
+
+
+        if(button){
+
+          button.disabled =
+            true;
+
+          button.textContent =
+            "Removing...";
+
+        }
+
+
+        try{
+
+          const data =
+            await familyApiJson(
+              `/api/ventures/${encodeURIComponent(
+                ventureId
+              )}/save`,
+              {
+                method:
+                  "PATCH"
+              }
+            );
+
+
+          /*
+            /save is a toggle route.
+
+            On this page the record came from the real
+            saved endpoint, so a successful toggle should
+            return saved:false.
+          */
+
+          if(
+            data?.saved ===
+            true
+          ){
+
+            throw new Error(
+              "The opportunity is still saved. Please try again."
+            );
+
+          }
+
+
+          familyInvestorState.savedVentures =
+            familyInvestorState
+              .savedVentures
+              .filter(
+                venture =>
+                  String(
+                    venture?._id
+                  ) !==
+                  String(
+                    ventureId
+                  )
+              );
+
+
+          familyInvestorState
+            .savedIds
+            .delete(
+              String(
+                ventureId
+              )
+            );
+
+
+          const discoverVenture =
+            familyInvestorState
+              .ventures
+              .find(
+                venture =>
+                  String(
+                    venture?._id
+                  ) ===
+                  String(
+                    ventureId
+                  )
+              );
+
+
+          if(discoverVenture){
+
+            discoverVenture.investorState =
+              discoverVenture
+                .investorState ||
+              {};
+
+
+            discoverVenture
+              .investorState
+              .saved =
+                false;
+
+          }
+
+
+          const discoverCard =
+            getFamilyInvestorCards()
+              .find(
+                card =>
+                  getFamilyInvestorCardId(
+                    card
+                  ) ===
+                  String(
+                    ventureId
+                  )
+              );
+
+
+          if(discoverCard){
+
+            discoverCard.dataset
+              .investorSaved =
+                "false";
+
+
+            const saveButton =
+              discoverCard
+                .querySelector(
+                  "[data-investor-save]"
+                );
+
+
+            if(saveButton){
+
+              saveButton.textContent =
+                "Save";
+
+              saveButton.classList
+                .remove(
+                  "saved"
+                );
+
+            }
+
+          }
+
+
+          renderFamilyInvestorSaved();
+
+          applyFamilyInvestorFilters();
+
+          updateFamilyInvestorManagementCounts();
+
+
+        }catch(error){
+
+          console.error(
+            "AIFT remove saved venture failed:",
+            error
+          );
+
+
+          if(button){
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              "Remove";
+
+          }
+
+
+          window.alert(
+            error.message ||
+            "Could not remove this saved opportunity."
+          );
+
+        }
+
+      }
+
+
+      /* =======================================================
+         VIEW FROM MANAGEMENT PAGE
+      ======================================================== */
+
+      async function viewFamilyInvestorManagementVenture(
+        ventureId
+      ){
+
+        if(!ventureId){
+          return;
+        }
+
+
+        try{
+
+          await familyApiJson(
+            `/api/ventures/${encodeURIComponent(
+              ventureId
+            )}/view`,
+            {
+              method:
+                "PATCH"
+            }
+          );
+
+        }catch(error){
+
+          console.warn(
+            "AIFT venture view tracking failed:",
+            error
+          );
+
+        }
+
+
+        /*
+          We intentionally do not navigate to an invented
+          venture-detail page.
+
+          The detail drawer/page will be connected separately.
+        */
+
+        console.info(
+          "AIFT Venture selected:",
+          ventureId
+        );
+
+      }
+
+
+      /* =======================================================
+         REAL MANAGEMENT COUNTS
+      ======================================================== */
+
       function updateFamilyInvestorManagementCounts(){
 
-        const cards =
-          getFamilyInvestorCards();
-
-
         const saved =
-          cards.filter(card =>
-            card.dataset
-              .investorSaved ===
-            "true"
-          );
+          familyInvestorState
+            .savedVentures;
 
 
         const interested =
-          cards.filter(card =>
-            card.dataset
-              .investorInterested ===
-            "true"
-          );
-
-
-        const savedScholarships =
-          saved.filter(card =>
-            card.dataset
-              .investorType ===
-            "scholarship"
-          );
-
-
-        const savedVentures =
-          saved.filter(card =>
-            card.dataset
-              .investorType !==
-            "scholarship"
-          );
+          familyInvestorState
+            .interestedVentures;
 
 
         const savedValue =
           saved.reduce(
-            (sum,card) =>
-              sum +
-              Number(
-                card.dataset
-                  .investorAmount || 0
+            (
+              total,
+              venture
+            ) =>
+              total +
+              getFamilyInvestorAmount(
+                venture
               ),
             0
           );
@@ -23807,62 +24665,80 @@
 
         const interestedValue =
           interested.reduce(
-            (sum,card) =>
-              sum +
-              Number(
-                card.dataset
-                  .investorAmount || 0
+            (
+              total,
+              venture
+            ) =>
+              total +
+              getFamilyInvestorAmount(
+                venture
               ),
             0
           );
 
 
         const awaiting =
-          interested.filter(card => {
+          interested.filter(
+            venture => {
 
-            const id =
-              getFamilyInvestorCardId(
-                card
+              const status =
+                venture
+                  ?.investorState
+                  ?.interestStatus ||
+                "pending";
+
+
+              return (
+                normalizeInvestorInterestGroup(
+                  status
+                ) ===
+                "awaiting"
               );
 
-
-            return (
-              familyInvestorState
-                .interestStatus
-                .get(id) ||
-              "sent"
-            ) !== "responded";
-
-          });
+            }
+          );
 
 
         const responded =
-          interested.filter(card => {
+          interested.filter(
+            venture => {
 
-            const id =
-              getFamilyInvestorCardId(
-                card
+              const status =
+                String(
+                  venture
+                    ?.investorState
+                    ?.interestStatus ||
+                  ""
+                );
+
+
+              return [
+                "accepted",
+                "declined",
+                "closed"
+              ].includes(
+                status
               );
 
-
-            return (
-              familyInvestorState
-                .interestStatus
-                .get(id)
-            ) === "responded";
-
-          });
+            }
+          );
 
 
         const setText =
-          (selector,value) => {
+          (
+            selector,
+            value
+          ) => {
 
             const node =
               $(selector);
 
+
             if(node){
+
               node.textContent =
                 value;
+
             }
 
           };
@@ -23874,15 +24750,20 @@
         );
 
 
+        /*
+          Scholarship backend is separate from Ventures
+          and is not connected yet.
+        */
+
         setText(
           "#familyInvestorSavedScholarships",
-          savedScholarships.length
+          0
         );
 
 
         setText(
           "#familyInvestorSavedVentures",
-          savedVentures.length
+          saved.length
         );
 
 
@@ -23920,118 +24801,171 @@
         );
 
 
-        const overviewSaved =
+        /*
+          Discover header should represent actual saved
+          Venture count whenever Saved data has loaded.
+        */
+
+        const discoverSaved =
           $("#familyInvestorSavedCount");
 
-        if(overviewSaved){
 
-          overviewSaved.textContent =
-            saved.length;
+        if(
+          discoverSaved &&
+          familyInvestorState
+            .savedLoaded
+        ){
+
+          discoverSaved.textContent =
+            String(
+              saved.length
+            );
 
         }
 
 
-        const familyOverviewSaved =
+        const overviewSaved =
           $("#familySummarySaved");
 
-        if(familyOverviewSaved){
 
-          familyOverviewSaved.textContent =
-            saved.length;
+        if(
+          overviewSaved &&
+          familyInvestorState
+            .savedLoaded
+        ){
+
+          overviewSaved.textContent =
+            String(
+              saved.length
+            );
 
         }
 
 
-        const familyOverviewInterested =
+        const overviewInterested =
           $("#familySummaryInterested");
 
-        if(familyOverviewInterested){
 
-          familyOverviewInterested.textContent =
-            interested.length;
+        if(
+          overviewInterested &&
+          familyInvestorState
+            .interestedLoaded
+        ){
+
+          overviewInterested.textContent =
+            String(
+              interested.length
+            );
 
         }
 
       }
 
 
+      /* =======================================================
+         BIND MANAGEMENT PAGES
+      ======================================================== */
+
       function bindFamilyInvestorManagement(){
 
-        const savedSearch =
-          $("#familyInvestorSavedSearch");
-
-        const savedType =
-          $("#familyInvestorSavedType");
-
-        const interestedSearch =
-          $("#familyInvestorInterestedSearch");
-
-        const interestedStatus =
-          $("#familyInvestorInterestedStatus");
-
-
-        if(savedSearch){
-
-          savedSearch.addEventListener(
+        $("#familyInvestorSavedSearch")
+          ?.addEventListener(
             "input",
             renderFamilyInvestorSaved
           );
 
-        }
 
-
-        if(savedType){
-
-          savedType.addEventListener(
+        $("#familyInvestorSavedType")
+          ?.addEventListener(
             "change",
             renderFamilyInvestorSaved
           );
 
-        }
 
-
-        if(interestedSearch){
-
-          interestedSearch.addEventListener(
+        $("#familyInvestorInterestedSearch")
+          ?.addEventListener(
             "input",
             renderFamilyInvestorInterested
           );
 
-        }
 
-
-        if(interestedStatus){
-
-          interestedStatus.addEventListener(
+        $("#familyInvestorInterestedStatus")
+          ?.addEventListener(
             "change",
             renderFamilyInvestorInterested
           );
 
-        }
+
+        /*
+          Saved cards are generated asynchronously,
+          therefore actions use event delegation.
+        */
+
+        $("#familyInvestorSavedList")
+          ?.addEventListener(
+            "click",
+            event => {
+
+              const removeButton =
+                event.target.closest(
+                  "[data-management-remove-saved]"
+                );
 
 
-        getFamilyInvestorCards()
-          .forEach(card => {
+              if(removeButton){
 
-            const id =
-              getFamilyInvestorCardId(
-                card
-              );
+                removeFamilyInvestorSaved(
+                  removeButton.dataset
+                    .managementRemoveSaved,
+                  removeButton
+                );
+
+                return;
+
+              }
 
 
-            if(
-              card.dataset
-                .investorSaved ===
-              "true"
-            ){
+              const viewButton =
+                event.target.closest(
+                  "[data-management-view]"
+                );
 
-              familyInvestorState
-                .savedIds
-                .add(id);
+
+              if(viewButton){
+
+                viewFamilyInvestorManagementVenture(
+                  viewButton.dataset
+                    .managementView
+                );
+
+              }
 
             }
+          );
 
-          });
+
+        $("#familyInvestorInterestedList")
+          ?.addEventListener(
+            "click",
+            event => {
+
+              const viewButton =
+                event.target.closest(
+                  "[data-management-view]"
+                );
+
+
+              if(viewButton){
+
+                viewFamilyInvestorManagementVenture(
+                  viewButton.dataset
+                    .managementView
+                );
+
+              }
+
+            }
+          );
 
 
         renderFamilyInvestorSaved();
