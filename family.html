@@ -18845,6 +18845,21 @@
             "investor-discover"
           );
 
+
+          /*
+            Load the real shared Venture marketplace
+            the first time Investor Mode is opened.
+          */
+
+          if(
+            !familyInvestorState
+              .loaded
+          ){
+
+            loadFamilyInvestorDiscovery();
+
+          }
+
         }
 
 
@@ -20369,22 +20384,508 @@
 
       }
 
-            /* =======================================================
+
+      /* =======================================================
          INVESTOR DISCOVERY
+         REAL SHARED AIFT VENTURES
       ======================================================== */
 
       const familyInvestorState = {
 
-        category:"",
+        category:
+          "",
 
-        savedIds:new Set(),
+        ventures:
+          [],
 
-        interestedIds:new Set(),
+        savedIds:
+          new Set(),
 
-        interestStatus:new Map()
+        interestedIds:
+          new Set(),
+
+        interestStatus:
+          new Map(),
+
+        loading:
+          false,
+
+        loaded:
+          false,
+
+        pagination:{
+          page:1,
+          limit:50,
+          total:0,
+          pages:1
+        }
 
       };
 
+
+      /* =======================================================
+         INVESTOR DISPLAY HELPERS
+      ======================================================== */
+
+      function normalizeFamilyInvestorIndustry(
+        value
+      ){
+
+        return String(
+          value || ""
+        )
+          .trim()
+          .toLowerCase();
+
+      }
+
+
+      function familyInvestorSourceFromVenture(
+        venture
+      ){
+
+        const role =
+          String(
+            venture
+              ?.ownerId
+              ?.role || ""
+          )
+            .trim()
+            .toLowerCase();
+
+
+        if(
+          [
+            "student",
+            "school",
+            "employer",
+            "family"
+          ].includes(role)
+        ){
+
+          return role;
+
+        }
+
+
+        if(
+          role === "talent"
+        ){
+
+          return "student";
+
+        }
+
+
+        return role ||
+          "aift";
+
+      }
+
+
+      function familyInvestorSourceLabel(
+        source
+      ){
+
+        const labels = {
+
+          student:
+            "Student",
+
+          school:
+            "School",
+
+          employer:
+            "Employer",
+
+          family:
+            "Family",
+
+          admin:
+            "AIFT",
+
+          aift:
+            "AIFT"
+
+        };
+
+
+        return (
+          labels[source] ||
+          "AIFT"
+        );
+
+      }
+
+
+      function familyInvestorCategoryFromVenture(
+        venture
+      ){
+
+        const industry =
+          normalizeFamilyInvestorIndustry(
+            venture?.industry
+          );
+
+
+        if(
+          industry ===
+          "education"
+        ){
+
+          return "education";
+
+        }
+
+
+        const type =
+          String(
+            venture
+              ?.ventureType || ""
+          )
+            .trim()
+            .toLowerCase();
+
+
+        if(
+          type ===
+            "business" ||
+          type ===
+            "startup"
+        ){
+
+          return "business";
+
+        }
+
+
+        return "project";
+
+      }
+
+
+      function familyInvestorCategoryLabel(
+        venture
+      ){
+
+        const type =
+          String(
+            venture
+              ?.ventureType || ""
+          )
+            .trim()
+            .toLowerCase();
+
+
+        const labels = {
+
+          "student-project":
+            "Student Project",
+
+          startup:
+            "Startup",
+
+          business:
+            "Business Funding",
+
+          research:
+            "Research Project",
+
+          "social-enterprise":
+            "Social Enterprise"
+
+        };
+
+
+        return (
+          labels[type] ||
+          "Investment Opportunity"
+        );
+
+      }
+
+
+      function familyInvestorStageLabel(
+        value
+      ){
+
+        const labels = {
+
+          idea:
+            "Idea",
+
+          research:
+            "Research",
+
+          prototype:
+            "Prototype",
+
+          testing:
+            "Testing",
+
+          pilot:
+            "Pilot",
+
+          "early-revenue":
+            "Early Revenue",
+
+          growth:
+            "Growth"
+
+        };
+
+
+        return (
+          labels[value] ||
+          value ||
+          "Active"
+        );
+
+      }
+
+
+      function familyInvestorIndustryLabel(
+        value
+      ){
+
+        const normalized =
+          String(
+            value || ""
+          )
+            .replaceAll(
+              "_",
+              " "
+            )
+            .trim();
+
+
+        if(!normalized){
+
+          return "General";
+
+        }
+
+
+        return normalized
+          .split(" ")
+          .map(word =>
+            word
+              ? (
+                  word[0]
+                    .toUpperCase() +
+                  word
+                    .slice(1)
+                    .toLowerCase()
+                )
+              : ""
+          )
+          .join(" ");
+
+      }
+
+
+      function getFamilyInvestorAmount(
+        venture
+      ){
+
+        const fundingGoal =
+          Number(
+            venture
+              ?.fundingGoal || 0
+          );
+
+
+        if(
+          fundingGoal >
+          0
+        ){
+
+          return fundingGoal;
+
+        }
+
+
+        const maximum =
+          Number(
+            venture
+              ?.investmentRangeMax || 0
+          );
+
+
+        if(
+          maximum >
+          0
+        ){
+
+          return maximum;
+
+        }
+
+
+        return Math.max(
+          0,
+          Number(
+            venture
+              ?.investmentRangeMin || 0
+          )
+        );
+
+      }
+
+
+      function getFamilyInvestorImage(
+        venture
+      ){
+
+        const image =
+          venture?.coverUrl ||
+          venture?.logoUrl ||
+          "";
+
+
+        if(image){
+
+          return image;
+
+        }
+
+
+        return (
+          "https://ui-avatars.com/api/?name=" +
+          encodeURIComponent(
+            venture?.title ||
+            "AIFT Venture"
+          ) +
+          "&background=e8f1ff&color=0a66c2&size=500"
+        );
+
+      }
+
+
+      function isFamilyInvestorVerified(
+        venture
+      ){
+
+        return Boolean(
+
+          venture
+            ?.aiftVerified ||
+
+          venture
+            ?.schoolVerified ||
+
+          venture
+            ?.ownerId
+            ?.aiftVerified ||
+
+          venture
+            ?.schoolId
+            ?.aiftVerified
+
+        );
+
+      }
+
+
+      function getFamilyInvestorRequesterName(
+        venture
+      ){
+
+        return (
+          venture
+            ?.ownerId
+            ?.companyName ||
+
+          venture
+            ?.ownerId
+            ?.name ||
+
+          venture
+            ?.schoolId
+            ?.schoolName ||
+
+          venture
+            ?.schoolId
+            ?.name ||
+
+          "AIFT Member"
+        );
+
+      }
+
+
+      function familyInvestorFundingMatches(
+        amount,
+        range
+      ){
+
+        if(!range){
+
+          return true;
+
+        }
+
+
+        switch(range){
+
+          case "under_100k":
+
+            return (
+              amount <
+              100000
+            );
+
+
+          case "100k_500k":
+
+            return (
+              amount >=
+                100000 &&
+              amount <=
+                500000
+            );
+
+
+          case "500k_1m":
+
+            return (
+              amount >
+                500000 &&
+              amount <=
+                1000000
+            );
+
+
+          case "1m_5m":
+
+            return (
+              amount >
+                1000000 &&
+              amount <=
+                5000000
+            );
+
+
+          case "over_5m":
+
+            return (
+              amount >
+              5000000
+            );
+
+
+          default:
+
+            return true;
+
+        }
+
+      }
+
+
+      /* =======================================================
+         GET CURRENT REAL CARDS
+      ======================================================== */
 
       function getFamilyInvestorCards(){
 
@@ -20397,49 +20898,960 @@
       }
 
 
-      function familyInvestorFundingMatches(
-        amount,
-        range
+      function getFamilyInvestorCardId(
+        card
       ){
 
-        if(!range){
-          return true;
+        return (
+          card
+            ?.dataset
+            ?.investorId ||
+          ""
+        );
+
+      }
+
+
+      /* =======================================================
+         CREATE REAL VENTURE CARD
+      ======================================================== */
+
+      function createFamilyInvestorVentureCard(
+        venture,
+        index
+      ){
+
+        const id =
+          String(
+            venture?._id ||
+            ""
+          );
+
+
+        const state =
+          venture?.investorState ||
+          {};
+
+
+        const amount =
+          getFamilyInvestorAmount(
+            venture
+          );
+
+
+        const raised =
+          Math.max(
+            0,
+            Number(
+              venture
+                ?.fundingRaised || 0
+            )
+          );
+
+
+        const percentage =
+          amount >
+            0
+              ? Math.min(
+                  100,
+                  Math.round(
+                    (
+                      raised /
+                      amount
+                    ) *
+                    100
+                  )
+                )
+              : 0;
+
+
+        const source =
+          familyInvestorSourceFromVenture(
+            venture
+          );
+
+
+        const category =
+          familyInvestorCategoryFromVenture(
+            venture
+          );
+
+
+        const verified =
+          isFamilyInvestorVerified(
+            venture
+          );
+
+
+        const saved =
+          state.saved ===
+          true;
+
+
+        const interested =
+          state.interested ===
+          true;
+
+
+        const article =
+          document.createElement(
+            "article"
+          );
+
+
+        article.className =
+          "family-investor-card";
+
+
+        article.dataset.investorId =
+          id;
+
+        article.dataset.investorType =
+          category;
+
+        article.dataset.investorSource =
+          source;
+
+        article.dataset.investorIndustry =
+          normalizeFamilyInvestorIndustry(
+            venture?.industry
+          );
+
+        article.dataset.investorAmount =
+          String(
+            amount
+          );
+
+        article.dataset.investorOpen =
+          "true";
+
+        article.dataset.investorVerified =
+          String(
+            verified
+          );
+
+        article.dataset.investorSaved =
+          String(
+            saved
+          );
+
+        article.dataset.investorInterested =
+          String(
+            interested
+          );
+
+        article.dataset.investorTitle =
+          venture?.title ||
+          "Untitled Venture";
+
+        article.dataset.investorOriginalOrder =
+          String(
+            index
+          );
+
+
+        /* -----------------------------------------------
+           MEDIA
+        ------------------------------------------------ */
+
+        const media =
+          document.createElement(
+            "div"
+          );
+
+        media.className =
+          "family-investor-card-media";
+
+
+        const image =
+          document.createElement(
+            "img"
+          );
+
+        image.src =
+          getFamilyInvestorImage(
+            venture
+          );
+
+        image.alt =
+          venture?.title ||
+          "AIFT venture";
+
+        image.loading =
+          "lazy";
+
+
+        const sourceBadge =
+          document.createElement(
+            "span"
+          );
+
+        sourceBadge.className =
+          "family-investor-source";
+
+        sourceBadge.textContent =
+          familyInvestorSourceLabel(
+            source
+          );
+
+
+        media.append(
+          image,
+          sourceBadge
+        );
+
+
+        /* -----------------------------------------------
+           MAIN
+        ------------------------------------------------ */
+
+        const main =
+          document.createElement(
+            "div"
+          );
+
+        main.className =
+          "family-investor-main";
+
+
+        const top =
+          document.createElement(
+            "div"
+          );
+
+        top.className =
+          "family-investor-card-top";
+
+
+        const categoryBadge =
+          document.createElement(
+            "span"
+          );
+
+        categoryBadge.className =
+          `family-investor-category ${category}`;
+
+        categoryBadge.textContent =
+          familyInvestorCategoryLabel(
+            venture
+          );
+
+
+        const verification =
+          document.createElement(
+            "span"
+          );
+
+        verification.className =
+          "family-investor-card-match";
+
+        verification.textContent =
+          verified
+            ? "Verified Information"
+            : "AIFT Opportunity";
+
+
+        top.append(
+          categoryBadge,
+          verification
+        );
+
+
+        const title =
+          document.createElement(
+            "h3"
+          );
+
+        title.className =
+          "family-investor-card-title";
+
+        title.textContent =
+          venture?.title ||
+          "Untitled Venture";
+
+
+        const description =
+          document.createElement(
+            "p"
+          );
+
+        description.className =
+          "family-investor-card-description";
+
+        description.textContent =
+          venture?.description ||
+          venture?.tagline ||
+          "No venture description has been provided yet.";
+
+
+        const meta =
+          document.createElement(
+            "div"
+          );
+
+        meta.className =
+          "family-investor-card-meta";
+
+
+        [
+          familyInvestorIndustryLabel(
+            venture?.industry
+          ),
+
+          familyInvestorStageLabel(
+            venture?.stage
+          ),
+
+          venture?.location ||
+            "Location not specified"
+
+        ].forEach(value => {
+
+          const chip =
+            document.createElement(
+              "span"
+            );
+
+          chip.className =
+            "family-investor-meta-chip";
+
+          chip.textContent =
+            value;
+
+
+          meta.appendChild(
+            chip
+          );
+
+        });
+
+
+        const requester =
+          document.createElement(
+            "div"
+          );
+
+        requester.className =
+          "family-investor-card-requester";
+
+
+        const requesterPrefix =
+          document.createTextNode(
+            "Submitted by "
+          );
+
+
+        const requesterName =
+          document.createElement(
+            "strong"
+          );
+
+        requesterName.textContent =
+          getFamilyInvestorRequesterName(
+            venture
+          );
+
+
+        requester.append(
+          requesterPrefix,
+          requesterName
+        );
+
+
+        main.append(
+          top,
+          title,
+          description,
+          meta,
+          requester
+        );
+
+
+        /* -----------------------------------------------
+           ACTIONS
+        ------------------------------------------------ */
+
+        const actions =
+          document.createElement(
+            "div"
+          );
+
+        actions.className =
+          "family-investor-actions";
+
+
+        const amountCard =
+          document.createElement(
+            "div"
+          );
+
+        amountCard.className =
+          "family-investor-amount-card";
+
+
+        const amountLabel =
+          document.createElement(
+            "div"
+          );
+
+        amountLabel.className =
+          "family-investor-amount-label";
+
+        amountLabel.textContent =
+          "Seeking";
+
+
+        const amountValue =
+          document.createElement(
+            "div"
+          );
+
+        amountValue.className =
+          "family-investor-amount";
+
+        amountValue.textContent =
+          formatFamilyMoney(
+            amount
+          );
+
+
+        amountCard.append(
+          amountLabel,
+          amountValue
+        );
+
+
+        if(
+          raised >
+            0 &&
+          amount >
+            0
+        ){
+
+          const progress =
+            document.createElement(
+              "div"
+            );
+
+          progress.className =
+            "family-investor-progress";
+
+
+          const track =
+            document.createElement(
+              "div"
+            );
+
+          track.className =
+            "family-investor-progress-track";
+
+
+          const bar =
+            document.createElement(
+              "span"
+            );
+
+          bar.className =
+            "family-investor-progress-bar";
+
+          bar.style.width =
+            `${percentage}%`;
+
+
+          track.appendChild(
+            bar
+          );
+
+
+          const progressCopy =
+            document.createElement(
+              "div"
+            );
+
+          progressCopy.className =
+            "family-investor-progress-copy";
+
+
+          const raisedText =
+            document.createElement(
+              "span"
+            );
+
+          raisedText.textContent =
+            `${formatFamilyMoney(
+              raised
+            )} secured`;
+
+
+          const percentText =
+            document.createElement(
+              "span"
+            );
+
+          percentText.textContent =
+            `${percentage}%`;
+
+
+          progressCopy.append(
+            raisedText,
+            percentText
+          );
+
+
+          progress.append(
+            track,
+            progressCopy
+          );
+
+
+          amountCard.appendChild(
+            progress
+          );
+
         }
 
 
-        switch(range){
+        const interestButton =
+          document.createElement(
+            "button"
+          );
 
-          case "under_100k":
-            return amount < 100000;
+        interestButton.type =
+          "button";
 
-          case "100k_500k":
-            return (
-              amount >= 100000 &&
-              amount <= 500000
+        interestButton.className =
+          "family-investor-action-btn primary";
+
+        interestButton.dataset
+          .investorInterest =
+            "";
+
+
+        if(interested){
+
+          interestButton.textContent =
+            state.interestStatus ===
+              "accepted"
+                ? "Interest Accepted"
+                : "Interest Sent";
+
+          interestButton.disabled =
+            true;
+
+        }else{
+
+          interestButton.textContent =
+            "I'm Interested";
+
+        }
+
+
+        const saveButton =
+          document.createElement(
+            "button"
+          );
+
+        saveButton.type =
+          "button";
+
+        saveButton.className =
+          "family-investor-action-btn";
+
+        saveButton.dataset
+          .investorSave =
+            "";
+
+        saveButton.classList.toggle(
+          "saved",
+          saved
+        );
+
+        saveButton.textContent =
+          saved
+            ? "Saved"
+            : "Save";
+
+
+        const viewButton =
+          document.createElement(
+            "button"
+          );
+
+        viewButton.type =
+          "button";
+
+        viewButton.className =
+          "family-investor-action-btn";
+
+        viewButton.dataset
+          .investorView =
+            "";
+
+        viewButton.textContent =
+          "View Request";
+
+
+        actions.append(
+          amountCard,
+          interestButton,
+          saveButton,
+          viewButton
+        );
+
+
+        article.append(
+          media,
+          main,
+          actions
+        );
+
+
+        return article;
+
+      }
+
+
+      /* =======================================================
+         SYNC STATE FROM API
+      ======================================================== */
+
+      function syncFamilyInvestorState(
+        ventures
+      ){
+
+        familyInvestorState
+          .savedIds
+          .clear();
+
+
+        familyInvestorState
+          .interestedIds
+          .clear();
+
+
+        familyInvestorState
+          .interestStatus
+          .clear();
+
+
+        ventures.forEach(
+          venture => {
+
+            const id =
+              String(
+                venture?._id ||
+                ""
+              );
+
+
+            if(!id){
+              return;
+            }
+
+
+            const state =
+              venture
+                ?.investorState ||
+              {};
+
+
+            if(
+              state.saved ===
+              true
+            ){
+
+              familyInvestorState
+                .savedIds
+                .add(id);
+
+            }
+
+
+            if(
+              state.interested ===
+              true
+            ){
+
+              familyInvestorState
+                .interestedIds
+                .add(id);
+
+            }
+
+
+            if(
+              state.interestStatus
+            ){
+
+              familyInvestorState
+                .interestStatus
+                .set(
+                  id,
+                  state.interestStatus
+                );
+
+            }
+
+          }
+        );
+
+      }
+
+
+      /* =======================================================
+         RENDER REAL DISCOVERY RESULTS
+      ======================================================== */
+
+      function renderFamilyInvestorDiscovery(){
+
+        const list =
+          $(
+            "#familyInvestorOpportunityList"
+          );
+
+
+        if(!list){
+          return;
+        }
+
+
+        list.innerHTML =
+          "";
+
+
+        familyInvestorState
+          .ventures
+          .forEach(
+            (
+              venture,
+              index
+            ) => {
+
+              list.appendChild(
+                createFamilyInvestorVentureCard(
+                  venture,
+                  index
+                )
+              );
+
+            }
+          );
+
+
+        syncFamilyInvestorState(
+          familyInvestorState
+            .ventures
+        );
+
+
+        const openCount =
+          $(
+            "#familyInvestorOpenCount"
+          );
+
+
+        if(openCount){
+
+          openCount.textContent =
+            String(
+              familyInvestorState
+                .pagination
+                .total ||
+              familyInvestorState
+                .ventures
+                .length
             );
 
-          case "500k_1m":
-            return (
-              amount > 500000 &&
-              amount <= 1000000
+        }
+
+
+        const savedCount =
+          $(
+            "#familyInvestorSavedCount"
+          );
+
+
+        if(savedCount){
+
+          savedCount.textContent =
+            String(
+              familyInvestorState
+                .savedIds
+                .size
             );
 
-          case "1m_5m":
-            return (
-              amount > 1000000 &&
-              amount <= 5000000
+        }
+
+
+        applyFamilyInvestorFilters();
+
+        sortFamilyInvestorCards();
+
+        renderFamilyInvestorSaved();
+
+        renderFamilyInvestorInterested();
+
+        updateFamilyInvestorManagementCounts();
+
+      }
+
+
+      /* =======================================================
+         LOAD REAL INVESTOR DISCOVERY
+      ======================================================== */
+
+      async function loadFamilyInvestorDiscovery(){
+
+        if(
+          familyInvestorState
+            .loading
+        ){
+
+          return;
+
+        }
+
+
+        if(
+          familyState
+            .investorEnabled !==
+            true
+        ){
+
+          return;
+
+        }
+
+
+        familyInvestorState.loading =
+          true;
+
+
+        const resultCopy =
+          $(
+            "#familyInvestorResultCopy"
+          );
+
+
+        if(resultCopy){
+
+          resultCopy.textContent =
+            "Loading AIFT investment opportunities...";
+
+        }
+
+
+        try{
+
+          const data =
+            await familyApiFetch(
+              "/api/ventures/investor/discover?limit=50&sort=newest"
             );
 
-          case "over_5m":
-            return amount > 5000000;
 
-          default:
-            return true;
+          familyInvestorState.ventures =
+            Array.isArray(
+              data?.ventures
+            )
+              ? data.ventures
+              : [];
+
+
+          familyInvestorState.pagination = {
+
+            page:
+              Number(
+                data
+                  ?.pagination
+                  ?.page || 1
+              ),
+
+            limit:
+              Number(
+                data
+                  ?.pagination
+                  ?.limit || 50
+              ),
+
+            total:
+              Number(
+                data
+                  ?.pagination
+                  ?.total || 0
+              ),
+
+            pages:
+              Number(
+                data
+                  ?.pagination
+                  ?.pages || 1
+              )
+
+          };
+
+
+          familyInvestorState.loaded =
+            true;
+
+
+          renderFamilyInvestorDiscovery();
+
+
+        }catch(error){
+
+          console.error(
+            "AIFT Investor discovery load failed:",
+            error
+          );
+
+
+          familyInvestorState.ventures =
+            [];
+
+
+          const list =
+            $(
+              "#familyInvestorOpportunityList"
+            );
+
+
+          if(list){
+
+            list.innerHTML =
+              "";
+
+          }
+
+
+          if(resultCopy){
+
+            resultCopy.textContent =
+              error.message ||
+              "Could not load investment opportunities.";
+
+          }
+
+
+          $(
+            "#familyInvestorEmpty"
+          )
+            ?.classList.add(
+              "active"
+            );
+
+        }finally{
+
+          familyInvestorState.loading =
+            false;
 
         }
 
       }
 
+
+      /* =======================================================
+         FRONTEND FILTERING
+      ======================================================== */
 
       function applyFamilyInvestorFilters(){
 
@@ -20448,186 +21860,373 @@
 
 
         const search =
-          $("#familyInvestorSearch")
-            ?.value.trim()
-            .toLowerCase() || "";
+          $(
+            "#familyInvestorSearch"
+          )
+            ?.value
+            .trim()
+            .toLowerCase() ||
+          "";
+
 
         const type =
-          $("#familyInvestorType")
-            ?.value || "";
+          $(
+            "#familyInvestorType"
+          )
+            ?.value ||
+          "";
+
 
         const source =
-          $("#familyInvestorSource")
-            ?.value || "";
+          $(
+            "#familyInvestorSource"
+          )
+            ?.value ||
+          "";
+
 
         const industry =
-          $("#familyInvestorIndustry")
-            ?.value || "";
+          $(
+            "#familyInvestorIndustry"
+          )
+            ?.value ||
+          "";
+
 
         const fundingRange =
-          $("#familyInvestorFundingRange")
-            ?.value || "";
+          $(
+            "#familyInvestorFundingRange"
+          )
+            ?.value ||
+          "";
+
 
         const verifiedOnly =
           Boolean(
-            $("#familyInvestorVerifiedOnly")
+            $(
+              "#familyInvestorVerifiedOnly"
+            )
               ?.checked
           );
 
-        const openOnly =
-          Boolean(
-            $("#familyInvestorOpenOnly")
-              ?.checked
-          );
 
         const savedOnly =
           Boolean(
-            $("#familyInvestorSavedOnly")
+            $(
+              "#familyInvestorSavedOnly"
+            )
               ?.checked
           );
 
 
-        let visibleCount = 0;
+        let visibleCount =
+          0;
 
 
-        cards.forEach(card => {
+        cards.forEach(
+          card => {
 
-          const cardType =
-            card.dataset.investorType || "";
-
-          const cardSource =
-            card.dataset.investorSource || "";
-
-          const cardIndustry =
-            card.dataset.investorIndustry || "";
-
-          const cardAmount =
-            Number(
-              card.dataset.investorAmount || 0
-            );
-
-          const cardOpen =
-            card.dataset.investorOpen === "true";
-
-          const cardVerified =
-            card.dataset.investorVerified === "true";
-
-          const cardSaved =
-            card.dataset.investorSaved === "true";
-
-          const title =
-            (
-              card.dataset.investorTitle ||
-              card.textContent ||
-              ""
-            ).toLowerCase();
+            const cardType =
+              card.dataset
+                .investorType ||
+              "";
 
 
-          const matchesSearch =
-            !search ||
-            title.includes(search);
-
-          const matchesType =
-            !type ||
-            cardType === type;
-
-          const matchesCategory =
-            !familyInvestorState.category ||
-            cardType ===
-              familyInvestorState.category;
-
-          const matchesSource =
-            !source ||
-            cardSource === source;
-
-          const matchesIndustry =
-            !industry ||
-            cardIndustry === industry;
-
-          const matchesFunding =
-            familyInvestorFundingMatches(
-              cardAmount,
-              fundingRange
-            );
-
-          const matchesVerified =
-            !verifiedOnly ||
-            cardVerified;
-
-          const matchesOpen =
-            !openOnly ||
-            cardOpen;
-
-          const matchesSaved =
-            !savedOnly ||
-            cardSaved;
+            const cardSource =
+              card.dataset
+                .investorSource ||
+              "";
 
 
-          const visible =
-            matchesSearch &&
-            matchesType &&
-            matchesCategory &&
-            matchesSource &&
-            matchesIndustry &&
-            matchesFunding &&
-            matchesVerified &&
-            matchesOpen &&
-            matchesSaved;
+            const cardIndustry =
+              card.dataset
+                .investorIndustry ||
+              "";
 
 
-          card.style.display =
-            visible
-              ? ""
-              : "none";
+            const cardAmount =
+              Number(
+                card.dataset
+                  .investorAmount ||
+                0
+              );
 
 
-          if(visible){
-            visibleCount += 1;
+            const cardVerified =
+              card.dataset
+                .investorVerified ===
+              "true";
+
+
+            const cardSaved =
+              card.dataset
+                .investorSaved ===
+              "true";
+
+
+            const title =
+              (
+                card.dataset
+                  .investorTitle ||
+                card.textContent ||
+                ""
+              )
+                .toLowerCase();
+
+
+            /*
+              Every result from the Investor endpoint
+              is already an investment opportunity.
+
+              Scholarships are intentionally not faked
+              here because they are not Venture records.
+            */
+
+            let matchesType =
+              true;
+
+
+            if(
+              type ===
+              "scholarship"
+            ){
+
+              matchesType =
+                false;
+
+            }else if(
+              type ===
+              "business"
+            ){
+
+              matchesType =
+                cardType ===
+                "business";
+
+            }else if(
+              type ===
+              "project"
+            ){
+
+              matchesType =
+                cardType ===
+                "project";
+
+            }else if(
+              type ===
+              "education"
+            ){
+
+              matchesType =
+                cardType ===
+                  "education" ||
+                cardIndustry ===
+                  "education";
+
+            }else if(
+              type ===
+              "investment"
+            ){
+
+              matchesType =
+                true;
+
+            }
+
+
+            let matchesCategory =
+              true;
+
+
+            switch(
+              familyInvestorState
+                .category
+            ){
+
+              case "investment":
+
+                matchesCategory =
+                  true;
+
+                break;
+
+
+              case "scholarship":
+
+                matchesCategory =
+                  false;
+
+                break;
+
+
+              case "business":
+
+                matchesCategory =
+                  cardType ===
+                  "business";
+
+                break;
+
+
+              case "project":
+
+                matchesCategory =
+                  cardType ===
+                  "project";
+
+                break;
+
+
+              case "education":
+
+                matchesCategory =
+                  cardType ===
+                    "education" ||
+                  cardIndustry ===
+                    "education";
+
+                break;
+
+
+              default:
+
+                matchesCategory =
+                  true;
+
+            }
+
+
+            const matchesSearch =
+              !search ||
+              title.includes(
+                search
+              );
+
+
+            const matchesSource =
+              !source ||
+              cardSource ===
+                source;
+
+
+            const matchesIndustry =
+              !industry ||
+              cardIndustry ===
+                industry;
+
+
+            const matchesFunding =
+              familyInvestorFundingMatches(
+                cardAmount,
+                fundingRange
+              );
+
+
+            const matchesVerified =
+              !verifiedOnly ||
+              cardVerified;
+
+
+            const matchesSaved =
+              !savedOnly ||
+              cardSaved;
+
+
+            const visible =
+              matchesSearch &&
+              matchesType &&
+              matchesCategory &&
+              matchesSource &&
+              matchesIndustry &&
+              matchesFunding &&
+              matchesVerified &&
+              matchesSaved;
+
+
+            card.style.display =
+              visible
+                ? ""
+                : "none";
+
+
+            if(visible){
+
+              visibleCount +=
+                1;
+
+            }
+
           }
-
-        });
+        );
 
 
         const resultCopy =
-          $("#familyInvestorResultCopy");
+          $(
+            "#familyInvestorResultCopy"
+          );
+
 
         if(resultCopy){
 
-          resultCopy.textContent =
-            visibleCount === 1
-              ? "Showing 1 matching opportunity."
-              : `Showing ${visibleCount} matching opportunities.`;
+          if(
+            familyInvestorState
+              .category ===
+              "scholarship" ||
+            type ===
+              "scholarship"
+          ){
+
+            resultCopy.textContent =
+              "Scholarship investment discovery will appear here when Family scholarship requests are connected to the backend.";
+
+          }else{
+
+            resultCopy.textContent =
+              visibleCount ===
+                1
+                  ? "Showing 1 matching investment opportunity."
+                  : `Showing ${visibleCount} matching investment opportunities.`;
+
+          }
 
         }
 
 
-        const empty =
-          $("#familyInvestorEmpty");
-
-        if(empty){
-
-          empty.classList.toggle(
+        $(
+          "#familyInvestorEmpty"
+        )
+          ?.classList.toggle(
             "active",
-            visibleCount === 0
+            visibleCount ===
+              0
           );
-
-        }
 
       }
 
-            function sortFamilyInvestorCards(){
 
-        const grid =
-          $("#familyInvestorGrid");
+      /* =======================================================
+         SORT
+      ======================================================== */
 
-        const sort =
-          $("#familyInvestorSort")
-            ?.value || "recommended";
+      function sortFamilyInvestorCards(){
+
+        const list =
+          $(
+            "#familyInvestorOpportunityList"
+          );
 
 
-        if(!grid){
+        if(!list){
           return;
         }
+
+
+        const sort =
+          $(
+            "#familyInvestorSort"
+          )
+            ?.value ||
+          "recommended";
 
 
         const cards =
@@ -20635,31 +22234,48 @@
 
 
         cards.sort(
-          (a,b) => {
+          (
+            a,
+            b
+          ) => {
 
-            if(sort === "amount_high"){
+            const aAmount =
+              Number(
+                a.dataset
+                  .investorAmount ||
+                0
+              );
+
+
+            const bAmount =
+              Number(
+                b.dataset
+                  .investorAmount ||
+                0
+              );
+
+
+            if(
+              sort ===
+              "amount_high"
+            ){
 
               return (
-                Number(
-                  b.dataset.investorAmount || 0
-                ) -
-                Number(
-                  a.dataset.investorAmount || 0
-                )
+                bAmount -
+                aAmount
               );
 
             }
 
 
-            if(sort === "amount_low"){
+            if(
+              sort ===
+              "amount_low"
+            ){
 
               return (
-                Number(
-                  a.dataset.investorAmount || 0
-                ) -
-                Number(
-                  b.dataset.investorAmount || 0
-                )
+                aAmount -
+                bAmount
               );
 
             }
@@ -20667,10 +22283,14 @@
 
             return (
               Number(
-                a.dataset.investorOriginalOrder || 0
+                a.dataset
+                  .investorOriginalOrder ||
+                0
               ) -
               Number(
-                b.dataset.investorOriginalOrder || 0
+                b.dataset
+                  .investorOriginalOrder ||
+                0
               )
             );
 
@@ -20679,304 +22299,582 @@
 
 
         cards.forEach(
-          card =>
-            grid.appendChild(card)
+          card => {
+
+            list.appendChild(
+              card
+            );
+
+          }
         );
 
       }
 
 
+      /* =======================================================
+         CLEAR FILTERS
+      ======================================================== */
+
       function clearFamilyInvestorFilters(){
 
-        const search =
-          $("#familyInvestorSearch");
+        [
+          "familyInvestorSearch",
+          "familyInvestorType",
+          "familyInvestorSource",
+          "familyInvestorIndustry",
+          "familyInvestorFundingRange"
+        ].forEach(
+          id => {
 
-        const type =
-          $("#familyInvestorType");
+            const field =
+              document.getElementById(
+                id
+              );
 
-        const source =
-          $("#familyInvestorSource");
 
-        const industry =
-          $("#familyInvestorIndustry");
+            if(field){
 
-        const range =
-          $("#familyInvestorFundingRange");
+              field.value =
+                "";
 
-        const verified =
-          $("#familyInvestorVerifiedOnly");
+            }
+
+          }
+        );
+
+
+        [
+          "familyInvestorVerifiedOnly",
+          "familyInvestorSavedOnly"
+        ].forEach(
+          id => {
+
+            const field =
+              document.getElementById(
+                id
+              );
+
+
+            if(field){
+
+              field.checked =
+                false;
+
+            }
+
+          }
+        );
+
 
         const openOnly =
-          $("#familyInvestorOpenOnly");
+          $(
+            "#familyInvestorOpenOnly"
+          );
 
-        const savedOnly =
-          $("#familyInvestorSavedOnly");
-
-
-        if(search){
-          search.value = "";
-        }
-
-        if(type){
-          type.value = "";
-        }
-
-        if(source){
-          source.value = "";
-        }
-
-        if(industry){
-          industry.value = "";
-        }
-
-        if(range){
-          range.value = "";
-        }
-
-        if(verified){
-          verified.checked = false;
-        }
 
         if(openOnly){
-          openOnly.checked = true;
+
+          /*
+            The backend Investor Discover endpoint already
+            returns active/open investment opportunities.
+          */
+
+          openOnly.checked =
+            true;
+
         }
 
-        if(savedOnly){
-          savedOnly.checked = false;
-        }
 
-
-        familyInvestorState.category = "";
+        familyInvestorState.category =
+          "";
 
 
         document
           .querySelectorAll(
             ".family-investor-tab"
           )
-          .forEach(button => {
+          .forEach(
+            button => {
 
-            button.classList.toggle(
-              "active",
-              button.dataset
-                .investorCategory === ""
-            );
+              button.classList.toggle(
+                "active",
+                button.dataset
+                  .investorCategory ===
+                  ""
+              );
 
-          });
+            }
+          );
 
+
+        const sort =
+          $(
+            "#familyInvestorSort"
+          );
+
+
+        if(sort){
+
+          sort.value =
+            "recommended";
+
+        }
+
+
+        sortFamilyInvestorCards();
 
         applyFamilyInvestorFilters();
 
       }
 
 
-      function getFamilyInvestorCardId(card){
+      /* =======================================================
+         REAL SAVE
+      ======================================================== */
+
+      async function toggleFamilyInvestorSaved(
+        button
+      ){
+
+        const card =
+          button.closest(
+            ".family-investor-card"
+          );
+
 
         if(!card){
-          return "";
+          return;
         }
 
 
-        let id =
-          card.dataset.investorId || "";
+        const id =
+          getFamilyInvestorCardId(
+            card
+          );
 
 
         if(!id){
-
-          const title =
-            card.dataset.investorTitle ||
-            "opportunity";
-
-
-          id =
-            title
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g,"-")
-              .replace(/^-|-$/g,"");
-
-
-          card.dataset.investorId =
-            id;
-
-        }
-
-
-        return id;
-
-      }
-
-
-      function toggleFamilyInvestorSaved(button){
-
-        const card =
-          button.closest(
-            ".family-investor-card"
-          );
-
-        if(!card){
           return;
         }
 
 
-        const id =
-          getFamilyInvestorCardId(card);
-
-
-        const currentlySaved =
-          card.dataset.investorSaved ===
-          "true";
-
-
-        const nextSaved =
-          !currentlySaved;
-
-
-        card.dataset.investorSaved =
-          String(nextSaved);
-
-
-        if(nextSaved){
-
-          familyInvestorState
-            .savedIds
-            .add(id);
-
-        }else{
-
-          familyInvestorState
-            .savedIds
-            .delete(id);
-
-        }
-
-
-        button.classList.toggle(
-          "saved",
-          nextSaved
-        );
-
-
-        button.textContent =
-          nextSaved
-            ? "Saved"
-            : "Save";
-
-
-        renderFamilyInvestorSaved();
-
-        updateFamilyInvestorManagementCounts();
-
-
-        /*
-          Later this will persist against the authenticated
-          Investor account and the real request/Venture ID.
-        */
-
-      }
-
-
-      function markFamilyInvestorInterested(button){
-
-        const card =
-          button.closest(
-            ".family-investor-card"
-          );
-
-        if(!card){
+        if(button.disabled){
           return;
         }
 
-
-        const id =
-          getFamilyInvestorCardId(card);
-
-
-        familyInvestorState
-          .interestedIds
-          .add(id);
-
-
-        familyInvestorState
-          .interestStatus
-          .set(
-            id,
-            "sent"
-          );
-
-
-        card.dataset.investorInterested =
-          "true";
-
-
-        button.textContent =
-          "Interest Sent";
 
         button.disabled =
           true;
 
 
-        renderFamilyInvestorInterested();
+        const oldText =
+          button.textContent;
 
-        updateFamilyInvestorManagementCounts();
+
+        button.textContent =
+          "Saving...";
 
 
-        /*
-          Later this must create a real interest/introduction
-          record against the original shared request/Venture ID.
+        try{
 
-          Interest is not the same as funding being committed.
-        */
+          const data =
+            await familyApiJson(
+              `/api/ventures/${encodeURIComponent(
+                id
+              )}/save`,
+              {
+                method:
+                  "PATCH"
+              }
+            );
+
+
+          const saved =
+            data?.saved ===
+            true;
+
+
+          card.dataset.investorSaved =
+            String(
+              saved
+            );
+
+
+          button.classList.toggle(
+            "saved",
+            saved
+          );
+
+
+          button.textContent =
+            saved
+              ? "Saved"
+              : "Save";
+
+
+          if(saved){
+
+            familyInvestorState
+              .savedIds
+              .add(id);
+
+          }else{
+
+            familyInvestorState
+              .savedIds
+              .delete(id);
+
+          }
+
+
+          const venture =
+            familyInvestorState
+              .ventures
+              .find(
+                item =>
+                  String(
+                    item?._id
+                  ) ===
+                  id
+              );
+
+
+          if(venture){
+
+            venture.investorState =
+              venture.investorState ||
+              {};
+
+
+            venture
+              .investorState
+              .saved =
+                saved;
+
+          }
+
+
+          applyFamilyInvestorFilters();
+
+          renderFamilyInvestorSaved();
+
+          updateFamilyInvestorManagementCounts();
+
+
+        }catch(error){
+
+          console.error(
+            "AIFT venture save failed:",
+            error
+          );
+
+
+          button.textContent =
+            oldText;
+
+
+          window.alert(
+            error.message ||
+            "Could not update this saved opportunity."
+          );
+
+        }finally{
+
+          button.disabled =
+            false;
+
+        }
 
       }
 
 
+      /* =======================================================
+         REAL INVESTMENT INTEREST
+      ======================================================== */
+
+      async function markFamilyInvestorInterested(
+        button
+      ){
+
+        const card =
+          button.closest(
+            ".family-investor-card"
+          );
+
+
+        if(!card){
+          return;
+        }
+
+
+        const id =
+          getFamilyInvestorCardId(
+            card
+          );
+
+
+        if(!id){
+          return;
+        }
+
+
+        if(button.disabled){
+          return;
+        }
+
+
+        button.disabled =
+          true;
+
+
+        const originalText =
+          button.textContent;
+
+
+        button.textContent =
+          "Sending...";
+
+
+        try{
+
+          const data =
+            await familyApiJson(
+              `/api/ventures/${encodeURIComponent(
+                id
+              )}/interests`,
+              {
+                method:
+                  "POST",
+
+                body:{
+
+                  type:
+                    "investment",
+
+                  message:
+                    "",
+
+                  amountMin:
+                    0,
+
+                  amountMax:
+                    0,
+
+                  currency:
+                    "PHP"
+
+                }
+              }
+            );
+
+
+          const interest =
+            data?.interest ||
+            {};
+
+
+          card.dataset
+            .investorInterested =
+              "true";
+
+
+          familyInvestorState
+            .interestedIds
+            .add(id);
+
+
+          familyInvestorState
+            .interestStatus
+            .set(
+              id,
+              interest.status ||
+              "pending"
+            );
+
+
+          const venture =
+            familyInvestorState
+              .ventures
+              .find(
+                item =>
+                  String(
+                    item?._id
+                  ) ===
+                  id
+              );
+
+
+          if(venture){
+
+            venture.investorState = {
+
+              ...(
+                venture
+                  .investorState ||
+                {}
+              ),
+
+              interested:
+                true,
+
+              interestStatus:
+                interest.status ||
+                "pending",
+
+              investmentInterest:
+                interest
+
+            };
+
+          }
+
+
+          button.textContent =
+            "Interest Sent";
+
+
+          renderFamilyInvestorInterested();
+
+          updateFamilyInvestorManagementCounts();
+
+
+        }catch(error){
+
+          console.error(
+            "AIFT venture interest failed:",
+            error
+          );
+
+
+          button.textContent =
+            originalText;
+
+          button.disabled =
+            false;
+
+
+          window.alert(
+            error.message ||
+            "Could not send your investment interest."
+          );
+
+
+          return;
+
+        }
+
+
+        button.disabled =
+          true;
+
+      }
+
+
+      /* =======================================================
+         VIEW VENTURE
+      ======================================================== */
+
+      async function viewFamilyInvestorVenture(
+        button
+      ){
+
+        const card =
+          button.closest(
+            ".family-investor-card"
+          );
+
+
+        const id =
+          getFamilyInvestorCardId(
+            card
+          );
+
+
+        if(!id){
+          return;
+        }
+
+
+        /*
+          Track the authenticated Venture view now.
+
+          The dedicated venture detail panel/page will be
+          connected in the next UI phase. We do not navigate
+          to an invented page here.
+        */
+
+        try{
+
+          await familyApiJson(
+            `/api/ventures/${encodeURIComponent(
+              id
+            )}/view`,
+            {
+              method:
+                "PATCH"
+            }
+          );
+
+        }catch(error){
+
+          console.warn(
+            "AIFT venture view tracking failed:",
+            error
+          );
+
+        }
+
+
+        console.info(
+          "AIFT Venture selected:",
+          id
+        );
+
+      }
+
+
+      /* =======================================================
+         BIND INVESTOR DISCOVERY
+      ======================================================== */
+
       function bindFamilyInvestorDiscovery(){
 
         const page =
-          $("#familyPage-investor-discover");
+          $(
+            "#familyPage-investor-discover"
+          );
+
 
         if(!page){
           return;
         }
 
 
-        const applyButton =
-          $("#familyInvestorApplyFilters");
-
-        const clearButton =
-          $("#familyInvestorClearFilters");
-
-
-        if(applyButton){
-
-          applyButton.addEventListener(
+        $(
+          "#familyInvestorApplyFilters"
+        )
+          ?.addEventListener(
             "click",
             applyFamilyInvestorFilters
           );
 
-        }
 
-
-        if(clearButton){
-
-          clearButton.addEventListener(
+        $(
+          "#familyInvestorClearFilters"
+        )
+          ?.addEventListener(
             "click",
             clearFamilyInvestorFilters
           );
 
-        }
 
-
-        const search =
-          $("#familyInvestorSearch");
-
-        if(search){
-
-          search.addEventListener(
+        $(
+          "#familyInvestorSearch"
+        )
+          ?.addEventListener(
             "input",
             applyFamilyInvestorFilters
           );
-
-        }
 
 
         [
@@ -20987,145 +22885,68 @@
           "familyInvestorVerifiedOnly",
           "familyInvestorOpenOnly",
           "familyInvestorSavedOnly"
-        ].forEach(id => {
+        ].forEach(
+          id => {
 
-          const element =
-            document.getElementById(id);
+            document
+              .getElementById(
+                id
+              )
+              ?.addEventListener(
+                "change",
+                applyFamilyInvestorFilters
+              );
 
-          if(!element){
-            return;
           }
-
-
-          element.addEventListener(
-            "change",
-            applyFamilyInvestorFilters
-          );
-
-        });
+        );
 
 
         document
           .querySelectorAll(
             ".family-investor-tab"
           )
-          .forEach(button => {
+          .forEach(
+            button => {
 
-            button.addEventListener(
-              "click",
-              () => {
+              button.addEventListener(
+                "click",
+                () => {
 
-                familyInvestorState.category =
-                  button.dataset
-                    .investorCategory || "";
+                  familyInvestorState.category =
+                    button.dataset
+                      .investorCategory ||
+                    "";
 
 
-                document
-                  .querySelectorAll(
-                    ".family-investor-tab"
-                  )
-                  .forEach(tab => {
+                  document
+                    .querySelectorAll(
+                      ".family-investor-tab"
+                    )
+                    .forEach(
+                      tab => {
 
-                    tab.classList.toggle(
-                      "active",
-                      tab === button
+                        tab.classList.toggle(
+                          "active",
+                          tab ===
+                            button
+                        );
+
+                      }
                     );
 
-                  });
+
+                  applyFamilyInvestorFilters();
+
+                }
+              );
+
+            }
+          );
 
 
-                applyFamilyInvestorFilters();
-
-              }
-            );
-
-          });
-
-
-        document
-          .querySelectorAll(
-            "[data-investor-save]"
-          )
-          .forEach(button => {
-
-            button.addEventListener(
-              "click",
-              () => {
-
-                toggleFamilyInvestorSaved(
-                  button
-                );
-
-              }
-            );
-
-          });
-
-
-        document
-          .querySelectorAll(
-            "[data-investor-interest]"
-          )
-          .forEach(button => {
-
-            button.addEventListener(
-              "click",
-              () => {
-
-                markFamilyInvestorInterested(
-                  button
-                );
-
-              }
-            );
-
-          });
-
-
-        document
-          .querySelectorAll(
-            "[data-investor-view]"
-          )
-          .forEach(button => {
-
-            button.addEventListener(
-              "click",
-              () => {
-
-                const card =
-                  button.closest(
-                    ".family-investor-card"
-                  );
-
-
-                console.log(
-                  "Open real AIFT request later:",
-                  card?.dataset
-                    .investorTitle || ""
-                );
-
-              }
-            );
-
-          });
-
-
-                const investorCards =
-          getFamilyInvestorCards();
-
-
-        investorCards.forEach(
-          (card,index) => {
-
-            card.dataset
-              .investorOriginalOrder =
-                String(index);
-
-          }
-        );
-
-
-        $("#familyInvestorSort")
+        $(
+          "#familyInvestorSort"
+        )
           ?.addEventListener(
             "change",
             () => {
@@ -21138,9 +22959,68 @@
           );
 
 
-        sortFamilyInvestorCards();
+        /*
+          Event delegation is required because the real
+          Venture cards are created after the API request.
+        */
 
-        applyFamilyInvestorFilters();
+        $(
+          "#familyInvestorOpportunityList"
+        )
+          ?.addEventListener(
+            "click",
+            event => {
+
+              const saveButton =
+                event.target.closest(
+                  "[data-investor-save]"
+                );
+
+
+              if(saveButton){
+
+                toggleFamilyInvestorSaved(
+                  saveButton
+                );
+
+                return;
+
+              }
+
+
+              const interestButton =
+                event.target.closest(
+                  "[data-investor-interest]"
+                );
+
+
+              if(interestButton){
+
+                markFamilyInvestorInterested(
+                  interestButton
+                );
+
+                return;
+
+              }
+
+
+              const viewButton =
+                event.target.closest(
+                  "[data-investor-view]"
+                );
+
+
+              if(viewButton){
+
+                viewFamilyInvestorVenture(
+                  viewButton
+                );
+
+              }
+
+            }
+          );
 
       }
 
