@@ -19754,29 +19754,74 @@
 
       }
 
-            /* =======================================================
+
+      /* =======================================================
          PROJECT FUNDING
+         REAL SHARED AIFT VENTURE INTEGRATION
+      ======================================================== */
+
+      const familyFundingState = {
+
+        saving:
+          false,
+
+        publishing:
+          false,
+
+        currentVentureId:
+          null,
+
+        currentVenture:
+          null
+
+      };
+
+
+      /* =======================================================
+         FUNDING SUPPORT
       ======================================================== */
 
       function getFamilyFundingSupport(){
 
         const supportIds = [
+
           "familySupportInvestment",
+
           "familySupportFunding",
+
           "familySupportSponsorship",
+
           "familySupportPartnership",
+
           "familySupportMentorship",
+
           "familySupportResources"
+
         ];
 
 
         return supportIds
-          .map(id => document.getElementById(id))
-          .filter(input => input?.checked)
-          .map(input => input.value);
+          .map(
+            id =>
+              document.getElementById(
+                id
+              )
+          )
+          .filter(
+            input =>
+              input?.checked
+          )
+          .map(
+            input =>
+              input.value
+          );
 
       }
 
+
+      /* =======================================================
+         PROJECT TYPE
+      ======================================================== */
 
       function getFamilyFundingProjectType(){
 
@@ -19790,67 +19835,102 @@
       }
 
 
-      function familyFundingDisplayLabel(value){
+      /* =======================================================
+         DISPLAY LABELS
+      ======================================================== */
+
+      function familyFundingDisplayLabel(
+        value
+      ){
 
         const labels = {
 
-          business:"Business",
+          business:
+            "Business",
 
-          startup:"Startup",
+          startup:
+            "Startup",
 
-          student_project:"Student Project",
+          student_project:
+            "Student Project",
 
-          other:"Other Project",
+          other:
+            "Other Project",
 
-          technology:"Technology",
+          technology:
+            "Technology",
 
-          education:"Education",
+          education:
+            "Education",
 
-          agriculture:"Agriculture",
+          agriculture:
+            "Agriculture",
 
-          food:"Food & Beverage",
+          food:
+            "Food & Beverage",
 
-          healthcare:"Healthcare",
+          healthcare:
+            "Healthcare",
 
-          manufacturing:"Manufacturing",
+          manufacturing:
+            "Manufacturing",
 
-          retail:"Retail",
+          retail:
+            "Retail",
 
-          services:"Services",
+          services:
+            "Services",
 
-          creative:"Creative Industries",
+          creative:
+            "Creative Industries",
 
-          sustainability:"Sustainability",
+          sustainability:
+            "Sustainability",
 
-          idea:"Idea",
+          idea:
+            "Idea",
 
-          planning:"Planning",
+          planning:
+            "Planning",
 
-          prototype:"Prototype",
+          prototype:
+            "Prototype",
 
-          operating:"Operating",
+          operating:
+            "Operating",
 
-          growth:"Growth / Expansion",
+          growth:
+            "Growth / Expansion",
 
-          family:"Family",
+          family:
+            "Family",
 
-          parent:"Parent / Guardian",
+          parent:
+            "Parent / Guardian",
 
-          child:"Child / Student",
+          child:
+            "Child / Student",
 
-          family_business:"Family Business",
+          family_business:
+            "Family Business",
 
-          investment:"Investment",
+          investment:
+            "Investment",
 
-          funding:"General Funding",
+          funding:
+            "General Funding",
 
-          sponsorship:"Sponsorship",
+          sponsorship:
+            "Sponsorship",
 
-          partnership:"Partnership",
+          partnership:
+            "Partnership",
 
-          mentorship:"Mentorship",
+          mentorship:
+            "Mentorship",
 
-          resources:"Resources / Equipment"
+          resources:
+            "Resources / Equipment"
 
         };
 
@@ -19864,42 +19944,235 @@
       }
 
 
+      /* =======================================================
+         MAP FAMILY PROJECT TYPE → VENTURE TYPE
+      ======================================================== */
+
+      function mapFamilyFundingVentureType(
+        projectType
+      ){
+
+        const mapping = {
+
+          business:
+            "business",
+
+          startup:
+            "startup",
+
+          student_project:
+            "student-project",
+
+          other:
+            "social-enterprise"
+
+        };
+
+
+        return (
+          mapping[projectType] ||
+          "business"
+        );
+
+      }
+
+
+      /* =======================================================
+         MAP FAMILY STAGE → VENTURE STAGE
+      ======================================================== */
+
+      function mapFamilyFundingVentureStage(
+        stage
+      ){
+
+        const mapping = {
+
+          idea:
+            "idea",
+
+          planning:
+            "research",
+
+          prototype:
+            "prototype",
+
+          operating:
+            "early-revenue",
+
+          growth:
+            "growth"
+
+        };
+
+
+        return (
+          mapping[stage] ||
+          "idea"
+        );
+
+      }
+
+
+      /* =======================================================
+         MAP SUPPORT → EXISTING VENTURE FUNDING TYPES
+      ======================================================== */
+
+      function mapFamilyFundingTypes(
+        support
+      ){
+
+        const mapped =
+          new Set();
+
+
+        support.forEach(
+          value => {
+
+            switch(value){
+
+              case "investment":
+
+                mapped.add(
+                  "investment-interest"
+                );
+
+                break;
+
+
+              case "funding":
+
+                /*
+                  The Venture model has no generic
+                  "funding" fundingType.
+
+                  Family general funding is represented
+                  as grant support unless Investment
+                  has explicitly been selected.
+                */
+
+                mapped.add(
+                  "grant"
+                );
+
+                break;
+
+
+              case "sponsorship":
+
+                mapped.add(
+                  "sponsorship"
+                );
+
+                break;
+
+
+              case "mentorship":
+
+                mapped.add(
+                  "mentorship"
+                );
+
+                break;
+
+
+              case "partnership":
+
+                /*
+                  Partnership is represented by the
+                  existing pilot collaboration type.
+                */
+
+                mapped.add(
+                  "pilot"
+                );
+
+                break;
+
+
+              case "resources":
+
+                /*
+                  Equipment/resource support is closest
+                  to sponsorship in the current shared
+                  Venture schema.
+                */
+
+                mapped.add(
+                  "sponsorship"
+                );
+
+                break;
+
+            }
+
+          }
+        );
+
+
+        return Array.from(
+          mapped
+        );
+
+      }
+
+
+      /* =======================================================
+         PREVIEW
+      ======================================================== */
+
       function updateFamilyFundingPreview(){
 
         const title =
           $("#familyFundingTitle")
-            ?.value.trim() || "";
+            ?.value.trim() ||
+          "";
+
 
         const summary =
           $("#familyFundingSummary")
-            ?.value.trim() || "";
+            ?.value.trim() ||
+          "";
+
 
         const amount =
           $("#familyFundingAmount")
-            ?.value || 0;
+            ?.value ||
+          0;
+
 
         const secured =
           $("#familyFundingSecured")
-            ?.value || 0;
+            ?.value ||
+          0;
+
 
         const industry =
           $("#familyFundingIndustry")
-            ?.value || "";
+            ?.value ||
+          "";
+
 
         const stage =
           $("#familyFundingStage")
-            ?.value || "idea";
+            ?.value ||
+          "idea";
+
 
         const location =
           $("#familyFundingLocation")
-            ?.value.trim() || "";
+            ?.value.trim() ||
+          "";
+
 
         const owner =
           $("#familyFundingOwner")
-            ?.value || "family";
+            ?.value ||
+          "family";
+
 
         const projectType =
           getFamilyFundingProjectType();
+
 
         const support =
           getFamilyFundingSupport();
@@ -19907,6 +20180,7 @@
 
         const titleNode =
           $("#familyFundingPreviewTitle");
+
 
         if(titleNode){
 
@@ -19920,6 +20194,7 @@
         const summaryNode =
           $("#familyFundingPreviewSummary");
 
+
         if(summaryNode){
 
           summaryNode.textContent =
@@ -19932,10 +20207,13 @@
         const amountNode =
           $("#familyFundingPreviewAmount");
 
+
         if(amountNode){
 
           amountNode.textContent =
-            formatFamilyMoney(amount);
+            formatFamilyMoney(
+              amount
+            );
 
         }
 
@@ -19943,16 +20221,20 @@
         const securedNode =
           $("#familyFundingPreviewSecured");
 
+
         if(securedNode){
 
           securedNode.textContent =
-            formatFamilyMoney(secured);
+            formatFamilyMoney(
+              secured
+            );
 
         }
 
 
         const typeNode =
           $("#familyFundingPreviewType");
+
 
         if(typeNode){
 
@@ -19967,11 +20249,14 @@
         const industryNode =
           $("#familyFundingPreviewIndustry");
 
+
         if(industryNode){
 
           industryNode.textContent =
             industry
-              ? familyFundingDisplayLabel(industry)
+              ? familyFundingDisplayLabel(
+                  industry
+                )
               : "Not selected";
 
         }
@@ -19980,16 +20265,20 @@
         const stageNode =
           $("#familyFundingPreviewStage");
 
+
         if(stageNode){
 
           stageNode.textContent =
-            familyFundingDisplayLabel(stage);
+            familyFundingDisplayLabel(
+              stage
+            );
 
         }
 
 
         const locationNode =
           $("#familyFundingPreviewLocation");
+
 
         if(locationNode){
 
@@ -20003,10 +20292,13 @@
         const ownerNode =
           $("#familyFundingPreviewOwner");
 
+
         if(ownerNode){
 
           ownerNode.textContent =
-            familyFundingDisplayLabel(owner);
+            familyFundingDisplayLabel(
+              owner
+            );
 
         }
 
@@ -20014,103 +20306,161 @@
         const supportNode =
           $("#familyFundingPreviewSupport");
 
+
         if(supportNode){
 
-          supportNode.innerHTML = "";
+          supportNode.innerHTML =
+            "";
 
 
           const visibleSupport =
             support.length
               ? support
-              : ["No support selected"];
+              : [
+                  "No support selected"
+                ];
 
 
-          visibleSupport.forEach(value => {
+          visibleSupport.forEach(
+            value => {
 
-            const chip =
-              document.createElement("span");
-
-            chip.className =
-              "family-funding-preview-chip";
-
-            chip.textContent =
-              familyFundingDisplayLabel(value);
+              const chip =
+                document.createElement(
+                  "span"
+                );
 
 
-            supportNode.appendChild(chip);
+              chip.className =
+                "family-funding-preview-chip";
 
-          });
+
+              chip.textContent =
+                familyFundingDisplayLabel(
+                  value
+                );
+
+
+              supportNode.appendChild(
+                chip
+              );
+
+            }
+          );
 
         }
 
       }
 
+
+      /* =======================================================
+         LOCAL FILE DISPLAY
+
+         IMPORTANT:
+         The shared Venture route currently accepts document
+         URLs, not raw multipart device files.
+
+         We keep the user's selected files visible here but
+         we do NOT pretend they were uploaded.
+
+         A real shared upload route must be connected before
+         these files can be attached to the Venture record.
+      ======================================================== */
 
       function renderFamilyFundingFiles(){
 
         const documentInput =
           $("#familyFundingDocuments");
 
+
         const mediaInput =
           $("#familyFundingMedia");
 
+
         const list =
           $("#familyFundingUploadList");
+
 
         if(!list){
           return;
         }
 
 
-        list.innerHTML = "";
+        list.innerHTML =
+          "";
 
 
         const files = [
 
           ...Array.from(
-            documentInput?.files || []
-          ).map(file => ({
-            file,
-            type:"Document"
-          })),
+            documentInput?.files ||
+            []
+          ).map(
+            file => ({
+              file,
+              type:
+                "Document"
+            })
+          ),
 
           ...Array.from(
-            mediaInput?.files || []
-          ).map(file => ({
-            file,
-            type:"Media"
-          }))
+            mediaInput?.files ||
+            []
+          ).map(
+            file => ({
+              file,
+              type:
+                "Media"
+            })
+          )
 
         ];
 
 
-        files.forEach(item => {
+        files.forEach(
+          item => {
 
-          const row =
-            document.createElement("div");
-
-          row.className =
-            "family-upload-item";
-
-
-          const name =
-            document.createElement("span");
-
-          name.className =
-            "family-upload-item-name";
-
-          name.textContent =
-            `${item.type}: ${item.file.name}`;
+            const row =
+              document.createElement(
+                "div"
+              );
 
 
-          row.appendChild(name);
+            row.className =
+              "family-upload-item";
 
-          list.appendChild(row);
 
-        });
+            const name =
+              document.createElement(
+                "span"
+              );
+
+
+            name.className =
+              "family-upload-item-name";
+
+
+            name.textContent =
+              `${item.type}: ${item.file.name}`;
+
+
+            row.appendChild(
+              name
+            );
+
+
+            list.appendChild(
+              row
+            );
+
+          }
+        );
 
       }
 
+
+      /* =======================================================
+         COLLECT FAMILY FORM
+      ======================================================== */
 
       function collectFamilyFundingPayload(){
 
@@ -20121,44 +20471,62 @@
 
           title:
             $("#familyFundingTitle")
-              ?.value.trim() || "",
+              ?.value.trim() ||
+            "",
 
           industry:
             $("#familyFundingIndustry")
-              ?.value || "",
+              ?.value ||
+            "",
 
           stage:
             $("#familyFundingStage")
-              ?.value || "idea",
+              ?.value ||
+            "idea",
 
           location:
             $("#familyFundingLocation")
-              ?.value.trim() || "",
+              ?.value.trim() ||
+            "",
 
           ownerType:
             $("#familyFundingOwner")
-              ?.value || "family",
+              ?.value ||
+            "family",
 
           summary:
             $("#familyFundingSummary")
-              ?.value.trim() || "",
+              ?.value.trim() ||
+            "",
 
           totalProjectValue:
-            Number(
-              $("#familyFundingProjectValue")
-                ?.value || 0
+            Math.max(
+              0,
+              Number(
+                $("#familyFundingProjectValue")
+                  ?.value ||
+                0
+              )
             ),
 
           fundingRequested:
-            Number(
-              $("#familyFundingAmount")
-                ?.value || 0
+            Math.max(
+              0,
+              Number(
+                $("#familyFundingAmount")
+                  ?.value ||
+                0
+              )
             ),
 
           fundingSecured:
-            Number(
-              $("#familyFundingSecured")
-                ?.value || 0
+            Math.max(
+              0,
+              Number(
+                $("#familyFundingSecured")
+                  ?.value ||
+                0
+              )
             ),
 
           supportRequested:
@@ -20166,37 +20534,849 @@
 
           problem:
             $("#familyFundingProblem")
-              ?.value.trim() || "",
+              ?.value.trim() ||
+            "",
 
           solution:
             $("#familyFundingSolution")
-              ?.value.trim() || "",
+              ?.value.trim() ||
+            "",
 
           targetMarket:
             $("#familyFundingMarket")
-              ?.value.trim() || "",
+              ?.value.trim() ||
+            "",
 
           revenueModel:
             $("#familyFundingRevenueModel")
-              ?.value.trim() || "",
+              ?.value.trim() ||
+            "",
 
           useOfFunds:
             $("#familyFundingUse")
-              ?.value.trim() || "",
+              ?.value.trim() ||
+            "",
 
           team:
             $("#familyFundingTeam")
-              ?.value.trim() || ""
+              ?.value.trim() ||
+            ""
 
         };
 
       }
 
 
+      /* =======================================================
+         VALIDATE FAMILY FUNDING FORM
+      ======================================================== */
+
+      function validateFamilyFundingRequest(
+        request,
+        {
+          publishing = false
+        } = {}
+      ){
+
+        if(
+          !request.title
+        ){
+
+          return {
+            valid:false,
+            message:
+              "Please enter a project title."
+          };
+
+        }
+
+
+        if(
+          request.totalProjectValue >
+            0 &&
+          request.fundingRequested >
+            request.totalProjectValue
+        ){
+
+          return {
+            valid:false,
+            message:
+              "Funding requested cannot be greater than the total project value."
+          };
+
+        }
+
+
+        if(
+          request.fundingSecured >
+            0 &&
+          request.totalProjectValue >
+            0 &&
+          request.fundingSecured >
+            request.totalProjectValue
+        ){
+
+          return {
+            valid:false,
+            message:
+              "Funding already secured cannot be greater than the total project value."
+          };
+
+        }
+
+
+        if(
+          publishing &&
+          !request.supportRequested.length
+        ){
+
+          return {
+            valid:false,
+            message:
+              "Please select at least one type of support."
+          };
+
+        }
+
+
+        /*
+          The backend publish endpoint requires:
+          title
+          description
+          problem
+          solution
+        */
+
+        if(
+          publishing &&
+          !request.summary
+        ){
+
+          return {
+            valid:false,
+            message:
+              "Please provide a project summary before publishing."
+          };
+
+        }
+
+
+        if(
+          publishing &&
+          !request.problem
+        ){
+
+          return {
+            valid:false,
+            message:
+              "Please explain the problem your project addresses before publishing."
+          };
+
+        }
+
+
+        if(
+          publishing &&
+          !request.solution
+        ){
+
+          return {
+            valid:false,
+            message:
+              "Please explain your solution before publishing."
+          };
+
+        }
+
+
+        return {
+          valid:true,
+          message:""
+        };
+
+      }
+
+
+      /* =======================================================
+         BUILD REAL VENTURE PAYLOAD
+      ======================================================== */
+
+      function buildFamilyVenturePayload(
+        request
+      ){
+
+        const fundingTypes =
+          mapFamilyFundingTypes(
+            request.supportRequested
+          );
+
+
+        const seekingInvestment =
+          request
+            .supportRequested
+            .includes(
+              "investment"
+            );
+
+
+        const projectValue =
+          Math.max(
+            0,
+            request.totalProjectValue
+          );
+
+
+        const requested =
+          Math.max(
+            0,
+            request.fundingRequested
+          );
+
+
+        const fundingGoal =
+          requested >
+            0
+              ? requested
+              : projectValue;
+
+
+        const teamDescription =
+          request.team ||
+          "";
+
+
+        const supportDescription =
+          request
+            .supportRequested
+            .map(
+              familyFundingDisplayLabel
+            )
+            .join(", ");
+
+
+        return {
+
+          title:
+            request.title,
+
+          tagline:
+            request.summary
+              .slice(
+                0,
+                220
+              ),
+
+          description:
+            request.summary,
+
+          ventureType:
+            mapFamilyFundingVentureType(
+              request.projectType
+            ),
+
+          stage:
+            mapFamilyFundingVentureStage(
+              request.stage
+            ),
+
+          industry:
+            request.industry,
+
+          location:
+            request.location,
+
+          tags:[
+            "family",
+            "family-funding",
+            request.ownerType,
+            request.projectType
+          ].filter(Boolean),
+
+          problem:
+            request.problem,
+
+          solution:
+            request.solution,
+
+          targetMarket:
+            request.targetMarket,
+
+          /*
+            The Family form currently collects the revenue
+            model as free text.
+
+            Venture.revenueModel is an enum, while
+            Venture.businessModel is free text.
+
+            Therefore we correctly store the Family text
+            under businessModel rather than forcing an
+            invalid enum value.
+          */
+
+          businessModel:
+            request.revenueModel,
+
+          fundingGoal,
+
+          currency:
+            "PHP",
+
+          fundingPurpose:
+            request.useOfFunds,
+
+          fundingTypes,
+
+          seekingInvestment,
+
+          investmentRangeMin:
+            seekingInvestment
+              ? requested
+              : 0,
+
+          investmentRangeMax:
+            seekingInvestment
+              ? (
+                  requested >
+                    0
+                      ? requested
+                      : projectValue
+                )
+              : 0,
+
+          investmentNotes:
+            seekingInvestment
+              ? (
+                  request.useOfFunds ||
+                  request.summary
+                )
+              : "",
+
+          fundingStage:
+            seekingInvestment
+              ? (
+                  request.stage ===
+                    "growth"
+                      ? "growth"
+                      : request.projectType ===
+                          "startup"
+                          ? "pre_seed"
+                          : "project_funding"
+                )
+              : (
+                  fundingTypes.includes(
+                    "grant"
+                  )
+                    ? "grant"
+                    : "project_funding"
+                ),
+
+          supportMessage:
+            supportDescription
+              ? `Support requested: ${supportDescription}`
+              : "",
+
+          founderRole:
+            familyFundingDisplayLabel(
+              request.ownerType
+            ),
+
+          founderBio:
+            teamDescription
+              .slice(
+                0,
+                1200
+              ),
+
+          teamSize:
+            1,
+
+          visibility:
+            "aift-only"
+
+        };
+
+      }
+
+
+      /* =======================================================
+         CREATE REAL VENTURE DRAFT
+      ======================================================== */
+
+      async function createFamilyFundingVenture(
+        request
+      ){
+
+        const payload =
+          buildFamilyVenturePayload(
+            request
+          );
+
+
+        const venture =
+          await familyApiJson(
+            "/api/ventures",
+            {
+              method:
+                "POST",
+
+              body:
+                payload
+            }
+          );
+
+
+        if(
+          !venture?._id
+        ){
+
+          throw new Error(
+            "AIFT created the request but did not return a Venture ID."
+          );
+
+        }
+
+
+        familyFundingState.currentVentureId =
+          String(
+            venture._id
+          );
+
+
+        familyFundingState.currentVenture =
+          venture;
+
+
+        return venture;
+
+      }
+
+
+      /* =======================================================
+         UPDATE EXISTING DRAFT
+
+         If the user presses Save Draft more than once during
+         the same page session, update the same Venture instead
+         of creating duplicates.
+      ======================================================== */
+
+      async function updateFamilyFundingVenture(
+        ventureId,
+        request
+      ){
+
+        const payload =
+          buildFamilyVenturePayload(
+            request
+          );
+
+
+        const venture =
+          await familyApiJson(
+            `/api/ventures/${encodeURIComponent(
+              ventureId
+            )}`,
+            {
+              method:
+                "PATCH",
+
+              body:
+                payload
+            }
+          );
+
+
+        familyFundingState.currentVenture =
+          venture;
+
+
+        return venture;
+
+      }
+
+
+      /* =======================================================
+         SAVE DRAFT
+      ======================================================== */
+
+      async function saveFamilyFundingDraft(){
+
+        if(
+          familyFundingState.saving ||
+          familyFundingState.publishing
+        ){
+
+          return null;
+
+        }
+
+
+        const request =
+          collectFamilyFundingPayload();
+
+
+        const validation =
+          validateFamilyFundingRequest(
+            request,
+            {
+              publishing:false
+            }
+          );
+
+
+        if(
+          !validation.valid
+        ){
+
+          window.alert(
+            validation.message
+          );
+
+          return null;
+
+        }
+
+
+        const button =
+          $("#familyFundingSaveDraft");
+
+
+        const originalText =
+          button?.textContent ||
+          "Save Draft";
+
+
+        familyFundingState.saving =
+          true;
+
+
+        if(button){
+
+          button.disabled =
+            true;
+
+          button.textContent =
+            "Saving...";
+
+        }
+
+
+        try{
+
+          let venture;
+
+
+          if(
+            familyFundingState
+              .currentVentureId
+          ){
+
+            venture =
+              await updateFamilyFundingVenture(
+                familyFundingState
+                  .currentVentureId,
+                request
+              );
+
+          }else{
+
+            venture =
+              await createFamilyFundingVenture(
+                request
+              );
+
+          }
+
+
+          /*
+            POST /api/ventures creates status:draft.
+            We intentionally DO NOT call /publish here.
+          */
+
+          familyInvestorState.loaded =
+            false;
+
+
+          window.alert(
+            "Project funding draft saved successfully."
+          );
+
+
+          return venture;
+
+
+        }catch(error){
+
+          console.error(
+            "AIFT Family funding draft save failed:",
+            error
+          );
+
+
+          window.alert(
+            error.message ||
+            "Could not save your project funding draft."
+          );
+
+
+          return null;
+
+
+        }finally{
+
+          familyFundingState.saving =
+            false;
+
+
+          if(button){
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              originalText;
+
+          }
+
+        }
+
+      }
+
+
+      /* =======================================================
+         PUBLISH FUNDING REQUEST
+      ======================================================== */
+
+      async function publishFamilyFundingRequest(){
+
+        if(
+          familyFundingState.publishing ||
+          familyFundingState.saving
+        ){
+
+          return null;
+
+        }
+
+
+        const form =
+          $("#familyFundingForm");
+
+
+        if(
+          form &&
+          !form.reportValidity()
+        ){
+
+          return null;
+
+        }
+
+
+        const request =
+          collectFamilyFundingPayload();
+
+
+        const validation =
+          validateFamilyFundingRequest(
+            request,
+            {
+              publishing:true
+            }
+          );
+
+
+        if(
+          !validation.valid
+        ){
+
+          window.alert(
+            validation.message
+          );
+
+          return null;
+
+        }
+
+
+        familyFundingState.publishing =
+          true;
+
+
+        const submitButton =
+          form?.querySelector(
+            '[type="submit"]'
+          );
+
+
+        const originalText =
+          submitButton?.textContent ||
+          "Submit Request";
+
+
+        if(submitButton){
+
+          submitButton.disabled =
+            true;
+
+          submitButton.textContent =
+            "Publishing...";
+
+        }
+
+
+        try{
+
+          /*
+            First save/create the authoritative Venture
+            record with the newest Family form data.
+          */
+
+          let venture;
+
+
+          if(
+            familyFundingState
+              .currentVentureId
+          ){
+
+            venture =
+              await updateFamilyFundingVenture(
+                familyFundingState
+                  .currentVentureId,
+                request
+              );
+
+          }else{
+
+            venture =
+              await createFamilyFundingVenture(
+                request
+              );
+
+          }
+
+
+          const ventureId =
+            String(
+              venture?._id ||
+              familyFundingState
+                .currentVentureId ||
+              ""
+            );
+
+
+          if(!ventureId){
+
+            throw new Error(
+              "AIFT could not determine the Venture ID."
+            );
+
+          }
+
+
+          /*
+            The shared Venture backend intentionally creates
+            new records as drafts.
+
+            Publishing is a separate explicit action.
+          */
+
+          const published =
+            await familyApiJson(
+              `/api/ventures/${encodeURIComponent(
+                ventureId
+              )}/publish`,
+              {
+                method:
+                  "PATCH"
+              }
+            );
+
+
+          familyFundingState.currentVenture =
+            published?.venture ||
+            venture;
+
+
+          /*
+            Investor Discover only returns active ventures
+            where seekingInvestment=true.
+
+            Force the Investor marketplace to refresh after
+            this Family request is published.
+          */
+
+          familyInvestorState.loaded =
+            false;
+
+          familyInvestorState.savedLoaded =
+            false;
+
+          familyInvestorState.interestedLoaded =
+            false;
+
+
+          window.alert(
+            request
+              .supportRequested
+              .includes(
+                "investment"
+              )
+                ? "Your project funding request is now published to AIFT. Eligible investors can discover it in Investor Mode."
+                : "Your project funding request has been published successfully."
+          );
+
+
+          return published;
+
+
+        }catch(error){
+
+          console.error(
+            "AIFT Family funding publish failed:",
+            error
+          );
+
+
+          window.alert(
+            error.message ||
+            "Could not publish your project funding request."
+          );
+
+
+          return null;
+
+
+        }finally{
+
+          familyFundingState.publishing =
+            false;
+
+
+          if(submitButton){
+
+            submitButton.disabled =
+              false;
+
+            submitButton.textContent =
+              originalText;
+
+          }
+
+        }
+
+      }
+
+
+      /* =======================================================
+         BIND PROJECT FUNDING
+      ======================================================== */
+
       function bindFamilyFundingRequest(){
 
         const form =
           $("#familyFundingForm");
+
 
         if(!form){
           return;
@@ -20206,53 +21386,67 @@
         const previewFieldIds = [
 
           "familyFundingTitle",
+
           "familyFundingIndustry",
+
           "familyFundingStage",
+
           "familyFundingLocation",
+
           "familyFundingOwner",
+
           "familyFundingSummary",
+
           "familyFundingAmount",
+
           "familyFundingSecured"
 
         ];
 
 
-        previewFieldIds.forEach(id => {
+        previewFieldIds.forEach(
+          id => {
 
-          const field =
-            document.getElementById(id);
+            const field =
+              document.getElementById(
+                id
+              );
 
-          if(!field){
-            return;
+
+            if(!field){
+              return;
+            }
+
+
+            field.addEventListener(
+              "input",
+              updateFamilyFundingPreview
+            );
+
+
+            field.addEventListener(
+              "change",
+              updateFamilyFundingPreview
+            );
+
           }
-
-
-          field.addEventListener(
-            "input",
-            updateFamilyFundingPreview
-          );
-
-
-          field.addEventListener(
-            "change",
-            updateFamilyFundingPreview
-          );
-
-        });
+        );
 
 
         document
           .querySelectorAll(
             'input[name="familyFundingProjectType"]'
           )
-          .forEach(input => {
+          .forEach(
+            input => {
 
-            input.addEventListener(
-              "change",
-              updateFamilyFundingPreview
-            );
+              input.addEventListener(
+                "change",
+                updateFamilyFundingPreview
+              );
 
-          });
+            }
+          );
 
 
         [
@@ -20262,31 +21456,39 @@
           "familySupportPartnership",
           "familySupportMentorship",
           "familySupportResources"
-        ].forEach(id => {
+        ].forEach(
+          id => {
 
-          const input =
-            document.getElementById(id);
+            const input =
+              document.getElementById(
+                id
+              );
 
-          if(input){
 
-            input.addEventListener(
-              "change",
-              updateFamilyFundingPreview
-            );
+            if(input){
+
+              input.addEventListener(
+                "change",
+                updateFamilyFundingPreview
+              );
+
+            }
 
           }
-
-        });
+        );
 
 
         const documentInput =
           $("#familyFundingDocuments");
 
+
         const mediaInput =
           $("#familyFundingMedia");
 
+
         const documentButton =
           $("#familyFundingChooseDocuments");
+
 
         const mediaButton =
           $("#familyFundingChooseMedia");
@@ -20299,7 +21501,11 @@
 
           documentButton.addEventListener(
             "click",
-            () => documentInput.click()
+            () => {
+
+              documentInput.click();
+
+            }
           );
 
 
@@ -20318,7 +21524,11 @@
 
           mediaButton.addEventListener(
             "click",
-            () => mediaInput.click()
+            () => {
+
+              mediaInput.click();
+
+            }
           );
 
 
@@ -20333,27 +21543,16 @@
         const saveDraft =
           $("#familyFundingSaveDraft");
 
+
         if(saveDraft){
 
           saveDraft.addEventListener(
             "click",
-            () => {
+            async event => {
 
-              const draft =
-                collectFamilyFundingPayload();
+              event.preventDefault();
 
-
-              /*
-                We will replace this with the existing AIFT
-                Venture draft API after inspecting the exact
-                backend route/model used by Student, School
-                and Employer.
-              */
-
-              console.log(
-                "AIFT Family funding draft:",
-                draft
-              );
+              await saveFamilyFundingDraft();
 
             }
           );
@@ -20363,63 +21562,11 @@
 
         form.addEventListener(
           "submit",
-          event => {
+          async event => {
 
             event.preventDefault();
 
-
-            if(!form.reportValidity()){
-              return;
-            }
-
-
-            const request =
-              collectFamilyFundingPayload();
-
-
-            if(
-              !request.supportRequested.length
-            ){
-
-              alert(
-                "Please select at least one type of support."
-              );
-
-              return;
-
-            }
-
-
-            if(
-              request.totalProjectValue > 0 &&
-              request.fundingRequested >
-              request.totalProjectValue
-            ){
-
-              alert(
-                "Funding requested cannot be greater than the total project value."
-              );
-
-              return;
-
-            }
-
-
-            /*
-              IMPORTANT:
-
-              No new Venture endpoint is being invented here.
-
-              This request should later use the SAME existing
-              Venture infrastructure already used by Student,
-              School and Employer so Investor Mode reads one
-              shared source of eligible requests.
-            */
-
-            console.log(
-              "AIFT Family funding request ready:",
-              request
-            );
+            await publishFamilyFundingRequest();
 
           }
         );
