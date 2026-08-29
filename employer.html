@@ -26206,18 +26206,35 @@ html[data-employer-theme="dark"]
   line-height:1.4;
 }
 
+/* =========================================================
+   KABEZYA CONVERSATION
+   CHATGPT-STYLE MESSAGE FLOW
+========================================================= */
+
 
 /* =========================================================
    MESSAGES CONTAINER
+
+   Important:
+   Do NOT use min-height:100%.
+   Messages must occupy only the space they actually need so
+   the thinking indicator and assistant response follow the
+   user's message immediately.
 ========================================================= */
 
 .emp-kabezya-messages{
-  min-height:100%;
+  width:min(100%,820px);
+
+  min-height:0;
+
+  margin:
+    0
+    auto;
 
   padding:
-    24px
+    clamp(105px,15vh,155px)
     22px
-    60px;
+    54px;
 }
 
 .emp-kabezya-messages[hidden]{
@@ -26227,10 +26244,6 @@ html[data-employer-theme="dark"]
 
 /* =========================================================
    MESSAGE ROW
-
-   No avatar.
-   No sender name.
-   No timestamp.
 ========================================================= */
 
 .emp-kabezya-message{
@@ -26238,7 +26251,7 @@ html[data-employer-theme="dark"]
 
   width:100%;
 
-  margin:0 0 28px;
+  margin:0;
 
   padding:0;
 
@@ -26248,7 +26261,31 @@ html[data-employer-theme="dark"]
 }
 
 
-/* Hide old metadata completely */
+/* =========================================================
+   DISTANCE BETWEEN USER AND KABEZYA
+
+   Similar to ChatGPT:
+   user prompt,
+   small breathing room,
+   assistant response.
+========================================================= */
+
+.emp-kabezya-message.is-user{
+  justify-content:flex-end;
+
+  margin-bottom:34px;
+}
+
+.emp-kabezya-message.is-assistant{
+  justify-content:flex-start;
+
+  margin-bottom:34px;
+}
+
+
+/* =========================================================
+   REMOVE LEGACY IDENTITY UI
+========================================================= */
 
 .emp-kabezya-message-avatar,
 .emp-kabezya-message-meta{
@@ -26257,6 +26294,7 @@ html[data-employer-theme="dark"]
 
 .emp-kabezya-message-main{
   width:100%;
+
   min-width:0;
 }
 
@@ -26265,24 +26303,32 @@ html[data-employer-theme="dark"]
    USER MESSAGE
 ========================================================= */
 
-.emp-kabezya-message.is-user{
-  justify-content:flex-end;
-}
-
 .emp-kabezya-message.is-user
 .emp-kabezya-message-main{
   display:flex;
+
   flex-direction:column;
+
   align-items:flex-end;
 }
 
 .emp-kabezya-message.is-user
 .emp-kabezya-message-content{
+  display:block;
+
   width:auto;
 
-  max-width:min(72%,620px);
+  max-width:
+    min(
+      72%,
+      620px
+    );
 
-  padding:10px 14px;
+  padding:
+    10px
+    15px;
+
+  border:0;
 
   border-radius:
     18px
@@ -26290,14 +26336,35 @@ html[data-employer-theme="dark"]
     5px
     18px;
 
-  background:#ececf1;
+  background:#e9e9ee;
 
   color:#202123;
 
   font-size:14px;
-  line-height:1.55;
+
+  font-weight:400;
+
+  line-height:1.5;
 
   overflow-wrap:anywhere;
+}
+
+
+/* =========================================================
+   USER MESSAGE TYPOGRAPHY
+
+   User input should remain simple.
+========================================================= */
+
+.emp-kabezya-message.is-user
+.emp-kabezya-message-content p{
+  margin:0;
+}
+
+.emp-kabezya-message.is-user
+.emp-kabezya-message-content > *{
+  margin-top:0;
+  margin-bottom:0;
 }
 
 
@@ -26305,26 +26372,28 @@ html[data-employer-theme="dark"]
    KABEZYA RESPONSE
 
    No bubble.
-   Clean document-like answer.
+   No avatar.
+   No label.
+   No white card.
 ========================================================= */
-
-.emp-kabezya-message.is-assistant{
-  justify-content:flex-start;
-}
 
 .emp-kabezya-message.is-assistant
 .emp-kabezya-message-main{
   width:100%;
+
+  display:block;
 }
 
 .emp-kabezya-message.is-assistant
 .emp-kabezya-message-content{
   width:100%;
+
   max-width:none;
 
   padding:0;
 
   border:0;
+
   border-radius:0;
 
   background:transparent;
@@ -26332,6 +26401,9 @@ html[data-employer-theme="dark"]
   color:#202123;
 
   font-size:14px;
+
+  font-weight:400;
+
   line-height:1.72;
 
   overflow-wrap:anywhere;
@@ -26339,30 +26411,42 @@ html[data-employer-theme="dark"]
 
 
 /* =========================================================
-   RICH RESPONSE TYPOGRAPHY
+   RESPONSE PARAGRAPHS
 ========================================================= */
 
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content > :first-child{
   margin-top:0;
 }
 
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content > :last-child{
   margin-bottom:0;
 }
 
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content p{
   margin:
     0
     0
-    14px;
+    16px;
 }
 
+
+/* =========================================================
+   RESPONSE HEADINGS
+========================================================= */
+
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content h1,
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content h2,
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content h3,
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content h4{
   margin:
-    24px
+    25px
     0
     10px;
 
@@ -26370,48 +26454,100 @@ html[data-employer-theme="dark"]
 
   font-weight:650;
 
-  letter-spacing:-.015em;
+  line-height:1.35;
+
+  letter-spacing:-.012em;
 }
 
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content h1{
-  font-size:22px;
+  font-size:21px;
 }
 
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content h2{
-  font-size:19px;
+  font-size:18px;
 }
 
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content h3{
   font-size:16px;
 }
 
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content h4{
   font-size:14px;
 }
 
+
+/* =========================================================
+   BOLD / EMPHASIS
+========================================================= */
+
 .emp-kabezya-message-content strong{
   color:#101828;
+
   font-weight:650;
 }
 
+.emp-kabezya-message-content em{
+  font-style:italic;
+}
+
+
+/* =========================================================
+   LISTS
+========================================================= */
+
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content ul,
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content ol{
   margin:
     8px
     0
-    16px;
+    17px;
 
   padding-left:24px;
 }
 
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content li{
-  margin:6px 0;
+  margin:
+    7px
+    0;
+
   padding-left:2px;
+
+  line-height:1.65;
 }
 
+.emp-kabezya-message.is-assistant
 .emp-kabezya-message-content li::marker{
   color:#667085;
 }
+
+
+/* =========================================================
+   HORIZONTAL RULE
+========================================================= */
+
+.emp-kabezya-message-content hr{
+  height:1px;
+
+  margin:
+    22px
+    0;
+
+  border:0;
+
+  background:#e4e7ec;
+}
+
+
+/* =========================================================
+   BLOCKQUOTE
+========================================================= */
 
 .emp-kabezya-message-content blockquote{
   margin:
@@ -26430,6 +26566,11 @@ html[data-employer-theme="dark"]
 
   color:#475467;
 }
+
+
+/* =========================================================
+   INLINE CODE
+========================================================= */
 
 .emp-kabezya-message-content code{
   padding:
@@ -26453,19 +26594,35 @@ html[data-employer-theme="dark"]
   font-size:.92em;
 }
 
+
+/* =========================================================
+   CODE BLOCK
+========================================================= */
+
 .emp-kabezya-message-content pre{
+  width:100%;
+
   overflow:auto;
 
   margin:
-    14px
+    15px
     0;
 
-  padding:14px;
+  padding:15px;
 
-  border:1px solid #e4e7ec;
+  border:
+    1px solid
+    #e4e7ec;
+
   border-radius:10px;
 
   background:#f8fafc;
+
+  color:#344054;
+
+  line-height:1.55;
+
+  white-space:pre-wrap;
 }
 
 .emp-kabezya-message-content pre code{
@@ -26488,6 +26645,8 @@ html[data-employer-theme="dark"]
 
   margin-top:7px;
 
+  min-height:24px;
+
   opacity:0;
 
   transition:
@@ -26495,6 +26654,8 @@ html[data-employer-theme="dark"]
 }
 
 .emp-kabezya-message:hover
+.emp-kabezya-message-actions,
+.emp-kabezya-message:focus-within
 .emp-kabezya-message-actions{
   opacity:1;
 }
@@ -26504,10 +26665,20 @@ html[data-employer-theme="dark"]
   justify-content:flex-end;
 }
 
+.emp-kabezya-message.is-assistant
+.emp-kabezya-message-actions{
+  justify-content:flex-start;
+}
+
 .emp-kabezya-message-actions button{
-  padding:4px 7px;
+  min-height:26px;
+
+  padding:
+    4px
+    7px;
 
   border:0;
+
   border-radius:6px;
 
   background:transparent;
@@ -26515,7 +26686,9 @@ html[data-employer-theme="dark"]
   color:#98a2b3;
 
   font:inherit;
+
   font-size:10px;
+
   font-weight:600;
 
   cursor:pointer;
@@ -26529,7 +26702,9 @@ html[data-employer-theme="dark"]
 
 
 /* =========================================================
-   THINKING
+   THINKING INDICATOR
+
+   It now sits directly after the latest user message.
 ========================================================= */
 
 .emp-kabezya-thinking{
@@ -26537,20 +26712,25 @@ html[data-employer-theme="dark"]
 
   align-items:center;
 
-  gap:5px;
+  width:min(100%,820px);
+
+  min-height:30px;
+
+  margin:
+    -16px
+    auto
+    24px;
 
   padding:
     0
-    22px
-    28px;
+    22px;
+
+  gap:4px;
 }
 
 .emp-kabezya-thinking[hidden]{
   display:none !important;
 }
-
-
-/* Hide old thinking avatar */
 
 .emp-kabezya-thinking-avatar{
   display:none !important;
@@ -26568,6 +26748,7 @@ html[data-employer-theme="dark"]
 .emp-kabezya-thinking-bubble span,
 .emp-kabezya-thinking-dots span{
   width:6px;
+
   height:6px;
 
   border-radius:50%;
@@ -26597,14 +26778,136 @@ html[data-employer-theme="dark"]
   60%,
   100%{
     opacity:.35;
-    transform:translateY(0);
+
+    transform:
+      translateY(0);
   }
 
   30%{
     opacity:1;
-    transform:translateY(-3px);
+
+    transform:
+      translateY(-3px);
   }
 
+}
+
+
+/* =========================================================
+   KABEZYA SYSTEM NOTICE
+========================================================= */
+
+.emp-kabezya-message.is-system{
+  justify-content:flex-start;
+
+  margin:
+    4px
+    0
+    30px;
+}
+
+.emp-kabezya-message.is-system
+.emp-kabezya-message-main{
+  width:100%;
+}
+
+.emp-kabezya-system-notice{
+  width:100%;
+
+  padding:
+    14px
+    16px;
+
+  border:
+    1px solid
+    #e4e7ec;
+
+  border-radius:12px;
+
+  background:#f8fafc;
+}
+
+.emp-kabezya-system-notice.is-usage-limit{
+  border-color:#fedf89;
+
+  background:#fffaeb;
+}
+
+.emp-kabezya-system-notice-title{
+  margin:
+    0
+    0
+    6px;
+
+  color:#344054;
+
+  font-size:13px;
+
+  font-weight:700;
+
+  line-height:1.4;
+}
+
+.emp-kabezya-system-notice.is-usage-limit
+.emp-kabezya-system-notice-title{
+  color:#93370d;
+}
+
+.emp-kabezya-system-notice-body{
+  color:#475467;
+
+  font-size:12px;
+
+  line-height:1.6;
+}
+
+.emp-kabezya-system-notice-body p{
+  margin:
+    0
+    0
+    8px;
+}
+
+.emp-kabezya-system-notice-body p:last-child{
+  margin-bottom:0;
+}
+
+.emp-kabezya-system-notice-action{
+  display:inline-flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  min-height:31px;
+
+  margin-top:10px;
+
+  padding:
+    0
+    11px;
+
+  border:
+    1px solid
+    #d0d5dd;
+
+  border-radius:8px;
+
+  background:#fff;
+
+  color:#344054;
+
+  font:inherit;
+
+  font-size:11px;
+
+  font-weight:650;
+
+  cursor:pointer;
+}
+
+.emp-kabezya-system-notice-action:hover{
+  background:#f9fafb;
 }
 
 
@@ -75247,9 +75550,8 @@ function useEmployerKabezyaPrompt(
 
 }
 
-
 /* =========================================================
-   MESSAGE RENDERER
+   KABEZYA CONVERSATION RENDERER
 ========================================================= */
 
 function renderEmployerKabezyaConversation(){
@@ -75267,12 +75569,20 @@ function renderEmployerKabezyaConversation(){
   ) {
 
     return;
+
   }
 
 
+  const conversation =
+    Array.isArray(
+      employerKabezyaState.messages
+    )
+      ? employerKabezyaState.messages
+      : [];
+
+
   const hasMessages =
-    employerKabezyaState
-      .messages.length >
+    conversation.length >
     0;
 
 
@@ -75295,8 +75605,7 @@ function renderEmployerKabezyaConversation(){
 
 
   messages.innerHTML =
-    employerKabezyaState
-      .messages
+    conversation
       .map(
         renderEmployerKabezyaMessage
       )
@@ -75306,16 +75615,27 @@ function renderEmployerKabezyaConversation(){
 
 
 /* =========================================================
-   ONE MESSAGE
+   ONE KABEZYA MESSAGE
 ========================================================= */
 
 function renderEmployerKabezyaMessage(
   message
 ){
 
+  if (!message) {
+    return "";
+  }
+
+
   const user =
     message.role ===
     "user";
+
+
+  const systemNotice =
+    Boolean(
+      message.systemNotice
+    );
 
 
   const messageId =
@@ -75327,6 +75647,88 @@ function renderEmployerKabezyaMessage(
     );
 
 
+  /* =====================================================
+     SYSTEM / RATE-LIMIT NOTICE
+  ====================================================== */
+
+  if (systemNotice) {
+
+    const noticeType =
+      escapeHtml(
+        String(
+          message.systemNotice ||
+          "notice"
+        )
+      );
+
+
+    const noticeTitle =
+      escapeHtml(
+        String(
+          message.noticeTitle ||
+          (
+            message.systemNotice ===
+            "usage-limit"
+              ? "Kabezya usage limit reached"
+              : "Kabezya notice"
+          )
+        )
+      );
+
+
+    return `
+      <article
+        class="emp-kabezya-message is-system"
+        data-message-id="${messageId}"
+      >
+
+        <div class="emp-kabezya-message-main">
+
+          <div
+            class="emp-kabezya-system-notice is-${noticeType}"
+          >
+
+            <div class="emp-kabezya-system-notice-title">
+              ${noticeTitle}
+            </div>
+
+            <div class="emp-kabezya-system-notice-body">
+              ${
+                formatEmployerKabezyaMessageContent(
+                  message.content
+                )
+              }
+            </div>
+
+            ${
+              message.systemNotice ===
+              "usage-limit"
+                ? `
+                  <button
+                    type="button"
+                    class="emp-kabezya-system-notice-action"
+                    onclick="retryEmployerKabezyaMessage()"
+                  >
+                    Try again
+                  </button>
+                `
+                : ""
+            }
+
+          </div>
+
+        </div>
+
+      </article>
+    `;
+
+  }
+
+
+  /* =====================================================
+     NORMAL USER / ASSISTANT MESSAGE
+  ====================================================== */
+
   return `
     <article
       class="emp-kabezya-message ${
@@ -75337,56 +75739,32 @@ function renderEmployerKabezyaMessage(
       data-message-id="${messageId}"
     >
 
-      <div class="emp-kabezya-message-avatar">
-        ${
-          user
-            ? escapeHtml(
-                getEmployerKabezyaUserInitial()
-              )
-            : "K"
-        }
-      </div>
-
       <div class="emp-kabezya-message-main">
-
-        <div class="emp-kabezya-message-meta">
-
-          <strong>
-            ${
-              user
-                ? "You"
-                : "Kabezya"
-            }
-          </strong>
-
-          <span>
-            ${
-              escapeHtml(
-                formatEmployerKabezyaTime(
-                  message.createdAt
-                )
-              )
-            }
-          </span>
-
-        </div>
 
         <div class="emp-kabezya-message-content">
           ${
-            formatEmployerKabezyaMessageContent(
-              message.content
-            )
+            user
+              ? formatEmployerKabezyaUserMessage(
+                  message.content
+                )
+              : formatEmployerKabezyaMessageContent(
+                  message.content
+                )
           }
         </div>
+
 
         <div class="emp-kabezya-message-actions">
 
           <button
             type="button"
             onclick="copyEmployerKabezyaMessage('${messageId}')"
+            aria-label="Copy message"
+            title="Copy"
           >
             Copy
           </button>
+
 
           ${
             user
@@ -75394,6 +75772,8 @@ function renderEmployerKabezyaMessage(
                 <button
                   type="button"
                   onclick="editEmployerKabezyaMessage('${messageId}')"
+                  aria-label="Edit message"
+                  title="Edit"
                 >
                   Edit
                 </button>
@@ -75412,23 +75792,559 @@ function renderEmployerKabezyaMessage(
 
 
 /* =========================================================
-   SAFE MESSAGE FORMAT
+   USER MESSAGE FORMATTER
+========================================================= */
+
+function formatEmployerKabezyaUserMessage(
+  content
+){
+
+  const text =
+    escapeHtml(
+      String(
+        content ||
+        ""
+      )
+    );
+
+
+  return (
+    `<p>${
+      text.replace(
+        /\n/g,
+        "<br>"
+      )
+    }</p>`
+  );
+
+}
+
+
+/* =========================================================
+   SAFE INLINE MARKDOWN
+========================================================= */
+
+function formatEmployerKabezyaInline(
+  value
+){
+
+  let text =
+    String(
+      value ||
+      ""
+    );
+
+
+  /* INLINE CODE */
+
+  text =
+    text.replace(
+      /`([^`\n]+)`/g,
+      "<code>$1</code>"
+    );
+
+
+  /* BOLD */
+
+  text =
+    text.replace(
+      /\*\*([^*\n]+?)\*\*/g,
+      "<strong>$1</strong>"
+    );
+
+
+  text =
+    text.replace(
+      /__([^_\n]+?)__/g,
+      "<strong>$1</strong>"
+    );
+
+
+  /* ITALIC */
+
+  text =
+    text.replace(
+      /(^|[\s(])\*([^*\n]+?)\*(?=$|[\s).,!?:;])/g,
+      "$1<em>$2</em>"
+    );
+
+
+  text =
+    text.replace(
+      /(^|[\s(])_([^_\n]+?)_(?=$|[\s).,!?:;])/g,
+      "$1<em>$2</em>"
+    );
+
+
+  return text;
+
+}
+
+
+/* =========================================================
+   SAFE KABEZYA RICH-TEXT FORMATTER
+
+   Supported:
+   - paragraphs
+   - headings
+   - bold
+   - italic
+   - unordered lists
+   - numbered lists
+   - horizontal rules
+   - quotes
+   - inline code
+   - fenced code blocks
+
+   Security:
+   Raw AI output is escaped BEFORE formatting, therefore the
+   model cannot inject arbitrary HTML or executable scripts.
 ========================================================= */
 
 function formatEmployerKabezyaMessageContent(
   content
 ){
 
-  return escapeHtml(
-    String(
-      content ||
-      ""
-    )
-  )
-    .replace(
-      /\n/g,
-      "<br>"
+  const source =
+    escapeHtml(
+      String(
+        content ||
+        ""
+      )
+        .replace(
+          /\r\n?/g,
+          "\n"
+        )
     );
+
+
+  if (!source.trim()) {
+    return "";
+  }
+
+
+  const lines =
+    source.split(
+      "\n"
+    );
+
+
+  const html =
+    [];
+
+
+  let paragraph =
+    [];
+
+
+  let listType =
+    null;
+
+
+  let listItems =
+    [];
+
+
+  let inCodeBlock =
+    false;
+
+
+  let codeLines =
+    [];
+
+
+  /* =====================================================
+     FLUSH PARAGRAPH
+  ====================================================== */
+
+  const flushParagraph =
+    () => {
+
+      if (
+        !paragraph.length
+      ) {
+        return;
+      }
+
+
+      const text =
+        paragraph
+          .join(
+            " "
+          )
+          .trim();
+
+
+      if (text) {
+
+        html.push(
+          `<p>${
+            formatEmployerKabezyaInline(
+              text
+            )
+          }</p>`
+        );
+
+      }
+
+
+      paragraph =
+        [];
+
+    };
+
+
+  /* =====================================================
+     FLUSH LIST
+  ====================================================== */
+
+  const flushList =
+    () => {
+
+      if (
+        !listType ||
+        !listItems.length
+      ) {
+
+        listType =
+          null;
+
+        listItems =
+          [];
+
+        return;
+
+      }
+
+
+      const tag =
+        listType ===
+        "ordered"
+          ? "ol"
+          : "ul";
+
+
+      html.push(
+        `<${tag}>${
+          listItems
+            .map(
+              item =>
+                `<li>${
+                  formatEmployerKabezyaInline(
+                    item
+                  )
+                }</li>`
+            )
+            .join("")
+        }</${tag}>`
+      );
+
+
+      listType =
+        null;
+
+
+      listItems =
+        [];
+
+    };
+
+
+  /* =====================================================
+     FLUSH CODE BLOCK
+  ====================================================== */
+
+  const flushCodeBlock =
+    () => {
+
+      html.push(
+        `<pre><code>${
+          codeLines.join(
+            "\n"
+          )
+        }</code></pre>`
+      );
+
+
+      codeLines =
+        [];
+
+    };
+
+
+  /* =====================================================
+     PROCESS LINES
+  ====================================================== */
+
+  lines.forEach(
+    rawLine => {
+
+      const line =
+        rawLine.trimEnd();
+
+
+      const trimmed =
+        line.trim();
+
+
+      /* CODE FENCE */
+
+      if (
+        /^```/.test(
+          trimmed
+        )
+      ) {
+
+        flushParagraph();
+
+        flushList();
+
+
+        if (
+          inCodeBlock
+        ) {
+
+          flushCodeBlock();
+
+          inCodeBlock =
+            false;
+
+        } else {
+
+          inCodeBlock =
+            true;
+
+          codeLines =
+            [];
+
+        }
+
+
+        return;
+
+      }
+
+
+      if (
+        inCodeBlock
+      ) {
+
+        codeLines.push(
+          line
+        );
+
+        return;
+
+      }
+
+
+      /* EMPTY LINE */
+
+      if (!trimmed) {
+
+        flushParagraph();
+
+        flushList();
+
+        return;
+
+      }
+
+
+      /* HORIZONTAL RULE */
+
+      if (
+        /^(---+|\*\*\*+|___+)$/.test(
+          trimmed
+        )
+      ) {
+
+        flushParagraph();
+
+        flushList();
+
+        html.push(
+          "<hr>"
+        );
+
+        return;
+
+      }
+
+
+      /* HEADINGS */
+
+      const heading =
+        trimmed.match(
+          /^(#{1,4})\s+(.+)$/
+        );
+
+
+      if (heading) {
+
+        flushParagraph();
+
+        flushList();
+
+
+        const level =
+          Math.min(
+            heading[1].length,
+            4
+          );
+
+
+        html.push(
+          `<h${level}>${
+            formatEmployerKabezyaInline(
+              heading[2]
+            )
+          }</h${level}>`
+        );
+
+
+        return;
+
+      }
+
+
+      /* BLOCKQUOTE */
+
+      const quote =
+        trimmed.match(
+          /^>\s?(.+)$/
+        );
+
+
+      if (quote) {
+
+        flushParagraph();
+
+        flushList();
+
+
+        html.push(
+          `<blockquote>${
+            formatEmployerKabezyaInline(
+              quote[1]
+            )
+          }</blockquote>`
+        );
+
+
+        return;
+
+      }
+
+
+      /* UNORDERED LIST */
+
+      const unordered =
+        trimmed.match(
+          /^[-*•]\s+(.+)$/
+        );
+
+
+      if (unordered) {
+
+        flushParagraph();
+
+
+        if (
+          listType !==
+          "unordered"
+        ) {
+
+          flushList();
+
+          listType =
+            "unordered";
+
+        }
+
+
+        listItems.push(
+          unordered[1]
+        );
+
+
+        return;
+
+      }
+
+
+      /* ORDERED LIST */
+
+      const ordered =
+        trimmed.match(
+          /^\d+[.)]\s+(.+)$/
+        );
+
+
+      if (ordered) {
+
+        flushParagraph();
+
+
+        if (
+          listType !==
+          "ordered"
+        ) {
+
+          flushList();
+
+          listType =
+            "ordered";
+
+        }
+
+
+        listItems.push(
+          ordered[1]
+        );
+
+
+        return;
+
+      }
+
+
+      /* NORMAL PARAGRAPH */
+
+      if (listType) {
+
+        flushList();
+
+      }
+
+
+      paragraph.push(
+        trimmed
+      );
+
+    }
+  );
+
+
+  /* =====================================================
+     FINAL FLUSH
+  ====================================================== */
+
+  if (
+    inCodeBlock
+  ) {
+
+    flushCodeBlock();
+
+  }
+
+
+  flushParagraph();
+
+  flushList();
+
+
+  return html.join("");
 
 }
 
@@ -75867,14 +76783,183 @@ function clearEmployerKabezyaAttachments(){
 
 
 /* =========================================================
+   EMPLOYER KABEZYA — CHAT NOTICE
+========================================================= */
+
+function addEmployerKabezyaSystemNotice({
+  type = "notice",
+  title = "Kabezya",
+  message = ""
+} = {}){
+
+  const notices =
+    Array.isArray(
+      employerKabezyaState.messages
+    )
+      ? employerKabezyaState.messages
+      : [];
+
+
+  const latest =
+    notices[
+      notices.length - 1
+    ];
+
+
+  /* Do not stack the same limit notice repeatedly. */
+
+  if (
+    latest?.systemNotice ===
+    type
+  ) {
+
+    return false;
+
+  }
+
+
+  notices.push({
+
+    id:
+      `kabezya-notice-${
+        Date.now()
+      }`,
+
+    role:
+      "assistant",
+
+    content:
+      String(
+        message ||
+        ""
+      ),
+
+    noticeTitle:
+      String(
+        title ||
+        "Kabezya"
+      ),
+
+    systemNotice:
+      type,
+
+    temporary:
+      true,
+
+    createdAt:
+      new Date()
+        .toISOString()
+
+  });
+
+
+  employerKabezyaState.messages =
+    notices;
+
+
+  renderEmployerKabezyaConversation();
+
+
+  scrollEmployerKabezyaToBottom();
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   EMPLOYER KABEZYA — USAGE LIMIT
+========================================================= */
+
+function addEmployerKabezyaUsageLimitNotice(
+  error
+){
+
+  const seconds =
+    Math.max(
+      0,
+      Number(
+        error?.retryAfterSeconds ||
+        0
+      ) ||
+      0
+    );
+
+
+  let waitText =
+    "";
+
+
+  if (
+    seconds > 0
+  ) {
+
+    if (
+      seconds >= 60
+    ) {
+
+      const minutes =
+        Math.max(
+          1,
+          Math.ceil(
+            seconds /
+            60
+          )
+        );
+
+
+      waitText =
+        ` You can try again in approximately ${minutes} minute${
+          minutes === 1
+            ? ""
+            : "s"
+        }.`;
+
+    } else {
+
+      waitText =
+        ` You can try again in approximately ${Math.ceil(seconds)} seconds.`;
+
+    }
+
+  }
+
+
+  const content =
+    [
+      `Kabezya has reached the temporary usage limit.${waitText}`,
+      "",
+      "Your conversation is still saved. You can continue from this same chat when Kabezya becomes available again.",
+      "",
+      "Starting another conversation will not bypass the current limit."
+    ]
+      .join(
+        "\n"
+      );
+
+
+  return addEmployerKabezyaSystemNotice({
+
+    type:
+      "usage-limit",
+
+    title:
+      "Kabezya usage limit reached",
+
+    message:
+      content
+
+  });
+
+}
+
+
+/* =========================================================
    SEND MESSAGE
 ========================================================= */
 
 async function sendEmployerKabezyaMessage(){
-
-  /* =====================================================
-     INITIALIZE
-  ====================================================== */
 
   await initializeEmployerKabezya();
 
@@ -75883,7 +76968,7 @@ async function sendEmployerKabezyaMessage(){
     employerKabezyaState.sending
   ) {
 
-    return;
+    return false;
 
   }
 
@@ -75896,7 +76981,7 @@ async function sendEmployerKabezyaMessage(){
     !elements.input
   ) {
 
-    return;
+    return false;
 
   }
 
@@ -75907,7 +76992,8 @@ async function sendEmployerKabezyaMessage(){
 
   const prompt =
     String(
-      elements.input.value || ""
+      elements.input.value ||
+      ""
     ).trim();
 
 
@@ -75915,35 +77001,47 @@ async function sendEmployerKabezyaMessage(){
 
     syncEmployerKabezyaComposer();
 
-    return;
+    return false;
 
   }
 
 
   if (
-    prompt.length > 8000
+    prompt.length >
+    8000
   ) {
 
-    alert(
-      "Your message is too long. Please keep it under 8,000 characters."
-    );
+    if (
+      typeof showToast ===
+      "function"
+    ) {
 
-    return;
+      showToast(
+        "Your message is too long. Keep it under 8,000 characters.",
+        "info"
+      );
+
+    }
+
+
+    return false;
 
   }
 
 
   /* =====================================================
-     EDIT EXISTING USER MESSAGE
+     EDIT EXISTING MESSAGE
   ====================================================== */
 
   if (
-    employerKabezyaState.editingMessageId
+    employerKabezyaState
+      .editingMessageId
   ) {
 
     try {
 
-      employerKabezyaState.sending =
+      employerKabezyaState
+        .sending =
         true;
 
 
@@ -75951,12 +77049,14 @@ async function sendEmployerKabezyaMessage(){
 
 
       await persistEmployerKabezyaMessageEdit(
-        employerKabezyaState.editingMessageId,
+        employerKabezyaState
+          .editingMessageId,
         prompt
       );
 
 
-      employerKabezyaState.editingMessageId =
+      employerKabezyaState
+        .editingMessageId =
         null;
 
 
@@ -75971,7 +77071,7 @@ async function sendEmployerKabezyaMessage(){
       renderEmployerKabezyaConversation();
 
 
-      return;
+      return true;
 
     } catch (error) {
 
@@ -75981,17 +77081,27 @@ async function sendEmployerKabezyaMessage(){
       );
 
 
-      alert(
-        error?.message ||
-        "Kabezya could not update this message."
-      );
+      addEmployerKabezyaSystemNotice({
+
+        type:
+          "service-error",
+
+        title:
+          "Message could not be updated",
+
+        message:
+          error?.message ||
+          "Kabezya could not update this message. Your conversation has not been removed."
+
+      });
 
 
-      return;
+      return false;
 
     } finally {
 
-      employerKabezyaState.sending =
+      employerKabezyaState
+        .sending =
         false;
 
 
@@ -76010,11 +77120,13 @@ async function sendEmployerKabezyaMessage(){
     buildEmployerKabezyaHistory();
 
 
-  employerKabezyaState.lastPrompt =
+  employerKabezyaState
+    .lastPrompt =
     prompt;
 
 
-  employerKabezyaState.sending =
+  employerKabezyaState
+    .sending =
     true;
 
 
@@ -76027,11 +77139,15 @@ async function sendEmployerKabezyaMessage(){
   syncEmployerKabezyaComposer();
 
 
-  /* =====================================================
-     CREATE CONVERSATION IF NEEDED
-  ====================================================== */
+  let userMessageSaved =
+    false;
+
 
   try {
+
+    /* ===================================================
+       CREATE CONVERSATION
+    ==================================================== */
 
     if (
       !employerKabezyaState
@@ -76044,7 +77160,7 @@ async function sendEmployerKabezyaMessage(){
 
 
     /* ===================================================
-       SAVE USER MESSAGE ONCE
+       PERSIST USER MESSAGE ONCE
     ==================================================== */
 
     const savedUserMessage =
@@ -76054,33 +77170,71 @@ async function sendEmployerKabezyaMessage(){
       );
 
 
-    if (savedUserMessage) {
+    userMessageSaved =
+      true;
 
-      employerKabezyaState.messages.push(
-        normalizeEmployerKabezyaMessage(
-          savedUserMessage
-        )
-      );
 
-    } else {
+    const normalizedUser =
+      savedUserMessage
+        ? normalizeEmployerKabezyaMessage(
+            savedUserMessage
+          )
+        : createEmployerKabezyaMessage(
+            "user",
+            prompt
+          );
 
-      employerKabezyaState.messages.push(
-        createEmployerKabezyaMessage(
-          "user",
-          prompt
-        )
-      );
+
+    if (normalizedUser) {
+
+      employerKabezyaState
+        .messages
+        .push(
+          normalizedUser
+        );
 
     }
 
 
     renderEmployerKabezyaConversation();
 
-    scrollEmployerKabezyaToBottom();
+
+    /* Do not force the user bubble to the very top.
+       Scroll only enough to keep the newest turn visible. */
+
+    requestAnimationFrame(
+      () => {
+
+        const body =
+          getEmployerKabezyaElements()
+            .body;
+
+
+        const latestUser =
+          body?.querySelector(
+            ".emp-kabezya-message.is-user:last-of-type"
+          );
+
+
+        if (
+          latestUser &&
+          typeof latestUser.scrollIntoView ===
+          "function"
+        ) {
+
+          latestUser.scrollIntoView({
+            behavior:"smooth",
+            block:"center"
+          });
+
+        }
+
+      }
+    );
 
 
     /* ===================================================
-       SHOW THINKING STATE
+       THINKING
     ==================================================== */
 
     setEmployerKabezyaThinking(
@@ -76089,7 +77243,7 @@ async function sendEmployerKabezyaMessage(){
 
 
     /* ===================================================
-       ASK KABEZYA
+       AI REQUEST
     ==================================================== */
 
     const assistantResponse =
@@ -76097,7 +77251,8 @@ async function sendEmployerKabezyaMessage(){
         getEmployerKabezyaEndpoint(),
         {
 
-          method:"POST",
+          method:
+            "POST",
 
           body:
             JSON.stringify({
@@ -76128,7 +77283,7 @@ async function sendEmployerKabezyaMessage(){
 
 
     /* ===================================================
-       NORMALIZE AI RESPONSE
+       NORMALIZE RESPONSE
     ==================================================== */
 
     const reply =
@@ -76151,15 +77306,23 @@ async function sendEmployerKabezyaMessage(){
 
     if (!reply) {
 
-      throw new Error(
-        "Kabezya returned an empty response."
-      );
+      const error =
+        new Error(
+          "Kabezya returned an empty response."
+        );
+
+
+      error.status =
+        502;
+
+
+      throw error;
 
     }
 
 
     /* ===================================================
-       SAVE ASSISTANT MESSAGE ONCE
+       SAVE ASSISTANT RESPONSE
     ==================================================== */
 
     const savedAssistantMessage =
@@ -76170,41 +77333,47 @@ async function sendEmployerKabezyaMessage(){
       );
 
 
-    if (savedAssistantMessage) {
+    const normalizedAssistant =
+      savedAssistantMessage
+        ? normalizeEmployerKabezyaMessage(
+            savedAssistantMessage
+          )
+        : createEmployerKabezyaMessage(
+            "assistant",
+            reply,
+            {
+              responseSnapshot:
+                assistantResponse
+            }
+          );
 
-      employerKabezyaState.messages.push(
-        normalizeEmployerKabezyaMessage(
-          savedAssistantMessage
-        )
-      );
 
-    } else {
+    if (
+      normalizedAssistant
+    ) {
 
-      employerKabezyaState.messages.push(
-        createEmployerKabezyaMessage(
-          "assistant",
-          reply,
-          {
-            responseSnapshot:
-              assistantResponse
-          }
-        )
-      );
+      employerKabezyaState
+        .messages
+        .push(
+          normalizedAssistant
+        );
 
     }
 
 
-    /* ===================================================
-       RENDER COMPLETE CONVERSATION
-    ==================================================== */
+    setEmployerKabezyaThinking(
+      false
+    );
+
 
     renderEmployerKabezyaConversation();
+
 
     scrollEmployerKabezyaToBottom();
 
 
     /* ===================================================
-       REFRESH CONVERSATION HISTORY
+       REFRESH HISTORY
     ==================================================== */
 
     try {
@@ -76224,6 +77393,9 @@ async function sendEmployerKabezyaMessage(){
     clearEmployerKabezyaAttachments();
 
 
+    return true;
+
+
   } catch (error) {
 
     console.error(
@@ -76232,9 +77404,82 @@ async function sendEmployerKabezyaMessage(){
     );
 
 
+    setEmployerKabezyaThinking(
+      false
+    );
+
+
+    const status =
+      Number(
+        error?.status ||
+        0
+      );
+
+
     /* ===================================================
-       RESTORE PROMPT
+       429 — USAGE LIMIT
+
+       Professional message inside conversation.
+       No browser alert.
     ==================================================== */
+
+    if (
+      status ===
+      429
+    ) {
+
+      addEmployerKabezyaUsageLimitNotice(
+        error
+      );
+
+
+      /*
+        The user's message has already been persisted in most
+        429 cases, so do not duplicate it by adding it again.
+        Restore the text only so the user can retry later.
+      */
+
+      elements.input.value =
+        prompt;
+
+
+      resizeEmployerKabezyaInput();
+
+
+      return false;
+
+    }
+
+
+    /* ===================================================
+       OTHER SERVICE FAILURE
+    ==================================================== */
+
+    addEmployerKabezyaSystemNotice({
+
+      type:
+        "service-error",
+
+      title:
+        "Kabezya could not complete the response",
+
+      message:
+        userMessageSaved
+          ? (
+              `${
+                error?.message ||
+                "Kabezya is temporarily unavailable."
+              }\n\nYour message is saved. You can retry from this conversation.`
+            )
+          : (
+              `${
+                error?.message ||
+                "Kabezya is temporarily unavailable."
+              }\n\nYour message could not be saved. Please try again.`
+            )
+
+    });
+
 
     elements.input.value =
       prompt;
@@ -76243,34 +77488,13 @@ async function sendEmployerKabezyaMessage(){
     resizeEmployerKabezyaInput();
 
 
-    /* ===================================================
-       RATE LIMIT
-    ==================================================== */
-
-    if (
-      Number(
-        error?.status
-      ) === 429
-    ) {
-
-      alert(
-        error?.message ||
-        "Kabezya is receiving too many requests. Please wait a moment and try again."
-      );
-
-    } else {
-
-      alert(
-        error?.message ||
-        "Kabezya could not complete your request. Please try again."
-      );
-
-    }
+    return false;
 
 
   } finally {
 
-    employerKabezyaState.sending =
+    employerKabezyaState
+      .sending =
       false;
 
 
@@ -76284,6 +77508,8 @@ async function sendEmployerKabezyaMessage(){
   }
 
 }
+
+    
 
 
 /* =========================================================
