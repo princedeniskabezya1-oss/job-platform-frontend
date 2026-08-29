@@ -77503,7 +77503,16 @@ async function sendEmployerKabezyaMessage(){
 
 
   /* =====================================================
-     EDIT EXISTING MESSAGE
+     EDIT EXISTING USER MESSAGE
+
+     Production edit flow:
+     -----------------------------------------------------
+     1. Capture the edited message before state refresh.
+     2. Save the edited message to MongoDB.
+     3. Backend truncates all later conversation turns.
+     4. Reload the returned truncated conversation.
+     5. Leave edit mode.
+     6. Generate a replacement Kabezya response.
   ====================================================== */
 
   if (
@@ -77511,7 +77520,36 @@ async function sendEmployerKabezyaMessage(){
       .editingMessageId
   ) {
 
+    const editedMessageId =
+      String(
+        employerKabezyaState
+          .editingMessageId ||
+        ""
+      ).trim();
+
+
+    const editedContent =
+      String(
+        prompt ||
+        ""
+      ).trim();
+
+
+    if (
+      !editedMessageId ||
+      !editedContent
+    ) {
+
+      return false;
+
+    }
+
+
     try {
+
+      /* ===================================================
+         SAVE EDIT
+      ==================================================== */
 
       employerKabezyaState
         .sending =
@@ -77521,16 +77559,41 @@ async function sendEmployerKabezyaMessage(){
       syncEmployerKabezyaComposer();
 
 
-      await persistEmployerKabezyaMessageEdit(
-        employerKabezyaState
-          .editingMessageId,
-        prompt
-      );
+      const updatedConversation =
+        await persistEmployerKabezyaMessageEdit(
+          editedMessageId,
+          editedContent
+        );
 
+
+      if (
+        !updatedConversation ||
+        !updatedConversation.id
+      ) {
+
+        throw new Error(
+          "The edited conversation could not be loaded."
+        );
+
+      }
+
+
+      /* ===================================================
+         LEAVE EDIT MODE
+
+         persistEmployerKabezyaMessageEdit() has already
+         loaded the server's truncated conversation into
+         Employer Kabezya state.
+      ==================================================== */
 
       employerKabezyaState
         .editingMessageId =
         null;
+
+
+      employerKabezyaState
+        .lastPrompt =
+        editedContent;
 
 
       elements.input.value =
@@ -77539,12 +77602,46 @@ async function sendEmployerKabezyaMessage(){
 
       resizeEmployerKabezyaInput();
 
+
+      /*
+        Release the save lock before regeneration.
+
+        regenerateEmployerKabezyaAfterEdit() owns its own
+        sending/thinking lifecycle.
+      */
+
+      employerKabezyaState
+        .sending =
+        false;
+
+
       syncEmployerKabezyaComposer();
 
       renderEmployerKabezyaConversation();
 
+      scrollEmployerKabezyaToBottom();
 
-      return true;
+
+      /* ===================================================
+         GENERATE REPLACEMENT ANSWER
+      ==================================================== */
+
+      const regenerated =
+        await regenerateEmployerKabezyaAfterEdit({
+
+          conversationId:
+            updatedConversation.id,
+
+          prompt:
+            editedContent
+
+        });
+
+
+      return Boolean(
+        regenerated
+      );
+
 
     } catch (error) {
 
@@ -77554,22 +77651,53 @@ async function sendEmployerKabezyaMessage(){
       );
 
 
-      addEmployerKabezyaSystemNotice({
+      /*
+        Restore the edited text so the Employer does not
+        lose what they typed if the request fails.
+      */
 
-        type:
-          "service-error",
+      elements.input.value =
+        editedContent;
 
-        title:
-          "Message could not be updated",
 
-        message:
+      resizeEmployerKabezyaInput();
+
+
+      if (
+        typeof addEmployerKabezyaSystemNotice ===
+        "function"
+      ) {
+
+        addEmployerKabezyaSystemNotice({
+
+          type:
+            "service-error",
+
+          title:
+            "Message could not be updated",
+
+          message:
+            error?.message ||
+            "Kabezya could not update this message. Please try again."
+
+        });
+
+      } else if (
+        typeof showToast ===
+        "function"
+      ) {
+
+        showToast(
           error?.message ||
-          "Kabezya could not update this message. Your conversation has not been removed."
+          "Kabezya could not update this message.",
+          "error"
+        );
 
-      });
+      }
 
 
       return false;
+
 
     } finally {
 
@@ -77578,11 +77706,18 @@ async function sendEmployerKabezyaMessage(){
         false;
 
 
+      setEmployerKabezyaThinking(
+        false
+      );
+
+
       syncEmployerKabezyaComposer();
 
     }
 
   }
+
+
 
 
   /* =====================================================
