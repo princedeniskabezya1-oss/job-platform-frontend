@@ -74823,67 +74823,81 @@ function setEmployerKabezyaConversation(
    CREATE SERVER CONVERSATION
 ========================================================= */
 
-async function createEmployerKabezyaConversation(
-  initialPrompt
-){
+async function createEmployerKabezyaConversation(){
 
-  const data =
+  const endpoint =
+    getEmployerKabezyaConversationsEndpoint();
+
+
+  const payload = {
+
+    title:"",
+
+    mode:"assistant",
+
+    context:
+      buildEmployerKabezyaContext()
+
+  };
+
+
+  const response =
     await employerKabezyaApi(
-      getEmployerKabezyaConversationsEndpoint(),
+      endpoint,
       {
-
-        method:
-          "POST",
+        method:"POST",
 
         body:
-          JSON.stringify({
-
-            title:
-              "",
-
-            mode:
-              "assistant",
-
-            message:
-              String(
-                initialPrompt ||
-                ""
-              ).trim(),
-
-            context:
-              buildEmployerKabezyaContext()
-
-          })
-
+          JSON.stringify(
+            payload
+          )
       }
     );
 
 
+  const rawConversation =
+    response?.conversation ||
+    response?.data ||
+    response;
+
+
   const conversation =
     normalizeEmployerKabezyaConversation(
-      data?.conversation ||
-      data
+      rawConversation
     );
 
 
-  if (!conversation) {
+  if (
+    !conversation ||
+    !conversation.id
+  ) {
 
     throw new Error(
-      "Kabezya could not create a conversation."
+      "Kabezya could not create a new conversation."
     );
 
   }
 
 
-  employerKabezyaState
-    .conversationId =
+  employerKabezyaState.conversationId =
     conversation.id;
 
 
-  employerKabezyaState
-    .conversationTitle =
+  employerKabezyaState.conversationTitle =
     conversation.title ||
     "New conversation";
+
+
+  employerKabezyaState.messages =
+    Array.isArray(
+      conversation.messages
+    )
+      ? conversation.messages
+          .map(
+            normalizeEmployerKabezyaMessage
+          )
+          .filter(Boolean)
+      : [];
 
 
   return conversation;
@@ -75718,176 +75732,232 @@ function clearEmployerKabezyaAttachments(){
 
 async function sendEmployerKabezyaMessage(){
 
+  /* =====================================================
+     INITIALIZE
+  ====================================================== */
+
   await initializeEmployerKabezya();
 
 
   if (
-    employerKabezyaState
-      .sending
+    employerKabezyaState.sending
   ) {
 
-    return false;
+    return;
 
   }
 
 
-  const {
-    input
-  } =
+  const elements =
     getEmployerKabezyaElements();
 
 
+  if (
+    !elements.input
+  ) {
+
+    return;
+
+  }
+
+
+  /* =====================================================
+     READ PROMPT
+  ====================================================== */
+
   const prompt =
     String(
-      input?.value ||
-      ""
+      elements.input.value || ""
     ).trim();
 
 
   if (!prompt) {
-    return false;
-  }
 
+    syncEmployerKabezyaComposer();
 
-  employerKabezyaState
-    .sending =
-    true;
-
-
-  employerKabezyaState
-    .lastPrompt =
-    prompt;
-
-
-  if (input) {
-
-    input.value =
-      "";
-
-    input.style.height =
-      "auto";
+    return;
 
   }
 
 
-  syncEmployerKabezyaComposer();
+  if (
+    prompt.length > 8000
+  ) {
+
+    alert(
+      "Your message is too long. Please keep it under 8,000 characters."
+    );
+
+    return;
+
+  }
 
 
-  try {
+  /* =====================================================
+     EDIT EXISTING USER MESSAGE
+  ====================================================== */
 
-    /* =====================================================
-       EDIT EXISTING MESSAGE
-    ===================================================== */
+  if (
+    employerKabezyaState.editingMessageId
+  ) {
 
-    if (
-      employerKabezyaState
-        .editingMessageId
-    ) {
+    try {
 
-      const editingId =
-        employerKabezyaState
-          .editingMessageId;
+      employerKabezyaState.sending =
+        true;
+
+
+      syncEmployerKabezyaComposer();
 
 
       await persistEmployerKabezyaMessageEdit(
-        editingId,
+        employerKabezyaState.editingMessageId,
         prompt
       );
 
 
-      employerKabezyaState
-        .editingMessageId =
+      employerKabezyaState.editingMessageId =
         null;
+
+
+      elements.input.value =
+        "";
+
+
+      resizeEmployerKabezyaInput();
+
+      syncEmployerKabezyaComposer();
+
+      renderEmployerKabezyaConversation();
+
+
+      return;
+
+    } catch (error) {
+
+      console.error(
+        "Employer Kabezya message edit failed:",
+        error
+      );
+
+
+      alert(
+        error?.message ||
+        "Kabezya could not update this message."
+      );
+
+
+      return;
+
+    } finally {
+
+      employerKabezyaState.sending =
+        false;
+
+
+      syncEmployerKabezyaComposer();
+
+    }
+
+  }
+
+
+  /* =====================================================
+     PREPARE REQUEST
+  ====================================================== */
+
+  const previousHistory =
+    buildEmployerKabezyaHistory();
+
+
+  employerKabezyaState.lastPrompt =
+    prompt;
+
+
+  employerKabezyaState.sending =
+    true;
+
+
+  elements.input.value =
+    "";
+
+
+  resizeEmployerKabezyaInput();
+
+  syncEmployerKabezyaComposer();
+
+
+  /* =====================================================
+     CREATE CONVERSATION IF NEEDED
+  ====================================================== */
+
+  try {
+
+    if (
+      !employerKabezyaState
+        .conversationId
+    ) {
+
+      await createEmployerKabezyaConversation();
+
+    }
+
+
+    /* ===================================================
+       SAVE USER MESSAGE ONCE
+    ==================================================== */
+
+    const savedUserMessage =
+      await persistEmployerKabezyaMessage(
+        "user",
+        prompt
+      );
+
+
+    if (savedUserMessage) {
+
+      employerKabezyaState.messages.push(
+        normalizeEmployerKabezyaMessage(
+          savedUserMessage
+        )
+      );
 
     } else {
 
-      /* ===================================================
-         CREATE CONVERSATION IF NEEDED
-      =================================================== */
-
-      if (
-        !employerKabezyaState
-          .conversationId
-      ) {
-
-        await createEmployerKabezyaConversation(
-          prompt
-        );
-
-      }
-
-
-      /* ===================================================
-         SAVE USER TURN
-      =================================================== */
-
-      const savedUserMessage =
-        await persistEmployerKabezyaMessage(
+      employerKabezyaState.messages.push(
+        createEmployerKabezyaMessage(
           "user",
           prompt
-        );
-
-
-      if (savedUserMessage) {
-
-        employerKabezyaState
-          .messages
-          .push(
-            savedUserMessage
-          );
-
-      } else {
-
-        employerKabezyaState
-          .messages
-          .push(
-            createEmployerKabezyaMessage(
-              "user",
-              prompt
-            )
-          );
-
-      }
+        )
+      );
 
     }
 
 
     renderEmployerKabezyaConversation();
 
+    scrollEmployerKabezyaToBottom();
+
+
+    /* ===================================================
+       SHOW THINKING STATE
+    ==================================================== */
+
     setEmployerKabezyaThinking(
       true
     );
 
-    scrollEmployerKabezyaToBottom();
 
+    /* ===================================================
+       ASK KABEZYA
+    ==================================================== */
 
-    /* =====================================================
-       GENERATE AI RESPONSE
-    ===================================================== */
-
-    const history =
-      buildEmployerKabezyaHistory();
-
-
-    /*
-     * The final entry is the current user turn.
-     * The provider receives it separately as `message`,
-     * therefore exclude that duplicate from history.
-     */
-    const previousHistory =
-      history.slice(
-        0,
-        -1
-      );
-
-
-    const response =
+    const assistantResponse =
       await employerKabezyaApi(
         getEmployerKabezyaEndpoint(),
         {
 
-          method:
-            "POST",
+          method:"POST",
 
           body:
             JSON.stringify({
@@ -75895,7 +75965,8 @@ async function sendEmployerKabezyaMessage(){
               message:
                 prompt,
 
-              prompt,
+              prompt:
+                prompt,
 
               mode:
                 "assistant",
@@ -75916,13 +75987,25 @@ async function sendEmployerKabezyaMessage(){
       );
 
 
+    /* ===================================================
+       NORMALIZE AI RESPONSE
+    ==================================================== */
+
     const reply =
       String(
-        response?.reply ||
-        response?.answer ||
-        response?.response ||
-        response?.message ||
+
+        assistantResponse?.reply ||
+
+        assistantResponse?.answer ||
+
+        assistantResponse?.response ||
+
+        assistantResponse?.content ||
+
+        assistantResponse?.message ||
+
         ""
+
       ).trim();
 
 
@@ -75935,130 +76018,119 @@ async function sendEmployerKabezyaMessage(){
     }
 
 
-    /* =====================================================
-       SAVE ASSISTANT TURN
-    ===================================================== */
+    /* ===================================================
+       SAVE ASSISTANT MESSAGE ONCE
+    ==================================================== */
 
     const savedAssistantMessage =
       await persistEmployerKabezyaMessage(
         "assistant",
         reply,
-        {
-
-          model:
-            response?.model ||
-            null,
-
-          usage:
-            response?.usage ||
-            null,
-
-          meta:
-            response?.meta ||
-            null
-
-        }
+        assistantResponse
       );
 
 
-    employerKabezyaState
-      .messages
-      .push(
-        savedAssistantMessage ||
-        createEmployerKabezyaMessage(
-          "assistant",
-          reply
+    if (savedAssistantMessage) {
+
+      employerKabezyaState.messages.push(
+        normalizeEmployerKabezyaMessage(
+          savedAssistantMessage
         )
       );
 
+    } else {
 
-    clearEmployerKabezyaAttachments();
+      employerKabezyaState.messages.push(
+        createEmployerKabezyaMessage(
+          "assistant",
+          reply,
+          {
+            responseSnapshot:
+              assistantResponse
+          }
+        )
+      );
 
+    }
+
+
+    /* ===================================================
+       RENDER COMPLETE CONVERSATION
+    ==================================================== */
 
     renderEmployerKabezyaConversation();
 
     scrollEmployerKabezyaToBottom();
 
 
-    /*
-     * Refresh Recent Conversations after the successful
-     * persisted exchange.
-     */
+    /* ===================================================
+       REFRESH CONVERSATION HISTORY
+    ==================================================== */
+
     try {
 
       await loadEmployerKabezyaRecentConversations();
 
     } catch (historyError) {
 
-      console.error(
-        "Employer Kabezya recent history refresh failed:",
+      console.warn(
+        "Employer Kabezya recent conversations refresh failed:",
         historyError
       );
 
     }
 
 
-    return true;
+    clearEmployerKabezyaAttachments();
+
 
   } catch (error) {
 
     console.error(
-      "Employer Kabezya send failed:",
+      "Employer Kabezya request failed:",
       error
     );
 
 
-    /*
-     * Restore the prompt so the Employer can retry instead
-     * of losing what they typed.
-     */
-    if (input) {
+    /* ===================================================
+       RESTORE PROMPT
+    ==================================================== */
 
-      input.value =
-        prompt;
-
-      resizeEmployerKabezyaInput();
-
-    }
+    elements.input.value =
+      prompt;
 
 
-    let message =
-      error?.message ||
-      "Kabezya could not complete the request.";
+    resizeEmployerKabezyaInput();
 
+
+    /* ===================================================
+       RATE LIMIT
+    ==================================================== */
 
     if (
-      error?.status ===
-      429
+      Number(
+        error?.status
+      ) === 429
     ) {
 
-      message =
-        error.retryAfterSeconds
-          ? `Kabezya is receiving many requests. Try again in about ${error.retryAfterSeconds} seconds.`
-          : "Kabezya is receiving many requests. Please try again shortly.";
+      alert(
+        error?.message ||
+        "Kabezya is receiving too many requests. Please wait a moment and try again."
+      );
 
-    }
+    } else {
 
-
-    if (
-      typeof showToast ===
-      "function"
-    ) {
-
-      showToast(
-        message,
-        "error"
+      alert(
+        error?.message ||
+        "Kabezya could not complete your request. Please try again."
       );
 
     }
 
 
-    return false;
-
   } finally {
 
-    employerKabezyaState
-      .sending =
+    employerKabezyaState.sending =
       false;
 
 
@@ -76132,12 +76204,20 @@ function openEmployerKabezya(){
 function openTab(tab){
 
   const requestedTab =
-    String(tab || "overview").trim();
+    String(
+      tab || "overview"
+    ).trim();
+
+
+  /* =====================================================
+     FIND REQUESTED WORKSPACE
+  ====================================================== */
 
   const targetSection =
     document.getElementById(
       `section-${requestedTab}`
     );
+
 
   if (!targetSection) {
 
@@ -76145,13 +76225,26 @@ function openTab(tab){
       `Employer section "${requestedTab}" does not exist.`
     );
 
-    if (requestedTab !== "overview") {
-      openTab("overview");
+
+    if (
+      requestedTab !== "overview"
+    ) {
+
+      openTab(
+        "overview"
+      );
+
     }
 
+
     return;
+
   }
 
+
+  /* =====================================================
+     SAVE CURRENT WORKSPACE
+  ====================================================== */
 
   state.activeTab =
     requestedTab;
@@ -76174,8 +76267,15 @@ function openTab(tab){
   }
 
 
+  /* =====================================================
+     WORKSPACE LAYOUT MODE
+  ====================================================== */
+
   const compactMode =
-    !["overview", "feed"].includes(
+    ![
+      "overview",
+      "feed"
+    ].includes(
       requestedTab
     );
 
@@ -76186,96 +76286,231 @@ function openTab(tab){
   );
 
 
+  /* =====================================================
+     SIDEBAR ACTIVE STATE
+  ====================================================== */
+
   document
-    .querySelectorAll(".tab-btn")
+    .querySelectorAll(
+      ".tab-btn"
+    )
     .forEach(btn => {
 
       const active =
-        btn.dataset.tab === requestedTab;
+        btn.dataset.tab ===
+        requestedTab;
+
 
       btn.classList.toggle(
         "active",
         active
       );
 
+
       btn.setAttribute(
         "aria-selected",
-        active ? "true" : "false"
+        active
+          ? "true"
+          : "false"
       );
 
     });
 
 
+  /* =====================================================
+     WORKSPACE VISIBILITY
+  ====================================================== */
+
   document
-    .querySelectorAll(".section")
+    .querySelectorAll(
+      ".section"
+    )
     .forEach(section => {
 
       const active =
-        section === targetSection;
+        section ===
+        targetSection;
+
 
       section.classList.toggle(
         "active",
         active
       );
 
+
       section.setAttribute(
         "aria-hidden",
-        active ? "false" : "true"
+        active
+          ? "false"
+          : "true"
       );
 
     });
 
 
-  if (requestedTab === "analytics") {
-    buildAnalytics();
-  }
-
-  if (requestedTab === "network") {
-    buildNetwork();
-  }
-
-  if (requestedTab === "jobseekers") {
-    buildJobSeekers();
-  }
-
-  if (requestedTab === "ops") {
-    buildOps();
-  }
-
-  if (requestedTab === "career") {
-    buildEmployerCareerHub();
-  }
+  /* =====================================================
+     ANALYTICS
+  ====================================================== */
 
   if (
-    requestedTab === "feed" &&
-    !window.AIFTFeedMountedOnEmployer
+    requestedTab ===
+    "analytics"
   ) {
-    buildFeed();
+
+    buildAnalytics();
+
   }
 
-if (requestedTab === "profile") {
-  buildProfileSection();
-}
+
+  /* =====================================================
+     NETWORK
+  ====================================================== */
+
+  if (
+    requestedTab ===
+    "network"
+  ) {
+
+    buildNetwork();
+
+  }
 
 
-if (requestedTab === "settings") {
-  buildEmployerSettings();
-}
+  /* =====================================================
+     JOB SEEKERS / CANDIDATES
+  ====================================================== */
 
+  if (
+    requestedTab ===
+    "jobseekers"
+  ) {
+
+    buildJobSeekers();
+
+  }
+
+
+  /* =====================================================
+     OPERATIONS
+  ====================================================== */
+
+  if (
+    requestedTab ===
+    "ops"
+  ) {
+
+    buildOps();
+
+  }
+
+
+  /* =====================================================
+     CAREER HUB
+  ====================================================== */
+
+  if (
+    requestedTab ===
+    "career"
+  ) {
+
+    buildEmployerCareerHub();
+
+  }
+
+
+  /* =====================================================
+     FEED
+  ====================================================== */
+
+  if (
+    requestedTab ===
+      "feed" &&
+    !window
+      .AIFTFeedMountedOnEmployer
+  ) {
+
+    buildFeed();
+
+  }
+
+
+  /* =====================================================
+     COMPANY PROFILE
+  ====================================================== */
+
+  if (
+    requestedTab ===
+    "profile"
+  ) {
+
+    buildProfileSection();
+
+  }
+
+
+  /* =====================================================
+     SETTINGS
+  ====================================================== */
+
+  if (
+    requestedTab ===
+    "settings"
+  ) {
+
+    buildEmployerSettings();
+
+  }
+
+
+  /* =====================================================
+     KABEZYA AI
+  ====================================================== */
+
+  if (
+    requestedTab ===
+    "kabezya"
+  ) {
+
+    Promise
+      .resolve(
+        initializeEmployerKabezya()
+      )
+      .catch(error => {
+
+        console.error(
+          "Employer Kabezya initialization failed:",
+          error
+        );
+
+      });
+
+  }
+
+
+  /* =====================================================
+     CLOSE MOBILE SIDEBAR
+  ====================================================== */
 
   document.body.classList.remove(
     "mobile-menu-open"
   );
 
 
+  /* =====================================================
+     RETURN WORKSPACE TO TOP
+  ====================================================== */
+
   const mainPage =
-    document.querySelector(".page");
+    document.querySelector(
+      ".page"
+    );
+
 
   if (mainPage) {
 
     mainPage.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
+      behavior:"smooth",
+      block:"start"
     });
 
   }
