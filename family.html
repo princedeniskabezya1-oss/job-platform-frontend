@@ -8390,6 +8390,25 @@
       <path d="m5 12 4 4L19 6"/>
     </symbol>
 
+
+    <symbol id="icon-clock" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 7v5l3 2"/>
+    </symbol>
+
+
+    <symbol id="icon-edit" viewBox="0 0 24 24">
+      <path d="M4 20h4l11-11-4-4L4 16v4Z"/>
+      <path d="m13.5 6.5 4 4"/>
+    </symbol>
+
+
+    <symbol id="icon-info" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 10v6"/>
+      <path d="M12 7h.01"/>
+    </symbol>
+
   </svg>
 
 
@@ -20054,6 +20073,76 @@
 
       }
 
+            function sortFamilyInvestorCards(){
+
+        const grid =
+          $("#familyInvestorGrid");
+
+        const sort =
+          $("#familyInvestorSort")
+            ?.value || "recommended";
+
+
+        if(!grid){
+          return;
+        }
+
+
+        const cards =
+          getFamilyInvestorCards();
+
+
+        cards.sort(
+          (a,b) => {
+
+            if(sort === "amount_high"){
+
+              return (
+                Number(
+                  b.dataset.investorAmount || 0
+                ) -
+                Number(
+                  a.dataset.investorAmount || 0
+                )
+              );
+
+            }
+
+
+            if(sort === "amount_low"){
+
+              return (
+                Number(
+                  a.dataset.investorAmount || 0
+                ) -
+                Number(
+                  b.dataset.investorAmount || 0
+                )
+              );
+
+            }
+
+
+            return (
+              Number(
+                a.dataset.investorOriginalOrder || 0
+              ) -
+              Number(
+                b.dataset.investorOriginalOrder || 0
+              )
+            );
+
+          }
+        );
+
+
+        cards.forEach(
+          card =>
+            grid.appendChild(card)
+        );
+
+      }
+
 
       function clearFamilyInvestorFilters(){
 
@@ -20478,6 +20567,36 @@
 
           });
 
+
+                const investorCards =
+          getFamilyInvestorCards();
+
+
+        investorCards.forEach(
+          (card,index) => {
+
+            card.dataset
+              .investorOriginalOrder =
+                String(index);
+
+          }
+        );
+
+
+        $("#familyInvestorSort")
+          ?.addEventListener(
+            "change",
+            () => {
+
+              sortFamilyInvestorCards();
+
+              applyFamilyInvestorFilters();
+
+            }
+          );
+
+
+        sortFamilyInvestorCards();
 
         applyFamilyInvestorFilters();
 
@@ -21531,6 +21650,11 @@
           getFamilyOpportunityCards();
 
 
+        const child =
+          $("#familyOpportunityChild")
+            ?.value || "";
+
+
         const level =
           $("#familyOpportunityLevel")
             ?.value || "";
@@ -21631,10 +21755,33 @@
 
         if(text){
 
-          text.textContent =
-            visibleCount === 1
-              ? "Showing 1 matching opportunity."
-              : `Showing ${visibleCount} matching opportunities.`;
+          const childSelect =
+            $("#familyOpportunityChild");
+
+          const childName =
+            child &&
+            childSelect
+              ? childSelect.options[
+                  childSelect.selectedIndex
+                ]?.textContent.trim() || ""
+              : "";
+
+
+          if(childName){
+
+            text.textContent =
+              visibleCount === 1
+                ? `Showing 1 opportunity for ${childName}.`
+                : `Showing ${visibleCount} opportunities for ${childName}.`;
+
+          }else{
+
+            text.textContent =
+              visibleCount === 1
+                ? "Showing 1 matching opportunity."
+                : `Showing ${visibleCount} matching opportunities.`;
+
+          }
 
         }
 
@@ -21801,6 +21948,7 @@
 
 
         [
+          "familyOpportunityChild",
           "familyOpportunityLevel",
           "familyOpportunityInterest",
           "familyOpportunityLocation",
