@@ -1,0 +1,28 @@
+name: Family Production Validation
+
+on:
+  push:
+    branches:
+      - family-production-data
+
+permissions:
+  contents: read
+
+jobs:
+  validate-family:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check Family JavaScript syntax
+        run: node --check family-production.js
+      - name: Verify production files exist
+        run: |
+          test -s family.html
+          test -s family-production.css
+          test -s family-production.js
+      - name: Ensure Family HTML has no legacy demo names
+        run: |
+          ! grep -Eqi 'Lucas|Mia|Maria Santos|demo request|sample request' family.html
