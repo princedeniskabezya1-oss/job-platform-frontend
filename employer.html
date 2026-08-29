@@ -76569,8 +76569,7 @@ function editEmployerKabezyaMessage(
 ){
 
   if (
-    employerKabezyaState
-      .sending
+    employerKabezyaState.sending
   ) {
 
     return false;
@@ -76584,10 +76583,12 @@ function editEmployerKabezyaMessage(
       .find(
         item =>
           String(
-            item.id
+            item?.id ||
+            ""
           ) ===
           String(
-            messageId
+            messageId ||
+            ""
           )
       );
 
@@ -76610,9 +76611,15 @@ function editEmployerKabezyaMessage(
 
 
   if (!input) {
+
     return false;
+
   }
 
+
+  /* =====================================================
+     ENTER EDIT MODE
+  ====================================================== */
 
   employerKabezyaState
     .editingMessageId =
@@ -76620,14 +76627,40 @@ function editEmployerKabezyaMessage(
 
 
   input.value =
-    message.content;
+    String(
+      message.content ||
+      ""
+    );
 
 
   resizeEmployerKabezyaInput();
 
   syncEmployerKabezyaComposer();
 
+
   input.focus();
+
+
+  /*
+    Put cursor at the end of the existing message.
+  */
+
+  try {
+
+    const length =
+      input.value.length;
+
+
+    input.setSelectionRange(
+      length,
+      length
+    );
+
+  } catch (error) {
+
+    /* Safe fallback */
+
+  }
 
 
   return true;
@@ -76637,6 +76670,13 @@ function editEmployerKabezyaMessage(
 
 /* =========================================================
    UPDATE SAVED USER MESSAGE
+
+   IMPORTANT:
+   Employer backend truncates later conversation turns after
+   editing a previous user message.
+
+   Therefore the returned conversation should end at the
+   edited user turn.
 ========================================================= */
 
 async function persistEmployerKabezyaMessageEdit(
@@ -76644,13 +76684,50 @@ async function persistEmployerKabezyaMessageEdit(
   content
 ){
 
-  if (
-    !employerKabezyaState
-      .conversationId
-  ) {
+  const conversationId =
+    String(
+      employerKabezyaState
+        .conversationId ||
+      ""
+    ).trim();
+
+
+  const id =
+    String(
+      messageId ||
+      ""
+    ).trim();
+
+
+  const text =
+    String(
+      content ||
+      ""
+    ).trim();
+
+
+  if (!conversationId) {
 
     throw new Error(
       "This conversation has not been saved yet."
+    );
+
+  }
+
+
+  if (!id) {
+
+    throw new Error(
+      "The message could not be identified."
+    );
+
+  }
+
+
+  if (!text) {
+
+    throw new Error(
+      "The edited message cannot be empty."
     );
 
   }
@@ -76662,12 +76739,11 @@ async function persistEmployerKabezyaMessageEdit(
         getEmployerKabezyaConversationsEndpoint()
       }/${
         encodeURIComponent(
-          employerKabezyaState
-            .conversationId
+          conversationId
         )
       }/messages/${
         encodeURIComponent(
-          messageId
+          id
         )
       }`,
       {
@@ -76677,7 +76753,8 @@ async function persistEmployerKabezyaMessageEdit(
 
         body:
           JSON.stringify({
-            content
+            content:
+              text
           })
 
       }
@@ -76691,7 +76768,10 @@ async function persistEmployerKabezyaMessageEdit(
     );
 
 
-  if (!conversation) {
+  if (
+    !conversation ||
+    !conversation.id
+  ) {
 
     throw new Error(
       "Kabezya could not update the message."
@@ -76700,12 +76780,374 @@ async function persistEmployerKabezyaMessageEdit(
   }
 
 
+  /* =====================================================
+     LOAD TRUNCATED SERVER CONVERSATION
+  ====================================================== */
+
   setEmployerKabezyaConversation(
     conversation
   );
 
 
   return conversation;
+
+}
+
+
+/* =========================================================
+   REGENERATE AFTER EDIT
+
+   The edited user message is already saved.
+
+   DO NOT save the same user message again.
+
+   Flow:
+   ---------------------------------------------------------
+   1. Edited message has been PATCHed.
+   2. Conversation now ends at edited user message.
+   3. Previous messages become AI history.
+   4. Edited message becomes current prompt.
+   5. Kabezya generates a replacement answer.
+   6. Only the new assistant answer is persisted.
+========================================================= */
+
+async function regenerateEmployerKabezyaAfterEdit({
+  conversationId,
+  prompt
+} = {}){
+
+  const activeConversationId =
+    String(
+      conversationId ||
+      employerKabezyaState
+        .conversationId ||
+      ""
+    ).trim();
+
+
+  const editedPrompt =
+    String(
+      prompt ||
+      ""
+    ).trim();
+
+
+  if (
+    !activeConversationId ||
+    !editedPrompt
+  ) {
+
+    return false;
+
+  }
+
+
+  /* =====================================================
+     BUILD HISTORY
+
+     The final message is the edited user message.
+     It is excluded because we send it separately as prompt.
+  ====================================================== */
+
+  const storedMessages =
+    Array.isArray(
+      employerKabezyaState.messages
+    )
+      ? employerKabezyaState.messages
+      : [];
+
+
+  const history =
+    (
+      storedMessages.length
+        ? storedMessages.slice(
+            0,
+            -1
+          )
+        : []
+    )
+      .filter(
+        message =>
+          (
+            message?.role ===
+              "user" ||
+            message?.role ===
+              "assistant"
+          ) &&
+          !message?.systemNotice &&
+          !message?.error
+      )
+      .slice(
+        -20
+      )
+      .map(
+        message => ({
+          role:
+            message.role,
+
+          content:
+            String(
+              message.content ||
+              ""
+            )
+        })
+      )
+      .filter(
+        message =>
+          Boolean(
+            message.content.trim()
+          )
+      );
+
+
+  employerKabezyaState
+    .sending =
+    true;
+
+
+  setEmployerKabezyaThinking(
+    true
+  );
+
+
+  syncEmployerKabezyaComposer();
+
+  renderEmployerKabezyaConversation();
+
+
+  try {
+
+    /* ===================================================
+       GENERATE NEW KABEZYA ANSWER
+    ==================================================== */
+
+    const assistantResponse =
+      await employerKabezyaApi(
+        getEmployerKabezyaEndpoint(),
+        {
+
+          method:
+            "POST",
+
+          body:
+            JSON.stringify({
+
+              message:
+                editedPrompt,
+
+              prompt:
+                editedPrompt,
+
+              mode:
+                "assistant",
+
+              conversationId:
+                activeConversationId,
+
+              history,
+
+              context:
+                buildEmployerKabezyaContext()
+
+            })
+
+        }
+      );
+
+
+    const reply =
+      String(
+
+        assistantResponse?.reply ||
+
+        assistantResponse?.answer ||
+
+        assistantResponse?.response ||
+
+        assistantResponse?.content ||
+
+        assistantResponse?.message ||
+
+        ""
+
+      ).trim();
+
+
+    if (!reply) {
+
+      const error =
+        new Error(
+          "Kabezya returned an empty response."
+        );
+
+
+      error.status =
+        502;
+
+
+      throw error;
+
+    }
+
+
+    /* ===================================================
+       SAVE ONLY NEW ASSISTANT RESPONSE
+    ==================================================== */
+
+    const savedAssistantMessage =
+      await persistEmployerKabezyaMessage(
+        "assistant",
+        reply,
+        assistantResponse
+      );
+
+
+    const assistantMessage =
+      savedAssistantMessage
+        ? normalizeEmployerKabezyaMessage(
+            savedAssistantMessage
+          )
+        : createEmployerKabezyaMessage(
+            "assistant",
+            reply,
+            {
+              responseSnapshot:
+                assistantResponse
+            }
+          );
+
+
+    if (assistantMessage) {
+
+      employerKabezyaState
+        .messages
+        .push(
+          assistantMessage
+        );
+
+    }
+
+
+    renderEmployerKabezyaConversation();
+
+
+    scrollEmployerKabezyaToBottom();
+
+
+    /* ===================================================
+       REFRESH RECENT CONVERSATIONS
+    ==================================================== */
+
+    try {
+
+      await loadEmployerKabezyaRecentConversations();
+
+    } catch (historyError) {
+
+      console.warn(
+        "Employer Kabezya history refresh after edit failed:",
+        historyError
+      );
+
+    }
+
+
+    return true;
+
+
+  } catch (error) {
+
+    console.error(
+      "Employer Kabezya regeneration after edit failed:",
+      error
+    );
+
+
+    const status =
+      Number(
+        error?.status ||
+        0
+      );
+
+
+    /* ===================================================
+       RATE LIMIT
+    ==================================================== */
+
+    if (
+      status ===
+        429 &&
+      typeof addEmployerKabezyaUsageLimitNotice ===
+        "function"
+    ) {
+
+      addEmployerKabezyaUsageLimitNotice(
+        error
+      );
+
+
+      return false;
+
+    }
+
+
+    /* ===================================================
+       OTHER FAILURE
+    ==================================================== */
+
+    if (
+      typeof addEmployerKabezyaSystemNotice ===
+      "function"
+    ) {
+
+      addEmployerKabezyaSystemNotice({
+
+        type:
+          "service-error",
+
+        title:
+          "Kabezya could not regenerate the response",
+
+        message:
+          `${
+            error?.message ||
+            "Kabezya is temporarily unavailable."
+          }\n\nYour edited message is saved. You can retry from this conversation.`
+
+      });
+
+    } else if (
+      typeof showToast ===
+      "function"
+    ) {
+
+      showToast(
+        error?.message ||
+        "Kabezya could not regenerate the response.",
+        "error"
+      );
+
+    }
+
+
+    return false;
+
+
+  } finally {
+
+    employerKabezyaState
+      .sending =
+      false;
+
+
+    setEmployerKabezyaThinking(
+      false
+    );
+
+
+    syncEmployerKabezyaComposer();
+
+  }
 
 }
 
