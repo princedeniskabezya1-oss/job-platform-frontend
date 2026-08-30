@@ -233,6 +233,8 @@
 
   function updateInvestorAccessUi(){
     const enabled = state.profile?.familyProfile?.investorEnabled === true;
+    document.body.dataset.familyMode = state.mode;
+    document.body.dataset.investorEnabled = enabled ? "true" : "false";
     const copy = $("#familyInvestorAccessText");
     if(copy){
       copy.innerHTML = enabled
@@ -1287,43 +1289,68 @@
     finally{ input.disabled = false; input.focus(); }
   }
 
+  function isFamilyRelevantNotification(item){
+    const haystack = [item?.type,item?.title,item?.message,item?.text,item?.category,item?.entityType,item?.referenceType].filter(Boolean).join(" ").toLowerCase();
+    return ["family","scholarship","venture","investment","investor","funding","opportunity","child","education"].some(keyword => haystack.includes(keyword));
+  }
+
+  function buildFamilyActivityNotifications({ scholarships = [], opportunities = [], ventures = [] } = {}){
+    const scholarshipItems = scholarships.slice(0,8).map(item => ({ _id:`family-scholarship-${item._id}`,synthetic:true,familyKind:"scholarship",entityId:item._id,title:"New Scholarship",message:item.title || "A new scholarship is available on AIFT.",createdAt:item.createdAt || item.publishedAt || item.updatedAt,sender:{ name:organizationName(item) } }));
+    const opportunityItems = opportunities.slice(0,8).map(item => ({ _id:`family-opportunity-${item._id}`,synthetic:true,familyKind:"opportunity",entityId:item._id,title:"New Opportunity",message:item.title || "A new education opportunity is available on AIFT.",createdAt:item.createdAt || item.publishedAt || item.updatedAt,sender:{ name:organizationName(item) } }));
+    const ventureItems = ventures.slice(0,8).map(item => ({ _id:`family-venture-${item._id}`,synthetic:true,familyKind:"venture",entityId:item._id,title:"New Venture",message:item.title || "A new Venture is available for investors.",createdAt:item.createdAt || item.publishedAt || item.updatedAt,sender:{ name:item.ownerId?.companyName || item.ownerId?.schoolName || item.ownerId?.name || "AIFT Venture" } }));
+    return [...scholarshipItems,...opportunityItems,...ventureItems];
+  }
+
   async function loadNotifications(force = false){
     if(state.notifications.length && !force){ renderNotifications(); return; }
-    setHtml("#familyNotificationList",`<div class="family-loading">Loading notifications…</div>`);
+    setHtml("#familyNotificationList",`<div class="family-loading">Loading Family updates…</div>`);
     try{
-      const data = await api("/api/notifications");
-      state.notifications = Array.isArray(data) ? data : [];
+      const [notificationResult,scholarshipResult,opportunityResult,ventureResult] = await Promise.allSettled([
+        api("/api/notifications"),api("/api/family/scholarships?limit=12"),api("/api/family/opportunities?limit=12"),
+        state.profile?.familyProfile?.investorEnabled === true ? api("/api/ventures/investor/discover?limit=12&sort=newest") : Promise.resolve({ ventures:[] })
+      ]);
+      const rawNotifications = notificationResult.status === "fulfilled" && Array.isArray(notificationResult.value) ? notificationResult.value.filter(isFamilyRelevantNotification) : [];
+      const scholarships = scholarshipResult.status === "fulfilled" && Array.isArray(scholarshipResult.value?.scholarships) ? scholarshipResult.value.scholarships : [];
+      const opportunities = opportunityResult.status === "fulfilled" && Array.isArray(opportunityResult.value?.opportunities) ? opportunityResult.value.opportunities : [];
+      const ventures = ventureResult.status === "fulfilled" && Array.isArray(ventureResult.value?.ventures) ? ventureResult.value.ventures : [];
+      state.notifications = [...rawNotifications,...buildFamilyActivityNotifications({ scholarships,opportunities,ventures })].sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
       renderNotifications();
       updateNotificationCounts();
     }catch(error){ setHtml("#familyNotificationList",`<div class="family-error">${escapeHtml(error.message)}</div>`); }
   }
 
   function updateNotificationCounts(){
-    const count = state.notifications.filter(item => item.read !== true).length;
+    const count = state.notifications.filter(item => item.synthetic !== true && item.read !== true && item.isRead !== true).length;
     setText("#familyNotificationNavCount",count);
     setText("#familyNotificationBadge",count);
     $("#familyNotificationBadge")?.classList.toggle("hidden",count === 0);
   }
 
   function renderNotifications(){
-    if(!state.notifications.length){
-      setHtml("#familyNotificationList",`<div class="family-empty">No notifications.</div>`);
-      return;
-    }
+    if(!state.notifications.length){ setHtml("#familyNotificationList",`<div class="family-empty">No Family, scholarship, opportunity, funding, or Venture updates yet.</div>`); return; }
     setHtml("#familyNotificationList",state.notifications.map(notification => {
       const sender = notification.sender?.name || "AIFT";
-      const title = notification.title || notification.type || "Notification";
+      const title = notification.title || notification.type || "Family Update";
       const message = notification.message || notification.text || "";
-      return `<button class="family-notification-row ${notification.read ? "" : "unread"}" type="button" data-notification-id="${escapeHtml(notification._id)}" style="width:100%;border-left:0;border-right:0;border-top:0;background-color:transparent;text-align:left"><div class="family-avatar">${escapeHtml(initials(sender))}</div><div class="family-notification-main"><strong>${escapeHtml(titleCase(title))}</strong><p>${escapeHtml(message)}</p></div><div class="family-notification-time">${escapeHtml(formatDateTime(notification.createdAt))}</div></button>`;
+      const unread = notification.synthetic !== true && notification.read !== true && notification.isRead !== true;
+      return `<button class="family-notification-row ${unread ? "unread" : ""}" type="button" data-notification-id="${escapeHtml(notification._id)}" style="width:100%;border-left:0;border-right:0;border-top:0;background-color:transparent;text-align:left"><div class="family-avatar">${escapeHtml(initials(sender))}</div><div class="family-notification-main"><strong>${escapeHtml(titleCase(title))}</strong><p>${escapeHtml(message)}</p></div><div class="family-notification-time">${escapeHtml(formatDateTime(notification.createdAt))}</div></button>`;
     }).join(""));
   }
 
   async function markNotificationRead(id){
     const item = state.notifications.find(row => String(row._id) === String(id));
-    if(!item || item.read === true) return;
+    if(!item) return;
+    if(item.synthetic === true){
+      if(item.familyKind === "scholarship"){ openPage("scholarships"); return; }
+      if(item.familyKind === "opportunity"){ openPage("opportunities"); return; }
+      if(item.familyKind === "venture"){ if(state.profile?.familyProfile?.investorEnabled === true) switchMode("investor"); return; }
+      return;
+    }
+    if(item.read === true || item.isRead === true) return;
     try{
       await api(`/api/notifications/${encodeURIComponent(id)}/read`,{ method:"PATCH" });
       item.read = true;
+      item.isRead = true;
       renderNotifications();
       updateNotificationCounts();
     }catch(error){ console.warn("Could not mark notification read",error); }
