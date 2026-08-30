@@ -25,23 +25,106 @@ jobs:
           p = Path('student-career-production.js')
           s = p.read_text(encoding='utf-8')
 
-          marker = '  const API_BASE =\n'
+          marker = '  const API_BASE ='
           if marker not in s:
               raise SystemExit('API marker not found')
 
-          inject = '''  function ensureCareerProductionStyles(){\n    const id = "studentCareerProductionStyles";\n    if(document.getElementById(id)) return;\n\n    const link = document.createElement("link");\n    link.id = id;\n    link.rel = "stylesheet";\n    link.href = "student-career-production.css";\n    document.head.appendChild(link);\n  }\n\n'''
+          inject = '''  function ensureCareerProductionStyles(){
+    const id = "studentCareerProductionStyles";
+    if(document.getElementById(id)) return;
+
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = "student-career-production.css";
+    document.head.appendChild(link);
+  }
+
+'''
 
           if 'function ensureCareerProductionStyles()' not in s:
               s = s.replace(marker, inject + marker, 1)
 
-          old_bind = '''  function bindCareer(){\n    const section = document.querySelector(\n      "#section-career"\n    );\n\n    if(!section) return;\n\n    buildWorkspace(section);\n\n    section\n      .querySelectorAll(\n        ".student-career-category-card"\n      )\n      .forEach(card => {\n        const category = normalizeCategory(card);\n\n        if(!category) return;\n\n        card.addEventListener(\n          "click",\n          event => {\n            event.preventDefault();\n            event.stopImmediatePropagation();\n\n            openCategory(\n              section,\n              category,\n              true\n            );\n          },\n          true\n        );\n      });\n\n    hydrateCounts(section);\n  }\n\n  if(document.readyState === "loading"){\n    document.addEventListener(\n      "DOMContentLoaded",\n      bindCareer,\n      {once:true}\n    );\n  }else{\n    bindCareer();\n  }\n})();\n'''
+          start = s.rfind('  function bindCareer(){')
+          end = s.rfind('})();')
+          if start < 0 or end < start:
+              raise SystemExit('bindCareer/footer not found')
 
-          new_bind = '''  let delegatedCareerBindingReady = false;\n\n  function bindDelegatedCareerClicks(){\n    if(delegatedCareerBindingReady) return;\n    delegatedCareerBindingReady = true;\n\n    document.addEventListener(\n      "click",\n      event => {\n        const card = event.target.closest(\n          "#section-career .student-career-category-card"\n        );\n\n        if(!card) return;\n\n        const section = document.querySelector(\n          "#section-career"\n        );\n\n        if(!section) return;\n\n        const category = normalizeCategory(card);\n        if(!category) return;\n\n        event.preventDefault();\n        event.stopPropagation();\n        event.stopImmediatePropagation();\n\n        openCategory(section,category,true);\n      },\n      true\n    );\n  }\n\n  function bindCareer(){\n    ensureCareerProductionStyles();\n    bindDelegatedCareerClicks();\n\n    const section = document.querySelector(\n      "#section-career"\n    );\n\n    if(!section) return;\n\n    buildWorkspace(section);\n    hydrateCounts(section);\n  }\n\n  window.AIFTStudentCareerFocus = {\n    open(category){\n      const section = document.querySelector("#section-career");\n      if(section && CATEGORY_CONFIG[category]){\n        openCategory(section,category,true);\n      }\n    },\n    refresh(){\n      bindCareer();\n    }\n  };\n\n  ensureCareerProductionStyles();\n  bindDelegatedCareerClicks();\n\n  if(document.readyState === "loading"){\n    document.addEventListener(\n      "DOMContentLoaded",\n      bindCareer,\n      {once:true}\n    );\n  }else{\n    bindCareer();\n  }\n})();\n'''
+          replacement = '''  let delegatedCareerBindingReady = false;
 
-          if old_bind not in s:
-              raise SystemExit('Original bindCareer block not found')
+  function bindDelegatedCareerClicks(){
+    if(delegatedCareerBindingReady) return;
+    delegatedCareerBindingReady = true;
 
-          s = s.replace(old_bind,new_bind,1)
+    document.addEventListener(
+      "click",
+      event => {
+        const card = event.target.closest(
+          "#section-career .student-career-category-card"
+        );
+
+        if(!card) return;
+
+        const section = document.querySelector(
+          "#section-career"
+        );
+
+        if(!section) return;
+
+        const category = normalizeCategory(card);
+        if(!category) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        openCategory(section,category,true);
+      },
+      true
+    );
+  }
+
+  function bindCareer(){
+    ensureCareerProductionStyles();
+    bindDelegatedCareerClicks();
+
+    const section = document.querySelector(
+      "#section-career"
+    );
+
+    if(!section) return;
+
+    buildWorkspace(section);
+    hydrateCounts(section);
+  }
+
+  window.AIFTStudentCareerFocus = {
+    open(category){
+      const section = document.querySelector("#section-career");
+      if(section && CATEGORY_CONFIG[category]){
+        openCategory(section,category,true);
+      }
+    },
+    refresh(){
+      bindCareer();
+    }
+  };
+
+  ensureCareerProductionStyles();
+  bindDelegatedCareerClicks();
+
+  if(document.readyState === "loading"){
+    document.addEventListener(
+      "DOMContentLoaded",
+      bindCareer,
+      {once:true}
+    );
+  }else{
+    bindCareer();
+  }
+})();'''
+
+          s = s[:start] + replacement + s[end+5:]
           p.write_text(s,encoding='utf-8')
           PY
 
