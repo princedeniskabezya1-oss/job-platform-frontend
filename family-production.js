@@ -271,6 +271,11 @@
   }
 
   function openPage(page){
+    if(page === "messages"){
+      window.location.href = "messages.html";
+      return;
+    }
+
     state.page = page;
     $$(".family-page").forEach(section => section.classList.remove("active"));
     document.getElementById(`familyPage-${page}`)?.classList.add("active");
@@ -1184,16 +1189,12 @@
   }
 
   async function messageUser(userId){
-    try{
-      const conversation = await api("/api/conversations/direct",{
-        method:"POST",
-        body:{ userId }
-      });
-      openPage("messages");
-      await loadMessages(true);
-      const id = conversation?._id || conversation?.conversationId;
-      if(id) await openConversation(id);
-    }catch(error){ toast(error.message,"error"); }
+    const id = String(userId || "").trim();
+    if(!id){
+      toast("Could not identify the message recipient.","error");
+      return;
+    }
+    window.location.href = `messages.html?user=${encodeURIComponent(id)}`;
   }
 
   async function loadMessages(force = false){
@@ -1358,7 +1359,7 @@
         return;
       }
 
-      if(event.target.closest("#familyMessagesButton")){ openPage("messages"); return; }
+      if(event.target.closest("#familyMessagesButton")){ window.location.href = "messages.html"; return; }
       if(event.target.closest("#familyNotificationsButton")){ openPage("notifications"); return; }
       if(event.target.closest("#familyEnableInvestor")){ await enableInvestorMode(); return; }
 
