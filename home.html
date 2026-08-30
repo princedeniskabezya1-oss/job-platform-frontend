@@ -1090,7 +1090,7 @@ a{
 
   </section>
 
-  <section class="family-advantage-card" aria-labelledby="familyAdvantageTitle">
+  <section id="familyAdvantageCard" class="family-advantage-card" aria-labelledby="familyAdvantageTitle">
     <div class="family-advantage-inner">
       <div class="family-advantage-eyebrow">
         <span class="family-advantage-crown" aria-hidden="true">✦</span>
@@ -1586,6 +1586,19 @@ if(r === "talent") return "Job Seeker";
 
   return "AIFT Member";
 }
+function syncFamilyAdvantageVisibility(){
+  const card = document.getElementById("familyAdvantageCard");
+  if(!card) return;
+
+  const currentRole = String(
+    state.me?.role ||
+    role() ||
+    ""
+  ).trim().toLowerCase();
+
+  card.classList.toggle("hidden", currentRole === "student");
+}
+
 function renderMe(){
 
   const me = state.me || {};
@@ -1643,6 +1656,7 @@ document.getElementById("profileRoleBadge").textContent =
   }
 
   updateDashboardButtons();
+  syncFamilyAdvantageVisibility();
 }
 
 function updateDashboardButtons(){
