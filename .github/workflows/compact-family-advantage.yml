@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/compact-family-advantage.yml"
+      - ".github/scripts/compact_family_advantage.py"
 
 permissions:
   contents: write
@@ -16,70 +17,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - name: Compact Family Advantage card
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          p=Path('home.html')
-          s=p.read_text(encoding='utf-8')
-          start=s.index('/* =========================================================\n   FAMILY ADVANTAGE — HOME PROMOTION')
-          end=s.index('.family-advantage-free{', start)
-          end=s.index('}', end)+1
-          media='\n@media(max-width:760px){\n  .family-advantage-card{\n    display:none;\n  }\n}'
-          if s[end:].lstrip().startswith('@media(max-width:760px)'):
-              m=re.match(r'\s*@media\(max-width:760px\)\{\s*\.family-advantage-card\{\s*display:none;\s*\}\s*\}',s[end:])
-              if m: end += m.end()
-          css='''/* =========================================================
-   FAMILY ADVANTAGE — HOME PROMOTION
-========================================================= */
-.family-advantage-card{
-  position:relative;
-  isolation:isolate;
-  margin-top:12px;
-  overflow:hidden;
-  min-height:158px;
-  border:1px solid rgba(255,255,255,.16);
-  border-radius:12px;
-  background:radial-gradient(circle at 100% 0%,rgba(99,102,241,.42),transparent 40%),linear-gradient(145deg,#092967 0%,#1747ca 58%,#6431aa 100%);
-  color:#fff;
-  box-shadow:var(--shadow);
-}
-.family-advantage-card::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.14;background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);background-size:26px 26px;}
-.family-advantage-inner{padding:15px 16px 14px;}
-.family-advantage-eyebrow{display:flex;align-items:center;gap:6px;margin-bottom:8px;color:rgba(255,255,255,.82);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
-.family-advantage-crown{width:20px;height:20px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.2);border-radius:6px;background:rgba(255,255,255,.1);font-size:10px;}
-.family-advantage-card h3{margin:0;color:#fff;font-size:17px;line-height:1.15;letter-spacing:-.025em;font-weight:800;}
-.family-advantage-lead{margin:7px 0 12px;color:rgba(255,255,255,.78);font-size:10px;line-height:1.4;}
-.family-advantage-list,.family-advantage-feature{display:none;}
-.family-advantage-cta{width:100%;min-height:34px;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;border:0;border-radius:999px;background:#fff;color:#15378f;font-size:10px;font-weight:800;box-shadow:0 5px 14px rgba(15,23,42,.13);transition:transform .16s ease,background .16s ease;}
-.family-advantage-cta:hover{transform:translateY(-1px);background:#f8fbff;}
-.family-advantage-cta:focus-visible{outline:3px solid rgba(255,255,255,.5);outline-offset:2px;}
-.family-advantage-free{margin-top:7px;text-align:center;color:rgba(255,255,255,.68);font-size:8.5px;font-weight:600;}
-@media(max-width:760px){.family-advantage-card{display:none;}}
-'''
-          s=s[:start]+css+s[end:]
-          pattern=re.compile(r'<section class="family-advantage-card" aria-labelledby="familyAdvantageTitle">.*?</section>',re.S)
-          html='''<section class="family-advantage-card" aria-labelledby="familyAdvantageTitle">
-    <div class="family-advantage-inner">
-      <div class="family-advantage-eyebrow"><span class="family-advantage-crown" aria-hidden="true">✦</span><span>Family Advantage</span></div>
-      <h3 id="familyAdvantageTitle">Build a stronger future for your family.</h3>
-      <p class="family-advantage-lead">Explore schools, scholarships, opportunities, and funding in one place.</p>
-      <a class="family-advantage-cta" href="family.html" aria-label="Open Family Advantage"><span>Explore Family Advantage</span><span aria-hidden="true">→</span></a>
-      <div class="family-advantage-free">Included with your AIFT account</div>
-    </div>
-  </section>'''
-          s,n=pattern.subn(html,s,count=1)
-          if n!=1: raise SystemExit('Family Advantage HTML block not found')
-          p.write_text(s,encoding='utf-8')
-          PY
-      - name: Validate
+      - name: Apply compact Family Advantage card
+        run: python3 .github/scripts/compact_family_advantage.py
+      - name: Validate compact card
         run: |
           grep -q 'Build a stronger future for your family.' home.html
           grep -q 'Included with your AIFT account' home.html
           ! grep -q 'Priority opportunities' home.html
           ! grep -q 'Smart family dashboard' home.html
-      - name: Commit
+      - name: Commit home update
         run: |
           git config user.name "AIFT Production Bot"
           git config user.email "actions@users.noreply.github.com"
