@@ -1,0 +1,49 @@
+name: Family production frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "family.html"
+      - "family-production.js"
+      - "family-production.css"
+      - ".github/workflows/family-production.yml"
+  pull_request:
+    paths:
+      - "family.html"
+      - "family-production.js"
+      - "family-production.css"
+      - ".github/workflows/family-production.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-family:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: node --check family-production.js
+      - name: Check production assets exist
+        run: |
+          test -s family.html
+          test -s family-production.css
+          test -s family-production.js
+          grep -q 'family-production.css' family.html
+          grep -q 'family-production.js' family.html
+      - name: Reject known demo fixtures
+        run: |
+          ! grep -Eqi 'Welcome back, Maria|Lucas Santos|Mia Santos|10,000\+ Families|2,000\+ Partner Schools|500\+ Scholarship Programs|300\+ Venture Projects' family.html family-production.js
+      - name: Verify production API integration markers
+        run: |
+          grep -q '/api/family/profile' family-production.js
+          grep -q '/api/family/overview' family-production.js
+          grep -q '/api/family/children' family-production.js
+          grep -q '/api/scholarship-applications' family-production.js
+          grep -q '/api/ventures/mine' family-production.js
+          grep -q '/api/conversations' family-production.js
+          grep -q '/api/notifications' family-production.js
