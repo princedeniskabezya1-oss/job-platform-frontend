@@ -2,9 +2,11 @@ name: Hide Family Advantage for students
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - .github/workflows/hide-family-card-for-students.yml
+      - .github/scripts/hide_family_card_students.py
 
 permissions:
   contents: write
@@ -16,77 +18,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-
-      - name: Hide Family Advantage card for student accounts
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path('home.html')
-          s = p.read_text(encoding='utf-8')
-
-          old = '<section class="family-advantage-card" aria-labelledby="familyAdvantageTitle">'
-          new = '<section id="familyAdvantageCard" class="family-advantage-card" aria-labelledby="familyAdvantageTitle">'
-          if old not in s and 'id="familyAdvantageCard"' not in s:
-              raise SystemExit('Family Advantage card block not found')
-          if old in s:
-              s = s.replace(old, new, 1)
-
-          marker = '''function renderMe(){
-
-  const me = state.me || {};'''
-          replacement = '''function syncFamilyAdvantageVisibility(){
-  const card = document.getElementById("familyAdvantageCard");
-  if(!card) return;
-
-  const currentRole = String(
-    state.me?.role ||
-    role() ||
-    ""
-  ).trim().toLowerCase();
-
-  card.classList.toggle("hidden", currentRole === "student");
-}
-
-function renderMe(){
-
-  const me = state.me || {};'''
-          if marker not in s:
-              raise SystemExit('renderMe marker not found')
-          s = s.replace(marker, replacement, 1)
-
-          call_marker = '''  updateDashboardButtons();
-}'''
-          call_replacement = '''  updateDashboardButtons();
-  syncFamilyAdvantageVisibility();
-}'''
-          # Replace the occurrence inside renderMe (the second matching occurrence in current home.html).
-          render_pos = s.index('function renderMe(){')
-          target_pos = s.index(call_marker, render_pos)
-          s = s[:target_pos] + call_replacement + s[target_pos + len(call_marker):]
-
-          # Also keep guest/non-student behavior explicit after guest setup.
-          guest_marker = '''  renderMe();
-  updateDashboardButtons();
-
-  document.body.classList.add("guest-mode");'''
-          guest_replacement = '''  renderMe();
-  updateDashboardButtons();
-  syncFamilyAdvantageVisibility();
-
-  document.body.classList.add("guest-mode");'''
-          if guest_marker in s:
-              s = s.replace(guest_marker, guest_replacement, 1)
-
-          p.write_text(s, encoding='utf-8')
-          PY
-
+      - name: Apply student Family Advantage visibility rule
+        run: python3 .github/scripts/hide_family_card_students.py
       - name: Validate
         run: |
           grep -q 'id="familyAdvantageCard"' home.html
           grep -q 'function syncFamilyAdvantageVisibility' home.html
           grep -q 'currentRole === "student"' home.html
-
       - name: Commit
         run: |
           git config user.name "AIFT Production Bot"
