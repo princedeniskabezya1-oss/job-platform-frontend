@@ -1,0 +1,61 @@
+name: Fix Career Hub runtime binding
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/fix-career-runtime-binding.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Make Career Hub binding resilient to student.js rerenders
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('student-career-production.js')
+          s = p.read_text(encoding='utf-8')
+
+          marker = '  const API_BASE =\n'
+          if marker not in s:
+              raise SystemExit('API marker not found')
+
+          inject = '''  function ensureCareerProductionStyles(){\n    const id = "studentCareerProductionStyles";\n    if(document.getElementById(id)) return;\n\n    const link = document.createElement("link");\n    link.id = id;\n    link.rel = "stylesheet";\n    link.href = "student-career-production.css";\n    document.head.appendChild(link);\n  }\n\n'''
+
+          if 'function ensureCareerProductionStyles()' not in s:
+              s = s.replace(marker, inject + marker, 1)
+
+          old_bind = '''  function bindCareer(){\n    const section = document.querySelector(\n      "#section-career"\n    );\n\n    if(!section) return;\n\n    buildWorkspace(section);\n\n    section\n      .querySelectorAll(\n        ".student-career-category-card"\n      )\n      .forEach(card => {\n        const category = normalizeCategory(card);\n\n        if(!category) return;\n\n        card.addEventListener(\n          "click",\n          event => {\n            event.preventDefault();\n            event.stopImmediatePropagation();\n\n            openCategory(\n              section,\n              category,\n              true\n            );\n          },\n          true\n        );\n      });\n\n    hydrateCounts(section);\n  }\n\n  if(document.readyState === "loading"){\n    document.addEventListener(\n      "DOMContentLoaded",\n      bindCareer,\n      {once:true}\n    );\n  }else{\n    bindCareer();\n  }\n})();\n'''
+
+          new_bind = '''  let delegatedCareerBindingReady = false;\n\n  function bindDelegatedCareerClicks(){\n    if(delegatedCareerBindingReady) return;\n    delegatedCareerBindingReady = true;\n\n    document.addEventListener(\n      "click",\n      event => {\n        const card = event.target.closest(\n          "#section-career .student-career-category-card"\n        );\n\n        if(!card) return;\n\n        const section = document.querySelector(\n          "#section-career"\n        );\n\n        if(!section) return;\n\n        const category = normalizeCategory(card);\n        if(!category) return;\n\n        event.preventDefault();\n        event.stopPropagation();\n        event.stopImmediatePropagation();\n\n        openCategory(section,category,true);\n      },\n      true\n    );\n  }\n\n  function bindCareer(){\n    ensureCareerProductionStyles();\n    bindDelegatedCareerClicks();\n\n    const section = document.querySelector(\n      "#section-career"\n    );\n\n    if(!section) return;\n\n    buildWorkspace(section);\n    hydrateCounts(section);\n  }\n\n  window.AIFTStudentCareerFocus = {\n    open(category){\n      const section = document.querySelector("#section-career");\n      if(section && CATEGORY_CONFIG[category]){\n        openCategory(section,category,true);\n      }\n    },\n    refresh(){\n      bindCareer();\n    }\n  };\n\n  ensureCareerProductionStyles();\n  bindDelegatedCareerClicks();\n\n  if(document.readyState === "loading"){\n    document.addEventListener(\n      "DOMContentLoaded",\n      bindCareer,\n      {once:true}\n    );\n  }else{\n    bindCareer();\n  }\n})();\n'''
+
+          if old_bind not in s:
+              raise SystemExit('Original bindCareer block not found')
+
+          s = s.replace(old_bind,new_bind,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Validate JavaScript
+        run: |
+          node --check student-career-production.js
+          grep -q 'bindDelegatedCareerClicks' student-career-production.js
+          grep -q 'studentCareerProductionStyles' student-career-production.js
+          grep -q 'student-career-production.css' student-career-production.js
+
+      - name: Commit runtime fix
+        run: |
+          git config user.name "AIFT Production Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add student-career-production.js
+          git commit -m "Fix Career Hub category navigation after student rerenders"
+          git push origin main
