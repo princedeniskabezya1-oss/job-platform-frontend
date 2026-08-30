@@ -1,0 +1,177 @@
+from pathlib import Path
+import re
+
+html_path = Path('family.html')
+css_path = Path('family-production.css')
+js_path = Path('family-production.js')
+html = html_path.read_text(encoding='utf-8')
+css = css_path.read_text(encoding='utf-8')
+js = js_path.read_text(encoding='utf-8')
+
+old_brand = '''    <button class="family-brand" id="familyMenuButton" type="button" aria-label="Open navigation">
+      <span class="family-brand-mark">A</span>
+      <span class="family-brand-copy">
+        <strong>AIFT</strong>
+        <span>FAMILY &amp; INVESTOR</span>
+      </span>
+    </button>'''
+new_brand = '''    <button class="family-brand" id="familyMenuButton" type="button" aria-label="Open navigation">
+      <img class="family-brand-logo" src="images/aift-logo.png" alt="AIFT">
+    </button>'''
+if old_brand not in html:
+    raise SystemExit('Header brand block not found')
+html = html.replace(old_brand,new_brand,1)
+
+html = html.replace('''      <label class="family-global-search">
+        <span aria-hidden="true">⌕</span>
+        <input id="familyGlobalSearch" type="search" placeholder="Search schools, scholarships, opportunities and ventures">
+      </label>''','''      <label class="family-global-search">
+        <input id="familyGlobalSearch" type="search" placeholder="Search schools, scholarships, opportunities and ventures" aria-label="Search AIFT Family">
+      </label>''',1)
+
+top_actions_pattern = re.compile(r'    <div class="family-top-actions">.*?      <div class="family-account">',re.S)
+top_actions_replacement = '''    <div class="family-top-actions">
+      <button class="family-icon-button family-notification-button" id="familyNotificationsButton" type="button" title="Notifications" aria-label="Notifications">
+        <svg class="family-top-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 21h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span class="family-badge hidden" id="familyNotificationBadge">0</span>
+      </button>
+      <div class="family-account">'''
+html,count = top_actions_pattern.subn(top_actions_replacement,html,count=1)
+if count != 1:
+    raise SystemExit('Top actions block not found')
+
+html = html.replace('''    <h1 class="family-sidebar-title">AIFT Family</h1>
+    <p class="family-sidebar-subtitle">Education, support and investment access</p>
+
+''','',1)
+html = html.replace('<div class="family-nav-label" id="familyInvestorNavLabel">INVEST</div>','<div class="family-nav-label" id="familyInvestorNavLabel" data-investor-nav>INVEST</div>',1)
+
+css = re.sub(r'\.family-brand\{.*?\.family-brand-copy span\{.*?\}\n','''.family-brand{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:100%;
+  padding:8px 22px;
+  border:0;
+  background:#fff;
+}
+.family-brand-logo{width:94px;height:42px;object-fit:contain;}
+''',css,count=1,flags=re.S)
+
+css = re.sub(r'\.family-global-search\{.*?\}\n\n\.family-global-search:focus-within\{.*?\}\n\n\.family-global-search input\{.*?\}\n','''.family-global-search{
+  width:min(660px,100%);
+  height:44px;
+  display:flex;
+  align-items:center;
+  padding:0 17px;
+  border:1px solid #d8e1ec;
+  border-radius:999px;
+  background:#f8fafc;
+  box-shadow:0 1px 2px rgba(15,23,42,.02);
+  transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+.family-global-search:hover{background:#fff;border-color:#c7d3e2;}
+.family-global-search:focus-within{background:#fff;border-color:#0a66c2;box-shadow:0 0 0 4px rgba(10,102,194,.10),0 7px 20px rgba(15,23,42,.05);}
+.family-global-search input{width:100%;height:100%;border:0;outline:0;background:transparent;color:var(--family-text);font-size:13px;font-weight:500;}
+.family-global-search input::placeholder{color:#8a96a8;}
+''',css,count=1,flags=re.S)
+
+marker = '''.family-icon-button:hover{
+  background:#f1f5fb;
+}
+'''
+if marker not in css:
+    raise SystemExit('Icon CSS marker not found')
+css = css.replace(marker,marker+'''
+.family-top-icon{width:21px;height:21px;display:block;}
+.family-notification-button{color:#243b64;}
+body[data-family-mode="family"] [data-investor-nav],body:not([data-investor-enabled="true"]) [data-investor-nav]{display:none!important;}
+''',1)
+css = css.replace('  padding:18px 14px 22px;','  padding:14px 14px 22px;',1)
+
+old_update = '''  function updateInvestorAccessUi(){
+    const enabled = state.profile?.familyProfile?.investorEnabled === true;'''
+new_update = '''  function updateInvestorAccessUi(){
+    const enabled = state.profile?.familyProfile?.investorEnabled === true;
+    document.body.dataset.familyMode = state.mode;
+    document.body.dataset.investorEnabled = enabled ? "true" : "false";'''
+if old_update not in js:
+    raise SystemExit('updateInvestorAccessUi marker not found')
+js = js.replace(old_update,new_update,1)
+
+start = js.index('  async function loadNotifications(force = false){')
+end = js.index('\n\n  async function globalSearch',start)
+replacement = r'''  function isFamilyRelevantNotification(item){
+    const haystack = [item?.type,item?.title,item?.message,item?.text,item?.category,item?.entityType,item?.referenceType].filter(Boolean).join(" ").toLowerCase();
+    return ["family","scholarship","venture","investment","investor","funding","opportunity","child","education"].some(keyword => haystack.includes(keyword));
+  }
+
+  function buildFamilyActivityNotifications({ scholarships = [], opportunities = [], ventures = [] } = {}){
+    const scholarshipItems = scholarships.slice(0,8).map(item => ({ _id:`family-scholarship-${item._id}`,synthetic:true,familyKind:"scholarship",entityId:item._id,title:"New Scholarship",message:item.title || "A new scholarship is available on AIFT.",createdAt:item.createdAt || item.publishedAt || item.updatedAt,sender:{ name:organizationName(item) } }));
+    const opportunityItems = opportunities.slice(0,8).map(item => ({ _id:`family-opportunity-${item._id}`,synthetic:true,familyKind:"opportunity",entityId:item._id,title:"New Opportunity",message:item.title || "A new education opportunity is available on AIFT.",createdAt:item.createdAt || item.publishedAt || item.updatedAt,sender:{ name:organizationName(item) } }));
+    const ventureItems = ventures.slice(0,8).map(item => ({ _id:`family-venture-${item._id}`,synthetic:true,familyKind:"venture",entityId:item._id,title:"New Venture",message:item.title || "A new Venture is available for investors.",createdAt:item.createdAt || item.publishedAt || item.updatedAt,sender:{ name:item.ownerId?.companyName || item.ownerId?.schoolName || item.ownerId?.name || "AIFT Venture" } }));
+    return [...scholarshipItems,...opportunityItems,...ventureItems];
+  }
+
+  async function loadNotifications(force = false){
+    if(state.notifications.length && !force){ renderNotifications(); return; }
+    setHtml("#familyNotificationList",`<div class="family-loading">Loading Family updates…</div>`);
+    try{
+      const [notificationResult,scholarshipResult,opportunityResult,ventureResult] = await Promise.allSettled([
+        api("/api/notifications"),api("/api/family/scholarships?limit=12"),api("/api/family/opportunities?limit=12"),
+        state.profile?.familyProfile?.investorEnabled === true ? api("/api/ventures/investor/discover?limit=12&sort=newest") : Promise.resolve({ ventures:[] })
+      ]);
+      const rawNotifications = notificationResult.status === "fulfilled" && Array.isArray(notificationResult.value) ? notificationResult.value.filter(isFamilyRelevantNotification) : [];
+      const scholarships = scholarshipResult.status === "fulfilled" && Array.isArray(scholarshipResult.value?.scholarships) ? scholarshipResult.value.scholarships : [];
+      const opportunities = opportunityResult.status === "fulfilled" && Array.isArray(opportunityResult.value?.opportunities) ? opportunityResult.value.opportunities : [];
+      const ventures = ventureResult.status === "fulfilled" && Array.isArray(ventureResult.value?.ventures) ? ventureResult.value.ventures : [];
+      state.notifications = [...rawNotifications,...buildFamilyActivityNotifications({ scholarships,opportunities,ventures })].sort((a,b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      renderNotifications();
+      updateNotificationCounts();
+    }catch(error){ setHtml("#familyNotificationList",`<div class="family-error">${escapeHtml(error.message)}</div>`); }
+  }
+
+  function updateNotificationCounts(){
+    const count = state.notifications.filter(item => item.synthetic !== true && item.read !== true && item.isRead !== true).length;
+    setText("#familyNotificationNavCount",count);
+    setText("#familyNotificationBadge",count);
+    $("#familyNotificationBadge")?.classList.toggle("hidden",count === 0);
+  }
+
+  function renderNotifications(){
+    if(!state.notifications.length){ setHtml("#familyNotificationList",`<div class="family-empty">No Family, scholarship, opportunity, funding, or Venture updates yet.</div>`); return; }
+    setHtml("#familyNotificationList",state.notifications.map(notification => {
+      const sender = notification.sender?.name || "AIFT";
+      const title = notification.title || notification.type || "Family Update";
+      const message = notification.message || notification.text || "";
+      const unread = notification.synthetic !== true && notification.read !== true && notification.isRead !== true;
+      return `<button class="family-notification-row ${unread ? "unread" : ""}" type="button" data-notification-id="${escapeHtml(notification._id)}" style="width:100%;border-left:0;border-right:0;border-top:0;background-color:transparent;text-align:left"><div class="family-avatar">${escapeHtml(initials(sender))}</div><div class="family-notification-main"><strong>${escapeHtml(titleCase(title))}</strong><p>${escapeHtml(message)}</p></div><div class="family-notification-time">${escapeHtml(formatDateTime(notification.createdAt))}</div></button>`;
+    }).join(""));
+  }
+
+  async function markNotificationRead(id){
+    const item = state.notifications.find(row => String(row._id) === String(id));
+    if(!item) return;
+    if(item.synthetic === true){
+      if(item.familyKind === "scholarship"){ openPage("scholarships"); return; }
+      if(item.familyKind === "opportunity"){ openPage("opportunities"); return; }
+      if(item.familyKind === "venture"){ if(state.profile?.familyProfile?.investorEnabled === true) switchMode("investor"); return; }
+      return;
+    }
+    if(item.read === true || item.isRead === true) return;
+    try{
+      await api(`/api/notifications/${encodeURIComponent(id)}/read`,{ method:"PATCH" });
+      item.read = true;
+      item.isRead = true;
+      renderNotifications();
+      updateNotificationCounts();
+    }catch(error){ console.warn("Could not mark notification read",error); }
+  }'''
+js = js[:start] + replacement + js[end:]
+
+html_path.write_text(html,encoding='utf-8')
+css_path.write_text(css,encoding='utf-8')
+js_path.write_text(js,encoding='utf-8')
