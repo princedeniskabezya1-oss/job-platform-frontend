@@ -1,0 +1,53 @@
+name: Use real AIFT messaging from Family
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/use-real-messages-from-family.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Patch Family messaging navigation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('family-production.js')
+          s=p.read_text(encoding='utf-8')
+
+          old='''  function openPage(page){\n    state.page = page;'''
+          new='''  function openPage(page){\n    if(page === "messages"){\n      window.location.href = "messages.html";\n      return;\n    }\n\n    state.page = page;'''
+          if old not in s:
+              raise SystemExit('openPage marker not found')
+          s=s.replace(old,new,1)
+
+          start=s.index('  async function messageUser(userId){')
+          end=s.index('\n\n  async function loadMessages',start)
+          replacement='''  async function messageUser(userId){\n    const id = String(userId || "").trim();\n    if(!id){\n      toast("Could not identify the message recipient.","error");\n      return;\n    }\n    window.location.href = `messages.html?user=${encodeURIComponent(id)}`;\n  }'''
+          s=s[:start]+replacement+s[end:]
+
+          # Header message icon should also go directly to the real messaging product.
+          s=s.replace('''      if(event.target.closest("#familyMessagesButton")){ openPage("messages"); return; }''','''      if(event.target.closest("#familyMessagesButton")){ window.location.href = "messages.html"; return; }''',1)
+
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Validate
+        run: |
+          node --check family-production.js
+          grep -q 'window.location.href = "messages.html"' family-production.js
+          grep -q 'messages.html?user=' family-production.js
+      - name: Commit
+        run: |
+          git config user.name "AIFT Production Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add family-production.js
+          git commit -m "Open real AIFT messaging from Family workspace"
+          git push origin main
