@@ -82,7 +82,7 @@
       submitted:[button("under_review","Start review","primary"),button("rejected","Reject","danger")],
       under_review:[button("information_requested","Request information"),button("approved",copy.approved,"primary"),button("rejected","Reject","danger")],
       information_requested:[button("under_review","Resume review","primary"),button("rejected","Reject","danger")],
-      approved:[button("matched",copy.matched,"primary"),button("rejected","Reject","danger")],
+      approved:item.type==="investment_interest" ? [`<div class="aift-review-muted">AIFT approved the introduction. Waiting for the Venture owner to accept or decline before this case can become matched.</div>`] : [button("matched",copy.matched,"primary"),button("rejected","Reject","danger")],
       matched:[button("negotiation",copy.negotiation,"primary")],
       negotiation:[button("completed",copy.completed,"primary")]
     };
