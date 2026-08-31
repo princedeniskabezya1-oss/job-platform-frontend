@@ -1494,7 +1494,7 @@
       if(withdraw){ await withdrawScholarship(withdraw.dataset.withdrawScholarshipApplication); return; }
 
       const viewVentureButton = event.target.closest("[data-view-venture]");
-      if(viewVentureButton){ await viewVenture(viewVentureButton.dataset.viewVenture); return; }
+      if(viewVentureButton){ const id=viewVentureButton.dataset.viewVenture; if(id) window.location.href=`venture.html?id=${encodeURIComponent(id)}&from=family-investor`; return; }
 
       const saveVentureButton = event.target.closest("[data-save-venture]");
       if(saveVentureButton){ await saveVenture(saveVentureButton.dataset.saveVenture); return; }
