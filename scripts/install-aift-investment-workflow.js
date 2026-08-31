@@ -1,11 +1,9 @@
 const fs=require('fs'),path=require('path');const root=path.join(__dirname,'..');
 function patch(file,fn){const p=path.join(root,file);const a=fs.readFileSync(p,'utf8'),b=fn(a);if(a===b)throw new Error(file+' not changed');fs.writeFileSync(p,b);}
 patch('family-production.js',s=>{
-  const start=s.indexOf('  async function viewVenture(id){');
-  const end=s.indexOf('  async function saveVenture(id){',start);
-  if(start<0||end<0)throw new Error('viewVenture block missing');
-  const block=`  async function viewVenture(id){\n    if(!id) return;\n    await api(\`/api/ventures/\${encodeURIComponent(id)}/view\`,{ method:"PATCH" }).catch(() => null);\n    window.location.href = \`venture.html?id=\${encodeURIComponent(id)}&from=family-investor\`;\n  }\n\n`;
-  return s.slice(0,start)+block+s.slice(end);
+  const old='      if(viewVentureButton){ await viewVenture(viewVentureButton.dataset.viewVenture); return; }';
+  if(!s.includes(old))throw new Error('view venture click anchor missing');
+  return s.replace(old,'      if(viewVentureButton){ const id=viewVentureButton.dataset.viewVenture; if(id) window.location.href=`venture.html?id=${encodeURIComponent(id)}&from=family-investor`; return; }');
 });
 patch('aift-review-center-admin.js',s=>{
   const start=s.indexOf('  function actionButtons(item){');
