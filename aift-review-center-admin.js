@@ -72,18 +72,19 @@
   function currentCase(id){return state.cases.find(item=>String(item._id)===String(id));}
 
   function workflowCopy(item){
-    if(item.type==="investment_interest") return { approved:"Approve investor interest", matched:"Confirm both parties matched", negotiation:"Open negotiation stage", completed:"Complete investment case" };
+    if(item.type==="investment_interest") return { approved:"Approve investor interest", matched:"Confirm both parties matched", negotiation:"Open AIFT Deal Room", completed:"Complete investment case" };
     return { approved:"Approve request", matched:"Mark matched", negotiation:"Open negotiation", completed:"Complete case" };
   }
   function actionButtons(item){
     if(terminal.has(item.status))return '<div class="aift-review-muted">This review case is closed.</div>';
     const id=esc(item._id),copy=workflowCopy(item),button=(status,label,cls="")=>`<button type="button" class="${cls}" data-review-action="${status}" data-id="${id}">${label}</button>`;
+    const dealRoomButton=()=>`<button type="button" class="primary" data-open-deal-room="${id}">Open AIFT Deal Room</button>`;
     const actions={
       submitted:[button("under_review","Start review","primary"),button("rejected","Reject","danger")],
       under_review:[button("information_requested","Request information"),button("approved",copy.approved,"primary"),button("rejected","Reject","danger")],
       information_requested:[button("under_review","Resume review","primary"),button("rejected","Reject","danger")],
       approved:item.type==="investment_interest" ? [`<div class="aift-review-muted">AIFT approved the introduction. Waiting for the Venture owner to accept or decline before this case can become matched.</div>`] : [button("matched",copy.matched,"primary"),button("rejected","Reject","danger")],
-      matched:[button("negotiation",copy.negotiation,"primary")],
+      matched:item.type==="investment_interest" ? [dealRoomButton()] : [button("negotiation",copy.negotiation,"primary")],
       negotiation:[button("completed",copy.completed,"primary")]
     };
     return `<div class="aift-review-actions">${(actions[item.status]||[]).join("")}</div>`;
@@ -93,7 +94,32 @@
     const item=currentCase(id);if(!item)return;const history=Array.isArray(item.history)?item.history:[];const metadata=item.metadata&&typeof item.metadata==="object"?Object.entries(item.metadata).filter(([,v])=>v!==""&&v!==null&&v!==undefined):[];
     const html=`<div class="aift-review-detail-grid"><div class="aift-review-detail"><span>Case number</span><strong>${esc(item.caseNumber)}</strong></div><div class="aift-review-detail"><span>Type</span><strong>${esc(titleCase(item.type))}</strong></div><div class="aift-review-detail"><span>Requester</span><strong>${esc(displayName(item.requesterId))}</strong></div><div class="aift-review-detail"><span>Receiving party</span><strong>${esc(displayName(item.targetUserId))}</strong></div><div class="aift-review-detail"><span>Status</span><strong>${esc(titleCase(item.status))}</strong></div><div class="aift-review-detail"><span>Resource</span><strong>${esc(item.resourceType||"—")}</strong></div><div class="aift-review-detail"><span>Priority</span><strong>${esc(titleCase(item.priority||"normal"))}</strong></div><div class="aift-review-detail"><span>Submitted</span><strong>${esc(fmt(item.createdAt))}</strong></div></div><h4 style="margin:0 0 6px">${esc(item.title)}</h4><p style="color:#475569;line-height:1.6">${esc(item.summary||"No summary provided.")}</p>${metadata.length?`<div class="aift-review-detail" style="margin-top:12px"><span>Review metadata</span>${metadata.map(([k,v])=>`<div style="margin-top:6px"><strong>${esc(titleCase(k))}:</strong> ${esc(typeof v==="object"?JSON.stringify(v):v)}</div>`).join("")}</div>`:""}<div class="aift-review-warning">AIFT approval only authorizes this request to move to its next controlled stage. It does not release personal contact information. Investment interests must still be matched before negotiation can begin.</div><textarea class="aift-review-note" id="aiftReviewDecisionNote" placeholder="Review note / information request / decision reason"></textarea><div class="aift-review-history"><strong>Case history</strong>${history.length?history.slice().reverse().map(h=>`<div class="aift-review-history-item"><strong>${esc(titleCase(h.status))}</strong><span>${esc(h.note||"")} · ${esc(fmt(h.createdAt))}</span></div>`).join(""):'<div class="aift-review-empty">No history yet.</div>'}</div>`;
     if(typeof window.openAdminReviewModal==="function")window.openAdminReviewModal(item.caseNumber,item.title,html,actionButtons(item));else alert(`${item.caseNumber}\n${item.title}\n${item.status}`);
-    setTimeout(()=>{document.getElementById("adminReviewActions")?.querySelectorAll("[data-review-action]").forEach(btn=>btn.addEventListener("click",()=>updateCase(btn.dataset.id,btn.dataset.reviewAction)));},0);
+    setTimeout(()=>{
+      const actions=document.getElementById("adminReviewActions");
+      actions?.querySelectorAll("[data-review-action]").forEach(btn=>btn.addEventListener("click",()=>updateCase(btn.dataset.id,btn.dataset.reviewAction)));
+      actions?.querySelectorAll("[data-open-deal-room]").forEach(btn=>btn.addEventListener("click",()=>openDealRoom(btn.dataset.openDealRoom)));
+    },0);
+  }
+
+  async function openDealRoom(id){
+    const item=currentCase(id);if(!item||item.type!=="investment_interest"||item.status!=="matched")return;
+    const run=async()=>{
+      try{
+        const data=await api(`/api/deal-rooms/from-review/${encodeURIComponent(id)}`,{method:"POST"});
+        if(typeof window.closeAdminReviewModal==="function")window.closeAdminReviewModal();
+        const roomId=data?.room?._id;
+        if(typeof window.adminToast==="function")window.adminToast("AIFT Deal Room opened. The matched parties can now continue inside the controlled workspace.");
+        await load();
+        if(roomId) window.location.href=`deal-room.html?id=${encodeURIComponent(roomId)}`;
+      }catch(error){
+        if(typeof window.adminToast==="function")window.adminToast(error.message);else alert(error.message);
+      }
+    };
+    if(typeof window.openAdminConfirm==="function"){
+      window.openAdminConfirm(`Open Deal Room ${item.caseNumber}`,"Open the controlled AIFT Deal Room for this matched investor introduction? This creates the negotiation workspace; personal contact information remains protected.",run);
+      return;
+    }
+    await run();
   }
 
   async function updateCase(id,status){
