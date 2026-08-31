@@ -1,0 +1,22 @@
+name: Finalize Investor Venture Access
+"on":
+  push:
+    branches: [main]
+    paths: [".github/workflows/finalize-investor-venture-access.yml","scripts/finalize-investor-venture-access.js"]
+permissions: { contents: write }
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: node --check scripts/finalize-investor-venture-access.js
+      - run: node scripts/finalize-investor-venture-access.js
+      - run: node --check aift-review-center-admin.js
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add venture.html aift-review-center-admin.js
+          if git diff --cached --quiet; then echo "No changes"; else git commit -m "Finalize Investor Pitch Room and review-stage UX [skip ci]" && git push; fi
