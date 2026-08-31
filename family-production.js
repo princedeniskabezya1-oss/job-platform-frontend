@@ -26,7 +26,8 @@
     conversations:[],
     activeConversation:null,
     activeMessages:[],
-    notifications:[]
+    notifications:[],
+    familyStudentLinks:[]
   };
 
   function token(){
@@ -542,6 +543,7 @@
   async function loadChildren(force = false){
     if(state.children.length && !force) return state.children;
     try{
+      try{ const linksData = await api("/api/family-student-links/family"); state.familyStudentLinks = Array.isArray(linksData?.requests) ? linksData.requests : []; }catch(linkError){ state.familyStudentLinks = []; }
       const data = await api("/api/family/children");
       state.children = Array.isArray(data?.children) ? data.children : [];
       renderChildren();
@@ -566,9 +568,11 @@
     list.innerHTML = state.children.map(child => {
       const name = [child.firstName,child.lastName].filter(Boolean).join(" ");
       const linked = child.linkStatus === "linked" && child.linkedStudentId;
+      const pending = child.linkStatus === "pending";
+      const pendingRequest = state.familyStudentLinks.find(request => String(request.familyChildId?._id || request.familyChildId) === String(child._id) && request.status === "pending");
       return `<article class="family-child-card" data-child-id="${escapeHtml(child._id)}">
         <div class="family-child-avatar">${child.profileImage ? `<img src="${escapeHtml(child.profileImage)}" alt="${escapeHtml(name)}">` : escapeHtml(initials(name))}</div>
-        <div class="family-child-main"><h3>${escapeHtml(name)}</h3><p>${escapeHtml(child.grade || titleCase(child.educationLevel) || "Education profile")} ${child.currentSchool ? `· ${escapeHtml(child.currentSchool)}` : ""}</p><p>${linked ? `Linked to ${escapeHtml(child.linkedStudentId.name || child.linkedStudentId.email || "AIFT Student")}` : "Not linked to an AIFT Student account"}</p><div class="family-row-actions" style="margin-top:10px"><button class="family-small-button" type="button" data-edit-child="${escapeHtml(child._id)}">Edit</button>${linked ? `<button class="family-small-button" type="button" data-unlink-child="${escapeHtml(child._id)}">Unlink Student</button>` : `<button class="family-small-button primary" type="button" data-link-child="${escapeHtml(child._id)}">Link Student</button>`}<button class="family-small-button" type="button" data-archive-child="${escapeHtml(child._id)}">Archive</button></div></div>
+        <div class="family-child-main"><h3>${escapeHtml(name)}</h3><p>${escapeHtml(child.grade || titleCase(child.educationLevel) || "Education profile")} ${child.currentSchool ? `· ${escapeHtml(child.currentSchool)}` : ""}</p><p>${linked ? `Connected to verified AIFT Student: ${escapeHtml(child.linkedStudentId.name || "Student")}` : pending ? "Student approval request pending" : "Not connected to a verified AIFT Student"}</p><div class="family-row-actions" style="margin-top:10px"><button class="family-small-button" type="button" data-edit-child="${escapeHtml(child._id)}">Edit</button>${linked ? `<button class="family-small-button" type="button" data-unlink-child="${escapeHtml(child._id)}">Unlink Student</button>` : pending && pendingRequest ? `<button class="family-small-button" type="button" data-cancel-family-link="${escapeHtml(pendingRequest._id)}">Cancel Request</button>` : `<button class="family-small-button primary" type="button" data-link-child="${escapeHtml(child._id)}">Connect by AIFT ID</button>`}<button class="family-small-button" type="button" data-archive-child="${escapeHtml(child._id)}">Archive</button></div></div>
       </article>`;
     }).join("");
   }
@@ -643,20 +647,26 @@
   async function linkChild(event){
     event.preventDefault();
     const childId = $("#familyLinkChildId").value;
-    const studentId = $("#familyLinkStudentId").value.trim();
+    const aiftStudentId = $("#familyLinkStudentId").value.trim().toUpperCase();
+    const relationshipType = $("#familyLinkRelationship").value;
     try{
-      await api(`/api/family/children/${encodeURIComponent(childId)}/link-student`,{
-        method:"PATCH",
-        body:{ studentId }
+      await api(`/api/family-student-links/request`,{
+        method:"POST",
+        body:{ familyChildId:childId, aiftStudentId, relationshipType }
       });
       closeModal("familyLinkModal");
       state.children = [];
       state.overview = null;
       await loadChildren(true);
-      toast("AIFT Student account linked.","success");
+      toast("Approval request sent to the verified AIFT Student.","success");
     }catch(error){
       toast(error.message,"error");
     }
+  }
+
+  async function cancelFamilyLinkRequest(id){
+    if(!window.confirm("Cancel this pending Student connection request?")) return;
+    try{ await api(`/api/family-student-links/${encodeURIComponent(id)}/cancel`,{method:"PATCH"}); state.children=[]; state.familyStudentLinks=[]; await loadChildren(true); toast("Connection request cancelled.","success"); }catch(error){ toast(error.message,"error"); }
   }
 
   async function unlinkChild(id){
@@ -1414,6 +1424,9 @@
         openModal("familyLinkModal");
         return;
       }
+
+      const cancelFamilyLink = event.target.closest("[data-cancel-family-link]");
+      if(cancelFamilyLink){ await cancelFamilyLinkRequest(cancelFamilyLink.dataset.cancelFamilyLink); return; }
 
       const unlink = event.target.closest("[data-unlink-child]");
       if(unlink){ await unlinkChild(unlink.dataset.unlinkChild); return; }
