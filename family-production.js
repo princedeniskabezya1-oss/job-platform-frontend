@@ -31,7 +31,14 @@
   };
 
   function token(){
-    return localStorage.getItem("token") || "";
+    const role=String(localStorage.getItem("role")||"").trim().toLowerCase();
+    const byRole={student:"studentToken",talent:"talentToken",school:"schoolToken",employer:"employerToken",admin:"adminToken"};
+    const keys=[byRole[role],"token","studentToken","talentToken","schoolToken","employerToken","adminToken"].filter(Boolean);
+    for(const key of keys){
+      const value=localStorage.getItem(key)||sessionStorage.getItem(key);
+      if(value) return value;
+    }
+    return "";
   }
 
   function authHeaders(extra = {}){
@@ -1079,10 +1086,18 @@
     </article>`;
   }
 
-  async function ensureInvestorEnabled(){
-    if(state.profile?.familyProfile?.investorEnabled === true) return true;
-    updateInvestorAccessUi();
-    return false;
+  async function ensureInvestorEnabled(forceRefresh = false){
+    if(!forceRefresh && state.profile?.familyProfile?.investorEnabled === true) return true;
+    try{
+      const fresh = await api("/api/family/profile");
+      state.profile = fresh;
+      updateInvestorAccessUi();
+      return fresh?.familyProfile?.investorEnabled === true;
+    }catch(error){
+      console.warn("Could not refresh Investor Mode status",error);
+      updateInvestorAccessUi();
+      return state.profile?.familyProfile?.investorEnabled === true;
+    }
   }
 
   async function loadInvestorDiscover(force = false){
@@ -1159,10 +1174,24 @@
 
   async function interestVenture(id){
     try{
-      await api(`/api/ventures/${encodeURIComponent(id)}/interests`,{
-        method:"POST",
-        body:{ type:"investment",message:"I am interested in learning more about this Venture through AIFT." }
-      });
+      if(!(await ensureInvestorEnabled(true))){
+        toast("Enable Investor Mode before expressing investment interest.","error");
+        return;
+      }
+      try{
+        await api(`/api/ventures/${encodeURIComponent(id)}/interests`,{
+          method:"POST",
+          body:{ type:"investment",message:"I am interested in learning more about this Venture through AIFT." }
+        });
+      }catch(error){
+        if(error.status!==403 || !/Investor Mode/i.test(error.message||"")) throw error;
+        const enabled=await ensureInvestorEnabled(true);
+        if(!enabled) throw error;
+        await api(`/api/ventures/${encodeURIComponent(id)}/interests`,{
+          method:"POST",
+          body:{ type:"investment",message:"I am interested in learning more about this Venture through AIFT." }
+        });
+      }
       state.investor.discover = [];
       state.investor.interested = [];
       state.overview = null;
