@@ -1,145 +1,37 @@
 (() => {
   "use strict";
 
-  const API = "https://backend-1-9b6f.onrender.com";
-  const CLOSED = new Set(["approved","rejected","completed","cancelled","expired"]);
-  const state = {
-    cases:[],
-    ventures:[],
-    interests:[],
-    rooms:[],
-    open:false,
-    loading:false,
-    tab:"reviews"
-  };
+  const API="https://backend-1-9b6f.onrender.com";
+  const CLOSED=new Set(["approved","rejected","completed","cancelled","expired"]);
+  const CAREER_HUB_PAGES=new Set(["venture.html","deal-room.html","family.html","career-hub.html","opportunities.html","scholarships.html","internships.html"]);
+  const state={cases:[],ventures:[],interests:[],rooms:[],open:false,loading:false,tab:"reviews"};
 
-  function token(){
-    const currentRole=role();
-    const roleTokens={student:"studentToken",talent:"talentToken",school:"schoolToken",employer:"employerToken",admin:"adminToken"};
-    const keys=[roleTokens[currentRole],"token","studentToken","talentToken","schoolToken","employerToken","adminToken"].filter(Boolean);
-    for(const key of keys){
-      const value=localStorage.getItem(key)||sessionStorage.getItem(key);
-      if(value)return value;
-    }
-    return "";
-  }
-  function role(){ return String(localStorage.getItem("role") || "").toLowerCase(); }
-  function esc(value){ return String(value ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
-  function title(value){ return String(value || "").replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase()); }
-  function fmt(value){ if(!value)return "—";const d=new Date(value);return Number.isNaN(d.getTime())?"—":d.toLocaleString([], {year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}); }
-  function latestNote(item){ const history=Array.isArray(item?.history)?item.history:[];return item?.decisionNotes || history[history.length-1]?.note || ""; }
-  function displayName(user){ return user?.companyName || user?.schoolName || user?.name || "AIFT member"; }
+  function page(){return String(location.pathname.split("/").pop()||"").toLowerCase();}
+  function isCareerHub(){return document.body?.dataset?.aiftArea==="career-hub"||CAREER_HUB_PAGES.has(page());}
+  function role(){return String(localStorage.getItem("role")||"").toLowerCase();}
+  function token(){const map={student:"studentToken",talent:"talentToken",school:"schoolToken",employer:"employerToken",admin:"adminToken"};for(const key of [map[role()],"token","studentToken","talentToken","schoolToken","employerToken","adminToken"].filter(Boolean)){const value=localStorage.getItem(key)||sessionStorage.getItem(key);if(value)return value;}return "";}
+  function esc(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
+  function title(value){return String(value||"").replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());}
+  function fmt(value){if(!value)return "—";const date=new Date(value);return Number.isNaN(date.getTime())?"—":date.toLocaleString([], {year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});}
+  function latestNote(item){const history=Array.isArray(item?.history)?item.history:[];return item?.decisionNotes||history[history.length-1]?.note||"";}
+  function displayName(user){return user?.companyName||user?.schoolName||user?.name||"AIFT member";}
+  async function api(path,options={}){const response=await fetch(API+path,{...options,headers:{Authorization:`Bearer ${token()}`,...(options.body?{"Content-Type":"application/json"}:{}),...(options.headers||{})}});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.message||`Request failed (${response.status})`);return data;}
 
-  async function api(path,options={}){
-    const response=await fetch(API+path,{
-      ...options,
-      headers:{
-        Authorization:`Bearer ${token()}`,
-        ...(options.body?{"Content-Type":"application/json"}:{}),
-        ...(options.headers||{})
-      }
-    });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok) throw new Error(data.message || `Request failed (${response.status})`);
-    return data;
-  }
+  function ensureStyle(){if(document.getElementById("aiftRequesterReviewStyle"))return;const style=document.createElement("style");style.id="aiftRequesterReviewStyle";style.textContent=`
+    .aift-my-review-button{position:fixed;right:20px;bottom:20px;z-index:7800;min-height:42px;padding:0 14px;display:flex;align-items:center;gap:8px;border:1px solid #dbe3ee;border-radius:999px;background:#fff;color:#172033;box-shadow:0 10px 30px rgba(15,23,42,.14);font:700 12px/1 Inter,Arial,sans-serif;cursor:pointer}.aift-my-review-button:hover{border-color:#0a66c2}.aift-my-review-button .count{min-width:20px;height:20px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#fff3cd;color:#8a5a00;font-size:10px}.aift-my-review-button .count.zero{background:#eef2f7;color:#64748b}.aift-my-review-panel{position:fixed;right:20px;bottom:72px;z-index:7900;width:min(470px,calc(100vw - 24px));max-height:min(720px,calc(100vh - 96px));display:flex;flex-direction:column;border:1px solid #dbe3ee;border-radius:16px;background:#fff;box-shadow:0 24px 64px rgba(15,23,42,.22);overflow:hidden;font-family:Inter,Arial,sans-serif}.aift-my-review-panel[hidden]{display:none!important}.aift-my-review-head{padding:15px 16px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-bottom:1px solid #e8edf3;background:#fbfcfe}.aift-my-review-head strong{display:block;color:#111827;font-size:14px}.aift-my-review-head span{display:block;margin-top:3px;color:#667085;font-size:11px}.aift-my-review-close{width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:#667085;font-size:20px;cursor:pointer}.aift-activity-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:9px 10px;border-bottom:1px solid #edf1f5}.aift-activity-tab{min-height:34px;border:1px solid #dbe3ee;border-radius:9px;background:#fff;color:#475467;font-size:10px;font-weight:800;cursor:pointer}.aift-activity-tab.active{background:#eaf3ff;border-color:#b9d5f4;color:#0a66c2}.aift-my-review-list{padding:10px;overflow:auto}.aift-my-review-empty{padding:26px 18px;text-align:center;color:#667085;font-size:12px;line-height:1.6}.aift-my-review-card{padding:13px;margin-bottom:9px;border:1px solid #e4e9f0;border-radius:12px;background:#fff}.aift-my-review-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.aift-my-review-case{color:#0a66c2;font-size:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:800}.aift-my-review-title{margin-top:4px;color:#111827;font-size:12px;font-weight:800}.aift-my-review-type,.aift-activity-venture,.aift-activity-room-stage{margin-top:4px;color:#667085;font-size:10px}.aift-my-review-status{flex:0 0 auto;padding:5px 8px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:9px;font-weight:800}.aift-my-review-status.approved,.aift-my-review-status.completed,.aift-my-review-status.accepted,.aift-my-review-status.negotiation{background:#e8f7ee;color:#16713c}.aift-my-review-status.rejected,.aift-my-review-status.cancelled,.aift-my-review-status.declined,.aift-my-review-status.closed{background:#fdeceb;color:#b42318}.aift-my-review-note{margin-top:10px;padding:9px 10px;border-radius:9px;background:#f7f9fc;color:#475467;font-size:10px;line-height:1.5}.aift-my-review-time{margin-top:8px;color:#98a2b3;font-size:9px}.aift-my-review-banner{margin:0 10px 10px;padding:10px 12px;border-radius:10px;background:#fffbeb;color:#8a5a00;font-size:10px}.aift-my-review-refresh{margin:0 10px 10px;padding:9px;border:1px solid #dbe3ee;border-radius:9px;background:#fff;font-size:10px;font-weight:700;cursor:pointer}.aift-activity-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.aift-activity-action{min-height:32px;padding:0 10px;border:1px solid #cfd8e3;border-radius:8px;background:#fff;color:#344054;font-size:9px;font-weight:800;cursor:pointer}.aift-activity-action.primary{background:#0a66c2;border-color:#0a66c2;color:#fff}.aift-activity-action.danger{background:#fff5f5;border-color:#f1c6c6;color:#b42318}@media(max-width:760px){.aift-my-review-button{right:12px;bottom:76px}.aift-my-review-panel{right:12px;bottom:126px;width:calc(100vw - 24px);max-height:68vh}}
+  `;document.head.appendChild(style);}
 
-  function ensureStyle(){
-    if(document.getElementById("aiftRequesterReviewStyle"))return;
-    const style=document.createElement("style");style.id="aiftRequesterReviewStyle";style.textContent=`
-      .aift-my-review-button{position:fixed;right:20px;bottom:20px;z-index:7800;min-height:42px;padding:0 14px;display:flex;align-items:center;gap:8px;border:1px solid #dbe3ee;border-radius:999px;background:#fff;color:#172033;box-shadow:0 10px 30px rgba(15,23,42,.14);font:700 12px/1 Inter,Arial,sans-serif;cursor:pointer}.aift-my-review-button:hover{border-color:#0a66c2}.aift-my-review-button .count{min-width:20px;height:20px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:#fff3cd;color:#8a5a00;font-size:10px}.aift-my-review-button .count.zero{background:#eef2f7;color:#64748b}
-      .aift-my-review-panel{position:fixed;right:20px;bottom:72px;z-index:7900;width:min(470px,calc(100vw - 24px));max-height:min(720px,calc(100vh - 96px));display:flex;flex-direction:column;border:1px solid #dbe3ee;border-radius:16px;background:#fff;box-shadow:0 24px 64px rgba(15,23,42,.22);overflow:hidden;font-family:Inter,Arial,sans-serif}.aift-my-review-panel[hidden]{display:none!important}.aift-my-review-head{padding:15px 16px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-bottom:1px solid #e8edf3;background:#fbfcfe}.aift-my-review-head strong{display:block;color:#111827;font-size:14px}.aift-my-review-head span{display:block;margin-top:3px;color:#667085;font-size:11px}.aift-my-review-close{width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:#667085;font-size:20px;cursor:pointer}.aift-activity-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:9px 10px;border-bottom:1px solid #edf1f5;background:#fff}.aift-activity-tab{min-height:34px;border:1px solid #dbe3ee;border-radius:9px;background:#fff;color:#475467;font-size:10px;font-weight:800;cursor:pointer}.aift-activity-tab.active{background:#eaf3ff;border-color:#b9d5f4;color:#0a66c2}.aift-my-review-list{padding:10px;overflow:auto}.aift-my-review-empty{padding:26px 18px;text-align:center;color:#667085;font-size:12px;line-height:1.6}.aift-my-review-card{padding:13px;margin-bottom:9px;border:1px solid #e4e9f0;border-radius:12px;background:#fff}.aift-my-review-card:last-child{margin-bottom:0}.aift-my-review-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.aift-my-review-case{color:#0a66c2;font-size:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:800}.aift-my-review-title{margin-top:4px;color:#111827;font-size:12px;font-weight:800;line-height:1.4}.aift-my-review-type{margin-top:3px;color:#667085;font-size:10px}.aift-my-review-status{flex:0 0 auto;padding:5px 8px;border-radius:999px;background:#eef2ff;color:#4338ca;font-size:9px;font-weight:800;white-space:nowrap}.aift-my-review-status.submitted,.aift-my-review-status.under_review,.aift-my-review-status.pending{background:#e8f0fe;color:#1a56a8}.aift-my-review-status.information_requested{background:#fff4d6;color:#8a5a00}.aift-my-review-status.approved,.aift-my-review-status.completed,.aift-my-review-status.accepted,.aift-my-review-status.negotiation{background:#e8f7ee;color:#16713c}.aift-my-review-status.rejected,.aift-my-review-status.cancelled,.aift-my-review-status.declined,.aift-my-review-status.closed{background:#fdeceb;color:#b42318}.aift-my-review-note{margin-top:10px;padding:9px 10px;border-radius:9px;background:#f7f9fc;color:#475467;font-size:10px;line-height:1.5}.aift-my-review-time{margin-top:8px;color:#98a2b3;font-size:9px}.aift-my-review-banner{margin:0 10px 10px;padding:10px 12px;border-radius:10px;background:#fffbeb;color:#8a5a00;font-size:10px;line-height:1.5}.aift-my-review-refresh{margin:0 10px 10px;padding:9px;border:1px solid #dbe3ee;border-radius:9px;background:#fff;color:#344054;font-size:10px;font-weight:700;cursor:pointer}.aift-activity-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.aift-activity-action{min-height:32px;padding:0 10px;border:1px solid #cfd8e3;border-radius:8px;background:#fff;color:#344054;font-size:9px;font-weight:800;cursor:pointer}.aift-activity-action.primary{background:#0a66c2;border-color:#0a66c2;color:#fff}.aift-activity-action.danger{background:#fff5f5;border-color:#f1c6c6;color:#b42318}.aift-activity-venture{margin-top:5px;color:#475467;font-size:10px;font-weight:700}.aift-activity-room-stage{margin-top:7px;color:#667085;font-size:10px}
-      @media(max-width:760px){.aift-my-review-button{right:12px;bottom:76px}.aift-my-review-panel{right:12px;bottom:126px;width:calc(100vw - 24px);max-height:68vh}}
-    `;document.head.appendChild(style);
-  }
-
-  function ensureUI(){
-    if(document.getElementById("aiftMyReviewButton"))return;
-    const button=document.createElement("button");button.id="aiftMyReviewButton";button.type="button";button.className="aift-my-review-button";button.innerHTML='<span>AIFT Activity</span><span id="aiftMyReviewCount" class="count zero">0</span>';
-    const panel=document.createElement("aside");panel.id="aiftMyReviewPanel";panel.className="aift-my-review-panel";panel.hidden=true;panel.setAttribute("aria-label","AIFT Activity Center");panel.innerHTML='<div class="aift-my-review-head"><div><strong>AIFT Activity</strong><span>Reviews, incoming Venture interests and active Deal Rooms.</span></div><button type="button" class="aift-my-review-close" aria-label="Close">×</button></div><div class="aift-activity-tabs"><button class="aift-activity-tab active" data-aift-activity-tab="reviews" type="button">My Reviews</button><button class="aift-activity-tab" data-aift-activity-tab="inbox" type="button">Venture Inbox</button><button class="aift-activity-tab" data-aift-activity-tab="rooms" type="button">Deal Rooms</button></div><div id="aiftMyReviewList" class="aift-my-review-list"><div class="aift-my-review-empty">Loading AIFT activity…</div></div><div id="aiftMyReviewBanner" class="aift-my-review-banner" hidden></div><button id="aiftMyReviewRefresh" type="button" class="aift-my-review-refresh">Refresh activity</button>';
-    document.body.append(button,panel);
-    button.addEventListener("click",()=>{state.open=!state.open;panel.hidden=!state.open;if(state.open)loadAll();});
-    panel.querySelector(".aift-my-review-close")?.addEventListener("click",()=>{state.open=false;panel.hidden=true;});
-    panel.querySelector("#aiftMyReviewRefresh")?.addEventListener("click",loadAll);
-    panel.addEventListener("click",handlePanelClick);
-  }
-
-  function updateBadge(){
-    const count=document.getElementById("aiftMyReviewCount");if(!count)return;
-    const openReviews=state.cases.filter(item=>!CLOSED.has(item.status)).length;
-    const actionable=state.interests.filter(item=>item.status==="pending").length;
-    const activeRooms=state.rooms.filter(item=>item.status==="negotiation").length;
-    const total=openReviews+actionable+activeRooms;
-    count.textContent=String(total);count.classList.toggle("zero",total===0);
-  }
-
-  function renderReviews(){
-    const list=document.getElementById("aiftMyReviewList"),banner=document.getElementById("aiftMyReviewBanner");if(!list)return;
-    const needs=state.cases.filter(item=>item.status==="information_requested").length;
-    if(banner){banner.hidden=needs===0;banner.textContent=needs?`${needs} request${needs===1?" needs":"s need"} more information. Follow the latest AIFT note below.`:"";}
-    if(!state.cases.length){list.innerHTML='<div class="aift-my-review-empty">You do not have any AIFT review cases yet.</div>';return;}
-    list.innerHTML=state.cases.map(item=>`<article class="aift-my-review-card"><div class="aift-my-review-top"><div><div class="aift-my-review-case">${esc(item.caseNumber||"AIFT REVIEW")}</div><div class="aift-my-review-title">${esc(item.title||"Review request")}</div><div class="aift-my-review-type">${esc(title(item.type))}</div></div><span class="aift-my-review-status ${esc(item.status)}">${esc(title(item.status))}</span></div>${latestNote(item)?`<div class="aift-my-review-note">${esc(latestNote(item))}</div>`:""}<div class="aift-my-review-time">Submitted ${esc(fmt(item.createdAt))}${item.reviewedAt?` · Reviewed ${esc(fmt(item.reviewedAt))}`:""}</div></article>`).join("");
-  }
-
-  function renderInbox(){
-    const list=document.getElementById("aiftMyReviewList"),banner=document.getElementById("aiftMyReviewBanner");if(!list)return;if(banner)banner.hidden=true;
-    if(!state.ventures.length){list.innerHTML='<div class="aift-my-review-empty">You do not currently own any Ventures. Incoming investment, mentorship, sponsorship, pilot and grant interests will appear here when you publish a Venture.</div>';return;}
-    if(!state.interests.length){list.innerHTML='<div class="aift-my-review-empty">No approved or actionable Venture interests yet. Investment interests appear here only after AIFT review.</div>';return;}
-    list.innerHTML=state.interests.map(item=>`<article class="aift-my-review-card"><div class="aift-my-review-top"><div><div class="aift-my-review-case">${esc(title(item.type||"interest"))}</div><div class="aift-my-review-title">${esc(displayName(item.userId))}</div><div class="aift-activity-venture">${esc(item.ventureTitle||"Your Venture")}</div></div><span class="aift-my-review-status ${esc(item.status)}">${esc(title(item.status))}</span></div>${item.message?`<div class="aift-my-review-note">${esc(item.message)}</div>`:""}${item.aiftReview?.caseNumber?`<div class="aift-my-review-time">AIFT case ${esc(item.aiftReview.caseNumber)} · ${esc(title(item.aiftReview.status||"approved"))}</div>`:""}${item.status==="pending"?`<div class="aift-activity-actions"><button type="button" class="aift-activity-action primary" data-venture-interest-action="accepted" data-venture-id="${esc(item.ventureIdValue)}" data-interest-id="${esc(item._id)}">Accept</button><button type="button" class="aift-activity-action danger" data-venture-interest-action="declined" data-venture-id="${esc(item.ventureIdValue)}" data-interest-id="${esc(item._id)}">Decline</button></div>`:""}</article>`).join("");
-  }
-
-  function renderRooms(){
-    const list=document.getElementById("aiftMyReviewList"),banner=document.getElementById("aiftMyReviewBanner");if(!list)return;if(banner)banner.hidden=true;
-    if(!state.rooms.length){list.innerHTML='<div class="aift-my-review-empty">No Deal Rooms yet. A Deal Room is created by AIFT after an approved investment introduction is accepted and matched.</div>';return;}
-    list.innerHTML=state.rooms.map(room=>{const venture=room.ventureId||{};const other=String(room.investorId?._id||room.investorId||"")===String(localStorage.getItem("userId")||localStorage.getItem("id")||"")?room.ownerId:room.investorId;return `<article class="aift-my-review-card"><div class="aift-my-review-top"><div><div class="aift-my-review-case">AIFT DEAL ROOM</div><div class="aift-my-review-title">${esc(venture.title||"Venture Deal Room")}</div><div class="aift-my-review-type">With ${esc(displayName(other))}</div></div><span class="aift-my-review-status ${esc(room.status)}">${esc(title(room.status))}</span></div><div class="aift-activity-room-stage">Stage: ${esc(title(room.workflowStage||room.status))}</div><div class="aift-activity-actions"><button type="button" class="aift-activity-action primary" data-open-deal-room="${esc(room._id)}">Open Deal Room</button></div></article>`;}).join("");
-  }
-
-  function render(){
-    document.querySelectorAll("[data-aift-activity-tab]").forEach(button=>button.classList.toggle("active",button.dataset.aiftActivityTab===state.tab));
-    updateBadge();
-    if(state.tab==="inbox")renderInbox();else if(state.tab==="rooms")renderRooms();else renderReviews();
-  }
-
+  function ensureUI(){if(document.getElementById("aiftMyReviewButton"))return;const button=document.createElement("button");button.id="aiftMyReviewButton";button.type="button";button.className="aift-my-review-button";button.innerHTML='<span>AIFT Activity</span><span id="aiftMyReviewCount" class="count zero">0</span>';const panel=document.createElement("aside");panel.id="aiftMyReviewPanel";panel.className="aift-my-review-panel";panel.hidden=true;panel.innerHTML='<div class="aift-my-review-head"><div><strong>AIFT Activity</strong><span>Reviews, incoming Venture interests and active Deal Rooms.</span></div><button type="button" class="aift-my-review-close">×</button></div><div class="aift-activity-tabs"><button class="aift-activity-tab active" data-aift-activity-tab="reviews">My Reviews</button><button class="aift-activity-tab" data-aift-activity-tab="inbox">Venture Inbox</button><button class="aift-activity-tab" data-aift-activity-tab="rooms">Deal Rooms</button></div><div id="aiftMyReviewList" class="aift-my-review-list"></div><div id="aiftMyReviewBanner" class="aift-my-review-banner" hidden></div><button id="aiftMyReviewRefresh" class="aift-my-review-refresh">Refresh activity</button>';document.body.append(button,panel);button.addEventListener("click",()=>{state.open=!state.open;panel.hidden=!state.open;if(state.open)loadAll();});panel.querySelector(".aift-my-review-close")?.addEventListener("click",()=>{state.open=false;panel.hidden=true;});panel.querySelector("#aiftMyReviewRefresh")?.addEventListener("click",loadAll);panel.addEventListener("click",handlePanelClick);}
+  function updateBadge(){const count=document.getElementById("aiftMyReviewCount");if(!count)return;const total=state.cases.filter(item=>!CLOSED.has(item.status)).length+state.interests.filter(item=>item.status==="pending").length+state.rooms.filter(item=>item.status==="negotiation").length;count.textContent=String(total);count.classList.toggle("zero",total===0);}
+  function renderReviews(){const list=document.getElementById("aiftMyReviewList"),banner=document.getElementById("aiftMyReviewBanner");if(!list)return;const needs=state.cases.filter(item=>item.status==="information_requested").length;if(banner){banner.hidden=!needs;banner.textContent=needs?`${needs} request${needs===1?" needs":"s need"} more information.`:"";}list.innerHTML=state.cases.length?state.cases.map(item=>`<article class="aift-my-review-card"><div class="aift-my-review-top"><div><div class="aift-my-review-case">${esc(item.caseNumber||"AIFT REVIEW")}</div><div class="aift-my-review-title">${esc(item.title||"Review request")}</div><div class="aift-my-review-type">${esc(title(item.type))}</div></div><span class="aift-my-review-status ${esc(item.status)}">${esc(title(item.status))}</span></div>${latestNote(item)?`<div class="aift-my-review-note">${esc(latestNote(item))}</div>`:""}<div class="aift-my-review-time">Submitted ${esc(fmt(item.createdAt))}</div></article>`).join(""):'<div class="aift-my-review-empty">You do not have any AIFT review cases yet.</div>';}
+  function renderInbox(){const list=document.getElementById("aiftMyReviewList"),banner=document.getElementById("aiftMyReviewBanner");if(banner)banner.hidden=true;if(!list)return;if(!state.ventures.length){list.innerHTML='<div class="aift-my-review-empty">You do not currently own any Ventures.</div>';return;}list.innerHTML=state.interests.length?state.interests.map(item=>`<article class="aift-my-review-card"><div class="aift-my-review-top"><div><div class="aift-my-review-case">${esc(title(item.type||"interest"))}</div><div class="aift-my-review-title">${esc(displayName(item.userId))}</div><div class="aift-activity-venture">${esc(item.ventureTitle||"Your Venture")}</div></div><span class="aift-my-review-status ${esc(item.status)}">${esc(title(item.status))}</span></div>${item.message?`<div class="aift-my-review-note">${esc(item.message)}</div>`:""}${item.status==="pending"?`<div class="aift-activity-actions"><button class="aift-activity-action primary" data-venture-interest-action="accepted" data-venture-id="${esc(item.ventureIdValue)}" data-interest-id="${esc(item._id)}">Accept</button><button class="aift-activity-action danger" data-venture-interest-action="declined" data-venture-id="${esc(item.ventureIdValue)}" data-interest-id="${esc(item._id)}">Decline</button></div>`:""}</article>`).join(""):'<div class="aift-my-review-empty">No approved or actionable Venture interests yet.</div>';}
+  function renderRooms(){const list=document.getElementById("aiftMyReviewList"),banner=document.getElementById("aiftMyReviewBanner");if(banner)banner.hidden=true;if(!list)return;list.innerHTML=state.rooms.length?state.rooms.map(room=>`<article class="aift-my-review-card"><div class="aift-my-review-top"><div><div class="aift-my-review-case">AIFT DEAL ROOM</div><div class="aift-my-review-title">${esc(room.ventureId?.title||"Venture Deal Room")}</div><div class="aift-activity-room-stage">Stage: ${esc(title(room.workflowStage||room.status))}</div></div><span class="aift-my-review-status ${esc(room.status)}">${esc(title(room.status))}</span></div><div class="aift-activity-actions"><button class="aift-activity-action primary" data-open-deal-room="${esc(room._id)}">Open Deal Room</button></div></article>`).join(""):'<div class="aift-my-review-empty">No Deal Rooms yet.</div>';}
+  function render(){document.querySelectorAll("[data-aift-activity-tab]").forEach(button=>button.classList.toggle("active",button.dataset.aiftActivityTab===state.tab));updateBadge();if(state.tab==="inbox")renderInbox();else if(state.tab==="rooms")renderRooms();else renderReviews();}
   async function loadReviews(){const data=await api("/api/review-cases/mine");state.cases=Array.isArray(data?.cases)?data.cases:[];}
-  async function loadVentureInbox(){
-    const mine=await api("/api/ventures/mine").catch(()=>[]);
-    state.ventures=Array.isArray(mine)?mine:Array.isArray(mine?.ventures)?mine.ventures:[];
-    const collections=await Promise.all(state.ventures.map(async venture=>{
-      try{
-        const data=await api(`/api/ventures/${encodeURIComponent(venture._id)}/interests`);
-        const interests=Array.isArray(data)?data:Array.isArray(data?.interests)?data.interests:[];
-        return interests.map(item=>({...item,ventureIdValue:venture._id,ventureTitle:venture.title||"Venture"}));
-      }catch{return [];}
-    }));
-    state.interests=collections.flat().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
-  }
+  async function loadVentureInbox(){const mine=await api("/api/ventures/mine").catch(()=>[]);state.ventures=Array.isArray(mine)?mine:Array.isArray(mine?.ventures)?mine.ventures:[];const groups=await Promise.all(state.ventures.map(async venture=>{try{const data=await api(`/api/ventures/${encodeURIComponent(venture._id)}/interests`);const interests=Array.isArray(data)?data:Array.isArray(data?.interests)?data.interests:[];return interests.map(item=>({...item,ventureIdValue:venture._id,ventureTitle:venture.title||"Venture"}));}catch{return [];}}));state.interests=groups.flat().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));}
   async function loadRooms(){const data=await api("/api/deal-rooms/mine").catch(()=>({rooms:[]}));state.rooms=Array.isArray(data?.rooms)?data.rooms:[];}
-
-  async function loadAll(){
-    if(state.loading)return;state.loading=true;const list=document.getElementById("aiftMyReviewList");if(list&&state.open)list.innerHTML='<div class="aift-my-review-empty">Loading latest AIFT activity…</div>';
-    try{await Promise.all([loadReviews(),loadVentureInbox(),loadRooms()]);render();}catch(error){if(list&&state.open)list.innerHTML=`<div class="aift-my-review-empty">${esc(error.message)}</div>`;}finally{state.loading=false;}
-  }
-
-  async function handlePanelClick(event){
-    const tab=event.target.closest("[data-aift-activity-tab]");
-    if(tab){state.tab=tab.dataset.aiftActivityTab;render();return;}
-    const roomButton=event.target.closest("[data-open-deal-room]");
-    if(roomButton){window.location.href=`deal-room.html?id=${encodeURIComponent(roomButton.dataset.openDealRoom)}`;return;}
-    const action=event.target.closest("[data-venture-interest-action]");
-    if(!action)return;
-    action.disabled=true;
-    try{
-      await api(`/api/ventures/${encodeURIComponent(action.dataset.ventureId)}/interests/${encodeURIComponent(action.dataset.interestId)}`,{method:"PATCH",body:JSON.stringify({status:action.dataset.ventureInterestAction})});
-      await Promise.all([loadVentureInbox(),loadReviews(),loadRooms()]);
-      render();
-    }catch(error){
-      const banner=document.getElementById("aiftMyReviewBanner");if(banner){banner.hidden=false;banner.textContent=error.message;}
-    }finally{action.disabled=false;}
-  }
-
-  function init(){
-    if(!token() || role()==="admin")return;ensureStyle();ensureUI();setTimeout(loadAll,800);window.addEventListener("focus",()=>loadAll(),{passive:true});
-  }
-
+  async function loadAll(){if(state.loading)return;state.loading=true;try{await Promise.all([loadReviews(),loadVentureInbox(),loadRooms()]);render();}catch(error){const list=document.getElementById("aiftMyReviewList");if(list)list.innerHTML=`<div class="aift-my-review-empty">${esc(error.message)}</div>`;}finally{state.loading=false;}}
+  async function handlePanelClick(event){const tab=event.target.closest("[data-aift-activity-tab]");if(tab){state.tab=tab.dataset.aiftActivityTab;render();return;}const roomButton=event.target.closest("[data-open-deal-room]");if(roomButton){location.href=`deal-room.html?id=${encodeURIComponent(roomButton.dataset.openDealRoom)}`;return;}const action=event.target.closest("[data-venture-interest-action]");if(!action)return;action.disabled=true;try{await api(`/api/ventures/${encodeURIComponent(action.dataset.ventureId)}/interests/${encodeURIComponent(action.dataset.interestId)}`,{method:"PATCH",body:JSON.stringify({status:action.dataset.ventureInterestAction})});await Promise.all([loadVentureInbox(),loadReviews(),loadRooms()]);render();}catch(error){const banner=document.getElementById("aiftMyReviewBanner");if(banner){banner.hidden=false;banner.textContent=error.message;}}finally{action.disabled=false;}}
+  function init(){if(!isCareerHub()||!token()||role()==="admin")return;ensureStyle();ensureUI();setTimeout(loadAll,600);window.addEventListener("focus",()=>loadAll(),{passive:true});}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
