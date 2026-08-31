@@ -17724,6 +17724,7 @@ function renderStudentCareerVentureTools(){
   const connectCount = filterStudentCareerVenturesByMode("connect").length;
   const pitchCount = filterStudentCareerVenturesByMode("pitch").length;
   const activeMode = studentCareerFocusState.ventureMode || "all";
+  const modeCopy = getStudentCareerVentureModeCopy(activeMode);
 
   return `
     <section class="student-career-venture-tools" aria-label="AIFT Venture actions">
@@ -17757,14 +17758,81 @@ function renderStudentCareerVentureTools(){
           <span><small>Investor ready</small><strong>Pitch</strong><em>${pitchCount} available</em></span>
         </button>
       </div>
-
-      <div class="student-career-venture-viewbar">
-        <button type="button" class="${activeMode === "all" ? "active" : ""}" data-career-venture-tool="all">All ventures</button>
-        <span>Choose an action above to focus the live Venture results.</span>
+      <div class="student-career-venture-mode-summary">
+        <div>
+          <span>${escapeHtml(modeCopy.eyebrow)}</span>
+          <strong>${escapeHtml(modeCopy.title)}</strong>
+          <p>${escapeHtml(modeCopy.description)}</p>
+        </div>
+        <button type="button" class="${activeMode === "all" ? "active" : ""}" data-career-venture-tool="all">
+          <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+          All ventures
+        </button>
       </div>
     </section>
   `;
 }
+
+
+function getStudentCareerVentureModeCopy(mode){
+  const copy = {
+    all:{eyebrow:"VENTURE MARKETPLACE",title:"All live ventures",description:"Explore active AIFT ventures published across the network."},
+    build:{eyebrow:"YOUR VENTURES",title:"Build and manage your ideas",description:"Your own ventures appear here so you can continue building, editing and preparing them for support."},
+    fund:{eyebrow:"FUNDING",title:"Ventures seeking funding",description:"Projects seeking grants, sponsorship, donations or investment support appear here."},
+    connect:{eyebrow:"CONNECT",title:"Ventures seeking people and partners",description:"Find projects looking for mentors, pilots, sponsors and partnership support."},
+    pitch:{eyebrow:"INVESTOR READY",title:"Ventures open to investors",description:"Only ventures currently marked as seeking investment are shown here."}
+  };
+  return copy[mode] || copy.all;
+}
+
+function getStudentCareerVentureModeItems(mode){
+  return filterStudentCareerVenturesByMode(mode || "all");
+}
+
+function applyStudentCareerVentureMode(mode){
+  if (studentCareerFocusState.active !== "ventures") return;
+
+  const normalizedMode = ["all","build","fund","connect","pitch"].includes(mode)
+    ? mode
+    : "all";
+
+  studentCareerFocusState.ventureMode = normalizedMode;
+
+  const items = getStudentCareerVentureModeItems(normalizedMode);
+  studentCareerFocusState.filtered = [...items];
+
+  renderStudentCareerFocusResults(items);
+
+  const panel = document.getElementById("studentCareerFocusPanel");
+  if (panel){
+    panel.scrollIntoView({behavior:"smooth", block:"start"});
+  }
+}
+
+function bindStudentCareerVentureToolDelegation(){
+  if (document.documentElement.dataset.studentVentureToolsBound === "true") return;
+
+  document.addEventListener(
+    "click",
+    event => {
+      const button = event.target.closest("[data-career-venture-tool]");
+      if (!button) return;
+
+      const careerSection = document.getElementById("section-career");
+      if (!careerSection || !careerSection.contains(button)) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      applyStudentCareerVentureMode(String(button.dataset.careerVentureTool || "all"));
+    },
+    true
+  );
+
+  document.documentElement.dataset.studentVentureToolsBound = "true";
+}
+
+bindStudentCareerVentureToolDelegation();
 
 function ensureStudentCareerVentureToolStyles(){
   if (document.getElementById("studentCareerVentureToolStyles")) return;
@@ -17779,6 +17847,14 @@ function ensureStudentCareerVentureToolStyles(){
     #section-career .student-career-venture-tools-head p{margin:0;color:var(--career-muted,#667085);font-size:8px;line-height:1.5}
     #section-career .student-career-venture-create{min-height:36px;padding:0 13px;display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:0 0 auto;border:1px solid #d9ddea;border-radius:9px;background:#fff;color:#6d28d9;font-size:8px;font-weight:800;box-shadow:0 6px 16px rgba(15,23,42,.08)}
     #section-career .student-career-venture-create:hover{background:#f8f7ff;border-color:#c9b8ff;color:#5b21b6}
+    #section-career .student-career-venture-mode-summary{margin-top:12px;padding:12px 13px;display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid #ececf3;border-radius:11px;background:#fafaff}
+    #section-career .student-career-venture-mode-summary>div{min-width:0}
+    #section-career .student-career-venture-mode-summary span{display:block;margin-bottom:3px;color:#7c3aed;font-size:7px;font-weight:800;letter-spacing:.09em}
+    #section-career .student-career-venture-mode-summary strong{display:block;color:#172033;font-size:10px;line-height:1.3}
+    #section-career .student-career-venture-mode-summary p{margin:3px 0 0;color:#667085;font-size:7.5px;line-height:1.45}
+    #section-career .student-career-venture-mode-summary button{min-height:31px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;border:1px solid #dfe4ea;border-radius:999px;background:#fff;color:#475467;font-size:7px;font-weight:750}
+    #section-career .student-career-venture-mode-summary button.active{border-color:#7c3aed;background:#f5f3ff;color:#6d28d9}
+
     #section-career .student-career-venture-tool-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
     #section-career .student-career-venture-tool{min-height:92px;padding:12px;display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:10px;border:1px solid #e6eaf0;border-radius:12px;background:#fff;text-align:left;transition:.16s ease}
     #section-career .student-career-venture-tool:hover{transform:translateY(-1px);border-color:#cfd8e6;box-shadow:0 8px 20px rgba(15,23,42,.055)}
@@ -17796,7 +17872,7 @@ function ensureStudentCareerVentureToolStyles(){
     #section-career .student-career-venture-viewbar button{min-height:27px;padding:0 9px;border:1px solid #dfe4ea;border-radius:999px;background:#fff;color:#475467;font-size:7px;font-weight:700}
     #section-career .student-career-venture-viewbar button.active{border-color:#7c3aed;background:#f5f3ff;color:#6d28d9}
     @media(max-width:900px){#section-career .student-career-venture-tool-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:640px){#section-career .student-career-venture-tools-head{display:grid}#section-career .student-career-venture-create{width:100%}#section-career .student-career-venture-tool-grid{grid-template-columns:1fr}#section-career .student-career-venture-viewbar{align-items:flex-start;flex-direction:column}}
+    @media(max-width:640px){#section-career .student-career-venture-mode-summary{align-items:flex-start;flex-direction:column}#section-career .student-career-venture-mode-summary button{width:100%;justify-content:center}#section-career .student-career-venture-tools-head{display:grid}#section-career .student-career-venture-create{width:100%}#section-career .student-career-venture-tool-grid{grid-template-columns:1fr}#section-career .student-career-venture-viewbar{align-items:flex-start;flex-direction:column}}
   `;
   document.head.appendChild(style);
 }
