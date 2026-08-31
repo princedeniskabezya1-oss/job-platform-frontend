@@ -36,6 +36,11 @@ const CLASS_FALLBACK =
 
 const urlParams = new URLSearchParams(window.location.search);
 const selectedStudentId = urlParams.get("studentId");
+const selectedFamilyLinkRequestId = urlParams.get("familyLinkRequest");
+
+async function aiftStudentApi(path,options={}){const response=await fetch(API+path,{...options,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',...(options.headers||{})}});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.message||('Request failed ('+response.status+')'));return data;}
+function ensureFamilyApprovalPanel(){let panel=document.getElementById('aiftFamilyApprovalPanel');if(panel)return panel;panel=document.createElement('div');panel.id='aiftFamilyApprovalPanel';panel.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:20px';panel.innerHTML='<section style="width:min(620px,100%);max-height:86vh;overflow:auto;background:#fff;border-radius:18px;box-shadow:0 24px 70px rgba(15,23,42,.24)"><header style="padding:22px 24px 16px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;gap:16px"><div><h2 style="margin:0;font-size:20px">Family connection requests</h2><p style="margin:6px 0 0;color:#64748b;font-size:13px">Only accept people you personally recognize and authorize.</p></div><button type="button" data-family-approval-close style="border:0;background:transparent;font-size:26px;cursor:pointer">×</button></header><div id="aiftFamilyApprovalList" style="padding:18px 24px">Loading…</div></section>';document.body.appendChild(panel);panel.addEventListener('click',async event=>{if(event.target===panel||event.target.closest('[data-family-approval-close]')){panel.style.display='none';return;}const button=event.target.closest('[data-family-link-decision]');if(!button)return;button.disabled=true;try{await aiftStudentApi('/api/family-student-links/'+button.dataset.requestId+'/respond',{method:'PATCH',body:JSON.stringify({decision:button.dataset.familyLinkDecision})});await loadStudentFamilyApprovals(true);}catch(error){showAlert?.('error',error.message,{title:'Family connection'});}finally{button.disabled=false;}});return panel;}
+async function loadStudentFamilyApprovals(showWhenEmpty=false){if(role!=='student')return;try{const data=await aiftStudentApi('/api/family-student-links/student/pending');const requests=Array.isArray(data.requests)?data.requests:[];if(!requests.length&&!showWhenEmpty&&!selectedFamilyLinkRequestId)return;const panel=ensureFamilyApprovalPanel(),list=panel.querySelector('#aiftFamilyApprovalList');list.innerHTML=requests.length?requests.map(request=>{const family=request.familyId||{},child=request.familyChildId||{},relationship=String(request.relationshipType||'family member').replaceAll('_',' ');return '<article style="padding:16px 0;border-bottom:1px solid #eef2f7"><strong style="display:block;font-size:15px">'+escapeHtml(family.name||'AIFT Family member')+'</strong><div style="margin-top:5px;color:#475569;font-size:13px">Requests to connect as your <b>'+escapeHtml(relationship)+'</b>'+(child.firstName?' through the Family profile for '+escapeHtml(child.firstName+' '+(child.lastName||'')):'')+'. Accepting authorizes this Family account connection; it does not certify a legal or biological relationship.</div><div style="display:flex;gap:8px;margin-top:14px"><button type="button" data-family-link-decision="decline" data-request-id="'+request._id+'" style="padding:9px 14px;border:1px solid #cbd5e1;background:#fff;border-radius:9px;cursor:pointer">Decline</button><button type="button" data-family-link-decision="accept" data-request-id="'+request._id+'" style="padding:9px 14px;border:0;background:#6d28d9;color:#fff;border-radius:9px;cursor:pointer">Accept connection</button></div></article>';}).join(''):'<div style="padding:22px 0;color:#64748b;text-align:center">No pending Family connection requests.</div>';panel.style.display='flex';}catch(error){console.warn('Could not load Family approvals',error);}}
 
 const state = {
   loggedUser:null,
@@ -57681,6 +57686,10 @@ document.addEventListener(
     */
 
     initSocket();
+
+    if(role === "student"){
+      await loadStudentFamilyApprovals(false);
+    }
 
   }
 );
