@@ -4,6 +4,19 @@
   const API = "https://backend-1-9b6f.onrender.com";
   const page = String(location.pathname.split("/").pop() || "").toLowerCase();
   const role = String(localStorage.getItem("role") || "").trim().toLowerCase();
+  const CAREER_HUB_PAGES = new Set([
+    "venture.html",
+    "deal-room.html",
+    "family.html",
+    "career-hub.html",
+    "opportunities.html",
+    "scholarships.html",
+    "internships.html"
+  ]);
+
+  function isCareerHubPage(){
+    return document.body?.dataset?.aiftArea === "career-hub" || CAREER_HUB_PAGES.has(page);
+  }
 
   function getToken(){
     return localStorage.getItem("token") ||
@@ -223,6 +236,7 @@
   }
 
   function addLauncher(label,handler){
+    if(!isCareerHubPage()) return;
     if(document.getElementById("aiftStudentIdentityLauncher")) return;
     const button=document.createElement("button");
     button.id="aiftStudentIdentityLauncher";
@@ -234,12 +248,12 @@
   }
 
   async function initSchool(){
-    addLauncher("Student IDs",openSchoolDirectory);
+    addLauncher("Check Student ID",openSchoolDirectory);
     try{const identities=await loadSchoolIdentities();annotateStudentNodes(identities);const observer=new MutationObserver(()=>annotateStudentNodes(identities));observer.observe(document.body,{subtree:true,childList:true});setTimeout(()=>observer.disconnect(),30000);}catch(error){console.warn("AIFT School Student IDs could not load",error);}
   }
 
   function initEmployer(){
-    addLauncher("Verify Student ID",openEmployerVerifier);
+    addLauncher("Check Student ID",openEmployerVerifier);
     annotateVisibleCandidates();
     let timer=null;
     const observer=new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(annotateVisibleCandidates,350);});
