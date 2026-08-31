@@ -17777,8 +17777,8 @@ function ensureStudentCareerVentureToolStyles(){
     #section-career .student-career-venture-tools-head span{display:block;color:#7c3aed;font-size:7px;font-weight:800;letter-spacing:.1em}
     #section-career .student-career-venture-tools-head h4{margin:4px 0 3px;color:var(--career-heading,#111827);font-size:15px;line-height:1.25}
     #section-career .student-career-venture-tools-head p{margin:0;color:var(--career-muted,#667085);font-size:8px;line-height:1.5}
-    #section-career .student-career-venture-create{min-height:36px;padding:0 13px;display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:0 0 auto;border:1px solid #7c3aed;border-radius:9px;background:#7c3aed;color:#fff;font-size:8px;font-weight:750;box-shadow:0 6px 16px rgba(124,58,237,.16)}
-    #section-career .student-career-venture-create:hover{background:#6d28d9;border-color:#6d28d9}
+    #section-career .student-career-venture-create{min-height:36px;padding:0 13px;display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:0 0 auto;border:1px solid #d9ddea;border-radius:9px;background:#fff;color:#6d28d9;font-size:8px;font-weight:800;box-shadow:0 6px 16px rgba(15,23,42,.08)}
+    #section-career .student-career-venture-create:hover{background:#f8f7ff;border-color:#c9b8ff;color:#5b21b6}
     #section-career .student-career-venture-tool-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
     #section-career .student-career-venture-tool{min-height:92px;padding:12px;display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:10px;border:1px solid #e6eaf0;border-radius:12px;background:#fff;text-align:left;transition:.16s ease}
     #section-career .student-career-venture-tool:hover{transform:translateY(-1px);border-color:#cfd8e6;box-shadow:0 8px 20px rgba(15,23,42,.055)}
