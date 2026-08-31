@@ -9234,6 +9234,90 @@ and
    END AIFT VENTURE — PREMIUM VISUAL UPGRADE PART 4
 ===================================================== */
     /* =====================================================
+       PRODUCTION TOP BAR — AUTHORITATIVE
+       Aligns the header with the centered Venture content.
+    ====================================================== */
+
+    .venture-topbar{
+      padding:0!important;
+      display:block!important;
+    }
+
+    .venture-topbar-inner{
+      width:min(var(--venture-max),calc(100% - 48px));
+      height:100%;
+      margin:0 auto;
+      display:grid;
+      grid-template-columns:170px minmax(360px,620px) max-content;
+      align-items:center;
+      justify-content:space-between;
+      gap:24px;
+    }
+
+    .venture-brand{
+      min-width:0;
+      justify-self:start;
+    }
+
+    .venture-brand-link{
+      min-height:46px;
+      padding:0;
+      display:inline-flex;
+      align-items:center;
+    }
+
+    .venture-brand-logo{
+      width:92px!important;
+      height:46px!important;
+      object-fit:contain!important;
+      object-position:left center!important;
+    }
+
+    .venture-brand-mark,
+    .venture-brand-divider,
+    .venture-brand-section{
+      display:none!important;
+    }
+
+    .venture-top-search{
+      width:100%!important;
+      max-width:620px!important;
+      justify-self:center!important;
+    }
+
+    .venture-top-actions{
+      justify-self:end!important;
+    }
+
+    @media(max-width:1180px){
+      .venture-topbar-inner{
+        width:calc(100% - 32px);
+        grid-template-columns:130px minmax(260px,1fr) max-content;
+        gap:14px;
+      }
+      .venture-brand-logo{
+        width:82px!important;
+      }
+    }
+
+    @media(max-width:760px){
+      .venture-topbar-inner{
+        width:100%;
+        padding:0 13px;
+        display:grid;
+        grid-template-columns:minmax(0,1fr) max-content;
+        gap:10px;
+      }
+      .venture-brand-logo{
+        width:72px!important;
+        height:38px!important;
+      }
+      .venture-top-search{
+        display:none!important;
+      }
+    }
+
+    /* =====================================================
        END AIFT VENTURE PITCH ROOM STYLES
     ====================================================== */
 
@@ -9248,6 +9332,8 @@ and
 
   <header class="venture-topbar">
 
+    <div class="venture-topbar-inner">
+
     <div class="venture-brand">
 
       <a
@@ -9256,28 +9342,14 @@ and
         aria-label="Go to AIFT home"
       >
 
-<span
-  class="venture-brand-mark"
-  id="ventureBrandLogo"
-  aria-label="AIFT"
->
-  <span class="venture-brand-mark-icon">
-    A
-  </span>
-
-  <span class="venture-brand-mark-word">
-    AIFT
-  </span>
-</span>
-
-        <span
-          class="venture-brand-divider"
-          aria-hidden="true"
-        ></span>
-
-        <span class="venture-brand-section">
-          Ventures
-        </span>
+<img
+          class="venture-brand-logo"
+          id="ventureBrandLogo"
+          src="images/aift-logo.png"
+          alt="AIFT"
+          width="92"
+          height="46"
+        >
 
       </a>
 
@@ -9356,6 +9428,8 @@ and
         </span>
 
       </button>
+
+    </div>
 
     </div>
 
@@ -16027,7 +16101,99 @@ and
       }
 
 
-      return "career-hub.html";
+      if(
+        ownerRole ===
+        "family"
+      ){
+
+        return "family.html";
+
+      }
+
+
+      if(
+        ownerRole ===
+        "admin"
+      ){
+
+        return "home.html";
+
+      }
+
+
+      return "home.html";
+
+    }
+
+
+    function ventureViewerRole(){
+
+      return ventureSafeString(
+        ventureState.venture?.viewerRole ||
+        ventureState.venture?.currentUserRole ||
+        localStorage.getItem("role") ||
+        localStorage.getItem("userRole") ||
+        ""
+      ).toLowerCase();
+
+    }
+
+
+    function ventureSearchDestination(query){
+
+      const q = ventureSafeString(query);
+      const encoded = encodeURIComponent(q);
+      const role = ventureViewerRole();
+
+      if(role === "student"){
+        return `student.html?section=career&career=ventures&q=${encoded}`;
+      }
+
+      if(role === "school"){
+        return `school.html?section=career&q=${encoded}`;
+      }
+
+      if(role === "employer"){
+        return `employer.html?section=career&q=${encoded}`;
+      }
+
+      if(role === "family"){
+        return `family.html?mode=investor&page=investor-discover&q=${encoded}`;
+      }
+
+      return `home.html?search=${encoded}`;
+
+    }
+
+
+    function initializeVentureGlobalSearch(){
+
+      const search = ventureElement("ventureGlobalSearch");
+
+      if(!search){
+        return;
+      }
+
+      search.addEventListener(
+        "keydown",
+        event => {
+
+          if(event.key !== "Enter"){
+            return;
+          }
+
+          event.preventDefault();
+
+          const query = ventureSafeString(search.value);
+
+          if(!query){
+            return;
+          }
+
+          window.location.href = ventureSearchDestination(query);
+
+        }
+      );
 
     }
 
@@ -17390,6 +17556,8 @@ async function trackVentureView(){
     ====================================================== */
 
     initializeVentureNavigation();
+
+    initializeVentureGlobalSearch();
 
     initializeVentureShareModal();
 
