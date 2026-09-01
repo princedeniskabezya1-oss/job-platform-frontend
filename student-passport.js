@@ -87,6 +87,10 @@
   }
 
   async function loadCareerHub(){
+    // Install the application-page route before Career Hub V2 binds its
+    // capture listener. All Student Career Hub Apply buttons therefore
+    // open the full job-apply.html application experience.
+    await addScript("student-career-apply-route.js","data-aift-student-career-apply-route");
     await addScript("student-career-hub-v2.js","data-aift-student-career-v2");
     await addScript("student-career-hub-markets-v2.js","data-aift-student-career-markets-v2");
   }
