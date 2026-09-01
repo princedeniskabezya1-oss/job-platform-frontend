@@ -8,6 +8,7 @@
     tab:"new",
     category:"all",
     search:"",
+    selectedTicketId:"",
     loading:false,
     timer:null,
     lastLoadedAt:0
@@ -97,12 +98,13 @@
       .awq-toolbar input,.awq-toolbar select{height:40px;min-width:0;padding:0 11px;border:1px solid #d7dee8;border-radius:9px;background:#fff;color:#344054;font:inherit}
       .awq-tabs{display:flex;align-items:center;gap:6px;overflow:auto}.awq-tab{height:40px;padding:0 12px;border:1px solid #d7dee8;border-radius:9px;background:#fff;color:#475467;font-size:10px;font-weight:850;white-space:nowrap;cursor:pointer}.awq-tab.active{border-color:#9bc4eb;background:#eef6ff;color:#0a66c2}
       .awq-board{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
-      .awq-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;padding:15px;border:1px solid #e3e8ef;border-radius:13px;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.03)}
+      .awq-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;padding:15px;border:1px solid #e3e8ef;border-radius:13px;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.03);transition:border-color .15s ease,box-shadow .15s ease,background .15s ease}
+      .awq-card:hover{border-color:#cbd8e7}.awq-card.selected{border-color:#80b6e9;background:#fbfdff;box-shadow:0 0 0 3px rgba(10,102,194,.07)}
       .awq-card.overdue{border-color:#f4b4b4;background:#fffdfd}.awq-card-head{display:flex;align-items:flex-start;gap:9px;flex-wrap:wrap}.awq-priority,.awq-status,.awq-category{display:inline-flex;align-items:center;min-height:22px;padding:0 7px;border-radius:999px;font-size:8px;font-weight:850;text-transform:uppercase;letter-spacing:.03em}
       .awq-priority{background:#eef2f7;color:#475467}.awq-priority.urgent{background:#fee4e2;color:#b42318}.awq-priority.high{background:#fff1d6;color:#8a5a00}
       .awq-status{background:#eaf3ff;color:#0a66c2}.awq-status.in_progress{background:#eef2ff;color:#4338ca}.awq-status.waiting{background:#f2f4f7;color:#667085}.awq-status.resolved{background:#e8f7ee;color:#16713c}
       .awq-category{background:#f8fafc;color:#64748b}.awq-title{margin-top:8px;color:#101828;font-size:13px;font-weight:850}.awq-description{margin-top:4px;color:#667085;font-size:10px;line-height:1.5}.awq-next{margin-top:10px;padding:9px 10px;border-radius:9px;background:#f7f9fc;color:#344054;font-size:10px;line-height:1.5}.awq-next strong{color:#101828}
-      .awq-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:9px;color:#98a2b3;font-size:9px}.awq-meta .due{color:#b42318;font-weight:800}.awq-actions{min-width:170px;display:flex;flex-direction:column;justify-content:center;gap:7px}.awq-action{min-height:34px;padding:0 10px;border:1px solid #d7dee8;border-radius:8px;background:#fff;color:#344054;font-size:9px;font-weight:850;cursor:pointer}.awq-action.primary{border-color:#0a66c2;background:#0a66c2;color:#fff}.awq-action.success{border-color:#b7dfc5;background:#effaf3;color:#16713c}.awq-action:disabled{opacity:.5;cursor:not-allowed}
+      .awq-card-main{min-width:0;cursor:pointer}.awq-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:9px;color:#98a2b3;font-size:9px}.awq-meta .due{color:#b42318;font-weight:800}.awq-actions{min-width:170px;display:flex;flex-direction:column;justify-content:center;gap:7px}.awq-action{min-height:34px;padding:0 10px;border:1px solid #d7dee8;border-radius:8px;background:#fff;color:#344054;font-size:9px;font-weight:850;cursor:pointer}.awq-action.primary{border-color:#0a66c2;background:#0a66c2;color:#fff}.awq-action.success{border-color:#b7dfc5;background:#effaf3;color:#16713c}.awq-action:disabled{opacity:.5;cursor:not-allowed}
       .awq-empty{padding:42px 20px;border:1px dashed #d7dee8;border-radius:13px;background:#fff;text-align:center;color:#667085;font-size:11px;line-height:1.6}
       .awq-live{display:inline-flex;align-items:center;gap:6px;color:#16713c;font-size:9px;font-weight:800}.awq-live:before{content:"";width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.12)}
       .awq-ticket-detail{display:grid;gap:12px}.awq-detail-box{padding:12px;border:1px solid #e4e9f0;border-radius:10px;background:#fff}.awq-detail-box span{display:block;color:#667085;font-size:10px;margin-bottom:4px}.awq-detail-box strong{color:#101828;font-size:12px}.awq-history{display:grid;gap:7px}.awq-history-item{padding:9px 10px;border-left:3px solid #dbe3ec;background:#f8fafc;border-radius:0 8px 8px 0}.awq-history-item strong{display:block;font-size:10px;color:#344054}.awq-history-item small{display:block;margin-top:2px;color:#98a2b3;font-size:9px}
@@ -153,6 +155,7 @@
       section.querySelector("#awqCategory")?.addEventListener("change",event=>{state.category=event.target.value;render();});
       section.querySelectorAll("[data-awq-tab]").forEach(button=>button.addEventListener("click",()=>{
         state.tab=button.dataset.awqTab;
+        state.selectedTicketId="";
         render();
       }));
       section.addEventListener("click",handleAction);
@@ -213,6 +216,14 @@
       });
   }
 
+  function recalculateSummary(){
+    const summary={new:0,in_progress:0,waiting:0,resolved:0,dismissed:0};
+    state.tickets.forEach(ticket=>{
+      if(Object.prototype.hasOwnProperty.call(summary,ticket.status)) summary[ticket.status]+=1;
+    });
+    state.summary=summary;
+  }
+
   function renderMetrics(){
     const host = document.getElementById("awqMetrics");
     if(!host) return;
@@ -227,14 +238,19 @@
       <button class="awq-metric ${dueNow?"attention":""}" type="button" data-awq-due><span>Due / Reminder</span><strong>${dueNow}</strong><small>Needs attention now</small></button>`;
   }
 
+  function actionButton(ticket,attribute,label,cls=""){
+    return `<button class="awq-action ${cls}" type="button" ${attribute} data-ticket-ref="${esc(ticket._id)}">${esc(label)}</button>`;
+  }
+
   function card(ticket){
     const overdue = isOverdue(ticket);
     const due = ticket.reminderAt || ticket.dueAt;
     const openLabel = ticket.status === "new" ? "Start / Open" : "Open source";
     const canOpenSource = ticket.sourceType === "deal_room" || ticket.sourceType === "review_case";
+    const selected = String(state.selectedTicketId) === String(ticket._id);
     return `
-      <article class="awq-card ${overdue?"overdue":""}" data-ticket-id="${esc(ticket._id)}">
-        <div>
+      <article class="awq-card ${overdue?"overdue":""} ${selected?"selected":""}" data-ticket-id="${esc(ticket._id)}">
+        <div class="awq-card-main" data-ticket-select="${esc(ticket._id)}" tabindex="0" role="button" aria-label="View ${esc(ticket.title)}">
           <div class="awq-card-head">
             <span class="awq-priority ${esc(ticket.priority)}">${esc(ticket.priority || "normal")}</span>
             <span class="awq-status ${esc(ticket.status)}">${esc(title(ticket.status))}</span>
@@ -251,17 +267,23 @@
           </div>
         </div>
         <div class="awq-actions">
-          ${ticket.status!=="resolved"&&ticket.status!=="dismissed"?`<button class="awq-action primary" type="button" data-ticket-open>${canOpenSource?openLabel:(ticket.status==="new"?"Start ticket":"Ticket details")}</button>`:""}
-          ${ticket.status!=="waiting"&&ticket.status!=="resolved"?'<button class="awq-action" type="button" data-ticket-wait>Mark waiting</button>':""}
-          ${ticket.status!=="resolved"?'<button class="awq-action" type="button" data-ticket-remind>Remind in 1 hour</button>':""}
-          ${ticket.status!=="resolved"?'<button class="awq-action success" type="button" data-ticket-resolve>Resolve ticket</button>':'<button class="awq-action" type="button" data-ticket-reopen>Reopen</button>'}
+          ${ticket.status!=="resolved"&&ticket.status!=="dismissed"?actionButton(ticket,"data-ticket-open",canOpenSource?openLabel:(ticket.status==="new"?"Start ticket":"Ticket details"),"primary"):""}
+          ${ticket.status!=="waiting"&&ticket.status!=="resolved"?actionButton(ticket,"data-ticket-wait","Mark waiting"):""}
+          ${ticket.status!=="resolved"?actionButton(ticket,"data-ticket-remind","Remind in 1 hour"):""}
+          ${ticket.status!=="resolved"?actionButton(ticket,"data-ticket-resolve","Resolve ticket","success"):actionButton(ticket,"data-ticket-reopen","Reopen")}
         </div>
       </article>`;
+  }
+
+  function updateBadge(){
+    const badge = document.getElementById("aiftWorkQueueBadge");
+    if(badge) badge.textContent = String((state.summary.new || 0) + state.tickets.filter(ticket=>isOverdue(ticket)).length);
   }
 
   function render(){
     document.querySelectorAll("[data-awq-tab]").forEach(button=>button.classList.toggle("active",button.dataset.awqTab === state.tab));
     renderMetrics();
+    updateBadge();
     const board = document.getElementById("awqBoard");
     if(!board) return;
     const rows = filtered();
@@ -270,9 +292,6 @@
       return;
     }
     board.innerHTML = rows.map(card).join("");
-
-    const badge = document.getElementById("aiftWorkQueueBadge");
-    if(badge) badge.textContent = String((state.summary.new || 0) + state.tickets.filter(ticket=>isOverdue(ticket)).length);
   }
 
   async function load(force=false){
@@ -284,6 +303,9 @@
       const data = await api("/api/admin/work-tickets?sync=true&limit=400");
       state.tickets = Array.isArray(data?.tickets) ? data.tickets : [];
       state.summary = data?.summary || state.summary;
+      if(state.selectedTicketId && !state.tickets.some(ticket=>String(ticket._id)===String(state.selectedTicketId))){
+        state.selectedTicketId="";
+      }
       state.lastLoadedAt = Date.now();
       render();
     }catch(error){
@@ -303,10 +325,14 @@
       body:JSON.stringify(body)
     });
     const index = state.tickets.findIndex(ticket=>String(ticket._id)===String(ticketId));
-    if(index >= 0 && data?.ticket) state.tickets[index] = {...state.tickets[index],...data.ticket};
+    if(index >= 0 && data?.ticket){
+      state.tickets[index] = {...state.tickets[index],...data.ticket};
+      recalculateSummary();
+      render();
+    }
     state.lastLoadedAt = 0;
     await load(true);
-    return data?.ticket;
+    return ticketById(ticketId) || data?.ticket;
   }
 
   function openReviewTicket(ticket){
@@ -323,10 +349,15 @@
   }
 
   function showTicketDetails(ticket){
+    if(!ticket) return;
+    state.selectedTicketId=String(ticket._id || "");
+    render();
     const history = Array.isArray(ticket.history) ? ticket.history.slice().reverse() : [];
     const metadata = ticket.metadata && typeof ticket.metadata === "object" ? Object.entries(ticket.metadata) : [];
+    const shortId=String(ticket._id||"").slice(-8).toUpperCase();
     const html = `
-      <div class="awq-ticket-detail">
+      <div class="awq-ticket-detail" data-open-ticket-id="${esc(ticket._id)}">
+        <div class="awq-detail-box"><span>Selected ticket</span><strong>${esc(shortId?`#${shortId}`:"AIFT ticket")}</strong></div>
         <div class="awq-detail-box"><span>Ticket</span><strong>${esc(ticket.title)}</strong><div class="awq-description">${esc(ticket.description||"")}</div></div>
         <div class="awq-detail-box"><span>Next AIFT action</span><strong>${esc(ticket.nextAction||"Review this item and determine the next controlled action.")}</strong></div>
         <div class="awq-detail-box"><span>Status</span><strong>${esc(title(ticket.status))} · ${esc(title(ticket.priority))} priority</strong></div>
@@ -334,7 +365,7 @@
         <div class="awq-detail-box"><span>Ticket history</span><div class="awq-history">${history.length?history.map(item=>`<div class="awq-history-item"><strong>${esc(title(item.status))}</strong><small>${esc(item.note||"")} · ${esc(fmt(item.at||item.createdAt))}</small></div>`).join(""):'<div class="awq-description">No ticket history yet.</div>'}</div></div>
       </div>`;
     if(typeof window.openAdminReviewModal === "function"){
-      window.openAdminReviewModal("AIFT Work Ticket",ticket.title,html,"");
+      window.openAdminReviewModal(`AIFT Work Ticket ${shortId?`#${shortId}`:""}`,ticket.title,html,"");
     }else{
       toast(ticket.nextAction || ticket.title);
     }
@@ -342,8 +373,11 @@
 
   async function openTicket(ticket){
     try{
+      state.selectedTicketId=String(ticket._id);
+      render();
       const updated = await patchTicket(ticket._id,{status:"in_progress",note:"Admin opened this work ticket."});
       const current = updated || ticket;
+      state.selectedTicketId=String(current._id || ticket._id);
       if(current.sourceType === "deal_room" && current.targetUrl){
         window.location.href = current.targetUrl.replace(/^\//,"");
         return;
@@ -358,31 +392,70 @@
 
   async function handleAction(event){
     const jump = event.target.closest("[data-awq-jump]");
-    if(jump){state.tab=jump.dataset.awqJump;state.category="all";const select=document.getElementById("awqCategory");if(select)select.value="all";render();return;}
-    if(event.target.closest("[data-awq-documents]")){state.tab="new";state.category="document";const select=document.getElementById("awqCategory");if(select)select.value="document";render();return;}
-    if(event.target.closest("[data-awq-due]")){state.tab="new";state.category="all";const select=document.getElementById("awqCategory");if(select)select.value="all";render();return;}
+    if(jump){state.tab=jump.dataset.awqJump;state.category="all";state.selectedTicketId="";const select=document.getElementById("awqCategory");if(select)select.value="all";render();return;}
+    if(event.target.closest("[data-awq-documents]")){state.tab="new";state.category="document";state.selectedTicketId="";const select=document.getElementById("awqCategory");if(select)select.value="document";render();return;}
+    if(event.target.closest("[data-awq-due]")){state.tab="new";state.category="all";state.selectedTicketId="";const select=document.getElementById("awqCategory");if(select)select.value="all";render();return;}
 
+    const action = event.target.closest("[data-ticket-ref]");
     const card = event.target.closest("[data-ticket-id]");
-    if(!card) return;
-    const ticket = ticketById(card.dataset.ticketId);
+    const explicitId = action?.dataset.ticketRef || event.target.closest("[data-ticket-select]")?.dataset.ticketSelect || card?.dataset.ticketId;
+    if(!explicitId) return;
+    const ticket = ticketById(explicitId);
     if(!ticket) return;
 
-    if(event.target.closest("[data-ticket-open]")){ await openTicket(ticket); return; }
-    if(event.target.closest("[data-ticket-wait]")){
-      try{await patchTicket(ticket._id,{status:"waiting",waitingOn:"user",note:"Admin moved this ticket to Waiting."});toast("Ticket moved to Waiting.");}catch(error){toast(error.message);}return;
+    state.selectedTicketId=String(ticket._id);
+
+    if(action?.matches("[data-ticket-open]")){ await openTicket(ticket); return; }
+    if(action?.matches("[data-ticket-wait]")){
+      try{
+        await patchTicket(ticket._id,{status:"waiting",waitingOn:"user",note:"Admin moved this ticket to Waiting."});
+        state.tab="waiting";
+        state.category="all";
+        const select=document.getElementById("awqCategory");
+        if(select) select.value="all";
+        render();
+        toast("Ticket moved to Waiting.");
+      }catch(error){toast(error.message);}
+      return;
     }
-    if(event.target.closest("[data-ticket-remind]")){
-      try{await patchTicket(ticket._id,{reminderAt:new Date(Date.now()+60*60*1000).toISOString(),note:"Admin set a one-hour reminder."});toast("Reminder set for one hour from now.");}catch(error){toast(error.message);}return;
+    if(action?.matches("[data-ticket-remind]")){
+      try{
+        await patchTicket(ticket._id,{reminderAt:new Date(Date.now()+60*60*1000).toISOString(),note:"Admin set a one-hour reminder."});
+        state.selectedTicketId=String(ticket._id);
+        render();
+        toast("Reminder set for one hour from now.");
+      }catch(error){toast(error.message);}
+      return;
     }
-    if(event.target.closest("[data-ticket-resolve]")){
-      const run = async()=>{try{await patchTicket(ticket._id,{status:"resolved",note:"Admin marked this ticket resolved."});toast("Ticket resolved.");}catch(error){toast(error.message);}};
+    if(action?.matches("[data-ticket-resolve]")){
+      const selectedId=String(ticket._id);
+      const run = async()=>{
+        try{
+          await patchTicket(selectedId,{status:"resolved",note:"Admin marked this ticket resolved."});
+          state.tab="resolved";
+          state.selectedTicketId=selectedId;
+          render();
+          toast("Ticket resolved.");
+        }catch(error){toast(error.message);}
+      };
       if(typeof window.openAdminConfirm === "function"){
         window.openAdminConfirm("Resolve work ticket","Mark this AIFT work ticket resolved? It will automatically reopen if the linked workflow later creates new activity.",run);
       }else await run();
       return;
     }
-    if(event.target.closest("[data-ticket-reopen]")){
-      try{await patchTicket(ticket._id,{status:"new",note:"Admin reopened this ticket."});toast("Ticket reopened.");}catch(error){toast(error.message);}return;
+    if(action?.matches("[data-ticket-reopen]")){
+      try{
+        await patchTicket(ticket._id,{status:"new",note:"Admin reopened this ticket."});
+        state.tab="new";
+        state.selectedTicketId=String(ticket._id);
+        render();
+        toast("Ticket reopened.");
+      }catch(error){toast(error.message);}
+      return;
+    }
+
+    if(event.target.closest("[data-ticket-select]")){
+      showTicketDetails(ticket);
     }
   }
 
