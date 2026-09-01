@@ -153,13 +153,28 @@
     return passport;
   }
 
-  function loadCareerHubUpgrade(){
-    if(document.querySelector('script[data-aift-student-career-v2]')) return;
+  function appendScript(src,datasetKey){
+    if(document.querySelector(`script[${datasetKey}]`)) return null;
     const script=document.createElement("script");
-    script.src="student-career-hub-v2.js";
+    script.src=src;
     script.defer=true;
-    script.dataset.aiftStudentCareerV2="1";
+    script.setAttribute(datasetKey,"1");
     document.head.appendChild(script);
+    return script;
+  }
+
+  function loadCareerHubUpgrade(){
+    const existing=document.querySelector('script[data-aift-student-career-v2]');
+    const loadMarkets=()=>appendScript("student-career-hub-markets.js","data-aift-student-career-markets");
+
+    if(existing){
+      if(window.AIFTStudentCareerHub) loadMarkets();
+      else existing.addEventListener("load",loadMarkets,{once:true});
+      return;
+    }
+
+    const script=appendScript("student-career-hub-v2.js","data-aift-student-career-v2");
+    script?.addEventListener("load",loadMarkets,{once:true});
   }
 
   window.AIFTStudentPassport={
