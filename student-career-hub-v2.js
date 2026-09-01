@@ -488,15 +488,30 @@
     }
   }
 
+  let installFrame=0;
+
+  function installCareerEnhancements(){
+    injectCategoryCards();
+    renderApplicationsPanel();
+    injectPassportQuick().catch(()=>{});
+  }
+
+  function scheduleCareerEnhancements(){
+    if(installFrame) cancelAnimationFrame(installFrame);
+    installFrame=requestAnimationFrame(()=>{
+      installFrame=0;
+      installCareerEnhancements();
+    });
+  }
+
   async function init(){
     ensureStyles();
     bind();
-    const install=()=>{injectCategoryCards();injectPassportQuick();renderApplicationsPanel();};
-    await loadApplications();
-    install();
-    const observer=new MutationObserver(()=>install());
-    const career=document.getElementById("section-career")||document.body;
-    observer.observe(career,{childList:true,subtree:true});
+    await loadApplications().catch(()=>{});
+    scheduleCareerEnhancements();
+    document.addEventListener("studentstudio:pagechange",event=>{
+      if(String(event?.detail?.page||"") === "career") scheduleCareerEnhancements();
+    });
     window.addEventListener("aift:activity-updated",event=>{
       const source=String(event?.detail?.source||"");
       if(source==="student-career-application" || source==="review-status") refresh().catch(()=>{});

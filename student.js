@@ -1180,6 +1180,17 @@ function openStudentStudioPage(
       requestedPage
     );
 
+  if(
+    page === "career" &&
+    activeStudentStudioPage === "career" &&
+    document.body.dataset.studentSection === "career" &&
+    document.getElementById("studentCareerWorkspace")?.children?.length
+  ){
+    setStudentStudioActiveNavigation(page);
+    setStudentStudioActiveMobileNavigation(page);
+    return;
+  }
+
   activeStudentStudioPage = page;
 
   document.body.dataset.studentSection =
@@ -20391,21 +20402,29 @@ async function renderStudentCareerHub(){
 
   /* =======================================================
      LIVE BACKEND DATA
+     Render immediately; hydrate network data after first paint.
   ======================================================== */
 
-await loadStudentCareerHubData();
+  renderStudentCareerOpportunities();
+  renderStudentCareerVentures();
+  renderStudentCareerApplications();
+  updateStudentCareerSavedCount();
 
+  const hydrateCareerHub = async () => {
+    try{
+      await loadStudentCareerHubData();
+      if(document.body.dataset.studentSection !== "career") return;
+      renderStudentCareerOpportunities();
+      renderStudentCareerVentures();
+      renderStudentCareerApplications();
+      updateStudentCareerSavedCount();
+    }catch(error){
+      console.error("Career Hub background hydration failed:",error);
+    }
+  };
 
-renderStudentCareerOpportunities();
-
-
-renderStudentCareerVentures();
-
-
-renderStudentCareerApplications();
-
-
-updateStudentCareerSavedCount();
+  if(typeof requestAnimationFrame === "function") requestAnimationFrame(()=>setTimeout(hydrateCareerHub,0));
+  else setTimeout(hydrateCareerHub,0);
 
 }
 /* =========================================================
