@@ -55,7 +55,13 @@
       <div class="search-box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input id="conversationSearch" type="search" placeholder="Search messages" autocomplete="off"></div>
       <div id="newChatPanel" class="new-chat-panel hidden"><div class="new-chat-head"><strong>New message</strong><button onclick="closeNewChatMode()">Close</button></div><div class="search-box compact"><input id="userSearchInput" type="search" placeholder="Search people, schools or companies" autocomplete="off"></div><div id="userSearchResults" class="user-search-results"></div></div>
     </header>
-    <section class="stories-section"><div class="stories-head"><strong>Stories</strong><button type="button" onclick="toast('Story publishing will be available from your AIFT profile.')">Add story</button></div><div id="storiesStrip" class="stories-strip"><button class="story-card add-story" type="button" onclick="toast('Story publishing will be available from your AIFT profile.')"><span class="story-avatar"><span class="story-plus">+</span></span><span>Your story</span></button><div id="conversationStories" class="conversation-stories"></div></div></section>
+    <section class="stories-section">
+      <div class="stories-head"><strong>Stories</strong><button type="button" onclick="openStoryComposer()">Add story</button></div>
+      <div id="storiesStrip" class="stories-strip">
+        <button class="story-card add-story" type="button" onclick="openStoryComposer()"><span class="story-avatar"><span class="story-plus">+</span></span><span>Your story</span></button>
+        <div id="conversationStories" class="conversation-stories"><div class="story-loading">Loading...</div></div>
+      </div>
+    </section>
     <nav class="conversation-tabs"><button class="active" data-filter="all" onclick="setConversationFilter('all',this)">All</button><button data-filter="unread" onclick="setConversationFilter('unread',this)">Unread</button><button data-filter="pinned" onclick="setConversationFilter('pinned',this)">Pinned</button><button data-filter="archived" onclick="setConversationFilter('archived',this)">Archived</button></nav>
     <section id="conversationList" class="conversation-list"><div class="loading-card">Loading conversations...</div></section>
   </aside>
@@ -72,12 +78,175 @@
   </main>
 </div>
 
+<div id="storyComposer" class="story-overlay hidden">
+  <div class="story-compose-card">
+    <div class="story-compose-head"><div><strong>Create story</strong><span>Visible for 24 hours</span></div><button type="button" onclick="closeStoryComposer()">×</button></div>
+    <div id="storyPreview" class="story-compose-preview"><div class="story-compose-placeholder"><span>+</span><strong>Add a photo or video</strong><small>You can also publish text only.</small></div></div>
+    <textarea id="storyText" maxlength="1500" placeholder="Share an update..."></textarea>
+    <div class="story-compose-controls">
+      <label class="story-file-button">Photo / video<input id="storyFileInput" type="file" accept="image/*,video/*" hidden></label>
+      <select id="storyAudience"><option value="connections">Connections</option><option value="everyone">Everyone</option></select>
+    </div>
+    <div class="story-compose-actions"><button type="button" class="btn ghost" onclick="closeStoryComposer()">Cancel</button><button id="publishStoryBtn" type="button" class="story-publish-btn" onclick="publishStory()">Share story</button></div>
+  </div>
+</div>
+
+<div id="storyViewer" class="story-viewer hidden">
+  <button class="story-viewer-close" type="button" onclick="closeStoryViewer()">×</button>
+  <div class="story-viewer-shell">
+    <div id="storyProgress" class="story-progress"></div>
+    <div class="story-viewer-head"><img id="storyViewerAvatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt=""><div><strong id="storyViewerName">AIFT User</strong><span id="storyViewerTime"></span></div></div>
+    <button class="story-nav prev" type="button" onclick="previousStory()" aria-label="Previous">‹</button>
+    <div id="storyViewerContent" class="story-viewer-content"></div>
+    <button class="story-nav next" type="button" onclick="nextStory()" aria-label="Next">›</button>
+    <div id="storyOwnerFooter" class="story-owner-footer hidden"><button id="storyViewersBtn" type="button" onclick="showStoryViewers()">0 viewers</button><button type="button" class="danger-text" onclick="deleteCurrentStory()">Delete</button></div>
+  </div>
+</div>
+
+<div id="storyViewersModal" class="modal-backdrop hidden"><div class="modal-card"><div class="modal-head"><h3>Story viewers</h3><button class="modal-close" onclick="closeStoryViewers()">×</button></div><div id="storyViewersList" class="story-viewers-list"></div></div></div>
+
 <div id="cameraModal" class="modal-backdrop hidden"><div class="camera-card"><div class="modal-head"><h3>Take a photo</h3><button class="modal-close" onclick="closeCameraModal()">×</button></div><video id="cameraVideo" autoplay playsinline muted></video><canvas id="cameraCanvas" class="hidden"></canvas><div class="modal-actions"><button class="btn ghost" onclick="closeCameraModal()">Cancel</button><button class="btn" onclick="switchCamera()">Switch</button><button class="btn danger" onclick="captureCameraPhoto()">Capture</button></div></div></div>
 <div id="mediaViewer" class="media-viewer hidden"><div class="media-viewer-backdrop" onclick="closeMediaViewer()"></div><div class="media-viewer-content"><button class="media-viewer-close" onclick="closeMediaViewer()">×</button><button class="media-viewer-download" onclick="downloadCurrentMedia()">↓</button><img id="mediaViewerImage" class="hidden" alt=""><video id="mediaViewerVideo" class="hidden" controls autoplay></video></div></div>
 <div id="callModal" class="call-modal hidden"><div class="call-bg"></div><div class="call-shell"><div class="call-top"><div class="call-user"><img id="callAvatar" src="" alt=""><div><h2 id="callName">User</h2><p id="callStatus">Connecting...</p></div></div><div class="call-info"><span id="callDuration">00:00</span><span id="callNetworkStatus"></span></div></div><div class="call-video-stage"><video id="remoteVideo" autoplay playsinline></video><div class="local-video-wrap"><video id="localVideo" autoplay muted playsinline></video></div><div id="callWaitingState" class="call-waiting"><img id="callWaitingAvatar" src="" alt=""><h3 id="callWaitingName">Calling...</h3><p>Waiting for answer</p></div></div><div class="call-controls"><button id="muteBtn" class="call-control" onclick="toggleMute()"><span>Mute</span></button><button id="cameraBtn" class="call-control" onclick="toggleCamera()"><span>Camera</span></button><button id="speakerBtn" class="call-control" onclick="toggleSpeaker()"><span>Speaker</span></button><button id="screenBtn" class="call-control" onclick="toggleScreenShare()"><span>Share</span></button><button id="meetingBtn" class="call-control" onclick="upgradeToMeeting()"><span>Meeting</span></button><button id="endCallBtn" class="call-control end" onclick="endCurrentCall()"><span>End</span></button></div></div></div>
 <div id="incomingCallModal" class="incoming-call hidden"><div class="incoming-card"><img id="incomingAvatar" src="" alt=""><h2 id="incomingCaller">Incoming Call</h2><p id="incomingType">Video Call</p><div class="incoming-wave"></div><div class="incoming-actions"><button class="decline-btn" onclick="declineIncomingCall()">Decline</button><button class="accept-btn" onclick="acceptIncomingCall()">Accept</button></div></div></div>
 <div id="meetingComingSoonModal" class="modal-backdrop hidden"><div class="meeting-coming-card"><button class="modal-close meeting-coming-close" onclick="closeMeetingComingSoon()">×</button><div class="meeting-coming-logo"><img src="images/aift-logo.png" alt="AIFT"></div><span class="meeting-coming-pill">Coming Soon</span><h2>AIFT Meet 2.0</h2><p>We are building a smoother professional meeting experience for AIFT.</p><div class="meeting-coming-grid"><span>HD Video</span><span>Screen Sharing</span><span>Recordings</span><span>Live Captions</span></div><button class="meeting-coming-btn" onclick="closeMeetingComingSoon()">Got it</button></div></div>
+
 <script src="messages.js"></script>
-<script>(function(){const list=document.getElementById('conversationList'),target=document.getElementById('conversationStories');if(!list||!target)return;const rebuild=()=>{const cards=[...list.querySelectorAll('.conversation-item')].slice(0,6);target.innerHTML=cards.map((card,index)=>{const img=card.querySelector('.conversation-avatar')?.getAttribute('src')||'https://cdn-icons-png.flaticon.com/512/149/149071.png';const name=(card.querySelector('.conversation-name')?.textContent||'AIFT').trim();const onclick=card.getAttribute('onclick')||'';return `<button class="story-card" type="button" data-story-index="${index}" ${onclick?`onclick="${onclick.replaceAll('"','&quot;')}"`:''}><span class="story-avatar"><img src="${img}" alt=""></span><span>${name.split(' ')[0]}</span></button>`;}).join('');};new MutationObserver(rebuild).observe(list,{childList:true,subtree:true});rebuild();})();</script>
+<script>
+(function(){
+  const storyState={groups:[],groupIndex:0,storyIndex:0,file:null,timer:null};
+  const fallback='https://cdn-icons-png.flaticon.com/512/149/149071.png';
+  const idOf=v=>String(v?._id||v?.id||v||'');
+  const authorName=a=>a?.companyName||a?.schoolName||a?.name||'AIFT User';
+  const authorAvatar=a=>a?.profileImage||a?.logo||a?.avatar||fallback;
+  const escapeHtml=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
+
+  window.loadStories=async function(){
+    const target=document.getElementById('conversationStories');
+    if(!target)return;
+    try{
+      const data=await api('/api/stories',{headers:authHeaders()});
+      storyState.groups=Array.isArray(data?.groups)?data.groups:[];
+      renderStoryStrip();
+    }catch(error){
+      console.warn('Load stories failed:',error.message);
+      target.innerHTML='<div class="story-loading">Stories unavailable</div>';
+    }
+  };
+
+  function renderStoryStrip(){
+    const target=document.getElementById('conversationStories');
+    if(!target)return;
+    if(!storyState.groups.length){target.innerHTML='<div class="story-loading">No stories yet</div>';return;}
+    target.innerHTML=storyState.groups.map((group,index)=>{
+      const author=group.author||{};
+      const own=idOf(author)===String(state?.myId||'');
+      return `<button class="story-card ${group.hasUnseen?'unseen':'seen'} ${own?'own-story':''}" type="button" onclick="openStoryViewer(${index},0)"><span class="story-avatar"><img src="${escapeHtml(authorAvatar(author))}" alt=""></span><span>${own?'Your story':escapeHtml(authorName(author).split(' ')[0])}</span></button>`;
+    }).join('');
+  }
+
+  window.openStoryComposer=function(){
+    storyState.file=null;
+    const input=document.getElementById('storyFileInput'); if(input)input.value='';
+    const text=document.getElementById('storyText'); if(text)text.value='';
+    renderStoryComposePreview();
+    document.getElementById('storyComposer')?.classList.remove('hidden');
+  };
+
+  window.closeStoryComposer=function(){document.getElementById('storyComposer')?.classList.add('hidden');};
+
+  function renderStoryComposePreview(){
+    const preview=document.getElementById('storyPreview'); if(!preview)return;
+    const file=storyState.file;
+    if(!file){preview.innerHTML='<div class="story-compose-placeholder"><span>+</span><strong>Add a photo or video</strong><small>You can also publish text only.</small></div>';return;}
+    const url=URL.createObjectURL(file);
+    preview.innerHTML=file.type.startsWith('video/')?`<video src="${url}" controls muted></video>`:`<img src="${url}" alt="Story preview">`;
+  }
+
+  window.publishStory=async function(){
+    const text=String(document.getElementById('storyText')?.value||'').trim();
+    if(!text&&!storyState.file){toast('Add text, a photo, or a video');return;}
+    const btn=document.getElementById('publishStoryBtn'); if(btn){btn.disabled=true;btn.textContent='Sharing...';}
+    const form=new FormData();
+    if(text)form.append('text',text);
+    if(storyState.file)form.append('file',storyState.file);
+    form.append('audience',document.getElementById('storyAudience')?.value||'connections');
+    try{
+      await api('/api/stories',{method:'POST',headers:authHeaders(),body:form});
+      closeStoryComposer();
+      toast('Story shared');
+      await loadStories();
+    }catch(error){toast(error.message||'Unable to share story');}
+    finally{if(btn){btn.disabled=false;btn.textContent='Share story';}}
+  };
+
+  window.openStoryViewer=function(groupIndex,storyIndex=0){
+    const group=storyState.groups[groupIndex]; if(!group?.stories?.length)return;
+    storyState.groupIndex=groupIndex; storyState.storyIndex=Math.max(0,Math.min(storyIndex,group.stories.length-1));
+    document.getElementById('storyViewer')?.classList.remove('hidden');
+    renderCurrentStory();
+  };
+
+  window.closeStoryViewer=function(){clearTimeout(storyState.timer);const video=document.querySelector('#storyViewerContent video');if(video)video.pause();document.getElementById('storyViewer')?.classList.add('hidden');};
+
+  async function renderCurrentStory(){
+    clearTimeout(storyState.timer);
+    const group=storyState.groups[storyState.groupIndex];
+    const story=group?.stories?.[storyState.storyIndex];
+    if(!group||!story){closeStoryViewer();return;}
+    const author=group.author||story.author||{};
+    document.getElementById('storyViewerAvatar').src=authorAvatar(author);
+    document.getElementById('storyViewerName').textContent=authorName(author);
+    document.getElementById('storyViewerTime').textContent=formatStoryAge(story.createdAt);
+    document.getElementById('storyProgress').innerHTML=group.stories.map((_,i)=>`<span class="${i<storyState.storyIndex?'done':i===storyState.storyIndex?'active':''}"><i></i></span>`).join('');
+    const content=document.getElementById('storyViewerContent');
+    if(story.type==='video'&&story.mediaUrl){content.innerHTML=`<video src="${escapeHtml(story.mediaUrl)}" autoplay playsinline controls></video>${story.text?`<p class="story-caption">${escapeHtml(story.text)}</p>`:''}`;}
+    else if(story.type==='image'&&story.mediaUrl){content.innerHTML=`<img src="${escapeHtml(story.mediaUrl)}" alt="Story">${story.text?`<p class="story-caption">${escapeHtml(story.text)}</p>`:''}`;}
+    else{content.innerHTML=`<div class="story-text-card"><p>${escapeHtml(story.text||'')}</p></div>`;}
+    const own=idOf(author)===String(state?.myId||'');
+    const footer=document.getElementById('storyOwnerFooter'); footer?.classList.toggle('hidden',!own);
+    if(own){document.getElementById('storyViewersBtn').textContent=`${Number(story.viewerCount||0)} viewer${Number(story.viewerCount||0)===1?'':'s'}`;}
+    if(!own&&!story.seen){story.seen=true;group.hasUnseen=group.stories.some(item=>!item.seen);renderStoryStrip();try{await apiJSON(`/api/stories/${encodeURIComponent(idOf(story))}/view`,'PATCH',{});}catch(error){console.warn('Story view failed:',error.message);}}
+    const duration=story.type==='video'?12000:6000;
+    storyState.timer=setTimeout(()=>nextStory(),duration);
+  }
+
+  function formatStoryAge(value){const time=new Date(value).getTime();if(!time)return'';const minutes=Math.max(0,Math.floor((Date.now()-time)/60000));if(minutes<1)return'Just now';if(minutes<60)return`${minutes}m`;const hours=Math.floor(minutes/60);return`${hours}h`;}
+
+  window.nextStory=function(){
+    const group=storyState.groups[storyState.groupIndex];
+    if(group&&storyState.storyIndex<group.stories.length-1){storyState.storyIndex++;renderCurrentStory();return;}
+    if(storyState.groupIndex<storyState.groups.length-1){storyState.groupIndex++;storyState.storyIndex=0;renderCurrentStory();return;}
+    closeStoryViewer();
+  };
+
+  window.previousStory=function(){
+    if(storyState.storyIndex>0){storyState.storyIndex--;renderCurrentStory();return;}
+    if(storyState.groupIndex>0){storyState.groupIndex--;const group=storyState.groups[storyState.groupIndex];storyState.storyIndex=Math.max(0,(group?.stories?.length||1)-1);renderCurrentStory();}
+  };
+
+  window.showStoryViewers=async function(){
+    const story=storyState.groups[storyState.groupIndex]?.stories?.[storyState.storyIndex]; if(!story)return;
+    const box=document.getElementById('storyViewersList'); if(box)box.innerHTML='<div class="loading-card">Loading viewers...</div>';
+    document.getElementById('storyViewersModal')?.classList.remove('hidden');
+    try{
+      const data=await api(`/api/stories/${encodeURIComponent(idOf(story))}/viewers`,{headers:authHeaders()});
+      const viewers=Array.isArray(data?.viewers)?data.viewers:[];
+      box.innerHTML=viewers.length?viewers.map(item=>{const user=item.user||{};return `<div class="story-viewer-row"><img src="${escapeHtml(authorAvatar(user))}" alt=""><div><strong>${escapeHtml(authorName(user))}</strong><span>${escapeHtml(formatStoryAge(item.viewedAt))}</span></div></div>`;}).join(''):'<div class="empty-list">No viewers yet.</div>';
+    }catch(error){if(box)box.innerHTML=`<div class="empty-list">${escapeHtml(error.message||'Unable to load viewers')}</div>`;}
+  };
+
+  window.closeStoryViewers=function(){document.getElementById('storyViewersModal')?.classList.add('hidden');};
+
+  window.deleteCurrentStory=function(){
+    const story=storyState.groups[storyState.groupIndex]?.stories?.[storyState.storyIndex]; if(!story)return;
+    openConfirmModal({title:'Delete story',text:'This story will be removed immediately.',confirmText:'Delete',danger:true,onConfirm:async()=>{try{await api(`/api/stories/${encodeURIComponent(idOf(story))}`,{method:'DELETE',headers:authHeaders()});closeStoryViewer();toast('Story deleted');await loadStories();}catch(error){toast(error.message||'Unable to delete story');}}});
+  };
+
+  document.getElementById('storyFileInput')?.addEventListener('change',event=>{storyState.file=event.target.files?.[0]||null;renderStoryComposePreview();});
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(loadStories,350));
+  const socketWait=setInterval(()=>{if(state?.socket){clearInterval(socketWait);state.socket.on('storyCreated',()=>loadStories());state.socket.on('storyDeleted',()=>loadStories());}},500);
+})();
+</script>
 </body>
 </html>
