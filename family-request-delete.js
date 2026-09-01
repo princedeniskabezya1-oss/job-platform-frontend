@@ -175,10 +175,20 @@
     state.observer.observe(list,{childList:true,subtree:true});
   }
 
+  function loadInvestorWorkflow(){
+    if(document.getElementById("familyInvestorInterestWorkflowScript"))return;
+    const script=document.createElement("script");
+    script.id="familyInvestorInterestWorkflowScript";
+    script.src="family-investor-interest-workflow.js";
+    script.defer=true;
+    document.head.appendChild(script);
+  }
+
   function init(){
     if(page()!=="family.html"||!token())return;
     bind();
     observe();
+    loadInvestorWorkflow();
     loadReviews();
     window.setInterval(()=>{if(!document.hidden)loadReviews();},10000);
   }
