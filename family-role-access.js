@@ -7,6 +7,7 @@
   const page = String(location.pathname.split("/").pop() || "").toLowerCase();
   if(page !== "family.html") return;
 
+  const STUDENT_ACCESS_EXCLUDED_ROLES = new Set(["student","employer","school"]);
   const localRole = String(localStorage.getItem("role") || "").trim().toLowerCase();
   const state = {
     role:localRole,
@@ -60,11 +61,15 @@
     return data;
   }
 
+  function canManageStudents(){
+    return Boolean(state.role && !STUDENT_ACCESS_EXCLUDED_ROLES.has(state.role));
+  }
+
   function capabilities(){
     const role=state.role;
     return {
-      familyProfile:role === "family",
-      manageStudents:role === "family",
+      familyProfile:true,
+      manageStudents:canManageStudents(),
       applyScholarshipHere:role === "family",
       viewFamilyScholarshipApplications:role === "family",
       discoverScholarships:true,
@@ -74,12 +79,6 @@
     };
   }
 
-  /*
-    Family My Requests historically loads scholarship applications for every role.
-    In this workspace those records are Family-owned applications only. Other roles
-    keep the backend security boundary and receive an empty Family-workspace list.
-    No detail or write endpoint is intercepted.
-  */
   window.fetch = function(input,init={}){
     try{
       const url=new URL(typeof input === "string" ? input : input?.url,location.href);
@@ -164,26 +163,12 @@
 
   function roleCopy(){
     const role=state.role;
-    if(role === "family") return {
-      title:"Family workspace",
-      text:"Add or connect students, apply for scholarships on their behalf, manage project funding and optionally use Investor Mode."
-    };
-    if(role === "employer") return {
-      title:"Employer access in Family & Investor",
-      text:"Discover and save education opportunities, manage Ventures and use Investor Mode when enabled. Family student and scholarship application controls are intentionally hidden."
-    };
-    if(role === "school") return {
-      title:"School access in Family & Investor",
-      text:"Use this area for discovery, Ventures and Investor Mode. Scholarship publishing and applicant review stay in the School workspace, so Family application controls are hidden here."
-    };
-    if(role === "student" || role === "talent") return {
-      title:`${title(role)} access in Family & Investor`,
-      text:"Use this area for discovery, Ventures and Investor Mode. Your own scholarship actions belong in your Career Hub experience, so Family-managed Student applications are not duplicated here."
-    };
-    return {
-      title:`${title(role)} access in Family & Investor`,
-      text:"This workspace only shows actions that fit your current AIFT role. Sensitive approvals remain controlled by AIFT."
-    };
+    if(role === "family") return {title:"Family workspace",text:"Add or connect students, apply for scholarships on their behalf, manage project funding and optionally use Investor Mode."};
+    if(role === "employer") return {title:"Employer access in Family & Investor",text:"You can use Family & Investor discovery and Venture tools, but the Students area is not available to Employer accounts."};
+    if(role === "school") return {title:"School access in Family & Investor",text:"The Students area is not available here because School accounts manage students from the School and LMS workspace."};
+    if(role === "student") return {title:"Student access in Family & Investor",text:"Students manage their own education and scholarship activity. The Family Students area is therefore hidden from Student accounts."};
+    if(canManageStudents()) return {title:`${title(role)} Family workspace`,text:"Your role can also represent a family relationship. You can add students you support and connect them to verified AIFT Student IDs with the Student's approval."};
+    return {title:`${title(role)} access in Family & Investor`,text:"This workspace only shows actions that fit your current AIFT role."};
   }
 
   function ensureStudentWorkspace(){
@@ -201,13 +186,8 @@
       navButton.dataset.page="students";
       navButton.innerHTML='♙ <span>Students</span><span class="family-nav-count" id="familyStudentNavCount">0</span>';
       const oldChildren=nav.querySelector('[data-page="children"]');
-      if(oldChildren){
-        oldChildren.insertAdjacentElement("beforebegin",navButton);
-        setHidden(oldChildren,true);
-      }else{
-        const investorLabel=$("#familyInvestorNavLabel");
-        nav.insertBefore(navButton,investorLabel || null);
-      }
+      if(oldChildren){oldChildren.insertAdjacentElement("beforebegin",navButton);setHidden(oldChildren,true);}
+      else nav.insertBefore(navButton,$("#familyInvestorNavLabel") || null);
     }
     setHidden(navButton,!cap.manageStudents);
 
@@ -228,29 +208,21 @@
     if(!section || !capabilities().manageStudents) return;
     const linked=linkedStudents();
     const pending=pendingStudents();
-    const notLinked=state.students.filter(student => !["linked","pending"].includes(student.linkStatus));
     setTextSafe("#familyStudentNavCount",state.students.length);
 
     section.innerHTML=`
       <div class="family-student-hero">
-        <div>
-          <div class="family-access-kicker">FAMILY · STUDENT ACCESS</div>
-          <h1>Students</h1>
-          <p>Add the student you support, then connect that profile to the student's verified AIFT Student ID. Scholarship applications use the linked AIFT Student account so the correct student, school eligibility and application history stay connected.</p>
-        </div>
+        <div><div class="family-access-kicker">FAMILY · STUDENT ACCESS</div><h1>Students</h1><p>Add a student you support, then connect that profile to the student's verified AIFT Student ID. The Student must approve the connection before Family access becomes active.</p></div>
         <div class="family-actions"><button class="family-button primary" type="button" data-add-child>Add Student</button></div>
       </div>
-
       <div class="family-student-summary">
-        <div><span>Students</span><strong>${state.students.length}</strong><small>Family-managed student profiles</small></div>
+        <div><span>Students</span><strong>${state.students.length}</strong><small>Students managed from this Family workspace</small></div>
         <div><span>Connected</span><strong>${linked.length}</strong><small>Verified AIFT Student connections</small></div>
         <div><span>Pending</span><strong>${pending.length}</strong><small>Waiting for Student approval</small></div>
       </div>
-
-      <div class="family-apply-guide"><strong>Scholarship process:</strong> Add Student → connect the Student's AIFT ID → Student accepts the connection → choose a scholarship → <strong>Apply for Student</strong> → select the linked Student and submit the application.</div>
-
+      <div class="family-apply-guide"><strong>Connection process:</strong> Add Student → enter the Student's AIFT ID → choose your relationship → Student accepts or declines → the connection status updates automatically.</div>
       <section class="family-student-panel">
-        <div class="family-student-panel-head"><div><h2>Your Students</h2><p>Only linked students can be selected in a Family scholarship application.</p></div><button class="family-small-button" type="button" data-page-link="scholarships">Find Scholarships</button></div>
+        <div class="family-student-panel-head"><div><h2>Your Students</h2><p>Only approved AIFT Student connections are shown as linked.</p></div>${state.role==="family"?'<button class="family-small-button" type="button" data-page-link="scholarships">Find Scholarships</button>':''}</div>
         <div class="family-student-list">
           ${state.students.length ? state.students.map(student=>{
             const linkedStudent=student.linkedStudentId || {};
@@ -259,59 +231,29 @@
             const name=studentName(student);
             const image=student.profileImage || linkedStudent.profileImage || "";
             const level=student.grade || student.educationLevel || linkedStudent.course || "Student profile";
-            const connection=isLinked
-              ? `Connected to ${linkedStudent.name || "verified AIFT Student"}${linkedStudent.email?` · ${linkedStudent.email}`:""}`
-              : isPending ? "Connection request sent — waiting for Student approval" : "Not connected to an AIFT Student account yet";
-            return `<article class="family-student-row">
-              <div class="family-student-main">
-                <div class="family-student-avatar">${image?`<img src="${esc(image)}" alt="${esc(name)}">`:esc(name.split(/\s+/).map(x=>x[0]).join("").slice(0,2).toUpperCase())}</div>
-                <div class="family-student-copy"><strong>${esc(name)}</strong><span>${esc(level)}</span><span>${esc(connection)}</span><span class="family-student-state ${isLinked?"linked":""}">${isLinked?"AIFT Student Linked":isPending?"Approval Pending":"Connection Required"}</span></div>
-              </div>
-              <div class="family-student-actions">
-                <button class="family-small-button" type="button" data-edit-child="${esc(student._id)}">Edit</button>
-                ${isLinked
-                  ? `<button class="family-small-button primary" type="button" data-page-link="scholarships">Apply for Scholarship</button><button class="family-small-button" type="button" data-unlink-child="${esc(student._id)}">Unlink</button>`
-                  : isPending
-                    ? `<button class="family-small-button" type="button" disabled>Waiting for Student</button>`
-                    : `<button class="family-small-button primary" type="button" data-link-child="${esc(student._id)}">Connect AIFT Student</button>`}
-              </div>
-            </article>`;
-          }).join("") : `<div class="family-student-empty"><strong>No students added yet</strong>Add the student you support, then connect the profile using the Student's AIFT ID before applying for scholarships.<div style="margin-top:12px"><button class="family-button primary" type="button" data-add-child>Add Your First Student</button></div></div>`}
+            const connection=isLinked?`Connected to ${linkedStudent.name || "verified AIFT Student"}`:isPending?"Connection request sent — waiting for Student approval":"Not connected to an AIFT Student account yet";
+            return `<article class="family-student-row"><div class="family-student-main"><div class="family-student-avatar">${image?`<img src="${esc(image)}" alt="${esc(name)}">`:esc(name.split(/\s+/).map(x=>x[0]).join("").slice(0,2).toUpperCase())}</div><div class="family-student-copy"><strong>${esc(name)}</strong><span>${esc(level)}</span><span>${esc(connection)}</span><span class="family-student-state ${isLinked?"linked":""}">${isLinked?"AIFT Student Linked":isPending?"Approval Pending":"Connection Required"}</span></div></div><div class="family-student-actions"><button class="family-small-button" type="button" data-edit-child="${esc(student._id)}">Edit</button>${isLinked?(state.role==="family"?`<button class="family-small-button primary" type="button" data-page-link="scholarships">Apply for Scholarship</button>`:"")+`<button class="family-small-button" type="button" data-unlink-child="${esc(student._id)}">Unlink</button>`:isPending?'<button class="family-small-button" type="button" disabled>Waiting for Student</button>':`<button class="family-small-button primary" type="button" data-link-child="${esc(student._id)}">Connect AIFT Student</button>`}</div></article>`;
+          }).join("") : `<div class="family-student-empty"><strong>No students added yet</strong>Add the student you support, then connect the profile using the Student's AIFT ID.<div style="margin-top:12px"><button class="family-button primary" type="button" data-add-child>Add Your First Student</button></div></div>`}
         </div>
       </section>`;
-
     dynamicNodes(section);
   }
 
-  function setTextSafe(selector,value){
-    const el=$(selector);
-    if(el) el.textContent=String(value ?? "");
-  }
+  function setTextSafe(selector,value){const el=$(selector);if(el) el.textContent=String(value ?? "");}
 
   function ensureScholarshipFamilyGuide(){
     const page=$("#familyPage-scholarships");
     if(!page) return;
     let guide=$("#familyScholarshipStudentGuide");
-    if(state.role !== "family"){
-      guide?.remove();
-      return;
-    }
-    if(!guide){
-      guide=document.createElement("div");
-      guide.id="familyScholarshipStudentGuide";
-      guide.className="family-apply-guide";
-      page.querySelector(".family-page-head")?.insertAdjacentElement("afterend",guide);
-    }
+    if(state.role !== "family"){guide?.remove();return;}
+    if(!guide){guide=document.createElement("div");guide.id="familyScholarshipStudentGuide";guide.className="family-apply-guide";page.querySelector(".family-page-head")?.insertAdjacentElement("afterend",guide);}
     const linked=linkedStudents().length;
-    guide.innerHTML=linked
-      ? `<strong>${linked} linked Student${linked===1?"":"s"} ready.</strong> Choose a scholarship and click <strong>Apply for Student</strong>. The application form will ask which linked Student you are applying for.`
-      : `<strong>Add and connect a Student before applying.</strong> Scholarship discovery is available now, but an application needs a Student profile connected to a verified AIFT Student ID. <button class="family-small-button primary" type="button" data-page-link="students" style="margin-left:8px">Add / Connect Student</button>`;
+    guide.innerHTML=linked?`<strong>${linked} linked Student${linked===1?"":"s"} ready.</strong> Choose a scholarship and click <strong>Apply for Student</strong>.`:`<strong>Add and connect a Student before applying.</strong> <button class="family-small-button primary" type="button" data-page-link="students" style="margin-left:8px">Add / Connect Student</button>`;
   }
 
   function applyRoleUi(){
     const cap=capabilities();
     document.body.dataset.familyAccountRole=state.role || "member";
-
     const roleLabel=$(".family-account-role");
     if(roleLabel) roleLabel.textContent=state.role === "family" ? "Family Account" : `${title(state.role)} · Family & Investor`;
 
@@ -319,36 +261,27 @@
     setHidden(oldChildren,true);
     setHidden($("#familyPage-children"),!cap.manageStudents);
     setHidden($("#familyAddChild"),!cap.manageStudents);
-
     ensureStudentWorkspace();
     dynamicNodes(document);
 
     const overviewChildrenTitle=$("#familyPage-overview .family-card-head h2");
     if(overviewChildrenTitle && overviewChildrenTitle.textContent.trim()==="My Children") overviewChildrenTitle.textContent="Students";
     const overviewManage=$("#familyOverviewChildren")?.closest(".family-card")?.querySelector('[data-page-link="children"]');
-    if(overviewManage){
-      overviewManage.dataset.pageLink="students";
-      overviewManage.textContent="Manage Students";
-    }
+    if(overviewManage && cap.manageStudents){overviewManage.dataset.pageLink="students";overviewManage.textContent="Manage Students";}
+    else if(overviewManage) setHidden(overviewManage,true);
 
     const scholarshipPage=$("#familyPage-scholarships");
     scholarshipPage?.querySelectorAll('[data-page-link="requests"]').forEach(el=>setHidden(el,!cap.viewFamilyScholarshipApplications));
-
     const kindSelect=$("#familyRequestKind");
     const scholarshipOption=kindSelect?.querySelector('option[value="scholarship"]');
-    if(scholarshipOption){
-      scholarshipOption.disabled=!cap.viewFamilyScholarshipApplications;
-      setHidden(scholarshipOption,!cap.viewFamilyScholarshipApplications);
-    }
+    if(scholarshipOption){scholarshipOption.disabled=!cap.viewFamilyScholarshipApplications;setHidden(scholarshipOption,!cap.viewFamilyScholarshipApplications);}
     if(kindSelect && !cap.viewFamilyScholarshipApplications && kindSelect.value === "scholarship") kindSelect.value="";
 
     $$("button").forEach(button=>{
       const label=String(button.textContent||"").trim().toLowerCase();
       if(label === "apply for scholarship" && state.role !== "family") setHidden(button,true);
-      if(label === "apply for scholarship" && state.role === "family" && !button.hasAttribute("data-page-link")) button.textContent="Apply for Student";
-      if(label === "add child" && state.role === "family") button.textContent="Add Student";
+      if(label === "add child" && cap.manageStudents) button.textContent="Add Student";
     });
-
     ensureScholarshipRoleNote();
     ensureScholarshipFamilyGuide();
     ensureOverviewGuide();
@@ -358,17 +291,9 @@
     const page=$("#familyPage-scholarships");
     if(!page) return;
     let note=$("#familyScholarshipRoleNote");
-    if(state.role === "family"){
-      note?.remove();
-      return;
-    }
-    if(!note){
-      note=document.createElement("div");
-      note.id="familyScholarshipRoleNote";
-      note.className="family-role-note";
-      page.querySelector(".family-page-head")?.insertAdjacentElement("afterend",note);
-    }
-    note.innerHTML=`<strong>Scholarship discovery only in this workspace.</strong> You can browse and save scholarships here, but application controls are not shown for your ${esc(title(state.role))} role. Use the role-specific Career Hub or dashboard for actions assigned to that role.`;
+    if(state.role === "family"){note?.remove();return;}
+    if(!note){note=document.createElement("div");note.id="familyScholarshipRoleNote";note.className="family-role-note";page.querySelector(".family-page-head")?.insertAdjacentElement("afterend",note);}
+    note.innerHTML=`<strong>Scholarship discovery only in this workspace.</strong> Application controls are not shown for your ${esc(title(state.role))} role. Student management and scholarship application permissions are separate so each AIFT role keeps the correct workflow.`;
   }
 
   function ensureOverviewGuide(){
@@ -376,25 +301,17 @@
     const hero=overview?.querySelector(".family-hero");
     if(!overview || !hero) return;
     let guide=$("#familyRoleGuide");
-    if(!guide){
-      guide=document.createElement("section");
-      guide.id="familyRoleGuide";
-      guide.className="family-role-guide";
-      hero.insertAdjacentElement("afterend",guide);
-    }
+    if(!guide){guide=document.createElement("section");guide.id="familyRoleGuide";guide.className="family-role-guide";hero.insertAdjacentElement("afterend",guide);}
     renderGuide();
   }
 
   function currentNextStep(){
-    if(state.role === "family" && !state.students.length) return "Add a Student to start Family applications";
-    if(state.role === "family" && state.students.length && !linkedStudents().length) return "Connect a Student using their AIFT ID";
+    if(canManageStudents() && !state.students.length) return "Add a Student if you support one";
+    if(canManageStudents() && state.students.length && !linkedStudents().length) return "Connect the Student using their AIFT ID";
     const info=state.reviews.filter(item=>item.status === "information_requested").length;
     if(info) return `${info} AIFT review${info===1?" needs":"s need"} more information`;
     const activeRooms=state.rooms.filter(room=>room.status === "negotiation");
-    if(activeRooms.length){
-      const stages=[...new Set(activeRooms.map(room=>title(room.workflowStage||room.status)))];
-      return `Deal Room: ${stages.slice(0,2).join(", ")}`;
-    }
+    if(activeRooms.length) return `Deal Room: ${[...new Set(activeRooms.map(room=>title(room.workflowStage||room.status)))].slice(0,2).join(", ")}`;
     const open=state.reviews.filter(item=>!["approved","rejected","completed","cancelled","expired"].includes(item.status));
     if(open.length) return `${open.length} request${open.length===1?" is":"s are"} with AIFT review`;
     if(state.interested.length) return "Investment interests are being tracked";
@@ -410,70 +327,20 @@
     const activeRooms=state.rooms.filter(room=>room.status === "negotiation").length;
     const info=state.reviews.filter(item=>item.status === "information_requested").length;
     const interested=state.interested.length;
-
-    guide.innerHTML=`
-      <article class="family-access-card">
-        <div class="family-access-kicker">AIFT ROLE ACCESS · ${esc(title(state.role))}</div>
-        <h2>${esc(copy.title)}</h2>
-        <p>${esc(copy.text)}</p>
-        <div class="family-access-chips">
-          <span class="family-access-chip good">Scholarship discovery</span>
-          ${cap.applyScholarshipHere?'<span class="family-access-chip good">Apply for Student</span>':''}
-          ${cap.manageStudents?`<span class="family-access-chip good">${linkedStudents().length} linked Student${linkedStudents().length===1?"":"s"}</span>`:''}
-          <span class="family-access-chip good">Venture requests</span>
-          <span class="family-access-chip good">Investor Mode</span>
-        </div>
-        <div class="family-access-actions">
-          ${cap.manageStudents?'<button class="family-small-button" type="button" data-page-link="students">Manage Students</button>':''}
-          <button class="family-small-button primary" type="button" data-family-open-activity>Open AIFT Activity</button>
-          ${activeRooms?'<button class="family-small-button" type="button" data-family-open-rooms>View Deal Rooms</button>':''}
-        </div>
-      </article>
-      <article class="family-process-card">
-        <div class="family-process-head"><div><h3>How AIFT moves a request</h3><p>Only the stages that apply to a request are used.</p></div></div>
-        <div class="family-process-steps">
-          <div class="family-process-step"><b>1</b><strong>Student / Request</strong><span>${state.role==="family"?"Connect a Student, then submit an eligible application or request.":"Create an eligible request or interest."}</span></div>
-          <div class="family-process-step"><b>2</b><strong>AIFT Review</strong><span>AIFT checks sensitive actions before release.</span></div>
-          <div class="family-process-step"><b>3</b><strong>Other Party</strong><span>The receiving party responds when required.</span></div>
-          <div class="family-process-step"><b>4</b><strong>Deal Room</strong><span>Matched investments enter the controlled workspace.</span></div>
-          <div class="family-process-step"><b>5</b><strong>Final Result</strong><span>AIFT controls evidence, meetings and outcome.</span></div>
-        </div>
-        <div class="family-live-strip">
-          <div class="family-live-item"><span>Open reviews</span><strong>${openReviews}</strong><small>${info?`${info} need information`:"AIFT-controlled requests"}</small></div>
-          <div class="family-live-item"><span>Deal Rooms</span><strong>${activeRooms}</strong><small>Matched investment workspaces</small></div>
-          <div class="family-live-item"><span>${state.role==="family"?"Linked Students":"Investor interests"}</span><strong>${state.role==="family"?linkedStudents().length:interested}</strong><small>${state.role==="family"?"Ready for Family applications":"Submitted from Investor Mode"}</small></div>
-          <div class="family-live-item"><span>Next step</span><strong style="font-size:9px;line-height:1.35">${esc(currentNextStep())}</strong><small>Updates automatically</small></div>
-        </div>
-      </article>`;
+    guide.innerHTML=`<article class="family-access-card"><div class="family-access-kicker">AIFT ROLE ACCESS · ${esc(title(state.role))}</div><h2>${esc(copy.title)}</h2><p>${esc(copy.text)}</p><div class="family-access-chips"><span class="family-access-chip good">Scholarship discovery</span>${cap.applyScholarshipHere?'<span class="family-access-chip good">Apply for Student</span>':''}${cap.manageStudents?`<span class="family-access-chip good">${linkedStudents().length} linked Student${linkedStudents().length===1?"":"s"}</span>`:''}<span class="family-access-chip good">Venture requests</span><span class="family-access-chip good">Investor Mode</span></div><div class="family-access-actions">${cap.manageStudents?'<button class="family-small-button" type="button" data-page-link="students">Manage Students</button>':''}<button class="family-small-button primary" type="button" data-family-open-activity>Open AIFT Activity</button>${activeRooms?'<button class="family-small-button" type="button" data-family-open-rooms>View Deal Rooms</button>':''}</div></article><article class="family-process-card"><div class="family-process-head"><div><h3>How AIFT moves a request</h3><p>Only the stages that apply to a request are used.</p></div></div><div class="family-process-steps"><div class="family-process-step"><b>1</b><strong>Student / Request</strong><span>${cap.manageStudents?"Manage supported Students or create an eligible request.":"Create an eligible request or interest."}</span></div><div class="family-process-step"><b>2</b><strong>AIFT Review</strong><span>AIFT checks sensitive actions before release.</span></div><div class="family-process-step"><b>3</b><strong>Other Party</strong><span>The receiving party responds when required.</span></div><div class="family-process-step"><b>4</b><strong>Deal Room</strong><span>Matched investments enter the controlled workspace.</span></div><div class="family-process-step"><b>5</b><strong>Final Result</strong><span>AIFT controls evidence, meetings and outcome.</span></div></div><div class="family-live-strip"><div class="family-live-item"><span>Open reviews</span><strong>${openReviews}</strong><small>${info?`${info} need information`:"AIFT-controlled requests"}</small></div><div class="family-live-item"><span>Deal Rooms</span><strong>${activeRooms}</strong><small>Matched investment workspaces</small></div><div class="family-live-item"><span>${cap.manageStudents?"Linked Students":"Investor interests"}</span><strong>${cap.manageStudents?linkedStudents().length:interested}</strong><small>${cap.manageStudents?"Approved Student connections":"Submitted from Investor Mode"}</small></div><div class="family-live-item"><span>Next step</span><strong style="font-size:9px;line-height:1.35">${esc(currentNextStep())}</strong><small>Updates automatically</small></div></div></article>`;
   }
 
   async function loadProfile(){
-    try{
-      const data=await api("/api/family/profile");
-      state.profile=data;
-      state.role=String(data?.user?.role || state.role || "member").toLowerCase();
-      applyRoleUi();
-    }catch(error){
-      console.warn("Family role access profile could not load",error);
-      applyRoleUi();
-    }
+    try{const data=await api("/api/family/profile");state.profile=data;state.role=String(data?.user?.role || state.role || "member").toLowerCase();applyRoleUi();}
+    catch(error){console.warn("Family role access profile could not load",error);applyRoleUi();}
   }
 
   async function loadStudents(){
-    if(state.role !== "family"){
-      state.students=[];
-      state.links=[];
-      return;
-    }
-    const [children,links]=await Promise.all([
-      api("/api/family/children").catch(()=>({children:[]})),
-      api("/api/family-student-links/family").catch(()=>({requests:[]}))
-    ]);
+    if(!canManageStudents()){state.students=[];state.links=[];return;}
+    const [children,links]=await Promise.all([api("/api/family/children").catch(()=>({children:[]})),api("/api/family-student-links/family").catch(()=>({requests:[]}))]);
     state.students=Array.isArray(children?.children)?children.children:[];
     state.links=Array.isArray(links?.requests)?links.requests:[];
-    renderStudentWorkspace();
-    ensureScholarshipFamilyGuide();
-    dynamicNodes(document);
+    renderStudentWorkspace();ensureScholarshipFamilyGuide();dynamicNodes(document);
   }
 
   async function refreshLive(){
@@ -481,105 +348,36 @@
     state.refreshing=true;
     try{
       const investorEnabled=state.profile?.familyProfile?.investorEnabled === true;
-      const [reviews,rooms,interested]=await Promise.all([
-        api("/api/review-cases/mine").catch(()=>({cases:[]})),
-        api("/api/deal-rooms/mine").catch(()=>({rooms:[]})),
-        investorEnabled ? api("/api/ventures/investor/interested").catch(()=>({ventures:[]})) : Promise.resolve({ventures:[]})
-      ]);
-      state.reviews=Array.isArray(reviews?.cases)?reviews.cases:[];
-      state.rooms=Array.isArray(rooms?.rooms)?rooms.rooms:[];
-      state.interested=Array.isArray(interested?.ventures)?interested.ventures:[];
-      await loadStudents();
-      renderGuide();
-    }finally{
-      state.refreshing=false;
-    }
+      const [reviews,rooms,interested]=await Promise.all([api("/api/review-cases/mine").catch(()=>({cases:[]})),api("/api/deal-rooms/mine").catch(()=>({rooms:[]})),investorEnabled?api("/api/ventures/investor/interested").catch(()=>({ventures:[]})):Promise.resolve({ventures:[]})]);
+      state.reviews=Array.isArray(reviews?.cases)?reviews.cases:[];state.rooms=Array.isArray(rooms?.rooms)?rooms.rooms:[];state.interested=Array.isArray(interested?.ventures)?interested.ventures:[];
+      await loadStudents();renderGuide();
+    }finally{state.refreshing=false;}
   }
 
-  function openActivity(tab="reviews"){
-    const button=$("#aiftMyReviewButton");
-    if(button){
-      button.click();
-      setTimeout(()=>{
-        $(`[data-aift-activity-tab="${tab}"]`)?.click();
-      },40);
-    }
-  }
-
-  function openStudents(){
-    const button=$("#familyStudentsNav");
-    if(button){
-      button.click();
-      return;
-    }
-    $("[data-page='children']")?.click();
-  }
+  function openActivity(tab="reviews"){const button=$("#aiftMyReviewButton");if(button){button.click();setTimeout(()=>{$(`[data-aift-activity-tab="${tab}"]`)?.click();},40);}}
+  function openStudents(){const button=$("#familyStudentsNav");if(button){button.click();return;}$("[data-page='children']")?.click();}
 
   function bind(){
     document.addEventListener("click",event=>{
-      if(event.target.closest("[data-family-open-activity]")){
-        openActivity("reviews");
-        return;
-      }
-      if(event.target.closest("[data-family-open-rooms]")){
-        openActivity("rooms");
-        return;
-      }
-
+      if(event.target.closest("[data-family-open-activity]")){openActivity("reviews");return;}
+      if(event.target.closest("[data-family-open-rooms]")){openActivity("rooms");return;}
       const studentNav=event.target.closest('[data-page="students"],[data-page-link="students"]');
-      if(studentNav && state.role === "family"){
-        setTimeout(()=>renderStudentWorkspace(),0);
-      }
-
+      if(studentNav && canManageStudents()) setTimeout(()=>renderStudentWorkspace(),0);
       const scholarshipAction=event.target.closest("[data-family-scholarship-student-action]");
-      if(scholarshipAction && state.role === "family" && !linkedStudents().length){
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        openStudents();
-        return;
-      }
-
+      if(scholarshipAction && state.role === "family" && !linkedStudents().length){event.preventDefault();event.stopImmediatePropagation();openStudents();return;}
       const forbiddenApply=event.target.closest("[data-apply-scholarship]");
-      if(forbiddenApply && !capabilities().applyScholarshipHere){
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        return;
-      }
-
+      if(forbiddenApply && !capabilities().applyScholarshipHere){event.preventDefault();event.stopImmediatePropagation();return;}
       const forbiddenStudent=event.target.closest("[data-add-child],[data-edit-child],[data-link-child],[data-unlink-child],[data-archive-child]");
-      if(forbiddenStudent && !capabilities().manageStudents){
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
+      if(forbiddenStudent && !capabilities().manageStudents){event.preventDefault();event.stopImmediatePropagation();}
     },true);
-
     window.addEventListener("aift:activity-updated",()=>refreshLive());
     window.addEventListener("focus",()=>refreshLive(),{passive:true});
     document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshLive();});
   }
 
-  function observe(){
-    state.observer=new MutationObserver(mutations=>{
-      for(const mutation of mutations){
-        for(const node of mutation.addedNodes){
-          if(node.nodeType === 1) dynamicNodes(node);
-        }
-      }
-    });
-    state.observer.observe(document.body,{childList:true,subtree:true});
-  }
+  function observe(){state.observer=new MutationObserver(mutations=>{for(const mutation of mutations){for(const node of mutation.addedNodes){if(node.nodeType===1)dynamicNodes(node);}}});state.observer.observe(document.body,{childList:true,subtree:true});}
 
-  async function init(){
-    ensureStyle();
-    bind();
-    applyRoleUi();
-    observe();
-    await loadProfile();
-    await loadStudents();
-    await refreshLive();
-    window.setInterval(()=>{if(!document.hidden)refreshLive();},15000);
-  }
-
+  async function init(){ensureStyle();bind();applyRoleUi();observe();await loadProfile();await loadStudents();await refreshLive();window.setInterval(()=>{if(!document.hidden)refreshLive();},15000);}
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded",init,{once:true});
   else init();
 })();
