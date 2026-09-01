@@ -1,0 +1,204 @@
+name: AIFT Career Hub one-time cleanup
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/aift-career-cleanup.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Clean Student Career Hub controller
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path('student.js')
+          text = path.read_text(encoding='utf-8')
+          original = text
+
+          # 1. Make the focused-category state own request sequencing.
+          old_state = '''const studentCareerFocusState = {
+            active:"",
+            items:[],
+            filtered:[],
+            loading:false,
+            ventureMine:[],
+            ventureMode:"all"
+          };'''
+          new_state = '''const studentCareerFocusState = {
+            active:"",
+            items:[],
+            filtered:[],
+            loading:false,
+            requestId:0,
+            ventureMine:[],
+            ventureMode:"all"
+          };'''
+          if old_state not in text:
+              raise SystemExit('Career focus state block not found; refusing unsafe patch.')
+          text = text.replace(old_state, new_state, 1)
+
+          # 2. Replace the category opener with a race-safe single-source implementation.
+          start = text.index('async function openStudentCareerFocus(category){')
+          end = text.index('\n/* =========================================================\n   CAREER HUB ACTIONS', start)
+          old_open = text[start:end]
+          new_open = '''async function openStudentCareerFocus(category){
+            const config = STUDENT_CAREER_FOCUS_CONFIG[category];
+            const panel = $("studentCareerFocusPanel");
+            const main = document.querySelector("#section-career .student-career-main");
+            if (!config || !panel || !main) return;
+
+            const requestId = ++studentCareerFocusState.requestId;
+
+            studentCareerFocusState.active = category;
+            studentCareerFocusState.loading = true;
+            studentCareerFocusState.items = [];
+            studentCareerFocusState.filtered = [];
+            studentCareerFocusState.ventureMine = [];
+            studentCareerFocusState.ventureMode = "all";
+
+            main.querySelectorAll(":scope > .student-career-card").forEach(card => {
+              card.hidden = true;
+            });
+
+            panel.hidden = false;
+            updateStudentCareerFocusSelection(category);
+            setText("studentCareerFocusTitle", config.title);
+            setText("studentCareerFocusDescription", config.description);
+            setText("studentCareerFocusResultCount", "Loading...");
+
+            const search = $("studentCareerFocusSearch");
+            if (search){
+              search.value = "";
+              search.placeholder = config.search;
+            }
+
+            const results = $("studentCareerFocusResults");
+            if (results){
+              results.innerHTML = `<div class="student-career-focus-empty"><span><i class="fa-solid fa-circle-notch fa-spin"></i></span><strong>Loading ${escapeHtml(config.title.toLowerCase())}...</strong></div>`;
+            }
+
+            panel.scrollIntoView({behavior:"smooth",block:"start"});
+
+            try{
+              let items = [];
+              let ventureMine = [];
+
+              if (category === "ventures"){
+                const [publicVentures, mineResponse] = await Promise.all([
+                  loadStudentCareerFocusCategory(category),
+                  apiGet("/api/ventures/mine").catch(() => [])
+                ]);
+                items = publicVentures;
+                ventureMine = getStudentCareerFocusArray(mineResponse,["ventures"]);
+              }else{
+                items = await loadStudentCareerFocusCategory(category);
+              }
+
+              if (
+                requestId !== studentCareerFocusState.requestId ||
+                category !== studentCareerFocusState.active
+              ){
+                return;
+              }
+
+              studentCareerFocusState.items = Array.isArray(items) ? items : [];
+              studentCareerFocusState.filtered = [...studentCareerFocusState.items];
+              studentCareerFocusState.ventureMine = category === "ventures" ? ventureMine : [];
+
+              renderStudentCareerFocusResults(studentCareerFocusState.items);
+            }catch(error){
+              if (
+                requestId !== studentCareerFocusState.requestId ||
+                category !== studentCareerFocusState.active
+              ){
+                return;
+              }
+
+              console.error("Career Hub focused category load failed:", error);
+              studentCareerFocusState.items = [];
+              studentCareerFocusState.filtered = [];
+              studentCareerFocusState.ventureMine = [];
+
+              if (results){
+                results.innerHTML = `<div class="student-career-focus-empty error"><span><i class="fa-solid fa-triangle-exclamation"></i></span><strong>${escapeHtml(error?.message || "This category could not be loaded.")}</strong><p>Use Refresh to try again.</p></div>`;
+              }
+              setText("studentCareerFocusResultCount", "Unable to load");
+            }finally{
+              if (
+                requestId === studentCareerFocusState.requestId &&
+                category === studentCareerFocusState.active
+              ){
+                studentCareerFocusState.loading = false;
+              }
+            }
+          }
+          '''
+          text = text[:start] + new_open + text[end:]
+
+          # 3. Remove unreachable legacy category cases. Focus categories return before the switch.
+          legacy_start = text.index('    /* =========================================\n       INTERNSHIPS', text.index('function handleStudentCareerAction('))
+          legacy_end = text.index('    /* =========================================\n       APPLICATIONS', legacy_start)
+          text = text[:legacy_start] + text[legacy_end:]
+
+          # 4. Remove the duplicate document-level Venture click controller.
+          duplicate_pattern = re.compile(
+              r'function bindStudentCareerVentureToolDelegation\(\)\{.*?\n\}\n\nbindStudentCareerVentureToolDelegation\(\);\n',
+              re.S
+          )
+          text, count = duplicate_pattern.subn('', text, count=1)
+          if count != 1:
+              raise SystemExit('Duplicate Venture delegation block not found exactly once; refusing unsafe patch.')
+
+          # 5. Make the remaining workspace Venture handler use the one canonical mode function.
+          old_handler = '''      const ventureToolButton = event.target.closest("[data-career-venture-tool]");
+                if (ventureToolButton && workspace.contains(ventureToolButton)){
+                  event.preventDefault();
+                  const mode = String(ventureToolButton.dataset.careerVentureTool || "all");
+                  studentCareerFocusState.ventureMode = mode;
+                  const filteredVentures = filterStudentCareerVenturesByMode(mode);
+                  studentCareerFocusState.filtered = [...filteredVentures];
+                  renderStudentCareerFocusResults(filteredVentures);
+                  return;
+                }'''
+          new_handler = '''      const ventureToolButton = event.target.closest("[data-career-venture-tool]");
+                if (ventureToolButton && workspace.contains(ventureToolButton)){
+                  event.preventDefault();
+                  applyStudentCareerVentureMode(
+                    String(ventureToolButton.dataset.careerVentureTool || "all")
+                  );
+                  return;
+                }'''
+          if old_handler not in text:
+              raise SystemExit('Workspace Venture handler not found; refusing unsafe patch.')
+          text = text.replace(old_handler, new_handler, 1)
+
+          if text == original:
+              raise SystemExit('No changes produced.')
+
+          path.write_text(text, encoding='utf-8')
+
+      - name: Validate JavaScript syntax
+        run: node --check student.js
+
+      - name: Remove one-time workflow and commit cleanup
+        run: |
+          rm -f .github/workflows/aift-career-cleanup.yml
+          git config user.name "AIFT Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add student.js .github/workflows/aift-career-cleanup.yml
+          git diff --cached --check
+          git commit -m "fix: clean Student Career Hub category controller"
+          git push origin main
