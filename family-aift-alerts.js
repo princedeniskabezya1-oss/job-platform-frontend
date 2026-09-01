@@ -53,6 +53,20 @@
       message:"This submitted investment interest will be removed from Investor Mode and its AIFT review will be marked Cancelled. This cannot be undone.",
       confirmLabel:"Delete Interest",
       tone:"danger"
+    },
+    {
+      selector:'[data-venture-interest-action="accepted"]',
+      title:"Accept Investor Introduction?",
+      message:"This confirms that you want to continue with this AIFT-approved investor introduction. If the required review stage is complete, the workflow can move toward matching and a controlled Deal Room.",
+      confirmLabel:"Accept Introduction",
+      tone:"warning"
+    },
+    {
+      selector:'[data-venture-interest-action="declined"]',
+      title:"Decline Investor Introduction?",
+      message:"This will decline the investor introduction and close this path for the current request. The decision will remain in AIFT Activity history.",
+      confirmLabel:"Decline Introduction",
+      tone:"danger"
     }
   ];
 
@@ -62,15 +76,6 @@
     previousFocus:null,
     bypassElement:null
   };
-
-  function esc(value){
-    return String(value??"")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
 
   function ensureStyle(){
     if(document.getElementById("aiftFamilyDialogStyle")) return;
@@ -158,7 +163,7 @@
     const dialog=document.getElementById("aiftFamilyDialog");
     dialog.className=`aift-family-dialog ${tone}`.trim();
     const icon=document.getElementById("aiftFamilyDialogIcon");
-    if(icon) icon.textContent=tone==="info"?"i":tone==="danger"?"!":"!";
+    if(icon) icon.textContent=tone==="info"?"i":"!";
     const cancel=document.getElementById("aiftFamilyDialogCancel");
     const confirm=document.getElementById("aiftFamilyDialogConfirm");
     cancel.textContent=String(cancelLabel);
