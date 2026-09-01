@@ -6,6 +6,13 @@
   let cachedPassport=null;
   let loadingPromise=null;
 
+  /* student.html is a first-class Career Hub surface. This flag is read by
+     the shared AIFT Activity script so Student review cases and status
+     updates appear here without creating another polling implementation. */
+  if(String(location.pathname.split("/").pop()||"").toLowerCase()==="student.html" && document.body){
+    document.body.dataset.aiftArea="career-hub";
+  }
+
   const token=()=>tokenKeys.map(key=>localStorage.getItem(key)||sessionStorage.getItem(key)).find(Boolean)||"";
   const esc=value=>String(value??"")
     .replace(/&/g,"&amp;")
