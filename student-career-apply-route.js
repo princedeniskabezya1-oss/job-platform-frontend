@@ -6,13 +6,6 @@
 
   const API=window.API_BASE||"https://backend-1-9b6f.onrender.com";
 
-  /*
-    Career Hub V2 adds Projects and Graduate Programs on top of the
-    six legacy Career Hub categories. The legacy Student Career Hub
-    can re-render its category grid after its async data load, which
-    replaces those two V2 cards. Keep the V2 categories present after
-    any such re-render without changing the legacy six-card renderer.
-  */
   const EXTRA_CATEGORIES=[
     {
       action:"projects",
@@ -43,8 +36,11 @@
 
   let categoryFrame=0;
   let countTimer=0;
+  let passportTimer=0;
   let countsLoading=false;
   let countsQueued=false;
+  let passportLoading=false;
+  let passportSnapshot=null;
 
   function token(){
     for(const key of ["studentToken","talentToken","token"]){
@@ -71,12 +67,19 @@
     return [];
   }
 
+  function esc(value){
+    return String(value??"")
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;")
+      .replace(/'/g,"&#039;");
+  }
+
   async function api(path){
     const response=await fetch(API+path,{
       cache:"no-store",
-      headers:{
-        Authorization:`Bearer ${token()}`
-      }
+      headers:{Authorization:`Bearer ${token()}`}
     });
 
     const data=await response.json().catch(()=>({}));
@@ -114,6 +117,20 @@
         min-height:138px;
       }
 
+      #section-career .student-career-category-card:focus,
+      #section-career .student-career-category-card:focus-visible,
+      #section-career .student-career-category-card.career-focus-selected{
+        outline:none!important;
+        box-shadow:none!important;
+      }
+
+      #section-career .student-career-category-card.career-focus-selected::before,
+      #section-career .student-career-category-card.career-focus-selected::after,
+      #section-career .student-career-category-card.career-focus-selected .student-career-category-icon{
+        outline:none!important;
+        box-shadow:none!important;
+      }
+
       #section-career .student-career-category-copy{
         min-width:0;
       }
@@ -121,6 +138,50 @@
       #section-career .student-career-category-copy strong,
       #section-career .student-career-category-copy small{
         overflow-wrap:anywhere;
+      }
+
+      #section-career #studentCareerPassportQuick.aift-career-passport-stable{
+        margin-top:10px;
+        padding:10px 11px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        border:1px solid #d9e6f6;
+        border-radius:10px;
+        background:#f7fbff;
+      }
+
+      #section-career #studentCareerPassportQuick.aift-career-passport-stable div{
+        min-width:0;
+      }
+
+      #section-career #studentCareerPassportQuick.aift-career-passport-stable span{
+        display:block;
+        color:#1a73e8;
+        font-size:7px;
+        font-weight:850;
+        letter-spacing:.04em;
+      }
+
+      #section-career #studentCareerPassportQuick.aift-career-passport-stable strong{
+        display:block;
+        margin-top:2px;
+        color:#344054;
+        font-size:9px;
+      }
+
+      #section-career #studentCareerPassportQuick.aift-career-passport-stable button{
+        min-height:34px;
+        padding:0 11px;
+        flex:0 0 auto;
+        border:1px solid #bfd7f5;
+        border-radius:9px;
+        background:#eef6ff;
+        color:#1765cc;
+        font-size:8px;
+        font-weight:800;
+        cursor:pointer;
       }
 
       @media(min-width:1201px){
@@ -185,6 +246,12 @@
     }
 
     return added;
+  }
+
+  function clearCategorySelectionRing(){
+    document
+      .querySelectorAll("#section-career .student-career-category-card.career-focus-selected")
+      .forEach(card=>card.classList.remove("career-focus-selected"));
   }
 
   function setCategoryCount(action,value){
@@ -317,6 +384,90 @@
     }
   }
 
+  async function getPassportSnapshot(){
+    const passportApi=window.AIFTStudentPassport;
+
+    if(passportApi?.get){
+      const current=passportApi.get();
+      if(current) return current;
+    }
+
+    if(passportApi?.load){
+      try{
+        return await passportApi.load();
+      }catch{}
+    }
+
+    if(passportSnapshot) return passportSnapshot;
+
+    const [meResult,identityResult]=await Promise.allSettled([
+      api("/api/users/me"),
+      api("/api/student-identity/me")
+    ]);
+
+    const meData=meResult.status==="fulfilled"?meResult.value||{}:{};
+    const user=meData.user||meData.data||meData||{};
+    const identityData=identityResult.status==="fulfilled"?identityResult.value||{}:{};
+    const identity=identityData?.verified===true?identityData.identity:null;
+
+    passportSnapshot={
+      user,
+      identity,
+      verified:Boolean(identity),
+      identityMessage:identityData?.message||""
+    };
+
+    return passportSnapshot;
+  }
+
+  async function ensureCareerPassportQuick(){
+    const readiness=document.querySelector("#section-career .student-career-readiness-card");
+    if(!readiness) return false;
+
+    const existing=document.getElementById("studentCareerPassportQuick");
+    if(existing) return true;
+
+    if(passportLoading) return false;
+    passportLoading=true;
+
+    try{
+      const passport=await getPassportSnapshot();
+
+      if(document.getElementById("studentCareerPassportQuick")) return true;
+
+      const currentReadiness=document.querySelector("#section-career .student-career-readiness-card");
+      if(!currentReadiness) return false;
+
+      const verified=passport?.verified===true&&Boolean(passport?.identity?.aiftStudentId);
+      const passportStudentId=passport?.identity?.aiftStudentId||"";
+
+      const block=document.createElement("div");
+      block.id="studentCareerPassportQuick";
+      block.className="scv2-quick-passport aift-career-passport-stable";
+      block.innerHTML=`
+        <div>
+          <span>AIFT OPPORTUNITY PASSPORT</span>
+          <strong>${
+            verified
+              ? `${esc(passportStudentId)} · Ready for applications`
+              : "Set up your verified career identity"
+          }</strong>
+        </div>
+        <button type="button" data-aift-career-passport-open>
+          ${verified?"View":"Set up"}
+        </button>
+      `;
+
+      currentReadiness.appendChild(block);
+      return true;
+    }catch(error){
+      console.warn("Career Hub Passport could not be restored:",error);
+      return false;
+    }finally{
+      passportLoading=false;
+    }
+  }
+
   function scheduleCareerCounts(delay=250){
     clearTimeout(countTimer);
     countTimer=setTimeout(()=>{
@@ -326,14 +477,23 @@
     },delay);
   }
 
+  function scheduleCareerPassport(delay=80){
+    clearTimeout(passportTimer);
+    passportTimer=setTimeout(()=>{
+      ensureCareerPassportQuick().catch(()=>{});
+    },delay);
+  }
+
   function scheduleCareerCategories(){
     if(categoryFrame) cancelAnimationFrame(categoryFrame);
     categoryFrame=requestAnimationFrame(()=>{
       categoryFrame=0;
       const added=ensureCareerCategories();
+      clearCategorySelectionRing();
       if(added){
         scheduleCareerCounts(80);
       }
+      scheduleCareerPassport(80);
     });
   }
 
@@ -341,12 +501,14 @@
     ensureCareerLayoutStyle();
     scheduleCareerCategories();
     scheduleCareerCounts(120);
+    scheduleCareerPassport(160);
 
     const careerSection=document.getElementById("section-career");
     if(!careerSection) return;
 
     const observer=new MutationObserver(()=>{
       scheduleCareerCategories();
+      scheduleCareerPassport(80);
     });
 
     observer.observe(careerSection,{
@@ -358,15 +520,36 @@
       if(String(event?.detail?.page||"")==="career"){
         scheduleCareerCategories();
         scheduleCareerCounts(120);
+        scheduleCareerPassport(120);
       }
     });
 
     window.addEventListener("aift:activity-updated",()=>{
       scheduleCareerCounts(180);
+      scheduleCareerPassport(120);
     });
   }
 
   document.addEventListener("click",event=>{
+    const categoryButton=event.target.closest("#section-career .student-career-category-card");
+    if(categoryButton){
+      requestAnimationFrame(()=>{
+        clearCategorySelectionRing();
+        categoryButton.blur?.();
+      });
+    }
+
+    const passportButton=event.target.closest("[data-aift-career-passport-open]");
+    if(passportButton){
+      event.preventDefault();
+      if(window.AIFTStudentPassport?.open){
+        window.AIFTStudentPassport.open().catch(()=>{});
+      }else if(window.openStudentStudioPage){
+        window.openStudentStudioPage("portfolio");
+      }
+      return;
+    }
+
     const button=event.target.closest("[data-scv2-apply]");
     if(!button) return;
 
