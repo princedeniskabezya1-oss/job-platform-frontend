@@ -17,8 +17,7 @@
 
   function profileId(){
     const query=new URLSearchParams(location.search);
-    if(IS_SCHOOL)return String(window.schoolId||query.get("id")||query.get("schoolId")||query.get("userId")||"").trim();
-    return String(window.state?.companyId||query.get("id")||query.get("companyId")||query.get("employerId")||"").trim();
+    return String(query.get("id")||query.get(IS_SCHOOL?"schoolId":"companyId")||query.get(IS_SCHOOL?"userId":"employerId")||"").trim();
   }
 
   function ensureStyle(){
@@ -67,9 +66,7 @@
     const mount=document.getElementById("partnersList");
     if(!mount)return false;
     mount.innerHTML=state.items.length?state.items.map(card).join(""):`<div class="aift-vp-empty"><strong>No active verified partnerships yet.</strong>Only partnerships that completed AIFT verification and activation appear publicly.</div>`;
-    const count=document.getElementById("partnerCount");if(count)count.textContent=String(state.items.length);
-    const side=document.getElementById("sidePartnerCount");if(side)side.textContent=String(state.items.length);
-    if(window.state?.analytics)window.state.analytics.partners=state.items.length;
+    for(const name of ["partnerCount","sidePartnerCount"]){const node=document.getElementById(name);if(node)node.textContent=String(state.items.length);}
     return true;
   }
 
@@ -77,12 +74,7 @@
     const about=document.getElementById("tab-about");
     if(!about)return null;
     let section=document.getElementById("aiftVerifiedEmployerPartners");
-    if(!section){
-      section=document.createElement("article");
-      section.id="aiftVerifiedEmployerPartners";
-      section.className="content-card card aift-vp-section";
-      about.appendChild(section);
-    }
+    if(!section){section=document.createElement("article");section.id="aiftVerifiedEmployerPartners";section.className="content-card card aift-vp-section";about.appendChild(section);}
     return section;
   }
 
@@ -93,17 +85,21 @@
   }
 
   function render(){ensureStyle();return IS_SCHOOL?renderSchool():renderEmployer();}
-
   async function refresh(){await load();render();}
 
   document.addEventListener("click",event=>{const button=event.target.closest("[data-aift-vp-href]");if(!button)return;location.href=button.dataset.aiftVpHref;});
 
+  if(IS_SCHOOL&&typeof window.renderPartners==="function"){
+    window.renderPartners=function renderVerifiedPublicPartners(){renderSchool();};
+  }
+
   async function init(){
+    ensureStyle();
+    if(IS_SCHOOL&&typeof window.renderPartners==="function")window.renderPartners=function renderVerifiedPublicPartners(){renderSchool();};
     await load();
-    if(render())return;
-    const observer=new MutationObserver(()=>{if(render())observer.disconnect();});
-    observer.observe(document.body,{childList:true,subtree:true});
-    setTimeout(()=>observer.disconnect(),15000);
+    render();
+    setTimeout(render,500);
+    setTimeout(render,2000);
   }
 
   window.AIFTPublicVerifiedPartnerships={refresh};
