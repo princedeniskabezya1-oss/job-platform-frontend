@@ -43,6 +43,8 @@
       .replace(/\b\w/g,c=>c.toUpperCase());
   }
 
+  const originalFetch = window.fetch.bind(window);
+
   async function api(path){
     const response=await originalFetch(`${API}${path}`,{
       headers:{Authorization:`Bearer ${token()}`}
@@ -67,28 +69,21 @@
   }
 
   /*
-    family-production.js historically asks for /api/scholarship-applications
-    whenever My Requests opens. On this Family workspace that list is meaningful
-    only for an actual Family account. Other roles retain the backend security
-    boundary and receive an empty Family-workspace list instead of a noisy 403.
-    Detail/write endpoints are never intercepted.
+    Family My Requests historically loads scholarship applications for every role.
+    In this workspace those records are Family-owned applications only. Other roles
+    keep the backend security boundary and receive an empty Family-workspace list.
+    No detail or write endpoint is intercepted.
   */
-  const originalFetch = window.fetch.bind(window);
   window.fetch = function(input,init={}){
     try{
       const url=new URL(typeof input === "string" ? input : input?.url,location.href);
       const method=String(init?.method || (typeof input !== "string" ? input?.method : "GET") || "GET").toUpperCase();
-      const familyScholarshipList = url.pathname === "/api/scholarship-applications" && method === "GET";
-      if(familyScholarshipList && state.role !== "family"){
+      if(url.pathname === "/api/scholarship-applications" && method === "GET" && state.role !== "family"){
         return Promise.resolve(new Response(JSON.stringify({
           success:true,
           applications:[],
           items:[],
-          workspaceAccess:{
-            canManageHere:false,
-            role:state.role,
-            message:"Scholarship application management is not part of this role's Family workspace."
-          }
+          workspaceAccess:{canManageHere:false,role:state.role}
         }),{
           status:200,
           headers:{"Content-Type":"application/json"}
@@ -138,6 +133,13 @@
     else element.removeAttribute("aria-hidden");
   }
 
+  function dynamicNodes(root=document){
+    const cap=capabilities();
+    root.querySelectorAll?.('[data-apply-scholarship]').forEach(el=>setHidden(el,!cap.applyScholarshipHere));
+    root.querySelectorAll?.('[data-edit-scholarship-application],[data-delete-scholarship-application],[data-withdraw-scholarship-application],[data-view-scholarship-application]').forEach(el=>setHidden(el,!cap.viewFamilyScholarshipApplications));
+    root.querySelectorAll?.('[data-add-child],[data-edit-child],[data-link-child],[data-unlink-child],[data-archive-child]').forEach(el=>setHidden(el,!cap.manageChildren));
+  }
+
   function roleCopy(){
     const role=state.role;
     if(role === "family") return {
@@ -146,7 +148,7 @@
     };
     if(role === "employer") return {
       title:"Employer access in Family & Investor",
-      text:"You can discover and save education opportunities, manage your Ventures and use Investor Mode when enabled. Family-only child and scholarship application controls are intentionally hidden."
+      text:"Discover and save education opportunities, manage Ventures and use Investor Mode when enabled. Family-only child and scholarship application controls are intentionally hidden."
     };
     if(role === "school") return {
       title:"School access in Family & Investor",
@@ -154,7 +156,7 @@
     };
     if(role === "student" || role === "talent") return {
       title:`${title(role)} access in Family & Investor`,
-      text:"Use this area for discovery, Ventures and Investor Mode. Your own scholarship/application actions belong in your Career Hub experience, so Family-child application controls are not duplicated here."
+      text:"Use this area for discovery, Ventures and Investor Mode. Your own scholarship actions belong in your Career Hub experience, so Family-child application controls are not duplicated here."
     };
     return {
       title:`${title(role)} access in Family & Investor`,
@@ -172,17 +174,17 @@
     setHidden($("[data-page='children']"),!cap.manageChildren);
     setHidden($("#familyPage-children"),!cap.manageChildren);
     setHidden($("#familyAddChild"),!cap.manageChildren);
-    $$('[data-add-child]').forEach(el=>setHidden(el,!cap.manageChildren));
-
-    $$('[data-apply-scholarship]').forEach(el=>setHidden(el,!cap.applyScholarshipHere));
-    $$('[data-edit-scholarship-application],[data-delete-scholarship-application],[data-withdraw-scholarship-application],[data-view-scholarship-application]').forEach(el=>setHidden(el,!cap.viewFamilyScholarshipApplications));
+    dynamicNodes(document);
 
     const scholarshipPage=$("#familyPage-scholarships");
     scholarshipPage?.querySelectorAll('[data-page-link="requests"]').forEach(el=>setHidden(el,!cap.viewFamilyScholarshipApplications));
 
     const kindSelect=$("#familyRequestKind");
     const scholarshipOption=kindSelect?.querySelector('option[value="scholarship"]');
-    setHidden(scholarshipOption,!cap.viewFamilyScholarshipApplications);
+    if(scholarshipOption){
+      scholarshipOption.disabled=!cap.viewFamilyScholarshipApplications;
+      setHidden(scholarshipOption,!cap.viewFamilyScholarshipApplications);
+    }
     if(kindSelect && !cap.viewFamilyScholarshipApplications && kindSelect.value === "scholarship") kindSelect.value="";
 
     $$("button").forEach(button=>{
@@ -206,8 +208,7 @@
       note=document.createElement("div");
       note.id="familyScholarshipRoleNote";
       note.className="family-role-note";
-      const head=page.querySelector(".family-page-head");
-      head?.insertAdjacentElement("afterend",note);
+      page.querySelector(".family-page-head")?.insertAdjacentElement("afterend",note);
     }
     note.innerHTML=`<strong>Scholarship discovery only in this workspace.</strong> You can browse and save scholarships here, but application controls are not shown for your ${esc(title(state.role))} role. Use the role-specific Career Hub or dashboard for actions assigned to that role.`;
   }
@@ -268,13 +269,13 @@
         </div>
       </article>
       <article class="family-process-card">
-        <div class="family-process-head"><div><h3>How AIFT moves a request</h3><p>Only the stage that applies to your request is used.</p></div></div>
+        <div class="family-process-head"><div><h3>How AIFT moves a request</h3><p>Only the stages that apply to a request are used.</p></div></div>
         <div class="family-process-steps">
-          <div class="family-process-step"><b>1</b><strong>Submit</strong><span>You create an eligible request or interest.</span></div>
+          <div class="family-process-step"><b>1</b><strong>Submit</strong><span>Create an eligible request or interest.</span></div>
           <div class="family-process-step"><b>2</b><strong>AIFT Review</strong><span>AIFT checks sensitive actions before release.</span></div>
-          <div class="family-process-step"><b>3</b><strong>Other Party</strong><span>The receiving party accepts or declines when required.</span></div>
-          <div class="family-process-step"><b>4</b><strong>Deal Room</strong><span>Matched investment introductions enter the controlled workspace.</span></div>
-          <div class="family-process-step"><b>5</b><strong>Final Result</strong><span>AIFT controls documents, meetings and the official outcome.</span></div>
+          <div class="family-process-step"><b>3</b><strong>Other Party</strong><span>The receiving party responds when required.</span></div>
+          <div class="family-process-step"><b>4</b><strong>Deal Room</strong><span>Matched investments enter the controlled workspace.</span></div>
+          <div class="family-process-step"><b>5</b><strong>Final Result</strong><span>AIFT controls evidence, meetings and outcome.</span></div>
         </div>
         <div class="family-live-strip">
           <div class="family-live-item"><span>Open reviews</span><strong>${openReviews}</strong><small>${info?`${info} need information`:"AIFT-controlled requests"}</small></div>
@@ -321,8 +322,7 @@
     if(button){
       button.click();
       setTimeout(()=>{
-        const tabButton=$(`[data-aift-activity-tab="${tab}"]`);
-        tabButton?.click();
+        $(`[data-aift-activity-tab="${tab}"]`)?.click();
       },40);
     }
   }
@@ -351,16 +351,19 @@
       }
     },true);
 
-    window.addEventListener("aift:activity-updated",()=>{
-      refreshLive();
-      applyRoleUi();
-    });
+    window.addEventListener("aift:activity-updated",()=>refreshLive());
     window.addEventListener("focus",()=>refreshLive(),{passive:true});
     document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshLive();});
   }
 
   function observe(){
-    state.observer=new MutationObserver(()=>applyRoleUi());
+    state.observer=new MutationObserver(mutations=>{
+      for(const mutation of mutations){
+        for(const node of mutation.addedNodes){
+          if(node.nodeType === 1) dynamicNodes(node);
+        }
+      }
+    });
     state.observer.observe(document.body,{childList:true,subtree:true});
   }
 
