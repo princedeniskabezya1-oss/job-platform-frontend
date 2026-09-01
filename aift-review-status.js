@@ -37,6 +37,13 @@
   function startPolling(){clearInterval(state.pollTimer);state.pollTimer=window.setInterval(()=>{if(!document.hidden&&token())loadAll();},10000);}
   function loadFamilyRoleAccess(){
     if(page()!=="family.html")return;
+    if(!document.getElementById("familyAiftAlertsScript")){
+      const script=document.createElement("script");
+      script.id="familyAiftAlertsScript";
+      script.src="family-aift-alerts.js";
+      script.defer=true;
+      document.head.appendChild(script);
+    }
     if(!document.getElementById("familyRoleAccessScript")){
       const script=document.createElement("script");
       script.id="familyRoleAccessScript";
