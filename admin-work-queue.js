@@ -72,19 +72,26 @@
   }
 
   async function api(path,options={}){
+    const normalizedOptions = {
+      ...options,
+      headers:{
+        "Cache-Control":"no-cache",
+        Pragma:"no-cache",
+        ...(options.body ? {"Content-Type":"application/json"} : {}),
+        ...(options.headers || {})
+      }
+    };
+
     if(typeof window.adminRequest === "function"){
-      return window.adminRequest(path,options);
+      return window.adminRequest(path,normalizedOptions);
     }
 
     const response = await fetch(API + path,{
-      ...options,
+      ...normalizedOptions,
       cache:"no-store",
       headers:{
         Authorization:`Bearer ${token()}`,
-        "Cache-Control":"no-cache",
-        Pragma:"no-cache",
-        ...(options.body?{"Content-Type":"application/json"}:{}),
-        ...(options.headers || {})
+        ...normalizedOptions.headers
       }
     });
 
@@ -464,11 +471,6 @@
       render();
       if(successMessage) toast(successMessage);
 
-      /*
-        Confirm the exact persisted ticket state without immediately
-        re-running source synchronization. The regular live refresh
-        will perform a full sync afterwards.
-      */
       await refreshNow(!confirmOnly);
       return ticketById(id) || data?.ticket || null;
     }catch(error){
