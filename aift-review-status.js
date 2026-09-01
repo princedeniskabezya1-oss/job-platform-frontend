@@ -9,7 +9,7 @@
   function page(){return String(location.pathname.split("/").pop()||"").toLowerCase();}
   function isCareerHub(){return document.body?.dataset?.aiftArea==="career-hub"||CAREER_HUB_PAGES.has(page());}
   function role(){return String(localStorage.getItem("role")||"").toLowerCase();}
-  function token(){const map={student:"studentToken",talent:"talentToken",school:"schoolToken",employer:"employerToken",admin:"adminToken"};for(const key of [map[role()],"token","studentToken","talentToken","schoolToken","employerToken","adminToken"].filter(Boolean)){const value=localStorage.getItem(key)||sessionStorage.getItem(key);if(value)return value;}return "";}
+  function token(){const map={student:"studentToken",talent:"talentToken",school:"schoolToken",employer:"employerToken",company:"employerToken",admin:"adminToken"};for(const key of [map[role()],"token","studentToken","talentToken","schoolToken","employerToken","adminToken"].filter(Boolean)){const value=localStorage.getItem(key)||sessionStorage.getItem(key);if(value)return value;}return "";}
   function esc(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
   function title(value){return String(value||"").replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());}
   function fmt(value){if(!value)return "—";const date=new Date(value);return Number.isNaN(date.getTime())?"—":date.toLocaleString([], {year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});}
@@ -59,12 +59,24 @@
       document.head.appendChild(script);
     }
   }
+  function loadEmployerCareerHubSmart(){
+    if(page()!=="employer.html")return;
+    if(document.getElementById("aiftEmployerCareerHubSmartScript"))return;
+    const script=document.createElement("script");
+    script.id="aiftEmployerCareerHubSmartScript";
+    script.src="employer-career-hub-smart.js";
+    document.head.appendChild(script);
+  }
   function loadCareerHubCreation(){
     if(!new Set(["school.html","employer.html"]).has(page()))return;
-    if(document.getElementById("aiftCareerHubCreationScript"))return;
+    if(document.getElementById("aiftCareerHubCreationScript")){
+      loadEmployerCareerHubSmart();
+      return;
+    }
     const script=document.createElement("script");
     script.id="aiftCareerHubCreationScript";
     script.src="career-hub-creation.js";
+    script.addEventListener("load",loadEmployerCareerHubSmart,{once:true});
     document.head.appendChild(script);
   }
   function init(){loadCareerHubCreation();if(!isCareerHub()||!token()||role()==="admin")return;ensureStyle();ensureUI();loadFamilyRoleAccess();setTimeout(loadAll,500);startPolling();window.addEventListener("focus",()=>loadAll(),{passive:true});document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadAll();});}
