@@ -2,7 +2,7 @@
   "use strict";
 
   const API="https://backend-1-9b6f.onrender.com";
-  const state={reviews:[],loading:false,observer:null};
+  const state={reviews:[],loading:false,observer:null,lastLoadedAt:0};
 
   function page(){return String(location.pathname.split("/").pop()||"").toLowerCase();}
   function role(){return String(localStorage.getItem("role")||"").trim().toLowerCase();}
@@ -96,12 +96,17 @@
     });
   }
 
-  async function loadReviews(){
+  async function loadReviews(force=false){
     if(state.loading||!token())return;
+    if(!force && Date.now()-state.lastLoadedAt<5000){
+      decorateRequests();
+      return;
+    }
     state.loading=true;
     try{
       const data=await api("/api/review-cases/mine");
       state.reviews=Array.isArray(data?.cases)?data.cases:[];
+      state.lastLoadedAt=Date.now();
       decorateRequests();
     }catch(error){
       console.warn("Could not load submitted request deletion state",error);
@@ -117,7 +122,7 @@
     const review=state.reviews.find(item=>String(item._id)===reviewId);
     if(!review||review.status!=="submitted"){
       toast("This request can no longer be deleted because it is no longer submitted.","error");
-      await loadReviews();
+      await loadReviews(true);
       return;
     }
 
@@ -131,7 +136,6 @@
     try{
       await api(`/api/review-cases/${encodeURIComponent(reviewId)}/request`,{method:"DELETE"});
       toast("Submitted request deleted. AIFT Activity has been updated.","success");
-
       state.reviews=state.reviews.map(item=>String(item._id)===reviewId?{...item,status:"cancelled",updatedAt:new Date().toISOString()}:item);
       button.closest(".family-request-card")?.remove();
 
@@ -145,27 +149,37 @@
       document.getElementById("aiftMyReviewRefresh")?.click();
       window.dispatchEvent(new CustomEvent("aift:request-deleted",{detail:{reviewId}}));
       window.dispatchEvent(new CustomEvent("aift:activity-updated",{detail:{changed:true,source:"request-delete"}}));
-      await loadReviews();
+      await loadReviews(true);
     }catch(error){
       button.disabled=false;
       button.textContent=originalText;
       toast(error.message,"error");
-      await loadReviews();
+      await loadReviews(true);
     }
   }
 
   function bind(){
     document.addEventListener("click",event=>{
       const button=event.target.closest("[data-delete-submitted-request]");
-      if(!button)return;
-      event.preventDefault();
-      event.stopPropagation();
-      deleteSubmittedRequest(button);
+      if(button){
+        event.preventDefault();
+        event.stopPropagation();
+        deleteSubmittedRequest(button);
+        return;
+      }
+
+      const requestsPage=event.target.closest('[data-page="requests"],[data-page-link="requests"]');
+      if(requestsPage) window.setTimeout(()=>loadReviews(true),80);
     });
 
-    window.addEventListener("aift:activity-updated",()=>loadReviews());
-    window.addEventListener("focus",()=>loadReviews(),{passive:true});
-    document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadReviews();});
+    window.addEventListener("aift:activity-updated",event=>{
+      if(event.detail?.changed===true) loadReviews(true);
+    });
+
+    window.addEventListener("focus",()=>{
+      const requests=document.getElementById("familyPage-requests");
+      if(requests?.classList.contains("active")) loadReviews(true);
+    },{passive:true});
   }
 
   function observe(){
@@ -189,8 +203,7 @@
     bind();
     observe();
     loadInvestorWorkflow();
-    loadReviews();
-    window.setInterval(()=>{if(!document.hidden)loadReviews();},10000);
+    loadReviews(true);
   }
 
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});
