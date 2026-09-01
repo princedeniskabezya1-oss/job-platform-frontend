@@ -35,7 +35,23 @@
   async function loadAll(){if(state.loading)return;state.loading=true;try{await Promise.all([loadReviews(),loadVentureInbox(),loadRooms()]);const next=signature();const changed=Boolean(state.signature&&state.signature!==next);state.signature=next;render();announceUpdate(changed);}catch(error){if(state.open){const list=document.getElementById("aiftMyReviewList");if(list)list.innerHTML=`<div class="aift-my-review-empty">${esc(error.message)}</div>`;}}finally{state.loading=false;}}
   async function handlePanelClick(event){const tab=event.target.closest("[data-aift-activity-tab]");if(tab){state.tab=tab.dataset.aiftActivityTab;render();return;}const roomButton=event.target.closest("[data-open-deal-room]");if(roomButton){location.href=`deal-room.html?id=${encodeURIComponent(roomButton.dataset.openDealRoom)}`;return;}const action=event.target.closest("[data-venture-interest-action]");if(!action)return;action.disabled=true;try{await api(`/api/ventures/${encodeURIComponent(action.dataset.ventureId)}/interests/${encodeURIComponent(action.dataset.interestId)}`,{method:"PATCH",body:JSON.stringify({status:action.dataset.ventureInterestAction})});await loadAll();}catch(error){const banner=document.getElementById("aiftMyReviewBanner");if(banner){banner.hidden=false;banner.textContent=error.message;}}finally{action.disabled=false;}}
   function startPolling(){clearInterval(state.pollTimer);state.pollTimer=window.setInterval(()=>{if(!document.hidden&&token())loadAll();},10000);}
-  function loadFamilyRoleAccess(){if(page()!=="family.html"||document.getElementById("familyRoleAccessScript"))return;const script=document.createElement("script");script.id="familyRoleAccessScript";script.src="family-role-access.js";script.defer=true;document.head.appendChild(script);}
+  function loadFamilyRoleAccess(){
+    if(page()!=="family.html")return;
+    if(!document.getElementById("familyRoleAccessScript")){
+      const script=document.createElement("script");
+      script.id="familyRoleAccessScript";
+      script.src="family-role-access.js";
+      script.defer=true;
+      document.head.appendChild(script);
+    }
+    if(!document.getElementById("familyRequestDeleteScript")){
+      const script=document.createElement("script");
+      script.id="familyRequestDeleteScript";
+      script.src="family-request-delete.js";
+      script.defer=true;
+      document.head.appendChild(script);
+    }
+  }
   function init(){if(!isCareerHub()||!token()||role()==="admin")return;ensureStyle();ensureUI();loadFamilyRoleAccess();setTimeout(loadAll,500);startPolling();window.addEventListener("focus",()=>loadAll(),{passive:true});document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadAll();});}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
