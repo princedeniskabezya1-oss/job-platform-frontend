@@ -1,0 +1,351 @@
+name: AIFT Career Hub native cleanup
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/aift-career-native-cleanup-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Clean Career Hub into native student.js controller
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path('student.js')
+          text = path.read_text(encoding='utf-8')
+          original = text
+
+          def replace_once(old, new, label):
+              global text
+              if old not in text:
+                  raise SystemExit(f'{label} not found; refusing unsafe patch.')
+              text = text.replace(old, new, 1)
+
+          # -----------------------------------------------------------------
+          # 1. Native focus state owns async request sequencing.
+          # -----------------------------------------------------------------
+          replace_once(
+          '''const studentCareerFocusState = {
+            active:"",
+            items:[],
+            filtered:[],
+            loading:false,
+            ventureMine:[],
+            ventureMode:"all"
+          };''',
+          '''const studentCareerFocusState = {
+            active:"",
+            items:[],
+            filtered:[],
+            loading:false,
+            requestId:0,
+            ventureMine:[],
+            ventureMode:"all"
+          };''',
+          'Career focus state')
+
+          # -----------------------------------------------------------------
+          # 2. Make all eight categories native to student.js.
+          # -----------------------------------------------------------------
+          old_config = '''const STUDENT_CAREER_FOCUS_CONFIG = Object.freeze({
+            internships:{title:"Internships",description:"Build experience with real companies and verified AIFT partners.",icon:"fa-solid fa-briefcase",search:"Search internships..."},
+            jobs:{title:"Jobs",description:"Explore graduate, entry-level and career opportunities.",icon:"fa-solid fa-building",search:"Search jobs..."},
+            scholarships:{title:"Scholarships",description:"Explore education funding published through AIFT.",icon:"fa-solid fa-graduation-cap",search:"Search scholarships..."},
+            partnerships:{title:"Partnerships",description:"Explore school and industry opportunities across the AIFT network.",icon:"fa-solid fa-handshake",search:"Search partnerships..."},
+            ventures:{title:"AIFT Ventures",description:"Explore live ventures, projects and funding opportunities.",icon:"fa-solid fa-rocket",search:"Search ventures..."},
+            events:{title:"Events",description:"Explore career fairs, Demo Days, workshops and recruitment events.",icon:"fa-solid fa-calendar-days",search:"Search events..."}
+          });'''
+          new_config = '''const STUDENT_CAREER_FOCUS_CONFIG = Object.freeze({
+            internships:{title:"Internships",description:"Build experience with real companies and verified AIFT partners.",icon:"fa-solid fa-briefcase",search:"Search internships..."},
+            jobs:{title:"Jobs",description:"Explore graduate, entry-level and career opportunities.",icon:"fa-solid fa-building",search:"Search jobs..."},
+            scholarships:{title:"Scholarships",description:"Explore education funding published through AIFT.",icon:"fa-solid fa-graduation-cap",search:"Search scholarships..."},
+            partnerships:{title:"Partnerships",description:"Explore school and industry opportunities across the AIFT network.",icon:"fa-solid fa-handshake",search:"Search partnerships..."},
+            ventures:{title:"AIFT Ventures",description:"Explore live ventures, projects and funding opportunities.",icon:"fa-solid fa-rocket",search:"Search ventures..."},
+            events:{title:"Events",description:"Explore career fairs, Demo Days, workshops and recruitment events.",icon:"fa-solid fa-calendar-days",search:"Search events..."},
+            projects:{title:"Projects",description:"Explore student, freelance, volunteer and real-world project opportunities.",icon:"fa-solid fa-diagram-project",search:"Search projects..."},
+            "graduate-programs":{title:"Graduate Programs",description:"Explore graduate, apprenticeship and placement pathways.",icon:"fa-solid fa-user-graduate",search:"Search graduate programs..."}
+          });'''
+          replace_once(old_config, new_config, 'Career focus config')
+
+          old_loader = '''    case "events":
+              return getStudentCareerFocusArray(await apiGet("/api/career-events"), ["events"]);
+            case "partnerships":{'''
+          new_loader = '''    case "events":
+              return getStudentCareerFocusArray(await apiGet("/api/career-events"), ["events"]);
+            case "projects":
+              return getStudentCareerFocusArray(await apiGet("/api/opportunities?type=project"), ["opportunities"]);
+            case "graduate-programs":
+              return getStudentCareerFocusArray(await apiGet("/api/opportunities?type=placement"), ["opportunities"]);
+            case "partnerships":{'''
+          replace_once(old_loader, new_loader, 'Career category loader')
+
+          # -----------------------------------------------------------------
+          # 3. Add Projects + Graduate Programs directly to the native grid.
+          # -----------------------------------------------------------------
+          event_card_match = re.search(r'''          <!-- =============================================\n               EVENTS\n          ============================================== -->.*?          </button>\n\n        </div>''', text, re.S)
+          if not event_card_match:
+              raise SystemExit('Events category card/grid boundary not found; refusing unsafe patch.')
+
+          event_block = event_card_match.group(0)
+          event_only = event_block[:-len('\n\n        </div>')]
+          extra_cards = '''
+
+
+          <!-- =============================================
+               PROJECTS
+          ============================================== -->
+
+          <button
+            type="button"
+            class="student-career-category-card projects"
+            data-career-action="projects"
+          >
+            <span class="student-career-category-icon">
+              <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
+            </span>
+            <span class="student-career-category-copy">
+              <strong>Projects</strong>
+              <small>Student, freelance and volunteer work</small>
+            </span>
+            <span class="student-career-category-meta">
+              <b id="studentCareerProjectCount">0</b>
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </span>
+          </button>
+
+
+          <!-- =============================================
+               GRADUATE PROGRAMS
+          ============================================== -->
+
+          <button
+            type="button"
+            class="student-career-category-card graduate-programs"
+            data-career-action="graduate-programs"
+          >
+            <span class="student-career-category-icon">
+              <i class="fa-solid fa-user-graduate" aria-hidden="true"></i>
+            </span>
+            <span class="student-career-category-copy">
+              <strong>Graduate Programs</strong>
+              <small>Graduate, apprenticeship and placement paths</small>
+            </span>
+            <span class="student-career-category-meta">
+              <b id="studentCareerGraduateProgramCount">0</b>
+              <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </span>
+          </button>
+
+        </div>'''
+          text = text[:event_card_match.start()] + event_only + extra_cards + text[event_card_match.end():]
+
+          text = text.replace(
+              'Select one of the six opportunity categories above.',
+              'Select one of the eight opportunity categories above.',
+              1
+          )
+
+          # -----------------------------------------------------------------
+          # 4. Race-safe category switching: stale requests never render.
+          # -----------------------------------------------------------------
+          start = text.index('async function openStudentCareerFocus(category){')
+          end = text.index('\n/* =========================================================\n   CAREER HUB ACTIONS', start)
+          new_open = '''async function openStudentCareerFocus(category){
+            const config = STUDENT_CAREER_FOCUS_CONFIG[category];
+            const panel = $("studentCareerFocusPanel");
+            const main = document.querySelector("#section-career .student-career-main");
+            if (!config || !panel || !main) return;
+
+            const requestId = ++studentCareerFocusState.requestId;
+
+            studentCareerFocusState.active = category;
+            studentCareerFocusState.loading = true;
+            studentCareerFocusState.items = [];
+            studentCareerFocusState.filtered = [];
+            studentCareerFocusState.ventureMine = [];
+            studentCareerFocusState.ventureMode = "all";
+
+            main.querySelectorAll(":scope > .student-career-card").forEach(card => {
+              card.hidden = true;
+            });
+
+            panel.hidden = false;
+            updateStudentCareerFocusSelection(category);
+            setText("studentCareerFocusTitle", config.title);
+            setText("studentCareerFocusDescription", config.description);
+            setText("studentCareerFocusResultCount", "Loading...");
+
+            const search = $("studentCareerFocusSearch");
+            if (search){
+              search.value = "";
+              search.placeholder = config.search;
+            }
+
+            const results = $("studentCareerFocusResults");
+            if (results){
+              results.innerHTML = `<div class="student-career-focus-empty"><span><i class="fa-solid fa-circle-notch fa-spin"></i></span><strong>Loading ${escapeHtml(config.title.toLowerCase())}...</strong></div>`;
+            }
+
+            panel.scrollIntoView({behavior:"smooth",block:"start"});
+
+            try{
+              let items = [];
+              let ventureMine = [];
+
+              if (category === "ventures"){
+                const [publicVentures, mineResponse] = await Promise.all([
+                  loadStudentCareerFocusCategory(category),
+                  apiGet("/api/ventures/mine").catch(() => [])
+                ]);
+                items = publicVentures;
+                ventureMine = getStudentCareerFocusArray(mineResponse,["ventures"]);
+              }else{
+                items = await loadStudentCareerFocusCategory(category);
+              }
+
+              if (
+                requestId !== studentCareerFocusState.requestId ||
+                category !== studentCareerFocusState.active
+              ){
+                return;
+              }
+
+              studentCareerFocusState.items = Array.isArray(items) ? items : [];
+              studentCareerFocusState.filtered = [...studentCareerFocusState.items];
+              studentCareerFocusState.ventureMine = category === "ventures" ? ventureMine : [];
+
+              renderStudentCareerFocusResults(studentCareerFocusState.items);
+            }catch(error){
+              if (
+                requestId !== studentCareerFocusState.requestId ||
+                category !== studentCareerFocusState.active
+              ){
+                return;
+              }
+
+              console.error("Career Hub focused category load failed:", error);
+              studentCareerFocusState.items = [];
+              studentCareerFocusState.filtered = [];
+              studentCareerFocusState.ventureMine = [];
+
+              if (results){
+                results.innerHTML = `<div class="student-career-focus-empty error"><span><i class="fa-solid fa-triangle-exclamation"></i></span><strong>${escapeHtml(error?.message || "This category could not be loaded.")}</strong><p>Use Refresh to try again.</p></div>`;
+              }
+              setText("studentCareerFocusResultCount", "Unable to load");
+            }finally{
+              if (
+                requestId === studentCareerFocusState.requestId &&
+                category === studentCareerFocusState.active
+              ){
+                studentCareerFocusState.loading = false;
+              }
+            }
+          }
+          '''
+          text = text[:start] + new_open + text[end:]
+
+          # -----------------------------------------------------------------
+          # 5. Remove unreachable old category switch branches.
+          # -----------------------------------------------------------------
+          action_start = text.index('function handleStudentCareerAction(')
+          legacy_start = text.index('    /* =========================================\n       INTERNSHIPS', action_start)
+          legacy_end = text.index('    /* =========================================\n       APPLICATIONS', legacy_start)
+          text = text[:legacy_start] + text[legacy_end:]
+
+          # -----------------------------------------------------------------
+          # 6. Remove duplicate document-level Venture listener.
+          # -----------------------------------------------------------------
+          duplicate_pattern = re.compile(
+              r'function bindStudentCareerVentureToolDelegation\(\)\{.*?\n\}\n\nbindStudentCareerVentureToolDelegation\(\);\n',
+              re.S
+          )
+          text, removed = duplicate_pattern.subn('', text, count=1)
+          if removed != 1:
+              raise SystemExit('Duplicate Venture delegation block not found exactly once; refusing unsafe patch.')
+
+          # -----------------------------------------------------------------
+          # 7. Remaining workspace Venture handler uses one canonical function.
+          # -----------------------------------------------------------------
+          old_handler = '''      const ventureToolButton = event.target.closest("[data-career-venture-tool]");
+                if (ventureToolButton && workspace.contains(ventureToolButton)){
+                  event.preventDefault();
+                  const mode = String(ventureToolButton.dataset.careerVentureTool || "all");
+                  studentCareerFocusState.ventureMode = mode;
+                  const filteredVentures = filterStudentCareerVenturesByMode(mode);
+                  studentCareerFocusState.filtered = [...filteredVentures];
+                  renderStudentCareerFocusResults(filteredVentures);
+                  return;
+                }'''
+          new_handler = '''      const ventureToolButton = event.target.closest("[data-career-venture-tool]");
+                if (ventureToolButton && workspace.contains(ventureToolButton)){
+                  event.preventDefault();
+                  applyStudentCareerVentureMode(
+                    String(ventureToolButton.dataset.careerVentureTool || "all")
+                  );
+                  return;
+                }'''
+          replace_once(old_handler, new_handler, 'Workspace Venture handler')
+
+          if text == original:
+              raise SystemExit('No student.js changes produced.')
+          path.write_text(text, encoding='utf-8')
+
+          # -----------------------------------------------------------------
+          # 8. Passport no longer loads competing Career Hub V2 controllers.
+          #    It remains only the Passport module.
+          # -----------------------------------------------------------------
+          passport_path = Path('student-passport.js')
+          passport = passport_path.read_text(encoding='utf-8')
+          passport_original = passport
+
+          add_script_start = passport.find('  function addScript(src,attribute){')
+          load_hub_end_marker = '  window.AIFTStudentPassport='
+          load_hub_end = passport.find(load_hub_end_marker, add_script_start)
+          if add_script_start == -1 or load_hub_end == -1:
+              raise SystemExit('Passport Career Hub loader block not found; refusing unsafe patch.')
+          passport = passport[:add_script_start] + passport[load_hub_end:]
+          passport = passport.replace('    loadCareerHub().catch(()=>{});\n', '', 1)
+          if passport == passport_original:
+              raise SystemExit('No student-passport.js changes produced.')
+          passport_path.write_text(passport, encoding='utf-8')
+
+          # -----------------------------------------------------------------
+          # 9. Remove old external Career Hub override modules.
+          # -----------------------------------------------------------------
+          for old in [
+              'student-career-apply-route.js',
+              'student-career-hub-v2.js',
+              'student-career-hub-markets-v2.js'
+          ]:
+              p = Path(old)
+              if p.exists():
+                  p.unlink()
+
+      - name: Validate cleaned JavaScript
+        run: |
+          node --check student.js
+          node --check student-passport.js
+          git diff --check
+
+      - name: Commit native Career Hub cleanup
+        run: |
+          rm -f .github/aift-career-native-cleanup-trigger
+          rm -f .github/workflows/aift-career-native-cleanup.yml
+          git config user.name "AIFT Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: consolidate Student Career Hub into native controller"
+          git push origin main
