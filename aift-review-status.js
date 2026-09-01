@@ -3,7 +3,7 @@
 
   const API="https://backend-1-9b6f.onrender.com";
   const CLOSED=new Set(["approved","rejected","completed","cancelled","expired"]);
-  const CAREER_HUB_PAGES=new Set(["venture.html","deal-room.html","family.html","career-hub.html","opportunities.html","scholarships.html","internships.html"]);
+  const CAREER_HUB_PAGES=new Set(["venture.html","deal-room.html","family.html","career-hub.html","opportunities.html","scholarships.html","internships.html","school.html","employer.html"]);
   const state={cases:[],ventures:[],interests:[],rooms:[],open:false,loading:false,tab:"reviews",signature:"",pollTimer:null};
 
   function page(){return String(location.pathname.split("/").pop()||"").toLowerCase();}
@@ -59,6 +59,14 @@
       document.head.appendChild(script);
     }
   }
-  function init(){if(!isCareerHub()||!token()||role()==="admin")return;ensureStyle();ensureUI();loadFamilyRoleAccess();setTimeout(loadAll,500);startPolling();window.addEventListener("focus",()=>loadAll(),{passive:true});document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadAll();});}
+  function loadCareerHubCreation(){
+    if(!new Set(["school.html","employer.html"]).has(page()))return;
+    if(document.getElementById("aiftCareerHubCreationScript"))return;
+    const script=document.createElement("script");
+    script.id="aiftCareerHubCreationScript";
+    script.src="career-hub-creation.js";
+    document.head.appendChild(script);
+  }
+  function init(){loadCareerHubCreation();if(!isCareerHub()||!token()||role()==="admin")return;ensureStyle();ensureUI();loadFamilyRoleAccess();setTimeout(loadAll,500);startPolling();window.addEventListener("focus",()=>loadAll(),{passive:true});document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadAll();});}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
