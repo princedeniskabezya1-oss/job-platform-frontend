@@ -17606,6 +17606,7 @@ const studentCareerFocusState = {
   items:[],
   filtered:[],
   loading:false,
+  requestId:0,
   ventureMine:[],
   ventureMode:"all"
 };
@@ -17825,30 +17826,6 @@ function applyStudentCareerVentureMode(mode){
   }
 }
 
-function bindStudentCareerVentureToolDelegation(){
-  if (document.documentElement.dataset.studentVentureToolsBound === "true") return;
-
-  document.addEventListener(
-    "click",
-    event => {
-      const button = event.target.closest("[data-career-venture-tool]");
-      if (!button) return;
-
-      const careerSection = document.getElementById("section-career");
-      if (!careerSection || !careerSection.contains(button)) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      applyStudentCareerVentureMode(String(button.dataset.careerVentureTool || "all"));
-    },
-    true
-  );
-
-  document.documentElement.dataset.studentVentureToolsBound = "true";
-}
-
-bindStudentCareerVentureToolDelegation();
 
 function ensureStudentCareerVentureToolStyles(){
   if (document.getElementById("studentCareerVentureToolStyles")) return;
@@ -17956,8 +17933,14 @@ async function openStudentCareerFocus(category){
   const main = document.querySelector("#section-career .student-career-main");
   if (!config || !panel || !main) return;
 
+  const requestId = ++studentCareerFocusState.requestId;
+
   studentCareerFocusState.active = category;
   studentCareerFocusState.loading = true;
+  studentCareerFocusState.items = [];
+  studentCareerFocusState.filtered = [];
+  studentCareerFocusState.ventureMine = [];
+  studentCareerFocusState.ventureMode = "all";
 
   main.querySelectorAll(":scope > .student-career-card").forEach(card => {
     card.hidden = true;
@@ -17983,31 +17966,56 @@ async function openStudentCareerFocus(category){
   panel.scrollIntoView({behavior:"smooth",block:"start"});
 
   try{
-    let items;
+    let items = [];
+    let ventureMine = [];
+
     if (category === "ventures"){
-      studentCareerFocusState.ventureMode = "all";
       const [publicVentures, mineResponse] = await Promise.all([
         loadStudentCareerFocusCategory(category),
         apiGet("/api/ventures/mine").catch(() => [])
       ]);
       items = publicVentures;
-      studentCareerFocusState.ventureMine = getStudentCareerFocusArray(mineResponse,["ventures"]);
+      ventureMine = getStudentCareerFocusArray(mineResponse,["ventures"]);
     }else{
       items = await loadStudentCareerFocusCategory(category);
     }
-    studentCareerFocusState.items = items;
-    studentCareerFocusState.filtered = [...items];
-    renderStudentCareerFocusResults(items);
+
+    if (
+      requestId !== studentCareerFocusState.requestId ||
+      category !== studentCareerFocusState.active
+    ){
+      return;
+    }
+
+    studentCareerFocusState.items = Array.isArray(items) ? items : [];
+    studentCareerFocusState.filtered = [...studentCareerFocusState.items];
+    studentCareerFocusState.ventureMine = category === "ventures" ? ventureMine : [];
+
+    renderStudentCareerFocusResults(studentCareerFocusState.items);
   }catch(error){
+    if (
+      requestId !== studentCareerFocusState.requestId ||
+      category !== studentCareerFocusState.active
+    ){
+      return;
+    }
+
     console.error("Career Hub focused category load failed:", error);
     studentCareerFocusState.items = [];
     studentCareerFocusState.filtered = [];
+    studentCareerFocusState.ventureMine = [];
+
     if (results){
       results.innerHTML = `<div class="student-career-focus-empty error"><span><i class="fa-solid fa-triangle-exclamation"></i></span><strong>${escapeHtml(error?.message || "This category could not be loaded.")}</strong><p>Use Refresh to try again.</p></div>`;
     }
     setText("studentCareerFocusResultCount", "Unable to load");
   }finally{
-    studentCareerFocusState.loading = false;
+    if (
+      requestId === studentCareerFocusState.requestId &&
+      category === studentCareerFocusState.active
+    ){
+      studentCareerFocusState.loading = false;
+    }
   }
 }
 
@@ -18073,160 +18081,6 @@ function handleStudentCareerAction(
 
       scrollToCareerElement(
         "studentCareerRecommendedJobs"
-      );
-
-      break;
-
-
-    /* =========================================
-       INTERNSHIPS
-    ========================================= */
-
-    case "internships":
-
-      scrollToCareerElement(
-        "studentCareerRecommendedJobs"
-      );
-
-
-      notifyAIFTInfo(
-        "Showing available career opportunities. Dedicated internship filtering will be connected to the Career Hub marketplace.",
-        {
-          title:
-            "Internships"
-        }
-      );
-
-      break;
-
-
-    /* =========================================
-       JOBS
-    ========================================= */
-
-    case "jobs":
-
-      scrollToCareerElement(
-        "studentCareerRecommendedJobs"
-      );
-
-
-      notifyAIFTInfo(
-        "Showing available jobs and employment opportunities.",
-        {
-          title:
-            "Jobs"
-        }
-      );
-
-      break;
-
-
-    /* =========================================
-       SCHOLARSHIPS
-    ========================================= */
-
-    case "scholarships":{
-
-      const scholarshipHeading =
-        Array.from(
-          document.querySelectorAll(
-            "#section-career .student-career-card"
-          )
-        )
-          .find(
-            card =>
-              card
-                .textContent
-                ?.includes(
-                  "Education should not stop because of funding"
-                )
-          );
-
-
-      scholarshipHeading
-        ?.scrollIntoView({
-          behavior:"smooth",
-          block:"start"
-        });
-
-
-      notifyAIFTInfo(
-        "The Scholarship marketplace is being prepared for verified scholarship, grant and sponsored-education opportunities.",
-        {
-          title:
-            "AIFT Scholarships"
-        }
-      );
-
-      break;
-
-    }
-
-
-    /* =========================================
-       PARTNERSHIPS
-    ========================================= */
-
-    case "partnerships":
-
-      notifyAIFTInfo(
-        "AIFT Partnerships will connect schools and companies for internships, graduate hiring, scholarships, training and sponsored programs.",
-        {
-          title:
-            "AIFT Partnerships"
-        }
-      );
-
-      break;
-
-
-    /* =========================================
-       VENTURES
-    ========================================= */
-
-    case "ventures":{
-
-      const ventureCard =
-        Array.from(
-          document.querySelectorAll(
-            "#section-career .student-career-card"
-          )
-        )
-          .find(
-            card =>
-              card
-                .textContent
-                ?.includes(
-                  "Build something bigger than a résumé"
-                )
-          );
-
-
-      ventureCard
-        ?.scrollIntoView({
-          behavior:"smooth",
-          block:"start"
-        });
-
-
-      break;
-
-    }
-
-
-    /* =========================================
-       EVENTS
-    ========================================= */
-
-    case "events":
-
-      notifyAIFTInfo(
-        "Career fairs, workshops, recruitment events and AIFT Demo Days will appear here as the Events marketplace is connected.",
-        {
-          title:
-            "Career Events"
-        }
       );
 
       break;
@@ -18632,11 +18486,9 @@ if(
       const ventureToolButton = event.target.closest("[data-career-venture-tool]");
       if (ventureToolButton && workspace.contains(ventureToolButton)){
         event.preventDefault();
-        const mode = String(ventureToolButton.dataset.careerVentureTool || "all");
-        studentCareerFocusState.ventureMode = mode;
-        const filteredVentures = filterStudentCareerVenturesByMode(mode);
-        studentCareerFocusState.filtered = [...filteredVentures];
-        renderStudentCareerFocusResults(filteredVentures);
+        applyStudentCareerVentureMode(
+          String(ventureToolButton.dataset.careerVentureTool || "all")
+        );
         return;
       }
 
