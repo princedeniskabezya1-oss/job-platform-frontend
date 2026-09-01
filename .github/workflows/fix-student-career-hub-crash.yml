@@ -2,9 +2,10 @@ name: Fix Student Career Hub crash
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
-      - '.github/workflows/fix-student-career-hub-crash.yml'
+      - .github/workflows/fix-student-career-hub-crash.yml
 
 permissions:
   contents: write
@@ -13,215 +14,164 @@ jobs:
   fix-career-hub:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Patch Career Hub runtime
-        shell: python
+      - name: Patch runtime
         run: |
+          python3 <<'PY'
           from pathlib import Path
 
-          # -------------------------------------------------
-          # 1) Stop the self-triggering MutationObserver loop
-          # -------------------------------------------------
-          path = Path('student-career-hub-v2.js')
-          text = path.read_text(encoding='utf-8')
-
+          path = Path("student-career-hub-v2.js")
+          text = path.read_text(encoding="utf-8")
           old = '''  async function init(){
-    ensureStyles();
-    bind();
-    const install=()=>{injectCategoryCards();injectPassportQuick();renderApplicationsPanel();};
-    await loadApplications();
-    install();
-    const observer=new MutationObserver(()=>install());
-    const career=document.getElementById("section-career")||document.body;
-    observer.observe(career,{childList:true,subtree:true});
-    window.addEventListener("aift:activity-updated",event=>{
-      const source=String(event?.detail?.source||"");
-      if(source==="student-career-application" || source==="review-status") refresh().catch(()=>{});
-    });
-    window.AIFTStudentCareerHub={refresh,openMarketplace,openApplication,openPassport};
-  }
-'''
-
+            ensureStyles();
+            bind();
+            const install=()=>{injectCategoryCards();injectPassportQuick();renderApplicationsPanel();};
+            await loadApplications();
+            install();
+            const observer=new MutationObserver(()=>install());
+            const career=document.getElementById("section-career")||document.body;
+            observer.observe(career,{childList:true,subtree:true});
+            window.addEventListener("aift:activity-updated",event=>{
+              const source=String(event?.detail?.source||"");
+              if(source==="student-career-application" || source==="review-status") refresh().catch(()=>{});
+            });
+            window.AIFTStudentCareerHub={refresh,openMarketplace,openApplication,openPassport};
+          }
+          '''
           new = '''  let installFrame=0;
 
-  function installCareerEnhancements(){
-    injectCategoryCards();
-    renderApplicationsPanel();
-    injectPassportQuick().catch(()=>{});
-  }
+          function installCareerEnhancements(){
+            injectCategoryCards();
+            renderApplicationsPanel();
+            injectPassportQuick().catch(()=>{});
+          }
 
-  function scheduleCareerEnhancements(){
-    if(installFrame) cancelAnimationFrame(installFrame);
-    installFrame=requestAnimationFrame(()=>{
-      installFrame=0;
-      installCareerEnhancements();
-    });
-  }
+          function scheduleCareerEnhancements(){
+            if(installFrame) cancelAnimationFrame(installFrame);
+            installFrame=requestAnimationFrame(()=>{
+              installFrame=0;
+              installCareerEnhancements();
+            });
+          }
 
-  async function init(){
-    ensureStyles();
-    bind();
+          async function init(){
+            ensureStyles();
+            bind();
+            await loadApplications().catch(()=>{});
+            scheduleCareerEnhancements();
 
-    await loadApplications().catch(()=>{});
-    scheduleCareerEnhancements();
+            document.addEventListener("studentstudio:pagechange",event=>{
+              if(String(event?.detail?.page||"") === "career"){
+                scheduleCareerEnhancements();
+              }
+            });
 
-    /*
-      IMPORTANT:
-      Do not observe the Career Hub subtree and rewrite that same subtree
-      from inside the observer. That creates a self-triggering mutation loop
-      whenever renderApplicationsPanel() changes innerHTML and can freeze
-      mobile browsers. Student Studio already emits a page-change event,
-      which is the correct lifecycle hook for re-installing these additions
-      after the Career Hub shell is rebuilt.
-    */
-    document.addEventListener("studentstudio:pagechange",event=>{
-      if(String(event?.detail?.page||"") === "career"){
-        scheduleCareerEnhancements();
-      }
-    });
+            window.addEventListener("aift:activity-updated",event=>{
+              const source=String(event?.detail?.source||"");
+              if(source==="student-career-application" || source==="review-status") refresh().catch(()=>{});
+            });
 
-    window.addEventListener("aift:activity-updated",event=>{
-      const source=String(event?.detail?.source||"");
-      if(source==="student-career-application" || source==="review-status") refresh().catch(()=>{});
-    });
-
-    window.AIFTStudentCareerHub={refresh,openMarketplace,openApplication,openPassport};
-  }
-'''
-
+            window.AIFTStudentCareerHub={refresh,openMarketplace,openApplication,openPassport};
+          }
+          '''
           if old not in text:
-            raise SystemExit('Could not find Career Hub v2 init block')
-          text = text.replace(old, new, 1)
-          path.write_text(text, encoding='utf-8')
+              raise SystemExit("Career Hub v2 init block not found")
+          path.write_text(text.replace(old,new,1),encoding="utf-8")
 
-          # -------------------------------------------------
-          # 2) Make the base Career Hub open immediately.
-          #    Data hydration happens after the first paint.
-          # -------------------------------------------------
-          path = Path('student.js')
-          text = path.read_text(encoding='utf-8')
-
+          path = Path("student.js")
+          text = path.read_text(encoding="utf-8")
           old = '''  /* =======================================================
-     LIVE BACKEND DATA
-  ======================================================== */
+             LIVE BACKEND DATA
+          ======================================================== */
 
-await loadStudentCareerHubData();
-
-
-renderStudentCareerOpportunities();
+          await loadStudentCareerHubData();
 
 
-renderStudentCareerVentures();
+          renderStudentCareerOpportunities();
 
 
-renderStudentCareerApplications();
+          renderStudentCareerVentures();
 
 
-updateStudentCareerSavedCount();
+          renderStudentCareerApplications();
 
-}
-'''
 
+          updateStudentCareerSavedCount();
+
+          }
+          '''
           new = '''  /* =======================================================
-     LIVE BACKEND DATA
+             LIVE BACKEND DATA
+             First paint must never wait for remote APIs.
+          ======================================================== */
 
-     IMPORTANT PERFORMANCE RULE:
-     The Career Hub shell must become interactive immediately. Do not
-     block its first paint on Jobs, Applications, Saved Jobs, Ventures,
-     or Saved Ventures network calls. Render cached/default state now,
-     then hydrate from the backend after the browser has painted.
-  ======================================================== */
+          renderStudentCareerOpportunities();
+          renderStudentCareerVentures();
+          renderStudentCareerApplications();
+          updateStudentCareerSavedCount();
 
-  renderStudentCareerOpportunities();
-  renderStudentCareerVentures();
-  renderStudentCareerApplications();
-  updateStudentCareerSavedCount();
+          const hydrateCareerHub = async () => {
+            try{
+              await loadStudentCareerHubData();
+              if(document.body.dataset.studentSection !== "career") return;
+              renderStudentCareerOpportunities();
+              renderStudentCareerVentures();
+              renderStudentCareerApplications();
+              updateStudentCareerSavedCount();
+            }catch(error){
+              console.error("Career Hub background hydration failed:",error);
+            }
+          };
 
-  const hydrateCareerHub = async () => {
-    try{
-      await loadStudentCareerHubData();
+          requestAnimationFrame(()=>setTimeout(hydrateCareerHub,0));
 
-      /* The user may have navigated away while requests were running. */
-      if(document.body.dataset.studentSection !== "career"){
-        return;
-      }
-
-      renderStudentCareerOpportunities();
-      renderStudentCareerVentures();
-      renderStudentCareerApplications();
-      updateStudentCareerSavedCount();
-    }catch(error){
-      console.error("Career Hub background hydration failed:", error);
-    }
-  };
-
-  if(typeof requestAnimationFrame === "function"){
-    requestAnimationFrame(() => {
-      setTimeout(hydrateCareerHub, 0);
-    });
-  }else{
-    setTimeout(hydrateCareerHub, 0);
-  }
-
-}
-'''
-
+          }
+          '''
           if old not in text:
-            raise SystemExit('Could not find Career Hub blocking load block')
-          text = text.replace(old, new, 1)
-          path.write_text(text, encoding='utf-8')
+              raise SystemExit("Career Hub blocking load block not found")
+          text = text.replace(old,new,1)
 
-          # -------------------------------------------------
-          # 3) Prevent repeated Career Hub clicks from rebuilding
-          #    the huge shell while it is already the active page.
-          # -------------------------------------------------
           old = '''function openStudentStudioPage(
-  requestedPage,
-  options = {}
-){
-  const page =
-    normalizeStudentStudioPage(
-      requestedPage
-    );
+            requestedPage,
+            options = {}
+          ){
+            const page =
+              normalizeStudentStudioPage(
+                requestedPage
+              );
 
-  activeStudentStudioPage = page;
-'''
-
+            activeStudentStudioPage = page;
+          '''
           new = '''function openStudentStudioPage(
-  requestedPage,
-  options = {}
-){
-  const page =
-    normalizeStudentStudioPage(
-      requestedPage
-    );
+            requestedPage,
+            options = {}
+          ){
+            const page =
+              normalizeStudentStudioPage(
+                requestedPage
+              );
 
-  /*
-    Career Hub contains a large interactive workspace. Re-clicking the
-    already-active navigation item should not destroy and rebuild the
-    entire DOM tree or restart its data loaders.
-  */
-  if(
-    page === "career" &&
-    activeStudentStudioPage === "career" &&
-    document.body.dataset.studentSection === "career" &&
-    document.getElementById("studentCareerWorkspace")?.children?.length
-  ){
-    setStudentStudioActiveNavigation(page);
-    setStudentStudioActiveMobileNavigation(page);
-    return;
-  }
+            if(
+              page === "career" &&
+              activeStudentStudioPage === "career" &&
+              document.body.dataset.studentSection === "career" &&
+              document.getElementById("studentCareerWorkspace")?.children?.length
+            ){
+              setStudentStudioActiveNavigation(page);
+              setStudentStudioActiveMobileNavigation(page);
+              return;
+            }
 
-  activeStudentStudioPage = page;
-'''
-
+            activeStudentStudioPage = page;
+          '''
           if old not in text:
-            raise SystemExit('Could not find openStudentStudioPage block')
-          text = text.replace(old, new, 1)
-          path.write_text(text, encoding='utf-8')
+              raise SystemExit("openStudentStudioPage block not found")
+          path.write_text(text.replace(old,new,1),encoding="utf-8")
+          PY
 
-      - name: Syntax check JavaScript
+      - name: Check JavaScript syntax
         run: |
           node --check student-career-hub-v2.js
           node --check student-career-hub-markets-v2.js
