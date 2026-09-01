@@ -2,36 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <title>AIFT | Messages</title>
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-
 <link rel="stylesheet" href="messages.css">
-
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
-
 <body>
-
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <div id="confirmModal" class="modal-backdrop hidden">
   <div class="modal-card">
     <div class="modal-head">
       <h3 id="confirmTitle">Confirm action</h3>
-      <button class="modal-close" onclick="closeConfirmModal()" aria-label="Close">
-        <svg viewBox="0 0 24 24">
-          <path d="M18 6L6 18M6 6l12 12"></path>
-        </svg>
-      </button>
+      <button class="modal-close" onclick="closeConfirmModal()" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
     </div>
-
     <p id="confirmText" class="modal-text">Are you sure?</p>
-
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeConfirmModal()">Cancel</button>
       <button id="confirmActionBtn" class="btn danger">Confirm</button>
@@ -42,189 +30,84 @@
 <div id="chatInfoDrawer" class="drawer hidden">
   <div class="drawer-panel">
     <div class="drawer-head">
-      <h2>Conversation details</h2>
-      <button class="icon-btn" onclick="closeChatInfo()" aria-label="Close">
-        <svg viewBox="0 0 24 24">
-          <path d="M18 6L6 18M6 6l12 12"></path>
-        </svg>
-      </button>
+      <h2>Conversation info</h2>
+      <button class="icon-btn" onclick="closeChatInfo()" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
     </div>
-
     <div class="drawer-profile">
       <img id="drawerUserImage" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="">
       <h3 id="drawerUserName">AIFT User</h3>
       <p id="drawerUserMeta">Conversation</p>
+      <div class="drawer-quick-actions">
+        <button onclick="startAudioCall()" aria-label="Audio call"><span><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 11.2 18.9 19.5 19.5 0 0 1 5.1 12.8 19.8 19.8 0 0 1 2.08 4.1 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72"></path></svg></span>Audio</button>
+        <button onclick="startVideoCall()" aria-label="Video call"><span><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"></rect><path d="M16 10l5-3v10l-5-3z"></path></svg></span>Video</button>
+        <button onclick="document.getElementById('conversationSearch')?.focus()" aria-label="Search"><span><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></span>Search</button>
+        <button onclick="toggleActiveMute()" aria-label="Mute"><span><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18"></path><path d="M10 21h4"></path></svg></span>Mute</button>
+      </div>
     </div>
-
+    <div class="drawer-section-title">Chat settings</div>
     <div class="drawer-actions">
-      <button onclick="openActiveProfile()">
-        <svg viewBox="0 0 24 24">
-          <path d="M20 21a8 8 0 0 0-16 0"></path>
-          <circle cx="12" cy="7" r="4"></circle>
-        </svg>
-        View profile
-      </button>
-
-      <button onclick="toggleActivePin()">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 17v5"></path>
-          <path d="M5 17h14l-2-8V4H7v5z"></path>
-        </svg>
-        Pin conversation
-      </button>
-
-      <button onclick="toggleActiveMute()">
-        <svg viewBox="0 0 24 24">
-          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
-          <path d="M10 21h4"></path>
-        </svg>
-        Mute notifications
-      </button>
-
-      <button onclick="archiveActiveConversation()">
-        <svg viewBox="0 0 24 24">
-          <path d="M21 8v13H3V8"></path>
-          <path d="M1 3h22v5H1z"></path>
-          <path d="M10 12h4"></path>
-        </svg>
-        Archive conversation
-      </button>
-
-      <button onclick="openSharedFilesPanel()">
-        <svg viewBox="0 0 24 24">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <path d="M14 2v6h6"></path>
-        </svg>
-        Shared files
-      </button>
-
-      <button class="danger-text" onclick="blockActiveConversation()">
-        <svg viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M4.93 4.93l14.14 14.14"></path>
-        </svg>
-        Block conversation
-      </button>
+      <button onclick="openActiveProfile()"><svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"></path><circle cx="12" cy="7" r="4"></circle></svg>View profile</button>
+      <button onclick="openSharedFilesPanel()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>Media, links & documents</button>
+      <button onclick="toggleActivePin()"><svg viewBox="0 0 24 24"><path d="M12 17v5"></path><path d="M5 17h14l-2-8V4H7v5z"></path></svg>Pin conversation</button>
+      <button onclick="archiveActiveConversation()"><svg viewBox="0 0 24 24"><path d="M21 8v13H3V8"></path><path d="M1 3h22v5H1z"></path><path d="M10 12h4"></path></svg>Archive conversation</button>
+      <button class="danger-text" onclick="blockActiveConversation()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M4.93 4.93l14.14 14.14"></path></svg>Block conversation</button>
     </div>
   </div>
 </div>
 
 <div id="messageActionBar" class="message-action-bar hidden">
-  <button onclick="replyToSelectedMessage()">
-    <svg viewBox="0 0 24 24">
-      <path d="M9 10l-5 5 5 5"></path>
-      <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
-    </svg>
-    Reply
-  </button>
-
-  <button onclick="copySelectedMessage()">
-    <svg viewBox="0 0 24 24">
-      <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-    </svg>
-    Copy
-  </button>
-
-  <button onclick="starSelectedMessage()">
-    <svg viewBox="0 0 24 24">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01z"></path>
-    </svg>
-    Star
-  </button>
-
-  <button onclick="deleteSelectedMessageForMe()">
-    <svg viewBox="0 0 24 24">
-      <path d="M3 6h18"></path>
-      <path d="M8 6V4h8v2"></path>
-      <path d="M19 6l-1 14H6L5 6"></path>
-    </svg>
-    Delete for me
-  </button>
-
-  <button onclick="deleteSelectedMessageForEveryone()">
-    <svg viewBox="0 0 24 24">
-      <path d="M3 6h18"></path>
-      <path d="M8 6V4h8v2"></path>
-      <path d="M19 6l-1 14H6L5 6"></path>
-      <path d="M9 11l6 6M15 11l-6 6"></path>
-    </svg>
-    Delete for everyone
-  </button>
-
-  <button onclick="clearSelectedMessage()">
-    <svg viewBox="0 0 24 24">
-      <path d="M18 6L6 18M6 6l12 12"></path>
-    </svg>
-    Cancel
-  </button>
+  <button onclick="replyToSelectedMessage()"><svg viewBox="0 0 24 24"><path d="M9 10l-5 5 5 5"></path><path d="M20 4v7a4 4 0 0 1-4 4H4"></path></svg>Reply</button>
+  <button onclick="copySelectedMessage()"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9"></path></svg>Copy</button>
+  <button onclick="starSelectedMessage()"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01z"></path></svg>Star</button>
+  <button onclick="deleteSelectedMessageForMe()"><svg viewBox="0 0 24 24"><path d="M3 6h18"></path><path d="M19 6l-1 14H6L5 6"></path></svg>Delete for me</button>
+  <button onclick="deleteSelectedMessageForEveryone()"><svg viewBox="0 0 24 24"><path d="M3 6h18"></path><path d="M19 6l-1 14H6L5 6"></path></svg>Delete for everyone</button>
+  <button onclick="clearSelectedMessage()"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg>Cancel</button>
 </div>
 
 <div class="messages-app">
+  <nav class="messages-rail" aria-label="AIFT navigation">
+    <a class="rail-brand" href="home.html" aria-label="AIFT home"><img src="images/aift-logo.png" alt="AIFT"></a>
+    <div class="rail-nav">
+      <a href="home.html" title="Home"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path></svg><span>Home</span></a>
+      <a href="network.html" title="Network"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"></circle><circle cx="17" cy="9" r="2.5"></circle><path d="M2.5 20a5.5 5.5 0 0 1 11 0"></path><path d="M13 20a4.5 4.5 0 0 1 9 0"></path></svg><span>Network</span></a>
+      <a class="active" href="messages.html" title="Messages"><svg viewBox="0 0 24 24"><path d="M4 5h16v12H8l-4 4V5z"></path></svg><span>Messages</span></a>
+      <a href="notifications.html" title="Notifications"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18"></path><path d="M10 21h4"></path></svg><span>Alerts</span></a>
+    </div>
+    <a class="rail-profile" href="profile.html" title="Profile"><span>Me</span></a>
+  </nav>
 
   <aside id="conversationSidebar" class="sidebar">
-
     <header class="sidebar-header">
-
-      <div class="brand-row">
-        <a href="home.html" class="brand" aria-label="AIFT Home">
-          <img src="images/aift-logo.png" alt="AIFT">
-        </a>
-
+      <div class="sidebar-title-row">
+        <div>
+          <span class="sidebar-eyebrow">AIFT</span>
+          <h1>Messages</h1>
+        </div>
         <div class="sidebar-header-actions">
-          <button class="icon-btn" onclick="refreshEverything()" aria-label="Refresh">
-            <svg viewBox="0 0 24 24">
-              <path d="M21 12a9 9 0 1 1-3-6.7"></path>
-              <path d="M21 3v6h-6"></path>
-            </svg>
-          </button>
-
-          <button class="icon-btn primary-soft" onclick="openNewChatMode()" aria-label="New chat">
-            <svg viewBox="0 0 24 24">
-              <path d="M12 5v14M5 12h14"></path>
-            </svg>
-          </button>
+          <button class="icon-btn" onclick="refreshEverything()" aria-label="Refresh"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 3v6h-6"></path></svg></button>
+          <button class="icon-btn primary-soft" onclick="openNewChatMode()" aria-label="New chat"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button>
         </div>
       </div>
 
       <div class="search-box">
-        <svg viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="M20 20l-3.5-3.5"></path>
-        </svg>
-
-        <input
-          id="conversationSearch"
-          type="search"
-          placeholder="Search messages or people"
-          autocomplete="off"
-        >
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <input id="conversationSearch" type="search" placeholder="Search messages" autocomplete="off">
       </div>
 
       <div id="newChatPanel" class="new-chat-panel hidden">
-        <div class="new-chat-head">
-          <strong>Start a new conversation</strong>
-          <button onclick="closeNewChatMode()">Close</button>
-        </div>
-
-        <div class="search-box compact">
-          <svg viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="7"></circle>
-            <path d="M20 20l-3.5-3.5"></path>
-          </svg>
-
-          <input
-            id="userSearchInput"
-            type="search"
-            placeholder="Search students, employers, schools"
-            autocomplete="off"
-          >
-        </div>
-
+        <div class="new-chat-head"><strong>New message</strong><button onclick="closeNewChatMode()">Close</button></div>
+        <div class="search-box compact"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input id="userSearchInput" type="search" placeholder="Search people, schools or companies" autocomplete="off"></div>
         <div id="userSearchResults" class="user-search-results"></div>
       </div>
-
     </header>
+
+    <section class="stories-section" aria-label="Stories">
+      <div class="stories-head"><strong>Stories</strong><button type="button" onclick="toast('Story publishing will be available from your AIFT profile.')">Add story</button></div>
+      <div id="storiesStrip" class="stories-strip">
+        <button class="story-card add-story" type="button" onclick="toast('Story publishing will be available from your AIFT profile.')"><span class="story-avatar"><span class="story-plus">+</span></span><span>Your story</span></button>
+        <div id="conversationStories" class="conversation-stories"></div>
+      </div>
+    </section>
 
     <nav class="conversation-tabs">
       <button class="active" data-filter="all" onclick="setConversationFilter('all',this)">All</button>
@@ -233,509 +116,100 @@
       <button data-filter="archived" onclick="setConversationFilter('archived',this)">Archived</button>
     </nav>
 
-    <section id="conversationList" class="conversation-list">
-      <div class="loading-card">Loading conversations...</div>
-    </section>
-
+    <section id="conversationList" class="conversation-list"><div class="loading-card">Loading conversations...</div></section>
   </aside>
 
   <main class="chat-panel">
-
     <header class="chat-header">
-
       <div class="chat-user">
-        <button class="mobile-back" onclick="showConversationSidebar()" aria-label="Back">
-          <svg viewBox="0 0 24 24">
-            <path d="M15 18l-6-6 6-6"></path>
-          </svg>
-        </button>
-
-        <img id="activeUserImage" class="chat-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="">
-
-        <div class="chat-title">
-          <h1 id="activeConversationTitle">Messages</h1>
-          <p id="activeConversationStatus">Select a conversation</p>
-        </div>
+        <button class="mobile-back" onclick="showConversationSidebar()" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg></button>
+        <div class="active-avatar-wrap"><img id="activeUserImage" class="chat-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt=""><span class="active-online-dot"></span></div>
+        <div class="chat-title"><h1 id="activeConversationTitle">Messages</h1><p id="activeConversationStatus">Select a conversation</p></div>
       </div>
-
       <div class="chat-header-actions">
-        <button class="icon-btn" onclick="startAudioCall()" aria-label="Audio call">
-          <svg viewBox="0 0 24 24">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 11.19 18.9 19.5 19.5 0 0 1 5.1 12.8 19.8 19.8 0 0 1 2.08 4.1 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.63 2.62a2 2 0 0 1-.45 2.11L8 9.94A16 16 0 0 0 14.06 16l1.49-1.24a2 2 0 0 1 2.11-.45c.84.3 1.72.51 2.62.63A2 2 0 0 1 22 16.92z"></path>
-          </svg>
-        </button>
-
-        <button class="icon-btn" onclick="startVideoCall()" aria-label="Video call">
-          <svg viewBox="0 0 24 24">
-            <rect x="3" y="6" width="13" height="12" rx="2"></rect>
-            <path d="M16 10l5-3v10l-5-3z"></path>
-          </svg>
-        </button>
-
-
-        <button class="icon-btn" onclick="openChatInfo()" aria-label="Conversation info">
-          <svg viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="1"></circle>
-            <circle cx="19" cy="12" r="1"></circle>
-            <circle cx="5" cy="12" r="1"></circle>
-          </svg>
-        </button>
+        <button class="icon-btn chat-search-btn" onclick="document.getElementById('conversationSearch')?.focus()" aria-label="Search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button>
+        <button class="icon-btn" onclick="startAudioCall()" aria-label="Audio call"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 11.19 18.9 19.5 19.5 0 0 1 5.1 12.8"></path><path d="M8 9.94A16 16 0 0 0 14.06 16"></path></svg></button>
+        <button class="icon-btn" onclick="startVideoCall()" aria-label="Video call"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"></rect><path d="M16 10l5-3v10l-5-3z"></path></svg></button>
+        <button class="icon-btn" onclick="openChatInfo()" aria-label="Conversation info"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button>
       </div>
-
     </header>
 
     <section id="emptyState" class="empty-state">
       <div class="empty-card">
-        <div class="empty-icon">
-          <svg viewBox="0 0 24 24">
-            <path d="M4 5h16v11H7l-3 3V5z"></path>
-          </svg>
-        </div>
-
+        <div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H7l-3 3V5z"></path></svg></div>
         <h2>Your AIFT messages</h2>
-
-        <p>
-          Start secure conversations with students, job seekers, employers,
-          recruiters, teachers, and schools.
-        </p>
-
-        <button onclick="openNewChatMode()">Start new chat</button>
+        <p>Connect with students, employers, recruiters, teachers and schools in one professional conversation space.</p>
+        <button onclick="openNewChatMode()">Start a new chat</button>
       </div>
     </section>
 
     <section id="messagesBox" class="messages-box hidden"></section>
+    <button id="jumpToBottomBtn" class="jump-bottom hidden" type="button" onclick="scrollMessagesToBottom()"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg><span>New messages</span></button>
 
-    <section id="replyBar" class="reply-bar hidden">
-      <div>
-        <strong id="replyTitle">Replying</strong>
-        <p id="replyText"></p>
+    <section id="replyBar" class="reply-bar hidden"><div><strong id="replyTitle">Replying</strong><p id="replyText"></p></div><button onclick="clearReply()" aria-label="Cancel reply"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg></button></section>
+    <section id="attachmentPreview" class="attachment-preview hidden"></section>
+
+    <section id="chatPicker" class="chat-picker hidden">
+      <div class="picker-tabs">
+        <button class="active" data-picker-tab="emoji" onclick="switchPickerTab('emoji',this)">Emoji</button>
+        <button data-picker-tab="gif" onclick="switchPickerTab('gif',this)">GIF</button>
+        <button data-picker-tab="sticker" onclick="switchPickerTab('sticker',this)">Stickers</button>
       </div>
-
-      <button onclick="clearReply()" aria-label="Cancel reply">
-        <svg viewBox="0 0 24 24">
-          <path d="M18 6L6 18M6 6l12 12"></path>
-        </svg>
-      </button>
+      <div id="emojiPanel" class="picker-panel"></div>
+      <div id="gifPanel" class="picker-panel hidden"><div class="picker-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input id="gifSearchInput" type="search" placeholder="Search GIFs"></div><div id="gifGrid" class="asset-grid"></div></div>
+      <div id="stickerPanel" class="picker-panel hidden"><div class="sticker-actions-row"><button onclick="importSticker()">Import sticker</button><button onclick="loadSavedStickers()">My stickers</button></div><div id="stickerGrid" class="asset-grid"></div></div>
     </section>
 
-    <section id="attachmentPreview" class="attachment-preview hidden"></section>
-    <section id="chatPicker" class="chat-picker hidden">
-
-  <div class="picker-tabs">
-
-    <button class="active" data-picker-tab="emoji" onclick="switchPickerTab('emoji',this)">
-      <svg viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="9"></circle>
-        <circle cx="9" cy="10" r="1"></circle>
-        <circle cx="15" cy="10" r="1"></circle>
-        <path d="M8 15s1.5 2 4 2 4-2 4-2"></path>
-      </svg>
-      Emoji
-    </button>
-
-    <button data-picker-tab="gif" onclick="switchPickerTab('gif',this)">
-      <svg viewBox="0 0 24 24">
-        <rect x="3" y="5" width="18" height="14" rx="2"></rect>
-        <path d="M8 10h3M8 14h2M14 10v4M17 10v4M14 12h3"></path>
-      </svg>
-      GIF
-    </button>
-
-    <button data-picker-tab="sticker" onclick="switchPickerTab('sticker',this)">
-      <svg viewBox="0 0 24 24">
-        <path d="M20 13.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7.5"></path>
-        <path d="M14 20c0-3.3 2.7-6 6-6"></path>
-      </svg>
-      Stickers
-    </button>
-
-  </div>
-
-  <div id="emojiPanel" class="picker-panel"></div>
-
-  <div id="gifPanel" class="picker-panel hidden">
-    <div class="picker-search">
-      <svg viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="7"></circle>
-        <path d="M20 20l-3.5-3.5"></path>
-      </svg>
-      <input id="gifSearchInput" type="search" placeholder="Search GIFs">
-    </div>
-
-    <div id="gifGrid" class="asset-grid"></div>
-  </div>
-
-  <div id="stickerPanel" class="picker-panel hidden">
-
-    <div class="sticker-actions-row">
-      <button onclick="importSticker()">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 5v14M5 12h14"></path>
-        </svg>
-        Import sticker
-      </button>
-
-      <button onclick="loadSavedStickers()">
-        <svg viewBox="0 0 24 24">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <path d="M7 10l5 5 5-5"></path>
-          <path d="M12 15V3"></path>
-        </svg>
-        My stickers
-      </button>
-    </div>
-
-    <div id="stickerGrid" class="asset-grid"></div>
-
-  </div>
-
-</section>
-
-<footer class="composer">
-
-  <div class="chat-picker-wrap">
-
-    <button
-      id="pickerToggleBtn"
-      class="composer-icon"
-      onclick="toggleChatPicker()"
-      aria-label="Open stickers and GIFs"
-    >
-      <svg viewBox="0 0 24 24">
-        <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-        <circle cx="9" cy="9" r="1"></circle>
-        <circle cx="15" cy="9" r="1"></circle>
-        <circle cx="12" cy="12" r="9"></circle>
-      </svg>
-    </button>
-
-  </div>
-
-  <textarea
-    id="messageInput"
-    rows="1"
-    placeholder="Write a message"
-    aria-label="Write a message"
-  ></textarea>
-
-  <button
-    class="composer-icon"
-    onclick="openCameraCapture()"
-    aria-label="Open camera"
-  >
-    <svg viewBox="0 0 24 24">
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-      <circle cx="12" cy="13" r="4"></circle>
-    </svg>
-  </button>
-
-  <div class="attachment-wrap">
-
-    <button
-      class="composer-icon"
-      onclick="toggleAttachmentMenu()"
-      aria-label="Attach file"
-    >
-      <svg viewBox="0 0 24 24">
-        <path d="M21.44 11.05l-9.19 9.19a5.5 5.5 0 0 1-7.78-7.78l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95l-9.19 9.19a1.5 1.5 0 0 1-2.12-2.12l8.49-8.48"></path>
-      </svg>
-    </button>
-
-    <div id="attachmentMenu" class="attachment-menu hidden">
-
-      <button onclick="chooseAttachment('image')">
-        <svg viewBox="0 0 24 24">
-          <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-          <circle cx="8.5" cy="8.5" r="1.5"></circle>
-          <path d="M21 15l-5-5L5 21"></path>
-        </svg>
-        Image
-      </button>
-
-      <button onclick="chooseAttachment('video')">
-        <svg viewBox="0 0 24 24">
-          <rect x="3" y="5" width="14" height="14" rx="2"></rect>
-          <path d="M17 9l4-2v10l-4-2"></path>
-        </svg>
-        Video
-      </button>
-
-      <button onclick="chooseAttachment('audio')">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 3v10a4 4 0 1 1-4-4"></path>
-          <path d="M12 3h5"></path>
-        </svg>
-        Audio
-      </button>
-
-      <button onclick="chooseAttachment('document')">
-        <svg viewBox="0 0 24 24">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <path d="M14 2v6h6"></path>
-        </svg>
-        Document
-      </button>
-
-    </div>
-
-  </div>
-
-  <input id="fileInput" type="file" hidden>
-  <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
-  <input id="stickerImportInput" type="file" accept="image/*,.webp,.gif" hidden>
-
-  <button
-    class="send-btn"
-    onclick="sendMessage()"
-    aria-label="Send message"
-  >
-    <svg viewBox="0 0 24 24">
-      <path d="M22 2L11 13"></path>
-      <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
-    </svg>
-  </button>
-
-</footer>
-
-  </main>
-
-</div>
-<div id="cameraModal" class="modal-backdrop hidden">
-  <div class="camera-card">
-    <div class="modal-head">
-      <h3>Take a photo</h3>
-      <button class="modal-close" onclick="closeCameraModal()">
-        <svg viewBox="0 0 24 24">
-          <path d="M18 6L6 18M6 6l12 12"></path>
-        </svg>
-      </button>
-    </div>
-
-    <video id="cameraVideo" autoplay playsinline muted></video>
-    <canvas id="cameraCanvas" class="hidden"></canvas>
-
-    <div class="modal-actions">
-      <button class="btn ghost" onclick="closeCameraModal()">Cancel</button>
-      <button class="btn" onclick="switchCamera()">Switch</button>
-      <button class="btn danger" onclick="captureCameraPhoto()">Capture</button>
-    </div>
-  </div>
-</div>
-  <div id="mediaViewer" class="media-viewer hidden">
-
-  <div class="media-viewer-backdrop" onclick="closeMediaViewer()"></div>
-
-  <div class="media-viewer-content">
-
-    <button
-      class="media-viewer-close"
-      onclick="closeMediaViewer()"
-    >
-      <svg viewBox="0 0 24 24">
-        <path d="M18 6L6 18M6 6l12 12"></path>
-      </svg>
-    </button>
-
-    <button
-      class="media-viewer-download"
-      onclick="downloadCurrentMedia()"
-    >
-      <svg viewBox="0 0 24 24">
-        <path d="M12 3v12"></path>
-        <path d="M7 10l5 5 5-5"></path>
-        <path d="M5 21h14"></path>
-      </svg>
-    </button>
-
-    <img
-      id="mediaViewerImage"
-      class="hidden"
-      alt=""
-    >
-
-    <video
-      id="mediaViewerVideo"
-      class="hidden"
-      controls
-      autoplay
-    ></video>
-
-  </div>
-
-</div>
-
-  <!-- AIFT CALL EXPERIENCE -->
-<div id="callModal" class="call-modal hidden">
-
-  <div class="call-bg"></div>
-
-  <div class="call-shell">
-
-    <div class="call-top">
-      <div class="call-user">
-        <img id="callAvatar" src="" alt="">
-
-        <div>
-          <h2 id="callName">User</h2>
-          <p id="callStatus">Connecting...</p>
+    <footer class="composer">
+      <button class="composer-icon add-attachment" onclick="toggleAttachmentMenu()" aria-label="Attach"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></button>
+      <div class="attachment-wrap">
+        <div id="attachmentMenu" class="attachment-menu hidden">
+          <button onclick="chooseAttachment('document')"><span class="attach-icon document"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16h14V8z"></path><path d="M14 2v6h6"></path></svg></span><span><strong>Document</strong><small>PDF, Word, Excel, files</small></span></button>
+          <button onclick="chooseAttachment('image')"><span class="attach-icon media"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg></span><span><strong>Photos & videos</strong><small>Share media from your device</small></span></button>
+          <button onclick="openCameraCapture()"><span class="attach-icon camera"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4"></path><circle cx="12" cy="13" r="4"></circle></svg></span><span><strong>Camera</strong><small>Take a photo</small></span></button>
+          <button onclick="openActiveProfile()"><span class="attach-icon profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></span><span><strong>AIFT profile</strong><small>Share your professional identity</small></span></button>
+          <button onclick="toast('Career opportunity sharing is being connected.')"><span class="attach-icon career"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7V4h8v3"></path><path d="M3 12h18"></path></svg></span><span><strong>Career opportunity</strong><small>Jobs, internships and projects</small></span></button>
         </div>
       </div>
-
-      <div class="call-info">
-        <span id="callDuration">00:00</span>
-        <span id="callNetworkStatus">HD</span>
-      </div>
-    </div>
-
-    <div class="call-video-stage">
-
-      <video id="remoteVideo" autoplay playsinline></video>
-
-      <div class="local-video-wrap">
-        <video id="localVideo" autoplay muted playsinline></video>
-      </div>
-
-      <div id="callWaitingState" class="call-waiting">
-        <img id="callWaitingAvatar" src="" alt="">
-        <h3 id="callWaitingName">Calling...</h3>
-        <p>Waiting for answer</p>
-      </div>
-
-    </div>
-
-    <div class="call-controls">
-
-      <button id="muteBtn" class="call-control" onclick="toggleMute()">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 1 0 6 0V4a3 3 0 0 0-3-3z"></path>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-        </svg>
-        <span>Mute</span>
-      </button>
-
-      <button id="cameraBtn" class="call-control" onclick="toggleCamera()">
-        <svg viewBox="0 0 24 24">
-          <rect x="2" y="6" width="14" height="12" rx="2"></rect>
-          <path d="M16 10l6-3v10l-6-3z"></path>
-        </svg>
-        <span>Camera</span>
-      </button>
-
-      <button id="speakerBtn" class="call-control" onclick="toggleSpeaker()">
-        <svg viewBox="0 0 24 24">
-          <path d="M11 5L6 9H2v6h4l5 4z"></path>
-          <path d="M16 8a5 5 0 0 1 0 8"></path>
-        </svg>
-        <span>Speaker</span>
-      </button>
-
-      <button id="screenBtn" class="call-control" onclick="toggleScreenShare()">
-        <svg viewBox="0 0 24 24">
-          <rect x="2" y="3" width="20" height="14"></rect>
-          <path d="M8 21h8"></path>
-        </svg>
-        <span>Share</span>
-      </button>
-
-      <button id="meetingBtn" class="call-control" onclick="upgradeToMeeting()">
-        <svg viewBox="0 0 24 24">
-          <circle cx="9" cy="8" r="3"></circle>
-          <circle cx="17" cy="8" r="3"></circle>
-          <path d="M4 20a5 5 0 0 1 10 0"></path>
-          <path d="M12 20a5 5 0 0 1 10 0"></path>
-        </svg>
-        <span>Meeting</span>
-      </button>
-
-      <button id="endCallBtn" class="call-control end" onclick="endCurrentCall()">
-        <svg viewBox="0 0 24 24">
-          <path d="M4 15c5-5 11-5 16 0"></path>
-        </svg>
-        <span>End</span>
-      </button>
-
-    </div>
-
-  </div>
-
+      <button id="pickerToggleBtn" class="composer-icon" onclick="toggleChatPicker()" aria-label="Emoji, GIFs and stickers"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><circle cx="9" cy="10" r="1"></circle><circle cx="15" cy="10" r="1"></circle><path d="M8 15s1.5 2 4 2 4-2 4-2"></path></svg></button>
+      <div class="composer-input-wrap"><textarea id="messageInput" rows="1" placeholder="Type a message" aria-label="Write a message"></textarea></div>
+      <button class="composer-icon mic-btn" type="button" onclick="chooseAttachment('audio')" aria-label="Attach audio"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0"></path><path d="M12 17v5"></path></svg></button>
+      <input id="fileInput" type="file" hidden>
+      <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
+      <input id="stickerImportInput" type="file" accept="image/*,.webp,.gif" hidden>
+      <button class="send-btn" onclick="sendMessage()" aria-label="Send message"><svg viewBox="0 0 24 24"><path d="M22 2L11 13"></path><path d="M22 2l-7 20-4-9-9-4 20-7z"></path></svg></button>
+    </footer>
+  </main>
 </div>
 
-<div id="incomingCallModal" class="incoming-call hidden">
+<div id="cameraModal" class="modal-backdrop hidden"><div class="camera-card"><div class="modal-head"><h3>Take a photo</h3><button class="modal-close" onclick="closeCameraModal()"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg></button></div><video id="cameraVideo" autoplay playsinline muted></video><canvas id="cameraCanvas" class="hidden"></canvas><div class="modal-actions"><button class="btn ghost" onclick="closeCameraModal()">Cancel</button><button class="btn" onclick="switchCamera()">Switch</button><button class="btn danger" onclick="captureCameraPhoto()">Capture</button></div></div></div>
 
-  <div class="incoming-card">
+<div id="mediaViewer" class="media-viewer hidden"><div class="media-viewer-backdrop" onclick="closeMediaViewer()"></div><div class="media-viewer-content"><button class="media-viewer-close" onclick="closeMediaViewer()"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg></button><button class="media-viewer-download" onclick="downloadCurrentMedia()"><svg viewBox="0 0 24 24"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg></button><img id="mediaViewerImage" class="hidden" alt=""><video id="mediaViewerVideo" class="hidden" controls autoplay></video></div></div>
 
-    <img id="incomingAvatar" src="" alt="">
+<div id="callModal" class="call-modal hidden"><div class="call-bg"></div><div class="call-shell"><div class="call-top"><div class="call-user"><img id="callAvatar" src="" alt=""><div><h2 id="callName">User</h2><p id="callStatus">Connecting...</p></div></div><div class="call-info"><span id="callDuration">00:00</span><span id="callNetworkStatus"></span></div></div><div class="call-video-stage"><video id="remoteVideo" autoplay playsinline></video><div class="local-video-wrap"><video id="localVideo" autoplay muted playsinline></video></div><div id="callWaitingState" class="call-waiting"><img id="callWaitingAvatar" src="" alt=""><h3 id="callWaitingName">Calling...</h3><p>Waiting for answer</p></div></div><div class="call-controls"><button id="muteBtn" class="call-control" onclick="toggleMute()"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0"></path></svg><span>Mute</span></button><button id="cameraBtn" class="call-control" onclick="toggleCamera()"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2"></rect><path d="M16 10l6-3v10l-6-3z"></path></svg><span>Camera</span></button><button id="speakerBtn" class="call-control" onclick="toggleSpeaker()"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4z"></path><path d="M16 8a5 5 0 0 1 0 8"></path></svg><span>Speaker</span></button><button id="screenBtn" class="call-control" onclick="toggleScreenShare()"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14"></rect><path d="M8 21h8"></path></svg><span>Share</span></button><button id="meetingBtn" class="call-control" onclick="upgradeToMeeting()"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><circle cx="17" cy="8" r="3"></circle><path d="M4 20a5 5 0 0 1 10 0"></path></svg><span>Meeting</span></button><button id="endCallBtn" class="call-control end" onclick="endCurrentCall()"><svg viewBox="0 0 24 24"><path d="M4 15c5-5 11-5 16 0"></path></svg><span>End</span></button></div></div></div>
 
-    <h2 id="incomingCaller">Incoming Call</h2>
-    <p id="incomingType">Video Call</p>
+<div id="incomingCallModal" class="incoming-call hidden"><div class="incoming-card"><img id="incomingAvatar" src="" alt=""><h2 id="incomingCaller">Incoming Call</h2><p id="incomingType">Video Call</p><div class="incoming-wave"></div><div class="incoming-actions"><button class="decline-btn" onclick="declineIncomingCall()"><svg viewBox="0 0 24 24"><path d="M4 15c5-5 11-5 16 0"></path></svg></button><button class="accept-btn" onclick="acceptIncomingCall()"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 11.19 18.9"></path></svg></button></div></div></div>
 
-    <div class="incoming-wave"></div>
-
-    <div class="incoming-actions">
-
-      <button class="decline-btn" onclick="declineIncomingCall()">
-        <svg viewBox="0 0 24 24">
-          <path d="M4 15c5-5 11-5 16 0"></path>
-        </svg>
-      </button>
-
-      <button class="accept-btn" onclick="acceptIncomingCall()">
-        <svg viewBox="0 0 24 24">
-          <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 11.19 18.9 19.5 19.5 0 0 1 5.1 12.8 19.8 19.8 0 0 1 2.08 4.1 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.63 2.62a2 2 0 0 1-.45 2.11L8 9.94A16 16 0 0 0 14.06 16l1.49-1.24a2 2 0 0 1 2.11-.45c.84.3 1.72.51 2.62.63A2 2 0 0 1 22 16.92z"></path>
-        </svg>
-      </button>
-
-    </div>
-
-  </div>
-
-</div>
-<div id="meetingComingSoonModal"
-     class="modal-backdrop hidden">
-
-  <div class="meeting-coming-card">
-
-    <button class="modal-close meeting-coming-close"
-            onclick="closeMeetingComingSoon()">
-      <svg viewBox="0 0 24 24">
-        <path d="M18 6L6 18M6 6l12 12"></path>
-      </svg>
-    </button>
-
-    <div class="meeting-coming-logo">
-      <img src="images/aift-logo.png" alt="AIFT">
-    </div>
-
-    <span class="meeting-coming-pill">
-      Coming Soon
-    </span>
-
-    <h2>AIFT Meet 2.0</h2>
-
-    <p>
-      We are building a next-generation meeting experience for AIFT with
-      smoother video calls, professional virtual backgrounds, better screen
-      sharing, recordings, captions, and audio enhancements.
-    </p>
-
-    <div class="meeting-coming-grid">
-      <span>HD Video Meetings</span>
-      <span>Virtual Backgrounds</span>
-      <span>Noise Reduction</span>
-      <span>Meeting Recordings</span>
-      <span>Live Captions</span>
-      <span>Screen Sharing</span>
-    </div>
-
-    <button class="meeting-coming-btn"
-            onclick="closeMeetingComingSoon()">
-      Got it
-    </button>
-
-  </div>
-
-</div>
+<div id="meetingComingSoonModal" class="modal-backdrop hidden"><div class="meeting-coming-card"><button class="modal-close meeting-coming-close" onclick="closeMeetingComingSoon()"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg></button><div class="meeting-coming-logo"><img src="images/aift-logo.png" alt="AIFT"></div><span class="meeting-coming-pill">Coming Soon</span><h2>AIFT Meet 2.0</h2><p>We are building a smoother professional meeting experience for AIFT.</p><div class="meeting-coming-grid"><span>HD Video</span><span>Screen Sharing</span><span>Recordings</span><span>Live Captions</span></div><button class="meeting-coming-btn" onclick="closeMeetingComingSoon()">Got it</button></div></div>
 
 <script src="messages.js"></script>
+<script>
+(function(){
+  const list=document.getElementById('conversationList');
+  const target=document.getElementById('conversationStories');
+  if(!list||!target)return;
+  const rebuild=()=>{
+    const cards=[...list.querySelectorAll('.conversation-item')].slice(0,6);
+    target.innerHTML=cards.map((card,index)=>{
+      const img=card.querySelector('.conversation-avatar')?.getAttribute('src')||'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+      const name=(card.querySelector('.conversation-name')?.textContent||'AIFT').trim();
+      const onclick=card.getAttribute('onclick')||'';
+      return `<button class="story-card" type="button" data-story-index="${index}" ${onclick?`onclick="${onclick.replaceAll('"','&quot;')}"`:''}><span class="story-avatar"><img src="${img}" alt=""></span><span>${name.split(' ')[0]}</span></button>`;
+    }).join('');
+  };
+  new MutationObserver(rebuild).observe(list,{childList:true,subtree:true});
+  rebuild();
+})();
+</script>
 </body>
 </html>
