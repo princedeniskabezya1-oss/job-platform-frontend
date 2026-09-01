@@ -59,12 +59,24 @@
       document.head.appendChild(script);
     }
   }
+  function loadEmployerCareerHubRuntime(){
+    if(page()!=="employer.html")return;
+    if(document.getElementById("aiftEmployerCareerHubRuntimeScript"))return;
+    const script=document.createElement("script");
+    script.id="aiftEmployerCareerHubRuntimeScript";
+    script.src="employer-career-hub-smart-runtime.js";
+    document.head.appendChild(script);
+  }
   function loadEmployerCareerHubSmart(){
     if(page()!=="employer.html")return;
-    if(document.getElementById("aiftEmployerCareerHubSmartScript"))return;
+    if(document.getElementById("aiftEmployerCareerHubSmartScript")){
+      loadEmployerCareerHubRuntime();
+      return;
+    }
     const script=document.createElement("script");
     script.id="aiftEmployerCareerHubSmartScript";
     script.src="employer-career-hub-smart.js";
+    script.addEventListener("load",loadEmployerCareerHubRuntime,{once:true});
     document.head.appendChild(script);
   }
   function loadCareerHubCreation(){
