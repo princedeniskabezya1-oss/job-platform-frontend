@@ -243,9 +243,41 @@
     openConfirmModal({title:'Delete story',text:'This story will be removed immediately.',confirmText:'Delete',danger:true,onConfirm:async()=>{try{await api(`/api/stories/${encodeURIComponent(idOf(story))}`,{method:'DELETE',headers:authHeaders()});closeStoryViewer();toast('Story deleted');await loadStories();}catch(error){toast(error.message||'Unable to delete story');}}});
   };
 
+  function applyStoryViewCount(payload){
+    const targetId=String(payload?.storyId||'');
+    if(!targetId)return;
+
+    let matchedStory=null;
+
+    storyState.groups.some(group=>
+      (group.stories||[]).some(story=>{
+        if(idOf(story)!==targetId)return false;
+        story.viewerCount=Number(payload?.viewerCount||0);
+        matchedStory=story;
+        return true;
+      })
+    );
+
+    if(!matchedStory)return;
+
+    const current=storyState.groups[storyState.groupIndex]?.stories?.[storyState.storyIndex];
+    if(idOf(current)===targetId){
+      const count=Number(matchedStory.viewerCount||0);
+      const button=document.getElementById('storyViewersBtn');
+      if(button)button.textContent=`${count} viewer${count===1?'':'s'}`;
+    }
+  }
+
   document.getElementById('storyFileInput')?.addEventListener('change',event=>{storyState.file=event.target.files?.[0]||null;renderStoryComposePreview();});
   document.addEventListener('DOMContentLoaded',()=>setTimeout(loadStories,350));
-  const socketWait=setInterval(()=>{if(state?.socket){clearInterval(socketWait);state.socket.on('storyCreated',()=>loadStories());state.socket.on('storyDeleted',()=>loadStories());}},500);
+  const socketWait=setInterval(()=>{
+    if(state?.socket){
+      clearInterval(socketWait);
+      state.socket.on('storyCreated',()=>loadStories());
+      state.socket.on('storyDeleted',()=>loadStories());
+      state.socket.on('storyViewed',applyStoryViewCount);
+    }
+  },500);
 })();
 </script>
 </body>
