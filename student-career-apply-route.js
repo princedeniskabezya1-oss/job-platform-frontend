@@ -140,48 +140,37 @@
         overflow-wrap:anywhere;
       }
 
-      #section-career #studentCareerPassportQuick.aift-career-passport-stable{
-        margin-top:10px;
-        padding:10px 11px;
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        gap:10px;
-        border:1px solid #d9e6f6;
-        border-radius:10px;
-        background:#f7fbff;
+      #section-career .aift-career-goal-row{
+        display:flex!important;
+        align-items:center!important;
+        gap:8px!important;
+        flex-wrap:wrap!important;
       }
 
-      #section-career #studentCareerPassportQuick.aift-career-passport-stable div{
-        min-width:0;
-      }
-
-      #section-career #studentCareerPassportQuick.aift-career-passport-stable span{
-        display:block;
-        color:#1a73e8;
-        font-size:7px;
-        font-weight:850;
-        letter-spacing:.04em;
-      }
-
-      #section-career #studentCareerPassportQuick.aift-career-passport-stable strong{
-        display:block;
-        margin-top:2px;
-        color:#344054;
-        font-size:9px;
-      }
-
-      #section-career #studentCareerPassportQuick.aift-career-passport-stable button{
+      #section-career #studentCareerPassportQuick.aift-career-passport-inline{
         min-height:34px;
         padding:0 11px;
-        flex:0 0 auto;
+        display:inline-flex;
+        align-items:center;
+        gap:7px;
         border:1px solid #bfd7f5;
         border-radius:9px;
         background:#eef6ff;
         color:#1765cc;
-        font-size:8px;
-        font-weight:800;
+        font:800 8px/1 Inter,Arial,sans-serif;
+        white-space:nowrap;
         cursor:pointer;
+      }
+
+      #section-career #studentCareerPassportQuick.aift-career-passport-inline i{
+        font-size:11px;
+      }
+
+      #section-career #studentCareerPassportQuick.aift-career-passport-inline span{
+        display:inline;
+        color:inherit;
+        font:inherit;
+        letter-spacing:0;
       }
 
       @media(min-width:1201px){
@@ -203,6 +192,14 @@
 
         #section-career .student-career-category-card{
           min-height:128px;
+        }
+
+        #section-career .aift-career-goal-row{
+          align-items:stretch!important;
+        }
+
+        #section-career #studentCareerPassportQuick.aift-career-passport-inline{
+          justify-content:center;
         }
       }
     `;
@@ -252,6 +249,27 @@
     document
       .querySelectorAll("#section-career .student-career-category-card.career-focus-selected")
       .forEach(card=>card.classList.remove("career-focus-selected"));
+  }
+
+  function isolateMarketPanelForCategory(category){
+    const normalized=String(category||"").trim().toLowerCase();
+    if(!normalized) return;
+
+    const marketPanel=document.getElementById("studentCareerMarketsV2Panel");
+    if(!marketPanel) return;
+
+    const marketCategory=String(marketPanel.dataset.aiftMarketCategory||"").trim().toLowerCase();
+
+    if(normalized!==marketCategory){
+      marketPanel.hidden=true;
+    }
+
+    if(normalized!=="events"){
+      const heading=String(marketPanel.querySelector(".scv2-head h3")?.textContent||"")
+        .trim()
+        .toLowerCase();
+      if(heading==="events") marketPanel.hidden=true;
+    }
   }
 
   function setCategoryCount(action,value){
@@ -420,48 +438,77 @@
     return passportSnapshot;
   }
 
-  async function ensureCareerPassportQuick(){
-    const readiness=document.querySelector("#section-career .student-career-readiness-card");
-    if(!readiness) return false;
+  function passportTarget(){
+    return document.querySelector(
+      "#section-career .student-career-readiness-card [data-career-action=\"set-goal\"]"
+    )||document.querySelector(
+      "#section-career [data-career-action=\"set-goal\"]"
+    );
+  }
 
-    const existing=document.getElementById("studentCareerPassportQuick");
-    if(existing) return true;
+  function normalizePassportDuplicates(){
+    const passportNodes=[...document.querySelectorAll(
+      "#section-career [id=\"studentCareerPassportQuick\"]"
+    )];
+
+    let keeper=passportNodes.find(node=>node.classList.contains("aift-career-passport-inline"))||null;
+
+    for(const node of passportNodes){
+      if(node!==keeper) node.remove();
+    }
+
+    return keeper;
+  }
+
+  async function ensureCareerPassportQuick(){
+    const goalButton=passportTarget();
+    if(!goalButton) return false;
+
+    let existing=normalizePassportDuplicates();
+
+    if(existing){
+      const parent=goalButton.parentElement;
+      if(parent){
+        parent.classList.add("aift-career-goal-row");
+        if(existing.parentElement!==parent||goalButton.nextElementSibling!==existing){
+          goalButton.insertAdjacentElement("afterend",existing);
+        }
+      }
+      return true;
+    }
 
     if(passportLoading) return false;
     passportLoading=true;
 
     try{
       const passport=await getPassportSnapshot();
+      const currentGoalButton=passportTarget();
+      if(!currentGoalButton) return false;
 
-      if(document.getElementById("studentCareerPassportQuick")) return true;
+      existing=normalizePassportDuplicates();
+      if(existing) return true;
 
-      const currentReadiness=document.querySelector("#section-career .student-career-readiness-card");
-      if(!currentReadiness) return false;
+      const parent=currentGoalButton.parentElement;
+      if(!parent) return false;
+      parent.classList.add("aift-career-goal-row");
 
       const verified=passport?.verified===true&&Boolean(passport?.identity?.aiftStudentId);
-      const passportStudentId=passport?.identity?.aiftStudentId||"";
 
-      const block=document.createElement("div");
+      const block=document.createElement("button");
+      block.type="button";
       block.id="studentCareerPassportQuick";
-      block.className="scv2-quick-passport aift-career-passport-stable";
+      block.className="aift-career-passport-inline";
+      block.dataset.aiftCareerPassportOpen="1";
+      block.setAttribute("aria-label","Open AIFT Opportunity Passport");
       block.innerHTML=`
-        <div>
-          <span>AIFT OPPORTUNITY PASSPORT</span>
-          <strong>${
-            verified
-              ? `${esc(passportStudentId)} · Ready for applications`
-              : "Set up your verified career identity"
-          }</strong>
-        </div>
-        <button type="button" data-aift-career-passport-open>
-          ${verified?"View":"Set up"}
-        </button>
+        <i class="fa-solid fa-id-card" aria-hidden="true"></i>
+        <span>AIFT Opportunity Passport${verified?" · Verified":""}</span>
       `;
 
-      currentReadiness.appendChild(block);
+      currentGoalButton.insertAdjacentElement("afterend",block);
       return true;
     }catch(error){
-      console.warn("Career Hub Passport could not be restored:",error);
+      console.warn("Career Hub Passport could not be positioned:",error);
       return false;
     }finally{
       passportLoading=false;
@@ -490,6 +537,7 @@
       categoryFrame=0;
       const added=ensureCareerCategories();
       clearCategorySelectionRing();
+      normalizePassportDuplicates();
       if(added){
         scheduleCareerCounts(80);
       }
@@ -533,6 +581,9 @@
   document.addEventListener("click",event=>{
     const categoryButton=event.target.closest("#section-career .student-career-category-card");
     if(categoryButton){
+      const category=String(categoryButton.dataset.careerAction||"").trim().toLowerCase();
+      isolateMarketPanelForCategory(category);
+
       requestAnimationFrame(()=>{
         clearCategorySelectionRing();
         categoryButton.blur?.();
@@ -542,6 +593,7 @@
     const passportButton=event.target.closest("[data-aift-career-passport-open]");
     if(passportButton){
       event.preventDefault();
+      event.stopPropagation();
       if(window.AIFTStudentPassport?.open){
         window.AIFTStudentPassport.open().catch(()=>{});
       }else if(window.openStudentStudioPage){
