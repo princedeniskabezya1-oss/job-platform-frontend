@@ -21,6 +21,17 @@
   </div>
 </div>
 
+<div id="inChatSearchModal" class="modal-backdrop hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div><h3>Search this conversation</h3><p id="inChatSearchCaption" class="modal-text">Find messages in the active chat.</p></div>
+      <button class="modal-close" onclick="closeInChatSearch()" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
+    </div>
+    <div class="search-box compact"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input id="inChatSearchInput" type="search" placeholder="Search messages in this chat" autocomplete="off"></div>
+    <div id="inChatSearchResults" class="user-search-results"><div class="empty-list">Type at least 2 letters to search.</div></div>
+  </div>
+</div>
+
 <div id="chatInfoDrawer" class="drawer hidden">
   <div class="drawer-panel">
     <div class="drawer-head"><h2>Conversation info</h2><button class="icon-btn" onclick="closeChatInfo()" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg></button></div>
@@ -29,14 +40,14 @@
       <div class="drawer-quick-actions">
         <button onclick="startAudioCall()"><span><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 11.2 18.9"></path></svg></span>Audio</button>
         <button onclick="startVideoCall()"><span><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"></rect><path d="M16 10l5-3v10l-5-3z"></path></svg></span>Video</button>
-        <button onclick="document.getElementById('conversationSearch')?.focus()"><span><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></span>Search</button>
+        <button onclick="openInChatSearch()"><span><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></span>Search</button>
         <button onclick="toggleActiveMute()"><span><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18"></path></svg></span>Mute</button>
       </div>
     </div>
     <div class="drawer-section-title">Chat settings</div>
     <div class="drawer-actions">
       <button onclick="openActiveProfile()"><svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"></path><circle cx="12" cy="7" r="4"></circle></svg>View profile</button>
-      <button onclick="openSharedFilesPanel()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16h16V8z"></path></svg>Media, links & documents</button>
+      <button onclick="openSharedFilesPanel()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 1-2 2v16h16V8z"></path></svg>Media, links & documents</button>
       <button onclick="toggleActivePin()"><svg viewBox="0 0 24 24"><path d="M12 17v5"></path><path d="M5 17h14l-2-8V4H7v5z"></path></svg>Pin conversation</button>
       <button onclick="archiveActiveConversation()"><svg viewBox="0 0 24 24"><path d="M21 8v13H3V8"></path><path d="M1 3h22v5H1z"></path></svg>Archive conversation</button>
       <button class="danger-text" onclick="blockActiveConversation()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M4.93 4.93l14.14 14.14"></path></svg>Block conversation</button>
@@ -67,7 +78,7 @@
   </aside>
 
   <main class="chat-panel">
-    <header class="chat-header"><div class="chat-user"><button class="mobile-back" onclick="showConversationSidebar()"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg></button><div class="active-avatar-wrap"><img id="activeUserImage" class="chat-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt=""><span class="active-online-dot"></span></div><div class="chat-title"><h1 id="activeConversationTitle">Messages</h1><p id="activeConversationStatus">Select a conversation</p></div></div><div class="chat-header-actions"><button class="icon-btn chat-search-btn" onclick="document.getElementById('conversationSearch')?.focus()"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button><button class="icon-btn" onclick="startAudioCall()"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 11.19 18.9"></path></svg></button><button class="icon-btn" onclick="startVideoCall()"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"></rect><path d="M16 10l5-3v10l-5-3z"></path></svg></button><button class="icon-btn" onclick="openChatInfo()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button></div></header>
+    <header class="chat-header"><div class="chat-user"><button class="mobile-back" onclick="showConversationSidebar()"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"></path></svg></button><div class="active-avatar-wrap"><img id="activeUserImage" class="chat-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt=""><span class="active-online-dot"></span></div><div class="chat-title"><h1 id="activeConversationTitle">Messages</h1><p id="activeConversationStatus">Select a conversation</p></div></div><div class="chat-header-actions"><button class="icon-btn chat-search-btn" onclick="openInChatSearch()" aria-label="Search in conversation"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button><button class="icon-btn" onclick="startAudioCall()"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 11.19 18.9"></path></svg></button><button class="icon-btn" onclick="startVideoCall()"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2"></rect><path d="M16 10l5-3v10l-5-3z"></path></svg></button><button class="icon-btn" onclick="openChatInfo()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button></div></header>
     <section id="emptyState" class="empty-state"><div class="empty-card"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H7l-3 3V5z"></path></svg></div><h2>Your AIFT messages</h2><p>Connect with students, employers, recruiters, teachers and schools in one professional conversation space.</p><button onclick="openNewChatMode()">Start a new chat</button></div></section>
     <section id="messagesBox" class="messages-box hidden"></section>
     <button id="jumpToBottomBtn" class="jump-bottom hidden" type="button" onclick="scrollMessagesToBottom()"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg><span>New messages</span></button>
@@ -123,6 +134,108 @@
   document.addEventListener('DOMContentLoaded',()=>setTimeout(loadStories,350));
   const socketWait=setInterval(()=>{if(state?.socket){clearInterval(socketWait);state.socket.on('storyCreated',()=>loadStories());state.socket.on('storyDeleted',()=>loadStories());state.socket.on('storyViewed',applyStoryViewCount);}},500);
 })();
+
+let inChatSearchTimer=null;
+let inChatSearchRequest=0;
+window.openInChatSearch=function(){
+  if(!state?.activeConversation){toast('Select a conversation first');return;}
+  const modal=document.getElementById('inChatSearchModal');
+  const caption=document.getElementById('inChatSearchCaption');
+  const input=document.getElementById('inChatSearchInput');
+  const results=document.getElementById('inChatSearchResults');
+  if(caption)caption.textContent=`Search messages in ${conversationTitle(state.activeConversation)}.`;
+  if(input)input.value='';
+  if(results)results.innerHTML='<div class="empty-list">Type at least 2 letters to search.</div>';
+  modal?.classList.remove('hidden');
+  setTimeout(()=>input?.focus(),80);
+};
+window.closeInChatSearch=function(){
+  clearTimeout(inChatSearchTimer);
+  inChatSearchRequest++;
+  document.getElementById('inChatSearchModal')?.classList.add('hidden');
+};
+function searchResultSender(message){
+  if(String(senderId(message))===String(state.myId))return 'You';
+  return userDisplayName(message.sender||state.activeOtherUser||{});
+}
+function searchResultPreview(message){
+  if(message.deletedForEveryone)return 'This message was deleted';
+  if(message.text)return message.text;
+  const attachment=getPrimaryAttachment(message);
+  if(attachment)return attachment.originalName||message.messageType||'Attachment';
+  return message.messageType||'Message';
+}
+async function runInChatSearch(query){
+  const results=document.getElementById('inChatSearchResults');
+  const conversation=state.activeConversation;
+  if(!results||!conversation)return;
+  const q=String(query||'').trim();
+  if(q.length<2){results.innerHTML='<div class="empty-list">Type at least 2 letters to search.</div>';return;}
+  const requestId=++inChatSearchRequest;
+  results.innerHTML='<div class="loading-card">Searching this conversation...</div>';
+  try{
+    const id=conversationId(conversation);
+    const data=await api(`/api/conversations/${encodeURIComponent(id)}/messages?limit=100&search=${encodeURIComponent(q)}`,{headers:authHeaders()});
+    if(requestId!==inChatSearchRequest)return;
+    const matches=(Array.isArray(data)?data:data.messages||[]).slice().reverse();
+    if(!matches.length){results.innerHTML='<div class="empty-list">No matching messages found.</div>';return;}
+    results.innerHTML=matches.map(message=>{
+      const id=messageId(message);
+      const createdAt=message.createdAt||'';
+      return `<article class="conversation-item" role="button" tabindex="0" onclick="jumpToInChatSearchResult('${esc(id)}','${esc(createdAt)}')" onkeydown="if(event.key==='Enter'){jumpToInChatSearchResult('${esc(id)}','${esc(createdAt)}')}"><div class="conversation-main"><div class="conversation-top"><div class="conversation-name">${esc(searchResultSender(message))}</div><div class="conversation-time">${esc(formatTime(createdAt))}</div></div><div class="conversation-preview">${esc(searchResultPreview(message))}</div></div></article>`;
+    }).join('');
+  }catch(error){
+    if(requestId!==inChatSearchRequest)return;
+    results.innerHTML=`<div class="empty-list">${esc(error.message||'Unable to search this conversation')}</div>`;
+  }
+}
+window.jumpToInChatSearchResult=async function(targetId,createdAt){
+  if(!state.activeConversation||!targetId)return;
+  const conversationSnapshot=conversationId(state.activeConversation);
+  const results=document.getElementById('inChatSearchResults');
+  if(results)results.innerHTML='<div class="loading-card">Opening message...</div>';
+  try{
+    const targetTime=new Date(createdAt||Date.now());
+    targetTime.setMilliseconds(targetTime.getMilliseconds()+1);
+    const before=encodeURIComponent(targetTime.toISOString());
+    const [contextData,latestData]=await Promise.all([
+      api(`/api/conversations/${encodeURIComponent(conversationSnapshot)}/messages?limit=100&before=${before}`,{headers:authHeaders()}),
+      api(`/api/conversations/${encodeURIComponent(conversationSnapshot)}/messages?limit=60`,{headers:authHeaders()})
+    ]);
+    if(!state.activeConversation||String(conversationId(state.activeConversation))!==String(conversationSnapshot))return;
+    const context=Array.isArray(contextData)?contextData:contextData.messages||[];
+    const latest=Array.isArray(latestData)?latestData:latestData.messages||[];
+    const unique=new Map();
+    [...context,...latest].forEach(message=>unique.set(String(messageId(message)),message));
+    state.messages=[...unique.values()].sort((a,b)=>new Date(a.createdAt||0)-new Date(b.createdAt||0));
+    state.messagesPageBefore=state.messages[0]?.createdAt||null;
+    state.hasMoreMessages=context.length>=100;
+    renderMessages();
+    closeInChatSearch();
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const bubble=document.querySelector(`.message-bubble[data-message-id="${CSS.escape(String(targetId))}"]`);
+      if(!bubble){toast('Message found, but its surrounding context could not be loaded');return;}
+      bubble.scrollIntoView({behavior:'smooth',block:'center'});
+      clearSelectedMessage();
+      bubble.classList.add('selected');
+      setTimeout(()=>bubble.classList.remove('selected'),2200);
+    }));
+  }catch(error){
+    toast(error.message||'Unable to open search result');
+    if(results)results.innerHTML='<div class="empty-list">Unable to open this message.</div>';
+  }
+};
+document.getElementById('inChatSearchInput')?.addEventListener('input',event=>{
+  clearTimeout(inChatSearchTimer);
+  const value=event.target.value;
+  inChatSearchTimer=setTimeout(()=>runInChatSearch(value),260);
+});
+document.getElementById('inChatSearchInput')?.addEventListener('keydown',event=>{
+  if(event.key==='Escape')closeInChatSearch();
+});
+document.getElementById('inChatSearchModal')?.addEventListener('click',event=>{
+  if(event.target===event.currentTarget)closeInChatSearch();
+});
 </script>
 </body>
 </html>
