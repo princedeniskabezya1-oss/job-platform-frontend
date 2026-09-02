@@ -32,6 +32,24 @@
   </div>
 </div>
 
+<div id="conversationLibraryModal" class="modal-backdrop hidden">
+  <div class="modal-card" style="width:min(760px,96vw);max-height:88vh;display:flex;flex-direction:column;">
+    <div class="modal-head">
+      <div><h3>Media, links & documents</h3><p id="conversationLibraryCaption" class="modal-text" style="padding:2px 0 0;">Shared in this conversation</p></div>
+      <button class="modal-close" onclick="closeConversationLibrary()" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
+    </div>
+    <div style="padding:12px 14px 0;">
+      <div class="search-box compact" style="margin-top:0;"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input id="conversationLibrarySearch" type="search" placeholder="Search shared items" autocomplete="off"></div>
+      <nav class="conversation-tabs" style="padding:10px 0 8px;">
+        <button class="active" type="button" data-library-tab="media" onclick="setConversationLibraryTab('media',this)">Media <span id="conversationLibraryMediaCount"></span></button>
+        <button type="button" data-library-tab="documents" onclick="setConversationLibraryTab('documents',this)">Documents <span id="conversationLibraryDocumentCount"></span></button>
+        <button type="button" data-library-tab="links" onclick="setConversationLibraryTab('links',this)">Links <span id="conversationLibraryLinkCount"></span></button>
+      </nav>
+    </div>
+    <div id="conversationLibraryResults" style="min-height:220px;max-height:62vh;overflow:auto;padding:6px 14px 16px;"><div class="loading-card">Loading shared items...</div></div>
+  </div>
+</div>
+
 <div id="chatInfoDrawer" class="drawer hidden">
   <div class="drawer-panel">
     <div class="drawer-head"><h2>Conversation info</h2><button class="icon-btn" onclick="closeChatInfo()" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg></button></div>
@@ -47,7 +65,7 @@
     <div class="drawer-section-title">Chat settings</div>
     <div class="drawer-actions">
       <button onclick="openActiveProfile()"><svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"></path><circle cx="12" cy="7" r="4"></circle></svg>View profile</button>
-      <button onclick="openSharedFilesPanel()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 1-2 2v16h16V8z"></path></svg>Media, links & documents</button>
+      <button onclick="openConversationLibrary()"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16h16V8z"></path></svg>Media, links & documents</button>
       <button onclick="toggleActivePin()"><svg viewBox="0 0 24 24"><path d="M12 17v5"></path><path d="M5 17h14l-2-8V4H7v5z"></path></svg>Pin conversation</button>
       <button onclick="archiveActiveConversation()"><svg viewBox="0 0 24 24"><path d="M21 8v13H3V8"></path><path d="M1 3h22v5H1z"></path></svg>Archive conversation</button>
       <button class="danger-text" onclick="blockActiveConversation()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M4.93 4.93l14.14 14.14"></path></svg>Block conversation</button>
@@ -89,15 +107,7 @@
   </main>
 </div>
 
-<div id="storyComposer" class="story-overlay hidden">
-  <div class="story-compose-card">
-    <div class="story-compose-head"><div><strong>Create story</strong><span>Visible for 24 hours</span></div><button type="button" onclick="closeStoryComposer()">×</button></div>
-    <div id="storyPreview" class="story-compose-preview"><div class="story-compose-placeholder"><span>+</span><strong>Add a photo or video</strong><small>You can also publish text only.</small></div></div>
-    <textarea id="storyText" maxlength="1500" placeholder="Share an update..."></textarea>
-    <div class="story-compose-controls"><label class="story-file-button">Photo / video<input id="storyFileInput" type="file" accept="image/*,video/*" hidden></label><select id="storyAudience"><option value="connections">Connections</option><option value="everyone">Everyone</option></select></div>
-    <div class="story-compose-actions"><button type="button" class="btn ghost" onclick="closeStoryComposer()">Cancel</button><button id="publishStoryBtn" type="button" class="story-publish-btn" onclick="publishStory()">Share story</button></div>
-  </div>
-</div>
+<div id="storyComposer" class="story-overlay hidden"><div class="story-compose-card"><div class="story-compose-head"><div><strong>Create story</strong><span>Visible for 24 hours</span></div><button type="button" onclick="closeStoryComposer()">×</button></div><div id="storyPreview" class="story-compose-preview"><div class="story-compose-placeholder"><span>+</span><strong>Add a photo or video</strong><small>You can also publish text only.</small></div></div><textarea id="storyText" maxlength="1500" placeholder="Share an update..."></textarea><div class="story-compose-controls"><label class="story-file-button">Photo / video<input id="storyFileInput" type="file" accept="image/*,video/*" hidden></label><select id="storyAudience"><option value="connections">Connections</option><option value="everyone">Everyone</option></select></div><div class="story-compose-actions"><button type="button" class="btn ghost" onclick="closeStoryComposer()">Cancel</button><button id="publishStoryBtn" type="button" class="story-publish-btn" onclick="publishStory()">Share story</button></div></div></div>
 <div id="storyViewer" class="story-viewer hidden"><button class="story-viewer-close" type="button" onclick="closeStoryViewer()">×</button><div class="story-viewer-shell"><div id="storyProgress" class="story-progress"></div><div class="story-viewer-head"><img id="storyViewerAvatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt=""><div><strong id="storyViewerName">AIFT User</strong><span id="storyViewerTime"></span></div></div><button class="story-nav prev" type="button" onclick="previousStory()">‹</button><div id="storyViewerContent" class="story-viewer-content"></div><button class="story-nav next" type="button" onclick="nextStory()">›</button><div id="storyOwnerFooter" class="story-owner-footer hidden"><button id="storyViewersBtn" type="button" onclick="showStoryViewers()">0 viewers</button><button type="button" class="danger-text" onclick="deleteCurrentStory()">Delete</button></div></div></div>
 <div id="storyViewersModal" class="modal-backdrop hidden"><div class="modal-card"><div class="modal-head"><h3>Story viewers</h3><button class="modal-close" onclick="closeStoryViewers()">×</button></div><div id="storyViewersList" class="story-viewers-list"></div></div></div>
 <div id="cameraModal" class="modal-backdrop hidden"><div class="camera-card"><div class="modal-head"><h3>Take a photo</h3><button class="modal-close" onclick="closeCameraModal()">×</button></div><video id="cameraVideo" autoplay playsinline muted></video><canvas id="cameraCanvas" class="hidden"></canvas><div class="modal-actions"><button class="btn ghost" onclick="closeCameraModal()">Cancel</button><button class="btn" onclick="switchCamera()">Switch</button><button class="btn danger" onclick="captureCameraPhoto()">Capture</button></div></div></div>
@@ -137,105 +147,29 @@
 
 let inChatSearchTimer=null;
 let inChatSearchRequest=0;
-window.openInChatSearch=function(){
-  if(!state?.activeConversation){toast('Select a conversation first');return;}
-  const modal=document.getElementById('inChatSearchModal');
-  const caption=document.getElementById('inChatSearchCaption');
-  const input=document.getElementById('inChatSearchInput');
-  const results=document.getElementById('inChatSearchResults');
-  if(caption)caption.textContent=`Search messages in ${conversationTitle(state.activeConversation)}.`;
-  if(input)input.value='';
-  if(results)results.innerHTML='<div class="empty-list">Type at least 2 letters to search.</div>';
-  modal?.classList.remove('hidden');
-  setTimeout(()=>input?.focus(),80);
-};
-window.closeInChatSearch=function(){
-  clearTimeout(inChatSearchTimer);
-  inChatSearchRequest++;
-  document.getElementById('inChatSearchModal')?.classList.add('hidden');
-};
-function searchResultSender(message){
-  if(String(senderId(message))===String(state.myId))return 'You';
-  return userDisplayName(message.sender||state.activeOtherUser||{});
-}
-function searchResultPreview(message){
-  if(message.deletedForEveryone)return 'This message was deleted';
-  if(message.text)return message.text;
-  const attachment=getPrimaryAttachment(message);
-  if(attachment)return attachment.originalName||message.messageType||'Attachment';
-  return message.messageType||'Message';
-}
-async function runInChatSearch(query){
-  const results=document.getElementById('inChatSearchResults');
-  const conversation=state.activeConversation;
-  if(!results||!conversation)return;
-  const q=String(query||'').trim();
-  if(q.length<2){results.innerHTML='<div class="empty-list">Type at least 2 letters to search.</div>';return;}
-  const requestId=++inChatSearchRequest;
-  results.innerHTML='<div class="loading-card">Searching this conversation...</div>';
-  try{
-    const id=conversationId(conversation);
-    const data=await api(`/api/conversations/${encodeURIComponent(id)}/messages?limit=100&search=${encodeURIComponent(q)}`,{headers:authHeaders()});
-    if(requestId!==inChatSearchRequest)return;
-    const matches=(Array.isArray(data)?data:data.messages||[]).slice().reverse();
-    if(!matches.length){results.innerHTML='<div class="empty-list">No matching messages found.</div>';return;}
-    results.innerHTML=matches.map(message=>{
-      const id=messageId(message);
-      const createdAt=message.createdAt||'';
-      return `<article class="conversation-item" role="button" tabindex="0" onclick="jumpToInChatSearchResult('${esc(id)}','${esc(createdAt)}')" onkeydown="if(event.key==='Enter'){jumpToInChatSearchResult('${esc(id)}','${esc(createdAt)}')}"><div class="conversation-main"><div class="conversation-top"><div class="conversation-name">${esc(searchResultSender(message))}</div><div class="conversation-time">${esc(formatTime(createdAt))}</div></div><div class="conversation-preview">${esc(searchResultPreview(message))}</div></div></article>`;
-    }).join('');
-  }catch(error){
-    if(requestId!==inChatSearchRequest)return;
-    results.innerHTML=`<div class="empty-list">${esc(error.message||'Unable to search this conversation')}</div>`;
-  }
-}
-window.jumpToInChatSearchResult=async function(targetId,createdAt){
-  if(!state.activeConversation||!targetId)return;
-  const conversationSnapshot=conversationId(state.activeConversation);
-  const results=document.getElementById('inChatSearchResults');
-  if(results)results.innerHTML='<div class="loading-card">Opening message...</div>';
-  try{
-    const targetTime=new Date(createdAt||Date.now());
-    targetTime.setMilliseconds(targetTime.getMilliseconds()+1);
-    const before=encodeURIComponent(targetTime.toISOString());
-    const [contextData,latestData]=await Promise.all([
-      api(`/api/conversations/${encodeURIComponent(conversationSnapshot)}/messages?limit=100&before=${before}`,{headers:authHeaders()}),
-      api(`/api/conversations/${encodeURIComponent(conversationSnapshot)}/messages?limit=60`,{headers:authHeaders()})
-    ]);
-    if(!state.activeConversation||String(conversationId(state.activeConversation))!==String(conversationSnapshot))return;
-    const context=Array.isArray(contextData)?contextData:contextData.messages||[];
-    const latest=Array.isArray(latestData)?latestData:latestData.messages||[];
-    const unique=new Map();
-    [...context,...latest].forEach(message=>unique.set(String(messageId(message)),message));
-    state.messages=[...unique.values()].sort((a,b)=>new Date(a.createdAt||0)-new Date(b.createdAt||0));
-    state.messagesPageBefore=state.messages[0]?.createdAt||null;
-    state.hasMoreMessages=context.length>=100;
-    renderMessages();
-    closeInChatSearch();
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      const bubble=document.querySelector(`.message-bubble[data-message-id="${CSS.escape(String(targetId))}"]`);
-      if(!bubble){toast('Message found, but its surrounding context could not be loaded');return;}
-      bubble.scrollIntoView({behavior:'smooth',block:'center'});
-      clearSelectedMessage();
-      bubble.classList.add('selected');
-      setTimeout(()=>bubble.classList.remove('selected'),2200);
-    }));
-  }catch(error){
-    toast(error.message||'Unable to open search result');
-    if(results)results.innerHTML='<div class="empty-list">Unable to open this message.</div>';
-  }
-};
-document.getElementById('inChatSearchInput')?.addEventListener('input',event=>{
-  clearTimeout(inChatSearchTimer);
-  const value=event.target.value;
-  inChatSearchTimer=setTimeout(()=>runInChatSearch(value),260);
-});
-document.getElementById('inChatSearchInput')?.addEventListener('keydown',event=>{
-  if(event.key==='Escape')closeInChatSearch();
-});
-document.getElementById('inChatSearchModal')?.addEventListener('click',event=>{
-  if(event.target===event.currentTarget)closeInChatSearch();
-});
+window.openInChatSearch=function(){if(!state?.activeConversation){toast('Select a conversation first');return;}const modal=document.getElementById('inChatSearchModal'),caption=document.getElementById('inChatSearchCaption'),input=document.getElementById('inChatSearchInput'),results=document.getElementById('inChatSearchResults');if(caption)caption.textContent=`Search messages in ${conversationTitle(state.activeConversation)}.`;if(input)input.value='';if(results)results.innerHTML='<div class="empty-list">Type at least 2 letters to search.</div>';modal?.classList.remove('hidden');setTimeout(()=>input?.focus(),80);};
+window.closeInChatSearch=function(){clearTimeout(inChatSearchTimer);inChatSearchRequest++;document.getElementById('inChatSearchModal')?.classList.add('hidden');};
+function searchResultSender(message){if(String(senderId(message))===String(state.myId))return 'You';return userDisplayName(message.sender||state.activeOtherUser||{});}
+function searchResultPreview(message){if(message.deletedForEveryone)return 'This message was deleted';if(message.text)return message.text;const attachment=getPrimaryAttachment(message);if(attachment)return attachment.originalName||message.messageType||'Attachment';return message.messageType||'Message';}
+async function runInChatSearch(query){const results=document.getElementById('inChatSearchResults'),conversation=state.activeConversation;if(!results||!conversation)return;const q=String(query||'').trim();if(q.length<2){results.innerHTML='<div class="empty-list">Type at least 2 letters to search.</div>';return;}const requestId=++inChatSearchRequest;results.innerHTML='<div class="loading-card">Searching this conversation...</div>';try{const id=conversationId(conversation),data=await api(`/api/conversations/${encodeURIComponent(id)}/messages?limit=100&search=${encodeURIComponent(q)}`,{headers:authHeaders()});if(requestId!==inChatSearchRequest)return;const matches=(Array.isArray(data)?data:data.messages||[]).slice().reverse();if(!matches.length){results.innerHTML='<div class="empty-list">No matching messages found.</div>';return;}results.innerHTML=matches.map(message=>{const id=messageId(message),createdAt=message.createdAt||'';return `<article class="conversation-item" role="button" tabindex="0" onclick="jumpToInChatSearchResult('${esc(id)}','${esc(createdAt)}')" onkeydown="if(event.key==='Enter'){jumpToInChatSearchResult('${esc(id)}','${esc(createdAt)}')}"><div class="conversation-main"><div class="conversation-top"><div class="conversation-name">${esc(searchResultSender(message))}</div><div class="conversation-time">${esc(formatTime(createdAt))}</div></div><div class="conversation-preview">${esc(searchResultPreview(message))}</div></div></article>`;}).join('');}catch(error){if(requestId!==inChatSearchRequest)return;results.innerHTML=`<div class="empty-list">${esc(error.message||'Unable to search this conversation')}</div>`;}}
+window.jumpToInChatSearchResult=async function(targetId,createdAt){if(!state.activeConversation||!targetId)return;const conversationSnapshot=conversationId(state.activeConversation),results=document.getElementById('inChatSearchResults');if(results)results.innerHTML='<div class="loading-card">Opening message...</div>';try{const targetTime=new Date(createdAt||Date.now());targetTime.setMilliseconds(targetTime.getMilliseconds()+1);const before=encodeURIComponent(targetTime.toISOString()),[contextData,latestData]=await Promise.all([api(`/api/conversations/${encodeURIComponent(conversationSnapshot)}/messages?limit=100&before=${before}`,{headers:authHeaders()}),api(`/api/conversations/${encodeURIComponent(conversationSnapshot)}/messages?limit=60`,{headers:authHeaders()})]);if(!state.activeConversation||String(conversationId(state.activeConversation))!==String(conversationSnapshot))return;const context=Array.isArray(contextData)?contextData:contextData.messages||[],latest=Array.isArray(latestData)?latestData:latestData.messages||[],unique=new Map();[...context,...latest].forEach(message=>unique.set(String(messageId(message)),message));state.messages=[...unique.values()].sort((a,b)=>new Date(a.createdAt||0)-new Date(b.createdAt||0));state.messagesPageBefore=state.messages[0]?.createdAt||null;state.hasMoreMessages=context.length>=100;renderMessages();closeInChatSearch();requestAnimationFrame(()=>requestAnimationFrame(()=>{const bubble=document.querySelector(`.message-bubble[data-message-id="${CSS.escape(String(targetId))}"]`);if(!bubble){toast('Message found, but its surrounding context could not be loaded');return;}bubble.scrollIntoView({behavior:'smooth',block:'center'});clearSelectedMessage();bubble.classList.add('selected');setTimeout(()=>bubble.classList.remove('selected'),2200);}));}catch(error){toast(error.message||'Unable to open search result');if(results)results.innerHTML='<div class="empty-list">Unable to open this message.</div>';}};
+document.getElementById('inChatSearchInput')?.addEventListener('input',event=>{clearTimeout(inChatSearchTimer);const value=event.target.value;inChatSearchTimer=setTimeout(()=>runInChatSearch(value),260);});
+document.getElementById('inChatSearchInput')?.addEventListener('keydown',event=>{if(event.key==='Escape')closeInChatSearch();});
+document.getElementById('inChatSearchModal')?.addEventListener('click',event=>{if(event.target===event.currentTarget)closeInChatSearch();});
+
+const conversationLibraryState={tab:'media',messages:[],media:[],documents:[],links:[],query:'',conversationId:'',loading:false};
+function extractMessageLinks(message){const text=String(message?.text||'');const matches=text.match(/https?:\/\/[^\s<]+/gi)||[];return [...new Set(matches.map(url=>url.replace(/[),.!?]+$/,'')))];}
+function allMessageAttachments(message){if(Array.isArray(message?.attachments)&&message.attachments.length)return message.attachments;const fallback=getPrimaryAttachment(message);return fallback?[fallback]:[];}
+async function loadConversationLibraryMessages(){const active=state.activeConversation;if(!active)return[];const cid=conversationId(active);if(conversationLibraryState.conversationId===String(cid)&&conversationLibraryState.messages.length)return conversationLibraryState.messages;const merged=new Map();state.messages.forEach(message=>merged.set(String(messageId(message)),message));let before='',pages=0;while(pages<8){const suffix=before?`&before=${encodeURIComponent(before)}`:'';const data=await api(`/api/conversations/${encodeURIComponent(cid)}/messages?limit=100${suffix}`,{headers:authHeaders()});const list=Array.isArray(data)?data:data.messages||[];if(!list.length)break;list.forEach(message=>merged.set(String(messageId(message)),message));pages++;if(list.length<100)break;before=list[0]?.createdAt||'';if(!before)break;}conversationLibraryState.conversationId=String(cid);conversationLibraryState.messages=[...merged.values()].sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));return conversationLibraryState.messages;}
+function buildConversationLibraryCollections(messages){const media=[],documents=[],links=[];messages.forEach(message=>{allMessageAttachments(message).forEach(attachment=>{const url=attachment?.secureUrl||attachment?.url||'';if(!url)return;const type=normalizeAttachmentType(attachment.type||attachment.mimeType||message.fileType||'');const item={message,attachment,url,type,name:attachment.originalName||message.fileName||'Shared item',createdAt:message.createdAt||''};if(['image','video','audio'].includes(type))media.push(item);else documents.push(item);});extractMessageLinks(message).forEach(url=>links.push({message,url,createdAt:message.createdAt||''}));});conversationLibraryState.media=media;conversationLibraryState.documents=documents;conversationLibraryState.links=links;document.getElementById('conversationLibraryMediaCount').textContent=media.length?`(${media.length})`:'';document.getElementById('conversationLibraryDocumentCount').textContent=documents.length?`(${documents.length})`:'';document.getElementById('conversationLibraryLinkCount').textContent=links.length?`(${links.length})`:'';}
+function libraryMatchesQuery(item){const q=conversationLibraryState.query.toLowerCase();if(!q)return true;const sender=searchResultSender(item.message||{});return [item.name,item.url,item.message?.text,sender].filter(Boolean).join(' ').toLowerCase().includes(q);}
+function renderConversationLibrary(){const box=document.getElementById('conversationLibraryResults');if(!box)return;const tab=conversationLibraryState.tab;const items=(conversationLibraryState[tab]||[]).filter(libraryMatchesQuery);if(!items.length){box.innerHTML=`<div class="empty-list">No ${tab==='media'?'media':tab} found${conversationLibraryState.query?' for this search':''}.</div>`;return;}if(tab==='media'){box.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(126px,1fr));gap:10px;">${items.map(item=>{const type=item.type;if(type==='image')return `<button type="button" style="border:0;padding:0;background:#f2f4f7;border-radius:10px;overflow:hidden;aspect-ratio:1;" onclick="openMediaViewer('${esc(item.url)}','image')"><img src="${esc(item.url)}" alt="${esc(item.name)}" style="width:100%;height:100%;object-fit:cover;"></button>`;if(type==='video')return `<button type="button" style="border:0;padding:0;background:#111827;border-radius:10px;overflow:hidden;aspect-ratio:1;position:relative;" onclick="openMediaViewer('${esc(item.url)}','video')"><video src="${esc(item.url)}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video><span style="position:absolute;inset:auto 8px 8px auto;background:rgba(0,0,0,.65);color:#fff;border-radius:999px;padding:4px 7px;font-size:8px;">Video</span></button>`;return `<div style="border:1px solid #e5eaf0;border-radius:10px;padding:10px;background:#fff;min-height:126px;display:flex;flex-direction:column;justify-content:center;gap:8px;"><strong style="font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(item.name)}</strong><audio src="${esc(item.url)}" controls style="width:100%;height:34px;"></audio></div>`;}).join('')}</div>`;return;}if(tab==='documents'){box.innerHTML=items.map(item=>`<a class="conversation-item" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer"><div class="preview-file-icon">▤</div><div class="conversation-main"><div class="conversation-top"><div class="conversation-name">${esc(item.name)}</div><div class="conversation-time">${esc(formatTime(item.createdAt))}</div></div><div class="conversation-preview">${esc(searchResultSender(item.message))} • ${esc(item.type||'file')}</div></div></a>`).join('');return;}box.innerHTML=items.map(item=>`<a class="conversation-item" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer"><div class="preview-file-icon">↗</div><div class="conversation-main"><div class="conversation-top"><div class="conversation-name">${esc(item.url)}</div><div class="conversation-time">${esc(formatTime(item.createdAt))}</div></div><div class="conversation-preview">Shared by ${esc(searchResultSender(item.message))}</div></div></a>`).join('');}
+window.openConversationLibrary=async function(){if(!state.activeConversation){toast('Select a conversation first');return;}closeChatInfo();const modal=document.getElementById('conversationLibraryModal'),caption=document.getElementById('conversationLibraryCaption'),box=document.getElementById('conversationLibraryResults'),search=document.getElementById('conversationLibrarySearch');if(caption)caption.textContent=`Shared in ${conversationTitle(state.activeConversation)}`;if(search)search.value='';conversationLibraryState.query='';conversationLibraryState.tab='media';document.querySelectorAll('[data-library-tab]').forEach(button=>button.classList.toggle('active',button.dataset.libraryTab==='media'));if(box)box.innerHTML='<div class="loading-card">Loading shared items...</div>';modal?.classList.remove('hidden');try{conversationLibraryState.loading=true;const messages=await loadConversationLibraryMessages();buildConversationLibraryCollections(messages);renderConversationLibrary();}catch(error){if(box)box.innerHTML=`<div class="empty-list">${esc(error.message||'Unable to load shared items')}</div>`;}finally{conversationLibraryState.loading=false;}};
+window.closeConversationLibrary=function(){document.getElementById('conversationLibraryModal')?.classList.add('hidden');};
+window.setConversationLibraryTab=function(tab,button){conversationLibraryState.tab=tab;document.querySelectorAll('[data-library-tab]').forEach(item=>item.classList.remove('active'));button?.classList.add('active');renderConversationLibrary();};
+document.getElementById('conversationLibrarySearch')?.addEventListener('input',event=>{conversationLibraryState.query=String(event.target.value||'').trim();renderConversationLibrary();});
+document.getElementById('conversationLibrarySearch')?.addEventListener('keydown',event=>{if(event.key==='Escape')closeConversationLibrary();});
+document.getElementById('conversationLibraryModal')?.addEventListener('click',event=>{if(event.target===event.currentTarget)closeConversationLibrary();});
 </script>
 </body>
 </html>
