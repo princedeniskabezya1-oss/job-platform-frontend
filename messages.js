@@ -9,7 +9,7 @@ const state = {
   token:"", role:"", me:null, myId:"", socket:null,
   conversations:[], filteredConversations:[], activeConversation:null, activeOtherUser:null, messages:[],
   onlineUsers:new Map(), conversationFilter:"all", conversationSearch:"", userSearchTimer:null, conversationSearchTimer:null,
-  selectedMessage:null, selectedMessages:new Map(), selectionMode:false, selectionPressTimer:null, selectionPointer:null, reactionTargetId:"", replyTo:null, attachment:null, attachments:[], mediaReviewIndex:0, mediaReviewUrls:[], pickerOpen:false, pickerTab:"emoji", emojiCategory:"recent", pickerSwitchToken:0, composerSelectionStart:0, composerSelectionEnd:0, savedStickers:[], gifSearchTimer:null, drafts:new Map(), draftRenderTimer:null,
+  selectedMessage:null, selectedMessages:new Map(), selectionMode:false, selectionPressTimer:null, selectionPointer:null, reactionTargetId:"", replyTo:null, attachment:null, attachments:[], mediaReviewIndex:0, mediaReviewUrls:[], pickerOpen:false, pickerTab:"emoji", emojiCategory:"recent", pickerSwitchToken:0, composerSelectionStart:0, composerSelectionEnd:0, savedStickers:[], gifSearchTimer:null, drafts:new Map(), draftRenderTimer:null, composerConversationId:"", conversationOpenToken:0,
   isSending:false, isLoadingMessages:false, messagesPageBefore:null, hasMoreMessages:true, confirmCallback:null, remoteTypingTimer:null,
   unreadBelow:false, lastKnownScrollHeight:0,
   currentCall:null, currentCallLogId:null, localStream:null, remoteStream:null, peerConnection:null, screenStream:null,
@@ -137,9 +137,9 @@ function draftStorageKey(){return "aiftMessageDrafts:"+(state.myId||localStorage
 function loadConversationDrafts(){try{const stored=JSON.parse(localStorage.getItem(draftStorageKey())||"{}");state.drafts=new Map(Object.entries(stored).filter(([,value])=>typeof value==="string"&&value.length));}catch{state.drafts=new Map();}}
 function persistConversationDrafts(){try{localStorage.setItem(draftStorageKey(),JSON.stringify(Object.fromEntries(state.drafts)));}catch(error){console.warn("Unable to save message drafts:",error);}}
 function conversationDraft(id){return state.drafts.get(String(id||""))||"";}
-function saveActiveConversationDraft({refreshList=true}={}){const id=conversationId(state.activeConversation),input=document.getElementById("messageInput");if(!id||!input)return;const value=input.value||"";if(value.trim())state.drafts.set(String(id),value);else state.drafts.delete(String(id));persistConversationDrafts();if(refreshList){clearTimeout(state.draftRenderTimer);state.draftRenderTimer=setTimeout(renderConversations,120);}}
+function saveActiveConversationDraft({refreshList=true}={}){const id=state.composerConversationId||conversationId(state.activeConversation),input=document.getElementById("messageInput");if(!id||!input)return;const value=input.value||"";if(value.trim())state.drafts.set(String(id),value);else state.drafts.delete(String(id));persistConversationDrafts();if(refreshList){clearTimeout(state.draftRenderTimer);state.draftRenderTimer=setTimeout(renderConversations,120);}}
 function clearConversationDraft(id){if(!id)return;state.drafts.delete(String(id));persistConversationDrafts();}
-function restoreConversationDraft(id){const input=document.getElementById("messageInput");if(!input)return;input.value=conversationDraft(id);input.selectionStart=input.selectionEnd=input.value.length;autoGrowComposer();}
+function restoreConversationDraft(id){const input=document.getElementById("messageInput");if(!input)return;state.composerConversationId=String(id||"");input.value=conversationDraft(id);input.selectionStart=input.selectionEnd=input.value.length;autoGrowComposer();}
 
 let currentMediaUrl="", currentMediaType="image";
 function openMediaViewer(url,type="image"){
@@ -172,11 +172,18 @@ function renderConversations(){
 function setConversationFilter(filter,button){state.conversationFilter=filter;document.querySelectorAll(".conversation-tabs button").forEach(x=>x.classList.remove("active"));button?.classList.add("active");loadConversations();}
 
 async function openConversation(id){
-  if(!id)return;saveActiveConversationDraft({refreshList:false});try{showMessagesState();hideConversationSidebarOnMobile();state.isLoadingMessages=true;state.messages=[];state.messagesPageBefore=null;state.hasMoreMessages=true;hideJumpButton();
-    const c=await api(`/api/conversations/${encodeURIComponent(id)}`,{headers:authHeaders()});state.activeConversation=c;state.activeOtherUser=c.user||getOtherParticipant(c)||null;restoreConversationDraft(conversationId(c));updateActiveHeader();renderMessagesSkeleton();
-    const messages=await api(`/api/conversations/${encodeURIComponent(id)}/messages?limit=60`,{headers:authHeaders()});state.messages=Array.isArray(messages)?messages:messages.messages||[];state.messagesPageBefore=state.messages[0]?.createdAt||null;state.hasMoreMessages=state.messages.length>=60;renderMessages({stickToBottom:true});
-    await markConversationRead(id);await loadConversations();
-  }catch(error){console.error(error);toast(error.message||"Unable to open conversation");showEmptyState();}finally{state.isLoadingMessages=false;}
+  if(!id)return;
+  saveActiveConversationDraft({refreshList:false});
+  const targetId=String(id),openToken=++state.conversationOpenToken,cached=state.conversations.find(item=>String(conversationId(item))===targetId)||null;
+  showMessagesState();hideConversationSidebarOnMobile();state.isLoadingMessages=true;state.messages=[];state.messagesPageBefore=null;state.hasMoreMessages=true;hideJumpButton();restoreConversationDraft(targetId);renderMessagesSkeleton();
+  if(cached){state.activeConversation=cached;state.activeOtherUser=cached.user||getOtherParticipant(cached)||null;updateActiveHeader();renderConversations();}
+  try{
+    const c=await api(`/api/conversations/${encodeURIComponent(targetId)}`,{headers:authHeaders()});if(openToken!==state.conversationOpenToken)return;
+    state.activeConversation=c;state.activeOtherUser=c.user||getOtherParticipant(c)||null;updateActiveHeader();
+    const messages=await api(`/api/conversations/${encodeURIComponent(targetId)}/messages?limit=60`,{headers:authHeaders()});if(openToken!==state.conversationOpenToken)return;
+    state.messages=Array.isArray(messages)?messages:messages.messages||[];state.messagesPageBefore=state.messages[0]?.createdAt||null;state.hasMoreMessages=state.messages.length>=60;renderMessages({stickToBottom:true});
+    await markConversationRead(targetId);if(openToken===state.conversationOpenToken)await loadConversations();
+  }catch(error){if(openToken!==state.conversationOpenToken)return;console.error(error);toast(error.message||"Unable to open conversation");showEmptyState();}finally{if(openToken===state.conversationOpenToken)state.isLoadingMessages=false;}
 }
 function updateActiveHeader(){
   const c=state.activeConversation,o=state.activeOtherUser||{},title=c?conversationTitle(c):"Messages",avatar=c?conversationImage(c):FALLBACK_AVATAR;document.getElementById("activeConversationTitle").textContent=title;document.getElementById("activeUserImage").src=avatar;
