@@ -335,6 +335,17 @@ async function forwardSelectedMessagesTo(receiverId){
 }
 function toggleChatMoreMenu(event){event?.stopPropagation();if(!state.activeConversation)return toast("Select a conversation first");document.getElementById("chatMoreMenu")?.classList.toggle("hidden");}
 function closeChatMoreMenu(){document.getElementById("chatMoreMenu")?.classList.add("hidden");}
+function applyChatTheme(theme){
+  const value=theme==="dark"?"dark":"light",panel=document.querySelector(".chat-panel"),button=document.getElementById("chatThemeToggle");
+  if(panel)panel.dataset.chatTheme=value;
+  if(button)button.textContent=value==="dark"?"Use light theme":"Use dark theme";
+  document.documentElement.style.colorScheme=value;
+}
+function toggleChatTheme(){
+  const panel=document.querySelector(".chat-panel"),next=panel?.dataset.chatTheme==="dark"?"light":"dark";
+  localStorage.setItem("aiftChatTheme",next);applyChatTheme(next);closeChatMoreMenu();
+}
+function initializeChatTheme(){applyChatTheme(localStorage.getItem("aiftChatTheme")==="dark"?"dark":"light");}
 async function patchConversationSetting(action){if(!state.activeConversation)return toast("Select a conversation first");const id=conversationId(state.activeConversation);return apiJSON(`/api/conversations/${encodeURIComponent(id)}/${action}`,"PATCH",{});}
 async function toggleActivePin(){try{const s=await patchConversationSetting("pin");state.activeConversation.pinned=!!s.pinned;toast(s.pinned?"Conversation pinned":"Conversation unpinned");closeChatInfo();await loadConversations();}catch(e){toast(e.message||"Unable to update pin");}}
 async function toggleActiveMute(){try{const s=await patchConversationSetting("mute");state.activeConversation.muted=!!s.muted;toast(s.muted?"Conversation muted":"Conversation unmuted");closeChatInfo();await loadConversations();}catch(e){toast(e.message||"Unable to update mute");}}
@@ -430,6 +441,7 @@ async function refreshEverything(){try{await loadConversations();if(state.active
 function handleConversationSearchInput(value){state.conversationSearch=cleanText(value);clearTimeout(state.conversationSearchTimer);state.conversationSearchTimer=setTimeout(loadConversations,250);}
 
 function bindEvents(){
+  initializeChatTheme();
   const input=document.getElementById("messageInput");if(input){input.addEventListener("input",()=>{autoGrowComposer();if(state.activeOtherUser&&state.socket){state.socket.emit("typing",{to:getId(state.activeOtherUser)});clearTimeout(state.typingTimer);state.typingTimer=setTimeout(()=>state.socket.emit("stopTyping",{to:getId(state.activeOtherUser)}),900);}});input.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}});input.addEventListener("select",()=>{state.composerSelectionStart=input.selectionStart??input.value.length;state.composerSelectionEnd=input.selectionEnd??input.value.length;});input.addEventListener("focus",()=>{if(state.pickerOpen)closeChatPicker();});}
   document.getElementById("fileInput")?.addEventListener("change",e=>{const f=e.target.files?.[0];if(f)handleAttachmentSelected(f);});document.getElementById("cameraInput")?.addEventListener("change",e=>{const f=e.target.files?.[0];if(f)handleCameraCapture(f);});document.getElementById("stickerImportInput")?.addEventListener("change",e=>{const f=e.target.files?.[0];if(f)handleStickerImport(f);e.target.value="";});document.getElementById("gifSearchInput")?.addEventListener("input",e=>{clearTimeout(state.gifSearchTimer);state.gifSearchTimer=setTimeout(()=>searchGifLocal(e.target.value),250);});
   document.getElementById("conversationSearch")?.addEventListener("input",e=>handleConversationSearchInput(e.target.value));document.getElementById("userSearchInput")?.addEventListener("input",e=>{clearTimeout(state.userSearchTimer);state.userSearchTimer=setTimeout(()=>searchUsers(e.target.value),280);});
