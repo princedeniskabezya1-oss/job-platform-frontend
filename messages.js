@@ -9,7 +9,7 @@ const state = {
   token:"", role:"", me:null, myId:"", socket:null,
   conversations:[], filteredConversations:[], activeConversation:null, activeOtherUser:null, messages:[],
   onlineUsers:new Map(), conversationFilter:"all", conversationSearch:"", userSearchTimer:null, conversationSearchTimer:null,
-  selectedMessage:null, selectedMessages:new Map(), selectionMode:false, selectionPressTimer:null, selectionPointer:null, reactionTargetId:"", replyTo:null, attachment:null, attachments:[], mediaReviewIndex:0, mediaReviewUrls:[], pickerOpen:false, pickerTab:"emoji", emojiCategory:"recent", pickerSwitchToken:0, composerSelectionStart:0, composerSelectionEnd:0, savedStickers:[], gifSearchTimer:null, drafts:new Map(), draftRenderTimer:null, composerConversationId:"", conversationOpenToken:0,
+  selectedMessage:null, selectedMessages:new Map(), selectionMode:false, selectionPressTimer:null, selectionPointer:null, reactionTargetId:"", replyTo:null, attachment:null, attachments:[], mediaReviewIndex:0, mediaReviewUrls:[], pickerOpen:false, pickerTab:"emoji", emojiCategory:"recent", pickerSwitchToken:0, composerSelectionStart:0, composerSelectionEnd:0, savedStickers:[], gifSearchTimer:null, drafts:new Map(), draftRenderTimer:null, composerConversationId:"", conversationOpenToken:0, conversationOpenedAt:new Map(),
   isSending:false, isLoadingMessages:false, messagesPageBefore:null, hasMoreMessages:true, confirmCallback:null, remoteTypingTimer:null,
   unreadBelow:false, lastKnownScrollHeight:0,
   currentCall:null, currentCallLogId:null, localStream:null, remoteStream:null, peerConnection:null, screenStream:null,
@@ -140,6 +140,10 @@ function conversationDraft(id){return state.drafts.get(String(id||""))||"";}
 function saveActiveConversationDraft({refreshList=true}={}){const id=state.composerConversationId||conversationId(state.activeConversation),input=document.getElementById("messageInput");if(!id||!input)return;const value=input.value||"";if(value.trim())state.drafts.set(String(id),value);else state.drafts.delete(String(id));persistConversationDrafts();if(refreshList){clearTimeout(state.draftRenderTimer);state.draftRenderTimer=setTimeout(renderConversations,120);}}
 function clearConversationDraft(id){if(!id)return;state.drafts.delete(String(id));persistConversationDrafts();}
 function restoreConversationDraft(id){const input=document.getElementById("messageInput");if(!input)return;state.composerConversationId=String(id||"");input.value=conversationDraft(id);input.selectionStart=input.selectionEnd=input.value.length;autoGrowComposer();}
+function isMobileConversationList(){return window.matchMedia("(max-width:760px)").matches;}
+function openedConversationStorageKey(){return "aiftOpenedConversations:"+(state.myId||localStorage.getItem("userId")||"guest");}
+function loadOpenedConversations(){try{const stored=JSON.parse(localStorage.getItem(openedConversationStorageKey())||"{}");state.conversationOpenedAt=new Map(Object.entries(stored).map(([id,time])=>[id,Number(time)||0]).filter(([,time])=>time>0));}catch{state.conversationOpenedAt=new Map();}}
+function rememberConversationOpened(id){if(!id)return;state.conversationOpenedAt.set(String(id),Date.now());try{localStorage.setItem(openedConversationStorageKey(),JSON.stringify(Object.fromEntries(state.conversationOpenedAt)));}catch(error){console.warn("Unable to save conversation order:",error);}}
 
 let currentMediaUrl="", currentMediaType="image";
 function openMediaViewer(url,type="image"){
@@ -161,11 +165,11 @@ async function loadConversations(){
 function applyConversationFilter(){
   let list=[...state.conversations];if(state.conversationFilter==="all")list=list.filter(x=>!x.archived);if(state.conversationFilter==="archived")list=list.filter(x=>x.archived);if(state.conversationFilter==="pinned")list=list.filter(x=>x.pinned&&!x.archived);if(state.conversationFilter==="unread")list=list.filter(x=>Number(x.unreadCount||x.unread||0)>0);
   if(state.conversationSearch){const q=state.conversationSearch.toLowerCase();list=list.filter(x=>[conversationTitle(x),conversationPreview(x),userSubtitle(x.user||{})].join(" ").toLowerCase().includes(q));}
-  list.sort((a,b)=>Boolean(a.pinned)!==Boolean(b.pinned)?(a.pinned?-1:1):new Date(conversationUpdatedAt(b)||0)-new Date(conversationUpdatedAt(a)||0));state.filteredConversations=list;
+  list.sort((a,b)=>{if(Boolean(a.pinned)!==Boolean(b.pinned))return a.pinned?-1:1;const mobile=isMobileConversationList(),aOpened=mobile?Number(state.conversationOpenedAt.get(String(conversationId(a)))||0):0,bOpened=mobile?Number(state.conversationOpenedAt.get(String(conversationId(b)))||0):0,aOrder=aOpened||new Date(conversationUpdatedAt(a)||0).getTime(),bOrder=bOpened||new Date(conversationUpdatedAt(b)||0).getTime();return bOrder-aOrder;});state.filteredConversations=list;
 }
 function renderConversations(){
   const box=document.getElementById("conversationList");if(!box)return;applyConversationFilter();if(!state.filteredConversations.length){box.innerHTML='<div class="empty-list">No conversations found.</div>';return;}
-  box.innerHTML=state.filteredConversations.map(c=>{const id=conversationId(c),active=state.activeConversation&&String(conversationId(state.activeConversation))===String(id),unread=Number(c.unreadCount||c.unread||0),online=isConversationOnline(c),draft=conversationDraft(id);
+  box.innerHTML=state.filteredConversations.map(c=>{const id=conversationId(c),active=!isMobileConversationList()&&state.activeConversation&&String(conversationId(state.activeConversation))===String(id),unread=Number(c.unreadCount||c.unread||0),online=isConversationOnline(c),draft=conversationDraft(id);
     return `<article class="conversation-item ${active?"active":""}" onclick="openConversation('${esc(id)}')"><div class="conversation-avatar-wrap"><img class="conversation-avatar" src="${esc(conversationImage(c))}" alt="">${online?'<span class="online-dot"></span>':''}</div><div class="conversation-main"><div class="conversation-top"><div class="conversation-name">${esc(conversationTitle(c))}</div><div class="conversation-time">${esc(formatTime(conversationUpdatedAt(c)))}</div></div><div class="conversation-preview">${draft?'<span class="draft-label">Draft</span> '+esc(draft):esc(conversationPreview(c))}</div><div class="conversation-meta-row">${c.pinned?'<span class="mini-pill blue">Pinned</span>':''}${c.muted?'<span class="mini-pill">Muted</span>':''}${c.type&&c.type!=="direct"?`<span class="mini-pill">${esc(c.type)}</span>`:''}${unread?`<span class="unread-count">${unread>99?'99+':unread}</span>`:''}</div></div></article>`;
   }).join("");
 }
@@ -174,7 +178,7 @@ function setConversationFilter(filter,button){state.conversationFilter=filter;do
 async function openConversation(id){
   if(!id)return;
   saveActiveConversationDraft({refreshList:false});
-  const targetId=String(id),openToken=++state.conversationOpenToken,cached=state.conversations.find(item=>String(conversationId(item))===targetId)||null;
+  const targetId=String(id),openToken=++state.conversationOpenToken;rememberConversationOpened(targetId);const cached=state.conversations.find(item=>String(conversationId(item))===targetId)||null;
   showMessagesState();hideConversationSidebarOnMobile();state.isLoadingMessages=true;state.messages=[];state.messagesPageBefore=null;state.hasMoreMessages=true;hideJumpButton();restoreConversationDraft(targetId);renderMessagesSkeleton();
   if(cached){state.activeConversation=cached;state.activeOtherUser=cached.user||getOtherParticipant(cached)||null;updateActiveHeader();renderConversations();}
   try{
@@ -489,6 +493,6 @@ function bindEvents(){
   window.addEventListener("resize",()=>{if(window.innerWidth>760)showConversationSidebar();});
 }
 async function openInitialTarget(){if(initialConversationId){try{await openConversation(initialConversationId);return;}catch{}}const uid=initialUserId||initialConversationId;if(uid){try{const c=await apiJSON("/api/conversations/direct","POST",{userId:uid});await loadConversations();await openConversation(conversationId(c));return;}catch(e){toast(e.message||"Unable to open conversation");}}showEmptyState();}
-async function initMessagesPage(){if(!requireAuth())return;bindEvents();try{await loadMe();loadConversationDrafts();connectSocket();await loadConversations();await openInitialTarget();}catch(e){console.error("MESSAGES INIT ERROR:",e);toast(e.message||"Unable to load messages");showEmptyState();}}
+async function initMessagesPage(){if(!requireAuth())return;bindEvents();try{await loadMe();loadConversationDrafts();loadOpenedConversations();connectSocket();await loadConversations();await openInitialTarget();}catch(e){console.error("MESSAGES INIT ERROR:",e);toast(e.message||"Unable to load messages");showEmptyState();}}
 
 document.addEventListener("DOMContentLoaded",()=>{setupAiftSounds();initMessagesPage();});
