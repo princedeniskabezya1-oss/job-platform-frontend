@@ -234,7 +234,8 @@ function syncMessageSelection(){
   const counter=document.getElementById("messageSelectionCount");if(counter)counter.textContent=String(count);
   document.getElementById("selectionReplyBtn")?.classList.toggle("hidden",count!==1);
   document.getElementById("selectionInfoBtn")?.classList.toggle("hidden",count!==1);
-  document.getElementById("selectionCopyBtn")?.classList.toggle("hidden",!entries.some(entry=>String(entry.message?.text||"").trim()));
+  document.getElementById("selectionStarBtn")?.classList.toggle("hidden",count<2);
+  document.getElementById("selectionCopyBtn")?.classList.toggle("hidden",count<2||!entries.some(entry=>String(entry.message?.text||"").trim()));
   if(!count)document.getElementById("selectionMoreMenu")?.classList.add("hidden");
 }
 function toggleMessageSelection(message,bubble){
