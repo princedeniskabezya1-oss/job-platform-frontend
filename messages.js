@@ -177,6 +177,7 @@ function setConversationFilter(filter,button){state.conversationFilter=filter;do
 
 async function openConversation(id){
   if(!id)return;
+  if(typeof window.discardVoiceRecordingForConversationSwitch==="function")window.discardVoiceRecordingForConversationSwitch();
   saveActiveConversationDraft({refreshList:false});
   const targetId=String(id),openToken=++state.conversationOpenToken;rememberConversationOpened(targetId);const cached=state.conversations.find(item=>String(conversationId(item))===targetId)||null;
   showMessagesState();hideConversationSidebarOnMobile();state.isLoadingMessages=true;state.messages=[];state.messagesPageBefore=null;state.hasMoreMessages=true;hideJumpButton();restoreConversationDraft(targetId);renderMessagesSkeleton();
@@ -426,22 +427,6 @@ async function sendRemoteAsset(url,type,title){if(!state.activeConversation)retu
 async function saveReceivedAssetById(id){const m=state.messages.find(x=>String(messageId(x))===String(id));if(!m)return toast("Message not found");const a=getPrimaryAttachment(m),url=a?.secureUrl||a?.url;if(!url)return;try{await apiJSON("/api/chat-assets","POST",{type:"sticker",title:a.originalName||"Saved sticker",url,mimeType:a.mimeType||m.fileType||"",source:"saved_from_chat",originalMessageId:messageId(m)});toast("Saved to your stickers");}catch(e){toast(e.message||"Unable to save sticker");}}
 function saveReceivedAsset(message){saveReceivedAssetById(messageId(message));}
 
-let voiceRecorder=null,voiceStream=null,voiceChunks=[],voiceRecordingTimer=null,voiceRecordingStartedAt=0,voiceRecordingCancelled=false;
-function updateVoiceRecordingUi(active){const composer=document.querySelector(".composer"),status=document.getElementById("voiceRecordingStatus"),time=document.getElementById("voiceRecordingTime");composer?.classList.toggle("is-recording",active);status?.classList.toggle("hidden",!active);clearInterval(voiceRecordingTimer);voiceRecordingTimer=null;if(active){voiceRecordingStartedAt=Date.now();const tick=()=>{const seconds=Math.floor((Date.now()-voiceRecordingStartedAt)/1000);if(time)time.textContent=Math.floor(seconds/60)+":"+String(seconds%60).padStart(2,"0");};tick();voiceRecordingTimer=setInterval(tick,250);}else if(time)time.textContent="0:00";}
-function cancelVoiceRecording(){if(!voiceRecorder||voiceRecorder.state!=="recording")return;voiceRecordingCancelled=true;voiceRecorder.stop();}
-async function startVoiceRecording(){
-  const button=document.querySelector(".mic-btn");
-  if(voiceRecorder?.state==="recording"){voiceRecorder.stop();return;}
-  if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined")return toast("Voice recording is not supported by this browser");
-  try{
-    voiceStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
-    const preferred=["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(type=>MediaRecorder.isTypeSupported(type))||"";
-    voiceChunks=[];voiceRecordingCancelled=false;voiceRecorder=new MediaRecorder(voiceStream,preferred?{mimeType:preferred}:undefined);
-    voiceRecorder.addEventListener("dataavailable",event=>{if(event.data?.size)voiceChunks.push(event.data);});
-    voiceRecorder.addEventListener("stop",()=>{const mime=voiceRecorder?.mimeType||"audio/webm",extension=mime.includes("mp4")?"m4a":"webm",blob=new Blob(voiceChunks,{type:mime});voiceStream?.getTracks().forEach(track=>track.stop());voiceStream=null;voiceRecorder=null;voiceChunks=[];button?.classList.remove("recording");updateVoiceRecordingUi(false);if(!voiceRecordingCancelled&&blob.size){handleAttachmentSelected(new File([blob],"voice-message-"+Date.now()+"."+extension,{type:mime,lastModified:Date.now()}));toast("Voice message ready to send");}});
-    voiceRecorder.start(250);button?.classList.add("recording");updateVoiceRecordingUi(true);
-  }catch(error){voiceStream?.getTracks().forEach(track=>track.stop());voiceStream=null;voiceRecorder=null;button?.classList.remove("recording");updateVoiceRecordingUi(false);toast(error?.name==="NotAllowedError"?"Microphone permission is required":"Unable to start voice recording");}
-}
 let cameraStream=null,cameraFacingMode="environment",cameraEnhanced=false,cameraFlashEnabled=false;
 async function openCameraCapture(){try{document.getElementById("cameraModal")?.classList.remove("hidden");cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:cameraFacingMode},audio:false});document.getElementById("cameraVideo").srcObject=cameraStream;}catch{document.getElementById("cameraInput")?.click();}}
 function closeCameraModal(){cameraStream?.getTracks().forEach(t=>t.stop());cameraStream=null;cameraFlashEnabled=false;document.getElementById("cameraModal")?.classList.add("hidden");}
@@ -483,8 +468,60 @@ async function upgradeToMeeting(){showMeetingComingSoon();}async function create
 async function refreshEverything(){try{await loadConversations();if(state.activeConversation)await openConversation(conversationId(state.activeConversation));if(typeof loadStories==="function")loadStories();toast("Messages refreshed");}catch(e){toast(e.message||"Unable to refresh");}}
 function handleConversationSearchInput(value){state.conversationSearch=cleanText(value);clearTimeout(state.conversationSearchTimer);state.conversationSearchTimer=setTimeout(loadConversations,250);}
 
+const voiceCapture={recorder:null,stream:null,chunks:[],phase:"idle",action:"",conversationId:"",startedAt:0,pausedAt:0,pausedTotal:0,timer:null,pointer:null,pendingGesture:null};
+function voiceMimeType(){return["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(type=>window.MediaRecorder?.isTypeSupported?.(type))||"";}
+function formatVoiceDuration(ms){const total=Math.max(0,Math.floor(ms/1000));return Math.floor(total/60)+":"+String(total%60).padStart(2,"0");}
+function voiceElapsed(){const end=voiceCapture.pausedAt||Date.now();return Math.max(0,end-voiceCapture.startedAt-voiceCapture.pausedTotal);}
+function updateVoiceTimer(){const value=formatVoiceDuration(voiceElapsed());const live=document.getElementById("voiceRecordingTime"),locked=document.getElementById("voiceLockedTime");if(live)live.textContent=value;if(locked)locked.textContent=value;}
+function setVoiceUi(phase="idle"){
+  voiceCapture.phase=phase;const active=phase!=="idle"&&phase!=="stopping",locked=phase==="locked"||phase==="paused",composer=document.querySelector(".composer"),status=document.getElementById("voiceRecordingStatus"),hint=document.getElementById("voiceLockHint"),mic=document.getElementById("micBtn"),pause=document.getElementById("voicePauseBtn");
+  composer?.classList.toggle("is-recording",active);composer?.classList.toggle("voice-is-locked",locked);composer?.classList.toggle("voice-is-paused",phase==="paused");status?.classList.toggle("hidden",!active);hint?.classList.toggle("hidden",!active||locked);mic?.classList.toggle("recording",active&&!locked);
+  if(pause){pause.querySelector("span").textContent=phase==="paused"?"Resume":"Pause";pause.setAttribute("aria-label",phase==="paused"?"Resume recording":"Pause recording");}
+  if(!active){clearInterval(voiceCapture.timer);voiceCapture.timer=null;if(document.getElementById("voiceRecordingTime"))document.getElementById("voiceRecordingTime").textContent="0:00";if(document.getElementById("voiceLockedTime"))document.getElementById("voiceLockedTime").textContent="0:00";}
+}
+function stopVoiceTracks(){voiceCapture.stream?.getTracks().forEach(track=>track.stop());voiceCapture.stream=null;}
+function resetVoiceCapture(){clearInterval(voiceCapture.timer);stopVoiceTracks();voiceCapture.recorder=null;voiceCapture.chunks=[];voiceCapture.phase="idle";voiceCapture.action="";voiceCapture.conversationId="";voiceCapture.startedAt=0;voiceCapture.pausedAt=0;voiceCapture.pausedTotal=0;voiceCapture.pointer=null;voiceCapture.pendingGesture=null;setVoiceUi("idle");}
+async function beginVoiceRecording({pointerId=null,x=0,y=0,started=Date.now(),tap=false}={}){
+  if(voiceCapture.phase!=="idle")return;
+  if(!state.activeConversation)return toast("Select a conversation first");
+  if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==="undefined"){toast("Voice recording is not supported by this browser");return chooseAttachment("audio");}
+  clearAttachment();closeChatPicker();voiceCapture.phase="acquiring";voiceCapture.conversationId=String(conversationId(state.activeConversation));voiceCapture.pointer=pointerId===null?null:{id:pointerId,x,y,started,released:false,cancel:false,lock:tap};
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
+    if(voiceCapture.phase!=="acquiring"){stream.getTracks().forEach(track=>track.stop());return;}
+    voiceCapture.stream=stream;voiceCapture.chunks=[];voiceCapture.action="";const mime=voiceMimeType(),recorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);voiceCapture.recorder=recorder;
+    recorder.addEventListener("dataavailable",event=>{if(event.data?.size)voiceCapture.chunks.push(event.data);});
+    recorder.addEventListener("stop",finalizeVoiceRecording);
+    recorder.start(200);voiceCapture.startedAt=Date.now();voiceCapture.pausedAt=0;voiceCapture.pausedTotal=0;voiceCapture.timer=setInterval(updateVoiceTimer,200);updateVoiceTimer();
+    const gesture=voiceCapture.pointer;if(gesture?.cancel)return finishVoiceRecording("discard");if(gesture?.lock||gesture?.released&&gesture.releasedAt-gesture.started<450)return lockVoiceRecording();setVoiceUi("holding");if(gesture?.released)finishVoiceRecording("send");
+  }catch(error){resetVoiceCapture();toast(error?.name==="NotAllowedError"?"Microphone permission is required":error.message||"Unable to start voice recording");}
+}
+async function finalizeVoiceRecording(){
+  const action=voiceCapture.action,mime=voiceCapture.recorder?.mimeType||voiceMimeType()||"audio/webm",chunks=voiceCapture.chunks.slice(),target=voiceCapture.conversationId;stopVoiceTracks();clearInterval(voiceCapture.timer);voiceCapture.timer=null;
+  if(action!=="send"){resetVoiceCapture();return;}
+  if(!chunks.length){resetVoiceCapture();return toast("No audio was captured");}
+  if(!state.activeConversation||String(conversationId(state.activeConversation))!==target){resetVoiceCapture();return toast("Recording cancelled because the conversation changed");}
+  const blob=new Blob(chunks,{type:mime});if(!blob.size){resetVoiceCapture();return toast("No audio was captured");}
+  const extension=mime.includes("mp4")?"m4a":"webm",file=new File([blob],"aift-voice-"+Date.now()+"."+extension,{type:mime,lastModified:Date.now()});resetVoiceCapture();state.attachment=file;state.attachments=[file];await sendMessage();
+}
+function finishVoiceRecording(action="send"){if(!voiceCapture.recorder)return resetVoiceCapture();voiceCapture.action=action;setVoiceUi("stopping");try{if(voiceCapture.recorder.state!=="inactive"){voiceCapture.recorder.requestData?.();voiceCapture.recorder.stop();}else finalizeVoiceRecording();}catch{resetVoiceCapture();}}
+function lockVoiceRecording(){if(!["acquiring","holding"].includes(voiceCapture.phase))return;if(voiceCapture.pointer)voiceCapture.pointer.lock=true;if(voiceCapture.recorder)setVoiceUi("locked");}
+function cancelVoiceRecording(){if(voiceCapture.phase==="idle")return;finishVoiceRecording("discard");}
+function sendVoiceRecording(){if(["locked","paused","holding"].includes(voiceCapture.phase))finishVoiceRecording("send");}
+function toggleVoiceRecordingPause(){const recorder=voiceCapture.recorder;if(!recorder)return;if(voiceCapture.phase==="locked"&&recorder.state==="recording"){recorder.pause();voiceCapture.pausedAt=Date.now();setVoiceUi("paused");updateVoiceTimer();}else if(voiceCapture.phase==="paused"&&recorder.state==="paused"){voiceCapture.pausedTotal+=Date.now()-voiceCapture.pausedAt;voiceCapture.pausedAt=0;recorder.resume();setVoiceUi("locked");}}
+window.discardVoiceRecordingForConversationSwitch=function(){if(voiceCapture.phase!=="idle")cancelVoiceRecording();};
+function bindVoiceRecorderEvents(){
+  const mic=document.getElementById("micBtn");if(!mic)return;mic.style.touchAction="none";
+  mic.addEventListener("pointerdown",event=>{if(event.button!==undefined&&event.button!==0)return;event.preventDefault();mic.setPointerCapture?.(event.pointerId);beginVoiceRecording({pointerId:event.pointerId,x:event.clientX,y:event.clientY,started:Date.now()});});
+  mic.addEventListener("pointermove",event=>{const gesture=voiceCapture.pointer;if(!gesture||gesture.id!==event.pointerId||gesture.released)return;const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;if(dx<=-72&&Math.abs(dx)>Math.abs(dy)){gesture.cancel=true;cancelVoiceRecording();return;}if(dy<=-64&&Math.abs(dy)>Math.abs(dx)*.72)lockVoiceRecording();});
+  const release=event=>{const gesture=voiceCapture.pointer;if(!gesture||gesture.id!==event.pointerId||gesture.released)return;gesture.released=true;gesture.releasedAt=Date.now();mic.releasePointerCapture?.(event.pointerId);if(gesture.cancel)return;if(gesture.lock||voiceCapture.phase==="locked"||voiceCapture.phase==="paused")return;if(voiceCapture.phase==="acquiring")return;if(gesture.releasedAt-gesture.started<450)lockVoiceRecording();else finishVoiceRecording("send");};
+  mic.addEventListener("pointerup",release);mic.addEventListener("pointercancel",event=>{const gesture=voiceCapture.pointer;if(gesture?.id===event.pointerId&&!gesture.lock)cancelVoiceRecording();});
+  mic.addEventListener("click",event=>{if(event.detail===0)beginVoiceRecording({tap:true});});
+}
+
 function bindEvents(){
   initializeChatTheme();
+  bindVoiceRecorderEvents();
   const input=document.getElementById("messageInput");if(input){input.addEventListener("input",()=>{autoGrowComposer();saveActiveConversationDraft();if(state.activeOtherUser&&state.socket){state.socket.emit("typing",{to:getId(state.activeOtherUser)});clearTimeout(state.typingTimer);state.typingTimer=setTimeout(()=>state.socket.emit("stopTyping",{to:getId(state.activeOtherUser)}),900);}});input.addEventListener("keydown",e=>{if(e.key!=="Enter")return;const isMobileComposer=window.matchMedia("(max-width:760px)").matches||navigator.maxTouchPoints>0;if(isMobileComposer)return;if(!e.shiftKey){e.preventDefault();sendMessage();}});input.addEventListener("select",()=>{state.composerSelectionStart=input.selectionStart??input.value.length;state.composerSelectionEnd=input.selectionEnd??input.value.length;});input.addEventListener("focus",()=>{if(state.pickerOpen)closeChatPicker();});}
   document.getElementById("fileInput")?.addEventListener("change",e=>{if(e.target.files?.length)handleAttachmentSelected(e.target.files);});document.getElementById("cameraInput")?.addEventListener("change",e=>{if(e.target.files?.length)handleCameraCapture(e.target.files);});document.getElementById("mediaReviewInput")?.addEventListener("change",e=>{if(e.target.files?.length)addMediaReviewFiles(e.target.files);e.target.value="";});document.getElementById("stickerImportInput")?.addEventListener("change",e=>{const f=e.target.files?.[0];if(f)handleStickerImport(f);e.target.value="";});document.getElementById("gifSearchInput")?.addEventListener("input",e=>{clearTimeout(state.gifSearchTimer);state.gifSearchTimer=setTimeout(()=>searchGifLocal(e.target.value),250);});
   document.getElementById("conversationSearch")?.addEventListener("input",e=>handleConversationSearchInput(e.target.value));document.getElementById("userSearchInput")?.addEventListener("input",e=>{clearTimeout(state.userSearchTimer);state.userSearchTimer=setTimeout(()=>searchUsers(e.target.value),280);});
