@@ -9,7 +9,7 @@ const state = {
   token:"", role:"", me:null, myId:"", socket:null,
   conversations:[], filteredConversations:[], activeConversation:null, activeOtherUser:null, messages:[],
   onlineUsers:new Map(), conversationFilter:"all", conversationSearch:"", userSearchTimer:null, conversationSearchTimer:null,
-  selectedMessage:null, replyTo:null, attachment:null, pickerOpen:false, pickerTab:"emoji", emojiCategory:"recent", pickerSwitchToken:0, composerSelectionStart:0, composerSelectionEnd:0, savedStickers:[], gifSearchTimer:null,
+  selectedMessage:null, selectedMessages:new Map(), selectionMode:false, selectionPressTimer:null, selectionPointer:null, replyTo:null, attachment:null, pickerOpen:false, pickerTab:"emoji", emojiCategory:"recent", pickerSwitchToken:0, composerSelectionStart:0, composerSelectionEnd:0, savedStickers:[], gifSearchTimer:null,
   isSending:false, isLoadingMessages:false, messagesPageBefore:null, hasMoreMessages:true, confirmCallback:null,
   unreadBelow:false, lastKnownScrollHeight:0,
   currentCall:null, currentCallLogId:null, localStream:null, remoteStream:null, peerConnection:null, screenStream:null,
@@ -189,7 +189,7 @@ function renderMessages({stickToBottom=false,preserveViewport=false}={}){
 }
 function createMessageNode(message){
   const mine=isMyMessage(message);if(message.messageType==="system"){const s=document.createElement("div");s.className="system-message";s.textContent=message.text||"System update";return s;}
-  const row=document.createElement("div");row.className="message-row "+(mine?"me":"other");const storyReply=isGenuineStoryReply(message);if(storyReply)row.classList.add("story-reply-row");const bubble=document.createElement("article");bubble.className="message-bubble "+(mine?"me":"other")+(storyReply?" story-reply-bubble":"");bubble.dataset.messageId=messageId(message);bubble.onclick=e=>{e.stopPropagation();selectMessage(message,bubble);};bubble.innerHTML=replyPreviewHtml(message)+messageContentHtml(message)+messageMetaHtml(message,mine);row.appendChild(bubble);return row;
+  const row=document.createElement("div");row.className="message-row "+(mine?"me":"other");const storyReply=isGenuineStoryReply(message);if(storyReply)row.classList.add("story-reply-row");const bubble=document.createElement("article");bubble.className="message-bubble "+(mine?"me":"other")+(storyReply?" story-reply-bubble":"");bubble.dataset.messageId=messageId(message);bindMessageSelectionGesture(bubble,message);if(state.selectedMessages.has(String(messageId(message)))){bubble.classList.add("selected");row.classList.add("selected");}bubble.innerHTML=replyPreviewHtml(message)+messageContentHtml(message)+messageMetaHtml(message,mine);row.appendChild(bubble);return row;
 }
 function replyPreviewHtml(message){const r=message.replyTo;if(!r)return"";const name=r.sender?.name||r.sender?.companyName||r.sender?.schoolName||"Reply";return `<div class="reply-preview"><strong>${esc(name)}</strong><span>${esc(r.text||r.messageType||"Message")}</span></div>`;}
 function isGenuineStoryReply(message){const metadata=message?.metadata||{},story=metadata.storyReply;return metadata.source==="story_reply"&&!!story?.storyId;}
@@ -226,9 +226,35 @@ async function loadOlderMessages(){
   try{state.isLoadingMessages=true;const id=conversationId(state.activeConversation),older=await api(`/api/conversations/${encodeURIComponent(id)}/messages?limit=40&before=${encodeURIComponent(state.messagesPageBefore)}`,{headers:authHeaders()}),list=Array.isArray(older)?older:older.messages||[];if(!list.length){state.hasMoreMessages=false;return;}const ids=new Set(state.messages.map(x=>String(messageId(x)))),unique=list.filter(x=>!ids.has(String(messageId(x))));state.messages=[...unique,...state.messages];state.messagesPageBefore=state.messages[0]?.createdAt||null;if(list.length<40)state.hasMoreMessages=false;renderMessages();requestAnimationFrame(()=>{box.scrollTop=oldTop+(box.scrollHeight-oldHeight);});}catch(e){console.warn("Load older messages failed:",e.message);}finally{state.isLoadingMessages=false;}
 }
 
-function selectMessage(message,bubble){clearSelectedMessage();state.selectedMessage={id:messageId(message),text:message.text||"",mine:isMyMessage(message),message};bubble.classList.add("selected");document.getElementById("messageActionBar")?.classList.remove("hidden");}
-function clearSelectedMessage(){state.selectedMessage=null;document.querySelectorAll(".message-bubble.selected").forEach(x=>x.classList.remove("selected"));document.getElementById("messageActionBar")?.classList.add("hidden");}
-function replyToSelectedMessage(){if(!state.selectedMessage)return;const m=state.selectedMessage.message,sender=state.selectedMessage.mine?"You":conversationTitle(state.activeConversation);state.replyTo={id:state.selectedMessage.id,text:m.text||getPrimaryAttachment(m)?.originalName||"Message",sender};document.getElementById("replyTitle").textContent="Replying to "+sender;document.getElementById("replyText").textContent=state.replyTo.text;document.getElementById("replyBar")?.classList.remove("hidden");clearSelectedMessage();document.getElementById("messageInput")?.focus();}
+function selectedMessageEntries(){return [...state.selectedMessages.values()];}
+function syncMessageSelection(){
+  const entries=selectedMessageEntries(),count=entries.length;state.selectionMode=count>0;state.selectedMessage=count===1?entries[0]:null;
+  document.querySelectorAll(".message-bubble[data-message-id]").forEach(bubble=>{const selected=state.selectedMessages.has(String(bubble.dataset.messageId));bubble.classList.toggle("selected",selected);bubble.closest(".message-row")?.classList.toggle("selected",selected);});
+  const bar=document.getElementById("messageActionBar");bar?.classList.toggle("hidden",!count);document.querySelector(".chat-panel")?.classList.toggle("message-selection-mode",!!count);
+  const counter=document.getElementById("messageSelectionCount");if(counter)counter.textContent=String(count);
+  document.getElementById("selectionReplyBtn")?.classList.toggle("hidden",count!==1);
+  document.getElementById("selectionInfoBtn")?.classList.toggle("hidden",count!==1);
+  document.getElementById("selectionCopyBtn")?.classList.toggle("hidden",!entries.some(entry=>String(entry.message?.text||"").trim()));
+  if(!count)document.getElementById("selectionMoreMenu")?.classList.add("hidden");
+}
+function toggleMessageSelection(message,bubble){
+  const id=String(messageId(message));if(!id)return;
+  if(state.selectedMessages.has(id))state.selectedMessages.delete(id);else state.selectedMessages.set(id,{id,text:message.text||"",mine:isMyMessage(message),message});
+  syncMessageSelection();
+}
+function beginMessageSelection(message,bubble){if(navigator.vibrate)navigator.vibrate(24);toggleMessageSelection(message,bubble);}
+function bindMessageSelectionGesture(bubble,message){
+  const cancel=()=>{clearTimeout(state.selectionPressTimer);state.selectionPressTimer=null;state.selectionPointer=null;};
+  bubble.addEventListener("pointerdown",event=>{if(event.button!==undefined&&event.button!==0)return;event.stopPropagation();if(state.selectionMode){toggleMessageSelection(message,bubble);return;}state.selectionPointer={id:event.pointerId,x:event.clientX,y:event.clientY};clearTimeout(state.selectionPressTimer);state.selectionPressTimer=setTimeout(()=>{state.selectionPressTimer=null;beginMessageSelection(message,bubble);},420);});
+  bubble.addEventListener("pointermove",event=>{const press=state.selectionPointer;if(!press||press.id!==event.pointerId)return;if(Math.hypot(event.clientX-press.x,event.clientY-press.y)>10)cancel();});
+  bubble.addEventListener("pointerup",event=>{event.stopPropagation();cancel();});
+  bubble.addEventListener("pointercancel",cancel);
+  bubble.addEventListener("contextmenu",event=>{event.preventDefault();cancel();if(!state.selectionMode)beginMessageSelection(message,bubble);});
+  bubble.addEventListener("click",event=>{event.stopPropagation();});
+}
+function selectMessage(message,bubble){beginMessageSelection(message,bubble);}
+function clearSelectedMessage(){clearTimeout(state.selectionPressTimer);state.selectionPressTimer=null;state.selectionPointer=null;state.selectedMessages.clear();state.selectedMessage=null;state.selectionMode=false;syncMessageSelection();}
+function replyToSelectedMessage(){const entries=selectedMessageEntries();if(entries.length!==1)return;const selected=entries[0],m=selected.message,sender=selected.mine?"You":conversationTitle(state.activeConversation);state.replyTo={id:selected.id,text:m.text||getPrimaryAttachment(m)?.originalName||"Message",sender};document.getElementById("replyTitle").textContent="Replying to "+sender;document.getElementById("replyText").textContent=state.replyTo.text;document.getElementById("replyBar")?.classList.remove("hidden");clearSelectedMessage();document.getElementById("messageInput")?.focus();}
 function clearReply(){state.replyTo=null;document.getElementById("replyBar")?.classList.add("hidden");document.getElementById("replyTitle").textContent="Replying";document.getElementById("replyText").textContent="";}
 
 function makeTempMessage({text,file,receiverId,tempId,replyTo,url,mimeType,title}){const objectUrl=file?URL.createObjectURL(file):(url||"");return{_id:tempId,sender:{_id:state.myId,name:"You"},receiver:{_id:receiverId},text:text||"",fileUrl:objectUrl,fileType:file?.type||mimeType||"",fileName:file?.name||title||"",fileSize:file?.size||0,attachments:objectUrl?[{url:objectUrl,secureUrl:objectUrl,type:normalizeAttachmentType(file?.type||mimeType||""),mimeType:file?.type||mimeType||"",originalName:file?.name||title||"Attachment",size:file?.size||0}]:[],replyTo:replyTo?{text:replyTo.text,sender:{name:replyTo.sender}}:null,messageType:objectUrl?normalizeAttachmentType(file?.type||mimeType||""):"text",status:"sending",seen:false,createdAt:new Date().toISOString(),metadata:{clientMessageId:tempId},_retry:{text:text||"",file:file||null,receiverId,replyTo:replyTo||null,url:url||"",mimeType:mimeType||"",title:title||""}};}
@@ -259,11 +285,55 @@ async function searchUsers(query){const q=cleanText(query),box=document.getEleme
 function renderUserSearchResults(users){const box=document.getElementById("userSearchResults");if(!box)return;if(!users.length){box.innerHTML='<div class="empty-list">No users found.</div>';return;}box.innerHTML=users.map(u=>`<article class="conversation-item" onclick="createDirectConversation('${esc(getId(u))}')"><div class="conversation-avatar-wrap"><img class="conversation-avatar" src="${esc(userAvatar(u))}" alt=""></div><div class="conversation-main"><div class="conversation-top"><div class="conversation-name">${esc(userDisplayName(u))}</div></div><div class="conversation-preview">${esc(readableRole(u.role))} • ${esc(userSubtitle(u))}</div></div></article>`).join("");}
 async function createDirectConversation(userId){try{const c=await apiJSON("/api/conversations/direct","POST",{userId});closeNewChatMode();await loadConversations();await openConversation(conversationId(c));}catch(e){toast(e.message||"Unable to start conversation");}}
 
-async function copySelectedMessage(){if(!state.selectedMessage)return;const text=state.selectedMessage.text||state.selectedMessage.message?.text||"";if(!text)return toast("No text to copy");try{await navigator.clipboard.writeText(text);toast("Message copied");clearSelectedMessage();}catch{toast("Unable to copy message");}}
-async function starSelectedMessage(){if(!state.selectedMessage?.id)return;try{await apiJSON(`/api/messages/${encodeURIComponent(state.selectedMessage.id)}/star`,"PATCH",{});toast("Message updated");clearSelectedMessage();}catch(e){toast(e.message||"Unable to update message");}}
-function deleteSelectedMessageForMe(){const id=state.selectedMessage?.id;if(!id)return;openConfirmModal({title:"Delete message for you",text:"This message will be removed from your view only.",confirmText:"Delete",danger:true,onConfirm:async()=>{try{await apiJSON(`/api/messages/${encodeURIComponent(id)}/delete-for-me`,"PATCH",{});state.messages=state.messages.filter(x=>String(messageId(x))!==String(id));clearSelectedMessage();renderMessages({preserveViewport:true});toast("Message deleted");}catch(e){toast(e.message||"Unable to delete message");}}});}
-function deleteSelectedMessageForEveryone(){const id=state.selectedMessage?.id;if(!id)return;if(!state.selectedMessage.mine)return toast("Only the sender can delete this message for everyone");openConfirmModal({title:"Delete message for everyone",text:"This will remove the message for everyone in this conversation.",confirmText:"Delete",danger:true,onConfirm:async()=>{try{await apiJSON(`/api/messages/${encodeURIComponent(id)}/delete-for-everyone`,"PATCH",{});const m=state.messages.find(x=>String(messageId(x))===String(id));if(m){m.deletedForEveryone=true;m.text="This message was deleted";m.attachments=[];m.fileUrl="";}clearSelectedMessage();renderMessages({preserveViewport:true});toast("Message deleted for everyone");}catch(e){toast(e.message||"Unable to delete message");}}});}
-
+async function copySelectedMessage(){
+  const text=selectedMessageEntries().map(entry=>String(entry.message?.text||"").trim()).filter(Boolean).join("\n");
+  if(!text)return toast("No text to copy");try{await navigator.clipboard.writeText(text);toast(selectedMessageEntries().length>1?"Messages copied":"Message copied");clearSelectedMessage();}catch{toast("Unable to copy message");}
+}
+async function starSelectedMessage(){
+  const entries=selectedMessageEntries();if(!entries.length)return;
+  try{await Promise.all(entries.map(entry=>apiJSON(`/api/messages/${encodeURIComponent(entry.id)}/star`,"PATCH",{})));toast(entries.length>1?"Messages updated":"Message updated");clearSelectedMessage();}catch(error){toast(error.message||"Unable to update messages");}
+}
+function deleteSelectedMessages(){
+  const entries=selectedMessageEntries();if(!entries.length)return;const everyone=document.getElementById("deleteEveryoneChoice");if(everyone)everyone.classList.toggle("hidden",!entries.every(entry=>entry.mine));document.getElementById("messageDeleteModal")?.classList.remove("hidden");
+}
+function closeMessageDeleteModal(){document.getElementById("messageDeleteModal")?.classList.add("hidden");}
+async function confirmDeleteSelectedMessages(scope){
+  const entries=selectedMessageEntries();if(!entries.length)return closeMessageDeleteModal();
+  if(scope==="everyone"&&!entries.every(entry=>entry.mine))return toast("Only your messages can be deleted for everyone");
+  closeMessageDeleteModal();
+  try{
+    await Promise.all(entries.map(entry=>apiJSON(`/api/messages/${encodeURIComponent(entry.id)}/${scope==="everyone"?"delete-for-everyone":"delete-for-me"}`,"PATCH",{})));
+    const ids=new Set(entries.map(entry=>String(entry.id)));
+    if(scope==="me")state.messages=state.messages.filter(message=>!ids.has(String(messageId(message))));
+    else state.messages.forEach(message=>{if(ids.has(String(messageId(message)))){message.deletedForEveryone=true;message.text="This message was deleted";message.attachments=[];message.fileUrl="";}});
+    clearSelectedMessage();renderMessages({preserveViewport:true});toast(entries.length>1?"Messages deleted":scope==="everyone"?"Message deleted for everyone":"Message deleted");
+  }catch(error){toast(error.message||"Unable to delete messages");}
+}
+function deleteSelectedMessageForMe(){confirmDeleteSelectedMessages("me");}
+function deleteSelectedMessageForEveryone(){confirmDeleteSelectedMessages("everyone");}
+function showSelectedMessageInfo(){
+  const entries=selectedMessageEntries();if(entries.length!==1)return;const message=entries[0].message,created=new Date(message.createdAt||Date.now()),seen=!!(message.seen||message.readAt||message.seenAt),content=document.getElementById("messageInfoContent");
+  if(content)content.innerHTML=`<div class="message-info-preview">${message.text?`<p>${esc(message.text)}</p>`:'<p>Attachment</p>'}</div><div class="message-info-row"><span>Sent</span><strong>${esc(created.toLocaleString())}</strong></div><div class="message-info-row"><span>Status</span><strong>${seen?"Read":"Delivered"}</strong></div>`;
+  document.getElementById("messageInfoModal")?.classList.remove("hidden");
+}
+function closeSelectedMessageInfo(){document.getElementById("messageInfoModal")?.classList.add("hidden");}
+function toggleSelectionMoreMenu(event){event?.stopPropagation();document.getElementById("selectionMoreMenu")?.classList.toggle("hidden");}
+function closeSelectionMoreMenu(){document.getElementById("selectionMoreMenu")?.classList.add("hidden");}
+function openForwardSelectedMessages(){
+  const entries=selectedMessageEntries();if(!entries.length)return;const list=document.getElementById("forwardConversationList"),conversations=state.conversations.filter(conversation=>String(conversationId(conversation))!==String(conversationId(state.activeConversation)));
+  if(list)list.innerHTML=conversations.length?conversations.map(conversation=>{const user=getOtherParticipant(conversation),id=getId(user);return `<button type="button" onclick="forwardSelectedMessagesTo('${esc(id)}')"><img src="${esc(userAvatar(user))}" alt=""><span><strong>${esc(userDisplayName(user))}</strong><small>${esc(readableRole(user.role))}</small></span></button>`;}).join(""):'<div class="asset-empty">No other conversations available.</div>';
+  document.getElementById("forwardMessagesModal")?.classList.remove("hidden");
+}
+function closeForwardSelectedMessages(){document.getElementById("forwardMessagesModal")?.classList.add("hidden");}
+async function forwardSelectedMessagesTo(receiverId){
+  const entries=selectedMessageEntries();if(!receiverId||!entries.length)return;
+  try{
+    for(const entry of entries){const message=entry.message,attachment=getPrimaryAttachment(message),form=new FormData();form.append("receiverId",receiverId);if(message.text)form.append("text",message.text);if(attachment){form.append("fileUrl",attachment.secureUrl||attachment.url||"");form.append("fileType",attachment.mimeType||message.fileType||"application/octet-stream");form.append("fileName",attachment.originalName||message.fileName||"Forwarded attachment");}await api("/api/messages",{method:"POST",headers:authHeaders(),body:form});}
+    closeForwardSelectedMessages();clearSelectedMessage();await loadConversations();toast(entries.length>1?"Messages forwarded":"Message forwarded");
+  }catch(error){toast(error.message||"Unable to forward messages");}
+}
+function toggleChatMoreMenu(event){event?.stopPropagation();if(!state.activeConversation)return toast("Select a conversation first");document.getElementById("chatMoreMenu")?.classList.toggle("hidden");}
+function closeChatMoreMenu(){document.getElementById("chatMoreMenu")?.classList.add("hidden");}
 async function patchConversationSetting(action){if(!state.activeConversation)return toast("Select a conversation first");const id=conversationId(state.activeConversation);return apiJSON(`/api/conversations/${encodeURIComponent(id)}/${action}`,"PATCH",{});}
 async function toggleActivePin(){try{const s=await patchConversationSetting("pin");state.activeConversation.pinned=!!s.pinned;toast(s.pinned?"Conversation pinned":"Conversation unpinned");closeChatInfo();await loadConversations();}catch(e){toast(e.message||"Unable to update pin");}}
 async function toggleActiveMute(){try{const s=await patchConversationSetting("mute");state.activeConversation.muted=!!s.muted;toast(s.muted?"Conversation muted":"Conversation unmuted");closeChatInfo();await loadConversations();}catch(e){toast(e.message||"Unable to update mute");}}
@@ -363,7 +433,7 @@ function bindEvents(){
   document.getElementById("fileInput")?.addEventListener("change",e=>{const f=e.target.files?.[0];if(f)handleAttachmentSelected(f);});document.getElementById("cameraInput")?.addEventListener("change",e=>{const f=e.target.files?.[0];if(f)handleCameraCapture(f);});document.getElementById("stickerImportInput")?.addEventListener("change",e=>{const f=e.target.files?.[0];if(f)handleStickerImport(f);e.target.value="";});document.getElementById("gifSearchInput")?.addEventListener("input",e=>{clearTimeout(state.gifSearchTimer);state.gifSearchTimer=setTimeout(()=>searchGifLocal(e.target.value),250);});
   document.getElementById("conversationSearch")?.addEventListener("input",e=>handleConversationSearchInput(e.target.value));document.getElementById("userSearchInput")?.addEventListener("input",e=>{clearTimeout(state.userSearchTimer);state.userSearchTimer=setTimeout(()=>searchUsers(e.target.value),280);});
   const box=getMessagesBox();if(box)box.addEventListener("scroll",()=>{updateJumpButtonFromScroll();if(box.scrollTop<80)loadOlderMessages();});
-  document.addEventListener("click",e=>{const menu=document.getElementById("attachmentMenu");if(menu&&!menu.contains(e.target)&&!e.target.closest(".composer-icon"))menu.classList.add("hidden");if(!e.target.closest(".message-bubble")&&!e.target.closest(".message-action-bar"))clearSelectedMessage();const drawer=document.getElementById("chatInfoDrawer");if(drawer&&!drawer.classList.contains("hidden")&&e.target===drawer)closeChatInfo();const modal=document.getElementById("confirmModal");if(modal&&!modal.classList.contains("hidden")&&e.target===modal)closeConfirmModal();});
+  document.addEventListener("click",e=>{const menu=document.getElementById("attachmentMenu");if(menu&&!menu.contains(e.target)&&!e.target.closest(".composer-icon"))menu.classList.add("hidden");if(!e.target.closest("#selectionMoreMenu")&&!e.target.closest(".message-action-bar"))closeSelectionMoreMenu();if(!e.target.closest("#chatMoreMenu")&&!e.target.closest("#chatMoreBtn"))closeChatMoreMenu();const drawer=document.getElementById("chatInfoDrawer");if(drawer&&!drawer.classList.contains("hidden")&&e.target===drawer)closeChatInfo();const modal=document.getElementById("confirmModal");if(modal&&!modal.classList.contains("hidden")&&e.target===modal)closeConfirmModal();});
   window.addEventListener("resize",()=>{if(window.innerWidth>760)showConversationSidebar();});
 }
 async function openInitialTarget(){if(initialConversationId){try{await openConversation(initialConversationId);return;}catch{}}const uid=initialUserId||initialConversationId;if(uid){try{const c=await apiJSON("/api/conversations/direct","POST",{userId:uid});await loadConversations();await openConversation(conversationId(c));return;}catch(e){toast(e.message||"Unable to open conversation");}}showEmptyState();}
