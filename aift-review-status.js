@@ -94,3 +94,5 @@
   function init(){loadCareerHubCreation();if(!isCareerHub()||!token()||role()==="admin")return;ensureStyle();ensureUI();loadFamilyRoleAccess();setTimeout(loadAll,500);startPolling();window.addEventListener("focus",()=>loadAll(),{passive:true});document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadAll();});}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
+
+(function loadAiftGlobalCalls(){if(window.__aiftGlobalCalls||/\/messages\.html$/i.test(location.pathname))return;const script=document.createElement("script");script.src="aift-global-calls.js";document.head.appendChild(script);}());

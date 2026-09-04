@@ -127,3 +127,5 @@
     setTimeout(setMobileAvatar, 1600);
   });
 })();
+
+(function loadAiftGlobalCalls(){if(window.__aiftGlobalCalls||/\/messages\.html$/i.test(location.pathname))return;const script=document.createElement("script");script.src="aift-global-calls.js";document.head.appendChild(script);}());
