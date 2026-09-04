@@ -992,6 +992,11 @@
             </button>
           </div>
         </div>
+        <section id="groupInfoSection" class="group-info-section hidden">
+          <button id="groupDescriptionButton" class="group-description-button" type="button" onclick="editGroupDescription()">Add group description</button>
+          <div class="group-members-head"><strong id="groupMemberCount">0 members</strong><button type="button" onclick="openAddGroupMembers()">Add members</button></div>
+          <div id="groupMembersList" class="group-info-members"></div>
+        </section>
         <div class="drawer-section-title">Chat settings</div>
         <div class="drawer-actions">
           <button onclick="openActiveProfile()">
@@ -1106,6 +1111,30 @@
         ></div>
       </div>
     </div>
+    <div id="groupCreatorModal" class="group-creator-modal hidden" role="dialog" aria-modal="true" aria-labelledby="groupCreatorTitle">
+      <section class="group-creator-card">
+        <header>
+          <button type="button" class="group-back-btn" onclick="groupCreatorBack()" aria-label="Back"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></button>
+          <div><h2 id="groupCreatorTitle">New group</h2><p id="groupCreatorSubtitle">Add participants</p></div>
+          <button id="groupCreatorNext" type="button" class="group-next-text" onclick="advanceGroupCreator()">Next</button>
+        </header>
+        <div id="groupMemberStep" class="group-creator-step">
+          <div id="groupSelectedMembers" class="group-selected-members"></div>
+          <label class="group-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input id="groupMemberSearch" type="search" placeholder="Search people" autocomplete="off"></label>
+          <div id="groupMemberResults" class="group-member-results"><div class="empty-list">Search for people to add.</div></div>
+        </div>
+        <div id="groupDetailsStep" class="group-creator-step hidden">
+          <div class="group-details-row">
+            <button type="button" class="group-photo-picker" onclick="document.getElementById('groupPhotoInput').click()" aria-label="Add group photo"><img id="groupPhotoPreview" class="hidden" alt=""><svg viewBox="0 0 24 24"><path d="M4 7h4l2-2h4l2 2h4v12H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg></button>
+            <input id="groupPhotoInput" type="file" accept="image/*" hidden>
+            <label><span>Group subject</span><input id="groupNameInput" maxlength="160" placeholder="Enter a group name"><small><b id="groupNameCount">0</b>/160</small></label>
+          </div>
+          <label class="group-description-field"><span>Group description <small>Optional</small></span><textarea id="groupDescriptionInput" maxlength="1000" rows="3" placeholder="What is this group for?"></textarea></label>
+          <div class="group-summary"><strong id="groupSummaryCount">0 participants</strong><div id="groupSummaryMembers"></div></div>
+          <button id="createGroupButton" type="button" class="create-group-button" onclick="createGroupConversation()">Create group</button>
+        </div>
+      </section>
+    </div>
     <div class="messages-app">
       <aside id="conversationSidebar" class="sidebar">
         <header class="sidebar-header">
@@ -1126,14 +1155,25 @@
                 </svg></button
               ><button
                 class="icon-btn primary-soft"
-                onclick="openNewChatMode()"
-                aria-label="New chat"
+                onclick="toggleCreateChatMenu()"
+                aria-label="Create chat or group"
+                aria-expanded="false"
               >
                 <svg viewBox="0 0 24 24">
                   <path d="M12 5v14M5 12h14"></path>
                 </svg>
               </button>
             </div>
+          </div>
+          <div id="createChatMenu" class="create-chat-menu hidden">
+            <button type="button" onclick="openNewDirectChat()">
+              <span><svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"></path><circle cx="12" cy="7" r="4"></circle><path d="M19 8h4M21 6v4"></path></svg></span>
+              <span><strong>New chat</strong><small>Start a private conversation</small></span>
+            </button>
+            <button type="button" onclick="openGroupCreator()">
+              <span><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6M16 11h6"></path></svg></span>
+              <span><strong>New group</strong><small>Create a group conversation</small></span>
+            </button>
           </div>
           <div class="search-box">
             <svg viewBox="0 0 24 24">
