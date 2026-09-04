@@ -95,7 +95,11 @@
     const authToken = token(), userId = userIdFromToken(authToken);
     if (!authToken || !userId || typeof window.io !== "function") return;
     socket = window.io(API, { auth: { token: authToken }, transports: ["websocket", "polling"] });
+    window.__aiftGlobalSocket = socket;
     socket.on("connect", () => socket.emit("join", { userId, token: authToken }));
+    ["newNotification","notificationUpdated","notificationsRead","navigationCountsUpdated","newMessage","conversationRead"].forEach(eventName=>{
+      socket.on(eventName,payload=>window.dispatchEvent(new CustomEvent(eventName,{detail:payload})));
+    });
     socket.on("incomingCall", showIncomingCall);
     socket.on("callEnded", closeAlert);
     socket.on("callDeclined", closeAlert);
