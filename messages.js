@@ -506,8 +506,9 @@ function captureCameraPhoto(){const v=document.getElementById("cameraVideo"),c=d
 function handleCameraCapture(files){closeCameraModal();state.attachments=[];state.attachment=null;addMediaReviewFiles(files);openMediaReview();}
 
 const RTC_CONFIG={iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun1.l.google.com:19302"}]};
-const AIFT_CALL_RING_SOUND="audio/ringtone.mp3";
-function setupAiftSounds(){state.ringtone=new Audio(AIFT_CALL_RING_SOUND);state.outgoingTone=new Audio(AIFT_CALL_RING_SOUND);state.callEndTone=new Audio("audio/call-end.mp3");state.messageTone=new Audio("audio/message.mp3");state.messageSentTone=new Audio("audio/message-sent.mp3");state.busyTone=new Audio("audio/busy.mp3");state.ringtone.loop=true;state.outgoingTone.loop=true;[state.ringtone,state.outgoingTone].forEach(a=>{a.preload="auto";a.volume=.62;});[state.callEndTone,state.messageTone,state.messageSentTone,state.busyTone].forEach(a=>{if(a){a.preload="auto";a.volume=.55;}});}
+const AIFT_INCOMING_RING_SOUND="audio/ringtone.mp3";
+const AIFT_OUTGOING_RINGBACK_SOUND="audio/calling.mp3";
+function setupAiftSounds(){state.ringtone=new Audio(AIFT_INCOMING_RING_SOUND);state.outgoingTone=new Audio(AIFT_OUTGOING_RINGBACK_SOUND);state.callEndTone=new Audio("audio/call-end.mp3");state.messageTone=new Audio("audio/message.mp3");state.messageSentTone=new Audio("audio/message-sent.mp3");state.busyTone=new Audio("audio/busy.mp3");state.ringtone.loop=true;state.outgoingTone.loop=true;[state.ringtone,state.outgoingTone].forEach(a=>{a.preload="auto";a.volume=.62;});[state.callEndTone,state.messageTone,state.messageSentTone,state.busyTone].forEach(a=>{if(a){a.preload="auto";a.volume=.55;}});}
 function unlockAiftCallSounds(){[state.ringtone,state.outgoingTone].forEach(audio=>{if(!audio)return;try{const muted=audio.muted;audio.muted=true;const play=audio.play();if(play?.then)play.then(()=>{audio.pause();audio.currentTime=0;audio.muted=muted;}).catch(()=>{audio.muted=muted;});else audio.muted=muted;}catch{}});}
 function safePlay(audio,loop=false){if(!audio)return;try{audio.loop=loop;audio.muted=false;audio.currentTime=0;const attempt=audio.play();attempt?.catch?.(()=>{setTimeout(()=>audio.play()?.catch(()=>{}),120);});}catch{}}
 function stopSound(audio){if(!audio)return;try{audio.pause();audio.currentTime=0;audio.loop=false;}catch{}}
