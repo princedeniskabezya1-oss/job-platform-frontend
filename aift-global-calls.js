@@ -101,5 +101,7 @@
     socket.on("callDeclined", closeAlert);
   }
 
-  document.addEventListener("DOMContentLoaded", () => loadSocketIo(connect), { once: true });
+  const start = () => loadSocketIo(connect);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
 }());
