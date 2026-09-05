@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="messages.css?v=20260905-aift-story-filmstrip-12" />
+    <link rel="stylesheet" href="messages.css?v=20260905-aift-story-audio-13" />
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
       .aift-story-style-panel,
@@ -1843,12 +1843,20 @@
             />
           </div>
           <div class="story-trim-meta">
-            <span class="story-trim-audio" aria-hidden="true">
+            <button
+              id="storyTrimAudio"
+              class="story-trim-audio"
+              type="button"
+              onclick="toggleStoryPreviewAudio()"
+              aria-label="Mute video preview"
+              aria-pressed="false"
+            >
               <svg viewBox="0 0 24 24">
                 <path d="M5 9v6h4l5 4V5L9 9H5z"></path>
-                <path d="M17 9.5a4 4 0 010 5M19.5 7a7 7 0 010 10"></path>
+                <path class="story-audio-waves" d="M17 9.5a4 4 0 010 5M19.5 7a7 7 0 010 10"></path>
+                <path class="story-audio-slash" d="M4 4l16 16"></path>
               </svg>
-            </span>
+            </button>
             <span id="storyTrimDuration">0:00</span>
             <span aria-hidden="true">•</span>
             <span id="storyTrimFileSize">0 MB</span>
@@ -2572,6 +2580,7 @@
           trimStart: 0,
           trimEnd: 0,
           trimFramesKey: "",
+          previewMuted: false,
           musicFile: null,
           timer: null,
           progressFrame: null,
@@ -2657,6 +2666,7 @@
           storyState.trimStart = 0;
           storyState.trimEnd = 0;
           storyState.trimFramesKey = "";
+          storyState.previewMuted = false;
           storyState.musicFile = null;
           storyState.elements = [];
           storyState.selectedElement = null;
@@ -2798,7 +2808,7 @@
             };
             const mediaStyle = `transform:translate(${mt.x}px,${mt.y}px) scale(${mt.scale}) rotate(${mt.rotation}deg);transform-origin:center;touch-action:none;will-change:transform;`;
             media = storyState.file.type.startsWith("video/")
-              ? `<video data-story-media src="${escapeHtml(storyState.objectUrl)}" style="${mediaStyle}" autoplay loop muted playsinline></video>`
+              ? `<video data-story-media src="${escapeHtml(storyState.objectUrl)}" style="${mediaStyle}" autoplay loop playsinline></video>`
               : `<img data-story-media src="${escapeHtml(storyState.objectUrl)}" style="${mediaStyle}" alt="Story preview">`;
           } else
             media =
@@ -2812,6 +2822,8 @@
           preview.innerHTML = media + layers;
           const previewVideo = preview.querySelector("video");
           if (previewVideo) {
+            previewVideo.muted = !!storyState.previewMuted;
+            previewVideo.volume = 1;
             const keepInsideTrim = () => {
               const start = Math.max(0, Number(storyState.trimStart || 0)),
                 end = Math.max(start + 0.1, Number(storyState.trimEnd || 0));
@@ -2835,6 +2847,12 @@
               once: true,
             });
             previewVideo.addEventListener("timeupdate", keepInsideTrim);
+            previewVideo.play()?.catch(() => {
+              storyState.previewMuted = true;
+              previewVideo.muted = true;
+              syncStoryTrimPanel();
+              previewVideo.play()?.catch(() => {});
+            });
           }
           syncStoryTrimPanel();
           bindStoryLayerDrag();
@@ -2873,12 +2891,39 @@
             storyTimeLabel(end - start);
           document.getElementById("storyTrimFileSize").textContent =
             `${(Number(storyState.file?.size || 0) / 1024 / 1024).toFixed(1)} MB`;
+          const audioButton = document.getElementById("storyTrimAudio");
+          if (audioButton) {
+            audioButton.classList.toggle(
+              "muted",
+              !!storyState.previewMuted,
+            );
+            audioButton.setAttribute(
+              "aria-pressed",
+              String(!!storyState.previewMuted),
+            );
+            audioButton.setAttribute(
+              "aria-label",
+              storyState.previewMuted
+                ? "Unmute video preview"
+                : "Mute video preview",
+            );
+          }
           const selection = document.getElementById("storyTrimSelection");
           if (selection) {
             selection.style.left = `${(start / duration) * 100}%`;
             selection.style.right = `${100 - (end / duration) * 100}%`;
           }
         }
+        window.toggleStoryPreviewAudio = function () {
+          storyState.previewMuted = !storyState.previewMuted;
+          const video = document.querySelector("#storyPreview video");
+          if (video) {
+            video.muted = storyState.previewMuted;
+            video.volume = 1;
+            video.play()?.catch(() => {});
+          }
+          syncStoryTrimPanel();
+        };
         async function buildStoryTrimFrames(file) {
           const frames = document.getElementById("storyTrimFrames");
           if (!frames || !file?.type?.startsWith("video/")) return;
@@ -4799,6 +4844,7 @@
             storyState.videoDuration = videoDuration;
             storyState.trimStart = 0;
             storyState.trimEnd = videoDuration;
+            storyState.previewMuted = false;
             document
               .getElementById("storyComposer")
               ?.classList.remove("hidden");
