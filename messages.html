@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="messages.css?v=20260905-aift-message-jump-8" />
+    <link rel="stylesheet" href="messages.css?v=20260905-aift-story-trim-11" />
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
       .aift-story-style-panel,
@@ -1818,6 +1818,37 @@
           class="story-compose-preview"
           style="position: relative; background: #101828; touch-action: none"
         ></div>
+        <div id="storyTrimPanel" class="story-trim-panel hidden">
+          <div class="story-trim-title">
+            <strong>Trim video</strong>
+            <span id="storyTrimDuration">0:00</span>
+          </div>
+          <div class="story-trim-range">
+            <div id="storyTrimSelection" class="story-trim-selection"></div>
+            <input
+              id="storyTrimStart"
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value="0"
+              aria-label="Video start time"
+            />
+            <input
+              id="storyTrimEnd"
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value="1"
+              aria-label="Video end time"
+            />
+          </div>
+          <div class="story-trim-times">
+            <span id="storyTrimStartLabel">0:00</span>
+            <span id="storyTrimEndLabel">0:00</span>
+          </div>
+        </div>
         <textarea
           id="storyText"
           maxlength="500"
@@ -2532,8 +2563,13 @@
           groupIndex: 0,
           storyIndex: 0,
           file: null,
+          videoDuration: 0,
+          trimStart: 0,
+          trimEnd: 0,
           musicFile: null,
           timer: null,
+          progressFrame: null,
+          videoClock: false,
           duration: 6000,
           remaining: 6000,
           startedAt: 0,
@@ -2611,6 +2647,9 @@
         function resetStoryEditor() {
           clearStoryObjectUrls();
           storyState.file = null;
+          storyState.videoDuration = 0;
+          storyState.trimStart = 0;
+          storyState.trimEnd = 0;
           storyState.musicFile = null;
           storyState.elements = [];
           storyState.selectedElement = null;
@@ -2621,7 +2660,12 @@
           document
             .getElementById("aiftStoryStylePanel")
             ?.classList.add("hidden");
-          storyState.mediaTransform = { x: 0, y: 0, scale: 1, rotation: 0 };
+          storyState.mediaTransform = {
+            x: 0,
+            y: 0,
+            scale: 1,
+            rotation: 0,
+          };
           storyState.music = {
             startAt: 0,
             duration: 15,
@@ -2759,8 +2803,87 @@
             )
             .join("");
           preview.innerHTML = media + layers;
+          const previewVideo = preview.querySelector("video");
+          if (previewVideo) {
+            const keepInsideTrim = () => {
+              const start = Math.max(0, Number(storyState.trimStart || 0)),
+                end = Math.max(start + 0.1, Number(storyState.trimEnd || 0));
+              if (
+                previewVideo.currentTime < start ||
+                previewVideo.currentTime >= end
+              )
+                previewVideo.currentTime = start;
+            };
+            previewVideo.addEventListener("loadedmetadata", keepInsideTrim, {
+              once: true,
+            });
+            previewVideo.addEventListener("timeupdate", keepInsideTrim);
+          }
+          syncStoryTrimPanel();
           bindStoryLayerDrag();
           bindStoryMediaGestures();
+        }
+        function storyTimeLabel(value) {
+          const seconds = Math.max(0, Number(value || 0));
+          return `${Math.floor(seconds / 60)}:${String(
+            Math.floor(seconds % 60),
+          ).padStart(2, "0")}`;
+        }
+        function syncStoryTrimPanel() {
+          const panel = document.getElementById("storyTrimPanel"),
+            startInput = document.getElementById("storyTrimStart"),
+            endInput = document.getElementById("storyTrimEnd"),
+            duration = Math.max(0, Number(storyState.videoDuration || 0)),
+            isVideo =
+              !!storyState.file?.type?.startsWith("video/") && duration > 0;
+          panel?.classList.toggle("hidden", !isVideo);
+          if (!isVideo || !startInput || !endInput) return;
+          const start = Math.max(
+              0,
+              Math.min(duration - 0.5, Number(storyState.trimStart || 0)),
+            ),
+            end = Math.max(
+              start + 0.5,
+              Math.min(duration, Number(storyState.trimEnd || duration)),
+            );
+          storyState.trimStart = start;
+          storyState.trimEnd = end;
+          startInput.max = String(duration);
+          endInput.max = String(duration);
+          startInput.value = String(start);
+          endInput.value = String(end);
+          document.getElementById("storyTrimStartLabel").textContent =
+            storyTimeLabel(start);
+          document.getElementById("storyTrimEndLabel").textContent =
+            storyTimeLabel(end);
+          document.getElementById("storyTrimDuration").textContent =
+            `${storyTimeLabel(end - start)} selected`;
+          const selection = document.getElementById("storyTrimSelection");
+          if (selection) {
+            selection.style.left = `${(start / duration) * 100}%`;
+            selection.style.right = `${100 - (end / duration) * 100}%`;
+          }
+        }
+        function updateStoryTrim(edge, value) {
+          const duration = Math.max(0.5, Number(storyState.videoDuration || 0)),
+            minimumClip = Math.min(0.5, duration);
+          if (edge === "start")
+            storyState.trimStart = Math.max(
+              0,
+              Math.min(Number(value || 0), storyState.trimEnd - minimumClip),
+            );
+          else
+            storyState.trimEnd = Math.min(
+              duration,
+              Math.max(Number(value || duration), storyState.trimStart + minimumClip),
+            );
+          syncStoryTrimPanel();
+          const video = document.querySelector("#storyPreview video");
+          if (video) {
+            video.currentTime =
+              edge === "start" ? storyState.trimStart : Math.max(storyState.trimStart, storyState.trimEnd - 0.15);
+            video.play()?.catch(() => {});
+          }
         }
         window.selectStoryElement = function (id) {
           storyState.selectedElement = id;
@@ -3392,6 +3515,13 @@
           if (storyState.file) {
             const uploadFile = await prepareStoryMediaForUpload();
             form.append("file", uploadFile);
+            if (storyState.file.type?.startsWith("video/")) {
+              form.append("videoDuration", String(storyState.videoDuration));
+              form.append(
+                "playbackDuration",
+                String(storyState.trimEnd - storyState.trimStart),
+              );
+            }
           }
           if (storyState.musicFile)
             form.append("musicFile", storyState.musicFile);
@@ -3399,11 +3529,15 @@
             form.append(
               "mediaTransform",
               JSON.stringify(
-                storyState.mediaTransform || {
+                {
+                  ...(storyState.mediaTransform || {
                   x: 0,
                   y: 0,
                   scale: 1,
                   rotation: 0,
+                  }),
+                  trimStart: storyState.trimStart,
+                  trimEnd: storyState.trimEnd,
                 },
               ),
             );
@@ -3792,24 +3926,102 @@
         function stopStoryTimer() {
           clearTimeout(storyState.timer);
           storyState.timer = null;
+          cancelAnimationFrame(storyState.progressFrame);
+          storyState.progressFrame = null;
         }
         function scheduleStoryTimer(ms) {
           stopStoryTimer();
+          storyState.videoClock = false;
           storyState.duration = ms;
           storyState.remaining = ms;
           storyState.startedAt = Date.now();
           storyState.paused = false;
           document.getElementById("storyViewer")?.classList.remove("paused");
+          document
+            .querySelector("#storyProgress span.active")
+            ?.style.setProperty("--story-duration", `${ms}ms`);
           storyState.timer = setTimeout(() => nextStory(), ms);
+        }
+        function scheduleStoryVideo(video, story) {
+          stopStoryTimer();
+          storyState.videoClock = true;
+          storyState.paused = false;
+          document.getElementById("storyViewer")?.classList.remove("paused");
+          const fill = document.querySelector("#storyProgress span.active i");
+          if (fill) {
+            fill.style.animation = "none";
+            fill.style.width = "0%";
+          }
+          const begin = () => {
+            const mediaDuration = Number(video.duration || 0);
+            if (!Number.isFinite(mediaDuration) || mediaDuration <= 0) return;
+            const trimStart = Math.max(
+                0,
+                Math.min(
+                  mediaDuration - 0.1,
+                  Number(story.mediaTransform?.trimStart || 0),
+                ),
+              ),
+              configuredEnd = Number(story.mediaTransform?.trimEnd || 0),
+              trimEnd = Math.min(
+                mediaDuration,
+                configuredEnd > trimStart ? configuredEnd : mediaDuration,
+              ),
+              clipDuration = Math.max(0.1, trimEnd - trimStart);
+            video.currentTime = trimStart;
+            const syncProgress = () => {
+            if (
+              !storyState.videoClock ||
+              video !== document.querySelector("#storyViewerContent video")
+            )
+              return;
+            if (fill)
+              fill.style.width = `${Math.min(
+                100,
+                ((Number(video.currentTime || 0) - trimStart) / clipDuration) *
+                  100,
+              )}%`;
+            if (video.currentTime >= trimEnd) {
+              if (fill) fill.style.width = "100%";
+              nextStory();
+              return;
+            }
+            storyState.progressFrame = requestAnimationFrame(syncProgress);
+            };
+            storyState.progressFrame = requestAnimationFrame(syncProgress);
+            video.play()?.catch(() => {});
+          };
+          video.addEventListener(
+            "ended",
+            () => {
+              if (
+                storyState.videoClock &&
+                video ===
+                  document.querySelector("#storyViewerContent video")
+              )
+                nextStory();
+            },
+            { once: true },
+          );
+          video.addEventListener(
+            "error",
+            () => {
+              if (storyState.videoClock) scheduleStoryTimer(6000);
+            },
+            { once: true },
+          );
+          if (video.readyState >= 1) begin();
+          else video.addEventListener("loadedmetadata", begin, { once: true });
         }
         function pauseStoryPlayback() {
           if (storyState.paused) return;
           storyState.paused = true;
-          storyState.remaining = Math.max(
-            0,
-            storyState.remaining - (Date.now() - storyState.startedAt),
-          );
-          stopStoryTimer();
+          if (!storyState.videoClock)
+            storyState.remaining = Math.max(
+              0,
+              storyState.remaining - (Date.now() - storyState.startedAt),
+            );
+          if (!storyState.videoClock) stopStoryTimer();
           document.getElementById("storyViewer")?.classList.add("paused");
           document.querySelector("#storyViewerContent video")?.pause();
           document.querySelector("#storyViewerTrack audio")?.pause();
@@ -3827,12 +4039,14 @@
             .querySelector("#storyViewerTrack audio")
             ?.play()
             ?.catch(() => {});
-          storyState.timer = setTimeout(
-            () => nextStory(),
-            Math.max(250, storyState.remaining),
-          );
+          if (!storyState.videoClock)
+            storyState.timer = setTimeout(
+              () => nextStory(),
+              Math.max(250, storyState.remaining),
+            );
         }
         window.closeStoryViewer = function () {
+          storyState.videoClock = false;
           stopStoryTimer();
           clearTimeout(storyState.holdTimer);
           storyClearSwipe();
@@ -3944,7 +4158,10 @@
               console.warn("Story view failed:", error.message);
             }
           }
-          scheduleStoryTimer(story.type === "video" ? 12000 : 6000);
+          const storyVideo = content.querySelector("video");
+          if (story.type === "video" && storyVideo)
+            scheduleStoryVideo(storyVideo, story);
+          else scheduleStoryTimer(6000);
         }
         function formatStoryAge(value) {
           const time = new Date(value).getTime();
@@ -4476,17 +4693,64 @@
         }
         document
           .getElementById("storyFileInput")
-          ?.addEventListener("change", (event) => {
+          ?.addEventListener("change", async (event) => {
             const file = event.target.files?.[0] || null;
             if (!file) return;
+            let videoDuration = 0;
+            if (file.type?.startsWith("video/")) {
+              try {
+                videoDuration = await new Promise((resolve, reject) => {
+                  const video = document.createElement("video"),
+                    url = URL.createObjectURL(file),
+                    cleanup = () => URL.revokeObjectURL(url);
+                  video.preload = "metadata";
+                  video.onloadedmetadata = () => {
+                    const duration = Number(video.duration || 0);
+                    cleanup();
+                    if (!Number.isFinite(duration) || duration <= 0)
+                      reject(new Error("Invalid video duration"));
+                    else resolve(duration);
+                  };
+                  video.onerror = () => {
+                    cleanup();
+                    reject(new Error("Unable to read video"));
+                  };
+                  video.src = url;
+                });
+              } catch (_error) {
+                event.target.value = "";
+                toast(
+                  "Unable to read this video. Please choose another one.",
+                );
+                return;
+              }
+              if (videoDuration > 120.25) {
+                event.target.value = "";
+                toast("Story videos can be up to 2 minutes.");
+                return;
+              }
+            }
             clearStoryObjectUrls();
             storyState.file = file;
+            storyState.videoDuration = videoDuration;
+            storyState.trimStart = 0;
+            storyState.trimEnd = videoDuration;
             document
               .getElementById("storyComposer")
               ?.classList.remove("hidden");
             renderStoryComposePreview();
             event.target.dataset.initialPick = "";
           });
+        document
+          .getElementById("storyTrimStart")
+          ?.addEventListener("input", (event) =>
+            updateStoryTrim("start", event.target.value),
+          );
+        document
+          .getElementById("storyTrimEnd")
+          ?.addEventListener("input", (event) =>
+            updateStoryTrim("end", event.target.value),
+          );
         document
           .getElementById("storyMusicInput")
           ?.addEventListener("change", (event) => {
