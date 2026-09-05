@@ -20,7 +20,7 @@
 
 <link rel="stylesheet" href="shared-post-composer.css">
   <link rel="stylesheet" href="jobs-mobile.css">
-  <link rel="stylesheet" href="aift-mobile-navigation.css?v=20260905-5">
+  <link rel="stylesheet" href="aift-mobile-navigation.css?v=20260905-6">
 
 <style>
 :root{
@@ -954,45 +954,6 @@ svg{
     font-weight:500!important;
   }
 }
-  .jobs-page-loader{
-  position:fixed;
-  inset:0;
-  z-index:999999;
-  background:#ffffff;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:18px;
-  transition:opacity .25s ease, visibility .25s ease;
-}
-
-.jobs-page-loader img{
-  width:132px;
-  height:auto;
-  object-fit:contain;
-}
-
-.jobs-loader-spinner{
-  width:34px;
-  height:34px;
-  border-radius:50%;
-  border:3px solid #dbeafe;
-  border-top-color:var(--aift-blue);
-  animation:jobsSpin .75s linear infinite;
-}
-
-.jobs-page-loader.hide{
-  opacity:0;
-  visibility:hidden;
-  pointer-events:none;
-}
-
-@keyframes jobsSpin{
-  to{
-    transform:rotate(360deg);
-  }
-}
   .job-share-modal{
   position:fixed;
   inset:0;
@@ -1118,11 +1079,6 @@ svg{
 </style>
 </head>
 <body class="jobs-page">
-
-<div id="jobsPageLoader" class="jobs-page-loader">
-  <img src="images/aift-logo.png" alt="AIFT">
-  <div class="jobs-loader-spinner"></div>
-</div>
 
 <div class="jobs-app">
 
@@ -1309,7 +1265,7 @@ svg{
         <div class="jobs-list-head">
           <div class="jobs-list-title">
             <h2>Job results</h2>
-            <span id="resultsMeta">Loading jobs...</span>
+            <span id="resultsMeta"></span>
           </div>
 
           <div class="jobs-list-actions">
@@ -1889,19 +1845,7 @@ safeArray(state.me?.savedJobs).forEach(item => {
 async function loadJobs(){
   setLoading(true);
 
-  setListState(
-    "loading",
-    "Loading jobs",
-    "AIFT is getting the latest jobs from your backend."
-  );
-
-  if(els.jobList){
-    els.jobList.innerHTML = "";
-  }
-
-  if(els.resultsMeta){
-    els.resultsMeta.textContent = "Loading jobs...";
-  }
+  setListState(null);
 
   try{
     const jobs = await fetchJSON(`${API}/api/jobs`, {
@@ -3290,7 +3234,7 @@ document.addEventListener("DOMContentLoaded", initJobsPage);
   </script>
 
 <script src="shared-post-composer.js"></script>
-<script src="shared-mobile-navigation.js?v=20260905-aift-shell-9"></script>
+<script src="shared-mobile-navigation.js?v=20260905-aift-clean-10"></script>
 <script src="aift-nav-badges.js?v=20260904-1"></script>
 
 </body>
