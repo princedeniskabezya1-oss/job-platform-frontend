@@ -7,7 +7,7 @@
   const nestedScrollPositions=new WeakMap();
   const initialFile=location.pathname.split("/").pop()||"home.html";
   const sectionDocument=document.documentElement.classList.contains("aift-section-document");
-  const sectionTitles={"home.html":"AIFT | Home","network.html":"AIFT | Network","jobs.html":"AIFT | Jobs"};
+  const sectionTitles={"home.html":"AIFT | Home","network.html":"AIFT | Network","jobs.html":"AIFT | Jobs","notifications.html":"Notifications | AIFT"};
 
   const FALLBACK_AVATAR =
     "https://cdn-icons-png.flaticon.com/512/149/149071.png";
@@ -100,13 +100,13 @@
 
   function isShellSection(url){
     const file=url.pathname.split("/").pop()||"home.html";
-    return new Set(["home.html","network.html","jobs.html"]).has(file);
+    return new Set(["home.html","network.html","jobs.html","notifications.html"]).has(file);
   }
 
   function shellSectionUrl(){
     const params=new URLSearchParams(location.search);
     const requested=params.get("section");
-    const section=new Set(["home","network","jobs"]).has(requested)?requested:"home";
+    const section=new Set(["home","network","jobs","notifications"]).has(requested)?requested:"home";
     const target=new URL(`${section}.html`,location.href);
     if(section==="home"&&params.get("compose")==="1")target.searchParams.set("compose","1");
     return target;
