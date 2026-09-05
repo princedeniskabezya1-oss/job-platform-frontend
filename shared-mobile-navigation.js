@@ -185,6 +185,7 @@
     const frame=document.createElement("iframe");
     frame.className="aift-section-view is-pending";
     frame.title=`AIFT ${file.replace(".html","")}`;
+    frame.setAttribute("scrolling","yes");
     document.body.appendChild(frame);
     let wait=document.querySelector(".aift-section-wait");
     if(!wait){
@@ -199,6 +200,7 @@
     wait.hidden=false;
     const target=new URL(url.href);
     target.searchParams.set("aiftSection","1");
+    frame.addEventListener("load",()=>requestAnimationFrame(()=>activateSectionFrame(frame)),{once:true});
     frame.src=target.href;
     clearTimeout(frame.__aiftReadyTimer);
     frame.__aiftReadyTimer=setTimeout(()=>activateSectionFrame(frame),12000);
