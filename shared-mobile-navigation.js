@@ -53,10 +53,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C5.92 2 1 6.25 1 11.5c0 2.96 1.58 5.61 4.05 7.35L4.1 22l3.76-1.64c1.29.42 2.68.64 4.14.64 6.08 0 11-4.25 11-9.5S18.08 2 12 2Zm-5 8.15h10a1.1 1.1 0 1 1 0 2.2H7a1.1 1.1 0 1 1 0-2.2Zm0-3.6h7a1.1 1.1 0 1 1 0 2.2H7a1.1 1.1 0 1 1 0-2.2Zm0 7.2h6a1.1 1.1 0 1 1 0 2.2H7a1.1 1.1 0 1 1 0-2.2Z"></path></svg>
         <span>Messages</span>
       </a>
-      <a href="notifications.html" aria-label="Notifications">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a6.2 6.2 0 0 0-6.2 6.2v3.37c0 1.72-.62 3.38-1.75 4.68l-1.22 1.4A1.4 1.4 0 0 0 3.89 20h16.22a1.4 1.4 0 0 0 1.06-2.35l-1.22-1.4a7.14 7.14 0 0 1-1.75-4.68V8.2A6.2 6.2 0 0 0 12 2Zm-2.6 19.1a2.8 2.8 0 0 0 5.2 0H9.4Z"></path></svg>
-        <span>Notifications</span>
-      </a>`;
+      <button type="button" class="aift-mobile-nav__start-post" onclick="openMobileComposer(event)" aria-label="Start a post">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M5 2a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V5a3 3 0 0 0-3-3H5Zm7 4.25c.69 0 1.25.56 1.25 1.25v3.25h3.25a1.25 1.25 0 1 1 0 2.5h-3.25v3.25a1.25 1.25 0 1 1-2.5 0v-3.25H7.5a1.25 1.25 0 1 1 0-2.5h3.25V7.5c0-.69.56-1.25 1.25-1.25Z" clip-rule="evenodd"></path></svg>
+        <span>Start a post</span>
+      </button>`;
   }
 
   function installCanonicalNavigation(){
