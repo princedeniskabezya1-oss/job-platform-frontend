@@ -45,7 +45,7 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><path d="M20 8v6"></path><path d="M23 11h-6"></path></svg>
         <span>My Network</span>
       </a>
-      <button type="button" class="mobile-create" onclick="openMobileComposer(event)" aria-label="Create post">
+      <button type="button" class="aift-mobile-nav__create" onclick="openMobileComposer(event)" aria-label="Create post">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
         <span>Post</span>
       </button>
@@ -60,12 +60,12 @@
   }
 
   function installCanonicalNavigation(){
-    const candidates=Array.from(document.querySelectorAll(".mobile-nav,.jobs-bottom-bar,.shared-mobile-nav"));
+    const candidates=Array.from(document.querySelectorAll(".aift-mobile-nav,.mobile-nav,.jobs-bottom-bar,.shared-mobile-nav"));
     const file=location.pathname.split("/").pop()||"home.html";
     if(!candidates.length&&!new Set(["home.html","network.html","jobs.html","notifications.html"]).has(file))return;
     const nav=candidates[0]||document.body.appendChild(document.createElement("nav"));
     candidates.slice(1).forEach(item=>item.remove());
-    nav.className="mobile-nav";
+    nav.className="aift-mobile-nav";
     nav.setAttribute("aria-label","Primary mobile navigation");
     nav.innerHTML=canonicalNavigationMarkup();
   }
@@ -79,32 +79,10 @@
     scheme.content="light";
   }
 
-  function installCanonicalStyles(){
-    if(document.getElementById("aift-canonical-mobile-nav-style"))return;
-    const style=document.createElement("style");
-    style.id="aift-canonical-mobile-nav-style";
-    style.textContent=`
-      @media(min-width:761px){.mobile-nav{display:none!important}}
-      @media(max-width:760px){
-        html,body{background-color:#fff!important;color-scheme:light}
-        body{padding-bottom:calc(62px + env(safe-area-inset-bottom,0px))!important}
-        .mobile-nav{position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:calc(58px + env(safe-area-inset-bottom,0px))!important;min-height:58px!important;padding:0 0 env(safe-area-inset-bottom,0px)!important;margin:0!important;z-index:4000!important;display:grid!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;overflow:visible!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;background:#fff!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:0!important;border-top:1px solid #ddd!important;border-radius:0!important;box-shadow:none!important;transform:translate3d(0,0,0)!important;transition:transform 220ms cubic-bezier(.4,0,.2,1)!important;will-change:transform!important}
-        .mobile-nav a,.mobile-nav button{position:relative!important;width:100%!important;height:58px!important;min-width:0!important;margin:0!important;padding:5px 0 4px!important;border:0!important;border-radius:0!important;background:transparent!important;color:#737373!important;text-decoration:none!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;font:400 11px/1.05 Arial,sans-serif!important;white-space:nowrap!important;box-shadow:none!important;transform:none!important;transition:none!important}
-        .mobile-nav a.active,.mobile-nav button.active{color:#111!important;background:transparent!important}
-        .mobile-nav svg{display:block!important;width:25px!important;height:25px!important;margin:0!important;padding:0!important;stroke:currentColor!important;fill:none!important;stroke-width:2.15!important}
-        .mobile-nav .mobile-create svg{width:26px!important;height:26px!important;padding:2px!important;border-radius:4px!important;background:#737373!important;stroke:#fff!important}
-        .mobile-nav .mobile-create span{display:none!important}
-        .mobile-nav .mobile-create::after{content:"Post"!important;color:#737373!important;font:400 11px/1.05 Arial,sans-serif!important}
-        .mobile-nav.is-pulled-down{transform:translate3d(0,calc(100% - 5px),0)!important;opacity:1!important;pointer-events:none!important}
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
   function updateActiveMobileNav(){
     const file = location.pathname.split("/").pop() || "home.html";
 
-    document.querySelectorAll(".mobile-nav a,.mobile-nav button").forEach(item => {
+    document.querySelectorAll(".aift-mobile-nav a,.aift-mobile-nav button").forEach(item => {
       item.classList.remove("active");
 
       const href = item.getAttribute("href") || "";
@@ -118,7 +96,7 @@
     if(window.innerWidth > 760) return;
 
     const topbar = document.querySelector(".topbar");
-    const nav = document.querySelector(".mobile-nav");
+    const nav = document.querySelector(".aift-mobile-nav");
     if(!topbar || !nav) return;
 
     const current = Math.max(window.scrollY || 0, 0);
@@ -129,12 +107,12 @@
 
     if(down && current > 8){
       topbar.classList.add("is-hidden");
-      nav.classList.add("is-pulled-down");
+      nav.classList.add("aift-mobile-nav--hidden");
     }
 
     if(up || current <= 8){
       topbar.classList.remove("is-hidden");
-      nav.classList.remove("is-pulled-down");
+      nav.classList.remove("aift-mobile-nav--hidden");
     }
 
     lastScroll = current;
@@ -156,10 +134,10 @@
     if(!(target instanceof Element))return;
     const current=Math.max(Number(target.scrollTop||0),0),previous=nestedScrollPositions.get(target)??current;
     nestedScrollPositions.set(target,current);
-    const nav=document.querySelector(".mobile-nav");
+    const nav=document.querySelector(".aift-mobile-nav");
     if(!nav)return;
-    if(current>previous+2&&current>8)nav.classList.add("is-pulled-down");
-    if(current<previous-2||current<=8)nav.classList.remove("is-pulled-down");
+    if(current>previous+2&&current>8)nav.classList.add("aift-mobile-nav--hidden");
+    if(current<previous-2||current<=8)nav.classList.remove("aift-mobile-nav--hidden");
   }
 
   window.openMobileComposer = window.openMobileComposer || function(event){
@@ -197,7 +175,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     installCanonicalNavigation();
-    installCanonicalStyles();
+    document.body.classList.add("aift-mobile-nav-page");
     matchDeviceBottomSurface();
     setMobileAvatar();
     updateActiveMobileNav();
