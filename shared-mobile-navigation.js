@@ -2,6 +2,10 @@
   let lastScroll = 0;
   let ticking = false;
   const nestedScrollPositions=new WeakMap();
+  const initialFile=location.pathname.split("/").pop()||"home.html";
+  const embeddedShell=new URLSearchParams(location.search).get("aiftShell")==="1";
+
+  if(embeddedShell)document.documentElement.classList.add("aift-shell-embedded");
 
   const FALLBACK_AVATAR =
     "https://cdn-icons-png.flaticon.com/512/149/149071.png";
@@ -92,6 +96,79 @@
     });
   }
 
+  function shellTarget(url){
+    const file=url.pathname.split("/").pop()||"home.html";
+    return new Set(["home.html","network.html","jobs.html","messages.html"]).has(file);
+  }
+
+  function shellFrameBounds(){
+    const topbar=document.querySelector(".topbar");
+    const nav=document.querySelector(".aift-mobile-nav");
+    topbar?.classList.remove("is-hidden");
+    nav?.classList.remove("aift-mobile-nav--hidden");
+    return {
+      top:Math.max(0,Math.round(topbar?.getBoundingClientRect().bottom||0)),
+      bottom:Math.max(0,Math.round(innerHeight-(nav?.getBoundingClientRect().top||innerHeight)))
+    };
+  }
+
+  function closeShellSection(){
+    document.querySelector(".aift-section-frame")?.remove();
+    document.querySelector(".aift-section-loading")?.remove();
+    document.body.classList.remove("aift-shell-host");
+  }
+
+  function openShellSection(url,{push=true}={}){
+    if(innerWidth>760||!shellTarget(url)){
+      location.assign(url.href);
+      return;
+    }
+
+    const file=url.pathname.split("/").pop()||"home.html";
+    document.querySelectorAll(".aift-mobile-nav a,.aift-mobile-nav button").forEach(item=>{
+      const href=item.getAttribute("href");
+      item.classList.toggle("active",Boolean(href&&new URL(href,location.href).pathname.endsWith(file)));
+    });
+
+    if(file===initialFile){
+      closeShellSection();
+      if(push)history.pushState({aiftShell:file},"",url.href);
+      return;
+    }
+
+    const bounds=shellFrameBounds();
+    let frame=document.querySelector(".aift-section-frame");
+    let loading=document.querySelector(".aift-section-loading");
+    if(!frame){
+      frame=document.createElement("iframe");
+      frame.className="aift-section-frame";
+      frame.title="AIFT section";
+      frame.setAttribute("allow","camera; microphone; autoplay; display-capture");
+      document.body.appendChild(frame);
+    }
+    if(!loading){
+      loading=document.createElement("div");
+      loading.className="aift-section-loading";
+      loading.innerHTML='<div class="aift-content-skeleton" role="status" aria-label="Loading section"><span></span><span></span><span></span></div>';
+      document.body.appendChild(loading);
+    }
+    [frame,loading].forEach(element=>{
+      element.style.top=`${bounds.top}px`;
+      element.style.bottom=`${bounds.bottom}px`;
+    });
+    document.body.classList.add("aift-shell-host");
+    frame.classList.remove("is-ready");
+    loading.hidden=false;
+    const embeddedUrl=new URL(url.href);
+    embeddedUrl.searchParams.set("aiftShell","1");
+    frame.onload=()=>{
+      frame.classList.add("is-ready");
+      loading.hidden=true;
+    };
+    frame.src=embeddedUrl.href;
+    if(push)history.pushState({aiftShell:file},"",url.href);
+  }
+
   function prepareFastNavigation(){
     const nav=document.querySelector(".aift-mobile-nav");
     if(!nav)return;
@@ -113,8 +190,24 @@
       event.preventDefault();
       nav.querySelectorAll("a,button").forEach(item=>item.classList.toggle("active",item===anchor));
       nav.classList.remove("aift-mobile-nav--hidden");
-      requestAnimationFrame(()=>location.assign(url.href));
+      requestAnimationFrame(()=>openShellSection(url));
     });
+
+    addEventListener("popstate",()=>{
+      const url=new URL(location.href);
+      if(shellTarget(url))openShellSection(url,{push:false});
+    });
+
+    addEventListener("resize",()=>{
+      const frame=document.querySelector(".aift-section-frame");
+      const loading=document.querySelector(".aift-section-loading");
+      if(!frame&&!loading)return;
+      const bounds=shellFrameBounds();
+      [frame,loading].filter(Boolean).forEach(element=>{
+        element.style.top=`${bounds.top}px`;
+        element.style.bottom=`${bounds.bottom}px`;
+      });
+    },{passive:true});
   }
 
   function handleScroll(){
@@ -178,7 +271,10 @@
       return;
     }
 
-    if(location.pathname.includes("home.html")){
+    if(initialFile==="home.html"){
+      closeShellSection();
+      history.pushState({aiftShell:"home.html"},"",new URL("home.html",location.href).href);
+      updateActiveMobileNav();
       const triggers = [
         ".create-trigger",
         "#openComposerBtn",
@@ -195,10 +291,14 @@
       }
     }
 
-    location.href = "home.html?compose=1";
+    openShellSection(new URL("home.html?compose=1",location.href));
   };
 
   document.addEventListener("DOMContentLoaded", () => {
+    if(embeddedShell){
+      document.body.classList.add("aift-shell-embedded-body");
+      return;
+    }
     installCanonicalNavigation();
     document.body.classList.add("aift-mobile-nav-page");
     matchDeviceBottomSurface();
