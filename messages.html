@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="messages.css?v=20260905-aift-story-trim-11" />
+    <link rel="stylesheet" href="messages.css?v=20260905-aift-story-filmstrip-12" />
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
       .aift-story-style-panel,
@@ -1819,12 +1819,10 @@
           style="position: relative; background: #101828; touch-action: none"
         ></div>
         <div id="storyTrimPanel" class="story-trim-panel hidden">
-          <div class="story-trim-title">
-            <strong>Trim video</strong>
-            <span id="storyTrimDuration">0:00</span>
-          </div>
           <div class="story-trim-range">
+            <div id="storyTrimFrames" class="story-trim-frames"></div>
             <div id="storyTrimSelection" class="story-trim-selection"></div>
+            <div id="storyTrimPlayhead" class="story-trim-playhead"></div>
             <input
               id="storyTrimStart"
               type="range"
@@ -1844,9 +1842,16 @@
               aria-label="Video end time"
             />
           </div>
-          <div class="story-trim-times">
-            <span id="storyTrimStartLabel">0:00</span>
-            <span id="storyTrimEndLabel">0:00</span>
+          <div class="story-trim-meta">
+            <span class="story-trim-audio" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M5 9v6h4l5 4V5L9 9H5z"></path>
+                <path d="M17 9.5a4 4 0 010 5M19.5 7a7 7 0 010 10"></path>
+              </svg>
+            </span>
+            <span id="storyTrimDuration">0:00</span>
+            <span aria-hidden="true">•</span>
+            <span id="storyTrimFileSize">0 MB</span>
           </div>
         </div>
         <textarea
@@ -2566,6 +2571,7 @@
           videoDuration: 0,
           trimStart: 0,
           trimEnd: 0,
+          trimFramesKey: "",
           musicFile: null,
           timer: null,
           progressFrame: null,
@@ -2650,6 +2656,7 @@
           storyState.videoDuration = 0;
           storyState.trimStart = 0;
           storyState.trimEnd = 0;
+          storyState.trimFramesKey = "";
           storyState.musicFile = null;
           storyState.elements = [];
           storyState.selectedElement = null;
@@ -2813,6 +2820,16 @@
                 previewVideo.currentTime >= end
               )
                 previewVideo.currentTime = start;
+              const playhead = document.getElementById("storyTrimPlayhead"),
+                duration = Math.max(
+                  0.1,
+                  Number(storyState.videoDuration || previewVideo.duration || 0),
+                );
+              if (playhead)
+                playhead.style.left = `${Math.max(
+                  0,
+                  Math.min(100, (previewVideo.currentTime / duration) * 100),
+                )}%`;
             };
             previewVideo.addEventListener("loadedmetadata", keepInsideTrim, {
               once: true,
@@ -2852,16 +2869,63 @@
           endInput.max = String(duration);
           startInput.value = String(start);
           endInput.value = String(end);
-          document.getElementById("storyTrimStartLabel").textContent =
-            storyTimeLabel(start);
-          document.getElementById("storyTrimEndLabel").textContent =
-            storyTimeLabel(end);
           document.getElementById("storyTrimDuration").textContent =
-            `${storyTimeLabel(end - start)} selected`;
+            storyTimeLabel(end - start);
+          document.getElementById("storyTrimFileSize").textContent =
+            `${(Number(storyState.file?.size || 0) / 1024 / 1024).toFixed(1)} MB`;
           const selection = document.getElementById("storyTrimSelection");
           if (selection) {
             selection.style.left = `${(start / duration) * 100}%`;
             selection.style.right = `${100 - (end / duration) * 100}%`;
+          }
+        }
+        async function buildStoryTrimFrames(file) {
+          const frames = document.getElementById("storyTrimFrames");
+          if (!frames || !file?.type?.startsWith("video/")) return;
+          const key = `${file.name}:${file.size}:${file.lastModified}`;
+          if (storyState.trimFramesKey === key && frames.children.length)
+            return;
+          storyState.trimFramesKey = key;
+          frames.classList.remove("story-trim-frames-fallback");
+          frames.innerHTML = Array.from(
+            { length: 9 },
+            () => "<i></i>",
+          ).join("");
+          const url = URL.createObjectURL(file),
+            video = document.createElement("video"),
+            canvas = document.createElement("canvas"),
+            context = canvas.getContext("2d", { alpha: false });
+          video.preload = "auto";
+          video.muted = true;
+          video.playsInline = true;
+          video.src = url;
+          try {
+            await new Promise((resolve, reject) => {
+              video.onloadedmetadata = resolve;
+              video.onerror = reject;
+            });
+            canvas.width = 120;
+            canvas.height = 120;
+            const duration = Number(video.duration || 0);
+            for (let index = 0; index < 9; index += 1) {
+              video.currentTime = Math.min(
+                Math.max(0, duration - 0.05),
+                (duration * index) / 8,
+              );
+              await new Promise((resolve) => {
+                video.onseeked = resolve;
+              });
+              context.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const image = document.createElement("img");
+              image.alt = "";
+              image.src = canvas.toDataURL("image/jpeg", 0.62);
+              frames.children[index]?.replaceWith(image);
+            }
+          } catch (_error) {
+            frames.classList.add("story-trim-frames-fallback");
+          } finally {
+            URL.revokeObjectURL(url);
+            video.removeAttribute("src");
           }
         }
         function updateStoryTrim(edge, value) {
@@ -4739,6 +4803,7 @@
               .getElementById("storyComposer")
               ?.classList.remove("hidden");
             renderStoryComposePreview();
+            buildStoryTrimFrames(file);
             event.target.dataset.initialPick = "";
           });
         document
