@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="aift-mobile-navigation.css?v=20260905-14">
+  <link rel="stylesheet" href="aift-mobile-navigation.css?v=20260905-15">
 
   <style>
     :root{
@@ -893,7 +893,7 @@ color:#0f172a;
 <header class="topbar">
   <div class="container top-inner">
 
-    <a class="brand" href="home.html" aria-label="AIFT Home">
+    <a class="brand" href="home.html" aria-label="Open your profile" onclick="if(innerWidth<=760){event.preventDefault();goMe();}">
       <img src="images/aift-logo.png" alt="AIFT" class="brand-logo">
     </a>
 
@@ -1451,7 +1451,11 @@ function goMe(){
         localStorage.setItem("userId", state.me._id);
         if(state.me.role) localStorage.setItem("role", state.me.role);
 
-        els.currentAvatar.src = avatarOf(state.me);
+        const avatar = avatarOf(state.me);
+        els.currentAvatar.src = avatar;
+        document.getElementById("topAvatar")?.setAttribute("src", avatar);
+        document.documentElement.style.setProperty("--mobile-avatar", `url("${avatar}")`);
+        localStorage.setItem("profileImage", avatar);
         els.currentName.textContent = displayName(state.me);
         els.currentRole.textContent = roleLabel(state.me.role) + (state.me.headline ? " · " + state.me.headline : "");
         els.statFollowing.textContent = safeArray(state.me.following).length;
@@ -1821,7 +1825,7 @@ function closeGuestModal(){
 </div>
   
 <script src="shared-post-composer.js"></script>
-<script src="shared-mobile-navigation.js?v=20260905-aift-shell-motion-18"></script>
+<script src="shared-mobile-navigation.js?v=20260905-aift-shell-surface-19"></script>
 <script src="aift-nav-badges.js?v=20260904-1"></script>
 </body>
 </html>

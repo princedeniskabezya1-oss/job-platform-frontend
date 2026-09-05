@@ -120,11 +120,11 @@
     return shellUrl.href;
   }
 
-  function sectionBounds(){
+  function sectionBounds({revealNavigation=false}={}){
     const nav=document.querySelector(".aift-mobile-nav");
-    nav?.classList.remove("aift-mobile-nav--hidden");
+    if(revealNavigation)nav?.classList.remove("aift-mobile-nav--hidden");
     const viewportHeight=Math.round(window.visualViewport?.height||innerHeight);
-    const bottom=Math.max(0,Math.round(nav?.offsetHeight||0));
+    const bottom=0;
     return {
       top:0,
       bottom,
@@ -180,7 +180,7 @@
       if(push)history.pushState({aiftSection:file},"",historyUrlForSection(file,url));
       return;
     }
-    const bounds=sectionBounds();
+    const bounds=sectionBounds({revealNavigation:true});
     document.querySelectorAll(".aift-section-view.is-pending").forEach(item=>{
       clearTimeout(item.__aiftReadyTimer);
       item.remove();
@@ -239,7 +239,10 @@
       if(event.data?.type==="aift:section-scroll"){
         const frame=Array.from(document.querySelectorAll(".aift-section-view.is-current")).find(item=>item.contentWindow===event.source);
         if(!frame)return;
-        document.querySelector(".aift-mobile-nav")?.classList.toggle("aift-mobile-nav--hidden",Boolean(event.data.hidden));
+        const nav=document.querySelector(".aift-mobile-nav");
+        nav?.classList.toggle("aift-mobile-nav--hidden",Boolean(event.data.hidden));
+        const bounds=sectionBounds();
+        document.querySelectorAll(".aift-section-view,.aift-section-wait").forEach(element=>sizeSectionElement(element,bounds));
         return;
       }
       if(event.data?.type!=="aift:section-ready")return;
@@ -397,6 +400,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     if(sectionDocument){
+      setMobileAvatar();
       installSectionDocumentScroll();
       return;
     }
