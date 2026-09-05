@@ -65,7 +65,7 @@
   function installCanonicalNavigation(){
     const candidates=Array.from(document.querySelectorAll(".aift-mobile-nav,.mobile-nav,.jobs-bottom-bar,.shared-mobile-nav"));
     const file=location.pathname.split("/").pop()||"home.html";
-    if(!candidates.length&&!new Set(["home.html","network.html","jobs.html","notifications.html"]).has(file))return;
+    if(!candidates.length&&!new Set(["home.html","network.html","jobs.html","notifications.html","mobile-shell.html"]).has(file))return;
     const nav=candidates[0]||document.body.appendChild(document.createElement("nav"));
     candidates.slice(1).forEach(item=>item.remove());
     nav.className="aift-mobile-nav";
@@ -98,6 +98,23 @@
   function isShellSection(url){
     const file=url.pathname.split("/").pop()||"home.html";
     return new Set(["home.html","network.html","jobs.html"]).has(file);
+  }
+
+  function shellSectionUrl(){
+    const params=new URLSearchParams(location.search);
+    const requested=params.get("section");
+    const section=new Set(["home","network","jobs"]).has(requested)?requested:"home";
+    const target=new URL(`${section}.html`,location.href);
+    if(section==="home"&&params.get("compose")==="1")target.searchParams.set("compose","1");
+    return target;
+  }
+
+  function historyUrlForSection(file,url){
+    if(initialFile!=="mobile-shell.html")return url.href;
+    const shellUrl=new URL("mobile-shell.html",location.href);
+    shellUrl.searchParams.set("section",file.replace(".html",""));
+    if(file==="home.html"&&url.searchParams.get("compose")==="1")shellUrl.searchParams.set("compose","1");
+    return shellUrl.href;
   }
 
   function sectionBounds(){
@@ -157,7 +174,7 @@
     });
     if(file===initialFile){
       closeSection();
-      if(push)history.pushState({aiftSection:file},"",url.href);
+      if(push)history.pushState({aiftSection:file},"",historyUrlForSection(file,url));
       return;
     }
     const bounds=sectionBounds();
@@ -185,7 +202,7 @@
     frame.src=target.href;
     clearTimeout(frame.__aiftReadyTimer);
     frame.__aiftReadyTimer=setTimeout(()=>activateSectionFrame(frame),12000);
-    if(push)history.pushState({aiftSection:file},"",url.href);
+    if(push)history.pushState({aiftSection:file},"",historyUrlForSection(file,url));
   }
 
   function prepareFastNavigation(){
@@ -219,7 +236,7 @@
     });
 
     addEventListener("popstate",()=>{
-      const url=new URL(location.href);
+      const url=initialFile==="mobile-shell.html"?shellSectionUrl():new URL(location.href);
       if(isShellSection(url))showSection(url,{push:false});
     });
 
@@ -321,6 +338,11 @@
       }
     }
 
+    if(initialFile==="mobile-shell.html"){
+      showSection(new URL("home.html?compose=1",location.href));
+      return;
+    }
+
     location.href = "home.html?compose=1";
   };
 
@@ -332,6 +354,7 @@
     setMobileAvatar();
     updateActiveMobileNav();
     prepareFastNavigation();
+    if(initialFile==="mobile-shell.html")showSection(shellSectionUrl(),{push:false});
     handleScroll();
 
     window.addEventListener("scroll", onScroll, { passive:true });
@@ -342,4 +365,4 @@
   });
 })();
 
-(function loadAiftGlobalCalls(){if(window.__aiftGlobalCalls||/\/messages\.html$/i.test(location.pathname))return;const script=document.createElement("script");script.src="aift-global-calls.js?v=20260904-nav-badges-1";document.head.appendChild(script);}());
+(function loadAiftGlobalCalls(){if(document.documentElement.classList.contains("aift-section-document")||window.__aiftGlobalCalls||/\/messages\.html$/i.test(location.pathname))return;const script=document.createElement("script");script.src="aift-global-calls.js?v=20260904-nav-badges-1";document.head.appendChild(script);}());
