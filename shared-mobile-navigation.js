@@ -110,10 +110,28 @@
   }
 
   function closeSection(){
-    document.querySelector(".aift-section-view")?.remove();
+    document.querySelectorAll(".aift-section-view").forEach(frame=>{
+      clearTimeout(frame.__aiftReadyTimer);
+      frame.remove();
+    });
     document.querySelector(".aift-section-wait")?.remove();
     document.body.classList.remove("aift-section-host");
     document.title=sectionTitles[initialFile]||document.title;
+  }
+
+  function activateSectionFrame(frame){
+    if(!frame?.isConnected||!frame.classList.contains("is-pending"))return;
+    clearTimeout(frame.__aiftReadyTimer);
+    document.querySelectorAll(".aift-section-view").forEach(item=>{
+      if(item!==frame){
+        clearTimeout(item.__aiftReadyTimer);
+        item.remove();
+      }
+    });
+    frame.classList.remove("is-pending");
+    frame.classList.add("is-current");
+    const wait=document.querySelector(".aift-section-wait");
+    if(wait)wait.hidden=true;
   }
 
   function showSection(url,{push=true}={}){
@@ -133,14 +151,15 @@
       return;
     }
     const bounds=sectionBounds();
-    let frame=document.querySelector(".aift-section-view");
+    document.querySelectorAll(".aift-section-view.is-pending").forEach(item=>{
+      clearTimeout(item.__aiftReadyTimer);
+      item.remove();
+    });
+    const frame=document.createElement("iframe");
+    frame.className="aift-section-view is-pending";
+    frame.title=`AIFT ${file.replace(".html","")}`;
+    document.body.appendChild(frame);
     let wait=document.querySelector(".aift-section-wait");
-    if(!frame){
-      frame=document.createElement("iframe");
-      frame.className="aift-section-view";
-      frame.title="AIFT content";
-      document.body.appendChild(frame);
-    }
     if(!wait){
       wait=document.createElement("div");
       wait.className="aift-section-wait";
@@ -152,16 +171,12 @@
       element.style.bottom=`${bounds.bottom}px`;
     });
     document.body.classList.add("aift-section-host");
-    frame.classList.remove("is-ready");
     wait.hidden=false;
     const target=new URL(url.href);
     target.searchParams.set("aiftSection","1");
     frame.src=target.href;
     clearTimeout(frame.__aiftReadyTimer);
-    frame.__aiftReadyTimer=setTimeout(()=>{
-      frame.classList.add("is-ready");
-      wait.hidden=true;
-    },12000);
+    frame.__aiftReadyTimer=setTimeout(()=>activateSectionFrame(frame),12000);
     if(push)history.pushState({aiftSection:file},"",url.href);
   }
 
@@ -190,12 +205,9 @@
     });
 
     addEventListener("message",event=>{
-      const frame=document.querySelector(".aift-section-view");
-      if(event.origin!==location.origin||event.source!==frame?.contentWindow||event.data?.type!=="aift:section-ready")return;
-      clearTimeout(frame.__aiftReadyTimer);
-      frame.classList.add("is-ready");
-      const wait=document.querySelector(".aift-section-wait");
-      if(wait)wait.hidden=true;
+      if(event.origin!==location.origin||event.data?.type!=="aift:section-ready")return;
+      const frame=Array.from(document.querySelectorAll(".aift-section-view.is-pending")).find(item=>item.contentWindow===event.source);
+      activateSectionFrame(frame);
     });
 
     addEventListener("popstate",()=>{
@@ -204,11 +216,11 @@
     });
 
     addEventListener("resize",()=>{
-      const frame=document.querySelector(".aift-section-view");
+      const frames=Array.from(document.querySelectorAll(".aift-section-view"));
       const wait=document.querySelector(".aift-section-wait");
-      if(!frame&&!wait)return;
+      if(!frames.length&&!wait)return;
       const bounds=sectionBounds();
-      [frame,wait].filter(Boolean).forEach(element=>{
+      [...frames,wait].filter(Boolean).forEach(element=>{
         element.style.top=`${bounds.top}px`;
         element.style.bottom=`${bounds.bottom}px`;
       });
