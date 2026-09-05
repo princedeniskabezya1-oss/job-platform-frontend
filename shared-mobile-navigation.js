@@ -4,6 +4,12 @@
   const nestedScrollPositions=new WeakMap();
   const initialFile=location.pathname.split("/").pop()||"home.html";
   const embeddedShell=new URLSearchParams(location.search).get("aiftShell")==="1";
+  const sectionTitles={
+    "home.html":"AIFT | Home",
+    "jobs.html":"AIFT | Jobs",
+    "network.html":"AIFT | Network",
+    "messages.html":"AIFT | Messages"
+  };
 
   if(embeddedShell)document.documentElement.classList.add("aift-shell-embedded");
 
@@ -115,7 +121,9 @@
   function closeShellSection(){
     document.querySelector(".aift-section-frame")?.remove();
     document.querySelector(".aift-section-loading")?.remove();
+    document.querySelector(".aift-section-surface")?.remove();
     document.body.classList.remove("aift-shell-host");
+    document.title=sectionTitles[initialFile]||document.title;
   }
 
   function openShellSection(url,{push=true}={}){
@@ -125,6 +133,7 @@
     }
 
     const file=url.pathname.split("/").pop()||"home.html";
+    document.title=sectionTitles[file]||document.title;
     document.querySelectorAll(".aift-mobile-nav a,.aift-mobile-nav button").forEach(item=>{
       const href=item.getAttribute("href");
       item.classList.toggle("active",Boolean(href&&new URL(href,location.href).pathname.endsWith(file)));
@@ -139,6 +148,13 @@
     const bounds=shellFrameBounds();
     let frame=document.querySelector(".aift-section-frame");
     let loading=document.querySelector(".aift-section-loading");
+    let surface=document.querySelector(".aift-section-surface");
+    if(!surface){
+      surface=document.createElement("div");
+      surface.className="aift-section-surface";
+      surface.setAttribute("aria-hidden","true");
+      document.body.appendChild(surface);
+    }
     if(!frame){
       frame=document.createElement("iframe");
       frame.className="aift-section-frame";
@@ -152,7 +168,7 @@
       loading.innerHTML='<div class="aift-content-skeleton" role="status" aria-label="Loading section"><span></span><span></span><span></span></div>';
       document.body.appendChild(loading);
     }
-    [frame,loading].forEach(element=>{
+    [surface,frame,loading].forEach(element=>{
       element.style.top=`${bounds.top}px`;
       element.style.bottom=`${bounds.bottom}px`;
     });
@@ -162,6 +178,15 @@
     const embeddedUrl=new URL(url.href);
     embeddedUrl.searchParams.set("aiftShell","1");
     frame.onload=()=>{
+      try{
+        const embeddedDocument=frame.contentDocument;
+        embeddedDocument.documentElement.style.backgroundColor="#ffffff";
+        embeddedDocument.documentElement.style.minHeight="100%";
+        embeddedDocument.body.style.backgroundColor="#ffffff";
+        embeddedDocument.body.style.minHeight="100vh";
+      }catch(error){
+        console.warn("AIFT section surface could not be synchronized",error);
+      }
       frame.classList.add("is-ready");
       loading.hidden=true;
     };
@@ -201,9 +226,10 @@
     addEventListener("resize",()=>{
       const frame=document.querySelector(".aift-section-frame");
       const loading=document.querySelector(".aift-section-loading");
-      if(!frame&&!loading)return;
+      const surface=document.querySelector(".aift-section-surface");
+      if(!frame&&!loading&&!surface)return;
       const bounds=shellFrameBounds();
-      [frame,loading].filter(Boolean).forEach(element=>{
+      [surface,frame,loading].filter(Boolean).forEach(element=>{
         element.style.top=`${bounds.top}px`;
         element.style.bottom=`${bounds.bottom}px`;
       });
