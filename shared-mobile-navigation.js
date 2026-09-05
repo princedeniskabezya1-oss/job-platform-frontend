@@ -92,6 +92,31 @@
     });
   }
 
+  function prepareFastNavigation(){
+    const nav=document.querySelector(".aift-mobile-nav");
+    if(!nav)return;
+
+    nav.querySelectorAll("a[href]").forEach(anchor=>{
+      const url=new URL(anchor.href,location.href);
+      if(url.origin!==location.origin)return;
+      const preload=document.createElement("link");
+      preload.rel="prefetch";
+      preload.href=url.href;
+      document.head.appendChild(preload);
+    });
+
+    nav.addEventListener("click",event=>{
+      const anchor=event.target.closest("a[href]");
+      if(!anchor||event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+      const url=new URL(anchor.href,location.href);
+      if(url.origin!==location.origin||url.href===location.href)return;
+      event.preventDefault();
+      nav.querySelectorAll("a,button").forEach(item=>item.classList.toggle("active",item===anchor));
+      nav.classList.remove("aift-mobile-nav--hidden");
+      requestAnimationFrame(()=>location.assign(url.href));
+    });
+  }
+
   function handleScroll(){
     if(window.innerWidth > 760) return;
 
@@ -179,6 +204,7 @@
     matchDeviceBottomSurface();
     setMobileAvatar();
     updateActiveMobileNav();
+    prepareFastNavigation();
     handleScroll();
 
     window.addEventListener("scroll", onScroll, { passive:true });
