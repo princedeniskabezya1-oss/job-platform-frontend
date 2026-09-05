@@ -11,7 +11,7 @@ const state = {
   onlineUsers:new Map(), groupSelected:new Map(), groupSearchResults:[], groupCreatorStep:1, groupCreatorMode:"create", groupPhoto:"", conversationFilter:"all", conversationSearch:"", userSearchTimer:null, conversationSearchTimer:null,
   selectedMessage:null, selectedMessages:new Map(), selectionMode:false, selectionPressTimer:null, selectionPointer:null, reactionTargetId:"", replyTo:null, attachment:null, attachments:[], mediaReviewIndex:0, mediaReviewUrls:[], pickerOpen:false, pickerTab:"emoji", emojiCategory:"recent", pickerSwitchToken:0, composerSelectionStart:0, composerSelectionEnd:0, savedStickers:[], gifSearchTimer:null, drafts:new Map(), draftRenderTimer:null, composerConversationId:"", conversationOpenToken:0, conversationOpenedAt:new Map(),
   isSending:false, isLoadingMessages:false, messagesPageBefore:null, hasMoreMessages:true, confirmCallback:null, remoteTypingTimer:null,
-  unreadBelow:false, lastKnownScrollHeight:0,
+  unreadBelow:false, unreadBelowCount:0, lastKnownScrollHeight:0,
   currentCall:null, currentCallLogId:null, currentCallLogFinalized:false, localStream:null, remoteStream:null, peerConnection:null, peerConnections:new Map(), remoteStreams:new Map(), callParticipants:new Map(), remoteCameraStates:new Map(), pendingIceCandidates:new Map(), disconnectTimers:new Map(), screenStream:null,
   callStartTime:null, callTimer:null, callTimeout:null, mediaConnected:false, isMuted:false, cameraEnabled:true, speakerEnabled:true, callFacingMode:"user", pendingIncomingCall:null,
   ringtone:null, outgoingTone:null, callEndTone:null, messageTone:null, messageSentTone:null, busyTone:null, typingTimer:null
@@ -85,14 +85,20 @@ function autoGrowComposer(){ const input=document.getElementById("messageInput")
 
 function getMessagesBox(){ return document.getElementById("messagesBox"); }
 function isNearBottom(threshold=120){ const box=getMessagesBox(); if(!box)return true; return box.scrollHeight-box.scrollTop-box.clientHeight<=threshold; }
-function showJumpButton(label="New messages"){
-  state.unreadBelow=true; const btn=document.getElementById("jumpToBottomBtn"); if(!btn)return; const span=btn.querySelector("span"); if(span)span.textContent=label; btn.classList.remove("hidden");
+function showJumpButton({increment=0}={}){
+  state.unreadBelow=true;
+  state.unreadBelowCount=Math.max(0,state.unreadBelowCount+Number(increment||0));
+  const btn=document.getElementById("jumpToBottomBtn");if(!btn)return;
+  const badge=btn.querySelector(".jump-bottom-count");
+  if(badge){badge.textContent=state.unreadBelowCount>99?"99+":String(state.unreadBelowCount);badge.classList.toggle("hidden",state.unreadBelowCount===0);}
+  btn.setAttribute("aria-label",state.unreadBelowCount?`${state.unreadBelowCount} new message${state.unreadBelowCount===1?"":"s"}. Jump to latest message`:"Jump to latest message");
+  btn.classList.remove("hidden");
 }
-function hideJumpButton(){ state.unreadBelow=false; document.getElementById("jumpToBottomBtn")?.classList.add("hidden"); }
-function scrollMessagesToBottom(behavior="smooth"){
+function hideJumpButton(){state.unreadBelow=false;state.unreadBelowCount=0;const btn=document.getElementById("jumpToBottomBtn");btn?.classList.add("hidden");btn?.querySelector(".jump-bottom-count")?.classList.add("hidden");}
+function scrollMessagesToBottom(behavior="auto"){
   const box=getMessagesBox(); if(!box)return; requestAnimationFrame(()=>{ box.scrollTo({top:box.scrollHeight,behavior}); hideJumpButton(); });
 }
-function updateJumpButtonFromScroll(){ if(isNearBottom(80)) hideJumpButton(); }
+function updateJumpButtonFromScroll(){if(isNearBottom(80))hideJumpButton();else showJumpButton();}
 
 function connectSocket(){
   if(state.socket) state.socket.disconnect();
@@ -357,7 +363,7 @@ function clearAttachment(){revokeMediaReviewUrls();state.attachments=[];state.at
 
 function handleRealtimeMessage(message){
   if(!message)return;const mine=String(senderId(message))===String(state.myId);if(!mine)safePlay(state.messageTone);const activeId=state.activeConversation?conversationId(state.activeConversation):"",msgCid=getId(message.conversationId),sameConversation=activeId&&msgCid&&String(activeId)===String(msgCid),otherId=getId(state.activeOtherUser),sameDirect=otherId&&(String(senderId(message))===String(otherId)||String(receiverId(message))===String(otherId));
-  if(sameConversation||sameDirect){const clientId=message?.metadata?.clientMessageId||"",tempIndex=clientId?state.messages.findIndex(x=>String(x?.metadata?.clientMessageId||"")===String(clientId)):-1;if(tempIndex!==-1){state.messages[tempIndex]=message;renderMessages({stickToBottom:mine||isNearBottom()});}else if(!state.messages.some(x=>String(messageId(x))===String(messageId(message)))){const shouldStick=mine||isNearBottom();state.messages.push(message);renderMessages({stickToBottom:shouldStick});if(!shouldStick)showJumpButton("New message");}
+  if(sameConversation||sameDirect){const clientId=message?.metadata?.clientMessageId||"",tempIndex=clientId?state.messages.findIndex(x=>String(x?.metadata?.clientMessageId||"")===String(clientId)):-1;if(tempIndex!==-1){state.messages[tempIndex]=message;renderMessages({stickToBottom:mine||isNearBottom()});}else if(!state.messages.some(x=>String(messageId(x))===String(messageId(message)))){const shouldStick=mine||isNearBottom();state.messages.push(message);renderMessages({stickToBottom:shouldStick});if(!shouldStick)showJumpButton({increment:mine?0:1});}
     if(!mine&&state.socket&&messageId(message))state.socket.emit("messageDelivered",{messageId:messageId(message),to:senderId(message)});if(activeId){markConversationRead(activeId);if(!mine&&messageId(message))state.socket?.emit("messageSeen",{messageId:messageId(message),to:senderId(message)});} }
   loadConversations();
 }
