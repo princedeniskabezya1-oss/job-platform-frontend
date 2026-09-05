@@ -103,10 +103,19 @@
   function sectionBounds(){
     const nav=document.querySelector(".aift-mobile-nav");
     nav?.classList.remove("aift-mobile-nav--hidden");
+    const viewportHeight=Math.round(window.visualViewport?.height||innerHeight);
+    const bottom=Math.max(0,Math.round(nav?.offsetHeight||0));
     return {
       top:0,
-      bottom:Math.max(0,Math.round(innerHeight-(nav?.getBoundingClientRect().top||innerHeight)))
+      bottom,
+      height:Math.max(1,viewportHeight-bottom)
     };
+  }
+
+  function sizeSectionElement(element,bounds){
+    element.style.top=`${bounds.top}px`;
+    element.style.bottom=`${bounds.bottom}px`;
+    element.style.height=`${bounds.height}px`;
   }
 
   function closeSection(){
@@ -166,10 +175,7 @@
       wait.innerHTML='<span role="status" aria-label="Loading"></span>';
       document.body.appendChild(wait);
     }
-    [frame,wait].forEach(element=>{
-      element.style.top=`${bounds.top}px`;
-      element.style.bottom=`${bounds.bottom}px`;
-    });
+    [frame,wait].forEach(element=>sizeSectionElement(element,bounds));
     document.body.classList.add("aift-section-host");
     wait.hidden=false;
     const target=new URL(url.href);
@@ -220,10 +226,15 @@
       const wait=document.querySelector(".aift-section-wait");
       if(!frames.length&&!wait)return;
       const bounds=sectionBounds();
-      [...frames,wait].filter(Boolean).forEach(element=>{
-        element.style.top=`${bounds.top}px`;
-        element.style.bottom=`${bounds.bottom}px`;
-      });
+      [...frames,wait].filter(Boolean).forEach(element=>sizeSectionElement(element,bounds));
+    },{passive:true});
+
+    window.visualViewport?.addEventListener("resize",()=>{
+      const frames=Array.from(document.querySelectorAll(".aift-section-view"));
+      const wait=document.querySelector(".aift-section-wait");
+      if(!frames.length&&!wait)return;
+      const bounds=sectionBounds();
+      [...frames,wait].filter(Boolean).forEach(element=>sizeSectionElement(element,bounds));
     },{passive:true});
   }
 
