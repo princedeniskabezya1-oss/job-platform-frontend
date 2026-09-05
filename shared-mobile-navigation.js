@@ -2,6 +2,9 @@
   let lastScroll = 0;
   let ticking = false;
   const nestedScrollPositions=new WeakMap();
+  const initialFile=location.pathname.split("/").pop()||"home.html";
+  const sectionDocument=document.documentElement.classList.contains("aift-section-document");
+  const sectionTitles={"home.html":"AIFT | Home","network.html":"AIFT | Network","jobs.html":"AIFT | Jobs"};
 
   const FALLBACK_AVATAR =
     "https://cdn-icons-png.flaticon.com/512/149/149071.png";
@@ -92,6 +95,78 @@
     });
   }
 
+  function isShellSection(url){
+    const file=url.pathname.split("/").pop()||"home.html";
+    return new Set(["home.html","network.html","jobs.html"]).has(file);
+  }
+
+  function sectionBounds(){
+    const topbar=document.querySelector(".topbar");
+    const nav=document.querySelector(".aift-mobile-nav");
+    topbar?.classList.remove("is-hidden");
+    nav?.classList.remove("aift-mobile-nav--hidden");
+    return {
+      top:Math.max(0,Math.round(topbar?.getBoundingClientRect().bottom||0)),
+      bottom:Math.max(0,Math.round(innerHeight-(nav?.getBoundingClientRect().top||innerHeight)))
+    };
+  }
+
+  function closeSection(){
+    document.querySelector(".aift-section-view")?.remove();
+    document.querySelector(".aift-section-wait")?.remove();
+    document.body.classList.remove("aift-section-host");
+    document.title=sectionTitles[initialFile]||document.title;
+  }
+
+  function showSection(url,{push=true}={}){
+    if(innerWidth>760||!isShellSection(url)){
+      location.assign(url.href);
+      return;
+    }
+    const file=url.pathname.split("/").pop()||"home.html";
+    document.title=sectionTitles[file]||document.title;
+    document.querySelectorAll(".aift-mobile-nav a,.aift-mobile-nav button").forEach(item=>{
+      const href=item.getAttribute("href");
+      item.classList.toggle("active",Boolean(href&&new URL(href,location.href).pathname.endsWith(file)));
+    });
+    if(file===initialFile){
+      closeSection();
+      if(push)history.pushState({aiftSection:file},"",url.href);
+      return;
+    }
+    const bounds=sectionBounds();
+    let frame=document.querySelector(".aift-section-view");
+    let wait=document.querySelector(".aift-section-wait");
+    if(!frame){
+      frame=document.createElement("iframe");
+      frame.className="aift-section-view";
+      frame.title="AIFT content";
+      document.body.appendChild(frame);
+    }
+    if(!wait){
+      wait=document.createElement("div");
+      wait.className="aift-section-wait";
+      wait.innerHTML='<span role="status" aria-label="Loading"></span>';
+      document.body.appendChild(wait);
+    }
+    [frame,wait].forEach(element=>{
+      element.style.top=`${bounds.top}px`;
+      element.style.bottom=`${bounds.bottom}px`;
+    });
+    document.body.classList.add("aift-section-host");
+    frame.classList.remove("is-ready");
+    wait.hidden=false;
+    const target=new URL(url.href);
+    target.searchParams.set("aiftSection","1");
+    frame.src=target.href;
+    clearTimeout(frame.__aiftReadyTimer);
+    frame.__aiftReadyTimer=setTimeout(()=>{
+      frame.classList.add("is-ready");
+      wait.hidden=true;
+    },12000);
+    if(push)history.pushState({aiftSection:file},"",url.href);
+  }
+
   function prepareFastNavigation(){
     const nav=document.querySelector(".aift-mobile-nav");
     if(!nav)return;
@@ -113,8 +188,33 @@
       event.preventDefault();
       nav.querySelectorAll("a,button").forEach(item=>item.classList.toggle("active",item===anchor));
       nav.classList.remove("aift-mobile-nav--hidden");
-      requestAnimationFrame(()=>location.assign(url.href));
+      requestAnimationFrame(()=>isShellSection(url)?showSection(url):location.assign(url.href));
     });
+
+    addEventListener("message",event=>{
+      const frame=document.querySelector(".aift-section-view");
+      if(event.origin!==location.origin||event.source!==frame?.contentWindow||event.data?.type!=="aift:section-ready")return;
+      clearTimeout(frame.__aiftReadyTimer);
+      frame.classList.add("is-ready");
+      const wait=document.querySelector(".aift-section-wait");
+      if(wait)wait.hidden=true;
+    });
+
+    addEventListener("popstate",()=>{
+      const url=new URL(location.href);
+      if(isShellSection(url))showSection(url,{push:false});
+    });
+
+    addEventListener("resize",()=>{
+      const frame=document.querySelector(".aift-section-view");
+      const wait=document.querySelector(".aift-section-wait");
+      if(!frame&&!wait)return;
+      const bounds=sectionBounds();
+      [frame,wait].filter(Boolean).forEach(element=>{
+        element.style.top=`${bounds.top}px`;
+        element.style.bottom=`${bounds.bottom}px`;
+      });
+    },{passive:true});
   }
 
   function handleScroll(){
@@ -178,7 +278,10 @@
       return;
     }
 
-    if(location.pathname.includes("home.html")){
+    if(initialFile==="home.html"){
+      closeSection();
+      history.pushState({aiftSection:"home.html"},"",new URL("home.html",location.href).href);
+      updateActiveMobileNav();
       const triggers = [
         ".create-trigger",
         "#openComposerBtn",
@@ -199,6 +302,7 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
+    if(sectionDocument)return;
     installCanonicalNavigation();
     document.body.classList.add("aift-mobile-nav-page");
     matchDeviceBottomSurface();
