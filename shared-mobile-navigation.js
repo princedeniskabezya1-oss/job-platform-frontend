@@ -125,6 +125,7 @@
     });
     document.querySelector(".aift-section-wait")?.remove();
     document.body.classList.remove("aift-section-host");
+    document.documentElement.classList.remove("aift-section-host");
     document.title=sectionTitles[initialFile]||document.title;
   }
 
@@ -177,6 +178,7 @@
     }
     [frame,wait].forEach(element=>sizeSectionElement(element,bounds));
     document.body.classList.add("aift-section-host");
+    document.documentElement.classList.add("aift-section-host");
     wait.hidden=false;
     const target=new URL(url.href);
     target.searchParams.set("aiftSection","1");
