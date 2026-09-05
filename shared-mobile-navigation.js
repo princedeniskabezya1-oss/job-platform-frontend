@@ -101,12 +101,10 @@
   }
 
   function sectionBounds(){
-    const topbar=document.querySelector(".topbar");
     const nav=document.querySelector(".aift-mobile-nav");
-    topbar?.classList.remove("is-hidden");
     nav?.classList.remove("aift-mobile-nav--hidden");
     return {
-      top:Math.max(0,Math.round(topbar?.getBoundingClientRect().bottom||0)),
+      top:0,
       bottom:Math.max(0,Math.round(innerHeight-(nav?.getBoundingClientRect().top||innerHeight)))
     };
   }
