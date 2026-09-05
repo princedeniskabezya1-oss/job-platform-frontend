@@ -1,6 +1,9 @@
 (function(){
   let lastScroll = 0;
   let ticking = false;
+  let sectionLastScroll = 0;
+  let sectionScrollTicking = false;
+  let sectionChromeHidden = false;
   const nestedScrollPositions=new WeakMap();
   const initialFile=location.pathname.split("/").pop()||"home.html";
   const sectionDocument=document.documentElement.classList.contains("aift-section-document");
@@ -232,7 +235,14 @@
     });
 
     addEventListener("message",event=>{
-      if(event.origin!==location.origin||event.data?.type!=="aift:section-ready")return;
+      if(event.origin!==location.origin)return;
+      if(event.data?.type==="aift:section-scroll"){
+        const frame=Array.from(document.querySelectorAll(".aift-section-view.is-current")).find(item=>item.contentWindow===event.source);
+        if(!frame)return;
+        document.querySelector(".aift-mobile-nav")?.classList.toggle("aift-mobile-nav--hidden",Boolean(event.data.hidden));
+        return;
+      }
+      if(event.data?.type!=="aift:section-ready")return;
       const frame=Array.from(document.querySelectorAll(".aift-section-view.is-pending")).find(item=>item.contentWindow===event.source);
       activateSectionFrame(frame);
     });
@@ -257,6 +267,43 @@
       const bounds=sectionBounds();
       [...frames,wait].filter(Boolean).forEach(element=>sizeSectionElement(element,bounds));
     },{passive:true});
+  }
+
+  function handleSectionDocumentScroll(){
+    const root=document.scrollingElement||document.documentElement;
+    const current=Math.max(Number(root.scrollTop||window.scrollY||0),0);
+    const goingDown=current>sectionLastScroll+3;
+    const goingUp=current<sectionLastScroll-3;
+    let nextHidden=sectionChromeHidden;
+
+    if(goingDown&&current>12)nextHidden=true;
+    if(goingUp||current<=8)nextHidden=false;
+
+    if(initialFile==="home.html"||initialFile==="network.html"){
+      const topbar=document.querySelector(".topbar");
+      topbar?.classList.toggle("is-glass",current>20);
+      topbar?.classList.toggle("is-hidden",nextHidden);
+    }
+
+    if(nextHidden!==sectionChromeHidden||current<=8){
+      sectionChromeHidden=nextHidden;
+      window.parent.postMessage({type:"aift:section-scroll",hidden:sectionChromeHidden},location.origin);
+    }
+    sectionLastScroll=current;
+  }
+
+  function installSectionDocumentScroll(){
+    if(!sectionDocument||innerWidth>760)return;
+    sectionLastScroll=Math.max(Number((document.scrollingElement||document.documentElement).scrollTop||0),0);
+    addEventListener("scroll",()=>{
+      if(sectionScrollTicking)return;
+      sectionScrollTicking=true;
+      requestAnimationFrame(()=>{
+        handleSectionDocumentScroll();
+        sectionScrollTicking=false;
+      });
+    },{passive:true});
+    handleSectionDocumentScroll();
   }
 
   function handleScroll(){
@@ -349,7 +396,10 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
-    if(sectionDocument)return;
+    if(sectionDocument){
+      installSectionDocumentScroll();
+      return;
+    }
     installCanonicalNavigation();
     document.body.classList.add("aift-mobile-nav-page");
     matchDeviceBottomSurface();
