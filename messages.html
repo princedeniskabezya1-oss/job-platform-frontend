@@ -3630,6 +3630,7 @@
                 "playbackDuration",
                 String(storyState.trimEnd - storyState.trimStart),
               );
+              form.append("mediaMuted", String(storyState.previewMuted));
             }
           }
           if (storyState.musicFile)
@@ -3647,6 +3648,7 @@
                   }),
                   trimStart: storyState.trimStart,
                   trimEnd: storyState.trimEnd,
+                  muted: storyState.previewMuted,
                 },
               ),
             );
@@ -3864,17 +3866,34 @@
           video.src =
             storyState.objectUrl || URL.createObjectURL(storyState.file);
           video.playsInline = true;
-          video.muted = false;
+          video.muted = !!storyState.previewMuted;
           await new Promise((resolve, reject) => {
             video.onloadedmetadata = resolve;
             video.onerror = reject;
           });
+          const trimStart = Math.max(0, Number(storyState.trimStart || 0)),
+            trimEnd = Math.min(
+              Number(video.duration || 0),
+              Math.max(trimStart + 0.1, Number(storyState.trimEnd || video.duration || 0)),
+            );
+          await new Promise((resolve) => {
+            if (Math.abs(video.currentTime - trimStart) < 0.05) {
+              resolve();
+              return;
+            }
+            video.onseeked = resolve;
+            video.currentTime = trimStart;
+          });
           const canvasStream = canvas.captureStream(30),
             tracks = [...canvasStream.getVideoTracks()],
             mediaStream = video.captureStream?.() || video.mozCaptureStream?.();
-          if (mediaStream) tracks.push(...mediaStream.getAudioTracks());
+          if (mediaStream && !storyState.previewMuted)
+            tracks.push(...mediaStream.getAudioTracks());
           let music = null;
-          if (storyState.musicFile || storyState.musicUrl) {
+          if (
+            !storyState.previewMuted &&
+            (storyState.musicFile || storyState.musicUrl)
+          ) {
             music = document.createElement("audio");
             music.src =
               storyState.musicUrl || URL.createObjectURL(storyState.musicFile);
@@ -3920,11 +3939,11 @@
           };
           draw();
           await new Promise((resolve) => {
-            video.onended = resolve;
-            setTimeout(
-              resolve,
-              Math.min(Number(video.duration || 45), 45) * 1000 + 250,
-            );
+            const watchTrimEnd = () => {
+              if (video.ended || video.currentTime >= trimEnd) resolve();
+              else requestAnimationFrame(watchTrimEnd);
+            };
+            watchTrimEnd();
           });
           stopped = true;
           video.pause();
@@ -4199,7 +4218,7 @@
               scale: 1,
               rotation: 0,
             };
-            content.innerHTML = `<video src="${escapeHtml(story.mediaUrl)}" style="transform:translate(${Number(mt.x || 0)}px,${Number(mt.y || 0)}px) scale(${Number(mt.scale || 1)}) rotate(${Number(mt.rotation || 0)}deg);transform-origin:center" autoplay playsinline></video>${layers}`;
+            content.innerHTML = `<video src="${escapeHtml(story.mediaUrl)}" style="transform:translate(${Number(mt.x || 0)}px,${Number(mt.y || 0)}px) scale(${Number(mt.scale || 1)}) rotate(${Number(mt.rotation || 0)}deg);transform-origin:center" ${story.mediaMuted || mt.muted ? "muted" : ""} autoplay playsinline></video>${layers}`;
           } else if (story.type === "image" && story.mediaUrl)
             content.innerHTML = `<img src="${escapeHtml(story.mediaUrl)}" alt="Story">${layers}`;
           else
@@ -4230,7 +4249,8 @@
             track.classList.remove("hidden");
             track.innerHTML = `<span class="story-music-equalizer" aria-hidden="true"><i></i><i></i><i></i></span><strong title="${escapeHtml(story.music.title || "Music")}">${escapeHtml(musicTitle)}</strong><audio src="${escapeHtml(story.music.url)}"></audio>`;
             const audio = track.querySelector("audio");
-            audio.volume = story.music.muted
+            audio.volume =
+              story.mediaMuted || story.mediaTransform?.muted || story.music.muted
               ? 0
               : Math.max(0, Math.min(1, Number(story.music.volume ?? 1)));
             audio.addEventListener(
