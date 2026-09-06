@@ -4,9 +4,19 @@
 
   const stylesheet = document.createElement("link");
   stylesheet.rel = "stylesheet";
-  stylesheet.href = "employer-dashboard-mobile.css?v=20260906-mobile-dashboard-2";
+  stylesheet.href = "employer-dashboard-mobile.css?v=20260906-mobile-dashboard-3";
   stylesheet.dataset.employerMobileDashboard = "true";
   document.head.appendChild(stylesheet);
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const menuButton = document.getElementById("mobileMenuBtn");
+    const menuScroller = document.querySelector(".employer-sidebar-main");
+    menuButton?.addEventListener("click", () => {
+      if(!document.body.classList.contains("mobile-menu-open")){
+        menuScroller?.scrollTo({top:0,behavior:"auto"});
+      }
+    }, {capture:true});
+  }, {once:true});
 })();
 
 const AIFTFeed = (() => {
