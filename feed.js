@@ -4,7 +4,7 @@
 
   const stylesheet = document.createElement("link");
   stylesheet.rel = "stylesheet";
-  stylesheet.href = "employer-dashboard-mobile.css?v=20260906-mobile-dashboard-1";
+  stylesheet.href = "employer-dashboard-mobile.css?v=20260906-mobile-dashboard-2";
   stylesheet.dataset.employerMobileDashboard = "true";
   document.head.appendChild(stylesheet);
 })();
