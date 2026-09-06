@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="feed.css">
-  <link rel="stylesheet" href="employer-mobile.css">
+  <link rel="stylesheet" href="employer-mobile.css?v=20260906-family-entry-1">
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="feed.js"></script>
@@ -528,6 +528,7 @@ a{
 <div class="company-mobile-menu" id="companyMobileMenu">
   <button type="button" id="mobileCompanyShareBtn" onclick="openCompanySharePanel()">Share Profile</button>
   <button type="button" id="dashboardBtn" class="hidden" onclick="goDashboard()">Dashboard</button>
+  <button type="button" id="mobileAiftFamilyBtn" class="hidden" onclick="openAiftFamily()">AIFT Family</button>
 </div>
   </div>
 
@@ -546,6 +547,17 @@ a{
   <article class="content-card card">
     <h2>Overview</h2>
     <p id="overviewText">Loading company overview...</p>
+  </article>
+
+  <article id="aiftFamilyEnrollmentCard" class="aift-family-enrollment card hidden" aria-labelledby="aiftFamilyEnrollmentTitle">
+    <div class="aift-family-mark" aria-hidden="true">AF</div>
+    <div class="aift-family-copy">
+      <span class="aift-family-kicker">AIFT FAMILY</span>
+      <h2 id="aiftFamilyEnrollmentTitle">Build opportunities for the people you support</h2>
+      <p>Join AIFT Family to connect students, discover education support and manage family opportunities from one protected workspace.</p>
+      <button type="button" onclick="openAiftFamily()">Explore AIFT Family</button>
+    </div>
+    <button class="aift-family-dismiss" type="button" aria-label="Hide AIFT Family invitation" onclick="dismissAiftFamilyCard(event)">×</button>
   </article>
 
   <article class="content-card card">
@@ -1595,7 +1607,9 @@ const state = {
   suggestions: [],
   publicStats: {},
   following: false,
-  postSort: "recent"
+  postSort: "recent",
+  viewerFamilyEnrolled: false,
+  viewerFamilyStatusReady: false
 };
 
 const shareState = {
@@ -1624,6 +1638,12 @@ function token(){
 
 function currentUserId(){
   return localStorage.getItem("userId");
+}
+
+function isCompanyOwner(){
+  const company = state.company || {};
+  const ownerId = company._id || company.id || company.owner?._id || company.owner || company.userId || company.createdBy;
+  return Boolean(token() && currentUserId() && ownerId && String(currentUserId()) === String(ownerId));
 }
 
 function headers(extra={}){
@@ -1788,6 +1808,46 @@ async function loadCompany(){
   renderAll();
 }
 
+async function loadViewerFamilyStatus(){
+  state.viewerFamilyStatusReady = false;
+  state.viewerFamilyEnrolled = false;
+
+  if(!isCompanyOwner()){
+    renderAiftFamilyAccess();
+    return;
+  }
+
+  try{
+    const data = await api("/api/family/profile", { headers:headers() });
+    state.viewerFamilyEnrolled = data?.familyProfile?.onboardingCompleted === true;
+  }catch(error){
+    console.warn("AIFT Family status unavailable:", error?.message || error);
+  }finally{
+    state.viewerFamilyStatusReady = true;
+    renderAiftFamilyAccess();
+  }
+}
+
+function renderAiftFamilyAccess(){
+  const card = document.getElementById("aiftFamilyEnrollmentCard");
+  const menuButton = document.getElementById("mobileAiftFamilyBtn");
+  const owner = isCompanyOwner();
+  const dismissed = sessionStorage.getItem("aiftFamilyPublicProfileCardDismissed") === "1";
+
+  card?.classList.toggle("hidden", !owner || !state.viewerFamilyStatusReady || state.viewerFamilyEnrolled || dismissed);
+  menuButton?.classList.toggle("hidden", !owner || !state.viewerFamilyStatusReady || !state.viewerFamilyEnrolled);
+}
+
+function openAiftFamily(){
+  location.href = "family.html";
+}
+
+function dismissAiftFamilyCard(event){
+  event?.stopPropagation();
+  sessionStorage.setItem("aiftFamilyPublicProfileCardDismissed", "1");
+  renderAiftFamilyAccess();
+}
+
 /* =========================
    RENDER
 ========================= */
@@ -1822,6 +1882,7 @@ function renderAll(){
   mountEmployerFeed();
   renderSideInfo();
   updateOwnerUI();
+  renderAiftFamilyAccess();
 }
   
 
@@ -2414,6 +2475,7 @@ function updateOwnerUI(){
   const followBtn = document.getElementById("followBtn");
   const messageCompanyBtn = document.getElementById("messageCompanyBtn");
   const companyMoreBtn = document.getElementById("companyMoreBtn");
+  const mobileAiftFamilyBtn = document.getElementById("mobileAiftFamilyBtn");
 
   const desktopEditBtn = document.getElementById("desktopCompanyEditBtn");
   const desktopShareBtn = document.getElementById("desktopCompanyShareBtn");
@@ -2434,7 +2496,8 @@ function updateOwnerUI(){
     desktopShareBtn,
     desktopDashboardBtn,
     desktopMessageBtn,
-    desktopFollowBtn
+    desktopFollowBtn,
+    mobileAiftFamilyBtn
   ].forEach(btn=>{
     btn?.classList.add("hidden");
   });
@@ -2525,6 +2588,8 @@ if(desktopShareBtn){
   if(desktopFollowBtn){
     desktopFollowBtn.onclick = followCompany;
   }
+
+  renderAiftFamilyAccess();
 }
 
 /* =========================
@@ -2914,6 +2979,7 @@ socket.on("connect",()=>{
 async function init(){
   try{
     await loadCompany();
+    await loadViewerFamilyStatus();
 
     document.body.classList.add("loaded");
     document.body.classList.remove("loading-profile");
