@@ -8,7 +8,15 @@
   stylesheet.dataset.employerMobileDashboard = "true";
   document.head.appendChild(stylesheet);
 
+  const syncDashboardChrome = () => {
+    if(window.innerWidth <= 760 && window.top !== window){
+      window.top.postMessage({type:"aift:dashboard-chrome",hidden:true},location.origin);
+    }
+  };
+  syncDashboardChrome();
+
   document.addEventListener("DOMContentLoaded", () => {
+    syncDashboardChrome();
     const menuButton = document.getElementById("mobileMenuBtn");
     const menuScroller = document.querySelector(".employer-sidebar-main");
     menuButton?.addEventListener("click", () => {
