@@ -34,6 +34,7 @@
     if(!badge&&category==="notifications")badge=element.querySelector(".nav-badge,#notificationBadge");
     if(!badge){
       badge=document.createElement("span");
+      badge.classList.add("hidden");
       element.appendChild(badge);
     }
     badge.classList.add("aift-nav-count-badge");
@@ -58,6 +59,7 @@
       const count=Math.max(0,Number(counts[COUNT_KEYS[category]]||0));
       const badge=badgeFor(element,category);
       badge.textContent=count>99?"99+":String(count);
+      badge.dataset.navBadgeReady="true";
       badge.classList.toggle("hidden",count===0);
       badge.setAttribute("aria-label",count?`${count} new ${category}`:"");
     });
@@ -114,6 +116,7 @@
     [data-nav-count-target]{position:relative!important}
     .aift-nav-count-badge{position:absolute;z-index:8;top:2px;right:auto!important;left:calc(50% + 5px);min-width:18px;height:18px;padding:0 5px;border:2px solid #fff;border-radius:999px;background:#e11d2e;color:#fff;font:800 10px/14px Arial,sans-serif;letter-spacing:0;text-align:center;box-sizing:border-box;display:flex;align-items:center;justify-content:center;pointer-events:none;box-shadow:0 1px 2px rgba(0,0,0,.18)}
     .aift-nav-count-badge.hidden{display:none!important}
+    .aift-nav-count-badge:not([data-nav-badge-ready="true"]){display:none!important}
     .jobs-nav .aift-nav-count-badge{top:5px;left:31px}
     @media(max-width:760px){.aift-nav-count-badge{top:1px;left:calc(50% + 3px);min-width:17px;height:17px;padding:0 4px;font-size:9px}.jobs-nav .aift-nav-count-badge{top:1px;left:calc(50% + 3px)}}
   `;
