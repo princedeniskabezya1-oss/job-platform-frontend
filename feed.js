@@ -2,15 +2,24 @@
   const page = (location.pathname.split("/").pop() || "").toLowerCase();
   if(page !== "employer.html") return;
 
+  let mobileDashboardReady = false;
   const markMobileDashboardReady = () => {
+    if(mobileDashboardReady) return;
+    mobileDashboardReady = true;
+    document.body.classList.remove("mobile-menu-open");
     document.documentElement.classList.add("aift-employer-mobile-ready");
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.add("aift-employer-mobile-interactive");
+      });
+    });
   };
 
   let stylesheet = document.querySelector('link[data-employer-mobile-dashboard]');
   if(!stylesheet){
     stylesheet = document.createElement("link");
     stylesheet.rel = "stylesheet";
-    stylesheet.href = "employer-dashboard-mobile.css?v=20260907-mobile-dashboard-6";
+    stylesheet.href = "employer-dashboard-mobile.css?v=20260907-mobile-dashboard-7";
     stylesheet.dataset.employerMobileDashboard = "true";
     stylesheet.addEventListener("load",markMobileDashboardReady,{once:true});
     stylesheet.addEventListener("error",markMobileDashboardReady,{once:true});
