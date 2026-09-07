@@ -2,22 +2,48 @@
   const page = (location.pathname.split("/").pop() || "").toLowerCase();
   if(page !== "employer.html") return;
 
-  document.body.classList.remove("mobile-menu-open");
-  document.documentElement.classList.add("aift-employer-mobile-ready");
+  let mobileDashboardReady = false;
+  const revealMobileDashboard = () => {
+    if(mobileDashboardReady) return;
+    mobileDashboardReady = true;
+    document.body.classList.remove("mobile-menu-open");
+    document.documentElement.classList.add("aift-employer-mobile-ready");
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.add("aift-employer-mobile-interactive");
+      });
+    });
+  };
 
-  if(!document.querySelector('link[data-employer-mobile-dashboard]')){
-    const stylesheet = document.createElement("link");
+  let stylesheet = document.querySelector('link[data-employer-mobile-dashboard]');
+  if(!stylesheet){
+    stylesheet = document.createElement("link");
     stylesheet.rel = "stylesheet";
-    stylesheet.href = "employer-dashboard-mobile.css?v=20260907-mobile-dashboard-11";
+    stylesheet.href = "employer-dashboard-mobile.css?v=20260907-mobile-dashboard-12";
     stylesheet.dataset.employerMobileDashboard = "true";
     document.head.appendChild(stylesheet);
   }
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      document.documentElement.classList.add("aift-employer-mobile-interactive");
-    });
-  });
+  if(stylesheet.sheet){
+    revealMobileDashboard();
+  }else{
+    stylesheet.addEventListener("load",revealMobileDashboard,{once:true});
+    stylesheet.addEventListener("error",() => {
+      stylesheet.href = "employer-dashboard-mobile.css?v=20260907-mobile-dashboard-12-retry";
+    },{once:true});
+
+    const readyCheck = window.setInterval(() => {
+      if(stylesheet.sheet){
+        window.clearInterval(readyCheck);
+        revealMobileDashboard();
+      }
+    },50);
+
+    window.setTimeout(() => {
+      window.clearInterval(readyCheck);
+      revealMobileDashboard();
+    },4000);
+  }
 
   const syncDashboardChrome = () => {
     if(window.innerWidth <= 760 && window.top !== window){
