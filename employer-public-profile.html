@@ -527,8 +527,10 @@ a{
 
 <div class="company-mobile-menu" id="companyMobileMenu">
   <button type="button" id="mobileCompanyShareBtn" onclick="openCompanySharePanel()">Share Profile</button>
+  <button type="button" id="mobileSavedBtn" class="hidden" onclick="openSaved()">Saved</button>
+  <button type="button" id="mobileGroupsBtn" class="hidden" onclick="openGroups()">Groups</button>
+  <button type="button" id="mobileAiftFamilyBtn" class="hidden" onclick="openAiftFamily()">AIFT for Family</button>
   <button type="button" id="dashboardBtn" class="hidden" onclick="goDashboard()">Dashboard</button>
-  <button type="button" id="mobileAiftFamilyBtn" class="hidden" onclick="openAiftFamily()">AIFT Family</button>
 </div>
   </div>
 
@@ -1912,7 +1914,7 @@ async function loadViewerFamilyStatus(){
   state.viewerFamilyStatusReady = false;
   state.viewerFamilyEnrolled = false;
 
-  if(!isCompanyOwner()){
+  if(!token()){
     renderAiftFamilyAccess();
     return;
   }
@@ -1932,14 +1934,23 @@ function renderAiftFamilyAccess(){
   const card = document.getElementById("aiftFamilyEnrollmentCard");
   const menuButton = document.getElementById("mobileAiftFamilyBtn");
   const owner = isCompanyOwner();
+  const signedIn = Boolean(token());
   const dismissed = sessionStorage.getItem("aiftFamilyPublicProfileCardDismissed") === "1";
 
   card?.classList.toggle("hidden", !owner || !state.viewerFamilyStatusReady || state.viewerFamilyEnrolled || dismissed);
-  menuButton?.classList.toggle("hidden", !owner || !state.viewerFamilyStatusReady || !state.viewerFamilyEnrolled);
+  menuButton?.classList.toggle("hidden", !signedIn || !state.viewerFamilyStatusReady || !state.viewerFamilyEnrolled);
 }
 
 function openAiftFamily(){
   location.href = "family.html";
+}
+
+function openSaved(){
+  location.href = "saved.html";
+}
+
+function openGroups(){
+  location.href = "groups.html";
 }
 
 function dismissAiftFamilyCard(event){
@@ -2637,6 +2648,8 @@ function updateOwnerUI(){
   const followBtn = document.getElementById("followBtn");
   const messageCompanyBtn = document.getElementById("messageCompanyBtn");
   const companyMoreBtn = document.getElementById("companyMoreBtn");
+  const mobileSavedBtn = document.getElementById("mobileSavedBtn");
+  const mobileGroupsBtn = document.getElementById("mobileGroupsBtn");
   const mobileAiftFamilyBtn = document.getElementById("mobileAiftFamilyBtn");
 
   const desktopEditBtn = document.getElementById("desktopCompanyEditBtn");
@@ -2659,6 +2672,8 @@ function updateOwnerUI(){
     desktopDashboardBtn,
     desktopMessageBtn,
     desktopFollowBtn,
+    mobileSavedBtn,
+    mobileGroupsBtn,
     mobileAiftFamilyBtn
   ].forEach(btn=>{
     btn?.classList.add("hidden");
@@ -2720,6 +2735,11 @@ if(isOwner){
 
   if(signinBtn){
     signinBtn.classList.toggle("hidden", isLoggedIn);
+  }
+
+  if(isLoggedIn){
+    mobileSavedBtn?.classList.remove("hidden");
+    mobileGroupsBtn?.classList.remove("hidden");
   }
 
   if(avatar){
