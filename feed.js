@@ -2,12 +2,24 @@
   const page = (location.pathname.split("/").pop() || "").toLowerCase();
   if(page !== "employer.html") return;
 
-  if(!document.querySelector('link[data-employer-mobile-dashboard]')){
-    const stylesheet = document.createElement("link");
+  const markMobileDashboardReady = () => {
+    document.documentElement.classList.add("aift-employer-mobile-ready");
+  };
+
+  let stylesheet = document.querySelector('link[data-employer-mobile-dashboard]');
+  if(!stylesheet){
+    stylesheet = document.createElement("link");
     stylesheet.rel = "stylesheet";
-    stylesheet.href = "employer-dashboard-mobile.css?v=20260907-mobile-dashboard-5";
+    stylesheet.href = "employer-dashboard-mobile.css?v=20260907-mobile-dashboard-6";
     stylesheet.dataset.employerMobileDashboard = "true";
+    stylesheet.addEventListener("load",markMobileDashboardReady,{once:true});
+    stylesheet.addEventListener("error",markMobileDashboardReady,{once:true});
     document.head.appendChild(stylesheet);
+  }else if(stylesheet.sheet){
+    markMobileDashboardReady();
+  }else{
+    stylesheet.addEventListener("load",markMobileDashboardReady,{once:true});
+    stylesheet.addEventListener("error",markMobileDashboardReady,{once:true});
   }
 
   const syncDashboardChrome = () => {
