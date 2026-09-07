@@ -246,6 +246,8 @@
       if(event.origin!==location.origin)return;
       if(event.data?.type==="aift:dashboard-chrome"){
         setDashboardNavigationHidden(event.data.hidden);
+        const bounds=sectionBounds();
+        document.querySelectorAll(".aift-section-view,.aift-section-wait").forEach(element=>sizeSectionElement(element,bounds));
         return;
       }
       if(event.data?.type==="aift:section-scroll"){
