@@ -532,6 +532,8 @@
   function renderCompanyPartnershipExtension(){
     const host=document.getElementById("employerCareerPartnershipList");
     if(!host) return;
+    document.querySelector("[data-new-company-partnership].esc-mobile-company-action")?.remove();
+    document.querySelector(".employer-career-section-head.esc-mobile-partnership-actions")?.classList.remove("esc-mobile-partnership-actions");
     host.querySelector("[data-company-partnership-extension]")?.remove();
     if(!state.companyPartnerships.length) return;
 
@@ -543,7 +545,16 @@
       return `<article class="esc-company-partner-card"><div><h4>${esc(item.title || name(partner,"Company partnership"))}</h4><p>${esc(name(partner,"Partner company"))} · ${esc(title(item.type))}</p><span class="esc-status ${esc(item.status)}">${esc(title(item.status))}</span></div><div class="esc-mini-actions">${["review","approved","active","paused"].includes(item.status)?`<button type="button" class="esc-btn primary" data-open-company-workspace="${esc(item._id)}">Open workspace</button>`:`<button type="button" class="esc-btn" disabled>${item.status === "pending"?"AIFT review pending":esc(title(item.status))}</button>`}</div></article>`;
     }).join("")}`;
     host.prepend(wrapper);
-    wrapper.querySelector("[data-new-company-partnership]")?.addEventListener("click",()=>openPartnership("company"));
+    const companyButton=wrapper.querySelector("[data-new-company-partnership]");
+    if(window.matchMedia("(max-width: 760px)").matches && companyButton){
+      const sectionHead=host.closest('[data-career-panel="partnerships"]')?.querySelector(".employer-career-section-head");
+      if(sectionHead){
+        sectionHead.classList.add("esc-mobile-partnership-actions");
+        companyButton.classList.add("esc-mobile-company-action");
+        sectionHead.append(companyButton);
+      }
+    }
+    companyButton?.addEventListener("click",()=>openPartnership("company"));
     wrapper.querySelectorAll("[data-open-company-workspace]").forEach(button=>button.addEventListener("click",()=>openCompanyWorkspace(button.dataset.openCompanyWorkspace)));
   }
 
