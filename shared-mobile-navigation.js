@@ -82,6 +82,21 @@
     document.querySelector(".aift-mobile-nav")?.classList.toggle("aift-mobile-nav--dashboard-hidden",shouldHide);
   }
 
+  function setLearningNavigation(active){
+    const nav=document.querySelector(".aift-mobile-nav");
+    if(!nav)return;
+    nav.innerHTML=canonicalNavigationMarkup();
+    if(active){
+      nav.querySelectorAll("a,button").forEach(item=>item.classList.remove("active"));
+      const learning=nav.lastElementChild;
+      learning.className="aift-mobile-nav__learning active";
+      learning.removeAttribute("onclick");
+      learning.setAttribute("aria-label","Learning");
+      learning.setAttribute("aria-current","page");
+      learning.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m2 9 10-5 10 5-10 5Z"></path><path d="M6 11v5c3 2 9 2 12 0v-5"></path><path d="M22 9v6"></path></svg><span>Learning</span>`;
+    }else updateActiveMobileNav();
+  }
+
   function matchDeviceBottomSurface(){
     let theme=document.querySelector('meta[name="theme-color"]');
     if(!theme){theme=document.createElement("meta");theme.name="theme-color";document.head.appendChild(theme);}
@@ -257,6 +272,12 @@
         nav?.classList.toggle("aift-mobile-nav--hidden",Boolean(event.data.hidden));
         const bounds=sectionBounds();
         document.querySelectorAll(".aift-section-view,.aift-section-wait").forEach(element=>sizeSectionElement(element,bounds));
+        return;
+      }
+      if(event.data?.type==="aift:learning-chrome"){
+        const frame=Array.from(document.querySelectorAll(".aift-section-view.is-current")).find(item=>item.contentWindow===event.source);
+        if(!frame)return;
+        setLearningNavigation(Boolean(event.data.active));
         return;
       }
       if(event.data?.type!=="aift:section-ready")return;
