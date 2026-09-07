@@ -3,7 +3,7 @@
   if(page !== "employer.html") return;
 
   let mobileDashboardReady = false;
-  const revealMobileDashboard = () => {
+  const markMobileDashboardReady = () => {
     if(mobileDashboardReady) return;
     mobileDashboardReady = true;
     document.body.classList.remove("mobile-menu-open");
@@ -19,30 +19,16 @@
   if(!stylesheet){
     stylesheet = document.createElement("link");
     stylesheet.rel = "stylesheet";
-    stylesheet.href = "employer-dashboard-mobile.css?v=20260907-mobile-dashboard-12";
+    stylesheet.href = "employer-dashboard-mobile.css?v=20260907-mobile-dashboard-9";
     stylesheet.dataset.employerMobileDashboard = "true";
+    stylesheet.addEventListener("load",markMobileDashboardReady,{once:true});
+    stylesheet.addEventListener("error",markMobileDashboardReady,{once:true});
     document.head.appendChild(stylesheet);
-  }
-
-  if(stylesheet.sheet){
-    revealMobileDashboard();
+  }else if(stylesheet.sheet){
+    markMobileDashboardReady();
   }else{
-    stylesheet.addEventListener("load",revealMobileDashboard,{once:true});
-    stylesheet.addEventListener("error",() => {
-      stylesheet.href = "employer-dashboard-mobile.css?v=20260907-mobile-dashboard-12-retry";
-    },{once:true});
-
-    const readyCheck = window.setInterval(() => {
-      if(stylesheet.sheet){
-        window.clearInterval(readyCheck);
-        revealMobileDashboard();
-      }
-    },50);
-
-    window.setTimeout(() => {
-      window.clearInterval(readyCheck);
-      revealMobileDashboard();
-    },4000);
+    stylesheet.addEventListener("load",markMobileDashboardReady,{once:true});
+    stylesheet.addEventListener("error",markMobileDashboardReady,{once:true});
   }
 
   const syncDashboardChrome = () => {
