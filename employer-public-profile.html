@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="feed.css">
-  <link rel="stylesheet" href="employer-mobile.css?v=20260906-family-entry-1">
+  <link rel="stylesheet" href="employer-mobile.css?v=20260907-people-grid-1">
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="feed.js"></script>
@@ -1450,65 +1450,165 @@ body.loading-profile .page{
 .people-grid{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:12px;
+  gap:14px;
 }
 
 .person-card{
   background:#fff;
-  border:1px solid #d8d8d8;
-  border-radius:8px;
+  border:1px solid var(--line);
+  border-radius:22px;
   overflow:hidden;
   text-align:center;
-  min-height:255px;
+  min-width:0;
   display:flex;
   flex-direction:column;
+  box-shadow:0 8px 24px rgba(15,23,42,.06);
 }
 
 .person-cover{
-  height:58px;
-  background:#c7d7d9;
+  position:relative;
+  height:82px;
+  flex:none;
+  overflow:visible;
+  background:linear-gradient(135deg,rgba(10,102,194,.16),rgba(34,197,94,.10));
+}
+
+.person-cover-image{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.person-role-badge{
+  position:absolute;
+  top:12px;
+  right:12px;
+  z-index:2;
+  max-width:110px;
+  padding:6px 9px;
+  overflow:hidden;
+  border:1px solid rgba(226,232,240,.9);
+  border-radius:999px;
+  background:rgba(255,255,255,.92);
+  color:#334155;
+  font-size:11px;
+  font-weight:800;
+  text-overflow:ellipsis;
+  text-transform:capitalize;
+  white-space:nowrap;
 }
 
 .person-avatar{
-  width:88px;
-  height:88px;
+  position:absolute;
+  left:16px;
+  bottom:-34px;
+  z-index:3;
+  width:68px;
+  height:68px;
   border-radius:50%;
   object-fit:cover;
   border:4px solid #fff;
-  margin:-44px auto 8px;
   background:#fff;
+  box-shadow:0 8px 20px rgba(15,23,42,.12);
 }
 
 .person-body{
-  padding:0 14px 14px;
+  padding:44px 16px 16px;
   display:flex;
   flex-direction:column;
   flex:1;
 }
 
-.person-body h3{
-  margin:0 0 4px;
+.person-name-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-width:0;
+}
+
+.person-name-row h3{
+  min-width:0;
+  margin:0;
   font-size:16px;
+  font-weight:800;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.person-verified{
+  width:16px;
+  height:16px;
+  flex:none;
+  color:var(--blue);
+}
+
+.person-headline{
+  min-height:34px;
+  margin:5px 0 0;
+  overflow:hidden;
+  color:#475569;
+  font-size:12px;
+  line-height:1.45;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+}
+
+.person-member-badge{
+  align-self:center;
+  max-width:130px;
+  margin-top:12px;
+  padding:6px 9px;
+  overflow:hidden;
+  border:1px solid #dbeafe;
+  border-radius:999px;
+  background:#f1f5f9;
+  color:#334155;
+  font-size:11px;
+  font-weight:800;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.person-actions{
+  margin-top:auto;
+  padding-top:14px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.person-action-btn{
+  min-width:0;
+  height:38px;
+  padding:0 10px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:#fff;
+  color:#334155;
+  font-size:12px;
   font-weight:800;
 }
 
-.person-body p{
-  margin:0;
-  color:#555;
-  font-size:13px;
-  line-height:1.35;
-  min-height:36px;
+.person-action-btn.following{
+  border-color:transparent;
+  background:#f3f4f6;
+  color:#444;
 }
 
-.person-body span{
-  display:block;
-  margin:10px 0 14px;
-  color:#777;
-  font-size:12px;
+.person-action-btn.primary{
+  border-color:transparent;
+  background:var(--blue);
+  color:#fff;
 }
 
-.person-body .pill-btn{
-  margin-top:auto;
+.person-action-btn:disabled{
+  cursor:wait;
+  opacity:.65;
 }
 
 .loading,
@@ -2247,40 +2347,102 @@ function renderPeople(){
     return;
   }
 
-  list.innerHTML = people.map(person=>`
-    <article class="person-card">
+  list.innerHTML = people.map(person=>{
+    const id = String(person._id || person.id || "");
+    const name = person.name || person.companyName || "AIFT Member";
+    const headline = person.headline || person.profession || "Professional";
+    const avatar = person.profileImage || FALLBACK_AVATAR;
+    const banner = person.bannerImage || person.coverImage || person.profileCover || person.coverPhoto || "";
+    const role = String(person.role || "member").trim().toLowerCase();
+    const roleLabel = role === "talent"
+      ? "Talent"
+      : role === "agent"
+        ? "Agent"
+        : role === "employer"
+          ? "Employer"
+          : role === "school"
+            ? "School"
+            : "Member";
+    const verified = Boolean(person.aiftVerified || person.aiftCertified);
+    const following = Array.isArray(person.followers) && person.followers.some(
+      follower => String(follower?._id || follower) === String(currentUserId())
+    );
 
-      <div class="person-cover"></div>
+    return `
+      <article class="person-card">
+        <div class="person-cover">
+          ${banner ? `<img class="person-cover-image" src="${escapeHtml(banner)}" alt="">` : ""}
+          <span class="person-role-badge">${escapeHtml(roleLabel)}</span>
+          <img class="person-avatar" src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}">
+        </div>
 
-      <img
-        class="person-avatar"
-        src="${person.profileImage || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}"
-      >
+        <div class="person-body">
+          <div class="person-name-row">
+            <h3>${escapeHtml(name)}</h3>
+            ${verified ? `
+              <svg class="person-verified" viewBox="0 0 24 24" fill="currentColor" aria-label="AIFT verified">
+                <path d="M12 2 14.4 5.5 18.6 4.9 19.1 9.1 22 12 19.1 14.9 18.6 19.1 14.4 18.5 12 22 9.6 18.5 5.4 19.1 4.9 14.9 2 12 4.9 9.1 5.4 4.9 9.6 5.5 12 2Zm-1.1 13.4 5.7-5.7-1.4-1.4-4.3 4.3-2.1-2.1-1.4 1.4 3.5 3.5Z"></path>
+              </svg>
+            ` : ""}
+          </div>
 
-      <div class="person-body">
+          <p class="person-headline">${escapeHtml(headline)}</p>
+          <span class="person-member-badge">AIFT Member</span>
 
-        <h3>${escapeHtml(person.name || "User")}</h3>
+          <div class="person-actions">
+            <button
+              type="button"
+              class="person-action-btn ${following ? "following" : "primary"}"
+              onclick="togglePersonFollow('${escapeHtml(id)}', this)"
+            >
+              ${following ? "Following" : "Follow"}
+            </button>
+            <button type="button" class="person-action-btn" onclick="visitPerson('${escapeHtml(id)}')">
+              View
+            </button>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
 
-        <p>
-          ${escapeHtml(
-            person.headline ||
-            person.profession ||
-            "Professional"
-          )}
-        </p>
+async function togglePersonFollow(personId, button){
+  if(!token()){
+    goLogin();
+    return;
+  }
 
-        <span>
-          ${escapeHtml(person.location || "")}
-        </span>
+  const person = state.people.find(item => String(item._id || item.id) === String(personId));
+  if(!person || !personId || button?.disabled) return;
 
-        <button class="pill-btn" onclick="visitPerson('${person._id}')">
-          View profile
-        </button>
+  if(button){
+    button.disabled = true;
+    button.textContent = "Updating";
+  }
 
-      </div>
+  try{
+    const result = await api(`/api/users/${encodeURIComponent(personId)}/follow`, {
+      method:"PATCH",
+      headers:headers()
+    });
 
-    </article>
-  `).join("");
+    const viewerId = currentUserId();
+    const followers = Array.isArray(person.followers) ? [...person.followers] : [];
+    person.followers = result.following
+      ? followers.some(item => String(item?._id || item) === String(viewerId))
+        ? followers
+        : [...followers, viewerId]
+      : followers.filter(item => String(item?._id || item) !== String(viewerId));
+
+    renderPeople();
+  }catch(err){
+    if(button){
+      button.disabled = false;
+      button.textContent = "Follow";
+    }
+    toast("Follow failed", err.message || "Unable to update this connection.", "error");
+  }
 }
 
 /* =========================
@@ -3008,6 +3170,18 @@ async function init(){
     `;
   }
 }
+
+function setEmbeddedProfileNavigationHidden(hidden){
+  if(window.parent === window) return;
+
+  window.parent.postMessage({
+    type:"aift:dashboard-chrome",
+    hidden:Boolean(hidden)
+  }, location.origin);
+}
+
+setEmbeddedProfileNavigationHidden(true);
+window.addEventListener("pagehide", ()=>setEmbeddedProfileNavigationHidden(false));
 
 init();
 
