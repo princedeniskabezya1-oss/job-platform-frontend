@@ -19,7 +19,7 @@
   if(!stylesheet){
     stylesheet = document.createElement("link");
     stylesheet.rel = "stylesheet";
-    stylesheet.href = "employer-dashboard-mobile.css?v=20260907-mobile-dashboard-8";
+    stylesheet.href = "employer-dashboard-mobile.css?v=20260907-mobile-dashboard-9";
     stylesheet.dataset.employerMobileDashboard = "true";
     stylesheet.addEventListener("load",markMobileDashboardReady,{once:true});
     stylesheet.addEventListener("error",markMobileDashboardReady,{once:true});
