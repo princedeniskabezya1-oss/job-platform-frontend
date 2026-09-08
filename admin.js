@@ -1761,6 +1761,7 @@ async function toggleAdminUserVerified(userId){
     adminToast(next ? "User verified." : "User unverified.");
 
     renderAdminUsers();
+    if(adminState.currentSection === "learning") renderLearningTeachers();
     closeAdminDrawer();
   }catch(error){
     adminToast(error.message || "Unable to update verification.");
@@ -3926,7 +3927,7 @@ function renderLearningRequests(){
     <div class="admin-panel-head"><div><h2>Teacher course requests</h2><p>Review complete course proposals before they appear in Learning.</p></div><span class="admin-badge blue">${requests.length}</span></div>
     ${!requests.length ? '<div class="admin-empty"><strong>No teacher requests found</strong><span>New submissions will appear here for review.</span></div>' : `
       <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Course</th><th>Teacher</th><th>School</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead><tbody>
-        ${requests.map(item => `<tr><td><strong>${esc(item.title || "Untitled course")}</strong><span>${esc(item.subject || item.category || "No subject")}</span></td><td>${esc(item.teacherId?.name || "Teacher")}</td><td>${esc(item.schoolId?.schoolName || item.schoolId?.name || "School")}</td><td><span class="admin-badge learning-status-${esc(normalize(item.publicationRequestStatus || "pending"))}">${esc(item.publicationRequestStatus || "pending")}</span></td><td>${esc(formatDate(item.publicationRequestedAt || item.createdAt))}</td><td><div class="admin-actions"><button type="button" onclick="openLearningRequestReview('${esc(getId(item))}')">Review</button></div></td></tr>`).join("")}
+        ${requests.map(item => `<tr><td><strong>${esc(item.title || "Untitled course")}</strong><span>${esc(item.subject || item.category || "No subject")} · ${Number(item.moduleCount || 0)} modules · ${Number(item.lessonCount || 0)} lessons</span></td><td>${esc(item.teacherId?.name || "Teacher")}</td><td>${esc(item.schoolId?.schoolName || item.schoolId?.name || "School")}</td><td><span class="admin-badge learning-status-${esc(normalize(item.publicationRequestStatus || "pending"))}">${esc(item.publicationRequestStatus || "pending")}</span></td><td>${esc(formatDate(item.publicationRequestedAt || item.createdAt))}</td><td><div class="admin-actions"><button type="button" onclick="openLearningRequestReview('${esc(getId(item))}')">Review</button><button type="button" onclick="adminOpenLearningPreview('${esc(getId(item))}')">Preview</button></div></td></tr>`).join("")}
       </tbody></table></div>`}
   `;
 }
@@ -3942,7 +3943,7 @@ function renderLearningCourses(){
     <div class="admin-panel-head"><div><h2>Learning courses</h2><p>Control catalogue visibility and open the course builder.</p></div><button type="button" onclick="openAdminCoursePublisher()">Publish course</button></div>
     ${!courses.length ? '<div class="admin-empty"><strong>No Learning courses found</strong><span>Publish a course or change the filters.</span></div>' : `
       <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Course</th><th>Provider</th><th>Teacher</th><th>Visibility</th><th>Updated</th><th>Actions</th></tr></thead><tbody>
-        ${courses.map(item => `<tr><td><strong>${esc(item.title || "Untitled course")}</strong><span>${esc(item.subject || item.category || "No subject")}</span></td><td>${esc(item.schoolId?.schoolName || item.schoolId?.name || "AIFT")}</td><td>${esc(item.teacherId?.name || "Unassigned")}</td><td><span class="admin-badge ${item.published ? "green" : "orange"}">${item.published ? "Published" : "Unpublished"}</span></td><td>${esc(formatDate(item.updatedAt))}</td><td><div class="admin-actions"><button type="button" onclick="adminOpenClassPage('${esc(getId(item))}')">Builder</button><button type="button" onclick="adminLearningAction('${esc(getId(item))}','${item.published ? "unpublish" : "publish"}')">${item.published ? "Unpublish" : "Publish"}</button><button type="button" class="danger" onclick="confirmArchiveLearningCourse('${esc(getId(item))}')">Archive</button></div></td></tr>`).join("")}
+        ${courses.map(item => `<tr><td><strong>${esc(item.title || "Untitled course")}</strong><span>${esc(item.subject || item.category || "No subject")} · ${Number(item.moduleCount || 0)} modules · ${Number(item.lessonCount || 0)} lessons</span></td><td>${esc(item.schoolId?.schoolName || item.schoolId?.name || "AIFT")}</td><td>${esc(item.teacherId?.name || "Unassigned")}</td><td><span class="admin-badge ${item.published ? "green" : "orange"}">${item.published ? "Published" : "Unpublished"}</span></td><td>${esc(formatDate(item.updatedAt))}</td><td><div class="admin-actions"><button type="button" onclick="adminOpenLearningPreview('${esc(getId(item))}')">View</button><button type="button" onclick="adminOpenClassPage('${esc(getId(item))}')">Builder</button><button type="button" onclick="adminLearningAction('${esc(getId(item))}','${item.published ? "unpublish" : "publish"}')">${item.published ? "Unpublish" : "Publish"}</button><button type="button" class="danger" onclick="confirmArchiveLearningCourse('${esc(getId(item))}')">Archive</button></div></td></tr>`).join("")}
       </tbody></table></div>`}
   `;
 }
@@ -3958,27 +3959,50 @@ function renderLearningTeachers(){
     ${!teachers.length ? '<div class="admin-empty"><strong>No teachers found</strong><span>Teacher accounts will appear here.</span></div>' : `
       <div class="learning-teacher-admin-grid">${teachers.map(teacher => {
         const school = teacher.schoolId || teacher.linkedSchoolId;
-        return `<article class="learning-teacher-admin-card"><img src="${esc(getAvatar(teacher))}" alt=""><div><strong>${esc(getDisplayName(teacher))}</strong><p>${esc(teacher.subject || teacher.department || "Expertise not added")}</p><small>${esc(school?.schoolName || school?.name || "School not linked")}</small></div><div class="learning-teacher-card-foot"><span class="admin-badge ${isVerified(teacher) ? "green" : "orange"}">${isVerified(teacher) ? "Verified" : "Unverified"}</span><span>${Array.isArray(teacher.assignedClasses) ? teacher.assignedClasses.length : 0} courses</span><button type="button" onclick="openAdminUserDrawer('${esc(getId(teacher))}')">Manage</button></div></article>`;
+        return `<article class="learning-teacher-admin-card"><img src="${esc(getAvatar(teacher))}" alt=""><div><strong>${esc(getDisplayName(teacher))}</strong><p>${esc(teacher.subject || teacher.department || "Expertise not added")}</p><small>${esc(school?.schoolName || school?.name || "School not linked")}</small></div><div class="learning-teacher-card-foot"><span class="admin-badge ${isVerified(teacher) ? "green" : "orange"}">${isVerified(teacher) ? "Verified" : "Unverified"}</span><span>${Array.isArray(teacher.assignedClasses) ? teacher.assignedClasses.length : 0} courses</span><button type="button" onclick="toggleAdminUserVerified('${esc(getId(teacher))}')">${isVerified(teacher) ? "Unverify" : "Verify"}</button><button type="button" onclick="openAdminUserDrawer('${esc(getId(teacher))}')">Manage</button></div></article>`;
       }).join("")}</div>`}
   `;
 }
 
-function openLearningRequestReview(courseId){
+async function openLearningRequestReview(courseId){
   const item = adminState.learningRequests.find(row => String(getId(row)) === String(courseId));
   if(!item) return adminToast("Course request not found.");
+
+  let learning = { modules: [], lessons: [] };
+  try{
+    learning = await adminRequest(`/api/classes/${encodeURIComponent(courseId)}/learning`);
+  }catch(error){
+    adminToast(error.message || "Course curriculum could not be loaded.");
+  }
 
   const outcomeText = Array.isArray(item.learningOutcomes) && item.learningOutcomes.length
     ? item.learningOutcomes.join(", ")
     : "Not provided";
+  const modules = Array.isArray(learning?.modules) ? learning.modules : [];
+  const lessons = Array.isArray(learning?.lessons) ? learning.lessons : [];
+  const curriculum = modules.map((module, index) => {
+    const moduleId = String(getId(module));
+    const moduleLessons = lessons.filter(lesson => String(getId(lesson.moduleId || lesson.module)) === moduleId);
+    return `<section class="learning-review-module"><strong>Module ${index + 1}: ${esc(module.title || "Untitled module")}</strong>${moduleLessons.length ? `<div>${moduleLessons.map(lesson => `<span>${esc(lesson.title || "Untitled Lesson")}${lesson.durationMinutes ? ` · ${Number(lesson.durationMinutes)} min` : ""}${lesson.videoUrl ? " · Video" : ""}${Array.isArray(lesson.resources) && lesson.resources.length ? " · Resource" : ""}</span>`).join("")}</div>` : "<small>No Lessons</small>"}</section>`;
+  }).join("");
+  const source = String(item.publicationSubmissionType || "proposal").replace("existing_class", "Existing class").replace("proposal", "New course").replace("pdf", "PDF course");
+  const documentLink = item.publicationDocument?.url
+    ? `<a class="admin-btn ghost" href="${esc(item.publicationDocument.url)}" target="_blank" rel="noopener">Open submitted PDF</a>`
+    : "";
 
   openAdminReviewModal(
     "Course publication request",
     `${item.teacherId?.name || "Teacher"} • ${item.schoolId?.schoolName || item.schoolId?.name || "School"}`,
-    `<div class="admin-detail-grid"><div class="admin-detail-card wide"><span>Course</span><strong>${esc(item.title || "Untitled course")}</strong></div><div class="admin-detail-card"><span>Subject</span><strong>${esc(item.subject || "-")}</strong></div><div class="admin-detail-card"><span>Level</span><strong>${esc(item.level || "-")}</strong></div><div class="admin-detail-card"><span>Language</span><strong>${esc(item.language || "-")}</strong></div><div class="admin-detail-card"><span>Duration</span><strong>${esc(item.estimatedDurationMinutes ? `${item.estimatedDurationMinutes} minutes` : "-")}</strong></div><div class="admin-detail-card wide"><span>Description</span><strong>${esc(item.description || "-")}</strong></div><div class="admin-detail-card wide"><span>Learning outcomes</span><strong>${esc(outcomeText)}</strong></div><div class="admin-detail-card wide"><span>Teacher note</span><strong>${esc(item.publicationRequestMessage || "No note added.")}</strong></div>${item.publicationReviewNote ? `<div class="admin-detail-card wide"><span>Admin note</span><strong>${esc(item.publicationReviewNote)}</strong></div>` : ""}</div>`,
+    `<div class="admin-detail-grid"><div class="admin-detail-card wide"><span>Course</span><strong>${esc(item.title || "Untitled course")}</strong><small>${esc(source)} · ${modules.length} modules · ${lessons.length} lessons</small></div><div class="admin-detail-card"><span>Subject</span><strong>${esc(item.subject || "-")}</strong></div><div class="admin-detail-card"><span>Level</span><strong>${esc(item.level || "-")}</strong></div><div class="admin-detail-card"><span>Language</span><strong>${esc(item.language || "-")}</strong></div><div class="admin-detail-card"><span>Duration</span><strong>${esc(item.estimatedDurationMinutes ? `${item.estimatedDurationMinutes} minutes` : "-")}</strong></div><div class="admin-detail-card wide"><span>Description</span><strong>${esc(item.description || "-")}</strong></div><div class="admin-detail-card wide"><span>Learning outcomes</span><strong>${esc(outcomeText)}</strong></div><div class="admin-detail-card wide"><span>Curriculum</span><div class="learning-review-curriculum">${curriculum || "<p>No modules have been added.</p>"}</div></div><div class="admin-detail-card wide"><span>Teacher note</span><strong>${esc(item.publicationRequestMessage || "No note added.")}</strong></div>${item.publicationReviewNote ? `<div class="admin-detail-card wide"><span>Admin note</span><strong>${esc(item.publicationReviewNote)}</strong></div>` : ""}</div>`,
     normalize(item.publicationRequestStatus) === "pending"
-      ? `<button type="button" class="admin-btn success" onclick="approveLearningRequest('${esc(courseId)}')">Approve & publish</button><button type="button" class="admin-btn danger" onclick="openRejectLearningRequest('${esc(courseId)}')">Reject</button>`
-      : `<button type="button" class="admin-btn ghost" onclick="closeAdminReviewModal()">Close</button>`
+      ? `${documentLink}<button type="button" class="admin-btn ghost" onclick="adminOpenLearningPreview('${esc(courseId)}')">Preview course</button><button type="button" class="admin-btn success" onclick="approveLearningRequest('${esc(courseId)}')" ${lessons.length ? "" : "disabled"}>Approve & publish</button><button type="button" class="admin-btn danger" onclick="openRejectLearningRequest('${esc(courseId)}')">Reject</button>`
+      : `${documentLink}<button type="button" class="admin-btn ghost" onclick="adminOpenLearningPreview('${esc(courseId)}')">Preview course</button><button type="button" class="admin-btn ghost" onclick="closeAdminReviewModal()">Close</button>`
   );
+}
+
+function adminOpenLearningPreview(courseId){
+  if(!courseId) return adminToast("Course ID not available.");
+  window.open(`class-view.html?classId=${encodeURIComponent(courseId)}&from=admin`, "_blank", "noopener");
 }
 
 function approveLearningRequest(courseId){
@@ -4031,13 +4055,77 @@ function openAdminCoursePublisher(){
         <label><span>Language</span><input id="learningCourseLanguage" maxlength="80" value="English"></label>
         <label><span>Duration (minutes)</span><input id="learningCourseDuration" type="number" min="0" max="1000000" value="60"></label>
         <label><span>Maximum learners</span><input id="learningCourseCapacity" type="number" min="0" max="100000" value="0"></label>
+        <label class="full"><span>Course cover link</span><input id="learningCourseCover" type="url" maxlength="1500" placeholder="https://example.com/course-cover.jpg"></label>
         <label class="full"><span>Course description</span><textarea id="learningCourseDescription" maxlength="3000" rows="4" required placeholder="What learners will gain from this course"></textarea></label>
         <label class="full"><span>Learning outcomes</span><textarea id="learningCourseOutcomes" rows="3" placeholder="One outcome per line"></textarea></label>
+        <label><span>Access</span><select id="learningCourseAccess" onchange="toggleAdminLearningPrice()"><option value="free">Free</option><option value="paid">Paid</option></select></label>
+        <label class="admin-learning-price hidden"><span>Price</span><input id="learningCoursePrice" type="number" min="0" step="0.01" value="0"></label>
+        <label class="admin-learning-price hidden"><span>Currency</span><select id="learningCourseCurrency"><option value="PHP">PHP</option><option value="USD">USD</option></select></label>
         <label><span><input id="learningCourseCertificate" type="checkbox"> Certificate available</span></label>
         <label><span><input id="learningCourseAutoApprove" type="checkbox"> Auto-approve enrollment</span></label>
+        <div class="admin-learning-curriculum-title full"><strong>Course curriculum</strong><small>Add the modules and Lessons learners will see.</small></div>
+        <div class="admin-learning-curriculum full" id="adminLearningCurriculum"></div>
+        <button class="admin-btn ghost full" type="button" onclick="addAdminLearningModule()">+ Add module</button>
       </div>
       <div class="admin-modal-actions"><button type="button" class="admin-btn ghost" onclick="closeAdminFormModal()">Cancel</button><button type="submit" class="admin-btn">Publish course</button></div>
     </form>`);
+  resetAdminLearningCurriculum();
+}
+
+function adminLearningLessonHtml(title = ""){
+  return `<article class="admin-learning-lesson"><div class="admin-learning-builder-head"><strong>Lesson</strong><button type="button" onclick="removeAdminLearningItem(this,'.admin-learning-lesson')" aria-label="Remove Lesson">×</button></div><div class="admin-form-grid"><label><span>Lesson title</span><input class="admin-learning-lesson-title" maxlength="160" value="${esc(title)}" placeholder="Lesson title"></label><label><span>Duration</span><input class="admin-learning-lesson-duration" type="number" min="0" max="100000" value="15"></label><label class="full"><span>Lesson content</span><textarea class="admin-learning-lesson-content" maxlength="12000" rows="3" placeholder="Write the Lesson content"></textarea></label><label class="full"><span>Video link</span><input class="admin-learning-lesson-video" type="url" maxlength="1500" placeholder="YouTube or direct video link"></label><label class="full"><span>Resource link</span><input class="admin-learning-lesson-resource" type="url" maxlength="1500" placeholder="PDF, document, or article link"></label></div></article>`;
+}
+
+function adminLearningModuleHtml(title = "New module", lessonTitle = ""){
+  return `<section class="admin-learning-module"><div class="admin-learning-builder-head"><input class="admin-learning-module-title" maxlength="160" value="${esc(title)}" aria-label="Module title"><button type="button" onclick="removeAdminLearningItem(this,'.admin-learning-module')" aria-label="Remove module">×</button></div><div class="admin-learning-lessons">${adminLearningLessonHtml(lessonTitle)}</div><button class="admin-btn ghost" type="button" onclick="addAdminLearningLesson(this)">+ Add Lesson</button></section>`;
+}
+
+function resetAdminLearningCurriculum(){
+  const builder = document.getElementById("adminLearningCurriculum");
+  if(builder) builder.innerHTML = adminLearningModuleHtml("Getting started", "Introduction");
+}
+
+function addAdminLearningModule(){
+  const builder = document.getElementById("adminLearningCurriculum");
+  if(!builder) return;
+  const count = builder.querySelectorAll(".admin-learning-module").length;
+  if(count >= 8) return adminToast("A course can contain up to 8 modules.");
+  builder.insertAdjacentHTML("beforeend", adminLearningModuleHtml(`Module ${count + 1}`, "New Lesson"));
+}
+
+function addAdminLearningLesson(button){
+  const module = button.closest(".admin-learning-module");
+  if(!module) return;
+  if(document.querySelectorAll(".admin-learning-lesson").length >= 40) return adminToast("A course can contain up to 40 Lessons.");
+  module.querySelector(".admin-learning-lessons").insertAdjacentHTML("beforeend", adminLearningLessonHtml("New Lesson"));
+}
+
+function removeAdminLearningItem(button, selector){
+  const item = button.closest(selector);
+  if(!item) return;
+  if(selector === ".admin-learning-module" && document.querySelectorAll(selector).length === 1) return adminToast("Keep at least one module.");
+  if(selector === ".admin-learning-lesson" && item.closest(".admin-learning-lessons").querySelectorAll(selector).length === 1) return adminToast("Each module needs at least one Lesson.");
+  item.remove();
+}
+
+function collectAdminLearningCurriculum(){
+  return [...document.querySelectorAll(".admin-learning-module")].map((module, moduleIndex) => ({
+    title: module.querySelector(".admin-learning-module-title")?.value?.trim() || "",
+    order: moduleIndex,
+    lessons: [...module.querySelectorAll(".admin-learning-lesson")].map((lesson, lessonIndex) => ({
+      title: lesson.querySelector(".admin-learning-lesson-title")?.value?.trim() || "",
+      content: lesson.querySelector(".admin-learning-lesson-content")?.value?.trim() || "",
+      videoUrl: lesson.querySelector(".admin-learning-lesson-video")?.value?.trim() || "",
+      resourceUrl: lesson.querySelector(".admin-learning-lesson-resource")?.value?.trim() || "",
+      durationMinutes: Number(lesson.querySelector(".admin-learning-lesson-duration")?.value || 0),
+      order: lessonIndex
+    }))
+  }));
+}
+
+function toggleAdminLearningPrice(){
+  const paid = document.getElementById("learningCourseAccess")?.value === "paid";
+  document.querySelectorAll(".admin-learning-price").forEach(field => field.classList.toggle("hidden", !paid));
 }
 
 function syncAdminLearningTeachers(){
@@ -4054,6 +4142,10 @@ function syncAdminLearningTeachers(){
 async function submitAdminLearningCourse(event){
   event.preventDefault();
   const button = event.submitter;
+  const curriculum = collectAdminLearningCurriculum();
+  if(!curriculum.length || curriculum.some(module => !module.title || !module.lessons.length || module.lessons.some(lesson => !lesson.title))){
+    return adminToast("Every module and Lesson needs a title.");
+  }
   if(button) button.disabled = true;
   try{
     const data = await adminJSON("/api/classes/admin/learning", "POST", {
@@ -4065,10 +4157,15 @@ async function submitAdminLearningCourse(event){
       language: document.getElementById("learningCourseLanguage")?.value,
       estimatedDurationMinutes: Number(document.getElementById("learningCourseDuration")?.value || 0),
       maximumStudents: Number(document.getElementById("learningCourseCapacity")?.value || 0),
+      coverImage: document.getElementById("learningCourseCover")?.value,
       description: document.getElementById("learningCourseDescription")?.value,
       learningOutcomes: (document.getElementById("learningCourseOutcomes")?.value || "").split("\n").map(value => value.trim()).filter(Boolean),
+      pricingAccessType: document.getElementById("learningCourseAccess")?.value,
+      price: Number(document.getElementById("learningCoursePrice")?.value || 0),
+      currency: document.getElementById("learningCourseCurrency")?.value,
       certificatesEnabled: document.getElementById("learningCourseCertificate")?.checked,
-      autoApprove: document.getElementById("learningCourseAutoApprove")?.checked
+      autoApprove: document.getElementById("learningCourseAutoApprove")?.checked,
+      curriculum
     });
     closeAdminFormModal();
     adminToast(data?.message || "Course published.");
@@ -7308,6 +7405,7 @@ window.refreshAdminLearning = refreshAdminLearning;
 window.renderAdminLearning = renderAdminLearning;
 window.setAdminLearningView = setAdminLearningView;
 window.openLearningRequestReview = openLearningRequestReview;
+window.adminOpenLearningPreview = adminOpenLearningPreview;
 window.approveLearningRequest = approveLearningRequest;
 window.openRejectLearningRequest = openRejectLearningRequest;
 window.submitLearningRejection = submitLearningRejection;
@@ -7316,6 +7414,10 @@ window.confirmArchiveLearningCourse = confirmArchiveLearningCourse;
 window.openAdminCoursePublisher = openAdminCoursePublisher;
 window.syncAdminLearningTeachers = syncAdminLearningTeachers;
 window.submitAdminLearningCourse = submitAdminLearningCourse;
+window.addAdminLearningModule = addAdminLearningModule;
+window.addAdminLearningLesson = addAdminLearningLesson;
+window.removeAdminLearningItem = removeAdminLearningItem;
+window.toggleAdminLearningPrice = toggleAdminLearningPrice;
 
 window.openModerationReview = openModerationReview;
 window.togglePostHidden = togglePostHidden;
