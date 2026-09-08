@@ -80,21 +80,16 @@
     const shouldHide=Boolean(hidden);
     document.body.classList.toggle("aift-employer-dashboard-active",shouldHide);
     document.querySelector(".aift-mobile-nav")?.classList.toggle("aift-mobile-nav--dashboard-hidden",shouldHide);
+    document.body.style.setProperty("padding-bottom",shouldHide?"0px":"");
+    if(parent!==window)parent.postMessage({type:"aift:dashboard-chrome",hidden:shouldHide},location.origin);
   }
 
   function setLearningNavigation(active){
     const nav=document.querySelector(".aift-mobile-nav");
-    if(!nav)return;
-    nav.innerHTML=canonicalNavigationMarkup();
-    if(active){
-      nav.querySelectorAll("a,button").forEach(item=>item.classList.remove("active"));
-      const learning=nav.lastElementChild;
-      learning.className="aift-mobile-nav__learning active";
-      learning.removeAttribute("onclick");
-      learning.setAttribute("aria-label","Learning");
-      learning.setAttribute("aria-current","page");
-      learning.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m2 9 10-5 10 5-10 5Z"></path><path d="M6 11v5c3 2 9 2 12 0v-5"></path><path d="M22 9v6"></path></svg><span>Learning</span>`;
-    }else updateActiveMobileNav();
+    document.body.classList.toggle("aift-learning-page-active",Boolean(active));
+    if(nav)nav.style.setProperty("display",active?"none":"");
+    document.body.style.setProperty("padding-bottom",active?"0px":"");
+    if(parent!==window)parent.postMessage({type:"aift:learning-chrome",active:Boolean(active)},location.origin);
   }
 
   function matchDeviceBottomSurface(){
