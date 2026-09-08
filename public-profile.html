@@ -1431,6 +1431,9 @@ body.cv-viewer-open{
 
   <div class="profile-more-menu" id="profileMoreMenu">
     <button type="button" id="shareBtn">Share Profile</button>
+    <button type="button" id="mobileSavedBtn" class="hidden" onclick="location.href='saved.html'">Saved</button>
+    <button type="button" id="mobileLearningBtn" class="hidden" onclick="location.href='groups.html'">Learning</button>
+    <button type="button" id="mobileAiftFamilyBtn" class="hidden" onclick="location.href='family.html'">AIFT for Family</button>
     <button type="button" id="mobileCvBtn" class="hidden">View CV</button>
     <button type="button" id="dashboardBtn" class="hidden">Dashboard</button>
     <button type="button" id="completedTasksBtn" class="hidden">Completed Tasks</button>
@@ -1666,7 +1669,9 @@ const profileId = params.get("id");
 
 const state = {
   profile:null,
-  viewer:null
+  viewer:null,
+  viewerFamilyEnrolled:false,
+  viewerFamilyStatusReady:false
 };
 
 function getToken(){
@@ -1676,6 +1681,8 @@ function getToken(){
     localStorage.getItem("adminToken") ||
     localStorage.getItem("agentToken") ||
     localStorage.getItem("schoolToken") ||
+    localStorage.getItem("teacherToken") ||
+    localStorage.getItem("studentToken") ||
     localStorage.getItem("token") ||
     ""
   );
@@ -1821,6 +1828,34 @@ async function loadViewer(){
   }catch(err){
     console.warn("Viewer unavailable:",err.message);
   }
+}
+
+async function loadViewerFamilyStatus(){
+  state.viewerFamilyStatusReady = false;
+  state.viewerFamilyEnrolled = false;
+
+  if(!getToken()) return;
+
+  try{
+    const data = await fetchJSON("/api/family/profile", { headers:authHeaders() });
+    state.viewerFamilyEnrolled = data?.familyProfile?.onboardingCompleted === true;
+  }catch(err){
+    console.warn("AIFT Family status unavailable:",err.message);
+  }finally{
+    state.viewerFamilyStatusReady = true;
+  }
+}
+
+function dashboardDestination(role){
+  const normalized = String(role || "").toLowerCase();
+  if(normalized === "teacher") return "teacher.html";
+  if(normalized === "student") return "student.html?section=overview";
+  if(normalized === "talent") return "talent.html";
+  if(normalized === "agent") return "agent.html";
+  if(normalized === "employer") return "employer.html";
+  if(normalized === "school") return "school.html";
+  if(normalized === "family") return "family.html";
+  return "profile.html";
 }
 
 async function loadProfile(){
@@ -2126,6 +2161,9 @@ function setupOwnerControls(user){
   const mobileMessageBtn = document.getElementById("mobileMessageBtn");
 
   const mobileCvBtn = document.getElementById("mobileCvBtn");
+  const mobileSavedBtn = document.getElementById("mobileSavedBtn");
+  const mobileLearningBtn = document.getElementById("mobileLearningBtn");
+  const mobileAiftFamilyBtn = document.getElementById("mobileAiftFamilyBtn");
   const dashboardBtn = document.getElementById("dashboardBtn");
   const completedTasksBtn = document.getElementById("completedTasksBtn");
 
@@ -2135,6 +2173,14 @@ function setupOwnerControls(user){
   mobileCvBtn?.classList.add("hidden");
   dashboardBtn?.classList.add("hidden");
   completedTasksBtn?.classList.add("hidden");
+
+  const signedIn = Boolean(getToken() && state.viewer);
+  mobileSavedBtn?.classList.toggle("hidden", !signedIn);
+  mobileLearningBtn?.classList.toggle("hidden", !signedIn);
+  mobileAiftFamilyBtn?.classList.toggle(
+    "hidden",
+    !signedIn || !state.viewerFamilyStatusReady || !state.viewerFamilyEnrolled
+  );
 
   if(isOwner){
     editBtn?.classList.remove("hidden");
@@ -2156,7 +2202,7 @@ function setupOwnerControls(user){
 
     if(dashboardBtn){
       dashboardBtn.onclick = () => {
-        location.href = "profile.html";
+        location.href = dashboardDestination(state.viewer?.role || user.role);
       };
     }
 
@@ -2537,6 +2583,7 @@ function mountFeed(){
 
 async function init(){
   await loadViewer();
+  await loadViewerFamilyStatus();
   await loadProfile();
 }
 
