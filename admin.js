@@ -88,8 +88,8 @@ const ADMIN_SECTIONS = {
     loader: "loadAdminSchools"
   },
   learning: {
-    title: "AIFT Learning",
-    subtitle: "Publish courses, review teacher submissions, and manage Learning educators.",
+    title: "Learning Management",
+    subtitle: "All course requests, published courses, teachers, and creation tools in one place.",
     loader: "loadAdminLearning"
   },
   content: {
@@ -3810,11 +3810,42 @@ async function loadAdminLearning(){
   section.innerHTML = `
     <div class="learning-admin-hero">
       <div>
-        <span class="admin-mini-badge">Learning Operations</span>
-        <h2>Build the AIFT course catalogue</h2>
-        <p>Publish official courses, review teacher proposals, and keep educators ready for learners.</p>
+        <span class="admin-mini-badge">Dedicated Admin Workspace</span>
+        <h2>Learning Management</h2>
+        <p>Review teacher submissions, manage the course catalogue, verify educators, and create complete courses from one section.</p>
       </div>
       <button type="button" class="admin-btn learning-primary" onclick="openAdminCoursePublisher()">Publish a course</button>
+    </div>
+
+    <div class="learning-management-hub" aria-label="Learning management tools">
+      <button type="button" data-learning-shortcut="requests" onclick="openAdminLearningWorkspace('requests')">
+        <span class="learning-management-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v5h5M10 13h5M10 17h5"></path></svg>
+        </span>
+        <span><strong>Course requests</strong><small>Review teacher submissions and PDFs</small></span>
+        <em id="learningShortcutRequestCount">0</em>
+      </button>
+      <button type="button" data-learning-shortcut="courses" onclick="openAdminLearningWorkspace('courses')">
+        <span class="learning-management-icon courses">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"></path><path d="M4 5.5v16M8 7h8M8 11h7"></path></svg>
+        </span>
+        <span><strong>Course catalogue</strong><small>Preview, publish, edit, or archive courses</small></span>
+        <em id="learningShortcutCourseCount">0</em>
+      </button>
+      <button type="button" data-learning-shortcut="teachers" onclick="openAdminLearningWorkspace('teachers')">
+        <span class="learning-management-icon teachers">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M3.5 20v-2a5.5 5.5 0 0 1 11 0v2M15 5.5a3 3 0 0 1 0 5.8M17 14a5 5 0 0 1 3.5 4.8V20"></path></svg>
+        </span>
+        <span><strong>Teachers</strong><small>Verify educators and manage their accounts</small></span>
+        <em id="learningShortcutTeacherCount">0</em>
+      </button>
+      <button type="button" class="create" onclick="openAdminLearningWorkspace('create')">
+        <span class="learning-management-icon create">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+        </span>
+        <span><strong>Create a course</strong><small>Add modules, lessons, videos, and resources</small></span>
+        <em>Open</em>
+      </button>
     </div>
 
     <div class="admin-stats-grid learning-stats">
@@ -3874,8 +3905,22 @@ function setAdminLearningView(view){
   document.querySelectorAll("[data-learning-view]").forEach(button => {
     button.classList.toggle("active", button.dataset.learningView === adminState.filters.learning.view);
   });
+  document.querySelectorAll("[data-learning-shortcut]").forEach(button => {
+    button.classList.toggle("active", button.dataset.learningShortcut === adminState.filters.learning.view);
+  });
   ["requests","courses","teachers"].forEach(name => {
     document.getElementById(`learning${name[0].toUpperCase() + name.slice(1)}Panel`)?.classList.toggle("hidden", name !== adminState.filters.learning.view);
+  });
+}
+
+function openAdminLearningWorkspace(view){
+  if(view === "create"){
+    openAdminCoursePublisher();
+    return;
+  }
+  setAdminLearningView(view);
+  window.requestAnimationFrame(() => {
+    document.querySelector(".learning-admin-tabs")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 }
 
@@ -3910,6 +3955,9 @@ function renderAdminLearning(){
   adminSetText("learningPublishedCount", published);
   adminSetText("learningTeacherCount", adminState.teachers.length);
   adminSetText("learningSchoolCount", adminState.learningSchools.length);
+  adminSetText("learningShortcutRequestCount", pending);
+  adminSetText("learningShortcutCourseCount", adminState.learningCourses.length);
+  adminSetText("learningShortcutTeacherCount", adminState.teachers.length);
   renderLearningRequests();
   renderLearningCourses();
   renderLearningTeachers();
@@ -7404,6 +7452,7 @@ window.exportSchoolsReport = exportSchoolsReport;
 window.refreshAdminLearning = refreshAdminLearning;
 window.renderAdminLearning = renderAdminLearning;
 window.setAdminLearningView = setAdminLearningView;
+window.openAdminLearningWorkspace = openAdminLearningWorkspace;
 window.openLearningRequestReview = openLearningRequestReview;
 window.adminOpenLearningPreview = adminOpenLearningPreview;
 window.approveLearningRequest = approveLearningRequest;
