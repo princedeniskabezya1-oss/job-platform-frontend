@@ -1313,6 +1313,33 @@ body.aift-confirm-open{
     Share Profile
   </button>
 
+  <button
+    type="button"
+    id="mobileSavedBtn"
+    class="hidden"
+    onclick="location.href='saved.html'"
+  >
+    Saved
+  </button>
+
+  <button
+    type="button"
+    id="mobileLearningBtn"
+    class="hidden"
+    onclick="location.href='groups.html'"
+  >
+    Learning
+  </button>
+
+  <button
+    type="button"
+    id="mobileAiftFamilyBtn"
+    class="hidden"
+    onclick="location.href='family.html'"
+  >
+    AIFT for Family
+  </button>
+
 
   <button
     type="button"
@@ -1695,7 +1722,9 @@ const token =
 const state = {
   viewer:null,
   profile:null,
-  stats:null
+  stats:null,
+  viewerFamilyEnrolled:false,
+  viewerFamilyStatusReady:false
 };
 
 function authHeaders(extra = {}){
@@ -1844,6 +1873,31 @@ async function fetchViewer(){
 
   }catch(err){
     console.warn("Viewer load failed:",err.message);
+  }
+}
+
+async function loadViewerFamilyStatus(){
+  state.viewerFamilyStatusReady = false;
+  state.viewerFamilyEnrolled = false;
+
+  if(!token) return;
+
+  try{
+    const res = await fetch(API + "/api/family/profile", {
+      headers:authHeaders()
+    });
+    const data = await res.json().catch(()=>({}));
+
+    if(!res.ok){
+      throw new Error(data.message || "Family status unavailable");
+    }
+
+    state.viewerFamilyEnrolled =
+      data?.familyProfile?.onboardingCompleted === true;
+  }catch(err){
+    console.warn("AIFT Family status unavailable:",err.message);
+  }finally{
+    state.viewerFamilyStatusReady = true;
   }
 }
 
@@ -2056,6 +2110,21 @@ function setupStudentProfileActions(){
       "studentLogoutBtn"
     );
 
+  const mobileSavedBtn =
+    document.getElementById(
+      "mobileSavedBtn"
+    );
+
+  const mobileLearningBtn =
+    document.getElementById(
+      "mobileLearningBtn"
+    );
+
+  const mobileAiftFamilyBtn =
+    document.getElementById(
+      "mobileAiftFamilyBtn"
+    );
+
 
   /* =======================================================
      DESKTOP CONTROLS
@@ -2102,6 +2171,9 @@ function setupStudentProfileActions(){
     dashboardBtn,
     moreBtn,
     logoutBtn,
+    mobileSavedBtn,
+    mobileLearningBtn,
+    mobileAiftFamilyBtn,
 
     desktopEditBtn,
     desktopShareBtn,
@@ -2136,7 +2208,24 @@ function setupStudentProfileActions(){
 
 
   const isLoggedIn =
-    Boolean(token);
+    Boolean(token && state.viewer);
+
+  mobileSavedBtn?.classList.toggle(
+    "hidden",
+    !isLoggedIn
+  );
+
+  mobileLearningBtn?.classList.toggle(
+    "hidden",
+    !isLoggedIn
+  );
+
+  mobileAiftFamilyBtn?.classList.toggle(
+    "hidden",
+    !isLoggedIn ||
+      !state.viewerFamilyStatusReady ||
+      !state.viewerFamilyEnrolled
+  );
 
 
   const isOwner =
@@ -3337,6 +3426,7 @@ async function init(){
     }
 
     await fetchViewer();
+    await loadViewerFamilyStatus();
     await fetchProfile();
 
     protectStudentProfile();
