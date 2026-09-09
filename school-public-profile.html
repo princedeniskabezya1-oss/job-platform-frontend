@@ -643,7 +643,8 @@ svg{
   background:#fff;
   border:4px solid #fff;
   box-shadow:0 1px 4px rgba(0,0,0,.18);
-  overflow:hidden;
+  position:relative;
+  overflow:visible;
   flex-shrink:0;
 }
 
@@ -651,6 +652,26 @@ svg{
   width:100%;
   height:100%;
   object-fit:cover;
+  border-radius:50%;
+}
+
+.school-logo .verified-badge{
+  position:absolute;
+  right:4px;
+  bottom:4px;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  background:var(--primary);
+  color:#fff;
+  display:grid;
+  place-items:center;
+  border:3px solid #fff;
+  box-shadow:0 1px 4px rgba(15,23,42,.25);
+  font-size:15px;
+  line-height:1;
+  font-weight:900;
+  z-index:2;
 }
 
 .school-info{
@@ -1301,13 +1322,14 @@ svg{
   border:4px solid #fff!important;
   background:#fff!important;
   box-shadow:0 1px 4px rgba(0,0,0,.18)!important;
-  overflow:hidden!important;
+  overflow:visible!important;
 }
 
 .school-logo img{
   width:100%!important;
   height:100%!important;
   object-fit:cover!important;
+  border-radius:50%!important;
 }
 
 .school-info{
@@ -2899,6 +2921,12 @@ and
         src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
         alt="School logo"
       >
+      <span
+        id="verifiedBadge"
+        class="verified-badge hidden"
+        aria-label="AIFT verified profile"
+        title="AIFT verified"
+      >✓</span>
     </div>
 
     <div class="school-info">
@@ -2955,14 +2983,7 @@ and
           Share Profile
         </button>
 
-        <button
-          type="button"
-          onclick="toggleSchoolStats(event)"
-        >
-          Statistics
-        </button>
-
-        <button
+         <button
           id="mobileSavedBtn"
           class="hidden"
           type="button"
@@ -5696,6 +5717,9 @@ function populateHero(){
   const logoElement =
     document.getElementById("schoolLogo");
 
+  const verifiedElement =
+    document.getElementById("verifiedBadge");
+
   const lineElement =
     document.getElementById("schoolLine");
 
@@ -5714,6 +5738,13 @@ function populateHero(){
   if(aboutElement){
     aboutElement.textContent =
       bio || "No school description added yet.";
+  }
+
+  if(verifiedElement){
+    verifiedElement.classList.toggle(
+      "hidden",
+      school.aiftVerified !== true
+    );
   }
 
   if(logoElement){
