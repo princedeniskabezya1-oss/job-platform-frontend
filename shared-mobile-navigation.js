@@ -86,15 +86,12 @@
   }
 
   function setLearningNavigation(active){
-    if(active)installCanonicalNavigation();
+    const shouldHide=Boolean(active);
     const nav=document.querySelector(".aift-mobile-nav");
-    document.body.classList.remove("aift-learning-page-active");
-    if(nav){
-      nav.style.removeProperty("display");
-      nav.classList.remove("aift-mobile-nav--dashboard-hidden");
-    }
-    document.body.style.removeProperty("padding-bottom");
-    if(parent!==window)parent.postMessage({type:"aift:learning-chrome",active:Boolean(active)},location.origin);
+    document.body.classList.toggle("aift-learning-page-active",shouldHide);
+    nav?.classList.toggle("aift-mobile-nav--dashboard-hidden",shouldHide);
+    document.body.style.setProperty("padding-bottom",shouldHide?"0px":"");
+    if(parent!==window)parent.postMessage({type:"aift:learning-chrome",active:shouldHide},location.origin);
   }
 
   function matchDeviceBottomSurface(){
@@ -122,6 +119,37 @@
   function isShellSection(url){
     const file=url.pathname.split("/").pop()||"home.html";
     return new Set(["home.html","network.html","jobs.html","notifications.html"]).has(file);
+  }
+
+  function frameNeedsCleanChrome(frame){
+    try{
+      const file=frame.contentWindow.location.pathname.split("/").pop()||"";
+      const publicProfiles=new Set([
+        "public-profile.html",
+        "agent-public-profile.html",
+        "student-public-profile.html",
+        "school-public-profile.html",
+        "employer-public-profile.html"
+      ]);
+      const dashboards=new Set([
+        "student.html",
+        "teacher.html",
+        "school.html",
+        "employer.html",
+        "talent.html",
+        "agent.html",
+        "admin.html",
+        "learning-dashboard.html"
+      ]);
+      return publicProfiles.has(file)||dashboards.has(file);
+    }catch(error){
+      return false;
+    }
+  }
+
+  function syncFrameNavigation(frame){
+    if(!frame?.isConnected)return;
+    setDashboardNavigationHidden(frameNeedsCleanChrome(frame));
   }
 
   function shellSectionUrl(){
@@ -226,7 +254,10 @@
     wait.hidden=false;
     const target=new URL(url.href);
     target.searchParams.set("aiftSection","1");
-    frame.addEventListener("load",()=>requestAnimationFrame(()=>activateSectionFrame(frame)),{once:true});
+    frame.addEventListener("load",()=>requestAnimationFrame(()=>{
+      activateSectionFrame(frame);
+      syncFrameNavigation(frame);
+    }));
     frame.src=target.href;
     clearTimeout(frame.__aiftReadyTimer);
     frame.__aiftReadyTimer=setTimeout(()=>activateSectionFrame(frame),12000);
