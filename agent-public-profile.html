@@ -1406,6 +1406,9 @@ body.cv-viewer-open{
 
 <div class="profile-more-menu" id="profileMoreMenu">
   <button type="button" id="shareAgentBtn">Share Profile</button>
+  <button type="button" id="mobileSavedBtn" class="hidden" onclick="location.href='saved.html'">Saved</button>
+  <button type="button" id="mobileLearningBtn" class="hidden" onclick="location.href='groups.html'">Learning</button>
+  <button type="button" id="mobileAiftFamilyBtn" class="hidden" onclick="location.href='family.html'">AIFT for Family</button>
   <button type="button" id="mobileCvBtn" class="hidden">View CV</button>
   <button type="button" id="dashboardBtn" class="hidden">Dashboard</button>
   <button type="button" onclick="activateTab('performance')">Completed Tasks</button>
@@ -1762,7 +1765,9 @@ const token =
 const state = {
   viewer:null,
   profile:null,
-  stats:null
+  stats:null,
+  viewerFamilyEnrolled:false,
+  viewerFamilyStatusReady:false
 };
 
 function authHeaders(extra = {}){
@@ -1904,6 +1909,31 @@ async function fetchViewer(){
 
   }catch(err){
     console.warn("Viewer load failed:",err.message);
+  }
+}
+
+async function loadViewerFamilyStatus(){
+  state.viewerFamilyStatusReady = false;
+  state.viewerFamilyEnrolled = false;
+
+  if(!token) return;
+
+  try{
+    const res = await fetch(API + "/api/family/profile", {
+      headers:authHeaders()
+    });
+    const data = await res.json().catch(()=>({}));
+
+    if(!res.ok){
+      throw new Error(data.message || "Family status unavailable");
+    }
+
+    state.viewerFamilyEnrolled =
+      data?.familyProfile?.onboardingCompleted === true;
+  }catch(err){
+    console.warn("AIFT Family status unavailable:",err.message);
+  }finally{
+    state.viewerFamilyStatusReady = true;
   }
 }
 
@@ -2267,6 +2297,9 @@ function setupOwnerControls(user,viewer){
   const editBtn = document.getElementById("editProfileBtn");
   const dashboardBtn = document.getElementById("dashboardBtn");
   const moreBtn = document.getElementById("profileMoreBtn");
+  const mobileSavedBtn = document.getElementById("mobileSavedBtn");
+  const mobileLearningBtn = document.getElementById("mobileLearningBtn");
+  const mobileAiftFamilyBtn = document.getElementById("mobileAiftFamilyBtn");
 
   const desktopEditBtn = document.getElementById("desktopEditBtn");
   const desktopShareBtn = document.getElementById("desktopShareBtn");
@@ -2280,6 +2313,9 @@ function setupOwnerControls(user,viewer){
     editBtn,
     dashboardBtn,
     moreBtn,
+    mobileSavedBtn,
+    mobileLearningBtn,
+    mobileAiftFamilyBtn,
     desktopEditBtn,
     desktopShareBtn,
     desktopDashboardBtn,
@@ -2289,6 +2325,17 @@ function setupOwnerControls(user,viewer){
 
   const viewerId = viewer?._id || viewer?.id || localStorage.getItem("userId");
   const profileUserId = user?._id || user?.id;
+
+  const signedIn = Boolean(token && viewer?._id);
+
+  mobileSavedBtn?.classList.toggle("hidden", !signedIn);
+  mobileLearningBtn?.classList.toggle("hidden", !signedIn);
+  mobileAiftFamilyBtn?.classList.toggle(
+    "hidden",
+    !signedIn ||
+      !state.viewerFamilyStatusReady ||
+      !state.viewerFamilyEnrolled
+  );
 
   const isOwner =
     viewerId &&
@@ -2805,6 +2852,7 @@ async function init(){
     }
 
     await fetchViewer();
+    await loadViewerFamilyStatus();
     await fetchProfile();
 
     protectAgentProfile();
