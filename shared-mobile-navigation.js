@@ -66,11 +66,12 @@
   }
 
   function installCanonicalNavigation(){
-    const candidates=Array.from(document.querySelectorAll(".aift-mobile-nav,.mobile-nav,.jobs-bottom-bar,.shared-mobile-nav"));
+    const candidates=Array.from(document.querySelectorAll(".aift-mobile-nav,.mobile-nav,.jobs-bottom-bar,.shared-mobile-nav,.learning-mobile-nav,.learning-bottom-nav,.learning-app-nav"));
     const file=location.pathname.split("/").pop()||"home.html";
     if(!candidates.length&&!new Set(["home.html","network.html","jobs.html","notifications.html","mobile-shell.html"]).has(file))return;
-    const nav=candidates[0]||document.body.appendChild(document.createElement("nav"));
-    candidates.slice(1).forEach(item=>item.remove());
+    const nav=document.querySelector(".aift-mobile-nav")||candidates[0]||document.body.appendChild(document.createElement("nav"));
+    candidates.filter(item=>item!==nav).forEach(item=>item.remove());
+    document.querySelectorAll(".learning-mobile-nav-spacer,.learning-bottom-nav-spacer,.learning-nav-spacer").forEach(item=>item.remove());
     nav.className="aift-mobile-nav";
     nav.setAttribute("aria-label","Primary mobile navigation");
     nav.innerHTML=canonicalNavigationMarkup();
@@ -85,10 +86,14 @@
   }
 
   function setLearningNavigation(active){
+    if(active)installCanonicalNavigation();
     const nav=document.querySelector(".aift-mobile-nav");
-    document.body.classList.toggle("aift-learning-page-active",Boolean(active));
-    if(nav)nav.style.setProperty("display",active?"none":"");
-    document.body.style.setProperty("padding-bottom",active?"0px":"");
+    document.body.classList.remove("aift-learning-page-active");
+    if(nav){
+      nav.style.removeProperty("display");
+      nav.classList.remove("aift-mobile-nav--dashboard-hidden");
+    }
+    document.body.style.removeProperty("padding-bottom");
     if(parent!==window)parent.postMessage({type:"aift:learning-chrome",active:Boolean(active)},location.origin);
   }
 
