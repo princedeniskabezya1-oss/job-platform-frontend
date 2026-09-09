@@ -191,7 +191,7 @@ function readableRole(role){
 }
 
 function isVerified(item){
-  return item?.aiftVerified === true || item?.isVerified === true || item?.verified === true;
+  return item?.aiftVerified === true;
 }
 
 function getDisplayName(item){
@@ -1757,15 +1757,11 @@ async function toggleAdminUserVerified(userId){
         `/api/users/${encodeURIComponent(userId)}/verify`
       ],
       {
-        aiftVerified: next,
-        isVerified: next,
-        verified: next
+        aiftVerified: next
       }
     );
 
     user.aiftVerified = next;
-    user.isVerified = next;
-    user.verified = next;
 
     addAuditLog(next ? "Verified user" : "Unverified user", user.email || userId);
     adminToast(next ? "User verified." : "User unverified.");
@@ -2328,15 +2324,11 @@ async function toggleVerificationStatus(userId){
         `/api/admin/verification/${encodeURIComponent(userId)}`
       ],
       {
-        aiftVerified: next,
-        isVerified: next,
-        verified: next
+        aiftVerified: next
       }
     );
 
     user.aiftVerified = next;
-    user.isVerified = next;
-    user.verified = next;
 
     addAuditLog(
       next ? "Approved verification" : "Removed verification",
