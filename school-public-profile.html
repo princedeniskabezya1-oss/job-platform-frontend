@@ -2963,6 +2963,33 @@ and
         </button>
 
         <button
+          id="mobileSavedBtn"
+          class="hidden"
+          type="button"
+          onclick="location.href='saved.html'"
+        >
+          Saved
+        </button>
+
+        <button
+          id="mobileLearningBtn"
+          class="hidden"
+          type="button"
+          onclick="location.href='groups.html'"
+        >
+          Learning
+        </button>
+
+        <button
+          id="mobileAiftFamilyBtn"
+          class="hidden"
+          type="button"
+          onclick="location.href='family.html'"
+        >
+          AIFT for Family
+        </button>
+
+        <button
           id="dashboardHeroBtn"
           class="hidden"
           type="button"
@@ -3833,7 +3860,9 @@ opportunities:[],
 jobs:[],
 partners:[],
   analytics:{},
-  viewer:null
+  viewer:null,
+  viewerFamilyEnrolled:false,
+  viewerFamilyStatusReady:false
 };
 
 /* =========================
@@ -5456,6 +5485,49 @@ async function fetchViewer(){
   }
 }
 
+async function loadViewerFamilyStatus(){
+
+  state.viewerFamilyStatusReady = false;
+  state.viewerFamilyEnrolled = false;
+
+  if(!token){
+    return;
+  }
+
+  try{
+
+    const res = await fetch(
+      API + "/api/family/profile",
+      {
+        headers:authHeaders()
+      }
+    );
+
+    const data = await safeJson(res);
+
+    if(!res.ok){
+      throw new Error(
+        data?.message ||
+        "Family status unavailable"
+      );
+    }
+
+    state.viewerFamilyEnrolled =
+      data?.familyProfile?.onboardingCompleted === true;
+
+  }catch(err){
+
+    console.warn(
+      "AIFT Family status unavailable:",
+      err?.message || err
+    );
+
+  }finally{
+
+    state.viewerFamilyStatusReady = true;
+  }
+}
+
 /* =========================
    ANALYTICS
 ========================= */
@@ -5932,12 +6004,31 @@ function setupOwnerButtons(){
     "mobileSchoolLogoutBtn"
   );
 
+  const mobileSavedBtn =
+    document.getElementById(
+      "mobileSavedBtn"
+    );
+
+  const mobileLearningBtn =
+    document.getElementById(
+      "mobileLearningBtn"
+    );
+
+  const mobileAiftFamilyBtn =
+    document.getElementById(
+      "mobileAiftFamilyBtn"
+    );
+
   [
     mobileEditBtn,
     mobileMessageBtn,
     mobileFollowBtn,
     mobileMoreBtn,
     mobileDashboardBtn,
+    mobileLogoutBtn,
+    mobileSavedBtn,
+    mobileLearningBtn,
+    mobileAiftFamilyBtn,
     desktopEditBtn,
     desktopShareBtn,
     desktopDashboardBtn,
@@ -5946,6 +6037,26 @@ function setupOwnerButtons(){
   ].forEach(button => {
     button?.classList.add("hidden");
   });
+
+  const signedIn =
+    Boolean(token && state.viewer);
+
+  mobileSavedBtn?.classList.toggle(
+    "hidden",
+    !signedIn
+  );
+
+  mobileLearningBtn?.classList.toggle(
+    "hidden",
+    !signedIn
+  );
+
+  mobileAiftFamilyBtn?.classList.toggle(
+    "hidden",
+    !signedIn ||
+      !state.viewerFamilyStatusReady ||
+      !state.viewerFamilyEnrolled
+  );
 
   if(isOwner){
 
@@ -7468,6 +7579,7 @@ async function initPage(){
      */
     const results = await Promise.allSettled([
       fetchViewer(),
+      loadViewerFamilyStatus(),
       fetchPosts(),
       fetchStudents(),
       fetchOpportunities(),
@@ -7481,6 +7593,7 @@ async function initPage(){
 
         const requestNames = [
           "viewer",
+          "family status",
           "posts",
           "students",
           "opportunities",
