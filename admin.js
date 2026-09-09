@@ -25,6 +25,7 @@ const adminState = {
   classes: [],
   learningCourses: [],
   learningRequests: [],
+  learningServiceRequests: [],
   learningSchools: [],
   assignments: [],
   attendance: [],
@@ -41,7 +42,7 @@ const adminState = {
     jobs: { search: "", status: "all", type: "all" },
     applications: { search: "", status: "all", type: "all" },
     schools: { search: "", status: "all", verified: "all" },
-    learning: { search: "", status: "all", view: "requests" },
+    learning: { search: "", status: "all", view: "services" },
     content: { search: "", status: "all", type: "all" },
     meetings: { search: "", status: "all", type: "all" },
     reports: { search: "", status: "open", type: "all" },
@@ -648,6 +649,15 @@ async function fetchAdminClasses(){
 
 async function fetchAdminLearning(){
   return adminRequest("/api/classes/admin/learning");
+}
+
+async function fetchAdminLearningServices(){
+  try{
+    return await adminRequest("/api/admin/work-tickets?sourceType=learning_service&sync=false&limit=500");
+  }catch(error){
+    console.warn("Learning service requests are not available yet:", error);
+    return {tickets:[]};
+  }
 }
 
 async function fetchAdminAssignments(){
@@ -3818,6 +3828,13 @@ async function loadAdminLearning(){
     </div>
 
     <div class="learning-management-hub" aria-label="Learning management tools">
+      <button type="button" data-learning-shortcut="services" onclick="openAdminLearningWorkspace('services')">
+        <span class="learning-management-icon services">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H7l-3 3z"></path><path d="M8 9h8M8 13h5"></path></svg>
+        </span>
+        <span><strong>AIFT service requests</strong><small>Recruitment, mass hiring and training</small></span>
+        <em id="learningShortcutServiceCount">0</em>
+      </button>
       <button type="button" data-learning-shortcut="requests" onclick="openAdminLearningWorkspace('requests')">
         <span class="learning-management-icon">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v5h5M10 13h5M10 17h5"></path></svg>
@@ -3849,10 +3866,10 @@ async function loadAdminLearning(){
     </div>
 
     <div class="admin-stats-grid learning-stats">
-      <article class="admin-stat-card"><span>Pending requests</span><strong id="learningPendingCount">0</strong><small>Needs Admin review</small></article>
+      <article class="admin-stat-card"><span>Service requests</span><strong id="learningServicePendingCount">0</strong><small>Waiting for AIFT</small></article>
+      <article class="admin-stat-card"><span>Course requests</span><strong id="learningPendingCount">0</strong><small>Teacher submissions</small></article>
       <article class="admin-stat-card"><span>Published courses</span><strong id="learningPublishedCount">0</strong><small>Visible in Learning</small></article>
       <article class="admin-stat-card"><span>Teachers</span><strong id="learningTeacherCount">0</strong><small>Available educator accounts</small></article>
-      <article class="admin-stat-card"><span>Schools</span><strong id="learningSchoolCount">0</strong><small>Course owners</small></article>
     </div>
 
     <div class="admin-filter-bar learning-toolbar">
@@ -3864,17 +3881,24 @@ async function loadAdminLearning(){
         <option value="rejected">Rejected</option>
         <option value="published">Published</option>
         <option value="unpublished">Unpublished</option>
+        <option value="new">New service request</option>
+        <option value="in_progress">Service in progress</option>
+        <option value="waiting">Waiting for requester</option>
+        <option value="resolved">Resolved</option>
+        <option value="dismissed">Dismissed</option>
       </select>
       <button type="button" class="admin-btn" onclick="refreshAdminLearning()">Refresh</button>
     </div>
 
     <div class="learning-admin-tabs" role="tablist">
+      <button type="button" data-learning-view="services" onclick="setAdminLearningView('services')">AIFT services</button>
       <button type="button" data-learning-view="requests" onclick="setAdminLearningView('requests')">Teacher requests</button>
       <button type="button" data-learning-view="courses" onclick="setAdminLearningView('courses')">Courses</button>
       <button type="button" data-learning-view="teachers" onclick="setAdminLearningView('teachers')">Teachers</button>
     </div>
 
-    <article class="admin-panel learning-view-panel" id="learningRequestsPanel"><div id="learningRequestsTable"></div></article>
+    <article class="admin-panel learning-view-panel" id="learningServicesPanel"><div id="learningServicesTable"></div></article>
+    <article class="admin-panel learning-view-panel hidden" id="learningRequestsPanel"><div id="learningRequestsTable"></div></article>
     <article class="admin-panel learning-view-panel hidden" id="learningCoursesPanel"><div id="learningCoursesTable"></div></article>
     <article class="admin-panel learning-view-panel hidden" id="learningTeachersPanel"><div id="learningTeachersTable"></div></article>
   `;
@@ -3884,9 +3908,13 @@ async function loadAdminLearning(){
 
 async function refreshAdminLearning(){
   try{
-    const data = await fetchAdminLearning();
+    const [data, serviceData] = await Promise.all([
+      fetchAdminLearning(),
+      fetchAdminLearningServices()
+    ]);
     adminState.learningCourses = Array.isArray(data?.courses) ? data.courses : [];
     adminState.learningRequests = Array.isArray(data?.requests) ? data.requests : [];
+    adminState.learningServiceRequests = Array.isArray(serviceData?.tickets) ? serviceData.tickets : [];
     adminState.teachers = Array.isArray(data?.teachers) ? data.teachers : [];
     adminState.learningSchools = Array.isArray(data?.schools) ? data.schools : [];
 
@@ -3901,14 +3929,14 @@ async function refreshAdminLearning(){
 }
 
 function setAdminLearningView(view){
-  adminState.filters.learning.view = ["requests","courses","teachers"].includes(view) ? view : "requests";
+  adminState.filters.learning.view = ["services","requests","courses","teachers"].includes(view) ? view : "services";
   document.querySelectorAll("[data-learning-view]").forEach(button => {
     button.classList.toggle("active", button.dataset.learningView === adminState.filters.learning.view);
   });
   document.querySelectorAll("[data-learning-shortcut]").forEach(button => {
     button.classList.toggle("active", button.dataset.learningShortcut === adminState.filters.learning.view);
   });
-  ["requests","courses","teachers"].forEach(name => {
+  ["services","requests","courses","teachers"].forEach(name => {
     document.getElementById(`learning${name[0].toUpperCase() + name.slice(1)}Panel`)?.classList.toggle("hidden", name !== adminState.filters.learning.view);
   });
 }
@@ -3933,6 +3961,14 @@ function learningSearchMatch(item, query){
     item?.description,
     item?.teacherId?.name,
     item?.teacherId?.email,
+    item?.openedBy?.name,
+    item?.openedBy?.companyName,
+    item?.openedBy?.schoolName,
+    item?.openedBy?.email,
+    item?.metadata?.serviceLabel,
+    item?.metadata?.summary,
+    item?.metadata?.audience,
+    item?.metadata?.location,
     item?.schoolId?.schoolName,
     item?.schoolId?.name,
     item?.name,
@@ -3945,23 +3981,101 @@ function learningStatusMatch(item, status){
   if(status === "all") return true;
   if(status === "published") return item?.published === true;
   if(status === "unpublished") return item?.published !== true;
-  return normalize(item?.publicationRequestStatus) === status;
+  return normalize(item?.publicationRequestStatus || item?.status) === status;
 }
 
 function renderAdminLearning(){
   const pending = adminState.learningRequests.filter(item => normalize(item.publicationRequestStatus) === "pending").length;
+  const servicePending = adminState.learningServiceRequests.filter(item => ["new","in_progress","waiting"].includes(normalize(item.status))).length;
   const published = adminState.learningCourses.filter(item => item.published === true && normalize(item.status) !== "archived").length;
+  adminSetText("learningServicePendingCount", servicePending);
   adminSetText("learningPendingCount", pending);
   adminSetText("learningPublishedCount", published);
   adminSetText("learningTeacherCount", adminState.teachers.length);
   adminSetText("learningSchoolCount", adminState.learningSchools.length);
+  adminSetText("learningShortcutServiceCount", servicePending);
   adminSetText("learningShortcutRequestCount", pending);
   adminSetText("learningShortcutCourseCount", adminState.learningCourses.length);
   adminSetText("learningShortcutTeacherCount", adminState.teachers.length);
+  renderLearningServiceRequests();
   renderLearningRequests();
   renderLearningCourses();
   renderLearningTeachers();
   setAdminLearningView(adminState.filters.learning.view);
+}
+
+
+function learningServiceStatus(value){
+  return String(value || "new").replaceAll("_", " ");
+}
+
+function renderLearningServiceRequests(){
+  const box = document.getElementById("learningServicesTable");
+  if(!box) return;
+  const query = normalize(adminState.filters.learning.search);
+  const status = adminState.filters.learning.status;
+  const requests = adminState.learningServiceRequests.filter(item =>
+    learningSearchMatch(item, query) && learningStatusMatch(item, status)
+  );
+
+  box.innerHTML = `
+    <div class="admin-panel-head"><div><h2>AIFT service requests</h2><p>Employer and school requests arrive here before AIFT confirms a plan.</p></div><span class="admin-badge blue">${requests.length}</span></div>
+    ${!requests.length ? '<div class="admin-empty"><strong>No service requests found</strong><span>Recruitment, mass hiring, and institutional training requests will appear here.</span></div>' : `
+      <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Request</th><th>Requester</th><th>Account</th><th>People</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead><tbody>
+        ${requests.map(item => {
+          const meta = item.metadata || {};
+          return `<tr><td><strong>${esc(meta.serviceLabel || item.title || "AIFT service")}</strong><span>${esc(meta.summary || item.description || "No summary")}</span></td><td>${esc(getDisplayName(item.openedBy || {}) || meta.requesterName || "AIFT member")}<span>${esc(item.openedBy?.email || meta.requesterEmail || "")}</span></td><td>${esc(readableRole(meta.requesterRole || item.openedBy?.role))}</td><td>${Number(meta.participantCount || 0) || "-"}</td><td><span class="admin-badge learning-service-${esc(normalize(item.status || "new"))}">${esc(learningServiceStatus(item.status))}</span></td><td>${esc(formatDate(item.createdAt))}</td><td><div class="admin-actions"><button type="button" onclick="openLearningServiceReview('${esc(getId(item))}')">Review</button></div></td></tr>`;
+        }).join("")}
+      </tbody></table></div>`}
+  `;
+}
+
+function openLearningServiceReview(ticketId){
+  const item = adminState.learningServiceRequests.find(row => String(getId(row)) === String(ticketId));
+  if(!item) return adminToast("Service request not found.");
+  const meta = item.metadata || {};
+  const history = Array.isArray(item.history) ? item.history : [];
+  const requester = item.openedBy || {};
+  const historyMarkup = history.length
+    ? history.slice().reverse().map(entry => `<div class="learning-service-history"><strong>${esc(learningServiceStatus(entry.status))}</strong><span>${esc(entry.note || "Status updated")}</span><small>${esc(formatDateTime(entry.at))}</small></div>`).join("")
+    : '<p>No request history yet.</p>';
+
+  openAdminReviewModal(
+    meta.serviceLabel || "AIFT service request",
+    `${getDisplayName(requester) || meta.requesterName || "AIFT member"} • ${readableRole(meta.requesterRole || requester.role)}`,
+    `<div class="admin-detail-grid">
+      <div class="admin-detail-card wide"><span>Request</span><strong>${esc(meta.summary || item.title || "-")}</strong><small class="learning-service-state">${esc(learningServiceStatus(item.status))}</small></div>
+      <div class="admin-detail-card"><span>People / participants</span><strong>${Number(meta.participantCount || 0) || "Not specified"}</strong></div>
+      <div class="admin-detail-card"><span>Target group or roles</span><strong>${esc(meta.audience || "Not specified")}</strong></div>
+      <div class="admin-detail-card"><span>Location</span><strong>${esc(meta.location || "Not specified")}</strong></div>
+      <div class="admin-detail-card"><span>Delivery</span><strong>${esc(meta.deliveryMode || "Not decided")}</strong></div>
+      <div class="admin-detail-card"><span>Preferred date</span><strong>${esc(meta.preferredDate ? formatDate(meta.preferredDate) : "Not specified")}</strong></div>
+      <div class="admin-detail-card"><span>Budget</span><strong>${esc(meta.budget || "Not specified")}</strong></div>
+      <div class="admin-detail-card wide"><span>Full details</span><strong>${esc(item.description || "-")}</strong></div>
+      <div class="admin-detail-card wide"><span>Request history</span><div class="learning-service-history-list">${historyMarkup}</div></div>
+      <label class="learning-service-feedback wide"><span>Feedback to requester</span><textarea id="learningServiceAdminFeedback" rows="4" maxlength="1600" placeholder="Explain AIFT's next step, request more information, or provide the final response.">${esc(meta.lastFeedback || "")}</textarea></label>
+    </div>`,
+    `<button type="button" class="admin-btn ghost" onclick="updateLearningServiceRequest('${esc(ticketId)}','in_progress')">Start review</button><button type="button" class="admin-btn" onclick="updateLearningServiceRequest('${esc(ticketId)}','waiting')">Request information</button><button type="button" class="admin-btn success" onclick="updateLearningServiceRequest('${esc(ticketId)}','resolved')">Send & resolve</button><button type="button" class="admin-btn danger" onclick="updateLearningServiceRequest('${esc(ticketId)}','dismissed')">Dismiss</button>`
+  );
+}
+
+async function updateLearningServiceRequest(ticketId, status){
+  const note = document.getElementById("learningServiceAdminFeedback")?.value?.trim() || "";
+  if(["waiting","resolved","dismissed"].includes(status) && !note){
+    return adminToast("Add feedback for the requester before changing this status.");
+  }
+  try{
+    await adminJSON(`/api/admin/work-tickets/${encodeURIComponent(ticketId)}`, "PATCH", {
+      status,
+      note,
+      waitingOn:status === "waiting" ? "user" : "aift"
+    });
+    closeAdminReviewModal();
+    adminToast(status === "resolved" ? "Feedback sent and request resolved." : "Request updated and requester notified.");
+    await refreshAdminLearning();
+  }catch(error){
+    adminToast(error.message || "Could not update this request.");
+  }
 }
 
 function renderLearningRequests(){
@@ -7453,6 +7567,8 @@ window.refreshAdminLearning = refreshAdminLearning;
 window.renderAdminLearning = renderAdminLearning;
 window.setAdminLearningView = setAdminLearningView;
 window.openAdminLearningWorkspace = openAdminLearningWorkspace;
+window.openLearningServiceReview = openLearningServiceReview;
+window.updateLearningServiceRequest = updateLearningServiceRequest;
 window.openLearningRequestReview = openLearningRequestReview;
 window.adminOpenLearningPreview = adminOpenLearningPreview;
 window.approveLearningRequest = approveLearningRequest;
