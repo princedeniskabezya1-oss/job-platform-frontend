@@ -2286,16 +2286,27 @@ function setupStudentProfileActions(){
 const goDashboard =
   () => {
 
-    /*
-      Explicitly request the Student Studio dashboard.
+    const viewerRole =
+      String(
+        state.viewer?.role ||
+        localStorage.getItem("role") ||
+        "student"
+      ).toLowerCase();
 
-      student.js maps "overview" to Dashboard and gives
-      the URL section priority over any previously saved
-      Student Studio page such as Settings.
-    */
+    const dashboardByRole = {
+      student:"student.html?section=overview",
+      teacher:"teacher.html",
+      talent:"talent.html",
+      agent:"agent.html",
+      employer:"employer.html",
+      school:"school.html",
+      family:"family.html",
+      admin:"admin.html"
+    };
 
     window.location.href =
-      "student.html?section=overview";
+      dashboardByRole[viewerRole] ||
+      "profile.html";
 
   };
 
@@ -2602,11 +2613,13 @@ if(isMobile){
 
 
   /*
-    Dashboard and Logout belong only to the owner.
+    Dashboard always opens the signed-in viewer's own workspace.
+    Logout remains an owner-only profile action.
   */
 
-  dashboardBtn?.classList.add(
-    "hidden"
+  dashboardBtn?.classList.toggle(
+    "hidden",
+    !isLoggedIn
   );
 
 
