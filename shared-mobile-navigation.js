@@ -139,7 +139,8 @@
         "talent.html",
         "agent.html",
         "admin.html",
-        "learning-dashboard.html"
+        "learning-dashboard.html",
+        "class-builder.html"
       ]);
       return publicProfiles.has(file)||dashboards.has(file);
     }catch(error){
