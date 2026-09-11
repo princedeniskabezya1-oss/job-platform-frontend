@@ -47366,6 +47366,25 @@ tbody tr:last-child td{
  #teacherPageAI .teacher-kabezya-composer{padding:8px 10px max(9px,env(safe-area-inset-bottom));background:#fff}
 }
 
+/* Teacher Kabezya: full-width, compact ChatGPT-style mobile workspace */
+@media(max-width:900px){
+ body:has(#teacherPageAI.active) .teacher-studio-workspace{max-width:none;margin:0;padding:0;background:#fff}
+ body:has(#teacherPageAI.active) .teacher-studio-workspace::before{display:none}
+ body:has(#teacherPageAI.active) #teacherWorkspaceSections{width:100%;margin:0;padding:0}
+ #teacherPageAI.active{width:100%;margin:0;padding:0;background:#fff}
+ #teacherPageAI .teacher-kabezya-workspace{width:100%;margin:0;padding:0}
+ #teacherPageAI .teacher-kabezya-chat-panel{width:100%;height:calc(100dvh - 130px);min-height:460px;margin:0;border:0;border-radius:0;box-shadow:none}
+ #teacherPageAI .teacher-kabezya-chat-empty{padding:28px 22px}
+ #teacherPageAI .teacher-kabezya-chat-empty h2{font-size:29px;line-height:1.15}
+ #teacherPageAI .teacher-kabezya-chat-empty p{max-width:310px;margin-inline:auto;font-size:15px;line-height:1.45}
+ #teacherPageAI .teacher-kabezya-composer{padding:6px 10px max(7px,env(safe-area-inset-bottom));border:0}
+ #teacherPageAI .teacher-kabezya-composer-form{grid-template-columns:minmax(0,1fr) 40px;gap:0;min-height:48px;padding:3px 4px 3px 13px;border-radius:25px}
+ #teacherPageAI .teacher-kabezya-composer-form textarea{min-height:40px;max-height:120px;padding:9px 7px 8px 0;border:0!important;box-shadow:none!important;font-size:16px;line-height:1.4}
+ #teacherPageAI .teacher-kabezya-send{width:38px;height:38px;min-width:38px;min-height:38px;margin:2px 0;border:0!important;border-left:0!important;border-radius:50%;box-shadow:none!important}
+ #teacherPageAI .teacher-kabezya-send::before,#teacherPageAI .teacher-kabezya-send::after{display:none!important}
+ #teacherPageAI .teacher-kabezya-composer-note{margin-top:5px;font-size:10px;line-height:1.35}
+}
+
 </style>
 
 </head>
@@ -51524,7 +51543,7 @@ tbody tr:last-child td{
         class="teacher-kabezya-mobile-control-icon"
       >
         <i
-          class="fa-regular fa-clock"
+          class="fa-solid fa-clock-rotate-left"
           aria-hidden="true"
         ></i>
       </span>
@@ -52026,7 +52045,7 @@ tbody tr:last-child td{
        TEACHER STUDIO MAIN JAVASCRIPT
   ====================================================== -->
 
-  <script src="teacher.js?v=teacher-ai-runtime-3"></script>
+  <script src="teacher.js?v=teacher-ai-runtime-4"></script>
 <script>
 function getTeacherStudentRecordById(studentId){return getTeacherStudentById(studentId)}
 function getTeacherAssignmentById(assignmentId){
@@ -52034,6 +52053,59 @@ function getTeacherAssignmentById(assignmentId){
  return getTeacherAssignments().find(item=>sameId(item?._id||item?.id,id))||null
 }
 function getTeacherAssignmentSubmissionCount(assignmentId){return getTeacherAssignmentSubmissions(assignmentId).length}
+
+/* Keep the existing AI engine while making its controls context-aware. */
+const renderTeacherKabezyaComposerBase=renderTeacherKabezyaComposer;
+renderTeacherKabezyaComposer=function(){
+ renderTeacherKabezyaComposerBase();
+ const input=document.getElementById("teacherKabezyaPrompt");
+ if(input){input.placeholder="Message Kabezya";input.rows=1}
+ const note=document.querySelector("#teacherKabezyaComposer .teacher-kabezya-composer-note");
+ if(note)note.textContent="Kabezya can make mistakes. Check important information."
+};
+
+const getTeacherKabezyaQuickPromptsBase=getTeacherKabezyaQuickPrompts;
+getTeacherKabezyaQuickPrompts=function(){
+ const classRecord=getTeacherClassById(teacherKabezyaWorkspaceState.classId);
+ const studentRecord=getTeacherStudentById(teacherKabezyaWorkspaceState.studentId);
+ const className=safeString(classRecord?.title||classRecord?.name).trim();
+ const studentName=safeString(studentRecord?.name||studentRecord?.fullName||studentRecord?.userId?.name).trim();
+ if(teacherKabezyaWorkspaceState.mode===TEACHER_KABEZYA_MODES.CLASS_ANALYSIS&&className){
+  return [`Summarize ${className} performance.`,`What needs attention in ${className}?`,`Plan the next lesson for ${className}.`]
+ }
+ if(teacherKabezyaWorkspaceState.mode===TEACHER_KABEZYA_MODES.STUDENT_ANALYSIS&&studentName){
+  return [`Summarize ${studentName}'s progress${className?` in ${className}`:""}.`,`Where does ${studentName} need support?`,`Suggest next steps for ${studentName}.`]
+ }
+ if(teacherKabezyaWorkspaceState.mode===TEACHER_KABEZYA_MODES.SUBMISSION_REVIEW&&studentName){
+  return [`Review ${studentName}'s submitted work.`,`Check this work for copied web wording.`,`Draft constructive feedback for ${studentName}.`]
+ }
+ return getTeacherKabezyaQuickPromptsBase();
+};
+
+function refreshTeacherKabezyaSelectedContext(mode){
+ if(!mode)return;
+ teacherKabezyaWorkspaceState.mode=mode;
+ state.kabezya=state.kabezya&&typeof state.kabezya==="object"?state.kabezya:{};
+ state.kabezya.mode=mode;
+ renderKabezyaTeacherHeader();
+ renderTeacherKabezyaTools();
+ renderTeacherKabezyaQuickPrompts();
+ renderTeacherKabezyaComposer();
+ const title=document.querySelector(".teacher-kabezya-mobile-title");
+ const config=getTeacherKabezyaModeConfig();
+ if(title&&config)title.textContent=config.title;
+}
+
+document.addEventListener("change",event=>{
+ const id=event.target?.id;
+ if(id==="teacherKabezyaClassSelect"&&event.target.value){
+  refreshTeacherKabezyaSelectedContext(TEACHER_KABEZYA_MODES.CLASS_ANALYSIS);
+ }else if(id==="teacherKabezyaStudentSelect"&&event.target.value){
+  refreshTeacherKabezyaSelectedContext(TEACHER_KABEZYA_MODES.STUDENT_ANALYSIS);
+ }else if(id==="teacherKabezyaSubmissionSelect"&&event.target.value){
+  refreshTeacherKabezyaSelectedContext(TEACHER_KABEZYA_MODES.SUBMISSION_REVIEW);
+ }
+});
 </script>
 
 
