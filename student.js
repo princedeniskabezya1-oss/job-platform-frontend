@@ -21420,37 +21420,19 @@ function renderStudentAIConversation(){
                 : ""
             }
 
-<div class="student-ai-message-bubble">
-
-  ${
-    message.pending
-      ? `
-        <div class="kabezya-thinking-message">
-
-          <span>
-            ${
-              escapeHtml(
-                message.content ||
-                "Kabezya is thinking"
-              )
-            }
-          </span>
-
-          <span class="kabezya-thinking-dots">
-            <i></i>
-            <i></i>
-            <i></i>
-          </span>
-
-        </div>
-      `
-      : escapeHtml(
+<div class="student-ai-message-bubble">${
+  message.pending
+    ? `<div class="kabezya-thinking-message"><span>${
+        escapeHtml(
           message.content ||
-          ""
+          "Kabezya is thinking"
         )
-  }
-
-</div>
+      }</span><span class="kabezya-thinking-dots"><i></i><i></i><i></i></span></div>`
+    : escapeHtml(
+        message.content ||
+        ""
+      )
+}</div>
 
           </article>
         `;
