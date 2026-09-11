@@ -2805,26 +2805,132 @@ async function loadStudentClassProgress({
                   )
                 : "";
 
-            const response =
-              await apiGet(
+            /*
+              The class player is the source of truth for saved
+              Lesson completion. Load it with the broader summary
+              so both screens always show the same Lesson totals.
+            */
+
+            const [
+              summaryResponse,
+              learningResponse
+            ] = await Promise.all([
+              apiGet(
                 `/api/classes/${
                   encodeURIComponent(
                     classId
                   )
                 }/student-progress${query}`,
                 null
+              ),
+
+              selectedStudentId
+                ? Promise.resolve(null)
+                : apiGet(
+                    `/api/classes/${
+                      encodeURIComponent(
+                        classId
+                      )
+                    }/learning`,
+                    null
+                  )
+            ]);
+
+            const data =
+              summaryResponse?.progress
+                ? {
+                    ...summaryResponse
+                  }
+                : createEmptyStudentClassProgress(
+                    classId
+                  );
+
+            const learningLessons =
+              asArray(
+                learningResponse?.lessons
+              );
+
+            const learningProgress =
+              asArray(
+                learningResponse
+                  ?.lessonProgress
               );
 
             if (
-              !response ||
-              !response.progress
+              learningResponse &&
+              learningLessons.length
             ){
-              return {
-                classId,
-                data:
-                  createEmptyStudentClassProgress(
-                    classId
-                  )
+              const latestByLessonId =
+                new Map();
+
+              learningProgress.forEach(
+                item => {
+                  const lessonId =
+                    normalizeId(
+                      item?.lessonId?._id ||
+                      item?.lessonId
+                    );
+
+                  if (
+                    lessonId &&
+                    !latestByLessonId.has(
+                      lessonId
+                    )
+                  ){
+                    latestByLessonId.set(
+                      lessonId,
+                      item
+                    );
+                  }
+                }
+              );
+
+              const completed =
+                learningLessons.filter(
+                  lesson => {
+                    const record =
+                      latestByLessonId.get(
+                        normalizeId(
+                          lesson?._id ||
+                          lesson?.id
+                        )
+                      );
+
+                    return (
+                      record?.status ===
+                        "completed" ||
+                      Number(
+                        record
+                          ?.progressPercent ||
+                        0
+                      ) >= 100 ||
+                      record?.completed ===
+                        true
+                    );
+                  }
+                ).length;
+
+              const percentage =
+                Math.round(
+                  (
+                    completed /
+                    learningLessons.length
+                  ) *
+                  100
+                );
+
+              data.progress = {
+                ...createEmptyStudentClassProgress(
+                  classId
+                ).progress,
+                ...data.progress,
+
+                lessons:{
+                  total:
+                    learningLessons.length,
+                  completed,
+                  percentage
+                }
               };
             }
 
@@ -2832,8 +2938,11 @@ async function loadStudentClassProgress({
               classId,
 
               data:{
-                ...response,
-                available:true
+                ...data,
+                available:Boolean(
+                  summaryResponse?.progress ||
+                  learningResponse
+                )
               }
             };
           }
