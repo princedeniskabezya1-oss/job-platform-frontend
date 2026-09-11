@@ -3348,19 +3348,27 @@ async function loadAll(){
 ========================================================= */
 
 function getContinueLearningProgress(item){
-  return Math.max(
-    0,
-    Math.min(
-      100,
-      Number(
-        item?.progress ??
-        item?.completion ??
-        item?.completionPercentage ??
-        state.metrics?.completion ??
-        0
-      ) || 0
-    )
+  return getStudentClassProgress(
+    item
   );
+}
+
+function getContinueLearningClasses(){
+  return getStudentClasses()
+    .filter(item => {
+      return (
+        getStudentClassStatus(item) ===
+          "active" &&
+        getStudentClassProgress(item) <
+          100
+      );
+    })
+    .sort((first,second) => {
+      return (
+        getStudentClassUpdatedTime(second) -
+        getStudentClassUpdatedTime(first)
+      );
+    });
 }
 
 function getContinueLearningPendingAssignments(){
@@ -3401,74 +3409,14 @@ function getContinueLearningClassCover(item){
 
 function renderContinueLearningWorkspace(){
   const classes =
-    getStudentClasses();
-
-  const preferredClass =
-    getPreferredStudentClass();
-
-  const assignments =
-    getContinueLearningPendingAssignments();
-
-  const completion =
-    Math.max(
-      0,
-      Math.min(
-        100,
-        Number(
-          state.metrics?.completion
-        ) || 0
-      )
-    );
-
-  const streak =
-    Number(
-      state.me?.learningStreak ||
-      state.me?.streak ||
-      0
-    );
+    getContinueLearningClasses();
 
   setText(
     "continueActiveClassCount",
     classes.length
   );
 
-  setText(
-    "continueOverallCompletion",
-    `${completion}%`
-  );
-
-  setText(
-    "continuePendingAssignments",
-    assignments.length
-  );
-
-  setText(
-    "continueLearningStreak",
-    `${streak} ${
-      streak === 1
-        ? "day"
-        : "days"
-    }`
-  );
-
-  renderContinueLearningHero(
-    preferredClass
-  );
-
-  renderContinueLearningNextSteps(
-    preferredClass,
-    assignments
-  );
-
   renderContinueLearningClasses(
-    classes
-  );
-
-  renderContinueLearningAssignments(
-    assignments
-  );
-
-  renderContinueLearningRecent(
     classes
   );
 }
@@ -3847,11 +3795,11 @@ function renderContinueLearningClasses(
         </div>
 
         <strong>
-          No active classes
+          You are all caught up
         </strong>
 
         <p>
-          Classes assigned by your school will appear here.
+          You do not have any unfinished classes to continue.
         </p>
 
       </div>
@@ -3917,13 +3865,7 @@ function renderContinueLearningClasses(
                 </span>
 
                 <span>
-                  ${
-                    item.teacherId?.name
-                      ? escapeHtml(
-                          item.teacherId.name
-                        )
-                      : "Instructor"
-                  }
+                  ${100 - progress}% remaining
                 </span>
 
               </div>
@@ -4280,19 +4222,13 @@ function getRecentStudentUpdates(limit = 6){
 
 function getPreferredStudentClass(){
   const classes =
-    getStudentClasses();
+    getContinueLearningClasses();
 
   if(!classes.length){
     return null;
   }
 
   return (
-    classes.find(item =>
-      Boolean(
-        item.meetingLink ||
-        item.published
-      )
-    ) ||
     classes[0]
   );
 }
@@ -5646,7 +5582,9 @@ const preferredClassButton =
 if (preferredClassButton){
   event.preventDefault();
 
-  resumeStudentLearning();
+  navigateStudentStudio(
+    "continue"
+  );
 
   return;
 }
@@ -37990,7 +37928,7 @@ function createStudentClassCard(
 
         </div>
 
-        <p class="student-class-description">
+        <p class="student-class-description" hidden>
           ${escapeHtml(
             classItem?.description ||
             "No class description has been added."
@@ -37998,7 +37936,7 @@ function createStudentClassCard(
         </p>
 
 
-        <div class="student-class-teacher">
+        <div class="student-class-teacher" hidden>
 
           <img
             src="${escapeHtml(
@@ -38030,7 +37968,7 @@ function createStudentClassCard(
         </div>
 
 
-        <div class="student-class-schedule">
+        <div class="student-class-schedule" hidden>
 
           <i
             class="fa-regular fa-calendar"
@@ -38046,6 +37984,7 @@ function createStudentClassCard(
         <div
           class="student-class-progress-breakdown"
           aria-label="Class progress details"
+          hidden
         >
 
           <div class="student-class-progress-metric">
