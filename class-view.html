@@ -604,7 +604,7 @@
   grid-template-columns:
     34px
     minmax(0,1fr)
-    20px;
+    auto;
 
   align-items:center;
 
@@ -1670,7 +1670,9 @@ body.assessment-open{overflow:hidden}
   font-weight:800;
 }
 .item-status.is-complete{background:var(--success-soft);color:var(--success)}
-.item-arrow{display:flex;align-items:center;gap:7px}
+.item-arrow{display:flex;align-items:center;justify-content:flex-end;justify-self:end;min-width:0;max-width:100%;gap:7px}
+.item-arrow svg{flex:0 0 15px}
+.item-status{min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .assessment-error{padding:18px;border:1px solid #fecaca;border-radius:11px;background:#fff7f7;color:#b42318;font-size:10px;line-height:1.6}
 @media(max-width:760px){
   .assessment-overlay{align-items:stretch;padding:0;background:#fff;backdrop-filter:none}
@@ -1788,7 +1790,7 @@ const qs=new URLSearchParams(location.search);
 const classId=String(qs.get("classId")||"").trim();
 const requestedLessonId=String(qs.get("lessonId")||"").trim();
 const from=String(qs.get("from")||"").trim().toLowerCase();
-const state={viewer:null,role:"",classData:null,modules:[],lessons:[],quizzes:[],assignments:[],lessonProgress:[],submissions:[],quizSubmissions:[],progressSummary:null,activeAssessment:null,assessmentStartedAt:0,certificate:null,permissions:{canView:false,canTrackProgress:false,canManage:false},selectedLessonId:requestedLessonId,selectedTab:"content",expanded:new Set()};
+const state={viewer:null,role:"",classData:null,modules:[],lessons:[],quizzes:[],assignments:[],lessonProgress:[],submissions:[],quizSubmissions:[],submissionsLoaded:false,quizSubmissionsLoaded:false,progressSummary:null,activeAssessment:null,assessmentStartedAt:0,certificate:null,permissions:{canView:false,canTrackProgress:false,canManage:false},selectedLessonId:requestedLessonId,selectedTab:"content",expanded:new Set()};
 const I={
  play:`<svg viewBox="0 0 24 24"><path d="m8 5 11 7-11 7Z"/></svg>`,
  file:`<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>`,
@@ -1803,7 +1805,7 @@ function id(v){if(!v)return"";return typeof v==="object"?String(v._id||v.id||"")
 function esc(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
 function token(){for(const k of["studentToken","teacherToken","schoolToken","adminToken","talentToken","agentToken","employerToken","token"]){const v=localStorage.getItem(k)||sessionStorage.getItem(k);if(v)return v}return""}
 const authToken=token();
-async function api(path,opt={}){const r=await fetch(API+path,{...opt,headers:{Authorization:`Bearer ${authToken}`,...(opt.headers||{})}});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.message||d.error||`Request failed (${r.status})`);return d}
+async function api(path,opt={}){const r=await fetch(API+path,{cache:"no-store",...opt,headers:{Authorization:`Bearer ${authToken}`,...(opt.headers||{})}});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.message||d.error||`Request failed (${r.status})`);return d}
 function alertA(type,title,message){const el=document.createElement("div");el.className="alert";el.innerHTML=`<strong>${esc(title)}</strong><span>${esc(message)}</span>`;$("alerts").appendChild(el);setTimeout(()=>el.remove(),3300)}
 function initials(n){return String(n||"A").trim().split(/\s+/).slice(0,2).map(x=>x[0]?.toUpperCase()).join("")||"A"}
 function lessonModule(l){return id(l?.moduleId||l?.module)}
@@ -1815,12 +1817,42 @@ function moduleLessons(mid){return state.lessons.filter(l=>lessonModule(l)===Str
 function moduleUnlocked(mid){if(!state.permissions.canTrackProgress)return true;const idx=state.modules.findIndex(m=>id(m)===String(mid));if(idx<=0)return true;const prev=state.modules[idx-1];return !prev||moduleLessons(id(prev)).every(l=>completed(id(l)))}
 function lessonUnlocked(l){if(!state.permissions.canTrackProgress)return true;const mid=lessonModule(l);if(mid&&!moduleUnlocked(mid))return false;const list=mid?moduleLessons(mid):state.lessons.filter(x=>!lessonModule(x));const idx=list.findIndex(x=>id(x)===id(l));return idx<=0||completed(id(list[idx-1]))}
 function selected(){return state.lessons.find(l=>id(l)===state.selectedLessonId)||null}
+function weightedLearningProgress(progress, known){
+  const weights={lessons:45,assignments:30,quizzes:15,attendance:10};
+  if(Object.keys(weights).some(key=>!known[key]))return null;
+  let sum=0,weight=0;
+  for(const [key,value] of Object.entries(weights)){
+    const category=progress[key];
+    if(Number(category?.total)>0){sum+=Math.max(0,Math.min(100,Number(category.percentage)||0))*value;weight+=value;}
+  }
+  return weight?Math.round(sum/weight):0;
+}
+
 function overall(){
   if(!state.permissions.canTrackProgress)return 0;
-  const summary=Number(state.progressSummary?.progress?.overall);
-  if(Number.isFinite(summary))return Math.max(0,Math.min(100,Math.round(summary)));
-  if(!state.lessons.length)return 0;
-  return Math.round(state.lessons.filter(l=>completed(id(l))).length/state.lessons.length*100);
+  const progress={...(state.progressSummary?.progress||{})};
+  const known={lessons:true,assignments:false,quizzes:false,attendance:false};
+  for(const key of ['assignments','quizzes','attendance'])known[key]=Boolean(progress[key]);
+  const count=(records,isDone)=>{
+    const unique=[...new Map(records.map(item=>[id(item),item])).values()];
+    const done=unique.filter(isDone).length;
+    return {total:unique.length,completed:done,percentage:unique.length?Math.round(done/unique.length*100):0};
+  };
+  progress.lessons=count(state.lessons,item=>completed(id(item)));
+  for(const [key,type,loaded] of [['assignments','assignment',state.submissionsLoaded],['quizzes','quiz',state.quizSubmissionsLoaded]]){
+    if(loaded||state[key].length===0){
+      progress[key]=count(state[key],item=>assessmentCompleted(type,item));
+      known[key]=true;
+    }
+  }
+  const value=weightedLearningProgress(progress,known);
+  // An unavailable category is unknown, not a confirmed zero total.
+  return value===null?Math.max(0,Math.min(100,Number(state.progressSummary?.progress?.overall)||0)):value;
+}
+function notifyLearningProgress(){
+  const event={type:'aift:learning-progress',classId,studentId:id(state.viewer),updatedAt:Date.now()};
+  try{localStorage.setItem('aift:learning-progress',JSON.stringify(event))}catch{}
+  if(parent!==window)parent.postMessage(event,location.origin);
 }
 async function refreshClassProgress(){
   if(!state.permissions.canTrackProgress)return;
@@ -2009,8 +2041,8 @@ function renderMedia(lesson){
 
 }
   
-function quizSubmission(quizId){return state.quizSubmissions.find(item=>id(item.quizId)===String(quizId||""))||null}
-function assignmentSubmission(assignmentId){return state.submissions.find(item=>id(item.assignmentId)===String(assignmentId||""))||null}
+function quizSubmission(quizId){return state.quizSubmissions.find(item=>id(item.studentId)===id(state.viewer)&&id(item.quizId)===String(quizId||""))||null}
+function assignmentSubmission(assignmentId){return state.submissions.find(item=>id(item.studentId)===id(state.viewer)&&id(item.assignmentId)===String(assignmentId||""))||null}
 function assessmentCompleted(type,item){return type==="quiz"?Boolean(quizSubmission(id(item))):Boolean(assignmentSubmission(id(item)))}
 function itemHtml(type,item){
   const isQ=type==="quiz",done=assessmentCompleted(type,item);
@@ -2370,7 +2402,7 @@ function render(){renderViewer();renderClass();renderProgress();renderCurriculum
 function selectLessonTab(tab="content"){state.selectedTab=tab;document.querySelectorAll("[data-tab]").forEach(button=>button.classList.toggle("active",button.dataset.tab===tab))}
 function openLesson(lid,{keepTab=false,scroll=true}={}){const l=state.lessons.find(x=>id(x)===String(lid||""));if(!l){alertA("error","Lesson unavailable","The selected Lesson could not be found.");return}if(!lessonUnlocked(l)){alertA("info","Lesson locked","Complete the previous Lesson to continue.");return}state.selectedLessonId=id(l);if(!keepTab)selectLessonTab("content");const mid=lessonModule(l);if(mid)state.expanded.add(mid);renderCurriculum();renderLesson();const u=new URL(location.href);u.searchParams.set("lessonId",state.selectedLessonId);history.replaceState(null,"",u.href);document.body.classList.remove("mobile-curriculum-open");if(scroll&&matchMedia("(max-width:760px)").matches)$("lessonWorkspace").scrollIntoView({behavior:"smooth",block:"start"})}
 function navigate(dir){const l=selected();if(!l)return;const i=state.lessons.findIndex(x=>id(x)===id(l)),t=state.lessons[i+dir];if(t)openLesson(id(t))}
-async function toggleComplete(){if(!state.permissions.canTrackProgress){alertA("info","Instructor view","Lesson completion is saved only for enrolled students.");return}const l=selected();if(!l)return;const lid=id(l),was=completed(lid),btn=$("completeButton");btn.disabled=true;try{const r=await api(`/api/classes/${encodeURIComponent(classId)}/learning/lessons/${encodeURIComponent(lid)}/progress`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({completed:!was})});state.lessonProgress=state.lessonProgress.filter(x=>id(x.lessonId)!==lid);if(r.progress)state.lessonProgress.push(r.progress);await refreshClassProgress();renderProgress();renderCurriculum();renderLesson();alertA("success",was?"Lesson reopened":"Lesson complete",was?"This Lesson is now in progress.":"Your learning progress was saved.")}catch(e){alertA("error","Progress not saved",e.message)}finally{btn.disabled=false;renderNav()}}
+async function toggleComplete(){if(!state.permissions.canTrackProgress){alertA("info","Instructor view","Lesson completion is saved only for enrolled students.");return}const l=selected();if(!l)return;const lid=id(l),was=completed(lid),btn=$("completeButton");btn.disabled=true;try{const r=await api(`/api/classes/${encodeURIComponent(classId)}/learning/lessons/${encodeURIComponent(lid)}/progress`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({completed:!was})});state.lessonProgress=state.lessonProgress.filter(x=>id(x.lessonId)!==lid);if(r.progress)state.lessonProgress.push(r.progress);renderProgress();renderCurriculum();renderLesson();notifyLearningProgress();await refreshClassProgress();renderProgress();renderCurriculum();renderLesson();alertA("success",was?"Lesson reopened":"Lesson complete",was?"This Lesson is now in progress.":"Your learning progress was saved.")}catch(e){alertA("error","Progress not saved",e.message)}finally{btn.disabled=false;renderNav()}}
 function assessmentById(type,assessmentId){
   const list=type==="quiz"?state.quizzes:state.assignments;
   return list.find(item=>id(item)===String(assessmentId||""))||null;
@@ -2435,6 +2467,7 @@ async function submitFocusedQuiz(event,quiz){
   try{
     const submission=await api(`/api/quizzes/${encodeURIComponent(id(quiz))}/submit`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answers,startedAt:new Date(state.assessmentStartedAt).toISOString(),timeSpentSeconds:Math.max(0,Math.round((Date.now()-state.assessmentStartedAt)/1000))})});
     state.quizSubmissions.unshift(submission);
+    renderProgress();renderSides(selected());renderTab();notifyLearningProgress();
     await refreshClassProgress();
     renderProgress();
     showAssessmentResult({title:"Quiz completed",score:`${Math.round(Number(submission.percentage||0))}%`,message:"Your answers were submitted and your class progress has been updated."});
@@ -2486,6 +2519,7 @@ async function submitFocusedAssignment(event,assignment){
     button.textContent="Submitting...";
     const submission=await api("/api/submissions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({assignmentId:id(assignment),text,attachments})});
     state.submissions.unshift(submission);
+    renderProgress();renderSides(selected());renderTab();notifyLearningProgress();
     await refreshClassProgress();
     renderProgress();
     showAssessmentResult({title:"Assignment submitted",message:"Your work was submitted successfully and your class progress has been updated."});
@@ -2524,8 +2558,8 @@ async function init(){
     const [d,certificateData,submissions,quizSubmissions,progressSummary]=await Promise.all([
       api(`/api/classes/${encodeURIComponent(classId)}/learning`),
       isStudent?api("/api/certificates/my").catch(()=>null):Promise.resolve(null),
-      isStudent?api(`/api/submissions?classId=${encodeURIComponent(classId)}`).catch(()=>[]):Promise.resolve([]),
-      isStudent?api(`/api/quizzes/submissions/list?classId=${encodeURIComponent(classId)}`).catch(()=>[]):Promise.resolve([]),
+      isStudent?api(`/api/submissions?classId=${encodeURIComponent(classId)}`).catch(()=>null):Promise.resolve([]),
+      isStudent?api(`/api/quizzes/submissions/list?classId=${encodeURIComponent(classId)}`).catch(()=>null):Promise.resolve([]),
       isStudent?api(`/api/classes/${encodeURIComponent(classId)}/student-progress`).catch(()=>null):Promise.resolve(null)
     ]);
     state.classData=d.class||null;
@@ -2534,8 +2568,10 @@ async function init(){
     state.quizzes=Array.isArray(d.quizzes)?d.quizzes:[];
     state.assignments=Array.isArray(d.assignments)?d.assignments:[];
     state.lessonProgress=Array.isArray(d.lessonProgress)?d.lessonProgress:[];
-    state.submissions=Array.isArray(submissions)?submissions:[];
-    state.quizSubmissions=Array.isArray(quizSubmissions)?quizSubmissions:[];
+    state.submissionsLoaded=Array.isArray(submissions);
+    state.quizSubmissionsLoaded=Array.isArray(quizSubmissions);
+    state.submissions=Array.isArray(submissions)?submissions:state.submissions;
+    state.quizSubmissions=Array.isArray(quizSubmissions)?quizSubmissions:state.quizSubmissions;
     state.progressSummary=progressSummary;
     const certificates=Array.isArray(certificateData)?certificateData:certificateData?.certificates||certificateData?.items||[];
     state.certificate=certificates.find(item=>id(item?.classId)===classId)||null;
@@ -2572,3 +2608,4 @@ init();
 </script>
 </body>
 </html>
+

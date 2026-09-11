@@ -2442,7 +2442,8 @@ bindStudentProfileActions();
 async function apiGet(path,fallback = null){
   try{
     const res = await fetch(API + path,{
-      headers:authHeaders()
+      headers:authHeaders(),
+      cache:"no-store"
     });
 
     if (res.status === 401){
@@ -2746,268 +2747,101 @@ function getStudentClassProgressRecord(
 }
 
 
-async function loadStudentClassProgress({
-  force = false
-} = {}){
-  if (
-    state.classProgressLoading &&
-    !force
-  ){
-    return;
+// Only confirmed categories participate; a failed request is not an empty category.
+function weightedLearningProgress(progress, known){
+  const weights={lessons:45,assignments:30,quizzes:15,attendance:10};
+  if(Object.keys(weights).some(key=>!known[key]))return null;
+  let sum=0,weight=0;
+  for(const [key,value] of Object.entries(weights)){
+    const category=progress[key];
+    if(Number(category?.total)>0){sum+=Math.max(0,Math.min(100,Number(category.percentage)||0))*value;weight+=value;}
   }
-
-  const classes =
-    getStudentClasses();
-
-  if (!classes.length){
-    state.classProgressById.clear();
-
-    state.classProgressLoaded =
-      true;
-
-    return;
-  }
-
-  state.classProgressLoading =
-    true;
-
-  try{
-    const requestedStudentId =
-      normalizeId(
-        selectedStudentId ||
-        state.me?._id ||
-        state.loggedUser?._id
-      );
-
-    const results =
-      await Promise.allSettled(
-        classes.map(
-          async classItem => {
-            const classId =
-              normalizeId(
-                classItem?._id ||
-                classItem?.id
-              );
-
-            if (!classId){
-              return null;
-            }
-
-            const query =
-              selectedStudentId &&
-              requestedStudentId
-                ? (
-                    `?studentId=${
-                      encodeURIComponent(
-                        requestedStudentId
-                      )
-                    }`
-                  )
-                : "";
-
-            /*
-              The class player is the source of truth for saved
-              Lesson completion. Load it with the broader summary
-              so both screens always show the same Lesson totals.
-            */
-
-            const [
-              summaryResponse,
-              learningResponse
-            ] = await Promise.all([
-              apiGet(
-                `/api/classes/${
-                  encodeURIComponent(
-                    classId
-                  )
-                }/student-progress${query}`,
-                null
-              ),
-
-              selectedStudentId
-                ? Promise.resolve(null)
-                : apiGet(
-                    `/api/classes/${
-                      encodeURIComponent(
-                        classId
-                      )
-                    }/learning`,
-                    null
-                  )
-            ]);
-
-            const data =
-              summaryResponse?.progress
-                ? {
-                    ...summaryResponse
-                  }
-                : createEmptyStudentClassProgress(
-                    classId
-                  );
-
-            const learningLessons =
-              asArray(
-                learningResponse?.lessons
-              );
-
-            const learningProgress =
-              asArray(
-                learningResponse
-                  ?.lessonProgress
-              );
-
-            if (
-              learningResponse &&
-              learningLessons.length
-            ){
-              const latestByLessonId =
-                new Map();
-
-              learningProgress.forEach(
-                item => {
-                  const lessonId =
-                    normalizeId(
-                      item?.lessonId?._id ||
-                      item?.lessonId
-                    );
-
-                  if (
-                    lessonId &&
-                    !latestByLessonId.has(
-                      lessonId
-                    )
-                  ){
-                    latestByLessonId.set(
-                      lessonId,
-                      item
-                    );
-                  }
-                }
-              );
-
-              const completed =
-                learningLessons.filter(
-                  lesson => {
-                    const record =
-                      latestByLessonId.get(
-                        normalizeId(
-                          lesson?._id ||
-                          lesson?.id
-                        )
-                      );
-
-                    return (
-                      record?.status ===
-                        "completed" ||
-                      Number(
-                        record
-                          ?.progressPercent ||
-                        0
-                      ) >= 100 ||
-                      record?.completed ===
-                        true
-                    );
-                  }
-                ).length;
-
-              const percentage =
-                Math.round(
-                  (
-                    completed /
-                    learningLessons.length
-                  ) *
-                  100
-                );
-
-              data.progress = {
-                ...createEmptyStudentClassProgress(
-                  classId
-                ).progress,
-                ...data.progress,
-
-                lessons:{
-                  total:
-                    learningLessons.length,
-                  completed,
-                  percentage
-                }
-              };
-
-              if (
-                !summaryResponse?.progress
-              ){
-                data.progress.overall =
-                  percentage;
-              }
-            }
-
-            return {
-              classId,
-
-              data:{
-                ...data,
-                available:Boolean(
-                  summaryResponse?.progress ||
-                  learningResponse
-                )
-              }
-            };
-          }
-        )
-      );
-
-    results.forEach(
-      (result,index) => {
-        const classItem =
-          classes[index];
-
-        const classId =
-          normalizeId(
-            classItem?._id ||
-            classItem?.id
-          );
-
-        if (!classId){
-          return;
-        }
-
-        if (
-          result.status ===
-            "fulfilled" &&
-          result.value?.data
-        ){
-          state.classProgressById.set(
-            classId,
-            result.value.data
-          );
-
-          return;
-        }
-
-        console.warn(
-          "Student class progress failed:",
-          classId,
-          result.status === "rejected"
-            ? result.reason
-            : "No progress response"
-        );
-
-        state.classProgressById.set(
-          classId,
-          createEmptyStudentClassProgress(
-            classId
-          )
-        );
-      }
-    );
-
-    state.classProgressLoaded =
-      true;
-  }finally{
-    state.classProgressLoading =
-      false;
-  }
+  return weight?Math.round(sum/weight):0;
 }
+
+let studentProgressRequest=null;
+async function loadStudentClassProgress(){
+  if(studentProgressRequest)return studentProgressRequest;
+  state.classProgressLoading=true;
+  studentProgressRequest=(async()=>{
+    const requestedStudentId=normalizeId(selectedStudentId||state.me?._id||state.loggedUser?._id);
+    await Promise.all(getStudentClasses().map(async classItem=>{
+      const classId=normalizeId(classItem._id||classItem.id);
+      if(!classId)return;
+      const previous=state.classProgressById.get(classId);
+      const query=selectedStudentId?`?studentId=${encodeURIComponent(requestedStudentId)}`:"";
+      const [summary,learning,submissions,quizSubmissions]=await Promise.all([
+        apiGet(`/api/classes/${encodeURIComponent(classId)}/student-progress${query}`,null),
+        selectedStudentId?null:apiGet(`/api/classes/${encodeURIComponent(classId)}/learning`,null),
+        selectedStudentId?null:apiGet(`/api/submissions?classId=${encodeURIComponent(classId)}`,null),
+        selectedStudentId?null:apiGet(`/api/quizzes/submissions/list?classId=${encodeURIComponent(classId)}`,null)
+      ]);
+      // Selected-student views use only the authorized, student-scoped summary.
+      const validSummary=summary?.progress&&normalizeId(summary.studentId)===requestedStudentId;
+      const base=validSummary?summary:(previous||createEmptyStudentClassProgress(classId));
+      const data={...base,progress:{...base.progress},known:{...(previous?.known||{})}};
+      if(validSummary)for(const key of ['lessons','assignments','quizzes','attendance'])data.known[key]=true;
+      if(!selectedStudentId&&!learning&&previous?.known){
+        for(const key of ['lessons','assignments','quizzes']){
+          if(previous.known[key])data.progress[key]=previous.progress[key];
+        }
+      }
+      const category=(records,isDone)=>{
+        const unique=[...new Map(records.map(item=>[normalizeId(item._id||item.id),item])).values()];
+        const completed=unique.filter(isDone).length;
+        return {total:unique.length,completed,percentage:unique.length?Math.round(completed/unique.length*100):0};
+      };
+      if(learning?.permissions?.canTrackProgress===true){
+        if(Array.isArray(learning.lessons)&&Array.isArray(learning.lessonProgress)){
+          const byId=new Map();
+          learning.lessonProgress.forEach(item=>{const key=normalizeId(item.lessonId);if(!byId.has(key))byId.set(key,item)});
+          data.progress.lessons=category(learning.lessons,lesson=>{
+            const item=byId.get(normalizeId(lesson._id||lesson.id));
+            return String(item?.status||'').toLowerCase()==='completed'||Number(item?.progressPercent)>=100||item?.completed===true;
+          });
+          data.known.lessons=true;
+        }
+        for(const [key,records,field] of [['assignments',submissions,'assignmentId'],['quizzes',quizSubmissions,'quizId']]){
+          if(!Array.isArray(learning[key]))continue;
+          if(Array.isArray(records)||learning[key].length===0){
+            const submitted=new Set((records||[]).filter(item=>normalizeId(item.studentId)===requestedStudentId).map(item=>normalizeId(item[field])));
+            data.progress[key]=category(learning[key],item=>submitted.has(normalizeId(item._id||item.id)));
+            data.known[key]=true;
+          }else{
+            // Do not replace known assessment counts with a stale summary after a failed list fetch.
+            if(previous?.known?.[key])data.progress[key]=previous.progress[key];
+          }
+        }
+      }
+      const overall=weightedLearningProgress(data.progress,data.known);
+      if(overall!==null)data.progress.overall=overall;
+      data.available=Boolean(validSummary||previous?.available||learning?.permissions?.canTrackProgress);
+      state.classProgressById.set(classId,data);
+    }));
+    state.classProgressLoaded=true;
+  })();
+  try{await studentProgressRequest}finally{studentProgressRequest=null;state.classProgressLoading=false}
+}
+
+let studentLearningRefresh=null;
+async function refreshStudentLearning(){
+  if(!state.classProgressLoaded||studentLearningRefresh)return studentLearningRefresh;
+  studentLearningRefresh=(async()=>{
+    await loadStudentClassProgress();
+    calculateMetrics();
+    renderStats();
+    renderClasses();
+    renderContinueLearningWorkspace();
+  })();
+  try{await studentLearningRefresh}catch(error){console.warn('Learning refresh failed:',error)}finally{studentLearningRefresh=null}
+}
+window.addEventListener('pageshow',event=>{if(event.persisted)refreshStudentLearning()});
+window.addEventListener('focus',()=>refreshStudentLearning());
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshStudentLearning()});
+window.addEventListener('storage',event=>{if(event.key==='aift:learning-progress')refreshStudentLearning()});
+window.addEventListener('message',event=>{
+  if(event.origin===location.origin&&event.data?.type==='aift:learning-progress')refreshStudentLearning();
+});
 
 function getStudentClasses(){
   const studentId = getStudentId();
@@ -3372,7 +3206,7 @@ async function loadAll(){
        STUDENT PROGRESS
     ========================================================= */
 
-    state.classProgressById.clear();
+    // Keep confirmed progress if the next refresh fails.
 
 
     state.classProgressLoaded =
@@ -3524,6 +3358,7 @@ function getContinueLearningClassCover(item){
 }
 
 function renderContinueLearningWorkspace(){
+  setText("continueLearningBadge",getContinueLearningClasses().length);
   const classes =
     getContinueLearningClasses();
 
@@ -36547,6 +36382,7 @@ function renderProfile(){
 }
 
 function renderStats(){
+  setText("continueLearningBadge",getContinueLearningClasses().length);
   const classes =
     getStudentClasses();
 
@@ -44247,7 +44083,7 @@ async function loadStudentAnalyticsData(){
     );
 
 
-  state.classProgressById.clear();
+  // Keep confirmed progress if the next refresh fails.
 
   state.classProgressLoaded =
     false;
