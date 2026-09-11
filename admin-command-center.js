@@ -401,7 +401,7 @@
       },
       {
         title:"Operations",
-        items:[find("meetings"),find("reports"),find("payments")]
+        items:[find("messages"),find("meetings"),find("reports"),find("payments")]
       },
       {
         title:"System",
