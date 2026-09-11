@@ -33,6 +33,7 @@ const adminState = {
   reports: [],
   meetings: [],
   callLogs: [],
+  deletedMessages: [],
   payments: [],
   auditLogs: [],
 
@@ -97,6 +98,11 @@ const ADMIN_SECTIONS = {
     title: "Moderation",
     subtitle: "Review posts, comments, reports, and unsafe content.",
     loader: "loadContentModeration"
+  },
+  deletedMessages: {
+    title: "Deleted Messages",
+    subtitle: "Review recoverable message deletions and restore them when required.",
+    loader: "loadDeletedMessages"
   },
   meetings: {
     title: "Meetings & Calls",
@@ -4335,6 +4341,100 @@ async function submitAdminLearningCourse(event){
 /* =====================================================
    PART 9 / 20 — CONTENT MODERATION
 ===================================================== */
+
+async function loadDeletedMessages(){
+  const section = document.getElementById("deletedMessagesSection");
+  if(!section) return;
+  section.innerHTML = `
+    <div class="admin-panel">
+      <div class="admin-panel-head">
+        <div>
+          <h2>Deleted Messages</h2>
+          <p>Deleted content stays hidden from users. Only future deletions with a secure snapshot can be restored.</p>
+        </div>
+        <button type="button" onclick="loadDeletedMessages()">Refresh</button>
+      </div>
+      <div id="adminDeletedMessagesTable">
+        <div class="admin-skeleton"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+  `;
+  try{
+    const data = await adminRequest("/api/messages/deleted/admin-list?limit=200");
+    adminState.deletedMessages = Array.isArray(data?.messages) ? data.messages : [];
+    renderDeletedMessages();
+  }catch(error){
+    document.getElementById("adminDeletedMessagesTable").innerHTML =
+      `<div class="admin-empty"><strong>Unable to load deleted messages</strong><span>${esc(error.message)}</span></div>`;
+  }
+}
+
+function deletedMessagePerson(user){
+  return getDisplayName(user || {});
+}
+
+function renderDeletedMessages(){
+  const box = document.getElementById("adminDeletedMessagesTable");
+  if(!box) return;
+  const messages = adminState.deletedMessages;
+  if(!messages.length){
+    box.innerHTML = `
+      <div class="admin-empty">
+        <strong>No deleted messages</strong>
+        <span>Future “delete for everyone” messages will appear here.</span>
+      </div>
+    `;
+    return;
+  }
+  box.innerHTML = `
+    <div class="admin-table-summary">
+      <strong>${messages.length}</strong><span>deleted messages</span>
+    </div>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Sender</th><th>Receiver</th><th>Original message</th><th>Deleted</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          ${messages.map(message => `
+            <tr>
+              <td>${esc(deletedMessagePerson(message.sender))}</td>
+              <td>${esc(deletedMessagePerson(message.receiver))}</td>
+              <td>${esc(message.recoverable ? (message.originalText || message.originalFileName || message.originalType) : "Content was removed before recovery was enabled")}</td>
+              <td>${esc(formatDateTime(message.deletedAt))}</td>
+              <td><span class="admin-badge ${message.recoverable ? "status-active" : "status-suspended"}">${message.recoverable ? "Recoverable" : "Unavailable"}</span></td>
+              <td>
+                <button type="button" class="admin-btn" ${message.recoverable ? `onclick="confirmRestoreDeletedMessage('${esc(getId(message))}')"` : "disabled"}>Restore</button>
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function confirmRestoreDeletedMessage(messageId){
+  const message = adminState.deletedMessages.find(item => String(getId(item)) === String(messageId));
+  if(!message?.recoverable) return adminToast("This older message cannot be recovered.");
+  openAdminConfirm(
+    "Restore deleted message",
+    "Restore this message for all conversation participants?",
+    async () => {
+      try{
+        await adminRequest(`/api/messages/admin/deleted/${encodeURIComponent(messageId)}/restore`, {
+          method:"PATCH"
+        });
+        adminState.deletedMessages = adminState.deletedMessages.filter(
+          item => String(getId(item)) !== String(messageId)
+        );
+        addAuditLog("Restored deleted message", messageId);
+        renderDeletedMessages();
+        adminToast("Message restored.");
+      }catch(error){
+        adminToast(error.message || "Unable to restore message.");
+      }
+    }
+  );
+}
 
 async function loadContentModeration(){
   const section = document.getElementById("contentSection");
