@@ -2077,14 +2077,6 @@
       </div>
     </div>
     <div id="storyViewer" class="story-viewer hidden">
-      <button
-        class="story-viewer-close"
-        type="button"
-        onclick="closeStoryViewer()"
-        aria-label="Close story"
-      >
-        <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-      </button>
       <div class="story-viewer-shell">
         <div id="storyProgress" class="story-progress"></div>
         <div class="story-viewer-head">
@@ -2600,6 +2592,7 @@
           mediaTransform: { x: 0, y: 0, scale: 1, rotation: 0 },
           music: { startAt: 0, duration: 15, volume: 1, muted: false },
         };
+        const MAX_STORY_VIDEO_SECONDS = 150;
         window.storyState = storyState;
         const fallback =
           "https://cdn-icons-png.flaticon.com/512/149/149071.png";
@@ -2879,7 +2872,11 @@
             ),
             end = Math.max(
               start + 0.5,
-              Math.min(duration, Number(storyState.trimEnd || duration)),
+              Math.min(
+                duration,
+                start + MAX_STORY_VIDEO_SECONDS,
+                Number(storyState.trimEnd || duration),
+              ),
             );
           storyState.trimStart = start;
           storyState.trimEnd = end;
@@ -2975,17 +2972,29 @@
         }
         function updateStoryTrim(edge, value) {
           const duration = Math.max(0.5, Number(storyState.videoDuration || 0)),
-            minimumClip = Math.min(0.5, duration);
-          if (edge === "start")
+            minimumClip = Math.min(0.5, duration),
+            maximumClip = Math.min(MAX_STORY_VIDEO_SECONDS, duration);
+          if (edge === "start") {
             storyState.trimStart = Math.max(
               0,
               Math.min(Number(value || 0), storyState.trimEnd - minimumClip),
             );
-          else
+            if (storyState.trimEnd - storyState.trimStart > maximumClip)
+              storyState.trimEnd = Math.min(
+                duration,
+                storyState.trimStart + maximumClip,
+              );
+          } else {
             storyState.trimEnd = Math.min(
               duration,
               Math.max(Number(value || duration), storyState.trimStart + minimumClip),
             );
+            if (storyState.trimEnd - storyState.trimStart > maximumClip)
+              storyState.trimStart = Math.max(
+                0,
+                storyState.trimEnd - maximumClip,
+              );
+          }
           syncStoryTrimPanel();
           const video = document.querySelector("#storyPreview video");
           if (video) {
@@ -4713,13 +4722,12 @@
             storyState.holdTimer = setTimeout(() => {
               if (
                 storyState.gesture &&
-                !storyState.gesture.axis &&
-                !storyState.gesture.interactive
+                !storyState.gesture.axis
               ) {
                 storyState.gesture.held = true;
                 pauseStoryPlayback();
               }
-            }, 240);
+            }, 140);
           });
           shell.addEventListener(
             "pointermove",
@@ -4729,7 +4737,7 @@
               const dx = e.clientX - g.x,
                 dy = e.clientY - g.y,
                 now = performance.now();
-              if (Math.hypot(dx, dy) > 5) {
+              if (Math.hypot(dx, dy) > 12) {
                 clearTimeout(storyState.holdTimer);
                 if (!g.axis)
                   g.axis =
@@ -4765,6 +4773,7 @@
                     : "x"
                   : null);
             if (g.held && distance <= 18) {
+              e.preventDefault();
               storyState.gesture = null;
               resumeStoryPlayback();
               return;
@@ -4853,17 +4862,15 @@
                 );
                 return;
               }
-              if (videoDuration > 120.25) {
-                event.target.value = "";
-                toast("Story videos can be up to 2 minutes.");
-                return;
-              }
             }
             clearStoryObjectUrls();
             storyState.file = file;
             storyState.videoDuration = videoDuration;
             storyState.trimStart = 0;
-            storyState.trimEnd = videoDuration;
+            storyState.trimEnd = Math.min(
+              videoDuration,
+              MAX_STORY_VIDEO_SECONDS,
+            );
             storyState.previewMuted = false;
             document
               .getElementById("storyComposer")
