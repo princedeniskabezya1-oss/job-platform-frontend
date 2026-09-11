@@ -2581,6 +2581,8 @@
           remaining: 6000,
           startedAt: 0,
           paused: false,
+          publishing: false,
+          previewUserPaused: false,
           elements: [],
           selectedElement: null,
           objectUrl: "",
@@ -2613,7 +2615,21 @@
           currentGroup()?.stories?.[storyState.storyIndex] || null;
         const svgMusic =
           '<svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="17" cy="16" r="3"></circle></svg>';
+        function stopStoryComposerMedia({ release = false } = {}) {
+          const preview = document.getElementById("storyPreview");
+          preview?.querySelectorAll("video,audio").forEach((media) => {
+            media.pause?.();
+            media.onloadedmetadata = null;
+            media.ontimeupdate = null;
+            media.onended = null;
+            if (release) {
+              media.removeAttribute("src");
+              media.load?.();
+            }
+          });
+        }
         function clearStoryObjectUrls() {
+          stopStoryComposerMedia({ release: true });
           if (storyState.objectUrl) {
             URL.revokeObjectURL(storyState.objectUrl);
             storyState.objectUrl = "";
@@ -2654,6 +2670,9 @@
         }
         function resetStoryEditor() {
           clearStoryObjectUrls();
+          storyState.publishing = false;
+          storyState.previewUserPaused = false;
+          document.getElementById("storyComposer")?.classList.remove("story-uploading");
           storyState.file = null;
           storyState.videoDuration = 0;
           storyState.trimStart = 0;
@@ -2710,9 +2729,10 @@
           addStoryTextLayer("text");
         };
         window.closeStoryComposer = function () {
+          stopStoryComposerMedia({ release: true });
           storyExitTextEditing();
-          clearStoryObjectUrls();
           document.getElementById("storyComposer")?.classList.add("hidden");
+          resetStoryEditor();
         };
         function makeElement(kind, text, user = null) {
           return {
@@ -2801,7 +2821,7 @@
             };
             const mediaStyle = `transform:translate(${mt.x}px,${mt.y}px) scale(${mt.scale}) rotate(${mt.rotation}deg);transform-origin:center;touch-action:none;will-change:transform;`;
             media = storyState.file.type.startsWith("video/")
-              ? `<video data-story-media src="${escapeHtml(storyState.objectUrl)}" style="${mediaStyle}" autoplay loop playsinline></video>`
+              ? `<video data-story-media src="${escapeHtml(storyState.objectUrl)}" style="${mediaStyle}" ${storyState.publishing ? "" : "autoplay"} playsinline></video>`
               : `<img data-story-media src="${escapeHtml(storyState.objectUrl)}" style="${mediaStyle}" alt="Story preview">`;
           } else
             media =
@@ -2818,13 +2838,20 @@
             previewVideo.muted = !!storyState.previewMuted;
             previewVideo.volume = 1;
             const keepInsideTrim = () => {
+              if (storyState.publishing) {
+                previewVideo.pause();
+                return;
+              }
               const start = Math.max(0, Number(storyState.trimStart || 0)),
                 end = Math.max(start + 0.1, Number(storyState.trimEnd || 0));
               if (
                 previewVideo.currentTime < start ||
                 previewVideo.currentTime >= end
-              )
+              ) {
                 previewVideo.currentTime = start;
+                if (!storyState.previewUserPaused)
+                  previewVideo.play()?.catch(() => {});
+              }
               const playhead = document.getElementById("storyTrimPlayhead"),
                 duration = Math.max(
                   0.1,
@@ -2840,7 +2867,8 @@
               once: true,
             });
             previewVideo.addEventListener("timeupdate", keepInsideTrim);
-            previewVideo.play()?.catch(() => {
+            if (!storyState.publishing && !storyState.previewUserPaused)
+              previewVideo.play()?.catch(() => {
               storyState.previewMuted = true;
               previewVideo.muted = true;
               syncStoryTrimPanel();
@@ -2864,7 +2892,7 @@
             duration = Math.max(0, Number(storyState.videoDuration || 0)),
             isVideo =
               !!storyState.file?.type?.startsWith("video/") && duration > 0;
-          panel?.classList.toggle("hidden", !isVideo);
+          panel?.classList.toggle("hidden", !isVideo || storyTextEditorOpen);
           if (!isVideo || !startInput || !endInput) return;
           const start = Math.max(
               0,
@@ -2997,10 +3025,13 @@
           }
           syncStoryTrimPanel();
           const video = document.querySelector("#storyPreview video");
-          if (video) {
+          if (video && !storyState.publishing) {
+            const shouldResume = !storyState.previewUserPaused;
             video.currentTime =
-              edge === "start" ? storyState.trimStart : Math.max(storyState.trimStart, storyState.trimEnd - 0.15);
-            video.play()?.catch(() => {});
+              edge === "start"
+                ? storyState.trimStart
+                : Math.max(storyState.trimStart, storyState.trimEnd - 0.15);
+            if (shouldResume) video.play()?.catch(() => {});
           }
         }
         window.selectStoryElement = function (id) {
@@ -3037,7 +3068,7 @@
           composer.classList.toggle("story-text-editing", open);
           composer
             .querySelectorAll(
-              ".story-compose-head,.story-compose-controls,.story-compose-actions,#storyMusicStatus,#storyTagPanel",
+              ".story-compose-head,.story-compose-controls,.story-compose-actions,#storyMusicStatus,#storyTagPanel,#storyTrimPanel",
             )
             .forEach((node) => {
               if (open) {
@@ -3095,6 +3126,7 @@
             panel = document.getElementById("aiftStoryStylePanel");
           panel?.classList.add("hidden");
           storyApplyTextEditingUi(false);
+          syncStoryTrimPanel();
           if (editor) {
             editor.style.removeProperty("top");
             editor.style.removeProperty("max-height");
@@ -3613,14 +3645,21 @@
           renderStoryComposePreview();
         }
         window.publishStory = async function () {
+          if (storyState.publishing) return;
           if (!storyState.file && !storyState.elements.length) {
             toast("Add media or text to your story");
             return;
           }
-          const btn = document.getElementById("publishStoryBtn");
+          if (storyTextEditorOpen) storyFinishTextEditing();
+          storyState.publishing = true;
+          storyState.previewUserPaused = true;
+          stopStoryComposerMedia();
+          const composer = document.getElementById("storyComposer"),
+            btn = document.getElementById("publishStoryBtn");
+          composer?.classList.add("story-uploading");
           if (btn) {
             btn.disabled = true;
-            btn.textContent = "Sharing...";
+            btn.textContent = "Uploading…";
           }
           const form = new FormData();
           const primaryText = storyState.elements
@@ -3692,18 +3731,32 @@
             document.getElementById("storyAudience")?.value || "connections",
           );
           try {
-            await api("/api/stories", {
+            const created = await api("/api/stories", {
               method: "POST",
               headers: authHeaders(),
               body: form,
             });
+            const createdId = idOf(created?.story || created);
+            stopStoryComposerMedia({ release: true });
             closeStoryComposer();
-            toast("Story shared");
             await loadStories();
+            const ownGroupIndex = storyState.groups.findIndex((group) =>
+              group.stories?.some((item) => idOf(item) === createdId),
+            );
+            if (ownGroupIndex >= 0) {
+              const uploadedIndex = storyState.groups[ownGroupIndex].stories.findIndex(
+                (item) => idOf(item) === createdId,
+              );
+              openStoryViewer(ownGroupIndex, Math.max(0, uploadedIndex));
+            }
+            toast("Story shared");
           } catch (error) {
+            storyState.publishing = false;
+            storyState.previewUserPaused = false;
+            composer?.classList.remove("story-uploading");
             toast(error.message || "Unable to share story");
           } finally {
-            if (btn) {
+            if (btn?.isConnected) {
               btn.disabled = false;
               btn.textContent = "Share story";
             }
@@ -4066,6 +4119,21 @@
           cancelAnimationFrame(storyState.progressFrame);
           storyState.progressFrame = null;
         }
+        function syncTimedStoryProgress() {
+          if (storyState.videoClock || storyState.paused) return;
+          const fill = document.querySelector("#storyProgress span.active i"),
+            elapsed = Math.max(
+              0,
+              storyState.duration -
+                Math.max(
+                  0,
+                  storyState.remaining - (Date.now() - storyState.startedAt),
+                ),
+            );
+          if (fill)
+            fill.style.width = `${Math.min(100, (elapsed / storyState.duration) * 100)}%`;
+          storyState.progressFrame = requestAnimationFrame(syncTimedStoryProgress);
+        }
         function scheduleStoryTimer(ms) {
           stopStoryTimer();
           storyState.videoClock = false;
@@ -4074,10 +4142,13 @@
           storyState.startedAt = Date.now();
           storyState.paused = false;
           document.getElementById("storyViewer")?.classList.remove("paused");
-          document
-            .querySelector("#storyProgress span.active")
-            ?.style.setProperty("--story-duration", `${ms}ms`);
+          const fill = document.querySelector("#storyProgress span.active i");
+          if (fill) {
+            fill.style.animation = "none";
+            fill.style.width = "0%";
+          }
           storyState.timer = setTimeout(() => nextStory(), ms);
+          storyState.progressFrame = requestAnimationFrame(syncTimedStoryProgress);
         }
         function scheduleStoryVideo(video, story) {
           stopStoryTimer();
@@ -4176,11 +4247,15 @@
             .querySelector("#storyViewerTrack audio")
             ?.play()
             ?.catch(() => {});
-          if (!storyState.videoClock)
+          if (!storyState.videoClock) {
             storyState.timer = setTimeout(
               () => nextStory(),
               Math.max(250, storyState.remaining),
             );
+            storyState.progressFrame = requestAnimationFrame(
+              syncTimedStoryProgress,
+            );
+          }
         }
         window.closeStoryViewer = function () {
           storyState.videoClock = false;
@@ -4198,6 +4273,14 @@
         };
         async function renderCurrentStory() {
           stopStoryTimer();
+          const previousVideo = document.querySelector("#storyViewerContent video"),
+            previousAudio = document.querySelector("#storyViewerTrack audio");
+          previousVideo?.pause();
+          previousAudio?.pause();
+          if (previousVideo) {
+            previousVideo.removeAttribute("src");
+            previousVideo.load?.();
+          }
           const group = currentGroup(),
             story = currentStory();
           if (!group || !story) {
@@ -4737,7 +4820,7 @@
               const dx = e.clientX - g.x,
                 dy = e.clientY - g.y,
                 now = performance.now();
-              if (Math.hypot(dx, dy) > 12) {
+              if (Math.hypot(dx, dy) > 18) {
                 clearTimeout(storyState.holdTimer);
                 if (!g.axis)
                   g.axis =
