@@ -3625,6 +3625,23 @@
           syncStoryInspector();
           storyBeginTextEditing(item);
         };
+        function updateStoryLayerPreview(item) {
+          if (!item) return;
+          const node = document.querySelector(
+            `#storyPreview [data-story-layer="${CSS.escape(item.id)}"]`,
+          );
+          if (!node) return;
+          node.textContent = layerLabel(item);
+          node.style.left = item.x + "%";
+          node.style.top = item.y + "%";
+          node.style.transform =
+            `translate(-50%,-50%) scale(${item.scale}) rotate(${item.rotation}deg)`;
+          node.style.color = item.color;
+          node.style.fontFamily = item.font;
+          node.style.fontSize = Number(item.fontSize) + "px";
+          node.style.fontWeight = item.style === "strong" ? "800" : "600";
+          node.style.textAlign = item.align || "center";
+        }
         function syncSelectedFromControls() {
           const item = selectedElement();
           if (!item) return;
@@ -3642,7 +3659,7 @@
           item.rotation = Number(
             document.getElementById("storyRotation")?.value || 0,
           );
-          renderStoryComposePreview();
+          updateStoryLayerPreview(item);
         }
         window.publishStory = async function () {
           if (storyState.publishing) return;
@@ -4171,9 +4188,15 @@
                 ),
               ),
               configuredEnd = Number(story.mediaTransform?.trimEnd || 0),
+              savedDuration = Math.max(
+                0.1,
+                Number(story.playbackDuration || 0),
+              ),
               trimEnd = Math.min(
                 mediaDuration,
-                configuredEnd > trimStart ? configuredEnd : mediaDuration,
+                configuredEnd > trimStart
+                  ? configuredEnd
+                  : Math.min(mediaDuration, trimStart + savedDuration),
               ),
               clipDuration = Math.max(0.1, trimEnd - trimStart);
             video.currentTime = trimStart;
@@ -4387,10 +4410,32 @@
               console.warn("Story view failed:", error.message);
             }
           }
-          const storyVideo = content.querySelector("video");
-          if (story.type === "video" && storyVideo)
+          const storyVideo = content.querySelector("video"),
+            storyImage = content.querySelector("img");
+          if (story.type === "video" && storyVideo) {
             scheduleStoryVideo(storyVideo, story);
-          else scheduleStoryTimer(6000);
+          } else if (story.type === "image" && storyImage) {
+            const startImageProgress = () =>
+              scheduleStoryTimer(
+                Math.max(1000, Number(story.playbackDuration || 6) * 1000),
+              );
+            if (storyImage.complete && storyImage.naturalWidth)
+              startImageProgress();
+            else {
+              storyImage.addEventListener("load", startImageProgress, {
+                once: true,
+              });
+              storyImage.addEventListener(
+                "error",
+                () => scheduleStoryTimer(6000),
+                { once: true },
+              );
+            }
+          } else {
+            scheduleStoryTimer(
+              Math.max(1000, Number(story.playbackDuration || 6) * 1000),
+            );
+          }
         }
         function formatStoryAge(value) {
           const time = new Date(value).getTime();
