@@ -47,6 +47,7 @@ const state = {
   me:null,
 
   classes:[],
+  classesLoaded:false,
   assignments:[],
   submissions:[],
   schedules:[],
@@ -2746,12 +2747,35 @@ function getStudentClassProgressRecord(
 }
 
 
+function calculateSavedClassProgress(progress){
+  const weights={lessons:45,assignments:30,quizzes:15,attendance:10};
+  let points=0,totalWeight=0;
+  for(const [key,weight] of Object.entries(weights)){
+    const part=progress[key];
+    if(!part)return null;
+    if(Number(part.total)>0){
+      points+=Math.max(0,Math.min(100,Number(part.percentage)||0))*weight;
+      totalWeight+=weight;
+    }
+  }
+  return totalWeight?Math.round(points/totalWeight):0;
+}
+
+function savedAssessmentProgress(items,submissions,field,studentId,normalize){
+  if(!Array.isArray(items)||(!Array.isArray(submissions)&&items.length))return null;
+  const ids=new Set(items.map(item=>normalize(item._id||item.id)).filter(Boolean));
+  const submitted=new Set((submissions||[])
+    .filter(item=>normalize(item.studentId)===normalize(studentId))
+    .map(item=>normalize(item[field])));
+  const completed=[...ids].filter(value=>submitted.has(value)).length;
+  return {total:ids.size,completed,percentage:ids.size?Math.round(completed/ids.size*100):0};
+}
+
 async function loadStudentClassProgress({
   force = false
 } = {}){
   if (
-    state.classProgressLoading &&
-    !force
+    state.classProgressLoading
   ){
     return;
   }
@@ -2836,14 +2860,13 @@ async function loadStudentClassProgress({
                   )
             ]);
 
+            const previous=state.classProgressById.get(classId);
             const data =
               summaryResponse?.progress
                 ? {
                     ...summaryResponse
                   }
-                : createEmptyStudentClassProgress(
-                    classId
-                  );
+                : previous ? {...previous,progress:{...previous.progress}} : createEmptyStudentClassProgress(classId);
 
             const learningLessons =
               asArray(
@@ -2857,8 +2880,8 @@ async function loadStudentClassProgress({
               );
 
             if (
-              learningResponse &&
-              learningLessons.length
+              learningResponse && Array.isArray(learningResponse.lessons) &&
+              Array.isArray(learningResponse.lessonProgress)
             ){
               const latestByLessonId =
                 new Map();
@@ -2914,7 +2937,7 @@ async function loadStudentClassProgress({
                 Math.round(
                   (
                     completed /
-                    learningLessons.length
+                    (learningLessons.length || 1)
                   ) *
                   100
                 );
@@ -2934,11 +2957,35 @@ async function loadStudentClassProgress({
               };
 
               if (
-                !summaryResponse?.progress
+                !summaryResponse?.progress && !previous?.available
               ){
-                data.progress.overall =
-                  percentage;
+                // Attendance and assessment totals are still unknown.
+                data.progress.overall = 0;
               }
+            }
+
+            if(!selectedStudentId && learningResponse?.permissions?.canTrackProgress){
+              const [savedAssignments,savedQuizzes]=await Promise.all([
+                apiGet(`/api/submissions?classId=${encodeURIComponent(classId)}`,null),
+                apiGet(`/api/quizzes/submissions/list?classId=${encodeURIComponent(classId)}`,null)
+              ]);
+              data.progress={...data.progress};
+              for(const [key,records,field] of [['assignments',savedAssignments,'assignmentId'],['quizzes',savedQuizzes,'quizId']]){
+                const part=savedAssessmentProgress(learningResponse[key],records,field,requestedStudentId,normalizeId);
+                if(part)data.progress[key]=part;
+                else if(previous?.progress?.[key])data.progress[key]=previous.progress[key];
+              }
+              // Only compute an overall value once all category totals are known.
+              if(summaryResponse?.progress || previous?.available){
+                const overall=calculateSavedClassProgress(data.progress);
+                if(overall!==null)data.progress.overall=overall;
+              }
+            }
+            if(!summaryResponse?.progress && !learningResponse && previous)return {classId,data:previous};
+            if(!selectedStudentId && !learningResponse && previous?.available){
+              data.progress={...data.progress,lessons:previous.progress.lessons,assignments:previous.progress.assignments,quizzes:previous.progress.quizzes};
+              const overall=calculateSavedClassProgress(data.progress);
+              if(overall!==null)data.progress.overall=overall;
             }
 
             return {
@@ -2992,12 +3039,7 @@ async function loadStudentClassProgress({
             : "No progress response"
         );
 
-        state.classProgressById.set(
-          classId,
-          createEmptyStudentClassProgress(
-            classId
-          )
-        );
+        if(!state.classProgressById.has(classId))state.classProgressById.set(classId,createEmptyStudentClassProgress(classId));
       }
     );
 
@@ -3008,6 +3050,19 @@ async function loadStudentClassProgress({
       false;
   }
 }
+
+let studentReturnRefresh=null;
+function refreshReturnedStudentClasses(){
+  if(!state.classesLoaded||studentReturnRefresh)return studentReturnRefresh;
+  studentReturnRefresh=(async()=>{
+    await loadStudentClassProgress();
+    calculateMetrics();renderStats();renderClasses();renderContinueLearningWorkspace();
+  })().catch(error=>console.warn("Class refresh failed:",error)).finally(()=>{studentReturnRefresh=null});
+  return studentReturnRefresh;
+}
+window.addEventListener("pageshow",event=>{if(event.persisted)refreshReturnedStudentClasses()});
+window.addEventListener("focus",()=>refreshReturnedStudentClasses());
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refreshReturnedStudentClasses()});
 
 function getStudentClasses(){
   const studentId = getStudentId();
@@ -3235,7 +3290,7 @@ async function loadAll(){
                 schoolId
               )
             }`,
-            []
+            null
           ),
 
           apiGet(
@@ -3308,10 +3363,10 @@ async function loadAll(){
        NORMALIZE STATE
     ========================================================= */
 
-    state.classes =
-      asArray(
-        classes
-      );
+    if(classes !== null){
+      state.classes=asArray(classes);
+      state.classesLoaded=true;
+    }
 
 
     state.assignments =
@@ -3372,8 +3427,7 @@ async function loadAll(){
        STUDENT PROGRESS
     ========================================================= */
 
-    state.classProgressById.clear();
-
+    // Keep confirmed progress during refresh.
 
     state.classProgressLoaded =
       false;
@@ -3524,6 +3578,7 @@ function getContinueLearningClassCover(item){
 }
 
 function renderContinueLearningWorkspace(){
+  setText("continueLearningBadge",getContinueLearningClasses().length);
   const classes =
     getContinueLearningClasses();
 
@@ -6464,6 +6519,7 @@ function openStudentClass(
     );
   }
 
+  url.searchParams.set("returnToStudent","1");
   window.location.href =
     url.href;
 }
@@ -21636,10 +21692,11 @@ async function loadStudentAIConversations(){
         null
       );
 
-    studentAIRecentConversations =
-      asArray(
-        response?.conversations
+    if(Array.isArray(response?.conversations)){
+      studentAIRecentConversations=response.conversations.filter(conversation=>
+        !/^you are (?:kabezya|aift)\b/i.test(String(conversation?.title||"").trim())
       );
+    }
 
   }catch(error){
 
@@ -36547,6 +36604,7 @@ function renderProfile(){
 }
 
 function renderStats(){
+  setText("continueLearningBadge",getContinueLearningClasses().length);
   const classes =
     getStudentClasses();
 
@@ -37500,6 +37558,11 @@ function renderClasses(){
     $("classesList");
 
   if (!container){
+    return;
+  }
+
+  if(!state.classesLoaded){
+    container.setAttribute("aria-busy","true");
     return;
   }
 
@@ -58010,3 +58073,4 @@ document.addEventListener(
 
   }
 );
+
