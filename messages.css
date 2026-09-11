@@ -3606,8 +3606,8 @@ svg {
   width: 100%;
 }
 .story-progress span.active i {
-  width: 100%;
-  animation: storyProgress var(--story-duration, 6000ms) linear forwards;
+  width: 0;
+  animation: none;
 }
 .story-viewer.paused .story-progress span.active i {
   animation-play-state: paused;
@@ -4548,9 +4548,9 @@ body:has(.chat-panel[data-chat-theme="dark"]) .message-delete-card button {
   right: 18px;
   bottom: calc(102px + env(safe-area-inset-bottom));
   z-index: 42;
-  padding: 8px 8px 9px;
+  padding: 6px 6px 7px;
   border: 0;
-  border-radius: 13px;
+  border-radius: 11px;
   background: rgba(9, 13, 18, 0.82);
   color: #fff;
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.28);
@@ -4561,13 +4561,33 @@ body:has(.chat-panel[data-chat-theme="dark"]) .message-delete-card button {
 #storyComposer .story-trim-panel.hidden {
   display: none !important;
 }
+#storyComposer.story-uploading .story-compose-card::after {
+  content: "Uploading story…";
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  background: rgba(4, 8, 13, 0.52);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  pointer-events: all;
+}
+#storyComposer.story-uploading .story-trim-panel,
+#storyComposer.story-uploading .story-compose-controls {
+  pointer-events: none !important;
+}
 #storyComposer .story-trim-meta {
   display: flex;
   align-items: center;
   gap: 7px;
   width: max-content;
-  margin-top: 7px;
-  padding: 5px 9px 5px 6px;
+  margin-top: 5px;
+  padding: 3px 8px 3px 5px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
@@ -4606,7 +4626,7 @@ body:has(.chat-panel[data-chat-theme="dark"]) .message-delete-card button {
 }
 #storyComposer .story-trim-range {
   position: relative;
-  height: 58px;
+  height: 42px;
   overflow: hidden;
   border-radius: 7px;
   background: #20252b;
@@ -4621,7 +4641,7 @@ body:has(.chat-panel[data-chat-theme="dark"]) .message-delete-card button {
 #storyComposer .story-trim-frames img,
 #storyComposer .story-trim-frames i {
   width: 100%;
-  height: 58px;
+  height: 42px;
   object-fit: cover;
   border-right: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(135deg, #303740, #1b2026);
@@ -4630,8 +4650,8 @@ body:has(.chat-panel[data-chat-theme="dark"]) .message-delete-card button {
   position: absolute;
   top: 0;
   bottom: 0;
-  border-top: 3px solid #fff;
-  border-bottom: 3px solid #fff;
+  border-top: 2px solid #fff;
+  border-bottom: 2px solid #fff;
   content: "";
 }
 #storyComposer .story-trim-selection {
@@ -4642,8 +4662,8 @@ body:has(.chat-panel[data-chat-theme="dark"]) .message-delete-card button {
 }
 #storyComposer .story-trim-playhead {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
+  top: 2px;
+  bottom: 2px;
   z-index: 3;
   width: 2px;
   margin-left: -1px;
@@ -4656,7 +4676,7 @@ body:has(.chat-panel[data-chat-theme="dark"]) .message-delete-card button {
   position: absolute;
   inset: 0;
   width: 100%;
-  height: 58px;
+  height: 42px;
   margin: 0;
   border: 0;
   background: transparent;
@@ -4665,23 +4685,34 @@ body:has(.chat-panel[data-chat-theme="dark"]) .message-delete-card button {
   pointer-events: none;
 }
 #storyComposer .story-trim-range input::-webkit-slider-thumb {
-  width: 18px;
-  height: 58px;
-  border: 3px solid #fff;
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 2px 9px rgba(0, 0, 0, 0.34);
+  width: 24px;
+  height: 42px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   appearance: none;
   -webkit-appearance: none;
   pointer-events: auto;
 }
+#storyComposer #storyTrimStart::-webkit-slider-thumb {
+  box-shadow: inset 4px 0 0 #fff;
+}
+#storyComposer #storyTrimEnd::-webkit-slider-thumb {
+  box-shadow: inset -4px 0 0 #fff;
+}
 #storyComposer .story-trim-range input::-moz-range-thumb {
-  width: 16px;
-  height: 52px;
-  border: 3px solid #fff;
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.12);
+  width: 24px;
+  height: 42px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   pointer-events: auto;
+}
+#storyComposer #storyTrimStart::-moz-range-thumb {
+  box-shadow: inset 4px 0 0 #fff;
+}
+#storyComposer #storyTrimEnd::-moz-range-thumb {
+  box-shadow: inset -4px 0 0 #fff;
 }
 #storyComposer .story-compose-preview img,
 #storyComposer .story-compose-preview video,
@@ -4763,6 +4794,7 @@ body:has(.chat-panel[data-chat-theme="dark"]) .message-delete-card button {
 #storyComposer.story-text-editing .story-compose-head,
 #storyComposer.story-text-editing .story-compose-controls,
 #storyComposer.story-text-editing .story-compose-actions,
+#storyComposer.story-text-editing #storyTrimPanel,
 #storyComposer.story-text-editing #storyMusicStatus,
 #storyComposer.story-text-editing #storyTagPanel,
 #storyComposer.story-text-editing #storyDeleteZone {
