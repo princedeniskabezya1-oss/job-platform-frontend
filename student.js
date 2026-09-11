@@ -36902,6 +36902,46 @@ function getStudentClassProgress(
         ?.overall
     );
 
+  const lessonTotal =
+    Number(
+      progressRecord
+        ?.progress
+        ?.lessons
+        ?.total
+    );
+
+  const lessonProgress =
+    Number(
+      progressRecord
+        ?.progress
+        ?.lessons
+        ?.percentage
+    );
+
+  /*
+    The class player defines class completion from its
+    published lessons. Keep the student card synchronized
+    with that same learning progress whenever lessons exist.
+  */
+
+  if (
+    progressRecord?.available &&
+    lessonTotal > 0 &&
+    Number.isFinite(
+      lessonProgress
+    )
+  ){
+    return Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          lessonProgress
+        )
+      )
+    );
+  }
+
   if (
     Number.isFinite(
       backendProgress
@@ -37796,7 +37836,11 @@ function createStudentClassCard(
                 ></i>
 
                 <span>
-                  Continue learning
+                  ${
+                    progress >= 100
+                      ? "Review learning"
+                      : "Continue learning"
+                  }
                 </span>
               </button>
 
@@ -38253,7 +38297,11 @@ function createStudentClassCard(
                     aria-hidden="true"
                   ></i>
 
-                  Continue
+                  ${
+                    progress >= 100
+                      ? "Review class"
+                      : "Continue"
+                  }
                 </button>
               `
           }
