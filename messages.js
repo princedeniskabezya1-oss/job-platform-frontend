@@ -420,7 +420,7 @@ async function confirmDeleteSelectedMessages(scope){
     const ids=new Set(entries.map(entry=>String(entry.id)));
     if(scope==="me")state.messages=state.messages.filter(message=>!ids.has(String(messageId(message))));
     else state.messages.forEach(message=>{if(ids.has(String(messageId(message)))){message.deletedForEveryone=true;message.text="This message was deleted";message.attachments=[];message.fileUrl="";}});
-    clearSelectedMessage();renderMessages({preserveViewport:true});toast(entries.length>1?"Messages deleted":scope==="everyone"?"Message deleted for everyone":"Message deleted");
+    clearSelectedMessage();renderMessages({preserveViewport:true});await loadConversations();toast(entries.length>1?"Messages deleted":scope==="everyone"?"Message deleted for everyone":"Message deleted");
   }catch(error){toast(error.message||"Unable to delete messages");}
 }
 function deleteSelectedMessageForMe(){confirmDeleteSelectedMessages("me");}
