@@ -37928,7 +37928,7 @@ function createStudentClassCard(
 
         </div>
 
-        <p class="student-class-description" hidden>
+        <p class="student-class-description">
           ${escapeHtml(
             classItem?.description ||
             "No class description has been added."
@@ -37936,7 +37936,7 @@ function createStudentClassCard(
         </p>
 
 
-        <div class="student-class-teacher" hidden>
+        <div class="student-class-teacher">
 
           <img
             src="${escapeHtml(
@@ -37968,7 +37968,7 @@ function createStudentClassCard(
         </div>
 
 
-        <div class="student-class-schedule" hidden>
+        <div class="student-class-schedule">
 
           <i
             class="fa-regular fa-calendar"
@@ -37984,7 +37984,6 @@ function createStudentClassCard(
         <div
           class="student-class-progress-breakdown"
           aria-label="Class progress details"
-          hidden
         >
 
           <div class="student-class-progress-metric">
