@@ -20448,6 +20448,12 @@ let studentAISelectedSourceType =
 let studentAISelectedSourceId =
   "";
 
+let studentAIRecentConversations =
+  [];
+
+let studentAIHistoryLoading =
+  false;
+
 
 /* =========================================================
    STUDENT AI MODE CONFIGURATION
@@ -21459,6 +21465,302 @@ function renderStudentAIConversation(){
 }
 
 /* =========================================================
+   STUDENT AI CONVERSATION HISTORY
+========================================================= */
+
+function setStudentAIHistoryOpen(
+  open
+){
+
+  const drawer =
+    $("studentAIHistoryDrawer");
+
+  const backdrop =
+    $("studentAIHistoryBackdrop");
+
+  const toggle =
+    $("studentAIHistoryToggle");
+
+  if (
+    !drawer ||
+    !backdrop
+  ){
+    return;
+  }
+
+  const shouldOpen =
+    Boolean(open);
+
+  drawer.hidden =
+    !shouldOpen;
+
+  backdrop.hidden =
+    !shouldOpen;
+
+  drawer.setAttribute(
+    "aria-hidden",
+    String(!shouldOpen)
+  );
+
+  toggle?.setAttribute(
+    "aria-expanded",
+    String(shouldOpen)
+  );
+
+  if (shouldOpen){
+    loadStudentAIConversations();
+  }
+
+}
+
+function renderStudentAIConversationHistory(){
+
+  const list =
+    $("studentAIRecentSessions");
+
+  if (!list){
+    return;
+  }
+
+  if (studentAIHistoryLoading){
+    list.innerHTML = `
+      <div class="student-ai-history-empty">
+        Loading previous chats...
+      </div>
+    `;
+    return;
+  }
+
+  if (!studentAIRecentConversations.length){
+    list.innerHTML = `
+      <div class="student-ai-history-empty">
+        No previous chats yet. Start a new conversation with Kabezya.
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML =
+    studentAIRecentConversations
+      .map(conversation => {
+
+        const conversationId =
+          normalizeId(
+            conversation?._id ||
+            conversation?.id
+          );
+
+        const title =
+          String(
+            conversation?.title ||
+            "Kabezya conversation"
+          ).trim();
+
+        return `
+          <button
+            type="button"
+            class="student-ai-history-item ${
+              sameId(
+                conversationId,
+                studentAIConversationId
+              )
+                ? "active"
+                : ""
+            }"
+            data-student-ai-conversation-id="${
+              escapeHtml(conversationId)
+            }"
+            title="${escapeHtml(title)}"
+          >
+            ${escapeHtml(title)}
+          </button>
+        `;
+
+      })
+      .join("");
+
+}
+
+async function loadStudentAIConversations(){
+
+  if (studentAIHistoryLoading){
+    return;
+  }
+
+  studentAIHistoryLoading =
+    true;
+
+  renderStudentAIConversationHistory();
+
+  try{
+
+    const response =
+      await apiGet(
+        "/api/student-ai/conversations",
+        null
+      );
+
+    studentAIRecentConversations =
+      asArray(
+        response?.conversations
+      );
+
+  }catch(error){
+
+    console.warn(
+      "Student AI history failed:",
+      error
+    );
+
+  }finally{
+
+    studentAIHistoryLoading =
+      false;
+
+    renderStudentAIConversationHistory();
+
+  }
+
+}
+
+function startNewStudentAIConversation(){
+
+  studentAIConversationMessages =
+    [];
+
+  studentAIConversationId =
+    "";
+
+  setStudentAIActiveMode(
+    "ask",
+    {
+      focus:false
+    }
+  );
+
+  renderStudentAIConversation();
+
+  renderStudentAIConversationHistory();
+
+  setStudentAIHistoryOpen(
+    false
+  );
+
+  window.setTimeout(
+    () => {
+      $("studentAIMessageInput")
+        ?.focus();
+    },
+    40
+  );
+
+}
+
+async function openStudentAIConversation(
+  requestedConversationId
+){
+
+  const conversationId =
+    normalizeId(
+      requestedConversationId
+    );
+
+  if (!conversationId){
+    return;
+  }
+
+  const response =
+    await apiGet(
+      `/api/student-ai/conversations/${
+        encodeURIComponent(
+          conversationId
+        )
+      }`,
+      null
+    );
+
+  const conversation =
+    response?.conversation;
+
+  if (!conversation){
+    notifyAIFTError(
+      "This Kabezya conversation could not be loaded.",
+      {
+        title:
+          "Previous chat unavailable"
+      }
+    );
+    return;
+  }
+
+  studentAIConversationId =
+    normalizeId(
+      conversation._id ||
+      conversationId
+    );
+
+  studentAIConversationMessages =
+    asArray(
+      conversation.messages
+    )
+      .filter(message =>
+        message?.content
+      )
+      .map(message => ({
+        role:
+          message.role === "user"
+            ? "user"
+            : "assistant",
+        content:
+          String(
+            message.content ||
+            ""
+          ),
+        createdAt:
+          message.createdAt ||
+          conversation.updatedAt ||
+          null,
+        sources:
+          asArray(
+            message.sources
+          )
+      }));
+
+  studentAISelectedClassId =
+    normalizeId(
+      conversation.classId
+    );
+
+  studentAISelectedSourceType =
+    String(
+      conversation.sourceType ||
+      "general"
+    );
+
+  studentAISelectedSourceId =
+    normalizeId(
+      conversation.sourceId
+    );
+
+  hydrateStudentAIClassSelect();
+  hydrateStudentAISourceItemSelect();
+  renderStudentAIContextStatus();
+
+  setStudentAIActiveMode(
+    conversation.mode ||
+    "ask",
+    {
+      focus:false
+    }
+  );
+
+  renderStudentAIConversation();
+  renderStudentAIConversationHistory();
+  setStudentAIHistoryOpen(false);
+
+}
+
+/* =========================================================
    STUDENT AI MESSAGE SUBMISSION
 ========================================================= */
 
@@ -21701,6 +22003,8 @@ const pendingMessage = {
 
 
     renderStudentAIConversation();
+
+    loadStudentAIConversations();
 
   }catch(error){
 
@@ -22037,6 +22341,24 @@ function bindStudentAILearningControls(){
 
       }
 
+      const historyItem =
+        event.target.closest(
+          "[data-student-ai-conversation-id]"
+        );
+
+      if (historyItem){
+
+        event.preventDefault();
+
+        openStudentAIConversation(
+          historyItem.dataset
+            .studentAiConversationId
+        );
+
+        return;
+
+      }
+
 
       const suggestion =
         event.target.closest(
@@ -22189,21 +22511,59 @@ function bindStudentAILearningControls(){
 
         event.preventDefault();
 
-
-studentAIConversationMessages =
-  [];
-
-studentAIConversationId =
-  "";
-
-renderStudentAIConversation();
-
-
-        $("studentAIMessageInput")
-          ?.focus();
+        startNewStudentAIConversation();
 
       }
     );
+
+  $("studentAIHistoryToggle")
+    ?.addEventListener(
+      "click",
+      event => {
+        event.preventDefault();
+        setStudentAIHistoryOpen(true);
+      }
+    );
+
+  $("studentAIHistoryClose")
+    ?.addEventListener(
+      "click",
+      event => {
+        event.preventDefault();
+        setStudentAIHistoryOpen(false);
+      }
+    );
+
+  $("studentAIHistoryBackdrop")
+    ?.addEventListener(
+      "click",
+      event => {
+        event.preventDefault();
+        setStudentAIHistoryOpen(false);
+      }
+    );
+
+  $("studentAIHistoryNewChat")
+    ?.addEventListener(
+      "click",
+      event => {
+        event.preventDefault();
+        startNewStudentAIConversation();
+      }
+    );
+
+  document.addEventListener(
+    "keydown",
+    event => {
+      if (
+        event.key === "Escape" &&
+        !$("studentAIHistoryDrawer")
+          ?.hidden
+      ){
+        setStudentAIHistoryOpen(false);
+      }
+    }
+  );
 
 
   $("studentAIAttachButton")
@@ -22289,6 +22649,8 @@ function renderStudentAILearning(){
 
 
   updateStudentAIComposer();
+
+  loadStudentAIConversations();
 
 
   /*
