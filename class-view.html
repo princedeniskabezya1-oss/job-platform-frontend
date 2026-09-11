@@ -1480,10 +1480,231 @@
 
 }
 
+
+/* =========================================================
+   FOCUSED STUDENT ASSESSMENT WORKSPACE
+========================================================= */
+body.assessment-open{overflow:hidden}
+.assessment-overlay{
+  position:fixed;
+  inset:0;
+  z-index:100000;
+  display:grid;
+  place-items:center;
+  padding:20px;
+  background:rgba(15,23,42,.48);
+  backdrop-filter:blur(4px);
+}
+.assessment-overlay[hidden]{display:none!important}
+.assessment-dialog{
+  width:min(720px,100%);
+  max-height:min(880px,calc(100dvh - 40px));
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 24px 70px rgba(15,23,42,.24);
+}
+.assessment-dialog-head{
+  min-height:64px;
+  padding:12px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  border-bottom:1px solid var(--border);
+}
+.assessment-dialog-head div{min-width:0}
+.assessment-dialog-head span{
+  display:block;
+  color:var(--primary);
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.assessment-dialog-head strong{
+  display:block;
+  margin-top:3px;
+  overflow:hidden;
+  color:var(--strong);
+  font-size:15px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.assessment-close{
+  width:36px;
+  height:36px;
+  flex:0 0 36px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--border);
+  border-radius:50%;
+  background:#fff;
+  color:var(--text);
+}
+.assessment-close svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2}
+.assessment-body{
+  min-height:0;
+  overflow-y:auto;
+  padding:20px;
+  overscroll-behavior:contain;
+}
+.assessment-intro{padding-bottom:16px;border-bottom:1px solid var(--border-soft)}
+.assessment-intro h2{margin:0;color:var(--strong);font-size:23px;line-height:1.2}
+.assessment-intro p{margin:8px 0 0;color:var(--muted);font-size:11px;line-height:1.65;white-space:pre-wrap}
+.assessment-meta{margin-top:12px;display:flex;flex-wrap:wrap;gap:7px}
+.assessment-meta span{
+  min-height:27px;
+  padding:0 9px;
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  background:#f2f4f7;
+  color:#475467;
+  font-size:8px;
+  font-weight:700;
+}
+.assessment-form{margin-top:18px;display:grid;gap:14px}
+.assessment-question{
+  padding:15px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:#fff;
+}
+.assessment-question legend{
+  width:100%;
+  margin:0 0 11px;
+  color:var(--strong);
+  font-size:11px;
+  font-weight:700;
+  line-height:1.5;
+}
+.assessment-option{
+  min-height:42px;
+  margin-top:7px;
+  padding:8px 10px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  color:#344054;
+  font-size:10px;
+  cursor:pointer;
+}
+.assessment-option:has(input:checked){border-color:#84adff;background:#eff6ff;color:#175cd3}
+.assessment-option input{margin:0;accent-color:var(--primary)}
+.assessment-answer,
+.assessment-submission-text{
+  width:100%;
+  min-height:96px;
+  padding:12px;
+  resize:vertical;
+  border:1px solid var(--border);
+  border-radius:10px;
+  outline:0;
+  background:#fff;
+  color:var(--strong);
+  font:inherit;
+  font-size:10px;
+  line-height:1.55;
+}
+.assessment-submission-text{min-height:150px}
+.assessment-answer:focus,
+.assessment-submission-text:focus{border-color:#84adff;box-shadow:0 0 0 3px rgba(26,115,232,.08)}
+.assessment-upload{
+  padding:14px;
+  border:1px dashed #b8c2cf;
+  border-radius:11px;
+  background:#f8fafc;
+}
+.assessment-upload strong{display:block;color:var(--strong);font-size:10px}
+.assessment-upload span{display:block;margin-top:3px;color:var(--muted);font-size:8px}
+.assessment-upload input{width:100%;margin-top:11px;font-size:9px}
+.assessment-submit{
+  min-height:44px;
+  padding:0 16px;
+  border:0;
+  border-radius:10px;
+  background:var(--primary);
+  color:#fff;
+  font-size:10px;
+  font-weight:800;
+}
+.assessment-submit:disabled{opacity:.55;cursor:wait}
+.assessment-result{
+  min-height:330px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.assessment-result-icon{
+  width:58px;
+  height:58px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:var(--success-soft);
+  color:var(--success);
+}
+.assessment-result-icon svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2}
+.assessment-result h2{margin:16px 0 0;color:var(--strong);font-size:22px}
+.assessment-result p{max-width:470px;margin:7px 0 0;color:var(--muted);font-size:10px;line-height:1.6}
+.assessment-score{margin-top:16px;color:var(--primary);font-size:28px;font-weight:800}
+.assessment-done{min-height:40px;margin-top:20px;padding:0 22px;border:0;border-radius:9px;background:var(--primary);color:#fff;font-size:10px;font-weight:800}
+.item-status{
+  min-height:24px;
+  padding:0 8px;
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  background:#eef2f6;
+  color:#667085;
+  font-size:7px;
+  font-weight:800;
+}
+.item-status.is-complete{background:var(--success-soft);color:var(--success)}
+.item-arrow{display:flex;align-items:center;gap:7px}
+.assessment-error{padding:18px;border:1px solid #fecaca;border-radius:11px;background:#fff7f7;color:#b42318;font-size:10px;line-height:1.6}
+@media(max-width:760px){
+  .assessment-overlay{align-items:stretch;padding:0;background:#fff;backdrop-filter:none}
+  .assessment-dialog{width:100%;max-height:100dvh;height:100dvh;border:0;border-radius:0;box-shadow:none}
+  .assessment-dialog-head{
+    min-height:58px;
+    padding:9px 12px;
+    padding-top:max(9px,env(safe-area-inset-top));
+  }
+  .assessment-dialog-head strong{font-size:13px}
+  .assessment-body{padding:16px 12px calc(22px + env(safe-area-inset-bottom))}
+  .assessment-intro h2{font-size:20px}
+  .assessment-form{gap:10px}
+  .assessment-question{padding:13px}
+  .assessment-submit{position:sticky;bottom:0;width:100%;box-shadow:0 -8px 20px rgba(255,255,255,.94)}
+}
 </style>
 </head>
 <body>
 <div class="alerts" id="alerts" aria-live="polite"></div>
+<div class="assessment-overlay" id="assessmentOverlay" hidden aria-hidden="true">
+  <section class="assessment-dialog" role="dialog" aria-modal="true" aria-labelledby="assessmentDialogTitle">
+    <header class="assessment-dialog-head">
+      <div>
+        <span id="assessmentDialogType">Assessment</span>
+        <strong id="assessmentDialogTitle">Class assessment</strong>
+      </div>
+      <button class="assessment-close" id="assessmentClose" type="button" aria-label="Close assessment">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
+    <div class="assessment-body" id="assessmentWorkspace"></div>
+  </section>
+</div>
 <div class="backdrop" id="backdrop"></div>
 <header class="topbar">
   <div class="topbar-inner">
@@ -1567,7 +1788,7 @@ const qs=new URLSearchParams(location.search);
 const classId=String(qs.get("classId")||"").trim();
 const requestedLessonId=String(qs.get("lessonId")||"").trim();
 const from=String(qs.get("from")||"").trim().toLowerCase();
-const state={viewer:null,role:"",classData:null,modules:[],lessons:[],quizzes:[],assignments:[],lessonProgress:[],certificate:null,permissions:{canView:false,canTrackProgress:false,canManage:false},selectedLessonId:requestedLessonId,selectedTab:"content",expanded:new Set()};
+const state={viewer:null,role:"",classData:null,modules:[],lessons:[],quizzes:[],assignments:[],lessonProgress:[],submissions:[],quizSubmissions:[],progressSummary:null,activeAssessment:null,assessmentStartedAt:0,certificate:null,permissions:{canView:false,canTrackProgress:false,canManage:false},selectedLessonId:requestedLessonId,selectedTab:"content",expanded:new Set()};
 const I={
  play:`<svg viewBox="0 0 24 24"><path d="m8 5 11 7-11 7Z"/></svg>`,
  file:`<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>`,
@@ -1594,7 +1815,18 @@ function moduleLessons(mid){return state.lessons.filter(l=>lessonModule(l)===Str
 function moduleUnlocked(mid){if(!state.permissions.canTrackProgress)return true;const idx=state.modules.findIndex(m=>id(m)===String(mid));if(idx<=0)return true;const prev=state.modules[idx-1];return !prev||moduleLessons(id(prev)).every(l=>completed(id(l)))}
 function lessonUnlocked(l){if(!state.permissions.canTrackProgress)return true;const mid=lessonModule(l);if(mid&&!moduleUnlocked(mid))return false;const list=mid?moduleLessons(mid):state.lessons.filter(x=>!lessonModule(x));const idx=list.findIndex(x=>id(x)===id(l));return idx<=0||completed(id(list[idx-1]))}
 function selected(){return state.lessons.find(l=>id(l)===state.selectedLessonId)||null}
-function overall(){if(!state.permissions.canTrackProgress||!state.lessons.length)return 0;return Math.round(state.lessons.filter(l=>completed(id(l))).length/state.lessons.length*100)}
+function overall(){
+  if(!state.permissions.canTrackProgress)return 0;
+  const summary=Number(state.progressSummary?.progress?.overall);
+  if(Number.isFinite(summary))return Math.max(0,Math.min(100,Math.round(summary)));
+  if(!state.lessons.length)return 0;
+  return Math.round(state.lessons.filter(l=>completed(id(l))).length/state.lessons.length*100);
+}
+async function refreshClassProgress(){
+  if(!state.permissions.canTrackProgress)return;
+  try{state.progressSummary=await api(`/api/classes/${encodeURIComponent(classId)}/student-progress`)}
+  catch(error){console.warn("Class progress refresh failed:",error)}
+}
 function nextLearning(){const requested=state.lessons.find(l=>id(l)===requestedLessonId&&lessonUnlocked(l));if(requested)return requested;if(state.permissions.canTrackProgress){const x=state.lessons.find(l=>lessonUnlocked(l)&&!completed(id(l)));if(x)return x}return state.lessons.find(lessonUnlocked)||state.lessons[0]||null}
 function resources(l){const out=[];const add=x=>{if(!x)return;if(typeof x==="string"){out.push({title:"Lesson resource",description:"Learning resource",url:x});return}const u=x.url||x.fileUrl||x.resourceUrl||x.attachmentUrl||"";if(u)out.push({title:x.title||x.name||x.originalName||"Lesson resource",description:x.description||x.type||"Learning resource",url:u})};[...(Array.isArray(l?.resources)?l.resources:[]),...(Array.isArray(l?.materials)?l.materials:[]),...(Array.isArray(l?.attachments)?l.attachments:[])].forEach(add);[l?.resourceUrl,l?.fileUrl,l?.attachmentUrl].filter(Boolean).forEach(add);return [...new Map(out.map(x=>[x.url,x])).values()]}
 function lessonQuizzes(l){const lid=id(l);return state.quizzes.filter(q=>{const ql=id(q.lessonId||q.lesson);return ql===lid||(!ql&&!lid)})}
@@ -1777,7 +2009,13 @@ function renderMedia(lesson){
 
 }
   
-function itemHtml(type,item){const isQ=type==="quiz";return`<button class="item" data-assessment-type="${type}" data-assessment-id="${esc(id(item))}"><span class="item-icon">${isQ?I.quiz:I.assignment}</span><span class="item-copy"><strong>${esc(item.title||item.name||(isQ?"Quiz":"Assignment"))}</strong><span>${isQ?`${Array.isArray(item.questions)?item.questions.length:0} Questions`:item.dueDate?`Due ${esc(new Date(item.dueDate).toLocaleDateString())}`:"Written submission"}</span></span><span class="item-arrow">${I.arrow}</span></button>`}
+function quizSubmission(quizId){return state.quizSubmissions.find(item=>id(item.quizId)===String(quizId||""))||null}
+function assignmentSubmission(assignmentId){return state.submissions.find(item=>id(item.assignmentId)===String(assignmentId||""))||null}
+function assessmentCompleted(type,item){return type==="quiz"?Boolean(quizSubmission(id(item))):Boolean(assignmentSubmission(id(item)))}
+function itemHtml(type,item){
+  const isQ=type==="quiz",done=assessmentCompleted(type,item);
+  return `<button class="item" data-assessment-type="${type}" data-assessment-id="${esc(id(item))}"><span class="item-icon">${isQ?I.quiz:I.assignment}</span><span class="item-copy"><strong>${esc(item.title||item.name||(isQ?"Quiz":"Assignment"))}</strong><span>${done?"Completed":isQ?`${Array.isArray(item.questions)?item.questions.length:0} questions`:item.dueDate?`Due ${esc(new Date(item.dueDate).toLocaleDateString())}`:"Written submission"}</span></span><span class="item-arrow"><span class="item-status ${done?"is-complete":""}">${done?"Completed":"Open"}</span>${I.arrow}</span></button>`
+}
 function bindAssessments(root){root.querySelectorAll("[data-assessment-type]").forEach(b=>b.onclick=()=>openAssessment(b.dataset.assessmentType,b.dataset.assessmentId))}
 function renderSides(l){const rs=resources(l),qs=lessonQuizzes(l),as=lessonAssignments(l);$("resourceCount").textContent=rs.length;$("quizCount").textContent=qs.length;$("assignmentCount").textContent=as.length;$("resourceList").innerHTML=rs.length?rs.slice(0,6).map(r=>`<button class="item" data-resource="${esc(r.url)}"><span class="item-icon">${I.file}</span><span class="item-copy"><strong>${esc(r.title)}</strong><span>${esc(r.description)}</span></span><span class="item-arrow">${I.arrow}</span></button>`).join(""):`<div class="side-empty">No resources are attached to this Lesson.</div>`;$("resourceList").querySelectorAll("[data-resource]").forEach(b=>b.onclick=()=>window.open(b.dataset.resource,"_blank","noopener,noreferrer"));$("assessmentList").innerHTML=(qs.length||as.length)?[...qs.map(q=>itemHtml("quiz",q)),...as.map(a=>itemHtml("assignment",a))].join(""):`<div class="side-empty">No assessments are attached to this Lesson.</div>`;bindAssessments($("assessmentList"))}
 
@@ -2132,11 +2370,189 @@ function render(){renderViewer();renderClass();renderProgress();renderCurriculum
 function selectLessonTab(tab="content"){state.selectedTab=tab;document.querySelectorAll("[data-tab]").forEach(button=>button.classList.toggle("active",button.dataset.tab===tab))}
 function openLesson(lid,{keepTab=false,scroll=true}={}){const l=state.lessons.find(x=>id(x)===String(lid||""));if(!l){alertA("error","Lesson unavailable","The selected Lesson could not be found.");return}if(!lessonUnlocked(l)){alertA("info","Lesson locked","Complete the previous Lesson to continue.");return}state.selectedLessonId=id(l);if(!keepTab)selectLessonTab("content");const mid=lessonModule(l);if(mid)state.expanded.add(mid);renderCurriculum();renderLesson();const u=new URL(location.href);u.searchParams.set("lessonId",state.selectedLessonId);history.replaceState(null,"",u.href);document.body.classList.remove("mobile-curriculum-open");if(scroll&&matchMedia("(max-width:760px)").matches)$("lessonWorkspace").scrollIntoView({behavior:"smooth",block:"start"})}
 function navigate(dir){const l=selected();if(!l)return;const i=state.lessons.findIndex(x=>id(x)===id(l)),t=state.lessons[i+dir];if(t)openLesson(id(t))}
-async function toggleComplete(){if(!state.permissions.canTrackProgress){alertA("info","Instructor view","Lesson completion is saved only for enrolled students.");return}const l=selected();if(!l)return;const lid=id(l),was=completed(lid),btn=$("completeButton");btn.disabled=true;try{const r=await api(`/api/classes/${encodeURIComponent(classId)}/learning/lessons/${encodeURIComponent(lid)}/progress`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({completed:!was})});state.lessonProgress=state.lessonProgress.filter(x=>id(x.lessonId)!==lid);if(r.progress)state.lessonProgress.push(r.progress);renderProgress();renderCurriculum();renderLesson();alertA("success",was?"Lesson reopened":"Lesson complete",was?"This Lesson is now in progress.":"Your learning progress was saved.")}catch(e){alertA("error","Progress not saved",e.message)}finally{btn.disabled=false;renderNav()}}
-function openAssessment(type,aid){if(state.role!=="student"){alertA("info","Instructor view",`${type==="quiz"?"Quiz":"Assignment"} activity is shown as students will see it.`);return}location.href=type==="assignment"?`student.html?section=assignments&assignmentId=${encodeURIComponent(aid)}`:`student.html?section=classes&quizId=${encodeURIComponent(aid)}&classId=${encodeURIComponent(classId)}`}
+async function toggleComplete(){if(!state.permissions.canTrackProgress){alertA("info","Instructor view","Lesson completion is saved only for enrolled students.");return}const l=selected();if(!l)return;const lid=id(l),was=completed(lid),btn=$("completeButton");btn.disabled=true;try{const r=await api(`/api/classes/${encodeURIComponent(classId)}/learning/lessons/${encodeURIComponent(lid)}/progress`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({completed:!was})});state.lessonProgress=state.lessonProgress.filter(x=>id(x.lessonId)!==lid);if(r.progress)state.lessonProgress.push(r.progress);await refreshClassProgress();renderProgress();renderCurriculum();renderLesson();alertA("success",was?"Lesson reopened":"Lesson complete",was?"This Lesson is now in progress.":"Your learning progress was saved.")}catch(e){alertA("error","Progress not saved",e.message)}finally{btn.disabled=false;renderNav()}}
+function assessmentById(type,assessmentId){
+  const list=type==="quiz"?state.quizzes:state.assignments;
+  return list.find(item=>id(item)===String(assessmentId||""))||null;
+}
+function formatAssessmentDate(value){
+  if(!value)return "";
+  const date=new Date(value);
+  return Number.isNaN(date.getTime())?"":date.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+}
+function closeAssessment(){
+  $("assessmentOverlay").hidden=true;
+  $("assessmentOverlay").setAttribute("aria-hidden","true");
+  document.body.classList.remove("assessment-open");
+  state.activeAssessment=null;
+  renderSides(selected());
+  renderTab();
+}
+function showAssessmentResult({title,message,score=""}){
+  $("assessmentWorkspace").innerHTML=`<section class="assessment-result"><span class="assessment-result-icon">${I.check}</span><h2>${esc(title)}</h2>${score?`<div class="assessment-score">${esc(score)}</div>`:""}<p>${esc(message)}</p><button class="assessment-done" type="button" data-assessment-done>Done</button></section>`;
+  $("assessmentWorkspace").querySelector("[data-assessment-done]").onclick=closeAssessment;
+}
+function renderQuizWorkspace(quiz){
+  const existing=quizSubmission(id(quiz));
+  const attempts=state.quizSubmissions.filter(item=>id(item.quizId)===id(quiz));
+  const allowed=Math.max(1,Number(quiz.attemptsAllowed||1));
+  const title=quiz.title||"Quiz";
+  $("assessmentDialogType").textContent="Quiz";
+  $("assessmentDialogTitle").textContent=title;
+  if(existing){
+    showAssessmentResult({
+      title:"Quiz completed",
+      score:Number.isFinite(Number(existing.percentage))?`${Math.round(Number(existing.percentage))}%`:"",
+      message:`Your answers were submitted successfully. Attempt ${existing.attemptNumber||attempts.length||1} of ${allowed} is recorded.`
+    });
+    return;
+  }
+  const questions=Array.isArray(quiz.questions)?quiz.questions:[];
+  const fields=questions.map((question,index)=>{
+    const qid=id(question)||String(index);
+    const name=`question-${qid}`;
+    const prompt=`${index+1}. ${question.question||"Question"}`;
+    if(question.type==="short_answer"){
+      return `<fieldset class="assessment-question"><legend>${esc(prompt)}</legend><textarea class="assessment-answer" name="${esc(name)}" data-question-id="${esc(qid)}" placeholder="Write your answer" ${question.required===false?"":"required"}></textarea></fieldset>`;
+    }
+    const options=question.type==="true_false"?["True","False"]:(Array.isArray(question.options)?question.options:[]);
+    return `<fieldset class="assessment-question"><legend>${esc(prompt)}</legend>${options.map(option=>`<label class="assessment-option"><input type="radio" name="${esc(name)}" value="${esc(option)}" data-question-id="${esc(qid)}" ${question.required===false?"":"required"}><span>${esc(option)}</span></label>`).join("")}</fieldset>`;
+  }).join("");
+  $("assessmentWorkspace").innerHTML=`<section class="assessment-intro"><h2>${esc(title)}</h2><p>${esc(quiz.instructions||"Answer every question, then submit your quiz.")}</p><div class="assessment-meta"><span>${questions.length} ${questions.length===1?"question":"questions"}</span><span>Pass mark ${Math.max(0,Number(quiz.passingScore||70))}%</span><span>${allowed} ${allowed===1?"attempt":"attempts"} allowed</span></div></section><form class="assessment-form" id="focusedQuizForm">${fields||'<div class="assessment-error">This quiz has no questions yet.</div>'}${fields?'<button class="assessment-submit" type="submit">Submit quiz</button>':""}</form>`;
+  $("focusedQuizForm").onsubmit=event=>submitFocusedQuiz(event,quiz);
+}
+async function submitFocusedQuiz(event,quiz){
+  event.preventDefault();
+  const form=event.currentTarget;
+  if(!form.reportValidity())return;
+  const answers=(Array.isArray(quiz.questions)?quiz.questions:[]).map((question,index)=>{
+    const qid=id(question)||String(index);
+    const field=form.querySelector(`[name="question-${CSS.escape(qid)}"]:checked`)||form.querySelector(`textarea[name="question-${CSS.escape(qid)}"]`);
+    return {questionId:qid,answer:String(field?.value||"").trim()};
+  });
+  const button=form.querySelector(".assessment-submit");
+  button.disabled=true;button.textContent="Submitting...";
+  try{
+    const submission=await api(`/api/quizzes/${encodeURIComponent(id(quiz))}/submit`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answers,startedAt:new Date(state.assessmentStartedAt).toISOString(),timeSpentSeconds:Math.max(0,Math.round((Date.now()-state.assessmentStartedAt)/1000))})});
+    state.quizSubmissions.unshift(submission);
+    await refreshClassProgress();
+    renderProgress();
+    showAssessmentResult({title:"Quiz completed",score:`${Math.round(Number(submission.percentage||0))}%`,message:"Your answers were submitted and your class progress has been updated."});
+  }catch(error){
+    alertA("error","Quiz not submitted",error.message);
+    button.disabled=false;button.textContent="Submit quiz";
+  }
+}
+function renderAssignmentWorkspace(assignment){
+  const existing=assignmentSubmission(id(assignment));
+  const title=assignment.title||"Assignment";
+  $("assessmentDialogType").textContent="Assignment";
+  $("assessmentDialogTitle").textContent=title;
+  if(existing){
+    const graded=existing.grade!==undefined&&existing.grade!==null&&existing.grade!=="";
+    showAssessmentResult({
+      title:"Assignment submitted",
+      score:graded?`${existing.grade}${assignment.totalPoints?` / ${assignment.totalPoints}`:""}`:"",
+      message:graded?"Your teacher has reviewed this work.":"Your work is recorded and waiting for teacher review."
+    });
+    return;
+  }
+  $("assessmentWorkspace").innerHTML=`<section class="assessment-intro"><h2>${esc(title)}</h2><p>${esc(assignment.instructions||assignment.description||"Complete the assignment and submit your work below.")}</p><div class="assessment-meta">${assignment.dueDate?`<span>Due ${esc(formatAssessmentDate(assignment.dueDate))}</span>`:""}<span>${esc(assignment.gradingType==="pass_fail"?"Pass / fail":`${Number(assignment.totalPoints||100)} points`)}</span></div></section><form class="assessment-form" id="focusedAssignmentForm"><textarea class="assessment-submission-text" id="focusedAssignmentText" placeholder="Write your answer or notes"></textarea><label class="assessment-upload"><strong>Attach your work</strong><span>Photos, PDF, documents, presentations, spreadsheets, audio or video.</span><input id="focusedAssignmentFiles" type="file" multiple></label><button class="assessment-submit" type="submit">Submit assignment</button></form>`;
+  $("focusedAssignmentForm").onsubmit=event=>submitFocusedAssignment(event,assignment);
+}
+async function uploadFocusedAssignmentFiles(files){
+  const attachments=[];
+  for(const file of files){
+    if(file.size>50*1024*1024)throw new Error(`${file.name} exceeds the 50 MB file limit.`);
+    const form=new FormData();
+    form.append("attachments",file);
+    const response=await fetch(API+"/api/uploads/assignment-attachments",{method:"POST",headers:{Authorization:`Bearer ${authToken}`},body:form});
+    let data={};try{data=await response.json()}catch{}
+    if(!response.ok)throw new Error(data.message||`Could not upload ${file.name}.`);
+    attachments.push({url:data.url||data.secureUrl,secureUrl:data.secureUrl||data.url,publicId:data.publicId||"",originalName:data.originalName||file.name,mimeType:data.mimeType||file.type||"application/octet-stream",attachmentType:data.attachmentType||"file",resourceType:data.resourceType||"raw",size:data.bytes||file.size,format:data.format||""});
+  }
+  return attachments;
+}
+async function submitFocusedAssignment(event,assignment){
+  event.preventDefault();
+  const form=event.currentTarget;
+  const text=String($("focusedAssignmentText")?.value||"").trim();
+  const files=Array.from($("focusedAssignmentFiles")?.files||[]);
+  if(!text&&!files.length){alertA("error","Submission is empty","Write an answer or attach at least one file.");return}
+  const button=form.querySelector(".assessment-submit");
+  button.disabled=true;button.textContent=files.length?"Uploading files...":"Submitting...";
+  try{
+    const attachments=await uploadFocusedAssignmentFiles(files);
+    button.textContent="Submitting...";
+    const submission=await api("/api/submissions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({assignmentId:id(assignment),text,attachments})});
+    state.submissions.unshift(submission);
+    await refreshClassProgress();
+    renderProgress();
+    showAssessmentResult({title:"Assignment submitted",message:"Your work was submitted successfully and your class progress has been updated."});
+  }catch(error){
+    alertA("error","Assignment not submitted",error.message);
+    button.disabled=false;button.textContent="Submit assignment";
+  }
+}
+function renderAssessmentWorkspace(){
+  const active=state.activeAssessment;
+  const item=active?assessmentById(active.type,active.id):null;
+  if(!item){$("assessmentWorkspace").innerHTML='<div class="assessment-error">This assessment is no longer available.</div>';return}
+  if(active.type==="quiz")renderQuizWorkspace(item);else renderAssignmentWorkspace(item);
+}
+function openAssessment(type,aid){
+  if(state.role!=="student"){alertA("info","Instructor view",`${type==="quiz"?"Quiz":"Assignment"} activity is shown as students will see it.`);return}
+  const item=assessmentById(type,aid);
+  if(!item){alertA("error","Assessment unavailable","This assessment could not be found.");return}
+  state.activeAssessment={type,id:String(aid||"")};
+  state.assessmentStartedAt=Date.now();
+  renderAssessmentWorkspace();
+  $("assessmentOverlay").hidden=false;
+  $("assessmentOverlay").setAttribute("aria-hidden","false");
+  document.body.classList.add("assessment-open");
+}
 function setParentLearningChrome(active){if(parent!==window)parent.postMessage({type:"aift:learning-chrome",active:Boolean(active)},location.origin)}
 function back(){setParentLearningChrome(false);if(from==="teacher"||state.role==="teacher"){location.href="teacher.html?section=classes";return}if(state.role==="school"){location.href="school.html?tab=classes";return}if(state.role==="admin"){location.href="admin.html";return}location.href="student.html?section=classes"}
-async function init(){setParentLearningChrome(true);if(!authToken){location.replace("login.html");return}if(!classId){fail("A valid class ID is required.");return}try{state.viewer=await api("/api/users/me");state.role=String(state.viewer?.role||localStorage.getItem("role")||"").toLowerCase();const [d,certificateData]=await Promise.all([api(`/api/classes/${encodeURIComponent(classId)}/learning`),state.role==="student"?api("/api/certificates/my").catch(()=>null):Promise.resolve(null)]);state.classData=d.class||null;state.modules=Array.isArray(d.modules)?d.modules:[];state.lessons=Array.isArray(d.lessons)?d.lessons:[];state.quizzes=Array.isArray(d.quizzes)?d.quizzes:[];state.assignments=Array.isArray(d.assignments)?d.assignments:[];state.lessonProgress=Array.isArray(d.lessonProgress)?d.lessonProgress:[];const certificates=Array.isArray(certificateData)?certificateData:certificateData?.certificates||certificateData?.items||[];state.certificate=certificates.find(item=>id(item?.classId)===classId)||null;state.permissions={canView:d.permissions?.canView===true,canTrackProgress:d.permissions?.canTrackProgress===true,canManage:d.permissions?.canManage===true};if(!state.permissions.canView)throw new Error("You do not have permission to open this class.");const requested=state.lessons.find(lesson=>id(lesson)===requestedLessonId&&lessonUnlocked(lesson));const l=requested||nextLearning();state.selectedLessonId=l?id(l):"";if(l&&lessonModule(l))state.expanded.add(lessonModule(l));$("loading").classList.add("hidden");$("experience").classList.remove("hidden");render()}catch(e){console.error(e);fail(e.message||"The class could not be loaded.")}}
+async function init(){
+  setParentLearningChrome(true);
+  if(!authToken){location.replace("login.html");return}
+  if(!classId){fail("A valid class ID is required.");return}
+  try{
+    state.viewer=await api("/api/users/me");
+    state.role=String(state.viewer?.role||localStorage.getItem("role")||"").toLowerCase();
+    const isStudent=state.role==="student";
+    const [d,certificateData,submissions,quizSubmissions,progressSummary]=await Promise.all([
+      api(`/api/classes/${encodeURIComponent(classId)}/learning`),
+      isStudent?api("/api/certificates/my").catch(()=>null):Promise.resolve(null),
+      isStudent?api(`/api/submissions?classId=${encodeURIComponent(classId)}`).catch(()=>[]):Promise.resolve([]),
+      isStudent?api(`/api/quizzes/submissions/list?classId=${encodeURIComponent(classId)}`).catch(()=>[]):Promise.resolve([]),
+      isStudent?api(`/api/classes/${encodeURIComponent(classId)}/student-progress`).catch(()=>null):Promise.resolve(null)
+    ]);
+    state.classData=d.class||null;
+    state.modules=Array.isArray(d.modules)?d.modules:[];
+    state.lessons=Array.isArray(d.lessons)?d.lessons:[];
+    state.quizzes=Array.isArray(d.quizzes)?d.quizzes:[];
+    state.assignments=Array.isArray(d.assignments)?d.assignments:[];
+    state.lessonProgress=Array.isArray(d.lessonProgress)?d.lessonProgress:[];
+    state.submissions=Array.isArray(submissions)?submissions:[];
+    state.quizSubmissions=Array.isArray(quizSubmissions)?quizSubmissions:[];
+    state.progressSummary=progressSummary;
+    const certificates=Array.isArray(certificateData)?certificateData:certificateData?.certificates||certificateData?.items||[];
+    state.certificate=certificates.find(item=>id(item?.classId)===classId)||null;
+    state.permissions={canView:d.permissions?.canView===true,canTrackProgress:d.permissions?.canTrackProgress===true,canManage:d.permissions?.canManage===true};
+    if(!state.permissions.canView)throw new Error("You do not have permission to open this class.");
+    const requested=state.lessons.find(lesson=>id(lesson)===requestedLessonId&&lessonUnlocked(lesson));
+    const lesson=requested||nextLearning();
+    state.selectedLessonId=lesson?id(lesson):"";
+    if(lesson&&lessonModule(lesson))state.expanded.add(lessonModule(lesson));
+    $("loading").classList.add("hidden");
+    $("experience").classList.remove("hidden");
+    render();
+  }catch(error){
+    console.error(error);
+    fail(error.message||"The class could not be loaded.");
+  }
+}
 function fail(message){$("loading").innerHTML=`<div class="state-card"><h2>Unable to open class</h2><p>${esc(message)}</p><button onclick="back()">Go back</button></div>`}
 $("continueButton").onclick=()=>{const l=nextLearning();if(!l){alertA("info","No Lessons","This class has no available Lesson yet.");return}openLesson(id(l),{scroll:false});$("lessonWorkspace").scrollIntoView({behavior:"smooth",block:"start"})}
 $("viewCurriculum").onclick=()=>$("curriculum").scrollIntoView({behavior:"smooth",block:"start"});
@@ -2145,10 +2561,12 @@ $("backToClasses").onclick=back;
 $("mobileGo").onclick=()=>{$("lessonWorkspace").scrollIntoView({behavior:"smooth",block:"start"});document.body.classList.remove("mobile-curriculum-open")};
 $("mobileMenu").onclick=()=>document.body.classList.toggle("mobile-curriculum-open");
 $("backdrop").onclick=()=>document.body.classList.remove("mobile-curriculum-open");
+$("assessmentClose").onclick=closeAssessment;
+$("assessmentOverlay").onclick=event=>{if(event.target===$("assessmentOverlay"))closeAssessment()};
 $("previousButton").onclick=()=>navigate(-1);$("nextButton").onclick=()=>navigate(1);$("completeButton").onclick=toggleComplete;
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{selectLessonTab(b.dataset.tab);renderTab()});
 $("viewerMenuButton").onclick=e=>{e.stopPropagation();$("viewerDropdown").classList.toggle("hidden")};document.addEventListener("click",()=>$("viewerDropdown").classList.add("hidden"));$("backToStudio").onclick=back;$("openBuilder").onclick=()=>location.href=`class-builder.html?classId=${encodeURIComponent(classId)}`;
-addEventListener("keydown",e=>{if(e.key==="Escape"){document.body.classList.remove("mobile-curriculum-open");$("viewerDropdown").classList.add("hidden")}});
+addEventListener("keydown",e=>{if(e.key==="Escape"){document.body.classList.remove("mobile-curriculum-open");$("viewerDropdown").classList.add("hidden");if(!$("assessmentOverlay").hidden)closeAssessment()}});
 addEventListener("pagehide",()=>setParentLearningChrome(false));
 init();
 </script>

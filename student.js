@@ -2932,6 +2932,13 @@ async function loadStudentClassProgress({
                   percentage
                 }
               };
+
+              if (
+                !summaryResponse?.progress
+              ){
+                data.progress.overall =
+                  percentage;
+              }
             }
 
             return {
@@ -36966,13 +36973,29 @@ function getStudentClassProgress(
     );
 
   /*
-    The class player defines class completion from its
-    published lessons. Keep the student card synchronized
-    with that same learning progress whenever lessons exist.
+    Use the same complete class summary displayed by the
+    learning player. Lessons, assignments, quizzes and
+    attendance are calculated once by the backend.
   */
 
   if (
     progressRecord?.available &&
+    Number.isFinite(
+      backendProgress
+    )
+  ){
+    return Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          backendProgress
+        )
+      )
+    );
+  }
+
+  if (
     lessonTotal > 0 &&
     Number.isFinite(
       lessonProgress
@@ -36984,22 +37007,6 @@ function getStudentClassProgress(
         100,
         Math.round(
           lessonProgress
-        )
-      )
-    );
-  }
-
-  if (
-    Number.isFinite(
-      backendProgress
-    )
-  ){
-    return Math.max(
-      0,
-      Math.min(
-        100,
-        Math.round(
-          backendProgress
         )
       )
     );
