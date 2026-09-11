@@ -4184,10 +4184,13 @@
             )
               return;
             if (fill)
-              fill.style.width = `${Math.min(
-                100,
-                ((Number(video.currentTime || 0) - trimStart) / clipDuration) *
+              fill.style.width = `${Math.max(
+                0,
+                Math.min(
                   100,
+                  ((Number(video.currentTime || 0) - trimStart) / clipDuration) *
+                    100,
+                ),
               )}%`;
             if (video.currentTime >= trimEnd) {
               if (fill) fill.style.width = "100%";
@@ -4206,8 +4209,13 @@
                 storyState.videoClock &&
                 video ===
                   document.querySelector("#storyViewerContent video")
-              )
+              ) {
+                const activeFill = document.querySelector(
+                  "#storyProgress span.active i",
+                );
+                if (activeFill) activeFill.style.width = "100%";
                 nextStory();
+              }
             },
             { once: true },
           );
