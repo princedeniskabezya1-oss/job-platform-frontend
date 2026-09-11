@@ -1822,7 +1822,7 @@ function calculateSavedClassProgress(progress){
   let points=0,totalWeight=0;
   for(const [key,weight] of Object.entries(weights)){
     const part=progress[key];
-    if(!part)return null;
+    if(!part)continue;
     if(Number(part.total)>0){
       points+=Math.max(0,Math.min(100,Number(part.percentage)||0))*weight;
       totalWeight+=weight;
@@ -1858,7 +1858,29 @@ async function refreshClassProgress(){
   try{state.progressSummary=await api(`/api/classes/${encodeURIComponent(classId)}/student-progress`)}
   catch(error){console.warn("Class progress refresh failed:",error)}
 }
-function nextLearning(){const requested=state.lessons.find(l=>id(l)===requestedLessonId&&lessonUnlocked(l));if(requested)return requested;if(state.permissions.canTrackProgress){const x=state.lessons.find(l=>lessonUnlocked(l)&&!completed(id(l)));if(x)return x}return state.lessons.find(lessonUnlocked)||state.lessons[0]||null}
+function savedLearningPosition(){
+  try{return JSON.parse(sessionStorage.getItem(`aift-lesson-position:${id(state.viewer)}:${classId}`)||"null")}catch{return null}
+}
+function rememberLearningPosition(){
+  if(!state.permissions.canTrackProgress)return;
+  try{sessionStorage.setItem(`aift-lesson-position:${id(state.viewer)}:${classId}`,JSON.stringify({lessonId:state.selectedLessonId,tab:state.selectedTab}))}catch{}
+}
+function nextLearning(){
+  const requested=state.lessons.find(l=>id(l)===requestedLessonId&&lessonUnlocked(l));
+  if(requested)return requested;
+  if(state.permissions.canTrackProgress){
+    const saved=qs.get("resume")==="1"?savedLearningPosition():null;
+    const savedLesson=state.lessons.find(l=>id(l)===saved?.lessonId&&lessonUnlocked(l));
+    if(savedLesson&&!completed(id(savedLesson)))return savedLesson;
+    const unfinished=state.lessons.find(l=>lessonUnlocked(l)&&!completed(id(l)));
+    if(unfinished)return unfinished;
+    const assessmentLesson=state.lessons.find(l=>lessonUnlocked(l)&&(
+      lessonQuizzes(l).some(q=>!assessmentCompleted("quiz",q))||lessonAssignments(l).some(a=>!assessmentCompleted("assignment",a))));
+    if(assessmentLesson)return assessmentLesson;
+    if(savedLesson)return savedLesson;
+  }
+  return state.lessons.find(lessonUnlocked)||state.lessons[0]||null;
+}
 function resources(l){const out=[];const add=x=>{if(!x)return;if(typeof x==="string"){out.push({title:"Lesson resource",description:"Learning resource",url:x});return}const u=x.url||x.fileUrl||x.resourceUrl||x.attachmentUrl||"";if(u)out.push({title:x.title||x.name||x.originalName||"Lesson resource",description:x.description||x.type||"Learning resource",url:u})};[...(Array.isArray(l?.resources)?l.resources:[]),...(Array.isArray(l?.materials)?l.materials:[]),...(Array.isArray(l?.attachments)?l.attachments:[])].forEach(add);[l?.resourceUrl,l?.fileUrl,l?.attachmentUrl].filter(Boolean).forEach(add);return [...new Map(out.map(x=>[x.url,x])).values()]}
 function lessonQuizzes(l){const lid=id(l);return state.quizzes.filter(q=>{const ql=id(q.lessonId||q.lesson);return ql===lid||(!ql&&!lid)})}
 function lessonAssignments(l){const lid=id(l);return state.assignments.filter(a=>{const al=id(a.lessonId||a.lesson);return al===lid||!al})}
@@ -2399,7 +2421,7 @@ function renderNav(){const l=selected(),prev=$("previousButton"),next=$("nextBut
   
 function render(){renderViewer();renderClass();renderProgress();renderCurriculum();renderLesson()}
 function selectLessonTab(tab="content"){state.selectedTab=tab;document.querySelectorAll("[data-tab]").forEach(button=>button.classList.toggle("active",button.dataset.tab===tab))}
-function openLesson(lid,{keepTab=false,scroll=true}={}){const l=state.lessons.find(x=>id(x)===String(lid||""));if(!l){alertA("error","Lesson unavailable","The selected Lesson could not be found.");return}if(!lessonUnlocked(l)){alertA("info","Lesson locked","Complete the previous Lesson to continue.");return}state.selectedLessonId=id(l);if(!keepTab)selectLessonTab("content");const mid=lessonModule(l);if(mid)state.expanded.add(mid);renderCurriculum();renderLesson();const u=new URL(location.href);u.searchParams.set("lessonId",state.selectedLessonId);history.replaceState(null,"",u.href);document.body.classList.remove("mobile-curriculum-open");if(scroll&&matchMedia("(max-width:760px)").matches)$("lessonWorkspace").scrollIntoView({behavior:"smooth",block:"start"})}
+function openLesson(lid,{keepTab=false,scroll=true}={}){const l=state.lessons.find(x=>id(x)===String(lid||""));if(!l){alertA("error","Lesson unavailable","The selected Lesson could not be found.");return}if(!lessonUnlocked(l)){alertA("info","Lesson locked","Complete the previous Lesson to continue.");return}state.selectedLessonId=id(l);if(!keepTab)selectLessonTab("content");const mid=lessonModule(l);if(mid)state.expanded.add(mid);renderCurriculum();renderLesson();const u=new URL(location.href);u.searchParams.set("lessonId",state.selectedLessonId);history.replaceState(null,"",u.href);rememberLearningPosition();document.body.classList.remove("mobile-curriculum-open");if(scroll&&matchMedia("(max-width:760px)").matches)$("lessonWorkspace").scrollIntoView({behavior:"smooth",block:"start"})}
 function navigate(dir){const l=selected();if(!l)return;const i=state.lessons.findIndex(x=>id(x)===id(l)),t=state.lessons[i+dir];if(t)openLesson(id(t))}
 async function toggleComplete(){if(!state.permissions.canTrackProgress){alertA("info","Instructor view","Lesson completion is saved only for enrolled students.");return}const l=selected();if(!l)return;const lid=id(l),was=completed(lid),btn=$("completeButton");btn.disabled=true;try{const r=await api(`/api/classes/${encodeURIComponent(classId)}/learning/lessons/${encodeURIComponent(lid)}/progress`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({completed:!was})});state.lessonProgress=state.lessonProgress.filter(x=>id(x.lessonId)!==lid);if(r.progress)state.lessonProgress.push(r.progress);renderProgress();await refreshClassProgress();renderProgress();renderCurriculum();renderLesson();alertA("success",was?"Lesson reopened":"Lesson complete",was?"This Lesson is now in progress.":"Your learning progress was saved.")}catch(e){alertA("error","Progress not saved",e.message)}finally{btn.disabled=false;renderNav()}}
 function assessmentById(type,assessmentId){
@@ -2545,7 +2567,7 @@ function openAssessment(type,aid){
   document.body.classList.add("assessment-open");
 }
 function setParentLearningChrome(active){if(parent!==window)parent.postMessage({type:"aift:learning-chrome",active:Boolean(active)},location.origin)}
-function back(){setParentLearningChrome(false);if(from==="teacher"||state.role==="teacher"){location.href="teacher.html?section=classes";return}if(state.role==="school"){location.href="school.html?tab=classes";return}if(state.role==="admin"){location.href="admin.html";return}if(qs.get("returnToStudent")==="1"&&history.length>1){history.back();return}location.href="student.html?section=classes"}
+function back(){setParentLearningChrome(false);if(from==="teacher"||state.role==="teacher"){location.href="teacher.html?section=classes";return}if(state.role==="school"){location.href="school.html?tab=classes";return}if(state.role==="admin"){location.href="admin.html";return}const section=qs.get("returnToStudent")==="continue"?"continue":"classes";location.replace(`student.html?section=${section}&returnClassId=${encodeURIComponent(classId)}`)}
 async function init(){
   setParentLearningChrome(true);
   if(!authToken){location.replace("login.html");return}
@@ -2579,6 +2601,9 @@ async function init(){
     const requested=state.lessons.find(lesson=>id(lesson)===requestedLessonId&&lessonUnlocked(lesson));
     const lesson=requested||nextLearning();
     state.selectedLessonId=lesson?id(lesson):"";
+    const saved=qs.get("resume")==="1"?savedLearningPosition():null;
+    if(saved?.lessonId===state.selectedLessonId&&["content","resources","quizzes","assignments"].includes(saved.tab))selectLessonTab(saved.tab);
+    rememberLearningPosition();
     if(lesson&&lessonModule(lesson))state.expanded.add(lessonModule(lesson));
     $("loading").classList.add("hidden");
     $("experience").classList.remove("hidden");
@@ -2599,7 +2624,7 @@ $("backdrop").onclick=()=>document.body.classList.remove("mobile-curriculum-open
 $("assessmentClose").onclick=closeAssessment;
 $("assessmentOverlay").onclick=event=>{if(event.target===$("assessmentOverlay"))closeAssessment()};
 $("previousButton").onclick=()=>navigate(-1);$("nextButton").onclick=()=>navigate(1);$("completeButton").onclick=toggleComplete;
-document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{selectLessonTab(b.dataset.tab);renderTab()});
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{selectLessonTab(b.dataset.tab);rememberLearningPosition();renderTab()});
 $("viewerMenuButton").onclick=e=>{e.stopPropagation();$("viewerDropdown").classList.toggle("hidden")};document.addEventListener("click",()=>$("viewerDropdown").classList.add("hidden"));$("backToStudio").onclick=back;$("openBuilder").onclick=()=>location.href=`class-builder.html?classId=${encodeURIComponent(classId)}`;
 addEventListener("keydown",e=>{if(e.key==="Escape"){document.body.classList.remove("mobile-curriculum-open");$("viewerDropdown").classList.add("hidden");if(!$("assessmentOverlay").hidden)closeAssessment()}});
 addEventListener("pagehide",()=>setParentLearningChrome(false));
@@ -2607,4 +2632,5 @@ init();
 </script>
 </body>
 </html>
+
 

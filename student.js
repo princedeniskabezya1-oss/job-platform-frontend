@@ -48,6 +48,7 @@ const state = {
 
   classes:[],
   classesLoaded:false,
+  classesLoadFailed:false,
   assignments:[],
   submissions:[],
   schedules:[],
@@ -1054,10 +1055,6 @@ function renderActiveStudentStudioPage(page){
 
 
     case "continue":
-
-      renderContinueLearningWorkspace();
-
-      break;
 
       renderContinueLearningWorkspace();
 
@@ -2443,7 +2440,9 @@ bindStudentProfileActions();
 async function apiGet(path,fallback = null){
   try{
     const res = await fetch(API + path,{
-      headers:authHeaders()
+      headers:authHeaders(),
+      cache:"no-store",
+      signal:AbortSignal.timeout(20000)
     });
 
     if (res.status === 401){
@@ -2752,7 +2751,7 @@ function calculateSavedClassProgress(progress){
   let points=0,totalWeight=0;
   for(const [key,weight] of Object.entries(weights)){
     const part=progress[key];
-    if(!part)return null;
+    if(!part)continue;
     if(Number(part.total)>0){
       points+=Math.max(0,Math.min(100,Number(part.percentage)||0))*weight;
       totalWeight+=weight;
@@ -2976,7 +2975,9 @@ async function loadStudentClassProgress({
                 else if(previous?.progress?.[key])data.progress[key]=previous.progress[key];
               }
               // Only compute an overall value once all category totals are known.
-              if(summaryResponse?.progress || previous?.available){
+              {
+                // Missing attendance is unknown; calculate from confirmed learning categories.
+                if(!summaryResponse?.progress && !previous?.available)delete data.progress.attendance;
                 const overall=calculateSavedClassProgress(data.progress);
                 if(overall!==null)data.progress.overall=overall;
               }
@@ -3363,11 +3364,25 @@ async function loadAll(){
        NORMALIZE STATE
     ========================================================= */
 
+    state.classesLoadFailed=classes===null;
     if(classes !== null){
       state.classes=asArray(classes);
       state.classesLoaded=true;
     }
 
+
+    const returningClassId=urlParams.get("returnClassId");
+    if(returningClassId&&!state.classes.some(item=>normalizeId(item._id||item.id)===returningClassId)){
+      state.classesLoaded=false;
+      const learning=await apiGet(`/api/classes/${encodeURIComponent(returningClassId)}/learning`,null);
+      if(learning?.permissions?.canTrackProgress&&learning.class){
+        state.classes.push(learning.class);
+        state.classesLoaded=true;
+        state.classesLoadFailed=false;
+      }else{
+        state.classesLoadFailed=true;
+      }
+    }
 
     state.assignments =
       asArray(
@@ -3578,6 +3593,15 @@ function getContinueLearningClassCover(item){
 }
 
 function renderContinueLearningWorkspace(){
+  const container=$("continueLearningClassGrid");
+  if(!state.classesLoaded){
+    if(state.classesLoadFailed && container){
+      container.setAttribute("aria-busy","false");
+      container.innerHTML='<div class="studio-widget-empty">Classes could not be loaded. <button type="button" data-dashboard-action="refresh">Try again</button></div>';
+    }
+    return;
+  }
+  if(container)container.setAttribute("aria-busy","false");
   setText("continueLearningBadge",getContinueLearningClasses().length);
   const classes =
     getContinueLearningClasses();
@@ -3592,355 +3616,7 @@ function renderContinueLearningWorkspace(){
   );
 }
 
-function renderContinueLearningHero(
-  selectedClass
-){
-  const container =
-    $("continueLearningHero");
 
-  if (!container){
-    return;
-  }
-
-  if (!selectedClass){
-    container.innerHTML = `
-      <div class="studio-widget-empty">
-
-        <div class="studio-widget-empty-icon">
-
-          <i
-            class="fa-solid fa-book-open"
-            aria-hidden="true"
-          ></i>
-
-        </div>
-
-        <strong>
-          No class available to continue
-        </strong>
-
-        <p>
-          Your school has not assigned an active class
-          to this account yet.
-        </p>
-
-        <button
-          class="primary-btn"
-          type="button"
-          data-open-studio-page="classes"
-        >
-          Browse classes
-        </button>
-
-      </div>
-    `;
-
-    return;
-  }
-
-  const classId =
-    selectedClass._id ||
-    selectedClass.id;
-
-  const progress =
-    getContinueLearningProgress(
-      selectedClass
-    );
-
-  const teacher =
-    selectedClass.teacherId?.name ||
-    selectedClass.teacherName ||
-    "Instructor";
-
-  const cover =
-    getContinueLearningClassCover(
-      selectedClass
-    );
-
-  container.innerHTML = `
-    <div
-      class="continue-hero-cover"
-      style="background-image:url('${escapeHtml(
-        cover
-      )}')"
-    >
-
-      <span class="continue-hero-badge">
-        Continue where you stopped
-      </span>
-
-    </div>
-
-    <div class="continue-hero-content">
-
-      <span class="continue-panel-eyebrow">
-        Recommended next
-      </span>
-
-      <h3>
-        ${escapeHtml(
-          selectedClass.title ||
-          "Current class"
-        )}
-      </h3>
-
-      <p class="continue-hero-subject">
-        ${escapeHtml(
-          selectedClass.subject ||
-          "Learning program"
-        )}
-      </p>
-
-      <div class="continue-hero-teacher">
-
-        <i
-          class="fa-solid fa-chalkboard-user"
-          aria-hidden="true"
-        ></i>
-
-        <span>
-          ${escapeHtml(teacher)}
-        </span>
-
-      </div>
-
-      <div class="studio-progress-track">
-
-        <div
-          class="studio-progress-value"
-          style="width:${progress}%"
-        ></div>
-
-      </div>
-
-      <div class="studio-progress-meta">
-
-        <span>
-          ${progress}% completed
-        </span>
-
-        <span>
-          ${
-            progress >= 100
-              ? "Completed"
-              : `${100 - progress}% remaining`
-          }
-        </span>
-
-      </div>
-
-      <div class="studio-widget-actions">
-
-        <button
-          class="primary-btn"
-          type="button"
-          data-studio-open-class="${escapeHtml(
-            classId
-          )}"
-        >
-          <i
-            class="fa-solid fa-play"
-            aria-hidden="true"
-          ></i>
-
-          Continue class
-        </button>
-
-        ${
-          selectedClass.meetingLink
-            ? `
-              <a
-                class="ghost-btn"
-                href="${escapeHtml(
-                  selectedClass.meetingLink
-                )}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <i
-                  class="fa-solid fa-video"
-                  aria-hidden="true"
-                ></i>
-
-                Join live class
-              </a>
-            `
-            : ""
-        }
-
-      </div>
-
-    </div>
-  `;
-}
-
-function renderContinueLearningNextSteps(
-  selectedClass,
-  assignments
-){
-  const container =
-    $("continueLearningNextSteps");
-
-  if (!container){
-    return;
-  }
-
-  const nextAssignment =
-    assignments[0];
-
-  container.innerHTML = `
-    <div class="studio-widget-heading">
-
-      <div>
-
-        <span class="studio-widget-eyebrow">
-          NEXT STEPS
-        </span>
-
-        <h3>
-          Keep your learning moving
-        </h3>
-
-      </div>
-
-    </div>
-
-    <div class="continue-next-list">
-
-      <button
-        type="button"
-        class="continue-next-item"
-        ${
-          selectedClass
-            ? `data-studio-open-class="${escapeHtml(
-                selectedClass._id ||
-                selectedClass.id
-              )}"`
-            : `data-open-studio-page="classes"`
-        }
-      >
-
-        <span class="continue-next-icon blue">
-
-          <i
-            class="fa-solid fa-play"
-            aria-hidden="true"
-          ></i>
-
-        </span>
-
-        <span>
-
-          <strong>
-            Resume your current class
-          </strong>
-
-          <small>
-            Continue from your latest learning progress
-          </small>
-
-        </span>
-
-        <i
-          class="fa-solid fa-chevron-right"
-          aria-hidden="true"
-        ></i>
-
-      </button>
-
-
-      <button
-        type="button"
-        class="continue-next-item"
-        ${
-          nextAssignment
-            ? `data-submit-assignment="${escapeHtml(
-                nextAssignment._id
-              )}"`
-            : `data-open-studio-page="assignments"`
-        }
-      >
-
-        <span class="continue-next-icon orange">
-
-          <i
-            class="fa-solid fa-list-check"
-            aria-hidden="true"
-          ></i>
-
-        </span>
-
-        <span>
-
-          <strong>
-            ${
-              nextAssignment
-                ? escapeHtml(
-                    nextAssignment.title ||
-                    "Complete next assignment"
-                  )
-                : "Review assignments"
-            }
-          </strong>
-
-          <small>
-            ${
-              nextAssignment
-                ? `Due ${formatDate(
-                    nextAssignment.dueDate ||
-                    nextAssignment.deadline
-                  )}`
-                : "You have no pending coursework"
-            }
-          </small>
-
-        </span>
-
-        <i
-          class="fa-solid fa-chevron-right"
-          aria-hidden="true"
-        ></i>
-
-      </button>
-
-
-      <button
-        type="button"
-        class="continue-next-item"
-        data-open-studio-page="ai"
-      >
-
-        <span class="continue-next-icon purple">
-
-          <i
-            class="fa-solid fa-wand-magic-sparkles"
-            aria-hidden="true"
-          ></i>
-
-        </span>
-
-        <span>
-
-          <strong>
-            Ask the AI learning assistant
-          </strong>
-
-          <small>
-            Get explanations, summaries, and practice
-          </small>
-
-        </span>
-
-        <i
-          class="fa-solid fa-chevron-right"
-          aria-hidden="true"
-        ></i>
-
-      </button>
-
-    </div>
-  `;
-}
 
 function renderContinueLearningClasses(
   classes
@@ -3981,7 +3657,6 @@ function renderContinueLearningClasses(
 
   container.innerHTML =
     classes
-      .slice(0,6)
       .map(item => {
         const classId =
           item._id ||
@@ -4044,7 +3719,7 @@ function renderContinueLearningClasses(
               <button
                 class="primary-btn"
                 type="button"
-                data-studio-open-class="${escapeHtml(
+                data-resume-class="${escapeHtml(
                   classId
                 )}"
               >
@@ -4064,219 +3739,7 @@ function renderContinueLearningClasses(
       .join("");
 }
 
-function renderContinueLearningAssignments(
-  assignments
-){
-  const container =
-    $("continueLearningAssignments");
 
-  if (!container){
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="studio-widget-heading">
-
-      <div>
-
-        <span class="studio-widget-eyebrow">
-          COURSEWORK
-        </span>
-
-        <h3>
-          Continue pending work
-        </h3>
-
-      </div>
-
-      <button
-        class="studio-widget-link"
-        type="button"
-        data-open-studio-page="assignments"
-      >
-        View all
-      </button>
-
-    </div>
-
-    <div class="studio-assignment-timeline">
-
-      ${
-        assignments.length
-          ? assignments
-              .slice(0,4)
-              .map(item => `
-                <article class="studio-timeline-item">
-
-                  <span class="studio-timeline-dot"></span>
-
-                  <div class="studio-timeline-copy">
-
-                    <strong>
-                      ${escapeHtml(
-                        item.title ||
-                        "Assignment"
-                      )}
-                    </strong>
-
-                    <span>
-                      Due ${formatDate(
-                        item.dueDate ||
-                        item.deadline
-                      )}
-                    </span>
-
-                  </div>
-
-                  <button
-                    class="studio-timeline-action"
-                    type="button"
-                    data-submit-assignment="${escapeHtml(
-                      item._id
-                    )}"
-                  >
-                    Continue
-                  </button>
-
-                </article>
-              `)
-              .join("")
-          : `
-            <div class="studio-widget-empty compact">
-
-              <strong>
-                Coursework completed
-              </strong>
-
-              <p>
-                You have no pending assignments.
-              </p>
-
-            </div>
-          `
-      }
-
-    </div>
-  `;
-}
-
-function renderContinueLearningRecent(
-  classes
-){
-  const container =
-    $("continueLearningRecent");
-
-  if (!container){
-    return;
-  }
-
-  const recentClasses =
-    [...classes]
-      .sort((first,second) => {
-        return (
-          new Date(
-            second.lastAccessedAt ||
-            second.updatedAt ||
-            0
-          ).getTime() -
-          new Date(
-            first.lastAccessedAt ||
-            first.updatedAt ||
-            0
-          ).getTime()
-        );
-      })
-      .slice(0,4);
-
-  container.innerHTML = `
-    <div class="studio-widget-heading">
-
-      <div>
-
-        <span class="studio-widget-eyebrow">
-          RECENTLY OPENED
-        </span>
-
-        <h3>
-          Recent learning
-        </h3>
-
-      </div>
-
-    </div>
-
-    <div class="continue-recent-list">
-
-      ${
-        recentClasses.length
-          ? recentClasses
-              .map(item => `
-                <button
-                  class="continue-recent-item"
-                  type="button"
-                  data-studio-open-class="${escapeHtml(
-                    item._id ||
-                    item.id
-                  )}"
-                >
-
-                  <span
-                    class="continue-recent-thumbnail"
-                    style="background-image:url('${escapeHtml(
-                      getContinueLearningClassCover(
-                        item
-                      )
-                    )}')"
-                  ></span>
-
-                  <span>
-
-                    <strong>
-                      ${escapeHtml(
-                        item.title ||
-                        "Class"
-                      )}
-                    </strong>
-
-                    <small>
-                      ${getContinueLearningProgress(
-                        item
-                      )}% complete
-                    </small>
-
-                  </span>
-
-                  <i
-                    class="fa-solid fa-play"
-                    aria-hidden="true"
-                  ></i>
-
-                </button>
-              `)
-              .join("")
-          : `
-            <div class="studio-widget-empty compact">
-
-              <strong>
-                Nothing opened recently
-              </strong>
-
-              <p>
-                Your recently accessed classes will appear here.
-              </p>
-
-            </div>
-          `
-      }
-
-    </div>
-  `;
-}
-
-
-/* =========================================================
-   STUDENT STUDIO HOME RENDERER
-========================================================= */
 
 function getUpcomingStudentAssignments(limit = 5){
   const now = Date.now();
@@ -5610,7 +5073,7 @@ const refreshButton =
   target.closest(
     "#refreshWorkspace," +
     "#refreshWorkspaceButton," +
-    "#continueLearningRefreshButton"
+    "#continueLearningRefreshButton, [data-dashboard-action=refresh]"
   );
 
       if (refreshButton){
@@ -5629,11 +5092,12 @@ const refreshButton =
 
       const resumeButton =
         target.closest(
-          "#resumeLearningButton"
+          "#resumeLearningButton, [data-resume-class]"
         );
 
       if (resumeButton){
         event.preventDefault();
+        if(resumeButton.dataset.resumeClass){openStudentClass(resumeButton.dataset.resumeClass,"",true);return;}
 
         resumeStudentLearning();
 
@@ -6479,7 +5943,8 @@ return;
 
 function openStudentClass(
   classId,
-  lessonId = ""
+  lessonId = "",
+  resume = false
 ){
 
   const normalizedClassId =
@@ -6519,7 +5984,8 @@ function openStudentClass(
     );
   }
 
-  url.searchParams.set("returnToStudent","1");
+  url.searchParams.set("returnToStudent",activeStudentStudioPage === "continue" ? "continue" : "classes");
+  if(resume)url.searchParams.set("resume","1");
   window.location.href =
     url.href;
 }
@@ -37562,7 +37028,8 @@ function renderClasses(){
   }
 
   if(!state.classesLoaded){
-    container.setAttribute("aria-busy","true");
+    container.setAttribute("aria-busy",String(!state.classesLoadFailed));
+    if(state.classesLoadFailed)container.innerHTML='<div class="studio-widget-empty">Classes could not be loaded. <button type="button" data-dashboard-action="refresh">Try again</button></div>';
     return;
   }
 
@@ -37610,9 +37077,9 @@ function renderClasses(){
     status,
     sort
   } =
-    getFilteredStudentClasses(
-      classes
-    );
+    (window.matchMedia("(max-width:760px)").matches
+      ? {filtered:classes,keyword:"",status:"all",sort:"recent"}
+      : getFilteredStudentClasses(classes));
 
   updateStudentClassResultBar({
     count:filtered.length,
@@ -58073,4 +57540,5 @@ document.addEventListener(
 
   }
 );
+
 
