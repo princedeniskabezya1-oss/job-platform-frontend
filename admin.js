@@ -33,7 +33,9 @@ const adminState = {
   reports: [],
   meetings: [],
   callLogs: [],
-  deletedMessages: [],
+  conversations: [],
+  adminMessages: [],
+  activeAdminConversationId: "",
   payments: [],
   auditLogs: [],
 
@@ -99,10 +101,10 @@ const ADMIN_SECTIONS = {
     subtitle: "Review posts, comments, reports, and unsafe content.",
     loader: "loadContentModeration"
   },
-  deletedMessages: {
-    title: "Deleted Messages",
-    subtitle: "Review recoverable message deletions and restore them when required.",
-    loader: "loadDeletedMessages"
+  messages: {
+    title: "Messages",
+    subtitle: "Review conversations, inspect message history, and moderate deleted content.",
+    loader: "loadAdminMessages"
   },
   meetings: {
     title: "Meetings & Calls",
@@ -4342,98 +4344,159 @@ async function submitAdminLearningCourse(event){
    PART 9 / 20 — CONTENT MODERATION
 ===================================================== */
 
-async function loadDeletedMessages(){
-  const section = document.getElementById("deletedMessagesSection");
+async function loadAdminMessages(){
+  const section = document.getElementById("messagesSection");
   if(!section) return;
   section.innerHTML = `
-    <div class="admin-panel">
-      <div class="admin-panel-head">
-        <div>
-          <h2>Deleted Messages</h2>
-          <p>Deleted content stays hidden from users. Only future deletions with a secure snapshot can be restored.</p>
+    <div class="admin-message-workspace">
+      <aside class="admin-message-conversations">
+        <div class="admin-message-list-head">
+          <div><h2>Conversations</h2><p>Admin read-only access</p></div>
+          <button type="button" onclick="refreshAdminConversations()" aria-label="Refresh conversations">↻</button>
         </div>
-        <button type="button" onclick="loadDeletedMessages()">Refresh</button>
-      </div>
-      <div id="adminDeletedMessagesTable">
-        <div class="admin-skeleton"><span></span><span></span><span></span></div>
-      </div>
+        <input id="adminMessageSearch" type="search" placeholder="Search conversations" oninput="renderAdminConversationList(this.value)">
+        <div id="adminConversationList"><div class="admin-skeleton"><span></span><span></span><span></span></div></div>
+      </aside>
+      <section class="admin-message-chat">
+        <div id="adminMessageChatEmpty" class="admin-empty">
+          <strong>Select a conversation</strong>
+          <span>Choose a conversation to review its complete message history.</span>
+        </div>
+        <div id="adminMessageChatView" class="hidden">
+          <header id="adminMessageChatHead" class="admin-message-chat-head"></header>
+          <div id="adminMessageThread" class="admin-message-thread"></div>
+        </div>
+      </section>
     </div>
   `;
+  await refreshAdminConversations();
+}
+
+function adminConversationPeople(conversation){
+  return (conversation?.participants || [])
+    .map(item => item?.user || item)
+    .filter(Boolean);
+}
+
+function adminConversationTitle(conversation){
+  if(conversation?.type === "group") return conversation.title || "Group conversation";
+  const names = adminConversationPeople(conversation).map(getDisplayName).filter(Boolean);
+  return names.join(" and ") || "Conversation";
+}
+
+async function refreshAdminConversations(){
   try{
-    const data = await adminRequest("/api/messages/deleted/admin-list?limit=200");
-    adminState.deletedMessages = Array.isArray(data?.messages) ? data.messages : [];
-    renderDeletedMessages();
+    const data = await adminRequest("/api/messages/admin/conversations?limit=250");
+    adminState.conversations = Array.isArray(data?.conversations) ? data.conversations : [];
+    renderAdminConversationList(document.getElementById("adminMessageSearch")?.value || "");
+    if(adminState.activeAdminConversationId){
+      const exists = adminState.conversations.some(item => String(getId(item)) === String(adminState.activeAdminConversationId));
+      if(exists) await openAdminConversation(adminState.activeAdminConversationId);
+    }
   }catch(error){
-    document.getElementById("adminDeletedMessagesTable").innerHTML =
-      `<div class="admin-empty"><strong>Unable to load deleted messages</strong><span>${esc(error.message)}</span></div>`;
+    const box = document.getElementById("adminConversationList");
+    if(box) box.innerHTML = `<div class="admin-empty"><strong>Unable to load conversations</strong><span>${esc(error.message)}</span></div>`;
   }
 }
 
-function deletedMessagePerson(user){
-  return getDisplayName(user || {});
-}
-
-function renderDeletedMessages(){
-  const box = document.getElementById("adminDeletedMessagesTable");
+function renderAdminConversationList(search = ""){
+  const box = document.getElementById("adminConversationList");
   if(!box) return;
-  const messages = adminState.deletedMessages;
-  if(!messages.length){
-    box.innerHTML = `
-      <div class="admin-empty">
-        <strong>No deleted messages</strong>
-        <span>Future “delete for everyone” messages will appear here.</span>
-      </div>
-    `;
+  const query = normalize(search);
+  const rows = adminState.conversations.filter(conversation => {
+    const text = [adminConversationTitle(conversation), conversation.lastMessage?.text || ""].join(" ").toLowerCase();
+    return !query || text.includes(query);
+  });
+  if(!rows.length){
+    box.innerHTML = '<div class="admin-empty"><strong>No conversations found</strong><span>Try another search.</span></div>';
     return;
   }
-  box.innerHTML = `
-    <div class="admin-table-summary">
-      <strong>${messages.length}</strong><span>deleted messages</span>
-    </div>
-    <div class="admin-table-wrap">
-      <table class="admin-table">
-        <thead><tr><th>Sender</th><th>Receiver</th><th>Original message</th><th>Deleted</th><th>Status</th><th>Action</th></tr></thead>
-        <tbody>
-          ${messages.map(message => `
-            <tr>
-              <td>${esc(deletedMessagePerson(message.sender))}</td>
-              <td>${esc(deletedMessagePerson(message.receiver))}</td>
-              <td>${esc(message.recoverable ? (message.originalText || message.originalFileName || message.originalType) : "Content was removed before recovery was enabled")}</td>
-              <td>${esc(formatDateTime(message.deletedAt))}</td>
-              <td><span class="admin-badge ${message.recoverable ? "status-active" : "status-suspended"}">${message.recoverable ? "Recoverable" : "Unavailable"}</span></td>
-              <td>
-                <button type="button" class="admin-btn" ${message.recoverable ? `onclick="confirmRestoreDeletedMessage('${esc(getId(message))}')"` : "disabled"}>Restore</button>
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
+  box.innerHTML = rows.map(conversation => {
+    const id = getId(conversation), people = adminConversationPeople(conversation), avatar = getAvatar(people[0] || {});
+    return `
+      <button type="button" class="admin-conversation-row ${String(id) === String(adminState.activeAdminConversationId) ? "active" : ""}" onclick="openAdminConversation('${esc(id)}')">
+        <img src="${esc(avatar)}" alt="">
+        <span><strong>${esc(adminConversationTitle(conversation))}</strong><small>${esc(conversation.lastMessage?.text || "No messages yet")}</small></span>
+        <time>${esc(formatDate(conversation.lastMessage?.createdAt || conversation.updatedAt))}</time>
+      </button>
+    `;
+  }).join("");
 }
 
-function confirmRestoreDeletedMessage(messageId){
-  const message = adminState.deletedMessages.find(item => String(getId(item)) === String(messageId));
-  if(!message?.recoverable) return adminToast("This older message cannot be recovered.");
-  openAdminConfirm(
-    "Restore deleted message",
-    "Restore this message for all conversation participants?",
-    async () => {
-      try{
-        await adminRequest(`/api/messages/admin/deleted/${encodeURIComponent(messageId)}/restore`, {
-          method:"PATCH"
-        });
-        adminState.deletedMessages = adminState.deletedMessages.filter(
-          item => String(getId(item)) !== String(messageId)
-        );
-        addAuditLog("Restored deleted message", messageId);
-        renderDeletedMessages();
-        adminToast("Message restored.");
-      }catch(error){
-        adminToast(error.message || "Unable to restore message.");
-      }
-    }
-  );
+async function openAdminConversation(conversationId){
+  adminState.activeAdminConversationId = String(conversationId);
+  renderAdminConversationList(document.getElementById("adminMessageSearch")?.value || "");
+  const empty = document.getElementById("adminMessageChatEmpty"),
+    view = document.getElementById("adminMessageChatView"),
+    thread = document.getElementById("adminMessageThread");
+  empty?.classList.add("hidden");
+  view?.classList.remove("hidden");
+  if(thread) thread.innerHTML = '<div class="admin-skeleton"><span></span><span></span><span></span></div>';
+  try{
+    const data = await adminRequest(`/api/messages/admin/conversations/${encodeURIComponent(conversationId)}/messages?limit=500`);
+    adminState.adminMessages = Array.isArray(data?.messages) ? data.messages : [];
+    const head = document.getElementById("adminMessageChatHead");
+    if(head) head.innerHTML = `<div><strong>${esc(adminConversationTitle(data.conversation))}</strong><span>${adminConversationPeople(data.conversation).length} participant(s)</span></div><button type="button" onclick="openAdminConversation('${esc(conversationId)}')">Refresh</button>`;
+    renderAdminMessageThread(data.conversation);
+  }catch(error){
+    if(thread) thread.innerHTML = `<div class="admin-empty"><strong>Unable to load messages</strong><span>${esc(error.message)}</span></div>`;
+  }
+}
+
+function renderAdminMessageThread(conversation){
+  const thread = document.getElementById("adminMessageThread");
+  if(!thread) return;
+  const people = adminConversationPeople(conversation),
+    firstId = String(getId(people[0] || {}));
+  if(!adminState.adminMessages.length){
+    thread.innerHTML = '<div class="admin-empty"><strong>No messages</strong><span>This conversation has no message history.</span></div>';
+    return;
+  }
+  thread.innerHTML = adminState.adminMessages.map(message => {
+    const id = getId(message),
+      deleted = message.deletedForEveryone === true,
+      recoverable = deleted && message.recoverable,
+      sender = message.sender || {},
+      side = String(getId(sender)) === firstId ? "left" : "right",
+      body = deleted
+        ? (message.adminOriginalText || message.adminOriginalFileName || "Deleted content unavailable")
+        : (message.text || message.fileName || message.messageType || "Message");
+    return `
+      <article class="admin-message-bubble ${side} ${deleted ? "deleted" : ""}">
+        <div class="admin-message-bubble-meta"><strong>${esc(getDisplayName(sender))}</strong><time>${esc(formatDateTime(message.createdAt))}</time></div>
+        <p>${esc(body)}</p>
+        ${deleted ? '<span class="admin-message-deleted-label">Deleted for everyone</span>' : ""}
+        <div class="admin-message-actions">
+          ${recoverable ? `<button type="button" onclick="confirmAdminRestoreMessage('${esc(id)}')">Restore</button>` : ""}
+          ${!deleted ? `<button type="button" class="danger" onclick="confirmAdminDeleteMessage('${esc(id)}')">Delete for everyone</button>` : ""}
+          ${deleted && !recoverable ? '<small>Original content is unavailable</small>' : ""}
+        </div>
+      </article>
+    `;
+  }).join("");
+  requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; });
+}
+
+function confirmAdminRestoreMessage(messageId){
+  openAdminConfirm("Restore message","Restore this message for every participant?",async()=>{
+    try{
+      await adminRequest(`/api/messages/admin/deleted/${encodeURIComponent(messageId)}/restore`,{method:"PATCH"});
+      addAuditLog("Restored deleted message",messageId);
+      await refreshAdminConversations();
+      adminToast("Message restored.");
+    }catch(error){adminToast(error.message || "Unable to restore message.");}
+  });
+}
+
+function confirmAdminDeleteMessage(messageId){
+  openAdminConfirm("Delete message for everyone","Hide this message from every participant? The admin can restore it later.",async()=>{
+    try{
+      await adminRequest(`/api/messages/admin/messages/${encodeURIComponent(messageId)}/delete`,{method:"PATCH"});
+      addAuditLog("Deleted message for everyone",messageId);
+      await refreshAdminConversations();
+      adminToast("Message deleted for everyone.");
+    }catch(error){adminToast(error.message || "Unable to delete message.");}
+  });
 }
 
 async function loadContentModeration(){
