@@ -86,6 +86,11 @@ reelSkip: 0,
 reelHasMore: true,
 reelLoading: false,
 feedSeed: sessionStorage.getItem("aiftFeedSeed") || "",
+feedHiddenAt: 0,
+feedRefreshReady: false,
+pullStartY: null,
+pullDistance: 0,
+pullRefreshing: false,
 guestMode: false
   };
 
@@ -291,6 +296,10 @@ function saveHiddenComment(commentId){
 }
     state.rootId = rootId;
     state.mode = options.mode || "home";
+    if(state.mode === "home"){
+      state.feedSeed = String(Date.now()) + "-" + Math.random().toString(36).slice(2);
+      sessionStorage.setItem("aiftFeedSeed", state.feedSeed);
+    }
     state.authorId = options.authorId || null;
 state.groupId = options.groupId || null;
 state.guestMode = options.guestMode === true || !getToken();
@@ -339,6 +348,8 @@ if(!state.guestMode){
 await loadFeed({ reset: true });
     }
 
+    setupFeedRefresh();
+
     window.addEventListener("resize", debounce(() => {
       state.isMobile = window.innerWidth <= 768;
     }, 200));
@@ -378,6 +389,11 @@ await loadFeed({ reset: true });
           <div id="aiftComposerPreview" class="aift-composer-preview"></div>
         </section>
 
+        ${renderFamilyFeedCard()}
+        <div id="aiftPullRefresh" class="aift-pull-refresh" aria-live="polite">
+          <span class="aift-pull-refresh-icon">↓</span>
+          <span class="aift-pull-refresh-text">Pull to refresh</span>
+        </div>
         <section id="aiftFeedList" class="aift-feed-list"></section>
 <div id="aiftInfiniteSentinel" class="aift-infinite-sentinel"></div>
       </div>
@@ -440,6 +456,151 @@ await loadFeed({ reset: true });
       </section>
     `;
   }
+function renderFamilyFeedCard(){
+  if(
+    state.mode !== "home" ||
+    state.guestMode ||
+    state.me?.familyProfile?.onboardingCompleted === true ||
+    sessionStorage.getItem("aiftFamilyFeedCardDismissed") === "1"
+  ){
+    return "";
+  }
+
+  return `
+    <aside id="aiftFamilyFeedCard" class="aift-family-feed-card" aria-label="AIFT Family">
+      <button class="aift-family-feed-close" type="button" aria-label="Hide AIFT Family" onclick="AIFTFeed.dismissFamilyCard(event)">×</button>
+      <div class="aift-family-feed-mark" aria-hidden="true">
+        <span>AF</span>
+        <i></i>
+      </div>
+      <div class="aift-family-feed-copy">
+        <span class="aift-family-feed-kicker">FOR YOU · AIFT FAMILY</span>
+        <strong>Support their next opportunity</strong>
+        <p>Connect students, education support and family opportunities.</p>
+        <button type="button" onclick="AIFTFeed.openFamily(event)">Explore</button>
+      </div>
+    </aside>
+  `;
+}
+
+function openFamily(event){
+  event?.stopPropagation();
+  location.href = "family.html";
+}
+
+function dismissFamilyCard(event){
+  event?.stopPropagation();
+  sessionStorage.setItem("aiftFamilyFeedCardDismissed", "1");
+  document.getElementById("aiftFamilyFeedCard")?.remove();
+}
+
+function stopFeedPlaybackForReels(){
+  if(state.videoObserver){
+    state.videoObserver.disconnect();
+  }
+
+  document.querySelectorAll("video, audio").forEach(media => {
+    if(media.closest("#aiftReelViewer")) return;
+    media.pause();
+    media.muted = true;
+  });
+}
+
+async function refreshPersonalizedFeed(){
+  if(state.mode !== "home" || state.loading || state.pullRefreshing) return;
+
+  state.pullRefreshing = true;
+  const indicator = document.getElementById("aiftPullRefresh");
+  indicator?.classList.add("is-refreshing");
+  const label = indicator?.querySelector(".aift-pull-refresh-text");
+  if(label) label.textContent = "Refreshing for you...";
+
+  state.feedSeed = String(Date.now()) + "-" + Math.random().toString(36).slice(2);
+  sessionStorage.setItem("aiftFeedSeed", state.feedSeed);
+
+  try{
+    await loadFeed({ reset: true });
+  }finally{
+    state.pullRefreshing = false;
+    state.pullDistance = 0;
+    if(indicator){
+      indicator.style.setProperty("--pull-distance", "0px");
+      indicator.classList.remove("is-ready", "is-refreshing", "is-visible");
+    }
+    if(label) label.textContent = "Pull to refresh";
+  }
+}
+
+function setupFeedRefresh(){
+  if(state.feedRefreshReady) return;
+  state.feedRefreshReady = true;
+
+  document.addEventListener("visibilitychange", () => {
+    if(document.hidden){
+      state.feedHiddenAt = Date.now();
+      document.querySelectorAll(".aift-feed-video").forEach(video => video.pause());
+      return;
+    }
+
+    if(state.feedHiddenAt && Date.now() - state.feedHiddenAt > 1000){
+      refreshPersonalizedFeed();
+    }
+  });
+
+  window.addEventListener("pageshow", event => {
+    if(event.persisted) refreshPersonalizedFeed();
+  });
+
+  document.addEventListener("touchstart", event => {
+    if(
+      state.mode !== "home" ||
+      document.body.classList.contains("aift-reel-open") ||
+      document.body.classList.contains("aift-sheet-open") ||
+      event.target.closest("input, textarea, button, select, video")
+    ) return;
+
+    const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+    state.pullStartY = scrollTop <= 2 ? event.touches[0]?.clientY ?? null : null;
+    state.pullDistance = 0;
+  }, { passive: true });
+
+  document.addEventListener("touchmove", event => {
+    if(state.pullStartY === null || state.pullRefreshing) return;
+    const rawDistance = (event.touches[0]?.clientY ?? state.pullStartY) - state.pullStartY;
+    if(rawDistance <= 0) return;
+
+    state.pullDistance = Math.min(rawDistance * 0.48, 96);
+    const indicator = document.getElementById("aiftPullRefresh");
+    if(!indicator) return;
+
+    indicator.style.setProperty("--pull-distance", state.pullDistance + "px");
+    indicator.classList.add("is-visible");
+    indicator.classList.toggle("is-ready", state.pullDistance >= 64);
+    const label = indicator.querySelector(".aift-pull-refresh-text");
+    if(label) label.textContent = state.pullDistance >= 64 ? "Release to refresh" : "Pull to refresh";
+
+    if(state.pullDistance >= 8 && event.cancelable) event.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener("touchend", () => {
+    if(state.pullStartY === null) return;
+    const shouldRefresh = state.pullDistance >= 64;
+    state.pullStartY = null;
+
+    if(shouldRefresh){
+      refreshPersonalizedFeed();
+      return;
+    }
+
+    const indicator = document.getElementById("aiftPullRefresh");
+    if(indicator){
+      indicator.style.setProperty("--pull-distance", "0px");
+      indicator.classList.remove("is-ready", "is-visible");
+    }
+    state.pullDistance = 0;
+  }, { passive: true });
+}
+
 function updateSoundBadges(){
   document.querySelectorAll(".aift-video-sound, .aift-reel-sound").forEach(btn => {
     btn.textContent = state.globalVideoMuted ? "Muted" : "Sound on";
@@ -568,6 +729,8 @@ async function loadReelBatch({ reset = false } = {}){
 }
 
 async function openReelMode(postId, refreshRecommendations = true){
+  stopFeedPlaybackForReels();
+
   if(refreshRecommendations && !state.guestMode){
     await loadReelBatch({ reset: true });
   }
@@ -930,6 +1093,8 @@ function closeReelMode(){
         viewer.style.visibility = "hidden";
         viewer.style.display = "none";
       }
+
+      observeFeedVideos();
     });
   });
 }
@@ -3677,7 +3842,10 @@ toggleFeedVideoSound,
     visitProfile,
     saveFeedScroll,
 restoreFeedScroll,
-    closeOverlays
+    closeOverlays,
+    openFamily,
+    dismissFamilyCard,
+    refreshPersonalizedFeed
   };
 })();
 document.addEventListener("click", (e) => {
