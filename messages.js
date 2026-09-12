@@ -155,6 +155,7 @@ function rememberConversationOpened(id){if(!id)return;state.conversationOpenedAt
 
 let currentMediaUrl="", currentMediaType="image";
 function openMediaViewer(url,type="image"){
+  stopChatMediaPlayback();
   currentMediaUrl=url;currentMediaType=type;const modal=document.getElementById("mediaViewer"),image=document.getElementById("mediaViewerImage"),video=document.getElementById("mediaViewerVideo");
   image?.classList.add("hidden");video?.classList.add("hidden"); if(type==="video"){video.src=url;video.classList.remove("hidden");}else{image.src=url;image.classList.remove("hidden");}modal?.classList.remove("hidden");
 }
@@ -203,6 +204,8 @@ async function setConversationFilter(filter,button){state.conversationFilter=fil
 
 async function openConversation(id){
   if(!id)return;
+  stopChatMediaPlayback();
+  closeCameraModal();
 
   const targetHistoryId=String(id);
   if(
@@ -360,7 +363,7 @@ async function sendMessage(){
 function replaceTempMessage(tempId,saved){const i=state.messages.findIndex(x=>String(messageId(x))===String(tempId)||String(x?.metadata?.clientMessageId||"")===String(tempId));if(i!==-1)state.messages[i]=saved;renderMessages({stickToBottom:true});}
 async function retryFailedMessage(id){const failed=state.messages.find(x=>String(messageId(x))===String(id));if(!failed?._retry)return toast("This message can no longer be retried");if(state.isSending)return;const r=failed._retry;state.messages=state.messages.filter(x=>x!==failed);if(r.file){state.attachment=r.file;renderAttachmentPreview(r.file);}if(r.replyTo)state.replyTo=r.replyTo;const input=document.getElementById("messageInput");if(input)input.value=r.text||"";await sendMessage();}
 
-function toggleAttachmentMenu(){document.getElementById("attachmentMenu")?.classList.toggle("hidden");}
+function toggleAttachmentMenu(){stopChatMediaPlayback();document.getElementById("attachmentMenu")?.classList.toggle("hidden");}
 
 function attachmentAccept(kind){
   return {
@@ -386,6 +389,7 @@ function attachmentMatchesKind(file,kind){
 }
 
 function chooseAttachment(type){
+  stopChatMediaPlayback();
   const input=document.getElementById("fileInput");
   if(!input)return;
   stopAttachmentPreviewPlayback();
@@ -609,7 +613,7 @@ function clearAttachment(){
   autoGrowComposer();
 }
 
-window.addEventListener("pagehide",()=>{stopAttachmentPreviewPlayback();revokeMediaReviewUrls();revokeAttachmentPreviewUrl();});
+window.addEventListener("pagehide",()=>{stopChatMediaPlayback();closeCameraModal();revokeMediaReviewUrls();revokeAttachmentPreviewUrl();});
 
 function handleRealtimeMessage(message){
   if(!message)return;const mine=String(senderId(message))===String(state.myId);if(!mine)safePlay(state.messageTone);const activeId=state.activeConversation?conversationId(state.activeConversation):"",msgCid=getId(message.conversationId),sameConversation=activeId&&msgCid&&String(activeId)===String(msgCid),otherId=getId(state.activeOtherUser),sameDirect=otherId&&(String(senderId(message))===String(otherId)||String(receiverId(message))===String(otherId));
@@ -752,14 +756,230 @@ async function saveReceivedAssetById(id){const m=state.messages.find(x=>String(m
 function saveReceivedAsset(message){saveReceivedAssetById(messageId(message));}
 
 let cameraStream=null,cameraFacingMode="environment",cameraEnhanced=false,cameraFlashEnabled=false;
-async function openCameraCapture(){try{document.getElementById("cameraModal")?.classList.remove("hidden");cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:cameraFacingMode},audio:false});document.getElementById("cameraVideo").srcObject=cameraStream;}catch{document.getElementById("cameraInput")?.click();}}
-function closeCameraModal(){cameraStream?.getTracks().forEach(t=>t.stop());cameraStream=null;cameraFlashEnabled=false;document.getElementById("cameraModal")?.classList.add("hidden");}
-function openCameraGallery(){document.getElementById("cameraInput")?.click();}
-function toggleCameraEnhancement(){cameraEnhanced=!cameraEnhanced;document.getElementById("cameraVideo")?.style.setProperty("filter",cameraEnhanced?"contrast(1.06) saturate(1.08)":"none");document.querySelector(".camera-enhance")?.classList.toggle("active",cameraEnhanced);}
-async function toggleCameraFlash(){const track=cameraStream?.getVideoTracks?.()[0],capabilities=track?.getCapabilities?.()||{};if(!track||!capabilities.torch)return toast("Flash is not available on this camera");try{cameraFlashEnabled=!cameraFlashEnabled;await track.applyConstraints({advanced:[{torch:cameraFlashEnabled}]});document.getElementById("cameraFlashBtn")?.classList.toggle("active",cameraFlashEnabled);}catch{cameraFlashEnabled=false;toast("Unable to control the flash");}}
-async function switchCamera(){cameraFacingMode=cameraFacingMode==="environment"?"user":"environment";closeCameraModal();await openCameraCapture();}
-function captureCameraPhoto(){const v=document.getElementById("cameraVideo"),c=document.getElementById("cameraCanvas");if(!v||!c)return;c.width=v.videoWidth;c.height=v.videoHeight;const context=c.getContext("2d");if(cameraEnhanced)context.filter="contrast(1.06) saturate(1.08)";context.drawImage(v,0,0,c.width,c.height);c.toBlob(blob=>{if(!blob)return;const f=new File([blob],"camera-photo-"+Date.now()+".jpg",{type:"image/jpeg"});closeCameraModal();state.attachments=[];state.attachment=null;state.attachmentKind="image";addMediaReviewFiles([f]);openMediaReview();},"image/jpeg",.92);}
-function handleCameraCapture(files){const selected=normalizeSelectedFiles(files);closeCameraModal();state.attachments=[];state.attachment=null;state.attachmentKind=selected[0]?.type.startsWith("video/")?"video":"image";addMediaReviewFiles(selected);openMediaReview();}
+const cameraCapture={recorder:null,chunks:[],holdTimer:null,progressTimer:null,startedAt:0,pointerId:null,recording:false,discard:false,maxMs:60000};
+
+function stopChatMediaPlayback(){
+  document.querySelectorAll("#messagesBox video, #messagesBox audio").forEach(media=>{
+    try{media.pause();}catch{}
+  });
+  closeMediaViewer();
+  stopAttachmentPreviewPlayback();
+}
+
+function resetCameraCaptureUi(){
+  clearTimeout(cameraCapture.holdTimer);
+  clearInterval(cameraCapture.progressTimer);
+  cameraCapture.holdTimer=null;
+  cameraCapture.progressTimer=null;
+  cameraCapture.pointerId=null;
+  cameraCapture.recording=false;
+  cameraCapture.startedAt=0;
+  const shutter=document.getElementById("cameraShutter");
+  shutter?.classList.remove("pressed","recording");
+  shutter?.style.setProperty("--camera-record-progress","0deg");
+  document.getElementById("cameraModal")?.classList.remove("is-recording");
+  const label=document.getElementById("cameraModeLabel");
+  if(label)label.textContent="Photo";
+}
+
+function releaseCameraStream(){
+  cameraStream?.getTracks().forEach(track=>track.stop());
+  cameraStream=null;
+  const video=document.getElementById("cameraVideo");
+  if(video){video.pause();video.srcObject=null;}
+}
+
+async function openCameraCapture(){
+  stopChatMediaPlayback();
+  resetCameraCaptureUi();
+  cameraCapture.discard=false;
+  document.getElementById("cameraModal")?.classList.remove("hidden");
+  try{
+    try{
+      cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:cameraFacingMode},audio:true});
+    }catch(audioError){
+      cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:cameraFacingMode},audio:false});
+      toast("Microphone unavailable — video will be recorded without sound");
+    }
+    const video=document.getElementById("cameraVideo");
+    if(video){video.srcObject=cameraStream;await video.play().catch(()=>{});}
+  }catch{
+    document.getElementById("cameraModal")?.classList.add("hidden");
+    document.getElementById("cameraInput")?.click();
+  }
+}
+
+function closeCameraModal(){
+  cameraCapture.discard=true;
+  clearTimeout(cameraCapture.holdTimer);
+  if(cameraCapture.recorder?.state&&cameraCapture.recorder.state!=="inactive"){
+    try{cameraCapture.recorder.stop();}catch{}
+  }
+  releaseCameraStream();
+  resetCameraCaptureUi();
+  cameraFlashEnabled=false;
+  document.getElementById("cameraFlashBtn")?.classList.remove("active");
+  document.getElementById("cameraModal")?.classList.add("hidden");
+}
+
+function openCameraGallery(){
+  stopChatMediaPlayback();
+  closeCameraModal();
+  const input=document.getElementById("cameraInput");
+  if(input){input.value="";input.click();}
+}
+
+function toggleCameraEnhancement(){
+  cameraEnhanced=!cameraEnhanced;
+  document.getElementById("cameraVideo")?.style.setProperty("filter",cameraEnhanced?"contrast(1.06) saturate(1.08)":"none");
+  document.querySelector(".camera-enhance")?.classList.toggle("active",cameraEnhanced);
+}
+
+async function toggleCameraFlash(){
+  const track=cameraStream?.getVideoTracks?.()[0],capabilities=track?.getCapabilities?.()||{};
+  if(!track||!capabilities.torch)return toast("Flash is not available on this camera");
+  try{
+    cameraFlashEnabled=!cameraFlashEnabled;
+    await track.applyConstraints({advanced:[{torch:cameraFlashEnabled}]});
+    document.getElementById("cameraFlashBtn")?.classList.toggle("active",cameraFlashEnabled);
+  }catch{
+    cameraFlashEnabled=false;
+    toast("Unable to control the flash");
+  }
+}
+
+async function switchCamera(){
+  if(cameraCapture.recording)return;
+  cameraFacingMode=cameraFacingMode==="environment"?"user":"environment";
+  closeCameraModal();
+  await openCameraCapture();
+}
+
+function captureCameraPhoto(){
+  if(cameraCapture.recording)return;
+  const v=document.getElementById("cameraVideo"),c=document.getElementById("cameraCanvas");
+  if(!v||!c||!v.videoWidth)return toast("Camera is still starting");
+  c.width=v.videoWidth;c.height=v.videoHeight;
+  const context=c.getContext("2d");
+  if(cameraEnhanced)context.filter="contrast(1.06) saturate(1.08)";
+  context.drawImage(v,0,0,c.width,c.height);
+  c.toBlob(blob=>{
+    if(!blob)return;
+    const f=new File([blob],"aift-photo-"+Date.now()+".jpg",{type:"image/jpeg"});
+    closeCameraModal();
+    state.attachments=[];state.attachment=null;state.attachmentKind="image";
+    addMediaReviewFiles([f]);
+    openMediaReview();
+  },"image/jpeg",.92);
+}
+
+function cameraRecordingMimeType(){
+  return [
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm",
+    "video/mp4"
+  ].find(type=>window.MediaRecorder?.isTypeSupported?.(type))||"";
+}
+
+function updateCameraRecordingProgress(){
+  if(!cameraCapture.recording)return;
+  const elapsed=Math.min(cameraCapture.maxMs,Date.now()-cameraCapture.startedAt);
+  const degrees=(elapsed/cameraCapture.maxMs)*360;
+  document.getElementById("cameraShutter")?.style.setProperty("--camera-record-progress",degrees+"deg");
+  if(elapsed>=cameraCapture.maxMs)stopCameraRecording();
+}
+
+function finishCameraRecording(blob,mimeType){
+  const shouldDiscard=cameraCapture.discard||!blob?.size;
+  releaseCameraStream();
+  resetCameraCaptureUi();
+  document.getElementById("cameraModal")?.classList.add("hidden");
+  cameraCapture.recorder=null;
+  cameraCapture.chunks=[];
+  if(shouldDiscard)return;
+  const extension=mimeType.includes("mp4")?"mp4":"webm";
+  const file=new File([blob],"aift-video-"+Date.now()+"."+extension,{type:mimeType||"video/webm"});
+  state.attachments=[];state.attachment=null;state.attachmentKind="video";
+  addMediaReviewFiles([file]);
+  openMediaReview();
+}
+
+function startCameraRecording(){
+  if(cameraCapture.recording||!cameraStream||!window.MediaRecorder)return toast("Video recording is not supported on this device");
+  const mimeType=cameraRecordingMimeType();
+  try{
+    cameraCapture.discard=false;
+    cameraCapture.chunks=[];
+    cameraCapture.recorder=new MediaRecorder(cameraStream,mimeType?{mimeType}:undefined);
+    cameraCapture.recorder.addEventListener("dataavailable",event=>{if(event.data?.size)cameraCapture.chunks.push(event.data);});
+    cameraCapture.recorder.addEventListener("stop",()=>{
+      const outputType=cameraCapture.recorder?.mimeType||mimeType||"video/webm";
+      const blob=new Blob(cameraCapture.chunks,{type:outputType});
+      finishCameraRecording(blob,outputType);
+    },{once:true});
+    cameraCapture.recorder.start(250);
+    cameraCapture.recording=true;
+    cameraCapture.startedAt=Date.now();
+    document.getElementById("cameraShutter")?.classList.add("recording");
+    document.getElementById("cameraModal")?.classList.add("is-recording");
+    const label=document.getElementById("cameraModeLabel");
+    if(label)label.textContent="Recording";
+    cameraCapture.progressTimer=setInterval(updateCameraRecordingProgress,50);
+  }catch(error){
+    resetCameraCaptureUi();
+    toast(error.message||"Unable to start recording");
+  }
+}
+
+function stopCameraRecording(){
+  clearTimeout(cameraCapture.holdTimer);
+  cameraCapture.holdTimer=null;
+  if(cameraCapture.recorder?.state&&cameraCapture.recorder.state!=="inactive"){
+    try{cameraCapture.recorder.stop();}catch{}
+  }
+}
+
+function cameraShutterPointerDown(event){
+  if(cameraCapture.recording||!cameraStream)return;
+  event.preventDefault();
+  const shutter=document.getElementById("cameraShutter");
+  cameraCapture.pointerId=event.pointerId;
+  shutter?.setPointerCapture?.(event.pointerId);
+  shutter?.classList.add("pressed");
+  clearTimeout(cameraCapture.holdTimer);
+  cameraCapture.holdTimer=setTimeout(startCameraRecording,220);
+}
+
+function cameraShutterPointerUp(event){
+  if(cameraCapture.pointerId!==null&&event.pointerId!==cameraCapture.pointerId)return;
+  event.preventDefault();
+  const wasRecording=cameraCapture.recording;
+  clearTimeout(cameraCapture.holdTimer);
+  cameraCapture.holdTimer=null;
+  document.getElementById("cameraShutter")?.classList.remove("pressed");
+  cameraCapture.pointerId=null;
+  if(wasRecording)stopCameraRecording();
+  else captureCameraPhoto();
+}
+
+function cameraShutterPointerCancel(event){
+  if(cameraCapture.pointerId!==null&&event.pointerId!==cameraCapture.pointerId)return;
+  clearTimeout(cameraCapture.holdTimer);
+  cameraCapture.holdTimer=null;
+  document.getElementById("cameraShutter")?.classList.remove("pressed");
+  cameraCapture.pointerId=null;
+  if(cameraCapture.recording)stopCameraRecording();
+}
+
+function handleCameraCapture(files){
+  const selected=normalizeSelectedFiles(files);
+  closeCameraModal();
+  state.attachments=[];state.attachment=null;
+  state.attachmentKind=selected[0]?.type.startsWith("video/")?"video":"image";
+  addMediaReviewFiles(selected);
+  openMediaReview();
+}
 
 let RTC_CONFIG={iceServers:[{urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]}]};
 async function loadRtcConfig(){try{const response=await fetch(API+"/api/rtc-config",{cache:"no-store"}),config=await response.json();if(response.ok&&Array.isArray(config?.iceServers)&&config.iceServers.length)RTC_CONFIG={iceServers:config.iceServers,iceCandidatePoolSize:8};}catch(error){console.warn("Using default RTC network configuration:",error.message);}}
@@ -885,6 +1105,8 @@ function bindEvents(){
   window.addEventListener("resize",()=>{if(window.innerWidth>760)showConversationSidebar();restoreLocalVideoPosition();});
 
   window.addEventListener("popstate",()=>{
+    stopChatMediaPlayback();
+    closeCameraModal();
     if(window.innerWidth>760 || !state.activeConversation)return;
 
     if(typeof window.discardVoiceRecordingForConversationSwitch==="function"){
