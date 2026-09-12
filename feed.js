@@ -82,8 +82,17 @@ reelObserver: null,
 reelActivePostId: null,
 reelScrollY: 0,
 reelPanelPostId: null,
+reelSkip: 0,
+reelHasMore: true,
+reelLoading: false,
+feedSeed: sessionStorage.getItem("aiftFeedSeed") || "",
 guestMode: false
   };
+
+  if (!state.feedSeed) {
+    state.feedSeed = String(Date.now()) + "-" + Math.random().toString(36).slice(2);
+    sessionStorage.setItem("aiftFeedSeed", state.feedSeed);
+  }
 
   function getToken() {
     return (
@@ -530,7 +539,38 @@ function unlockReelPageScroll(){
   window.scrollTo(0, savedY);
 }
 
-function openReelMode(postId){
+async function loadReelBatch({ reset = false } = {}){
+  if(state.guestMode || state.reelLoading || (!reset && !state.reelHasMore)) return false;
+
+  state.reelLoading = true;
+
+  if(reset){
+    state.reelSkip = 0;
+    state.reelHasMore = true;
+  }
+
+  try{
+    const data = await api(
+      `${API}/api/posts/feed?reels=1&skip=${state.reelSkip}&limit=20&seed=${encodeURIComponent(state.feedSeed)}`,
+      { headers: headers() }
+    );
+    const incoming = Array.isArray(data?.posts) ? data.posts : [];
+    state.posts = mergePosts([...state.posts, ...incoming]);
+    state.reelSkip += incoming.length;
+    state.reelHasMore = typeof data?.hasMore === "boolean" ? data.hasMore : incoming.length === 20;
+    return incoming.length > 0;
+  }catch(err){
+    console.warn("Reel recommendations failed:", err.message);
+    return false;
+  }finally{
+    state.reelLoading = false;
+  }
+}
+
+async function openReelMode(postId, refreshRecommendations = true){
+  if(refreshRecommendations && !state.guestMode){
+    await loadReelBatch({ reset: true });
+  }
   const videos = getVideoPosts();
 
   if(!videos.length) return;
@@ -681,7 +721,9 @@ modal.style.visibility = "visible";
     <section id="aiftReelPanel" class="aift-reel-panel"></section>
   `;
 
-lockReelPageScroll();
+if(!document.body.classList.contains("aift-reel-open")){
+  lockReelPageScroll();
+}
 
 modal.classList.add("show");
 
@@ -915,6 +957,16 @@ function observeReelVideos(){
         });
 
 state.reelActivePostId = postId;
+
+const slides = Array.from(document.querySelectorAll(".aift-reel-slide"));
+const activeIndex = slides.indexOf(slide);
+if(activeIndex >= slides.length - 3 && state.reelHasMore && !state.reelLoading){
+  loadReelBatch().then(added => {
+    if(added && document.getElementById("aiftReelViewer")?.classList.contains("show")){
+      openReelMode(postId, false);
+    }
+  });
+}
 
 document.querySelectorAll(".aift-reel-sound-pop").forEach(pop => {
   pop.classList.remove("show", "is-paused");
@@ -1265,7 +1317,7 @@ if (!state.guestMode) {
 
 let feedUrl = state.guestMode
   ? `${API}/api/posts/public?skip=${state.skip}&limit=${state.limit}&sort=${encodeURIComponent(state.sort || "recent")}`
-  : `${API}/api/posts?skip=${state.skip}&limit=${state.limit}&sort=${encodeURIComponent(state.sort || "recent")}`;
+  : `${API}/api/posts/feed?skip=${state.skip}&limit=${state.limit}&seed=${encodeURIComponent(state.feedSeed)}`;
 
 if(state.mode === "profile" && state.authorId){
   feedUrl = state.guestMode
@@ -1290,7 +1342,10 @@ if(state.mode === "group" && state.groupId){
 
       state.posts = reset ? incoming : mergePosts([...state.posts, ...incoming]);
       state.skip += incoming.length;
-      state.hasMore = incoming.length === state.limit;
+      state.hasMore =
+        typeof posts?.hasMore === "boolean"
+          ? posts.hasMore
+          : incoming.length === state.limit;
 
       renderFeedOnly();
 
