@@ -2,6 +2,20 @@
   "use strict";
 
   const API = "https://backend-1-9b6f.onrender.com";
+
+  function syncFamilyPageChrome(hidden){
+    document.body?.classList.toggle("family-fullscreen", Boolean(hidden));
+    if(window.top !== window){
+      window.top.postMessage({
+        type:"aift:dashboard-chrome",
+        hidden:Boolean(hidden)
+      }, location.origin);
+    }
+  }
+
+  syncFamilyPageChrome(true);
+  window.addEventListener("pagehide", () => syncFamilyPageChrome(false), { once:true });
+
   const $ = selector => document.querySelector(selector);
   const $$ = selector => Array.from(document.querySelectorAll(selector));
 
