@@ -401,6 +401,13 @@ a{
   }
 }
 </style>
+
+<style id="aift-public-profile-clean-style">
+@media(max-width:760px){
+  .mobile-bottom,.mobile-public-bottom,.aift-mobile-nav,.shared-mobile-nav,.jobs-bottom-bar{display:none!important}
+  html.aift-public-profile-clean,body.aift-public-profile-clean{padding-bottom:0!important}
+}
+</style>
 </head>
 
 <body class="loading-profile">
@@ -541,6 +548,7 @@ a{
   <button type="button" id="mobileGroupsBtn" class="hidden" onclick="openGroups()">Learning</button>
   <button type="button" id="mobileAiftFamilyBtn" class="hidden" onclick="openAiftFamily()">AIFT for Family</button>
   <button type="button" id="dashboardBtn" class="hidden" onclick="goDashboard()">Dashboard</button>
+  <button type="button" id="employerPublicLogoutBtn" class="hidden employer-public-logout" onclick="logoutEmployerAccount()">Logout</button>
 </div>
   </div>
 
@@ -2681,6 +2689,7 @@ function updateOwnerUI(){
   const mobileSavedBtn = document.getElementById("mobileSavedBtn");
   const mobileGroupsBtn = document.getElementById("mobileGroupsBtn");
   const mobileAiftFamilyBtn = document.getElementById("mobileAiftFamilyBtn");
+  const employerPublicLogoutBtn = document.getElementById("employerPublicLogoutBtn");
 
   const desktopEditBtn = document.getElementById("desktopCompanyEditBtn");
   const desktopShareBtn = document.getElementById("desktopCompanyShareBtn");
@@ -2704,7 +2713,8 @@ function updateOwnerUI(){
     desktopFollowBtn,
     mobileSavedBtn,
     mobileGroupsBtn,
-    mobileAiftFamilyBtn
+    mobileAiftFamilyBtn,
+    employerPublicLogoutBtn
   ].forEach(btn=>{
     btn?.classList.add("hidden");
   });
@@ -2734,6 +2744,7 @@ if(isOwner){
     editProfileBtn?.classList.remove("hidden");
     companyMoreBtn?.classList.remove("hidden");
     dashboardBtn?.classList.remove("hidden");
+    employerPublicLogoutBtn?.classList.remove("hidden");
   }else{
     desktopEditBtn?.classList.remove("hidden");
     desktopShareBtn?.classList.remove("hidden");
@@ -2822,7 +2833,16 @@ document.addEventListener("click",()=>{
 });
 function toggleCompanyMobileMenu(e){
   e?.stopPropagation();
-  document.getElementById("companyMobileMenu")?.classList.toggle("show");
+  const menu = document.getElementById("companyMobileMenu");
+  const button = document.getElementById("companyMoreBtn");
+  if(!menu || !button) return;
+  const opening = !menu.classList.contains("show");
+  menu.classList.toggle("show", opening);
+  if(opening){
+    const rect = button.getBoundingClientRect();
+    menu.style.top = `${Math.min(rect.bottom + 8, window.innerHeight - 90)}px`;
+    menu.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
+  }
 }
 
 document.addEventListener("click",()=>{
@@ -2840,6 +2860,19 @@ document.addEventListener("click",()=>{
 
 function goDashboard(){
   window.top.location.href = "employer.html";
+}
+
+function clearAiftAuthentication(){
+  ["token","authToken","aiftToken","employerToken","talentToken","agentToken","studentToken","teacherToken","schoolToken","adminToken","role","userId","employerOpenTab"].forEach(key => {
+    localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
+  });
+}
+
+function logoutEmployerAccount(){
+  document.getElementById("companyMobileMenu")?.classList.remove("show");
+  clearAiftAuthentication();
+  window.top.location.replace("login.html");
 }
 
 function goLogin(){
@@ -3305,5 +3338,23 @@ init();
 </div>
 
 <script src="aift-verified-partnerships-public.js" defer></script>
+
+<script>
+(function keepPublicProfileChromeClean(){
+  function hidePublicProfileNavigation(){
+    document.querySelectorAll(".mobile-bottom,.mobile-public-bottom,.aift-mobile-nav,.shared-mobile-nav,.jobs-bottom-bar").forEach(element => element.remove());
+    document.documentElement.classList.add("aift-public-profile-clean");
+    document.body?.classList.add("aift-public-profile-clean");
+    if(document.body) document.body.style.setProperty("padding-bottom","0","important");
+    if(window.parent !== window){
+      window.parent.postMessage({type:"aift:dashboard-chrome",hidden:true},location.origin);
+    }
+  }
+  hidePublicProfileNavigation();
+  document.addEventListener("DOMContentLoaded",hidePublicProfileNavigation,{once:true});
+  window.addEventListener("pageshow",hidePublicProfileNavigation);
+  setTimeout(hidePublicProfileNavigation,300);
+})();
+</script>
 </body>
 </html>

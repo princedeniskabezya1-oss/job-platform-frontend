@@ -1302,6 +1302,13 @@ body.cv-viewer-open{
   }
 }
 </style>
+
+<style id="aift-public-profile-clean-style">
+@media(max-width:760px){
+  .mobile-bottom,.mobile-public-bottom,.aift-mobile-nav,.shared-mobile-nav,.jobs-bottom-bar{display:none!important}
+  html.aift-public-profile-clean,body.aift-public-profile-clean{padding-bottom:0!important}
+}
+</style>
 </head>
 
 <body>
@@ -2639,5 +2646,23 @@ init();
 
 <script src="feed.js"></script>
 
+
+<script>
+(function keepPublicProfileChromeClean(){
+  function hidePublicProfileNavigation(){
+    document.querySelectorAll(".mobile-bottom,.mobile-public-bottom,.aift-mobile-nav,.shared-mobile-nav,.jobs-bottom-bar").forEach(element => element.remove());
+    document.documentElement.classList.add("aift-public-profile-clean");
+    document.body?.classList.add("aift-public-profile-clean");
+    if(document.body) document.body.style.setProperty("padding-bottom","0","important");
+    if(window.parent !== window){
+      window.parent.postMessage({type:"aift:dashboard-chrome",hidden:true},location.origin);
+    }
+  }
+  hidePublicProfileNavigation();
+  document.addEventListener("DOMContentLoaded",hidePublicProfileNavigation,{once:true});
+  window.addEventListener("pageshow",hidePublicProfileNavigation);
+  setTimeout(hidePublicProfileNavigation,300);
+})();
+</script>
 </body>
 </html>
