@@ -428,36 +428,52 @@
 }
     }
 
-function redirectAfterLogin(){
+function storedAuthToken(){
   const role = String(localStorage.getItem("role") || "").toLowerCase();
-
-if(role === "school"){
-  window.location.href = "home.html";
-  return;
+  return (
+    localStorage.getItem(role + "Token") ||
+    localStorage.getItem("token") ||
+    localStorage.getItem("studentToken") ||
+    localStorage.getItem("teacherToken") ||
+    localStorage.getItem("schoolToken") ||
+    localStorage.getItem("employerToken") ||
+    localStorage.getItem("talentToken") ||
+    localStorage.getItem("agentToken") ||
+    localStorage.getItem("adminToken") ||
+    ""
+  );
 }
 
-  if(role === "employer"){
-    window.location.href = "home.html";
-    return;
+function loginDestination(){
+  const requested = new URLSearchParams(location.search).get("next");
+
+  if(requested){
+    try{
+      const target = new URL(requested, location.origin);
+      if(
+        target.origin === location.origin &&
+        !target.pathname.toLowerCase().endsWith("/login.html")
+      ){
+        return target.pathname.split("/").pop() + target.search + target.hash;
+      }
+    }catch{}
   }
 
-  if(role === "talent"){
-    window.location.href = "home.html";
-    return;
+  return String(localStorage.getItem("role") || "").toLowerCase() === "admin"
+    ? "admin.html"
+    : "home.html";
+}
+
+function redirectAfterLogin(){
+  window.location.replace(loginDestination());
+}
+
+window.addEventListener("pageshow", () => {
+  if(storedAuthToken()){
+    window.location.replace(loginDestination());
   }
+});
 
-if(role === "agent"){
-  window.location.href = "home.html";
-  return;
-}
-
-if(role === "admin"){
-  window.location.href = "admin.html";
-  return;
-}
-
-  window.location.href = "home.html";
-}
     function previewAIFT(){
   sessionStorage.setItem("aiftGuestPreview", "true");
   sessionStorage.setItem("aiftGuestStartedAt", String(Date.now()));
