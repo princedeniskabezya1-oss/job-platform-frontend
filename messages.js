@@ -27,7 +27,7 @@ function getToken(){
 function requireAuth(){
   state.role = getRole(); state.token = getToken();
   if(state.token) return true;
-  window.location.href = "login.html?next=" + encodeURIComponent("messages.html" + window.location.search);
+  window.location.replace("login.html?next=" + encodeURIComponent("messages.html" + window.location.search));
   return false;
 }
 function authHeaders(extra={}){ return { ...(state.token ? {Authorization:"Bearer " + state.token} : {}), ...extra }; }
@@ -203,6 +203,19 @@ async function setConversationFilter(filter,button){state.conversationFilter=fil
 
 async function openConversation(id){
   if(!id)return;
+
+  const targetHistoryId=String(id);
+  if(
+    window.innerWidth<=760 &&
+    String(history.state?.aiftConversation || "")!==targetHistoryId
+  ){
+    history.pushState(
+      { ...(history.state || {}), aiftConversation:targetHistoryId },
+      "",
+      location.href
+    );
+  }
+
   if(typeof window.discardVoiceRecordingForConversationSwitch==="function")window.discardVoiceRecordingForConversationSwitch();
   saveActiveConversationDraft({refreshList:false});
   const targetId=String(id),openToken=++state.conversationOpenToken;rememberConversationOpened(targetId);const cached=state.conversations.find(item=>String(conversationId(item))===targetId)||null;
@@ -633,6 +646,24 @@ function bindEvents(){
   const box=getMessagesBox();if(box)box.addEventListener("scroll",()=>{updateJumpButtonFromScroll();if(box.scrollTop<80)loadOlderMessages();positionMessageReactionBar();});
   document.addEventListener("click",e=>{const menu=document.getElementById("attachmentMenu");if(menu&&!menu.contains(e.target)&&!e.target.closest(".composer-icon"))menu.classList.add("hidden");if(!e.target.closest(".call-start-wrap"))closeCallStartMenu();if(!e.target.closest(".sidebar-header-actions")&&!e.target.closest("#createChatMenu"))closeCreateChatMenu();if(!e.target.closest("#selectionMoreMenu")&&!e.target.closest(".message-action-bar"))closeSelectionMoreMenu();if(!e.target.closest("#chatMoreMenu")&&!e.target.closest("#chatMoreBtn"))closeChatMoreMenu();const drawer=document.getElementById("chatInfoDrawer");if(drawer&&!drawer.classList.contains("hidden")&&e.target===drawer)closeChatInfo();const modal=document.getElementById("confirmModal");if(modal&&!modal.classList.contains("hidden")&&e.target===modal)closeConfirmModal();});
   window.addEventListener("resize",()=>{if(window.innerWidth>760)showConversationSidebar();restoreLocalVideoPosition();});
+
+  window.addEventListener("popstate",()=>{
+    if(window.innerWidth>760 || !state.activeConversation)return;
+
+    if(typeof window.discardVoiceRecordingForConversationSwitch==="function"){
+      window.discardVoiceRecordingForConversationSwitch();
+    }
+
+    saveActiveConversationDraft({refreshList:false});
+    state.conversationOpenToken++;
+    state.activeConversation=null;
+    state.activeOtherUser=null;
+    state.messages=[];
+    state.activeCallLogs=[];
+    showConversationSidebar();
+    showEmptyState();
+    renderConversations();
+  });
 }
 async function openInitialTarget(){const storyId=params.get("story")||params.get("storyId");if(storyId){showEmptyState();setTimeout(()=>openStoryReplyFromMessage(storyId),120);return;}if(initialConversationId){try{await openConversation(initialConversationId);return;}catch{}}const uid=initialUserId||initialConversationId;if(uid){try{const c=await apiJSON("/api/conversations/direct","POST",{userId:uid});await loadConversations();await openConversation(conversationId(c));return;}catch(e){toast(e.message||"Unable to open conversation");}}showEmptyState();}
 async function initMessagesPage(){if(!requireAuth())return;bindEvents();try{await Promise.all([loadMe(),loadRtcConfig()]);loadConversationDrafts();loadOpenedConversations();connectSocket();await Promise.all([loadConversations(),loadCallLogs()]);renderConversations();await openInitialTarget();}catch(e){console.error("MESSAGES INIT ERROR:",e);toast(e.message||"Unable to load messages");showEmptyState();}}
